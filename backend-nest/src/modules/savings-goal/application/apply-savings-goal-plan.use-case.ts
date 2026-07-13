@@ -68,7 +68,6 @@ export class ApplySavingsGoalPlanUseCase {
     user: AuthenticatedUser,
   ): Promise<SavingsGoalPlanApplyResult> {
     const goal = await this.repo.findById(id);
-    if (dto.templateAdjustments?.length) this.throwLineInvalid();
     const payDayOfMonth = await this.repo.findPayDayOfMonth();
     // The current cycle stays editable while unchecked; everything strictly
     // before it is locked. Same period helper the client simulates with.
@@ -118,8 +117,7 @@ export class ApplySavingsGoalPlanUseCase {
     // Invalidate ONCE, post-RPC, pre-recalc: the plan touched budget lines.
     await this.cacheService.invalidateForUser(user.id);
 
-    // Recalculate only the touched budgets (rollover is derived at read; the
-    // template leg touches no generated budget → no recalc).
+    // Recalculate only the touched budgets (rollover is derived at read).
     await this.recalculateAfterCommit(result.touchedBudgetIds, id, user.id);
 
     this.logger.info(

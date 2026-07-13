@@ -13,7 +13,7 @@ ios/PulpeTests/Features/SavingsGoals/
 └── SavingsGoalsIntroGateTests.swift        ✅ test unitaire de la fonction pure du gate
 
 ios/Pulpe/Features/SavingsGoals/Intro/
-├── SavingsGoalsIntroCover.swift            ✏️ #Preview (3 pages) + passe motion/a11y
+├── SavingsGoalsIntroCover.swift            ✏️ #Preview (2 pages) + passe motion/a11y
 └── SavingsGoalsIntroPage.swift             ✏️ VoiceOver labels + reduce-motion final
 ```
 
@@ -31,9 +31,9 @@ Aucune création de fichier de prod (tout est posé en phase 1). Cette phase dur
 
 > Lisible au clavier / VoiceOver, pas de piège de focus.
 
-1. Chaque page : `accessibilityElement(children: .combine)` sur hero+titre+corps, label parlé = titre + corps.
-2. Bouton primaire et « Passer » atteignent `DesignTokens.TapTarget.minimum`.
-3. Indicateur de page : `accessibilityLabel("Page \(i) sur 3")`, non focusable individuellement.
+1. Chaque page expose l'aperçu puis le bloc titre+corps : la carte a un label explicite, chaque `GoalPlanMonthRow` conserve son label, et titre+caption sont combinés en `"\(title). \(caption)"`.
+2. Bouton primaire, « Passer » et « Plus tard » atteignent `DesignTokens.TapTarget.minimum`.
+3. Indicateur de page : `accessibilityLabel("Page \(selection + 1) sur \(pageCount)")` avec `pageCount = 2`, non focusable individuellement.
 
 ### `3)` Motion (revu apple-design + emil-design-eng)
 
@@ -49,15 +49,15 @@ Aucune création de fichier de prod (tout est posé en phase 1). Cette phase dur
 
 > Build vert + captures pour la PR.
 
-1. `#Preview` du cover (les 3 pages) pour revue visuelle.
+1. `#Preview` du cover (les 2 pages) pour revue visuelle.
 2. Build ciblé `-configuration Local` (cf. mémoire : projet sans config `Debug`) + suite unitaire verte.
-3. Captures light + dark des 3 pages (simulateur) pour la description de PR.
+3. Captures light + dark des 2 pages (simulateur) pour la description de PR.
 
 ## Test acceptance criteria
 
 | Task | Acceptance criteria                                                                                              |
 | ---- | --------------------------------------------------------------------------------------------------------------- |
 | 1    | Le test du gate passe (2 assertions).                                                                            |
-| 2    | VoiceOver annonce titre+corps par page ; tap targets ≥ minimum ; l'indicateur n'aspire pas le focus.            |
+| 2    | VoiceOver annonce l'aperçu puis titre+corps sur chaque page ; tap targets ≥ minimum ; l'indicateur n'aspire pas le focus. |
 | 3    | Reduce-motion = fondu opacité (pas d'apparition sèche ni de slide) ; entrée/avance via tokens ; pas de `scale(0)`/`ease-in` ; CTA sans scale ajouté ; lisible light+dark. |
-| 4    | `#Preview` rend les 3 pages ; build `Local` vert ; suite unitaire verte ; captures light+dark produites.        |
+| 4    | `#Preview` rend les 2 pages ; build `Local` vert ; suite unitaire verte ; captures light+dark produites.        |

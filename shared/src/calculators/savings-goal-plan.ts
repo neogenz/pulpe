@@ -154,6 +154,7 @@ export function buildSavingsGoalTimeline(
     const isProvisionable =
       !hasLines &&
       !isLocked &&
+      index <= indexTarget &&
       materializedPeriodIndices != null &&
       !materializedPeriodIndices.has(index) &&
       input.canProvisionMissingPeriods === true;

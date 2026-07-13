@@ -88,7 +88,6 @@ describe('GoalPlanSimulatorStore', () => {
   const selectedGoalSig = signal<SavingsGoal | null>(makeGoal());
   const applyPlan = vi.fn().mockResolvedValue({
     updatedLines: [],
-    updatedTemplateLineIds: [],
   });
 
   beforeEach(() => {

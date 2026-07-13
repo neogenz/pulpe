@@ -168,7 +168,6 @@ export class SavingsGoalController {
       success: true,
       data: {
         updatedLines: result.updatedLines,
-        updatedTemplateLineIds: result.updatedTemplateLineIds,
       },
     };
   }

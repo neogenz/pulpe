@@ -113,19 +113,12 @@ export interface SavingsGoalContribution {
 /** One line-scoped month adjustment of an applied plan (PUL-12, §4.3). */
 export type SavingsGoalPlanMonthAdjustment =
   SavingsGoalPlanApply['monthAdjustments'][number];
-/** One template-line adjustment of an applied plan (Mois Type horizon). */
-export type SavingsGoalPlanTemplateAdjustment = NonNullable<
-  SavingsGoalPlanApply['templateAdjustments']
->[number];
 
 /**
  * Result of applying a plan (PUL-12). `updatedLines` are the decrypted budget
- * lines the RPC rewrote; `touchedBudgetIds` drives the post-commit recalc;
- * `updatedTemplateLineIds` echoes the template lines that were adjusted (all of
- * them on success — the RPC is all-or-nothing).
+ * lines the RPC rewrote; `touchedBudgetIds` drives the post-commit recalc.
  */
 export interface SavingsGoalPlanApplyResult {
   updatedLines: BudgetLine[];
   touchedBudgetIds: string[];
-  updatedTemplateLineIds: string[];
 }

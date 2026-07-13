@@ -66,7 +66,6 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
       applyPlan: jest.fn().mockResolvedValue({
         updatedLines: [],
         touchedBudgetIds: periods.map((_, index) => `budget-${index}`),
-        updatedTemplateLineIds: [],
       }),
     };
     provisioning = {
@@ -117,7 +116,6 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
           ...item,
           amount: 1000,
         })),
-        templateAdjustments: [],
       },
       user,
     );
@@ -141,7 +139,6 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
         {
           monthAdjustments: [],
           missingMonthAdjustments: [{ ...periods[2], amount: 1000 }],
-          templateAdjustments: [],
         },
         user,
       ),
@@ -164,7 +161,6 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
         {
           monthAdjustments: [],
           missingMonthAdjustments: [{ ...periods[2], amount: 1000 }],
-          templateAdjustments: [],
         },
         user,
       ),
@@ -183,7 +179,6 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
         {
           monthAdjustments: [],
           missingMonthAdjustments: [{ ...periods[2], amount: 1000 }],
-          templateAdjustments: [],
         },
         user,
       ),
@@ -204,7 +199,6 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
         {
           monthAdjustments: [],
           missingMonthAdjustments: [{ ...afterTarget, amount: 1000 }],
-          templateAdjustments: [],
         },
         user,
       ),
@@ -228,7 +222,6 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
             ...item,
             amount: 1000,
           })),
-          templateAdjustments: [],
         },
         user,
       ),
@@ -248,7 +241,6 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
         {
           monthAdjustments: [],
           missingMonthAdjustments: [{ ...periods[2], amount: 1000 }],
-          templateAdjustments: [],
         },
         user,
       ),

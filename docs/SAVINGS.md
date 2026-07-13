@@ -30,7 +30,7 @@ Entrée produit : sur iOS, **Objectifs** est un tab principal permanent, parce q
 | `user_id` | uuid | RLS par user |
 | `name` | text | libellé objectif |
 | `target_amount` | text | **chiffré AES-256-GCM** (cf. `docs/ENCRYPTION.md`) |
-| `target_date` | date | échéance ; à la création, `z.iso.date()` + `.refine(d => d >= today)` (**pas** `.min()` — en Zod 4, `.min()` sur une string ISO mesure la **longueur**, pas la date) |
+| `target_date` | date | échéance ; à la création, `z.iso.date()` + `.refine(d => d >= today)` (**pas** `.min()` — en Zod 4, `.min()` sur une string ISO mesure la **longueur**, pas la date) ; au plus la **120e période**, mois courant inclus |
 | `status` | enum | `ACTIVE` / `COMPLETED` / `PAUSED` (cf. §6) |
 | `priority` | enum (nullable, **dormante**) | **retirée du produit** — voir ci-dessous |
 | colonnes FX | text/null | **dormantes** en v1, porte multi-devise ouverte (cf. §8) |
@@ -231,6 +231,7 @@ Door-keepers (PUL-12), à brancher dès l'introduction de la feature :
 | **iOS `BudgetLineUpdate`** | Le DTO Swift doit porter `savingsGoalId` — sans lui, iOS ne peut pas taguer en édition (côté shared/web le champ est déjà hérité de `create` via `.partial()`). |
 | **Changement de `kind`** | `kind ≠ saving` ⇒ `savingsGoalId = null` ; la progression re-filtre toujours `kind=saving`. |
 | **`target_date` à la création** | Schéma durci : `z.iso.date()` + min aujourd'hui. Une date passée est refusée. |
+| **Horizon maximal** | Création et modification refusent une échéance après la 120e période, mois courant inclus. La timeline et le payload d'application sont bornés au même horizon. |
 | **Pointage anticipé (mois futur)** | On fait confiance au geste (KISS). Edge connu, documenté. |
 | **Multi-objectif** | 1 Prévision = 1 objectif (FK simple) ; splitter = Prévisions distinctes. |
 | **Régénération mensuelle** | Le lien survit via `template_line.savings_goal_id` (génération + propagation RG-001, budgets ajustés protégés). |

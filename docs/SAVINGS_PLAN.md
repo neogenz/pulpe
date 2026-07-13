@@ -25,7 +25,7 @@ C'est la matérialisation concrète de la promesse déjà inscrite en PUL-285 (�
 | **Loi de Tesler** (la complexité se déplace, ne disparaît pas) | La redistribution de l'effort et l'allocation multi-lignes sont **absorbées par le système**, jamais posées sur l'utilisateur. |
 | **Contrôle** (pilier DA) | Sandbox local → récap explicite → écriture. Revert à tout moment. Rien n'est modifié sans accord. |
 | **Effet IKEA** | L'utilisateur **façonne** son plan (slider, édition par mois) → il le valorise et s'y tient. |
-| **Ancrage** | Le slider s'ouvre **pré-rempli** avec `required` (le montant qui tient l'échéance) — l'utilisateur ajuste depuis une référence saine. |
+| **Ancrage** | Le slider s'ouvre sur le **plan mensuel réel** ; `required` reste visible comme repère « pour tenir l'échéance ». Le verdict correspond ainsi au brouillon affiché dès l'ouverture. |
 | **Loi de Hick** | Un seul CTA primaire par état d'écran. Le mode simulation concentre l'action ; le mode lecture concentre la compréhension. |
 
 ---
@@ -81,17 +81,18 @@ Le chart matérialise en 3 secondes ce que le pace chip dit en mots. Quatre sér
 
 **Fenêtrage** (défaut) : dernier mois verrouillé (contexte « tu en es là ») + 3 mois ouverts + « Voir tout le plan (N mois) ». Une liste de 24-96 rows explose le budget de 30 s. Auto-expand quand la simulation démarre.
 
-**Règle de verrouillage** : cycles **strictement passés** OU toute ligne du mois **pointée** (`checkedAt != null`). Le **cycle courant reste éditable s'il n'est pas pointé** (il est contributif — `monthsRemaining` l'inclut).
+**Règle de verrouillage** : cycles **strictement passés** OU mois dont **toutes** les lignes liées sont pointées (`checkedAt != null`). Dans un mois partiellement pointé, seules les lignes restantes sont ajustables. Le **cycle courant reste éditable** tant qu'il porte une ligne non pointée.
 
 **Mois particuliers** :
 
 | `state` | Affichage | Éditable ? |
 |---|---|---|
-| `gap` (aucune ligne liée / budget non généré) | Row présente (le cumulé doit rester continu), chip « Pas de budget » | Non en v1. Hint sous la liste : « N mois sans budget — ils s'ajouteront quand tu créeras ces budgets. » |
+| `gap` avec budget matérialisé mais sans ligne liée | Row présente (le cumulé doit rester continu), chip « Pas de prévision liée » | Non ; ce gap bloque la redistribution globale. |
+| `gap` sans budget, provisionnable | Row « Pas de budget » | Oui collectivement (slider / réajuster) ; le budget sera créé à la confirmation. |
+| `gap` sans budget, non provisionnable | Row « Pas de budget » | Non ; ce gap bloque la redistribution globale. |
 | `future` avec ligne matérialisée | Row normale | Oui (par mois + slider global) |
-| Horizon **Mois type** (au-delà du dernier budget généré) | Row + chip « Mois type », affiche `templateAmount` | Éditable **collectivement** seulement (slider global / réajuster) — pas de `budget_line` à PATCH individuellement |
 
-> **⚠️ Report v1 — surfaçage horizon-template différé.** `buildSavingsGoalTimeline` ne bucketise que les `budget_line` : les mois horizon-template reviennent en `state: 'gap'` (indistinguables d'un vrai gap, sans `templateAmount`). En v1, les deux clients **dégradent** ces mois vers le chip « Pas de budget » et n'envoient **pas** de `templateAdjustments` (chip « Mois type » + toggle « Mettre à jour mon Mois Type » masqués, dialog d'apply simplifié). Le **contrat d'écriture reste forward-compatible** : la RPC `apply_savings_goal_plan` gère déjà le leg `templateAdjustments` (testé), donc surfacer l'horizon-template plus tard = additif (le builder shared doit recevoir les `template_line` liées + la borne du dernier budget généré et émettre un marqueur ; nouveau select repo côté backend). Voir §9 (suivi).
+Un mois absent est `isProvisionable=true` seulement si sa période est courante ou future, dans l'échéance et l'horizon de 120 périodes, qu'aucun budget n'existe déjà pour cette période, et que le Mois Type par défaut contient une Prévision Épargne liée à l'objectif. Il entre alors dans l'**horizon contributif provisionnable**, au même titre qu'un mois matérialisé ouvert. Aucun montant du Mois Type n'est modifié par l'application du plan.
 
 ---
 
@@ -100,17 +101,17 @@ Le chart matérialise en 3 secondes ce que le pace chip dit en mots. Quatre sér
 **Intention** : #9 (redistribution). **Douleur** : D5. Le cœur de valeur.
 
 **Entrée** :
-- CTA « **Ajuster mon plan** » (bouton *outlined* dans le header de la section timeline). Visible seulement si `status === 'ACTIVE' && linkedLineCount > 0 && openMonths ≥ 1`. Masqué pour PAUSED/COMPLETED (pas de jugement de rythme → pas d'édition de plan, cohérent avec `paceStatus = null`).
-- Le stat « **Pour tenir ton échéance — X/mois** » devient **actionnable** → ouvre la simulation pré-remplie avec `required` (ancrage).
+- CTA « **Ajuster mon plan** » (bouton *outlined* dans le header de la section timeline). Visible seulement si `status === 'ACTIVE' && linkedLineCount > 0 && contributiveMonths ≥ 1`, où un mois contributif est matérialisé ouvert ou absent provisionnable. Masqué pour PAUSED/COMPLETED.
+- Le stat « **Pour tenir ton échéance — X/mois** » reste un repère. Le CTA « Ajuster mon plan » ouvre le plan réel sans préremplissage à `required`.
 
 **Contenant** :
 - **Web** : mode **in-place** sur la page. Le chart et la timeline sont déjà rendus ; entrer en simulation bascule leur source de données vers le sandbox — l'utilisateur regarde la projection pointillée se déformer en direct. Les contributions se masquent ; une **sticky bar** apparaît en bas (« Annuler » texte / « Appliquer (N mois) » plein).
 - **iOS** : **sheet plein écran** `GoalPlanSimulatorSheet` (`.large` detent). Le détail est déjà une destination poussée ~390 LOC ; le modèle mental natif « éditer puis confirmer/annuler » est un sheet ; le dismiss = revert gratuit.
 
 **Contrôles** :
-- **Slider global + input numérique jumeau** — « Chaque mois, je mets ». Web : `MatSlider` (1er usage), `min=0`, `max = niceCeil(2 × max(required, pace, templateAmount))`, `step` 10 unités. iOS : `Slider` natif (1er usage, VoiceOver-adjustable), tinte `pulpePrimary`, `sensoryFeedback(.selection)` aux paliers. L'input jumeau est le chemin de **précision + a11y** (le lecteur d'écran tape ; les flèches clavier donnent ±step). **Bouger le slider écrase les overrides par mois** — la toolbar l'annonce (« remplace tes ajustements mois par mois »).
+- **Slider global + input numérique jumeau** — « Chaque mois, je mets », `min=0`, `step=10`, toujours actif même après un ajustement mensuel. Il s'ouvre sur le montant du plan réel ; `required` est un repère séparé. Un nouveau geste global écrase tous les overrides par mois. Web : `max = niceCeil(2 × max(required, pace, maxPlanned, 100))`, avec `maxPlanned` calculé sur toute la timeline et `niceCeil` au multiple de puissance de dix supérieur ; la valeur initiale est le premier mois contributif, arrondie à l'unité. iOS : `max = max(100, ceilTo100(2 × max(required, pace, maxOpenPlanned)))` ; un plan uniforme reste la valeur globale, un plan variable affiche « Montants variables » tout en gardant le slider pilotable. L'input jumeau reste le chemin de **précision + a11y**.
 - **Édition par mois** : tap sur une row ouverte → champ numérique inline. **Pas de drag-on-bar** (cibles trop petites pour le pouce — loi de Fitts) ni de steppers. Un champ numérique visible est la seule affordance qu'un non-tech parse en 3 s, et elle est nativement accessible.
-- **« Réajuster la suite »** = bouton *tonal* héro de la toolbar : « Répartir ce qu'il reste — {X}/mois ». Un tap remplit tous les mois ouverts. C'est le geste « soulagement ».
+- **« Réajuster la suite »** = bouton *tonal* héro de la toolbar : « Répartir ce qu'il reste — {X}/mois ». Un tap remplit tous les mois contributifs, matérialisés ouverts ou absents provisionnables. C'est le geste « soulagement ».
 
 **Feedback live** — sous le chart, une phrase verdict recalculée à chaque geste (< 16 ms) :
 - Cible tenue à l'échéance : « Avec ce plan, tu atteins ta cible en **juin 2027**. »
@@ -120,8 +121,8 @@ Le chart matérialise en 3 secondes ce que le pace chip dit en mots. Quatre sér
 Cette phrase est aussi l'annonce `aria-live="polite"` (débounce ~500 ms).
 
 **Application (apply-on-confirm)** :
-1. « Appliquer (N mois) » → **récap dialog** (web `MatDialog` ; iOS medium-detent sheet) : titre « **On met ton plan à jour ?** » ; corps = « N mois ajustés » + diff condensé (cas uniforme : « 600 → 450 CHF/mois sur 6 mois » ; cas mixte : liste avant→après jusqu'à 5 rows + « et N autres ») ; **checkbox « Mettre à jour mon Mois Type pour la suite »** affichée seulement si des mois horizon-template ont été touchés (default coché — décocher limite l'écriture aux budgets matérialisés) ; ligne de clôture = le verdict de projection.
-2. Confirm = loading button, écriture **pessimiste** (un seul appel atomique, cf. §5).
+1. « Appliquer (N mois) » → **récap dialog** (web `MatDialog` ; iOS medium-detent sheet) : titre « **On met ton plan à jour ?** » ; corps = « N mois ajustés » + diff condensé (cas uniforme : montant mensuel sur N mois ; cas mixte : liste avant→après jusqu'à 5 rows + « et N autres ») ; ligne de clôture = le verdict de projection. Aucun toggle Mois Type.
+2. Confirm = loading button, écriture **pessimiste** via un seul appel HTTP. Les budgets absents sont provisionnés avant la RPC atomique des montants (frontière détaillée en §6.1).
 3. Succès → invalidation des caches épargne **et** budgets → toast « **Ton plan est à jour** » → sortie du mode.
 
 **À surfacer à l'utilisateur** : une ligne appliquée passe `isManuallyAdjusted = true` → elle **ne suivra plus le Mois Type** (« cette prévision ne suivra plus ton Mois Type »). C'est voulu (un plan confirmé ne doit pas être silencieusement écrasé par une édition de template). Escape hatch existant : `reset-budget-line-from-template`.
@@ -189,7 +190,8 @@ export const savingsGoalPlanMonthSchema = z.object({
   month: z.number().int().min(1).max(12),
   year: z.number().int(),
   state: z.enum(['past', 'current', 'future', 'gap']),
-  isLocked: z.boolean(),           // période passée OU toute ligne liée du mois pointée
+  isLocked: z.boolean(),           // période passée OU toutes les lignes liées pointées
+  isProvisionable: z.boolean().optional(), // compat lecture ; true = budget absent provisionnable
   plannedAmount: z.number(),       // Σ line.amount des lignes épargne liées, ce mois
   confirmedAmount: z.number(),     // enveloppe checked-only pour ce mois
   plannedCumulative: z.number(),   // Σ courant plannedAmount, ancrage → ce mois
@@ -221,19 +223,21 @@ export const savingsGoalPlanApplySchema = z.strictObject({
     budgetLineId: z.uuid(),
     amount: z.number().nonnegative(),      // 0 = « je saute ce mois »
   })).max(MAX_PLAN_ADJUSTMENTS).default([]),
-  templateAdjustments: z.array(z.strictObject({
-    templateLineId: z.uuid(),
+  missingMonthAdjustments: z.array(z.strictObject({
+    month: z.number().int().min(1).max(12),
+    year: z.number().int(),
     amount: z.number().nonnegative(),
   })).max(MAX_PLAN_ADJUSTMENTS).default([]),
 })
-  .refine(v => v.monthAdjustments.length + v.templateAdjustments.length > 0, { error: 'Empty plan' })
-  .refine(/* ids uniques par tableau */, { error: 'Duplicate line in plan' });
+  .refine(v => v.monthAdjustments.length + v.missingMonthAdjustments.length > 0, { error: 'Empty plan' })
+  .refine(/* ids et périodes uniques par tableau */, { error: 'Duplicate line or period in plan' });
 
 export const savingsGoalPlanApplyResponseSchema = createSuccessResponse(z.object({
   updatedLines: z.array(budgetLineSchema),   // déchiffrées
-  updatedTemplateLineIds: z.array(z.uuid()),
 }));
 ```
+
+`monthAdjustments` cible les Prévisions matérialisées. `missingMonthAdjustments` cible une période absente marquée `isProvisionable`; le serveur crée d'abord son budget depuis le Mois Type par défaut, retrouve les lignes Épargne liées, puis répartit le montant mensuel sur ces lignes. Le plan ne possède aucun leg d'écriture du Mois Type.
 
 **Pas de clé d'idempotence** : contrairement au spread (un INSERT → besoin de `spreadGroupId` + replay-heal), c'est un **UPDATE-by-value** — un retry ré-écrit les mêmes montants (nouveaux ciphertexts AES-GCM déchiffrant les mêmes nombres) et re-pose les mêmes flags → état final identique, recalc idempotent. L'advisory lock ferme la course du double-tap. Plus simple que PUL-17 par construction — à documenter dans la JSDoc du use-case.
 
@@ -276,14 +280,15 @@ export function buildSavingsGoalTimeline(input: SavingsGoalProgressInput): Savin
 // Énumère periodIndex(ancrage)..periodIndex(cible) inclus ; bucket les lignes par (year, month)
 // (les lignes portent déjà leur période budget) ; confirmed par mois = calculateRealizedSavings scopé
 // aux lignes du mois ; cumulatifs courants. state past/current/future par index vs now ;
-// 'gap' quand zéro ligne liée (couvre aussi « budget existe mais ligne non taguée » — non ajustable).
+// 'gap' quand zéro ligne liée. isProvisionable distingue un budget réellement absent créable
+// depuis le Mois Type par défaut d'un budget existant sans ligne liée ou d'un gap non créable.
 
 // 2. Simulation — < 400 ms trivialement (tableau ≤ 120 entrées, aucun I/O).
 export function simulateSavingsPlan(input: {
   timeline: SavingsPlanTimelineMonth[];
   targetAmount: number;
-  adjustments: SavingsPlanAdjustment[];   // sparse ; cibler un mois locked/gap → THROW (révèle un bug UI en dev)
-  globalMonthlyAmount?: number;           // appliqué à chaque mois ouvert sans adjustment explicite
+  adjustments: SavingsPlanAdjustment[];   // sparse ; cibler un mois non contributif → THROW
+  globalMonthlyAmount?: number;           // appliqué à chaque mois contributif sans adjustment explicite
 }): SavingsPlanSimulationResult
 // Base par mois : locked (passé/pointé) → confirmedAmount (réalité) ; ouvert → adjustment ?? global ?? plannedAmount.
 // Résultat : mois simulés + simulatedFinal, gapToTarget (signé, jamais clampé), isTargetMet.
@@ -297,9 +302,11 @@ export function redistributeRemainingEffort(input: {
   pinnedAdjustments: SavingsPlanAdjustment[];   // mois explicitement fixés par l'utilisateur — tenus fixes
 }): { adjustments: SavingsPlanAdjustment[]; remainingEffort: number; perRemainingMonth: number; isDistributable: boolean }
 // remaining = max(0, targetAmount − Σ confirmedAmount(mois locked) − Σ pinned)
-// shares    = remaining === 0 ? zéros : splitTotalPreserving(remaining, openMonths.length)
+// contributive = mois matérialisés ouverts + mois absents isProvisionable
+// shares    = remaining === 0 ? zéros : splitTotalPreserving(remaining, contributiveNonPinned.length)
 //             (cents-exact, reste sur les PREMIERS mois ; splitTotalPreserving throw si total ≤ 0 → garder la garde)
-// isDistributable = false si 0 mois ouverts (overdue). Généralisation directe de PUL-290
+// isDistributable = false si un gap ouvert n'est pas provisionnable ou si aucun mois contributif non épinglé.
+// Généralisation directe de PUL-290
 // (remainingToProvision/perRemainingMonth), passée de la division flottante au split cents-exact.
 
 // 4. Mapping montant-mois → payload lignes (mois multi-lignes).
@@ -317,10 +324,11 @@ export function allocateMonthAmountToLines(
 |---|---|
 | Overdue / 0 mois ouvert | `isDistributable = false`, UI simulation désactivée (D1 : factuel, pas de jugement) |
 | `targetAmount ≤ 0` | Garde, jamais de division |
-| Pointage anticipé (mois futur pointé) | Verrouillé ; son `confirmedAmount` réduit `remaining` (trust-the-gesture, §4.3 SAVINGS.md) |
-| Déjà au-dessus de la cible | `remaining = 0` → tous les mois ouverts proposés à 0 |
-| Gap months | Exclus de la redistribution et de `monthAdjustments` ; ajustables via `templateAdjustments` seulement |
-| PAUSED | Simulation autorisée (advisory), aucun jugement de rythme — signalé dans la copy |
+| Pointage anticipé (mois futur pointé) | Une ligne pointée est exclue de l'allocation ; le mois entier est verrouillé seulement si toutes ses lignes le sont |
+| Déjà au-dessus de la cible | `remaining = 0` → tous les mois contributifs proposés à 0 |
+| Gap sans budget provisionnable | Inclus dans la redistribution et envoyé dans `missingMonthAdjustments` |
+| Gap matérialisé ou non provisionnable | Bloque la redistribution globale ; aucune écriture implicite |
+| PAUSED | Simulation masquée, comme pour COMPLETED |
 | Rollover de cycle entre simulate et apply | Serveur renvoie 409 (`Plan line in past period`), le client rebase |
 
 **Doctrine assumée** : la simulation client rompt la règle « les clients n'implémentent AUCUNE formule ». Mitigation identique à PUL-17 : **un** calculateur shared testé + **un** miroir Swift testé, le serveur reste autoritaire à l'écriture (il recalcule la progression après apply). À signaler dans la JSDoc du calculateur.
@@ -332,13 +340,16 @@ export function allocateMonthAmountToLines(
 ### 6.1 Use case `ApplySavingsGoalPlanUseCase` (savings-goal/application)
 
 1. `goal = repo.findById(id)` → 404 via RLS.
-2. `payDay = repo.findPayDayOfMonth()` ; `minPeriodIndex = periodIndex(getBudgetPeriodForDate(now, payDay))` — le **cycle courant est éditable s'il est non pointé** ; tout ce qui est strictement avant est verrouillé.
-3. `result = repo.applyPlan(goalId, monthAdjustments, templateAdjustments, minPeriodIndex)` — le repo possède le chiffrement + la RPC.
-4. `await cacheService.invalidateForUser(user.id)` **une seule fois**, post-RPC, pré-recalc.
-5. `Promise.all(touchedBudgetIds.map(id => budgetRecalculation.recalculate(id)))` via `BUDGET_RECALCULATION_PORT`, échec enrobé comme `recalculateAfterCommit` (sévérité critical, contexte partialFailure). **Pas de cascade** : le rollover est dérivé à la lecture (vérifié — `ending_balance` local par mois). Le leg template ne déclenche aucun recalc (n'affecte que des budgets non encore générés).
-6. Log `{ operation: 'savingsGoal.planApply', userId, savingsGoalId, updatedLineCount, templateLineCount }`.
+2. Calculer `minPeriodIndex` depuis le cycle payDay courant et `targetPeriodIndex` depuis l'échéance. Valider avant toute création que les lignes directes sont liées, non pointées et courantes/futures, et que les périodes absentes sont réellement non matérialisées, comprises entre le cycle courant et l'échéance, et dans les 120 périodes.
+3. Si des périodes manquent, exiger un Mois Type par défaut contenant une Prévision Épargne liée à l'objectif, puis appeler `ensureBudgetsForPeriods`. Chaque budget est créé depuis ce Mois Type dans sa **propre transaction courte**, idempotente ; toute période sautée fait échouer l'application.
+4. Relire les contributions matérialisées, répartir chaque montant de `missingMonthAdjustments` sur les lignes non pointées du nouveau budget, puis appeler `repo.applyPlan(goalId, allLineAdjustments, minPeriodIndex)`. Le repo chiffre les montants et la RPC met à jour toutes les Prévisions **en une transaction atomique**.
+5. Invalider le cache utilisateur après toute mutation, y compris sur les chemins d'échec ayant déjà provisionné un budget.
+6. Recalculer seulement les budgets touchés. Un échec après commit est un `partialFailure` critique : les montants restent écrits ; rejouer l'application ré-écrit les mêmes valeurs et relance les recalculs idempotents.
+7. Log `{ operation: 'savingsGoal.planApply', userId, savingsGoalId, updatedLineCount, provisionedMonthCount }`.
 
-Wiring module : `savings-goal.module.ts` gagne `CacheService`, `BUDGET_RECALCULATION_PORT`, `createInfoLoggerProvider`.
+Wiring module : `savings-goal.module.ts` utilise `CacheService`, `BUDGET_RECALCULATION_PORT`, `BUDGET_PROVISIONING_PORT`, `BUDGET_TEMPLATE_REPOSITORY` et `createInfoLoggerProvider`.
+
+**Frontière d'atomicité assumée** : le provisioning et l'application finale ne forment pas une méga-transaction. Les budgets créés avant une erreur de provisioning ou avant un échec de la RPC finale sont **conservés** et réutilisés au retry ; la RPC finale, elle, est tout-ou-rien sur les montants. Cette frontière limite la durée des verrous sur `monthly_budget` sans cacher l'état réellement persisté.
 
 ### 6.2 RPC `apply_savings_goal_plan` (nouvelle migration)
 
@@ -346,8 +357,7 @@ Wiring module : `savings-goal.module.ts` gagne `CacheService`, `BUDGET_RECALCULA
 CREATE OR REPLACE FUNCTION public.apply_savings_goal_plan(
   p_goal_id uuid,
   p_min_period_index int,              -- year*12+month du cycle payDay courant (calculé serveur ; payDay en user_metadata, inaccessible en SQL)
-  p_line_updates jsonb DEFAULT '[]',   -- [{budget_line_id uuid, amount text}]  amount = ciphertext AES-256-GCM, stocké tel quel
-  p_template_updates jsonb DEFAULT '[]'
+  p_line_updates jsonb DEFAULT '[]'    -- [{budget_line_id uuid, amount text}]  amount = ciphertext AES-256-GCM, stocké tel quel
 ) RETURNS SETOF public.budget_line
 LANGUAGE plpgsql SECURITY DEFINER SET search_path TO ''
 ```
@@ -359,7 +369,12 @@ Corps (pattern-copy de `20260626120000_spread_group_idempotency_guard.sql`) :
 ```sql
 WITH updated AS (
   UPDATE public.budget_line bl
-  SET amount = u.amount, is_manually_adjusted = true, updated_at = NOW()
+  SET amount = u.amount,
+      original_amount = NULL,
+      original_currency = NULL,
+      exchange_rate = NULL,
+      is_manually_adjusted = true,
+      updated_at = NOW()
   FROM jsonb_to_recordset(p_line_updates) AS u(budget_line_id uuid, amount text)
   JOIN public.monthly_budget mb ON mb.id = bl.budget_id
   WHERE bl.id = u.budget_line_id
@@ -375,8 +390,7 @@ WITH updated AS (
    - ligne manquante/étrangère/non liée/non saving → `'Plan line not linked'`
    - `checked_at IS NOT NULL` → `'Plan line already checked'`
    - période passée → `'Plan line in past period'`
-6. Leg template, même forme : `UPDATE public.template_line ... WHERE tl.savings_goal_id = p_goal_id AND tl.kind = 'saving' AND EXISTS (SELECT 1 FROM public.template t WHERE t.id = tl.template_id AND t.user_id = v_uid)` ; écart → `'Plan template line not linked'`. (Les changements de montant template **ne se propagent pas** automatiquement aux budgets déjà générés — la propagation reste un flow explicite séparé.)
-7. `RETURN QUERY SELECT * FROM updated;` puis `REVOKE ... FROM PUBLIC, anon; GRANT ... TO authenticated, service_role`.
+6. `RETURN QUERY SELECT * FROM updated;` puis `REVOKE ... FROM PUBLIC, anon; GRANT ... TO authenticated, service_role`. La RPC ne possède aucun paramètre ni UPDATE de `template_line`.
 
 L'UPDATE amount-only **ne déclenche pas** `enforce_savings_goal_line_link` (trigger sur `UPDATE OF savings_goal_id, kind, budget_id` — `is_manually_adjusted` non listé) → zéro overhead trigger par row.
 
@@ -387,14 +401,14 @@ Méthode repo `applyPlan` sur `SupabaseSavingsGoalRepository` : pour chaque ajus
 ```ts
 // savings-goal/infrastructure/persistence/schemas/rpc-payload.schemas.ts
 export const applySavingsGoalPlanLineSchema = z.object({ budget_line_id: z.uuid(), amount: z.string().min(1) }).strict();
-export const applySavingsGoalPlanTemplateLineSchema = z.object({ template_line_id: z.uuid(), amount: z.string().min(1) }).strict();
 // constantes de messages P0001 pincées à côté du contrat (couplage SQL↔TS greppable) :
 export const PLAN_LINE_NOT_LINKED_RPC_MESSAGE = 'Plan line not linked';
 export const PLAN_LINE_CHECKED_RPC_MESSAGE = 'Plan line already checked';
 export const PLAN_LINE_PAST_RPC_MESSAGE = 'Plan line in past period';
-export const PLAN_TEMPLATE_LINE_NOT_LINKED_RPC_MESSAGE = 'Plan template line not linked';
 ```
 + `.spec.ts` (payload valide / `.strict()` rejette les extras / uuid) et un test SQL épinglant les RAISE.
+
+Un montant simulé est exprimé dans la devise du compte. Son application remplace donc la provenance FX de la Prévision : `original_amount`, `original_currency` et `exchange_rate` sont remis à `NULL`; `target_currency` reste la devise d'affichage du budget. La contrainte de cohérence FX reste satisfaite et aucune ancienne conversion n'est présentée comme source du nouveau montant.
 
 ### 6.4 Taxonomie d'erreurs (mapping P0001 dans le repo, pattern `throwSpreadRpcError`)
 
@@ -404,14 +418,14 @@ export const PLAN_TEMPLATE_LINE_NOT_LINKED_RPC_MESSAGE = 'Plan template line not
 | `Plan line not linked` | `SAVINGS_GOAL_PLAN_LINE_INVALID` (nouveau) | 422 | refetch + resimule |
 | `Plan line already checked` | `SAVINGS_GOAL_PLAN_CONFLICT` (nouveau) | 409 | « Le plan a changé — resimule » |
 | `Plan line in past period` | `SAVINGS_GOAL_PLAN_CONFLICT` | 409 | idem (cycle basculé pendant la simulation) |
-| `Plan template line not linked` | `SAVINGS_GOAL_PLAN_LINE_INVALID` | 422 | refetch |
+| Précondition de provisioning non satisfaite | `SAVINGS_GOAL_PLAN_MONTH_UNPROVISIONABLE` | 422 | conserver le brouillon, expliquer que le mois ne peut pas être créé |
 | autre | `SAVINGS_GOAL_PLAN_APPLY_FAILED` (nouveau) | 500 | retry (idempotent) |
 
 ### 6.5 RG-001 / rollover / cache
 
 - **`isManuallyAdjusted = true`** : les lignes appliquées sortent de la propagation template **pour toujours** (garde RG-001 `bl.is_manually_adjusted = false` dans `apply_template_line_operations`). Voulu ; escape hatch = `reset-budget-line-from-template`. Documenté ici + surfacé dans l'UX.
 - **Rollover** : recalc des budgets touchés seulement (rollover dérivé à la lecture).
-- **Cache** : `invalidateForUser` exactement une fois, post-RPC, pré-recalc.
+- **Cache** : `invalidateForUser` après le succès de la RPC, mais aussi sur tout chemin d'échec ayant pu créer un budget avant l'erreur finale.
 
 ---
 
@@ -434,7 +448,7 @@ export const PLAN_TEMPLATE_LINE_NOT_LINKED_RPC_MESSAGE = 'Plan template line not
 | `feature/savings-goals/detail/components/goal-projection-chart.ts` + `.config.ts` (nouveau) | pilier A | M+M |
 | `.../goal-plan-timeline.ts` (nouveau) | pilier B (flag editable) | M |
 | `.../goal-plan-simulator-toolbar.ts` (nouveau) | slider + input jumeau + « Réajuster » + revert | M |
-| `.../goal-plan-apply-dialog.ts` (nouveau) | récap + checkbox template + loading confirm | M |
+| `.../goal-plan-apply-dialog.ts` (nouveau) | récap + loading confirm | M |
 | `detail/savings-goal-detail-page.ts` | nouvelles sections, plumbing mode, sticky bar ; **extraire** les contributions en `components/goal-contributions-list.ts` (fichier déjà à 640 lignes → plafond 300) | L |
 | `public/i18n/fr.json` | clés `savingsGoals.plan.*` + `savingsGoals.simulate.*` (tutoiement, DA) | S |
 
@@ -497,7 +511,6 @@ Team Pulpe, liées à l'epic Objectifs d'épargne. Estimations Fibonacci étendu
 
 ### Suivi v1+ (différé, non bloquant)
 
-- **Surfaçage horizon-template** (chip « Mois type » + toggle « Mettre à jour mon Mois Type » + write `templateAdjustments`) : nécessite d'étendre `buildSavingsGoalTimeline` avec les `template_line` liées + la borne du dernier budget généré, et un select repo dédié côté backend. La RPC d'écriture est déjà prête. Additif — aucune rework du chemin `monthAdjustments`. **~3** (shared + backend + un branchement UI par plateforme).
 - **Drag-on-bar** (ajuster un mois en tirant la barre du chart plutôt qu'un champ) : polish v2, rejeté en v1 (cibles trop petites — Fitts). Le slider global + champ inline couvrent le besoin.
 
 ---

@@ -121,9 +121,7 @@ struct SavingsGoalPlanApply: Encodable, Sendable {
     }
 }
 
-/// Response of the apply endpoint — the decrypted lines the server rewrote plus
-/// the template line ids it touched (drives the recap + cache invalidation).
+/// Response of the apply endpoint — the decrypted lines the server rewrote.
 struct SavingsGoalPlanApplyResult: Decodable, Sendable {
     let updatedLines: [BudgetLine]
-    let updatedTemplateLineIds: [String]
 }

@@ -384,7 +384,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     const touchedBudgetIds = [
       ...new Set(updatedLines.map((line) => line.budgetId)),
     ];
-    return { updatedLines, touchedBudgetIds, updatedTemplateLineIds: [] };
+    return { updatedLines, touchedBudgetIds };
   }
 
   private async toPlanRpcLine(

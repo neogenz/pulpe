@@ -86,7 +86,7 @@ final class MockSavingsGoalService: SavingsGoalServicing {
         lastApplyId = id
         lastApplyPayload = payload
         if let error { throw error }
-        return stubbedApplyResult ?? SavingsGoalPlanApplyResult(updatedLines: [], updatedTemplateLineIds: [])
+        return stubbedApplyResult ?? SavingsGoalPlanApplyResult(updatedLines: [])
     }
 
     func create(_ data: SavingsGoalCreate) async throws -> SavingsGoal {

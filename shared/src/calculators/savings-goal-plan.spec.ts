@@ -137,6 +137,22 @@ describe('buildSavingsGoalTimeline', () => {
     });
   });
 
+  it('should not provision a gap after the target when a later linked line extends the timeline', () => {
+    const timeline = buildSavingsGoalTimeline({
+      ...input,
+      targetDate: '2026-03-31',
+      now: new Date(2026, 0, 15),
+      lines: [savingLine({ month: 5, year: 2026 })],
+      materializedPeriods: [{ month: 5, year: 2026 }],
+      canProvisionMissingPeriods: true,
+    });
+
+    expect(timeline.find((month) => month.month === 4)).toMatchObject({
+      state: 'gap',
+      isProvisionable: false,
+    });
+  });
+
   it('should clamp invalid historical horizons to 120 periods', () => {
     const timeline = buildSavingsGoalTimeline({
       ...input,

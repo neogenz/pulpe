@@ -798,7 +798,6 @@ describe('SupabaseSavingsGoalRepository', () => {
       ).resolves.toEqual({
         updatedLines: [],
         touchedBudgetIds: [],
-        updatedTemplateLineIds: [],
       });
       expect(rpc).toHaveBeenCalledWith('apply_savings_goal_plan', {
         p_goal_id: '123e4567-e89b-12d3-a456-426614174001',

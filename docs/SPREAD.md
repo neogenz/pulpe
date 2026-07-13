@@ -77,6 +77,8 @@ Distinct du fan-out de création additif ci-dessus. Ici la source **existe déj�
 
 **Répartition (Σ = T garantie)** : `splitTotalPreserving(T, N)` (dans `pulpe-shared`, utilisée côté serveur **et** côté client pour l'aperçu live → l'aperçu égale toujours le persisté) répartit en **centimes** — `floor(T*100/N)` par tranche, le reste distribué un centime sur les **premières** tranches (M0 d'abord, jamais caché sur un mois lointain). `originalAmount` (FX) suit le même schéma. Le client n'envoie que les `periods` (mois cibles) ; le serveur lit `T` du montant **déchiffré** de la source (autorité unique → Σ=T ingarantissable côté client).
 
+**Rattachement à un objectif** : lisser une Prévision Épargne existante conserve son `savingsGoalId` sur **chaque tranche**. Le lissage remplace la forme temporelle de la Prévision, pas son intention d'épargne. Une transaction libre n'a pas de rattachement à conserver ; ses tranches restent donc non liées.
+
 **Fenêtre** : démarre à M0 vers le **futur** uniquement (jamais réécrire un mois clôturé). N ≥ 2 (lisser sur 1 mois = no-op).
 
 **Atomicité (renforcée vs le create additif)** : `delete(source)` + `insert(N tranches)` sont **une seule** transaction `SECURITY DEFINER` — la suppression de la source est **repliée dans la RPC** (`p_source_budget_line_id` / `p_source_transaction_id`). Le `DELETE` consomme et verrouille logiquement la source avant l'`INSERT` : un appel concurrent ou rejoué échoue avant de créer un second groupe. Toute erreur d'insertion rollbacke aussi la suppression. Après commit, chaque budget touché est recalculé une seule fois ; une erreur est signalée comme `partialFailure`, puis le cache utilisateur est invalidé.
@@ -87,7 +89,7 @@ Distinct du fan-out de création additif ci-dessus. Ici la source **existe déj�
 
 ## Hors scope V1 (différé)
 
-Édition « en bloc » de la série (changer T ou N d'un groupe d'un coup), compteur `Lissé · X/N` **inline sur la pill** (le tracker vit dans le panneau d'occurrences, pas sur la ligne du mois), `remaining` par occurrence, suppression du groupe entier, lissage rétroactif sur mois **passés**, lissage de revenu, réutilisation de `savingsGoal` (les tranches posent `savingsGoalId = null`), parité **iOS** (web-first ; iOS dans un ticket séparé).
+Édition « en bloc » de la série (changer T ou N d'un groupe d'un coup), compteur `Lissé · X/N` **inline sur la pill** (le tracker vit dans le panneau d'occurrences, pas sur la ligne du mois), `remaining` par occurrence, suppression du groupe entier, lissage rétroactif sur mois **passés**, lissage de revenu, parité **iOS** (web-first ; iOS dans un ticket séparé).
 
 ## Références
 

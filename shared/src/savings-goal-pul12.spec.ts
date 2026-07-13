@@ -140,8 +140,22 @@ describe('PUL-12 — savingsGoalUpdateSchema keeps PATCH semantics', () => {
   });
 });
 
-describe('PUL-12 — savingsGoalPlanApplySchema migration contract', () => {
-  test('accepts a typed web payload omitting the deprecated template leg', () => {
+describe('PUL-12 — savingsGoalPlanApplySchema final contract', () => {
+  test('rejects templateAdjustments as an unknown key', () => {
+    const result = savingsGoalPlanApplySchema.safeParse({
+      monthAdjustments: [{ budgetLineId: UUID, amount: 1000 }],
+      templateAdjustments: [],
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(
+        result.error.issues.some((issue) => issue.code === 'unrecognized_keys'),
+      ).toBe(true);
+    }
+  });
+
+  test('accepts a typed web payload with a materialized adjustment', () => {
     const input: SavingsGoalPlanApply = {
       monthAdjustments: [{ budgetLineId: UUID, amount: 1000 }],
       missingMonthAdjustments: [],
@@ -150,16 +164,7 @@ describe('PUL-12 — savingsGoalPlanApplySchema migration contract', () => {
     const result = savingsGoalPlanApplySchema.safeParse(input);
 
     expect(result.success).toBe(true);
-    if (result.success) expect(result.data.templateAdjustments).toEqual([]);
-  });
-
-  test('accepts materialized lines with the deprecated empty template leg', () => {
-    const result = savingsGoalPlanApplySchema.safeParse({
-      monthAdjustments: [{ budgetLineId: UUID, amount: 1000 }],
-      templateAdjustments: [],
-    });
-
-    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.missingMonthAdjustments).toEqual([]);
   });
 
   test('accepts missing budgets described by unique periods', () => {
@@ -169,25 +174,18 @@ describe('PUL-12 — savingsGoalPlanApplySchema migration contract', () => {
         { month: 8, year: 2026, amount: 1000 },
         { month: 9, year: 2026, amount: 1000 },
       ],
-      templateAdjustments: [],
     });
 
     expect(result.success).toBe(true);
   });
 
-  test('rejects duplicate missing periods and non-empty template adjustments', () => {
+  test('rejects duplicate missing periods', () => {
     expect(
       savingsGoalPlanApplySchema.safeParse({
         missingMonthAdjustments: [
           { month: 8, year: 2026, amount: 1000 },
           { month: 8, year: 2026, amount: 900 },
         ],
-        templateAdjustments: [],
-      }).success,
-    ).toBe(false);
-    expect(
-      savingsGoalPlanApplySchema.safeParse({
-        templateAdjustments: [{ templateLineId: UUID, amount: 1000 }],
       }).success,
     ).toBe(false);
   });

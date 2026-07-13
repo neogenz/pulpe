@@ -12,7 +12,7 @@ status: done
 ios/Pulpe/Features/SavingsGoals/
 ├── Intro/
 │   ├── SavingsGoalsIntroCover.swift        ✅ cover paginé (état, paging, chrome, callbacks, analytics)
-│   ├── SavingsGoalsIntroPage.swift         ✅ modèle d'une page + vue page réutilisable (hero symbol, titre, corps, entrée animée)
+│   ├── SavingsGoalsIntroPage.swift         ✅ modèle d'une page + vue page réutilisable (aperçu concret, titre, corps, entrée animée)
 │   └── SavingsGoalsIntroGate.swift         ✅ fonction pure `shouldPresentIntro(hasSeen:) -> Bool` (testable)
 └── SavingsGoalsListView.swift              ✏️ @AppStorage gate + `.fullScreenCover` au 1er appear + CTA → création
 
@@ -57,7 +57,7 @@ flowchart TD
 └────────────────────────────────────────┘
 ```
 
-1. « Passer » (pages 1-2 seulement) → marque vu + dismiss.
+1. « Passer » (page 1) / « Plus tard » (page 2) → marque vu + dismiss.
 2. Aperçu concret par page (carte objectif / lignes de plan réelles), pas une icône ; entrée animée (scale 0.92 + fade).
 3. Titre de page (`PulpeTypography.stepTitle`).
 4. Une ligne why/how, centrée, `Color.textTertiary` (`PulpeTypography.bodyLarge`).
@@ -68,8 +68,8 @@ flowchart TD
 
 | # | Aperçu (hero)                                                                                          | Titre                      | Caption                                                                  |
 | - | ----------------------------------------------------------------------------------------------------- | -------------------------- | ------------------------------------------------------------------------ |
-| 1 | `IntroGoalCardPreview` — carte objectif réaliste (nom, échéance, barre de progression, montant/cible) | Donne un cap à ton épargne | Fixe un objectif — une somme, une échéance — et suis-le sans calculer.    |
-| 2 | `IntroPlanPreview` — 3 `GoalPlanMonthRow` réels (mock) : pointé → ce mois → à venir, cumul qui monte  | Pulpe calcule ton rythme   | Pulpe répartit le montant mois par mois — et tu l'ajustes quand tu veux.  |
+| 1 | `IntroGoalCardPreview` — carte objectif réaliste (nom, échéance, barre de progression, montant/cible) | Ce projet, tu vas l'atteindre | Voyage, appart, coussin de sécurité… donne-lui un montant et une date. Pulpe garde le cap avec toi. |
+| 2 | `IntroPlanPreview` — 3 `GoalPlanMonthRow` réels (mock) : pointé → ce mois → à venir, cumul qui monte  | Et tu sauras toujours où tu en es | Chaque mois s'ajuste tout seul. Zéro calcul, zéro doute — juste ta progression qui monte. |
 
 > **Décision UX** : aperçus concrets plutôt qu'icône + slogan (retour utilisateur : l'icône-slogan « raconte sans montrer », on ne comprend pas). Le hero réutilise les vrais composants (`GoalPlanMonthRow`, `pulpeCard`, `PulpeChip`) avec données mock, montants dans la devise du user. Le **simulateur** et le **lien prévision→objectif** restent hors intro — non actionnables tant qu'aucun objectif n'existe (apple-design « montre le chemin commun d'abord »).
 
@@ -93,9 +93,9 @@ flowchart TD
 
 ### `3)` Cover paginé + chrome
 
-> Le conteneur immersif qui enchaîne les 3 pages.
+> Le conteneur immersif qui enchaîne les 2 pages.
 
-1. Créer `SavingsGoalsIntroCover.swift` : `TabView(selection:)` `.tabViewStyle(.page(indexDisplayMode: .never))` sur les 3 `IntroPage`, `@State currentIndex`. Le swipe entre pages est le paging natif `.page` — **interruptible + velocity de série** (apple-design §3), ne pas le ré-implémenter à la main.
+1. Créer `SavingsGoalsIntroCover.swift` : `TabView(selection:)` `.tabViewStyle(.page(indexDisplayMode: .never))` sur les 2 `IntroPage`, `@State currentIndex`. Le swipe entre pages est le paging natif `.page` — **interruptible + velocity de série** (apple-design §3), ne pas le ré-implémenter à la main.
 2. Overlay chrome : indicateur 2 points custom (dernier point = page courante) + bouton primaire bas. **Échappatoire toujours dispo** (apple-design §16 agency/wayfinding) : « Passer » haut-droite page 1, et sur la page 2 (dernière) une sortie discrète « Plus tard » à côté du CTA (l'utilisateur qui a déjà des objectifs, créés sur le web, ne doit pas être forcé de créer).
 3. Bouton primaire : « Suivant » avance `currentIndex` via `withAnimation(DesignTokens.Animation.stepTransition)` (token dédié aux transitions d'étape, pas `.smooth`) ; page 2 (dernière), libellé « Créer mon objectif » → `onComplete(createGoal: true)`. Press feedback déjà fourni par `.primaryButtonStyle()` (opacity-dim, idiome app) — **ne pas ajouter de `scale`** (romprait la cohérence).
 4. « Passer » / « Plus tard » → `onComplete(createGoal: false)` (skipped). Fond `pulpeBackground()` (sobre, authentifié), pas de brand-glow.

@@ -412,7 +412,6 @@ export const MAX_PLAN_ADJUSTMENTS = MAX_SAVINGS_GOAL_PLAN_PERIODS;
  * Requête d'application d'un plan simulé (`POST /savings-goals/:id/plan`,
  * docs/SAVINGS_PLAN.md §4.3). `monthAdjustments` = budgets matérialisés ;
  * `missingMonthAdjustments` = budgets absents à provisionner par période.
- * `templateAdjustments` est transitoire et n'accepte plus que `[]`.
  */
 export const savingsGoalPlanApplySchema = z
   .strictObject({
@@ -434,16 +433,6 @@ export const savingsGoalPlanApplySchema = z
         }),
       )
       .max(MAX_PLAN_ADJUSTMENTS)
-      .default([]),
-    /** @deprecated Supprimé quand tous les clients envoient le nouveau contrat. */
-    templateAdjustments: z
-      .array(
-        z.strictObject({
-          templateLineId: z.uuid(),
-          amount: z.number().nonnegative(),
-        }),
-      )
-      .max(0)
       .default([]),
   })
   .refine(
@@ -467,14 +456,12 @@ export const savingsGoalPlanApplySchema = z
     { error: 'Une période absente apparaît deux fois dans le plan.' },
   );
 type ParsedSavingsGoalPlanApply = z.infer<typeof savingsGoalPlanApplySchema>;
-/** Entrée tolérante pendant la migration; le schéma complète les champs absents. */
+/** Type d'entrée; le schéma complète la jambe absente avec un tableau vide. */
 export type SavingsGoalPlanApply = Omit<
   ParsedSavingsGoalPlanApply,
-  'missingMonthAdjustments' | 'templateAdjustments'
+  'missingMonthAdjustments'
 > & {
   missingMonthAdjustments?: ParsedSavingsGoalPlanApply['missingMonthAdjustments'];
-  /** @deprecated Toléré vide pendant la migration des clients. */
-  templateAdjustments?: ParsedSavingsGoalPlanApply['templateAdjustments'];
 };
 
 /**
@@ -1514,13 +1501,11 @@ export type SavingsGoalContributionsResponse = z.infer<
 
 /**
  * Réponse d'application d'un plan (`POST /savings-goals/:id/plan`) : les
- * prévisions mises à jour (déchiffrées) + les ids des lignes du Mois Type
- * touchées, pour que les clients rafraîchissent la progression.
+ * prévisions mises à jour (déchiffrées).
  */
 export const savingsGoalPlanApplyResponseSchema = createSuccessResponse(
   z.object({
     updatedLines: z.array(budgetLineSchema),
-    updatedTemplateLineIds: z.array(z.uuid()),
   }),
 );
 export type SavingsGoalPlanApplyResponse = z.infer<

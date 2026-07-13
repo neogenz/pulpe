@@ -14,7 +14,6 @@
  *   - only linked, non-checked, current-or-future saving lines are updated;
  *   - the touched budgets are handed to the recalculation port exactly once each;
  *   - a retried apply lands the same final state (UPDATE-by-value idempotency);
- *   - the deprecated template leg stays empty and rejects a non-empty payload.
  *
  * Encryption is stubbed (`enc:N` ↔ N) exactly like the sibling repo specs.
  *
@@ -438,13 +437,11 @@ describe('PUL-12 — plan apply (write) on local Supabase', () => {
           { budgetLineId: currentLineId, amount: 450 },
           { budgetLineId: futureLineId, amount: 350 },
         ],
-        templateAdjustments: [],
       },
       authUser,
     );
 
     expect(result.updatedLines).toHaveLength(2);
-    expect(result.updatedTemplateLineIds).toEqual([]);
     // Both touched budgets recalculated exactly once, no duplicates.
     expect(new Set(recalcCalls)).toEqual(
       new Set([currentBudgetId, futureBudgetId]),
@@ -478,7 +475,6 @@ describe('PUL-12 — plan apply (write) on local Supabase', () => {
             { budgetLineId: currentLineId, amount: 111 }, // valid
             { budgetLineId: checkedLineId, amount: 111 }, // pointé → RAISE
           ],
-          templateAdjustments: [],
         },
         authUser,
       );
@@ -505,7 +501,6 @@ describe('PUL-12 — plan apply (write) on local Supabase', () => {
         goalAId,
         {
           monthAdjustments: [{ budgetLineId: pastLineId, amount: 123 }],
-          templateAdjustments: [],
         },
         authUser,
       );
@@ -529,7 +524,6 @@ describe('PUL-12 — plan apply (write) on local Supabase', () => {
         goalAId,
         {
           monthAdjustments: [{ budgetLineId: unlinkedLineId, amount: 123 }],
-          templateAdjustments: [],
         },
         authUser,
       );
@@ -543,31 +537,6 @@ describe('PUL-12 — plan apply (write) on local Supabase', () => {
     expect(await amountOf(unlinkedLineId)).toBe(5000);
   });
 
-  it('rejects a template line not linked to the goal (422)', async () => {
-    if (!env) return;
-
-    const { useCase, authUser } = applyPlanUseCaseFor(userA);
-    let caught: unknown;
-    try {
-      await useCase.execute(
-        goalAId,
-        {
-          monthAdjustments: [],
-          templateAdjustments: [
-            { templateLineId: crypto.randomUUID(), amount: 99 },
-          ],
-        },
-        authUser,
-      );
-    } catch (error) {
-      caught = error;
-    }
-
-    expect((caught as BusinessException).code).toBe(
-      ERROR_DEFINITIONS.SAVINGS_GOAL_PLAN_LINE_INVALID.code,
-    );
-  });
-
   it('hides a foreign goal — NOT_FOUND, nothing written', async () => {
     if (!env) return;
 
@@ -578,7 +547,6 @@ describe('PUL-12 — plan apply (write) on local Supabase', () => {
         goalAId,
         {
           monthAdjustments: [{ budgetLineId: currentLineId, amount: 999 }],
-          templateAdjustments: [],
         },
         authUser,
       );
@@ -602,7 +570,6 @@ describe('PUL-12 — plan apply (write) on local Supabase', () => {
         goalAId,
         {
           monthAdjustments: [{ budgetLineId: idemLineId, amount: 600 }],
-          templateAdjustments: [],
         },
         authUser,
       );
