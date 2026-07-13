@@ -1,6 +1,6 @@
 ---
 objective: "Tous les findings ouverts de la review sont corrigés, et la redistribution provisionne sans ambiguïté les budgets mensuels absents avant d'appliquer les montants."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Corriger la review PUL-12/PUL-8 et provisionner la redistribution
