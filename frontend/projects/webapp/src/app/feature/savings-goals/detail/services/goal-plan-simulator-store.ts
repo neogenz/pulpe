@@ -75,6 +75,17 @@ export class GoalPlanSimulatorStore {
     return niceCeil(2 * Math.max(required, pace, maxPlanned, SLIDER_MIN_CEIL));
   });
 
+  /** Representative monthly amount of the current open plan — seeds the slider
+   *  so the simulator opens on the user's *real* plan (not the deadline anchor),
+   *  keeping the slider consistent with the verdict. Falls back to the anchor
+   *  when there is no open month to read. */
+  readonly currentMonthlyAmount = computed(() => {
+    const firstOpen = this.baseline().find((month) => isOpenPlanMonth(month));
+    return firstOpen
+      ? Math.round(firstOpen.plannedAmount)
+      : this.defaultMonthlyAmount();
+  });
+
   /** CTA « Ajuster mon plan » : ACTIVE + au moins une ligne liée + un mois ouvert. */
   readonly canSimulate = computed(() => {
     const progress = this.#store.progress();

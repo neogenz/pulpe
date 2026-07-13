@@ -195,6 +195,26 @@ describe('GoalPlanSimulatorToolbar', () => {
     expect(await amountInput.getValue()).toBe('350');
   });
 
+  it('shows the deadline-anchor target hint until the goal is reached', async () => {
+    // targetReached defaults to false → « Vise X/mois pour atteindre ta cible ».
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="goal-plan-target-hint"]',
+      ),
+    ).not.toBeNull();
+
+    setTestInput(fixture.componentInstance.targetReached, true);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    // Reached → the aim-for hint disappears (nothing left to aim for).
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="goal-plan-target-hint"]',
+      ),
+    ).toBeNull();
+  });
+
   it('renders cents-preserving non-uniform redistribution as mixed', async () => {
     progressSig.set({ ...makeProgress(), targetAmount: 800.01 });
     await fixture.whenStable();
@@ -218,21 +238,21 @@ describe('GoalPlanSimulatorToolbar', () => {
     expect(simulator.draftRows().map((month) => month.simulatedAmount)).toEqual(
       [400.01, 400],
     );
-    expect(await slider.isDisabled()).toBe(true);
-    expect(await amountInput.getValue()).toBe('');
-    expect(await amountInput.getPlaceholder()).toBe('Montants variables');
+    // Variable amounts no longer disable the slider (that trapped the user).
+    // The slider stays active + seeded on the deadline anchor; a visible hint
+    // explains that touching it uniformises the months.
+    expect(await slider.isDisabled()).toBe(false);
+    expect(await amountInput.getValue()).not.toBe('');
     expect(
-      fixture.nativeElement
-        .querySelector('[data-testid="goal-plan-amount-input"]')
-        ?.getAttribute('aria-label'),
-    ).toBe('Montants variables in CHF');
+      fixture.nativeElement.querySelector(
+        '[data-testid="goal-plan-variable-hint"]',
+      ),
+    ).not.toBeNull();
     expect(
       fixture.nativeElement
         .querySelector('[data-testid="goal-plan-slider"]')
         ?.getAttribute('aria-label'),
-    ).toBe(
-      'Les montants varient selon les mois. Saisis un montant pour les uniformiser.',
-    );
+    ).toBe('Chaque mois, je mets');
 
     await amountInput.setValue('350');
     await fixture.whenStable();
@@ -241,5 +261,11 @@ describe('GoalPlanSimulatorToolbar', () => {
     expect(simulator.draftRows().map((month) => month.simulatedAmount)).toEqual(
       [350, 350],
     );
+    // Uniformised → the variable hint disappears.
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="goal-plan-variable-hint"]',
+      ),
+    ).toBeNull();
   });
 });

@@ -14,6 +14,7 @@ import { MatSliderModule } from '@angular/material/slider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { CURRENCY_METADATA, type SupportedCurrency } from 'pulpe-shared';
+import { AppCurrencyPipe } from '@core/currency';
 import { CurrencyInput } from '@ui/currency-input';
 import { GoalPlanSimulatorStore } from '../services/goal-plan-simulator-store';
 
@@ -32,6 +33,7 @@ import { GoalPlanSimulatorStore } from '../services/goal-plan-simulator-store';
     MatSliderModule,
     MatTooltipModule,
     TranslocoPipe,
+    AppCurrencyPipe,
     CurrencyInput,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -52,43 +54,59 @@ import { GoalPlanSimulatorStore } from '../services/goal-plan-simulator-store';
             [min]="0"
             [max]="store.sliderMax()"
             [step]="STEP"
-            [disabled]="store.hasVariableAmounts()"
           >
             <input
               matSliderThumb
-              [ngModel]="sliderValue() ?? 0"
+              [ngModel]="sliderValue()"
               (ngModelChange)="onSliderChange($event)"
-              [attr.aria-label]="
-                (store.hasVariableAmounts()
-                  ? 'savingsGoals.simulate.variableAmountsHint'
-                  : 'savingsGoals.simulate.everyMonth'
-                ) | transloco
-              "
+              [attr.aria-label]="'savingsGoals.simulate.everyMonth' | transloco"
               data-testid="goal-plan-slider"
             />
           </mat-slider>
           <div class="md:w-44">
             <pulpe-currency-input
-              [label]="
-                (store.hasVariableAmounts()
-                  ? 'savingsGoals.simulate.variableAmounts'
-                  : 'savingsGoals.simulate.amountInput'
-                ) | transloco
-              "
+              [label]="'savingsGoals.simulate.amountInput' | transloco"
               [value]="sliderValue()"
               (valueChange)="onInputChange($event)"
               [currency]="currency()"
               [autoFocus]="false"
-              [placeholder]="
-                store.hasVariableAmounts()
-                  ? ('savingsGoals.simulate.variableAmounts' | transloco)
-                  : '0.00'
-              "
-              [showSuffix]="!store.hasVariableAmounts()"
+              placeholder="0.00"
+              [showSuffix]="true"
               testId="goal-plan-amount-input"
             />
           </div>
         </div>
+        @if (!targetReached()) {
+          <p
+            class="text-body-small text-on-surface-variant text-pretty"
+            data-testid="goal-plan-target-hint"
+          >
+            {{
+              'savingsGoals.simulate.targetHint'
+                | transloco
+                  : {
+                      amount:
+                        store.defaultMonthlyAmount()
+                        | appCurrency: currency() : '1.0-0',
+                    }
+            }}
+          </p>
+        }
+        @if (store.hasVariableAmounts()) {
+          <p
+            class="flex items-start gap-1.5 text-body-small text-on-surface-variant text-pretty"
+            data-testid="goal-plan-variable-hint"
+          >
+            <mat-icon
+              class="text-base! w-auto! h-auto! leading-none mt-0.5 shrink-0"
+              aria-hidden="true"
+              >info</mat-icon
+            >
+            <span>{{
+              'savingsGoals.simulate.variableAmountsHint' | transloco
+            }}</span>
+          </p>
+        }
         <!-- Verdict callout. RG-002: savings is never an alert color — attention
              comes from the tinted container + leading icon + weight, all in the
              savings-green/neutral family, never amber/red. -->
@@ -170,20 +188,24 @@ export class GoalPlanSimulatorToolbar {
 
   protected readonly STEP = 10;
 
-  // Twin value shared by the slider and the numeric input. Re-seeds from the
-  // store's global amount (e.g. after « Réajuster » clears it back to null).
-  protected readonly sliderValue = linkedSignal((): number | null =>
-    this.store.hasVariableAmounts()
-      ? null
-      : (this.store.globalAmount() ?? this.store.defaultMonthlyAmount()),
+  // Twin value shared by the slider and the numeric input. Seeds the user's
+  // *current* plan amount (`currentMonthlyAmount`) — not the deadline anchor —
+  // so the slider opens where the plan actually is and stays consistent with
+  // the verdict. The anchor is shown separately as a « cible » target hint.
+  protected readonly sliderValue = linkedSignal(
+    (): number =>
+      this.store.globalAmount() ?? this.store.currentMonthlyAmount(),
   );
 
   protected readonly announcement = signal('');
 
   readonly #meta = computed(() => CURRENCY_METADATA[this.currency()]);
 
+  // `store.globalAmount` is the single source of truth for the amount; the
+  // `sliderValue` linkedSignal re-derives from it, so setting the store is
+  // enough — no manual `sliderValue.set` is needed to keep the twin controls
+  // in sync.
   protected onSliderChange(value: number): void {
-    this.sliderValue.set(value);
     this.store.setGlobalAmount(value);
     this.announcement.set(
       this.#transloco.translate('savingsGoals.simulate.sliderOverwrite'),
@@ -191,9 +213,7 @@ export class GoalPlanSimulatorToolbar {
   }
 
   protected onInputChange(value: number | null): void {
-    const amount = value ?? 0;
-    this.sliderValue.set(amount);
-    this.store.setGlobalAmount(amount);
+    this.store.setGlobalAmount(value ?? 0);
     this.announcement.set(
       this.#transloco.translate('savingsGoals.simulate.sliderOverwrite'),
     );

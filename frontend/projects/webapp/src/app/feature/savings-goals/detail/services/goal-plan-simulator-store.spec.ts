@@ -128,6 +128,26 @@ describe('GoalPlanSimulatorStore', () => {
     expect(store.draft()).not.toBeNull();
   });
 
+  it('seeds the slider on the current plan amount, not the deadline anchor', () => {
+    // makeProgress: open months planned 200/mo; required (deadline anchor) 400.
+    // Option C — the slider must open where the plan actually is (200), so it
+    // stays consistent with the verdict; the anchor (400) is only a target hint.
+    expect(store.currentMonthlyAmount()).toBe(200);
+    expect(store.defaultMonthlyAmount()).toBe(400);
+
+    // Entering simulation changes nothing: the draft keeps the current 200/mo,
+    // so the seeded slider value matches the simulated plan (no phantom diff).
+    store.enter();
+    const draft = store.draft()!;
+    expect(draft.months.every((m) => m.simulatedAmount === 200)).toBe(true);
+    expect(store.dirtyCount()).toBe(0);
+  });
+
+  it('falls back to the deadline anchor when there is no open month', () => {
+    progressSig.set(makeProgress({ months: [], required: 555 }));
+    expect(store.currentMonthlyAmount()).toBe(555);
+  });
+
   it('applies a per-month override to the draft (calculator integration)', () => {
     store.enter();
     store.setMonth(6, 2026, 500);
