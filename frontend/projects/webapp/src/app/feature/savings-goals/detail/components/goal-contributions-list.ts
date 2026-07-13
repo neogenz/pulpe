@@ -83,7 +83,7 @@ import { getDateDisplayFormats } from '@core/date/date-display-formats';
         </div>
       }
 
-      @if (visibleContributions().length > 0) {
+      @if (visibleRows().length > 0) {
         @if (!showAll()) {
           <span
             class="text-label-medium font-medium text-on-surface-variant"
@@ -93,9 +93,12 @@ import { getDateDisplayFormats } from '@core/date/date-display-formats';
           </span>
         }
         <ul class="flex flex-col gap-2">
-          @for (c of visibleContributions(); track c.lineId) {
+          @for (row of visibleRows(); track row.c.lineId) {
+            @let c = row.c;
             <li
               class="flex flex-col gap-2 rounded-xl bg-surface-container-low p-4"
+              [class.contribution-enter]="row.enter"
+              [style.--enter-i]="row.i"
               data-testid="savings-goal-contribution-row"
             >
               <div class="flex items-center gap-3">
@@ -207,6 +210,28 @@ import { getDateDisplayFormats } from '@core/date/date-display-formats';
     :host {
       display: block;
     }
+    /* Revealed rows cascade in on expand only (capped so a long list doesn't
+       drag), reduced-motion to instant. Fill mode 'both' keeps delayed rows
+       hidden during their delay instead of flashing in then animating. */
+    .contribution-enter {
+      animation: contribution-in 320ms cubic-bezier(0.23, 1, 0.32, 1) both;
+      animation-delay: calc(min(var(--enter-i, 0), 6) * 45ms);
+    }
+    @keyframes contribution-in {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .contribution-enter {
+        animation: none;
+      }
+    }
   `,
 })
 export class GoalContributionsList {
@@ -236,17 +261,33 @@ export class GoalContributionsList {
       ) ?? null,
   );
 
-  /** Collapsed: only the activity rows. Expanded: the full ledger. */
-  protected readonly visibleContributions = computed(() => {
-    if (this.showAll()) return this.contributions();
-    return [...this.activityContributions()].sort(
-      (a, b) =>
-        a.budgetYear * 12 + a.budgetMonth - (b.budgetYear * 12 + b.budgetMonth),
+  /** Collapsed: only the activity rows. Expanded: the full ledger. Rows added by
+   *  the expand carry `enter` + a 0-based stagger index so they cascade in; the
+   *  always-visible activity rows keep `enter: false` so nothing animates on
+   *  first render or on collapse. */
+  protected readonly visibleRows = computed(() => {
+    const showAll = this.showAll();
+    const list = showAll
+      ? this.contributions()
+      : [...this.activityContributions()].sort(
+          (a, b) =>
+            a.budgetYear * 12 +
+            a.budgetMonth -
+            (b.budgetYear * 12 + b.budgetMonth),
+        );
+    if (!showAll) return list.map((c) => ({ c, enter: false, i: 0 }));
+    const activityIds = new Set(
+      this.activityContributions().map((x) => x.lineId),
     );
+    let pos = 0;
+    return list.map((c) => {
+      const revealed = !activityIds.has(c.lineId);
+      return { c, enter: revealed, i: revealed ? pos++ : 0 };
+    });
   });
 
   protected readonly hiddenCount = computed(
-    () => this.contributions().length - this.visibleContributions().length,
+    () => this.contributions().length - this.visibleRows().length,
   );
 
   protected readonly shortDateFormat = computed(
