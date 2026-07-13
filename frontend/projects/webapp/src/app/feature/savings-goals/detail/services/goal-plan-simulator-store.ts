@@ -106,7 +106,7 @@ export class GoalPlanSimulatorStore {
     const result: SavingsPlanAdjustment[] = [];
     for (const month of this.baseline()) {
       const key = periodKeyOf(month);
-      if (overrides.has(key) && isOpenPlanMonth(month)) {
+      if (overrides.has(key) && isContributivePlanMonth(month)) {
         result.push({
           month: month.month,
           year: month.year,
@@ -166,6 +166,9 @@ export class GoalPlanSimulatorStore {
 
   setMonth(month: number, year: number, amount: number): void {
     const key = year * 12 + month;
+    const target = this.baseline().find((item) => periodKeyOf(item) === key);
+    if (!target || !isOpenPlanMonth(target)) return;
+
     const next = new Map(this.#overrides());
     next.set(key, Math.max(0, amount));
     this.#overrides.set(next);

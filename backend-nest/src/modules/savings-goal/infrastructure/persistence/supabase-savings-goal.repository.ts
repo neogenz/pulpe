@@ -345,7 +345,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
         {
           operation: 'findSavingsGoalMaterializedPeriods',
           entityType: 'monthly_budget',
-          supabaseError: error,
+          userId: this.supabaseProvider.user.id,
         },
         { cause: error },
       );

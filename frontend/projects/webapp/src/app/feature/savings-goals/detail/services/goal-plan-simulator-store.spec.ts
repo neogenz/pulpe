@@ -232,6 +232,66 @@ describe('GoalPlanSimulatorStore', () => {
     expect('templateAdjustments' in payload).toBe(false);
   });
 
+  it('preserves non-uniform cents across provisionable periods', () => {
+    const startIndex = 2026 * 12 + 6;
+    const months = Array.from({ length: 24 }, (_, offset) => {
+      const index = startIndex + offset;
+      const year = Math.floor((index - 1) / 12);
+      const month = index - year * 12;
+      if (offset < 2) {
+        return openMonth(month, offset === 0 ? LINE_CURRENT : LINE_FUTURE, 0, {
+          year,
+        });
+      }
+      return {
+        month,
+        year,
+        state: 'gap' as const,
+        isLocked: false,
+        isProvisionable: true,
+        plannedAmount: 0,
+        confirmedAmount: 0,
+        plannedCumulative: 0,
+        confirmedCumulative: 0,
+        lines: [],
+      };
+    });
+    progressSig.set(
+      makeProgress({
+        targetAmount: 24_000.23,
+        required: 1000,
+        monthsRemaining: 24,
+        months,
+      }),
+    );
+
+    store.enter();
+    store.setMonth(months[2].month, months[2].year, 777);
+    expect(store.draftRows()[2].simulatedAmount).toBe(0);
+
+    const result = store.redistribute();
+    const payload = store.buildApplyPayload();
+
+    expect(result.isDistributable).toBe(true);
+    expect(result.perRemainingMonth).toBe(1000.01);
+    expect(payload.missingMonthAdjustments).toEqual(
+      months.slice(2).map((month, index) => ({
+        month: month.month,
+        year: month.year,
+        amount: index < 21 ? 1000.01 : 1000,
+      })),
+    );
+    expect(
+      [
+        ...payload.monthAdjustments,
+        ...(payload.missingMonthAdjustments ?? []),
+      ].reduce(
+        (sum, adjustment) => sum + Math.round(adjustment.amount * 100),
+        0,
+      ),
+    ).toBe(2_400_023);
+  });
+
   it('keeps cents-preserving non-uniform adjustments authoritative', () => {
     progressSig.set(makeProgress({ targetAmount: 800.01 }));
     store.enter();

@@ -101,6 +101,12 @@ describe('SavingsGoalStore', () => {
       create$: vi.fn(),
       update$: vi.fn(),
       delete$: vi.fn(),
+      applyPlan$: vi.fn().mockReturnValue(
+        of({
+          data: { updatedLines: [], touchedBudgetIds: [] },
+          success: true,
+        }),
+      ),
       cache: mockCache as unknown as SavingsGoalApi['cache'],
     };
 
@@ -231,6 +237,32 @@ describe('SavingsGoalStore', () => {
     expect(store.selectedGoal()?.id).toBe('goal-2');
     expect(mockBudgetCache.invalidate).not.toHaveBeenCalled();
     expect(mockTemplateCache.invalidate).not.toHaveBeenCalled();
+  });
+
+  it('applyPlan invalidates budget and goal caches after success', async () => {
+    await store.applyPlan('goal-1', {
+      monthAdjustments: [],
+      missingMonthAdjustments: [{ month: 8, year: 2026, amount: 1000 }],
+    });
+
+    expect(mockBudgetCache.invalidate).toHaveBeenCalledWith(['budget']);
+    expect(mockCache.invalidate).toHaveBeenCalledWith(['savings-goals']);
+  });
+
+  it('applyPlan invalidates budget and goal caches after partial failure', async () => {
+    mockApi.applyPlan$ = vi
+      .fn()
+      .mockReturnValue(throwError(() => new Error('apply failed')));
+
+    await expect(
+      store.applyPlan('goal-1', {
+        monthAdjustments: [],
+        missingMonthAdjustments: [{ month: 8, year: 2026, amount: 1000 }],
+      }),
+    ).rejects.toThrow('apply failed');
+
+    expect(mockBudgetCache.invalidate).toHaveBeenCalledWith(['budget']);
+    expect(mockCache.invalidate).toHaveBeenCalledWith(['savings-goals']);
   });
 
   it('refresh reloads the resource', async () => {

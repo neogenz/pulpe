@@ -185,6 +185,14 @@ export class SavingsGoalStore {
     invalidateKeys: () => [['savings-goals']],
     mutationFn: ({ goalId, plan }) =>
       this.#api.applyPlan$(goalId, plan).pipe(map((response) => response.data)),
+    onSuccess: () => {
+      this.#budgetApi.cache.invalidate(['budget']);
+    },
+    onError: () => {
+      // Provisioning may have committed before the final amount RPC failed.
+      this.#budgetApi.cache.invalidate(['budget']);
+      this.#api.cache.invalidate(['savings-goals']);
+    },
   });
 
   async applyPlan(

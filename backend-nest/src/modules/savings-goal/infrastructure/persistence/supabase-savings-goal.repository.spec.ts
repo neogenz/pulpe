@@ -735,6 +735,34 @@ describe('SupabaseSavingsGoalRepository', () => {
       ]);
       expect(capturedEq).toEqual(['user_id', mockUser.id]);
     });
+
+    it('wraps fetch failures with user context and the original cause', async () => {
+      const dbError = { message: 'budget periods unavailable' };
+      const provider = createMockProvider(() => ({
+        select: () => ({
+          eq: () => Promise.resolve({ data: null, error: dbError }),
+        }),
+      }));
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      let caught: unknown;
+      try {
+        await repo.findMaterializedPeriods();
+      } catch (error) {
+        caught = error;
+      }
+
+      expect(caught).toBeInstanceOf(BusinessException);
+      expect((caught as BusinessException).cause).toBe(dbError);
+      expect((caught as BusinessException).loggingContext).toEqual({
+        operation: 'findSavingsGoalMaterializedPeriods',
+        entityType: 'monthly_budget',
+        userId: mockUser.id,
+      });
+    });
   });
 
   describe('findPayDayOfMonth', () => {

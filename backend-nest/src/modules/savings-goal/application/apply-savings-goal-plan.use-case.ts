@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   allocateMonthAmountToLines,
   getBudgetPeriodForDate,
+  MAX_SAVINGS_GOAL_PLAN_PERIODS,
   parseIsoDateLocal,
   periodIndex,
   type BudgetPeriod,
@@ -84,12 +85,16 @@ export class ApplySavingsGoalPlanUseCase {
       missing,
       linkedBefore.lines,
       minPeriodIndex,
+      id,
+      user.id,
     );
 
+    let provisionedMonthCount = 0;
     if (missing.length > 0) {
-      await this.provisionMissingPeriods(
+      provisionedMonthCount = await this.provisionMissingPeriods(
         id,
         missing,
+        linkedBefore.lines,
         minPeriodIndex,
         targetPeriodIndex,
         user,
@@ -104,7 +109,7 @@ export class ApplySavingsGoalPlanUseCase {
           : linkedBefore.lines;
       const lineAdjustments = [
         ...dto.monthAdjustments,
-        ...this.allocateMissingMonths(missing, linkedLines),
+        ...this.allocateMissingMonths(missing, linkedLines, id, user.id),
       ];
       result = await this.repo.applyPlan(id, lineAdjustments, minPeriodIndex);
     } catch (error) {
@@ -126,7 +131,7 @@ export class ApplySavingsGoalPlanUseCase {
         userId: user.id,
         savingsGoalId: id,
         updatedLineCount: result.updatedLines.length,
-        provisionedMonthCount: missing.length,
+        provisionedMonthCount,
       },
       'Savings goal plan applied',
     );
@@ -139,16 +144,18 @@ export class ApplySavingsGoalPlanUseCase {
     missing: NonNullable<SavingsGoalPlanApply['missingMonthAdjustments']>,
     lines: LinkedSavingLine[],
     minPeriodIndex: number,
+    goalId: string,
+    userId: string,
   ): void {
     const linesById = new Map(lines.map((line) => [line.id, line]));
     const missingPeriods = new Set(missing.map(this.periodKey));
     for (const adjustment of direct) {
       const line = linesById.get(adjustment.budgetLineId);
       if (!line || missingPeriods.has(this.periodKey(line))) {
-        this.throwLineInvalid();
+        this.throwLineInvalid(goalId, userId);
       }
       if (line.checkedAt != null || periodIndex(line) < minPeriodIndex) {
-        this.throwConflict();
+        this.throwConflict(goalId, userId);
       }
     }
   }
@@ -156,27 +163,26 @@ export class ApplySavingsGoalPlanUseCase {
   private async provisionMissingPeriods(
     goalId: string,
     missing: NonNullable<SavingsGoalPlanApply['missingMonthAdjustments']>,
+    linkedLines: LinkedSavingLine[],
     minPeriodIndex: number,
     targetPeriodIndex: number,
     user: AuthenticatedUser,
-  ): Promise<void> {
+  ): Promise<number> {
     const periods = missing.map(({ month, year }) => ({ month, year }));
     const materialized = await this.repo.findMaterializedPeriods();
-    const materializedKeys = new Set(materialized.map(this.periodKey));
-    if (
-      periods.some(
-        (period) =>
-          materializedKeys.has(this.periodKey(period)) ||
-          periodIndex(period) < minPeriodIndex ||
-          periodIndex(period) > targetPeriodIndex ||
-          periodIndex(period) >= minPeriodIndex + 120,
-      )
-    ) {
-      this.throwLineInvalid();
-    }
+    const periodsToProvision = this.findPeriodsToProvision(
+      periods,
+      materialized,
+      linkedLines,
+      minPeriodIndex,
+      targetPeriodIndex,
+      goalId,
+      user.id,
+    );
+    if (periodsToProvision.length === 0) return 0;
 
     const templateId = await this.templateRepo.findDefaultTemplateId(user.id);
-    if (!templateId) this.throwMonthUnprovisionable();
+    if (!templateId) this.throwMonthUnprovisionable(goalId, user.id);
     const templateLines =
       await this.templateRepo.findLinesByTemplateId(templateId);
     if (
@@ -184,33 +190,68 @@ export class ApplySavingsGoalPlanUseCase {
         (line) => line.kind === 'saving' && line.savingsGoalId === goalId,
       )
     ) {
-      this.throwMonthUnprovisionable();
+      this.throwMonthUnprovisionable(goalId, user.id);
     }
 
     try {
       const ensured = await this.provisioning.ensureBudgetsForPeriods(
-        periods,
+        periodsToProvision,
         templateId,
         user.id,
       );
       if (ensured.skippedMonths.length > 0) {
-        this.throwMonthUnprovisionable();
+        this.throwMonthUnprovisionable(goalId, user.id);
       }
+      return ensured.createdBudgets.length;
     } catch (error) {
       await this.cacheService.invalidateForUser(user.id);
       throw error;
     }
   }
 
+  private findPeriodsToProvision(
+    periods: BudgetPeriod[],
+    materialized: BudgetPeriod[],
+    linkedLines: LinkedSavingLine[],
+    minPeriodIndex: number,
+    targetPeriodIndex: number,
+    goalId: string,
+    userId: string,
+  ): BudgetPeriod[] {
+    const materializedKeys = new Set(materialized.map(this.periodKey));
+    const linkedPeriodKeys = new Set(linkedLines.map(this.periodKey));
+    if (
+      periods.some(
+        (period) =>
+          periodIndex(period) < minPeriodIndex ||
+          periodIndex(period) > targetPeriodIndex ||
+          periodIndex(period) >= minPeriodIndex + MAX_SAVINGS_GOAL_PLAN_PERIODS,
+      )
+    ) {
+      this.throwLineInvalid(goalId, userId);
+    }
+
+    return periods.filter((period) => {
+      const key = this.periodKey(period);
+      if (!materializedKeys.has(key)) return true;
+      if (!linkedPeriodKeys.has(key)) this.throwLineInvalid(goalId, userId);
+      return false;
+    });
+  }
+
   private allocateMissingMonths(
     missing: NonNullable<SavingsGoalPlanApply['missingMonthAdjustments']>,
     lines: LinkedSavingLine[],
+    goalId: string,
+    userId: string,
   ): SavingsGoalPlanApply['monthAdjustments'] {
     return missing.flatMap((adjustment) => {
       const monthLines = lines.filter(
         (line) => this.periodKey(line) === this.periodKey(adjustment),
       );
-      if (monthLines.length === 0) this.throwMonthUnprovisionable();
+      if (monthLines.length === 0) {
+        this.throwMonthUnprovisionable(goalId, userId);
+      }
       return allocateMonthAmountToLines(
         monthLines.map((line) => ({
           budgetLineId: line.id,
@@ -225,19 +266,42 @@ export class ApplySavingsGoalPlanUseCase {
   private readonly periodKey = (period: BudgetPeriod): string =>
     `${period.month}/${period.year}`;
 
-  private throwLineInvalid(): never {
+  private throwLineInvalid(goalId: string, userId: string): never {
     throw new BusinessException(
       ERROR_DEFINITIONS.SAVINGS_GOAL_PLAN_LINE_INVALID,
+      undefined,
+      {
+        operation: 'savingsGoal.planApply',
+        userId,
+        goalId,
+        entityId: goalId,
+      },
     );
   }
 
-  private throwConflict(): never {
-    throw new BusinessException(ERROR_DEFINITIONS.SAVINGS_GOAL_PLAN_CONFLICT);
+  private throwConflict(goalId: string, userId: string): never {
+    throw new BusinessException(
+      ERROR_DEFINITIONS.SAVINGS_GOAL_PLAN_CONFLICT,
+      undefined,
+      {
+        operation: 'savingsGoal.planApply',
+        userId,
+        goalId,
+        entityId: goalId,
+      },
+    );
   }
 
-  private throwMonthUnprovisionable(): never {
+  private throwMonthUnprovisionable(goalId: string, userId: string): never {
     throw new BusinessException(
       ERROR_DEFINITIONS.SAVINGS_GOAL_PLAN_MONTH_UNPROVISIONABLE,
+      undefined,
+      {
+        operation: 'savingsGoal.planApply',
+        userId,
+        goalId,
+        entityId: goalId,
+      },
     );
   }
 

@@ -25,6 +25,7 @@ struct SavingsGoalFormSheet: View {
 
     private let currency: SupportedCurrency
     private let accentColor = TransactionKind.saving.color
+    private let planningTargetDates: ClosedRange<Date>
     private let allowedTargetDates: ClosedRange<Date>
 
     init(goal: SavingsGoal?, userCurrency: SupportedCurrency) {
@@ -41,9 +42,11 @@ struct SavingsGoalFormSheet: View {
         _amountText = State(initialValue: amountString)
 
         let now = Date()
+        let calendar = Calendar.current
         let defaultDate = Calendar.current.date(byAdding: .year, value: 1, to: now) ?? now
         _targetDate = State(initialValue: goal?.targetDateValue ?? defaultDate)
-        allowedTargetDates = Self.targetDateRange(goal: goal, now: now, calendar: .current)
+        planningTargetDates = Self.targetDateRange(goal: nil, now: now, calendar: calendar)
+        allowedTargetDates = Self.targetDateRange(goal: goal, now: now, calendar: calendar)
     }
 
     nonisolated static func targetDateRange(
@@ -73,11 +76,31 @@ struct SavingsGoalFormSheet: View {
         return dateString == goal.targetDate ? nil : dateString
     }
 
+    nonisolated static func isTargetDateSubmittable(
+        _ date: Date,
+        original goal: SavingsGoal?,
+        planningRange: ClosedRange<Date>,
+        calendar: Calendar
+    ) -> Bool {
+        if planningRange.contains(date) { return true }
+        guard let existingTarget = goal.flatMap({
+            SavingsGoalDateFormatter.parse($0.targetDate, timeZone: calendar.timeZone)
+        }) else { return false }
+        return calendar.isDate(date, inSameDayAs: existingTarget)
+    }
+
     private var isEditing: Bool { goal != nil }
 
     private var canSubmit: Bool {
         guard let amount, amount > 0 else { return false }
-        return !name.trimmingCharacters(in: .whitespaces).isEmpty && !isLoading
+        return !name.trimmingCharacters(in: .whitespaces).isEmpty
+            && Self.isTargetDateSubmittable(
+                targetDate,
+                original: goal,
+                planningRange: planningTargetDates,
+                calendar: .current
+            )
+            && !isLoading
     }
 
     var body: some View {

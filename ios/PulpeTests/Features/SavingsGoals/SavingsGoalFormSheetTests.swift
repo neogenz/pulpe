@@ -28,6 +28,7 @@ struct SavingsGoalFormSheetTests {
     func targetDateRange_preservesExistingTarget() throws {
         let now = try #require(calendar.date(from: DateComponents(year: 2026, month: 7, day: 13)))
         let existingTarget = try #require(calendar.date(from: DateComponents(year: 2037, month: 1, day: 15)))
+        let intermediateTarget = try #require(calendar.date(from: DateComponents(year: 2036, month: 9, day: 15)))
         let goal = SavingsGoal(
             id: "goal-1",
             userId: "user-1",
@@ -44,8 +45,29 @@ struct SavingsGoalFormSheetTests {
             now: now,
             calendar: calendar
         )
+        let planningRange = SavingsGoalFormSheet.targetDateRange(
+            goal: nil,
+            now: now,
+            calendar: calendar
+        )
 
         #expect(range.upperBound == existingTarget)
+        #expect(
+            SavingsGoalFormSheet.isTargetDateSubmittable(
+                existingTarget,
+                original: goal,
+                planningRange: planningRange,
+                calendar: calendar
+            )
+        )
+        #expect(
+            !SavingsGoalFormSheet.isTargetDateSubmittable(
+                intermediateTarget,
+                original: goal,
+                planningRange: planningRange,
+                calendar: calendar
+            )
+        )
         #expect(
             SavingsGoalFormSheet.targetDateUpdate(
                 for: existingTarget,

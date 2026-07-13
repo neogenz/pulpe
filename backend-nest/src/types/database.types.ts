@@ -361,39 +361,6 @@ export type Database = {
           },
         ];
       };
-      template_line_tag: {
-        Row: {
-          created_at: string;
-          tag_id: string;
-          template_line_id: string;
-        };
-        Insert: {
-          created_at?: string;
-          tag_id: string;
-          template_line_id: string;
-        };
-        Update: {
-          created_at?: string;
-          tag_id?: string;
-          template_line_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'template_line_tag_tag_id_fkey';
-            columns: ['tag_id'];
-            isOneToOne: false;
-            referencedRelation: 'tag';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'template_line_tag_template_line_id_fkey';
-            columns: ['template_line_id'];
-            isOneToOne: false;
-            referencedRelation: 'template_line';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
       transaction: {
         Row: {
           amount: string | null;
@@ -573,10 +540,6 @@ export type Database = {
         };
         Returns: string[];
       };
-      bulk_replace_template_line_tags_and_sync: {
-        Args: { p_budget_ids: string[]; p_line_tag_pairs: Json };
-        Returns: undefined;
-      };
       bulk_update_template_lines: {
         Args: { line_updates: Json; p_template_id: string };
         Returns: {
@@ -683,10 +646,6 @@ export type Database = {
       };
       replace_budget_line_tags: {
         Args: { p_budget_line_id: string; p_tag_ids: string[] };
-        Returns: undefined;
-      };
-      replace_template_line_tags: {
-        Args: { p_tag_ids: string[]; p_template_line_id: string };
         Returns: undefined;
       };
       replace_transaction_tags: {

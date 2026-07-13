@@ -1,5 +1,5 @@
 import { effect, inject, Injectable, untracked } from '@angular/core';
-import { finalize, type Observable } from 'rxjs';
+import type { Observable } from 'rxjs';
 import {
   type SavingsGoalCreate,
   savingsGoalCreateSchema,
@@ -103,27 +103,18 @@ export class SavingsGoalApi {
   /**
    * Applies a simulated plan (`POST /savings-goals/:id/plan`). Amount-only,
    * pessimistic write — the server recomputes the progression. Touches budget
-   * lines across several months. Provisioning may commit before a later RPC
-   * failure, so both affected caches are invalidated on every settlement.
+   * lines across several months. Cache settlement belongs to the caller's
+   * mutation because provisioning may commit before a later RPC failure.
    */
   applyPlan$(
     id: string,
     plan: SavingsGoalPlanApply,
   ): Observable<SavingsGoalPlanApplyResponse> {
-    return this.#api
-      .post$(
-        `/savings-goals/${id}/plan`,
-        plan,
-        savingsGoalPlanApplyResponseSchema,
-        savingsGoalPlanApplySchema,
-      )
-      .pipe(
-        finalize(() => {
-          // Provisioning can commit missing budgets before the final amount RPC
-          // fails. Both domains must therefore be stale on every settlement.
-          this.#budgetApi.cache.invalidate(['budget']);
-          this.cache.invalidate(['savings-goals']);
-        }),
-      );
+    return this.#api.post$(
+      `/savings-goals/${id}/plan`,
+      plan,
+      savingsGoalPlanApplyResponseSchema,
+      savingsGoalPlanApplySchema,
+    );
   }
 }

@@ -31,6 +31,7 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
   let templateRepo: Record<string, ReturnType<typeof jest.fn>>;
   let recalculation: { recalculate: ReturnType<typeof jest.fn> };
   let cache: { invalidateForUser: ReturnType<typeof jest.fn> };
+  let logger: { info: ReturnType<typeof jest.fn> };
 
   beforeEach(async () => {
     const now = new Date();
@@ -86,6 +87,7 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
     };
     recalculation = { recalculate: jest.fn().mockResolvedValue(undefined) };
     cache = { invalidateForUser: jest.fn().mockResolvedValue(undefined) };
+    logger = { info: jest.fn() };
 
     const module = await Test.createTestingModule({
       providers: [
@@ -97,7 +99,7 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
         { provide: CacheService, useValue: cache },
         {
           provide: `INFO_LOGGER:${ApplySavingsGoalPlanUseCase.name}`,
-          useValue: { info: () => {}, warn: () => {}, error: () => {} },
+          useValue: logger,
         },
       ],
     }).compile();
@@ -249,5 +251,33 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
     expect(provisioning.ensureBudgetsForPeriods).toHaveBeenCalledTimes(1);
     expect(cache.invalidateForUser).toHaveBeenCalledWith(user.id);
     expect(recalculation.recalculate).not.toHaveBeenCalled();
+  });
+
+  it('reuses linked budgets provisioned before a failed final RPC on retry', async () => {
+    const dto = {
+      monthAdjustments: existingLines.map((line) => ({
+        budgetLineId: line.id as string,
+        amount: 1000,
+      })),
+      missingMonthAdjustments: periods.slice(2).map((item) => ({
+        ...item,
+        amount: 1000,
+      })),
+    };
+    repo.applyPlan.mockRejectedValueOnce(new Error('rpc failed'));
+
+    await expect(useCase.execute('goal-1', dto, user)).rejects.toThrow(
+      'rpc failed',
+    );
+    repo.findMaterializedPeriods.mockResolvedValue(periods);
+
+    await expect(useCase.execute('goal-1', dto, user)).resolves.toBeDefined();
+
+    expect(provisioning.ensureBudgetsForPeriods).toHaveBeenCalledTimes(1);
+    expect(repo.applyPlan).toHaveBeenCalledTimes(2);
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({ provisionedMonthCount: 0 }),
+      'Savings goal plan applied',
+    );
   });
 });
