@@ -46,29 +46,34 @@ describe('GoalContributionsList', () => {
     return fixture.debugElement.query(By.css(`[data-testid="${testId}"]`));
   }
 
-  it('lists one row per contribution with a 2-decimal amount', () => {
+  it('renders realised rows with a 2-decimal amount and promotes the next month to a callout', () => {
     setTestInput(fixture.componentInstance.contributions, [
-      makeContribution({ checkedAt: '2026-07-02T18:00:00.000Z' }),
-      makeContribution({ lineId: 'line-2', budgetMonth: 8 }),
+      makeContribution({ checkedAt: '2026-07-02T18:00:00.000Z' }), // July pointée
+      makeContribution({ lineId: 'line-2', budgetMonth: 8 }), // Aug à pointer → callout
     ]);
     fixture.detectChanges();
 
     const rows = fixture.debugElement.queryAll(
       By.css('[data-testid="savings-goal-contribution-row"]'),
     );
-    expect(rows).toHaveLength(2);
+    // Only the pointée is a ledger row; the next month lives in the callout.
+    expect(rows).toHaveLength(1);
     expect(rows[0].nativeElement.textContent).toContain('Épargne mensuelle');
     expect(rows[0].nativeElement.textContent).toContain('500.00');
+    // The one forward action is surfaced as the savings-tinted callout.
+    const next = query('goal-contribution-next');
+    expect(next).toBeTruthy();
+    expect(next.nativeElement.textContent).toContain('500.00');
   });
 
-  it('collapses future months by default: pointées + the next to point, then expands', () => {
+  it('collapses future months to activity + a next callout with a positive headline, then expands', () => {
     setTestInput(fixture.componentInstance.contributions, [
       makeContribution({
         lineId: 'l1',
         budgetMonth: 6,
         checkedAt: '2026-06-02T18:00:00.000Z',
       }),
-      makeContribution({ lineId: 'l2', budgetMonth: 7 }), // next à pointer
+      makeContribution({ lineId: 'l2', budgetMonth: 7 }), // next à pointer → callout
       makeContribution({ lineId: 'l3', budgetMonth: 8 }),
       makeContribution({ lineId: 'l4', budgetMonth: 9 }),
       makeContribution({ lineId: 'l5', budgetMonth: 10 }),
@@ -79,13 +84,16 @@ describe('GoalContributionsList', () => {
       fixture.debugElement.queryAll(
         By.css('[data-testid="savings-goal-contribution-row"]'),
       );
-    // Collapsed: 1 pointée (June) + the next to point (July) = 2 rows, not 5.
-    expect(rows()).toHaveLength(2);
-    expect(query('goal-contribution-next-badge')).toBeTruthy();
+    // Collapsed: only the activity (June pointée) is a row; the next month is
+    // the callout; the identical future months are hidden.
+    expect(rows()).toHaveLength(1);
+    expect(query('goal-contribution-next')).toBeTruthy();
+    // Positive headline — no « à pointer » backlog count.
     const summary = query('goal-contributions-summary').nativeElement
       .textContent;
-    expect(summary).toContain('1'); // pointées
-    expect(summary).toContain('4'); // à pointer
+    expect(summary).toContain('1');
+    expect(summary.toLowerCase()).toContain('mis de côté');
+    expect(summary).not.toContain('À pointer');
 
     // « Voir tout » reveals the full ledger.
     query('goal-contributions-see-all').nativeElement.click();
