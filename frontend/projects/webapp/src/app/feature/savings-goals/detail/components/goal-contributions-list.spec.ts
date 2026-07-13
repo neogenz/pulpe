@@ -61,6 +61,38 @@ describe('GoalContributionsList', () => {
     expect(rows[0].nativeElement.textContent).toContain('500.00');
   });
 
+  it('collapses future months by default: pointées + the next to point, then expands', () => {
+    setTestInput(fixture.componentInstance.contributions, [
+      makeContribution({
+        lineId: 'l1',
+        budgetMonth: 6,
+        checkedAt: '2026-06-02T18:00:00.000Z',
+      }),
+      makeContribution({ lineId: 'l2', budgetMonth: 7 }), // next à pointer
+      makeContribution({ lineId: 'l3', budgetMonth: 8 }),
+      makeContribution({ lineId: 'l4', budgetMonth: 9 }),
+      makeContribution({ lineId: 'l5', budgetMonth: 10 }),
+    ]);
+    fixture.detectChanges();
+
+    const rows = () =>
+      fixture.debugElement.queryAll(
+        By.css('[data-testid="savings-goal-contribution-row"]'),
+      );
+    // Collapsed: 1 pointée (June) + the next to point (July) = 2 rows, not 5.
+    expect(rows()).toHaveLength(2);
+    expect(query('goal-contribution-next-badge')).toBeTruthy();
+    const summary = query('goal-contributions-summary').nativeElement
+      .textContent;
+    expect(summary).toContain('1'); // pointées
+    expect(summary).toContain('4'); // à pointer
+
+    // « Voir tout » reveals the full ledger.
+    query('goal-contributions-see-all').nativeElement.click();
+    fixture.detectChanges();
+    expect(rows()).toHaveLength(5);
+  });
+
   it('nests the allocated transactions under their contribution', () => {
     setTestInput(fixture.componentInstance.contributions, [
       makeContribution({

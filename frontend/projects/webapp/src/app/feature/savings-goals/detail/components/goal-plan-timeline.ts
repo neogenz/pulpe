@@ -34,6 +34,11 @@ interface GoalPlanTimelineRow {
   cumulative: number;
 }
 
+interface GoalPlanTimelineVisibleRow extends GoalPlanTimelineRow {
+  /** First visible row of its year — renders a year divider above the row. */
+  showYear: boolean;
+}
+
 const WINDOW_OPEN_ROWS = 3;
 
 /**
@@ -50,6 +55,14 @@ const WINDOW_OPEN_ROWS = 3;
   template: `
     <div class="flex flex-col gap-2" data-testid="goal-plan-timeline">
       @for (row of visibleRows(); track row.periodKey) {
+        @if (row.showYear) {
+          <div
+            class="px-1 pt-3 first:pt-0 text-label-large font-semibold tabular-nums text-on-surface-variant"
+            data-testid="goal-plan-year"
+          >
+            {{ row.year }}
+          </div>
+        }
         <div
           class="flex items-center gap-3 rounded-xl bg-surface-container-low p-4"
           [class.opacity-60]="row.isLocked"
@@ -242,12 +255,20 @@ export class GoalPlanTimeline {
     return index;
   });
 
-  protected readonly visibleRows = computed<GoalPlanTimelineRow[]>(() => {
-    const rows = this.rows();
-    if (this.expanded()) return rows;
-    const start = Math.max(0, this.#lastLockedIndex());
-    return rows.slice(start, start + WINDOW_OPEN_ROWS + 1);
-  });
+  protected readonly visibleRows = computed<GoalPlanTimelineVisibleRow[]>(
+    () => {
+      const rows = this.rows();
+      const start = this.expanded() ? 0 : Math.max(0, this.#lastLockedIndex());
+      const end = this.expanded() ? rows.length : start + WINDOW_OPEN_ROWS + 1;
+      const windowed = rows.slice(start, end);
+      // Year divider at the first visible row and whenever the year changes — a
+      // 36-month plan spans several years, so the month name alone is ambiguous.
+      return windowed.map((row, index) => ({
+        ...row,
+        showYear: index === 0 || row.year !== windowed[index - 1].year,
+      }));
+    },
+  );
 
   protected readonly hiddenCount = computed(
     () => this.rows().length - this.visibleRows().length,

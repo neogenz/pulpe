@@ -210,7 +210,14 @@ export function buildGoalProjectionChartData(
   }
 
   return {
-    labels: months.map((month) => formatShortMonth(month.month, locale)),
+    // Two-line `[mois, année]` at each January and on the first point so a
+    // multi-year trajectory (or one straddling a year boundary) stays readable;
+    // plain month elsewhere to avoid repeating the year on every tick.
+    labels: months.map((month, index) =>
+      index === 0 || month.month === 1
+        ? [formatShortMonth(month.month, locale), String(month.year)]
+        : formatShortMonth(month.month, locale),
+    ),
     datasets,
   };
 }

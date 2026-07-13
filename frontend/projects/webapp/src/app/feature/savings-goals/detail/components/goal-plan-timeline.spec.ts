@@ -154,4 +154,22 @@ describe('GoalPlanTimeline', () => {
     expect(rowsQuery().length).toBe(4);
     expect(query('goal-plan-see-all')).toBeTruthy();
   });
+
+  it('renders a year divider at the first row and at each year change, not per row', () => {
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({ month: 11, year: 2026, plannedCumulative: 450 }),
+      makeMonth({ month: 12, year: 2026, plannedCumulative: 900 }),
+      makeMonth({ month: 1, year: 2027, plannedCumulative: 1350 }),
+      makeMonth({ month: 2, year: 2027, plannedCumulative: 1800 }),
+    ]);
+    setTestInput(fixture.componentInstance.expanded, true);
+    fixture.detectChanges();
+
+    const years = fixture.debugElement
+      .queryAll(By.css('[data-testid="goal-plan-year"]'))
+      .map((el) => el.nativeElement.textContent.trim());
+    // 2026 once (first row) + 2027 once (year change) — a multi-year plan is
+    // readable without repeating the year on all four rows.
+    expect(years).toEqual(['2026', '2027']);
+  });
 });
