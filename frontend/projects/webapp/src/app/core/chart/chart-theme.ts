@@ -3,12 +3,17 @@ import { getCurrencyFormatter, type SupportedCurrency } from 'pulpe-shared';
 
 import { CURRENCY_CONFIG } from '@core/currency';
 
-let _registered = false;
+// Register Chart.js at module load — BEFORE ng2-charts creates any Chart
+// instance. Doing this lazily from a component's afterNextRender can lose the
+// race (the directive builds the chart first) and leave scales unregistered
+// ("category" is not a registered scale); the old `_registered` guard then made
+// that broken state sticky across dev-server HMR. Any chart component imports
+// this module, so this side-effect runs before its chart renders.
+Chart.register(...registerables);
 
 export function registerChartPlugins(): void {
-  if (_registered) return;
-  Chart.register(...registerables);
-  _registered = true;
+  // No-op: registration now happens at module load (above). Kept so existing
+  // call sites compile unchanged.
 }
 
 export const CHART_FONT_FAMILY = 'DM Sans, sans-serif';
