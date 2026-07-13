@@ -6,7 +6,7 @@ import {
   input,
   output,
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, NgClass } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
@@ -20,6 +20,7 @@ import { UserSettingsStore } from '@core/user-settings';
   selector: 'pulpe-savings-goal-card',
   imports: [
     DatePipe,
+    NgClass,
     MatCardModule,
     MatChipsModule,
     MatIconModule,
@@ -29,7 +30,7 @@ import { UserSettingsStore } from '@core/user-settings';
   template: `
     <mat-card
       appearance="outlined"
-      class="savings-goal-card cursor-pointer h-full"
+      class="savings-goal-card cursor-pointer h-full transition-[box-shadow,transform] duration-150 ease-out motion-safe:active:scale-[0.98]"
       (click)="openDetail.emit(goal())"
       [attr.data-testid]="'savings-goal-' + goal().name"
     >
@@ -40,9 +41,22 @@ import { UserSettingsStore } from '@core/user-settings';
           >
             <mat-icon aria-hidden="true">savings</mat-icon>
           </div>
-          <mat-chip class="!h-6 !text-label-small bg-surface-container">
-            {{ statusLabelKey() | transloco }}
-          </mat-chip>
+          <!-- Chip only when the status carries a real signal: an « Actif » chip on
+               every card is repetition, not information. COMPLETED reads positive
+               (savings green, RG-002), PAUSED stays neutral. -->
+          @if (!isActive()) {
+            <mat-chip
+              class="!h-6 !text-label-small"
+              [ngClass]="
+                isCompleted()
+                  ? 'bg-financial-savings/10 text-financial-savings'
+                  : 'bg-surface-container'
+              "
+              data-testid="savings-goal-status"
+            >
+              {{ statusLabelKey() | transloco }}
+            </mat-chip>
+          }
         </div>
 
         <h2 class="text-title-medium font-medium ph-no-capture line-clamp-2">
@@ -53,13 +67,22 @@ import { UserSettingsStore } from '@core/user-settings';
           <span
             class="ph-no-capture text-headline-small font-bold text-financial-savings"
           >
-            {{ goal().targetAmount | appCurrency: currency() : '1.2-2' }}
+            {{ goal().targetAmount | appCurrency: currency() : '1.0-0' }}
           </span>
           <span
-            class="text-body-small text-on-surface-variant"
+            class="inline-flex items-center gap-1 text-body-small text-on-surface-variant shrink-0"
+            [attr.aria-label]="
+              ('savingsGoals.targetDate' | transloco) +
+              ' : ' +
+              (goal().targetDate | date: shortDateFormat())
+            "
             data-testid="savings-goal-target-date"
           >
-            {{ 'savingsGoals.targetDate' | transloco }} :
+            <mat-icon
+              class="text-base! w-auto! h-auto! leading-none"
+              aria-hidden="true"
+              >event</mat-icon
+            >
             {{ goal().targetDate | date: shortDateFormat() }}
           </span>
         </div>
@@ -91,6 +114,10 @@ export class SavingsGoalCard {
 
   protected readonly statusLabelKey = computed(() =>
     statusLabelKeyFor(this.goal().status),
+  );
+  protected readonly isActive = computed(() => this.goal().status === 'ACTIVE');
+  protected readonly isCompleted = computed(
+    () => this.goal().status === 'COMPLETED',
   );
 }
 
