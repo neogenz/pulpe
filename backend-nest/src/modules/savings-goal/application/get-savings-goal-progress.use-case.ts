@@ -10,6 +10,10 @@ import {
   SAVINGS_GOAL_REPOSITORY,
   type SavingsGoalRepositoryPort,
 } from '../domain/ports/savings-goal-repository.port';
+import {
+  BUDGET_TEMPLATE_REPOSITORY,
+  type BudgetTemplateRepositoryPort,
+} from '@modules/budget-template/domain/ports/budget-template-repository.port';
 import type { SavingsGoalProgressComputation } from '../domain/savings-goal.entity';
 
 /**
@@ -27,6 +31,8 @@ export class GetSavingsGoalProgressUseCase {
   constructor(
     @Inject(SAVINGS_GOAL_REPOSITORY)
     private readonly repo: SavingsGoalRepositoryPort,
+    @Inject(BUDGET_TEMPLATE_REPOSITORY)
+    private readonly templateRepo: BudgetTemplateRepositoryPort,
     @InjectInfoLogger(GetSavingsGoalProgressUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -37,10 +43,20 @@ export class GetSavingsGoalProgressUseCase {
   ): Promise<SavingsGoalProgressComputation> {
     // findById throws SAVINGS_GOAL_NOT_FOUND for a missing/foreign goal (RLS).
     const goal = await this.repo.findById(id);
-    const [{ lines, transactions }, payDayOfMonth] = await Promise.all([
+    const [
+      { lines, transactions },
+      payDayOfMonth,
+      materializedPeriods,
+      defaultTemplateId,
+    ] = await Promise.all([
       this.repo.findLinkedContributions(id),
       this.repo.findPayDayOfMonth(),
+      this.repo.findMaterializedPeriods(),
+      this.templateRepo.findDefaultTemplateId(user.id),
     ]);
+    const templateLines = defaultTemplateId
+      ? await this.templateRepo.findLinesByTemplateId(defaultTemplateId)
+      : [];
 
     const input: SavingsGoalProgressInput = {
       targetAmount: goal.targetAmount,
@@ -48,6 +64,10 @@ export class GetSavingsGoalProgressUseCase {
       createdAt: goal.createdAt,
       targetDate: goal.targetDate,
       payDayOfMonth,
+      materializedPeriods,
+      canProvisionMissingPeriods: templateLines.some(
+        (line) => line.kind === 'saving' && line.savingsGoalId === goal.id,
+      ),
       lines,
       transactions,
     };

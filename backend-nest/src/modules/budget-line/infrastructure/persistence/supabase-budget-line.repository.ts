@@ -311,6 +311,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     return {
       id: decrypted.id,
       budgetId: decrypted.budget_id,
+      savingsGoalId: decrypted.savings_goal_id,
       month: row.monthly_budget.month,
       year: row.monthly_budget.year,
       name: decrypted.name,

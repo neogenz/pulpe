@@ -701,6 +701,42 @@ describe('SupabaseSavingsGoalRepository', () => {
     });
   });
 
+  describe('findMaterializedPeriods', () => {
+    it('returns every budget period scoped to the authenticated user', async () => {
+      let capturedEq: [string, string] | undefined;
+      const provider = createMockProvider((table) => {
+        expect(table).toBe('monthly_budget');
+        return {
+          select: (columns: string) => {
+            expect(columns).toBe('month, year');
+            return {
+              eq: (column: string, value: string) => {
+                capturedEq = [column, value];
+                return Promise.resolve({
+                  data: [
+                    { month: 7, year: 2026 },
+                    { month: 8, year: 2026 },
+                  ],
+                  error: null,
+                });
+              },
+            };
+          },
+        };
+      });
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      await expect(repo.findMaterializedPeriods()).resolves.toEqual([
+        { month: 7, year: 2026 },
+        { month: 8, year: 2026 },
+      ]);
+      expect(capturedEq).toEqual(['user_id', mockUser.id]);
+    });
+  });
+
   describe('findPayDayOfMonth', () => {
     it('returns the payDayOfMonth from user_metadata', async () => {
       const repo = new SupabaseSavingsGoalRepository(
@@ -732,6 +768,43 @@ describe('SupabaseSavingsGoalRepository', () => {
         createMockEncryption(),
       );
       expect(await repo.findPayDayOfMonth()).toBeNull();
+    });
+  });
+
+  describe('applyPlan', () => {
+    it('sends only encrypted concrete-line updates to the hardened RPC', async () => {
+      const rpc = jest.fn().mockResolvedValue({ data: [], error: null });
+      const provider = {
+        get client() {
+          return { rpc } as unknown as AuthenticatedSupabaseClient;
+        },
+        get user() {
+          return mockUser;
+        },
+      } as AuthenticatedSupabaseProvider;
+      const encryption = createMockEncryption();
+      encryption.prepareAmountData = jest
+        .fn()
+        .mockResolvedValue({ amount: 'enc:123' });
+      const repo = new SupabaseSavingsGoalRepository(provider, encryption);
+      const lineId = '123e4567-e89b-12d3-a456-426614174000';
+
+      await expect(
+        repo.applyPlan(
+          '123e4567-e89b-12d3-a456-426614174001',
+          [{ budgetLineId: lineId, amount: 123 }],
+          24_319,
+        ),
+      ).resolves.toEqual({
+        updatedLines: [],
+        touchedBudgetIds: [],
+        updatedTemplateLineIds: [],
+      });
+      expect(rpc).toHaveBeenCalledWith('apply_savings_goal_plan', {
+        p_goal_id: '123e4567-e89b-12d3-a456-426614174001',
+        p_min_period_index: 24_319,
+        p_line_updates: [{ budget_line_id: lineId, amount: 'enc:123' }],
+      });
     });
   });
 });

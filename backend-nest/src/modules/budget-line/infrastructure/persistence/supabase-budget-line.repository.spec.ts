@@ -506,6 +506,42 @@ describe('SupabaseBudgetLineRepository', () => {
     });
   });
 
+  describe('findSpreadSource', () => {
+    it('returns the savings-goal link needed by spread-from-line', async () => {
+      const provider = createMockProvider(() => ({
+        select: () => ({
+          eq: () => ({
+            single: jest.fn().mockResolvedValue({
+              data: {
+                ...mockRow,
+                savings_goal_id: 'goal-1',
+                monthly_budget: {
+                  month: 1,
+                  year: 2026,
+                  user_id: mockUser.id,
+                },
+              },
+              error: null,
+            }),
+          }),
+        }),
+      }));
+      const encryption = createMockEncryption();
+      encryption.decryptRowAmountFields = jest
+        .fn()
+        .mockImplementation((row) => ({
+          ...row,
+          amount: 1200,
+          original_amount: null,
+        }));
+      repo = new SupabaseBudgetLineRepository(provider, encryption);
+
+      const source = await repo.findSpreadSource('line-1');
+
+      expect(source.savingsGoalId).toBe('goal-1');
+    });
+  });
+
   describe('createSpread', () => {
     const spreadGroupId = 'a3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d';
     const spreadInput = {

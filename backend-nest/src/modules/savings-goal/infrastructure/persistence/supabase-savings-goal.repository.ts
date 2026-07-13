@@ -2,7 +2,12 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { Buffer } from 'node:buffer';
 import type { PostgrestError } from '@supabase/supabase-js';
 import { ZodError } from 'zod';
-import { PAY_DAY_MAX, PAY_DAY_MIN, type BudgetLine } from 'pulpe-shared';
+import {
+  PAY_DAY_MAX,
+  PAY_DAY_MIN,
+  type BudgetLine,
+  type BudgetPeriod,
+} from 'pulpe-shared';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { isSavingsGoalLinkDenied } from '@common/utils/savings-goal-link';
@@ -27,19 +32,15 @@ import type {
   SavingsGoalLinkedContributions,
   SavingsGoalPlanApplyResult,
   SavingsGoalPlanMonthAdjustment,
-  SavingsGoalPlanTemplateAdjustment,
   SavingsGoalRow,
   SavingsGoalUpdatePatch,
 } from '../../domain/savings-goal.entity';
 import {
   applySavingsGoalPlanLineListSchema,
-  applySavingsGoalPlanTemplateLineListSchema,
   PLAN_LINE_CHECKED_RPC_MESSAGE,
   PLAN_LINE_NOT_LINKED_RPC_MESSAGE,
   PLAN_LINE_PAST_RPC_MESSAGE,
-  PLAN_TEMPLATE_LINE_NOT_LINKED_RPC_MESSAGE,
   type ApplySavingsGoalPlanLine,
-  type ApplySavingsGoalPlanTemplateLine,
 } from './schemas/rpc-payload.schemas';
 
 type TransactionKindEnum = Database['public']['Enums']['transaction_kind'];
@@ -331,10 +332,31 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     return Math.max(PAY_DAY_MIN, Math.min(PAY_DAY_MAX, raw));
   }
 
+  async findMaterializedPeriods(): Promise<BudgetPeriod[]> {
+    const { data, error } = await this.supabaseProvider.client
+      .from('monthly_budget')
+      .select('month, year')
+      .eq('user_id', this.supabaseProvider.user.id);
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'findSavingsGoalMaterializedPeriods',
+          entityType: 'monthly_budget',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    return data ?? [];
+  }
+
   async applyPlan(
     goalId: string,
     monthAdjustments: SavingsGoalPlanMonthAdjustment[],
-    templateAdjustments: SavingsGoalPlanTemplateAdjustment[],
     minPeriodIndex: number,
   ): Promise<SavingsGoalPlanApplyResult> {
     const supabase = this.supabaseProvider.client;
@@ -345,21 +367,12 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
         this.toPlanRpcLine(adjustment, user),
       ),
     );
-    const templateUpdates = await Promise.all(
-      templateAdjustments.map((adjustment) =>
-        this.toPlanRpcTemplateLine(adjustment, user),
-      ),
-    );
-    const { linePayload, templatePayload } = this.parsePlanPayload(
-      lineUpdates,
-      templateUpdates,
-    );
+    const linePayload = this.parsePlanPayload(lineUpdates);
 
     const { data, error } = await supabase.rpc('apply_savings_goal_plan', {
       p_goal_id: goalId,
       p_min_period_index: minPeriodIndex,
       p_line_updates: linePayload as never,
-      p_template_updates: templatePayload as never,
     });
 
     if (error || !data) {
@@ -371,14 +384,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     const touchedBudgetIds = [
       ...new Set(updatedLines.map((line) => line.budgetId)),
     ];
-    // The RPC is all-or-nothing: on success every requested template line was
-    // updated, so the input ids ARE the touched ids (the RPC returns only
-    // budget lines).
-    const updatedTemplateLineIds = templateAdjustments.map(
-      (adjustment) => adjustment.templateLineId,
-    );
-
-    return { updatedLines, touchedBudgetIds, updatedTemplateLineIds };
+    return { updatedLines, touchedBudgetIds, updatedTemplateLineIds: [] };
   }
 
   private async toPlanRpcLine(
@@ -393,31 +399,11 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     return { budget_line_id: adjustment.budgetLineId, amount };
   }
 
-  private async toPlanRpcTemplateLine(
-    adjustment: SavingsGoalPlanTemplateAdjustment,
-    user: AuthenticatedUser,
-  ): Promise<ApplySavingsGoalPlanTemplateLine> {
-    const { amount } = await this.encryption.prepareAmountData(
-      adjustment.amount,
-      user.id,
-      user.clientKey,
-    );
-    return { template_line_id: adjustment.templateLineId, amount };
-  }
-
   private parsePlanPayload(
     lineUpdates: ApplySavingsGoalPlanLine[],
-    templateUpdates: ApplySavingsGoalPlanTemplateLine[],
-  ): {
-    linePayload: ApplySavingsGoalPlanLine[];
-    templatePayload: ApplySavingsGoalPlanTemplateLine[];
-  } {
+  ): ApplySavingsGoalPlanLine[] {
     try {
-      return {
-        linePayload: applySavingsGoalPlanLineListSchema.parse(lineUpdates),
-        templatePayload:
-          applySavingsGoalPlanTemplateLineListSchema.parse(templateUpdates),
-      };
+      return applySavingsGoalPlanLineListSchema.parse(lineUpdates);
     } catch (error) {
       if (error instanceof ZodError) {
         throw new BusinessException(
@@ -441,7 +427,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
    * constant in rpc-payload.schemas so the SQL↔TS coupling is greppable):
    * - ownership → SAVINGS_GOAL_NOT_FOUND (404, RLS-hiding idiom);
    * - checked / past-period → 409 conflict (the plan drifted mid-simulation);
-   * - not-linked (line or template) → 422 (refetch + resimulate);
+   * - not-linked → 422 (refetch + resimulate);
    * - anything else → generic apply failure (500, safe to retry — idempotent).
    */
   private throwPlanRpcError(error: PostgrestError | null): never {
@@ -465,10 +451,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
         { cause: error ?? undefined },
       );
     }
-    if (
-      message.includes(PLAN_LINE_NOT_LINKED_RPC_MESSAGE) ||
-      message.includes(PLAN_TEMPLATE_LINE_NOT_LINKED_RPC_MESSAGE)
-    ) {
+    if (message.includes(PLAN_LINE_NOT_LINKED_RPC_MESSAGE)) {
       throw new BusinessException(
         ERROR_DEFINITIONS.SAVINGS_GOAL_PLAN_LINE_INVALID,
         undefined,

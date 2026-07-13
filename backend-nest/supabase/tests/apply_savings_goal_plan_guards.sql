@@ -10,7 +10,6 @@ DECLARE
   v_other_id uuid := gen_random_uuid();
   v_goal_id uuid := gen_random_uuid();
   v_template_id uuid := gen_random_uuid();
-  v_template_line_id uuid := gen_random_uuid();
   v_past_budget uuid := gen_random_uuid();
   v_current_budget uuid := gen_random_uuid();
   v_future_budget uuid := gen_random_uuid();
@@ -25,6 +24,10 @@ DECLARE
   v_errmsg text;
   v_amount text;
   v_flag boolean;
+  v_original_amount text;
+  v_original_currency text;
+  v_target_currency text;
+  v_exchange_rate numeric;
 BEGIN
   INSERT INTO auth.users (id, email, encrypted_password, instance_id, aud, role)
   VALUES
@@ -45,9 +48,6 @@ BEGIN
   INSERT INTO public.template (id, user_id, name, description, is_default)
   VALUES (v_template_id, v_user_id, 'Plan Test', '', false);
 
-  INSERT INTO public.template_line (id, template_id, name, amount, kind, recurrence, savings_goal_id)
-  VALUES (v_template_line_id, v_template_id, 'Épargne MT', 'enc:250', 'saving', 'fixed', v_goal_id);
-
   INSERT INTO public.monthly_budget (id, user_id, template_id, month, year, description)
   VALUES
     (v_past_budget, v_user_id, v_template_id, 5, 2030, ''),
@@ -62,28 +62,38 @@ BEGIN
     (v_past_line, v_past_budget, 'Passé', 'enc:200', 'saving', 'fixed', v_goal_id, NULL),
     (v_unlinked_line, v_current_budget, 'Libre', 'enc:5000', 'saving', 'fixed', NULL, NULL);
 
-  -- 1. Happy path: current + future lines updated, flagged; template updated.
+  UPDATE public.budget_line
+  SET original_amount = 'enc:600',
+      original_currency = 'USD',
+      target_currency = 'EUR',
+      exchange_rate = 2
+  WHERE id = v_current_line;
+
+  -- 1. Happy path: current + future lines updated and flagged. Changing amount
+  -- clears stale source FX metadata but preserves the display currency.
   PERFORM public.apply_savings_goal_plan(
     p_goal_id := v_goal_id,
     p_min_period_index := v_min_index,
     p_line_updates := jsonb_build_array(
       jsonb_build_object('budget_line_id', v_current_line, 'amount', 'enc:450'),
       jsonb_build_object('budget_line_id', v_future_line, 'amount', 'enc:350')
-    ),
-    p_template_updates := jsonb_build_array(
-      jsonb_build_object('template_line_id', v_template_line_id, 'amount', 'enc:275')
     )
   );
 
-  SELECT amount, is_manually_adjusted INTO v_amount, v_flag
+  SELECT amount, is_manually_adjusted, original_amount, original_currency,
+         target_currency, exchange_rate
+  INTO v_amount, v_flag, v_original_amount, v_original_currency,
+       v_target_currency, v_exchange_rate
   FROM public.budget_line WHERE id = v_current_line;
   IF v_amount <> 'enc:450' OR v_flag <> true THEN
     RAISE EXCEPTION 'FAIL: current line not updated/flagged (amount=%, flag=%)', v_amount, v_flag;
   END IF;
-
-  SELECT amount INTO v_amount FROM public.template_line WHERE id = v_template_line_id;
-  IF v_amount <> 'enc:275' THEN
-    RAISE EXCEPTION 'FAIL: template line not updated (amount=%)', v_amount;
+  IF v_original_amount IS NOT NULL
+     OR v_original_currency IS NOT NULL
+     OR v_exchange_rate IS NOT NULL
+     OR v_target_currency <> 'EUR' THEN
+    RAISE EXCEPTION 'FAIL: stale FX metadata preserved (original_amount=%, original_currency=%, target_currency=%, exchange_rate=%)',
+      v_original_amount, v_original_currency, v_target_currency, v_exchange_rate;
   END IF;
 
   -- 2. Checked line in the batch → RAISE + whole-batch rollback (valid sibling intact).
@@ -95,8 +105,7 @@ BEGIN
       p_line_updates := jsonb_build_array(
         jsonb_build_object('budget_line_id', v_current_line, 'amount', 'enc:111'),
         jsonb_build_object('budget_line_id', v_checked_line, 'amount', 'enc:111')
-      ),
-      p_template_updates := '[]'::jsonb
+      )
     );
   EXCEPTION WHEN OTHERS THEN
     v_caught := true;
@@ -121,8 +130,7 @@ BEGIN
       p_min_period_index := v_min_index,
       p_line_updates := jsonb_build_array(
         jsonb_build_object('budget_line_id', v_past_line, 'amount', 'enc:123')
-      ),
-      p_template_updates := '[]'::jsonb
+      )
     );
   EXCEPTION WHEN OTHERS THEN
     v_caught := true;
@@ -140,8 +148,7 @@ BEGIN
       p_min_period_index := v_min_index,
       p_line_updates := jsonb_build_array(
         jsonb_build_object('budget_line_id', v_unlinked_line, 'amount', 'enc:123')
-      ),
-      p_template_updates := '[]'::jsonb
+      )
     );
   EXCEPTION WHEN OTHERS THEN
     v_caught := true;
@@ -151,26 +158,7 @@ BEGIN
     RAISE EXCEPTION 'FAIL: expected "Plan line not linked", got % (caught=%)', v_errmsg, v_caught;
   END IF;
 
-  -- 5. Foreign template line → RAISE 'Plan template line not linked'.
-  v_caught := false;
-  BEGIN
-    PERFORM public.apply_savings_goal_plan(
-      p_goal_id := v_goal_id,
-      p_min_period_index := v_min_index,
-      p_line_updates := '[]'::jsonb,
-      p_template_updates := jsonb_build_array(
-        jsonb_build_object('template_line_id', gen_random_uuid(), 'amount', 'enc:99')
-      )
-    );
-  EXCEPTION WHEN OTHERS THEN
-    v_caught := true;
-    v_errmsg := SQLERRM;
-  END;
-  IF NOT v_caught OR v_errmsg NOT LIKE '%Plan template line not linked%' THEN
-    RAISE EXCEPTION 'FAIL: expected "Plan template line not linked", got % (caught=%)', v_errmsg, v_caught;
-  END IF;
-
-  -- 6. Cross-user IDOR: another user applying to this goal → 'Savings goal access denied'.
+  -- 5. Cross-user IDOR: another user applying to this goal → 'Savings goal access denied'.
   PERFORM set_config(
     'request.jwt.claims',
     json_build_object('sub', v_other_id::text)::text,
@@ -183,8 +171,7 @@ BEGIN
       p_min_period_index := v_min_index,
       p_line_updates := jsonb_build_array(
         jsonb_build_object('budget_line_id', v_current_line, 'amount', 'enc:999')
-      ),
-      p_template_updates := '[]'::jsonb
+      )
     );
   EXCEPTION WHEN OTHERS THEN
     v_caught := true;

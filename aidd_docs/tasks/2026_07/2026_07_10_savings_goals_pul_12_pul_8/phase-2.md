@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Provisionner et appliquer le plan sans perdre d'intégrité

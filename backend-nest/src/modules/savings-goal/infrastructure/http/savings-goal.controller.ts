@@ -150,7 +150,7 @@ export class SavingsGoalController {
   @Post(':id/plan')
   @ApiOperation({
     summary:
-      'Applique un plan simulé — réajuste les prévisions liées non pointées et le Mois Type (PUL-12)',
+      'Applique un plan simulé aux prévisions liées non pointées (PUL-12)',
   })
   @ApiParam({ name: 'id', description: "Identifiant unique de l'objectif" })
   @ApiResponse({

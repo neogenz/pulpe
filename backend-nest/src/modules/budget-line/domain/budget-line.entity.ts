@@ -47,6 +47,7 @@ export interface BudgetLine {
 export interface SpreadSourceLine {
   id: string;
   budgetId: string;
+  savingsGoalId: string | null;
   month: number;
   year: number;
   name: string;

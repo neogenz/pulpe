@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { Buffer } from 'node:buffer';
 import { GetSavingsGoalProgressUseCase } from './get-savings-goal-progress.use-case';
 import { SAVINGS_GOAL_REPOSITORY } from '../domain/ports/savings-goal-repository.port';
+import { BUDGET_TEMPLATE_REPOSITORY } from '@modules/budget-template/domain/ports/budget-template-repository.port';
 import type { SavingsGoal } from '../domain/savings-goal.entity';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 
@@ -34,6 +35,11 @@ describe('GetSavingsGoalProgressUseCase', () => {
     findById: ReturnType<typeof jest.fn>;
     findLinkedContributions: ReturnType<typeof jest.fn>;
     findPayDayOfMonth: ReturnType<typeof jest.fn>;
+    findMaterializedPeriods: ReturnType<typeof jest.fn>;
+  };
+  let mockTemplateRepo: {
+    findDefaultTemplateId: ReturnType<typeof jest.fn>;
+    findLinesByTemplateId: ReturnType<typeof jest.fn>;
   };
 
   beforeEach(async () => {
@@ -43,12 +49,18 @@ describe('GetSavingsGoalProgressUseCase', () => {
         .fn()
         .mockResolvedValue({ lines: [], transactions: [] }),
       findPayDayOfMonth: jest.fn().mockResolvedValue(null),
+      findMaterializedPeriods: jest.fn().mockResolvedValue([]),
+    };
+    mockTemplateRepo = {
+      findDefaultTemplateId: jest.fn().mockResolvedValue(null),
+      findLinesByTemplateId: jest.fn().mockResolvedValue([]),
     };
 
     const module = await Test.createTestingModule({
       providers: [
         GetSavingsGoalProgressUseCase,
         { provide: SAVINGS_GOAL_REPOSITORY, useValue: mockRepo },
+        { provide: BUDGET_TEMPLATE_REPOSITORY, useValue: mockTemplateRepo },
         {
           provide: `INFO_LOGGER:${GetSavingsGoalProgressUseCase.name}`,
           useValue: {
@@ -156,5 +168,59 @@ describe('GetSavingsGoalProgressUseCase', () => {
 
     await expect(useCase.execute('missing', mockUser)).rejects.toThrow(error);
     expect(mockRepo.findLinkedContributions).not.toHaveBeenCalled();
+  });
+
+  it('marks only truly missing periods as provisionable', async () => {
+    const now = new Date();
+    const currentIndex = now.getFullYear() * 12 + now.getMonth() + 1;
+    const period = (offset: number) => {
+      const index = currentIndex + offset;
+      const year = Math.floor((index - 1) / 12);
+      return { month: index - year * 12, year };
+    };
+    const current = period(0);
+    const materializedGap = period(1);
+    const missing = period(2);
+    mockRepo.findById.mockResolvedValue({
+      ...goal,
+      createdAt: now.toISOString(),
+      targetDate: `${missing.year}-${String(missing.month).padStart(2, '0')}-15`,
+    });
+    mockRepo.findLinkedContributions.mockResolvedValue({
+      lines: [
+        {
+          id: 'line-current',
+          amount: 500,
+          kind: 'saving',
+          checkedAt: null,
+          month: current.month,
+          year: current.year,
+        },
+      ],
+      transactions: [],
+    });
+    mockRepo.findMaterializedPeriods.mockResolvedValue([
+      current,
+      materializedGap,
+    ]);
+    mockTemplateRepo.findDefaultTemplateId.mockResolvedValue('template-1');
+    mockTemplateRepo.findLinesByTemplateId.mockResolvedValue([
+      { kind: 'saving', savingsGoalId: goal.id },
+    ]);
+
+    const { months } = await useCase.execute(goal.id, mockUser);
+
+    expect(
+      months.find(
+        (month) =>
+          month.month === materializedGap.month &&
+          month.year === materializedGap.year,
+      )?.isProvisionable,
+    ).toBe(false);
+    expect(
+      months.find(
+        (month) => month.month === missing.month && month.year === missing.year,
+      )?.isProvisionable,
+    ).toBe(true);
   });
 });

@@ -9,6 +9,7 @@ const spreadSourceLine = (
 ): SpreadSourceLine => ({
   id: 'line-1',
   budgetId: 'budget-1',
+  savingsGoalId: null,
   month: 3,
   year: 2026,
   name: 'Assurance',

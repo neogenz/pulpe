@@ -35,6 +35,7 @@ import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { SupabaseSavingsGoalRepository } from './infrastructure/persistence/supabase-savings-goal.repository';
 import { GetSavingsGoalProgressUseCase } from './application/get-savings-goal-progress.use-case';
+import { SupabaseBudgetTemplateRepository } from '@modules/budget-template/infrastructure/persistence/supabase-budget-template.repository';
 
 const PASSWORD = 'test-password-123';
 
@@ -100,8 +101,12 @@ function progressUseCaseFor(user: TestUser): {
     },
   } as unknown as AuthenticatedSupabaseProvider;
   const repo = new SupabaseSavingsGoalRepository(provider, encryptionStub);
+  const templateRepo = new SupabaseBudgetTemplateRepository(
+    provider,
+    encryptionStub,
+  );
   return {
-    useCase: new GetSavingsGoalProgressUseCase(repo, noopLogger),
+    useCase: new GetSavingsGoalProgressUseCase(repo, templateRepo, noopLogger),
     authUser,
   };
 }

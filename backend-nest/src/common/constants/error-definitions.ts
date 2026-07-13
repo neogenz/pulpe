@@ -486,6 +486,12 @@ export const ERROR_DEFINITIONS = {
       'One or more plan lines are no longer linked to this goal. Refresh and re-simulate.',
     httpStatus: HttpStatus.UNPROCESSABLE_ENTITY,
   },
+  SAVINGS_GOAL_PLAN_MONTH_UNPROVISIONABLE: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_PLAN_MONTH_UNPROVISIONABLE,
+    message: () =>
+      'One or more plan months cannot be created from the default template.',
+    httpStatus: HttpStatus.UNPROCESSABLE_ENTITY,
+  },
   SAVINGS_GOAL_PLAN_CONFLICT: {
     code: API_ERROR_CODES.SAVINGS_GOAL_PLAN_CONFLICT,
     message: () => 'The plan changed since you simulated it. Re-simulate.',

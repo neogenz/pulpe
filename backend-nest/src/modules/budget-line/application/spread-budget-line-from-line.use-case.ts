@@ -62,6 +62,7 @@ export class SpreadBudgetLineFromLineUseCase {
         {
           name: source.name,
           kind: source.kind,
+          savingsGoalId: source.savingsGoalId,
           tranches: plan.tranches,
           originalCurrency: plan.originalCurrency,
           targetCurrency: plan.targetCurrency,
