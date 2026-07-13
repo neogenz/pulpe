@@ -7,6 +7,56 @@ import Testing
 /// null, `isOverdue` true), and the derived bar fractions. `targetDate` must
 /// stay a `String` (known ISO-datetime decoder trap).
 struct SavingsGoalProgressCodableTests {
+    @Test("SavingsGoalPlanMonth decodes availability and defaults legacy payloads to unavailable")
+    func planMonth_decodesProvisionabilitySafely() throws {
+        let available = try JSONDecoder().decode(SavingsGoalPlanMonth.self, from: Data("""
+        {
+            "month": 8,
+            "year": 2026,
+            "state": "gap",
+            "isLocked": false,
+            "isProvisionable": true,
+            "plannedAmount": 0,
+            "confirmedAmount": 0,
+            "plannedCumulative": 0,
+            "confirmedCumulative": 0,
+            "lines": []
+        }
+        """.utf8))
+        let legacy = try JSONDecoder().decode(SavingsGoalPlanMonth.self, from: Data("""
+        {
+            "month": 9,
+            "year": 2026,
+            "state": "gap",
+            "isLocked": false,
+            "plannedAmount": 0,
+            "confirmedAmount": 0,
+            "plannedCumulative": 0,
+            "confirmedCumulative": 0,
+            "lines": []
+        }
+        """.utf8))
+
+        #expect(available.isProvisionable == true)
+        #expect(legacy.isProvisionable == false)
+    }
+
+    @Test("SavingsGoalPlanApply encodes missing periods without a template leg")
+    func planApply_encodesMissingPeriodsOnly() throws {
+        let payload = SavingsGoalPlanApply(
+            monthAdjustments: [.init(budgetLineId: "line-1", amount: 1_000)],
+            missingMonthAdjustments: [.init(month: 8, year: 2026, amount: 1_000)]
+        )
+
+        let object = try #require(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(payload)) as? [String: Any]
+        )
+        let missing = try #require(object["missingMonthAdjustments"] as? [[String: Any]])
+
+        #expect(missing.count == 1)
+        #expect(object["templateAdjustments"] == nil)
+    }
+
     @Test("SavingsGoalProgress decodes the full progress payload")
     func progress_decodesFull() throws {
         let json = Data("""

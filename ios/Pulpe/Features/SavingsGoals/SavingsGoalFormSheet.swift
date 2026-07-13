@@ -25,6 +25,7 @@ struct SavingsGoalFormSheet: View {
 
     private let currency: SupportedCurrency
     private let accentColor = TransactionKind.saving.color
+    private let allowedTargetDates: ClosedRange<Date>
 
     init(goal: SavingsGoal?, userCurrency: SupportedCurrency) {
         self.goal = goal
@@ -39,8 +40,37 @@ struct SavingsGoalFormSheet: View {
         } ?? ""
         _amountText = State(initialValue: amountString)
 
-        let defaultDate = Calendar.current.date(byAdding: .year, value: 1, to: Date()) ?? Date()
+        let now = Date()
+        let defaultDate = Calendar.current.date(byAdding: .year, value: 1, to: now) ?? now
         _targetDate = State(initialValue: goal?.targetDateValue ?? defaultDate)
+        allowedTargetDates = Self.targetDateRange(goal: goal, now: now, calendar: .current)
+    }
+
+    nonisolated static func targetDateRange(
+        goal: SavingsGoal?,
+        now: Date,
+        calendar: Calendar
+    ) -> ClosedRange<Date> {
+        let today = calendar.startOfDay(for: now)
+        let monthComponents = calendar.dateComponents([.year, .month], from: today)
+        let currentMonth = calendar.date(from: monthComponents) ?? today
+        let lastPeriodStart = calendar.date(byAdding: .month, value: 119, to: currentMonth) ?? currentMonth
+        let nextPeriodStart = calendar.date(byAdding: .month, value: 1, to: lastPeriodStart) ?? lastPeriodStart
+        let planningMaximum = calendar.date(byAdding: .day, value: -1, to: nextPeriodStart) ?? lastPeriodStart
+        let existingTarget = goal.flatMap {
+            SavingsGoalDateFormatter.parse($0.targetDate, timeZone: calendar.timeZone)
+        }
+
+        return min(today, existingTarget ?? today)...max(planningMaximum, existingTarget ?? planningMaximum)
+    }
+
+    nonisolated static func targetDateUpdate(
+        for date: Date,
+        original goal: SavingsGoal,
+        timeZone: TimeZone = .autoupdatingCurrent
+    ) -> String? {
+        let dateString = SavingsGoalDateFormatter.string(from: date, timeZone: timeZone)
+        return dateString == goal.targetDate ? nil : dateString
     }
 
     private var isEditing: Bool { goal != nil }
@@ -120,7 +150,7 @@ struct SavingsGoalFormSheet: View {
             DatePicker(
                 "Échéance",
                 selection: $targetDate,
-                in: Calendar.current.startOfDay(for: Date())...,
+                in: allowedTargetDates,
                 displayedComponents: .date
             )
             .labelsHidden()
@@ -174,7 +204,7 @@ struct SavingsGoalFormSheet: View {
                     data: SavingsGoalUpdate(
                         name: trimmedName,
                         targetAmount: amount,
-                        targetDate: dateString,
+                        targetDate: Self.targetDateUpdate(for: targetDate, original: goal),
                         status: status
                     )
                 )

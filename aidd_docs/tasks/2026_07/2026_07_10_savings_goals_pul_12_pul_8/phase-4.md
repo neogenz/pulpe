@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Aligner iOS sur le plan canonique et invalider ses projections

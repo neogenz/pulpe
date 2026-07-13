@@ -80,6 +80,12 @@ enum SavingsPlanCalculator {
         return !month.isLocked && hasUncheckedLine
     }
 
+    /// A month participates in global simulation and redistribution when it is
+    /// editable now or can be created from the linked default template.
+    static func isContributivePlanMonth(_ month: SavingsGoalPlanMonth) -> Bool {
+        isOpenPlanMonth(month) || month.isProvisionable
+    }
+
     // MARK: - Simulate
 
     /// Simulates the plan: each locked month keeps its reality (`confirmedAmount`),
@@ -96,12 +102,12 @@ enum SavingsPlanCalculator {
             adjustmentsByKey[periodKey(month: adjustment.month, year: adjustment.year)] = adjustment.amount
         }
 
-        let openKeys = Set(
+        let contributiveKeys = Set(
             timeline
-                .filter { isOpenPlanMonth($0) }
+                .filter { isContributivePlanMonth($0) }
                 .map { periodKey(month: $0.month, year: $0.year) }
         )
-        for key in adjustmentsByKey.keys where !openKeys.contains(key) {
+        for key in adjustmentsByKey.keys where !contributiveKeys.contains(key) {
             throw SimulationError.adjustmentTargetsLockedOrGapMonth
         }
 
@@ -111,11 +117,11 @@ enum SavingsPlanCalculator {
 
         for month in timeline {
             let key = periodKey(month: month.month, year: month.year)
-            let isOpen = isOpenPlanMonth(month)
+            let isContributive = isContributivePlanMonth(month)
 
             let simulatedAmount: Decimal
             var isAdjusted = false
-            if !isOpen {
+            if !isContributive {
                 simulatedAmount = month.confirmedAmount
             } else if let override = adjustmentsByKey[key] {
                 simulatedAmount = override
@@ -168,11 +174,11 @@ enum SavingsPlanCalculator {
             pinnedByKey[periodKey(month: pin.month, year: pin.year)] = pin.amount
         }
 
-        let openMonths = timeline.filter { isOpenPlanMonth($0) }
+        let openMonths = timeline.filter { isContributivePlanMonth($0) }
         let openUnpinned = openMonths.filter { pinnedByKey[periodKey(month: $0.month, year: $0.year)] == nil }
 
         let lockedConfirmedSum = timeline
-            .filter { !isOpenPlanMonth($0) }
+            .filter(\.isLocked)
             .reduce(Decimal(0)) { $0 + $1.confirmedAmount }
 
         let pinnedSum = openMonths
@@ -181,7 +187,11 @@ enum SavingsPlanCalculator {
 
         let remaining = max(0, targetAmount - lockedConfirmedSum - pinnedSum)
 
-        if openUnpinned.isEmpty {
+        let hasUnavailablePeriod = timeline.contains {
+            !$0.isLocked && !isContributivePlanMonth($0)
+        }
+
+        if hasUnavailablePeriod || openUnpinned.isEmpty {
             return RedistributeResult(
                 adjustments: [],
                 remainingEffort: remaining,

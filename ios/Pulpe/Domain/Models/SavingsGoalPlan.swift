@@ -40,6 +40,8 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
     let state: SavingsPlanMonthState
     /// Non-editable: strictly-past cycle OR every linked line pointé.
     let isLocked: Bool
+    /// Budget absent pouvant être créé depuis une ligne liée du Mois Type.
+    let isProvisionable: Bool
     /// Σ `line.amount` of the linked Épargne prévisions this month.
     let plannedAmount: Decimal
     /// Checked-only realised envelope for this month.
@@ -47,6 +49,49 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
     let plannedCumulative: Decimal
     let confirmedCumulative: Decimal
     let lines: [SavingsGoalPlanLine]
+
+    init(
+        month: Int,
+        year: Int,
+        state: SavingsPlanMonthState,
+        isLocked: Bool,
+        isProvisionable: Bool = false,
+        plannedAmount: Decimal,
+        confirmedAmount: Decimal,
+        plannedCumulative: Decimal,
+        confirmedCumulative: Decimal,
+        lines: [SavingsGoalPlanLine]
+    ) {
+        self.month = month
+        self.year = year
+        self.state = state
+        self.isLocked = isLocked
+        self.isProvisionable = isProvisionable
+        self.plannedAmount = plannedAmount
+        self.confirmedAmount = confirmedAmount
+        self.plannedCumulative = plannedCumulative
+        self.confirmedCumulative = confirmedCumulative
+        self.lines = lines
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        month = try container.decode(Int.self, forKey: .month)
+        year = try container.decode(Int.self, forKey: .year)
+        state = try container.decode(SavingsPlanMonthState.self, forKey: .state)
+        isLocked = try container.decode(Bool.self, forKey: .isLocked)
+        isProvisionable = try container.decodeIfPresent(Bool.self, forKey: .isProvisionable) ?? false
+        plannedAmount = try container.decode(Decimal.self, forKey: .plannedAmount)
+        confirmedAmount = try container.decode(Decimal.self, forKey: .confirmedAmount)
+        plannedCumulative = try container.decode(Decimal.self, forKey: .plannedCumulative)
+        confirmedCumulative = try container.decode(Decimal.self, forKey: .confirmedCumulative)
+        lines = try container.decode([SavingsGoalPlanLine].self, forKey: .lines)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case month, year, state, isLocked, isProvisionable
+        case plannedAmount, confirmedAmount, plannedCumulative, confirmedCumulative, lines
+    }
 
     /// Stable period key (`year * 12 + month`) — also the `ForEach` identity.
     var id: Int { year * 12 + month }
@@ -58,19 +103,20 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
 
 /// Line-scoped plan apply payload (`docs/SAVINGS_PLAN.md` §4.3). 1:1 the strict
 /// Zod `savingsGoalPlanApplySchema`; Swift's synthesised `Encodable` omits nil so
-/// nothing extra leaks. `monthAdjustments` patch materialised `budget_line`s,
-/// `templateAdjustments` patch the Mois Type lines behind horizon months.
+/// nothing extra leaks. `monthAdjustments` patch materialised `budget_line`s;
+/// `missingMonthAdjustments` provision absent budgets by period.
 struct SavingsGoalPlanApply: Encodable, Sendable {
     let monthAdjustments: [MonthAdjustment]
-    let templateAdjustments: [TemplateAdjustment]
+    let missingMonthAdjustments: [MissingMonthAdjustment]
 
     struct MonthAdjustment: Encodable, Sendable {
         let budgetLineId: String
         let amount: Decimal
     }
 
-    struct TemplateAdjustment: Encodable, Sendable {
-        let templateLineId: String
+    struct MissingMonthAdjustment: Encodable, Sendable {
+        let month: Int
+        let year: Int
         let amount: Decimal
     }
 }

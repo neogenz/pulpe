@@ -52,6 +52,14 @@ struct PulpeApp: App {
             dashboardStore.invalidateCache()
         }
 
+        // Deleting a goal unlinks every attached prévision server-side.
+        savingsGoalStore.onDelete = { [currentMonthStore, budgetListStore, dashboardStore] in
+            currentMonthStore.invalidateCache()
+            budgetListStore.invalidateCache()
+            dashboardStore.invalidateCache()
+            BudgetDetailCache.shared.invalidateAll()
+        }
+
         // Wire currency persistence from `OnboardingBootstrapper` to `UserSettingsStore`.
         // Runs after PIN setup completes so the API call carries `X-Client-Key`.
         // Returns `true` only when the store's optimistic update was confirmed by the

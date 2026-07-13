@@ -26,6 +26,7 @@ struct SavingsPlanCalculatorTests {
         year: Int,
         state: SavingsPlanMonthState = .future,
         isLocked: Bool = false,
+        isProvisionable: Bool = false,
         plannedAmount: Decimal = 500,
         confirmedAmount: Decimal = 0,
         lines: [SavingsGoalPlanLine]? = nil
@@ -43,6 +44,7 @@ struct SavingsPlanCalculatorTests {
             year: year,
             state: state,
             isLocked: isLocked,
+            isProvisionable: isProvisionable,
             plannedAmount: plannedAmount,
             confirmedAmount: confirmedAmount,
             plannedCumulative: 0,
@@ -85,6 +87,41 @@ struct SavingsPlanCalculatorTests {
         #expect(result.attainedPeriod == BudgetPeriod(month: 4, year: 2026))
     }
 
+    @Test("includes 22 provisionable gaps in a 24-month global plan")
+    func simulate_includesProvisionableGapsInGlobalPlan() throws {
+        let timeline = (0 ..< 24).map { offset in
+            let index = 2026 * 12 + 3 + offset
+            let year = (index - 1) / 12
+            let month = index - year * 12
+            return planMonth(
+                month: month,
+                year: year,
+                state: offset == 0 ? .current : offset < 2 ? .future : .gap,
+                isProvisionable: offset >= 2,
+                plannedAmount: 0,
+                lines: offset < 2 ? nil : []
+            )
+        }
+
+        let redistribution = SavingsPlanCalculator.redistributeRemainingEffort(
+            timeline: timeline,
+            targetAmount: 24_000
+        )
+        let simulation = try SavingsPlanCalculator.simulate(
+            timeline: timeline,
+            targetAmount: 24_000,
+            globalMonthlyAmount: 1_000
+        )
+
+        #expect(timeline.filter(SavingsPlanCalculator.isOpenPlanMonth).count == 2)
+        #expect(timeline.filter(SavingsPlanCalculator.isContributivePlanMonth).count == 24)
+        #expect(redistribution.isDistributable == true)
+        #expect(redistribution.perRemainingMonth == 1_000)
+        #expect(redistribution.adjustments.count == 24)
+        #expect(redistribution.adjustments.allSatisfy { $0.amount == 1_000 })
+        #expect(simulation.simulatedFinal == 24_000)
+    }
+
     @Test("throws when an adjustment targets a locked month")
     func simulate_throwsForLockedAdjustment() {
         #expect(throws: SavingsPlanCalculator.SimulationError.self) {
@@ -122,6 +159,66 @@ struct SavingsPlanCalculatorTests {
         )
 
         #expect(result.adjustments == [.init(month: 4, year: 2026, amount: 1300)])
+    }
+
+    @Test("holds a provisionable pinned month fixed")
+    func redistribute_holdsProvisionablePinnedFixed() {
+        let gap = planMonth(
+            month: 4,
+            year: 2026,
+            state: .gap,
+            isProvisionable: true,
+            plannedAmount: 0,
+            lines: []
+        )
+
+        let result = SavingsPlanCalculator.redistributeRemainingEffort(
+            timeline: [planMonth(month: 3, year: 2026, state: .current), gap],
+            targetAmount: 2_000,
+            pinnedAdjustments: [.init(month: 4, year: 2026, amount: 700)]
+        )
+
+        #expect(result.adjustments == [.init(month: 3, year: 2026, amount: 1_300)])
+    }
+
+    @Test("blocks redistribution when a future gap cannot be provisioned")
+    func redistribute_blocksNonProvisionableGap() {
+        let unavailable = planMonth(
+            month: 4,
+            year: 2026,
+            state: .gap,
+            plannedAmount: 0,
+            lines: []
+        )
+
+        let result = SavingsPlanCalculator.redistributeRemainingEffort(
+            timeline: [planMonth(month: 3, year: 2026, state: .current), unavailable],
+            targetAmount: 1_000
+        )
+
+        #expect(result.isDistributable == false)
+        #expect(result.adjustments.isEmpty)
+    }
+
+    @Test("splits cents over provisionable gaps exactly like shared")
+    func redistribute_splitsProvisionableGapCentsExact() {
+        let gaps = (3 ... 5).map { month in
+            planMonth(
+                month: month,
+                year: 2026,
+                state: .gap,
+                isProvisionable: true,
+                plannedAmount: 0,
+                lines: []
+            )
+        }
+
+        let result = SavingsPlanCalculator.redistributeRemainingEffort(
+            timeline: gaps,
+            targetAmount: dec("100.01")
+        )
+
+        #expect(result.adjustments.map(\.amount) == [dec("33.34"), dec("33.34"), dec("33.33")])
     }
 
     @Test("is not distributable when no open month remains")

@@ -71,12 +71,33 @@ struct SavingsGoalStoreTests {
         let service = MockSavingsGoalService()
         service.stubbedGoals = [makeGoal(id: "g1")]
         let store = SavingsGoalStore(service: service)
+        nonisolated(unsafe) var invalidationCount = 0
+        store.onDelete = { invalidationCount += 1 }
         await store.forceRefresh()
 
         try await store.delete(id: "g1")
 
         #expect(store.goals.isEmpty)
         #expect(service.lastDeletedId == "g1")
+        #expect(invalidationCount == 1)
+    }
+
+    @Test("delete does not invalidate sibling stores when the API call fails")
+    func delete_failure_doesNotInvalidate() async {
+        let service = MockSavingsGoalService()
+        service.stubbedGoals = [makeGoal(id: "g1")]
+        let store = SavingsGoalStore(service: service)
+        nonisolated(unsafe) var invalidationCount = 0
+        store.onDelete = { invalidationCount += 1 }
+        await store.forceRefresh()
+        service.error = APIError.networkError(URLError(.notConnectedToInternet))
+
+        await #expect(throws: APIError.self) {
+            try await store.delete(id: "g1")
+        }
+
+        #expect(store.goals.map(\.id) == ["g1"])
+        #expect(invalidationCount == 0)
     }
 
     @Test("forceRefresh surfaces an API error")

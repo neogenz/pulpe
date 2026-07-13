@@ -91,8 +91,7 @@ struct GoalPlanSimulatorSheet: View {
                 changes: viewModel.planChanges,
                 verdict: viewModel.verdictText,
                 currency: currency,
-                showTemplateToggle: viewModel.hasTemplateChanges,
-                onConfirm: { updateTemplate in await viewModel.apply(updateTemplate: updateTemplate) }
+                onConfirm: { await viewModel.apply() }
             )
         }
         .confirmationDialog(
@@ -163,7 +162,6 @@ struct GoalPlanSimulatorSheet: View {
 
             Slider(value: globalBinding, in: 0...viewModel.sliderMax, step: 10)
                 .tint(Color.pulpePrimary)
-                .disabled(viewModel.hasVariableMonthlyAmounts)
                 .accessibilityLabel("Montant mensuel pour chaque mois ouvert")
                 .accessibilityValue(
                     viewModel.hasVariableMonthlyAmounts
@@ -333,20 +331,18 @@ final class GoalPlanSimulatorViewModel {
         .simulation(from: draft, targetAmount: targetAmount)
     }
 
-    /// The adjusted, open months — the write footprint and the recap rows.
+    /// The adjusted, contributive months — the write footprint and recap rows.
     var planChanges: [SavingsPlanCalculator.SimulatedMonth] {
-        draft.months.filter { SavingsPlanCalculator.isOpenPlanMonth($0.month) && $0.isAdjusted }
+        draft.months.filter {
+            SavingsPlanCalculator.isContributivePlanMonth($0.month) && $0.isAdjusted
+        }
     }
-
-    /// No template-horizon months are surfaced by the current contract, so the
-    /// Mois Type leg is always empty (see the report note).
-    var hasTemplateChanges: Bool { false }
 
     var canApply: Bool { isDirty && !planChanges.isEmpty && !isApplying }
 
     var hasVariableMonthlyAmounts: Bool {
         let amounts = draft.months
-            .filter { SavingsPlanCalculator.isOpenPlanMonth($0.month) }
+            .filter { SavingsPlanCalculator.isContributivePlanMonth($0.month) }
             .map(\.simulatedAmount)
         guard let first = amounts.first else { return false }
         return amounts.dropFirst().contains { $0 != first }
@@ -374,9 +370,7 @@ final class GoalPlanSimulatorViewModel {
         return "Avec ce plan, tu atteins ta cible en \(label)."
     }
 
-    func simulatedAmount(forKey key: Int) -> Decimal {
-        draft.months.first { $0.id == key }?.simulatedAmount ?? 0
-    }
+    func simulatedAmount(forKey key: Int) -> Decimal { draft.months.first { $0.id == key }?.simulatedAmount ?? 0 }
 
     func setPayDay(_ payDay: Int?) {
         deadlinePeriod = BudgetPeriodCalculator.periodForDate(deadlineDate, payDayOfMonth: payDay)
@@ -394,12 +388,8 @@ final class GoalPlanSimulatorViewModel {
     /// Per-month inline edit — overrides that month, keeps the rest.
     func setMonth(key: Int, amount: Decimal) {
         let clamped = max(0, amount)
-        if baseline.first(where: { $0.id == key })?.plannedAmount == clamped {
-            overrides.removeValue(forKey: key)
-        } else {
-            overrides[key] = clamped
-        }
-        globalAmount = nil
+        let baselineAmount = globalAmount ?? baseline.first(where: { $0.id == key })?.plannedAmount
+        if baselineAmount == clamped { overrides.removeValue(forKey: key) } else { overrides[key] = clamped }
         recompute()
     }
 
@@ -422,26 +412,33 @@ final class GoalPlanSimulatorViewModel {
         recompute()
     }
 
-    func apply(updateTemplate: Bool) async -> Bool {
+    func apply() async -> Bool {
         isApplying = true
         applyErrorMessage = nil
         defer { isApplying = false }
 
-        let monthAdjustments = planChanges.flatMap { simMonth -> [SavingsGoalPlanApply.MonthAdjustment] in
-            let lines = simMonth.month.lines.map {
-                SavingsPlanCalculator.AllocatableLine(
-                    budgetLineId: $0.budgetLineId,
-                    amount: $0.amount,
-                    checkedAt: $0.checkedAt
+        let monthAdjustments = planChanges
+            .filter { SavingsPlanCalculator.isOpenPlanMonth($0.month) }
+            .flatMap { simMonth -> [SavingsGoalPlanApply.MonthAdjustment] in
+                let lines: [SavingsPlanCalculator.AllocatableLine] = simMonth.month.lines.map {
+                    .init(budgetLineId: $0.budgetLineId, amount: $0.amount, checkedAt: $0.checkedAt)
+                }
+                return SavingsPlanCalculator.allocateMonthAmountToLines(
+                    lines,
+                    newMonthAmount: simMonth.simulatedAmount
                 )
+                .map { .init(budgetLineId: $0.budgetLineId, amount: $0.amount) }
             }
-            return SavingsPlanCalculator.allocateMonthAmountToLines(lines, newMonthAmount: simMonth.simulatedAmount)
-                .map { SavingsGoalPlanApply.MonthAdjustment(budgetLineId: $0.budgetLineId, amount: $0.amount) }
-        }
+        let missingMonthAdjustments: [SavingsGoalPlanApply.MissingMonthAdjustment] = planChanges
+            .filter { $0.month.isProvisionable }
+            .map { .init(month: $0.month.month, year: $0.month.year, amount: $0.simulatedAmount) }
 
-        guard !monthAdjustments.isEmpty else { return false }
+        guard !monthAdjustments.isEmpty || !missingMonthAdjustments.isEmpty else { return false }
 
-        let payload = SavingsGoalPlanApply(monthAdjustments: monthAdjustments, templateAdjustments: [])
+        let payload = SavingsGoalPlanApply(
+            monthAdjustments: monthAdjustments,
+            missingMonthAdjustments: missingMonthAdjustments
+        )
         do {
             _ = try await service.applyPlan(id: goalId, payload)
             didApplySucceed = true
@@ -479,19 +476,20 @@ final class GoalPlanSimulatorViewModel {
     }
 
     private func syncGlobalControlFromDraft() {
+        if let globalAmount {
+            sliderValue = min(NSDecimalNumber(decimal: globalAmount).doubleValue, sliderMax)
+            return
+        }
+
         let amounts = draft.months
-            .filter { SavingsPlanCalculator.isOpenPlanMonth($0.month) }
+            .filter { SavingsPlanCalculator.isContributivePlanMonth($0.month) }
             .map(\.simulatedAmount)
         guard let first = amounts.first else {
             globalAmount = nil
             sliderValue = 0
             return
         }
-        if amounts.dropFirst().allSatisfy({ $0 == first }) {
-            globalAmount = first
-        } else {
-            globalAmount = nil
-        }
+        globalAmount = amounts.dropFirst().allSatisfy { $0 == first } ? first : nil
         sliderValue = min(NSDecimalNumber(decimal: first).doubleValue, sliderMax)
     }
 }

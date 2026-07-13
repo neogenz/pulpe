@@ -205,17 +205,22 @@ struct GoalPlanSimulatorViewModelTests {
         )
     }
 
-    private func makeMonth(month: Int, planned: Decimal) -> SavingsGoalPlanMonth {
+    private func makeMonth(
+        month: Int,
+        planned: Decimal,
+        isProvisionable: Bool = false
+    ) -> SavingsGoalPlanMonth {
         SavingsGoalPlanMonth(
             month: month,
             year: 2099,
-            state: .future,
+            state: isProvisionable ? .gap : .future,
             isLocked: false,
+            isProvisionable: isProvisionable,
             plannedAmount: planned,
             confirmedAmount: 0,
             plannedCumulative: planned,
             confirmedCumulative: 0,
-            lines: [
+            lines: isProvisionable ? [] : [
                 SavingsGoalPlanLine(
                     budgetLineId: "line-\(month)",
                     amount: planned,
@@ -226,7 +231,7 @@ struct GoalPlanSimulatorViewModelTests {
         )
     }
 
-    private func makeProgress() -> SavingsGoalProgress {
+    private func makeProgress(months: [SavingsGoalPlanMonth]? = nil) -> SavingsGoalProgress {
         SavingsGoalProgress(
             goalId: "g1",
             status: .active,
@@ -249,7 +254,7 @@ struct GoalPlanSimulatorViewModelTests {
             originalCurrency: nil,
             targetCurrency: nil,
             exchangeRate: nil,
-            months: [
+            months: months ?? [
                 makeMonth(month: 1, planned: 100),
                 makeMonth(month: 2, planned: 200),
                 makeMonth(month: 3, planned: 300),
@@ -257,13 +262,16 @@ struct GoalPlanSimulatorViewModelTests {
         )
     }
 
-    private func makeViewModel() -> GoalPlanSimulatorViewModel {
+    private func makeViewModel(
+        progress: SavingsGoalProgress? = nil,
+        service: MockSavingsGoalService = MockSavingsGoalService()
+    ) -> GoalPlanSimulatorViewModel {
         GoalPlanSimulatorViewModel(
             goal: makeGoal(),
-            progress: makeProgress(),
+            progress: progress ?? makeProgress(),
             currency: .chf,
             payDay: 1,
-            service: MockSavingsGoalService()
+            service: service
         )
     }
 
@@ -274,6 +282,61 @@ struct GoalPlanSimulatorViewModelTests {
         #expect(viewModel.planChanges.isEmpty)
         #expect(viewModel.isDirty == false)
         #expect(viewModel.canApply == false)
+    }
+
+    @Test("a monthly override keeps the global amount as the baseline for every other month")
+    func setMonth_preservesGlobalBaseline() {
+        let viewModel = makeViewModel()
+        let overriddenKey = 2099 * 12 + 2
+
+        viewModel.setGlobalAmount(250)
+        viewModel.setMonth(key: overriddenKey, amount: 400)
+
+        #expect(viewModel.globalAmount == 250)
+        #expect(viewModel.sliderValue == 250)
+        #expect(viewModel.simulatedAmount(forKey: 2099 * 12 + 1) == 250)
+        #expect(viewModel.simulatedAmount(forKey: overriddenKey) == 400)
+        #expect(viewModel.simulatedAmount(forKey: 2099 * 12 + 3) == 250)
+        #expect(viewModel.hasVariableMonthlyAmounts)
+    }
+
+    @Test("a new global gesture replaces every monthly override")
+    func setGlobalAmount_clearsOverrides() {
+        let viewModel = makeViewModel()
+        let overriddenKey = 2099 * 12 + 2
+        viewModel.setGlobalAmount(250)
+        viewModel.setMonth(key: overriddenKey, amount: 400)
+
+        viewModel.setGlobalAmount(300)
+
+        #expect(viewModel.overrides.isEmpty)
+        #expect(viewModel.globalAmount == 300)
+        #expect(viewModel.draft.months.allSatisfy { $0.simulatedAmount == 300 })
+    }
+
+    @Test("apply sends provisionable gaps by period and materialized months by line")
+    func apply_splitsMissingPeriodsFromMaterializedLines() async throws {
+        let service = MockSavingsGoalService()
+        let progress = makeProgress(months: [
+            makeMonth(month: 1, planned: 100),
+            makeMonth(month: 2, planned: 200),
+            makeMonth(month: 3, planned: 0, isProvisionable: true),
+        ])
+        let viewModel = makeViewModel(progress: progress, service: service)
+        viewModel.setGlobalAmount(250)
+
+        #expect(viewModel.planChanges.count == 3)
+        #expect(viewModel.planChanges.filter { $0.month.isProvisionable }.count == 1)
+
+        let succeeded = await viewModel.apply()
+        let payload = try #require(service.lastApplyPayload)
+
+        #expect(succeeded)
+        #expect(payload.monthAdjustments.count == 2)
+        #expect(payload.missingMonthAdjustments.count == 1)
+        #expect(payload.missingMonthAdjustments.first?.month == 3)
+        #expect(payload.missingMonthAdjustments.first?.year == 2099)
+        #expect(payload.missingMonthAdjustments.first?.amount == 250)
     }
 
     @Test("revert clears changes and the discard-warning state")

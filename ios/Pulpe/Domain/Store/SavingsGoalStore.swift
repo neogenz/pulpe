@@ -3,9 +3,9 @@ import Foundation
 /// Caches the user's savings goals (PUL-12). Backs both the goals list/form and
 /// the "Objectif" picker in the prévision editors, so it is injected at app root.
 ///
-/// Goal CRUD never changes budget aggregates (a goal is metadata; DELETE only
-/// unlinks lines, it never alters amounts), so — unlike the dashboard stores —
-/// it does not invalidate sibling stores.
+/// Creating or editing a goal only changes its metadata. Deleting one also
+/// unlinks its prévisions, so `onDelete` lets the app invalidate every store
+/// that may still expose the removed link.
 @Observable @MainActor
 final class SavingsGoalStore: StoreProtocol {
     // MARK: - State
@@ -24,6 +24,7 @@ final class SavingsGoalStore: StoreProtocol {
     private var lastLoadTime: Date?
     private var loadTask: Task<Void, Never>?
     private var loadGeneration = 0
+    @ObservationIgnored var onDelete: (@MainActor () -> Void)?
 
     // MARK: - Services
 
@@ -104,6 +105,7 @@ final class SavingsGoalStore: StoreProtocol {
     func delete(id: String) async throws {
         try await service.delete(id: id)
         goals.removeAll { $0.id == id }
+        onDelete?()
     }
 
     func invalidateCache() {

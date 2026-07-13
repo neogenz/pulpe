@@ -3,20 +3,17 @@ import SwiftUI
 /// « On met ton plan à jour ? » (PUL-12+, pilier C) — the apply-on-confirm recap.
 ///
 /// A medium-detent sheet summarising the edited months (uniform → one line, mixed →
-/// up to 5 rows + « et N autres »), an optional « Mettre à jour mon Mois Type »
-/// toggle when horizon-template months were touched, the projection verdict, and a
-/// loading confirm button doing the pessimistic write (`docs/SAVINGS_PLAN.md` §2
-/// pilier C). Épargne accents only — never amber/red (RG-002).
+/// up to 5 rows + « et N autres »), the projection verdict, and a loading
+/// confirm button doing the pessimistic write (`docs/SAVINGS_PLAN.md` §2 pilier C).
+/// Épargne accents only — never amber/red (RG-002).
 struct GoalPlanApplyRecapSheet: View {
     let changes: [SavingsPlanCalculator.SimulatedMonth]
     let verdict: String
     let currency: SupportedCurrency
-    let showTemplateToggle: Bool
     /// Returns `true` on a successful write so the sheet can dismiss itself.
-    let onConfirm: (_ updateTemplate: Bool) async -> Bool
+    let onConfirm: () async -> Bool
 
     @Environment(\.dismiss) private var dismiss
-    @State private var updateTemplate = true
     @State private var isConfirming = false
 
     private let maxListedRows = 5
@@ -34,12 +31,6 @@ struct GoalPlanApplyRecapSheet: View {
                         .foregroundStyle(Color.textPrimary)
 
                     diffBlock
-
-                    if showTemplateToggle {
-                        Toggle("Mettre à jour mon Mois Type pour la suite", isOn: $updateTemplate)
-                            .tint(Color.pulpePrimary)
-                            .font(PulpeTypography.subheadline)
-                    }
 
                     Text(verdict)
                         .font(PulpeTypography.subheadline)
@@ -127,7 +118,7 @@ struct GoalPlanApplyRecapSheet: View {
     private func confirm() {
         isConfirming = true
         Task {
-            let succeeded = await onConfirm(updateTemplate)
+            let succeeded = await onConfirm()
             isConfirming = false
             if succeeded { dismiss() }
         }
