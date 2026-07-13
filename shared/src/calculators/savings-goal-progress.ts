@@ -71,6 +71,10 @@ export interface SavingsGoalProgressInput {
   payDayOfMonth?: number | null;
   /** Injectable pour les tests ; défaut = maintenant. */
   now?: Date;
+  /** Périodes portant déjà un budget, même sans ligne liée à cet objectif. */
+  materializedPeriods?: BudgetPeriod[];
+  /** Le Mois Type actif peut créer une ligne Épargne liée à cet objectif. */
+  canProvisionMissingPeriods?: boolean;
   lines: LinkedSavingLine[];
   transactions: LinkedSavingTransaction[];
 }

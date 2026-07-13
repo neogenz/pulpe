@@ -30,6 +30,7 @@ import type {
   LinkedSavingTransaction,
 } from './savings-goal-progress.js';
 import { splitTotalPreserving } from './spread-split.js';
+import { MAX_SAVINGS_GOAL_PLAN_PERIODS } from '../../schemas.js';
 
 /** État temporel/structurel d'un mois du plan (docs/SAVINGS_PLAN.md §2 pilier B). */
 export type SavingsPlanMonthState = 'past' | 'current' | 'future' | 'gap';
@@ -47,6 +48,8 @@ export interface SavingsPlanTimelineMonth {
   state: SavingsPlanMonthState;
   /** Non éditable : cycle passé OU toutes les lignes du mois pointées. */
   isLocked: boolean;
+  /** Budget absent pouvant être créé depuis une ligne liée du Mois Type. */
+  isProvisionable?: boolean;
   /** Σ line.amount des lignes épargne liées, ce mois. */
   plannedAmount: number;
   /** Enveloppe checked-only (`calculateRealizedSavings`) pour ce mois. */
@@ -75,6 +78,13 @@ export function isOpenPlanMonth(month: SavingsPlanTimelineMonth): boolean {
   return !month.isLocked && month.lines.some((line) => line.checkedAt == null);
 }
 
+/** Mois participant aux simulations globales et à la redistribution. */
+export function isContributivePlanMonth(
+  month: SavingsPlanTimelineMonth,
+): boolean {
+  return isOpenPlanMonth(month) || month.isProvisionable === true;
+}
+
 /**
  * Construit la timeline mensuelle ancrage → cible (inclus), en garantissant que
  * l'ancrage, le mois courant, la cible ET chaque ligne liée possèdent une row.
@@ -101,8 +111,19 @@ export function buildSavingsGoalTimeline(
   );
 
   const lineIndices = savingLines.map((line) => periodIndex(line));
-  const startIndex = Math.min(indexAnchor, indexCurrent, ...lineIndices);
-  const endIndex = Math.max(indexTarget, indexCurrent, ...lineIndices);
+  const rawStartIndex = Math.min(indexAnchor, indexCurrent, ...lineIndices);
+  const rawEndIndex = Math.max(indexTarget, indexCurrent, ...lineIndices);
+  const endIndex = Math.min(
+    rawEndIndex,
+    indexCurrent + MAX_SAVINGS_GOAL_PLAN_PERIODS - 1,
+  );
+  const startIndex = Math.max(
+    rawStartIndex,
+    endIndex - MAX_SAVINGS_GOAL_PLAN_PERIODS + 1,
+  );
+  const materializedPeriodIndices = input.materializedPeriods
+    ? new Set(input.materializedPeriods.map(periodIndex))
+    : null;
 
   const months: SavingsPlanTimelineMonth[] = [];
   let plannedCumulative = 0;
@@ -130,6 +151,12 @@ export function buildSavingsGoalTimeline(
     const allChecked =
       hasLines && monthLines.every((line) => line.checkedAt != null);
     const isLocked = index < indexCurrent || allChecked;
+    const isProvisionable =
+      !hasLines &&
+      !isLocked &&
+      materializedPeriodIndices != null &&
+      !materializedPeriodIndices.has(index) &&
+      input.canProvisionMissingPeriods === true;
 
     let state: SavingsPlanMonthState;
     if (index === indexCurrent) state = 'current';
@@ -142,6 +169,7 @@ export function buildSavingsGoalTimeline(
       year: period.year,
       state,
       isLocked,
+      isProvisionable,
       plannedAmount,
       confirmedAmount,
       plannedCumulative,
@@ -187,8 +215,8 @@ function adjustmentKey(item: { month: number; year: number }): number {
 
 /**
  * Simule le plan : chaque mois verrouillé garde sa réalité (`confirmedAmount`),
- * chaque mois ouvert prend `adjustment ?? globalMonthlyAmount ?? plannedAmount`.
- * Cibler un mois verrouillé ou gap via `adjustments` lève une erreur (révèle un
+ * chaque mois contributif prend `adjustment ?? globalMonthlyAmount ?? plannedAmount`.
+ * Cibler un mois verrouillé ou indisponible via `adjustments` lève une erreur (révèle un
  * bug d'UI en développement — même doctrine que `splitTotalPreserving`).
  */
 export function simulateSavingsPlan(input: {
@@ -202,13 +230,13 @@ export function simulateSavingsPlan(input: {
     adjustmentsByKey.set(adjustmentKey(adjustment), adjustment.amount);
   }
 
-  const openKeys = new Set(
+  const contributiveKeys = new Set(
     input.timeline
-      .filter((month) => isOpenPlanMonth(month))
+      .filter((month) => isContributivePlanMonth(month))
       .map((month) => adjustmentKey(month)),
   );
   for (const key of adjustmentsByKey.keys()) {
-    if (!openKeys.has(key)) {
+    if (!contributiveKeys.has(key)) {
       throw new Error(
         'simulateSavingsPlan: adjustment targets a locked or gap month',
       );
@@ -221,11 +249,11 @@ export function simulateSavingsPlan(input: {
 
   for (const month of input.timeline) {
     const key = adjustmentKey(month);
-    const isOpen = isOpenPlanMonth(month);
+    const isContributive = isContributivePlanMonth(month);
 
     let simulatedAmount: number;
     let isAdjusted = false;
-    if (!isOpen) {
+    if (!isContributive) {
       simulatedAmount = month.confirmedAmount;
     } else if (adjustmentsByKey.has(key)) {
       simulatedAmount = adjustmentsByKey.get(key)!;
@@ -289,13 +317,15 @@ export function redistributeRemainingEffort(input: {
     pinnedByKey.set(adjustmentKey(pin), pin.amount);
   }
 
-  const openMonths = input.timeline.filter((month) => isOpenPlanMonth(month));
+  const openMonths = input.timeline.filter((month) =>
+    isContributivePlanMonth(month),
+  );
   const openUnpinned = openMonths.filter(
     (month) => !pinnedByKey.has(adjustmentKey(month)),
   );
 
   const lockedConfirmedSum = input.timeline
-    .filter((month) => !isOpenPlanMonth(month))
+    .filter((month) => month.isLocked)
     .reduce((sum, month) => sum + month.confirmedAmount, 0);
 
   const pinnedSum = openMonths
@@ -307,7 +337,11 @@ export function redistributeRemainingEffort(input: {
     input.targetAmount - lockedConfirmedSum - pinnedSum,
   );
 
-  if (openUnpinned.length === 0) {
+  const hasUnavailablePeriod = input.timeline.some(
+    (month) => !month.isLocked && !isContributivePlanMonth(month),
+  );
+
+  if (hasUnavailablePeriod || openUnpinned.length === 0) {
     return {
       adjustments: [],
       remainingEffort: remaining,

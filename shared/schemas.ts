@@ -252,6 +252,19 @@ export const savingsGoalSchema = z.object({
 });
 export type SavingsGoal = z.infer<typeof savingsGoalSchema>;
 
+/** Mois courant inclus : l'échéance maximale est la 120e période. */
+export const MAX_SAVINGS_GOAL_PLAN_PERIODS = 120;
+
+function isWithinSavingsGoalPlanHorizon(value: string): boolean {
+  const [year, month] = value.split('-').map(Number);
+  const now = new Date();
+  const currentPeriodIndex = now.getFullYear() * 12 + now.getMonth() + 1;
+  const targetPeriodIndex = year * 12 + month;
+  return (
+    targetPeriodIndex <= currentPeriodIndex + MAX_SAVINGS_GOAL_PLAN_PERIODS - 1
+  );
+}
+
 export const savingsGoalCreateSchema = z.strictObject({
   name: z.string().min(1).max(100).trim(),
   targetAmount: z.number().positive(),
@@ -262,6 +275,9 @@ export const savingsGoalCreateSchema = z.strictObject({
     .date()
     .refine((value) => value >= new Date().toISOString().slice(0, 10), {
       error: 'Target date cannot be in the past',
+    })
+    .refine(isWithinSavingsGoalPlanHorizon, {
+      error: 'Target date exceeds the 120-period planning horizon',
     }),
   status: savingsGoalStatusSchema.default('ACTIVE'),
   originalTargetAmount: z.number().positive().optional(),
@@ -274,7 +290,12 @@ export type SavingsGoalCreate = z.infer<typeof savingsGoalCreateSchema>;
 export const savingsGoalUpdateSchema = z.strictObject({
   name: z.string().min(1).max(100).trim().optional(),
   targetAmount: z.number().positive().optional(),
-  targetDate: z.iso.date().optional(),
+  targetDate: z.iso
+    .date()
+    .refine(isWithinSavingsGoalPlanHorizon, {
+      error: 'Target date exceeds the 120-period planning horizon',
+    })
+    .optional(),
   status: savingsGoalStatusSchema.optional(),
   originalTargetAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
@@ -334,6 +355,7 @@ export const savingsGoalPlanMonthSchema = z.object({
   year: z.number().int(),
   state: savingsPlanMonthStateSchema,
   isLocked: z.boolean(),
+  isProvisionable: z.boolean().optional(),
   plannedAmount: z.number(),
   confirmedAmount: z.number(),
   plannedCumulative: z.number(),
@@ -383,16 +405,14 @@ export const savingsGoalProgressSchema = z.object({
 });
 export type SavingsGoalProgress = z.infer<typeof savingsGoalProgressSchema>;
 
-/**
- * Horizon max d'un plan appliqué (10 ans mensuel) — superset de MAX_SPREAD_TRANCHES.
- */
-export const MAX_PLAN_ADJUSTMENTS = 120;
+/** Compatibilité des consommateurs existants du contrat d'application. */
+export const MAX_PLAN_ADJUSTMENTS = MAX_SAVINGS_GOAL_PLAN_PERIODS;
 
 /**
  * Requête d'application d'un plan simulé (`POST /savings-goals/:id/plan`,
  * docs/SAVINGS_PLAN.md §4.3). `monthAdjustments` = budgets matérialisés ;
- * `templateAdjustments` = horizon Mois Type (au-delà des budgets générés).
- * Line-scoped (non ambigu pour mois multi-lignes). Écriture atomique côté RPC.
+ * `missingMonthAdjustments` = budgets absents à provisionner par période.
+ * `templateAdjustments` est transitoire et n'accepte plus que `[]`.
  */
 export const savingsGoalPlanApplySchema = z
   .strictObject({
@@ -405,6 +425,17 @@ export const savingsGoalPlanApplySchema = z
       )
       .max(MAX_PLAN_ADJUSTMENTS)
       .default([]),
+    missingMonthAdjustments: z
+      .array(
+        z.strictObject({
+          month: z.number().int().min(1).max(12),
+          year: z.number().int(),
+          amount: z.number().nonnegative(),
+        }),
+      )
+      .max(MAX_PLAN_ADJUSTMENTS)
+      .default([]),
+    /** @deprecated Supprimé quand tous les clients envoient le nouveau contrat. */
     templateAdjustments: z
       .array(
         z.strictObject({
@@ -412,12 +443,12 @@ export const savingsGoalPlanApplySchema = z
           amount: z.number().nonnegative(),
         }),
       )
-      .max(MAX_PLAN_ADJUSTMENTS)
+      .max(0)
       .default([]),
   })
   .refine(
     (value) =>
-      value.monthAdjustments.length + value.templateAdjustments.length > 0,
+      value.monthAdjustments.length + value.missingMonthAdjustments.length > 0,
     { error: 'Le plan est vide.' },
   )
   .refine(
@@ -427,12 +458,22 @@ export const savingsGoalPlanApplySchema = z
     { error: 'Une prévision apparaît deux fois dans le plan.' },
   )
   .refine(
-    (value) =>
-      new Set(value.templateAdjustments.map((item) => item.templateLineId))
-        .size === value.templateAdjustments.length,
-    { error: 'Une ligne du Mois Type apparaît deux fois dans le plan.' },
+    (value) => {
+      const periods = value.missingMonthAdjustments.map(
+        (item) => `${item.year}-${item.month}`,
+      );
+      return new Set(periods).size === periods.length;
+    },
+    { error: 'Une période absente apparaît deux fois dans le plan.' },
   );
-export type SavingsGoalPlanApply = z.infer<typeof savingsGoalPlanApplySchema>;
+type ParsedSavingsGoalPlanApply = z.infer<typeof savingsGoalPlanApplySchema>;
+/** Entrée tolérante pendant la migration; le schéma parse le champ absent en `[]`. */
+export type SavingsGoalPlanApply = Omit<
+  ParsedSavingsGoalPlanApply,
+  'missingMonthAdjustments'
+> & {
+  missingMonthAdjustments?: ParsedSavingsGoalPlanApply['missingMonthAdjustments'];
+};
 
 /**
  * BUDGET LINE - Ligne budgétaire planifiée

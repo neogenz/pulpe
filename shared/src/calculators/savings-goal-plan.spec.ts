@@ -32,6 +32,7 @@ const planMonth = (
 ): SavingsPlanTimelineMonth => ({
   state: 'future',
   isLocked: false,
+  isProvisionable: false,
   plannedAmount: 500,
   confirmedAmount: 0,
   plannedCumulative: 0,
@@ -99,6 +100,57 @@ describe('buildSavingsGoalTimeline', () => {
     expect(april.lines).toHaveLength(0);
   });
 
+  it('should distinguish a missing budget from an existing budget without a linked line', () => {
+    const provisionable = buildSavingsGoalTimeline({
+      ...input,
+      materializedPeriods: [
+        { month: 1, year: 2026 },
+        { month: 2, year: 2026 },
+        { month: 3, year: 2026 },
+        { month: 5, year: 2026 },
+        { month: 6, year: 2026 },
+      ],
+      canProvisionMissingPeriods: true,
+    });
+    const unavailable = buildSavingsGoalTimeline({
+      ...input,
+      materializedPeriods: [
+        { month: 1, year: 2026 },
+        { month: 2, year: 2026 },
+        { month: 3, year: 2026 },
+        { month: 4, year: 2026 },
+        { month: 5, year: 2026 },
+        { month: 6, year: 2026 },
+      ],
+      canProvisionMissingPeriods: true,
+    });
+
+    expect(provisionable[3]).toMatchObject({
+      month: 4,
+      state: 'gap',
+      isProvisionable: true,
+    });
+    expect(unavailable[3]).toMatchObject({
+      month: 4,
+      state: 'gap',
+      isProvisionable: false,
+    });
+  });
+
+  it('should clamp invalid historical horizons to 120 periods', () => {
+    const timeline = buildSavingsGoalTimeline({
+      ...input,
+      createdAt: '2000-01-01T00:00:00.000Z',
+      targetDate: '9999-12-31',
+      lines: [],
+    });
+
+    expect(timeline).toHaveLength(120);
+    expect(
+      timeline.some((month) => month.month === 3 && month.year === 2026),
+    ).toBe(true);
+  });
+
   it('should keep cumulatives consistent with the progress totals', () => {
     const timeline = buildSavingsGoalTimeline(input);
 
@@ -147,6 +199,28 @@ describe('simulateSavingsPlan', () => {
     expect(result.simulatedFinal).toBe(3000);
     expect(result.isTargetMet).toBe(true);
     expect(result.attainedPeriod).toEqual({ month: 4, year: 2026 });
+  });
+
+  it('should apply a global monthly amount to a provisionable gap', () => {
+    const result = simulateSavingsPlan({
+      timeline: [
+        planMonth({ month: 3, year: 2026, state: 'current' }),
+        planMonth({
+          month: 4,
+          year: 2026,
+          state: 'gap',
+          plannedAmount: 0,
+          lines: [],
+          isProvisionable: true,
+        }),
+      ],
+      targetAmount: 2000,
+      globalMonthlyAmount: 1000,
+    });
+
+    expect(result.months.map((month) => month.simulatedAmount)).toEqual([
+      1000, 1000,
+    ]);
   });
 
   it('should throw when an adjustment targets a locked month', () => {
@@ -204,6 +278,63 @@ describe('redistributeRemainingEffort', () => {
     expect(result.adjustments).toEqual([
       { month: 4, year: 2026, amount: 1300 },
     ]);
+  });
+
+  it('should distribute over all 24 periods when only two budgets exist', () => {
+    const timeline = buildSavingsGoalTimeline({
+      targetAmount: 24_000,
+      status: 'ACTIVE',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      targetDate: '2027-12-31',
+      now: new Date(2026, 0, 15),
+      lines: [
+        savingLine({ month: 1, year: 2026, amount: 0 }),
+        savingLine({ month: 2, year: 2026, amount: 0 }),
+      ],
+      materializedPeriods: [
+        { month: 1, year: 2026 },
+        { month: 2, year: 2026 },
+      ],
+      canProvisionMissingPeriods: true,
+      transactions: [],
+    });
+
+    const result = redistributeRemainingEffort({
+      timeline,
+      targetAmount: 24_000,
+    });
+
+    expect(result.isDistributable).toBe(true);
+    expect(result.adjustments).toHaveLength(24);
+    expect(result.perRemainingMonth).toBe(1000);
+    expect(result.adjustments.reduce((sum, item) => sum + item.amount, 0)).toBe(
+      24_000,
+    );
+  });
+
+  it('should block redistribution when an existing budget has no linked line', () => {
+    const timeline = buildSavingsGoalTimeline({
+      targetAmount: 3000,
+      status: 'ACTIVE',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      targetDate: '2026-03-31',
+      now: new Date(2026, 0, 15),
+      lines: [savingLine({ month: 1, year: 2026 })],
+      materializedPeriods: [
+        { month: 1, year: 2026 },
+        { month: 2, year: 2026 },
+      ],
+      canProvisionMissingPeriods: true,
+      transactions: [],
+    });
+
+    const result = redistributeRemainingEffort({
+      timeline,
+      targetAmount: 3000,
+    });
+
+    expect(result.isDistributable).toBe(false);
+    expect(result.adjustments).toEqual([]);
   });
 
   it('should not be distributable when no open month remains', () => {

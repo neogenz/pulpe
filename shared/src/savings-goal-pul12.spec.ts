@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import {
   savingsGoalCreateSchema,
+  savingsGoalPlanApplySchema,
   savingsGoalUpdateSchema,
   savingsGoalSchema,
   templateLineCreateSchema,
@@ -15,6 +16,15 @@ function isoDateOffsetDays(days: number): string {
   const d = new Date();
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
+}
+
+function isoDateOffsetMonths(months: number): string {
+  const now = new Date();
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + months, 15),
+  )
+    .toISOString()
+    .slice(0, 10);
 }
 
 describe('PUL-12 — savingsGoalCreateSchema', () => {
@@ -68,6 +78,21 @@ describe('PUL-12 — savingsGoalCreateSchema', () => {
     });
     expect(result.success).toBe(false);
   });
+
+  test('accepts the 120th contributive period and rejects the next one', () => {
+    expect(
+      savingsGoalCreateSchema.safeParse({
+        ...base,
+        targetDate: isoDateOffsetMonths(119),
+      }).success,
+    ).toBe(true);
+    expect(
+      savingsGoalCreateSchema.safeParse({
+        ...base,
+        targetDate: isoDateOffsetMonths(120),
+      }).success,
+    ).toBe(false);
+  });
 });
 
 describe('PUL-12 — savingsGoalSchema (read) drops priority', () => {
@@ -104,6 +129,54 @@ describe('PUL-12 — savingsGoalUpdateSchema keeps PATCH semantics', () => {
       targetDate: isoDateOffsetDays(-1),
     });
     expect(result.success).toBe(true);
+  });
+
+  test('rejects an explicitly updated targetDate beyond the 120th period', () => {
+    const result = savingsGoalUpdateSchema.safeParse({
+      targetDate: isoDateOffsetMonths(120),
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('PUL-12 — savingsGoalPlanApplySchema migration contract', () => {
+  test('accepts materialized lines with the deprecated empty template leg', () => {
+    const result = savingsGoalPlanApplySchema.safeParse({
+      monthAdjustments: [{ budgetLineId: UUID, amount: 1000 }],
+      templateAdjustments: [],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  test('accepts missing budgets described by unique periods', () => {
+    const result = savingsGoalPlanApplySchema.safeParse({
+      monthAdjustments: [],
+      missingMonthAdjustments: [
+        { month: 8, year: 2026, amount: 1000 },
+        { month: 9, year: 2026, amount: 1000 },
+      ],
+      templateAdjustments: [],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  test('rejects duplicate missing periods and non-empty template adjustments', () => {
+    expect(
+      savingsGoalPlanApplySchema.safeParse({
+        missingMonthAdjustments: [
+          { month: 8, year: 2026, amount: 1000 },
+          { month: 8, year: 2026, amount: 900 },
+        ],
+        templateAdjustments: [],
+      }).success,
+    ).toBe(false);
+    expect(
+      savingsGoalPlanApplySchema.safeParse({
+        templateAdjustments: [{ templateLineId: UUID, amount: 1000 }],
+      }).success,
+    ).toBe(false);
   });
 });
 
