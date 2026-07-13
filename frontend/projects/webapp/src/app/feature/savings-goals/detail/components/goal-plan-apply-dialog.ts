@@ -54,7 +54,7 @@ const MAX_DIFF_ROWS = 5;
       {{ 'savingsGoals.simulate.applyTitle' | transloco }}
     </h2>
     <mat-dialog-content class="flex flex-col gap-4">
-      <p class="text-body-medium text-on-surface-variant">
+      <p class="text-body-medium text-on-surface">
         {{
           'savingsGoals.simulate.applyCount'
             | transloco: { count: data.changes.length }
@@ -63,26 +63,41 @@ const MAX_DIFF_ROWS = 5;
 
       @if (uniformChange(); as u) {
         <p
-          class="ph-no-capture text-body-large font-medium"
+          class="ph-no-capture text-body-large tabular-nums"
           data-testid="goal-plan-apply-uniform"
         >
-          {{ u.before | appCurrency: data.currency : '1.2-2' }} &rarr;
-          {{ u.after | appCurrency: data.currency : '1.2-2' }}
-          {{
-            'savingsGoals.simulate.applyPerMonth'
-              | transloco: { count: data.changes.length }
-          }}
+          <span class="text-on-surface-variant"
+            >{{ u.before | appCurrency: data.currency : '1.2-2' }} &rarr;
+          </span>
+          <span class="font-semibold">{{
+            u.after | appCurrency: data.currency : '1.2-2'
+          }}</span>
+          <span class="text-on-surface-variant">
+            {{
+              'savingsGoals.simulate.applyPerMonth'
+                | transloco: { count: data.changes.length }
+            }}</span
+          >
         </p>
       } @else {
-        <ul class="flex flex-col gap-1" data-testid="goal-plan-apply-diff">
+        <ul class="flex flex-col gap-2" data-testid="goal-plan-apply-diff">
           @for (row of visibleChanges(); track row.year * 12 + row.month) {
             <li
-              class="flex items-center justify-between gap-3 text-body-medium"
+              class="flex items-center justify-between gap-4 text-body-medium"
             >
-              <span>{{ formatPeriod(row) }}</span>
-              <span class="ph-no-capture">
-                {{ row.before | appCurrency: data.currency : '1.2-2' }} &rarr;
-                {{ row.after | appCurrency: data.currency : '1.2-2' }}
+              <span class="text-on-surface-variant">{{
+                formatPeriod(row)
+              }}</span>
+              <span class="ph-no-capture shrink-0 tabular-nums">
+                <span class="text-on-surface-variant"
+                  >{{
+                    row.before | appCurrency: data.currency : '1.2-2'
+                  }}
+                  &rarr;
+                </span>
+                <span class="font-semibold text-on-surface">{{
+                  row.after | appCurrency: data.currency : '1.2-2'
+                }}</span>
               </span>
             </li>
           }
@@ -97,9 +112,21 @@ const MAX_DIFF_ROWS = 5;
         </ul>
       }
 
-      <p class="text-body-medium text-on-surface-variant">
-        {{ data.verdict }}
-      </p>
+      @if (data.verdict) {
+        <div
+          class="flex items-start gap-2 rounded-xl bg-financial-savings/10 px-3 py-2.5"
+          data-testid="goal-plan-apply-verdict"
+        >
+          <mat-icon
+            class="mt-0.5 shrink-0 text-financial-savings text-lg! w-auto! h-auto! leading-none"
+            aria-hidden="true"
+            >flag</mat-icon
+          >
+          <p class="text-body-medium font-medium text-financial-savings">
+            {{ data.verdict }}
+          </p>
+        </div>
+      }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button matButton mat-dialog-close data-testid="goal-plan-apply-cancel">

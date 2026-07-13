@@ -196,7 +196,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
               <div class="flex flex-col gap-3">
                 <div class="flex items-end justify-between gap-2">
                   <span
-                    class="text-headline-small font-bold text-financial-savings ph-no-capture"
+                    class="text-headline-small font-bold text-financial-savings tabular-nums ph-no-capture"
                     data-testid="savings-goal-achievement"
                   >
                     {{
@@ -206,7 +206,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                   </span>
                   <span class="text-body-small text-on-surface-variant">
                     {{ 'savingsGoals.detail.target' | transloco }} :
-                    <span class="ph-no-capture">{{
+                    <span class="ph-no-capture tabular-nums">{{
                       g.targetAmount | appCurrency: currency() : '1.2-2'
                     }}</span>
                   </span>
@@ -225,12 +225,12 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                   data-testid="savings-goal-progress-bar"
                 >
                   <div
-                    class="absolute inset-y-0 left-0 rounded-full bg-financial-savings/35 motion-safe:transition-all motion-safe:duration-700"
+                    class="absolute inset-y-0 left-0 rounded-full bg-financial-savings/35 motion-safe:transition-[width] motion-safe:duration-700"
                     [style.width.%]="plannedPercent()"
                     data-testid="progress-planned-layer"
                   ></div>
                   <div
-                    class="absolute inset-y-0 left-0 rounded-full bg-financial-savings motion-safe:transition-all motion-safe:duration-700"
+                    class="absolute inset-y-0 left-0 rounded-full bg-financial-savings motion-safe:transition-[width] motion-safe:duration-700"
                     [style.width.%]="p.achievementPercent"
                     data-testid="progress-confirmed-layer"
                   ></div>
@@ -266,7 +266,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                     {{ 'savingsGoals.detail.confirmed' | transloco }}
                   </span>
                   <span
-                    class="text-title-large font-bold text-financial-savings ph-no-capture"
+                    class="text-title-large font-bold text-financial-savings tabular-nums ph-no-capture"
                   >
                     {{ p.confirmed | appCurrency: currency() : '1.0-0' }}
                   </span>
@@ -281,7 +281,9 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                     ></span>
                     {{ 'savingsGoals.detail.plannedCumulative' | transloco }}
                   </span>
-                  <span class="text-title-large font-semibold ph-no-capture">
+                  <span
+                    class="text-title-large font-semibold tabular-nums ph-no-capture"
+                  >
                     {{
                       p.plannedCumulative | appCurrency: currency() : '1.0-0'
                     }}
@@ -292,7 +294,9 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                     <span class="text-body-small text-on-surface-variant">
                       {{ 'savingsGoals.detail.required' | transloco }}
                     </span>
-                    <span class="text-title-large font-semibold ph-no-capture">
+                    <span
+                      class="text-title-large font-semibold tabular-nums ph-no-capture"
+                    >
                       {{
                         'savingsGoals.detail.requiredPerMonth'
                           | transloco
@@ -309,7 +313,9 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                   <span class="text-body-small text-on-surface-variant">
                     {{ 'savingsGoals.detail.projected' | transloco }}
                   </span>
-                  <span class="text-title-large font-semibold ph-no-capture">
+                  <span
+                    class="text-title-large font-semibold tabular-nums ph-no-capture"
+                  >
                     {{ p.projected | appCurrency: currency() : '1.0-0' }}
                   </span>
                 </div>

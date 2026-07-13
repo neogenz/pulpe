@@ -92,7 +92,9 @@ const WINDOW_OPEN_ROWS = 3;
                 </span>
               }
             </span>
-            <span class="ph-no-capture text-body-small text-on-surface-variant">
+            <span
+              class="ph-no-capture text-body-small text-on-surface-variant tabular-nums"
+            >
               &rarr; {{ row.cumulative | appCurrency: currency() : '1.0-0' }}
             </span>
           </div>
@@ -120,7 +122,7 @@ const WINDOW_OPEN_ROWS = 3;
               [attr.data-testid]="'goal-plan-row-edit-' + row.periodKey"
             >
               <span
-                class="ph-no-capture text-body-medium font-semibold"
+                class="ph-no-capture text-body-medium font-semibold tabular-nums"
                 [class.text-financial-savings]="row.isAdjusted"
               >
                 {{ row.amount | appCurrency: currency() : '1.2-2' }}
@@ -131,7 +133,7 @@ const WINDOW_OPEN_ROWS = 3;
             </button>
           } @else {
             <span
-              class="ph-no-capture shrink-0 text-body-medium font-semibold"
+              class="ph-no-capture shrink-0 text-body-medium font-semibold tabular-nums"
               [class.text-financial-savings]="row.isAdjusted"
               [attr.aria-label]="lockedAmountLabel(row)"
             >

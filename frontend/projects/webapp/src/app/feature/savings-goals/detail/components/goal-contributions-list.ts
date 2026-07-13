@@ -53,7 +53,9 @@ import { getDateDisplayFormats } from '@core/date/date-display-formats';
                 {{ periodOf(c) | date: monthYearFormat() }}
               </span>
             </div>
-            <span class="text-body-large font-medium ph-no-capture">
+            <span
+              class="text-body-large font-medium tabular-nums ph-no-capture"
+            >
               {{ c.amount | appCurrency: currency() : '1.2-2' }}
             </span>
           </div>
@@ -73,7 +75,7 @@ import { getDateDisplayFormats } from '@core/date/date-display-formats';
                     data-testid="savings-goal-contribution-transaction"
                   >
                     <mat-icon
-                      class="text-base! w-4!"
+                      class="text-base! w-auto! h-auto! leading-none"
                       [class.text-financial-savings]="!!tx.checkedAt"
                       [class.icon-filled]="!!tx.checkedAt"
                       [class.text-on-surface-variant]="!tx.checkedAt"
@@ -95,7 +97,7 @@ import { getDateDisplayFormats } from '@core/date/date-display-formats';
                         {{ tx.transactionDate | date: shortDateFormat() }}
                       </span>
                     </div>
-                    <span class="text-body-medium ph-no-capture">
+                    <span class="text-body-medium tabular-nums ph-no-capture">
                       {{ tx.amount | appCurrency: currency() : '1.2-2' }}
                     </span>
                   </li>
