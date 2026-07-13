@@ -34,7 +34,8 @@ export type TourPageId =
   | 'dashboard'
   | 'budget-list'
   | 'budget-details'
-  | 'templates-list';
+  | 'templates-list'
+  | 'savings-goals';
 
 export type TourId = 'intro' | TourPageId;
 
@@ -54,6 +55,7 @@ const TOUR_IDS = {
   'budget-list': 'budget-list',
   'budget-details': 'budget-details',
   'templates-list': 'templates-list',
+  'savings-goals': 'savings-goals',
 } as const;
 
 @Injectable({
@@ -128,6 +130,7 @@ export class ProductTourService {
     this.#storageService.remove(this.#getTourKey(TOUR_IDS['budget-list']));
     this.#storageService.remove(this.#getTourKey(TOUR_IDS['budget-details']));
     this.#storageService.remove(this.#getTourKey(TOUR_IDS['templates-list']));
+    this.#storageService.remove(this.#getTourKey(TOUR_IDS['savings-goals']));
   }
 
   /**
@@ -239,6 +242,8 @@ export class ProductTourService {
         return this.#budgetDetailsSteps;
       case 'templates-list':
         return this.#templatesListSteps;
+      case 'savings-goals':
+        return this.#savingsGoalsSteps;
       default: {
         const _exhaustive: never = pageId;
         throw new Error(`Unknown page ID: ${_exhaustive}`);
@@ -263,12 +268,13 @@ export class ProductTourService {
     {
       element: '[data-tour="navigation"]',
       popover: {
-        title: 'Trois espaces, un objectif',
+        title: 'Quatre espaces, un cap',
         description: `
           <ul>
             <li><strong>Tableau de bord</strong> : ici, tu suis tes dépenses en temps réel, sans surprise.</li>
             <li><strong>Budgets</strong> : prépare tes prochains mois en 2 clics, et vois loin.</li>
             <li><strong>Modèles</strong> : ta recette mensuelle, à réutiliser sans effort.</li>
+            <li><strong>Objectifs</strong> : mets de l'argent de côté pour tes projets, mois après mois.</li>
           </ul>
         `,
         side: 'right',
@@ -429,6 +435,46 @@ export class ProductTourService {
         `,
         side: 'left',
         align: 'start',
+      },
+    },
+  ];
+
+  readonly #savingsGoalsSteps: DriveStep[] = [
+    {
+      popover: {
+        title: 'Épargne pour tes projets',
+        description: `
+          <p>Un voyage, un imprévu, un gros achat… Fixe un montant à atteindre et une date, Pulpe s'occupe du calcul.</p>
+          <p>Ton objectif est réparti sur les mois qui restent : tu épargnes un peu chaque mois, sans y penser.</p>
+        `,
+      },
+    },
+    {
+      element: '[data-tour="savings-goals-list"]',
+      popover: {
+        title: 'Tout au même endroit',
+        description: `
+          <p>Chaque objectif affiche son montant visé et son échéance, en un coup d'œil.</p>
+          <p>En l'ouvrant, tu retrouves ton plan mois par mois et tu suis ta progression.</p>
+        `,
+        // 'bottom' anchors the popover in the empty space below the goals grid
+        // (or the empty-state card on first run). A large, full-width target
+        // leaves no room above, so 'top' forces driver.js to flip — and its
+        // reposition pass leaves the popover stuck at opacity 0.
+        side: 'bottom',
+        align: 'center',
+      },
+    },
+    {
+      element: '[data-tour="create-goal"]',
+      popover: {
+        title: 'Lance-toi',
+        description: `
+          <p>Crée ton premier objectif : donne-lui un nom, un montant et une date.</p>
+          <p>Pulpe prépare le reste. À toi de jouer !</p>
+        `,
+        side: 'bottom',
+        align: 'end',
       },
     },
   ];

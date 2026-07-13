@@ -858,6 +858,7 @@ export default class MainLayout {
     if (url.match(/\/budget\/[^/]+$/)) return 'budget-details';
     if (url.includes(`/${ROUTES.BUDGET}`)) return 'budget-list';
     if (url.includes(`/${ROUTES.BUDGET_TEMPLATES}`)) return 'templates-list';
+    if (url.match(/\/savings-goals$/)) return 'savings-goals';
     return null;
   });
 
