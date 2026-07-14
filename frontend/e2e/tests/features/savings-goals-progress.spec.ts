@@ -104,7 +104,7 @@ test.describe('Savings goal progression (PUL-8)', () => {
     await page.goto('/savings-goals');
     await page.waitForLoadState('domcontentloaded');
 
-    const card = page.getByTestId(`savings-goal-${GOAL_NAME}`);
+    const card = page.getByTestId(`savings-goal-${GOAL_ID}`);
     await expect(card).toBeVisible();
     await card.click();
 
