@@ -1,6 +1,6 @@
 ---
 objective: "Make the template loading-error E2E test independent of the local application port and prove it passes repeatedly without retries."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Stabilize template details error E2E
