@@ -116,7 +116,7 @@ struct RootViewLifecycle: ViewModifier {
     let scenePhase: ScenePhase
     let deepLinkDestination: DeepLinkDestination?
     let onAppStart: () async -> Void
-    let onAuthenticated: () async -> Void
+    let onWhatsNewCheck: () async -> Void
     let onClientKeyCheckFailed: () -> Void
     let onPendingDeepLink: () -> Void
 
@@ -148,15 +148,15 @@ struct RootViewLifecycle: ViewModifier {
                 onPendingDeepLink()
             }
             .task(id: appState.authState) {
-                guard Self.shouldLoadAuthenticatedData(for: appState.authState) else { return }
-                await onAuthenticated()
+                guard Self.shouldCheckWhatsNew(for: appState.authState) else { return }
+                await onWhatsNewCheck()
             }
             .onChange(of: deepLinkDestination) { _, _ in
                 onPendingDeepLink()
             }
     }
 
-    static func shouldLoadAuthenticatedData(for authState: AppState.AuthStatus) -> Bool {
+    static func shouldCheckWhatsNew(for authState: AppState.AuthStatus) -> Bool {
         authState == .authenticated
     }
 

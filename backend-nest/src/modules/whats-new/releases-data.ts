@@ -16,12 +16,12 @@ export interface WhatsNewReleaseEntry {
 }
 
 /**
- * Checked-in mirror of `landing/data/releases.json` (kept in sync by the
+ * Checked-in iOS projection of `landing/data/releases.json` (maintained by the
  * `/update-changelog` skill). The deployed backend artifact does not contain
  * the `landing/` package, so the data lives here as a TypeScript literal rather
- * than being read from disk at runtime. Keep this list ordered newest-first,
- * mirroring the source file. `githubUrl` and landing-only fields are dropped —
- * the API surfaces only what the in-app "what's new" feed needs.
+ * than being read from disk at runtime. Keep release metadata in sync and this
+ * list ordered newest-first, but include only iOS-relevant features and fixes.
+ * `githubUrl`, technical changes, and landing-only fields are dropped.
  */
 export const RELEASES: WhatsNewReleaseEntry[] = [
   {

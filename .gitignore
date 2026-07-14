@@ -108,8 +108,12 @@ docs/angular-architecture-for-enterprise.md
 .mcp.local.json
 
 # skills.sh — installed skill content (restore via `skills install`)
-# Custom skills in .claude/skills/ (real dirs) are NOT ignored
-.agents/
+# Custom skills in .claude/skills/ (real dirs) are NOT ignored.
+# Keep the shared update-changelog symlink so Claude Code and Codex use one source.
+.agents/*
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/update-changelog
 .agent/skills/
 .gemini/skills/
 .claude/skills/*

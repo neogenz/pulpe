@@ -236,7 +236,7 @@ struct RootView: View {
             scenePhase: scenePhase,
             deepLinkDestination: deepLinkDestination,
             onAppStart: handleAppStart,
-            onAuthenticated: loadAuthenticatedData,
+            onWhatsNewCheck: { await whatsNewStore.check() },
             onClientKeyCheckFailed: handleClientKeyCheckFailed,
             onPendingDeepLink: handlePendingDeepLink
         ))
@@ -279,7 +279,11 @@ struct RootView: View {
                 onRetry: {
                     await appState.retryStartup()
                     if appState.authState == .authenticated {
-                        await loadAuthenticatedData()
+                        await userSettingsStore.loadIfNeeded()
+                        await currentMonthStore.loadBudgetSummary(
+                            payDayOfMonth: userSettingsStore.payDayOfMonth
+                        )
+                        await whatsNewStore.check()
                     }
                 },
                 onSignOut: { await appState.abandonStartupRetry() }
@@ -378,18 +382,12 @@ struct RootView: View {
             "[AUTH_ROOT_TASK] done, auth=\(authDesc, privacy: .public) route=\(routeDesc, privacy: .public)"
         )
         #endif
-    }
-
-    private func loadAuthenticatedData() async {
-        await PostAuthenticationLoader.load(
-            userSettings: { await userSettingsStore.loadIfNeeded() },
-            currentMonth: {
-                await currentMonthStore.loadBudgetSummary(
-                    payDayOfMonth: userSettingsStore.payDayOfMonth
-                )
-            },
-            whatsNew: { await whatsNewStore.check() }
-        )
+        if appState.authState == .authenticated {
+            await userSettingsStore.loadIfNeeded()
+            await currentMonthStore.loadBudgetSummary(
+                payDayOfMonth: userSettingsStore.payDayOfMonth
+            )
+        }
     }
 
     private func handlePendingDeepLink() {
@@ -419,19 +417,5 @@ struct RootView: View {
         case .deferred, .dropped, .noPending:
             break
         }
-    }
-}
-
-@MainActor
-enum PostAuthenticationLoader {
-    static func load(
-        userSettings: @escaping @MainActor @Sendable () async -> Void,
-        currentMonth: @escaping @MainActor @Sendable () async -> Void,
-        whatsNew: @escaping @MainActor @Sendable () async -> Void
-    ) async {
-        async let whatsNewLoad: Void = whatsNew()
-        await userSettings()
-        await currentMonth()
-        await whatsNewLoad
     }
 }
