@@ -113,9 +113,7 @@ test.describe('Template Details View', () => {
     });
 
     // Navigate to the error template and wait for error state
-    await page.goto(
-      'http://localhost:4200/budget-templates/details/error-template',
-    );
+    await page.goto('/budget-templates/details/error-template');
 
     // Wait for error alert to appear (max 5s)
     const errorContainer = page.getByRole('alert').first();
