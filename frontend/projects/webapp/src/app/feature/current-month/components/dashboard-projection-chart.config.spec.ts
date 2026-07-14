@@ -1,5 +1,5 @@
 import type { UpcomingMonthForecast } from '../services/dashboard-state';
-import type { ChartThemeColors } from '../utils/chart-utils';
+import type { ChartThemeColors } from '@core/chart/chart-theme';
 import { buildProjectionChartData } from './dashboard-projection-chart.config';
 
 const mockTheme: ChartThemeColors = {

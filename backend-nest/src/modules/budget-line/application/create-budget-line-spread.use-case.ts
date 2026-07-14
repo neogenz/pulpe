@@ -386,7 +386,7 @@ export class CreateBudgetLineSpreadUseCase implements BudgetLineSpreadPort {
         amount: tranche.amount,
         kind: input.kind,
         recurrence: 'one_off',
-        savingsGoalId: null,
+        savingsGoalId: input.savingsGoalId ?? null,
         originalAmount: tranche.originalAmount ?? null,
         originalCurrency: input.originalCurrency ?? null,
         targetCurrency: input.targetCurrency ?? null,

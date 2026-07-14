@@ -22,6 +22,7 @@ struct PulpeApp: App {
     @State private var dashboardStore: DashboardStore
     @State private var userSettingsStore: UserSettingsStore
     @State private var featureFlagsStore: FeatureFlagsStore
+    @State private var savingsGoalStore: SavingsGoalStore
     @State private var runtimeCoordinator: AppRuntimeCoordinator
     @State private var deepLinkDestination: DeepLinkDestination?
     @State private var appVersionStore = AppVersionStore()
@@ -33,12 +34,14 @@ struct PulpeApp: App {
         let dashboardStore = DashboardStore()
         let featureFlagsStore = FeatureFlagsStore()
         let userSettingsStore = UserSettingsStore(featureFlags: featureFlagsStore)
+        let savingsGoalStore = SavingsGoalStore()
 
         appState.sessionDataResetter = LiveSessionDataResetter(
             currentMonthStore: currentMonthStore,
             budgetListStore: budgetListStore,
             dashboardStore: dashboardStore,
-            userSettingsStore: userSettingsStore
+            userSettingsStore: userSettingsStore,
+            savingsGoalStore: savingsGoalStore
         )
 
         // Cross-store consistency (PUL-270): any amount-changing mutation on
@@ -47,6 +50,14 @@ struct PulpeApp: App {
         currentMonthStore.onMutation = { [budgetListStore, dashboardStore] in
             budgetListStore.invalidateCache()
             dashboardStore.invalidateCache()
+        }
+
+        // Deleting a goal unlinks every attached prévision server-side.
+        savingsGoalStore.onDelete = { [currentMonthStore, budgetListStore, dashboardStore] in
+            currentMonthStore.invalidateCache()
+            budgetListStore.invalidateCache()
+            dashboardStore.invalidateCache()
+            BudgetDetailCache.shared.invalidateAll()
         }
 
         // Wire currency persistence from `OnboardingBootstrapper` to `UserSettingsStore`.
@@ -64,6 +75,7 @@ struct PulpeApp: App {
         _dashboardStore = State(initialValue: dashboardStore)
         _userSettingsStore = State(initialValue: userSettingsStore)
         _featureFlagsStore = State(initialValue: featureFlagsStore)
+        _savingsGoalStore = State(initialValue: savingsGoalStore)
         _runtimeCoordinator = State(initialValue: AppRuntimeCoordinator(
             appState: appState,
             currentMonthStore: currentMonthStore,
@@ -96,6 +108,7 @@ struct PulpeApp: App {
                     .environment(dashboardStore)
                     .environment(userSettingsStore)
                     .environment(featureFlagsStore)
+                    .environment(savingsGoalStore)
                     .environment(appVersionStore)
                     .overlay(alignment: .topLeading) {
                         ToastOverlayWindowHost(toastManager: appState.toastManager)

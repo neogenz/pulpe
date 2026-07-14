@@ -13,6 +13,7 @@ import TipKit
     .environment(BudgetListStore())
     .environment(DashboardStore())
     .environment(CurrentMonthStore())
+    .environment(SavingsGoalStore())
 }
 
 #Preview("Gestures Tip") {

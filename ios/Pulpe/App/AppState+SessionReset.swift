@@ -337,6 +337,7 @@ extension AppState {
         if scope.clearsPostAuthError { showPostAuthError = false }
         if scope.clearsNavigation {
             budgetPath = NavigationPath()
+            savingsGoalsPath = NavigationPath()
             templatePath = NavigationPath()
             selectedTab = .currentMonth
             widgetSyncing.clearAndReload()

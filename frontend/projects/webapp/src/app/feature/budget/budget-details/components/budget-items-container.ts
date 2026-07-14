@@ -182,6 +182,7 @@ import {
         <pulpe-budget-grid
           [currency]="currency()"
           [budgetLineItems]="budgetLineItems()"
+          [savingsGoalNameById]="store.savingsGoalNameById()"
           [transactionItems]="transactionItems()"
           [transactions]="store.filteredTransactions()"
           [isMobile]="isMobile()"

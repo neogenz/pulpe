@@ -18,6 +18,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { Router } from '@angular/router';
+import { ROUTES } from '@core/routing';
 import { type BudgetLine, type Transaction } from 'pulpe-shared';
 import {
   AppCurrencyPipe,
@@ -72,6 +74,22 @@ export interface AllocatedTransactionsDialogResult {
 
     <mat-dialog-content class="!max-h-[70vh]">
       <div class="flex flex-col gap-4">
+        @if (linkedGoal(); as goal) {
+          <button
+            matButton
+            class="self-start !-ml-2 max-w-full"
+            (click)="openLinkedGoal(goal.id)"
+            data-testid="allocated-transactions-dialog-linked-goal"
+            [attr.aria-label]="'budgetLine.linkedGoalAriaLabel' | transloco"
+          >
+            <mat-icon>savings</mat-icon>
+            <span class="min-w-0 truncate">
+              {{ 'budgetLine.linkedGoal' | transloco }} :
+              <span class="ph-no-capture">{{ goal.name }}</span>
+            </span>
+          </button>
+        }
+
         <!-- Summary -->
         <div class="grid grid-cols-3 gap-4 p-4 bg-surface-container rounded-lg">
           <div class="text-center">
@@ -289,6 +307,7 @@ export interface AllocatedTransactionsDialogResult {
 export class AllocatedTransactionsDialog {
   readonly #userSettings = inject(UserSettingsStore);
   readonly #featureFlags = inject(FeatureFlagsService);
+  readonly #router = inject(Router);
   protected readonly store = inject(BudgetDetailsStore);
   protected readonly currency = this.#userSettings.currency;
   // Date locale (fr-CH / fr-FR) for spread month names — NOT numberLocale
@@ -319,6 +338,17 @@ export class AllocatedTransactionsDialog {
       : 0,
   );
 
+  // PUL-12 — the savings goal this envelope is linked to, resolved from the
+  // store's id→name map. Null (renders nothing) when unlinked or name unloaded.
+  protected readonly linkedGoal = computed<{ id: string; name: string } | null>(
+    () => {
+      const id = this.data.budgetLine.savingsGoalId;
+      if (!id) return null;
+      const name = this.store.savingsGoalNameById().get(id);
+      return name ? { id, name } : null;
+    },
+  );
+
   // PUL-17 — spread occurrences/tracker derived once in the store (single source
   // for every detail surface); thin aliases for the template. The caller
   // (budget-items-container) sets the spreadGroupId on open so the resource loads.
@@ -328,6 +358,11 @@ export class AllocatedTransactionsDialog {
 
   close(): void {
     this.#dialogRef.close();
+  }
+
+  protected openLinkedGoal(goalId: string): void {
+    this.#dialogRef.close();
+    this.#router.navigate(['/', ROUTES.SAVINGS_GOALS, goalId]);
   }
 
   addTransaction(): void {

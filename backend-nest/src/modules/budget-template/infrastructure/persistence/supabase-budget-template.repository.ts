@@ -10,6 +10,7 @@ import {
 } from '@modules/encryption/encryption.tokens';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadata.mapper';
+import { isSavingsGoalLinkDenied } from '@common/utils/savings-goal-link';
 import type {
   BudgetTemplate,
   BudgetTemplateUpdatePatch,
@@ -251,6 +252,15 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       .single();
 
     if (error || !data) {
+      // enforce_savings_goal_line_link trigger: deleted/foreign goal tagged.
+      if (isSavingsGoalLinkDenied(error)) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
+          undefined,
+          { operation: 'insertLine' },
+          { cause: error ?? undefined },
+        );
+      }
       throw new BusinessException(
         ERROR_DEFINITIONS.TEMPLATE_CREATE_FAILED,
         undefined,
@@ -339,6 +349,15 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       .single();
 
     if (error || !data) {
+      // enforce_savings_goal_line_link trigger: deleted/foreign goal tagged.
+      if (isSavingsGoalLinkDenied(error)) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
+          undefined,
+          { operation: 'updateLine', entityId: lineId },
+          { cause: error ?? undefined },
+        );
+      }
       throw new BusinessException(
         ERROR_DEFINITIONS.TEMPLATE_LINE_NOT_FOUND,
         { id: lineId },
@@ -496,6 +515,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
 
     if (error) {
       this.throwIfTemplateLimitExceeded(error);
+      this.throwIfSavingsGoalLinkDenied(error, 'createTemplateWithLines');
       throw error;
     }
 
@@ -513,6 +533,25 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
         ERROR_DEFINITIONS.TEMPLATE_LIMIT_EXCEEDED,
         { limit: 5 },
         { operation: 'createTemplateWithLines' },
+        { cause: error },
+      );
+    }
+  }
+
+  /**
+   * enforce_savings_goal_line_link trigger fires inside the SECURITY DEFINER
+   * RPCs too — a deleted/foreign goal tagged on a line is a business
+   * rejection (4xx), not a server fault.
+   */
+  private throwIfSavingsGoalLinkDenied(
+    error: unknown,
+    operation: string,
+  ): void {
+    if (isSavingsGoalLinkDenied(error)) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
+        undefined,
+        { operation },
         { cause: error },
       );
     }
@@ -553,7 +592,13 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       },
     );
 
-    if (error) throw error;
+    if (error) {
+      this.throwIfSavingsGoalLinkDenied(
+        error,
+        'bulkApplyTemplateLineOperations',
+      );
+      throw error;
+    }
 
     const affectedBudgetIds = Array.isArray(data)
       ? (data.filter((id): id is string => Boolean(id)) as string[])
@@ -616,6 +661,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     return {
       id: row.id,
       templateId: row.template_id,
+      savingsGoalId: row.savings_goal_id ?? null,
       name: row.name,
       amount: row.amount
         ? this.encryption.tryDecryptAmount(row.amount, dek, 0)
@@ -652,6 +698,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
 
     return {
       template_id: input.templateId,
+      savings_goal_id: input.savingsGoalId ?? null,
       name: input.name,
       amount: encryptedAmount,
       original_amount: encryptedOriginalAmount,
@@ -675,6 +722,9 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
   ): Promise<Partial<TemplateLineInsert>> {
     const updateData: Partial<TemplateLineInsert> = {};
     if (patch.name !== undefined) updateData.name = patch.name;
+    if (patch.savingsGoalId !== undefined) {
+      updateData.savings_goal_id = patch.savingsGoalId;
+    }
     if (patch.kind !== undefined) updateData.kind = patch.kind;
     if (patch.recurrence !== undefined)
       updateData.recurrence = patch.recurrence;
@@ -738,6 +788,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       amount: preparedAmounts[index].amount,
       kind: line.kind,
       recurrence: line.recurrence,
+      savings_goal_id: line.savingsGoalId ?? null,
       description: line.description,
       original_amount: encryptedOriginalAmounts[index],
       original_currency: line.originalCurrency ?? null,
@@ -763,6 +814,9 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
         }
         if (line.kind !== undefined) payload.kind = line.kind;
         if (line.recurrence !== undefined) payload.recurrence = line.recurrence;
+        if (line.savingsGoalId !== undefined) {
+          payload.savings_goal_id = line.savingsGoalId;
+        }
         if (line.originalAmount !== undefined) {
           payload.original_amount = await this.encryption.encryptOptionalAmount(
             line.originalAmount,

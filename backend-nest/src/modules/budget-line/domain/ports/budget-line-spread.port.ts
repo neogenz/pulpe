@@ -26,6 +26,7 @@ export interface SpreadTranche {
 export interface SpreadFanOutInput {
   name: string;
   kind: BudgetLine['kind'];
+  savingsGoalId?: string | null;
   tranches: SpreadTranche[];
   originalCurrency?: SupportedCurrency | null;
   targetCurrency?: SupportedCurrency | null;

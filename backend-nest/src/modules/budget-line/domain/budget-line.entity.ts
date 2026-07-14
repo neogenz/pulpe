@@ -47,6 +47,7 @@ export interface BudgetLine {
 export interface SpreadSourceLine {
   id: string;
   budgetId: string;
+  savingsGoalId: string | null;
   month: number;
   year: number;
   name: string;
@@ -114,6 +115,7 @@ export interface BudgetLineCheckedTransaction {
 export interface TemplateLine {
   id: string;
   templateId: string;
+  savingsGoalId: string | null;
   name: string;
   amount: number;
   originalAmount: number | null;

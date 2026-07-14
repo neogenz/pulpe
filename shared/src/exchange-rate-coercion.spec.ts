@@ -31,6 +31,11 @@ const BUDGET_ID = '550e8400-e29b-41d4-a716-446655440001';
 const TEMPLATE_ID = '550e8400-e29b-41d4-a716-446655440002';
 const USER_ID = '550e8400-e29b-41d4-a716-446655440003';
 const ISO_DATETIME = '2026-01-01T00:00:00+00:00';
+const VALID_FUTURE_TARGET_DATE = new Date(
+  Date.UTC(new Date().getUTCFullYear() + 1, new Date().getUTCMonth(), 1),
+)
+  .toISOString()
+  .slice(0, 10);
 
 const NON_COERCIBLE_INPUTS = [
   { label: 'boolean true', val: true },
@@ -62,6 +67,7 @@ const baseTransaction: Transaction = {
 const baseTemplateLine: TemplateLine = {
   id: TRANSACTION_ID,
   templateId: TEMPLATE_ID,
+  savingsGoalId: null,
   name: 'Loyer',
   amount: 1200,
   kind: 'expense',
@@ -97,8 +103,7 @@ const baseSavingsGoal: SavingsGoal = {
   userId: USER_ID,
   name: 'New car',
   targetAmount: 5000,
-  targetDate: '2027-01-01',
-  priority: 'HIGH',
+  targetDate: '2099-01-01',
   status: 'ACTIVE',
   createdAt: ISO_DATETIME,
   updatedAt: ISO_DATETIME,
@@ -106,8 +111,7 @@ const baseSavingsGoal: SavingsGoal = {
 const baseSavingsGoalCreate: SavingsGoalCreate = {
   name: 'New car',
   targetAmount: 5000,
-  targetDate: '2027-01-01',
-  priority: 'HIGH',
+  targetDate: VALID_FUTURE_TARGET_DATE,
   status: 'ACTIVE',
 };
 const baseBudgetLine: BudgetLine = {

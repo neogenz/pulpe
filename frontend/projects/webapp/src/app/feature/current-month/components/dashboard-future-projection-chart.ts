@@ -22,7 +22,7 @@ import {
   resolveChartThemeColors,
   registerChartPlugins,
   formatShortMonth,
-} from '../utils/chart-utils';
+} from '@core/chart/chart-theme';
 import {
   buildProjectionChartOptions,
   buildProjectionChartData,

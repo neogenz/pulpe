@@ -40,6 +40,7 @@ import { FeatureFlagsService } from '@core/feature-flags';
 import { Logger } from '@core/logging/logger';
 import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
+import { SavingsGoalPickerField } from '@pattern/savings-goal-picker/savings-goal-picker-field';
 
 const TRANSACTION_KINDS: readonly TransactionKind[] = [
   'income',
@@ -56,6 +57,7 @@ interface EditTemplateLineModel {
   name: string;
   money: AmountFormSlice;
   kind: TransactionKind;
+  savingsGoalId: string | null;
 }
 
 @Component({
@@ -74,6 +76,7 @@ interface EditTemplateLineModel {
     FinancialKindDirective,
     FormField,
     AmountInput,
+    SavingsGoalPickerField,
   ],
   template: `
     <h2 mat-dialog-title class="text-headline-small">
@@ -141,6 +144,15 @@ interface EditTemplateLineModel {
               }}</mat-error>
             }
           </mat-form-field>
+
+          @if (model().kind === 'saving') {
+            <pulpe-savings-goal-picker-field
+              [value]="model().savingsGoalId"
+              (valueChanged)="
+                model.update((m) => ({ ...m, savingsGoalId: $event }))
+              "
+            />
+          }
         </div>
       </div>
     </mat-dialog-content>
@@ -196,6 +208,7 @@ export class EditTemplateLineDialog {
     name: this.#data.line?.name ?? '',
     money: this.#computeInitialSlice(),
     kind: (this.#data.line?.kind ?? 'expense') as TransactionKind,
+    savingsGoalId: this.#data.line?.savingsGoalId ?? null,
   });
 
   protected readonly addForm = form(this.model, (path) => {
@@ -263,6 +276,7 @@ export class EditTemplateLineDialog {
               name: m.name,
               amount,
               kind: m.kind,
+              savingsGoalId: m.kind === 'saving' ? m.savingsGoalId : null,
               conversion: metadata,
             }),
         };

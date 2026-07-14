@@ -6,6 +6,7 @@ import {
   MAT_BOTTOM_SHEET_DATA,
   MatBottomSheetRef,
 } from '@angular/material/bottom-sheet';
+import { Router } from '@angular/router';
 import { describe, it, expect, vi } from 'vitest';
 import type { BudgetLine, Transaction } from 'pulpe-shared';
 import type { BudgetLineConsumption } from '@core/budget';
@@ -87,10 +88,15 @@ function buildDialogData(
 describe('AllocatedTransactionsBottomSheet', () => {
   let fixture: ComponentFixture<AllocatedTransactionsBottomSheet>;
   let mockBottomSheetRef: { dismiss: ReturnType<typeof vi.fn> };
+  let mockRouter: { navigate: ReturnType<typeof vi.fn> };
 
-  function setup(overrides: Parameters<typeof buildDialogData>[0] = {}): void {
+  function setup(
+    overrides: Parameters<typeof buildDialogData>[0] = {},
+    savingsGoalNameById = new Map<string, string>(),
+  ): void {
     const data = buildDialogData(overrides);
     mockBottomSheetRef = { dismiss: vi.fn() };
+    mockRouter = { navigate: vi.fn() };
 
     TestBed.configureTestingModule({
       imports: [AllocatedTransactionsBottomSheet],
@@ -100,6 +106,7 @@ describe('AllocatedTransactionsBottomSheet', () => {
         ...provideTranslocoForTest(),
         { provide: MAT_BOTTOM_SHEET_DATA, useValue: data },
         { provide: MatBottomSheetRef, useValue: mockBottomSheetRef },
+        { provide: Router, useValue: mockRouter },
         {
           provide: UserSettingsStore,
           useValue: { currency: signal('CHF'), payDayOfMonth: signal(1) },
@@ -115,6 +122,7 @@ describe('AllocatedTransactionsBottomSheet', () => {
             isSpreadOccurrencesLoading: signal(false),
             spreadOccurrencesError: signal(null),
             budgetDetails: signal({ month: 1, year: 2025 }),
+            savingsGoalNameById: signal(savingsGoalNameById),
           },
         },
       ],
@@ -265,6 +273,40 @@ describe('AllocatedTransactionsBottomSheet', () => {
       closeBtn.click();
 
       expect(mockBottomSheetRef.dismiss).toHaveBeenCalledWith();
+    });
+  });
+
+  describe('linked savings goal', () => {
+    it('should show the linked goal name for a saving line tied to a goal', () => {
+      setup(
+        { budgetLine: { kind: 'saving', savingsGoalId: 'goal-1' } },
+        new Map([['goal-1', 'Vacances']]),
+      );
+
+      const affordance = fixture.nativeElement.querySelector(
+        '[data-testid="allocated-transactions-bottom-sheet-linked-goal"]',
+      );
+      expect(affordance).not.toBeNull();
+      expect(affordance.textContent).toContain('Vacances');
+    });
+
+    it('should dismiss and navigate to the goal detail when clicked', () => {
+      setup(
+        { budgetLine: { kind: 'saving', savingsGoalId: 'goal-1' } },
+        new Map([['goal-1', 'Vacances']]),
+      );
+
+      const affordance: HTMLButtonElement = fixture.nativeElement.querySelector(
+        '[data-testid="allocated-transactions-bottom-sheet-linked-goal"]',
+      );
+      affordance.click();
+
+      expect(mockBottomSheetRef.dismiss).toHaveBeenCalled();
+      expect(mockRouter.navigate).toHaveBeenCalledWith([
+        '/',
+        'savings-goals',
+        'goal-1',
+      ]);
     });
   });
 });

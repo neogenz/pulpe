@@ -10,13 +10,30 @@ struct MainTabViewLayoutTests {
     struct Scenario: Sendable, CustomTestStringConvertible {
         let tab: Tab
         let budget: Int
+        let savings: Int
         let template: Int
         let keyboard: Bool
         let hidden: Bool
 
+        init(
+            tab: Tab,
+            budget: Int,
+            savings: Int = 0,
+            template: Int,
+            keyboard: Bool,
+            hidden: Bool
+        ) {
+            self.tab = tab
+            self.budget = budget
+            self.savings = savings
+            self.template = template
+            self.keyboard = keyboard
+            self.hidden = hidden
+        }
+
         var testDescription: String {
             let kb = keyboard ? "kb=on" : "kb=off"
-            return "tab=\(tab.rawValue) b=\(budget) t=\(template) \(kb) → hidden=\(hidden)"
+            return "tab=\(tab.rawValue) b=\(budget) s=\(savings) t=\(template) \(kb) → hidden=\(hidden)"
         }
     }
 
@@ -35,6 +52,12 @@ struct MainTabViewLayoutTests {
             Scenario(tab: .budgets, budget: 0, template: 9, keyboard: false, hidden: false),
             Scenario(tab: .budgets, budget: 1, template: 0, keyboard: true, hidden: true),
 
+            // Savings goals: root is empty; the first push is already a detail.
+            Scenario(tab: .savingsGoals, budget: 0, savings: 0, template: 0, keyboard: false, hidden: false),
+            Scenario(tab: .savingsGoals, budget: 0, savings: 1, template: 0, keyboard: false, hidden: true),
+            Scenario(tab: .savingsGoals, budget: 9, savings: 0, template: 9, keyboard: false, hidden: false),
+            Scenario(tab: .savingsGoals, budget: 0, savings: 0, template: 0, keyboard: true, hidden: true),
+
             // Templates: hides only when templatePath drills past root.
             Scenario(tab: .templates, budget: 0, template: 0, keyboard: false, hidden: false),
             Scenario(tab: .templates, budget: 0, template: 1, keyboard: false, hidden: false),
@@ -47,6 +70,7 @@ struct MainTabViewLayoutTests {
         let result = MainTabView.shouldHideFloatingTabBar(
             selectedTab: scenario.tab,
             budgetPathDepth: scenario.budget,
+            savingsGoalsPathDepth: scenario.savings,
             templatePathDepth: scenario.template,
             keyboardVisible: scenario.keyboard
         )

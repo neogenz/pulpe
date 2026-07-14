@@ -18,6 +18,7 @@ const baseTemplate: BudgetTemplate = {
 const baseLine: TemplateLine = {
   id: 'line-1',
   templateId: 'template-1',
+  savingsGoalId: null,
   name: 'Salaire',
   amount: 5000,
   originalAmount: null,

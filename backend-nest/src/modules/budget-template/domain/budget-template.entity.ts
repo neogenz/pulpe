@@ -47,6 +47,7 @@ export interface BudgetTemplate {
 export interface TemplateLine {
   id: string;
   templateId: string;
+  savingsGoalId: string | null;
   name: string;
   amount: number;
   originalAmount: number | null;
@@ -74,6 +75,7 @@ export interface BudgetTemplateUpdatePatch {
  */
 export interface TemplateLineCreateInput {
   templateId: string;
+  savingsGoalId?: string | null;
   name: string;
   amount: number;
   originalAmount?: number | null;
@@ -93,6 +95,7 @@ export interface TemplateLineCreateInput {
 export interface TemplateLineUpdatePatch {
   name?: string;
   amount?: number;
+  savingsGoalId?: string | null;
   originalAmount?: number | null;
   originalCurrency?: SupportedCurrency | null;
   targetCurrency?: SupportedCurrency | null;
@@ -119,6 +122,7 @@ export interface CreateTemplateWithLinesInput {
  * `apply_template_line_operations` create payloads. Repo encrypts amounts internally.
  */
 export interface TemplateLineRpcInput {
+  savingsGoalId?: string | null;
   name: string;
   amount: number;
   originalAmount: number | null;
@@ -146,6 +150,7 @@ export interface TemplateLineRpcUpdate {
   id: string;
   name?: string;
   amount?: number;
+  savingsGoalId?: string | null;
   originalAmount?: number | null;
   originalCurrency?: SupportedCurrency | null;
   targetCurrency?: SupportedCurrency | null;

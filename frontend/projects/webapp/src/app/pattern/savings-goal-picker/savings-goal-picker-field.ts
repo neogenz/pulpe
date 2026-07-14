@@ -1,0 +1,135 @@
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  output,
+} from '@angular/core';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { MatButtonModule } from '@angular/material/button';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { TranslocoPipe } from '@jsverse/transloco';
+import { combineLatest, map } from 'rxjs';
+import { cachedResource } from 'ngx-ziflux';
+
+import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
+
+/**
+ * Reusable "Objectif" picker for the 3 CA26 saving-line surfaces.
+ *
+ * Value-based (not a Signal-Forms field): the caller passes the current
+ * `savingsGoalId` via `[value]` and reacts to `(valueChanged)`. A first
+ * option maps to `null` ("Aucun objectif").
+ */
+@Component({
+  selector: 'pulpe-savings-goal-picker-field',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'block' },
+  imports: [
+    MatFormFieldModule,
+    MatSelectModule,
+    MatButtonModule,
+    MatProgressSpinnerModule,
+    TranslocoPipe,
+  ],
+  template: `
+    @if (isLoading()) {
+      <div
+        class="flex items-center gap-2 py-2 text-body-small text-on-surface-variant"
+        role="status"
+        data-testid="savings-goal-picker-loading"
+      >
+        <mat-progress-spinner mode="indeterminate" [diameter]="20" />
+        {{ 'common.loading' | transloco }}
+      </div>
+    } @else if (error()) {
+      <div
+        class="flex items-center justify-between gap-3 py-2 text-body-small text-error"
+        role="alert"
+        data-testid="savings-goal-picker-error"
+      >
+        <span>{{ 'savingsGoals.loadError' | transloco }}</span>
+        <button
+          matButton="text"
+          type="button"
+          (click)="reloadGoals()"
+          data-testid="savings-goal-picker-retry"
+        >
+          {{ 'common.retry' | transloco }}
+        </button>
+      </div>
+    } @else {
+      <mat-form-field
+        appearance="outline"
+        subscriptSizing="dynamic"
+        class="w-full"
+      >
+        <mat-label>{{ 'savingsGoals.pickerLabel' | transloco }}</mat-label>
+        <mat-select
+          [value]="value()"
+          (selectionChange)="valueChanged.emit($event.value)"
+          data-testid="savings-goal-picker-select"
+        >
+          <mat-option [value]="null">{{
+            'savingsGoals.pickerNone' | transloco
+          }}</mat-option>
+          @for (g of goals(); track g.id) {
+            <mat-option [value]="g.id">{{ g.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      @if (goals().length === 0) {
+        <p
+          class="mt-1 text-body-small text-on-surface-variant"
+          data-testid="savings-goal-picker-empty"
+        >
+          {{ 'savingsGoals.pickerEmpty' | transloco }}
+        </p>
+      }
+    }
+  `,
+})
+export class SavingsGoalPickerField {
+  readonly value = input<string | null>(null);
+  readonly valueChanged = output<string | null>();
+
+  readonly #api = inject(SavingsGoalApi);
+
+  // Shares the SavingsGoalApi DataCache (key ['savings-goals','list']) with
+  // SavingsGoalStore: dedups the fetch across pickers/list and picks up store
+  // invalidations.
+  readonly #goalsResource = cachedResource({
+    cache: this.#api.cache,
+    cacheKey: ['savings-goals', 'list'],
+    loader: () => this.#api.getAll$().pipe(map((r) => r.data ?? [])),
+  });
+
+  protected readonly goals = computed(() => this.#goalsResource.value() ?? []);
+  protected readonly isLoading = this.#goalsResource.isInitialLoading;
+  protected readonly error = this.#goalsResource.error;
+
+  constructor() {
+    combineLatest([
+      toObservable(this.#goalsResource.value),
+      toObservable(this.#goalsResource.error),
+      toObservable(this.value),
+    ])
+      .pipe(takeUntilDestroyed())
+      .subscribe(([goals, error, selectedId]) => {
+        if (error || goals === undefined) return;
+        if (
+          selectedId !== null &&
+          !goals.some((goal) => goal.id === selectedId)
+        ) {
+          this.valueChanged.emit(null);
+        }
+      });
+  }
+
+  protected reloadGoals(): void {
+    this.#goalsResource.reload();
+  }
+}

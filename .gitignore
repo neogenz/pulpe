@@ -84,6 +84,9 @@ coverage-report.json
 .claude/data/
 .claude/worktrees/
 
+# Local AIDD execution artifacts
+aidd_docs/tasks/
+
 docs/angular-full.txt
 
 .serena/cache/

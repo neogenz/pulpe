@@ -1,0 +1,220 @@
+/**
+ * Pulpe — Épargne : objectifs & progression
+ *
+ * Vision métier des workflows. Statut : fondation, progression et simulateur implémentés.
+ * Les éléments #proposed décrivent l'auto-décomposition prospective :
+ *  - la ligne auto est maintenue par le système jusqu'à override manuel ;
+ *  - la progression à 2 couches et l'application explicite du simulateur sont livrées.
+ *
+ * Tags : #foundation · #progression · #simulator · #automation (proposé).
+ */
+
+specification {
+  element actor {
+    style {
+      shape person
+    }
+  }
+  element app {
+    style {
+      color sky
+    }
+  }
+  element screen {
+    style {
+      color indigo
+    }
+  }
+  element service {
+    style {
+      color green
+    }
+  }
+  element usecase {
+    style {
+      color green
+      shape rectangle
+    }
+  }
+  element datastore {
+    style {
+      color slate
+    }
+  }
+  element store {
+    style {
+      color slate
+      shape cylinder
+    }
+  }
+
+  tag foundation
+  tag progression
+  tag simulator
+  tag automation
+  tag proposed
+}
+
+model {
+  user = actor "Utilisateur" {
+    description "Veut suivre un objectif d'épargne à long terme sans recalculer sa progression à la main."
+  }
+
+  ios = app "App iOS" {
+    description "Plateforme primaire. Objectifs est un tab principal ; la carte Épargne reste un raccourci secondaire."
+
+    dashboardCard = screen "Carte Épargne (dashboard)" {
+      #foundation
+      description "Résumé mensuel existant, devient tappable → liste des objectifs."
+    }
+    goalsList = screen "Liste des objectifs" {
+      #foundation
+    }
+    goalForm = screen "Formulaire objectif (créer / éditer)" {
+      #foundation
+    }
+    lineEditor = screen "Éditeur ligne Épargne (+ picker objectif)" {
+      #foundation
+    }
+    goalDetail = screen "Détail objectif + progression" {
+      #progression
+      description "Barre prévu/confirmé, rythme, avance/retard — ton non-anxiogène."
+    }
+  }
+
+  web = app "App Web" {
+    description "Desktop-first. Parité fonctionnelle, mêmes endpoints, route dédiée /savings-goals."
+  }
+
+  backend = service "Backend NestJS" {
+    goalCrud = usecase "CRUD objectifs" {
+      #foundation
+      description "POST/GET/PATCH/DELETE. DELETE délie les lignes (savings_goal_id = null), ne supprime aucune ligne."
+    }
+    lineLink = usecase "Lien ligne ↔ objectif" {
+      #foundation
+      description "Tagging manuel via savings_goal_id sur template_line (primaire) ou budget_line (kind=saving)."
+    }
+    pointage = usecase "Saisie transaction + pointage" {
+      #foundation
+      description "Flow mensuel existant. checkedAt = réconciliation, le « confirmé »."
+    }
+    goalProgress = usecase "Progression /:id/progress" {
+      #progression
+      description "Cumul multi-mois, % atteint, rythme, requis, projeté. Déchiffrement backend."
+    }
+    goalDecompose = usecase "Auto-décompose → ligne récurrente" {
+      #automation
+      #proposed
+      description "Cible / mois restants → génère la ligne Épargne baseline, maintenue par le système."
+    }
+    goalReproject = usecase "Appliquer un plan simulé" {
+      #simulator
+      description "Valide et applique atomiquement les montants confirmés. Ne modifie jamais le Mois Type."
+    }
+    encryption = service "Encryption AES-256-GCM" {
+      description "Chiffre target_amount à l'écriture, déchiffre à l'agrégation."
+    }
+  }
+
+  db = datastore "Supabase (Postgres + RLS)" {
+    goalTable = store "savings_goal" {
+      description "name, target_amount (chiffré), target_date, status. Colonnes FX nulles dans la devise du compte. Priorité absente du produit."
+    }
+    lineTable = store "budget_line" {
+      description "savings_goal_id (nullable) = le lien. amount chiffré, checked_at = pointage."
+    }
+    txTable = store "transaction" {
+      description "Opérations réelles d'épargne, rattachées à une ligne."
+    }
+  }
+
+  // ── Relations structurelles (landscape) ──
+  user -> ios "utilise (primaire)"
+  user -> web "utilise (desktop)"
+  ios -> backend "API REST"
+  web -> backend "API REST (parité)"
+  backend -> db "lit / écrit — chiffré, RLS par user_id"
+  backend.goalCrud -> backend.encryption "chiffre target_amount"
+  backend.goalProgress -> backend.encryption "déchiffre montants"
+}
+
+views {
+  view index {
+    title "Épargne — Vue d'ensemble du produit"
+    include *
+    include ios.*
+    include backend.*
+    include db.*
+
+    style element.tag = #progression {
+      color indigo
+    }
+    style element.tag = #automation {
+      color amber
+    }
+    style element.tag = #simulator {
+      color green
+    }
+  }
+
+  dynamic view createGoal {
+    title "Workflow 1 — Créer un objectif (fondation · rattachement manuel)"
+    user -> ios.goalForm "saisit nom, montant cible, échéance"
+    ios.goalForm -> backend.goalCrud "POST /savings-goals (devise du compte)"
+    backend.goalCrud -> backend.encryption "chiffre target_amount"
+    backend.goalCrud -> db.goalTable "INSERT — status ACTIVE, FX null"
+    backend.goalCrud -> ios.goalsList "objectif créé, apparaît dans la liste"
+  }
+
+  dynamic view linkLine {
+    title "Workflow 2 — Rattacher une ligne Épargne à un objectif"
+    user -> ios.lineEditor "crée/édite une ligne Épargne (kind=saving) + choisit l'objectif (picker optionnel)"
+    ios.lineEditor -> backend.lineLink "tag savingsGoalId (Mois Type primaire, ou budget_line ponctuel)"
+    backend.lineLink -> db.lineTable "UPDATE savings_goal_id"
+    backend.lineLink -> ios.goalDetail "la ligne compte désormais dans l'objectif"
+  }
+
+  dynamic view monthlyContribution {
+    title "Workflow 3 — Contribution mensuelle (le geste récurrent)"
+    user -> ios.dashboardCard "ouvre Pulpe — flow quotidien intact"
+    user -> ios.lineEditor "vire l'argent → saisit la transaction Épargne + pointe"
+    ios.lineEditor -> backend.pointage "transaction (saving) + checkedAt"
+    backend.pointage -> db.txTable "INSERT transaction"
+    backend.pointage -> db.lineTable "UPDATE checked_at"
+    backend.pointage -> ios.goalDetail "cumul prévu / confirmé mis à jour"
+  }
+
+  dynamic view trackProgress {
+    title "Workflow 4 — Consulter la progression (prévu vs confirmé)"
+    user -> ios.dashboardCard "tap « Voir mes objectifs »"
+    ios.dashboardCard -> ios.goalsList "ouvre la liste"
+    user -> ios.goalsList "tap un objectif"
+    ios.goalsList -> ios.goalDetail "ouvre le détail"
+    ios.goalDetail -> backend.goalProgress "GET /:id/progress"
+    backend.goalProgress -> db.lineTable "Somme des lignes Épargne liées (tous les mois)"
+    backend.goalProgress -> db.txTable "transactions pointées"
+    backend.goalProgress -> backend.encryption "déchiffre les montants"
+    backend.goalProgress -> ios.goalDetail "prévu cumulé · dont confirmé · rythme · avance/retard"
+  }
+
+  dynamic view autoDecompose {
+    title "Workflow 5 — Auto-décomposition à la création (proposé)"
+    user -> ios.goalForm "crée « Maison 100k / 48 mois »"
+    ios.goalForm -> backend.goalCrud "POST + option auto-décompose"
+    backend.goalCrud -> backend.goalDecompose "calcule 2083 / mois"
+    backend.goalDecompose -> db.lineTable "génère une ligne Épargne récurrente liée (modèle)"
+    backend.goalDecompose -> ios.goalDetail "objectif + ligne baseline maintenue par Pulpe"
+  }
+
+  dynamic view redistribution {
+    title "Workflow 6 — Simuler puis appliquer un plan"
+    user -> ios.goalDetail "ouvre Ajuster mon plan"
+    ios.goalDetail -> backend.goalProgress "charge timeline, rythme et mois provisionnables"
+    ios.goalDetail -> user "simule localement sans écriture"
+    user -> ios.goalDetail "confirme le récapitulatif"
+    ios.goalDetail -> backend.goalReproject "POST /:id/plan avec les ajustements"
+    backend.goalReproject -> db.lineTable "provisionne si nécessaire puis applique atomiquement"
+    backend.goalReproject -> ios.goalDetail "recharge la progression et les budgets"
+  }
+}

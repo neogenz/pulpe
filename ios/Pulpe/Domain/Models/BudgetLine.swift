@@ -146,6 +146,11 @@ struct BudgetLineUpdate: Encodable {
     var kind: TransactionKind?
     var isManuallyAdjusted: Bool?
     var checkedAt: Date?
+    /// Tri-state savings-goal link: `.none` omits the key (no change),
+    /// `.some(nil)` sends explicit `null` (untag), `.some(id)` sets the link.
+    /// Only the saving-line editor sets this — every other PATCH leaves the
+    /// tag untouched.
+    var savingsGoalId: String??
     var originalAmount: Decimal?
     var originalCurrency: SupportedCurrency?
     var targetCurrency: SupportedCurrency?

@@ -1,14 +1,51 @@
-import { Chart, registerables } from 'chart.js';
+import {
+  Chart,
+  BarController,
+  BarElement,
+  LineController,
+  LineElement,
+  PointElement,
+  CategoryScale,
+  LinearScale,
+  Filler,
+  Legend,
+  Tooltip,
+} from 'chart.js';
 import { getCurrencyFormatter, type SupportedCurrency } from 'pulpe-shared';
 
 import { CURRENCY_CONFIG } from '@core/currency';
 
-let _registered = false;
+// Register Chart.js at module load — BEFORE ng2-charts creates any Chart
+// instance. Doing this lazily from a component's afterNextRender can lose the
+// race (the directive builds the chart first) and leave scales unregistered
+// ("category" is not a registered scale). Any chart component imports this
+// module, so this side-effect runs before its chart renders.
+//
+// Explicit set instead of `...registerables` (which pulls every controller,
+// scale and plugin — pie, radar, radial, time…) to keep the lazy chart chunk
+// lean. Only what our line + bar charts actually use is registered:
+//   controllers  Line / Bar  (history chart mixes a line dataset into bars)
+//   elements     Line / Point / Bar
+//   scales       Category (x) / Linear (y)
+//   plugins      Filler (fill:'origin'/true area fills — LOAD-BEARING),
+//                Legend, Tooltip
+// Adding a new chart type/scale/plugin? Register it here or it silently no-ops.
+Chart.register(
+  BarController,
+  BarElement,
+  LineController,
+  LineElement,
+  PointElement,
+  CategoryScale,
+  LinearScale,
+  Filler,
+  Legend,
+  Tooltip,
+);
 
 export function registerChartPlugins(): void {
-  if (_registered) return;
-  Chart.register(...registerables);
-  _registered = true;
+  // No-op: registration now happens at module load (above). Kept so existing
+  // call sites compile unchanged.
 }
 
 export const CHART_FONT_FAMILY = 'DM Sans, sans-serif';

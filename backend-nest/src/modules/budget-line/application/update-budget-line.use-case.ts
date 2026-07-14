@@ -4,6 +4,7 @@ import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { type BudgetLineUpdate } from 'pulpe-shared';
 import { CacheService } from '@modules/cache/cache.service';
 import { CurrencyService } from '@modules/currency/currency.service';
+import { savingsGoalIdPatchForKind } from '@common/utils/savings-goal-link';
 import {
   BUDGET_RECALCULATION_PORT,
   type BudgetRecalculationPort,
@@ -39,7 +40,14 @@ export class UpdateBudgetLineUseCase {
     BudgetLineInvariants.validateUpdate(dto);
 
     const withRate = await this.currencyService.overrideExchangeRate(dto);
-    const patch = this.buildPatch(withRate);
+    // The current kind only gates SETTING a link (saving lines only). An
+    // explicit untag (savingsGoalId: null) clears it whatever the kind — no
+    // need to fetch the line for that.
+    const currentKind =
+      withRate.kind === undefined && typeof withRate.savingsGoalId === 'string'
+        ? (await this.repo.findById(id)).kind
+        : undefined;
+    const patch = this.buildPatch(withRate, currentKind);
 
     const entity = await this.repo.update(id, patch);
 
@@ -56,7 +64,10 @@ export class UpdateBudgetLineUseCase {
     return entity;
   }
 
-  private buildPatch(dto: BudgetLineUpdate): BudgetLineUpdatePatch {
+  private buildPatch(
+    dto: BudgetLineUpdate,
+    currentKind?: BudgetLine['kind'],
+  ): BudgetLineUpdatePatch {
     const patch: BudgetLineUpdatePatch = {};
     if (dto.name !== undefined) patch.name = dto.name;
     if (dto.amount !== undefined) patch.amount = dto.amount;
@@ -74,8 +85,14 @@ export class UpdateBudgetLineUseCase {
     if (dto.templateLineId !== undefined) {
       patch.templateLineId = dto.templateLineId;
     }
-    if (dto.savingsGoalId !== undefined) {
-      patch.savingsGoalId = dto.savingsGoalId;
+    // CA11: kind moved off 'saving' clears the link, even when savingsGoalId
+    // isn't in the patch (savingsGoalIdPatchForKind returns null in that case).
+    const ruledSavingsGoalId = savingsGoalIdPatchForKind(
+      dto.kind ?? currentKind,
+      dto.savingsGoalId,
+    );
+    if (ruledSavingsGoalId !== undefined) {
+      patch.savingsGoalId = ruledSavingsGoalId;
     }
     if (dto.isManuallyAdjusted !== undefined) {
       patch.isManuallyAdjusted = dto.isManuallyAdjusted;

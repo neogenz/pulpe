@@ -107,6 +107,7 @@ export interface MockTemplateLinesResponse {
   data: Array<{
     id: string;
     templateId: string;
+    savingsGoalId: string | null;
     name: string;
     amount: number;
     kind: 'income' | 'expense' | 'saving';
@@ -170,6 +171,7 @@ export const createMockTemplateLinesResponse =
       {
         id: TEST_UUIDS.LINE_1,
         templateId: TEST_CONFIG.TEMPLATES.DEFAULT.id,
+        savingsGoalId: null,
         name: 'Salaire',
         amount: 5000,
         kind: 'income',
@@ -181,6 +183,7 @@ export const createMockTemplateLinesResponse =
       {
         id: TEST_UUIDS.LINE_2,
         templateId: TEST_CONFIG.TEMPLATES.DEFAULT.id,
+        savingsGoalId: null,
         name: 'Loyer',
         amount: 1800,
         kind: 'expense',
@@ -192,6 +195,7 @@ export const createMockTemplateLinesResponse =
       {
         id: TEST_UUIDS.LINE_3,
         templateId: TEST_CONFIG.TEMPLATES.DEFAULT.id,
+        savingsGoalId: null,
         name: 'Courses',
         amount: 600,
         kind: 'expense',
@@ -203,6 +207,7 @@ export const createMockTemplateLinesResponse =
       {
         id: TEST_UUIDS.LINE_4,
         templateId: TEST_CONFIG.TEMPLATES.DEFAULT.id,
+        savingsGoalId: null,
         name: 'Transport',
         amount: 200,
         kind: 'expense',
@@ -214,6 +219,7 @@ export const createMockTemplateLinesResponse =
       {
         id: TEST_UUIDS.LINE_5,
         templateId: TEST_CONFIG.TEMPLATES.DEFAULT.id,
+        savingsGoalId: null,
         name: 'Épargne',
         amount: 500,
         kind: 'saving',

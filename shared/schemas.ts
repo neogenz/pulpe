@@ -228,14 +228,12 @@ export type BudgetGenerateResponse = z.infer<
 
 // Savings Goal schemas
 /**
- * SAVINGS GOAL - Objectifs d'épargne
+ * SAVINGS GOAL - Objectifs d'épargne (PUL-98)
  *
- * ⚠️ FEATURE FUTURE - PAS DANS SPECS V1:
- * Cette entité n'est pas mentionnée dans SPECS.md V1.
- * SPECS indique: "Pas d'objectifs long terme : Focus sur le mois, pas de projections annuelles"
- *
- * STATUS: Préparation pour évolution future (hors V1)
- * IMPACT: Les BudgetLines ont un savingsGoalId pour cette feature future
+ * Livré : CRUD + tagging des prévisions Épargne (PUL-12), progression
+ * prévu/confirmé (PUL-8). Source de vérité métier : docs/SAVINGS.md.
+ * Le lien vit sur template_line (modèle, survit aux régénérations) et
+ * budget_line (mois effectif) — jamais sur transaction.
  */
 export const savingsGoalSchema = z.object({
   id: z.uuid(),
@@ -243,8 +241,7 @@ export const savingsGoalSchema = z.object({
   name: z.string().min(1).max(100).trim(),
   // coerce: Supabase PostgREST returns numeric(12,2) columns as strings
   targetAmount: z.coerce.number().nonnegative(),
-  targetDate: z.string(), // Date in ISO format
-  priority: priorityLevelSchema,
+  targetDate: z.iso.date(), // ISO date (YYYY-MM-DD)
   status: savingsGoalStatusSchema,
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
@@ -255,11 +252,33 @@ export const savingsGoalSchema = z.object({
 });
 export type SavingsGoal = z.infer<typeof savingsGoalSchema>;
 
+/** Mois courant inclus : l'échéance maximale est la 120e période. */
+export const MAX_SAVINGS_GOAL_PLAN_PERIODS = 120;
+
+function isWithinSavingsGoalPlanHorizon(value: string): boolean {
+  const [year, month] = value.split('-').map(Number);
+  const now = new Date();
+  const currentPeriodIndex = now.getFullYear() * 12 + now.getMonth() + 1;
+  const targetPeriodIndex = year * 12 + month;
+  return (
+    targetPeriodIndex <= currentPeriodIndex + MAX_SAVINGS_GOAL_PLAN_PERIODS - 1
+  );
+}
+
 export const savingsGoalCreateSchema = z.strictObject({
   name: z.string().min(1).max(100).trim(),
   targetAmount: z.number().positive(),
-  targetDate: z.string(), // Date in ISO format
-  priority: priorityLevelSchema,
+  // z.iso.date() + refine ≥ today. NOT .min() — in Zod 4, .min() on an ISO
+  // string measures LENGTH, not the date. ISO 'YYYY-MM-DD' strings compare
+  // lexicographically === chronologically, so a string compare is correct.
+  targetDate: z.iso
+    .date()
+    .refine((value) => value >= new Date().toISOString().slice(0, 10), {
+      error: 'Target date cannot be in the past',
+    })
+    .refine(isWithinSavingsGoalPlanHorizon, {
+      error: 'Target date exceeds the 120-period planning horizon',
+    }),
   status: savingsGoalStatusSchema.default('ACTIVE'),
   originalTargetAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
@@ -268,8 +287,182 @@ export const savingsGoalCreateSchema = z.strictObject({
 });
 export type SavingsGoalCreate = z.infer<typeof savingsGoalCreateSchema>;
 
-export const savingsGoalUpdateSchema = savingsGoalCreateSchema.partial();
+export const savingsGoalUpdateSchema = z.strictObject({
+  name: z.string().min(1).max(100).trim().optional(),
+  targetAmount: z.number().positive().optional(),
+  targetDate: z.iso
+    .date()
+    .refine(isWithinSavingsGoalPlanHorizon, {
+      error: 'Target date exceeds the 120-period planning horizon',
+    })
+    .optional(),
+  status: savingsGoalStatusSchema.optional(),
+  originalTargetAmount: z.number().positive().optional(),
+  originalCurrency: supportedCurrencySchema.optional(),
+  targetCurrency: supportedCurrencySchema.optional(),
+  exchangeRate: exchangeRateWirePositive.optional(),
+});
 export type SavingsGoalUpdate = z.infer<typeof savingsGoalUpdateSchema>;
+
+/**
+ * SAVINGS GOAL PROGRESS - Progression d'un objectif (PUL-8)
+ *
+ * Deux couches (docs/SAVINGS.md §4/§5) :
+ * - `plannedCumulative` : engagement — Σ `line.amount` BRUT des prévisions
+ *   Épargne liées des mois écoulés/en cours (pas d'enveloppe transactions).
+ * - `confirmed` : réalité pointée — enveloppe checked-only (`checkedAt`),
+ *   TOUS les mois (le pointage anticipé d'un mois futur compte).
+ *
+ * `achievementPercent` et `suggestCompletion` (D2) portent EXCLUSIVEMENT sur
+ * le confirmé — jamais le prévu. La projection (`projected`) et `paceStatus`
+ * se basent sur `confirmedPace` pour rester cohérents avec la barre.
+ *
+ * D1 échéance dépassée (`monthsRemaining ≤ 0`, exposé via `isOverdue`) :
+ * `required` et `paceStatus` sont `null`, `projected = confirmed` — état
+ * factuel, jamais un `behind` générique. `PAUSED` ⇒ `paceStatus = null`.
+ * Le serveur calcule tout (payDay-aware, montants déchiffrés) ; les clients
+ * n'implémentent AUCUNE formule.
+ */
+export const savingsGoalPaceStatusSchema = z.enum([
+  'behind',
+  'on_track',
+  'ahead',
+]);
+export type SavingsGoalPaceStatus = z.infer<typeof savingsGoalPaceStatusSchema>;
+
+/** Période budgétaire nue `{ month, year }` (payDay-aware côté serveur). */
+export const budgetPeriodSchema = z.object({
+  month: z.number().int().min(1).max(12),
+  year: z.number().int(),
+});
+export type BudgetPeriodWire = z.infer<typeof budgetPeriodSchema>;
+
+/** État d'un mois de la timeline du plan (docs/SAVINGS.md §10.2). */
+export const savingsPlanMonthStateSchema = z.enum([
+  'past',
+  'current',
+  'future',
+  'gap',
+]);
+export type SavingsPlanMonthState = z.infer<typeof savingsPlanMonthStateSchema>;
+
+/**
+ * Un mois de la timeline d'un objectif (docs/SAVINGS.md §10.2). Alimente le
+ * chart trajectoire (A), le calendrier mensuel (B) et rebase le simulateur (C).
+ */
+export const savingsGoalPlanMonthSchema = z.object({
+  month: z.number().int().min(1).max(12),
+  year: z.number().int(),
+  state: savingsPlanMonthStateSchema,
+  isLocked: z.boolean(),
+  isProvisionable: z.boolean().optional(),
+  plannedAmount: z.number(),
+  confirmedAmount: z.number(),
+  plannedCumulative: z.number(),
+  confirmedCumulative: z.number(),
+  lines: z.array(
+    z.object({
+      budgetLineId: z.uuid(),
+      amount: z.number(),
+      checkedAt: z.iso.datetime({ offset: true }).nullable(),
+      isManuallyAdjusted: z.boolean(),
+    }),
+  ),
+});
+export type SavingsGoalPlanMonth = z.infer<typeof savingsGoalPlanMonthSchema>;
+
+export const savingsGoalProgressSchema = z.object({
+  goalId: z.uuid(),
+  status: savingsGoalStatusSchema,
+  targetAmount: z.number().nonnegative(),
+  targetDate: z.iso.date(),
+  plannedCumulative: z.number(),
+  confirmed: z.number(),
+  achievementPercent: z.number().int().min(0).max(100),
+  monthsElapsed: z.number().int().min(1),
+  // Mois courant ET mois d'échéance inclus ; ≤ 0 ⇒ échéance dépassée (D1).
+  monthsRemaining: z.number().int(),
+  isOverdue: z.boolean(),
+  pace: z.number(),
+  confirmedPace: z.number(),
+  required: z.number().nullable(),
+  projected: z.number(),
+  paceStatus: savingsGoalPaceStatusSchema.nullable(),
+  // D2 — suggestion « marquer terminé ? ». Jamais d'auto-flip côté serveur.
+  suggestCompletion: z.boolean(),
+  linkedLineCount: z.number().int().min(0),
+  // Formule 10 — écart cumulé (prévu − confirmé), signé, jamais clampé.
+  cumulativeGap: z.number(),
+  // Date d'atteinte estimée au rythme confirmé (docs/SAVINGS.md §10.2).
+  estimatedCompletion: budgetPeriodSchema.nullable(),
+  // Timeline ancrage → cible (chart A + calendrier B + rebase simulateur C).
+  months: z.array(savingsGoalPlanMonthSchema),
+  // FX door-keepers (CA6) — devise du compte uniquement en v1, toujours null.
+  originalTargetAmount: z.number().nullable(),
+  originalCurrency: supportedCurrencySchema.nullable(),
+  targetCurrency: supportedCurrencySchema.nullable(),
+  exchangeRate: z.number().nullable(),
+});
+export type SavingsGoalProgress = z.infer<typeof savingsGoalProgressSchema>;
+
+/** Compatibilité des consommateurs existants du contrat d'application. */
+export const MAX_PLAN_ADJUSTMENTS = MAX_SAVINGS_GOAL_PLAN_PERIODS;
+
+/**
+ * Requête d'application d'un plan simulé (`POST /savings-goals/:id/plan`,
+ * docs/SAVINGS.md §10.4). `monthAdjustments` = budgets matérialisés ;
+ * `missingMonthAdjustments` = budgets absents à provisionner par période.
+ */
+export const savingsGoalPlanApplySchema = z
+  .strictObject({
+    monthAdjustments: z
+      .array(
+        z.strictObject({
+          budgetLineId: z.uuid(),
+          amount: z.number().nonnegative(),
+        }),
+      )
+      .max(MAX_PLAN_ADJUSTMENTS)
+      .default([]),
+    missingMonthAdjustments: z
+      .array(
+        z.strictObject({
+          month: z.number().int().min(1).max(12),
+          year: z.number().int(),
+          amount: z.number().nonnegative(),
+        }),
+      )
+      .max(MAX_PLAN_ADJUSTMENTS)
+      .default([]),
+  })
+  .refine(
+    (value) =>
+      value.monthAdjustments.length + value.missingMonthAdjustments.length > 0,
+    { error: 'Le plan est vide.' },
+  )
+  .refine(
+    (value) =>
+      new Set(value.monthAdjustments.map((item) => item.budgetLineId)).size ===
+      value.monthAdjustments.length,
+    { error: 'Une prévision apparaît deux fois dans le plan.' },
+  )
+  .refine(
+    (value) => {
+      const periods = value.missingMonthAdjustments.map(
+        (item) => `${item.year}-${item.month}`,
+      );
+      return new Set(periods).size === periods.length;
+    },
+    { error: 'Une période absente apparaît deux fois dans le plan.' },
+  );
+type ParsedSavingsGoalPlanApply = z.infer<typeof savingsGoalPlanApplySchema>;
+/** Type d'entrée; le schéma complète la jambe absente avec un tableau vide. */
+export type SavingsGoalPlanApply = Omit<
+  ParsedSavingsGoalPlanApply,
+  'missingMonthAdjustments'
+> & {
+  missingMonthAdjustments?: ParsedSavingsGoalPlanApply['missingMonthAdjustments'];
+};
 
 /**
  * BUDGET LINE - Ligne budgétaire planifiée
@@ -765,6 +958,9 @@ export type BudgetTemplate = z.infer<typeof budgetTemplateSchema>;
 export const templateLineSchema = z.object({
   id: z.uuid(),
   templateId: z.uuid(),
+  // Link to a savings goal (PUL-12). Lives on the model so a recurring saving
+  // line stays tagged across monthly regenerations.
+  savingsGoalId: z.uuid().nullable(),
   name: z.string().min(1).max(100).trim(),
   // nonnegative: API may return 0 when encryption is active (real value in *_encrypted)
   // coerce: Supabase PostgREST returns numeric(12,2) columns as strings
@@ -783,6 +979,7 @@ export type TemplateLine = z.infer<typeof templateLineSchema>;
 
 export const templateLineCreateSchema = z.strictObject({
   templateId: z.uuid(),
+  savingsGoalId: z.uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
@@ -797,6 +994,7 @@ export type TemplateLineCreate = z.infer<typeof templateLineCreateSchema>;
 
 // Template line create without templateId (for batch creation)
 export const templateLineCreateWithoutTemplateIdSchema = z.strictObject({
+  savingsGoalId: z.uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
@@ -840,6 +1038,7 @@ export type BudgetTemplateUpdate = z.infer<typeof budgetTemplateUpdateSchema>;
 
 // Template line update schema
 export const templateLineUpdateSchema = z.strictObject({
+  savingsGoalId: z.uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim().optional(),
   amount: z.number().positive().optional(),
   kind: transactionKindSchema.optional(),
@@ -1265,6 +1464,52 @@ export type SavingsGoalListResponse = z.infer<
 export const savingsGoalDeleteResponseSchema = deleteResponseSchema;
 export type SavingsGoalDeleteResponse = z.infer<
   typeof savingsGoalDeleteResponseSchema
+>;
+
+export const savingsGoalProgressResponseSchema = createSuccessResponse(
+  savingsGoalProgressSchema,
+);
+export type SavingsGoalProgressResponse = z.infer<
+  typeof savingsGoalProgressResponseSchema
+>;
+
+/**
+ * Contribution d'un objectif (PUL-12) : une prévision Épargne liée, avec la
+ * période de son budget parent et les transactions qui lui sont allouées.
+ * Pointer la prévision (checkedAt) est une contribution SANS transaction —
+ * la liste du suivi doit donc partir des lignes, pas des transactions.
+ */
+export const savingsGoalContributionSchema = z.object({
+  lineId: z.uuid(),
+  name: z.string(),
+  amount: z.coerce.number().nonnegative(),
+  checkedAt: z.iso.datetime({ offset: true }).nullable(),
+  budgetMonth: z.number().int().min(1).max(12),
+  budgetYear: z.number().int(),
+  transactions: z.array(transactionSchema),
+});
+export type SavingsGoalContribution = z.infer<
+  typeof savingsGoalContributionSchema
+>;
+
+export const savingsGoalContributionsResponseSchema = createListResponse(
+  savingsGoalContributionSchema,
+);
+export type SavingsGoalContributionsResponse = z.infer<
+  typeof savingsGoalContributionsResponseSchema
+>;
+
+/**
+ * Réponse d'application d'un plan (`POST /savings-goals/:id/plan`) : les
+ * prévisions mises à jour (déchiffrées).
+ */
+export const savingsGoalPlanApplyResponseSchema = createSuccessResponse(
+  z.object({
+    updatedLines: z.array(budgetLineSchema),
+  }),
+);
+export type SavingsGoalPlanApplyResponse = z.infer<
+  typeof savingsGoalPlanApplyResponseSchema
 >;
 
 // Budget Line response schemas

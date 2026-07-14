@@ -13,6 +13,7 @@ struct BudgetDetailsView: View {
     @Environment(BudgetListStore.self) private var budgetListStore
     @Environment(DashboardStore.self) private var dashboardStore
     @Environment(CurrentMonthStore.self) private var currentMonthStore
+    @Environment(SavingsGoalStore.self) private var savingsGoalStore
     @Environment(\.amountsHidden) private var amountsHidden
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.tabBarClearance) private var tabBarClearance
@@ -46,6 +47,19 @@ struct BudgetDetailsView: View {
             year: year,
             payDayOfMonth: userSettingsStore.payDayOfMonth
         )
+    }
+
+    /// Savings goal names keyed by goal id (PUL-12). Read from the app-level
+    /// `SavingsGoalStore` directly — like `timeElapsedPercentage` reads
+    /// `UserSettingsStore` — so the projection layer stays independent of the
+    /// goals cache. Re-evaluates via Observation when goals load, surfacing the
+    /// "Objectif" chip on the saving rows once resolved.
+    private var savingsGoalNamesById: [String: String] {
+        var names: [String: String] = [:]
+        for goal in savingsGoalStore.goals {
+            names[goal.id] = goal.name
+        }
+        return names
     }
 
     private var checkedFilterBinding: Binding<CheckedFilterOption> {
@@ -112,6 +126,8 @@ struct BudgetDetailsView: View {
                 dashboardStore: dashboardStore,
                 currentMonthStore: currentMonthStore
             )
+            // Resolve "Objectif" names for saving rows / the line detail chip.
+            await savingsGoalStore.loadIfNeeded()
             if !screenState.hasAllBudgets {
                 await coordinator.dispatch(.loadDetails(force: false))
             } else {
@@ -208,6 +224,7 @@ struct BudgetDetailsView: View {
                         kind: section.kind,
                         items: section.items,
                         currency: userSettingsStore.currency,
+                        goalNamesById: savingsGoalNamesById,
                         onTap: { line in
                             router.push(.lineDetail(lineId: line.id))
                         },

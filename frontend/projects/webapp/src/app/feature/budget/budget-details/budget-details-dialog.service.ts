@@ -122,6 +122,9 @@ export class BudgetDetailsDialogService {
       data,
       width: '800px',
       maxWidth: '95vw',
+      // Route injector — the dialog reads the route-scoped BudgetDetailsStore
+      // (linked savings goal), which the root dialog injector cannot resolve.
+      injector: this.#injector,
     });
     return firstValueFrom(dialogRef.afterClosed());
   }

@@ -59,4 +59,11 @@ enum AnalyticsEvent: String, CaseIterable {
     /// Fires when onboarding currency persistence exhausts all retry attempts.
     /// Properties: `currency` (target ISO code), `attempts` (total tried).
     case currencyPersistFailed = "currency_persist_failed"
+
+    // MARK: - Savings Goals
+    /// Objectifs first-run intro cover. `viewed` fires on open, then exactly one
+    /// of `completed` (final "Créer mon objectif") or `skipped` (Passer / Plus tard).
+    case savingsGoalsIntroViewed = "savings_goals_intro_viewed"
+    case savingsGoalsIntroCompleted = "savings_goals_intro_completed"
+    case savingsGoalsIntroSkipped = "savings_goals_intro_skipped"
 }

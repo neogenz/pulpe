@@ -46,6 +46,12 @@ const CODE_KEY_MAP = {
   [API_ERROR_CODES.TEMPLATE_CREATE_FAILED]: 'apiError.templateCreationFailed',
   [API_ERROR_CODES.TEMPLATE_UPDATE_FAILED]: 'apiError.templateUpdateFailed',
   [API_ERROR_CODES.TEMPLATE_DELETE_FAILED]: 'apiError.templateDeleteFailed',
+  [API_ERROR_CODES.SAVINGS_GOAL_PLAN_CONFLICT]:
+    'apiError.savingsGoalPlanConflict',
+  [API_ERROR_CODES.SAVINGS_GOAL_PLAN_LINE_INVALID]:
+    'apiError.savingsGoalPlanLineInvalid',
+  [API_ERROR_CODES.SAVINGS_GOAL_PLAN_APPLY_FAILED]:
+    'apiError.savingsGoalPlanApplyFailed',
   [API_ERROR_CODES.USER_NOT_FOUND]: 'apiError.profileNotFound',
   [API_ERROR_CODES.USER_PROFILE_UPDATE_FAILED]: 'apiError.profileUpdateFailed',
   [API_ERROR_CODES.VALIDATION_FAILED]: 'apiError.validationFailed',

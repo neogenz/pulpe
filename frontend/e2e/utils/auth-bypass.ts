@@ -14,6 +14,7 @@ const TOUR_IDS = [
   'budget-list',
   'budget-details',
   'templates-list',
+  'savings-goals',
 ] as const;
 
 /**

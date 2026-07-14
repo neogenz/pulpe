@@ -7,7 +7,7 @@ import {
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
 import { z } from 'zod';
-import { ApiClient } from './api-client';
+import { API_RETRY_BASE_DELAY_MS, ApiClient } from './api-client';
 import { ApiError } from './api-error';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
@@ -39,6 +39,7 @@ function setup() {
       ApiClient,
       { provide: ApplicationConfiguration, useValue: mockConfig },
       { provide: Logger, useValue: mockLogger },
+      { provide: API_RETRY_BASE_DELAY_MS, useValue: 0 },
     ],
   });
 
@@ -102,7 +103,7 @@ describe('ApiClient', () => {
       expect((error as ApiError).message).toBe('Not found');
     });
 
-    it('should handle HTTP 500 with non-standard payload', () => {
+    it('should handle HTTP 500 with non-standard payload after exhausting retries', async () => {
       const { client, httpTesting } = setup();
       let error: unknown;
 
@@ -110,13 +111,77 @@ describe('ApiClient', () => {
         error: (e) => (error = e),
       });
 
-      req(httpTesting, '/items/1').flush('Internal Server Error', {
-        status: 500,
-        statusText: 'Internal Server Error',
-      });
+      // Initial attempt + 2 transient retries, all failing.
+      for (let attempt = 0; attempt < 3; attempt++) {
+        req(httpTesting, '/items/1').flush('Internal Server Error', {
+          status: 500,
+          statusText: 'Internal Server Error',
+        });
+        await flushRetryTimer();
+      }
 
       expect(error).toBeInstanceOf(ApiError);
       expect((error as ApiError).status).toBe(500);
+    });
+
+    // Bug UX: pointer une dépense saturait le PostgREST local, le GET details
+    // échouait UNE fois et l'écran affichait « budget introuvable » — un échec
+    // transitoire doit se résorber tout seul, jamais atteindre l'utilisateur.
+    it('should silently recover when a transient failure succeeds on retry', async () => {
+      const { client, httpTesting } = setup();
+      const response = { success: true, data: { id: '1', name: 'Test' } };
+      let result: unknown;
+      let error: unknown;
+
+      client.get$('/items/1', testSchema).subscribe({
+        next: (r) => (result = r),
+        error: (e) => (error = e),
+      });
+
+      req(httpTesting, '/items/1').flush('boom', {
+        status: 503,
+        statusText: 'Service Unavailable',
+      });
+      await flushRetryTimer();
+
+      req(httpTesting, '/items/1').flush(response);
+
+      expect(error).toBeUndefined();
+      expect(result).toEqual(response);
+    });
+
+    it('should NOT retry a business error (404)', () => {
+      const { client, httpTesting } = setup();
+      let error: unknown;
+
+      client.get$('/items/999', testSchema).subscribe({
+        error: (e) => (error = e),
+      });
+
+      req(httpTesting, '/items/999').flush(
+        { success: false, error: 'Not found', code: 'ERR_NOT_FOUND' },
+        { status: 404, statusText: 'Not Found' },
+      );
+
+      httpTesting.expectNone(`${TEST_BASE_URL}/items/999`);
+      expect((error as ApiError).status).toBe(404);
+    });
+
+    it('should NOT retry mutations even on transient failures', () => {
+      const { client, httpTesting } = setup();
+      let error: unknown;
+
+      client.post$('/items', { name: 'x' }, testSchema).subscribe({
+        error: (e) => (error = e),
+      });
+
+      req(httpTesting, '/items').flush('boom', {
+        status: 503,
+        statusText: 'Service Unavailable',
+      });
+
+      httpTesting.expectNone(`${TEST_BASE_URL}/items`);
+      expect((error as ApiError).status).toBe(503);
     });
   });
 
@@ -266,4 +331,9 @@ describe('ApiClient', () => {
 
 function req(httpTesting: HttpTestingController, path: string) {
   return httpTesting.expectOne(`${TEST_BASE_URL}${path}`);
+}
+
+/** Let the collapsed (0ms) retry backoff timer fire. */
+function flushRetryTimer(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
 }

@@ -69,10 +69,12 @@ struct AppStateLogoutTests {
 
         sut.selectedTab = .budgets
         sut.budgetPath.append("budget-id-1")
+        sut.savingsGoalsPath.append("goal-id-1")
         sut.templatePath.append("template-id-1")
 
         try #require(sut.selectedTab == .budgets, "Setup: tab should be budgets")
         try #require(sut.budgetPath.count == 1, "Setup: budgetPath should have 1 item")
+        try #require(sut.savingsGoalsPath.count == 1, "Setup: savingsGoalsPath should have 1 item")
         try #require(sut.templatePath.count == 1, "Setup: templatePath should have 1 item")
 
         await sut.logout()
@@ -88,6 +90,10 @@ struct AppStateLogoutTests {
         #expect(
             sut.templatePath.isEmpty,
             "templatePath must be empty after logout"
+        )
+        #expect(
+            sut.savingsGoalsPath.isEmpty,
+            "savingsGoalsPath must be empty after logout"
         )
     }
 

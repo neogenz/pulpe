@@ -73,6 +73,17 @@ describe('budgetLineCreateFromFormSchema', () => {
 
       expect(result.checkedAt).toBeNull();
     });
+
+    it('should pass through savingsGoalId when provided (CA26 tagging)', () => {
+      const goalId = '00000000-0000-4000-8000-0000000000aa';
+      const result = budgetLineCreateFromFormSchema.parse({
+        ...createFormValue,
+        kind: 'saving',
+        savingsGoalId: goalId,
+      });
+
+      expect(result.savingsGoalId).toBe(goalId);
+    });
   });
 
   describe('validation', () => {

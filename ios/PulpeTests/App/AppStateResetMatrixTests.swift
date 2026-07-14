@@ -78,10 +78,12 @@ struct AppStateResetMatrixTests {
         await sut.resolvePostAuth(user: user)
         sut.selectedTab = .budgets
         sut.budgetPath.append("test-budget")
+        sut.savingsGoalsPath.append("test-goal")
 
         await executeReset(sut, scenario: scenario)
 
         #expect(sut.budgetPath.isEmpty, "\(scenario): budgetPath must be empty")
+        #expect(sut.savingsGoalsPath.isEmpty, "\(scenario): savingsGoalsPath must be empty")
         #expect(sut.selectedTab == .currentMonth, "\(scenario): selectedTab must be .currentMonth")
     }
 
@@ -97,11 +99,13 @@ struct AppStateResetMatrixTests {
         await sut.resolvePostAuth(user: user)
         sut.selectedTab = .budgets
         sut.budgetPath.append("keep-budget")
+        sut.savingsGoalsPath.append("keep-goal")
 
         await executeReset(sut, scenario: scenario)
 
         #expect(sut.selectedTab == .budgets, "\(scenario): selectedTab must be preserved")
         #expect(sut.budgetPath.count == 1, "\(scenario): budgetPath must be preserved")
+        #expect(sut.savingsGoalsPath.count == 1, "\(scenario): savingsGoalsPath must be preserved")
     }
 
     // MARK: - showPostAuthError

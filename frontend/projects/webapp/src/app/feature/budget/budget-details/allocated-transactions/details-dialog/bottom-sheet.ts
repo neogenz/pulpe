@@ -16,6 +16,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { Router } from '@angular/router';
+import { ROUTES } from '@core/routing';
 import { type Transaction } from 'pulpe-shared';
 import {
   AppCurrencyPipe,
@@ -77,6 +79,22 @@ import type {
           <mat-icon>close</mat-icon>
         </button>
       </div>
+
+      @if (linkedGoal(); as goal) {
+        <button
+          matButton
+          class="self-start !-ml-2 max-w-full"
+          (click)="openLinkedGoal(goal.id)"
+          data-testid="allocated-transactions-bottom-sheet-linked-goal"
+          [attr.aria-label]="'budgetLine.linkedGoalAriaLabel' | transloco"
+        >
+          <mat-icon>savings</mat-icon>
+          <span class="min-w-0 truncate">
+            {{ 'budgetLine.linkedGoal' | transloco }} :
+            <span class="ph-no-capture">{{ goal.name }}</span>
+          </span>
+        </button>
+      }
 
       <!-- Summary -->
       <div class="grid grid-cols-3 gap-2">
@@ -275,6 +293,7 @@ import type {
 export class AllocatedTransactionsBottomSheet {
   readonly #userSettings = inject(UserSettingsStore);
   readonly #featureFlags = inject(FeatureFlagsService);
+  readonly #router = inject(Router);
   protected readonly store = inject(BudgetDetailsStore);
   protected readonly currency = this.#userSettings.currency;
   // Date locale (fr-CH / fr-FR) for spread month names — NOT numberLocale
@@ -327,8 +346,24 @@ export class AllocatedTransactionsBottomSheet {
       : 0,
   );
 
+  // PUL-12 — the savings goal this envelope is linked to, resolved from the
+  // store's id→name map. Null (renders nothing) when unlinked or name unloaded.
+  protected readonly linkedGoal = computed<{ id: string; name: string } | null>(
+    () => {
+      const id = this.data.budgetLine.savingsGoalId;
+      if (!id) return null;
+      const name = this.store.savingsGoalNameById().get(id);
+      return name ? { id, name } : null;
+    },
+  );
+
   close(): void {
     this.#bottomSheetRef.dismiss();
+  }
+
+  protected openLinkedGoal(goalId: string): void {
+    this.#bottomSheetRef.dismiss();
+    this.#router.navigate(['/', ROUTES.SAVINGS_GOALS, goalId]);
   }
 
   addTransaction(): void {

@@ -41,6 +41,7 @@ const makeSource = (
   kind: 'expense',
   recurrence: 'one_off',
   spreadGroupId: null,
+  savingsGoalId: null,
   ...overrides,
 });
 
@@ -183,6 +184,9 @@ describe('SpreadBudgetLineFromLineUseCase', () => {
     expect(amounts).toEqual([100, 100, 100, 100, 100, 100, 100, 100]);
     expect(amounts.reduce((a, b) => a + b, 0)).toBe(800);
     expect(captured[0].inputs.every((i) => i.recurrence === 'one_off')).toBe(
+      true,
+    );
+    expect(captured[0].inputs.every((i) => i.savingsGoalId === null)).toBe(
       true,
     );
     // Defect 2: the source delete is folded INTO the fan-out RPC (atomic),
@@ -369,6 +373,28 @@ describe('SpreadBudgetLineFromLineUseCase', () => {
       0,
     );
     expect(originalCents / 100).toBe(200);
+  });
+
+  it('preserves the savings goal link on every saving tranche', async () => {
+    mockRepo.findSpreadSource.mockResolvedValue(
+      makeSource({ kind: 'saving', savingsGoalId: 'goal-1' }),
+    );
+
+    await useCase.execute(
+      'line-source',
+      {
+        periods: [
+          { year: 2026, month: 1 },
+          { year: 2026, month: 2 },
+        ],
+      },
+      mockUser,
+    );
+
+    expect(captured[0].inputs.map((input) => input.savingsGoalId)).toEqual([
+      'goal-1',
+      'goal-1',
+    ]);
   });
 
   it('rejects a period before the source month (forward-only)', async () => {

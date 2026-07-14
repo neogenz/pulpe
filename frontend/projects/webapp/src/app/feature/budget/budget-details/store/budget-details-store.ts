@@ -11,6 +11,7 @@ import { TranslocoService } from '@jsverse/transloco';
 import { cachedMutation, cachedResource } from 'ngx-ziflux';
 import { BudgetCalculator, calculateAllConsumptions } from '@core/budget';
 import { BudgetApi } from '@core/budget/budget-api';
+import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { isApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
@@ -71,6 +72,7 @@ export class BudgetDetailsStore {
   // ── 1. Dependencies ──
   readonly #apiErrorLocalizer = inject(ApiErrorLocalizer);
   readonly #budgetApi = inject(BudgetApi);
+  readonly #savingsGoalApi = inject(SavingsGoalApi);
   readonly #budgetCalculator = inject(BudgetCalculator);
   readonly #logger = inject(Logger);
   readonly #storage = inject(StorageService);
@@ -144,6 +146,18 @@ export class BudgetDetailsStore {
     cache: this.#budgetApi.cache,
     cacheKey: ['budget', 'list'],
     loader: () => this.#budgetApi.getAllBudgets$(),
+  });
+
+  // PUL-12 — savings-goal names, so a saving envelope linked to a goal can show
+  // and link to it across the detail surfaces. Shares SavingsGoalApi's cache
+  // (['savings-goals','list']) → the list is fetched once for the whole app.
+  readonly #savingsGoalsResource = cachedResource({
+    cache: this.#savingsGoalApi.cache,
+    cacheKey: ['savings-goals', 'list'],
+    loader: () =>
+      this.#savingsGoalApi
+        .getAll$()
+        .pipe(map((response) => response.data ?? [])),
   });
 
   // PUL-17 Lot C — cross-month occurrences of a spread group. Suspended (idle)
@@ -225,6 +239,13 @@ export class BudgetDetailsStore {
     () => this.#budgetDetailsResource.error() || this.#state.errorMessage(),
   );
   readonly isStale = this.#budgetDetailsResource.isStale;
+
+  // Goal id → name, for the linked-goal affordance on saving envelopes. Empty
+  // (renders nothing) while the list is loading or when an id is stale.
+  readonly savingsGoalNameById = computed<Map<string, string>>(() => {
+    const goals = this.#savingsGoalsResource.value() ?? [];
+    return new Map(goals.map((goal) => [goal.id, goal.name]));
+  });
 
   readonly #budgetsList = computed(() =>
     this.#allBudgetsResource.error()
@@ -467,7 +488,7 @@ export class BudgetDetailsStore {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         templateLineId: null,
-        savingsGoalId: null,
+        savingsGoalId: budgetLine.savingsGoalId ?? null,
         checkedAt: budgetLine.checkedAt ?? null,
       };
       this.#updateDetails((details) => ({

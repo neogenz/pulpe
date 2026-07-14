@@ -33,6 +33,10 @@
 - **[CSP.md](./CSP.md)** - Content Security Policy : état actuel, dette `unsafe-inline`, plan de remédiation
 - **[SCENARIOS.md](./SCENARIOS.md)** - Scénarios métier Web App + iOS (auth, biométrie, grace period, widget)
 
+### 💰 Métier
+- **[SAVINGS.md](./SAVINGS.md)** - Objectifs d'épargne, progression et simulateur de plan
+- **[Diagramme Objectifs d'épargne](./diagrams/savings-goals.c4)** - Workflows LikeC4 de la fonctionnalité
+
 ## 🎯 Par Problème Spécifique
 
 ### Infrastructure & Déploiement

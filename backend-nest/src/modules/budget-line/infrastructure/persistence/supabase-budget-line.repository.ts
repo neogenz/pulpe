@@ -11,6 +11,7 @@ import {
 } from '@modules/encryption/encryption.tokens';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadata.mapper';
+import { isSavingsGoalLinkDenied } from '@common/utils/savings-goal-link';
 import type { BudgetLineRepositoryPort } from '../../domain/ports/budget-line-repository.port';
 import type {
   BudgetLine,
@@ -310,6 +311,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     return {
       id: decrypted.id,
       budgetId: decrypted.budget_id,
+      savingsGoalId: decrypted.savings_goal_id,
       month: row.monthly_budget.month,
       year: row.monthly_budget.year,
       name: decrypted.name,
@@ -405,6 +407,16 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
           { id: input.id },
           loggingContext,
           { cause: error },
+        );
+      }
+
+      // enforce_savings_goal_line_link trigger: deleted/foreign goal tagged.
+      if (isSavingsGoalLinkDenied(error)) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
+          undefined,
+          loggingContext,
+          { cause: error ?? undefined },
         );
       }
 
@@ -579,6 +591,16 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
         );
       }
 
+      // enforce_savings_goal_line_link trigger: deleted/foreign goal tagged.
+      if (isSavingsGoalLinkDenied(error)) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
+          undefined,
+          loggingContext,
+          { cause: error },
+        );
+      }
+
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
         undefined,
@@ -679,7 +701,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     const { data, error } = await supabase
       .from('template_line')
       .select(
-        'name, amount, kind, recurrence, original_amount, original_currency, target_currency, exchange_rate, id, created_at, updated_at, description, template_id',
+        'name, amount, kind, recurrence, original_amount, original_currency, target_currency, exchange_rate, id, created_at, updated_at, description, template_id, savings_goal_id',
       )
       .eq('id', templateLineId)
       .single();
@@ -773,6 +795,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     return {
       id: row.id,
       templateId: row.template_id,
+      savingsGoalId: row.savings_goal_id ?? null,
       name: row.name,
       amount: row.amount
         ? this.encryption.tryDecryptAmount(row.amount, dek, 0)

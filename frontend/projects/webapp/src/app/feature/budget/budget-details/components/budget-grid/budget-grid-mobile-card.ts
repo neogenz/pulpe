@@ -145,6 +145,22 @@ import { BudgetActionMenu } from '../budget-action-menu';
       }
 
       <ng-container ngProjectAs="[footer]">
+        @if (linkedGoalName()) {
+          <div
+            class="flex items-center gap-1 min-w-0 mb-3 text-on-surface-variant"
+            [attr.data-testid]="'envelope-linked-goal-' + item().data.id"
+          >
+            <mat-icon
+              class="text-sm! shrink-0 h-auto! w-auto!"
+              aria-hidden="true"
+              >savings</mat-icon
+            >
+            <span class="text-label-small truncate ph-no-capture">{{
+              linkedGoalName()
+            }}</span>
+          </div>
+        }
+
         @if (matchAnnotation()) {
           <div
             class="-mt-2 mb-3 mx-auto flex items-center gap-1.5 text-body-small
@@ -257,6 +273,8 @@ export class BudgetGridMobileCard {
   readonly currency = input<SupportedCurrency>('CHF');
   readonly isSelected = input<boolean>(false);
   readonly isMultiCurrencyEnabled = input<boolean>(false);
+  /** Name of the linked savings goal, when this saving envelope targets one (PUL-12) */
+  readonly linkedGoalName = input<string | undefined>(undefined);
 
   readonly matchAnnotation = computed(() =>
     formatMatchAnnotation(this.item().metadata.matchingTransactionNames),

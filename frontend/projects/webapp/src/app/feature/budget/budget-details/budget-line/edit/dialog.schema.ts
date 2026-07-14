@@ -10,9 +10,10 @@ import { conversionFormSchema } from '@core/currency';
  * Validates the form-derived portion of a BudgetLine update.
  *
  * Source of truth for the outgoing DTO: shared/schemas.ts (budgetLineUpdateSchema).
- * The host attaches `id`, `templateLineId`, and `savingsGoalId` from the source
- * BudgetLine after parsing — these are server-trusted identity fields, not
- * user-edited values.
+ * The host attaches `id` and `templateLineId` from the source BudgetLine after
+ * parsing — these are server-trusted identity fields, not user-edited values.
+ * `savingsGoalId` IS user-editable (CA26): it comes from the savings-goal picker
+ * and is parsed here so an explicit null (untag) wins over the source value.
  *
  * Note: the edit dialog has no isChecked toggle — checkedAt is owned by a
  * separate toggle endpoint, mirroring transactionUpdateFromFormSchema.
@@ -23,6 +24,7 @@ export const budgetLineUpdateFromFormSchema = z
     amount: z.number().positive(),
     kind: transactionKindSchema,
     recurrence: transactionRecurrenceSchema,
+    savingsGoalId: z.uuid().nullable().optional(),
     conversion: conversionFormSchema.nullable(),
   })
   .transform(
@@ -31,6 +33,7 @@ export const budgetLineUpdateFromFormSchema = z
       amount: input.amount,
       kind: input.kind,
       recurrence: input.recurrence,
+      savingsGoalId: input.savingsGoalId,
       isManuallyAdjusted: true,
       ...(input.conversion ?? {}),
     }),

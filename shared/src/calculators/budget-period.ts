@@ -131,6 +131,33 @@ export function isInCurrentBudgetPeriod(
 }
 
 /**
+ * Index de période comparable : `year * 12 + month` (month 1-12).
+ * Deux périodes consécutives diffèrent de 1 — permet l'arithmétique d'horizon.
+ */
+export function periodIndex(period: BudgetPeriod): number {
+  return period.year * 12 + period.month;
+}
+
+/**
+ * Inverse de `periodIndex` : reconstruit `{ month, year }` depuis un index.
+ * Ex. index 24318 → { month: 6, year: 2026 }.
+ */
+export function periodFromIndex(index: number): BudgetPeriod {
+  const year = Math.floor((index - 1) / 12);
+  const month = index - year * 12;
+  return { month, year };
+}
+
+/**
+ * Parse une date ISO nue `YYYY-MM-DD` en Date LOCALE — `new Date('YYYY-MM-DD')`
+ * serait minuit UTC et pourrait glisser d'un jour (donc d'un cycle payDay).
+ */
+export function parseIsoDateLocal(isoDate: string): Date {
+  const [year, month, day] = isoDate.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+/**
  * Compare deux périodes budgétaires.
  *
  * @param a - Première période

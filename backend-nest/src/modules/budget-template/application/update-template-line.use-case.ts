@@ -6,6 +6,7 @@ import {
   templateLineUpdateSchema,
 } from 'pulpe-shared';
 import { CurrencyService } from '@modules/currency/currency.service';
+import { savingsGoalIdPatchForKind } from '@common/utils/savings-goal-link';
 import {
   BUDGET_TEMPLATE_REPOSITORY,
   type BudgetTemplateRepositoryPort,
@@ -29,11 +30,19 @@ export class UpdateTemplateLineUseCase {
   ): Promise<TemplateLine> {
     const startTime = Date.now();
 
-    await this.repo.validateLineAccess(lineId, user.id);
+    const currentLine = await this.repo.validateLineAccess(lineId, user.id);
     let validated = templateLineUpdateSchema.parse(updateDto);
     validated = await this.currencyService.overrideExchangeRate(validated);
 
+    const effectiveKind =
+      validated.kind ??
+      (validated.savingsGoalId !== undefined ? currentLine.kind : undefined);
+
     const line = await this.repo.updateLine(lineId, {
+      savingsGoalId: savingsGoalIdPatchForKind(
+        effectiveKind,
+        validated.savingsGoalId,
+      ),
       name: validated.name,
       amount: validated.amount,
       originalAmount: validated.originalAmount,

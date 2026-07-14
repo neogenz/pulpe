@@ -16,6 +16,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { Router } from '@angular/router';
+import { ROUTES } from '@core/routing';
 import { type BudgetLine, type Transaction } from 'pulpe-shared';
 import {
   AppCurrencyPipe,
@@ -100,6 +102,25 @@ const DETAIL_SEGMENT_COUNT = 12;
               <span class="text-label-medium text-on-surface-variant">
                 {{ envelope.data.kind | transactionLabel }}
               </span>
+              @if (linkedGoal(); as goal) {
+                <div class="mt-1">
+                  <button
+                    matButton
+                    class="self-start !-ml-2 max-w-full"
+                    (click)="openLinkedGoal(goal.id)"
+                    data-testid="budget-detail-panel-linked-goal"
+                    [attr.aria-label]="
+                      'budgetLine.linkedGoalAriaLabel' | transloco
+                    "
+                  >
+                    <mat-icon>savings</mat-icon>
+                    <span class="min-w-0 truncate">
+                      {{ 'budgetLine.linkedGoal' | transloco }} :
+                      <span class="ph-no-capture">{{ goal.name }}</span>
+                    </span>
+                  </button>
+                </div>
+              }
             </div>
           </div>
           <button
@@ -373,6 +394,7 @@ const DETAIL_SEGMENT_COUNT = 12;
 })
 export class BudgetDetailPanel {
   readonly #dialogRef = inject(MatDialogRef<BudgetDetailPanel>);
+  readonly #router = inject(Router);
   readonly #store = inject(BudgetDetailsStore);
   readonly #userSettings = inject(UserSettingsStore);
   readonly #featureFlags = inject(FeatureFlagsService);
@@ -442,8 +464,24 @@ export class BudgetDetailPanel {
   protected readonly isSpreadLoading = this.#store.isSpreadOccurrencesLoading;
   protected readonly spreadError = this.#store.spreadOccurrencesError;
 
+  // PUL-12 — the savings goal this envelope is linked to, resolved from the
+  // store's id→name map. Null (renders nothing) when unlinked or name unloaded.
+  protected readonly linkedGoal = computed<{ id: string; name: string } | null>(
+    () => {
+      const id = this.envelopeItem().data.savingsGoalId;
+      if (!id) return null;
+      const name = this.#store.savingsGoalNameById().get(id);
+      return name ? { id, name } : null;
+    },
+  );
+
   protected close(): void {
     this.#dialogRef.close();
+  }
+
+  protected openLinkedGoal(goalId: string): void {
+    this.#dialogRef.close();
+    this.#router.navigate(['/', ROUTES.SAVINGS_GOALS, goalId]);
   }
 
   protected onAddTransaction(): void {

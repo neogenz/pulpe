@@ -76,6 +76,7 @@ describe('ProductTourService', () => {
       'budget-list',
       'budget-details',
       'templates-list',
+      'savings-goals',
     ];
 
     testCases.forEach((pageId) => {
@@ -100,6 +101,7 @@ describe('ProductTourService', () => {
         'budget-list',
         'budget-details',
         'templates-list',
+        'savings-goals',
       ];
       tourIds.forEach((tourId) => {
         setVersionedValue(getTourKey(tourId), 'true');
@@ -117,6 +119,7 @@ describe('ProductTourService', () => {
       expect(service.hasSeenPageTour('budget-list')).toBe(false);
       expect(service.hasSeenPageTour('budget-details')).toBe(false);
       expect(service.hasSeenPageTour('templates-list')).toBe(false);
+      expect(service.hasSeenPageTour('savings-goals')).toBe(false);
     });
 
     it('should handle being called when no tours have been seen', () => {

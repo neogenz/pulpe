@@ -12,12 +12,41 @@
 export { BudgetFormulas } from './budget-formulas.js';
 export { splitTotalPreserving } from './spread-split.js';
 export {
+  PACE_TOLERANCE_PERCENT,
+  MAX_ESTIMATED_HORIZON_MONTHS,
+  calculatePaceStatus,
+  computeSavingsGoalProgress,
+  type LinkedSavingLine,
+  type LinkedSavingTransaction,
+  type SavingsGoalProgressInput,
+  type SavingsGoalProgressResult,
+} from './savings-goal-progress.js';
+export {
+  buildSavingsGoalTimeline,
+  simulateSavingsPlan,
+  redistributeRemainingEffort,
+  allocateMonthAmountToLines,
+  isContributivePlanMonth,
+  isOpenPlanMonth,
+  type SavingsPlanMonthState,
+  type SavingsPlanLine,
+  type SavingsPlanTimelineMonth,
+  type SavingsPlanAdjustment,
+  type SavingsPlanSimulatedMonth,
+  type SavingsPlanSimulationResult,
+  type RedistributeRemainingEffortResult,
+  type AllocatableLine,
+} from './savings-goal-plan.js';
+export {
   getBudgetPeriodForDate,
   isInCurrentBudgetPeriod,
   compareBudgetPeriods,
   isPastBudgetPeriod,
   getBudgetPeriodDates,
   formatBudgetPeriod,
+  periodIndex,
+  periodFromIndex,
+  parseIsoDateLocal,
   type BudgetPeriod,
   type BudgetPeriodDates,
 } from './budget-period.js';

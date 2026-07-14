@@ -124,6 +124,14 @@ export const routes: Routes = [
           import('./feature/budget-templates/budget-templates.routes'),
       },
       {
+        path: ROUTES.SAVINGS_GOALS,
+        title: PAGE_TITLES.SAVINGS_GOALS,
+        canActivate: [hasBudgetGuard],
+        data: { breadcrumb: 'navigation.savingsGoals', icon: 'savings' },
+        loadChildren: () =>
+          import('./feature/savings-goals/savings-goals.routes'),
+      },
+      {
         path: ROUTES.SETTINGS,
         title: PAGE_TITLES.SETTINGS,
         data: { breadcrumb: 'navigation.settings', icon: 'settings' },

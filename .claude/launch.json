@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "backend",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "cd backend-nest && NODE_ENV=development bun --env-file=.env.local --watch src/main.ts"
+      ],
+      "port": 3000
+    },
+    {
+      "name": "frontend",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "cd frontend && pnpm run generate:config && pnpm run generate:build-info && pnpm exec ng serve --host 0.0.0.0 --port 4200"
+      ],
+      "port": 4200
+    }
+  ]
+}

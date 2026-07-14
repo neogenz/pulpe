@@ -60,6 +60,14 @@ enum Endpoint {
     case templateLine(templateId: String, lineId: String)
     case templateLinesBulk(templateId: String)
 
+    // MARK: - Savings Goals
+
+    case savingsGoals
+    case savingsGoal(id: String)
+    case savingsGoalProgress(id: String)
+    case savingsGoalContributions(id: String)
+    case savingsGoalPlanApply(id: String)
+
     // MARK: - Currency
 
     case currencyRate(base: SupportedCurrency, target: SupportedCurrency)
@@ -128,6 +136,13 @@ enum Endpoint {
         case .templateLine(let templateId, let lineId): return "/budget-templates/\(templateId)/lines/\(lineId)"
         case .templateLinesBulk(let templateId): return "/budget-templates/\(templateId)/lines/bulk-operations"
 
+        // Savings Goals
+        case .savingsGoals: return "/savings-goals"
+        case .savingsGoal(let id): return "/savings-goals/\(id)"
+        case .savingsGoalProgress(let id): return "/savings-goals/\(id)/progress"
+        case .savingsGoalContributions(let id): return "/savings-goals/\(id)/contributions"
+        case .savingsGoalPlanApply(let id): return "/savings-goals/\(id)/plan"
+
         // Currency
         case .currencyRate: return "/currency/rate"
 
@@ -153,12 +168,14 @@ enum Endpoint {
              .budgetLineToggle, .budgetLinePostpone, .budgetLineResetFromTemplate,
              .transactionToggle, .transactionPostpone,
              .encryptionValidateKey, .encryptionSetupRecovery, .encryptionRegenerateRecovery, .encryptionRecover,
-             .encryptionVerifyRecoveryKey, .encryptionChangePin:
+             .encryptionVerifyRecoveryKey, .encryptionChangePin,
+             .savingsGoalPlanApply:
             return .post
 
         case .validateSession, .userProfile, .budget, .budgetDetails, .budgetsExport,
              .budgetLine, .budgetLinesSpreadOccurrences, .transaction, .template, .templateUsage, .templateLine,
              .transactionsByBudget, .budgetsSparse,
+             .savingsGoals, .savingsGoal, .savingsGoalProgress, .savingsGoalContributions,
              .encryptionVaultStatus, .encryptionSalt,
              .userSettings, .currencyRate:
             return .get

@@ -7,7 +7,7 @@ import {
   formatShortMonth,
   formatCurrency,
   CHART_FONT_FAMILY,
-} from '../utils/chart-utils';
+} from '@core/chart/chart-theme';
 
 const AXIS_ABBREVIATION_THRESHOLD = 1000;
 

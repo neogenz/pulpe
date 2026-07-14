@@ -31,6 +31,13 @@ final class BudgetDetailsRouter {
         appState?.budgetPath.append(route)
     }
 
+    /// Pushes a savings goal's progression detail onto the budget stack (PUL-12).
+    /// Cross-feature push from a saving prévision's detail — resolved by the
+    /// `SavingsGoalDestination` navigation destination registered on `BudgetsTab`.
+    func pushSavingsGoal(_ goal: SavingsGoal) {
+        appState?.budgetPath.append(SavingsGoalDestination.detail(goal))
+    }
+
     func popToRoot() {
         appState?.budgetPath = NavigationPath()
     }

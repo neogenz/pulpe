@@ -95,6 +95,35 @@ describe('EnsureBudgetsForPeriodsUseCase', () => {
     expect(result.skippedMonths).toHaveLength(0);
   });
 
+  it('reuses the created budget on retry instead of duplicating the period', async () => {
+    mockRepo.getExistingPeriods
+      .mockResolvedValueOnce(new Map())
+      .mockResolvedValueOnce(new Map([['9/2026', 'new-b']]));
+    mockRepo.createBudgetFromTemplateRpc.mockResolvedValue({
+      budget: { id: 'new-b' },
+      budget_lines_created: 1,
+      template_name: 'Default',
+    });
+    mockRepo.fetchBudgetById.mockResolvedValue(makeBudget('new-b', 9, 2026));
+    const periods = [{ month: 9, year: 2026 }];
+
+    const first = await useCase.ensureBudgetsForPeriods(
+      periods,
+      'tpl-1',
+      'user-1',
+    );
+    const retry = await useCase.ensureBudgetsForPeriods(
+      periods,
+      'tpl-1',
+      'user-1',
+    );
+
+    expect(first.createdBudgets).toHaveLength(1);
+    expect(retry.createdBudgets).toHaveLength(0);
+    expect(retry.budgetIdByPeriod.get('9/2026')).toBe('new-b');
+    expect(mockRepo.createBudgetFromTemplateRpc).toHaveBeenCalledTimes(1);
+  });
+
   it('skips a missing period when there is no default template', async () => {
     const result = await useCase.ensureBudgetsForPeriods(
       [{ month: 9, year: 2026 }],

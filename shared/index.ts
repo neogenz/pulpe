@@ -81,6 +81,16 @@ export {
   savingsGoalResponseSchema,
   savingsGoalListResponseSchema,
   savingsGoalDeleteResponseSchema,
+  savingsGoalPaceStatusSchema,
+  savingsGoalProgressSchema,
+  savingsGoalProgressResponseSchema,
+  savingsGoalContributionSchema,
+  savingsGoalContributionsResponseSchema,
+  savingsGoalPlanMonthSchema,
+  savingsGoalPlanApplySchema,
+  savingsGoalPlanApplyResponseSchema,
+  MAX_SAVINGS_GOAL_PLAN_PERIODS,
+  MAX_PLAN_ADJUSTMENTS,
 
   // Budget Line schemas
   budgetLineSchema,
@@ -171,6 +181,32 @@ export {
 // Export calculators
 export { BudgetFormulas } from './src/calculators/index.js';
 export { splitTotalPreserving } from './src/calculators/index.js';
+export {
+  PACE_TOLERANCE_PERCENT,
+  MAX_ESTIMATED_HORIZON_MONTHS,
+  calculatePaceStatus,
+  computeSavingsGoalProgress,
+  type LinkedSavingLine,
+  type LinkedSavingTransaction,
+  type SavingsGoalProgressInput,
+  type SavingsGoalProgressResult,
+} from './src/calculators/index.js';
+export {
+  buildSavingsGoalTimeline,
+  simulateSavingsPlan,
+  redistributeRemainingEffort,
+  allocateMonthAmountToLines,
+  isContributivePlanMonth,
+  isOpenPlanMonth,
+  type SavingsPlanMonthState,
+  type SavingsPlanLine,
+  type SavingsPlanTimelineMonth,
+  type SavingsPlanAdjustment,
+  type SavingsPlanSimulatedMonth,
+  type SavingsPlanSimulationResult,
+  type RedistributeRemainingEffortResult,
+  type AllocatableLine,
+} from './src/calculators/index.js';
 
 // Export budget period utilities
 export {
@@ -180,6 +216,9 @@ export {
   isPastBudgetPeriod,
   getBudgetPeriodDates,
   formatBudgetPeriod,
+  periodIndex,
+  periodFromIndex,
+  parseIsoDateLocal,
   type BudgetPeriod,
   type BudgetPeriodDates,
 } from './src/calculators/index.js';
@@ -271,6 +310,14 @@ export type {
   SavingsGoalResponse,
   SavingsGoalListResponse,
   SavingsGoalDeleteResponse,
+  SavingsGoalPaceStatus,
+  SavingsGoalProgress,
+  SavingsGoalProgressResponse,
+  SavingsGoalContribution,
+  SavingsGoalContributionsResponse,
+  SavingsGoalPlanMonth,
+  SavingsGoalPlanApply,
+  SavingsGoalPlanApplyResponse,
 
   // Budget Line types
   BudgetLine,
