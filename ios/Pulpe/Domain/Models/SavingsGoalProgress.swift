@@ -71,7 +71,7 @@ struct SavingsGoalProgress: Decodable, Sendable, Equatable {
     let targetCurrency: SupportedCurrency?
     let exchangeRate: Decimal?
 
-    // MARK: - Plan enrichment (PUL-12+, docs/SAVINGS_PLAN.md §4.2 — additive)
+    // MARK: - Plan enrichment (PUL-12+, docs/SAVINGS.md §10.2 — additive)
 
     /// Monthly plan timeline, ancrage → cible inclusive. Empty when the goal has
     /// no linked line (or when the server gates `months` behind `?include=`).

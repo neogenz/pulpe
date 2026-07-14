@@ -18,7 +18,7 @@ import type { SavingsGoalProgressComputation } from '../domain/savings-goal.enti
 
 /**
  * Progression d'un objectif (PUL-8 + PUL-12) — les 11 formules de docs/SAVINGS.md
- * §4 / docs/SAVINGS_PLAN.md §5.1 plus la timeline mensuelle (ancrage → cible).
+ * §4 et §10.2 plus la timeline mensuelle (ancrage → cible).
  *
  * Le repo fournit la cible et les contributions DÉCHIFFRÉES ; le calcul est
  * payDay-aware via le payDayOfMonth de l'utilisateur. `computeSavingsGoalProgress`

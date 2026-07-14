@@ -27,7 +27,7 @@ function niceCeil(value: number): number {
 }
 
 /**
- * Pilier C — sandbox de simulation (docs/SAVINGS_PLAN.md §2). Fourni dans les
+ * Sandbox de simulation (docs/SAVINGS.md §10.3). Fourni dans les
  * `providers` du composant page : il meurt avec la page, donc le brouillon est
  * auto-abandonné à la navigation (loi de Tesler — la complexité reste absorbée
  * par le système, rien n'est écrit sans accord explicite). Toute la math vient
@@ -65,7 +65,7 @@ export class GoalPlanSimulatorStore {
     return Math.round(progress?.required ?? progress?.pace ?? 0);
   });
 
-  /** `niceCeil(2 × max(required, pace, plannedAmount))` — docs/SAVINGS_PLAN.md §2. */
+  /** `niceCeil(2 × max(required, pace, plannedAmount))` — docs/SAVINGS.md §10.3. */
   readonly sliderMax = computed(() => {
     const progress = this.#store.progress();
     const required = progress?.required ?? 0;

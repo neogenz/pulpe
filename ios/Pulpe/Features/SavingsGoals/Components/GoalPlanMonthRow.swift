@@ -2,7 +2,7 @@ import SwiftUI
 
 /// One month row of « Ton plan, mois par mois » (PUL-12+, pilier B). Cloned from
 /// `SpreadOccurrenceRow`: same grammar as the lissage timeline so there is zero new
-/// language to learn (`docs/SAVINGS_PLAN.md` §2 pilier B).
+/// language to learn (`docs/SAVINGS.md` §10.1).
 ///
 /// `amount` / `cumulative` are injected so the same row serves read mode
 /// (`plannedAmount` / `plannedCumulative`) and the simulator (`simulatedAmount` /

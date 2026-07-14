@@ -42,7 +42,7 @@ interface GoalPlanTimelineVisibleRow extends GoalPlanTimelineRow {
 const WINDOW_OPEN_ROWS = 3;
 
 /**
- * Pilier B — « Ton plan, mois par mois » (docs/SAVINGS_PLAN.md §2). Vertical
+ * « Ton plan, mois par mois » (docs/SAVINGS.md §10.1). Vertical
  * list reusing the spread-occurrences grammar (savings only, RG-002). Read mode
  * shows the planned amounts; when `simulatedMonths` is provided the rows follow
  * the sandbox. Windowed by default (last locked row + 3 open rows) with a « Voir

@@ -17,7 +17,7 @@ import { AppCurrencyPipe } from '@core/currency';
 import { getDateDisplayFormats } from '@core/date/date-display-formats';
 
 /**
- * « Ton suivi » (docs/SAVINGS_PLAN.md §3, dernier bloc). Tracking of the REALISED
+ * « Ton suivi » (docs/SAVINGS.md §10.1). Tracking of the REALISED
  * savings, not a second copy of the plan (« Ton plan, mois par mois » already
  * lists every planned month). A multi-year goal links dozens of monthly lines,
  * most of them identical future « à pointer » rows — pure noise here. So the

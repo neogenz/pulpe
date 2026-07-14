@@ -337,7 +337,7 @@ export const budgetPeriodSchema = z.object({
 });
 export type BudgetPeriodWire = z.infer<typeof budgetPeriodSchema>;
 
-/** État d'un mois de la timeline du plan (docs/SAVINGS_PLAN.md §2 pilier B). */
+/** État d'un mois de la timeline du plan (docs/SAVINGS.md §10.2). */
 export const savingsPlanMonthStateSchema = z.enum([
   'past',
   'current',
@@ -347,7 +347,7 @@ export const savingsPlanMonthStateSchema = z.enum([
 export type SavingsPlanMonthState = z.infer<typeof savingsPlanMonthStateSchema>;
 
 /**
- * Un mois de la timeline d'un objectif (docs/SAVINGS_PLAN.md §4.2). Alimente le
+ * Un mois de la timeline d'un objectif (docs/SAVINGS.md §10.2). Alimente le
  * chart trajectoire (A), le calendrier mensuel (B) et rebase le simulateur (C).
  */
 export const savingsGoalPlanMonthSchema = z.object({
@@ -393,7 +393,7 @@ export const savingsGoalProgressSchema = z.object({
   linkedLineCount: z.number().int().min(0),
   // Formule 10 — écart cumulé (prévu − confirmé), signé, jamais clampé.
   cumulativeGap: z.number(),
-  // Formule 11 — date d'atteinte estimée au rythme confirmé (docs/SAVINGS_PLAN.md §5.1).
+  // Date d'atteinte estimée au rythme confirmé (docs/SAVINGS.md §10.2).
   estimatedCompletion: budgetPeriodSchema.nullable(),
   // Timeline ancrage → cible (chart A + calendrier B + rebase simulateur C).
   months: z.array(savingsGoalPlanMonthSchema),
@@ -410,7 +410,7 @@ export const MAX_PLAN_ADJUSTMENTS = MAX_SAVINGS_GOAL_PLAN_PERIODS;
 
 /**
  * Requête d'application d'un plan simulé (`POST /savings-goals/:id/plan`,
- * docs/SAVINGS_PLAN.md §4.3). `monthAdjustments` = budgets matérialisés ;
+ * docs/SAVINGS.md §10.4). `monthAdjustments` = budgets matérialisés ;
  * `missingMonthAdjustments` = budgets absents à provisionner par période.
  */
 export const savingsGoalPlanApplySchema = z

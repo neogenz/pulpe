@@ -41,7 +41,7 @@ actor SavingsGoalService: SavingsGoalServicing {
         try await apiClient.request(.savingsGoalContributions(id: id), method: .get)
     }
 
-    /// Applies an edited plan (PUL-12+, `docs/SAVINGS_PLAN.md` §4.3). Pessimistic,
+    /// Applies an edited plan (PUL-12+, `docs/SAVINGS.md` §10.4). Pessimistic,
     /// atomic write; the backend re-encrypts amounts, recalculates touched budgets
     /// and returns the decrypted lines. Idempotent by construction (UPDATE-by-value).
     func applyPlan(id: String, _ payload: SavingsGoalPlanApply) async throws -> SavingsGoalPlanApplyResult {

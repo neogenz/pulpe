@@ -100,7 +100,7 @@ export interface SavingsGoalProgressResult {
 }
 
 /**
- * Formule 11 — date d'atteinte estimée au rythme CONFIRMÉ (docs/SAVINGS_PLAN.md §5.1).
+ * Date d'atteinte estimée au rythme CONFIRMÉ (docs/SAVINGS.md §10.2).
  * `null` si PAUSED / cible non déchiffrée / aucun pointage / horizon dégénéré.
  * Calculée même en overdue (compagnon factuel de D1).
  */

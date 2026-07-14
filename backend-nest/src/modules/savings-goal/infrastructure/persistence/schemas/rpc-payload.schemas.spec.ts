@@ -52,7 +52,7 @@ describe('applySavingsGoalPlanLineSchema', () => {
 
 describe('RPC P0001 message constants', () => {
   // These are pinned verbatim against the SQL RAISEs in migration
-  // 20260706120000_apply_savings_goal_plan_pul12 (the SQL↔TS coupling contract).
+  // 20260706120000_apply_savings_goal_plan (the SQL↔TS coupling contract).
   it('mirror the exact strings the RPC RAISEs', () => {
     expect(PLAN_LINE_NOT_LINKED_RPC_MESSAGE).toBe('Plan line not linked');
     expect(PLAN_LINE_CHECKED_RPC_MESSAGE).toBe('Plan line already checked');

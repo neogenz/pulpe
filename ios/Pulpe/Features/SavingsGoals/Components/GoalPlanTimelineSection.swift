@@ -3,7 +3,7 @@ import SwiftUI
 /// « Ton plan, mois par mois » (PUL-12+, pilier B) — the read-mode timeline section
 /// on the goal detail. Windowed by default (last locked month for context + the
 /// upcoming open months) with a « Voir tout le plan » toggle; a full 24–96 row list
-/// would burn the 30 s attention budget (`docs/SAVINGS_PLAN.md` §2 pilier B).
+/// would burn the 30 s attention budget (`docs/SAVINGS.md` §10.1).
 ///
 /// The section header carries the « Ajuster mon plan » CTA (pilier C entry), shown
 /// only when the goal is actionable (`canAdjust`).

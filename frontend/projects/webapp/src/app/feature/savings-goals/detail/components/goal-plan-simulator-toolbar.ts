@@ -19,7 +19,7 @@ import { CurrencyInput } from '@ui/currency-input';
 import { GoalPlanSimulatorStore } from '../services/goal-plan-simulator-store';
 
 /**
- * Pilier C — toolbar de simulation (docs/SAVINGS_PLAN.md §2). Slider global
+ * Toolbar de simulation (docs/SAVINGS.md §10.1). Slider global
  * « Chaque mois, je mets » + input jumeau (chemin précision/a11y), redistribution
  * de l'effort restant, reset du brouillon.
  * Bouger le slider écrase tous les overrides par mois — annoncé en `aria-live`.

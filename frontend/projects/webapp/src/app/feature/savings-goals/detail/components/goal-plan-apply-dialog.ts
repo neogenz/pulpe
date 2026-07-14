@@ -33,7 +33,7 @@ export interface GoalPlanApplyDialogData {
 const MAX_DIFF_ROWS = 5;
 
 /**
- * Pilier C — récap « On met ton plan à jour ? » (docs/SAVINGS_PLAN.md §2). Diff
+ * Récap « On met ton plan à jour ? » (docs/SAVINGS.md §10.1). Diff
  * condensé (cas uniforme : « 600 → 450 /mois sur N mois » ; cas mixte : liste
  * avant→après jusqu'à 5 rows + « et N autres »), ligne de clôture = verdict de
  * projection. L'édition horizon Mois Type est reportée en v1+ (le DTO `months[]`

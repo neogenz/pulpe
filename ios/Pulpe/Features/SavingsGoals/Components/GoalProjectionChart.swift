@@ -3,7 +3,7 @@ import SwiftUI
 
 /// « Ta trajectoire » (PUL-12+, pilier A) — cumulative savings chart.
 ///
-/// Four cumulative series anchored → target (`docs/SAVINGS_PLAN.md` §2 pilier A):
+/// Four cumulative series anchored → target (`docs/SAVINGS.md` §10.1):
 /// **Pointé** (reality, stops at current month), **Prévu cumulé** (engagement, full
 /// span), **Projection** (extrapolation at the confirmed pace, or the edited plan
 /// in simulation), and a flat **Cible** rule. Savings green + neutrals only — never
@@ -268,7 +268,7 @@ struct GoalProjectionSeries: Equatable {
 
     /// Simulation mode: Pointé unchanged, Projection follows the edited plan
     /// (`simulatedCumulative`); the Prévu reference is dropped so the deforming
-    /// trajectory reads clearly (`docs/SAVINGS_PLAN.md` §2 pilier A, en simulation).
+    /// trajectory reads clearly (`docs/SAVINGS.md` §10.1, en simulation).
     static func simulation(
         from result: SavingsPlanCalculator.SimulationResult,
         targetAmount: Decimal

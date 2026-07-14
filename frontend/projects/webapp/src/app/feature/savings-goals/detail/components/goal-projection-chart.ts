@@ -30,7 +30,7 @@ import {
 } from './goal-projection-chart.config';
 
 /**
- * Pilier A — « Ta trajectoire » (docs/SAVINGS_PLAN.md §2). Read-only cumulated
+ * « Ta trajectoire » (docs/SAVINGS.md §10.1). Read-only cumulated
  * chart (savings green only, RG-002 — never amber/red). Switches its data source
  * to the simulation sandbox when `draft` is provided. The canvas is paired with
  * an offscreen `aria-live` sentence so screen readers get the trajectory without

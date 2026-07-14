@@ -6,7 +6,7 @@ import SwiftUI
 /// (< 16 ms, all client-side — loi de Doherty) while the user drags the global
 /// slider, types a per-month amount, or taps « Réajuster la suite ». Nothing is
 /// written until the recap is confirmed; sheet dismiss = revert (free). Savings
-/// green + neutrals only (RG-002). `docs/SAVINGS_PLAN.md` §2 pilier C.
+/// green + neutrals only (RG-002). `docs/SAVINGS.md` §10.1.
 struct GoalPlanSimulatorSheet: View {
     let goal: SavingsGoal
     let progress: SavingsGoalProgress

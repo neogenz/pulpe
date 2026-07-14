@@ -33,7 +33,7 @@ import {
 import type { SavingsGoalPlanApplyResult } from '../domain/savings-goal.entity';
 
 /**
- * Applies a simulated savings-goal plan (PUL-12, docs/SAVINGS_PLAN.md §6.1).
+ * Applies a simulated savings-goal plan (PUL-12, docs/SAVINGS.md §10.4).
  *
  * The client simulates a redistribution locally (< 400 ms, no round-trip), then
  * commits it here in ONE atomic RPC. The server stays authoritative: it

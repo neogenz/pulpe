@@ -1,7 +1,7 @@
 /**
  * @fileoverview SAVINGS GOAL PLAN — timeline mensuelle + simulation client (PUL-12+).
  *
- * Source de vérité métier : docs/SAVINGS_PLAN.md §5. Fonctions PURES, payDay-aware.
+ * Source de vérité métier : docs/SAVINGS.md §10.3. Fonctions PURES, payDay-aware.
  *
  * `buildSavingsGoalTimeline` est utilisée par le SERVEUR (pour `/progress.months[]`)
  * ET par les clients (pour rebaser le sandbox de simulation). Les trois autres
@@ -32,7 +32,7 @@ import type {
 import { splitTotalPreserving } from './spread-split.js';
 import { MAX_SAVINGS_GOAL_PLAN_PERIODS } from '../../schemas.js';
 
-/** État temporel/structurel d'un mois du plan (docs/SAVINGS_PLAN.md §2 pilier B). */
+/** État temporel/structurel d'un mois du plan (docs/SAVINGS.md §10.2). */
 export type SavingsPlanMonthState = 'past' | 'current' | 'future' | 'gap';
 
 export interface SavingsPlanLine {

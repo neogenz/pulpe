@@ -4,7 +4,7 @@ import SwiftUI
 ///
 /// A medium-detent sheet summarising the edited months (uniform → one line, mixed →
 /// up to 5 rows + « et N autres »), the projection verdict, and a loading
-/// confirm button doing the pessimistic write (`docs/SAVINGS_PLAN.md` §2 pilier C).
+/// confirm button doing the pessimistic write (`docs/SAVINGS.md` §10.1).
 /// Épargne accents only — never amber/red (RG-002).
 struct GoalPlanApplyRecapSheet: View {
     let changes: [SavingsPlanCalculator.SimulatedMonth]

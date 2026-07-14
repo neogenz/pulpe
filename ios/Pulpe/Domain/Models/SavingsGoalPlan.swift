@@ -1,7 +1,7 @@
 import Foundation
 
-/// Temporal/structural state of one plan month (PUL-12+, `docs/SAVINGS_PLAN.md`
-/// §2 pilier B). `gap` = no linked line that month (budget not generated / line
+/// Temporal/structural state of one plan month (PUL-12+, `docs/SAVINGS.md`
+/// §10.2). `gap` = no linked line that month (budget not generated / line
 /// not tagged) — the row still exists so the cumulative stays continuous.
 enum SavingsPlanMonthState: String, Decodable, Sendable, Equatable {
     case past
@@ -27,7 +27,7 @@ struct SavingsGoalPlanLine: Decodable, Sendable, Equatable, Identifiable {
 }
 
 /// One month of a savings-goal plan timeline, server-computed and sent on
-/// `GET /savings-goals/:id/progress` (`docs/SAVINGS_PLAN.md` §4.2).
+/// `GET /savings-goals/:id/progress` (`docs/SAVINGS.md` §10.2).
 ///
 /// The Swift mirror of `SavingsPlanTimelineMonth` from
 /// `shared/src/calculators/savings-goal-plan.ts` — same shape, so
@@ -101,7 +101,7 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
 
 // MARK: - Apply DTO (write path — POST /savings-goals/:id/plan)
 
-/// Line-scoped plan apply payload (`docs/SAVINGS_PLAN.md` §4.3). 1:1 the strict
+/// Line-scoped plan apply payload (`docs/SAVINGS.md` §10.4). 1:1 the strict
 /// Zod `savingsGoalPlanApplySchema`; Swift's synthesised `Encodable` omits nil so
 /// nothing extra leaks. `monthAdjustments` patch materialised `budget_line`s;
 /// `missingMonthAdjustments` provision absent budgets by period.

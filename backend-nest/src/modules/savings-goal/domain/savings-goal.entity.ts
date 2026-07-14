@@ -84,7 +84,7 @@ export interface SavingsGoalLinkedContributions {
  * monthly timeline (ancrage → cible). `computed` carries formulas 1-11
  * (including `cumulativeGap` / `estimatedCompletion`); `months` is the
  * `buildSavingsGoalTimeline` output that feeds the trajectory chart and the
- * month-by-month plan (docs/SAVINGS_PLAN.md §4.2). The mapper assembles the
+ * month-by-month plan (docs/SAVINGS.md §10.2). The mapper assembles the
  * API DTO at the controller boundary.
  */
 export interface SavingsGoalProgressComputation {

@@ -6,7 +6,7 @@ import { z } from 'zod';
 // One `line` item = one budget_line UPDATE. `amount` is an AES-256-GCM ciphertext produced via
 // ENCRYPTION_PORT and stored as-is by the RPC (no SQL-side crypto). The column
 // lists match the `jsonb_to_recordset(...)` signatures in migration
-// 20260706120000_apply_savings_goal_plan_pul12.
+// 20260706120000_apply_savings_goal_plan.
 //
 // `.strict()` rejects extra keys so a typo can't silently NULL an encrypted
 // column (ADR-0007 / supabase.md RPC rule).
