@@ -381,12 +381,15 @@ struct RootView: View {
     }
 
     private func loadAuthenticatedData() async {
-        await userSettingsStore.loadIfNeeded()
-        await currentMonthStore.loadBudgetSummary(
-            payDayOfMonth: userSettingsStore.payDayOfMonth
+        await PostAuthenticationLoader.load(
+            userSettings: { await userSettingsStore.loadIfNeeded() },
+            currentMonth: {
+                await currentMonthStore.loadBudgetSummary(
+                    payDayOfMonth: userSettingsStore.payDayOfMonth
+                )
+            },
+            whatsNew: { await whatsNewStore.check() }
         )
-        // Authenticated unlike the pre-auth force-update check. Fails open.
-        await whatsNewStore.check()
     }
 
     private func handlePendingDeepLink() {
@@ -416,5 +419,19 @@ struct RootView: View {
         case .deferred, .dropped, .noPending:
             break
         }
+    }
+}
+
+@MainActor
+enum PostAuthenticationLoader {
+    static func load(
+        userSettings: @escaping @MainActor @Sendable () async -> Void,
+        currentMonth: @escaping @MainActor @Sendable () async -> Void,
+        whatsNew: @escaping @MainActor @Sendable () async -> Void
+    ) async {
+        async let whatsNewLoad: Void = whatsNew()
+        await userSettings()
+        await currentMonth()
+        await whatsNewLoad
     }
 }

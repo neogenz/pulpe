@@ -46,6 +46,21 @@ struct WhatsNewStoreTests {
         #expect(store.isPresented)
     }
 
+    @Test func check_existingInstallUpgradingToFirstSupportedVersion_fetchesAndPresents() async {
+        let service = MockWhatsNewService(outcome: .success([.makeFixture(version: "1.1.0")]))
+        let flags = MockWhatsNewFlagsStore(
+            wasInstalledBeforeWhatsNew: true,
+            lastSeenVersion: nil
+        )
+        let store = WhatsNewStore(service: service, flagsStore: flags)
+
+        await store.check(currentVersion: "1.1.0")
+
+        #expect(service.lastRequest?.lastSeenVersion == "1.0.4")
+        #expect(service.lastRequest?.currentVersion == "1.1.0")
+        #expect(store.isPresented)
+    }
+
     @Test func check_upgradeWithEmptyEntries_persistsSilentlyWithoutPresenting() async {
         let service = MockWhatsNewService(outcome: .success([]))
         let flags = MockWhatsNewFlagsStore(lastSeenVersion: "1.1.0")

@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 /// Drives the one-shot "what's new" sheet shown after an app update.
 ///
@@ -11,7 +12,7 @@ import Foundation
 @Observable @MainActor
 final class WhatsNewStore {
     /// Last iOS version shipped before PUL-186 started persisting a seen marker.
-    static let migrationBaselineVersion = "1.1.0"
+    static let migrationBaselineVersion = "1.0.4"
 
     private(set) var entries: [WhatsNewEntry] = []
     private(set) var isPresented = false
@@ -29,7 +30,12 @@ final class WhatsNewStore {
     }
 
     func check(currentVersion: String = AppConfiguration.appVersion) async {
-        guard !isChecking, !isPresented else { return }
+        guard !isChecking, !isPresented else {
+            Logger.app.info(
+                "[WHATS_NEW] skipped checking=\(self.isChecking) presented=\(self.isPresented)"
+            )
+            return
+        }
         isChecking = true
         defer { isChecking = false }
 
@@ -45,14 +51,22 @@ final class WhatsNewStore {
             // First install: no prior version to diff against. Record the current
             // version so a future update, not this install, surfaces the sheet.
             flagsStore.setLastSeenVersion(currentVersion)
+            Logger.app.info(
+                "[WHATS_NEW] first install recorded version=\(currentVersion, privacy: .public)"
+            )
             return
         }
+
+        Logger.app.info(
+            "[WHATS_NEW] \(lastSeenVersion, privacy: .public) -> \(currentVersion, privacy: .public)"
+        )
 
         // Same version, or a downgrade (e.g. a debug build running an older
         // binary): nothing to show. `isSemVerBelow` already rejects the equal
         // case; the explicit equality check keeps the intent obvious.
         guard lastSeenVersion != currentVersion,
               lastSeenVersion.isSemVerBelow(currentVersion) else {
+            Logger.app.info("[WHATS_NEW] skipped version range")
             return
         }
 
@@ -68,12 +82,15 @@ final class WhatsNewStore {
                 // every launch.
                 flagsStore.setLastSeenVersion(currentVersion)
                 self.entries = []
+                Logger.app.info("[WHATS_NEW] no entries")
                 return
             }
             self.entries = entries
             isPresented = true
+            Logger.app.info("[WHATS_NEW] presenting entries=\(entries.count)")
             AnalyticsService.shared.capture(.iosWhatsNewShown, properties: ["version": currentVersion])
         } catch {
+            Logger.app.error("[WHATS_NEW] failed: \(error.localizedDescription, privacy: .public)")
             // Fail open: leave `lastSeenVersion` untouched so the next launch or
             // foreground retries, and never surface anything to the user.
         }

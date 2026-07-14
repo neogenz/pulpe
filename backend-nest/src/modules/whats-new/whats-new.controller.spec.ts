@@ -70,4 +70,16 @@ describe('GET /api/v1/whats-new/ios', () => {
     expect(whatsNewResponseSchema.safeParse(response.body).success).toBe(true);
     expect(response.body.data.entries.length).toBeGreaterThan(0);
   });
+
+  it('returns an empty payload for an authenticated upgrade without release data', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/api/v1/whats-new/ios')
+      .set('Authorization', 'Bearer valid-token')
+      .set('x-client-key', VALID_CLIENT_KEY)
+      .query({ currentVersion: '1.1.1', lastSeenVersion: '1.1.0' });
+
+    expect(response.status).toBe(200);
+    expect(whatsNewResponseSchema.safeParse(response.body).success).toBe(true);
+    expect(response.body.data.entries).toEqual([]);
+  });
 });

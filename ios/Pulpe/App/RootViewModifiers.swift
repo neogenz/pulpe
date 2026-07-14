@@ -145,21 +145,19 @@ struct RootViewLifecycle: ViewModifier {
             }
             .onChange(of: appState.authState) { oldAuth, newAuth in
                 logAuthTransition(label: "AUTH_STATE_UI", from: oldAuth, to: newAuth)
-                if Self.isEnteringAuthenticated(from: oldAuth, to: newAuth) {
-                    Task { await onAuthenticated() }
-                }
                 onPendingDeepLink()
+            }
+            .task(id: appState.authState) {
+                guard Self.shouldLoadAuthenticatedData(for: appState.authState) else { return }
+                await onAuthenticated()
             }
             .onChange(of: deepLinkDestination) { _, _ in
                 onPendingDeepLink()
             }
     }
 
-    static func isEnteringAuthenticated(
-        from oldAuth: AppState.AuthStatus,
-        to newAuth: AppState.AuthStatus
-    ) -> Bool {
-        oldAuth != .authenticated && newAuth == .authenticated
+    static func shouldLoadAuthenticatedData(for authState: AppState.AuthStatus) -> Bool {
+        authState == .authenticated
     }
 
     private func logAuthTransition<T>(label: String, from old: T, to new: T) {

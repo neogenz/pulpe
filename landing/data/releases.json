@@ -25,28 +25,29 @@
       "features": [
         {
           "title": "Lisser une dépense",
-          "description": "Répartis une grosse dépense sur plusieurs mois, avec le suivi du reste à provisionner et du montant à prévoir chaque mois"
+          "description": "Répartis une grosse dépense sur plusieurs mois et vois exactement ce qu’il reste à provisionner"
         },
         {
           "title": "Reporter une dépense",
-          "description": "Reporte une dépense non pointée au mois suivant en un geste"
+          "description": "Décale une dépense non pointée au mois suivant, en un geste"
         },
         {
-          "title": "Transactions dans le détail (iOS)",
-          "description": "Pointe, modifie et supprime tes transactions directement depuis le détail du budget"
+          "title": "Gérer tes transactions",
+          "description": "Pointe, modifie ou supprime une transaction sans quitter ton budget"
         }
       ],
       "fixes": [
         {
-          "title": "Sécurité renforcée",
-          "description": "Correctifs de sécurité et limitation des sessions de démonstration non vérifiées"
-        },
-        {
-          "title": "Stabilité iOS",
-          "description": "Clavier qui restait ouvert, déverrouillage biométrique hors-ligne et voile de confidentialité au retour d'app fiabilisés"
+          "title": "Plus fluide au quotidien",
+          "description": "Clavier, déverrouillage hors ligne et confidentialité au retour dans l’app sont plus fiables"
         }
       ],
-      "technical": []
+      "technical": [
+        {
+          "title": "Sécurité renforcée",
+          "description": "Correctifs de sécurité et limitation des sessions de démonstration non vérifiées"
+        }
+      ]
     }
   },
   {

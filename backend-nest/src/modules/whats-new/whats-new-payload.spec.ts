@@ -91,6 +91,15 @@ describe('buildWhatsNewResponse', () => {
     expect(response.data.entries).toEqual([]);
   });
 
+  it('returns an empty feed when a newer iOS version has no user-facing release data', () => {
+    const response = buildWhatsNewResponse({
+      currentVersion: '1.1.1',
+      lastSeenVersion: '1.1.0',
+    });
+
+    expect(response.data.entries).toEqual([]);
+  });
+
   it('includes releases strictly newer than last-seen, excluding last-seen itself', () => {
     const response = buildWhatsNewResponse({
       currentVersion: '1.1.0',
@@ -144,9 +153,12 @@ describe('buildWhatsNewResponse', () => {
     expect(entry.version).toBe('1.1.0');
     expect(entry.title).toBe('Nouveautés de la version 1.1.0');
     expect(entry.publishedAt).toBe('2026-07-01');
-    expect(entry.body.split('\n')).toHaveLength(5);
+    expect(entry.body.split('\n')).toHaveLength(4);
     expect(entry.body.startsWith('- **Lisser une dépense** — ')).toBe(true);
-    expect(entry.body).toContain('\n- **Sécurité renforcée** — ');
+    expect(entry.body).not.toContain('Sécurité renforcée');
+    expect(entry.body).toContain('\n- **Gérer tes transactions** — ');
+    expect(entry.body).toContain('\n- **Plus fluide au quotidien** — ');
+    expect(entry.body).not.toContain('(iOS)');
   });
 
   it('validates the complete mapped release dataset', () => {
