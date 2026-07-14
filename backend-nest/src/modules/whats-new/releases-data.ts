@@ -5,6 +5,10 @@ export interface WhatsNewReleaseChangeItem {
 
 export interface WhatsNewReleaseEntry {
   version: string;
+  /**
+   * iOS marketing version that shipped this entry. Omit for build-only or
+   * historical unmapped releases; entries without it stay out of the iOS feed.
+   */
   iosVersion?: string;
   date: string;
   platforms: string[];

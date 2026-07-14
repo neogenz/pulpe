@@ -149,7 +149,8 @@ struct WhatsNewStoreTests {
 
 // MARK: - Mocks
 
-private final class MockWhatsNewService: WhatsNewServiceProtocol, @unchecked Sendable {
+@MainActor
+private final class MockWhatsNewService: WhatsNewServiceProtocol {
     enum Outcome {
         case success([WhatsNewEntry])
         case failure(Error)
