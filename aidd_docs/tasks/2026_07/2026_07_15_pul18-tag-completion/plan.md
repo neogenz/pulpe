@@ -1,6 +1,6 @@
 ---
 objective: "Un utilisateur peut taguer toutes ses dépenses et comparer le prévu au réel d'un tag sur 3, 6, 12 ou 24 périodes budgétaires, sans fuite de session, perte silencieuse ni régression des objectifs d'épargne."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Compléter PUL-18 et fermer les écarts de la PR #502
