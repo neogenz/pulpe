@@ -28,6 +28,14 @@ struct ReminderPreferences: @unchecked Sendable {
         defaults.set(value, forKey: Key.remindersEnabled)
     }
 
+    /// Returns the persisted reminder state after reconciling it with the current
+    /// system authorization. Revocation always wins over a stale local opt-in.
+    func reconcileAuthorization(isAuthorized: Bool) -> Bool {
+        guard remindersEnabled, !isAuthorized else { return remindersEnabled }
+        setRemindersEnabled(false)
+        return false
+    }
+
     var hasPrimedReminders: Bool {
         defaults.bool(forKey: Key.hasPrimedReminders)
     }

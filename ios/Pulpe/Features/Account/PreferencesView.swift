@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PreferencesView: View {
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(\.scenePhase) private var scenePhase
     @State private var showPayDayPicker = false
     @State private var remindersEnabled = ReminderPreferences().remindersEnabled
     @FocusState private var currencyConverterFocus: CurrencySettingView.ConverterField?
@@ -42,7 +43,10 @@ struct PreferencesView: View {
         .listStyle(.insetGrouped)
         .navigationTitle("Préférences")
         .keyboardFieldNavigation(focus: $currencyConverterFocus, order: [.input])
-        .task { await reconcileReminderState() }
+        .task(id: scenePhase) {
+            guard scenePhase == .active else { return }
+            await reconcileReminderState()
+        }
         .sheet(isPresented: $showPayDayPicker) {
             PayDayPickerSheet()
         }
@@ -92,12 +96,13 @@ struct PreferencesView: View {
     /// since been revoked in iOS Settings, flip the toggle off so it never lies about
     /// reminders the system won't deliver. Silent — not a user action, no analytics.
     private func reconcileReminderState() async {
-        guard reminderPrefs.remindersEnabled,
-              await NotificationScheduler.shared.authorizationStatus() != .authorized
-        else { return }
-        reminderPrefs.setRemindersEnabled(false)
-        remindersEnabled = false
-        await NotificationScheduler.shared.cancelMonthlyReminder()
+        let wasEnabled = reminderPrefs.remindersEnabled
+        let isAuthorized = await NotificationScheduler.shared.authorizationStatus() == .authorized
+        remindersEnabled = reminderPrefs.reconcileAuthorization(isAuthorized: isAuthorized)
+
+        if wasEnabled, !remindersEnabled {
+            await NotificationScheduler.shared.cancelMonthlyReminder()
+        }
     }
 }
 

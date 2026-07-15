@@ -47,8 +47,7 @@ struct NotificationPrimeSheet: View {
             }
         }
         .padding(DesignTokens.Spacing.xxl)
-        .presentationDetents([.medium, .large])
-        .presentationBackground(Color.sheetBackground)
+        .standardSheetPresentation(detents: [.medium, .large])
     }
 }
 

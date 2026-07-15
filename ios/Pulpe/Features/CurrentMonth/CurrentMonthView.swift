@@ -345,7 +345,7 @@ struct CurrentMonthView: View {
 extension CurrentMonthView {
     /// Presents the handoff exactly once, only for a user who JUST finished onboarding
     /// (`appState.justCompletedOnboarding`) and hasn't seen it before.
-    var showPostOnboardingHandoff: Binding<Bool> {
+    private var showPostOnboardingHandoff: Binding<Bool> {
         Binding(
             get: {
                 appState.justCompletedOnboarding
@@ -357,7 +357,7 @@ extension CurrentMonthView {
         )
     }
 
-    func dismissPostOnboardingHandoff() {
+    private func dismissPostOnboardingHandoff() {
         postOnboardingFlags.setHasSeenPostOnboardingHandoff()
         appState.justCompletedOnboarding = false
     }
@@ -365,7 +365,7 @@ extension CurrentMonthView {
     /// After the user's first real "pointer", offer reminders exactly once — behind a
     /// value-framed sheet, and only while the OS prompt is still undecided so we never
     /// burn the one-shot iOS permission cold.
-    func maybePrimeReminders() async {
+    private func maybePrimeReminders() async {
         guard !reminderPrefs.hasPrimedReminders else { return }
         guard await NotificationScheduler.shared.authorizationStatus() == .notDetermined,
               !reminderPrefs.hasPrimedReminders
@@ -378,7 +378,7 @@ extension CurrentMonthView {
     /// Fires the real OS prompt (from the "Activer" tap) and schedules the monthly
     /// reminder on grant. On denial we only record it — the toggle in Préférences
     /// stays the recovery path.
-    func enableReminders() async {
+    private func enableReminders() async {
         let granted = await NotificationScheduler.shared.requestAuthorization()
         guard granted else {
             AnalyticsService.shared.capture(.notificationPermissionDenied)
