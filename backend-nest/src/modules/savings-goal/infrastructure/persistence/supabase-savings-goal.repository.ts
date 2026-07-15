@@ -45,6 +45,9 @@ import {
 
 type TransactionKindEnum = Database['public']['Enums']['transaction_kind'];
 type TransactionRow = Database['public']['Tables']['transaction']['Row'];
+type TransactionRowWithTags = TransactionRow & {
+  transaction_tag?: { tag_id: string }[];
+};
 type BudgetLineRow = Database['public']['Tables']['budget_line']['Row'];
 
 interface LinkedLineRow {
@@ -570,7 +573,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
   ): Promise<Map<string, Transaction[]>> {
     const { data, error } = await this.supabaseProvider.client
       .from('transaction')
-      .select('*')
+      .select('*, transaction_tag(tag_id)')
       .in('budget_line_id', lineIds)
       .order('transaction_date', { ascending: false });
 
@@ -588,7 +591,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     }
 
     const byLineId = new Map<string, Transaction[]>();
-    for (const row of (data ?? []) as TransactionRow[]) {
+    for (const row of (data ?? []) as TransactionRowWithTags[]) {
       const transaction = this.toTransaction(row, dek);
       const lineId = transaction.budgetLineId;
       if (!lineId) continue;
@@ -599,7 +602,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     return byLineId;
   }
 
-  private toTransaction(row: TransactionRow, dek: Buffer): Transaction {
+  private toTransaction(row: TransactionRowWithTags, dek: Buffer): Transaction {
     const decrypted = this.encryption.decryptRowAmountFields(row, dek);
     return {
       id: decrypted.id,
@@ -612,7 +615,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       targetCurrency: decrypted.target_currency,
       exchangeRate: decrypted.exchange_rate,
       kind: decrypted.kind,
-      category: decrypted.category,
+      tagIds: (row.transaction_tag ?? []).map((link) => link.tag_id),
       transactionDate: decrypted.transaction_date,
       checkedAt: decrypted.checked_at,
       createdAt: decrypted.created_at,

@@ -1,6 +1,6 @@
 ---
 objective: "Toutes les fenêtres d'historique respectent le contrat, les écritures mêlant tags et données métier sont atomiques, les tags sont accessibles au clavier et la PR #502 ne référence qu'un HEAD entièrement validé."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Fermer la revue finale de PUL-18

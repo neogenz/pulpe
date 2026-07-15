@@ -118,7 +118,7 @@ export class TagPicker {
   private readonly tagInputRef =
     viewChild<ElementRef<HTMLInputElement>>('tagInput');
 
-  protected readonly query = signal('');
+  readonly #query = signal('');
 
   readonly #safeControl = computed(() =>
     safeFieldTreeRead(() => this.control()),
@@ -133,7 +133,7 @@ export class TagPicker {
   );
 
   protected readonly suggestions = computed<TagSuggestion[]>(() => {
-    const query = this.query().trim();
+    const query = this.#query().trim();
     const lowerQuery = query.toLocaleLowerCase();
     const selected = new Set(this.selectedIds());
     const allTags = this.#tagStore.tags.value() ?? [];
@@ -160,7 +160,7 @@ export class TagPicker {
   }
 
   protected onInput(event: Event): void {
-    this.query.set((event.target as HTMLInputElement).value);
+    this.#query.set((event.target as HTMLInputElement).value);
   }
 
   protected async onOptionSelected(
@@ -204,6 +204,6 @@ export class TagPicker {
   #resetInput(): void {
     const input = this.tagInputRef()?.nativeElement;
     if (input) input.value = '';
-    this.query.set('');
+    this.#query.set('');
   }
 }

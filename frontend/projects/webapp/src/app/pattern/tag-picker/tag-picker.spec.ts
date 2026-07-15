@@ -107,7 +107,10 @@ describe('TagPicker', () => {
 
   it('should offer a create suggestion for a query with no exact match', () => {
     setup([], [makeTag('tag-1', 'Courses')]);
-    component['query'].set('Santé');
+    const input: HTMLInputElement =
+      fixture.nativeElement.querySelector('input');
+    input.value = 'Santé';
+    input.dispatchEvent(new Event('input'));
 
     const suggestions = component['suggestions']();
 

@@ -18,6 +18,7 @@ const templateLine: TemplateLine = {
   id: 'line-1',
   templateId: 'template-1',
   savingsGoalId: null,
+  tagIds: [],
   name: 'Salaire',
   amount: 5000,
   originalAmount: null,

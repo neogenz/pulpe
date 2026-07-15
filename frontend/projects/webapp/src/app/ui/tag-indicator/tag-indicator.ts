@@ -8,16 +8,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoPipe } from '@jsverse/transloco';
 
-/**
- * PUL-18 — compact tag indicator for transaction / budget-line rows and tiles.
- *
- * Instead of always-visible pills (noisy once a row carries several tags), it
- * shows a single `sell` glyph + count. The full tag-name list appears on hover
- * (desktop) and on tap/long-press (mobile) via `matTooltipTouchGestures="on"`.
- *
- * ui/ layer: takes already-resolved `tagNames` (the feature layer resolves
- * ids -> names via TagStore), so this component never imports @core/.
- */
 @Component({
   selector: 'pulpe-tag-indicator',
   imports: [MatIconModule, MatTooltipModule, TranslocoPipe],

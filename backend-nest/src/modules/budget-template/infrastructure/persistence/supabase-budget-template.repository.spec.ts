@@ -39,6 +39,7 @@ const mockTemplateRow: TemplateRow = {
 const mockTemplateLineRow: TemplateLineRow = {
   id: 'line-1',
   template_id: 'template-1',
+  savings_goal_id: null,
   name: 'Loyer',
   amount: VALID_CIPHERTEXT,
   original_amount: null,

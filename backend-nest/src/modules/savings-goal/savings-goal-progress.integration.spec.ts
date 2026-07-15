@@ -104,6 +104,7 @@ function progressUseCaseFor(user: TestUser): {
   const templateRepo = new SupabaseBudgetTemplateRepository(
     provider,
     encryptionStub,
+    noopLogger,
   );
   return {
     useCase: new GetSavingsGoalProgressUseCase(repo, templateRepo, noopLogger),
