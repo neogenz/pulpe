@@ -1,0 +1,4 @@
+interface:
+  display_name: "Prepare Pulpe Release"
+  short_description: "Prepare safe, user-focused Pulpe releases"
+  default_prompt: "Use $update-changelog to prepare the next Pulpe release from the latest tag."

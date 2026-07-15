@@ -34,6 +34,7 @@ import { CurrencyModule } from '@modules/currency/currency.module';
 import { UserModule } from '@modules/user/user.module';
 import { AccountDeletionModule } from '@modules/account-deletion/account-deletion.module';
 import { AppVersionModule } from '@modules/app-version/app-version.module';
+import { WhatsNewModule } from '@modules/whats-new/whats-new.module';
 import { AllocationModule } from '@modules/allocation/allocation.module';
 
 // Filters
@@ -309,6 +310,7 @@ function createPinoLoggerConfig(configService: ConfigService) {
     UserModule,
     AccountDeletionModule,
     AppVersionModule,
+    WhatsNewModule,
     // Only include DebugModule in non-production-like environments
     ...(!isProductionLike(process.env.NODE_ENV) ? [DebugModule] : []),
     FiltersModule,

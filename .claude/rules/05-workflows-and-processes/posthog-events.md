@@ -130,6 +130,7 @@ Both events naturally gate on the `multi-currency-enabled` flag because the corr
 | `transaction_created` | Transaction added | `type` (`expense` \| `income` \| `saving`) |
 | `tab_switched` | User switch tab | `tab` (`currentMonth` \| `budgets` \| `templates`) |
 | `logout_completed` | User log out | — |
+| `ios_whats_new_shown` | Dialog shown after app update with new release notes | `version` |
 
 **iOS funnel idempotency guarantees:**
 - `onboarding_started` fire once per `OnboardingFlow` instance (@State guard). Reset on view re-instantiation via `.id(appState.onboardingSessionID)` after abandon.

@@ -1724,3 +1724,35 @@ export const appVersionResponseSchema = z.object({
   }),
 });
 export type AppVersionResponse = z.infer<typeof appVersionResponseSchema>;
+
+/**
+ * WHAT'S NEW — iOS release notes feed
+ *
+ * Authenticated feed of iOS-facing release notes newer than the client's
+ * last-seen version, up to (and including) its current version. Powers the
+ * in-app "what's new" surface. Releases that ship only technical changes never
+ * surface — they carry no user-facing value.
+ *
+ * Endpoint: `GET /api/v1/whats-new/ios` (authenticated).
+ */
+export const whatsNewEntrySchema = z.object({
+  version: semverString,
+  title: z.string(),
+  body: z.string(),
+  publishedAt: z.iso.date(),
+});
+export type WhatsNewEntry = z.infer<typeof whatsNewEntrySchema>;
+
+export const whatsNewResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    entries: z.array(whatsNewEntrySchema),
+  }),
+});
+export type WhatsNewResponse = z.infer<typeof whatsNewResponseSchema>;
+
+export const whatsNewQuerySchema = z.object({
+  currentVersion: semverString,
+  lastSeenVersion: semverString,
+});
+export type WhatsNewQuery = z.infer<typeof whatsNewQuerySchema>;

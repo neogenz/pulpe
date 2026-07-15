@@ -1,9 +1,6 @@
 ---
 name: update-changelog
-description: Unified release command - analyzes git changes and bumps all packages with a single product version. Use when user says "update changelog", "release", "bump versions", or "preparer une release".
-argument-hint: [depuis le dernier tag | depuis main] [--skip-whats-new]
-allowed-tools: Read, Edit, Write, Glob, Grep, Bash(git *), Bash(pnpm changeset*), Bash(pnpm quality*), Bash(cd ios && *), Bash(xcodegen *), Bash(gh release*), AskUserQuestion
-model: opus
+description: Unified release workflow that analyzes git changes, bumps the product version, updates the public changelog, and curates platform-specific web and iOS What's New content. Use when the user says "update changelog", "release", "bump versions", "préparer une release", or asks to generate release notes.
 ---
 
 # Update Changelog
@@ -15,22 +12,24 @@ Analyze code changes to produce a unified product release with clear, user-focus
 **Source of truth:** the root `package.json` (`pulpe-workspace`). All decisions start from `version` in that file.
 
 **Critical rules:**
+
 - NEVER apply versions without explicit user approval
-- NEVER push without explicit user approval
+- NEVER mutate Railway, push, tag, or create a GitHub Release without a separate explicit user approval after local validation
 - If changes are ambiguous, ASK — do not guess
 - When uncertain about bump severity, prefer the HIGHER bump
 - After bumping, ALL of: root, frontend, landing, backend-nest, shared MUST show the same version. If they don't, stop.
+- Use the interaction, file-editing, GitHub, and Railway capabilities available in the current agent. Never assume a Claude Code or Codex-specific tool name.
 
 ## Input
 
-User argument: `$ARGUMENTS`
+Use the user's invocation text as the argument (`$ARGUMENTS` in Claude Code, the full triggering request in Codex).
 
-| Format | Meaning |
-|--------|---------|
-| `depuis le dernier tag` | Analyze since last git tag |
-| `depuis main` | Analyze since divergence from main |
-| _(empty)_ | Default to "depuis le dernier tag" |
-| `--skip-whats-new` | Skip the "What's New" toast update (Step 5c). Can be combined with other arguments. |
+| Format                  | Meaning                                                                                        |
+| ----------------------- | ---------------------------------------------------------------------------------------------- |
+| `depuis le dernier tag` | Analyze since last git tag                                                                     |
+| `depuis main`           | Analyze since divergence from main                                                             |
+| _(empty)_               | Default to "depuis le dernier tag"                                                             |
+| `--skip-whats-new`      | Skip public and in-app What's New updates (Steps 5b–5c). Can be combined with other arguments. |
 
 **Flag detection:** Set `SKIP_WHATS_NEW=true` (and strip the flag/keyword from the base reference argument) when ANY of these conditions are met:
 
@@ -68,13 +67,13 @@ git diff $BASE_REF..HEAD --stat
 
 Map files to packages:
 
-| File Pattern | Package |
-|---|---|
-| `frontend/**` | Frontend |
-| `backend-nest/**` | Backend |
-| `shared/**` | Shared |
-| `landing/**` | Landing |
-| `ios/**` | iOS |
+| File Pattern      | Package  |
+| ----------------- | -------- |
+| `frontend/**`     | Frontend |
+| `backend-nest/**` | Backend  |
+| `shared/**`       | Shared   |
+| `landing/**`      | Landing  |
+| `ios/**`          | iOS      |
 
 Extract relevant commits per package:
 
@@ -93,11 +92,22 @@ Only `feat:`, `fix:`, `feat!:`, `BREAKING CHANGE:`, `perf:` trigger version bump
 Read current version from root `package.json` (`version` field) — that is the only version that matters. All sub-packages already mirror it via Changesets fixed mode and will follow automatically in Step 6.
 
 The product version bump is the **highest** across all affected packages:
+
 - ANY `feat!:` or `BREAKING CHANGE:` → **MAJOR**
 - ANY `feat:` → **MINOR**
 - ANY `fix:` or `perf:` → **PATCH**
 
 Compute the **target version** now (e.g. `0.33.1` + minor → `0.34.0`). You'll need it for Step 6.
+
+When `ios/**` changed, resolve the iOS release decision now, before writing changelog data:
+
+1. Read the current `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` from `ios/project.yml`.
+2. Classify whether the release ships a user-facing iOS change worth a new App Store version, following the versioning rules in `references/ios-release.md`.
+3. Propose `build` when it does not. Otherwise propose `patch`, `minor`, or an explicit target version.
+4. Compute the resulting build number and set `IOS_MARKETING_VERSION` to the resulting marketing version. Leave it unset for a build-only release.
+5. Include the iOS decision in the Step 5 release proposal. Do not apply it until the releaser approves that proposal.
+
+The iOS what's-new feed compares bundle marketing versions, not the product version. Never copy the product `X.Y.Z` into `IOS_MARKETING_VERSION`.
 
 ### Step 5: Propose changelog
 
@@ -109,23 +119,32 @@ Use this exact template for the **proposal** (shown in terminal):
 ## Proposition de release
 
 ### Version proposée
+
 **vX.Y.Z** (MINOR)
 
+### Version iOS proposée (si `ios/**` a changé)
+
+**build** (`1.1.0 (42)` → `1.1.0 (43)`) ou **patch** (`1.1.0 (42)` → `1.1.1 (1)`)
+
 ### Packages impactés
+
 - Frontend, Backend, iOS
 
 ### Notes de release
 
 #### Nouveautés
+
 - **Titre court** — Description en une phrase
 
 #### Corrections
+
 - **Titre court** — Description en une phrase
 
 #### Technique
+
 - Description si pertinent
 
-*Les changements techniques internes ont été exclus.*
+_Les changements techniques internes ont été exclus._
 ```
 
 Use this exact template for the **GitHub Release** (created in Step 9):
@@ -134,20 +153,24 @@ Use this exact template for the **GitHub Release** (created in Step 9):
 ## vX.Y.Z
 
 ### Nouveautés
+
 - **Titre court** — Description en une phrase
 
 ### Corrections
+
 - **Titre court** — Description en une phrase
 
 ### Technique
+
 - Description si pertinent
 
 ---
 
-*[Roadmap](https://github.com/neogenz/pulpe/milestones) — [Issues](https://github.com/neogenz/pulpe/issues)*
+_[Roadmap](https://github.com/neogenz/pulpe/milestones) — [Issues](https://github.com/neogenz/pulpe/issues)_
 ```
 
 Rules for writing notes:
+
 - French with proper accents (é, è, ê, à, ù, ô, î, ç, etc.) — NEVER omit accents
 - No emojis, no package names
 - Grouped by type (Nouveautés / Corrections / Technique), NOT by package
@@ -156,8 +179,10 @@ Rules for writing notes:
 - Omit empty sections (if no corrections, skip "Corrections")
 - Footer with links to roadmap and issues
 - Release title is always `vX.Y.Z` — nothing else added
+- Keep an internal scope for every proposed feature/fix (`web`, `ios`, or both), derived from the actual diff and consumers. Do not publish these scope labels.
+- Never assume every note applies to every platform because the release-level `platforms` array contains both. Ask before approval when an item's scope is ambiguous.
 
-Then ask with AskUserQuestion: "Approuves-tu cette proposition ?" → "Oui, appliquer" / "Non, ajuster"
+Then ask: "Approuves-tu cette proposition ?" → "Oui, appliquer" / "Non, ajuster" using the current agent's available user-input mechanism.
 
 ### Step 5b: Update landing changelog data
 
@@ -167,12 +192,13 @@ Otherwise, update `landing/data/releases.json` with the new release.
 
 **Procedure:**
 
-1. Read `landing/data/releases.json` (use Read tool)
+1. Read `landing/data/releases.json`.
 2. Build a new release object from the approved Step 5 data:
 
 ```json
 {
   "version": "X.Y.Z",
+  "iosVersion": "1.2.0",
   "date": "YYYY-MM-DD",
   "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/vX.Y.Z",
   "platforms": ["web", "ios"],
@@ -187,19 +213,20 @@ Otherwise, update `landing/data/releases.json` with the new release.
 ```
 
 3. Insert it at position 0 (first element) of the array
-4. Write back the full JSON with `JSON.stringify(releases, null, 2)` (use Write tool)
+4. Write back the full JSON with `JSON.stringify(releases, null, 2)` using the available file-editing tool.
 
 **Field rules:**
 
-| Field | Value |
-|-------|-------|
-| `version` | Version from Step 4 (without `v` prefix) |
-| `date` | Today's date in `YYYY-MM-DD` format |
-| `githubUrl` | `https://github.com/neogenz/pulpe/releases/tag/vX.Y.Z` |
-| `platforms` | Derived from affected packages (see mapping below) |
-| `changes.features` | From approved "Nouveautés" entries |
-| `changes.fixes` | From approved "Corrections" entries |
-| `changes.technical` | From approved "Technique" entries |
+| Field               | Value                                                                                                        |
+| ------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `version`           | Version from Step 4 (without `v` prefix)                                                                     |
+| `iosVersion`        | `IOS_MARKETING_VERSION` confirmed in Step 4; include only when the release ships a new iOS marketing version |
+| `date`              | Today's date in `YYYY-MM-DD` format                                                                          |
+| `githubUrl`         | `https://github.com/neogenz/pulpe/releases/tag/vX.Y.Z`                                                       |
+| `platforms`         | Derived from affected packages (see mapping below)                                                           |
+| `changes.features`  | From approved "Nouveautés" entries                                                                           |
+| `changes.fixes`     | From approved "Corrections" entries                                                                          |
+| `changes.technical` | From approved "Technique" entries                                                                            |
 
 Each entry: `{ "title": "Bold title from Step 5", "description": "Description from Step 5" }`
 
@@ -211,6 +238,32 @@ Each entry: `{ "title": "Bold title from Step 5", "description": "Description fr
 
 Deduplicate: if both frontend and backend contributed bumping commits, `"web"` appears once.
 Empty sections stay as `[]` (never omit the key).
+
+### Step 5b-bis: Sync iOS whats-new backend data
+
+**Skip if `SKIP_WHATS_NEW=true`** (same rule as Step 5b — a technical-only release must stay invisible to the iOS "what's new" dialog too).
+
+**Auto-skip silently** if `"ios"` is not in the `platforms` array computed in Step 5b or `IOS_MARKETING_VERSION` is unset. A build-only release does not change the version observed by clients, so it cannot produce a new one-shot dialog.
+
+The iOS app's "what's new" dialog (PUL-186) is served by `backend-nest/src/modules/whats-new/`, which reads a TypeScript literal — not `landing/data/releases.json` directly, because the deployed backend artifact (`pnpm --filter=backend-nest --prod deploy`) never includes the `landing/` package. `landing/data/releases.json` remains the source for release metadata and approved copy, but the backend entry is an **iOS-specific projection**, not a blind copy of every release item.
+
+**Procedure:**
+
+1. Read the curation rules in [references/ios-release.md](references/ios-release.md), then read `backend-nest/src/modules/whats-new/domain/releases-data.ts`.
+2. Filter the approved "Nouveautés" and "Corrections" using the internal scope from Step 5. Keep only items scoped to `ios` that meet the user-value threshold. Never copy web-only items or the complete mixed-platform release blindly.
+3. Keep at most 4 items total. Prioritize new capabilities, then fixes to frequent/core flows, then visible UX improvements. Ask if the cutoff is ambiguous.
+4. If ZERO items survive, do not modify `releases-data.ts`. State: "Pas de What's New iOS pour cette version." This is expected and safe even when `IOS_MARKETING_VERSION` changed.
+5. Otherwise prepend an iOS projection with the same `version`/`iosVersion`/`date`/`platforms` metadata as Step 5b, omit `githubUrl`, set `changes.features` and `changes.fixes` to the curated iOS items, and set `changes.technical` to `[]`.
+6. Write back using the available file-editing tool, matching the existing TypeScript formatting.
+
+Never invent a generic stability or security item to fill the dialog. A marketing release with no meaningful user-facing note must produce no dialog; the backend returns an empty feed and the app records the version silently.
+
+Record exactly one iOS release mode for Step 7:
+
+- `skip` when `SKIP_WHATS_NEW=true`
+- `build` when the approved decision changes only the build number
+- `projection` when a curated backend entry was added
+- `silent` when the marketing version changed without a backend entry
 
 ### Step 5c: Update webapp "What's New" toast
 
@@ -224,29 +277,28 @@ Update `frontend/projects/webapp/src/app/layout/whats-new/whats-new-releases.ts`
 
 **Procedure:**
 
-1. Read the file (use Read tool)
+1. Read the file.
 2. Filter the approved "Nouveautés" and "Corrections" entries to keep ONLY webapp-relevant items (see rules below)
 3. Replace `LATEST_RELEASE` with the filtered entries
-4. Write back using Edit tool
+4. Write back using the available file-editing tool.
 
 **Template:**
 
 ```typescript
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: 'X.Y.Z',
-  features: [
-    'Titre court de la nouveauté 1',
-    'Titre court de la nouveauté 2',
-  ],
+  version: "X.Y.Z",
+  features: ["Titre court de la nouveauté 1", "Titre court de la nouveauté 2"],
 };
 ```
 
 **Scope rules — webapp users only:**
+
 - **Include**: Changes visible to Angular webapp users — UI changes, new pages, UX improvements, behavior changes triggered by backend modifications that affect the webapp experience
 - **Exclude**: iOS-only features, landing page changes, purely technical/infra changes, backend-only changes invisible to users
 - If only "Corrections" are relevant (no "Nouveautés" for the webapp), use the most impactful fix titles instead
 
 **Writing rules — pas d'anglicismes:**
+
 - Écrire en français courant, sans anglicismes (ex: "libellés" au lieu de "wording", "modèle" au lieu de "template", "mise en cache" au lieu de "cache")
 - `version`: Same as Step 4 (without `v` prefix) — must match the bumped `package.json` version so `buildInfo.version === LATEST_RELEASE.version`
 - `features`: Short titles only, no descriptions — max ~50 chars per line
@@ -257,7 +309,7 @@ export const LATEST_RELEASE: WhatsNewRelease = {
 
 Execute ONLY after user confirms.
 
-1. **Bump root product version** in root `package.json` — use the Edit tool to replace the `"version"` field with the target version computed in Step 4.
+1. **Bump root product version** in root `package.json` — use the available file-editing tool to replace the `"version"` field with the target version computed in Step 4.
 
 2. **Bump all JS/TS sub-packages via Changesets fixed mode** — this is NOT optional and NOT conditional on which packages were touched. Fixed mode keeps all four npm packages in lockstep with root. See [references/jsts-release.md](references/jsts-release.md) for the exact procedure (create one changeset file at the right bump level, then `pnpm changeset version`).
 
@@ -268,16 +320,33 @@ Execute ONLY after user confirms.
    ```
 
    **If they don't match, recover before continuing:**
-
    - **Diagnosis A — bump level mismatch.** Most common. The root was bumped to (say) `0.34.0` but the changeset said `patch`, so sub-packages went to `0.33.2`. Fix: re-edit root `package.json` to match what fixed mode produced (the four sub-package versions are the ground truth here, since they reflect the actual bump level in the changeset file). OR fix the changeset bump level and re-run `pnpm changeset version` — but only if the changeset hasn't been consumed yet.
    - **Diagnosis B — `.changeset/config.json` lost its `fixed` group.** Rare, but possible if someone reset the file. Symptom: only ONE sub-package bumped. Fix: restore the `fixed` array (see `references/jsts-release.md`), reset all sub-package versions to match root manually, re-run.
    - **Diagnosis C — packages were already drifted before the run.** Symptom: bump amounts look right but starting points were different. Fix: align all sub-packages to root's pre-bump version, then re-run from Step 6.1.
 
    In all three cases, end with a fresh sanity check and only continue when all five versions match.
 
-4. **iOS** (only if `ios/**` files changed): See [references/ios-release.md](references/ios-release.md). iOS is intentionally NOT in the Changesets fixed group — Changesets only sees npm packages.
+4. **iOS** (only if `ios/**` files changed): Apply the decision approved in Step 5 using [references/ios-release.md](references/ios-release.md). After the command, verify the resulting `MARKETING_VERSION` equals `IOS_MARKETING_VERSION` when that value is set. iOS is intentionally NOT in the Changesets fixed group — Changesets only sees npm packages.
 
 ### Step 7: Quality check
+
+When `ios/**` changed, validate the exact release outcome from the repository root before running quality. Pass the resulting `MARKETING_VERSION` for every mode:
+
+```bash
+# New marketing version with curated iOS notes
+bun .claude/skills/update-changelog/scripts/validate-ios-release.ts X.Y.Z A.B.C projection
+
+# New marketing version without a relevant dialog
+bun .claude/skills/update-changelog/scripts/validate-ios-release.ts X.Y.Z A.B.C silent
+
+# Build-only release, public changelog kept
+bun .claude/skills/update-changelog/scripts/validate-ios-release.ts X.Y.Z A.B.C build
+
+# Technical-only release, all public What's New surfaces skipped
+bun .claude/skills/update-changelog/scripts/validate-ios-release.ts X.Y.Z A.B.C skip
+```
+
+Use exactly one mode from the decision table in [references/ios-release.md](references/ios-release.md). Stop on any validation error; do not convert it into a warning.
 
 ```bash
 pnpm quality
@@ -285,7 +354,7 @@ pnpm quality
 
 Fix issues before proceeding.
 
-### Step 8: Commit and tag
+### Step 8: Stage release files
 
 Stage only release files. Under fixed mode, **all four sub-packages always change** even when only one was named in the changeset, so always stage all of them:
 
@@ -302,28 +371,40 @@ git add \
 # Only if Step 5b was NOT skipped (i.e. SKIP_WHATS_NEW=false):
 git add landing/data/releases.json
 
-# Only if Step 5c was NOT skipped (same condition as 5b right now, but kept separate
-# in case the two ever need different gates):
+# Only if Step 5b-bis produced an iOS projection:
+git add backend-nest/src/modules/whats-new/domain/releases-data.ts
+
+# Only if Step 5c modified the webapp toast:
 git add frontend/projects/webapp/src/app/layout/whats-new/whats-new-releases.ts
 
 # Only if iOS files changed in this release:
 git add ios/project.yml
-
-git commit -m "chore(release): vX.Y.Z"
-git tag "vX.Y.Z" -m "Release vX.Y.Z"
 ```
 
-Before committing, run `git status` and confirm only the expected files are staged. If anything unrelated landed in the staging area (an unrelated edit you forgot, an untracked file `git add .changeset/` accidentally picked up), unstage it before continuing — release commits should be 100% mechanical.
+Run `git status` and confirm only the expected files are staged. If anything unrelated landed in the staging area (an unrelated edit you forgot, an untracked file `git add .changeset/` accidentally picked up), unstage it before continuing — release commits should be 100% mechanical.
 
 **Notes:**
+
 - `ios/Pulpe.xcodeproj/` is gitignored (regenerated by xcodegen). Do NOT try to stage it.
 - Per-package `CHANGELOG.md` files all get new entries even for packages whose code didn't change — that's expected under fixed mode (see `references/jsts-release.md`).
 
 ### Step 9: Push and GitHub release
 
-Ask: "Prêt à pousser sur main avec le tag et créer la release GitHub ?"
+Show the exact pending external changes, then ask: "Prêt à synchroniser Railway, pousser sur main avec le tag et créer la release GitHub ?"
 
 Only after "oui":
+
+1. Confirm that the configured Railway integration is available. If not, stop before committing and report the missing capability; never skip the update silently or invent a command.
+2. Create the local release commit and tag.
+
+   ```bash
+   git commit -m "chore(release): vX.Y.Z"
+   git tag "vX.Y.Z" -m "Release vX.Y.Z"
+   ```
+
+3. Apply the pending `LATEST_WEB_VERSION` update described in [references/jsts-release.md](references/jsts-release.md).
+4. If the iOS marketing version changed, apply the pending `LATEST_IOS_VERSION` update described in [references/ios-release.md](references/ios-release.md).
+5. Push the branch and tag, then create the GitHub Release:
 
 ```bash
 git push origin main
@@ -352,6 +433,7 @@ EOF
 ```
 
 Rules:
+
 - Release title is always `vX.Y.Z` — nothing else
 - Omit empty sections (no corrections? skip the section)
 - Footer links always present

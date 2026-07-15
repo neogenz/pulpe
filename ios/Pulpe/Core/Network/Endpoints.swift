@@ -72,6 +72,10 @@ enum Endpoint {
 
     case currencyRate(base: SupportedCurrency, target: SupportedCurrency)
 
+    // MARK: - What's New
+
+    case whatsNewIos(currentVersion: String, lastSeenVersion: String)
+
     // MARK: - Encryption
 
     case encryptionVaultStatus
@@ -146,6 +150,9 @@ enum Endpoint {
         // Currency
         case .currencyRate: return "/currency/rate"
 
+        // What's New
+        case .whatsNewIos: return "/whats-new/ios"
+
         // Encryption
         case .encryptionVaultStatus: return "/encryption/vault-status"
         case .encryptionSalt: return "/encryption/salt"
@@ -177,7 +184,7 @@ enum Endpoint {
              .transactionsByBudget, .budgetsSparse,
              .savingsGoals, .savingsGoal, .savingsGoalProgress, .savingsGoalContributions,
              .encryptionVaultStatus, .encryptionSalt,
-             .userSettings, .currencyRate:
+             .userSettings, .currencyRate, .whatsNewIos:
             return .get
 
         case .updateUserSettings:
@@ -210,6 +217,13 @@ enum Endpoint {
             components?.queryItems = [
                 URLQueryItem(name: "base", value: base.rawValue),
                 URLQueryItem(name: "target", value: target.rawValue),
+            ]
+            url = components?.url ?? url
+        case let .whatsNewIos(currentVersion, lastSeenVersion):
+            var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            components?.queryItems = [
+                URLQueryItem(name: "currentVersion", value: currentVersion),
+                URLQueryItem(name: "lastSeenVersion", value: lastSeenVersion),
             ]
             url = components?.url ?? url
         default:
