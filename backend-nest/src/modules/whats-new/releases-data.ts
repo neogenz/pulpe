@@ -6,10 +6,10 @@ export interface WhatsNewReleaseChangeItem {
 export interface WhatsNewReleaseEntry {
   version: string;
   /**
-   * iOS marketing version that shipped this entry. Checked-in projections
-   * always set it; optionality lets the feed reject malformed entries safely.
+   * iOS marketing version that shipped this projection. A release without
+   * user-facing notes has no entry here instead of an incomplete projection.
    */
-  iosVersion?: string;
+  iosVersion: string;
   date: string;
   platforms: string[];
   changes: {

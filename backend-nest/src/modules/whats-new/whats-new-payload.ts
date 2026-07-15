@@ -24,11 +24,8 @@ export function compareSemver(a: string, b: string): number {
   return 0;
 }
 
-export function isIosUserFacing(
-  entry: WhatsNewReleaseEntry,
-): entry is WhatsNewReleaseEntry & { iosVersion: string } {
+export function isIosUserFacing(entry: WhatsNewReleaseEntry): boolean {
   return (
-    entry.iosVersion !== undefined &&
     entry.platforms.includes('ios') &&
     (entry.changes.features.length > 0 || entry.changes.fixes.length > 0)
   );

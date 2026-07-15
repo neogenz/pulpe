@@ -9,7 +9,7 @@ The app is **live on the App Store**. `MARKETING_VERSION` (currently `1.0.x`) tr
 
 The releaser decides build-only vs. marketing-bump per release. When unsure for a fix-only iOS release, a `build` bump is the safe default.
 
-Resolve this decision before changelog data is written. A release with a marketing bump records that exact value as `iosVersion` in `landing/data/releases.json` and `backend-nest/src/modules/whats-new/releases-data.ts`. A build-only release records no `iosVersion` and cannot trigger the one-shot what's-new dialog because the bundle marketing version did not change.
+Resolve this decision before changelog data is written. A release with a marketing bump records that exact value as `iosVersion` in `landing/data/releases.json`. If at least one item qualifies for the iOS dialog, its backend projection records the same value; if none qualifies, no backend entry is created. A build-only release records no `iosVersion` and cannot trigger the one-shot what's-new dialog because the bundle marketing version did not change.
 
 ## Curate iOS What's New
 
@@ -68,7 +68,10 @@ Stage only `ios/project.yml`. Never stage the generated `.xcodeproj`.
 
 When `MARKETING_VERSION` bumps (i.e. you used `set`, `major`, `minor`, or `patch` — NOT `build`), update `LATEST_IOS_VERSION` on Railway in **both** `preview` and `production` environments to match. The force-update endpoint (`GET /api/v1/app/version`) serves this value to clients; if it drifts, the soft-update prompt (follow-up) will lie.
 
-Before updating Railway, verify the same version is present in the release's `iosVersion` field in both changelog copies. A mismatch means the release is not ready.
+Before updating Railway, apply the branch that matches the curated result:
+
+- If an iOS projection exists, verify the same `iosVersion` is present in `landing/data/releases.json` and `backend-nest/src/modules/whats-new/releases-data.ts`. A mismatch means the release is not ready.
+- If no item qualified, verify `landing/data/releases.json` carries the new `iosVersion` and no backend projection was added for it. This intentional absence does not block the Railway update or the release.
 
 Use the Railway MCP `set-variables` tool — one call per environment:
 

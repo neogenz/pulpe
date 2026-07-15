@@ -65,20 +65,6 @@ describe('isIosUserFacing', () => {
       }),
     ).toBe(false);
   });
-
-  it('excludes a user-facing iOS release without an iOS version mapping', () => {
-    expect(
-      isIosUserFacing({
-        ...iosTechnicalOnly,
-        iosVersion: undefined,
-        changes: {
-          features: [{ title: 'Feature', description: 'New' }],
-          fixes: [],
-          technical: [],
-        },
-      }),
-    ).toBe(false);
-  });
 });
 
 describe('buildWhatsNewResponse', () => {
