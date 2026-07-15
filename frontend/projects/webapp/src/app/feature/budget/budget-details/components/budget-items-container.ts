@@ -377,6 +377,16 @@ export class BudgetItemsContainer {
   );
 
   constructor() {
+    let activeBudgetId: string | undefined;
+    effect(() => {
+      const currentBudgetId = this.store.budgetDetails()?.id;
+      if (!currentBudgetId) return;
+      if (activeBudgetId && currentBudgetId !== activeBudgetId) {
+        this.selectedTagIds.set([]);
+      }
+      activeBudgetId = currentBudgetId;
+    });
+
     // Persist view mode changes to localStorage (desktop only)
     effect(() => {
       const mode = this.viewMode();

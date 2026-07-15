@@ -25,6 +25,7 @@ function lineRow(id: string, tagIds: string[]): BudgetLineTableItem {
 
 function groupHeader(
   groupKind: 'income' | 'expense' | 'saving',
+  itemCount = 1,
 ): GroupHeaderTableItem {
   return {
     metadata: {
@@ -32,7 +33,7 @@ function groupHeader(
       groupKind,
       groupLabel: groupKind,
       groupIcon: 'folder',
-      itemCount: 1,
+      itemCount,
     },
   };
 }
@@ -88,5 +89,29 @@ describe('filterTableRowsByTags', () => {
     const result = filterTableRowsByTags(rows, new Set(['b']));
 
     expect(result).toHaveLength(2);
+  });
+
+  it('should recompute the visible item count and remove empty groups', () => {
+    const rows: TableRowItem[] = [
+      groupHeader('expense', 3),
+      lineRow('food', ['a']),
+      lineRow('home', ['a', 'b']),
+      lineRow('travel', ['c']),
+      groupHeader('saving', 1),
+      lineRow('emergency', ['c']),
+    ];
+
+    const result = filterTableRowsByTags(rows, new Set(['a']));
+
+    expect(result).toHaveLength(3);
+    expect((result[0] as GroupHeaderTableItem).metadata).toMatchObject({
+      groupKind: 'expense',
+      itemCount: 2,
+    });
+    expect(result.map((row) => row.metadata.itemType)).toEqual([
+      'group_header',
+      'budget_line',
+      'budget_line',
+    ]);
   });
 });

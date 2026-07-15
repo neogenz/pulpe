@@ -1,6 +1,7 @@
 import { describe, it, expect, jest } from 'bun:test';
 import { Buffer } from 'node:buffer';
 import { SupabaseBudgetLineRepository } from './supabase-budget-line.repository';
+import { SupabaseBudgetLineSpreadReader } from './supabase-budget-line-spread.reader';
 import {
   SPREAD_GROUP_EXISTS_RPC_MESSAGE,
   SPREAD_SOURCE_UNAVAILABLE_RPC_MESSAGE,
@@ -10,6 +11,7 @@ import { BusinessException } from '@common/exceptions/business.exception';
 import type {
   BudgetLine,
   BudgetLineRow,
+  SpreadOccurrence,
 } from '../../domain/budget-line.entity';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import type { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
@@ -116,6 +118,26 @@ function createMockLogger(): InfoLogger {
   } as unknown as InfoLogger;
 }
 
+function createMockSpreadReader(): SupabaseBudgetLineSpreadReader {
+  return {
+    findOccurrences: jest.fn().mockResolvedValue([]),
+  } as unknown as SupabaseBudgetLineSpreadReader;
+}
+
+function createRepository(
+  provider: AuthenticatedSupabaseProvider,
+  encryption: EncryptionPort,
+  logger: InfoLogger,
+  spreadReader = createMockSpreadReader(),
+): SupabaseBudgetLineRepository {
+  return new SupabaseBudgetLineRepository(
+    provider,
+    encryption,
+    logger,
+    spreadReader,
+  );
+}
+
 describe('SupabaseBudgetLineRepository', () => {
   let repo: SupabaseBudgetLineRepository;
 
@@ -128,7 +150,7 @@ describe('SupabaseBudgetLineRepository', () => {
           }),
         }),
       }));
-      repo = new SupabaseBudgetLineRepository(
+      repo = createRepository(
         provider,
         createMockEncryption(),
         createMockLogger(),
@@ -150,7 +172,7 @@ describe('SupabaseBudgetLineRepository', () => {
           }),
         }),
       }));
-      repo = new SupabaseBudgetLineRepository(
+      repo = createRepository(
         provider,
         createMockEncryption(),
         createMockLogger(),
@@ -172,7 +194,7 @@ describe('SupabaseBudgetLineRepository', () => {
           }),
         }),
       }));
-      repo = new SupabaseBudgetLineRepository(
+      repo = createRepository(
         provider,
         createMockEncryption(),
         createMockLogger(),
@@ -194,7 +216,7 @@ describe('SupabaseBudgetLineRepository', () => {
           }),
         }),
       }));
-      repo = new SupabaseBudgetLineRepository(
+      repo = createRepository(
         provider,
         createMockEncryption(),
         createMockLogger(),
@@ -231,7 +253,7 @@ describe('SupabaseBudgetLineRepository', () => {
           }),
         }),
       }));
-      repo = new SupabaseBudgetLineRepository(
+      repo = createRepository(
         provider,
         createMockEncryption(),
         createMockLogger(),
@@ -263,11 +285,7 @@ describe('SupabaseBudgetLineRepository', () => {
         }),
       }));
       const encryption = createMockEncryption();
-      repo = new SupabaseBudgetLineRepository(
-        provider,
-        encryption,
-        createMockLogger(),
-      );
+      repo = createRepository(provider, encryption, createMockLogger());
 
       const result = await repo.insert({
         budgetId: 'budget-1',
@@ -297,7 +315,7 @@ describe('SupabaseBudgetLineRepository', () => {
           }),
         }),
       }));
-      repo = new SupabaseBudgetLineRepository(
+      repo = createRepository(
         provider,
         createMockEncryption(),
         createMockLogger(),
@@ -334,11 +352,7 @@ describe('SupabaseBudgetLineRepository', () => {
         }),
         jest.fn().mockResolvedValue({ error: tagError }),
       );
-      repo = new SupabaseBudgetLineRepository(
-        provider,
-        createMockEncryption(),
-        logger,
-      );
+      repo = createRepository(provider, createMockEncryption(), logger);
 
       await expect(
         repo.insert({
@@ -369,7 +383,7 @@ describe('SupabaseBudgetLineRepository', () => {
           eq: jest.fn().mockResolvedValue({ error: null }),
         }),
       }));
-      repo = new SupabaseBudgetLineRepository(
+      repo = createRepository(
         provider,
         createMockEncryption(),
         createMockLogger(),
@@ -387,7 +401,7 @@ describe('SupabaseBudgetLineRepository', () => {
           }),
         }),
       }));
-      repo = new SupabaseBudgetLineRepository(
+      repo = createRepository(
         provider,
         createMockEncryption(),
         createMockLogger(),
@@ -419,7 +433,7 @@ describe('SupabaseBudgetLineRepository', () => {
           }),
         }),
       }));
-      repo = new SupabaseBudgetLineRepository(
+      repo = createRepository(
         provider,
         createMockEncryption(),
         createMockLogger(),
@@ -441,7 +455,7 @@ describe('SupabaseBudgetLineRepository', () => {
           }),
         }),
       }));
-      repo = new SupabaseBudgetLineRepository(
+      repo = createRepository(
         provider,
         createMockEncryption(),
         createMockLogger(),
@@ -463,7 +477,7 @@ describe('SupabaseBudgetLineRepository', () => {
           }),
         }),
       }));
-      repo = new SupabaseBudgetLineRepository(
+      repo = createRepository(
         provider,
         createMockEncryption(),
         createMockLogger(),
@@ -494,7 +508,7 @@ describe('SupabaseBudgetLineRepository', () => {
           }),
         }),
       }));
-      repo = new SupabaseBudgetLineRepository(
+      repo = createRepository(
         provider,
         createMockEncryption(),
         createMockLogger(),
@@ -518,7 +532,7 @@ describe('SupabaseBudgetLineRepository', () => {
           }),
         }),
       }));
-      repo = new SupabaseBudgetLineRepository(
+      repo = createRepository(
         provider,
         createMockEncryption(),
         createMockLogger(),
@@ -548,7 +562,7 @@ describe('SupabaseBudgetLineRepository', () => {
           }),
         }),
       }));
-      repo = new SupabaseBudgetLineRepository(
+      repo = createRepository(
         provider,
         createMockEncryption(),
         createMockLogger(),
@@ -578,7 +592,7 @@ describe('SupabaseBudgetLineRepository', () => {
           }),
         }),
       }));
-      repo = new SupabaseBudgetLineRepository(
+      repo = createRepository(
         provider,
         createMockEncryption(),
         createMockLogger(),
@@ -603,7 +617,7 @@ describe('SupabaseBudgetLineRepository', () => {
           error: { code: '23503', message: 'FK violation' },
         }),
       );
-      repo = new SupabaseBudgetLineRepository(
+      repo = createRepository(
         provider,
         createMockEncryption(),
         createMockLogger(),
@@ -630,7 +644,7 @@ describe('SupabaseBudgetLineRepository', () => {
         }),
         jest.fn().mockResolvedValue({ error: null }),
       );
-      repo = new SupabaseBudgetLineRepository(
+      repo = createRepository(
         provider,
         createMockEncryption(),
         createMockLogger(),
@@ -660,7 +674,7 @@ describe('SupabaseBudgetLineRepository', () => {
           }),
         }),
       }));
-      repo = new SupabaseBudgetLineRepository(
+      repo = createRepository(
         provider,
         createMockEncryption(),
         createMockLogger(),
@@ -706,11 +720,7 @@ describe('SupabaseBudgetLineRepository', () => {
           amount: 1200,
           original_amount: null,
         }));
-      repo = new SupabaseBudgetLineRepository(
-        provider,
-        encryption,
-        createMockLogger(),
-      );
+      repo = createRepository(provider, encryption, createMockLogger());
 
       const source = await repo.findSpreadSource('line-1');
 
@@ -735,7 +745,7 @@ describe('SupabaseBudgetLineRepository', () => {
     it('passes neither source id when no source descriptor is given (additive create)', async () => {
       const mockRpc = createSpreadRpc();
       const provider = createMockProvider(() => ({}), mockRpc);
-      repo = new SupabaseBudgetLineRepository(
+      repo = createRepository(
         provider,
         createMockEncryption(),
         createMockLogger(),
@@ -755,7 +765,7 @@ describe('SupabaseBudgetLineRepository', () => {
     it('maps a budget_line source to p_source_budget_line_id only', async () => {
       const mockRpc = createSpreadRpc();
       const provider = createMockProvider(() => ({}), mockRpc);
-      repo = new SupabaseBudgetLineRepository(
+      repo = createRepository(
         provider,
         createMockEncryption(),
         createMockLogger(),
@@ -778,7 +788,7 @@ describe('SupabaseBudgetLineRepository', () => {
     it('maps a transaction source to p_source_transaction_id only', async () => {
       const mockRpc = createSpreadRpc();
       const provider = createMockProvider(() => ({}), mockRpc);
-      repo = new SupabaseBudgetLineRepository(
+      repo = createRepository(
         provider,
         createMockEncryption(),
         createMockLogger(),
@@ -801,7 +811,7 @@ describe('SupabaseBudgetLineRepository', () => {
     it('forwards the spread group id and returns decrypted entities', async () => {
       const mockRpc = createSpreadRpc();
       const provider = createMockProvider(() => ({}), mockRpc);
-      repo = new SupabaseBudgetLineRepository(
+      repo = createRepository(
         provider,
         createMockEncryption(),
         createMockLogger(),
@@ -821,7 +831,7 @@ describe('SupabaseBudgetLineRepository', () => {
         .fn()
         .mockResolvedValue({ data: null, error: { message: 'RPC error' } });
       const provider = createMockProvider(() => ({}), mockRpc);
-      repo = new SupabaseBudgetLineRepository(
+      repo = createRepository(
         provider,
         createMockEncryption(),
         createMockLogger(),
@@ -838,7 +848,7 @@ describe('SupabaseBudgetLineRepository', () => {
         error: { message: SPREAD_SOURCE_UNAVAILABLE_RPC_MESSAGE },
       });
       const provider = createMockProvider(() => ({}), mockRpc);
-      repo = new SupabaseBudgetLineRepository(
+      repo = createRepository(
         provider,
         createMockEncryption(),
         createMockLogger(),
@@ -865,7 +875,7 @@ describe('SupabaseBudgetLineRepository', () => {
         error: { message: SPREAD_GROUP_EXISTS_RPC_MESSAGE },
       });
       const provider = createMockProvider(() => ({}), mockRpc);
-      repo = new SupabaseBudgetLineRepository(
+      repo = createRepository(
         provider,
         createMockEncryption(),
         createMockLogger(),
@@ -899,7 +909,7 @@ describe('SupabaseBudgetLineRepository', () => {
         }),
         mockRpc,
       );
-      repo = new SupabaseBudgetLineRepository(
+      repo = createRepository(
         provider,
         createMockEncryption(),
         createMockLogger(),
@@ -921,7 +931,7 @@ describe('SupabaseBudgetLineRepository', () => {
         }),
       });
       const provider = createMockProvider(() => ({}), mockRpc);
-      repo = new SupabaseBudgetLineRepository(
+      repo = createRepository(
         provider,
         createMockEncryption(),
         createMockLogger(),
@@ -933,89 +943,26 @@ describe('SupabaseBudgetLineRepository', () => {
     });
   });
 
-  describe('findBySpreadGroupId — réalisé (consumed)', () => {
-    const occurrenceRow = (
-      id: string,
-      budgetId: string,
-      amount: number,
-      month: number,
-    ) => ({
-      ...mockRow,
-      id,
-      budget_id: budgetId,
-      amount,
-      spread_group_id: 'grp-1',
-      monthly_budget: { month, year: 2026, user_id: mockUser.id },
-    });
-
-    // Decrypt passes each row's (numeric, in tests) amount through untouched, so
-    // every occurrence / transaction carries its own value.
-    const passthroughEncryption = () =>
-      ({
-        ...createMockEncryption(),
-        decryptRowAmountFields: jest.fn().mockImplementation((row) => ({
-          ...row,
-          amount: row.amount,
-          original_amount: null,
-        })),
-      }) as unknown as EncryptionPort;
-
-    it('attaches consumed = Σ sub-transactions and the transaction count per occurrence', async () => {
+  describe('findBySpreadGroupId', () => {
+    it('delegates spread occurrence reads to the dedicated reader', async () => {
       const occurrences = [
-        occurrenceRow('L1', 'b-1', 100, 5),
-        occurrenceRow('L2', 'b-2', 100, 6),
-      ];
-      const transactions = [
-        { budget_line_id: 'L1', amount: 30 },
-        { budget_line_id: 'L1', amount: 50 },
-        // L2 has no transactions
-      ];
-      const provider = createMockProvider((table) =>
-        table === 'transaction'
-          ? {
-              select: () => ({
-                in: () => ({ data: transactions, error: null }),
-              }),
-            }
-          : {
-              select: () => ({
-                eq: () => ({ data: occurrences, error: null }),
-              }),
-            },
-      );
-      repo = new SupabaseBudgetLineRepository(
-        provider,
-        passthroughEncryption(),
+        { budgetLineId: 'line-1' },
+      ] as unknown as SpreadOccurrence[];
+      const findOccurrences = jest.fn().mockResolvedValue(occurrences);
+      const spreadReader = {
+        findOccurrences,
+      } as unknown as SupabaseBudgetLineSpreadReader;
+      repo = createRepository(
+        createMockProvider(() => ({})),
+        createMockEncryption(),
         createMockLogger(),
+        spreadReader,
       );
 
       const result = await repo.findBySpreadGroupId('grp-1');
 
-      const l1 = result.find((o) => o.budgetLineId === 'L1')!;
-      const l2 = result.find((o) => o.budgetLineId === 'L2')!;
-      expect(l1.consumed).toBe(80);
-      expect(l1.transactionCount).toBe(2);
-      expect(l2.consumed).toBe(0);
-      expect(l2.transactionCount).toBe(0);
-    });
-
-    it('returns [] without querying transactions when the group has no occurrences', async () => {
-      const transactionSelect = jest.fn();
-      const provider = createMockProvider((table) =>
-        table === 'transaction'
-          ? { select: transactionSelect }
-          : { select: () => ({ eq: () => ({ data: [], error: null }) }) },
-      );
-      repo = new SupabaseBudgetLineRepository(
-        provider,
-        passthroughEncryption(),
-        createMockLogger(),
-      );
-
-      const result = await repo.findBySpreadGroupId('grp-empty');
-
-      expect(result).toEqual([]);
-      expect(transactionSelect).not.toHaveBeenCalled();
+      expect(result).toBe(occurrences);
+      expect(findOccurrences).toHaveBeenCalledWith('grp-1');
     });
   });
 });

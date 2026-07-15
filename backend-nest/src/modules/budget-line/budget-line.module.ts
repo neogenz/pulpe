@@ -7,6 +7,7 @@ import { CurrencyModule } from '@modules/currency/currency.module';
 import { createInfoLoggerProvider } from '@common/logger';
 import { BudgetLineController } from './infrastructure/http/budget-line.controller';
 import { SupabaseBudgetLineRepository } from './infrastructure/persistence/supabase-budget-line.repository';
+import { SupabaseBudgetLineSpreadReader } from './infrastructure/persistence/supabase-budget-line-spread.reader';
 import { BudgetLineMapper } from './infrastructure/mappers/budget-line.mapper';
 import { BUDGET_LINE_REPOSITORY } from './domain/ports/budget-line-repository.port';
 import { BUDGET_LINE_SPREAD_PORT } from './domain/ports/budget-line-spread.port';
@@ -51,6 +52,7 @@ import { PostponeBudgetLineUseCase } from './application/postpone-budget-line.us
     ToggleBudgetLineCheckUseCase,
     CheckTransactionsUseCase,
     PostponeBudgetLineUseCase,
+    SupabaseBudgetLineSpreadReader,
     { provide: BUDGET_LINE_REPOSITORY, useClass: SupabaseBudgetLineRepository },
     {
       provide: BUDGET_LINE_SPREAD_PORT,

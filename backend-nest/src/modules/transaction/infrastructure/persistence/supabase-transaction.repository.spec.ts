@@ -576,4 +576,113 @@ describe('SupabaseTransactionRepository', () => {
       }
     });
   });
+
+  describe('fetchTransactionsByPattern', () => {
+    const searchRow = (id: string, date: string) => ({
+      id,
+      name: `Transaction ${id}`,
+      amount: 'encrypted',
+      kind: 'expense',
+      transaction_date: date,
+      budget_id: 'budget-1',
+      budget: { description: 'Juillet', month: 7, year: 2026 },
+    });
+
+    function transactionQuery(data: unknown[]) {
+      const query = {
+        select: jest.fn(),
+        ilike: jest.fn(),
+        in: jest.fn(),
+        order: jest.fn(),
+        limit: jest.fn().mockResolvedValue({ data, error: null }),
+      };
+      query.select.mockReturnValue(query);
+      query.ilike.mockReturnValue(query);
+      query.in.mockReturnValue(query);
+      query.order.mockReturnValue(query);
+      return query;
+    }
+
+    it('returns transactions whose tag name matches even when their own name does not', async () => {
+      const byName = transactionQuery([]);
+      const byTag = transactionQuery([
+        searchRow('txn-tagged', '2026-07-10T00:00:00.000Z'),
+      ]);
+      let transactionQueryIndex = 0;
+      const provider = createMockProvider((table) => {
+        if (table === 'tag') {
+          return {
+            select: () => ({
+              ilike: jest.fn().mockResolvedValue({
+                data: [{ id: 'tag-groceries' }],
+                error: null,
+              }),
+            }),
+          };
+        }
+        return transactionQueryIndex++ === 0 ? byName : byTag;
+      });
+      repo = new SupabaseTransactionRepository(
+        provider,
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+      const result = await repo.fetchTransactionsByPattern('%courses%', null);
+
+      expect(result.map(({ id }) => id)).toEqual(['txn-tagged']);
+      expect(byTag.in).toHaveBeenCalledWith('transaction_tag.tag_id', [
+        'tag-groceries',
+      ]);
+    });
+
+    it('deduplicates name and tag matches, keeps newest first, and scopes both paths to the selected years', async () => {
+      const byName = transactionQuery([
+        searchRow('txn-shared', '2026-07-10T00:00:00.000Z'),
+        searchRow('txn-name', '2026-07-01T00:00:00.000Z'),
+      ]);
+      const byTag = transactionQuery([
+        searchRow('txn-tag', '2026-07-15T00:00:00.000Z'),
+        searchRow('txn-shared', '2026-07-10T00:00:00.000Z'),
+      ]);
+      let transactionQueryIndex = 0;
+      const provider = createMockProvider((table) => {
+        if (table === 'tag') {
+          return {
+            select: () => ({
+              ilike: jest.fn().mockResolvedValue({
+                data: [{ id: 'tag-groceries' }],
+                error: null,
+              }),
+            }),
+          };
+        }
+        return transactionQueryIndex++ === 0 ? byName : byTag;
+      });
+      repo = new SupabaseTransactionRepository(
+        provider,
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+      const result = await repo.fetchTransactionsByPattern('%courses%', [
+        'budget-1',
+        'budget-2',
+      ]);
+
+      expect(result.map(({ id }) => id)).toEqual([
+        'txn-tag',
+        'txn-shared',
+        'txn-name',
+      ]);
+      expect(byName.in).toHaveBeenCalledWith('budget_id', [
+        'budget-1',
+        'budget-2',
+      ]);
+      expect(byTag.in).toHaveBeenCalledWith('budget_id', [
+        'budget-1',
+        'budget-2',
+      ]);
+    });
+  });
 });

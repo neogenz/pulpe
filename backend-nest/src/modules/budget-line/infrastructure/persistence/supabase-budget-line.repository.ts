@@ -37,6 +37,7 @@ import {
   type CreateBudgetLineSpreadItem,
 } from './schemas/rpc-payload.schemas';
 import { SpreadGroupAlreadyExistsError } from '../../domain/spread-group-conflict.error';
+import { SupabaseBudgetLineSpreadReader } from './supabase-budget-line-spread.reader';
 
 /** Embed junction rows so every read maps to BudgetLine.tagIds in one query. */
 const BUDGET_LINE_WITH_TAGS_SELECT = '*, budget_line_tag(tag_id)';
@@ -52,6 +53,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
     @InjectInfoLogger(SupabaseBudgetLineRepository.name)
     private readonly logger: InfoLogger,
+    private readonly spreadReader: SupabaseBudgetLineSpreadReader,
   ) {}
 
   async findAll(): Promise<BudgetLine[]> {
@@ -173,46 +175,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
   async findBySpreadGroupId(
     spreadGroupId: string,
   ): Promise<SpreadOccurrence[]> {
-    const supabase = this.supabaseProvider.client;
-    const { data, error } = await supabase
-      .from('budget_line')
-      .select('*, monthly_budget!inner(month, year, user_id)')
-      .eq('spread_group_id', spreadGroupId);
-
-    if (error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
-        undefined,
-        {
-          operation: 'findBudgetLinesBySpreadGroup',
-          entityId: spreadGroupId,
-          entityType: 'budget_line',
-          supabaseError: error,
-        },
-        { cause: error },
-      );
-    }
-
-    if (!data?.length) return [];
-    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
-    const rows = data as Array<
-      BudgetLineRow & {
-        monthly_budget: { month: number; year: number; user_id: string };
-      }
-    >;
-    const consumedByLine = await this.sumTransactionsByLine(
-      rows.map((row) => row.id),
-      dek,
-    );
-    return rows.map((row) => {
-      const consumption = consumedByLine.get(row.id);
-      return this.toSpreadOccurrence(
-        row,
-        dek,
-        consumption?.consumed ?? 0,
-        consumption?.transactionCount ?? 0,
-      );
-    });
+    return this.spreadReader.findOccurrences(spreadGroupId);
   }
 
   async findBudgetLinesBySpreadGroupId(
@@ -242,54 +205,6 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     if (!data?.length) return [];
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return data.map((row) => this.toEntity(row, dek));
-  }
-
-  /**
-   * Σ + count of allocated transactions per budget_line, for the spread
-   * occurrences read ONLY. Amounts are encrypted → fetch + decrypt + reduce in
-   * app (no SQL SUM possible). RLS scopes to the current user; empty list skips
-   * the query. Surfaces the réalisé (consommé) per spread occurrence without
-   * touching the non-spread consumption paths.
-   */
-  private async sumTransactionsByLine(
-    lineIds: string[],
-    dek: Buffer,
-  ): Promise<Map<string, { consumed: number; transactionCount: number }>> {
-    const byLine = new Map<
-      string,
-      { consumed: number; transactionCount: number }
-    >();
-    if (lineIds.length === 0) return byLine;
-
-    const { data, error } = await this.supabaseProvider.client
-      .from('transaction')
-      .select('budget_line_id, amount')
-      .in('budget_line_id', lineIds);
-
-    if (error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
-        undefined,
-        {
-          operation: 'sumSpreadOccurrenceTransactions',
-          entityType: 'transaction',
-          supabaseError: error,
-        },
-        { cause: error },
-      );
-    }
-
-    for (const row of (data ?? []) as TransactionRow[]) {
-      const lineId = row.budget_line_id;
-      if (!lineId) continue;
-      const { amount } = this.encryption.decryptRowAmountFields(row, dek);
-      const prev = byLine.get(lineId) ?? { consumed: 0, transactionCount: 0 };
-      byLine.set(lineId, {
-        consumed: prev.consumed + amount,
-        transactionCount: prev.transactionCount + 1,
-      });
-    }
-    return byLine;
   }
 
   async findSpreadSource(id: string): Promise<SpreadSourceLine> {
@@ -336,33 +251,6 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       kind: decrypted.kind,
       recurrence: decrypted.recurrence,
       spreadGroupId: decrypted.spread_group_id,
-    };
-  }
-
-  private toSpreadOccurrence(
-    row: BudgetLineRow & { monthly_budget: { month: number; year: number } },
-    dek: Buffer,
-    consumed: number,
-    transactionCount: number,
-  ): SpreadOccurrence {
-    const decrypted = this.encryption.decryptRowAmountFields(row, dek);
-    return {
-      budgetLineId: decrypted.id,
-      budgetId: decrypted.budget_id,
-      month: row.monthly_budget.month,
-      year: row.monthly_budget.year,
-      name: decrypted.name,
-      amount: decrypted.amount,
-      consumed,
-      transactionCount,
-      originalAmount: decrypted.original_amount,
-      originalCurrency:
-        decrypted.original_currency as SpreadOccurrence['originalCurrency'],
-      targetCurrency:
-        decrypted.target_currency as SpreadOccurrence['targetCurrency'],
-      exchangeRate: decrypted.exchange_rate,
-      kind: decrypted.kind,
-      checkedAt: decrypted.checked_at,
     };
   }
 

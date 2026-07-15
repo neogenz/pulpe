@@ -33,14 +33,41 @@ export function filterTableRowsByTags(
 ): TableRowItem[] {
   if (selectedTagIds.size === 0) return [...rows];
 
-  const withMatchingItems = rows.filter((row) => {
-    if (isGroupHeaderRow(row)) return true;
-    return (row.data.tagIds ?? []).some((id) => selectedTagIds.has(id));
-  });
+  const result: TableRowItem[] = [];
+  let currentHeader: TableRowItem | undefined;
+  let matchingGroupItems: TableRowItem[] = [];
 
-  return withMatchingItems.filter((row, index) => {
-    if (row.metadata.itemType !== 'group_header') return true;
-    const next = withMatchingItems[index + 1];
-    return next !== undefined && next.metadata.itemType !== 'group_header';
-  });
+  const flushGroup = () => {
+    if (!currentHeader || matchingGroupItems.length === 0) return;
+    if (!isGroupHeaderRow(currentHeader)) return;
+    result.push(
+      {
+        ...currentHeader,
+        metadata: {
+          ...currentHeader.metadata,
+          itemCount: matchingGroupItems.length,
+        },
+      },
+      ...matchingGroupItems,
+    );
+  };
+
+  for (const row of rows) {
+    if (isGroupHeaderRow(row)) {
+      flushGroup();
+      currentHeader = row;
+      matchingGroupItems = [];
+      continue;
+    }
+
+    const matches = (row.data.tagIds ?? []).some((id) =>
+      selectedTagIds.has(id),
+    );
+    if (!matches) continue;
+    if (currentHeader) matchingGroupItems.push(row);
+    else result.push(row);
+  }
+  flushGroup();
+
+  return result;
 }

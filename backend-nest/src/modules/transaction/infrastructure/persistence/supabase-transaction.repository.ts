@@ -550,10 +550,23 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     searchPattern: string,
     budgetIds: string[] | null,
   ): Promise<TransactionSearchTransactionRow[]> {
-    const data = await this.queryTransactionsByPattern(
-      searchPattern,
-      budgetIds,
+    const [nameMatches, tagIds] = await Promise.all([
+      this.queryTransactionsByName(searchPattern, budgetIds),
+      this.queryTagIdsByName(searchPattern),
+    ]);
+    const tagMatches = tagIds.length
+      ? await this.queryTransactionsByTagIds(tagIds, budgetIds)
+      : [];
+    const byId = new Map(
+      [...nameMatches, ...tagMatches].map((row) => [row.id, row]),
     );
+    const data = [...byId.values()]
+      .sort(
+        (a, b) =>
+          new Date(b.transaction_date).getTime() -
+          new Date(a.transaction_date).getTime(),
+      )
+      .slice(0, 25);
 
     if (!data.length) return [];
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
@@ -571,7 +584,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     return data.map((row) => this.toSearchBudgetLineRow(row, dek));
   }
 
-  private async queryTransactionsByPattern(
+  private async queryTransactionsByName(
     searchPattern: string,
     budgetIds: string[] | null,
   ): Promise<RawSearchTransactionRow[]> {
@@ -609,6 +622,77 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
         undefined,
         {
           operation: 'fetchTransactionsByPattern',
+          entityType: 'transaction',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    return (data ?? []) as RawSearchTransactionRow[];
+  }
+
+  private async queryTagIdsByName(searchPattern: string): Promise<string[]> {
+    const { data, error } = await this.supabaseProvider.client
+      .from('tag')
+      .select('id')
+      .ilike('name', searchPattern);
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'fetchTransactionTagMatches',
+          entityType: 'tag',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    return data?.map(({ id }) => id) ?? [];
+  }
+
+  private async queryTransactionsByTagIds(
+    tagIds: string[],
+    budgetIds: string[] | null,
+  ): Promise<RawSearchTransactionRow[]> {
+    const supabase = this.supabaseProvider.client;
+    let query = supabase
+      .from('transaction')
+      .select(
+        `
+        id,
+        name,
+        amount,
+        kind,
+        transaction_date,
+        budget_id,
+        budget:budget_id (
+          description,
+          month,
+          year
+        ),
+        transaction_tag!inner(tag_id)
+      `,
+      )
+      .in('transaction_tag.tag_id', tagIds);
+
+    if (budgetIds) {
+      query = query.in('budget_id', budgetIds);
+    }
+
+    const { data, error } = await query
+      .order('transaction_date', { ascending: false })
+      .limit(25);
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'fetchTransactionsByTagIds',
           entityType: 'transaction',
           supabaseError: error,
         },

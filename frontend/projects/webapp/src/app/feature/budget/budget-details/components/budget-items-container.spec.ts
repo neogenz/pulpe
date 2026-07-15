@@ -394,6 +394,42 @@ describe('BudgetItemsContainer — tag history', () => {
       expect.objectContaining({ selectedTagId: tags[1].id }),
     );
   });
+
+  it('preserves tag filters when reloading the same budget and clears them when navigating to another budget', () => {
+    const mockStore = createMockStore();
+    mockStore.budgetDetails.set({
+      id: 'budget-1',
+      budgetLines: [],
+      transactions: [],
+    });
+    mockStore.searchText.set('not-found');
+    const fixture = setupComponent(
+      mockStore,
+      createMockDialogService(),
+      { open: vi.fn() },
+      createMockTagStore(tags),
+    );
+    TestBed.flushEffects();
+    fixture.componentInstance.selectedTagIds.set([tags[0].id]);
+
+    mockStore.budgetDetails.set(null);
+    TestBed.flushEffects();
+    mockStore.budgetDetails.set({
+      id: 'budget-1',
+      budgetLines: [],
+      transactions: [],
+    });
+    TestBed.flushEffects();
+    expect(fixture.componentInstance.selectedTagIds()).toEqual([tags[0].id]);
+
+    mockStore.budgetDetails.set({
+      id: 'budget-2',
+      budgetLines: [],
+      transactions: [],
+    });
+    TestBed.flushEffects();
+    expect(fixture.componentInstance.selectedTagIds()).toEqual([]);
+  });
 });
 
 describe('BudgetItemsContainer — PATCH transaction body contract', () => {
