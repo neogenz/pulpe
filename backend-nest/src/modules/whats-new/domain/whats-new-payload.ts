@@ -1,15 +1,8 @@
-import {
-  whatsNewEntrySchema,
-  whatsNewResponseSchema,
-  type WhatsNewQuery,
-  type WhatsNewResponse,
-} from 'pulpe-shared';
+import type { WhatsNewQuery, WhatsNewResponse } from 'pulpe-shared';
 import { RELEASES, type WhatsNewReleaseEntry } from './releases-data';
 
-const releaseMetadataSchema = whatsNewEntrySchema.pick({
-  version: true,
-  publishedAt: true,
-});
+const semverPattern = /^\d+\.\d+\.\d+$/;
+const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
  * Compares two 3-part `X.Y.Z` versions numerically, left-to-right.
@@ -38,10 +31,23 @@ export function isIosUserFacing(entry: WhatsNewReleaseEntry): boolean {
 }
 
 function hasValidReleaseMetadata(entry: WhatsNewReleaseEntry): boolean {
-  return releaseMetadataSchema.safeParse({
-    version: entry.iosVersion,
-    publishedAt: entry.date,
-  }).success;
+  if (
+    !semverPattern.test(entry.iosVersion) ||
+    !isoDatePattern.test(entry.date)
+  ) {
+    return false;
+  }
+
+  const year = Number(entry.date.slice(0, 4));
+  const month = Number(entry.date.slice(5, 7));
+  const day = Number(entry.date.slice(8, 10));
+  const parsedDate = new Date(Date.UTC(year, month - 1, day));
+
+  return (
+    parsedDate.getUTCFullYear() === year &&
+    parsedDate.getUTCMonth() === month - 1 &&
+    parsedDate.getUTCDate() === day
+  );
 }
 
 function toBody(entries: WhatsNewReleaseEntry[]): string {
@@ -90,5 +96,5 @@ export function buildWhatsNewResponse(
       ];
     });
 
-  return whatsNewResponseSchema.parse({ success: true, data: { entries } });
+  return { success: true, data: { entries } };
 }

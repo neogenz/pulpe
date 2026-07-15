@@ -83,7 +83,11 @@ describe('buildWhatsNewResponse', () => {
 
     const response = buildWhatsNewResponse(
       { currentVersion: '1.1.0', lastSeenVersion: '1.0.4' },
-      [malformedRelease],
+      [
+        malformedRelease,
+        { ...malformedRelease, iosVersion: 'invalid', date: '2026-07-15' },
+        { ...malformedRelease, date: '2026-02-30' },
+      ],
     );
 
     expect(response.data.entries).toEqual([]);

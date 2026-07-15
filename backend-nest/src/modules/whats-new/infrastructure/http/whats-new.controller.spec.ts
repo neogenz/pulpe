@@ -8,7 +8,7 @@ import request from 'supertest';
 import { AuthGuard } from '@common/guards/auth.guard';
 import { SupabaseService } from '@modules/supabase/supabase.service';
 import { createMockPinoLogger } from '@/test/test-mocks';
-import { GetIosWhatsNewUseCase } from './application/get-ios-whats-new.use-case';
+import { GetIosWhatsNewUseCase } from '../../application/get-ios-whats-new.use-case';
 import { WhatsNewController } from './whats-new.controller';
 
 const VALID_CLIENT_KEY = 'ab'.repeat(32);

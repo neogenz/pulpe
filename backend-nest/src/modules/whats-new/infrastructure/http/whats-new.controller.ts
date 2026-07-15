@@ -11,7 +11,7 @@ import {
 import { AuthGuard } from '@common/guards/auth.guard';
 import { ErrorResponseDto } from '@common/dto/response.dto';
 import type { WhatsNewResponse } from 'pulpe-shared';
-import { GetIosWhatsNewUseCase } from './application/get-ios-whats-new.use-case';
+import { GetIosWhatsNewUseCase } from '../../application/get-ios-whats-new.use-case';
 import {
   WhatsNewQueryDto,
   WhatsNewResponseDto,
