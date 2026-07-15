@@ -111,6 +111,19 @@ struct WhatsNewStoreTests {
         #expect(store.entries.isEmpty)
     }
 
+    @Test func check_urlCancellation_failsOpenAndLeavesLastSeenUntouched() async {
+        let service = MockWhatsNewService(outcome: .failure(URLError(.cancelled)))
+        let flags = MockWhatsNewFlagsStore(lastSeenVersion: "1.1.0")
+        let store = WhatsNewStore(service: service, flagsStore: flags)
+
+        await store.check(currentVersion: "1.2.0")
+
+        #expect(service.fetchCallCount == 1)
+        #expect(flags.lastSeenVersion == "1.1.0")
+        #expect(store.isPresented == false)
+        #expect(store.entries.isEmpty)
+    }
+
     @Test func dismiss_persistsCurrentVersionAndHidesSheet() async {
         let service = MockWhatsNewService(outcome: .success([.makeFixture(version: "1.2.0")]))
         let flags = MockWhatsNewFlagsStore(lastSeenVersion: "1.1.0")
