@@ -120,7 +120,7 @@ describe("landing accessibility contracts", () => {
       /(?:animation|transition)-duration:\s*0\.01ms/,
     );
     assert.match(componentSources.roadmap, /motion-safe:animate-pulse/);
-    assert.match(componentSources.howItWorks, /motion-reduce:transition-none/);
+    assert.match(componentSources.screenshot, /motion-reduce:transition-none/);
   });
 
   it("adds inset neutral outlines to product images", () => {
@@ -168,5 +168,13 @@ describe("landing accessibility contracts", () => {
       globalsCss,
       /feTurbulence|cubic-bezier\(0\.34,\s*1\.56/,
     );
+  });
+
+  it("presents the product setup as exactly three static steps", () => {
+    assert.match(componentSources.howItWorks, /number: "01"/);
+    assert.match(componentSources.howItWorks, /number: "02"/);
+    assert.match(componentSources.howItWorks, /number: "03"/);
+    assert.doesNotMatch(componentSources.howItWorks, /number: "04"/);
+    assert.doesNotMatch(componentSources.howItWorks, /IntersectionObserver/);
   });
 });
