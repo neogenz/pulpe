@@ -58,8 +58,19 @@ describe('tagHistoryQuerySchema', () => {
     { months: '5', endMonth: '7', endYear: '2026' },
     { months: '3', endMonth: '13', endYear: '2026' },
     { months: '3', endMonth: '7', endYear: '2019' },
+    { months: '24', endMonth: '1', endYear: '2020' },
   ])('rejects an invalid history window: %o', (query) => {
     expect(tagHistoryQuerySchema.safeParse(query).success).toBe(false);
+  });
+
+  it('accepts the earliest 24-month window contained in the shared year bounds', () => {
+    expect(
+      tagHistoryQuerySchema.safeParse({
+        months: '24',
+        endMonth: '12',
+        endYear: '2021',
+      }).success,
+    ).toBe(true);
   });
 });
 

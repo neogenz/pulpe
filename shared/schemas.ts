@@ -8,8 +8,9 @@ import {
 const CURRENT_YEAR = new Date().getFullYear();
 const MIN_YEAR = 2020;
 const MAX_YEAR = CURRENT_YEAR + 10;
+const MONTHS_PER_YEAR = 12;
 const MONTH_MIN = 1;
-const MONTH_MAX = 12;
+const MONTH_MAX = MONTHS_PER_YEAR;
 export const PAY_DAY_MIN = 1;
 export const PAY_DAY_MAX = 31;
 
@@ -308,10 +309,9 @@ export type SavingsGoalUpdate = z.infer<typeof savingsGoalUpdateSchema>;
 /**
  * TAG - Étiquette utilisateur pour classifier les dépenses
  *
- * Remplace à terme le champ libre `transaction.category` (texte non structuré,
- * jamais lu en aval). Pur métadonnée plaintext (name), unicité par
- * utilisateur insensible à la casse côté DB (index sur lower(name)).
- * Le rattachement aux transactions / budget_lines arrive dans les PRs suivantes.
+ * Remplace le champ libre `transaction.category` par une métadonnée plaintext
+ * structurée. Le nom est unique par utilisateur sans distinction de casse côté
+ * DB; les junctions rattachent les tags aux transactions et aux prévisions.
  */
 export const MAX_TAGS_PER_TRANSACTION = 10;
 
@@ -343,11 +343,20 @@ export const tagHistoryMonthsSchema = z.coerce
   .pipe(z.union([z.literal(3), z.literal(6), z.literal(12), z.literal(24)]));
 export type TagHistoryMonths = z.infer<typeof tagHistoryMonthsSchema>;
 
-export const tagHistoryQuerySchema = z.strictObject({
-  months: tagHistoryMonthsSchema,
-  endMonth: z.coerce.number().int().min(MONTH_MIN).max(MONTH_MAX),
-  endYear: z.coerce.number().int().min(MIN_YEAR).max(MAX_YEAR),
-});
+export const tagHistoryQuerySchema = z
+  .strictObject({
+    months: tagHistoryMonthsSchema,
+    endMonth: z.coerce.number().int().min(MONTH_MIN).max(MONTH_MAX),
+    endYear: z.coerce.number().int().min(MIN_YEAR).max(MAX_YEAR),
+  })
+  .refine(
+    ({ months, endMonth, endYear }) =>
+      (endYear - MIN_YEAR) * MONTHS_PER_YEAR + endMonth - months >= 0,
+    {
+      error: `History window cannot start before ${MIN_YEAR}`,
+      path: ['endYear'],
+    },
+  );
 export type TagHistoryQuery = z.infer<typeof tagHistoryQuerySchema>;
 
 export const tagHistoryMonthSchema = z.object({

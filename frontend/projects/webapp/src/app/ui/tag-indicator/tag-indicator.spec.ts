@@ -51,4 +51,16 @@ describe('TagIndicator', () => {
 
     expect(component['tooltip']()).toBe('Courses\nLoisirs');
   });
+
+  it('should expose the tooltip content to keyboard users', () => {
+    setTestInput(component.tagNames, ['Courses', 'Loisirs']);
+    fixture.detectChanges();
+
+    const pill: HTMLSpanElement | null =
+      fixture.nativeElement.querySelector('span[aria-label]');
+    expect(pill?.getAttribute('role')).toBe('note');
+    expect(pill?.getAttribute('tabindex')).toBe('0');
+    expect(pill?.getAttribute('aria-label')).toContain('Courses');
+    expect(pill?.getAttribute('aria-label')).toContain('Loisirs');
+  });
 });

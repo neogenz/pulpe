@@ -26,7 +26,8 @@ import { TranslocoPipe } from '@jsverse/transloco';
       <span
         class="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 shrink-0
                bg-secondary-container text-on-secondary-container text-label-small font-medium
-               ph-no-capture"
+               ph-no-capture focus-visible:outline-2 focus-visible:outline-primary
+               focus-visible:outline-offset-2"
         [matTooltip]="tooltip()"
         matTooltipClass="whitespace-pre-line"
         matTooltipTouchGestures="on"
@@ -35,6 +36,8 @@ import { TranslocoPipe } from '@jsverse/transloco';
           'tagIndicator.ariaLabel'
             | transloco: { count: tagNames().length, names: tooltip() }
         "
+        role="note"
+        tabindex="0"
       >
         <mat-icon class="text-sm! shrink-0 h-auto! w-auto!">sell</mat-icon>
         {{ tagNames().length }}
