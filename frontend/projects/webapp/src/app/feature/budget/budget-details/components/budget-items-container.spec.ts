@@ -12,7 +12,10 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { createMockTransaction } from '@app/testing/mock-factories';
-import { createMockTagStore } from '@app/testing/tag-store.mock';
+import {
+  createMockTagStore,
+  type MockTagStore,
+} from '@app/testing/tag-store.mock';
 import { createMockLogger } from '@app/testing/mock-posthog';
 import { StorageService } from '@core/storage';
 import { TagStore } from '@core/tag';
@@ -106,6 +109,7 @@ function createMockStore(): MockStore {
 }
 
 interface MockDialogService {
+  openTagHistory: ReturnType<typeof vi.fn>;
   openAddBudgetLineDialog: ReturnType<typeof vi.fn>;
   openEditBudgetLineDialog: ReturnType<typeof vi.fn>;
   openAllocatedTransactionsDialog: ReturnType<typeof vi.fn>;
@@ -120,6 +124,7 @@ interface MockDialogService {
 
 function createMockDialogService(): MockDialogService {
   return {
+    openTagHistory: vi.fn(),
     openAddBudgetLineDialog: vi.fn().mockResolvedValue(undefined),
     openEditBudgetLineDialog: vi.fn().mockResolvedValue(undefined),
     openAllocatedTransactionsDialog: vi.fn().mockResolvedValue(undefined),
@@ -138,6 +143,7 @@ function setupComponent(
   mockStore: MockStore,
   mockDialogService: MockDialogService,
   mockSnackBar: { open: ReturnType<typeof vi.fn> },
+  mockTagStore: MockTagStore = createMockTagStore(),
 ): ComponentFixture<BudgetItemsContainer> {
   TestBed.configureTestingModule({
     imports: [BudgetItemsContainer, NoopAnimationsModule],
@@ -156,7 +162,7 @@ function setupComponent(
         },
       },
       { provide: Logger, useValue: { warn: vi.fn(), error: vi.fn() } },
-      { provide: TagStore, useValue: createMockTagStore() },
+      { provide: TagStore, useValue: mockTagStore },
     ],
   });
 
@@ -307,6 +313,86 @@ describe('BudgetItemsContainer — orchestration', () => {
 
     expect(mockStore.createBudgetLineSpread).toHaveBeenCalledWith(spread);
     expect(mockStore.createBudgetLine).not.toHaveBeenCalled();
+  });
+});
+
+describe('BudgetItemsContainer — tag history', () => {
+  const userId = '11111111-1111-4111-8111-111111111111';
+  const tags = [
+    {
+      id: '22222222-2222-4222-8222-222222222222',
+      userId,
+      name: 'Courses',
+      createdAt: '2026-07-01T00:00:00.000Z',
+      updatedAt: '2026-07-01T00:00:00.000Z',
+    },
+    {
+      id: '33333333-3333-4333-8333-333333333333',
+      userId,
+      name: 'Maison',
+      createdAt: '2026-07-01T00:00:00.000Z',
+      updatedAt: '2026-07-01T00:00:00.000Z',
+    },
+  ];
+
+  it('keeps the action available without tagged items and passes the budget anchor', () => {
+    const mockStore = createMockStore();
+    const mockDialogService = createMockDialogService();
+    mockStore.budgetDetails.set({
+      id: 'budget-1',
+      month: 7,
+      year: 2026,
+      budgetLines: [],
+      transactions: [],
+    });
+    mockStore.searchText.set('not-found');
+    const fixture = setupComponent(
+      mockStore,
+      mockDialogService,
+      { open: vi.fn() },
+      createMockTagStore(tags),
+    );
+    fixture.detectChanges();
+
+    const action: HTMLButtonElement | null =
+      fixture.nativeElement.querySelector('[data-testid="tag-history-open"]');
+    expect(action).not.toBeNull();
+    action?.click();
+
+    expect(mockDialogService.openTagHistory).toHaveBeenCalledWith({
+      tags,
+      selectedTagId: undefined,
+      endMonth: 7,
+      endYear: 2026,
+      currency: 'CHF',
+    });
+  });
+
+  it('preserves the single active tag filter as the dialog selection', () => {
+    const mockStore = createMockStore();
+    const mockDialogService = createMockDialogService();
+    mockStore.budgetDetails.set({
+      id: 'budget-1',
+      month: 6,
+      year: 2026,
+      budgetLines: [],
+      transactions: [],
+    });
+    mockStore.searchText.set('not-found');
+    const fixture = setupComponent(
+      mockStore,
+      mockDialogService,
+      { open: vi.fn() },
+      createMockTagStore(tags),
+    );
+    fixture.componentInstance.selectedTagIds.set([tags[1].id]);
+    fixture.detectChanges();
+
+    fixture.componentInstance['openTagHistoryDialog']();
+
+    expect(mockDialogService.openTagHistory).toHaveBeenCalledWith(
+      expect.objectContaining({ selectedTagId: tags[1].id }),
+    );
   });
 });
 

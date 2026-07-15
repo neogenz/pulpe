@@ -1262,6 +1262,28 @@
     "createError": "Impossible de créer le tag",
     "removeAriaLabel": "Retirer le tag {{ name }}"
   },
+  "tagHistory": {
+    "open": "Évolution",
+    "openAriaLabel": "Voir l'évolution de tes dépenses par tag",
+    "title": "Évolution par tag",
+    "subtitle": "Historique jusqu'au mois {{ month }}/{{ year }}",
+    "tagLabel": "Tag",
+    "periodLabel": "Période",
+    "monthCount": "{{ count }} mois",
+    "loading": "Chargement de ton historique...",
+    "errorTitle": "Impossible de charger l'historique",
+    "errorMessage": "Réessaie dans un instant.",
+    "emptyTitle": "Pas encore de données",
+    "emptyMessage": "Les dépenses avec le tag « {{ tag }} » apparaîtront ici.",
+    "totalActual": "Total réel",
+    "monthlyAverage": "Moyenne mensuelle",
+    "totalPlanned": "Total prévu",
+    "actualToPlanned": "Réel / prévu",
+    "plannedSeries": "Prévu",
+    "actualSeries": "Réel",
+    "chartAria": "Évolution du tag {{ tag }} sur {{ months }} mois. Total réel : {{ total }}. Moyenne mensuelle : {{ average }}.",
+    "chartAriaHidden": "Évolution du tag {{ tag }} sur {{ months }} mois. Les montants sont masqués."
+  },
   "tagIndicator": {
     "ariaLabel": "{{ count }} tags : {{ names }}"
   },

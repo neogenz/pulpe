@@ -93,9 +93,24 @@ import {
             }}
           </p>
         </div>
-        @if (!isMobile()) {
-          <pulpe-budget-view-toggle [(viewMode)]="viewMode" />
-        }
+        <div class="flex shrink-0 items-center gap-1">
+          @if (allUserTags().length > 0) {
+            <button
+              matButton
+              (click)="openTagHistoryDialog()"
+              [attr.aria-label]="'tagHistory.openAriaLabel' | transloco"
+              data-testid="tag-history-open"
+            >
+              <mat-icon>insights</mat-icon>
+              <span class="hidden sm:inline">{{
+                'tagHistory.open' | transloco
+              }}</span>
+            </button>
+          }
+          @if (!isMobile()) {
+            <pulpe-budget-view-toggle [(viewMode)]="viewMode" />
+          }
+        </div>
       </div>
 
       <!-- Search -->
@@ -279,6 +294,12 @@ export class BudgetItemsContainer {
   // consumption figures baked into each row stay correct.
   readonly selectedTagIds = signal<string[]>([]);
   readonly #selectedTagIdSet = computed(() => new Set(this.selectedTagIds()));
+
+  readonly allUserTags = computed(() =>
+    [...(this.#tagStore.tags.value() ?? [])].sort((a, b) =>
+      a.name.localeCompare(b.name),
+    ),
+  );
 
   readonly availableTags = computed(() => {
     const details = this.store.budgetDetails();
@@ -755,6 +776,22 @@ export class BudgetItemsContainer {
         { duration: 5000 },
       );
     }
+  }
+
+  protected openTagHistoryDialog(): void {
+    const budget = this.store.budgetDetails();
+    if (!budget || this.allUserTags().length === 0) return;
+
+    this.#dialogService.openTagHistory({
+      tags: this.allUserTags(),
+      selectedTagId:
+        this.selectedTagIds().length === 1
+          ? this.selectedTagIds()[0]
+          : undefined,
+      endMonth: budget.month,
+      endYear: budget.year,
+      currency: this.currency(),
+    });
   }
 
   async openAddBudgetLineDialog(): Promise<void> {
