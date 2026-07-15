@@ -1,6 +1,6 @@
 ---
 objective: "La PR PUL-186 garantit les versions iOS avec ou sans notes, respecte les conventions backend et iOS, puis obtient une review sans warning."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Corriger les findings de review PUL-186
