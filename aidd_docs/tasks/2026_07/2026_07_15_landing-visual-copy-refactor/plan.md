@@ -1,6 +1,6 @@
 ---
 objective: "La landing Pulpe transpose la structure de conversion, les fonds diffus et la navbar de Borumi dans l'identité Pulpe, avec un copywriting cohérent et un responsive mobile validé."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Refonte visuelle et éditoriale de la landing Pulpe
