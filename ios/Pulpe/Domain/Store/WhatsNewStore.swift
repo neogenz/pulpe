@@ -89,6 +89,9 @@ final class WhatsNewStore {
             isPresented = true
             Logger.app.info("[WHATS_NEW] presenting entries=\(entries.count)")
             AnalyticsService.shared.capture(.iosWhatsNewShown, properties: ["version": currentVersion])
+        } catch let error where error.isCancellationOrURLCancellation {
+            // Lifecycle cancellation is expected; keep the marker untouched so
+            // a later authenticated trigger can retry.
         } catch {
             Logger.app.error("[WHATS_NEW] failed: \(error.localizedDescription, privacy: .public)")
             // Fail open: leave `lastSeenVersion` untouched so the next launch or

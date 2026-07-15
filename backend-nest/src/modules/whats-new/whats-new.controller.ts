@@ -11,11 +11,11 @@ import {
 import { AuthGuard } from '@common/guards/auth.guard';
 import { ErrorResponseDto } from '@common/dto/response.dto';
 import type { WhatsNewResponse } from 'pulpe-shared';
+import { GetIosWhatsNewUseCase } from './application/get-ios-whats-new.use-case';
 import {
   WhatsNewQueryDto,
   WhatsNewResponseDto,
 } from './dto/whats-new-swagger.dto';
-import { buildWhatsNewResponse } from './whats-new-payload';
 
 /**
  * Authenticated iOS release-notes feed. Clients pass their current bundle
@@ -36,6 +36,8 @@ import { buildWhatsNewResponse } from './whats-new-payload';
   type: ErrorResponseDto,
 })
 export class WhatsNewController {
+  constructor(private readonly getIosWhatsNewUseCase: GetIosWhatsNewUseCase) {}
+
   @Get('ios')
   @ApiOperation({
     summary: "Get iOS release notes since the client's last-seen version",
@@ -52,6 +54,6 @@ export class WhatsNewController {
     type: WhatsNewResponseDto,
   })
   getIos(@Query() query: WhatsNewQueryDto): WhatsNewResponse {
-    return buildWhatsNewResponse(query);
+    return this.getIosWhatsNewUseCase.execute(query);
   }
 }
