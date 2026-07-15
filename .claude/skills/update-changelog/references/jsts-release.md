@@ -57,6 +57,7 @@ If any version drifts, stop and investigate before committing — the fixed grou
 ## Files modified
 
 After running `pnpm changeset version`:
+
 - `frontend/package.json`, `landing/package.json`, `backend-nest/package.json`, `shared/package.json` — all bumped to the new product version
 - `frontend/CHANGELOG.md`, `landing/CHANGELOG.md`, `backend-nest/CHANGELOG.md`, `shared/CHANGELOG.md` — new entries appended (entries appear even for packages whose code didn't change — that's fixed mode, it's harmless)
 - `.changeset/<name>.md` — consumed (deleted)
@@ -65,17 +66,18 @@ All must be staged in the release commit, alongside the manually-bumped root `pa
 
 ## Sync Railway `LATEST_WEB_VERSION` (force-update gate)
 
-After bumping the product version, update `LATEST_WEB_VERSION` on Railway in **both** `preview` and `production` environments to the new value. The force-update endpoint (`GET /api/v1/app/version`) serves this value to webapp clients; if it drifts, the soft-update prompt (follow-up) will lie.
+After bumping the product version, record a pending `LATEST_WEB_VERSION` update for Railway in **both** `preview` and `production`. Apply it only in Step 9 after the final external-mutation approval. The force-update endpoint (`GET /api/v1/app/version`) serves this value to webapp clients; if it drifts, the soft-update prompt (follow-up) will lie.
 
-Use the Railway MCP `set-variables` tool — one call per environment:
+Use the Railway integration available to the current agent — one operation per environment with these semantics:
 
 ```
-mcp__Railway__set-variables
-  workspacePath: <repo root>
-  environment: preview     # then repeat with production
-  service: backend
-  skipDeploys: true
-  variables: ["LATEST_WEB_VERSION=<new root version>"]
+workspace: <repo root>
+environment: preview, then production
+service: backend
+skip deploy: true
+variable: LATEST_WEB_VERSION=<new root version>
 ```
+
+If no Railway integration is available, stop before push and report the missing capability. Never omit the update silently or guess an unsupported CLI/MCP command.
 
 > **Never** touch `MIN_WEB_VERSION` from this skill. That value is a deliberate kill switch — only bumped when a release contains a breaking change or critical fix that must force users off old binaries. Always require explicit user confirmation before changing it.

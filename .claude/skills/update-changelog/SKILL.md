@@ -1,7 +1,6 @@
 ---
 name: update-changelog
 description: Unified release workflow that analyzes git changes, bumps the product version, updates the public changelog, and curates platform-specific web and iOS What's New content. Use when the user says "update changelog", "release", "bump versions", "préparer une release", or asks to generate release notes.
-allowed-tools: Read, Edit, Write, Glob, Grep, Bash(git *), Bash(pnpm changeset*), Bash(pnpm quality*), Bash(cd ios && *), Bash(xcodegen *), Bash(gh release*), AskUserQuestion
 ---
 
 # Update Changelog
@@ -15,14 +14,15 @@ Analyze code changes to produce a unified product release with clear, user-focus
 **Critical rules:**
 
 - NEVER apply versions without explicit user approval
-- NEVER push without explicit user approval
+- NEVER mutate Railway, push, tag, or create a GitHub Release without a separate explicit user approval after local validation
 - If changes are ambiguous, ASK — do not guess
 - When uncertain about bump severity, prefer the HIGHER bump
 - After bumping, ALL of: root, frontend, landing, backend-nest, shared MUST show the same version. If they don't, stop.
+- Use the interaction, file-editing, GitHub, and Railway capabilities available in the current agent. Never assume a Claude Code or Codex-specific tool name.
 
 ## Input
 
-Use the user's invocation text as the argument (`$ARGUMENTS` in Claude Code).
+Use the user's invocation text as the argument (`$ARGUMENTS` in Claude Code, the full triggering request in Codex).
 
 | Format                  | Meaning                                                                                        |
 | ----------------------- | ---------------------------------------------------------------------------------------------- |
@@ -182,7 +182,7 @@ Rules for writing notes:
 - Keep an internal scope for every proposed feature/fix (`web`, `ios`, or both), derived from the actual diff and consumers. Do not publish these scope labels.
 - Never assume every note applies to every platform because the release-level `platforms` array contains both. Ask before approval when an item's scope is ambiguous.
 
-Then ask: "Approuves-tu cette proposition ?" → "Oui, appliquer" / "Non, ajuster". Use `AskUserQuestion` in Claude Code; in Codex, use the available user-input mechanism or ask directly.
+Then ask: "Approuves-tu cette proposition ?" → "Oui, appliquer" / "Non, ajuster" using the current agent's available user-input mechanism.
 
 ### Step 5b: Update landing changelog data
 
@@ -258,6 +258,13 @@ The iOS app's "what's new" dialog (PUL-186) is served by `backend-nest/src/modul
 
 Never invent a generic stability or security item to fill the dialog. A marketing release with no meaningful user-facing note must produce no dialog; the backend returns an empty feed and the app records the version silently.
 
+Record exactly one iOS release mode for Step 7:
+
+- `skip` when `SKIP_WHATS_NEW=true`
+- `build` when the approved decision changes only the build number
+- `projection` when a curated backend entry was added
+- `silent` when the marketing version changed without a backend entry
+
 ### Step 5c: Update webapp "What's New" toast
 
 **Skip if `SKIP_WHATS_NEW=true`** (set in the Input section above by `--skip-whats-new`, an equivalent phrase, OR a technical-only signal): do NOT touch the file. The toast won't appear because `LATEST_RELEASE.version` stays at its previous value and won't match `buildInfo.version`.
@@ -323,13 +330,31 @@ Execute ONLY after user confirms.
 
 ### Step 7: Quality check
 
+When `ios/**` changed, validate the exact release outcome from the repository root before running quality. Pass the resulting `MARKETING_VERSION` for every mode:
+
+```bash
+# New marketing version with curated iOS notes
+bun .claude/skills/update-changelog/scripts/validate-ios-release.ts X.Y.Z A.B.C projection
+
+# New marketing version without a relevant dialog
+bun .claude/skills/update-changelog/scripts/validate-ios-release.ts X.Y.Z A.B.C silent
+
+# Build-only release, public changelog kept
+bun .claude/skills/update-changelog/scripts/validate-ios-release.ts X.Y.Z A.B.C build
+
+# Technical-only release, all public What's New surfaces skipped
+bun .claude/skills/update-changelog/scripts/validate-ios-release.ts X.Y.Z A.B.C skip
+```
+
+Use exactly one mode from the decision table in [references/ios-release.md](references/ios-release.md). Stop on any validation error; do not convert it into a warning.
+
 ```bash
 pnpm quality
 ```
 
 Fix issues before proceeding.
 
-### Step 8: Commit and tag
+### Step 8: Stage release files
 
 Stage only release files. Under fixed mode, **all four sub-packages always change** even when only one was named in the changeset, so always stage all of them:
 
@@ -354,12 +379,9 @@ git add frontend/projects/webapp/src/app/layout/whats-new/whats-new-releases.ts
 
 # Only if iOS files changed in this release:
 git add ios/project.yml
-
-git commit -m "chore(release): vX.Y.Z"
-git tag "vX.Y.Z" -m "Release vX.Y.Z"
 ```
 
-Before committing, run `git status` and confirm only the expected files are staged. If anything unrelated landed in the staging area (an unrelated edit you forgot, an untracked file `git add .changeset/` accidentally picked up), unstage it before continuing — release commits should be 100% mechanical.
+Run `git status` and confirm only the expected files are staged. If anything unrelated landed in the staging area (an unrelated edit you forgot, an untracked file `git add .changeset/` accidentally picked up), unstage it before continuing — release commits should be 100% mechanical.
 
 **Notes:**
 
@@ -368,9 +390,21 @@ Before committing, run `git status` and confirm only the expected files are stag
 
 ### Step 9: Push and GitHub release
 
-Ask: "Prêt à pousser sur main avec le tag et créer la release GitHub ?"
+Show the exact pending external changes, then ask: "Prêt à synchroniser Railway, pousser sur main avec le tag et créer la release GitHub ?"
 
 Only after "oui":
+
+1. Confirm that the configured Railway integration is available. If not, stop before committing and report the missing capability; never skip the update silently or invent a command.
+2. Create the local release commit and tag.
+
+   ```bash
+   git commit -m "chore(release): vX.Y.Z"
+   git tag "vX.Y.Z" -m "Release vX.Y.Z"
+   ```
+
+3. Apply the pending `LATEST_WEB_VERSION` update described in [references/jsts-release.md](references/jsts-release.md).
+4. If the iOS marketing version changed, apply the pending `LATEST_IOS_VERSION` update described in [references/ios-release.md](references/ios-release.md).
+5. Push the branch and tag, then create the GitHub Release:
 
 ```bash
 git push origin main
