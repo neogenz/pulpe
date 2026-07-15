@@ -1752,7 +1752,7 @@ export const whatsNewResponseSchema = z.object({
 export type WhatsNewResponse = z.infer<typeof whatsNewResponseSchema>;
 
 export const whatsNewQuerySchema = z.object({
-  currentVersion: z.string().regex(/^\d+\.\d+\.\d+$/),
-  lastSeenVersion: z.string().regex(/^\d+\.\d+\.\d+$/),
+  currentVersion: semverString,
+  lastSeenVersion: semverString,
 });
 export type WhatsNewQuery = z.infer<typeof whatsNewQuerySchema>;
