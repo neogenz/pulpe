@@ -200,7 +200,7 @@ private struct WhatsNewNote: Identifiable {
     ) -> WhatsNewNote {
         guard content.hasPrefix("**") else {
             return WhatsNewNote(
-                id: "\(entryVersion)-\(index)-\(content)",
+                id: "\(entryVersion)-\(index)",
                 title: nil,
                 detail: attributed(content)
             )
@@ -209,7 +209,7 @@ private struct WhatsNewNote: Identifiable {
         let titleStart = content.index(content.startIndex, offsetBy: 2)
         guard let closingMarker = content.range(of: "**", range: titleStart..<content.endIndex) else {
             return WhatsNewNote(
-                id: "\(entryVersion)-\(index)-\(content)",
+                id: "\(entryVersion)-\(index)",
                 title: nil,
                 detail: attributed(content)
             )
@@ -224,7 +224,7 @@ private struct WhatsNewNote: Identifiable {
         }
 
         return WhatsNewNote(
-            id: "\(entryVersion)-\(index)-\(content)",
+            id: "\(entryVersion)-\(index)",
             title: title,
             detail: detail.isEmpty ? nil : attributed(detail)
         )
