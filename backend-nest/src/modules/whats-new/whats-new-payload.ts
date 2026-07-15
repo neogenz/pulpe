@@ -65,9 +65,9 @@ export function buildWhatsNewResponse(
     ) {
       continue;
     }
-    const releases = releasesByIosVersion.get(entry.iosVersion) ?? [];
-    releases.push(entry);
-    releasesByIosVersion.set(entry.iosVersion, releases);
+    const versionReleases = releasesByIosVersion.get(entry.iosVersion) ?? [];
+    versionReleases.push(entry);
+    releasesByIosVersion.set(entry.iosVersion, versionReleases);
   }
 
   const entries = [...releasesByIosVersion.entries()]
