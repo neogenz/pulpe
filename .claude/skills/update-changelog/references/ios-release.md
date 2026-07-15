@@ -7,7 +7,7 @@ The app is **live on the App Store**. `MARKETING_VERSION` (currently `1.0.x`) tr
 - **Build number** (`CURRENT_PROJECT_VERSION`) — increments on **every** release that ships iOS changes. Always.
 - **`MARKETING_VERSION`** — bump only when the release ships **user-facing iOS changes worth a new store version** (patch for fixes, minor for features). Releases that only touch web/backend leave it untouched.
 
-The releaser decides build-only vs. marketing-bump per release. When unsure for a fix-only iOS release, a `build` bump is the safe default.
+The releaser decides build-only vs. marketing-bump per release. Propose `build` when the iOS changes are not user-facing, and include that decision in the release proposal for approval. When unsure for a fix-only iOS release, a `build` bump is the safe default.
 
 Resolve this decision before changelog data is written. A release with a marketing bump records that exact value as `iosVersion` in `landing/data/releases.json`. If at least one item qualifies for the iOS dialog, its backend projection records the same value; if none qualifies, no backend entry is created. A build-only release records no `iosVersion` and cannot trigger the one-shot what's-new dialog because the bundle marketing version did not change.
 
@@ -29,7 +29,7 @@ Exclude:
 - Cosmetic micro-fixes and vague rollups such as "Stabilité iOS".
 - Anything included only to avoid an empty dialog.
 
-Keep at most 4 items. Write a concrete benefit-led title and one short sentence; omit platform suffixes such as `(iOS)` and technical vocabulary. If no item qualifies, leave `backend-nest/src/modules/whats-new/releases-data.ts` unchanged. A new iOS version without release data is valid and must show nothing.
+Keep at most 4 items. Write a concrete benefit-led title and one short sentence; omit platform suffixes such as `(iOS)` and technical vocabulary. If no item qualifies, leave `backend-nest/src/modules/whats-new/domain/releases-data.ts` unchanged. A new iOS version without release data is valid and must show nothing.
 
 ## When to bump iOS
 
@@ -70,7 +70,7 @@ When `MARKETING_VERSION` bumps (i.e. you used `set`, `major`, `minor`, or `patch
 
 Before updating Railway, apply the branch that matches the curated result:
 
-- If an iOS projection exists, verify the same `iosVersion` is present in `landing/data/releases.json` and `backend-nest/src/modules/whats-new/releases-data.ts`. A mismatch means the release is not ready.
+- If an iOS projection exists, verify the same `iosVersion` is present in `landing/data/releases.json` and `backend-nest/src/modules/whats-new/domain/releases-data.ts`. A mismatch means the release is not ready.
 - If no item qualified, verify `landing/data/releases.json` carries the new `iosVersion` and no backend projection was added for it. This intentional absence does not block the Railway update or the release.
 
 Use the Railway MCP `set-variables` tool — one call per environment:

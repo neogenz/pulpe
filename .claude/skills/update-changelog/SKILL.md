@@ -99,11 +99,13 @@ The product version bump is the **highest** across all affected packages:
 
 Compute the **target version** now (e.g. `0.33.1` + minor → `0.34.0`). You'll need it for Step 6.
 
-When `ios/**` contains a user-facing change, also resolve the iOS release decision now, before writing changelog data:
+When `ios/**` changed, resolve the iOS release decision now, before writing changelog data:
 
-1. Read the current `MARKETING_VERSION` from `ios/project.yml`.
-2. Ask the releaser to confirm `build`, `patch`, `minor`, or an explicit target version, following `references/ios-release.md`.
-3. Compute `IOS_MARKETING_VERSION`. Leave it unset for a build-only release.
+1. Read the current `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` from `ios/project.yml`.
+2. Classify whether the release ships a user-facing iOS change worth a new App Store version, following the versioning rules in `references/ios-release.md`.
+3. Propose `build` when it does not. Otherwise propose `patch`, `minor`, or an explicit target version.
+4. Compute the resulting build number and set `IOS_MARKETING_VERSION` to the resulting marketing version. Leave it unset for a build-only release.
+5. Include the iOS decision in the Step 5 release proposal. Do not apply it until the releaser approves that proposal.
 
 The iOS what's-new feed compares bundle marketing versions, not the product version. Never copy the product `X.Y.Z` into `IOS_MARKETING_VERSION`.
 
@@ -119,6 +121,10 @@ Use this exact template for the **proposal** (shown in terminal):
 ### Version proposée
 
 **vX.Y.Z** (MINOR)
+
+### Version iOS proposée (si `ios/**` a changé)
+
+**build** (`1.1.0 (42)` → `1.1.0 (43)`) ou **patch** (`1.1.0 (42)` → `1.1.1 (1)`)
 
 ### Packages impactés
 
@@ -243,7 +249,7 @@ The iOS app's "what's new" dialog (PUL-186) is served by `backend-nest/src/modul
 
 **Procedure:**
 
-1. Read the curation rules in [references/ios-release.md](references/ios-release.md), then read `backend-nest/src/modules/whats-new/releases-data.ts`.
+1. Read the curation rules in [references/ios-release.md](references/ios-release.md), then read `backend-nest/src/modules/whats-new/domain/releases-data.ts`.
 2. Filter the approved "Nouveautés" and "Corrections" using the internal scope from Step 5. Keep only items scoped to `ios` that meet the user-value threshold. Never copy web-only items or the complete mixed-platform release blindly.
 3. Keep at most 4 items total. Prioritize new capabilities, then fixes to frequent/core flows, then visible UX improvements. Ask if the cutoff is ambiguous.
 4. If ZERO items survive, do not modify `releases-data.ts`. State: "Pas de What's New iOS pour cette version." This is expected and safe even when `IOS_MARKETING_VERSION` changed.
@@ -313,7 +319,7 @@ Execute ONLY after user confirms.
 
    In all three cases, end with a fresh sanity check and only continue when all five versions match.
 
-4. **iOS** (only if `ios/**` files changed): Apply the decision already confirmed in Step 4 using [references/ios-release.md](references/ios-release.md). After the command, verify the resulting `MARKETING_VERSION` equals `IOS_MARKETING_VERSION` when that value is set. iOS is intentionally NOT in the Changesets fixed group — Changesets only sees npm packages.
+4. **iOS** (only if `ios/**` files changed): Apply the decision approved in Step 5 using [references/ios-release.md](references/ios-release.md). After the command, verify the resulting `MARKETING_VERSION` equals `IOS_MARKETING_VERSION` when that value is set. iOS is intentionally NOT in the Changesets fixed group — Changesets only sees npm packages.
 
 ### Step 7: Quality check
 
@@ -341,7 +347,7 @@ git add \
 git add landing/data/releases.json
 
 # Only if Step 5b-bis produced an iOS projection:
-git add backend-nest/src/modules/whats-new/releases-data.ts
+git add backend-nest/src/modules/whats-new/domain/releases-data.ts
 
 # Only if Step 5c modified the webapp toast:
 git add frontend/projects/webapp/src/app/layout/whats-new/whats-new-releases.ts
