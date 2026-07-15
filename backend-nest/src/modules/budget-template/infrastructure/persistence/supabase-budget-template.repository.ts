@@ -569,6 +569,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     if (error) {
       this.throwIfTemplateLimitExceeded(error);
       this.throwIfSavingsGoalLinkDenied(error, 'createTemplateWithLines');
+      this.throwIfTagLinkDenied(error, 'createTemplateWithLines');
       throw error;
     }
 
@@ -603,6 +604,21 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     if (isSavingsGoalLinkDenied(error)) {
       throw new BusinessException(
         ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
+        undefined,
+        { operation },
+        { cause: error },
+      );
+    }
+  }
+
+  private throwIfTagLinkDenied(error: unknown, operation: string): void {
+    const { code, message } = (error ?? {}) as {
+      code?: string;
+      message?: string;
+    };
+    if (code === 'P0001' && message?.includes('Tag access denied')) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TAG_NOT_FOUND,
         undefined,
         { operation },
         { cause: error },
@@ -940,6 +956,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       kind: line.kind,
       recurrence: line.recurrence,
       savings_goal_id: line.savingsGoalId ?? null,
+      tag_ids: line.tagIds ?? [],
       description: line.description,
       original_amount: encryptedOriginalAmounts[index],
       original_currency: line.originalCurrency ?? null,

@@ -23,6 +23,8 @@ export const createTemplateLineRpcPayloadSchema = z
     recurrence: transactionRecurrenceSchema,
     // PUL-12 link — null when untagged / non-saving line.
     savings_goal_id: z.string().uuid().nullable().optional(),
+    // PUL-18 links — empty when the API request omits tagIds.
+    tag_ids: z.array(z.string().uuid()),
     description: z.string(),
     original_amount: z.string().min(1).nullable(),
     original_currency: supportedCurrencySchema.nullable(),

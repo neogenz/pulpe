@@ -16,6 +16,7 @@ describe('createTemplateLineRpcPayloadSchema', () => {
     amount: VALID_CIPHERTEXT,
     kind: 'expense' as const,
     recurrence: 'fixed' as const,
+    tag_ids: [],
     description: 'Monthly',
     original_amount: null,
     original_currency: null,
@@ -42,6 +43,17 @@ describe('createTemplateLineRpcPayloadSchema', () => {
 
     expect(result.exchange_rate).toBe(0.94);
     expect(result.original_currency).toBe('EUR');
+  });
+
+  it('should accept owned tag ids in the encrypted RPC payload', () => {
+    const tagId = '8a0f6c80-1234-4e5f-89ab-333333333333';
+
+    const result = createTemplateLineRpcPayloadSchema.parse({
+      ...monoBase,
+      tag_ids: [tagId],
+    });
+
+    expect(result.tag_ids).toEqual([tagId]);
   });
 
   it('should reject extra keys (forged bypass attempt)', () => {
@@ -140,6 +152,7 @@ describe('createTemplateLinesRpcPayloadSchema', () => {
         amount: VALID_CIPHERTEXT,
         kind: 'expense' as const,
         recurrence: 'fixed' as const,
+        tag_ids: [],
         description: '',
         original_amount: null,
         original_currency: null,

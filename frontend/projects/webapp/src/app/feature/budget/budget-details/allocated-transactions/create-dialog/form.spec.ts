@@ -8,6 +8,8 @@ import { setTestInput } from '@app/testing/signal-test-utils';
 import { CurrencyConverterService } from '@core/currency';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
+import { TagStore } from '@core/tag';
+import { createMockTagStore } from '@app/testing/tag-store.mock';
 import type { SupportedCurrency, TransactionCreate } from 'pulpe-shared';
 
 import {
@@ -17,6 +19,7 @@ import {
 
 const TEST_BUDGET_LINE_ID = '11111111-1111-4111-8111-111111111111';
 const TEST_BUDGET_ID = '22222222-2222-4222-8222-222222222222';
+const TEST_TAG_ID = '33333333-3333-4333-8333-333333333333';
 
 const createFormData = (
   overrides: Partial<CreateAllocatedTransactionFormData['budgetLine']> = {},
@@ -59,6 +62,7 @@ const setupForm = (
       provideNativeDateAdapter(),
       ...provideTranslocoForTest(),
       { provide: CurrencyConverterService, useValue: converter },
+      { provide: TagStore, useValue: createMockTagStore() },
     ],
   });
 
@@ -103,6 +107,7 @@ const setupWithCurrency = ({
       { provide: FeatureFlagsService, useValue: flags },
       { provide: UserSettingsStore, useValue: settings },
       { provide: CurrencyConverterService, useValue: converter },
+      { provide: TagStore, useValue: createMockTagStore() },
     ],
   });
 
@@ -185,6 +190,27 @@ describe('CreateAllocatedTransactionForm', () => {
 
       expect(createdSpy).toHaveBeenCalledWith(
         expect.objectContaining({ name: 'Courses' }),
+      );
+    });
+
+    it('should emit the selected tags', async () => {
+      const { component, createdSpy } = setupForm();
+      component['model'].update((model) => ({
+        ...model,
+        name: 'Courses',
+        money: { ...model.money, amount: 20 },
+        transactionDate: new Date(
+          new Date().getFullYear(),
+          new Date().getMonth(),
+          15,
+        ),
+        tagIds: [TEST_TAG_ID],
+      }));
+
+      await component.submit();
+
+      expect(createdSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ tagIds: [TEST_TAG_ID] }),
       );
     });
 

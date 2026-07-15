@@ -328,6 +328,7 @@ describe('SupabaseBudgetTemplateRepository', () => {
             kind: 'income',
             recurrence: 'fixed',
             description: 'monthly',
+            tagIds: [TAG_ONE_ID],
           },
         ],
       });
@@ -348,6 +349,7 @@ describe('SupabaseBudgetTemplateRepository', () => {
             expect.objectContaining({
               name: 'Salaire',
               amount: VALID_CIPHERTEXT,
+              tag_ids: [TAG_ONE_ID],
             }),
           ]),
         }),
@@ -395,6 +397,50 @@ describe('SupabaseBudgetTemplateRepository', () => {
         }),
       ).rejects.toThrow(BusinessException);
       expect(rpc).not.toHaveBeenCalled();
+    });
+
+    it('should map an RPC tag ownership rejection to TAG_NOT_FOUND', async () => {
+      const rpc = jest.fn().mockResolvedValue({
+        data: null,
+        error: { code: 'P0001', message: 'Tag access denied' },
+      });
+      const repo = new SupabaseBudgetTemplateRepository(
+        createMockProvider(() => ({}) as never, rpc as unknown as jest.Mock),
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+      await expect(
+        repo.createTemplateWithLines({
+          userId: 'user-1',
+          name: 'My Template',
+          description: undefined,
+          isDefault: false,
+          lines: [],
+        }),
+      ).rejects.toMatchObject({ code: 'ERR_TAG_NOT_FOUND' });
+    });
+
+    it('should keep savings-goal rejection mapping distinct from tags', async () => {
+      const rpc = jest.fn().mockResolvedValue({
+        data: null,
+        error: { code: 'P0001', message: 'Savings goal access denied' },
+      });
+      const repo = new SupabaseBudgetTemplateRepository(
+        createMockProvider(() => ({}) as never, rpc as unknown as jest.Mock),
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+      await expect(
+        repo.createTemplateWithLines({
+          userId: 'user-1',
+          name: 'My Template',
+          description: undefined,
+          isDefault: false,
+          lines: [],
+        }),
+      ).rejects.toMatchObject({ code: 'ERR_SAVINGS_GOAL_NOT_FOUND' });
     });
   });
 

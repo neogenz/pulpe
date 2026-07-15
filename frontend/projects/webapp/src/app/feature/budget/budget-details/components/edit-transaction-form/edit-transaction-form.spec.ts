@@ -156,6 +156,7 @@ describe('EditTransactionForm', () => {
         name: 'Loyer',
         amount: 1200,
         kind: 'expense',
+        tagIds: [TAG_ID],
       });
       setTestInput(component.transaction, tx);
       fixture.detectChanges();
@@ -163,6 +164,7 @@ describe('EditTransactionForm', () => {
       expect(component['model']().name).toBe('Loyer');
       expect(component['model']().money.amount).toBe(1200);
       expect(component['model']().kind).toBe('expense');
+      expect(component['model']().tagIds).toEqual([TAG_ID]);
     });
   });
 

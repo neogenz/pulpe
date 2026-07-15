@@ -138,7 +138,7 @@ export interface TemplateLineRpcInput {
   kind: TransactionKindEnum;
   recurrence: TransactionRecurrenceEnum;
   description: string;
-  /** PUL-18 — tags handled out-of-band (never sent to the RPC JSONB payload). */
+  /** PUL-18 — tags written atomically with the template and its lines. */
   tagIds?: string[];
 }
 
