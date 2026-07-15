@@ -236,6 +236,46 @@ import { SettingsDialogService } from './settings-dialog.service';
 
       <mat-divider class="my-8!"></mat-divider>
 
+      <!-- ═══ Section: Organisation ═══ -->
+      <section class="grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-8">
+        <div>
+          <h2 class="text-title-medium font-bold mb-2">
+            {{ 'settings.organizationSection' | transloco }}
+          </h2>
+          <p class="text-body-small text-on-surface-variant leading-relaxed">
+            {{ 'settings.organizationDescription' | transloco }}
+          </p>
+        </div>
+
+        <div class="md:col-span-2">
+          <button
+            matButton
+            type="button"
+            class="w-full min-h-16! justify-start! rounded-2xl! border! border-outline-variant! px-5!"
+            data-testid="tags-settings-link"
+            [attr.aria-label]="'settings.tags.open' | transloco"
+            (click)="openTagCatalog()"
+          >
+            <mat-icon class="shrink-0">sell</mat-icon>
+            <span class="flex-1 min-w-0 text-left mx-3">
+              <span class="block text-title-small">
+                {{ 'settings.tags.title' | transloco }}
+              </span>
+              <span
+                class="block text-body-small text-on-surface-variant whitespace-normal"
+              >
+                {{ 'settings.tags.description' | transloco }}
+              </span>
+            </span>
+            <mat-icon class="shrink-0" aria-hidden="true"
+              >chevron_right</mat-icon
+            >
+          </button>
+        </div>
+      </section>
+
+      <mat-divider class="my-8!"></mat-divider>
+
       <!-- ═══ Section: Sécurité ═══ -->
       @if (!isDemoMode()) {
         <section class="grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-12">
@@ -451,6 +491,10 @@ export default class SettingsPage {
 
   onCurrencyChange(value: SupportedCurrency): void {
     this.selectedCurrency.set(value);
+  }
+
+  openTagCatalog(): void {
+    void this.#router.navigate(['/', ROUTES.SETTINGS, ROUTES.SETTINGS_TAGS]);
   }
 
   async saveSettings(): Promise<void> {

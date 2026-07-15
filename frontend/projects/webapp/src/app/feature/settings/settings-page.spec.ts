@@ -19,6 +19,7 @@ import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { CurrencyConverterService } from '@core/currency';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { AnalyticsService } from '@core/analytics';
+import { ROUTES } from '@core/routing';
 
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import SettingsPage from './settings-page';
@@ -49,6 +50,7 @@ describe('SettingsPage', () => {
   };
   let mockDialog: { open: ReturnType<typeof vi.fn> };
   let mockDialogRef: { afterClosed: () => Observable<boolean> };
+  let mockRouter: { navigate: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     mockDialogRef = {
@@ -93,6 +95,10 @@ describe('SettingsPage', () => {
       setPersonProperties: vi.fn(),
     };
 
+    mockRouter = {
+      navigate: vi.fn().mockResolvedValue(true),
+    };
+
     await TestBed.configureTestingModule({
       imports: [SettingsPage],
       providers: [
@@ -107,7 +113,7 @@ describe('SettingsPage', () => {
         { provide: Logger, useValue: mockLogger },
         {
           provide: Router,
-          useValue: { navigate: vi.fn().mockResolvedValue(true) },
+          useValue: mockRouter,
         },
         { provide: AuthSessionService, useValue: mockAuthSession },
         { provide: AuthStore, useValue: mockAuthStore },
@@ -150,6 +156,24 @@ describe('SettingsPage', () => {
     fixture.detectChanges();
     await fixture.whenStable();
   }
+
+  it('should expose an accessible entry to the tag catalog', async () => {
+    const entry = fixture.nativeElement.querySelector(
+      '[data-testid="tags-settings-link"]',
+    ) as HTMLButtonElement;
+
+    expect(entry).not.toBeNull();
+    expect(entry.getAttribute('aria-label')).toBe('Voir mes tags personnels');
+
+    entry.click();
+    await fixture.whenStable();
+
+    expect(mockRouter.navigate).toHaveBeenCalledWith([
+      '/',
+      ROUTES.SETTINGS,
+      ROUTES.SETTINGS_TAGS,
+    ]);
+  });
 
   describe('onDeleteAccount - ApiError handling', () => {
     it('should show network error message when ApiError has status 0', async () => {
