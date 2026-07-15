@@ -269,14 +269,66 @@ describe('SupabaseBudgetTemplateRepository', () => {
   });
 
   describe('updateLine', () => {
-    it('should not update scalar fields when tag replacement fails', async () => {
-      const update = jest.fn();
-      const provider = createMockProvider(
-        () => ({ update }),
-        jest.fn().mockResolvedValue({
-          error: { code: '23503', message: 'FK violation' },
-        }),
+    it('should update scalar fields and tags in one atomic RPC', async () => {
+      const from = jest.fn();
+      const rpc = jest
+        .fn()
+        .mockResolvedValue({ data: mockTemplateLineRow, error: null });
+      const provider = createMockProvider(from, rpc);
+      const repo = new SupabaseBudgetTemplateRepository(
+        provider,
+        createMockEncryption(),
+        createMockLogger(),
       );
+
+      const result = await repo.updateLine('line-1', {
+        name: 'Updated',
+        amount: 4500,
+        tagIds: [TAG_ONE_ID],
+      });
+
+      expect(rpc).toHaveBeenCalledWith('update_template_line_with_tags', {
+        p_template_line_id: 'line-1',
+        p_patch: { amount: VALID_CIPHERTEXT, name: 'Updated' },
+        p_tag_ids: [TAG_ONE_ID],
+      });
+      expect(rpc).toHaveBeenCalledTimes(1);
+      expect(from).not.toHaveBeenCalled();
+      expect(result.tagIds).toEqual([TAG_ONE_ID]);
+    });
+
+    it('should use the same atomic RPC for a tags-only patch', async () => {
+      const from = jest.fn();
+      const rpc = jest
+        .fn()
+        .mockResolvedValue({ data: mockTemplateLineRow, error: null });
+      const provider = createMockProvider(from, rpc);
+      const repo = new SupabaseBudgetTemplateRepository(
+        provider,
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+      const result = await repo.updateLine('line-1', {
+        tagIds: [TAG_ONE_ID],
+      });
+
+      expect(rpc).toHaveBeenCalledWith('update_template_line_with_tags', {
+        p_template_line_id: 'line-1',
+        p_patch: {},
+        p_tag_ids: [TAG_ONE_ID],
+      });
+      expect(from).not.toHaveBeenCalled();
+      expect(result.tagIds).toEqual([TAG_ONE_ID]);
+    });
+
+    it('should not fall back to a scalar update when the atomic RPC rejects a tag', async () => {
+      const from = jest.fn();
+      const rpc = jest.fn().mockResolvedValue({
+        data: null,
+        error: { code: '23503', message: 'FK violation' },
+      });
+      const provider = createMockProvider(from, rpc);
       const repo = new SupabaseBudgetTemplateRepository(
         provider,
         createMockEncryption(),
@@ -292,7 +344,7 @@ describe('SupabaseBudgetTemplateRepository', () => {
         code: 'ERR_TAG_NOT_FOUND',
         loggingContext: { operation: 'updateLine' },
       });
-      expect(update).not.toHaveBeenCalled();
+      expect(from).not.toHaveBeenCalled();
     });
   });
 

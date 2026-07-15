@@ -1,7 +1,11 @@
 import { describe, expect, it, jest } from 'bun:test';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import { fetchTagIds, replaceTagLinks } from './tag-links.util';
+import {
+  fetchTagIds,
+  replaceTagLinks,
+  updateTaggedEntity,
+} from './tag-links.util';
 
 const replaceParams = {
   rpcName: 'replace_transaction_tags' as const,
@@ -45,6 +49,92 @@ describe('replaceTagLinks', () => {
       replaceTagLinks(supabase, replaceParams),
     ).rejects.toMatchObject({
       code: 'ERR_TRANSACTION_UPDATE_FAILED',
+      cause: error,
+    });
+  });
+});
+
+describe('updateTaggedEntity', () => {
+  const params = {
+    rpcName: 'update_budget_line_with_tags' as const,
+    entityId: 'line-1',
+    patch: { name: 'Updated' },
+    tagIds: ['tag-1'],
+    operation: 'updateBudgetLine',
+    entityType: 'budget_line',
+    parentNotFoundMessage: 'Budget line not found',
+    notFoundErrorDef: ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
+    fallbackErrorDef: ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
+    duplicateErrorDef: ERROR_DEFINITIONS.BUDGET_LINE_ALREADY_EXISTS,
+  };
+
+  it('should return the row from the atomic RPC', async () => {
+    const row = { id: 'line-1', name: 'Updated' };
+    const supabase = {
+      rpc: jest.fn().mockResolvedValue({ data: row, error: null }),
+    } as unknown as AuthenticatedSupabaseClient;
+
+    await expect(updateTaggedEntity(supabase, params)).resolves.toEqual(row);
+  });
+
+  it('should map the stable parent error to the entity 404', async () => {
+    const error = { code: 'P0001', message: 'Budget line not found' };
+    const supabase = {
+      rpc: jest.fn().mockResolvedValue({ data: null, error }),
+    } as unknown as AuthenticatedSupabaseClient;
+
+    await expect(updateTaggedEntity(supabase, params)).rejects.toMatchObject({
+      code: 'ERR_BUDGET_LINE_NOT_FOUND',
+      cause: error,
+    });
+  });
+
+  for (const code of ['23503', '42501']) {
+    it(`should map ${code} to TAG_NOT_FOUND`, async () => {
+      const error = { code, message: 'tag rejected' };
+      const supabase = {
+        rpc: jest.fn().mockResolvedValue({ data: null, error }),
+      } as unknown as AuthenticatedSupabaseClient;
+
+      await expect(updateTaggedEntity(supabase, params)).rejects.toMatchObject({
+        code: 'ERR_TAG_NOT_FOUND',
+        cause: error,
+      });
+    });
+  }
+
+  it('should preserve duplicate conflicts', async () => {
+    const error = { code: '23505', message: 'duplicate' };
+    const supabase = {
+      rpc: jest.fn().mockResolvedValue({ data: null, error }),
+    } as unknown as AuthenticatedSupabaseClient;
+
+    await expect(updateTaggedEntity(supabase, params)).rejects.toMatchObject({
+      code: 'ERR_BUDGET_LINE_ALREADY_EXISTS',
+      cause: error,
+    });
+  });
+
+  it('should preserve savings-goal access errors', async () => {
+    const error = { code: 'P0001', message: 'Savings goal access denied' };
+    const supabase = {
+      rpc: jest.fn().mockResolvedValue({ data: null, error }),
+    } as unknown as AuthenticatedSupabaseClient;
+
+    await expect(updateTaggedEntity(supabase, params)).rejects.toMatchObject({
+      code: 'ERR_SAVINGS_GOAL_NOT_FOUND',
+      cause: error,
+    });
+  });
+
+  it('should map unexpected errors to the repository fallback', async () => {
+    const error = { code: '08006', message: 'connection lost' };
+    const supabase = {
+      rpc: jest.fn().mockResolvedValue({ data: null, error }),
+    } as unknown as AuthenticatedSupabaseClient;
+
+    await expect(updateTaggedEntity(supabase, params)).rejects.toMatchObject({
+      code: 'ERR_BUDGET_LINE_UPDATE_FAILED',
       cause: error,
     });
   });

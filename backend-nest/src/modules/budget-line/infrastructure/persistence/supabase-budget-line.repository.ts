@@ -495,12 +495,24 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
   async update(id: string, patch: BudgetLineUpdatePatch): Promise<BudgetLine> {
     const supabase = this.supabaseProvider.client;
     const user = this.supabaseProvider.user;
+    const updateRow = await this.toUpdateRow(patch, user);
 
     if (patch.tagIds !== undefined) {
-      await this.replaceTagLinks(id, patch.tagIds, 'updateBudgetLine');
+      const row = await tagLinks.updateTaggedEntity<BudgetLineRow>(supabase, {
+        rpcName: 'update_budget_line_with_tags',
+        entityId: id,
+        patch: updateRow,
+        tagIds: patch.tagIds,
+        operation: 'updateBudgetLine',
+        entityType: 'budget_line',
+        parentNotFoundMessage: 'Budget line not found',
+        notFoundErrorDef: ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
+        fallbackErrorDef: ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
+        duplicateErrorDef: ERROR_DEFINITIONS.BUDGET_LINE_ALREADY_EXISTS,
+      });
+      const dek = await this.encryption.getDekFor(user);
+      return { ...this.toEntity(row, dek), tagIds: patch.tagIds };
     }
-
-    const updateRow = await this.toUpdateRow(patch, user);
 
     const query = Object.keys(updateRow).length
       ? supabase
@@ -562,11 +574,8 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       );
     }
 
-    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
-    const entity = this.toEntity(row, dek);
-    return patch.tagIds !== undefined
-      ? { ...entity, tagIds: patch.tagIds }
-      : entity;
+    const dek = await this.encryption.getDekFor(user);
+    return this.toEntity(row, dek);
   }
 
   async postpone(

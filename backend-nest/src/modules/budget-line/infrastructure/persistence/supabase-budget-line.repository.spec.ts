@@ -609,14 +609,64 @@ describe('SupabaseBudgetLineRepository', () => {
       }
     });
 
-    it('should not update scalar fields when tag replacement fails', async () => {
-      const update = jest.fn();
-      const provider = createMockProvider(
-        () => ({ update }),
-        jest.fn().mockResolvedValue({
-          error: { code: '23503', message: 'FK violation' },
-        }),
+    it('should update scalar fields and tags in one atomic RPC', async () => {
+      const from = jest.fn();
+      const rpc = jest.fn().mockResolvedValue({ data: mockRow, error: null });
+      const provider = createMockProvider(from, rpc);
+      repo = createRepository(
+        provider,
+        createMockEncryption(),
+        createMockLogger(),
       );
+
+      const result = await repo.update('line-1', {
+        name: 'Updated',
+        amount: 900,
+        tagIds: ['tag-1'],
+      });
+
+      expect(rpc).toHaveBeenCalledWith('update_budget_line_with_tags', {
+        p_budget_line_id: 'line-1',
+        p_patch: {
+          amount: 'encrypted-1200',
+          name: 'Updated',
+          updated_at: expect.any(String),
+        },
+        p_tag_ids: ['tag-1'],
+      });
+      expect(rpc).toHaveBeenCalledTimes(1);
+      expect(from).not.toHaveBeenCalled();
+      expect(result.tagIds).toEqual(['tag-1']);
+    });
+
+    it('should use the same atomic RPC for a tags-only patch', async () => {
+      const from = jest.fn();
+      const rpc = jest.fn().mockResolvedValue({ data: mockRow, error: null });
+      const provider = createMockProvider(from, rpc);
+      repo = createRepository(
+        provider,
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+      const result = await repo.update('line-1', { tagIds: ['tag-1'] });
+
+      expect(rpc).toHaveBeenCalledWith('update_budget_line_with_tags', {
+        p_budget_line_id: 'line-1',
+        p_patch: {},
+        p_tag_ids: ['tag-1'],
+      });
+      expect(from).not.toHaveBeenCalled();
+      expect(result.tagIds).toEqual(['tag-1']);
+    });
+
+    it('should not fall back to a scalar update when the atomic RPC rejects a tag', async () => {
+      const from = jest.fn();
+      const rpc = jest.fn().mockResolvedValue({
+        data: null,
+        error: { code: '23503', message: 'FK violation' },
+      });
+      const provider = createMockProvider(from, rpc);
       repo = createRepository(
         provider,
         createMockEncryption(),
@@ -626,54 +676,22 @@ describe('SupabaseBudgetLineRepository', () => {
       await expect(
         repo.update('line-1', { name: 'Updated', tagIds: ['missing-tag'] }),
       ).rejects.toMatchObject({ code: 'ERR_TAG_NOT_FOUND' });
-      expect(update).not.toHaveBeenCalled();
-    });
-
-    it('should skip the scalar update for a tags-only patch', async () => {
-      const update = jest.fn();
-      const provider = createMockProvider(
-        () => ({
-          update,
-          select: () => ({
-            eq: () => ({
-              single: jest
-                .fn()
-                .mockResolvedValue({ data: mockRow, error: null }),
-            }),
-          }),
-        }),
-        jest.fn().mockResolvedValue({ error: null }),
-      );
-      repo = createRepository(
-        provider,
-        createMockEncryption(),
-        createMockLogger(),
-      );
-
-      const result = await repo.update('line-1', { tagIds: ['tag-1'] });
-
-      expect(update).not.toHaveBeenCalled();
-      expect(result.tagIds).toEqual(['tag-1']);
+      expect(from).not.toHaveBeenCalled();
     });
 
     it('maps the savings-goal link trigger rejection to SAVINGS_GOAL_NOT_FOUND (4xx), not a 500', async () => {
       // Stale picker scenario: the goal was deleted in another tab, the PATCH
       // still carries its id — the DB trigger rejects with P0001.
-      const provider = createMockProvider(() => ({
-        update: () => ({
-          eq: () => ({
-            select: () => ({
-              single: jest.fn().mockResolvedValue({
-                data: null,
-                error: {
-                  code: 'P0001',
-                  message: 'Savings goal access denied',
-                },
-              }),
-            }),
-          }),
+      const provider = createMockProvider(
+        () => ({}),
+        jest.fn().mockResolvedValue({
+          data: null,
+          error: {
+            code: 'P0001',
+            message: 'Savings goal access denied',
+          },
         }),
-      }));
+      );
       repo = createRepository(
         provider,
         createMockEncryption(),
@@ -681,7 +699,10 @@ describe('SupabaseBudgetLineRepository', () => {
       );
 
       try {
-        await repo.update('line-1', { savingsGoalId: 'deleted-goal' });
+        await repo.update('line-1', {
+          savingsGoalId: 'deleted-goal',
+          tagIds: ['tag-1'],
+        });
         throw new Error('expected to throw');
       } catch (error) {
         expect(error).toBeInstanceOf(BusinessException);

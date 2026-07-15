@@ -334,14 +334,64 @@ describe('SupabaseTransactionRepository', () => {
   });
 
   describe('update', () => {
-    it('should not update scalar fields when tag replacement fails', async () => {
-      const update = jest.fn();
-      const provider = createMockProvider(
-        () => ({ update }),
-        jest.fn().mockResolvedValue({
-          error: { code: '23503', message: 'FK violation' },
-        }),
+    it('should update scalar fields and tags in one atomic RPC', async () => {
+      const from = jest.fn();
+      const rpc = jest.fn().mockResolvedValue({ data: mockRow, error: null });
+      const provider = createMockProvider(from, rpc);
+      repo = new SupabaseTransactionRepository(
+        provider,
+        createMockEncryption(),
+        createMockLogger(),
       );
+
+      const result = await repo.update('txn-1', {
+        name: 'Updated',
+        amount: 75,
+        tagIds: ['tag-1'],
+      });
+
+      expect(rpc).toHaveBeenCalledWith('update_transaction_with_tags', {
+        p_transaction_id: 'txn-1',
+        p_patch: {
+          amount: 'encrypted',
+          name: 'Updated',
+          updated_at: expect.any(String),
+        },
+        p_tag_ids: ['tag-1'],
+      });
+      expect(rpc).toHaveBeenCalledTimes(1);
+      expect(from).not.toHaveBeenCalled();
+      expect(result.tagIds).toEqual(['tag-1']);
+    });
+
+    it('should use the same atomic RPC for a tags-only patch', async () => {
+      const from = jest.fn();
+      const rpc = jest.fn().mockResolvedValue({ data: mockRow, error: null });
+      const provider = createMockProvider(from, rpc);
+      repo = new SupabaseTransactionRepository(
+        provider,
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+      const result = await repo.update('txn-1', { tagIds: ['tag-1'] });
+
+      expect(rpc).toHaveBeenCalledWith('update_transaction_with_tags', {
+        p_transaction_id: 'txn-1',
+        p_patch: {},
+        p_tag_ids: ['tag-1'],
+      });
+      expect(from).not.toHaveBeenCalled();
+      expect(result.tagIds).toEqual(['tag-1']);
+    });
+
+    it('should not fall back to a scalar update when the atomic RPC rejects a tag', async () => {
+      const from = jest.fn();
+      const rpc = jest.fn().mockResolvedValue({
+        data: null,
+        error: { code: '23503', message: 'FK violation' },
+      });
+      const provider = createMockProvider(from, rpc);
       repo = new SupabaseTransactionRepository(
         provider,
         createMockEncryption(),
@@ -351,34 +401,7 @@ describe('SupabaseTransactionRepository', () => {
       await expect(
         repo.update('txn-1', { name: 'Updated', tagIds: ['missing-tag'] }),
       ).rejects.toMatchObject({ code: 'ERR_TAG_NOT_FOUND' });
-      expect(update).not.toHaveBeenCalled();
-    });
-
-    it('should skip the scalar update for a tags-only patch', async () => {
-      const update = jest.fn();
-      const provider = createMockProvider(
-        () => ({
-          update,
-          select: () => ({
-            eq: () => ({
-              single: jest
-                .fn()
-                .mockResolvedValue({ data: mockRow, error: null }),
-            }),
-          }),
-        }),
-        jest.fn().mockResolvedValue({ error: null }),
-      );
-      repo = new SupabaseTransactionRepository(
-        provider,
-        createMockEncryption(),
-        createMockLogger(),
-      );
-
-      const result = await repo.update('txn-1', { tagIds: ['tag-1'] });
-
-      expect(update).not.toHaveBeenCalled();
-      expect(result.tagIds).toEqual(['tag-1']);
+      expect(from).not.toHaveBeenCalled();
     });
   });
 

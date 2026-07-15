@@ -12,6 +12,7 @@ import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadat
 import {
   fetchTagIds,
   replaceTagLinks as replaceTagLinksWithRpc,
+  updateTaggedEntity,
 } from '@common/utils/tag-links.util';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { TransactionRepositoryPort } from '../../domain/ports/transaction-repository.port';
@@ -270,12 +271,23 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
   ): Promise<Transaction> {
     const supabase = this.supabaseProvider.client;
     const user = this.supabaseProvider.user;
+    const updateRow = await this.toUpdateRow(patch, user);
 
     if (patch.tagIds !== undefined) {
-      await this.replaceTagLinks(id, patch.tagIds, 'updateTransaction');
+      const row = await updateTaggedEntity<TransactionRow>(supabase, {
+        rpcName: 'update_transaction_with_tags',
+        entityId: id,
+        patch: updateRow,
+        tagIds: patch.tagIds,
+        operation: 'updateTransaction',
+        entityType: 'transaction',
+        parentNotFoundMessage: 'Transaction not found',
+        notFoundErrorDef: ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND,
+        fallbackErrorDef: ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,
+      });
+      const dek = await this.encryption.getDekFor(user);
+      return { ...this.toEntity(row, dek), tagIds: patch.tagIds };
     }
-
-    const updateRow = await this.toUpdateRow(patch, user);
 
     const query = Object.keys(updateRow).length
       ? supabase
@@ -306,11 +318,8 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       );
     }
 
-    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
-    const entity = this.toEntity(row, dek);
-    return patch.tagIds !== undefined
-      ? { ...entity, tagIds: patch.tagIds }
-      : entity;
+    const dek = await this.encryption.getDekFor(user);
+    return this.toEntity(row, dek);
   }
 
   /**

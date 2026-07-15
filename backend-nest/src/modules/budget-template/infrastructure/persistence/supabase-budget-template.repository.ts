@@ -11,7 +11,10 @@ import {
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadata.mapper';
 import { isSavingsGoalLinkDenied } from '@common/utils/savings-goal-link';
-import { replaceTagLinks } from '@common/utils/tag-links.util';
+import {
+  replaceTagLinks,
+  updateTaggedEntity,
+} from '@common/utils/tag-links.util';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type {
   BudgetTemplate,
@@ -373,16 +376,24 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
   ): Promise<TemplateLine> {
     const supabase = this.supabaseProvider.client;
     const user = this.supabaseProvider.user;
-
-    if (patch.tagIds !== undefined) {
-      await this.replaceTemplateLineTags(lineId, patch.tagIds, 'updateLine');
-    }
-
     const updateRow = await this.toTemplateLineUpdateRow(patch, user);
 
-    // A tags-only patch produces an empty scalar update row; skip the PATCH
-    // (empty update is a no-op/error) and read the row instead, so tags can
-    // still be replaced. Embedded junction gives the pre-replace tag set.
+    if (patch.tagIds !== undefined) {
+      const row = await updateTaggedEntity<TemplateLineRow>(supabase, {
+        rpcName: 'update_template_line_with_tags',
+        entityId: lineId,
+        patch: updateRow,
+        tagIds: patch.tagIds,
+        operation: 'updateLine',
+        entityType: 'template_line',
+        parentNotFoundMessage: 'Template line not found',
+        notFoundErrorDef: ERROR_DEFINITIONS.TEMPLATE_LINE_NOT_FOUND,
+        fallbackErrorDef: ERROR_DEFINITIONS.TEMPLATE_LINE_UPDATE_FAILED,
+      });
+      const dek = await this.encryption.getDekFor(user);
+      return { ...this.toTemplateLine(row, dek), tagIds: patch.tagIds };
+    }
+
     const query = Object.keys(updateRow).length
       ? supabase
           .from('template_line')
@@ -416,11 +427,8 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       );
     }
 
-    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
-    const entity = this.toTemplateLine(data, dek);
-    return patch.tagIds !== undefined
-      ? { ...entity, tagIds: patch.tagIds }
-      : entity;
+    const dek = await this.encryption.getDekFor(user);
+    return this.toTemplateLine(data, dek);
   }
 
   async deleteLine(lineId: string): Promise<void> {
