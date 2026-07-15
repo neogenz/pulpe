@@ -49,6 +49,15 @@ const componentSources = {
     new URL("../components/ui/HeroDashboard.tsx", import.meta.url),
     "utf8",
   ),
+  whyFree: readFileSync(
+    new URL("../components/sections/WhyFree.tsx", import.meta.url),
+    "utf8",
+  ),
+  finalCta: readFileSync(
+    new URL("../components/sections/FinalCTA.tsx", import.meta.url),
+    "utf8",
+  ),
+  layout: readFileSync(new URL("./layout.tsx", import.meta.url), "utf8"),
 };
 
 function getDeclarations(selector: string): string {
@@ -176,5 +185,18 @@ describe("landing accessibility contracts", () => {
     assert.match(componentSources.howItWorks, /number: "03"/);
     assert.doesNotMatch(componentSources.howItWorks, /number: "04"/);
     assert.doesNotMatch(componentSources.howItWorks, /IntersectionObserver/);
+  });
+
+  it("keeps final conversion copy factual and aligned with metadata", () => {
+    assert.doesNotMatch(componentSources.finalCta, /Julie|blockquote/);
+    assert.match(componentSources.whyFree, /AES-256-GCM/);
+    assert.match(
+      componentSources.layout,
+      /des mois d’avance ce qu’il te restera/i,
+    );
+    assert.match(
+      componentSources.finalCta,
+      /mois d&apos;avance sur ce qu&apos;il te restera/i,
+    );
   });
 });
