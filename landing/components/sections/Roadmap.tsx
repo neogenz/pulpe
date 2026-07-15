@@ -1,188 +1,123 @@
-import Link from 'next/link'
-import { ArrowRight, Check, Hammer, PackageCheck, Telescope } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
-import type { CSSProperties } from 'react'
-import { Card, FadeIn, Section } from '@/components/ui'
+import Link from "next/link";
+import {
+  ArrowRight,
+  Check,
+  Hammer,
+  PackageCheck,
+  Telescope,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { Section } from "@/components/ui";
 
-type RoadmapStatus = 'shipped' | 'inProgress' | 'next'
+type RoadmapStatus = "shipped" | "inProgress" | "next";
 
-interface RoadmapItem {
-  title: string
-  description: string
+interface RoadmapStage {
+  status: RoadmapStatus;
+  icon: LucideIcon;
+  label: string;
+  items: string[];
 }
 
-interface RoadmapColumn {
-  status: RoadmapStatus
-  icon: LucideIcon
-  label: string
-  items: RoadmapItem[]
-}
-
-const ROADMAP_COLUMNS: RoadmapColumn[] = [
+const ROADMAP: RoadmapStage[] = [
   {
-    status: 'shipped',
+    status: "shipped",
     icon: PackageCheck,
-    label: 'Livré récemment',
+    label: "Livré",
     items: [
-      {
-        title: 'Lissage de dépense',
-        description:
-          'Répartis une grosse dépense — impôts, vacances — sur plusieurs mois, avec le montant à prévoir chaque mois.',
-      },
-      {
-        title: 'Report de dépense',
-        description:
-          'Décale une dépense prévue au mois suivant, sans la supprimer ni la recréer.',
-      },
-      {
-        title: "Objectifs d'épargne",
-        description:
-          'Crée tes objectifs et rattache ton épargne prévue pour savoir où elle va.',
-      },
+      "Lisser une grosse dépense sur plusieurs mois",
+      "Reporter une prévision sans la recréer",
+      "Relier l’épargne à un objectif",
     ],
   },
   {
-    status: 'inProgress',
+    status: "inProgress",
     icon: Hammer,
-    label: 'En cours',
+    label: "En cours",
     items: [
-      {
-        title: 'Épargne guidée',
-        description:
-          "Suivi de progression et ajustement automatique de l'épargne vers ton objectif.",
-      },
-      {
-        title: 'Tags de dépenses',
-        description:
-          'Étiquette tes dépenses pour les retrouver et les regrouper facilement.',
-      },
+      "Suivre la progression de chaque objectif",
+      "Retrouver les dépenses avec des tags",
     ],
   },
   {
-    status: 'next',
+    status: "next",
     icon: Telescope,
-    label: 'À venir',
+    label: "Ensuite",
     items: [
-      {
-        title: 'App Android',
-        description: "La même expérience que sur iPhone, native sur Android.",
-      },
-      {
-        title: 'Pointage optionnel',
-        description:
-          'Pointer chaque dépense deviendra un choix, pas une obligation.',
-      },
+      "Utiliser Pulpe dans une app Android native",
+      "Choisir si une dépense doit être pointée",
     ],
   },
-]
+];
 
-const COLUMN_CARD_BORDER_COLORS: Record<
-  RoadmapStatus,
-  CSSProperties['borderColor']
-> = {
-  shipped: undefined,
-  inProgress: 'rgb(0 110 37 / 0.3)',
-  next: 'rgb(26 28 25 / 0.1)',
-}
+function StatusMarker({ status }: { status: RoadmapStatus }) {
+  if (status === "shipped") {
+    return <Check className="size-3.5 text-primary" aria-hidden="true" />;
+  }
 
-function ItemMarker({ status }: { status: RoadmapStatus }) {
-  if (status === 'shipped') {
+  if (status === "inProgress") {
     return (
-      <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 shrink-0 mt-0.5">
-        <Check className="w-3 h-3 text-primary" strokeWidth={2.5} />
-      </span>
-    )
+      <span
+        className="size-2.5 rounded-full bg-primary motion-safe:animate-pulse"
+        aria-hidden="true"
+      />
+    );
   }
-  if (status === 'inProgress') {
-    return (
-      <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 shrink-0 mt-0.5">
-        <span className="w-2 h-2 rounded-full bg-primary motion-safe:animate-pulse" />
-      </span>
-    )
-  }
+
   return (
-    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-text/5 shrink-0 mt-0.5">
-      <span className="w-2 h-2 rounded-full bg-text/25" />
-    </span>
-  )
+    <span className="size-2.5 rounded-full bg-text/25" aria-hidden="true" />
+  );
 }
 
 export function Roadmap() {
   return (
     <Section id="roadmap">
-      <FadeIn variant="blur">
-        <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-primary text-center mb-4">
-          Roadmap
-        </p>
-        <h2 className="text-3xl md:text-5xl font-bold text-center mb-4 tracking-[-0.02em] balance">
-          Pulpe avance,{' '}
-          <span className="italic font-normal text-primary">
-            mois après mois.
-          </span>
-        </h2>
-        <p className="text-text-secondary text-center mb-14 max-w-xl mx-auto pretty">
-          Ce qui vient d&apos;être livré, ce qui se construit, ce qui arrive
-          ensuite. Sans date promise — le cap compte plus que le calendrier.
-        </p>
-      </FadeIn>
+      <div className="grid gap-10 lg:grid-cols-4 lg:gap-14">
+        <div>
+          <p className="text-sm font-medium text-primary">Roadmap publique</p>
+          <h2 className="mt-3 text-4xl font-bold leading-[1.05] tracking-[-0.035em] sm:text-5xl">
+            Tu sais ce qui bouge.
+          </h2>
+          <p className="mt-5 leading-relaxed text-text-secondary">
+            Le produit avance par bénéfice utile, sans date artificielle.
+          </p>
+          <Link
+            href="/changelog"
+            className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-lg px-1 font-medium text-primary transition-transform duration-200 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transform-none motion-reduce:transition-none"
+          >
+            Voir les nouveautés
+            <ArrowRight className="size-4" aria-hidden="true" />
+          </Link>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-        {ROADMAP_COLUMNS.map((column, index) => (
-          <FadeIn key={column.status} variant="blur" delay={index * 0.1}>
-            <Card
-              variant="organic"
-              className="h-full p-6 lg:p-7"
-              style={{ borderColor: COLUMN_CARD_BORDER_COLORS[column.status] }}
+        <ol className="grid overflow-hidden rounded-[var(--radius-large)] bg-surface shadow-[var(--shadow-organic)] outline outline-1 -outline-offset-1 outline-black/5 md:grid-cols-3 lg:col-span-3">
+          {ROADMAP.map((stage, index) => (
+            <li
+              key={stage.status}
+              className={`p-6 sm:p-8 ${
+                index > 0
+                  ? "border-t border-text/10 md:border-l md:border-t-0"
+                  : ""
+              }`}
             >
-              <div className="flex items-center gap-3 mb-5">
-                <span
-                  className={`flex items-center justify-center w-10 h-10 rounded-xl shrink-0 ${
-                    column.status === 'next' ? 'bg-text/5' : 'bg-primary/10'
-                  }`}
-                >
-                  <column.icon
-                    className={`w-5 h-5 ${
-                      column.status === 'next'
-                        ? 'text-text-secondary'
-                        : 'text-primary'
-                    }`}
-                    strokeWidth={1.5}
-                  />
-                </span>
-                <h3 className="font-semibold text-lg">{column.label}</h3>
+              <div className="flex items-center gap-3">
+                <stage.icon className="size-5 text-primary" strokeWidth={1.7} />
+                <h3 className="font-semibold">{stage.label}</h3>
               </div>
-
-              <ul className="space-y-5">
-                {column.items.map((item) => (
-                  <li key={item.title} className="flex gap-3">
-                    <ItemMarker status={column.status} />
-                    <div>
-                      <p className="font-semibold text-sm text-text mb-0.5">
-                        {item.title}
-                      </p>
-                      <p className="text-text-secondary text-sm leading-relaxed pretty">
-                        {item.description}
-                      </p>
-                    </div>
+              <ul className="mt-6 space-y-4">
+                {stage.items.map((item) => (
+                  <li key={item} className="flex gap-3 text-sm leading-relaxed">
+                    <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                      <StatusMarker status={stage.status} />
+                      <span className="sr-only">Statut : {stage.label}</span>
+                    </span>
+                    <span className="text-text-secondary">{item}</span>
                   </li>
                 ))}
               </ul>
-            </Card>
-          </FadeIn>
-        ))}
+            </li>
+          ))}
+        </ol>
       </div>
-
-      <FadeIn variant="blur" delay={0.4}>
-        <div className="text-center mt-12">
-          <Link
-            href="/changelog"
-            className="inline-flex items-center gap-1.5 text-accent font-medium transition-transform duration-200 [transition-timing-function:var(--ease-spring)] hover:-translate-y-0.5 py-3 px-2 motion-reduce:transition-none motion-reduce:translate-y-0"
-          >
-            Tout le détail dans les nouveautés
-            <ArrowRight className="w-4 h-4" aria-hidden="true" />
-          </Link>
-        </div>
-      </FadeIn>
     </Section>
-  )
+  );
 }
