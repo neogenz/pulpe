@@ -585,15 +585,17 @@ describe('SupabaseBudgetTemplateRepository', () => {
 
       expect(result.affectedBudgetIds).toEqual([]);
       expect(rpc).toHaveBeenCalledWith(
-        'apply_template_line_operations',
-        expect.objectContaining({
-          template_id: 'template-1',
-          budget_ids: [],
-          delete_ids: ['line-1'],
-          updated_lines: [],
-          created_lines: [],
-        }),
+        'apply_template_line_operations_with_tags',
+        {
+          p_template_id: 'template-1',
+          p_budget_ids: [],
+          p_delete_ids: ['line-1'],
+          p_updated_lines: [],
+          p_created_lines: [],
+          p_line_tag_pairs: [],
+        },
       );
+      expect(rpc).toHaveBeenCalledTimes(1);
     });
 
     it('should encrypt amounts on apply RPC lines when propagating', async () => {
@@ -658,9 +660,9 @@ describe('SupabaseBudgetTemplateRepository', () => {
       expect(result.affectedBudgetIds).toEqual(['budget-1']);
       expect(encryption.encryptAmount).toHaveBeenCalled();
       expect(rpc).toHaveBeenCalledWith(
-        'apply_template_line_operations',
+        'apply_template_line_operations_with_tags',
         expect.objectContaining({
-          created_lines: expect.arrayContaining([
+          p_created_lines: expect.arrayContaining([
             expect.objectContaining({
               id: '8a0f6c80-1234-4e5f-89ab-111111111111',
               amount: VALID_CIPHERTEXT,
@@ -670,18 +672,9 @@ describe('SupabaseBudgetTemplateRepository', () => {
       );
     });
 
-    it('should compensate created lines when the bulk tag RPC fails', async () => {
+    it('should map tag failures without issuing a compensation RPC', async () => {
       const tagError = { code: '23503', message: 'FK violation' };
-      const rpc = jest.fn().mockImplementation((name, args) => {
-        if (name === 'apply_template_line_operations') {
-          const isCompensation = args.delete_ids.length > 0;
-          return Promise.resolve({
-            data: isCompensation ? [] : ['budget-1'],
-            error: null,
-          });
-        }
-        return Promise.resolve({ data: null, error: tagError });
-      });
+      const rpc = jest.fn().mockResolvedValue({ data: null, error: tagError });
       const provider = createMockProvider(
         () => ({}) as never,
         rpc as unknown as jest.Mock,
@@ -718,16 +711,21 @@ describe('SupabaseBudgetTemplateRepository', () => {
         loggingContext: { operation: 'bulkApplyTemplateLineOperations' },
       });
 
-      expect(rpc).toHaveBeenNthCalledWith(3, 'apply_template_line_operations', {
-        template_id: 'template-1',
-        budget_ids: ['budget-1'],
-        delete_ids: [LINE_ONE_ID],
-        updated_lines: [],
-        created_lines: [],
-      });
+      expect(rpc).toHaveBeenCalledTimes(1);
+      expect(rpc).toHaveBeenCalledWith(
+        'apply_template_line_operations_with_tags',
+        expect.objectContaining({
+          p_created_lines: expect.arrayContaining([
+            expect.objectContaining({ id: LINE_ONE_ID }),
+          ]),
+          p_line_tag_pairs: [
+            { template_line_id: LINE_ONE_ID, tag_ids: [TAG_ONE_ID] },
+          ],
+        }),
+      );
     });
 
-    it('should replace all tag sets and sync budgets in one RPC call', async () => {
+    it('should send scalar operations and all tag sets in one RPC call', async () => {
       const rpc = jest.fn().mockResolvedValue({ data: [], error: null });
       const provider = createMockProvider(
         () => ({
@@ -760,74 +758,20 @@ describe('SupabaseBudgetTemplateRepository', () => {
         createdLines: [],
       });
 
-      const bulkTagCalls = rpc.mock.calls.filter(
-        ([name]) => name === 'bulk_replace_template_line_tags_and_sync',
-      );
-      expect(bulkTagCalls).toHaveLength(1);
-      expect(bulkTagCalls[0]).toEqual([
-        'bulk_replace_template_line_tags_and_sync',
+      expect(rpc).toHaveBeenCalledTimes(1);
+      expect(rpc).toHaveBeenCalledWith(
+        'apply_template_line_operations_with_tags',
         {
+          p_template_id: 'template-1',
+          p_budget_ids: ['budget-1'],
+          p_delete_ids: [],
+          p_updated_lines: [{ id: LINE_ONE_ID }, { id: LINE_TWO_ID }],
+          p_created_lines: [],
           p_line_tag_pairs: [
             { template_line_id: LINE_ONE_ID, tag_ids: [TAG_ONE_ID] },
             { template_line_id: LINE_TWO_ID, tag_ids: [TAG_TWO_ID] },
           ],
-          p_budget_ids: ['budget-1'],
         },
-      ]);
-    });
-
-    it('should warn when bulk compensation fails and rethrow the tag error', async () => {
-      const tagError = { code: '23503', message: 'FK violation' };
-      const cleanupError = { code: '08006', message: 'connection lost' };
-      const logger = createMockLogger();
-      const rpc = jest.fn().mockImplementation((name, args) => {
-        if (name === 'apply_template_line_operations') {
-          return Promise.resolve({
-            data: args.delete_ids.length ? null : ['budget-1'],
-            error: args.delete_ids.length ? cleanupError : null,
-          });
-        }
-        return Promise.resolve({ data: null, error: tagError });
-      });
-      const provider = createMockProvider(
-        () => ({}) as never,
-        rpc as unknown as jest.Mock,
-      );
-      const repo = new SupabaseBudgetTemplateRepository(
-        provider,
-        createMockEncryption(),
-        logger,
-      );
-
-      await expect(
-        repo.bulkApplyTemplateLineOperations({
-          templateId: 'template-1',
-          budgetIds: ['budget-1'],
-          deleteIds: [],
-          updatedLines: [],
-          createdLines: [
-            {
-              id: LINE_ONE_ID,
-              name: 'Loyer',
-              amount: 1200,
-              originalAmount: null,
-              originalCurrency: null,
-              targetCurrency: null,
-              exchangeRate: null,
-              kind: 'expense',
-              recurrence: 'fixed',
-              tagIds: [TAG_ONE_ID],
-            },
-          ],
-        }),
-      ).rejects.toMatchObject({ code: 'ERR_TAG_NOT_FOUND' });
-      expect(logger.warn).toHaveBeenCalledWith(
-        {
-          operation: 'bulkApplyTemplateLineOperations.compensateTagFailure',
-          entityIds: [LINE_ONE_ID],
-          err: cleanupError,
-        },
-        'Failed to compensate created template lines after tag sync failure',
       );
     });
   });

@@ -634,6 +634,36 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     }
   }
 
+  private throwBulkOperationError(
+    error: { code?: string },
+    taggedLineIds: string[],
+  ): never {
+    const operation = 'bulkApplyTemplateLineOperations';
+    this.throwIfSavingsGoalLinkDenied(error, operation);
+    this.throwIfTagLinkDenied(error, operation);
+
+    const loggingContext = {
+      operation,
+      entityIds: taggedLineIds,
+      entityType: 'template_line',
+      supabaseError: error,
+    };
+    if (error.code === '23503' || error.code === '42501') {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TAG_NOT_FOUND,
+        undefined,
+        { ...loggingContext, entityType: 'template_line_tag' },
+        { cause: error },
+      );
+    }
+    throw new BusinessException(
+      ERROR_DEFINITIONS.TEMPLATE_UPDATE_FAILED,
+      undefined,
+      loggingContext,
+      { cause: error },
+    );
+  }
+
   async bulkApplyTemplateLineOperations(
     input: BulkTemplateLineOperationsInput,
   ): Promise<BulkTemplateLineOperationsRepoResult> {
@@ -658,23 +688,35 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       'bulkApplyTemplateLineOperations.created',
     );
 
+    const taggedLines = [...input.updatedLines, ...input.createdLines].filter(
+      (line) => line.tagIds !== undefined,
+    );
+    const tagPairs = this.parseRpcPayload(
+      bulkReplaceTemplateLineTagsListSchema,
+      taggedLines.map((line) => ({
+        template_line_id: line.id,
+        tag_ids: line.tagIds ?? [],
+      })),
+      'bulkApplyTemplateLineOperations.tags',
+    );
+
     const { data, error } = await supabase.rpc(
-      'apply_template_line_operations',
+      'apply_template_line_operations_with_tags',
       {
-        template_id: input.templateId,
-        budget_ids: input.budgetIds,
-        delete_ids: input.deleteIds,
-        updated_lines: updatedLinesPayload as never,
-        created_lines: createdLinesPayload as never,
+        p_template_id: input.templateId,
+        p_budget_ids: input.budgetIds,
+        p_delete_ids: input.deleteIds,
+        p_updated_lines: updatedLinesPayload,
+        p_created_lines: createdLinesPayload,
+        p_line_tag_pairs: tagPairs,
       },
     );
 
     if (error) {
-      this.throwIfSavingsGoalLinkDenied(
+      this.throwBulkOperationError(
         error,
-        'bulkApplyTemplateLineOperations',
+        taggedLines.map((line) => line.id),
       );
-      throw error;
     }
 
     const affectedBudgetIds = Array.isArray(data)
@@ -688,79 +730,6 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
 
     if (writtenIds.length === 0) {
       return { affectedBudgetIds, updatedLines: [], createdLines: [] };
-    }
-
-    const taggedLines = [...input.updatedLines, ...input.createdLines].filter(
-      (line) => line.tagIds !== undefined,
-    );
-    if (taggedLines.length > 0) {
-      const tagPairs = this.parseRpcPayload(
-        bulkReplaceTemplateLineTagsListSchema,
-        taggedLines.map((line) => ({
-          template_line_id: line.id,
-          tag_ids: line.tagIds ?? [],
-        })),
-        'bulkApplyTemplateLineOperations.tags',
-      );
-      const { error: tagError } = await supabase.rpc(
-        'bulk_replace_template_line_tags_and_sync',
-        {
-          p_line_tag_pairs: tagPairs,
-          p_budget_ids: input.budgetIds,
-        },
-      );
-      if (tagError) {
-        const createdIds = input.createdLines.map((line) => line.id);
-        if (createdIds.length > 0) {
-          const { error: cleanupError } = await supabase.rpc(
-            'apply_template_line_operations',
-            {
-              template_id: input.templateId,
-              budget_ids: input.budgetIds,
-              delete_ids: createdIds,
-              updated_lines: [],
-              created_lines: [],
-            },
-          );
-          if (cleanupError) {
-            this.logger.warn(
-              {
-                operation:
-                  'bulkApplyTemplateLineOperations.compensateTagFailure',
-                entityIds: createdIds,
-                err: cleanupError,
-              },
-              'Failed to compensate created template lines after tag sync failure',
-            );
-          }
-        }
-
-        if (tagError.code === '23503' || tagError.code === '42501') {
-          throw new BusinessException(
-            ERROR_DEFINITIONS.TAG_NOT_FOUND,
-            undefined,
-            {
-              operation: 'bulkApplyTemplateLineOperations',
-              entityIds: taggedLines.map((line) => line.id),
-              entityType: 'template_line_tag',
-              supabaseError: tagError,
-            },
-            { cause: tagError },
-          );
-        }
-
-        throw new BusinessException(
-          ERROR_DEFINITIONS.TEMPLATE_UPDATE_FAILED,
-          undefined,
-          {
-            operation: 'bulkApplyTemplateLineOperations',
-            entityIds: taggedLines.map((line) => line.id),
-            entityType: 'template_line_tag',
-            supabaseError: tagError,
-          },
-          { cause: tagError },
-        );
-      }
     }
 
     const { data: rows, error: fetchError } = await supabase

@@ -167,17 +167,16 @@ export interface TemplateLineRpcUpdate {
   recurrence?: TransactionRecurrenceEnum;
   description?: string;
   /**
-   * PUL-18 — tags handled out-of-band (never sent to the RPC JSONB payload).
-   * On updated lines: present replaces the set, absent leaves untouched.
-   * On created lines: the line's initial tag set.
+   * PUL-18 — tags stay outside the scalar JSONB and travel as dedicated pairs
+   * in the same atomic wrapper. Present replaces the set; absent preserves it.
    */
   tagIds?: string[];
 }
 
 /**
- * Bulk operations input for `apply_template_line_operations`. Both updated and
+ * Bulk operations input for the atomic scalar + tag wrapper. Both updated and
  * created lines are post-insert items with assigned `id`s — repo encrypts
- * amounts internally and validates Zod payload before invoking the RPC.
+ * amounts and separates tagIds before invoking the single transactional RPC.
  */
 export interface BulkTemplateLineOperationsInput {
   templateId: string;

@@ -570,6 +570,17 @@ export type Database = {
         };
         Returns: string[];
       };
+      apply_template_line_operations_with_tags: {
+        Args: {
+          p_budget_ids?: string[];
+          p_created_lines?: Json;
+          p_delete_ids?: string[];
+          p_line_tag_pairs?: Json;
+          p_template_id: string;
+          p_updated_lines?: Json;
+        };
+        Returns: string[];
+      };
       bulk_replace_template_line_tags_and_sync: {
         Args: { p_budget_ids: string[]; p_line_tag_pairs: Json };
         Returns: undefined;
