@@ -1,7 +1,7 @@
 # Review: Correctifs PUL-186 What's New iOS
 
 - **Verdict**: approve
-- **Diff**: `9d177039eb20d10e88a65f1e63a13b4bfc57919d...a7ee909444cc147d3cf1dedc21c76614b118172e`
+- **Diff**: `9d177039eb20d10e88a65f1e63a13b4bfc57919d...37dd523fe8c120c4f12677054e6b54bb41cb5d2a`
 - **Axes run**: code, functional, relevancy
 - **Date**: 2026_07_15
 - **Findings**: 0 critical, 0 warning, 0 minor
@@ -11,7 +11,7 @@
 ### Phase 1 — Fermer les invariants de données et de release
 
 - [x] Une projection backend sans `iosVersion` échoue au type-check — `backend-nest/src/modules/whats-new/releases-data.ts:6`
-- [x] Une version sans note renvoie un feed vide tandis que le dataset projeté complet reste valide — `backend-nest/src/modules/whats-new/whats-new-payload.spec.ts:80`, `backend-nest/src/modules/whats-new/whats-new-payload.spec.ts:150`
+- [x] Une version sans note ou aux métadonnées invalides renvoie un feed vide tandis que le dataset projeté complet reste valide — `backend-nest/src/modules/whats-new/whats-new-payload.spec.ts:71`, `backend-nest/src/modules/whats-new/whats-new-payload.spec.ts:101`
 - [x] La procédure de release autorise une version marketing sans note jusqu'à la synchronisation Railway — `.claude/skills/update-changelog/references/ios-release.md:71`
 - [x] Lorsqu'une note existe, la procédure exige la même `iosVersion` dans les projections landing et backend — `.claude/skills/update-changelog/references/ios-release.md:73`
 
@@ -24,7 +24,7 @@
 
 ### Phase 3 — Prouver le correctif et conclure la PR
 
-- [x] Tests backend/iOS ciblés, architecture, SwiftLint et quality passent sur le commit `a7ee90944` évalué par GitHub — PR `neogenz/pulpe#498`, checks `CI Success`, iOS, unitaires, intégration, E2E et quality verts
+- [x] Tests backend/iOS ciblés, architecture, SwiftLint et quality passent sur le commit `37dd523fe` évalué par GitHub — PR `neogenz/pulpe#498`, checks `CI Success`, iOS, unitaires, intégration, E2E et quality verts
 - [x] La PR est `MERGEABLE/CLEAN` face à la `preview` courante avec 24 checks réussis, 5 ignorés et aucun échec — GitHub PR `neogenz/pulpe#498`
 - [x] Chaque discussion non obsolète contient une correction vérifiée ou une décision motivée ; aucun thread ne reste ouvert — GitHub PR `neogenz/pulpe#498`, 0 thread non résolu et non obsolète
 - [x] La review finale conclut `approve` sans finding critique ni warning — `aidd_docs/tasks/2026_07/2026_07_15_pul_186_review_fixes/review.md:3`
