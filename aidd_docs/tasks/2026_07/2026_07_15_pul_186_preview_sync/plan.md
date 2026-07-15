@@ -1,6 +1,6 @@
 ---
 objective: "La branche PUL-186 est rebasée sur la preview courante, son comportement fail-open est revalidé, et la PR obtient une review sans warning."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Resynchroniser et conclure PUL-186
