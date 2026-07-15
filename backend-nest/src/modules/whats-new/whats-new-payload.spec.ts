@@ -68,6 +68,27 @@ describe('isIosUserFacing', () => {
 });
 
 describe('buildWhatsNewResponse', () => {
+  it('ignores malformed release metadata instead of failing the feed', () => {
+    const malformedRelease: WhatsNewReleaseEntry = {
+      version: '9.9.9',
+      iosVersion: '1.1.0',
+      date: '15/07/2026',
+      platforms: ['ios'],
+      changes: {
+        features: [{ title: 'Feature', description: 'New' }],
+        fixes: [],
+        technical: [],
+      },
+    };
+
+    const response = buildWhatsNewResponse(
+      { currentVersion: '1.1.0', lastSeenVersion: '1.0.4' },
+      [malformedRelease],
+    );
+
+    expect(response.data.entries).toEqual([]);
+  });
+
   it('returns an empty feed when last-seen equals current version', () => {
     const response = buildWhatsNewResponse({
       currentVersion: '1.1.0',

@@ -1,9 +1,15 @@
 import {
+  whatsNewEntrySchema,
   whatsNewResponseSchema,
   type WhatsNewQuery,
   type WhatsNewResponse,
 } from 'pulpe-shared';
 import { RELEASES, type WhatsNewReleaseEntry } from './releases-data';
+
+const releaseMetadataSchema = whatsNewEntrySchema.pick({
+  version: true,
+  publishedAt: true,
+});
 
 /**
  * Compares two 3-part `X.Y.Z` versions numerically, left-to-right.
@@ -31,6 +37,13 @@ export function isIosUserFacing(entry: WhatsNewReleaseEntry): boolean {
   );
 }
 
+function hasValidReleaseMetadata(entry: WhatsNewReleaseEntry): boolean {
+  return releaseMetadataSchema.safeParse({
+    version: entry.iosVersion,
+    publishedAt: entry.date,
+  }).success;
+}
+
 function toBody(entries: WhatsNewReleaseEntry[]): string {
   return entries
     .flatMap((entry) => [...entry.changes.features, ...entry.changes.fixes])
@@ -38,10 +51,14 @@ function toBody(entries: WhatsNewReleaseEntry[]): string {
     .join('\n');
 }
 
-export function buildWhatsNewResponse(query: WhatsNewQuery): WhatsNewResponse {
+export function buildWhatsNewResponse(
+  query: WhatsNewQuery,
+  releases: readonly WhatsNewReleaseEntry[] = RELEASES,
+): WhatsNewResponse {
   const releasesByIosVersion = new Map<string, WhatsNewReleaseEntry[]>();
-  for (const entry of RELEASES) {
+  for (const entry of releases) {
     if (
+      !hasValidReleaseMetadata(entry) ||
       !isIosUserFacing(entry) ||
       compareSemver(entry.iosVersion, query.lastSeenVersion) <= 0 ||
       compareSemver(entry.iosVersion, query.currentVersion) > 0
@@ -55,15 +72,23 @@ export function buildWhatsNewResponse(query: WhatsNewQuery): WhatsNewResponse {
 
   const entries = [...releasesByIosVersion.entries()]
     .sort(([a], [b]) => compareSemver(a, b))
-    .map(([iosVersion, releases]) => ({
-      version: iosVersion,
-      title: `Nouveautés de la version ${iosVersion}`,
-      body: toBody(releases),
-      publishedAt: releases
+    .flatMap(([iosVersion, releases]) => {
+      const publishedAt = releases
         .map((release) => release.date)
         .sort()
-        .at(-1)!,
-    }));
+        .at(-1);
+      if (publishedAt === undefined) {
+        return [];
+      }
+      return [
+        {
+          version: iosVersion,
+          title: `Nouveautés de la version ${iosVersion}`,
+          body: toBody(releases),
+          publishedAt,
+        },
+      ];
+    });
 
   return whatsNewResponseSchema.parse({ success: true, data: { entries } });
 }
