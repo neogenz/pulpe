@@ -45,6 +45,10 @@ const componentSources = {
     new URL("../components/ui/FadeIn.tsx", import.meta.url),
     "utf8",
   ),
+  heroDashboard: readFileSync(
+    new URL("../components/ui/HeroDashboard.tsx", import.meta.url),
+    "utf8",
+  ),
 };
 
 function getDeclarations(selector: string): string {
@@ -90,14 +94,20 @@ describe("landing accessibility contracts", () => {
 
   it("uses consistent press feedback and desktop navigation hit areas", () => {
     assert.doesNotMatch(componentSources.button, /active:scale-\[(?:0\.98)\]/);
-    assert.doesNotMatch(componentSources.header, /active:scale-(?:95|\[0\.98\])/);
+    assert.doesNotMatch(
+      componentSources.header,
+      /active:scale-(?:95|\[0\.98\])/,
+    );
     assert.match(componentSources.button, /active:scale-\[0\.96\]/);
-    assert.match(componentSources.header, /min-h-10/);
+    assert.match(componentSources.header, /min-h-11/);
   });
 
   it("cross-fades both mobile menu icons without unmounting either icon", () => {
     assert.doesNotMatch(componentSources.header, /mobileMenuOpen \? <X/);
-    assert.match(componentSources.header, /scale-\[0\.25\] opacity-0 blur-\[4px\]/);
+    assert.match(
+      componentSources.header,
+      /scale-\[0\.25\] opacity-0 blur-\[4px\]/,
+    );
     assert.match(
       componentSources.header,
       /transition-\[opacity,filter,scale\]/,
@@ -105,20 +115,17 @@ describe("landing accessibility contracts", () => {
   });
 
   it("uses targeted reduced-motion states", () => {
-    assert.doesNotMatch(globalsCss, /(?:animation|transition)-duration:\s*0\.01ms/);
+    assert.doesNotMatch(
+      globalsCss,
+      /(?:animation|transition)-duration:\s*0\.01ms/,
+    );
     assert.match(componentSources.roadmap, /motion-safe:animate-pulse/);
     assert.match(componentSources.howItWorks, /motion-reduce:transition-none/);
   });
 
   it("adds inset neutral outlines to product images", () => {
-    assert.match(
-      componentSources.screenshot,
-      /outline-black\/10/,
-    );
-    assert.match(
-      componentSources.imageLightbox,
-      /outline-white\/10/,
-    );
+    assert.match(componentSources.screenshot, /outline-black\/10/);
+    assert.match(componentSources.imageLightbox, /outline-white\/10/);
   });
 
   it("keeps the mobile navigation non-modal and the page scrollable", () => {
@@ -129,7 +136,10 @@ describe("landing accessibility contracts", () => {
 
   it("does not force pointer focus when the mobile navigation toggles", () => {
     assert.doesNotMatch(componentSources.header, /focusables\[0\]\?\.focus/);
-    assert.doesNotMatch(componentSources.header, /else if \(wasOpen\.current\)/);
+    assert.doesNotMatch(
+      componentSources.header,
+      /else if \(wasOpen\.current\)/,
+    );
   });
 
   it("dismisses the mobile navigation when the page starts scrolling", () => {
@@ -144,10 +154,19 @@ describe("landing accessibility contracts", () => {
     );
   });
 
-  it("clears the blur reveal hidden state before starting its animation", () => {
-    assert.match(
+  it("keeps marketing content and product proof visible by default", () => {
+    assert.doesNotMatch(componentSources.fadeIn, /IntersectionObserver/);
+    assert.doesNotMatch(
       componentSources.fadeIn,
-      /classList\.remove\(['"]js-scroll-hidden['"]\)\s+entry\.target\.classList\.add\(['"]animate-blur-in['"]\)/,
+      /js-scroll-hidden|fade-in-view/,
+    );
+    assert.doesNotMatch(
+      componentSources.heroDashboard,
+      /animate-fade-in-scale/,
+    );
+    assert.doesNotMatch(
+      globalsCss,
+      /feTurbulence|cubic-bezier\(0\.34,\s*1\.56/,
     );
   });
 });

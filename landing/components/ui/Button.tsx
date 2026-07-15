@@ -1,69 +1,80 @@
-import { memo } from 'react'
-import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'react'
-import { cn } from '@/lib/cn'
+import { memo } from "react";
+import type {
+  AnchorHTMLAttributes,
+  ButtonHTMLAttributes,
+  ReactNode,
+} from "react";
+import { cn } from "@/lib/cn";
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'inverse'
+type ButtonVariant = "primary" | "secondary" | "ghost" | "inverse";
 
 type ButtonBaseProps = {
-  variant?: ButtonVariant
-  size?: 'sm' | 'default'
-  glow?: boolean
-  children: ReactNode
-  className?: string
-}
+  variant?: ButtonVariant;
+  size?: "sm" | "default";
+  glow?: boolean;
+  children: ReactNode;
+  className?: string;
+};
 
-type ButtonAsButton = ButtonBaseProps & Omit<ButtonHTMLAttributes<HTMLButtonElement>, keyof ButtonBaseProps> & { href?: never }
-type ButtonAsAnchor = ButtonBaseProps & Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof ButtonBaseProps> & { href: string }
+type ButtonAsButton = ButtonBaseProps &
+  Omit<ButtonHTMLAttributes<HTMLButtonElement>, keyof ButtonBaseProps> & {
+    href?: never;
+  };
+type ButtonAsAnchor = ButtonBaseProps &
+  Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof ButtonBaseProps> & {
+    href: string;
+  };
 
-type ButtonProps = ButtonAsButton | ButtonAsAnchor
+type ButtonProps = ButtonAsButton | ButtonAsAnchor;
 
 const BASE_STYLES =
-  'inline-flex items-center justify-center font-semibold transition-[background-color,color,box-shadow,scale] duration-200 rounded-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 disabled:pointer-events-none [transition-timing-function:var(--ease-spring)] motion-reduce:transition-none motion-reduce:scale-100'
+  "inline-flex items-center justify-center font-semibold transition-[background-color,color,box-shadow,scale,translate] duration-200 rounded-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 disabled:pointer-events-none [transition-timing-function:var(--ease-smooth)] motion-reduce:transition-none motion-reduce:scale-100 motion-reduce:translate-y-0";
 
 const SIZE_STYLES = {
-  sm: 'min-h-[44px] px-4 text-sm',
-  default: 'min-h-[48px] px-5 text-base lg:min-h-[56px] lg:px-8 lg:text-lg whitespace-nowrap',
-} as const
+  sm: "min-h-[44px] px-4 text-sm",
+  default:
+    "min-h-[48px] px-5 text-base lg:min-h-[56px] lg:px-8 lg:text-lg whitespace-nowrap",
+} as const;
 
 const VARIANT_STYLES: Record<ButtonVariant, string> = {
   primary:
-    'bg-primary text-white shadow-[0_4px_14px_rgba(0,110,37,0.4)] active:shadow-[0_2px_8px_rgba(0,110,37,0.3)] active:scale-[0.96] md:shadow-none md:active:shadow-none md:hover:bg-primary-hover md:hover:scale-[1.02]',
+    "bg-primary text-white shadow-[0_4px_14px_rgba(0,110,37,0.28)] active:shadow-[0_2px_8px_rgba(0,110,37,0.24)] active:scale-[0.96] md:hover:-translate-y-0.5 md:hover:bg-primary-hover",
   secondary:
-    'bg-surface text-text border border-text/10 hover:bg-surface-alt hover:scale-[1.02] active:scale-[0.96]',
+    "bg-surface text-text border border-text/10 hover:bg-surface-alt active:scale-[0.96]",
   ghost:
-    'bg-transparent text-primary hover:bg-primary/5 underline-offset-4 hover:underline',
+    "bg-transparent text-primary hover:bg-primary/5 underline-offset-4 hover:underline",
   inverse:
-    'bg-white text-primary shadow-[0_4px_20px_rgba(0,60,20,0.18)] active:scale-[0.96] md:hover:bg-white/90 md:hover:scale-[1.02] md:hover:shadow-[0_0_30px_rgba(255,255,255,0.3)]',
-}
+    "bg-white text-primary shadow-[0_4px_18px_rgba(0,60,20,0.16)] active:scale-[0.96] md:hover:-translate-y-0.5 md:hover:bg-white/90",
+};
 
 export const Button = memo(function Button({
-  variant = 'primary',
-  size = 'default',
+  variant = "primary",
+  size = "default",
   glow = false,
   children,
-  className = '',
+  className = "",
   ...props
 }: ButtonProps) {
   const classes = cn(
     BASE_STYLES,
     SIZE_STYLES[size],
     VARIANT_STYLES[variant],
-    glow && variant === 'primary' && 'glow-primary',
-    className
-  )
+    glow && variant === "primary" && "glow-primary",
+    className,
+  );
 
-  if ('href' in props && props.href) {
-    const { href, ...anchorProps } = props as ButtonAsAnchor
+  if ("href" in props && props.href) {
+    const { href, ...anchorProps } = props as ButtonAsAnchor;
     return (
       <a href={href} className={classes} {...anchorProps}>
         {children}
       </a>
-    )
+    );
   }
 
   return (
     <button className={classes} {...(props as ButtonAsButton)}>
       {children}
     </button>
-  )
-})
+  );
+});
