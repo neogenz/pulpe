@@ -138,6 +138,50 @@ describe('SupabaseTagRepository', () => {
     });
   });
 
+  it('update maps PGRST116 to TAG_NOT_FOUND when the row is absent or hidden by RLS', async () => {
+    const provider = createMockProvider(() => ({
+      update: () => ({
+        eq: () => ({
+          select: () => ({
+            single: jest.fn().mockResolvedValue({
+              data: null,
+              error: { code: 'PGRST116', message: 'JSON object requested' },
+            }),
+          }),
+        }),
+      }),
+    }));
+    const repo = new SupabaseTagRepository(provider);
+
+    await expect(
+      repo.update('missing', { name: 'Voyage' }),
+    ).rejects.toMatchObject({
+      code: ERROR_DEFINITIONS.TAG_NOT_FOUND.code,
+    });
+  });
+
+  it('update maps database errors to TAG_UPDATE_FAILED', async () => {
+    const provider = createMockProvider(() => ({
+      update: () => ({
+        eq: () => ({
+          select: () => ({
+            single: jest.fn().mockResolvedValue({
+              data: null,
+              error: { code: '08006', message: 'connection lost' },
+            }),
+          }),
+        }),
+      }),
+    }));
+    const repo = new SupabaseTagRepository(provider);
+
+    await expect(
+      repo.update('tag-1', { name: 'Voyage' }),
+    ).rejects.toMatchObject({
+      code: ERROR_DEFINITIONS.TAG_UPDATE_FAILED.code,
+    });
+  });
+
   it('update renames and returns the mapped entity', async () => {
     let captured: Record<string, unknown> | undefined;
     const provider = createMockProvider(() => ({
@@ -176,5 +220,16 @@ describe('SupabaseTagRepository', () => {
     await expect(repo.delete('tag-1')).rejects.toMatchObject({
       code: ERROR_DEFINITIONS.TAG_DELETE_FAILED.code,
     });
+  });
+
+  it('delete succeeds idempotently when no visible row exists', async () => {
+    const provider = createMockProvider(() => ({
+      delete: () => ({
+        eq: jest.fn().mockResolvedValue({ error: null }),
+      }),
+    }));
+    const repo = new SupabaseTagRepository(provider);
+
+    await expect(repo.delete('missing')).resolves.toBeUndefined();
   });
 });

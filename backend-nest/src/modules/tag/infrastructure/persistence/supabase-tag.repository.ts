@@ -12,6 +12,7 @@ import type {
 } from '../../domain/tag.entity';
 
 const POSTGRES_UNIQUE_VIOLATION = '23505';
+const POSTGREST_NO_ROWS = 'PGRST116';
 
 @Injectable()
 export class SupabaseTagRepository implements TagRepositoryPort {
@@ -134,6 +135,21 @@ export class SupabaseTagRepository implements TagRepositoryPort {
       );
     }
 
+    if (error?.code === POSTGREST_NO_ROWS || (!error && !data)) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TAG_NOT_FOUND,
+        { id },
+        {
+          operation: 'updateTag',
+          entityId: id,
+          entityType: 'tag',
+          userId: user.id,
+          supabaseError: error,
+        },
+        { cause: error ?? undefined },
+      );
+    }
+
     if (error) {
       throw new BusinessException(
         ERROR_DEFINITIONS.TAG_UPDATE_FAILED,
@@ -146,19 +162,6 @@ export class SupabaseTagRepository implements TagRepositoryPort {
           supabaseError: error,
         },
         { cause: error },
-      );
-    }
-
-    if (!data) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.TAG_NOT_FOUND,
-        { id },
-        {
-          operation: 'updateTag',
-          entityId: id,
-          entityType: 'tag',
-          userId: user.id,
-        },
       );
     }
 

@@ -82,6 +82,29 @@ describe('TagPicker', () => {
     expect(model().tagIds).toEqual(['tag-9']);
   });
 
+  it('should not attach a created tag when the selection reaches the limit while creation is pending', async () => {
+    setup([], []);
+    let resolveCreation: ((tag: Tag) => void) | undefined;
+    tagStore.addTag.mockReturnValue(
+      new Promise<Tag>((resolve) => {
+        resolveCreation = resolve;
+      }),
+    );
+
+    const selection = component['onOptionSelected']({
+      option: { value: { type: 'create', name: 'Santé' } },
+    } as MatAutocompleteSelectedEvent);
+    const fullSelection = Array.from(
+      { length: 10 },
+      (_, index) => `tag-${index}`,
+    );
+    model.set({ tagIds: fullSelection });
+    resolveCreation?.(makeTag('tag-10', 'Santé'));
+    await selection;
+
+    expect(model().tagIds).toEqual(fullSelection);
+  });
+
   it('should offer a create suggestion for a query with no exact match', () => {
     setup([], [makeTag('tag-1', 'Courses')]);
     component['query'].set('Santé');

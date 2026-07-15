@@ -44,9 +44,16 @@ describe('TagStore', () => {
   let mockApi: Partial<TagApi>;
 
   beforeEach(() => {
+    mockCache.version.set(0);
+    mockCache._dataVersion.set(0);
     mockCache.get.mockReturnValue(null);
     mockCache.set.mockClear();
     mockCache.invalidate.mockClear();
+    mockCache.clear.mockReset();
+    mockCache.clear.mockImplementation(() => {
+      mockCache.version.update((version) => version + 1);
+      mockCache._dataVersion.update((version) => version + 1);
+    });
     mockCache.deduplicate.mockImplementation(
       (_key: string[], fn: () => Promise<unknown>) => fn(),
     );
@@ -81,6 +88,28 @@ describe('TagStore', () => {
 
       expect(store.tagNameById().get('tag-1')).toBe('Courses');
       expect(store.tagNameById().get('tag-2')).toBe('Loisirs');
+    });
+
+    it('should reload the root resource after the tags cache is cleared', async () => {
+      await settle();
+      const nextSessionTags = [
+        {
+          ...mockTags[0],
+          id: 'tag-session-b',
+          userId: 'user-2',
+          name: 'Session B',
+        },
+      ];
+      vi.mocked(mockApi.getAll$!).mockReturnValue(
+        of({ data: nextSessionTags, success: true }),
+      );
+
+      mockCache.clear();
+      await settle();
+
+      expect(mockApi.getAll$).toHaveBeenCalledTimes(2);
+      expect(store.tags.value()).toEqual(nextSessionTags);
+      expect(store.tagNameById().has('tag-1')).toBe(false);
     });
   });
 

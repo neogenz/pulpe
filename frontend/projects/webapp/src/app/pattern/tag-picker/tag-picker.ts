@@ -195,7 +195,9 @@ export class TagPicker {
 
   #attach(id: string): void {
     const current = this.selectedIds();
-    if (current.includes(id)) return;
+    if (current.includes(id) || current.length >= MAX_TAGS_PER_TRANSACTION) {
+      return;
+    }
     this.control()().value.set([...current, id]);
   }
 
