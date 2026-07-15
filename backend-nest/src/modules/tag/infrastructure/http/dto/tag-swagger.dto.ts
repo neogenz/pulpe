@@ -4,6 +4,8 @@ import {
   tagUpdateSchema,
   tagResponseSchema,
   tagListResponseSchema,
+  tagHistoryQuerySchema,
+  tagHistoryResponseSchema,
   tagDeleteResponseSchema,
 } from 'pulpe-shared';
 
@@ -12,6 +14,10 @@ export class TagCreateDto extends createZodDto(tagCreateSchema) {}
 export class TagUpdateDto extends createZodDto(tagUpdateSchema) {}
 export class TagResponseDto extends createZodDto(tagResponseSchema) {}
 export class TagListResponseDto extends createZodDto(tagListResponseSchema) {}
+export class TagHistoryQueryDto extends createZodDto(tagHistoryQuerySchema) {}
+export class TagHistoryResponseDto extends createZodDto(
+  tagHistoryResponseSchema,
+) {}
 export class TagDeleteResponseDto extends createZodDto(
   tagDeleteResponseSchema,
 ) {}

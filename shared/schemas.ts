@@ -338,6 +338,36 @@ export type TagCreate = z.infer<typeof tagCreateSchema>;
 export const tagUpdateSchema = tagCreateSchema.partial();
 export type TagUpdate = z.infer<typeof tagUpdateSchema>;
 
+export const tagHistoryMonthsSchema = z.coerce
+  .number()
+  .pipe(z.union([z.literal(3), z.literal(6), z.literal(12), z.literal(24)]));
+export type TagHistoryMonths = z.infer<typeof tagHistoryMonthsSchema>;
+
+export const tagHistoryQuerySchema = z.strictObject({
+  months: tagHistoryMonthsSchema,
+  endMonth: z.coerce.number().int().min(MONTH_MIN).max(MONTH_MAX),
+  endYear: z.coerce.number().int().min(MIN_YEAR).max(MAX_YEAR),
+});
+export type TagHistoryQuery = z.infer<typeof tagHistoryQuerySchema>;
+
+export const tagHistoryMonthSchema = z.object({
+  month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
+  year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
+  plannedAmount: z.number().finite().nonnegative(),
+  actualAmount: z.number().finite().nonnegative(),
+});
+export type TagHistoryMonth = z.infer<typeof tagHistoryMonthSchema>;
+
+export const tagHistorySchema = z.object({
+  tagId: z.uuid(),
+  periods: z.array(tagHistoryMonthSchema),
+  totalPlanned: z.number().finite().nonnegative(),
+  totalActual: z.number().finite().nonnegative(),
+  monthlyAverageActual: z.number().finite().nonnegative(),
+  actualToPlannedPercent: z.number().finite().nonnegative().nullable(),
+});
+export type TagHistory = z.infer<typeof tagHistorySchema>;
+
 /**
  * SAVINGS GOAL PROGRESS - Progression d'un objectif (PUL-8)
  *
@@ -1547,6 +1577,19 @@ export type SavingsGoalDeleteResponse = z.infer<
   typeof savingsGoalDeleteResponseSchema
 >;
 
+// Tag response schemas (PUL-18)
+export const tagResponseSchema = createSuccessResponse(tagSchema);
+export type TagResponse = z.infer<typeof tagResponseSchema>;
+
+export const tagListResponseSchema = createListResponse(tagSchema);
+export type TagListResponse = z.infer<typeof tagListResponseSchema>;
+
+export const tagHistoryResponseSchema = createSuccessResponse(tagHistorySchema);
+export type TagHistoryResponse = z.infer<typeof tagHistoryResponseSchema>;
+
+export const tagDeleteResponseSchema = deleteResponseSchema;
+export type TagDeleteResponse = z.infer<typeof tagDeleteResponseSchema>;
+
 export const savingsGoalProgressResponseSchema = createSuccessResponse(
   savingsGoalProgressSchema,
 );
@@ -1592,16 +1635,6 @@ export const savingsGoalPlanApplyResponseSchema = createSuccessResponse(
 export type SavingsGoalPlanApplyResponse = z.infer<
   typeof savingsGoalPlanApplyResponseSchema
 >;
-
-// Tag response schemas (PUL-18)
-export const tagResponseSchema = createSuccessResponse(tagSchema);
-export type TagResponse = z.infer<typeof tagResponseSchema>;
-
-export const tagListResponseSchema = createListResponse(tagSchema);
-export type TagListResponse = z.infer<typeof tagListResponseSchema>;
-
-export const tagDeleteResponseSchema = deleteResponseSchema;
-export type TagDeleteResponse = z.infer<typeof tagDeleteResponseSchema>;
 
 // Budget Line response schemas
 export const budgetLineResponseSchema = createSuccessResponse(budgetLineSchema);

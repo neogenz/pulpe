@@ -7,6 +7,7 @@ import type { TagRow } from '../../domain/tag.entity';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import type { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
+import type { EncryptionPort } from '@modules/encryption/domain/ports/encryption.port';
 
 const mockUser: AuthenticatedUser = {
   id: 'user-1',
@@ -37,6 +38,11 @@ function createMockProvider(
   } as unknown as AuthenticatedSupabaseProvider;
 }
 
+const encryption = {
+  getDekFor: jest.fn().mockResolvedValue(Buffer.alloc(32)),
+  decryptAmount: jest.fn((ciphertext: string) => Number(ciphertext.slice(4))),
+} as unknown as EncryptionPort;
+
 describe('SupabaseTagRepository', () => {
   it('findAll returns mapped camelCase entities ordered by name', async () => {
     const provider = createMockProvider(() => ({
@@ -44,7 +50,7 @@ describe('SupabaseTagRepository', () => {
         order: jest.fn().mockResolvedValue({ data: [mockRow], error: null }),
       }),
     }));
-    const repo = new SupabaseTagRepository(provider);
+    const repo = new SupabaseTagRepository(provider, encryption);
 
     const result = await repo.findAll();
 
@@ -69,7 +75,7 @@ describe('SupabaseTagRepository', () => {
         }),
       }),
     }));
-    const repo = new SupabaseTagRepository(provider);
+    const repo = new SupabaseTagRepository(provider, encryption);
 
     await expect(repo.findById('missing')).rejects.toThrow(BusinessException);
     await expect(repo.findById('missing')).rejects.toMatchObject({
@@ -89,7 +95,7 @@ describe('SupabaseTagRepository', () => {
         };
       },
     }));
-    const repo = new SupabaseTagRepository(provider);
+    const repo = new SupabaseTagRepository(provider, encryption);
 
     const result = await repo.insert({ name: 'Voyage' });
 
@@ -109,7 +115,7 @@ describe('SupabaseTagRepository', () => {
         }),
       }),
     }));
-    const repo = new SupabaseTagRepository(provider);
+    const repo = new SupabaseTagRepository(provider, encryption);
 
     await expect(repo.insert({ name: 'Voyage' })).rejects.toMatchObject({
       code: ERROR_DEFINITIONS.TAG_ALREADY_EXISTS.code,
@@ -129,7 +135,7 @@ describe('SupabaseTagRepository', () => {
         }),
       }),
     }));
-    const repo = new SupabaseTagRepository(provider);
+    const repo = new SupabaseTagRepository(provider, encryption);
 
     await expect(
       repo.update('tag-1', { name: 'Voyage' }),
@@ -151,7 +157,7 @@ describe('SupabaseTagRepository', () => {
         }),
       }),
     }));
-    const repo = new SupabaseTagRepository(provider);
+    const repo = new SupabaseTagRepository(provider, encryption);
 
     await expect(
       repo.update('missing', { name: 'Voyage' }),
@@ -173,7 +179,7 @@ describe('SupabaseTagRepository', () => {
         }),
       }),
     }));
-    const repo = new SupabaseTagRepository(provider);
+    const repo = new SupabaseTagRepository(provider, encryption);
 
     await expect(
       repo.update('tag-1', { name: 'Voyage' }),
@@ -199,7 +205,7 @@ describe('SupabaseTagRepository', () => {
         };
       },
     }));
-    const repo = new SupabaseTagRepository(provider);
+    const repo = new SupabaseTagRepository(provider, encryption);
 
     const result = await repo.update('tag-1', { name: 'Santé' });
 
@@ -215,7 +221,7 @@ describe('SupabaseTagRepository', () => {
           .mockResolvedValue({ error: { message: 'connection lost' } }),
       }),
     }));
-    const repo = new SupabaseTagRepository(provider);
+    const repo = new SupabaseTagRepository(provider, encryption);
 
     await expect(repo.delete('tag-1')).rejects.toMatchObject({
       code: ERROR_DEFINITIONS.TAG_DELETE_FAILED.code,
@@ -228,8 +234,78 @@ describe('SupabaseTagRepository', () => {
         eq: jest.fn().mockResolvedValue({ error: null }),
       }),
     }));
-    const repo = new SupabaseTagRepository(provider);
+    const repo = new SupabaseTagRepository(provider, encryption);
 
     await expect(repo.delete('missing')).resolves.toBeUndefined();
+  });
+
+  it('findHistoryContributions decrypts direct expense links in the requested periods', async () => {
+    const historyResult = (data: unknown[]) => ({
+      select: () => ({
+        eq: () => ({
+          in: () => ({
+            eq: jest.fn().mockResolvedValue({ data, error: null }),
+          }),
+        }),
+      }),
+    });
+    const provider = createMockProvider((table) => {
+      if (table === 'monthly_budget') {
+        return {
+          select: () => ({
+            gte: () => ({
+              lte: jest.fn().mockResolvedValue({
+                data: [
+                  { id: 'budget-1', month: 12, year: 2026 },
+                  { id: 'budget-2', month: 1, year: 2027 },
+                  { id: 'outside', month: 2, year: 2027 },
+                ],
+                error: null,
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === 'budget_line_tag') {
+        return historyResult([
+          {
+            budget_line: {
+              amount: 'enc:100',
+              budget_id: 'budget-1',
+              kind: 'expense',
+            },
+          },
+          {
+            budget_line: {
+              amount: 'enc:999',
+              budget_id: 'budget-1',
+              kind: 'income',
+            },
+          },
+        ]);
+      }
+      return historyResult([
+        {
+          transaction: {
+            amount: 'enc:75',
+            budget_id: 'budget-2',
+            kind: 'expense',
+          },
+        },
+      ]);
+    });
+    const repo = new SupabaseTagRepository(provider, encryption);
+
+    const result = await repo.findHistoryContributions(
+      'tag-1',
+      { month: 12, year: 2026 },
+      { month: 1, year: 2027 },
+    );
+
+    expect(result).toEqual({
+      planned: [{ month: 12, year: 2026, amount: 100 }],
+      actual: [{ month: 1, year: 2027, amount: 75 }],
+    });
+    expect(encryption.decryptAmount).toHaveBeenCalledTimes(2);
   });
 });

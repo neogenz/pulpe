@@ -31,3 +31,30 @@ export interface TagCreateInput {
 export interface TagUpdatePatch {
   name?: string;
 }
+
+export interface TagHistoryContribution {
+  month: number;
+  year: number;
+  amount: number;
+}
+
+export interface TagHistoryContributions {
+  planned: TagHistoryContribution[];
+  actual: TagHistoryContribution[];
+}
+
+export interface TagHistoryMonth {
+  month: number;
+  year: number;
+  plannedAmount: number;
+  actualAmount: number;
+}
+
+export interface TagHistory {
+  tagId: string;
+  periods: TagHistoryMonth[];
+  totalPlanned: number;
+  totalActual: number;
+  monthlyAverageActual: number;
+  actualToPlannedPercent: number | null;
+}

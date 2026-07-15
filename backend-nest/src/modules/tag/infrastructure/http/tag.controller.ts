@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -14,6 +15,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiQuery,
   ApiUnauthorizedResponse,
   ApiInternalServerErrorResponse,
 } from '@nestjs/swagger';
@@ -21,6 +23,7 @@ import {
   type TagResponse,
   type TagListResponse,
   type TagDeleteResponse,
+  type TagHistoryResponse,
 } from 'pulpe-shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
@@ -33,6 +36,8 @@ import {
   TagUpdateDto,
   TagResponseDto,
   TagListResponseDto,
+  TagHistoryQueryDto,
+  TagHistoryResponseDto,
   TagDeleteResponseDto,
 } from './dto/tag-swagger.dto';
 import { FindAllTagsUseCase } from '../../application/find-all-tags.use-case';
@@ -40,6 +45,7 @@ import { FindTagUseCase } from '../../application/find-tag.use-case';
 import { CreateTagUseCase } from '../../application/create-tag.use-case';
 import { UpdateTagUseCase } from '../../application/update-tag.use-case';
 import { RemoveTagUseCase } from '../../application/remove-tag.use-case';
+import { GetTagHistoryUseCase } from '../../application/get-tag-history.use-case';
 import { TagMapper } from '../mappers/tag.mapper';
 
 @ApiTags('Tags')
@@ -61,6 +67,7 @@ export class TagController {
     private readonly createUseCase: CreateTagUseCase,
     private readonly updateUseCase: UpdateTagUseCase,
     private readonly removeUseCase: RemoveTagUseCase,
+    private readonly historyUseCase: GetTagHistoryUseCase,
     private readonly mapper: TagMapper,
   ) {}
 
@@ -89,6 +96,26 @@ export class TagController {
   ): Promise<TagResponse> {
     const entity = await this.createUseCase.execute(createDto, user);
     return { success: true, data: this.mapper.toApi(entity) };
+  }
+
+  @Get(':id/history')
+  @ApiOperation({ summary: "Récupère l'évolution mensuelle d'un tag" })
+  @ApiParam({ name: 'id', description: 'Identifiant unique du tag' })
+  @ApiQuery({ name: 'months', enum: [3, 6, 12, 24], type: Number })
+  @ApiQuery({ name: 'endMonth', minimum: 1, maximum: 12, type: Number })
+  @ApiQuery({ name: 'endYear', type: Number })
+  @ApiResponse({
+    status: 200,
+    description: 'Historique du tag récupéré avec succès',
+    type: TagHistoryResponseDto,
+  })
+  async history(
+    @Param('id') id: string,
+    @Query() query: TagHistoryQueryDto,
+    @User() user: AuthenticatedUser,
+  ): Promise<TagHistoryResponse> {
+    const history = await this.historyUseCase.execute(id, query, user);
+    return { success: true, data: this.mapper.toHistoryApi(history) };
   }
 
   @Get(':id')

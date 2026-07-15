@@ -1,11 +1,19 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import type { Buffer } from 'node:buffer';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
+import {
+  ENCRYPTION_PORT,
+  type EncryptionPort,
+} from '@modules/encryption/domain/ports/encryption.port';
+import { periodIndex, type BudgetPeriod } from 'pulpe-shared';
 import type { TagRepositoryPort } from '../../domain/ports/tag-repository.port';
 import type {
   Tag,
   TagCreateInput,
+  TagHistoryContribution,
+  TagHistoryContributions,
   TagInsert,
   TagRow,
   TagUpdatePatch,
@@ -14,10 +22,31 @@ import type {
 const POSTGRES_UNIQUE_VIOLATION = '23505';
 const POSTGREST_NO_ROWS = 'PGRST116';
 
+interface HistoryBudgetRow {
+  id: string;
+  month: number;
+  year: number;
+}
+
+interface TaggedAmountRow {
+  amount: string;
+  budget_id: string;
+  kind: string;
+}
+
+interface BudgetLineTagHistoryRow {
+  budget_line: TaggedAmountRow | null;
+}
+
+interface TransactionTagHistoryRow {
+  transaction: TaggedAmountRow | null;
+}
+
 @Injectable()
 export class SupabaseTagRepository implements TagRepositoryPort {
   constructor(
     private readonly supabaseProvider: AuthenticatedSupabaseProvider,
+    @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
   ) {}
 
   async findAll(): Promise<Tag[]> {
@@ -65,6 +94,54 @@ export class SupabaseTagRepository implements TagRepositoryPort {
     }
 
     return this.toEntity(data);
+  }
+
+  async findHistoryContributions(
+    id: string,
+    startPeriod: BudgetPeriod,
+    endPeriod: BudgetPeriod,
+  ): Promise<TagHistoryContributions> {
+    const budgets = await this.findHistoryBudgets(id, startPeriod, endPeriod);
+    if (!budgets.length) return { planned: [], actual: [] };
+
+    const budgetIds = budgets.map((budget) => budget.id);
+    const supabase = this.supabaseProvider.client;
+    const [plannedResult, actualResult] = await Promise.all([
+      supabase
+        .from('budget_line_tag')
+        .select('budget_line!inner(amount, kind, budget_id)')
+        .eq('tag_id', id)
+        .in('budget_line.budget_id', budgetIds)
+        .eq('budget_line.kind', 'expense'),
+      supabase
+        .from('transaction_tag')
+        .select('transaction!inner(amount, kind, budget_id)')
+        .eq('tag_id', id)
+        .in('transaction.budget_id', budgetIds)
+        .eq('transaction.kind', 'expense'),
+    ]);
+
+    const historyError = plannedResult.error ?? actualResult.error;
+    if (historyError) throw this.historyFetchError(id, historyError);
+
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    const periodsByBudgetId = new Map(
+      budgets.map((budget) => [budget.id, budget]),
+    );
+    return {
+      planned: this.toHistoryContributions(
+        (plannedResult.data ?? []) as unknown as BudgetLineTagHistoryRow[],
+        'budget_line',
+        periodsByBudgetId,
+        dek,
+      ),
+      actual: this.toHistoryContributions(
+        (actualResult.data ?? []) as unknown as TransactionTagHistoryRow[],
+        'transaction',
+        periodsByBudgetId,
+        dek,
+      ),
+    };
   }
 
   async insert(input: TagCreateInput): Promise<Tag> {
@@ -185,6 +262,63 @@ export class SupabaseTagRepository implements TagRepositoryPort {
         { cause: error },
       );
     }
+  }
+
+  private async findHistoryBudgets(
+    tagId: string,
+    startPeriod: BudgetPeriod,
+    endPeriod: BudgetPeriod,
+  ): Promise<HistoryBudgetRow[]> {
+    const { data, error } = await this.supabaseProvider.client
+      .from('monthly_budget')
+      .select('id, month, year')
+      .gte('year', startPeriod.year)
+      .lte('year', endPeriod.year);
+
+    if (error) throw this.historyFetchError(tagId, error);
+
+    const startIndex = periodIndex(startPeriod);
+    const endIndex = periodIndex(endPeriod);
+    return ((data ?? []) as HistoryBudgetRow[]).filter((budget) => {
+      const index = periodIndex(budget);
+      return index >= startIndex && index <= endIndex;
+    });
+  }
+
+  private toHistoryContributions<K extends 'budget_line' | 'transaction'>(
+    rows: Array<Record<K, TaggedAmountRow | null>>,
+    relation: K,
+    periodsByBudgetId: Map<string, HistoryBudgetRow>,
+    dek: Buffer,
+  ): TagHistoryContribution[] {
+    const contributions: TagHistoryContribution[] = [];
+    for (const row of rows) {
+      const amountRow = row[relation];
+      const period = amountRow
+        ? periodsByBudgetId.get(amountRow.budget_id)
+        : undefined;
+      if (!amountRow || !period || amountRow.kind !== 'expense') continue;
+      contributions.push({
+        month: period.month,
+        year: period.year,
+        amount: this.encryption.decryptAmount(amountRow.amount, dek),
+      });
+    }
+    return contributions;
+  }
+
+  private historyFetchError(id: string, error: unknown): BusinessException {
+    return new BusinessException(
+      ERROR_DEFINITIONS.TAG_FETCH_FAILED,
+      undefined,
+      {
+        operation: 'getTagHistory',
+        entityId: id,
+        entityType: 'tag',
+        supabaseError: error,
+      },
+      { cause: error },
+    );
   }
 
   private toEntity(row: TagRow): Tag {

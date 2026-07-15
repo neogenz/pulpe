@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { type Tag as TagApi } from 'pulpe-shared';
-import type { Tag } from '../../domain/tag.entity';
+import {
+  type Tag as TagApi,
+  type TagHistory as TagHistoryApi,
+} from 'pulpe-shared';
+import type { Tag, TagHistory } from '../../domain/tag.entity';
 
 @Injectable()
 export class TagMapper {
@@ -16,5 +19,16 @@ export class TagMapper {
 
   toApiList(entities: Tag[]): TagApi[] {
     return entities.map((entity) => this.toApi(entity));
+  }
+
+  toHistoryApi(history: TagHistory): TagHistoryApi {
+    return {
+      tagId: history.tagId,
+      periods: history.periods,
+      totalPlanned: history.totalPlanned,
+      totalActual: history.totalActual,
+      monthlyAverageActual: history.monthlyAverageActual,
+      actualToPlannedPercent: history.actualToPlannedPercent,
+    };
   }
 }

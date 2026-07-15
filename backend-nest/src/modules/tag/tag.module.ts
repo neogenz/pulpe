@@ -10,6 +10,7 @@ import { FindTagUseCase } from './application/find-tag.use-case';
 import { CreateTagUseCase } from './application/create-tag.use-case';
 import { UpdateTagUseCase } from './application/update-tag.use-case';
 import { RemoveTagUseCase } from './application/remove-tag.use-case';
+import { GetTagHistoryUseCase } from './application/get-tag-history.use-case';
 
 @Module({
   imports: [SupabaseModule],
@@ -20,6 +21,7 @@ import { RemoveTagUseCase } from './application/remove-tag.use-case';
     CreateTagUseCase,
     UpdateTagUseCase,
     RemoveTagUseCase,
+    GetTagHistoryUseCase,
     {
       provide: TAG_REPOSITORY,
       useClass: SupabaseTagRepository,
@@ -31,6 +33,7 @@ import { RemoveTagUseCase } from './application/remove-tag.use-case';
     createInfoLoggerProvider(CreateTagUseCase.name),
     createInfoLoggerProvider(UpdateTagUseCase.name),
     createInfoLoggerProvider(RemoveTagUseCase.name),
+    createInfoLoggerProvider(GetTagHistoryUseCase.name),
   ],
   exports: [],
 })

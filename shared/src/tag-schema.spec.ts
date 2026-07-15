@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { tagCreateSchema, tagUpdateSchema } from '../schemas.js';
+import {
+  tagCreateSchema,
+  tagHistoryQuerySchema,
+  tagHistoryResponseSchema,
+  tagUpdateSchema,
+} from '../schemas.js';
 
 describe('tagCreateSchema', () => {
   it('should reject a whitespace-only name (trim before min, else DB CHECK turns it into a 500)', () => {
@@ -35,5 +40,50 @@ describe('tagUpdateSchema', () => {
     const result = tagUpdateSchema.safeParse({ name: ' ' });
 
     expect(result.success).toBe(false);
+  });
+});
+
+describe('tagHistoryQuerySchema', () => {
+  it.each([3, 6, 12, 24])('accepts the %i-month horizon', (months) => {
+    expect(
+      tagHistoryQuerySchema.parse({
+        months: String(months),
+        endMonth: '7',
+        endYear: '2026',
+      }),
+    ).toEqual({ months, endMonth: 7, endYear: 2026 });
+  });
+
+  it.each([
+    { months: '5', endMonth: '7', endYear: '2026' },
+    { months: '3', endMonth: '13', endYear: '2026' },
+    { months: '3', endMonth: '7', endYear: '2019' },
+  ])('rejects an invalid history window: %o', (query) => {
+    expect(tagHistoryQuerySchema.safeParse(query).success).toBe(false);
+  });
+});
+
+describe('tagHistoryResponseSchema', () => {
+  it('accepts an unbounded actual-to-planned ratio and zero periods', () => {
+    const result = tagHistoryResponseSchema.safeParse({
+      success: true,
+      data: {
+        tagId: '00000000-0000-4000-8000-000000000001',
+        periods: [
+          {
+            month: 7,
+            year: 2026,
+            plannedAmount: 0,
+            actualAmount: 150,
+          },
+        ],
+        totalPlanned: 100,
+        totalActual: 150,
+        monthlyAverageActual: 50,
+        actualToPlannedPercent: 150,
+      },
+    });
+
+    expect(result.success).toBe(true);
   });
 });

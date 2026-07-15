@@ -99,6 +99,11 @@ export {
   tagUpdateSchema,
   tagResponseSchema,
   tagListResponseSchema,
+  tagHistoryMonthsSchema,
+  tagHistoryQuerySchema,
+  tagHistoryMonthSchema,
+  tagHistorySchema,
+  tagHistoryResponseSchema,
   tagDeleteResponseSchema,
 
   // Budget Line schemas
@@ -339,6 +344,11 @@ export type {
   TagUpdate,
   TagResponse,
   TagListResponse,
+  TagHistoryMonths,
+  TagHistoryQuery,
+  TagHistoryMonth,
+  TagHistory,
+  TagHistoryResponse,
   TagDeleteResponse,
 
   // Budget Line types
