@@ -30,6 +30,14 @@
   }
 }
 
+.add-transaction-dialog {
+  @include mat.dialog-overrides(
+    (
+      container-max-width: 720px,
+    )
+  );
+}
+
 // As per [Material Design guidelines](https://m3.material.io/components/dialogs/specs),
 // dialog container should have a surface-container-high color.
 html {

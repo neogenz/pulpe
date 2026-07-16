@@ -40,6 +40,59 @@ test.describe('Current Month Transactions', () => {
     kind: 'expense',
   });
 
+  test('should adapt the quick transaction surface to the viewport', async ({
+    authenticatedPage,
+    currentMonthPage,
+  }) => {
+    await authenticatedPage.route('**/api/v1/budgets/*/details', (route) => {
+      const response = createBudgetDetailsMock(budgetId, {
+        budget: { rollover: 0, month: currentMonth, year: currentYear },
+        budgetLines: [salaireLine, coursesLine],
+        transactions: [],
+      });
+
+      void route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(response),
+      });
+    });
+
+    await authenticatedPage.setViewportSize({ width: 768, height: 1024 });
+    await currentMonthPage.goto();
+
+    for (const viewport of [
+      { width: 768, height: 1024, expectedSurface: 'dialog' },
+      { width: 1440, height: 900, expectedSurface: 'dialog' },
+      { width: 390, height: 844, expectedSurface: 'bottom-sheet' },
+    ] as const) {
+      await authenticatedPage.setViewportSize(viewport);
+      await authenticatedPage.getByTestId('add-transaction-fab').click();
+
+      const surface = authenticatedPage.locator(
+        viewport.expectedSurface === 'dialog'
+          ? 'pulpe-add-transaction-dialog'
+          : 'pulpe-add-transaction-bottom-sheet',
+      );
+      await expect(surface).toBeVisible();
+
+      const formColumns = await surface
+        .locator('.add-transaction-form-grid')
+        .evaluate((element) =>
+          getComputedStyle(element).gridTemplateColumns.split(' '),
+        );
+      expect(formColumns).toHaveLength(
+        viewport.expectedSurface === 'dialog' ? 2 : 1,
+      );
+
+      const submit = surface.getByTestId('transaction-submit-button');
+      await expect(submit).toBeInViewport();
+
+      await surface.getByTestId('transaction-cancel-button').click();
+      await expect(surface).toBeHidden();
+    }
+  });
+
   test('should add a transaction via FAB and display it in recent transactions', async ({
     authenticatedPage,
     currentMonthPage,

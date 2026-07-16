@@ -6,14 +6,13 @@ import {
 } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { Router } from '@angular/router';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { type BudgetLine, type Transaction, type Budget } from 'pulpe-shared';
-import { of } from 'rxjs';
 import Dashboard from './current-month';
+import { type TransactionFormData } from './components/add-transaction-form';
+import { AddTransactionDialogService } from './services/add-transaction-dialog.service';
 import { DashboardStore } from './services/dashboard-store';
-import { type TransactionFormData } from './components/add-transaction-bottom-sheet';
 
 // Test data factories
 const createBudgetLine = (overrides: Partial<BudgetLine> = {}): BudgetLine => ({
@@ -80,7 +79,7 @@ describe('CurrentMonth Component', () => {
       const expectedComputed = ['fixedTransactions'];
       const expectedMethods = [
         'ngOnInit',
-        'openAddTransactionBottomSheet',
+        'openAddTransaction',
         'onAddTransaction',
         'deleteTransaction',
       ];
@@ -223,55 +222,6 @@ describe('CurrentMonth Component', () => {
 
       // Assert
       expect(mockRefreshData).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('openAddTransactionBottomSheet method behavior', () => {
-    it('should open bottom sheet with correct configuration', () => {
-      // Test the method logic without TestBed
-      const mockBottomSheet = { open: vi.fn() };
-      const bottomSheetRef = {
-        afterDismissed: vi.fn().mockReturnValue(of(undefined)),
-      };
-      mockBottomSheet.open.mockReturnValue(bottomSheetRef);
-
-      // Simulate the method behavior
-      const openAddTransactionBottomSheet = () => {
-        return mockBottomSheet.open(
-          expect.any(Function), // AddTransactionBottomSheet component
-          {
-            disableClose: false,
-            panelClass: 'add-transaction-bottom-sheet',
-          },
-        );
-      };
-
-      // Act
-      openAddTransactionBottomSheet();
-
-      // Assert
-      expect(mockBottomSheet.open).toHaveBeenCalledWith(expect.any(Function), {
-        disableClose: false,
-        panelClass: 'add-transaction-bottom-sheet',
-      });
-    });
-
-    it('should handle bottom sheet dismissal without transaction', () => {
-      // Test that the method handles empty dismissal correctly
-      const bottomSheetRef = {
-        afterDismissed: vi.fn().mockReturnValue(of(undefined)),
-      };
-      const onAddTransaction = vi.fn();
-
-      // Simulate subscription handling
-      bottomSheetRef.afterDismissed().subscribe((result: unknown) => {
-        if (result) {
-          onAddTransaction(result);
-        }
-      });
-
-      // Assert
-      expect(onAddTransaction).not.toHaveBeenCalled();
     });
   });
 
@@ -535,14 +485,11 @@ describe('Dashboard (TestBed)', () => {
 
   async function setup(
     budgetId: string,
-    afterDismissedValue: TransactionFormData | undefined,
+    dialogResult: TransactionFormData | undefined,
   ) {
     const mockStore = createMockStore(budgetId);
-    const bottomSheetRef = {
-      afterDismissed: () => of(afterDismissedValue),
-    };
-    const mockBottomSheet = {
-      open: vi.fn().mockReturnValue(bottomSheetRef),
+    const mockDialogService = {
+      open: vi.fn().mockResolvedValue(dialogResult),
     };
     const mockRouter = { navigate: vi.fn() };
 
@@ -554,34 +501,25 @@ describe('Dashboard (TestBed)', () => {
           provideAnimationsAsync(),
           ...provideTranslocoForTest(),
           { provide: DashboardStore, useValue: mockStore },
+          {
+            provide: AddTransactionDialogService,
+            useValue: mockDialogService,
+          },
           { provide: Router, useValue: mockRouter },
         ],
       })
       .compileComponents();
 
-    TestBed.overrideProvider(MatBottomSheet, { useValue: mockBottomSheet });
-    TestBed.overrideComponent(Dashboard, {
-      set: {
-        providers: [{ provide: MatBottomSheet, useValue: mockBottomSheet }],
-      },
-    });
-
     const fixture = TestBed.createComponent(Dashboard);
     return {
       component: fixture.componentInstance,
       mockStore,
-      mockBottomSheet,
+      mockDialogService,
     };
   }
 
-  async function flushMicrotasks(): Promise<void> {
-    for (let i = 0; i < 5; i++) {
-      await Promise.resolve();
-    }
-  }
-
   describe('#addTransaction forwards currency conversion metadata', () => {
-    it('should include originalAmount, originalCurrency, targetCurrency, exchangeRate in store.addTransaction call when present on the sheet payload', async () => {
+    it('should include originalAmount, originalCurrency, targetCurrency, exchangeRate in store.addTransaction call when present on the surface payload', async () => {
       const { component, mockStore } = await setup('budget-123', {
         name: 'Test pour claude',
         amount: 108.97,
@@ -594,8 +532,7 @@ describe('Dashboard (TestBed)', () => {
         exchangeRate: 1.0897,
       });
 
-      component['openAddTransactionBottomSheet']();
-      await flushMicrotasks();
+      await component['openAddTransaction']();
 
       expect(mockStore.addTransaction).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -611,7 +548,7 @@ describe('Dashboard (TestBed)', () => {
       );
     });
 
-    it('should forward transaction payload without conversion metadata when the sheet omits it', async () => {
+    it('should forward transaction payload without conversion metadata when the surface omits it', async () => {
       const { component, mockStore } = await setup('budget-123', {
         name: 'Courses',
         amount: 50,
@@ -620,8 +557,7 @@ describe('Dashboard (TestBed)', () => {
         checkedAt: null,
       });
 
-      component['openAddTransactionBottomSheet']();
-      await flushMicrotasks();
+      await component['openAddTransaction']();
 
       const callArg = mockStore.addTransaction.mock.calls[0][0];
       expect(callArg.budgetId).toBe('budget-123');
@@ -632,11 +568,10 @@ describe('Dashboard (TestBed)', () => {
       expect(callArg.exchangeRate).toBeUndefined();
     });
 
-    it('should not call store.addTransaction when the sheet is dismissed without data', async () => {
+    it('should not call store.addTransaction when the surface is dismissed without data', async () => {
       const { component, mockStore } = await setup('budget-123', undefined);
 
-      component['openAddTransactionBottomSheet']();
-      await flushMicrotasks();
+      await component['openAddTransaction']();
 
       expect(mockStore.addTransaction).not.toHaveBeenCalled();
     });
@@ -650,8 +585,7 @@ describe('Dashboard (TestBed)', () => {
         checkedAt: null,
       });
 
-      component['openAddTransactionBottomSheet']();
-      await flushMicrotasks();
+      await component['openAddTransaction']();
 
       expect(mockStore.addTransaction).not.toHaveBeenCalled();
     });

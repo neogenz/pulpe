@@ -9,11 +9,6 @@ import {
   effect,
   inject,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import {
-  MatBottomSheet,
-  MatBottomSheetModule,
-} from '@angular/material/bottom-sheet';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -29,11 +24,9 @@ import {
 } from '@core/product-tour/product-tour.service';
 import { BaseLoading } from '@ui/loading';
 import { StateCard } from '@ui/state-card/state-card';
-import {
-  AddTransactionBottomSheet,
-  type TransactionFormData,
-} from './components/add-transaction-bottom-sheet';
+import type { TransactionFormData } from './components/add-transaction-form';
 import { DashboardError } from './components/dashboard-error';
+import { AddTransactionDialogService } from './services/add-transaction-dialog.service';
 import { DashboardStore } from './services/dashboard-store';
 
 import { DashboardHero } from '@ui/dashboard-hero/dashboard-hero';
@@ -50,7 +43,6 @@ import { CURRENCY_CONFIG } from '@core/currency';
   selector: 'pulpe-dashboard',
   imports: [
     MatButtonModule,
-    MatBottomSheetModule,
     MatIconModule,
     MatSnackBarModule,
     MatTooltipModule,
@@ -214,7 +206,7 @@ import { CURRENCY_CONFIG } from '@core/currency';
         <!-- FAB: only visible when budget data is loaded -->
         <button
           matFab
-          (click)="openAddTransactionBottomSheet()"
+          (click)="openAddTransaction()"
           class="fab-button"
           [attr.aria-label]="'budgetLine.addTransaction' | transloco"
           data-testid="add-transaction-fab"
@@ -331,7 +323,7 @@ export default class Dashboard {
   readonly #productTourService = inject(ProductTourService);
   readonly #destroyRef = inject(DestroyRef);
   readonly #loadingIndicator = inject(LoadingIndicator);
-  readonly #bottomSheet = inject(MatBottomSheet);
+  readonly #addTransactionDialog = inject(AddTransactionDialogService);
   readonly #router = inject(Router);
   readonly #snackBar = inject(MatSnackBar);
   readonly #transloco = inject(TranslocoService);
@@ -389,20 +381,11 @@ export default class Dashboard {
     }
   }
 
-  protected openAddTransactionBottomSheet(): void {
-    const bottomSheetRef = this.#bottomSheet.open(AddTransactionBottomSheet, {
-      disableClose: false,
-      panelClass: 'add-transaction-bottom-sheet',
-    });
-
-    bottomSheetRef
-      .afterDismissed()
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe((transaction: TransactionFormData | undefined) => {
-        if (transaction) {
-          this.#addTransaction(transaction);
-        }
-      });
+  protected async openAddTransaction(): Promise<void> {
+    const transaction = await this.#addTransactionDialog.open();
+    if (transaction) {
+      await this.#addTransaction(transaction);
+    }
   }
 
   async #addTransaction(transaction: TransactionFormData): Promise<void> {
