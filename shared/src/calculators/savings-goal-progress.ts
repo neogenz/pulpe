@@ -164,7 +164,10 @@ export function suggestedMonthlyContribution(
     getBudgetPeriodForDate(now, input.payDayOfMonth),
   );
   const indexTarget = periodIndex(
-    getBudgetPeriodForDate(parseIsoDateLocal(input.targetDate), input.payDayOfMonth),
+    getBudgetPeriodForDate(
+      parseIsoDateLocal(input.targetDate),
+      input.payDayOfMonth,
+    ),
   );
   const monthsRemaining = indexTarget - indexCurrent + 1;
   if (monthsRemaining <= 0 || input.targetAmount <= 0) return null;
