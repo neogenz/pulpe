@@ -7,6 +7,7 @@ import {
   PAY_DAY_MIN,
   type BudgetLine,
   type BudgetPeriod,
+  type SavingsGoalGenerationStop,
 } from 'pulpe-shared';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
@@ -28,6 +29,7 @@ import type {
   SavingsGoal,
   SavingsGoalContribution,
   SavingsGoalCreateInput,
+  SavingsGoalGenerationStopResult,
   SavingsGoalInsert,
   SavingsGoalLinkedContributions,
   SavingsGoalPlanApplyResult,
@@ -37,6 +39,10 @@ import type {
 } from '../../domain/savings-goal.entity';
 import {
   applySavingsGoalPlanLineListSchema,
+  GENERATION_STOP_ADJUSTED_RPC_MESSAGE,
+  GENERATION_STOP_CHECKED_RPC_MESSAGE,
+  GENERATION_STOP_NOT_LINKED_RPC_MESSAGE,
+  GENERATION_STOP_PAST_RPC_MESSAGE,
   PLAN_LINE_CHECKED_RPC_MESSAGE,
   PLAN_LINE_NOT_LINKED_RPC_MESSAGE,
   PLAN_LINE_PAST_RPC_MESSAGE,
@@ -385,6 +391,92 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       ...new Set(updatedLines.map((line) => line.budgetId)),
     ];
     return { updatedLines, touchedBudgetIds };
+  }
+
+  async applyGenerationStop(
+    goalId: string,
+    mode: SavingsGoalGenerationStop['mode'],
+    budgetLineIds: string[],
+    minPeriodIndex: number,
+  ): Promise<SavingsGoalGenerationStopResult> {
+    const { data, error } = await this.supabaseProvider.client.rpc(
+      'apply_savings_goal_generation_stop',
+      {
+        p_goal_id: goalId,
+        p_mode: mode,
+        p_budget_line_ids: budgetLineIds,
+        p_min_period_index: minPeriodIndex,
+      },
+    );
+
+    if (error || !data) {
+      this.throwGenerationStopRpcError(error);
+    }
+
+    return {
+      affectedLineIds: data.map((row) => row.line_id),
+      touchedBudgetIds: [...new Set(data.map((row) => row.budget_id))],
+    };
+  }
+
+  /**
+   * Maps an `apply_savings_goal_generation_stop` RPC failure to the right
+   * business error (same idiom as `throwPlanRpcError`):
+   * - ownership → SAVINGS_GOAL_NOT_FOUND (404, RLS-hiding idiom);
+   * - checked / adjusted / past-period → 409 (candidates drifted — refetch);
+   * - not-linked → 422 (refetch the candidate list);
+   * - anything else → generic failure (500, safe to retry — idempotent-ish:
+   *   freeze re-freezes, remove finds nothing and 422s harmlessly).
+   */
+  private throwGenerationStopRpcError(error: PostgrestError | null): never {
+    if (isSavingsGoalLinkDenied(error)) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
+        undefined,
+        {
+          operation: 'applySavingsGoalGenerationStop',
+          entityType: 'savings_goal',
+        },
+        { cause: error ?? undefined },
+      );
+    }
+    const message = error?.message ?? '';
+    if (
+      message.includes(GENERATION_STOP_CHECKED_RPC_MESSAGE) ||
+      message.includes(GENERATION_STOP_ADJUSTED_RPC_MESSAGE) ||
+      message.includes(GENERATION_STOP_PAST_RPC_MESSAGE)
+    ) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_PLAN_CONFLICT,
+        undefined,
+        {
+          operation: 'applySavingsGoalGenerationStop',
+          entityType: 'savings_goal',
+        },
+        { cause: error ?? undefined },
+      );
+    }
+    if (message.includes(GENERATION_STOP_NOT_LINKED_RPC_MESSAGE)) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_PLAN_LINE_INVALID,
+        undefined,
+        {
+          operation: 'applySavingsGoalGenerationStop',
+          entityType: 'savings_goal',
+        },
+        { cause: error ?? undefined },
+      );
+    }
+    throw new BusinessException(
+      ERROR_DEFINITIONS.SAVINGS_GOAL_GENERATION_STOP_FAILED,
+      undefined,
+      {
+        operation: 'applySavingsGoalGenerationStop',
+        entityType: 'savings_goal',
+        supabaseError: error,
+      },
+      { cause: error ?? undefined },
+    );
   }
 
   private async toPlanRpcLine(

@@ -2,12 +2,13 @@ import type {
   SavingsGoal,
   SavingsGoalContribution,
   SavingsGoalCreateInput,
+  SavingsGoalGenerationStopResult,
   SavingsGoalLinkedContributions,
   SavingsGoalPlanApplyResult,
   SavingsGoalPlanMonthAdjustment,
   SavingsGoalUpdatePatch,
 } from '../savings-goal.entity';
-import type { BudgetPeriod } from 'pulpe-shared';
+import type { BudgetPeriod, SavingsGoalGenerationStop } from 'pulpe-shared';
 
 export const SAVINGS_GOAL_REPOSITORY = Symbol('SAVINGS_GOAL_REPOSITORY');
 
@@ -51,4 +52,17 @@ export interface SavingsGoalRepositoryPort {
     monthAdjustments: SavingsGoalPlanMonthAdjustment[],
     minPeriodIndex: number,
   ): Promise<SavingsGoalPlanApplyResult>;
+  /**
+   * Applique la décision advisory d'arrêt de génération (PUL-285 CA5) via la
+   * RPC atomique `apply_savings_goal_generation_stop` : `freeze` délie +
+   * protège (`is_manually_adjusted`), `remove` supprime. Gardes CA9 en WHERE
+   * (non pointée, non ajustée, cycle courant ou futur) ; tout écart → RAISE →
+   * rollback total. Le repo possède le mapping des erreurs P0001.
+   */
+  applyGenerationStop(
+    goalId: string,
+    mode: SavingsGoalGenerationStop['mode'],
+    budgetLineIds: string[],
+    minPeriodIndex: number,
+  ): Promise<SavingsGoalGenerationStopResult>;
 }

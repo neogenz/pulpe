@@ -122,3 +122,13 @@ export interface SavingsGoalPlanApplyResult {
   updatedLines: BudgetLine[];
   touchedBudgetIds: string[];
 }
+
+/**
+ * Result of applying a generation-stop decision (PUL-285 CA5). `affectedLineIds`
+ * are the frozen or removed budget lines; `touchedBudgetIds` drives the
+ * post-commit recalc.
+ */
+export interface SavingsGoalGenerationStopResult {
+  affectedLineIds: string[];
+  touchedBudgetIds: string[];
+}

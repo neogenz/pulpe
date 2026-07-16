@@ -473,6 +473,40 @@ export type SavingsGoalPlanApply = Omit<
 };
 
 /**
+ * Prévision liée future d'un objectif (PUL-285 CA5) : candidate advisory à
+ * figer ou retirer quand l'objectif passe PAUSED/COMPLETED. Servie par
+ * `GET /savings-goals/:id/future-lines` — lignes liées, non pointées, non
+ * ajustées à la main, du cycle courant (payDay-aware) et au-delà, y compris
+ * après `target_date`. Montant déchiffré.
+ */
+export const savingsGoalFutureLineSchema = z.object({
+  budgetLineId: z.uuid(),
+  amount: z.coerce.number().nonnegative(),
+  month: z.number().int().min(1).max(12),
+  year: z.number().int(),
+});
+export type SavingsGoalFutureLine = z.infer<typeof savingsGoalFutureLineSchema>;
+
+/**
+ * Décision advisory à l'arrêt de génération
+ * (`POST /savings-goals/:id/generation-stop`, PUL-285 CA5/CA8) :
+ * - `freeze` : garde la prévision, la délie de l'objectif ET la marque
+ *   `is_manually_adjusted` (sinon une propagation RG-001 ultérieure la
+ *   relierait) ;
+ * - `remove` : supprime la prévision des mois futurs (ses transactions
+ *   deviennent libres via FK `ON DELETE SET NULL`).
+ * Refus atomique (CA9) : jamais de mois passé, de ligne pointée ou déjà
+ * ajustée à la main.
+ */
+export const savingsGoalGenerationStopSchema = z.strictObject({
+  mode: z.enum(['freeze', 'remove']),
+  budgetLineIds: z.array(z.uuid()).min(1).max(MAX_SAVINGS_GOAL_PLAN_PERIODS),
+});
+export type SavingsGoalGenerationStop = z.infer<
+  typeof savingsGoalGenerationStopSchema
+>;
+
+/**
  * BUDGET LINE - Ligne budgétaire planifiée
  *
  * Selon SPECS.md section 2 "Concepts Métier":
@@ -1518,6 +1552,22 @@ export const savingsGoalPlanApplyResponseSchema = createSuccessResponse(
 );
 export type SavingsGoalPlanApplyResponse = z.infer<
   typeof savingsGoalPlanApplyResponseSchema
+>;
+
+export const savingsGoalFutureLinesResponseSchema = createListResponse(
+  savingsGoalFutureLineSchema,
+);
+export type SavingsGoalFutureLinesResponse = z.infer<
+  typeof savingsGoalFutureLinesResponseSchema
+>;
+
+export const savingsGoalGenerationStopResponseSchema = createSuccessResponse(
+  z.object({
+    affectedCount: z.number().int().nonnegative(),
+  }),
+);
+export type SavingsGoalGenerationStopResponse = z.infer<
+  typeof savingsGoalGenerationStopResponseSchema
 >;
 
 // Budget Line response schemas

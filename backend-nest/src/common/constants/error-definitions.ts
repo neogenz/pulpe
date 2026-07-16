@@ -502,6 +502,12 @@ export const ERROR_DEFINITIONS = {
     message: () => 'Failed to apply the savings goal plan',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
+  // Savings goal generation stop (PUL-285 — POST /savings-goals/:id/generation-stop)
+  SAVINGS_GOAL_GENERATION_STOP_FAILED: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_GENERATION_STOP_FAILED,
+    message: () => 'Failed to apply the generation stop decision',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
   BUDGET_LINE_BUDGET_MISMATCH: {
     code: API_ERROR_CODES.BUDGET_LINE_BUDGET_MISMATCH,
     message: (details?: Record<string, unknown>) =>

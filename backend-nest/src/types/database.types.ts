@@ -498,6 +498,18 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      apply_savings_goal_generation_stop: {
+        Args: {
+          p_budget_line_ids: string[];
+          p_goal_id: string;
+          p_min_period_index: number;
+          p_mode: string;
+        };
+        Returns: {
+          budget_id: string;
+          line_id: string;
+        }[];
+      };
       apply_savings_goal_plan: {
         Args: {
           p_goal_id: string;

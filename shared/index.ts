@@ -89,6 +89,10 @@ export {
   savingsGoalPlanMonthSchema,
   savingsGoalPlanApplySchema,
   savingsGoalPlanApplyResponseSchema,
+  savingsGoalFutureLineSchema,
+  savingsGoalFutureLinesResponseSchema,
+  savingsGoalGenerationStopSchema,
+  savingsGoalGenerationStopResponseSchema,
   MAX_SAVINGS_GOAL_PLAN_PERIODS,
   MAX_PLAN_ADJUSTMENTS,
 
@@ -325,6 +329,10 @@ export type {
   SavingsGoalPlanMonth,
   SavingsGoalPlanApply,
   SavingsGoalPlanApplyResponse,
+  SavingsGoalFutureLine,
+  SavingsGoalFutureLinesResponse,
+  SavingsGoalGenerationStop,
+  SavingsGoalGenerationStopResponse,
 
   // Budget Line types
   BudgetLine,
