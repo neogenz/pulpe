@@ -808,7 +808,7 @@ export default class SavingsGoalDetailPage {
     try {
       lines = await this.store.fetchFutureLines(goalId);
     } catch (error) {
-      this.#showError(error);
+      this.#showLocalizedApiError(error);
       return;
     }
     if (lines.length === 0) return;
@@ -845,7 +845,7 @@ export default class SavingsGoalDetailPage {
         { duration: 5000 },
       );
     } catch (error) {
-      this.#showError(error);
+      this.#showLocalizedApiError(error);
     }
   }
 
@@ -915,7 +915,7 @@ export default class SavingsGoalDetailPage {
         this.#transloco.translate('savingsGoals.simulate.applySuccess'),
       );
     } catch (error) {
-      this.#showApplyError(error);
+      this.#showLocalizedApiError(error);
     } finally {
       this.#isApplying.set(false);
     }
@@ -928,9 +928,9 @@ export default class SavingsGoalDetailPage {
     }).format(new Date(year, month - 1, 1));
   }
 
-  #showApplyError(error: unknown): void {
-    // The plan error codes (409 conflict / 422 invalid / 500 apply-failed) are
-    // localized centrally in ApiErrorLocalizer.
+  #showLocalizedApiError(error: unknown): void {
+    // Plan and generation-stop error codes are localized centrally in
+    // ApiErrorLocalizer.
     const message = isApiError(error)
       ? this.#errorLocalizer.localizeApiError(error)
       : this.#transloco.translate('common.error');

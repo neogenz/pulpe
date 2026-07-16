@@ -11,13 +11,16 @@ import {
 import { By } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 import { registerLocaleData } from '@angular/common';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import localeDE from '@angular/common/locales/de-CH';
-import type {
-  SavingsGoal,
-  SavingsGoalContribution,
-  SavingsGoalFutureLine,
-  SavingsGoalProgress,
+import {
+  API_ERROR_CODES,
+  type SavingsGoal,
+  type SavingsGoalContribution,
+  type SavingsGoalFutureLine,
+  type SavingsGoalProgress,
 } from 'pulpe-shared';
+import { ApiError } from '@core/api/api-error';
 import SavingsGoalDetailPage from './savings-goal-detail-page';
 import { SavingsGoalStore } from '../services/savings-goals-store';
 import { SavingsGoalsDialogService } from '../services/savings-goals-dialog.service';
@@ -161,6 +164,13 @@ function makeProgress(
   };
 }
 
+const futureLine: SavingsGoalFutureLine = {
+  budgetLineId: 'line-1',
+  amount: 250,
+  month: 8,
+  year: 2026,
+};
+
 describe('SavingsGoalDetailPage', () => {
   let fixture: ComponentFixture<SavingsGoalDetailPage>;
   let component: SavingsGoalDetailPage;
@@ -179,6 +189,7 @@ describe('SavingsGoalDetailPage', () => {
   const reloadProgress = vi.fn();
   const refresh = vi.fn();
   const navigate = vi.fn();
+  const snackBarOpen = vi.fn();
 
   const futureLinesSig = signal<SavingsGoalFutureLine[]>([]);
 
@@ -207,6 +218,7 @@ describe('SavingsGoalDetailPage', () => {
 
   const mockDialogs = {
     openEdit: vi.fn(),
+    openGenerationStop: vi.fn(),
     confirmDelete: vi.fn(),
   };
 
@@ -219,6 +231,7 @@ describe('SavingsGoalDetailPage', () => {
     isContributionsLoadingSig.set(false);
     listInitialLoadingSig.set(false);
     listErrorSig.set(null);
+    futureLinesSig.set([]);
     vi.clearAllMocks();
 
     await TestBed.configureTestingModule({
@@ -233,6 +246,7 @@ describe('SavingsGoalDetailPage', () => {
           useValue: { currency: signal('CHF'), payDayOfMonth: signal(25) },
         },
         { provide: Router, useValue: { navigate } },
+        { provide: MatSnackBar, useValue: { open: snackBarOpen } },
       ],
     })
       .overrideComponent(SavingsGoalDetailPage, {
@@ -335,6 +349,90 @@ describe('SavingsGoalDetailPage', () => {
     await Promise.resolve();
 
     expect(reopenGoal).toHaveBeenCalledWith('goal-1');
+  });
+
+  it.each([
+    {
+      code: API_ERROR_CODES.SAVINGS_GOAL_GENERATION_STOP_CONFLICT,
+      status: 409,
+      expected:
+        'Ces prévisions ont changé entre-temps — recharge la liste et réessaie',
+    },
+    {
+      code: API_ERROR_CODES.SAVINGS_GOAL_GENERATION_STOP_LINE_INVALID,
+      status: 422,
+      expected:
+        'Certaines prévisions ne sont plus liées à cet objectif — recharge la liste',
+    },
+  ])(
+    'localizes generation-stop $status errors instead of exposing the server message',
+    async ({ code, status, expected }) => {
+      goalSig.set(makeGoal({ status: 'PAUSED' }));
+      progressSig.set(makeProgress({ status: 'PAUSED' }));
+      futureLinesSig.set([futureLine]);
+      mockStore.fetchFutureLines.mockResolvedValueOnce([futureLine]);
+      mockDialogs.openGenerationStop.mockResolvedValueOnce('freeze');
+      mockStore.applyGenerationStop.mockRejectedValueOnce(
+        new ApiError('Raw server message', code, status, null),
+      );
+      fixture.detectChanges();
+
+      query('savings-goal-generation-stop-button').nativeElement.click();
+      await fixture.whenStable();
+
+      expect(snackBarOpen).toHaveBeenCalledWith(
+        expected,
+        'Fermer',
+        expect.objectContaining({ duration: 5000 }),
+      );
+      expect(snackBarOpen).not.toHaveBeenCalledWith(
+        'Raw server message',
+        expect.anything(),
+        expect.anything(),
+      );
+    },
+  );
+
+  it('shows a localized fallback when loading future lines fails', async () => {
+    goalSig.set(makeGoal({ status: 'PAUSED' }));
+    progressSig.set(makeProgress({ status: 'PAUSED' }));
+    futureLinesSig.set([futureLine]);
+    mockStore.fetchFutureLines.mockRejectedValueOnce(
+      new ApiError('Server unavailable', undefined, 500, null),
+    );
+    fixture.detectChanges();
+
+    query('savings-goal-generation-stop-button').nativeElement.click();
+    await fixture.whenStable();
+
+    expect(snackBarOpen).toHaveBeenCalledWith(
+      'Une erreur est survenue — réessaie',
+      'Fermer',
+      expect.objectContaining({ duration: 5000 }),
+    );
+  });
+
+  it('keeps applying a generation-stop decision with the displayed line ids', async () => {
+    goalSig.set(makeGoal({ status: 'PAUSED' }));
+    progressSig.set(makeProgress({ status: 'PAUSED' }));
+    futureLinesSig.set([futureLine]);
+    mockStore.fetchFutureLines.mockResolvedValueOnce([futureLine]);
+    mockDialogs.openGenerationStop.mockResolvedValueOnce('freeze');
+    mockStore.applyGenerationStop.mockResolvedValueOnce({ affectedCount: 1 });
+    fixture.detectChanges();
+
+    query('savings-goal-generation-stop-button').nativeElement.click();
+    await fixture.whenStable();
+
+    expect(mockStore.applyGenerationStop).toHaveBeenCalledWith('goal-1', {
+      mode: 'freeze',
+      budgetLineIds: ['line-1'],
+    });
+    expect(snackBarOpen).toHaveBeenCalledWith(
+      '1 prévision(s) conservée(s) sans objectif.',
+      'Fermer',
+      { duration: 5000 },
+    );
   });
 
   it('hides the pace chip when paceStatus is null', () => {
