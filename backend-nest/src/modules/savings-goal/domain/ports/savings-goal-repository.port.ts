@@ -8,7 +8,11 @@ import type {
   SavingsGoalPlanMonthAdjustment,
   SavingsGoalUpdatePatch,
 } from '../savings-goal.entity';
-import type { BudgetPeriod, SavingsGoalGenerationStop } from 'pulpe-shared';
+import type {
+  BudgetPeriod,
+  LinkedSavingLine,
+  SavingsGoalGenerationStop,
+} from 'pulpe-shared';
 
 export const SAVINGS_GOAL_REPOSITORY = Symbol('SAVINGS_GOAL_REPOSITORY');
 
@@ -26,6 +30,11 @@ export interface SavingsGoalRepositoryPort {
   findLinkedContributions(
     goalId: string,
   ): Promise<SavingsGoalLinkedContributions>;
+  /**
+   * Prévisions Épargne liées au goal, déchiffrées, sans leurs transactions.
+   * La qualification temporelle des lignes reste à la charge du use-case.
+   */
+  findFutureLinkedLines(goalId: string): Promise<LinkedSavingLine[]>;
   /**
    * Contributions à un objectif (PUL-12) : une par prévision Épargne liée
    * (kind=saving, RLS-scopée), avec la période de son budget parent et les

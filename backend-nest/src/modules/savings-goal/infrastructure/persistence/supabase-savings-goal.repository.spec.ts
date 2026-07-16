@@ -560,6 +560,40 @@ describe('SupabaseSavingsGoalRepository', () => {
     });
   });
 
+  describe('findFutureLinkedLines', () => {
+    it('decrypts linked lines without querying or decrypting transactions', async () => {
+      const { provider, transactionQueried } = createContributionsProvider({
+        lineResult: {
+          data: [{ ...linkedLineRow, is_manually_adjusted: false }],
+          error: null,
+        },
+      });
+      const encryption = createMockEncryption();
+      const repo = new SupabaseSavingsGoalRepository(provider, encryption);
+
+      const result = await repo.findFutureLinkedLines('goal-1');
+
+      expect(result).toEqual([
+        {
+          id: 'line-1',
+          amount: 500,
+          kind: 'saving',
+          checkedAt: '2026-06-01T00:00:00Z',
+          isManuallyAdjusted: false,
+          month: 6,
+          year: 2026,
+        },
+      ]);
+      expect(transactionQueried()).toBe(false);
+      expect(encryption.tryDecryptAmount).toHaveBeenCalledTimes(1);
+      expect(encryption.tryDecryptAmount).toHaveBeenCalledWith(
+        'enc:500',
+        Buffer.from('dek'),
+        0,
+      );
+    });
+  });
+
   describe('findContributions', () => {
     // line-1 is a checked June prévision with no transaction; line-2 is an
     // unchecked March prévision carrying two réels.

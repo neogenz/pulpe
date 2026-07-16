@@ -7,6 +7,7 @@ import {
   PAY_DAY_MIN,
   type BudgetLine,
   type BudgetPeriod,
+  type LinkedSavingLine,
   type SavingsGoalGenerationStop,
 } from 'pulpe-shared';
 import { BusinessException } from '@common/exceptions/business.exception';
@@ -260,6 +261,18 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
   async findLinkedContributions(
     goalId: string,
   ): Promise<SavingsGoalLinkedContributions> {
+    const lines = await this.findFutureLinkedLines(goalId);
+    if (!lines.length) return { lines: [], transactions: [] };
+
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    const transactions = await this.findTransactionsForLines(
+      lines.map((line) => line.id),
+      dek,
+    );
+    return { lines, transactions };
+  }
+
+  async findFutureLinkedLines(goalId: string): Promise<LinkedSavingLine[]> {
     const supabase = this.supabaseProvider.client;
     // Double garde kind=saving (le lien est déjà kind-guardé à l'écriture par
     // trigger + use-cases). RLS scope les lignes au user courant.
@@ -286,10 +299,10 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     }
 
     const rows = (data ?? []) as unknown as LinkedLineRow[];
-    if (!rows.length) return { lines: [], transactions: [] };
+    if (!rows.length) return [];
 
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
-    const lines = rows.map((row) => ({
+    return rows.map((row) => ({
       id: row.id,
       amount: this.encryption.tryDecryptAmount(row.amount, dek, 0),
       kind: row.kind,
@@ -298,12 +311,6 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       month: row.monthly_budget.month,
       year: row.monthly_budget.year,
     }));
-
-    const transactions = await this.findTransactionsForLines(
-      lines.map((line) => line.id),
-      dek,
-    );
-    return { lines, transactions };
   }
 
   async findContributions(goalId: string): Promise<SavingsGoalContribution[]> {
