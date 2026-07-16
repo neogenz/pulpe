@@ -28,10 +28,12 @@ import {
 } from '@angular/forms/signals';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { addMonths, endOfMonth, format, parse } from 'date-fns';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import {
   CURRENCY_METADATA,
   MAX_SAVINGS_GOAL_PLAN_PERIODS,
   savingsGoalStatusSchema,
+  suggestedMonthlyContribution,
   type SavingsGoal,
   type SavingsGoalStatus,
 } from 'pulpe-shared';
@@ -69,6 +71,7 @@ function isoToDate(value: string): Date | null {
     MatButtonModule,
     MatIconModule,
     MatDatepickerModule,
+    MatSlideToggleModule,
     TranslocoPipe,
     FormField,
   ],
@@ -157,6 +160,42 @@ function isoToDate(value: string): Date | null {
             }}</mat-error>
           }
         </mat-form-field>
+
+        @if (!isEdit()) {
+          <mat-slide-toggle
+            [checked]="decomposeEnabled()"
+            (change)="decomposeEnabled.set($event.checked)"
+            data-testid="savings-goal-decompose-toggle"
+          >
+            {{ 'savingsGoals.decomposeToggle' | transloco }}
+          </mat-slide-toggle>
+
+          @if (decomposeEnabled()) {
+            <mat-form-field
+              appearance="outline"
+              subscriptSizing="dynamic"
+              class="w-full"
+            >
+              <mat-label>{{
+                'savingsGoals.fieldMonthlyContribution' | transloco
+              }}</mat-label>
+              <input
+                matInput
+                type="number"
+                step="0.01"
+                min="0.01"
+                inputmode="decimal"
+                [value]="monthlyContribution() ?? ''"
+                (input)="onMonthlyContributionInput($event)"
+                data-testid="savings-goal-monthly-contribution"
+              />
+              <span matTextSuffix>{{ currencySymbol() }}</span>
+              <mat-hint>{{
+                'savingsGoals.decomposeHint' | transloco
+              }}</mat-hint>
+            </mat-form-field>
+          }
+        }
 
         @if (isEdit()) {
           <mat-form-field
@@ -251,6 +290,24 @@ export class SavingsGoalFormDialog {
 
   protected readonly canSubmit = computed(() => this.goalForm().valid());
 
+  // PUL-285 CA6 — opt-in « décomposer en mensualités », création uniquement.
+  // Pré-coché ; la suggestion suit cible/échéance tant que l'utilisateur n'a
+  // pas saisi son propre montant (vider le champ rend la main à la suggestion).
+  protected readonly decomposeEnabled = signal(!this.#data.goal);
+  readonly #monthlyContributionOverride = signal<number | null>(null);
+  protected readonly suggestedMonthly = computed(() => {
+    const { targetAmount, targetDate } = this.model();
+    if (!targetAmount || targetAmount <= 0 || !targetDate) return null;
+    return suggestedMonthlyContribution({
+      targetAmount,
+      targetDate,
+      payDayOfMonth: this.#settings.payDayOfMonth(),
+    });
+  });
+  protected readonly monthlyContribution = computed(
+    () => this.#monthlyContributionOverride() ?? this.suggestedMonthly(),
+  );
+
   protected readonly targetDateAsDate = computed(() =>
     isoToDate(this.model().targetDate),
   );
@@ -281,6 +338,14 @@ export class SavingsGoalFormDialog {
     }
   }
 
+  protected onMonthlyContributionInput(event: Event): void {
+    const raw = (event.target as HTMLInputElement).value;
+    const parsed = Number(raw);
+    this.#monthlyContributionOverride.set(
+      raw === '' || !Number.isFinite(parsed) ? null : parsed,
+    );
+  }
+
   protected onTargetDateChange(event: MatDatepickerInputEvent<Date>): void {
     const date = event.value;
     this.model.update((m) => ({
@@ -296,7 +361,10 @@ export class SavingsGoalFormDialog {
     const value = this.model();
     const result = this.isEdit()
       ? buildSavingsGoalUpdate(value, this.#data.goal)
-      : buildSavingsGoalCreate(value);
+      : buildSavingsGoalCreate(
+          value,
+          this.decomposeEnabled() ? this.monthlyContribution() : null,
+        );
     this.#dialogRef.close(result);
   }
 

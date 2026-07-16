@@ -58,6 +58,28 @@ describe('buildSavingsGoalCreate', () => {
   it('rejects an empty name', () => {
     expect(() => buildSavingsGoalCreate({ ...baseValue, name: '' })).toThrow();
   });
+
+  it('carries monthlyContribution when the decompose option is active (PUL-285 CA6)', () => {
+    expect(buildSavingsGoalCreate(baseValue, 250.5)).toEqual({
+      name: 'Vacances été',
+      targetAmount: 3000,
+      targetDate: FUTURE_DATE,
+      status: 'ACTIVE',
+      monthlyContribution: 250.5,
+    });
+  });
+
+  it('omits monthlyContribution when null, absent, or non-positive', () => {
+    const expected = {
+      name: 'Vacances été',
+      targetAmount: 3000,
+      targetDate: FUTURE_DATE,
+      status: 'ACTIVE',
+    };
+
+    expect(buildSavingsGoalCreate(baseValue, null)).toEqual(expected);
+    expect(buildSavingsGoalCreate(baseValue, 0)).toEqual(expected);
+  });
 });
 
 describe('buildSavingsGoalUpdate', () => {

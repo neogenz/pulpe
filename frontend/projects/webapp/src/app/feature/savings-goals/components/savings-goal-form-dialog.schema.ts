@@ -23,14 +23,24 @@ export interface SavingsGoalFormValue {
   status: SavingsGoalCreate['status'];
 }
 
+/**
+ * `monthlyContribution` (PUL-285 CA6) : montant mensuel choisi quand l'option
+ * « décomposer en mensualités » est active — présence = opt-in serveur (la
+ * prévision Épargne récurrente liée est générée sur le Mois Type par défaut).
+ * Nul, absent ou non positif ⇒ création classique sans décomposition.
+ */
 export function buildSavingsGoalCreate(
   value: SavingsGoalFormValue,
+  monthlyContribution?: number | null,
 ): SavingsGoalCreate {
   return savingsGoalCreateSchema.parse({
     name: value.name,
     targetAmount: value.targetAmount,
     targetDate: value.targetDate,
     status: value.status,
+    ...(monthlyContribution != null && monthlyContribution > 0
+      ? { monthlyContribution }
+      : {}),
   });
 }
 

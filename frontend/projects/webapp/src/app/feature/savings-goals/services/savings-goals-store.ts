@@ -111,6 +111,14 @@ export class SavingsGoalStore {
       // awaited mutate() return value settles the cache; latest-wins gotcha
       // means we never rely on onSuccess to push state.
     },
+    onSuccess: (_result, goal) => {
+      // Auto-décomposition (PUL-285) : le serveur a posé une template_line
+      // liée + des budget_lines sur les budgets courant/futurs.
+      if (goal.monthlyContribution != null) {
+        this.#budgetApi.cache.invalidate(['budget']);
+        this.#budgetTemplatesApi.cache.invalidate(['templates']);
+      }
+    },
   });
 
   readonly #updateMutation = cachedMutation<
