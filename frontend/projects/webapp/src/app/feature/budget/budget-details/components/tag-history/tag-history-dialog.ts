@@ -44,7 +44,10 @@ export interface TagHistoryDialogData {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div mat-dialog-title class="flex! items-center justify-between gap-3">
+    <div
+      mat-dialog-title
+      class="flex! items-center justify-between gap-3 pt-6!"
+    >
       <div class="min-w-0">
         <h2 class="text-headline-small truncate">
           {{ 'tagHistory.title' | transloco }}

@@ -116,6 +116,16 @@ describe('TagHistoryDialog', () => {
 
   beforeEach(() => setup());
 
+  it('keeps the title clear of the dialog top edge', async () => {
+    await settle();
+
+    const header: HTMLElement | null =
+      fixture.nativeElement.querySelector('[mat-dialog-title]');
+
+    expect(header).not.toBeNull();
+    expect(header?.classList).toContain('pt-6!');
+  });
+
   it('selects the first tag and reloads for each tag or horizon change', async () => {
     await settle();
     expect(component.selectedTagId()).toBe(tags[0].id);
