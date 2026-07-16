@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   getBudgetPeriodForDate,
   periodIndex,
-  type SavingsGoalFutureLine,
+  type LinkedSavingLine,
 } from 'pulpe-shared';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import {
@@ -14,7 +14,8 @@ import {
  * PUL-285 CA5 — candidates advisory à l'arrêt de génération : les prévisions
  * liées du cycle courant (payDay-aware) et au-delà, non pointées et non
  * ajustées à la main (CA9). Aucune borne à l'échéance : les lignes générées
- * après `target_date` sont candidates aussi. Lecture pure — aucune écriture.
+ * après `target_date` sont candidates aussi. Lecture pure — aucune écriture ;
+ * la conversion en DTO wire appartient au mapper, au boundary HTTP.
  */
 @Injectable()
 export class GetSavingsGoalFutureLinesUseCase {
@@ -26,7 +27,7 @@ export class GetSavingsGoalFutureLinesUseCase {
   async execute(
     id: string,
     _user: AuthenticatedUser,
-  ): Promise<SavingsGoalFutureLine[]> {
+  ): Promise<LinkedSavingLine[]> {
     await this.repo.findById(id);
     const payDayOfMonth = await this.repo.findPayDayOfMonth();
     const minPeriodIndex = periodIndex(
@@ -41,12 +42,6 @@ export class GetSavingsGoalFutureLinesUseCase {
           line.isManuallyAdjusted !== true &&
           periodIndex(line) >= minPeriodIndex,
       )
-      .sort((a, b) => periodIndex(a) - periodIndex(b))
-      .map((line) => ({
-        budgetLineId: line.id,
-        amount: line.amount,
-        month: line.month,
-        year: line.year,
-      }));
+      .sort((a, b) => periodIndex(a) - periodIndex(b));
   }
 }

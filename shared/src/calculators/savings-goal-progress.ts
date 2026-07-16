@@ -171,7 +171,12 @@ export function suggestedMonthlyContribution(
   );
   const monthsRemaining = indexTarget - indexCurrent + 1;
   if (monthsRemaining <= 0 || input.targetAmount <= 0) return null;
-  return Math.ceil((input.targetAmount / monthsRemaining) * 100) / 100;
+  // Le pré-round au 1/100 de centime neutralise l'artefact float binaire :
+  // sans lui, un quotient tombant PILE sur un centime (500.05) peut flotter
+  // juste au-dessus et se faire ceil au centime supérieur (500.06).
+  const cents =
+    Math.round((input.targetAmount / monthsRemaining) * 10_000) / 100;
+  return Math.ceil(cents) / 100;
 }
 
 export function computeSavingsGoalProgress(

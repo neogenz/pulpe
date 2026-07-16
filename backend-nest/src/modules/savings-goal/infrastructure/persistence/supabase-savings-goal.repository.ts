@@ -425,8 +425,10 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
    * - ownership → SAVINGS_GOAL_NOT_FOUND (404, RLS-hiding idiom);
    * - checked / adjusted / past-period → 409 (candidates drifted — refetch);
    * - not-linked → 422 (refetch the candidate list);
-   * - anything else → generic failure (500, safe to retry — idempotent-ish:
-   *   freeze re-freezes, remove finds nothing and 422s harmlessly).
+   * - anything else → generic failure (500) : la RPC a tout rollback, un
+   *   retry complet ré-applique proprement. (La sémantique retry APRÈS commit
+   *   — 422 inoffensif — est documentée sur `recalculateAfterCommit` côté
+   *   use-case, pas ici.)
    */
   private throwGenerationStopRpcError(error: PostgrestError | null): never {
     if (isSavingsGoalLinkDenied(error)) {
@@ -447,7 +449,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       message.includes(GENERATION_STOP_PAST_RPC_MESSAGE)
     ) {
       throw new BusinessException(
-        ERROR_DEFINITIONS.SAVINGS_GOAL_PLAN_CONFLICT,
+        ERROR_DEFINITIONS.SAVINGS_GOAL_GENERATION_STOP_CONFLICT,
         undefined,
         {
           operation: 'applySavingsGoalGenerationStop',
@@ -458,7 +460,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     }
     if (message.includes(GENERATION_STOP_NOT_LINKED_RPC_MESSAGE)) {
       throw new BusinessException(
-        ERROR_DEFINITIONS.SAVINGS_GOAL_PLAN_LINE_INVALID,
+        ERROR_DEFINITIONS.SAVINGS_GOAL_GENERATION_STOP_LINE_INVALID,
         undefined,
         {
           operation: 'applySavingsGoalGenerationStop',

@@ -498,10 +498,16 @@ export type SavingsGoalFutureLine = z.infer<typeof savingsGoalFutureLineSchema>;
  * Refus atomique (CA9) : jamais de mois passé, de ligne pointée ou déjà
  * ajustée à la main.
  */
-export const savingsGoalGenerationStopSchema = z.strictObject({
-  mode: z.enum(['freeze', 'remove']),
-  budgetLineIds: z.array(z.uuid()).min(1).max(MAX_SAVINGS_GOAL_PLAN_PERIODS),
-});
+export const savingsGoalGenerationStopSchema = z
+  .strictObject({
+    mode: z.enum(['freeze', 'remove']),
+    budgetLineIds: z.array(z.uuid()).min(1).max(MAX_SAVINGS_GOAL_PLAN_PERIODS),
+  })
+  // Un doublon fausserait le comptage d'éligibilité de la RPC (422 trompeur).
+  .refine(
+    (value) => new Set(value.budgetLineIds).size === value.budgetLineIds.length,
+    { error: 'Une prévision apparaît deux fois dans la décision.' },
+  );
 export type SavingsGoalGenerationStop = z.infer<
   typeof savingsGoalGenerationStopSchema
 >;

@@ -44,8 +44,13 @@ export class CreateSavingsGoalUseCase {
       exchangeRate: dto.exchangeRate ?? null,
     });
 
+    let baselineCreated = false;
     if (dto.monthlyContribution != null) {
-      await this.generateLinkedBaseline(entity, dto.monthlyContribution, user);
+      baselineCreated = await this.generateLinkedBaseline(
+        entity,
+        dto.monthlyContribution,
+        user,
+      );
     }
 
     this.logger.info(
@@ -54,6 +59,7 @@ export class CreateSavingsGoalUseCase {
         userId: user.id,
         operation: 'savingsGoal.create',
         autoDecompose: dto.monthlyContribution != null,
+        baselineCreated,
       },
       'Savings goal created',
     );
@@ -72,7 +78,7 @@ export class CreateSavingsGoalUseCase {
     goal: SavingsGoal,
     monthlyContribution: number,
     user: AuthenticatedUser,
-  ): Promise<void> {
+  ): Promise<boolean> {
     try {
       const templateId = await this.templateRepo.findDefaultTemplateId(user.id);
       if (!templateId) {
@@ -84,7 +90,7 @@ export class CreateSavingsGoalUseCase {
           },
           'No default template — goal created without its linked baseline',
         );
-        return;
+        return false;
       }
       await this.templateLinePropagation.createLineAndPropagate({
         templateId,
@@ -95,6 +101,7 @@ export class CreateSavingsGoalUseCase {
         recurrence: 'fixed',
         savingsGoalId: goal.id,
       });
+      return true;
     } catch (err) {
       this.logger.warn(
         {
@@ -105,6 +112,7 @@ export class CreateSavingsGoalUseCase {
         },
         'Linked baseline generation failed — goal created without it',
       );
+      return false;
     }
   }
 }

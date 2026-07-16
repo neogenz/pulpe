@@ -223,13 +223,26 @@ export class SavingsGoalStore {
     onSuccess: () => {
       this.#budgetApi.cache.invalidate(['budget']);
     },
+    onError: () => {
+      // Un 409/422 signifie que les candidates ont drifté (pointage, cycle) —
+      // la RPC est atomique (rien d'écrit) mais les caches de lecture sont
+      // périmés : même règle « succès ET erreur » que #applyPlanMutation.
+      this.#budgetApi.cache.invalidate(['budget']);
+      this.#api.cache.invalidate(['savings-goals']);
+    },
   });
 
-  /** Fresh advisory list for a post-transition prompt (bypasses the cache). */
+  /**
+   * Fresh advisory list for a post-transition prompt. Writes the result into
+   * the resource's cache key so the re-entry card and the dialog share one
+   * server truth instead of issuing parallel GETs.
+   */
   async fetchFutureLines(goalId: string): Promise<SavingsGoalFutureLine[]> {
-    return firstValueFrom(
+    const lines = await firstValueFrom(
       this.#api.getFutureLines$(goalId).pipe(map((res) => res.data ?? [])),
     );
+    this.#api.cache.set(['savings-goals', 'future-lines', goalId], lines);
+    return lines;
   }
 
   async applyGenerationStop(

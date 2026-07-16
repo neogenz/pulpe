@@ -23,8 +23,7 @@ struct SavingsGoalFormSheet: View {
     @State private var submitSuccessTrigger = 0
     // PUL-285 CA6 — opt-in « décomposer en mensualités », création uniquement.
     @State private var decomposeEnabled = true
-    @State private var monthlyContribution: Decimal?
-    @State private var isMonthlyContributionCustomized = false
+    @State private var monthlyContributionOverride: Decimal?
     @FocusState private var focusedField: AmountDescriptionField?
 
     private let currency: SupportedCurrency
@@ -212,8 +211,16 @@ struct SavingsGoalFormSheet: View {
             .tint(accentColor)
 
             if decomposeEnabled {
+                // Override falls back to the live suggestion; clearing the field
+                // hands control back to it (matches the webapp override model).
                 CurrencyField(
-                    value: $monthlyContribution,
+                    value: Binding(
+                        get: { monthlyContributionOverride ?? suggestedMonthly },
+                        set: { newValue in
+                            monthlyContributionOverride =
+                                (newValue == nil || newValue == suggestedMonthly) ? nil : newValue
+                        }
+                    ),
                     label: "Épargne mensuelle",
                     currency: currency,
                     visualStyle: .flat
@@ -224,16 +231,6 @@ struct SavingsGoalFormSheet: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .onChange(of: suggestedMonthly) { _, newSuggestion in
-            if !isMonthlyContributionCustomized {
-                monthlyContribution = newSuggestion
-            }
-        }
-        .onChange(of: monthlyContribution) { _, newValue in
-            // Diverging from the live suggestion = the user took over; clearing
-            // the field hands control back to the suggestion.
-            isMonthlyContributionCustomized = newValue != nil && newValue != suggestedMonthly
-        }
     }
 
     // MARK: - Buttons
@@ -287,7 +284,7 @@ struct SavingsGoalFormSheet: View {
                 )
                 toastManager.show("Objectif modifié")
             } else {
-                let contribution = monthlyContribution ?? 0
+                let contribution = monthlyContributionOverride ?? suggestedMonthly ?? 0
                 _ = try await store.create(
                     SavingsGoalCreate(
                         name: trimmedName,

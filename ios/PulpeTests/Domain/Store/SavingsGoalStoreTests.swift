@@ -100,6 +100,24 @@ struct SavingsGoalStoreTests {
         #expect(invalidationCount == 0)
     }
 
+    @Test("applyGenerationStop forwards the decision and invalidates sibling stores once")
+    func applyGenerationStop_forwardsAndInvalidates() async throws {
+        let service = MockSavingsGoalService()
+        let store = SavingsGoalStore(service: service)
+        nonisolated(unsafe) var invalidationCount = 0
+        store.onBudgetDataMutation = { invalidationCount += 1 }
+
+        let result = try await store.applyGenerationStop(
+            id: "g1",
+            SavingsGoalGenerationStop(mode: .remove, budgetLineIds: ["l1", "l2"])
+        )
+
+        #expect(service.lastGenerationStop?.mode == .remove)
+        #expect(service.lastGenerationStop?.budgetLineIds == ["l1", "l2"])
+        #expect(result.affectedCount == 2)
+        #expect(invalidationCount == 1)
+    }
+
     @Test("forceRefresh surfaces an API error")
     func forceRefresh_surfacesError() async {
         let service = MockSavingsGoalService()

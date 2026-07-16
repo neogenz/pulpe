@@ -390,20 +390,4 @@ struct SavingsGoalGenerationStopViewModelTests {
         #expect(viewModel.futureLines.count == 1)
         #expect(viewModel.futureLines.first?.budgetLineId == "l1")
     }
-
-    @Test("applyGenerationStop sends the mode and every candidate id")
-    func applyGenerationStop_sendsDecision() async throws {
-        let service = MockSavingsGoalService()
-        let viewModel = SavingsGoalDetailViewModel(goalId: "g1", service: service)
-        let lines = [
-            SavingsGoalFutureLine(budgetLineId: "l1", amount: 200, month: 8, year: 2099),
-            SavingsGoalFutureLine(budgetLineId: "l2", amount: 200, month: 9, year: 2099),
-        ]
-
-        let count = try await viewModel.applyGenerationStop(mode: .remove, lines: lines)
-
-        #expect(count == 2)
-        #expect(service.lastGenerationStop?.mode == .remove)
-        #expect(service.lastGenerationStop?.budgetLineIds == ["l1", "l2"])
-    }
 }

@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import {
+  type LinkedSavingLine,
   type SavingsGoal as SavingsGoalApi,
   type SavingsGoalContribution as SavingsGoalContributionApi,
+  type SavingsGoalFutureLine,
   type SavingsGoalProgress,
   type SupportedCurrency,
 } from 'pulpe-shared';
@@ -86,6 +88,19 @@ export class SavingsGoalMapper {
    * son budget parent ; les transactions imbriquées passent par le mapper
    * transaction commun (cœur camelCase + door-keepers FX).
    */
+  /**
+   * Candidates advisory à l'arrêt de génération (PUL-285 CA5) : conversion
+   * entité (`LinkedSavingLine.id`) → DTO wire (`budgetLineId`).
+   */
+  toFutureLinesApi(lines: LinkedSavingLine[]): SavingsGoalFutureLine[] {
+    return lines.map((line) => ({
+      budgetLineId: line.id,
+      amount: line.amount,
+      month: line.month,
+      year: line.year,
+    }));
+  }
+
   toContributionsApi(
     contributions: SavingsGoalContribution[],
   ): SavingsGoalContributionApi[] {

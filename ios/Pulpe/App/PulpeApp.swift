@@ -53,7 +53,7 @@ struct PulpeApp: App {
             dashboardStore.invalidateCache()
         }
 
-        // Deleting a goal unlinks every attached prévision server-side.
+        // Any goal mutation touching budget data (delete-unlink, create with auto-décomposition, generation-stop freeze/remove) stales every aggregate store (PUL-270).
         savingsGoalStore.onBudgetDataMutation = { [currentMonthStore, budgetListStore, dashboardStore] in
             currentMonthStore.invalidateCache()
             budgetListStore.invalidateCache()

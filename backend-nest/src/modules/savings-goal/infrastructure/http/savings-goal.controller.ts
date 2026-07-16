@@ -197,7 +197,7 @@ export class SavingsGoalController {
     @User() user: AuthenticatedUser,
   ): Promise<SavingsGoalFutureLinesResponse> {
     const lines = await this.futureLinesUseCase.execute(id, user);
-    return { success: true, data: lines };
+    return { success: true, data: this.mapper.toFutureLinesApi(lines) };
   }
 
   @Post(':id/generation-stop')

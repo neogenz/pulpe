@@ -113,6 +113,18 @@ final class SavingsGoalStore: StoreProtocol {
         onBudgetDataMutation?()
     }
 
+    /// Applies the advisory freeze/remove decision (PUL-285 CA8). Budget lines
+    /// are frozen or deleted server-side → budget data changed.
+    @discardableResult
+    func applyGenerationStop(
+        id: String,
+        _ payload: SavingsGoalGenerationStop
+    ) async throws -> SavingsGoalGenerationStopResult {
+        let result = try await service.applyGenerationStop(id: id, payload)
+        onBudgetDataMutation?()
+        return result
+    }
+
     func invalidateCache() {
         lastLoadTime = nil
     }

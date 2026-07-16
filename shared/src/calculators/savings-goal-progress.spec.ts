@@ -466,6 +466,17 @@ describe('suggestedMonthlyContribution (PUL-285 CA1/CA6)', () => {
     expect(suggestion).toBe(2083.34);
   });
 
+  it('should not overshoot when the exact quotient already lands on a cent (float artifact)', () => {
+    const suggestion = suggestedMonthlyContribution({
+      targetAmount: 1000.1,
+      targetDate: '2026-07-15', // juillet 2026 → 2 mois restants depuis juin
+      now: new Date(2026, 5, 15),
+      payDayOfMonth: null,
+    });
+
+    expect(suggestion).toBe(500.05);
+  });
+
   it('should round UP to the cent so suggestion × months always covers the target', () => {
     const monthCount = 48;
     const suggestion = suggestedMonthlyContribution({

@@ -94,21 +94,10 @@ const MAX_LINE_ROWS = 5;
         </li>
       </ul>
 
+      <!-- Figer (non destructif) en premier et en filled — ton advisory RG-002. -->
       <div class="flex flex-col gap-3">
         <button
           matButton="filled"
-          class="w-full"
-          (click)="decide('remove')"
-          data-testid="goal-generation-stop-remove"
-        >
-          <mat-icon>event_busy</mat-icon>
-          {{ 'savingsGoals.generationStop.remove' | transloco }}
-        </button>
-        <p class="text-body-small text-on-surface-variant">
-          {{ 'savingsGoals.generationStop.removeHint' | transloco }}
-        </p>
-        <button
-          matButton="outlined"
           class="w-full"
           (click)="decide('freeze')"
           data-testid="goal-generation-stop-freeze"
@@ -118,6 +107,18 @@ const MAX_LINE_ROWS = 5;
         </button>
         <p class="text-body-small text-on-surface-variant">
           {{ 'savingsGoals.generationStop.freezeHint' | transloco }}
+        </p>
+        <button
+          matButton="outlined"
+          class="w-full"
+          (click)="decide('remove')"
+          data-testid="goal-generation-stop-remove"
+        >
+          <mat-icon>event_busy</mat-icon>
+          {{ 'savingsGoals.generationStop.remove' | transloco }}
+        </button>
+        <p class="text-body-small text-on-surface-variant">
+          {{ 'savingsGoals.generationStop.removeHint' | transloco }}
         </p>
       </div>
     </mat-dialog-content>

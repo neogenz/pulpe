@@ -40,6 +40,7 @@ import { BaseLoading } from '@ui/loading';
 import { StateCard } from '@ui/state-card/state-card';
 import { SavingsGoalStore } from '../services/savings-goals-store';
 import { SavingsGoalsDialogService } from '../services/savings-goals-dialog.service';
+import { type GoalGenerationStopDecision } from './components/goal-generation-stop-dialog';
 import { GoalPlanSimulatorStore } from './services/goal-plan-simulator-store';
 import { GoalProjectionChart } from './components/goal-projection-chart';
 import { GoalPlanTimeline } from './components/goal-plan-timeline';
@@ -752,7 +753,13 @@ export default class SavingsGoalDetailPage {
       this.#showError(error);
       return;
     }
-    if (result.status === 'PAUSED' || result.status === 'COMPLETED') {
+    // Advisory sur les vraies TRANSITIONS seulement — renommer un objectif
+    // déjà en pause ne doit pas rouvrir le dialog (la carte reste la porte
+    // de ré-entrée).
+    if (
+      (result.status === 'PAUSED' || result.status === 'COMPLETED') &&
+      result.status !== goal.status
+    ) {
       await this.#proposeGenerationStop(goal.id, result.status);
     }
   }
@@ -814,7 +821,14 @@ export default class SavingsGoalDetailPage {
       payDayOfMonth: this.payDayOfMonth(),
     });
     if (!decision) return;
+    await this.#applyGenerationStopDecision(goalId, decision, lines);
+  }
 
+  async #applyGenerationStopDecision(
+    goalId: string,
+    decision: GoalGenerationStopDecision,
+    lines: SavingsGoalFutureLine[],
+  ): Promise<void> {
     try {
       const { affectedCount } = await this.store.applyGenerationStop(goalId, {
         mode: decision,

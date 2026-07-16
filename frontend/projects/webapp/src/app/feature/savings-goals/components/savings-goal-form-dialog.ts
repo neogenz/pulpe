@@ -190,9 +190,15 @@ function isoToDate(value: string): Date | null {
                 data-testid="savings-goal-monthly-contribution"
               />
               <span matTextSuffix>{{ currencySymbol() }}</span>
-              <mat-hint>{{
-                'savingsGoals.decomposeHint' | transloco
-              }}</mat-hint>
+              @if (isMonthlyContributionInvalid()) {
+                <mat-hint class="text-error">{{
+                  'savingsGoals.monthlyContributionInvalid' | transloco
+                }}</mat-hint>
+              } @else {
+                <mat-hint>{{
+                  'savingsGoals.decomposeHint' | transloco
+                }}</mat-hint>
+              }
             </mat-form-field>
           }
         }
@@ -288,14 +294,12 @@ export class SavingsGoalFormDialog {
     });
   });
 
-  protected readonly canSubmit = computed(() => this.goalForm().valid());
-
   // PUL-285 CA6 — opt-in « décomposer en mensualités », création uniquement.
   // Pré-coché ; la suggestion suit cible/échéance tant que l'utilisateur n'a
   // pas saisi son propre montant (vider le champ rend la main à la suggestion).
   protected readonly decomposeEnabled = signal(!this.#data.goal);
   readonly #monthlyContributionOverride = signal<number | null>(null);
-  protected readonly suggestedMonthly = computed(() => {
+  readonly #suggestedMonthly = computed(() => {
     const { targetAmount, targetDate } = this.model();
     if (!targetAmount || targetAmount <= 0 || !targetDate) return null;
     return suggestedMonthlyContribution({
@@ -305,7 +309,19 @@ export class SavingsGoalFormDialog {
     });
   });
   protected readonly monthlyContribution = computed(
-    () => this.#monthlyContributionOverride() ?? this.suggestedMonthly(),
+    () => this.#monthlyContributionOverride() ?? this.#suggestedMonthly(),
+  );
+  // Option active + montant non positif = décomposition silencieusement
+  // perdue : on bloque la soumission plutôt que d'omettre le champ.
+  protected readonly isMonthlyContributionInvalid = computed(
+    () =>
+      !this.isEdit() &&
+      this.decomposeEnabled() &&
+      (this.monthlyContribution() ?? 0) <= 0,
+  );
+
+  protected readonly canSubmit = computed(
+    () => this.goalForm().valid() && !this.isMonthlyContributionInvalid(),
   );
 
   protected readonly targetDateAsDate = computed(() =>

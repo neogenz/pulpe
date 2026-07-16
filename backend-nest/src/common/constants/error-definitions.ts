@@ -508,6 +508,18 @@ export const ERROR_DEFINITIONS = {
     message: () => 'Failed to apply the generation stop decision',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
+  SAVINGS_GOAL_GENERATION_STOP_CONFLICT: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_GENERATION_STOP_CONFLICT,
+    message: () =>
+      'The linked prévisions changed since you listed them. Refresh and retry.',
+    httpStatus: HttpStatus.CONFLICT,
+  },
+  SAVINGS_GOAL_GENERATION_STOP_LINE_INVALID: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_GENERATION_STOP_LINE_INVALID,
+    message: () =>
+      'One or more prévisions are no longer linked to this goal. Refresh the list.',
+    httpStatus: HttpStatus.UNPROCESSABLE_ENTITY,
+  },
   BUDGET_LINE_BUDGET_MISMATCH: {
     code: API_ERROR_CODES.BUDGET_LINE_BUDGET_MISMATCH,
     message: (details?: Record<string, unknown>) =>

@@ -104,24 +104,12 @@ struct SavingsGoalDetailView: View {
                     progress: progress,
                     status: currentGoal.status,
                     isMutatingStatus: viewModel.isMutatingStatus,
+                    futureLinesCount: viewModel.futureLines.count,
                     onEdit: { editTarget = currentGoal },
                     onComplete: { Task { await setStatus(.completed) } },
-                    onReopen: { Task { await setStatus(.active) } }
+                    onReopen: { Task { await setStatus(.active) } },
+                    onManageFutureLines: { Task { await proposeGenerationStop() } }
                 )
-
-                // PUL-285 CA8 — advisory: future linked lines of a stopped goal.
-                if currentGoal.status != .active, !viewModel.futureLines.isEmpty {
-                    GoalInfoCard(
-                        icon: "calendar.badge.clock",
-                        title: "Prévisions liées sur tes mois futurs",
-                        message: "Cet objectif est arrêté, mais \(viewModel.futureLines.count) prévision(s) Épargne lui restent réservées sur les mois à venir."
-                    ) {
-                        Button("Gérer ces prévisions") {
-                            Task { await proposeGenerationStop() }
-                        }
-                        .secondaryButtonStyle()
-                    }
-                }
 
                 if progress.linkedLineCount > 0, !progress.months.isEmpty {
                     GoalTrajectorySection(progress: progress, currency: currency)
@@ -367,23 +355,23 @@ struct SavingsGoalDetailView: View {
         showGenerationStop = true
     }
 
-    /// Applies the decision then mirrors `handlePlanApplied`: budget lines
-    /// changed (frozen or deleted), so every aggregate store goes stale.
+    /// Applies the decision through the store seam, which owns the aggregate
+    /// invalidation (frozen or deleted budget lines stale every store projecting
+    /// them, PUL-270). Then refetches this goal's progression and candidates.
     private func applyGenerationStop(_ mode: SavingsGoalGenerationStopMode) async throws {
-        let affectedCount = try await viewModel.applyGenerationStop(
-            mode: mode,
-            lines: generationStopCandidates
+        let result = try await store.applyGenerationStop(
+            id: goal.id,
+            SavingsGoalGenerationStop(
+                mode: mode,
+                budgetLineIds: generationStopCandidates.map(\.budgetLineId)
+            )
         )
-        currentMonthStore.invalidateCache()
-        budgetListStore.invalidateCache()
-        dashboardStore.invalidateCache()
-        BudgetDetailCache.shared.invalidateAll()
         await viewModel.load()
         await viewModel.loadFutureLines()
         toastManager.show(
             mode == .freeze
-                ? "\(affectedCount) prévision(s) conservée(s) sans objectif"
-                : "\(affectedCount) prévision(s) retirée(s) de tes mois futurs"
+                ? "\(result.affectedCount) prévision(s) conservée(s) sans objectif"
+                : "\(result.affectedCount) prévision(s) retirée(s) de tes mois futurs"
         )
     }
 }
@@ -466,19 +454,6 @@ final class SavingsGoalDetailViewModel {
     /// a failure just leaves the card hidden (the user can pull-to-refresh).
     func loadFutureLines() async {
         futureLines = (try? await service.getFutureLines(id: goalId)) ?? []
-    }
-
-    /// Applies the explicit freeze/remove decision. Atomic server-side; the
-    /// caller owns the sibling-store invalidation and the confirmation toast.
-    func applyGenerationStop(
-        mode: SavingsGoalGenerationStopMode,
-        lines: [SavingsGoalFutureLine]
-    ) async throws -> Int {
-        let result = try await service.applyGenerationStop(
-            id: goalId,
-            SavingsGoalGenerationStop(mode: mode, budgetLineIds: lines.map(\.budgetLineId))
-        )
-        return result.affectedCount
     }
 }
 

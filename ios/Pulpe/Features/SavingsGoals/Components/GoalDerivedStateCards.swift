@@ -47,17 +47,20 @@ struct GoalEmptyGuidanceCard: View {
     }
 }
 
-/// The derived-state cards D1 (échéance dépassée), D2 (auto-complétion suggérée)
-/// and the COMPLETED re-open affordance. The server owns the flags; this view only
+/// The derived-state cards D1 (échéance dépassée), D2 (auto-complétion suggérée),
+/// the COMPLETED re-open affordance, and the PUL-285 CA8 advisory card for future
+/// linked lines of a stopped goal. The server owns the flags; this view only
 /// renders them and forwards the user-initiated actions (never auto-flips —
 /// pilier Contrôle, `docs/SAVINGS.md` §6).
 struct GoalDerivedStateCards: View {
     let progress: SavingsGoalProgress
     let status: SavingsGoalStatus
     let isMutatingStatus: Bool
+    let futureLinesCount: Int
     let onEdit: () -> Void
     let onComplete: () -> Void
     let onReopen: () -> Void
+    let onManageFutureLines: () -> Void
 
     var body: some View {
         if status == .active, progress.isOverdue {
@@ -92,6 +95,17 @@ struct GoalDerivedStateCards: View {
                 Button("Ré-ouvrir", action: onReopen)
                     .secondaryButtonStyle()
                     .disabled(isMutatingStatus)
+            }
+        }
+
+        if status != .active, futureLinesCount > 0 {
+            GoalInfoCard(
+                icon: "calendar.badge.clock",
+                title: "Prévisions liées sur tes mois futurs",
+                message: "Cet objectif est arrêté, mais \(futureLinesCount) prévision(s) Épargne lui restent réservées sur les mois à venir."
+            ) {
+                Button("Gérer ces prévisions", action: onManageFutureLines)
+                    .secondaryButtonStyle()
             }
         }
     }

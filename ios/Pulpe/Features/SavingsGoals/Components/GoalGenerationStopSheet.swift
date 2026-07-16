@@ -92,26 +92,26 @@ struct GoalGenerationStopSheet: View {
     private var decisionButtons: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             Button {
-                Task { await apply(.remove) }
-            } label: {
-                Text("Retirer des mois futurs")
-            }
-            .primaryButtonStyle(isEnabled: !isApplying)
-            .disabled(isApplying)
-
-            Text("Les prévisions sont supprimées : le montant redevient disponible chaque mois.")
-                .font(PulpeTypography.caption)
-                .foregroundStyle(Color.textSecondary)
-
-            Button {
                 Task { await apply(.freeze) }
             } label: {
                 Text("Garder sans objectif")
             }
-            .secondaryButtonStyle()
+            .primaryButtonStyle(isEnabled: !isApplying)
             .disabled(isApplying)
 
             Text("Les prévisions restent dans tes budgets, simplement déliées de l'objectif.")
+                .font(PulpeTypography.caption)
+                .foregroundStyle(Color.textSecondary)
+
+            Button {
+                Task { await apply(.remove) }
+            } label: {
+                Text("Retirer des mois futurs")
+            }
+            .secondaryButtonStyle()
+            .disabled(isApplying)
+
+            Text("Les prévisions sont supprimées : le montant redevient disponible chaque mois.")
                 .font(PulpeTypography.caption)
                 .foregroundStyle(Color.textSecondary)
         }
