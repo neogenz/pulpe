@@ -61,37 +61,37 @@ body {
   background-color: var(--color-background);
   background-image:
     radial-gradient(
-      62% 11% at -5% 8% var(--gradient-interpolation),
+      var(--gradient-interpolation) 62% 11% at -5% 8%,
       var(--ambient-leaf),
       transparent 74%
     ),
     radial-gradient(
-      58% 12% at 105% 10% var(--gradient-interpolation),
+      var(--gradient-interpolation) 58% 12% at 105% 10%,
       var(--ambient-mint),
       transparent 76%
     ),
     radial-gradient(
-      105% 16% at 50% -2% var(--gradient-interpolation),
+      var(--gradient-interpolation) 105% 16% at 50% -2%,
       var(--ambient-lime),
       transparent 78%
     ),
     radial-gradient(
-      80% 16% at 105% 32% var(--gradient-interpolation),
+      var(--gradient-interpolation) 80% 16% at 105% 32%,
       var(--ambient-leaf),
       transparent 76%
     ),
     radial-gradient(
-      74% 16% at -5% 53% var(--gradient-interpolation),
+      var(--gradient-interpolation) 74% 16% at -5% 53%,
       var(--ambient-lime),
       transparent 76%
     ),
     radial-gradient(
-      82% 17% at 105% 74% var(--gradient-interpolation),
+      var(--gradient-interpolation) 82% 17% at 105% 74%,
       var(--ambient-mint),
       transparent 78%
     ),
     radial-gradient(
-      96% 16% at 24% 100% var(--gradient-interpolation),
+      var(--gradient-interpolation) 96% 16% at 24% 100%,
       var(--ambient-leaf),
       transparent 80%
     );

@@ -85,6 +85,19 @@ describe("landing accessibility contracts", () => {
     }
   });
 
+  it("keeps ambient gradients valid when oklab interpolation is supported", () => {
+    assert.match(globalsCss, /--gradient-interpolation:\s*in oklab;/);
+    assert.doesNotMatch(globalsCss, /--gradient-interpolation:\s*in oklab,;/);
+    assert.match(
+      globalsCss,
+      /radial-gradient\(\s*var\(--gradient-interpolation\)\s*62% 11% at -5% 8%,/,
+    );
+    assert.doesNotMatch(
+      globalsCss,
+      /at\s+[-\d.%]+\s+[-\d.%]+\s+var\(--gradient-interpolation\)/,
+    );
+  });
+
   it("hides a collapsed accordion panel from assistive technology", () => {
     const html = renderToStaticMarkup(
       <AccordionItem question="Question" answer="Réponse" />,
