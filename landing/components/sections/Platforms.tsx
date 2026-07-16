@@ -51,7 +51,7 @@ export function Platforms() {
             <h3 className="mt-10 text-4xl font-semibold tracking-[-0.03em]">
               Pulpe pour iPhone
             </h3>
-            <p className="mt-4 max-w-md text-lg leading-relaxed text-white/75">
+            <p className="mt-4 max-w-md text-lg leading-relaxed text-white/80">
               Une app native avec notifications, widgets et Face ID, pensée pour
               consulter et mettre à jour ton budget partout.
             </p>

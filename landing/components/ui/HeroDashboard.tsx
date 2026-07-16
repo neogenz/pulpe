@@ -80,7 +80,10 @@ export const HeroDashboard = memo(function HeroDashboard({
           </div>
 
           <p className="text-sm text-white/72">Disponible ce mois</p>
-          <p className="mt-1 leading-none" aria-label={`${amount} ${unit}`}>
+          <p className="mt-1 leading-none">
+            <span className="sr-only">
+              {amount} {unit}
+            </span>
             <span
               aria-hidden="true"
               className="text-[clamp(3.5rem,8vw,5.5rem)] font-extrabold tracking-[-0.04em] tabular-nums"
