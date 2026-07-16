@@ -1,6 +1,6 @@
 ---
 objective: "Sur tablette et desktop, l’ajout rapide d’une transaction s’ouvre dans un dialog centré, compact et accessible, tandis que le mobile conserve son bottom sheet et le même résultat métier."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Adapter l’ajout rapide de transaction aux grands écrans
