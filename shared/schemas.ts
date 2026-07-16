@@ -506,6 +506,14 @@ export const budgetLineSchema = z.object({
    * pas à `budgetLineCreateSchema`. Champ additif, non-breaking.
    */
   spreadGroupId: z.uuid().nullable().optional(),
+  /**
+   * Pioche dans l'épargne (PUL-292): clé du COUPLE Revenu M ↔ Épargne M+1
+   * (« Remettre sur ton épargne »). Lien léger — badge et suppression groupée
+   * uniquement, JAMAIS de synchro de montants. uuid non-financier → JAMAIS
+   * chiffré. Read-only ici : l'assignation appartient à
+   * `POST /budget-lines/savings-withdrawal`. Champ additif, non-breaking.
+   */
+  savingsWithdrawalGroupId: z.uuid().nullable().optional(),
 });
 export type BudgetLine = z.infer<typeof budgetLineSchema>;
 
@@ -814,6 +822,119 @@ export const spreadOccurrencesResponseSchema = createListResponse(
 );
 export type SpreadOccurrencesResponse = z.infer<
   typeof spreadOccurrencesResponseSchema
+>;
+
+/**
+ * PIOCHE DANS L'ÉPARGNE (PUL-292) — `POST /budget-lines/savings-withdrawal`.
+ *
+ * UNE action crée le COUPLE lié : un Revenu `one_off` de `amount` sur le mois du
+ * `budgetId` consulté (M), et une Épargne `one_off` du MÊME `amount` sur M+1
+ * (« Remettre sur ton épargne » — l'épargne reste une dépense planifiée, elle
+ * réduit le disponible de M+1). Somme nulle sur 2 mois par construction : un
+ * seul champ `amount` pour les deux lignes. Le serveur dérive M+1 du budget M
+ * et le provisionne STRICTEMENT depuis le template par défaut (pas de template
+ * → 422, rien n'est créé — une demi-paire corromprait les comptes).
+ *
+ * Les NOMS des deux lignes viennent du client (copy validée en test user,
+ * backend sans i18n) : `incomeName` = la source saisie (« Mon épargne »,
+ * « Impôts »…), `savingName` = le libellé du remboursement. Le badge « pris sur
+ * ton épargne » et le sous-titre « mois d'origine » se DÉRIVENT du groupe et de
+ * month±1 côté client — rien d'autre n'est stocké.
+ *
+ * `groupId` = clé d'idempotence OPTIONNELLE (pattern `spreadGroupId` PUL-17) :
+ * uuid v4 stable par intention, rejoué à l'identique sur un retry. Le serveur
+ * l'utilise comme `savings_withdrawal_group_id` ; un POST rejoué REPLAYE le
+ * couple d'origine (201, à la Stripe) au lieu d'en créer un second.
+ *
+ * Un SEUL quad FX figé à la saisie (RG-009), partagé par les deux lignes — le
+ * remboursement ne re-déclenche jamais de conversion.
+ */
+export const budgetLineSavingsWithdrawalCreateSchema = z
+  .strictObject({
+    budgetId: z.uuid(),
+    amount: z.number().positive(),
+    incomeName: z.string().min(1).max(100).trim(),
+    savingName: z.string().min(1).max(100).trim(),
+    groupId: z.uuid().optional(),
+    originalAmount: z.number().positive().optional(),
+    originalCurrency: supportedCurrencySchema.optional(),
+    targetCurrency: supportedCurrencySchema.optional(),
+    exchangeRate: exchangeRateWirePositive.optional(),
+  })
+  /**
+   * Triade FX (miroir du CHECK DB `fx_metadata_coherent`, même contrat que
+   * `budgetLineSpreadCreateSchema`) : exactement un des trois états —
+   * 1. no FX ; 2. target-only ; 3. full FX (origin≠target + montant original).
+   * Le taux figé est accepté tel quel (RG-009) — jamais re-fetché ici.
+   */
+  .superRefine((value, ctx) => {
+    const hasOriginalCurrency = value.originalCurrency != null;
+    const hasTargetCurrency = value.targetCurrency != null;
+    const hasRate = value.exchangeRate != null;
+    const hasOriginalAmount = value.originalAmount != null;
+
+    const noFx =
+      !hasOriginalCurrency &&
+      !hasTargetCurrency &&
+      !hasRate &&
+      !hasOriginalAmount;
+    const targetOnly =
+      hasTargetCurrency &&
+      !hasOriginalCurrency &&
+      !hasRate &&
+      !hasOriginalAmount;
+    const fullFx =
+      hasTargetCurrency &&
+      hasOriginalCurrency &&
+      hasRate &&
+      hasOriginalAmount &&
+      value.originalCurrency !== value.targetCurrency;
+
+    if (!noFx && !targetOnly && !fullFx) {
+      ctx.addIssue({
+        code: 'custom',
+        message:
+          'Métadonnées de change incohérentes : fournis soit aucune métadonnée FX, soit targetCurrency seule, soit le quadruplet complet (originalCurrency, targetCurrency, exchangeRate avec devises distinctes + originalAmount).',
+      });
+    }
+  });
+export type BudgetLineSavingsWithdrawalCreate = z.infer<
+  typeof budgetLineSavingsWithdrawalCreateSchema
+>;
+
+/**
+ * Réponse du couple : les deux lignes créées (Revenu M, Épargne M+1) et le
+ * budget M+1 auto-créé depuis le template par défaut (`null` s'il existait
+ * déjà). Pair-shaped plutôt que `lines[]` : le client n'a jamais à deviner
+ * quel élément est le revenu.
+ */
+export const budgetLineSavingsWithdrawalResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    groupId: z.uuid(),
+    incomeLine: budgetLineSchema,
+    savingLine: budgetLineSchema,
+    createdBudget: budgetSchema.nullable(),
+  }),
+});
+export type BudgetLineSavingsWithdrawalResponse = z.infer<
+  typeof budgetLineSavingsWithdrawalResponseSchema
+>;
+
+/**
+ * Suppression groupée (`DELETE /budget-lines/savings-withdrawal/:groupId`) —
+ * le choix explicite de CA9, porté par `scope` :
+ * - `pair` : « tout annuler » — les DEUX lignes sont supprimées ;
+ * - `repayment` : « garder le Revenu de M seul » — seule l'Épargne de M+1 est
+ *   supprimée ; le Revenu conserve son groupe (le badge « pris sur ton
+ *   épargne » reste vrai).
+ * Une suppression = un statement SQL (atomique). Réponse : delete générique.
+ */
+export const budgetLineSavingsWithdrawalDeleteQuerySchema = z.strictObject({
+  scope: z.enum(['pair', 'repayment']),
+});
+export type BudgetLineSavingsWithdrawalDeleteQuery = z.infer<
+  typeof budgetLineSavingsWithdrawalDeleteQuerySchema
 >;
 
 /**

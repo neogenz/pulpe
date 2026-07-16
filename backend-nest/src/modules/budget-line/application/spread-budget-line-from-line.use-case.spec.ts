@@ -55,6 +55,7 @@ const makeLine = (
   templateLineId: null,
   savingsGoalId: null,
   spreadGroupId,
+  savingsWithdrawalGroupId: null,
   name: input.name,
   amount: input.amount,
   originalAmount: input.originalAmount ?? null,

@@ -21,6 +21,8 @@ import type {
   BudgetLineInsert,
   BudgetLineRow,
   BudgetLineUpdate,
+  SavingsWithdrawalDeleteScope,
+  SavingsWithdrawalPairInputs,
   SpreadDeleteSource,
   SpreadOccurrence,
   SpreadSourceLine,
@@ -35,6 +37,7 @@ import {
   type CreateBudgetLineSpreadItem,
 } from './schemas/rpc-payload.schemas';
 import { SpreadGroupAlreadyExistsError } from '../../domain/spread-group-conflict.error';
+import { SavingsWithdrawalPairExistsError } from '../../domain/savings-withdrawal-conflict.error';
 
 @Injectable()
 export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
@@ -551,6 +554,121 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     };
   }
 
+  async createSavingsWithdrawalPair(
+    groupId: string,
+    inputs: SavingsWithdrawalPairInputs,
+  ): Promise<BudgetLine[]> {
+    const supabase = this.supabaseProvider.client;
+    const user = this.supabaseProvider.user;
+
+    const [incomeRow, savingRow] = await Promise.all([
+      this.toInsertRow(inputs.income, user),
+      this.toInsertRow(inputs.saving, user),
+    ]);
+    const rows = [incomeRow, savingRow].map((row) => ({
+      ...row,
+      savings_withdrawal_group_id: groupId,
+    }));
+
+    const { data, error } = await supabase
+      .from('budget_line')
+      .insert(rows)
+      .select();
+
+    if (error || !data?.length) {
+      this.throwSavingsWithdrawalInsertError(error, groupId);
+    }
+
+    const dek = await this.encryption.getDekFor(user);
+    return data.map((row) => this.toEntity(row, dek));
+  }
+
+  /**
+   * Translates the pair-insert failure into the right error. A 23505 on the
+   * partial UNIQUE index `(savings_withdrawal_group_id, kind)` is the
+   * idempotency guard firing on a replayed client key → a TYPED
+   * `SavingsWithdrawalPairExistsError` so the use case REPLAYs (no
+   * string-sniffing in the application layer). Anything else → generic 500.
+   */
+  private throwSavingsWithdrawalInsertError(
+    error: PostgrestError | null,
+    groupId: string,
+  ): never {
+    if (
+      error?.code === '23505' &&
+      error.message?.includes('savings_withdrawal')
+    ) {
+      throw new SavingsWithdrawalPairExistsError(groupId);
+    }
+    throw new BusinessException(
+      ERROR_DEFINITIONS.BUDGET_LINE_CREATE_FAILED,
+      undefined,
+      {
+        operation: 'createSavingsWithdrawalPair',
+        entityType: 'budget_line',
+        supabaseError: error,
+      },
+      { cause: error ?? undefined },
+    );
+  }
+
+  async findBySavingsWithdrawalGroupId(groupId: string): Promise<BudgetLine[]> {
+    const supabase = this.supabaseProvider.client;
+    const { data, error } = await supabase
+      .from('budget_line')
+      .select('*')
+      .eq('savings_withdrawal_group_id', groupId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'findBySavingsWithdrawalGroup',
+          entityId: groupId,
+          entityType: 'budget_line',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    if (!data?.length) return [];
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    return data.map((row) => this.toEntity(row, dek));
+  }
+
+  async deleteSavingsWithdrawalGroup(
+    groupId: string,
+    scope: SavingsWithdrawalDeleteScope,
+  ): Promise<void> {
+    const supabase = this.supabaseProvider.client;
+    let query = supabase
+      .from('budget_line')
+      .delete()
+      .eq('savings_withdrawal_group_id', groupId);
+    if (scope === 'repayment') {
+      query = query.eq('kind', 'saving');
+    }
+    const { error } = await query;
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_DELETE_FAILED,
+        undefined,
+        {
+          operation: 'deleteSavingsWithdrawalGroup',
+          entityId: groupId,
+          entityType: 'budget_line',
+          scope,
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+  }
+
   async update(id: string, patch: BudgetLineUpdatePatch): Promise<BudgetLine> {
     const supabase = this.supabaseProvider.client;
     const user = this.supabaseProvider.user;
@@ -776,6 +894,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       templateLineId: decrypted.template_line_id,
       savingsGoalId: decrypted.savings_goal_id,
       spreadGroupId: decrypted.spread_group_id,
+      savingsWithdrawalGroupId: decrypted.savings_withdrawal_group_id,
       name: decrypted.name,
       amount: decrypted.amount,
       originalAmount: decrypted.original_amount,

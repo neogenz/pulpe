@@ -10,6 +10,7 @@ export interface BudgetLineApiSource {
   templateLineId: string | null;
   savingsGoalId: string | null;
   spreadGroupId: string | null;
+  savingsWithdrawalGroupId: string | null;
   name: string;
   amount: number;
   kind: BudgetLineApi['kind'];
@@ -48,6 +49,7 @@ export function mapBudgetLineToApi(entity: BudgetLineApiSource): BudgetLineApi {
     templateLineId: entity.templateLineId,
     savingsGoalId: entity.savingsGoalId,
     spreadGroupId: entity.spreadGroupId,
+    savingsWithdrawalGroupId: entity.savingsWithdrawalGroupId,
     name: entity.name,
     amount: entity.amount,
     kind: entity.kind,

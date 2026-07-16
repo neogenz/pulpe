@@ -34,6 +34,7 @@ const budgetLineRow: BudgetLineRow = {
   template_line_id: null,
   savings_goal_id: null,
   spread_group_id: null,
+  savings_withdrawal_group_id: null,
   name: 'Prime assurance',
   amount: 'encrypted-100',
   kind: 'expense',
@@ -192,6 +193,7 @@ describe('SupabaseBudgetRepository toBudgetLineDecrypted', () => {
     const provider = fetchBudgetDataProvider({
       ...budgetLineRow,
       spread_group_id: 'a3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d',
+      savings_withdrawal_group_id: null,
     });
     const repo = new SupabaseBudgetRepository(provider, createMockEncryption());
 
@@ -206,6 +208,7 @@ describe('SupabaseBudgetRepository toBudgetLineDecrypted', () => {
     const provider = fetchBudgetDataProvider({
       ...budgetLineRow,
       spread_group_id: null,
+      savings_withdrawal_group_id: null,
     });
     const repo = new SupabaseBudgetRepository(provider, createMockEncryption());
 
