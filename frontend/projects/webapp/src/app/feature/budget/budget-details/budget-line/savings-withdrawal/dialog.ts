@@ -36,6 +36,7 @@ import { dateFnsLocaleFor } from '@core/locale';
 import { UserSettingsStore } from '@core/user-settings';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
 
+import { offsetMonth } from '../create/spread.utils';
 import { budgetLineSavingsWithdrawalFromFormSchema } from './dialog.schema';
 
 export interface SavingsWithdrawalDialogData {
@@ -45,7 +46,12 @@ export interface SavingsWithdrawalDialogData {
   /** Positive magnitude of the month's deficit — pre-fills the quick chip. */
   deficitAmount: number;
   /** Toggle-driven entry (PUL-292, CA2): start on the preview with these values. */
-  prefill?: { amount?: number; source?: string };
+  prefill?: {
+    amount?: number;
+    source?: string;
+    /** Currency the prefilled amount was typed in (defaults to the user's). */
+    inputCurrency?: SupportedCurrency;
+  };
 }
 
 type Step = 'amount' | 'preview';
@@ -259,7 +265,8 @@ export class SavingsWithdrawalDialog {
 
   protected readonly model = signal<SavingsWithdrawalModel>({
     money: createAmountSlice({
-      initialCurrency: this.#settings.currency(),
+      initialCurrency:
+        this.#data.prefill?.inputCurrency ?? this.#settings.currency(),
       initialAmount: this.#data.prefill?.amount ?? null,
     }),
     source: this.#data.prefill?.source ?? '',
@@ -285,13 +292,11 @@ export class SavingsWithdrawalDialog {
   );
 
   protected readonly nextMonthName = computed(() => {
-    const month =
-      this.#data.budgetMonth === 12 ? 1 : this.#data.budgetMonth + 1;
-    const year =
-      this.#data.budgetMonth === 12
-        ? this.#data.budgetYear + 1
-        : this.#data.budgetYear;
-    return this.#formatMonth(month, year);
+    const next = offsetMonth(
+      { year: this.#data.budgetYear, month: this.#data.budgetMonth },
+      1,
+    );
+    return this.#formatMonth(next.month, next.year);
   });
 
   protected readonly deficitChipAmount = computed(() =>

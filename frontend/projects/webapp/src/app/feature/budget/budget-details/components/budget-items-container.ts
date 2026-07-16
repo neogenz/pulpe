@@ -25,6 +25,7 @@ import {
   type BudgetLine,
   type BudgetLineSpreadResponse,
   type BudgetLineUpdate,
+  type SupportedCurrency,
   type Transaction,
   type TransactionUpdate,
 } from 'pulpe-shared';
@@ -34,6 +35,7 @@ import { Logger } from '@core/logging/logger';
 import { map } from 'rxjs/operators';
 import { BudgetGrid } from './budget-grid';
 import { BudgetTable } from './budget-table/budget-table';
+import { offsetMonth } from '../budget-line/create/spread.utils';
 import type {
   BudgetLineTableItem,
   TransactionTableItem,
@@ -765,7 +767,11 @@ export class BudgetItemsContainer {
 
   async #openSavingsWithdrawalFlow(
     budget: { id: string; month: number; year: number },
-    prefill?: { amount: number; source: string },
+    prefill?: {
+      amount: number;
+      source: string;
+      inputCurrency: SupportedCurrency;
+    },
   ): Promise<void> {
     const dto = await this.#dialogService.openSavingsWithdrawalDialog({
       budgetId: budget.id,
@@ -793,13 +799,9 @@ export class BudgetItemsContainer {
 
     const incomeMonth =
       line.kind === 'income'
-        ? { month: budget.month, year: budget.year }
-        : this.#shiftMonth(budget.month, budget.year, -1);
-    const savingMonth = this.#shiftMonth(
-      incomeMonth.month,
-      incomeMonth.year,
-      1,
-    );
+        ? { year: budget.year, month: budget.month }
+        : offsetMonth({ year: budget.year, month: budget.month }, -1);
+    const savingMonth = offsetMonth(incomeMonth, 1);
     const incomeLabel = this.#formatMonthName(incomeMonth);
     const savingLabel = this.#formatMonthName(savingMonth);
     const amount =
@@ -827,8 +829,14 @@ export class BudgetItemsContainer {
     });
     if (!scope) return;
 
-    const succeeded = await this.store.deleteSavingsWithdrawal(groupId, scope);
-    if (!succeeded) return;
+    const error = await this.store.deleteSavingsWithdrawal(groupId, scope);
+    if (error) {
+      this.#snackBar.open(error, this.#transloco.translate('common.close'), {
+        duration: 5000,
+        panelClass: ['bg-error-container', 'text-on-error-container'],
+      });
+      return;
+    }
     this.#snackBar.open(
       this.#transloco.translate(
         scope === 'pair'
@@ -838,21 +846,6 @@ export class BudgetItemsContainer {
       this.#transloco.translate('common.close'),
       { duration: 5000 },
     );
-  }
-
-  #shiftMonth(
-    month: number,
-    year: number,
-    delta: 1 | -1,
-  ): { month: number; year: number } {
-    if (delta === 1) {
-      return month === 12
-        ? { month: 1, year: year + 1 }
-        : { month: month + 1, year };
-    }
-    return month === 1
-      ? { month: 12, year: year - 1 }
-      : { month: month - 1, year };
   }
 
   #formatMonthName(period: { month: number; year: number }): string {

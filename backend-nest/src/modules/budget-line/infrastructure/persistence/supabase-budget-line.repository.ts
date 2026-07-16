@@ -328,6 +328,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       kind: decrypted.kind,
       recurrence: decrypted.recurrence,
       spreadGroupId: decrypted.spread_group_id,
+      savingsWithdrawalGroupId: decrypted.savings_withdrawal_group_id,
     };
   }
 
@@ -750,6 +751,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       .eq('recurrence', 'one_off')
       .is('checked_at', null)
       .is('spread_group_id', null)
+      .is('savings_withdrawal_group_id', null)
       .select()
       .single();
 

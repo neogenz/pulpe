@@ -645,7 +645,11 @@ export class AddBudgetLineDialog {
     if (m.kind === 'income' && this.repayNextMonth()) {
       this.#dialogRef.close({
         mode: 'savingsWithdrawal',
-        prefill: { amount: m.money.amount ?? 0, source: m.name.trim() },
+        prefill: {
+          amount: m.money.amount ?? 0,
+          source: m.name.trim(),
+          inputCurrency: m.money.inputCurrency,
+        },
       });
       return;
     }

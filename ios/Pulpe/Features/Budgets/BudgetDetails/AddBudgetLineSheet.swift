@@ -64,8 +64,7 @@ struct AddBudgetLineSheet: View {
 
     private var isSpreadMode: Bool { mode == .spread }
 
-    /// Income "remets le mois prochain" is ON — the CTA reroutes to the
-    /// savings-withdrawal preview instead of creating a plain income (PUL-292).
+    /// Income "remets le mois prochain" ON — the CTA reroutes to the withdrawal preview (PUL-292).
     private var isSavingsWithdrawalMode: Bool { kind == .income && remitNextMonth }
 
     /// Hero hint follows the amount mode in spread mode — "Montant total" when the
@@ -244,6 +243,7 @@ struct AddBudgetLineSheet: View {
                 anchorMonth: anchorMonth,
                 anchorYear: anchorYear,
                 amount: amount,
+                inputCurrency: inputCurrency,
                 source: trimmed.isEmpty ? nil : trimmed,
                 startsAtPreview: true
             )

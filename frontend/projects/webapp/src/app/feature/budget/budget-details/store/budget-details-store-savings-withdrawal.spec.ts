@@ -180,8 +180,8 @@ describe('BudgetDetailsStore — savings withdrawal (PUL-292)', () => {
   });
 
   describe('deleteSavingsWithdrawal', () => {
-    it('deletes with the chosen scope and reports success', async () => {
-      const succeeded = await store.deleteSavingsWithdrawal(
+    it('deletes with the chosen scope and returns null on success', async () => {
+      const error = await store.deleteSavingsWithdrawal(
         WITHDRAWAL_INPUT.groupId!,
         'repayment',
       );
@@ -190,7 +190,20 @@ describe('BudgetDetailsStore — savings withdrawal (PUL-292)', () => {
         WITHDRAWAL_INPUT.groupId,
         'repayment',
       );
-      expect(succeeded).toBe(true);
+      expect(error).toBeNull();
+    });
+
+    it('returns the localized message and does NOT collapse the page on failure', async () => {
+      deleteSavingsWithdrawal$.mockReturnValue(throwError(() => conflictError));
+      const localizer = TestBed.inject(ApiErrorLocalizer);
+
+      const error = await store.deleteSavingsWithdrawal(
+        WITHDRAWAL_INPUT.groupId!,
+        'pair',
+      );
+
+      expect(error).toBe(localizer.localizeApiError(conflictError));
+      expect(store.error()).toBeNull();
     });
   });
 

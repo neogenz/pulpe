@@ -46,6 +46,7 @@ struct SavingsWithdrawalSheet: View {
         self._amount = State(initialValue: prefill.amount)
         self._amountText = State(initialValue: prefill.amount.map(Self.plainString) ?? "")
         self._source = State(initialValue: prefill.source ?? "")
+        self._inputCurrency = State(initialValue: prefill.inputCurrency ?? .chf)
         self._path = State(initialValue: prefill.startsAtPreview ? [.preview] : [])
     }
 
@@ -86,9 +87,10 @@ struct SavingsWithdrawalSheet: View {
         .interactiveDismissDisabled(isSubmitting)
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
         .onAppear {
-            if inputCurrency != userSettingsStore.currency {
-                inputCurrency = userSettingsStore.currency
-            }
+            // Preserve the currency the amount was typed in on the toggle path;
+            // fall back to the user's setting on the card path (PUL-292).
+            let seed = prefill.inputCurrency ?? userSettingsStore.currency
+            if inputCurrency != seed { inputCurrency = seed }
         }
     }
 

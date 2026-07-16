@@ -55,6 +55,7 @@ import {
   calculateTransactionToggle,
 } from './budget-details-check.utils';
 import { normalizeText } from '../view-models/budget-item-constants';
+import { offsetMonth } from '../budget-line/create/spread.utils';
 import { createInitialBudgetDetailsState } from './budget-details-state';
 import {
   buildSpreadOccurrenceViewModels,
@@ -418,10 +419,12 @@ export class BudgetDetailsStore {
   readonly savingsWithdrawalOriginLabel = computed<string>(() => {
     const details = this.budgetDetails();
     if (!details) return '';
-    const originMonth = details.month === 1 ? 12 : details.month - 1;
-    const originYear = details.month === 1 ? details.year - 1 : details.year;
+    const origin = offsetMonth(
+      { year: details.year, month: details.month },
+      -1,
+    );
     return this.#monthFormatter.format(
-      new Date(originYear, originMonth - 1, 1),
+      new Date(origin.year, origin.month - 1, 1),
     );
   });
 
@@ -632,6 +635,14 @@ export class BudgetDetailsStore {
     return response?.data;
   }
 
+  // Set by the delete mutation's onError, read by the public method — so a delete
+  // failure surfaces via the caller's snackbar (return value) and NEVER the
+  // page-level errorMessage: a grouped delete that fails (e.g. the group was
+  // already removed in another tab) must not flip the whole page to the generic
+  // load-error card. Single-flight (one delete dialog at a time), so a plain
+  // field is enough.
+  #lastSavingsWithdrawalDeleteError: string | null = null;
+
   readonly #deleteSavingsWithdrawalMutation = cachedMutation<
     { groupId: string; scope: BudgetLineSavingsWithdrawalDeleteQuery['scope'] },
     BudgetLineDeleteResponse,
@@ -642,18 +653,30 @@ export class BudgetDetailsStore {
     mutationFn: ({ groupId, scope }) =>
       this.#budgetApi.deleteSavingsWithdrawal$(groupId, scope),
     onSuccess: () => this.#onFinancialMutationSuccess(),
-    onError: (error) => this.#handleSavingsWithdrawalError(error),
+    onError: (error) => {
+      this.#lastSavingsWithdrawalDeleteError = this.#localizeError(
+        error,
+        'budget.savingsWithdrawal.error',
+      );
+      this.#logger.error('Savings withdrawal delete failed', error);
+    },
   });
 
+  /** Returns the localized error message on failure, or `null` on success. */
   async deleteSavingsWithdrawal(
     groupId: string,
     scope: BudgetLineSavingsWithdrawalDeleteQuery['scope'],
-  ): Promise<boolean> {
+  ): Promise<string | null> {
+    this.#lastSavingsWithdrawalDeleteError = null;
     const response = await this.#deleteSavingsWithdrawalMutation.mutate({
       groupId,
       scope,
     });
-    return response !== undefined;
+    if (response !== undefined) return null;
+    return (
+      this.#lastSavingsWithdrawalDeleteError ??
+      this.#transloco.translate('budget.savingsWithdrawal.error')
+    );
   }
 
   // PUL-17 v1.1 — total-preserving spread of an EXISTING source (prévision OR

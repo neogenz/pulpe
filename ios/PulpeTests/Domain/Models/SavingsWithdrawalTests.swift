@@ -47,6 +47,41 @@ struct SavingsWithdrawalTests {
         #expect(line.isSavingsWithdrawalIncome == false)
     }
 
+    // MARK: - Postpone / spread exclusions (CA9)
+
+    @Test
+    func isPostponeEligible_excludesSavingsWithdrawalLine() {
+        var line = TestDataFactory.createBudgetLine(kind: .expense, recurrence: .oneOff)
+        #expect(line.isPostponeEligible(hasAllocatedTransactions: false)) // baseline eligible
+        line.savingsWithdrawalGroupId = UUID()
+        #expect(line.isPostponeEligible(hasAllocatedTransactions: false) == false) // group id excludes
+    }
+
+    // MARK: - Error code localization
+
+    @Test("New savings-withdrawal error codes map to localized copy", arguments: [
+        (
+            "ERR_SAVINGS_WITHDRAWAL_MONTH_UNPROVISIONABLE",
+            "Le mois suivant n'a pas de modèle par défaut — impossible d'y placer le remboursement"
+        ),
+        (
+            "ERR_SAVINGS_WITHDRAWAL_GROUP_NOT_FOUND",
+            "Cette pioche est introuvable — elle a peut-être déjà été supprimée"
+        ),
+        (
+            "ERR_SAVINGS_WITHDRAWAL_CONFLICT",
+            "Une pioche est déjà en place pour ce mois"
+        ),
+        (
+            "ERR_SAVINGS_WITHDRAWAL_RECALCULATION_FAILED",
+            "La pioche a bien été créée, mais les soldes n'ont pas pu être actualisés — "
+                + "recharge la page sans relancer la pioche"
+        ),
+    ])
+    func apiError_mapsSavingsWithdrawalCodes(code: String, expected: String) {
+        #expect(APIError.from(code: code, message: nil).errorDescription == expected)
+    }
+
     // MARK: - Response decode (strict pair shape)
 
     @Test

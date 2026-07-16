@@ -36,7 +36,7 @@ import {
   submitSavingsWithdrawalWithRetry,
   submitSpreadWithRetry,
 } from './utils/budget-details-snackbar.utils';
-import { formatBudgetPeriod } from 'pulpe-shared';
+import { formatBudgetPeriod, type SupportedCurrency } from 'pulpe-shared';
 import { UserSettingsStore } from '@core/user-settings';
 import { CURRENCY_CONFIG } from '@core/currency';
 
@@ -279,7 +279,11 @@ export default class BudgetDetailsPage {
 
   async #openSavingsWithdrawalFlow(
     budget: { id: string; month: number; year: number },
-    prefill?: { amount: number; source: string },
+    prefill?: {
+      amount: number;
+      source: string;
+      inputCurrency: SupportedCurrency;
+    },
   ): Promise<void> {
     const dto = await this.#dialogService.openSavingsWithdrawalDialog({
       budgetId: budget.id,

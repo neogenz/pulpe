@@ -13,10 +13,6 @@ import SwiftUI
 ///   tap row     → push `BudgetLinePushRoute.editTx(transactionId:)`
 ///   tap "Ajouter" → push `BudgetLinePushRoute.addAllocatedTx(lineId:)`
 ///
-/// Header menu actions:
-///   "Modifier" → `onEditLine` callback (parent presents `editBudgetLine` sheet)
-///   "Supprimer" → confirmation alert → `softDeleteBudgetLine` + automatic pop
-///
 /// When the underlying line is removed (deleted or filtered out by sync), the
 /// page auto-pops via `dismiss()` from the empty branch — no stale state.
 struct BudgetLineDetailPage: View {
@@ -208,11 +204,13 @@ private extension BudgetLineDetailPage {
     }
 
     /// A prévision is spreadable only when it's a one-off expense/épargne that
-    /// isn't already lissée and isn't a rollover row (PUL-17 v1.1, total-preserving).
+    /// isn't already lissée, isn't a rollover, and isn't half of a withdrawal
+    /// couple — spreading that deletes the source server-side and orphans it (CA9).
     func canSpread(_ line: BudgetLine) -> Bool {
         line.kind != .income
             && line.recurrence == .oneOff
             && line.spreadGroupId == nil
+            && line.savingsWithdrawalGroupId == nil
             && !(line.isRollover ?? false)
     }
 

@@ -38,6 +38,10 @@ struct SavingsWithdrawalPrefill: Identifiable {
     var amount: Decimal?
     /// |available| for the deficit quick-fill chip on step 1 (card path).
     var missingAmount: Decimal?
+    /// Currency the pre-typed `amount` was entered in (toggle path). When set, the
+    /// sheet seeds its input currency from it instead of the settings default, so
+    /// an amount typed in EUR isn't re-anchored to CHF (PUL-292).
+    var inputCurrency: SupportedCurrency?
     var source: String?
     var startsAtPreview: Bool = false
 }

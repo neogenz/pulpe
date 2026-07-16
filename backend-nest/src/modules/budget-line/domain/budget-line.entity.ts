@@ -61,6 +61,8 @@ export interface SpreadSourceLine {
   kind: TransactionKind;
   recurrence: TransactionRecurrence;
   spreadGroupId: string | null;
+  /** PUL-292: set when the line is half of a Revenu M ↔ Épargne M+1 pair — such a line is not spreadable (deleting the source would orphan its sibling). */
+  savingsWithdrawalGroupId: string | null;
 }
 
 /**
