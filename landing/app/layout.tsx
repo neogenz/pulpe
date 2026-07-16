@@ -1,114 +1,108 @@
-import type { Metadata } from 'next'
-import { Poppins } from 'next/font/google'
-import { PostHogProvider } from '../components/PostHogProvider'
-import './globals.css'
+import type { Metadata } from "next";
+import { Poppins } from "next/font/google";
+import { PostHogProvider } from "../components/PostHogProvider";
+import "./globals.css";
 
-/* Italic is only used at weight 400 (editorial accents). Declaring it on every
-   weight ships 4 unused italic .woff2 files (~150KB). Split into two configs
-   sharing the same CSS variable. */
 const poppins = Poppins({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
-  style: 'normal',
-  display: 'swap',
-  variable: '--font-poppins',
-})
-
-const poppinsItalic = Poppins({
-  subsets: ['latin'],
-  weight: ['400'],
-  style: 'italic',
-  display: 'swap',
-  variable: '--font-poppins',
-})
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  style: "normal",
+  display: "swap",
+  variable: "--font-poppins",
+});
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://pulpe.app'),
+  metadataBase: new URL("https://pulpe.app"),
   title: {
-    template: '%s – Pulpe',
-    default: "Pulpe – L'app budget simple pour planifier ton année",
+    template: "%s – Pulpe",
+    default: "Pulpe – Tu sais des mois d’avance ce qu’il te restera",
   },
   description:
-    "Planifie ton année, anticipe les grosses dépenses, note tes achats en 2 clics. Pulpe t'aide à voir clair dans tes finances sans prise de tête.",
-  applicationName: 'Pulpe',
+    "Impôts, vacances, imprévus : Pulpe place ton année devant toi et projette ton solde mois après mois, sans connexion bancaire.",
+  applicationName: "Pulpe",
   verification: {
-    google: '20-QgsBLcccy2f1lY275s0mayKmxWZZWo9Rg8aGxTQ0',
+    google: "20-QgsBLcccy2f1lY275s0mayKmxWZZWo9Rg8aGxTQ0",
   },
   robots: {
     index: true,
     follow: true,
   },
   alternates: {
-    canonical: '/',
+    canonical: "/",
   },
   openGraph: {
-    title: 'Pulpe – Planifie ton année. Profite de ton mois.',
-    description: "L'app budget hyper simple qui remplace Excel. Essaie gratuitement.",
-    siteName: 'Pulpe',
-    type: 'website',
-    url: '/',
-    locale: 'fr_CH',
-    alternateLocale: ['fr_FR'],
+    title: "Pulpe – Tu sais des mois d’avance ce qu’il te restera",
+    description:
+      "Place ton année devant toi et projette ton solde mois après mois, sans connexion bancaire.",
+    siteName: "Pulpe",
+    type: "website",
+    url: "/",
+    locale: "fr_CH",
+    alternateLocale: ["fr_FR"],
     images: [
       {
-        url: '/og-image.png',
+        url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: 'Pulpe - App budget simple pour planifier ton année',
+        alt: "Pulpe, le budget tourné vers les mois qui viennent",
       },
     ],
   },
   twitter: {
-    card: 'summary_large_image',
-    title: "Pulpe – L'app budget simple pour planifier ton année",
-    description: 'Planifie ton année, anticipe les grosses dépenses, note tes achats en 2 clics.',
-    images: ['/og-image.png'],
+    card: "summary_large_image",
+    title: "Pulpe – Tu sais des mois d’avance ce qu’il te restera",
+    description:
+      "Place ton année devant toi et projette ton solde mois après mois, sans connexion bancaire.",
+    images: ["/og-image.png"],
   },
   icons: {
-    icon: '/icon-192.png',
-    apple: '/apple-touch-icon.png',
+    icon: "/icon-192.png",
+    apple: "/apple-touch-icon.png",
   },
-}
+};
 
 const jsonLd = {
-  '@context': 'https://schema.org',
-  '@graph': [
+  "@context": "https://schema.org",
+  "@graph": [
     {
-      '@type': 'WebSite',
-      '@id': 'https://pulpe.app/#website',
-      url: 'https://pulpe.app',
-      name: 'Pulpe',
-      alternateName: ['pulpe', 'Pulpe app', 'pulpe.app'],
+      "@type": "WebSite",
+      "@id": "https://pulpe.app/#website",
+      url: "https://pulpe.app",
+      name: "Pulpe",
+      alternateName: ["pulpe", "Pulpe app", "pulpe.app"],
       description:
-        "L'app budget simple pour planifier ton année. Anticipe les grosses dépenses et note tes achats en 2 clics.",
-      inLanguage: 'fr-CH',
+        "Pulpe place ton année devant toi et projette ton solde mois après mois, sans connexion bancaire.",
+      inLanguage: "fr-CH",
     },
     {
-      '@type': 'SoftwareApplication',
-      '@id': 'https://pulpe.app/#app',
-      name: 'Pulpe',
+      "@type": "SoftwareApplication",
+      "@id": "https://pulpe.app/#app",
+      name: "Pulpe",
       description:
-        "Planifie ton année, anticipe les grosses dépenses, note tes achats en 2 clics. Pulpe t'aide à voir clair dans tes finances sans prise de tête.",
-      applicationCategory: 'FinanceApplication',
-      operatingSystem: 'Web, iOS',
+        "Pulpe place ton année devant toi et projette ton solde mois après mois, sans connexion bancaire.",
+      applicationCategory: "FinanceApplication",
+      operatingSystem: "Web, iOS",
       offers: {
-        '@type': 'Offer',
-        price: '0',
-        priceCurrency: 'CHF',
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "CHF",
       },
     },
   ],
-}
+};
 
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="fr" className={`${poppins.variable} ${poppinsItalic.variable}`}>
+    <html lang="fr" className={poppins.variable}>
       <head>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c'),
+            __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
           }}
         />
       </head>
@@ -117,5 +111,5 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div id="lightbox-root" />
       </body>
     </html>
-  )
+  );
 }
