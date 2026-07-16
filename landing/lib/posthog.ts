@@ -1,4 +1,6 @@
-type PostHogClient = (typeof import("posthog-js/dist/module.slim"))["default"];
+import type { PostHog } from "posthog-js";
+
+type PostHogClient = Pick<PostHog, "capture" | "get_distinct_id">;
 
 const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY ?? "";
 const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "/ph";

@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import { initPostHog, getDistinctId, CROSS_DOMAIN_PARAM } from "../lib/posthog";
 import { ANGULAR_APP_URL } from "../lib/config";
 
+const POSTHOG_NAVIGATION_TIMEOUT_MS = 300;
+
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     void initPostHog();
@@ -19,7 +21,17 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
       if (!initialization) return;
 
       e.preventDefault();
-      await initialization;
+      let timeoutId: number | undefined;
+      await Promise.race([
+        initialization,
+        new Promise<void>((resolve) => {
+          timeoutId = window.setTimeout(
+            resolve,
+            POSTHOG_NAVIGATION_TIMEOUT_MS,
+          );
+        }),
+      ]);
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
       const distinctId = getDistinctId();
       const url = new URL(link.href);
       if (distinctId) {

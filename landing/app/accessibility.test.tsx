@@ -149,11 +149,20 @@ describe("landing accessibility contracts", () => {
   it("waits for analytics before decorating cross-domain links", () => {
     assert.match(
       componentSources.posthogProvider,
-      /const initialization = initPostHog\(\);[\s\S]*if \(!initialization\) return;[\s\S]*e\.preventDefault\(\);[\s\S]*await initialization;[\s\S]*const distinctId = getDistinctId\(\);/,
+      /const initialization = initPostHog\(\);[\s\S]*if \(!initialization\) return;[\s\S]*e\.preventDefault\(\);[\s\S]*await Promise\.race\(\[[\s\S]*initialization,[\s\S]*POSTHOG_NAVIGATION_TIMEOUT_MS[\s\S]*const distinctId = getDistinctId\(\);/,
+    );
+    assert.match(
+      componentSources.posthogProvider,
+      /const POSTHOG_NAVIGATION_TIMEOUT_MS = 300;/,
     );
     assert.match(
       componentSources.posthog,
       /export function initPostHog\(\): Promise<void> \| undefined/,
+    );
+    assert.match(componentSources.posthog, /import type \{ PostHog \}/);
+    assert.match(
+      componentSources.posthog,
+      /type PostHogClient = Pick<\s*PostHog,\s*"capture" \| "get_distinct_id"\s*>;/,
     );
   });
 
