@@ -54,6 +54,10 @@ struct SavingsGoalCreate: Encodable {
     let targetAmount: Decimal
     let targetDate: String
     let status: SavingsGoalStatus
+    /// Opt-in auto-décomposition (PUL-285 CA1/CA6) : montant mensuel choisi —
+    /// présence = le serveur génère la prévision Épargne récurrente liée sur le
+    /// Mois Type par défaut. `nil` est omis du body (encodeIfPresent synthétisé).
+    var monthlyContribution: Decimal?
 }
 
 /// Partial update — only the set fields are sent (Swift synthesises

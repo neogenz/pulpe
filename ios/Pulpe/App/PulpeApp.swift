@@ -54,7 +54,7 @@ struct PulpeApp: App {
         }
 
         // Deleting a goal unlinks every attached prévision server-side.
-        savingsGoalStore.onDelete = { [currentMonthStore, budgetListStore, dashboardStore] in
+        savingsGoalStore.onBudgetDataMutation = { [currentMonthStore, budgetListStore, dashboardStore] in
             currentMonthStore.invalidateCache()
             budgetListStore.invalidateCache()
             dashboardStore.invalidateCache()

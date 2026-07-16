@@ -273,6 +273,31 @@ enum SavingsPlanCalculator {
         }
     }
 
+    // MARK: - Suggested monthly contribution (PUL-285 CA1/CA6)
+
+    /// Mirror of shared `suggestedMonthlyContribution`: target ÷ months
+    /// remaining (payDay-aware, current AND deadline months inclusive — same
+    /// base as formula 5 `required` with confirmed = 0), rounded UP to the cent
+    /// so `suggestion × months ≥ target`. `nil` when the deadline is already
+    /// past or the target is not positive.
+    static func suggestedMonthlyContribution(
+        targetAmount: Decimal,
+        targetDate: Date,
+        payDayOfMonth: Int?,
+        now: Date = Date()
+    ) -> Decimal? {
+        let current = BudgetPeriodCalculator.periodForDate(now, payDayOfMonth: payDayOfMonth)
+        let target = BudgetPeriodCalculator.periodForDate(targetDate, payDayOfMonth: payDayOfMonth)
+        let monthsRemaining = periodKey(month: target.month, year: target.year)
+            - periodKey(month: current.month, year: current.year) + 1
+        guard monthsRemaining > 0, targetAmount > 0 else { return nil }
+
+        var rawCents = targetAmount / Decimal(monthsRemaining) * Decimal(centsPerUnit)
+        var roundedCents = Decimal()
+        NSDecimalRound(&roundedCents, &rawCents, 0, .up)
+        return roundedCents / Decimal(centsPerUnit)
+    }
+
     // MARK: - Helpers
 
     private static func periodKey(month: Int, year: Int) -> Int {

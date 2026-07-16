@@ -3,9 +3,11 @@ import Foundation
 /// Caches the user's savings goals (PUL-12). Backs both the goals list/form and
 /// the "Objectif" picker in the prévision editors, so it is injected at app root.
 ///
-/// Creating or editing a goal only changes its metadata. Deleting one also
-/// unlinks its prévisions, so `onDelete` lets the app invalidate every store
-/// that may still expose the removed link.
+/// Editing a goal only changes its metadata. Deleting one unlinks its
+/// prévisions, creating one with `monthlyContribution` generates a linked
+/// baseline across budgets (PUL-285), and a generation-stop decision freezes or
+/// removes future lines — `onBudgetDataMutation` states that ONE fact (PUL-270
+/// seam) so the app invalidates every store exposing budget data.
 @Observable @MainActor
 final class SavingsGoalStore: StoreProtocol {
     // MARK: - State
@@ -24,7 +26,7 @@ final class SavingsGoalStore: StoreProtocol {
     private var lastLoadTime: Date?
     private var loadTask: Task<Void, Never>?
     private var loadGeneration = 0
-    @ObservationIgnored var onDelete: (@MainActor () -> Void)?
+    @ObservationIgnored var onBudgetDataMutation: (@MainActor () -> Void)?
 
     // MARK: - Services
 
@@ -82,11 +84,14 @@ final class SavingsGoalStore: StoreProtocol {
 
     // MARK: - Mutations
 
-    /// Creates a goal and inserts it into the cached list on success.
+    /// Creates a goal and inserts it into the cached list on success. With
+    /// `monthlyContribution` set (PUL-285 auto-décomposition), the server also
+    /// posed a linked template_line + budget_lines → budget data changed.
     @discardableResult
     func create(_ data: SavingsGoalCreate) async throws -> SavingsGoal {
         let created = try await service.create(data)
         goals = (goals + [created]).sortedForDisplay()
+        if data.monthlyContribution != nil { onBudgetDataMutation?() }
         return created
     }
 
@@ -105,7 +110,7 @@ final class SavingsGoalStore: StoreProtocol {
     func delete(id: String) async throws {
         try await service.delete(id: id)
         goals.removeAll { $0.id == id }
-        onDelete?()
+        onBudgetDataMutation?()
     }
 
     func invalidateCache() {

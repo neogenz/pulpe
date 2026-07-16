@@ -21,16 +21,22 @@ struct SavingsGoalFormSheet: View {
     @State private var error: Error?
     @State private var showDeleteConfirmation = false
     @State private var submitSuccessTrigger = 0
+    // PUL-285 CA6 — opt-in « décomposer en mensualités », création uniquement.
+    @State private var decomposeEnabled = true
+    @State private var monthlyContribution: Decimal?
+    @State private var isMonthlyContributionCustomized = false
     @FocusState private var focusedField: AmountDescriptionField?
 
     private let currency: SupportedCurrency
+    private let payDayOfMonth: Int?
     private let accentColor = TransactionKind.saving.color
     private let planningTargetDates: ClosedRange<Date>
     private let allowedTargetDates: ClosedRange<Date>
 
-    init(goal: SavingsGoal?, userCurrency: SupportedCurrency) {
+    init(goal: SavingsGoal?, userCurrency: SupportedCurrency, payDayOfMonth: Int? = nil) {
         self.goal = goal
         self.currency = userCurrency
+        self.payDayOfMonth = payDayOfMonth
         _name = State(initialValue: goal?.name ?? "")
         _status = State(initialValue: goal?.status ?? .active)
 
@@ -120,6 +126,9 @@ struct SavingsGoalFormSheet: View {
             )
             nameField
             dateField
+            if !isEditing {
+                decomposeSection
+            }
             if isEditing {
                 CapsulePicker(selection: $status, title: "Statut") { item, _ in
                     Text(item.label)
@@ -182,6 +191,51 @@ struct SavingsGoalFormSheet: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    /// Suggestion « cible ÷ mois restants » (payDay-aware, ceil au centime).
+    /// Recalculée tant que l'utilisateur n'a pas saisi son propre montant.
+    private var suggestedMonthly: Decimal? {
+        guard let amount, amount > 0 else { return nil }
+        return SavingsPlanCalculator.suggestedMonthlyContribution(
+            targetAmount: amount,
+            targetDate: targetDate,
+            payDayOfMonth: payDayOfMonth
+        )
+    }
+
+    private var decomposeSection: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Toggle(isOn: $decomposeEnabled) {
+                Text("Décomposer en mensualités")
+                    .font(PulpeTypography.labelMedium)
+                    .foregroundStyle(Color.onSurfaceVariant)
+            }
+            .tint(accentColor)
+
+            if decomposeEnabled {
+                CurrencyField(
+                    value: $monthlyContribution,
+                    label: "Épargne mensuelle",
+                    currency: currency,
+                    visualStyle: .flat
+                )
+                Text("Pré-rempli avec cible ÷ mois restants. Cette prévision récurrente sera ajoutée à ton Mois Type.")
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.onSurfaceVariant)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .onChange(of: suggestedMonthly) { _, newSuggestion in
+            if !isMonthlyContributionCustomized {
+                monthlyContribution = newSuggestion
+            }
+        }
+        .onChange(of: monthlyContribution) { _, newValue in
+            // Diverging from the live suggestion = the user took over; clearing
+            // the field hands control back to the suggestion.
+            isMonthlyContributionCustomized = newValue != nil && newValue != suggestedMonthly
+        }
+    }
+
     // MARK: - Buttons
 
     private var saveButton: some View {
@@ -233,12 +287,16 @@ struct SavingsGoalFormSheet: View {
                 )
                 toastManager.show("Objectif modifié")
             } else {
+                let contribution = monthlyContribution ?? 0
                 _ = try await store.create(
                     SavingsGoalCreate(
                         name: trimmedName,
                         targetAmount: amount,
                         targetDate: dateString,
-                        status: .active
+                        status: .active,
+                        monthlyContribution: decomposeEnabled && contribution > 0
+                            ? contribution
+                            : nil
                     )
                 )
                 toastManager.show("Objectif créé")

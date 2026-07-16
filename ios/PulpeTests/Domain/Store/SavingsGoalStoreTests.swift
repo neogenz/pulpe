@@ -72,7 +72,7 @@ struct SavingsGoalStoreTests {
         service.stubbedGoals = [makeGoal(id: "g1")]
         let store = SavingsGoalStore(service: service)
         nonisolated(unsafe) var invalidationCount = 0
-        store.onDelete = { invalidationCount += 1 }
+        store.onBudgetDataMutation = { invalidationCount += 1 }
         await store.forceRefresh()
 
         try await store.delete(id: "g1")
@@ -88,7 +88,7 @@ struct SavingsGoalStoreTests {
         service.stubbedGoals = [makeGoal(id: "g1")]
         let store = SavingsGoalStore(service: service)
         nonisolated(unsafe) var invalidationCount = 0
-        store.onDelete = { invalidationCount += 1 }
+        store.onBudgetDataMutation = { invalidationCount += 1 }
         await store.forceRefresh()
         service.error = APIError.networkError(URLError(.notConnectedToInternet))
 
