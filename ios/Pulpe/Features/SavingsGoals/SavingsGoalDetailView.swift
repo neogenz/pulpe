@@ -24,6 +24,8 @@ struct SavingsGoalDetailView: View {
     @State private var viewModel: SavingsGoalDetailViewModel
     @State private var editTarget: SavingsGoal?
     @State private var isSimulating = false
+    @State private var showGenerationStop = false
+    @State private var generationStopCandidates: [SavingsGoalFutureLine] = []
 
     init(goal: SavingsGoal) {
         self.goal = goal
@@ -65,7 +67,19 @@ struct SavingsGoalDetailView: View {
         .sheet(item: $editTarget, onDismiss: handleEditDismiss) { goal in
             SavingsGoalFormSheet(goal: goal, userCurrency: currency)
         }
-        .task { await viewModel.load() }
+        .sheet(isPresented: $showGenerationStop) {
+            GoalGenerationStopSheet(
+                lines: generationStopCandidates,
+                status: currentGoal.status,
+                currency: currency,
+                onApply: { mode in try await applyGenerationStop(mode) }
+            )
+            .standardSheetPresentation()
+        }
+        .task {
+            await viewModel.load()
+            await refreshFutureLinesIfStopped()
+        }
         .trackScreen("SavingsGoalDetail")
     }
 
@@ -94,6 +108,20 @@ struct SavingsGoalDetailView: View {
                     onComplete: { Task { await setStatus(.completed) } },
                     onReopen: { Task { await setStatus(.active) } }
                 )
+
+                // PUL-285 CA8 — advisory: future linked lines of a stopped goal.
+                if currentGoal.status != .active, !viewModel.futureLines.isEmpty {
+                    GoalInfoCard(
+                        icon: "calendar.badge.clock",
+                        title: "Prévisions liées sur tes mois futurs",
+                        message: "Cet objectif est arrêté, mais \(viewModel.futureLines.count) prévision(s) Épargne lui restent réservées sur les mois à venir."
+                    ) {
+                        Button("Gérer ces prévisions") {
+                            Task { await proposeGenerationStop() }
+                        }
+                        .secondaryButtonStyle()
+                    }
+                }
 
                 if progress.linkedLineCount > 0, !progress.months.isEmpty {
                     GoalTrajectorySection(progress: progress, currency: currency)
@@ -300,18 +328,63 @@ struct SavingsGoalDetailView: View {
         await viewModel.changeStatus(to: status, via: store)
         if let error = viewModel.error {
             toastManager.show(DomainErrorLocalizer.localize(error), type: .error)
-        } else {
-            toastManager.show(status == .completed ? "Objectif marqué comme atteint" : "Objectif ré-ouvert")
+            return
+        }
+        toastManager.show(status == .completed ? "Objectif marqué comme atteint" : "Objectif ré-ouvert")
+        if status != .active {
+            await proposeGenerationStop()
         }
     }
 
     private func handleEditDismiss() {
         if store.goals.contains(where: { $0.id == goal.id }) {
-            Task { await viewModel.load() }
+            Task {
+                await viewModel.load()
+                // The edit form can pause/complete the goal — refresh the
+                // advisory candidates so the CA8 card reflects the new status.
+                await refreshFutureLinesIfStopped()
+            }
         } else {
             // Goal was deleted from the edit form — pop back to the list.
             dismiss()
         }
+    }
+
+    // MARK: - Generation stop (PUL-285 CA8)
+
+    private func refreshFutureLinesIfStopped() async {
+        guard currentGoal.status != .active else { return }
+        await viewModel.loadFutureLines()
+    }
+
+    /// Fetches fresh candidates and presents the advisory sheet when the
+    /// stopped goal still has linked prévisions on future months. Dismissing
+    /// writes nothing — the derived card stays as re-entry.
+    private func proposeGenerationStop() async {
+        await viewModel.loadFutureLines()
+        guard !viewModel.futureLines.isEmpty else { return }
+        generationStopCandidates = viewModel.futureLines
+        showGenerationStop = true
+    }
+
+    /// Applies the decision then mirrors `handlePlanApplied`: budget lines
+    /// changed (frozen or deleted), so every aggregate store goes stale.
+    private func applyGenerationStop(_ mode: SavingsGoalGenerationStopMode) async throws {
+        let affectedCount = try await viewModel.applyGenerationStop(
+            mode: mode,
+            lines: generationStopCandidates
+        )
+        currentMonthStore.invalidateCache()
+        budgetListStore.invalidateCache()
+        dashboardStore.invalidateCache()
+        BudgetDetailCache.shared.invalidateAll()
+        await viewModel.load()
+        await viewModel.loadFutureLines()
+        toastManager.show(
+            mode == .freeze
+                ? "\(affectedCount) prévision(s) conservée(s) sans objectif"
+                : "\(affectedCount) prévision(s) retirée(s) de tes mois futurs"
+        )
     }
 }
 
@@ -327,6 +400,7 @@ final class SavingsGoalDetailViewModel {
 
     private(set) var progress: SavingsGoalProgress?
     private(set) var contributions: [SavingsGoalContribution] = []
+    private(set) var futureLines: [SavingsGoalFutureLine] = []
     private(set) var isLoading = true
     private(set) var isLoadingContributions = false
     private(set) var isMutatingStatus = false
@@ -384,6 +458,27 @@ final class SavingsGoalDetailViewModel {
         } catch {
             if reportError { self.error = error }
         }
+    }
+
+    // MARK: - Generation stop (PUL-285 CA8)
+
+    /// Advisory candidates: the goal's future linked lines. Read is advisory —
+    /// a failure just leaves the card hidden (the user can pull-to-refresh).
+    func loadFutureLines() async {
+        futureLines = (try? await service.getFutureLines(id: goalId)) ?? []
+    }
+
+    /// Applies the explicit freeze/remove decision. Atomic server-side; the
+    /// caller owns the sibling-store invalidation and the confirmation toast.
+    func applyGenerationStop(
+        mode: SavingsGoalGenerationStopMode,
+        lines: [SavingsGoalFutureLine]
+    ) async throws -> Int {
+        let result = try await service.applyGenerationStop(
+            id: goalId,
+            SavingsGoalGenerationStop(mode: mode, budgetLineIds: lines.map(\.budgetLineId))
+        )
+        return result.affectedCount
     }
 }
 

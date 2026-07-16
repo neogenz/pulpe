@@ -67,6 +67,8 @@ enum Endpoint {
     case savingsGoalProgress(id: String)
     case savingsGoalContributions(id: String)
     case savingsGoalPlanApply(id: String)
+    case savingsGoalFutureLines(id: String)
+    case savingsGoalGenerationStop(id: String)
 
     // MARK: - Currency
 
@@ -146,6 +148,8 @@ enum Endpoint {
         case .savingsGoalProgress(let id): return "/savings-goals/\(id)/progress"
         case .savingsGoalContributions(let id): return "/savings-goals/\(id)/contributions"
         case .savingsGoalPlanApply(let id): return "/savings-goals/\(id)/plan"
+        case .savingsGoalFutureLines(let id): return "/savings-goals/\(id)/future-lines"
+        case .savingsGoalGenerationStop(let id): return "/savings-goals/\(id)/generation-stop"
 
         // Currency
         case .currencyRate: return "/currency/rate"
@@ -176,13 +180,14 @@ enum Endpoint {
              .transactionToggle, .transactionPostpone,
              .encryptionValidateKey, .encryptionSetupRecovery, .encryptionRegenerateRecovery, .encryptionRecover,
              .encryptionVerifyRecoveryKey, .encryptionChangePin,
-             .savingsGoalPlanApply:
+             .savingsGoalPlanApply, .savingsGoalGenerationStop:
             return .post
 
         case .validateSession, .userProfile, .budget, .budgetDetails, .budgetsExport,
              .budgetLine, .budgetLinesSpreadOccurrences, .transaction, .template, .templateUsage, .templateLine,
              .transactionsByBudget, .budgetsSparse,
              .savingsGoals, .savingsGoal, .savingsGoalProgress, .savingsGoalContributions,
+             .savingsGoalFutureLines,
              .encryptionVaultStatus, .encryptionSalt,
              .userSettings, .currencyRate, .whatsNewIos:
             return .get

@@ -10,6 +10,7 @@ final class MockSavingsGoalService: SavingsGoalServicing {
     var stubbedProgress: SavingsGoalProgress?
     var stubbedContributions: [SavingsGoalContribution] = []
     var stubbedApplyResult: SavingsGoalPlanApplyResult?
+    var stubbedFutureLines: [SavingsGoalFutureLine] = []
     /// When set, every call throws this instead of returning.
     var error: Error?
     var getProgressError: Error?
@@ -87,6 +88,23 @@ final class MockSavingsGoalService: SavingsGoalServicing {
         lastApplyPayload = payload
         if let error { throw error }
         return stubbedApplyResult ?? SavingsGoalPlanApplyResult(updatedLines: [])
+    }
+
+    private(set) var getFutureLinesCallCount = 0
+    private(set) var generationStopCallCount = 0
+    private(set) var lastGenerationStop: SavingsGoalGenerationStop?
+
+    func getFutureLines(id _: String) async throws -> [SavingsGoalFutureLine] {
+        getFutureLinesCallCount += 1
+        if let error { throw error }
+        return stubbedFutureLines
+    }
+
+    func applyGenerationStop(id _: String, _ payload: SavingsGoalGenerationStop) async throws -> SavingsGoalGenerationStopResult {
+        generationStopCallCount += 1
+        lastGenerationStop = payload
+        if let error { throw error }
+        return SavingsGoalGenerationStopResult(affectedCount: payload.budgetLineIds.count)
     }
 
     func create(_ data: SavingsGoalCreate) async throws -> SavingsGoal {
