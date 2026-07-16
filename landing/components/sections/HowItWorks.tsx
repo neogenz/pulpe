@@ -38,7 +38,7 @@ const STEPS = [
 
 export function HowItWorks() {
   return (
-    <Section background="alt" id="how-it-works">
+    <Section id="how-it-works">
       <div className="mx-auto max-w-3xl text-center">
         <p className="text-sm font-medium text-primary">De zéro à douze mois</p>
         <h2 className="mt-3 text-4xl font-bold leading-[1.05] tracking-[-0.035em] sm:text-5xl lg:text-6xl">

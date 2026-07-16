@@ -2,13 +2,24 @@
 
 import { memo, type ReactNode } from "react";
 
-interface FadeInProps {
+interface BaseFadeInProps {
   children: ReactNode;
-  delay?: number;
   className?: string;
-  animateOnMount?: boolean;
-  variant?: "default" | "blur";
 }
+
+type FadeInProps = BaseFadeInProps &
+  (
+    | {
+        animateOnMount: true;
+        delay?: number;
+        variant?: "default" | "blur";
+      }
+    | {
+        animateOnMount?: false;
+        delay?: never;
+        variant?: never;
+      }
+  );
 
 export const FadeIn = memo(function FadeIn({
   children,

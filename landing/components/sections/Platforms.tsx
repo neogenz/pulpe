@@ -22,7 +22,7 @@ function AppleLogo({ className }: { className?: string }) {
 
 export function Platforms() {
   return (
-    <Section id="platforms" background="alt">
+    <Section id="platforms">
       <div className="mx-auto max-w-3xl text-center">
         <h2 className="text-4xl font-bold leading-[1.05] tracking-[-0.035em] sm:text-5xl lg:text-6xl">
           Ton budget te suit. Pas l&apos;inverse.

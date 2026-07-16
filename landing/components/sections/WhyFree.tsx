@@ -22,7 +22,7 @@ const GUARANTEES = [
 
 export function WhyFree() {
   return (
-    <Section background="alt" id="why-free">
+    <Section id="why-free">
       <div className="grid gap-14 lg:grid-cols-5 lg:gap-20">
         <div className="lg:col-span-3">
           <p className="text-sm font-medium text-primary">

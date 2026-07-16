@@ -62,9 +62,9 @@ export function trackCTAClick(
   destination: string,
 ): void {
   if (!POSTHOG_ENABLED) return;
-  const initialization = initPostHog();
-  if (!initialization) return;
-  void initialization.then(() => {
+  const initPromise = initPostHog();
+  if (!initPromise) return;
+  void initPromise.then(() => {
     posthogClient?.capture("cta_clicked", {
       cta_name: ctaName,
       cta_location: ctaLocation,

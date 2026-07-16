@@ -4,14 +4,12 @@ import { Container } from "./Container";
 
 interface SectionProps extends HTMLAttributes<HTMLElement> {
   children: ReactNode;
-  background?: "default" | "alt" | "primary" | "grain";
+  background?: "default" | "primary";
 }
 
 const BACKGROUND_STYLES = {
   default: "bg-transparent",
-  alt: "bg-transparent",
   primary: "bg-primary text-white",
-  grain: "bg-transparent",
 } as const;
 
 export const Section = memo(function Section({
