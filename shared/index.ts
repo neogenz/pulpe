@@ -191,10 +191,12 @@ export {
   MAX_ESTIMATED_HORIZON_MONTHS,
   calculatePaceStatus,
   computeSavingsGoalProgress,
+  suggestedMonthlyContribution,
   type LinkedSavingLine,
   type LinkedSavingTransaction,
   type SavingsGoalProgressInput,
   type SavingsGoalProgressResult,
+  type SuggestedMonthlyContributionInput,
 } from './src/calculators/index.js';
 export {
   buildSavingsGoalTimeline,

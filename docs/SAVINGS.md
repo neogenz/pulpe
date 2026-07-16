@@ -77,6 +77,15 @@ Une contribution n'est **jamais** un nouveau type de saisie : c'est le champ `sa
 
 Si une Prévision passe de `saving` à un autre `kind`, `savingsGoalId` est forcé à `null`. La progression re-filtre **toujours** `kind=saving` côté lecture (double garde).
 
+### 3.5 Auto-décomposition à la création (PUL-285)
+
+À la création d'un objectif, une option (proposée par défaut, jamais imposée) décompose la cible en mensualité et pose la baseline récurrente liée :
+
+- **Formule** : même base que la formule 5 (`required` avec confirmé = 0) — `cible / monthsRemaining`, payDay-aware, mois courant ET mois d'échéance inclus. Arrondi au **centime supérieur** pour que `mensualité × mois ≥ cible` (jamais de shortfall d'arrondi). Helper partagé `suggestedMonthlyContribution` (`shared/src/calculators/savings-goal-progress.ts`), miroir Swift dans `SavingsPlanCalculator`.
+- **Contrat** : le client pré-remplit la suggestion, l'utilisateur garde la main sur le montant. `POST /v1/savings-goals` porte `monthlyContribution` (optionnel, positif) — présence = opt-in ; le serveur écrit le montant reçu tel quel.
+- **Écriture** : le serveur pose une `template_line` liée (`kind=saving`, récurrence `fixed`, nom = celui de l'objectif) sur le **Mois Type par défaut**, puis la propage aux budgets matérialisés courant+futurs — même machinerie atomique que le bulk template-line (RG-001 : budgets manuellement ajustés protégés, montants chiffrés). Best-effort : sans Mois Type par défaut ou si la propagation échoue, l'objectif est créé sans ligne (log warn, jamais d'échec de création).
+- **Maintenance** : la ligne générée est ensuite une Prévision comme les autres — le lien survit via §3.2, la propagation RG-001 la maintient jusqu'à override manuel. Pulpe ne recalcule **jamais** son montant en silence (« Redistribution jamais silencieuse ») : la dérive se gère via le simulateur (§10).
+
 ---
 
 ## 4. Formules de progression

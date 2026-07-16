@@ -280,6 +280,14 @@ export const savingsGoalCreateSchema = z.strictObject({
       error: 'Target date exceeds the 120-period planning horizon',
     }),
   status: savingsGoalStatusSchema.default('ACTIVE'),
+  /**
+   * Opt-in auto-décomposition (PUL-285 CA1/CA6) : montant mensuel choisi pour
+   * la prévision Épargne récurrente liée que le serveur génère sur le Mois
+   * Type par défaut et propage aux budgets matérialisés. Présence = opt-in ;
+   * le client pré-remplit via `suggestedMonthlyContribution` mais l'utilisateur
+   * garde la main (« pré-remplit, n'impose pas »).
+   */
+  monthlyContribution: z.number().positive().optional(),
   originalTargetAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),

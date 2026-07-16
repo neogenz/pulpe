@@ -12,6 +12,7 @@ import {
   PACE_TOLERANCE_PERCENT,
   calculatePaceStatus,
   computeSavingsGoalProgress,
+  suggestedMonthlyContribution,
   type LinkedSavingLine,
   type LinkedSavingTransaction,
   type SavingsGoalProgressInput,
@@ -450,5 +451,86 @@ describe('computeSavingsGoalProgress — statuts (D2, PAUSED)', () => {
 
       expect(result.estimatedCompletion).toBeNull();
     });
+  });
+});
+
+describe('suggestedMonthlyContribution (PUL-285 CA1/CA6)', () => {
+  it('should divide the target across the remaining months, current and deadline months inclusive', () => {
+    const suggestion = suggestedMonthlyContribution({
+      targetAmount: 100_000,
+      targetDate: '2030-05-15',
+      now: new Date(2026, 5, 15), // juin 2026 → mai 2030 = 48 mois
+      payDayOfMonth: null,
+    });
+
+    expect(suggestion).toBe(2083.34);
+  });
+
+  it('should round UP to the cent so suggestion × months always covers the target', () => {
+    const monthCount = 48;
+    const suggestion = suggestedMonthlyContribution({
+      targetAmount: 100_000,
+      targetDate: '2030-05-15',
+      now: new Date(2026, 5, 15),
+      payDayOfMonth: null,
+    });
+
+    expect(suggestion).not.toBeNull();
+    expect(suggestion! * monthCount).toBeGreaterThanOrEqual(100_000);
+  });
+
+  it('should match the required formula base — same month indexing as formula 5 with confirmed = 0', () => {
+    const now = new Date(2026, 5, 15);
+    const progress = computeSavingsGoalProgress(
+      baseInput({ targetAmount: 12_000, targetDate: '2026-12-15', now }),
+    );
+    const suggestion = suggestedMonthlyContribution({
+      targetAmount: 12_000,
+      targetDate: '2026-12-15',
+      now,
+      payDayOfMonth: null,
+    });
+
+    expect(progress.required).not.toBeNull();
+    expect(suggestion).toBe(Math.ceil(progress.required! * 100) / 100);
+  });
+
+  it('should be payDay-aware — a payDay before today shifts the current period forward', () => {
+    const withoutPayDay = suggestedMonthlyContribution({
+      targetAmount: 1200,
+      targetDate: '2026-12-15',
+      now: new Date(2026, 5, 28), // 28 juin, payDay 25 → cycle de juillet
+      payDayOfMonth: null,
+    });
+    const withPayDay = suggestedMonthlyContribution({
+      targetAmount: 1200,
+      targetDate: '2026-12-15',
+      now: new Date(2026, 5, 28),
+      payDayOfMonth: 25,
+    });
+
+    expect(withoutPayDay).not.toEqual(withPayDay);
+  });
+
+  it('should return null when the deadline is already past', () => {
+    const suggestion = suggestedMonthlyContribution({
+      targetAmount: 5000,
+      targetDate: '2026-01-15',
+      now: new Date(2026, 5, 15),
+      payDayOfMonth: null,
+    });
+
+    expect(suggestion).toBeNull();
+  });
+
+  it('should return null on a non-positive target', () => {
+    const suggestion = suggestedMonthlyContribution({
+      targetAmount: 0,
+      targetDate: '2026-12-15',
+      now: new Date(2026, 5, 15),
+      payDayOfMonth: null,
+    });
+
+    expect(suggestion).toBeNull();
   });
 });

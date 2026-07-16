@@ -140,6 +140,37 @@ export function calculatePaceStatus(
   return 'on_track';
 }
 
+export interface SuggestedMonthlyContributionInput {
+  targetAmount: number;
+  /** ISO date `YYYY-MM-DD`. */
+  targetDate: string;
+  payDayOfMonth?: number | null;
+  /** Injectable pour les tests ; défaut = maintenant. */
+  now?: Date;
+}
+
+/**
+ * Suggestion « cible ÷ mois restants » à la création d'un objectif (PUL-285
+ * CA1/CA6). Même base que la formule 5 (`required` avec confirmé = 0) :
+ * payDay-aware, mois courant ET mois d'échéance inclus. Arrondi au centime
+ * SUPÉRIEUR pour que `suggestion × mois ≥ cible` (jamais de shortfall à
+ * l'échéance). `null` si l'échéance est dépassée ou la cible non positive.
+ */
+export function suggestedMonthlyContribution(
+  input: SuggestedMonthlyContributionInput,
+): number | null {
+  const now = input.now ?? new Date();
+  const indexCurrent = periodIndex(
+    getBudgetPeriodForDate(now, input.payDayOfMonth),
+  );
+  const indexTarget = periodIndex(
+    getBudgetPeriodForDate(parseIsoDateLocal(input.targetDate), input.payDayOfMonth),
+  );
+  const monthsRemaining = indexTarget - indexCurrent + 1;
+  if (monthsRemaining <= 0 || input.targetAmount <= 0) return null;
+  return Math.ceil((input.targetAmount / monthsRemaining) * 100) / 100;
+}
+
 export function computeSavingsGoalProgress(
   input: SavingsGoalProgressInput,
 ): SavingsGoalProgressResult {
