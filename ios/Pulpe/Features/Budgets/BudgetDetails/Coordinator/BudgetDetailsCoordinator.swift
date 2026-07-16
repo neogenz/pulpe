@@ -108,6 +108,8 @@ final class BudgetDetailsCoordinator {
             await spreadBudgetLineFromExisting(lineId: lineId, periods: periods, context: ctx)
         case .createSavingsWithdrawal(let incomeLine):
             graftSavingsWithdrawal(incomeLine: incomeLine)
+        case .deleteSavingsWithdrawal(let line, let scope, let ctx):
+            await deleteSavingsWithdrawal(line: line, scope: scope, context: ctx)
         default:
             return false
         }
@@ -143,8 +145,7 @@ final class BudgetDetailsCoordinator {
 
     // MARK: - Loading
 
-    /// Full load: fetches budget details AND all budgets list (for month navigation)
-    /// Use for: initial load (force=false), pull-to-refresh (force=true)
+    /// Full load: budget details + all-budgets list (initial load / pull-to-refresh).
     private func loadDetails(force: Bool = false) async {
         // If cache already pre-populated data, skip fetch (unless forced).
         if !force,
@@ -182,8 +183,7 @@ final class BudgetDetailsCoordinator {
         }
     }
 
-    /// Light reload: fetches only current budget details (no allBudgets).
-    /// Use for: after toggle, update, or month navigation.
+    /// Light reload: only current budget details (after toggle/update/navigation).
     func reloadCurrentBudget() async {
         syncStore.setLoading(dataStore.budget == nil)
         syncStore.clearError()

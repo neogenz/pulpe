@@ -192,7 +192,12 @@ private extension BudgetLineDetailPage {
             )
 
             Button(role: .destructive) {
-                showDeleteConfirmation = true
+                // Linked line → explicit choice alert, not single-line delete (CA9).
+                if line.savingsWithdrawalGroupId == nil {
+                    showDeleteConfirmation = true
+                } else {
+                    deleteBudgetLine(line)
+                }
             } label: {
                 Label("Supprimer", systemImage: "trash")
             }
@@ -225,11 +230,9 @@ private extension BudgetLineDetailPage {
     }
 
     func deleteBudgetLine(_ line: BudgetLine) {
-        // `softDeleteBudgetLine` removes the line from the data store
-        // synchronously. Observation re-evaluates the body, the empty branch
-        // fires `autoPopIfStillEmpty`, and the page pops.
-        // We do NOT call `dismiss()` here — racing the auto-pop branch can
-        // double-pop and accidentally pop the parent `BudgetDetailsView`.
+        // Soft-delete removes the line synchronously; the empty branch auto-pops.
+        // No `dismiss()` — racing auto-pop can double-pop the parent. A linked
+        // line is diverted by the coordinator to the choice alert (CA9).
         let ctx = ToastContext(
             toastManager: appState.toastManager,
             presentationCurrency: userSettingsStore.currency

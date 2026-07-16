@@ -53,6 +53,25 @@ struct SavingsWithdrawalCreate: Encodable, Sendable {
     }
 }
 
+/// Scope of a grouped savings-withdrawal deletion (PUL-292, CA9) —
+/// `DELETE /budget-lines/savings-withdrawal/:groupId?scope=`. Mirrors the schema
+/// `z.enum(['pair','repayment'])`:
+/// - `pair`: delete BOTH lines (« tout annuler »);
+/// - `repayment`: delete ONLY the M+1 saving; the income of M keeps its group id
+///   (badge stays). Idempotent server-side when the saving is already gone.
+enum SavingsWithdrawalDeleteScope: String, Sendable {
+    case pair
+    case repayment
+
+    /// Success toast — describes the concrete outcome, never the concept.
+    var successToast: String {
+        switch self {
+        case .pair: "Les deux prévisions ont été supprimées"
+        case .repayment: "Épargne de remboursement supprimée"
+        }
+    }
+}
+
 /// Response of the couple: the two created lines (Revenu M, Épargne M+1) and the
 /// M+1 budget auto-created from the default template (`nil` when it already
 /// existed). Pair-shaped — the client never guesses which line is the income.

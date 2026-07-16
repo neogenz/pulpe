@@ -30,6 +30,8 @@ final class MockBudgetLineService: BudgetLineServicing {
     var stubbedWithdrawalResponse: SavingsWithdrawalResponse?
     var withdrawalError: Error?
     private(set) var createdWithdrawals: [SavingsWithdrawalCreate] = []
+    var deleteWithdrawalError: Error?
+    private(set) var deletedWithdrawals: [(groupId: String, scope: SavingsWithdrawalDeleteScope)] = []
 
     func deleteBudgetLine(id: String) async throws {
         deleteBudgetLineCallCount += 1
@@ -70,6 +72,11 @@ final class MockBudgetLineService: BudgetLineServicing {
             savingLine: TestDataFactory.createBudgetLine(id: "saving", kind: .saving),
             createdBudget: nil
         )
+    }
+
+    func deleteSavingsWithdrawal(groupId: String, scope: SavingsWithdrawalDeleteScope) async throws {
+        deletedWithdrawals.append((groupId, scope))
+        if let deleteWithdrawalError { throw deleteWithdrawalError }
     }
 
     func getSpreadOccurrences(spreadGroupId: String) async throws -> [SpreadOccurrence] {

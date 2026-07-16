@@ -9,6 +9,7 @@ protocol BudgetLineServicing: Sendable {
     func postpone(id: String) async throws -> BudgetLine
     func createSpread(_ data: BudgetLineSpreadCreate) async throws -> BudgetLineSpreadResponse
     func createSavingsWithdrawal(_ data: SavingsWithdrawalCreate) async throws -> SavingsWithdrawalResponse
+    func deleteSavingsWithdrawal(groupId: String, scope: SavingsWithdrawalDeleteScope) async throws
     func getSpreadOccurrences(spreadGroupId: String) async throws -> [SpreadOccurrence]
     func spreadExistingBudgetLine(
         id: String,
@@ -56,6 +57,17 @@ actor BudgetLineService: BudgetLineServicing {
     /// both lines + the created budget (or `nil` when M+1 already existed).
     func createSavingsWithdrawal(_ data: SavingsWithdrawalCreate) async throws -> SavingsWithdrawalResponse {
         try await apiClient.request(.budgetLinesSavingsWithdrawal, body: data, method: .post)
+    }
+
+    /// Delete a savings-withdrawal couple by group id (PUL-292, CA9). `scope`
+    /// picks whether both lines go (`pair`) or only the M+1 repayment saving
+    /// (`repayment`). Direct server delete — no soft-delete/undo for the grouped
+    /// path. Errors surface as typed `APIError` (404 when the group is unknown).
+    func deleteSavingsWithdrawal(groupId: String, scope: SavingsWithdrawalDeleteScope) async throws {
+        try await apiClient.requestVoid(
+            .budgetLinesSavingsWithdrawalDelete(groupId: groupId, scope: scope.rawValue),
+            method: .delete
+        )
     }
 
     /// Fetch every occurrence of a "Lisser" expense, one per host month (PUL-17

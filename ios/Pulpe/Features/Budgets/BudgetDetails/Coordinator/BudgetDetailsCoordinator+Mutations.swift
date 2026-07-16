@@ -139,6 +139,50 @@ extension BudgetDetailsCoordinator {
         dataStore.invalidateAllCache()
     }
 
+    /// Grouped delete with explicit choice (PUL-292, CA9). Direct server call —
+    /// NO soft-delete/undo (the MutationQueue only knows single lines). Applied
+    /// AFTER the server confirms (no optimistic rollback): a failure leaves the
+    /// local state untouched and surfaces an explicit error toast (`syncStore`'s
+    /// error is reserved for LOAD errors). On success the affected line(s) leave
+    /// the open budget and every detail cache is wiped so the OTHER month
+    /// refetches (`pair` touches M and M+1). Same shape as `applySpreadFromExisting`.
+    func deleteSavingsWithdrawal(
+        line: BudgetLine,
+        scope: SavingsWithdrawalDeleteScope,
+        context: ToastContext
+    ) async {
+        guard let groupId = line.savingsWithdrawalGroupId else { return }
+        syncStore.resetSavingsWithdrawalDeleteChoice()
+        syncStore.setLoading(true)
+        syncStore.clearError()
+        defer { syncStore.setLoading(false) }
+        do {
+            try await budgetLineService.deleteSavingsWithdrawal(
+                groupId: groupId.uuidString.lowercased(),
+                scope: scope
+            )
+            applySavingsWithdrawalDeletion(line, scope: scope)
+            context.toastManager.show(scope.successToast)
+        } catch {
+            context.toastManager.show("La suppression n'a pas pu aboutir", type: .error)
+        }
+    }
+
+    /// Removes the affected line from the OPEN budget after a confirmed grouped
+    /// delete. `pair`: both lines go, so the selected line (which lives in the
+    /// open budget) is removed. `repayment`: only the M+1 saving is deleted, so
+    /// the line is removed only when it IS that saving — the income of M keeps
+    /// its badge. The other month is reconciled by the cache wipe.
+    private func applySavingsWithdrawalDeletion(_ line: BudgetLine, scope: SavingsWithdrawalDeleteScope) {
+        let removesSelectedLine = scope == .pair || line.kind == .saving
+        if removesSelectedLine {
+            dataStore.removeBudgetLine(id: line.id)
+        }
+        dataStore.recomputeMetrics()
+        dataStore.syncCache()
+        dataStore.invalidateAllCache()
+    }
+
     // MARK: - Spread from existing (PUL-17 v1.1)
 
     /// Lisse une prévision existante (total préservé). The server deletes the
