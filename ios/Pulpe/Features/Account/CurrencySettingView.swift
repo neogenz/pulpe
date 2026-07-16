@@ -53,7 +53,7 @@ struct CurrencySettingView: View {
             } message: { currency in
                 Text(
                     "Tes montants existants ne sont pas convertis — 100 restera 100, "
-                        + "affiché en \(currency.rawValue). Seule la devise d'affichage change."
+                        + "affiché en \(currency.symbol). Seule la devise d'affichage change."
                 )
             }
             .onChange(of: userSettingsStore.currency) { _, newValue in
@@ -181,8 +181,9 @@ struct CurrencySettingView: View {
                 "to": to.rawValue
             ])
             submitSuccessTrigger.toggle()
-            appState.toastManager.show("Devise enregistrée", type: .success)
-            announceForVoiceOver("Devise enregistrée")
+            let successMessage = "Affichage en \(to.symbol). Tes montants gardent leur valeur."
+            appState.toastManager.show(successMessage, type: .success)
+            announceForVoiceOver(successMessage)
             // Reload widget timelines so they stop rendering the previous currency.
             await WidgetDataSyncService.shared.syncAll(
                 payDayOfMonth: userSettingsStore.payDayOfMonth,

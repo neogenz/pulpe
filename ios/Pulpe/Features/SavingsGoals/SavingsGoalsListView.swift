@@ -1,12 +1,5 @@
 import SwiftUI
 
-/// Navigation target for the savings goals. The dedicated tab owns `.detail`;
-/// the Budgets tab also registers it for linked saving forecasts.
-enum SavingsGoalDestination: Hashable {
-    case list
-    case detail(SavingsGoal)
-}
-
 /// Lists the user's savings goals (PUL-12). Creating opens the form sheet from
 /// here; a row now pushes the progression detail (PUL-8), which owns edit /
 /// status / delete.
@@ -50,20 +43,24 @@ struct SavingsGoalsListView: View {
         .sheet(isPresented: $isCreatingGoal) {
             SavingsGoalFormSheet(goal: nil, userCurrency: userSettingsStore.currency)
         }
-        .fullScreenCover(isPresented: $showIntro, onDismiss: {
-            // Present the create form only after the cover has fully dismissed:
-            // presenting a sheet while the cover animates out drops it on iOS.
-            if pendingCreateAfterIntro {
-                pendingCreateAfterIntro = false
-                isCreatingGoal = true
+        .fullScreenCover(
+            isPresented: $showIntro,
+            onDismiss: {
+                // Present the create form only after the cover has fully dismissed:
+                // presenting a sheet while the cover animates out drops it on iOS.
+                if pendingCreateAfterIntro {
+                    pendingCreateAfterIntro = false
+                    isCreatingGoal = true
+                }
+            },
+            content: {
+                SavingsGoalsIntroCover(currency: userSettingsStore.currency) { createGoal in
+                    hasSeenIntro = true
+                    pendingCreateAfterIntro = createGoal
+                    showIntro = false
+                }
             }
-        }) {
-            SavingsGoalsIntroCover(currency: userSettingsStore.currency) { createGoal in
-                hasSeenIntro = true
-                pendingCreateAfterIntro = createGoal
-                showIntro = false
-            }
-        }
+        )
         .onAppear {
             if SavingsGoalsIntroGate.shouldPresentIntro(hasSeen: hasSeenIntro) {
                 showIntro = true

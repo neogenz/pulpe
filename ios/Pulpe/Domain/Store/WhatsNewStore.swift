@@ -48,8 +48,9 @@ final class WhatsNewStore {
             // PUL-186-capable update is not mistaken for a fresh installation.
             lastSeenVersion = Self.migrationBaselineVersion
         } else {
-            // First install: no prior version to diff against. Record the current
-            // version so a future update, not this install, surfaces the sheet.
+            // Defensive fallback for injected/custom flag stores. Production's
+            // `WhatsNewFlagsStore` seeds this marker during app initialization,
+            // before authentication can defer `check()` to a later launch.
             flagsStore.setLastSeenVersion(currentVersion)
             Logger.app.info(
                 "[WHATS_NEW] first install recorded version=\(currentVersion, privacy: .public)"

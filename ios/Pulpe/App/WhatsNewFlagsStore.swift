@@ -13,17 +13,24 @@ protocol WhatsNewFlagsStoring: Sendable {
 /// SAFETY: `UserDefaults` is thread-safe per Apple. This struct only reads/writes a single string; `@unchecked Sendable` implements `WhatsNewFlagsStoring: Sendable` for DI without an actor wrapper.
 struct WhatsNewFlagsStore: WhatsNewFlagsStoring, @unchecked Sendable {
     private enum Key {
-        static let hasLaunchedBefore = "pulpe-has-launched-before"
         static let lastSeenVersion = "pulpe.lastSeenWhatsNewVersion"
     }
 
     private let defaults: UserDefaults
     let wasInstalledBeforeWhatsNew: Bool
 
-    init(defaults: UserDefaults = .standard) {
+    init(
+        defaults: UserDefaults = .standard,
+        currentVersion: String = AppConfiguration.appVersion
+    ) {
         self.defaults = defaults
         // Capture before AppState.bootstrap() marks a fresh installation as launched.
-        wasInstalledBeforeWhatsNew = defaults.bool(forKey: Key.hasLaunchedBefore)
+        let wasInstalledBeforeWhatsNew = defaults.bool(forKey: AppAuthFlagsKey.hasLaunchedBefore)
+        self.wasInstalledBeforeWhatsNew = wasInstalledBeforeWhatsNew
+        if !wasInstalledBeforeWhatsNew,
+           defaults.string(forKey: Key.lastSeenVersion) == nil {
+            defaults.set(currentVersion, forKey: Key.lastSeenVersion)
+        }
     }
 
     var lastSeenVersion: String? {
