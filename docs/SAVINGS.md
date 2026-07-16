@@ -192,13 +192,13 @@ Deux couches, deux sémantiques — ne jamais les confondre dans l'UI :
         └────────────┘
 ```
 
-| Statut      | Sens     | Effet sur les Prévisions liées           |
-| ----------- | -------- | ---------------------------------------- |
-| `ACTIVE`    | en cours | aucun — le statut est un **label**       |
-| `COMPLETED` | atteint  | aucun — réversible via CTA « ré-ouvrir » |
-| `PAUSED`    | en pause | aucun — `paceStatus = null`              |
+| Statut      | Sens     | Effet sur les Prévisions liées                                                                          |
+| ----------- | -------- | -------------------------------------------------------------------------------------------------------- |
+| `ACTIVE`    | en cours | aucun                                                                                                    |
+| `COMPLETED` | atteint  | **arrêt de génération** (PUL-285 CA5) — réversible via CTA « ré-ouvrir »                                 |
+| `PAUSED`    | en pause | **arrêt de génération** (PUL-285 CA5) — `paceStatus = null`                                              |
 
-Le statut est un label réversible : il ne modifie ni ne supprime les Prévisions liées. Les transitions utilisent `PATCH` avec `ACTIVE`, `COMPLETED` ou `PAUSED`.
+**Arrêt de génération (PUL-285 CA5)** : quand l'objectif n'est pas `ACTIVE`, `create_budget_from_template` ne copie plus ses `template_line` liées — les nouveaux budgets naissent **sans** la prévision liée (les autres lignes du Mois Type sont intactes). Le retour à `ACTIVE` reprend la génération pour les budgets suivants ; les mois générés pendant l'arrêt ne sont **pas** rétro-remplis (gaps assumés, cf. §10.2). Les Prévisions liées **déjà générées** ne sont jamais modifiées ni supprimées par une transition de statut — leur gestion est advisory (figer ou retirer sur accord explicite, jamais en silence). Les transitions utilisent `PATCH` avec `ACTIVE`, `COMPLETED` ou `PAUSED`.
 
 **Échéance dépassée** : l'objectif **reste `ACTIVE`** (pas de 4ᵉ statut). Affichage factuel + CTA « repousser la date ». **Jamais rouge ni ambre** (cf. §7). `required = null` quand `monthsRemaining ≤ 0`.
 

@@ -89,7 +89,7 @@ model {
   backend = service "Backend NestJS" {
     goalCrud = usecase "CRUD objectifs" {
       #foundation
-      description "POST/GET/PATCH/DELETE. DELETE délie les lignes (savings_goal_id = null), ne supprime aucune ligne."
+      description "POST/GET/PATCH/DELETE. DELETE délie les lignes (savings_goal_id = null), ne supprime aucune ligne. PAUSED/COMPLETED stoppent la génération des lignes liées dans les nouveaux budgets (PUL-285 CA5)."
     }
     lineLink = usecase "Lien ligne ↔ objectif" {
       #foundation
