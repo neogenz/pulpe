@@ -17,7 +17,7 @@ const FOOTER_LINKS = [
 
 export function Footer() {
   return (
-    <footer className="border-t border-text/10 bg-surface py-10">
+    <footer className="border-t border-text/10 bg-transparent py-10">
       <Container>
         <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
           <div>

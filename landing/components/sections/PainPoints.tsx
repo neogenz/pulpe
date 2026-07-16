@@ -1,4 +1,4 @@
-import { CalendarX, TableProperties, Wallet } from "lucide-react";
+import { CalendarX, House, Wallet } from "lucide-react";
 import { Section } from "@/components/ui";
 
 const PROOFS = [
@@ -9,14 +9,14 @@ const PROOFS = [
 
 const SUPPORTING = [
   {
-    icon: TableProperties,
-    title: "Ton Excel a 12 feuilles",
-    text: "Avec Pulpe, un changement se répercute sans reprendre chaque mois à la main.",
+    icon: House,
+    title: "Ton loyer augmente de 50 CHF.",
+    text: "Tu le modifies une fois dans Pulpe. Les mois suivants se recalculent.",
   },
   {
     icon: Wallet,
-    title: "Le 25, tu retiens ton souffle",
-    text: "Pulpe calcule ce qui reste réellement disponible après tes dépenses et ton épargne prévues.",
+    title: "Tu peux réserver ce week-end ?",
+    text: "Pulpe te montre ce qu’il te restera après les factures et l’épargne. Tu décides avec un chiffre, pas au feeling.",
   },
 ];
 
@@ -54,9 +54,9 @@ export function PainPoints() {
               Les impôts tombent. Ton mois ne devrait pas tomber avec.
             </h2>
             <p className="mt-6 max-w-lg text-base leading-relaxed text-text-secondary sm:text-lg">
-              Un tableur constate l&apos;écart. Pulpe réajuste la suite de ton
-              année pour que tu voies immédiatement ce que ce changement
-              implique.
+              Avec Pulpe, les grosses dépenses ont déjà leur place dans ton
+              année. Tu vois ce qu&apos;il te restera en juillet, en août et
+              après.
             </p>
           </div>
         </div>

@@ -38,6 +38,19 @@
   --ease-spring: var(--ease-smooth);
 }
 
+:root {
+  --ambient-lime: oklch(93% 0.13 121);
+  --ambient-leaf: oklch(88% 0.15 145);
+  --ambient-mint: oklch(90% 0.12 164);
+  --gradient-interpolation: ;
+}
+
+@supports (background: linear-gradient(in oklab, white, black)) {
+  :root {
+    --gradient-interpolation: in oklab;
+  }
+}
+
 html {
   scroll-behavior: smooth;
   scroll-padding-top: 112px;
@@ -46,6 +59,43 @@ html {
 body {
   font-family: var(--font-family-sans);
   background-color: var(--color-background);
+  background-image:
+    radial-gradient(
+      62% 11% at -5% 8% var(--gradient-interpolation),
+      var(--ambient-leaf),
+      transparent 74%
+    ),
+    radial-gradient(
+      58% 12% at 105% 10% var(--gradient-interpolation),
+      var(--ambient-mint),
+      transparent 76%
+    ),
+    radial-gradient(
+      105% 16% at 50% -2% var(--gradient-interpolation),
+      var(--ambient-lime),
+      transparent 78%
+    ),
+    radial-gradient(
+      80% 16% at 105% 32% var(--gradient-interpolation),
+      var(--ambient-leaf),
+      transparent 76%
+    ),
+    radial-gradient(
+      74% 16% at -5% 53% var(--gradient-interpolation),
+      var(--ambient-lime),
+      transparent 76%
+    ),
+    radial-gradient(
+      82% 17% at 105% 74% var(--gradient-interpolation),
+      var(--ambient-mint),
+      transparent 78%
+    ),
+    radial-gradient(
+      96% 16% at 24% 100% var(--gradient-interpolation),
+      var(--ambient-leaf),
+      transparent 80%
+    );
+  background-repeat: no-repeat;
   color: var(--color-text);
   margin: 0;
   min-height: 100vh;
@@ -78,26 +128,10 @@ body {
   }
 }
 
-/* Borumi-inspired atmospheric field: one calm emotion zone that dissolves
-   into the warm neutral content canvas. No grid or texture overlay. */
+/* The page shares one ambient field. Sections stay transparent so the color
+   fades never become full-width bands. */
 .hero-mesh {
-  background-image:
-    radial-gradient(
-      70% 45% at 50% 0%,
-      rgba(129, 208, 116, 0.28),
-      transparent 72%
-    ),
-    radial-gradient(
-      44% 32% at 12% 26%,
-      rgba(214, 241, 205, 0.72),
-      transparent 76%
-    ),
-    linear-gradient(
-      180deg,
-      #f4fff0 0%,
-      #f8fbf5 62%,
-      var(--color-background) 100%
-    );
+  background: transparent;
 }
 
 section[id] {
@@ -113,10 +147,7 @@ section[id] {
   outline: none;
 }
 
-/* Focus indicator for interactive elements sitting on dark / green surfaces
-   (e.g. the inverse CTA on the FinalCTA gradient), where the default green
-   outline is invisible. White ring, offset so it reads against both the
-   white button and the green surround. Meets WCAG 1.4.11 (>=3:1). */
+/* White focus ring for any future action placed on a dark surface. */
 .focus-on-dark:focus-visible {
   outline: 2px solid #ffffff;
   outline-offset: 3px;
@@ -258,13 +289,7 @@ section[id] {
 
 .section-grain {
   position: relative;
-  background:
-    radial-gradient(
-      70% 48% at 50% 0%,
-      rgba(214, 241, 205, 0.55),
-      transparent 75%
-    ),
-    var(--color-surface-alt);
+  background: transparent;
 }
 
 .section-grain::after {

@@ -33,6 +33,7 @@ export function Header() {
       setScrolled(window.scrollY > SCROLL_THRESHOLD);
     };
 
+    handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -64,20 +65,15 @@ export function Header() {
   }, [mobileMenuOpen]);
 
   return (
-    <header className="fixed top-4 left-1/2 z-50 w-[calc(100%-2rem)] max-w-6xl -translate-x-1/2">
+    <header className="fixed inset-x-2.5 top-2.5 z-50">
       <nav
-        className={`relative flex items-center justify-between gap-3 rounded-full border border-white/80 px-4 py-2.5 backdrop-blur-xl transition-[background-color,box-shadow,scale,translate] duration-300 [transition-timing-function:var(--ease-smooth)] md:px-5 motion-reduce:transition-none motion-reduce:translate-y-0 motion-reduce:scale-100 ${
+        className={`relative z-20 flex h-14 items-center justify-between gap-3 rounded-2xl bg-white/40 px-6 transition-[backdrop-filter,box-shadow] duration-500 md:h-[72px] motion-reduce:transition-none ${
           scrolled
-            ? "-translate-y-0.5 scale-[0.985] bg-white/[0.92] shadow-[var(--shadow-liquid-glass)]"
-            : "translate-y-0 scale-100 bg-white/[0.78] shadow-[var(--shadow-glass)]"
+            ? "shadow-[0_4px_30px_rgba(0,0,0,0.1)] backdrop-blur-[5px]"
+            : "shadow-none backdrop-blur-none"
         }`}
         aria-label="Navigation principale"
       >
-        <span
-          className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent"
-          aria-hidden="true"
-        />
-
         <Link
           href="/"
           className="relative z-10 flex min-h-11 items-center gap-2 font-bold text-lg text-text"
@@ -107,19 +103,21 @@ export function Header() {
         </div>
 
         <div className="relative z-10 flex items-center gap-2">
-          <Button
-            href={angularUrl("/signup", "header_commencer")}
-            size="sm"
-            className="shrink-0"
-            onClick={() => trackCTAClick("commencer", "header", "/signup")}
-          >
-            Commencer
-          </Button>
+          <div className="hidden md:block">
+            <Button
+              href={angularUrl("/signup", "header_commencer")}
+              size="sm"
+              className="shrink-0"
+              onClick={() => trackCTAClick("commencer", "header", "/signup")}
+            >
+              Commencer
+            </Button>
+          </div>
 
           <button
             ref={menuButtonRef}
             type="button"
-            className="grid min-h-11 min-w-11 place-items-center rounded-full text-text-secondary transition-[color,background-color,scale] duration-200 hover:bg-primary/8 hover:text-text active:scale-[0.96] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 md:hidden motion-reduce:transition-none motion-reduce:scale-100"
+            className="grid min-h-11 min-w-11 place-items-center rounded-lg text-text-secondary transition-[color,background-color,scale] duration-200 hover:bg-primary/8 hover:text-text active:scale-[0.96] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 md:hidden motion-reduce:transition-none motion-reduce:scale-100"
             onClick={() => setMobileMenuOpen((open) => !open)}
             aria-label={mobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
             aria-expanded={mobileMenuOpen}
@@ -146,19 +144,19 @@ export function Header() {
 
       <nav
         aria-label="Navigation mobile"
-        className={`absolute left-0 right-0 top-full mt-2 overflow-hidden rounded-[1.5rem] border border-white/80 bg-[#fffefa]/95 shadow-[var(--shadow-liquid-glass)] backdrop-blur-xl transition-[opacity,translate,scale] duration-250 [transition-timing-function:var(--ease-smooth)] md:hidden motion-reduce:translate-y-0 motion-reduce:scale-100 motion-reduce:transition-none ${
+        className={`fixed inset-0 z-10 flex items-center overflow-y-auto bg-white/80 p-4 pt-24 backdrop-blur-[4px] transition-opacity duration-300 md:hidden motion-reduce:transition-none ${
           mobileMenuOpen
-            ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
-            : "pointer-events-none -translate-y-2 scale-[0.98] opacity-0"
+            ? "pointer-events-auto opacity-100"
+            : "pointer-events-none opacity-0"
         }`}
         {...(!mobileMenuOpen && { inert: true })}
       >
-        <div className="flex flex-col gap-1 p-3">
+        <div className="flex w-full flex-col gap-2">
           {navLinks.map((link) => (
             <a
               key={link.href}
               href={link.href}
-              className="min-h-11 rounded-xl px-4 py-3 text-base font-semibold text-text transition-[background-color,scale] duration-200 hover:bg-primary/8 active:scale-[0.96] active:bg-primary/12 motion-reduce:transition-none motion-reduce:scale-100"
+              className="flex min-h-14 items-center justify-center rounded-lg px-4 py-3 text-center text-lg font-semibold text-text transition-[background-color,scale] duration-200 hover:bg-primary/8 active:scale-[0.96] active:bg-primary/12 motion-reduce:transition-none motion-reduce:scale-100"
               onClick={() => setMobileMenuOpen(false)}
             >
               {link.label}
