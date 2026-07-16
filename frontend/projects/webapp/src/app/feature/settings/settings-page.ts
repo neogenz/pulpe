@@ -42,6 +42,7 @@ import { CurrencyConverterWidget } from '@pattern/currency-converter-widget';
 import {
   ANALYTICS_EVENTS,
   ANALYTICS_PROPERTIES,
+  CURRENCY_METADATA,
   PAY_DAY_MAX,
   type SupportedCurrency,
 } from 'pulpe-shared';
@@ -487,15 +488,17 @@ export default class SettingsPage {
         newSelector,
       });
 
-      this.#snackBar.open(
-        this.#transloco.translate('settings.saveSuccess'),
-        'OK',
-        {
-          duration: 3000,
-          horizontalPosition: 'center',
-          verticalPosition: 'bottom',
-        },
-      );
+      const saveMessage =
+        previousCurrency !== newCurrency
+          ? this.#transloco.translate('settings.currencyChangeSuccess', {
+              symbol: CURRENCY_METADATA[newCurrency].symbol,
+            })
+          : this.#transloco.translate('settings.saveSuccess');
+      this.#snackBar.open(saveMessage, 'OK', {
+        duration: 3000,
+        horizontalPosition: 'center',
+        verticalPosition: 'bottom',
+      });
     } catch (error) {
       this.#logger.error('Failed to save settings', error);
       this.#snackBar.open(

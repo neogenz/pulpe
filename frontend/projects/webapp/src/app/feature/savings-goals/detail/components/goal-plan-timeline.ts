@@ -4,14 +4,16 @@ import {
   type ElementRef,
   computed,
   effect,
+  inject,
   input,
   output,
   signal,
   viewChild,
 } from '@angular/core';
+import { formatNumber } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { TranslocoPipe } from '@jsverse/transloco';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import {
   formatBudgetPeriod,
   type SavingsGoalPlanMonth,
@@ -190,6 +192,8 @@ const WINDOW_OPEN_ROWS = 3;
   `,
 })
 export class GoalPlanTimeline {
+  readonly #transloco = inject(TranslocoService);
+
   readonly months = input.required<readonly SavingsGoalPlanMonth[]>();
   readonly simulatedMonths = input<readonly SavingsPlanSimulatedMonth[] | null>(
     null,
@@ -283,7 +287,11 @@ export class GoalPlanTimeline {
   }
 
   protected lockedAmountLabel(row: GoalPlanTimelineRow): string | null {
-    return row.isChecked ? ', pointé, verrouillé' : null;
+    if (!row.isChecked) return null;
+    const amount = `${formatNumber(row.amount, this.locale(), '1.2-2')} ${this.currency()}`;
+    return this.#transloco.translate('savingsGoals.detail.lockedAmountAria', {
+      amount,
+    });
   }
 
   protected startEdit(periodKey: number): void {

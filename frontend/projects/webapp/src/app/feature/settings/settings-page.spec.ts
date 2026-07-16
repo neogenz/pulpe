@@ -292,15 +292,40 @@ describe('SettingsPage', () => {
       expect(mockDialog.open).toHaveBeenCalledWith(
         ConfirmationDialog,
         expect.objectContaining({
+          autoFocus: '[data-testid="confirmation-confirm-button"]',
           data: expect.objectContaining({
             title: "Changer la devise d'affichage ?",
             message:
-              "Tes montants existants ne sont pas convertis — 100 restera 100, affiché en EUR. Seule la devise d'affichage change.",
+              "Tes montants existants ne sont pas convertis — 100 restera 100, affiché en €. Seule la devise d'affichage change.",
           }),
         }),
       );
       expect(mockUserSettingsStore.updateSettings).toHaveBeenCalledWith(
         expect.objectContaining({ currency: 'EUR' }),
+      );
+    });
+
+    it('should show the no-conversion snackbar after a confirmed currency change', async () => {
+      fixture.componentInstance.onCurrencyChange('EUR');
+
+      await saveSettings();
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Affichage en €. Tes montants gardent leur valeur, sous le nouveau symbole.',
+        'OK',
+        expect.any(Object),
+      );
+    });
+
+    it('should keep the generic snackbar when currency is unchanged', async () => {
+      fixture.componentInstance.selectedPayDay.set(15);
+
+      await saveSettings();
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        "C'est enregistré",
+        'OK',
+        expect.any(Object),
       );
     });
 
