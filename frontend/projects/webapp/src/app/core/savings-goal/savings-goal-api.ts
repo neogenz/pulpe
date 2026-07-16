@@ -19,6 +19,12 @@ import {
   savingsGoalPlanApplySchema,
   type SavingsGoalPlanApplyResponse,
   savingsGoalPlanApplyResponseSchema,
+  type SavingsGoalFutureLinesResponse,
+  savingsGoalFutureLinesResponseSchema,
+  type SavingsGoalGenerationStop,
+  savingsGoalGenerationStopSchema,
+  type SavingsGoalGenerationStopResponse,
+  savingsGoalGenerationStopResponseSchema,
 } from 'pulpe-shared';
 import { ApiClient } from '@core/api/api-client';
 import { BudgetApi } from '@core/budget/budget-api';
@@ -115,6 +121,34 @@ export class SavingsGoalApi {
       plan,
       savingsGoalPlanApplyResponseSchema,
       savingsGoalPlanApplySchema,
+    );
+  }
+
+  /**
+   * Candidates advisory à l'arrêt de génération (PUL-285 CA5) : prévisions
+   * liées futures non pointées, non ajustées à la main. Le serveur calcule la
+   * borne payDay-aware — le client ne filtre rien.
+   */
+  getFutureLines$(id: string): Observable<SavingsGoalFutureLinesResponse> {
+    return this.#api.get$(
+      `/savings-goals/${id}/future-lines`,
+      savingsGoalFutureLinesResponseSchema,
+    );
+  }
+
+  /**
+   * Applique la décision advisory figer/retirer (PUL-285 CA8). Atomique
+   * serveur-side — tout id inéligible refuse l'ensemble.
+   */
+  applyGenerationStop$(
+    id: string,
+    decision: SavingsGoalGenerationStop,
+  ): Observable<SavingsGoalGenerationStopResponse> {
+    return this.#api.post$(
+      `/savings-goals/${id}/generation-stop`,
+      decision,
+      savingsGoalGenerationStopResponseSchema,
+      savingsGoalGenerationStopSchema,
     );
   }
 }

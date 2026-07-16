@@ -25,6 +25,7 @@ import { Router } from '@angular/router';
 import { debounceTime } from 'rxjs';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import {
+  type SavingsGoalFutureLine,
   type SavingsGoalPaceStatus,
   type SavingsGoalStatus,
 } from 'pulpe-shared';
@@ -403,6 +404,36 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                   </button>
                 </div>
               }
+
+              <!-- PUL-285 CA8 — advisory: future linked lines of a stopped goal -->
+              @if (g.status !== 'ACTIVE' && store.futureLines().length > 0) {
+                <div
+                  class="mt-2 flex flex-col gap-2 rounded-2xl bg-surface-container p-4"
+                  data-testid="savings-goal-generation-stop-card"
+                >
+                  <div
+                    class="flex items-center gap-2 text-on-surface text-title-small font-medium"
+                  >
+                    <mat-icon aria-hidden="true">event_upcoming</mat-icon>
+                    {{ 'savingsGoals.generationStop.cardTitle' | transloco }}
+                  </div>
+                  <p class="text-body-medium text-on-surface-variant">
+                    {{
+                      'savingsGoals.generationStop.cardMessage'
+                        | transloco: { count: store.futureLines().length }
+                    }}
+                  </p>
+                  <button
+                    matButton="outlined"
+                    class="w-fit"
+                    (click)="onManageFutureLines()"
+                    data-testid="savings-goal-generation-stop-button"
+                  >
+                    <mat-icon>tune</mat-icon>
+                    {{ 'savingsGoals.generationStop.cardCta' | transloco }}
+                  </button>
+                </div>
+              }
             }
           </div>
 
@@ -719,6 +750,10 @@ export default class SavingsGoalDetailPage {
       await this.store.editGoal(goal.id, result);
     } catch (error) {
       this.#showError(error);
+      return;
+    }
+    if (result.status === 'PAUSED' || result.status === 'COMPLETED') {
+      await this.#proposeGenerationStop(goal.id, result.status);
     }
   }
 
@@ -741,6 +776,62 @@ export default class SavingsGoalDetailPage {
       await this.store.completeGoal(goal.id);
     } catch {
       this.#showStatusError();
+      return;
+    }
+    await this.#proposeGenerationStop(goal.id, 'COMPLETED');
+  }
+
+  protected async onManageFutureLines(): Promise<void> {
+    const goal = this.goal();
+    if (!goal || goal.status === 'ACTIVE') return;
+    await this.#proposeGenerationStop(goal.id, goal.status);
+  }
+
+  /**
+   * PUL-285 CA8 — advisory après l'arrêt d'un objectif : liste les prévisions
+   * liées futures et applique la décision explicite (figer ou retirer).
+   * Aucune écriture sans accord ; fermer le dialog ne change rien (la carte
+   * dérivée de l'état serveur reste comme porte de ré-entrée).
+   */
+  async #proposeGenerationStop(
+    goalId: string,
+    status: SavingsGoalStatus,
+  ): Promise<void> {
+    let lines: SavingsGoalFutureLine[];
+    try {
+      lines = await this.store.fetchFutureLines(goalId);
+    } catch (error) {
+      this.#showError(error);
+      return;
+    }
+    if (lines.length === 0) return;
+
+    const decision = await this.#dialogs.openGenerationStop({
+      lines,
+      status,
+      currency: this.currency(),
+      locale: this.locale,
+      payDayOfMonth: this.payDayOfMonth(),
+    });
+    if (!decision) return;
+
+    try {
+      const { affectedCount } = await this.store.applyGenerationStop(goalId, {
+        mode: decision,
+        budgetLineIds: lines.map((line) => line.budgetLineId),
+      });
+      this.#snackBar.open(
+        this.#transloco.translate(
+          decision === 'freeze'
+            ? 'savingsGoals.generationStop.successFreeze'
+            : 'savingsGoals.generationStop.successRemove',
+          { count: affectedCount },
+        ),
+        this.#transloco.translate('common.close'),
+        { duration: 5000 },
+      );
+    } catch (error) {
+      this.#showError(error);
     }
   }
 

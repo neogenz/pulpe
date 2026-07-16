@@ -15,6 +15,7 @@ import localeDE from '@angular/common/locales/de-CH';
 import type {
   SavingsGoal,
   SavingsGoalContribution,
+  SavingsGoalFutureLine,
   SavingsGoalProgress,
 } from 'pulpe-shared';
 import SavingsGoalDetailPage from './savings-goal-detail-page';
@@ -179,6 +180,8 @@ describe('SavingsGoalDetailPage', () => {
   const refresh = vi.fn();
   const navigate = vi.fn();
 
+  const futureLinesSig = signal<SavingsGoalFutureLine[]>([]);
+
   const mockStore = {
     selectedGoal: goalSig,
     progress: progressSig,
@@ -186,6 +189,7 @@ describe('SavingsGoalDetailPage', () => {
     isProgressLoading: isProgressLoadingSig,
     contributions: contributionsSig,
     isContributionsLoading: isContributionsLoadingSig,
+    futureLines: futureLinesSig,
     savingsGoals: {
       isInitialLoading: listInitialLoadingSig,
       error: listErrorSig,
@@ -197,6 +201,8 @@ describe('SavingsGoalDetailPage', () => {
     reopenGoal,
     editGoal: vi.fn().mockResolvedValue(makeGoal()),
     removeGoal: vi.fn().mockResolvedValue(undefined),
+    fetchFutureLines: vi.fn().mockResolvedValue([]),
+    applyGenerationStop: vi.fn().mockResolvedValue({ affectedCount: 0 }),
   };
 
   const mockDialogs = {

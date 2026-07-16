@@ -3,6 +3,8 @@ import {
   type SavingsGoal,
   type SavingsGoalContribution,
   type SavingsGoalCreate,
+  type SavingsGoalFutureLine,
+  type SavingsGoalGenerationStop,
   type SavingsGoalPlanApply,
   type SavingsGoalPlanApplyResponse,
   type SavingsGoalProgress,
@@ -180,6 +182,73 @@ export class SavingsGoalStore {
       this.#selectedGoalId.set(snapshot.selectedGoalId);
     },
   });
+
+  // Arrêt de génération (PUL-285 CA5/CA8) — candidates advisory quand
+  // l'objectif n'est pas ACTIVE : prévisions liées futures figeables/retirables.
+  readonly #futureLinesResource = cachedResource<
+    SavingsGoalFutureLine[],
+    { goalId: string }
+  >({
+    cache: this.#api.cache,
+    cacheKey: (params) => ['savings-goals', 'future-lines', params.goalId],
+    params: () => {
+      const goal = this.selectedGoal();
+      return goal && goal.status !== 'ACTIVE' ? { goalId: goal.id } : undefined;
+    },
+    loader: ({ params }) =>
+      firstValueFrom(
+        this.#api
+          .getFutureLines$(params.goalId)
+          .pipe(map((res) => res.data ?? [])),
+      ),
+  });
+
+  readonly futureLines = computed<SavingsGoalFutureLine[]>(
+    () => this.#futureLinesResource.value() ?? [],
+  );
+
+  // Pessimistic: lines are frozen or DELETED server-side, atomically — no
+  // optimistic patch; the domain prefix invalidation covers future-lines too.
+  readonly #generationStopMutation = cachedMutation<
+    { goalId: string; decision: SavingsGoalGenerationStop },
+    { affectedCount: number },
+    void
+  >({
+    cache: this.#api.cache,
+    invalidateKeys: () => [['savings-goals']],
+    mutationFn: ({ goalId, decision }) =>
+      this.#api
+        .applyGenerationStop$(goalId, decision)
+        .pipe(map((response) => response.data)),
+    onSuccess: () => {
+      this.#budgetApi.cache.invalidate(['budget']);
+    },
+  });
+
+  /** Fresh advisory list for a post-transition prompt (bypasses the cache). */
+  async fetchFutureLines(goalId: string): Promise<SavingsGoalFutureLine[]> {
+    return firstValueFrom(
+      this.#api.getFutureLines$(goalId).pipe(map((res) => res.data ?? [])),
+    );
+  }
+
+  async applyGenerationStop(
+    goalId: string,
+    decision: SavingsGoalGenerationStop,
+  ): Promise<{ affectedCount: number }> {
+    const result = await this.#generationStopMutation.mutate({
+      goalId,
+      decision,
+    });
+    if (!result) {
+      throw (
+        this.#generationStopMutation.error() ??
+        new Error('Failed to apply the generation-stop decision')
+      );
+    }
+    this.reloadProgress();
+    return result;
+  }
 
   // Plan apply (PUL-12 simulateur) — pessimistic write. The server owns the
   // recomputed progression, so no optimistic patch: invalidate the whole domain
