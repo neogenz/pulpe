@@ -121,6 +121,7 @@ export function Header() {
             onClick={() => setMobileMenuOpen((open) => !open)}
             aria-label={mobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
             aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-nav-panel"
           >
             <span className="relative block h-6 w-6" aria-hidden="true">
               <Menu
@@ -143,6 +144,7 @@ export function Header() {
       </nav>
 
       <nav
+        id="mobile-nav-panel"
         aria-label="Navigation mobile"
         className={`fixed inset-0 z-10 flex items-center overflow-y-auto bg-white/80 p-4 pt-24 backdrop-blur-[4px] transition-opacity duration-300 md:hidden motion-reduce:transition-none ${
           mobileMenuOpen

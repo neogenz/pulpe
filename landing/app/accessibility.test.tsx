@@ -128,6 +128,11 @@ describe("landing accessibility contracts", () => {
     );
   });
 
+  it("associates the mobile menu button with its navigation panel", () => {
+    assert.match(componentSources.header, /aria-controls="mobile-nav-panel"/);
+    assert.match(componentSources.header, /id="mobile-nav-panel"/);
+  });
+
   it("waits for analytics before decorating cross-domain links", () => {
     assert.match(
       componentSources.posthogProvider,
