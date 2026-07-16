@@ -11,7 +11,10 @@ import {
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
-import { createMockTransaction } from '@app/testing/mock-factories';
+import {
+  createMockBudgetLine,
+  createMockTransaction,
+} from '@app/testing/mock-factories';
 import {
   createMockTagStore,
   type MockTagStore,
@@ -239,6 +242,38 @@ describe('BudgetItemsContainer — contextual empty states', () => {
     ).some((el) => el.textContent?.trim() === 'search_off');
     expect(hasSearchOffIcon).toBe(true);
     expect(nativeEl.textContent).not.toContain('Tout est pointé');
+  });
+});
+
+describe('BudgetItemsContainer — tag filter', () => {
+  it('keeps an envelope when its allocated transaction carries the selected tag', () => {
+    const customTagId = '44444444-4444-4444-8444-444444444444';
+    const budgetLine = createMockBudgetLine({
+      id: 'rent-line',
+      tagIds: [],
+    });
+    const allocatedTransaction = createMockTransaction({
+      id: 'rent-payment',
+      budgetLineId: budgetLine.id,
+      tagIds: [customTagId],
+    });
+    const mockStore = createMockStore();
+    mockStore.budgetDetails.set({
+      id: 'budget-1',
+      budgetLines: [budgetLine],
+      transactions: [allocatedTransaction],
+    });
+    mockStore.filteredBudgetLines.set([budgetLine]);
+    mockStore.filteredTransactions.set([allocatedTransaction]);
+    const fixture = setupComponent(mockStore, createMockDialogService(), {
+      open: vi.fn(),
+    });
+
+    fixture.componentInstance.selectedTagIds.set([customTagId]);
+
+    expect(
+      fixture.componentInstance.budgetLineItems().map((item) => item.data.id),
+    ).toEqual([budgetLine.id]);
   });
 });
 

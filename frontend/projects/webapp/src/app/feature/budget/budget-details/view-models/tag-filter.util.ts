@@ -25,13 +25,29 @@ export function collectPresentTagIds(
 
 /**
  * Keeps rows carrying at least one selected tag; an empty selection is a no-op.
- * Group-header rows survive only when at least one of their items does.
+ * A budget line also matches when one of its allocated transactions carries a
+ * selected tag. Group headers survive only when at least one item does.
  */
 export function filterTableRowsByTags(
   rows: readonly TableRowItem[],
   selectedTagIds: ReadonlySet<string>,
+  transactions: readonly {
+    budgetLineId?: string | null;
+    tagIds?: readonly string[];
+  }[] = [],
 ): TableRowItem[] {
   if (selectedTagIds.size === 0) return [...rows];
+
+  const parentIdsWithSelectedTags = new Set<string>();
+  for (const transaction of transactions) {
+    const parentId = transaction.budgetLineId;
+    if (
+      parentId &&
+      (transaction.tagIds ?? []).some((id) => selectedTagIds.has(id))
+    ) {
+      parentIdsWithSelectedTags.add(parentId);
+    }
+  }
 
   const result: TableRowItem[] = [];
   let currentHeader: TableRowItem | undefined;
@@ -60,9 +76,10 @@ export function filterTableRowsByTags(
       continue;
     }
 
-    const matches = (row.data.tagIds ?? []).some((id) =>
-      selectedTagIds.has(id),
-    );
+    const matches =
+      (row.data.tagIds ?? []).some((id) => selectedTagIds.has(id)) ||
+      (row.metadata.itemType === 'budget_line' &&
+        parentIdsWithSelectedTags.has(row.data.id));
     if (!matches) continue;
     if (currentHeader) matchingGroupItems.push(row);
     else result.push(row);

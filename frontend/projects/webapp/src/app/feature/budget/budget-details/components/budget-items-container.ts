@@ -358,7 +358,11 @@ export class BudgetItemsContainer {
   );
 
   readonly budgetTableData = computed(() =>
-    filterTableRowsByTags(this.#tableRows(), this.#selectedTagIdSet()),
+    filterTableRowsByTags(
+      this.#tableRows(),
+      this.#selectedTagIdSet(),
+      this.store.filteredTransactions(),
+    ),
   );
 
   // Filtered items for grid view

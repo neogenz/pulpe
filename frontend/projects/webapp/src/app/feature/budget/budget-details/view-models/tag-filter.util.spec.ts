@@ -91,6 +91,21 @@ describe('filterTableRowsByTags', () => {
     expect(result).toHaveLength(2);
   });
 
+  it('should keep a budget line when an allocated transaction carries a selected tag', () => {
+    const rows: TableRowItem[] = [groupHeader('expense'), lineRow('rent', [])];
+    const allocatedTransaction = createMockTransaction({
+      budgetLineId: 'rent',
+      tagIds: ['custom'],
+    });
+
+    const result = filterTableRowsByTags(rows, new Set(['custom']), [
+      allocatedTransaction,
+    ]);
+
+    expect(result).toHaveLength(2);
+    expect((result[1] as BudgetLineTableItem).data.id).toBe('rent');
+  });
+
   it('should recompute the visible item count and remove empty groups', () => {
     const rows: TableRowItem[] = [
       groupHeader('expense', 3),
