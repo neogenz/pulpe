@@ -792,6 +792,7 @@
     "addTransactionAmountRequired": "Le montant est requis",
     "addTransactionQuickAmounts": "Montants rapides",
     "addTransactionDescription": "Description",
+    "addTransactionDescriptionPlaceholder": "Ex: Courses chez Migros",
     "addTransactionDescriptionRequired": "La description est requise",
     "addTransactionDescriptionMin": "La description doit contenir au moins 2 caractères",
     "addTransactionType": "Type de transaction",

@@ -2,7 +2,6 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatBottomSheetRef } from '@angular/material/bottom-sheet';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SupportedCurrency } from 'pulpe-shared';
 
@@ -17,10 +16,8 @@ import {
 } from './add-transaction-form';
 
 async function configureBottomSheet() {
-  const afterOpened = new Subject<void>();
   const bottomSheetRef = {
     dismiss: vi.fn(),
-    afterOpened: vi.fn().mockReturnValue(afterOpened),
   };
   const settings = {
     currency: signal<SupportedCurrency>('CHF'),
@@ -59,21 +56,11 @@ async function configureBottomSheet() {
     fixture,
     component: fixture.componentInstance,
     bottomSheetRef,
-    afterOpened,
   };
 }
 
 describe('AddTransactionBottomSheet', () => {
   beforeEach(() => TestBed.resetTestingModule());
-
-  it('focuses the amount after opening', async () => {
-    const focusSpy = vi.spyOn(AddTransactionForm.prototype, 'focusAmount');
-    const { afterOpened } = await configureBottomSheet();
-
-    afterOpened.next();
-
-    expect(focusSpy).toHaveBeenCalledOnce();
-  });
 
   it('dismisses without data on cancel', async () => {
     const { component, bottomSheetRef } = await configureBottomSheet();
@@ -87,9 +74,9 @@ describe('AddTransactionBottomSheet', () => {
     const submitSpy = vi
       .spyOn(AddTransactionForm.prototype, 'submit')
       .mockResolvedValue();
-    const { component } = await configureBottomSheet();
+    const { fixture } = await configureBottomSheet();
 
-    component['submit']();
+    fixture.nativeElement.querySelector('pulpe-loading-button button').click();
 
     expect(submitSpy).toHaveBeenCalledOnce();
   });
@@ -101,7 +88,8 @@ describe('AddTransactionBottomSheet', () => {
       amount: 25,
       kind: 'expense',
       category: null,
-      checkedAt: null,
+      isChecked: false,
+      conversion: null,
     };
 
     component['onCreated'](transaction);

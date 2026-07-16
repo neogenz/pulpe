@@ -5,7 +5,6 @@ import {
   inject,
   output,
   signal,
-  viewChild,
 } from '@angular/core';
 import {
   FormField,
@@ -21,7 +20,6 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
-import type { SupportedCurrency, TransactionCreate } from 'pulpe-shared';
 
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
 import {
@@ -36,16 +34,12 @@ import {
 import { Logger } from '@core/logging/logger';
 import { UserSettingsStore } from '@core/user-settings';
 import { TransactionLabelPipe } from '@ui/transaction-display';
+import {
+  transactionFormDataSchema,
+  type TransactionFormData,
+} from './add-transaction-form.schema';
 
-export type TransactionFormData = Pick<
-  TransactionCreate,
-  'name' | 'amount' | 'kind' | 'category' | 'checkedAt'
-> & {
-  originalAmount?: number;
-  originalCurrency?: SupportedCurrency;
-  targetCurrency?: SupportedCurrency;
-  exchangeRate?: number;
-};
+export type { TransactionFormData } from './add-transaction-form.schema';
 
 interface AddTransactionModel {
   name: string;
@@ -111,7 +105,9 @@ interface AddTransactionModel {
             matInput
             [formField]="transactionForm.name"
             data-testid="transaction-description-input"
-            placeholder="Ex: Courses chez Migros"
+            [placeholder]="
+              'currentMonth.addTransactionDescriptionPlaceholder' | transloco
+            "
           />
           @if (nameRequiredError()) {
             <mat-error>{{
@@ -226,7 +222,6 @@ export class AddTransactionForm {
 
   readonly created = output<TransactionFormData>();
   readonly isSubmitting = signal(false);
-  private readonly amountInput = viewChild(AmountInput);
 
   protected readonly currency = this.#userSettings.currency;
   protected readonly predefinedAmounts = [10, 15, 20, 30] as const;
@@ -292,10 +287,6 @@ export class AddTransactionForm {
     amountField.markAsTouched();
   }
 
-  focusAmount(): void {
-    this.amountInput()?.focus();
-  }
-
   async submit(): Promise<void> {
     await runFormSubmit({
       form: this.transactionForm,
@@ -308,14 +299,15 @@ export class AddTransactionForm {
           targetCurrency: this.#userSettings.currency(),
           converter: this.#converter,
           logger: this.#logger,
-          build: (amount, metadata): TransactionFormData => ({
-            name: m.name,
-            amount,
-            kind: m.kind,
-            category: m.category || null,
-            checkedAt: m.isChecked ? new Date().toISOString() : null,
-            ...metadata,
-          }),
+          build: (amount, metadata): TransactionFormData =>
+            transactionFormDataSchema.parse({
+              name: m.name,
+              amount,
+              kind: m.kind,
+              category: m.category || null,
+              isChecked: m.isChecked,
+              conversion: metadata,
+            }),
         };
       },
       onSuccess: (value, outcome) => {

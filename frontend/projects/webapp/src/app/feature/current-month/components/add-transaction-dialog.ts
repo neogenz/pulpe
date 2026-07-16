@@ -1,9 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  ViewChild,
-  inject,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -69,7 +64,7 @@ import {
         [loading]="form.isSubmitting()"
         [disabled]="!form.canSubmit()"
         [loadingText]="'common.loading' | transloco"
-        (click)="submit()"
+        (click)="form.submit()"
         testId="transaction-submit-button"
       >
         {{ 'currentMonth.addTransactionSubmit' | transloco }}
@@ -82,21 +77,9 @@ export class AddTransactionDialog {
   readonly #dialogRef = inject(
     MatDialogRef<AddTransactionDialog, TransactionFormData>,
   );
-  @ViewChild(AddTransactionForm)
-  private form?: AddTransactionForm;
-
-  constructor() {
-    this.#dialogRef.afterOpened().subscribe(() => {
-      this.form?.focusAmount();
-    });
-  }
 
   protected close(): void {
     this.#dialogRef.close();
-  }
-
-  protected submit(): void {
-    void this.form?.submit();
   }
 
   protected onCreated(tx: TransactionFormData): void {

@@ -24,7 +24,10 @@ import {
 } from '@core/product-tour/product-tour.service';
 import { BaseLoading } from '@ui/loading';
 import { StateCard } from '@ui/state-card/state-card';
-import type { TransactionFormData } from './components/add-transaction-form';
+import {
+  transactionCreateFromQuickFormSchema,
+  type TransactionFormData,
+} from './components/add-transaction-form.schema';
 import { DashboardError } from './components/dashboard-error';
 import { AddTransactionDialogService } from './services/add-transaction-dialog.service';
 import { DashboardStore } from './services/dashboard-store';
@@ -393,13 +396,11 @@ export default class Dashboard {
     if (!budgetId) {
       return;
     }
-    await this.store.addTransaction({
+    const transactionCreate = transactionCreateFromQuickFormSchema.parse({
       ...transaction,
       budgetId,
-      amount: transaction.amount ?? 0,
       transactionDate: formatLocalDate(new Date()),
-      category: transaction.category ?? null,
-      checkedAt: transaction.checkedAt ?? null,
     });
+    await this.store.addTransaction(transactionCreate);
   }
 }

@@ -164,14 +164,14 @@ test.describe('Current Month Transactions', () => {
 
     await currentMonthPage.goto();
 
-    // Open bottom sheet via FAB
+    // Open the adaptive transaction surface via FAB
     await authenticatedPage.getByTestId('add-transaction-fab').click();
 
     // Fill the transaction form
     const form = authenticatedPage.getByTestId('transaction-form');
     await expect(form).toBeVisible();
 
-    // Wait for auto-focus setTimeout(200ms) to settle before filling (CI timing)
+    // Wait for the surface opening animation and initial focus to settle
     const amountInput = authenticatedPage.locator(
       '[data-testid="transaction-form"] [data-testid="amount-input-value"]',
     );
@@ -188,7 +188,7 @@ test.describe('Current Month Transactions', () => {
     // Submit
     await authenticatedPage.getByTestId('transaction-submit-button').click();
 
-    // Bottom sheet should close
+    // The transaction surface should close
     await expect(form).toBeHidden();
 
     // Transaction should appear in the recent transactions block

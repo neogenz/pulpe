@@ -164,7 +164,7 @@ describe('AddTransactionForm', () => {
   });
 
   describe('checked toggle', () => {
-    it('sets checkedAt when the transaction is checked', async () => {
+    it('emits the checked state when the transaction is checked', async () => {
       const { component, createdSpy } = configureForm();
       component['model'].update((model) => ({
         ...model,
@@ -175,12 +175,12 @@ describe('AddTransactionForm', () => {
 
       await component.submit();
 
-      const transaction = createdSpy.mock.calls[0][0];
-      expect(transaction.checkedAt).toBeDefined();
-      expect(typeof transaction.checkedAt).toBe('string');
+      expect(createdSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ isChecked: true }),
+      );
     });
 
-    it('sets checkedAt to null when the transaction is unchecked', async () => {
+    it('emits the checked state when the transaction is unchecked', async () => {
       const { component, createdSpy } = configureForm();
       component['model'].update((model) => ({
         ...model,
@@ -192,7 +192,7 @@ describe('AddTransactionForm', () => {
       await component.submit();
 
       expect(createdSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ checkedAt: null }),
+        expect.objectContaining({ isChecked: false }),
       );
     });
   });
@@ -266,10 +266,12 @@ describe('AddTransactionForm', () => {
       expect(createdSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           amount: 108.97,
-          originalAmount: 100,
-          originalCurrency: 'EUR',
-          targetCurrency: 'CHF',
-          exchangeRate: 1.0897,
+          conversion: {
+            originalAmount: 100,
+            originalCurrency: 'EUR',
+            targetCurrency: 'CHF',
+            exchangeRate: 1.0897,
+          },
         }),
       );
     });

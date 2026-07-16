@@ -16,6 +16,7 @@ export class AddTransactionDialogService {
   async open(): Promise<TransactionFormData | undefined> {
     if (this.#breakpointObserver.isMatched(Breakpoints.Handset)) {
       const bottomSheetRef = this.#bottomSheet.open(AddTransactionBottomSheet, {
+        autoFocus: '[data-testid="amount-input-value"]',
         disableClose: false,
       });
       return firstValueFrom(bottomSheetRef.afterDismissed());
@@ -25,7 +26,7 @@ export class AddTransactionDialogService {
       width: '720px',
       maxWidth: 'calc(100vw - 48px)',
       panelClass: 'add-transaction-dialog',
-      autoFocus: false,
+      autoFocus: '[data-testid="amount-input-value"]',
       disableClose: false,
     });
     return firstValueFrom(dialogRef.afterClosed());

@@ -10,7 +10,7 @@ import { Router } from '@angular/router';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { type BudgetLine, type Transaction, type Budget } from 'pulpe-shared';
 import Dashboard from './current-month';
-import { type TransactionFormData } from './components/add-transaction-form';
+import { type TransactionFormData } from './components/add-transaction-form.schema';
 import { AddTransactionDialogService } from './services/add-transaction-dialog.service';
 import { DashboardStore } from './services/dashboard-store';
 
@@ -467,6 +467,8 @@ describe('CurrentMonth Component', () => {
 });
 
 describe('Dashboard (TestBed)', () => {
+  const budgetId = '00000000-0000-4000-8000-000000000001';
+
   function createMockStore(budgetId: string) {
     return {
       dashboardData: signal({ budget: { id: budgetId } }),
@@ -520,23 +522,25 @@ describe('Dashboard (TestBed)', () => {
 
   describe('#addTransaction forwards currency conversion metadata', () => {
     it('should include originalAmount, originalCurrency, targetCurrency, exchangeRate in store.addTransaction call when present on the surface payload', async () => {
-      const { component, mockStore } = await setup('budget-123', {
+      const { component, mockStore } = await setup(budgetId, {
         name: 'Test pour claude',
         amount: 108.97,
         kind: 'expense',
         category: null,
-        checkedAt: null,
-        originalAmount: 100,
-        originalCurrency: 'CHF',
-        targetCurrency: 'EUR',
-        exchangeRate: 1.0897,
+        isChecked: false,
+        conversion: {
+          originalAmount: 100,
+          originalCurrency: 'CHF',
+          targetCurrency: 'EUR',
+          exchangeRate: 1.0897,
+        },
       });
 
       await component['openAddTransaction']();
 
       expect(mockStore.addTransaction).toHaveBeenCalledWith(
         expect.objectContaining({
-          budgetId: 'budget-123',
+          budgetId,
           amount: 108.97,
           name: 'Test pour claude',
           kind: 'expense',
@@ -549,18 +553,19 @@ describe('Dashboard (TestBed)', () => {
     });
 
     it('should forward transaction payload without conversion metadata when the surface omits it', async () => {
-      const { component, mockStore } = await setup('budget-123', {
+      const { component, mockStore } = await setup(budgetId, {
         name: 'Courses',
         amount: 50,
         kind: 'expense',
         category: null,
-        checkedAt: null,
+        isChecked: false,
+        conversion: null,
       });
 
       await component['openAddTransaction']();
 
       const callArg = mockStore.addTransaction.mock.calls[0][0];
-      expect(callArg.budgetId).toBe('budget-123');
+      expect(callArg.budgetId).toBe(budgetId);
       expect(callArg.amount).toBe(50);
       expect(callArg.originalAmount).toBeUndefined();
       expect(callArg.originalCurrency).toBeUndefined();
@@ -569,7 +574,7 @@ describe('Dashboard (TestBed)', () => {
     });
 
     it('should not call store.addTransaction when the surface is dismissed without data', async () => {
-      const { component, mockStore } = await setup('budget-123', undefined);
+      const { component, mockStore } = await setup(budgetId, undefined);
 
       await component['openAddTransaction']();
 
@@ -582,7 +587,8 @@ describe('Dashboard (TestBed)', () => {
         amount: 10,
         kind: 'expense',
         category: null,
-        checkedAt: null,
+        isChecked: false,
+        conversion: null,
       });
 
       await component['openAddTransaction']();

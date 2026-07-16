@@ -1,9 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  ViewChild,
-  inject,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatBottomSheetRef } from '@angular/material/bottom-sheet';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -15,8 +10,6 @@ import {
   AddTransactionForm,
   type TransactionFormData,
 } from './add-transaction-form';
-
-export type { TransactionFormData } from './add-transaction-form';
 
 @Component({
   selector: 'pulpe-add-transaction-bottom-sheet',
@@ -71,7 +64,7 @@ export type { TransactionFormData } from './add-transaction-form';
           [loading]="form.isSubmitting()"
           [disabled]="!form.canSubmit()"
           [loadingText]="'common.loading' | transloco"
-          (click)="submit()"
+          (click)="form.submit()"
           testId="transaction-submit-button"
         >
           {{ 'currentMonth.addTransactionSubmit' | transloco }}
@@ -86,21 +79,9 @@ export class AddTransactionBottomSheet {
   readonly #bottomSheetRef = inject(
     MatBottomSheetRef<AddTransactionBottomSheet, TransactionFormData>,
   );
-  @ViewChild(AddTransactionForm)
-  private form?: AddTransactionForm;
-
-  constructor() {
-    this.#bottomSheetRef.afterOpened().subscribe(() => {
-      this.form?.focusAmount();
-    });
-  }
 
   protected close(): void {
     this.#bottomSheetRef.dismiss();
-  }
-
-  protected submit(): void {
-    void this.form?.submit();
   }
 
   protected onCreated(tx: TransactionFormData): void {
