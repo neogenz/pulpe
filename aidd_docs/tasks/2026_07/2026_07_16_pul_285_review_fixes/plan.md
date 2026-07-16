@@ -1,6 +1,6 @@
 ---
 objective: "Les deux findings confirmés de la re-review PUL-285 sont fermés : les erreurs generation-stop sont localisées côté web et le GET future-lines ne lit ni ne déchiffre de transactions inutiles."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Corriger les findings de re-review PUL-285
