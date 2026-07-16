@@ -1,6 +1,6 @@
 ---
 objective: "Every warning-level finding of the 2026_07_16 release review is fixed or formally re-ticketed, with the release verdict path clear of `fix`-tagged criteria."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Release review fixes — warnings v0.37.1 → preview
