@@ -13,6 +13,7 @@ export class BudgetItemDataProvider {
     viewMode?: BudgetViewMode;
     searchText?: string;
     postpone?: { hasNextMonthBudget: boolean; nextMonthLabel: string };
+    savingsWithdrawalOriginLabel?: string;
   }): TableRowItem[] {
     return buildViewData(params);
   }

@@ -22,7 +22,11 @@ import { UserSettingsStore } from '@core/user-settings';
 import {
   type BudgetLine,
   type BudgetLineCreate,
+  type BudgetLineDeleteResponse,
   type BudgetLinePostponeResponse,
+  type BudgetLineSavingsWithdrawalCreate,
+  type BudgetLineSavingsWithdrawalDeleteQuery,
+  type BudgetLineSavingsWithdrawalResponse,
   type BudgetLineSpreadCreate,
   type BudgetLineSpreadResponse,
   type BudgetLineUpdate,
@@ -96,11 +100,26 @@ export class BudgetDetailsStore {
   readonly #searchText = signal('');
   readonly searchText = this.#searchText.asReadonly();
 
+  // PUL-292 — budget ids whose "mois un peu juste" card the user dismissed
+  // ("Plus tard"). Persisted so the nudge stays hidden per month across refresh.
+  readonly #dismissedSavingsWithdrawalCardBudgetIds = signal<string[]>(
+    this.#storage.get<string[]>(
+      STORAGE_KEYS.SAVINGS_WITHDRAWAL_CARD_DISMISSED,
+    ) ?? [],
+  );
+
   constructor() {
     effect(() => {
       this.#storage.set(
         STORAGE_KEYS.BUDGET_SHOW_ONLY_UNCHECKED,
         this.#isShowingOnlyUnchecked(),
+      );
+    });
+
+    effect(() => {
+      this.#storage.set(
+        STORAGE_KEYS.SAVINGS_WITHDRAWAL_CARD_DISMISSED,
+        this.#dismissedSavingsWithdrawalCardBudgetIds(),
       );
     });
 
@@ -361,6 +380,57 @@ export class BudgetDetailsStore {
     return { income, expenses, savings, remaining };
   });
 
+  // PUL-292 — the viewed month is current OR future (payDay-aware). Never a
+  // closed/past month: the "piocher dans son épargne" nudge only makes sense
+  // for a month you can still act on. Reuses the spread period axes.
+  readonly #isViewedMonthCurrentOrFuture = computed<boolean>(() => {
+    const reference = this.#spreadReferencePeriod();
+    if (!reference) return false;
+    return compareBudgetPeriods(reference, this.#spreadLivePeriod()) >= 0;
+  });
+
+  // PUL-292 (CA1) — the "mois un peu juste" card shows only when the viewed
+  // current/future month runs a deficit, has no pioche yet, and wasn't dismissed.
+  readonly shouldShowSavingsWithdrawalCard = computed<boolean>(() => {
+    const details = this.budgetDetails();
+    if (!details) return false;
+    if (this.financialTotals().remaining >= 0) return false;
+    if (!this.#isViewedMonthCurrentOrFuture()) return false;
+    const hasWithdrawal = this.displayBudgetLines().some(
+      (line) => line.savingsWithdrawalGroupId != null,
+    );
+    if (hasWithdrawal) return false;
+    return !this.#dismissedSavingsWithdrawalCardBudgetIds().includes(
+      details.id,
+    );
+  });
+
+  // The deficit to pre-fill the withdrawal amount chip (positive magnitude, 0
+  // when the month is not in deficit).
+  readonly savingsWithdrawalDeficit = computed<number>(() => {
+    const remaining = this.financialTotals().remaining;
+    return remaining < 0 ? Math.abs(remaining) : 0;
+  });
+
+  // PUL-292 — origin month label (month − 1, with year rollover) shared by every
+  // "Remettre sur ton épargne" line of the viewed budget: they all repay a pioche
+  // taken the month before.
+  readonly savingsWithdrawalOriginLabel = computed<string>(() => {
+    const details = this.budgetDetails();
+    if (!details) return '';
+    const originMonth = details.month === 1 ? 12 : details.month - 1;
+    const originYear = details.month === 1 ? details.year - 1 : details.year;
+    return this.#monthFormatter.format(
+      new Date(originYear, originMonth - 1, 1),
+    );
+  });
+
+  dismissSavingsWithdrawalCard(budgetId: string): void {
+    this.#dismissedSavingsWithdrawalCardBudgetIds.update((ids) =>
+      ids.includes(budgetId) ? ids : [...ids, budgetId],
+    );
+  }
+
   #aggregatePlannedByKind(
     lines: BudgetLine[],
     consumptionMap: Map<string, { consumed: number; transactionCount: number }>,
@@ -537,6 +607,53 @@ export class BudgetDetailsStore {
   ): Promise<BudgetLineSpreadResponse['data'] | undefined> {
     const response = await this.#createBudgetLineSpreadMutation.mutate(input);
     return response?.data;
+  }
+
+  // PUL-292 — creating the pioche couple fans out across M and M+1 (possibly
+  // auto-creating M+1), so there is no single-budget optimistic shape. Like the
+  // spread create, we rely on the cross-budget prefix invalidation to refetch
+  // every touched month (M's disponible + M+1's new Épargne).
+  readonly #createSavingsWithdrawalMutation = cachedMutation<
+    BudgetLineSavingsWithdrawalCreate,
+    BudgetLineSavingsWithdrawalResponse,
+    void
+  >({
+    cache: this.#budgetApi.cache,
+    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
+    mutationFn: (data) => this.#budgetApi.createSavingsWithdrawal$(data),
+    onSuccess: () => this.#onFinancialMutationSuccess(),
+    onError: (error) => this.#handleSavingsWithdrawalError(error),
+  });
+
+  async createSavingsWithdrawal(
+    input: BudgetLineSavingsWithdrawalCreate,
+  ): Promise<BudgetLineSavingsWithdrawalResponse['data'] | undefined> {
+    const response = await this.#createSavingsWithdrawalMutation.mutate(input);
+    return response?.data;
+  }
+
+  readonly #deleteSavingsWithdrawalMutation = cachedMutation<
+    { groupId: string; scope: BudgetLineSavingsWithdrawalDeleteQuery['scope'] },
+    BudgetLineDeleteResponse,
+    void
+  >({
+    cache: this.#budgetApi.cache,
+    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
+    mutationFn: ({ groupId, scope }) =>
+      this.#budgetApi.deleteSavingsWithdrawal$(groupId, scope),
+    onSuccess: () => this.#onFinancialMutationSuccess(),
+    onError: (error) => this.#handleSavingsWithdrawalError(error),
+  });
+
+  async deleteSavingsWithdrawal(
+    groupId: string,
+    scope: BudgetLineSavingsWithdrawalDeleteQuery['scope'],
+  ): Promise<boolean> {
+    const response = await this.#deleteSavingsWithdrawalMutation.mutate({
+      groupId,
+      scope,
+    });
+    return response !== undefined;
   }
 
   // PUL-17 v1.1 — total-preserving spread of an EXISTING source (prévision OR
@@ -1103,6 +1220,15 @@ export class BudgetDetailsStore {
   #handleSpreadError(error: unknown): void {
     this.#setError(this.#localizeError(error, 'budgetLine.spread.error'));
     this.#logger.error('Spread mutation failed', error);
+  }
+
+  // Shared failure path for the 2 savings-withdrawal mutations (PUL-292):
+  // localize a typed ApiError via its code, else fall back to the generic key.
+  #handleSavingsWithdrawalError(error: unknown): void {
+    this.#setError(
+      this.#localizeError(error, 'budget.savingsWithdrawal.error'),
+    );
+    this.#logger.error('Savings withdrawal mutation failed', error);
   }
 
   #clearError(): void {

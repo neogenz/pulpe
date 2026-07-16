@@ -225,6 +225,7 @@ function createBudgetLineViewModel(
   budgetLine: BudgetLine,
   consumptionMap: Map<string, { consumed: number; transactionCount: number }>,
   postpone: PostponeContext,
+  savingsWithdrawalOriginLabel: string,
 ): BudgetLineTableItem {
   const isPropagationLocked =
     !!budgetLine.templateLineId && !!budgetLine.isManuallyAdjusted;
@@ -270,6 +271,15 @@ function createBudgetLineViewModel(
         budgetLine.kind !== 'income' &&
         !budgetLine.spreadGroupId &&
         budgetLine.amount > 0,
+      // PUL-292 — the two halves of a pioche both carry the group id; kind splits
+      // them: income → the badged Revenu, saving → the M+1 « Remettre sur ton
+      // épargne » repayment (its origin month is the viewed budget's month − 1).
+      isSavingsWithdrawalIncome:
+        budgetLine.kind === 'income' && !!budgetLine.savingsWithdrawalGroupId,
+      savingsWithdrawalOriginLabel:
+        budgetLine.kind === 'saving' && budgetLine.savingsWithdrawalGroupId
+          ? savingsWithdrawalOriginLabel
+          : null,
     },
     consumption: {
       consumed,
@@ -329,10 +339,16 @@ function mapToTableItems(
   items: BudgetItemWithBalance[],
   consumptionMap: Map<string, { consumed: number; transactionCount: number }>,
   postpone: PostponeContext,
+  savingsWithdrawalOriginLabel: string,
 ): (BudgetLineTableItem | TransactionTableItem)[] {
   return items.map((item) => {
     if (item.itemType === 'budget_line') {
-      return createBudgetLineViewModel(item.item, consumptionMap, postpone);
+      return createBudgetLineViewModel(
+        item.item,
+        consumptionMap,
+        postpone,
+        savingsWithdrawalOriginLabel,
+      );
     }
     return createTransactionViewModel(item.item, postpone);
   });
@@ -377,6 +393,7 @@ export function buildViewData(params: {
   openingBalance?: number;
   searchText?: string;
   postpone?: PostponeContext;
+  savingsWithdrawalOriginLabel?: string;
 }): TableRowItem[] {
   const {
     budgetLines,
@@ -384,6 +401,7 @@ export function buildViewData(params: {
     openingBalance = 0,
     searchText,
     postpone = NO_POSTPONE_CONTEXT,
+    savingsWithdrawalOriginLabel = '',
   } = params;
 
   const consumptionMap = calculateAllConsumptions(budgetLines, transactions);
@@ -391,7 +409,12 @@ export function buildViewData(params: {
     compareItems,
   );
 
-  const mappedItems = mapToTableItems(items, consumptionMap, postpone);
+  const mappedItems = mapToTableItems(
+    items,
+    consumptionMap,
+    postpone,
+    savingsWithdrawalOriginLabel,
+  );
 
   if (searchText) {
     const search = normalizeText(searchText);

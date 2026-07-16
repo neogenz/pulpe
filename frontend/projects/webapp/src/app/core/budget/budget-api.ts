@@ -24,6 +24,11 @@ import {
   budgetLineResponseSchema,
   type BudgetLineDeleteResponse,
   budgetLineDeleteResponseSchema,
+  type BudgetLineSavingsWithdrawalCreate,
+  budgetLineSavingsWithdrawalCreateSchema,
+  type BudgetLineSavingsWithdrawalResponse,
+  budgetLineSavingsWithdrawalResponseSchema,
+  type BudgetLineSavingsWithdrawalDeleteQuery,
   type BudgetLinePostponeResponse,
   budgetLinePostponeResponseSchema,
   type TransactionPostponeResponse,
@@ -291,6 +296,38 @@ export class BudgetApi {
   deleteBudgetLine$(id: string): Observable<BudgetLineDeleteResponse> {
     return this.#api.delete$(
       `/budget-lines/${id}`,
+      budgetLineDeleteResponseSchema,
+    );
+  }
+
+  /**
+   * SAVINGS WITHDRAWAL (PUL-292) — "piocher dans son épargne". One call creates
+   * the linked couple: a Revenu on the viewed month M and an Épargne on M+1
+   * ("Remettre sur ton épargne"). Single frozen FX quad + idempotency `groupId`
+   * (mirrors the additive spread create).
+   */
+  createSavingsWithdrawal$(
+    data: BudgetLineSavingsWithdrawalCreate,
+  ): Observable<BudgetLineSavingsWithdrawalResponse> {
+    return this.#api.post$(
+      '/budget-lines/savings-withdrawal',
+      data,
+      budgetLineSavingsWithdrawalResponseSchema,
+      budgetLineSavingsWithdrawalCreateSchema,
+    );
+  }
+
+  /**
+   * Grouped delete of a savings-withdrawal couple (PUL-292, CA9). `scope=pair`
+   * removes both lines; `scope=repayment` removes only the M+1 Épargne — the
+   * Revenu keeps its group id so its "pris sur ton épargne" badge stays true.
+   */
+  deleteSavingsWithdrawal$(
+    groupId: string,
+    scope: BudgetLineSavingsWithdrawalDeleteQuery['scope'],
+  ): Observable<BudgetLineDeleteResponse> {
+    return this.#api.delete$(
+      `/budget-lines/savings-withdrawal/${groupId}?scope=${scope}`,
       budgetLineDeleteResponseSchema,
     );
   }
