@@ -46,7 +46,7 @@ describe('AddTransactionDialogService', () => {
       Breakpoints.Handset,
     );
     expect(bottomSheet.open).toHaveBeenCalledWith(AddTransactionBottomSheet, {
-      autoFocus: '[data-testid="amount-input-value"]',
+      autoFocus: '[inputmode="decimal"]',
       disableClose: false,
     });
     expect(dialog.open).not.toHaveBeenCalled();
@@ -62,7 +62,7 @@ describe('AddTransactionDialogService', () => {
       width: '720px',
       maxWidth: 'calc(100vw - 48px)',
       panelClass: 'add-transaction-dialog',
-      autoFocus: '[data-testid="amount-input-value"]',
+      autoFocus: '[inputmode="decimal"]',
       disableClose: false,
     });
     expect(bottomSheet.open).not.toHaveBeenCalled();

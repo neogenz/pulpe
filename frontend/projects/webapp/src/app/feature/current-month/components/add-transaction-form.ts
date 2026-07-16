@@ -76,7 +76,6 @@ interface AddTransactionModel {
           [control]="transactionForm.money"
           class="block tabular-nums"
         />
-
         <div class="flex flex-col gap-3">
           <div class="text-sm font-medium text-on-surface-variant">
             {{ 'currentMonth.addTransactionQuickAmounts' | transloco }}
@@ -95,7 +94,6 @@ interface AddTransactionModel {
           </div>
         </div>
       </div>
-
       <div class="flex flex-col gap-4">
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>{{
@@ -109,18 +107,17 @@ interface AddTransactionModel {
               'currentMonth.addTransactionDescriptionPlaceholder' | transloco
             "
           />
-          @if (nameRequiredError()) {
+          @if (nameError('required')) {
             <mat-error>{{
               'currentMonth.addTransactionDescriptionRequired' | transloco
             }}</mat-error>
           }
-          @if (nameMinLengthError()) {
+          @if (nameError('minLength')) {
             <mat-error>{{
               'currentMonth.addTransactionDescriptionMin' | transloco
             }}</mat-error>
           }
         </mat-form-field>
-
         <mat-form-field class="w-full" subscriptSizing="dynamic">
           <mat-label>{{
             'currentMonth.addTransactionType' | transloco
@@ -144,7 +141,6 @@ interface AddTransactionModel {
             </mat-option>
           </mat-select>
         </mat-form-field>
-
         <mat-form-field class="w-full" subscriptSizing="dynamic">
           <mat-label>{{
             'currentMonth.addTransactionNotes' | transloco
@@ -170,7 +166,6 @@ interface AddTransactionModel {
           }
         </mat-form-field>
       </div>
-
       <div class="add-transaction-form-meta grid grid-cols-1 gap-3">
         <div
           class="flex items-center gap-2 p-3 bg-surface-container rounded-lg text-on-surface-variant"
@@ -178,7 +173,6 @@ interface AddTransactionModel {
           <mat-icon>event</mat-icon>
           <span>{{ 'currentMonth.addTransactionToday' | transloco }}</span>
         </div>
-
         <div class="flex items-center justify-between py-2 px-1">
           <span class="text-body-medium text-on-surface">{{
             'transactionForm.checkedToggle' | transloco
@@ -190,7 +184,6 @@ interface AddTransactionModel {
         </div>
       </div>
     </form>
-
     @if (conversionError()) {
       <p role="alert" class="text-error text-body-small pt-2">
         {{ 'common.conversionError' | transloco }}
@@ -198,16 +191,14 @@ interface AddTransactionModel {
     }
   `,
   styles: `
-    @media (width >= 48rem) {
-      :host(.add-transaction-form-wide) .add-transaction-form-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        column-gap: 1.5rem;
-      }
+    :host(.add-transaction-form-wide) .add-transaction-form-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: var(--pulpe-section-gap-md);
+    }
 
-      :host(.add-transaction-form-wide) .add-transaction-form-meta {
-        grid-column: span 2 / span 2;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
+    :host(.add-transaction-form-wide) .add-transaction-form-meta {
+      grid-column: span 2 / span 2;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   `,
   host: { class: 'block' },
@@ -256,30 +247,20 @@ export class AddTransactionForm {
     () => this.transactionForm().valid() && !this.isSubmitting(),
   );
 
-  protected readonly nameRequiredError = computed(
-    () =>
-      this.transactionForm.name().touched() &&
-      this.transactionForm
-        .name()
-        .errors()
-        .some((e) => e.kind === 'required'),
-  );
-  protected readonly nameMinLengthError = computed(
-    () =>
-      this.transactionForm.name().touched() &&
-      this.transactionForm
-        .name()
-        .errors()
-        .some((e) => e.kind === 'minLength'),
-  );
-  protected readonly categoryMaxLengthError = computed(
-    () =>
-      this.transactionForm.category().touched() &&
-      this.transactionForm
-        .category()
-        .errors()
-        .some((e) => e.kind === 'maxLength'),
-  );
+  protected nameError(kind: 'required' | 'minLength'): boolean {
+    const field = this.transactionForm.name();
+    return (
+      field.touched() && field.errors().some((error) => error.kind === kind)
+    );
+  }
+
+  protected categoryMaxLengthError(): boolean {
+    const field = this.transactionForm.category();
+    return (
+      field.touched() &&
+      field.errors().some((error) => error.kind === 'maxLength')
+    );
+  }
 
   protected selectPredefinedAmount(amount: number): void {
     const amountField = this.transactionForm.money.amount();

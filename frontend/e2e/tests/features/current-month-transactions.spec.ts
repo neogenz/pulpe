@@ -62,6 +62,7 @@ test.describe('Current Month Transactions', () => {
     await currentMonthPage.goto();
 
     for (const viewport of [
+      { width: 600, height: 900, expectedSurface: 'dialog' },
       { width: 768, height: 1024, expectedSurface: 'dialog' },
       { width: 1440, height: 900, expectedSurface: 'dialog' },
       { width: 390, height: 844, expectedSurface: 'bottom-sheet' },
