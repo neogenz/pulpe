@@ -58,6 +58,11 @@ const componentSources = {
     "utf8",
   ),
   layout: readFileSync(new URL("./layout.tsx", import.meta.url), "utf8"),
+  posthog: readFileSync(new URL("../lib/posthog.ts", import.meta.url), "utf8"),
+  posthogProvider: readFileSync(
+    new URL("../components/PostHogProvider.tsx", import.meta.url),
+    "utf8",
+  ),
 };
 
 function getDeclarations(selector: string): string {
@@ -120,6 +125,17 @@ describe("landing accessibility contracts", () => {
     assert.match(
       componentSources.header,
       /transition-\[opacity,filter,scale\]/,
+    );
+  });
+
+  it("waits for analytics before decorating cross-domain links", () => {
+    assert.match(
+      componentSources.posthogProvider,
+      /const initialization = initPostHog\(\);[\s\S]*if \(!initialization\) return;[\s\S]*e\.preventDefault\(\);[\s\S]*await initialization;[\s\S]*const distinctId = getDistinctId\(\);/,
+    );
+    assert.match(
+      componentSources.posthog,
+      /export function initPostHog\(\): Promise<void> \| undefined/,
     );
   });
 

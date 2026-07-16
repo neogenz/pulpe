@@ -21,14 +21,12 @@ function resolveEnvironment(): string {
 let posthogClient: PostHogClient | undefined;
 let initialization: Promise<void> | undefined;
 
-export function initPostHog(): Promise<void> {
-  if (
-    posthogClient ||
-    !POSTHOG_ENABLED ||
-    !POSTHOG_KEY ||
-    typeof window === "undefined"
-  ) {
+export function initPostHog(): Promise<void> | undefined {
+  if (posthogClient) {
     return Promise.resolve();
+  }
+  if (!POSTHOG_ENABLED || !POSTHOG_KEY || typeof window === "undefined") {
+    return undefined;
   }
 
   initialization ??= import("posthog-js/dist/module.slim")
@@ -64,7 +62,9 @@ export function trackCTAClick(
   destination: string,
 ): void {
   if (!POSTHOG_ENABLED) return;
-  void initPostHog().then(() => {
+  const initialization = initPostHog();
+  if (!initialization) return;
+  void initialization.then(() => {
     posthogClient?.capture("cta_clicked", {
       cta_name: ctaName,
       cta_location: ctaLocation,
