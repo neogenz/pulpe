@@ -1,6 +1,6 @@
 ---
 objective: "Les tags personnels créés sur le web sont consultables depuis les paramètres web et iOS à partir du catalogue backend existant."
-status: implemented
+status: reviewed
 ---
 
 # Plan: Catalogue de tags dans les paramètres
