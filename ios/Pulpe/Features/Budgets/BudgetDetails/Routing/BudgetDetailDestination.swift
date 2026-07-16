@@ -21,6 +21,27 @@ struct SpreadExistingSource: Identifiable, Hashable, Sendable {
     let year: Int
 }
 
+/// Prefill + anchor for the "piocher dans son épargne" sheet (PUL-292). Carries
+/// the viewed month M (the couple's income lands here; the repayment saving in
+/// M+1) plus an optional pre-filled amount / source. `startsAtPreview` skips the
+/// amount step — used when the AddBudgetLineSheet income toggle routes straight
+/// to the preview with the amount + name already typed. `id` is fresh per
+/// presentation so `.sheet(item:)` rebuilds the sheet (and its minted
+/// idempotency key) for each new intent.
+struct SavingsWithdrawalPrefill: Identifiable {
+    let id = UUID()
+    let budgetId: String
+    let anchorMonth: Int
+    let anchorYear: Int
+    /// Pre-typed amount (toggle path). The amount field itself stays empty on the
+    /// card path — the deficit is offered via `missingAmount`, not imposed (CA3).
+    var amount: Decimal?
+    /// |available| for the deficit quick-fill chip on step 1 (card path).
+    var missingAmount: Decimal?
+    var source: String?
+    var startsAtPreview: Bool = false
+}
+
 /// Sheet destinations for `BudgetDetailsView`.
 ///
 /// Single source of truth for sheet presentation. Apple's guidance is to
@@ -36,6 +57,8 @@ enum BudgetDetailDestination: Identifiable {
     case spreadOccurrences(spreadGroupId: String)
     /// Total-preserving "lisser un existant" config sheet (PUL-17 v1.1).
     case spreadExisting(SpreadExistingSource)
+    /// "Piocher dans son épargne" sheet (PUL-292) — amount → 2-month preview.
+    case savingsWithdrawal(SavingsWithdrawalPrefill)
 
     var id: String {
         switch self {
@@ -45,6 +68,7 @@ enum BudgetDetailDestination: Identifiable {
         case .realizedBalance: "realizedBalance"
         case .spreadOccurrences(let groupId): "spreadOccurrences-\(groupId)"
         case .spreadExisting(let source): "spreadExisting-\(source.id)"
+        case .savingsWithdrawal(let prefill): "savingsWithdrawal-\(prefill.id)"
         }
     }
 }

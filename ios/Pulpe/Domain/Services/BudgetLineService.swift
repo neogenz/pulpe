@@ -8,6 +8,7 @@ protocol BudgetLineServicing: Sendable {
     func toggleCheck(id: String) async throws -> BudgetLine
     func postpone(id: String) async throws -> BudgetLine
     func createSpread(_ data: BudgetLineSpreadCreate) async throws -> BudgetLineSpreadResponse
+    func createSavingsWithdrawal(_ data: SavingsWithdrawalCreate) async throws -> SavingsWithdrawalResponse
     func getSpreadOccurrences(spreadGroupId: String) async throws -> [SpreadOccurrence]
     func spreadExistingBudgetLine(
         id: String,
@@ -47,6 +48,14 @@ actor BudgetLineService: BudgetLineServicing {
     /// default template and shares one frozen `exchangeRate` across all tranches.
     func createSpread(_ data: BudgetLineSpreadCreate) async throws -> BudgetLineSpreadResponse {
         try await apiClient.request(.budgetLinesSpread, body: data, method: .post)
+    }
+
+    /// Create the linked Revenu-M ↔ Épargne-(M+1) couple for "piocher dans son
+    /// épargne" (PUL-292). One atomic call: the server derives M+1 from the
+    /// `budgetId` budget, provisions it from the default template, and returns
+    /// both lines + the created budget (or `nil` when M+1 already existed).
+    func createSavingsWithdrawal(_ data: SavingsWithdrawalCreate) async throws -> SavingsWithdrawalResponse {
+        try await apiClient.request(.budgetLinesSavingsWithdrawal, body: data, method: .post)
     }
 
     /// Fetch every occurrence of a "Lisser" expense, one per host month (PUL-17

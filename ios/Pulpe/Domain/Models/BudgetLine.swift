@@ -20,6 +20,13 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
     /// ordinary lines. Generated server-side by `POST /budget-lines/spread`.
     var spreadGroupId: UUID?
 
+    /// Shared identifier of the Revenu-M ↔ Épargne-(M+1) couple created by
+    /// "piocher dans son épargne" (PUL-292). Light link — drives the badge on the
+    /// income line and the grouped delete only, never any amount sync.
+    /// Non-financial UUID — never encrypted. `nil` for ordinary lines. Assigned
+    /// server-side by `POST /budget-lines/savings-withdrawal`.
+    var savingsWithdrawalGroupId: UUID?
+
     // Currency conversion metadata
     var originalAmount: Decimal?
     var originalCurrency: SupportedCurrency?
@@ -45,6 +52,14 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
     /// surface the "Lissé" indicator — never recomputed inline in a view body.
     var isSpread: Bool {
         spreadGroupId != nil
+    }
+
+    /// `true` when this INCOME line is the "pris sur ton épargne" half of a
+    /// savings-withdrawal couple (PUL-292) — drives the muted badge on the row.
+    /// The paired saving line ("Remettre sur ton épargne") lives in M+1 and is
+    /// an ordinary saving otherwise.
+    var isSavingsWithdrawalIncome: Bool {
+        kind == .income && savingsWithdrawalGroupId != nil
     }
 
     var isVirtualRollover: Bool {
@@ -81,6 +96,7 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
             createdAt: createdAt,
             updatedAt: Date(),
             spreadGroupId: spreadGroupId,
+            savingsWithdrawalGroupId: savingsWithdrawalGroupId,
             originalAmount: originalAmount,
             originalCurrency: originalCurrency,
             targetCurrency: targetCurrency,
@@ -88,6 +104,19 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
             isRollover: isRollover,
             rolloverSourceBudgetId: rolloverSourceBudgetId
         )
+    }
+}
+
+// MARK: - Savings Withdrawal (PUL-292)
+
+extension BudgetLine {
+    /// Origin month (1-12) of a savings-withdrawal repayment: the paired saving
+    /// ("Remettre sur ton épargne") sits on M+1, so the money was drawn in
+    /// M = its budget month − 1, wrapping January → December (PUL-292). Pure
+    /// arithmetic — a line doesn't carry its own month, so the caller supplies
+    /// the saving line's budget month.
+    static func savingsWithdrawalOriginMonth(forBudgetMonth month: Int) -> Int {
+        month == 1 ? 12 : month - 1
     }
 }
 

@@ -31,6 +31,7 @@ enum Endpoint {
     case budgetLines(budgetId: String)
     case budgetLinesCreate
     case budgetLinesSpread
+    case budgetLinesSavingsWithdrawal
     case budgetLinesSpreadOccurrences(spreadGroupId: String)
     case budgetLineSpreadFromLine(id: String)
     case budgetLine(id: String)
@@ -114,6 +115,7 @@ enum Endpoint {
         case .budgetLines(let budgetId): return "/budgets/\(budgetId)/lines"
         case .budgetLinesCreate: return "/budget-lines"
         case .budgetLinesSpread: return "/budget-lines/spread"
+        case .budgetLinesSavingsWithdrawal: return "/budget-lines/savings-withdrawal"
         case .budgetLinesSpreadOccurrences(let id): return "/budget-lines/spread/\(id)"
         case .budgetLineSpreadFromLine(let id): return "/budget-lines/\(id)/spread"
         case .budgetLine(let id): return "/budget-lines/\(id)"
@@ -169,7 +171,7 @@ enum Endpoint {
 
     var method: HTTPMethod {
         switch self {
-        case .budgets, .budgetLines, .budgetLinesCreate, .budgetLinesSpread,
+        case .budgets, .budgetLines, .budgetLinesCreate, .budgetLinesSpread, .budgetLinesSavingsWithdrawal,
              .budgetLineSpreadFromLine, .transactionSpreadFromTxn, .transactionsCreate, .templates,
              .templateLines, .templateFromOnboarding, .templateLinesBulk,
              .budgetLineToggle, .budgetLinePostpone, .budgetLineResetFromTemplate,

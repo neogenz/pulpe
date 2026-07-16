@@ -15,6 +15,9 @@ struct BudgetMixedSection: View {
     /// Savings goal names keyed by goal id (PUL-12). Only the Épargne section
     /// resolves a name; other kinds never carry a `savingsGoalId`.
     let goalNamesById: [String: String]
+    /// Origin month name (M) of a savings-withdrawal repayment (PUL-292), = this
+    /// budget's month − 1. Shown only on the M+1 "Remettre sur ton épargne" line.
+    let savingsWithdrawalOriginMonthName: String?
     let onTap: (BudgetLine) -> Void
     let onTogglePointed: (BudgetLine) -> Void
     var tip: (any Tip)?
@@ -24,6 +27,7 @@ struct BudgetMixedSection: View {
         items: [BudgetDetailsScreenState.LineItem],
         currency: SupportedCurrency,
         goalNamesById: [String: String] = [:],
+        savingsWithdrawalOriginMonthName: String? = nil,
         onTap: @escaping (BudgetLine) -> Void,
         onTogglePointed: @escaping (BudgetLine) -> Void,
         tip: (any Tip)? = nil
@@ -32,6 +36,7 @@ struct BudgetMixedSection: View {
         self.items = items
         self.currency = currency
         self.goalNamesById = goalNamesById
+        self.savingsWithdrawalOriginMonthName = savingsWithdrawalOriginMonthName
         self.onTap = onTap
         self.onTogglePointed = onTogglePointed
         self.tip = tip
@@ -83,6 +88,7 @@ struct BudgetMixedSection: View {
                     isSyncing: item.isSyncing,
                     currency: currency,
                     savingsGoalName: goalName(for: item.line),
+                    savingsWithdrawalOriginMonthName: savingsWithdrawalOriginMonthName,
                     onTap: { onTap(item.line) },
                     onTogglePointed: { onTogglePointed(item.line) }
                 )

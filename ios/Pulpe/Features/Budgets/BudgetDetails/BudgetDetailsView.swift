@@ -18,10 +18,16 @@ struct BudgetDetailsView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.tabBarClearance) private var tabBarClearance
     @State var coordinator: BudgetDetailsCoordinator
-    @State private var projector: BudgetDetailsProjector
+    // `projector` stays non-private (like `coordinator`/`router`) so the
+    // savings-withdrawal card helpers in `BudgetDetailsView+SavingsWithdrawalCard.swift`
+    // — a same-type extension in a separate file — can read its screen state.
+    @State var projector: BudgetDetailsProjector
 
     @State private var searchText = ""
     @State private var scrollTracker = BudgetDetailsScrollTracker()
+    /// Budget ids for which the "mois un peu juste" card was dismissed via
+    /// "Plus tard" (PUL-292), comma-joined. Non-private for the card extension.
+    @AppStorage(SavingsWithdrawalCardGate.storageKey) var dismissedWithdrawalBudgetIds = ""
 
     init(budgetId: String) {
         self.budgetId = budgetId
@@ -195,6 +201,10 @@ struct BudgetDetailsView: View {
                     .padding(.horizontal, DesignTokens.Spacing.lg)
                     .padding(.bottom, DesignTokens.Spacing.sm)
 
+                if let prefill = tightMonthCardPrefill {
+                    tightMonthCard(prefill: prefill)
+                }
+
                 BudgetTypeFilter(
                     kind: typeFilterBinding,
                     checked: checkedFilterBinding,
@@ -225,6 +235,7 @@ struct BudgetDetailsView: View {
                         items: section.items,
                         currency: userSettingsStore.currency,
                         goalNamesById: savingsGoalNamesById,
+                        savingsWithdrawalOriginMonthName: savingsWithdrawalOriginMonthName,
                         onTap: { line in
                             router.push(.lineDetail(lineId: line.id))
                         },

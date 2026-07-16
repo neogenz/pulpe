@@ -118,6 +118,27 @@ extension BudgetDetailsCoordinator {
         return updated
     }
 
+    // MARK: - Savings withdrawal (PUL-292)
+
+    /// Grafts the Revenu-M line of a "piocher dans son épargne" couple into the
+    /// open budget so its disponible updates instantly (CA7). The sheet already
+    /// awaited the server (FX frozen, idempotency key) and hands back the
+    /// confirmed income line. The paired Épargne lands in M+1 — a budget this
+    /// coordinator doesn't own, possibly freshly created — so every detail cache
+    /// is wiped to force a server-authoritative refetch on navigation (CA6),
+    /// exactly like the cross-month spread graft. `syncCache()` first, as always,
+    /// is the choke point firing `onMutation` (list/dashboard/currentMonth
+    /// invalidation, PUL-270); its optimistic cache WRITE is then superseded by
+    /// `invalidateAllCache()`.
+    func graftSavingsWithdrawal(incomeLine: BudgetLine) {
+        if incomeLine.budgetId == dataStore.budgetId {
+            dataStore.appendBudgetLine(incomeLine)
+        }
+        dataStore.recomputeMetrics()
+        dataStore.syncCache()
+        dataStore.invalidateAllCache()
+    }
+
     // MARK: - Spread from existing (PUL-17 v1.1)
 
     /// Lisse une prévision existante (total préservé). The server deletes the

@@ -106,6 +106,8 @@ final class BudgetDetailsCoordinator {
             await deleteBudgetLine(line)
         case .spreadBudgetLineFromExisting(let lineId, let periods, let ctx):
             await spreadBudgetLineFromExisting(lineId: lineId, periods: periods, context: ctx)
+        case .createSavingsWithdrawal(let incomeLine):
+            graftSavingsWithdrawal(incomeLine: incomeLine)
         default:
             return false
         }
