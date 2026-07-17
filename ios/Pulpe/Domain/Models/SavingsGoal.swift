@@ -34,6 +34,11 @@ struct SavingsGoal: Codable, Identifiable, Hashable, Sendable {
     let createdAt: Date
     let updatedAt: Date
 
+    /// Stock already saved before tracking started (PUL-293), encrypted at
+    /// rest. `nil` when unset — a synthesized memberwise default keeps every
+    /// existing call site compilable.
+    var initialAmount: Decimal?
+
     // Currency conversion metadata (dormant in v1 — always null)
     var originalTargetAmount: Decimal?
     var originalCurrency: SupportedCurrency?
@@ -58,6 +63,8 @@ struct SavingsGoalCreate: Encodable {
     /// présence = le serveur génère la prévision Épargne récurrente liée sur le
     /// Mois Type par défaut. `nil` est omis du body (encodeIfPresent synthétisé).
     var monthlyContribution: Decimal?
+    /// Stock déjà épargné avant le suivi (PUL-293). Omis = 0 (défaut serveur).
+    var initialAmount: Decimal?
 }
 
 /// Partial update — only the set fields are sent (Swift synthesises
@@ -67,6 +74,8 @@ struct SavingsGoalUpdate: Encodable {
     var targetAmount: Decimal?
     var targetDate: String?
     var status: SavingsGoalStatus?
+    /// Omis = inchangé ; `0` efface le montant de départ (miroir serveur).
+    var initialAmount: Decimal?
 }
 
 // MARK: - Kind guard

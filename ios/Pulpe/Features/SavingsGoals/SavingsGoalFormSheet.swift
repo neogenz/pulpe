@@ -15,6 +15,7 @@ struct SavingsGoalFormSheet: View {
     @State private var name: String
     @State private var amount: Decimal?
     @State private var amountText: String
+    @State private var initialAmount: Decimal?
     @State private var targetDate: Date
     @State private var status: SavingsGoalStatus
     @State private var isLoading = false
@@ -45,6 +46,7 @@ struct SavingsGoalFormSheet: View {
             Formatters.amountInput(for: userCurrency).string(from: $0 as NSDecimalNumber) ?? ""
         } ?? ""
         _amountText = State(initialValue: amountString)
+        _initialAmount = State(initialValue: goal?.initialAmount)
 
         let now = Date()
         let calendar = Calendar.current
@@ -79,6 +81,14 @@ struct SavingsGoalFormSheet: View {
     ) -> String? {
         let dateString = SavingsGoalDateFormatter.string(from: date, timeZone: timeZone)
         return dateString == goal.targetDate ? nil : dateString
+    }
+
+    /// Diffs the edited initial amount against the goal's current one (both
+    /// normalized to 0 for `nil`) so an untouched field omits the PATCH key
+    /// (unchanged) while a cleared field sends explicit `0` (erasure).
+    nonisolated static func initialAmountUpdate(for value: Decimal?, original goal: SavingsGoal) -> Decimal? {
+        let normalized = value ?? 0
+        return normalized == (goal.initialAmount ?? 0) ? nil : normalized
     }
 
     nonisolated static func isTargetDateSubmittable(
@@ -124,6 +134,7 @@ struct SavingsGoalFormSheet: View {
                 accentColor: accentColor
             )
             nameField
+            initialAmountField
             dateField
             if !isEditing {
                 decomposeSection
@@ -170,6 +181,18 @@ struct SavingsGoalFormSheet: View {
             accessibilityLabel: "Nom de l'objectif d'épargne",
             focusBinding: $focusedField,
             field: .description
+        )
+    }
+
+    /// Second amount field (PUL-293), same `CurrencyField` component already
+    /// used for the monthly-contribution override below — its own internal
+    /// focus keeps it out of `focusOrder` without a new field enum case.
+    private var initialAmountField: some View {
+        CurrencyField(
+            value: $initialAmount,
+            label: "Montant de départ (optionnel)",
+            currency: currency,
+            visualStyle: .flat
         )
     }
 
@@ -279,7 +302,8 @@ struct SavingsGoalFormSheet: View {
                         name: trimmedName,
                         targetAmount: amount,
                         targetDate: Self.targetDateUpdate(for: targetDate, original: goal),
-                        status: status
+                        status: status,
+                        initialAmount: Self.initialAmountUpdate(for: initialAmount, original: goal)
                     )
                 )
                 toastManager.show("Objectif modifié")
@@ -293,7 +317,8 @@ struct SavingsGoalFormSheet: View {
                         status: .active,
                         monthlyContribution: decomposeEnabled && contribution > 0
                             ? contribution
-                            : nil
+                            : nil,
+                        initialAmount: initialAmount
                     )
                 )
                 toastManager.show("Objectif créé")

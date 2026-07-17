@@ -100,7 +100,10 @@ final class MockSavingsGoalService: SavingsGoalServicing {
         return stubbedFutureLines
     }
 
-    func applyGenerationStop(id _: String, _ payload: SavingsGoalGenerationStop) async throws -> SavingsGoalGenerationStopResult {
+    func applyGenerationStop(
+        id _: String,
+        _ payload: SavingsGoalGenerationStop
+    ) async throws -> SavingsGoalGenerationStopResult {
         generationStopCallCount += 1
         lastGenerationStop = payload
         if let error { throw error }
@@ -119,7 +122,8 @@ final class MockSavingsGoalService: SavingsGoalServicing {
             targetDate: data.targetDate,
             status: data.status,
             createdAt: Date(timeIntervalSince1970: 0),
-            updatedAt: Date(timeIntervalSince1970: 0)
+            updatedAt: Date(timeIntervalSince1970: 0),
+            initialAmount: data.initialAmount
         )
         stubbedGoals.append(created)
         return created
@@ -142,7 +146,8 @@ final class MockSavingsGoalService: SavingsGoalServicing {
             targetDate: data.targetDate ?? existing.targetDate,
             status: data.status ?? existing.status,
             createdAt: existing.createdAt,
-            updatedAt: Date(timeIntervalSince1970: 0)
+            updatedAt: Date(timeIntervalSince1970: 0),
+            initialAmount: data.initialAmount ?? existing.initialAmount
         )
         if let index = stubbedGoals.firstIndex(where: { $0.id == id }) {
             stubbedGoals[index] = updated
