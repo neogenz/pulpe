@@ -20,6 +20,12 @@ final class SyncStateStore {
     var showCheckAllTransactionsAlert = false
     private(set) var budgetLineToCheckAll: BudgetLine?
 
+    /// Explicit-choice alert for deleting a savings-withdrawal couple (PUL-292,
+    /// CA9). Raised by the coordinator when a linked line's delete is requested,
+    /// so the income/saving pair can never be silently orphaned.
+    var showSavingsWithdrawalDeleteChoice = false
+    private(set) var budgetLineToDeleteWithdrawal: BudgetLine?
+
     func markSyncing(lineId: String) {
         syncingBudgetLineIds.insert(lineId)
     }
@@ -64,5 +70,15 @@ final class SyncStateStore {
     func resetCheckAllState() {
         budgetLineToCheckAll = nil
         showCheckAllTransactionsAlert = false
+    }
+
+    func presentSavingsWithdrawalDeleteChoice(for line: BudgetLine) {
+        budgetLineToDeleteWithdrawal = line
+        showSavingsWithdrawalDeleteChoice = true
+    }
+
+    func resetSavingsWithdrawalDeleteChoice() {
+        budgetLineToDeleteWithdrawal = nil
+        showSavingsWithdrawalDeleteChoice = false
     }
 }

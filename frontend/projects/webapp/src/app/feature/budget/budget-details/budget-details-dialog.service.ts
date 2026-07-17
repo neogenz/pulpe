@@ -5,6 +5,7 @@ import { TranslocoService } from '@jsverse/transloco';
 import { firstValueFrom } from 'rxjs';
 import type {
   BudgetLine,
+  BudgetLineSavingsWithdrawalCreate,
   BudgetLineUpdate,
   SupportedCurrency,
   Transaction,
@@ -22,6 +23,15 @@ import {
   type BudgetLineDialogData,
 } from './budget-line/create/dialog';
 import type { AddBudgetLineDialogResult } from './budget-line/create/dialog-result';
+import {
+  SavingsWithdrawalDialog,
+  type SavingsWithdrawalDialogData,
+} from './budget-line/savings-withdrawal/dialog';
+import {
+  LinkedDeletionChoiceDialog,
+  type LinkedDeletionChoice,
+  type LinkedDeletionChoiceDialogData,
+} from './ui/linked-deletion-choice-dialog';
 import {
   AllocatedTransactionsDialog,
   type AllocatedTransactionsDialogData,
@@ -93,6 +103,37 @@ export class BudgetDetailsDialogService {
       maxWidth: '90vw',
     });
 
+    return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  /**
+   * PUL-292 — "piocher dans son épargne". Returns the built (frozen-FX)
+   * withdrawal DTO, or undefined if cancelled. The caller runs the store
+   * mutation with a retry snackbar (mirrors the additive spread flow).
+   */
+  async openSavingsWithdrawalDialog(
+    data: SavingsWithdrawalDialogData,
+  ): Promise<BudgetLineSavingsWithdrawalCreate | undefined> {
+    const dialogRef = this.#dialog.open(SavingsWithdrawalDialog, {
+      data,
+      width: '600px',
+      maxWidth: '90vw',
+    });
+    return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  /**
+   * PUL-292 (CA9) — three-way choice when deleting a line linked to a pioche.
+   * Returns the chosen scope (`pair` / `repayment`) or undefined if cancelled.
+   */
+  async openLinkedDeleteChoice(
+    data: LinkedDeletionChoiceDialogData,
+  ): Promise<LinkedDeletionChoice | undefined> {
+    const dialogRef = this.#dialog.open(LinkedDeletionChoiceDialog, {
+      data,
+      width: '440px',
+      maxWidth: '90vw',
+    });
     return firstValueFrom(dialogRef.afterClosed());
   }
 

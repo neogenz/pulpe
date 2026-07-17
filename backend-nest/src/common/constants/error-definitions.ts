@@ -585,6 +585,38 @@ export const ERROR_DEFINITIONS = {
       'The spread was created, but budget balances could not be refreshed. Reload without retrying the spread.',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
+  // PUL-292 — savings withdrawal (income on M + repayment saving on M+1)
+  SAVINGS_WITHDRAWAL_GROUP_NOT_FOUND: {
+    code: API_ERROR_CODES.SAVINGS_WITHDRAWAL_GROUP_NOT_FOUND,
+    message: (details?: Record<string, unknown>) =>
+      details?.groupId
+        ? `Savings withdrawal group '${details.groupId}' not found`
+        : 'Savings withdrawal group not found',
+    httpStatus: HttpStatus.NOT_FOUND,
+  },
+  SAVINGS_WITHDRAWAL_CONFLICT: {
+    code: API_ERROR_CODES.SAVINGS_WITHDRAWAL_CONFLICT,
+    message: () =>
+      'A savings withdrawal with this key already exists and cannot be replayed as a complete pair.',
+    httpStatus: HttpStatus.CONFLICT,
+  },
+  SAVINGS_WITHDRAWAL_MONTH_UNPROVISIONABLE: {
+    code: API_ERROR_CODES.SAVINGS_WITHDRAWAL_MONTH_UNPROVISIONABLE,
+    message: (details?: Record<string, unknown>) => {
+      const month = details?.month;
+      const year = details?.year;
+      return month && year
+        ? `Cannot plan the repayment on ${month}/${year}: this month has no budget and no default template to create one. Set a default template first.`
+        : 'Cannot plan the repayment: the next month has no budget and no default template to create one. Set a default template first.';
+    },
+    httpStatus: HttpStatus.UNPROCESSABLE_ENTITY,
+  },
+  SAVINGS_WITHDRAWAL_RECALCULATION_FAILED: {
+    code: API_ERROR_CODES.SAVINGS_WITHDRAWAL_RECALCULATION_FAILED,
+    message: () =>
+      'The savings withdrawal was saved, but budget balances could not be refreshed. Reload without retrying.',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
 
   // User Errors
   USER_NOT_FOUND: {

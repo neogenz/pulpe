@@ -70,6 +70,18 @@ export interface TableItem {
      * (prévision `one_off`, non-revenu, pas déjà lissée, montant > 0).
      */
     canSpread?: boolean;
+    /**
+     * PUL-292 — true quand cette ligne Revenu est la moitié « pris sur ton
+     * épargne » d'une pioche (kind income + savingsWithdrawalGroupId). Rend le
+     * badge.
+     */
+    isSavingsWithdrawalIncome?: boolean;
+    /**
+     * PUL-292 — mois d'origine (mois−1) de la ligne Épargne « Remettre sur ton
+     * épargne » liée (kind saving + savingsWithdrawalGroupId), déjà formaté.
+     * `null` sinon. Rend le sous-titre « pris en {mois} ».
+     */
+    savingsWithdrawalOriginLabel?: string | null;
   } & TableItemDisplayMetadata;
 }
 

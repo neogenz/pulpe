@@ -29,6 +29,7 @@ const mockRow: BudgetLineRow = {
   template_line_id: null,
   savings_goal_id: null,
   spread_group_id: null,
+  savings_withdrawal_group_id: null,
   name: 'Loyer',
   amount: 'encrypted-1200',
   kind: 'expense' as const,
@@ -49,6 +50,7 @@ const expectedEntity: BudgetLine = {
   templateLineId: null,
   savingsGoalId: null,
   spreadGroupId: null,
+  savingsWithdrawalGroupId: null,
   name: 'Loyer',
   amount: 1200,
   originalAmount: null,
@@ -723,6 +725,7 @@ describe('SupabaseBudgetLineRepository', () => {
       budget_id: budgetId,
       amount,
       spread_group_id: 'grp-1',
+      savings_withdrawal_group_id: null,
       monthly_budget: { month, year: 2026, user_id: mockUser.id },
     });
 

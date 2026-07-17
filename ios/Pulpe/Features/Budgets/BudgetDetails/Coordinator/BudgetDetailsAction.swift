@@ -37,6 +37,12 @@ enum BudgetDetailsAction {
     /// Lisser une prévision existante (total préservé) — supprime la source +
     /// fan-out, puis reconcilie le budget courant (PUL-17 v1.1).
     case spreadBudgetLineFromExisting(lineId: String, periods: [SpreadFromExistingPeriod], ToastContext)
+    /// Greffe le Revenu de "piocher dans son épargne" (PUL-292) dans le budget M
+    /// ouvert + invalide les caches cross-mois (l'Épargne liée vit en M+1).
+    case createSavingsWithdrawal(incomeLine: BudgetLine)
+    /// Suppression groupée à choix explicite d'un couple "piocher dans son
+    /// épargne" (PUL-292, CA9) — appel serveur direct + invalidation cross-mois.
+    case deleteSavingsWithdrawal(line: BudgetLine, scope: SavingsWithdrawalDeleteScope, ToastContext)
 
     // Transaction mutations
     case addTransaction(Transaction)
