@@ -391,11 +391,14 @@ export class BudgetDetailsStore {
   });
 
   // PUL-292 (CA1) — the "mois un peu juste" card shows only when the viewed
-  // current/future month runs a deficit, has no pioche yet, and wasn't dismissed.
+  // current/future month runs a deficit worth acting on, has no pioche yet, and
+  // wasn't dismissed. Gated on the rounded deficit rather than on raw
+  // `remaining`: a month balanced to the cent leaves float dust (-9e-13) that
+  // would nudge the user towards a dialog with nothing to pre-fill.
   readonly shouldShowSavingsWithdrawalCard = computed<boolean>(() => {
     const details = this.budgetDetails();
     if (!details) return false;
-    if (this.financialTotals().remaining >= 0) return false;
+    if (this.savingsWithdrawalDeficit() <= 0) return false;
     if (!this.#isViewedMonthCurrentOrFuture()) return false;
     const hasWithdrawal = this.displayBudgetLines().some(
       (line) => line.savingsWithdrawalGroupId != null,
@@ -407,10 +410,14 @@ export class BudgetDetailsStore {
   });
 
   // The deficit to pre-fill the withdrawal amount chip (positive magnitude, 0
-  // when the month is not in deficit).
+  // when the month is not in deficit). Rounded to the whole unit here, at the
+  // single producer: `remaining` is a float sum, so its magnitude carries IEEE
+  // noise (196.95999999999913). The hero and the chip both display it via
+  // '1.0-0', so rounding once keeps what the chip shows, what the input gets
+  // and what the payload carries the same number.
   readonly savingsWithdrawalDeficit = computed<number>(() => {
     const remaining = this.financialTotals().remaining;
-    return remaining < 0 ? Math.abs(remaining) : 0;
+    return remaining < 0 ? Math.round(Math.abs(remaining)) : 0;
   });
 
   // PUL-292 — origin month label (month − 1, with year rollover) shared by every
