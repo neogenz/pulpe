@@ -17,6 +17,8 @@ type LandingRelease = {
   };
 };
 
+type ProjectedLandingRelease = LandingRelease & { iosVersion: string };
+
 const landingReleases = JSON.parse(
   readFileSync(
     // @ts-expect-error Bun supports import.meta.dir; production TS targets CommonJS.
@@ -32,17 +34,19 @@ function isIosUserFacing(release: LandingRelease): boolean {
   );
 }
 
+function isProjectedIosRelease(
+  release: LandingRelease,
+): release is ProjectedLandingRelease {
+  return release.iosVersion !== undefined && isIosUserFacing(release);
+}
+
 function fail(version: string, detail: string): never {
   throw new Error(
     `Release ${version} is out of sync between landing and the iOS feed: ${detail}. Run /update-changelog Step 5b-bis.`,
   );
 }
 
-function toProjection(release: LandingRelease): WhatsNewReleaseEntry {
-  if (release.iosVersion === undefined) {
-    return fail(release.version, 'missing iosVersion for projected release');
-  }
-
+function toProjection(release: ProjectedLandingRelease): WhatsNewReleaseEntry {
   return {
     version: release.version,
     iosVersion: release.iosVersion,
@@ -58,7 +62,7 @@ function toProjection(release: LandingRelease): WhatsNewReleaseEntry {
 
 describe('embedded iOS release data parity', () => {
   const projectedLandingReleases = landingReleases.filter(
-    (release) => isIosUserFacing(release) && release.iosVersion !== undefined,
+    isProjectedIosRelease,
   );
 
   it('matches every projected, user-facing iOS landing release', () => {
