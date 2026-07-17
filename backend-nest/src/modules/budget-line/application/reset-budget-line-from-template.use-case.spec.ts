@@ -16,6 +16,7 @@ const mockEntity: BudgetLine = {
   savingsGoalId: null,
   tagIds: [],
   spreadGroupId: null,
+  savingsWithdrawalGroupId: null,
   name: 'Loyer ajusté',
   amount: 1500,
   originalAmount: null,

@@ -1,53 +1,35 @@
-'use client'
+"use client";
 
-import { Button, Container, FadeIn, GrainOverlay, LimeWedge } from '@/components/ui'
-import { angularUrl } from '@/lib/config'
-import { trackCTAClick } from '@/lib/posthog'
+import { Button, Container } from "@/components/ui";
+import { angularUrl } from "@/lib/config";
+import { trackCTAClick } from "@/lib/posthog";
 
 export function FinalCTA() {
   return (
-    <section className="py-20 md:py-28 bg-gradient-to-br from-primary to-[#004d1a] relative overflow-hidden">
-      <GrainOverlay opacity={0.06} />
-
-      {/* Decorative organic blobs */}
-      <div
-        className="absolute top-[-10%] right-[-5%] w-72 h-72 bg-white/5 organic-blob"
-        aria-hidden="true"
-      />
-      <div
-        className="absolute bottom-[-15%] left-[-8%] w-96 h-96 bg-white/5 organic-blob"
-        aria-hidden="true"
-      />
-      {/* Signature lime motif — brand texture at the emotional climax */}
-      <LimeWedge className="absolute -bottom-20 -right-16 w-[22rem] h-[22rem] text-white opacity-[0.06] pointer-events-none" />
-
+    <section className="py-24 sm:py-28 lg:py-36">
       <Container>
-        <div className="max-w-3xl mx-auto text-center relative z-10">
-          <FadeIn variant="blur">
-            <blockquote className="italic text-xl md:text-2xl lg:text-3xl text-white/95 mb-10 leading-snug max-w-2xl mx-auto balance">
-              &laquo;&nbsp;Je sais pas comment je faisais avant Pulpe, c&apos;est
-              tellement plus simple. Je suis tellement moins stressée par mes
-              sous.&nbsp;&raquo;
-              <footer className="mt-3 text-sm text-white/80 not-italic font-sans tracking-[0.08em] uppercase">
-                — Julie, 29 ans · Lausanne
-              </footer>
-            </blockquote>
-            <h2 className="text-3xl md:text-4xl lg:text-[3.25rem] font-bold text-white mb-5 leading-[1.05] tracking-[-0.02em] balance">
-              3 minutes pour savoir{' '}
-              <span className="italic font-normal text-white/90">
-                ce qu&apos;il te reste.
-              </span>
-            </h2>
-            <p className="text-lg text-white/80 mb-10 max-w-xl mx-auto pretty">
-              Gratuit, données privées, montants protégés. Essaie — si ça te
-              plaît pas, tu retournes à Excel.
-            </p>
-            <Button href={angularUrl('/signup', 'final_cta_commencer')} variant="inverse" className="focus-on-dark" onClick={() => trackCTAClick('commencer_gratuitement', 'final_cta', '/signup')}>
-              Commencer gratuitement
-            </Button>
-          </FadeIn>
+        <div className="mx-auto max-w-5xl text-center">
+          <p className="text-sm font-medium text-primary">
+            Ton année peut être claire dès aujourd&apos;hui
+          </p>
+          <h2 className="mt-5 text-[clamp(2.75rem,7vw,6rem)] font-bold leading-[0.98] tracking-[-0.05em] text-text">
+            Prends des mois d&apos;avance sur ce qu&apos;il te restera.
+          </h2>
+          <p className="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-text-secondary sm:text-xl">
+            Gratuit aujourd&apos;hui. Sans connexion bancaire. Tes montants sont
+            chiffrés.
+          </p>
+          <Button
+            href={angularUrl("/signup", "final_cta_commencer")}
+            className="mt-10"
+            onClick={() =>
+              trackCTAClick("commencer_gratuitement", "final_cta", "/signup")
+            }
+          >
+            Commencer gratuitement
+          </Button>
         </div>
       </Container>
     </section>
-  )
+  );
 }

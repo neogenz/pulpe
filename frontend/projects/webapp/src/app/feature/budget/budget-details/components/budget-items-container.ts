@@ -7,6 +7,7 @@ import {
   DestroyRef,
   effect,
   inject,
+  LOCALE_ID,
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
@@ -24,6 +25,7 @@ import {
   type BudgetLine,
   type BudgetLineSpreadResponse,
   type BudgetLineUpdate,
+  type SupportedCurrency,
   type Transaction,
   type TransactionUpdate,
 } from 'pulpe-shared';
@@ -34,6 +36,7 @@ import { Logger } from '@core/logging/logger';
 import { map } from 'rxjs/operators';
 import { BudgetGrid } from './budget-grid';
 import { BudgetTable } from './budget-table/budget-table';
+import { offsetMonth } from '../budget-line/create/spread.utils';
 import type {
   BudgetLineTableItem,
   TransactionTableItem,
@@ -55,6 +58,7 @@ import {
   computeSpreadSnackbarMessage,
   computeTransactionSnackbarMessage,
   spreadCreateEcho,
+  submitSavingsWithdrawalWithRetry,
   submitSpreadWithRetry,
 } from '../utils/budget-details-snackbar.utils';
 
@@ -287,6 +291,10 @@ export class BudgetItemsContainer {
   readonly #logger = inject(Logger);
   readonly #userSettings = inject(UserSettingsStore);
   readonly #tagStore = inject(TagStore);
+  readonly #currencyPipe = new AppCurrencyPipe();
+  readonly #monthFormatter = new Intl.DateTimeFormat(inject(LOCALE_ID), {
+    month: 'long',
+  });
 
   protected readonly currency = this.#userSettings.currency;
 
@@ -354,6 +362,7 @@ export class BudgetItemsContainer {
         hasNextMonthBudget: this.store.hasNextMonthBudget(),
         nextMonthLabel: this.store.nextMonthLabel(),
       },
+      savingsWithdrawalOriginLabel: this.store.savingsWithdrawalOriginLabel(),
     }),
   );
 
@@ -767,6 +776,13 @@ export class BudgetItemsContainer {
       return;
     }
 
+    // PUL-292 — a line linked to a pioche opens the 3-way choice, not the binary
+    // confirm: deleting one half must let the user keep the Revenu or cancel both.
+    if (budgetLine?.savingsWithdrawalGroupId) {
+      await this.#deleteLinkedWithdrawal(budgetLine);
+      return;
+    }
+
     const isBudgetLine = !!budgetLine;
     const title = isBudgetLine
       ? this.#transloco.translate('budget.deleteForecast')
@@ -832,6 +848,99 @@ export class BudgetItemsContainer {
       );
       return;
     }
+    if (result.mode === 'savingsWithdrawal') {
+      await this.#openSavingsWithdrawalFlow(budget, result.prefill);
+      return;
+    }
     await this.store.createBudgetLine(result.value);
+  }
+
+  async #openSavingsWithdrawalFlow(
+    budget: { id: string; month: number; year: number },
+    prefill?: {
+      amount: number;
+      source: string;
+      inputCurrency: SupportedCurrency;
+    },
+  ): Promise<void> {
+    const dto = await this.#dialogService.openSavingsWithdrawalDialog({
+      budgetId: budget.id,
+      budgetMonth: budget.month,
+      budgetYear: budget.year,
+      deficitAmount: this.store.savingsWithdrawalDeficit(),
+      prefill,
+    });
+    if (!dto) return;
+    await submitSavingsWithdrawalWithRetry(
+      dto,
+      (value) => this.store.createSavingsWithdrawal(value),
+      this.#snackBar,
+      this.#transloco,
+    );
+  }
+
+  // PUL-292 (CA9) — the income line sits on the viewed month M; the M+1 saving
+  // repays it, so from the saving's own month the pioche was taken the month
+  // before. Both halves carry the group id; kind disambiguates which we deleted.
+  async #deleteLinkedWithdrawal(line: BudgetLine): Promise<void> {
+    const budget = this.store.budgetDetails();
+    const groupId = line.savingsWithdrawalGroupId;
+    if (!budget || !groupId) return;
+
+    const incomeMonth =
+      line.kind === 'income'
+        ? { year: budget.year, month: budget.month }
+        : offsetMonth({ year: budget.year, month: budget.month }, -1);
+    const savingMonth = offsetMonth(incomeMonth, 1);
+    const incomeLabel = this.#formatMonthName(incomeMonth);
+    const savingLabel = this.#formatMonthName(savingMonth);
+    const amount =
+      this.#currencyPipe.transform(line.amount, this.currency(), '1.2-2') ?? '';
+
+    const scope = await this.#dialogService.openLinkedDeleteChoice({
+      title: this.#transloco.translate('budget.savingsWithdrawal.deleteTitle'),
+      message: this.#transloco.translate(
+        'budget.savingsWithdrawal.deleteMessage',
+        {
+          plus: `+${amount}`,
+          minus: `−${amount}`,
+          incomeMonth: incomeLabel,
+          savingMonth: savingLabel,
+        },
+      ),
+      keepIncomeLabel: this.#transloco.translate(
+        'budget.savingsWithdrawal.deleteKeepIncome',
+        { month: incomeLabel },
+      ),
+      deleteAllLabel: this.#transloco.translate(
+        'budget.savingsWithdrawal.deleteAll',
+      ),
+      cancelLabel: this.#transloco.translate('common.cancel'),
+    });
+    if (!scope) return;
+
+    const error = await this.store.deleteSavingsWithdrawal(groupId, scope);
+    if (error) {
+      this.#snackBar.open(error, this.#transloco.translate('common.close'), {
+        duration: 5000,
+        panelClass: ['bg-error-container', 'text-on-error-container'],
+      });
+      return;
+    }
+    this.#snackBar.open(
+      this.#transloco.translate(
+        scope === 'pair'
+          ? 'budget.savingsWithdrawal.deletedPair'
+          : 'budget.savingsWithdrawal.deletedRepayment',
+      ),
+      this.#transloco.translate('common.close'),
+      { duration: 5000 },
+    );
+  }
+
+  #formatMonthName(period: { month: number; year: number }): string {
+    return this.#monthFormatter.format(
+      new Date(period.year, period.month - 1, 1),
+    );
   }
 }

@@ -60,6 +60,8 @@ interface MockStore {
   previousMonthRollover: ReturnType<typeof signal<number>>;
   hasNextMonthBudget: ReturnType<typeof signal<boolean>>;
   nextMonthLabel: ReturnType<typeof signal<string>>;
+  savingsWithdrawalOriginLabel: ReturnType<typeof signal<string>>;
+  savingsWithdrawalDeficit: ReturnType<typeof signal<number>>;
   error: ReturnType<typeof signal<string | null>>;
   setSearchText: ReturnType<typeof vi.fn>;
   setIsShowingOnlyUnchecked: ReturnType<typeof vi.fn>;
@@ -76,6 +78,8 @@ interface MockStore {
   checkAllAllocatedTransactions: ReturnType<typeof vi.fn>;
   createAllocatedTransaction: ReturnType<typeof vi.fn>;
   updateTransaction: ReturnType<typeof vi.fn>;
+  createSavingsWithdrawal: ReturnType<typeof vi.fn>;
+  deleteSavingsWithdrawal: ReturnType<typeof vi.fn>;
 }
 
 function createMockStore(): MockStore {
@@ -92,6 +96,8 @@ function createMockStore(): MockStore {
     previousMonthRollover: signal(0),
     hasNextMonthBudget: signal(false),
     nextMonthLabel: signal(''),
+    savingsWithdrawalOriginLabel: signal(''),
+    savingsWithdrawalDeficit: signal(0),
     error: signal<string | null>(null),
     setSearchText: vi.fn(),
     setIsShowingOnlyUnchecked: vi.fn(),
@@ -108,6 +114,8 @@ function createMockStore(): MockStore {
     checkAllAllocatedTransactions: vi.fn(),
     createAllocatedTransaction: vi.fn(),
     updateTransaction: vi.fn(),
+    createSavingsWithdrawal: vi.fn(),
+    deleteSavingsWithdrawal: vi.fn(),
   };
 }
 

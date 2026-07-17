@@ -1,4 +1,4 @@
-import { ImageLightboxProvider } from '@/contexts/ImageLightboxProvider'
+import { ImageLightboxProvider } from "@/contexts/ImageLightboxProvider";
 import {
   Header,
   Hero,
@@ -12,7 +12,7 @@ import {
   FAQ,
   FinalCTA,
   Footer,
-} from '@/components/sections'
+} from "@/components/sections";
 
 export default function LandingPage() {
   return (
@@ -29,9 +29,9 @@ export default function LandingPage() {
       <main id="main-content">
         <Hero />
         <PainPoints />
+        <HowItWorks />
         <Solution />
         <Features />
-        <HowItWorks />
         <Platforms />
         <Roadmap />
         <WhyFree />
@@ -41,5 +41,5 @@ export default function LandingPage() {
 
       <Footer />
     </ImageLightboxProvider>
-  )
+  );
 }

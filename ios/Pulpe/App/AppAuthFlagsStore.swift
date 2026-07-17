@@ -1,5 +1,9 @@
 import Foundation
 
+enum AppAuthFlagsKey {
+    static let hasLaunchedBefore = "pulpe-has-launched-before"
+}
+
 // MARK: - Protocol
 
 protocol AppAuthFlagsStoring: Sendable {
@@ -18,7 +22,6 @@ protocol AppAuthFlagsStoring: Sendable {
 /// SAFETY: `UserDefaults` is thread-safe per Apple. This struct only reads/writes primitive flags; `@unchecked Sendable` implements `AppAuthFlagsStoring: Sendable` for DI without an actor wrapper.
 struct AppAuthFlagsStore: AppAuthFlagsStoring, @unchecked Sendable {
     private enum Key {
-        static let hasLaunchedBefore = "pulpe-has-launched-before"
         static let didExplicitLogout = "pulpe-did-explicit-logout"
         static let manualBiometricRetryRequired = "pulpe-manual-biometric-retry-required"
     }
@@ -30,11 +33,11 @@ struct AppAuthFlagsStore: AppAuthFlagsStoring, @unchecked Sendable {
     }
 
     var hasLaunchedBefore: Bool {
-        defaults.bool(forKey: Key.hasLaunchedBefore)
+        defaults.bool(forKey: AppAuthFlagsKey.hasLaunchedBefore)
     }
 
     func setHasLaunchedBefore() {
-        defaults.set(true, forKey: Key.hasLaunchedBefore)
+        defaults.set(true, forKey: AppAuthFlagsKey.hasLaunchedBefore)
     }
 
     var didExplicitLogout: Bool {

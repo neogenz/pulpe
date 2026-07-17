@@ -3,6 +3,8 @@ import type {
   BudgetLineCheckedTransaction,
   BudgetLineCreateInput,
   BudgetLineUpdatePatch,
+  SavingsWithdrawalDeleteScope,
+  SavingsWithdrawalPairInputs,
   SpreadDeleteSource,
   SpreadOccurrence,
   SpreadSourceLine,
@@ -52,6 +54,32 @@ export interface BudgetLineRepositoryPort {
    * user's line (IDOR guard before any fan-out).
    */
   findSpreadSource(id: string): Promise<SpreadSourceLine>;
+  /**
+   * PUL-292: atomic insert of the savings-withdrawal PAIR (income on M, saving
+   * on M+1) sharing `groupId` — one multi-row statement, all-or-nothing under
+   * RLS. A replayed `groupId` violates the partial UNIQUE index
+   * `(savings_withdrawal_group_id, kind)` and throws the typed
+   * `SavingsWithdrawalPairExistsError` for the use case to REPLAY.
+   */
+  createSavingsWithdrawalPair(
+    groupId: string,
+    inputs: SavingsWithdrawalPairInputs,
+  ): Promise<BudgetLine[]>;
+  /**
+   * PUL-292: the raw lines of a savings-withdrawal group (0, 1 or 2 — the
+   * repayment may already be gone). RLS scopes to the caller; empty when not
+   * found/owned.
+   */
+  findBySavingsWithdrawalGroupId(groupId: string): Promise<BudgetLine[]>;
+  /**
+   * PUL-292: grouped deletion in ONE statement (atomic). `pair` removes both
+   * lines; `repayment` removes only the `saving` side, the income keeps its
+   * group id (the « pris sur ton épargne » badge stays true).
+   */
+  deleteSavingsWithdrawalGroup(
+    groupId: string,
+    scope: SavingsWithdrawalDeleteScope,
+  ): Promise<void>;
   update(id: string, patch: BudgetLineUpdatePatch): Promise<BudgetLine>;
   /**
    * Atomic, race-guarded move of an unchecked line to another budget (PUL-22).

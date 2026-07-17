@@ -124,6 +124,11 @@ export {
   spreadOccurrenceSchema,
   spreadOccurrencesResponseSchema,
 
+  // Savings withdrawal schemas (PUL-292)
+  budgetLineSavingsWithdrawalCreateSchema,
+  budgetLineSavingsWithdrawalResponseSchema,
+  budgetLineSavingsWithdrawalDeleteQuerySchema,
+
   // Currency schemas
   supportedCurrencySchema,
   SUPPORTED_CURRENCIES,
@@ -368,6 +373,11 @@ export type {
   TransactionSpreadFromTxnCreate,
   SpreadOccurrence,
   SpreadOccurrencesResponse,
+
+  // Savings withdrawal types (PUL-292)
+  BudgetLineSavingsWithdrawalCreate,
+  BudgetLineSavingsWithdrawalResponse,
+  BudgetLineSavingsWithdrawalDeleteQuery,
 
   // Currency types
   SupportedCurrency,

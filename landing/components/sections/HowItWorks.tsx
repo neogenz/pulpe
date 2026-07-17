@@ -1,139 +1,91 @@
-'use client'
-
-import { useEffect, useRef, useState } from 'react'
-import { Section, Button, FadeIn } from '@/components/ui'
-import { angularUrl } from '@/lib/config'
-import { trackCTAClick } from '@/lib/posthog'
-import { Check } from 'lucide-react'
+import { Section, Screenshot } from "@/components/ui";
 
 const STEPS = [
-  { number: '1', title: 'Tes revenus', description: 'Ce qui rentre chaque mois' },
-  { number: '2', title: 'Frais fixes', description: 'Loyer, abonnements, assurances' },
-  { number: '3', title: 'Frais variables', description: 'Vacances, impôts, anniversaires' },
-  { number: 'done', title: 'Tu sais ce qu\'il te reste', description: 'Chaque mois, chaque dépense — tout est là.' },
-]
+  {
+    number: "01",
+    title: "Pose ton mois type",
+    description:
+      "Ajoute tes revenus, tes dépenses récurrentes et ce que tu veux mettre de côté.",
+    src: "/screenshots/responsive/ecran-des-modeles.webp",
+    desktopSrc: "/screenshots/webapp/ecran-des-modeles.webp",
+    label: "Modèle mensuel dans Pulpe",
+    desktopWidth: 1261,
+    desktopHeight: 956,
+  },
+  {
+    number: "02",
+    title: "Ajoute les exceptions",
+    description:
+      "Place les impôts, vacances et gros achats dans les mois où ils auront vraiment lieu.",
+    src: "/screenshots/responsive/modal-ajout-transaction.webp",
+    desktopSrc: "/screenshots/webapp/modal-ajout-transaction.webp",
+    label: "Ajout d’une dépense prévue dans Pulpe",
+    desktopWidth: 1260,
+    desktopHeight: 955,
+  },
+  {
+    number: "03",
+    title: "Lis ton année",
+    description:
+      "Chaque mois affiche ton disponible. Si le réel change, la projection suit.",
+    src: "/screenshots/responsive/vue-calendrier-annuel.webp",
+    desktopSrc: "/screenshots/webapp/vue-calendrier-annuel.webp",
+    label: "Vue annuelle du budget dans Pulpe",
+    desktopWidth: 1695,
+    desktopHeight: 1354,
+  },
+];
 
 export function HowItWorks() {
-  const stepperRef = useRef<HTMLDivElement>(null)
-  const [progressed, setProgressed] = useState(false)
-
-  useEffect(() => {
-    const el = stepperRef.current
-    if (!el) return
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setProgressed(true)
-          observer.disconnect()
-        }
-      },
-      { threshold: 0.4 }
-    )
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
-
   return (
-    <Section background="grain" id="how-it-works">
-      <FadeIn variant="blur">
-        <h2 className="text-3xl md:text-5xl font-bold text-center mb-4 tracking-[-0.02em] balance">
-          Prêt en{' '}
-          <span className="italic font-normal text-primary">
-            3 minutes.
-          </span>
+    <Section id="how-it-works">
+      <div className="mx-auto max-w-3xl text-center">
+        <p className="text-sm font-medium text-primary">De zéro à douze mois</p>
+        <h2 className="mt-3 text-4xl font-bold leading-[1.05] tracking-[-0.035em] sm:text-5xl lg:text-6xl">
+          Ton année prend forme en trois gestes.
         </h2>
-        <p className="text-text-secondary text-center mb-14 max-w-md mx-auto">
-          Pas de configuration complexe. Juste l&apos;essentiel.
+        <p className="mx-auto mt-5 max-w-xl text-lg text-text-secondary">
+          Pas de catégorie à deviner ni de rapport à décoder. Tu renseignes ce
+          qui compte, Pulpe montre la suite.
         </p>
-      </FadeIn>
+      </div>
 
-      {/* Desktop: horizontal progression with connector line between steps.
-          Replaces 4 identical circles floating in space. */}
-      <div ref={stepperRef} className="hidden md:block mb-14 relative">
-        {/* Connector track — faint rail behind the circles */}
+      <div className="relative mt-14">
         <div
           aria-hidden="true"
-          className="absolute top-7 left-[12.5%] right-[12.5%] h-px bg-primary/15"
+          className="absolute left-[16.66%] right-[16.66%] top-5 hidden h-px bg-primary/20 md:block"
         />
-        {/* Progress fill — sweeps left→right when the stepper enters the viewport,
-            turning the "3 minutes" claim into a small demonstration. */}
-        <div
-          aria-hidden="true"
-          className="absolute top-7 left-[12.5%] right-[12.5%] h-px origin-left bg-gradient-to-r from-primary/50 to-primary transition-transform duration-[1300ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
-          style={{ transform: progressed ? 'scaleX(1)' : 'scaleX(0)' }}
-        />
-        <div className="grid md:grid-cols-4 gap-8 relative">
-          {STEPS.map((step, index) => {
-            const isDone = step.number === 'done'
-            return (
-              <FadeIn key={step.title} variant="blur" delay={index * 0.1}>
-                <div className="text-center">
-                  <div
-                    className={`relative w-14 h-14 rounded-full font-bold text-xl flex items-center justify-center mx-auto mb-5 shadow-[var(--shadow-organic)] ${
-                      isDone
-                        ? 'bg-primary text-white ring-4 ring-primary/15'
-                        : 'bg-surface text-primary border border-primary/20'
-                    }`}
-                  >
-                    {isDone ? (
-                      <Check className="w-6 h-6" strokeWidth={2.5} />
-                    ) : (
-                      <span className="tabular-nums">{step.number}</span>
-                    )}
-                  </div>
-                  <h3 className="font-semibold text-lg mb-1.5 balance">
+        <ol className="relative grid gap-12 md:grid-cols-3 md:gap-5 lg:gap-8">
+          {STEPS.map((step) => (
+            <li key={step.number} className="relative">
+              <div className="relative z-10 flex items-center gap-4 md:flex-col md:gap-3 md:text-center">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white shadow-[var(--shadow-organic)]">
+                  {step.number}
+                </span>
+                <div>
+                  <h3 className="text-xl font-semibold text-text">
                     {step.title}
                   </h3>
-                  <p className="text-text-secondary text-sm leading-relaxed pretty">
+                  <p className="mt-2 text-sm leading-relaxed text-text-secondary md:min-h-20">
                     {step.description}
                   </p>
                 </div>
-              </FadeIn>
-            )
-          })}
-        </div>
+              </div>
+              <div className="mt-6">
+                <Screenshot
+                  src={step.src}
+                  desktopSrc={step.desktopSrc}
+                  label={step.label}
+                  mobileWidth={750}
+                  mobileHeight={1190}
+                  desktopWidth={step.desktopWidth}
+                  desktopHeight={step.desktopHeight}
+                />
+              </div>
+            </li>
+          ))}
+        </ol>
       </div>
-
-      {/* Mobile: vertical timeline */}
-      <div className="md:hidden mb-12">
-        <div className="relative pl-16">
-          <div className="space-y-8">
-            {STEPS.map((step, index) => {
-              const isDone = step.number === 'done'
-              const isLast = index === STEPS.length - 1
-              return (
-                <FadeIn key={step.title} variant="blur" delay={index * 0.1} className="relative">
-                  <div className="absolute -left-16 top-0 bottom-0">
-                    <div
-                      className={`w-12 h-12 rounded-full font-bold text-xl flex items-center justify-center shrink-0 relative z-10 ${
-                        isDone ? 'bg-white text-primary shadow-organic' : 'bg-primary text-white'
-                      }`}
-                    >
-                      {isDone ? <Check className="w-5 h-5" /> : step.number}
-                    </div>
-                    {!isLast && (
-                      <div
-                        className="absolute left-[23px] top-12 bottom-[-2.5rem] border-l-2 border-dashed border-primary/20"
-                        aria-hidden="true"
-                      />
-                    )}
-                  </div>
-                  <div className="pt-1">
-                    <h3 className="font-semibold text-lg mb-1">{step.title}</h3>
-                    <p className="text-text-secondary text-sm">{step.description}</p>
-                  </div>
-                </FadeIn>
-              )
-            })}
-          </div>
-        </div>
-      </div>
-
-      <FadeIn variant="blur" delay={0.4}>
-        <div className="text-center">
-          <Button href={angularUrl('/signup', 'how_it_works_commencer')} onClick={() => trackCTAClick('commencer', 'how_it_works', '/signup')}>Commencer</Button>
-        </div>
-      </FadeIn>
     </Section>
-  )
+  );
 }

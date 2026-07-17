@@ -49,6 +49,7 @@ export type Database = {
           original_currency: string | null;
           recurrence: Database['public']['Enums']['transaction_recurrence'];
           savings_goal_id: string | null;
+          savings_withdrawal_group_id: string | null;
           spread_group_id: string | null;
           target_currency: string | null;
           template_line_id: string | null;
@@ -68,6 +69,7 @@ export type Database = {
           original_currency?: string | null;
           recurrence: Database['public']['Enums']['transaction_recurrence'];
           savings_goal_id?: string | null;
+          savings_withdrawal_group_id?: string | null;
           spread_group_id?: string | null;
           target_currency?: string | null;
           template_line_id?: string | null;
@@ -87,6 +89,7 @@ export type Database = {
           original_currency?: string | null;
           recurrence?: Database['public']['Enums']['transaction_recurrence'];
           savings_goal_id?: string | null;
+          savings_withdrawal_group_id?: string | null;
           spread_group_id?: string | null;
           target_currency?: string | null;
           template_line_id?: string | null;
@@ -548,6 +551,7 @@ export type Database = {
           original_currency: string | null;
           recurrence: Database['public']['Enums']['transaction_recurrence'];
           savings_goal_id: string | null;
+          savings_withdrawal_group_id: string | null;
           spread_group_id: string | null;
           target_currency: string | null;
           template_line_id: string | null;
@@ -655,6 +659,7 @@ export type Database = {
           original_currency: string | null;
           recurrence: Database['public']['Enums']['transaction_recurrence'];
           savings_goal_id: string | null;
+          savings_withdrawal_group_id: string | null;
           spread_group_id: string | null;
           target_currency: string | null;
           template_line_id: string | null;
@@ -716,6 +721,7 @@ export type Database = {
           original_currency: string | null;
           recurrence: Database['public']['Enums']['transaction_recurrence'];
           savings_goal_id: string | null;
+          savings_withdrawal_group_id: string | null;
           spread_group_id: string | null;
           target_currency: string | null;
           template_line_id: string | null;

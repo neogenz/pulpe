@@ -19,6 +19,15 @@ extension BudgetDetailsCoordinator {
     func softDeleteBudgetLine(_ line: BudgetLine, context: ToastContext) {
         guard !(line.isRollover ?? false) else { return }
 
+        // CA9 choke point (PUL-292): a linked savings-withdrawal line must NEVER
+        // be soft-deleted as a single line — that would orphan its pair. Route it
+        // to the explicit choice alert instead. Every delete entry point dispatches
+        // `.softDeleteBudgetLine`, so this one guard covers them all.
+        guard line.savingsWithdrawalGroupId == nil else {
+            syncStore.presentSavingsWithdrawalDeleteChoice(for: line)
+            return
+        }
+
         dataStore.removeBudgetLine(id: line.id)
         dataStore.recomputeMetrics()
         dataStore.syncCache()

@@ -349,6 +349,21 @@ interface AddBudgetLineModel {
                 "
               />
             }
+            @if (model().kind === 'income') {
+              <div class="flex items-center justify-between py-2 px-1">
+                <span class="text-body-medium text-on-surface">{{
+                  'budget.savingsWithdrawal.repayToggle' | transloco
+                }}</span>
+                <mat-slide-toggle
+                  [checked]="repayNextMonth()"
+                  (change)="repayNextMonth.set($event.checked)"
+                  [attr.aria-label]="
+                    'budget.savingsWithdrawal.repayToggle' | transloco
+                  "
+                  data-testid="repay-next-month-toggle"
+                />
+              </div>
+            }
             <div class="flex items-center justify-between py-2 px-1">
               <span class="text-body-medium text-on-surface">{{
                 'budget.forecastCheckedToggle' | transloco
@@ -483,6 +498,11 @@ export class AddBudgetLineDialog {
   // post-commit failure replays the same spread group server-side instead of
   // creating a duplicate. A new dialog = a new intent = a new key.
   readonly #spreadGroupId = crypto.randomUUID();
+
+  // PUL-292 — income-only toggle: when ON, submitting a Revenu doesn't create a
+  // plain line but hands a `savingsWithdrawal` prefill back so the caller opens
+  // the two-month withdrawal flow. Ignored for non-income kinds.
+  protected readonly repayNextMonth = signal(false);
 
   readonly #start = signal<SpreadMonth>({
     year: this.#data.budgetYear,
@@ -624,6 +644,18 @@ export class AddBudgetLineDialog {
   protected async handleSubmit(): Promise<void> {
     if (this.#mode() === 'spread') {
       await this.#submitSpread();
+      return;
+    }
+    const m = this.model();
+    if (m.kind === 'income' && this.repayNextMonth()) {
+      this.#dialogRef.close({
+        mode: 'savingsWithdrawal',
+        prefill: {
+          amount: m.money.amount ?? 0,
+          source: m.name.trim(),
+          inputCurrency: m.money.inputCurrency,
+        },
+      });
       return;
     }
     await this.#submitSingle();

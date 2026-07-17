@@ -240,7 +240,9 @@ describe('SupabaseTagRepository', () => {
   });
 
   it('findHistoryContributions decrypts direct expense links in the requested periods', async () => {
-    let capturedBudgetUserFilter: { column: string; value: unknown } | undefined;
+    let capturedBudgetUserFilter:
+      | { column: string; value: unknown }
+      | undefined;
     const historyResult = (data: unknown[]) => ({
       select: () => ({
         eq: () => ({

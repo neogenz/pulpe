@@ -20,6 +20,13 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
     /// ordinary lines. Generated server-side by `POST /budget-lines/spread`.
     var spreadGroupId: UUID?
 
+    /// Shared identifier of the Revenu-M ↔ Épargne-(M+1) couple created by
+    /// "piocher dans son épargne" (PUL-292). Light link — drives the badge on the
+    /// income line and the grouped delete only, never any amount sync.
+    /// Non-financial UUID — never encrypted. `nil` for ordinary lines. Assigned
+    /// server-side by `POST /budget-lines/savings-withdrawal`.
+    var savingsWithdrawalGroupId: UUID?
+
     // Currency conversion metadata
     var originalAmount: Decimal?
     var originalCurrency: SupportedCurrency?
@@ -47,6 +54,14 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
         spreadGroupId != nil
     }
 
+    /// `true` when this INCOME line is the "pris sur ton épargne" half of a
+    /// savings-withdrawal couple (PUL-292) — drives the muted badge on the row.
+    /// The paired saving line ("Remettre sur ton épargne") lives in M+1 and is
+    /// an ordinary saving otherwise.
+    var isSavingsWithdrawalIncome: Bool {
+        kind == .income && savingsWithdrawalGroupId != nil
+    }
+
     var isVirtualRollover: Bool {
         isRollover == true
     }
@@ -54,14 +69,17 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
     /// PUL-22 (CA1/CA6/CA7) — whether "Reporter au mois suivant" may be offered:
     /// an unchecked, one-off line that isn't the virtual rollover, isn't a spread
     /// occurrence (PUL-17 — moving one slice breaks the group's month distribution),
-    /// and carries no allocated transactions. The caller supplies the allocation
-    /// flag (the line itself doesn't hold its transactions); CA5 (next-month budget
+    /// isn't half of a savings-withdrawal couple (PUL-292 — moving one side breaks
+    /// the M/M+1 derivations: badge, origin subtitle, choice-alert months), and
+    /// carries no allocated transactions. The caller supplies the allocation flag
+    /// (the line itself doesn't hold its transactions); CA5 (next-month budget
     /// exists) is a screen-wide check applied separately in the view.
     func isPostponeEligible(hasAllocatedTransactions: Bool) -> Bool {
         !isChecked
             && recurrence == .oneOff
             && !isVirtualRollover
             && !isSpread
+            && savingsWithdrawalGroupId == nil
             && !hasAllocatedTransactions
     }
 
@@ -81,6 +99,7 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
             createdAt: createdAt,
             updatedAt: Date(),
             spreadGroupId: spreadGroupId,
+            savingsWithdrawalGroupId: savingsWithdrawalGroupId,
             originalAmount: originalAmount,
             originalCurrency: originalCurrency,
             targetCurrency: targetCurrency,
@@ -88,6 +107,19 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
             isRollover: isRollover,
             rolloverSourceBudgetId: rolloverSourceBudgetId
         )
+    }
+}
+
+// MARK: - Savings Withdrawal (PUL-292)
+
+extension BudgetLine {
+    /// Origin month (1-12) of a savings-withdrawal repayment: the paired saving
+    /// ("Remettre sur ton épargne") sits on M+1, so the money was drawn in
+    /// M = its budget month − 1, wrapping January → December (PUL-292). Pure
+    /// arithmetic — a line doesn't carry its own month, so the caller supplies
+    /// the saving line's budget month.
+    static func savingsWithdrawalOriginMonth(forBudgetMonth month: Int) -> Int {
+        month == 1 ? 12 : month - 1
     }
 }
 
