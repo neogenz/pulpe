@@ -42,6 +42,30 @@ const mockBudgetDetailsResponse = createMockBudgetDetailsResponse({
   transactions: [],
 });
 
+// Same month, but income and expense whose float difference leaves IEEE noise
+// on `remaining` (-196.96000000000004): the chip displays 197 while the raw
+// magnitude is not the number it shows.
+const mockNoisyDeficitDetailsResponse = createMockBudgetDetailsResponse({
+  budget: { id: mockBudgetId, month: 6, year: 2099 },
+  budgetLines: [
+    createMockBudgetLine({
+      id: 'income-1',
+      budgetId: mockBudgetId,
+      name: 'Salaire',
+      amount: 5000.04,
+      kind: 'income',
+    }),
+    createMockBudgetLine({
+      id: 'expense-1',
+      budgetId: mockBudgetId,
+      name: 'Loyer',
+      amount: 5197,
+      kind: 'expense',
+    }),
+  ],
+  transactions: [],
+});
+
 const WITHDRAWAL_INPUT: BudgetLineSavingsWithdrawalCreate = {
   budgetId: mockBudgetId,
   amount: 320,
@@ -204,6 +228,20 @@ describe('BudgetDetailsStore — savings withdrawal (PUL-292)', () => {
 
       expect(error).toBe(localizer.localizeApiError(conflictError));
       expect(store.error()).toBeNull();
+    });
+  });
+
+  describe('savingsWithdrawalDeficit', () => {
+    it('rounds a float-noisy deficit to the whole amount the chip displays', async () => {
+      const budgetApi = TestBed.inject(BudgetApi);
+      vi.mocked(budgetApi.getBudgetWithDetails$).mockReturnValue(
+        of(mockNoisyDeficitDetailsResponse),
+      );
+
+      store.reloadBudgetDetails();
+      await waitFor(() => store.savingsWithdrawalDeficit() !== 1000);
+
+      expect(store.savingsWithdrawalDeficit()).toBe(197);
     });
   });
 

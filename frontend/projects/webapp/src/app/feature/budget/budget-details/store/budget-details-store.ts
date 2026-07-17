@@ -407,10 +407,14 @@ export class BudgetDetailsStore {
   });
 
   // The deficit to pre-fill the withdrawal amount chip (positive magnitude, 0
-  // when the month is not in deficit).
+  // when the month is not in deficit). Rounded to the whole unit here, at the
+  // single producer: `remaining` is a float sum, so its magnitude carries IEEE
+  // noise (196.95999999999913). The hero and the chip both display it via
+  // '1.0-0', so rounding once keeps what the chip shows, what the input gets
+  // and what the payload carries the same number.
   readonly savingsWithdrawalDeficit = computed<number>(() => {
     const remaining = this.financialTotals().remaining;
-    return remaining < 0 ? Math.abs(remaining) : 0;
+    return remaining < 0 ? Math.round(Math.abs(remaining)) : 0;
   });
 
   // PUL-292 — origin month label (month − 1, with year rollover) shared by every
