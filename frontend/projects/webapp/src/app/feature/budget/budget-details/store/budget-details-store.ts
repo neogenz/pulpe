@@ -391,11 +391,14 @@ export class BudgetDetailsStore {
   });
 
   // PUL-292 (CA1) — the "mois un peu juste" card shows only when the viewed
-  // current/future month runs a deficit, has no pioche yet, and wasn't dismissed.
+  // current/future month runs a deficit worth acting on, has no pioche yet, and
+  // wasn't dismissed. Gated on the rounded deficit rather than on raw
+  // `remaining`: a month balanced to the cent leaves float dust (-9e-13) that
+  // would nudge the user towards a dialog with nothing to pre-fill.
   readonly shouldShowSavingsWithdrawalCard = computed<boolean>(() => {
     const details = this.budgetDetails();
     if (!details) return false;
-    if (this.financialTotals().remaining >= 0) return false;
+    if (this.savingsWithdrawalDeficit() <= 0) return false;
     if (!this.#isViewedMonthCurrentOrFuture()) return false;
     const hasWithdrawal = this.displayBudgetLines().some(
       (line) => line.savingsWithdrawalGroupId != null,

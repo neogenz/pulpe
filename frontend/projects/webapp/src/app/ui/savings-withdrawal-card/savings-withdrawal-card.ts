@@ -26,7 +26,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
         <span>{{ 'budget.savingsWithdrawal.cardLine2' | transloco }}</span>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         <button
           matButton="tonal"
           (click)="withdraw.emit()"
