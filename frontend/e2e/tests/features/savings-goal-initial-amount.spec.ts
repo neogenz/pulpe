@@ -62,6 +62,10 @@ test.describe('Savings goal initial amount (PUL-293)', () => {
     // window, but Playwright can, so no field fill may follow the date pick.
     await dialog.getByRole('button', { name: 'Open calendar' }).click();
     await page.locator('.mat-calendar-body-today').click();
+    // Calendar fully gone before anything else is touched: its fading backdrop
+    // still swallows pointer events and would eat the save click. (The dialog
+    // keeps its own backdrop, so only the calendar's disappearance is waited on.)
+    await expect(page.locator('mat-datepicker-content')).toHaveCount(0);
 
     await page.getByTestId('savings-goal-name').fill('Vacances été 2027');
     await page.getByTestId('savings-goal-target-amount').fill('10000');

@@ -297,8 +297,9 @@ describe('SavingsGoalDetailPage', () => {
 
     const bar = query('savings-goal-progress-bar');
     expect(bar.attributes['aria-valuenow']).toBe('30');
-    // « Pointé » vocabulary is present (legend + stat label).
-    expect(fixture.nativeElement.textContent).toContain('Pointé');
+    // « Épargné » labels the aggregate layer: it sums the never-pointed
+    // initial amount with the checked lines, so « Pointé » would overclaim.
+    expect(fixture.nativeElement.textContent).toContain('Épargné');
   });
 
   it('shows the "Montant de départ" stat only when initialAmount > 0 (PUL-293)', () => {

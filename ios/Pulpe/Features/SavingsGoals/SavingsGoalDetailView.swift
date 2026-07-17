@@ -212,7 +212,10 @@ struct SavingsGoalDetailView: View {
                     statRow(label: "Montant de départ", value: progress.initialAmount.asCompactCurrency(currency))
                 }
                 statRow(
-                    label: "Pointé",
+                    // « Épargné », pas « Pointé » : le confirmé additionne le
+                    // montant de départ, qui n'a jamais été pointé. « Pointé »
+                    // reste exact ligne à ligne (état checked, cf. glossaire).
+                    label: "Épargné",
                     value: progress.confirmed.asCompactCurrency(currency),
                     swatch: Color.financialSavings
                 )
@@ -250,7 +253,7 @@ struct SavingsGoalDetailView: View {
         }
         .frame(height: DesignTokens.ProgressBar.thickHeight)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(progress.achievementPercent)% de la cible pointé")
+        .accessibilityLabel("\(progress.achievementPercent)% de la cible épargné")
     }
 
     @ViewBuilder

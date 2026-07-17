@@ -153,16 +153,23 @@ export interface SuggestedMonthlyContributionInput {
   /** ISO date `YYYY-MM-DD`. */
   targetDate: string;
   payDayOfMonth?: number | null;
+  /**
+   * Montant déjà épargné (stock) — déduit de la cible avant division : à la
+   * création, le confirmé de la formule 5 se réduit exactement à ce stock.
+   */
+  initialAmount?: number;
   /** Injectable pour les tests ; défaut = maintenant. */
   now?: Date;
 }
 
 /**
- * Suggestion « cible ÷ mois restants » à la création d'un objectif (PUL-285
- * CA1/CA6). Même base que la formule 5 (`required` avec confirmé = 0) :
- * payDay-aware, mois courant ET mois d'échéance inclus. Arrondi au centime
- * SUPÉRIEUR pour que `suggestion × mois ≥ cible` (jamais de shortfall à
- * l'échéance). `null` si l'échéance est dépassée ou la cible non positive.
+ * Suggestion « reste à épargner ÷ mois restants » à la création d'un objectif
+ * (PUL-285 CA1/CA6). Même base que la formule 5 — `required = max(0, cible −
+ * confirmé) / monthsRemaining` — où le confirmé à la création se réduit au
+ * montant de départ : payDay-aware, mois courant ET mois d'échéance inclus.
+ * Arrondi au centime SUPÉRIEUR pour que `suggestion × mois ≥ reste` (jamais de
+ * shortfall à l'échéance). `null` si l'échéance est dépassée, la cible non
+ * positive, ou le montant de départ couvre déjà la cible (rien à décomposer).
  */
 export function suggestedMonthlyContribution(
   input: SuggestedMonthlyContributionInput,
@@ -179,11 +186,12 @@ export function suggestedMonthlyContribution(
   );
   const monthsRemaining = indexTarget - indexCurrent + 1;
   if (monthsRemaining <= 0 || input.targetAmount <= 0) return null;
+  const remaining = input.targetAmount - (input.initialAmount ?? 0);
+  if (remaining <= 0) return null;
   // Le pré-round au 1/100 de centime neutralise l'artefact float binaire :
   // sans lui, un quotient tombant PILE sur un centime (500.05) peut flotter
   // juste au-dessus et se faire ceil au centime supérieur (500.06).
-  const cents =
-    Math.round((input.targetAmount / monthsRemaining) * 10_000) / 100;
+  const cents = Math.round((remaining / monthsRemaining) * 10_000) / 100;
   return Math.ceil(cents) / 100;
 }
 

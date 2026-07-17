@@ -136,7 +136,7 @@ struct SavingsGoalFormSheet: View {
             nameField
             initialAmountField
             dateField
-            if !isEditing {
+            if !isEditing && hasRemainingToSave {
                 decomposeSection
             }
             if isEditing {
@@ -213,15 +213,24 @@ struct SavingsGoalFormSheet: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// Suggestion « cible ÷ mois restants » (payDay-aware, ceil au centime).
+    /// Suggestion « reste à épargner ÷ mois restants » (payDay-aware, ceil au
+    /// centime). Le montant de départ est déjà acquis : décomposer la cible
+    /// entière sur-provisionnerait la prévision récurrente générée.
     /// Recalculée tant que l'utilisateur n'a pas saisi son propre montant.
     private var suggestedMonthly: Decimal? {
         guard let amount, amount > 0 else { return nil }
         return SavingsPlanCalculator.suggestedMonthlyContribution(
             targetAmount: amount,
             targetDate: targetDate,
-            payDayOfMonth: payDayOfMonth
+            payDayOfMonth: payDayOfMonth,
+            initialAmount: initialAmount ?? 0
         )
+    }
+
+    /// Le montant de départ couvre déjà la cible ⇒ plus rien à décomposer.
+    private var hasRemainingToSave: Bool {
+        guard let amount, amount > 0 else { return false }
+        return amount - (initialAmount ?? 0) > 0
     }
 
     private var decomposeSection: some View {
@@ -315,7 +324,8 @@ struct SavingsGoalFormSheet: View {
                         targetAmount: amount,
                         targetDate: dateString,
                         status: .active,
-                        monthlyContribution: decomposeEnabled && contribution > 0
+                        monthlyContribution: decomposeEnabled && hasRemainingToSave
+                            && contribution > 0
                             ? contribution
                             : nil,
                         initialAmount: initialAmount

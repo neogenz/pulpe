@@ -610,6 +610,68 @@ describe('suggestedMonthlyContribution (PUL-285 CA1/CA6)', () => {
     expect(suggestion).toBeNull();
   });
 
+  it('should only decompose what is left to save once an initial amount covers part of the target (PUL-293)', () => {
+    const suggestion = suggestedMonthlyContribution({
+      targetAmount: 10_000,
+      initialAmount: 5000,
+      targetDate: '2026-12-15', // juin → décembre 2026 = 7 mois
+      now: new Date(2026, 5, 15),
+      payDayOfMonth: null,
+    });
+
+    // 5 000 restants ÷ 7, pas 10 000 ÷ 7 : décomposer la cible entière
+    // sur-provisionnerait la prévision récurrente générée.
+    expect(suggestion).toBe(714.29);
+  });
+
+  it('should stay identical when the initial amount is absent or zero (PUL-293 non-regression)', () => {
+    const args = {
+      targetAmount: 10_000,
+      targetDate: '2026-12-15',
+      now: new Date(2026, 5, 15),
+      payDayOfMonth: null,
+    };
+
+    expect(suggestedMonthlyContribution({ ...args, initialAmount: 0 })).toBe(
+      suggestedMonthlyContribution(args),
+    );
+  });
+
+  it('should return null when the initial amount already covers the target — nothing to decompose (PUL-293)', () => {
+    const suggestion = suggestedMonthlyContribution({
+      targetAmount: 10_000,
+      initialAmount: 10_000,
+      targetDate: '2026-12-15',
+      now: new Date(2026, 5, 15),
+      payDayOfMonth: null,
+    });
+
+    expect(suggestion).toBeNull();
+  });
+
+  it('should keep matching the required formula once the initial amount feeds the confirmed (PUL-293)', () => {
+    const now = new Date(2026, 5, 15);
+    // À la création, le confirmé de la formule 5 se réduit au montant de départ.
+    const progress = computeSavingsGoalProgress(
+      baseInput({
+        targetAmount: 12_000,
+        initialAmount: 3000,
+        targetDate: '2026-12-15',
+        now,
+      }),
+    );
+    const suggestion = suggestedMonthlyContribution({
+      targetAmount: 12_000,
+      initialAmount: 3000,
+      targetDate: '2026-12-15',
+      now,
+      payDayOfMonth: null,
+    });
+
+    expect(progress.required).not.toBeNull();
+    expect(suggestion).toBe(Math.ceil(progress.required! * 100) / 100);
+  });
+
   it('should return null on a non-positive target', () => {
     const suggestion = suggestedMonthlyContribution({
       targetAmount: 0,

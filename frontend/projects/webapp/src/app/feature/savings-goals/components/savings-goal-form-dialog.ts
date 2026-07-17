@@ -189,7 +189,7 @@ function isoToDate(value: string): Date | null {
           }
         </mat-form-field>
 
-        @if (!isEdit()) {
+        @if (!isEdit() && hasRemainingToSave()) {
           <mat-slide-toggle
             [checked]="decomposeEnabled()"
             (change)="decomposeEnabled.set($event.checked)"
@@ -312,9 +312,12 @@ export class SavingsGoalFormDialog {
     );
     // Optional field (no `min` attribute — the signal-forms `[formField]`
     // directive rejects it on NG8022) — enforce non-negative via schema instead.
-    validate(path.initialAmount, ({ value }) =>
-      value() >= 0 ? null : { kind: 'negative' },
-    );
+    // A cleared field reads null: that means "no initial amount", so it is
+    // valid, and the builders normalize it to 0 before the strict schema.
+    validate(path.initialAmount, ({ value }) => {
+      const amount = value();
+      return amount == null || amount >= 0 ? null : { kind: 'negative' };
+    });
     required(path.targetDate, { message: 'savingsGoals.fieldTargetDate' });
     validate(path.targetDate, ({ value }) => {
       const v = value();
@@ -334,22 +337,33 @@ export class SavingsGoalFormDialog {
   protected readonly decomposeEnabled = signal(!this.#data.goal);
   readonly #monthlyContributionOverride = signal<number | null>(null);
   readonly #suggestedMonthly = computed(() => {
-    const { targetAmount, targetDate } = this.model();
+    const { targetAmount, targetDate, initialAmount } = this.model();
     if (!targetAmount || targetAmount <= 0 || !targetDate) return null;
     return suggestedMonthlyContribution({
       targetAmount,
       targetDate,
+      // Le montant de départ est déjà acquis : décomposer la cible ENTIÈRE
+      // sur-provisionnerait la prévision récurrente générée (PUL-285 CA2).
+      initialAmount: initialAmount ?? 0,
       payDayOfMonth: this.#settings.payDayOfMonth(),
     });
+  });
+  /** Le montant de départ couvre déjà la cible ⇒ plus rien à décomposer. */
+  protected readonly hasRemainingToSave = computed(() => {
+    const { targetAmount, initialAmount } = this.model();
+    return targetAmount - (initialAmount ?? 0) > 0;
   });
   protected readonly monthlyContribution = computed(
     () => this.#monthlyContributionOverride() ?? this.#suggestedMonthly(),
   );
   // Option active + montant non positif = décomposition silencieusement
-  // perdue : on bloque la soumission plutôt que d'omettre le champ.
+  // perdue : on bloque la soumission plutôt que d'omettre le champ. Sans reste
+  // à épargner l'option disparaît : bloquer sur un contrôle masqué ferait un
+  // cul-de-sac silencieux.
   protected readonly isMonthlyContributionInvalid = computed(
     () =>
       !this.isEdit() &&
+      this.hasRemainingToSave() &&
       this.decomposeEnabled() &&
       (this.monthlyContribution() ?? 0) <= 0,
   );
@@ -417,7 +431,9 @@ export class SavingsGoalFormDialog {
       ? buildSavingsGoalUpdate(value, this.#data.goal)
       : buildSavingsGoalCreate(
           value,
-          this.decomposeEnabled() ? this.monthlyContribution() : null,
+          this.decomposeEnabled() && this.hasRemainingToSave()
+            ? this.monthlyContribution()
+            : null,
         );
     this.#dialogRef.close(result);
   }

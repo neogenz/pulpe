@@ -896,8 +896,8 @@
       "notFoundMessage": "Cet objectif n'existe plus — retourne à ta liste.",
       "target": "Cible",
       "achievement": "{{ percent }} % atteint",
-      "progressAriaLabel": "Progression : {{ percent }} % de la cible atteints (pointé)",
-      "confirmed": "Pointé",
+      "progressAriaLabel": "Progression : {{ percent }} % de la cible atteints (épargné)",
+      "confirmed": "Épargné",
       "initialAmount": "Montant de départ",
       "plannedCumulative": "Prévu cumulé",
       "required": "Pour tenir ton échéance",
@@ -910,7 +910,7 @@
       "overdueMessage": "Ton objectif reste actif. Tu peux repousser la date pour te laisser plus de temps.",
       "postpone": "Repousser la date",
       "suggestTitle": "Objectif atteint",
-      "suggestMessage": "Tu as pointé de quoi atteindre ta cible. On le marque comme atteint ?",
+      "suggestMessage": "Tu as mis de côté l\u2019équivalent de ta cible. On le marque comme atteint ?",
       "markCompleted": "Marquer comme atteint",
       "completedTitle": "Objectif atteint",
       "completedMessage": "Tu as atteint cette cible. Tu peux le ré-ouvrir si tu veux continuer.",
@@ -941,9 +941,9 @@
       "editAmount": "Montant de ce mois",
       "chartTarget": "Cible",
       "chartPlanned": "Prévu cumulé",
-      "chartConfirmed": "Pointé",
+      "chartConfirmed": "Épargné",
       "chartProjection": "Projection",
-      "chartAria": "Trajectoire d'épargne : pointé {{ confirmed }}, prévu {{ planned }}, cible {{ target }}."
+      "chartAria": "Trajectoire d'épargne : épargné {{ confirmed }}, prévu {{ planned }}, cible {{ target }}."
     },
     "simulate": {
       "everyMonth": "Chaque mois, je mets",

@@ -102,6 +102,20 @@ describe('buildSavingsGoalCreate', () => {
       status: 'ACTIVE',
     });
   });
+
+  it('treats a cleared field (null) as no initial amount (PUL-293)', () => {
+    // Clearing a signal-forms number input writes null into the model, and the
+    // optional validator lets it through (null >= 0 is true in JS) — sending it
+    // raw would throw on the strict schema and kill the submit silently.
+    expect(
+      buildSavingsGoalCreate({ ...baseValue, initialAmount: null }),
+    ).toEqual({
+      name: 'Vacances été',
+      targetAmount: 3000,
+      targetDate: FUTURE_DATE,
+      status: 'ACTIVE',
+    });
+  });
 });
 
 describe('buildSavingsGoalUpdate', () => {
@@ -198,6 +212,50 @@ describe('buildSavingsGoalUpdate', () => {
     );
 
     expect(dto).toEqual({ initialAmount: 0 });
+  });
+
+  it('clears via an emptied field: null becomes an explicit 0, never a throw (PUL-293)', () => {
+    // The real erase gesture — emptying the input, which the signal-forms
+    // number binding writes as null. Sending null raw throws on the strict
+    // schema, silently killing the save.
+    const original = {
+      id: '00000000-0000-4000-8000-0000000000a1',
+      userId: '00000000-0000-4000-8000-0000000000b1',
+      name: 'Vacances été',
+      targetAmount: 3000,
+      targetDate: FUTURE_DATE,
+      status: 'ACTIVE',
+      initialAmount: 5000,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    } as SavingsGoal;
+
+    const dto = buildSavingsGoalUpdate(
+      { ...baseValue, initialAmount: null },
+      original,
+    );
+
+    expect(dto).toEqual({ initialAmount: 0 });
+  });
+
+  it('leaves a never-set initial amount alone when the field stays empty (PUL-293)', () => {
+    const original = {
+      id: '00000000-0000-4000-8000-0000000000a1',
+      userId: '00000000-0000-4000-8000-0000000000b1',
+      name: 'Vacances été',
+      targetAmount: 3000,
+      targetDate: FUTURE_DATE,
+      status: 'ACTIVE',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    } as SavingsGoal;
+
+    const dto = buildSavingsGoalUpdate(
+      { ...baseValue, initialAmount: null, status: 'COMPLETED' },
+      original,
+    );
+
+    expect(dto).toEqual({ status: 'COMPLETED' });
   });
 
   it('rejects a changed target date beyond the 120th planning period', () => {

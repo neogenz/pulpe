@@ -73,4 +73,50 @@ struct SavingsPlanSuggestedContributionTests {
             now: Self.date(2026, 6, 15)
         ) == nil)
     }
+
+    // MARK: - Initial amount (PUL-293) — same cases as the shared spec
+
+    @Test("only decomposes what is left to save once an initial amount covers part of the target")
+    func suggestion_deductsInitialAmount() {
+        let suggestion = SavingsPlanCalculator.suggestedMonthlyContribution(
+            targetAmount: 10_000,
+            targetDate: Self.date(2026, 12, 15),
+            payDayOfMonth: nil,
+            initialAmount: 5000,
+            now: Self.date(2026, 6, 15)
+        )
+
+        // 5 000 restants ÷ 7 mois, pas 10 000 ÷ 7.
+        #expect(suggestion == Decimal(string: "714.29"))
+    }
+
+    @Test("stays identical when the initial amount is absent or zero")
+    func suggestion_zeroInitialAmountIsNoOp() {
+        let absent = SavingsPlanCalculator.suggestedMonthlyContribution(
+            targetAmount: 10_000,
+            targetDate: Self.date(2026, 12, 15),
+            payDayOfMonth: nil,
+            now: Self.date(2026, 6, 15)
+        )
+        let zero = SavingsPlanCalculator.suggestedMonthlyContribution(
+            targetAmount: 10_000,
+            targetDate: Self.date(2026, 12, 15),
+            payDayOfMonth: nil,
+            initialAmount: 0,
+            now: Self.date(2026, 6, 15)
+        )
+
+        #expect(absent == zero)
+    }
+
+    @Test("returns nil when the initial amount already covers the target — nothing to decompose")
+    func suggestion_nilWhenInitialAmountCoversTarget() {
+        #expect(SavingsPlanCalculator.suggestedMonthlyContribution(
+            targetAmount: 10_000,
+            targetDate: Self.date(2026, 12, 15),
+            payDayOfMonth: nil,
+            initialAmount: 10_000,
+            now: Self.date(2026, 6, 15)
+        ) == nil)
+    }
 }

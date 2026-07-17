@@ -174,11 +174,11 @@ Deux couches, deux sémantiques — ne jamais les confondre dans l'UI :
 | Couche           | Définition                                                                                                                                            | Sert à                                              |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
 | **Prévu cumulé** | Σ `line.amount` des Prévisions Épargne liées, mois écoulés/en cours. Pur `line.amount`, **sans enveloppe transactions** (cohérent avec le dashboard). | L'engagement : « ce que tu as prévu de mettre ».    |
-| **Confirmé**     | Σ enveloppe **checked-only** (`checkedAt`), via `calculateRealizedSavings`.                                                                           | La réalité pointée : « ce que tu as vraiment mis ». |
+| **Confirmé**     | `initialAmount` + Σ enveloppe **checked-only** (`checkedAt`), via `calculateRealizedSavings`.                                                         | La réalité : « ce que tu as vraiment mis de côté ». |
 
-**Le % d'atteinte ET le déclencheur d'auto-complétion sont sur le CONFIRMÉ, jamais le prévu.** Un objectif n'est « atteint » que quand l'argent est pointé.
+**Le % d'atteinte ET le déclencheur d'auto-complétion sont sur le CONFIRMÉ, jamais le prévu.** Un objectif n'est « atteint » que quand l'argent est réellement de côté — pointé, ou déclaré comme montant de départ.
 
-**Vocabulaire** : l'UI dit « **Pointé** » (glossaire). « Confirmé » reste un terme **interne** (calcul) — ne pas exposer un synonyme flottant à l'utilisateur.
+**Vocabulaire** : l'UI dit « **Épargné** » pour cette couche agrégée, et « **Pointé** » (glossaire) uniquement pour l'état `checked` d'une **ligne**. Depuis le montant de départ (§2.1), le confirmé additionne un stock que l'utilisateur n'a jamais pointé : l'appeler « Pointé » affirmerait un geste qu'il n'a pas fait (« Tu as pointé de quoi atteindre ta cible » avec zéro ligne pointée). « Confirmé » reste un terme **interne** (calcul) — ne pas exposer un synonyme flottant à l'utilisateur.
 
 ---
 
