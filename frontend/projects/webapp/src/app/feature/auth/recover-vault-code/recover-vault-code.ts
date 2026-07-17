@@ -42,6 +42,8 @@ import {
   type RecoveryKeyDialogData,
 } from '@ui/dialogs/recovery-key-dialog';
 
+export const SUPPORT_URL = 'https://pulpe.app/support';
+
 @Component({
   selector: 'pulpe-recover-vault-code',
   imports: [
@@ -267,7 +269,7 @@ import {
           <p class="text-body-small text-on-surface-variant">
             {{ 'auth.recoverVaultCode.lostRecoveryKey' | transloco }}
             <a
-              href="https://pulpe.app/support"
+              [href]="supportUrl"
               target="_blank"
               rel="noopener noreferrer"
               class="text-primary hover:underline"
@@ -293,6 +295,7 @@ export default class RecoverVaultCode {
 
   protected readonly ROUTES = ROUTES;
   protected readonly VAULT_CODE_LENGTH = VAULT_CODE_LENGTH;
+  protected readonly supportUrl = SUPPORT_URL;
   protected readonly isSubmitting = signal(false);
   protected readonly isRedirecting = signal(false);
   protected readonly errorMessage = signal('');

@@ -31,6 +31,8 @@ enum Endpoint {
     case budgetLines(budgetId: String)
     case budgetLinesCreate
     case budgetLinesSpread
+    case budgetLinesSavingsWithdrawal
+    case budgetLinesSavingsWithdrawalDelete(groupId: String, scope: String)
     case budgetLinesSpreadOccurrences(spreadGroupId: String)
     case budgetLineSpreadFromLine(id: String)
     case budgetLine(id: String)
@@ -116,6 +118,8 @@ enum Endpoint {
         case .budgetLines(let budgetId): return "/budgets/\(budgetId)/lines"
         case .budgetLinesCreate: return "/budget-lines"
         case .budgetLinesSpread: return "/budget-lines/spread"
+        case .budgetLinesSavingsWithdrawal: return "/budget-lines/savings-withdrawal"
+        case .budgetLinesSavingsWithdrawalDelete(let groupId, _): return "/budget-lines/savings-withdrawal/\(groupId)"
         case .budgetLinesSpreadOccurrences(let id): return "/budget-lines/spread/\(id)"
         case .budgetLineSpreadFromLine(let id): return "/budget-lines/\(id)/spread"
         case .budgetLine(let id): return "/budget-lines/\(id)"
@@ -173,7 +177,7 @@ enum Endpoint {
 
     var method: HTTPMethod {
         switch self {
-        case .budgets, .budgetLines, .budgetLinesCreate, .budgetLinesSpread,
+        case .budgets, .budgetLines, .budgetLinesCreate, .budgetLinesSpread, .budgetLinesSavingsWithdrawal,
              .budgetLineSpreadFromLine, .transactionSpreadFromTxn, .transactionsCreate, .templates,
              .templateLines, .templateFromOnboarding, .templateLinesBulk,
              .budgetLineToggle, .budgetLinePostpone, .budgetLineResetFromTemplate,
@@ -198,7 +202,7 @@ enum Endpoint {
         case .updateProfile:
             return .patch
 
-        case .deleteAccount:
+        case .deleteAccount, .budgetLinesSavingsWithdrawalDelete:
             return .delete
         }
     }
@@ -223,6 +227,10 @@ enum Endpoint {
                 URLQueryItem(name: "base", value: base.rawValue),
                 URLQueryItem(name: "target", value: target.rawValue),
             ]
+            url = components?.url ?? url
+        case let .budgetLinesSavingsWithdrawalDelete(_, scope):
+            var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            components?.queryItems = [URLQueryItem(name: "scope", value: scope)]
             url = components?.url ?? url
         case let .whatsNewIos(currentVersion, lastSeenVersion):
             var components = URLComponents(url: url, resolvingAgainstBaseURL: false)

@@ -20,6 +20,7 @@ const eligibleLine: BudgetLine = {
   templateLineId: 'tpl-1',
   savingsGoalId: null,
   spreadGroupId: null,
+  savingsWithdrawalGroupId: null,
   name: 'Cadeau anniversaire',
   amount: 80,
   originalAmount: null,
@@ -144,6 +145,7 @@ describe('PostponeBudgetLineUseCase', () => {
     mockRepo.findById.mockResolvedValueOnce({
       ...eligibleLine,
       spreadGroupId: 'grp-1',
+      savingsWithdrawalGroupId: null,
     });
 
     const error = await useCase.execute('line-1', mockUser).catch((e) => e);

@@ -74,6 +74,15 @@ export class BudgetLineInvariants {
       throw new BusinessException(ERROR_DEFINITIONS.BUDGET_LINE_ALREADY_SPREAD);
     }
 
+    // PUL-292 (CA9): spreading DELETES the source. A line that is half of a
+    // Revenu M ↔ Épargne M+1 pair would silently orphan its sibling → reject.
+    if (source.savingsWithdrawalGroupId !== null) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_NOT_SPREADABLE,
+        { reason: 'line belongs to a savings withdrawal pair' },
+      );
+    }
+
     // A 0 € line is a valid budget_line (validateCreate accepts amount >= 0) but
     // splitTotalPreserving rejects a non-positive total with a raw Error → reject
     // here with a clean 400 instead of letting it surface as a 500.

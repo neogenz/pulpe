@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   HttpCode,
   HttpStatus,
   UseGuards,
@@ -27,6 +28,7 @@ import {
   type BudgetLineListResponse,
   type BudgetLineDeleteResponse,
   type BudgetLinePostponeResponse,
+  type BudgetLineSavingsWithdrawalResponse,
   type BudgetLineSpreadResponse,
 } from 'pulpe-shared';
 import { AuthGuard } from '@common/guards/auth.guard';
@@ -48,12 +50,19 @@ import {
   BudgetLineSpreadFromLineCreateDto,
   BudgetLineSpreadResponseDto,
 } from './dto/budget-line-spread-swagger.dto';
+import {
+  BudgetLineSavingsWithdrawalCreateDto,
+  BudgetLineSavingsWithdrawalDeleteQueryDto,
+  BudgetLineSavingsWithdrawalResponseDto,
+} from './dto/savings-withdrawal-swagger.dto';
 import { ErrorResponseDto } from '@common/dto/response.dto';
 import { FindAllBudgetLinesUseCase } from '../../application/find-all-budget-lines.use-case';
 import { FindBudgetLineUseCase } from '../../application/find-budget-line.use-case';
 import { FindBudgetLinesByBudgetUseCase } from '../../application/find-budget-lines-by-budget.use-case';
 import { CreateBudgetLineUseCase } from '../../application/create-budget-line.use-case';
 import { CreateBudgetLineSpreadUseCase } from '../../application/create-budget-line-spread.use-case';
+import { CreateSavingsWithdrawalUseCase } from '../../application/create-savings-withdrawal.use-case';
+import { DeleteSavingsWithdrawalUseCase } from '../../application/delete-savings-withdrawal.use-case';
 import { SpreadBudgetLineFromLineUseCase } from '../../application/spread-budget-line-from-line.use-case';
 import { UpdateBudgetLineUseCase } from '../../application/update-budget-line.use-case';
 import { RemoveBudgetLineUseCase } from '../../application/remove-budget-line.use-case';
@@ -82,6 +91,8 @@ export class BudgetLineController {
     private readonly findByBudgetUseCase: FindBudgetLinesByBudgetUseCase,
     private readonly createUseCase: CreateBudgetLineUseCase,
     private readonly createSpreadUseCase: CreateBudgetLineSpreadUseCase,
+    private readonly createSavingsWithdrawalUseCase: CreateSavingsWithdrawalUseCase,
+    private readonly deleteSavingsWithdrawalUseCase: DeleteSavingsWithdrawalUseCase,
     private readonly spreadFromLineUseCase: SpreadBudgetLineFromLineUseCase,
     private readonly updateUseCase: UpdateBudgetLineUseCase,
     private readonly removeUseCase: RemoveBudgetLineUseCase,
@@ -158,6 +169,84 @@ export class BudgetLineController {
         createdBudgets: mapBudgetsToApi(result.createdBudgets),
         skippedMonths: result.skippedMonths,
       },
+    };
+  }
+
+  @Post('savings-withdrawal')
+  @ApiOperation({
+    summary:
+      "Pioche dans l'épargne : crée le couple Revenu M / Épargne M+1 lié (PUL-292)",
+    description:
+      "UNE action crée deux prévisions one_off liées par savings_withdrawal_group_id : un Revenu de `amount` sur le mois du budget consulté (M) et une Épargne du MÊME montant sur M+1 (« Remettre sur ton épargne »). M+1 est provisionné STRICTEMENT depuis le template par défaut (422 si impossible, rien n'est créé). `groupId` est la clé d'idempotence client : un POST rejoué renvoie le couple d'origine sans doublon.",
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Couple Revenu M / Épargne M+1 créé avec succès',
+    type: BudgetLineSavingsWithdrawalResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid input data',
+    type: ErrorResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Budget du mois consulté non trouvé',
+    type: ErrorResponseDto,
+  })
+  @HttpCode(HttpStatus.CREATED)
+  async createSavingsWithdrawal(
+    @Body() createDto: BudgetLineSavingsWithdrawalCreateDto,
+    @User() user: AuthenticatedUser,
+  ): Promise<BudgetLineSavingsWithdrawalResponse> {
+    const result = await this.createSavingsWithdrawalUseCase.execute(
+      createDto,
+      user,
+    );
+    return {
+      success: true,
+      data: {
+        groupId: result.groupId,
+        incomeLine: this.mapper.toApi(result.incomeLine),
+        savingLine: this.mapper.toApi(result.savingLine),
+        createdBudget: result.createdBudget
+          ? mapBudgetsToApi([result.createdBudget])[0]
+          : null,
+      },
+    };
+  }
+
+  @Delete('savings-withdrawal/:groupId')
+  @ApiOperation({
+    summary: "Supprime un couple pioche dans l'épargne (choix explicite CA9)",
+    description:
+      "Suppression groupée atomique du couple lié : `scope=pair` supprime les DEUX lignes (« tout annuler »), `scope=repayment` supprime uniquement l'Épargne de M+1 (« garder le Revenu de M seul » — le Revenu conserve son badge).",
+  })
+  @ApiParam({
+    name: 'groupId',
+    description: 'Identifiant du groupe savings_withdrawal du couple',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Couple supprimé avec succès',
+    type: BudgetLineDeleteResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Groupe non trouvé',
+    type: ErrorResponseDto,
+  })
+  async removeSavingsWithdrawal(
+    @Param('groupId') groupId: string,
+    @Query() query: BudgetLineSavingsWithdrawalDeleteQueryDto,
+    @User() user: AuthenticatedUser,
+  ): Promise<BudgetLineDeleteResponse> {
+    await this.deleteSavingsWithdrawalUseCase.execute(
+      groupId,
+      query.scope,
+      user,
+    );
+    return {
+      success: true,
+      message: 'Savings withdrawal group deleted successfully',
     };
   }
 

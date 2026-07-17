@@ -4,6 +4,10 @@ import SwiftUI
 struct AddBudgetLineSheet: View {
     let budgetId: String
     let onAdd: (BudgetLine) -> Void
+    /// When the income "remets le mois prochain" toggle is ON, the CTA routes
+    /// here with a prefilled withdrawal intent instead of creating a plain
+    /// income (PUL-292). `nil` outside BudgetDetails (e.g. previews).
+    let onRequestSavingsWithdrawal: ((SavingsWithdrawalPrefill) -> Void)?
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
@@ -22,15 +26,17 @@ struct AddBudgetLineSheet: View {
     @State private var inputCurrency: SupportedCurrency = .chf
     @State private var mode: BudgetLineCreationMode = .once
     @State private var amountMode: SpreadAmountMode = .total
+    /// PUL-292 — income-only, OFF by default. ON reroutes the CTA to the
+    /// "piocher dans son épargne" preview, prefilled.
+    @State private var remitNextMonth = false
     @State private var spreadCalculator: SpreadCalculator
     /// Idempotency key for the spread create (PUL-17), minted ONCE per sheet
-    /// presentation (= per create intent) and reused on every submit retry so a
-    /// double-tap or a retry after a post-commit failure replays the same group
-    /// instead of duplicating it. `.sheet(item:)` rebuilds this view per
-    /// presentation, so a fresh intent always gets a fresh key. Lowercased to
-    /// mirror the web's `crypto.randomUUID()`.
+    /// presentation and replayed on every submit retry so a double-tap replays
+    /// the group instead of duplicating it. Lowercased to mirror `crypto.randomUUID()`.
     @State private var spreadGroupId = UUID().uuidString.lowercased()
 
+    private let anchorMonth: Int
+    private let anchorYear: Int
     private let dependencies: AddBudgetLineDependencies
     private let conversionService = CurrencyConversionService.shared
 
@@ -39,10 +45,14 @@ struct AddBudgetLineSheet: View {
         anchorMonth: Int,
         anchorYear: Int,
         dependencies: AddBudgetLineDependencies = .live,
+        onRequestSavingsWithdrawal: ((SavingsWithdrawalPrefill) -> Void)? = nil,
         onAdd: @escaping (BudgetLine) -> Void
     ) {
         self.budgetId = budgetId
+        self.anchorMonth = anchorMonth
+        self.anchorYear = anchorYear
         self.dependencies = dependencies
+        self.onRequestSavingsWithdrawal = onRequestSavingsWithdrawal
         self.onAdd = onAdd
         // Anchor the spread on the OPENED budget's period — not the device's
         // current month — so tranches land in the right months (PUL-17).
@@ -54,6 +64,9 @@ struct AddBudgetLineSheet: View {
 
     private var isSpreadMode: Bool { mode == .spread }
 
+    /// Income "remets le mois prochain" ON — the CTA reroutes to the withdrawal preview (PUL-292).
+    private var isSavingsWithdrawalMode: Bool { kind == .income && remitNextMonth }
+
     /// Hero hint follows the amount mode in spread mode — "Montant total" when the
     /// server divides, "Montant par mois" when it replicates. `nil` outside spread.
     private var amountFieldHint: String? {
@@ -62,9 +75,10 @@ struct AddBudgetLineSheet: View {
     }
 
     private var canSubmit: Bool {
-        guard !name.trimmingCharacters(in: .whitespaces).isEmpty,
-              (amount ?? 0) > 0,
-              !isLoading else { return false }
+        guard (amount ?? 0) > 0, !isLoading else { return false }
+        // Withdrawal reroute: the source name is optional (defaults to "Mon épargne").
+        if isSavingsWithdrawalMode { return true }
+        guard !name.trimmingCharacters(in: .whitespaces).isEmpty else { return false }
         return isSpreadMode ? spreadCalculator.isValid : true
     }
 
@@ -129,7 +143,12 @@ struct AddBudgetLineSheet: View {
                 if kind == .saving {
                     SavingsGoalPickerField(selection: $savingsGoalId)
                 }
-                CheckedToggle(isOn: $isChecked, tintColor: kind.color)
+                if kind == .income {
+                    remitToggle
+                }
+                if !isSavingsWithdrawalMode {
+                    CheckedToggle(isOn: $isChecked, tintColor: kind.color)
+                }
             }
 
             if let error {
@@ -143,11 +162,23 @@ struct AddBudgetLineSheet: View {
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
         .onAppear { inputCurrency = userSettingsStore.currency }
         .onChange(of: kind) { _, newKind in
-            // Income can't be spread: bouncing back to income resets the mode.
+            // Income can't be spread; only savings carry a goal; remit is income-only.
             if newKind == .income { mode = .once }
-            // Mirror the backend kind-guard: only savings can carry a goal.
             if newKind != .saving { savingsGoalId = nil }
+            if newKind != .income { remitNextMonth = false }
         }
+    }
+
+    // MARK: - Remets le mois prochain (PUL-292)
+
+    private var remitToggle: some View {
+        Toggle("Je remets cet argent le mois prochain", isOn: $remitNextMonth)
+            .font(PulpeTypography.bodyLarge)
+            .tint(kind.color)
+            .padding(DesignTokens.Spacing.lg)
+            .background(Color.inputBackgroundSoft)
+            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
+            .accessibilityHint("Crée une épargne le mois prochain pour reconstituer cette somme")
     }
 
     // MARK: - Description
@@ -166,7 +197,8 @@ struct AddBudgetLineSheet: View {
     // MARK: - Add Button
 
     private var ctaTitle: String {
-        isSpreadMode ? "Lisser la dépense" : "Ajouter"
+        if isSavingsWithdrawalMode { return "Continuer" }
+        return isSpreadMode ? "Lisser la dépense" : "Ajouter"
     }
 
     private var addButton: some View {
@@ -189,14 +221,33 @@ struct AddBudgetLineSheet: View {
 
     // MARK: - Logic
 
-    /// Routes to the single-line or spread flow. The "Une seule fois" path is
-    /// unchanged; "Lisser" fans the amount out over the selected months.
+    /// Routes to the withdrawal, spread, or single-line flow.
     private func submit() async {
-        if isSpreadMode {
+        if isSavingsWithdrawalMode {
+            routeToSavingsWithdrawal()
+        } else if isSpreadMode {
             await addSpread()
         } else {
             await addBudgetLine()
         }
+    }
+
+    /// Hands a prefilled withdrawal intent to the router (PUL-292): the typed
+    /// name becomes the optional source, the sheet opens at its preview step.
+    private func routeToSavingsWithdrawal() {
+        guard let amount, amount > 0 else { return }
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        onRequestSavingsWithdrawal?(
+            SavingsWithdrawalPrefill(
+                budgetId: budgetId,
+                anchorMonth: anchorMonth,
+                anchorYear: anchorYear,
+                amount: amount,
+                inputCurrency: inputCurrency,
+                source: trimmed.isEmpty ? nil : trimmed,
+                startsAtPreview: true
+            )
+        )
     }
 
     private func addBudgetLine() async {
@@ -237,15 +288,10 @@ struct AddBudgetLineSheet: View {
         }
     }
 
-    /// Fans the per-month amount over every SELECTED month (PUL-17, interpretation B).
-    /// FX is frozen once: a single conversion feeds one `exchangeRate` shared by
-    /// every tranche, and each tranche carries the same `originalAmount` when
-    /// multi-currency. On success the cross-budget caches are invalidated OUTSIDE
-    /// any coordinator (a spread touches N months that the detail coordinator
-    /// doesn't own) so the list and every detail page revalidate. The single
-    /// occurrence landing in the CURRENTLY-open budget is fed back through
-    /// `onAdd` so the active detail screen refreshes immediately (same seam as
-    /// the single-line path) — the `.task(id:)` doesn't re-run on sheet dismiss.
+    /// Fans the per-month amount over every SELECTED month (PUL-17, interp. B).
+    /// FX frozen once (one shared `exchangeRate`). Cross-budget caches are
+    /// invalidated OUTSIDE any coordinator (a spread touches N months it doesn't
+    /// own); the occurrence in the open budget is fed back via `onAdd`.
     private func addSpread() async {
         guard let amount, spreadCalculator.isValid else { return }
 
@@ -273,15 +319,14 @@ struct AddBudgetLineSheet: View {
 
             let response = try await dependencies.createSpread(data)
 
-            // Refresh the active detail screen when one occurrence landed in the
-            // currently-open budget — reuses the single-line `onAdd` seam so the
-            // coordinator appends the line + recomputes totals (PUL-270).
+            // Refresh the active screen via the single-line `onAdd` seam when an
+            // occurrence landed in the open budget (PUL-270).
             if let openLine = response.lines.first(where: { $0.budgetId == budgetId }) {
                 onAdd(openLine)
             }
 
-            // Cross-budget invalidation — OUTSIDE the coordinator (spec PUL-17).
-            // Still required for the OTHER months the coordinator doesn't own.
+            // Cross-budget invalidation OUTSIDE the coordinator, for the OTHER
+            // months it doesn't own (PUL-17).
             dependencies.invalidateCrossBudgetCaches(budgetListStore)
 
             submitSuccessTrigger.toggle()
@@ -291,27 +336,6 @@ struct AddBudgetLineSheet: View {
             self.error = error
         }
     }
-}
-
-struct AddBudgetLineDependencies: Sendable {
-    var createBudgetLine: @Sendable (BudgetLineCreate) async throws -> BudgetLine
-    var createSpread: @Sendable (BudgetLineSpreadCreate) async throws -> BudgetLineSpreadResponse
-    /// Cross-budget cache invalidation fired on spread success — OUTSIDE the
-    /// BudgetDetails coordinator. Injectable so tests can assert it ran.
-    var invalidateCrossBudgetCaches: @MainActor (BudgetListStore) -> Void
-
-    static let live = AddBudgetLineDependencies(
-        createBudgetLine: { data in
-            try await BudgetLineService.shared.createBudgetLine(data)
-        },
-        createSpread: { data in
-            try await BudgetLineService.shared.createSpread(data)
-        },
-        invalidateCrossBudgetCaches: { budgetListStore in
-            BudgetDetailCache.shared.invalidateAll()
-            budgetListStore.invalidateCache()
-        }
-    )
 }
 
 #Preview {

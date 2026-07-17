@@ -1,55 +1,78 @@
-import Link from 'next/link'
-import { Heart } from 'lucide-react'
-import { Container } from '@/components/ui'
-import { ANGULAR_APP_URL, GITHUB_URL, CONTACT_EMAIL } from '@/lib/config'
+import Image from "next/image";
+import Link from "next/link";
+import { Container } from "@/components/ui";
+import { ANGULAR_APP_URL, CONTACT_EMAIL, GITHUB_URL } from "@/lib/config";
+
+const FOOTER_LINKS = [
+  { label: "Code source", href: GITHUB_URL, external: true },
+  { label: "Conditions", href: `${ANGULAR_APP_URL}/legal/cgu` },
+  {
+    label: "Confidentialité",
+    href: `${ANGULAR_APP_URL}/legal/confidentialite`,
+  },
+  { label: "Nouveautés", href: "/changelog", internal: true },
+  { label: "Support", href: "/support", internal: true },
+  { label: "Contact", href: `mailto:${CONTACT_EMAIL}` },
+] as const;
 
 export function Footer() {
   return (
-    <footer className="py-12 bg-surface">
-      {/* Gradient border replacing solid border */}
-      <div className="h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent mb-12" aria-hidden="true" />
-
+    <footer className="border-t border-text/10 bg-transparent py-10">
       <Container>
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-2 font-bold text-xl text-text">
-            <img src="/icon-64.webp" alt="Pulpe logo" width={32} height={32} loading="lazy" className="h-8 w-auto" />
-            <span>Pulpe</span>
+        <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-xl font-bold text-text">
+              <Image
+                src="/icon-64.webp"
+                alt=""
+                width={32}
+                height={32}
+                className="size-8"
+              />
+              <span>Pulpe</span>
+            </div>
+            <p className="mt-2 text-sm text-text-secondary">
+              Le budget tourné vers les mois qui viennent. Créé en Suisse.
+            </p>
           </div>
 
-          <nav aria-label="Liens utiles" className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 md:gap-x-6 text-sm text-text-secondary">
-            <a
-              href={GITHUB_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-text transition-colors py-3"
-            >
-              Code source
-            </a>
-            <a href={`${ANGULAR_APP_URL}/legal/cgu`} className="hover:text-text transition-colors py-3">
-              Conditions d'utilisation
-            </a>
-            <a href={`${ANGULAR_APP_URL}/legal/confidentialite`} className="hover:text-text transition-colors py-3">
-              Politique de confidentialité
-            </a>
-            <Link href="/changelog" className="hover:text-text transition-colors py-3">
-              Nouveautés
-            </Link>
-            <Link href="/support" className="hover:text-text transition-colors py-3">
-              Support
-            </Link>
-            <a
-              href={`mailto:${CONTACT_EMAIL}`}
-              className="hover:text-text transition-colors py-3"
-            >
-              Contact
-            </a>
-          </nav>
+          <nav
+            aria-label="Liens utiles"
+            className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-text-secondary"
+          >
+            {FOOTER_LINKS.map((link) => {
+              const className =
+                "inline-flex min-h-11 items-center rounded-md transition-colors duration-200 hover:text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transition-none";
 
-          <p className="text-sm text-text-secondary">
-            Fait avec <Heart className="w-4 h-4 text-primary inline-block align-text-bottom" aria-hidden="true" /> en Suisse
-          </p>
+              if ("internal" in link && link.internal) {
+                return (
+                  <Link key={link.label} href={link.href} className={className}>
+                    {link.label}
+                  </Link>
+                );
+              }
+
+              return (
+                <a
+                  key={link.label}
+                  href={link.href}
+                  className={className}
+                  target={
+                    "external" in link && link.external ? "_blank" : undefined
+                  }
+                  rel={
+                    "external" in link && link.external
+                      ? "noopener noreferrer"
+                      : undefined
+                  }
+                >
+                  {link.label}
+                </a>
+              );
+            })}
+          </nav>
         </div>
       </Container>
     </footer>
-  )
+  );
 }

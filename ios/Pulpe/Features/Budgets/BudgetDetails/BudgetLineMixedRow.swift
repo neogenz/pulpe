@@ -29,6 +29,10 @@ struct BudgetLineMixedRow: View {
     /// `nil` when unlinked / not a saving line / the goal cache is still loading.
     /// Passed as a primitive so the row never reads `SavingsGoalStore` directly.
     let savingsGoalName: String?
+    /// Origin month name (M) of a savings-withdrawal repayment (PUL-292), shown as
+    /// a subtitle complement on the M+1 "Remettre sur ton épargne" saving line.
+    /// Passed pre-resolved (budget month − 1) so the row never does date math.
+    var savingsWithdrawalOriginMonthName: String?
     let onTap: () -> Void
     let onTogglePointed: () -> Void
 
@@ -179,6 +183,11 @@ struct BudgetLineMixedRow: View {
                     .accessibilityLabel("Dépense lissée")
             }
 
+            if line.isSavingsWithdrawalIncome {
+                PulpeChip(icon: TransactionKind.savingsIcon, label: "pris sur ton épargne", style: .muted)
+                    .accessibilityLabel("Revenu pris sur ton épargne")
+            }
+
             if let savingsGoalName {
                 PulpeChip(icon: "target", label: savingsGoalName, style: .muted)
                     .lineLimit(1)
@@ -233,16 +242,28 @@ struct BudgetLineMixedRow: View {
 
     // Saving: "Transféré" once fully covered, "X.XX CHF à transférer" only on
     // partial. When nothing has been transferred yet the hero already shows the
-    // planned amount; repeating it as a subtitle would be redundant.
+    // planned amount; repeating it as a subtitle would be redundant. A savings
+    // withdrawal repayment (PUL-292) adds "pris en {mois}" as a COMPLEMENT — the
+    // RG-010 "à transférer / Transféré" line always remains.
     @ViewBuilder
     private var savingSubtitle: some View {
-        if hasReal && realAmount >= plannedAmount {
-            Text("Transféré")
-                .foregroundStyle(Color.textTertiary)
-        } else if hasReal {
-            let remaining = plannedAmount - realAmount
-            Text("\(remaining.asCurrency(currency)) à transférer")
-                .foregroundStyle(Color.textTertiary)
+        let showTransferred = hasReal && realAmount >= plannedAmount
+        let showRemaining = hasReal && realAmount < plannedAmount
+        let showOrigin = savingsWithdrawalOriginMonthName != nil && line.savingsWithdrawalGroupId != nil
+        if showTransferred || showRemaining || showOrigin {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                if showTransferred {
+                    Text("Transféré")
+                        .foregroundStyle(Color.textTertiary)
+                } else if showRemaining {
+                    Text("\((plannedAmount - realAmount).asCurrency(currency)) à transférer")
+                        .foregroundStyle(Color.textTertiary)
+                }
+                if showOrigin, let originName = savingsWithdrawalOriginMonthName {
+                    Text("pris en \(originName)")
+                        .foregroundStyle(Color.textTertiary)
+                }
+            }
         }
     }
 

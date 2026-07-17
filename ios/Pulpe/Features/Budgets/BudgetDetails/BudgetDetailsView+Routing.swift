@@ -23,19 +23,31 @@ extension BudgetDetailsView {
         }
     }
 
+    /// Extracted from `sheetContent(for:)` to keep that switch under the
+    /// function-length budget. Anchors the spread on the OPENED budget's period,
+    /// not the device month (PUL-17); the income toggle reroutes to the
+    /// withdrawal preview via the same `.sheet(item:)` slot (PUL-292).
+    @ViewBuilder
+    private var addBudgetLineSheet: some View {
+        let openBudget = coordinator.dataStore.budget
+        AddBudgetLineSheet(
+            budgetId: coordinator.dataStore.budgetId,
+            anchorMonth: openBudget?.month ?? Calendar.current.component(.month, from: Date()),
+            anchorYear: openBudget?.year ?? Calendar.current.component(.year, from: Date()),
+            onRequestSavingsWithdrawal: { prefill in
+                router.present(.savingsWithdrawal(prefill))
+            },
+            onAdd: { budgetLine in
+                Task { await coordinator.dispatch(.addBudgetLine(budgetLine)) }
+            }
+        )
+    }
+
     @ViewBuilder
     func sheetContent(for destination: BudgetDetailDestination) -> some View {
         switch destination {
         case .addBudgetLine:
-            // Anchor the spread on the OPENED budget's period, not the device month (PUL-17).
-            let openBudget = coordinator.dataStore.budget
-            AddBudgetLineSheet(
-                budgetId: coordinator.dataStore.budgetId,
-                anchorMonth: openBudget?.month ?? Calendar.current.component(.month, from: Date()),
-                anchorYear: openBudget?.year ?? Calendar.current.component(.year, from: Date())
-            ) { budgetLine in
-                Task { await coordinator.dispatch(.addBudgetLine(budgetLine)) }
-            }
+            addBudgetLineSheet
         case .editBudgetLine(let line):
             EditBudgetLineSheet(budgetLine: line, userCurrency: userSettingsStore.currency) { updatedLine in
                 Task { await coordinator.dispatch(.updateBudgetLine(updatedLine)) }
@@ -76,6 +88,13 @@ extension BudgetDetailsView {
                         .spreadTransactionFromExisting(txId: source.id, periods: periods, ctx)
                     )
                 }
+            }
+        case .savingsWithdrawal(let prefill):
+            // Same seam as the additive `onAdd`: the sheet awaits the server, then
+            // hands back the confirmed income line so the coordinator grafts it
+            // into M and wipes cross-month caches (the paired saving lands in M+1).
+            SavingsWithdrawalSheet(prefill: prefill) { incomeLine in
+                Task { await coordinator.dispatch(.createSavingsWithdrawal(incomeLine: incomeLine)) }
             }
         }
     }

@@ -14,7 +14,7 @@ import { ApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
-import RecoverVaultCode from './recover-vault-code';
+import RecoverVaultCode, { SUPPORT_URL } from './recover-vault-code';
 
 describe('RecoverVaultCode', () => {
   let fixture: ComponentFixture<RecoverVaultCode>;
@@ -164,7 +164,7 @@ describe('RecoverVaultCode', () => {
       ) as HTMLAnchorElement;
 
       expect(supportLink).toBeTruthy();
-      expect(supportLink.href).toBe('https://pulpe.app/support');
+      expect(supportLink.href).toBe(SUPPORT_URL);
       expect(supportLink.textContent).toContain('Contacter le support');
     });
   });

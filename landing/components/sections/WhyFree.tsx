@@ -1,120 +1,81 @@
-import { Card, FadeIn, Section } from "@/components/ui";
-import { ANGULAR_APP_URL, GITHUB_URL } from "@/lib/config";
-import { Code2, Globe, Shield } from "lucide-react";
+import { Code2, ExternalLink, Server, ShieldCheck } from "lucide-react";
+import { Section } from "@/components/ui";
+import { GITHUB_URL } from "@/lib/config";
 
-const TRUST_BADGES = [
+const GUARANTEES = [
   {
-    icon: Shield,
-    label: "Montants protégés",
-    description: "Tes montants sont chiffrés et inaccessibles, même par moi.",
+    icon: ShieldCheck,
+    title: "Montants chiffrés",
+    text: "Les données financières sont chiffrées en base avec AES-256-GCM et une architecture split-key.",
   },
   {
-    icon: Globe,
-    label: "Hébergé en Europe",
-    description: "Données et analytics hébergés en UE.",
+    icon: Server,
+    title: "Analytics européens",
+    text: "Le suivi d’usage est configuré sur l’infrastructure européenne de PostHog.",
   },
   {
     icon: Code2,
-    label: "Open Source",
-    description: "Code ouvert, vérifiable par tous.",
-  },
-] as const;
-
-const REASONS = [
-  {
-    title: "Un projet né d'un vrai besoin",
-    text: "J'ai créé Pulpe parce que j'en avais marre de galérer à suivre mon budget sur mobile. Je m'en sers tous les jours, des proches aussi. Je l'ai construit pour moi d'abord — s'il m'aide autant, il peut t'aider.",
-  },
-  {
-    title: "Gratuit et open source",
-    text: "Pas de publicité, pas d'abonnement caché. Un projet personnel développé par passion.",
-  },
-  {
-    title: "Tes données sont protégées",
-    text: "Données hébergées en Europe, tes montants sont protégés par chiffrement et contrôle d'accès. Toi seul peux y accéder et les lire — même pas moi.",
+    title: "Code ouvert",
+    text: "Le code source est public : tu peux vérifier comment Pulpe fonctionne et protège tes données.",
   },
 ] as const;
 
 export function WhyFree() {
   return (
-    <Section background="grain" id="why-free">
-      <div className="max-w-3xl mx-auto">
-        <FadeIn variant="blur">
-          <h2 className="text-3xl md:text-5xl font-bold text-center mb-12 tracking-[-0.02em] balance">
-            Pourquoi Pulpe{' '}
-            <span className="italic font-normal text-primary">
-              est gratuit.
-            </span>
+    <Section id="why-free">
+      <div className="grid gap-14 lg:grid-cols-5 lg:gap-20">
+        <div className="lg:col-span-3">
+          <p className="text-sm font-medium text-primary">
+            Une note du créateur
+          </p>
+          <h2 className="mt-3 text-4xl font-bold leading-[1.05] tracking-[-0.035em] sm:text-5xl lg:text-6xl">
+            J&apos;avais besoin d&apos;un budget qui regarde devant.
           </h2>
-        </FadeIn>
-
-        {/* Trust badges */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-14">
-          {TRUST_BADGES.map((badge, index) => (
-            <FadeIn key={badge.label} variant="blur" delay={index * 0.1}>
-              <Card
-                variant="organic"
-                className="h-full flex flex-col items-center text-center p-5 lg:p-6"
-              >
-                <div className="flex items-center justify-center w-11 h-11 rounded-full bg-primary/10 mb-3">
-                  <badge.icon
-                    className="w-5 h-5 text-primary"
-                    strokeWidth={1.5}
-                  />
-                </div>
-                <span className="text-sm font-semibold text-text mb-1">
-                  {badge.label}
-                </span>
-                <span className="text-xs text-text-secondary">
-                  {badge.description}
-                </span>
-              </Card>
-            </FadeIn>
-          ))}
-        </div>
-
-        {/* Reasons */}
-        <div className="space-y-8 text-text-secondary">
-          {REASONS.map((reason, index) => (
-            <FadeIn key={reason.title} variant="blur" delay={0.3 + index * 0.1}>
-              <div>
-                <h3 className="font-semibold text-text mb-2">{reason.title}</h3>
-                <p className="leading-relaxed">{reason.text}</p>
-              </div>
-            </FadeIn>
-          ))}
-
-          <FadeIn variant="blur" delay={0.6}>
-            <p className="font-semibold text-text pt-4">
-              — Maxime, créateur de Pulpe
+          <div className="mt-7 max-w-2xl space-y-5 text-lg leading-relaxed text-text-secondary">
+            <p>
+              J&apos;ai créé Pulpe après trop de mois passés à bricoler des
+              tableurs qui expliquaient le passé, sans m&apos;aider à anticiper
+              la suite.
             </p>
-          </FadeIn>
+            <p>
+              Le projet est gratuit aujourd&apos;hui, sans publicité ni
+              abonnement. Il reste open source pour que son fonctionnement ne
+              repose pas sur une promesse impossible à vérifier.
+            </p>
+          </div>
+          <p className="mt-8 font-semibold text-text">
+            Maxime, créateur de Pulpe
+          </p>
+          <a
+            href={GITHUB_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-lg px-1 font-medium text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            Voir le code source
+            <ExternalLink className="size-4" aria-hidden="true" />
+          </a>
         </div>
 
-        <FadeIn variant="blur" delay={0.7}>
-          <div className="flex flex-wrap gap-2 justify-center mt-10 text-sm">
-            <a
-              href={GITHUB_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-accent hover:underline py-3 px-2"
+        <dl className="lg:col-span-2">
+          {GUARANTEES.map((guarantee, index) => (
+            <div
+              key={guarantee.title}
+              className={`py-7 ${index > 0 ? "border-t border-text/10" : ""}`}
             >
-              Voir le code source
-            </a>
-            <a
-              href={`${ANGULAR_APP_URL}/legal/cgu`}
-              className="text-accent hover:underline py-3 px-2"
-            >
-              CGU
-            </a>
-            <a
-              href={`${ANGULAR_APP_URL}/legal/confidentialite`}
-              className="text-accent hover:underline py-3 px-2"
-            >
-              Confidentialité
-            </a>
-          </div>
-        </FadeIn>
+              <dt className="flex items-center gap-3 font-semibold text-text">
+                <guarantee.icon
+                  className="size-5 text-primary"
+                  strokeWidth={1.7}
+                />
+                {guarantee.title}
+              </dt>
+              <dd className="mt-3 text-sm leading-relaxed text-text-secondary">
+                {guarantee.text}
+              </dd>
+            </div>
+          ))}
+        </dl>
       </div>
     </Section>
   );

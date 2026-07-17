@@ -37,6 +37,14 @@ html {
   );
 }
 
+.add-transaction-dialog {
+  @include mat.dialog-overrides(
+    (
+      container-max-width: 720px,
+    )
+  );
+}
+
 html {
   width: 100%;
   // Desktop = NOT CDK Breakpoints.Handset (portrait ≥600, landscape ≥960), so it

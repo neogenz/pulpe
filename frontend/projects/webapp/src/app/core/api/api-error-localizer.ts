@@ -25,6 +25,14 @@ const CODE_KEY_MAP = {
     'apiError.budgetLineDeleteFailed',
   [API_ERROR_CODES.BUDGET_LINE_SPREAD_RECALCULATION_FAILED]:
     'apiError.budgetLineSpreadRecalculationFailed',
+  [API_ERROR_CODES.SAVINGS_WITHDRAWAL_GROUP_NOT_FOUND]:
+    'apiError.savingsWithdrawalGroupNotFound',
+  [API_ERROR_CODES.SAVINGS_WITHDRAWAL_CONFLICT]:
+    'apiError.savingsWithdrawalConflict',
+  [API_ERROR_CODES.SAVINGS_WITHDRAWAL_MONTH_UNPROVISIONABLE]:
+    'apiError.savingsWithdrawalMonthUnprovisionable',
+  [API_ERROR_CODES.SAVINGS_WITHDRAWAL_RECALCULATION_FAILED]:
+    'apiError.savingsWithdrawalRecalculationFailed',
   [API_ERROR_CODES.TRANSACTION_NOT_FOUND]: 'apiError.transactionNotFound',
   [API_ERROR_CODES.TRANSACTION_CREATE_FAILED]:
     'apiError.transactionCreationFailed',
