@@ -299,7 +299,7 @@ export class AddTransactionForm {
               name: m.name,
               amount,
               kind: m.kind,
-              category: m.category || null,
+              category: m.category,
               isChecked: m.isChecked,
               conversion: metadata,
             }),

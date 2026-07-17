@@ -76,7 +76,9 @@ describe('AddTransactionBottomSheet', () => {
       .mockResolvedValue();
     const { fixture } = await configureBottomSheet();
 
-    fixture.nativeElement.querySelector('pulpe-loading-button button').click();
+    fixture.nativeElement
+      .querySelector('pulpe-loading-button[testId="transaction-submit-button"]')
+      .click();
 
     expect(submitSpy).toHaveBeenCalledOnce();
   });
