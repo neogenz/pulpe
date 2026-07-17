@@ -44,6 +44,7 @@ function makeProgress(
     targetDate: '2026-08-01',
     plannedCumulative: 400,
     confirmed: 0,
+    initialAmount: 0,
     achievementPercent: 0,
     monthsElapsed: 1,
     monthsRemaining: 2,

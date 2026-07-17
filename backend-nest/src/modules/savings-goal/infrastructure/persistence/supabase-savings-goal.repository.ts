@@ -743,6 +743,9 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       originalCurrency: row.original_currency,
       targetCurrency: row.target_currency,
       exchangeRate: row.exchange_rate,
+      initialAmount: row.initial_amount
+        ? this.encryption.tryDecryptAmount(row.initial_amount, dek, null)
+        : null,
     };
   }
 
@@ -757,12 +760,18 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       user.id,
       user.clientKey,
     );
+    const initialAmount = await this.encryption.encryptOptionalAmount(
+      input.initialAmount,
+      user.id,
+      user.clientKey,
+    );
 
     return {
       user_id: user.id,
       name: input.name,
       target_amount: targetAmount,
       original_target_amount: originalTargetAmount,
+      initial_amount: initialAmount,
       target_date: input.targetDate,
       status: input.status,
       ...mapCurrencyNonAmountMetadataToDb(
@@ -801,6 +810,14 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
           user.id,
           user.clientKey,
         );
+    }
+
+    if (patch.initialAmount !== undefined) {
+      updateData.initial_amount = await this.encryption.encryptOptionalAmount(
+        patch.initialAmount,
+        user.id,
+        user.clientKey,
+      );
     }
 
     Object.assign(

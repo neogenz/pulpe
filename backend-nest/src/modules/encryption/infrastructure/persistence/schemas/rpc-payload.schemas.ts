@@ -57,6 +57,7 @@ export const rekeySavingsGoalRpcPayloadSchema = z
     id: uuid,
     target_amount: nullableCiphertext,
     original_target_amount: nullableCiphertext,
+    initial_amount: nullableCiphertext,
   })
   .strict();
 

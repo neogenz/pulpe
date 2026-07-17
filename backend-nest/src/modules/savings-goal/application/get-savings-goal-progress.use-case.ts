@@ -4,6 +4,9 @@ import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import {
   buildSavingsGoalTimeline,
   computeSavingsGoalProgress,
+  type BudgetPeriod,
+  type LinkedSavingLine,
+  type LinkedSavingTransaction,
   type SavingsGoalProgressInput,
 } from 'pulpe-shared';
 import {
@@ -14,7 +17,11 @@ import {
   BUDGET_TEMPLATE_REPOSITORY,
   type BudgetTemplateRepositoryPort,
 } from '@modules/budget-template/domain/ports/budget-template-repository.port';
-import type { SavingsGoalProgressComputation } from '../domain/savings-goal.entity';
+import type { TemplateLine } from '@modules/budget-template/domain/budget-template.entity';
+import type {
+  SavingsGoal,
+  SavingsGoalProgressComputation,
+} from '../domain/savings-goal.entity';
 
 /**
  * Progression d'un objectif (PUL-8 + PUL-12) — les 11 formules de docs/SAVINGS.md
@@ -58,19 +65,13 @@ export class GetSavingsGoalProgressUseCase {
       ? await this.templateRepo.findLinesByTemplateId(defaultTemplateId)
       : [];
 
-    const input: SavingsGoalProgressInput = {
-      targetAmount: goal.targetAmount,
-      status: goal.status,
-      createdAt: goal.createdAt,
-      targetDate: goal.targetDate,
+    const input = this.buildInput(goal, {
       payDayOfMonth,
       materializedPeriods,
-      canProvisionMissingPeriods: templateLines.some(
-        (line) => line.kind === 'saving' && line.savingsGoalId === goal.id,
-      ),
+      templateLines,
       lines,
       transactions,
-    };
+    });
 
     const computed = computeSavingsGoalProgress(input);
     const months = buildSavingsGoalTimeline(input);
@@ -86,5 +87,31 @@ export class GetSavingsGoalProgressUseCase {
     );
 
     return { goal, computed, months };
+  }
+
+  private buildInput(
+    goal: SavingsGoal,
+    data: {
+      payDayOfMonth: number | null;
+      materializedPeriods: BudgetPeriod[];
+      templateLines: TemplateLine[];
+      lines: LinkedSavingLine[];
+      transactions: LinkedSavingTransaction[];
+    },
+  ): SavingsGoalProgressInput {
+    return {
+      targetAmount: goal.targetAmount,
+      status: goal.status,
+      createdAt: goal.createdAt,
+      targetDate: goal.targetDate,
+      payDayOfMonth: data.payDayOfMonth,
+      materializedPeriods: data.materializedPeriods,
+      canProvisionMissingPeriods: data.templateLines.some(
+        (line) => line.kind === 'saving' && line.savingsGoalId === goal.id,
+      ),
+      initialAmount: goal.initialAmount ?? 0,
+      lines: data.lines,
+      transactions: data.transactions,
+    };
   }
 }

@@ -32,6 +32,7 @@ Sur iOS, **Objectifs** est un onglet principal permanent. La **carte Épargne du
 | `target_amount` | text                          | **chiffré AES-256-GCM** (cf. `docs/ENCRYPTION.md`)                                                                                                                                                                      |
 | `target_date`   | date                          | échéance ; à la création, `z.iso.date()` + `.refine(d => d >= today)` (**pas** `.min()` — en Zod 4, `.min()` sur une string ISO mesure la **longueur**, pas la date) ; au plus la **120e période**, mois courant inclus |
 | `status`        | enum                          | `ACTIVE` / `COMPLETED` / `PAUSED` (cf. §6)                                                                                                                                                                              |
+| `initial_amount` | text (nullable)              | **chiffré AES-256-GCM** — montant de départ déjà épargné avant le suivi. `null ≡ 0`. Devise du compte, **hors** contrainte `fx_metadata_coherent` (pas de FX v1). Stock one-shot : compte dans le confirmé, jamais dans le rythme (cf. §4)  |
 | `priority`      | enum (nullable, **dormante**) | **retirée du produit** — voir ci-dessous                                                                                                                                                                                |
 | colonnes FX     | text/null                     | métadonnées de devise, nulles dans la devise du compte (cf. §8)                                                                                                                                                         |
 
@@ -122,18 +123,20 @@ monthsRemaining  = indexEcheance − indexCourant + 1         // mois courant ET
 // 1. Prévu cumulé — pur line.amount des mois ≤ now (PAS d'enveloppe transactions)
 plannedCumulative = Σ line.amount  (linkedSavingLines des mois ≤ indexCourant)
 
-// 2. Confirmé — enveloppe checked-only (checkedAt), tous mois
+// 2. Confirmé — STOCK = montant de départ + enveloppe checked-only (checkedAt), tous mois
 //    calculateRealizedSavings : filtre kind==='saving' STRICT (PAS isOutflowKind)
 //    ET retire le bloc free-transaction (budgetLineId='') — un objectif n'a que des lignes liées
-confirmed = Σ calculateRealizedSavings(linkedSavingLines, linkedTransactions)
+linesConfirmed = Σ calculateRealizedSavings(linkedSavingLines, linkedTransactions)
+confirmed      = initialAmount + linesConfirmed     // initialAmount (§2.1) : stock one-shot, null ≡ 0
 
 // 3. % d'atteinte — sur le CONFIRMÉ, jamais le prévu
 achievementPercent = round( min(confirmed / targetAmount, 1) * 100 )
 //   garde : targetAmount = 0 → 0   (ne JAMAIS diviser par une cible non déchiffrée / nulle)
 
-// 4. Rythme — DEUX rythmes. La projection/paceStatus se basent sur le CONFIRMÉ (cohérent avec la barre)
+// 4. Rythme — DEUX rythmes, tous deux en FLUX (le montant de départ, stock one-shot, en est EXCLU :
+//    l'inclure gonflerait projection et date d'atteinte estimée)
 pace          = plannedCumulative / max(1, monthsElapsed)   // engagement (indicatif secondaire)
-confirmedPace = confirmed         / max(1, monthsElapsed)   // réel pointé — base de la projection
+confirmedPace = linesConfirmed    / max(1, monthsElapsed)   // réel pointé — base de la projection
 
 // 5. Requis pour tenir l'échéance
 required = max(0, targetAmount − confirmed) / monthsRemaining
@@ -159,6 +162,8 @@ paceStatus = behind | on_track | ahead          // via paceStatus(projected, tar
 | **PAUSED**                            | `paceStatus = null` (pas de jugement de rythme sur un objectif en pause).                                                            |
 | **Ancrage**                           | `createdAt` ramené à son **cycle** via `getBudgetPeriodForDate` (un objectif créé le 28 d'un payDay=25 appartient au cycle suivant). |
 | **Pointage anticipé d'un mois futur** | Le pointage est accepté ; le confirmé peut dépasser le prévu cumulé.                                                                 |
+| **Montant de départ (stock vs flux)** | `initialAmount` entre dans `confirmed` (barre, %, `required`, `projected`, D2) mais **jamais** dans `confirmedPace` ni `cumulativeGap` (`= plannedCumulative − linesConfirmed`). |
+| **Montant de départ ≥ cible**         | `suggestCompletion = true` dès la création (D2) — jamais d'auto-flip, l'utilisateur confirme.                                        |
 
 ---
 
@@ -267,9 +272,10 @@ Le simulateur répond à « qu'est-ce que je fais maintenant ? » sans modifier 
 
 `GET /v1/savings-goals/:id/progress` reste l'unique lecture. En plus des métriques de progression, il expose :
 
-- `cumulativeGap = plannedCumulative - confirmed`, signé et jamais borné ;
+- `cumulativeGap = plannedCumulative - linesConfirmed`, signé et jamais borné (flux : le montant de départ en est exclu, cf. §4.3) ;
 - `estimatedCompletion`, période d'atteinte estimée au rythme pointé, ou `null` si elle n'est pas calculable ;
-- `months[]`, une ligne par période avec état temporel, montants prévu/pointé/cumulés, lignes liées et capacité de provisioning.
+- `initialAmount`, le montant de départ déchiffré (0 si absent) — écho pour l'affichage et le seed des simulations client ;
+- `months[]`, une ligne par période avec état temporel, montants prévu/pointé/cumulés, lignes liées et capacité de provisioning. Le cumul confirmé est **seedé** à `initialAmount` : `months[indexCourant].confirmedCumulative == confirmed`.
 
 La timeline est payDay-aware et bornée à 120 périodes. Un budget absent n'est ajustable que si le Mois Type par défaut contient une Prévision Épargne liée permettant de le créer. Un budget existant sans ligne liée reste un gap non provisionnable.
 
@@ -281,6 +287,8 @@ Les calculateurs shared, avec miroir testé sur iOS, portent quatre opérations 
 2. appliquer un brouillon global ou mensuel uniquement aux mois ouverts ;
 3. redistribuer le montant restant au centime près en respectant les mois épinglés ;
 4. répartir le montant d'un mois entre ses lignes ouvertes, proportionnellement puis par plus grand reste.
+
+La simulation (2) et la redistribution (3) reçoivent `initialAmount` en **seed** : le cumul simulé démarre au montant de départ et le restant à redistribuer le soustrait (`max(0, cible − initialAmount − pointé verrouillé − épinglé)`). Le seed vit dans le calculateur (qui re-cumule from scratch), jamais en plus des cumuls serveur déjà seedés — pas de double comptage.
 
 Le serveur reste autoritaire à l'écriture. Les clients ne recalculent jamais le contrat de progression serveur.
 

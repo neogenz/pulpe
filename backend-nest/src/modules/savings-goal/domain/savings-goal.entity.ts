@@ -37,6 +37,8 @@ export interface SavingsGoal {
   originalCurrency: string | null;
   targetCurrency: string | null;
   exchangeRate: number | null;
+  /** Stock déjà épargné avant le suivi (PUL-293), déchiffré. */
+  initialAmount: number | null;
 }
 
 /**
@@ -51,6 +53,7 @@ export interface SavingsGoalCreateInput {
   originalCurrency?: SupportedCurrency | null;
   targetCurrency?: SupportedCurrency | null;
   exchangeRate?: number | null;
+  initialAmount?: number | null;
 }
 
 /**
@@ -67,6 +70,7 @@ export interface SavingsGoalUpdatePatch {
   originalCurrency?: SupportedCurrency | null;
   targetCurrency?: SupportedCurrency | null;
   exchangeRate?: number | null;
+  initialAmount?: number | null;
 }
 
 /**

@@ -249,6 +249,8 @@ export const savingsGoalSchema = z.object({
   originalCurrency: supportedCurrencySchema.nullable().optional(),
   targetCurrency: supportedCurrencySchema.nullable().optional(),
   exchangeRate: exchangeRateWire.nullable().optional(),
+  /** Montant déjà épargné avant le suivi (stock one-shot), chiffré en base. */
+  initialAmount: z.coerce.number().nonnegative().nullable().optional(),
 });
 export type SavingsGoal = z.infer<typeof savingsGoalSchema>;
 
@@ -292,6 +294,8 @@ export const savingsGoalCreateSchema = z.strictObject({
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
   exchangeRate: exchangeRateWirePositive.optional(),
+  /** Montant déjà épargné avant le suivi (stock one-shot). Omis = 0. */
+  initialAmount: z.number().nonnegative().optional(),
 });
 export type SavingsGoalCreate = z.infer<typeof savingsGoalCreateSchema>;
 
@@ -309,6 +313,8 @@ export const savingsGoalUpdateSchema = z.strictObject({
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
   exchangeRate: exchangeRateWirePositive.optional(),
+  /** Omis = inchangé ; `0` efface le montant de départ. */
+  initialAmount: z.number().nonnegative().optional(),
 });
 export type SavingsGoalUpdate = z.infer<typeof savingsGoalUpdateSchema>;
 
@@ -319,7 +325,9 @@ export type SavingsGoalUpdate = z.infer<typeof savingsGoalUpdateSchema>;
  * - `plannedCumulative` : engagement — Σ `line.amount` BRUT des prévisions
  *   Épargne liées des mois écoulés/en cours (pas d'enveloppe transactions).
  * - `confirmed` : réalité pointée — enveloppe checked-only (`checkedAt`),
- *   TOUS les mois (le pointage anticipé d'un mois futur compte).
+ *   TOUS les mois (le pointage anticipé d'un mois futur compte), PLUS
+ *   `initialAmount` (stock de départ). `confirmedPace`/`cumulativeGap`
+ *   restent des mesures de FLUX et excluent ce stock.
  *
  * `achievementPercent` et `suggestCompletion` (D2) portent EXCLUSIVEMENT sur
  * le confirmé — jamais le prévu. La projection (`projected`) et `paceStatus`
@@ -403,6 +411,9 @@ export const savingsGoalProgressSchema = z.object({
   cumulativeGap: z.number(),
   // Date d'atteinte estimée au rythme confirmé (docs/SAVINGS.md §10.2).
   estimatedCompletion: budgetPeriodSchema.nullable(),
+  // Montant de départ (stock, inclus dans confirmed) — default 0 pour les
+  // payloads/mocks existants qui ne portent pas encore le champ.
+  initialAmount: z.number().nonnegative().default(0),
   // Timeline ancrage → cible (chart A + calendrier B + rebase simulateur C).
   months: z.array(savingsGoalPlanMonthSchema),
   // FX door-keepers (CA6) — devise du compte uniquement en v1, toujours null.

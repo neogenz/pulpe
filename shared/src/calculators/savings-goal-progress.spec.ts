@@ -454,6 +454,82 @@ describe('computeSavingsGoalProgress — statuts (D2, PAUSED)', () => {
   });
 });
 
+describe('computeSavingsGoalProgress — initialAmount (stock vs flux)', () => {
+  it('additionne le stock au confirmé/%, l’exclut du rythme et de l’écart cumulé', () => {
+    const may = savingLine(
+      100,
+      { month: 5, year: 2026 },
+      { checkedAt: '2026-05-01T00:00:00Z' },
+    );
+    const june = savingLine(
+      100,
+      { month: 6, year: 2026 },
+      { checkedAt: '2026-06-01T00:00:00Z' },
+    );
+    const withInitial = computeSavingsGoalProgress(
+      baseInput({
+        targetAmount: 10_000,
+        createdAt: '2026-05-01T08:00:00Z',
+        initialAmount: 5_000,
+        lines: [may, june],
+      }),
+    );
+    const withoutInitial = computeSavingsGoalProgress(
+      baseInput({
+        targetAmount: 10_000,
+        createdAt: '2026-05-01T08:00:00Z',
+        lines: [may, june],
+      }),
+    );
+
+    expect(withInitial.confirmed).toBe(5_200);
+    expect(withInitial.achievementPercent).toBe(52);
+    expect(withInitial.confirmedPace).toBe(100);
+    expect(withInitial.initialAmount).toBe(5_000);
+    // Rythme et écart cumulé sont des mesures de FLUX, inchangées par le stock.
+    expect(withInitial.confirmedPace).toBe(withoutInitial.confirmedPace);
+    expect(withInitial.cumulativeGap).toBe(withoutInitial.cumulativeGap);
+  });
+
+  it('un stock ≥ cible déclenche suggestCompletion dès la création', () => {
+    const result = computeSavingsGoalProgress(
+      baseInput({
+        targetAmount: 5_000,
+        createdAt: '2026-06-01T08:00:00Z', // même cycle que "now"
+        initialAmount: 6_000,
+        lines: [],
+      }),
+    );
+    expect(result.suggestCompletion).toBe(true);
+    expect(result.achievementPercent).toBe(100);
+  });
+
+  it('garde targetAmount = 0 intacte même avec un stock positif', () => {
+    const result = computeSavingsGoalProgress(
+      baseInput({ targetAmount: 0, initialAmount: 5_000 }),
+    );
+    expect(result.achievementPercent).toBe(0);
+    expect(result.suggestCompletion).toBe(false);
+  });
+
+  it('non-régression : initialAmount absent ET 0 produisent un résultat strictement identique', () => {
+    const lines = [1, 2, 3, 4, 5, 6].map((month) =>
+      savingLine(
+        1_000,
+        { month, year: 2026 },
+        { checkedAt: month <= 5 ? '2026-06-01T00:00:00Z' : null },
+      ),
+    );
+    const absent = computeSavingsGoalProgress(baseInput({ lines }));
+    const zero = computeSavingsGoalProgress(
+      baseInput({ lines, initialAmount: 0 }),
+    );
+
+    expect(absent.initialAmount).toBe(0);
+    expect(zero).toEqual(absent);
+  });
+});
+
 describe('suggestedMonthlyContribution (PUL-285 CA1/CA6)', () => {
   it('should divide the target across the remaining months, current and deadline months inclusive', () => {
     const suggestion = suggestedMonthlyContribution({

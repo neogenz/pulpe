@@ -42,6 +42,7 @@ export class CreateSavingsGoalUseCase {
       originalCurrency: dto.originalCurrency ?? null,
       targetCurrency: dto.targetCurrency ?? null,
       exchangeRate: dto.exchangeRate ?? null,
+      initialAmount: dto.initialAmount ?? null,
     });
 
     let baselineCreated = false;

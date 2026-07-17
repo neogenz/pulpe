@@ -30,6 +30,7 @@ const mockRow: SavingsGoalRow = {
   original_currency: null,
   target_currency: null,
   exchange_rate: null,
+  initial_amount: null,
 };
 
 function createMockProvider(
@@ -270,6 +271,22 @@ describe('SupabaseSavingsGoalRepository', () => {
     expect(result.targetAmount).toBe(5000); // decrypted from 'enc:5000'
     expect(result.originalTargetAmount).toBeNull();
     expect(result.status).toBe('ACTIVE');
+    expect(result.initialAmount).toBeNull();
+  });
+
+  it('findById decrypts initial_amount (PUL-293)', async () => {
+    const { provider } = createFindByIdProvider({
+      data: { ...mockRow, initial_amount: 'enc:2000' },
+      error: null,
+    });
+    const repo = new SupabaseSavingsGoalRepository(
+      provider,
+      createMockEncryption(),
+    );
+
+    const result = await repo.findById('goal-1');
+
+    expect(result.initialAmount).toBe(2000); // decrypted from 'enc:2000'
   });
 
   it('findById scopes the query to the authenticated user (optimizer hint)', async () => {
@@ -367,6 +384,114 @@ describe('SupabaseSavingsGoalRepository', () => {
     expect(captured?.user_id).toBe('user-1');
     expect(captured?.status).toBe('ACTIVE');
     expect('priority' in (captured ?? {})).toBe(false); // dropped from product
+  });
+
+  it('insert encrypts initialAmount, the row never carries the plaintext (PUL-293)', async () => {
+    let captured: Record<string, unknown> | undefined;
+    const provider = createMockProvider(() => ({
+      insert: (row: Record<string, unknown>) => {
+        captured = row;
+        return {
+          select: () => ({
+            single: jest.fn().mockResolvedValue({ data: mockRow, error: null }),
+          }),
+        };
+      },
+    }));
+    const repo = new SupabaseSavingsGoalRepository(
+      provider,
+      createMockEncryption(),
+    );
+
+    await repo.insert({
+      name: 'Maison',
+      targetAmount: 5000,
+      targetDate: '2099-01-01',
+      status: 'ACTIVE',
+      initialAmount: 2000,
+    });
+
+    expect(captured?.initial_amount).toBe('enc:2000');
+    expect(captured?.initial_amount).not.toBe(2000);
+  });
+
+  it('insert with no initialAmount sends a null column', async () => {
+    let captured: Record<string, unknown> | undefined;
+    const provider = createMockProvider(() => ({
+      insert: (row: Record<string, unknown>) => {
+        captured = row;
+        return {
+          select: () => ({
+            single: jest.fn().mockResolvedValue({ data: mockRow, error: null }),
+          }),
+        };
+      },
+    }));
+    const repo = new SupabaseSavingsGoalRepository(
+      provider,
+      createMockEncryption(),
+    );
+
+    await repo.insert({
+      name: 'Maison',
+      targetAmount: 5000,
+      targetDate: '2099-01-01',
+      status: 'ACTIVE',
+    });
+
+    expect(captured?.initial_amount).toBeNull();
+  });
+
+  it('update encrypts a defined initialAmount, including 0 (PATCH 0 erases the stock)', async () => {
+    let captured: Record<string, unknown> | undefined;
+    const provider = createMockProvider(() => ({
+      update: (row: Record<string, unknown>) => {
+        captured = row;
+        return {
+          eq: () => ({
+            select: () => ({
+              single: jest
+                .fn()
+                .mockResolvedValue({ data: mockRow, error: null }),
+            }),
+          }),
+        };
+      },
+    }));
+    const repo = new SupabaseSavingsGoalRepository(
+      provider,
+      createMockEncryption(),
+    );
+
+    await repo.update('goal-1', { initialAmount: 0 });
+
+    expect(captured?.initial_amount).toBe('enc:0');
+  });
+
+  it('update with initialAmount omitted never touches the initial_amount column', async () => {
+    let captured: Record<string, unknown> | undefined;
+    const provider = createMockProvider(() => ({
+      update: (row: Record<string, unknown>) => {
+        captured = row;
+        return {
+          eq: () => ({
+            select: () => ({
+              single: jest
+                .fn()
+                .mockResolvedValue({ data: mockRow, error: null }),
+            }),
+          }),
+        };
+      },
+    }));
+    const repo = new SupabaseSavingsGoalRepository(
+      provider,
+      createMockEncryption(),
+    );
+
+    await repo.update('goal-1', { name: 'Maison 2' });
+
+    expect('initial_amount' in (captured ?? {})).toBe(false);
   });
 
   it('update maps real database errors to SAVINGS_GOAL_UPDATE_FAILED', async () => {
