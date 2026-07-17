@@ -14,10 +14,10 @@ import { TranslocoPipe } from '@jsverse/transloco';
   imports: [MatButtonModule, MatIconModule, TranslocoPipe],
   template: `
     <div
-      class="flex flex-col gap-3 rounded-corner-large bg-primary-container/40 p-5"
+      class="flex flex-col gap-3 rounded-corner-large bg-primary-container/40 p-4"
       data-testid="savings-withdrawal-card"
     >
-      <h3 class="text-title-medium font-medium text-on-surface">
+      <h3 class="text-title-small font-medium text-balance text-on-surface">
         {{ 'budget.savingsWithdrawal.cardTitle' | transloco }}
       </h3>
 
@@ -26,23 +26,24 @@ import { TranslocoPipe } from '@jsverse/transloco';
         <span>{{ 'budget.savingsWithdrawal.cardLine2' | transloco }}</span>
       </div>
 
-      <button
-        matButton="filled"
-        (click)="withdraw.emit()"
-        data-testid="savings-withdrawal-card-cta"
-      >
-        <mat-icon>savings</mat-icon>
-        {{ 'budget.savingsWithdrawal.cta' | transloco }}
-      </button>
+      <div class="flex flex-wrap items-center gap-2">
+        <button
+          matButton="tonal"
+          (click)="withdraw.emit()"
+          data-testid="savings-withdrawal-card-cta"
+        >
+          <mat-icon>savings</mat-icon>
+          {{ 'budget.savingsWithdrawal.cta' | transloco }}
+        </button>
 
-      <button
-        matButton
-        class="self-center"
-        (click)="dismiss.emit()"
-        data-testid="savings-withdrawal-card-dismiss"
-      >
-        {{ 'budget.savingsWithdrawal.later' | transloco }}
-      </button>
+        <button
+          matButton
+          (click)="dismiss.emit()"
+          data-testid="savings-withdrawal-card-dismiss"
+        >
+          {{ 'budget.savingsWithdrawal.later' | transloco }}
+        </button>
+      </div>
     </div>
   `,
   styles: `

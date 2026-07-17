@@ -42,6 +42,31 @@ const mockBudgetDetailsResponse = createMockBudgetDetailsResponse({
   transactions: [],
 });
 
+// Same month, built from an income and an expense whose float difference lands
+// on `remaining`: every amount below is picked so the subtraction leaves IEEE
+// noise, the very thing the chip used to leak into the amount input.
+const detailsWithDeficitFrom = (income: number, expense: number) =>
+  createMockBudgetDetailsResponse({
+    budget: { id: mockBudgetId, month: 6, year: 2099 },
+    budgetLines: [
+      createMockBudgetLine({
+        id: 'income-1',
+        budgetId: mockBudgetId,
+        name: 'Salaire',
+        amount: income,
+        kind: 'income',
+      }),
+      createMockBudgetLine({
+        id: 'expense-1',
+        budgetId: mockBudgetId,
+        name: 'Loyer',
+        amount: expense,
+        kind: 'expense',
+      }),
+    ],
+    transactions: [],
+  });
+
 const WITHDRAWAL_INPUT: BudgetLineSavingsWithdrawalCreate = {
   budgetId: mockBudgetId,
   amount: 320,
@@ -82,6 +107,18 @@ describe('BudgetDetailsStore — savings withdrawal (PUL-292)', () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
     }
     throw new Error('store did not stabilize in time');
+  };
+
+  // Swaps the loaded budget, then waits for the store to leave the default
+  // fixture's deficit of 1000 behind.
+  const reloadWith = async (
+    response: ReturnType<typeof detailsWithDeficitFrom>,
+  ): Promise<void> => {
+    vi.mocked(TestBed.inject(BudgetApi).getBudgetWithDetails$).mockReturnValue(
+      of(response),
+    );
+    store.reloadBudgetDetails();
+    await waitFor(() => store.savingsWithdrawalDeficit() !== 1000);
   };
 
   const makeCache = () => ({
@@ -207,10 +244,34 @@ describe('BudgetDetailsStore — savings withdrawal (PUL-292)', () => {
     });
   });
 
+  describe('savingsWithdrawalDeficit', () => {
+    it('rounds a float-noisy deficit up to the whole amount the chip displays', async () => {
+      // remaining = -196.96000000000004
+      await reloadWith(detailsWithDeficitFrom(5000.04, 5197));
+
+      expect(store.savingsWithdrawalDeficit()).toBe(197);
+    });
+
+    it('rounds a float-noisy deficit down to the whole amount the chip displays', async () => {
+      // remaining = -197.39999999999964 — the half `Math.ceil` would send to 198
+      await reloadWith(detailsWithDeficitFrom(5000.04, 5197.44));
+
+      expect(store.savingsWithdrawalDeficit()).toBe(197);
+    });
+  });
+
   describe('shouldShowSavingsWithdrawalCard', () => {
     it('shows the card on a current/future month in deficit with no pioche yet', () => {
       expect(store.savingsWithdrawalDeficit()).toBe(1000);
       expect(store.shouldShowSavingsWithdrawalCard()).toBe(true);
+    });
+
+    it('hides the card when the deficit rounds away to nothing to pre-fill', async () => {
+      // remaining = -0.2999999999999545 — a month balanced to the cent
+      await reloadWith(detailsWithDeficitFrom(1000, 1000.3));
+
+      expect(store.savingsWithdrawalDeficit()).toBe(0);
+      expect(store.shouldShowSavingsWithdrawalCard()).toBe(false);
     });
 
     it('hides the card once dismissed for that budget', () => {
