@@ -272,6 +272,7 @@ export class SupabaseTagRepository implements TagRepositoryPort {
     const { data, error } = await this.supabaseProvider.client
       .from('monthly_budget')
       .select('id, month, year')
+      .eq('user_id', this.supabaseProvider.user.id)
       .gte('year', startPeriod.year)
       .lte('year', endPeriod.year);
 

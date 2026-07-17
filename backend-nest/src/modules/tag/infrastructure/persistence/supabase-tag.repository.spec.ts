@@ -240,6 +240,7 @@ describe('SupabaseTagRepository', () => {
   });
 
   it('findHistoryContributions decrypts direct expense links in the requested periods', async () => {
+    let capturedBudgetUserFilter: { column: string; value: unknown } | undefined;
     const historyResult = (data: unknown[]) => ({
       select: () => ({
         eq: () => ({
@@ -253,16 +254,21 @@ describe('SupabaseTagRepository', () => {
       if (table === 'monthly_budget') {
         return {
           select: () => ({
-            gte: () => ({
-              lte: jest.fn().mockResolvedValue({
-                data: [
-                  { id: 'budget-1', month: 12, year: 2026 },
-                  { id: 'budget-2', month: 1, year: 2027 },
-                  { id: 'outside', month: 2, year: 2027 },
-                ],
-                error: null,
-              }),
-            }),
+            eq: (column: string, value: unknown) => {
+              capturedBudgetUserFilter = { column, value };
+              return {
+                gte: () => ({
+                  lte: jest.fn().mockResolvedValue({
+                    data: [
+                      { id: 'budget-1', month: 12, year: 2026 },
+                      { id: 'budget-2', month: 1, year: 2027 },
+                      { id: 'outside', month: 2, year: 2027 },
+                    ],
+                    error: null,
+                  }),
+                }),
+              };
+            },
           }),
         };
       }
@@ -305,6 +311,10 @@ describe('SupabaseTagRepository', () => {
     expect(result).toEqual({
       planned: [{ month: 12, year: 2026, amount: 100 }],
       actual: [{ month: 1, year: 2027, amount: 75 }],
+    });
+    expect(capturedBudgetUserFilter).toEqual({
+      column: 'user_id',
+      value: 'user-1',
     });
     expect(encryption.decryptAmount).toHaveBeenCalledTimes(2);
   });

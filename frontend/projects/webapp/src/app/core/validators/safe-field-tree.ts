@@ -1,5 +1,7 @@
 import type { FieldTree } from '@angular/forms/signals';
 
+// Angular's RuntimeError keeps the NGxxxx code in error.message even in
+// production builds; safe-field-tree.spec.ts locks this contract.
 export function safeFieldTreeRead<T>(
   read: () => FieldTree<T>,
 ): FieldTree<T> | null {

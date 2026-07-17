@@ -156,7 +156,7 @@ export class TagPicker {
   });
 
   protected tagName(id: string): string {
-    return this.#tagStore.tagNameById().get(id) ?? id;
+    return this.#tagStore.tagNameById().get(id) ?? '…';
   }
 
   protected onInput(event: Event): void {

@@ -95,11 +95,15 @@ async function callAtomicTaggedUpdate(
       p_tag_ids: params.tagIds,
     });
   }
-  return supabase.rpc('update_template_line_with_tags', {
-    p_template_line_id: params.entityId,
-    p_patch: params.patch,
-    p_tag_ids: params.tagIds,
-  });
+  if (params.rpcName === 'update_template_line_with_tags') {
+    return supabase.rpc('update_template_line_with_tags', {
+      p_template_line_id: params.entityId,
+      p_patch: params.patch,
+      p_tag_ids: params.tagIds,
+    });
+  }
+  const unhandledRpcName: never = params.rpcName;
+  throw new Error(`Unhandled atomic tagged update RPC: ${unhandledRpcName}`);
 }
 
 function throwTaggedBusinessError(
