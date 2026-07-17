@@ -6,13 +6,7 @@ import {
   output,
   signal,
 } from '@angular/core';
-import {
-  FormField,
-  form,
-  maxLength,
-  minLength,
-  required,
-} from '@angular/forms/signals';
+import { FormField, form, required, validate } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -86,7 +80,7 @@ interface AddTransactionModel {
                 matButton="tonal"
                 type="button"
                 (click)="selectPredefinedAmount(amount)"
-                class="min-h-11 min-w-0 px-2 tabular-nums transition-transform duration-150 ease-out active:scale-[0.96] motion-reduce:transform-none motion-reduce:transition-none"
+                class="min-h-11 min-w-0 whitespace-nowrap px-2! tabular-nums transition-transform duration-150 ease-out active:scale-[0.96] motion-reduce:transform-none motion-reduce:transition-none"
               >
                 {{ amount | appCurrency: currency() : '1.0-0' }}
               </button>
@@ -232,15 +226,35 @@ export class AddTransactionForm {
     required(path.name, {
       message: 'currentMonth.addTransactionDescriptionRequired',
     });
-    minLength(path.name, 2, {
-      message: 'currentMonth.addTransactionDescriptionMin',
+    validate(path.name, ({ value }) => {
+      const name = value();
+      const length = name.trim().length;
+      if (length === 0) {
+        return name.length === 0
+          ? null
+          : {
+              kind: 'required',
+              message: 'currentMonth.addTransactionDescriptionRequired',
+            };
+      }
+      if (length < 2) {
+        return {
+          kind: 'minLength',
+          message: 'currentMonth.addTransactionDescriptionMin',
+        };
+      }
+      return length <= 100 ? null : { kind: 'maxLength' };
     });
-    maxLength(path.name, 100);
     applyAmountValidators(path.money);
     required(path.kind);
-    maxLength(path.category, 50, {
-      message: 'currentMonth.addTransactionNotesMaxLength',
-    });
+    validate(path.category, ({ value }) =>
+      value().trim().length <= 50
+        ? null
+        : {
+            kind: 'maxLength',
+            message: 'currentMonth.addTransactionNotesMaxLength',
+          },
+    );
   });
 
   readonly canSubmit = computed(

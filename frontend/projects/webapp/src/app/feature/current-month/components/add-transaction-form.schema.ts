@@ -4,10 +4,15 @@ import { transactionKindSchema, type TransactionCreate } from 'pulpe-shared';
 import { conversionFormSchema } from '@core/currency';
 
 export const transactionFormDataSchema = z.strictObject({
-  name: z.string().min(2).max(100).trim(),
+  name: z.string().trim().min(2).max(100),
   amount: z.number().positive(),
   kind: transactionKindSchema,
-  category: z.string().max(50).trim().nullable(),
+  category: z
+    .string()
+    .trim()
+    .max(50)
+    .transform((value) => value || null)
+    .nullable(),
   isChecked: z.boolean(),
   conversion: conversionFormSchema.nullable(),
 });

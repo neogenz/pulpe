@@ -33,7 +33,7 @@ describe('AddTransactionDialogService', () => {
     service = TestBed.inject(AddTransactionDialogService);
   });
 
-  it('uses the bottom sheet on handsets', async () => {
+  it('should use the bottom sheet on handsets', async () => {
     const transaction = { name: 'Courses', amount: 50, kind: 'expense' };
     breakpointObserver.isMatched.mockReturnValue(true);
     bottomSheet.open.mockReturnValue({
@@ -52,7 +52,7 @@ describe('AddTransactionDialogService', () => {
     expect(dialog.open).not.toHaveBeenCalled();
   });
 
-  it('uses a constrained dialog on tablet and desktop', async () => {
+  it('should use a constrained dialog on tablet and desktop', async () => {
     breakpointObserver.isMatched.mockReturnValue(false);
     dialog.open.mockReturnValue({ afterClosed: () => of(undefined) });
 

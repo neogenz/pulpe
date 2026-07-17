@@ -21,30 +21,28 @@ import {
     LoadingButton,
   ],
   template: `
-    <div mat-dialog-title class="!flex items-center justify-between gap-4">
-      <div class="min-w-0">
-        <h2 class="text-headline-small text-on-surface m-0 [text-wrap:balance]">
-          {{ 'currentMonth.addTransactionTitle' | transloco }}
-        </h2>
-        <p
-          class="text-body-small text-on-surface-variant mt-0.5 mb-0 text-pretty"
-        >
-          {{ 'currentMonth.addTransactionSubtitle' | transloco }}
-        </p>
-      </div>
-      <button
-        matIconButton
-        (click)="close()"
-        [attr.aria-label]="'currentMonth.addTransactionClose' | transloco"
-      >
-        <mat-icon>close</mat-icon>
-      </button>
-    </div>
+    <button
+      matIconButton
+      class="absolute! top-3 right-3 z-10"
+      (click)="close()"
+      [attr.aria-label]="'currentMonth.addTransactionClose' | transloco"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+    <h2
+      mat-dialog-title
+      class="text-headline-small text-on-surface pr-20! [text-wrap:balance]"
+    >
+      {{ 'currentMonth.addTransactionTitle' | transloco }}
+    </h2>
 
     <mat-dialog-content>
+      <p class="text-body-small text-on-surface-variant mt-0 mb-4 text-pretty">
+        {{ 'currentMonth.addTransactionSubtitle' | transloco }}
+      </p>
       <pulpe-add-transaction-form
         #form
-        class="add-transaction-form-wide block pt-2"
+        class="add-transaction-form-wide block"
         (created)="onCreated($event)"
       />
     </mat-dialog-content>

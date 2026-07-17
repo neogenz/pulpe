@@ -62,7 +62,7 @@ async function configureBottomSheet() {
 describe('AddTransactionBottomSheet', () => {
   beforeEach(() => TestBed.resetTestingModule());
 
-  it('dismisses without data on cancel', async () => {
+  it('should dismiss without data on cancel', async () => {
     const { component, bottomSheetRef } = await configureBottomSheet();
 
     component['close']();
@@ -70,7 +70,7 @@ describe('AddTransactionBottomSheet', () => {
     expect(bottomSheetRef.dismiss).toHaveBeenCalledWith();
   });
 
-  it('delegates submission to the shared form', async () => {
+  it('should delegate submission to the shared form', async () => {
     const submitSpy = vi
       .spyOn(AddTransactionForm.prototype, 'submit')
       .mockResolvedValue();
@@ -81,7 +81,7 @@ describe('AddTransactionBottomSheet', () => {
     expect(submitSpy).toHaveBeenCalledOnce();
   });
 
-  it('dismisses with the shared form result', async () => {
+  it('should dismiss with the shared form result', async () => {
     const { component, bottomSheetRef } = await configureBottomSheet();
     const transaction: TransactionFormData = {
       name: 'Courses',

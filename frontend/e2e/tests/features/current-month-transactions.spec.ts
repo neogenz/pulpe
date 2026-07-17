@@ -77,6 +77,29 @@ test.describe('Current Month Transactions', () => {
       );
       await expect(surface).toBeVisible();
 
+      if (viewport.expectedSurface === 'dialog') {
+        await expect(surface.locator('h2[mat-dialog-title]')).toBeVisible();
+        const closeButton = surface.locator('button[maticonbutton]').first();
+        const dialogSurface = authenticatedPage.locator(
+          '.mat-mdc-dialog-surface',
+        );
+        await expect(closeButton).toHaveCSS('position', 'absolute');
+
+        const [surfaceBox, closeButtonBox] = await Promise.all([
+          dialogSurface.boundingBox(),
+          closeButton.boundingBox(),
+        ]);
+        if (!surfaceBox || !closeButtonBox) {
+          throw new Error('Dialog surface geometry is unavailable');
+        }
+        expect(closeButtonBox.x + closeButtonBox.width / 2).toBeGreaterThan(
+          surfaceBox.x + surfaceBox.width / 2,
+        );
+      }
+
+      const quickAmount = surface.locator('button[matbutton="tonal"]').first();
+      await expect(quickAmount).toHaveCSS('white-space', 'nowrap');
+
       const formColumns = await surface
         .locator('.add-transaction-form-grid')
         .evaluate((element) =>

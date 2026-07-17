@@ -21,11 +21,11 @@ const context = {
 };
 
 describe('transactionFormDataSchema', () => {
-  it('validates the shared surface result', () => {
+  it('should validate the shared surface result', () => {
     expect(transactionFormDataSchema.parse(formData)).toEqual(formData);
   });
 
-  it('rejects a one-character name', () => {
+  it('should reject a one-character name', () => {
     const result = transactionFormDataSchema.safeParse({
       ...formData,
       name: 'A',
@@ -33,10 +33,37 @@ describe('transactionFormDataSchema', () => {
 
     expect(result.success).toBe(false);
   });
+
+  it('should reject a whitespace-only name', () => {
+    const result = transactionFormDataSchema.safeParse({
+      ...formData,
+      name: '   ',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('should reject a padded one-character name', () => {
+    const result = transactionFormDataSchema.safeParse({
+      ...formData,
+      name: ' A ',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('should normalize whitespace-only notes to null', () => {
+    const result = transactionFormDataSchema.parse({
+      ...formData,
+      category: '   ',
+    });
+
+    expect(result.category).toBeNull();
+  });
 });
 
 describe('transactionCreateFromQuickFormSchema', () => {
-  it('transforms the surface result and dashboard context into a transaction', () => {
+  it('should transform the surface result and dashboard context into a transaction', () => {
     const result = transactionCreateFromQuickFormSchema.parse({
       ...formData,
       ...context,
@@ -54,7 +81,7 @@ describe('transactionCreateFromQuickFormSchema', () => {
     );
   });
 
-  it('flattens conversion metadata into the transaction payload', () => {
+  it('should flatten conversion metadata into the transaction payload', () => {
     const result = transactionCreateFromQuickFormSchema.parse({
       ...formData,
       ...context,
@@ -76,7 +103,7 @@ describe('transactionCreateFromQuickFormSchema', () => {
     );
   });
 
-  it('rejects invalid dashboard context', () => {
+  it('should reject invalid dashboard context', () => {
     const result = transactionCreateFromQuickFormSchema.safeParse({
       ...formData,
       ...context,

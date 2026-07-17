@@ -73,18 +73,20 @@ describe('AddTransactionForm', () => {
   beforeEach(() => TestBed.resetTestingModule());
 
   describe('predefined amounts', () => {
-    it('renders the four quick amounts with 44px minimum targets', () => {
+    it('should render the four quick amounts as single-line 44px targets', async () => {
       const { fixture } = configureForm();
-      fixture.detectChanges();
+      await fixture.whenStable();
 
       const buttons = fixture.nativeElement.querySelectorAll(
         'button[matButton="tonal"]',
       );
       expect(buttons.length).toBe(4);
       expect(buttons[0].classList).toContain('min-h-11');
+      expect(buttons[0].classList).toContain('whitespace-nowrap');
+      expect(buttons[0].classList).toContain('px-2!');
     });
 
-    it('updates and touches the amount field', () => {
+    it('should update and touch the amount field', () => {
       const { component } = configureForm();
 
       component['selectPredefinedAmount'](20);
@@ -95,7 +97,7 @@ describe('AddTransactionForm', () => {
   });
 
   describe('submit', () => {
-    it('emits transaction data when the form is valid', async () => {
+    it('should emit transaction data when the form is valid', async () => {
       const { component, createdSpy } = configureForm();
       component['model'].update((model) => ({
         ...model,
@@ -116,7 +118,7 @@ describe('AddTransactionForm', () => {
       );
     });
 
-    it('does not emit when the form is invalid', async () => {
+    it('should not emit when the form is invalid', async () => {
       const { component, createdSpy } = configureForm();
       component['model'].update((model) => ({
         ...model,
@@ -129,7 +131,7 @@ describe('AddTransactionForm', () => {
       expect(createdSpy).not.toHaveBeenCalled();
     });
 
-    it('converts an empty category to null', async () => {
+    it('should convert an empty category to null', async () => {
       const { component, createdSpy } = configureForm();
       component['model'].update((model) => ({
         ...model,
@@ -145,7 +147,7 @@ describe('AddTransactionForm', () => {
       );
     });
 
-    it('reports a conversion error without emitting', async () => {
+    it('should report a conversion error without emitting', async () => {
       const { component, createdSpy, converter } = configureForm();
       converter.convertWithMetadata.mockRejectedValueOnce(
         new Error('rate unavailable'),
@@ -164,7 +166,7 @@ describe('AddTransactionForm', () => {
   });
 
   describe('checked toggle', () => {
-    it('emits the checked state when the transaction is checked', async () => {
+    it('should emit the checked state when the transaction is checked', async () => {
       const { component, createdSpy } = configureForm();
       component['model'].update((model) => ({
         ...model,
@@ -180,7 +182,7 @@ describe('AddTransactionForm', () => {
       );
     });
 
-    it('emits the checked state when the transaction is unchecked', async () => {
+    it('should emit the checked state when the transaction is unchecked', async () => {
       const { component, createdSpy } = configureForm();
       component['model'].update((model) => ({
         ...model,
@@ -198,7 +200,7 @@ describe('AddTransactionForm', () => {
   });
 
   describe('validation', () => {
-    it('requires a name', () => {
+    it('should require a name', () => {
       const { component } = configureForm();
       component['model'].update((model) => ({ ...model, name: '' }));
 
@@ -210,7 +212,45 @@ describe('AddTransactionForm', () => {
       ).toBe(true);
     });
 
-    it('rejects an amount below the minimum', () => {
+    it('should reject a whitespace-only name', async () => {
+      const { component, createdSpy } = configureForm();
+      component['model'].update((model) => ({
+        ...model,
+        name: '   ',
+        money: { ...model.money, amount: 10 },
+      }));
+
+      await component.submit();
+
+      expect(
+        component['transactionForm']
+          .name()
+          .errors()
+          .some((error) => error.kind === 'required'),
+      ).toBe(true);
+      expect(createdSpy).not.toHaveBeenCalled();
+    });
+
+    it('should reject a padded one-character name', async () => {
+      const { component, createdSpy } = configureForm();
+      component['model'].update((model) => ({
+        ...model,
+        name: ' A ',
+        money: { ...model.money, amount: 10 },
+      }));
+
+      await component.submit();
+
+      expect(
+        component['transactionForm']
+          .name()
+          .errors()
+          .some((error) => error.kind === 'minLength'),
+      ).toBe(true);
+      expect(createdSpy).not.toHaveBeenCalled();
+    });
+
+    it('should reject an amount below the minimum', () => {
       const { component } = configureForm();
       component['model'].update((model) => ({
         ...model,
@@ -227,7 +267,7 @@ describe('AddTransactionForm', () => {
   });
 
   describe('currency rules', () => {
-    it('initializes the amount with the user currency', () => {
+    it('should initialize the amount with the user currency', () => {
       const { component } = configureForm({ userCurrency: 'EUR' });
 
       expect(component['model']().money).toEqual({
@@ -236,7 +276,7 @@ describe('AddTransactionForm', () => {
       });
     });
 
-    it('emits the converted amount and metadata', async () => {
+    it('should emit the converted amount and metadata', async () => {
       const { component, createdSpy, converter } = configureForm({
         userCurrency: 'CHF',
         flagEnabled: true,
