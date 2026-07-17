@@ -301,6 +301,18 @@ describe('SavingsGoalDetailPage', () => {
     expect(fixture.nativeElement.textContent).toContain('Pointé');
   });
 
+  it('shows the "Montant de départ" stat only when initialAmount > 0 (PUL-293)', () => {
+    fixture.detectChanges();
+    expect(query('stat-initial-amount')).toBeFalsy();
+
+    progressSig.set(makeProgress({ initialAmount: 5000 }));
+    fixture.detectChanges();
+
+    const stat = query('stat-initial-amount');
+    expect(stat).toBeTruthy();
+    expect(stat.nativeElement.textContent).toContain('5');
+  });
+
   it('shows the D1 overdue block + postpone CTA when isOverdue', () => {
     progressSig.set(
       makeProgress({ isOverdue: true, monthsRemaining: -1, required: null }),

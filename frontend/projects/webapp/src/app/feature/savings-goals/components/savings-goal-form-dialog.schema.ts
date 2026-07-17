@@ -19,6 +19,8 @@ import {
 export interface SavingsGoalFormValue {
   name: string;
   targetAmount: number;
+  /** Montant déjà épargné avant le suivi (stock one-shot). 0 = aucun. */
+  initialAmount: number;
   targetDate: string;
   status: SavingsGoalCreate['status'];
 }
@@ -28,6 +30,9 @@ export interface SavingsGoalFormValue {
  * « décomposer en mensualités » est active — présence = opt-in serveur (la
  * prévision Épargne récurrente liée est générée sur le Mois Type par défaut).
  * Nul, absent ou non positif ⇒ création classique sans décomposition.
+ *
+ * `initialAmount` n'est envoyé que si positif — 0 (défaut du champ) est
+ * équivalent à l'absence côté serveur (`.optional()`, aucun refine à respecter).
  */
 export function buildSavingsGoalCreate(
   value: SavingsGoalFormValue,
@@ -41,6 +46,7 @@ export function buildSavingsGoalCreate(
     ...(monthlyContribution != null && monthlyContribution > 0
       ? { monthlyContribution }
       : {}),
+    ...(value.initialAmount > 0 ? { initialAmount: value.initialAmount } : {}),
   });
 }
 
@@ -62,6 +68,11 @@ export function buildSavingsGoalUpdate(
   if (!original || value.name !== original.name) patch.name = value.name;
   if (!original || value.targetAmount !== original.targetAmount) {
     patch.targetAmount = value.targetAmount;
+  }
+  // original.initialAmount is nullable/optional (schemas.ts) — normalize to 0
+  // so an unset baseline vs. an explicit 0 in the form don't look "changed".
+  if (!original || value.initialAmount !== (original.initialAmount ?? 0)) {
+    patch.initialAmount = value.initialAmount;
   }
   if (!original || value.targetDate !== original.targetDate) {
     patch.targetDate = value.targetDate;

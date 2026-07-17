@@ -20,6 +20,7 @@ const PAST_DATE = '2000-01-01';
 const baseValue: SavingsGoalFormValue = {
   name: 'Vacances été',
   targetAmount: 3000,
+  initialAmount: 0,
   targetDate: FUTURE_DATE,
   status: 'ACTIVE',
 };
@@ -80,15 +81,39 @@ describe('buildSavingsGoalCreate', () => {
     expect(buildSavingsGoalCreate(baseValue, null)).toEqual(expected);
     expect(buildSavingsGoalCreate(baseValue, 0)).toEqual(expected);
   });
+
+  it('carries initialAmount when positive (PUL-293)', () => {
+    expect(
+      buildSavingsGoalCreate({ ...baseValue, initialAmount: 5000 }),
+    ).toEqual({
+      name: 'Vacances été',
+      targetAmount: 3000,
+      targetDate: FUTURE_DATE,
+      status: 'ACTIVE',
+      initialAmount: 5000,
+    });
+  });
+
+  it('omits initialAmount when 0 (the field default)', () => {
+    expect(buildSavingsGoalCreate(baseValue)).toEqual({
+      name: 'Vacances été',
+      targetAmount: 3000,
+      targetDate: FUTURE_DATE,
+      status: 'ACTIVE',
+    });
+  });
 });
 
 describe('buildSavingsGoalUpdate', () => {
   it('produces a SavingsGoalUpdate DTO (status change is valid)', () => {
+    // No `original` passed → every field is sent (see buildSavingsGoalUpdate
+    // JSDoc), initialAmount included.
     expect(
       buildSavingsGoalUpdate({ ...baseValue, status: 'COMPLETED' }),
     ).toEqual({
       name: 'Vacances été',
       targetAmount: 3000,
+      initialAmount: 0,
       targetDate: FUTURE_DATE,
       status: 'COMPLETED',
     });
@@ -100,6 +125,7 @@ describe('buildSavingsGoalUpdate', () => {
     ).toEqual({
       name: 'Vacances été',
       targetAmount: 3000,
+      initialAmount: 0,
       targetDate: PAST_DATE,
       status: 'ACTIVE',
     });
@@ -121,6 +147,7 @@ describe('buildSavingsGoalUpdate', () => {
       {
         name: 'Vacances été',
         targetAmount: 3000,
+        initialAmount: 0,
         targetDate: PAST_DATE,
         status: 'COMPLETED',
       },
@@ -129,6 +156,48 @@ describe('buildSavingsGoalUpdate', () => {
 
     // only the changed field is sent → no targetDate → past-date refine skipped
     expect(dto).toEqual({ status: 'COMPLETED' });
+  });
+
+  it('omits initialAmount when unchanged (PUL-293)', () => {
+    const original = {
+      id: '00000000-0000-4000-8000-0000000000a1',
+      userId: '00000000-0000-4000-8000-0000000000b1',
+      name: 'Vacances été',
+      targetAmount: 3000,
+      targetDate: FUTURE_DATE,
+      status: 'ACTIVE',
+      initialAmount: 5000,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    } as SavingsGoal;
+
+    const dto = buildSavingsGoalUpdate(
+      { ...baseValue, initialAmount: 5000, status: 'COMPLETED' },
+      original,
+    );
+
+    expect(dto).toEqual({ status: 'COMPLETED' });
+  });
+
+  it('sends initialAmount: 0 as an explicit clear (0 is a meaningful change, not "absent")', () => {
+    const original = {
+      id: '00000000-0000-4000-8000-0000000000a1',
+      userId: '00000000-0000-4000-8000-0000000000b1',
+      name: 'Vacances été',
+      targetAmount: 3000,
+      targetDate: FUTURE_DATE,
+      status: 'ACTIVE',
+      initialAmount: 5000,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    } as SavingsGoal;
+
+    const dto = buildSavingsGoalUpdate(
+      { ...baseValue, initialAmount: 0 },
+      original,
+    );
+
+    expect(dto).toEqual({ initialAmount: 0 });
   });
 
   it('rejects a changed target date beyond the 120th planning period', () => {

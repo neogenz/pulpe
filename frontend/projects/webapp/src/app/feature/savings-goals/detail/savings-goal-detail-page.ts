@@ -256,6 +256,21 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
 
               <!-- Stats -->
               <div class="mt-2 grid grid-cols-2 md:grid-cols-4 gap-4">
+                @if (p.initialAmount > 0) {
+                  <div
+                    class="flex flex-col gap-1"
+                    data-testid="stat-initial-amount"
+                  >
+                    <span class="text-body-small text-on-surface-variant">
+                      {{ 'savingsGoals.detail.initialAmount' | transloco }}
+                    </span>
+                    <span
+                      class="text-title-large font-semibold tabular-nums ph-no-capture"
+                    >
+                      {{ p.initialAmount | appCurrency: currency() : '1.0-0' }}
+                    </span>
+                  </div>
+                }
                 <!-- The colored dots double as the legend of the two bar layers. -->
                 <div class="flex flex-col gap-1" data-testid="stat-confirmed">
                   <span

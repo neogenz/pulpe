@@ -182,6 +182,29 @@ describe('GoalPlanSimulatorStore', () => {
     expect(draft.isTargetMet).toBe(true);
   });
 
+  it('seeds simulateSavingsPlan with initialAmount (PUL-293): the verdict is reached earlier', () => {
+    // Baseline (initialAmount 0): 200/mo over 2 months only reaches 400 of 800
+    // → never met. Seeding 500 pushes June to 700 and July to 900 ≥ target.
+    progressSig.set(makeProgress({ initialAmount: 500 }));
+    store.enter();
+
+    const draft = store.draft()!;
+    expect(draft.isTargetMet).toBe(true);
+    expect(draft.attainedPeriod).toEqual({ month: 7, year: 2026 });
+  });
+
+  it('seeds redistributeRemainingEffort with initialAmount (PUL-293): remaining effort shrinks', () => {
+    // Same target (800) and 2 open months as the no-seed case above (400/mo),
+    // but 400 already banked → only 400 left to split over 2 months = 200/mo.
+    progressSig.set(makeProgress({ initialAmount: 400 }));
+    store.enter();
+
+    const result = store.redistribute();
+    expect(result.isDistributable).toBe(true);
+    expect(result.remainingEffort).toBe(400);
+    expect(result.perRemainingMonth).toBe(200);
+  });
+
   it('redistributes over 2 materialized budgets and 22 provisionable periods', () => {
     const startIndex = 2026 * 12 + 6;
     const periods = Array.from({ length: 24 }, (_, offset) => {

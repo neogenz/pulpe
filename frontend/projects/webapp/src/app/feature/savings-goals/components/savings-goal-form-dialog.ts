@@ -132,6 +132,34 @@ function isoToDate(value: string): Date | null {
           class="w-full"
         >
           <mat-label>{{
+            'savingsGoals.fieldInitialAmount' | transloco
+          }}</mat-label>
+          <input
+            matInput
+            type="number"
+            step="0.01"
+            inputmode="decimal"
+            [formField]="goalForm.initialAmount"
+            data-testid="savings-goal-initial-amount"
+          />
+          <span matTextSuffix>{{ currencySymbol() }}</span>
+          @if (initialAmountErrors().negative) {
+            <mat-error>{{
+              'savingsGoals.initialAmountNegative' | transloco
+            }}</mat-error>
+          } @else {
+            <mat-hint>{{
+              'savingsGoals.initialAmountHint' | transloco
+            }}</mat-hint>
+          }
+        </mat-form-field>
+
+        <mat-form-field
+          appearance="outline"
+          subscriptSizing="dynamic"
+          class="w-full"
+        >
+          <mat-label>{{
             'savingsGoals.fieldTargetDate' | transloco
           }}</mat-label>
           <input
@@ -270,6 +298,7 @@ export class SavingsGoalFormDialog {
   protected readonly model = signal<SavingsGoalFormValue>({
     name: this.#data.goal?.name ?? '',
     targetAmount: this.#data.goal?.targetAmount ?? 0,
+    initialAmount: this.#data.goal?.initialAmount ?? 0,
     targetDate: this.#data.goal?.targetDate ?? '',
     status: this.#data.goal?.status ?? 'ACTIVE',
   });
@@ -280,6 +309,11 @@ export class SavingsGoalFormDialog {
     required(path.targetAmount, { message: 'savingsGoals.fieldTargetAmount' });
     validate(path.targetAmount, ({ value }) =>
       value() > 0 ? null : { kind: 'required' },
+    );
+    // Optional field (no `min` attribute — the signal-forms `[formField]`
+    // directive rejects it on NG8022) — enforce non-negative via schema instead.
+    validate(path.initialAmount, ({ value }) =>
+      value() >= 0 ? null : { kind: 'negative' },
     );
     required(path.targetDate, { message: 'savingsGoals.fieldTargetDate' });
     validate(path.targetDate, ({ value }) => {
@@ -335,6 +369,10 @@ export class SavingsGoalFormDialog {
   protected readonly targetAmountErrors = touchedFieldErrors(
     () => this.goalForm.targetAmount,
     'required',
+  );
+  protected readonly initialAmountErrors = touchedFieldErrors(
+    () => this.goalForm.initialAmount,
+    'negative',
   );
   protected readonly targetDateErrors = touchedFieldErrors(
     () => this.goalForm.targetDate,
