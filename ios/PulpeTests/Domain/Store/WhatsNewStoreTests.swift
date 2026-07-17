@@ -5,6 +5,46 @@ import Testing
 @Suite("WhatsNewStore Tests")
 @MainActor
 struct WhatsNewStoreTests {
+    @Test func flagsInit_freshInstall_seedsCurrentVersion() throws {
+        let suiteName = "WhatsNewFlagsStoreTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let flags = WhatsNewFlagsStore(defaults: defaults, currentVersion: "1.2.0")
+
+        #expect(flags.wasInstalledBeforeWhatsNew == false)
+        #expect(flags.lastSeenVersion == "1.2.0")
+    }
+
+    @Test func flagsInit_existingInstallWithoutMarker_preservesMigrationPath() throws {
+        let suiteName = "WhatsNewFlagsStoreTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        AppAuthFlagsStore(defaults: defaults).setHasLaunchedBefore()
+
+        let flags = WhatsNewFlagsStore(defaults: defaults, currentVersion: "1.2.0")
+
+        #expect(flags.wasInstalledBeforeWhatsNew)
+        #expect(flags.lastSeenVersion == nil)
+    }
+
+    @Test func freshLaunchWithoutAuth_thenAuthenticatedRelaunch_doesNotPresent() async throws {
+        let suiteName = "WhatsNewFlagsStoreTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let service = MockWhatsNewService(outcome: .success([.makeFixture()]))
+
+        let firstLaunchFlags = WhatsNewFlagsStore(defaults: defaults, currentVersion: "1.2.0")
+        #expect(firstLaunchFlags.lastSeenVersion == "1.2.0")
+        AppAuthFlagsStore(defaults: defaults).setHasLaunchedBefore()
+        let secondLaunchFlags = WhatsNewFlagsStore(defaults: defaults, currentVersion: "1.2.0")
+        let store = WhatsNewStore(service: service, flagsStore: secondLaunchFlags)
+        await store.check(currentVersion: "1.2.0")
+
+        #expect(service.fetchCallCount == 0)
+        #expect(store.isPresented == false)
+    }
+
     @Test func check_firstInstall_persistsCurrentVersionWithoutFetching() async {
         let service = MockWhatsNewService(outcome: .success([.makeFixture()]))
         let flags = MockWhatsNewFlagsStore(lastSeenVersion: nil)
