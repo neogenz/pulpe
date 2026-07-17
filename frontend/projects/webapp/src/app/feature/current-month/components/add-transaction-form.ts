@@ -195,7 +195,6 @@ interface AddTransactionModel {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       column-gap: var(--pulpe-section-gap-md);
     }
-
     :host(.add-transaction-form-wide) .add-transaction-form-meta {
       grid-column: span 2 / span 2;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -210,9 +209,10 @@ export class AddTransactionForm {
   readonly #converter = inject(CurrencyConverterService);
   readonly #logger = inject(Logger);
   readonly #staleRateNotifier = inject(StaleRateNotifier);
+  readonly #isSubmittingState = signal(false);
 
   readonly created = output<TransactionFormData>();
-  readonly isSubmitting = signal(false);
+  readonly isSubmitting = this.#isSubmittingState.asReadonly();
 
   protected readonly currency = this.#userSettings.currency;
   protected readonly predefinedAmounts = [10, 15, 20, 30] as const;
@@ -271,7 +271,7 @@ export class AddTransactionForm {
   async submit(): Promise<void> {
     await runFormSubmit({
       form: this.transactionForm,
-      isSubmitting: this.isSubmitting,
+      isSubmitting: this.#isSubmittingState,
       conversionError: this.conversionError,
       prepare: () => {
         const m = this.model();

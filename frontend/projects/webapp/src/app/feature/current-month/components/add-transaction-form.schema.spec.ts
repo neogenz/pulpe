@@ -24,6 +24,15 @@ describe('transactionFormDataSchema', () => {
   it('validates the shared surface result', () => {
     expect(transactionFormDataSchema.parse(formData)).toEqual(formData);
   });
+
+  it('rejects a one-character name', () => {
+    const result = transactionFormDataSchema.safeParse({
+      ...formData,
+      name: 'A',
+    });
+
+    expect(result.success).toBe(false);
+  });
 });
 
 describe('transactionCreateFromQuickFormSchema', () => {

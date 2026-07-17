@@ -4,7 +4,7 @@ import { transactionKindSchema, type TransactionCreate } from 'pulpe-shared';
 import { conversionFormSchema } from '@core/currency';
 
 export const transactionFormDataSchema = z.strictObject({
-  name: z.string().min(1).max(100).trim(),
+  name: z.string().min(2).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
   category: z.string().max(50).trim().nullable(),
