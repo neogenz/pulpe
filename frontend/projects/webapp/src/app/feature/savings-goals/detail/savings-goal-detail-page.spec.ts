@@ -378,6 +378,12 @@ describe('SavingsGoalDetailPage', () => {
       expected:
         'Certaines prévisions ne sont plus liées à cet objectif — recharge la liste',
     },
+    {
+      code: API_ERROR_CODES.SAVINGS_GOAL_GENERATION_STOP_RECALCULATION_FAILED,
+      status: 500,
+      expected:
+        "La décision a bien été enregistrée, mais les soldes n'ont pas pu être actualisés — recharge la page sans réessayer",
+    },
   ])(
     'localizes generation-stop $status errors instead of exposing the server message',
     async ({ code, status, expected }) => {

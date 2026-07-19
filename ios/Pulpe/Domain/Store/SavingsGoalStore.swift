@@ -120,9 +120,17 @@ final class SavingsGoalStore: StoreProtocol {
         id: String,
         _ payload: SavingsGoalGenerationStop
     ) async throws -> SavingsGoalGenerationStopResult {
-        let result = try await service.applyGenerationStop(id: id, payload)
-        onBudgetDataMutation?()
-        return result
+        do {
+            let result = try await service.applyGenerationStop(id: id, payload)
+            onBudgetDataMutation?()
+            return result
+        } catch {
+            if let apiError = error as? APIError,
+               case .savingsGoalGenerationStopRecalculationFailed = apiError {
+                onBudgetDataMutation?()
+            }
+            throw error
+        }
     }
 
     func invalidateCache() {

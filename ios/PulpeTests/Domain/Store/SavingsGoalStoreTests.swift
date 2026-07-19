@@ -118,6 +118,36 @@ struct SavingsGoalStoreTests {
         #expect(invalidationCount == 1)
     }
 
+    @Test("applyGenerationStop invalidates sibling stores when the decision committed but recalculation failed")
+    func applyGenerationStop_partialFailureInvalidates() async {
+        let service = MockSavingsGoalService()
+        service.error = APIError.from(
+            code: "ERR_SAVINGS_GOAL_GENERATION_STOP_RECALCULATION_FAILED",
+            message: nil
+        )
+        let store = SavingsGoalStore(service: service)
+        nonisolated(unsafe) var invalidationCount = 0
+        store.onBudgetDataMutation = { invalidationCount += 1 }
+
+        do {
+            _ = try await store.applyGenerationStop(
+                id: "g1",
+                SavingsGoalGenerationStop(mode: .remove, budgetLineIds: ["l1"])
+            )
+            Issue.record("Expected the partial failure to be rethrown")
+        } catch let error as APIError {
+            #expect(
+                error.errorDescription ==
+                    "La décision a bien été enregistrée, mais les soldes n'ont pas pu être actualisés — "
+                    + "recharge la page sans réessayer"
+            )
+        } catch {
+            Issue.record("Expected APIError, got \(error)")
+        }
+
+        #expect(invalidationCount == 1)
+    }
+
     @Test("forceRefresh surfaces an API error")
     func forceRefresh_surfacesError() async {
         let service = MockSavingsGoalService()

@@ -508,6 +508,12 @@ export const ERROR_DEFINITIONS = {
     message: () => 'Failed to apply the generation stop decision',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
+  SAVINGS_GOAL_GENERATION_STOP_RECALCULATION_FAILED: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_GENERATION_STOP_RECALCULATION_FAILED,
+    message: () =>
+      'The generation stop decision was saved, but budget balances could not be refreshed. Reload without retrying.',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
   SAVINGS_GOAL_GENERATION_STOP_CONFLICT: {
     code: API_ERROR_CODES.SAVINGS_GOAL_GENERATION_STOP_CONFLICT,
     message: () =>

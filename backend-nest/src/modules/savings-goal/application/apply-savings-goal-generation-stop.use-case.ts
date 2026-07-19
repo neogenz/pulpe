@@ -91,7 +91,7 @@ export class ApplySavingsGoalGenerationStopUseCase {
       );
     } catch (cause) {
       throw new BusinessException(
-        ERROR_DEFINITIONS.SAVINGS_GOAL_GENERATION_STOP_FAILED,
+        ERROR_DEFINITIONS.SAVINGS_GOAL_GENERATION_STOP_RECALCULATION_FAILED,
         undefined,
         {
           operation: 'savingsGoal.generationStop.recalcAfterCommit',

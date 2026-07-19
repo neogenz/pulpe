@@ -1272,6 +1272,7 @@
     "savingsGoalPlanApplyFailed": "L'application du plan a échoué — réessaie",
     "savingsGoalGenerationStopConflict": "Ces prévisions ont changé entre-temps — recharge la liste et réessaie",
     "savingsGoalGenerationStopLineInvalid": "Certaines prévisions ne sont plus liées à cet objectif — recharge la liste",
+    "savingsGoalGenerationStopRecalculationFailed": "La décision a bien été enregistrée, mais les soldes n'ont pas pu être actualisés — recharge la page sans réessayer",
     "profileNotFound": "Profil introuvable",
     "profileUpdateFailed": "La mise à jour du profil a échoué — réessaie",
     "validationFailed": "Les données envoyées ne sont pas valides",
