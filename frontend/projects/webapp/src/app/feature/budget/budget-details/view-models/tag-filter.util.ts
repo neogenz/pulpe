@@ -1,4 +1,8 @@
-import { isGroupHeaderRow, type TableRowItem } from './table-items.view-model';
+import {
+  isGroupHeaderRow,
+  type GroupHeaderTableItem,
+  type TableRowItem,
+} from './table-items.view-model';
 
 /**
  * Tag-based filtering for the budget-details table/grid (PUL-18 PR4).
@@ -50,12 +54,11 @@ export function filterTableRowsByTags(
   }
 
   const result: TableRowItem[] = [];
-  let currentHeader: TableRowItem | undefined;
+  let currentHeader: GroupHeaderTableItem | undefined;
   let matchingGroupItems: TableRowItem[] = [];
 
   const flushGroup = () => {
     if (!currentHeader || matchingGroupItems.length === 0) return;
-    if (!isGroupHeaderRow(currentHeader)) return;
     result.push(
       {
         ...currentHeader,

@@ -22,11 +22,9 @@ import { MAX_TAGS_PER_TRANSACTION } from 'pulpe-shared';
 import { TagStore } from '@core/tag';
 import { safeFieldTreeRead } from '@core/validators';
 
-interface TagSuggestion {
-  readonly type: 'existing' | 'create';
-  readonly id?: string;
-  readonly name: string;
-}
+type TagSuggestion =
+  | { readonly type: 'existing'; readonly id: string; readonly name: string }
+  | { readonly type: 'create'; readonly name: string };
 
 /**
  * Reusable multi-select tag picker for transactions (PUL-18). Binds to a
@@ -170,7 +168,7 @@ export class TagPicker {
     this.#resetInput();
     if (this.isAtMax()) return;
 
-    if (suggestion.type === 'existing' && suggestion.id) {
+    if (suggestion.type === 'existing') {
       this.#attach(suggestion.id);
       return;
     }
