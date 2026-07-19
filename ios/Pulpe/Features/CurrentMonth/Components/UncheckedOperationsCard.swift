@@ -19,8 +19,10 @@ struct UncheckedOperationsCard: View {
     private var currency: SupportedCurrency { userSettingsStore.currency }
 
     /// The operation currently offered for inline check — first one not skipped via "Plus tard".
+    /// Falls back to the first item when every live item has been skipped, so pointing an
+    /// operation while others are skipped can never strand the pane hidden while ops remain.
     private var currentItem: CurrentMonthStore.CheckableItem? {
-        items.first { !skippedIds.contains($0.id) }
+        items.first { !skippedIds.contains($0.id) } ?? items.first
     }
 
     private func isSyncing(_ item: CurrentMonthStore.CheckableItem) -> Bool {
