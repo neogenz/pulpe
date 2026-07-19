@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Buffer } from 'node:buffer';
+import { randomUUID } from 'node:crypto';
 import { ZodError } from 'zod';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
@@ -11,10 +12,7 @@ import {
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadata.mapper';
 import { isSavingsGoalLinkDenied } from '@common/utils/savings-goal-link';
-import {
-  replaceTagLinks,
-  updateTaggedEntity,
-} from '@common/utils/tag-links.util';
+import { updateTaggedEntity } from '@common/utils/tag-links.util';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type {
   BudgetTemplate,
@@ -256,59 +254,44 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
   }
 
   async insertLine(input: TemplateLineCreateInput): Promise<TemplateLine> {
-    const supabase = this.supabaseProvider.client;
-    const user = this.supabaseProvider.user;
+    const lineId = randomUUID();
+    const { createdLines } = await this.bulkApplyTemplateLineOperations(
+      {
+        templateId: input.templateId,
+        budgetIds: [],
+        deleteIds: [],
+        updatedLines: [],
+        createdLines: [
+          {
+            id: lineId,
+            savingsGoalId: input.savingsGoalId ?? null,
+            name: input.name,
+            amount: input.amount,
+            originalAmount: input.originalAmount ?? null,
+            originalCurrency: input.originalCurrency ?? null,
+            targetCurrency: input.targetCurrency ?? null,
+            exchangeRate: input.exchangeRate ?? null,
+            kind: input.kind,
+            recurrence: input.recurrence,
+            description: input.description,
+            tagIds: input.tagIds ?? [],
+          },
+        ],
+      },
+      'insertLine',
+    );
+    const line = createdLines[0];
+    if (line) return line;
 
-    const insertRow = await this.toTemplateLineInsertRow(input, user);
-
-    const { data, error } = await supabase
-      .from('template_line')
-      .insert(insertRow)
-      .select()
-      .single();
-
-    if (error || !data) {
-      // enforce_savings_goal_line_link trigger: deleted/foreign goal tagged.
-      if (isSavingsGoalLinkDenied(error)) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
-          undefined,
-          { operation: 'insertLine' },
-          { cause: error ?? undefined },
-        );
-      }
-      throw new BusinessException(
-        ERROR_DEFINITIONS.TEMPLATE_CREATE_FAILED,
-        undefined,
-        { operation: 'insertLine' },
-        { cause: error ?? undefined },
-      );
-    }
-
-    if (input.tagIds?.length) {
-      try {
-        await this.replaceTemplateLineTags(data.id, input.tagIds, 'insertLine');
-      } catch (linkError) {
-        const { error: cleanupError } = await supabase
-          .from('template_line')
-          .delete()
-          .eq('id', data.id);
-        if (cleanupError) {
-          this.logger.warn(
-            {
-              operation: 'insertLine.compensateTagFailure',
-              entityId: data.id,
-              err: cleanupError,
-            },
-            'Failed to delete template line after tag linking failure',
-          );
-        }
-        throw linkError;
-      }
-    }
-
-    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
-    return { ...this.toTemplateLine(data, dek), tagIds: input.tagIds ?? [] };
+    this.logger.warn(
+      { operation: 'insertLine.refetch', entityId: lineId },
+      'Atomic template line insert returned no row',
+    );
+    throw new BusinessException(
+      ERROR_DEFINITIONS.TEMPLATE_LINE_FETCH_FAILED,
+      undefined,
+      { operation: 'insertLine.refetch', entityId: lineId },
+    );
   }
 
   async findLineById(
@@ -637,8 +620,8 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
   private throwBulkOperationError(
     error: { code?: string },
     taggedLineIds: string[],
+    operation = 'bulkApplyTemplateLineOperations',
   ): never {
-    const operation = 'bulkApplyTemplateLineOperations';
     this.throwIfSavingsGoalLinkDenied(error, operation);
     this.throwIfTagLinkDenied(error, operation);
 
@@ -657,7 +640,9 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       );
     }
     throw new BusinessException(
-      ERROR_DEFINITIONS.TEMPLATE_UPDATE_FAILED,
+      operation === 'insertLine'
+        ? ERROR_DEFINITIONS.TEMPLATE_CREATE_FAILED
+        : ERROR_DEFINITIONS.TEMPLATE_UPDATE_FAILED,
       undefined,
       loggingContext,
       { cause: error },
@@ -666,6 +651,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
 
   async bulkApplyTemplateLineOperations(
     input: BulkTemplateLineOperationsInput,
+    operation = 'bulkApplyTemplateLineOperations',
   ): Promise<BulkTemplateLineOperationsRepoResult> {
     const supabase = this.supabaseProvider.client;
     const user = this.supabaseProvider.user;
@@ -680,12 +666,12 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     const updatedLinesPayload = this.parseRpcPayload(
       applyTemplateLineOperationsListSchema,
       updatedLinesRpc,
-      'bulkApplyTemplateLineOperations.updated',
+      `${operation}.updated`,
     );
     const createdLinesPayload = this.parseRpcPayload(
       applyTemplateLineOperationsListSchema,
       createdLinesRpc,
-      'bulkApplyTemplateLineOperations.created',
+      `${operation}.created`,
     );
 
     const taggedLines = [...input.updatedLines, ...input.createdLines].filter(
@@ -697,7 +683,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
         template_line_id: line.id,
         tag_ids: line.tagIds ?? [],
       })),
-      'bulkApplyTemplateLineOperations.tags',
+      `${operation}.tags`,
     );
 
     const { data, error } = await supabase.rpc(
@@ -716,6 +702,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       this.throwBulkOperationError(
         error,
         taggedLines.map((line) => line.id),
+        operation,
       );
     }
 
@@ -742,7 +729,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
         ERROR_DEFINITIONS.TEMPLATE_LINE_FETCH_FAILED,
         undefined,
         {
-          operation: 'bulkApplyTemplateLineOperations.refetch',
+          operation: `${operation}.refetch`,
           entityType: 'template_line',
         },
         { cause: fetchError ?? new Error('No rows returned') },
@@ -801,62 +788,6 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       tagIds: (row.template_line_tag ?? []).map((link) => link.tag_id),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
-    };
-  }
-
-  /**
-   * Replace-set a template line's exact tag set via the atomic RPC. Foreign
-   * template/tag ids surface as 23503/42501 -> ERR_TAG_NOT_FOUND, matching the
-   * transaction/budget-line tag repositories.
-   */
-  private async replaceTemplateLineTags(
-    templateLineId: string,
-    tagIds: string[],
-    operation: string,
-  ): Promise<void> {
-    await replaceTagLinks(this.supabaseProvider.client, {
-      rpcName: 'replace_template_line_tags',
-      rpcIdParam: 'p_template_line_id',
-      entityId: templateLineId,
-      tagIds,
-      operation,
-      entityType: 'template_line_tag',
-      fallbackErrorDef: ERROR_DEFINITIONS.TEMPLATE_LINE_NOT_FOUND,
-    });
-  }
-
-  private async toTemplateLineInsertRow(
-    input: TemplateLineCreateInput,
-    user: AuthenticatedUser,
-  ): Promise<TemplateLineInsert> {
-    const { amount: encryptedAmount } = await this.encryption.prepareAmountData(
-      input.amount,
-      user.id,
-      user.clientKey,
-    );
-    const encryptedOriginalAmount = await this.encryption.encryptOptionalAmount(
-      input.originalAmount,
-      user.id,
-      user.clientKey,
-    );
-
-    return {
-      template_id: input.templateId,
-      savings_goal_id: input.savingsGoalId ?? null,
-      name: input.name,
-      amount: encryptedAmount,
-      original_amount: encryptedOriginalAmount,
-      ...mapCurrencyNonAmountMetadataToDb(
-        {
-          originalCurrency: input.originalCurrency,
-          targetCurrency: input.targetCurrency,
-          exchangeRate: input.exchangeRate,
-        },
-        { userId: user.id },
-      ),
-      kind: input.kind,
-      recurrence: input.recurrence,
-      description: input.description,
     };
   }
 

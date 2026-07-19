@@ -177,24 +177,25 @@ describe('SupabaseBudgetTemplateRepository', () => {
   });
 
   describe('insertLine', () => {
-    it('should delete the inserted line when tag replacement fails', async () => {
-      const compensationDelete = jest.fn().mockResolvedValue({ error: null });
-      const provider = createMockProvider(
-        () => ({
-          insert: () => ({
-            select: () => ({
-              single: jest.fn().mockResolvedValue({
-                data: mockTemplateLineRow,
-                error: null,
-              }),
-            }),
-          }),
-          delete: () => ({ eq: compensationDelete }),
+    it('should create the line and tags in one atomic RPC', async () => {
+      const rpc = jest.fn().mockResolvedValue({ data: [], error: null });
+      const from = jest.fn(() => ({
+        select: () => ({
+          in: jest
+            .fn()
+            .mockImplementation((_column: string, ids: string[]) => ({
+              data: [
+                {
+                  ...mockTemplateLineRow,
+                  id: ids[0],
+                  template_line_tag: [{ tag_id: TAG_ONE_ID }],
+                },
+              ],
+              error: null,
+            })),
         }),
-        jest.fn().mockResolvedValue({
-          error: { code: '23503', message: 'FK violation' },
-        }),
-      );
+      }));
+      const provider = createMockProvider(from, rpc as unknown as jest.Mock);
       const repo = new SupabaseBudgetTemplateRepository(
         provider,
         createMockEncryption(),
@@ -209,39 +210,44 @@ describe('SupabaseBudgetTemplateRepository', () => {
           kind: 'expense',
           recurrence: 'fixed',
           description: '',
-          tagIds: ['missing-tag'],
+          tagIds: [TAG_ONE_ID],
         }),
-      ).rejects.toMatchObject({
-        code: 'ERR_TAG_NOT_FOUND',
-        loggingContext: { operation: 'insertLine' },
-      });
-      expect(compensationDelete).toHaveBeenCalledWith('id', 'line-1');
+      ).resolves.toMatchObject({ tagIds: [TAG_ONE_ID] });
+
+      const rpcArgs = rpc.mock.calls[0]?.[1] as {
+        p_created_lines: Array<{ id: string }>;
+        p_line_tag_pairs: Array<{
+          template_line_id: string;
+          tag_ids: string[];
+        }>;
+      };
+      expect(rpc).toHaveBeenCalledWith(
+        'apply_template_line_operations_with_tags',
+        expect.objectContaining({
+          p_template_id: 'template-1',
+          p_budget_ids: [],
+          p_delete_ids: [],
+          p_updated_lines: [],
+        }),
+      );
+      expect(rpcArgs.p_line_tag_pairs).toEqual([
+        {
+          template_line_id: rpcArgs.p_created_lines[0].id,
+          tag_ids: [TAG_ONE_ID],
+        },
+      ]);
+      expect(from).toHaveBeenCalledTimes(1);
     });
 
-    it('should warn when tag-link compensation delete fails and rethrow the tag error', async () => {
+    it('should map tag-link failures without direct insert or cleanup queries', async () => {
       const tagError = { code: '23503', message: 'FK violation' };
-      const cleanupError = { code: '08006', message: 'connection lost' };
-      const logger = createMockLogger();
-      const provider = createMockProvider(
-        () => ({
-          insert: () => ({
-            select: () => ({
-              single: jest.fn().mockResolvedValue({
-                data: mockTemplateLineRow,
-                error: null,
-              }),
-            }),
-          }),
-          delete: () => ({
-            eq: jest.fn().mockResolvedValue({ error: cleanupError }),
-          }),
-        }),
-        jest.fn().mockResolvedValue({ error: tagError }),
-      );
+      const from = jest.fn();
+      const rpc = jest.fn().mockResolvedValue({ data: null, error: tagError });
+      const provider = createMockProvider(from, rpc as unknown as jest.Mock);
       const repo = new SupabaseBudgetTemplateRepository(
         provider,
         createMockEncryption(),
-        logger,
+        createMockLogger(),
       );
 
       await expect(
@@ -252,20 +258,14 @@ describe('SupabaseBudgetTemplateRepository', () => {
           kind: 'expense',
           recurrence: 'fixed',
           description: '',
-          tagIds: ['missing-tag'],
+          tagIds: [TAG_TWO_ID],
         }),
       ).rejects.toMatchObject({
         code: 'ERR_TAG_NOT_FOUND',
         loggingContext: { operation: 'insertLine' },
       });
-      expect(logger.warn).toHaveBeenCalledWith(
-        {
-          operation: 'insertLine.compensateTagFailure',
-          entityId: 'line-1',
-          err: cleanupError,
-        },
-        'Failed to delete template line after tag linking failure',
-      );
+      expect(rpc).toHaveBeenCalledTimes(1);
+      expect(from).not.toHaveBeenCalled();
     });
   });
 
