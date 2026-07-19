@@ -26,7 +26,7 @@ Pulpe landing is Next.js + Tailwind v4. Marketing-first: a large promise, a wide
 **Landing-specific characteristics:**
 
 - **Single font family:** Poppins. No display/body split.
-- **Two-zone canvas:** a pale green radial emotion field dissolves into the warm `#F7F6F3` content canvas.
+- **Two-zone canvas:** the warm `#F7F6F3` base carries the content. Desktop uses a shared radial field; below `768px`, the hero and opening narrative use paired, section-scoped green ellipses whose blur overlaps the transition.
 - **Product signature:** the live annual-budget dashboard is the one memorable visual moment.
 - **Brand-tinted elevation:** `rgba(0, 60, 20, 0.06)` instead of generic black shadows.
 - **Restrained motion:** `--ease-smooth`, 150–300 ms interactions and no overshoot.
@@ -67,7 +67,7 @@ Content is flat by default. A surface uses tone, a hairline outline or a short s
 - **Hero CTA:** solid Pulpe Forest capsule, Poppins 600, hover lift over `--ease-smooth`, exact press feedback `scale(0.96)`.
 - **Feature surface:** tonal or near-white, `border-radius: 16px`, no glass.
 - **Navbar:** floating full-width pill, one translucent layer, 44 px minimum targets, keyboard-accessible mobile panel.
-- **Section spacing:** 120 px between major desktop sections, 80 px on mobile.
+- **Section spacing:** adjacent default sections share 120 px on desktop and 80 px on mobile. The `Section` primitive contributes half of that boundary on each side; do not apply the full value twice.
 
 ### Landing-Specific Named Rules
 
@@ -76,6 +76,8 @@ Content is flat by default. A surface uses tone, a hairline outline or a short s
 **The Navigation Glass Rule.** Backdrop blur and translucent shine are reserved for the floating navbar. Content surfaces use tone, outline or restrained elevation.
 
 **The Single Family Rule.** Poppins covers display, body, button and label. Distinction comes from scale, weight and spacing, never a second family.
+
+**The Mobile Diffuse Field Rule.** Below `768px`, keep the body neutral and place two blurred brand-green ellipses inside both the hero and opening narrative. Their source colors use denser mobile ambient tokens so the `150px` blur does not wash them out; opposite sides keep distinct leaf and mint hues. Offset them to opposite sides and ends of each section, let them overflow their internal boundary and clip only at the outer canvas so their fade bridges the content blocks. No neutral vertical stripe, decorative grid, glass panel or hard gradient edge.
 
 ## 6. Do's and Don'ts
 
