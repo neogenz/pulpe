@@ -119,6 +119,14 @@ describe("landing accessibility contracts", () => {
       globalsCss,
       /\.hero-mesh,\s*\.pain-points-mesh\s*\{[\s\S]*isolation:\s*isolate;/,
     );
+    assert.match(
+      globalsCss,
+      /@media \(max-width: 767px\)[\s\S]*#main-content\s*\{[\s\S]*overflow:\s*clip;/,
+    );
+    assert.match(
+      globalsCss,
+      /@media \(max-width: 767px\)[\s\S]*\.hero-mesh,\s*\.pain-points-mesh\s*\{[\s\S]*overflow:\s*visible;/,
+    );
     assert.ok(sectionFields, "The shared mobile section field is missing");
     assert.match(sectionFields, /width:\s*40vw;/);
     assert.match(sectionFields, /height:\s*60vh;/);
@@ -127,7 +135,19 @@ describe("landing accessibility contracts", () => {
       /transform:\s*translateY\(-50%\) rotate\(-30deg\);/,
     );
     assert.match(sectionFields, /filter:\s*blur\(150px\);/);
-    assert.match(sectionFields, /opacity:\s*0\.35;/);
+    assert.match(sectionFields, /opacity:\s*0\.4;/);
+    assert.match(
+      globalsCss,
+      /--ambient-mobile-leaf:\s*oklch\(70% 0\.2 145\);/,
+    );
+    assert.match(
+      globalsCss,
+      /--ambient-mobile-mint:\s*oklch\(75% 0\.18 164\);/,
+    );
+    assert.match(
+      globalsCss,
+      /--ambient-mobile-lime:\s*oklch\(82% 0\.19 121\);/,
+    );
     assert.match(
       globalsCss,
       /\.hero-mesh::before,[\s\S]*?\.pain-points-mesh::before\s*\{(?=[\s\S]*?left:\s*-10%;)(?=[\s\S]*?top:\s*90%;)/,
@@ -135,6 +155,18 @@ describe("landing accessibility contracts", () => {
     assert.match(
       globalsCss,
       /\.hero-mesh::after,[\s\S]*?\.pain-points-mesh::after\s*\{(?=[\s\S]*?right:\s*-10%;)(?=[\s\S]*?top:\s*10%;)/,
+    );
+    assert.match(
+      globalsCss,
+      /\.hero-mesh::before,[\s\S]*?background-color:\s*var\(--ambient-mobile-leaf\);/,
+    );
+    assert.match(
+      globalsCss,
+      /\.hero-mesh::after,[\s\S]*?background-color:\s*var\(--ambient-mobile-mint\);/,
+    );
+    assert.doesNotMatch(
+      globalsCss,
+      /\.pain-points-mesh::after\s*\{[^}]*background-color:\s*var\(--ambient-mobile-leaf\);/,
     );
     assert.match(componentSources.painPoints, /pain-points-mesh/);
   });
@@ -157,6 +189,13 @@ describe("landing accessibility contracts", () => {
     );
     assert.match(componentSources.painPoints, /\bmt-10\b/);
     assert.match(componentSources.painPoints, /\bmd:mt-20\b/);
+  });
+
+  it("keeps the desktop proof strip attached to the dashboard", () => {
+    assert.match(componentSources.hero, /\blg:pb-20\b/);
+    assert.match(componentSources.painPoints, /\blg:pt-8\b/);
+    assert.match(componentSources.hero, /\bmd:pb-28\b/);
+    assert.match(componentSources.painPoints, /\bmd:pt-10\b/);
   });
 
   it("hides a collapsed accordion panel from assistive technology", () => {
@@ -301,6 +340,17 @@ describe("landing accessibility contracts", () => {
     assert.match(
       componentSources.finalCta,
       /mois d&apos;avance sur ce qu&apos;il te restera/i,
+    );
+  });
+
+  it("keeps final CTA supporting copy legible over the ambient field", () => {
+    assert.match(
+      componentSources.finalCta,
+      /max-w-2xl[^"\n]*text-text\/80/,
+    );
+    assert.doesNotMatch(
+      componentSources.finalCta,
+      /max-w-2xl[^"\n]*text-text-secondary/,
     );
   });
 });

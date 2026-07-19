@@ -24,7 +24,7 @@ export function PainPoints() {
   return (
     <Section
       id="pain-points"
-      className="pain-points-mesh relative overflow-hidden md:pt-10 lg:pt-16"
+      className="pain-points-mesh relative overflow-hidden md:pt-10 lg:pt-8"
     >
       <dl className="grid border-y border-text/10 sm:grid-cols-3">
         {PROOFS.map((proof, index) => (

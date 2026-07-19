@@ -42,6 +42,9 @@
   --ambient-lime: oklch(93% 0.13 121);
   --ambient-leaf: oklch(88% 0.15 145);
   --ambient-mint: oklch(90% 0.12 164);
+  --ambient-mobile-lime: oklch(82% 0.19 121);
+  --ambient-mobile-leaf: oklch(70% 0.2 145);
+  --ambient-mobile-mint: oklch(75% 0.18 164);
   --gradient-interpolation: ;
 }
 
@@ -139,9 +142,14 @@ body {
     background-image: none;
   }
 
+  #main-content {
+    overflow: clip;
+  }
+
   .hero-mesh,
   .pain-points-mesh {
     isolation: isolate;
+    overflow: visible;
   }
 
   .pain-points-mesh {
@@ -159,7 +167,7 @@ body {
     border-radius: 50%;
     content: "";
     filter: blur(150px);
-    opacity: 0.35;
+    opacity: 0.4;
     pointer-events: none;
     transform: translateY(-50%) rotate(-30deg);
   }
@@ -168,22 +176,18 @@ body {
   .pain-points-mesh::before {
     top: 90%;
     left: -10%;
-    background-color: var(--ambient-leaf);
+    background-color: var(--ambient-mobile-leaf);
   }
 
   .hero-mesh::after,
   .pain-points-mesh::after {
     top: 10%;
     right: -10%;
-    background-color: var(--ambient-mint);
+    background-color: var(--ambient-mobile-mint);
   }
 
   .pain-points-mesh::before {
-    background-color: var(--ambient-lime);
-  }
-
-  .pain-points-mesh::after {
-    background-color: var(--ambient-leaf);
+    background-color: var(--ambient-mobile-lime);
   }
 }
 

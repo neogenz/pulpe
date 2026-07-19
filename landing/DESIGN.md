@@ -77,7 +77,7 @@ Content is flat by default. A surface uses tone, a hairline outline or a short s
 
 **The Single Family Rule.** Poppins covers display, body, button and label. Distinction comes from scale, weight and spacing, never a second family.
 
-**The Mobile Diffuse Field Rule.** Below `768px`, keep the body neutral and place two blurred brand-green ellipses inside both the hero and opening narrative. Offset them to opposite sides and ends of each section so their fade bridges the content blocks. No neutral vertical stripe, decorative grid, glass panel or hard gradient edge.
+**The Mobile Diffuse Field Rule.** Below `768px`, keep the body neutral and place two blurred brand-green ellipses inside both the hero and opening narrative. Their source colors use denser mobile ambient tokens so the `150px` blur does not wash them out; opposite sides keep distinct leaf and mint hues. Offset them to opposite sides and ends of each section, let them overflow their internal boundary and clip only at the outer canvas so their fade bridges the content blocks. No neutral vertical stripe, decorative grid, glass panel or hard gradient edge.
 
 ## 6. Do's and Don'ts
 

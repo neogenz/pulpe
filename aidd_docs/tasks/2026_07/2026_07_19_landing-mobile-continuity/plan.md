@@ -1,5 +1,5 @@
 ---
-objective: "Sur mobile, la fin du hero, les trois preuves et le récit de PainPoints forment une séquence compacte portée par le même fondu diffus que Borumi, adapté aux couleurs Pulpe et sans bande blanche centrale."
+objective: "La fin du hero, les trois preuves et le récit de PainPoints forment une séquence continue : fondu Borumi adapté aux couleurs Pulpe sur mobile, aucune coupure de fond, preuves rattachées au dashboard sur desktop et texte secondaire final lisible sur le champ ambiant."
 status: implemented
 ---
 
@@ -10,7 +10,7 @@ status: implemented
 | Field      | Value                                                                 |
 | ---------- | --------------------------------------------------------------------- |
 | **Goal**   | Reprendre fidèlement la mécanique de fond Borumi tout en resserrant la transition mobile entre le hero et le récit produit. |
-| **Source** | Demande utilisateur du 19 juillet 2026 + capture `Screenshot 2026-07-19 at 18.58.19.png` + https://borumi.com/ |
+| **Source** | Demande utilisateur du 19 juillet 2026 + captures de 18:58, 19:44 et 20:21 + https://borumi.com/ |
 
 ## Phases
 
@@ -29,6 +29,7 @@ status: implemented
 
 | Decision | Why |
 | -------- | --- |
-| Reprendre les dimensions, positions, rotation, opacités et flou de Borumi, mais remplacer son violet/corail par les tokens verts Pulpe | Le rendu demandé reste fidèle à la référence sans introduire des couleurs décoratives étrangères à la marque. |
-| Appliquer la nouvelle mécanique sous 768 px et conserver le fond desktop actuel | Le défaut est mobile; cette limite évite une régression desktop et respecte la préférence exprimée. |
+| Reprendre les dimensions, positions, rotation, opacités et flou de Borumi, mais remplacer son violet/corail par des tokens mobiles Pulpe plus denses | Le flou reste fidèle à la référence sans laver les couleurs ni introduire des teintes décoratives étrangères à la marque. |
+| Appliquer la nouvelle mécanique sous 768 px, conserver le fond desktop et resserrer uniquement son raccord dashboard → preuves | Le contrôle visuel final a confirmé le besoin d'un fondu mobile non coupé et d'un espacement desktop moins détaché, sans redessiner le reste du desktop. |
+| Renforcer uniquement le texte secondaire du CTA final au lieu de modifier le token global | Le texte passe déjà AA ailleurs; le champ ambiant du CTA exige une densité supérieure sans aplatir toute la hiérarchie secondaire. |
 | Ne pas reprendre la grille décorative de Borumi | Le besoin porte sur le dégradé et le fondu; la grille contredit la règle landing qui l'interdit et n'aide pas la continuité narrative. |
