@@ -1,6 +1,6 @@
 ---
 objective: "L’accès au catalogue de tags s’intègre aux autres réglages et la recherche globale retrouve les prévisions et transactions par texte, année et/ou tags."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Harmoniser l’accès aux tags et filtrer les budgets par tag
