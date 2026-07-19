@@ -41,6 +41,10 @@ const componentSources = {
     new URL("../components/ui/Screenshot.tsx", import.meta.url),
     "utf8",
   ),
+  section: readFileSync(
+    new URL("../components/ui/Section.tsx", import.meta.url),
+    "utf8",
+  ),
   roadmap: readFileSync(
     new URL("../components/sections/Roadmap.tsx", import.meta.url),
     "utf8",
@@ -196,6 +200,13 @@ describe("landing accessibility contracts", () => {
     assert.match(componentSources.painPoints, /\blg:pt-8\b/);
     assert.match(componentSources.hero, /\bmd:pb-28\b/);
     assert.match(componentSources.painPoints, /\bmd:pt-10\b/);
+  });
+
+  it("treats section spacing as a shared boundary instead of doubling it", () => {
+    assert.match(componentSources.section, /\bpy-10\b/);
+    assert.match(componentSources.section, /\blg:py-15\b/);
+    assert.doesNotMatch(componentSources.section, /\bpy-20\b/);
+    assert.doesNotMatch(componentSources.section, /\blg:py-30\b/);
   });
 
   it("hides a collapsed accordion panel from assistive technology", () => {

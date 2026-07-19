@@ -15,6 +15,8 @@ landing/
 │   ├── accessibility.test.tsx ✏️ — verrouiller le contrat responsive avant la correction
 │   └── globals.css ✏️ — construire les ellipses floutées par section
 └── components/
+    ├── ui/
+    │   └── Section.tsx ✏️ — partager la respiration entre sections adjacentes
     └── sections/
         ├── Hero.tsx ✏️ — raccourcir uniquement sa sortie mobile
         ├── PainPoints.tsx ✏️ — porter le fond diffus et clarifier les preuves
@@ -124,6 +126,15 @@ Mobile
 2. Exiger un contraste d'au moins `7:1` sur les zones verte et menthe observées dans le CTA.
 3. Verrouiller la classe locale dans le contrat d'accessibilité sans modifier le token partagé.
 
+### `8)` Corriger la cadence entre les sections
+
+> Interpréter `80/120 px` comme une frontière partagée, pas comme deux marges pleines.
+
+1. Ajouter un contrat qui échoue avec `py-20 lg:py-30` sur la primitive `Section`.
+2. Répartir la respiration documentée sur les deux côtés adjacents avec `40 px` par côté sur mobile et `60 px` à partir de `lg`.
+3. Conserver les transitions éditoriales explicitement surchargées, notamment le raccord hero → preuves et le CTA final.
+4. Vérifier que les espacements internes de `40–56 px` restent inchangés et que les sections ne fusionnent pas visuellement.
+
 ## Test acceptance criteria
 
 | Task | Acceptance criteria |
@@ -135,3 +146,4 @@ Mobile
 | 5 | `landing/DESIGN.md` décrit le même contrat que le rendu : halos sectionnels verts sur mobile, canvas neutre, aucune grille ni surface vitrée ajoutée. |
 | 6 | Les vues 320, 390, 440 et 767 px reproduisent la douceur et la continuité de Borumi; à 768 et 1440 px, le fond et la rangée restent inchangés tandis que le raccord desktop est resserré; tests landing, type-check et build réussissent sans nouvelle dépendance. |
 | 7 | Le sous-texte du CTA final conserve une hiérarchie secondaire, atteint au moins `7:1` sur le champ ambiant mesuré et le token `--color-text-secondary` reste inchangé ailleurs. |
+| 8 | Deux sections par défaut produisent une frontière cumulée de `80 px` sur mobile et `120 px` à partir de `lg`; les espacements internes et les transitions surchargées restent inchangés. |

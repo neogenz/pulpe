@@ -1,5 +1,5 @@
 ---
-objective: "La fin du hero, les trois preuves et le récit de PainPoints forment une séquence continue : fondu Borumi adapté aux couleurs Pulpe sur mobile, aucune coupure de fond, preuves rattachées au dashboard sur desktop et texte secondaire final lisible sur le champ ambiant."
+objective: "La landing suit une séquence continue : fondu Borumi adapté aux couleurs Pulpe sur mobile, aucune coupure de fond, preuves rattachées au dashboard, rythme inter-sections non doublé et texte secondaire final lisible sur le champ ambiant."
 status: implemented
 ---
 
@@ -32,4 +32,5 @@ status: implemented
 | Reprendre les dimensions, positions, rotation, opacités et flou de Borumi, mais remplacer son violet/corail par des tokens mobiles Pulpe plus denses | Le flou reste fidèle à la référence sans laver les couleurs ni introduire des teintes décoratives étrangères à la marque. |
 | Appliquer la nouvelle mécanique sous 768 px, conserver le fond desktop et resserrer uniquement son raccord dashboard → preuves | Le contrôle visuel final a confirmé le besoin d'un fondu mobile non coupé et d'un espacement desktop moins détaché, sans redessiner le reste du desktop. |
 | Renforcer uniquement le texte secondaire du CTA final au lieu de modifier le token global | Le texte passe déjà AA ailleurs; le champ ambiant du CTA exige une densité supérieure sans aplatir toute la hiérarchie secondaire. |
+| Partager l'espacement de frontière entre deux sections adjacentes | La primitive appliquait `80/120 px` sur chaque côté, créant `160/240 px` entre contenus alors que le contrat désigne la distance cumulée; Borumi utilise lui aussi des respirations cumulées, pas deux marges pleines. |
 | Ne pas reprendre la grille décorative de Borumi | Le besoin porte sur le dégradé et le fondu; la grille contredit la règle landing qui l'interdit et n'aide pas la continuité narrative. |

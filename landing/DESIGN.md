@@ -67,7 +67,7 @@ Content is flat by default. A surface uses tone, a hairline outline or a short s
 - **Hero CTA:** solid Pulpe Forest capsule, Poppins 600, hover lift over `--ease-smooth`, exact press feedback `scale(0.96)`.
 - **Feature surface:** tonal or near-white, `border-radius: 16px`, no glass.
 - **Navbar:** floating full-width pill, one translucent layer, 44 px minimum targets, keyboard-accessible mobile panel.
-- **Section spacing:** 120 px between major desktop sections, 80 px on mobile.
+- **Section spacing:** adjacent default sections share 120 px on desktop and 80 px on mobile. The `Section` primitive contributes half of that boundary on each side; do not apply the full value twice.
 
 ### Landing-Specific Named Rules
 

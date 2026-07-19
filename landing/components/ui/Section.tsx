@@ -20,7 +20,7 @@ export const Section = memo(function Section({
 }: SectionProps) {
   return (
     <section
-      className={`py-20 lg:py-30 ${BACKGROUND_STYLES[background]} ${className}`}
+      className={`py-10 lg:py-15 ${BACKGROUND_STYLES[background]} ${className}`}
       {...props}
     >
       <Container className="relative z-10">{children}</Container>
