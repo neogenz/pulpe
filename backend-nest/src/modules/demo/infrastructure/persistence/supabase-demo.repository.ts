@@ -257,14 +257,15 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<void> {
     const tagNames = [...new Set(transactions.map((tx) => tx.tagName))];
+    const tagKey = (name: string): string =>
+      name.normalize('NFC').toLowerCase();
 
-    // Pas d'upsert: l'unicité tag est un index d'expression (lower+NFC),
-    // que PostgREST on_conflict ne supporte pas. Le flux démo est séquentiel,
-    // select-puis-insert suffit.
+    // PostgREST cannot filter on the lower+NFC expression used by the unique
+    // index, so compare the user's tags with the same canonical key locally.
     const { data: existingTags, error: fetchError } = await supabase
       .from('tag')
       .select('id, name')
-      .in('name', tagNames);
+      .eq('user_id', userId);
 
     if (fetchError) {
       throw new BusinessException(
@@ -276,9 +277,11 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
     }
 
     const tagIdByName = new Map(
-      (existingTags ?? []).map((tag) => [tag.name, tag.id]),
+      (existingTags ?? []).map((tag) => [tagKey(tag.name), tag.id]),
     );
-    const missingNames = tagNames.filter((name) => !tagIdByName.has(name));
+    const missingNames = tagNames.filter(
+      (name) => !tagIdByName.has(tagKey(name)),
+    );
 
     if (missingNames.length) {
       const { data: createdTags, error: tagError } = await supabase
@@ -296,11 +299,11 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
       }
 
       for (const tag of createdTags) {
-        tagIdByName.set(tag.name, tag.id);
+        tagIdByName.set(tagKey(tag.name), tag.id);
       }
     }
     const links = transactions.flatMap((tx, index) => {
-      const tagId = tagIdByName.get(tx.tagName);
+      const tagId = tagIdByName.get(tagKey(tx.tagName));
       return tagId
         ? [{ transaction_id: insertedIds[index], tag_id: tagId }]
         : [];

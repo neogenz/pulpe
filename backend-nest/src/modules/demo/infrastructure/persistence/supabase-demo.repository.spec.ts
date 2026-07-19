@@ -289,7 +289,7 @@ describe('SupabaseDemoRepository', () => {
         if (table === 'tag') {
           return {
             select: () => ({
-              in: () => Promise.resolve({ data: [], error: null }),
+              eq: () => Promise.resolve({ data: [], error: null }),
             }),
             insert: (rows: unknown) => {
               capturedTags.push(rows);
@@ -335,6 +335,69 @@ describe('SupabaseDemoRepository', () => {
       expect(capturedTags[0]).toEqual([{ user_id: 'user-1', name: 'Food' }]);
       expect(capturedLinks[0]).toEqual([
         { transaction_id: 'tx-1', tag_id: 'tag-1' },
+      ]);
+    });
+
+    it('should reuse an existing tag with different case', async () => {
+      const capturedTags: unknown[] = [];
+      const capturedLinks: unknown[] = [];
+      const filterByOwner = jest.fn().mockResolvedValue({
+        data: [{ id: 'tag-existing', name: 'courses' }],
+        error: null,
+      });
+      const supabase = createMockSupabase((table: string) => {
+        if (table === 'transaction') {
+          return {
+            insert: () => ({
+              select: () =>
+                Promise.resolve({ data: [{ id: 'tx-1' }], error: null }),
+            }),
+          };
+        }
+        if (table === 'tag') {
+          return {
+            select: () => ({
+              eq: filterByOwner,
+            }),
+            insert: (rows: unknown) => {
+              capturedTags.push(rows);
+              return {
+                select: () =>
+                  Promise.resolve({
+                    data: null,
+                    error: { code: '23505', message: 'duplicate tag' },
+                  }),
+              };
+            },
+          };
+        }
+        return {
+          insert: (rows: unknown) => {
+            capturedLinks.push(rows);
+            return Promise.resolve({ error: null });
+          },
+        };
+      });
+
+      await repo.insertTransactions(
+        [
+          {
+            budgetId: 'b-1',
+            name: 'Supermarket',
+            amount: 42,
+            kind: 'expense',
+            tagName: 'Courses',
+            transactionDate: '2026-05-08T12:00:00Z',
+          },
+        ],
+        'user-1',
+        supabase,
+      );
+
+      expect(filterByOwner).toHaveBeenCalledWith('user_id', 'user-1');
+      expect(capturedTags).toHaveLength(0);
+      expect(capturedLinks[0]).toEqual([
+        { transaction_id: 'tx-1', tag_id: 'tag-existing' },
       ]);
     });
   });
