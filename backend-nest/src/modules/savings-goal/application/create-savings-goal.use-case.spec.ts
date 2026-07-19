@@ -27,6 +27,7 @@ const goal = {
   originalCurrency: null,
   targetCurrency: null,
   exchangeRate: null,
+  initialAmount: null,
 };
 
 const createDto = {
