@@ -1122,12 +1122,27 @@ export type SearchItemType = z.infer<typeof searchItemTypeSchema>;
 export const TRANSACTION_SEARCH_QUERY_MIN_LENGTH = 2;
 export const TRANSACTION_SEARCH_QUERY_MAX_LENGTH = 100;
 
-export const transactionSearchQuerySchema = z.object({
-  q: z
-    .string()
-    .min(TRANSACTION_SEARCH_QUERY_MIN_LENGTH)
-    .max(TRANSACTION_SEARCH_QUERY_MAX_LENGTH),
-});
+/**
+ * Global budget-item search filters.
+ *
+ * Text stays optional when at least one exact tag filter is provided. Multiple
+ * years and tags are OR-ed within their group; the backend intersects the
+ * active filter groups.
+ */
+export const transactionSearchQuerySchema = z
+  .object({
+    q: z
+      .string()
+      .min(TRANSACTION_SEARCH_QUERY_MIN_LENGTH)
+      .max(TRANSACTION_SEARCH_QUERY_MAX_LENGTH)
+      .optional(),
+    years: z.array(z.number().int().min(MIN_YEAR).max(MAX_YEAR)).optional(),
+    tagIds: z.array(z.uuid()).min(1).optional(),
+  })
+  .refine(({ q, tagIds }) => q !== undefined || (tagIds?.length ?? 0) > 0, {
+    message: 'Un terme de recherche ou au moins un tag est requis.',
+    path: ['q'],
+  });
 export type TransactionSearchQuery = z.infer<
   typeof transactionSearchQuerySchema
 >;

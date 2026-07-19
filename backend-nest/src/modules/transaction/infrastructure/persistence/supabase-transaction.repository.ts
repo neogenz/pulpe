@@ -15,7 +15,10 @@ import {
   updateTaggedEntity,
 } from '@common/utils/tag-links.util';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
-import type { TransactionRepositoryPort } from '../../domain/ports/transaction-repository.port';
+import type {
+  TransactionRepositoryPort,
+  TransactionSearchCriteria,
+} from '../../domain/ports/transaction-repository.port';
 import type {
   Transaction,
   TransactionCreateInput,
@@ -530,13 +533,14 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
   }
 
   async fetchBudgetIdsByYears(
-    _userId: string,
+    userId: string,
     years: number[],
   ): Promise<string[]> {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('monthly_budget')
       .select('id')
+      .eq('user_id', userId)
       .in('year', years);
 
     if (error) {
@@ -556,20 +560,22 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
   }
 
   async fetchTransactionsByPattern(
-    searchPattern: string,
-    budgetIds: string[] | null,
+    criteria: TransactionSearchCriteria,
   ): Promise<TransactionSearchTransactionRow[]> {
-    const [nameMatches, tagIds] = await Promise.all([
-      this.queryTransactionsByName(searchPattern, budgetIds),
-      this.queryTagIdsByName(searchPattern),
-    ]);
-    const tagMatches = tagIds.length
-      ? await this.queryTransactionsByTagIds(tagIds, budgetIds)
-      : [];
-    const byId = new Map(
-      [...nameMatches, ...tagMatches].map((row) => [row.id, row]),
-    );
-    const data = [...byId.values()]
+    const matches = criteria.tagIds.length
+      ? await this.queryTransactionsByTagIds(
+          criteria.tagIds,
+          criteria.budgetIds,
+          criteria.searchPattern,
+        )
+      : criteria.searchPattern
+        ? await this.queryTransactionsByText(
+            criteria.searchPattern,
+            criteria.userId,
+            criteria.budgetIds,
+          )
+        : [];
+    const data = [...new Map(matches.map((row) => [row.id, row])).values()]
       .sort(
         (a, b) =>
           new Date(b.transaction_date).getTime() -
@@ -583,14 +589,43 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
   }
 
   async fetchBudgetLinesByPattern(
-    searchPattern: string,
-    budgetIds: string[] | null,
+    criteria: TransactionSearchCriteria,
   ): Promise<TransactionSearchBudgetLineRow[]> {
-    const data = await this.queryBudgetLinesByPattern(searchPattern, budgetIds);
+    const data = criteria.tagIds.length
+      ? await this.queryBudgetLinesByTagIds(
+          criteria.tagIds,
+          criteria.budgetIds,
+          criteria.searchPattern,
+        )
+      : criteria.searchPattern
+        ? await this.queryBudgetLinesByPattern(
+            criteria.searchPattern,
+            criteria.budgetIds,
+          )
+        : [];
 
     if (!data.length) return [];
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return data.map((row) => this.toSearchBudgetLineRow(row, dek));
+  }
+
+  private async queryTransactionsByText(
+    searchPattern: string,
+    userId: string,
+    budgetIds: string[] | null,
+  ): Promise<RawSearchTransactionRow[]> {
+    const [nameMatches, matchingTagIds] = await Promise.all([
+      this.queryTransactionsByName(searchPattern, budgetIds),
+      this.queryTagIdsByName(searchPattern, userId),
+    ]);
+    const tagMatches = matchingTagIds.length
+      ? await this.queryTransactionsByTagIds(matchingTagIds, budgetIds)
+      : [];
+    return [
+      ...new Map(
+        [...nameMatches, ...tagMatches].map((row) => [row.id, row]),
+      ).values(),
+    ];
   }
 
   private async queryTransactionsByName(
@@ -641,10 +676,14 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     return (data ?? []) as RawSearchTransactionRow[];
   }
 
-  private async queryTagIdsByName(searchPattern: string): Promise<string[]> {
+  private async queryTagIdsByName(
+    searchPattern: string,
+    userId: string,
+  ): Promise<string[]> {
     const { data, error } = await this.supabaseProvider.client
       .from('tag')
       .select('id')
+      .eq('user_id', userId)
       .ilike('name', searchPattern);
 
     if (error) {
@@ -666,6 +705,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
   private async queryTransactionsByTagIds(
     tagIds: string[],
     budgetIds: string[] | null,
+    searchPattern?: string | null,
   ): Promise<RawSearchTransactionRow[]> {
     const supabase = this.supabaseProvider.client;
     let query = supabase
@@ -687,7 +727,9 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       `,
       )
       .in('transaction_tag.tag_id', tagIds);
-
+    if (searchPattern) {
+      query = query.ilike('name', searchPattern);
+    }
     if (budgetIds) {
       query = query.in('budget_id', budgetIds);
     }
@@ -695,7 +737,6 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     const { data, error } = await query
       .order('transaction_date', { ascending: false })
       .limit(25);
-
     if (error) {
       throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
@@ -750,6 +791,57 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
         undefined,
         {
           operation: 'fetchBudgetLinesByPattern',
+          entityType: 'budget_line',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    return (data ?? []) as RawSearchBudgetLineRow[];
+  }
+
+  private async queryBudgetLinesByTagIds(
+    tagIds: string[],
+    budgetIds: string[] | null,
+    searchPattern?: string | null,
+  ): Promise<RawSearchBudgetLineRow[]> {
+    const supabase = this.supabaseProvider.client;
+    let query = supabase
+      .from('budget_line')
+      .select(
+        `
+        id,
+        name,
+        amount,
+        kind,
+        recurrence,
+        budget_id,
+        budget:budget_id (
+          description,
+          month,
+          year
+        ),
+        budget_line_tag!inner(tag_id)
+      `,
+      )
+      .in('budget_line_tag.tag_id', tagIds);
+    if (searchPattern) {
+      query = query.ilike('name', searchPattern);
+    }
+    if (budgetIds) {
+      query = query.in('budget_id', budgetIds);
+    }
+
+    const { data, error } = await query
+      .order('created_at', { ascending: false })
+      .limit(25);
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'fetchBudgetLinesByTagIds',
           entityType: 'budget_line',
           supabaseError: error,
         },
