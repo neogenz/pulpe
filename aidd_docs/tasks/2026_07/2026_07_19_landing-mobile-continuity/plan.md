@@ -1,6 +1,6 @@
 ---
 objective: "Sur mobile, la fin du hero, les trois preuves et le récit de PainPoints forment une séquence compacte portée par le même fondu diffus que Borumi, adapté aux couleurs Pulpe et sans bande blanche centrale."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Reproduire le fondu mobile de Borumi sur la landing
