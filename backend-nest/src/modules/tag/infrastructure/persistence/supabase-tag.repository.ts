@@ -6,7 +6,7 @@ import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-s
 import {
   ENCRYPTION_PORT,
   type EncryptionPort,
-} from '@modules/encryption/domain/ports/encryption.port';
+} from '@modules/encryption/encryption.tokens';
 import { periodIndex, type BudgetPeriod } from 'pulpe-shared';
 import type { TagRepositoryPort } from '../../domain/ports/tag-repository.port';
 import type {
