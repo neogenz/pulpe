@@ -84,9 +84,10 @@ extension Color {
     static let secondaryContainer = Color(light: Color(hex: 0xC1EEBE), dark: Color(hex: 0x294F2B))
 
     // MARK: - App Background
-    // DA.md §3.1: neutral warm — not cold (no blue-gray), not green.
-    // Light: #F7F6F3 (warm neutral). Dark: #141210 (warm near-black, not pure #000).
-    static let appBackground = Color(light: Color(hex: 0xF7F6F3), dark: Color(hex: 0x141210))
+    // Warm sage canvas — the home dashboard's calm tone, now the shared iOS-wide default.
+    // Light: #EFF3EE. Dark: #121611 (warm near-black, not pure #000).
+    // iOS override of the cross-platform neutral #F7F6F3 (see ios/DESIGN.md).
+    static let appBackground = Color(light: Color(hex: 0xEFF3EE), dark: Color(hex: 0x121611))
 
     // MARK: - Sheet Background
     // Warm sheet surface with visible contrast against card bg in dark mode.
@@ -378,6 +379,22 @@ extension Color {
     static let dashboardGradientTight = Color(light: Color(hex: 0xFCECD0), dark: Color(hex: 0x1C1408))
     /// Deficit (Sunset Coral): warm peach → neutral warm
     static let dashboardGradientDeficit = Color(light: Color(hex: 0xFADCD0), dark: Color(hex: 0x201008))
+
+    // MARK: - Home Dashboard (Tour 11 — sage canvas + mint hero card)
+
+    /// Home dashboard canvas — now the shared app background (`appBackground`).
+    /// Kept as a semantic alias so home call sites read intentionally and the two never drift.
+    static let homeBackground = appBackground
+    /// Mint hero card surface — identical across emotion states.
+    static let homeHeroSurface = Color(light: Color(hex: 0xCFE8D6), dark: Color(hex: 0x1D3A28))
+    /// Deep-green ink for primary text and progress fill on the mint hero card.
+    static let homeHeroInk = Color(light: Color(hex: 0x0E3A1C), dark: Color(hex: 0xD5ECDC))
+    /// Supporting text on the mint hero card.
+    static let homeHeroSupport = Color(light: Color(hex: 0x2C5136), dark: Color(hex: 0x9FC3AA))
+    /// Solid overlay surface on the mint hero card (state chip fill + progress track).
+    static let homeHeroOverlay = Color(light: Color(hex: 0xF3F9F5), dark: Color(hex: 0x2C4A37))
+    /// Envelope drift accent — overrun amounts + overflow bar segments on the home dashboard only.
+    static let driftAccent = Color(light: Color(hex: 0xC45028), dark: Color(hex: 0xE8825A))
 
     // MARK: - Skeleton
 
