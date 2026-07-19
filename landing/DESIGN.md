@@ -26,7 +26,7 @@ Pulpe landing is Next.js + Tailwind v4. Marketing-first: a large promise, a wide
 **Landing-specific characteristics:**
 
 - **Single font family:** Poppins. No display/body split.
-- **Two-zone canvas:** a pale green radial emotion field dissolves into the warm `#F7F6F3` content canvas.
+- **Two-zone canvas:** the warm `#F7F6F3` base carries the content. Desktop uses a shared radial field; below `768px`, the hero and opening narrative use paired, section-scoped green ellipses whose blur overlaps the transition.
 - **Product signature:** the live annual-budget dashboard is the one memorable visual moment.
 - **Brand-tinted elevation:** `rgba(0, 60, 20, 0.06)` instead of generic black shadows.
 - **Restrained motion:** `--ease-smooth`, 150–300 ms interactions and no overshoot.
@@ -76,6 +76,8 @@ Content is flat by default. A surface uses tone, a hairline outline or a short s
 **The Navigation Glass Rule.** Backdrop blur and translucent shine are reserved for the floating navbar. Content surfaces use tone, outline or restrained elevation.
 
 **The Single Family Rule.** Poppins covers display, body, button and label. Distinction comes from scale, weight and spacing, never a second family.
+
+**The Mobile Diffuse Field Rule.** Below `768px`, keep the body neutral and place two blurred brand-green ellipses inside both the hero and opening narrative. Offset them to opposite sides and ends of each section so their fade bridges the content blocks. No neutral vertical stripe, decorative grid, glass panel or hard gradient edge.
 
 ## 6. Do's and Don'ts
 

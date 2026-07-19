@@ -25,6 +25,14 @@ const componentSources = {
     new URL("../components/sections/Header.tsx", import.meta.url),
     "utf8",
   ),
+  hero: readFileSync(
+    new URL("../components/sections/Hero.tsx", import.meta.url),
+    "utf8",
+  ),
+  painPoints: readFileSync(
+    new URL("../components/sections/PainPoints.tsx", import.meta.url),
+    "utf8",
+  ),
   imageLightbox: readFileSync(
     new URL("../components/ui/ImageLightbox.tsx", import.meta.url),
     "utf8",
@@ -96,6 +104,59 @@ describe("landing accessibility contracts", () => {
       globalsCss,
       /at\s+[-\d.%]+\s+[-\d.%]+\s+var\(--gradient-interpolation\)/,
     );
+  });
+
+  it("uses Borumi-style section fields instead of the page gradient on mobile", () => {
+    const sectionFields = globalsCss.match(
+      /\.hero-mesh::before,[\s\S]*?\.pain-points-mesh::after\s*\{([\s\S]*?)\}/,
+    )?.[1];
+
+    assert.match(
+      globalsCss,
+      /@media \(max-width: 767px\)[\s\S]*body\s*\{[\s\S]*background-image:\s*none;/,
+    );
+    assert.match(
+      globalsCss,
+      /\.hero-mesh,\s*\.pain-points-mesh\s*\{[\s\S]*isolation:\s*isolate;/,
+    );
+    assert.ok(sectionFields, "The shared mobile section field is missing");
+    assert.match(sectionFields, /width:\s*40vw;/);
+    assert.match(sectionFields, /height:\s*60vh;/);
+    assert.match(
+      sectionFields,
+      /transform:\s*translateY\(-50%\) rotate\(-30deg\);/,
+    );
+    assert.match(sectionFields, /filter:\s*blur\(150px\);/);
+    assert.match(sectionFields, /opacity:\s*0\.35;/);
+    assert.match(
+      globalsCss,
+      /\.hero-mesh::before,[\s\S]*?\.pain-points-mesh::before\s*\{(?=[\s\S]*?left:\s*-10%;)(?=[\s\S]*?top:\s*90%;)/,
+    );
+    assert.match(
+      globalsCss,
+      /\.hero-mesh::after,[\s\S]*?\.pain-points-mesh::after\s*\{(?=[\s\S]*?right:\s*-10%;)(?=[\s\S]*?top:\s*10%;)/,
+    );
+    assert.match(componentSources.painPoints, /pain-points-mesh/);
+  });
+
+  it("keeps the mobile proof strip compact and value-first", () => {
+    assert.match(componentSources.hero, /\bpb-12\b/);
+    assert.match(componentSources.hero, /\bmd:pb-28\b/);
+    assert.match(
+      componentSources.painPoints,
+      /PROOFS = \[[\s\S]*value:[\s\S]*label:/,
+    );
+    assert.match(
+      componentSources.painPoints,
+      /grid-cols-\[7rem_minmax\(0,1fr\)\]/,
+    );
+    assert.match(componentSources.painPoints, /\bsm:grid-cols-3\b/);
+    assert.match(
+      componentSources.painPoints,
+      /<dt[^>]*>\s*\{proof\.value\}\s*<\/dt>[\s\S]*<dd[^>]*>\s*\{proof\.label\}\s*<\/dd>/,
+    );
+    assert.match(componentSources.painPoints, /\bmt-10\b/);
+    assert.match(componentSources.painPoints, /\bmd:mt-20\b/);
   });
 
   it("hides a collapsed accordion panel from assistive technology", () => {

@@ -128,10 +128,63 @@ body {
   }
 }
 
-/* The page shares one ambient field. Sections stay transparent so the color
-   fades never become full-width bands. */
-.hero-mesh {
+/* Desktop shares one ambient field. Mobile scopes its halos to the opening sections. */
+.hero-mesh,
+.pain-points-mesh {
   background: transparent;
+}
+
+@media (max-width: 767px) {
+  body {
+    background-image: none;
+  }
+
+  .hero-mesh,
+  .pain-points-mesh {
+    isolation: isolate;
+  }
+
+  .pain-points-mesh {
+    padding-top: 1.5rem;
+  }
+
+  .hero-mesh::before,
+  .hero-mesh::after,
+  .pain-points-mesh::before,
+  .pain-points-mesh::after {
+    position: absolute;
+    z-index: -1;
+    width: 40vw;
+    height: 60vh;
+    border-radius: 50%;
+    content: "";
+    filter: blur(150px);
+    opacity: 0.35;
+    pointer-events: none;
+    transform: translateY(-50%) rotate(-30deg);
+  }
+
+  .hero-mesh::before,
+  .pain-points-mesh::before {
+    top: 90%;
+    left: -10%;
+    background-color: var(--ambient-leaf);
+  }
+
+  .hero-mesh::after,
+  .pain-points-mesh::after {
+    top: 10%;
+    right: -10%;
+    background-color: var(--ambient-mint);
+  }
+
+  .pain-points-mesh::before {
+    background-color: var(--ambient-lime);
+  }
+
+  .pain-points-mesh::after {
+    background-color: var(--ambient-leaf);
+  }
 }
 
 section[id] {
