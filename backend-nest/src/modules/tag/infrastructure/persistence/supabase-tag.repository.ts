@@ -51,9 +51,11 @@ export class SupabaseTagRepository implements TagRepositoryPort {
 
   async findAll(): Promise<Tag[]> {
     const supabase = this.supabaseProvider.client;
+    const userId = this.supabaseProvider.user.id;
     const { data, error } = await supabase
       .from('tag')
       .select('*')
+      .eq('user_id', userId)
       .order('name', { ascending: true });
 
     if (error) {
@@ -63,6 +65,7 @@ export class SupabaseTagRepository implements TagRepositoryPort {
         {
           operation: 'listTags',
           entityType: 'tag',
+          userId,
           supabaseError: error,
         },
         { cause: error },
@@ -74,22 +77,35 @@ export class SupabaseTagRepository implements TagRepositoryPort {
 
   async findById(id: string): Promise<Tag> {
     const supabase = this.supabaseProvider.client;
+    const userId = this.supabaseProvider.user.id;
     const { data, error } = await supabase
       .from('tag')
       .select('*')
       .eq('id', id)
+      .eq('user_id', userId)
       .single();
 
-    if (error || !data) {
+    const loggingContext = {
+      operation: 'getTag',
+      entityId: id,
+      entityType: 'tag',
+      userId,
+      supabaseError: error,
+    };
+    if (error?.code === POSTGREST_NO_ROWS || (!error && !data)) {
       throw new BusinessException(
         ERROR_DEFINITIONS.TAG_NOT_FOUND,
         { id },
-        {
-          operation: 'getTag',
-          entityId: id,
-          entityType: 'tag',
-          supabaseError: error,
-        },
+        loggingContext,
+        { cause: error ?? undefined },
+      );
+    }
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TAG_FETCH_FAILED,
+        undefined,
+        loggingContext,
+        { cause: error },
       );
     }
 
@@ -195,6 +211,7 @@ export class SupabaseTagRepository implements TagRepositoryPort {
       .from('tag')
       .update(updateRow)
       .eq('id', id)
+      .eq('user_id', user.id)
       .select('*')
       .single();
 
@@ -247,7 +264,12 @@ export class SupabaseTagRepository implements TagRepositoryPort {
 
   async delete(id: string): Promise<void> {
     const supabase = this.supabaseProvider.client;
-    const { error } = await supabase.from('tag').delete().eq('id', id);
+    const userId = this.supabaseProvider.user.id;
+    const { error } = await supabase
+      .from('tag')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
 
     if (error) {
       throw new BusinessException(
@@ -257,6 +279,7 @@ export class SupabaseTagRepository implements TagRepositoryPort {
           operation: 'deleteTag',
           entityId: id,
           entityType: 'tag',
+          userId,
           supabaseError: error,
         },
         { cause: error },

@@ -45,15 +45,19 @@ const encryption = {
 
 describe('SupabaseTagRepository', () => {
   it('findAll returns mapped camelCase entities ordered by name', async () => {
+    const eq = jest.fn().mockReturnValue({
+      order: jest.fn().mockResolvedValue({ data: [mockRow], error: null }),
+    });
     const provider = createMockProvider(() => ({
       select: () => ({
-        order: jest.fn().mockResolvedValue({ data: [mockRow], error: null }),
+        eq,
       }),
     }));
     const repo = new SupabaseTagRepository(provider, encryption);
 
     const result = await repo.findAll();
 
+    expect(eq).toHaveBeenCalledWith('user_id', 'user-1');
     expect(result).toEqual([
       {
         id: 'tag-1',
@@ -66,20 +70,47 @@ describe('SupabaseTagRepository', () => {
   });
 
   it('findById throws TAG_NOT_FOUND when RLS hides the row', async () => {
+    const hiddenError = {
+      code: 'PGRST116',
+      message: 'JSON object requested, multiple (or no) rows returned',
+    };
+    const eq = jest.fn();
+    const query = {
+      eq,
+      single: jest.fn().mockResolvedValue({ data: null, error: hiddenError }),
+    };
+    eq.mockReturnValue(query);
     const provider = createMockProvider(() => ({
-      select: () => ({
-        eq: () => ({
-          single: jest
-            .fn()
-            .mockResolvedValue({ data: null, error: { message: 'no rows' } }),
-        }),
-      }),
+      select: () => query,
     }));
     const repo = new SupabaseTagRepository(provider, encryption);
 
     await expect(repo.findById('missing')).rejects.toThrow(BusinessException);
     await expect(repo.findById('missing')).rejects.toMatchObject({
       code: ERROR_DEFINITIONS.TAG_NOT_FOUND.code,
+      cause: hiddenError,
+    });
+    expect(eq).toHaveBeenCalledWith('user_id', 'user-1');
+  });
+
+  it('findById preserves technical Supabase errors as TAG_FETCH_FAILED causes', async () => {
+    const dbError = { code: '08006', message: 'connection lost' };
+    const eq = jest.fn();
+    const query = {
+      eq,
+      single: jest.fn().mockResolvedValue({ data: null, error: dbError }),
+    };
+    eq.mockReturnValue(query);
+    const provider = createMockProvider(() => ({
+      select: () => query,
+    }));
+    const repo = new SupabaseTagRepository(provider, encryption);
+
+    const result = repo.findById('tag-1');
+
+    await expect(result).rejects.toMatchObject({
+      code: ERROR_DEFINITIONS.TAG_FETCH_FAILED.code,
+      cause: dbError,
     });
   });
 
@@ -123,17 +154,19 @@ describe('SupabaseTagRepository', () => {
   });
 
   it('update maps unique violation (23505) to TAG_ALREADY_EXISTS conflict', async () => {
-    const provider = createMockProvider(() => ({
-      update: () => ({
-        eq: () => ({
-          select: () => ({
-            single: jest.fn().mockResolvedValue({
-              data: null,
-              error: { code: '23505', message: 'duplicate key value' },
-            }),
-          }),
+    const eq = jest.fn();
+    const query = {
+      eq,
+      select: () => ({
+        single: jest.fn().mockResolvedValue({
+          data: null,
+          error: { code: '23505', message: 'duplicate key value' },
         }),
       }),
+    };
+    eq.mockReturnValue(query);
+    const provider = createMockProvider(() => ({
+      update: () => query,
     }));
     const repo = new SupabaseTagRepository(provider, encryption);
 
@@ -145,17 +178,19 @@ describe('SupabaseTagRepository', () => {
   });
 
   it('update maps PGRST116 to TAG_NOT_FOUND when the row is absent or hidden by RLS', async () => {
-    const provider = createMockProvider(() => ({
-      update: () => ({
-        eq: () => ({
-          select: () => ({
-            single: jest.fn().mockResolvedValue({
-              data: null,
-              error: { code: 'PGRST116', message: 'JSON object requested' },
-            }),
-          }),
+    const eq = jest.fn();
+    const query = {
+      eq,
+      select: () => ({
+        single: jest.fn().mockResolvedValue({
+          data: null,
+          error: { code: 'PGRST116', message: 'JSON object requested' },
         }),
       }),
+    };
+    eq.mockReturnValue(query);
+    const provider = createMockProvider(() => ({
+      update: () => query,
     }));
     const repo = new SupabaseTagRepository(provider, encryption);
 
@@ -167,17 +202,19 @@ describe('SupabaseTagRepository', () => {
   });
 
   it('update maps database errors to TAG_UPDATE_FAILED', async () => {
-    const provider = createMockProvider(() => ({
-      update: () => ({
-        eq: () => ({
-          select: () => ({
-            single: jest.fn().mockResolvedValue({
-              data: null,
-              error: { code: '08006', message: 'connection lost' },
-            }),
-          }),
+    const eq = jest.fn();
+    const query = {
+      eq,
+      select: () => ({
+        single: jest.fn().mockResolvedValue({
+          data: null,
+          error: { code: '08006', message: 'connection lost' },
         }),
       }),
+    };
+    eq.mockReturnValue(query);
+    const provider = createMockProvider(() => ({
+      update: () => query,
     }));
     const repo = new SupabaseTagRepository(provider, encryption);
 
@@ -190,19 +227,21 @@ describe('SupabaseTagRepository', () => {
 
   it('update renames and returns the mapped entity', async () => {
     let captured: Record<string, unknown> | undefined;
+    const eq = jest.fn();
+    const query = {
+      eq,
+      select: () => ({
+        single: jest.fn().mockResolvedValue({
+          data: { ...mockRow, name: 'Santé' },
+          error: null,
+        }),
+      }),
+    };
+    eq.mockReturnValue(query);
     const provider = createMockProvider(() => ({
       update: (row: Record<string, unknown>) => {
         captured = row;
-        return {
-          eq: () => ({
-            select: () => ({
-              single: jest.fn().mockResolvedValue({
-                data: { ...mockRow, name: 'Santé' },
-                error: null,
-              }),
-            }),
-          }),
-        };
+        return query;
       },
     }));
     const repo = new SupabaseTagRepository(provider, encryption);
@@ -210,16 +249,21 @@ describe('SupabaseTagRepository', () => {
     const result = await repo.update('tag-1', { name: 'Santé' });
 
     expect(captured).toEqual({ name: 'Santé' });
+    expect(eq).toHaveBeenCalledWith('user_id', 'user-1');
     expect(result.name).toBe('Santé');
   });
 
   it('delete propagates database errors as TAG_DELETE_FAILED', async () => {
+    const cleanupError = { message: 'connection lost' };
+    const eq = jest.fn();
+    const query = { eq };
+    eq.mockImplementation(() =>
+      eq.mock.calls.length === 2
+        ? Promise.resolve({ error: cleanupError })
+        : query,
+    );
     const provider = createMockProvider(() => ({
-      delete: () => ({
-        eq: jest
-          .fn()
-          .mockResolvedValue({ error: { message: 'connection lost' } }),
-      }),
+      delete: () => query,
     }));
     const repo = new SupabaseTagRepository(provider, encryption);
 
@@ -229,14 +273,18 @@ describe('SupabaseTagRepository', () => {
   });
 
   it('delete succeeds idempotently when no visible row exists', async () => {
+    const eq = jest.fn();
+    const query = { eq };
+    eq.mockImplementation(() =>
+      eq.mock.calls.length === 2 ? Promise.resolve({ error: null }) : query,
+    );
     const provider = createMockProvider(() => ({
-      delete: () => ({
-        eq: jest.fn().mockResolvedValue({ error: null }),
-      }),
+      delete: () => query,
     }));
     const repo = new SupabaseTagRepository(provider, encryption);
 
     await expect(repo.delete('missing')).resolves.toBeUndefined();
+    expect(eq).toHaveBeenCalledWith('user_id', 'user-1');
   });
 
   it('findHistoryContributions decrypts direct expense links in the requested periods', async () => {
