@@ -46,6 +46,7 @@ export class TemplateLinePropagationAdapter implements TemplateLinePropagationPo
           operation: 'templateLinePropagation.createLineAndPropagate',
           userId: input.userId,
           templateId: input.templateId,
+          savingsGoalId: input.savingsGoalId,
         },
       );
     }
