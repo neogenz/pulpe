@@ -34,7 +34,7 @@ export class GetSavingsGoalFutureLinesUseCase {
       getBudgetPeriodForDate(new Date(), payDayOfMonth),
     );
 
-    const lines = await this.repo.findFutureLinkedLines(id);
+    const lines = await this.repo.findLinkedSavingLines(id);
     return lines
       .filter(
         (line) =>

@@ -121,4 +121,28 @@ struct SavingsGoalFormSheetTests {
 
         #expect(SavingsGoalFormSheet.initialAmountUpdate(for: 7000, original: goal) == 7000)
     }
+
+    @Test("a new decomposed goal rejects a zero monthly contribution")
+    func monthlyContribution_zeroIsRejectedWhenDecomposing() {
+        #expect(
+            !SavingsGoalFormSheet.isMonthlyContributionSubmittable(
+                isEditing: false,
+                decomposeEnabled: true,
+                hasRemainingToSave: true,
+                contribution: 0
+            )
+        )
+    }
+
+    @Test("monthly contribution does not block creation when decomposition is disabled")
+    func monthlyContribution_isIgnoredWithoutDecomposition() {
+        #expect(
+            SavingsGoalFormSheet.isMonthlyContributionSubmittable(
+                isEditing: false,
+                decomposeEnabled: false,
+                hasRemainingToSave: true,
+                contribution: 0
+            )
+        )
+    }
 }

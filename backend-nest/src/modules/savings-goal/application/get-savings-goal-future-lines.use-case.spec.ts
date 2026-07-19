@@ -41,7 +41,7 @@ describe('GetSavingsGoalFutureLinesUseCase (PUL-285 CA5/CA9)', () => {
     repo = {
       findById: jest.fn().mockResolvedValue({ id: 'goal-1' }),
       findPayDayOfMonth: jest.fn().mockResolvedValue(null),
-      findFutureLinkedLines: jest.fn().mockResolvedValue([]),
+      findLinkedSavingLines: jest.fn().mockResolvedValue([]),
       findLinkedContributions: jest
         .fn()
         .mockResolvedValue({ lines: [], transactions: [] }),
@@ -62,7 +62,7 @@ describe('GetSavingsGoalFutureLinesUseCase (PUL-285 CA5/CA9)', () => {
     const adjusted = line(2, { isManuallyAdjusted: true });
     const current = line(0);
     const future = line(3);
-    repo.findFutureLinkedLines.mockResolvedValue([
+    repo.findLinkedSavingLines.mockResolvedValue([
       future,
       past,
       checked,
@@ -73,13 +73,13 @@ describe('GetSavingsGoalFutureLinesUseCase (PUL-285 CA5/CA9)', () => {
     const result = await useCase.execute('goal-1', user);
 
     expect(result.map((item) => item.id)).toEqual([current.id, future.id]);
-    expect(repo.findFutureLinkedLines).toHaveBeenCalledWith('goal-1');
+    expect(repo.findLinkedSavingLines).toHaveBeenCalledWith('goal-1');
     expect(repo.findLinkedContributions).not.toHaveBeenCalled();
   });
 
   it('should include lines generated beyond the goal target date (no deadline bound)', async () => {
     const farFuture = line(60);
-    repo.findFutureLinkedLines.mockResolvedValue([farFuture]);
+    repo.findLinkedSavingLines.mockResolvedValue([farFuture]);
 
     const result = await useCase.execute('goal-1', user);
 

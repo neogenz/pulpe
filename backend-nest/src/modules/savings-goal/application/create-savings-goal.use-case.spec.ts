@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, jest } from 'bun:test';
 import { Buffer } from 'node:buffer';
 import { Test } from '@nestjs/testing';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { BusinessException } from '@common/exceptions/business.exception';
 import { BUDGET_TEMPLATE_REPOSITORY } from '@modules/budget-template/domain/ports/budget-template-repository.port';
 import { TEMPLATE_LINE_PROPAGATION_PORT } from '@modules/budget-template/domain/ports/template-line-propagation.port';
 import { SAVINGS_GOAL_REPOSITORY } from '../domain/ports/savings-goal-repository.port';
@@ -119,5 +121,29 @@ describe('CreateSavingsGoalUseCase auto-décomposition (PUL-285 CA1/CA2)', () =>
 
     expect(result).toEqual(goal);
     expect(logger.warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('should surface a committed baseline recalculation failure', async () => {
+    propagation.createLineAndPropagate.mockRejectedValue(
+      new BusinessException(
+        ERROR_DEFINITIONS.TEMPLATE_UPDATE_FAILED,
+        undefined,
+        {
+          partialFailure: true,
+          affectedBudgetIds: ['budget-1'],
+        },
+      ),
+    );
+
+    expect(
+      useCase.execute({ ...createDto, monthlyContribution: 2083.34 }, user),
+    ).rejects.toMatchObject({
+      code: 'ERR_SAVINGS_GOAL_BASELINE_RECALCULATION_FAILED',
+      loggingContext: {
+        partialFailure: true,
+        affectedBudgetIds: ['budget-1'],
+        savingsGoalId: goal.id,
+      },
+    });
   });
 });

@@ -458,6 +458,12 @@ export const ERROR_DEFINITIONS = {
     message: () => 'Failed to create savings goal',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
+  SAVINGS_GOAL_BASELINE_RECALCULATION_FAILED: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_BASELINE_RECALCULATION_FAILED,
+    message: () =>
+      'The savings goal and its monthly baseline were saved, but budget balances could not be refreshed. Reload without recreating the goal.',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
   SAVINGS_GOAL_UPDATE_FAILED: {
     code: API_ERROR_CODES.SAVINGS_GOAL_UPDATE_FAILED,
     message: (details?: Record<string, unknown>) =>

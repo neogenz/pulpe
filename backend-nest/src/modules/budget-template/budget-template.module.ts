@@ -7,7 +7,7 @@ import { SupabaseBudgetTemplateRepository } from './infrastructure/persistence/s
 import { BudgetTemplateMapper } from './infrastructure/mappers/budget-template.mapper';
 import { BUDGET_TEMPLATE_REPOSITORY } from './domain/ports/budget-template-repository.port';
 import { TEMPLATE_LINE_PROPAGATION_PORT } from './domain/ports/template-line-propagation.port';
-import { TemplateLinePropagationAdapter } from './application/template-line-propagation.adapter';
+import { TemplateLinePropagationAdapter } from './infrastructure/adapters/template-line-propagation.adapter';
 import { FindAllTemplatesUseCase } from './application/find-all-templates.use-case';
 import { FindTemplateUseCase } from './application/find-template.use-case';
 import { CreateTemplateUseCase } from './application/create-template.use-case';

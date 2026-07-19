@@ -685,7 +685,7 @@ describe('SupabaseSavingsGoalRepository', () => {
     });
   });
 
-  describe('findFutureLinkedLines', () => {
+  describe('findLinkedSavingLines', () => {
     it('decrypts linked lines without querying or decrypting transactions', async () => {
       const { provider, transactionQueried } = createContributionsProvider({
         lineResult: {
@@ -696,7 +696,7 @@ describe('SupabaseSavingsGoalRepository', () => {
       const encryption = createMockEncryption();
       const repo = new SupabaseSavingsGoalRepository(provider, encryption);
 
-      const result = await repo.findFutureLinkedLines('goal-1');
+      const result = await repo.findLinkedSavingLines('goal-1');
 
       expect(result).toEqual([
         {

@@ -34,7 +34,7 @@ export interface SavingsGoalRepositoryPort {
    * Prévisions Épargne liées au goal, déchiffrées, sans leurs transactions.
    * La qualification temporelle des lignes reste à la charge du use-case.
    */
-  findFutureLinkedLines(goalId: string): Promise<LinkedSavingLine[]>;
+  findLinkedSavingLines(goalId: string): Promise<LinkedSavingLine[]>;
   /**
    * Contributions à un objectif (PUL-12) : une par prévision Épargne liée
    * (kind=saving, RLS-scopée), avec la période de son budget parent et les

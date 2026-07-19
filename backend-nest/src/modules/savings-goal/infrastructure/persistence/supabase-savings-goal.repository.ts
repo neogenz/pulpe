@@ -261,7 +261,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
   async findLinkedContributions(
     goalId: string,
   ): Promise<SavingsGoalLinkedContributions> {
-    const lines = await this.findFutureLinkedLines(goalId);
+    const lines = await this.findLinkedSavingLines(goalId);
     if (!lines.length) return { lines: [], transactions: [] };
 
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
@@ -272,7 +272,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     return { lines, transactions };
   }
 
-  async findFutureLinkedLines(goalId: string): Promise<LinkedSavingLine[]> {
+  async findLinkedSavingLines(goalId: string): Promise<LinkedSavingLine[]> {
     const supabase = this.supabaseProvider.client;
     // Double garde kind=saving (le lien est déjà kind-guardé à l'écriture par
     // trigger + use-cases). RLS scope les lignes au user courant.

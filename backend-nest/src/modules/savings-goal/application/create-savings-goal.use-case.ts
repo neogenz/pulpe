@@ -1,4 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { BusinessException } from '@common/exceptions/business.exception';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { type SavingsGoalCreate } from 'pulpe-shared';
@@ -71,9 +73,10 @@ export class CreateSavingsGoalUseCase {
   /**
    * PUL-285 CA1/CA2 — auto-décomposition : pose la prévision Épargne
    * récurrente liée sur le Mois Type par défaut et la propage aux budgets
-   * matérialisés (RG-001). Best-effort : l'objectif est déjà committé, donc un
-   * échec ici ne fait pas échouer la création — un retry client dupliquerait
-   * l'objectif ; l'utilisateur peut lier la ligne à la main.
+   * matérialisés (RG-001). Une création de ligne échouée reste best-effort car
+   * l'objectif est déjà committé. Si la ligne a elle aussi été committée mais
+   * que le recalcul échoue, un code dédié prévient le client de rafraîchir sans
+   * recréer l'objectif.
    */
   private async generateLinkedBaseline(
     goal: SavingsGoal,
@@ -104,6 +107,7 @@ export class CreateSavingsGoalUseCase {
       });
       return true;
     } catch (err) {
+      this.rethrowCommittedBaselineFailure(err, goal.id, user.id);
       this.logger.warn(
         {
           operation: 'savingsGoal.autoDecompose',
@@ -115,5 +119,31 @@ export class CreateSavingsGoalUseCase {
       );
       return false;
     }
+  }
+
+  private rethrowCommittedBaselineFailure(
+    error: unknown,
+    savingsGoalId: string,
+    userId: string,
+  ): void {
+    if (
+      !(error instanceof BusinessException) ||
+      error.loggingContext.partialFailure !== true
+    ) {
+      return;
+    }
+    throw new BusinessException(
+      ERROR_DEFINITIONS.SAVINGS_GOAL_BASELINE_RECALCULATION_FAILED,
+      undefined,
+      {
+        operation: 'savingsGoal.autoDecompose.recalcAfterCommit',
+        severity: 'critical',
+        partialFailure: true,
+        affectedBudgetIds: error.loggingContext.affectedBudgetIds,
+        userId,
+        savingsGoalId,
+      },
+      { cause: error },
+    );
   }
 }

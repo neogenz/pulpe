@@ -16,6 +16,7 @@ final class MockSavingsGoalService: SavingsGoalServicing {
     var getProgressError: Error?
     var getContributionsError: Error?
     var updateError: Error?
+    var createError: Error?
 
     private(set) var getAllCallCount = 0
     private(set) var getProgressCallCount = 0
@@ -113,6 +114,7 @@ final class MockSavingsGoalService: SavingsGoalServicing {
     func create(_ data: SavingsGoalCreate) async throws -> SavingsGoal {
         createCallCount += 1
         lastCreate = data
+        if let createError { throw createError }
         if let error { throw error }
         let created = SavingsGoal(
             id: "goal-\(createCallCount)",

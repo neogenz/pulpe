@@ -89,10 +89,18 @@ final class SavingsGoalStore: StoreProtocol {
     /// posed a linked template_line + budget_lines → budget data changed.
     @discardableResult
     func create(_ data: SavingsGoalCreate) async throws -> SavingsGoal {
-        let created = try await service.create(data)
-        goals = (goals + [created]).sortedForDisplay()
-        if data.monthlyContribution != nil { onBudgetDataMutation?() }
-        return created
+        do {
+            let created = try await service.create(data)
+            goals = (goals + [created]).sortedForDisplay()
+            if data.monthlyContribution != nil { onBudgetDataMutation?() }
+            return created
+        } catch let error as APIError {
+            if case .savingsGoalBaselineRecalculationFailed = error {
+                onBudgetDataMutation?()
+                await forceRefresh()
+            }
+            throw error
+        }
     }
 
     /// Updates a goal (incl. status changes) and replaces it in the cache.

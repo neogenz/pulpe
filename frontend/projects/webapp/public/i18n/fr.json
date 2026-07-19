@@ -1267,6 +1267,7 @@
     "templateCreationFailed": "La création du modèle a échoué — réessaie",
     "templateUpdateFailed": "La mise à jour du modèle a échoué — réessaie",
     "templateDeleteFailed": "La suppression du modèle a échoué — réessaie",
+    "savingsGoalBaselineRecalculationFailed": "L'objectif et sa prévision mensuelle ont bien été créés, mais les soldes n'ont pas pu être actualisés — recharge la page sans recréer l'objectif",
     "savingsGoalPlanConflict": "Le plan a changé — resimule",
     "savingsGoalPlanLineInvalid": "Ton plan n'est plus à jour — recharge la page et resimule",
     "savingsGoalPlanApplyFailed": "L'application du plan a échoué — réessaie",

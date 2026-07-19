@@ -106,18 +106,6 @@ struct SavingsGoalFormSheet: View {
 
     private var isEditing: Bool { goal != nil }
 
-    private var canSubmit: Bool {
-        guard let amount, amount > 0 else { return false }
-        return !name.trimmingCharacters(in: .whitespaces).isEmpty
-            && Self.isTargetDateSubmittable(
-                targetDate,
-                original: goal,
-                planningRange: planningTargetDates,
-                calendar: .current
-            )
-            && !isLoading
-    }
-
     var body: some View {
         SheetFormContainer(
             title: isEditing ? "Modifier l'objectif" : "Nouvel objectif",
@@ -353,5 +341,37 @@ struct SavingsGoalFormSheet: View {
         } catch {
             self.error = error
         }
+    }
+}
+
+extension SavingsGoalFormSheet {
+    nonisolated static func isMonthlyContributionSubmittable(
+        isEditing: Bool,
+        decomposeEnabled: Bool,
+        hasRemainingToSave: Bool,
+        contribution: Decimal?
+    ) -> Bool {
+        isEditing || !decomposeEnabled || !hasRemainingToSave || (contribution ?? 0) > 0
+    }
+}
+
+private extension SavingsGoalFormSheet {
+    var canSubmit: Bool {
+        guard let amount, amount > 0 else { return false }
+        let contribution = monthlyContributionOverride ?? suggestedMonthly
+        return !name.trimmingCharacters(in: .whitespaces).isEmpty
+            && Self.isTargetDateSubmittable(
+                targetDate,
+                original: goal,
+                planningRange: planningTargetDates,
+                calendar: .current
+            )
+            && Self.isMonthlyContributionSubmittable(
+                isEditing: isEditing,
+                decomposeEnabled: decomposeEnabled,
+                hasRemainingToSave: hasRemainingToSave,
+                contribution: contribution
+            )
+            && !isLoading
     }
 }

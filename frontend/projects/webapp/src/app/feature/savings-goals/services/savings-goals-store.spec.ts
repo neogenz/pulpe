@@ -7,6 +7,7 @@ import { SavingsGoalStore } from './savings-goals-store';
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
+import { ApiError } from '@core/api/api-error';
 
 // ngx-ziflux 0.0.13 DataCache mock — MUST carry both `version` and
 // `_dataVersion` signals or cachedResource crashes at first snapshot read.
@@ -171,6 +172,37 @@ describe('SavingsGoalStore', () => {
         status: 'ACTIVE',
       }),
     ).rejects.toThrow();
+  });
+
+  it('addGoal invalidates committed data after a baseline recalculation failure', async () => {
+    mockApi.create$ = vi
+      .fn()
+      .mockReturnValue(
+        throwError(
+          () =>
+            new ApiError(
+              'Goal and baseline committed but recalculation failed',
+              'ERR_SAVINGS_GOAL_BASELINE_RECALCULATION_FAILED',
+              500,
+              null,
+            ),
+        ),
+      );
+    await settle();
+
+    await expect(
+      store.addGoal({
+        name: 'Maison',
+        targetAmount: 100_000,
+        targetDate: '2030-05-15',
+        status: 'ACTIVE',
+        monthlyContribution: 2083.34,
+      }),
+    ).rejects.toThrow();
+
+    expect(mockCache.invalidate).toHaveBeenCalledWith(['savings-goals']);
+    expect(mockBudgetCache.invalidate).toHaveBeenCalledWith(['budget']);
+    expect(mockTemplateCache.invalidate).toHaveBeenCalledWith(['templates']);
   });
 
   it('editGoal updates a goal (status change) and persists the result', async () => {

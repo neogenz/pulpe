@@ -54,6 +54,8 @@ const CODE_KEY_MAP = {
   [API_ERROR_CODES.TEMPLATE_CREATE_FAILED]: 'apiError.templateCreationFailed',
   [API_ERROR_CODES.TEMPLATE_UPDATE_FAILED]: 'apiError.templateUpdateFailed',
   [API_ERROR_CODES.TEMPLATE_DELETE_FAILED]: 'apiError.templateDeleteFailed',
+  [API_ERROR_CODES.SAVINGS_GOAL_BASELINE_RECALCULATION_FAILED]:
+    'apiError.savingsGoalBaselineRecalculationFailed',
   [API_ERROR_CODES.SAVINGS_GOAL_PLAN_CONFLICT]:
     'apiError.savingsGoalPlanConflict',
   [API_ERROR_CODES.SAVINGS_GOAL_PLAN_LINE_INVALID]:

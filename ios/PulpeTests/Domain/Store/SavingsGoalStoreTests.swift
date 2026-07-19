@@ -53,6 +53,44 @@ struct SavingsGoalStoreTests {
         #expect(service.lastCreate?.name == "Maison")
     }
 
+    @Test("create refreshes committed data when baseline recalculation fails")
+    func create_partialFailureRefreshesAndInvalidates() async {
+        let service = MockSavingsGoalService()
+        service.stubbedGoals = [makeGoal(id: "committed", name: "Maison")]
+        service.createError = APIError.from(
+            code: "ERR_SAVINGS_GOAL_BASELINE_RECALCULATION_FAILED",
+            message: nil
+        )
+        let store = SavingsGoalStore(service: service)
+        nonisolated(unsafe) var invalidationCount = 0
+        store.onBudgetDataMutation = { invalidationCount += 1 }
+
+        do {
+            _ = try await store.create(
+                SavingsGoalCreate(
+                    name: "Maison",
+                    targetAmount: 5000,
+                    targetDate: "2099-01-01",
+                    status: .active,
+                    monthlyContribution: 250
+                )
+            )
+            Issue.record("Expected the partial failure to be rethrown")
+        } catch let error as APIError {
+            #expect(
+                error.errorDescription ==
+                    "L'objectif et sa prévision mensuelle ont bien été créés, mais les soldes "
+                    + "n'ont pas pu être actualisés — recharge la page sans recréer l'objectif"
+            )
+        } catch {
+            Issue.record("Expected APIError, got \(error)")
+        }
+
+        #expect(store.goals.map(\.id) == ["committed"])
+        #expect(service.getAllCallCount == 1)
+        #expect(invalidationCount == 1)
+    }
+
     @Test("update replaces the goal in the cache (status change)")
     func update_replaces() async throws {
         let service = MockSavingsGoalService()

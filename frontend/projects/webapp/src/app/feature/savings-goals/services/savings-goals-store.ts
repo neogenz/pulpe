@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import {
+  API_ERROR_CODES,
   type SavingsGoal,
   type SavingsGoalContribution,
   type SavingsGoalCreate,
@@ -15,6 +16,7 @@ import { cachedResource, cachedMutation } from 'ngx-ziflux';
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
+import { isApiError } from '@core/api/api-error';
 
 @Injectable()
 export class SavingsGoalStore {
@@ -113,13 +115,25 @@ export class SavingsGoalStore {
       // awaited mutate() return value settles the cache; latest-wins gotcha
       // means we never rely on onSuccess to push state.
     },
-    onSuccess: (_result, goal) => {
+    onSuccess: (_result, input) => {
       // Auto-décomposition (PUL-285) : le serveur a posé une template_line
       // liée + des budget_lines sur les budgets courant/futurs.
-      if (goal.monthlyContribution != null) {
+      if (input.monthlyContribution != null) {
         this.#budgetApi.cache.invalidate(['budget']);
         this.#budgetTemplatesApi.cache.invalidate(['templates']);
       }
+    },
+    onError: (error) => {
+      if (
+        !isApiError(error) ||
+        error.code !==
+          API_ERROR_CODES.SAVINGS_GOAL_BASELINE_RECALCULATION_FAILED
+      ) {
+        return;
+      }
+      this.#api.cache.invalidate(['savings-goals']);
+      this.#budgetApi.cache.invalidate(['budget']);
+      this.#budgetTemplatesApi.cache.invalidate(['templates']);
     },
   });
 
