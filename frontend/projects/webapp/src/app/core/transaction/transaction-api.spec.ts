@@ -40,6 +40,28 @@ describe('TransactionApi', () => {
     httpTesting.verify();
   });
 
+  it('should serialize active search filters as repeated query parameters', async () => {
+    const tagIds = [
+      '4df3df43-2b73-467a-a7ac-322f3ab8ed49',
+      '73ce725e-0173-4bb5-b35d-30ec2b01af75',
+    ];
+    const responsePromise = firstValueFrom(
+      service.search$({ q: 'loyer', years: [2026, 2025], tagIds }),
+    );
+
+    const req = httpTesting.expectOne(
+      'http://localhost:3000/api/v1/transactions/search' +
+        `?q=loyer&years=2026&years=2025&tagIds=${tagIds[0]}&tagIds=${tagIds[1]}`,
+    );
+    expect(req.request.method).toBe('GET');
+    req.flush({ success: true, data: [] });
+
+    await expect(responsePromise).resolves.toEqual({
+      success: true,
+      data: [],
+    });
+  });
+
   it('should POST toggle-check and accept amount=0 when encryption is active', async () => {
     const transactionId = '68c73361-c59b-4ce4-9e6a-0843505a08d5';
     const responsePromise = firstValueFrom(service.toggleCheck$(transactionId));

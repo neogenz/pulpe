@@ -248,29 +248,24 @@ import { SettingsDialogService } from './settings-dialog.service';
           </p>
         </div>
 
-        <div class="md:col-span-2">
+        <div class="md:col-span-2 flex items-center justify-between gap-6">
+          <div class="space-y-1">
+            <h3 class="text-title-small">
+              {{ 'settings.tags.title' | transloco }}
+            </h3>
+            <p class="text-body-small text-on-surface-variant">
+              {{ 'settings.tags.description' | transloco }}
+            </p>
+          </div>
           <button
-            matButton
+            matButton="outlined"
             type="button"
-            class="w-full min-h-16! justify-start! rounded-2xl! border! border-outline-variant! px-5!"
+            class="shrink-0"
             data-testid="tags-settings-link"
             [attr.aria-label]="'settings.tags.open' | transloco"
             (click)="openTagCatalog()"
           >
-            <mat-icon class="shrink-0">sell</mat-icon>
-            <span class="flex-1 min-w-0 text-left mx-3">
-              <span class="block text-title-small">
-                {{ 'settings.tags.title' | transloco }}
-              </span>
-              <span
-                class="block text-body-small text-on-surface-variant whitespace-normal"
-              >
-                {{ 'settings.tags.description' | transloco }}
-              </span>
-            </span>
-            <mat-icon class="shrink-0" aria-hidden="true"
-              >chevron_right</mat-icon
-            >
+            {{ 'settings.tags.manage' | transloco }}
           </button>
         </div>
       </section>

@@ -164,6 +164,7 @@ describe('SettingsPage', () => {
 
     expect(entry).not.toBeNull();
     expect(entry.getAttribute('aria-label')).toBe('Voir mes tags personnels');
+    expect(entry.textContent?.trim()).toBe('Gérer');
 
     entry.click();
     await fixture.whenStable();
