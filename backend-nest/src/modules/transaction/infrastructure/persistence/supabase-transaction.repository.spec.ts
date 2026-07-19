@@ -617,12 +617,14 @@ describe('SupabaseTransactionRepository', () => {
         ilike: jest.fn(),
         in: jest.fn(),
         order: jest.fn(),
-        limit: jest.fn().mockResolvedValue({ data, error: null }),
+        limit: jest.fn(),
+        overrideTypes: jest.fn().mockResolvedValue({ data, error: null }),
       };
       query.select.mockReturnValue(query);
       query.ilike.mockReturnValue(query);
       query.in.mockReturnValue(query);
       query.order.mockReturnValue(query);
+      query.limit.mockReturnValue(query);
       return query;
     }
 
@@ -725,7 +727,17 @@ describe('SupabaseTransactionRepository', () => {
       const query = transactionQuery([
         searchRow('txn-shared', '2026-07-10T00:00:00.000Z'),
       ]);
-      const provider = createMockProvider(() => query);
+      const provider = createMockProvider((table) => {
+        if (table === 'tag') {
+          const tagQuery = {
+            eq: jest.fn(),
+            ilike: jest.fn().mockResolvedValue({ data: [], error: null }),
+          };
+          tagQuery.eq.mockReturnValue(tagQuery);
+          return { select: () => tagQuery };
+        }
+        return query;
+      });
       repo = new SupabaseTransactionRepository(
         provider,
         createMockEncryption(),
@@ -744,6 +756,48 @@ describe('SupabaseTransactionRepository', () => {
         'tag-food',
       ]);
       expect(query.ilike).toHaveBeenCalledWith('name', '%courses%');
+    });
+
+    it('keeps tag-name text matches when an exact tag filter is selected', async () => {
+      const byName = transactionQuery([]);
+      const byTextTag = transactionQuery([
+        searchRow('txn-shared', '2026-07-10T00:00:00.000Z'),
+      ]);
+      const tagQuery = {
+        eq: jest.fn(),
+        ilike: jest.fn().mockResolvedValue({
+          data: [{ id: 'tag-groceries' }],
+          error: null,
+        }),
+      };
+      tagQuery.eq.mockReturnValue(tagQuery);
+      let transactionQueryIndex = 0;
+      const provider = createMockProvider((table) => {
+        if (table === 'tag') {
+          return { select: () => tagQuery };
+        }
+        return transactionQueryIndex++ === 0 ? byName : byTextTag;
+      });
+      repo = new SupabaseTransactionRepository(
+        provider,
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+      const result = await repo.fetchTransactionsByPattern({
+        userId: 'user-1',
+        searchPattern: '%courses%',
+        budgetIds: null,
+        tagIds: ['tag-home'],
+      });
+
+      expect(result.map(({ id }) => id)).toEqual(['txn-shared']);
+      expect(byTextTag.in).toHaveBeenCalledWith('selected_tags.tag_id', [
+        'tag-home',
+      ]);
+      expect(byTextTag.in).toHaveBeenCalledWith('text_tags.tag_id', [
+        'tag-groceries',
+      ]);
     });
   });
 

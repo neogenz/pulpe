@@ -38,9 +38,29 @@ type TransactionKind = Database['public']['Enums']['transaction_kind'];
 /** Embed junction rows so every read maps to Transaction.tagIds in one query. */
 const TRANSACTION_WITH_TAGS_SELECT = '*, transaction_tag(tag_id)';
 
+const SEARCH_TRANSACTION_FIELDS = `
+  id,
+  name,
+  amount,
+  kind,
+  transaction_date,
+  budget_id,
+  budget:budget_id (
+    description,
+    month,
+    year
+  )
+`;
+
 type TransactionRowWithTags = TransactionRow & {
   transaction_tag?: { tag_id: string }[];
 };
+
+interface TransactionTagSearchOptions {
+  userId: string;
+  searchPattern?: string | null;
+  textTagIds?: string[];
+}
 
 @Injectable()
 export class SupabaseTransactionRepository implements TransactionRepositoryPort {
@@ -562,19 +582,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
   async fetchTransactionsByPattern(
     criteria: TransactionSearchCriteria,
   ): Promise<TransactionSearchTransactionRow[]> {
-    const matches = criteria.tagIds.length
-      ? await this.queryTransactionsByTagIds(
-          criteria.tagIds,
-          criteria.budgetIds,
-          criteria.searchPattern,
-        )
-      : criteria.searchPattern
-        ? await this.queryTransactionsByText(
-            criteria.searchPattern,
-            criteria.userId,
-            criteria.budgetIds,
-          )
-        : [];
+    const matches = await this.queryTransactionMatches(criteria);
     const data = [...new Map(matches.map((row) => [row.id, row])).values()]
       .sort(
         (a, b) =>
@@ -609,6 +617,56 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     return data.map((row) => this.toSearchBudgetLineRow(row, dek));
   }
 
+  private async queryTransactionMatches(
+    criteria: TransactionSearchCriteria,
+  ): Promise<RawSearchTransactionRow[]> {
+    if (!criteria.tagIds.length) {
+      return criteria.searchPattern
+        ? this.queryTransactionsByText(
+            criteria.searchPattern,
+            criteria.userId,
+            criteria.budgetIds,
+          )
+        : [];
+    }
+    if (!criteria.searchPattern) {
+      return this.queryTransactionsByTagIds(
+        criteria.tagIds,
+        criteria.budgetIds,
+        { userId: criteria.userId },
+      );
+    }
+    return this.queryTransactionsByTagsAndText(
+      criteria.tagIds,
+      criteria.searchPattern,
+      criteria.userId,
+      criteria.budgetIds,
+    );
+  }
+
+  private async queryTransactionsByTagsAndText(
+    tagIds: string[],
+    searchPattern: string,
+    userId: string,
+    budgetIds: string[] | null,
+  ): Promise<RawSearchTransactionRow[]> {
+    const [nameMatches, textTagIds] = await Promise.all([
+      this.queryTransactionsByTagIds(tagIds, budgetIds, {
+        userId,
+        searchPattern,
+      }),
+      this.queryTagIdsByName(searchPattern, userId),
+    ]);
+    if (!textTagIds.length) return nameMatches;
+
+    const tagNameMatches = await this.queryTransactionsByTagIds(
+      tagIds,
+      budgetIds,
+      { userId, textTagIds },
+    );
+    return [...nameMatches, ...tagNameMatches];
+  }
+
   private async queryTransactionsByText(
     searchPattern: string,
     userId: string,
@@ -619,7 +677,9 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       this.queryTagIdsByName(searchPattern, userId),
     ]);
     const tagMatches = matchingTagIds.length
-      ? await this.queryTransactionsByTagIds(matchingTagIds, budgetIds)
+      ? await this.queryTransactionsByTagIds(matchingTagIds, budgetIds, {
+          userId,
+        })
       : [];
     return [
       ...new Map(
@@ -635,21 +695,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     const supabase = this.supabaseProvider.client;
     let query = supabase
       .from('transaction')
-      .select(
-        `
-        id,
-        name,
-        amount,
-        kind,
-        transaction_date,
-        budget_id,
-        budget:budget_id (
-          description,
-          month,
-          year
-        )
-      `,
-      )
+      .select(SEARCH_TRANSACTION_FIELDS)
       .ilike('name', searchPattern);
 
     if (budgetIds) {
@@ -658,7 +704,8 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
 
     const { data, error } = await query
       .order('transaction_date', { ascending: false })
-      .limit(25);
+      .limit(25)
+      .overrideTypes<RawSearchTransactionRow[], { merge: false }>();
 
     if (error) {
       throw new BusinessException(
@@ -673,7 +720,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       );
     }
 
-    return (data ?? []) as RawSearchTransactionRow[];
+    return data ?? [];
   }
 
   private async queryTagIdsByName(
@@ -692,6 +739,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
         undefined,
         {
           operation: 'fetchTransactionTagMatches',
+          userId,
           entityType: 'tag',
           supabaseError: error,
         },
@@ -705,30 +753,28 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
   private async queryTransactionsByTagIds(
     tagIds: string[],
     budgetIds: string[] | null,
-    searchPattern?: string | null,
+    options: TransactionTagSearchOptions,
   ): Promise<RawSearchTransactionRow[]> {
-    const supabase = this.supabaseProvider.client;
-    let query = supabase
+    const hasTextTagFilter = Boolean(options.textTagIds?.length);
+    const tagRelations = hasTextTagFilter
+      ? `
+        selected_tags:transaction_tag!inner(tag_id),
+        text_tags:transaction_tag!inner(tag_id)
+      `
+      : 'transaction_tag!inner(tag_id)';
+    const selectedTagsRelation = hasTextTagFilter
+      ? 'selected_tags'
+      : 'transaction_tag';
+    const select: string = `${SEARCH_TRANSACTION_FIELDS}, ${tagRelations}`;
+    let query = this.supabaseProvider.client
       .from('transaction')
-      .select(
-        `
-        id,
-        name,
-        amount,
-        kind,
-        transaction_date,
-        budget_id,
-        budget:budget_id (
-          description,
-          month,
-          year
-        ),
-        transaction_tag!inner(tag_id)
-      `,
-      )
-      .in('transaction_tag.tag_id', tagIds);
-    if (searchPattern) {
-      query = query.ilike('name', searchPattern);
+      .select(select)
+      .in(`${selectedTagsRelation}.tag_id`, tagIds);
+    if (options.textTagIds?.length) {
+      query = query.in('text_tags.tag_id', options.textTagIds);
+    }
+    if (options.searchPattern) {
+      query = query.ilike('name', options.searchPattern);
     }
     if (budgetIds) {
       query = query.in('budget_id', budgetIds);
@@ -736,13 +782,15 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
 
     const { data, error } = await query
       .order('transaction_date', { ascending: false })
-      .limit(25);
+      .limit(25)
+      .overrideTypes<RawSearchTransactionRow[], { merge: false }>();
     if (error) {
       throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
         undefined,
         {
           operation: 'fetchTransactionsByTagIds',
+          userId: options.userId,
           entityType: 'transaction',
           supabaseError: error,
         },
@@ -750,7 +798,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       );
     }
 
-    return (data ?? []) as RawSearchTransactionRow[];
+    return data ?? [];
   }
 
   private async queryBudgetLinesByPattern(
