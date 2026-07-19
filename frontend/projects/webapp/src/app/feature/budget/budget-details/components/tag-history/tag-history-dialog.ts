@@ -275,7 +275,9 @@ export class TagHistoryDialog {
 
   protected formatAmount(amount: number): string {
     if (this.#amountsVisibility.amountsHidden()) return MASKED_VALUE;
-    return this.#currencyPipe.transform(amount, this.data.currency) ?? '';
+    return (
+      this.#currencyPipe.transform(amount, this.data.currency, '1.0-0') ?? ''
+    );
   }
 
   protected formatRatio(value: number | null): string {

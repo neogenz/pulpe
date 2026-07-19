@@ -126,6 +126,10 @@ describe('TagHistoryDialog', () => {
     expect(header?.classList).toContain('pt-6!');
   });
 
+  it('formats summary amounts as rounded aggregations', () => {
+    expect(component['formatAmount'](1234.56)).toContain('1’235');
+  });
+
   it('selects the first tag and reloads for each tag or horizon change', async () => {
     await settle();
     expect(component.selectedTagId()).toBe(tags[0].id);

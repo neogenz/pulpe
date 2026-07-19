@@ -7,6 +7,7 @@ import {
   DestroyRef,
   effect,
   inject,
+  linkedSignal,
   LOCALE_ID,
   signal,
 } from '@angular/core';
@@ -300,7 +301,17 @@ export class BudgetItemsContainer {
 
   // Tag filter (PUL-18) — local UI state; applied on the built rows so the
   // consumption figures baked into each row stay correct.
-  readonly selectedTagIds = signal<string[]>([]);
+  readonly #lastLoadedBudgetId = linkedSignal<
+    string | undefined,
+    string | undefined
+  >({
+    source: () => this.store.budgetDetails()?.id,
+    computation: (budgetId, previous) => budgetId ?? previous?.value,
+  });
+  readonly selectedTagIds = linkedSignal<string | undefined, string[]>({
+    source: this.#lastLoadedBudgetId,
+    computation: () => [],
+  });
   readonly #selectedTagIdSet = computed(() => new Set(this.selectedTagIds()));
 
   readonly allUserTags = computed(() =>
@@ -390,16 +401,6 @@ export class BudgetItemsContainer {
   );
 
   constructor() {
-    let activeBudgetId: string | undefined;
-    effect(() => {
-      const currentBudgetId = this.store.budgetDetails()?.id;
-      if (!currentBudgetId) return;
-      if (activeBudgetId && currentBudgetId !== activeBudgetId) {
-        this.selectedTagIds.set([]);
-      }
-      activeBudgetId = currentBudgetId;
-    });
-
     // Persist view mode changes to localStorage (desktop only)
     effect(() => {
       const mode = this.viewMode();
