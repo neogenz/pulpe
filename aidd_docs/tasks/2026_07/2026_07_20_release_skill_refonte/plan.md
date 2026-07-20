@@ -1,6 +1,6 @@
 ---
 objective: "Le skill s'appelle `release`, accepte un départ depuis `preview` ou `main`, fait valider le SHA de release sur `preview`, promeut ce même SHA vers `main`, puis publie seulement après validation de la production."
-status: implemented
+status: reviewed
 ---
 
 # Plan: Refonte du skill release
