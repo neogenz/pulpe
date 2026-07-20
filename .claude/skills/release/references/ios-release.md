@@ -60,7 +60,7 @@ cd ios && ./scripts/bump-version.sh patch   # or minor
 cd ios && xcodegen generate --use-cache
 ```
 
-This bumps `MARKETING_VERSION` and resets/advances the build number. When you do this, also sync Railway `LATEST_IOS_VERSION` (see below).
+This bumps `MARKETING_VERSION` and resets/advances the build number. Schedule the Railway `LATEST_IOS_VERSION` sync described below, but do not apply it before that version is publicly available on the App Store.
 
 ## Files modified
 
@@ -73,7 +73,9 @@ Stage only `ios/project.yml`. Never stage the generated `.xcodeproj`.
 
 ## Sync Railway `LATEST_IOS_VERSION` (force-update gate)
 
-When `MARKETING_VERSION` bumps (i.e. you used `set`, `major`, `minor`, or `patch` — NOT `build`), record a pending `LATEST_IOS_VERSION` update for Railway in **both** `preview` and `production`. Apply it only in Step 9 after the final external-mutation approval. The force-update endpoint (`GET /api/v1/app/version`) serves this value to clients; if it drifts, the soft-update prompt (follow-up) will lie.
+When `MARKETING_VERSION` bumps (i.e. you used `set`, `major`, `minor`, or `patch` — NOT `build`), record a pending `LATEST_IOS_VERSION` update for Railway in **both** `preview` and `production`. Apply it only after App Store Connect confirms that this marketing version is publicly available. Git publication and TestFlight availability are not sufficient.
+
+If the App Store release is still pending when Step 9 finishes, leave both values unchanged and report one deferred post-App-Store operation. The force-update endpoint (`GET /api/v1/app/version`) serves this value to clients; changing it early would advertise a binary users cannot download.
 
 Before updating Railway, apply the branch that matches the curated result:
 
@@ -86,11 +88,11 @@ Use the Railway integration available to the current agent — one operation per
 workspace: <repo root>
 environment: preview, then production
 service: backend
-skip deploy: true
+skip deploy: false
 variable: LATEST_IOS_VERSION=<new MARKETING_VERSION>
 ```
 
-If no Railway integration is available, stop before push and report the missing capability. Never omit the update silently or guess an unsupported CLI/MCP command.
+Before applying the deferred update, verify App Store availability again. The variable change must redeploy the backend so the running `ConfigService` reads the new value; wait for the resulting deployment to succeed in each environment. If no Railway integration is available, report the missing capability and leave the gate unchanged. Never omit the update silently or guess an unsupported CLI/MCP command. After both environment updates, verify the public version endpoint reports the new iOS marketing version.
 
 > **Never** touch `MIN_IOS_VERSION` from this skill. That value is a deliberate kill switch — only bumped when a release contains a breaking change or critical fix that must force users off old binaries. Always require explicit user confirmation before changing it.
 
