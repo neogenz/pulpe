@@ -37,20 +37,21 @@ export interface FinancialTotals {
             @case ('comfortable') {
               {{ 'budget.overview.remainingThisMonth' | transloco }}
               <span
-                class="text-body-small text-on-primary-container/70 block mt-0.5"
+                class="text-body-small text-on-primary-container/90 block mt-0.5"
                 >{{ 'budget.overview.perForecast' | transloco }}</span
               >
             }
             @case ('warning') {
               {{ 'budget.overview.remainingThisMonth' | transloco }}
-              <span class="text-body-small text-warning/70 block mt-0.5">{{
-                'budget.overview.perForecast' | transloco
-              }}</span>
+              <span
+                class="text-body-small text-warning-on-container/90 block mt-0.5"
+                >{{ 'budget.overview.perForecast' | transloco }}</span
+              >
             }
             @case ('deficit') {
               {{ 'budget.overview.deficitThisMonth' | transloco }}
               <span
-                class="text-body-small text-on-error-container/70 block mt-0.5"
+                class="text-body-small text-on-error-container/90 block mt-0.5"
                 >{{ 'budget.overview.perForecast' | transloco }}</span
               >
             }
@@ -67,6 +68,22 @@ export interface FinancialTotals {
             currencySymbol()
           }}</span>
         </div>
+        @if (hasRollover()) {
+          <p
+            class="text-body-small mt-1.5"
+            [class.text-on-primary-container]="budgetState() === 'comfortable'"
+            [class.text-warning-on-container]="budgetState() === 'warning'"
+            [class.text-on-error-container]="budgetState() === 'deficit'"
+            data-testid="financial-overview-rollover"
+          >
+            {{ 'budget.overview.rolloverIncluded' | transloco }}
+            <span class="font-medium ph-no-capture">
+              {{ isRolloverPositive() ? '+' : '−'
+              }}{{ rolloverAbsolute() | number: '1.0-0' : locale() }}
+              {{ currencySymbol() }}
+            </span>
+          </p>
+        }
         <p
           class="text-body-medium mt-3"
           [class.text-on-primary-container]="budgetState() === 'comfortable'"
@@ -122,6 +139,7 @@ export class BudgetFinancialOverview {
   readonly currency = input<SupportedCurrency>('CHF');
   readonly locale = input<string>('de-CH');
   readonly warningThreshold = input(90);
+  readonly rollover = input(0);
 
   protected readonly currencySymbol = computed(
     () => CURRENCY_METADATA[this.currency()].symbol,
@@ -144,5 +162,13 @@ export class BudgetFinancialOverview {
 
   readonly remainingAbsolute = computed(() =>
     Math.abs(this.totals().remaining),
+  );
+
+  protected readonly hasRollover = computed(() => this.rollover() !== 0);
+
+  protected readonly isRolloverPositive = computed(() => this.rollover() > 0);
+
+  protected readonly rolloverAbsolute = computed(() =>
+    Math.abs(this.rollover()),
   );
 }
