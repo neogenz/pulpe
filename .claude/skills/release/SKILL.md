@@ -396,6 +396,17 @@ Execute ONLY after user confirms.
 
 ### Step 7: Quality check
 
+Run the checked-in What's New contracts from the repository root for every release:
+
+```bash
+(cd backend-nest && bun test src/modules/whats-new/domain/releases-data.parity.spec.ts)
+(cd frontend && pnpm exec vitest run \
+  projects/webapp/src/app/layout/whats-new/whats-new-releases.spec.ts \
+  projects/webapp/src/app/layout/whats-new/whats-new-toast.spec.ts)
+```
+
+Stop on any contract failure. These targeted tests are the local fail-fast gate; the complete CI after the `preview` and `main` pushes remains the second barrier.
+
 When `ios/**` changed, validate the exact release outcome from the repository root before running quality. Pass the resulting `MARKETING_VERSION` for every mode:
 
 ```bash
