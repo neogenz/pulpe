@@ -36,6 +36,10 @@ describe('webapp release data', () => {
     }
   });
 
+  it('keeps the displayed release version valid', () => {
+    expect(LATEST_RELEASE.version).toMatch(SEMVER_PATTERN);
+  });
+
   it('never marks the displayed release as silent', () => {
     expect(
       SKIPPED_RELEASES.some(
