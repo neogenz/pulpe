@@ -457,25 +457,52 @@ Show the commit, target branches, tag, GitHub Release, provider checks, and pend
 
 Only after "oui":
 
+Treat every shell block below as an independent session. Recompute and validate every identity in the same block that consumes it; never rely on a variable exported by a previous block or tool call.
+
 1. Confirm that the available Railway and Vercel capabilities can inspect production deployments and their Git commit metadata. Also confirm that the Railway integration can apply the pending web gate after deployment. If any required capability is missing, stop before committing; never skip a proof or invent a command.
 2. Create the release commit without a tag and freeze its identity:
 
    ```bash
+   set -euo pipefail
    git commit -m "chore(release): vX.Y.Z"
-   SHA=$(git rev-parse HEAD)
-   TAG="vX.Y.Z"
+   SHA=$(git rev-parse --verify 'HEAD^{commit}')
+   test -n "${SHA}"
+   VERSION=$(node -p "require('./package.json').version")
+   test -n "${VERSION}"
+   TAG="v${VERSION}"
    ```
 
 3. Push only that object to `preview`, regardless of whether the workflow started on `preview` or `main`:
 
    ```bash
-   git push origin "$SHA:refs/heads/preview"
+   set -euo pipefail
+   SHA=$(git rev-parse --verify 'HEAD^{commit}')
+   test -n "${SHA}"
+   git push origin "${SHA}:refs/heads/preview"
    ```
 
-4. Poll for up to 5 minutes until `gh run list` returns the `ci.yml` run whose `headSha` is `$SHA`, `headBranch` is `preview`, and event is `push`. Do not filter cancelled runs. Then require:
+4. Poll for up to 5 minutes until `gh run list` returns the `ci.yml` run whose `headSha` is the release SHA, `headBranch` is `preview`, and event is `push`. Do not filter cancelled runs. Resolve and consume the run id in the same session:
 
    ```bash
-   gh run watch "$PREVIEW_RUN_ID" --exit-status
+   set -euo pipefail
+   SHA=$(git rev-parse --verify 'HEAD^{commit}')
+   test -n "${SHA}"
+   PREVIEW_RUN_ID=
+   for _ in $(seq 1 60); do
+     PREVIEW_RUN_ID=$(gh run list \
+       --workflow ci.yml \
+       --branch preview \
+       --event push \
+       --commit "${SHA}" \
+       --limit 20 \
+       --json databaseId,headSha,headBranch,event \
+       --jq '.[] | [.databaseId, .headSha, .headBranch, .event] | @tsv' |
+       awk -v sha="${SHA}" '$2 == sha && $3 == "preview" && $4 == "push" { print $1; exit }')
+     test -n "${PREVIEW_RUN_ID}" && break
+     sleep 5
+   done
+   test -n "${PREVIEW_RUN_ID}"
+   gh run watch "${PREVIEW_RUN_ID}" --exit-status
    ```
 
    Missing, cancelled, or failed CI means stop. Fix the release on `preview`; do not promote it.
@@ -483,10 +510,13 @@ Only after "oui":
 5. After green CI, refetch and reject any drift or loss of ancestry:
 
    ```bash
+   set -euo pipefail
+   SHA=$(git rev-parse --verify 'HEAD^{commit}')
+   test -n "${SHA}"
    git fetch origin main preview
-   test "$(git rev-parse origin/preview)" = "$SHA"
-   git merge-base --is-ancestor origin/main "$SHA"
-   git push --dry-run origin "$SHA:refs/heads/main"
+   test "$(git rev-parse origin/preview)" = "${SHA}"
+   git merge-base --is-ancestor origin/main "${SHA}"
+   git push --dry-run origin "${SHA}:refs/heads/main"
    ```
 
    The dry-run checks fast-forward feasibility, not ruleset authorization. The Step 0 bypass check remains mandatory.
@@ -494,32 +524,69 @@ Only after "oui":
 6. Promote the same immutable object, never the mutable `origin/preview` ref:
 
    ```bash
-   git push origin "$SHA:refs/heads/main"
+   set -euo pipefail
+   SHA=$(git rev-parse --verify 'HEAD^{commit}')
+   test -n "${SHA}"
+   git push origin "${SHA}:refs/heads/main"
    git fetch origin main
-   test "$(git rev-parse origin/main)" = "$SHA"
+   test "$(git rev-parse origin/main)" = "${SHA}"
    ```
 
-7. Poll for up to 5 minutes for the `ci.yml` run whose `headSha` is `$SHA`, `headBranch` is `main`, and event is `push`, then require `gh run watch "$MAIN_RUN_ID" --exit-status`. This includes the main-only `migrate`, `posthog-annotate`, and `verify-prod-csp` jobs after `ci-success`. Missing, cancelled, or failed CI stops publication.
+7. Poll for up to 5 minutes for the `ci.yml` run whose `headSha` is the release SHA, `headBranch` is `main`, and event is `push`. Do not filter cancelled runs. Resolve and consume the run id in the same session:
+
+   ```bash
+   set -euo pipefail
+   SHA=$(git rev-parse --verify 'HEAD^{commit}')
+   test -n "${SHA}"
+   MAIN_RUN_ID=
+   for _ in $(seq 1 60); do
+     MAIN_RUN_ID=$(gh run list \
+       --workflow ci.yml \
+       --branch main \
+       --event push \
+       --commit "${SHA}" \
+       --limit 20 \
+       --json databaseId,headSha,headBranch,event \
+       --jq '.[] | [.databaseId, .headSha, .headBranch, .event] | @tsv' |
+       awk -v sha="${SHA}" '$2 == sha && $3 == "main" && $4 == "push" { print $1; exit }')
+     test -n "${MAIN_RUN_ID}" && break
+     sleep 5
+   done
+   test -n "${MAIN_RUN_ID}"
+   gh run watch "${MAIN_RUN_ID}" --exit-status
+   ```
+
+   This includes the main-only `migrate`, `posthog-annotate`, and `verify-prod-csp` jobs after `ci-success`. Missing, cancelled, or failed CI stops publication.
 8. Independently inspect the production deployments:
-   - both Vercel production projects are ready and report Git SHA `$SHA`;
-   - the Railway production deployment is successful and reports Git SHA `$SHA`;
+   - both Vercel production projects are ready and report the commit returned by a fresh `git rev-parse --verify 'HEAD^{commit}'`;
+   - the Railway production deployment is successful and reports that same freshly resolved commit;
    - `https://pulpe.app`, `https://app.pulpe.app`, and `https://api.pulpe.app/health` respond successfully.
 
    Vercel and Railway react to GitHub pushes; do not assume GitHub `ci-success` delayed those webhooks. If a status, SHA, or health check differs, stop without a tag, GitHub Release, or client gate. Correct through `preview` while keeping the same product version.
 
-9. Only after every production proof passes, refetch `main` and tags, require `origin/main == $SHA`, and recheck that the local tag, remote tag, and GitHub Release are still absent. Then create and push the one immutable tag:
+9. Only after every production proof passes, refetch `main` and tags, require `origin/main` to equal the release SHA, and recheck that the local tag, remote tag, and GitHub Release are still absent. Then create and push the one immutable tag:
 
    ```bash
+   set -euo pipefail
+   SHA=$(git rev-parse --verify 'HEAD^{commit}')
+   test -n "${SHA}"
+   VERSION=$(node -p "require('./package.json').version")
+   test -n "${VERSION}"
+   TAG="v${VERSION}"
    git fetch origin main --tags
-   test "$(git rev-parse origin/main)" = "$SHA"
-   git tag -a "$TAG" "$SHA" -m "Release $TAG"
-   git push origin "refs/tags/$TAG"
+   test "$(git rev-parse origin/main)" = "${SHA}"
+   git tag -a "${TAG}" "${SHA}" -m "Release ${TAG}"
+   git push origin "refs/tags/${TAG}"
    ```
 
 10. Create the GitHub Release using the **GitHub Release template** from Step 5:
 
 ```bash
-gh release create "$TAG" --repo neogenz/pulpe --title "$TAG" --notes "$(cat <<'EOF'
+set -euo pipefail
+VERSION=$(node -p "require('./package.json').version")
+test -n "${VERSION}"
+TAG="v${VERSION}"
+gh release create "${TAG}" --repo neogenz/pulpe --title "${TAG}" --notes "$(cat <<'EOF'
 ## vX.Y.Z
 
 ### Nouveautés

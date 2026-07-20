@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Rendre chaque bloc de publication sûr et autonome
