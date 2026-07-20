@@ -68,7 +68,7 @@ describe('WhatsNewToast', () => {
     });
 
     it('should hide toast when build and release versions differ', () => {
-      mockBuildInfo.version = '0.37.1';
+      mockBuildInfo.version = `${LATEST_RELEASE.version}-other`;
       setup(null);
 
       expect(queryToast()).toBeNull();
