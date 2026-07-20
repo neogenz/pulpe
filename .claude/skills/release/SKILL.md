@@ -312,20 +312,29 @@ Record exactly one iOS release mode for Step 7:
 
 ### Step 5c: Update webapp "What's New" toast
 
-**Skip if `SKIP_WHATS_NEW=true`** (set in the Input section above by `--skip-whats-new`, an equivalent phrase, OR a technical-only signal): do NOT touch the file. The toast won't appear because `LATEST_RELEASE.version` stays at its previous value and won't match `buildInfo.version`.
+Every product version must choose exactly one webapp mode in `frontend/projects/webapp/src/app/layout/whats-new/whats-new-releases.ts`:
 
-**Auto-skip silently** if NO affected package is webapp-relevant (only `ios/` and/or `landing/` touched — no `frontend/`, `backend-nest/`, or `shared/`). Nothing to display, no need to ask.
+- `toast`: update `LATEST_RELEASE` to the exact product version and keep that version out of `SKIPPED_RELEASES`;
+- `silent`: leave `LATEST_RELEASE` unchanged and append the exact product version plus a concrete, non-empty reason to `SKIPPED_RELEASES`.
 
-**Otherwise, if webapp packages changed but after filtering there are ZERO displayable items**, ask: "Aucune nouveauté pertinente pour la webapp. Souhaites-tu mettre à jour le toast quand même ?" → "Oui" / "Non, sauter".
+Use `silent` when `SKIP_WHATS_NEW=true` (set by `--skip-whats-new`, an equivalent phrase, or a technical-only signal). Record why the approved release is intentionally quiet; do not merely leave the file untouched.
 
-Update `frontend/projects/webapp/src/app/layout/whats-new/whats-new-releases.ts` so the in-app toast displays the new release features.
+Also use `silent` without asking when no affected package is webapp-relevant (only `ios/` and/or `landing/` changed). Use a reason that names that scope.
 
-**Procedure:**
+If webapp packages changed but filtering leaves zero displayable items, ask: "Aucune nouveauté pertinente pour la webapp. Souhaites-tu mettre à jour le toast quand même ?" → "Oui" / "Non, sauter". Choosing "Non" selects `silent` and records the reason.
+
+For `toast` mode:
 
 1. Read the file.
-2. Filter the approved "Nouveautés" and "Corrections" entries to keep ONLY webapp-relevant items (see rules below)
-3. Replace `LATEST_RELEASE` with the filtered entries
-4. Write back using the available file-editing tool.
+2. Filter the approved "Nouveautés" and "Corrections" entries to keep only webapp-relevant items.
+3. Replace `LATEST_RELEASE` with the exact Step 4 version and filtered entries.
+4. Verify that version is absent from `SKIPPED_RELEASES`.
+
+For `silent` mode:
+
+1. Keep `LATEST_RELEASE` unchanged.
+2. Append one unique `{ version, reason }` entry for the exact Step 4 version.
+3. Reject an empty reason, a duplicate, or a version equal to `LATEST_RELEASE.version`.
 
 **Template:**
 
@@ -334,6 +343,13 @@ export const LATEST_RELEASE: WhatsNewRelease = {
   version: "X.Y.Z",
   features: ["Titre court de la nouveauté 1", "Titre court de la nouveauté 2"],
 };
+
+export const SKIPPED_RELEASES: readonly SkippedWhatsNewRelease[] = [
+  {
+    version: "X.Y.Z",
+    reason: "Raison concrète approuvée pour cette release silencieuse",
+  },
+];
 ```
 
 **Scope rules — webapp users only:**
@@ -348,7 +364,7 @@ export const LATEST_RELEASE: WhatsNewRelease = {
 - `version`: Same as Step 4 (without `v` prefix) — must match the bumped `package.json` version so `buildInfo.version === LATEST_RELEASE.version`
 - `features`: Short titles only, no descriptions — max ~50 chars per line
 - Max 3-4 features to keep the toast concise
-- Keep the `WhatsNewRelease` interface import unchanged
+- Keep the existing release types and `SKIPPED_RELEASES` history unchanged except for the current version's explicit decision
 
 ### Step 6: Apply versions
 
@@ -419,7 +435,7 @@ git add landing/data/releases.json
 # Only if Step 5b-bis produced an iOS projection:
 git add backend-nest/src/modules/whats-new/domain/releases-data.ts
 
-# Only if Step 5c modified the webapp toast:
+# Step 5c always records either the toast or the intentional silent release:
 git add frontend/projects/webapp/src/app/layout/whats-new/whats-new-releases.ts
 
 # Only if iOS files changed in this release:
