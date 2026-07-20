@@ -27,12 +27,12 @@ Analyze code changes to produce a unified product release with clear, user-focus
 
 Use the user's invocation text as the argument (`$ARGUMENTS` in Claude Code, the full triggering request in Codex).
 
-| Format                  | Meaning                                                                                        |
-| ----------------------- | ---------------------------------------------------------------------------------------------- |
-| `depuis le dernier tag` | Analyze since last git tag                                                                     |
-| `depuis main`           | Analyze since divergence from main                                                             |
-| _(empty)_               | Default to "depuis le dernier tag"                                                             |
-| `--skip-whats-new`      | Skip public and in-app What's New updates (Steps 5b–5c). Can be combined with other arguments. |
+| Format                  | Meaning                                                                                               |
+| ----------------------- | ----------------------------------------------------------------------------------------------------- |
+| `depuis le dernier tag` | Analyze since last git tag                                                                            |
+| `depuis main`           | Analyze since divergence from main                                                                    |
+| _(empty)_               | Default to "depuis le dernier tag"                                                                    |
+| `--skip-whats-new`      | Keep public and visible in-app What's New quiet; Step 5c still records an intentional silent release. |
 
 **Flag detection:** Set `SKIP_WHATS_NEW=true` (and strip the flag/keyword from the base reference argument) when ANY of these conditions are met:
 
