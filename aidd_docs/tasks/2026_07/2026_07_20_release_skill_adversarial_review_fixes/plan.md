@@ -1,6 +1,6 @@
 ---
 objective: "La PR #522 rend chaque commande de publication autonome et sûre, distingue explicitement une projection iOS omise d'une release silencieuse, valide toutes les versions What's New et exécute les tests de contrat avant le commit de release."
-status: reviewed
+status: in-progress
 ---
 
 # Plan: Fermer les gaps adversariaux du workflow release
@@ -21,6 +21,7 @@ status: reviewed
 | 3   | Valider la version affichée par le toast                      | [`phase-3.md`](./phase-3.md) |
 | 4   | Exécuter les contrats What's New avant le commit de release  | [`phase-4.md`](./phase-4.md) |
 | 5   | Durcir les invariants de projection iOS                       | [`phase-5.md`](./phase-5.md) |
+| 6   | Préserver la catégorie et l'existence des décisions           | [`phase-6.md`](./phase-6.md) |
 
 ## Decisions
 
