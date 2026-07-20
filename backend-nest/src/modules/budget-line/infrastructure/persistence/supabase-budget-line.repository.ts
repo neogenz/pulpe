@@ -825,8 +825,10 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
 
     const tagIds = await tagLinks.fetchTagIds(
       supabase,
-      'budget_line_tag',
-      'budget_line_id',
+      {
+        junctionTable: 'budget_line_tag',
+        fkColumn: 'budget_line_id',
+      },
       id,
       'toggleCheck',
       ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,

@@ -45,6 +45,16 @@ interface AtomicTaggedUpdateError {
   message?: string;
 }
 
+type TagJunctionConfig =
+  | {
+      junctionTable: 'transaction_tag';
+      fkColumn: 'transaction_id';
+    }
+  | {
+      junctionTable: 'budget_line_tag';
+      fkColumn: 'budget_line_id';
+    };
+
 async function callReplaceTagLinks(
   supabase: AuthenticatedSupabaseClient,
   params: ReplaceTagLinksParams,
@@ -199,16 +209,15 @@ export async function updateTaggedEntity<Row>(
 
 export async function fetchTagIds(
   supabase: AuthenticatedSupabaseClient,
-  junctionTable: 'transaction_tag' | 'budget_line_tag',
-  fkColumn: 'transaction_id' | 'budget_line_id',
+  config: TagJunctionConfig,
   entityId: string,
   operation: string,
   fallbackErrorDef: ErrorDefinition,
 ): Promise<string[]> {
   const { data, error } = await supabase
-    .from(junctionTable)
+    .from(config.junctionTable)
     .select('tag_id')
-    .eq(fkColumn, entityId);
+    .eq(config.fkColumn, entityId);
 
   if (error) {
     throw new BusinessException(
@@ -217,7 +226,7 @@ export async function fetchTagIds(
       {
         operation,
         entityId,
-        entityType: junctionTable,
+        entityType: config.junctionTable,
         supabaseError: error,
       },
       { cause: error },

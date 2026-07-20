@@ -468,8 +468,10 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
 
     const tagIds = await fetchTagIds(
       supabase,
-      'transaction_tag',
-      'transaction_id',
+      {
+        junctionTable: 'transaction_tag',
+        fkColumn: 'transaction_id',
+      },
       id,
       'toggleCheck',
       ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,

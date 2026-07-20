@@ -179,8 +179,10 @@ describe('fetchTagIds', () => {
 
     const result = await fetchTagIds(
       supabase,
-      'transaction_tag',
-      'transaction_id',
+      {
+        junctionTable: 'transaction_tag',
+        fkColumn: 'transaction_id',
+      },
       'transaction-1',
       'toggleCheck',
       ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,
@@ -202,8 +204,10 @@ describe('fetchTagIds', () => {
     await expect(
       fetchTagIds(
         supabase,
-        'budget_line_tag',
-        'budget_line_id',
+        {
+          junctionTable: 'budget_line_tag',
+          fkColumn: 'budget_line_id',
+        },
         'line-1',
         'toggleCheck',
         ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,

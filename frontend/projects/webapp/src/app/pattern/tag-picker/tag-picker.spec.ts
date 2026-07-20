@@ -108,6 +108,25 @@ describe('TagPicker', () => {
     expect(model().tagIds).toEqual(fullSelection);
   });
 
+  it('should ignore a created tag when the control becomes unavailable while creation is pending', async () => {
+    setup([], []);
+    let resolveCreation: ((tag: Tag) => void) | undefined;
+    tagStore.addTag.mockReturnValue(
+      new Promise<Tag>((resolve) => {
+        resolveCreation = resolve;
+      }),
+    );
+
+    const selection = component['onOptionSelected']({
+      option: { value: { type: 'create', name: 'Santé' } },
+    } as MatAutocompleteSelectedEvent);
+    fixture.destroy();
+    resolveCreation?.(makeTag('tag-10', 'Santé'));
+
+    await expect(selection).resolves.toBeUndefined();
+    expect(model().tagIds).toEqual([]);
+  });
+
   it('should offer a create suggestion for a query with no exact match', () => {
     setup([], [makeTag('tag-1', 'Courses')]);
     const input: HTMLInputElement =

@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   type ElementRef,
   inject,
   input,
@@ -112,6 +113,7 @@ export class TagPicker {
   readonly #tagStore = inject(TagStore);
   readonly #snackBar = inject(MatSnackBar);
   readonly #transloco = inject(TranslocoService);
+  readonly #destroyRef = inject(DestroyRef);
 
   private readonly tagInputRef =
     viewChild<ElementRef<HTMLInputElement>>('tagInput');
@@ -186,17 +188,19 @@ export class TagPicker {
   }
 
   protected removeTag(id: string): void {
-    this.control()().value.set(
+    if (this.#destroyRef.destroyed) return;
+    this.#safeControl()?.().value.set(
       this.selectedIds().filter((tagId) => tagId !== id),
     );
   }
 
   #attach(id: string): void {
+    if (this.#destroyRef.destroyed) return;
     const current = this.selectedIds();
     if (current.includes(id) || current.length >= MAX_TAGS_PER_TRANSACTION) {
       return;
     }
-    this.control()().value.set([...current, id]);
+    this.#safeControl()?.().value.set([...current, id]);
   }
 
   #resetInput(): void {
