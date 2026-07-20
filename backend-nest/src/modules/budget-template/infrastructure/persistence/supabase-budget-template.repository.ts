@@ -3,7 +3,10 @@ import type { Buffer } from 'node:buffer';
 import { randomUUID } from 'node:crypto';
 import { ZodError } from 'zod';
 import { BusinessException } from '@common/exceptions/business.exception';
-import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import {
+  ERROR_DEFINITIONS,
+  type ErrorDefinition,
+} from '@common/constants/error-definitions';
 import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
 import {
   ENCRYPTION_PORT,
@@ -561,6 +564,18 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       this.throwIfTemplateLimitExceeded(error);
       this.throwIfSavingsGoalLinkDenied(error, 'createTemplateWithLines');
       this.throwIfTagLinkDenied(error, 'createTemplateWithLines');
+      if (error.code === '23503' || error.code === '42501') {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.TAG_NOT_FOUND,
+          undefined,
+          {
+            operation: 'createTemplateWithLines',
+            entityType: 'template_line_tag',
+            supabaseError: error,
+          },
+          { cause: error },
+        );
+      }
       throw error;
     }
 
@@ -662,16 +677,22 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     const createdLinesRpc = input.createdLines.length
       ? await this.encryptLinesForApplyRpc(input.createdLines, user)
       : [];
+    const payloadErrorDefinition =
+      operation === 'insertLine'
+        ? ERROR_DEFINITIONS.TEMPLATE_CREATE_FAILED
+        : ERROR_DEFINITIONS.TEMPLATE_UPDATE_FAILED;
 
     const updatedLinesPayload = this.parseRpcPayload(
       applyTemplateLineOperationsListSchema,
       updatedLinesRpc,
       `${operation}.updated`,
+      payloadErrorDefinition,
     );
     const createdLinesPayload = this.parseRpcPayload(
       applyTemplateLineOperationsListSchema,
       createdLinesRpc,
       `${operation}.created`,
+      payloadErrorDefinition,
     );
 
     const taggedLines = [...input.updatedLines, ...input.createdLines].filter(
@@ -684,6 +705,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
         tag_ids: line.tagIds ?? [],
       })),
       `${operation}.tags`,
+      payloadErrorDefinition,
     );
 
     const { data, error } = await supabase.rpc(
@@ -922,13 +944,14 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     schema: { parse: (data: unknown) => T },
     payload: unknown,
     operation: string,
+    errorDefinition: ErrorDefinition = ERROR_DEFINITIONS.TEMPLATE_CREATE_FAILED,
   ): T {
     try {
       return schema.parse(payload);
     } catch (err) {
       if (err instanceof ZodError) {
         throw new BusinessException(
-          ERROR_DEFINITIONS.TEMPLATE_CREATE_FAILED,
+          errorDefinition,
           { reason: 'Invalid RPC payload structure' },
           { operation, validationErrors: err.issues },
           { cause: err },

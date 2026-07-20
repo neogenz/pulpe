@@ -57,6 +57,9 @@ describe('TagPicker', () => {
 
     const chip = fixture.nativeElement.querySelector('mat-chip-row');
     expect(chip?.textContent).toContain('Courses');
+    expect(chip?.querySelector('.ph-no-capture')?.textContent).toContain(
+      'Courses',
+    );
   });
 
   it('should attach an existing tag when its option is selected', async () => {

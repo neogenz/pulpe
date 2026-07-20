@@ -56,7 +56,7 @@ type TagSuggestion =
       >
         @for (id of selectedIds(); track id) {
           <mat-chip-row (removed)="removeTag(id)">
-            {{ tagName(id) }}
+            <span class="ph-no-capture">{{ tagName(id) }}</span>
             <button
               matChipRemove
               [attr.aria-label]="

@@ -474,6 +474,38 @@ describe('SupabaseBudgetTemplateRepository', () => {
       ).rejects.toMatchObject({ code: 'ERR_TAG_NOT_FOUND' });
     });
 
+    it.each(['23503', '42501'])(
+      'should map an RPC tag junction rejection (%s) to TAG_NOT_FOUND',
+      async (code) => {
+        const tagError = { code, message: 'Tag junction rejected' };
+        const rpc = jest
+          .fn()
+          .mockResolvedValue({ data: null, error: tagError });
+        const repo = new SupabaseBudgetTemplateRepository(
+          createMockProvider(() => ({}) as never, rpc as unknown as jest.Mock),
+          createMockEncryption(),
+          createMockLogger(),
+        );
+
+        await expect(
+          repo.createTemplateWithLines({
+            userId: 'user-1',
+            name: 'My Template',
+            description: undefined,
+            isDefault: false,
+            lines: [],
+          }),
+        ).rejects.toMatchObject({
+          code: 'ERR_TAG_NOT_FOUND',
+          cause: tagError,
+          loggingContext: {
+            operation: 'createTemplateWithLines',
+            entityType: 'template_line_tag',
+          },
+        });
+      },
+    );
+
     it('should keep savings-goal rejection mapping distinct from tags', async () => {
       const rpc = jest.fn().mockResolvedValue({
         data: null,
@@ -564,6 +596,31 @@ describe('SupabaseBudgetTemplateRepository', () => {
   });
 
   describe('bulkApplyTemplateLineOperations', () => {
+    it('should map an invalid update RPC payload to TEMPLATE_UPDATE_FAILED', async () => {
+      const rpc = jest.fn();
+      const repo = new SupabaseBudgetTemplateRepository(
+        createMockProvider(() => ({}) as never, rpc as unknown as jest.Mock),
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+      await expect(
+        repo.bulkApplyTemplateLineOperations({
+          templateId: 'template-1',
+          budgetIds: [],
+          deleteIds: [],
+          updatedLines: [{ id: 'invalid-id' }],
+          createdLines: [],
+        }),
+      ).rejects.toMatchObject({
+        code: 'ERR_TEMPLATE_UPDATE_FAILED',
+        loggingContext: {
+          operation: 'bulkApplyTemplateLineOperations.updated',
+        },
+      });
+      expect(rpc).not.toHaveBeenCalled();
+    });
+
     it('should pass through with no budget mutations and only deletes', async () => {
       const rpc = jest.fn().mockResolvedValue({ data: [], error: null });
       const provider = createMockProvider(
