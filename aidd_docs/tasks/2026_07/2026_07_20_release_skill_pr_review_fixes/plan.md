@@ -1,6 +1,6 @@
 ---
 objective: "La PR #522 teste la version produit réellement utilisée par le toast et refuse toute base de release où `preview` et `main` ne sont pas dans la bonne relation d'ascendance avant toute modification de release ou mutation distante."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Corriger les findings de review du skill release
