@@ -1,5 +1,5 @@
 ---
-status: done
+status: pending
 ---
 
 # Instruction: Préserver la catégorie et l'existence des décisions
@@ -12,7 +12,7 @@ status: done
 backend-nest/src/modules/whats-new/domain/
 └── releases-data.parity.spec.ts ✏️ conserver les catégories feature/fix
 frontend/projects/webapp/src/app/layout/whats-new/
-└── whats-new-releases.spec.ts ✏️ relier les silences web au changelog
+└── whats-new-releases.spec.ts ✏️ relier les silences web au changelog Changesets
 ```
 
 ## Tasks to do
@@ -25,13 +25,14 @@ frontend/projects/webapp/src/app/layout/whats-new/
 
 ### `2)` Refuser les silences web fantômes
 
-1. Prouver qu'une entrée `SKIPPED_RELEASES` sans release landing correspondante passe les invariants actuels.
-2. Exiger exactement une release landing pour chaque silence web.
-3. Conserver les invariants de version courante, SemVer, raison et exclusion mutuelle.
+1. Prouver qu'une entrée `SKIPPED_RELEASES` absente de `frontend/CHANGELOG.md` passe les invariants actuels.
+2. Exiger un titre de version Changesets exact pour chaque silence web.
+3. Conserver le mode `--skip-whats-new`, qui omet volontairement le changelog public landing.
+4. Conserver les invariants de version courante, SemVer, raison et exclusion mutuelle.
 
 ## Test acceptance criteria
 
 | Task | Acceptance criteria                                                                                 |
 | ---- | --------------------------------------------------------------------------------------------------- |
 | 1    | Une nouveauté ne peut pas être affichée sous « Corrections », ni l'inverse, dans le dialogue iOS    |
-| 2    | Toute version web silencieuse correspond à une unique release du changelog landing                  |
+| 2    | Toute version web silencieuse existe dans le changelog privé, y compris sans entrée landing publique |

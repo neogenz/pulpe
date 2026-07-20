@@ -1,6 +1,6 @@
 ---
 objective: "La PR #522 rend chaque commande de publication autonome et sûre, distingue explicitement une projection iOS omise d'une release silencieuse, valide toutes les versions What's New et exécute les tests de contrat avant le commit de release."
-status: implemented
+status: in-progress
 ---
 
 # Plan: Fermer les gaps adversariaux du workflow release
