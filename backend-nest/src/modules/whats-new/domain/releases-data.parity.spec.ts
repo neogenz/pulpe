@@ -46,18 +46,47 @@ function fail(version: string, detail: string): never {
   );
 }
 
-function toProjection(release: ProjectedLandingRelease): WhatsNewReleaseEntry {
-  return {
-    version: release.version,
-    iosVersion: release.iosVersion,
-    date: release.date,
-    platforms: release.platforms,
-    changes: {
-      features: release.changes.features,
-      fixes: release.changes.fixes,
-      technical: [],
-    },
-  };
+const itemKey = (item: ChangeItem): string =>
+  `${item.title}\u0000${item.description}`;
+
+function assertMetadataParity(
+  projection: WhatsNewReleaseEntry,
+  landing: ProjectedLandingRelease,
+): void {
+  const matches =
+    projection.iosVersion === landing.iosVersion &&
+    projection.date === landing.date &&
+    isDeepStrictEqual(
+      [...projection.platforms].sort(),
+      [...landing.platforms].sort(),
+    ) &&
+    projection.changes.technical.length === 0;
+
+  if (!matches) {
+    fail(landing.version, 'projection metadata differs');
+  }
+}
+
+function assertCuratedSubset(
+  projection: WhatsNewReleaseEntry,
+  landing: ProjectedLandingRelease,
+): void {
+  const approved = new Set(
+    [...landing.changes.features, ...landing.changes.fixes].map(itemKey),
+  );
+  const items = [...projection.changes.features, ...projection.changes.fixes];
+
+  if (items.length === 0) {
+    fail(landing.version, 'empty projection: omit the entry instead');
+  }
+
+  const drifted = items.find((item) => !approved.has(itemKey(item)));
+  if (drifted) {
+    fail(
+      landing.version,
+      `note "${drifted.title}" is absent from landing copy`,
+    );
+  }
 }
 
 describe('embedded iOS release data parity', () => {
@@ -65,22 +94,27 @@ describe('embedded iOS release data parity', () => {
     isProjectedIosRelease,
   );
 
-  it('matches every projected, user-facing iOS landing release', () => {
+  it('projects a curated subset of every user-facing iOS landing release', () => {
     for (const landingRelease of projectedLandingReleases) {
       const backendMatches = RELEASES.filter(
         (release) => release.version === landingRelease.version,
       );
 
-      if (backendMatches.length !== 1) {
+      if (backendMatches.length > 1) {
         fail(
           landingRelease.version,
-          `expected one backend entry, found ${backendMatches.length}`,
+          `expected at most one backend entry, found ${backendMatches.length}`,
         );
       }
 
-      if (!isDeepStrictEqual(backendMatches[0], toProjection(landingRelease))) {
-        fail(landingRelease.version, 'projected content differs');
+      const projection = backendMatches[0];
+      // Silent mode: marketing bump with no iOS-worthy note (references/ios-release.md).
+      if (!projection) {
+        continue;
       }
+
+      assertMetadataParity(projection, landingRelease);
+      assertCuratedSubset(projection, landingRelease);
     }
   });
 
