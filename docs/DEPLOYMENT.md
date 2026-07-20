@@ -2,17 +2,18 @@
 
 ## TLDR - Quick Deploy
 
-```bash
+```text
 # 1. Quality check
-pnpm quality:fix && pnpm test && pnpm test:e2e
+pnpm quality && pnpm test && pnpm test:e2e
 
-# 2. Release with changeset
-pnpm changeset:version    # Bump versions
-git add . && git commit -m "chore: release version bump"
+# 2. Prepare the release from a synchronized preview or main
+/release
 
-# 3. Push to main
-git push origin main      # Triggers automatic CI/CD
+# 3. The skill validates one SHA on preview, then promotes that exact SHA
+git push origin "$SHA:refs/heads/main"
 ```
+
+The `main` push starts the production webhooks immediately. The release is published only after the `main` CI, Vercel, Railway, and public health checks all validate that exact SHA.
 
 ## Prerequisites
 
@@ -37,7 +38,7 @@ git push origin main      # Triggers automatic CI/CD
 | `preview` | **Default branch** — sprint integration + QA. Feature branches PR here. | Staging (Vercel Preview, Railway `preview` env) |
 | `main` | **Release / production** — fed by `preview` at release time. | Production |
 
-Day-to-day work branches off `preview` and merges back via PR. A **release promotes `preview` → `main`**; pushing the release commit to `main` triggers the production CI/CD described below. Both branches are protected (PR + 1 review + `✅ CI Success`, no force-push, no deletion); release tags `v*` are immutable. Full contributor workflow: [../CONTRIBUTING.md](../CONTRIBUTING.md).
+Day-to-day work branches off `preview` and merges back via PR. A **release promotes one commit validated on `preview` to `main`**; `/release` may start from a synchronized `preview` or `main`, but always validates the release SHA on `preview` first. Both branches are protected (PR + 1 review + `✅ CI Success`, no force-push, no deletion); release tags `v*` are immutable. Full contributor workflow: [../CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ## Initial Setup
 
@@ -302,32 +303,41 @@ pnpm test:performance     # Backend load tests
 
 ### 2. Versioning (Changesets)
 
-```bash
-# Create changeset (describe changes)
-pnpm changeset
+Run `/release` from a clean, synchronized `preview` or `main`. The skill analyzes the diff, obtains approval for the version and release notes, applies the lockstep Changesets bump, updates the relevant What's New surfaces, and creates the release commit without a tag.
 
-# Apply versions + update changelogs
-pnpm changeset:version
-
-# Commit version bump
-git add .
-git commit -m "chore: release version bump"
-```
+Detailed versioning and force-update gate rules: [VERSIONING.md](./VERSIONING.md).
 
 ### 3. Production Deployment
 
-A release **promotes `preview` → `main`** (open a PR `preview` → `main` and merge it; the admin bypass covers the solo self-review constraint). Pushing the release commit to `main` triggers prod CI/CD:
+Let `SHA` be the release commit created by `/release`.
 
 ```bash
-# Push main triggers CI/CD
-git push origin main
+# Validate the exact release object on preview
+git push origin "$SHA:refs/heads/preview"
+# Wait for ci.yml: event push, branch preview, head SHA == $SHA
 
-# Automatic monitoring
-# > GitHub Actions CI/CD
-# > Vercel (Frontend + Landing — separate projects)
-# > Railway (Backend)
-# > Supabase (Migrations if applicable)
+# Refetch after green CI and reject drift
+git fetch origin main preview
+test "$(git rev-parse origin/preview)" = "$SHA"
+git merge-base --is-ancestor origin/main "$SHA"
+
+# The admin bypass documented in CONTRIBUTING.md permits this direct fast-forward
+git push --dry-run origin "$SHA:refs/heads/main"
+git push origin "$SHA:refs/heads/main"
 ```
+
+Never promote `origin/preview` directly: that ref can advance after its validated CI run. Never use a force push.
+
+The `main` push starts Vercel and Railway production deployments immediately through their GitHub integrations. Those webhooks are not delayed by `ci-success`. In GitHub Actions, the main-only `migrate`, `posthog-annotate`, and `verify-prod-csp` jobs do depend on `ci-success`.
+
+Before creating the immutable tag or GitHub Release:
+
+1. Require the `ci.yml` run for event `push`, branch `main`, and exact `SHA` to finish successfully.
+2. Require both Vercel production projects and the Railway production deployment to report that same Git SHA and a ready/successful status.
+3. Run the three public health checks below.
+4. Refetch and confirm `origin/main` still equals `SHA`.
+
+Only then create the tag and GitHub Release. Update Railway `LATEST_WEB_VERSION` after the web release is public and verify `/api/v1/app/version`. Update `LATEST_IOS_VERSION` only after the corresponding marketing version is publicly available on the App Store; otherwise leave it unchanged and complete that operation later.
 
 ## Post-Deployment Monitoring
 
