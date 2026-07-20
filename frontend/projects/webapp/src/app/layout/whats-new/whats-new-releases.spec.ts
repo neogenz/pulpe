@@ -1,24 +1,24 @@
 import { describe, expect, it } from 'vitest';
 
-// eslint-disable-next-line boundaries/no-unknown -- package metadata, not an app layer import
-import frontendPackage from '../../../../../../package.json';
+// eslint-disable-next-line boundaries/no-unknown -- root product metadata, not an app layer import
+import productPackage from '../../../../../../../package.json';
 import { LATEST_RELEASE, SKIPPED_RELEASES } from './whats-new-releases';
 
 const SEMVER_PATTERN = /^\d+\.\d+\.\d+$/;
 
 describe('webapp release data', () => {
-  it('announces or explicitly skips the current package version', () => {
+  it('announces or explicitly skips the current product version', () => {
     const matchingSkips = SKIPPED_RELEASES.filter(
-      ({ version }) => version === frontendPackage.version,
+      ({ version }) => version === productPackage.version,
     );
     const states = [
-      LATEST_RELEASE.version === frontendPackage.version,
+      LATEST_RELEASE.version === productPackage.version,
       matchingSkips.length === 1,
     ].filter(Boolean);
 
     expect(
       states,
-      `${frontendPackage.version} must have exactly one toast or silent-release entry`,
+      `Product version ${productPackage.version} must have exactly one toast or silent-release entry`,
     ).toHaveLength(1);
 
     if (matchingSkips.length === 1) {
