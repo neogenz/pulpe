@@ -171,9 +171,6 @@ function assertCuratedSubset(
   projection: WhatsNewReleaseEntry,
   landing: IosMarketingRelease,
 ): void {
-  const approved = new Set(
-    [...landing.changes.features, ...landing.changes.fixes].map(itemKey),
-  );
   const items = [...projection.changes.features, ...projection.changes.fixes];
 
   if (items.length === 0) {
@@ -196,13 +193,36 @@ function assertCuratedSubset(
     );
   }
 
-  const drifted = items.find((item) => !approved.has(itemKey(item)));
-  if (drifted) {
-    fail(
-      landing.version,
-      `note "${drifted.title}" is absent from landing copy`,
-    );
+  assertCategorySubset(
+    landing.version,
+    'features',
+    projection.changes.features,
+    landing.changes.features,
+  );
+  assertCategorySubset(
+    landing.version,
+    'fixes',
+    projection.changes.fixes,
+    landing.changes.fixes,
+  );
+}
+
+function assertCategorySubset(
+  version: string,
+  category: 'features' | 'fixes',
+  projectedItems: readonly ChangeItem[],
+  landingItems: readonly ChangeItem[],
+): void {
+  const approved = new Set(landingItems.map(itemKey));
+  const drifted = projectedItems.find((item) => !approved.has(itemKey(item)));
+  if (!drifted) {
+    return;
   }
+
+  fail(
+    version,
+    `projected ${category} note is absent from landing ${category}: title="${drifted.title}", description="${drifted.description}"`,
+  );
 }
 
 describe('embedded iOS release data parity', () => {
