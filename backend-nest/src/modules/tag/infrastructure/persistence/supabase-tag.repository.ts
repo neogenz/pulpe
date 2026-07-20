@@ -339,6 +339,7 @@ export class SupabaseTagRepository implements TagRepositoryPort {
         operation: 'getTagHistory',
         entityId: id,
         entityType: 'tag',
+        userId: this.supabaseProvider.user.id,
         supabaseError: error,
       },
       { cause: error },

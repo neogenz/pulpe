@@ -2,6 +2,7 @@ import { registerLocaleData } from '@angular/common';
 import localeDE from '@angular/common/locales/de-CH';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
+import { SIGNAL } from '@angular/core/primitives/signals';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import {
@@ -34,6 +35,7 @@ import {
   type TransactionUpdate,
 } from 'pulpe-shared';
 import { BudgetItemsContainer } from './budget-items-container';
+import { BudgetTagFilter } from './budget-table/budget-tag-filter';
 import { BudgetDetailsDialogService } from '../budget-details-dialog.service';
 import { BudgetDetailsStore } from '../store/budget-details-store';
 
@@ -45,6 +47,11 @@ const mockStorageService = {
   get: () => null,
   set: () => undefined,
   remove: () => undefined,
+};
+
+const privacyTestTag = {
+  id: '44444444-4444-4444-8444-444444444444',
+  name: 'Médicaments Lisa',
 };
 
 interface MockStore {
@@ -254,6 +261,26 @@ describe('BudgetItemsContainer — contextual empty states', () => {
 });
 
 describe('BudgetItemsContainer — tag filter', () => {
+  it('masks user-provided tag names from session replay', () => {
+    TestBed.configureTestingModule({
+      imports: [BudgetTagFilter],
+      providers: [
+        provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
+      ],
+    });
+    const fixture = TestBed.createComponent(BudgetTagFilter);
+    const inputNode = fixture.componentInstance.tags[SIGNAL];
+    inputNode.applyValueToInputSignal(inputNode, [privacyTestTag]);
+
+    fixture.detectChanges();
+
+    const tagName: HTMLElement | null = fixture.nativeElement.querySelector(
+      `[data-testid="tag-filter-${privacyTestTag.id}"] .ph-no-capture`,
+    );
+    expect(tagName?.textContent).toContain(privacyTestTag.name);
+  });
+
   it('keeps an envelope when its allocated transaction carries the selected tag', () => {
     const customTagId = '44444444-4444-4444-8444-444444444444';
     const budgetLine = createMockBudgetLine({

@@ -359,11 +359,11 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
   ): Promise<void> {
     await replaceTagLinksWithRpc(this.supabaseProvider.client, {
       rpcName: 'replace_transaction_tags',
-      rpcIdParam: 'p_transaction_id',
       entityId: transactionId,
       tagIds,
       operation,
       entityType: 'transaction_tag',
+      userId: this.supabaseProvider.user.id,
       fallbackErrorDef: ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,
     });
   }

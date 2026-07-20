@@ -368,4 +368,40 @@ describe('SupabaseTagRepository', () => {
     });
     expect(encryption.decryptAmount).toHaveBeenCalledTimes(2);
   });
+
+  it('findHistoryContributions includes the user id when history loading fails', async () => {
+    const dbError = { code: '08006', message: 'connection lost' };
+    const provider = createMockProvider((table) => {
+      if (table !== 'monthly_budget') {
+        throw new Error(`Unexpected table: ${table}`);
+      }
+      return {
+        select: () => ({
+          eq: () => ({
+            gte: () => ({
+              lte: jest.fn().mockResolvedValue({ data: null, error: dbError }),
+            }),
+          }),
+        }),
+      };
+    });
+    const repo = new SupabaseTagRepository(provider, encryption);
+
+    await expect(
+      repo.findHistoryContributions(
+        'tag-1',
+        { month: 1, year: 2026 },
+        { month: 3, year: 2026 },
+      ),
+    ).rejects.toMatchObject({
+      code: ERROR_DEFINITIONS.TAG_FETCH_FAILED.code,
+      cause: dbError,
+      loggingContext: {
+        operation: 'getTagHistory',
+        entityId: 'tag-1',
+        entityType: 'tag',
+        userId: 'user-1',
+      },
+    });
+  });
 });

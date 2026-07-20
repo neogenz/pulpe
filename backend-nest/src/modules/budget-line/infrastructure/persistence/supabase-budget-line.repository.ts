@@ -368,11 +368,11 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
   ): Promise<void> {
     await tagLinks.replaceTagLinks(this.supabaseProvider.client, {
       rpcName: 'replace_budget_line_tags',
-      rpcIdParam: 'p_budget_line_id',
       entityId: budgetLineId,
       tagIds,
       operation,
       entityType: 'budget_line_tag',
+      userId: this.supabaseProvider.user.id,
       fallbackErrorDef: ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
     });
   }

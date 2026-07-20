@@ -17,6 +17,16 @@ type AtomicTaggedUpdateRpcName =
   | 'update_budget_line_with_tags'
   | 'update_template_line_with_tags';
 
+interface ReplaceTagLinksParams {
+  rpcName: TagRpcName;
+  entityId: string;
+  tagIds: string[];
+  operation: string;
+  entityType: string;
+  userId: string;
+  fallbackErrorDef: ErrorDefinition;
+}
+
 interface AtomicTaggedUpdateParams {
   rpcName: AtomicTaggedUpdateRpcName;
   entityId: string;
@@ -35,22 +45,37 @@ interface AtomicTaggedUpdateError {
   message?: string;
 }
 
+async function callReplaceTagLinks(
+  supabase: AuthenticatedSupabaseClient,
+  params: ReplaceTagLinksParams,
+) {
+  if (params.rpcName === 'replace_transaction_tags') {
+    return supabase.rpc('replace_transaction_tags', {
+      p_transaction_id: params.entityId,
+      p_tag_ids: params.tagIds,
+    });
+  }
+  if (params.rpcName === 'replace_budget_line_tags') {
+    return supabase.rpc('replace_budget_line_tags', {
+      p_budget_line_id: params.entityId,
+      p_tag_ids: params.tagIds,
+    });
+  }
+  if (params.rpcName === 'replace_template_line_tags') {
+    return supabase.rpc('replace_template_line_tags', {
+      p_template_line_id: params.entityId,
+      p_tag_ids: params.tagIds,
+    });
+  }
+  const unhandledRpcName: never = params.rpcName;
+  throw new Error(`Unhandled tag replacement RPC: ${unhandledRpcName}`);
+}
+
 export async function replaceTagLinks(
   supabase: AuthenticatedSupabaseClient,
-  params: {
-    rpcName: TagRpcName;
-    rpcIdParam: string;
-    entityId: string;
-    tagIds: string[];
-    operation: string;
-    entityType: string;
-    fallbackErrorDef: ErrorDefinition;
-  },
+  params: ReplaceTagLinksParams,
 ): Promise<void> {
-  const { error } = await supabase.rpc(params.rpcName, {
-    [params.rpcIdParam]: params.entityId,
-    p_tag_ids: params.tagIds,
-  } as never);
+  const { error } = await callReplaceTagLinks(supabase, params);
 
   if (!error) return;
 
@@ -58,6 +83,7 @@ export async function replaceTagLinks(
     operation: params.operation,
     entityId: params.entityId,
     entityType: params.entityType,
+    userId: params.userId,
     supabaseError: error,
   };
   if (error.code === '23503' || error.code === '42501') {

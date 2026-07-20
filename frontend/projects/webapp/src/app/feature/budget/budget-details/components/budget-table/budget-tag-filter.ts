@@ -2,7 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   input,
-  output,
+  model,
 } from '@angular/core';
 import {
   type MatChipListboxChange,
@@ -44,7 +44,7 @@ export interface TagFilterOption {
             [selected]="selectedTagIds().includes(tag.id)"
             [attr.data-testid]="'tag-filter-' + tag.id"
           >
-            {{ tag.name }}
+            <span class="ph-no-capture">{{ tag.name }}</span>
           </mat-chip-option>
         }
       </mat-chip-listbox>
@@ -59,10 +59,9 @@ export interface TagFilterOption {
 })
 export class BudgetTagFilter {
   readonly tags = input.required<TagFilterOption[]>();
-  readonly selectedTagIds = input<string[]>([]);
-  readonly selectedTagIdsChange = output<string[]>();
+  readonly selectedTagIds = model<string[]>([]);
 
   onChange(event: MatChipListboxChange): void {
-    this.selectedTagIdsChange.emit((event.value as string[] | null) ?? []);
+    this.selectedTagIds.set((event.value as string[] | null) ?? []);
   }
 }

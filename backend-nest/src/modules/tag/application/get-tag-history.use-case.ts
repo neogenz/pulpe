@@ -31,7 +31,7 @@ export class GetTagHistoryUseCase {
     query: TagHistoryQuery,
     user: AuthenticatedUser,
   ): Promise<TagHistory> {
-    await this.repo.findById(id);
+    await this.repo.findById(id); // Enforces ownership through the repository's RLS-scoped lookup.
 
     const endIndex = periodIndex({
       month: query.endMonth,

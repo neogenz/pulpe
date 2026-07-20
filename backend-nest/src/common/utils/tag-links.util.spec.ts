@@ -9,15 +9,38 @@ import {
 
 const replaceParams = {
   rpcName: 'replace_transaction_tags' as const,
-  rpcIdParam: 'p_transaction_id',
   entityId: 'transaction-1',
   tagIds: ['tag-1'],
   operation: 'updateTransaction',
   entityType: 'transaction_tag',
+  userId: 'user-1',
   fallbackErrorDef: ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,
 };
 
 describe('replaceTagLinks', () => {
+  for (const [rpcName, idParam] of [
+    ['replace_transaction_tags', 'p_transaction_id'],
+    ['replace_budget_line_tags', 'p_budget_line_id'],
+    ['replace_template_line_tags', 'p_template_line_id'],
+  ] as const) {
+    it(`should call ${rpcName} with its typed id parameter`, async () => {
+      const rpc = jest.fn().mockResolvedValue({ error: null });
+      const supabase = {
+        rpc,
+      } as unknown as AuthenticatedSupabaseClient;
+
+      await replaceTagLinks(supabase, {
+        ...replaceParams,
+        rpcName,
+      });
+
+      expect(rpc).toHaveBeenCalledWith(rpcName, {
+        [idParam]: 'transaction-1',
+        p_tag_ids: ['tag-1'],
+      });
+    });
+  }
+
   for (const code of ['23503', '42501']) {
     it(`should map ${code} to TAG_NOT_FOUND`, async () => {
       const error = { code, message: 'tag rejected' };
@@ -34,6 +57,7 @@ describe('replaceTagLinks', () => {
           operation: 'updateTransaction',
           entityId: 'transaction-1',
           entityType: 'transaction_tag',
+          userId: 'user-1',
         },
       });
     });
