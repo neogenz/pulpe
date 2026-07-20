@@ -78,7 +78,7 @@ test.describe('Financial Overview Calculations', () => {
     });
   }
 
-  test('Revenus pill shows real income only, rollover surfaced separately', async ({
+  test('Revenus pill shows real income only, rollover disclosed inside the hero', async ({
     authenticatedPage,
     budgetDetailsPage,
   }) => {
@@ -101,9 +101,9 @@ test.describe('Financial Overview Calculations', () => {
     // Note: fr-CH locale uses NARROW NO-BREAK SPACE (U+202F) as thousands separator.
     await expect(financialOverview).toContainText('4\u2019300 CHF');
 
-    // Rollover (+500) is rendered separately in the dedicated read-only widget.
-    const rolloverInfo = authenticatedPage.locator(
-      'pulpe-budget-rollover-info',
+    // Rollover (+500) is disclosed under the hero amount it is baked into.
+    const rolloverInfo = authenticatedPage.getByTestId(
+      'financial-overview-rollover',
     );
     await expect(rolloverInfo).toBeVisible();
     await expect(rolloverInfo).toContainText('500 CHF');
