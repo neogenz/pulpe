@@ -3,9 +3,10 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
 } from '@angular/core';
-import { TranslocoPipe } from '@jsverse/transloco';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { CURRENCY_METADATA, type SupportedCurrency } from 'pulpe-shared';
 import { FinancialPills } from '../financial-pills/financial-pills';
 
@@ -74,6 +75,8 @@ export interface FinancialTotals {
             [class.text-on-primary-container]="budgetState() === 'comfortable'"
             [class.text-warning-on-container]="budgetState() === 'warning'"
             [class.text-on-error-container]="budgetState() === 'deficit'"
+            role="status"
+            [attr.aria-label]="rolloverAriaLabel()"
             data-testid="financial-overview-rollover"
           >
             {{ 'budget.overview.rolloverIncluded' | transloco }}
@@ -135,6 +138,8 @@ export interface FinancialTotals {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BudgetFinancialOverview {
+  readonly #transloco = inject(TranslocoService);
+
   readonly totals = input.required<FinancialTotals>();
   readonly currency = input<SupportedCurrency>('CHF');
   readonly locale = input<string>('de-CH');
@@ -170,5 +175,17 @@ export class BudgetFinancialOverview {
 
   protected readonly rolloverAbsolute = computed(() =>
     Math.abs(this.rollover()),
+  );
+
+  protected readonly rolloverAriaLabel = computed(() =>
+    this.#transloco.translate(
+      this.isRolloverPositive()
+        ? 'budget.overview.rolloverIncludedSurplusAria'
+        : 'budget.overview.rolloverIncludedDeficitAria',
+      {
+        amount: this.rolloverAbsolute().toLocaleString(this.locale()),
+        currency: this.currency(),
+      },
+    ),
   );
 }

@@ -150,6 +150,12 @@ test.describe('Rollover Propagation - Impact on next month', () => {
     await expect(rolloverWidget).toContainText(/Report/i);
     await expect(rolloverWidget).toContainText('+3’800');
     await expect(rolloverWidget).toContainText('CHF');
+
+    // Screen readers get the ISO code, per the project currency rule.
+    await expect(rolloverWidget).toHaveAttribute(
+      'aria-label',
+      /^Report positif du mois précédent inclus : .+ CHF$/,
+    );
   });
 
   test('rollover disclosure toggles correctly across month navigation', async ({

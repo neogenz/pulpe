@@ -549,6 +549,8 @@
       "remainingThisMonth": "Ce qu'il te reste ce mois",
       "perForecast": "selon tes prévisions",
       "rolloverIncluded": "Report du mois précédent inclus",
+      "rolloverIncludedSurplusAria": "Report positif du mois précédent inclus : {{ amount }} {{ currency }}",
+      "rolloverIncludedDeficitAria": "Report négatif du mois précédent inclus : {{ amount }} {{ currency }}",
       "deficitThisMonth": "Déficit ce mois",
       "uncoveredOverrun": "dépassement non couvert",
       "niceMargin": "Belle marge ce mois",
