@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import {
   savingsGoalCreateSchema,
   savingsGoalPlanApplySchema,
+  savingsGoalProgressSchema,
   savingsGoalUpdateSchema,
   savingsGoalSchema,
   templateLineCreateSchema,
@@ -137,6 +138,103 @@ describe('PUL-12 — savingsGoalUpdateSchema keeps PATCH semantics', () => {
       targetDate: isoDateOffsetMonths(120),
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe('PUL-293 — savingsGoalCreateSchema.initialAmount', () => {
+  const base = {
+    name: 'Vacances 2027',
+    targetAmount: 3000,
+    targetDate: isoDateOffsetDays(30),
+  };
+
+  test('accepts an absent initialAmount', () => {
+    const result = savingsGoalCreateSchema.safeParse(base);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect('initialAmount' in result.data).toBe(false);
+    }
+  });
+
+  test('accepts initialAmount 0', () => {
+    const result = savingsGoalCreateSchema.safeParse({
+      ...base,
+      initialAmount: 0,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  test('accepts a positive initialAmount', () => {
+    const result = savingsGoalCreateSchema.safeParse({
+      ...base,
+      initialAmount: 500,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  test('rejects a negative initialAmount', () => {
+    const result = savingsGoalCreateSchema.safeParse({
+      ...base,
+      initialAmount: -1,
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('PUL-293 — savingsGoalUpdateSchema.initialAmount', () => {
+  test('accepts an absent initialAmount (PATCH semantics: not sent = unchanged)', () => {
+    const result = savingsGoalUpdateSchema.safeParse({ name: 'Maison bis' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect('initialAmount' in result.data).toBe(false);
+    }
+  });
+
+  test('accepts initialAmount 0 (explicit erase of the stock)', () => {
+    const result = savingsGoalUpdateSchema.safeParse({ initialAmount: 0 });
+    expect(result.success).toBe(true);
+  });
+
+  test('rejects a negative initialAmount', () => {
+    const result = savingsGoalUpdateSchema.safeParse({ initialAmount: -1 });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('PUL-293 — savingsGoalProgressSchema.initialAmount default', () => {
+  const validProgress = {
+    goalId: UUID,
+    status: 'ACTIVE' as const,
+    targetAmount: 1000,
+    targetDate: isoDateOffsetDays(30),
+    plannedCumulative: 100,
+    confirmed: 100,
+    achievementPercent: 10,
+    monthsElapsed: 1,
+    monthsRemaining: 1,
+    isOverdue: false,
+    pace: 100,
+    confirmedPace: 100,
+    required: 100,
+    projected: 1000,
+    paceStatus: 'on_track' as const,
+    suggestCompletion: false,
+    linkedLineCount: 1,
+    cumulativeGap: 0,
+    estimatedCompletion: null,
+    months: [],
+    originalTargetAmount: null,
+    originalCurrency: null,
+    targetCurrency: null,
+    exchangeRate: null,
+  };
+
+  test('parses a payload without initialAmount and defaults to 0 (existing mocks stay valid)', () => {
+    const result = savingsGoalProgressSchema.safeParse(validProgress);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.initialAmount).toBe(0);
+    }
   });
 });
 

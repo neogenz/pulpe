@@ -201,6 +201,7 @@ export type Database = {
           created_at: string;
           exchange_rate: number | null;
           id: string;
+          initial_amount: string | null;
           name: string;
           original_currency: string | null;
           original_target_amount: string | null;
@@ -216,6 +217,7 @@ export type Database = {
           created_at?: string;
           exchange_rate?: number | null;
           id?: string;
+          initial_amount?: string | null;
           name: string;
           original_currency?: string | null;
           original_target_amount?: string | null;
@@ -231,6 +233,7 @@ export type Database = {
           created_at?: string;
           exchange_rate?: number | null;
           id?: string;
+          initial_amount?: string | null;
           name?: string;
           original_currency?: string | null;
           original_target_amount?: string | null;
@@ -531,6 +534,18 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      apply_savings_goal_generation_stop: {
+        Args: {
+          p_budget_line_ids: string[];
+          p_goal_id: string;
+          p_min_period_index: number;
+          p_mode: string;
+        };
+        Returns: {
+          budget_id: string;
+          line_id: string;
+        }[];
+      };
       apply_savings_goal_plan: {
         Args: {
           p_goal_id: string;
@@ -775,6 +790,7 @@ export type Database = {
           original_currency: string | null;
           recurrence: Database['public']['Enums']['transaction_recurrence'];
           savings_goal_id: string | null;
+          savings_withdrawal_group_id: string | null;
           spread_group_id: string | null;
           target_currency: string | null;
           template_line_id: string | null;

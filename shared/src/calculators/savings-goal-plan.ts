@@ -91,6 +91,8 @@ export function isContributivePlanMonth(
  * Les mois sans ligne liée sont `gap` (le mois courant garde `current` pour le
  * badge, même sans ligne). Les cumulatifs à `indexCourant` égalent
  * `plannedCumulative` (mois ≤ courant) et le total confirmé de `computeSavingsGoalProgress`.
+ * `confirmedCumulative` démarre à `input.initialAmount` (stock de départ) ;
+ * `plannedCumulative` reste à 0 — le prévu n'a jamais de montant de départ.
  */
 export function buildSavingsGoalTimeline(
   input: SavingsGoalProgressInput,
@@ -127,7 +129,8 @@ export function buildSavingsGoalTimeline(
 
   const months: SavingsPlanTimelineMonth[] = [];
   let plannedCumulative = 0;
-  let confirmedCumulative = 0;
+  // Le montant de départ (stock) amorce le cumul confirmé, jamais le prévu.
+  let confirmedCumulative = input.initialAmount ?? 0;
 
   for (let index = startIndex; index <= endIndex; index++) {
     const period = periodFromIndex(index);
@@ -225,6 +228,8 @@ export function simulateSavingsPlan(input: {
   targetAmount: number;
   adjustments?: SavingsPlanAdjustment[];
   globalMonthlyAmount?: number;
+  /** Montant de départ (stock) — amorce `simulatedCumulative`, exclu des mois simulés. */
+  initialAmount?: number;
 }): SavingsPlanSimulationResult {
   const adjustmentsByKey = new Map<number, number>();
   for (const adjustment of input.adjustments ?? []) {
@@ -245,7 +250,7 @@ export function simulateSavingsPlan(input: {
   }
 
   const months: SavingsPlanSimulatedMonth[] = [];
-  let simulatedCumulative = 0;
+  let simulatedCumulative = input.initialAmount ?? 0;
   let attainedPeriod: BudgetPeriod | null = null;
 
   for (const month of input.timeline) {
@@ -305,13 +310,15 @@ export interface RedistributeRemainingEffortResult {
  * épinglés, cents-exact via `splitTotalPreserving`. Généralisation de PUL-290
  * (`remainingToProvision`/`perRemainingMonth`).
  *
- * `remaining = max(0, target − Σ confirmé(mois verrouillés) − Σ épinglés ouverts)`.
+ * `remaining = max(0, target − initialAmount − Σ confirmé(mois verrouillés) − Σ épinglés ouverts)`.
  * `isDistributable = false` quand aucun mois ouvert non épinglé (ex. overdue).
  */
 export function redistributeRemainingEffort(input: {
   timeline: SavingsPlanTimelineMonth[];
   targetAmount: number;
   pinnedAdjustments?: SavingsPlanAdjustment[];
+  /** Montant de départ (stock) — déduit de la cible avant répartition. */
+  initialAmount?: number;
 }): RedistributeRemainingEffortResult {
   const pinnedByKey = new Map<number, number>();
   for (const pin of input.pinnedAdjustments ?? []) {
@@ -335,7 +342,10 @@ export function redistributeRemainingEffort(input: {
 
   const remaining = Math.max(
     0,
-    input.targetAmount - lockedConfirmedSum - pinnedSum,
+    input.targetAmount -
+      (input.initialAmount ?? 0) -
+      lockedConfirmedSum -
+      pinnedSum,
   );
 
   const hasUnavailablePeriod = input.timeline.some(

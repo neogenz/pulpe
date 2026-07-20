@@ -2,9 +2,9 @@ import { CalendarX, House, Wallet } from "lucide-react";
 import { Section } from "@/components/ui";
 
 const PROOFS = [
-  ["12 mois", "visibles d’un coup"],
-  ["3 minutes", "pour poser ton année"],
-  ["Web + iOS", "le même budget partout"],
+  { value: "12 mois", label: "visibles d’un coup" },
+  { value: "3 minutes", label: "pour poser ton année" },
+  { value: "Web + iOS", label: "le même budget partout" },
 ];
 
 const SUPPORTING = [
@@ -22,24 +22,29 @@ const SUPPORTING = [
 
 export function PainPoints() {
   return (
-    <Section id="pain-points" className="pt-10 lg:pt-16">
+    <Section
+      id="pain-points"
+      className="pain-points-mesh relative overflow-hidden md:pt-10 lg:pt-8"
+    >
       <dl className="grid border-y border-text/10 sm:grid-cols-3">
-        {PROOFS.map(([value, label], index) => (
+        {PROOFS.map((proof, index) => (
           <div
-            key={value}
-            className={`py-5 sm:px-6 sm:text-center ${
+            key={proof.value}
+            className={`grid grid-cols-[7rem_minmax(0,1fr)] items-baseline gap-x-4 py-4 sm:block sm:px-6 sm:py-5 sm:text-center ${
               index > 0
                 ? "border-t border-text/10 sm:border-l sm:border-t-0"
                 : ""
             }`}
           >
-            <dt className="text-sm text-text-secondary">{label}</dt>
-            <dd className="mt-1 text-xl font-semibold text-text">{value}</dd>
+            <dt className="text-xl font-semibold text-text">{proof.value}</dt>
+            <dd className="pretty text-sm leading-relaxed text-text-secondary sm:mt-1">
+              {proof.label}
+            </dd>
           </div>
         ))}
       </dl>
 
-      <div className="mt-20 grid items-stretch gap-8 lg:grid-cols-5 lg:gap-12">
+      <div className="mt-10 grid items-stretch gap-8 md:mt-20 lg:grid-cols-5 lg:gap-12">
         <div className="relative overflow-hidden rounded-[var(--radius-large)] bg-surface-alt p-7 sm:p-10 lg:col-span-3 lg:p-12">
           <div
             aria-hidden="true"

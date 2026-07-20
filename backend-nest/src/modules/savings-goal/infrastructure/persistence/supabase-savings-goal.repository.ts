@@ -7,6 +7,8 @@ import {
   PAY_DAY_MIN,
   type BudgetLine,
   type BudgetPeriod,
+  type LinkedSavingLine,
+  type SavingsGoalGenerationStop,
 } from 'pulpe-shared';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
@@ -28,6 +30,7 @@ import type {
   SavingsGoal,
   SavingsGoalContribution,
   SavingsGoalCreateInput,
+  SavingsGoalGenerationStopResult,
   SavingsGoalInsert,
   SavingsGoalLinkedContributions,
   SavingsGoalPlanApplyResult,
@@ -37,6 +40,10 @@ import type {
 } from '../../domain/savings-goal.entity';
 import {
   applySavingsGoalPlanLineListSchema,
+  GENERATION_STOP_ADJUSTED_RPC_MESSAGE,
+  GENERATION_STOP_CHECKED_RPC_MESSAGE,
+  GENERATION_STOP_NOT_LINKED_RPC_MESSAGE,
+  GENERATION_STOP_PAST_RPC_MESSAGE,
   PLAN_LINE_CHECKED_RPC_MESSAGE,
   PLAN_LINE_NOT_LINKED_RPC_MESSAGE,
   PLAN_LINE_PAST_RPC_MESSAGE,
@@ -257,6 +264,18 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
   async findLinkedContributions(
     goalId: string,
   ): Promise<SavingsGoalLinkedContributions> {
+    const lines = await this.findLinkedSavingLines(goalId);
+    if (!lines.length) return { lines: [], transactions: [] };
+
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    const transactions = await this.findTransactionsForLines(
+      lines.map((line) => line.id),
+      dek,
+    );
+    return { lines, transactions };
+  }
+
+  async findLinkedSavingLines(goalId: string): Promise<LinkedSavingLine[]> {
     const supabase = this.supabaseProvider.client;
     // Double garde kind=saving (le lien est déjà kind-guardé à l'écriture par
     // trigger + use-cases). RLS scope les lignes au user courant.
@@ -283,10 +302,10 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     }
 
     const rows = (data ?? []) as unknown as LinkedLineRow[];
-    if (!rows.length) return { lines: [], transactions: [] };
+    if (!rows.length) return [];
 
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
-    const lines = rows.map((row) => ({
+    return rows.map((row) => ({
       id: row.id,
       amount: this.encryption.tryDecryptAmount(row.amount, dek, 0),
       kind: row.kind,
@@ -295,12 +314,6 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       month: row.monthly_budget.month,
       year: row.monthly_budget.year,
     }));
-
-    const transactions = await this.findTransactionsForLines(
-      lines.map((line) => line.id),
-      dek,
-    );
-    return { lines, transactions };
   }
 
   async findContributions(goalId: string): Promise<SavingsGoalContribution[]> {
@@ -388,6 +401,94 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       ...new Set(updatedLines.map((line) => line.budgetId)),
     ];
     return { updatedLines, touchedBudgetIds };
+  }
+
+  async applyGenerationStop(
+    goalId: string,
+    mode: SavingsGoalGenerationStop['mode'],
+    budgetLineIds: string[],
+    minPeriodIndex: number,
+  ): Promise<SavingsGoalGenerationStopResult> {
+    const { data, error } = await this.supabaseProvider.client.rpc(
+      'apply_savings_goal_generation_stop',
+      {
+        p_goal_id: goalId,
+        p_mode: mode,
+        p_budget_line_ids: budgetLineIds,
+        p_min_period_index: minPeriodIndex,
+      },
+    );
+
+    if (error || !data) {
+      this.throwGenerationStopRpcError(error);
+    }
+
+    return {
+      affectedLineIds: data.map((row) => row.line_id),
+      touchedBudgetIds: [...new Set(data.map((row) => row.budget_id))],
+    };
+  }
+
+  /**
+   * Maps an `apply_savings_goal_generation_stop` RPC failure to the right
+   * business error (same idiom as `throwPlanRpcError`):
+   * - ownership → SAVINGS_GOAL_NOT_FOUND (404, RLS-hiding idiom);
+   * - checked / adjusted / past-period → 409 (candidates drifted — refetch);
+   * - not-linked → 422 (refetch the candidate list);
+   * - anything else → generic failure (500) : la RPC a tout rollback, un
+   *   retry complet ré-applique proprement. (La sémantique retry APRÈS commit
+   *   — 422 inoffensif — est documentée sur `recalculateAfterCommit` côté
+   *   use-case, pas ici.)
+   */
+  private throwGenerationStopRpcError(error: PostgrestError | null): never {
+    if (isSavingsGoalLinkDenied(error)) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
+        undefined,
+        {
+          operation: 'applySavingsGoalGenerationStop',
+          entityType: 'savings_goal',
+        },
+        { cause: error ?? undefined },
+      );
+    }
+    const message = error?.message ?? '';
+    if (
+      message.includes(GENERATION_STOP_CHECKED_RPC_MESSAGE) ||
+      message.includes(GENERATION_STOP_ADJUSTED_RPC_MESSAGE) ||
+      message.includes(GENERATION_STOP_PAST_RPC_MESSAGE)
+    ) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_GENERATION_STOP_CONFLICT,
+        undefined,
+        {
+          operation: 'applySavingsGoalGenerationStop',
+          entityType: 'savings_goal',
+        },
+        { cause: error ?? undefined },
+      );
+    }
+    if (message.includes(GENERATION_STOP_NOT_LINKED_RPC_MESSAGE)) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_GENERATION_STOP_LINE_INVALID,
+        undefined,
+        {
+          operation: 'applySavingsGoalGenerationStop',
+          entityType: 'savings_goal',
+        },
+        { cause: error ?? undefined },
+      );
+    }
+    throw new BusinessException(
+      ERROR_DEFINITIONS.SAVINGS_GOAL_GENERATION_STOP_FAILED,
+      undefined,
+      {
+        operation: 'applySavingsGoalGenerationStop',
+        entityType: 'savings_goal',
+        supabaseError: error,
+      },
+      { cause: error ?? undefined },
+    );
   }
 
   private async toPlanRpcLine(
@@ -646,6 +747,9 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       originalCurrency: row.original_currency,
       targetCurrency: row.target_currency,
       exchangeRate: row.exchange_rate,
+      initialAmount: row.initial_amount
+        ? this.encryption.tryDecryptAmount(row.initial_amount, dek, null)
+        : null,
     };
   }
 
@@ -660,12 +764,18 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       user.id,
       user.clientKey,
     );
+    const initialAmount = await this.encryption.encryptOptionalAmount(
+      input.initialAmount,
+      user.id,
+      user.clientKey,
+    );
 
     return {
       user_id: user.id,
       name: input.name,
       target_amount: targetAmount,
       original_target_amount: originalTargetAmount,
+      initial_amount: initialAmount,
       target_date: input.targetDate,
       status: input.status,
       ...mapCurrencyNonAmountMetadataToDb(
@@ -704,6 +814,14 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
           user.id,
           user.clientKey,
         );
+    }
+
+    if (patch.initialAmount !== undefined) {
+      updateData.initial_amount = await this.encryption.encryptOptionalAmount(
+        patch.initialAmount,
+        user.id,
+        user.clientKey,
+      );
     }
 
     Object.assign(

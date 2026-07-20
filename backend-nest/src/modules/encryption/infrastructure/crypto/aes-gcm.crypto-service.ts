@@ -871,6 +871,7 @@ export class AesGcmCryptoService {
         id: string;
         target_amount: string | null;
         original_target_amount: string | null;
+        initial_amount: string | null;
       }>;
       monthlyBudgets: Array<{
         id: string;
@@ -905,6 +906,7 @@ export class AesGcmCryptoService {
         id: r.id,
         target_amount: rekey(r.target_amount),
         original_target_amount: rekey(r.original_target_amount),
+        initial_amount: rekey(r.initial_amount),
       })),
       monthlyBudgets: rows.monthlyBudgets.map((r) => ({
         id: r.id,
@@ -986,7 +988,7 @@ export class AesGcmCryptoService {
   ) {
     const { data, error } = await supabase
       .from('savings_goal')
-      .select('id, target_amount, original_target_amount')
+      .select('id, target_amount, original_target_amount, initial_amount')
       .eq('user_id', userId);
 
     if (error) throw error;

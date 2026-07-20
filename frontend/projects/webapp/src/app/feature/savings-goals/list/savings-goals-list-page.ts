@@ -9,6 +9,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { TitleDisplay } from '@core/routing';
+import { isApiError } from '@core/api/api-error';
+import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import {
   ProductTourService,
   TOUR_START_DELAY,
@@ -116,6 +118,7 @@ export default class SavingsGoalsListPage {
   readonly #dialogs = inject(SavingsGoalsDialogService);
   readonly #snackBar = inject(MatSnackBar);
   readonly #transloco = inject(TranslocoService);
+  readonly #errorLocalizer = inject(ApiErrorLocalizer);
   readonly #productTour = inject(ProductTourService);
 
   constructor() {
@@ -142,10 +145,9 @@ export default class SavingsGoalsListPage {
   }
 
   #showError(error: unknown): void {
-    const message =
-      error instanceof Error
-        ? error.message
-        : this.#transloco.translate('common.error');
+    const message = isApiError(error)
+      ? this.#errorLocalizer.localizeApiError(error)
+      : this.#transloco.translate('common.error');
     this.#snackBar.open(message, this.#transloco.translate('common.close'), {
       duration: 5000,
       panelClass: ['bg-error-container', 'text-on-error-container'],

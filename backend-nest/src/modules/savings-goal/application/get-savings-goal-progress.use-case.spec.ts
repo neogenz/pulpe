@@ -27,6 +27,7 @@ const goal: SavingsGoal = {
   originalCurrency: null,
   targetCurrency: null,
   exchangeRate: null,
+  initialAmount: null,
 };
 
 describe('GetSavingsGoalProgressUseCase', () => {
@@ -103,6 +104,38 @@ describe('GetSavingsGoalProgressUseCase', () => {
     expect(computed.confirmed).toBe(500); // ligne pointée → enveloppe
     expect(computed.linkedLineCount).toBe(1);
     expect(mockRepo.findLinkedContributions).toHaveBeenCalledWith('goal-1');
+  });
+
+  it('lifts confirmed by initialAmount (stock) without moving confirmedPace (flux) — PUL-293', async () => {
+    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = new Date().getFullYear();
+    const linkedLines = [
+      {
+        id: 'line-1',
+        amount: 500,
+        kind: 'saving' as const,
+        checkedAt: '2026-06-01T00:00:00Z',
+        month: currentMonth,
+        year: currentYear,
+      },
+    ];
+    mockRepo.findLinkedContributions.mockResolvedValue({
+      lines: linkedLines,
+      transactions: [],
+    });
+
+    const { computed: withoutInitial } = await useCase.execute(
+      'goal-1',
+      mockUser,
+    );
+
+    mockRepo.findById.mockResolvedValue({ ...goal, initialAmount: 5000 });
+    const { computed: withInitial } = await useCase.execute('goal-1', mockUser);
+
+    expect(withInitial.confirmed).toBe(withoutInitial.confirmed + 5000);
+    expect(withInitial.confirmedPace).toBe(withoutInitial.confirmedPace);
+    expect(withInitial.initialAmount).toBe(5000);
+    expect(withoutInitial.initialAmount).toBe(0);
   });
 
   it('is payDay-aware: forwards the user payDayOfMonth to the formulas', async () => {

@@ -15,7 +15,7 @@ export function FinalCTA() {
           <h2 className="mt-5 text-[clamp(2.75rem,7vw,6rem)] font-bold leading-[0.98] tracking-[-0.05em] text-text">
             Prends des mois d&apos;avance sur ce qu&apos;il te restera.
           </h2>
-          <p className="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-text-secondary sm:text-xl">
+          <p className="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-text/80 sm:text-xl">
             Gratuit aujourd&apos;hui. Sans connexion bancaire. Tes montants sont
             chiffrés.
           </p>

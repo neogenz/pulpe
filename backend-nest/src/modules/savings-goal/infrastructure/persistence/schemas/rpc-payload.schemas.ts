@@ -39,3 +39,18 @@ export type ApplySavingsGoalPlanLine = z.infer<
 export const PLAN_LINE_NOT_LINKED_RPC_MESSAGE = 'Plan line not linked';
 export const PLAN_LINE_CHECKED_RPC_MESSAGE = 'Plan line already checked';
 export const PLAN_LINE_PAST_RPC_MESSAGE = 'Plan line in past period';
+
+// apply_savings_goal_generation_stop (PUL-285 CA5) — scalar params only, no
+// JSONB ciphertext payload, so no Zod payload schema. The RAISE messages are
+// mirrored verbatim from migration 20260716091000; the repository matches on
+// them to pick the HTTP status:
+// - NOT_LINKED → 422 (refetch the candidates);
+// - CHECKED / ADJUSTED / PAST → 409 (the candidate list drifted).
+export const GENERATION_STOP_NOT_LINKED_RPC_MESSAGE =
+  'Generation stop line not linked';
+export const GENERATION_STOP_CHECKED_RPC_MESSAGE =
+  'Generation stop line already checked';
+export const GENERATION_STOP_ADJUSTED_RPC_MESSAGE =
+  'Generation stop line manually adjusted';
+export const GENERATION_STOP_PAST_RPC_MESSAGE =
+  'Generation stop line in past period';

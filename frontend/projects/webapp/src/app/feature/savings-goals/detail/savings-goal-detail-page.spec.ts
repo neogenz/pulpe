@@ -11,12 +11,16 @@ import {
 import { By } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 import { registerLocaleData } from '@angular/common';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import localeDE from '@angular/common/locales/de-CH';
-import type {
-  SavingsGoal,
-  SavingsGoalContribution,
-  SavingsGoalProgress,
+import {
+  API_ERROR_CODES,
+  type SavingsGoal,
+  type SavingsGoalContribution,
+  type SavingsGoalFutureLine,
+  type SavingsGoalProgress,
 } from 'pulpe-shared';
+import { ApiError } from '@core/api/api-error';
 import SavingsGoalDetailPage from './savings-goal-detail-page';
 import { SavingsGoalStore } from '../services/savings-goals-store';
 import { SavingsGoalsDialogService } from '../services/savings-goals-dialog.service';
@@ -138,6 +142,7 @@ function makeProgress(
     targetDate: '2027-08-01',
     plannedCumulative: 1200,
     confirmed: 900,
+    initialAmount: 0,
     achievementPercent: 30,
     monthsElapsed: 3,
     monthsRemaining: 12,
@@ -160,6 +165,13 @@ function makeProgress(
   };
 }
 
+const futureLine: SavingsGoalFutureLine = {
+  budgetLineId: 'line-1',
+  amount: 250,
+  month: 8,
+  year: 2026,
+};
+
 describe('SavingsGoalDetailPage', () => {
   let fixture: ComponentFixture<SavingsGoalDetailPage>;
   let component: SavingsGoalDetailPage;
@@ -178,6 +190,9 @@ describe('SavingsGoalDetailPage', () => {
   const reloadProgress = vi.fn();
   const refresh = vi.fn();
   const navigate = vi.fn();
+  const snackBarOpen = vi.fn();
+
+  const futureLinesSig = signal<SavingsGoalFutureLine[]>([]);
 
   const mockStore = {
     selectedGoal: goalSig,
@@ -186,6 +201,7 @@ describe('SavingsGoalDetailPage', () => {
     isProgressLoading: isProgressLoadingSig,
     contributions: contributionsSig,
     isContributionsLoading: isContributionsLoadingSig,
+    futureLines: futureLinesSig,
     savingsGoals: {
       isInitialLoading: listInitialLoadingSig,
       error: listErrorSig,
@@ -197,10 +213,13 @@ describe('SavingsGoalDetailPage', () => {
     reopenGoal,
     editGoal: vi.fn().mockResolvedValue(makeGoal()),
     removeGoal: vi.fn().mockResolvedValue(undefined),
+    fetchFutureLines: vi.fn().mockResolvedValue([]),
+    applyGenerationStop: vi.fn().mockResolvedValue({ affectedCount: 0 }),
   };
 
   const mockDialogs = {
     openEdit: vi.fn(),
+    openGenerationStop: vi.fn(),
     confirmDelete: vi.fn(),
   };
 
@@ -213,6 +232,7 @@ describe('SavingsGoalDetailPage', () => {
     isContributionsLoadingSig.set(false);
     listInitialLoadingSig.set(false);
     listErrorSig.set(null);
+    futureLinesSig.set([]);
     vi.clearAllMocks();
 
     await TestBed.configureTestingModule({
@@ -227,6 +247,7 @@ describe('SavingsGoalDetailPage', () => {
           useValue: { currency: signal('CHF'), payDayOfMonth: signal(25) },
         },
         { provide: Router, useValue: { navigate } },
+        { provide: MatSnackBar, useValue: { open: snackBarOpen } },
       ],
     })
       .overrideComponent(SavingsGoalDetailPage, {
@@ -276,8 +297,21 @@ describe('SavingsGoalDetailPage', () => {
 
     const bar = query('savings-goal-progress-bar');
     expect(bar.attributes['aria-valuenow']).toBe('30');
-    // « Pointé » vocabulary is present (legend + stat label).
-    expect(fixture.nativeElement.textContent).toContain('Pointé');
+    // « Épargné » labels the aggregate layer: it sums the never-pointed
+    // initial amount with the checked lines, so « Pointé » would overclaim.
+    expect(fixture.nativeElement.textContent).toContain('Épargné');
+  });
+
+  it('shows the "Montant de départ" stat only when initialAmount > 0 (PUL-293)', () => {
+    fixture.detectChanges();
+    expect(query('stat-initial-amount')).toBeFalsy();
+
+    progressSig.set(makeProgress({ initialAmount: 5000 }));
+    fixture.detectChanges();
+
+    const stat = query('stat-initial-amount');
+    expect(stat).toBeTruthy();
+    expect(stat.nativeElement.textContent).toContain('5');
   });
 
   it('shows the D1 overdue block + postpone CTA when isOverdue', () => {
@@ -329,6 +363,96 @@ describe('SavingsGoalDetailPage', () => {
     await Promise.resolve();
 
     expect(reopenGoal).toHaveBeenCalledWith('goal-1');
+  });
+
+  it.each([
+    {
+      code: API_ERROR_CODES.SAVINGS_GOAL_GENERATION_STOP_CONFLICT,
+      status: 409,
+      expected:
+        'Ces prévisions ont changé entre-temps — recharge la liste et réessaie',
+    },
+    {
+      code: API_ERROR_CODES.SAVINGS_GOAL_GENERATION_STOP_LINE_INVALID,
+      status: 422,
+      expected:
+        'Certaines prévisions ne sont plus liées à cet objectif — recharge la liste',
+    },
+    {
+      code: API_ERROR_CODES.SAVINGS_GOAL_GENERATION_STOP_RECALCULATION_FAILED,
+      status: 500,
+      expected:
+        "La décision a bien été enregistrée, mais les soldes n'ont pas pu être actualisés — recharge la page sans réessayer",
+    },
+  ])(
+    'localizes generation-stop $status errors instead of exposing the server message',
+    async ({ code, status, expected }) => {
+      goalSig.set(makeGoal({ status: 'PAUSED' }));
+      progressSig.set(makeProgress({ status: 'PAUSED' }));
+      futureLinesSig.set([futureLine]);
+      mockStore.fetchFutureLines.mockResolvedValueOnce([futureLine]);
+      mockDialogs.openGenerationStop.mockResolvedValueOnce('freeze');
+      mockStore.applyGenerationStop.mockRejectedValueOnce(
+        new ApiError('Raw server message', code, status, null),
+      );
+      fixture.detectChanges();
+
+      query('savings-goal-generation-stop-button').nativeElement.click();
+      await fixture.whenStable();
+
+      expect(snackBarOpen).toHaveBeenCalledWith(
+        expected,
+        'Fermer',
+        expect.objectContaining({ duration: 5000 }),
+      );
+      expect(snackBarOpen).not.toHaveBeenCalledWith(
+        'Raw server message',
+        expect.anything(),
+        expect.anything(),
+      );
+    },
+  );
+
+  it('shows a localized fallback when loading future lines fails', async () => {
+    goalSig.set(makeGoal({ status: 'PAUSED' }));
+    progressSig.set(makeProgress({ status: 'PAUSED' }));
+    futureLinesSig.set([futureLine]);
+    mockStore.fetchFutureLines.mockRejectedValueOnce(
+      new ApiError('Server unavailable', undefined, 500, null),
+    );
+    fixture.detectChanges();
+
+    query('savings-goal-generation-stop-button').nativeElement.click();
+    await fixture.whenStable();
+
+    expect(snackBarOpen).toHaveBeenCalledWith(
+      'Une erreur est survenue — réessaie',
+      'Fermer',
+      expect.objectContaining({ duration: 5000 }),
+    );
+  });
+
+  it('keeps applying a generation-stop decision with the displayed line ids', async () => {
+    goalSig.set(makeGoal({ status: 'PAUSED' }));
+    progressSig.set(makeProgress({ status: 'PAUSED' }));
+    futureLinesSig.set([futureLine]);
+    mockStore.fetchFutureLines.mockResolvedValueOnce([futureLine]);
+    mockDialogs.openGenerationStop.mockResolvedValueOnce('freeze');
+    mockStore.applyGenerationStop.mockResolvedValueOnce({ affectedCount: 1 });
+    fixture.detectChanges();
+
+    query('savings-goal-generation-stop-button').nativeElement.click();
+    await fixture.whenStable();
+
+    expect(mockStore.applyGenerationStop).toHaveBeenCalledWith('goal-1', {
+      mode: 'freeze',
+      budgetLineIds: ['line-1'],
+    });
+    expect(snackBarOpen).toHaveBeenCalledWith(
+      '1 prévision(s) conservée(s) sans objectif.',
+      'Fermer',
+      { duration: 5000 },
+    );
   });
 
   it('hides the pace chip when paceStatus is null', () => {

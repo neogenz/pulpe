@@ -630,6 +630,143 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
     expect(lines.data?.[0]?.savings_goal_id).toBe(goalId);
   });
 
+  it('PUL-285 CA5: create_budget_from_template skips lines linked to PAUSED/COMPLETED goals and resumes on reopen', async () => {
+    if (!env) return;
+
+    const user = await makeUser(`sg-stop-${crypto.randomUUID()}@test.local`);
+    createdUserIds.push(user.id);
+
+    const templateId = crypto.randomUUID();
+    const pausedGoalId = crypto.randomUUID();
+    const completedGoalId = crypto.randomUUID();
+    const activeGoalId = crypto.randomUUID();
+    const pausedLineId = crypto.randomUUID();
+    const completedLineId = crypto.randomUUID();
+    const activeLineId = crypto.randomUUID();
+    const unlinkedLineId = crypto.randomUUID();
+
+    await admin.from('template').insert({
+      id: templateId,
+      user_id: user.id,
+      name: 'T',
+      is_default: false,
+    });
+    await admin.from('savings_goal').insert([
+      {
+        id: pausedGoalId,
+        user_id: user.id,
+        name: 'En pause',
+        target_amount: 'enc',
+        target_date: '2099-01-01',
+        status: 'PAUSED',
+      },
+      {
+        id: completedGoalId,
+        user_id: user.id,
+        name: 'Atteint',
+        target_amount: 'enc',
+        target_date: '2099-01-01',
+        status: 'COMPLETED',
+      },
+      {
+        id: activeGoalId,
+        user_id: user.id,
+        name: 'Actif',
+        target_amount: 'enc',
+        target_date: '2099-01-01',
+        status: 'ACTIVE',
+      },
+    ]);
+    await admin.from('template_line').insert([
+      {
+        id: pausedLineId,
+        template_id: templateId,
+        name: 'Épargne pause',
+        amount: 'enc',
+        kind: 'saving',
+        recurrence: 'fixed',
+        savings_goal_id: pausedGoalId,
+      },
+      {
+        id: completedLineId,
+        template_id: templateId,
+        name: 'Épargne atteinte',
+        amount: 'enc',
+        kind: 'saving',
+        recurrence: 'fixed',
+        savings_goal_id: completedGoalId,
+      },
+      {
+        id: activeLineId,
+        template_id: templateId,
+        name: 'Épargne active',
+        amount: 'enc',
+        kind: 'saving',
+        recurrence: 'fixed',
+        savings_goal_id: activeGoalId,
+      },
+      {
+        id: unlinkedLineId,
+        template_id: templateId,
+        name: 'Épargne libre',
+        amount: 'enc',
+        kind: 'saving',
+        recurrence: 'fixed',
+      },
+    ]);
+
+    const { data, error } = await admin.rpc('create_budget_from_template', {
+      p_user_id: user.id,
+      p_template_id: templateId,
+      p_month: 6,
+      p_year: 2099,
+      p_description: '',
+    });
+    expect(error).toBeNull();
+    expect(
+      (data as { budget_lines_created: number }).budget_lines_created,
+    ).toBe(2);
+
+    const generated = await admin
+      .from('budget_line')
+      .select('template_line_id')
+      .in('template_line_id', [
+        pausedLineId,
+        completedLineId,
+        activeLineId,
+        unlinkedLineId,
+      ]);
+    const generatedTemplateLineIds = new Set(
+      (generated.data ?? []).map((row) => row.template_line_id),
+    );
+    expect(generatedTemplateLineIds.has(pausedLineId)).toBe(false);
+    expect(generatedTemplateLineIds.has(completedLineId)).toBe(false);
+    expect(generatedTemplateLineIds.has(activeLineId)).toBe(true);
+    expect(generatedTemplateLineIds.has(unlinkedLineId)).toBe(true);
+
+    await admin
+      .from('savings_goal')
+      .update({ status: 'ACTIVE' })
+      .eq('id', pausedGoalId);
+    const { error: reopenError } = await admin.rpc(
+      'create_budget_from_template',
+      {
+        p_user_id: user.id,
+        p_template_id: templateId,
+        p_month: 7,
+        p_year: 2099,
+        p_description: '',
+      },
+    );
+    expect(reopenError).toBeNull();
+
+    const afterReopen = await admin
+      .from('budget_line')
+      .select('id')
+      .eq('template_line_id', pausedLineId);
+    expect(afterReopen.data?.length).toBe(1);
+  });
+
   it('create_template_with_lines persists an inline savings_goal_id (batch path)', async () => {
     if (!env) return;
 
