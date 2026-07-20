@@ -59,9 +59,11 @@ Run this before modifying release files. A failed check stops the workflow witho
    esac
 
    test "$(git rev-parse HEAD)" = "$(git rev-parse "origin/$RELEASE_BRANCH")"
+   git merge-base --is-ancestor origin/main HEAD
+   git merge-base --is-ancestor origin/preview HEAD
    ```
 
-   A feature branch must reach `preview` through its normal PR first. When starting from `main`, also require `git merge-base --is-ancestor origin/preview HEAD`; a `main` that is behind or diverged from `preview` is not a valid release base.
+   A feature branch must reach `preview` through its normal PR first. Both release branches must already be ancestors of the synchronized `HEAD`: starting from `preview` therefore refuses a hotfix present only on `main`, while starting from `main` refuses a `preview` change that has not been promoted. Resolve either divergence through the normal branch flow before releasing.
 
 2. Resolve the branch ruleset by name, never by a stored numeric id. Require exactly one `main-protection` result and `current_user_can_bypass == "exempt"`:
 

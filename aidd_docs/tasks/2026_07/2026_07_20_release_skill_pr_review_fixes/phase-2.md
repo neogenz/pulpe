@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Bloquer une divergence `preview` / `main` dès le preflight
