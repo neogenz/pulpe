@@ -1013,7 +1013,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       ),
     );
 
-    if (Object.keys(updateData).length) {
+    if (Object.keys(updateData).length || patch.tagIds !== undefined) {
       updateData.updated_at = new Date().toISOString();
     }
     return updateData;

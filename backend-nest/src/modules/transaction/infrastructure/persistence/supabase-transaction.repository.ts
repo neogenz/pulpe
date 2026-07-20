@@ -1029,7 +1029,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       ),
     );
 
-    if (Object.keys(updateData).length) {
+    if (Object.keys(updateData).length || patch.tagIds !== undefined) {
       updateData.updated_at = new Date().toISOString();
     }
     return updateData;

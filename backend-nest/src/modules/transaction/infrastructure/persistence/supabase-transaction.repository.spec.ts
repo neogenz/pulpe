@@ -378,7 +378,9 @@ describe('SupabaseTransactionRepository', () => {
 
       expect(rpc).toHaveBeenCalledWith('update_transaction_with_tags', {
         p_transaction_id: 'txn-1',
-        p_patch: {},
+        p_patch: {
+          updated_at: expect.any(String),
+        },
         p_tag_ids: ['tag-1'],
       });
       expect(from).not.toHaveBeenCalled();

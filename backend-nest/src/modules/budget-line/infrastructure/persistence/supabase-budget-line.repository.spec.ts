@@ -655,7 +655,9 @@ describe('SupabaseBudgetLineRepository', () => {
 
       expect(rpc).toHaveBeenCalledWith('update_budget_line_with_tags', {
         p_budget_line_id: 'line-1',
-        p_patch: {},
+        p_patch: {
+          updated_at: expect.any(String),
+        },
         p_tag_ids: ['tag-1'],
       });
       expect(from).not.toHaveBeenCalled();
