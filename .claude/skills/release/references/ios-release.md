@@ -9,14 +9,14 @@ The app is **live on the App Store**. Read the current `MARKETING_VERSION` from 
 
 The releaser decides build-only vs. marketing-bump per release. Propose `build` when the iOS changes are not user-facing, and include that decision in the release proposal for approval. When unsure for a fix-only iOS release, a `build` bump is the safe default.
 
-Resolve this decision before changelog data is written. A release with a marketing bump records that exact value as `iosVersion` in `landing/data/releases.json`. If at least one item qualifies for the iOS dialog, its backend projection records the same value; if none qualifies, no backend entry is created. A build-only release records no `iosVersion` and cannot trigger the one-shot what's-new dialog because the bundle marketing version did not change.
+Resolve this decision before changelog data is written. A release with a marketing bump records that exact value as `iosVersion` in `landing/data/releases.json`. It must then choose exactly one persistent backend mode: a curated entry in `RELEASES` when at least one item qualifies for the iOS dialog, or a motivated entry in `SILENT_IOS_RELEASES` when none qualifies. A build-only release records no `iosVersion` and cannot trigger the one-shot what's-new dialog because the bundle marketing version did not change.
 
-| Mode         | iOS version           | Public changelog           | Backend projection         |
-| ------------ | --------------------- | -------------------------- | -------------------------- |
-| `projection` | Marketing bump        | Entry with `iosVersion`    | 1–4 curated items          |
-| `silent`     | Marketing bump        | Entry with `iosVersion`    | None; no relevant iOS note |
-| `build`      | Build number only     | Entry without `iosVersion` | None                       |
-| `skip`       | Approved iOS decision | None                       | None; explicitly skipped   |
+| Mode         | iOS version           | Public changelog           | Persistent backend record                 |
+| ------------ | --------------------- | -------------------------- | ----------------------------------------- |
+| `projection` | Marketing bump        | Entry with `iosVersion`    | `RELEASES`: 1–4 curated items             |
+| `silent`     | Marketing bump        | Entry with `iosVersion`    | `SILENT_IOS_RELEASES`: one concrete reason |
+| `build`      | Build number only     | Entry without `iosVersion` | None                                      |
+| `skip`       | Approved iOS decision | None                       | None                                      |
 
 ## Curate iOS What's New
 
@@ -36,7 +36,7 @@ Exclude:
 - Cosmetic micro-fixes and vague rollups such as "Stabilité iOS".
 - Anything included only to avoid an empty dialog.
 
-Keep at most 4 items. Write a concrete benefit-led title and one short sentence; omit platform suffixes such as `(iOS)` and technical vocabulary. If no item qualifies, leave `backend-nest/src/modules/whats-new/domain/releases-data.ts` unchanged. A new iOS version without release data is valid and must show nothing.
+Keep at most 4 items. Write a concrete benefit-led title and one short sentence; omit platform suffixes such as `(iOS)` and technical vocabulary. If no item qualifies, add the product version and a concrete curation reason to `SILENT_IOS_RELEASES` instead of adding a projection. The registry is the explicit release record; it does not make the app show a dialog.
 
 ## When to bump iOS
 
@@ -80,7 +80,7 @@ If the App Store release is still pending when Step 9 finishes, leave both value
 Before updating Railway, apply the branch that matches the curated result:
 
 - If an iOS projection exists, verify the same `iosVersion` is present in `landing/data/releases.json` and `backend-nest/src/modules/whats-new/domain/releases-data.ts`. A mismatch means the release is not ready.
-- If no item qualified, verify `landing/data/releases.json` carries the new `iosVersion` and no backend projection was added for it. This intentional absence does not block the Railway update or the release.
+- If no item qualified, verify `landing/data/releases.json` carries the new `iosVersion`, `SILENT_IOS_RELEASES` contains exactly one motivated entry for the product version, and no backend projection overlaps it. This intentional silence does not block the Railway update or the release.
 
 Use the Railway integration available to the current agent — one operation per environment with these semantics:
 

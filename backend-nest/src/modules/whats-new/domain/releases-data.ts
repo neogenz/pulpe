@@ -19,6 +19,11 @@ export interface WhatsNewReleaseEntry {
   };
 }
 
+export interface SilentIosReleaseEntry {
+  readonly version: string;
+  readonly reason: string;
+}
+
 /**
  * Checked-in iOS projection of `landing/data/releases.json` (maintained by the
  * `/release` skill). The deployed backend artifact does not contain
@@ -278,3 +283,10 @@ export const RELEASES: WhatsNewReleaseEntry[] = [
     },
   },
 ];
+
+/**
+ * Product releases with an iOS marketing version that intentionally have no
+ * dialog. Every entry must map to `landing/data/releases.json` and explain why
+ * no approved note met the iOS curation threshold.
+ */
+export const SILENT_IOS_RELEASES: readonly SilentIosReleaseEntry[] = [];

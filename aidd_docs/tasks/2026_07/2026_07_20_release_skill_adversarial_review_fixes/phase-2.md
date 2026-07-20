@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Enregistrer explicitement les releases iOS silencieuses

@@ -299,18 +299,21 @@ The iOS app's "what's new" dialog (PUL-186) is served by `backend-nest/src/modul
 1. Read the curation rules in [references/ios-release.md](references/ios-release.md), then read `backend-nest/src/modules/whats-new/domain/releases-data.ts`.
 2. Filter the approved "Nouveautés" and "Corrections" using the internal scope from Step 5. Keep only items scoped to `ios` that meet the user-value threshold. Never copy web-only items or the complete mixed-platform release blindly.
 3. Keep at most 4 items total. Prioritize new capabilities, then fixes to frequent/core flows, then visible UX improvements. Ask if the cutoff is ambiguous.
-4. If ZERO items survive, do not modify `releases-data.ts`. State: "Pas de What's New iOS pour cette version." This is expected and safe even when `IOS_MARKETING_VERSION` changed.
+4. If ZERO items survive, append one unique `{ version, reason }` entry to `SILENT_IOS_RELEASES`. The reason must concretely identify why the approved notes did not meet the iOS dialog threshold; reject an empty reason. State: "Pas de What's New iOS pour cette version."
 5. Otherwise prepend an iOS projection with the same `version`/`iosVersion`/`date`/`platforms` metadata as Step 5b, omit `githubUrl`, set `changes.features` and `changes.fixes` to the curated iOS items, and set `changes.technical` to `[]`.
-6. Write back using the available file-editing tool, matching the existing TypeScript formatting.
+6. Before writing either mode, require the current product version to be absent from both `RELEASES` and `SILENT_IOS_RELEASES`. A projection and a silence may never overlap.
+7. Write back using the available file-editing tool, matching the existing TypeScript formatting.
 
-Never invent a generic stability or security item to fill the dialog. A marketing release with no meaningful user-facing note must produce no dialog; the backend returns an empty feed and the app records the version silently.
+Never invent a generic stability or security item to fill the dialog. A marketing release with no meaningful user-facing note must produce no dialog; `SILENT_IOS_RELEASES` records that decision without adding anything to the feed.
 
 Record exactly one iOS release mode for Step 7:
 
 - `skip` when `SKIP_WHATS_NEW=true`
 - `build` when the approved decision changes only the build number
 - `projection` when a curated backend entry was added
-- `silent` when the marketing version changed without a backend entry
+- `silent` when the marketing version changed with one motivated `SILENT_IOS_RELEASES` entry and no projection
+
+For `projection`, `build`, and `skip`, the current product version must be absent from `SILENT_IOS_RELEASES`.
 
 ### Step 5c: Update webapp "What's New" toast
 
@@ -434,7 +437,7 @@ git add \
 # Only if Step 5b was NOT skipped (i.e. SKIP_WHATS_NEW=false):
 git add landing/data/releases.json
 
-# Only if Step 5b-bis produced an iOS projection:
+# Only if Step 5b-bis produced an iOS projection or explicit silence:
 git add backend-nest/src/modules/whats-new/domain/releases-data.ts
 
 # Step 5c always records either the toast or the intentional silent release:

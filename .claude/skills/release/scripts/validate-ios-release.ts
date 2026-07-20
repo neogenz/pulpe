@@ -6,6 +6,7 @@ import { pathToFileURL } from "node:url";
 
 type Mode = "projection" | "silent" | "build" | "skip";
 type ChangeItem = { title: string; description: string };
+type SilentRelease = { version: string; reason: string };
 type Release = {
   version: string;
   iosVersion?: string;
@@ -94,12 +95,51 @@ async function main(): Promise<void> {
   const backendMatches = (releasesModule.RELEASES as Release[]).filter(
     (release) => release.version === productVersion,
   );
+  const silentReleases = releasesModule.SILENT_IOS_RELEASES as SilentRelease[];
+  const silentMatches = silentReleases.filter(
+    (release) => release.version === productVersion,
+  );
+  const seenSilentVersions = new Set<string>();
+
+  for (const silentRelease of silentReleases) {
+    invariant(
+      semverPattern.test(silentRelease.version),
+      `Invalid silent release SemVer: ${silentRelease.version}`,
+    );
+    invariant(
+      silentRelease.reason.trim().length > 0,
+      `Silent release ${silentRelease.version} has no reason`,
+    );
+    invariant(
+      !seenSilentVersions.has(silentRelease.version),
+      `Duplicate silent release: ${silentRelease.version}`,
+    );
+    seenSilentVersions.add(silentRelease.version);
+    invariant(
+      !(releasesModule.RELEASES as Release[]).some(
+        (release) => release.version === silentRelease.version,
+      ),
+      `Release ${silentRelease.version} is both projected and silent`,
+    );
+    invariant(
+      landing.filter(
+        (release) =>
+          release.version === silentRelease.version &&
+          release.iosVersion !== undefined,
+      ).length === 1,
+      `Silent release ${silentRelease.version} has no unique iOS landing entry`,
+    );
+  }
 
   if (mode === "skip") {
     invariant(landingMatches.length === 0, "Skipped release leaked to landing");
     invariant(
       backendMatches.length === 0,
       "Skipped release leaked to iOS feed",
+    );
+    invariant(
+      silentMatches.length === 0,
+      "Skipped release leaked to iOS silent registry",
     );
     console.log(`Validated iOS release ${productVersion}: skip`);
     return;
@@ -123,6 +163,10 @@ async function main(): Promise<void> {
       backendMatches.length === 0,
       "Build-only release leaked to iOS feed",
     );
+    invariant(
+      silentMatches.length === 0,
+      "Build-only release leaked to iOS silent registry",
+    );
     console.log(`Validated iOS release ${productVersion}: build`);
     return;
   }
@@ -141,11 +185,19 @@ async function main(): Promise<void> {
       backendMatches.length === 0,
       "Silent release must have no iOS projection",
     );
+    invariant(
+      silentMatches.length === 1,
+      "Silent release must have one motivated registry entry",
+    );
     console.log(`Validated iOS release ${productVersion}: silent`);
     return;
   }
 
   invariant(backendMatches.length === 1, "Expected one iOS projection");
+  invariant(
+    silentMatches.length === 0,
+    "Projected release leaked to iOS silent registry",
+  );
   const projection = backendMatches[0];
   invariant(
     projection.iosVersion === iosVersion,

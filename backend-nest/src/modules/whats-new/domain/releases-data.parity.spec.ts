@@ -2,7 +2,11 @@ import { describe, it } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
-import { RELEASES, type WhatsNewReleaseEntry } from './releases-data';
+import {
+  RELEASES,
+  SILENT_IOS_RELEASES,
+  type WhatsNewReleaseEntry,
+} from './releases-data';
 
 type ChangeItem = { title: string; description: string };
 type LandingRelease = {
@@ -17,7 +21,9 @@ type LandingRelease = {
   };
 };
 
-type ProjectedLandingRelease = LandingRelease & { iosVersion: string };
+type IosMarketingRelease = LandingRelease & { iosVersion: string };
+
+const SEMVER_PATTERN = /^\d+\.\d+\.\d+$/;
 
 const landingReleases = JSON.parse(
   readFileSync(
@@ -27,17 +33,10 @@ const landingReleases = JSON.parse(
   ),
 ) as LandingRelease[];
 
-function isIosUserFacing(release: LandingRelease): boolean {
-  return (
-    release.platforms.includes('ios') &&
-    (release.changes.features.length > 0 || release.changes.fixes.length > 0)
-  );
-}
-
-function isProjectedIosRelease(
+function hasIosMarketingVersion(
   release: LandingRelease,
-): release is ProjectedLandingRelease {
-  return release.iosVersion !== undefined && isIosUserFacing(release);
+): release is IosMarketingRelease {
+  return release.iosVersion !== undefined;
 }
 
 function fail(version: string, detail: string): never {
@@ -51,7 +50,7 @@ const itemKey = (item: ChangeItem): string =>
 
 function assertMetadataParity(
   projection: WhatsNewReleaseEntry,
-  landing: ProjectedLandingRelease,
+  landing: IosMarketingRelease,
 ): void {
   if (projection.iosVersion !== landing.iosVersion) {
     fail(
@@ -86,7 +85,7 @@ function assertMetadataParity(
 
 function assertCuratedSubset(
   projection: WhatsNewReleaseEntry,
-  landing: ProjectedLandingRelease,
+  landing: IosMarketingRelease,
 ): void {
   const approved = new Set(
     [...landing.changes.features, ...landing.changes.fixes].map(itemKey),
@@ -107,25 +106,26 @@ function assertCuratedSubset(
 }
 
 describe('embedded iOS release data parity', () => {
-  const projectedLandingReleases = landingReleases.filter(
-    isProjectedIosRelease,
-  );
+  const iosMarketingReleases = landingReleases.filter(hasIosMarketingVersion);
 
-  it('projects a curated subset of every user-facing iOS landing release', () => {
-    for (const landingRelease of projectedLandingReleases) {
+  it('records exactly one projection or explicit silence per iOS marketing release', () => {
+    for (const landingRelease of iosMarketingReleases) {
       const backendMatches = RELEASES.filter(
         (release) => release.version === landingRelease.version,
       );
+      const silentMatches = SILENT_IOS_RELEASES.filter(
+        (release) => release.version === landingRelease.version,
+      );
+      const modeCount = backendMatches.length + silentMatches.length;
 
-      if (backendMatches.length > 1) {
+      if (modeCount !== 1) {
         fail(
           landingRelease.version,
-          `expected at most one backend entry, found ${backendMatches.length}`,
+          `expected exactly one projection or silent entry, found ${backendMatches.length} projection(s) and ${silentMatches.length} silence(s)`,
         );
       }
 
       const projection = backendMatches[0];
-      // Silent mode: marketing bump with no iOS-worthy note (references/ios-release.md).
       if (!projection) {
         continue;
       }
@@ -135,9 +135,42 @@ describe('embedded iOS release data parity', () => {
     }
   });
 
-  it('contains no backend entry orphaned from the landing projection', () => {
+  it('keeps every explicit silence unique, valid, motivated, and mapped', () => {
+    const seenVersions = new Set<string>();
+
+    for (const silentRelease of SILENT_IOS_RELEASES) {
+      if (!SEMVER_PATTERN.test(silentRelease.version)) {
+        fail(silentRelease.version, 'silent release version is not SemVer');
+      }
+      if (silentRelease.reason.trim().length === 0) {
+        fail(silentRelease.version, 'silent release reason is empty');
+      }
+      if (seenVersions.has(silentRelease.version)) {
+        fail(silentRelease.version, 'duplicate silent release');
+      }
+      seenVersions.add(silentRelease.version);
+
+      if (
+        RELEASES.some((release) => release.version === silentRelease.version)
+      ) {
+        fail(silentRelease.version, 'release is both projected and silent');
+      }
+
+      const landingMatches = iosMarketingReleases.filter(
+        (release) => release.version === silentRelease.version,
+      );
+      if (landingMatches.length !== 1) {
+        fail(
+          silentRelease.version,
+          `expected one iOS marketing landing entry for silence, found ${landingMatches.length}`,
+        );
+      }
+    }
+  });
+
+  it('contains no backend entry orphaned from an iOS marketing release', () => {
     for (const backendRelease of RELEASES) {
-      const landingMatches = projectedLandingReleases.filter(
+      const landingMatches = iosMarketingReleases.filter(
         (release) => release.version === backendRelease.version,
       );
 
