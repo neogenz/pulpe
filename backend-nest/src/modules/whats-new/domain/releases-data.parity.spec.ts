@@ -53,17 +53,34 @@ function assertMetadataParity(
   projection: WhatsNewReleaseEntry,
   landing: ProjectedLandingRelease,
 ): void {
-  const matches =
-    projection.iosVersion === landing.iosVersion &&
-    projection.date === landing.date &&
-    isDeepStrictEqual(
-      [...projection.platforms].sort(),
-      [...landing.platforms].sort(),
-    ) &&
-    projection.changes.technical.length === 0;
+  if (projection.iosVersion !== landing.iosVersion) {
+    fail(
+      landing.version,
+      `iosVersion mismatch: projection="${projection.iosVersion}", landing="${landing.iosVersion}"`,
+    );
+  }
 
-  if (!matches) {
-    fail(landing.version, 'projection metadata differs');
+  if (projection.date !== landing.date) {
+    fail(
+      landing.version,
+      `date mismatch: projection="${projection.date}", landing="${landing.date}"`,
+    );
+  }
+
+  const projectionPlatforms = [...projection.platforms].sort();
+  const landingPlatforms = [...landing.platforms].sort();
+  if (!isDeepStrictEqual(projectionPlatforms, landingPlatforms)) {
+    fail(
+      landing.version,
+      `platforms mismatch: projection=${JSON.stringify(projectionPlatforms)}, landing=${JSON.stringify(landingPlatforms)}`,
+    );
+  }
+
+  if (projection.changes.technical.length !== 0) {
+    fail(
+      landing.version,
+      `technical notes mismatch: projection contains ${projection.changes.technical.length}; expected 0`,
+    );
   }
 }
 
