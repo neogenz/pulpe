@@ -76,7 +76,7 @@ Règles :
 git log → analyser commits → proposer version → changeset + bump root (+iOS si impacté) → tag vX.Y.Z → GitHub Release
 ```
 
-Automatisé via le skill `/update-changelog`.
+Automatisé via le skill `/release`.
 
 ## Force-update gate (rollout)
 

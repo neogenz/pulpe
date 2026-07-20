@@ -21,7 +21,7 @@ export interface WhatsNewReleaseEntry {
 
 /**
  * Checked-in iOS projection of `landing/data/releases.json` (maintained by the
- * `/update-changelog` skill). The deployed backend artifact does not contain
+ * `/release` skill). The deployed backend artifact does not contain
  * the `landing/` package, so the data lives here as a TypeScript literal rather
  * than being read from disk at runtime. Keep release metadata in sync and this
  * list ordered newest-first, but include only releases mapped to an iOS

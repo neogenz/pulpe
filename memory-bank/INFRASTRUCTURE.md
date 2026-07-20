@@ -167,7 +167,7 @@ pnpm test                  # All tests with orchestration
 **Release Workflow**:
 
 ```bash
-pnpm update-changelog     # Analyze git changes, bump all packages, update changelogs
+/release                  # Analyze git changes, bump all packages, update changelogs
 ```
 
 ## CI/CD Pipeline

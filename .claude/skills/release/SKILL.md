@@ -1,9 +1,9 @@
 ---
-name: update-changelog
-description: Unified release workflow that analyzes git changes, bumps the product version, updates the public changelog, and curates platform-specific web and iOS What's New content. Use when the user says "update changelog", "release", "bump versions", "préparer une release", or asks to generate release notes.
+name: release
+description: Unified release workflow that analyzes git changes, bumps the product version, updates the public changelog, and curates platform-specific web and iOS What's New content. Use when the user says "release", "prepare a release", "bump versions", "préparer une release", or asks to generate release notes.
 ---
 
-# Update Changelog
+# Release
 
 Analyze code changes to produce a unified product release with clear, user-focused changelog entries in French.
 
@@ -334,16 +334,16 @@ When `ios/**` changed, validate the exact release outcome from the repository ro
 
 ```bash
 # New marketing version with curated iOS notes
-bun .claude/skills/update-changelog/scripts/validate-ios-release.ts X.Y.Z A.B.C projection
+bun .claude/skills/release/scripts/validate-ios-release.ts X.Y.Z A.B.C projection
 
 # New marketing version without a relevant dialog
-bun .claude/skills/update-changelog/scripts/validate-ios-release.ts X.Y.Z A.B.C silent
+bun .claude/skills/release/scripts/validate-ios-release.ts X.Y.Z A.B.C silent
 
 # Build-only release, public changelog kept
-bun .claude/skills/update-changelog/scripts/validate-ios-release.ts X.Y.Z A.B.C build
+bun .claude/skills/release/scripts/validate-ios-release.ts X.Y.Z A.B.C build
 
 # Technical-only release, all public What's New surfaces skipped
-bun .claude/skills/update-changelog/scripts/validate-ios-release.ts X.Y.Z A.B.C skip
+bun .claude/skills/release/scripts/validate-ios-release.ts X.Y.Z A.B.C skip
 ```
 
 Use exactly one mode from the decision table in [references/ios-release.md](references/ios-release.md). Stop on any validation error; do not convert it into a warning.

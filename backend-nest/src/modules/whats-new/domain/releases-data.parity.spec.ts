@@ -42,7 +42,7 @@ function isProjectedIosRelease(
 
 function fail(version: string, detail: string): never {
   throw new Error(
-    `Release ${version} is out of sync between landing and the iOS feed: ${detail}. Run /update-changelog Step 5b-bis.`,
+    `Release ${version} is out of sync between landing and the iOS feed: ${detail}. Run /release Step 5b-bis.`,
   );
 }
 
