@@ -9,11 +9,12 @@ import {
 } from './releases-data';
 
 type ChangeItem = { title: string; description: string };
+type LandingPlatform = 'android' | 'ios' | 'web';
 type LandingRelease = {
   version: string;
   iosVersion?: string;
   date: string;
-  platforms: ('ios' | 'web')[];
+  platforms: LandingPlatform[];
   changes: {
     features: ChangeItem[];
     fixes: ChangeItem[];
@@ -70,10 +71,10 @@ function parseLandingRelease(value: unknown, index: number): LandingRelease {
   const rawChanges = expectRecord(release['changes'], `${path}.changes`);
   const platforms = expectArray(release['platforms'], `${path}.platforms`).map(
     (platform, platformIndex) => {
-      if (platform !== 'ios' && platform !== 'web') {
+      if (platform !== 'android' && platform !== 'ios' && platform !== 'web') {
         invalidLandingData(
           `${path}.platforms[${platformIndex}]`,
-          '"ios" or "web"',
+          '"android", "ios", or "web"',
         );
       }
       return platform;

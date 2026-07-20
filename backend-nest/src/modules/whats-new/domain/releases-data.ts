@@ -12,7 +12,7 @@ export interface WhatsNewReleaseEntry {
    */
   iosVersion: string;
   date: string;
-  platforms: ('ios' | 'web')[];
+  platforms: ('android' | 'ios' | 'web')[];
   changes: {
     features: WhatsNewReleaseChangeItem[];
     fixes: WhatsNewReleaseChangeItem[];
