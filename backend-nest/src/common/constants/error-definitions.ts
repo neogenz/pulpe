@@ -408,6 +408,48 @@ export const ERROR_DEFINITIONS = {
     httpStatus: HttpStatus.CONFLICT,
   },
 
+  // Tag Errors (PUL-18)
+  TAG_NOT_FOUND: {
+    code: API_ERROR_CODES.TAG_NOT_FOUND,
+    message: (details?: Record<string, unknown>) =>
+      details?.id ? `Tag with ID '${details.id}' not found` : 'Tag not found',
+    httpStatus: HttpStatus.NOT_FOUND,
+  },
+  TAG_CREATE_FAILED: {
+    code: API_ERROR_CODES.TAG_CREATE_FAILED,
+    message: () => 'Failed to create tag',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  TAG_UPDATE_FAILED: {
+    code: API_ERROR_CODES.TAG_UPDATE_FAILED,
+    message: (details?: Record<string, unknown>) =>
+      details?.id
+        ? `Failed to update tag with ID '${details.id}'`
+        : 'Failed to update tag',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  TAG_DELETE_FAILED: {
+    code: API_ERROR_CODES.TAG_DELETE_FAILED,
+    message: (details?: Record<string, unknown>) =>
+      details?.id
+        ? `Failed to delete tag with ID '${details.id}'`
+        : 'Failed to delete tag',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  TAG_FETCH_FAILED: {
+    code: API_ERROR_CODES.TAG_FETCH_FAILED,
+    message: () => 'Failed to fetch tags',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  TAG_ALREADY_EXISTS: {
+    code: API_ERROR_CODES.TAG_ALREADY_EXISTS,
+    message: (details?: Record<string, unknown>) =>
+      details?.name
+        ? `A tag named '${details.name}' already exists`
+        : 'A tag with this name already exists',
+    httpStatus: HttpStatus.CONFLICT,
+  },
+
   // Budget Line Errors
   BUDGET_LINE_NOT_FOUND: {
     code: API_ERROR_CODES.BUDGET_LINE_NOT_FOUND,

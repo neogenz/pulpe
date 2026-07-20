@@ -307,14 +307,14 @@ export class GenerateDemoDataUseCase {
     day: number,
     name: string,
     amount: number,
-    category: string,
+    tagName: string,
   ): DemoTransactionSeed {
     return {
       budgetId: budget.id,
       name,
       amount,
       kind: 'expense',
-      category,
+      tagName,
       transactionDate: new Date(
         budget.year,
         budget.month - 1,

@@ -12,5 +12,4 @@ export const TransactionValidators = {
     Validators.max(999999.99),
   ],
   kind: Validators.required,
-  category: [Validators.maxLength(50)],
 };

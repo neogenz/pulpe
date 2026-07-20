@@ -2,6 +2,7 @@ import { registerLocaleData } from '@angular/common';
 import localeDE from '@angular/common/locales/de-CH';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
+import { SIGNAL } from '@angular/core/primitives/signals';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import {
@@ -11,9 +12,17 @@ import {
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
-import { createMockTransaction } from '@app/testing/mock-factories';
+import {
+  createMockBudgetLine,
+  createMockTransaction,
+} from '@app/testing/mock-factories';
+import {
+  createMockTagStore,
+  type MockTagStore,
+} from '@app/testing/tag-store.mock';
 import { createMockLogger } from '@app/testing/mock-posthog';
 import { StorageService } from '@core/storage';
+import { TagStore } from '@core/tag';
 import { Logger } from '@core/logging/logger';
 import { UserSettingsStore } from '@core/user-settings';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
@@ -26,6 +35,7 @@ import {
   type TransactionUpdate,
 } from 'pulpe-shared';
 import { BudgetItemsContainer } from './budget-items-container';
+import { BudgetTagFilter } from './budget-table/budget-tag-filter';
 import { BudgetDetailsDialogService } from '../budget-details-dialog.service';
 import { BudgetDetailsStore } from '../store/budget-details-store';
 
@@ -37,6 +47,11 @@ const mockStorageService = {
   get: () => null,
   set: () => undefined,
   remove: () => undefined,
+};
+
+const privacyTestTag = {
+  id: '44444444-4444-4444-8444-444444444444',
+  name: 'Médicaments Lisa',
 };
 
 interface MockStore {
@@ -112,6 +127,7 @@ function createMockStore(): MockStore {
 }
 
 interface MockDialogService {
+  openTagHistory: ReturnType<typeof vi.fn>;
   openAddBudgetLineDialog: ReturnType<typeof vi.fn>;
   openEditBudgetLineDialog: ReturnType<typeof vi.fn>;
   openAllocatedTransactionsDialog: ReturnType<typeof vi.fn>;
@@ -126,6 +142,7 @@ interface MockDialogService {
 
 function createMockDialogService(): MockDialogService {
   return {
+    openTagHistory: vi.fn(),
     openAddBudgetLineDialog: vi.fn().mockResolvedValue(undefined),
     openEditBudgetLineDialog: vi.fn().mockResolvedValue(undefined),
     openAllocatedTransactionsDialog: vi.fn().mockResolvedValue(undefined),
@@ -144,6 +161,7 @@ function setupComponent(
   mockStore: MockStore,
   mockDialogService: MockDialogService,
   mockSnackBar: { open: ReturnType<typeof vi.fn> },
+  mockTagStore: MockTagStore = createMockTagStore(),
 ): ComponentFixture<BudgetItemsContainer> {
   TestBed.configureTestingModule({
     imports: [BudgetItemsContainer, NoopAnimationsModule],
@@ -162,6 +180,7 @@ function setupComponent(
         },
       },
       { provide: Logger, useValue: { warn: vi.fn(), error: vi.fn() } },
+      { provide: TagStore, useValue: mockTagStore },
     ],
   });
 
@@ -241,6 +260,58 @@ describe('BudgetItemsContainer — contextual empty states', () => {
   });
 });
 
+describe('BudgetItemsContainer — tag filter', () => {
+  it('masks user-provided tag names from session replay', () => {
+    TestBed.configureTestingModule({
+      imports: [BudgetTagFilter],
+      providers: [
+        provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
+      ],
+    });
+    const fixture = TestBed.createComponent(BudgetTagFilter);
+    const inputNode = fixture.componentInstance.tags[SIGNAL];
+    inputNode.applyValueToInputSignal(inputNode, [privacyTestTag]);
+
+    fixture.detectChanges();
+
+    const tagName: HTMLElement | null = fixture.nativeElement.querySelector(
+      `[data-testid="tag-filter-${privacyTestTag.id}"] .ph-no-capture`,
+    );
+    expect(tagName?.textContent).toContain(privacyTestTag.name);
+  });
+
+  it('keeps an envelope when its allocated transaction carries the selected tag', () => {
+    const customTagId = '44444444-4444-4444-8444-444444444444';
+    const budgetLine = createMockBudgetLine({
+      id: 'rent-line',
+      tagIds: [],
+    });
+    const allocatedTransaction = createMockTransaction({
+      id: 'rent-payment',
+      budgetLineId: budgetLine.id,
+      tagIds: [customTagId],
+    });
+    const mockStore = createMockStore();
+    mockStore.budgetDetails.set({
+      id: 'budget-1',
+      budgetLines: [budgetLine],
+      transactions: [allocatedTransaction],
+    });
+    mockStore.filteredBudgetLines.set([budgetLine]);
+    mockStore.filteredTransactions.set([allocatedTransaction]);
+    const fixture = setupComponent(mockStore, createMockDialogService(), {
+      open: vi.fn(),
+    });
+
+    fixture.componentInstance.selectedTagIds.set([customTagId]);
+
+    expect(
+      fixture.componentInstance.budgetLineItems().map((item) => item.data.id),
+    ).toEqual([budgetLine.id]);
+  });
+});
+
 describe('BudgetItemsContainer — orchestration', () => {
   let mockStore: MockStore;
   let mockDialogService: MockDialogService;
@@ -315,6 +386,122 @@ describe('BudgetItemsContainer — orchestration', () => {
   });
 });
 
+describe('BudgetItemsContainer — tag history', () => {
+  const userId = '11111111-1111-4111-8111-111111111111';
+  const tags = [
+    {
+      id: '22222222-2222-4222-8222-222222222222',
+      userId,
+      name: 'Courses',
+      createdAt: '2026-07-01T00:00:00.000Z',
+      updatedAt: '2026-07-01T00:00:00.000Z',
+    },
+    {
+      id: '33333333-3333-4333-8333-333333333333',
+      userId,
+      name: 'Maison',
+      createdAt: '2026-07-01T00:00:00.000Z',
+      updatedAt: '2026-07-01T00:00:00.000Z',
+    },
+  ];
+
+  it('keeps the action available without tagged items and passes the budget anchor', () => {
+    const mockStore = createMockStore();
+    const mockDialogService = createMockDialogService();
+    mockStore.budgetDetails.set({
+      id: 'budget-1',
+      month: 7,
+      year: 2026,
+      budgetLines: [],
+      transactions: [],
+    });
+    mockStore.searchText.set('not-found');
+    const fixture = setupComponent(
+      mockStore,
+      mockDialogService,
+      { open: vi.fn() },
+      createMockTagStore(tags),
+    );
+    fixture.detectChanges();
+
+    const action: HTMLButtonElement | null =
+      fixture.nativeElement.querySelector('[data-testid="tag-history-open"]');
+    expect(action).not.toBeNull();
+    action?.click();
+
+    expect(mockDialogService.openTagHistory).toHaveBeenCalledWith({
+      tags,
+      selectedTagId: undefined,
+      endMonth: 7,
+      endYear: 2026,
+      currency: 'CHF',
+    });
+  });
+
+  it('preserves the single active tag filter as the dialog selection', () => {
+    const mockStore = createMockStore();
+    const mockDialogService = createMockDialogService();
+    mockStore.budgetDetails.set({
+      id: 'budget-1',
+      month: 6,
+      year: 2026,
+      budgetLines: [],
+      transactions: [],
+    });
+    mockStore.searchText.set('not-found');
+    const fixture = setupComponent(
+      mockStore,
+      mockDialogService,
+      { open: vi.fn() },
+      createMockTagStore(tags),
+    );
+    fixture.componentInstance.selectedTagIds.set([tags[1].id]);
+    fixture.detectChanges();
+
+    fixture.componentInstance['openTagHistoryDialog']();
+
+    expect(mockDialogService.openTagHistory).toHaveBeenCalledWith(
+      expect.objectContaining({ selectedTagId: tags[1].id }),
+    );
+  });
+
+  it('preserves tag filters when reloading the same budget and clears them when navigating to another budget', () => {
+    const mockStore = createMockStore();
+    mockStore.budgetDetails.set({
+      id: 'budget-1',
+      budgetLines: [],
+      transactions: [],
+    });
+    mockStore.searchText.set('not-found');
+    const fixture = setupComponent(
+      mockStore,
+      createMockDialogService(),
+      { open: vi.fn() },
+      createMockTagStore(tags),
+    );
+    TestBed.flushEffects();
+    fixture.componentInstance.selectedTagIds.set([tags[0].id]);
+
+    mockStore.budgetDetails.set(null);
+    TestBed.flushEffects();
+    mockStore.budgetDetails.set({
+      id: 'budget-1',
+      budgetLines: [],
+      transactions: [],
+    });
+    TestBed.flushEffects();
+    expect(fixture.componentInstance.selectedTagIds()).toEqual([tags[0].id]);
+
+    mockStore.budgetDetails.set({
+      id: 'budget-2',
+      budgetLines: [],
+      transactions: [],
+    });
+    TestBed.flushEffects();
+    expect(fixture.componentInstance.selectedTagIds()).toEqual([]);
+  });
+});
+
 describe('BudgetItemsContainer — PATCH transaction body contract', () => {
   const BUDGET_ID = '11111111-1111-4111-8111-111111111111';
   const TRANSACTION_ID = '22222222-2222-4222-8222-222222222222';
@@ -365,6 +552,7 @@ describe('BudgetItemsContainer — PATCH transaction body contract', () => {
           provide: ApplicationConfiguration,
           useValue: { backendApiUrl: () => 'http://localhost:3000/api/v1' },
         },
+        { provide: TagStore, useValue: createMockTagStore() },
       ],
     });
 
@@ -405,7 +593,7 @@ describe('BudgetItemsContainer — PATCH transaction body contract', () => {
       amount: 42,
       kind: 'expense',
       transactionDate: '2026-05-06T00:00:00.000Z',
-      category: null,
+      tagIds: [],
     };
     mockDialogService.openEditAllocatedTransactionDialog.mockResolvedValue({
       id: transaction.id,

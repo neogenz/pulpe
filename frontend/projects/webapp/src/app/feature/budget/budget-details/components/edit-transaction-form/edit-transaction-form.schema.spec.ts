@@ -15,7 +15,7 @@ const createFormValue: TransactionCreateFormValue = {
   amount: 45,
   kind: 'expense',
   transactionDate: ISO_DATE,
-  category: null,
+  tagIds: [],
   isChecked: false,
   conversion: null,
   budgetId: BUDGET_ID,
@@ -27,7 +27,7 @@ const updateFormValue: TransactionUpdateFormValue = {
   amount: 45,
   kind: 'expense',
   transactionDate: ISO_DATE,
-  category: null,
+  tagIds: [],
   conversion: null,
 };
 
@@ -43,7 +43,7 @@ describe('transactionCreateFromFormSchema', () => {
         amount: 45,
         kind: 'expense',
         transactionDate: ISO_DATE,
-        category: null,
+        tagIds: [],
         checkedAt: null,
       });
     });
@@ -115,7 +115,7 @@ describe('transactionUpdateFromFormSchema', () => {
       amount: 45,
       kind: 'expense',
       transactionDate: ISO_DATE,
-      category: null,
+      tagIds: [],
     });
     expect('checkedAt' in result).toBe(false);
     expect('budgetId' in result).toBe(false);

@@ -23,6 +23,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
 import { AppCurrencyPipe } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { Logger } from '@core/logging/logger';
+import { TagStore } from '@core/tag';
 
 @Component({
   selector: 'pulpe-search-transactions-dialog',
@@ -43,11 +44,11 @@ import { Logger } from '@core/logging/logger';
     <h2 mat-dialog-title>{{ 'budget.searchTitle' | transloco }}</h2>
 
     <mat-dialog-content class="flex flex-col gap-4 pt-2!">
-      <div class="flex flex-col sm:flex-row gap-4">
+      <div class="flex flex-col gap-4">
         <mat-form-field
           appearance="outline"
           subscriptSizing="dynamic"
-          class="flex-1"
+          class="w-full"
         >
           <mat-label>{{ 'common.search' | transloco }}</mat-label>
           @if (searchResource.isLoading()) {
@@ -63,7 +64,7 @@ import { Logger } from '@core/logging/logger';
           <input
             matInput
             [formField]="filterForm.query"
-            placeholder="Nom ou description..."
+            [placeholder]="'budget.searchInputPlaceholder' | transloco"
             autocomplete="off"
             data-testid="search-input"
           />
@@ -80,27 +81,43 @@ import { Logger } from '@core/logging/logger';
           }
         </mat-form-field>
 
-        <mat-form-field
-          appearance="outline"
-          subscriptSizing="dynamic"
-          class="sm:w-48"
-        >
-          <mat-label>{{ 'budget.filterByYear' | transloco }}</mat-label>
-          <mat-select
-            [formField]="filterForm.years"
-            multiple
-            data-testid="year-filter"
-          >
-            @for (year of availableYears(); track year) {
-              <mat-option [value]="year">{{ year }}</mat-option>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>{{ 'budget.filterByYear' | transloco }}</mat-label>
+            <mat-select
+              [formField]="filterForm.years"
+              multiple
+              data-testid="year-filter"
+            >
+              @for (year of availableYears(); track year) {
+                <mat-option [value]="year">{{ year }}</mat-option>
+              }
+            </mat-select>
+            @if (availableYearsResource.error()) {
+              <mat-hint class="text-error">{{
+                'budget.yearLoadError' | transloco
+              }}</mat-hint>
             }
-          </mat-select>
-          @if (availableYearsResource.error()) {
-            <mat-hint class="text-error">{{
-              'budget.yearLoadError' | transloco
-            }}</mat-hint>
-          }
-        </mat-form-field>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>{{ 'budget.filterByTags' | transloco }}</mat-label>
+            <mat-select
+              [formField]="filterForm.tagIds"
+              multiple
+              data-testid="tag-filter"
+            >
+              @for (tag of availableTags(); track tag.id) {
+                <mat-option [value]="tag.id">{{ tag.name }}</mat-option>
+              }
+            </mat-select>
+            @if (tagCatalogFailed()) {
+              <mat-hint class="text-error">{{
+                'budget.tagLoadError' | transloco
+              }}</mat-hint>
+            }
+          </mat-form-field>
+        </div>
       </div>
 
       @if (searchResults().length > 0) {
@@ -236,9 +253,14 @@ export default class SearchTransactionsDialogComponent {
   );
   readonly #transactionApi = inject(TransactionApi);
   readonly #budgetApi = inject(BudgetApi);
+  readonly #tagStore = inject(TagStore);
   readonly #logger = inject(Logger);
 
-  readonly #filterModel = signal({ query: '', years: [] as number[] });
+  readonly #filterModel = signal({
+    query: '',
+    years: [] as number[],
+    tagIds: [] as string[],
+  });
   protected readonly filterForm = form(this.#filterModel, (path) => {
     debounce(path.query, 300);
   });
@@ -258,23 +280,31 @@ export default class SearchTransactionsDialogComponent {
 
   readonly #validQuery = computed(() => {
     const query = this.filterForm.query().value().trim();
-    return query.length >= 2 ? query : null;
+    return query.length >= 2 ? query : undefined;
   });
 
   protected readonly selectedYears = computed(() =>
     this.filterForm.years().value(),
   );
+  protected readonly selectedTagIds = computed(() =>
+    this.filterForm.tagIds().value(),
+  );
 
   protected readonly searchResource = resource({
-    params: () => ({ query: this.#validQuery(), years: this.selectedYears() }),
+    params: () => ({
+      q: this.#validQuery(),
+      years: this.selectedYears(),
+      tagIds: this.selectedTagIds(),
+    }),
     loader: async ({ params }) => {
-      if (!params.query) {
+      if (!params.q && params.tagIds.length === 0) {
         return { success: true as const, data: [] };
       }
       const years = params.years.length > 0 ? params.years : undefined;
+      const tagIds = params.tagIds.length > 0 ? params.tagIds : undefined;
       try {
         return await firstValueFrom(
-          this.#transactionApi.search$(params.query, years),
+          this.#transactionApi.search$({ q: params.q, years, tagIds }),
         );
       } catch (err) {
         this.#logger.error('Search error', err);
@@ -288,13 +318,21 @@ export default class SearchTransactionsDialogComponent {
       ? []
       : (this.availableYearsResource.value() ?? []),
   );
+  protected readonly tagCatalogFailed = computed(
+    () => this.#tagStore.tags.status() === 'error',
+  );
+  protected readonly availableTags = computed(() =>
+    this.tagCatalogFailed() ? [] : (this.#tagStore.tags.value() ?? []),
+  );
 
   protected readonly searchResults = computed(() =>
     this.searchResource.error()
       ? []
       : (this.searchResource.value()?.data ?? []),
   );
-  protected readonly hasSearched = computed(() => this.#validQuery() !== null);
+  protected readonly hasSearched = computed(
+    () => this.#validQuery() !== undefined || this.selectedTagIds().length > 0,
+  );
 
   protected readonly displayedColumns = ['period', 'name', 'amount'] as const;
 

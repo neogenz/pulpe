@@ -747,7 +747,7 @@ describe('SupabaseSavingsGoalRepository', () => {
       target_currency: null,
       exchange_rate: null,
       kind: 'saving' as const,
-      category: null,
+      transaction_tag: [{ tag_id: 'tag-1' }],
       transaction_date: '2026-03-01',
       checked_at: null,
       created_at: '2026-03-01T00:00:00Z',
@@ -803,6 +803,10 @@ describe('SupabaseSavingsGoalRepository', () => {
         'tx-early',
       ]);
       expect(march.transactions.map((t) => t.amount)).toEqual([200, 100]);
+      expect(march.transactions.map((t) => t.tagIds)).toEqual([
+        ['tag-1'],
+        ['tag-1'],
+      ]);
 
       const june = result[1];
       expect(june).toMatchObject({

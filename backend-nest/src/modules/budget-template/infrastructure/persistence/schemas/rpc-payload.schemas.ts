@@ -23,6 +23,8 @@ export const createTemplateLineRpcPayloadSchema = z
     recurrence: transactionRecurrenceSchema,
     // PUL-12 link — null when untagged / non-saving line.
     savings_goal_id: z.string().uuid().nullable().optional(),
+    // PUL-18 links — empty when the API request omits tagIds.
+    tag_ids: z.array(z.string().uuid()),
     description: z.string(),
     original_amount: z.string().min(1).nullable(),
     original_currency: supportedCurrencySchema.nullable(),
@@ -76,3 +78,17 @@ export const applyTemplateLineOperationsListSchema = z.array(
 export type ApplyTemplateLineOperationsItem = z.infer<
   typeof applyTemplateLineOperationsItemSchema
 >;
+
+// ----------------------------------------------------------------------------
+// bulk_replace_template_line_tags_and_sync — p_line_tag_pairs JSONB shape
+// ----------------------------------------------------------------------------
+export const bulkReplaceTemplateLineTagsItemSchema = z
+  .object({
+    template_line_id: z.string().uuid(),
+    tag_ids: z.array(z.string().uuid()),
+  })
+  .strict();
+
+export const bulkReplaceTemplateLineTagsListSchema = z.array(
+  bulkReplaceTemplateLineTagsItemSchema,
+);

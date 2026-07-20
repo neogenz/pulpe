@@ -303,8 +303,8 @@ export default class BudgetListPage {
     const today = formatLocalDate(new Date()).split('T')[0];
     return this.#executeExport({
       isLoadingSignal: this.isExportingExcel,
-      download: (data) => {
-        const workbook = this.#excelExportService.buildWorkbook(data);
+      download: async (data) => {
+        const workbook = await this.#excelExportService.buildWorkbook(data);
         downloadAsExcelFile(workbook, `pulpe-export-${today}`);
       },
       successKey: 'budget.exportExcelDone',
@@ -314,7 +314,7 @@ export default class BudgetListPage {
 
   async #executeExport(options: {
     isLoadingSignal: ReturnType<typeof signal<boolean>>;
-    download: (data: BudgetExportResponse) => void;
+    download: (data: BudgetExportResponse) => void | Promise<void>;
     successKey: string;
     errorKey: string;
   }): Promise<void> {
@@ -323,7 +323,7 @@ export default class BudgetListPage {
 
     try {
       const data = await this.state.exportAllBudgets();
-      options.download(data);
+      await options.download(data);
       this.#snackBar.open(
         this.#transloco.translate(options.successKey),
         this.#transloco.translate('common.close'),

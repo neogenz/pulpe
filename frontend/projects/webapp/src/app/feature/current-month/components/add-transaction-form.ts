@@ -16,6 +16,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
+import { TagPicker } from '@app/pattern/tag-picker/tag-picker';
 import {
   AppCurrencyPipe,
   applyAmountValidators,
@@ -39,7 +40,7 @@ interface AddTransactionModel {
   name: string;
   money: AmountFormSlice;
   kind: 'expense' | 'income' | 'saving';
-  category: string;
+  tagIds: string[];
   isChecked: boolean;
 }
 
@@ -57,6 +58,7 @@ interface AddTransactionModel {
     AppCurrencyPipe,
     FormField,
     AmountInput,
+    TagPicker,
   ],
   template: `
     <form
@@ -135,30 +137,7 @@ interface AddTransactionModel {
             </mat-option>
           </mat-select>
         </mat-form-field>
-        <mat-form-field class="w-full" subscriptSizing="dynamic">
-          <mat-label>{{
-            'currentMonth.addTransactionNotes' | transloco
-          }}</mat-label>
-          <input
-            matInput
-            [formField]="transactionForm.category"
-            [placeholder]="
-              'currentMonth.addTransactionNotesPlaceholder' | transloco
-            "
-            aria-describedby="category-hint"
-          />
-          <mat-hint id="category-hint" align="end"
-            >{{ model().category.length }}/50
-            {{
-              'currentMonth.addTransactionNotesOptional' | transloco
-            }}</mat-hint
-          >
-          @if (categoryMaxLengthError()) {
-            <mat-error>{{
-              'currentMonth.addTransactionNotesMaxLength' | transloco
-            }}</mat-error>
-          }
-        </mat-form-field>
+        <pulpe-tag-picker [control]="transactionForm.tagIds" />
       </div>
       <div class="add-transaction-form-meta grid grid-cols-1 gap-3">
         <div
@@ -218,7 +197,7 @@ export class AddTransactionForm {
       initialCurrency: this.#userSettings.currency(),
     }),
     kind: 'expense',
-    category: '',
+    tagIds: [],
     isChecked: true,
   });
 
@@ -247,14 +226,6 @@ export class AddTransactionForm {
     });
     applyAmountValidators(path.money);
     required(path.kind);
-    validate(path.category, ({ value }) =>
-      value().trim().length <= 50
-        ? null
-        : {
-            kind: 'maxLength',
-            message: 'currentMonth.addTransactionNotesMaxLength',
-          },
-    );
   });
 
   readonly canSubmit = computed(
@@ -265,14 +236,6 @@ export class AddTransactionForm {
     const field = this.transactionForm.name();
     return (
       field.touched() && field.errors().some((error) => error.kind === kind)
-    );
-  }
-
-  protected categoryMaxLengthError(): boolean {
-    const field = this.transactionForm.category();
-    return (
-      field.touched() &&
-      field.errors().some((error) => error.kind === 'maxLength')
     );
   }
 
@@ -299,7 +262,7 @@ export class AddTransactionForm {
               name: m.name,
               amount,
               kind: m.kind,
-              category: m.category,
+              tagIds: m.tagIds,
               isChecked: m.isChecked,
               conversion: metadata,
             }),

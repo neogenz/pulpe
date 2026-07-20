@@ -119,6 +119,39 @@ export type Database = {
           },
         ];
       };
+      budget_line_tag: {
+        Row: {
+          budget_line_id: string;
+          created_at: string;
+          tag_id: string;
+        };
+        Insert: {
+          budget_line_id: string;
+          created_at?: string;
+          tag_id: string;
+        };
+        Update: {
+          budget_line_id?: string;
+          created_at?: string;
+          tag_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'budget_line_tag_budget_line_id_fkey';
+            columns: ['budget_line_id'];
+            isOneToOne: false;
+            referencedRelation: 'budget_line';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'budget_line_tag_tag_id_fkey';
+            columns: ['tag_id'];
+            isOneToOne: false;
+            referencedRelation: 'tag';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       monthly_budget: {
         Row: {
           created_at: string;
@@ -209,6 +242,30 @@ export type Database = {
           target_amount?: string | null;
           target_currency?: string | null;
           target_date?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      tag: {
+        Row: {
+          created_at: string;
+          id: string;
+          name: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          name: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          name?: string;
           updated_at?: string;
           user_id?: string;
         };
@@ -310,12 +367,44 @@ export type Database = {
           },
         ];
       };
+      template_line_tag: {
+        Row: {
+          created_at: string;
+          tag_id: string;
+          template_line_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          tag_id: string;
+          template_line_id: string;
+        };
+        Update: {
+          created_at?: string;
+          tag_id?: string;
+          template_line_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'template_line_tag_tag_id_fkey';
+            columns: ['tag_id'];
+            isOneToOne: false;
+            referencedRelation: 'tag';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'template_line_tag_template_line_id_fkey';
+            columns: ['template_line_id'];
+            isOneToOne: false;
+            referencedRelation: 'template_line';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       transaction: {
         Row: {
           amount: string | null;
           budget_id: string;
           budget_line_id: string | null;
-          category: string | null;
           checked_at: string | null;
           created_at: string;
           exchange_rate: number | null;
@@ -332,7 +421,6 @@ export type Database = {
           amount?: string | null;
           budget_id: string;
           budget_line_id?: string | null;
-          category?: string | null;
           checked_at?: string | null;
           created_at?: string;
           exchange_rate?: number | null;
@@ -349,7 +437,6 @@ export type Database = {
           amount?: string | null;
           budget_id?: string;
           budget_line_id?: string | null;
-          category?: string | null;
           checked_at?: string | null;
           created_at?: string;
           exchange_rate?: number | null;
@@ -375,6 +462,39 @@ export type Database = {
             columns: ['budget_line_id'];
             isOneToOne: false;
             referencedRelation: 'budget_line';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      transaction_tag: {
+        Row: {
+          created_at: string;
+          tag_id: string;
+          transaction_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          tag_id: string;
+          transaction_id: string;
+        };
+        Update: {
+          created_at?: string;
+          tag_id?: string;
+          transaction_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'transaction_tag_tag_id_fkey';
+            columns: ['tag_id'];
+            isOneToOne: false;
+            referencedRelation: 'tag';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'transaction_tag_transaction_id_fkey';
+            columns: ['transaction_id'];
+            isOneToOne: false;
+            referencedRelation: 'transaction';
             referencedColumns: ['id'];
           },
         ];
@@ -469,6 +589,21 @@ export type Database = {
         };
         Returns: string[];
       };
+      apply_template_line_operations_with_tags: {
+        Args: {
+          p_budget_ids?: string[];
+          p_created_lines?: Json;
+          p_delete_ids?: string[];
+          p_line_tag_pairs?: Json;
+          p_template_id: string;
+          p_updated_lines?: Json;
+        };
+        Returns: string[];
+      };
+      bulk_replace_template_line_tags_and_sync: {
+        Args: { p_budget_ids: string[]; p_line_tag_pairs: Json };
+        Returns: undefined;
+      };
       bulk_update_template_lines: {
         Args: { line_updates: Json; p_template_id: string };
         Returns: {
@@ -489,7 +624,6 @@ export type Database = {
           amount: string | null;
           budget_id: string;
           budget_line_id: string | null;
-          category: string | null;
           checked_at: string | null;
           created_at: string;
           exchange_rate: number | null;
@@ -574,6 +708,18 @@ export type Database = {
         };
         Returns: undefined;
       };
+      replace_budget_line_tags: {
+        Args: { p_budget_line_id: string; p_tag_ids: string[] };
+        Returns: undefined;
+      };
+      replace_template_line_tags: {
+        Args: { p_tag_ids: string[]; p_template_line_id: string };
+        Returns: undefined;
+      };
+      replace_transaction_tags: {
+        Args: { p_tag_ids: string[]; p_transaction_id: string };
+        Returns: undefined;
+      };
       toggle_budget_line_check: {
         Args: { p_budget_line_id: string };
         Returns: {
@@ -609,7 +755,89 @@ export type Database = {
           amount: string | null;
           budget_id: string;
           budget_line_id: string | null;
-          category: string | null;
+          checked_at: string | null;
+          created_at: string;
+          exchange_rate: number | null;
+          id: string;
+          kind: Database['public']['Enums']['transaction_kind'];
+          name: string;
+          original_amount: string | null;
+          original_currency: string | null;
+          target_currency: string | null;
+          transaction_date: string;
+          updated_at: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'transaction';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      update_budget_line_with_tags: {
+        Args: { p_budget_line_id: string; p_patch: Json; p_tag_ids: string[] };
+        Returns: {
+          amount: string | null;
+          budget_id: string;
+          checked_at: string | null;
+          created_at: string;
+          exchange_rate: number | null;
+          id: string;
+          is_manually_adjusted: boolean;
+          kind: Database['public']['Enums']['transaction_kind'];
+          name: string;
+          original_amount: string | null;
+          original_currency: string | null;
+          recurrence: Database['public']['Enums']['transaction_recurrence'];
+          savings_goal_id: string | null;
+          savings_withdrawal_group_id: string | null;
+          spread_group_id: string | null;
+          target_currency: string | null;
+          template_line_id: string | null;
+          updated_at: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'budget_line';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      update_template_line_with_tags: {
+        Args: {
+          p_patch: Json;
+          p_tag_ids: string[];
+          p_template_line_id: string;
+        };
+        Returns: {
+          amount: string | null;
+          created_at: string;
+          description: string | null;
+          exchange_rate: number | null;
+          id: string;
+          kind: Database['public']['Enums']['transaction_kind'];
+          name: string;
+          original_amount: string | null;
+          original_currency: string | null;
+          recurrence: Database['public']['Enums']['transaction_recurrence'];
+          savings_goal_id: string | null;
+          target_currency: string | null;
+          template_id: string;
+          updated_at: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'template_line';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      update_transaction_with_tags: {
+        Args: { p_patch: Json; p_tag_ids: string[]; p_transaction_id: string };
+        Returns: {
+          amount: string | null;
+          budget_id: string;
+          budget_line_id: string | null;
           checked_at: string | null;
           created_at: string;
           exchange_rate: number | null;

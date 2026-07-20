@@ -6,6 +6,7 @@ import {
   type TransactionFindOneResponse,
   type TransactionListResponse,
   type TransactionPostponeResponse,
+  type TransactionSearchQuery,
   type TransactionSearchResponse,
   type TransactionUpdate,
   type TransactionUpdateResponse,
@@ -80,14 +81,15 @@ export class TransactionApi {
   }
 
   search$(
-    query: string,
-    years?: number[],
+    filters: TransactionSearchQuery,
   ): Observable<TransactionSearchResponse> {
-    let params = new HttpParams().set('q', query);
-    if (years?.length) {
-      for (const y of years) {
-        params = params.append('years', y.toString());
-      }
+    let params = new HttpParams();
+    if (filters.q) params = params.set('q', filters.q);
+    for (const year of filters.years ?? []) {
+      params = params.append('years', year.toString());
+    }
+    for (const tagId of filters.tagIds ?? []) {
+      params = params.append('tagIds', tagId);
     }
     return this.#api.get$(
       `/transactions/search?${params.toString()}`,

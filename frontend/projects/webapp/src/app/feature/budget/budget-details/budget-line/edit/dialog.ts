@@ -39,6 +39,7 @@ import { FeatureFlagsService } from '@core/feature-flags';
 import { Logger } from '@core/logging/logger';
 import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
+import { TagPicker } from '@app/pattern/tag-picker/tag-picker';
 import { SavingsGoalPickerField } from '@app/pattern/savings-goal-picker/savings-goal-picker-field';
 import { budgetLineUpdateFromFormSchema } from './dialog.schema';
 
@@ -51,6 +52,7 @@ interface EditBudgetLineModel {
   money: AmountFormSlice;
   kind: TransactionKind;
   recurrence: TransactionRecurrence;
+  tagIds: string[];
   savingsGoalId: string | null;
 }
 
@@ -68,6 +70,7 @@ interface EditBudgetLineModel {
     TransactionLabelPipe,
     FormField,
     AmountInput,
+    TagPicker,
     SavingsGoalPickerField,
   ],
   host: { 'data-testid': 'edit-budget-line-dialog' },
@@ -144,6 +147,7 @@ interface EditBudgetLineModel {
             }
           </mat-form-field>
 
+          <pulpe-tag-picker [control]="editForm.tagIds" />
           @if (model().kind === 'saving') {
             <pulpe-savings-goal-picker-field
               [value]="model().savingsGoalId"
@@ -204,6 +208,7 @@ export class EditBudgetLineDialog {
     money: this.#computeInitialSlice(),
     kind: this.#data.budgetLine.kind,
     recurrence: this.#data.budgetLine.recurrence,
+    tagIds: this.#data.budgetLine.tagIds ?? [],
     savingsGoalId: this.#data.budgetLine.savingsGoalId,
   });
 
@@ -260,6 +265,7 @@ export class EditBudgetLineDialog {
               amount,
               kind: m.kind,
               recurrence: m.recurrence,
+              tagIds: m.tagIds,
               savingsGoalId: m.kind === 'saving' ? m.savingsGoalId : null,
               conversion: metadata,
             });

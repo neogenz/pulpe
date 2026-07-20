@@ -12,7 +12,9 @@ import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-s
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { EncryptionPort } from '@modules/encryption/domain/ports/encryption.port';
+import type { InfoLogger } from '@common/logger';
 import { SupabaseBudgetLineRepository } from './infrastructure/persistence/supabase-budget-line.repository';
+import { SupabaseBudgetLineSpreadReader } from './infrastructure/persistence/supabase-budget-line-spread.reader';
 import { SavingsWithdrawalPairExistsError } from './domain/savings-withdrawal-conflict.error';
 import type { SavingsWithdrawalPairInputs } from './domain/budget-line.entity';
 
@@ -161,7 +163,12 @@ describe('Savings withdrawal pair — constraint seams (local Supabase)', () => 
       }),
     } as unknown as EncryptionPort;
 
-    repository = new SupabaseBudgetLineRepository(providerStub, encryptionStub);
+    repository = new SupabaseBudgetLineRepository(
+      providerStub,
+      encryptionStub,
+      {} as InfoLogger,
+      new SupabaseBudgetLineSpreadReader(providerStub, encryptionStub),
+    );
 
     hasSupabase = true;
   });

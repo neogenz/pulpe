@@ -59,7 +59,6 @@ const baseTransaction: Transaction = {
   amount: 1200,
   kind: 'expense',
   transactionDate: ISO_DATETIME,
-  category: null,
   createdAt: ISO_DATETIME,
   updatedAt: ISO_DATETIME,
   checkedAt: null,

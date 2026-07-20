@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
   output,
 } from '@angular/core';
@@ -16,8 +17,10 @@ import { AppCurrencyPipe, FormatConversionPipe } from '@core/currency';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { SpreadBadge } from '@ui/spread-badge';
 import { SavingsWithdrawalBadge } from '@ui/savings-withdrawal-badge';
+import { TagIndicator } from '@ui/tag-indicator';
 import { FinancialLineCard } from '@pattern/financial-line-card';
 import { OriginalAmountLine } from '@ui/original-amount-line';
+import { TagStore } from '@core/tag';
 import { formatMatchAnnotation } from '../../view-models/budget-item-constants';
 import type { BudgetLineTableItem } from '../../view-models/table-items.view-model';
 import { SegmentedBudgetProgress } from '../segmented-budget-progress';
@@ -41,6 +44,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
     BudgetActionMenu,
     SpreadBadge,
     SavingsWithdrawalBadge,
+    TagIndicator,
   ],
   template: `
     <pulpe-financial-line-card
@@ -74,7 +78,8 @@ import { BudgetActionMenu } from '../budget-action-menu';
       @if (
         item().metadata.isPropagationLocked ||
         item().metadata.isSpread ||
-        item().metadata.isSavingsWithdrawalIncome
+        item().metadata.isSavingsWithdrawalIncome ||
+        tagNames().length > 0
       ) {
         <ng-container ngProjectAs="[indicators]">
           @if (item().metadata.isPropagationLocked) {
@@ -91,6 +96,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
           @if (item().metadata.isSavingsWithdrawalIncome) {
             <pulpe-savings-withdrawal-badge />
           }
+          <pulpe-tag-indicator [tagNames]="tagNames()" class="shrink-0" />
         </ng-container>
       }
 
@@ -294,7 +300,12 @@ import { BudgetActionMenu } from '../budget-action-menu';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BudgetGridMobileCard {
+  readonly #tagStore = inject(TagStore);
   readonly item = input.required<BudgetLineTableItem>();
+
+  readonly tagNames = computed(() =>
+    this.#tagStore.resolveNames(this.item().data.tagIds),
+  );
   readonly currency = input<SupportedCurrency>('CHF');
   readonly isSelected = input<boolean>(false);
   readonly isMultiCurrencyEnabled = input<boolean>(false);

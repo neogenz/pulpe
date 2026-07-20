@@ -6,7 +6,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SupportedCurrency } from 'pulpe-shared';
 
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
+import { createMockTagStore } from '@app/testing/tag-store.mock';
 import { CurrencyConverterService } from '@core/currency';
+import { TagStore } from '@core/tag';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import { AddTransactionBottomSheet } from './add-transaction-bottom-sheet';
@@ -43,6 +45,7 @@ async function configureBottomSheet() {
       },
       { provide: UserSettingsStore, useValue: settings },
       { provide: CurrencyConverterService, useValue: converter },
+      { provide: TagStore, useValue: createMockTagStore() },
     ],
   });
 
@@ -89,7 +92,7 @@ describe('AddTransactionBottomSheet', () => {
       name: 'Courses',
       amount: 25,
       kind: 'expense',
-      category: null,
+      tagIds: [],
       isChecked: false,
       conversion: null,
     };

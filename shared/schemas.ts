@@ -8,8 +8,9 @@ import {
 const CURRENT_YEAR = new Date().getFullYear();
 const MIN_YEAR = 2020;
 const MAX_YEAR = CURRENT_YEAR + 10;
+const MONTHS_PER_YEAR = 12;
 const MONTH_MIN = 1;
-const MONTH_MAX = 12;
+const MONTH_MAX = MONTHS_PER_YEAR;
 export const PAY_DAY_MIN = 1;
 export const PAY_DAY_MAX = 31;
 
@@ -318,6 +319,78 @@ export const savingsGoalUpdateSchema = z.strictObject({
 });
 export type SavingsGoalUpdate = z.infer<typeof savingsGoalUpdateSchema>;
 
+// Tag schemas (PUL-18)
+/**
+ * TAG - Étiquette utilisateur pour classifier les dépenses
+ *
+ * Remplace le champ libre `transaction.category` par une métadonnée plaintext
+ * structurée. Le nom est unique par utilisateur sans distinction de casse côté
+ * DB; les junctions rattachent les tags aux transactions et aux prévisions.
+ */
+export const MAX_TAGS_PER_TRANSACTION = 10;
+
+function hasUniqueTagIds(tagIds: readonly string[]): boolean {
+  return new Set(tagIds).size === tagIds.length;
+}
+
+export const tagSchema = z.object({
+  id: z.uuid(),
+  userId: z.uuid(),
+  // trim AVANT min/max : sinon " " passe min(1) puis devient "" et viole le
+  // CHECK DB (char_length >= 1) → 500 au lieu d'un 400 de validation
+  name: z.string().trim().min(1).max(30),
+  createdAt: z.iso.datetime({ offset: true }),
+  updatedAt: z.iso.datetime({ offset: true }),
+});
+export type Tag = z.infer<typeof tagSchema>;
+
+export const tagCreateSchema = z.strictObject({
+  name: z.string().trim().min(1).max(30),
+});
+export type TagCreate = z.infer<typeof tagCreateSchema>;
+
+export const tagUpdateSchema = tagCreateSchema.partial();
+export type TagUpdate = z.infer<typeof tagUpdateSchema>;
+
+export const tagHistoryMonthsSchema = z.coerce
+  .number()
+  .pipe(z.union([z.literal(3), z.literal(6), z.literal(12), z.literal(24)]));
+export type TagHistoryMonths = z.infer<typeof tagHistoryMonthsSchema>;
+
+export const tagHistoryQuerySchema = z
+  .strictObject({
+    months: tagHistoryMonthsSchema,
+    endMonth: z.coerce.number().int().min(MONTH_MIN).max(MONTH_MAX),
+    endYear: z.coerce.number().int().min(MIN_YEAR).max(MAX_YEAR),
+  })
+  .refine(
+    ({ months, endMonth, endYear }) =>
+      (endYear - MIN_YEAR) * MONTHS_PER_YEAR + endMonth - months >= 0,
+    {
+      error: `History window cannot start before ${MIN_YEAR}`,
+      path: ['endYear'],
+    },
+  );
+export type TagHistoryQuery = z.infer<typeof tagHistoryQuerySchema>;
+
+export const tagHistoryMonthSchema = z.object({
+  month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
+  year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
+  plannedAmount: z.number().finite().nonnegative(),
+  actualAmount: z.number().finite().nonnegative(),
+});
+export type TagHistoryMonth = z.infer<typeof tagHistoryMonthSchema>;
+
+export const tagHistorySchema = z.object({
+  tagId: z.uuid(),
+  periods: z.array(tagHistoryMonthSchema),
+  totalPlanned: z.number().finite().nonnegative(),
+  totalActual: z.number().finite().nonnegative(),
+  monthlyAverageActual: z.number().finite().nonnegative(),
+  actualToPlannedPercent: z.number().finite().nonnegative().nullable(),
+});
+export type TagHistory = z.infer<typeof tagHistorySchema>;
+
 /**
  * SAVINGS GOAL PROGRESS - Progression d'un objectif (PUL-8)
  *
@@ -546,6 +619,8 @@ export const budgetLineSchema = z.object({
   amount: z.coerce.number().nonnegative(),
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
+  // Tags (PUL-18) — même contrat que transaction.tagIds (ids only, noms via GET /tags)
+  tagIds: z.array(z.uuid()).optional(),
   isManuallyAdjusted: z.boolean(),
   checkedAt: z.iso.datetime({ offset: true }).nullable(),
   createdAt: z.iso.datetime({ offset: true }),
@@ -589,6 +664,13 @@ export const budgetLineCreateSchema = z.strictObject({
   amount: z.number().positive(),
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
+  tagIds: z
+    .array(z.uuid())
+    .max(MAX_TAGS_PER_TRANSACTION)
+    .refine(hasUniqueTagIds, {
+      message: 'Chaque tag ne peut être associé qu’une fois.',
+    })
+    .optional(),
   isManuallyAdjusted: z.boolean().default(false),
   checkedAt: z.iso.datetime({ offset: true }).nullable().optional(),
   originalAmount: z.number().positive().optional(),
@@ -1025,8 +1107,9 @@ export const transactionSchema = z.object({
   amount: z.coerce.number().nonnegative(),
   kind: transactionKindSchema,
   transactionDate: z.iso.datetime({ offset: true }),
-  // NOTE: category pas définie dans SPECS V1 - "Pas de catégorisation avancée"
-  category: z.string().max(100).trim().nullable(),
+  // Tags remplacent l'ancien champ libre `category` (PUL-18). ids uniquement :
+  // le client résout les noms via GET /tags (cache) — pas de join côté réponse.
+  tagIds: z.array(z.uuid()).optional(),
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
   checkedAt: z.iso.datetime({ offset: true }).nullable(),
@@ -1049,7 +1132,13 @@ export const transactionCreateSchema = z.strictObject({
   amount: z.number().positive(),
   kind: transactionKindSchema,
   transactionDate: z.iso.datetime({ offset: true }).optional(),
-  category: z.string().max(100).trim().nullable().optional(),
+  tagIds: z
+    .array(z.uuid())
+    .max(MAX_TAGS_PER_TRANSACTION)
+    .refine(hasUniqueTagIds, {
+      message: 'Chaque tag ne peut être associé qu’une fois.',
+    })
+    .optional(),
   checkedAt: z.iso.datetime({ offset: true }).nullable().optional(),
   originalAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
@@ -1063,7 +1152,14 @@ export const transactionUpdateSchema = z.strictObject({
   amount: z.number().positive().optional(),
   kind: transactionKindSchema.optional(),
   transactionDate: z.iso.datetime({ offset: true }).optional(),
-  category: z.string().max(100).trim().nullable().optional(),
+  // présent = remplace l'ensemble des tags ; absent = ne touche pas
+  tagIds: z
+    .array(z.uuid())
+    .max(MAX_TAGS_PER_TRANSACTION)
+    .refine(hasUniqueTagIds, {
+      message: 'Chaque tag ne peut être associé qu’une fois.',
+    })
+    .optional(),
   originalAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
@@ -1085,12 +1181,27 @@ export type SearchItemType = z.infer<typeof searchItemTypeSchema>;
 export const TRANSACTION_SEARCH_QUERY_MIN_LENGTH = 2;
 export const TRANSACTION_SEARCH_QUERY_MAX_LENGTH = 100;
 
-export const transactionSearchQuerySchema = z.object({
-  q: z
-    .string()
-    .min(TRANSACTION_SEARCH_QUERY_MIN_LENGTH)
-    .max(TRANSACTION_SEARCH_QUERY_MAX_LENGTH),
-});
+/**
+ * Global budget-item search filters.
+ *
+ * Text stays optional when at least one exact tag filter is provided. Multiple
+ * years and tags are OR-ed within their group; the backend intersects the
+ * active filter groups.
+ */
+export const transactionSearchQuerySchema = z
+  .object({
+    q: z
+      .string()
+      .min(TRANSACTION_SEARCH_QUERY_MIN_LENGTH)
+      .max(TRANSACTION_SEARCH_QUERY_MAX_LENGTH)
+      .optional(),
+    years: z.array(z.number().int().min(MIN_YEAR).max(MAX_YEAR)).optional(),
+    tagIds: z.array(z.uuid()).min(1).optional(),
+  })
+  .refine(({ q, tagIds }) => q !== undefined || (tagIds?.length ?? 0) > 0, {
+    message: 'Un terme de recherche ou au moins un tag est requis.',
+    path: ['q'],
+  });
 export type TransactionSearchQuery = z.infer<
   typeof transactionSearchQuerySchema
 >;
@@ -1104,7 +1215,6 @@ export const transactionSearchResultSchema = z.object({
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema.or(z.null()),
   transactionDate: z.iso.datetime({ offset: true }).or(z.null()),
-  category: z.string().nullable(),
   budgetId: z.uuid(),
   budgetName: z.string(),
   year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
@@ -1148,6 +1258,9 @@ export const templateLineSchema = z.object({
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
   description: z.string().max(500).trim(),
+  // Tags (PUL-18) — même contrat que budgetLine.tagIds (ids only, noms via GET /tags).
+  // Copiés sur les budget_lines à la génération et lors de la propagation.
+  tagIds: z.array(z.uuid()).optional(),
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
   originalAmount: z.coerce.number().nonnegative().nullable().optional(),
@@ -1165,6 +1278,13 @@ export const templateLineCreateSchema = z.strictObject({
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
   description: z.string().max(500).trim(),
+  tagIds: z
+    .array(z.uuid())
+    .max(MAX_TAGS_PER_TRANSACTION)
+    .refine(hasUniqueTagIds, {
+      message: 'Chaque tag ne peut être associé qu’une fois.',
+    })
+    .optional(),
   originalAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
@@ -1180,6 +1300,13 @@ export const templateLineCreateWithoutTemplateIdSchema = z.strictObject({
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
   description: z.string().max(500).trim(),
+  tagIds: z
+    .array(z.uuid())
+    .max(MAX_TAGS_PER_TRANSACTION)
+    .refine(hasUniqueTagIds, {
+      message: 'Chaque tag ne peut être associé qu’une fois.',
+    })
+    .optional(),
   originalAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
@@ -1224,6 +1351,14 @@ export const templateLineUpdateSchema = z.strictObject({
   kind: transactionKindSchema.optional(),
   recurrence: transactionRecurrenceSchema.optional(),
   description: z.string().max(500).trim().optional(),
+  // Present -> replace the line's exact tag set (and propagate). Absent -> tags untouched.
+  tagIds: z
+    .array(z.uuid())
+    .max(MAX_TAGS_PER_TRANSACTION)
+    .refine(hasUniqueTagIds, {
+      message: 'Chaque tag ne peut être associé qu’une fois.',
+    })
+    .optional(),
   originalAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
@@ -1645,6 +1780,19 @@ export const savingsGoalDeleteResponseSchema = deleteResponseSchema;
 export type SavingsGoalDeleteResponse = z.infer<
   typeof savingsGoalDeleteResponseSchema
 >;
+
+// Tag response schemas (PUL-18)
+export const tagResponseSchema = createSuccessResponse(tagSchema);
+export type TagResponse = z.infer<typeof tagResponseSchema>;
+
+export const tagListResponseSchema = createListResponse(tagSchema);
+export type TagListResponse = z.infer<typeof tagListResponseSchema>;
+
+export const tagHistoryResponseSchema = createSuccessResponse(tagHistorySchema);
+export type TagHistoryResponse = z.infer<typeof tagHistoryResponseSchema>;
+
+export const tagDeleteResponseSchema = deleteResponseSchema;
+export type TagDeleteResponse = z.infer<typeof tagDeleteResponseSchema>;
 
 export const savingsGoalProgressResponseSchema = createSuccessResponse(
   savingsGoalProgressSchema,

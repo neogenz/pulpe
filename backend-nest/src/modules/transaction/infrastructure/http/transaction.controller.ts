@@ -28,6 +28,7 @@ import {
   TRANSACTION_SEARCH_QUERY_MAX_LENGTH,
   TRANSACTION_SEARCH_QUERY_MIN_LENGTH,
   transactionSearchQuerySchema,
+  type TransactionSearchQuery,
   type TransactionResponse,
   type TransactionListResponse,
   type TransactionDeleteResponse,
@@ -142,14 +143,14 @@ export class TransactionController {
 
   @Get('search')
   @ApiOperation({
-    summary: 'Recherche globale dans toutes les transactions',
+    summary: 'Recherche globale dans les éléments budgétaires',
     description:
-      'Recherche par nom ou catégorie dans toutes les transactions de tous les budgets',
+      'Recherche les transactions et prévisions par texte, années et tags',
   })
   @ApiQuery({
     name: 'q',
     description: `Terme de recherche (${TRANSACTION_SEARCH_QUERY_MIN_LENGTH} à ${TRANSACTION_SEARCH_QUERY_MAX_LENGTH} caractères)`,
-    required: true,
+    required: false,
     example: 'Restaurant',
   })
   @ApiQuery({
@@ -160,23 +161,34 @@ export class TransactionController {
     type: Number,
     example: [2024, 2025],
   })
+  @ApiQuery({
+    name: 'tagIds',
+    description: 'Filtrer par identifiants de tags (optionnel)',
+    required: false,
+    isArray: true,
+    type: String,
+  })
   @ApiResponse({
     status: 200,
     description: 'Résultats de recherche',
     type: TransactionSearchResponseDto,
   })
   @ApiBadRequestResponse({
-    description: `Query invalide (${TRANSACTION_SEARCH_QUERY_MIN_LENGTH} à ${TRANSACTION_SEARCH_QUERY_MAX_LENGTH} caractères attendus)`,
+    description: 'Filtres de recherche invalides',
     type: ErrorResponseDto,
   })
   async search(
     @Query('q') queryParam: unknown,
     @Query('years') yearsParam: string | string[] | undefined,
+    @Query('tagIds') tagIdsParam: unknown,
     @User() user: AuthenticatedUser,
   ): Promise<TransactionSearchResponse> {
-    const query = this.parseSearchQuery(queryParam);
-    const years = this.parseYearsParam(yearsParam);
-    const results = await this.searchUseCase.execute(query, user, years);
+    const filters = this.parseSearchFilters(
+      queryParam,
+      yearsParam,
+      tagIdsParam,
+    );
+    const results = await this.searchUseCase.execute(filters, user);
     return { success: true, data: results };
   }
 
@@ -348,34 +360,46 @@ export class TransactionController {
       .filter((y) => !isNaN(y) && y >= 1900 && y <= maxYear);
   }
 
-  private parseSearchQuery(queryParam: unknown): string {
-    if (queryParam === undefined) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
-        { reason: 'Search query is required' },
-      );
-    }
-
-    if (typeof queryParam !== 'string') {
+  private parseSearchFilters(
+    queryParam: unknown,
+    yearsParam: string | string[] | undefined,
+    tagIdsParam: unknown,
+  ): TransactionSearchQuery {
+    if (queryParam !== undefined && typeof queryParam !== 'string') {
       throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
         { reason: 'Search query must be a string' },
       );
     }
 
-    const parsed = transactionSearchQuerySchema.shape.q.safeParse(queryParam);
+    const parsed = transactionSearchQuerySchema.safeParse({
+      q: queryParam,
+      years: this.parseYearsParam(yearsParam),
+      tagIds: this.parseTagIdsParam(tagIdsParam),
+    });
 
     if (parsed.success) {
       return parsed.data;
     }
 
-    const reason =
-      SEARCH_QUERY_VALIDATION_REASON_BY_CODE[
-        parsed.error.issues[0]?.code ?? ''
-      ] ?? 'Search query is invalid';
+    const issue = parsed.error.issues[0];
+    let reason = 'Search filters are invalid';
+    if (issue?.path[0] === 'q') {
+      reason =
+        SEARCH_QUERY_VALIDATION_REASON_BY_CODE[issue.code] ??
+        'Search query or at least one tag is required';
+    } else if (issue?.path[0] === 'tagIds') {
+      reason = 'Tag ids must be valid UUIDs';
+    }
+
     throw new BusinessException(
       ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
       { reason },
     );
+  }
+
+  private parseTagIdsParam(tagIdsParam: unknown): unknown[] | undefined {
+    if (tagIdsParam === undefined) return undefined;
+    return Array.isArray(tagIdsParam) ? tagIdsParam : [tagIdsParam];
   }
 }

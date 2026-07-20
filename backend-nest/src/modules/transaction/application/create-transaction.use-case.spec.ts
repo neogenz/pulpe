@@ -18,7 +18,7 @@ const mockTransactionEntity: Transaction = {
   name: 'Restaurant',
   kind: 'expense',
   transactionDate: '2024-01-15T12:00:00Z',
-  category: null,
+  tagIds: [],
   checkedAt: null,
   createdAt: '2024-01-15T12:00:00Z',
   updatedAt: '2024-01-15T12:00:00Z',

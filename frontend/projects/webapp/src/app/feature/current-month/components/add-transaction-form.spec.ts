@@ -5,7 +5,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SupportedCurrency } from 'pulpe-shared';
 
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
+import { createMockTagStore } from '@app/testing/tag-store.mock';
 import { CurrencyConverterService } from '@core/currency';
+import { TagStore } from '@core/tag';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import {
@@ -58,6 +60,7 @@ function configureForm({
       { provide: FeatureFlagsService, useValue: flags },
       { provide: UserSettingsStore, useValue: settings },
       { provide: CurrencyConverterService, useValue: converter },
+      { provide: TagStore, useValue: createMockTagStore() },
     ],
   });
 
@@ -113,7 +116,7 @@ describe('AddTransactionForm', () => {
           name: 'Courses Migros',
           amount: 45.5,
           kind: 'expense',
-          category: null,
+          tagIds: [],
         }),
       );
     });
@@ -131,19 +134,20 @@ describe('AddTransactionForm', () => {
       expect(createdSpy).not.toHaveBeenCalled();
     });
 
-    it('should convert an empty category to null', async () => {
+    it('should emit the selected tag ids', async () => {
       const { component, createdSpy } = configureForm();
+      const tagId = '00000000-0000-4000-8000-0000000000f1';
       component['model'].update((model) => ({
         ...model,
         name: 'Test',
         money: { ...model.money, amount: 10 },
-        category: '',
+        tagIds: [tagId],
       }));
 
       await component.submit();
 
       expect(createdSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ category: null }),
+        expect.objectContaining({ tagIds: [tagId] }),
       );
     });
 

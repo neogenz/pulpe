@@ -48,6 +48,7 @@ import { BulkTemplateLineOperationsUseCase } from './application/bulk-template-l
       provide: TEMPLATE_LINE_PROPAGATION_PORT,
       useClass: TemplateLinePropagationAdapter,
     },
+    createInfoLoggerProvider(SupabaseBudgetTemplateRepository.name),
     createInfoLoggerProvider(FindAllTemplatesUseCase.name),
     createInfoLoggerProvider(FindTemplateUseCase.name),
     createInfoLoggerProvider(CreateTemplateUseCase.name),

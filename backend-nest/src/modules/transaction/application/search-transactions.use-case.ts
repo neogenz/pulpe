@@ -4,6 +4,7 @@ import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import {
   type TransactionSearchResult,
   type TransactionKind,
+  type TransactionSearchQuery,
 } from 'pulpe-shared';
 import {
   TRANSACTION_REPOSITORY,
@@ -39,23 +40,28 @@ export class SearchTransactionsUseCase {
   ) {}
 
   async execute(
-    query: string,
+    filters: TransactionSearchQuery,
     user: AuthenticatedUser,
-    years?: number[],
   ): Promise<TransactionSearchResult[]> {
-    const searchPattern = this.buildSearchPattern(query);
+    const searchPattern = filters.q ? this.buildSearchPattern(filters.q) : null;
 
-    const budgetIds = years?.length
-      ? await this.repo.fetchBudgetIdsByYears(user.id, years)
+    const budgetIds = filters.years?.length
+      ? await this.repo.fetchBudgetIdsByYears(user.id, filters.years)
       : null;
 
-    if (years?.length && budgetIds?.length === 0) {
+    if (filters.years?.length && budgetIds?.length === 0) {
       return [];
     }
 
+    const criteria = {
+      userId: user.id,
+      searchPattern,
+      budgetIds,
+      tagIds: filters.tagIds ?? [],
+    };
     const [transactions, budgetLines] = await Promise.all([
-      this.repo.fetchTransactionsByPattern(searchPattern, budgetIds),
-      this.repo.fetchBudgetLinesByPattern(searchPattern, budgetIds),
+      this.repo.fetchTransactionsByPattern(criteria),
+      this.repo.fetchBudgetLinesByPattern(criteria),
     ]);
 
     const allResults = [
@@ -66,7 +72,9 @@ export class SearchTransactionsUseCase {
     this.logger.info(
       {
         userId: user.id,
-        query,
+        query: filters.q,
+        years: filters.years,
+        tagIds: filters.tagIds,
         resultCount: allResults.length,
         operation: 'transaction.search',
       },
@@ -103,7 +111,6 @@ export class SearchTransactionsUseCase {
       kind: t.kind as TransactionKind,
       recurrence: null,
       transactionDate: t.transactionDate,
-      category: t.category,
       budgetId: t.budgetId,
       budgetName: t.budget?.description ?? '',
       year: t.budget?.year ?? new Date().getFullYear(),
@@ -123,7 +130,6 @@ export class SearchTransactionsUseCase {
       kind: bl.kind as TransactionKind,
       recurrence: bl.recurrence,
       transactionDate: null,
-      category: null,
       budgetId: bl.budgetId,
       budgetName: bl.budget?.description ?? '',
       year: bl.budget?.year ?? new Date().getFullYear(),

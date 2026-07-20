@@ -132,7 +132,7 @@ describe('SavingsGoalMapper', () => {
           targetCurrency: null,
           exchangeRate: null,
           kind: 'saving',
-          category: null,
+          tagIds: [],
           transactionDate: '2026-06-15',
           checkedAt: '2026-06-15T00:00:00Z',
           createdAt: '2026-06-15T00:00:00Z',

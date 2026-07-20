@@ -21,7 +21,7 @@ const baseFormFields = {
   amount: z.number().positive(),
   kind: transactionKindSchema,
   transactionDate: z.iso.datetime({ offset: true }),
-  category: z.string().max(100).trim().nullable(),
+  tagIds: z.array(z.uuid()).optional(),
   conversion: conversionFormSchema.nullable(),
 };
 
@@ -40,7 +40,7 @@ export const transactionCreateFromFormSchema = z
       amount: input.amount,
       kind: input.kind,
       transactionDate: input.transactionDate,
-      category: input.category,
+      tagIds: input.tagIds,
       checkedAt: input.isChecked ? new Date().toISOString() : null,
       ...(input.conversion ?? {}),
     }),
@@ -62,7 +62,7 @@ export const transactionUpdateFromFormSchema = z
       amount: input.amount,
       kind: input.kind,
       transactionDate: input.transactionDate,
-      category: input.category,
+      tagIds: input.tagIds,
       ...(input.conversion ?? {}),
     }),
   );

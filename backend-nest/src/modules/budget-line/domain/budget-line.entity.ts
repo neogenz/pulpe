@@ -34,6 +34,8 @@ export interface BudgetLine {
   exchangeRate: number | null;
   kind: TransactionKind;
   recurrence: TransactionRecurrence;
+  /** Tags associés (PUL-18) — ids only, mêmes règles que Transaction.tagIds. */
+  tagIds: string[];
   isManuallyAdjusted: boolean;
   checkedAt: string | null;
   createdAt: string;
@@ -105,7 +107,6 @@ export interface BudgetLineCheckedTransaction {
   targetCurrency: string | null;
   exchangeRate: number | null;
   kind: TransactionKind;
-  category: string | null;
   transactionDate: string;
   checkedAt: string | null;
   createdAt: string;
@@ -176,6 +177,7 @@ export interface BudgetLineCreateInput {
   exchangeRate?: number | null;
   kind: TransactionKind;
   recurrence: TransactionRecurrence;
+  tagIds?: string[];
   isManuallyAdjusted?: boolean;
   checkedAt?: string | null;
 }
@@ -196,6 +198,8 @@ export interface BudgetLineUpdatePatch {
   recurrence?: TransactionRecurrence;
   templateLineId?: string | null;
   savingsGoalId?: string | null;
+  /** présent = remplace l'ensemble des tags ; absent = ne touche pas */
+  tagIds?: string[];
   isManuallyAdjusted?: boolean;
   checkedAt?: string | null;
 }

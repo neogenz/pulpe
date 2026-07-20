@@ -3,12 +3,13 @@ import {
   calculateAllConsumptions,
   calculateBudgetLineConsumption,
 } from '@core/budget/budget-line-consumption';
-import type {
-  BudgetLineConsumptionDisplay,
-  BudgetLineTableItem,
-  GroupHeaderTableItem,
-  TableRowItem,
-  TransactionTableItem,
+import {
+  isDataRow,
+  type BudgetLineConsumptionDisplay,
+  type BudgetLineTableItem,
+  type GroupHeaderTableItem,
+  type TableRowItem,
+  type TransactionTableItem,
 } from './table-items.view-model';
 import {
   KIND_ICONS,
@@ -122,12 +123,6 @@ function createDisplayItems(
   return items;
 }
 
-function isDataItem(
-  item: TableRowItem,
-): item is BudgetLineTableItem | TransactionTableItem {
-  return item.metadata.itemType !== 'group_header';
-}
-
 function calculateBalancesInDisplayOrder(
   items: TableRowItem[],
   consumptionMap: Map<string, { consumed: number }>,
@@ -136,7 +131,7 @@ function calculateBalancesInDisplayOrder(
   let runningBalance = openingBalance;
 
   items.forEach((item) => {
-    if (!isDataItem(item)) return;
+    if (!isDataRow(item)) return;
 
     const kind = item.data.kind;
     let effectiveAmount = item.data.amount;

@@ -28,8 +28,10 @@ import {
 } from '@core/currency';
 import { CurrencyConversionBadge } from '@ui/currency-conversion-badge';
 import { SpreadOccurrencesList } from '@ui/spread-occurrences-list';
+import { TagIndicator } from '@ui/tag-indicator';
 import type { BudgetLineConsumption } from '@core/budget';
 import { FeatureFlagsService } from '@core/feature-flags';
+import { TagStore } from '@core/tag';
 import { UserSettingsStore } from '@core/user-settings';
 import { getDateDisplayFormats } from '@core/date/date-display-formats';
 import { BudgetDetailsStore } from '../../store/budget-details-store';
@@ -60,6 +62,7 @@ export interface AllocatedTransactionsDialogResult {
     FormatConversionPipe,
     CurrencyConversionBadge,
     SpreadOccurrencesList,
+    TagIndicator,
     DatePipe,
     DecimalPipe,
     TranslocoPipe,
@@ -171,12 +174,11 @@ export interface AllocatedTransactionsDialogResult {
               <th mat-header-cell *matHeaderCellDef>
                 {{ 'budget.tableDescription' | transloco }}
               </th>
-              <td
-                mat-cell
-                *matCellDef="let tx"
-                class="text-body-medium ph-no-capture"
-              >
-                {{ tx.name }}
+              <td mat-cell *matCellDef="let tx" class="text-body-medium">
+                <span class="inline-flex items-center gap-1.5">
+                  <span class="ph-no-capture">{{ tx.name }}</span>
+                  <pulpe-tag-indicator [tagNames]="tagNamesFor(tx.tagIds)" />
+                </span>
               </td>
             </ng-container>
 
@@ -307,6 +309,7 @@ export interface AllocatedTransactionsDialogResult {
 export class AllocatedTransactionsDialog {
   readonly #userSettings = inject(UserSettingsStore);
   readonly #featureFlags = inject(FeatureFlagsService);
+  readonly #tagStore = inject(TagStore);
   readonly #router = inject(Router);
   protected readonly store = inject(BudgetDetailsStore);
   protected readonly currency = this.#userSettings.currency;
@@ -329,6 +332,10 @@ export class AllocatedTransactionsDialog {
   );
 
   readonly displayedColumns = ['date', 'name', 'amount', 'actions'];
+
+  protected tagNamesFor(tagIds: readonly string[] | undefined): string[] {
+    return this.#tagStore.resolveNames(tagIds);
+  }
 
   protected readonly consumptionPercentage = computed(() =>
     this.data.budgetLine.amount > 0

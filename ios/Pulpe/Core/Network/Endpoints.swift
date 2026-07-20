@@ -18,6 +18,10 @@ enum Endpoint {
     case userSettings
     case updateUserSettings
 
+    // MARK: - Tags
+
+    case tags
+
     // MARK: - Budgets
 
     case budgets
@@ -107,6 +111,9 @@ enum Endpoint {
         case .userSettings: return "/users/settings"
         case .updateUserSettings: return "/users/settings"
 
+        // Tags
+        case .tags: return "/tags"
+
         // Budgets
         case .budgets: return "/budgets"
         case .budget(let id): return "/budgets/\(id)"
@@ -193,7 +200,7 @@ enum Endpoint {
              .savingsGoals, .savingsGoal, .savingsGoalProgress, .savingsGoalContributions,
              .savingsGoalFutureLines,
              .encryptionVaultStatus, .encryptionSalt,
-             .userSettings, .currencyRate, .whatsNewIos:
+             .userSettings, .tags, .currencyRate, .whatsNewIos:
             return .get
 
         case .updateUserSettings:

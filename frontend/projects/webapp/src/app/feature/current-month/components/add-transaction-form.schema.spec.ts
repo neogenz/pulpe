@@ -10,7 +10,7 @@ const formData: TransactionFormData = {
   name: 'Courses',
   amount: 45,
   kind: 'expense',
-  category: null,
+  tagIds: [],
   isChecked: false,
   conversion: null,
 };
@@ -52,13 +52,13 @@ describe('transactionFormDataSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('should normalize whitespace-only notes to null', () => {
-    const result = transactionFormDataSchema.parse({
+  it('should reject a non-uuid tag id', () => {
+    const result = transactionFormDataSchema.safeParse({
       ...formData,
-      category: '   ',
+      tagIds: ['not-a-uuid'],
     });
 
-    expect(result.category).toBeNull();
+    expect(result.success).toBe(false);
   });
 });
 
@@ -79,6 +79,26 @@ describe('transactionCreateFromQuickFormSchema', () => {
         checkedAt: expect.any(String),
       }),
     );
+  });
+
+  it('should omit tagIds from the transaction when none are selected', () => {
+    const result = transactionCreateFromQuickFormSchema.parse({
+      ...formData,
+      ...context,
+    });
+
+    expect(result.tagIds).toBeUndefined();
+  });
+
+  it('should forward selected tagIds to the transaction', () => {
+    const tagId = '00000000-0000-4000-8000-0000000000f1';
+    const result = transactionCreateFromQuickFormSchema.parse({
+      ...formData,
+      ...context,
+      tagIds: [tagId],
+    });
+
+    expect(result.tagIds).toEqual([tagId]);
   });
 
   it('should flatten conversion metadata into the transaction payload', () => {

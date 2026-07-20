@@ -11,6 +11,7 @@ export const ROUTES = {
   BUDGET_TEMPLATES: 'budget-templates',
   SAVINGS_GOALS: 'savings-goals',
   SETTINGS: 'settings',
+  SETTINGS_TAGS: 'tags',
   DESIGN_SYSTEM: 'design-system',
   LEGAL: 'legal',
   MAINTENANCE: 'maintenance',
@@ -48,6 +49,7 @@ export const PAGE_TITLES = {
   LEGAL_TERMS: 'pageTitle.legalTerms',
   LEGAL_PRIVACY: 'pageTitle.legalPrivacy',
   SETTINGS: 'pageTitle.settings',
+  SETTINGS_TAGS: 'pageTitle.settingsTags',
   DESIGN_SYSTEM: 'pageTitle.designSystem',
   MAINTENANCE: 'pageTitle.maintenance',
 } as const;

@@ -46,7 +46,7 @@ function makeTransaction(overrides: Partial<Transaction> = {}): Transaction {
     amount: 200,
     kind: 'expense',
     transactionDate: NOW,
-    category: null,
+    tagIds: [],
     createdAt: NOW,
     updatedAt: NOW,
     checkedAt: NOW,

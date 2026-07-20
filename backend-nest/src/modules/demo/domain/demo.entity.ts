@@ -103,7 +103,7 @@ export interface DemoTransactionSeed {
   name: string;
   amount: number;
   kind: TransactionKindEnum;
-  category: string;
+  tagName: string;
   transactionDate: string;
 }
 

@@ -26,6 +26,7 @@ export interface TemplateLineFormInput {
   name: string;
   amount: number;
   kind: TransactionKind;
+  tagIds?: string[];
   savingsGoalId?: string | null;
   originalAmount?: number;
   originalCurrency?: SupportedCurrency;
@@ -188,6 +189,7 @@ export class TemplateLineStore {
       name: input.name,
       amount: input.amount,
       kind: input.kind,
+      tagIds: input.tagIds ?? [],
       savingsGoalId: input.savingsGoalId ?? null,
       ...this.#extractCurrencyFields(input),
     };
@@ -262,6 +264,7 @@ export class TemplateLineStore {
       savingsGoalId: input.savingsGoalId ?? null,
       recurrence: 'fixed',
       description: '',
+      tagIds: input.tagIds ?? [],
       ...this.#extractCurrencyFields(input),
     };
   }

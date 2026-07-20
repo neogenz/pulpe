@@ -48,19 +48,24 @@ describe('SearchTransactionsUseCase', () => {
   });
 
   describe('PostgREST-safe search pattern (HI-29)', () => {
-    it('should wrap pattern in double quotes so commas do not break .or() parser', async () => {
-      await useCase.execute('hello, world', mockUser);
+    const executeQuery = (query: string) =>
+      useCase.execute({ q: query }, mockUser);
+    const transactionPattern = () =>
+      mockRepo.fetchTransactionsByPattern.mock.calls[0][0].searchPattern;
 
-      const pattern = mockRepo.fetchTransactionsByPattern.mock.calls[0][0];
+    it('should wrap pattern in double quotes so commas do not break .or() parser', async () => {
+      await executeQuery('hello, world');
+
+      const pattern = transactionPattern();
       expect(pattern.startsWith('"')).toBe(true);
       expect(pattern.endsWith('"')).toBe(true);
       expect(pattern).toContain('hello, world');
     });
 
     it('should preserve a plain alphanumeric query inside the quoted wrapper', async () => {
-      await useCase.execute('Restaurant', mockUser);
+      await executeQuery('Restaurant');
 
-      const pattern = mockRepo.fetchTransactionsByPattern.mock.calls[0][0];
+      const pattern = transactionPattern();
       expect(pattern).toBe('"*Restaurant*"');
     });
 
@@ -68,38 +73,38 @@ describe('SearchTransactionsUseCase', () => {
       const queries = ['a, b', 'a.b.c', 'a:b', 'a(b)c', 'a, b.c: d (e)'];
 
       for (const q of queries) {
-        await expect(useCase.execute(q, mockUser)).resolves.toEqual([]);
+        await expect(executeQuery(q)).resolves.toEqual([]);
       }
 
       expect(mockRepo.fetchTransactionsByPattern).toHaveBeenCalledTimes(
         queries.length,
       );
       for (const call of mockRepo.fetchTransactionsByPattern.mock.calls) {
-        const pattern = call[0];
+        const pattern = call[0].searchPattern;
         expect(pattern.startsWith('"')).toBe(true);
         expect(pattern.endsWith('"')).toBe(true);
       }
     });
 
     it('should escape backslash by doubling it inside the quoted value', async () => {
-      await useCase.execute('a\\b', mockUser);
+      await executeQuery('a\\b');
 
-      const pattern = mockRepo.fetchTransactionsByPattern.mock.calls[0][0];
+      const pattern = transactionPattern();
       expect(pattern).toBe('"*a\\\\b*"');
     });
 
     it('should escape an embedded double quote so the wrapper stays balanced', async () => {
-      await useCase.execute('say "hi"', mockUser);
+      await executeQuery('say "hi"');
 
-      const pattern = mockRepo.fetchTransactionsByPattern.mock.calls[0][0];
+      const pattern = transactionPattern();
       // Internal " must become \" so the outer quote pair is unambiguous.
       expect(pattern).toBe('"*say \\"hi\\"*"');
     });
 
     it('should escape user-typed ILIKE wildcards (* and _) so they are treated literally', async () => {
-      await useCase.execute('100%_off*deal', mockUser);
+      await executeQuery('100%_off*deal');
 
-      const pattern = mockRepo.fetchTransactionsByPattern.mock.calls[0][0];
+      const pattern = transactionPattern();
       // Outer * stay as ILIKE wildcards; user-typed * and _ are escaped with \.
       expect(pattern.startsWith('"*')).toBe(true);
       expect(pattern.endsWith('*"')).toBe(true);
@@ -108,11 +113,38 @@ describe('SearchTransactionsUseCase', () => {
     });
 
     it('should pass identical pattern to both transaction and budget-line repo calls', async () => {
-      await useCase.execute('hello, world', mockUser);
+      await executeQuery('hello, world');
 
-      const txPattern = mockRepo.fetchTransactionsByPattern.mock.calls[0][0];
-      const blPattern = mockRepo.fetchBudgetLinesByPattern.mock.calls[0][0];
+      const txPattern =
+        mockRepo.fetchTransactionsByPattern.mock.calls[0][0].searchPattern;
+      const blPattern =
+        mockRepo.fetchBudgetLinesByPattern.mock.calls[0][0].searchPattern;
       expect(txPattern).toBe(blPattern);
+    });
+  });
+
+  describe('filter criteria', () => {
+    it('should scope text and tag filters to budgets from selected years', async () => {
+      mockRepo.fetchBudgetIdsByYears.mockResolvedValue([
+        'budget-1',
+        'budget-2',
+      ]);
+
+      await useCase.execute(
+        { q: 'Courses', years: [2025, 2026], tagIds: ['tag-1'] },
+        mockUser,
+      );
+
+      expect(mockRepo.fetchBudgetIdsByYears).toHaveBeenCalledWith(
+        mockUser.id,
+        [2025, 2026],
+      );
+      expect(mockRepo.fetchTransactionsByPattern).toHaveBeenCalledWith({
+        userId: mockUser.id,
+        searchPattern: '"*Courses*"',
+        budgetIds: ['budget-1', 'budget-2'],
+        tagIds: ['tag-1'],
+      });
     });
   });
 });

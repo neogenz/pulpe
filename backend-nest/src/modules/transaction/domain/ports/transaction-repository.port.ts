@@ -10,6 +10,13 @@ import type {
 
 export const TRANSACTION_REPOSITORY = Symbol('TRANSACTION_REPOSITORY');
 
+export interface TransactionSearchCriteria {
+  userId: string;
+  searchPattern: string | null;
+  budgetIds: string[] | null;
+  tagIds: string[];
+}
+
 export interface TransactionRepositoryPort {
   findAll(): Promise<Transaction[]>;
   findById(id: string): Promise<Transaction>;
@@ -44,11 +51,9 @@ export interface TransactionRepositoryPort {
   assertBudgetLineExists(budgetLineId: string): Promise<void>;
   fetchBudgetIdsByYears(userId: string, years: number[]): Promise<string[]>;
   fetchTransactionsByPattern(
-    searchPattern: string,
-    budgetIds: string[] | null,
+    criteria: TransactionSearchCriteria,
   ): Promise<TransactionSearchTransactionRow[]>;
   fetchBudgetLinesByPattern(
-    searchPattern: string,
-    budgetIds: string[] | null,
+    criteria: TransactionSearchCriteria,
   ): Promise<TransactionSearchBudgetLineRow[]>;
 }
