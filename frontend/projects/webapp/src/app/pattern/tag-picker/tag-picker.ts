@@ -27,13 +27,6 @@ type TagSuggestion =
   | { readonly type: 'existing'; readonly id: string; readonly name: string }
   | { readonly type: 'create'; readonly name: string };
 
-/**
- * Reusable multi-select tag picker for transactions (PUL-18). Binds to a
- * signal-forms `FieldTree<string[]>` of tag ids — mirroring `pulpe-amount-input`
- * — so parent forms wire it with `[control]="form.tagIds"`. Selecting an
- * autocomplete option attaches an existing tag; the "create" option provisions
- * a new tag through `TagStore` and attaches it.
- */
 @Component({
   selector: 'pulpe-tag-picker',
   changeDetection: ChangeDetectionStrategy.OnPush,

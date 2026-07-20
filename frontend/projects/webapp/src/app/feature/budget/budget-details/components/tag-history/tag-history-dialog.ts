@@ -3,9 +3,9 @@ import {
   Component,
   computed,
   inject,
-  resource,
   signal,
 } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -16,7 +16,6 @@ import { TranslocoPipe } from '@jsverse/transloco';
 import { AmountsVisibilityService } from '@core/amounts-visibility/amounts-visibility.service';
 import { AppCurrencyPipe } from '@core/currency';
 import { TagApi } from '@core/tag';
-import { firstValueFrom } from 'rxjs';
 import type { SupportedCurrency, Tag, TagHistoryMonths } from 'pulpe-shared';
 import { TagHistoryChart } from './tag-history-chart';
 
@@ -227,21 +226,21 @@ export interface TagHistoryDialogData {
   `,
 })
 export class TagHistoryDialog {
-  readonly data = inject<TagHistoryDialogData>(MAT_DIALOG_DATA);
+  protected readonly data = inject<TagHistoryDialogData>(MAT_DIALOG_DATA);
   readonly #tagApi = inject(TagApi);
   readonly #amountsVisibility = inject(AmountsVisibilityService);
   readonly #currencyPipe = new AppCurrencyPipe();
 
-  readonly monthOptions: readonly TagHistoryMonths[] = [3, 6, 12, 24];
-  readonly selectedTagId = signal(
+  protected readonly monthOptions: readonly TagHistoryMonths[] = [3, 6, 12, 24];
+  protected readonly selectedTagId = signal(
     this.data.selectedTagId ?? this.data.tags[0]?.id ?? '',
   );
-  readonly months = signal<TagHistoryMonths>(3);
-  readonly selectedTag = computed(() =>
+  protected readonly months = signal<TagHistoryMonths>(3);
+  protected readonly selectedTag = computed(() =>
     this.data.tags.find((tag) => tag.id === this.selectedTagId()),
   );
 
-  readonly historyResource = resource({
+  protected readonly historyResource = rxResource({
     params: () => {
       const tagId = this.selectedTagId();
       if (!tagId) return undefined;
@@ -252,24 +251,24 @@ export class TagHistoryDialog {
         endYear: this.data.endYear,
       };
     },
-    loader: ({ params }) =>
-      firstValueFrom(
-        this.#tagApi.getHistory$(params.tagId, {
-          months: params.months,
-          endMonth: params.endMonth,
-          endYear: params.endYear,
-        }),
-      ),
+    stream: ({ params }) =>
+      this.#tagApi.getHistory$(params.tagId, {
+        months: params.months,
+        endMonth: params.endMonth,
+        endYear: params.endYear,
+      }),
   });
 
-  readonly history = computed(() => this.historyResource.value()?.data ?? null);
-  readonly isEmpty = computed(() =>
+  protected readonly history = computed(
+    () => this.historyResource.value()?.data ?? null,
+  );
+  protected readonly isEmpty = computed(() =>
     this.history()?.periods.every(
       (period) => period.plannedAmount === 0 && period.actualAmount === 0,
     ),
   );
 
-  retry(): void {
+  protected retry(): void {
     this.historyResource.reload();
   }
 

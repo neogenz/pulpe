@@ -10,7 +10,7 @@ import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { AmountsVisibilityService } from '@core/amounts-visibility/amounts-visibility.service';
 import { TagApi } from '@core/tag';
 import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
-import { of, Subject, throwError } from 'rxjs';
+import { Observable, of, Subject, throwError } from 'rxjs';
 import type {
   SupportedCurrency,
   Tag,
@@ -132,15 +132,15 @@ describe('TagHistoryDialog', () => {
 
   it('selects the first tag and reloads for each tag or horizon change', async () => {
     await settle();
-    expect(component.selectedTagId()).toBe(tags[0].id);
+    expect(component['selectedTagId']()).toBe(tags[0].id);
     expect(getHistory$).toHaveBeenLastCalledWith(tags[0].id, {
       months: 3,
       endMonth: 7,
       endYear: 2026,
     });
 
-    component.selectedTagId.set(tags[1].id);
-    component.months.set(12);
+    component['selectedTagId'].set(tags[1].id);
+    component['months'].set(12);
     await settle();
 
     expect(getHistory$).toHaveBeenLastCalledWith(tags[1].id, {
@@ -155,7 +155,7 @@ describe('TagHistoryDialog', () => {
     getHistory$.mockReturnValueOnce(
       throwError(() => new Error('history unavailable')),
     );
-    component.historyResource.reload();
+    component['historyResource'].reload();
     await settle();
 
     expect(
@@ -163,10 +163,10 @@ describe('TagHistoryDialog', () => {
     ).not.toBeNull();
 
     getHistory$.mockReturnValueOnce(of(makeResponse()));
-    component.retry();
+    component['retry']();
     await settle();
 
-    expect(component.selectedTagId()).toBe(tags[0].id);
+    expect(component['selectedTagId']()).toBe(tags[0].id);
     expect(
       fixture.nativeElement.querySelector(
         '[data-testid="tag-history-summary"]',
@@ -178,7 +178,7 @@ describe('TagHistoryDialog', () => {
     await settle();
     const pending = new Subject<TagHistoryResponse>();
     getHistory$.mockReturnValueOnce(pending);
-    component.months.set(6);
+    component['months'].set(6);
     fixture.detectChanges();
     TestBed.flushEffects();
     fixture.detectChanges();
@@ -211,6 +211,23 @@ describe('TagHistoryDialog', () => {
     ).not.toBeNull();
   });
 
+  it('cancels the previous request when the history parameters change', async () => {
+    const teardown = vi.fn();
+    getHistory$.mockReturnValueOnce(
+      new Observable<TagHistoryResponse>(() => teardown),
+    );
+    component['historyResource'].reload();
+    fixture.detectChanges();
+    TestBed.flushEffects();
+
+    component['months'].set(6);
+    fixture.detectChanges();
+    TestBed.flushEffects();
+    await fixture.whenStable();
+
+    expect(teardown).toHaveBeenCalledOnce();
+  });
+
   it('masks cards and accessible chart text without removing the data', async () => {
     await settle();
     TestBed.inject(AmountsVisibilityService).toggle();
@@ -221,6 +238,6 @@ describe('TagHistoryDialog', () => {
     );
     expect(summary.textContent).toContain('•••••');
     expect(summary.textContent).not.toContain('200 CHF');
-    expect(component.history()?.totalActual).toBe(200);
+    expect(component['history']()?.totalActual).toBe(200);
   });
 });
