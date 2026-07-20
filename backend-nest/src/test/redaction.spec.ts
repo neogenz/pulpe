@@ -1,6 +1,6 @@
 import { ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { beforeEach, describe, expect, it, mock } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test';
 import { PinoLogger } from 'nestjs-pino';
 import { GlobalExceptionFilter } from '../common/filters/global-exception.filter';
 
@@ -59,6 +59,10 @@ describe('Sensitive Data Redaction Test', () => {
 
   beforeEach(() => {
     capturedLogs = [];
+    // The request body is only ever logged in development — see the
+    // production guarantee asserted in 'GlobalExceptionFilter Redaction'.
+    // The sanitize denylist below therefore describes dev-only behaviour.
+    process.env.NODE_ENV = 'development';
 
     // Create mock logger that captures log calls
     mockLogger = {
@@ -77,6 +81,10 @@ describe('Sensitive Data Redaction Test', () => {
     } as any;
 
     globalExceptionFilter = new GlobalExceptionFilter(mockLogger);
+  });
+
+  afterEach(() => {
+    delete process.env.NODE_ENV;
   });
 
   describe('Pino Logger Configuration', () => {
@@ -103,6 +111,29 @@ describe('Sensitive Data Redaction Test', () => {
   });
 
   describe('GlobalExceptionFilter Redaction', () => {
+    it('should omit the request body entirely outside development', () => {
+      // The denylist below covers only password/token/secret/authorization/auth.
+      // Vault key material (clientKey, oldClientKey, newClientKey, recoveryKey)
+      // and financial amounts are NOT covered, and pino's `req.body.*` redact
+      // paths do not reach this hand-built log object. Production must
+      // therefore carry no body at all rather than a partially-redacted one.
+      process.env.NODE_ENV = 'production';
+      const request = createMockRequest({
+        body: { clientKey: 'ab'.repeat(32), recoveryKey: 'RECOVERY-KEY' },
+      });
+      const host = createMockArgumentsHost(request, createMockResponse());
+
+      globalExceptionFilter.catch(
+        new HttpException('Test error', HttpStatus.BAD_REQUEST),
+        host,
+      );
+
+      const logContext = capturedLogs[0].context;
+      expect(logContext.requestBody).toBeUndefined();
+      expect(JSON.stringify(logContext)).not.toContain('ab'.repeat(32));
+      expect(JSON.stringify(logContext)).not.toContain('RECOVERY-KEY');
+    });
+
     it('should redact sensitive data in error logs from request body', () => {
       const request = createMockRequest();
       const response = createMockResponse();

@@ -588,6 +588,54 @@ describe('GlobalExceptionFilter', () => {
   });
 
   describe('Logging behavior', () => {
+    it('should not log the request body outside development', async () => {
+      // Arrange - a wrong-PIN /encryption/validate-key call carries vault key material
+      process.env.NODE_ENV = 'production';
+      const warn = spyOn(mockLogger, 'warn');
+      const request = createMockRequest({
+        method: 'POST',
+        url: '/api/v1/encryption/validate-key',
+        body: { clientKey: 'ab'.repeat(32) },
+      });
+      const host = createMockArgumentsHost(request, createMockResponse());
+
+      // Act
+      filter.catch(
+        new BusinessException(ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED),
+        host,
+      );
+
+      // Assert
+      const [logContext] = warn.mock.calls[0] as [Record<string, unknown>];
+      expect(logContext.requestBody).toBeUndefined();
+      expect(JSON.stringify(logContext)).not.toContain('ab'.repeat(32));
+    });
+
+    it('should log the sanitized request body in development', async () => {
+      // Arrange
+      process.env.NODE_ENV = 'development';
+      const warn = spyOn(mockLogger, 'warn');
+      const request = createMockRequest({
+        method: 'POST',
+        url: '/api/v1/users',
+        body: { name: 'Test User', password: 'hunter2' },
+      });
+      const host = createMockArgumentsHost(request, createMockResponse());
+
+      // Act
+      filter.catch(
+        new HttpException('Bad request', HttpStatus.BAD_REQUEST),
+        host,
+      );
+
+      // Assert
+      const [logContext] = warn.mock.calls[0] as [Record<string, unknown>];
+      expect(logContext.requestBody).toEqual({
+        name: 'Test User',
+        password: '[REDACTED]',
+      });
+    });
+
     it('should handle ZodValidationException logging gracefully', async () => {
       const validationErrors = { message: 'Email validation failed' };
       const zodException = createZodValidationException(validationErrors);
