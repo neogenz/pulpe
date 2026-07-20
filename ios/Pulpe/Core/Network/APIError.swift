@@ -32,6 +32,8 @@ enum APIError: LocalizedError {
     case savingsWithdrawalGroupNotFound
     case savingsWithdrawalConflict
     case savingsWithdrawalRecalculationFailed
+    case savingsGoalBaselineRecalculationFailed
+    case savingsGoalGenerationStopRecalculationFailed
 
     var errorDescription: String? {
         switch self {
@@ -94,6 +96,12 @@ enum APIError: LocalizedError {
         case .savingsWithdrawalRecalculationFailed:
             return "La pioche a bien été créée, mais les soldes n'ont pas pu être actualisés — "
                 + "recharge la page sans relancer la pioche"
+        case .savingsGoalBaselineRecalculationFailed:
+            return "L'objectif et sa prévision mensuelle ont bien été créés, mais les soldes "
+                + "n'ont pas pu être actualisés — recharge la page sans recréer l'objectif"
+        case .savingsGoalGenerationStopRecalculationFailed:
+            return "La décision a bien été enregistrée, mais les soldes n'ont pas pu être actualisés — "
+                + "recharge la page sans réessayer"
         }
     }
 
@@ -125,6 +133,8 @@ enum APIError: LocalizedError {
         "ERR_SAVINGS_WITHDRAWAL_GROUP_NOT_FOUND": .savingsWithdrawalGroupNotFound,
         "ERR_SAVINGS_WITHDRAWAL_CONFLICT": .savingsWithdrawalConflict,
         "ERR_SAVINGS_WITHDRAWAL_RECALCULATION_FAILED": .savingsWithdrawalRecalculationFailed,
+        "ERR_SAVINGS_GOAL_BASELINE_RECALCULATION_FAILED": .savingsGoalBaselineRecalculationFailed,
+        "ERR_SAVINGS_GOAL_GENERATION_STOP_RECALCULATION_FAILED": .savingsGoalGenerationStopRecalculationFailed,
     ]
 
     /// Create APIError from server error code

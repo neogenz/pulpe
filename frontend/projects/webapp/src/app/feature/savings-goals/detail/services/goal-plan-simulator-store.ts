@@ -126,6 +126,7 @@ export class GoalPlanSimulatorStore {
       targetAmount: this.targetAmount(),
       adjustments: this.#adjustments(),
       globalMonthlyAmount: this.#globalAmount() ?? undefined,
+      initialAmount: this.#store.progress()?.initialAmount ?? 0,
     });
   });
 
@@ -186,6 +187,7 @@ export class GoalPlanSimulatorStore {
       timeline: this.baseline(),
       targetAmount: this.targetAmount(),
       pinnedAdjustments: this.#adjustments(),
+      initialAmount: this.#store.progress()?.initialAmount ?? 0,
     });
     if (result.isDistributable) {
       const next = new Map(this.#overrides());

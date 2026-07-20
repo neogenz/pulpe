@@ -91,11 +91,13 @@ enum SavingsPlanCalculator {
     /// Simulates the plan: each locked month keeps its reality (`confirmedAmount`),
     /// each open month takes `adjustment ?? globalMonthlyAmount ?? plannedAmount`.
     /// Targeting a locked or gap month via `adjustments` throws.
+    /// `initialAmount` (PUL-293 stock de départ) seeds `simulatedCumulative`.
     static func simulate(
         timeline: [SavingsGoalPlanMonth],
         targetAmount: Decimal,
         adjustments: [Adjustment] = [],
-        globalMonthlyAmount: Decimal? = nil
+        globalMonthlyAmount: Decimal? = nil,
+        initialAmount: Decimal = 0
     ) throws -> SimulationResult {
         var adjustmentsByKey: [Int: Decimal] = [:]
         for adjustment in adjustments {
@@ -112,7 +114,7 @@ enum SavingsPlanCalculator {
         }
 
         var months: [SimulatedMonth] = []
-        var simulatedCumulative: Decimal = 0
+        var simulatedCumulative: Decimal = initialAmount
         var attainedPeriod: BudgetPeriod?
 
         for month in timeline {
@@ -162,12 +164,14 @@ enum SavingsPlanCalculator {
     /// non-pinned months cents-exact via `SpreadSplit`. Generalisation of PUL-290
     /// (`remainingToProvision` / `perRemainingMonth`).
     ///
-    /// `remaining = max(0, target − Σ confirmed(locked months) − Σ pinned open)`.
+    /// `remaining = max(0, target − initialAmount − Σ confirmed(locked months) − Σ pinned open)`.
     /// `isDistributable = false` when no open, non-pinned month remains (overdue).
+    /// `initialAmount` (PUL-293 stock de départ) is deducted before distributing.
     static func redistributeRemainingEffort(
         timeline: [SavingsGoalPlanMonth],
         targetAmount: Decimal,
-        pinnedAdjustments: [Adjustment] = []
+        pinnedAdjustments: [Adjustment] = [],
+        initialAmount: Decimal = 0
     ) -> RedistributeResult {
         var pinnedByKey: [Int: Decimal] = [:]
         for pin in pinnedAdjustments {
@@ -185,7 +189,7 @@ enum SavingsPlanCalculator {
             .compactMap { pinnedByKey[periodKey(month: $0.month, year: $0.year)] }
             .reduce(Decimal(0), +)
 
-        let remaining = max(0, targetAmount - lockedConfirmedSum - pinnedSum)
+        let remaining = max(0, targetAmount - initialAmount - lockedConfirmedSum - pinnedSum)
 
         let hasUnavailablePeriod = timeline.contains {
             !$0.isLocked && !isContributivePlanMonth($0)
@@ -271,6 +275,36 @@ enum SavingsPlanCalculator {
         return zip(openLines, cents).map { line, value in
             LineAllocation(budgetLineId: line.budgetLineId, amount: Decimal(value) / Decimal(centsPerUnit))
         }
+    }
+
+    // MARK: - Suggested monthly contribution (PUL-285 CA1/CA6)
+
+    /// Mirror of shared `suggestedMonthlyContribution`: amount left to save ÷
+    /// months remaining (payDay-aware, current AND deadline months inclusive —
+    /// same base as formula 5 `required = max(0, target − confirmed) / months`,
+    /// where confirmed at creation reduces to the initial amount), rounded UP
+    /// to the cent so `suggestion × months ≥ remaining`. `nil` when the
+    /// deadline is already past, the target is not positive, or the initial
+    /// amount already covers the target (nothing left to decompose).
+    static func suggestedMonthlyContribution(
+        targetAmount: Decimal,
+        targetDate: Date,
+        payDayOfMonth: Int?,
+        initialAmount: Decimal = 0,
+        now: Date = Date()
+    ) -> Decimal? {
+        let current = BudgetPeriodCalculator.periodForDate(now, payDayOfMonth: payDayOfMonth)
+        let target = BudgetPeriodCalculator.periodForDate(targetDate, payDayOfMonth: payDayOfMonth)
+        let monthsRemaining = periodKey(month: target.month, year: target.year)
+            - periodKey(month: current.month, year: current.year) + 1
+        guard monthsRemaining > 0, targetAmount > 0 else { return nil }
+        let remaining = targetAmount - initialAmount
+        guard remaining > 0 else { return nil }
+
+        var rawCents = remaining / Decimal(monthsRemaining) * Decimal(centsPerUnit)
+        var roundedCents = Decimal()
+        NSDecimalRound(&roundedCents, &rawCents, 0, .up)
+        return roundedCents / Decimal(centsPerUnit)
     }
 
     // MARK: - Helpers

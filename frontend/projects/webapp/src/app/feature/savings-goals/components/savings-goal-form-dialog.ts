@@ -28,10 +28,12 @@ import {
 } from '@angular/forms/signals';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { addMonths, endOfMonth, format, parse } from 'date-fns';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import {
   CURRENCY_METADATA,
   MAX_SAVINGS_GOAL_PLAN_PERIODS,
   savingsGoalStatusSchema,
+  suggestedMonthlyContribution,
   type SavingsGoal,
   type SavingsGoalStatus,
 } from 'pulpe-shared';
@@ -69,6 +71,7 @@ function isoToDate(value: string): Date | null {
     MatButtonModule,
     MatIconModule,
     MatDatepickerModule,
+    MatSlideToggleModule,
     TranslocoPipe,
     FormField,
   ],
@@ -129,6 +132,34 @@ function isoToDate(value: string): Date | null {
           class="w-full"
         >
           <mat-label>{{
+            'savingsGoals.fieldInitialAmount' | transloco
+          }}</mat-label>
+          <input
+            matInput
+            type="number"
+            step="0.01"
+            inputmode="decimal"
+            [formField]="goalForm.initialAmount"
+            data-testid="savings-goal-initial-amount"
+          />
+          <span matTextSuffix>{{ currencySymbol() }}</span>
+          @if (initialAmountErrors().negative) {
+            <mat-error>{{
+              'savingsGoals.initialAmountNegative' | transloco
+            }}</mat-error>
+          } @else {
+            <mat-hint>{{
+              'savingsGoals.initialAmountHint' | transloco
+            }}</mat-hint>
+          }
+        </mat-form-field>
+
+        <mat-form-field
+          appearance="outline"
+          subscriptSizing="dynamic"
+          class="w-full"
+        >
+          <mat-label>{{
             'savingsGoals.fieldTargetDate' | transloco
           }}</mat-label>
           <input
@@ -157,6 +188,48 @@ function isoToDate(value: string): Date | null {
             }}</mat-error>
           }
         </mat-form-field>
+
+        @if (!isEdit() && hasRemainingToSave()) {
+          <mat-slide-toggle
+            [checked]="decomposeEnabled()"
+            (change)="decomposeEnabled.set($event.checked)"
+            data-testid="savings-goal-decompose-toggle"
+          >
+            {{ 'savingsGoals.decomposeToggle' | transloco }}
+          </mat-slide-toggle>
+
+          @if (decomposeEnabled()) {
+            <mat-form-field
+              appearance="outline"
+              subscriptSizing="dynamic"
+              class="w-full"
+            >
+              <mat-label>{{
+                'savingsGoals.fieldMonthlyContribution' | transloco
+              }}</mat-label>
+              <input
+                matInput
+                type="number"
+                step="0.01"
+                min="0.01"
+                inputmode="decimal"
+                [value]="monthlyContribution() ?? ''"
+                (input)="onMonthlyContributionInput($event)"
+                data-testid="savings-goal-monthly-contribution"
+              />
+              <span matTextSuffix>{{ currencySymbol() }}</span>
+              @if (isMonthlyContributionInvalid()) {
+                <mat-hint class="text-error">{{
+                  'savingsGoals.monthlyContributionInvalid' | transloco
+                }}</mat-hint>
+              } @else {
+                <mat-hint>{{
+                  'savingsGoals.decomposeHint' | transloco
+                }}</mat-hint>
+              }
+            </mat-form-field>
+          }
+        }
 
         @if (isEdit()) {
           <mat-form-field
@@ -225,6 +298,7 @@ export class SavingsGoalFormDialog {
   protected readonly model = signal<SavingsGoalFormValue>({
     name: this.#data.goal?.name ?? '',
     targetAmount: this.#data.goal?.targetAmount ?? 0,
+    initialAmount: this.#data.goal?.initialAmount ?? 0,
     targetDate: this.#data.goal?.targetDate ?? '',
     status: this.#data.goal?.status ?? 'ACTIVE',
   });
@@ -236,6 +310,14 @@ export class SavingsGoalFormDialog {
     validate(path.targetAmount, ({ value }) =>
       value() > 0 ? null : { kind: 'required' },
     );
+    // Optional field (no `min` attribute — the signal-forms `[formField]`
+    // directive rejects it on NG8022) — enforce non-negative via schema instead.
+    // A cleared field reads null: that means "no initial amount", so it is
+    // valid, and the builders normalize it to 0 before the strict schema.
+    validate(path.initialAmount, ({ value }) => {
+      const amount = value();
+      return amount == null || amount >= 0 ? null : { kind: 'negative' };
+    });
     required(path.targetDate, { message: 'savingsGoals.fieldTargetDate' });
     validate(path.targetDate, ({ value }) => {
       const v = value();
@@ -249,7 +331,46 @@ export class SavingsGoalFormDialog {
     });
   });
 
-  protected readonly canSubmit = computed(() => this.goalForm().valid());
+  // PUL-285 CA6 — opt-in « décomposer en mensualités », création uniquement.
+  // Pré-coché ; la suggestion suit cible/échéance tant que l'utilisateur n'a
+  // pas saisi son propre montant (vider le champ rend la main à la suggestion).
+  protected readonly decomposeEnabled = signal(!this.#data.goal);
+  readonly #monthlyContributionOverride = signal<number | null>(null);
+  readonly #suggestedMonthly = computed(() => {
+    const { targetAmount, targetDate, initialAmount } = this.model();
+    if (!targetAmount || targetAmount <= 0 || !targetDate) return null;
+    return suggestedMonthlyContribution({
+      targetAmount,
+      targetDate,
+      // Le montant de départ est déjà acquis : décomposer la cible ENTIÈRE
+      // sur-provisionnerait la prévision récurrente générée (PUL-285 CA2).
+      initialAmount: initialAmount ?? 0,
+      payDayOfMonth: this.#settings.payDayOfMonth(),
+    });
+  });
+  /** Le montant de départ couvre déjà la cible ⇒ plus rien à décomposer. */
+  protected readonly hasRemainingToSave = computed(() => {
+    const { targetAmount, initialAmount } = this.model();
+    return targetAmount - (initialAmount ?? 0) > 0;
+  });
+  protected readonly monthlyContribution = computed(
+    () => this.#monthlyContributionOverride() ?? this.#suggestedMonthly(),
+  );
+  // Option active + montant non positif = décomposition silencieusement
+  // perdue : on bloque la soumission plutôt que d'omettre le champ. Sans reste
+  // à épargner l'option disparaît : bloquer sur un contrôle masqué ferait un
+  // cul-de-sac silencieux.
+  protected readonly isMonthlyContributionInvalid = computed(
+    () =>
+      !this.isEdit() &&
+      this.hasRemainingToSave() &&
+      this.decomposeEnabled() &&
+      (this.monthlyContribution() ?? 0) <= 0,
+  );
+
+  protected readonly canSubmit = computed(
+    () => this.goalForm().valid() && !this.isMonthlyContributionInvalid(),
+  );
 
   protected readonly targetDateAsDate = computed(() =>
     isoToDate(this.model().targetDate),
@@ -262,6 +383,10 @@ export class SavingsGoalFormDialog {
   protected readonly targetAmountErrors = touchedFieldErrors(
     () => this.goalForm.targetAmount,
     'required',
+  );
+  protected readonly initialAmountErrors = touchedFieldErrors(
+    () => this.goalForm.initialAmount,
+    'negative',
   );
   protected readonly targetDateErrors = touchedFieldErrors(
     () => this.goalForm.targetDate,
@@ -281,6 +406,14 @@ export class SavingsGoalFormDialog {
     }
   }
 
+  protected onMonthlyContributionInput(event: Event): void {
+    const raw = (event.target as HTMLInputElement).value;
+    const parsed = Number(raw);
+    this.#monthlyContributionOverride.set(
+      raw === '' || !Number.isFinite(parsed) ? null : parsed,
+    );
+  }
+
   protected onTargetDateChange(event: MatDatepickerInputEvent<Date>): void {
     const date = event.value;
     this.model.update((m) => ({
@@ -296,7 +429,12 @@ export class SavingsGoalFormDialog {
     const value = this.model();
     const result = this.isEdit()
       ? buildSavingsGoalUpdate(value, this.#data.goal)
-      : buildSavingsGoalCreate(value);
+      : buildSavingsGoalCreate(
+          value,
+          this.decomposeEnabled() && this.hasRemainingToSave()
+            ? this.monthlyContribution()
+            : null,
+        );
     this.#dialogRef.close(result);
   }
 

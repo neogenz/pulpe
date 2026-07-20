@@ -29,6 +29,7 @@ const goal: SavingsGoal = {
   originalCurrency: null,
   targetCurrency: null,
   exchangeRate: null,
+  initialAmount: null,
 };
 
 const contribution: SavingsGoalContribution = {

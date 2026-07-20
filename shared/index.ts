@@ -89,6 +89,10 @@ export {
   savingsGoalPlanMonthSchema,
   savingsGoalPlanApplySchema,
   savingsGoalPlanApplyResponseSchema,
+  savingsGoalFutureLineSchema,
+  savingsGoalFutureLinesResponseSchema,
+  savingsGoalGenerationStopSchema,
+  savingsGoalGenerationStopResponseSchema,
   MAX_SAVINGS_GOAL_PLAN_PERIODS,
   MAX_PLAN_ADJUSTMENTS,
 
@@ -196,10 +200,12 @@ export {
   MAX_ESTIMATED_HORIZON_MONTHS,
   calculatePaceStatus,
   computeSavingsGoalProgress,
+  suggestedMonthlyContribution,
   type LinkedSavingLine,
   type LinkedSavingTransaction,
   type SavingsGoalProgressInput,
   type SavingsGoalProgressResult,
+  type SuggestedMonthlyContributionInput,
 } from './src/calculators/index.js';
 export {
   buildSavingsGoalTimeline,
@@ -328,6 +334,10 @@ export type {
   SavingsGoalPlanMonth,
   SavingsGoalPlanApply,
   SavingsGoalPlanApplyResponse,
+  SavingsGoalFutureLine,
+  SavingsGoalFutureLinesResponse,
+  SavingsGoalGenerationStop,
+  SavingsGoalGenerationStopResponse,
 
   // Budget Line types
   BudgetLine,

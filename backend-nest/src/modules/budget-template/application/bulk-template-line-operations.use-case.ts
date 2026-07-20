@@ -50,7 +50,7 @@ export class BulkTemplateLineOperationsUseCase {
   async execute(
     templateId: string,
     bulkOperationsDto: TemplateLinesBulkOperations,
-    user: AuthenticatedUser,
+    user: Pick<AuthenticatedUser, 'id'>,
   ): Promise<BulkTemplateLineOperationsResult> {
     const startTime = Date.now();
 
@@ -242,7 +242,7 @@ export class BulkTemplateLineOperationsUseCase {
 
   private logBulkOperationsCompleted(
     templateId: string,
-    user: AuthenticatedUser,
+    user: Pick<AuthenticatedUser, 'id'>,
     validated: TemplateLinesBulkOperations,
     deletedCount: number,
     propagationSummary: TemplateLinesPropagationSummary,

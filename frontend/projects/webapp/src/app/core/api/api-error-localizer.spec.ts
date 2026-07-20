@@ -47,6 +47,30 @@ describe('ApiErrorLocalizer', () => {
     );
   });
 
+  it('should warn that a generation-stop decision committed when balance refresh fails', () => {
+    const error = new ApiError(
+      'Decision committed but recalculation failed',
+      'ERR_SAVINGS_GOAL_GENERATION_STOP_RECALCULATION_FAILED',
+      500,
+      null,
+    );
+    expect(service.localizeApiError(error)).toBe(
+      "La décision a bien été enregistrée, mais les soldes n'ont pas pu être actualisés — recharge la page sans réessayer",
+    );
+  });
+
+  it('should warn that goal creation committed when baseline recalculation fails', () => {
+    const error = new ApiError(
+      'Goal and baseline committed but recalculation failed',
+      'ERR_SAVINGS_GOAL_BASELINE_RECALCULATION_FAILED',
+      500,
+      null,
+    );
+    expect(service.localizeApiError(error)).toBe(
+      "L'objectif et sa prévision mensuelle ont bien été créés, mais les soldes n'ont pas pu être actualisés — recharge la page sans recréer l'objectif",
+    );
+  });
+
   it('should localize template errors', () => {
     const error = new ApiError(
       'Not found',

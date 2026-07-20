@@ -169,9 +169,36 @@ describe('rekeySavingsGoalRpcPayloadSchema', () => {
       id: VALID_UUID,
       target_amount: VALID_CIPHERTEXT,
       original_target_amount: null,
+      initial_amount: null,
     };
 
     expect(rekeySavingsGoalRpcPayloadSchema.parse(payload)).toEqual(payload);
+  });
+
+  it('should accept a null initial_amount (PUL-293, nullable column)', () => {
+    const payload = {
+      id: VALID_UUID,
+      target_amount: VALID_CIPHERTEXT,
+      original_target_amount: null,
+      initial_amount: null,
+    };
+
+    expect(
+      rekeySavingsGoalRpcPayloadSchema.parse(payload).initial_amount,
+    ).toBeNull();
+  });
+
+  it('should accept a ciphertext initial_amount (PUL-293)', () => {
+    const payload = {
+      id: VALID_UUID,
+      target_amount: VALID_CIPHERTEXT,
+      original_target_amount: null,
+      initial_amount: VALID_CIPHERTEXT,
+    };
+
+    expect(rekeySavingsGoalRpcPayloadSchema.parse(payload).initial_amount).toBe(
+      VALID_CIPHERTEXT,
+    );
   });
 
   it('should reject use of amount key (wrong field name for savings_goal)', () => {
@@ -189,6 +216,7 @@ describe('rekeySavingsGoalRpcPayloadSchema', () => {
       id: VALID_UUID,
       target_amount: VALID_CIPHERTEXT,
       original_target_amount: null,
+      initial_amount: null,
       user_id: 'attacker',
     };
 

@@ -272,6 +272,7 @@ final class GoalPlanSimulatorViewModel {
     private let currency: SupportedCurrency
     private let baseline: [SavingsGoalPlanMonth]
     private let targetAmount: Decimal
+    private let initialAmount: Decimal // PUL-293 seed for every simulate/redistribute call below
     private let service: any SavingsGoalServicing
 
     /// Deadline period for the early/on-time verdict — refined once payDay lands.
@@ -301,6 +302,7 @@ final class GoalPlanSimulatorViewModel {
         self.service = service
         baseline = progress.months
         targetAmount = progress.targetAmount
+        initialAmount = progress.initialAmount
 
         let resolvedDeadline = goal.targetDateValue ?? Date()
         deadlineDate = resolvedDeadline
@@ -316,7 +318,8 @@ final class GoalPlanSimulatorViewModel {
 
         draft = (try? SavingsPlanCalculator.simulate(
             timeline: progress.months,
-            targetAmount: progress.targetAmount
+            targetAmount: progress.targetAmount,
+            initialAmount: progress.initialAmount
         )) ?? SavingsPlanCalculator.SimulationResult(
             months: [],
             simulatedFinal: 0,
@@ -352,7 +355,8 @@ final class GoalPlanSimulatorViewModel {
         SavingsPlanCalculator.redistributeRemainingEffort(
             timeline: baseline,
             targetAmount: targetAmount,
-            pinnedAdjustments: pinnedAdjustments
+            pinnedAdjustments: pinnedAdjustments,
+            initialAmount: initialAmount
         )
     }
 
@@ -459,7 +463,8 @@ final class GoalPlanSimulatorViewModel {
             timeline: baseline,
             targetAmount: targetAmount,
             adjustments: adjustments,
-            globalMonthlyAmount: globalAmount
+            globalMonthlyAmount: globalAmount,
+            initialAmount: initialAmount
         ) {
             draft = next
         }

@@ -249,6 +249,8 @@ export const savingsGoalSchema = z.object({
   originalCurrency: supportedCurrencySchema.nullable().optional(),
   targetCurrency: supportedCurrencySchema.nullable().optional(),
   exchangeRate: exchangeRateWire.nullable().optional(),
+  /** Montant déjà épargné avant le suivi (stock one-shot), chiffré en base. */
+  initialAmount: z.coerce.number().nonnegative().nullable().optional(),
 });
 export type SavingsGoal = z.infer<typeof savingsGoalSchema>;
 
@@ -280,10 +282,20 @@ export const savingsGoalCreateSchema = z.strictObject({
       error: 'Target date exceeds the 120-period planning horizon',
     }),
   status: savingsGoalStatusSchema.default('ACTIVE'),
+  /**
+   * Opt-in auto-décomposition (PUL-285 CA1/CA6) : montant mensuel choisi pour
+   * la prévision Épargne récurrente liée que le serveur génère sur le Mois
+   * Type par défaut et propage aux budgets matérialisés. Présence = opt-in ;
+   * le client pré-remplit via `suggestedMonthlyContribution` mais l'utilisateur
+   * garde la main (« pré-remplit, n'impose pas »).
+   */
+  monthlyContribution: z.number().positive().optional(),
   originalTargetAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
   exchangeRate: exchangeRateWirePositive.optional(),
+  /** Montant déjà épargné avant le suivi (stock one-shot). Omis = 0. */
+  initialAmount: z.number().nonnegative().optional(),
 });
 export type SavingsGoalCreate = z.infer<typeof savingsGoalCreateSchema>;
 
@@ -301,6 +313,8 @@ export const savingsGoalUpdateSchema = z.strictObject({
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
   exchangeRate: exchangeRateWirePositive.optional(),
+  /** Omis = inchangé ; `0` efface le montant de départ. */
+  initialAmount: z.number().nonnegative().optional(),
 });
 export type SavingsGoalUpdate = z.infer<typeof savingsGoalUpdateSchema>;
 
@@ -311,7 +325,9 @@ export type SavingsGoalUpdate = z.infer<typeof savingsGoalUpdateSchema>;
  * - `plannedCumulative` : engagement — Σ `line.amount` BRUT des prévisions
  *   Épargne liées des mois écoulés/en cours (pas d'enveloppe transactions).
  * - `confirmed` : réalité pointée — enveloppe checked-only (`checkedAt`),
- *   TOUS les mois (le pointage anticipé d'un mois futur compte).
+ *   TOUS les mois (le pointage anticipé d'un mois futur compte), PLUS
+ *   `initialAmount` (stock de départ). `confirmedPace`/`cumulativeGap`
+ *   restent des mesures de FLUX et excluent ce stock.
  *
  * `achievementPercent` et `suggestCompletion` (D2) portent EXCLUSIVEMENT sur
  * le confirmé — jamais le prévu. La projection (`projected`) et `paceStatus`
@@ -395,6 +411,9 @@ export const savingsGoalProgressSchema = z.object({
   cumulativeGap: z.number(),
   // Date d'atteinte estimée au rythme confirmé (docs/SAVINGS.md §10.2).
   estimatedCompletion: budgetPeriodSchema.nullable(),
+  // Montant de départ (stock, inclus dans confirmed) — default 0 pour les
+  // payloads/mocks existants qui ne portent pas encore le champ.
+  initialAmount: z.number().nonnegative().default(0),
   // Timeline ancrage → cible (chart A + calendrier B + rebase simulateur C).
   months: z.array(savingsGoalPlanMonthSchema),
   // FX door-keepers (CA6) — devise du compte uniquement en v1, toujours null.
@@ -463,6 +482,46 @@ export type SavingsGoalPlanApply = Omit<
 > & {
   missingMonthAdjustments?: ParsedSavingsGoalPlanApply['missingMonthAdjustments'];
 };
+
+/**
+ * Prévision liée future d'un objectif (PUL-285 CA5) : candidate advisory à
+ * figer ou retirer quand l'objectif passe PAUSED/COMPLETED. Servie par
+ * `GET /savings-goals/:id/future-lines` — lignes liées, non pointées, non
+ * ajustées à la main, du cycle courant (payDay-aware) et au-delà, y compris
+ * après `target_date`. Montant déchiffré.
+ */
+export const savingsGoalFutureLineSchema = z.object({
+  budgetLineId: z.uuid(),
+  amount: z.coerce.number().nonnegative(),
+  month: z.number().int().min(1).max(12),
+  year: z.number().int(),
+});
+export type SavingsGoalFutureLine = z.infer<typeof savingsGoalFutureLineSchema>;
+
+/**
+ * Décision advisory à l'arrêt de génération
+ * (`POST /savings-goals/:id/generation-stop`, PUL-285 CA5/CA8) :
+ * - `freeze` : garde la prévision, la délie de l'objectif ET la marque
+ *   `is_manually_adjusted` (sinon une propagation RG-001 ultérieure la
+ *   relierait) ;
+ * - `remove` : supprime la prévision des mois futurs (ses transactions
+ *   deviennent libres via FK `ON DELETE SET NULL`).
+ * Refus atomique (CA9) : jamais de mois passé, de ligne pointée ou déjà
+ * ajustée à la main.
+ */
+export const savingsGoalGenerationStopSchema = z
+  .strictObject({
+    mode: z.enum(['freeze', 'remove']),
+    budgetLineIds: z.array(z.uuid()).min(1).max(MAX_SAVINGS_GOAL_PLAN_PERIODS),
+  })
+  // Un doublon fausserait le comptage d'éligibilité de la RPC (422 trompeur).
+  .refine(
+    (value) => new Set(value.budgetLineIds).size === value.budgetLineIds.length,
+    { error: 'Une prévision apparaît deux fois dans la décision.' },
+  );
+export type SavingsGoalGenerationStop = z.infer<
+  typeof savingsGoalGenerationStopSchema
+>;
 
 /**
  * BUDGET LINE - Ligne budgétaire planifiée
@@ -1631,6 +1690,22 @@ export const savingsGoalPlanApplyResponseSchema = createSuccessResponse(
 );
 export type SavingsGoalPlanApplyResponse = z.infer<
   typeof savingsGoalPlanApplyResponseSchema
+>;
+
+export const savingsGoalFutureLinesResponseSchema = createListResponse(
+  savingsGoalFutureLineSchema,
+);
+export type SavingsGoalFutureLinesResponse = z.infer<
+  typeof savingsGoalFutureLinesResponseSchema
+>;
+
+export const savingsGoalGenerationStopResponseSchema = createSuccessResponse(
+  z.object({
+    affectedCount: z.number().int().nonnegative(),
+  }),
+);
+export type SavingsGoalGenerationStopResponse = z.infer<
+  typeof savingsGoalGenerationStopResponseSchema
 >;
 
 // Budget Line response schemas

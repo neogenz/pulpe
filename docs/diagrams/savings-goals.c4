@@ -1,12 +1,13 @@
 /**
  * Pulpe — Épargne : objectifs & progression
  *
- * Vision métier des workflows. Statut : fondation, progression et simulateur implémentés.
- * Les éléments #proposed décrivent l'auto-décomposition prospective :
- *  - la ligne auto est maintenue par le système jusqu'à override manuel ;
+ * Vision métier des workflows. Statut : fondation, progression, simulateur et
+ * auto-décomposition (PUL-285) implémentés.
+ *  - la ligne auto vit sur template_line (Mois Type) et suit RG-001 jusqu'à
+ *    override manuel — jamais de recalcul silencieux de son montant ;
  *  - la progression à 2 couches et l'application explicite du simulateur sont livrées.
  *
- * Tags : #foundation · #progression · #simulator · #automation (proposé).
+ * Tags : #foundation · #progression · #simulator · #automation.
  */
 
 specification {
@@ -52,7 +53,6 @@ specification {
   tag progression
   tag simulator
   tag automation
-  tag proposed
 }
 
 model {
@@ -89,7 +89,7 @@ model {
   backend = service "Backend NestJS" {
     goalCrud = usecase "CRUD objectifs" {
       #foundation
-      description "POST/GET/PATCH/DELETE. DELETE délie les lignes (savings_goal_id = null), ne supprime aucune ligne."
+      description "POST/GET/PATCH/DELETE. DELETE délie les lignes (savings_goal_id = null), ne supprime aucune ligne. PAUSED/COMPLETED stoppent la génération des lignes liées dans les nouveaux budgets (PUL-285 CA5)."
     }
     lineLink = usecase "Lien ligne ↔ objectif" {
       #foundation
@@ -105,8 +105,7 @@ model {
     }
     goalDecompose = usecase "Auto-décompose → ligne récurrente" {
       #automation
-      #proposed
-      description "Cible / mois restants → génère la ligne Épargne baseline, maintenue par le système."
+      description "Cible / mois restants (payDay-aware, arrondi centime sup) → template_line liée sur le Mois Type par défaut + propagation RG-001 aux budgets matérialisés."
     }
     goalReproject = usecase "Appliquer un plan simulé" {
       #simulator
@@ -199,12 +198,12 @@ views {
   }
 
   dynamic view autoDecompose {
-    title "Workflow 5 — Auto-décomposition à la création (proposé)"
-    user -> ios.goalForm "crée « Maison 100k / 48 mois »"
-    ios.goalForm -> backend.goalCrud "POST + option auto-décompose"
-    backend.goalCrud -> backend.goalDecompose "calcule 2083 / mois"
-    backend.goalDecompose -> db.lineTable "génère une ligne Épargne récurrente liée (modèle)"
-    backend.goalDecompose -> ios.goalDetail "objectif + ligne baseline maintenue par Pulpe"
+    title "Workflow 5 — Auto-décomposition à la création"
+    user -> ios.goalForm "crée « Maison 100k / 48 mois », mensualité pré-remplie éditable"
+    ios.goalForm -> backend.goalCrud "POST + monthlyContribution (opt-in)"
+    backend.goalCrud -> backend.goalDecompose "pose la baseline choisie (2083.34 / mois)"
+    backend.goalDecompose -> db.lineTable "template_line liée sur le Mois Type par défaut, propagée aux budgets courant+futurs (RG-001)"
+    backend.goalDecompose -> ios.goalDetail "objectif + ligne baseline maintenue par Pulpe jusqu'à override manuel"
   }
 
   dynamic view redistribution {

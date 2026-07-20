@@ -6,9 +6,10 @@ import {
   allocateMonthAmountToLines,
   type SavingsPlanTimelineMonth,
 } from './savings-goal-plan.js';
-import type {
-  LinkedSavingLine,
-  SavingsGoalProgressInput,
+import {
+  computeSavingsGoalProgress,
+  type LinkedSavingLine,
+  type SavingsGoalProgressInput,
 } from './savings-goal-progress.js';
 
 const savingLine = (
@@ -174,6 +175,29 @@ describe('buildSavingsGoalTimeline', () => {
     expect(currentMonth.plannedCumulative).toBe(1500);
     expect(timeline[5].confirmedCumulative).toBe(1000);
   });
+
+  it('should seed confirmedCumulative with initialAmount, leave plannedCumulative untouched, and keep the confirmed invariant', () => {
+    const seeded: SavingsGoalProgressInput = { ...input, initialAmount: 500 };
+    const baseline = buildSavingsGoalTimeline(input);
+    const timeline = buildSavingsGoalTimeline(seeded);
+    const progress = computeSavingsGoalProgress(seeded);
+
+    timeline.forEach((month, index) => {
+      expect(month.plannedCumulative).toBe(baseline[index].plannedCumulative);
+      expect(month.confirmedCumulative).toBe(
+        baseline[index].confirmedCumulative + 500,
+      );
+    });
+    expect(timeline[timeline.length - 1].confirmedCumulative).toBe(
+      progress.confirmed,
+    );
+  });
+
+  it('should produce an identical timeline whether initialAmount is absent or 0', () => {
+    const absent = buildSavingsGoalTimeline(input);
+    const zero = buildSavingsGoalTimeline({ ...input, initialAmount: 0 });
+    expect(zero).toEqual(absent);
+  });
 });
 
 describe('simulateSavingsPlan', () => {
@@ -247,6 +271,28 @@ describe('simulateSavingsPlan', () => {
         adjustments: [{ month: 1, year: 2026, amount: 800 }],
       }),
     ).toThrow();
+  });
+
+  it('should seed simulatedCumulative with initialAmount and reach the target earlier', () => {
+    const result = simulateSavingsPlan({
+      timeline,
+      targetAmount: 3000,
+      initialAmount: 2000,
+    });
+
+    expect(result.simulatedFinal).toBe(4000);
+    expect(result.isTargetMet).toBe(true);
+    expect(result.attainedPeriod).toEqual({ month: 2, year: 2026 });
+  });
+
+  it('should produce an identical simulation whether initialAmount is absent or 0', () => {
+    const absent = simulateSavingsPlan({ timeline, targetAmount: 3000 });
+    const zero = simulateSavingsPlan({
+      timeline,
+      targetAmount: 3000,
+      initialAmount: 0,
+    });
+    expect(zero).toEqual(absent);
   });
 });
 
@@ -380,6 +426,34 @@ describe('redistributeRemainingEffort', () => {
       { month: 3, year: 2026, amount: 0 },
       { month: 4, year: 2026, amount: 0 },
     ]);
+  });
+
+  it('should deduct the initial stock before distributing the remaining effort', () => {
+    const result = redistributeRemainingEffort({
+      timeline,
+      targetAmount: 10_000,
+      initialAmount: 5_000,
+    });
+
+    expect(result.isDistributable).toBe(true);
+    expect(result.remainingEffort).toBe(4_000);
+    expect(result.adjustments).toEqual([
+      { month: 3, year: 2026, amount: 2_000 },
+      { month: 4, year: 2026, amount: 2_000 },
+    ]);
+  });
+
+  it('should produce an identical redistribution whether initialAmount is absent or 0', () => {
+    const absent = redistributeRemainingEffort({
+      timeline,
+      targetAmount: 3000,
+    });
+    const zero = redistributeRemainingEffort({
+      timeline,
+      targetAmount: 3000,
+      initialAmount: 0,
+    });
+    expect(zero).toEqual(absent);
   });
 });
 

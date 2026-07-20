@@ -41,7 +41,11 @@ struct SavingsGoalsListView: View {
             }
         }
         .sheet(isPresented: $isCreatingGoal) {
-            SavingsGoalFormSheet(goal: nil, userCurrency: userSettingsStore.currency)
+            SavingsGoalFormSheet(
+                goal: nil,
+                userCurrency: userSettingsStore.currency,
+                payDayOfMonth: userSettingsStore.payDayOfMonth
+            )
         }
         .fullScreenCover(
             isPresented: $showIntro,

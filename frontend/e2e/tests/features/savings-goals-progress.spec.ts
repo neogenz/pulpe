@@ -75,7 +75,7 @@ const contributions = [
 ] satisfies SavingsGoalContribution[];
 
 test.describe('Savings goal progression (PUL-8)', () => {
-  test('navigates list → detail and shows the progress bar, Pointé label and D2 CTA', async ({
+  test('navigates list → detail and shows the progress bar, Épargné label and D2 CTA', async ({
     authenticatedPage: page,
   }) => {
     // Registered after the global fixture mocks → matched first (LIFO).
@@ -111,12 +111,12 @@ test.describe('Savings goal progression (PUL-8)', () => {
     await expect(page).toHaveURL(new RegExp(`/savings-goals/${GOAL_ID}$`));
     await expect(page.getByTestId('savings-goal-detail-page')).toBeVisible();
 
-    // Two-layer progress bar with the confirmed (Pointé) layer.
+    // Two-layer progress bar with the confirmed (Épargné) layer.
     await expect(page.getByTestId('savings-goal-progress-bar')).toBeVisible();
     await expect(page.getByTestId('progress-confirmed-layer')).toBeVisible();
     await expect(page.getByTestId('progress-planned-layer')).toBeVisible();
     await expect(page.getByTestId('savings-goal-detail-page')).toContainText(
-      'Pointé',
+      'Épargné',
     );
 
     // D2 — completion suggestion CTA is visible.
