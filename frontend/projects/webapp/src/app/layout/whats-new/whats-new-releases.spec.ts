@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-// eslint-disable-next-line boundaries/no-unknown -- public changelog source of truth, not an app layer import
-import landingReleases from '../../../../../../../landing/data/releases.json';
 // eslint-disable-next-line boundaries/no-unknown -- root product metadata, not an app layer import
 import productPackage from '../../../../../../../package.json';
+// @ts-expect-error Vitest resolves raw assets; the spec tsconfig has no wildcard declaration
+// eslint-disable-next-line boundaries/no-unknown -- private changelog source of truth, test-only import
+import frontendChangelog from '../../../../../../CHANGELOG.md?raw';
 import { LATEST_RELEASE, SKIPPED_RELEASES } from './whats-new-releases';
 
 const SEMVER_PATTERN = /^\d+\.\d+\.\d+$/;
+const changelogLines: readonly string[] = frontendChangelog.split(/\r?\n/);
 
 describe('webapp release data', () => {
   it('announces or explicitly skips the current product version', () => {
@@ -36,10 +38,8 @@ describe('webapp release data', () => {
       expect(release.version).toMatch(SEMVER_PATTERN);
       expect(release.reason.trim()).not.toHaveLength(0);
       expect(
-        landingReleases.filter(
-          (landingRelease) => landingRelease.version === release.version,
-        ),
-        `Silent web release ${release.version} must map to exactly one landing changelog entry`,
+        changelogLines.filter((line) => line === `## ${release.version}`),
+        `Silent web release ${release.version} must map to exactly one frontend changelog heading`,
       ).toHaveLength(1);
     }
   });
