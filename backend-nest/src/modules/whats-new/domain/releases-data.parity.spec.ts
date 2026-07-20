@@ -110,6 +110,10 @@ describe('embedded iOS release data parity', () => {
 
   it('records exactly one projection or explicit silence per iOS marketing release', () => {
     for (const landingRelease of iosMarketingReleases) {
+      if (!landingRelease.platforms.includes('ios')) {
+        fail(landingRelease.version, 'iosVersion requires the ios platform');
+      }
+
       const backendMatches = RELEASES.filter(
         (release) => release.version === landingRelease.version,
       );

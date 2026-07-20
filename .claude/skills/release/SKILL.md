@@ -400,7 +400,7 @@ Run the checked-in What's New contracts from the repository root for every relea
 
 ```bash
 (cd backend-nest && bun test src/modules/whats-new/domain/releases-data.parity.spec.ts)
-(cd frontend && pnpm exec vitest run \
+(cd frontend && pnpm test \
   projects/webapp/src/app/layout/whats-new/whats-new-releases.spec.ts \
   projects/webapp/src/app/layout/whats-new/whats-new-toast.spec.ts)
 ```
@@ -471,7 +471,7 @@ Show the commit, target branches, tag, GitHub Release, provider checks, and pend
 
 Only after "oui":
 
-Treat every shell block below as an independent session. Recompute and validate every identity in the same block that consumes it; never rely on a variable exported by a previous block or tool call.
+Treat every shell block below as an independent session. Step 9.2 is the only writer of `pulpe-release-sha`, stored under the path returned by `git rev-parse --git-path` so linked worktrees cannot share or overwrite release identity. Every later block must read that frozen SHA, resolve it as the same full commit, and require the current `HEAD` to remain equal to it. Never replace the frozen identity with a later `HEAD`.
 
 1. Confirm that the available Railway and Vercel capabilities can inspect production deployments and their Git commit metadata. Also confirm that the Railway integration can apply the pending web gate after deployment. If any required capability is missing, stop before committing; never skip a proof or invent a command.
 2. Create the release commit without a tag and freeze its identity:
@@ -481,7 +481,13 @@ Treat every shell block below as an independent session. Recompute and validate 
    git commit -m "chore(release): vX.Y.Z"
    SHA=$(git rev-parse --verify 'HEAD^{commit}')
    test -n "${SHA}"
-   VERSION=$(node -p "require('./package.json').version")
+   git cat-file -e "${SHA}^{commit}"
+   test "$(git rev-parse --verify "${SHA}^{commit}")" = "${SHA}"
+   RELEASE_SHA_FILE=$(git rev-parse --git-path pulpe-release-sha)
+   test -n "${RELEASE_SHA_FILE}"
+   printf '%s\n' "${SHA}" > "${RELEASE_SHA_FILE}"
+   test "$(cat "${RELEASE_SHA_FILE}")" = "${SHA}"
+   VERSION=$(git show "${SHA}:package.json" | node -e 'const fs = require("node:fs"); const { version } = JSON.parse(fs.readFileSync(0, "utf8")); if (typeof version !== "string" || !/^\d+\.\d+\.\d+$/.test(version)) process.exit(1); process.stdout.write(version);')
    test -n "${VERSION}"
    TAG="v${VERSION}"
    ```
@@ -490,8 +496,13 @@ Treat every shell block below as an independent session. Recompute and validate 
 
    ```bash
    set -euo pipefail
-   SHA=$(git rev-parse --verify 'HEAD^{commit}')
+   RELEASE_SHA_FILE=$(git rev-parse --git-path pulpe-release-sha)
+   test -f "${RELEASE_SHA_FILE}"
+   SHA=$(cat "${RELEASE_SHA_FILE}")
    test -n "${SHA}"
+   git cat-file -e "${SHA}^{commit}"
+   test "$(git rev-parse --verify "${SHA}^{commit}")" = "${SHA}"
+   test "$(git rev-parse --verify 'HEAD^{commit}')" = "${SHA}"
    git push origin "${SHA}:refs/heads/preview"
    ```
 
@@ -499,8 +510,13 @@ Treat every shell block below as an independent session. Recompute and validate 
 
    ```bash
    set -euo pipefail
-   SHA=$(git rev-parse --verify 'HEAD^{commit}')
+   RELEASE_SHA_FILE=$(git rev-parse --git-path pulpe-release-sha)
+   test -f "${RELEASE_SHA_FILE}"
+   SHA=$(cat "${RELEASE_SHA_FILE}")
    test -n "${SHA}"
+   git cat-file -e "${SHA}^{commit}"
+   test "$(git rev-parse --verify "${SHA}^{commit}")" = "${SHA}"
+   test "$(git rev-parse --verify 'HEAD^{commit}')" = "${SHA}"
    PREVIEW_RUN_ID=
    for _ in $(seq 1 60); do
      PREVIEW_RUN_ID=$(gh run list \
@@ -525,8 +541,13 @@ Treat every shell block below as an independent session. Recompute and validate 
 
    ```bash
    set -euo pipefail
-   SHA=$(git rev-parse --verify 'HEAD^{commit}')
+   RELEASE_SHA_FILE=$(git rev-parse --git-path pulpe-release-sha)
+   test -f "${RELEASE_SHA_FILE}"
+   SHA=$(cat "${RELEASE_SHA_FILE}")
    test -n "${SHA}"
+   git cat-file -e "${SHA}^{commit}"
+   test "$(git rev-parse --verify "${SHA}^{commit}")" = "${SHA}"
+   test "$(git rev-parse --verify 'HEAD^{commit}')" = "${SHA}"
    git fetch origin main preview
    test "$(git rev-parse origin/preview)" = "${SHA}"
    git merge-base --is-ancestor origin/main "${SHA}"
@@ -539,8 +560,17 @@ Treat every shell block below as an independent session. Recompute and validate 
 
    ```bash
    set -euo pipefail
-   SHA=$(git rev-parse --verify 'HEAD^{commit}')
+   RELEASE_SHA_FILE=$(git rev-parse --git-path pulpe-release-sha)
+   test -f "${RELEASE_SHA_FILE}"
+   SHA=$(cat "${RELEASE_SHA_FILE}")
    test -n "${SHA}"
+   git cat-file -e "${SHA}^{commit}"
+   test "$(git rev-parse --verify "${SHA}^{commit}")" = "${SHA}"
+   test "$(git rev-parse --verify 'HEAD^{commit}')" = "${SHA}"
+   git fetch origin main preview
+   test "$(git rev-parse origin/preview)" = "${SHA}"
+   git merge-base --is-ancestor origin/main "${SHA}"
+   git push --dry-run origin "${SHA}:refs/heads/main"
    git push origin "${SHA}:refs/heads/main"
    git fetch origin main
    test "$(git rev-parse origin/main)" = "${SHA}"
@@ -550,8 +580,13 @@ Treat every shell block below as an independent session. Recompute and validate 
 
    ```bash
    set -euo pipefail
-   SHA=$(git rev-parse --verify 'HEAD^{commit}')
+   RELEASE_SHA_FILE=$(git rev-parse --git-path pulpe-release-sha)
+   test -f "${RELEASE_SHA_FILE}"
+   SHA=$(cat "${RELEASE_SHA_FILE}")
    test -n "${SHA}"
+   git cat-file -e "${SHA}^{commit}"
+   test "$(git rev-parse --verify "${SHA}^{commit}")" = "${SHA}"
+   test "$(git rev-parse --verify 'HEAD^{commit}')" = "${SHA}"
    MAIN_RUN_ID=
    for _ in $(seq 1 60); do
      MAIN_RUN_ID=$(gh run list \
@@ -572,8 +607,9 @@ Treat every shell block below as an independent session. Recompute and validate 
 
    This includes the main-only `migrate`, `posthog-annotate`, and `verify-prod-csp` jobs after `ci-success`. Missing, cancelled, or failed CI stops publication.
 8. Independently inspect the production deployments:
-   - both Vercel production projects are ready and report the commit returned by a fresh `git rev-parse --verify 'HEAD^{commit}'`;
-   - the Railway production deployment is successful and reports that same freshly resolved commit;
+   - before each provider inspection, independently read `pulpe-release-sha` through `git rev-parse --git-path`, validate it as the same full commit, and require `HEAD` to equal it;
+   - both Vercel production projects are ready and report that frozen SHA;
+   - the Railway production deployment is successful and reports that frozen SHA;
    - `https://pulpe.app`, `https://app.pulpe.app`, and `https://api.pulpe.app/health` respond successfully.
 
    Vercel and Railway react to GitHub pushes; do not assume GitHub `ci-success` delayed those webhooks. If a status, SHA, or health check differs, stop without a tag, GitHub Release, or client gate. Correct through `preview` while keeping the same product version.
@@ -582,9 +618,14 @@ Treat every shell block below as an independent session. Recompute and validate 
 
    ```bash
    set -euo pipefail
-   SHA=$(git rev-parse --verify 'HEAD^{commit}')
+   RELEASE_SHA_FILE=$(git rev-parse --git-path pulpe-release-sha)
+   test -f "${RELEASE_SHA_FILE}"
+   SHA=$(cat "${RELEASE_SHA_FILE}")
    test -n "${SHA}"
-   VERSION=$(node -p "require('./package.json').version")
+   git cat-file -e "${SHA}^{commit}"
+   test "$(git rev-parse --verify "${SHA}^{commit}")" = "${SHA}"
+   test "$(git rev-parse --verify 'HEAD^{commit}')" = "${SHA}"
+   VERSION=$(git show "${SHA}:package.json" | node -e 'const fs = require("node:fs"); const { version } = JSON.parse(fs.readFileSync(0, "utf8")); if (typeof version !== "string" || !/^\d+\.\d+\.\d+$/.test(version)) process.exit(1); process.stdout.write(version);')
    test -n "${VERSION}"
    TAG="v${VERSION}"
    git fetch origin main --tags
@@ -597,10 +638,20 @@ Treat every shell block below as an independent session. Recompute and validate 
 
 ```bash
 set -euo pipefail
-VERSION=$(node -p "require('./package.json').version")
+RELEASE_SHA_FILE=$(git rev-parse --git-path pulpe-release-sha)
+test -f "${RELEASE_SHA_FILE}"
+SHA=$(cat "${RELEASE_SHA_FILE}")
+test -n "${SHA}"
+git cat-file -e "${SHA}^{commit}"
+test "$(git rev-parse --verify "${SHA}^{commit}")" = "${SHA}"
+test "$(git rev-parse --verify 'HEAD^{commit}')" = "${SHA}"
+VERSION=$(git show "${SHA}:package.json" | node -e 'const fs = require("node:fs"); const { version } = JSON.parse(fs.readFileSync(0, "utf8")); if (typeof version !== "string" || !/^\d+\.\d+\.\d+$/.test(version)) process.exit(1); process.stdout.write(version);')
 test -n "${VERSION}"
 TAG="v${VERSION}"
-gh release create "${TAG}" --repo neogenz/pulpe --title "${TAG}" --notes "$(cat <<'EOF'
+REMOTE_TAG_SHA=$(git ls-remote --tags origin "refs/tags/${TAG}^{}" | awk '{ print $1 }')
+test -n "${REMOTE_TAG_SHA}"
+test "${REMOTE_TAG_SHA}" = "${SHA}"
+gh release create "${TAG}" --verify-tag --repo neogenz/pulpe --title "${TAG}" --notes "$(cat <<'EOF'
 ## vX.Y.Z
 
 ### Nouveautés
