@@ -154,6 +154,50 @@ describe('UserThrottlerGuard', () => {
     });
   });
 
+  describe('getTracker - demo routes stay IP-keyed', () => {
+    it('should key demo routes by IP even when a valid Bearer token is present', async () => {
+      // Arrange - a token minted by a previous POST /demo/session must not
+      // become its own throttle bucket, or demo creation is self-minting.
+      const mockUser = createMockAuthenticatedUser();
+      mockSupabaseClient
+        .setMockData({ id: mockUser.id, email: mockUser.email })
+        .setMockError(null);
+
+      const mockRequest = {
+        url: '/api/v1/demo/session',
+        headers: {
+          authorization: 'Bearer demo-token-from-previous-session',
+          'x-real-ip': '203.0.113.7',
+        },
+        ip: '203.0.113.7',
+        ips: [],
+      };
+
+      // Act
+      const tracker = await (guard as any).getTracker(mockRequest);
+
+      // Assert
+      expect(tracker).toBe('203.0.113.7');
+      expect(tracker).not.toContain(`user:${mockUser.id}`);
+    });
+
+    it('should key demo routes by IP regardless of path casing', async () => {
+      // Arrange - Express routes case-insensitively
+      const mockRequest = {
+        url: '/api/v1/DEMO/session',
+        headers: { 'x-real-ip': '203.0.113.8' },
+        ip: '203.0.113.8',
+        ips: [],
+      };
+
+      // Act
+      const tracker = await (guard as any).getTracker(mockRequest);
+
+      // Assert
+      expect(tracker).toBe('203.0.113.8');
+    });
+  });
+
   describe('getTracker - IP-based fallback', () => {
     it('should fall back to IP-based tracker for unauthenticated requests', async () => {
       // Arrange
