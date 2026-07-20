@@ -6,14 +6,11 @@
 # 1. Quality check
 pnpm quality && pnpm test && pnpm test:e2e
 
-# 2. Prepare the release from a synchronized preview or main
+# 2. Run the agent release workflow from a synchronized preview or main
 /release
-
-# 3. The skill validates one SHA on preview, then promotes that exact SHA
-git push origin "$SHA:refs/heads/main"
 ```
 
-The `main` push starts the production webhooks immediately. The release is published only after the `main` CI, Vercel, Railway, and public health checks all validate that exact SHA.
+`/release` validates one SHA on `preview`, promotes that exact SHA to `main`, and waits for the production proofs. The resulting `main` push starts the production webhooks immediately. The release is published only after the `main` CI, Vercel, Railway, and public health checks all validate that exact SHA.
 
 ## Prerequisites
 
