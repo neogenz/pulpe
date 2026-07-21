@@ -30,6 +30,10 @@ const componentSources = {
     new URL("../components/sections/PainPoints.tsx", import.meta.url),
     "utf8",
   ),
+  solution: readFileSync(
+    new URL("../components/sections/Solution.tsx", import.meta.url),
+    "utf8",
+  ),
   imageLightbox: readFileSync(
     new URL("../components/ui/ImageLightbox.tsx", import.meta.url),
     "utf8",
@@ -188,6 +192,20 @@ describe("landing accessibility contracts", () => {
     );
     assert.doesNotMatch(componentSources.painPoints, /PROOFS = \[/);
     assert.match(componentSources.page, /<PainPoints \/>[\s\S]*<Solution \/>/);
+  });
+
+  it("turns future planning into a concrete tax scenario", () => {
+    assert.match(
+      componentSources.painPoints,
+      /Les impôts tombent en juillet[\s\S]*ce qu’il te restera en\s+août/,
+    );
+  });
+
+  it("shows how one typical month becomes a projected year", () => {
+    assert.match(
+      componentSources.solution,
+      /Ton mois type[\s\S]*ecran-des-modeles\.webp[\s\S]*Ton année[\s\S]*vue-calendrier-annuel\.webp/,
+    );
   });
 
   it("keeps accented display lines clear of descenders", () => {

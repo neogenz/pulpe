@@ -23,12 +23,13 @@ export function PainPoints() {
       <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
         <header className="max-w-xl lg:col-span-5">
           <h2 className="balance text-4xl font-bold leading-[1.12] tracking-[-0.035em] text-text sm:text-5xl">
-            Tu sais ce que tu as dépensé. Pas ce que tu peux encore prévoir.
+            Les impôts tombent en juillet. Tu vois déjà ce qu’il te restera en
+            août.
           </h2>
           <p className="pretty mt-6 text-lg leading-relaxed text-text-secondary">
-            Un voyage, les impôts ou un loyer qui augmente peuvent déséquilibrer
-            plusieurs mois. C&apos;est cet effet domino qu&apos;un simple suivi
-            mensuel montre mal.
+            Une grosse dépense ne touche jamais qu&apos;un seul mois. Pourtant, un
+            tableur te demande de maintenir la projection et une app de suivi
+            ne réagit qu&apos;après.
           </p>
         </header>
 
