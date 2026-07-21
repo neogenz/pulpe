@@ -96,8 +96,8 @@ struct HomeHeroCard: View {
             } label: {
                 metricsContent
             }
-            .buttonStyle(.plain)
             .contentShape(Rectangle())
+            .plainPressedButtonStyle()
             .sensoryFeedback(.impact(flexibility: .soft), trigger: tapTrigger)
             .accessibilityLabel(accessibilityDescription)
             .accessibilityHint("Voir le solde réalisé")
