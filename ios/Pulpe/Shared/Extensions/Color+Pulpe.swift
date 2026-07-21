@@ -387,6 +387,11 @@ extension Color {
     static let homeBackground = appBackground
     /// Mint hero card surface — identical across emotion states.
     static let homeHeroSurface = Color(light: Color(hex: 0xCFE8D6), dark: Color(hex: 0x1D3A28))
+    /// Top stop of the mint hero card's material gradient — a hair lighter than the base
+    /// so the surface catches light from above. State-independent; the brand stays calm.
+    static let homeHeroSurfaceTop = Color(light: Color(hex: 0xDCEFE2), dark: Color(hex: 0x244A34))
+    /// Rim light on the mint hero card's top lip — light catching the material edge.
+    static let homeHeroHighlight = Color(light: .white.opacity(0.55), dark: .white.opacity(0.07))
     /// Deep-green ink for primary text and progress fill on the mint hero card.
     static let homeHeroInk = Color(light: Color(hex: 0x0E3A1C), dark: Color(hex: 0xD5ECDC))
     /// Supporting text on the mint hero card.

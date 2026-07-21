@@ -457,6 +457,50 @@ extension CurrentMonthStore {
             .sorted { $0.1.percentage > $1.1.percentage }
     }
 
+    /// Expense envelopes consumed beyond their plan ("Ça dérive"), biggest overrun first.
+    /// Uses `available < 0` (not `isOverBudget`) so zero-amount envelopes with spending count too.
+    var driftLines: [(line: BudgetLine, consumption: BudgetFormulas.Consumption)] {
+        budgetLines
+            .filter { $0.kind == .expense && !($0.isRollover ?? false) }
+            .compactMap { line -> (BudgetLine, BudgetFormulas.Consumption)? in
+                let consumption = BudgetFormulas.calculateConsumption(for: line, transactions: transactions)
+                guard consumption.available < 0 else { return nil }
+                return (line, consumption)
+            }
+            .sorted { $0.1.available < $1.1.available }
+    }
+
+    /// Total amount consumed beyond plan across drifting envelopes.
+    var driftTotal: Decimal {
+        driftLines.reduce(.zero) { $0 - $1.consumption.available }
+    }
+
+    /// Uncapped unchecked count + amount for the "à pointer" header
+    /// (`uncheckedItems` is capped at 5 for display).
+    var uncheckedTotals: (count: Int, amount: Decimal) {
+        let uncheckedTransactions = transactions.filter { !$0.isChecked }
+        let uncheckedLines = budgetLines.filter { !$0.isChecked && !($0.isRollover ?? false) }
+        let amount = uncheckedTransactions.reduce(Decimal.zero) { $0 + $1.amount }
+            + uncheckedLines.reduce(Decimal.zero) { $0 + $1.amount }
+        return (uncheckedTransactions.count + uncheckedLines.count, amount)
+    }
+
+    /// 1-based day position within the current budget period (payDay-aware).
+    func periodDayProgress(now: Date = Date()) -> (day: Int, totalDays: Int)? {
+        guard let budget else { return nil }
+        let dates = BudgetPeriodCalculator.periodDates(
+            month: budget.month,
+            year: budget.year,
+            payDayOfMonth: payDayOfMonth
+        )
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: dates.startDate)
+        let end = calendar.startOfDay(for: dates.endDate)
+        let totalDays = (calendar.dateComponents([.day], from: start, to: end).day ?? 0) + 1
+        let day = (calendar.dateComponents([.day], from: start, to: calendar.startOfDay(for: now)).day ?? 0) + 1
+        return (min(max(day, 1), max(totalDays, 1)), max(totalDays, 1))
+    }
+
     /// Top expense transaction by amount (linked or free)
     var topSpending: TopSpending? {
         guard let top = transactions.filter({ $0.kind == .expense }).max(by: { $0.amount < $1.amount }) else {

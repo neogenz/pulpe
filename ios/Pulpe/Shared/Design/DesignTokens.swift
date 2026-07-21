@@ -388,6 +388,9 @@ enum DesignTokens {
             static let horizontalPadding: CGFloat = Spacing.tightGap
             static let verticalPadding: CGFloat = Spacing.xxs
         }
+
+        /// Leading state-dot diameter (`PulpeChip(dotColor:)`).
+        static let stateDotSize: CGFloat = Spacing.tightGap
     }
 
     // MARK: - Progress Bar

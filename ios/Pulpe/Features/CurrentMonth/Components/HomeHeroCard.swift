@@ -40,14 +40,15 @@ struct HomeHeroCard: View {
     private var contextLine: String? {
         switch metrics.emotionState {
         case .deficit: deficitContext
-        case .tight: marginLine(prefix: "Serré — mais tu le sais")
-        case .comfortable: marginLine(prefix: "Tu gères bien ce mois-ci")
+        case .tight, .comfortable: dailyAllowanceLine
         }
     }
 
-    private func marginLine(prefix: String) -> String {
-        guard dailyMargin > 0 else { return prefix }
-        return "\(prefix) · ≈\(dailyMargin.asCompactAmount(for: currency))/jour jusqu'à la fin du mois"
+    /// Actionable daily allowance. The state chip already carries the mood, so the
+    /// line stays purely useful. Nil when there's no positive margin to spread.
+    private var dailyAllowanceLine: String? {
+        guard dailyMargin > 0 else { return nil }
+        return "Tu peux dépenser ≈\(dailyMargin.asCompactCurrency(currency))/jour"
     }
 
     // MARK: - Progress Fractions
@@ -114,8 +115,27 @@ struct HomeHeroCard: View {
             .plainPressedButtonStyle()
             .accessibilityLabel("Détail du budget")
         }
-        .background(Color.homeHeroSurface)
+        .background {
+            LinearGradient(
+                colors: [Color.homeHeroSurfaceTop, Color.homeHeroSurface],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        }
         .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.lg))
+        .overlay {
+            // Rim light on the top lip — fades to clear by mid-card so it reads as
+            // light on a material, not a border.
+            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [Color.homeHeroHighlight, .clear],
+                        startPoint: .top,
+                        endPoint: .center
+                    ),
+                    lineWidth: DesignTokens.BorderWidth.thin
+                )
+        }
         .shadow(DesignTokens.Shadow.elevated)
         .animation(DesignTokens.Animation.smoothEaseInOut, value: metrics)
     }
@@ -123,35 +143,38 @@ struct HomeHeroCard: View {
     // MARK: - Metrics Zone
 
     private var metricsContent: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            HStack {
-                Text("Reste ce mois · \(monthName)")
-                    .font(PulpeTypography.labelMedium)
-                    .foregroundStyle(Color.homeHeroSupport)
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            // Eyebrow + amount read as one unit — the label captions the number.
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                HStack {
+                    Text("Reste ce mois · \(monthName)")
+                        .font(PulpeTypography.labelMedium)
+                        .foregroundStyle(Color.homeHeroSupport)
 
-                Spacer()
+                    Spacer()
 
-                PulpeChip(
-                    dotColor: stateDotColor,
-                    label: stateLabel,
-                    style: .tinted(surface: .homeHeroOverlay, foreground: .homeHeroInk)
-                )
-            }
+                    PulpeChip(
+                        dotColor: stateDotColor,
+                        label: stateLabel,
+                        style: .tinted(surface: .homeHeroOverlay, foreground: .homeHeroInk)
+                    )
+                }
 
-            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
-                Text(metrics.remaining.asCompactAmount(for: currency))
-                    .font(PulpeTypography.heroIcon)
-                    .tracking(DesignTokens.Tracking.hero)
-                    .monospacedDigit()
-                    .minimumScaleFactor(0.6)
-                    .lineLimit(1)
-                    .foregroundStyle(Color.homeHeroInk)
-                    .contentTransition(.numericText())
-                    .sensitiveAmount()
+                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                    Text(metrics.remaining.asCompactAmount(for: currency))
+                        .font(PulpeTypography.heroIcon)
+                        .tracking(DesignTokens.Tracking.hero)
+                        .monospacedDigit()
+                        .minimumScaleFactor(0.6)
+                        .lineLimit(1)
+                        .foregroundStyle(Color.homeHeroInk)
+                        .contentTransition(.numericText())
+                        .sensitiveAmount()
 
-                Text(currency.symbol)
-                    .font(PulpeTypography.amountCard)
-                    .foregroundStyle(Color.homeHeroInk.opacity(DesignTokens.Opacity.heavy))
+                    Text(currency.symbol)
+                        .font(PulpeTypography.amountCard)
+                        .foregroundStyle(Color.homeHeroInk.opacity(DesignTokens.Opacity.heavy))
+                }
             }
 
             if let contextLine {
@@ -168,7 +191,7 @@ struct HomeHeroCard: View {
                 trackColor: .homeHeroOverlay,
                 height: DesignTokens.ProgressBar.heroHeight
             )
-            .padding(.top, DesignTokens.Spacing.sm)
+            .padding(.top, DesignTokens.Spacing.xxs)
 
             HStack {
                 spentLabel

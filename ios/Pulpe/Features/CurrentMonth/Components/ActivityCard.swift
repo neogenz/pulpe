@@ -1,0 +1,184 @@
+import SwiftUI
+
+/// Tour 11 "Activité" — recent transactions with a 7j/Mois window toggle,
+/// the only variateur that maps to real usage.
+struct ActivityCard: View {
+    let transactions: [Transaction]
+    var onViewAll: () -> Void
+
+    @Environment(UserSettingsStore.self) private var userSettingsStore
+    @State private var window: Window = .week
+
+    private static let maxRows = 5
+
+    enum Window: String, CaseIterable {
+        case week = "7j"
+        case month = "Mois"
+    }
+
+    private var filtered: [Transaction] {
+        let sorted = transactions.sorted { $0.transactionDate > $1.transactionDate }
+        guard window == .week,
+              let cutoff = Calendar.current.date(byAdding: .day, value: -7, to: Date()) else {
+            return sorted
+        }
+        return sorted.filter { $0.transactionDate >= cutoff }
+    }
+
+    /// Arithmetic net of the window: income positive, outflows negative.
+    private var windowTotal: Decimal {
+        filtered.reduce(.zero) { $0 + ($1.kind == .income ? $1.amount : -$1.amount) }
+    }
+
+    private var headerSubtitle: String {
+        let count = filtered.count
+        let total = windowTotal.asArithmeticSignedCompactCurrency(userSettingsStore.currency)
+        return "\(count) transaction\(count > 1 ? "s" : "") · \(total)"
+    }
+
+    var body: some View {
+        VStack(spacing: DesignTokens.Spacing.none) {
+            header
+
+            Divider()
+                .padding(.horizontal, DesignTokens.Spacing.xl)
+
+            rows
+        }
+        .pulpeCardBackground()
+        .shadow(DesignTokens.Shadow.card)
+        .animation(DesignTokens.Animation.smoothEaseOut, value: window)
+    }
+
+    // MARK: - Header
+
+    private var header: some View {
+        HStack(spacing: DesignTokens.Spacing.md) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                Text("Activité")
+                    .font(PulpeTypography.cardTitle)
+                    .foregroundStyle(Color.textPrimary)
+
+                Text(headerSubtitle)
+                    .font(PulpeTypography.labelMedium)
+                    .foregroundStyle(Color.textTertiary)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .sensitiveAmount()
+            }
+
+            Spacer()
+
+            windowToggle
+
+            Button(action: onViewAll) {
+                Image(systemName: "chevron.right")
+                    .font(PulpeTypography.metricLabel)
+                    .foregroundStyle(Color.textTertiary)
+            }
+            .iconButtonStyle()
+            .accessibilityLabel("Voir toutes les transactions")
+        }
+        .padding(.horizontal, DesignTokens.Spacing.xl)
+        .padding(.top, DesignTokens.Spacing.lg)
+        .padding(.bottom, DesignTokens.Spacing.md)
+    }
+
+    /// Two-segment window toggle — a single button flipping 7j ↔ Mois keeps the
+    /// visual compact while honouring the 44pt tap target.
+    private var windowToggle: some View {
+        Button {
+            withAnimation(DesignTokens.Animation.smoothEaseOut) {
+                window = window == .week ? .month : .week
+            }
+        } label: {
+            HStack(spacing: DesignTokens.Spacing.xxs) {
+                ForEach(Window.allCases, id: \.self) { option in
+                    Text(option.rawValue)
+                        .font(PulpeTypography.metricMini)
+                        .foregroundStyle(window == option ? Color.textPrimary : Color.textTertiary)
+                        .padding(.horizontal, DesignTokens.Spacing.compactGap)
+                        .padding(.vertical, DesignTokens.Spacing.xs)
+                        .background(window == option ? Color.surface : .clear, in: Capsule())
+                }
+            }
+            .padding(DesignTokens.Spacing.xxs)
+            .background(Color.surfaceContainerHigh, in: Capsule())
+        }
+        .frame(minHeight: DesignTokens.TapTarget.minimum)
+        .contentShape(Capsule())
+        .plainPressedButtonStyle()
+        .sensoryFeedback(.selection, trigger: window)
+        .accessibilityLabel("Période d'activité")
+        .accessibilityValue(window == .week ? "7 derniers jours" : "Mois complet")
+        .accessibilityHint("Bascule entre 7 jours et le mois")
+    }
+
+    // MARK: - Rows
+
+    @ViewBuilder
+    private var rows: some View {
+        if filtered.isEmpty {
+            Text("Aucune transaction sur cette période")
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.textTertiary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, DesignTokens.Spacing.xl)
+                .padding(.vertical, DesignTokens.Spacing.lg)
+        } else {
+            VStack(spacing: DesignTokens.Spacing.none) {
+                let visible = Array(filtered.prefix(Self.maxRows))
+                ForEach(Array(visible.enumerated()), id: \.element.id) { index, transaction in
+                    row(transaction)
+                    if index < visible.count - 1 {
+                        Divider()
+                    }
+                }
+            }
+            .padding(.horizontal, DesignTokens.Spacing.xl)
+            .padding(.bottom, DesignTokens.Spacing.sm)
+        }
+    }
+
+    private func row(_ transaction: Transaction) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            (
+                Text(transaction.name)
+                    .font(PulpeTypography.labelLarge)
+                    .foregroundStyle(Color.textPrimary)
+                + Text(" · \(transaction.transactionDate.relativeFormatted.lowercased())")
+                    .font(PulpeTypography.labelMedium)
+                    .foregroundStyle(Color.textTertiary)
+            )
+            .lineLimit(1)
+
+            Spacer()
+
+            amountColumn(transaction)
+        }
+        .padding(.vertical, DesignTokens.Spacing.md)
+        .accessibilityElement(children: .combine)
+    }
+
+    /// Mock renders activity amounts in neutral ink (not kind-colored);
+    /// the FX secondary line reuses the shared `TransactionAmountView` policy.
+    private func amountColumn(_ transaction: Transaction) -> some View {
+        VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
+            Text(transaction.amount.asSignedAmount(for: transaction.kind, in: userSettingsStore.currency))
+                .font(PulpeTypography.labelLarge)
+                .foregroundStyle(Color.textPrimary)
+                .monospacedDigit()
+
+            if let secondary = TransactionAmountView.secondaryText(
+                for: transaction,
+                in: userSettingsStore.currency
+            ) {
+                Text(secondary)
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.textSecondary)
+                    .accessibilityLabel("saisi en \(secondary)")
+            }
+        }
+        .sensitiveAmount()
+    }
+}
