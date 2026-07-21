@@ -13,7 +13,7 @@ struct GoalContributionsSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             Text("Ton suivi")
-                .font(PulpeTypography.headline)
+                .font(PulpeTypography.title)
                 .foregroundStyle(Color.textPrimary)
 
             if isLoading, contributions.isEmpty {
@@ -75,11 +75,7 @@ struct GoalContributionsSection: View {
                         contributionTransactionRow(transaction)
                     }
                 }
-                .padding(DesignTokens.Spacing.md)
-                .background(
-                    Color.surfaceContainerHigh,
-                    in: RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm)
-                )
+                .padding(.leading, DesignTokens.IconSize.compact + DesignTokens.Spacing.md)
             }
         }
         .pulpeCard()

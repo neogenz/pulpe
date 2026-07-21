@@ -158,7 +158,7 @@ struct GoalTrajectorySection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
             Text("Ta trajectoire")
-                .font(PulpeTypography.headline)
+                .font(PulpeTypography.title)
                 .foregroundStyle(Color.textPrimary)
 
             GoalProjectionChart(series: series, currency: currency)
@@ -219,6 +219,8 @@ private struct SensitiveIf: ViewModifier {
 /// Pre-computed, index-based series for `GoalProjectionChart`. Building lives off
 /// the view body so the chart stays a pure renderer (reused read + simulation).
 struct GoalProjectionSeries: Equatable {
+    private static let minimumTickSeparation = 3
+
     struct Point: Identifiable, Equatable {
         let index: Int
         let value: Double
@@ -295,9 +297,17 @@ struct GoalProjectionSeries: Equatable {
 
     // MARK: - Helpers
 
-    private static func ticks(for months: [SavingsGoalPlanMonth], currentIndex: Int) -> [Tick] {
-        let indices = Set([0, currentIndex, months.count - 1]).sorted()
-        return indices.compactMap { index in
+    static func ticks(for months: [SavingsGoalPlanMonth], currentIndex: Int) -> [Tick] {
+        guard !months.isEmpty else { return [] }
+
+        let lastIndex = months.count - 1
+        var indices = [currentIndex, lastIndex]
+        if currentIndex >= minimumTickSeparation {
+            indices.append(0)
+        }
+
+        let uniqueIndices = Set(indices).sorted()
+        return uniqueIndices.compactMap { index in
             guard months.indices.contains(index) else { return nil }
             let month = months[index]
             return Tick(index: index, label: tickLabel(month: month.month, year: month.year))
