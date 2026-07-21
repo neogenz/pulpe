@@ -76,6 +76,11 @@ describe('BudgetFinancialOverview', () => {
       expect(renderWithRollover(0)).toBeNull();
     });
 
+    it('should stay hidden when a residual rollover rounds to zero', () => {
+      expect(renderWithRollover(0.3)).toBeNull();
+      expect(renderWithRollover(-0.4)).toBeNull();
+    });
+
     it('should carry the colour of the budget state it sits on', () => {
       const classesFor = (totals: FinancialTotals): string => {
         setTestInput(fixture.componentInstance.totals, totals);

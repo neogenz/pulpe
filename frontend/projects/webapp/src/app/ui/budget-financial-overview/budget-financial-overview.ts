@@ -169,7 +169,11 @@ export class BudgetFinancialOverview {
     Math.abs(this.totals().remaining),
   );
 
-  protected readonly hasRollover = computed(() => this.rollover() !== 0);
+  // Gate on the rounded value, not `!== 0`: a sub-unit residual rollover would
+  // otherwise render "+0 €" — a disclosure claiming an amount it then shows as zero.
+  protected readonly hasRollover = computed(
+    () => Math.round(this.rollover()) !== 0,
+  );
 
   protected readonly isRolloverPositive = computed(() => this.rollover() > 0);
 
