@@ -9,7 +9,7 @@ import { angularUrl } from "@/lib/config";
 import { trackCTAClick } from "@/lib/posthog";
 
 const navLinks = [
-  { href: "/#features", label: "Fonctionnalités" },
+  { href: "/#pain-points", label: "Pourquoi Pulpe" },
   { href: "/#how-it-works", label: "Comment ça marche" },
   { href: "/#platforms", label: "Applications" },
   { href: "/#why-free", label: "Pourquoi c’est gratuit" },

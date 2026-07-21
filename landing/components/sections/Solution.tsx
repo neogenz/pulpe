@@ -5,12 +5,11 @@ export function Solution() {
     <Section id="solution">
       <div className="mx-auto max-w-3xl text-center">
         <h2 className="text-4xl font-bold leading-[1.05] tracking-[-0.035em] sm:text-5xl lg:text-6xl">
-          Toute ton année, sur un seul écran.
+          Pose un mois type. Pulpe projette la suite.
         </h2>
         <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-text-secondary sm:text-xl">
-          Pulpe calcule ton disponible mois après mois à partir de tes
-          prévisions. Ajoute une dépense imprévue et les mois suivants se
-          mettent à jour.
+          Tu poses une base, ajoutes ce qui change au bon mois, puis Pulpe
+          reporte chaque surplus ou déficit sur les mois suivants.
         </p>
       </div>
 

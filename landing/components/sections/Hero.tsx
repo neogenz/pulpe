@@ -33,11 +33,10 @@ export function Hero() {
             <span className="text-primary">ce qu&apos;il te restera.</span>
           </h1>
           <p className="pretty mx-auto mt-7 max-w-3xl text-lg leading-relaxed text-text-secondary md:text-xl">
-            Tu renseignes tes revenus, tes dépenses et ce que tu veux épargner.
-            Pulpe calcule ton disponible mois après mois, sans connecter tes
-            comptes bancaires.
+            Prépare tes revenus, tes dépenses et ton épargne mois par mois.
+            Pulpe calcule ce qu&apos;il te restera, sans connecter tes comptes.
           </p>
-          <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-5">
+          <div className="mt-9 flex justify-center">
             <Button
               href={angularUrl("/signup", "hero_commencer")}
               glow
@@ -45,17 +44,19 @@ export function Hero() {
             >
               Créer mon budget gratuitement
             </Button>
-            <Button
-              href="#how-it-works"
-              variant="ghost"
-              className="text-text hover:text-primary"
-            >
-              Voir les 3 étapes
-            </Button>
           </div>
           <p className="mt-4 text-center text-sm text-text-secondary">
             Gratuit · Montants chiffrés · Aucune connexion bancaire
           </p>
+          <blockquote className="mx-auto mt-6 max-w-xl text-center">
+            <p className="pretty text-sm font-medium leading-relaxed text-text">
+              « Pulpe m&apos;a fait prendre conscience de dépenses que je ne
+              voyais pas avant. »
+            </p>
+            <footer className="mt-1 text-sm text-text-secondary">
+              <cite className="not-italic">Ismaël</cite>, utilisateur de Pulpe
+            </footer>
+          </blockquote>
         </div>
 
         <div className="mx-auto mt-14 max-w-5xl md:mt-18 lg:mt-20">

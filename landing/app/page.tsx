@@ -4,10 +4,9 @@ import {
   Hero,
   PainPoints,
   Solution,
-  Features,
+  Testimonials,
   HowItWorks,
   Platforms,
-  Roadmap,
   WhyFree,
   FAQ,
   FinalCTA,
@@ -29,11 +28,10 @@ export default function LandingPage() {
       <main id="main-content">
         <Hero />
         <PainPoints />
-        <HowItWorks />
         <Solution />
-        <Features />
+        <HowItWorks />
+        <Testimonials />
         <Platforms />
-        <Roadmap />
         <WhyFree />
         <FAQ />
         <FinalCTA />

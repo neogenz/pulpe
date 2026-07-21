@@ -25,6 +25,7 @@ const componentSources = {
     new URL("../components/sections/Hero.tsx", import.meta.url),
     "utf8",
   ),
+  page: readFileSync(new URL("./page.tsx", import.meta.url), "utf8"),
   painPoints: readFileSync(
     new URL("../components/sections/PainPoints.tsx", import.meta.url),
     "utf8",
@@ -59,6 +60,10 @@ const componentSources = {
   ),
   whyFree: readFileSync(
     new URL("../components/sections/WhyFree.tsx", import.meta.url),
+    "utf8",
+  ),
+  testimonials: readFileSync(
+    new URL("../components/sections/Testimonials.tsx", import.meta.url),
     "utf8",
   ),
   finalCta: readFileSync(
@@ -136,10 +141,7 @@ describe("landing accessibility contracts", () => {
     );
     assert.match(sectionFields, /filter:\s*blur\(150px\);/);
     assert.match(sectionFields, /opacity:\s*0\.4;/);
-    assert.match(
-      globalsCss,
-      /--ambient-mobile-leaf:\s*oklch\(70% 0\.2 145\);/,
-    );
+    assert.match(globalsCss, /--ambient-mobile-leaf:\s*oklch\(70% 0\.2 145\);/);
     assert.match(
       globalsCss,
       /--ambient-mobile-mint:\s*oklch\(75% 0\.18 164\);/,
@@ -171,36 +173,32 @@ describe("landing accessibility contracts", () => {
     assert.match(componentSources.painPoints, /pain-points-mesh/);
   });
 
-  it("keeps the mobile proof strip compact and value-first", () => {
+  it("keeps the hero focused on one CTA and one compact proof", () => {
     assert.match(componentSources.hero, /\bpb-12\b/);
     assert.match(componentSources.hero, /\bmd:pb-28\b/);
-    assert.match(
-      componentSources.painPoints,
-      /PROOFS = \[[\s\S]*value:[\s\S]*label:/,
-    );
-    assert.match(
-      componentSources.painPoints,
-      /grid-cols-\[7rem_minmax\(0,1fr\)\]/,
-    );
-    assert.match(componentSources.painPoints, /\bsm:grid-cols-3\b/);
-    assert.match(
-      componentSources.painPoints,
-      /<dt[^>]*>\s*\{proof\.value\}\s*<\/dt>[\s\S]*<dd[^>]*>\s*\{proof\.label\}\s*<\/dd>/,
-    );
-    assert.match(componentSources.painPoints, /\bmt-10\b/);
-    assert.match(componentSources.painPoints, /\bmd:mt-20\b/);
+    assert.match(componentSources.hero, /<blockquote/);
+    assert.match(componentSources.hero, /Ismaël/);
+    assert.doesNotMatch(componentSources.hero, /href="#how-it-works"/);
   });
 
-  it("keeps the desktop proof strip attached to the dashboard", () => {
+  it("frames the problem and current alternatives before the solution", () => {
+    assert.match(
+      componentSources.painPoints,
+      /LIMITS = \[[\s\S]*Le tableur te demande[\s\S]*Le suivi arrive après la dépense/,
+    );
+    assert.doesNotMatch(componentSources.painPoints, /PROOFS = \[/);
+    assert.match(componentSources.page, /<PainPoints \/>[\s\S]*<Solution \/>/);
+  });
+
+  it("keeps the desktop dashboard attached to the hero", () => {
     assert.match(componentSources.hero, /\blg:pb-20\b/);
-    assert.match(componentSources.painPoints, /\blg:pt-8\b/);
     assert.match(componentSources.hero, /\bmd:pb-28\b/);
-    assert.match(componentSources.painPoints, /\bmd:pt-10\b/);
   });
 
   it("treats section spacing as a shared boundary instead of doubling it", () => {
     assert.match(componentSources.section, /\bpy-10\b/);
     assert.match(componentSources.section, /\blg:py-15\b/);
+    assert.match(componentSources.section, /\bscroll-mt-24\b/);
     assert.doesNotMatch(componentSources.section, /\bpy-20\b/);
     assert.doesNotMatch(componentSources.section, /\blg:py-30\b/);
   });
@@ -335,6 +333,24 @@ describe("landing accessibility contracts", () => {
     assert.match(componentSources.howItWorks, /number: "03"/);
     assert.doesNotMatch(componentSources.howItWorks, /number: "04"/);
     assert.doesNotMatch(componentSources.howItWorks, /IntersectionObserver/);
+    assert.doesNotMatch(componentSources.howItWorks, /Screenshot/);
+  });
+
+  it("places authentic testimonials after product proof with quote semantics", () => {
+    assert.match(
+      componentSources.page,
+      /<Solution \/>[\s\S]*<HowItWorks \/>[\s\S]*<Testimonials \/>[\s\S]*<Platforms \/>/,
+    );
+    assert.match(componentSources.testimonials, /<blockquote/);
+    assert.match(componentSources.testimonials, /<cite/);
+    assert.match(componentSources.testimonials, /Ismaël/);
+    assert.doesNotMatch(componentSources.testimonials, /carousel|autoPlay/);
+    assert.doesNotMatch(componentSources.testimonials, /background="primary"/);
+  });
+
+  it("keeps the roadmap out of the conversion funnel", () => {
+    assert.doesNotMatch(componentSources.page, /<Roadmap \/>/);
+    assert.doesNotMatch(componentSources.page, /<Features \/>/);
   });
 
   it("keeps final conversion copy factual and aligned with metadata", () => {
@@ -351,10 +367,7 @@ describe("landing accessibility contracts", () => {
   });
 
   it("keeps final CTA supporting copy legible over the ambient field", () => {
-    assert.match(
-      componentSources.finalCta,
-      /max-w-2xl[^"\n]*text-text\/80/,
-    );
+    assert.match(componentSources.finalCta, /max-w-2xl[^"\n]*text-text\/80/);
     assert.doesNotMatch(
       componentSources.finalCta,
       /max-w-2xl[^"\n]*text-text-secondary/,
