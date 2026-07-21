@@ -82,6 +82,7 @@ struct GoalPlanTimelineSection: View {
                         Text(isExpanded ? "Voir moins" : "Voir tout le plan (\(months.count) mois)")
                         Spacer()
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                            .accessibilityHidden(true)
                     }
                 }
                 .frame(

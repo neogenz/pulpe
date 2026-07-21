@@ -1,6 +1,6 @@
 ---
 objective: "Le détail d’un objectif iOS distingue correctement budgets et Prévisions liées, rend tout le plan accessible et présente la progression dans une hiérarchie plus légère."
-status: implemented
+status: in-progress
 ---
 
 # Plan: Corriger et alléger le détail d’un objectif iOS

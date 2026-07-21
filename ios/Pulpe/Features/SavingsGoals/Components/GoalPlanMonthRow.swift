@@ -26,10 +26,10 @@ enum GoalPlanMonthAvailability: Equatable {
         }
     }
 
-    var icon: String {
+    var icon: String? {
         switch self {
         case .linkedForecast:
-            "checkmark.circle.fill"
+            nil
         case .noLinkedForecast:
             "link"
         case .missingBudget:
@@ -83,8 +83,8 @@ struct GoalPlanMonthRow: View {
                         PulpeChip(label: "Ce mois", style: .muted)
                     }
 
-                    if !hasLinkedForecast {
-                        Label(availability.label, systemImage: availability.icon)
+                    if let availabilityIcon = availability.icon {
+                        Label(availability.label, systemImage: availabilityIcon)
                             .font(PulpeTypography.listRowSubtitle)
                             .foregroundStyle(Color.textSecondary)
                     }

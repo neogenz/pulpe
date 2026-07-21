@@ -6,9 +6,11 @@ import Testing
 struct GoalPlanTimelinePresentationTests {
     @Test("distinguishes a materialized month without a linked forecast from a missing budget")
     func distinguishesUnlinkedForecastFromMissingBudget() {
+        let august = makeMonth(month: 8, state: .future, hasLinkedForecast: true)
         let september = makeMonth(month: 9, state: .gap)
         let november = makeMonth(month: 11, state: .gap, isProvisionable: true)
 
+        #expect(GoalPlanMonthAvailability(month: august).icon == nil)
         #expect(GoalPlanMonthAvailability(month: september) == .noLinkedForecast)
         #expect(GoalPlanMonthAvailability(month: september).label == "Aucune prévision liée")
         #expect(GoalPlanMonthAvailability(month: november) == .missingBudget)
@@ -33,6 +35,25 @@ struct GoalPlanTimelinePresentationTests {
         #expect(collapsed.unlinkedMonthCount == 3)
         #expect(expanded.visibleMonths.map(\.month) == [7, 8, 9, 10, 11])
         #expect(expanded.hiddenCount == 0)
+    }
+
+    @Test("starts the collapsed window at the current month when the plan contains history")
+    func excludesPastMonthsFromCollapsedWindow() {
+        let months = [
+            makeMonth(month: 4, state: .past, hasLinkedForecast: true),
+            makeMonth(month: 5, state: .past, hasLinkedForecast: true),
+            makeMonth(month: 6, state: .past, hasLinkedForecast: true),
+            makeMonth(month: 7, state: .current, hasLinkedForecast: true),
+            makeMonth(month: 8, state: .future, hasLinkedForecast: true),
+            makeMonth(month: 9, state: .gap),
+            makeMonth(month: 10, state: .gap),
+            makeMonth(month: 11, state: .gap, isProvisionable: true),
+        ]
+
+        let collapsed = GoalPlanTimelinePresentation(months: months, isExpanded: false)
+
+        #expect(collapsed.visibleMonths.map(\.month) == [7, 8, 9, 10])
+        #expect(collapsed.hiddenCount == 4)
     }
 
     private func makeMonth(
