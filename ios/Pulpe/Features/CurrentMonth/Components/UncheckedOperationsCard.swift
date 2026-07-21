@@ -35,7 +35,7 @@ struct UncheckedOperationsCard: View {
     private var headerAccessibilityLabel: String {
         let count = "\(totalCount) opération\(totalCount > 1 ? "s" : "") à pointer"
         guard !amountsHidden else { return "\(count) — montant masqué" }
-        return "\(count), \(totalAmount.asCompactCurrency(currency)) à réconcilier"
+        return "\(count), \(totalAmount.asCompactCurrency(currency)) en attente"
     }
 
     var body: some View {
@@ -73,7 +73,7 @@ struct UncheckedOperationsCard: View {
                     .font(PulpeTypography.cardTitle)
                     .foregroundStyle(Color.textPrimary)
 
-                Text("\(totalAmount.asCompactCurrency(currency)) à réconcilier")
+                Text("\(totalAmount.asCompactCurrency(currency)) en attente")
                     .font(PulpeTypography.labelMedium)
                     .foregroundStyle(Color.textTertiary)
                     .monospacedDigit()
@@ -206,7 +206,7 @@ struct UncheckedOperationsCard: View {
             } label: {
                 Text("Plus tard")
                     .font(PulpeTypography.labelLarge)
-                    .foregroundStyle(Color.textTertiary)
+                    .foregroundStyle(Color.textSecondary)
             }
             .textLinkButtonStyle()
             .accessibilityLabel("Plus tard pour \(item.name)")
