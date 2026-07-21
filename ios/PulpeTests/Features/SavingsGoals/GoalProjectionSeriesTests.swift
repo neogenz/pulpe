@@ -1,6 +1,7 @@
 @testable import Pulpe
 import Testing
 
+@Suite("GoalProjectionSeries Tests")
 struct GoalProjectionSeriesTests {
     @Test("drops the start tick when it would collide with the current month")
     func dropsCrowdedStartTick() {

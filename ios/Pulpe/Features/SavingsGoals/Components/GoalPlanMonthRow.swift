@@ -1,5 +1,43 @@
 import SwiftUI
 
+enum GoalPlanMonthAvailability: Equatable {
+    case linkedForecast
+    case noLinkedForecast
+    case missingBudget
+
+    init(month: SavingsGoalPlanMonth) {
+        if !month.lines.isEmpty {
+            self = .linkedForecast
+        } else if month.isProvisionable {
+            self = .missingBudget
+        } else {
+            self = .noLinkedForecast
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .linkedForecast:
+            ""
+        case .noLinkedForecast:
+            "Aucune prévision liée"
+        case .missingBudget:
+            "Pas de budget"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .linkedForecast:
+            "checkmark.circle.fill"
+        case .noLinkedForecast:
+            "link"
+        case .missingBudget:
+            "calendar.badge.exclamationmark"
+        }
+    }
+}
+
 /// One month row of « Ton plan, mois par mois » (PUL-12+, pilier B). Cloned from
 /// `SpreadOccurrenceRow`: same grammar as the lissage timeline so there is zero new
 /// language to learn (`docs/SAVINGS.md` §10.1).

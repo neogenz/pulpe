@@ -2,6 +2,7 @@ import Foundation
 @testable import Pulpe
 import Testing
 
+@Suite("GoalPlanTimelinePresentation Tests")
 struct GoalPlanTimelinePresentationTests {
     @Test("distinguishes a materialized month without a linked forecast from a missing budget")
     func distinguishesUnlinkedForecastFromMissingBudget() {
