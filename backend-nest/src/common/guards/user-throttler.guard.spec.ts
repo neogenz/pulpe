@@ -181,6 +181,31 @@ describe('UserThrottlerGuard', () => {
       expect(tracker).not.toContain(`user:${mockUser.id}`);
     });
 
+    it('should still key a demo-prefixed sibling route by user, not IP', async () => {
+      // Arrange - `/api/v1/demography` is NOT a demo route: the demo prefix
+      // must match `/api/v1/demo/`, not any path that merely starts with it.
+      const mockUser = createMockAuthenticatedUser();
+      mockSupabaseClient
+        .setMockData({ id: mockUser.id, email: mockUser.email })
+        .setMockError(null);
+
+      const mockRequest = {
+        url: '/api/v1/demography',
+        headers: {
+          authorization: 'Bearer valid-token',
+          'x-real-ip': '203.0.113.9',
+        },
+        ip: '203.0.113.9',
+        ips: [],
+      };
+
+      // Act
+      const tracker = await (guard as any).getTracker(mockRequest);
+
+      // Assert
+      expect(tracker).toBe(`user:${mockUser.id}`);
+    });
+
     it('should key demo routes by IP regardless of path casing', async () => {
       // Arrange - Express routes case-insensitively
       const mockRequest = {

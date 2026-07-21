@@ -16,8 +16,11 @@ import type { ExecutionContext } from '@nestjs/common';
  */
 export const DEMO_UNVERIFIED_HOURLY_LIMIT = 10;
 
-const DEMO_PATH_PREFIX = '/api/v1/demo';
-const DEMO_SESSION_PATH = `${DEMO_PATH_PREFIX}/session`;
+// Trailing slash is load-bearing: without it the prefix would also match a
+// sibling like `/api/v1/demography`. Every real demo route is nested under
+// `/api/v1/demo/` (session, cleanup), so the slash narrows to exactly them.
+const DEMO_PATH_PREFIX = '/api/v1/demo/';
+const DEMO_SESSION_PATH = `${DEMO_PATH_PREFIX}session`;
 
 interface ThrottlerRequest {
   url?: string;
