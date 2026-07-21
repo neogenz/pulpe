@@ -5,18 +5,18 @@ import { GITHUB_URL } from "@/lib/config";
 const GUARANTEES = [
   {
     icon: ShieldCheck,
-    title: "Montants chiffrés",
-    text: "Les données financières sont chiffrées en base avec AES-256-GCM et une architecture split-key.",
+    title: "Montants protégés",
+    text: "Tes montants ne sont pas stockés en clair. Ils sont chiffrés avec AES-256-GCM à l’aide de deux clés conservées séparément.",
   },
   {
     icon: Server,
-    title: "Analytics européens",
-    text: "Le suivi d’usage est configuré sur l’infrastructure européenne de PostHog.",
+    title: "Mesure d’usage en Europe",
+    text: "Les données d’usage qui servent à améliorer Pulpe sont traitées sur les serveurs européens de PostHog.",
   },
   {
     icon: Code2,
     title: "Code ouvert",
-    text: "Le code source est public : tu peux vérifier comment Pulpe fonctionne et protège tes données.",
+    text: "Le code source est public : tu peux voir comment Pulpe fonctionne et comment tes montants sont protégés.",
   },
 ] as const;
 
@@ -39,8 +39,8 @@ export function WhyFree() {
             </p>
             <p>
               Le projet est gratuit aujourd&apos;hui, sans publicité ni
-              abonnement. Il reste open source pour que son fonctionnement ne
-              repose pas sur une promesse impossible à vérifier.
+              abonnement. Son code reste public pour que tu puisses vérifier
+              son fonctionnement.
             </p>
           </div>
           <p className="mt-8 font-semibold text-text">

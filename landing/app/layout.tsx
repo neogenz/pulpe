@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     default: "Pulpe – Tu sais des mois d’avance ce qu’il te restera",
   },
   description:
-    "Impôts, vacances, imprévus : Pulpe place ton année devant toi et projette ton solde mois après mois, sans connexion bancaire.",
+    "Renseigne tes revenus, tes dépenses et ton épargne. Pulpe calcule ton disponible mois après mois, sans connecter tes comptes bancaires.",
   applicationName: "Pulpe",
   verification: {
     google: "20-QgsBLcccy2f1lY275s0mayKmxWZZWo9Rg8aGxTQ0",
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Pulpe – Tu sais des mois d’avance ce qu’il te restera",
     description:
-      "Place ton année devant toi et projette ton solde mois après mois, sans connexion bancaire.",
+      "Renseigne tes revenus, tes dépenses et ton épargne. Pulpe calcule ton disponible mois après mois, sans connecter tes comptes bancaires.",
     siteName: "Pulpe",
     type: "website",
     url: "/",
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Pulpe – Tu sais des mois d’avance ce qu’il te restera",
     description:
-      "Place ton année devant toi et projette ton solde mois après mois, sans connexion bancaire.",
+      "Renseigne tes revenus, tes dépenses et ton épargne. Pulpe calcule ton disponible mois après mois, sans connecter tes comptes bancaires.",
     images: ["/og-image.png"],
   },
   icons: {
@@ -71,7 +71,7 @@ const jsonLd = {
       name: "Pulpe",
       alternateName: ["pulpe", "Pulpe app", "pulpe.app"],
       description:
-        "Pulpe place ton année devant toi et projette ton solde mois après mois, sans connexion bancaire.",
+        "Pulpe calcule ton disponible mois après mois à partir de tes revenus, de tes dépenses et de ton épargne, sans connexion bancaire.",
       inLanguage: "fr-CH",
     },
     {
@@ -79,7 +79,7 @@ const jsonLd = {
       "@id": "https://pulpe.app/#app",
       name: "Pulpe",
       description:
-        "Pulpe place ton année devant toi et projette ton solde mois après mois, sans connexion bancaire.",
+        "Pulpe calcule ton disponible mois après mois à partir de tes revenus, de tes dépenses et de ton épargne, sans connexion bancaire.",
       applicationCategory: "FinanceApplication",
       operatingSystem: "Web, iOS",
       offers: {

@@ -71,7 +71,7 @@ export const HeroDashboard = memo(function HeroDashboard({
 
       <div className="grid gap-3 bg-[#fbfdf9] p-3 md:grid-cols-[1.08fr_0.92fr] md:gap-4 md:p-5">
         <div className="flex min-h-[19rem] flex-col rounded-[14px] bg-gradient-to-br from-primary to-[#004d1a] p-6 text-white md:min-h-[22rem] md:p-8">
-          <div className="mb-8 flex items-center gap-2 text-xs font-semibold text-white/72">
+          <div className="mb-8 flex items-center gap-2 text-xs font-semibold text-white/80">
             <span
               className="h-1.5 w-1.5 rounded-full bg-white/80"
               aria-hidden="true"
@@ -79,7 +79,7 @@ export const HeroDashboard = memo(function HeroDashboard({
             Mois en cours{monthLabel ? ` · ${monthLabel}` : ""}
           </div>
 
-          <p className="text-sm text-white/72">Disponible ce mois</p>
+          <p className="text-sm text-white/80">Disponible ce mois</p>
           <p className="mt-1 leading-none">
             <span className="sr-only">
               {amount} {unit}
@@ -99,7 +99,7 @@ export const HeroDashboard = memo(function HeroDashboard({
           </p>
 
           <div className="mt-auto pt-10">
-            <div className="mb-2 flex justify-between text-xs text-white/70 tabular-nums">
+            <div className="mb-2 flex justify-between text-xs text-white/80 tabular-nums">
               <span>Dépensé 3 374 {unit}</span>
               <span>sur 4 300 {unit}</span>
             </div>
@@ -110,7 +110,7 @@ export const HeroDashboard = memo(function HeroDashboard({
                 aria-hidden="true"
               />
             </div>
-            <p className="mt-4 text-sm leading-relaxed text-white/78">
+            <p className="mt-4 text-sm leading-relaxed text-white/80">
               Tes grosses dépenses sont déjà intégrées aux mois qui arrivent.
             </p>
           </div>

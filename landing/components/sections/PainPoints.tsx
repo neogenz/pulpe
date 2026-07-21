@@ -3,7 +3,7 @@ import { Section } from "@/components/ui";
 
 const PROOFS = [
   { value: "12 mois", label: "visibles d’un coup" },
-  { value: "3 minutes", label: "pour poser ton année" },
+  { value: "1 mois type", label: "comme base pour les suivants" },
   { value: "Web + iOS", label: "le même budget partout" },
 ];
 
@@ -56,12 +56,11 @@ export function PainPoints() {
             </div>
             <p className="text-sm font-medium text-primary">Juillet</p>
             <h2 className="mt-3 text-4xl font-bold leading-[1.05] tracking-[-0.035em] text-text sm:text-5xl">
-              Les impôts tombent. Ton mois ne devrait pas tomber avec.
+              Les impôts tombent. Ton budget les a déjà prévus.
             </h2>
             <p className="mt-6 max-w-lg text-base leading-relaxed text-text-secondary sm:text-lg">
-              Avec Pulpe, les grosses dépenses ont déjà leur place dans ton
-              année. Tu vois ce qu&apos;il te restera en juillet, en août et
-              après.
+              Place tes grosses dépenses au bon mois. Pulpe te montre ce
+              qu&apos;il te restera en juillet, en août et après.
             </p>
           </div>
         </div>

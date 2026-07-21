@@ -22,7 +22,7 @@ const ROADMAP: RoadmapStage[] = [
   {
     status: "shipped",
     icon: PackageCheck,
-    label: "Livré",
+    label: "Disponible",
     items: [
       "Lisser une grosse dépense sur plusieurs mois",
       "Reporter une prévision sans la recréer",
@@ -73,12 +73,14 @@ export function Roadmap() {
     <Section id="roadmap">
       <div className="grid gap-10 lg:grid-cols-4 lg:gap-14">
         <div>
-          <p className="text-sm font-medium text-primary">Roadmap publique</p>
+          <p className="text-sm font-medium text-primary">
+            Les prochaines étapes
+          </p>
           <h2 className="mt-3 text-4xl font-bold leading-[1.05] tracking-[-0.035em] sm:text-5xl">
-            Tu sais ce qui bouge.
+            Ce qui est prêt. La suite.
           </h2>
           <p className="mt-5 leading-relaxed text-text-secondary">
-            Le produit avance par bénéfice utile, sans date artificielle.
+            Retrouve ici ce qui est disponible, en cours et prévu ensuite.
           </p>
           <Link
             href="/changelog"

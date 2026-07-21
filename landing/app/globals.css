@@ -110,6 +110,9 @@ body {
 }
 
 /* Let the browser rebalance headline line breaks; avoids orphan words */
+h1,
+h2,
+h3,
 .balance {
   text-wrap: balance;
 }
@@ -191,10 +194,6 @@ body {
   }
 }
 
-section[id] {
-  scroll-margin-top: 7rem;
-}
-
 :focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
@@ -249,23 +248,6 @@ section[id] {
   }
 }
 
-/* Floating card bob animation */
-@keyframes float-bob {
-  0%,
-  100% {
-    transform: translateY(0) rotate(var(--rotation, 0deg));
-  }
-  50% {
-    transform: translateY(-6px) rotate(var(--rotation, 0deg));
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .float-bob {
-    animation: float-bob 4s ease-in-out infinite;
-  }
-}
-
 /* CSS-based fade-in animations */
 @keyframes fade-in {
   from {
@@ -298,17 +280,6 @@ section[id] {
   }
 }
 
-@keyframes fade-in-float {
-  from {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
 .animate-fade-in {
   animation: fade-in 0.5s ease-out both;
 }
@@ -319,19 +290,6 @@ section[id] {
 
 .animate-fade-in-scale {
   animation: fade-in-scale 0.6s ease-out both;
-}
-
-.animate-fade-in-float {
-  animation: fade-in-float 0.5s ease-out both;
-}
-
-/* Staggered entrance delays for the hero floating cards. Namespaced so they
-   don't collide with Tailwind's transition-delay `delay-*` utilities. */
-.anim-delay-400 {
-  animation-delay: 0.4s;
-}
-.anim-delay-600 {
-  animation-delay: 0.6s;
 }
 
 /* Legacy grain hooks remain for secondary routes, but the marketing page uses
@@ -429,7 +387,6 @@ section[id] {
   .animate-fade-in,
   .animate-fade-in-opacity,
   .animate-fade-in-scale,
-  .animate-fade-in-float,
   .animate-blur-in {
     animation: none;
     opacity: 1;

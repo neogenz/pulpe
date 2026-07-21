@@ -70,7 +70,7 @@ export const ImageLightbox = memo(function ImageLightbox({
       <button
         ref={closeButtonRef}
         onClick={onClose}
-        className="absolute top-4 right-4 p-2 text-white/80 hover:text-white transition-colors rounded-full hover:bg-white/10"
+        className="focus-on-dark absolute top-4 right-4 rounded-full p-2 text-white/80 transition-colors hover:bg-white/10 hover:text-white"
         aria-label="Fermer"
         tabIndex={isOpen ? 0 : -1}
       >

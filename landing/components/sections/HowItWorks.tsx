@@ -3,7 +3,7 @@ import { Section, Screenshot } from "@/components/ui";
 const STEPS = [
   {
     number: "01",
-    title: "Pose ton mois type",
+    title: "Renseigne un mois habituel",
     description:
       "Ajoute tes revenus, tes dépenses récurrentes et ce que tu veux mettre de côté.",
     src: "/screenshots/responsive/ecran-des-modeles.webp",
@@ -14,9 +14,9 @@ const STEPS = [
   },
   {
     number: "02",
-    title: "Ajoute les exceptions",
+    title: "Place ce qui change",
     description:
-      "Place les impôts, vacances et gros achats dans les mois où ils auront vraiment lieu.",
+      "Ajoute les impôts, les vacances et les gros achats dans les mois où ils auront lieu.",
     src: "/screenshots/responsive/modal-ajout-transaction.webp",
     desktopSrc: "/screenshots/webapp/modal-ajout-transaction.webp",
     label: "Ajout d’une dépense prévue dans Pulpe",
@@ -25,9 +25,9 @@ const STEPS = [
   },
   {
     number: "03",
-    title: "Lis ton année",
+    title: "Vois ce qu’il te restera",
     description:
-      "Chaque mois affiche ton disponible. Si le réel change, la projection suit.",
+      "Pulpe calcule ton disponible chaque mois. Quand tu ajoutes une dépense réelle, la suite se met à jour.",
     src: "/screenshots/responsive/vue-calendrier-annuel.webp",
     desktopSrc: "/screenshots/webapp/vue-calendrier-annuel.webp",
     label: "Vue annuelle du budget dans Pulpe",
@@ -40,13 +40,12 @@ export function HowItWorks() {
   return (
     <Section id="how-it-works">
       <div className="mx-auto max-w-3xl text-center">
-        <p className="text-sm font-medium text-primary">De zéro à douze mois</p>
-        <h2 className="mt-3 text-4xl font-bold leading-[1.05] tracking-[-0.035em] sm:text-5xl lg:text-6xl">
-          Ton année prend forme en trois gestes.
+        <h2 className="text-4xl font-bold leading-[1.05] tracking-[-0.035em] sm:text-5xl lg:text-6xl">
+          Prépare ton année en trois étapes.
         </h2>
         <p className="mx-auto mt-5 max-w-xl text-lg text-text-secondary">
-          Pas de catégorie à deviner ni de rapport à décoder. Tu renseignes ce
-          qui compte, Pulpe montre la suite.
+          Tu saisis tes montants. Pulpe calcule ce qu&apos;il te reste, sans
+          rapport à décoder.
         </p>
       </div>
 

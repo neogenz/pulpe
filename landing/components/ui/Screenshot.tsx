@@ -126,7 +126,7 @@ export const Screenshot = memo(function Screenshot({
         </picture>
         <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none motion-reduce:transition-none">
           <span className="bg-black/50 backdrop-blur-sm rounded-full p-3">
-            <Maximize2 className="w-5 h-5 text-white" />
+            <Maximize2 className="h-5 w-5 text-white" aria-hidden="true" />
           </span>
         </span>
       </button>
