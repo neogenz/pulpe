@@ -4,11 +4,12 @@ import { Container } from "./Container";
 
 interface SectionProps extends HTMLAttributes<HTMLElement> {
   children: ReactNode;
-  background?: "default" | "primary";
+  background?: "default" | "surface" | "primary";
 }
 
 const BACKGROUND_STYLES = {
   default: "bg-transparent",
+  surface: "bg-surface",
   primary: "bg-primary text-white",
 } as const;
 

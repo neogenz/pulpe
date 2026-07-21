@@ -1,31 +1,58 @@
 import { ShieldCheck, Sprout, Zap } from "lucide-react";
-import { Badge, Screenshot, Section } from "@/components/ui";
+import { Screenshot, Section } from "@/components/ui";
 
 export function Features() {
   return (
     <Section id="features" className="pt-10 lg:pt-16">
       <div className="max-w-3xl">
         <h2 className="text-4xl font-bold leading-[1.05] tracking-[-0.035em] sm:text-5xl lg:text-6xl">
-          Moins de saisie. Des décisions plus sereines.
+          Pose ton budget une fois. Ajuste seulement ce qui change.
         </h2>
       </div>
 
       <article className="mt-14 grid items-center gap-9 overflow-hidden rounded-[var(--radius-large)] bg-surface-alt p-6 sm:p-9 lg:grid-cols-5 lg:gap-14 lg:p-12">
         <div className="lg:col-span-2">
-          <Badge className="mb-5">
-            <ShieldCheck className="size-4" />
-            Tes dépenses récurrentes
-          </Badge>
+          <p className="mb-5 flex items-center gap-2 text-sm font-semibold text-primary">
+            <Sprout className="size-4" aria-hidden="true" />
+            Ton mois type
+          </p>
           <h3 className="text-3xl font-semibold leading-tight tracking-[-0.025em] sm:text-4xl">
-            Tes charges reviennent. Tu ne les ressaisis pas.
+            Une base pour préparer les mois suivants.
           </h3>
           <p className="mt-5 text-lg leading-relaxed text-text-secondary">
-            Ajoute tes charges au mois type : Pulpe les reprend chaque mois. Tu
-            n&apos;as plus qu&apos;à pointer ce qui est passé pour garder ton
-            disponible à jour.
+            Renseigne un mois habituel une fois. Les prochains mois partent de
+            cette base, et tu ajustes seulement ce qui change.
           </p>
         </div>
         <div className="lg:col-span-3">
+          <Screenshot
+            src="/screenshots/responsive/ecran-des-modeles.webp"
+            desktopSrc="/screenshots/webapp/ecran-des-modeles.webp"
+            label="Modèles de budget dans Pulpe"
+            mobileWidth={750}
+            mobileHeight={1190}
+            desktopWidth={1261}
+            desktopHeight={956}
+          />
+        </div>
+      </article>
+
+      <article className="mt-14 grid items-center gap-8 border-t border-text/10 pt-14 lg:grid-cols-12 lg:gap-14">
+        <div className="lg:col-span-5">
+          <p className="mb-5 flex items-center gap-2 text-sm font-semibold text-primary">
+            <ShieldCheck className="size-4" aria-hidden="true" />
+            Tes dépenses récurrentes
+          </p>
+          <h3 className="text-3xl font-semibold leading-tight tracking-[-0.025em]">
+            Tes charges reviennent. Pas besoin de les ressaisir.
+          </h3>
+          <p className="mt-4 max-w-xl leading-relaxed text-text-secondary">
+            Pulpe reprend les charges de ton mois type dans les mois à venir.
+            Quand l&apos;une d&apos;elles évolue, tu modifies uniquement cette
+            prévision.
+          </p>
+        </div>
+        <div className="lg:col-span-7">
           <Screenshot
             src="/screenshots/responsive/liste-des-previsions.webp"
             desktopSrc="/screenshots/webapp/liste-des-previsions.webp"
@@ -38,58 +65,32 @@ export function Features() {
         </div>
       </article>
 
-      <div className="mt-12 grid gap-12 lg:grid-cols-12 lg:gap-10">
-        <article className="lg:col-span-7 lg:pr-8">
-          <Badge className="mb-5">
-            <Sprout className="size-4" />
-            Ton mois type
-          </Badge>
-          <h3 className="max-w-xl text-3xl font-semibold leading-tight tracking-[-0.025em]">
-            Une base pour préparer les mois suivants.
+      <article className="mt-14 grid items-center gap-8 border-t border-text/10 pt-14 lg:grid-cols-12 lg:gap-14">
+        <div className="lg:col-span-5 lg:col-start-8">
+          <p className="mb-5 flex items-center gap-2 text-sm font-semibold text-primary">
+            <Zap className="size-4" aria-hidden="true" />
+            Quand le réel change
+          </p>
+          <h3 className="text-3xl font-semibold leading-tight tracking-[-0.025em]">
+            Le réel met ta projection à jour.
           </h3>
           <p className="mt-4 max-w-xl leading-relaxed text-text-secondary">
-            Modifie un revenu ou une charge dans ton modèle. Les prochains mois
-            partent de cette base, sans copier-coller.
+            Ajoute une dépense dans le bon mois et Pulpe recalcule la suite. Ta
+            projection évolue sans te demander de refaire ton budget.
           </p>
-          <div className="mt-7">
-            <Screenshot
-              src="/screenshots/responsive/ecran-des-modeles.webp"
-              desktopSrc="/screenshots/webapp/ecran-des-modeles.webp"
-              label="Modèles de budget dans Pulpe"
-              mobileWidth={750}
-              mobileHeight={1190}
-              desktopWidth={1261}
-              desktopHeight={956}
-            />
-          </div>
-        </article>
-
-        <article className="rounded-[var(--radius-large)] bg-surface p-6 shadow-[var(--shadow-organic)] outline outline-1 -outline-offset-1 outline-black/5 sm:p-8 lg:col-span-5">
-          <Badge className="mb-5">
-            <Zap className="size-4" />
-            Tes dépenses réelles
-          </Badge>
-          <h3 className="text-3xl font-semibold leading-tight tracking-[-0.025em]">
-            Ajoute une dépense sans refaire ton budget.
-          </h3>
-          <p className="mt-4 leading-relaxed text-text-secondary">
-            Saisis le montant dans le bon mois. Si tu l&apos;avais prévue,
-            associe-la à la prévision correspondante. Pulpe recalcule aussitôt
-            ton disponible.
-          </p>
-          <div className="mt-7">
-            <Screenshot
-              src="/screenshots/responsive/modal-ajout-transaction.webp"
-              desktopSrc="/screenshots/webapp/modal-ajout-transaction.webp"
-              label="Ajout d’une dépense dans Pulpe"
-              mobileWidth={750}
-              mobileHeight={1190}
-              desktopWidth={1260}
-              desktopHeight={955}
-            />
-          </div>
-        </article>
-      </div>
+        </div>
+        <div className="lg:col-span-7 lg:col-start-1 lg:row-start-1">
+          <Screenshot
+            src="/screenshots/responsive/modal-ajout-transaction.webp"
+            desktopSrc="/screenshots/webapp/modal-ajout-transaction.webp"
+            label="Ajout d’une dépense dans Pulpe"
+            mobileWidth={750}
+            mobileHeight={1190}
+            desktopWidth={1260}
+            desktopHeight={955}
+          />
+        </div>
+      </article>
     </Section>
   );
 }

@@ -22,25 +22,27 @@ const GUARANTEES = [
 
 export function WhyFree() {
   return (
-    <Section id="why-free">
-      <div className="grid gap-14 lg:grid-cols-5 lg:gap-20">
+    <Section
+      id="why-free"
+      background="surface"
+      className="border-y border-text/10"
+    >
+      <div className="grid gap-10 lg:grid-cols-5 lg:gap-16">
         <div className="lg:col-span-3">
-          <p className="text-sm font-medium text-primary">
-            Une note du créateur
-          </p>
-          <h2 className="mt-3 text-4xl font-bold leading-[1.05] tracking-[-0.035em] sm:text-5xl lg:text-6xl">
+          <h2 className="text-4xl font-bold leading-[1.05] tracking-[-0.035em] sm:text-5xl">
             J&apos;avais besoin d&apos;un budget qui regarde devant.
           </h2>
           <div className="mt-7 max-w-2xl space-y-5 text-lg leading-relaxed text-text-secondary">
             <p>
-              J&apos;ai créé Pulpe après trop de mois passés à bricoler des
-              tableurs qui expliquaient le passé, sans m&apos;aider à anticiper
-              la suite.
+              J&apos;ai créé Pulpe après trop de mois passés à maintenir des
+              tableurs pour essayer de voir les mois à venir. Je voulais mesurer
+              l&apos;effet d&apos;une décision avant de la prendre, pas
+              seulement expliquer le passé.
             </p>
             <p>
               Le projet est gratuit aujourd&apos;hui, sans publicité ni
-              abonnement. Son code reste public pour que tu puisses vérifier
-              son fonctionnement.
+              abonnement. Son code reste public pour que tu puisses vérifier son
+              fonctionnement.
             </p>
           </div>
           <p className="mt-8 font-semibold text-text">
@@ -57,7 +59,7 @@ export function WhyFree() {
           </a>
         </div>
 
-        <dl className="lg:col-span-2">
+        <dl className="border-t border-text/10 pt-3 lg:col-span-2 lg:border-l lg:border-t-0 lg:pl-12 lg:pt-0">
           {GUARANTEES.map((guarantee, index) => (
             <div
               key={guarantee.title}
@@ -67,6 +69,7 @@ export function WhyFree() {
                 <guarantee.icon
                   className="size-5 text-primary"
                   strokeWidth={1.7}
+                  aria-hidden="true"
                 />
                 {guarantee.title}
               </dt>
