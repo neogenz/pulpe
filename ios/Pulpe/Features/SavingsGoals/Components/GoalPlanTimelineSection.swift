@@ -1,5 +1,76 @@
 import SwiftUI
 
+enum GoalPlanMonthAvailability: Equatable {
+    case linkedForecast
+    case noLinkedForecast
+    case missingBudget
+
+    init(month: SavingsGoalPlanMonth) {
+        if !month.lines.isEmpty {
+            self = .linkedForecast
+        } else if month.isProvisionable {
+            self = .missingBudget
+        } else {
+            self = .noLinkedForecast
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .linkedForecast:
+            ""
+        case .noLinkedForecast:
+            "Aucune prévision liée"
+        case .missingBudget:
+            "Pas de budget"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .linkedForecast:
+            "checkmark.circle.fill"
+        case .noLinkedForecast:
+            "link"
+        case .missingBudget:
+            "calendar.badge.exclamationmark"
+        }
+    }
+}
+
+struct GoalPlanTimelinePresentation {
+    private static let openMonthsWindow = 3
+
+    let months: [SavingsGoalPlanMonth]
+    let isExpanded: Bool
+
+    private var currentIndex: Int {
+        months.firstIndex { $0.state == .current } ?? 0
+    }
+
+    private var collapsedMonths: [SavingsGoalPlanMonth] {
+        guard !months.isEmpty else { return [] }
+        let end = min(months.count, currentIndex + Self.openMonthsWindow + 1)
+        return Array(months[currentIndex..<end])
+    }
+
+    var visibleMonths: [SavingsGoalPlanMonth] {
+        isExpanded ? months : collapsedMonths
+    }
+
+    var hiddenCount: Int {
+        max(0, months.count - visibleMonths.count)
+    }
+
+    var canToggle: Bool {
+        collapsedMonths.count < months.count
+    }
+
+    var unlinkedMonthCount: Int {
+        months.count(where: { $0.lines.isEmpty })
+    }
+}
+
 /// « Ton plan, mois par mois » (PUL-12+, pilier B) — the read-mode timeline section
 /// on the goal detail. Windowed by default (last locked month for context + the
 /// upcoming open months) with a « Voir tout le plan » toggle; a full 24–96 row list
@@ -15,59 +86,54 @@ struct GoalPlanTimelineSection: View {
 
     @State private var isExpanded = false
 
-    /// Upcoming open months shown before the "Voir tout" fold, past the current one.
-    private let openMonthsWindow = 3
-
-    private var currentIndex: Int {
-        months.firstIndex { $0.state == .current } ?? 0
-    }
-
-    private var windowedMonths: [SavingsGoalPlanMonth] {
-        guard !isExpanded else { return months }
-        guard !months.isEmpty else { return [] }
-
-        let lastLockedIndex = months.lastIndex { $0.isLocked }
-        let start = min(lastLockedIndex ?? currentIndex, currentIndex)
-        let end = min(months.count - 1, currentIndex + openMonthsWindow)
-        guard start <= end else { return Array(months[currentIndex...currentIndex]) }
-        return Array(months[start...end])
-    }
-
-    private var gapCount: Int {
-        months.filter { $0.state == .gap }.count
-    }
-
-    private var hiddenCount: Int {
-        months.count - windowedMonths.count
+    private var presentation: GoalPlanTimelinePresentation {
+        GoalPlanTimelinePresentation(months: months, isExpanded: isExpanded)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            Text("Ton plan, mois par mois")
-                .font(PulpeTypography.headline)
-                .foregroundStyle(Color.textPrimary)
+            HStack(spacing: DesignTokens.Spacing.md) {
+                Text("Ton plan, mois par mois")
+                    .font(PulpeTypography.title)
+                    .foregroundStyle(Color.textPrimary)
 
-            if canAdjust {
-                Button(action: onAdjust) {
-                    PulpeChip(icon: "slider.horizontal.3", label: "Ajuster mon plan", style: .outlined)
+                Spacer(minLength: DesignTokens.Spacing.sm)
+
+                if canAdjust {
+                    Button(action: onAdjust) {
+                        Label("Ajuster", systemImage: "slider.horizontal.3")
+                            .font(PulpeTypography.buttonSecondary)
+                    }
+                    .frame(minHeight: DesignTokens.TapTarget.minimum)
+                    .textLinkButtonStyle()
+                    .accessibilityLabel("Ajuster le plan")
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Ajuster mon plan")
             }
 
             timelineCard
 
-            if !isExpanded, hiddenCount > 0 {
+            if presentation.canToggle {
                 Button {
-                    withAnimation(DesignTokens.Animation.gentleSpring) { isExpanded = true }
+                    withAnimation(DesignTokens.Animation.gentleSpring) { isExpanded.toggle() }
                 } label: {
-                    Text("Voir tout le plan (\(months.count) mois)")
+                    HStack(spacing: DesignTokens.Spacing.sm) {
+                        Text(isExpanded ? "Voir moins" : "Voir tout le plan (\(months.count) mois)")
+                        Spacer()
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    }
+                    .frame(
+                        maxWidth: .infinity,
+                        minHeight: DesignTokens.TapTarget.minimum,
+                        alignment: .leading
+                    )
+                    .contentShape(Rectangle())
                 }
                 .textLinkButtonStyle()
+                .accessibilityHint(isExpanded ? "Réduit la liste des mois" : "Affiche tous les mois")
             }
 
-            if gapCount > 0 {
-                Text("\(gapCount) mois sans budget — ils s'ajouteront quand tu créeras ces budgets.")
+            if presentation.unlinkedMonthCount > 0 {
+                Text("\(presentation.unlinkedMonthCount) mois sans prévision liée à cet objectif.")
                     .font(PulpeTypography.listRowSubtitle)
                     .foregroundStyle(Color.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -77,7 +143,7 @@ struct GoalPlanTimelineSection: View {
 
     private var timelineCard: some View {
         VStack(spacing: 0) {
-            ForEach(Array(windowedMonths.enumerated()), id: \.element.id) { index, month in
+            ForEach(Array(presentation.visibleMonths.enumerated()), id: \.element.id) { index, month in
                 if index > 0 {
                     Divider().foregroundStyle(Color.textTertiary.opacity(DesignTokens.Opacity.secondary))
                 }

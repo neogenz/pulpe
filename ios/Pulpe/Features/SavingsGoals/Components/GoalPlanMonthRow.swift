@@ -7,7 +7,7 @@ import SwiftUI
 /// `amount` / `cumulative` are injected so the same row serves read mode
 /// (`plannedAmount` / `plannedCumulative`) and the simulator (`simulatedAmount` /
 /// `simulatedCumulative`). Locked rows are dimmed + non-interactive; the current
-/// period carries a « Ce mois » chip; a `gap` month shows « Pas de budget ». Amount
+/// period carries a « Ce mois » chip; a month without a linked forecast states why. Amount
 /// is the ligne 2-decimal (`asCurrency`), cumulative the aggregation compact
 /// (`asCompactCurrency`, `→` prefix). Savings green + neutrals only (RG-002).
 struct GoalPlanMonthRow: View {
@@ -18,7 +18,8 @@ struct GoalPlanMonthRow: View {
     var isAdjusted: Bool = false
 
     private var isCurrentPeriod: Bool { month.state == .current }
-    private var isGap: Bool { month.state == .gap }
+    private var availability: GoalPlanMonthAvailability { GoalPlanMonthAvailability(month: month) }
+    private var hasLinkedForecast: Bool { availability == .linkedForecast }
 
     private var allChecked: Bool {
         !month.lines.isEmpty && month.lines.allSatisfy(\.isChecked)
@@ -39,10 +40,16 @@ struct GoalPlanMonthRow: View {
                     .font(PulpeTypography.listRowTitle)
                     .foregroundStyle(Color.textPrimary)
 
-                if isCurrentPeriod {
-                    PulpeChip(label: "Ce mois", style: .muted)
-                } else if isGap {
-                    PulpeChip(icon: "calendar.badge.exclamationmark", label: "Pas de budget", style: .muted)
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    if isCurrentPeriod {
+                        PulpeChip(label: "Ce mois", style: .muted)
+                    }
+
+                    if !hasLinkedForecast {
+                        Label(availability.label, systemImage: availability.icon)
+                            .font(PulpeTypography.listRowSubtitle)
+                            .foregroundStyle(Color.textSecondary)
+                    }
                 }
             }
 
@@ -72,7 +79,7 @@ struct GoalPlanMonthRow: View {
     @ViewBuilder
     private var amountView: some View {
         VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
-            if !isGap {
+            if hasLinkedForecast {
                 Text(amount.asCurrency(currency))
                     .font(PulpeTypography.amountCard)
                     .monospacedDigit()
@@ -92,10 +99,10 @@ struct GoalPlanMonthRow: View {
 
     private var accessibilityLabel: String {
         var parts = [monthLabel]
-        if isGap {
-            parts.append("pas de budget")
-        } else {
+        if hasLinkedForecast {
             parts.append(amount.asCurrency(currency))
+        } else {
+            parts.append(availability.label)
         }
         parts.append("cumulé \(cumulative.asCurrency(currency))")
         if isCurrentPeriod { parts.append("ce mois") }
