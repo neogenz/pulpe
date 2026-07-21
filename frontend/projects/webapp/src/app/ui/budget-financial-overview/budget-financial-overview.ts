@@ -169,6 +169,9 @@ export class BudgetFinancialOverview {
     Math.abs(this.totals().remaining),
   );
 
+  // `rollover` is only non-zero when a previous budget exists — the backend derives
+  // it as the sum of prior ending balances — so gating on the amount alone is enough;
+  // no separate `previousBudgetId` check is needed.
   // Gate on the rounded value, not `!== 0`: a sub-unit residual rollover would
   // otherwise render "+0 €" — a disclosure claiming an amount it then shows as zero.
   protected readonly hasRollover = computed(
@@ -187,7 +190,11 @@ export class BudgetFinancialOverview {
         ? 'budget.overview.rolloverIncludedSurplusAria'
         : 'budget.overview.rolloverIncludedDeficitAria',
       {
-        amount: this.rolloverAbsolute().toLocaleString(this.locale()),
+        // Round to match the visible figure (rendered at '1.0-0'), so VoiceOver
+        // never announces a different amount than the one on screen.
+        amount: Math.round(this.rolloverAbsolute()).toLocaleString(
+          this.locale(),
+        ),
         currency: this.currency(),
       },
     ),

@@ -81,6 +81,23 @@ describe('BudgetFinancialOverview', () => {
       expect(renderWithRollover(-0.4)).toBeNull();
     });
 
+    it('should round the aria-label amount to match the visible figure', () => {
+      setTestInput(fixture.componentInstance.rollover, 3800.75);
+      fixture.detectChanges();
+
+      const label =
+        (
+          fixture.nativeElement.querySelector(
+            '[data-testid="financial-overview-rollover"]',
+          ) as HTMLElement
+        ).getAttribute('aria-label') ?? '';
+      const digits = label.replace(/[\s'’]/g, '');
+
+      expect(digits).toContain('3801');
+      expect(digits).not.toContain('3800.75');
+      expect(label).toContain('CHF');
+    });
+
     it('should carry the colour of the budget state it sits on', () => {
       const classesFor = (totals: FinancialTotals): string => {
         setTestInput(fixture.componentInstance.totals, totals);
