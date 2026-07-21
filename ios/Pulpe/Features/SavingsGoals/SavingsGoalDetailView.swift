@@ -52,7 +52,7 @@ struct SavingsGoalDetailView: View {
             }
         }
         .navigationTitle(currentGoal.name)
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         .pulpeBackground()
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -95,9 +95,6 @@ struct SavingsGoalDetailView: View {
                     GoalEmptyGuidanceCard()
                 } else {
                     progressCard(progress: progress)
-                    if let pace = progress.paceStatus {
-                        paceChip(pace)
-                    }
                 }
 
                 GoalDerivedStateCards(
@@ -207,18 +204,14 @@ struct SavingsGoalDetailView: View {
 
             layeredBar(progress: progress)
 
+            if let pace = progress.paceStatus {
+                paceIndicator(pace)
+            }
+
             VStack(spacing: DesignTokens.Spacing.sm) {
                 if progress.initialAmount > 0 {
                     statRow(label: "Montant de départ", value: progress.initialAmount.asCompactCurrency(currency))
                 }
-                statRow(
-                    // « Épargné », pas « Pointé » : le confirmé additionne le
-                    // montant de départ, qui n'a jamais été pointé. « Pointé »
-                    // reste exact ligne à ligne (état checked, cf. glossaire).
-                    label: "Épargné",
-                    value: progress.confirmed.asCompactCurrency(currency),
-                    swatch: Color.financialSavings
-                )
                 statRow(
                     label: "Prévu cumulé",
                     value: progress.plannedCumulative.asCompactCurrency(currency),
@@ -230,10 +223,6 @@ struct SavingsGoalDetailView: View {
                         value: "\(required.asCompactCurrency(currency)) / mois"
                     )
                 }
-                statRow(
-                    label: "Projection à l'échéance",
-                    value: progress.projected.asCompactCurrency(currency)
-                )
             }
         }
         .pulpeCard()
@@ -280,8 +269,10 @@ struct SavingsGoalDetailView: View {
 
     // MARK: - Pace verdict
 
-    private func paceChip(_ pace: SavingsGoalPaceStatus) -> some View {
-        PulpeChip(icon: paceIcon(pace), label: paceLabel(pace), style: .muted)
+    private func paceIndicator(_ pace: SavingsGoalPaceStatus) -> some View {
+        Label(paceLabel(pace), systemImage: paceIcon(pace))
+            .font(PulpeTypography.metricLabelBold)
+            .foregroundStyle(Color.textSecondary)
             .accessibilityLabel("Rythme : \(paceLabel(pace))")
     }
 
