@@ -15,6 +15,7 @@ struct HomeHeroCard: View {
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.amountsHidden) private var amountsHidden
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var tapTrigger = false
 
     private var currency: SupportedCurrency { userSettingsStore.currency }
@@ -193,10 +194,19 @@ struct HomeHeroCard: View {
             )
             .padding(.top, DesignTokens.Spacing.xxs)
 
-            HStack {
-                spentLabel
-                Spacer()
-                dayLabel
+            // Side by side these two wrap into each other at accessibility sizes
+            // ("Dépensé 2'991 sur 4'300" spilling onto 3 lines beside "Jour 21/31").
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                    spentLabel
+                    dayLabel
+                }
+            } else {
+                HStack {
+                    spentLabel
+                    Spacer()
+                    dayLabel
+                }
             }
         }
         .padding(DesignTokens.Spacing.xl)

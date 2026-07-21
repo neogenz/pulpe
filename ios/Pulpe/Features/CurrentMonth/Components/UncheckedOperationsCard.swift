@@ -13,6 +13,7 @@ struct UncheckedOperationsCard: View {
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.amountsHidden) private var amountsHidden
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var skippedIds: Set<String> = []
     @State private var checkTrigger = false
 
@@ -66,7 +67,11 @@ struct UncheckedOperationsCard: View {
 
     private var header: some View {
         HStack(spacing: DesignTokens.Spacing.lg) {
-            avatarStack
+            // Purely decorative (accessibilityHidden) — it squeezes the title into
+            // three cramped lines once text wraps at accessibility sizes.
+            if !dynamicTypeSize.isAccessibilitySize {
+                avatarStack
+            }
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                 Text("\(totalCount) opération\(totalCount > 1 ? "s" : "") à pointer")
