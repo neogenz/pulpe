@@ -548,17 +548,15 @@
     "overview": {
       "remainingThisMonth": "Ce qu'il te reste ce mois",
       "perForecast": "selon tes prévisions",
+      "rolloverIncluded": "Report du mois précédent inclus",
+      "rolloverIncludedSurplusAria": "Report positif du mois précédent inclus : {{ amount }} {{ currency }}",
+      "rolloverIncludedDeficitAria": "Report négatif du mois précédent inclus : {{ amount }} {{ currency }}",
       "deficitThisMonth": "Déficit ce mois",
       "uncoveredOverrun": "dépassement non couvert",
       "niceMargin": "Belle marge ce mois",
       "youManageWell": "Tu gères bien",
       "justBalanced": "Pile à l'équilibre",
       "tightMonth": "Ce mois sera serré — mais tu le sais"
-    },
-    "rolloverInfo": {
-      "label": "Report du mois précédent",
-      "ariaSurplus": "Report positif du mois précédent : {{ amount }} {{ currency }}",
-      "ariaDeficit": "Report négatif du mois précédent : {{ amount }} {{ currency }}"
     },
     "savingsWithdrawal": {
       "cardTitle": "Un mois un peu juste ?",

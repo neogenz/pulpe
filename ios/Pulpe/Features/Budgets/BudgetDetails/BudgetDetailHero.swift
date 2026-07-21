@@ -5,8 +5,9 @@ import SwiftUI
 /// Layout (refonte mai 2026):
 /// - Eyebrow: "DISPONIBLE · CHF" (or "DÉFICIT · CHF" if deficit)
 /// - Hero amount: Manrope ExtraBold, `Color.textPrimary`
+/// - Rollover disclosure (when non-zero): ties the reported balance to the amount above
 /// - Inline progress bar (green) + percent flush right
-/// - Horizontal scroll of pills: Reporté · Revenus · Épargne · Dépenses
+/// - Horizontal scroll of pills: Revenus · Épargne · Dépenses
 ///
 /// No surface, no border, no shadow, no gradient. Sits flush on `Color.appBackground`.
 /// Used **only** in `BudgetDetailsView`. The dashboard + previous-budget sheet keep
@@ -59,16 +60,19 @@ struct BudgetDetailHero: View {
         "\(Int(metrics.usagePercentage))%"
     }
 
+    /// Gate on the value rounded to the 2-decimal display precision, not `!= 0`: a
+    /// sub-cent residual rollover would otherwise render "+0.00 CHF" — a disclosure
+    /// claiming an amount it then shows as zero.
     private var hasRollover: Bool {
         guard let rolloverAmount else { return false }
-        return rolloverAmount != 0
+        return rolloverAmount.rounded(2) != 0
     }
 
-    private var rolloverPillLabel: String {
+    private var rolloverDisclosureLabel: String {
         if let previousBudgetMonth, !previousBudgetMonth.isEmpty {
-            return "Reporté de \(previousBudgetMonth)"
+            return "Report de \(previousBudgetMonth) inclus"
         }
-        return "Reporté"
+        return "Report du mois précédent inclus"
     }
 
     private var accessibilityDescription: String {
@@ -82,7 +86,7 @@ struct BudgetDetailHero: View {
         Revenus \(metrics.totalIncome.asCurrency(currency)). \
         Épargne \(metrics.totalSavings.asCurrency(currency))
         """
-        if let rolloverAmount, rolloverAmount != 0 {
+        if hasRollover, let rolloverAmount {
             let label = rolloverAmount >= 0 ? "Excédent reporté" : "Déficit reporté"
             desc += ". \(label) de \(abs(rolloverAmount).asCurrency(currency))"
         }
@@ -137,11 +141,17 @@ struct BudgetDetailHero: View {
                 .sensitiveAmount()
                 .padding(.top, DesignTokens.Spacing.tightGap)
 
+            // Chunk 2.5 — Rollover disclosure: the amount above already bakes it in.
+            if hasRollover, let rolloverAmount {
+                rolloverDisclosure(amount: rolloverAmount)
+                    .padding(.top, DesignTokens.Spacing.xs)
+            }
+
             // Chunk 3 — Inline progress + percent
             progressRow
                 .padding(.top, DesignTokens.Spacing.md)
 
-            // Chunk 4 — Pills row (Reporté · Revenus · Épargne · Dépenses)
+            // Chunk 4 — Pills row (Revenus · Épargne · Dépenses)
             pillsRow
                 .padding(.top, DesignTokens.Spacing.md)
         }
@@ -188,10 +198,6 @@ struct BudgetDetailHero: View {
         // contentMargins re-adds it so the first pill aligns with the chunks.
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: DesignTokens.Spacing.tightGap) {
-                if hasRollover, let rolloverAmount {
-                    rolloverPill(amount: rolloverAmount)
-                }
-
                 incomePill
                 savingsPill
                 expensesPill
@@ -203,50 +209,45 @@ struct BudgetDetailHero: View {
         .padding(.horizontal, -DesignTokens.Spacing.lg)
     }
 
-    // MARK: - Rollover Pill
+    // MARK: - Rollover Disclosure
 
+    /// Ties the rollover to the hero amount it is baked into — sits directly under the
+    /// number, not in the pill rail where it read as just another metric. Tappable
+    /// through to the source budget when there is one.
     @ViewBuilder
-    private func rolloverPill(amount: Decimal) -> some View {
+    private func rolloverDisclosure(amount: Decimal) -> some View {
         if let onRolloverTap {
-            Button(action: onRolloverTap) { rolloverPillContent(amount: amount) }
+            Button(action: onRolloverTap) { rolloverDisclosureContent(amount: amount) }
                 .frame(minHeight: DesignTokens.TapTarget.minimum)
-                .contentShape(Capsule())
+                .contentShape(Rectangle())
                 .plainPressedButtonStyle()
         } else {
-            rolloverPillContent(amount: amount)
+            rolloverDisclosureContent(amount: amount)
         }
     }
 
-    private func rolloverPillContent(amount: Decimal) -> some View {
+    private func rolloverDisclosureContent(amount: Decimal) -> some View {
         HStack(spacing: DesignTokens.Spacing.xs) {
             Image(systemName: "arrow.clockwise")
                 .font(PulpeTypography.metricMini)
                 .foregroundStyle(Color.textTertiary)
 
-            Text("\(rolloverPillLabel) ·")
+            Text(rolloverDisclosureLabel)
                 .font(PulpeTypography.metricLabel)
                 .foregroundStyle(Color.textTertiary)
 
-            Text(abs(amount).asCurrency(userSettingsStore.currency))
+            Text(amount.asArithmeticSignedCurrency(userSettingsStore.currency))
                 .font(PulpeTypography.metricLabelBold)
                 .foregroundStyle(Color.textSecondary)
                 .monospacedDigit()
                 .sensitiveAmount()
+
+            if onRolloverTap != nil {
+                Image(systemName: "chevron.right")
+                    .font(PulpeTypography.metricMini)
+                    .foregroundStyle(Color.textTertiary)
+            }
         }
-        .padding(.horizontal, DesignTokens.Spacing.md)
-        .padding(.vertical, DesignTokens.Spacing.tightGap)
-        .background {
-            Capsule()
-                .fill(Color.surfaceContainer)
-        }
-        .overlay {
-            Capsule()
-                .strokeBorder(
-                    Color.outlineVariant,
-                    style: StrokeStyle(lineWidth: DesignTokens.BorderWidth.thin, dash: [4])
-                )
-        }
-        .contentShape(Capsule())
     }
 
     // MARK: - Income / Savings / Expenses Pills

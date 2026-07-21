@@ -26,7 +26,6 @@ import { formatDate } from 'date-fns';
 import { dateFnsLocaleFor } from '@core/locale';
 import { BaseLoading } from '@ui/loading';
 import { BudgetFinancialOverview } from '@ui/budget-financial-overview/budget-financial-overview';
-import { BudgetRolloverInfo } from '@ui/budget-rollover-info/budget-rollover-info';
 import { SavingsWithdrawalCard } from '@ui/savings-withdrawal-card';
 import { BudgetDetailsStore } from './store/budget-details-store';
 import { BudgetItemsContainer } from './components/budget-items-container';
@@ -50,7 +49,6 @@ import { CURRENCY_CONFIG } from '@core/currency';
     TranslocoPipe,
     BudgetItemsContainer,
     BudgetFinancialOverview,
-    BudgetRolloverInfo,
     SavingsWithdrawalCard,
     BaseLoading,
   ],
