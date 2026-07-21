@@ -15,22 +15,28 @@ struct SavingsGoalFormSheet: View {
     @State private var name: String
     @State private var amount: Decimal?
     @State private var amountText: String
+    @State private var initialAmount: Decimal?
     @State private var targetDate: Date
     @State private var status: SavingsGoalStatus
     @State private var isLoading = false
     @State private var error: Error?
     @State private var showDeleteConfirmation = false
     @State private var submitSuccessTrigger = 0
+    // PUL-285 CA6 — opt-in « décomposer en mensualités », création uniquement.
+    @State private var decomposeEnabled = true
+    @State private var monthlyContributionOverride: Decimal?
     @FocusState private var focusedField: AmountDescriptionField?
 
     private let currency: SupportedCurrency
+    private let payDayOfMonth: Int?
     private let accentColor = TransactionKind.saving.color
     private let planningTargetDates: ClosedRange<Date>
     private let allowedTargetDates: ClosedRange<Date>
 
-    init(goal: SavingsGoal?, userCurrency: SupportedCurrency) {
+    init(goal: SavingsGoal?, userCurrency: SupportedCurrency, payDayOfMonth: Int? = nil) {
         self.goal = goal
         self.currency = userCurrency
+        self.payDayOfMonth = payDayOfMonth
         _name = State(initialValue: goal?.name ?? "")
         _status = State(initialValue: goal?.status ?? .active)
 
@@ -40,6 +46,7 @@ struct SavingsGoalFormSheet: View {
             Formatters.amountInput(for: userCurrency).string(from: $0 as NSDecimalNumber) ?? ""
         } ?? ""
         _amountText = State(initialValue: amountString)
+        _initialAmount = State(initialValue: goal?.initialAmount)
 
         let now = Date()
         let calendar = Calendar.current
@@ -76,6 +83,14 @@ struct SavingsGoalFormSheet: View {
         return dateString == goal.targetDate ? nil : dateString
     }
 
+    /// Diffs the edited initial amount against the goal's current one (both
+    /// normalized to 0 for `nil`) so an untouched field omits the PATCH key
+    /// (unchanged) while a cleared field sends explicit `0` (erasure).
+    nonisolated static func initialAmountUpdate(for value: Decimal?, original goal: SavingsGoal) -> Decimal? {
+        let normalized = value ?? 0
+        return normalized == (goal.initialAmount ?? 0) ? nil : normalized
+    }
+
     nonisolated static func isTargetDateSubmittable(
         _ date: Date,
         original goal: SavingsGoal?,
@@ -90,18 +105,6 @@ struct SavingsGoalFormSheet: View {
     }
 
     private var isEditing: Bool { goal != nil }
-
-    private var canSubmit: Bool {
-        guard let amount, amount > 0 else { return false }
-        return !name.trimmingCharacters(in: .whitespaces).isEmpty
-            && Self.isTargetDateSubmittable(
-                targetDate,
-                original: goal,
-                planningRange: planningTargetDates,
-                calendar: .current
-            )
-            && !isLoading
-    }
 
     var body: some View {
         SheetFormContainer(
@@ -119,7 +122,11 @@ struct SavingsGoalFormSheet: View {
                 accentColor: accentColor
             )
             nameField
+            initialAmountField
             dateField
+            if !isEditing && hasRemainingToSave {
+                decomposeSection
+            }
             if isEditing {
                 CapsulePicker(selection: $status, title: "Statut") { item, _ in
                     Text(item.label)
@@ -165,6 +172,18 @@ struct SavingsGoalFormSheet: View {
         )
     }
 
+    /// Second amount field (PUL-293), same `CurrencyField` component already
+    /// used for the monthly-contribution override below — its own internal
+    /// focus keeps it out of `focusOrder` without a new field enum case.
+    private var initialAmountField: some View {
+        CurrencyField(
+            value: $initialAmount,
+            label: "Montant de départ (optionnel)",
+            currency: currency,
+            visualStyle: .flat
+        )
+    }
+
     private var dateField: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             Text("Échéance")
@@ -178,6 +197,58 @@ struct SavingsGoalFormSheet: View {
             )
             .labelsHidden()
             .datePickerStyle(.compact)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Suggestion « reste à épargner ÷ mois restants » (payDay-aware, ceil au
+    /// centime). Le montant de départ est déjà acquis : décomposer la cible
+    /// entière sur-provisionnerait la prévision récurrente générée.
+    /// Recalculée tant que l'utilisateur n'a pas saisi son propre montant.
+    private var suggestedMonthly: Decimal? {
+        guard let amount, amount > 0 else { return nil }
+        return SavingsPlanCalculator.suggestedMonthlyContribution(
+            targetAmount: amount,
+            targetDate: targetDate,
+            payDayOfMonth: payDayOfMonth,
+            initialAmount: initialAmount ?? 0
+        )
+    }
+
+    /// Le montant de départ couvre déjà la cible ⇒ plus rien à décomposer.
+    private var hasRemainingToSave: Bool {
+        guard let amount, amount > 0 else { return false }
+        return amount - (initialAmount ?? 0) > 0
+    }
+
+    private var decomposeSection: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Toggle(isOn: $decomposeEnabled) {
+                Text("Décomposer en mensualités")
+                    .font(PulpeTypography.labelMedium)
+                    .foregroundStyle(Color.onSurfaceVariant)
+            }
+            .tint(accentColor)
+
+            if decomposeEnabled {
+                // Override falls back to the live suggestion; clearing the field
+                // hands control back to it (matches the webapp override model).
+                CurrencyField(
+                    value: Binding(
+                        get: { monthlyContributionOverride ?? suggestedMonthly },
+                        set: { newValue in
+                            monthlyContributionOverride =
+                                (newValue == nil || newValue == suggestedMonthly) ? nil : newValue
+                        }
+                    ),
+                    label: "Épargne mensuelle",
+                    currency: currency,
+                    visualStyle: .flat
+                )
+                Text("Pré-rempli avec cible ÷ mois restants. Cette prévision récurrente sera ajoutée à ton Mois Type.")
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.onSurfaceVariant)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -228,17 +299,24 @@ struct SavingsGoalFormSheet: View {
                         name: trimmedName,
                         targetAmount: amount,
                         targetDate: Self.targetDateUpdate(for: targetDate, original: goal),
-                        status: status
+                        status: status,
+                        initialAmount: Self.initialAmountUpdate(for: initialAmount, original: goal)
                     )
                 )
                 toastManager.show("Objectif modifié")
             } else {
+                let contribution = monthlyContributionOverride ?? suggestedMonthly ?? 0
                 _ = try await store.create(
                     SavingsGoalCreate(
                         name: trimmedName,
                         targetAmount: amount,
                         targetDate: dateString,
-                        status: .active
+                        status: .active,
+                        monthlyContribution: decomposeEnabled && hasRemainingToSave
+                            && contribution > 0
+                            ? contribution
+                            : nil,
+                        initialAmount: initialAmount
                     )
                 )
                 toastManager.show("Objectif créé")
@@ -263,5 +341,37 @@ struct SavingsGoalFormSheet: View {
         } catch {
             self.error = error
         }
+    }
+}
+
+extension SavingsGoalFormSheet {
+    nonisolated static func isMonthlyContributionSubmittable(
+        isEditing: Bool,
+        decomposeEnabled: Bool,
+        hasRemainingToSave: Bool,
+        contribution: Decimal?
+    ) -> Bool {
+        isEditing || !decomposeEnabled || !hasRemainingToSave || (contribution ?? 0) > 0
+    }
+}
+
+private extension SavingsGoalFormSheet {
+    var canSubmit: Bool {
+        guard let amount, amount > 0 else { return false }
+        let contribution = monthlyContributionOverride ?? suggestedMonthly
+        return !name.trimmingCharacters(in: .whitespaces).isEmpty
+            && Self.isTargetDateSubmittable(
+                targetDate,
+                original: goal,
+                planningRange: planningTargetDates,
+                calendar: .current
+            )
+            && Self.isMonthlyContributionSubmittable(
+                isEditing: isEditing,
+                decomposeEnabled: decomposeEnabled,
+                hasRemainingToSave: hasRemainingToSave,
+                contribution: contribution
+            )
+            && !isLoading
     }
 }

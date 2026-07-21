@@ -1,8 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Buffer } from 'node:buffer';
+import { randomUUID } from 'node:crypto';
 import { ZodError } from 'zod';
 import { BusinessException } from '@common/exceptions/business.exception';
-import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import {
+  ERROR_DEFINITIONS,
+  type ErrorDefinition,
+} from '@common/constants/error-definitions';
 import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
 import {
   ENCRYPTION_PORT,
@@ -11,6 +15,8 @@ import {
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadata.mapper';
 import { isSavingsGoalLinkDenied } from '@common/utils/savings-goal-link';
+import { updateTaggedEntity } from '@common/utils/tag-links.util';
+import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type {
   BudgetTemplate,
   BudgetTemplateUpdatePatch,
@@ -33,14 +39,25 @@ import type {
 } from '../../domain/ports/budget-template-repository.port';
 import {
   applyTemplateLineOperationsListSchema,
+  bulkReplaceTemplateLineTagsListSchema,
   createTemplateLinesRpcPayloadSchema,
 } from './schemas/rpc-payload.schemas';
+
+/** Template line row with its embedded tag junction (PUL-18). */
+type TemplateLineRowWithTags = TemplateLineRow & {
+  template_line_tag?: { tag_id: string }[];
+};
+
+/** Select list embedding the tag junction so every read maps to tagIds. */
+const TEMPLATE_LINE_WITH_TAGS_SELECT = '*, template_line_tag(tag_id)';
 
 @Injectable()
 export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositoryPort {
   constructor(
     private readonly supabaseProvider: AuthenticatedSupabaseProvider,
     @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
+    @InjectInfoLogger(SupabaseBudgetTemplateRepository.name)
+    private readonly logger: InfoLogger,
   ) {}
 
   async findAllForUser(userId: string): Promise<BudgetTemplate[]> {
@@ -221,7 +238,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('template_line')
-      .select('*')
+      .select(TEMPLATE_LINE_WITH_TAGS_SELECT)
       .eq('template_id', templateId)
       .order('name', { ascending: true });
 
@@ -240,37 +257,44 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
   }
 
   async insertLine(input: TemplateLineCreateInput): Promise<TemplateLine> {
-    const supabase = this.supabaseProvider.client;
-    const user = this.supabaseProvider.user;
+    const lineId = randomUUID();
+    const { createdLines } = await this.bulkApplyTemplateLineOperations(
+      {
+        templateId: input.templateId,
+        budgetIds: [],
+        deleteIds: [],
+        updatedLines: [],
+        createdLines: [
+          {
+            id: lineId,
+            savingsGoalId: input.savingsGoalId ?? null,
+            name: input.name,
+            amount: input.amount,
+            originalAmount: input.originalAmount ?? null,
+            originalCurrency: input.originalCurrency ?? null,
+            targetCurrency: input.targetCurrency ?? null,
+            exchangeRate: input.exchangeRate ?? null,
+            kind: input.kind,
+            recurrence: input.recurrence,
+            description: input.description,
+            tagIds: input.tagIds ?? [],
+          },
+        ],
+      },
+      'insertLine',
+    );
+    const line = createdLines[0];
+    if (line) return line;
 
-    const insertRow = await this.toTemplateLineInsertRow(input, user);
-
-    const { data, error } = await supabase
-      .from('template_line')
-      .insert(insertRow)
-      .select()
-      .single();
-
-    if (error || !data) {
-      // enforce_savings_goal_line_link trigger: deleted/foreign goal tagged.
-      if (isSavingsGoalLinkDenied(error)) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
-          undefined,
-          { operation: 'insertLine' },
-          { cause: error ?? undefined },
-        );
-      }
-      throw new BusinessException(
-        ERROR_DEFINITIONS.TEMPLATE_CREATE_FAILED,
-        undefined,
-        { operation: 'insertLine' },
-        { cause: error ?? undefined },
-      );
-    }
-
-    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
-    return this.toTemplateLine(data, dek);
+    this.logger.warn(
+      { operation: 'insertLine.refetch', entityId: lineId },
+      'Atomic template line insert returned no row',
+    );
+    throw new BusinessException(
+      ERROR_DEFINITIONS.TEMPLATE_LINE_FETCH_FAILED,
+      undefined,
+      { operation: 'insertLine.refetch', entityId: lineId },
+    );
   }
 
   async findLineById(
@@ -279,7 +303,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('template_line')
-      .select('*, template!inner(user_id)')
+      .select('*, template!inner(user_id), template_line_tag(tag_id)')
       .eq('id', lineId)
       .single();
 
@@ -289,7 +313,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       });
     }
 
-    const row = data as TemplateLineRow & {
+    const row = data as TemplateLineRowWithTags & {
       template: { user_id: string | null };
     };
 
@@ -307,7 +331,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('template_line')
-      .select('*, template!inner(user_id)')
+      .select('*, template!inner(user_id), template_line_tag(tag_id)')
       .eq('id', lineId)
       .single();
 
@@ -317,7 +341,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       });
     }
 
-    const row = data as TemplateLineRow & {
+    const row = data as TemplateLineRowWithTags & {
       template: { user_id: string | null };
     };
 
@@ -338,15 +362,38 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
   ): Promise<TemplateLine> {
     const supabase = this.supabaseProvider.client;
     const user = this.supabaseProvider.user;
-
     const updateRow = await this.toTemplateLineUpdateRow(patch, user);
 
-    const { data, error } = await supabase
-      .from('template_line')
-      .update(updateRow)
-      .eq('id', lineId)
-      .select()
-      .single();
+    if (patch.tagIds !== undefined) {
+      const row = await updateTaggedEntity<TemplateLineRow>(supabase, {
+        rpcName: 'update_template_line_with_tags',
+        entityId: lineId,
+        patch: updateRow,
+        tagIds: patch.tagIds,
+        operation: 'updateLine',
+        entityType: 'template_line',
+        parentNotFoundMessage: 'Template line not found',
+        notFoundErrorDef: ERROR_DEFINITIONS.TEMPLATE_LINE_NOT_FOUND,
+        fallbackErrorDef: ERROR_DEFINITIONS.TEMPLATE_LINE_UPDATE_FAILED,
+      });
+      const dek = await this.encryption.getDekFor(user);
+      return { ...this.toTemplateLine(row, dek), tagIds: patch.tagIds };
+    }
+
+    const query = Object.keys(updateRow).length
+      ? supabase
+          .from('template_line')
+          .update(updateRow)
+          .eq('id', lineId)
+          .select(TEMPLATE_LINE_WITH_TAGS_SELECT)
+          .single()
+      : supabase
+          .from('template_line')
+          .select(TEMPLATE_LINE_WITH_TAGS_SELECT)
+          .eq('id', lineId)
+          .single();
+
+    const { data, error } = await query;
 
     if (error || !data) {
       // enforce_savings_goal_line_link trigger: deleted/foreign goal tagged.
@@ -366,7 +413,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       );
     }
 
-    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    const dek = await this.encryption.getDekFor(user);
     return this.toTemplateLine(data, dek);
   }
 
@@ -516,6 +563,19 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     if (error) {
       this.throwIfTemplateLimitExceeded(error);
       this.throwIfSavingsGoalLinkDenied(error, 'createTemplateWithLines');
+      this.throwIfTagLinkDenied(error, 'createTemplateWithLines');
+      if (error.code === '23503' || error.code === '42501') {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.TAG_NOT_FOUND,
+          undefined,
+          {
+            operation: 'createTemplateWithLines',
+            entityType: 'template_line_tag',
+            supabaseError: error,
+          },
+          { cause: error },
+        );
+      }
       throw error;
     }
 
@@ -557,8 +617,56 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     }
   }
 
+  private throwIfTagLinkDenied(error: unknown, operation: string): void {
+    const { code, message } = (error ?? {}) as {
+      code?: string;
+      message?: string;
+    };
+    if (code === 'P0001' && message?.includes('Tag access denied')) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TAG_NOT_FOUND,
+        undefined,
+        { operation },
+        { cause: error },
+      );
+    }
+  }
+
+  private throwBulkOperationError(
+    error: { code?: string },
+    taggedLineIds: string[],
+    operation = 'bulkApplyTemplateLineOperations',
+  ): never {
+    this.throwIfSavingsGoalLinkDenied(error, operation);
+    this.throwIfTagLinkDenied(error, operation);
+
+    const loggingContext = {
+      operation,
+      entityIds: taggedLineIds,
+      entityType: 'template_line',
+      supabaseError: error,
+    };
+    if (error.code === '23503' || error.code === '42501') {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TAG_NOT_FOUND,
+        undefined,
+        { ...loggingContext, entityType: 'template_line_tag' },
+        { cause: error },
+      );
+    }
+    throw new BusinessException(
+      operation === 'insertLine'
+        ? ERROR_DEFINITIONS.TEMPLATE_CREATE_FAILED
+        : ERROR_DEFINITIONS.TEMPLATE_UPDATE_FAILED,
+      undefined,
+      loggingContext,
+      { cause: error },
+    );
+  }
+
   async bulkApplyTemplateLineOperations(
     input: BulkTemplateLineOperationsInput,
+    operation = 'bulkApplyTemplateLineOperations',
   ): Promise<BulkTemplateLineOperationsRepoResult> {
     const supabase = this.supabaseProvider.client;
     const user = this.supabaseProvider.user;
@@ -569,35 +677,55 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     const createdLinesRpc = input.createdLines.length
       ? await this.encryptLinesForApplyRpc(input.createdLines, user)
       : [];
+    const payloadErrorDefinition =
+      operation === 'insertLine'
+        ? ERROR_DEFINITIONS.TEMPLATE_CREATE_FAILED
+        : ERROR_DEFINITIONS.TEMPLATE_UPDATE_FAILED;
 
     const updatedLinesPayload = this.parseRpcPayload(
       applyTemplateLineOperationsListSchema,
       updatedLinesRpc,
-      'bulkApplyTemplateLineOperations.updated',
+      `${operation}.updated`,
+      payloadErrorDefinition,
     );
     const createdLinesPayload = this.parseRpcPayload(
       applyTemplateLineOperationsListSchema,
       createdLinesRpc,
-      'bulkApplyTemplateLineOperations.created',
+      `${operation}.created`,
+      payloadErrorDefinition,
+    );
+
+    const taggedLines = [...input.updatedLines, ...input.createdLines].filter(
+      (line) => line.tagIds !== undefined,
+    );
+    const tagPairs = this.parseRpcPayload(
+      bulkReplaceTemplateLineTagsListSchema,
+      taggedLines.map((line) => ({
+        template_line_id: line.id,
+        tag_ids: line.tagIds ?? [],
+      })),
+      `${operation}.tags`,
+      payloadErrorDefinition,
     );
 
     const { data, error } = await supabase.rpc(
-      'apply_template_line_operations',
+      'apply_template_line_operations_with_tags',
       {
-        template_id: input.templateId,
-        budget_ids: input.budgetIds,
-        delete_ids: input.deleteIds,
-        updated_lines: updatedLinesPayload as never,
-        created_lines: createdLinesPayload as never,
+        p_template_id: input.templateId,
+        p_budget_ids: input.budgetIds,
+        p_delete_ids: input.deleteIds,
+        p_updated_lines: updatedLinesPayload,
+        p_created_lines: createdLinesPayload,
+        p_line_tag_pairs: tagPairs,
       },
     );
 
     if (error) {
-      this.throwIfSavingsGoalLinkDenied(
+      this.throwBulkOperationError(
         error,
-        'bulkApplyTemplateLineOperations',
+        taggedLines.map((line) => line.id),
+        operation,
       );
-      throw error;
     }
 
     const affectedBudgetIds = Array.isArray(data)
@@ -615,7 +743,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
 
     const { data: rows, error: fetchError } = await supabase
       .from('template_line')
-      .select('*')
+      .select(TEMPLATE_LINE_WITH_TAGS_SELECT)
       .in('id', writtenIds);
 
     if (fetchError || !rows) {
@@ -623,7 +751,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
         ERROR_DEFINITIONS.TEMPLATE_LINE_FETCH_FAILED,
         undefined,
         {
-          operation: 'bulkApplyTemplateLineOperations.refetch',
+          operation: `${operation}.refetch`,
           entityType: 'template_line',
         },
         { cause: fetchError ?? new Error('No rows returned') },
@@ -657,7 +785,10 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     };
   }
 
-  private toTemplateLine(row: TemplateLineRow, dek: Buffer): TemplateLine {
+  private toTemplateLine(
+    row: TemplateLineRowWithTags,
+    dek: Buffer,
+  ): TemplateLine {
     return {
       id: row.id,
       templateId: row.template_id,
@@ -676,43 +807,9 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       kind: row.kind,
       recurrence: row.recurrence,
       description: row.description,
+      tagIds: (row.template_line_tag ?? []).map((link) => link.tag_id),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
-    };
-  }
-
-  private async toTemplateLineInsertRow(
-    input: TemplateLineCreateInput,
-    user: AuthenticatedUser,
-  ): Promise<TemplateLineInsert> {
-    const { amount: encryptedAmount } = await this.encryption.prepareAmountData(
-      input.amount,
-      user.id,
-      user.clientKey,
-    );
-    const encryptedOriginalAmount = await this.encryption.encryptOptionalAmount(
-      input.originalAmount,
-      user.id,
-      user.clientKey,
-    );
-
-    return {
-      template_id: input.templateId,
-      savings_goal_id: input.savingsGoalId ?? null,
-      name: input.name,
-      amount: encryptedAmount,
-      original_amount: encryptedOriginalAmount,
-      ...mapCurrencyNonAmountMetadataToDb(
-        {
-          originalCurrency: input.originalCurrency,
-          targetCurrency: input.targetCurrency,
-          exchangeRate: input.exchangeRate,
-        },
-        { userId: user.id },
-      ),
-      kind: input.kind,
-      recurrence: input.recurrence,
-      description: input.description,
     };
   }
 
@@ -789,6 +886,7 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
       kind: line.kind,
       recurrence: line.recurrence,
       savings_goal_id: line.savingsGoalId ?? null,
+      tag_ids: line.tagIds ?? [],
       description: line.description,
       original_amount: encryptedOriginalAmounts[index],
       original_currency: line.originalCurrency ?? null,
@@ -846,13 +944,14 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
     schema: { parse: (data: unknown) => T },
     payload: unknown,
     operation: string,
+    errorDefinition: ErrorDefinition = ERROR_DEFINITIONS.TEMPLATE_CREATE_FAILED,
   ): T {
     try {
       return schema.parse(payload);
     } catch (err) {
       if (err instanceof ZodError) {
         throw new BusinessException(
-          ERROR_DEFINITIONS.TEMPLATE_CREATE_FAILED,
+          errorDefinition,
           { reason: 'Invalid RPC payload structure' },
           { operation, validationErrors: err.issues },
           { cause: err },

@@ -37,6 +37,8 @@ export interface SavingsGoal {
   originalCurrency: string | null;
   targetCurrency: string | null;
   exchangeRate: number | null;
+  /** Stock déjà épargné avant le suivi (PUL-293), déchiffré. */
+  initialAmount: number | null;
 }
 
 /**
@@ -51,6 +53,7 @@ export interface SavingsGoalCreateInput {
   originalCurrency?: SupportedCurrency | null;
   targetCurrency?: SupportedCurrency | null;
   exchangeRate?: number | null;
+  initialAmount?: number | null;
 }
 
 /**
@@ -67,6 +70,7 @@ export interface SavingsGoalUpdatePatch {
   originalCurrency?: SupportedCurrency | null;
   targetCurrency?: SupportedCurrency | null;
   exchangeRate?: number | null;
+  initialAmount?: number | null;
 }
 
 /**
@@ -120,5 +124,15 @@ export type SavingsGoalPlanMonthAdjustment =
  */
 export interface SavingsGoalPlanApplyResult {
   updatedLines: BudgetLine[];
+  touchedBudgetIds: string[];
+}
+
+/**
+ * Result of applying a generation-stop decision (PUL-285 CA5). `affectedLineIds`
+ * are the frozen or removed budget lines; `touchedBudgetIds` drives the
+ * post-commit recalc.
+ */
+export interface SavingsGoalGenerationStopResult {
+  affectedLineIds: string[];
   touchedBudgetIds: string[];
 }

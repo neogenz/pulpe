@@ -114,7 +114,6 @@ describe('GoalContributionsList', () => {
             kind: 'saving',
             transactionDate: '2026-07-02T10:00:00.000Z',
             checkedAt: '2026-07-02T10:00:00.000Z',
-            category: null,
             createdAt: '2026-07-02T10:00:00.000Z',
             updatedAt: '2026-07-02T10:00:00.000Z',
             originalAmount: null,

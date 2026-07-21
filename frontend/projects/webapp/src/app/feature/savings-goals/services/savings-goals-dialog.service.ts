@@ -19,6 +19,11 @@ import {
   GoalPlanApplyDialog,
   type GoalPlanApplyDialogData,
 } from '../detail/components/goal-plan-apply-dialog';
+import {
+  GoalGenerationStopDialog,
+  type GoalGenerationStopDecision,
+  type GoalGenerationStopDialogData,
+} from '../detail/components/goal-generation-stop-dialog';
 
 @Injectable()
 export class SavingsGoalsDialogService {
@@ -47,6 +52,17 @@ export class SavingsGoalsDialogService {
     data: GoalPlanApplyDialogData,
   ): Promise<boolean | undefined> {
     const dialogRef = this.#dialog.open(GoalPlanApplyDialog, {
+      data,
+      width: '480px',
+      maxWidth: '90vw',
+    });
+    return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  async openGenerationStop(
+    data: GoalGenerationStopDialogData,
+  ): Promise<GoalGenerationStopDecision | undefined> {
+    const dialogRef = this.#dialog.open(GoalGenerationStopDialog, {
       data,
       width: '480px',
       maxWidth: '90vw',

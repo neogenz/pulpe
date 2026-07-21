@@ -15,6 +15,8 @@ export interface BudgetLineApiSource {
   amount: number;
   kind: BudgetLineApi['kind'];
   recurrence: BudgetLineApi['recurrence'];
+  /** Optionnel: les projections RPC ne joignent pas les tags. */
+  tagIds?: string[];
   isManuallyAdjusted: boolean;
   checkedAt: string | null;
   createdAt: string;
@@ -54,6 +56,7 @@ export function mapBudgetLineToApi(entity: BudgetLineApiSource): BudgetLineApi {
     amount: entity.amount,
     kind: entity.kind,
     recurrence: entity.recurrence,
+    tagIds: entity.tagIds,
     isManuallyAdjusted: entity.isManuallyAdjusted,
     checkedAt: entity.checkedAt,
     createdAt: entity.createdAt,

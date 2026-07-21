@@ -49,7 +49,6 @@ export const createMockTransactionEntity = (
   amount: null,
   kind: 'expense' as const,
   transaction_date: '2024-01-01T00:00:00.000Z',
-  category: null,
   created_at: '2024-01-01T00:00:00.000Z',
   updated_at: '2024-01-01T00:00:00.000Z',
   ...overrides,

@@ -44,6 +44,9 @@ export class UpdateSavingsGoalUseCase {
     if (dto.originalTargetAmount !== undefined) {
       patch.originalTargetAmount = dto.originalTargetAmount;
     }
+    if (dto.initialAmount !== undefined) {
+      patch.initialAmount = dto.initialAmount;
+    }
     if (dto.originalCurrency !== undefined) {
       patch.originalCurrency = dto.originalCurrency;
     }

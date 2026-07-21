@@ -76,4 +76,73 @@ struct SavingsGoalFormSheetTests {
             ) == nil
         )
     }
+
+    // MARK: - Initial amount patch diff (PUL-293)
+
+    private func goalWithInitialAmount(_ amount: Decimal?) -> SavingsGoal {
+        SavingsGoal(
+            id: "goal-1",
+            userId: "user-1",
+            name: "Maison",
+            targetAmount: 100_000,
+            targetDate: "2030-05-15",
+            status: .active,
+            createdAt: Date(timeIntervalSince1970: 0),
+            updatedAt: Date(timeIntervalSince1970: 0),
+            initialAmount: amount
+        )
+    }
+
+    @Test("an untouched initial amount omits the PATCH key")
+    func initialAmountUpdate_omitsWhenUnchanged() {
+        let goal = goalWithInitialAmount(5000)
+
+        #expect(SavingsGoalFormSheet.initialAmountUpdate(for: 5000, original: goal) == nil)
+    }
+
+    @Test("a cleared field sends an explicit 0 — erasure, not omission")
+    func initialAmountUpdate_clearedFieldSendsZero() {
+        let goal = goalWithInitialAmount(5000)
+
+        #expect(SavingsGoalFormSheet.initialAmountUpdate(for: nil, original: goal) == 0)
+    }
+
+    @Test("an empty field on a goal that never had one stays omitted (nil ≡ 0)")
+    func initialAmountUpdate_neverSetStaysOmitted() {
+        let goal = goalWithInitialAmount(nil)
+
+        #expect(SavingsGoalFormSheet.initialAmountUpdate(for: nil, original: goal) == nil)
+        #expect(SavingsGoalFormSheet.initialAmountUpdate(for: 0, original: goal) == nil)
+    }
+
+    @Test("a changed initial amount is sent")
+    func initialAmountUpdate_sendsChangedValue() {
+        let goal = goalWithInitialAmount(5000)
+
+        #expect(SavingsGoalFormSheet.initialAmountUpdate(for: 7000, original: goal) == 7000)
+    }
+
+    @Test("a new decomposed goal rejects a zero monthly contribution")
+    func monthlyContribution_zeroIsRejectedWhenDecomposing() {
+        #expect(
+            !SavingsGoalFormSheet.isMonthlyContributionSubmittable(
+                isEditing: false,
+                decomposeEnabled: true,
+                hasRemainingToSave: true,
+                contribution: 0
+            )
+        )
+    }
+
+    @Test("monthly contribution does not block creation when decomposition is disabled")
+    func monthlyContribution_isIgnoredWithoutDecomposition() {
+        #expect(
+            SavingsGoalFormSheet.isMonthlyContributionSubmittable(
+                isEditing: false,
+                decomposeEnabled: false,
+                hasRemainingToSave: true,
+                contribution: 0
+            )
+        )
+    }
 }

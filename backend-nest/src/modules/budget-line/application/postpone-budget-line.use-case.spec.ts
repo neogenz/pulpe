@@ -19,6 +19,7 @@ const eligibleLine: BudgetLine = {
   budgetId: SOURCE_BUDGET_ID,
   templateLineId: 'tpl-1',
   savingsGoalId: null,
+  tagIds: [],
   spreadGroupId: null,
   savingsWithdrawalGroupId: null,
   name: 'Cadeau anniversaire',

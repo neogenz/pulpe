@@ -3,9 +3,10 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
 } from '@angular/core';
-import { TranslocoPipe } from '@jsverse/transloco';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { CURRENCY_METADATA, type SupportedCurrency } from 'pulpe-shared';
 import { FinancialPills } from '../financial-pills/financial-pills';
 
@@ -37,20 +38,21 @@ export interface FinancialTotals {
             @case ('comfortable') {
               {{ 'budget.overview.remainingThisMonth' | transloco }}
               <span
-                class="text-body-small text-on-primary-container/70 block mt-0.5"
+                class="text-body-small text-on-primary-container/90 block mt-0.5"
                 >{{ 'budget.overview.perForecast' | transloco }}</span
               >
             }
             @case ('warning') {
               {{ 'budget.overview.remainingThisMonth' | transloco }}
-              <span class="text-body-small text-warning/70 block mt-0.5">{{
-                'budget.overview.perForecast' | transloco
-              }}</span>
+              <span
+                class="text-body-small text-warning-on-container/90 block mt-0.5"
+                >{{ 'budget.overview.perForecast' | transloco }}</span
+              >
             }
             @case ('deficit') {
               {{ 'budget.overview.deficitThisMonth' | transloco }}
               <span
-                class="text-body-small text-on-error-container/70 block mt-0.5"
+                class="text-body-small text-on-error-container/90 block mt-0.5"
                 >{{ 'budget.overview.perForecast' | transloco }}</span
               >
             }
@@ -67,6 +69,24 @@ export interface FinancialTotals {
             currencySymbol()
           }}</span>
         </div>
+        @if (hasRollover()) {
+          <p
+            class="text-body-small mt-1.5"
+            [class.text-on-primary-container]="budgetState() === 'comfortable'"
+            [class.text-warning-on-container]="budgetState() === 'warning'"
+            [class.text-on-error-container]="budgetState() === 'deficit'"
+            role="status"
+            [attr.aria-label]="rolloverAriaLabel()"
+            data-testid="financial-overview-rollover"
+          >
+            {{ 'budget.overview.rolloverIncluded' | transloco }}
+            <span class="font-medium ph-no-capture">
+              {{ isRolloverPositive() ? '+' : '−'
+              }}{{ rolloverAbsolute() | number: '1.0-0' : locale() }}
+              {{ currencySymbol() }}
+            </span>
+          </p>
+        }
         <p
           class="text-body-medium mt-3"
           [class.text-on-primary-container]="budgetState() === 'comfortable'"
@@ -118,10 +138,13 @@ export interface FinancialTotals {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BudgetFinancialOverview {
+  readonly #transloco = inject(TranslocoService);
+
   readonly totals = input.required<FinancialTotals>();
   readonly currency = input<SupportedCurrency>('CHF');
   readonly locale = input<string>('de-CH');
   readonly warningThreshold = input(90);
+  readonly rollover = input(0);
 
   protected readonly currencySymbol = computed(
     () => CURRENCY_METADATA[this.currency()].symbol,
@@ -144,5 +167,36 @@ export class BudgetFinancialOverview {
 
   readonly remainingAbsolute = computed(() =>
     Math.abs(this.totals().remaining),
+  );
+
+  // `rollover` is only non-zero when a previous budget exists — the backend derives
+  // it as the sum of prior ending balances — so gating on the amount alone is enough;
+  // no separate `previousBudgetId` check is needed.
+  // Gate on the rounded value, not `!== 0`: a sub-unit residual rollover would
+  // otherwise render "+0 €" — a disclosure claiming an amount it then shows as zero.
+  protected readonly hasRollover = computed(
+    () => Math.round(this.rollover()) !== 0,
+  );
+
+  protected readonly isRolloverPositive = computed(() => this.rollover() > 0);
+
+  protected readonly rolloverAbsolute = computed(() =>
+    Math.abs(this.rollover()),
+  );
+
+  protected readonly rolloverAriaLabel = computed(() =>
+    this.#transloco.translate(
+      this.isRolloverPositive()
+        ? 'budget.overview.rolloverIncludedSurplusAria'
+        : 'budget.overview.rolloverIncludedDeficitAria',
+      {
+        // Round to match the visible figure (rendered at '1.0-0'), so VoiceOver
+        // never announces a different amount than the one on screen.
+        amount: Math.round(this.rolloverAbsolute()).toLocaleString(
+          this.locale(),
+        ),
+        currency: this.currency(),
+      },
+    ),
   );
 }

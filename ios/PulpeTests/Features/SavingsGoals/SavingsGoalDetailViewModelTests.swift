@@ -231,7 +231,10 @@ struct GoalPlanSimulatorViewModelTests {
         )
     }
 
-    private func makeProgress(months: [SavingsGoalPlanMonth]? = nil) -> SavingsGoalProgress {
+    private func makeProgress(
+        months: [SavingsGoalPlanMonth]? = nil,
+        initialAmount: Decimal = 0
+    ) -> SavingsGoalProgress {
         SavingsGoalProgress(
             goalId: "g1",
             status: .active,
@@ -239,6 +242,7 @@ struct GoalPlanSimulatorViewModelTests {
             targetDate: "2099-03-01",
             plannedCumulative: 600,
             confirmed: 0,
+            initialAmount: initialAmount,
             achievementPercent: 0,
             monthsElapsed: 0,
             monthsRemaining: 3,
@@ -351,6 +355,19 @@ struct GoalPlanSimulatorViewModelTests {
         #expect(viewModel.canApply == false)
     }
 
+    @Test("an initial amount seeds the simulated cumulative, changing the verdict")
+    func initialAmount_seedsSimulatedFinalAndVerdict() {
+        let withoutSeed = makeViewModel()
+        let withSeed = makeViewModel(progress: makeProgress(initialAmount: 400))
+
+        #expect(withoutSeed.draft.simulatedFinal == 600)
+        #expect(withoutSeed.draft.attainedPeriod == nil)
+
+        #expect(withSeed.draft.simulatedFinal == 1_000)
+        #expect(withSeed.draft.attainedPeriod == BudgetPeriod(month: 3, year: 2099))
+        #expect(withSeed.verdictText != withoutSeed.verdictText)
+    }
+
     @Test("redistribution preserves a manually adjusted month")
     func redistribute_preservesPinnedMonth() {
         let viewModel = makeViewModel()
@@ -372,5 +389,22 @@ struct GoalPlanSimulatorViewModelTests {
 
         #expect(viewModel.hasVariableMonthlyAmounts)
         #expect(viewModel.globalAmount == nil)
+    }
+}
+
+@MainActor
+struct SavingsGoalGenerationStopViewModelTests {
+    @Test("loadFutureLines exposes the advisory candidates")
+    func loadFutureLines_exposesCandidates() async {
+        let service = MockSavingsGoalService()
+        service.stubbedFutureLines = [
+            SavingsGoalFutureLine(budgetLineId: "l1", amount: 200, month: 8, year: 2099),
+        ]
+        let viewModel = SavingsGoalDetailViewModel(goalId: "g1", service: service)
+
+        await viewModel.loadFutureLines()
+
+        #expect(viewModel.futureLines.count == 1)
+        #expect(viewModel.futureLines.first?.budgetLineId == "l1")
     }
 }

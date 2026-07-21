@@ -6,14 +6,13 @@ import {
 } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { Router } from '@angular/router';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { type BudgetLine, type Transaction, type Budget } from 'pulpe-shared';
-import { of } from 'rxjs';
 import Dashboard from './current-month';
+import { type TransactionFormData } from './components/add-transaction-form.schema';
+import { AddTransactionDialogService } from './services/add-transaction-dialog.service';
 import { DashboardStore } from './services/dashboard-store';
-import { type TransactionFormData } from './components/add-transaction-bottom-sheet';
 
 // Test data factories
 const createBudgetLine = (overrides: Partial<BudgetLine> = {}): BudgetLine => ({
@@ -32,6 +31,8 @@ const createBudgetLine = (overrides: Partial<BudgetLine> = {}): BudgetLine => ({
   ...overrides,
 });
 
+const TAG_ID = '00000000-0000-4000-8000-0000000000f1';
+
 const createTransaction = (
   overrides: Partial<Transaction> = {},
 ): Transaction => ({
@@ -42,7 +43,7 @@ const createTransaction = (
   amount: 50,
   kind: 'expense',
   transactionDate: '2024-01-15T10:00:00.000Z',
-  category: null,
+  tagIds: [],
   createdAt: '2024-01-01T00:00:00.000Z',
   updatedAt: '2024-01-01T00:00:00.000Z',
   checkedAt: null,
@@ -80,7 +81,7 @@ describe('CurrentMonth Component', () => {
       const expectedComputed = ['fixedTransactions'];
       const expectedMethods = [
         'ngOnInit',
-        'openAddTransactionBottomSheet',
+        'openAddTransaction',
         'onAddTransaction',
         'deleteTransaction',
       ];
@@ -226,55 +227,6 @@ describe('CurrentMonth Component', () => {
     });
   });
 
-  describe('openAddTransactionBottomSheet method behavior', () => {
-    it('should open bottom sheet with correct configuration', () => {
-      // Test the method logic without TestBed
-      const mockBottomSheet = { open: vi.fn() };
-      const bottomSheetRef = {
-        afterDismissed: vi.fn().mockReturnValue(of(undefined)),
-      };
-      mockBottomSheet.open.mockReturnValue(bottomSheetRef);
-
-      // Simulate the method behavior
-      const openAddTransactionBottomSheet = () => {
-        return mockBottomSheet.open(
-          expect.any(Function), // AddTransactionBottomSheet component
-          {
-            disableClose: false,
-            panelClass: 'add-transaction-bottom-sheet',
-          },
-        );
-      };
-
-      // Act
-      openAddTransactionBottomSheet();
-
-      // Assert
-      expect(mockBottomSheet.open).toHaveBeenCalledWith(expect.any(Function), {
-        disableClose: false,
-        panelClass: 'add-transaction-bottom-sheet',
-      });
-    });
-
-    it('should handle bottom sheet dismissal without transaction', () => {
-      // Test that the method handles empty dismissal correctly
-      const bottomSheetRef = {
-        afterDismissed: vi.fn().mockReturnValue(of(undefined)),
-      };
-      const onAddTransaction = vi.fn();
-
-      // Simulate subscription handling
-      bottomSheetRef.afterDismissed().subscribe((result: unknown) => {
-        if (result) {
-          onAddTransaction(result);
-        }
-      });
-
-      // Assert
-      expect(onAddTransaction).not.toHaveBeenCalled();
-    });
-  });
-
   describe('onAddTransaction method behavior', () => {
     it('should map transaction types correctly', () => {
       // Test the transaction type mapping logic
@@ -303,7 +255,7 @@ describe('CurrentMonth Component', () => {
         name: 'Test Transaction',
         amount: 100,
         type: 'expense' as const,
-        category: 'food',
+        tagIds: [TAG_ID],
       };
       const budget = createBudget();
 
@@ -314,7 +266,7 @@ describe('CurrentMonth Component', () => {
           name: string;
           amount: number;
           type: TransactionFormType;
-          category: string | null;
+          tagIds: string[];
         },
         budgetId: string,
       ) => {
@@ -329,7 +281,7 @@ describe('CurrentMonth Component', () => {
                 ? 'saving'
                 : 'expense',
           transactionDate: new Date().toISOString(),
-          category: formData.category,
+          tagIds: formData.tagIds,
         };
       };
 
@@ -341,7 +293,7 @@ describe('CurrentMonth Component', () => {
         name: 'Test Transaction',
         kind: 'expense',
         transactionDate: expect.any(String),
-        category: 'food',
+        tagIds: [TAG_ID],
       });
     });
 
@@ -517,6 +469,8 @@ describe('CurrentMonth Component', () => {
 });
 
 describe('Dashboard (TestBed)', () => {
+  const budgetId = '00000000-0000-4000-8000-000000000001';
+
   function createMockStore(budgetId: string) {
     return {
       dashboardData: signal({ budget: { id: budgetId } }),
@@ -535,14 +489,11 @@ describe('Dashboard (TestBed)', () => {
 
   async function setup(
     budgetId: string,
-    afterDismissedValue: TransactionFormData | undefined,
+    dialogResult: TransactionFormData | undefined,
   ) {
     const mockStore = createMockStore(budgetId);
-    const bottomSheetRef = {
-      afterDismissed: () => of(afterDismissedValue),
-    };
-    const mockBottomSheet = {
-      open: vi.fn().mockReturnValue(bottomSheetRef),
+    const mockDialogService = {
+      open: vi.fn().mockResolvedValue(dialogResult),
     };
     const mockRouter = { navigate: vi.fn() };
 
@@ -554,52 +505,44 @@ describe('Dashboard (TestBed)', () => {
           provideAnimationsAsync(),
           ...provideTranslocoForTest(),
           { provide: DashboardStore, useValue: mockStore },
+          {
+            provide: AddTransactionDialogService,
+            useValue: mockDialogService,
+          },
           { provide: Router, useValue: mockRouter },
         ],
       })
       .compileComponents();
 
-    TestBed.overrideProvider(MatBottomSheet, { useValue: mockBottomSheet });
-    TestBed.overrideComponent(Dashboard, {
-      set: {
-        providers: [{ provide: MatBottomSheet, useValue: mockBottomSheet }],
-      },
-    });
-
     const fixture = TestBed.createComponent(Dashboard);
     return {
       component: fixture.componentInstance,
       mockStore,
-      mockBottomSheet,
+      mockDialogService,
     };
   }
 
-  async function flushMicrotasks(): Promise<void> {
-    for (let i = 0; i < 5; i++) {
-      await Promise.resolve();
-    }
-  }
-
   describe('#addTransaction forwards currency conversion metadata', () => {
-    it('should include originalAmount, originalCurrency, targetCurrency, exchangeRate in store.addTransaction call when present on the sheet payload', async () => {
-      const { component, mockStore } = await setup('budget-123', {
+    it('should include originalAmount, originalCurrency, targetCurrency, exchangeRate in store.addTransaction call when present on the surface payload', async () => {
+      const { component, mockStore } = await setup(budgetId, {
         name: 'Test pour claude',
         amount: 108.97,
         kind: 'expense',
-        category: null,
-        checkedAt: null,
-        originalAmount: 100,
-        originalCurrency: 'CHF',
-        targetCurrency: 'EUR',
-        exchangeRate: 1.0897,
+        tagIds: [],
+        isChecked: false,
+        conversion: {
+          originalAmount: 100,
+          originalCurrency: 'CHF',
+          targetCurrency: 'EUR',
+          exchangeRate: 1.0897,
+        },
       });
 
-      component['openAddTransactionBottomSheet']();
-      await flushMicrotasks();
+      await component['openAddTransaction']();
 
       expect(mockStore.addTransaction).toHaveBeenCalledWith(
         expect.objectContaining({
-          budgetId: 'budget-123',
+          budgetId,
           amount: 108.97,
           name: 'Test pour claude',
           kind: 'expense',
@@ -611,20 +554,20 @@ describe('Dashboard (TestBed)', () => {
       );
     });
 
-    it('should forward transaction payload without conversion metadata when the sheet omits it', async () => {
-      const { component, mockStore } = await setup('budget-123', {
+    it('should forward transaction payload without conversion metadata when the surface omits it', async () => {
+      const { component, mockStore } = await setup(budgetId, {
         name: 'Courses',
         amount: 50,
         kind: 'expense',
-        category: null,
-        checkedAt: null,
+        tagIds: [],
+        isChecked: false,
+        conversion: null,
       });
 
-      component['openAddTransactionBottomSheet']();
-      await flushMicrotasks();
+      await component['openAddTransaction']();
 
       const callArg = mockStore.addTransaction.mock.calls[0][0];
-      expect(callArg.budgetId).toBe('budget-123');
+      expect(callArg.budgetId).toBe(budgetId);
       expect(callArg.amount).toBe(50);
       expect(callArg.originalAmount).toBeUndefined();
       expect(callArg.originalCurrency).toBeUndefined();
@@ -632,11 +575,10 @@ describe('Dashboard (TestBed)', () => {
       expect(callArg.exchangeRate).toBeUndefined();
     });
 
-    it('should not call store.addTransaction when the sheet is dismissed without data', async () => {
-      const { component, mockStore } = await setup('budget-123', undefined);
+    it('should not call store.addTransaction when the surface is dismissed without data', async () => {
+      const { component, mockStore } = await setup(budgetId, undefined);
 
-      component['openAddTransactionBottomSheet']();
-      await flushMicrotasks();
+      await component['openAddTransaction']();
 
       expect(mockStore.addTransaction).not.toHaveBeenCalled();
     });
@@ -646,12 +588,12 @@ describe('Dashboard (TestBed)', () => {
         name: 'Test',
         amount: 10,
         kind: 'expense',
-        category: null,
-        checkedAt: null,
+        tagIds: [],
+        isChecked: false,
+        conversion: null,
       });
 
-      component['openAddTransactionBottomSheet']();
-      await flushMicrotasks();
+      await component['openAddTransaction']();
 
       expect(mockStore.addTransaction).not.toHaveBeenCalled();
     });

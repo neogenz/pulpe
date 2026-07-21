@@ -49,6 +49,7 @@ export class CreateTemplateLineUseCase {
       kind: validated.kind,
       recurrence: validated.recurrence,
       description: validated.description,
+      tagIds: validated.tagIds,
     });
 
     this.logger.info(

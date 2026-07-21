@@ -25,7 +25,7 @@ const eligibleTransaction: Transaction = {
   targetCurrency: null,
   exchangeRate: null,
   kind: 'expense',
-  category: null,
+  tagIds: [],
   transactionDate: '2026-06-20T10:00:00.000Z',
   checkedAt: null,
   createdAt: '2026-06-20T10:00:00.000Z',

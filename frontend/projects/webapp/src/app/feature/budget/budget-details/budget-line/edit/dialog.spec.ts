@@ -13,8 +13,12 @@ import { createMockBudgetLine } from '@app/testing/mock-factories';
 import { CurrencyConverterService } from '@core/currency';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
+import { TagStore } from '@core/tag';
+import { createMockTagStore } from '@app/testing/tag-store.mock';
 import type { BudgetLine, SupportedCurrency } from 'pulpe-shared';
 import { EditBudgetLineDialog, type EditBudgetLineDialogData } from './dialog';
+
+const TAG_ID = '00000000-0000-4000-8000-0000000000f1';
 
 interface FlagsMock {
   isMultiCurrencyEnabled: ReturnType<typeof signal>;
@@ -62,6 +66,7 @@ function configureDialog(
       { provide: FeatureFlagsService, useValue: flags },
       { provide: UserSettingsStore, useValue: settings },
       { provide: CurrencyConverterService, useValue: converter },
+      { provide: TagStore, useValue: createMockTagStore() },
     ],
   });
 
@@ -172,6 +177,26 @@ describe('EditBudgetLineDialog — currency edit rules', () => {
     expect(patch).not.toHaveProperty('originalCurrency');
     expect(patch).not.toHaveProperty('targetCurrency');
     expect(patch).not.toHaveProperty('exchangeRate');
+  });
+
+  it('carries the edited tag ids through the update patch', async () => {
+    const line = createMockBudgetLine({ amount: 100, tagIds: [TAG_ID] });
+
+    const { component, dialogRef, converter } = configureDialog(line, {
+      userCurrency: 'CHF',
+      flagEnabled: true,
+    });
+
+    converter.convertWithMetadata.mockResolvedValue({
+      convertedAmount: 100,
+      metadata: null,
+    });
+
+    await component.handleSubmit();
+
+    expect(dialogRef.close).toHaveBeenCalledTimes(1);
+    const patch = dialogRef.close.mock.calls[0][0];
+    expect(patch.tagIds).toEqual([TAG_ID]);
   });
 
   it('on submit (alternate currency edit), converter is called with (amount, EUR, CHF) and PATCH includes fresh metadata', async () => {

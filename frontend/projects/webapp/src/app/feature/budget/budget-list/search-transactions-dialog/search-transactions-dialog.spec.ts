@@ -1,4 +1,4 @@
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
@@ -11,9 +11,13 @@ import type {
 import { TransactionApi } from '@core/transaction/transaction-api';
 import { BudgetApi } from '@core/budget/budget-api';
 import { Logger } from '@core/logging/logger';
+import { TagStore } from '@core/tag';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
 import SearchTransactionsDialogComponent from './search-transactions-dialog';
+
+const TAG_ID = '4df3df43-2b73-467a-a7ac-322f3ab8ed49';
+const USER_ID = '96bd5e0e-0ae4-46f4-a776-908f7c2ae21e';
 
 function buildSearchResult(
   overrides: Partial<TransactionSearchResult> = {},
@@ -26,7 +30,6 @@ function buildSearchResult(
     kind: 'expense',
     recurrence: null,
     transactionDate: null,
-    category: null,
     budgetId: crypto.randomUUID(),
     budgetName: 'Budget 2024',
     year: 2024,
@@ -48,6 +51,12 @@ describe('SearchTransactionsDialogComponent', () => {
   let mockDialogRef: { close: ReturnType<typeof vi.fn> };
   let mockTransactionApi: { search$: ReturnType<typeof vi.fn> };
   let mockBudgetApi: { getAllBudgets$: ReturnType<typeof vi.fn> };
+  let mockTagStore: {
+    tags: {
+      value: ReturnType<typeof signal>;
+      status: ReturnType<typeof signal<'resolved' | 'error'>>;
+    };
+  };
   let mockLogger: {
     debug: ReturnType<typeof vi.fn>;
     info: ReturnType<typeof vi.fn>;
@@ -109,6 +118,21 @@ describe('SearchTransactionsDialogComponent', () => {
       ),
     };
 
+    mockTagStore = {
+      tags: {
+        value: signal([
+          {
+            id: TAG_ID,
+            userId: USER_ID,
+            name: 'Courses',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-01-01T00:00:00.000Z',
+          },
+        ]),
+        status: signal<'resolved' | 'error'>('resolved'),
+      },
+    };
+
     mockLogger = {
       debug: vi.fn(),
       info: vi.fn(),
@@ -125,6 +149,7 @@ describe('SearchTransactionsDialogComponent', () => {
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: TransactionApi, useValue: mockTransactionApi },
         { provide: BudgetApi, useValue: mockBudgetApi },
+        { provide: TagStore, useValue: mockTagStore },
         { provide: Logger, useValue: mockLogger },
       ],
     }).compileComponents();
@@ -149,6 +174,13 @@ describe('SearchTransactionsDialogComponent', () => {
     it('should have a year filter select', () => {
       const select = fixture.nativeElement.querySelector(
         '[data-testid="year-filter"]',
+      );
+      expect(select).toBeTruthy();
+    });
+
+    it('should have a tag filter select', () => {
+      const select = fixture.nativeElement.querySelector(
+        '[data-testid="tag-filter"]',
       );
       expect(select).toBeTruthy();
     });
@@ -232,7 +264,11 @@ describe('SearchTransactionsDialogComponent', () => {
         const rows = getSearchResultRows();
         expect(rows.length).toBe(2);
       });
-      expect(mockTransactionApi.search$).toHaveBeenCalledWith('Lo', undefined);
+      expect(mockTransactionApi.search$).toHaveBeenCalledWith({
+        q: 'Lo',
+        years: undefined,
+        tagIds: undefined,
+      });
     });
 
     it('should pass selected years to search API', async () => {
@@ -249,7 +285,44 @@ describe('SearchTransactionsDialogComponent', () => {
         const rows = getSearchResultRows();
         expect(rows.length).toBe(1);
       });
-      expect(mockTransactionApi.search$).toHaveBeenCalledWith('Test', [2024]);
+      expect(mockTransactionApi.search$).toHaveBeenCalledWith({
+        q: 'Test',
+        years: [2024],
+        tagIds: undefined,
+      });
+    });
+
+    it('should search by tag without a text query', async () => {
+      mockTransactionApi.search$.mockReturnValue(
+        of(buildSearchResponse([buildSearchResult()])),
+      );
+
+      component['filterForm'].tagIds().value.set([TAG_ID]);
+
+      await vi.waitFor(() => {
+        fixture.detectChanges();
+        expect(getSearchResultRows().length).toBe(1);
+      });
+      expect(mockTransactionApi.search$).toHaveBeenCalledWith({
+        q: undefined,
+        years: undefined,
+        tagIds: [TAG_ID],
+      });
+    });
+
+    it('should keep text search available when tags fail to load', async () => {
+      mockTagStore.tags.status.set('error');
+      mockTransactionApi.search$.mockReturnValue(
+        of(buildSearchResponse([buildSearchResult()])),
+      );
+
+      typeInSearchInput('Test');
+
+      await vi.waitFor(() => {
+        fixture.detectChanges();
+        expect(getVisibleStateText()).toContain('Tags indisponibles');
+        expect(getSearchResultRows().length).toBe(1);
+      });
     });
 
     it('should show initial prompt when query is too short', () => {
@@ -257,7 +330,7 @@ describe('SearchTransactionsDialogComponent', () => {
       fixture.detectChanges();
 
       const text = getVisibleStateText();
-      expect(text).toContain('Recherchez dans vos budgets');
+      expect(text).toContain('Recherche dans tes budgets');
     });
 
     it('should show no-results message when search returns empty', async () => {

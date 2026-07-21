@@ -124,6 +124,7 @@ export interface BudgetLineDecrypted {
   exchangeRate: number | null;
   kind: TransactionKind;
   recurrence: TransactionRecurrence;
+  tagIds: string[];
   isManuallyAdjusted: boolean;
   checkedAt: string | null;
   createdAt: string;
@@ -145,8 +146,8 @@ export interface TransactionDecrypted {
   targetCurrency: string | null;
   exchangeRate: number | null;
   kind: TransactionKind;
-  category: string | null;
   transactionDate: string;
+  tagIds: string[];
   checkedAt: string | null;
   createdAt: string;
   updatedAt: string;

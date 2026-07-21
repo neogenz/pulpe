@@ -89,8 +89,26 @@ export {
   savingsGoalPlanMonthSchema,
   savingsGoalPlanApplySchema,
   savingsGoalPlanApplyResponseSchema,
+  savingsGoalFutureLineSchema,
+  savingsGoalFutureLinesResponseSchema,
+  savingsGoalGenerationStopSchema,
+  savingsGoalGenerationStopResponseSchema,
   MAX_SAVINGS_GOAL_PLAN_PERIODS,
   MAX_PLAN_ADJUSTMENTS,
+
+  // Tag schemas (PUL-18)
+  MAX_TAGS_PER_TRANSACTION,
+  tagSchema,
+  tagCreateSchema,
+  tagUpdateSchema,
+  tagResponseSchema,
+  tagListResponseSchema,
+  tagHistoryMonthsSchema,
+  tagHistoryQuerySchema,
+  tagHistoryMonthSchema,
+  tagHistorySchema,
+  tagHistoryResponseSchema,
+  tagDeleteResponseSchema,
 
   // Budget Line schemas
   budgetLineSchema,
@@ -196,10 +214,12 @@ export {
   MAX_ESTIMATED_HORIZON_MONTHS,
   calculatePaceStatus,
   computeSavingsGoalProgress,
+  suggestedMonthlyContribution,
   type LinkedSavingLine,
   type LinkedSavingTransaction,
   type SavingsGoalProgressInput,
   type SavingsGoalProgressResult,
+  type SuggestedMonthlyContributionInput,
 } from './src/calculators/index.js';
 export {
   buildSavingsGoalTimeline,
@@ -328,6 +348,23 @@ export type {
   SavingsGoalPlanMonth,
   SavingsGoalPlanApply,
   SavingsGoalPlanApplyResponse,
+  SavingsGoalFutureLine,
+  SavingsGoalFutureLinesResponse,
+  SavingsGoalGenerationStop,
+  SavingsGoalGenerationStopResponse,
+
+  // Tag types (PUL-18)
+  Tag,
+  TagCreate,
+  TagUpdate,
+  TagResponse,
+  TagListResponse,
+  TagHistoryMonths,
+  TagHistoryQuery,
+  TagHistoryMonth,
+  TagHistory,
+  TagHistoryResponse,
+  TagDeleteResponse,
 
   // Budget Line types
   BudgetLine,

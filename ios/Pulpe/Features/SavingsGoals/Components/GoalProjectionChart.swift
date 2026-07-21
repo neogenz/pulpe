@@ -55,14 +55,14 @@ struct GoalProjectionChart: View {
             ForEach(series.confirmed) { point in
                 AreaMark(
                     x: .value("Mois", point.index),
-                    y: .value("Pointé", point.value)
+                    y: .value("Épargné", point.value)
                 )
                 .interpolationMethod(.monotone)
                 .foregroundStyle(areaGradient)
 
                 LineMark(
                     x: .value("Mois", point.index),
-                    y: .value("Pointé", point.value),
+                    y: .value("Épargné", point.value),
                     series: .value("Série", "confirmed")
                 )
                 .interpolationMethod(.monotone)

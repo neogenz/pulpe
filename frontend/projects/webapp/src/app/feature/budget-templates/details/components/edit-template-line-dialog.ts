@@ -40,6 +40,7 @@ import { FeatureFlagsService } from '@core/feature-flags';
 import { Logger } from '@core/logging/logger';
 import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
+import { TagPicker } from '@app/pattern/tag-picker/tag-picker';
 import { SavingsGoalPickerField } from '@pattern/savings-goal-picker/savings-goal-picker-field';
 
 const TRANSACTION_KINDS: readonly TransactionKind[] = [
@@ -57,6 +58,7 @@ interface EditTemplateLineModel {
   name: string;
   money: AmountFormSlice;
   kind: TransactionKind;
+  tagIds: string[];
   savingsGoalId: string | null;
 }
 
@@ -76,6 +78,7 @@ interface EditTemplateLineModel {
     FinancialKindDirective,
     FormField,
     AmountInput,
+    TagPicker,
     SavingsGoalPickerField,
   ],
   template: `
@@ -145,6 +148,7 @@ interface EditTemplateLineModel {
             }
           </mat-form-field>
 
+          <pulpe-tag-picker [control]="addForm.tagIds" />
           @if (model().kind === 'saving') {
             <pulpe-savings-goal-picker-field
               [value]="model().savingsGoalId"
@@ -208,6 +212,7 @@ export class EditTemplateLineDialog {
     name: this.#data.line?.name ?? '',
     money: this.#computeInitialSlice(),
     kind: (this.#data.line?.kind ?? 'expense') as TransactionKind,
+    tagIds: this.#data.line?.tagIds ?? [],
     savingsGoalId: this.#data.line?.savingsGoalId ?? null,
   });
 
@@ -276,6 +281,7 @@ export class EditTemplateLineDialog {
               name: m.name,
               amount,
               kind: m.kind,
+              tagIds: m.tagIds,
               savingsGoalId: m.kind === 'saving' ? m.savingsGoalId : null,
               conversion: metadata,
             }),

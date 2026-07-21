@@ -33,6 +33,7 @@ const makeLine = (
   recurrence: 'one_off',
   isManuallyAdjusted: false,
   checkedAt: null,
+  tagIds: [],
   createdAt: '2026-07-01T00:00:00.000Z',
   updatedAt: '2026-07-01T00:00:00.000Z',
   ...overrides,

@@ -60,6 +60,10 @@ import type {
   SpreadExistingDialogData,
   SpreadExistingDialogResult,
 } from './budget-line/spread-existing/dialog-result';
+import {
+  TagHistoryDialog,
+  type TagHistoryDialogData,
+} from './components/tag-history/tag-history-dialog';
 
 export interface ConfirmDeleteOptions {
   title: string;
@@ -87,6 +91,16 @@ export class BudgetDetailsDialogService {
   readonly #injector = inject(Injector);
   readonly #transloco = inject(TranslocoService);
   readonly #currencyPipe = new AppCurrencyPipe();
+
+  openTagHistory(data: TagHistoryDialogData): void {
+    this.#dialog.open(TagHistoryDialog, {
+      data,
+      width: '800px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      injector: this.#injector,
+    });
+  }
 
   async openAddBudgetLineDialog(budget: {
     id: string;
@@ -229,7 +243,7 @@ export class BudgetDetailsDialogService {
     const dialogRef = this.#dialog.open(EditTransactionDialog, {
       data: {
         transaction,
-        hiddenFields: ['kind', 'category'],
+        hiddenFields: ['kind'],
         minDate,
         maxDate,
       } satisfies EditTransactionDialogData,

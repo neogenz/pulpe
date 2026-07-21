@@ -21,6 +21,7 @@ const baseLine: BudgetLineDecrypted = {
   exchangeRate: null,
   kind: 'expense',
   recurrence: 'one_off',
+  tagIds: [],
   isManuallyAdjusted: false,
   checkedAt: null,
   createdAt: '2026-01-01T00:00:00Z',

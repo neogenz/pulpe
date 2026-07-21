@@ -45,19 +45,20 @@ import {
 import { UserSettingsStore } from '@core/user-settings';
 import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
+import { TagPicker } from '@app/pattern/tag-picker/tag-picker';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import { getDateDisplayFormats } from '@core/date/date-display-formats';
 import { formatLocalDate } from '@core/date/format-local-date';
 import { Logger } from '@core/logging/logger';
 
-export type HideableField = 'kind' | 'category';
+export type HideableField = 'kind' | 'tags';
 
 interface EditTransactionModel {
   name: string;
   money: AmountFormSlice;
   kind: TransactionKind;
   transactionDate: Date;
-  category: string;
+  tagIds: string[];
 }
 
 interface DateOutOfRangeError {
@@ -79,6 +80,7 @@ interface DateOutOfRangeError {
     TranslocoPipe,
     FormField,
     AmountInput,
+    TagPicker,
   ],
 
   template: `
@@ -194,26 +196,9 @@ interface DateOutOfRangeError {
         }
       </mat-form-field>
 
-      <!-- Category Field -->
-      @if (!isFieldHidden('category')) {
-        <mat-form-field class="w-full" subscriptSizing="dynamic">
-          <mat-label>{{ 'transactionForm.notesLabel' | transloco }}</mat-label>
-          <input
-            matInput
-            [formField]="transactionForm.category"
-            [placeholder]="'transactionForm.notesPlaceholder' | transloco"
-            aria-describedby="category-hint"
-          />
-          <mat-hint id="category-hint" align="end">
-            {{ model().category.length || 0 }}/50
-            {{ 'transactionForm.notesOptional' | transloco }}
-          </mat-hint>
-          @if (categoryErrors().maxLength) {
-            <mat-error>
-              {{ 'transactionForm.notesMaxLength' | transloco }}
-            </mat-error>
-          }
-        </mat-form-field>
+      <!-- Tags Field -->
+      @if (!isFieldHidden('tags')) {
+        <pulpe-tag-picker [control]="transactionForm.tagIds" />
       }
     </form>
     @if (conversionError()) {
@@ -286,7 +271,7 @@ export class EditTransactionForm {
         money: this.#initialMoneySlice(tx),
         kind: tx.kind,
         transactionDate: new Date(tx.transactionDate),
-        category: tx.category ?? '',
+        tagIds: tx.tagIds ?? [],
       })),
   });
 
@@ -307,7 +292,6 @@ export class EditTransactionForm {
     applyAmountValidators(path.money);
     required(path.kind);
     required(path.transactionDate);
-    maxLength(path.category, 50);
     validate(path.transactionDate, ({ value }) => {
       const date = value();
       if (!date || !(date instanceof Date) || isNaN(date.getTime()))
@@ -349,11 +333,6 @@ export class EditTransactionForm {
     };
   });
 
-  protected readonly categoryErrors = touchedFieldErrors(
-    () => this.transactionForm.category,
-    'maxLength',
-  );
-
   protected isFieldHidden(field: HideableField): boolean {
     return this.hiddenFields().includes(field);
   }
@@ -365,7 +344,7 @@ export class EditTransactionForm {
       conversionError: this.conversionError,
       prepare: () => {
         const m = this.model();
-        const { transactionDate, category } = m;
+        const { transactionDate, tagIds } = m;
         return {
           amountSlice: m.money,
           targetCurrency: this.#settings.currency(),
@@ -377,7 +356,7 @@ export class EditTransactionForm {
               amount,
               kind: m.kind,
               transactionDate: formatLocalDate(transactionDate),
-              category: category || null,
+              tagIds,
               conversion: metadata,
             }),
         };

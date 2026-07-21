@@ -237,6 +237,41 @@ import { SettingsDialogService } from './settings-dialog.service';
 
       <mat-divider class="my-8!"></mat-divider>
 
+      <!-- ═══ Section: Organisation ═══ -->
+      <section class="grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-8">
+        <div>
+          <h2 class="text-title-medium font-bold mb-2">
+            {{ 'settings.organizationSection' | transloco }}
+          </h2>
+          <p class="text-body-small text-on-surface-variant leading-relaxed">
+            {{ 'settings.organizationDescription' | transloco }}
+          </p>
+        </div>
+
+        <div class="md:col-span-2 flex items-center justify-between gap-6">
+          <div class="space-y-1">
+            <h3 class="text-title-small">
+              {{ 'settings.tags.title' | transloco }}
+            </h3>
+            <p class="text-body-small text-on-surface-variant">
+              {{ 'settings.tags.description' | transloco }}
+            </p>
+          </div>
+          <button
+            matButton="outlined"
+            type="button"
+            class="shrink-0"
+            data-testid="tags-settings-link"
+            [attr.aria-label]="'settings.tags.open' | transloco"
+            (click)="openTagCatalog()"
+          >
+            {{ 'settings.tags.manage' | transloco }}
+          </button>
+        </div>
+      </section>
+
+      <mat-divider class="my-8!"></mat-divider>
+
       <!-- ═══ Section: Sécurité ═══ -->
       @if (!isDemoMode()) {
         <section class="grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-12">
@@ -452,6 +487,10 @@ export default class SettingsPage {
 
   onCurrencyChange(value: SupportedCurrency): void {
     this.selectedCurrency.set(value);
+  }
+
+  openTagCatalog(): void {
+    void this.#router.navigate(['/', ROUTES.SETTINGS, ROUTES.SETTINGS_TAGS]);
   }
 
   async saveSettings(): Promise<void> {

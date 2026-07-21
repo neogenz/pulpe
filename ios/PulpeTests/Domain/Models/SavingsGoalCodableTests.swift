@@ -52,6 +52,23 @@ struct SavingsGoalCodableTests {
         #expect(goal.targetDateValue == SavingsGoalDateFormatter.parse("2027-12-31"))
     }
 
+    @Test("SavingsGoal decodes initialAmount when present, nil when absent (legacy)")
+    func savingsGoal_decodesInitialAmount() throws {
+        func decode(_ initialAmountField: String) throws -> SavingsGoal {
+            try decoder().decode(SavingsGoal.self, from: Data("""
+            {
+                "id": "1", "userId": "2", "name": "Maison", "targetAmount": 50000,
+                "targetDate": "2027-12-31", "status": "ACTIVE",
+                "createdAt": "2026-06-23T10:00:00Z", "updatedAt": "2026-06-23T10:00:00Z"
+                \(initialAmountField)
+            }
+            """.utf8))
+        }
+
+        #expect(try decode(", \"initialAmount\": 5000").initialAmount == 5000)
+        #expect(try decode("").initialAmount == nil)
+    }
+
     @Test("SavingsGoalStatus maps every raw value")
     func status_rawValues() {
         #expect(SavingsGoalStatus(rawValue: "ACTIVE") == .active)
@@ -94,6 +111,29 @@ struct SavingsGoalCodableTests {
         #expect(object["targetDate"] as? String == "2028-01-01")
         #expect(object["status"] as? String == "ACTIVE")
         #expect((object["targetAmount"] as? NSNumber)?.intValue == 12000)
+    }
+
+    @Test("SavingsGoalCreate encodes initialAmount when set, omits it when nil")
+    func savingsGoalCreate_initialAmount() throws {
+        let withSeed = SavingsGoalCreate(
+            name: "Voiture", targetAmount: 12000, targetDate: "2028-01-01", status: .active,
+            initialAmount: 5000
+        )
+        let withoutSeed = SavingsGoalCreate(
+            name: "Voiture", targetAmount: 12000, targetDate: "2028-01-01", status: .active
+        )
+
+        #expect((try encodedObject(withSeed)["initialAmount"] as? NSNumber)?.intValue == 5000)
+        #expect(try encodedObject(withoutSeed)["initialAmount"] == nil)
+    }
+
+    @Test("SavingsGoalUpdate omits initialAmount when unset, sends 0 to erase")
+    func savingsGoalUpdate_initialAmount() throws {
+        let unset = try encodedObject(SavingsGoalUpdate(name: "Voiture"))
+        #expect(unset["initialAmount"] == nil)
+
+        let erased = try encodedObject(SavingsGoalUpdate(initialAmount: 0))
+        #expect((erased["initialAmount"] as? NSNumber)?.intValue == 0)
     }
 
     // MARK: - Kind guard

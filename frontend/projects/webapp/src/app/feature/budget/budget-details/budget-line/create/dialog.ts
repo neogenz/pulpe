@@ -40,6 +40,7 @@ import { UserSettingsStore } from '@core/user-settings';
 import { dateFnsLocaleFor } from '@core/locale';
 import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
+import { TagPicker } from '@app/pattern/tag-picker/tag-picker';
 import { SavingsGoalPickerField } from '@app/pattern/savings-goal-picker/savings-goal-picker-field';
 import {
   TransactionIconPipe,
@@ -75,6 +76,7 @@ interface AddBudgetLineModel {
   kind: TransactionKind;
   recurrence: TransactionRecurrence;
   isChecked: boolean;
+  tagIds: string[];
   savingsGoalId: string | null;
   money: AmountFormSlice;
 }
@@ -96,6 +98,7 @@ interface AddBudgetLineModel {
     TransactionLabelPipe,
     FormField,
     AmountInput,
+    TagPicker,
     SavingsGoalPickerField,
   ],
   host: { 'data-testid': 'add-budget-line-dialog' },
@@ -337,6 +340,7 @@ interface AddBudgetLineModel {
               }
             </div>
           } @else {
+            <pulpe-tag-picker [control]="addForm.tagIds" />
             @if (model().kind === 'saving') {
               <pulpe-savings-goal-picker-field
                 [value]="model().savingsGoalId"
@@ -450,6 +454,7 @@ export class AddBudgetLineDialog {
     kind: 'expense',
     recurrence: 'one_off',
     isChecked: false,
+    tagIds: [],
     savingsGoalId: null,
     money: createAmountSlice({ initialCurrency: this.#settings.currency() }),
   });
@@ -676,6 +681,7 @@ export class AddBudgetLineDialog {
               kind: m.kind,
               recurrence: m.recurrence,
               isChecked: m.isChecked,
+              tagIds: m.tagIds,
               savingsGoalId: m.kind === 'saving' ? m.savingsGoalId : null,
               conversion: metadata,
             }),

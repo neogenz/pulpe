@@ -22,6 +22,7 @@ const base: SavingsGoal = {
   originalCurrency: null,
   targetCurrency: null,
   exchangeRate: null,
+  initialAmount: null,
 };
 
 describe('SavingsGoalMapper', () => {
@@ -41,6 +42,13 @@ describe('SavingsGoalMapper', () => {
     expect(api.originalCurrency).toBeUndefined();
     expect(api.targetCurrency).toBeUndefined();
     expect(api.exchangeRate).toBeUndefined();
+  });
+
+  it('exposes initialAmount (PUL-293), null passes through untouched', () => {
+    expect(mapper.toApi(base).initialAmount).toBeNull();
+    expect(mapper.toApi({ ...base, initialAmount: 2000 }).initialAmount).toBe(
+      2000,
+    );
   });
 
   it('serializes the dedicated original_target_amount field (not originalAmount)', () => {
@@ -76,6 +84,7 @@ describe('SavingsGoalMapper', () => {
       linkedLineCount: 3,
       cumulativeGap: 150,
       estimatedCompletion: { month: 6, year: 2027 },
+      initialAmount: 0,
     };
 
     const months: SavingsGoalPlanMonth[] = [];
@@ -123,7 +132,7 @@ describe('SavingsGoalMapper', () => {
           targetCurrency: null,
           exchangeRate: null,
           kind: 'saving',
-          category: null,
+          tagIds: [],
           transactionDate: '2026-06-15',
           checkedAt: '2026-06-15T00:00:00Z',
           createdAt: '2026-06-15T00:00:00Z',

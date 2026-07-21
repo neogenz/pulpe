@@ -4,6 +4,8 @@ import {
   type BudgetLineUpdateFormValue,
 } from './dialog.schema';
 
+const TAG_ID = '00000000-0000-4000-8000-0000000000f1';
+
 const updateFormValue: BudgetLineUpdateFormValue = {
   name: 'Loyer',
   amount: 1200,
@@ -63,6 +65,15 @@ describe('budgetLineUpdateFromFormSchema', () => {
       });
 
       expect(result.name).toBe('Loyer');
+    });
+
+    it('should pass through selected tag ids', () => {
+      const result = budgetLineUpdateFromFormSchema.parse({
+        ...updateFormValue,
+        tagIds: [TAG_ID],
+      });
+
+      expect(result.tagIds).toEqual([TAG_ID]);
     });
 
     it('should carry savingsGoalId to tag and null to untag (CA26)', () => {

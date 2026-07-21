@@ -55,6 +55,7 @@ export class CreateBudgetLineUseCase {
       exchangeRate: withRate.exchangeRate ?? null,
       kind: withRate.kind,
       recurrence: withRate.recurrence,
+      tagIds: withRate.tagIds,
       isManuallyAdjusted: withRate.isManuallyAdjusted ?? false,
       checkedAt: withRate.checkedAt ?? null,
     };

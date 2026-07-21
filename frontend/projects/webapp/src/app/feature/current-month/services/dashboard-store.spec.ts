@@ -58,7 +58,7 @@ function createMockTransaction(overrides: Partial<Transaction>): Transaction {
     kind: 'expense',
     transactionDate: '2025-06-10T00:00:00Z',
     checkedAt: null,
-    category: null,
+    tagIds: [],
     createdAt: '2025-06-10T00:00:00Z',
     updatedAt: '2025-06-10T00:00:00Z',
     ...overrides,

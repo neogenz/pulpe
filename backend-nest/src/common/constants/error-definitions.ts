@@ -408,6 +408,48 @@ export const ERROR_DEFINITIONS = {
     httpStatus: HttpStatus.CONFLICT,
   },
 
+  // Tag Errors (PUL-18)
+  TAG_NOT_FOUND: {
+    code: API_ERROR_CODES.TAG_NOT_FOUND,
+    message: (details?: Record<string, unknown>) =>
+      details?.id ? `Tag with ID '${details.id}' not found` : 'Tag not found',
+    httpStatus: HttpStatus.NOT_FOUND,
+  },
+  TAG_CREATE_FAILED: {
+    code: API_ERROR_CODES.TAG_CREATE_FAILED,
+    message: () => 'Failed to create tag',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  TAG_UPDATE_FAILED: {
+    code: API_ERROR_CODES.TAG_UPDATE_FAILED,
+    message: (details?: Record<string, unknown>) =>
+      details?.id
+        ? `Failed to update tag with ID '${details.id}'`
+        : 'Failed to update tag',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  TAG_DELETE_FAILED: {
+    code: API_ERROR_CODES.TAG_DELETE_FAILED,
+    message: (details?: Record<string, unknown>) =>
+      details?.id
+        ? `Failed to delete tag with ID '${details.id}'`
+        : 'Failed to delete tag',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  TAG_FETCH_FAILED: {
+    code: API_ERROR_CODES.TAG_FETCH_FAILED,
+    message: () => 'Failed to fetch tags',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  TAG_ALREADY_EXISTS: {
+    code: API_ERROR_CODES.TAG_ALREADY_EXISTS,
+    message: (details?: Record<string, unknown>) =>
+      details?.name
+        ? `A tag named '${details.name}' already exists`
+        : 'A tag with this name already exists',
+    httpStatus: HttpStatus.CONFLICT,
+  },
+
   // Budget Line Errors
   BUDGET_LINE_NOT_FOUND: {
     code: API_ERROR_CODES.BUDGET_LINE_NOT_FOUND,
@@ -458,6 +500,12 @@ export const ERROR_DEFINITIONS = {
     message: () => 'Failed to create savings goal',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
+  SAVINGS_GOAL_BASELINE_RECALCULATION_FAILED: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_BASELINE_RECALCULATION_FAILED,
+    message: () =>
+      'The savings goal and its monthly baseline were saved, but budget balances could not be refreshed. Reload without recreating the goal.',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
   SAVINGS_GOAL_UPDATE_FAILED: {
     code: API_ERROR_CODES.SAVINGS_GOAL_UPDATE_FAILED,
     message: (details?: Record<string, unknown>) =>
@@ -501,6 +549,30 @@ export const ERROR_DEFINITIONS = {
     code: API_ERROR_CODES.SAVINGS_GOAL_PLAN_APPLY_FAILED,
     message: () => 'Failed to apply the savings goal plan',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  // Savings goal generation stop (PUL-285 — POST /savings-goals/:id/generation-stop)
+  SAVINGS_GOAL_GENERATION_STOP_FAILED: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_GENERATION_STOP_FAILED,
+    message: () => 'Failed to apply the generation stop decision',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  SAVINGS_GOAL_GENERATION_STOP_RECALCULATION_FAILED: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_GENERATION_STOP_RECALCULATION_FAILED,
+    message: () =>
+      'The generation stop decision was saved, but budget balances could not be refreshed. Reload without retrying.',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  SAVINGS_GOAL_GENERATION_STOP_CONFLICT: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_GENERATION_STOP_CONFLICT,
+    message: () =>
+      'The linked prévisions changed since you listed them. Refresh and retry.',
+    httpStatus: HttpStatus.CONFLICT,
+  },
+  SAVINGS_GOAL_GENERATION_STOP_LINE_INVALID: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_GENERATION_STOP_LINE_INVALID,
+    message: () =>
+      'One or more prévisions are no longer linked to this goal. Refresh the list.',
+    httpStatus: HttpStatus.UNPROCESSABLE_ENTITY,
   },
   BUDGET_LINE_BUDGET_MISMATCH: {
     code: API_ERROR_CODES.BUDGET_LINE_BUDGET_MISMATCH,

@@ -15,6 +15,7 @@ import type { SupportedCurrency } from 'pulpe-shared';
 
 import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
+import { safeFieldTreeRead } from '@core/validators';
 import {
   injectLiveConversionPreview,
   isCurrencyPickerVisible,
@@ -107,24 +108,9 @@ export class AmountInput {
 
   protected readonly displayCurrency = this.#settings.currency;
 
-  /**
-   * Required-input deferred read. `injectLiveConversionPreview` (called in a
-   * class field below) reads the signals during view init — at that point a
-   * direct `this.control()` throws NG0950 because input bindings haven't
-   * propagated yet. Wrapping the read in a `computed` defers it to the next
-   * change-detection tick when the binding is set. After the first run the
-   * `try` is a no-op. Narrowed catch so unexpected errors still surface.
-   */
-  readonly #safeControl = computed(() => {
-    try {
-      return this.control();
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('NG0950')) {
-        return null;
-      }
-      throw error;
-    }
-  });
+  readonly #safeControl = computed(() =>
+    safeFieldTreeRead(() => this.control()),
+  );
 
   protected readonly amountValue = computed<number | null>(
     () => this.#safeControl()?.amount().value() ?? null,

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import {
   applyTemplateLineOperationsItemSchema,
   applyTemplateLineOperationsListSchema,
+  bulkReplaceTemplateLineTagsListSchema,
   createTemplateLineRpcPayloadSchema,
   createTemplateLinesRpcPayloadSchema,
 } from './rpc-payload.schemas';
@@ -15,6 +16,7 @@ describe('createTemplateLineRpcPayloadSchema', () => {
     amount: VALID_CIPHERTEXT,
     kind: 'expense' as const,
     recurrence: 'fixed' as const,
+    tag_ids: [],
     description: 'Monthly',
     original_amount: null,
     original_currency: null,
@@ -41,6 +43,17 @@ describe('createTemplateLineRpcPayloadSchema', () => {
 
     expect(result.exchange_rate).toBe(0.94);
     expect(result.original_currency).toBe('EUR');
+  });
+
+  it('should accept owned tag ids in the encrypted RPC payload', () => {
+    const tagId = '8a0f6c80-1234-4e5f-89ab-333333333333';
+
+    const result = createTemplateLineRpcPayloadSchema.parse({
+      ...monoBase,
+      tag_ids: [tagId],
+    });
+
+    expect(result.tag_ids).toEqual([tagId]);
   });
 
   it('should reject extra keys (forged bypass attempt)', () => {
@@ -139,6 +152,7 @@ describe('createTemplateLinesRpcPayloadSchema', () => {
         amount: VALID_CIPHERTEXT,
         kind: 'expense' as const,
         recurrence: 'fixed' as const,
+        tag_ids: [],
         description: '',
         original_amount: null,
         original_currency: null,
@@ -317,5 +331,34 @@ describe('applyTemplateLineOperationsListSchema', () => {
     ];
 
     expect(() => applyTemplateLineOperationsListSchema.parse(list)).toThrow();
+  });
+});
+
+describe('bulkReplaceTemplateLineTagsListSchema', () => {
+  const validPair = {
+    template_line_id: '8a0f6c80-1234-4e5f-89ab-111111111111',
+    tag_ids: ['8a0f6c80-1234-4e5f-89ab-222222222222'],
+  };
+
+  it('should accept strict UUID tag pairs', () => {
+    expect(bulkReplaceTemplateLineTagsListSchema.parse([validPair])).toEqual([
+      validPair,
+    ]);
+  });
+
+  it('should reject extra keys', () => {
+    expect(() =>
+      bulkReplaceTemplateLineTagsListSchema.parse([
+        { ...validPair, templateLineId: validPair.template_line_id },
+      ]),
+    ).toThrow();
+  });
+
+  it('should reject invalid UUIDs', () => {
+    expect(() =>
+      bulkReplaceTemplateLineTagsListSchema.parse([
+        { ...validPair, tag_ids: ['not-a-uuid'] },
+      ]),
+    ).toThrow();
   });
 });

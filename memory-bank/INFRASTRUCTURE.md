@@ -164,10 +164,10 @@ pnpm test                  # All tests with orchestration
 - One changelog per release, not per package
 - GitHub Releases created automatically
 
-**Release Workflow**:
+**Release Workflow (agent command)**:
 
-```bash
-pnpm update-changelog     # Analyze git changes, bump all packages, update changelogs
+```text
+/release                  # Analyze git changes, bump all packages, update changelogs
 ```
 
 ## CI/CD Pipeline

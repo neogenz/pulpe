@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { StorageService } from '@core/storage/storage.service';
@@ -6,10 +6,9 @@ import { STORAGE_KEYS } from '@core/storage/storage-keys';
 import { WhatsNewToast } from './whats-new-toast';
 import { LATEST_RELEASE } from './whats-new-releases';
 
-vi.mock('@env/build-info', async () => {
-  const { LATEST_RELEASE } = await import('./whats-new-releases');
-  return { buildInfo: { version: LATEST_RELEASE.version } };
-});
+const mockBuildInfo = vi.hoisted(() => ({ version: '' }));
+
+vi.mock('@env/build-info', () => ({ buildInfo: mockBuildInfo }));
 
 describe('WhatsNewToast', () => {
   let fixture: ComponentFixture<WhatsNewToast>;
@@ -17,6 +16,10 @@ describe('WhatsNewToast', () => {
     get: ReturnType<typeof vi.fn>;
     set: ReturnType<typeof vi.fn>;
   };
+
+  beforeEach(() => {
+    mockBuildInfo.version = LATEST_RELEASE.version;
+  });
 
   function setup(dismissedVersion: string | null = null) {
     mockStorageService = {
@@ -62,6 +65,13 @@ describe('WhatsNewToast', () => {
     it('should show toast when dismissed version differs from current', () => {
       setup('0.0.0');
       expect(queryToast()).toBeTruthy();
+    });
+
+    it('should hide toast when build and release versions differ', () => {
+      mockBuildInfo.version = `${LATEST_RELEASE.version}-other`;
+      setup(null);
+
+      expect(queryToast()).toBeNull();
     });
   });
 

@@ -94,6 +94,7 @@ export class UpdateBudgetLineUseCase {
     if (ruledSavingsGoalId !== undefined) {
       patch.savingsGoalId = ruledSavingsGoalId;
     }
+    if (dto.tagIds !== undefined) patch.tagIds = dto.tagIds;
     if (dto.isManuallyAdjusted !== undefined) {
       patch.isManuallyAdjusted = dto.isManuallyAdjusted;
     }
