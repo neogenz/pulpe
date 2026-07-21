@@ -69,15 +69,23 @@ struct ActivityCard: View {
 
             Spacer()
 
-            windowToggle
+            // Tight trailing cluster: the chevron's 44pt tap box carries ~36pt of dead
+            // space to the left of its glyph, so the usual `md` gap would read as a void.
+            HStack(spacing: DesignTokens.Spacing.xs) {
+                windowToggle
 
-            Button(action: onViewAll) {
-                Image(systemName: "chevron.right")
-                    .font(PulpeTypography.metricLabel)
-                    .foregroundStyle(Color.textTertiary)
+                Button(action: onViewAll) {
+                    // Centring the glyph in that box would leave it ~18pt left of the
+                    // chevrons on the hero and à-pointer cards (bare Images flush to the
+                    // same padding). Pin it trailing; the hit area is unchanged.
+                    Image(systemName: "chevron.right")
+                        .font(PulpeTypography.metricLabel)
+                        .foregroundStyle(Color.textTertiary)
+                        .frame(minWidth: DesignTokens.TapTarget.minimum, alignment: .trailing)
+                }
+                .iconButtonStyle()
+                .accessibilityLabel("Voir toutes les transactions")
             }
-            .iconButtonStyle()
-            .accessibilityLabel("Voir toutes les transactions")
         }
         .padding(.horizontal, DesignTokens.Spacing.xl)
         .padding(.top, DesignTokens.Spacing.lg)
