@@ -1,6 +1,6 @@
 ---
 objective: "Le résumé du plan mensuel iOS compte seulement les mois sans Prévision liée à partir du mois courant, tandis que le plan développé conserve son contexte historique."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Centrer le résumé du plan iOS sur les mois restants
