@@ -190,6 +190,46 @@ describe("landing accessibility contracts", () => {
     assert.match(componentSources.page, /<PainPoints \/>[\s\S]*<Solution \/>/);
   });
 
+  it("keeps accented display lines clear of descenders", () => {
+    assert.match(
+      componentSources.painPoints,
+      /<h2[^>]*leading-\[1\.12\][^>]*>/,
+    );
+  });
+
+  it("keeps the ambient page gradient continuous across full-width sections", () => {
+    for (const source of [
+      componentSources.howItWorks,
+      componentSources.testimonials,
+      componentSources.whyFree,
+    ]) {
+      assert.doesNotMatch(source, /<Section[\s\S]*?background="surface"/);
+    }
+  });
+
+  it("avoids stacked full-width separators around social proof", () => {
+    assert.doesNotMatch(
+      componentSources.howItWorks,
+      /<ol className="[^"]*border-y/,
+    );
+    assert.doesNotMatch(
+      componentSources.testimonials,
+      /<Section[\s\S]*?className="border-y/,
+    );
+    assert.doesNotMatch(
+      componentSources.testimonials,
+      /className="mt-6 grid border-y/,
+    );
+    assert.doesNotMatch(
+      componentSources.whyFree,
+      /<Section[\s\S]*?className="border-y/,
+    );
+    assert.match(
+      componentSources.testimonials,
+      /className="mt-6 grid border-t border-text\/10/,
+    );
+  });
+
   it("keeps the desktop dashboard attached to the hero", () => {
     assert.match(componentSources.hero, /\blg:pb-20\b/);
     assert.match(componentSources.hero, /\bmd:pb-28\b/);

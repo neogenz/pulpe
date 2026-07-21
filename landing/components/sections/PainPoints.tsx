@@ -22,7 +22,7 @@ export function PainPoints() {
     >
       <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
         <header className="max-w-xl lg:col-span-5">
-          <h2 className="balance text-4xl font-bold leading-[1.05] tracking-[-0.035em] text-text sm:text-5xl">
+          <h2 className="balance text-4xl font-bold leading-[1.12] tracking-[-0.035em] text-text sm:text-5xl">
             Tu sais ce que tu as dépensé. Pas ce que tu peux encore prévoir.
           </h2>
           <p className="pretty mt-6 text-lg leading-relaxed text-text-secondary">

@@ -13,11 +13,7 @@ const SUPPORTING_TESTIMONIALS = [
 
 export function Testimonials() {
   return (
-    <Section
-      id="testimonials"
-      background="surface"
-      className="border-y border-text/10"
-    >
+    <Section id="testimonials">
       <div className="grid items-start gap-8 lg:grid-cols-12 lg:gap-16">
         <header className="lg:col-span-4">
           <h2 className="balance text-3xl font-bold leading-[1.05] tracking-[-0.035em] text-text sm:text-5xl">
@@ -46,7 +42,7 @@ export function Testimonials() {
             </footer>
           </blockquote>
 
-          <div className="mt-6 grid border-y border-text/10 sm:grid-cols-2">
+          <div className="mt-6 grid border-t border-text/10 sm:grid-cols-2">
             {SUPPORTING_TESTIMONIALS.map((testimonial, index) => (
               <blockquote
                 key={testimonial.quote}

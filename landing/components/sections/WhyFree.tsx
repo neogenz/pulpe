@@ -22,11 +22,7 @@ const GUARANTEES = [
 
 export function WhyFree() {
   return (
-    <Section
-      id="why-free"
-      background="surface"
-      className="border-y border-text/10"
-    >
+    <Section id="why-free">
       <div className="grid gap-10 lg:grid-cols-5 lg:gap-16">
         <div className="lg:col-span-3">
           <h2 className="text-4xl font-bold leading-[1.05] tracking-[-0.035em] sm:text-5xl">

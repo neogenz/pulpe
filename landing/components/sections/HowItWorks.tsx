@@ -23,7 +23,7 @@ const STEPS = [
 
 export function HowItWorks() {
   return (
-    <Section id="how-it-works" background="surface">
+    <Section id="how-it-works">
       <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
         <header className="max-w-xl lg:col-span-4">
           <h2 className="balance text-4xl font-bold leading-[1.05] tracking-[-0.035em] sm:text-5xl">
@@ -34,7 +34,7 @@ export function HowItWorks() {
           </p>
         </header>
 
-        <ol className="border-y border-text/10 md:grid md:grid-cols-3 lg:col-span-8">
+        <ol className="md:grid md:grid-cols-3 lg:col-span-8">
           {STEPS.map((step, index) => (
             <li
               key={step.number}
