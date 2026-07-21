@@ -158,7 +158,7 @@ struct GoalTrajectorySection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
             Text("Ta trajectoire")
-                .font(PulpeTypography.title)
+                .font(PulpeTypography.title2)
                 .foregroundStyle(Color.textPrimary)
 
             GoalProjectionChart(series: series, currency: currency)

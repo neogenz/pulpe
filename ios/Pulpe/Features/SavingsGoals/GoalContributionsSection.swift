@@ -13,7 +13,7 @@ struct GoalContributionsSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             Text("Ton suivi")
-                .font(PulpeTypography.title)
+                .font(PulpeTypography.title2)
                 .foregroundStyle(Color.textPrimary)
 
             if isLoading, contributions.isEmpty {

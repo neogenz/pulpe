@@ -72,11 +72,11 @@ struct GoalPlanTimelinePresentation {
 }
 
 /// « Ton plan, mois par mois » (PUL-12+, pilier B) — the read-mode timeline section
-/// on the goal detail. Windowed by default (last locked month for context + the
-/// upcoming open months) with a « Voir tout le plan » toggle; a full 24–96 row list
+/// on the goal detail. Windowed by default (current month + three future months)
+/// with a « Voir tout le plan » toggle; a full 24–96 row list
 /// would burn the 30 s attention budget (`docs/SAVINGS.md` §10.1).
 ///
-/// The section header carries the « Ajuster mon plan » CTA (pilier C entry), shown
+/// The section header carries the « Ajuster » CTA (pilier C entry), shown
 /// only when the goal is actionable (`canAdjust`).
 struct GoalPlanTimelineSection: View {
     let months: [SavingsGoalPlanMonth]
@@ -94,7 +94,7 @@ struct GoalPlanTimelineSection: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             HStack(spacing: DesignTokens.Spacing.md) {
                 Text("Ton plan, mois par mois")
-                    .font(PulpeTypography.title)
+                    .font(PulpeTypography.title2)
                     .foregroundStyle(Color.textPrimary)
 
                 Spacer(minLength: DesignTokens.Spacing.sm)
@@ -121,13 +121,13 @@ struct GoalPlanTimelineSection: View {
                         Spacer()
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                     }
-                    .frame(
-                        maxWidth: .infinity,
-                        minHeight: DesignTokens.TapTarget.minimum,
-                        alignment: .leading
-                    )
-                    .contentShape(Rectangle())
                 }
+                .frame(
+                    maxWidth: .infinity,
+                    minHeight: DesignTokens.TapTarget.minimum,
+                    alignment: .leading
+                )
+                .contentShape(Rectangle())
                 .textLinkButtonStyle()
                 .accessibilityHint(isExpanded ? "Réduit la liste des mois" : "Affiche tous les mois")
             }
