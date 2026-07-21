@@ -6,12 +6,13 @@ export interface WhatsNewReleaseChangeItem {
 export interface WhatsNewReleaseEntry {
   version: string;
   /**
-   * iOS marketing version that shipped this projection. A release without
-   * user-facing notes has no entry here instead of an incomplete projection.
+   * iOS marketing version that shipped this projection. A release intentionally
+   * without a dialog is recorded in `SILENT_IOS_RELEASES` instead of being
+   * omitted implicitly or represented by an incomplete projection.
    */
   iosVersion: string;
   date: string;
-  platforms: ('ios' | 'web')[];
+  platforms: ('android' | 'ios' | 'web')[];
   changes: {
     features: WhatsNewReleaseChangeItem[];
     fixes: WhatsNewReleaseChangeItem[];
@@ -19,9 +20,14 @@ export interface WhatsNewReleaseEntry {
   };
 }
 
+export interface SilentIosReleaseEntry {
+  readonly version: string;
+  readonly reason: string;
+}
+
 /**
  * Checked-in iOS projection of `landing/data/releases.json` (maintained by the
- * `/update-changelog` skill). The deployed backend artifact does not contain
+ * `/release` skill). The deployed backend artifact does not contain
  * the `landing/` package, so the data lives here as a TypeScript literal rather
  * than being read from disk at runtime. Keep release metadata in sync and this
  * list ordered newest-first, but include only releases mapped to an iOS
@@ -278,3 +284,10 @@ export const RELEASES: WhatsNewReleaseEntry[] = [
     },
   },
 ];
+
+/**
+ * Product releases with an iOS marketing version that intentionally have no
+ * dialog. Every entry must map to `landing/data/releases.json` and explain why
+ * no approved note met the iOS curation threshold.
+ */
+export const SILENT_IOS_RELEASES: readonly SilentIosReleaseEntry[] = [];

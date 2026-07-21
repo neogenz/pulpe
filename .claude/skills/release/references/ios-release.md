@@ -9,14 +9,14 @@ The app is **live on the App Store**. Read the current `MARKETING_VERSION` from 
 
 The releaser decides build-only vs. marketing-bump per release. Propose `build` when the iOS changes are not user-facing, and include that decision in the release proposal for approval. When unsure for a fix-only iOS release, a `build` bump is the safe default.
 
-Resolve this decision before changelog data is written. A release with a marketing bump records that exact value as `iosVersion` in `landing/data/releases.json`. If at least one item qualifies for the iOS dialog, its backend projection records the same value; if none qualifies, no backend entry is created. A build-only release records no `iosVersion` and cannot trigger the one-shot what's-new dialog because the bundle marketing version did not change.
+Resolve this decision before changelog data is written. A release with a marketing bump records that exact value as `iosVersion` in `landing/data/releases.json`. It must then choose exactly one persistent backend mode: a curated entry in `RELEASES` when at least one item qualifies for the iOS dialog, or a motivated entry in `SILENT_IOS_RELEASES` when none qualifies. A build-only release records no `iosVersion` and cannot trigger the one-shot what's-new dialog because the bundle marketing version did not change.
 
-| Mode         | iOS version           | Public changelog           | Backend projection         |
-| ------------ | --------------------- | -------------------------- | -------------------------- |
-| `projection` | Marketing bump        | Entry with `iosVersion`    | 1–4 curated items          |
-| `silent`     | Marketing bump        | Entry with `iosVersion`    | None; no relevant iOS note |
-| `build`      | Build number only     | Entry without `iosVersion` | None                       |
-| `skip`       | Approved iOS decision | None                       | None; explicitly skipped   |
+| Mode         | iOS version           | Public changelog           | Persistent backend record                 |
+| ------------ | --------------------- | -------------------------- | ----------------------------------------- |
+| `projection` | Marketing bump        | Entry with `iosVersion`    | `RELEASES`: 1–4 curated items             |
+| `silent`     | Marketing bump        | Entry with `iosVersion`    | `SILENT_IOS_RELEASES`: one concrete reason |
+| `build`      | Build number only     | Entry without `iosVersion` | None                                      |
+| `skip`       | Approved iOS decision | None                       | None                                      |
 
 ## Curate iOS What's New
 
@@ -36,7 +36,7 @@ Exclude:
 - Cosmetic micro-fixes and vague rollups such as "Stabilité iOS".
 - Anything included only to avoid an empty dialog.
 
-Keep at most 4 items. Write a concrete benefit-led title and one short sentence; omit platform suffixes such as `(iOS)` and technical vocabulary. If no item qualifies, leave `backend-nest/src/modules/whats-new/domain/releases-data.ts` unchanged. A new iOS version without release data is valid and must show nothing.
+Keep at most 4 items. Write a concrete benefit-led title and one short sentence; omit platform suffixes such as `(iOS)` and technical vocabulary. If no item qualifies, add the product version and a concrete curation reason to `SILENT_IOS_RELEASES` instead of adding a projection. The registry is the explicit release record; it does not make the app show a dialog.
 
 ## When to bump iOS
 
@@ -60,7 +60,7 @@ cd ios && ./scripts/bump-version.sh patch   # or minor
 cd ios && xcodegen generate --use-cache
 ```
 
-This bumps `MARKETING_VERSION` and resets/advances the build number. When you do this, also sync Railway `LATEST_IOS_VERSION` (see below).
+This bumps `MARKETING_VERSION` and resets/advances the build number. Schedule the Railway `LATEST_IOS_VERSION` sync described below, but do not apply it before that version is publicly available on the App Store.
 
 ## Files modified
 
@@ -73,12 +73,14 @@ Stage only `ios/project.yml`. Never stage the generated `.xcodeproj`.
 
 ## Sync Railway `LATEST_IOS_VERSION` (force-update gate)
 
-When `MARKETING_VERSION` bumps (i.e. you used `set`, `major`, `minor`, or `patch` — NOT `build`), record a pending `LATEST_IOS_VERSION` update for Railway in **both** `preview` and `production`. Apply it only in Step 9 after the final external-mutation approval. The force-update endpoint (`GET /api/v1/app/version`) serves this value to clients; if it drifts, the soft-update prompt (follow-up) will lie.
+When `MARKETING_VERSION` bumps (i.e. you used `set`, `major`, `minor`, or `patch` — NOT `build`), record a pending `LATEST_IOS_VERSION` update for Railway in **both** `preview` and `production`. Apply it only after App Store Connect confirms that this marketing version is publicly available. Git publication and TestFlight availability are not sufficient.
+
+If the App Store release is still pending when Step 9 finishes, leave both values unchanged and report one deferred post-App-Store operation. The force-update endpoint (`GET /api/v1/app/version`) serves this value to clients; changing it early would advertise a binary users cannot download.
 
 Before updating Railway, apply the branch that matches the curated result:
 
 - If an iOS projection exists, verify the same `iosVersion` is present in `landing/data/releases.json` and `backend-nest/src/modules/whats-new/domain/releases-data.ts`. A mismatch means the release is not ready.
-- If no item qualified, verify `landing/data/releases.json` carries the new `iosVersion` and no backend projection was added for it. This intentional absence does not block the Railway update or the release.
+- If no item qualified, verify `landing/data/releases.json` carries the new `iosVersion`, `SILENT_IOS_RELEASES` contains exactly one motivated entry for the product version, and no backend projection overlaps it. This intentional silence does not block the Railway update or the release.
 
 Use the Railway integration available to the current agent — one operation per environment with these semantics:
 
@@ -86,11 +88,11 @@ Use the Railway integration available to the current agent — one operation per
 workspace: <repo root>
 environment: preview, then production
 service: backend
-skip deploy: true
+skip deploy: false
 variable: LATEST_IOS_VERSION=<new MARKETING_VERSION>
 ```
 
-If no Railway integration is available, stop before push and report the missing capability. Never omit the update silently or guess an unsupported CLI/MCP command.
+Before applying the deferred update, verify App Store availability again. The variable change must redeploy the backend so the running `ConfigService` reads the new value; wait for the resulting deployment to succeed in each environment. If no Railway integration is available, report the missing capability and leave the gate unchanged. Never omit the update silently or guess an unsupported CLI/MCP command. After both environment updates, verify the public version endpoint reports the new iOS marketing version.
 
 > **Never** touch `MIN_IOS_VERSION` from this skill. That value is a deliberate kill switch — only bumped when a release contains a breaking change or critical fix that must force users off old binaries. Always require explicit user confirmation before changing it.
 
