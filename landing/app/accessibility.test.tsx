@@ -17,10 +17,6 @@ const componentSources = {
     new URL("../components/ui/Button.tsx", import.meta.url),
     "utf8",
   ),
-  card: readFileSync(
-    new URL("../components/ui/Card.tsx", import.meta.url),
-    "utf8",
-  ),
   header: readFileSync(
     new URL("../components/sections/Header.tsx", import.meta.url),
     "utf8",

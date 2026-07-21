@@ -14,10 +14,6 @@
 
   /* Shadows tinted with brand green — gives depth coherent with palette
      instead of generic black-at-low-opacity AI aesthetic. */
-  --shadow-card:
-    0 1px 2px rgba(0, 60, 20, 0.04), 0 6px 18px rgba(0, 60, 20, 0.06);
-  --shadow-card-hover:
-    0 2px 4px rgba(0, 60, 20, 0.05), 0 10px 24px rgba(0, 60, 20, 0.09);
   --shadow-organic:
     0 1px 2px rgba(0, 110, 37, 0.04), 0 8px 22px rgba(0, 60, 20, 0.07);
   --shadow-screenshot:
@@ -212,39 +208,6 @@ h3,
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
-  }
-}
-
-/* ShineBorder animation */
-.shine-border-effect {
-  padding: var(--shine-border-width);
-  background-image: var(--shine-gradient);
-  background-size: 300% 300%;
-  mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  mask-composite: exclude;
-  -webkit-mask-composite: xor;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .shine-border-effect {
-    animation: shine-pulse var(--shine-duration) infinite linear;
-  }
-}
-
-@keyframes shine-pulse {
-  0% {
-    background-position: 0% 0%;
-  }
-  50% {
-    background-position: 100% 100%;
-  }
-  100% {
-    background-position: 0% 0%;
   }
 }
 
