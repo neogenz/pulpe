@@ -32,7 +32,7 @@ struct GoalPlanTimelinePresentationTests {
 
         #expect(collapsed.visibleMonths.map(\.month) == [7, 8, 9, 10])
         #expect(collapsed.hiddenCount == 1)
-        #expect(collapsed.unlinkedMonthCount == 3)
+        #expect(collapsed.remainingUnlinkedMonthCount == 3)
         #expect(expanded.visibleMonths.map(\.month) == [7, 8, 9, 10, 11])
         #expect(expanded.hiddenCount == 0)
     }
@@ -56,9 +56,30 @@ struct GoalPlanTimelinePresentationTests {
         #expect(collapsed.hiddenCount == 4)
     }
 
+    @Test("counts unlinked forecasts from the current month while preserving history")
+    func countsRemainingUnlinkedForecasts() {
+        let months = [
+            makeMonth(month: 4, state: .gap, isLocked: true),
+            makeMonth(month: 5, state: .past, isLocked: true, hasLinkedForecast: true),
+            makeMonth(month: 6, state: .gap, isLocked: true),
+            makeMonth(month: 7, state: .current),
+            makeMonth(month: 8, state: .future, hasLinkedForecast: true),
+            makeMonth(month: 9, state: .gap),
+            makeMonth(month: 10, state: .gap, isProvisionable: true),
+        ]
+
+        let collapsed = GoalPlanTimelinePresentation(months: months, isExpanded: false)
+        let expanded = GoalPlanTimelinePresentation(months: months, isExpanded: true)
+
+        #expect(expanded.visibleMonths.map(\.month) == [4, 5, 6, 7, 8, 9, 10])
+        #expect(GoalPlanMonthAvailability(month: months[0]) == .noLinkedForecast)
+        #expect(collapsed.remainingUnlinkedMonthCount == 3)
+    }
+
     private func makeMonth(
         month: Int,
         state: SavingsPlanMonthState,
+        isLocked: Bool = false,
         isProvisionable: Bool = false,
         hasLinkedForecast: Bool = false
     ) -> SavingsGoalPlanMonth {
@@ -77,7 +98,7 @@ struct GoalPlanTimelinePresentationTests {
             month: month,
             year: 2026,
             state: state,
-            isLocked: false,
+            isLocked: isLocked,
             isProvisionable: isProvisionable,
             plannedAmount: hasLinkedForecast ? 500 : 0,
             confirmedAmount: 0,

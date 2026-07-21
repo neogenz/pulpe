@@ -28,8 +28,8 @@ struct GoalPlanTimelinePresentation {
         collapsedMonths.count < months.count
     }
 
-    var unlinkedMonthCount: Int {
-        months.count(where: { $0.lines.isEmpty })
+    var remainingUnlinkedMonthCount: Int {
+        months.dropFirst(currentIndex).count(where: { $0.lines.isEmpty })
     }
 }
 
@@ -95,8 +95,8 @@ struct GoalPlanTimelineSection: View {
                 .accessibilityHint(isExpanded ? "Réduit la liste des mois" : "Affiche tous les mois")
             }
 
-            if presentation.unlinkedMonthCount > 0 {
-                Text("\(presentation.unlinkedMonthCount) mois sans prévision liée à cet objectif.")
+            if presentation.remainingUnlinkedMonthCount > 0 {
+                Text("\(presentation.remainingUnlinkedMonthCount) mois restants sans prévision liée à cet objectif.")
                     .font(PulpeTypography.listRowSubtitle)
                     .foregroundStyle(Color.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
