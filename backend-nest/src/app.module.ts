@@ -15,6 +15,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { ZodValidationPipe } from 'nestjs-zod';
 import {
   DEMO_UNVERIFIED_HOURLY_LIMIT,
+  isDemoPath,
   isUnverifiedDemoSessionRequest,
 } from '@config/throttler.config';
 
@@ -273,14 +274,10 @@ function createPinoLoggerConfig(configService: ConfigService) {
               name: 'demo',
               ttl: 3600000,
               limit: isDev ? 1000 : 30,
-              skipIf: (context: ExecutionContext) => {
-                const request = context
-                  .switchToHttp()
-                  .getRequest<{ url?: string }>();
-                // Lowercase: Express routes case-insensitively, so a
-                // case-sensitive match would let `/api/v1/DEMO/...` skip the cap.
-                return !request?.url?.toLowerCase().startsWith('/api/v1/demo');
-              },
+              skipIf: (context: ExecutionContext) =>
+                !isDemoPath(
+                  context.switchToHttp().getRequest<{ url?: string }>().url,
+                ),
             },
             {
               // Tighter per-IP cap for unverified (empty-token) demo creation.

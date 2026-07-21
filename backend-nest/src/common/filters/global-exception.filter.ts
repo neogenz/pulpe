@@ -337,7 +337,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       errorCode: errorData.code,
       userAgent: this.isDevelopment() ? context.userAgent : undefined,
       ip: this.isDevelopment() ? context.ip : undefined,
-      requestBody: this.sanitizeRequestBody(request.body),
+      // Dev-only: sanitizeRequestBody is a denylist and has drifted from the
+      // secrets it must cover (clientKey / oldClientKey / newClientKey /
+      // recoveryKey are vault key material, and amounts are encrypted at rest).
+      // The pino `redact` paths in app.module.ts target `req.body.*` and do not
+      // reach this hand-built object, so production must not carry a body here.
+      requestBody: this.isDevelopment()
+        ? this.sanitizeRequestBody(request.body)
+        : undefined,
       ...errorData.loggingContext, // Merge context provided by the service
     };
 
