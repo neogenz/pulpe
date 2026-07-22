@@ -15,8 +15,8 @@ const STEPS = [
           label="Le mois type qui sert de base au budget"
           mobileWidth={750}
           mobileHeight={1190}
-          desktopWidth={1261}
-          desktopHeight={956}
+          desktopWidth={1440}
+          desktopHeight={1080}
           desktopAspectRatio="4 / 3"
           fit="contain"
         />
@@ -37,8 +37,8 @@ const STEPS = [
           label="Les mois projetés à partir du mois type"
           mobileWidth={750}
           mobileHeight={1190}
-          desktopWidth={1695}
-          desktopHeight={1354}
+          desktopWidth={1440}
+          desktopHeight={1080}
           desktopAspectRatio="4 / 3"
           fit="contain"
         />
@@ -58,9 +58,9 @@ const STEPS = [
           desktopSrc="/screenshots/webapp/liste-des-previsions.webp"
           label="Le disponible prévu pour un mois à venir"
           mobileWidth={750}
-          mobileHeight={1212}
-          desktopWidth={1500}
-          desktopHeight={1235}
+          mobileHeight={1190}
+          desktopWidth={1440}
+          desktopHeight={1080}
           desktopAspectRatio="4 / 3"
           fit="contain"
         />

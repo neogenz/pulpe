@@ -31,8 +31,8 @@ export function Features() {
             label="Modèles de budget dans Pulpe"
             mobileWidth={750}
             mobileHeight={1190}
-            desktopWidth={1261}
-            desktopHeight={956}
+            desktopWidth={1440}
+            desktopHeight={1080}
           />
         </div>
       </article>
@@ -58,9 +58,9 @@ export function Features() {
             desktopSrc="/screenshots/webapp/liste-des-previsions.webp"
             label="Prévisions mensuelles dans Pulpe"
             mobileWidth={750}
-            mobileHeight={1212}
-            desktopWidth={1500}
-            desktopHeight={1235}
+            mobileHeight={1190}
+            desktopWidth={1440}
+            desktopHeight={1080}
           />
         </div>
       </article>
@@ -86,8 +86,8 @@ export function Features() {
             label="Ajout d’une dépense dans Pulpe"
             mobileWidth={750}
             mobileHeight={1190}
-            desktopWidth={1260}
-            desktopHeight={955}
+            desktopWidth={1440}
+            desktopHeight={1080}
           />
         </div>
       </article>
