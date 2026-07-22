@@ -5,6 +5,7 @@ import {
   HttpClient,
   provideHttpClient,
   withInterceptors,
+  withXhr,
 } from '@angular/common/http';
 import {
   HttpTestingController,
@@ -40,7 +41,7 @@ describe('clientKeyInterceptor', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
-        provideHttpClient(withInterceptors([clientKeyInterceptor])),
+        provideHttpClient(withXhr(), withInterceptors([clientKeyInterceptor])),
         provideHttpClientTesting(),
         {
           provide: ApplicationConfiguration,

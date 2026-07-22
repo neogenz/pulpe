@@ -1,5 +1,9 @@
 import { type Provider, type EnvironmentProviders } from '@angular/core';
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import {
+  provideHttpClient,
+  withInterceptors,
+  withXhr,
+} from '@angular/common/http';
 
 import { clientKeyInterceptor } from '@core/encryption';
 
@@ -12,6 +16,7 @@ import { ngrokInterceptor } from '../config/ngrok.interceptor';
 export function provideAuth(): (Provider | EnvironmentProviders)[] {
   return [
     provideHttpClient(
+      withXhr(),
       withInterceptors([
         requestIdInterceptor, // Attach X-Request-Id correlation header before all other interceptors
         ngrokInterceptor, // Skip ngrok browser warning when tunneling
