@@ -617,7 +617,7 @@ describe("landing accessibility contracts", () => {
     );
     assert.match(
       componentSources.features,
-      /Pulpe recalcule la suite[\s\S]*Répartis une grosse dépense[\s\S]*Suis ce que tu mets vraiment de côté/,
+      /Pulpe recalcule la suite[\s\S]*Répartis une grosse dépense[\s\S]*Avance vers ton objectif, même si un mois change/,
     );
     assert.equal(
       componentSources.features.match(/ADJUSTMENTS\.map/g)?.length,
@@ -631,6 +631,33 @@ describe("landing accessibility contracts", () => {
     assert.match(
       componentSources.features,
       /Chaque mois part du solde du précédent/,
+    );
+  });
+
+  it("explains how savings goals adapt without implying silent changes", () => {
+    assert.match(
+      componentSources.features,
+      /Fixe une cible et une date[\s\S]*Tu vois les épargnes qui y contribuent[\s\S]*et peux répartir le reste sur les mois suivants/,
+    );
+    assert.match(componentSources.features, /Prévision liée/);
+    assert.match(componentSources.features, /Épargne vacances/);
+    assert.match(componentSources.features, /Juil\. · 0 CHF/);
+    assert.match(componentSources.features, /Reste réparti/);
+    assert.match(
+      componentSources.features,
+      /Août[\s\S]*420 CHF[\s\S]*Sept\.[\s\S]*420 CHF/,
+    );
+    assert.match(
+      componentSources.features,
+      /<div className="mt-4 border-t border-primary\/15 pt-3">/,
+    );
+    assert.doesNotMatch(
+      componentSources.features,
+      /rounded-xl bg-surface px-3 py-3|bg-primary\/6 px-2\.5 py-2/,
+    );
+    assert.doesNotMatch(
+      componentSources.features,
+      /Pulpe (redistribue|répartit) automatiquement/,
     );
   });
 
@@ -680,14 +707,14 @@ describe("landing accessibility contracts", () => {
     );
   });
 
-  it("keeps the planning-tools context attached to its heading on every viewport", () => {
+  it("keeps the planning-tools heading concise on every viewport", () => {
     assert.doesNotMatch(
       componentSources.features,
       /<header className="grid[^"]*lg:grid-cols-12/,
     );
-    assert.match(
+    assert.doesNotMatch(
       componentSources.features,
-      /<header className="max-w-4xl">[\s\S]*<p className="pretty mt-5 max-w-2xl/,
+      /Tu ajustes une dépense ou un projet\. Les mois suivants restent à jour/,
     );
     assert.match(
       componentSources.features,

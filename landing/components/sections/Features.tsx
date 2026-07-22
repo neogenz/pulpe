@@ -2,6 +2,7 @@ import {
   ArrowRightLeft,
   CalendarRange,
   Flag,
+  Link2,
   Tags,
   WalletCards,
 } from "lucide-react";
@@ -37,10 +38,6 @@ export function Features() {
             Pulpe recalcule la suite.
           </mark>
         </h2>
-        <p className="pretty mt-5 max-w-2xl text-lg leading-relaxed text-text-secondary">
-          Tu ajustes une dépense ou un projet. Les mois suivants restent à jour,
-          sans refaire ton budget.
-        </p>
       </header>
 
       <div className="mt-12 grid gap-5 md:grid-cols-[1.08fr_0.92fr] lg:mt-14 lg:gap-6">
@@ -97,11 +94,11 @@ export function Features() {
               aria-hidden="true"
             />
             <h3 className="balance mt-5 max-w-md text-2xl font-semibold leading-tight tracking-[-0.025em] sm:text-3xl">
-              Suis ce que tu mets vraiment de côté.
+              Avance vers ton objectif, même si un mois change.
             </h3>
             <p className="pretty mt-4 max-w-md leading-relaxed text-text-secondary">
-              Fixe un montant et une date pour ton projet. Pulpe distingue ce
-              que tu as prévu de ce que tu as déjà épargné.
+              Fixe une cible et une date. Tu vois les épargnes qui y contribuent
+              et peux répartir le reste sur les mois suivants.
             </p>
           </div>
 
@@ -120,12 +117,42 @@ export function Features() {
                 1&apos;560 / 2&apos;400 CHF
               </p>
             </div>
-            <div className="mt-5 h-2.5 overflow-hidden rounded-full bg-primary/12">
-              <div className="h-full w-[65%] rounded-full bg-primary" />
+            <p className="mt-2 flex items-center gap-1.5 text-xs text-text-secondary">
+              <Link2 className="size-3.5 shrink-0" strokeWidth={1.8} />
+              <span>Prévision liée</span>
+              <strong className="font-medium text-text">
+                Épargne vacances
+              </strong>
+            </p>
+            <div className="mt-4 flex items-center gap-3">
+              <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-primary/12">
+                <div className="h-full w-[65%] rounded-full bg-primary" />
+              </div>
+              <span className="tabular-nums shrink-0 text-xs font-medium text-primary">
+                65 %
+              </span>
             </div>
-            <div className="mt-3 flex justify-between gap-4 text-sm">
-              <span className="font-medium text-primary">65 % épargné</span>
-              <span className="text-text-secondary">Reste 840 CHF</span>
+            <div className="mt-4 border-t border-primary/15 pt-3">
+              <div className="flex items-center justify-between gap-3 text-xs">
+                <span className="font-medium text-primary">Reste réparti</span>
+                <span className="tabular-nums text-text-secondary">
+                  Juil. · 0 CHF
+                </span>
+              </div>
+              <div className="mt-2 grid grid-cols-2 divide-x divide-primary/15">
+                <div className="flex items-baseline justify-between gap-2 pr-3">
+                  <span className="text-xs text-text-secondary">Août</span>
+                  <strong className="tabular-nums text-xs font-semibold text-text">
+                    420 CHF
+                  </strong>
+                </div>
+                <div className="flex items-baseline justify-between gap-2 pl-3">
+                  <span className="text-xs text-text-secondary">Sept.</span>
+                  <strong className="tabular-nums text-xs font-semibold text-text">
+                    420 CHF
+                  </strong>
+                </div>
+              </div>
             </div>
           </div>
         </article>
