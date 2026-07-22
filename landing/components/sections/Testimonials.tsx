@@ -12,15 +12,15 @@ const TESTIMONIALS = [
     lead: "Je vois tout de suite ",
     highlight: "où en est mon budget",
     tail: ". C’est pratique, clair et beaucoup plus simple à suivre.",
-    name: "Une utilisatrice de Pulpe",
-    role: "Suivi du budget",
+    name: "Julie",
+    role: "Utilisatrice de Pulpe",
   },
   {
     lead: "Je peux ",
     highlight: "prévoir nos vacances sur l’année",
     tail: " et voir tout de suite si ça rentre dans notre budget. Ça me rassure.",
-    name: "Une utilisatrice de Pulpe",
-    role: "Organisation de l’année",
+    name: "Sylvie",
+    role: "Utilisatrice de Pulpe",
   },
 ] as const;
 
@@ -36,7 +36,7 @@ export function Testimonials() {
       <div className="mt-10 grid gap-10 md:grid-cols-3 md:gap-8 lg:mt-12 lg:gap-12">
         {TESTIMONIALS.map((testimonial) => (
           <blockquote
-            key={testimonial.role}
+            key={testimonial.name}
             className="flex h-full flex-col text-left"
           >
             <p className="pretty flex-1 text-base leading-7 text-text">

@@ -158,8 +158,13 @@ export const Screenshot = memo(function Screenshot({
             className={`h-full w-full ${fit === "contain" ? "object-contain" : "object-cover"} ${className}`}
           />
         </picture>
-        <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none motion-reduce:transition-none">
-          <span className="bg-black/50 backdrop-blur-sm rounded-full p-3">
+        {/* Touch devices never hover: the zoom affordance stays visible. */}
+        <span className="pointer-events-none absolute right-2 bottom-2 rounded-full bg-black/45 p-2 [@media(hover:hover)]:hidden">
+          <Maximize2 className="h-4 w-4 text-white" aria-hidden="true" />
+        </span>
+        {/* Pointer devices get the centered overlay on hover. */}
+        <span className="pointer-events-none absolute inset-0 hidden items-center justify-center opacity-0 transition-opacity duration-200 group-hover:opacity-100 motion-reduce:transition-none [@media(hover:hover)]:flex">
+          <span className="rounded-full bg-black/50 p-3 backdrop-blur-sm">
             <Maximize2 className="h-5 w-5 text-white" aria-hidden="true" />
           </span>
         </span>

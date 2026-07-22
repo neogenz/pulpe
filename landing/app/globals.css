@@ -171,11 +171,6 @@ h3,
   animation: marker-draw 0.7s 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* The proof quote stroke follows the headline stroke. */
-.marker-highlight-proof.marker-highlight-drawn {
-  animation-delay: 0.5s;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .marker-highlight {
     background-size: 100% 0.92em;

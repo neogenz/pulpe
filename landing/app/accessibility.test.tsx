@@ -201,8 +201,14 @@ describe("landing accessibility contracts", () => {
   it("keeps the hero focused on one CTA without competing proof", () => {
     assert.match(componentSources.hero, /\bpb-12\b/);
     assert.match(componentSources.hero, /\bmd:pb-28\b/);
-    assert.doesNotMatch(componentSources.hero, /<blockquote/);
-    assert.doesNotMatch(componentSources.hero, /Une utilisatrice de Pulpe/);
+    assert.match(
+      componentSources.hero,
+      /<blockquote className="mx-auto mt-6 hidden max-w-2xl text-center md:block">/,
+    );
+    assert.match(
+      componentSources.hero,
+      /prévoir nos vacances sur l&apos;année[\s\S]*Sylvie, utilisatrice de Pulpe/,
+    );
     assert.match(
       componentSources.hero,
       /<mark className="marker-highlight marker-highlight-strong">\s*combien il te restera\.\s*<\/mark>/,
