@@ -5,6 +5,7 @@ import {
   NO_ERRORS_SCHEMA,
   Output,
   provideZonelessChangeDetection,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
@@ -16,6 +17,7 @@ import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 // Mock component for testing without template rendering issues
 @Component({
   selector: 'pulpe-template-list-item',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: '<div data-testid="mock-template-item">Mock Template Item</div>',
 })
 class MockTemplateListItem {

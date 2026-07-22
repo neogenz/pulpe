@@ -3,6 +3,7 @@ import {
   provideZonelessChangeDetection,
   Component,
   Input,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -14,6 +15,7 @@ import { LottieComponent, type AnimationOptions } from 'ngx-lottie';
 @Component({
   // eslint-disable-next-line @angular-eslint/component-selector
   selector: 'ng-lottie',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: '<div class="mock-lottie"></div>',
 })
 class MockLottieComponent {

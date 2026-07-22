@@ -2,6 +2,7 @@ import {
   Component,
   input,
   provideZonelessChangeDetection,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
@@ -26,6 +27,7 @@ import { TagHistoryChart } from './tag-history-chart';
 
 @Component({
   selector: 'pulpe-tag-history-chart',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: '<span data-testid="tag-history-chart-stub"></span>',
 })
 class TagHistoryChartStub {
