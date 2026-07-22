@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { SIGNAL } from '@angular/core/primitives/signals';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideHttpClient, withXhr } from '@angular/common/http';
+import { provideHttpClient } from '@angular/common/http';
 import {
   HttpTestingController,
   provideHttpClientTesting,
@@ -533,7 +533,7 @@ describe('BudgetItemsContainer — PATCH transaction body contract', () => {
       imports: [BudgetItemsContainer, NoopAnimationsModule],
       providers: [
         provideZonelessChangeDetection(),
-        provideHttpClient(withXhr()),
+        provideHttpClient(),
         provideHttpClientTesting(),
         ...provideTranslocoForTest(),
         { provide: StorageService, useValue: envelopesStorageMock },

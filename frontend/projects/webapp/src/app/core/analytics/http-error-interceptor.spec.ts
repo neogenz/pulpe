@@ -5,7 +5,6 @@ import {
   HttpHeaders,
   provideHttpClient,
   withInterceptors,
-  withXhr,
 } from '@angular/common/http';
 import {
   HttpTestingController,
@@ -32,7 +31,7 @@ describe('httpErrorInterceptor', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
-        provideHttpClient(withXhr(), withInterceptors([httpErrorInterceptor])),
+        provideHttpClient(withInterceptors([httpErrorInterceptor])),
         provideHttpClientTesting(),
         { provide: PostHogService, useValue: { captureException } },
         { provide: Logger, useValue: { debug: vi.fn(), warn: vi.fn() } },

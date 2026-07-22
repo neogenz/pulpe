@@ -3,7 +3,6 @@ import {
   HttpClient,
   provideHttpClient,
   withInterceptors,
-  withXhr,
 } from '@angular/common/http';
 import {
   HttpTestingController,
@@ -122,7 +121,7 @@ describe('authInterceptor', () => {
       providers: [
         provideZonelessChangeDetection(),
         ...provideTranslocoForTest(),
-        provideHttpClient(withXhr(), withInterceptors([authInterceptor])),
+        provideHttpClient(withInterceptors([authInterceptor])),
         provideHttpClientTesting(),
         { provide: AuthSessionService, useValue: mockAuthSession },
         { provide: AuthStore, useValue: mockAuthStore },
