@@ -1,31 +1,7 @@
-import {
-  ArrowRightLeft,
-  CalendarRange,
-  Flag,
-  Tags,
-  WalletCards,
-} from "lucide-react";
+import { Flag, WalletCards } from "lucide-react";
 import { Section } from "@/components/ui";
 
 const MONTHS = ["Mai", "Juin", "Juil.", "Août"] as const;
-
-const ADJUSTMENTS = [
-  {
-    icon: ArrowRightLeft,
-    title: "Cet achat peut attendre.",
-    text: "Déplace sa prévision au mois suivant sans la supprimer ni la recréer.",
-  },
-  {
-    icon: Tags,
-    title: "Tes dépenses restent faciles à retrouver.",
-    text: "Ajoute un tag comme Vacances ou Maison, puis retrouve tout ce qui va ensemble.",
-  },
-  {
-    icon: CalendarRange,
-    title: "Chaque mois part du solde du précédent.",
-    text: "Tu vois tout de suite l’effet d’un changement sur le reste de l’année.",
-  },
-] as const;
 
 export function Features() {
   return (
@@ -147,36 +123,6 @@ export function Features() {
         </article>
       </div>
 
-      <section className="mt-16 lg:mt-20" aria-labelledby="adjustments-heading">
-        <h3
-          id="adjustments-heading"
-          className="balance max-w-xl text-xl font-semibold leading-tight tracking-[-0.02em] text-text sm:text-2xl"
-        >
-          Pour ajuster sans tout refaire.
-        </h3>
-        <ul className="mt-8 grid gap-4 md:grid-cols-3 lg:gap-5">
-          {ADJUSTMENTS.map((item) => (
-            <li
-              key={item.title}
-              className="rounded-[var(--radius-card)] bg-surface p-5 outline outline-1 -outline-offset-1 outline-black/10 sm:p-6"
-            >
-              <div className="flex items-start gap-3">
-                <item.icon
-                  className="mt-0.5 size-5 shrink-0 text-primary"
-                  strokeWidth={1.7}
-                  aria-hidden="true"
-                />
-                <h4 className="balance text-lg font-semibold leading-snug text-text">
-                  {item.title}
-                </h4>
-              </div>
-              <p className="pretty mt-3 pl-8 text-sm leading-relaxed text-text-secondary">
-                {item.text}
-              </p>
-            </li>
-          ))}
-        </ul>
-      </section>
     </Section>
   );
 }

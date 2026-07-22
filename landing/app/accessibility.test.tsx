@@ -198,11 +198,11 @@ describe("landing accessibility contracts", () => {
     assert.match(componentSources.painPoints, /pain-points-mesh/);
   });
 
-  it("keeps the hero focused on one CTA and one compact proof", () => {
+  it("keeps the hero focused on one CTA without competing proof", () => {
     assert.match(componentSources.hero, /\bpb-12\b/);
     assert.match(componentSources.hero, /\bmd:pb-28\b/);
-    assert.match(componentSources.hero, /<blockquote/);
-    assert.match(componentSources.hero, /Une utilisatrice de Pulpe/);
+    assert.doesNotMatch(componentSources.hero, /<blockquote/);
+    assert.doesNotMatch(componentSources.hero, /Une utilisatrice de Pulpe/);
     assert.match(
       componentSources.hero,
       /<mark className="marker-highlight marker-highlight-strong">\s*combien il te restera\.\s*<\/mark>/,
@@ -214,10 +214,6 @@ describe("landing accessibility contracts", () => {
     assert.match(
       componentSources.hero,
       /Planifie ton budget[\s\S]*<strong className="font-semibold text-text">\s*sur l&apos;année\s*<\/strong>[\s\S]*préparer tes\s*projets plus sereinement/,
-    );
-    assert.match(
-      componentSources.hero,
-      /<mark className="marker-highlight marker-highlight-proof">[\s\S]*<strong className="font-semibold">[\s\S]*prévoir nos vacances sur l&apos;année[\s\S]*<\/strong>[\s\S]*<\/mark>[\s\S]*Ça me\s*rassure/,
     );
     assert.doesNotMatch(componentSources.hero, /dépenses que je ne voyais pas/);
     assert.doesNotMatch(componentSources.hero, /href="#how-it-works"/);
@@ -293,7 +289,7 @@ describe("landing accessibility contracts", () => {
     );
     assert.match(
       componentSources.howItWorks,
-      /<li[\s\S]*<figure[\s\S]*step\.image\.content[\s\S]*<StepCopy/,
+      /<li[\s\S]*<StepCopy[\s\S]*<figure[\s\S]*step\.image\.content/,
     );
     assert.match(
       componentSources.howItWorks,
@@ -303,10 +299,10 @@ describe("landing accessibility contracts", () => {
     assert.doesNotMatch(componentSources.howItWorks, /lg:space-y-20/);
   });
 
-  it("centers each desktop step on its screenshot axis", () => {
+  it("labels each step above its screenshot on mobile, below it on desktop", () => {
     assert.match(
       componentSources.howItWorks,
-      /<StepCopy step=\{step\} className="mt-5 md:text-center" \/>/,
+      /<StepCopy[\s\S]*className="mb-5 md:order-2 md:mb-0 md:mt-5 md:text-center"/,
     );
     assert.match(
       componentSources.howItWorks,
@@ -496,10 +492,10 @@ describe("landing accessibility contracts", () => {
   });
 
   it("pairs each of the three static setup steps with its own screenshot", () => {
-    assert.match(componentSources.howItWorks, /number: "01"/);
-    assert.match(componentSources.howItWorks, /number: "02"/);
-    assert.match(componentSources.howItWorks, /number: "03"/);
-    assert.doesNotMatch(componentSources.howItWorks, /number: "04"/);
+    assert.match(componentSources.howItWorks, /number: "1"/);
+    assert.match(componentSources.howItWorks, /number: "2"/);
+    assert.match(componentSources.howItWorks, /number: "3"/);
+    assert.doesNotMatch(componentSources.howItWorks, /number: "4"/);
     assert.doesNotMatch(componentSources.howItWorks, /IntersectionObserver/);
     assert.equal(componentSources.howItWorks.match(/<Screenshot/g)?.length, 3);
     assert.match(componentSources.howItWorks, /liste-des-previsions\.webp/);
@@ -507,7 +503,7 @@ describe("landing accessibility contracts", () => {
     assert.match(componentSources.screenshot, /\/iPhone\|iPod\//);
     assert.match(componentSources.screenshot, /!isDesktop && isIPhone/);
     assert.match(componentSources.screenshot, /IOS_IMAGE_HEIGHT = 1630/);
-    assert.match(componentSources.howItWorks, /id="how-it-works"/);
+    assert.match(componentSources.solution, /id="how-it-works"/);
   });
 
   it("places authentic testimonials after product proof with quote semantics", () => {
@@ -623,19 +619,8 @@ describe("landing accessibility contracts", () => {
       componentSources.features,
       /Pulpe recalcule la suite[\s\S]*Répartis une grosse dépense[\s\S]*Avance vers ton objectif, même si un mois change/,
     );
-    assert.equal(
-      componentSources.features.match(/ADJUSTMENTS\.map/g)?.length,
-      1,
-    );
-    assert.match(componentSources.features, /Cet achat peut attendre/);
-    assert.match(
-      componentSources.features,
-      /Tes dépenses restent faciles à retrouver/,
-    );
-    assert.match(
-      componentSources.features,
-      /Chaque mois part du solde du précédent/,
-    );
+    assert.doesNotMatch(componentSources.features, /ADJUSTMENTS/);
+    assert.doesNotMatch(componentSources.features, /adjustments-heading/);
   });
 
   it("explains how savings goals adapt without implying silent changes", () => {
@@ -665,7 +650,7 @@ describe("landing accessibility contracts", () => {
     );
   });
 
-  it("separates primary and secondary planning tools for faster scanning", () => {
+  it("keeps the two primary planning tools side by side for faster scanning", () => {
     assert.doesNotMatch(
       componentSources.features,
       /mt-12 overflow-hidden rounded-\[var\(--radius-large\)\]/,
@@ -680,34 +665,9 @@ describe("landing accessibility contracts", () => {
       )?.length,
       2,
     );
-    assert.match(
-      componentSources.features,
-      /<section[\s\S]*aria-labelledby="adjustments-heading"/,
-    );
-    assert.match(componentSources.features, /Pour ajuster sans tout refaire\./);
-    assert.match(
-      componentSources.features,
-      /<ul className="mt-8 grid gap-4 md:grid-cols-3/,
-    );
-    assert.match(
-      componentSources.features,
-      /rounded-\[var\(--radius-card\)\] bg-surface p-5 outline outline-1 -outline-offset-1 outline-black\/10/,
-    );
-    assert.match(
-      componentSources.features,
-      /<div className="flex items-start gap-3">[\s\S]*className="mt-0\.5 size-5 shrink-0 text-primary"[\s\S]*<h4 className="balance text-lg/,
-    );
-    assert.match(
-      componentSources.features,
-      /<p className="pretty mt-3 pl-8 text-sm/,
-    );
     assert.doesNotMatch(
       componentSources.features,
-      /aria-hidden="true"\s*\/>\s*<h4 className="balance mt-4/,
-    );
-    assert.doesNotMatch(
-      componentSources.features,
-      /mt-auto pt-8[\s\S]*rounded-\[var\(--radius-card\)\]/,
+      /aria-labelledby="adjustments-heading"/,
     );
   });
 

@@ -17,8 +17,8 @@ const TESTIMONIALS = [
   },
   {
     lead: "Je peux ",
-    highlight: "prévoir sorties et vacances sur l’année",
-    tail: ", puis voir tout de suite si ça rentre dans notre budget.",
+    highlight: "prévoir nos vacances sur l’année",
+    tail: " et voir tout de suite si ça rentre dans notre budget. Ça me rassure.",
     name: "Une utilisatrice de Pulpe",
     role: "Organisation de l’année",
   },

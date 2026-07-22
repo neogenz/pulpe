@@ -1,5 +1,5 @@
 import { ImageLightboxProvider } from "@/contexts/ImageLightboxProvider";
-import { MarkerDraw } from "@/components/ui";
+import { MarkerDraw, StickyCTA } from "@/components/ui";
 import {
   Header,
   Hero,
@@ -40,6 +40,7 @@ export default function LandingPage() {
 
       <Footer />
       <MarkerDraw />
+      <StickyCTA />
     </ImageLightboxProvider>
   );
 }

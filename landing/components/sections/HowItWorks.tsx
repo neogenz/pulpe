@@ -2,7 +2,7 @@ import { Screenshot } from "@/components/ui";
 
 const STEPS = [
   {
-    number: "01",
+    number: "1",
     title: "Renseigne un mois habituel",
     description:
       "Ajoute tes revenus, tes dépenses récurrentes et ce que tu veux mettre de côté.",
@@ -25,7 +25,7 @@ const STEPS = [
     },
   },
   {
-    number: "02",
+    number: "2",
     title: "Place ce qui change",
     description:
       "Ajoute les impôts, les vacances et les gros achats dans les mois où ils auront lieu.",
@@ -48,7 +48,7 @@ const STEPS = [
     },
   },
   {
-    number: "03",
+    number: "3",
     title: "Vois combien il te restera",
     description:
       "Ouvre un mois à venir pour voir ton disponible, puis ajuste ton budget si besoin.",
@@ -74,17 +74,21 @@ const STEPS = [
 
 export function HowItWorks() {
   return (
-    <ol
-      id="how-it-works"
-      className="mx-auto mt-12 grid max-w-6xl scroll-mt-24 gap-y-12 sm:mt-16 md:grid-cols-3 md:gap-x-6 md:gap-y-0 lg:scroll-mt-28 lg:gap-x-8"
-    >
+    <ol className="mx-auto mt-12 grid max-w-6xl gap-y-12 sm:mt-16 md:grid-cols-3 md:gap-x-6 md:gap-y-0 lg:gap-x-8">
       {STEPS.map((step) => (
-        <li key={step.number} className="min-w-0">
-          <figure className="mx-auto w-full max-w-sm md:max-w-none">
+        <li key={step.number} className="flex min-w-0 flex-col">
+          {/* Mobile reads label-then-proof: the copy sits above its screenshot
+              so the next step's image never bleeds into the previous step's
+              text. Desktop keeps the image-first row, where the three columns
+              align on their own. */}
+          <StepCopy
+            step={step}
+            className="mb-5 md:order-2 md:mb-0 md:mt-5 md:text-center"
+          />
+          <figure className="mx-auto w-full max-w-sm md:order-1 md:max-w-none">
             <figcaption className="sr-only">{step.image.caption}</figcaption>
             {step.image.content}
           </figure>
-          <StepCopy step={step} className="mt-5 md:text-center" />
         </li>
       ))}
     </ol>
