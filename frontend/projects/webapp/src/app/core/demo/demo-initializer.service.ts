@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Service, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import {
@@ -22,9 +22,7 @@ import { type E2EWindow } from '@core/auth';
  * Creates an ephemeral demo session by calling the backend endpoint
  * and storing the returned JWT tokens in Supabase client
  */
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class DemoInitializerService {
   readonly #api = inject(ApiClient);
   readonly #router = inject(Router);

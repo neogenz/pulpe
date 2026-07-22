@@ -1,21 +1,21 @@
 ---
-description: Angular Material 21 component APIs, breaking changes from v20, and correct usage patterns
+description: Angular Material 22 component APIs, breaking changes from v21, and correct usage patterns
 paths:
   - "frontend/**/*.ts"
   - "frontend/**/*.html"
   - "frontend/**/*.scss"
 ---
 
-# Angular Material 21
+# Angular Material 22
 
-**Version installed: `@angular/material@21.0.5`**
+**Version installed: `@angular/material@22.0.5`**
 
-Training data may have stale Material 18/19/20 patterns. This rule = source of truth for Material 21 APIs.
+Training data may have stale Material 19/20/21 patterns. This rule = source of truth for Material 22 APIs.
 
 ## Button Directives
 
 ```html
-<!-- Material 21: unified matButton directive -->
+<!-- Material 22: unified matButton directive -->
 <button matButton>Text button</button>
 <button matButton="filled">Primary action</button>
 <button matButton="outlined">Secondary action</button>
@@ -169,7 +169,7 @@ FlatTreeControl
 
 ## M3 Design Tokens
 
-Material 21 uses `--mat-sys-*` CSS custom properties:
+Material 22 uses `--mat-sys-*` CSS custom properties:
 
 ### Colors
 

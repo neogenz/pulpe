@@ -1,4 +1,4 @@
-import { inject, Injectable, signal, computed } from '@angular/core';
+import { inject, Service, signal, computed } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { cachedResource } from 'ngx-ziflux';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
@@ -13,7 +13,7 @@ export interface BudgetTemplateDetailViewModel {
   transactions: TemplateLineListResponse['data'];
 }
 
-@Injectable()
+@Service({ autoProvided: false })
 export class TemplateDetailsStore {
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
 

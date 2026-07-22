@@ -126,7 +126,6 @@ export function createTransactionMock(
     amount: 50,
     kind: 'expense',
     transactionDate: '2025-01-15T12:00:00Z',
-    category: null,
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
     checkedAt: null,

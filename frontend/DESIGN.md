@@ -2,7 +2,7 @@
 
 ---
 name: Pulpe Webapp
-description: Angular 21+ responsive desktop & mobile web — calm naturalism for personal budgeting in the browser. Inherits cross-platform DA from ../DESIGN.md.
+description: Angular 22+ responsive desktop & mobile web — calm naturalism for personal budgeting in the browser. Inherits cross-platform DA from ../DESIGN.md.
 ---
 
 # Design System: Pulpe Webapp (Angular)
@@ -11,7 +11,7 @@ description: Angular 21+ responsive desktop & mobile web — calm naturalism for
 >
 > - **Strategic foundation:** [../PRODUCT.md](../PRODUCT.md)
 > - **Cross-platform visual common:** [../DESIGN.md](../DESIGN.md) — read first; this file inherits everything there
-> - **This file:** Webapp extensions — Angular Material 21, Tailwind v4, CSS custom properties, responsive grid
+> - **This file:** Webapp extensions — Angular Material 22, Tailwind v4, CSS custom properties, responsive grid
 > - **Sibling platforms:** [../ios/DESIGN.md](../ios/DESIGN.md), [../landing/DESIGN.md](../landing/DESIGN.md)
 > - **Sidecar:** TODO `frontend/.impeccable/design.json` — generate via `/impeccable document` with `IMPECCABLE_CONTEXT_DIR=frontend`
 
@@ -19,7 +19,7 @@ This is a **seed**. The webapp tokens, component vocabulary, and Material overri
 
 ## 1. Overview: Three Token Layers
 
-Pulpe webapp is Angular 21 (signals, zoneless, OnPush) + Material 21 (unified `matButton` directive) + Tailwind v4 (`@theme` configuration in CSS). Responsive desktop-first with mobile breakpoints. The token system is **three layers stacked**:
+Pulpe webapp is Angular 22 (signals, zoneless, OnPush) + Material 22 (unified `matButton` directive) + Tailwind v4 (`@theme` configuration in CSS). Responsive desktop-first with mobile breakpoints. The token system is **three layers stacked**:
 
 1. **Material foundation** (`--mat-sys-*`): Theme-only. Never read directly from features; only via Material component overrides.
 2. **Tailwind utilities** (`text-primary`, `bg-surface`, `rounded-pill`, `gap-md`): Day-to-day chrome.
@@ -53,7 +53,7 @@ Material 3 elevation system (`--mat-sys-level1` through `--mat-sys-level5`) plus
 
 All Material components are themed via `mat.<component>-overrides()` mixins in global SCSS. **Never `::ng-deep`** — that's a hard ban in this codebase.
 
-- **Buttons:** Material 21 unified `matButton` directive. Variants `filled` (primary CTA), `outlined` (secondary), `tonal` (low-emphasis), `text` (text-link). The legacy `mat-flat-button` / `mat-stroked-button` syntax is forbidden (Material 21 migration).
+- **Buttons:** Material 22 unified `matButton` directive. Variants `filled` (primary CTA), `outlined` (secondary), `tonal` (low-emphasis), `text` (text-link). The legacy `mat-flat-button` / `mat-stroked-button` syntax is forbidden (Material 22 migration).
 - **Form fields:** `matInput` with floating labels. Custom `--pulpe-input-*` overrides for brand consistency.
 - **Cards:** Plain `<div>` with Tailwind utilities; `mat-card` is used only when its accessibility behaviors are required.
 - **Chips:** TODO — chip vocabulary not yet extracted. The `PulpeChip` atom on iOS does not have a webapp counterpart yet. **Open question:** should we ship a shared web `<pulpe-chip>` Angular component, or rely on `mat-chip` with `--pulpe-*` overrides? Decide during the next extraction pass.
@@ -62,7 +62,7 @@ All Material components are themed via `mat.<component>-overrides()` mixins in g
 
 **The No `::ng-deep` Rule.** Material component overrides go through `mat.<component>-overrides()` mixins in global SCSS. `::ng-deep` is **prohibited** anywhere in the codebase — it leaks styles across components and breaks Angular's encapsulation guarantees.
 
-**The Material 21 Unified Button Rule.** All buttons use `matButton="filled"` / `"outlined"` / `"tonal"` / `"text"`. The pre-21 directive variants (`mat-flat-button`, `mat-stroked-button`, `mat-raised-button`) are deprecated and forbidden in new code.
+**The Material 22 Unified Button Rule.** All buttons use `matButton="filled"` / `"outlined"` / `"tonal"` / `"text"`. The pre-21 directive variants (`mat-flat-button`, `mat-stroked-button`, `mat-raised-button`) are deprecated and forbidden in new code.
 
 ## 6. Do's and Don'ts (Webapp-specific)
 
@@ -74,7 +74,7 @@ All Material components are themed via `mat.<component>-overrides()` mixins in g
 
 ### Don't:
 - **Don't** use `::ng-deep` — ever.
-- **Don't** mix the legacy Material button directives (`mat-flat-button`, etc.) — Material 21 unified `matButton` only.
+- **Don't** mix the legacy Material button directives (`mat-flat-button`, etc.) — Material 22 unified `matButton` only.
 - **Don't** read `--mat-sys-*` directly from features — go through `--pulpe-*` semantic aliases.
 - **Don't** mix three font families — Manrope display + DM Sans body, max two.
 - **Don't** apply elevation decoratively — flat by default, elevation is state.

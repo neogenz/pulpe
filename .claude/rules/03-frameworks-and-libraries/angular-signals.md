@@ -4,7 +4,7 @@ paths:
   - "frontend/**/*.ts"
 ---
 
-# Angular Signal API Guidelines (v21+)
+# Angular Signal API Guidelines (v22+)
 
 ## Core Primitives
 
@@ -327,7 +327,7 @@ this.loginForm.email().value.set(''); // programmatic update
 ### Service State Pattern
 
 ```typescript
-@Injectable({ providedIn: 'root' })
+@Service()
 export class CounterService {
   readonly #count = signal(0);
 

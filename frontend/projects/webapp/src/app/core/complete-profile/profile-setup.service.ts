@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Service } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { TranslocoService } from '@jsverse/transloco';
 import {
@@ -19,9 +19,7 @@ import {
 
 const INITIAL_BUDGET_MONTHS = 12;
 
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class ProfileSetupService {
   readonly #api = inject(ApiClient);
   readonly #budgetApi = inject(BudgetApi);

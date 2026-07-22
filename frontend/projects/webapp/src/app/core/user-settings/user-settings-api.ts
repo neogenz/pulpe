@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Service } from '@angular/core';
 import { DataCache } from 'ngx-ziflux';
 import {
   type UserSettingsResponse,
@@ -12,9 +12,7 @@ import { type Observable } from 'rxjs';
 import { firstValueFrom } from 'rxjs';
 import { ApiClient } from '@core/api/api-client';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class UserSettingsApi {
   readonly #api = inject(ApiClient);
 

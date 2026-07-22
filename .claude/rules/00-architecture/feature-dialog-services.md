@@ -119,7 +119,7 @@ DTO parsing (`schema.parse(formValue)`) lives in the form's `onSubmit`, NOT in t
 
 ## Service registration
 
-Register dialog services in the route configuration, not `providedIn: 'root'`:
+Register dialog services in the route configuration, not `@Service()`:
 
 ```typescript
 // feature.routes.ts

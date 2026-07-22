@@ -69,11 +69,11 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: process.env.CI
-      ? 'DOTENV_CONFIG_PATH=.env.e2e pnpm run start:ci'
-      : 'DOTENV_CONFIG_PATH=.env.e2e pnpm run start:ci',
+    command: 'DOTENV_CONFIG_PATH=.env.e2e pnpm run start:ci',
     port: 4200,
-    reuseExistingServer: !process.env.CI,
+    // Never adopt a server already on :4200 - it may belong to another project, or
+    // to `pnpm dev`, neither of which runs prestart:ci to build config.json from .env.e2e.
+    reuseExistingServer: false,
     stdout: 'pipe',
     stderr: 'pipe',
     // Environment variables are now loaded via dotenv from .env.test

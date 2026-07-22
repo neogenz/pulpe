@@ -9,7 +9,7 @@ The `core/` directory is the central hub for all shared, headless, application-w
 **Content**:
 
 - **Injector-based logic only** (no components, directives, or pipes - i.e., nothing with a template)
-- Services (`@Injectable`)
+- Services (`@Service`)
 - Route guards
 - HTTP interceptors
 - State management setup (e.g., NgRx `provideStore`)
@@ -76,10 +76,10 @@ core/
 
 ## Service Scoping
 
-All core services should be provided in root:
+All core services are auto-provided at the root injector:
 
 ```typescript
-@Injectable({ providedIn: "root" })
+@Service()
 export class AuthService {
   // Global authentication logic available from start
 }

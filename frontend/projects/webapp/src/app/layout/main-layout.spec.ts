@@ -4,6 +4,7 @@ import {
   provideZonelessChangeDetection,
   signal,
   type Signal,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { Router, type NavigationEnd, ActivatedRoute } from '@angular/router';
@@ -89,6 +90,7 @@ type MainLayoutWithPrivates = MainLayout & {
 // Mock PulpeBreadcrumb component
 @Component({
   selector: 'pulpe-breadcrumb',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: '<div>Mock Breadcrumb</div>',
 })
 class MockPulpeBreadcrumbComponent {

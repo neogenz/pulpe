@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Service, inject } from '@angular/core';
 import { TranslocoService } from '@jsverse/transloco';
 import { API_ERROR_CODES, type ApiErrorCode } from 'pulpe-shared';
 import {
@@ -78,7 +78,7 @@ const CODE_KEY_MAP = {
   [CLIENT_ERROR_CODES.ZOD_PARSE_ERROR]: 'apiError.clientValidationFailed',
 } as const satisfies Partial<Record<LocalizableCode, string>>;
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class ApiErrorLocalizer {
   readonly #transloco = inject(TranslocoService);
 

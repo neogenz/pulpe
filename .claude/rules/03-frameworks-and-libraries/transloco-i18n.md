@@ -47,7 +47,7 @@ Inject `TranslocoService` and use `translate()`:
 ```typescript
 import { TranslocoService } from '@jsverse/transloco';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class MyService {
   readonly #transloco = inject(TranslocoService);
 

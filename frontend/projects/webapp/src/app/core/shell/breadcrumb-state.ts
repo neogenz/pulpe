@@ -1,4 +1,4 @@
-import { Injectable, inject, signal, computed } from '@angular/core';
+import { Service, inject, signal, computed } from '@angular/core';
 import { Logger } from '@core/logging/logger';
 import {
   NavigationEnd,
@@ -17,7 +17,7 @@ export interface BreadcrumbItem {
   readonly isActive: boolean;
 }
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class BreadcrumbState {
   readonly #router = inject(Router);
   readonly #activatedRoute = inject(ActivatedRoute);

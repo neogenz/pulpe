@@ -1,11 +1,5 @@
 import { DOCUMENT } from '@angular/common';
-import {
-  computed,
-  DestroyRef,
-  inject,
-  Injectable,
-  signal,
-} from '@angular/core';
+import { computed, DestroyRef, inject, Service, signal } from '@angular/core';
 
 import { Logger } from '@core/logging/logger';
 
@@ -27,7 +21,7 @@ type AppVersionStatus = 'unknown' | 'ok' | 'update-required';
  * app. Once a status is known, later fetch errors keep it — going offline
  * cannot dismiss an already-shown gate.
  */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class AppVersionStore {
   readonly #api = inject(AppVersionApi);
   readonly #logger = inject(Logger);

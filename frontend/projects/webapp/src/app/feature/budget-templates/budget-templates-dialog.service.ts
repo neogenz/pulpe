@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Service, inject } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslocoService } from '@jsverse/transloco';
@@ -16,7 +16,7 @@ import {
 
 type TemplateUsageBudgets = TemplateUsageResponse['data']['budgets'];
 
-@Injectable()
+@Service({ autoProvided: false })
 export class BudgetTemplatesDialogService {
   readonly #dialog = inject(MatDialog);
   readonly #snackBar = inject(MatSnackBar);

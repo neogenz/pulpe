@@ -1,5 +1,5 @@
 import {
-  Injectable,
+  Service,
   inject,
   effect,
   computed,
@@ -27,9 +27,7 @@ function pickNonEmptyString(value: unknown): string | undefined {
  * Simplified analytics service following KISS principle.
  * Leverages PostHog's auto-capture for most tracking needs.
  */
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class AnalyticsService implements OnDestroy {
   readonly #authStore = inject(AuthStore);
   readonly #postHogService = inject(PostHogService);

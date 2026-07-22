@@ -1,5 +1,5 @@
 import {
-  Injectable,
+  Service,
   computed,
   effect,
   inject,
@@ -29,7 +29,7 @@ export interface TemplateTotals {
   netBalance: number;
 }
 
-@Injectable()
+@Service({ autoProvided: false })
 export class TemplateStore {
   readonly #budgetApi = inject(BudgetApi);
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);

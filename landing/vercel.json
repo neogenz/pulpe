@@ -1,8 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "buildCommand": "cd .. && pnpm build:shared && cd landing && pnpm build && (node scripts/create-release.js || echo '⚠️  PostHog release skipped')",
-  "installCommand": "cd .. && pnpm install --frozen-lockfile --filter=pulpe-landing --filter=pulpe-shared --ignore-scripts",
+  "buildCommand": "pnpm build && (node scripts/create-release.js || echo '⚠️  PostHog release skipped')",
+  "installCommand": "cd .. && pnpm install --frozen-lockfile --filter=pulpe-landing --ignore-scripts",
   "redirects": [
     {
       "source": "/app/:path*",

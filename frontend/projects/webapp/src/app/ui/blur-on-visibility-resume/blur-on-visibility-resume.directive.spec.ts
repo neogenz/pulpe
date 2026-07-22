@@ -1,10 +1,15 @@
-import { Component, provideZonelessChangeDetection } from '@angular/core';
+import {
+  Component,
+  provideZonelessChangeDetection,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { BlurOnVisibilityResumeDirective } from './blur-on-visibility-resume.directive';
 
 @Component({
   imports: [BlurOnVisibilityResumeDirective],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div pulpeBlurOnVisibilityResume data-testid="host">
       <input data-testid="inside" />

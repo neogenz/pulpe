@@ -1,9 +1,9 @@
 import { DOCUMENT } from '@angular/common';
-import { inject, Injectable, signal } from '@angular/core';
+import { inject, Service, signal } from '@angular/core';
 
 const HIDDEN_CLASS = 'amounts-hidden';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class AmountsVisibilityService {
   readonly #doc = inject(DOCUMENT);
   readonly #hidden = signal(false);

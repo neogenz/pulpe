@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Service, inject } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import {
   type RouterStateSnapshot,
@@ -7,9 +7,7 @@ import {
 } from '@angular/router';
 import { TranslocoService } from '@jsverse/transloco';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class PulpeTitleStrategy extends TitleStrategy {
   readonly #title = inject(Title);
   readonly #transloco = inject(TranslocoService);

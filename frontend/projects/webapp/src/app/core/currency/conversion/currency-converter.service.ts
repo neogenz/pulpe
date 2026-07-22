@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Service } from '@angular/core';
 import { DataCache } from 'ngx-ziflux';
 import { firstValueFrom } from 'rxjs';
 import {
@@ -26,7 +26,7 @@ interface CachedRate {
   date: string;
 }
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class CurrencyConverterService {
   readonly #api = inject(ApiClient);
 

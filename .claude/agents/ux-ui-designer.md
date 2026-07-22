@@ -55,7 +55,7 @@ For each review, check these categories. Rate each finding: **PASS** / **WARN** 
 ### 1. Design Tokens & Visual Identity
 
 - `--pulpe-*` custom properties used (no hardcoded colors)
-- `--mat-sys-*` Material 21 tokens used correctly
+- `--mat-sys-*` Material 22 tokens used correctly
 - Spacing follows 4px base scale
 - Typography: Manrope (headings), DM Sans (body)
 - Green palette (nature/growth), no red-bank aesthetic

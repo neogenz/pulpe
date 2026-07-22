@@ -1,4 +1,4 @@
-import { Injectable, inject, computed, signal } from '@angular/core';
+import { Service, inject, computed, signal } from '@angular/core';
 
 import { deriveClientKey, isValidClientKeyHex } from './crypto.utils';
 import { STORAGE_KEYS } from '../storage/storage-keys';
@@ -8,9 +8,7 @@ import { StorageService } from '../storage/storage.service';
 // and security (limits the window where an unverified key grants access).
 const VALIDATION_CACHE_DURATION_MS = 5 * 60 * 1000;
 
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class ClientKeyService {
   readonly #storage = inject(StorageService);
   readonly #clientKeyHex = signal<string | null>(null);

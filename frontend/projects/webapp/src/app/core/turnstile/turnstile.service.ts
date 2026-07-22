@@ -1,4 +1,4 @@
-import { Injectable, inject, signal, computed } from '@angular/core';
+import { Service, inject, signal, computed } from '@angular/core';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { Logger } from '@core/logging/logger';
 import { type E2EWindow } from '@core/auth';
@@ -10,7 +10,7 @@ const ERROR_MESSAGES = {
   TURNSTILE_FAILED: 'La vérification de sécurité a échoué — réessaie',
 } as const;
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class TurnstileService {
   readonly #config = inject(ApplicationConfiguration);
   readonly #logger = inject(Logger);

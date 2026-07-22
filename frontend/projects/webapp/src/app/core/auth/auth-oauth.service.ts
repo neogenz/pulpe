@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Service, inject } from '@angular/core';
 import { TranslocoService } from '@jsverse/transloco';
 import { AuthSessionService } from './auth-session.service';
 import { AuthStore } from './auth-store';
@@ -15,9 +15,7 @@ export interface OAuthUserMetadata {
   fullName?: string;
 }
 
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class AuthOAuthService {
   readonly #session = inject(AuthSessionService);
   readonly #authStore = inject(AuthStore);

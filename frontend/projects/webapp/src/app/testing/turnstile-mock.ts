@@ -1,4 +1,9 @@
-import { Component, input, output } from '@angular/core';
+import {
+  Component,
+  input,
+  output,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 
 /**
  * Mock Turnstile component for testing
@@ -18,6 +23,7 @@ import { Component, input, output } from '@angular/core';
 @Component({
   // eslint-disable-next-line @angular-eslint/component-selector
   selector: 'ngx-turnstile',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: '',
 })
 export class MockTurnstileComponent {

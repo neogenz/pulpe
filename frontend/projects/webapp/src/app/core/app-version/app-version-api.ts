@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Service } from '@angular/core';
 
 import {
   appVersionResponseSchema,
@@ -18,9 +18,7 @@ import { NGROK_SKIP_HEADER } from '../config/ngrok.constants';
  * max-age=300`, so repeated checks within 5 minutes are served from the
  * browser HTTP cache.
  */
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class AppVersionApi {
   readonly #config = inject(ApplicationConfiguration);
   #inFlight: Promise<AppVersionResponse> | null = null;

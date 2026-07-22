@@ -1,4 +1,4 @@
-import { Injectable, inject, LOCALE_ID } from '@angular/core';
+import { Service, inject, LOCALE_ID } from '@angular/core';
 import { TranslocoService } from '@jsverse/transloco';
 
 import { ClientKeyService } from '@core/encryption';
@@ -18,9 +18,7 @@ interface CredentialFlowOptions {
   readonly logLabel: string;
 }
 
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class AuthCredentialsService {
   readonly #session = inject(AuthSessionService);
   readonly #authStore = inject(AuthStore);

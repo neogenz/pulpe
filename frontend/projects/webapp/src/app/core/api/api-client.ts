@@ -1,5 +1,5 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { inject, Injectable, InjectionToken } from '@angular/core';
+import { inject, Service, InjectionToken } from '@angular/core';
 import { defer, type Observable, throwError, timer } from 'rxjs';
 import { catchError, map, retry } from 'rxjs/operators';
 import { type ZodType } from 'zod';
@@ -26,7 +26,7 @@ function isTransientError(error: unknown): boolean {
   );
 }
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class ApiClient {
   readonly #http = inject(HttpClient);
   readonly #config = inject(ApplicationConfiguration);
