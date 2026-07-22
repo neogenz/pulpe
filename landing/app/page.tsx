@@ -5,6 +5,7 @@ import {
   PainPoints,
   Solution,
   Testimonials,
+  Features,
   Platforms,
   WhyFree,
   FAQ,
@@ -29,6 +30,7 @@ export default function LandingPage() {
         <PainPoints />
         <Solution />
         <Testimonials />
+        <Features />
         <Platforms />
         <WhyFree />
         <FAQ />

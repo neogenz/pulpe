@@ -35,6 +35,10 @@ const componentSources = {
     new URL("../components/sections/Solution.tsx", import.meta.url),
     "utf8",
   ),
+  features: readFileSync(
+    new URL("../components/sections/Features.tsx", import.meta.url),
+    "utf8",
+  ),
   imageLightbox: readFileSync(
     new URL("../components/ui/ImageLightbox.tsx", import.meta.url),
     "utf8",
@@ -605,9 +609,45 @@ describe("landing accessibility contracts", () => {
     assert.match(componentSources.whyFree, /Maxime, créateur de Pulpe/);
   });
 
-  it("keeps the roadmap out of the conversion funnel", () => {
+  it("keeps secondary planning tools after social proof", () => {
     assert.doesNotMatch(componentSources.page, /<Roadmap \/>/);
-    assert.doesNotMatch(componentSources.page, /<Features \/>/);
+    assert.match(
+      componentSources.page,
+      /<Testimonials \/>[\s\S]*<Features \/>[\s\S]*<Platforms \/>/,
+    );
+    assert.match(
+      componentSources.features,
+      /Pulpe recalcule la suite[\s\S]*Répartis une grosse dépense[\s\S]*Suis ce que tu mets vraiment de côté/,
+    );
+    assert.equal(componentSources.features.match(/ADJUSTMENTS\.map/g)?.length, 1);
+    assert.match(componentSources.features, /Cet achat peut attendre/);
+    assert.match(
+      componentSources.features,
+      /Tes dépenses restent faciles à retrouver/,
+    );
+    assert.match(
+      componentSources.features,
+      /Chaque mois part du solde du précédent/,
+    );
+  });
+
+  it("keeps the planning-tools context attached to its heading on every viewport", () => {
+    assert.doesNotMatch(
+      componentSources.features,
+      /<header className="grid[^"]*lg:grid-cols-12/,
+    );
+    assert.match(
+      componentSources.features,
+      /<header className="max-w-4xl">[\s\S]*<p className="pretty mt-5 max-w-2xl/,
+    );
+    assert.match(
+      componentSources.features,
+      /text-\[clamp\(2rem,9vw,3rem\)\][\s\S]*sm:text-5xl/,
+    );
+    assert.match(
+      componentSources.features,
+      /grid grid-cols-2[\s\S]*min-\[360px\]:grid-cols-4/,
+    );
   });
 
   it("keeps final conversion copy factual and aligned with metadata", () => {
