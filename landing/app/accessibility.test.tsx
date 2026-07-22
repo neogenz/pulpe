@@ -620,35 +620,25 @@ describe("landing accessibility contracts", () => {
       /Pulpe recalcule la suite[\s\S]*Répartis une grosse dépense[\s\S]*Suis ce que tu mets vraiment de côté/,
     );
     assert.equal(componentSources.features.match(/ADJUSTMENTS\.map/g)?.length, 1);
+    assert.match(componentSources.features, /Cet achat peut attendre/);
     assert.match(
       componentSources.features,
-      /Reporte un achat sans le recréer/,
+      /Tes dépenses restent faciles à retrouver/,
     );
     assert.match(
       componentSources.features,
-      /Retrouve tes dépenses grâce aux tags/,
+      /Chaque mois part du solde du précédent/,
     );
-    assert.match(
-      componentSources.features,
-      /Vois l’effet sur les mois suivants/,
-    );
-    assert.match(componentSources.features, />Et aussi</);
-    assert.doesNotMatch(componentSources.features, /\btext:\s*"/);
-    assert.doesNotMatch(componentSources.features, /item\.text/);
   });
 
-  it("keeps the planning-tools introduction compact on every viewport", () => {
+  it("keeps the planning-tools context attached to its heading on every viewport", () => {
     assert.doesNotMatch(
       componentSources.features,
       /<header className="grid[^"]*lg:grid-cols-12/,
     );
     assert.match(
       componentSources.features,
-      /<header className="max-w-4xl">[\s\S]*<h2/,
-    );
-    assert.doesNotMatch(
-      componentSources.features,
-      /Tu ajustes une dépense ou un projet/,
+      /<header className="max-w-4xl">[\s\S]*<p className="pretty mt-5 max-w-2xl/,
     );
     assert.match(
       componentSources.features,
