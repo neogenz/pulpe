@@ -658,6 +658,18 @@ describe("landing accessibility contracts", () => {
       componentSources.features,
       /<ul className="mt-8 grid gap-4 md:grid-cols-3/,
     );
+    assert.match(
+      componentSources.features,
+      /<div className="flex items-start gap-3">[\s\S]*className="mt-0\.5 size-5 shrink-0 text-primary"[\s\S]*<h4 className="balance text-lg/,
+    );
+    assert.match(
+      componentSources.features,
+      /<p className="pretty mt-3 pl-8 text-sm/,
+    );
+    assert.doesNotMatch(
+      componentSources.features,
+      /aria-hidden="true"\s*\/>\s*<h4 className="balance mt-4/,
+    );
     assert.doesNotMatch(
       componentSources.features,
       /mt-auto pt-8[\s\S]*rounded-\[var\(--radius-card\)\]/,

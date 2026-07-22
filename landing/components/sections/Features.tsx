@@ -144,15 +144,17 @@ export function Features() {
               key={item.title}
               className="rounded-[var(--radius-card)] bg-surface p-5 outline outline-1 -outline-offset-1 outline-black/5 sm:p-6"
             >
-              <item.icon
-                className="size-5 text-primary"
-                strokeWidth={1.7}
-                aria-hidden="true"
-              />
-              <h4 className="balance mt-4 text-lg font-semibold leading-snug text-text">
-                {item.title}
-              </h4>
-              <p className="pretty mt-2 text-sm leading-relaxed text-text-secondary">
+              <div className="flex items-start gap-3">
+                <item.icon
+                  className="mt-0.5 size-5 shrink-0 text-primary"
+                  strokeWidth={1.7}
+                  aria-hidden="true"
+                />
+                <h4 className="balance text-lg font-semibold leading-snug text-text">
+                  {item.title}
+                </h4>
+              </div>
+              <p className="pretty mt-3 pl-8 text-sm leading-relaxed text-text-secondary">
                 {item.text}
               </p>
             </li>
