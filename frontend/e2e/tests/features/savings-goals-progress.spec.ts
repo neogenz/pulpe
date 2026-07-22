@@ -30,6 +30,7 @@ const progress = {
   status: 'ACTIVE',
   targetAmount: 3000,
   targetDate: '2027-08-01',
+  initialAmount: 0,
   plannedCumulative: 1200,
   confirmed: 900,
   achievementPercent: 30,
