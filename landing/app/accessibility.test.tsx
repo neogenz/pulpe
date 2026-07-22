@@ -639,9 +639,9 @@ describe("landing accessibility contracts", () => {
       componentSources.features,
       /Fixe une cible et une date[\s\S]*Tu vois les épargnes qui y contribuent[\s\S]*et peux répartir le reste sur les mois suivants/,
     );
-    assert.match(componentSources.features, /Prévision liée/);
-    assert.match(componentSources.features, /Épargne vacances/);
-    assert.match(componentSources.features, /Juil\. · 0 CHF/);
+    assert.match(componentSources.features, /Pour septembre/);
+    assert.doesNotMatch(componentSources.features, /Prévision liée/);
+    assert.doesNotMatch(componentSources.features, /Juil\. · 0 CHF/);
     assert.match(componentSources.features, /Reste réparti/);
     assert.match(
       componentSources.features,

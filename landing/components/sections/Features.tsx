@@ -2,7 +2,6 @@ import {
   ArrowRightLeft,
   CalendarRange,
   Flag,
-  Link2,
   Tags,
   WalletCards,
 } from "lucide-react";
@@ -110,20 +109,13 @@ export function Features() {
               <div>
                 <p className="font-semibold text-text">Vacances</p>
                 <p className="mt-1 text-sm text-text-secondary">
-                  Objectif · septembre
+                  Pour septembre
                 </p>
               </div>
               <p className="tabular-nums shrink-0 text-right text-sm font-semibold text-text">
                 1&apos;560 / 2&apos;400 CHF
               </p>
             </div>
-            <p className="mt-2 flex items-center gap-1.5 text-xs text-text-secondary">
-              <Link2 className="size-3.5 shrink-0" strokeWidth={1.8} />
-              <span>Prévision liée</span>
-              <strong className="font-medium text-text">
-                Épargne vacances
-              </strong>
-            </p>
             <div className="mt-4 flex items-center gap-3">
               <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-primary/12">
                 <div className="h-full w-[65%] rounded-full bg-primary" />
@@ -133,11 +125,8 @@ export function Features() {
               </span>
             </div>
             <div className="mt-4 border-t border-primary/15 pt-3">
-              <div className="flex items-center justify-between gap-3 text-xs">
+              <div className="text-xs">
                 <span className="font-medium text-primary">Reste réparti</span>
-                <span className="tabular-nums text-text-secondary">
-                  Juil. · 0 CHF
-                </span>
               </div>
               <div className="mt-2 grid grid-cols-2 divide-x divide-primary/15">
                 <div className="flex items-baseline justify-between gap-2 pr-3">
