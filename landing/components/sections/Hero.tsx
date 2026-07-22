@@ -1,23 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { Button, HeroDashboard } from "@/components/ui";
 import { angularUrl } from "@/lib/config";
 import { trackCTAClick } from "@/lib/posthog";
 
+function subscribeToNothing() {
+  return () => undefined;
+}
+
+function getVisitorCurrency(): "CHF" | "EUR" {
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const languages = (navigator.languages ?? [navigator.language]).join(",");
+  const isSwiss = timezone === "Europe/Zurich" || /-CH\b/i.test(languages);
+  const isFrench =
+    timezone === "Europe/Paris" || /\bfr(-FR)?\b/i.test(languages);
+  return !isSwiss && isFrench ? "EUR" : "CHF";
+}
+
 function useVisitorCurrency(): "CHF" | "EUR" {
-  const [currency, setCurrency] = useState<"CHF" | "EUR">("CHF");
-
-  useEffect(() => {
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const languages = (navigator.languages ?? [navigator.language]).join(",");
-    const isSwiss = timezone === "Europe/Zurich" || /-CH\b/i.test(languages);
-    const isFrench =
-      timezone === "Europe/Paris" || /\bfr(-FR)?\b/i.test(languages);
-    if (!isSwiss && isFrench) setCurrency("EUR");
-  }, []);
-
-  return currency;
+  return useSyncExternalStore(
+    subscribeToNothing,
+    getVisitorCurrency,
+    () => "CHF" as const,
+  );
 }
 
 export function Hero() {

@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Code2, ExternalLink, Server, ShieldCheck } from "lucide-react";
+import { CodeXml, ExternalLink, Server, ShieldCheck } from "lucide-react";
 import { Section } from "@/components/ui";
 import { GITHUB_URL } from "@/lib/config";
 
@@ -15,7 +15,7 @@ const GUARANTEES = [
     text: "Les données d’usage qui servent à améliorer Pulpe sont traitées sur les serveurs européens de PostHog.",
   },
   {
-    icon: Code2,
+    icon: CodeXml,
     title: "Code ouvert",
     text: "Le code source est public : tu peux voir comment Pulpe fonctionne et comment tes montants sont protégés.",
   },

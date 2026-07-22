@@ -122,7 +122,6 @@ export function Features() {
           </div>
         </article>
       </div>
-
     </Section>
   );
 }
