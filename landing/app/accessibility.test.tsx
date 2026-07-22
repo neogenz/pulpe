@@ -620,15 +620,21 @@ describe("landing accessibility contracts", () => {
       /Pulpe recalcule la suite[\s\S]*Répartis une grosse dépense[\s\S]*Suis ce que tu mets vraiment de côté/,
     );
     assert.equal(componentSources.features.match(/ADJUSTMENTS\.map/g)?.length, 1);
-    assert.match(componentSources.features, /Cet achat peut attendre/);
     assert.match(
       componentSources.features,
-      /Tes dépenses restent faciles à retrouver/,
+      /Reporte un achat sans le recréer/,
     );
     assert.match(
       componentSources.features,
-      /Chaque mois part du solde du précédent/,
+      /Retrouve tes dépenses grâce aux tags/,
     );
+    assert.match(
+      componentSources.features,
+      /Vois l’effet sur les mois suivants/,
+    );
+    assert.match(componentSources.features, />Et aussi</);
+    assert.doesNotMatch(componentSources.features, /\btext:\s*"/);
+    assert.doesNotMatch(componentSources.features, /item\.text/);
   });
 
   it("keeps the planning-tools introduction compact on every viewport", () => {

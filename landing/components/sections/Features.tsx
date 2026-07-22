@@ -12,18 +12,15 @@ const MONTHS = ["Mai", "Juin", "Juil.", "Août"] as const;
 const ADJUSTMENTS = [
   {
     icon: ArrowRightLeft,
-    title: "Cet achat peut attendre.",
-    text: "Déplace sa prévision au mois suivant sans la supprimer ni la recréer.",
+    title: "Reporte un achat sans le recréer.",
   },
   {
     icon: Tags,
-    title: "Tes dépenses restent faciles à retrouver.",
-    text: "Ajoute un tag comme Vacances ou Maison, puis retrouve tout ce qui va ensemble.",
+    title: "Retrouve tes dépenses grâce aux tags.",
   },
   {
     icon: CalendarRange,
-    title: "Chaque mois part du solde du précédent.",
-    text: "Tu vois tout de suite l’effet d’un changement sur le reste de l’année.",
+    title: "Vois l’effet sur les mois suivants.",
   },
 ] as const;
 
@@ -126,23 +123,23 @@ export function Features() {
           </article>
         </div>
 
-        <ul className="grid gap-8 border-t border-text/10 p-6 sm:grid-cols-3 sm:p-9 lg:gap-10 lg:p-10">
-          {ADJUSTMENTS.map((item) => (
-            <li key={item.title}>
-              <item.icon
-                className="size-5 text-primary"
-                strokeWidth={1.7}
-                aria-hidden="true"
-              />
-              <h3 className="balance mt-4 text-lg font-semibold leading-snug text-text">
-                {item.title}
-              </h3>
-              <p className="pretty mt-2 text-sm leading-relaxed text-text-secondary sm:text-base">
-                {item.text}
-              </p>
-            </li>
-          ))}
-        </ul>
+        <div className="border-t border-text/10 p-6 sm:p-9 lg:p-10">
+          <h3 className="text-sm font-medium text-text-secondary">Et aussi</h3>
+          <ul className="mt-5 grid gap-5 sm:grid-cols-3 sm:gap-8 lg:gap-10">
+            {ADJUSTMENTS.map((item) => (
+              <li key={item.title} className="flex items-start gap-3">
+                <item.icon
+                  className="mt-0.5 size-5 shrink-0 text-primary"
+                  strokeWidth={1.7}
+                  aria-hidden="true"
+                />
+                <p className="balance font-semibold leading-snug text-text">
+                  {item.title}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </Section>
   );
