@@ -23,6 +23,8 @@ interface ScreenshotProps {
       Defaults to the mobile size when omitted (same aspect at every breakpoint). */
   desktopWidth?: number;
   desktopHeight?: number;
+  desktopAspectRatio?: string;
+  fit?: "cover" | "contain";
 }
 
 const DESKTOP_MEDIA_QUERY = "(min-width: 768px)";
@@ -64,6 +66,8 @@ export const Screenshot = memo(function Screenshot({
   mobileHeight = 1190,
   desktopWidth,
   desktopHeight,
+  desktopAspectRatio,
+  fit = "cover",
 }: ScreenshotProps) {
   const { openLightbox } = useImageLightbox();
   const isDesktop = useSyncExternalStore(
@@ -82,7 +86,9 @@ export const Screenshot = memo(function Screenshot({
   // and the portrait mobile asset never cause a decode-time layout shift (CLS).
   const frameStyle = {
     "--m-ar": `${mobileWidth} / ${mobileHeight}`,
-    "--d-ar": `${desktopWidth ?? mobileWidth} / ${desktopHeight ?? mobileHeight}`,
+    "--d-ar":
+      desktopAspectRatio ??
+      `${desktopWidth ?? mobileWidth} / ${desktopHeight ?? mobileHeight}`,
   } as CSSProperties;
 
   if (src) {
@@ -95,7 +101,7 @@ export const Screenshot = memo(function Screenshot({
         type="button"
         onClick={handleClick}
         style={frameStyle}
-        className="screenshot-frame group relative block w-full cursor-pointer overflow-hidden rounded-[var(--radius-card)] shadow-[var(--shadow-screenshot)] outline outline-1 -outline-offset-1 outline-black/10 transition-transform duration-200 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 motion-reduce:transition-none motion-reduce:translate-y-0"
+        className={`screenshot-frame group relative block w-full cursor-pointer overflow-hidden rounded-[var(--radius-card)] shadow-[var(--shadow-screenshot)] outline outline-1 -outline-offset-1 outline-black/10 transition-transform duration-200 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 motion-reduce:transition-none motion-reduce:translate-y-0 ${fit === "contain" ? "bg-surface-alt" : ""}`}
         aria-label={`Agrandir : ${label}`}
       >
         <picture>
@@ -121,7 +127,7 @@ export const Screenshot = memo(function Screenshot({
             height={mobileHeight}
             loading={isLCP ? "eager" : "lazy"}
             fetchPriority={fetchPriority}
-            className={`h-full w-full object-cover ${className}`}
+            className={`h-full w-full ${fit === "contain" ? "object-contain" : "object-cover"} ${className}`}
           />
         </picture>
         <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none motion-reduce:transition-none">

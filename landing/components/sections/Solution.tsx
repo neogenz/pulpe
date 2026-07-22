@@ -28,6 +28,8 @@ export function Solution() {
             mobileHeight={1190}
             desktopWidth={1261}
             desktopHeight={956}
+            desktopAspectRatio="4 / 3"
+            fit="contain"
           />
         </figure>
 
@@ -44,6 +46,8 @@ export function Solution() {
             mobileHeight={1190}
             desktopWidth={1695}
             desktopHeight={1354}
+            desktopAspectRatio="4 / 3"
+            fit="contain"
           />
         </figure>
       </div>

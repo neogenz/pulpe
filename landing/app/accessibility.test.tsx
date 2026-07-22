@@ -208,6 +208,19 @@ describe("landing accessibility contracts", () => {
     );
   });
 
+  it("gives both planning screenshots the same desktop frame without cropping", () => {
+    assert.equal(
+      componentSources.solution.match(/desktopAspectRatio=/g)?.length,
+      2,
+    );
+    assert.equal(componentSources.solution.match(/fit="contain"/g)?.length, 2);
+    assert.match(componentSources.screenshot, /desktopAspectRatio\?: string;/);
+    assert.match(
+      componentSources.screenshot,
+      /fit === "contain" \? "object-contain" : "object-cover"/,
+    );
+  });
+
   it("keeps accented display lines clear of descenders", () => {
     assert.match(
       componentSources.painPoints,
