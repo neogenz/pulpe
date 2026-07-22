@@ -1,8 +1,18 @@
 import { Service, inject } from '@angular/core';
 
-import { type AuthError, isAuthWeakPasswordError } from '@supabase/supabase-js';
+import type { AuthError, AuthWeakPasswordError } from '@supabase/supabase-js';
 import { TranslocoService } from '@jsverse/transloco';
 import { API_ERROR_CODES } from 'pulpe-shared';
+
+/**
+ * Local stand-in for Supabase's `isAuthWeakPasswordError`. Importing that guard
+ * is a value import, which anchors the whole `@supabase/supabase-js` barrel -
+ * Realtime, Storage and Postgrest included - into the initial bundle. The guard
+ * itself is just a name check, and the argument is already an `AuthError`.
+ */
+function isWeakPasswordError(error: AuthError): error is AuthWeakPasswordError {
+  return error.name === 'AuthWeakPasswordError';
+}
 
 @Service()
 export class AuthErrorLocalizer {
@@ -68,7 +78,7 @@ export class AuthErrorLocalizer {
   };
 
   localizeAuthError(error: AuthError): string {
-    if (isAuthWeakPasswordError(error) && error.reasons.includes('pwned')) {
+    if (isWeakPasswordError(error) && error.reasons.includes('pwned')) {
       return this.#transloco.translate('authError.pwnedPassword');
     }
 

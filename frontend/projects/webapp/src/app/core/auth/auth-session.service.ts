@@ -1,11 +1,7 @@
 import { Service, inject, DestroyRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { TranslocoService } from '@jsverse/transloco';
-import {
-  createClient,
-  type Session,
-  type SupabaseClient,
-} from '@supabase/supabase-js';
+import type { Session, SupabaseClient } from '@supabase/supabase-js';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { AuthStore, type AuthSessionState } from './auth-store';
@@ -254,6 +250,7 @@ export class AuthSessionService {
       throw new Error('Configuration Supabase manquante après initialisation');
     }
 
+    const { createClient } = await import('@supabase/supabase-js');
     this.#supabaseClient = createClient(url, key);
 
     if (isE2EMode()) {
