@@ -1,69 +1,63 @@
-import { Quote } from "lucide-react";
 import { Section } from "@/components/ui";
 
-const SUPPORTING_TESTIMONIALS = [
+const TESTIMONIALS = [
   {
-    quote: "Je vois tout de suite où en est mon budget. C’est simple à suivre.",
+    lead: "Pulpe m’a révélé ",
+    highlight: "des dépenses que je ne voyais pas venir",
+    tail: ". Maintenant, je sais mieux où j’en suis.",
+    name: "Ismaël",
+    role: "Utilisateur de Pulpe",
   },
   {
-    quote:
-      "Je peux prévoir sorties et vacances sur l’année, puis voir si ça rentre dans notre budget.",
+    lead: "Je vois tout de suite ",
+    highlight: "où en est mon budget",
+    tail: ". C’est pratique, clair et beaucoup plus simple à suivre.",
+    name: "Une utilisatrice de Pulpe",
+    role: "Suivi du budget",
+  },
+  {
+    lead: "Je peux ",
+    highlight: "prévoir sorties et vacances sur l’année",
+    tail: ", puis voir tout de suite si ça rentre dans notre budget.",
+    name: "Une utilisatrice de Pulpe",
+    role: "Organisation de l’année",
   },
 ] as const;
 
 export function Testimonials() {
   return (
     <Section id="testimonials">
-      <div className="grid items-start gap-8 lg:grid-cols-12 lg:gap-16">
-        <header className="lg:col-span-4">
-          <h2 className="balance text-3xl font-bold leading-[1.05] tracking-[-0.035em] text-text sm:text-5xl">
-            Leurs premiers retours.
-          </h2>
-        </header>
+      <header className="mx-auto max-w-2xl text-center">
+        <h2 className="balance text-4xl font-bold leading-[1.08] tracking-[-0.035em] text-text sm:text-5xl">
+          Pourquoi ils utilisent Pulpe.
+        </h2>
+      </header>
 
-        <div className="lg:col-span-8">
-          <blockquote className="border-t-2 border-primary pt-6">
-            <div className="flex items-start gap-3">
-              <Quote
-                className="mt-1 size-6 shrink-0 text-primary"
-                strokeWidth={1.6}
-                aria-hidden="true"
-              />
-              <p className="pretty text-lg font-medium leading-relaxed tracking-[-0.015em] text-text sm:text-2xl">
-                Pulpe m&apos;a révélé des dépenses que je ne voyais pas venir.
-                Maintenant, je sais mieux où j&apos;en suis.
-              </p>
-            </div>
-            <footer className="mt-4 flex flex-wrap items-baseline gap-x-2 gap-y-1 pl-9">
-              <cite className="font-semibold not-italic text-text">Ismaël</cite>
-              <span className="text-sm text-text-secondary">
-                Utilisateur de Pulpe
+      <div className="mt-10 grid gap-10 md:grid-cols-3 md:gap-8 lg:mt-12 lg:gap-12">
+        {TESTIMONIALS.map((testimonial) => (
+          <blockquote
+            key={testimonial.role}
+            className="flex h-full flex-col text-left"
+          >
+            <p className="pretty flex-1 text-base leading-7 text-text">
+              {testimonial.lead}
+              <mark className="marker-highlight marker-highlight-proof">
+                <strong className="font-semibold">
+                  {testimonial.highlight}
+                </strong>
+              </mark>
+              {testimonial.tail}
+            </p>
+            <footer className="mt-6">
+              <cite className="text-base font-semibold not-italic text-text">
+                {testimonial.name}
+              </cite>
+              <span className="mt-0.5 block text-sm leading-snug text-text-secondary">
+                {testimonial.role}
               </span>
             </footer>
           </blockquote>
-
-          <div className="mt-6 grid border-t border-text/10 sm:grid-cols-2">
-            {SUPPORTING_TESTIMONIALS.map((testimonial, index) => (
-              <blockquote
-                key={testimonial.quote}
-                className={`py-4 sm:py-6 ${
-                  index > 0
-                    ? "border-t border-text/10 sm:border-l sm:border-t-0 sm:pl-7"
-                    : "sm:pr-7"
-                }`}
-              >
-                <p className="pretty leading-relaxed text-text">
-                  {testimonial.quote}
-                </p>
-                <footer className="mt-2">
-                  <cite className="text-sm font-medium not-italic text-text-secondary">
-                    Utilisatrice de Pulpe
-                  </cite>
-                </footer>
-              </blockquote>
-            ))}
-          </div>
-        </div>
+        ))}
       </div>
     </Section>
   );

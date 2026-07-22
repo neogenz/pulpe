@@ -3,7 +3,7 @@ import { AccordionItem, Section } from "@/components/ui";
 const FAQ_ITEMS = [
   {
     q: "Pourquoi Pulpe plutôt qu’Excel ou YNAB ?",
-    a: "Pulpe sert à planifier les mois qui viennent, pas à surveiller chaque dépense au jour le jour. Dans Excel, tu dois construire et entretenir toi-même les formules. YNAB part surtout de l’argent déjà disponible. Avec Pulpe, tu places tes revenus et les dépenses à venir au bon mois. Chaque surplus ou déficit se reporte automatiquement sur les mois suivants, pour te montrer si ton plan tient jusqu’à la fin de l’année.",
+    a: "Pulpe est fait pour planifier les mois qui viennent, pas pour suivre chaque dépense au jour le jour. Avec Excel, tu construis et entretiens toi-même la projection. YNAB t’aide surtout à répartir l’argent que tu as aujourd’hui. Dans Pulpe, tu places tes revenus et tes dépenses au mois où ils arriveront. Le solde se reporte d’un mois à l’autre pour te montrer si ton budget tient sur l’année.",
   },
   {
     q: "C’est vraiment gratuit ?",
@@ -33,7 +33,7 @@ export function FAQ() {
       <div className="mx-auto max-w-3xl">
         <div className="max-w-2xl">
           <h2 className="text-4xl font-bold leading-[1.05] tracking-[-0.035em] sm:text-5xl">
-            Les réponses courtes aux vraies questions.
+            Les questions qu&apos;on me pose le plus.
           </h2>
         </div>
         <div className="mt-10 space-y-3">

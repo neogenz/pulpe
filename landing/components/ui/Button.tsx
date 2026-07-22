@@ -33,7 +33,7 @@ const BASE_STYLES =
 const SIZE_STYLES = {
   sm: "min-h-[44px] px-4 text-sm",
   default:
-    "min-h-[48px] px-5 text-base lg:min-h-[56px] lg:px-8 lg:text-lg whitespace-nowrap",
+    "max-w-full min-h-[48px] px-5 py-3 text-center text-base leading-snug whitespace-normal sm:whitespace-nowrap lg:min-h-[56px] lg:px-8 lg:text-lg",
 } as const;
 
 const VARIANT_STYLES: Record<ButtonVariant, string> = {

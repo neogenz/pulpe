@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { Testimonials } from "../components/sections/Testimonials";
 import { AccordionItem } from "../components/ui/AccordionItem";
 
 Object.assign(globalThis, { React });
@@ -74,7 +75,19 @@ const componentSources = {
     new URL("../components/sections/FinalCTA.tsx", import.meta.url),
     "utf8",
   ),
+  faq: readFileSync(
+    new URL("../components/sections/FAQ.tsx", import.meta.url),
+    "utf8",
+  ),
+  footer: readFileSync(
+    new URL("../components/sections/Footer.tsx", import.meta.url),
+    "utf8",
+  ),
   layout: readFileSync(new URL("./layout.tsx", import.meta.url), "utf8"),
+  ogGenerator: readFileSync(
+    new URL("../scripts/generate-og-image.ts", import.meta.url),
+    "utf8",
+  ),
   posthog: readFileSync(new URL("../lib/posthog.ts", import.meta.url), "utf8"),
   posthogProvider: readFileSync(
     new URL("../components/PostHogProvider.tsx", import.meta.url),
@@ -113,6 +126,10 @@ describe("landing accessibility contracts", () => {
       globalsCss,
       /at\s+[-\d.%]+\s+[-\d.%]+\s+var\(--gradient-interpolation\)/,
     );
+  });
+
+  it("keeps secondary copy readable across the ambient gradient", () => {
+    assert.match(globalsCss, /--color-text-secondary:\s*#454744;/);
   });
 
   it("uses Borumi-style section fields instead of the page gradient on mobile", () => {
@@ -181,7 +198,24 @@ describe("landing accessibility contracts", () => {
     assert.match(componentSources.hero, /\bpb-12\b/);
     assert.match(componentSources.hero, /\bmd:pb-28\b/);
     assert.match(componentSources.hero, /<blockquote/);
-    assert.match(componentSources.hero, /Ismaël/);
+    assert.match(componentSources.hero, /Une utilisatrice de Pulpe/);
+    assert.match(
+      componentSources.hero,
+      /<mark className="marker-highlight marker-highlight-strong">\s*combien il te restera\.\s*<\/mark>/,
+    );
+    assert.doesNotMatch(
+      componentSources.hero,
+      /marker-highlight[\s\S]*?<span className="text-primary">/,
+    );
+    assert.match(
+      componentSources.hero,
+      /Planifie ton budget[\s\S]*<strong className="font-semibold text-text">\s*sur l&apos;année\s*<\/strong>[\s\S]*préparer tes\s*projets plus sereinement/,
+    );
+    assert.match(
+      componentSources.hero,
+      /<mark className="marker-highlight marker-highlight-proof">[\s\S]*<strong className="font-semibold">[\s\S]*prévoir nos vacances sur l&apos;année[\s\S]*<\/strong>[\s\S]*<\/mark>[\s\S]*Ça me\s*rassure/,
+    );
+    assert.doesNotMatch(componentSources.hero, /dépenses que je ne voyais pas/);
     assert.doesNotMatch(componentSources.hero, /href="#how-it-works"/);
   });
 
@@ -207,37 +241,75 @@ describe("landing accessibility contracts", () => {
   it("frames the problem and current alternatives before the solution", () => {
     assert.match(
       componentSources.painPoints,
-      /LIMITS = \[[\s\S]*Le tableur te demande[\s\S]*Le suivi arrive après la dépense/,
+      /LIMITS = \[[\s\S]*Avec un tableur, tu dois tout tenir à jour[\s\S]*Le suivi commence une fois l’argent dépensé/,
     );
     assert.doesNotMatch(componentSources.painPoints, /PROOFS = \[/);
+    assert.match(
+      componentSources.painPoints,
+      /dépense prévue en septembre tient encore dans ton budget/,
+    );
     assert.match(componentSources.page, /<PainPoints \/>[\s\S]*<Solution \/>/);
   });
 
   it("turns future planning into a concrete tax scenario", () => {
     assert.match(
       componentSources.painPoints,
-      /Les impôts tombent en juillet[\s\S]*ce qu’il te restera en\s+août/,
+      /Les impôts tombent en juillet[\s\S]*combien il te restera en\s+août/,
     );
   });
 
   it("shows how one typical month becomes a projected year", () => {
     assert.match(
-      componentSources.solution,
+      componentSources.howItWorks,
       /Ton mois type[\s\S]*ecran-des-modeles\.webp[\s\S]*Ton année[\s\S]*vue-calendrier-annuel\.webp/,
     );
+    assert.match(componentSources.solution, /<HowItWorks \/>/);
   });
 
-  it("gives both planning screenshots the same desktop frame without cropping", () => {
+  it("gives all three planning screenshots the same desktop frame without cropping", () => {
     assert.equal(
-      componentSources.solution.match(/desktopAspectRatio=/g)?.length,
-      2,
+      componentSources.howItWorks.match(/desktopAspectRatio=/g)?.length,
+      3,
     );
-    assert.equal(componentSources.solution.match(/fit="contain"/g)?.length, 2);
+    assert.equal(
+      componentSources.howItWorks.match(/fit="contain"/g)?.length,
+      3,
+    );
     assert.match(componentSources.screenshot, /desktopAspectRatio\?: string;/);
     assert.match(
       componentSources.screenshot,
       /fit === "contain" \? "object-contain" : "object-cover"/,
     );
+  });
+
+  it("presents the three setup steps as one scannable ordered process", () => {
+    assert.match(
+      componentSources.howItWorks,
+      /<ol[\s\S]*md:grid-cols-3[\s\S]*STEPS\.map/,
+    );
+    assert.match(
+      componentSources.howItWorks,
+      /<li[\s\S]*<figure[\s\S]*step\.image\.content[\s\S]*<StepCopy/,
+    );
+    assert.match(
+      componentSources.howItWorks,
+      /inline-flex size-8[\s\S]*rounded-full[\s\S]*bg-primary/,
+    );
+    assert.doesNotMatch(componentSources.howItWorks, /md:grid-cols-12/);
+    assert.doesNotMatch(componentSources.howItWorks, /lg:space-y-20/);
+  });
+
+  it("centers each desktop step on its screenshot axis", () => {
+    assert.match(
+      componentSources.howItWorks,
+      /<StepCopy step=\{step\} className="mt-5 md:text-center" \/>/,
+    );
+    assert.match(
+      componentSources.howItWorks,
+      /flex items-center gap-3 md:flex-col/,
+    );
+    assert.match(componentSources.howItWorks, /\bpl-11\b/);
+    assert.match(componentSources.howItWorks, /\bmd:pl-0\b/);
   });
 
   it("keeps accented display lines clear of descenders", () => {
@@ -273,10 +345,6 @@ describe("landing accessibility contracts", () => {
     assert.doesNotMatch(
       componentSources.whyFree,
       /<Section[\s\S]*?className="border-y/,
-    );
-    assert.match(
-      componentSources.testimonials,
-      /className="mt-6 grid border-t border-text\/10/,
     );
   });
 
@@ -322,6 +390,12 @@ describe("landing accessibility contracts", () => {
     );
     assert.match(componentSources.button, /active:scale-\[0\.96\]/);
     assert.match(componentSources.header, /min-h-11/);
+  });
+
+  it("keeps long CTAs inside narrow mobile viewports", () => {
+    assert.match(componentSources.button, /\bmax-w-full\b/);
+    assert.match(componentSources.button, /\bwhitespace-normal\b/);
+    assert.match(componentSources.button, /\bsm:whitespace-nowrap\b/);
   });
 
   it("cross-fades both mobile menu icons without unmounting either icon", () => {
@@ -417,25 +491,118 @@ describe("landing accessibility contracts", () => {
     );
   });
 
-  it("presents the product setup as exactly three static steps", () => {
+  it("pairs each of the three static setup steps with its own screenshot", () => {
     assert.match(componentSources.howItWorks, /number: "01"/);
     assert.match(componentSources.howItWorks, /number: "02"/);
     assert.match(componentSources.howItWorks, /number: "03"/);
     assert.doesNotMatch(componentSources.howItWorks, /number: "04"/);
     assert.doesNotMatch(componentSources.howItWorks, /IntersectionObserver/);
-    assert.doesNotMatch(componentSources.howItWorks, /Screenshot/);
+    assert.equal(componentSources.howItWorks.match(/<Screenshot/g)?.length, 3);
+    assert.match(componentSources.howItWorks, /liste-des-previsions\.webp/);
+    assert.match(componentSources.howItWorks, /id="how-it-works"/);
   });
 
   it("places authentic testimonials after product proof with quote semantics", () => {
     assert.match(
       componentSources.page,
-      /<Solution \/>[\s\S]*<HowItWorks \/>[\s\S]*<Testimonials \/>[\s\S]*<Platforms \/>/,
+      /<Solution \/>[\s\S]*<Testimonials \/>[\s\S]*<Platforms \/>/,
     );
+    assert.doesNotMatch(componentSources.page, /<HowItWorks \/>/);
     assert.match(componentSources.testimonials, /<blockquote/);
     assert.match(componentSources.testimonials, /<cite/);
     assert.match(componentSources.testimonials, /Ismaël/);
     assert.doesNotMatch(componentSources.testimonials, /carousel|autoPlay/);
     assert.doesNotMatch(componentSources.testimonials, /background="primary"/);
+  });
+
+  it("uses one scannable emphasis per testimonial without card chrome", () => {
+    const testimonialMarkup = renderToStaticMarkup(<Testimonials />);
+
+    assert.match(
+      globalsCss,
+      /\.marker-highlight\s*\{[\s\S]*?background-image:\s*linear-gradient\(/,
+    );
+    assert.match(componentSources.solution, /marker-highlight/);
+    assert.match(componentSources.solution, /marker-highlight-strong/);
+    assert.match(globalsCss, /--color-marker-highlight:\s*#c2f3b5/);
+    assert.match(globalsCss, /--color-marker-highlight-strong:\s*#aaec96/);
+    assert.match(globalsCss, /--color-marker-highlight-proof:\s*#f4df8a/);
+    assert.match(
+      globalsCss,
+      /\.marker-highlight\s*\{[\s\S]*?margin-inline:\s*-0\.1em;[\s\S]*?padding-inline:\s*0\.1em;[\s\S]*?border-radius:\s*0\.12em 0\.08em 0\.1em 0\.06em;[\s\S]*?176\.5deg[\s\S]*?background-size:\s*100% 0\.92em;[\s\S]*?background-position:\s*0 56%;/,
+    );
+    assert.match(
+      globalsCss,
+      /\.marker-highlight-strong\s*\{[\s\S]*?--marker-color:\s*var\(--color-marker-highlight-strong\);/,
+    );
+    assert.match(
+      globalsCss,
+      /\.marker-highlight-proof\s*\{[\s\S]*?--marker-color:\s*var\(--color-marker-highlight-proof\);[\s\S]*?color:\s*var\(--color-text\);/,
+    );
+    assert.equal(componentSources.testimonials.match(/highlight:/g)?.length, 3);
+    assert.equal(
+      testimonialMarkup.match(
+        /class="marker-highlight marker-highlight-proof"/g,
+      )?.length,
+      3,
+    );
+    assert.match(componentSources.testimonials, /grid[\s\S]*md:grid-cols-3/);
+    assert.match(
+      componentSources.testimonials,
+      /TESTIMONIALS\.map[\s\S]*marker-highlight[\s\S]*font-semibold/,
+    );
+    assert.doesNotMatch(componentSources.testimonials, /leadTestimonial/);
+    assert.doesNotMatch(
+      componentSources.testimonials,
+      /supportingTestimonials/,
+    );
+    assert.doesNotMatch(
+      componentSources.testimonials,
+      /Trois usages différents, un même résultat/,
+    );
+    assert.doesNotMatch(
+      componentSources.testimonials,
+      /rounded-\[var\(--radius-card\)\]/,
+    );
+  });
+
+  it("ships a fresh large social preview for Open Graph and X", () => {
+    assert.match(
+      componentSources.layout,
+      /const SOCIAL_PREVIEW_IMAGE = "\/pulpe-social-preview\.png\?v=2";/,
+    );
+    assert.equal(
+      componentSources.layout.match(/url: SOCIAL_PREVIEW_IMAGE/g)?.length,
+      2,
+    );
+    assert.match(
+      componentSources.layout,
+      /twitter:[\s\S]*card: "summary_large_image"[\s\S]*images: \[[\s\S]*url: SOCIAL_PREVIEW_IMAGE,[\s\S]*alt: SOCIAL_PREVIEW_ALT,[\s\S]*width: 1200,[\s\S]*height: 630/,
+    );
+    assert.match(
+      componentSources.ogGenerator,
+      /const HERO_HEADLINE = "Tu sais des mois à l’avance";/,
+    );
+    assert.match(
+      componentSources.ogGenerator,
+      /const HERO_MARKER = "combien il te restera\.";/,
+    );
+    assert.match(componentSources.ogGenerator, /Tableau de bord/);
+    assert.match(componentSources.ogGenerator, /Disponible ce mois/);
+    assert.match(componentSources.ogGenerator, /Vue annuelle/);
+    assert.match(componentSources.ogGenerator, /children: "926"/);
+    assert.doesNotMatch(
+      componentSources.ogGenerator,
+      /PRODUCT_SCREENSHOT|social-preview-screenshot/,
+    );
+    assert.match(componentSources.ogGenerator, /pulpe-social-preview\.png/);
+    assert.match(componentSources.ogGenerator, /process\.exitCode = 1/);
+  });
+
+  it("shows the creator behind Pulpe without inventing additional social proof", () => {
+    assert.match(componentSources.whyFree, /import Image from "next\/image"/);
+    assert.match(componentSources.whyFree, /src="\/maxime-portrait\.webp"/);
+    assert.match(componentSources.whyFree, /Maxime, créateur de Pulpe/);
   });
 
   it("keeps the roadmap out of the conversion funnel", () => {
@@ -448,11 +615,32 @@ describe("landing accessibility contracts", () => {
     assert.match(componentSources.whyFree, /AES-256-GCM/);
     assert.match(
       componentSources.layout,
-      /des mois d’avance ce qu’il te restera/i,
+      /des mois d’avance combien il te restera/i,
     );
     assert.match(
       componentSources.finalCta,
-      /mois d&apos;avance sur ce qu&apos;il te restera/i,
+      /Prépare ton année[\s\S]*Vois combien il te restera chaque mois/i,
+    );
+  });
+
+  it("uses concrete, natural wording for the future available amount", () => {
+    for (const source of [
+      componentSources.hero,
+      componentSources.painPoints,
+      componentSources.howItWorks,
+      componentSources.finalCta,
+      componentSources.layout,
+    ]) {
+      assert.doesNotMatch(source, /ce qu(?:’|&apos;)il te restera/i);
+    }
+
+    assert.match(
+      componentSources.howItWorks,
+      /title: "Vois combien il te restera"/,
+    );
+    assert.match(
+      componentSources.faq,
+      /Les questions qu&apos;on me pose le plus/,
     );
   });
 
@@ -461,6 +649,29 @@ describe("landing accessibility contracts", () => {
     assert.doesNotMatch(
       componentSources.finalCta,
       /max-w-2xl[^"\n]*text-text-secondary/,
+    );
+  });
+
+  it("keeps enough leading between the final CTA headline lines", () => {
+    assert.match(componentSources.finalCta, /leading-\[1\.12\]/);
+    assert.doesNotMatch(
+      componentSources.finalCta,
+      /leading-\[(?:0\.98|1\.05)\]/,
+    );
+  });
+
+  it("keeps desktop footer links readable and aligned with the tagline", () => {
+    assert.match(
+      componentSources.footer,
+      /lg:flex-row lg:items-end lg:justify-between/,
+    );
+    assert.match(
+      componentSources.footer,
+      /text-sm font-semibold text-text-secondary/,
+    );
+    assert.match(
+      componentSources.footer,
+      /min-h-11 min-w-11 items-center[^"\n]*lg:items-end/,
     );
   });
 });

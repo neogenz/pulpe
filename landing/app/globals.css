@@ -9,8 +9,11 @@
   --color-surface: #fffefa;
   --color-surface-alt: #eaf6e6;
   --color-text: #1a1c19;
-  --color-text-secondary: #5d5f5b;
+  --color-text-secondary: #454744;
   --color-accent: #0061a6;
+  --color-marker-highlight: #c2f3b5;
+  --color-marker-highlight-strong: #aaec96;
+  --color-marker-highlight-proof: #f4df8a;
 
   /* Shadows tinted with brand green — gives depth coherent with palette
      instead of generic black-at-low-opacity AI aesthetic. */
@@ -115,6 +118,39 @@ h3,
 
 .pretty {
   text-wrap: pretty;
+}
+
+/* A felt-tip stroke that wraps the letterforms without changing text flow. */
+.marker-highlight {
+  --marker-color: var(--color-marker-highlight);
+
+  margin-inline: -0.1em;
+  padding-inline: 0.1em;
+  border-radius: 0.12em 0.08em 0.1em 0.06em;
+  color: inherit;
+  background-color: transparent;
+  background-image: linear-gradient(
+    176.5deg,
+    transparent 7%,
+    var(--marker-color) 8%,
+    var(--marker-color) 91%,
+    transparent 92%
+  );
+  background-repeat: no-repeat;
+  background-size: 100% 0.92em;
+  background-position: 0 56%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.marker-highlight-strong {
+  --marker-color: var(--color-marker-highlight-strong);
+}
+
+.marker-highlight-proof {
+  --marker-color: var(--color-marker-highlight-proof);
+
+  color: var(--color-text);
 }
 
 /* Reserve the screenshot box per breakpoint (portrait mobile asset, landscape

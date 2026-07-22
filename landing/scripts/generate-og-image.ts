@@ -5,84 +5,72 @@
  * Run with: pnpm generate:og
  */
 
-import satori from 'satori'
-import { Resvg } from '@resvg/resvg-js'
-import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs'
-import { join, dirname } from 'path'
-import { fileURLToPath } from 'url'
+import satori from "satori";
+import { Resvg } from "@resvg/resvg-js";
+import { writeFileSync, readFileSync, existsSync, mkdirSync } from "fs";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Image dimensions (OG image standard)
 const OG_IMAGE = {
   WIDTH: 1200,
   HEIGHT: 630,
-} as const
+} as const;
 
-// Typography
-const FONT_SIZE = {
-  TITLE: 64,
-  SUBTITLE: 28,
-  BODY: 20,
-  URL: 22,
-} as const
-
-// Spacing
-const SPACING = {
-  SM: 16,
-  MD: 24,
-  LG: 32,
-} as const
-
-// Logo dimensions
-const LOGO = {
-  WIDTH: 260,
-  HEIGHT: 182,
-} as const
+const SOCIAL_PREVIEW_FILE = "pulpe-social-preview.png";
+const HERO_HEADLINE = "Tu sais des mois à l’avance";
+const HERO_MARKER = "combien il te restera.";
 
 // Brand colors from globals.css
 const colors = {
-  background: '#F6FFF0',
-  surfaceAlt: '#EBFFE6',
-  primary: '#006E25',
-  text: '#1A1C19',
-  textSecondary: '#5D5F5B',
-}
+  background: "#F7F6F3",
+  leaf: "#B7F3AA",
+  mint: "#C8F5E7",
+  surface: "#FFFEFA",
+  primary: "#006E25",
+  marker: "#AAEC96",
+  text: "#1A1C19",
+  textSecondary: "#5D5F5B",
+};
 
 // Font files configuration
 const FONT_FILES = [
-  { file: 'Poppins-Regular.ttf', weight: 400 as const },
-  { file: 'Poppins-Medium.ttf', weight: 500 as const },
-  { file: 'Poppins-SemiBold.ttf', weight: 600 as const },
-  { file: 'Poppins-Bold.ttf', weight: 700 as const },
-]
+  { file: "Poppins-Regular.ttf", weight: 400 as const },
+  { file: "Poppins-Medium.ttf", weight: 500 as const },
+  { file: "Poppins-SemiBold.ttf", weight: 600 as const },
+  { file: "Poppins-Bold.ttf", weight: 700 as const },
+];
 
 function loadFonts() {
-  const fontsDir = join(__dirname, 'fonts')
+  const fontsDir = join(__dirname, "fonts");
 
   if (!existsSync(fontsDir)) {
-    console.error(`❌ Fonts directory not found: ${fontsDir}`)
-    console.error('   Run: mkdir -p scripts/fonts && download Poppins fonts')
-    process.exit(1)
+    console.error(`❌ Fonts directory not found: ${fontsDir}`);
+    console.error("   Run: mkdir -p scripts/fonts && download Poppins fonts");
+    process.exit(1);
   }
 
   try {
     return FONT_FILES.map(({ file, weight }) => {
-      const fontPath = join(fontsDir, file)
+      const fontPath = join(fontsDir, file);
       if (!existsSync(fontPath)) {
-        throw new Error(`Font file not found: ${file}`)
+        throw new Error(`Font file not found: ${file}`);
       }
       return {
-        name: 'Poppins',
+        name: "Poppins",
         data: readFileSync(fontPath),
         weight,
-        style: 'normal' as const,
-      }
-    })
+        style: "normal" as const,
+      };
+    });
   } catch (error) {
-    console.error(`❌ Failed to load fonts: ${error instanceof Error ? error.message : error}`)
-    console.error('   Ensure all Poppins font files are in scripts/fonts/')
-    process.exit(1)
+    console.error(
+      `❌ Failed to load fonts: ${error instanceof Error ? error.message : error}`,
+    );
+    console.error("   Ensure all Poppins font files are in scripts/fonts/");
+    process.exit(1);
   }
 }
 
@@ -123,176 +111,651 @@ const logoDataUrl = `data:image/svg+xml,${encodeURIComponent(`<svg width="260" h
 <stop offset="1" stop-color="#006E25"/>
 </linearGradient>
 </defs>
-</svg>`)}`
+</svg>`)}`;
 
-async function generateOgImage() {
-  console.log('Generating OG image with Satori...')
-
-  // Load fonts with error handling
-  const fonts = loadFonts()
-
-  // Create the OG image using Satori (JSX-like syntax)
-  const element = {
-    type: 'div',
+function forecastRow(label: string, amount: string, checked: boolean) {
+  return {
+    type: "div",
     props: {
       style: {
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: `linear-gradient(135deg, ${colors.background} 0%, ${colors.surfaceAlt} 100%)`,
-        fontFamily: 'Poppins',
-        position: 'relative',
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginTop: 6,
+        color: checked ? colors.textSecondary : colors.text,
+        fontSize: 11,
       },
       children: [
-        // Decorative circles
         {
-          type: 'div',
+          type: "div",
+          props: {
+            style: { display: "flex", alignItems: "center" },
+            children: [
+              {
+                type: "div",
+                props: {
+                  style: {
+                    width: 13,
+                    height: 13,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginRight: 8,
+                    borderRadius: 4,
+                    border: checked
+                      ? `1px solid ${colors.primary}`
+                      : "1px solid rgba(26, 28, 25, 0.26)",
+                    background: checked ? colors.primary : "transparent",
+                  },
+                  children: checked
+                    ? {
+                        type: "svg",
+                        props: {
+                          width: 9,
+                          height: 9,
+                          viewBox: "0 0 9 9",
+                          children: {
+                            type: "path",
+                            props: {
+                              d: "M1.7 4.7 3.6 6.5 7.4 2.4",
+                              fill: "none",
+                              stroke: "white",
+                              strokeWidth: 1.5,
+                              strokeLinecap: "round",
+                              strokeLinejoin: "round",
+                            },
+                          },
+                        },
+                      }
+                    : undefined,
+                },
+              },
+              label,
+            ],
+          },
+        },
+        amount,
+      ],
+    },
+  };
+}
+
+async function generateOgImage() {
+  console.log("Generating OG image with Satori...");
+
+  const fonts = loadFonts();
+
+  const element = {
+    type: "div",
+    props: {
+      style: {
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        padding: "28px 36px 0",
+        background: `linear-gradient(118deg, ${colors.background} 4%, ${colors.leaf} 47%, ${colors.mint} 100%)`,
+        fontFamily: "Poppins",
+        position: "relative",
+        overflow: "hidden",
+      },
+      children: [
+        {
+          type: "div",
           props: {
             style: {
-              position: 'absolute',
-              left: -100,
-              bottom: -70,
-              width: 400,
-              height: 400,
-              borderRadius: '50%',
-              background: colors.primary,
-              opacity: 0.03,
+              position: "absolute",
+              left: -230,
+              bottom: -360,
+              width: 720,
+              height: 720,
+              borderRadius: "50%",
+              background: colors.background,
+              opacity: 0.78,
             },
           },
         },
         {
-          type: 'div',
+          type: "div",
           props: {
             style: {
-              position: 'absolute',
-              right: -50,
-              top: -50,
-              width: 300,
+              position: "absolute",
+              right: -210,
+              top: 80,
+              width: 620,
+              height: 620,
+              borderRadius: "50%",
+              background: colors.leaf,
+              opacity: 0.62,
+            },
+          },
+        },
+        {
+          type: "div",
+          props: {
+            style: {
+              width: "100%",
+              height: 58,
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "center",
+              padding: "0 22px",
+              borderRadius: 16,
+              background: "rgba(255, 254, 250, 0.82)",
+              boxShadow: "0 8px 22px rgba(30, 70, 38, 0.08)",
+              position: "relative",
+            },
+            children: [
+              {
+                type: "div",
+                props: {
+                  style: {
+                    display: "flex",
+                    alignItems: "center",
+                  },
+                  children: [
+                    {
+                      type: "img",
+                      props: {
+                        src: logoDataUrl,
+                        width: 43,
+                        height: 30,
+                      },
+                    },
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          marginLeft: 10,
+                          color: colors.text,
+                          fontSize: 22,
+                          fontWeight: 700,
+                        },
+                        children: "Pulpe",
+                      },
+                    },
+                  ],
+                },
+              },
+              {
+                type: "div",
+                props: {
+                  style: {
+                    marginLeft: "auto",
+                    color: colors.primary,
+                    fontSize: 16,
+                    fontWeight: 600,
+                  },
+                  children: "Gratuit · Sans connexion bancaire",
+                },
+              },
+            ],
+          },
+        },
+        {
+          type: "div",
+          props: {
+            style: {
+              width: 1040,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              marginTop: 28,
+              position: "relative",
+            },
+            children: [
+              {
+                type: "div",
+                props: {
+                  style: {
+                    color: colors.text,
+                    fontSize: 50,
+                    fontWeight: 700,
+                    letterSpacing: "-0.04em",
+                    lineHeight: 1.08,
+                  },
+                  children: HERO_HEADLINE,
+                },
+              },
+              {
+                type: "div",
+                props: {
+                  style: {
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    position: "relative",
+                    marginTop: 1,
+                    padding: "0 14px 3px",
+                  },
+                  children: [
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          position: "absolute",
+                          left: 4,
+                          right: 2,
+                          top: 2,
+                          bottom: -1,
+                          borderRadius: "9px 4px 11px 5px",
+                          background: `linear-gradient(176.5deg, transparent 7%, ${colors.marker} 8%, ${colors.marker} 91%, transparent 92%)`,
+                          transform: "rotate(-0.55deg)",
+                        },
+                      },
+                    },
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          color: colors.text,
+                          fontSize: 50,
+                          fontWeight: 700,
+                          letterSpacing: "-0.04em",
+                          lineHeight: 1.08,
+                          position: "relative",
+                        },
+                        children: HERO_MARKER,
+                      },
+                    },
+                  ],
+                },
+              },
+              {
+                type: "div",
+                props: {
+                  style: {
+                    marginTop: 14,
+                    color: colors.textSecondary,
+                    fontSize: 19,
+                    fontWeight: 500,
+                  },
+                  children:
+                    "Planifie ton année. Vois combien il te restera chaque mois.",
+                },
+              },
+            ],
+          },
+        },
+        {
+          type: "div",
+          props: {
+            style: {
+              width: 940,
               height: 300,
-              borderRadius: '50%',
-              background: colors.primary,
-              opacity: 0.03,
+              display: "flex",
+              flexDirection: "column",
+              position: "absolute",
+              left: 130,
+              top: 337,
+              borderRadius: 18,
+              background: colors.surface,
+              boxShadow: "0 16px 34px rgba(0, 60, 20, 0.15)",
+              overflow: "hidden",
             },
-          },
-        },
-        // Logo
-        {
-          type: 'img',
-          props: {
-            src: logoDataUrl,
-            width: LOGO.WIDTH,
-            height: LOGO.HEIGHT,
-            style: {
-              marginBottom: SPACING.MD,
-            },
-          },
-        },
-        // Title
-        {
-          type: 'div',
-          props: {
-            style: {
-              fontSize: FONT_SIZE.TITLE,
-              fontWeight: 700,
-              color: colors.text,
-              marginBottom: SPACING.SM,
-            },
-            children: 'Pulpe',
-          },
-        },
-        // Subtitle
-        {
-          type: 'div',
-          props: {
-            style: {
-              fontSize: FONT_SIZE.SUBTITLE,
-              fontWeight: 500,
-              color: colors.text,
-              textAlign: 'center',
-              lineHeight: 1.4,
-            },
-            children: "L'app budget simple pour",
-          },
-        },
-        {
-          type: 'div',
-          props: {
-            style: {
-              fontSize: FONT_SIZE.SUBTITLE,
-              fontWeight: 500,
-              color: colors.text,
-              textAlign: 'center',
-              marginBottom: SPACING.LG,
-            },
-            children: 'planifier ton année',
-          },
-        },
-        // Features
-        {
-          type: 'div',
-          props: {
-            style: {
-              fontSize: FONT_SIZE.BODY,
-              fontWeight: 400,
-              color: colors.textSecondary,
-              marginBottom: SPACING.LG,
-            },
-            children: 'Planifie tes dépenses · Anticipe ton budget · Atteins tes objectifs',
-          },
-        },
-        // URL
-        {
-          type: 'div',
-          props: {
-            style: {
-              fontSize: FONT_SIZE.URL,
-              fontWeight: 600,
-              color: colors.primary,
-            },
-            children: 'pulpe.app',
+            children: [
+              {
+                type: "div",
+                props: {
+                  style: {
+                    height: 48,
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    padding: "0 18px",
+                    borderBottom: "1px solid rgba(26, 28, 25, 0.07)",
+                  },
+                  children: [
+                    {
+                      type: "img",
+                      props: { src: logoDataUrl, width: 27, height: 19 },
+                    },
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          marginLeft: 8,
+                          color: colors.text,
+                          fontSize: 14,
+                          fontWeight: 600,
+                        },
+                        children: "Tableau de bord",
+                      },
+                    },
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          marginLeft: "auto",
+                          color: colors.textSecondary,
+                          fontSize: 12,
+                          fontWeight: 500,
+                        },
+                        children: "Vue annuelle",
+                      },
+                    },
+                  ],
+                },
+              },
+              {
+                type: "div",
+                props: {
+                  style: {
+                    height: 252,
+                    display: "flex",
+                    flexDirection: "row",
+                    gap: 14,
+                    padding: 14,
+                    background: "#FBFDF9",
+                  },
+                  children: [
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          width: 492,
+                          height: 224,
+                          display: "flex",
+                          flexDirection: "column",
+                          padding: "20px 24px",
+                          borderRadius: 13,
+                          background: colors.primary,
+                          color: "white",
+                        },
+                        children: [
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                display: "flex",
+                                alignItems: "center",
+                                color: "rgba(255,255,255,0.78)",
+                                fontSize: 11,
+                                fontWeight: 600,
+                              },
+                              children: [
+                                {
+                                  type: "div",
+                                  props: {
+                                    style: {
+                                      width: 6,
+                                      height: 6,
+                                      marginRight: 7,
+                                      borderRadius: "50%",
+                                      background: "rgba(255,255,255,0.82)",
+                                    },
+                                  },
+                                },
+                                "Mois en cours · juillet",
+                              ],
+                            },
+                          },
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                marginTop: 15,
+                                color: "rgba(255,255,255,0.78)",
+                                fontSize: 12,
+                              },
+                              children: "Disponible ce mois",
+                            },
+                          },
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                display: "flex",
+                                alignItems: "flex-end",
+                                marginTop: -1,
+                              },
+                              children: [
+                                {
+                                  type: "div",
+                                  props: {
+                                    style: {
+                                      fontSize: 61,
+                                      fontWeight: 700,
+                                      letterSpacing: "-0.05em",
+                                      lineHeight: 1,
+                                    },
+                                    children: "926",
+                                  },
+                                },
+                                {
+                                  type: "div",
+                                  props: {
+                                    style: {
+                                      marginLeft: 9,
+                                      marginBottom: 7,
+                                      color: "rgba(255,255,255,0.8)",
+                                      fontSize: 15,
+                                      fontWeight: 600,
+                                    },
+                                    children: "CHF",
+                                  },
+                                },
+                              ],
+                            },
+                          },
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                display: "flex",
+                                justifyContent: "space-between",
+                                marginTop: "auto",
+                                color: "rgba(255,255,255,0.72)",
+                                fontSize: 9,
+                              },
+                              children: ["Dépensé 3 374 CHF", "sur 4 300 CHF"],
+                            },
+                          },
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                width: "100%",
+                                height: 7,
+                                display: "flex",
+                                marginTop: 6,
+                                borderRadius: 8,
+                                background: "rgba(255,255,255,0.2)",
+                              },
+                              children: {
+                                type: "div",
+                                props: {
+                                  style: {
+                                    width: "78%",
+                                    height: 7,
+                                    borderRadius: 8,
+                                    background: "rgba(255,255,255,0.9)",
+                                  },
+                                },
+                              },
+                            },
+                          },
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                marginTop: 9,
+                                color: "rgba(255,255,255,0.76)",
+                                fontSize: 10,
+                              },
+                              children:
+                                "Tes grosses dépenses sont déjà intégrées aux mois qui arrivent.",
+                            },
+                          },
+                        ],
+                      },
+                    },
+                    {
+                      type: "div",
+                      props: {
+                        style: {
+                          width: 406,
+                          height: 224,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 10,
+                        },
+                        children: [
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                height: 115,
+                                display: "flex",
+                                flexDirection: "column",
+                                padding: "14px 17px",
+                                borderRadius: 13,
+                                background: "#F1F6EF",
+                              },
+                              children: [
+                                {
+                                  type: "div",
+                                  props: {
+                                    style: {
+                                      color: colors.textSecondary,
+                                      fontSize: 10,
+                                      fontWeight: 600,
+                                    },
+                                    children: "Prévisions du mois",
+                                  },
+                                },
+                                forecastRow("Loyer", "1 200 CHF", true),
+                                forecastRow("Assurance", "25 CHF", true),
+                                forecastRow("Électricité", "85 CHF", false),
+                              ],
+                            },
+                          },
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                height: 99,
+                                display: "flex",
+                                flexDirection: "column",
+                                padding: "13px 17px",
+                                borderRadius: 13,
+                                background: "#F1F6EF",
+                              },
+                              children: [
+                                {
+                                  type: "div",
+                                  props: {
+                                    style: {
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      alignItems: "center",
+                                    },
+                                    children: [
+                                      {
+                                        type: "div",
+                                        props: {
+                                          style: {
+                                            color: colors.textSecondary,
+                                            fontSize: 10,
+                                            fontWeight: 600,
+                                          },
+                                          children: "Projection du solde",
+                                        },
+                                      },
+                                      {
+                                        type: "div",
+                                        props: {
+                                          style: {
+                                            color: colors.primary,
+                                            fontSize: 11,
+                                            fontWeight: 600,
+                                          },
+                                          children: "Tu vois venir",
+                                        },
+                                      },
+                                    ],
+                                  },
+                                },
+                                {
+                                  type: "svg",
+                                  props: {
+                                    width: 372,
+                                    height: 52,
+                                    viewBox: "0 0 372 52",
+                                    style: { marginTop: 8 },
+                                    children: [
+                                      {
+                                        type: "path",
+                                        props: {
+                                          d: "M0 40 C55 36 78 44 124 31 C171 18 205 27 244 17 C287 6 321 13 372 3 L372 52 L0 52 Z",
+                                          fill: "rgba(0,110,37,0.10)",
+                                        },
+                                      },
+                                      {
+                                        type: "path",
+                                        props: {
+                                          d: "M0 40 C55 36 78 44 124 31 C171 18 205 27 244 17 C287 6 321 13 372 3",
+                                          fill: "none",
+                                          stroke: colors.primary,
+                                          strokeWidth: 3,
+                                          strokeLinecap: "round",
+                                          strokeLinejoin: "round",
+                                        },
+                                      },
+                                    ],
+                                  },
+                                },
+                              ],
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
           },
         },
       ],
     },
-  }
+  };
 
   const svg = await satori(element as React.ReactNode, {
     width: OG_IMAGE.WIDTH,
     height: OG_IMAGE.HEIGHT,
     fonts,
-  })
+  });
 
-  // Ensure output directory exists
-  const publicDir = join(__dirname, '../public')
+  const publicDir = join(__dirname, "../public");
   if (!existsSync(publicDir)) {
-    mkdirSync(publicDir, { recursive: true })
-    console.log(`Created directory: ${publicDir}`)
+    mkdirSync(publicDir, { recursive: true });
+    console.log(`Created directory: ${publicDir}`);
   }
 
-  // Save SVG for debugging
-  const svgPath = join(publicDir, 'og-image.svg')
-  writeFileSync(svgPath, svg)
-  console.log(`SVG saved to: ${svgPath}`)
+  const svgPath = join(publicDir, "pulpe-social-preview.svg");
+  writeFileSync(svgPath, svg);
+  console.log(`SVG saved to: ${svgPath}`);
 
-  // Convert SVG to PNG using resvg
   const resvg = new Resvg(svg, {
     fitTo: {
-      mode: 'width',
+      mode: "width",
       value: OG_IMAGE.WIDTH,
     },
-  })
-  const pngData = resvg.render()
-  const pngBuffer = pngData.asPng()
+  });
+  const pngData = resvg.render();
+  const pngBuffer = pngData.asPng();
 
-  const outputPath = join(publicDir, 'og-image.png')
-  writeFileSync(outputPath, pngBuffer)
-  console.log(`PNG saved to: ${outputPath}`)
-  console.log(`Dimensions: ${OG_IMAGE.WIDTH}x${OG_IMAGE.HEIGHT}`)
-  console.log(`File size: ${(pngBuffer.length / 1024).toFixed(1)} KB`)
-  console.log('Done!')
+  const outputPath = join(publicDir, SOCIAL_PREVIEW_FILE);
+  writeFileSync(outputPath, pngBuffer);
+  console.log(`PNG saved to: ${outputPath}`);
+  console.log(`Dimensions: ${OG_IMAGE.WIDTH}x${OG_IMAGE.HEIGHT}`);
+  console.log(`File size: ${(pngBuffer.length / 1024).toFixed(1)} KB`);
+  console.log("Done!");
 }
 
-generateOgImage().catch(console.error)
+generateOgImage().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

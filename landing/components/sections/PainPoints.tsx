@@ -4,13 +4,13 @@ import { Section } from "@/components/ui";
 const LIMITS = [
   {
     icon: FileSpreadsheet,
-    title: "Le tableur te demande de tout maintenir.",
-    text: "À chaque changement, tu ajustes les lignes, les mois et les formules. La projection dépend de ton fichier autant que de ton budget.",
+    title: "Avec un tableur, tu dois tout tenir à jour.",
+    text: "Au moindre changement, tu modifies les lignes, les mois et parfois les formules. Si ton fichier n’est plus à jour, ta projection ne l’est plus non plus.",
   },
   {
     icon: ChartNoAxesCombined,
-    title: "Le suivi arrive après la dépense.",
-    text: "Une app centrée sur les dépenses réelles explique où ton argent est parti. Elle t’aide moins à mesurer une décision plusieurs mois avant.",
+    title: "Le suivi commence une fois l’argent dépensé.",
+    text: "Une app de suivi t’explique où ton argent est parti. Elle t’aide moins à savoir si une dépense prévue en septembre tient encore dans ton budget.",
   },
 ];
 
@@ -23,13 +23,13 @@ export function PainPoints() {
       <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
         <header className="max-w-xl lg:col-span-5">
           <h2 className="balance text-4xl font-bold leading-[1.12] tracking-[-0.035em] text-text sm:text-5xl">
-            Les impôts tombent en juillet. Tu vois déjà ce qu’il te restera en
+            Les impôts tombent en juillet. Tu sais déjà combien il te restera en
             août.
           </h2>
           <p className="pretty mt-6 text-lg leading-relaxed text-text-secondary">
-            Une grosse dépense ne touche jamais qu&apos;un seul mois. Pourtant, un
-            tableur te demande de maintenir la projection et une app de suivi
-            ne réagit qu&apos;après.
+            Une grosse dépense tombe un mois, mais son effet se fait sentir bien
+            après. Avec un tableur, tu dois recalculer la suite. Une app de
+            suivi ne la montre qu&apos;une fois payée.
           </p>
         </header>
 

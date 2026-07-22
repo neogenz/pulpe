@@ -9,8 +9,8 @@ export function FinalCTA() {
     <section className="py-24 sm:py-28 lg:py-36">
       <Container>
         <div className="mx-auto max-w-5xl text-center">
-          <h2 className="text-[clamp(2.75rem,7vw,6rem)] font-bold leading-[0.98] tracking-[-0.04em] text-text">
-            Prends des mois d&apos;avance sur ce qu&apos;il te restera.
+          <h2 className="text-[clamp(2.75rem,7vw,6rem)] font-bold leading-[1.12] tracking-[-0.04em] text-text">
+            Prépare ton année. Vois combien il te restera chaque mois.
           </h2>
           <p className="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-text/80 sm:text-xl">
             Commence gratuitement, sans connecter tes comptes bancaires. Tes

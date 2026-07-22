@@ -30,11 +30,17 @@ export function Hero() {
         <div className="mx-auto max-w-5xl text-center">
           <h1 className="balance mx-auto max-w-5xl text-[clamp(2.75rem,5.6vw,5rem)] font-extrabold leading-[0.98] tracking-[-0.04em] text-text">
             Tu sais des mois à l&apos;avance{" "}
-            <span className="text-primary">ce qu&apos;il te restera.</span>
+            <mark className="marker-highlight marker-highlight-strong">
+              combien il te restera.
+            </mark>
           </h1>
           <p className="pretty mx-auto mt-7 max-w-3xl text-lg leading-relaxed text-text-secondary md:text-xl">
-            Prépare tes revenus, tes dépenses et ton épargne mois par mois.
-            Pulpe calcule ce qu&apos;il te restera, sans connecter tes comptes.
+            Planifie ton budget{" "}
+            <strong className="font-semibold text-text">
+              sur l&apos;année
+            </strong>
+            . Tu vois combien il te restera chaque mois pour préparer tes
+            projets plus sereinement.
           </p>
           <div className="mt-9 flex justify-center">
             <Button
@@ -48,13 +54,19 @@ export function Hero() {
           <p className="mt-4 text-center text-sm text-text-secondary">
             Gratuit · Montants chiffrés · Aucune connexion bancaire
           </p>
-          <blockquote className="mx-auto mt-6 max-w-xl text-center">
-            <p className="pretty text-sm font-medium leading-relaxed text-text">
-              « Pulpe m&apos;a fait prendre conscience de dépenses que je ne
-              voyais pas avant. »
+          <blockquote className="mx-auto mt-6 max-w-2xl text-center">
+            <p className="pretty text-base font-medium leading-relaxed text-text">
+              « Je peux{" "}
+              <mark className="marker-highlight marker-highlight-proof">
+                <strong className="font-semibold">
+                  prévoir nos vacances sur l&apos;année
+                </strong>
+              </mark>{" "}
+              et voir tout de suite si ça rentre dans notre budget. Ça me
+              rassure. »
             </p>
             <footer className="mt-1 text-sm text-text-secondary">
-              <cite className="not-italic">Ismaël</cite>, utilisateur de Pulpe
+              <cite className="not-italic">Une utilisatrice de Pulpe</cite>
             </footer>
           </blockquote>
         </div>

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Code2, ExternalLink, Server, ShieldCheck } from "lucide-react";
 import { Section } from "@/components/ui";
 import { GITHUB_URL } from "@/lib/config";
@@ -23,43 +24,60 @@ const GUARANTEES = [
 export function WhyFree() {
   return (
     <Section id="why-free">
-      <div className="grid gap-10 lg:grid-cols-5 lg:gap-16">
-        <div className="lg:col-span-3">
-          <h2 className="text-4xl font-bold leading-[1.05] tracking-[-0.035em] sm:text-5xl">
-            J&apos;avais besoin d&apos;un budget qui regarde devant.
-          </h2>
-          <div className="mt-7 max-w-2xl space-y-5 text-lg leading-relaxed text-text-secondary">
-            <p>
-              J&apos;ai créé Pulpe après trop de mois passés à maintenir des
-              tableurs pour essayer de voir les mois à venir. Je voulais mesurer
-              l&apos;effet d&apos;une décision avant de la prendre, pas
-              seulement expliquer le passé.
+      <div className="mx-auto max-w-5xl">
+        <div className="grid items-start gap-7 sm:grid-cols-[9rem_minmax(0,1fr)] lg:grid-cols-[12rem_minmax(0,1fr)] lg:gap-12">
+          <Image
+            src="/maxime-portrait.webp"
+            alt="Maxime, créateur de Pulpe"
+            width={640}
+            height={800}
+            className="aspect-square w-28 rounded-[var(--radius-large)] object-cover object-[50%_28%] shadow-[var(--shadow-organic)] sm:w-full"
+          />
+
+          <div>
+            <p className="mb-3 font-semibold text-primary">
+              Une note du créateur
             </p>
-            <p>
-              Le projet est gratuit aujourd&apos;hui, sans publicité ni
-              abonnement. Son code reste public pour que tu puisses vérifier son
-              fonctionnement.
+            <h2 className="text-4xl font-bold leading-[1.05] tracking-[-0.035em] sm:text-5xl">
+              J&apos;avais besoin d&apos;un budget qui regarde devant.
+            </h2>
+            <div className="mt-7 max-w-3xl space-y-5 text-lg leading-relaxed text-text-secondary">
+              <p>
+                J&apos;ai créé Pulpe après avoir passé trop de temps à tenir mes
+                tableurs à jour. Je voulais savoir ce qu&apos;une décision
+                changerait dans les mois suivants, pas seulement comprendre où
+                mon argent était parti.
+              </p>
+              <p>
+                Le projet est gratuit aujourd&apos;hui, sans publicité ni
+                abonnement. Son code reste public pour que tu puisses vérifier
+                son fonctionnement.
+              </p>
+            </div>
+            <p className="mt-7 font-semibold text-text">
+              Maxime, créateur de Pulpe
             </p>
+            <a
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-lg px-1 font-medium text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              Voir le code source
+              <ExternalLink className="size-4" aria-hidden="true" />
+            </a>
           </div>
-          <p className="mt-8 font-semibold text-text">
-            Maxime, créateur de Pulpe
-          </p>
-          <a
-            href={GITHUB_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-lg px-1 font-medium text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            Voir le code source
-            <ExternalLink className="size-4" aria-hidden="true" />
-          </a>
         </div>
 
-        <dl className="border-t border-text/10 pt-3 lg:col-span-2 lg:border-l lg:border-t-0 lg:pl-12 lg:pt-0">
+        <dl className="mt-12 grid border-t border-text/10 pt-2 md:grid-cols-3 lg:mt-16">
           {GUARANTEES.map((guarantee, index) => (
             <div
               key={guarantee.title}
-              className={`py-7 ${index > 0 ? "border-t border-text/10" : ""}`}
+              className={`py-7 md:px-7 ${
+                index > 0
+                  ? "border-t border-text/10 md:border-l md:border-t-0"
+                  : "md:pl-0"
+              } ${index === GUARANTEES.length - 1 ? "md:pr-0" : ""}`}
             >
               <dt className="flex items-center gap-3 font-semibold text-text">
                 <guarantee.icon
