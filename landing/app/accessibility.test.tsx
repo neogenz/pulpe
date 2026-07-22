@@ -660,6 +660,10 @@ describe("landing accessibility contracts", () => {
     );
     assert.match(
       componentSources.features,
+      /rounded-\[var\(--radius-card\)\] bg-surface p-5 outline outline-1 -outline-offset-1 outline-black\/10/,
+    );
+    assert.match(
+      componentSources.features,
       /<div className="flex items-start gap-3">[\s\S]*className="mt-0\.5 size-5 shrink-0 text-primary"[\s\S]*<h4 className="balance text-lg/,
     );
     assert.match(

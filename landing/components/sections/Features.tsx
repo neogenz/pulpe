@@ -142,7 +142,7 @@ export function Features() {
           {ADJUSTMENTS.map((item) => (
             <li
               key={item.title}
-              className="rounded-[var(--radius-card)] bg-surface p-5 outline outline-1 -outline-offset-1 outline-black/5 sm:p-6"
+              className="rounded-[var(--radius-card)] bg-surface p-5 outline outline-1 -outline-offset-1 outline-black/10 sm:p-6"
             >
               <div className="flex items-start gap-3">
                 <item.icon
