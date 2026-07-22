@@ -645,17 +645,22 @@ describe("landing accessibility contracts", () => {
     );
     assert.equal(
       componentSources.features.match(
-        /<article className="flex h-full flex-col rounded-\[var\(--radius-large\)\]/g,
+        /<article className="flex h-full flex-col overflow-hidden rounded-\[var\(--radius-large\)\]/g,
       )?.length,
       2,
     );
     assert.match(
       componentSources.features,
-      /Et pour les ajustements du quotidien\./,
+      /<section[\s\S]*aria-labelledby="adjustments-heading"/,
     );
+    assert.match(componentSources.features, /Pour ajuster sans tout refaire\./);
     assert.match(
       componentSources.features,
-      /<ul className="mt-6 grid gap-8 md:grid-cols-3/,
+      /<ul className="mt-8 grid gap-4 md:grid-cols-3/,
+    );
+    assert.doesNotMatch(
+      componentSources.features,
+      /mt-auto pt-8[\s\S]*rounded-\[var\(--radius-card\)\]/,
     );
   });
 
