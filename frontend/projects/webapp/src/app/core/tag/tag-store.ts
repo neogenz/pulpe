@@ -1,4 +1,4 @@
-import { Injectable, computed, inject } from '@angular/core';
+import { Service, computed, inject } from '@angular/core';
 import {
   type Tag,
   type TagCreate,
@@ -15,7 +15,7 @@ import { Logger } from '@core/logging/logger';
  * attached to transactions, so this store is a root singleton (unlike the
  * route-scoped feature stores) and is consumed by the reusable tag picker.
  */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class TagStore {
   readonly #tagApi = inject(TagApi);
   readonly #logger = inject(Logger);

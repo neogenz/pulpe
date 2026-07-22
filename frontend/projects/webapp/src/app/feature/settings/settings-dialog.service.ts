@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Service } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { TranslocoService } from '@jsverse/transloco';
 import { firstValueFrom } from 'rxjs';
@@ -8,7 +8,7 @@ import {
   type ConfirmationDialogData,
 } from '@ui/dialogs/confirmation-dialog';
 
-@Injectable()
+@Service({ autoProvided: false })
 export class SettingsDialogService {
   readonly #dialog = inject(MatDialog);
   readonly #transloco = inject(TranslocoService);

@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Service } from '@angular/core';
 import { HttpParams } from '@angular/common/http';
 import {
   type TransactionCreate,
@@ -20,9 +20,7 @@ import {
 import { type Observable } from 'rxjs';
 import { ApiClient } from '@core/api/api-client';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class TransactionApi {
   readonly #api = inject(ApiClient);
 

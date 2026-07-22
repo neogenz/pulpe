@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Service } from '@angular/core';
 import { utils, type WorkBook } from 'xlsx';
 import type {
   SupportedCurrency,
@@ -57,7 +57,7 @@ interface FormulaCell {
 
 type CellValue = string | number | CurrencyCell | FormulaCell;
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class ExcelExportService {
   readonly #userSettings = inject(UserSettingsStore);
   readonly #tagStore = inject(TagStore);

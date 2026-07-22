@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Service, inject } from '@angular/core';
 
 import { BudgetApi } from '@core/budget';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
@@ -13,9 +13,7 @@ import { StorageService } from '../storage';
 import { UserSettingsStore } from '../user-settings/user-settings-store';
 import { Logger } from '../logging/logger';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class AuthCleanupService {
   readonly #budgetApi = inject(BudgetApi);
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);

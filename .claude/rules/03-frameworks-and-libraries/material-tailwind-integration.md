@@ -1,5 +1,5 @@
 ---
-description: Integration patterns for Angular Material 21 + Tailwind v4 + Pulpe design tokens
+description: Integration patterns for Angular Material 22 + Tailwind v4 + Pulpe design tokens
 paths:
   - "frontend/**/*.ts"
   - "frontend/**/*.html"
@@ -7,7 +7,7 @@ paths:
   - "frontend/**/*.css"
 ---
 
-# Material 21 + Tailwind 4 Integration
+# Material 22 + Tailwind 4 Integration
 
 Project use **3-layer token system**. Tailwind bridge to Material system tokens. Pulpe semantic tokens sit on top.
 

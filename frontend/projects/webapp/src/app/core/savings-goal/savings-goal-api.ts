@@ -1,4 +1,4 @@
-import { effect, inject, Injectable, untracked } from '@angular/core';
+import { effect, inject, Service, untracked } from '@angular/core';
 import type { Observable } from 'rxjs';
 import {
   type SavingsGoalCreate,
@@ -30,9 +30,7 @@ import { ApiClient } from '@core/api/api-client';
 import { BudgetApi } from '@core/budget/budget-api';
 import { DataCache } from 'ngx-ziflux';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class SavingsGoalApi {
   readonly #api = inject(ApiClient);
   readonly #budgetApi = inject(BudgetApi);

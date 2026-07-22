@@ -1,4 +1,4 @@
-import { inject, Injectable, Injector } from '@angular/core';
+import { inject, Service, Injector } from '@angular/core';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatDialog } from '@angular/material/dialog';
 import { TranslocoService } from '@jsverse/transloco';
@@ -84,7 +84,7 @@ export interface SpreadProcessingEcho {
  */
 const SPREAD_PROCESSING_MIN_VISIBLE_MS = 700;
 
-@Injectable()
+@Service({ autoProvided: false })
 export class BudgetDetailsDialogService {
   readonly #dialog = inject(MatDialog);
   readonly #bottomSheet = inject(MatBottomSheet);

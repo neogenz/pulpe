@@ -30,7 +30,7 @@ Component → Store → Feature API → ApiClient
 All HTTP calls via `ApiClient`. Never inject `HttpClient` direct.
 
 ```typescript
-@Injectable({ providedIn: 'root' })
+@Service()
 export class FeatureApi {
   readonly #api = inject(ApiClient);
 
@@ -53,7 +53,7 @@ Zod validation enforced by design — no schema, no call.
 ## Store Anatomy (6 sections)
 
 ```typescript
-@Injectable()
+@Service({ autoProvided: false })
 export class FeatureStore {
   // ── 1. Dependencies ──
   readonly #api = inject(FeatureApi);
@@ -210,7 +210,7 @@ Version signal triggers cross-store reloads:
 
 ```typescript
 // Shared invalidation service
-@Injectable({ providedIn: 'root' })
+@Service()
 export class FeatureInvalidationService {
   readonly #version = signal(0);
   readonly version = this.#version.asReadonly();
@@ -315,8 +315,8 @@ readonly isInitialLoading = computed(
 
 | Scope | Usage | Example |
 |-------|-------|---------|
-| `@Injectable()` | Feature stores (route-scoped) | `BudgetDetailsStore` |
-| `providedIn: 'root'` | Shared services, APIs, caches | `BudgetApi`, `HasBudgetCache` |
+| `@Service({ autoProvided: false })` | Feature stores (route-scoped) | `BudgetDetailsStore` |
+| `@Service()` | Shared services, APIs, caches | `BudgetApi`, `HasBudgetCache` |
 
 Feature stores registered in route providers:
 
@@ -354,7 +354,7 @@ catch (error) {
 | `inject(HttpClient)` in API service | `inject(ApiClient)` |
 | `http.get<T>()` without validation | `api.get$(path, zodSchema)` |
 | Manual `catchError` in API service | Let `ApiClient` normalize errors |
-| `providedIn: 'root'` on feature store | `@Injectable()` + route providers |
+| `@Service()` on feature store | `@Service({ autoProvided: false })` + route providers |
 | `subscribe()` in mutations | `async/await` + `firstValueFrom()` |
 | `effect()` for derived state | `computed()` or `linkedSignal()` |
 | Mutate signal arrays in place | Spread: `[...items, newItem]` |

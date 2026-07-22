@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Service } from '@angular/core';
 import { type Observable } from 'rxjs';
 import {
   type TagCreate,
@@ -14,9 +14,7 @@ import {
 import { ApiClient } from '@core/api/api-client';
 import { DataCache } from 'ngx-ziflux';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class TagApi {
   readonly #api = inject(ApiClient);
   readonly cache = new DataCache({

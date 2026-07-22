@@ -1,12 +1,10 @@
-import { Injectable, inject } from '@angular/core';
+import { Service, inject } from '@angular/core';
 
 import { type AuthError, isAuthWeakPasswordError } from '@supabase/supabase-js';
 import { TranslocoService } from '@jsverse/transloco';
 import { API_ERROR_CODES } from 'pulpe-shared';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class AuthErrorLocalizer {
   readonly #transloco = inject(TranslocoService);
 

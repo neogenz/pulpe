@@ -1,4 +1,4 @@
-import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { Service, computed, effect, inject, signal } from '@angular/core';
 import { Logger } from '@core/logging/logger';
 import { StorageService, STORAGE_KEYS } from '@core/storage';
 
@@ -6,9 +6,7 @@ import { StorageService, STORAGE_KEYS } from '@core/storage';
  * Service managing demo mode state using reactive signals
  * Provides centralized state management for demo mode across the application
  */
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class DemoModeService {
   readonly #logger = inject(Logger);
   readonly #storageService = inject(StorageService);

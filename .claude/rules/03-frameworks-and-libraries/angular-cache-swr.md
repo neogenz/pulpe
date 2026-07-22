@@ -29,7 +29,7 @@ Component → Store → Feature API → ApiClient
 ## DataCache (ngx-ziflux)
 
 ```typescript
-// In Feature API (providedIn: 'root')
+// In Feature API (auto-provided via @Service())
 readonly cache = new DataCache({
   name: 'orders',
   staleTime: 30_000,    // 30s — data considered fresh
@@ -119,7 +119,7 @@ await this.#api.cache.prefetch(['budget', 'list'], () =>
 
 | Don't | Do |
 |-------|-----|
-| `DataCache` in route-scoped service | `DataCache` in `providedIn: 'root'` API |
+| `DataCache` in route-scoped service | `DataCache` in `@Service()` API |
 | Manual resource + cache wiring | `cachedResource()` from ngx-ziflux |
 | `tap(() => cache.invalidate(...))` in API methods | `invalidateKeys` in `cachedMutation` |
 | `try/catch` on `mutate()` for errors | Check `mutation.error()` signal |

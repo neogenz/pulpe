@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Service, computed, inject, signal } from '@angular/core';
 import {
   allocateMonthAmountToLines,
   isContributivePlanMonth,
@@ -34,7 +34,7 @@ function niceCeil(value: number): number {
  * du calculateur `pulpe-shared` ; ce store ne fait qu'orchestrer overrides →
  * `simulateSavingsPlan`.
  */
-@Injectable()
+@Service({ autoProvided: false })
 export class GoalPlanSimulatorStore {
   readonly #store = inject(SavingsGoalStore);
 

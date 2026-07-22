@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Service, computed, inject, signal } from '@angular/core';
 import {
   API_ERROR_CODES,
   type SavingsGoal,
@@ -18,7 +18,7 @@ import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { isApiError } from '@core/api/api-error';
 
-@Injectable()
+@Service({ autoProvided: false })
 export class SavingsGoalStore {
   readonly #api = inject(SavingsGoalApi);
   readonly #budgetApi = inject(BudgetApi);

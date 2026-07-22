@@ -1,4 +1,4 @@
-import { Injectable, inject, DestroyRef } from '@angular/core';
+import { Service, inject, DestroyRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { TranslocoService } from '@jsverse/transloco';
 import {
@@ -20,9 +20,7 @@ interface DecodedJwt {
   readonly exp: number;
 }
 
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class AuthSessionService {
   readonly #authStore = inject(AuthStore);
   readonly #router = inject(Router);

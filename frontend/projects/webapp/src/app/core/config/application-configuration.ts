@@ -1,5 +1,5 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Service, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { Logger } from '../logging/logger';
 import {
@@ -9,9 +9,7 @@ import {
   formatConfigError,
 } from './config.schema';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class ApplicationConfiguration {
   readonly #http = inject(HttpClient);
   readonly #logger = inject(Logger);

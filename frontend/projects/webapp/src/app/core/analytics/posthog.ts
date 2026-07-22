@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  PLATFORM_ID,
-  inject,
-  signal,
-  computed,
-} from '@angular/core';
+import { Service, PLATFORM_ID, inject, signal, computed } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import posthog, { type Properties, type CaptureResult } from 'posthog-js';
 import { ApplicationConfiguration } from '../config/application-configuration';
@@ -20,9 +14,7 @@ const CROSS_DOMAIN_PARAM = 'ph_did';
  * PostHog service for analytics and error tracking.
  * Uses PostHog's built-in privacy protection and minimal configuration.
  */
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class PostHogService {
   readonly #applicationConfiguration = inject(ApplicationConfiguration);
   readonly #logger = inject(Logger);

@@ -16,8 +16,8 @@ pnpm run lint                       # BEFORE commit
 
 | Tech | Details |
 |------|---------|
-| Angular | 21+, standalone, OnPush |
-| Styling | Tailwind v4 + Material 21 |
+| Angular | 22+, standalone, OnPush |
+| Styling | Tailwind v4 + Material 22 |
 | State | Signals |
 | Testing | Vitest + Playwright |
 
