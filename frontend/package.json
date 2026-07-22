@@ -80,7 +80,6 @@
     "@angular/build": "^21.2.10",
     "@angular/cli": "^21.2.10",
     "@angular/compiler-cli": "^21.2.12",
-    "@angular/platform-browser-dynamic": "^21.2.12",
     "@eslint/js": "^9.28.0",
     "@playwright/test": "^1.57.0",
     "@posthog/cli": "^0.6.1",
@@ -99,7 +98,8 @@
     "postcss": "^8.5.3",
     "source-map-explorer": "^2.5.3",
     "tsx": "^4.20.4",
-    "typescript-eslint": "^8.50.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.65.0",
     "vitest": "^4.0.16"
   }
 }
