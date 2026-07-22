@@ -137,7 +137,9 @@ h3,
     transparent 92%
   );
   background-repeat: no-repeat;
-  background-size: 100% 0.92em;
+  /* Starts undrawn: MarkerDraw paints the stroke in when the mark scrolls
+     into view, so SSR never flashes a full stroke that then wipes away. */
+  background-size: 0% 0.92em;
   background-position: 0 56%;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
@@ -151,6 +153,37 @@ h3,
   --marker-color: var(--color-marker-highlight-proof);
 
   color: var(--color-text);
+}
+
+/* The felt-tip stroke draws itself left-to-right, like a quick hand swipe.
+   box-decoration-break: clone makes each wrapped line wipe simultaneously.
+   MarkerDraw adds `marker-highlight-drawn` when the mark scrolls into view. */
+@keyframes marker-draw {
+  from {
+    background-size: 0% 0.92em;
+  }
+  to {
+    background-size: 100% 0.92em;
+  }
+}
+
+.marker-highlight-drawn {
+  animation: marker-draw 0.7s 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* The proof quote stroke follows the headline stroke. */
+.marker-highlight-proof.marker-highlight-drawn {
+  animation-delay: 0.5s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marker-highlight {
+    background-size: 100% 0.92em;
+  }
+
+  .marker-highlight-drawn {
+    animation: none;
+  }
 }
 
 /* Reserve the screenshot box per breakpoint (portrait mobile asset, landscape

@@ -537,7 +537,7 @@ describe("landing accessibility contracts", () => {
     assert.match(globalsCss, /--color-marker-highlight-proof:\s*#f4df8a/);
     assert.match(
       globalsCss,
-      /\.marker-highlight\s*\{[\s\S]*?margin-inline:\s*-0\.1em;[\s\S]*?padding-inline:\s*0\.1em;[\s\S]*?border-radius:\s*0\.12em 0\.08em 0\.1em 0\.06em;[\s\S]*?176\.5deg[\s\S]*?background-size:\s*100% 0\.92em;[\s\S]*?background-position:\s*0 56%;/,
+      /\.marker-highlight\s*\{[\s\S]*?margin-inline:\s*-0\.1em;[\s\S]*?padding-inline:\s*0\.1em;[\s\S]*?border-radius:\s*0\.12em 0\.08em 0\.1em 0\.06em;[\s\S]*?176\.5deg[\s\S]*?background-size:\s*0% 0\.92em;[\s\S]*?background-position:\s*0 56%;/,
     );
     assert.match(
       globalsCss,

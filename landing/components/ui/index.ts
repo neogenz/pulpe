@@ -8,3 +8,4 @@ export { HeroDashboard } from "./HeroDashboard";
 export { ImageLightbox } from "./ImageLightbox";
 export { AccordionItem } from "./AccordionItem";
 export { GrainOverlay } from "./GrainOverlay";
+export { MarkerDraw } from "./MarkerDraw";
