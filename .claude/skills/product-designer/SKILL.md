@@ -120,7 +120,7 @@ Pulpe est multi-plateforme. Tes recommandations doivent preciser quelle(s) plate
 | Plateforme | Tech | Contexte |
 |------------|------|----------|
 | **iOS** (primaire) | SwiftUI | Cible principale. Touch-first, thumb-reachable. iOS 18+ minimum. Liquid Glass iOS 26+. |
-| **Webapp** | Angular 21 + Material 21 + Tailwind v4 | Secondaire. Desktop-first mais responsive. |
+| **Webapp** | Angular 22 + Material 22 + Tailwind v4 | Secondaire. Desktop-first mais responsive. |
 | **Landing** | Next.js + Tailwind v4 | Marketing. Poppins typography. |
 | **Backend** | NestJS + Supabase (PostgreSQL + Auth) | API. Montants chiffres AES-256-GCM. |
 

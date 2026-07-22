@@ -1,10 +1,10 @@
-# Frontend Pulpe - Angular 21+
+# Frontend Pulpe - Angular 22+
 
-Application frontend moderne de gestion de budgets personnels construite avec Angular 21+, Signals, et Tailwind CSS.
+Application frontend moderne de gestion de budgets personnels construite avec Angular 22+, Signals, et Tailwind CSS.
 
 ## 🚀 Technologies
 
-- **Angular 21+** : Standalone Components, Signals, Control Flow moderne
+- **Angular 22+** : Standalone Components, Signals, Control Flow moderne
 - **UI/UX** : Angular Material + Tailwind CSS v4.1
 - **State** : Angular Signals pour la réactivité
 - **Routing** : Lazy loading avec `withComponentInputBinding`

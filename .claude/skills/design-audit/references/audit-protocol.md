@@ -36,7 +36,7 @@ Review every target screen against these 15 dimensions. Miss nothing.
 - Are similar elements styled identically across screens?
 - Are interactive elements obviously interactive?
 - Are disabled, hover, focus, and active states all accounted for?
-- Material 21 components used correctly? (`matButton="filled"`, not `mat-raised-button`)
+- Material 22 components used correctly? (`matButton="filled"`, not `mat-raised-button`)
 
 ### 7. Iconography
 - Are icons consistent in style, weight, and size?
@@ -47,7 +47,7 @@ Review every target screen against these 15 dimensions. Miss nothing.
 - Do transitions feel natural and purposeful?
 - Is there motion that exists for no reason?
 - Using Pulpe motion tokens? (`--pulpe-motion-fast` 150ms, `--pulpe-motion-base` 220ms, `--pulpe-ease-standard`)
-- Material 21 uses CSS-based animations internally — no animation imports needed.
+- Material 22 uses CSS-based animations internally — no animation imports needed.
 
 ### 9. Empty States
 - What does every screen look like with no data?

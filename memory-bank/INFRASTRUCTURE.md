@@ -28,7 +28,7 @@ _AI Context Document for AIDD/BMAD Workflow_
 
 ```bash
 # Required tools
-Node.js 22.x               # Runtime environment
+Node.js 24.x               # Runtime environment
 pnpm 10.12.1+              # Package manager
 Bun 1.2.17+                # Backend runtime
 Supabase CLI               # Database management
@@ -49,7 +49,7 @@ pnpm dev                   # Orchestrates: shared build  frontend + backend dev 
 ```
 pulpe-workspace/
     shared/                # pulpe-shared - API contracts (Zod schemas)
-    frontend/              # pulpe-frontend - Angular 21 application
+    frontend/              # pulpe-frontend - Angular 22 application
     backend-nest/          # backend-nest - NestJS API with Bun
     ios/                   # PulpeApp - iOS SwiftUI (active development)
     turbo.json             # Build orchestration
@@ -446,7 +446,7 @@ logger.info(
 
 ```typescript
 // Frontend global error handler
-@Injectable()
+@Service()
 export class GlobalErrorHandler implements ErrorHandler {
   handleError(error: Error): void {
     // Log to PostHog with context

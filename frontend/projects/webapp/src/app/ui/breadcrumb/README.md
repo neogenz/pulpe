@@ -29,7 +29,7 @@ Le système de breadcrumb (fil d'Ariane) est composé de deux parties principale
 ### 1. Service BreadcrumbState (Core)
 
 ```typescript
-@Injectable({ providedIn: "root" })
+@Service()
 export class BreadcrumbState {
   readonly breadcrumbs = toSignal(
     this.#router.events.pipe(
