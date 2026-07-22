@@ -38,32 +38,32 @@ export function Features() {
           </mark>
         </h2>
         <p className="pretty mt-5 max-w-2xl text-lg leading-relaxed text-text-secondary">
-          Tu ajustes une dépense ou un projet. Les mois suivants restent à
-          jour, sans refaire ton budget.
+          Tu ajustes une dépense ou un projet. Les mois suivants restent à jour,
+          sans refaire ton budget.
         </p>
       </header>
 
-      <div className="mt-12 overflow-hidden rounded-[var(--radius-large)] bg-surface outline outline-1 -outline-offset-1 outline-black/5 lg:mt-14">
-        <div className="grid md:grid-cols-[1.08fr_0.92fr]">
-          <article className="bg-surface-alt p-6 sm:p-9 lg:p-10">
-            <WalletCards
-              className="size-6 text-primary"
-              strokeWidth={1.7}
-              aria-hidden="true"
-            />
-            <h3 className="balance mt-5 max-w-xl text-2xl font-semibold leading-tight tracking-[-0.025em] sm:text-3xl">
-              Répartis une grosse dépense sur plusieurs mois.
-            </h3>
-            <p className="pretty mt-4 max-w-xl leading-relaxed text-text-secondary">
-              <strong className="font-semibold text-text">
-                Le total ne change pas.
-              </strong>{" "}
-              Tu choisis les mois, Pulpe calcule la part de chacun et te montre
-              ce qu’il reste à mettre de côté.
-            </p>
+      <div className="mt-12 grid gap-5 md:grid-cols-[1.08fr_0.92fr] lg:mt-14 lg:gap-6">
+        <article className="flex h-full flex-col rounded-[var(--radius-large)] bg-surface-alt p-6 outline outline-1 -outline-offset-1 outline-black/5 sm:p-9 lg:p-10">
+          <WalletCards
+            className="size-6 text-primary"
+            strokeWidth={1.7}
+            aria-hidden="true"
+          />
+          <h3 className="balance mt-5 max-w-xl text-2xl font-semibold leading-tight tracking-[-0.025em] sm:text-3xl">
+            Répartis une grosse dépense sur plusieurs mois.
+          </h3>
+          <p className="pretty mt-4 max-w-xl leading-relaxed text-text-secondary">
+            <strong className="font-semibold text-text">
+              Le total ne change pas.
+            </strong>{" "}
+            Tu choisis les mois, Pulpe calcule la part de chacun et te montre ce
+            qu’il reste à mettre de côté.
+          </p>
 
+          <div className="mt-auto pt-8">
             <div
-              className="mt-8 rounded-[var(--radius-card)] bg-surface p-5 outline outline-1 -outline-offset-1 outline-black/5 sm:p-6"
+              className="rounded-[var(--radius-card)] bg-surface p-5 outline outline-1 -outline-offset-1 outline-black/5 sm:p-6"
               aria-hidden="true"
             >
               <div className="flex items-baseline justify-between gap-4">
@@ -88,24 +88,26 @@ export function Features() {
                 ))}
               </div>
             </div>
-          </article>
+          </div>
+        </article>
 
-          <article className="p-6 sm:p-9 lg:p-10">
-            <Flag
-              className="size-6 text-primary"
-              strokeWidth={1.7}
-              aria-hidden="true"
-            />
-            <h3 className="balance mt-5 max-w-md text-2xl font-semibold leading-tight tracking-[-0.025em] sm:text-3xl">
-              Suis ce que tu mets vraiment de côté.
-            </h3>
-            <p className="pretty mt-4 max-w-md leading-relaxed text-text-secondary">
-              Fixe un montant et une date pour ton projet. Pulpe distingue ce
-              que tu as prévu de ce que tu as déjà épargné.
-            </p>
+        <article className="flex h-full flex-col rounded-[var(--radius-large)] bg-surface p-6 outline outline-1 -outline-offset-1 outline-black/5 sm:p-9 lg:p-10">
+          <Flag
+            className="size-6 text-primary"
+            strokeWidth={1.7}
+            aria-hidden="true"
+          />
+          <h3 className="balance mt-5 max-w-md text-2xl font-semibold leading-tight tracking-[-0.025em] sm:text-3xl">
+            Suis ce que tu mets vraiment de côté.
+          </h3>
+          <p className="pretty mt-4 max-w-md leading-relaxed text-text-secondary">
+            Fixe un montant et une date pour ton projet. Pulpe distingue ce que
+            tu as prévu de ce que tu as déjà épargné.
+          </p>
 
+          <div className="mt-auto pt-8">
             <div
-              className="mt-8 rounded-[var(--radius-card)] bg-surface-alt p-5 sm:p-6"
+              className="rounded-[var(--radius-card)] bg-surface-alt p-5 sm:p-6"
               aria-hidden="true"
             >
               <div className="flex items-start justify-between gap-4">
@@ -127,10 +129,15 @@ export function Features() {
                 <span className="text-text-secondary">Reste 840 CHF</span>
               </div>
             </div>
-          </article>
-        </div>
+          </div>
+        </article>
+      </div>
 
-        <ul className="grid gap-8 border-t border-text/10 p-6 sm:grid-cols-3 sm:p-9 lg:gap-10 lg:p-10">
+      <div className="mt-12 border-t border-text/10 pt-8 lg:mt-14 lg:pt-10">
+        <h3 className="balance max-w-2xl text-2xl font-semibold leading-tight tracking-[-0.025em] text-text sm:text-3xl">
+          Et pour les ajustements du quotidien.
+        </h3>
+        <ul className="mt-6 grid gap-8 md:grid-cols-3 lg:gap-10">
           {ADJUSTMENTS.map((item) => (
             <li key={item.title}>
               <item.icon
@@ -138,9 +145,9 @@ export function Features() {
                 strokeWidth={1.7}
                 aria-hidden="true"
               />
-              <h3 className="balance mt-4 text-lg font-semibold leading-snug text-text">
+              <h4 className="balance mt-4 text-lg font-semibold leading-snug text-text">
                 {item.title}
-              </h3>
+              </h4>
               <p className="pretty mt-2 text-sm leading-relaxed text-text-secondary sm:text-base">
                 {item.text}
               </p>

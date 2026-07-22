@@ -619,7 +619,10 @@ describe("landing accessibility contracts", () => {
       componentSources.features,
       /Pulpe recalcule la suite[\s\S]*Répartis une grosse dépense[\s\S]*Suis ce que tu mets vraiment de côté/,
     );
-    assert.equal(componentSources.features.match(/ADJUSTMENTS\.map/g)?.length, 1);
+    assert.equal(
+      componentSources.features.match(/ADJUSTMENTS\.map/g)?.length,
+      1,
+    );
     assert.match(componentSources.features, /Cet achat peut attendre/);
     assert.match(
       componentSources.features,
@@ -628,6 +631,31 @@ describe("landing accessibility contracts", () => {
     assert.match(
       componentSources.features,
       /Chaque mois part du solde du précédent/,
+    );
+  });
+
+  it("separates primary and secondary planning tools for faster scanning", () => {
+    assert.doesNotMatch(
+      componentSources.features,
+      /mt-12 overflow-hidden rounded-\[var\(--radius-large\)\]/,
+    );
+    assert.match(
+      componentSources.features,
+      /mt-12 grid gap-5 md:grid-cols-\[1\.08fr_0\.92fr\]/,
+    );
+    assert.equal(
+      componentSources.features.match(
+        /<article className="flex h-full flex-col rounded-\[var\(--radius-large\)\]/g,
+      )?.length,
+      2,
+    );
+    assert.match(
+      componentSources.features,
+      /Et pour les ajustements du quotidien\./,
+    );
+    assert.match(
+      componentSources.features,
+      /<ul className="mt-6 grid gap-8 md:grid-cols-3/,
     );
   });
 
