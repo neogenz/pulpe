@@ -2,7 +2,7 @@ import {
   computed,
   effect,
   inject,
-  Injectable,
+  Service,
   LOCALE_ID,
   signal,
   untracked,
@@ -72,7 +72,7 @@ const BUDGET_DETAIL_INVALIDATION_KEYS: string[][] = [
   ['budget', 'spread'],
 ];
 
-@Injectable()
+@Service({ autoProvided: false })
 export class BudgetDetailsStore {
   // ── 1. Dependencies ──
   readonly #apiErrorLocalizer = inject(ApiErrorLocalizer);

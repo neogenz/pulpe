@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Service } from '@angular/core';
 import {
   type Budget,
   type BudgetCreate,
@@ -61,9 +61,7 @@ export interface CreateBudgetApiResponse {
   readonly budget: Budget;
 }
 
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class BudgetApi {
   readonly #api = inject(ApiClient);
   readonly #transactionApi = inject(TransactionApi);

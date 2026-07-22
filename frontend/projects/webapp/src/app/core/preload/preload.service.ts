@@ -1,4 +1,4 @@
-import { effect, inject, Injectable, signal, untracked } from '@angular/core';
+import { effect, inject, Service, signal, untracked } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { type Budget } from 'pulpe-shared';
 import { AuthStore } from '../auth/auth-store';
@@ -18,7 +18,7 @@ import { Logger } from '../logging/logger';
  * auto-loads when isReady becomes true (same condition as this effect),
  * so calling initialize() would cause a duplicate request.
  */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class PreloadService {
   readonly #authStore = inject(AuthStore);
   readonly #budgetApi = inject(BudgetApi);

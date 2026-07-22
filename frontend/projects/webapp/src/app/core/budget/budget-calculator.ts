@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Service } from '@angular/core';
 import {
   type Transaction,
   type BudgetLine,
@@ -6,7 +6,7 @@ import {
   BudgetFormulas,
 } from 'pulpe-shared';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class BudgetCalculator {
   /**
    * Calcule le revenu planifié depuis les budget lines

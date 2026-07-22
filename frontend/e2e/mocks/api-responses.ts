@@ -54,7 +54,6 @@ export interface MockBudgetDetailsResponse {
       amount: number;
       kind: 'income' | 'expense' | 'saving';
       transactionDate: string;
-      category: string | null;
       createdAt: string;
       updatedAt: string;
       checkedAt: string | null;

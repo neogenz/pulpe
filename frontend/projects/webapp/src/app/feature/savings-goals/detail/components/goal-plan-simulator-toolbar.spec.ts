@@ -6,6 +6,7 @@ import {
   Output,
   provideZonelessChangeDetection,
   signal,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
@@ -25,6 +26,7 @@ import { GoalPlanSimulatorToolbar } from './goal-plan-simulator-toolbar';
 @Component({
   selector: 'pulpe-currency-input',
   imports: [MatInputModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <input
       matInput

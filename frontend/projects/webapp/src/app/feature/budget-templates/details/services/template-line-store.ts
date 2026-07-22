@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Service, inject } from '@angular/core';
 import { cachedMutation } from 'ngx-ziflux';
 import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
@@ -36,7 +36,7 @@ export interface TemplateLineFormInput {
 
 type BulkMutationResult = TemplateLinesBulkOperationsResponse;
 
-@Injectable()
+@Service({ autoProvided: false })
 export class TemplateLineStore {
   readonly #budgetApi = inject(BudgetApi);
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);

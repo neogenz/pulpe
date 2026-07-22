@@ -19,7 +19,9 @@ permissions:
 
 # Variables globales
 env:
-  NODE_VERSION: "22"
+  # Angular 22 requires >= 22.22.3 / 24.15.0 / 26. Vercel's 22.x image sits at
+  # 22.22.2, so the whole pipeline runs on 24 to match engines.node.
+  NODE_VERSION: "24"
   PNPM_VERSION: "10.12.1"
   BUN_VERSION: "1.2.17"
   # Pinned: "latest" resolves via unauthenticated GitHub Releases API → rate-limited across the 6 setup-cli jobs

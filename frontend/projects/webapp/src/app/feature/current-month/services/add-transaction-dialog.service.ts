@@ -1,5 +1,5 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { inject, Injectable } from '@angular/core';
+import { inject, Service } from '@angular/core';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatDialog } from '@angular/material/dialog';
 import { firstValueFrom } from 'rxjs';
@@ -7,7 +7,7 @@ import { AddTransactionBottomSheet } from '../components/add-transaction-bottom-
 import { AddTransactionDialog } from '../components/add-transaction-dialog';
 import type { TransactionFormData } from '../components/add-transaction-form';
 
-@Injectable()
+@Service({ autoProvided: false })
 export class AddTransactionDialogService {
   readonly #breakpointObserver = inject(BreakpointObserver);
   readonly #bottomSheet = inject(MatBottomSheet);

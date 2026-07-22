@@ -108,11 +108,17 @@
       "outputs": [],
       "inputs": ["**/*.{ts,tsx}", "tsconfig*.json"]
     },
+    "typecheck:e2e": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "inputs": ["**/*.{ts,tsx}", "tsconfig*.json"]
+    },
     "quality": {
       "dependsOn": [
         "^build",
         "type-check",
         "typecheck:spec",
+        "typecheck:e2e",
         "lint",
         "format:check"
       ]

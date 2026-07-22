@@ -1,7 +1,7 @@
 import {
   computed,
   inject,
-  Injectable,
+  Service,
   InjectionToken,
   signal,
 } from '@angular/core';
@@ -49,7 +49,7 @@ export const DASHBOARD_NOW = new InjectionToken<Date>('DASHBOARD_NOW', {
   factory: () => new Date(),
 });
 
-@Injectable()
+@Service({ autoProvided: false })
 export class DashboardStore {
   // ── 1. Dependencies ──
   readonly #budgetApi = inject(BudgetApi);

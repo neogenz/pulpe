@@ -1,12 +1,6 @@
-import {
-  Injectable,
-  PLATFORM_ID,
-  inject,
-  signal,
-  computed,
-} from '@angular/core';
+import { Service, PLATFORM_ID, inject, signal, computed } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import posthog, { type Properties, type CaptureResult } from 'posthog-js';
+import type { PostHog, Properties, CaptureResult } from 'posthog-js';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { StorageService } from '../storage/storage.service';
@@ -20,15 +14,14 @@ const CROSS_DOMAIN_PARAM = 'ph_did';
  * PostHog service for analytics and error tracking.
  * Uses PostHog's built-in privacy protection and minimal configuration.
  */
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class PostHogService {
   readonly #applicationConfiguration = inject(ApplicationConfiguration);
   readonly #logger = inject(Logger);
   readonly #platformId = inject(PLATFORM_ID);
   readonly #storageService = inject(StorageService);
 
+  #posthog: PostHog | null = null;
   readonly #isInitialized = signal<boolean>(false);
   readonly #flagsVersion = signal<number>(0);
   #isTrackingEnabled = false;
@@ -74,6 +67,9 @@ export class PostHogService {
       this.#logger.info('Initializing PostHog', { host: config.host });
 
       const crossDomainId = this.#extractCrossDomainId();
+
+      const posthog = (await import('posthog-js')).default;
+      this.#posthog = posthog;
 
       posthog.init(config.apiKey, {
         api_host: config.host,
@@ -128,7 +124,7 @@ export class PostHogService {
     const overrides = this.#readFlagOverrides();
     if (overrides && key in overrides) return overrides[key] === true;
     if (!this.#isInitialized()) return false;
-    return posthog.isFeatureEnabled(key) === true;
+    return this.#posthog?.isFeatureEnabled(key) === true;
   }
 
   /**
@@ -169,14 +165,14 @@ export class PostHogService {
 
     try {
       // Enable full tracking: SPA navigation, page leaves, and autocapture
-      posthog.set_config({
+      this.#posthog?.set_config({
         capture_pageview: 'history_change',
         capture_pageleave: 'if_capture_pageview',
         autocapture: true,
       });
 
       // Capture the initial pageview (subsequent navigations are auto-tracked)
-      posthog.capture('$pageview');
+      this.#posthog?.capture('$pageview');
       this.#isTrackingEnabled = true;
       this.#logger.info('PostHog tracking enabled with SPA navigation support');
     } catch (error) {
@@ -191,7 +187,7 @@ export class PostHogService {
     if (!this.#canCapture()) return;
 
     try {
-      posthog.capture(event, properties);
+      this.#posthog?.capture(event, properties);
       this.#logger.debug('PostHog event captured', { event });
     } catch (error) {
       this.#logger.error('Failed to capture event', error);
@@ -206,7 +202,7 @@ export class PostHogService {
     if (!this.#canCapture()) return;
 
     try {
-      posthog.captureException(error, {
+      this.#posthog?.captureException(error, {
         ...context,
         release: buildInfo.version,
         commit: buildInfo.shortCommitHash,
@@ -225,7 +221,7 @@ export class PostHogService {
     if (!this.#canCapture()) return;
 
     try {
-      posthog.identify(userId, properties);
+      this.#posthog?.identify(userId, properties);
       this.#logger.debug('PostHog user identified', { userId });
     } catch (error) {
       this.#logger.error('Failed to identify user', error);
@@ -242,7 +238,7 @@ export class PostHogService {
     if (!this.#canCapture()) return;
 
     try {
-      posthog.setPersonProperties(properties, propertiesOnce);
+      this.#posthog?.setPersonProperties(properties, propertiesOnce);
       this.#logger.debug('PostHog person properties set');
     } catch (error) {
       this.#logger.error('Failed to set person properties', error);
@@ -297,7 +293,7 @@ export class PostHogService {
     if (!this.#canCapture()) return;
 
     try {
-      posthog.reset();
+      this.#posthog?.reset();
       this.#isTrackingEnabled = false;
       this.#registerGlobalProperties();
       this.#logger.debug('PostHog state reset');
@@ -344,7 +340,7 @@ export class PostHogService {
         platform: 'web',
       };
 
-      posthog.register(globalProperties);
+      this.#posthog?.register(globalProperties);
       this.#logger.info('PostHog global properties registered');
 
       // Use modern setPersonProperties instead of deprecated people.set_once

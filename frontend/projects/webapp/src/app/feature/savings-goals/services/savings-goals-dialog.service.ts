@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Service } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { TranslocoService } from '@jsverse/transloco';
 import { firstValueFrom } from 'rxjs';
@@ -25,7 +25,7 @@ import {
   type GoalGenerationStopDialogData,
 } from '../detail/components/goal-generation-stop-dialog';
 
-@Injectable()
+@Service({ autoProvided: false })
 export class SavingsGoalsDialogService {
   readonly #dialog = inject(MatDialog);
   readonly #transloco = inject(TranslocoService);

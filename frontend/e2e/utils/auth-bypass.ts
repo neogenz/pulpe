@@ -289,6 +289,43 @@ export async function setupApiMocks(page: Page) {
       });
     }
 
+    // App version endpoint - polled on bootstrap by AppVersionApi via native fetch.
+    // Left unmocked it reaches a real backend, whose published minVersion would
+    // raise the force-update wall over every test.
+    if (url.includes('app/version')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            ios: { minVersion: '0.0.1', latestVersion: '0.0.1' },
+            web: { minVersion: '0.0.1', latestVersion: '0.0.1' },
+          },
+        }),
+      });
+    }
+
+    // Tag list endpoint - eagerly loaded by TagStore on any budget-details view.
+    // Without it the request falls through to a real backend and gets a 401 on the
+    // fake E2E bearer, which logs the session out mid-test.
+    if (method === 'GET' && url.match(/\/tags(\?.*)?$/)) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: [] }),
+      });
+    }
+
+    // Savings goal list endpoint - same escape route as tags
+    if (method === 'GET' && url.match(/\/savings-goals(\?.*)?$/)) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: [] }),
+      });
+    }
+
     // Template endpoints - handle different patterns
     if (url.includes('budget-templates')) {
       // Template lines endpoint: /api/v1/budget-templates/{id}/lines

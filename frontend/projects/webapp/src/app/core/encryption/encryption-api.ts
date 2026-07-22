@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Service, inject } from '@angular/core';
 import { type Observable } from 'rxjs';
 import {
   type EncryptionSaltResponse,
@@ -18,9 +18,7 @@ import {
 } from 'pulpe-shared';
 import { ApiClient } from '@core/api/api-client';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class EncryptionApi {
   readonly #api = inject(ApiClient);
 

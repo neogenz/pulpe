@@ -504,7 +504,7 @@ Polices : Manrope (titres/brand) + SF Pro système (corps, labels, captions, mon
 | Spring | response 0.5s, damping 0.8 |
 | Gentle spring | response 0.6s, damping 0.85 |
 
-### 8.2 App Web (Angular + Material 21 + Tailwind v4)
+### 8.2 App Web (Angular + Material 22 + Tailwind v4)
 
 #### Système de tokens (3 couches)
 

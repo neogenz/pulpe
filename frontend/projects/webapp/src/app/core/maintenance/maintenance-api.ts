@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Service } from '@angular/core';
 
 import { REQUEST_ID_HEADER } from 'pulpe-shared';
 import { z } from 'zod';
@@ -22,9 +22,7 @@ const CACHE_TTL_MS = 10_000;
  * Caches the result for 10s to avoid duplicate requests during navigation bursts
  * (the guard runs on every route activation).
  */
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class MaintenanceApi {
   readonly #config = inject(ApplicationConfiguration);
   #cached: { status: MaintenanceStatus; timestamp: number } | null = null;

@@ -1,10 +1,10 @@
-import { Injectable } from '@angular/core';
+import { Service } from '@angular/core';
 import type { Transaction, BudgetLine } from 'pulpe-shared';
 import type { TableRowItem } from './table-items.view-model';
 import type { BudgetViewMode } from './budget-view-mode';
 import { buildViewData } from './budget-item-data-builder';
 
-@Injectable()
+@Service({ autoProvided: false })
 export class BudgetItemDataProvider {
   provideTableData(params: {
     budgetLines: BudgetLine[];

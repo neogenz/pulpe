@@ -12,7 +12,7 @@
  * where `isLoading=true` is normal bootstrap, not a hang.
  */
 import { DOCUMENT } from '@angular/common';
-import { DestroyRef, inject, Injectable } from '@angular/core';
+import { DestroyRef, inject, Service } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthSessionService } from '@core/auth/auth-session.service';
 import { AuthStore } from '@core/auth/auth-store';
@@ -45,7 +45,7 @@ type ResumeTriggerReason =
   | 'pageshow_hung_fetch'
   | 'splash_timeout';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class ResumeRefreshService {
   readonly #document = inject(DOCUMENT);
   readonly #destroyRef = inject(DestroyRef);

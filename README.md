@@ -72,7 +72,7 @@ Pulpe est une application de gestion de budgets personnels développée en Suiss
 
 | Couche | Technologies |
 |--------|-------------|
-| **Frontend** | Angular 21, Signals, Material 21, Tailwind CSS v4 |
+| **Frontend** | Angular 22, Signals, Material 22, Tailwind CSS v4 |
 | **Backend** | NestJS 11, Bun, Supabase (PostgreSQL + Auth + RLS) |
 | **iOS** | SwiftUI, WidgetKit |
 | **Landing** | Next.js, Tailwind CSS v4 |

@@ -81,7 +81,7 @@ pattern/
 
 ```typescript
 // pattern/document-manager/document.service.ts
-@Injectable()
+@Service({ autoProvided: false })
 export class DocumentService {
   private readonly http = inject(HttpClient);
   private readonly documents = signal<Document[]>([]);

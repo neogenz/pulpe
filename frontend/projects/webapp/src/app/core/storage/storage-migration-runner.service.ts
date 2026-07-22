@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Service, inject } from '@angular/core';
 import { Logger } from '../logging/logger';
 import { getSchemaConfig } from './storage-schemas';
 import { applyMigrations, getMigrationsForKey } from './storage-migrations';
@@ -12,9 +12,7 @@ import { isStorageEntry, type StorageEntry } from './storage.types';
  * - Clears legacy format data (one-time reset)
  * - Migrates versioned data if outdated
  */
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class StorageMigrationRunnerService {
   readonly #logger = inject(Logger);
 

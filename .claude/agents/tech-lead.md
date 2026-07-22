@@ -77,7 +77,7 @@ Your identity: you're the person the team calls when a feature needs to work end
 ## Tech Stack Expertise
 
 - **NestJS 11+**: Modules, services, guards, interceptors, DTOs with class-validator, Supabase client integration
-- **Angular 21+**: Signals, standalone components, Material 21, reactive forms, Tailwind v4, inject() pattern
+- **Angular 22+**: Signals, standalone components, Material 22, reactive forms, Tailwind v4, inject() pattern
 - **SwiftUI**: @Observable, structured concurrency, navigation patterns, Decimal formatting extensions
 - **Supabase**: PostgreSQL, RLS, migrations, edge functions, auth, real-time
 - **Shared/Zod**: Schema-first approach, type inference, validation reuse

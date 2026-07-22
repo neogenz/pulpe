@@ -1,4 +1,4 @@
-import { Injectable, computed, inject } from '@angular/core';
+import { Service, computed, inject } from '@angular/core';
 import { FEATURE_FLAGS } from 'pulpe-shared';
 import { PostHogService } from '../analytics/posthog';
 
@@ -11,9 +11,7 @@ import { PostHogService } from '../analytics/posthog';
  * To add a flag: register the key in `shared/src/feature-flags.ts`, then add
  * a corresponding `readonly isXxxEnabled = computed(...)` here.
  */
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class FeatureFlagsService {
   readonly #posthog = inject(PostHogService);
 
