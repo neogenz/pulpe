@@ -631,14 +631,18 @@ describe("landing accessibility contracts", () => {
     );
   });
 
-  it("keeps the planning-tools context attached to its heading on every viewport", () => {
+  it("keeps the planning-tools introduction compact on every viewport", () => {
     assert.doesNotMatch(
       componentSources.features,
       /<header className="grid[^"]*lg:grid-cols-12/,
     );
     assert.match(
       componentSources.features,
-      /<header className="max-w-4xl">[\s\S]*<p className="pretty mt-5 max-w-2xl/,
+      /<header className="max-w-4xl">[\s\S]*<h2/,
+    );
+    assert.doesNotMatch(
+      componentSources.features,
+      /Tu ajustes une dépense ou un projet/,
     );
     assert.match(
       componentSources.features,

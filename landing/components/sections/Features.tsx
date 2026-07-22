@@ -37,10 +37,6 @@ export function Features() {
             Pulpe recalcule la suite.
           </mark>
         </h2>
-        <p className="pretty mt-5 max-w-2xl text-lg leading-relaxed text-text-secondary">
-          Tu ajustes une dépense ou un projet. Les mois suivants restent à
-          jour, sans refaire ton budget.
-        </p>
       </header>
 
       <div className="mt-12 overflow-hidden rounded-[var(--radius-large)] bg-surface outline outline-1 -outline-offset-1 outline-black/5 lg:mt-14">
