@@ -11,6 +11,7 @@ const STEPS = [
       content: (
         <Screenshot
           src="/screenshots/responsive/ecran-des-modeles.webp"
+          iosSrc="/screenshots/ios/ecran-des-modeles.webp"
           desktopSrc="/screenshots/webapp/ecran-des-modeles.webp"
           label="Le mois type qui sert de base au budget"
           mobileWidth={750}
@@ -33,6 +34,7 @@ const STEPS = [
       content: (
         <Screenshot
           src="/screenshots/responsive/vue-calendrier-annuel.webp"
+          iosSrc="/screenshots/ios/vue-annuelle-des-budgets.webp"
           desktopSrc="/screenshots/webapp/vue-calendrier-annuel.webp"
           label="Les mois projetés à partir du mois type"
           mobileWidth={750}
@@ -55,6 +57,7 @@ const STEPS = [
       content: (
         <Screenshot
           src="/screenshots/responsive/liste-des-previsions.webp"
+          iosSrc="/screenshots/ios/detail-du-budget.webp"
           desktopSrc="/screenshots/webapp/liste-des-previsions.webp"
           label="Le disponible prévu pour un mois à venir"
           mobileWidth={750}

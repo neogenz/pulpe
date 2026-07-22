@@ -11,6 +11,7 @@ import { useImageLightbox } from "@/contexts/useImageLightbox";
 
 interface ScreenshotProps {
   src?: string;
+  iosSrc?: string;
   desktopSrc?: string;
   label: string;
   className?: string;
@@ -30,6 +31,7 @@ interface ScreenshotProps {
 const DESKTOP_MEDIA_QUERY = "(min-width: 768px)";
 const MOBILE_IMAGE_WIDTH = 750;
 const TABLET_IMAGE_WIDTH = 1548;
+const IOS_IMAGE_HEIGHT = 1630;
 
 function toWebP(path: string): string {
   return path.replace(/\.png$/, ".webp");
@@ -55,8 +57,19 @@ function getServerSnapshot() {
   return false;
 }
 
+function subscribeToDevice() {
+  return () => undefined;
+}
+
+function getIsIPhone() {
+  return typeof navigator !== "undefined"
+    ? /iPhone|iPod/.test(navigator.userAgent)
+    : false;
+}
+
 export const Screenshot = memo(function Screenshot({
   src,
+  iosSrc,
   desktopSrc,
   label,
   className = "",
@@ -75,17 +88,29 @@ export const Screenshot = memo(function Screenshot({
     getIsDesktop,
     getServerSnapshot,
   );
+  const isIPhone = useSyncExternalStore(
+    subscribeToDevice,
+    getIsIPhone,
+    getServerSnapshot,
+  );
+  const iosMobileSrc = !isDesktop && isIPhone ? iosSrc : undefined;
+  const renderedMobileHeight = iosMobileSrc
+    ? IOS_IMAGE_HEIGHT
+    : mobileHeight;
 
   const handleClick = useCallback(() => {
     if (!src) return;
-    const imageSrc = isDesktop && desktopSrc ? toWebP(desktopSrc) : toWebP(src);
+    const imageSrc =
+      isDesktop && desktopSrc
+        ? toWebP(desktopSrc)
+        : toWebP(iosMobileSrc ?? src);
     openLightbox(imageSrc, label);
-  }, [src, desktopSrc, label, isDesktop, openLightbox]);
+  }, [src, desktopSrc, iosMobileSrc, label, isDesktop, openLightbox]);
 
   // Reserve the correct box at each breakpoint so the landscape desktop asset
   // and the portrait mobile asset never cause a decode-time layout shift (CLS).
   const frameStyle = {
-    "--m-ar": `${mobileWidth} / ${mobileHeight}`,
+    "--m-ar": `${mobileWidth} / ${renderedMobileHeight}`,
     "--d-ar":
       desktopAspectRatio ??
       `${desktopWidth ?? mobileWidth} / ${desktopHeight ?? mobileHeight}`,
@@ -94,7 +119,10 @@ export const Screenshot = memo(function Screenshot({
   if (src) {
     const mobileWebP = toMobileWebP(src);
     const tabletWebP = toWebP(src);
-    const mobileSrcSet = `${mobileWebP} ${MOBILE_IMAGE_WIDTH}w, ${tabletWebP} ${TABLET_IMAGE_WIDTH}w`;
+    const selectedMobileSrc = iosMobileSrc ?? mobileWebP;
+    const mobileSrcSet = iosMobileSrc
+      ? iosMobileSrc
+      : `${mobileWebP} ${MOBILE_IMAGE_WIDTH}w, ${tabletWebP} ${TABLET_IMAGE_WIDTH}w`;
 
     return (
       <button
@@ -121,10 +149,10 @@ export const Screenshot = memo(function Screenshot({
             <source media="(min-width: 768px)" srcSet={desktopSrc} />
           )}
           <img
-            src={mobileWebP}
+            src={selectedMobileSrc}
             alt={label}
             width={mobileWidth}
-            height={mobileHeight}
+            height={renderedMobileHeight}
             loading={isLCP ? "eager" : "lazy"}
             fetchPriority={fetchPriority}
             className={`h-full w-full ${fit === "contain" ? "object-contain" : "object-cover"} ${className}`}

@@ -503,6 +503,10 @@ describe("landing accessibility contracts", () => {
     assert.doesNotMatch(componentSources.howItWorks, /IntersectionObserver/);
     assert.equal(componentSources.howItWorks.match(/<Screenshot/g)?.length, 3);
     assert.match(componentSources.howItWorks, /liste-des-previsions\.webp/);
+    assert.equal(componentSources.howItWorks.match(/iosSrc=/g)?.length, 3);
+    assert.match(componentSources.screenshot, /\/iPhone\|iPod\//);
+    assert.match(componentSources.screenshot, /!isDesktop && isIPhone/);
+    assert.match(componentSources.screenshot, /IOS_IMAGE_HEIGHT = 1630/);
     assert.match(componentSources.howItWorks, /id="how-it-works"/);
   });
 
