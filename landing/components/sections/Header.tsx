@@ -74,10 +74,10 @@ export function Header() {
       />
       <header className="fixed inset-x-2.5 top-2.5 z-50">
         <nav
-          className={`relative z-20 flex h-14 items-center justify-between gap-3 rounded-2xl px-6 transition-[background-color,backdrop-filter,box-shadow] duration-300 lg:h-[72px] motion-reduce:transition-none ${
+          className={`relative z-20 flex h-14 items-center justify-between gap-3 rounded-2xl px-6 transition-[background-color,backdrop-filter,box-shadow] duration-500 lg:h-[72px] motion-reduce:transition-none ${
             scrolled
-              ? "bg-surface/90 shadow-[var(--shadow-glass)] backdrop-blur-xl"
-              : "bg-white/40 shadow-none backdrop-blur-none"
+              ? "bg-surface/80 shadow-[0_4px_30px_rgba(0,0,0,0.1)] backdrop-blur-[14px] backdrop-saturate-150 ring-1 ring-white/60"
+              : "bg-white/40 shadow-none backdrop-blur-none ring-1 ring-transparent"
           }`}
           aria-label="Navigation principale"
         >
@@ -102,7 +102,7 @@ export function Header() {
               <a
                 key={link.href}
                 href={link.href}
-                className="inline-flex min-h-11 items-center rounded-full px-4 py-2 text-sm font-medium text-text-secondary transition-[color,background-color,scale] duration-200 hover:bg-primary/8 hover:text-primary active:scale-[0.96] active:bg-primary/12 motion-reduce:transition-none motion-reduce:scale-100"
+                className="inline-flex min-h-11 items-center rounded-full px-4 py-2 text-sm font-medium text-text transition-[color,background-color,scale] duration-200 hover:bg-primary/8 hover:text-primary active:scale-[0.96] active:bg-primary/12 motion-reduce:transition-none motion-reduce:scale-100"
               >
                 {link.label}
               </a>

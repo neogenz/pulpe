@@ -185,6 +185,25 @@ describe("landing accessibility contracts", () => {
     assert.doesNotMatch(componentSources.hero, /href="#how-it-works"/);
   });
 
+  it("keeps the liquid-glass navbar readable over page content", () => {
+    assert.match(
+      componentSources.header,
+      /bg-surface\/80 shadow-\[0_4px_30px_rgba\(0,0,0,0\.1\)\] backdrop-blur-\[14px\] backdrop-saturate-150 ring-1 ring-white\/60/,
+    );
+    assert.match(
+      componentSources.header,
+      /bg-white\/40 shadow-none backdrop-blur-none ring-1 ring-transparent/,
+    );
+    assert.match(
+      componentSources.header,
+      /transition-\[background-color,backdrop-filter,box-shadow\] duration-500/,
+    );
+    assert.match(
+      componentSources.header,
+      /href=\{link\.href\}[\s\S]*?className="[^"]*\btext-text\b[^"]*"/,
+    );
+  });
+
   it("frames the problem and current alternatives before the solution", () => {
     assert.match(
       componentSources.painPoints,
