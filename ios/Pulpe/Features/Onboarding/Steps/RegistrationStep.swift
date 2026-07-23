@@ -78,6 +78,8 @@ extension RegistrationStep {
             .keyboardType(.emailAddress)
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
+            .submitLabel(.next)
+            .onSubmit { focusedField = .password }
             .accessibilityIdentifier("registrationEmail")
             .accessibilityLabel("Adresse e-mail")
             .accessibilityHint("Saisis ton adresse e-mail")

@@ -14,7 +14,14 @@ enum PinSetupMode: Equatable, Sendable {
         }
     }
 
-    var subtitle: String { "\(PinConstants.length) chiffres" }
+    var subtitle: String {
+        switch self {
+        case .chooseAndSetupRecovery:
+            "\(PinConstants.length) chiffres — tes montants sont chiffrés avec ce code"
+        case .enterExistingPin:
+            "\(PinConstants.length) chiffres"
+        }
+    }
 }
 
 // MARK: - Setup Step
@@ -178,7 +185,7 @@ final class PinSetupViewModel {
 
     var subtitle: String {
         switch currentStep {
-        case .enterPin: return "\(PinConstants.length) chiffres"
+        case .enterPin: return mode.subtitle
         case .confirmPin: return "Saisis à nouveau ton code"
         }
     }
