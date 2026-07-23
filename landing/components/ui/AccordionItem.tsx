@@ -17,14 +17,14 @@ export const AccordionItem = memo(function AccordionItem({ question, answer }: A
   const toggle = () => setOpen((prev) => !prev)
 
   return (
-    <div className="bg-surface rounded-[var(--radius-card)] border border-text/5">
+    <div className="overflow-hidden rounded-[var(--radius-card)] border border-text/5 bg-surface">
       <button
         type="button"
         id={triggerId}
         onClick={toggle}
         aria-expanded={open}
         aria-controls={panelId}
-        className="flex w-full items-center justify-between cursor-pointer p-5 text-text font-medium select-none text-left"
+        className="flex w-full cursor-pointer select-none items-center justify-between p-5 text-left font-medium text-text transition-colors duration-200 hover:bg-primary/5 active:bg-primary/10 motion-reduce:transition-none"
       >
         <span>{question}</span>
         <span

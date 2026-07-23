@@ -16,30 +16,29 @@
     "build": "next build",
     "start": "next start",
     "test": "tsx --test app/accessibility.test.tsx lib/bodyScrollLock.test.ts scripts/create-release.test.js",
-    "lint": "next lint",
+    "lint": "eslint .",
     "type-check": "tsc --noEmit",
     "generate:og": "npx tsx scripts/generate-og-image.ts",
     "create:release": "node scripts/create-release.js"
   },
   "dependencies": {
-    "lucide-react": "^0.562.0",
-    "next": "^15.5.18",
-    "posthog-js": "^1.364.4",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "lucide-react": "^1.25.0",
+    "next": "^16.2.11",
+    "posthog-js": "^1.407.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.1",
     "@resvg/resvg-js": "^2.6.2",
-    "@tailwindcss/postcss": "^4.1.18",
-    "@types/node": "^24.10.1",
-    "@types/react": "^19.2.5",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "eslint": "^9.28.0",
-    "eslint-config-next": "^15.3.8",
-    "satori": "^0.19.1",
-    "tailwindcss": "^4.1.18",
-    "tsx": "^4.20.4",
-    "typescript": "~5.9.3"
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.2.11",
+    "satori": "^0.28.2",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.1",
+    "typescript": "~6.0.3"
   }
 }

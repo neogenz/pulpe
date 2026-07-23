@@ -2,6 +2,10 @@ import { AccordionItem, Section } from "@/components/ui";
 
 const FAQ_ITEMS = [
   {
+    q: "Pourquoi Pulpe plutôt qu’Excel ou YNAB ?",
+    a: "Pulpe est fait pour planifier les mois qui viennent, pas pour suivre chaque dépense au jour le jour. Avec Excel, tu construis et entretiens toi-même la projection. YNAB t’aide surtout à répartir l’argent que tu as aujourd’hui. Dans Pulpe, tu places tes revenus et tes dépenses au mois où ils arriveront. Le solde se reporte d’un mois à l’autre pour te montrer si ton budget tient sur l’année.",
+  },
+  {
     q: "C’est vraiment gratuit ?",
     a: "Oui. Pulpe est aujourd’hui gratuit, sans publicité ni abonnement. Le projet est personnel et son code source est public.",
   },
@@ -10,20 +14,16 @@ const FAQ_ITEMS = [
     a: "Oui. Tu peux exporter tes budgets depuis l’app. Tes données ne sont pas enfermées dans Pulpe.",
   },
   {
-    q: "Tu peux lire mes montants ?",
-    a: "Tes montants sont chiffrés avec AES-256-GCM. Leur lecture demande la clé dérivée de ton code PIN et un secret conservé côté serveur ; une fuite de la base seule ne suffit pas.",
+    q: "Mes montants sont-ils protégés ?",
+    a: "Oui. Ils ne sont jamais stockés en clair dans la base. Pulpe les chiffre avec AES-256-GCM à l’aide de deux clés conservées séparément. Une fuite de la base seule ne suffit donc pas à les lire.",
   },
   {
     q: "Pourquoi pas de connexion à ma banque ?",
     a: "C’est volontaire. Pulpe ne demande aucun accès à tes comptes. Tu gardes la main sur ce que tu ajoutes et ce que tu pointes.",
   },
   {
-    q: "Il faut combien de temps pour commencer ?",
-    a: "Environ 3 minutes : renseigne ton mois type, place les exceptions, puis lis la projection de ton année.",
-  },
-  {
-    q: "Ça marche sur quoi ?",
-    a: "Dans ton navigateur, sans rien installer, et dans l’app iOS native. L’app Android est en cours.",
+    q: "Combien de temps faut-il pour commencer ?",
+    a: "Quelques minutes suffisent : renseigne un mois habituel, ajoute les dépenses ponctuelles que tu connais, puis consulte la projection de ton année.",
   },
 ];
 
@@ -32,9 +32,8 @@ export function FAQ() {
     <Section id="faq">
       <div className="mx-auto max-w-3xl">
         <div className="max-w-2xl">
-          <p className="text-sm font-medium text-primary">Avant de commencer</p>
-          <h2 className="mt-3 text-4xl font-bold leading-[1.05] tracking-[-0.035em] sm:text-5xl">
-            Les réponses courtes aux vraies questions.
+          <h2 className="text-4xl font-bold leading-[1.05] tracking-[-0.035em] sm:text-5xl">
+            Les questions qu&apos;on me pose le plus.
           </h2>
         </div>
         <div className="mt-10 space-y-3">

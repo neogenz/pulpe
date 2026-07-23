@@ -79,7 +79,7 @@ export function Platforms() {
         <div className="flex flex-col rounded-[var(--radius-large)] bg-surface p-7 shadow-[var(--shadow-organic)] outline outline-1 -outline-offset-1 outline-black/5 sm:p-9 lg:col-span-2">
           <Globe className="size-7 text-primary" strokeWidth={1.7} />
           <h3 className="mt-6 text-3xl font-semibold tracking-[-0.025em]">
-            Déjà sur le Web
+            Dans ton navigateur
           </h3>
           <p className="mt-3 leading-relaxed text-text-secondary">
             Ouvre Pulpe dans ton navigateur, sur ordinateur ou mobile. Rien à
@@ -93,7 +93,7 @@ export function Platforms() {
               trackCTAClick("ouvrir_navigateur", "platforms", "/welcome")
             }
           >
-            Ouvrir Pulpe
+            Ouvrir l&apos;app web
           </Button>
 
           <div className="mt-8 border-t border-text/10 pt-7">

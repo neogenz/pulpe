@@ -11,14 +11,19 @@ const poppins = Poppins({
   variable: "--font-poppins",
 });
 
+const SOCIAL_PREVIEW_IMAGE = "/pulpe-social-preview.png?v=2";
+const SOCIAL_PREVIEW_ALT =
+  "Pulpe projette ton budget sur l’année et montre combien il te restera";
+const SOCIAL_DESCRIPTION =
+  "Planifie tes revenus, tes dépenses et ton épargne. Pulpe te montre combien il te restera chaque mois, sans connexion bancaire.";
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://pulpe.app"),
   title: {
-    template: "%s – Pulpe",
-    default: "Pulpe – Tu sais des mois d’avance ce qu’il te restera",
+    template: "%s | Pulpe",
+    default: "Pulpe | Tu sais des mois d’avance combien il te restera",
   },
-  description:
-    "Impôts, vacances, imprévus : Pulpe place ton année devant toi et projette ton solde mois après mois, sans connexion bancaire.",
+  description: SOCIAL_DESCRIPTION,
   applicationName: "Pulpe",
   verification: {
     google: "20-QgsBLcccy2f1lY275s0mayKmxWZZWo9Rg8aGxTQ0",
@@ -31,9 +36,8 @@ export const metadata: Metadata = {
     canonical: "/",
   },
   openGraph: {
-    title: "Pulpe – Tu sais des mois d’avance ce qu’il te restera",
-    description:
-      "Place ton année devant toi et projette ton solde mois après mois, sans connexion bancaire.",
+    title: "Pulpe | Tu sais des mois d’avance combien il te restera",
+    description: SOCIAL_DESCRIPTION,
     siteName: "Pulpe",
     type: "website",
     url: "/",
@@ -41,19 +45,27 @@ export const metadata: Metadata = {
     alternateLocale: ["fr_FR"],
     images: [
       {
-        url: "/og-image.png",
+        url: SOCIAL_PREVIEW_IMAGE,
         width: 1200,
         height: 630,
-        alt: "Pulpe, le budget tourné vers les mois qui viennent",
+        alt: SOCIAL_PREVIEW_ALT,
+        type: "image/png",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Pulpe – Tu sais des mois d’avance ce qu’il te restera",
-    description:
-      "Place ton année devant toi et projette ton solde mois après mois, sans connexion bancaire.",
-    images: ["/og-image.png"],
+    title: "Pulpe | Tu sais des mois d’avance combien il te restera",
+    description: SOCIAL_DESCRIPTION,
+    images: [
+      {
+        url: SOCIAL_PREVIEW_IMAGE,
+        alt: SOCIAL_PREVIEW_ALT,
+        type: "image/png",
+        width: 1200,
+        height: 630,
+      },
+    ],
   },
   icons: {
     icon: "/icon-192.png",
@@ -71,7 +83,7 @@ const jsonLd = {
       name: "Pulpe",
       alternateName: ["pulpe", "Pulpe app", "pulpe.app"],
       description:
-        "Pulpe place ton année devant toi et projette ton solde mois après mois, sans connexion bancaire.",
+        "Pulpe calcule ton disponible mois après mois à partir de tes revenus, de tes dépenses et de ton épargne, sans connexion bancaire.",
       inLanguage: "fr-CH",
     },
     {
@@ -79,7 +91,7 @@ const jsonLd = {
       "@id": "https://pulpe.app/#app",
       name: "Pulpe",
       description:
-        "Pulpe place ton année devant toi et projette ton solde mois après mois, sans connexion bancaire.",
+        "Pulpe calcule ton disponible mois après mois à partir de tes revenus, de tes dépenses et de ton épargne, sans connexion bancaire.",
       applicationCategory: "FinanceApplication",
       operatingSystem: "Web, iOS",
       offers: {

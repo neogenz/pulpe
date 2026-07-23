@@ -1,13 +1,13 @@
 import { ImageLightboxProvider } from "@/contexts/ImageLightboxProvider";
+import { MarkerDraw, StickyCTA } from "@/components/ui";
 import {
   Header,
   Hero,
   PainPoints,
   Solution,
+  Testimonials,
   Features,
-  HowItWorks,
   Platforms,
-  Roadmap,
   WhyFree,
   FAQ,
   FinalCTA,
@@ -29,17 +29,18 @@ export default function LandingPage() {
       <main id="main-content">
         <Hero />
         <PainPoints />
-        <HowItWorks />
         <Solution />
+        <Testimonials />
         <Features />
         <Platforms />
-        <Roadmap />
         <WhyFree />
         <FAQ />
         <FinalCTA />
       </main>
 
       <Footer />
+      <MarkerDraw />
+      <StickyCTA />
     </ImageLightboxProvider>
   );
 }
