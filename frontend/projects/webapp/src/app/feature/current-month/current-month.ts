@@ -124,6 +124,7 @@ import { CURRENCY_CONFIG } from '@core/currency';
               class="order-2 lg:order-1"
               [transactions]="store.recentTransactions()"
               (viewBudget)="navigateToBudgetDetails()"
+              (addTransaction)="openAddTransaction()"
               data-testid="dashboard-block-recent-transactions"
             />
 

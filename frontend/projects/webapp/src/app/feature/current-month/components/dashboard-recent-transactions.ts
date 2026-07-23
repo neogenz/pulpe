@@ -114,6 +114,15 @@ const KIND_ICONS: Record<TransactionKind, string> = {
             <p class="text-body-medium text-on-surface-variant">
               {{ 'currentMonth.noTransactionThisMonth' | transloco }}
             </p>
+            <button
+              matButton="outlined"
+              class="mt-4 !h-11"
+              data-testid="empty-state-add-transaction"
+              (click)="addTransaction.emit()"
+            >
+              <mat-icon>add</mat-icon>
+              {{ 'currentMonth.addFirstTransaction' | transloco }}
+            </button>
           </div>
         }
       </div>
@@ -130,6 +139,7 @@ export class DashboardRecentTransactions {
   protected readonly currency = this.#userSettings.currency;
   readonly transactions = input.required<Transaction[]>();
   readonly viewBudget = output<void>();
+  readonly addTransaction = output<void>();
 
   protected kindIcon(kind: TransactionKind): string {
     return KIND_ICONS[kind];
