@@ -729,11 +729,14 @@ jobs:
         if: always()
         run: xcrun simctl shutdown all 2>/dev/null || true
 
-  # 🔍 DETECT MIGRATION CHANGES (PRs only — gates whether the prod-linked
-  # dry-run runs at all, so ordinary PRs never hit the manual approval gate)
+  # 🔍 DETECT MIGRATION CHANGES — gates whether the prod-linked migration jobs
+  # run at all, so ordinary PRs and code-only releases never hit the manual
+  # approval gate. Runs on migration-relevant PRs and on push to main.
   detect-migrations:
     name: 🔍 Detect Migration Changes
-    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
+    if: >-
+      (github.event_name == 'pull_request' && github.actor != 'dependabot[bot]') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     timeout-minutes: 2
     outputs:
@@ -745,8 +748,22 @@ jobs:
           fetch-depth: 0
       - name: 🔍 Any migration file touched?
         id: filter
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE_SHA: ${{ github.event.before }}
         run: |
-          if git diff --name-only "origin/${{ github.base_ref }}...HEAD" -- 'backend-nest/supabase/migrations/' | grep -q .; then
+          MIGRATIONS_PATH='backend-nest/supabase/migrations/'
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            DIFF=$(git diff --name-only "origin/${BASE_REF}...HEAD" -- "$MIGRATIONS_PATH")
+          elif [ -z "$BEFORE_SHA" ] || [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            # New branch / unknown base — can't diff safely, so gate the migrate
+            # job (fail-safe: never silently skip applying a real migration).
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          else
+            DIFF=$(git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" -- "$MIGRATIONS_PATH")
+          fi
+          if [ -n "$DIFF" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
@@ -759,10 +776,9 @@ jobs:
   migrate-dryrun:
     name: 🗄️ Migration Dry-Run
     needs: [detect-migrations]
-    # Runs only when migrations changed (implies pull_request + non-dependabot,
-    # since detect-migrations carries those guards). ci-success treats a skipped
+    # Runs only on a PR that changed migrations. ci-success treats a skipped
     # migrate-dryrun as success.
-    if: needs.detect-migrations.outputs.changed == 'true'
+    if: github.event_name == 'pull_request' && needs.detect-migrations.outputs.changed == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     # Prod secrets only resolve inside the gated Environment: a migration PR
@@ -836,12 +852,15 @@ jobs:
           exit 1
 
   # 🗄️ MIGRATION PRODUCTION (push main only — applique les migrations après CI verte)
+  # Gated on detect-migrations so a code-only release applies nothing and never
+  # waits for approval; only a release that actually changes migration files
+  # runs this job and trips the Environment's required-reviewer gate.
   migrate:
     name: 🗄️ Apply Migrations (Production)
-    if: always() && needs.ci-success.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: always() && needs.ci-success.result == 'success' && needs.detect-migrations.outputs.changed == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [ci-success]
+    needs: [ci-success, detect-migrations]
     environment: production
     steps:
       - name: 📥 Checkout
