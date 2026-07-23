@@ -28,7 +28,7 @@ export function Testimonials() {
   return (
     <Section id="testimonials">
       <header className="mx-auto max-w-2xl text-center">
-        <h2 className="balance text-4xl font-bold leading-[1.08] tracking-[-0.035em] text-text sm:text-5xl">
+        <h2 className="text-4xl font-bold leading-[1.08] tracking-[-0.035em] text-text sm:text-5xl">
           Pourquoi ils utilisent Pulpe.
         </h2>
       </header>
@@ -49,9 +49,9 @@ export function Testimonials() {
               {testimonial.tail}
             </p>
             <footer className="mt-6">
-              <cite className="text-base font-semibold not-italic text-text">
+              <span className="text-base font-semibold text-text">
                 {testimonial.name}
-              </cite>
+              </span>
               <span className="mt-0.5 block text-sm leading-snug text-text-secondary">
                 {testimonial.role}
               </span>

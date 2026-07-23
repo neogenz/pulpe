@@ -4,7 +4,6 @@ export { PainPoints } from "./PainPoints";
 export { Solution } from "./Solution";
 export { Testimonials } from "./Testimonials";
 export { Features } from "./Features";
-export { HowItWorks } from "./HowItWorks";
 export { Platforms } from "./Platforms";
 export { Roadmap } from "./Roadmap";
 export { WhyFree } from "./WhyFree";

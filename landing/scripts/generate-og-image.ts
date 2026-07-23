@@ -32,7 +32,7 @@ const colors = {
   primary: "#006E25",
   marker: "#AAEC96",
   text: "#1A1C19",
-  textSecondary: "#5D5F5B",
+  textSecondary: "#454744",
 };
 
 // Font files configuration

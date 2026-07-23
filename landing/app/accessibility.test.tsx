@@ -519,7 +519,8 @@ describe("landing accessibility contracts", () => {
     );
     assert.doesNotMatch(componentSources.page, /<HowItWorks \/>/);
     assert.match(componentSources.testimonials, /<blockquote/);
-    assert.match(componentSources.testimonials, /<cite/);
+    // Person names are not works: no <cite>, plain styled text instead.
+    assert.doesNotMatch(componentSources.testimonials, /<cite/);
     assert.match(componentSources.testimonials, /Ismaël/);
     assert.doesNotMatch(componentSources.testimonials, /carousel|autoPlay/);
     assert.doesNotMatch(componentSources.testimonials, /background="primary"/);

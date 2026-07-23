@@ -57,7 +57,8 @@ function getServerSnapshot() {
   return false;
 }
 
-function subscribeToDevice() {
+function subscribeToDevice(_callback: () => void) {
+  // navigator.userAgent never changes at runtime — no subscription needed.
   return () => undefined;
 }
 
@@ -142,7 +143,9 @@ export const Screenshot = memo(function Screenshot({
           )}
           <source
             srcSet={mobileSrcSet}
-            sizes="(max-width: 767px) 100vw, 50vw"
+            sizes={
+              iosMobileSrc ? undefined : "(max-width: 767px) 100vw, 50vw"
+            }
             type="image/webp"
           />
           {desktopSrc && (

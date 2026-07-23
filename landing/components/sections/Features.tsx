@@ -7,7 +7,7 @@ export function Features() {
   return (
     <Section id="features">
       <header className="max-w-4xl">
-        <h2 className="balance text-[clamp(2rem,9vw,3rem)] font-bold leading-[1.08] tracking-[-0.035em] text-text sm:text-5xl lg:text-6xl">
+        <h2 className="text-[clamp(2rem,9vw,3rem)] font-bold leading-[1.08] tracking-[-0.035em] text-text sm:text-5xl lg:text-6xl">
           Quand tes plans changent,{" "}
           <mark className="marker-highlight marker-highlight-strong">
             Pulpe recalcule la suite.
@@ -23,7 +23,7 @@ export function Features() {
               strokeWidth={1.7}
               aria-hidden="true"
             />
-            <h3 className="balance mt-5 max-w-xl text-2xl font-semibold leading-tight tracking-[-0.025em] sm:text-3xl">
+            <h3 className="mt-5 max-w-xl text-2xl font-semibold leading-tight tracking-[-0.025em] sm:text-3xl">
               Répartis une grosse dépense sur plusieurs mois.
             </h3>
             <p className="pretty mt-4 max-w-xl leading-relaxed text-text-secondary">
@@ -68,7 +68,7 @@ export function Features() {
               strokeWidth={1.7}
               aria-hidden="true"
             />
-            <h3 className="balance mt-5 max-w-md text-2xl font-semibold leading-tight tracking-[-0.025em] sm:text-3xl">
+            <h3 className="mt-5 max-w-md text-2xl font-semibold leading-tight tracking-[-0.025em] sm:text-3xl">
               Avance vers ton objectif, même si un mois change.
             </h3>
             <p className="pretty mt-4 max-w-md leading-relaxed text-text-secondary">

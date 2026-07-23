@@ -6,8 +6,10 @@ import { angularUrl } from "@/lib/config";
 import { trackCTAClick } from "@/lib/posthog";
 
 /**
- * Mobile-only persistent CTA in the thumb zone: appears once the hero has
- * scrolled out of view and steps aside when the final CTA is on screen.
+ * Persistent CTA below the desktop header breakpoint: appears once the hero
+ * has scrolled out of view and steps aside when the final CTA is on screen.
+ * Shown up to `lg` because the header's own CTA only appears at `lg` —
+ * without it, tablets (768–1023px) would have no persistent way to sign up.
  * Hidden with visibility (not just opacity) so it never grabs focus or taps.
  */
 export function StickyCTA() {
@@ -40,7 +42,7 @@ export function StickyCTA() {
 
   return (
     <div
-      className={`fixed inset-x-4 z-40 transition-[opacity,transform,visibility] duration-300 motion-reduce:transition-none md:hidden ${
+      className={`fixed inset-x-4 z-40 transition-[opacity,transform,visibility] duration-300 motion-reduce:transition-none lg:hidden ${
         visible
           ? "translate-y-0 opacity-100"
           : "invisible translate-y-4 opacity-0"

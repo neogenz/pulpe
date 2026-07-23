@@ -108,7 +108,7 @@ function StepCopy({
         <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white">
           {step.number}
         </span>
-        <h3 className="balance text-xl font-semibold tracking-[-0.02em] text-text lg:text-2xl">
+        <h3 className="text-xl font-semibold tracking-[-0.02em] text-text lg:text-2xl">
           {step.title}
         </h3>
       </div>

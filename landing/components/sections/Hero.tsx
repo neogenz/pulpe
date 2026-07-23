@@ -11,7 +11,11 @@ function subscribeToNothing() {
 
 function getVisitorCurrency(): "CHF" | "EUR" {
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const languages = (navigator.languages ?? [navigator.language]).join(",");
+  const languages = (
+    typeof navigator !== "undefined"
+      ? (navigator.languages ?? [navigator.language])
+      : ["fr-CH"]
+  ).join(",");
   const isSwiss = timezone === "Europe/Zurich" || /-CH\b/i.test(languages);
   const isFrench =
     timezone === "Europe/Paris" || /\bfr(-FR)?\b/i.test(languages);
@@ -34,7 +38,7 @@ export function Hero() {
     <section className="hero-mesh relative overflow-hidden pb-12 pt-36 md:pb-28 md:pt-40 lg:pb-20 lg:pt-44">
       <div className="relative z-10 mx-auto w-full max-w-6xl px-4 md:px-6 lg:px-8">
         <div className="mx-auto max-w-5xl text-center">
-          <h1 className="balance mx-auto max-w-5xl text-[clamp(2.75rem,5.6vw,5rem)] font-extrabold leading-[0.98] tracking-[-0.04em] text-text">
+          <h1 className="mx-auto max-w-5xl text-[clamp(2.75rem,5.6vw,5rem)] font-extrabold leading-[0.98] tracking-[-0.04em] text-text">
             Tu sais des mois à l&apos;avance{" "}
             <mark className="marker-highlight marker-highlight-strong">
               combien il te restera.
@@ -74,7 +78,7 @@ export function Hero() {
               rassure. »
             </p>
             <footer className="mt-1 text-sm text-text-secondary">
-              <cite className="not-italic">Sylvie, utilisatrice de Pulpe</cite>
+              Sylvie, utilisatrice de Pulpe
             </footer>
           </blockquote>
         </div>

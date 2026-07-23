@@ -22,7 +22,7 @@ export function PainPoints() {
     >
       <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
         <header className="max-w-xl lg:col-span-5">
-          <h2 className="balance text-4xl font-bold leading-[1.12] tracking-[-0.035em] text-text sm:text-5xl">
+          <h2 className="text-4xl font-bold leading-[1.12] tracking-[-0.035em] text-text sm:text-5xl">
             Les impôts tombent en juillet. Tu sais déjà combien il te restera en
             août.
           </h2>
@@ -39,8 +39,12 @@ export function PainPoints() {
               key={point.title}
               className={`py-7 sm:py-8 ${index > 0 ? "border-t border-text/10" : ""}`}
             >
-              <point.icon className="size-6 text-primary" strokeWidth={1.7} />
-              <h3 className="balance mt-5 text-xl font-semibold text-text">
+              <point.icon
+                className="size-6 text-primary"
+                strokeWidth={1.7}
+                aria-hidden="true"
+              />
+              <h3 className="mt-5 text-xl font-semibold text-text">
                 {point.title}
               </h3>
               <p className="pretty mt-3 max-w-xl leading-relaxed text-text-secondary">
