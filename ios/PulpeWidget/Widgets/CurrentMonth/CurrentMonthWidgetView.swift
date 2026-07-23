@@ -195,9 +195,14 @@ struct CurrentMonthWidgetView: View {
 
     private var emptyView: some View {
         VStack(spacing: DesignTokens.Spacing.sm) {
-            Image(systemName: "banknote")
-                .font(PulpeTypography.sectionIcon)
-                .foregroundStyle(Color.textSecondary)
+            // Brand mark, not an SF Symbol: the empty state is the widget's only
+            // branded surface (imageset duplicated into the appex catalog — the
+            // app's Resources aren't compiled into this target).
+            Image("PulpeIcon")
+                .resizable()
+                .scaledToFit()
+                .frame(width: DesignTokens.IconSize.badge, height: DesignTokens.IconSize.badge)
+                .accessibilityHidden(true)
 
             Text("Ouvre Pulpe")
                 .font(PulpeTypography.detailLabel)
