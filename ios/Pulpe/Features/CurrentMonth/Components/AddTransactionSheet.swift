@@ -98,6 +98,9 @@ struct AddTransactionSheet: View {
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
         .onAppear { inputCurrency = userSettingsStore.currency }
+        // Covers every presenter (FAB "+", widget deep link) in one place —
+        // tips must not render on top of this sheet.
+        .suppressesTips()
     }
 
     // MARK: - Description

@@ -76,11 +76,13 @@ struct RootViewSheets: ViewModifier {
                         await appState.cancelPasswordResetFlow()
                     }
                 )
+                .suppressesTips()
             }
             .sheet(item: recoveryKeySheetItemBinding) { sheet in
                 RecoveryKeySheet(recoveryKey: sheet.recoveryKey) {
                     appState.send(.recoveryKeyPresentationDismissed)
                 }
+                .suppressesTips()
             }
             .sheet(isPresented: whatsNewPresentedBinding) {
                 WhatsNewSheet(
@@ -89,6 +91,7 @@ struct RootViewSheets: ViewModifier {
                     onDismiss: { whatsNewStore.dismiss() }
                 )
                 .standardSheetPresentation()
+                .suppressesTips()
             }
     }
 

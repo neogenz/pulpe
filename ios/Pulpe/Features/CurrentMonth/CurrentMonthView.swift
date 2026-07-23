@@ -102,37 +102,41 @@ struct CurrentMonthView: View {
             }
         }
         .sheet(item: $activeSheet) { sheet in
-            switch sheet {
-            case .realizedBalance:
-                RealizedBalanceSheet(
-                    metrics: store.metrics,
-                    realizedMetrics: store.realizedMetrics
-                )
-            case .account:
-                AccountView()
-            case .notificationPrime:
-                NotificationPrimeSheet {
-                    Task { await enableReminders() }
-                }
-            case .createBudget:
-                if let nextMonth = budgetListStore.nextAvailableMonth {
-                    CreateBudgetView(
-                        month: nextMonth.month,
-                        year: nextMonth.year
-                    ) { budget in
-                        budgetListStore.addBudget(budget)
-                        store.invalidateCache()
-                        Task {
-                            await store.loadDetailsIfNeeded()
+            Group {
+                switch sheet {
+                case .realizedBalance:
+                    RealizedBalanceSheet(
+                        metrics: store.metrics,
+                        realizedMetrics: store.realizedMetrics
+                    )
+                case .account:
+                    AccountView()
+                case .notificationPrime:
+                    NotificationPrimeSheet {
+                        Task { await enableReminders() }
+                    }
+                case .createBudget:
+                    if let nextMonth = budgetListStore.nextAvailableMonth {
+                        CreateBudgetView(
+                            month: nextMonth.month,
+                            year: nextMonth.year
+                        ) { budget in
+                            budgetListStore.addBudget(budget)
+                            store.invalidateCache()
+                            Task {
+                                await store.loadDetailsIfNeeded()
+                            }
                         }
                     }
                 }
             }
+            .suppressesTips()
         }
         .fullScreenCover(isPresented: showPostOnboardingHandoff) {
             PostOnboardingHandoffView {
                 dismissPostOnboardingHandoff()
             }
+            .suppressesTips()
         }
         .task {
             store.prepareForReload()
@@ -177,9 +181,6 @@ struct CurrentMonthView: View {
             Task {
                 await store.loadDetailsIfNeeded()
             }
-        }
-        .onChange(of: activeSheet) { _, sheet in
-            ProductTips.isSheetPresented = sheet != nil
         }
     }
 
