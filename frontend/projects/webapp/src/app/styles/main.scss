@@ -12,5 +12,6 @@
 @forward "./sizes"; // get it using `@ngm-dev/cli add styles/_sizes`
 @forward "./tabs"; // get it using `@ngm-dev/cli add styles/_tabs`
 @forward "./stepper"; // complete-profile stepper customization
+@forward "./oauth-buttons"; // Apple HIG label/logo color compliance
 @forward "./financial-colors"; // financial summary color variables
 @forward "./vendors/_tailwind.css"; // get it using `@ngm-dev/cli add styles/vendors`

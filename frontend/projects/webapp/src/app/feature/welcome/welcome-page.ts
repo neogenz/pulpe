@@ -11,7 +11,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
-import { GoogleOAuthButton } from '@app/pattern/google-oauth';
+import { OAuthProviderButton } from '@app/pattern/oauth-provider';
+import type { OAuthProvider } from '@core/auth';
 import { PostHogService } from '@core/analytics/posthog';
 import { DemoInitializerService } from '@core/demo/demo-initializer.service';
 import { Logger } from '@core/logging/logger';
@@ -29,7 +30,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
     RouterLink,
     NgxTurnstileModule,
     TranslocoPipe,
-    GoogleOAuthButton,
+    OAuthProviderButton,
     ErrorAlert,
     LoadingButton,
   ],
@@ -131,12 +132,20 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
           <div class="flex-1 h-px bg-outline-variant/40"></div>
         </div>
 
-        <pulpe-google-oauth-button
+        <pulpe-oauth-provider-button
           class="w-full"
-          buttonType="outlined"
+          [provider]="'apple'"
+          testId="apple-oauth-button"
+          (authError)="errorMessage.set($event)"
+          (loadingChange)="onOAuthLoadingChange('apple', $event)"
+        />
+
+        <pulpe-oauth-provider-button
+          class="w-full"
+          [provider]="'google'"
           testId="google-oauth-button"
           (authError)="errorMessage.set($event)"
-          (loadingChange)="onGoogleLoadingChange($event)"
+          (loadingChange)="onOAuthLoadingChange('google', $event)"
         />
 
         <button
@@ -227,11 +236,11 @@ export default class WelcomePage {
   protected readonly turnstileWidget =
     viewChild<NgxTurnstileComponent>('turnstileWidget');
 
-  onGoogleLoadingChange(isLoading: boolean): void {
+  onOAuthLoadingChange(method: OAuthProvider, isLoading: boolean): void {
     this.isGoogleLoading.set(isLoading);
     if (isLoading) {
-      this.#postHogService.setPendingSignupMethod('google');
-      this.#postHogService.captureEvent('signup_started', { method: 'google' });
+      this.#postHogService.setPendingSignupMethod(method);
+      this.#postHogService.captureEvent('signup_started', { method });
     } else {
       this.#postHogService.clearPendingSignupMethod();
     }

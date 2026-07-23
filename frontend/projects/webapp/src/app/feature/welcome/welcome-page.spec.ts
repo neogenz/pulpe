@@ -230,11 +230,20 @@ describe('WelcomePage', () => {
 
   describe('analytics', () => {
     it('should track signup_started with google method when OAuth loading', () => {
-      component.onGoogleLoadingChange(true);
+      component.onOAuthLoadingChange('google', true);
 
       expect(mockPostHogService.captureEvent).toHaveBeenCalledWith(
         'signup_started',
         { method: 'google' },
+      );
+    });
+
+    it('should track signup_started with apple method when OAuth loading', () => {
+      component.onOAuthLoadingChange('apple', true);
+
+      expect(mockPostHogService.captureEvent).toHaveBeenCalledWith(
+        'signup_started',
+        { method: 'apple' },
       );
     });
 
@@ -246,7 +255,7 @@ describe('WelcomePage', () => {
 
     it('should not track signup_started when OAuth stops loading', () => {
       mockPostHogService.captureEvent.mockClear();
-      component.onGoogleLoadingChange(false);
+      component.onOAuthLoadingChange('google', false);
 
       expect(mockPostHogService.captureEvent).not.toHaveBeenCalled();
     });
