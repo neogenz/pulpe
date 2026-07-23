@@ -125,7 +125,7 @@ describe('WelcomePage', () => {
       );
 
       expect(button).toBeTruthy();
-      expect(button.textContent).toContain("S'inscrire par e-mail");
+      expect(button.textContent).toContain("S'inscrire avec email");
     });
 
     it('should have demo mode button', () => {
