@@ -81,7 +81,7 @@ export function Hero() {
               rassure. »
             </p>
             <footer className="mt-1 text-sm text-text-secondary">
-              Sylvie, utilisatrice de Pulpe
+              Julie D., utilisatrice de Pulpe
             </footer>
           </blockquote>
         </div>

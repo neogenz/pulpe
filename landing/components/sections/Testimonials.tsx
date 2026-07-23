@@ -1,28 +1,37 @@
 import { Section } from "@/components/ui";
 
-const TESTIMONIALS = [
+const TESTIMONIALS: {
+  lead: string;
+  highlight: string;
+  tail: string;
+  name: string;
+  role?: string;
+  since: string;
+}[] = [
   {
     lead: "Pulpe m’a révélé ",
     highlight: "des dépenses que je ne voyais pas venir",
     tail: ". Maintenant, je sais mieux où j’en suis.",
-    name: "Ismaël",
-    role: "Utilisateur de Pulpe",
+    name: "Ismaël S.",
+    role: "Ingénieur en informatique",
+    since: "Utilisateur depuis novembre 2025",
   },
   {
     lead: "Je vois tout de suite ",
     highlight: "où en est mon budget",
     tail: ". C’est pratique, clair et beaucoup plus simple à suivre.",
-    name: "Julie",
-    role: "Utilisatrice de Pulpe",
+    name: "Sylvie G.",
+    since: "Utilisatrice depuis mai 2026",
   },
   {
     lead: "Je peux ",
     highlight: "prévoir nos vacances sur l’année",
     tail: " et voir tout de suite si ça rentre dans notre budget. Ça me rassure.",
-    name: "Sylvie",
-    role: "Utilisatrice de Pulpe",
+    name: "Julie D.",
+    role: "Employée de communication",
+    since: "Utilisatrice depuis décembre 2025",
   },
-] as const;
+];
 
 export function Testimonials() {
   return (
@@ -52,8 +61,13 @@ export function Testimonials() {
               <span className="text-base font-semibold text-text">
                 {testimonial.name}
               </span>
+              {testimonial.role && (
+                <span className="mt-0.5 block text-sm leading-snug text-text-secondary">
+                  {testimonial.role}
+                </span>
+              )}
               <span className="mt-0.5 block text-sm leading-snug text-text-secondary">
-                {testimonial.role}
+                {testimonial.since}
               </span>
             </footer>
           </blockquote>

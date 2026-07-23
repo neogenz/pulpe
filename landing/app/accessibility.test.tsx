@@ -207,7 +207,7 @@ describe("landing accessibility contracts", () => {
     );
     assert.match(
       componentSources.hero,
-      /prévoir nos vacances sur l&apos;année[\s\S]*Sylvie, utilisatrice de Pulpe/,
+      /prévoir nos vacances sur l&apos;année[\s\S]*Julie D\., utilisatrice de Pulpe/,
     );
     assert.match(
       componentSources.hero,
@@ -522,6 +522,10 @@ describe("landing accessibility contracts", () => {
     // Person names are not works: no <cite>, plain styled text instead.
     assert.doesNotMatch(componentSources.testimonials, /<cite/);
     assert.match(componentSources.testimonials, /Ismaël/);
+    assert.match(
+      componentSources.testimonials,
+      /depuis novembre 2025[\s\S]*depuis mai 2026[\s\S]*depuis décembre 2025/,
+    );
     assert.doesNotMatch(componentSources.testimonials, /carousel|autoPlay/);
     assert.doesNotMatch(componentSources.testimonials, /background="primary"/);
   });
@@ -550,7 +554,10 @@ describe("landing accessibility contracts", () => {
       globalsCss,
       /\.marker-highlight-proof\s*\{[\s\S]*?--marker-color:\s*var\(--color-marker-highlight-proof\);[\s\S]*?color:\s*var\(--color-text\);/,
     );
-    assert.equal(componentSources.testimonials.match(/highlight:/g)?.length, 3);
+    assert.equal(
+      componentSources.testimonials.match(/highlight: "/g)?.length,
+      3,
+    );
     assert.equal(
       testimonialMarkup.match(
         /class="marker-highlight marker-highlight-proof"/g,
