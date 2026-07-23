@@ -39,7 +39,7 @@ struct DriftCard: View {
 
     private func rowAccessibilityLabel(_ line: BudgetLine, overBy: Decimal) -> String {
         guard !amountsHidden else { return "\(line.name), au-delà du plan" }
-        return "\(line.name), \(overBy.asCurrency(currency)) au-delà du plan"
+        return "\(line.name), \(overBy.asCompactCurrency(currency)) au-delà du plan"
     }
 
     var body: some View {
@@ -132,7 +132,9 @@ struct DriftCard: View {
 
                 Spacer()
 
-                Text("+\(overBy.asAmount(for: currency)) en trop")
+                // Compact 0-décimale: a drift overrun is a derived envelope delta —
+                // aggregation category per the currency policy, like the header above it.
+                Text("+\(overBy.asCompactAmount(for: currency)) en trop")
                     .font(PulpeTypography.metricLabel)
                     .foregroundStyle(Color.driftAccent)
                     .monospacedDigit()
