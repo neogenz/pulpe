@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { BusinessException } from '@common/exceptions/business.exception';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { RecalculateBudgetBalancesUseCase } from './recalculate-budget-balances.use-case';
-import type { BudgetRepositoryPort } from '../domain/ports/budget-repository.port';
-import type { BudgetWithRelations } from '../domain/budget.entity';
+import type {
+  BudgetDataForRecalc,
+  BudgetRepositoryPort,
+} from '../domain/ports/budget-repository.port';
 
 const BUDGET_ID = 'budget-current';
 const USER_ID = 'user-abc';
@@ -21,61 +25,10 @@ const USER_ID = 'user-abc';
  *     avoid double-counting rollover across months".
  */
 
-const MOCK_BUDGET_DATA: BudgetWithRelations = {
-  budget: {
-    id: BUDGET_ID,
-    userId: USER_ID,
-    templateId: 'tmpl-1',
-    month: 5,
-    year: 2026,
-    description: 'May 2026',
-    endingBalance: null,
-    createdAt: '2026-05-01T00:00:00Z',
-    updatedAt: '2026-05-01T00:00:00Z',
-  },
+const MOCK_BUDGET_DATA: BudgetDataForRecalc = {
   budgetLines: [
-    {
-      id: 'bl-income',
-      budgetId: BUDGET_ID,
-      templateLineId: null,
-      savingsGoalId: null,
-      spreadGroupId: null,
-      savingsWithdrawalGroupId: null,
-      name: 'Salary',
-      amount: 500,
-      originalAmount: null,
-      originalCurrency: null,
-      targetCurrency: null,
-      exchangeRate: null,
-      kind: 'income',
-      recurrence: 'fixed',
-      tagIds: [],
-      isManuallyAdjusted: false,
-      checkedAt: null,
-      createdAt: '2026-05-01T00:00:00Z',
-      updatedAt: '2026-05-01T00:00:00Z',
-    },
-    {
-      id: 'bl-expense',
-      budgetId: BUDGET_ID,
-      templateLineId: null,
-      savingsGoalId: null,
-      spreadGroupId: null,
-      savingsWithdrawalGroupId: null,
-      name: 'Rent',
-      amount: 100,
-      originalAmount: null,
-      originalCurrency: null,
-      targetCurrency: null,
-      exchangeRate: null,
-      kind: 'expense',
-      recurrence: 'fixed',
-      tagIds: [],
-      isManuallyAdjusted: false,
-      checkedAt: null,
-      createdAt: '2026-05-01T00:00:00Z',
-      updatedAt: '2026-05-01T00:00:00Z',
-    },
+    { id: 'bl-income', kind: 'income', amount: 500 },
+    { id: 'bl-expense', kind: 'expense', amount: 100 },
   ],
   transactions: [],
 };
@@ -83,7 +36,7 @@ const MOCK_BUDGET_DATA: BudgetWithRelations = {
 describe('RecalculateBudgetBalancesUseCase', () => {
   let useCase: RecalculateBudgetBalancesUseCase;
   let mockRepo: {
-    fetchBudgetData: ReturnType<typeof mock>;
+    fetchBudgetDataForRecalc: ReturnType<typeof mock>;
     fetchBudgetUserId: ReturnType<typeof mock>;
     fetchAllBudgetsForRollover: ReturnType<typeof mock>;
     persistEndingBalance: ReturnType<typeof mock>;
@@ -99,7 +52,7 @@ describe('RecalculateBudgetBalancesUseCase', () => {
     // A non-zero rollover so any regression that adds it to the persist path
     // shifts the asserted value visibly (400 → 1200), instead of 0 hiding the bug.
     mockRepo = {
-      fetchBudgetData: mock(() => Promise.resolve(MOCK_BUDGET_DATA)),
+      fetchBudgetDataForRecalc: mock(() => Promise.resolve(MOCK_BUDGET_DATA)),
       fetchBudgetUserId: mock(() => Promise.resolve(USER_ID)),
       fetchAllBudgetsForRollover: mock(() =>
         Promise.resolve([
@@ -155,6 +108,46 @@ describe('RecalculateBudgetBalancesUseCase', () => {
 
       // Assert: persist path must not touch rollover at all.
       expect(mockRepo.fetchAllBudgetsForRollover).not.toHaveBeenCalled();
+    });
+
+    it('should skip persisting (not throw) when an amount cannot be decrypted', async () => {
+      // Arrange: one undecryptable ciphertext (e.g. legacy cross-DEK row).
+      // The caller's mutation already committed, so recalc must NOT persist a
+      // wrong balance AND must NOT brick the write — it skips and logs.
+      mockRepo.fetchBudgetDataForRecalc = mock(() =>
+        Promise.reject(
+          new BusinessException(ERROR_DEFINITIONS.ENCRYPTION_DECRYPT_FAILED, {
+            budgetId: BUDGET_ID,
+          }),
+        ),
+      );
+      useCase = new RecalculateBudgetBalancesUseCase(
+        mockRepo as unknown as BudgetRepositoryPort,
+        mockLogger as never,
+      );
+
+      // Act
+      await useCase.recalculate(BUDGET_ID);
+
+      // Assert: last correct balance preserved, poisoned row surfaced via warn.
+      expect(mockRepo.persistEndingBalance).not.toHaveBeenCalled();
+      expect(mockLogger.warn).toHaveBeenCalledTimes(1);
+    });
+
+    it('should still propagate a non-decrypt recalculation error', async () => {
+      // Arrange: an infra failure (not a decrypt failure) must not be swallowed.
+      const dbError = new Error('connection reset');
+      mockRepo.fetchBudgetDataForRecalc = mock(() => Promise.reject(dbError));
+      useCase = new RecalculateBudgetBalancesUseCase(
+        mockRepo as unknown as BudgetRepositoryPort,
+        mockLogger as never,
+      );
+
+      // Act + Assert
+      await expect(useCase.recalculate(BUDGET_ID)).rejects.toThrow(
+        'connection reset',
+      );
+      expect(mockRepo.persistEndingBalance).not.toHaveBeenCalled();
     });
   });
 });

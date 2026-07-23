@@ -188,6 +188,102 @@ describe('SupabaseBudgetRepository fetchBudgetById error mapping', () => {
   });
 });
 
+describe('SupabaseBudgetRepository fetchBudgetDataForRecalc (strict decrypt)', () => {
+  // The genuine cross-DEK GCM failure is proven in
+  // encryption/infrastructure/crypto/cross-dek-budget-line.spec.ts; here the
+  // port stub reproduces its observable contract: decryptAmount throws.
+  const FOREIGN_CIPHERTEXT = 'ciphertext-under-another-dek';
+  const OWNED_CIPHERTEXT = 'ciphertext-under-own-dek';
+
+  function createStrictEncryption(): EncryptionPort {
+    return {
+      getDekFor: jest.fn().mockResolvedValue(Buffer.from('dek')),
+      decryptAmount: jest.fn().mockImplementation((ciphertext: string) => {
+        if (ciphertext === OWNED_CIPHERTEXT) return 500;
+        throw new Error('Unsupported state or unable to authenticate data');
+      }),
+    } as unknown as EncryptionPort;
+  }
+
+  function recalcProvider(
+    lineRows: unknown[],
+    txRows: unknown[],
+  ): AuthenticatedSupabaseProvider {
+    return createMockProvider((table: string) => {
+      if (table === 'budget_line') {
+        return {
+          select: () => ({
+            eq: jest.fn().mockResolvedValue({ data: lineRows, error: null }),
+          }),
+        };
+      }
+      if (table === 'transaction') {
+        return {
+          select: () => ({
+            eq: jest.fn().mockResolvedValue({ data: txRows, error: null }),
+          }),
+        };
+      }
+      throw new Error(`unexpected table: ${table}`);
+    });
+  }
+
+  it('throws ENCRYPTION_DECRYPT_FAILED when a non-null amount fails decryption', async () => {
+    // Arrange: one undecryptable ciphertext — the exact silent-zero scenario
+    // that used to persist a wrong ending_balance.
+    const provider = recalcProvider(
+      [{ id: 'line-1', kind: 'expense', amount: FOREIGN_CIPHERTEXT }],
+      [],
+    );
+    const repo = new SupabaseBudgetRepository(
+      provider,
+      createStrictEncryption(),
+    );
+
+    // Act
+    let caught: unknown;
+    try {
+      await repo.fetchBudgetDataForRecalc('budget-1');
+    } catch (error) {
+      caught = error;
+    }
+
+    // Assert
+    expect(caught).toBeInstanceOf(BusinessException);
+    expect((caught as BusinessException).code).toBe(
+      ERROR_DEFINITIONS.ENCRYPTION_DECRYPT_FAILED.code,
+    );
+    expect((caught as BusinessException).getStatus()).toBe(500);
+  });
+
+  it('maps null amounts to 0 and decrypts valid ciphertexts without throwing', async () => {
+    // Arrange
+    const provider = recalcProvider(
+      [
+        { id: 'line-1', kind: 'income', amount: OWNED_CIPHERTEXT },
+        { id: 'line-2', kind: 'expense', amount: null },
+      ],
+      [{ kind: 'expense', amount: null, budget_line_id: null }],
+    );
+    const repo = new SupabaseBudgetRepository(
+      provider,
+      createStrictEncryption(),
+    );
+
+    // Act
+    const result = await repo.fetchBudgetDataForRecalc('budget-1');
+
+    // Assert
+    expect(result.budgetLines).toEqual([
+      { id: 'line-1', kind: 'income', amount: 500 },
+      { id: 'line-2', kind: 'expense', amount: 0 },
+    ]);
+    expect(result.transactions).toEqual([
+      { kind: 'expense', amount: 0, budgetLineId: null },
+    ]);
+  });
+});
+
 describe('SupabaseBudgetRepository toBudgetLineDecrypted', () => {
   it('maps spread_group_id (snake) to spreadGroupId (camel) when set', async () => {
     const provider = fetchBudgetDataProvider({

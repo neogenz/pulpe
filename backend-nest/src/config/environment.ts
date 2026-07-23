@@ -21,9 +21,11 @@ function isVersionAtMost(version: string, ceiling: string): boolean {
 
 const envSchema = z
   .object({
-    NODE_ENV: z
-      .enum(['development', 'production', 'preview', 'test'])
-      .default('development'),
+    // No default on purpose: a deployment without NODE_ENV must fail loudly at
+    // boot instead of silently running in dev mode (debug endpoints, Swagger,
+    // open CORS, relaxed throttles). Every entrypoint sets it explicitly:
+    // package.json scripts, Dockerfile, bunfig test preload.
+    NODE_ENV: z.enum(['development', 'production', 'preview', 'test']),
     PORT: z.coerce.number().default(3000),
     SUPABASE_URL: z.string().min(1, { error: 'SUPABASE_URL is required' }),
     SUPABASE_ANON_KEY: z

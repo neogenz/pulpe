@@ -1274,6 +1274,149 @@ describe('AesGcmCryptoService', () => {
     });
   });
 
+  describe('validated-DEK-only cache invariant', () => {
+    const buildRowWithCanaryFor = async (clientKey: Buffer) => {
+      const existingSalt = randomBytes(16).toString('hex');
+      const bootstrapRepo = createMockRepository({
+        findSaltByUserId: mock(() =>
+          Promise.resolve({
+            salt: existingSalt,
+            kdf_iterations: 600000,
+            key_check: null,
+          }),
+        ),
+      });
+      const bootstrapService = new AesGcmCryptoService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        bootstrapRepo as any,
+      );
+      const dek = await bootstrapService.getUserDEK(TEST_USER_ID, clientKey);
+      const validKeyCheck = bootstrapService.generateKeyCheck(dek);
+      return {
+        salt: existingSalt,
+        kdf_iterations: 600000,
+        wrapped_dek: null,
+        key_check: validKeyCheck,
+      };
+    };
+
+    it('should not cache the DEK when verifyAndEnsureKeyCheck fails — subsequent write rejects the key', async () => {
+      const row = await buildRowWithCanaryFor(TEST_CLIENT_KEY);
+      const wrongClientKey = randomBytes(32);
+      const repo = createMockRepository({
+        findByUserId: mock(() => Promise.resolve(row)),
+        findSaltByUserId: mock(() => Promise.resolve(row)),
+      });
+      service = new AesGcmCryptoService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
+
+      const verified = await service.verifyAndEnsureKeyCheck(
+        TEST_USER_ID,
+        wrongClientKey,
+      );
+
+      expect(verified).toBe(false);
+      try {
+        await service.ensureUserDEK(TEST_USER_ID, wrongClientKey);
+        expect.unreachable(
+          'ensureUserDEK must re-derive and reject the wrong key, not hit a poisoned cache',
+        );
+      } catch (error: unknown) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED.code,
+        );
+      }
+    });
+
+    it('should keep populating the cache on successful verifyAndEnsureKeyCheck', async () => {
+      const row = await buildRowWithCanaryFor(TEST_CLIENT_KEY);
+      const findSaltByUserId = mock(() => Promise.resolve(row));
+      const repo = createMockRepository({
+        findByUserId: mock(() => Promise.resolve(row)),
+        findSaltByUserId,
+      });
+      service = new AesGcmCryptoService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
+
+      const verified = await service.verifyAndEnsureKeyCheck(
+        TEST_USER_ID,
+        TEST_CLIENT_KEY,
+      );
+      const dek = await service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
+
+      expect(verified).toBe(true);
+      expect(dek.length).toBe(32);
+      expect(findSaltByUserId).not.toHaveBeenCalled();
+    });
+
+    it('should let reads fall back on a wrong key without poisoning the cache for writes', async () => {
+      const row = await buildRowWithCanaryFor(TEST_CLIENT_KEY);
+      const wrongClientKey = randomBytes(32);
+      const repo = createMockRepository({
+        findSaltByUserId: mock(() => Promise.resolve(row)),
+      });
+      service = new AesGcmCryptoService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
+
+      const readDek = await service.getDekFor({
+        id: TEST_USER_ID,
+        clientKey: wrongClientKey,
+      });
+
+      expect(readDek.length).toBe(32);
+      try {
+        await service.ensureUserDEK(TEST_USER_ID, wrongClientKey);
+        expect.unreachable(
+          'a read with a stale key must not let a concurrent write encrypt under the wrong DEK',
+        );
+      } catch (error: unknown) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED.code,
+        );
+      }
+    });
+
+    it('should reject createRecoveryKey with a wrong key before wrapping anything', async () => {
+      const row = await buildRowWithCanaryFor(TEST_CLIENT_KEY);
+      const wrongClientKey = randomBytes(32);
+      const updateWrappedDEKIfNull = mock(() => Promise.resolve(true));
+      const repo = createMockRepository({
+        findSaltByUserId: mock(() => Promise.resolve(row)),
+        updateWrappedDEKIfNull,
+      });
+      service = new AesGcmCryptoService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
+
+      try {
+        await service.createRecoveryKey(TEST_USER_ID, wrongClientKey);
+        expect.unreachable(
+          'a recovery key must never wrap a DEK that failed the canary',
+        );
+      } catch (error: unknown) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED.code,
+        );
+      }
+      expect(updateWrappedDEKIfNull).not.toHaveBeenCalled();
+    });
+  });
+
   describe('prepareAmountData', () => {
     it('should return encrypted string as amount', async () => {
       const existingSalt = randomBytes(16).toString('hex');

@@ -47,13 +47,11 @@ export class IpBlacklistMiddleware implements NestMiddleware {
     return next();
   }
 
+  // Same extraction as UserThrottlerGuard: X-Real-IP is set by Railway's edge
+  // and overwrites any client-supplied value; X-Forwarded-For entries can be
+  // client-forged, so reading it first let a blacklisted IP bypass the block
+  // with a spoofed header.
   #extractIp(req: Request): string | undefined {
-    const forwarded = req.headers['x-forwarded-for'];
-    if (forwarded) {
-      const first = Array.isArray(forwarded) ? forwarded[0] : forwarded;
-      return first?.split(',')[0]?.trim();
-    }
-
     const realIp = req.headers['x-real-ip'];
     if (realIp) {
       return Array.isArray(realIp) ? realIp[0] : realIp;

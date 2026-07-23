@@ -14,7 +14,7 @@ runs:
     # originate. Shared across jobs, so only the first run per version downloads.
     - name: Cache Supabase CLI
       id: cache
-      uses: actions/cache@v4
+      uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5 (was v4, aligned)
       with:
         path: ~/.local/share/supabase-cli
         key: supabase-cli-${{ inputs.version }}-${{ runner.os }}-${{ runner.arch }}

@@ -1,3 +1,4 @@
+import type { TransactionKind } from 'pulpe-shared';
 import type {
   Budget,
   BudgetForRollover,
@@ -8,6 +9,16 @@ import type {
 } from '../budget.entity';
 
 export const BUDGET_REPOSITORY = Symbol('BUDGET_REPOSITORY');
+
+/** Slim strict-decrypt projection consumed by the recalculation formula. */
+export interface BudgetDataForRecalc {
+  budgetLines: { id: string; kind: TransactionKind; amount: number }[];
+  transactions: {
+    kind: TransactionKind;
+    amount: number;
+    budgetLineId: string | null;
+  }[];
+}
 
 export interface BudgetRepositoryPort {
   hasAnyBudget(): Promise<boolean>;
@@ -38,6 +49,14 @@ export interface BudgetRepositoryPort {
   ): Promise<Map<string, string>>;
 
   fetchBudgetData(budgetId: string): Promise<BudgetWithRelations>;
+
+  /**
+   * Strict-decrypt read reserved for balance recalculation: a non-null
+   * ciphertext that fails AES-GCM throws `ENCRYPTION_DECRYPT_FAILED` instead
+   * of silently becoming 0 — a wrong total must never be persisted. A
+   * legitimately null amount still maps to 0.
+   */
+  fetchBudgetDataForRecalc(budgetId: string): Promise<BudgetDataForRecalc>;
 
   fetchBudgetAggregates(
     budgetIds: string[],
