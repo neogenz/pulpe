@@ -270,6 +270,7 @@ extension AppState {
         enrollmentPolicy.clearUserExplicitlyDisabled()
         hasReturningUser = false
         returningUserFlagLoaded = true
+        onboardingPinConfiguredMidFlow = false
         OnboardingState.clearPersistedData()
         onboardingBootstrapper.clearPendingData()
         clearManualBiometricRetryRequiredFlag()

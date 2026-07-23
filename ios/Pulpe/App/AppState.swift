@@ -89,6 +89,9 @@ final class AppState {
     /// the view otherwise, keeping stale `@State` (e.g. `currentStep`) in memory.
     var onboardingSessionID = UUID()
 
+    /// PIN + recovery ran inside the onboarding flow — stored so `retryOnboardingPostAuth` routes like the original call.
+    var onboardingPinConfiguredMidFlow = false
+
     var pendingOnboardingData: BudgetTemplateCreateFromOnboarding? {
         get { onboardingBootstrapper.pendingOnboardingData }
         set { onboardingBootstrapper.setPendingData(newValue) }
