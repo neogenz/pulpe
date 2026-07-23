@@ -337,7 +337,7 @@ describe('GlobalExceptionFilter', () => {
 
         expect(result).toMatchObject({
           status: 500,
-          message: 'Database connection timeout',
+          message: 'Internal server error',
           error: 'Error',
           code: 'ERR_INTERNAL_SERVER',
           stack: undefined,
@@ -354,22 +354,66 @@ describe('GlobalExceptionFilter', () => {
         expect(result.error).toBe('InternalServerErrorException');
       });
 
-      it('should include detailed error messages in development', async () => {
+      it('should use the generic client message even in development (real message rides originalError)', async () => {
         process.env.NODE_ENV = 'development';
         const error = new Error('Specific database constraint violation');
 
         const result = (filter as any).processException(error);
 
-        expect(result.message).toBe('Specific database constraint violation');
+        expect(result.message).toBe('Internal server error');
+        expect(result.originalError.message).toBe(
+          'Specific database constraint violation',
+        );
       });
 
-      it('should show actual error messages for better debugging', async () => {
+      it('should use the generic client message in production', async () => {
         process.env.NODE_ENV = 'production';
         const error = new Error('Detailed internal system error');
 
         const result = (filter as any).processException(error);
 
-        expect(result.message).toBe('Detailed internal system error');
+        expect(result.message).toBe('Internal server error');
+        expect(result.originalError.message).toBe(
+          'Detailed internal system error',
+        );
+      });
+    });
+
+    describe('Internal message leak prevention (non-HttpException 500s)', () => {
+      it('should log the real message but never leak it in the response body', async () => {
+        const errorSpy = spyOn(mockLogger, 'error');
+        const error = new Error(
+          'ENCRYPTION_MASTER_KEY must be exactly 32 bytes',
+        );
+        const request = createMockRequest();
+        const response = createMockResponse();
+        const host = createMockArgumentsHost(request, response);
+
+        filter.catch(error, host);
+
+        const responseData = (response as any).getResponseData();
+        expect(responseData.message).toBe('Internal server error');
+        expect(responseData.code).toBe('ERR_INTERNAL_SERVER');
+        expect(JSON.stringify(responseData)).not.toContain(
+          'ENCRYPTION_MASTER_KEY',
+        );
+        expect(errorSpy).toHaveBeenCalledTimes(1);
+        const [logObject] = errorSpy.mock.calls[0] as [{ err: Error }];
+        expect(logObject.err.message).toContain('ENCRYPTION_MASTER_KEY');
+      });
+
+      it('should keep the generic client message in production too', async () => {
+        process.env.NODE_ENV = 'production';
+        const error = new Error('Invalid base32 character: <script>');
+        const request = createMockRequest();
+        const response = createMockResponse();
+        const host = createMockArgumentsHost(request, response);
+
+        filter.catch(error, host);
+
+        const responseData = (response as any).getResponseData();
+        expect(responseData.message).toBe('Internal server error');
+        expect(JSON.stringify(responseData)).not.toContain('base32');
       });
     });
 
@@ -728,7 +772,7 @@ describe('GlobalExceptionFilter', () => {
       expect(responseData).toMatchObject({
         success: false,
         statusCode: 500,
-        message: 'Custom database error',
+        message: 'Internal server error',
         code: 'ERR_INTERNAL_SERVER',
       });
     });
@@ -801,7 +845,7 @@ describe('GlobalExceptionFilter', () => {
       expect(responseData).toMatchObject({
         success: false,
         statusCode: 500,
-        message: 'Database timeout',
+        message: 'Internal server error',
         error: 'Error',
         code: 'ERR_INTERNAL_SERVER',
       });

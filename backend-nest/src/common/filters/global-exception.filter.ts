@@ -248,11 +248,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   }
 
   private handleErrorException(exception: Error): ErrorData {
-    const message = this.getErrorMessage(exception);
-
+    // Non-HttpException errors are unvetted internals (crypto messages,
+    // reflected attacker input): the client gets a stable generic message in
+    // every environment; the real message still reaches the logs through
+    // originalError.
     return {
       status: HttpStatus.INTERNAL_SERVER_ERROR,
-      message,
+      message: ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR.message(),
       error: exception.name || 'InternalServerErrorException',
       code: ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR.code,
       originalError: exception,
@@ -281,12 +283,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       return exception.name;
     }
     return (response as { error?: string }).error || exception.name;
-  }
-
-  private getErrorMessage(exception: Error): string {
-    return (
-      exception.message || ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR.message()
-    );
   }
 
   private getStackInDevelopment(exception: Error): string | undefined {
