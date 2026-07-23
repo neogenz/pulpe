@@ -24,7 +24,11 @@ import { MatInputModule } from '@angular/material/input';
 import { Router, RouterLink } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
-import { AuthCredentialsService, PASSWORD_MIN_LENGTH } from '@core/auth';
+import {
+  AuthCredentialsService,
+  PASSWORD_MIN_LENGTH,
+  type OAuthProvider,
+} from '@core/auth';
 import { PostHogService } from '@core/analytics/posthog';
 import { Logger } from '@core/logging/logger';
 import { ROUTES } from '@core/routing/routes-constants';
@@ -88,13 +92,13 @@ function containsPattern(pattern: RegExp, errorKey: string) {
           [provider]="'apple'"
           testId="apple-signup-button"
           (authError)="errorMessage.set($event)"
-          (loadingChange)="isOAuthLoading.set($event)"
+          (loadingChange)="onOAuthLoadingChange('apple', $event)"
         />
         <pulpe-oauth-provider-button
           [provider]="'google'"
           testId="google-signup-button"
           (authError)="errorMessage.set($event)"
-          (loadingChange)="isOAuthLoading.set($event)"
+          (loadingChange)="onOAuthLoadingChange('google', $event)"
         />
       </div>
 
@@ -338,6 +342,23 @@ export default class Signup {
     this.signupForm.controls.password.valueChanges,
     { initialValue: '' },
   );
+
+  // Same contract as the welcome page: stores the pending method so
+  // `capturePendingSignupCompleted` can emit signup_completed after the
+  // OAuth redirect — without it, an OAuth signup from /signup is invisible
+  // to the funnel.
+  protected onOAuthLoadingChange(
+    method: OAuthProvider,
+    isLoading: boolean,
+  ): void {
+    this.isOAuthLoading.set(isLoading);
+    if (isLoading) {
+      this.#postHogService.setPendingSignupMethod(method);
+      this.#postHogService.captureEvent('signup_started', { method });
+    } else {
+      this.#postHogService.clearPendingSignupMethod();
+    }
+  }
 
   protected togglePasswordVisibility(): void {
     this.isPasswordHidden.set(!this.isPasswordHidden());
