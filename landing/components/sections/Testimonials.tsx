@@ -9,9 +9,9 @@ const TESTIMONIALS: {
   since: string;
 }[] = [
   {
-    lead: "Pulpe m’a révélé ",
-    highlight: "des dépenses que je ne voyais pas venir",
-    tail: ". Maintenant, je sais mieux où j’en suis.",
+    lead: "Je stresse moins. J’ai une vue d’ensemble, et ",
+    highlight: "les dépenses que je ne voyais pas venir",
+    tail: ", je les vois arriver maintenant.",
     name: "Ismaël S.",
     role: "Ingénieur en informatique",
     since: "Utilisateur depuis novembre 2025",
