@@ -31,21 +31,9 @@ export class RecalculateBudgetBalancesUseCase implements BudgetRecalculationPort
 
   async calculateEndingBalance(budgetId: string): Promise<number> {
     const { budgetLines, transactions } =
-      await this.repo.fetchBudgetData(budgetId);
+      await this.repo.fetchBudgetDataForRecalc(budgetId);
 
-    const linesForFormula = budgetLines.map((bl) => ({
-      id: bl.id,
-      kind: bl.kind,
-      amount: bl.amount,
-    }));
-
-    const txsForFormula = transactions.map((tx) => ({
-      kind: tx.kind,
-      amount: tx.amount,
-      budgetLineId: tx.budgetLineId,
-    }));
-
-    return calculateEndingBalanceFromMetrics(linesForFormula, txsForFormula);
+    return calculateEndingBalanceFromMetrics(budgetLines, transactions);
   }
 
   async getRollover(
