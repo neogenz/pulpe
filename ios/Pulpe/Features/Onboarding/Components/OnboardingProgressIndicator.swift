@@ -44,11 +44,11 @@ struct OnboardingProgressIndicator: View {
 
     private func segmentFill(for index: Int) -> Color {
         if index < currentIndex {
-            Color.pulpePrimary.opacity(0.32)
+            Color.pulpePrimary.opacity(DesignTokens.Opacity.progressTrackActive)
         } else if index == currentIndex {
             Color.pulpePrimary
         } else {
-            Color.secondary.opacity(0.12)
+            Color.secondary.opacity(DesignTokens.Opacity.badgeBackground)
         }
     }
 
