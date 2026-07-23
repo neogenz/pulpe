@@ -93,6 +93,11 @@ export const ERROR_DEFINITIONS = {
     message: () => 'Client key verification failed',
     httpStatus: HttpStatus.BAD_REQUEST,
   },
+  ENCRYPTION_DECRYPT_FAILED: {
+    code: API_ERROR_CODES.ENCRYPTION_DECRYPT_FAILED,
+    message: () => 'Unable to process encrypted data',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
   ENCRYPTION_SAME_KEY: {
     code: API_ERROR_CODES.ENCRYPTION_SAME_KEY,
     message: () => 'New client key must be different from the old one',

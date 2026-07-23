@@ -1,14 +1,15 @@
 # Dockerfile optimisé pour Railway - NestJS + pnpm monorepo
-FROM node:20-slim AS base
+# node:24-slim (LTS) pinné par digest multi-arch — Node 20 est EOL depuis mars 2026.
+FROM node:24-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d AS base
 
 # Configuration pnpm + Git (requis pour lefthook)
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable && corepack prepare pnpm@10.12.1 --activate
 
-# Installation Bun + Git pour le build
+# Installation Bun (version pinnée = BUN_VERSION de la CI) + Git pour le build
 RUN apt-get update && apt-get install -y curl unzip git && \
-    curl -fsSL https://bun.sh/install | bash && \
+    curl -fsSL https://bun.sh/install | bash -s "bun-v1.2.17" && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 ENV PATH="/root/.bun/bin:$PATH"
 
@@ -38,7 +39,7 @@ FROM base AS deploy
 RUN pnpm --filter=backend-nest --prod deploy --legacy /prod/backend
 
 # Stage production
-FROM node:20-slim AS production
+FROM node:24-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d AS production
 WORKDIR /app
 
 # Copier l'artifact minimal (sans devDependencies)

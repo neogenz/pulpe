@@ -21,7 +21,10 @@ import type {
   TransactionRow,
   BudgetAggregates,
 } from '../../domain/budget.entity';
-import type { BudgetRepositoryPort } from '../../domain/ports/budget-repository.port';
+import type {
+  BudgetDataForRecalc,
+  BudgetRepositoryPort,
+} from '../../domain/ports/budget-repository.port';
 import { validateCreateBudgetResponse } from '../../schemas/rpc-responses.schema';
 
 export type { BudgetAggregates };
@@ -366,6 +369,83 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       transactions: (transactionsResult.data ?? []).map((row) =>
         this.toTransactionDecrypted(row, dek),
       ),
+    };
+  }
+
+  async fetchBudgetDataForRecalc(
+    budgetId: string,
+  ): Promise<BudgetDataForRecalc> {
+    const supabase = this.supabaseProvider.client;
+    const [budgetLinesResult, transactionsResult] = await Promise.all([
+      supabase
+        .from('budget_line')
+        .select('id, kind, amount')
+        .eq('budget_id', budgetId),
+      supabase
+        .from('transaction')
+        .select('kind, amount, budget_line_id')
+        .eq('budget_id', budgetId),
+    ]);
+
+    if (budgetLinesResult.error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+        { budgetId },
+        {
+          operation: 'fetchBudgetDataForRecalc',
+          entityId: budgetId,
+          entityType: 'budgetLines',
+        },
+        { cause: budgetLinesResult.error },
+      );
+    }
+
+    if (transactionsResult.error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+        { budgetId },
+        {
+          operation: 'fetchBudgetDataForRecalc',
+          entityId: budgetId,
+          entityType: 'transactions',
+        },
+        { cause: transactionsResult.error },
+      );
+    }
+
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    // Strict on purpose: recalculation persists its result, so an
+    // undecryptable ciphertext must abort the write instead of zeroing the
+    // total (fetchBudgetData keeps the fail-open display behavior).
+    const decryptStrict = (ciphertext: string | null): number => {
+      if (!ciphertext) return 0;
+      try {
+        return this.encryption.decryptAmount(ciphertext, dek);
+      } catch (error) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.ENCRYPTION_DECRYPT_FAILED,
+          { budgetId },
+          {
+            operation: 'recalc.decrypt',
+            entityId: budgetId,
+            entityType: 'budget',
+          },
+          { cause: error instanceof Error ? error : new Error(String(error)) },
+        );
+      }
+    };
+
+    return {
+      budgetLines: (budgetLinesResult.data ?? []).map((row) => ({
+        id: row.id,
+        kind: row.kind,
+        amount: decryptStrict(row.amount),
+      })),
+      transactions: (transactionsResult.data ?? []).map((row) => ({
+        kind: row.kind,
+        amount: decryptStrict(row.amount),
+        budgetLineId: row.budget_line_id,
+      })),
     };
   }
 

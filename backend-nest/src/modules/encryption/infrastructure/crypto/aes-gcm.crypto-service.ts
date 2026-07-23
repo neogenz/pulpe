@@ -231,6 +231,14 @@ export class AesGcmCryptoService {
     const salt = Buffer.from(row.salt, 'hex');
     const dek = this.#deriveDEK(clientKey, salt, userId);
 
+    // Invariant: only a canary-validated DEK enters the cache. On failure the
+    // derived DEK is still returned (reads keep their fallback-0 UX) but never
+    // cached, so a concurrent write re-derives and rejects the key instead of
+    // encrypting under a wrong DEK.
+    if (row.key_check && !this.validateKeyCheck(row.key_check, dek)) {
+      return dek;
+    }
+
     this.#dekCache.set(cacheKey, {
       dek,
       expiry: Date.now() + DEK_CACHE_TTL_MS,
@@ -326,17 +334,26 @@ export class AesGcmCryptoService {
     const salt = Buffer.from(row.salt, 'hex');
     const dek = this.#deriveDEK(clientKey, salt, userId);
 
+    // Invariant: only a canary-validated DEK enters the cache — a wrong key
+    // must never leave a poisoned entry behind for a later ensureUserDEK hit.
+    if (row.key_check) {
+      if (!this.validateKeyCheck(row.key_check, dek)) {
+        return false;
+      }
+      this.#dekCache.set(this.#buildCacheKey(userId, clientKey), {
+        dek,
+        expiry: Date.now() + DEK_CACHE_TTL_MS,
+      });
+      return true;
+    }
+
+    // First use: this DEK bootstraps the canary, valid by definition.
+    const keyCheck = this.generateKeyCheck(dek);
+    await this.#repository.updateKeyCheckIfNull(userId, keyCheck);
     this.#dekCache.set(this.#buildCacheKey(userId, clientKey), {
       dek,
       expiry: Date.now() + DEK_CACHE_TTL_MS,
     });
-
-    if (row.key_check) {
-      return this.validateKeyCheck(row.key_check, dek);
-    }
-
-    const keyCheck = this.generateKeyCheck(dek);
-    await this.#repository.updateKeyCheckIfNull(userId, keyCheck);
     return true;
   }
 
@@ -344,7 +361,7 @@ export class AesGcmCryptoService {
     userId: string,
     clientKey: Buffer,
   ): Promise<{ formatted: string }> {
-    const dek = await this.getUserDEK(userId, clientKey);
+    const dek = await this.ensureUserDEK(userId, clientKey);
     const { raw, formatted } = this.generateRecoveryKey();
 
     try {
@@ -382,7 +399,7 @@ export class AesGcmCryptoService {
     clientKey: Buffer,
     existing: UserEncryptionKey | null,
   ): Promise<{ formatted: string }> {
-    const dek = await this.getUserDEK(userId, clientKey);
+    const dek = await this.ensureUserDEK(userId, clientKey);
     const { raw, formatted } = this.generateRecoveryKey();
 
     try {

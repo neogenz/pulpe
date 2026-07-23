@@ -17,6 +17,7 @@ psql "$DB" -f supabase/tests/create_budget_from_template_owner_only.sql
 psql "$DB" -f supabase/tests/toggle_transaction_check.sql
 psql "$DB" -f supabase/tests/enforce_template_limit_per_user.sql
 psql "$DB" -f supabase/tests/create_budget_lines_spread_source_consumption.sql
+psql "$DB" -f supabase/tests/transaction_budget_line_coherence.sql
 ```
 
 Each script prints `NOTICE:  ALL ASSERTIONS PASSED` on success, or raises an exception on failure.
@@ -32,6 +33,7 @@ Each script prints `NOTICE:  ALL ASSERTIONS PASSED` on success, or raises an exc
 | `toggle_transaction_check.sql`                        | `toggle_transaction_check`                | toggle null↔now, ownership enforcement, ending_balance untouched (Option A regression guard) — HI-14                                                                                                                     |
 | `enforce_template_limit_per_user.sql`                 | `enforce_template_limit_per_user` trigger | 6th template insert rejected with P0001/TEMPLATE_LIMIT_EXCEEDED, cross-user isolation — HI-30                                                                                                                            |
 | `create_budget_lines_spread_source_consumption.sql`   | `create_budget_lines_spread`              | consumed source rejects retry before insert, duplicate group prevention, dual-source rejection, cross-user source ignored by DELETE (IDOR: raises `Spread source unavailable`, victim row intact, zero inserts), sourceless additive replay rejected by the dup-group guard (`Spread group already exists`, no duplicate group) — PUL-17 |
+| `transaction_budget_line_coherence.sql`               | `enforce_transaction_budget_line_link` trigger | cross-budget `budget_line_id` rejected on INSERT and on budget relocation UPDATE, same-budget link and free (NULL) transaction accepted — security audit 2026-07-23 |
 
 ## Why SQL files (not Bun specs)
 

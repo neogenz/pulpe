@@ -1,0 +1,8 @@
+# Keeps the SHA-pinned GitHub Actions current: Dependabot reads the trailing
+# `# vN` comment next to each pinned SHA and opens weekly bump PRs.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
