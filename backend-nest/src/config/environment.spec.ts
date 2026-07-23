@@ -2,6 +2,35 @@ import { describe, expect, it } from 'bun:test';
 import { validateConfig } from './environment';
 
 describe('Environment Validation', () => {
+  describe('NODE_ENV (fail-loud, no default)', () => {
+    const baseConfig = {
+      SUPABASE_URL: 'http://localhost:54321',
+      SUPABASE_ANON_KEY: 'test-anon-key',
+      SUPABASE_SERVICE_ROLE_KEY: 'test-service-role-key',
+      TURNSTILE_SECRET_KEY: 'test-turnstile-key',
+      ENCRYPTION_MASTER_KEY:
+        '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+    };
+
+    it('should refuse to boot when NODE_ENV is absent', () => {
+      expect(() => validateConfig(baseConfig)).toThrow(/NODE_ENV/);
+    });
+
+    it('should refuse to boot on an unknown NODE_ENV value', () => {
+      expect(() =>
+        validateConfig({ ...baseConfig, NODE_ENV: 'staging' }),
+      ).toThrow(/NODE_ENV/);
+    });
+
+    it('should accept every explicit environment', () => {
+      for (const env of ['development', 'production', 'preview', 'test']) {
+        expect(() =>
+          validateConfig({ ...baseConfig, NODE_ENV: env }),
+        ).not.toThrow();
+      }
+    });
+  });
+
   describe('SUPABASE_SERVICE_ROLE_KEY', () => {
     it('should be required in all environments including development', () => {
       const config = {

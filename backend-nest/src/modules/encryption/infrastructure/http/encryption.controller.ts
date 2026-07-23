@@ -109,7 +109,9 @@ export class EncryptionController {
   @SkipClientKey()
   @Post('validate-key')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Throttle({ default: { limit: 30, ttl: 60000 } })
+  // 5/min (docs/ENCRYPTION.md): this endpoint is a PIN oracle — with a stolen
+  // session, 10^4 PIN candidates at 30/min took ~5.5h; at 5/min it takes ~33h.
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Verify that a client key can decrypt user data' })
   @ApiResponse({
     status: 204,
@@ -214,8 +216,9 @@ export class EncryptionController {
   @SkipClientKey()
   @Post('verify-recovery-key')
   @HttpCode(HttpStatus.NO_CONTENT)
-  // Read-only unwrap — same ceiling as validate-key so users can retry after typos
-  // (unlike /recover which re-encrypts all data and stays at 5/hour)
+  // Read-only unwrap — stays at 30/min (recovery keys are high-entropy, not
+  // brute-forceable) so users can retry after typos, unlike /recover which
+  // re-encrypts all data and stays at 5/hour and validate-key (PIN oracle, 5/min)
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({
     summary: 'Verify recovery key matches stored wrapped DEK (read-only)',

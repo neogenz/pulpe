@@ -101,7 +101,9 @@ describe('GlobalExceptionFilter', () => {
   });
 
   afterEach(() => {
-    delete process.env.NODE_ENV;
+    // Restore the value set by src/test/setup.ts — NODE_ENV now has no boot
+    // default, so leaving it unset breaks any app bootstrapped by later specs.
+    process.env.NODE_ENV = 'test';
   });
 
   describe('Context extraction', () => {
