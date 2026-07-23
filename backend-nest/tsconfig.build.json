@@ -1,4 +1,9 @@
 {
   "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // TypeScript 6 (TS5011) requires an explicit rootDir; ./src matches the
+    // layout TS5 inferred, so dist/main.js stays where the Dockerfile CMD expects.
+    "rootDir": "./src"
+  },
   "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
 }
