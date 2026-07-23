@@ -31,18 +31,18 @@ export function Footer() {
               />
               <span>Pulpe</span>
             </div>
-            <p className="mt-2 text-sm font-medium text-text-secondary">
+            <p className="mt-2 text-sm font-medium text-text">
               Le budget tourné vers les mois qui viennent. Créé en Suisse.
             </p>
           </div>
 
           <nav
             aria-label="Liens utiles"
-            className="flex flex-wrap gap-x-5 gap-y-1 text-sm font-semibold text-text-secondary"
+            className="flex flex-wrap gap-x-5 gap-y-1 text-sm font-semibold text-text"
           >
             {FOOTER_LINKS.map((link) => {
               const className =
-                "inline-flex min-h-11 min-w-11 items-center rounded-md transition-colors duration-200 hover:text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transition-none lg:items-end";
+                "inline-flex min-h-11 min-w-11 items-center rounded-md transition-colors duration-200 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transition-none lg:items-end";
 
               if ("internal" in link && link.internal) {
                 return (

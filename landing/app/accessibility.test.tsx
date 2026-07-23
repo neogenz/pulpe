@@ -761,7 +761,7 @@ describe("landing accessibility contracts", () => {
     );
     assert.match(
       componentSources.footer,
-      /text-sm font-semibold text-text-secondary/,
+      /text-sm font-semibold text-text"/,
     );
     assert.match(
       componentSources.footer,
