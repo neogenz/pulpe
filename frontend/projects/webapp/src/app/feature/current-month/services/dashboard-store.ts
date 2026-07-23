@@ -11,6 +11,7 @@ import {
   type BudgetLineConsumption,
 } from '@core/budget';
 import { Logger } from '@core/logging/logger';
+import { PostHogService } from '@core/analytics/posthog';
 import { cachedMutation, cachedResource } from 'ngx-ziflux';
 import { firstValueFrom } from 'rxjs';
 import { UserSettingsStore } from '@core/user-settings';
@@ -55,6 +56,7 @@ export class DashboardStore {
   readonly #budgetApi = inject(BudgetApi);
   readonly #userSettingsStore = inject(UserSettingsStore);
   readonly #logger = inject(Logger);
+  readonly #postHogService = inject(PostHogService);
 
   // ── 2. State ──
   readonly #pendingChecks = signal(new Set<string>());
@@ -292,6 +294,9 @@ export class DashboardStore {
         ...current,
         transactions: [...current.transactions, response.data],
       }));
+      this.#postHogService.captureEvent('transaction_created', {
+        type: response.data.kind,
+      });
     },
     onError: () => {
       this.#setError('transaction-add-failed');

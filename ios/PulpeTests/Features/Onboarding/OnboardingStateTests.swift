@@ -335,6 +335,32 @@ struct OnboardingStateTests {
         #expect(restored.leasingCredit == nil)
     }
 
+    @Test
+    func saveAndLoad_persistsMidFlowPinCompletion() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.firstName = "Marie"
+        state.currentStep = .budgetPreview
+        state.hasCompletedPinSetup = true
+        state.saveToStorage()
+
+        let restored = OnboardingState()
+        #expect(restored.hasCompletedPinSetup == true)
+        #expect(restored.currentStep == .budgetPreview)
+    }
+
+    @Test
+    func saveAndLoad_legacyDraftWithoutPinFlag_defaultsToFalse() {
+        let state = makeSUT()
+        defer { OnboardingState.clearPersistedData() }
+        state.firstName = "Marie"
+        state.currentStep = .savings
+        state.saveToStorage()
+
+        let restored = OnboardingState()
+        #expect(restored.hasCompletedPinSetup == false)
+    }
+
     // MARK: - Edit Round-Trip
 
     @Test
