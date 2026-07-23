@@ -5,46 +5,22 @@ import Testing
 struct CurrentMonthStoreLogicTests {
     // MARK: - Days Remaining Logic
 
-    @Test func daysRemainingLogic_calculatesCorrectly() throws {
-        // Arrange
-        let calendar = Calendar.current
-        let today = Date()
+    // These call the real store — earlier versions re-implemented the formula inline,
+    // which silently preserved the timestamp-vs-midnight truncation bug it had.
 
-        let range = try #require(calendar.range(of: .day, in: .month, for: today))
-        let lastDay = try #require(calendar.date(from: DateComponents(
-            year: calendar.component(.year, from: today),
-            month: calendar.component(.month, from: today),
-            day: range.count
-        )))
-
-        // Act
-        let remaining = calendar.dateComponents([.day], from: today, to: lastDay).day ?? 0
-        let daysRemaining = max(remaining + 1, 1) // Include today
-
-        // Assert
-        #expect(daysRemaining >= 1)
-        #expect(daysRemaining <= 31)
+    @Test @MainActor func daysRemaining_staysWithinMonthBounds() {
+        let store = CurrentMonthStore()
+        let days = store.daysRemaining()
+        #expect(days >= 1)
+        #expect(days <= 31)
     }
 
-    @Test func daysRemainingLogic_onLastDayOfMonth_returns1() throws {
-        // Arrange
-        let calendar = Calendar.current
-        let today = Date()
-
-        // Find the last day of current month
-        let range = try #require(calendar.range(of: .day, in: .month, for: today))
-        let lastDayOfMonth = try #require(calendar.date(from: DateComponents(
-            year: calendar.component(.year, from: today),
-            month: calendar.component(.month, from: today),
-            day: range.count
+    @Test @MainActor func daysRemaining_onFirstDayOfMonth_returnsFullMonth() throws {
+        let store = CurrentMonthStore()
+        let firstOfJuly = try #require(Calendar.current.date(from: DateComponents(
+            year: 2026, month: 7, day: 1, hour: 9
         )))
-
-        // Act - simulate calculation for last day
-        let remaining = calendar.dateComponents([.day], from: lastDayOfMonth, to: lastDayOfMonth).day ?? 0
-        let daysRemaining = max(remaining + 1, 1) // Include today
-
-        // Assert
-        #expect(daysRemaining == 1)
+        #expect(store.daysRemaining(now: firstOfJuly) == 31)
     }
 
     // MARK: - Daily Budget Logic

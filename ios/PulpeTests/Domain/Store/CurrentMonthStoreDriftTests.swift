@@ -80,7 +80,7 @@ struct CurrentMonthStoreDriftTests {
 
     // MARK: - Unchecked Totals
 
-    @Test func uncheckedTotals_countsBeyondDisplayCapAndSumsAmounts() {
+    @Test func uncheckedCount_countsBeyondDisplayCap() {
         let store = CurrentMonthStore()
         store.populateForTesting(
             budgetLines: (0..<4).map { index in
@@ -91,14 +91,11 @@ struct CurrentMonthStoreDriftTests {
             }
         )
 
-        let totals = store.uncheckedTotals
-
         #expect(store.uncheckedItems.count == 5) // display cap
-        #expect(totals.count == 8)               // real total
-        #expect(totals.amount == 440)
+        #expect(store.uncheckedCount == 8)       // real total
     }
 
-    @Test func uncheckedTotals_excludesCheckedAndRollover() {
+    @Test func uncheckedCount_excludesCheckedAndRollover() {
         let store = CurrentMonthStore()
         store.populateForTesting(
             budgetLines: [
@@ -111,10 +108,40 @@ struct CurrentMonthStoreDriftTests {
             ]
         )
 
-        let totals = store.uncheckedTotals
+        #expect(store.uncheckedCount == 1)
+    }
 
-        #expect(totals.count == 1)
-        #expect(totals.amount == 100)
+    // MARK: - Days Remaining
+
+    /// Regression: diffing a timestamped `now` against midnight of the last day truncated
+    /// today away — "Jour 23/31" (9 days left incl. today) divided by 8, inflating the
+    /// daily allowance by ~13% and up to ~2× on day 30.
+    @Test func daysRemaining_midDayTimestamp_includesToday() throws {
+        let store = CurrentMonthStore()
+        let calendar = Calendar.current
+
+        // July 23 at 14:37 — any intra-day time must count the same as midnight.
+        let midDay = try #require(calendar.date(from: DateComponents(
+            year: 2026, month: 7, day: 23, hour: 14, minute: 37
+        )))
+
+        let days = store.daysRemaining(now: midDay)
+
+        #expect(days == 9) // 23, 24, 25, 26, 27, 28, 29, 30, 31
+
+        // Must agree with periodDayProgress: totalDays - day + 1.
+        store.populateForTesting(budget: TestDataFactory.createBudget(id: "b", month: 7, year: 2026))
+        let progress = try #require(store.periodDayProgress(now: midDay))
+        #expect(days == progress.totalDays - progress.day + 1)
+    }
+
+    @Test func daysRemaining_lastDayOfMonth_returns1() throws {
+        let store = CurrentMonthStore()
+        let lateLastDay = try #require(Calendar.current.date(from: DateComponents(
+            year: 2026, month: 7, day: 31, hour: 22, minute: 5
+        )))
+
+        #expect(store.daysRemaining(now: lateLastDay) == 1)
     }
 
     // MARK: - Period Day Progress

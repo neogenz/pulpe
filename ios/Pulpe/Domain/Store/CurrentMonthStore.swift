@@ -359,7 +359,8 @@ final class CurrentMonthStore: StoreProtocol {
     var realizedMetrics: BudgetFormulas.RealizedMetrics {
         cachedRealizedMetrics ?? BudgetFormulas.calculateRealizedMetrics(
             budgetLines: displayBudgetLines,
-            transactions: transactions
+            transactions: transactions,
+            rollover: budget?.rollover.orZero ?? 0
         )
     }
 
@@ -388,7 +389,8 @@ final class CurrentMonthStore: StoreProtocol {
         )
         cachedRealizedMetrics = BudgetFormulas.calculateRealizedMetrics(
             budgetLines: displayBudgetLines,
-            transactions: transactions
+            transactions: transactions,
+            rollover: budget?.rollover.orZero ?? 0
         )
         cachedUncheckedItems = computeUncheckedItems()
         cachedSavingsSummary = computeSavingsSummary()
@@ -413,28 +415,34 @@ final class CurrentMonthStore: StoreProtocol {
 // MARK: - Computed Properties
 
 extension CurrentMonthStore {
-    /// Days remaining in the current budget period
-    func daysRemaining() -> Int {
+    /// Days remaining in the current budget period, today included.
+    /// Both ends are normalized to `startOfDay` — diffing a timestamped now against a
+    /// midnight boundary makes `.day` truncate today away for most of the day, which
+    /// inflated the daily allowance (÷8 instead of ÷9 while the hero says "Jour 23/31").
+    func daysRemaining(now: Date = Date()) -> Int {
         let calendar = Calendar.current
-        let today = Date()
+        let today = calendar.startOfDay(for: now)
 
         if let payDay = payDayOfMonth, payDay > 1, let budget {
             let periodDates = BudgetPeriodCalculator.periodDates(
                 month: budget.month, year: budget.year, payDayOfMonth: payDay
             )
-            let remaining = calendar.dateComponents([.day], from: today, to: periodDates.endDate).day ?? 0
+            let end = calendar.startOfDay(for: periodDates.endDate)
+            let remaining = calendar.dateComponents([.day], from: today, to: end).day ?? 0
             return max(remaining + 1, 1)
         }
 
         // Standard calendar month
-        guard let range = calendar.range(of: .day, in: .month, for: today),
+        guard let range = calendar.range(of: .day, in: .month, for: now),
               let lastDay = calendar.date(from: DateComponents(
-                year: calendar.component(.year, from: today),
-                month: calendar.component(.month, from: today),
+                year: calendar.component(.year, from: now),
+                month: calendar.component(.month, from: now),
                 day: range.count
               )) else { return 0 }
 
-        let remaining = calendar.dateComponents([.day], from: today, to: lastDay).day ?? 0
+        let remaining = calendar.dateComponents(
+            [.day], from: today, to: calendar.startOfDay(for: lastDay)
+        ).day ?? 0
         return max(remaining + 1, 1) // Include today
     }
 
@@ -475,14 +483,13 @@ extension CurrentMonthStore {
         driftLines.reduce(.zero) { $0 - $1.consumption.available }
     }
 
-    /// Uncapped unchecked count + amount for the "à pointer" header
-    /// (`uncheckedItems` is capped at 5 for display).
-    var uncheckedTotals: (count: Int, amount: Decimal) {
+    /// Uncapped unchecked count for the "à pointer" header (`uncheckedItems` is capped at 5
+    /// for display). Count only: a summed amount mixed inflows with outflows under one label
+    /// and sat irreconcilable next to the hero's "Engagé" — the count is the actionable part.
+    var uncheckedCount: Int {
         let uncheckedTransactions = transactions.filter { !$0.isChecked }
         let uncheckedLines = budgetLines.filter { !$0.isChecked && !($0.isRollover ?? false) }
-        let amount = uncheckedTransactions.reduce(Decimal.zero) { $0 + $1.amount }
-            + uncheckedLines.reduce(Decimal.zero) { $0 + $1.amount }
-        return (uncheckedTransactions.count + uncheckedLines.count, amount)
+        return uncheckedTransactions.count + uncheckedLines.count
     }
 
     /// 1-based day position within the current budget period (payDay-aware).
@@ -614,14 +621,16 @@ extension CurrentMonthStore {
 // MARK: - Mutations
 
 extension CurrentMonthStore {
-    func toggleBudgetLine(_ line: BudgetLine) async {
+    /// - Returns: `false` when the toggle was rolled back — see `toggleTransaction`.
+    @discardableResult
+    func toggleBudgetLine(_ line: BudgetLine) async -> Bool {
         // Note: toggles don't fire `onMutation` — checking a line/transaction
         // never changes the sparse aggregates sibling stores display.
         // Skip virtual rollover lines
-        guard !(line.isRollover ?? false) else { return }
+        guard !(line.isRollover ?? false) else { return true }
 
         // Skip if already syncing
-        guard !syncingBudgetLineIds.contains(line.id) else { return }
+        guard !syncingBudgetLineIds.contains(line.id) else { return true }
 
         // Mark as syncing
         _ = syncingBudgetLineIds.insert(line.id)
@@ -633,6 +642,7 @@ extension CurrentMonthStore {
             recomputeMetrics()
         }
 
+        var didSucceed = true
         do {
             _ = try await budgetLineService.toggleCheck(id: line.id)
             // Trust optimistic update - only mark cache as fresh
@@ -643,19 +653,26 @@ extension CurrentMonthStore {
             self.error = apiError
             recomputeMetrics()
             await forceRefresh()
+            didSucceed = false
         } catch {
             budgetLines = originalLines
             self.error = .networkError(error)
             recomputeMetrics()
             await forceRefresh()
+            didSucceed = false
         }
 
         _ = syncingBudgetLineIds.remove(line.id)
+        return didSucceed
     }
 
-    func toggleTransaction(_ transaction: Transaction) async {
+    /// - Returns: `false` when the toggle was rolled back, so the caller can surface it.
+    ///   `error` alone isn't enough: it's only rendered by the `.failed` content state, and a
+    ///   toggle failing from `.loaded` leaves the screen loaded — the rollback would be silent.
+    @discardableResult
+    func toggleTransaction(_ transaction: Transaction) async -> Bool {
         // Skip if already syncing
-        guard !syncingTransactionIds.contains(transaction.id) else { return }
+        guard !syncingTransactionIds.contains(transaction.id) else { return true }
 
         // Mark as syncing
         _ = syncingTransactionIds.insert(transaction.id)
@@ -667,6 +684,7 @@ extension CurrentMonthStore {
             recomputeMetrics()
         }
 
+        var didSucceed = true
         do {
             _ = try await transactionService.toggleCheck(id: transaction.id)
             // Trust optimistic update - only mark cache as fresh
@@ -677,14 +695,17 @@ extension CurrentMonthStore {
             self.error = apiError
             recomputeMetrics()
             await forceRefresh()
+            didSucceed = false
         } catch {
             transactions = originalTransactions
             self.error = .networkError(error)
             recomputeMetrics()
             await forceRefresh()
+            didSucceed = false
         }
 
         _ = syncingTransactionIds.remove(transaction.id)
+        return didSucceed
     }
 
     func addTransaction(_ transaction: Transaction) {

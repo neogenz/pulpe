@@ -14,7 +14,18 @@ struct DriftCard: View {
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.amountsHidden) private var amountsHidden
 
+    /// Matches `ActivityCard.maxRows` and the store's dashboard cap — a month that drifts on
+    /// ten envelopes shouldn't render a card ten mini-bars tall, which is precisely the month
+    /// the screen most needs to stay calm.
+    private static let maxRows = 3
+
     private var currency: SupportedCurrency { userSettingsStore.currency }
+
+    /// Residual count when more envelopes drift than the card shows.
+    private var overflowLabel: String {
+        let hidden = drifts.count - Self.maxRows
+        return "+\(hidden) autre\(hidden > 1 ? "s" : "") enveloppe\(hidden > 1 ? "s" : "")"
+    }
 
     private var headerAccessibilityLabel: String {
         guard !amountsHidden else { return "Ça dérive — montant masqué" }
@@ -43,11 +54,20 @@ struct DriftCard: View {
             .accessibilityHint("Voir le budget")
 
             VStack(spacing: DesignTokens.Spacing.none) {
-                ForEach(Array(drifts.enumerated()), id: \.element.line.id) { index, drift in
+                let visible = Array(drifts.prefix(Self.maxRows))
+                ForEach(Array(visible.enumerated()), id: \.element.line.id) { index, drift in
                     driftRow(drift.line, drift.consumption)
-                    if index < drifts.count - 1 {
+                    if index < visible.count - 1 {
                         Divider()
                     }
+                }
+
+                if drifts.count > Self.maxRows {
+                    Text(overflowLabel)
+                        .font(PulpeTypography.labelMedium)
+                        .foregroundStyle(Color.textTertiary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, DesignTokens.Spacing.md)
                 }
             }
             .padding(.horizontal, DesignTokens.Spacing.xl)
@@ -63,7 +83,8 @@ struct DriftCard: View {
             .contentShape(Rectangle())
             .plainPressedButtonStyle()
             .accessibilityLabel(catchUpAccessibilityLabel)
-            .accessibilityHint("Alléger le prévu, piocher dans l'épargne ou ajuster \(adjustMonthName)")
+            // Names the destination, not three levers the destination doesn't offer.
+            .accessibilityHint("Ouvre le budget pour ajuster tes enveloppes")
         }
         .pulpeCardBackground()
         .shadow(DesignTokens.Shadow.card)
@@ -114,6 +135,8 @@ struct DriftCard: View {
                     .font(PulpeTypography.metricLabel)
                     .foregroundStyle(Color.driftAccent)
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(DesignTokens.TextScale.floor)
                     .sensitiveAmount()
             }
 

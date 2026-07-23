@@ -3,7 +3,6 @@ import TipKit
 import WidgetKit
 
 private enum SheetDestination: Identifiable {
-    case addTransaction
     case realizedBalance
     case account
     case createBudget
@@ -17,6 +16,7 @@ struct CurrentMonthView: View {
     @Environment(BudgetListStore.self) private var budgetListStore
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(SavingsGoalStore.self) private var savingsGoalStore
+    @Environment(ToastManager.self) private var toastManager
     @State private var activeSheet: SheetDestination?
     @State private var navigateToBudget = false
     @State private var hasAppeared = false
@@ -95,12 +95,6 @@ struct CurrentMonthView: View {
         }
         .sheet(item: $activeSheet) { sheet in
             switch sheet {
-            case .addTransaction:
-                if let budgetId = store.budget?.id {
-                    AddTransactionSheet(budgetId: budgetId) { transaction in
-                        store.addTransaction(transaction)
-                    }
-                }
             case .realizedBalance:
                 RealizedBalanceSheet(
                     metrics: store.metrics,
@@ -191,6 +185,7 @@ struct CurrentMonthView: View {
                 HomeHeroCard(
                     metrics: store.metrics,
                     monthName: currentMonthName,
+                    realizedOutflows: store.realizedMetrics.realizedExpenses,
                     dayProgress: store.periodDayProgress(),
                     dailyMargin: store.dailyBudget(),
                     deficitContext: deficitContext,
@@ -203,18 +198,35 @@ struct CurrentMonthView: View {
                 if !store.uncheckedItems.isEmpty {
                     UncheckedOperationsCard(
                         items: store.uncheckedItems,
-                        totalCount: store.uncheckedTotals.count,
-                        totalAmount: store.uncheckedTotals.amount,
+                        totalCount: store.uncheckedCount,
                         syncingBudgetLineIds: store.syncingBudgetLineIds,
                         syncingTransactionIds: store.syncingTransactionIds,
                         onToggle: { item in
                             ProductTips.checking.invalidate(reason: .actionPerformed)
                             Task {
+                                let didSucceed: Bool
                                 switch item {
                                 case .transaction(let transaction, _):
-                                    await store.toggleTransaction(transaction)
+                                    didSucceed = await store.toggleTransaction(transaction)
                                 case .budgetLine(let line, _):
-                                    await store.toggleBudgetLine(line)
+                                    didSucceed = await store.toggleBudgetLine(line)
+                                }
+                                if didSucceed {
+                                    // The item leaves the screen on success — without an exit
+                                    // ramp, recovering from an accidental check means hunting
+                                    // it down in the budget detail.
+                                    toastManager.showWithUndo(
+                                        "\(item.name) pointé",
+                                        undo: { await undoToggle(item) },
+                                        onFinishedWithoutUndo: {}
+                                    )
+                                } else {
+                                    // The optimistic row silently reverts otherwise, right
+                                    // after the success haptic already told the user it worked.
+                                    toastManager.show(
+                                        "\(item.name) n'a pas pu être pointé",
+                                        type: .error
+                                    )
                                 }
                             }
                         },
@@ -267,6 +279,17 @@ struct CurrentMonthView: View {
     /// Drives insert/remove animations of the conditional blocks.
     private var conditionalBlocksState: [Bool] {
         [store.uncheckedItems.isEmpty, store.driftLines.isEmpty, store.savingsSummary.isComplete]
+    }
+
+    /// Reverse a successful check from the undo toast. The store toggles based on the
+    /// passed value's state, so the undone item must be handed over as already-checked.
+    private func undoToggle(_ item: CurrentMonthStore.CheckableItem) async {
+        switch item {
+        case .transaction(let transaction, _):
+            await store.toggleTransaction(transaction.toggled())
+        case .budgetLine(let line, _):
+            await store.toggleBudgetLine(line.toggled())
+        }
     }
 
     // MARK: - Copy Helpers
@@ -325,13 +348,19 @@ private struct CurrentMonthSkeletonView: View {
             VStack(spacing: DesignTokens.Spacing.lg) {
                 // Greeting placeholder
                 HStack {
-                    SkeletonShape(width: 180, height: 18)
+                    SkeletonShape(
+                        width: DesignTokens.Skeleton.greetingWidth,
+                        height: DesignTokens.Skeleton.lineHeight
+                    )
                     Spacer()
                     SkeletonCircle(size: DesignTokens.IconSize.listRow)
                 }
 
                 // Hero card placeholder
-                SkeletonShape(height: 240, cornerRadius: DesignTokens.CornerRadius.lg)
+                SkeletonShape(
+                    height: DesignTokens.Skeleton.heroHeight,
+                    cornerRadius: DesignTokens.CornerRadius.lg
+                )
 
                 // Cards placeholders
                 ForEach(0..<2, id: \.self) { _ in

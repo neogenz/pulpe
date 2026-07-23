@@ -90,6 +90,12 @@ enum BudgetFormulas {
             guard totalItemsCount > 0 else { return 0 }
             return Double(checkedItemsCount) / Double(totalItemsCount) * 100
         }
+
+        /// Realized outflows that are actually *dépense* — savings transfers excluded.
+        /// `realizedExpenses` sums every checked outflow, and `TransactionKind.isOutflow`
+        /// is true for `.saving`, so épargne would otherwise be reported as money spent.
+        /// Mirrors the planned side's `totalExpenses - totalSavings`.
+        var realizedSpending: Decimal { realizedExpenses - checkedSavingsAmount }
     }
 
     // MARK: - Income Calculations
@@ -182,13 +188,19 @@ enum BudgetFormulas {
 
     // MARK: - Realized Calculations (checked items only)
 
-    /// Calculate realized income (only checked items)
+    /// Calculate realized income (only checked items).
+    ///
+    /// Realized flows (income/expenses/savings) EXCLUDE virtual rollover lines: the report
+    /// is not money that moved this month, and the planned side (`calculateAllMetrics`)
+    /// routes it through `available`, not the flows. The rollover reaches the realized
+    /// BALANCE via the explicit `rollover` parameter instead — the always-checked virtual
+    /// line would otherwise inflate "Pointé"/"Dépense réalisée" by the carried report.
     static func calculateRealizedIncome(
         budgetLines: [BudgetLine],
         transactions: [Transaction] = []
     ) -> Decimal {
         let checkedBudgetIncome = budgetLines
-            .filter { $0.isChecked && $0.kind == .income }
+            .filter { $0.isChecked && $0.kind == .income && !($0.isRollover ?? false) }
             .reduce(Decimal.zero) { $0 + $1.amount }
 
         let checkedTransactionIncome = transactions
@@ -218,7 +230,7 @@ enum BudgetFormulas {
 
         // Calculate envelope totals - O(n) with O(1) lookups
         for line in budgetLines {
-            guard line.kind.isOutflow else { continue }
+            guard line.kind.isOutflow, !(line.isRollover ?? false) else { continue }
 
             let consumed = transactionsByLineId[line.id]?
                 .reduce(Decimal.zero) { $0 + $1.amount } ?? 0
@@ -251,7 +263,7 @@ enum BudgetFormulas {
         var total: Decimal = 0
 
         for line in budgetLines {
-            guard line.kind == .saving else { continue }
+            guard line.kind == .saving, !(line.isRollover ?? false) else { continue }
 
             let consumed = transactionsByLineId[line.id]?
                 .reduce(Decimal.zero) { $0 + $1.amount } ?? 0
@@ -269,14 +281,17 @@ enum BudgetFormulas {
         return total + freeTransactions
     }
 
-    /// Calculate realized balance (checked income - checked expenses)
+    /// Calculate realized balance (checked income - checked expenses + rollover).
+    /// The report enters here, not through the flows — same observable balance as when the
+    /// always-checked virtual line inflated income (positive report) or expenses (negative).
     static func calculateRealizedBalance(
         budgetLines: [BudgetLine],
-        transactions: [Transaction] = []
+        transactions: [Transaction] = [],
+        rollover: Decimal = 0
     ) -> Decimal {
         let realizedIncome = calculateRealizedIncome(budgetLines: budgetLines, transactions: transactions)
         let realizedExpenses = calculateRealizedExpenses(budgetLines: budgetLines, transactions: transactions)
-        return realizedIncome - realizedExpenses
+        return realizedIncome - realizedExpenses + rollover
     }
 
     // MARK: - Core Formulas

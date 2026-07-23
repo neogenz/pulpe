@@ -63,6 +63,7 @@ struct ActivityCard: View {
                     .font(PulpeTypography.labelMedium)
                     .foregroundStyle(Color.textTertiary)
                     .monospacedDigit()
+                    .minimumScaleFactor(DesignTokens.TextScale.compact)
                     .contentTransition(.numericText())
                     .sensitiveAmount()
             }
@@ -102,9 +103,13 @@ struct ActivityCard: View {
         } label: {
             HStack(spacing: DesignTokens.Spacing.xxs) {
                 ForEach(Window.allCases, id: \.self) { option in
+                    // Unconstrained, "Mois" breaks to one letter per line at accessibility
+                    // sizes and the capsule collapses over "7j".
                     Text(option.rawValue)
                         .font(PulpeTypography.metricMini)
                         .foregroundStyle(window == option ? Color.textPrimary : Color.textTertiary)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                         .padding(.horizontal, DesignTokens.Spacing.compactGap)
                         .padding(.vertical, DesignTokens.Spacing.xs)
                         .background(window == option ? Color.surface : .clear, in: Capsule())
@@ -150,15 +155,21 @@ struct ActivityCard: View {
 
     private func row(_ transaction: Transaction) -> some View {
         HStack(alignment: .firstTextBaseline) {
-            (
+            // Name and date are separate Texts, not one concatenation: a single
+            // `lineLimit(1)` over "name · date" truncates the date away first, and the date
+            // is what tells two same-named transactions apart ("test" vs "test 2").
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                 Text(transaction.name)
                     .font(PulpeTypography.labelLarge)
                     .foregroundStyle(Color.textPrimary)
-                + Text(" · \(transaction.transactionDate.relativeFormatted.lowercased())")
+                    .lineLimit(1)
+
+                Text(transaction.transactionDate.relativeFormatted.lowercased())
                     .font(PulpeTypography.labelMedium)
                     .foregroundStyle(Color.textTertiary)
-            )
-            .lineLimit(1)
+                    .lineLimit(1)
+                    .minimumScaleFactor(DesignTokens.TextScale.compact)
+            }
 
             Spacer()
 
@@ -176,6 +187,8 @@ struct ActivityCard: View {
                 .font(PulpeTypography.labelLarge)
                 .foregroundStyle(Color.textPrimary)
                 .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(DesignTokens.TextScale.floor)
 
             if let secondary = TransactionAmountView.secondaryText(
                 for: transaction,

@@ -91,7 +91,8 @@ final class BudgetDataStore {
         if let cached = cachedRealizedMetrics { return cached }
         let computed = BudgetFormulas.calculateRealizedMetrics(
             budgetLines: displayBudgetLines,
-            transactions: transactions
+            transactions: transactions,
+            rollover: budget?.rollover.orZero ?? 0
         )
         cachedRealizedMetrics = computed
         return computed
@@ -247,7 +248,8 @@ final class BudgetDataStore {
         )
         cachedRealizedMetrics = BudgetFormulas.calculateRealizedMetrics(
             budgetLines: displayBudgetLines,
-            transactions: transactions
+            transactions: transactions,
+            rollover: budget?.rollover.orZero ?? 0
         )
     }
 

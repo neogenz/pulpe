@@ -398,6 +398,10 @@ extension Color {
     static let homeHeroSupport = Color(light: Color(hex: 0x2C5136), dark: Color(hex: 0x9FC3AA))
     /// Solid overlay surface on the mint hero card (state chip fill + progress track).
     static let homeHeroOverlay = Color(light: Color(hex: 0xF3F9F5), dark: Color(hex: 0x2C4A37))
+    /// Middle band of the hero bar — committed but not yet pointed. Sits between the solid
+    /// `homeHeroInk` (money gone) and the pale track (still free), so the three read as one
+    /// ramp rather than three unrelated hues.
+    static let homeHeroReserved = Color(light: Color(hex: 0x6E9E80), dark: Color(hex: 0x5B8B6D))
     /// Envelope drift accent — overrun amounts + overflow bar segments on the home dashboard only.
     static let driftAccent = Color(light: Color(hex: 0xC45028), dark: Color(hex: 0xE8825A))
 

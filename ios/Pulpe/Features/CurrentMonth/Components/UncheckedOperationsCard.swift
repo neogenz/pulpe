@@ -5,17 +5,44 @@ import SwiftUI
 struct UncheckedOperationsCard: View {
     let items: [CurrentMonthStore.CheckableItem]
     let totalCount: Int
-    let totalAmount: Decimal
     let syncingBudgetLineIds: Set<String>
     let syncingTransactionIds: Set<String>
     var onToggle: (CurrentMonthStore.CheckableItem) -> Void
     var onViewAll: () -> Void
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
-    @Environment(\.amountsHidden) private var amountsHidden
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var skippedIds: Set<String> = []
     @State private var checkTrigger = false
+    @State private var skipTrigger = false
+    /// The operation currently showing its local "Pointé" confirmation, held from the tap
+    /// until the store drops it — the round-trip is too slow to be the only acknowledgement.
+    @State private var confirmingId: String?
+
+    /// SwiftUI removes a view with the transition captured at its LAST render, not the one
+    /// computed alongside the removal — so an exit direction stored in a flag flipped in the
+    /// same transaction arrives one animation late. The only removal-time signal that is
+    /// always fresh is the pane's own confirmation state: `confirmingId` is committed one
+    /// beat before a check's removal and nil otherwise.
+    ///
+    /// Vocabulary: every new operation arrives the same way (slides in from leading — next
+    /// in the queue). Only the exit differs, and it depends solely on what was done to THIS
+    /// item: confirmed resolves upward and settles; deferred slides out to trailing.
+    private func paneTransition(for item: CurrentMonthStore.CheckableItem) -> AnyTransition {
+        guard !reduceMotion else { return .opacity }
+        let insertion = AnyTransition.opacity.combined(with: .move(edge: .leading))
+        if confirmingId == item.id {
+            return .asymmetric(
+                insertion: insertion,
+                removal: .opacity.combined(with: .push(from: .bottom)).combined(with: .scale(scale: 0.94))
+            )
+        }
+        return .asymmetric(
+            insertion: insertion,
+            removal: .opacity.combined(with: .move(edge: .trailing))
+        )
+    }
 
     private var currency: SupportedCurrency { userSettingsStore.currency }
 
@@ -34,9 +61,7 @@ struct UncheckedOperationsCard: View {
     }
 
     private var headerAccessibilityLabel: String {
-        let count = "\(totalCount) opération\(totalCount > 1 ? "s" : "") à pointer"
-        guard !amountsHidden else { return "\(count) — montant masqué" }
-        return "\(count), \(totalAmount.asCompactCurrency(currency)) en attente"
+        "\(totalCount) opération\(totalCount > 1 ? "s" : "") à pointer"
     }
 
     var body: some View {
@@ -55,12 +80,23 @@ struct UncheckedOperationsCard: View {
                     .padding(.horizontal, DesignTokens.Spacing.xl)
 
                 inlinePane(item)
+                    .id(item.id)
+                    .transition(paneTransition(for: item))
             }
         }
         .pulpeCardBackground()
         .shadow(DesignTokens.Shadow.card)
-        .animation(DesignTokens.Animation.defaultSpring, value: currentItem?.id)
+        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
+        .animation(
+            reduceMotion ? DesignTokens.Animation.smoothEaseOut : DesignTokens.Animation.gentleSpring,
+            value: currentItem?.id
+        )
         .sensoryFeedback(.success, trigger: checkTrigger)
+        .sensoryFeedback(.selection, trigger: skipTrigger)
+        .onChange(of: currentItem?.id) { _, _ in
+            // The next operation must start from a clean slate, not inherit the confirmation.
+            confirmingId = nil
+        }
     }
 
     // MARK: - Header
@@ -73,17 +109,13 @@ struct UncheckedOperationsCard: View {
                 avatarStack
             }
 
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                Text("\(totalCount) opération\(totalCount > 1 ? "s" : "") à pointer")
-                    .font(PulpeTypography.cardTitle)
-                    .foregroundStyle(Color.textPrimary)
-
-                Text("\(totalAmount.asCompactCurrency(currency)) en attente")
-                    .font(PulpeTypography.labelMedium)
-                    .foregroundStyle(Color.textTertiary)
-                    .monospacedDigit()
-                    .sensitiveAmount()
-            }
+            // Title only — the header used to sum unchecked amounts unsigned-then-signed,
+            // but any single figure here mixes pending salary with pending bills and sits
+            // irreconcilable next to the hero's "Engagé". The count is the actionable part;
+            // per-operation amounts live on the inline pane below.
+            Text("\(totalCount) opération\(totalCount > 1 ? "s" : "") à pointer")
+                .font(PulpeTypography.cardTitle)
+                .foregroundStyle(Color.textPrimary)
 
             Spacer()
 
@@ -159,12 +191,17 @@ struct UncheckedOperationsCard: View {
 
                 Spacer()
 
+                // The name beside it is pinned to one line; without a matching constraint
+                // the amount wraps ("-400.0" / "0") and shoves the name into truncation.
                 Text(amountText(for: item))
                     .font(PulpeTypography.labelLarge)
                     .foregroundStyle(Color.textPrimary)
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(DesignTokens.TextScale.floor)
                     .sensitiveAmount()
             }
+            .accessibilityElement(children: .combine)
 
             actionsRow(item)
         }
@@ -174,48 +211,89 @@ struct UncheckedOperationsCard: View {
         .opacity(isSyncing(item) ? DesignTokens.Opacity.disabled : 1)
     }
 
+    @ViewBuilder
     private func actionsRow(_ item: CurrentMonthStore.CheckableItem) -> some View {
-        HStack(spacing: DesignTokens.Spacing.lg) {
-            Button {
-                checkTrigger.toggle()
-                onToggle(item)
-            } label: {
-                HStack(spacing: DesignTokens.Spacing.tightGap) {
-                    Image(systemName: "checkmark")
-                        .font(PulpeTypography.metricLabelBold)
-                    Text("C'est passé")
-                        .font(PulpeTypography.labelLarge)
-                }
-                .foregroundStyle(Color.pulpePrimary)
-                .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum)
-                .background(
-                    Color.pulpePrimary.opacity(DesignTokens.Opacity.highlightBackground),
-                    in: Capsule()
-                )
+        // Side by side, "C'est passé" and "Plus tard" squeeze each other once the labels
+        // grow; stacked, each keeps its full width and its 44pt target.
+        if dynamicTypeSize >= .xxLarge {
+            VStack(spacing: DesignTokens.Spacing.sm) {
+                confirmButton(item)
+                skipButton(item)
             }
-            .contentShape(Capsule())
-            .plainPressedButtonStyle()
-            .disabled(isSyncing(item))
-            .accessibilityLabel("Pointer \(item.name)")
-
-            Button {
-                withAnimation(DesignTokens.Animation.defaultSpring) {
-                    _ = skippedIds.insert(item.id)
-                    // Wrap around: once every item has been skipped, restart the
-                    // rotation so the inline pane keeps offering operations to point
-                    // instead of vanishing while some are still "à pointer".
-                    if items.allSatisfy({ skippedIds.contains($0.id) }) {
-                        skippedIds.removeAll()
-                    }
-                }
-            } label: {
-                Text("Plus tard")
-                    .font(PulpeTypography.labelLarge)
-                    .foregroundStyle(Color.textSecondary)
+        } else {
+            HStack(spacing: DesignTokens.Spacing.lg) {
+                confirmButton(item)
+                skipButton(item)
             }
-            .textLinkButtonStyle()
-            .accessibilityLabel("Plus tard pour \(item.name)")
         }
+    }
+
+    private func confirmButton(_ item: CurrentMonthStore.CheckableItem) -> some View {
+        let isConfirming = confirmingId == item.id
+
+        return Button {
+            guard confirmingId == nil else { return }
+            checkTrigger.toggle()
+            // Beat one: the capsule commits to solid green immediately, so the tap is
+            // acknowledged now rather than whenever the network answers.
+            withAnimation(reduceMotion ? nil : DesignTokens.Animation.gentleSpring) {
+                confirmingId = item.id
+            }
+            // Beat two: the store drops the item and the pane resolves upward.
+            onToggle(item)
+        } label: {
+            HStack(spacing: DesignTokens.Spacing.tightGap) {
+                Image(systemName: isConfirming ? "checkmark.circle.fill" : "checkmark")
+                    .font(PulpeTypography.metricLabelBold)
+                    .contentTransition(.symbolEffect(.replace))
+                Text(isConfirming ? "Pointé" : "C'est passé")
+                    .font(PulpeTypography.labelLarge)
+                    .contentTransition(.opacity)
+            }
+            .foregroundStyle(isConfirming ? Color.textOnPrimary : Color.pulpePrimary)
+            // Height comes from padding, not from the tap-target floor — putting
+            // `minHeight` in the label would make the capsule's size an artifact of
+            // the 44pt rule rather than a deliberate visual.
+            .padding(.vertical, DesignTokens.Spacing.md)
+            .frame(maxWidth: .infinity)
+            .background(
+                isConfirming
+                    ? AnyShapeStyle(Color.pulpePrimary)
+                    : AnyShapeStyle(Color.pulpePrimary.opacity(DesignTokens.Opacity.highlightBackground)),
+                in: Capsule()
+            )
+        }
+        .frame(minHeight: DesignTokens.TapTarget.minimum)
+        .contentShape(Capsule())
+        .plainPressedButtonStyle()
+        .disabled(isSyncing(item) || confirmingId != nil)
+        .accessibilityLabel("Pointer \(item.name)")
+    }
+
+    private func skipButton(_ item: CurrentMonthStore.CheckableItem) -> some View {
+        Button {
+            guard confirmingId == nil else { return }
+            skipTrigger.toggle()
+            withAnimation(reduceMotion ? nil : DesignTokens.Animation.gentleSpring) {
+                _ = skippedIds.insert(item.id)
+                // Wrap around: once every item has been skipped, restart the
+                // rotation so the inline pane keeps offering operations to point
+                // instead of vanishing while some are still "à pointer".
+                if items.allSatisfy({ skippedIds.contains($0.id) }) {
+                    skippedIds.removeAll()
+                }
+            }
+        } label: {
+            Text("Plus tard")
+                .font(PulpeTypography.labelLarge)
+                .foregroundStyle(Color.textSecondary)
+        }
+        // `textLinkButtonStyle` deliberately forces no height, and this button's row
+        // provides no padding of its own — without an explicit floor the target is ~20pt.
+        .frame(minHeight: DesignTokens.TapTarget.minimum)
+        .contentShape(Rectangle())
+        .textLinkButtonStyle()
+        .accessibilityLabel("Plus tard pour \(item.name)")
     }
 
     private func subtitle(for item: CurrentMonthStore.CheckableItem) -> String {

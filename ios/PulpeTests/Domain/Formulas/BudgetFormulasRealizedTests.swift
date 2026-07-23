@@ -31,54 +31,85 @@ struct BudgetFormulasRealizedTests {
     }
 
     // MARK: - Rollover in Realized Calculations
+    //
+    // Contract: the report enters the realized BALANCE via the `rollover` parameter, never
+    // the flows. The virtual rollover line is always checked, so counting it in
+    // realizedExpenses/Income inflated "Pointé" (home hero) and "Dépense réalisée" (sheet)
+    // by the carried deficit — while the planned side routes rollover through `available`.
 
-    @Test func calculateRealizedExpenses_includesCheckedRolloverLine() {
+    @Test func calculateRealizedExpenses_excludesRolloverLine() {
         let lines = [
             TestDataFactory.createBudgetLine(id: "1", amount: 100, kind: .expense, isChecked: true),
             TestDataFactory.createBudgetLine(id: "2", amount: 50, kind: .expense, isChecked: true, isRollover: true)
         ]
         let expenses = BudgetFormulas.calculateRealizedExpenses(budgetLines: lines)
-        #expect(expenses == 150)
+        #expect(expenses == 100)
     }
 
-    @Test func calculateRealizedBalance_includesCheckedNegativeRollover() {
+    @Test func calculateRealizedIncome_excludesRolloverLine() {
+        let lines = [
+            TestDataFactory.createBudgetLine(id: "1", amount: 5000, kind: .income, isChecked: true),
+            TestDataFactory.createBudgetLine(id: "2", amount: 3094, kind: .income, isChecked: true, isRollover: true)
+        ]
+        let income = BudgetFormulas.calculateRealizedIncome(budgetLines: lines)
+        #expect(income == 5000)
+    }
+
+    @Test func calculateRealizedBalance_carriesNegativeRolloverViaParameter() {
+        // Same observable balance as when the virtual line inflated expenses: 5000 − 3000 − 1950.
         let rolloverLine = BudgetLine.rolloverLine(amount: -1950, budgetId: "b1", sourceBudgetId: nil)
         let lines = [
             TestDataFactory.createBudgetLine(id: "1", amount: 5000, kind: .income, isChecked: true),
             TestDataFactory.createBudgetLine(id: "2", amount: 3000, kind: .expense, isChecked: true),
             rolloverLine
         ]
-        let balance = BudgetFormulas.calculateRealizedBalance(budgetLines: lines)
+        let balance = BudgetFormulas.calculateRealizedBalance(budgetLines: lines, rollover: -1950)
         #expect(balance == 50)
     }
 
-    @Test func calculateRealizedBalance_includesCheckedPositiveRollover() {
+    @Test func calculateRealizedBalance_carriesPositiveRolloverViaParameter() {
         let lines = [
             TestDataFactory.createBudgetLine(id: "1", amount: 5000, kind: .income, isChecked: true),
             TestDataFactory.createBudgetLine(id: "2", amount: 3094, kind: .income, isChecked: true, isRollover: true),
             TestDataFactory.createBudgetLine(id: "3", amount: 8000, kind: .expense, isChecked: true)
         ]
-        let balance = BudgetFormulas.calculateRealizedBalance(budgetLines: lines)
+        let balance = BudgetFormulas.calculateRealizedBalance(budgetLines: lines, rollover: 3094)
         #expect(balance == 94)
     }
 
-    @Test func calculateRealizedBalance_excludesUncheckedRollover() {
-        let lines = [
+    /// Regression for the hero ledger: in a deficit-carryover month, "Pointé" must show
+    /// true realized spending — not spending + the carried report — so that
+    /// pointé + engagé + restant still sums to `available`.
+    @Test func realizedMetrics_negativeRolloverMonth_keepsHeroLedgerIdentity() {
+        let rolloverLine = BudgetLine.rolloverLine(amount: -1950, budgetId: "b1", sourceBudgetId: nil)
+        let base = [
             TestDataFactory.createBudgetLine(id: "1", amount: 5000, kind: .income, isChecked: true),
-            TestDataFactory.createBudgetLine(id: "2", amount: 1950, kind: .expense, isChecked: false, isRollover: true),
-            TestDataFactory.createBudgetLine(id: "3", amount: 3000, kind: .expense, isChecked: true)
+            TestDataFactory.createBudgetLine(id: "2", amount: 3000, kind: .expense, isChecked: true),
+            TestDataFactory.createBudgetLine(id: "3", amount: 1000, kind: .expense, isChecked: false)
         ]
-        let balance = BudgetFormulas.calculateRealizedBalance(budgetLines: lines)
-        #expect(balance == 2000)
+        let display = [rolloverLine] + base
+
+        let realized = BudgetFormulas.calculateRealizedMetrics(budgetLines: display, rollover: -1950)
+        let planned = BudgetFormulas.calculateAllMetrics(budgetLines: base, rollover: -1950)
+
+        #expect(realized.realizedExpenses == 3000) // report NOT counted as pointé
+        #expect(realized.realizedBalance == 50)    // report still carried in the balance
+
+        // Hero ledger identity: pointé + engagé + restant = available
+        let pointe = realized.realizedExpenses
+        let engage = max(planned.totalExpenses - pointe, 0)
+        let identitySum = pointe + engage + planned.remaining
+        #expect(identitySum == planned.available)
     }
 
-    @Test func calculateRealizedMetrics_includesRolloverInCountsAndBalance() {
+    @Test func calculateRealizedMetrics_countsIncludeRolloverLine() {
+        // Pointage counts are display-scoped and unchanged by the flow fix.
         let lines = [
             TestDataFactory.createBudgetLine(id: "1", amount: 5000, kind: .income, isChecked: true),
             TestDataFactory.createBudgetLine(id: "2", amount: 3000, kind: .expense, isChecked: true),
             TestDataFactory.createBudgetLine(id: "3", amount: 1950, kind: .expense, isChecked: true, isRollover: true)
         ]
-        let metrics = BudgetFormulas.calculateRealizedMetrics(budgetLines: lines)
+        let metrics = BudgetFormulas.calculateRealizedMetrics(budgetLines: lines, rollover: -1950)
         #expect(metrics.checkedItemsCount == 3)
         #expect(metrics.totalItemsCount == 3)
         #expect(metrics.realizedBalance == 50)
