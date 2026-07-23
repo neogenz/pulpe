@@ -35,7 +35,10 @@ export function Hero() {
   const unit = currency === "CHF" ? "CHF" : "€";
 
   return (
-    <section className="hero-mesh relative overflow-hidden pb-12 pt-36 md:pb-28 md:pt-40 lg:pb-20 lg:pt-44">
+    <section
+      id="hero"
+      className="hero-mesh relative overflow-hidden pb-12 pt-36 md:pb-28 md:pt-40 lg:pb-20 lg:pt-44"
+    >
       <div className="relative z-10 mx-auto w-full max-w-6xl px-4 md:px-6 lg:px-8">
         <div className="mx-auto max-w-5xl text-center">
           <h1 className="mx-auto max-w-5xl text-[clamp(2.75rem,5.6vw,5rem)] font-extrabold leading-[0.98] tracking-[-0.04em] text-text">

@@ -16,7 +16,7 @@ export function StickyCTA() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const hero = document.querySelector(".hero-mesh");
+    const hero = document.getElementById("hero");
     const finalCta = document.getElementById("final-cta");
     if (!hero) return;
 

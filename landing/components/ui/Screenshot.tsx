@@ -109,7 +109,13 @@ export const Screenshot = memo(function Screenshot({
   }, [src, desktopSrc, iosMobileSrc, label, isDesktop, openLightbox]);
 
   // Reserve the correct box at each breakpoint so the landscape desktop asset
-  // and the portrait mobile asset never cause a decode-time layout shift (CLS).
+  // and the portrait mobile asset never cause a decode-time layout shift.
+  // Known tradeoff: on iPhone the reserved ratio swaps from `mobileHeight` to
+  // `IOS_IMAGE_HEIGHT` once hydration detects the device (UA sniffing is
+  // impossible in a static export). All current usages sit below the fold and
+  // lazy-load, so the one-time swap happens off-viewport and does not register
+  // as CLS. Reserving the iOS ratio for everyone would instead crop ~27% of
+  // the responsive asset under object-cover — the worse outcome.
   const frameStyle = {
     "--m-ar": `${mobileWidth} / ${renderedMobileHeight}`,
     "--d-ar":
