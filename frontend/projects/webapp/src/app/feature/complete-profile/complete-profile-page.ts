@@ -292,44 +292,17 @@ import {
                   </mat-form-field>
                 </div>
 
-                <!-- Mobile compact preview (between form and CTA) -->
-                <div class="lg:hidden mt-8" aria-hidden="true">
-                  <div
-                    class="onboarding-preview-mobile flex items-center justify-between gap-4 px-5 py-4 rounded-2xl bg-surface-container border border-outline-variant/30"
-                    [class.opacity-60]="!store.monthlyIncome()"
-                  >
-                    <div class="flex flex-col min-w-0">
-                      <span
-                        class="text-label-small text-on-surface-variant uppercase tracking-[0.08em]"
-                      >
-                        {{
-                          'completeProfile.preview.title'
-                            | transloco: { month: currentMonthLabel }
-                        }}
-                      </span>
-                      <span
-                        class="text-title-large font-bold text-on-surface ph-no-capture truncate"
-                      >
-                        @if (store.monthlyIncome()) {
-                          {{
-                            store.monthlyIncome()
-                              | appCurrency: selectedCurrency() : '1.0-2'
-                          }}
-                        } @else {
-                          —
-                        }
-                      </span>
-                    </div>
-                    @if (payDayLabel(); as label) {
-                      <span
-                        class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface text-label-small text-on-surface-variant"
-                      >
-                        <mat-icon class="!text-base">event</mat-icon>
-                        {{ label }}
-                      </span>
-                    }
-                  </div>
-                </div>
+                <!-- Mobile live preview (between form and CTA) -->
+                <pulpe-onboarding-preview-desktop
+                  class="lg:hidden block mt-8"
+                  [firstName]="store.firstName()"
+                  [monthlyIncome]="store.monthlyIncome()"
+                  [payDayOfMonth]="store.payDayOfMonth()"
+                  [currencyCode]="selectedCurrency()"
+                  [currencyFlag]="currencyMetadata[selectedCurrency()].flag"
+                  [monthLabel]="currentMonthLabel"
+                  [isReady]="store.isStep1Valid()"
+                />
 
                 <div class="mt-10 w-full flex flex-col items-stretch gap-4">
                   <button
@@ -954,13 +927,6 @@ export default class CompleteProfilePage {
     { length: PAY_DAY_MAX },
     (_, i) => i + 1,
   );
-
-  protected readonly payDayLabel = computed(() => {
-    const day = this.store.payDayOfMonth();
-    return day === null
-      ? null
-      : this.#transloco.translate('completeProfile.preview.payDayOn', { day });
-  });
 
   protected readonly ctaLabel = computed(() => {
     if (!this.store.firstName().trim()) {
