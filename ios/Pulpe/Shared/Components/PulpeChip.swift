@@ -27,6 +27,8 @@ struct PulpeChip<Trailing: View>: View {
         case outlined
         /// Informational chip — `surfaceContainerHigh` fill, no border.
         case muted
+        /// State chip on a tinted hero surface — explicit fill + foreground, no border.
+        case tinted(surface: Color, foreground: Color)
     }
 
     // MARK: - Size
@@ -60,6 +62,7 @@ struct PulpeChip<Trailing: View>: View {
     // MARK: - Stored Properties
 
     let icon: String?
+    let dotColor: Color?
     let label: String
     let count: Int?
     let style: Style
@@ -71,6 +74,7 @@ struct PulpeChip<Trailing: View>: View {
 
     init(
         icon: String? = nil,
+        dotColor: Color? = nil,
         label: String,
         count: Int? = nil,
         style: Style = .outlined,
@@ -79,6 +83,7 @@ struct PulpeChip<Trailing: View>: View {
         @ViewBuilder trailing: () -> Trailing = { EmptyView() }
     ) {
         self.icon = icon
+        self.dotColor = dotColor
         self.label = label
         self.count = count
         self.style = style
@@ -106,6 +111,14 @@ struct PulpeChip<Trailing: View>: View {
     @ViewBuilder
     private var content: some View {
         HStack(spacing: size.interElementGap) {
+            if let dotColor {
+                Circle()
+                    .fill(dotColor)
+                    .frame(
+                        width: DesignTokens.ChipMetrics.stateDotSize,
+                        height: DesignTokens.ChipMetrics.stateDotSize
+                    )
+            }
             if let icon {
                 Image(systemName: icon)
                     .contentTransition(.symbolEffect(.replace))
@@ -137,6 +150,7 @@ struct PulpeChip<Trailing: View>: View {
         case .solid: Color.textPrimary
         case .outlined: Color.surface
         case .muted: Color.surfaceContainerHigh
+        case .tinted(let surface, _): surface
         }
     }
 
@@ -155,20 +169,21 @@ struct PulpeChip<Trailing: View>: View {
         switch style {
         case .solid: Color(.systemBackground)
         case .outlined, .muted: Color.textPrimary
+        case .tinted(_, let foreground): foreground
         }
     }
 
     private var countBadgeFill: Color {
         switch style {
         case .solid: Color(.systemBackground).opacity(DesignTokens.Opacity.secondary)
-        case .outlined, .muted: Color.surfaceContainerHigh
+        case .outlined, .muted, .tinted: Color.surfaceContainerHigh
         }
     }
 
     private var countBadgeForeground: Color {
         switch style {
         case .solid: Color(.systemBackground)
-        case .outlined, .muted: Color.textTertiary
+        case .outlined, .muted, .tinted: Color.textTertiary
         }
     }
 }

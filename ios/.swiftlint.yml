@@ -89,7 +89,6 @@ custom_rules:
       - ".*/Shared/Components/ToastView\\.swift"
       - ".*/Features/CurrentMonth/Components/LinkedTransactionsSheet\\.swift"
       - ".*/Features/CurrentMonth/Components/HeroBalanceCard\\.swift"
-      - ".*/Features/CurrentMonth/Components/SavingsSummaryCard\\.swift"
       - ".*/Features/Budgets/BudgetList/BudgetListView\\+YearComponents\\.swift"
       - ".*/Features/Budgets/BudgetDetails/BudgetDetailHero\\.swift"
       - ".*/Features/Budgets/BudgetDetails/BudgetLineDetailPage\\.swift"

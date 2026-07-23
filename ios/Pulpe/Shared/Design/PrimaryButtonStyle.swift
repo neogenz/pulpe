@@ -95,10 +95,15 @@ struct TextLinkButtonStyle: ButtonStyle {
 }
 
 /// Plain button style with pressed-state opacity feedback.
-/// Use when the label already defines its own layout and content shape.
+/// Provides a rectangular content shape so the whole label frame — including
+/// `Spacer` gaps between a title and a trailing chevron — stays tappable
+/// (iOS 26 no longer extends the label hit region from a `.contentShape` set on
+/// the button itself). Callers add an explicit `.contentShape(...)` only when a
+/// non-rectangular hit area (e.g. a capsule) is required.
 struct PlainPressedButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
+            .contentShape(Rectangle())
             .opacity(configuration.isPressed ? DesignTokens.Opacity.pressed : 1.0)
             .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: configuration.isPressed)
     }

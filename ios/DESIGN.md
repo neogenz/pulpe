@@ -10,7 +10,7 @@ colors:
   financial-expense: "#B35800"
   financial-savings: "#157038"
   financial-over-budget: "#A86800"
-  app-background: "#F7F6F3"
+  app-background: "#EFF3EE"
   sheet-background: "#F5F3F0"
   surface: "#FFFFFF"
   surface-container-low: "#FCFAF7"
@@ -25,6 +25,12 @@ colors:
   hero-comfortable: "#14AD45"
   hero-tight: "#D88010"
   hero-deficit: "#C45028"
+  home-background: "#EFF3EE" # alias of app-background — the shared canvas
+  home-hero-surface: "#CFE8D6"
+  home-hero-ink: "#0E3A1C"
+  home-hero-support: "#2C5136"
+  home-hero-overlay: "#F3F9F5"
+  drift-accent: "#C45028"
   destructive: "#C62828"
 typography:
   display:
@@ -232,7 +238,7 @@ The seeds in `../DESIGN.md` are abstract. The values below are the **iOS canonic
 - **Hero Deficit / Sunset Coral** (`#C45028`): `Color.heroTintDeficit`. Gradient mid-stop only.
 
 ### Surface (Warm Hierarchy)
-- **App Background** (`#F7F6F3`): `Color.appBackground`. Dark mode: `#141210`.
+- **App Background** (`#EFF3EE`): `Color.appBackground`. Dark mode: `#121611`. Warm sage canvas, shared app-wide. **iOS override** of the cross-platform neutral `#F7F6F3` (root `DESIGN.md`) — the home dashboard's calm tone is now the default on every iOS screen; webapp and landing keep the neutral.
 - **Sheet Background** (`#F5F3F0`): `Color.sheetBackground`. Slightly cooler-warm than the app, providing contrast against cards.
 - **Surface / Card** (`#FFFFFF` light, `#1A1816` dark): `Color.surface`.
 - **Surface Containers** (`#FCFAF7` → `#E8E5E1`): tonal layering. Low for resting cards, highest for pressed chip backgrounds.
@@ -250,7 +256,7 @@ The seeds in `../DESIGN.md` are abstract. The values below are the **iOS canonic
 
 ### iOS-Specific Named Rules
 
-**The Two-Zone Rule (iOS implementation).** Every screen with a hero is split. Top 30–35% is the **emotion zone** — `LinearGradient` filled, financial-state-keyed (`heroComfortable` / `heroTight` / `heroDeficit`). Below is the **content zone** — `Color.appBackground`, lists and cards on top. Transition is a soft `LinearGradient` 40–60pt, never a hard cut. Screens without a hero (templates, settings) skip the emotion zone entirely.
+**The Two-Zone Rule (iOS implementation).** Every screen with a hero is split. Top 30–35% is the **emotion zone** — `LinearGradient` filled, financial-state-keyed (`heroComfortable` / `heroTight` / `heroDeficit`). Below is the **content zone** — `Color.appBackground` (the warm sage canvas), lists and cards on top. Transition is a soft `LinearGradient` 40–60pt, never a hard cut. Screens without a hero (templates, settings) skip the emotion zone entirely. **The home dashboard (Tour 11)** sits directly on that shared sage canvas (`Color.homeBackground`, an alias of `appBackground`) with no emotion gradient. Its hero is a mint card (`homeHeroSurface` / `homeHeroInk`) identical across emotion states — only its state chip, numbers and the conditional blocks below change. `Color.driftAccent` marks envelope overruns there (amounts + overflow bar segments) and nowhere else.
 
 ## 3. Typography: iOS Resolved Scale
 
@@ -331,7 +337,8 @@ Stat pills on hero cards use `Capsule + tint.opacity(0.15)` background keyed to 
 ### Cards / Containers
 - **Per-Row Card (Budget Line / Transaction Row):** `surfaceContainerLowest` background, `cornerRadius.xl` (32pt), `Shadow.subtle`. `padding.md` vertical, `padding.xs` leading (PointCircle), `padding.md` trailing. Pointed (checked) state dims to `0.62` opacity with strikethrough. Tap on circle toggles pointed; tap on row opens the detail sheet.
 - **Hero Card (Budget Detail):** **Flat** — no surface, no border, no shadow. Sits flush on `appBackground`. Content: eyebrow (`DISPONIBLE · CHF`), hero amount (Manrope 72pt black on neutral), inline progress bar + percent, horizontal scroll of stat pills.
-- **Hero Card (Dashboard / Previous Budget):** Gradient background keyed to financial state (Comfortable / Tight / Deficit), `cornerRadius.xl` (32pt), `Shadow.elevated`. Used only on the dashboard and the previous-budget sheet.
+- **Hero Card (Dashboard — `HomeHeroCard`):** Flat mint card (`homeHeroSurface`), `cornerRadius.lg` (30pt), `Shadow.elevated`. State chip (`PulpeChip` `.tinted` + dot), Manrope 48 remaining, planned/overflow progress bar, integrated "Détail du budget" row.
+- **Hero Card (Previous Budget sheet):** Gradient background keyed to financial state (Comfortable / Tight / Deficit), `cornerRadius.xl` (32pt), `Shadow.elevated`.
 
 ### Inputs
 - **Form Text Field (`FormTextField`):** `Color.inputBackgroundSoft` fill, `cornerRadius.md` (24pt), `padding.lg` (16pt all around). Optional label above (`labelMedium`, `onSurfaceVariant`). Tapping anywhere on the padded background focuses the field via `.contentShape(.interaction, Rectangle())` + `onTapGesture`.
