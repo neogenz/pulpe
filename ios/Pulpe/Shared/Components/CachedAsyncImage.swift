@@ -26,16 +26,17 @@ struct CachedAsyncImage<Content: View, Placeholder: View>: View {
         }
     }
 
-    // NSCache is thread-safe; same pattern as the formatter caches in Shared/Formatters.
-    nonisolated(unsafe) private static var cache: NSCache<NSURL, UIImage> { SharedImageCache.store }
+    @MainActor private static var cache: NSCache<NSURL, UIImage> { SharedImageCache.store }
 
-    private static func cached(_ url: URL) -> UIImage? {
+    @MainActor private static func cached(_ url: URL) -> UIImage? {
         cache.object(forKey: url as NSURL)
     }
 }
 
 /// Process-wide store shared across all `CachedAsyncImage` generic specializations —
 /// a `static let` inside the generic struct would create one cache per Content/Placeholder pair.
+/// `@MainActor` because every access site (view body, `.task`) is already main-actor isolated;
+/// `nonisolated(unsafe)` is banned in production code by the project's Swift rule.
 private enum SharedImageCache {
-    nonisolated(unsafe) static let store = NSCache<NSURL, UIImage>()
+    @MainActor static let store = NSCache<NSURL, UIImage>()
 }

@@ -285,12 +285,20 @@ struct CurrentMonthView: View {
 
     /// Reverse a successful check from the undo toast. The store toggles based on the
     /// passed value's state, so the undone item must be handed over as already-checked.
+    /// A failed undo surfaces like a failed check — the rollback is invisible otherwise.
     private func undoToggle(_ item: CurrentMonthStore.CheckableItem) async {
+        let didSucceed: Bool
         switch item {
         case .transaction(let transaction, _):
-            await store.toggleTransaction(transaction.toggled())
+            didSucceed = await store.toggleTransaction(transaction.toggled())
         case .budgetLine(let line, _):
-            await store.toggleBudgetLine(line.toggled())
+            didSucceed = await store.toggleBudgetLine(line.toggled())
+        }
+        if !didSucceed {
+            toastManager.show(
+                "\(item.name) n'a pas pu être annulé — réessaie depuis le budget",
+                type: .error
+            )
         }
     }
 
@@ -394,4 +402,5 @@ private struct CurrentMonthSkeletonView: View {
     .environment(BudgetListStore())
     .environment(UserSettingsStore())
     .environment(SavingsGoalStore())
+    .environment(ToastManager())
 }
