@@ -20,26 +20,31 @@ actor WidgetDataSyncService {
         self.userSettingsService = userSettingsService
     }
 
-    /// Returns the display currency for a widget sync — either the caller-supplied value
-    /// or the latest user setting (defaulting to `.chf` if the settings fetch blips).
-    /// Extracted so the resolution policy can be exercised without touching the network.
-    func resolveCurrency(_ explicitCurrency: SupportedCurrency?) async -> SupportedCurrency {
-        if let explicitCurrency {
-            return explicitCurrency
+    /// Returns `(payDay, currency)` for a widget sync — explicit caller args win; any missing
+    /// value is filled from a single `getSettingsWithDefaults` call (defaulting to `nil` payDay /
+    /// `.chf` currency if the settings fetch blips). No settings call when both args are already set.
+    func resolveSettings(
+        payDayOfMonth: Int?,
+        currency: SupportedCurrency?
+    ) async -> (payDayOfMonth: Int?, currency: SupportedCurrency) {
+        guard payDayOfMonth == nil || currency == nil else {
+            return (payDayOfMonth, currency!)
         }
-        let (_, resolved) = await userSettingsService.getSettingsWithDefaults(context: "syncAll")
-        return resolved
+        let (fetchedPayDay, fetchedCurrency) = await userSettingsService.getSettingsWithDefaults(context: "syncAll")
+        return (payDayOfMonth ?? fetchedPayDay, currency ?? fetchedCurrency)
     }
 
-    /// Centralized widget sync. Callers that already hold a fresh `currency` (e.g. right after
-    /// `updateCurrency`) can pass it to skip a redundant GET /users/settings.
+    /// Centralized widget sync. Callers that already hold a fresh `payDayOfMonth`/`currency`
+    /// (e.g. right after `updateCurrency`) can pass them to skip a redundant GET /users/settings.
     func syncAll(payDayOfMonth: Int? = nil, currency: SupportedCurrency? = nil) async {
-        let resolvedCurrency = await resolveCurrency(currency)
+        let resolved = await resolveSettings(payDayOfMonth: payDayOfMonth, currency: currency)
+        let resolvedPayDay = resolved.payDayOfMonth
+        let resolvedCurrency = resolved.currency
 
         // Fetch current month details first; preserve them on year-export failure
         // so a transient `exportAllBudgets` error doesn't blank the current-month widget.
         var currentDetails: BudgetDetails?
-        if let currentBudget = try? await budgetService.getCurrentMonthBudget(payDayOfMonth: payDayOfMonth) {
+        if let currentBudget = try? await budgetService.getCurrentMonthBudget(payDayOfMonth: resolvedPayDay) {
             currentDetails = try? await budgetService.getBudgetWithDetails(id: currentBudget.id)
         }
 
@@ -48,7 +53,7 @@ actor WidgetDataSyncService {
             await sync(
                 budgetsWithDetails: exportData.budgets,
                 currentBudgetDetails: currentDetails,
-                payDayOfMonth: payDayOfMonth,
+                payDayOfMonth: resolvedPayDay,
                 currency: resolvedCurrency
             )
         } catch {
@@ -56,7 +61,7 @@ actor WidgetDataSyncService {
             await sync(
                 budgetsWithDetails: [],
                 currentBudgetDetails: currentDetails,
-                payDayOfMonth: payDayOfMonth,
+                payDayOfMonth: resolvedPayDay,
                 currency: resolvedCurrency
             )
         }
