@@ -5,5 +5,5 @@
     // layout TS5 inferred, so dist/main.js stays where the Dockerfile CMD expects.
     "rootDir": "./src"
   },
-  "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
+  "exclude": ["node_modules", "test", "dist", "**/*spec.ts", "**/*.test.ts"]
 }

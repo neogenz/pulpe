@@ -110,8 +110,10 @@ describe('RecalculateBudgetBalancesUseCase', () => {
       expect(mockRepo.fetchAllBudgetsForRollover).not.toHaveBeenCalled();
     });
 
-    it('should never persist when strict decryption fails (fail-closed)', async () => {
-      // Arrange: one undecryptable ciphertext aborts the whole recalculation.
+    it('should skip persisting (not throw) when an amount cannot be decrypted', async () => {
+      // Arrange: one undecryptable ciphertext (e.g. legacy cross-DEK row).
+      // The caller's mutation already committed, so recalc must NOT persist a
+      // wrong balance AND must NOT brick the write — it skips and logs.
       mockRepo.fetchBudgetDataForRecalc = mock(() =>
         Promise.reject(
           new BusinessException(ERROR_DEFINITIONS.ENCRYPTION_DECRYPT_FAILED, {
@@ -124,10 +126,27 @@ describe('RecalculateBudgetBalancesUseCase', () => {
         mockLogger as never,
       );
 
+      // Act
+      await useCase.recalculate(BUDGET_ID);
+
+      // Assert: last correct balance preserved, poisoned row surfaced via warn.
+      expect(mockRepo.persistEndingBalance).not.toHaveBeenCalled();
+      expect(mockLogger.warn).toHaveBeenCalledTimes(1);
+    });
+
+    it('should still propagate a non-decrypt recalculation error', async () => {
+      // Arrange: an infra failure (not a decrypt failure) must not be swallowed.
+      const dbError = new Error('connection reset');
+      mockRepo.fetchBudgetDataForRecalc = mock(() => Promise.reject(dbError));
+      useCase = new RecalculateBudgetBalancesUseCase(
+        mockRepo as unknown as BudgetRepositoryPort,
+        mockLogger as never,
+      );
+
       // Act + Assert
-      await expect(useCase.recalculate(BUDGET_ID)).rejects.toMatchObject({
-        code: ERROR_DEFINITIONS.ENCRYPTION_DECRYPT_FAILED.code,
-      });
+      await expect(useCase.recalculate(BUDGET_ID)).rejects.toThrow(
+        'connection reset',
+      );
       expect(mockRepo.persistEndingBalance).not.toHaveBeenCalled();
     });
   });
