@@ -10,7 +10,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { TranslocoService } from '@jsverse/transloco';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { AUTH_ERROR_KEYS, AuthOAuthService } from '@core/auth';
 import { Logger } from '@core/logging/logger';
 
@@ -21,6 +21,7 @@ import { Logger } from '@core/logging/logger';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    TranslocoPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -55,11 +56,11 @@ import { Logger } from '@core/logging/logger';
           <mat-progress-spinner
             mode="indeterminate"
             [diameter]="20"
-            aria-label="Connexion en cours"
+            [attr.aria-label]="'auth.googleLoading' | transloco"
             role="progressbar"
             class="pulpe-loading-indicator pulpe-loading-small mr-2"
           ></mat-progress-spinner>
-          <span aria-live="polite">Connexion en cours...</span>
+          <span aria-live="polite">{{ 'auth.googleLoading' | transloco }}</span>
         </div>
       } @else {
         <div class="flex items-center justify-center gap-2">

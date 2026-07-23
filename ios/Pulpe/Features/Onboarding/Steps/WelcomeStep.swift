@@ -60,6 +60,21 @@ struct WelcomeStep: View {
                 .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring.delay(0.15), value: isAppeared)
 
                 Spacer()
+                    .frame(height: DesignTokens.Spacing.xl)
+
+                // Benefits — concrete value props, left-aligned for scannability
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                    benefitRow(icon: "list.bullet.rectangle", text: "Un plan clair pour chaque mois")
+                    benefitRow(icon: "checkmark.circle", text: "Tes dépenses pointées en un geste")
+                    benefitRow(icon: "lock", text: "Chiffré — tes montants restent privés")
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, DesignTokens.Spacing.xxxl)
+                .opacity(isAppeared ? 1 : 0)
+                .offset(y: isAppeared ? 0 : 20)
+                .animation(reduceMotion ? nil : DesignTokens.Animation.entranceSpring.delay(0.25), value: isAppeared)
+
+                Spacer()
                     .frame(height: DesignTokens.Spacing.xxxl)
 
                 // Bottom buttons
@@ -136,6 +151,20 @@ struct WelcomeStep: View {
                     isBreathing = true
                 }
             }
+        }
+    }
+
+    private func benefitRow(icon: String, text: String) -> some View {
+        HStack(spacing: DesignTokens.Spacing.md) {
+            Image(systemName: icon)
+                .font(PulpeTypography.title3)
+                .foregroundStyle(Color.pulpePrimary)
+                .frame(width: DesignTokens.IconSize.compact)
+                .accessibilityHidden(true)
+
+            Text(text)
+                .font(PulpeTypography.subheadline)
+                .foregroundStyle(Color.textSecondaryOnboarding)
         }
     }
 }

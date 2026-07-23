@@ -58,7 +58,7 @@ struct RecoveryKeySheet: View {
             ZStack {
                 Circle()
                     .fill(Color.pulpePrimary.opacity(DesignTokens.Opacity.badgeBackground))
-                    .frame(width: 56, height: 56)
+                    .frame(width: DesignTokens.IconSize.heroBadge, height: DesignTokens.IconSize.heroBadge)
 
                 Image(systemName: "key.horizontal.fill")
                     .font(PulpeTypography.title2)

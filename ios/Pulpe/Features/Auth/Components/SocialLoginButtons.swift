@@ -211,8 +211,8 @@ struct SocialLoginDivider: View {
 
     private var dividerLine: some View {
         Rectangle()
-            .fill(Color.textTertiary.opacity(0.3))
-            .frame(height: 1)
+            .fill(Color.textTertiary.opacity(DesignTokens.Opacity.strong))
+            .frame(height: DesignTokens.FrameHeight.separator)
     }
 }
 

@@ -6,12 +6,19 @@ export interface SignupSubmit {
   readonly password: string;
 }
 
+// Parité avec iOS PasswordValidator: 8 caractères + au moins un chiffre + une lettre.
+export const PASSWORD_HAS_NUMBER = /\p{N}/u;
+export const PASSWORD_HAS_LETTER = /\p{L}/u;
+
 export const signupFormSchema = z
   .object({
     email: z.email(),
-    password: z.string().min(PASSWORD_MIN_LENGTH),
+    password: z
+      .string()
+      .min(PASSWORD_MIN_LENGTH)
+      .regex(PASSWORD_HAS_NUMBER)
+      .regex(PASSWORD_HAS_LETTER),
     confirmPassword: z.string(),
-    acceptTerms: z.literal(true),
   })
   .refine((input) => input.password === input.confirmPassword, {
     message: 'passwords do not match',

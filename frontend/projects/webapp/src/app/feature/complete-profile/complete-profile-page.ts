@@ -735,7 +735,7 @@ import {
                   <div class="flex items-center justify-between mt-3">
                     <button
                       matButton
-                      class="h-10 text-on-surface-variant rounded-2xl"
+                      class="h-11 text-on-surface-variant rounded-2xl"
                       (click)="goToStep(1)"
                       data-testid="back-button"
                     >

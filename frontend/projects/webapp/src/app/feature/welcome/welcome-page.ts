@@ -57,7 +57,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
 
       <!-- Headline -->
       <h1
-        class="font-bold tracking-[-0.02em] leading-[1.02] text-[2rem] md:text-[2.5rem] mt-4 text-on-surface [text-wrap:balance]"
+        class="font-bold text-headline-large md:text-display-small mt-4 text-on-surface [text-wrap:balance]"
         data-testid="welcome-title"
       >
         {{ 'welcome.title' | transloco }}
@@ -70,6 +70,25 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
       >
         {{ 'welcome.subtitle' | transloco }}
       </p>
+
+      <!-- Benefits — show, don't tell: what the product does before asking anything -->
+      <ul
+        class="mt-6 flex flex-col gap-3 self-center text-left"
+        data-testid="welcome-benefits"
+      >
+        @for (benefit of BENEFITS; track benefit.labelKey) {
+          <li class="flex items-center gap-3">
+            <mat-icon
+              aria-hidden="true"
+              class="text-primary !text-xl !w-5 !h-5 shrink-0"
+              >{{ benefit.icon }}</mat-icon
+            >
+            <span class="text-body-medium text-on-surface-variant">
+              {{ benefit.labelKey | transloco }}
+            </span>
+          </li>
+        }
+      </ul>
 
       <!-- CTAs -->
       <div class="mt-7 flex flex-col gap-3 w-full">
@@ -96,7 +115,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
             #turnstileWidget
             [siteKey]="turnstileService.siteKey()"
             [appearance]="'interaction-only'"
-            [theme]="'light'"
+            [theme]="'auto'"
             (resolved)="turnstileService.handleResolved($event)"
             (errored)="turnstileService.handleError()"
             class="hidden"
@@ -106,7 +125,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
         <div class="flex items-center gap-4 my-0.5" aria-hidden="true">
           <div class="flex-1 h-px bg-outline-variant/40"></div>
           <span
-            class="text-[10px] font-semibold text-on-surface-variant/70 uppercase tracking-[0.2em]"
+            class="text-label-small font-semibold text-on-surface-variant/70 uppercase tracking-[0.2em]"
             >{{ 'common.or' | transloco }}</span
           >
           <div class="flex-1 h-px bg-outline-variant/40"></div>
@@ -183,6 +202,11 @@ export default class WelcomePage {
   readonly #transloco = inject(TranslocoService);
   protected readonly turnstileService = inject(TurnstileService);
   protected readonly ROUTES = ROUTES;
+  protected readonly BENEFITS = [
+    { icon: 'event_note', labelKey: 'welcome.benefits.setup' },
+    { icon: 'check_circle', labelKey: 'welcome.benefits.track' },
+    { icon: 'lock', labelKey: 'welcome.benefits.privacy' },
+  ] as const;
 
   constructor() {
     afterNextRender(() => {

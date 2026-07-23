@@ -8,9 +8,15 @@ import {
   viewChild,
   type ElementRef,
 } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { toSignal } from '@angular/core/rxjs-interop';
+import {
+  type AbstractControl,
+  FormBuilder,
+  ReactiveFormsModule,
+  type ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -25,8 +31,18 @@ import { ROUTES } from '@core/routing/routes-constants';
 import { GoogleOAuthButton } from '@app/pattern/google-oauth';
 import { ErrorAlert } from '@ui/error-alert';
 import { LoadingButton } from '@ui/loading-button';
+import { PasswordCriteria } from '@ui/password-criteria';
 import { createFieldsMatchValidator } from '@core/validators';
-import { signupFormSchema } from './signup-form.schema';
+import {
+  PASSWORD_HAS_LETTER,
+  PASSWORD_HAS_NUMBER,
+  signupFormSchema,
+} from './signup-form.schema';
+
+function containsPattern(pattern: RegExp, errorKey: string) {
+  return (control: AbstractControl): ValidationErrors | null =>
+    pattern.test(control.value ?? '') ? null : { [errorKey]: true };
+}
 
 @Component({
   selector: 'pulpe-signup',
@@ -37,11 +53,11 @@ import { signupFormSchema } from './signup-form.schema';
     MatButtonModule,
     MatIconModule,
     MatDividerModule,
-    MatCheckboxModule,
     RouterLink,
     GoogleOAuthButton,
     ErrorAlert,
     LoadingButton,
+    PasswordCriteria,
     TranslocoPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -93,6 +109,7 @@ import { signupFormSchema } from './signup-form.schema';
             #emailInput
             matInput
             type="email"
+            autocomplete="email"
             formControlName="email"
             data-testid="email-input"
             (input)="clearMessages()"
@@ -118,6 +135,7 @@ import { signupFormSchema } from './signup-form.schema';
           <input
             matInput
             [type]="isPasswordHidden() ? 'password' : 'text'"
+            autocomplete="new-password"
             formControlName="password"
             data-testid="password-input"
             (input)="clearMessages()"
@@ -137,7 +155,6 @@ import { signupFormSchema } from './signup-form.schema';
               isPasswordHidden() ? 'visibility_off' : 'visibility'
             }}</mat-icon>
           </button>
-          <mat-hint>{{ 'form.passwordHint' | transloco }}</mat-hint>
           @if (
             signupForm.get('password')?.invalid &&
             signupForm.get('password')?.touched
@@ -145,18 +162,22 @@ import { signupFormSchema } from './signup-form.schema';
             <mat-error>
               @if (signupForm.get('password')?.hasError('required')) {
                 {{ 'form.passwordRequired' | transloco }}
-              } @else if (signupForm.get('password')?.hasError('minlength')) {
-                {{ 'form.passwordMinLength' | transloco }}
               }
             </mat-error>
           }
         </mat-form-field>
+
+        <pulpe-password-criteria
+          [password]="passwordValue()"
+          [minLength]="PASSWORD_MIN_LENGTH"
+        />
 
         <mat-form-field appearance="outline" class="w-full">
           <mat-label>{{ 'form.confirmPasswordLabel' | transloco }}</mat-label>
           <input
             matInput
             [type]="isConfirmPasswordHidden() ? 'password' : 'text'"
+            autocomplete="new-password"
             formControlName="confirmPassword"
             data-testid="confirm-password-input"
             (input)="clearMessages()"
@@ -192,45 +213,6 @@ import { signupFormSchema } from './signup-form.schema';
           }
         </mat-form-field>
 
-        <div class="pt-2">
-          <mat-checkbox
-            formControlName="acceptTerms"
-            [disabled]="isBusy()"
-            data-testid="accept-terms-checkbox"
-          >
-            <span class="text-body-medium">
-              {{ 'auth.signup.acceptTerms' | transloco }}
-              <a
-                [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_TERMS]"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="text-primary underline"
-                (click)="$event.stopPropagation()"
-              >
-                {{ 'auth.signup.termsOfService' | transloco }}
-              </a>
-              {{ 'auth.signup.acceptTermsAnd' | transloco }}
-              <a
-                [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_PRIVACY]"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="text-primary underline"
-                (click)="$event.stopPropagation()"
-              >
-                {{ 'auth.signup.privacyPolicy' | transloco }}
-              </a>
-            </span>
-          </mat-checkbox>
-          @if (
-            signupForm.get('acceptTerms')?.invalid &&
-            signupForm.get('acceptTerms')?.touched
-          ) {
-            <p class="text-error text-body-small mt-1">
-              {{ 'auth.signup.acceptTermsRequired' | transloco }}
-            </p>
-          }
-        </div>
-
         <pulpe-error-alert [message]="errorMessage()" />
 
         <pulpe-loading-button
@@ -243,6 +225,32 @@ import { signupFormSchema } from './signup-form.schema';
         >
           <span class="ml-2">{{ 'auth.signup.submit' | transloco }}</span>
         </pulpe-loading-button>
+
+        <!-- Consentement implicite (sign-in wrap) — parité iOS, la politique de
+             confidentialité est un document d'information (art. 13 RGPD), pas un contrat. -->
+        <p
+          class="text-body-small text-on-surface-variant text-center mt-3"
+          data-testid="implicit-consent"
+        >
+          {{ 'auth.signup.implicitConsent' | transloco }}
+          <a
+            [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_TERMS]"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-primary underline underline-offset-2"
+          >
+            {{ 'auth.signup.termsOfService' | transloco }}
+          </a>
+          {{ 'auth.signup.acceptTermsAnd' | transloco }}
+          <a
+            [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_PRIVACY]"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-primary underline underline-offset-2"
+          >
+            {{ 'auth.signup.privacyPolicy' | transloco }}</a
+          >.
+        </p>
       </form>
 
       <div class="text-center mt-6">
@@ -292,15 +300,21 @@ export default class Signup {
     });
   }
 
+  protected readonly PASSWORD_MIN_LENGTH = PASSWORD_MIN_LENGTH;
+
   protected readonly signupForm = this.#formBuilder.nonNullable.group(
     {
       email: ['', [Validators.required, Validators.email]],
       password: [
         '',
-        [Validators.required, Validators.minLength(PASSWORD_MIN_LENGTH)],
+        [
+          Validators.required,
+          Validators.minLength(PASSWORD_MIN_LENGTH),
+          containsPattern(PASSWORD_HAS_NUMBER, 'hasNumber'),
+          containsPattern(PASSWORD_HAS_LETTER, 'hasLetter'),
+        ],
       ],
       confirmPassword: ['', [Validators.required]],
-      acceptTerms: [false, [Validators.requiredTrue]],
     },
     {
       validators: createFieldsMatchValidator(
@@ -309,6 +323,11 @@ export default class Signup {
         'passwordsMismatch',
       ),
     },
+  );
+
+  protected readonly passwordValue = toSignal(
+    this.signupForm.controls.password.valueChanges,
+    { initialValue: '' },
   );
 
   protected togglePasswordVisibility(): void {
