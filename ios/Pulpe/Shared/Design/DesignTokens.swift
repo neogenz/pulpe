@@ -142,8 +142,9 @@ enum DesignTokens {
         /// Heavy overlays
         static let heavy: Double = 0.5
         /// Muted ink on the mint hero card — suffixes, chevrons, progress-track hairline.
-        /// Floor set by WCAG 1.4.11: at `heavy` (0.5) these composite to 2.73:1 against the
-        /// hero gradient in light mode; 0.6 lifts them to 3.50:1 light / 4.34:1 dark.
+        /// Floor set by WCAG 1.4.11: at `heavy` (0.5) these composite to 2.69:1 against the
+        /// hero gradient's darkest light-mode stop; 0.6 lifts them to 3.42–3.57:1 light and
+        /// 4.01–4.68:1 dark across both gradient stops.
         static let heroInkMuted: Double = 0.6
         /// Disabled controls (e.g. type pills with count==0)
         static let disabled: Double = 0.4
@@ -224,6 +225,9 @@ enum DesignTokens {
         }
 
         // MARK: - Easing
+
+        /// Scale a confirmed element settles to as it resolves away (check-exit transition).
+        static let settleScale: CGFloat = 0.94
 
         static var smoothEaseOut: SwiftUI.Animation {
             .easeOut(duration: normal)

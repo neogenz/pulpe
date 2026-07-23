@@ -113,6 +113,7 @@ final class CurrentMonthStore: StoreProtocol {
     private var cachedRealizedMetrics: BudgetFormulas.RealizedMetrics?
     private var cachedUncheckedItems: [CheckableItem]?
     private var cachedSavingsSummary: SavingsSummary?
+    private var cachedDriftLines: [(line: BudgetLine, consumption: BudgetFormulas.Consumption)]?
 
     // Widget sync debouncing
     private var widgetSyncTask: Task<Void, Never>?
@@ -272,6 +273,7 @@ final class CurrentMonthStore: StoreProtocol {
         cachedRealizedMetrics = nil
         cachedUncheckedItems = nil
         cachedSavingsSummary = nil
+        cachedDriftLines = nil
         error = nil
         BudgetDetailCache.shared.invalidateAll()
     }
@@ -394,9 +396,12 @@ final class CurrentMonthStore: StoreProtocol {
         )
         cachedUncheckedItems = computeUncheckedItems()
         cachedSavingsSummary = computeSavingsSummary()
+        cachedDriftLines = computeDriftLines()
     }
+}
 
-    #if DEBUG
+#if DEBUG
+extension CurrentMonthStore {
     /// Test-only: populate store with data for unit testing
     func populateForTesting(
         budget: Budget? = nil,
@@ -409,8 +414,8 @@ final class CurrentMonthStore: StoreProtocol {
         contentState = budget != nil ? .loaded : .empty
         recomputeMetrics()
     }
-    #endif
 }
+#endif
 
 // MARK: - Computed Properties
 
@@ -466,8 +471,14 @@ extension CurrentMonthStore {
     }
 
     /// Expense envelopes consumed beyond their plan ("Ça dérive"), biggest overrun first.
-    /// Uses `available < 0` (not `isOverBudget`) so zero-amount envelopes with spending count too.
+    /// Cached like the sibling aggregates: a render reads this 4× (guard, card input,
+    /// `driftTotal`, `conditionalBlocksState`) and each recompute walks lines × transactions.
     var driftLines: [(line: BudgetLine, consumption: BudgetFormulas.Consumption)] {
+        cachedDriftLines ?? computeDriftLines()
+    }
+
+    /// Uses `available < 0` (not `isOverBudget`) so zero-amount envelopes with spending count too.
+    private func computeDriftLines() -> [(line: BudgetLine, consumption: BudgetFormulas.Consumption)] {
         budgetLines
             .filter { $0.kind == .expense && !($0.isRollover ?? false) }
             .compactMap { line -> (BudgetLine, BudgetFormulas.Consumption)? in

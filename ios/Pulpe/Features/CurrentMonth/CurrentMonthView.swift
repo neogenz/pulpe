@@ -223,8 +223,10 @@ struct CurrentMonthView: View {
                                 } else {
                                     // The optimistic row silently reverts otherwise, right
                                     // after the success haptic already told the user it worked.
+                                    // Error copy names what happened AND the next step
+                                    // (PRODUCT.md tone rule) — the row is back, retry works.
                                     toastManager.show(
-                                        "\(item.name) n'a pas pu être pointé",
+                                        "\(item.name) n'a pas pu être pointé — réessaie",
                                         type: .error
                                     )
                                 }
@@ -329,11 +331,12 @@ struct CurrentMonthView: View {
             .map { Formatters.monthName(for: $0).lowercased() }
     }
 
-    /// Goal name shown on the savings card — only when the month's savings
-    /// all map to a single goal.
+    /// Goal name shown on the savings card — only when EVERY saving line maps to the same
+    /// goal. `compactMap` would drop unlinked lines and attribute their amounts to whatever
+    /// goal the linked line carries; keeping the nils makes a mixed month bail to no name.
     private var completedSavingsGoalName: String? {
-        let goalIds = Set(store.budgetLines.filter { $0.kind == .saving }.compactMap(\.savingsGoalId))
-        guard goalIds.count == 1, let goalId = goalIds.first else { return nil }
+        let goalIds = Set(store.budgetLines.filter { $0.kind == .saving }.map(\.savingsGoalId))
+        guard goalIds.count == 1, let goalId = goalIds.first ?? nil else { return nil }
         return savingsGoalStore.goals.first { $0.id == goalId }?.name
     }
 }

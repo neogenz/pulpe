@@ -35,7 +35,8 @@ struct UncheckedOperationsCard: View {
         if confirmingId == item.id {
             return .asymmetric(
                 insertion: insertion,
-                removal: .opacity.combined(with: .push(from: .bottom)).combined(with: .scale(scale: 0.94))
+                removal: .opacity.combined(with: .push(from: .bottom))
+                    .combined(with: .scale(scale: DesignTokens.Animation.settleScale))
             )
         }
         return .asymmetric(
@@ -293,6 +294,10 @@ struct UncheckedOperationsCard: View {
         .frame(minHeight: DesignTokens.TapTarget.minimum)
         .contentShape(Rectangle())
         .textLinkButtonStyle()
+        // During the "Pointé" beat the guard already ignores taps; without the visual
+        // disable the button looks live and silently does nothing.
+        .disabled(confirmingId != nil)
+        .opacity(confirmingId != nil ? DesignTokens.Opacity.disabled : 1)
         .accessibilityLabel("Plus tard pour \(item.name)")
     }
 

@@ -71,14 +71,12 @@ struct DashboardGreeting: View {
     @ViewBuilder
     private var avatarContent: some View {
         if let avatarUrl, let url = URL(string: avatarUrl) {
-            AsyncImage(url: url) { phase in
-                if case .success(let image) = phase {
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    avatarFallback
-                }
+            CachedAsyncImage(url: url) { image in
+                image
+                    .resizable()
+                    .scaledToFill()
+            } placeholder: {
+                avatarFallback
             }
         } else {
             avatarFallback

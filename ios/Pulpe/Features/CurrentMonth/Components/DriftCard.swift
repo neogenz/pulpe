@@ -121,6 +121,7 @@ struct DriftCard: View {
 
     private func driftRow(_ line: BudgetLine, _ consumption: BudgetFormulas.Consumption) -> some View {
         let overBy = -consumption.available
+        let fill = plannedFraction(line, consumption)
 
         return VStack(spacing: DesignTokens.Spacing.sm) {
             HStack(alignment: .firstTextBaseline) {
@@ -141,8 +142,8 @@ struct DriftCard: View {
             }
 
             HomeSegmentedBar(
-                fillFraction: plannedFraction(line, consumption),
-                overflowFraction: 1 - plannedFraction(line, consumption),
+                fillFraction: fill,
+                overflowFraction: 1 - fill,
                 fillColor: .textPrimary,
                 overflowColor: .driftAccent,
                 trackColor: .progressTrack,

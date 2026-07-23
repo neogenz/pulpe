@@ -25,25 +25,26 @@ struct ActivityCard: View {
         return sorted.filter { $0.transactionDate >= cutoff }
     }
 
-    /// Arithmetic net of the window: income positive, outflows negative.
-    private var windowTotal: Decimal {
-        filtered.reduce(.zero) { $0 + ($1.kind == .income ? $1.amount : -$1.amount) }
-    }
-
-    private var headerSubtitle: String {
-        let count = filtered.count
-        let total = windowTotal.asArithmeticSignedCompactCurrency(userSettingsStore.currency)
-        return "\(count) transaction\(count > 1 ? "s" : "") · \(total)"
+    private func headerSubtitle(for windowed: [Transaction]) -> String {
+        // Arithmetic net of the window: income positive, outflows negative.
+        let total = windowed
+            .reduce(Decimal.zero) { $0 + ($1.kind == .income ? $1.amount : -$1.amount) }
+            .asArithmeticSignedCompactCurrency(userSettingsStore.currency)
+        return "\(windowed.count) transaction\(windowed.count > 1 ? "s" : "") · \(total)"
     }
 
     var body: some View {
+        // Sort + filter once per render — as computed vars, header count, window total and
+        // the rows each re-traversed all transactions.
+        let windowed = filtered
+
         VStack(spacing: DesignTokens.Spacing.none) {
-            header
+            header(for: windowed)
 
             Divider()
                 .padding(.horizontal, DesignTokens.Spacing.xl)
 
-            rows
+            rows(for: windowed)
         }
         .pulpeCardBackground()
         .shadow(DesignTokens.Shadow.card)
@@ -52,17 +53,18 @@ struct ActivityCard: View {
 
     // MARK: - Header
 
-    private var header: some View {
+    private func header(for windowed: [Transaction]) -> some View {
         HStack(spacing: DesignTokens.Spacing.md) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                 Text("Activité")
                     .font(PulpeTypography.cardTitle)
                     .foregroundStyle(Color.textPrimary)
 
-                Text(headerSubtitle)
+                Text(headerSubtitle(for: windowed))
                     .font(PulpeTypography.labelMedium)
                     .foregroundStyle(Color.textTertiary)
                     .monospacedDigit()
+                    .lineLimit(1)
                     .minimumScaleFactor(DesignTokens.TextScale.compact)
                     .contentTransition(.numericText())
                     .sensitiveAmount()
@@ -130,8 +132,8 @@ struct ActivityCard: View {
     // MARK: - Rows
 
     @ViewBuilder
-    private var rows: some View {
-        if filtered.isEmpty {
+    private func rows(for windowed: [Transaction]) -> some View {
+        if windowed.isEmpty {
             Text("Aucune transaction sur cette période")
                 .font(PulpeTypography.labelMedium)
                 .foregroundStyle(Color.textTertiary)
@@ -140,7 +142,7 @@ struct ActivityCard: View {
                 .padding(.vertical, DesignTokens.Spacing.lg)
         } else {
             VStack(spacing: DesignTokens.Spacing.none) {
-                let visible = Array(filtered.prefix(Self.maxRows))
+                let visible = Array(windowed.prefix(Self.maxRows))
                 ForEach(Array(visible.enumerated()), id: \.element.id) { index, transaction in
                     row(transaction)
                     if index < visible.count - 1 {
