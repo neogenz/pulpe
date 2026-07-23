@@ -1,4 +1,4 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Service, signal, computed } from '@angular/core';
 import type { Session, User } from '@supabase/supabase-js';
 import { ANALYTICS_PROPERTIES } from 'pulpe-shared';
 
@@ -19,9 +19,7 @@ export type AuthSessionState =
   | { readonly phase: 'authenticated'; readonly session: Session }
   | { readonly phase: 'unauthenticated' };
 
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class AuthStore {
   readonly #sessionState = signal<AuthSessionState>({ phase: 'booting' });
 

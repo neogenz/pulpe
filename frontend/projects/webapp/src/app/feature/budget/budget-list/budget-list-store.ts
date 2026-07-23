@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, linkedSignal } from '@angular/core';
+import { Service, computed, inject, linkedSignal } from '@angular/core';
 import { BudgetApi } from '@core/budget/budget-api';
 import { UserSettingsStore } from '@core/user-settings';
 import {
@@ -16,7 +16,7 @@ import {
 
 const MAX_FUTURE_MONTHS_TO_SEARCH = 36;
 
-@Injectable()
+@Service({ autoProvided: false })
 export class BudgetListStore {
   readonly #budgetApi = inject(BudgetApi);
   readonly #userSettingsStore = inject(UserSettingsStore);

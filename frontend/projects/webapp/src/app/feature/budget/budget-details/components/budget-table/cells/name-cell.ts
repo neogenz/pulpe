@@ -8,10 +8,14 @@ import {
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { getDateDisplayFormats } from '@core/date/date-display-formats';
 import { UserSettingsStore } from '@core/user-settings';
+import { TagStore } from '@core/tag';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { SpreadBadge } from '@ui/spread-badge';
+import { SavingsWithdrawalBadge } from '@ui/savings-withdrawal-badge';
+import { TagIndicator } from '@ui/tag-indicator';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import { formatMatchAnnotation } from '../../../view-models/budget-item-constants';
 import type {
@@ -25,8 +29,11 @@ import type {
     MatIconModule,
     MatTooltipModule,
     DatePipe,
+    TranslocoPipe,
     FinancialKindDirective,
     SpreadBadge,
+    SavingsWithdrawalBadge,
+    TagIndicator,
     TransactionLabelPipe,
   ],
   template: `
@@ -64,6 +71,9 @@ import type {
             @if (line().metadata.isSpread) {
               <pulpe-spread-badge />
             }
+            @if (line().metadata.isSavingsWithdrawalIncome) {
+              <pulpe-savings-withdrawal-badge />
+            }
           </span>
           @if (line().metadata.envelopeName) {
             <span
@@ -71,6 +81,17 @@ import type {
             >
               <mat-icon class="text-sm!">folder</mat-icon>
               {{ line().metadata.envelopeName }}
+            </span>
+          }
+          @if (line().metadata.savingsWithdrawalOriginLabel; as originLabel) {
+            <span
+              class="flex items-center gap-1 text-label-small text-on-surface-variant"
+            >
+              <mat-icon class="text-sm!">savings</mat-icon>
+              {{
+                'budget.savingsWithdrawal.originSubtitle'
+                  | transloco: { month: originLabel }
+              }}
             </span>
           }
           @if (matchAnnotation()) {
@@ -85,6 +106,9 @@ import type {
               {{ matchAnnotation() }}
             </span>
           }
+          <span class="mt-0.5">
+            <pulpe-tag-indicator [tagNames]="tagNames()" />
+          </span>
         </div>
         @if (line().data.checkedAt) {
           <span class="text-body-small text-on-surface-variant ml-2">
@@ -98,6 +122,7 @@ import type {
 })
 export class NameCell {
   readonly #userSettings = inject(UserSettingsStore);
+  readonly #tagStore = inject(TagStore);
   protected readonly dayMonthFormat = computed(
     () => getDateDisplayFormats(this.#userSettings.currency()).dayMonth,
   );
@@ -105,5 +130,9 @@ export class NameCell {
 
   readonly matchAnnotation = computed(() =>
     formatMatchAnnotation(this.line().metadata.matchingTransactionNames),
+  );
+
+  readonly tagNames = computed(() =>
+    this.#tagStore.resolveNames(this.line().data.tagIds),
   );
 }

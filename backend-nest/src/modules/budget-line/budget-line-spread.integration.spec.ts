@@ -13,9 +13,11 @@ import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.ser
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { EncryptionPort } from '@modules/encryption/domain/ports/encryption.port';
 import { SupabaseBudgetLineRepository } from './infrastructure/persistence/supabase-budget-line.repository';
+import { SupabaseBudgetLineSpreadReader } from './infrastructure/persistence/supabase-budget-line-spread.reader';
 import { SpreadGroupAlreadyExistsError } from './domain/spread-group-conflict.error';
 import { SPREAD_GROUP_EXISTS_RPC_MESSAGE } from './infrastructure/persistence/schemas/rpc-payload.schemas';
 import type { BudgetLineCreateInput } from './domain/budget-line.entity';
+import type { InfoLogger } from '@common/logger';
 
 /**
  * PUL-17 — the ERROR-DETECTION SEAM of the spread idempotency guard, end-to-end
@@ -160,6 +162,8 @@ describe('Spread idempotency guard — error-detection seam (local Supabase)', (
     const repository = new SupabaseBudgetLineRepository(
       providerStub,
       encryptionStub,
+      {} as InfoLogger,
+      new SupabaseBudgetLineSpreadReader(providerStub, encryptionStub),
     );
 
     const retryInput: BudgetLineCreateInput = {

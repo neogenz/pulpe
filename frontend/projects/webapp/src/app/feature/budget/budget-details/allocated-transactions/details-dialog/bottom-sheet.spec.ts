@@ -26,7 +26,7 @@ function buildTransaction(overrides: Partial<Transaction> = {}): Transaction {
     amount: 50,
     kind: 'expense',
     transactionDate: '2025-01-15T00:00:00+01:00',
-    category: null,
+    tagIds: [],
     createdAt: '2025-01-15T00:00:00+01:00',
     updatedAt: '2025-01-15T00:00:00+01:00',
     checkedAt: null,

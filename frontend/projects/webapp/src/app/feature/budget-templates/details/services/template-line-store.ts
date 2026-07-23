@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Service, inject } from '@angular/core';
 import { cachedMutation } from 'ngx-ziflux';
 import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
@@ -26,6 +26,7 @@ export interface TemplateLineFormInput {
   name: string;
   amount: number;
   kind: TransactionKind;
+  tagIds?: string[];
   savingsGoalId?: string | null;
   originalAmount?: number;
   originalCurrency?: SupportedCurrency;
@@ -35,7 +36,7 @@ export interface TemplateLineFormInput {
 
 type BulkMutationResult = TemplateLinesBulkOperationsResponse;
 
-@Injectable()
+@Service({ autoProvided: false })
 export class TemplateLineStore {
   readonly #budgetApi = inject(BudgetApi);
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
@@ -188,6 +189,7 @@ export class TemplateLineStore {
       name: input.name,
       amount: input.amount,
       kind: input.kind,
+      tagIds: input.tagIds ?? [],
       savingsGoalId: input.savingsGoalId ?? null,
       ...this.#extractCurrencyFields(input),
     };
@@ -262,6 +264,7 @@ export class TemplateLineStore {
       savingsGoalId: input.savingsGoalId ?? null,
       recurrence: 'fixed',
       description: '',
+      tagIds: input.tagIds ?? [],
       ...this.#extractCurrencyFields(input),
     };
   }

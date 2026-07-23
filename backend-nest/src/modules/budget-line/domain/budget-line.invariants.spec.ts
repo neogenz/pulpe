@@ -21,6 +21,7 @@ const spreadSourceLine = (
   kind: 'expense',
   recurrence: 'one_off',
   spreadGroupId: null,
+  savingsWithdrawalGroupId: null,
   ...overrides,
 });
 

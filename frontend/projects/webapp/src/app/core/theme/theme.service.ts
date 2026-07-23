@@ -1,6 +1,6 @@
 import {
   DestroyRef,
-  Injectable,
+  Service,
   computed,
   effect,
   inject,
@@ -17,7 +17,7 @@ const OS_DARK_QUERY = '(prefers-color-scheme: dark)';
  * The design system page (dev-only) can temporarily force light/dark
  * via `forceTheme()` for visual testing.
  */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class ThemeService {
   readonly #osPrefersDark = signal(matchMedia(OS_DARK_QUERY).matches);
   readonly #override = signal<'light' | 'dark' | null>(null);

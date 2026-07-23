@@ -8,7 +8,7 @@
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | Angular 21+, Signals, Material 21, Tailwind v4 |
+| Frontend | Angular 22+, Signals, Material 22, Tailwind v4 |
 | Backend | NestJS 11+, Bun runtime |
 | iOS | SwiftUI, Swift 6, Xcode 26+, XcodeGen |
 | Database | Supabase (PostgreSQL + Auth + RLS) |

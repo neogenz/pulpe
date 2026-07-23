@@ -2,6 +2,8 @@ import type { MatSnackBar } from '@angular/material/snack-bar';
 import type { TranslocoService } from '@jsverse/transloco';
 import type {
   BudgetLine,
+  BudgetLineSavingsWithdrawalCreate,
+  BudgetLineSavingsWithdrawalResponse,
   BudgetLineSpreadCreate,
   BudgetLineSpreadResponse,
   SupportedCurrency,
@@ -114,6 +116,42 @@ export function spreadCreateEcho(value: BudgetLineSpreadCreate): {
       ? (value.totalAmount ?? 0)
       : (value.perMonthAmount ?? 0) * monthCount;
   return { amount, monthCount };
+}
+
+/**
+ * PUL-292 — submit a savings withdrawal (create the linked couple) and surface
+ * the outcome. On success: a confirmation toast. On failure: a "Réessayer" toast
+ * that re-submits the SAME DTO — the SAME `groupId` — so the retry replays the
+ * original couple server-side (or heals a balance left stale by a post-commit
+ * failure) instead of creating a duplicate. Recurses so each failed retry can be
+ * retried again. Mirrors `submitSpreadWithRetry`.
+ */
+export async function submitSavingsWithdrawalWithRetry(
+  value: BudgetLineSavingsWithdrawalCreate,
+  create: (
+    value: BudgetLineSavingsWithdrawalCreate,
+  ) => Promise<BudgetLineSavingsWithdrawalResponse['data'] | undefined>,
+  snackBar: MatSnackBar,
+  transloco: TranslocoService,
+): Promise<void> {
+  const outcome = await create(value);
+  if (outcome) {
+    snackBar.open(
+      transloco.translate('budget.savingsWithdrawal.success'),
+      transloco.translate('common.close'),
+      { duration: 5000 },
+    );
+    return;
+  }
+
+  const ref = snackBar.open(
+    transloco.translate('budget.savingsWithdrawal.error'),
+    transloco.translate('common.retry'),
+    { duration: 8000 },
+  );
+  ref.onAction().subscribe(() => {
+    void submitSavingsWithdrawalWithRetry(value, create, snackBar, transloco);
+  });
 }
 
 export function computeEnvelopeSnackbarMessage(

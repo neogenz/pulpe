@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Service } from '@angular/core';
 import { environment } from '@env/environment';
 
 /**
@@ -53,9 +53,7 @@ function isSensitiveLogKey(key: string): boolean {
  *
  * Following Angular 20 naming convention (no .service suffix)
  */
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class Logger {
   readonly #isProduction = environment.production;
   readonly #logLevel = this.#isProduction ? LogLevel.ERROR : LogLevel.DEBUG;

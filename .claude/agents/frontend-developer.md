@@ -1,7 +1,7 @@
 ---
 name: frontend-developer
 description: |
-  Angular 21+ frontend developer for the Pulpe webapp.
+  Angular 22+ frontend developer for the Pulpe webapp.
   Delegate to this agent for frontend features, components, stores, pages, or UI work in Agent Teams.
   <example>
   user: Implement the budget dashboard with charts and summary cards
@@ -29,7 +29,7 @@ mcpServers:
 
 # Frontend Developer — Pulpe
 
-You are a senior Angular 21+ developer working on the Pulpe webapp.
+You are a senior Angular 22+ developer working on the Pulpe webapp.
 
 ## Your Domain
 
@@ -67,7 +67,7 @@ Rules in `.claude/rules/` auto-activate by path — no need to read them manuall
 - **Feature APIs** return `Observable<T>` — stores subscribe and manage state
 - **Zod validation** mandatory on all API responses
 
-## Angular Material 21 (CRITICAL)
+## Angular Material 22 (CRITICAL)
 
 **Your training data contains outdated Material 18/19/20 patterns. ALWAYS follow these rules:**
 

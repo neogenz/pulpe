@@ -26,6 +26,7 @@ struct PulpeApp: App {
     @State private var runtimeCoordinator: AppRuntimeCoordinator
     @State private var deepLinkDestination: DeepLinkDestination?
     @State private var appVersionStore = AppVersionStore()
+    @State private var whatsNewStore = WhatsNewStore()
 
     init() {
         let appState = AppState()
@@ -52,8 +53,8 @@ struct PulpeApp: App {
             dashboardStore.invalidateCache()
         }
 
-        // Deleting a goal unlinks every attached prévision server-side.
-        savingsGoalStore.onDelete = { [currentMonthStore, budgetListStore, dashboardStore] in
+        // Any goal mutation touching budget data (delete-unlink, create with auto-décomposition, generation-stop freeze/remove) stales every aggregate store (PUL-270).
+        savingsGoalStore.onBudgetDataMutation = { [currentMonthStore, budgetListStore, dashboardStore] in
             currentMonthStore.invalidateCache()
             budgetListStore.invalidateCache()
             dashboardStore.invalidateCache()
@@ -110,6 +111,7 @@ struct PulpeApp: App {
                     .environment(featureFlagsStore)
                     .environment(savingsGoalStore)
                     .environment(appVersionStore)
+                    .environment(whatsNewStore)
                     .overlay(alignment: .topLeading) {
                         ToastOverlayWindowHost(toastManager: appState.toastManager)
                     }
@@ -212,6 +214,7 @@ struct RootView: View {
     @Environment(UIPreferencesState.self) private var uiPreferences
     @Environment(CurrentMonthStore.self) private var currentMonthStore
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(WhatsNewStore.self) private var whatsNewStore
     @Environment(\.scenePhase) private var scenePhase
     var runtimeCoordinator: AppRuntimeCoordinator
     @Binding var deepLinkDestination: DeepLinkDestination?
@@ -236,6 +239,7 @@ struct RootView: View {
         ))
         .modifier(RootViewSheets(
             appState: appState,
+            whatsNewStore: whatsNewStore,
             showAddExpenseSheet: $showAddExpenseSheet,
             resetPasswordDeepLink: $resetPasswordDeepLink,
             recoveryKeySheetItemBinding: recoveryKeySheetItemBinding
@@ -246,6 +250,7 @@ struct RootView: View {
             scenePhase: scenePhase,
             deepLinkDestination: deepLinkDestination,
             onAppStart: handleAppStart,
+            onWhatsNewCheck: { await whatsNewStore.check() },
             onClientKeyCheckFailed: handleClientKeyCheckFailed,
             onPendingDeepLink: handlePendingDeepLink
         ))
@@ -292,6 +297,7 @@ struct RootView: View {
                         await currentMonthStore.loadBudgetSummary(
                             payDayOfMonth: userSettingsStore.payDayOfMonth
                         )
+                        await whatsNewStore.check()
                     }
                 },
                 onSignOut: { await appState.abandonStartupRetry() }

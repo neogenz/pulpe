@@ -12,6 +12,8 @@ import {
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadata.mapper';
 import { isSavingsGoalLinkDenied } from '@common/utils/savings-goal-link';
+import * as tagLinks from '@common/utils/tag-links.util';
+import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { BudgetLineRepositoryPort } from '../../domain/ports/budget-line-repository.port';
 import type {
   BudgetLine,
@@ -21,6 +23,8 @@ import type {
   BudgetLineInsert,
   BudgetLineRow,
   BudgetLineUpdate,
+  SavingsWithdrawalDeleteScope,
+  SavingsWithdrawalPairInputs,
   SpreadDeleteSource,
   SpreadOccurrence,
   SpreadSourceLine,
@@ -35,19 +39,31 @@ import {
   type CreateBudgetLineSpreadItem,
 } from './schemas/rpc-payload.schemas';
 import { SpreadGroupAlreadyExistsError } from '../../domain/spread-group-conflict.error';
+import { SavingsWithdrawalPairExistsError } from '../../domain/savings-withdrawal-conflict.error';
+import { SupabaseBudgetLineSpreadReader } from './supabase-budget-line-spread.reader';
+
+/** Embed junction rows so every read maps to BudgetLine.tagIds in one query. */
+const BUDGET_LINE_WITH_TAGS_SELECT = '*, budget_line_tag(tag_id)';
+
+type BudgetLineRowWithTags = BudgetLineRow & {
+  budget_line_tag?: { tag_id: string }[];
+};
 
 @Injectable()
 export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
   constructor(
     private readonly supabaseProvider: AuthenticatedSupabaseProvider,
     @Inject(ENCRYPTION_PORT) private readonly encryption: EncryptionPort,
+    @InjectInfoLogger(SupabaseBudgetLineRepository.name)
+    private readonly logger: InfoLogger,
+    private readonly spreadReader: SupabaseBudgetLineSpreadReader,
   ) {}
 
   async findAll(): Promise<BudgetLine[]> {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('budget_line')
-      .select('*')
+      .select(BUDGET_LINE_WITH_TAGS_SELECT)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -72,7 +88,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('budget_line')
-      .select('*')
+      .select(BUDGET_LINE_WITH_TAGS_SELECT)
       .eq('id', id)
       .single();
 
@@ -136,7 +152,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('budget_line')
-      .select('*')
+      .select(BUDGET_LINE_WITH_TAGS_SELECT)
       .eq('budget_id', budgetId)
       .order('created_at', { ascending: false });
 
@@ -162,46 +178,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
   async findBySpreadGroupId(
     spreadGroupId: string,
   ): Promise<SpreadOccurrence[]> {
-    const supabase = this.supabaseProvider.client;
-    const { data, error } = await supabase
-      .from('budget_line')
-      .select('*, monthly_budget!inner(month, year, user_id)')
-      .eq('spread_group_id', spreadGroupId);
-
-    if (error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
-        undefined,
-        {
-          operation: 'findBudgetLinesBySpreadGroup',
-          entityId: spreadGroupId,
-          entityType: 'budget_line',
-          supabaseError: error,
-        },
-        { cause: error },
-      );
-    }
-
-    if (!data?.length) return [];
-    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
-    const rows = data as Array<
-      BudgetLineRow & {
-        monthly_budget: { month: number; year: number; user_id: string };
-      }
-    >;
-    const consumedByLine = await this.sumTransactionsByLine(
-      rows.map((row) => row.id),
-      dek,
-    );
-    return rows.map((row) => {
-      const consumption = consumedByLine.get(row.id);
-      return this.toSpreadOccurrence(
-        row,
-        dek,
-        consumption?.consumed ?? 0,
-        consumption?.transactionCount ?? 0,
-      );
-    });
+    return this.spreadReader.findOccurrences(spreadGroupId);
   }
 
   async findBudgetLinesBySpreadGroupId(
@@ -210,7 +187,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('budget_line')
-      .select('*')
+      .select(BUDGET_LINE_WITH_TAGS_SELECT)
       .eq('spread_group_id', spreadGroupId)
       .order('created_at', { ascending: true });
 
@@ -231,54 +208,6 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     if (!data?.length) return [];
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return data.map((row) => this.toEntity(row, dek));
-  }
-
-  /**
-   * Σ + count of allocated transactions per budget_line, for the spread
-   * occurrences read ONLY. Amounts are encrypted → fetch + decrypt + reduce in
-   * app (no SQL SUM possible). RLS scopes to the current user; empty list skips
-   * the query. Surfaces the réalisé (consommé) per spread occurrence without
-   * touching the non-spread consumption paths.
-   */
-  private async sumTransactionsByLine(
-    lineIds: string[],
-    dek: Buffer,
-  ): Promise<Map<string, { consumed: number; transactionCount: number }>> {
-    const byLine = new Map<
-      string,
-      { consumed: number; transactionCount: number }
-    >();
-    if (lineIds.length === 0) return byLine;
-
-    const { data, error } = await this.supabaseProvider.client
-      .from('transaction')
-      .select('budget_line_id, amount')
-      .in('budget_line_id', lineIds);
-
-    if (error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
-        undefined,
-        {
-          operation: 'sumSpreadOccurrenceTransactions',
-          entityType: 'transaction',
-          supabaseError: error,
-        },
-        { cause: error },
-      );
-    }
-
-    for (const row of (data ?? []) as TransactionRow[]) {
-      const lineId = row.budget_line_id;
-      if (!lineId) continue;
-      const { amount } = this.encryption.decryptRowAmountFields(row, dek);
-      const prev = byLine.get(lineId) ?? { consumed: 0, transactionCount: 0 };
-      byLine.set(lineId, {
-        consumed: prev.consumed + amount,
-        transactionCount: prev.transactionCount + 1,
-      });
-    }
-    return byLine;
   }
 
   async findSpreadSource(id: string): Promise<SpreadSourceLine> {
@@ -325,33 +254,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       kind: decrypted.kind,
       recurrence: decrypted.recurrence,
       spreadGroupId: decrypted.spread_group_id,
-    };
-  }
-
-  private toSpreadOccurrence(
-    row: BudgetLineRow & { monthly_budget: { month: number; year: number } },
-    dek: Buffer,
-    consumed: number,
-    transactionCount: number,
-  ): SpreadOccurrence {
-    const decrypted = this.encryption.decryptRowAmountFields(row, dek);
-    return {
-      budgetLineId: decrypted.id,
-      budgetId: decrypted.budget_id,
-      month: row.monthly_budget.month,
-      year: row.monthly_budget.year,
-      name: decrypted.name,
-      amount: decrypted.amount,
-      consumed,
-      transactionCount,
-      originalAmount: decrypted.original_amount,
-      originalCurrency:
-        decrypted.original_currency as SpreadOccurrence['originalCurrency'],
-      targetCurrency:
-        decrypted.target_currency as SpreadOccurrence['targetCurrency'],
-      exchangeRate: decrypted.exchange_rate,
-      kind: decrypted.kind,
-      checkedAt: decrypted.checked_at,
+      savingsWithdrawalGroupId: decrypted.savings_withdrawal_group_id,
     };
   }
 
@@ -391,7 +294,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     const { data: row, error } = await supabase
       .from('budget_line')
       .insert(insertRow)
-      .select()
+      .select(BUDGET_LINE_WITH_TAGS_SELECT)
       .single();
 
     if (error || !row) {
@@ -428,8 +331,50 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       );
     }
 
+    if (input.tagIds?.length) {
+      try {
+        await this.replaceTagLinks(row.id, input.tagIds, 'createBudgetLine');
+      } catch (linkError) {
+        // Compensation: a line without its requested tags must not survive.
+        const { error: cleanupError } = await supabase
+          .from('budget_line')
+          .delete()
+          .eq('id', row.id);
+        if (cleanupError) {
+          this.logger.warn(
+            {
+              operation: 'createBudgetLine.compensateTagFailure',
+              entityId: row.id,
+              err: cleanupError,
+            },
+            'Failed to delete budget line after tag linking failure',
+          );
+        }
+        throw linkError;
+      }
+    }
+
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
-    return this.toEntity(row, dek);
+    return {
+      ...this.toEntity(row, dek),
+      tagIds: input.tagIds ?? [],
+    };
+  }
+
+  private async replaceTagLinks(
+    budgetLineId: string,
+    tagIds: string[],
+    operation: string,
+  ): Promise<void> {
+    await tagLinks.replaceTagLinks(this.supabaseProvider.client, {
+      rpcName: 'replace_budget_line_tags',
+      entityId: budgetLineId,
+      tagIds,
+      operation,
+      entityType: 'budget_line_tag',
+      userId: this.supabaseProvider.user.id,
+      fallbackErrorDef: ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
+    });
   }
 
   async createSpread(
@@ -551,18 +496,157 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     };
   }
 
-  async update(id: string, patch: BudgetLineUpdatePatch): Promise<BudgetLine> {
+  async createSavingsWithdrawalPair(
+    groupId: string,
+    inputs: SavingsWithdrawalPairInputs,
+  ): Promise<BudgetLine[]> {
     const supabase = this.supabaseProvider.client;
     const user = this.supabaseProvider.user;
 
+    const [incomeRow, savingRow] = await Promise.all([
+      this.toInsertRow(inputs.income, user),
+      this.toInsertRow(inputs.saving, user),
+    ]);
+    const rows = [incomeRow, savingRow].map((row) => ({
+      ...row,
+      savings_withdrawal_group_id: groupId,
+    }));
+
+    const { data, error } = await supabase
+      .from('budget_line')
+      .insert(rows)
+      .select();
+
+    if (error || !data?.length) {
+      this.throwSavingsWithdrawalInsertError(error, groupId);
+    }
+
+    const dek = await this.encryption.getDekFor(user);
+    return data.map((row) => this.toEntity(row, dek));
+  }
+
+  /**
+   * Translates the pair-insert failure into the right error. A 23505 on the
+   * partial UNIQUE index `(savings_withdrawal_group_id, kind)` is the
+   * idempotency guard firing on a replayed client key → a TYPED
+   * `SavingsWithdrawalPairExistsError` so the use case REPLAYs (no
+   * string-sniffing in the application layer). Anything else → generic 500.
+   */
+  private throwSavingsWithdrawalInsertError(
+    error: PostgrestError | null,
+    groupId: string,
+  ): never {
+    if (
+      error?.code === '23505' &&
+      error.message?.includes('savings_withdrawal')
+    ) {
+      throw new SavingsWithdrawalPairExistsError(groupId);
+    }
+    throw new BusinessException(
+      ERROR_DEFINITIONS.BUDGET_LINE_CREATE_FAILED,
+      undefined,
+      {
+        operation: 'createSavingsWithdrawalPair',
+        entityType: 'budget_line',
+        supabaseError: error,
+      },
+      { cause: error ?? undefined },
+    );
+  }
+
+  async findBySavingsWithdrawalGroupId(groupId: string): Promise<BudgetLine[]> {
+    const supabase = this.supabaseProvider.client;
+    const { data, error } = await supabase
+      .from('budget_line')
+      .select(BUDGET_LINE_WITH_TAGS_SELECT)
+      .eq('savings_withdrawal_group_id', groupId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'findBySavingsWithdrawalGroup',
+          entityId: groupId,
+          entityType: 'budget_line',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    if (!data?.length) return [];
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    return data.map((row) => this.toEntity(row, dek));
+  }
+
+  async deleteSavingsWithdrawalGroup(
+    groupId: string,
+    scope: SavingsWithdrawalDeleteScope,
+  ): Promise<void> {
+    const supabase = this.supabaseProvider.client;
+    let query = supabase
+      .from('budget_line')
+      .delete()
+      .eq('savings_withdrawal_group_id', groupId);
+    if (scope === 'repayment') {
+      query = query.eq('kind', 'saving');
+    }
+    const { error } = await query;
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_DELETE_FAILED,
+        undefined,
+        {
+          operation: 'deleteSavingsWithdrawalGroup',
+          entityId: groupId,
+          entityType: 'budget_line',
+          scope,
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+  }
+
+  async update(id: string, patch: BudgetLineUpdatePatch): Promise<BudgetLine> {
+    const supabase = this.supabaseProvider.client;
+    const user = this.supabaseProvider.user;
     const updateRow = await this.toUpdateRow(patch, user);
 
-    const { data: row, error } = await supabase
-      .from('budget_line')
-      .update(updateRow)
-      .eq('id', id)
-      .select()
-      .single();
+    if (patch.tagIds !== undefined) {
+      const row = await tagLinks.updateTaggedEntity<BudgetLineRow>(supabase, {
+        rpcName: 'update_budget_line_with_tags',
+        entityId: id,
+        patch: updateRow,
+        tagIds: patch.tagIds,
+        operation: 'updateBudgetLine',
+        entityType: 'budget_line',
+        parentNotFoundMessage: 'Budget line not found',
+        notFoundErrorDef: ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
+        fallbackErrorDef: ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
+        duplicateErrorDef: ERROR_DEFINITIONS.BUDGET_LINE_ALREADY_EXISTS,
+      });
+      const dek = await this.encryption.getDekFor(user);
+      return { ...this.toEntity(row, dek), tagIds: patch.tagIds };
+    }
+
+    const query = Object.keys(updateRow).length
+      ? supabase
+          .from('budget_line')
+          .update(updateRow)
+          .eq('id', id)
+          .select(BUDGET_LINE_WITH_TAGS_SELECT)
+          .single()
+      : supabase
+          .from('budget_line')
+          .select(BUDGET_LINE_WITH_TAGS_SELECT)
+          .eq('id', id)
+          .single();
+
+    const { data: row, error } = await query;
 
     if (error || !row) {
       const loggingContext = {
@@ -609,7 +693,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       );
     }
 
-    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    const dek = await this.encryption.getDekFor(user);
     return this.toEntity(row, dek);
   }
 
@@ -632,7 +716,8 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       .eq('recurrence', 'one_off')
       .is('checked_at', null)
       .is('spread_group_id', null)
-      .select()
+      .is('savings_withdrawal_group_id', null)
+      .select(BUDGET_LINE_WITH_TAGS_SELECT)
       .single();
 
     if (error || !row) {
@@ -738,8 +823,22 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       );
     }
 
+    const tagIds = await tagLinks.fetchTagIds(
+      supabase,
+      {
+        junctionTable: 'budget_line_tag',
+        fkColumn: 'budget_line_id',
+      },
+      id,
+      'toggleCheck',
+      ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
+    );
+
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
-    return this.toEntity(data, dek);
+    return {
+      ...this.toEntity(data, dek),
+      tagIds,
+    };
   }
 
   async checkUncheckedTransactionsRpc(
@@ -768,7 +867,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     return data.map((row) => this.toTransactionEntity(row, dek));
   }
 
-  private toEntity(row: BudgetLineRow, dek: Buffer): BudgetLine {
+  private toEntity(row: BudgetLineRowWithTags, dek: Buffer): BudgetLine {
     const decrypted = this.encryption.decryptRowAmountFields(row, dek);
     return {
       id: decrypted.id,
@@ -776,6 +875,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       templateLineId: decrypted.template_line_id,
       savingsGoalId: decrypted.savings_goal_id,
       spreadGroupId: decrypted.spread_group_id,
+      savingsWithdrawalGroupId: decrypted.savings_withdrawal_group_id,
       name: decrypted.name,
       amount: decrypted.amount,
       originalAmount: decrypted.original_amount,
@@ -784,6 +884,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       exchangeRate: decrypted.exchange_rate,
       kind: decrypted.kind,
       recurrence: decrypted.recurrence,
+      tagIds: (row.budget_line_tag ?? []).map((link) => link.tag_id),
       isManuallyAdjusted: decrypted.is_manually_adjusted,
       checkedAt: decrypted.checked_at,
       createdAt: decrypted.created_at,
@@ -831,7 +932,6 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       targetCurrency: decrypted.target_currency,
       exchangeRate: decrypted.exchange_rate,
       kind: decrypted.kind,
-      category: decrypted.category,
       transactionDate: decrypted.transaction_date,
       checkedAt: decrypted.checked_at,
       createdAt: decrypted.created_at,
@@ -913,7 +1013,9 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       ),
     );
 
-    updateData.updated_at = new Date().toISOString();
+    if (Object.keys(updateData).length || patch.tagIds !== undefined) {
+      updateData.updated_at = new Date().toISOString();
+    }
     return updateData;
   }
 

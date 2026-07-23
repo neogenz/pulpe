@@ -1,10 +1,11 @@
-import { inject, Injectable, Injector } from '@angular/core';
+import { inject, Service, Injector } from '@angular/core';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatDialog } from '@angular/material/dialog';
 import { TranslocoService } from '@jsverse/transloco';
 import { firstValueFrom } from 'rxjs';
 import type {
   BudgetLine,
+  BudgetLineSavingsWithdrawalCreate,
   BudgetLineUpdate,
   SupportedCurrency,
   Transaction,
@@ -22,6 +23,15 @@ import {
   type BudgetLineDialogData,
 } from './budget-line/create/dialog';
 import type { AddBudgetLineDialogResult } from './budget-line/create/dialog-result';
+import {
+  SavingsWithdrawalDialog,
+  type SavingsWithdrawalDialogData,
+} from './budget-line/savings-withdrawal/dialog';
+import {
+  LinkedDeletionChoiceDialog,
+  type LinkedDeletionChoice,
+  type LinkedDeletionChoiceDialogData,
+} from './ui/linked-deletion-choice-dialog';
 import {
   AllocatedTransactionsDialog,
   type AllocatedTransactionsDialogData,
@@ -50,6 +60,10 @@ import type {
   SpreadExistingDialogData,
   SpreadExistingDialogResult,
 } from './budget-line/spread-existing/dialog-result';
+import {
+  TagHistoryDialog,
+  type TagHistoryDialogData,
+} from './components/tag-history/tag-history-dialog';
 
 export interface ConfirmDeleteOptions {
   title: string;
@@ -70,13 +84,23 @@ export interface SpreadProcessingEcho {
  */
 const SPREAD_PROCESSING_MIN_VISIBLE_MS = 700;
 
-@Injectable()
+@Service({ autoProvided: false })
 export class BudgetDetailsDialogService {
   readonly #dialog = inject(MatDialog);
   readonly #bottomSheet = inject(MatBottomSheet);
   readonly #injector = inject(Injector);
   readonly #transloco = inject(TranslocoService);
   readonly #currencyPipe = new AppCurrencyPipe();
+
+  openTagHistory(data: TagHistoryDialogData): void {
+    this.#dialog.open(TagHistoryDialog, {
+      data,
+      width: '800px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      injector: this.#injector,
+    });
+  }
 
   async openAddBudgetLineDialog(budget: {
     id: string;
@@ -93,6 +117,37 @@ export class BudgetDetailsDialogService {
       maxWidth: '90vw',
     });
 
+    return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  /**
+   * PUL-292 — "piocher dans son épargne". Returns the built (frozen-FX)
+   * withdrawal DTO, or undefined if cancelled. The caller runs the store
+   * mutation with a retry snackbar (mirrors the additive spread flow).
+   */
+  async openSavingsWithdrawalDialog(
+    data: SavingsWithdrawalDialogData,
+  ): Promise<BudgetLineSavingsWithdrawalCreate | undefined> {
+    const dialogRef = this.#dialog.open(SavingsWithdrawalDialog, {
+      data,
+      width: '600px',
+      maxWidth: '90vw',
+    });
+    return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  /**
+   * PUL-292 (CA9) — three-way choice when deleting a line linked to a pioche.
+   * Returns the chosen scope (`pair` / `repayment`) or undefined if cancelled.
+   */
+  async openLinkedDeleteChoice(
+    data: LinkedDeletionChoiceDialogData,
+  ): Promise<LinkedDeletionChoice | undefined> {
+    const dialogRef = this.#dialog.open(LinkedDeletionChoiceDialog, {
+      data,
+      width: '440px',
+      maxWidth: '90vw',
+    });
     return firstValueFrom(dialogRef.afterClosed());
   }
 
@@ -188,7 +243,7 @@ export class BudgetDetailsDialogService {
     const dialogRef = this.#dialog.open(EditTransactionDialog, {
       data: {
         transaction,
-        hiddenFields: ['kind', 'category'],
+        hiddenFields: ['kind'],
         minDate,
         maxDate,
       } satisfies EditTransactionDialogData,

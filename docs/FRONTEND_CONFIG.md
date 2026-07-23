@@ -127,7 +127,7 @@ export const ConfigSchema = z.object({
 ### Application de la Configuration
 ```typescript
 // Service: application-configuration.ts
-@Injectable({ providedIn: 'root' })
+@Service()
 export class ApplicationConfiguration {
   // Signaux réactifs
   readonly config = signal<ApplicationConfig | null>(null);

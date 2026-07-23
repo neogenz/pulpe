@@ -1,4 +1,4 @@
-import { effect, inject, Injectable, computed } from '@angular/core';
+import { effect, inject, Service, computed } from '@angular/core';
 import { cachedResource } from 'ngx-ziflux';
 import { type UserSettings, type UpdateUserSettings } from 'pulpe-shared';
 import { firstValueFrom, map } from 'rxjs';
@@ -10,9 +10,7 @@ import { StorageService } from '../storage/storage.service';
 import { readPersistedCurrency } from './currency-snapshot';
 import { UserSettingsApi } from './user-settings-api';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class UserSettingsStore {
   readonly #api = inject(UserSettingsApi);
   readonly #authStore = inject(AuthStore);

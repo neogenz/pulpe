@@ -24,6 +24,8 @@ export interface BudgetLine {
   savingsGoalId: string | null;
   /** PUL-17: groupe des prévisions sœurs d'une dépense lissée. null = non lissée. */
   spreadGroupId: string | null;
+  /** PUL-292: groupe du couple Revenu M ↔ Épargne M+1 (pioche dans l'épargne). null = non liée. */
+  savingsWithdrawalGroupId: string | null;
   name: string;
   amount: number;
   originalAmount: number | null;
@@ -32,6 +34,8 @@ export interface BudgetLine {
   exchangeRate: number | null;
   kind: TransactionKind;
   recurrence: TransactionRecurrence;
+  /** Tags associés (PUL-18) — ids only, mêmes règles que Transaction.tagIds. */
+  tagIds: string[];
   isManuallyAdjusted: boolean;
   checkedAt: string | null;
   createdAt: string;
@@ -59,6 +63,8 @@ export interface SpreadSourceLine {
   kind: TransactionKind;
   recurrence: TransactionRecurrence;
   spreadGroupId: string | null;
+  /** PUL-292: set when the line is half of a Revenu M ↔ Épargne M+1 pair — such a line is not spreadable (deleting the source would orphan its sibling). */
+  savingsWithdrawalGroupId: string | null;
 }
 
 /**
@@ -101,7 +107,6 @@ export interface BudgetLineCheckedTransaction {
   targetCurrency: string | null;
   exchangeRate: number | null;
   kind: TransactionKind;
-  category: string | null;
   transactionDate: string;
   checkedAt: string | null;
   createdAt: string;
@@ -140,6 +145,23 @@ export type SpreadDeleteSource =
   | { type: 'transaction'; id: string };
 
 /**
+ * PUL-292: the two inputs of a savings-withdrawal pair — the income landing on
+ * the viewed month M and the repayment saving landing on M+1. Named fields (not
+ * an array) so the repository can never swap the sides.
+ */
+export interface SavingsWithdrawalPairInputs {
+  income: BudgetLineCreateInput;
+  saving: BudgetLineCreateInput;
+}
+
+/**
+ * PUL-292: which side(s) of a savings-withdrawal pair a grouped deletion
+ * removes — `pair` deletes both lines, `repayment` keeps the income of M and
+ * deletes only the M+1 saving.
+ */
+export type SavingsWithdrawalDeleteScope = 'pair' | 'repayment';
+
+/**
  * Repo write input for inserts. Plain numbers — repo encrypts internally.
  */
 export interface BudgetLineCreateInput {
@@ -155,6 +177,7 @@ export interface BudgetLineCreateInput {
   exchangeRate?: number | null;
   kind: TransactionKind;
   recurrence: TransactionRecurrence;
+  tagIds?: string[];
   isManuallyAdjusted?: boolean;
   checkedAt?: string | null;
 }
@@ -175,6 +198,8 @@ export interface BudgetLineUpdatePatch {
   recurrence?: TransactionRecurrence;
   templateLineId?: string | null;
   savingsGoalId?: string | null;
+  /** présent = remplace l'ensemble des tags ; absent = ne touche pas */
+  tagIds?: string[];
   isManuallyAdjusted?: boolean;
   checkedAt?: string | null;
 }

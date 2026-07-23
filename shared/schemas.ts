@@ -8,8 +8,9 @@ import {
 const CURRENT_YEAR = new Date().getFullYear();
 const MIN_YEAR = 2020;
 const MAX_YEAR = CURRENT_YEAR + 10;
+const MONTHS_PER_YEAR = 12;
 const MONTH_MIN = 1;
-const MONTH_MAX = 12;
+const MONTH_MAX = MONTHS_PER_YEAR;
 export const PAY_DAY_MIN = 1;
 export const PAY_DAY_MAX = 31;
 
@@ -249,6 +250,8 @@ export const savingsGoalSchema = z.object({
   originalCurrency: supportedCurrencySchema.nullable().optional(),
   targetCurrency: supportedCurrencySchema.nullable().optional(),
   exchangeRate: exchangeRateWire.nullable().optional(),
+  /** Montant déjà épargné avant le suivi (stock one-shot), chiffré en base. */
+  initialAmount: z.coerce.number().nonnegative().nullable().optional(),
 });
 export type SavingsGoal = z.infer<typeof savingsGoalSchema>;
 
@@ -280,10 +283,20 @@ export const savingsGoalCreateSchema = z.strictObject({
       error: 'Target date exceeds the 120-period planning horizon',
     }),
   status: savingsGoalStatusSchema.default('ACTIVE'),
+  /**
+   * Opt-in auto-décomposition (PUL-285 CA1/CA6) : montant mensuel choisi pour
+   * la prévision Épargne récurrente liée que le serveur génère sur le Mois
+   * Type par défaut et propage aux budgets matérialisés. Présence = opt-in ;
+   * le client pré-remplit via `suggestedMonthlyContribution` mais l'utilisateur
+   * garde la main (« pré-remplit, n'impose pas »).
+   */
+  monthlyContribution: z.number().positive().optional(),
   originalTargetAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
   exchangeRate: exchangeRateWirePositive.optional(),
+  /** Montant déjà épargné avant le suivi (stock one-shot). Omis = 0. */
+  initialAmount: z.number().nonnegative().optional(),
 });
 export type SavingsGoalCreate = z.infer<typeof savingsGoalCreateSchema>;
 
@@ -301,8 +314,82 @@ export const savingsGoalUpdateSchema = z.strictObject({
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
   exchangeRate: exchangeRateWirePositive.optional(),
+  /** Omis = inchangé ; `0` efface le montant de départ. */
+  initialAmount: z.number().nonnegative().optional(),
 });
 export type SavingsGoalUpdate = z.infer<typeof savingsGoalUpdateSchema>;
+
+// Tag schemas (PUL-18)
+/**
+ * TAG - Étiquette utilisateur pour classifier les dépenses
+ *
+ * Remplace le champ libre `transaction.category` par une métadonnée plaintext
+ * structurée. Le nom est unique par utilisateur sans distinction de casse côté
+ * DB; les junctions rattachent les tags aux transactions et aux prévisions.
+ */
+export const MAX_TAGS_PER_TRANSACTION = 10;
+
+function hasUniqueTagIds(tagIds: readonly string[]): boolean {
+  return new Set(tagIds).size === tagIds.length;
+}
+
+export const tagSchema = z.object({
+  id: z.uuid(),
+  userId: z.uuid(),
+  // trim AVANT min/max : sinon " " passe min(1) puis devient "" et viole le
+  // CHECK DB (char_length >= 1) → 500 au lieu d'un 400 de validation
+  name: z.string().trim().min(1).max(30),
+  createdAt: z.iso.datetime({ offset: true }),
+  updatedAt: z.iso.datetime({ offset: true }),
+});
+export type Tag = z.infer<typeof tagSchema>;
+
+export const tagCreateSchema = z.strictObject({
+  name: z.string().trim().min(1).max(30),
+});
+export type TagCreate = z.infer<typeof tagCreateSchema>;
+
+export const tagUpdateSchema = tagCreateSchema.partial();
+export type TagUpdate = z.infer<typeof tagUpdateSchema>;
+
+export const tagHistoryMonthsSchema = z.coerce
+  .number()
+  .pipe(z.union([z.literal(3), z.literal(6), z.literal(12), z.literal(24)]));
+export type TagHistoryMonths = z.infer<typeof tagHistoryMonthsSchema>;
+
+export const tagHistoryQuerySchema = z
+  .strictObject({
+    months: tagHistoryMonthsSchema,
+    endMonth: z.coerce.number().int().min(MONTH_MIN).max(MONTH_MAX),
+    endYear: z.coerce.number().int().min(MIN_YEAR).max(MAX_YEAR),
+  })
+  .refine(
+    ({ months, endMonth, endYear }) =>
+      (endYear - MIN_YEAR) * MONTHS_PER_YEAR + endMonth - months >= 0,
+    {
+      error: `History window cannot start before ${MIN_YEAR}`,
+      path: ['endYear'],
+    },
+  );
+export type TagHistoryQuery = z.infer<typeof tagHistoryQuerySchema>;
+
+export const tagHistoryMonthSchema = z.object({
+  month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
+  year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
+  plannedAmount: z.number().finite().nonnegative(),
+  actualAmount: z.number().finite().nonnegative(),
+});
+export type TagHistoryMonth = z.infer<typeof tagHistoryMonthSchema>;
+
+export const tagHistorySchema = z.object({
+  tagId: z.uuid(),
+  periods: z.array(tagHistoryMonthSchema),
+  totalPlanned: z.number().finite().nonnegative(),
+  totalActual: z.number().finite().nonnegative(),
+  monthlyAverageActual: z.number().finite().nonnegative(),
+  actualToPlannedPercent: z.number().finite().nonnegative().nullable(),
+});
+export type TagHistory = z.infer<typeof tagHistorySchema>;
 
 /**
  * SAVINGS GOAL PROGRESS - Progression d'un objectif (PUL-8)
@@ -311,7 +398,9 @@ export type SavingsGoalUpdate = z.infer<typeof savingsGoalUpdateSchema>;
  * - `plannedCumulative` : engagement — Σ `line.amount` BRUT des prévisions
  *   Épargne liées des mois écoulés/en cours (pas d'enveloppe transactions).
  * - `confirmed` : réalité pointée — enveloppe checked-only (`checkedAt`),
- *   TOUS les mois (le pointage anticipé d'un mois futur compte).
+ *   TOUS les mois (le pointage anticipé d'un mois futur compte), PLUS
+ *   `initialAmount` (stock de départ). `confirmedPace`/`cumulativeGap`
+ *   restent des mesures de FLUX et excluent ce stock.
  *
  * `achievementPercent` et `suggestCompletion` (D2) portent EXCLUSIVEMENT sur
  * le confirmé — jamais le prévu. La projection (`projected`) et `paceStatus`
@@ -395,6 +484,9 @@ export const savingsGoalProgressSchema = z.object({
   cumulativeGap: z.number(),
   // Date d'atteinte estimée au rythme confirmé (docs/SAVINGS.md §10.2).
   estimatedCompletion: budgetPeriodSchema.nullable(),
+  // Montant de départ (stock, inclus dans confirmed) — default 0 pour les
+  // payloads/mocks existants qui ne portent pas encore le champ.
+  initialAmount: z.number().nonnegative().default(0),
   // Timeline ancrage → cible (chart A + calendrier B + rebase simulateur C).
   months: z.array(savingsGoalPlanMonthSchema),
   // FX door-keepers (CA6) — devise du compte uniquement en v1, toujours null.
@@ -465,6 +557,46 @@ export type SavingsGoalPlanApply = Omit<
 };
 
 /**
+ * Prévision liée future d'un objectif (PUL-285 CA5) : candidate advisory à
+ * figer ou retirer quand l'objectif passe PAUSED/COMPLETED. Servie par
+ * `GET /savings-goals/:id/future-lines` — lignes liées, non pointées, non
+ * ajustées à la main, du cycle courant (payDay-aware) et au-delà, y compris
+ * après `target_date`. Montant déchiffré.
+ */
+export const savingsGoalFutureLineSchema = z.object({
+  budgetLineId: z.uuid(),
+  amount: z.coerce.number().nonnegative(),
+  month: z.number().int().min(1).max(12),
+  year: z.number().int(),
+});
+export type SavingsGoalFutureLine = z.infer<typeof savingsGoalFutureLineSchema>;
+
+/**
+ * Décision advisory à l'arrêt de génération
+ * (`POST /savings-goals/:id/generation-stop`, PUL-285 CA5/CA8) :
+ * - `freeze` : garde la prévision, la délie de l'objectif ET la marque
+ *   `is_manually_adjusted` (sinon une propagation RG-001 ultérieure la
+ *   relierait) ;
+ * - `remove` : supprime la prévision des mois futurs (ses transactions
+ *   deviennent libres via FK `ON DELETE SET NULL`).
+ * Refus atomique (CA9) : jamais de mois passé, de ligne pointée ou déjà
+ * ajustée à la main.
+ */
+export const savingsGoalGenerationStopSchema = z
+  .strictObject({
+    mode: z.enum(['freeze', 'remove']),
+    budgetLineIds: z.array(z.uuid()).min(1).max(MAX_SAVINGS_GOAL_PLAN_PERIODS),
+  })
+  // Un doublon fausserait le comptage d'éligibilité de la RPC (422 trompeur).
+  .refine(
+    (value) => new Set(value.budgetLineIds).size === value.budgetLineIds.length,
+    { error: 'Une prévision apparaît deux fois dans la décision.' },
+  );
+export type SavingsGoalGenerationStop = z.infer<
+  typeof savingsGoalGenerationStopSchema
+>;
+
+/**
  * BUDGET LINE - Ligne budgétaire planifiée
  *
  * Selon SPECS.md section 2 "Concepts Métier":
@@ -487,6 +619,8 @@ export const budgetLineSchema = z.object({
   amount: z.coerce.number().nonnegative(),
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
+  // Tags (PUL-18) — même contrat que transaction.tagIds (ids only, noms via GET /tags)
+  tagIds: z.array(z.uuid()).optional(),
   isManuallyAdjusted: z.boolean(),
   checkedAt: z.iso.datetime({ offset: true }).nullable(),
   createdAt: z.iso.datetime({ offset: true }),
@@ -506,6 +640,14 @@ export const budgetLineSchema = z.object({
    * pas à `budgetLineCreateSchema`. Champ additif, non-breaking.
    */
   spreadGroupId: z.uuid().nullable().optional(),
+  /**
+   * Pioche dans l'épargne (PUL-292): clé du COUPLE Revenu M ↔ Épargne M+1
+   * (« Remettre sur ton épargne »). Lien léger — badge et suppression groupée
+   * uniquement, JAMAIS de synchro de montants. uuid non-financier → JAMAIS
+   * chiffré. Read-only ici : l'assignation appartient à
+   * `POST /budget-lines/savings-withdrawal`. Champ additif, non-breaking.
+   */
+  savingsWithdrawalGroupId: z.uuid().nullable().optional(),
 });
 export type BudgetLine = z.infer<typeof budgetLineSchema>;
 
@@ -522,6 +664,13 @@ export const budgetLineCreateSchema = z.strictObject({
   amount: z.number().positive(),
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
+  tagIds: z
+    .array(z.uuid())
+    .max(MAX_TAGS_PER_TRANSACTION)
+    .refine(hasUniqueTagIds, {
+      message: 'Chaque tag ne peut être associé qu’une fois.',
+    })
+    .optional(),
   isManuallyAdjusted: z.boolean().default(false),
   checkedAt: z.iso.datetime({ offset: true }).nullable().optional(),
   originalAmount: z.number().positive().optional(),
@@ -817,6 +966,119 @@ export type SpreadOccurrencesResponse = z.infer<
 >;
 
 /**
+ * PIOCHE DANS L'ÉPARGNE (PUL-292) — `POST /budget-lines/savings-withdrawal`.
+ *
+ * UNE action crée le COUPLE lié : un Revenu `one_off` de `amount` sur le mois du
+ * `budgetId` consulté (M), et une Épargne `one_off` du MÊME `amount` sur M+1
+ * (« Remettre sur ton épargne » — l'épargne reste une dépense planifiée, elle
+ * réduit le disponible de M+1). Somme nulle sur 2 mois par construction : un
+ * seul champ `amount` pour les deux lignes. Le serveur dérive M+1 du budget M
+ * et le provisionne STRICTEMENT depuis le template par défaut (pas de template
+ * → 422, rien n'est créé — une demi-paire corromprait les comptes).
+ *
+ * Les NOMS des deux lignes viennent du client (copy validée en test user,
+ * backend sans i18n) : `incomeName` = la source saisie (« Mon épargne »,
+ * « Impôts »…), `savingName` = le libellé du remboursement. Le badge « pris sur
+ * ton épargne » et le sous-titre « mois d'origine » se DÉRIVENT du groupe et de
+ * month±1 côté client — rien d'autre n'est stocké.
+ *
+ * `groupId` = clé d'idempotence OPTIONNELLE (pattern `spreadGroupId` PUL-17) :
+ * uuid v4 stable par intention, rejoué à l'identique sur un retry. Le serveur
+ * l'utilise comme `savings_withdrawal_group_id` ; un POST rejoué REPLAYE le
+ * couple d'origine (201, à la Stripe) au lieu d'en créer un second.
+ *
+ * Un SEUL quad FX figé à la saisie (RG-009), partagé par les deux lignes — le
+ * remboursement ne re-déclenche jamais de conversion.
+ */
+export const budgetLineSavingsWithdrawalCreateSchema = z
+  .strictObject({
+    budgetId: z.uuid(),
+    amount: z.number().positive(),
+    incomeName: z.string().min(1).max(100).trim(),
+    savingName: z.string().min(1).max(100).trim(),
+    groupId: z.uuid().optional(),
+    originalAmount: z.number().positive().optional(),
+    originalCurrency: supportedCurrencySchema.optional(),
+    targetCurrency: supportedCurrencySchema.optional(),
+    exchangeRate: exchangeRateWirePositive.optional(),
+  })
+  /**
+   * Triade FX (miroir du CHECK DB `fx_metadata_coherent`, même contrat que
+   * `budgetLineSpreadCreateSchema`) : exactement un des trois états —
+   * 1. no FX ; 2. target-only ; 3. full FX (origin≠target + montant original).
+   * Le taux figé est accepté tel quel (RG-009) — jamais re-fetché ici.
+   */
+  .superRefine((value, ctx) => {
+    const hasOriginalCurrency = value.originalCurrency != null;
+    const hasTargetCurrency = value.targetCurrency != null;
+    const hasRate = value.exchangeRate != null;
+    const hasOriginalAmount = value.originalAmount != null;
+
+    const noFx =
+      !hasOriginalCurrency &&
+      !hasTargetCurrency &&
+      !hasRate &&
+      !hasOriginalAmount;
+    const targetOnly =
+      hasTargetCurrency &&
+      !hasOriginalCurrency &&
+      !hasRate &&
+      !hasOriginalAmount;
+    const fullFx =
+      hasTargetCurrency &&
+      hasOriginalCurrency &&
+      hasRate &&
+      hasOriginalAmount &&
+      value.originalCurrency !== value.targetCurrency;
+
+    if (!noFx && !targetOnly && !fullFx) {
+      ctx.addIssue({
+        code: 'custom',
+        message:
+          'Métadonnées de change incohérentes : fournis soit aucune métadonnée FX, soit targetCurrency seule, soit le quadruplet complet (originalCurrency, targetCurrency, exchangeRate avec devises distinctes + originalAmount).',
+      });
+    }
+  });
+export type BudgetLineSavingsWithdrawalCreate = z.infer<
+  typeof budgetLineSavingsWithdrawalCreateSchema
+>;
+
+/**
+ * Réponse du couple : les deux lignes créées (Revenu M, Épargne M+1) et le
+ * budget M+1 auto-créé depuis le template par défaut (`null` s'il existait
+ * déjà). Pair-shaped plutôt que `lines[]` : le client n'a jamais à deviner
+ * quel élément est le revenu.
+ */
+export const budgetLineSavingsWithdrawalResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    groupId: z.uuid(),
+    incomeLine: budgetLineSchema,
+    savingLine: budgetLineSchema,
+    createdBudget: budgetSchema.nullable(),
+  }),
+});
+export type BudgetLineSavingsWithdrawalResponse = z.infer<
+  typeof budgetLineSavingsWithdrawalResponseSchema
+>;
+
+/**
+ * Suppression groupée (`DELETE /budget-lines/savings-withdrawal/:groupId`) —
+ * le choix explicite de CA9, porté par `scope` :
+ * - `pair` : « tout annuler » — les DEUX lignes sont supprimées ;
+ * - `repayment` : « garder le Revenu de M seul » — seule l'Épargne de M+1 est
+ *   supprimée ; le Revenu conserve son groupe (le badge « pris sur ton
+ *   épargne » reste vrai).
+ * Une suppression = un statement SQL (atomique). Réponse : delete générique.
+ */
+export const budgetLineSavingsWithdrawalDeleteQuerySchema = z.strictObject({
+  scope: z.enum(['pair', 'repayment']),
+});
+export type BudgetLineSavingsWithdrawalDeleteQuery = z.infer<
+  typeof budgetLineSavingsWithdrawalDeleteQuerySchema
+>;
+
+/**
  * TRANSACTION - Opération réelle saisie par l'utilisateur
  *
  * Selon SPECS.md section 2 "Concepts Métier":
@@ -845,8 +1107,9 @@ export const transactionSchema = z.object({
   amount: z.coerce.number().nonnegative(),
   kind: transactionKindSchema,
   transactionDate: z.iso.datetime({ offset: true }),
-  // NOTE: category pas définie dans SPECS V1 - "Pas de catégorisation avancée"
-  category: z.string().max(100).trim().nullable(),
+  // Tags remplacent l'ancien champ libre `category` (PUL-18). ids uniquement :
+  // le client résout les noms via GET /tags (cache) — pas de join côté réponse.
+  tagIds: z.array(z.uuid()).optional(),
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
   checkedAt: z.iso.datetime({ offset: true }).nullable(),
@@ -869,7 +1132,13 @@ export const transactionCreateSchema = z.strictObject({
   amount: z.number().positive(),
   kind: transactionKindSchema,
   transactionDate: z.iso.datetime({ offset: true }).optional(),
-  category: z.string().max(100).trim().nullable().optional(),
+  tagIds: z
+    .array(z.uuid())
+    .max(MAX_TAGS_PER_TRANSACTION)
+    .refine(hasUniqueTagIds, {
+      message: 'Chaque tag ne peut être associé qu’une fois.',
+    })
+    .optional(),
   checkedAt: z.iso.datetime({ offset: true }).nullable().optional(),
   originalAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
@@ -883,7 +1152,14 @@ export const transactionUpdateSchema = z.strictObject({
   amount: z.number().positive().optional(),
   kind: transactionKindSchema.optional(),
   transactionDate: z.iso.datetime({ offset: true }).optional(),
-  category: z.string().max(100).trim().nullable().optional(),
+  // présent = remplace l'ensemble des tags ; absent = ne touche pas
+  tagIds: z
+    .array(z.uuid())
+    .max(MAX_TAGS_PER_TRANSACTION)
+    .refine(hasUniqueTagIds, {
+      message: 'Chaque tag ne peut être associé qu’une fois.',
+    })
+    .optional(),
   originalAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
@@ -905,12 +1181,27 @@ export type SearchItemType = z.infer<typeof searchItemTypeSchema>;
 export const TRANSACTION_SEARCH_QUERY_MIN_LENGTH = 2;
 export const TRANSACTION_SEARCH_QUERY_MAX_LENGTH = 100;
 
-export const transactionSearchQuerySchema = z.object({
-  q: z
-    .string()
-    .min(TRANSACTION_SEARCH_QUERY_MIN_LENGTH)
-    .max(TRANSACTION_SEARCH_QUERY_MAX_LENGTH),
-});
+/**
+ * Global budget-item search filters.
+ *
+ * Text stays optional when at least one exact tag filter is provided. Multiple
+ * years and tags are OR-ed within their group; the backend intersects the
+ * active filter groups.
+ */
+export const transactionSearchQuerySchema = z
+  .object({
+    q: z
+      .string()
+      .min(TRANSACTION_SEARCH_QUERY_MIN_LENGTH)
+      .max(TRANSACTION_SEARCH_QUERY_MAX_LENGTH)
+      .optional(),
+    years: z.array(z.number().int().min(MIN_YEAR).max(MAX_YEAR)).optional(),
+    tagIds: z.array(z.uuid()).min(1).optional(),
+  })
+  .refine(({ q, tagIds }) => q !== undefined || (tagIds?.length ?? 0) > 0, {
+    message: 'Un terme de recherche ou au moins un tag est requis.',
+    path: ['q'],
+  });
 export type TransactionSearchQuery = z.infer<
   typeof transactionSearchQuerySchema
 >;
@@ -924,7 +1215,6 @@ export const transactionSearchResultSchema = z.object({
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema.or(z.null()),
   transactionDate: z.iso.datetime({ offset: true }).or(z.null()),
-  category: z.string().nullable(),
   budgetId: z.uuid(),
   budgetName: z.string(),
   year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
@@ -968,6 +1258,9 @@ export const templateLineSchema = z.object({
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
   description: z.string().max(500).trim(),
+  // Tags (PUL-18) — même contrat que budgetLine.tagIds (ids only, noms via GET /tags).
+  // Copiés sur les budget_lines à la génération et lors de la propagation.
+  tagIds: z.array(z.uuid()).optional(),
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
   originalAmount: z.coerce.number().nonnegative().nullable().optional(),
@@ -985,6 +1278,13 @@ export const templateLineCreateSchema = z.strictObject({
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
   description: z.string().max(500).trim(),
+  tagIds: z
+    .array(z.uuid())
+    .max(MAX_TAGS_PER_TRANSACTION)
+    .refine(hasUniqueTagIds, {
+      message: 'Chaque tag ne peut être associé qu’une fois.',
+    })
+    .optional(),
   originalAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
@@ -1000,6 +1300,13 @@ export const templateLineCreateWithoutTemplateIdSchema = z.strictObject({
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
   description: z.string().max(500).trim(),
+  tagIds: z
+    .array(z.uuid())
+    .max(MAX_TAGS_PER_TRANSACTION)
+    .refine(hasUniqueTagIds, {
+      message: 'Chaque tag ne peut être associé qu’une fois.',
+    })
+    .optional(),
   originalAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
@@ -1044,6 +1351,14 @@ export const templateLineUpdateSchema = z.strictObject({
   kind: transactionKindSchema.optional(),
   recurrence: transactionRecurrenceSchema.optional(),
   description: z.string().max(500).trim().optional(),
+  // Present -> replace the line's exact tag set (and propagate). Absent -> tags untouched.
+  tagIds: z
+    .array(z.uuid())
+    .max(MAX_TAGS_PER_TRANSACTION)
+    .refine(hasUniqueTagIds, {
+      message: 'Chaque tag ne peut être associé qu’une fois.',
+    })
+    .optional(),
   originalAmount: z.number().positive().optional(),
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
@@ -1466,6 +1781,19 @@ export type SavingsGoalDeleteResponse = z.infer<
   typeof savingsGoalDeleteResponseSchema
 >;
 
+// Tag response schemas (PUL-18)
+export const tagResponseSchema = createSuccessResponse(tagSchema);
+export type TagResponse = z.infer<typeof tagResponseSchema>;
+
+export const tagListResponseSchema = createListResponse(tagSchema);
+export type TagListResponse = z.infer<typeof tagListResponseSchema>;
+
+export const tagHistoryResponseSchema = createSuccessResponse(tagHistorySchema);
+export type TagHistoryResponse = z.infer<typeof tagHistoryResponseSchema>;
+
+export const tagDeleteResponseSchema = deleteResponseSchema;
+export type TagDeleteResponse = z.infer<typeof tagDeleteResponseSchema>;
+
 export const savingsGoalProgressResponseSchema = createSuccessResponse(
   savingsGoalProgressSchema,
 );
@@ -1510,6 +1838,22 @@ export const savingsGoalPlanApplyResponseSchema = createSuccessResponse(
 );
 export type SavingsGoalPlanApplyResponse = z.infer<
   typeof savingsGoalPlanApplyResponseSchema
+>;
+
+export const savingsGoalFutureLinesResponseSchema = createListResponse(
+  savingsGoalFutureLineSchema,
+);
+export type SavingsGoalFutureLinesResponse = z.infer<
+  typeof savingsGoalFutureLinesResponseSchema
+>;
+
+export const savingsGoalGenerationStopResponseSchema = createSuccessResponse(
+  z.object({
+    affectedCount: z.number().int().nonnegative(),
+  }),
+);
+export type SavingsGoalGenerationStopResponse = z.infer<
+  typeof savingsGoalGenerationStopResponseSchema
 >;
 
 // Budget Line response schemas
@@ -1724,3 +2068,35 @@ export const appVersionResponseSchema = z.object({
   }),
 });
 export type AppVersionResponse = z.infer<typeof appVersionResponseSchema>;
+
+/**
+ * WHAT'S NEW — iOS release notes feed
+ *
+ * Authenticated feed of iOS-facing release notes newer than the client's
+ * last-seen version, up to (and including) its current version. Powers the
+ * in-app "what's new" surface. Releases that ship only technical changes never
+ * surface — they carry no user-facing value.
+ *
+ * Endpoint: `GET /api/v1/whats-new/ios` (authenticated).
+ */
+export const whatsNewEntrySchema = z.object({
+  version: semverString,
+  title: z.string(),
+  body: z.string(),
+  publishedAt: z.iso.date(),
+});
+export type WhatsNewEntry = z.infer<typeof whatsNewEntrySchema>;
+
+export const whatsNewResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    entries: z.array(whatsNewEntrySchema),
+  }),
+});
+export type WhatsNewResponse = z.infer<typeof whatsNewResponseSchema>;
+
+export const whatsNewQuerySchema = z.object({
+  currentVersion: semverString,
+  lastSeenVersion: semverString,
+});
+export type WhatsNewQuery = z.infer<typeof whatsNewQuerySchema>;

@@ -62,6 +62,11 @@ enum AnalyticsEvent: String, CaseIterable {
     /// Fires when the "Rappels" preference toggle changes. Property `enabled` (Bool).
     case reminderToggled = "reminder_toggled"
 
+    // MARK: - What's New
+    /// Fires when the post-update release-notes dialog is shown. Property:
+    /// `version` (the running app version the notes are shown for).
+    case iosWhatsNewShown = "ios_whats_new_shown"
+
     // MARK: - Currency
     case currencyChanged = "currency_changed"
     case currencySelectorToggled = "currency_selector_toggled"

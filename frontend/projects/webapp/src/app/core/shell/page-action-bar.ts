@@ -1,4 +1,4 @@
-import { Injectable, signal, type TemplateRef } from '@angular/core';
+import { Service, signal, type TemplateRef } from '@angular/core';
 
 /**
  * Page → app-shell channel for a bottom action bar (mirrors the {@link
@@ -11,7 +11,7 @@ import { Injectable, signal, type TemplateRef } from '@angular/core';
  * The slot holds at most one bar at a time. A page `set()`s its template while
  * relevant and `clear()`s it on teardown (or when the bar should hide).
  */
-@Injectable({ providedIn: 'root' })
+@Service()
 export class PageActionBar {
   /** The bar currently projected into the shell slot, or `null` when none. */
   readonly template = signal<TemplateRef<unknown> | null>(null);

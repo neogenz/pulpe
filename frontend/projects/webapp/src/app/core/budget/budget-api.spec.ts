@@ -261,7 +261,7 @@ describe('BudgetApi', () => {
     amount: 50,
     kind: 'expense',
     transactionDate: '2024-01-15T00:00:00+00:00',
-    category: null,
+    tagIds: [],
     checkedAt: null,
     createdAt: '2024-01-15T00:00:00+00:00',
     updatedAt: '2024-01-15T00:00:00+00:00',

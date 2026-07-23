@@ -12,6 +12,7 @@ import {
   PACE_TOLERANCE_PERCENT,
   calculatePaceStatus,
   computeSavingsGoalProgress,
+  suggestedMonthlyContribution,
   type LinkedSavingLine,
   type LinkedSavingTransaction,
   type SavingsGoalProgressInput,
@@ -450,5 +451,235 @@ describe('computeSavingsGoalProgress — statuts (D2, PAUSED)', () => {
 
       expect(result.estimatedCompletion).toBeNull();
     });
+  });
+});
+
+describe('computeSavingsGoalProgress — initialAmount (stock vs flux)', () => {
+  it('additionne le stock au confirmé/%, l’exclut du rythme et de l’écart cumulé', () => {
+    const may = savingLine(
+      100,
+      { month: 5, year: 2026 },
+      { checkedAt: '2026-05-01T00:00:00Z' },
+    );
+    const june = savingLine(
+      100,
+      { month: 6, year: 2026 },
+      { checkedAt: '2026-06-01T00:00:00Z' },
+    );
+    const withInitial = computeSavingsGoalProgress(
+      baseInput({
+        targetAmount: 10_000,
+        createdAt: '2026-05-01T08:00:00Z',
+        initialAmount: 5_000,
+        lines: [may, june],
+      }),
+    );
+    const withoutInitial = computeSavingsGoalProgress(
+      baseInput({
+        targetAmount: 10_000,
+        createdAt: '2026-05-01T08:00:00Z',
+        lines: [may, june],
+      }),
+    );
+
+    expect(withInitial.confirmed).toBe(5_200);
+    expect(withInitial.achievementPercent).toBe(52);
+    expect(withInitial.confirmedPace).toBe(100);
+    expect(withInitial.initialAmount).toBe(5_000);
+    // Rythme et écart cumulé sont des mesures de FLUX, inchangées par le stock.
+    expect(withInitial.confirmedPace).toBe(withoutInitial.confirmedPace);
+    expect(withInitial.cumulativeGap).toBe(withoutInitial.cumulativeGap);
+  });
+
+  it('un stock ≥ cible déclenche suggestCompletion dès la création', () => {
+    const result = computeSavingsGoalProgress(
+      baseInput({
+        targetAmount: 5_000,
+        createdAt: '2026-06-01T08:00:00Z', // même cycle que "now"
+        initialAmount: 6_000,
+        lines: [],
+      }),
+    );
+    expect(result.suggestCompletion).toBe(true);
+    expect(result.achievementPercent).toBe(100);
+  });
+
+  it('garde targetAmount = 0 intacte même avec un stock positif', () => {
+    const result = computeSavingsGoalProgress(
+      baseInput({ targetAmount: 0, initialAmount: 5_000 }),
+    );
+    expect(result.achievementPercent).toBe(0);
+    expect(result.suggestCompletion).toBe(false);
+  });
+
+  it('non-régression : initialAmount absent ET 0 produisent un résultat strictement identique', () => {
+    const lines = [1, 2, 3, 4, 5, 6].map((month) =>
+      savingLine(
+        1_000,
+        { month, year: 2026 },
+        { checkedAt: month <= 5 ? '2026-06-01T00:00:00Z' : null },
+      ),
+    );
+    const absent = computeSavingsGoalProgress(baseInput({ lines }));
+    const zero = computeSavingsGoalProgress(
+      baseInput({ lines, initialAmount: 0 }),
+    );
+
+    expect(absent.initialAmount).toBe(0);
+    expect(zero).toEqual(absent);
+  });
+});
+
+describe('suggestedMonthlyContribution (PUL-285 CA1/CA6)', () => {
+  it('should divide the target across the remaining months, current and deadline months inclusive', () => {
+    const suggestion = suggestedMonthlyContribution({
+      targetAmount: 100_000,
+      targetDate: '2030-05-15',
+      now: new Date(2026, 5, 15), // juin 2026 → mai 2030 = 48 mois
+      payDayOfMonth: null,
+    });
+
+    expect(suggestion).toBe(2083.34);
+  });
+
+  it('should not overshoot when the exact quotient already lands on a cent (float artifact)', () => {
+    const suggestion = suggestedMonthlyContribution({
+      targetAmount: 1000.1,
+      targetDate: '2026-07-15', // juillet 2026 → 2 mois restants depuis juin
+      now: new Date(2026, 5, 15),
+      payDayOfMonth: null,
+    });
+
+    expect(suggestion).toBe(500.05);
+  });
+
+  it('should round UP to the cent so suggestion × months always covers the target', () => {
+    const monthCount = 48;
+    const suggestion = suggestedMonthlyContribution({
+      targetAmount: 100_000,
+      targetDate: '2030-05-15',
+      now: new Date(2026, 5, 15),
+      payDayOfMonth: null,
+    });
+
+    expect(suggestion).not.toBeNull();
+    expect(suggestion! * monthCount).toBeGreaterThanOrEqual(100_000);
+  });
+
+  it('should match the required formula base — same month indexing as formula 5 with confirmed = 0', () => {
+    const now = new Date(2026, 5, 15);
+    const progress = computeSavingsGoalProgress(
+      baseInput({ targetAmount: 12_000, targetDate: '2026-12-15', now }),
+    );
+    const suggestion = suggestedMonthlyContribution({
+      targetAmount: 12_000,
+      targetDate: '2026-12-15',
+      now,
+      payDayOfMonth: null,
+    });
+
+    expect(progress.required).not.toBeNull();
+    expect(suggestion).toBe(Math.ceil(progress.required! * 100) / 100);
+  });
+
+  it('should be payDay-aware — a payDay before today shifts the current period forward', () => {
+    const withoutPayDay = suggestedMonthlyContribution({
+      targetAmount: 1200,
+      targetDate: '2026-12-15',
+      now: new Date(2026, 5, 28), // 28 juin, payDay 25 → cycle de juillet
+      payDayOfMonth: null,
+    });
+    const withPayDay = suggestedMonthlyContribution({
+      targetAmount: 1200,
+      targetDate: '2026-12-15',
+      now: new Date(2026, 5, 28),
+      payDayOfMonth: 25,
+    });
+
+    expect(withoutPayDay).not.toEqual(withPayDay);
+  });
+
+  it('should return null when the deadline is already past', () => {
+    const suggestion = suggestedMonthlyContribution({
+      targetAmount: 5000,
+      targetDate: '2026-01-15',
+      now: new Date(2026, 5, 15),
+      payDayOfMonth: null,
+    });
+
+    expect(suggestion).toBeNull();
+  });
+
+  it('should only decompose what is left to save once an initial amount covers part of the target (PUL-293)', () => {
+    const suggestion = suggestedMonthlyContribution({
+      targetAmount: 10_000,
+      initialAmount: 5000,
+      targetDate: '2026-12-15', // juin → décembre 2026 = 7 mois
+      now: new Date(2026, 5, 15),
+      payDayOfMonth: null,
+    });
+
+    // 5 000 restants ÷ 7, pas 10 000 ÷ 7 : décomposer la cible entière
+    // sur-provisionnerait la prévision récurrente générée.
+    expect(suggestion).toBe(714.29);
+  });
+
+  it('should stay identical when the initial amount is absent or zero (PUL-293 non-regression)', () => {
+    const args = {
+      targetAmount: 10_000,
+      targetDate: '2026-12-15',
+      now: new Date(2026, 5, 15),
+      payDayOfMonth: null,
+    };
+
+    expect(suggestedMonthlyContribution({ ...args, initialAmount: 0 })).toBe(
+      suggestedMonthlyContribution(args),
+    );
+  });
+
+  it('should return null when the initial amount already covers the target — nothing to decompose (PUL-293)', () => {
+    const suggestion = suggestedMonthlyContribution({
+      targetAmount: 10_000,
+      initialAmount: 10_000,
+      targetDate: '2026-12-15',
+      now: new Date(2026, 5, 15),
+      payDayOfMonth: null,
+    });
+
+    expect(suggestion).toBeNull();
+  });
+
+  it('should keep matching the required formula once the initial amount feeds the confirmed (PUL-293)', () => {
+    const now = new Date(2026, 5, 15);
+    // À la création, le confirmé de la formule 5 se réduit au montant de départ.
+    const progress = computeSavingsGoalProgress(
+      baseInput({
+        targetAmount: 12_000,
+        initialAmount: 3000,
+        targetDate: '2026-12-15',
+        now,
+      }),
+    );
+    const suggestion = suggestedMonthlyContribution({
+      targetAmount: 12_000,
+      initialAmount: 3000,
+      targetDate: '2026-12-15',
+      now,
+      payDayOfMonth: null,
+    });
+
+    expect(progress.required).not.toBeNull();
+    expect(suggestion).toBe(Math.ceil(progress.required! * 100) / 100);
+  });
+
+  it('should return null on a non-positive target', () => {
+    const suggestion = suggestedMonthlyContribution({
+      targetAmount: 0,
+      targetDate: '2026-12-15',
+      now: new Date(2026, 5, 15),
+      payDayOfMonth: null,
+    });
+
+    expect(suggestion).toBeNull();
   });
 });

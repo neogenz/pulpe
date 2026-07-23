@@ -89,8 +89,26 @@ export {
   savingsGoalPlanMonthSchema,
   savingsGoalPlanApplySchema,
   savingsGoalPlanApplyResponseSchema,
+  savingsGoalFutureLineSchema,
+  savingsGoalFutureLinesResponseSchema,
+  savingsGoalGenerationStopSchema,
+  savingsGoalGenerationStopResponseSchema,
   MAX_SAVINGS_GOAL_PLAN_PERIODS,
   MAX_PLAN_ADJUSTMENTS,
+
+  // Tag schemas (PUL-18)
+  MAX_TAGS_PER_TRANSACTION,
+  tagSchema,
+  tagCreateSchema,
+  tagUpdateSchema,
+  tagResponseSchema,
+  tagListResponseSchema,
+  tagHistoryMonthsSchema,
+  tagHistoryQuerySchema,
+  tagHistoryMonthSchema,
+  tagHistorySchema,
+  tagHistoryResponseSchema,
+  tagDeleteResponseSchema,
 
   // Budget Line schemas
   budgetLineSchema,
@@ -109,6 +127,11 @@ export {
   transactionSpreadFromTxnCreateSchema,
   spreadOccurrenceSchema,
   spreadOccurrencesResponseSchema,
+
+  // Savings withdrawal schemas (PUL-292)
+  budgetLineSavingsWithdrawalCreateSchema,
+  budgetLineSavingsWithdrawalResponseSchema,
+  budgetLineSavingsWithdrawalDeleteQuerySchema,
 
   // Currency schemas
   supportedCurrencySchema,
@@ -155,6 +178,11 @@ export {
 
   // App version (force update gate)
   appVersionResponseSchema,
+
+  // What's new (iOS release notes feed)
+  whatsNewEntrySchema,
+  whatsNewResponseSchema,
+  whatsNewQuerySchema,
 } from './schemas.js';
 
 // Export error codes
@@ -186,10 +214,12 @@ export {
   MAX_ESTIMATED_HORIZON_MONTHS,
   calculatePaceStatus,
   computeSavingsGoalProgress,
+  suggestedMonthlyContribution,
   type LinkedSavingLine,
   type LinkedSavingTransaction,
   type SavingsGoalProgressInput,
   type SavingsGoalProgressResult,
+  type SuggestedMonthlyContributionInput,
 } from './src/calculators/index.js';
 export {
   buildSavingsGoalTimeline,
@@ -318,6 +348,23 @@ export type {
   SavingsGoalPlanMonth,
   SavingsGoalPlanApply,
   SavingsGoalPlanApplyResponse,
+  SavingsGoalFutureLine,
+  SavingsGoalFutureLinesResponse,
+  SavingsGoalGenerationStop,
+  SavingsGoalGenerationStopResponse,
+
+  // Tag types (PUL-18)
+  Tag,
+  TagCreate,
+  TagUpdate,
+  TagResponse,
+  TagListResponse,
+  TagHistoryMonths,
+  TagHistoryQuery,
+  TagHistoryMonth,
+  TagHistory,
+  TagHistoryResponse,
+  TagDeleteResponse,
 
   // Budget Line types
   BudgetLine,
@@ -336,6 +383,11 @@ export type {
   TransactionSpreadFromTxnCreate,
   SpreadOccurrence,
   SpreadOccurrencesResponse,
+
+  // Savings withdrawal types (PUL-292)
+  BudgetLineSavingsWithdrawalCreate,
+  BudgetLineSavingsWithdrawalResponse,
+  BudgetLineSavingsWithdrawalDeleteQuery,
 
   // Currency types
   SupportedCurrency,
@@ -378,4 +430,9 @@ export type {
 
   // App version
   AppVersionResponse,
+
+  // What's new
+  WhatsNewEntry,
+  WhatsNewResponse,
+  WhatsNewQuery,
 } from './schemas.js';

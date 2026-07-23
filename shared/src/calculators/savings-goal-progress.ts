@@ -77,6 +77,12 @@ export interface SavingsGoalProgressInput {
   canProvisionMissingPeriods?: boolean;
   lines: LinkedSavingLine[];
   transactions: LinkedSavingTransaction[];
+  /**
+   * Montant déjà épargné avant le suivi (stock one-shot, ex. capital transféré
+   * à la création). S'ajoute au CONFIRMÉ ; exclu du rythme (`confirmedPace`)
+   * et de l'écart cumulé (`cumulativeGap`), qui restent des mesures de FLUX.
+   */
+  initialAmount?: number;
 }
 
 export interface SavingsGoalProgressResult {
@@ -97,6 +103,8 @@ export interface SavingsGoalProgressResult {
   cumulativeGap: number;
   /** Formule 11 — date d'atteinte au rythme confirmé, `null` si non projetable. */
   estimatedCompletion: BudgetPeriod | null;
+  /** Écho de `input.initialAmount` (stock de départ), défaut 0. */
+  initialAmount: number;
 }
 
 /**
@@ -140,6 +148,53 @@ export function calculatePaceStatus(
   return 'on_track';
 }
 
+export interface SuggestedMonthlyContributionInput {
+  targetAmount: number;
+  /** ISO date `YYYY-MM-DD`. */
+  targetDate: string;
+  payDayOfMonth?: number | null;
+  /**
+   * Montant déjà épargné (stock) — déduit de la cible avant division : à la
+   * création, le confirmé de la formule 5 se réduit exactement à ce stock.
+   */
+  initialAmount?: number;
+  /** Injectable pour les tests ; défaut = maintenant. */
+  now?: Date;
+}
+
+/**
+ * Suggestion « reste à épargner ÷ mois restants » à la création d'un objectif
+ * (PUL-285 CA1/CA6). Même base que la formule 5 — `required = max(0, cible −
+ * confirmé) / monthsRemaining` — où le confirmé à la création se réduit au
+ * montant de départ : payDay-aware, mois courant ET mois d'échéance inclus.
+ * Arrondi au centime SUPÉRIEUR pour que `suggestion × mois ≥ reste` (jamais de
+ * shortfall à l'échéance). `null` si l'échéance est dépassée, la cible non
+ * positive, ou le montant de départ couvre déjà la cible (rien à décomposer).
+ */
+export function suggestedMonthlyContribution(
+  input: SuggestedMonthlyContributionInput,
+): number | null {
+  const now = input.now ?? new Date();
+  const indexCurrent = periodIndex(
+    getBudgetPeriodForDate(now, input.payDayOfMonth),
+  );
+  const indexTarget = periodIndex(
+    getBudgetPeriodForDate(
+      parseIsoDateLocal(input.targetDate),
+      input.payDayOfMonth,
+    ),
+  );
+  const monthsRemaining = indexTarget - indexCurrent + 1;
+  if (monthsRemaining <= 0 || input.targetAmount <= 0) return null;
+  const remaining = input.targetAmount - (input.initialAmount ?? 0);
+  if (remaining <= 0) return null;
+  // Le pré-round au 1/100 de centime neutralise l'artefact float binaire :
+  // sans lui, un quotient tombant PILE sur un centime (500.05) peut flotter
+  // juste au-dessus et se faire ceil au centime supérieur (500.06).
+  const cents = Math.round((remaining / monthsRemaining) * 10_000) / 100;
+  return Math.ceil(cents) / 100;
+}
+
 export function computeSavingsGoalProgress(
   input: SavingsGoalProgressInput,
 ): SavingsGoalProgressResult {
@@ -173,10 +228,14 @@ export function computeSavingsGoalProgress(
     .reduce((sum, line) => sum + line.amount, 0);
 
   // 2. Confirmé — enveloppe checked-only, TOUS mois (pointage anticipé compte).
-  const confirmed = BudgetFormulas.calculateRealizedSavings(
+  // `confirmed` (STOCK) additionne le montant de départ ; `linesConfirmed`
+  // (FLUX) en reste exclu pour le rythme et l'écart cumulé.
+  const linesConfirmed = BudgetFormulas.calculateRealizedSavings(
     savingLines,
     input.transactions,
   );
+  const initialAmount = input.initialAmount ?? 0;
+  const confirmed = initialAmount + linesConfirmed;
 
   // 3. % d'atteinte — sur le CONFIRMÉ ; cible nulle/non déchiffrée ⇒ 0.
   const achievementPercent =
@@ -185,8 +244,9 @@ export function computeSavingsGoalProgress(
       : 0;
 
   // 4. Deux rythmes — la projection se base sur le rythme CONFIRMÉ.
+  // confirmedPace exclut le montant de départ (un stock n'est pas un rythme).
   const pace = plannedCumulative / monthsElapsed;
-  const confirmedPace = confirmed / monthsElapsed;
+  const confirmedPace = linesConfirmed / monthsElapsed;
 
   // 5-6. Requis / projection — neutralisés quand l'échéance est dépassée (D1).
   const required = isOverdue
@@ -209,7 +269,8 @@ export function computeSavingsGoalProgress(
     confirmed >= input.targetAmount;
 
   // 10. Écart cumulé — signé, jamais clampé (négatif = pointage anticipé/avance).
-  const cumulativeGap = plannedCumulative - confirmed;
+  // Adhérence au plan de pointage (FLUX) ⇒ exclut le montant de départ.
+  const cumulativeGap = plannedCumulative - linesConfirmed;
 
   // 11. Date d'atteinte estimée au rythme confirmé (payDay-aware).
   const estimatedCompletion = computeEstimatedCompletion({
@@ -236,5 +297,6 @@ export function computeSavingsGoalProgress(
     linkedLineCount: savingLines.length,
     cumulativeGap,
     estimatedCompletion,
+    initialAmount,
   };
 }

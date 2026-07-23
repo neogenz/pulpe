@@ -1,4 +1,4 @@
-import { ErrorHandler, Injectable, inject } from '@angular/core';
+import { ErrorHandler, Service, inject } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { PostHogService } from './posthog';
 import { Logger } from '../logging/logger';
@@ -9,9 +9,7 @@ import { isChunkLoadError } from '../routing/navigation-error-handler';
  * Global error handler following Angular best practices.
  * Leverages PostHog's built-in sanitization for security.
  */
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class GlobalErrorHandler implements ErrorHandler {
   readonly #postHogService = inject(PostHogService);
   readonly #logger = inject(Logger);

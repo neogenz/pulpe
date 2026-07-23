@@ -136,6 +136,7 @@ function progressUseCaseFor(user: TestUser): {
   const templateRepo = new SupabaseBudgetTemplateRepository(
     providerFor(user, authUser),
     encryptionStub,
+    noopLogger,
   );
   return {
     useCase: new GetSavingsGoalProgressUseCase(repo, templateRepo, noopLogger),
@@ -172,6 +173,7 @@ function applyPlanUseCaseFor(user: TestUser): {
   const templateRepo = new SupabaseBudgetTemplateRepository(
     providerFor(user, authUser),
     encryptionStub,
+    noopLogger,
   );
   return {
     useCase: new ApplySavingsGoalPlanUseCase(

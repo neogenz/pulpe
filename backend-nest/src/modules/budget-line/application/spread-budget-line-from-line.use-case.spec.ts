@@ -41,6 +41,7 @@ const makeSource = (
   kind: 'expense',
   recurrence: 'one_off',
   spreadGroupId: null,
+  savingsWithdrawalGroupId: null,
   savingsGoalId: null,
   ...overrides,
 });
@@ -54,7 +55,9 @@ const makeLine = (
   budgetId: input.budgetId,
   templateLineId: null,
   savingsGoalId: null,
+  tagIds: [],
   spreadGroupId,
+  savingsWithdrawalGroupId: null,
   name: input.name,
   amount: input.amount,
   originalAmount: input.originalAmount ?? null,
@@ -259,6 +262,21 @@ describe('SpreadBudgetLineFromLineUseCase', () => {
     await expect(
       useCase.execute('line-source', { periods: eightPeriods }, mockUser),
     ).rejects.toMatchObject({ code: 'ERR_BUDGET_LINE_ALREADY_SPREAD' });
+    expect(mockRepo.createSpread).not.toHaveBeenCalled();
+    expect(mockRepo.delete).not.toHaveBeenCalled();
+  });
+
+  it('rejects a savings-withdrawal-paired source with BUDGET_LINE_NOT_SPREADABLE, no fan-out', async () => {
+    mockRepo.findSpreadSource.mockResolvedValue(
+      makeSource({
+        kind: 'saving',
+        savingsWithdrawalGroupId: 'withdrawal-group-1',
+      }),
+    );
+
+    await expect(
+      useCase.execute('line-source', { periods: eightPeriods }, mockUser),
+    ).rejects.toMatchObject({ code: 'ERR_BUDGET_LINE_NOT_SPREADABLE' });
     expect(mockRepo.createSpread).not.toHaveBeenCalled();
     expect(mockRepo.delete).not.toHaveBeenCalled();
   });

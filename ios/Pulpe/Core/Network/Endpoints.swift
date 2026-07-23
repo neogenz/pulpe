@@ -18,6 +18,10 @@ enum Endpoint {
     case userSettings
     case updateUserSettings
 
+    // MARK: - Tags
+
+    case tags
+
     // MARK: - Budgets
 
     case budgets
@@ -31,6 +35,8 @@ enum Endpoint {
     case budgetLines(budgetId: String)
     case budgetLinesCreate
     case budgetLinesSpread
+    case budgetLinesSavingsWithdrawal
+    case budgetLinesSavingsWithdrawalDelete(groupId: String, scope: String)
     case budgetLinesSpreadOccurrences(spreadGroupId: String)
     case budgetLineSpreadFromLine(id: String)
     case budgetLine(id: String)
@@ -67,10 +73,16 @@ enum Endpoint {
     case savingsGoalProgress(id: String)
     case savingsGoalContributions(id: String)
     case savingsGoalPlanApply(id: String)
+    case savingsGoalFutureLines(id: String)
+    case savingsGoalGenerationStop(id: String)
 
     // MARK: - Currency
 
     case currencyRate(base: SupportedCurrency, target: SupportedCurrency)
+
+    // MARK: - What's New
+
+    case whatsNewIos(currentVersion: String, lastSeenVersion: String)
 
     // MARK: - Encryption
 
@@ -99,6 +111,9 @@ enum Endpoint {
         case .userSettings: return "/users/settings"
         case .updateUserSettings: return "/users/settings"
 
+        // Tags
+        case .tags: return "/tags"
+
         // Budgets
         case .budgets: return "/budgets"
         case .budget(let id): return "/budgets/\(id)"
@@ -110,6 +125,8 @@ enum Endpoint {
         case .budgetLines(let budgetId): return "/budgets/\(budgetId)/lines"
         case .budgetLinesCreate: return "/budget-lines"
         case .budgetLinesSpread: return "/budget-lines/spread"
+        case .budgetLinesSavingsWithdrawal: return "/budget-lines/savings-withdrawal"
+        case .budgetLinesSavingsWithdrawalDelete(let groupId, _): return "/budget-lines/savings-withdrawal/\(groupId)"
         case .budgetLinesSpreadOccurrences(let id): return "/budget-lines/spread/\(id)"
         case .budgetLineSpreadFromLine(let id): return "/budget-lines/\(id)/spread"
         case .budgetLine(let id): return "/budget-lines/\(id)"
@@ -142,9 +159,14 @@ enum Endpoint {
         case .savingsGoalProgress(let id): return "/savings-goals/\(id)/progress"
         case .savingsGoalContributions(let id): return "/savings-goals/\(id)/contributions"
         case .savingsGoalPlanApply(let id): return "/savings-goals/\(id)/plan"
+        case .savingsGoalFutureLines(let id): return "/savings-goals/\(id)/future-lines"
+        case .savingsGoalGenerationStop(let id): return "/savings-goals/\(id)/generation-stop"
 
         // Currency
         case .currencyRate: return "/currency/rate"
+
+        // What's New
+        case .whatsNewIos: return "/whats-new/ios"
 
         // Encryption
         case .encryptionVaultStatus: return "/encryption/vault-status"
@@ -162,22 +184,23 @@ enum Endpoint {
 
     var method: HTTPMethod {
         switch self {
-        case .budgets, .budgetLines, .budgetLinesCreate, .budgetLinesSpread,
+        case .budgets, .budgetLines, .budgetLinesCreate, .budgetLinesSpread, .budgetLinesSavingsWithdrawal,
              .budgetLineSpreadFromLine, .transactionSpreadFromTxn, .transactionsCreate, .templates,
              .templateLines, .templateFromOnboarding, .templateLinesBulk,
              .budgetLineToggle, .budgetLinePostpone, .budgetLineResetFromTemplate,
              .transactionToggle, .transactionPostpone,
              .encryptionValidateKey, .encryptionSetupRecovery, .encryptionRegenerateRecovery, .encryptionRecover,
              .encryptionVerifyRecoveryKey, .encryptionChangePin,
-             .savingsGoalPlanApply:
+             .savingsGoalPlanApply, .savingsGoalGenerationStop:
             return .post
 
         case .validateSession, .userProfile, .budget, .budgetDetails, .budgetsExport,
              .budgetLine, .budgetLinesSpreadOccurrences, .transaction, .template, .templateUsage, .templateLine,
              .transactionsByBudget, .budgetsSparse,
              .savingsGoals, .savingsGoal, .savingsGoalProgress, .savingsGoalContributions,
+             .savingsGoalFutureLines,
              .encryptionVaultStatus, .encryptionSalt,
-             .userSettings, .currencyRate:
+             .userSettings, .tags, .currencyRate, .whatsNewIos:
             return .get
 
         case .updateUserSettings:
@@ -186,7 +209,7 @@ enum Endpoint {
         case .updateProfile:
             return .patch
 
-        case .deleteAccount:
+        case .deleteAccount, .budgetLinesSavingsWithdrawalDelete:
             return .delete
         }
     }
@@ -210,6 +233,17 @@ enum Endpoint {
             components?.queryItems = [
                 URLQueryItem(name: "base", value: base.rawValue),
                 URLQueryItem(name: "target", value: target.rawValue),
+            ]
+            url = components?.url ?? url
+        case let .budgetLinesSavingsWithdrawalDelete(_, scope):
+            var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            components?.queryItems = [URLQueryItem(name: "scope", value: scope)]
+            url = components?.url ?? url
+        case let .whatsNewIos(currentVersion, lastSeenVersion):
+            var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            components?.queryItems = [
+                URLQueryItem(name: "currentVersion", value: currentVersion),
+                URLQueryItem(name: "lastSeenVersion", value: lastSeenVersion),
             ]
             url = components?.url ?? url
         default:

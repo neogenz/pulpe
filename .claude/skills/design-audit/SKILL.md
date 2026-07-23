@@ -26,7 +26,7 @@ Before forming any opinion, read these files:
 | Brand vision, emotional pillars, tone, colors, typography, icons, microcopy | `memory-bank/DA.md` |
 | Design tokens, CSS variables, utility classes, surfaces, motion | `.claude/rules/06-templates-and-models/design-system.md` |
 | 3-layer token hierarchy (Material + Tailwind + Pulpe) | `.claude/rules/03-frameworks-and-libraries/material-tailwind-integration.md` |
-| Material 21 APIs, removed selectors, M3 tokens | `.claude/rules/03-frameworks-and-libraries/angular-material-21.md` |
+| Material 22 APIs, removed selectors, M3 tokens | `.claude/rules/03-frameworks-and-libraries/angular-material-22.md` |
 | Frontend architecture, layers, component patterns | `memory-bank/systemPatterns.md` |
 | Product vision, V1 scope | `memory-bank/projectbrief.md` |
 | Business workflows, user journeys | `memory-bank/productContext.md` |
@@ -81,7 +81,7 @@ Material System → --mat-sys-primary, --mat-sys-body-large-*, --mat-sys-corner-
 ### Platform Context
 
 - **iOS (SwiftUI):** Primary target. Touch-first. Thumb-reachable actions.
-- **Web (Angular 21 + Material 21 + Tailwind v4):** Secondary. Must feel equally intentional.
+- **Web (Angular 22 + Material 22 + Tailwind v4):** Secondary. Must feel equally intentional.
 - **Landing (Next.js + Tailwind v4):** Poppins typography, marketing tone.
 
 ## Audit Protocol

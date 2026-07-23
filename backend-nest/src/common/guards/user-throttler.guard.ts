@@ -10,6 +10,7 @@ import {
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import { Request } from 'express';
 import { SupabaseService } from '@modules/supabase/supabase.service';
+import { isDemoPath } from '@config/throttler.config';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 
 interface RequestWithThrottlerCache extends Request {
@@ -154,6 +155,15 @@ export class UserThrottlerGuard extends ThrottlerGuard {
   protected override async getTracker(
     req: RequestWithThrottlerCache,
   ): Promise<string> {
+    // Demo routes stay IP-keyed, always. POST /demo/session returns a working
+    // Bearer token, so keying its bucket by that token lets a caller mint a
+    // fresh empty bucket per demo user created — unbounded user creation from
+    // one IP, defeating the `demo` / `demoUnverified` caps that the fail-open
+    // Turnstile path names as its compensating control.
+    if (isDemoPath(req.url)) {
+      return this.#getClientIpTracker(req);
+    }
+
     // Check cache first (undefined means not yet resolved, null means resolution failed)
     if (req.__throttlerUserCache !== undefined) {
       const cachedUser = req.__throttlerUserCache;

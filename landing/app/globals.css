@@ -1,59 +1,104 @@
 @import "tailwindcss";
 
 @theme {
-  --font-family-sans: var(--font-poppins), 'Poppins', system-ui, sans-serif;
+  --font-family-sans: var(--font-poppins), "Poppins", system-ui, sans-serif;
 
-  --color-primary: #006E25;
-  --color-primary-hover: #2B883B;
-  --color-background: #F6FFF0;
-  --color-surface: #FFFFFF;
-  --color-surface-alt: #E2FBDC;
-  --color-text: #1A1C19;
-  --color-text-secondary: #5D5F5B;
-  --color-accent: #0061A6;
+  --color-primary: #006e25;
+  --color-primary-hover: #2b883b;
+  --color-background: #f7f6f3;
+  --color-surface: #fffefa;
+  --color-surface-alt: #eaf6e6;
+  --color-text: #1a1c19;
+  --color-text-secondary: #5d5f5b;
+  --color-accent: #0061a6;
 
   /* Shadows tinted with brand green — gives depth coherent with palette
      instead of generic black-at-low-opacity AI aesthetic. */
   --shadow-card:
-    0 1px 2px rgba(0, 60, 20, 0.04),
-    0 4px 20px rgba(0, 60, 20, 0.06);
+    0 1px 2px rgba(0, 60, 20, 0.04), 0 6px 18px rgba(0, 60, 20, 0.06);
   --shadow-card-hover:
-    0 2px 6px rgba(0, 60, 20, 0.06),
-    0 12px 40px rgba(0, 60, 20, 0.14);
+    0 2px 4px rgba(0, 60, 20, 0.05), 0 10px 24px rgba(0, 60, 20, 0.09);
   --shadow-organic:
-    0 1px 2px rgba(0, 110, 37, 0.04),
-    0 4px 14px rgba(0, 110, 37, 0.08),
-    0 12px 32px rgba(0, 60, 20, 0.08);
+    0 1px 2px rgba(0, 110, 37, 0.04), 0 8px 22px rgba(0, 60, 20, 0.07);
   --shadow-screenshot:
-    0 2px 6px rgba(0, 60, 20, 0.05),
-    0 14px 40px rgba(0, 60, 20, 0.14);
+    0 2px 4px rgba(0, 60, 20, 0.04), 0 12px 28px rgba(0, 60, 20, 0.1);
   --shadow-glass: 0 8px 32px rgba(0, 60, 20, 0.1);
   --shadow-liquid-glass:
-    0 0 0 1px rgba(255, 255, 255, 0.1),
-    0 2px 4px rgba(0, 60, 20, 0.02),
-    0 8px 16px rgba(0, 60, 20, 0.05),
-    0 16px 32px rgba(0, 60, 20, 0.07);
+    0 0 0 1px rgba(255, 255, 255, 0.1), 0 2px 4px rgba(0, 60, 20, 0.02),
+    0 8px 16px rgba(0, 60, 20, 0.05), 0 16px 32px rgba(0, 60, 20, 0.07);
   --shadow-floating:
-    0 4px 12px rgba(0, 60, 20, 0.08),
-    0 12px 28px rgba(0, 60, 20, 0.14);
+    0 4px 12px rgba(0, 60, 20, 0.08), 0 12px 28px rgba(0, 60, 20, 0.14);
 
   --radius-button: 12px;
   --radius-card: 16px;
-  --radius-large: 24px;
+  --radius-large: 20px;
 
-  /* Spring-ish easing for interactive elements — more weight than ease-out */
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Compatibility alias while sections migrate: never overshoots. */
   --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: var(--ease-smooth);
+}
+
+:root {
+  --ambient-lime: oklch(93% 0.13 121);
+  --ambient-leaf: oklch(88% 0.15 145);
+  --ambient-mint: oklch(90% 0.12 164);
+  --ambient-mobile-lime: oklch(82% 0.19 121);
+  --ambient-mobile-leaf: oklch(70% 0.2 145);
+  --ambient-mobile-mint: oklch(75% 0.18 164);
+  --gradient-interpolation: ;
+}
+
+@supports (background: linear-gradient(in oklab, white, black)) {
+  :root {
+    --gradient-interpolation: in oklab;
+  }
 }
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 80px;
+  scroll-padding-top: 112px;
 }
 
 body {
   font-family: var(--font-family-sans);
   background-color: var(--color-background);
+  background-image:
+    radial-gradient(
+      var(--gradient-interpolation) 62% 11% at -5% 8%,
+      var(--ambient-leaf),
+      transparent 74%
+    ),
+    radial-gradient(
+      var(--gradient-interpolation) 58% 12% at 105% 10%,
+      var(--ambient-mint),
+      transparent 76%
+    ),
+    radial-gradient(
+      var(--gradient-interpolation) 105% 16% at 50% -2%,
+      var(--ambient-lime),
+      transparent 78%
+    ),
+    radial-gradient(
+      var(--gradient-interpolation) 80% 16% at 105% 32%,
+      var(--ambient-leaf),
+      transparent 76%
+    ),
+    radial-gradient(
+      var(--gradient-interpolation) 74% 16% at -5% 53%,
+      var(--ambient-lime),
+      transparent 76%
+    ),
+    radial-gradient(
+      var(--gradient-interpolation) 82% 17% at 105% 74%,
+      var(--ambient-mint),
+      transparent 78%
+    ),
+    radial-gradient(
+      var(--gradient-interpolation) 96% 16% at 24% 100%,
+      var(--ambient-leaf),
+      transparent 80%
+    );
+  background-repeat: no-repeat;
   color: var(--color-text);
   margin: 0;
   min-height: 100vh;
@@ -86,13 +131,68 @@ body {
   }
 }
 
-/* Very subtle mesh of radial green glows behind hero — adds depth
-   without touching layout. Pure CSS, zero cost. */
-.hero-mesh {
-  background-image:
-    radial-gradient(60% 50% at 18% 15%, rgba(43, 136, 59, 0.10), transparent 70%),
-    radial-gradient(50% 45% at 82% 30%, rgba(0, 97, 166, 0.06), transparent 75%),
-    radial-gradient(70% 60% at 50% 95%, rgba(226, 251, 220, 0.9), transparent 70%);
+/* Desktop shares one ambient field. Mobile scopes its halos to the opening sections. */
+.hero-mesh,
+.pain-points-mesh {
+  background: transparent;
+}
+
+@media (max-width: 767px) {
+  body {
+    background-image: none;
+  }
+
+  #main-content {
+    overflow: clip;
+  }
+
+  .hero-mesh,
+  .pain-points-mesh {
+    isolation: isolate;
+    overflow: visible;
+  }
+
+  .pain-points-mesh {
+    padding-top: 1.5rem;
+  }
+
+  .hero-mesh::before,
+  .hero-mesh::after,
+  .pain-points-mesh::before,
+  .pain-points-mesh::after {
+    position: absolute;
+    z-index: -1;
+    width: 40vw;
+    height: 60vh;
+    border-radius: 50%;
+    content: "";
+    filter: blur(150px);
+    opacity: 0.4;
+    pointer-events: none;
+    transform: translateY(-50%) rotate(-30deg);
+  }
+
+  .hero-mesh::before,
+  .pain-points-mesh::before {
+    top: 90%;
+    left: -10%;
+    background-color: var(--ambient-mobile-leaf);
+  }
+
+  .hero-mesh::after,
+  .pain-points-mesh::after {
+    top: 10%;
+    right: -10%;
+    background-color: var(--ambient-mobile-mint);
+  }
+
+  .pain-points-mesh::before {
+    background-color: var(--ambient-mobile-lime);
+  }
+}
+
+section[id] {
+  scroll-margin-top: 7rem;
 }
 
 :focus-visible {
@@ -104,10 +204,7 @@ body {
   outline: none;
 }
 
-/* Focus indicator for interactive elements sitting on dark / green surfaces
-   (e.g. the inverse CTA on the FinalCTA gradient), where the default green
-   outline is invisible. White ring, offset so it reads against both the
-   white button and the green surround. Meets WCAG 1.4.11 (>=3:1). */
+/* White focus ring for any future action placed on a dark surface. */
 .focus-on-dark:focus-visible {
   outline: 2px solid #ffffff;
   outline-offset: 3px;
@@ -124,8 +221,12 @@ body {
   padding: var(--shine-border-width);
   background-image: var(--shine-gradient);
   background-size: 300% 300%;
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   mask-composite: exclude;
   -webkit-mask-composite: xor;
 }
@@ -150,7 +251,8 @@ body {
 
 /* Floating card bob animation */
 @keyframes float-bob {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0) rotate(var(--rotation, 0deg));
   }
   50% {
@@ -161,17 +263,6 @@ body {
 @media (prefers-reduced-motion: no-preference) {
   .float-bob {
     animation: float-bob 4s ease-in-out infinite;
-  }
-}
-
-/* Grid background responsive size */
-:root {
-  --grid-size: 60px;
-}
-
-@media (min-width: 768px) {
-  :root {
-    --grid-size: 100px;
   }
 }
 
@@ -236,57 +327,30 @@ body {
 
 /* Staggered entrance delays for the hero floating cards. Namespaced so they
    don't collide with Tailwind's transition-delay `delay-*` utilities. */
-.anim-delay-400 { animation-delay: 0.4s; }
-.anim-delay-600 { animation-delay: 0.6s; }
-
-/* FadeIn (scroll variant) hidden state. A dedicated class — not the generic
-   `.opacity-0` utility — so content below the fold stays visible when JS is
-   unavailable (crawler, reader mode, blocked or failed script). */
-.js-scroll-hidden { opacity: 0; }
-
-@media (scripting: none) {
-  .js-scroll-hidden { opacity: 1; }
+.anim-delay-400 {
+  animation-delay: 0.4s;
+}
+.anim-delay-600 {
+  animation-delay: 0.6s;
 }
 
-/* Intersection Observer based fade-in */
-.fade-in-view {
-  opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
-}
-
-.fade-in-view.is-visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* Grain texture overlay */
+/* Legacy grain hooks remain for secondary routes, but the marketing page uses
+   tonal fields instead of raster-like noise. */
 .grain {
   position: relative;
 }
 
 .grain::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 1;
+  content: none;
 }
 
-/* Section with grain background */
 .section-grain {
   position: relative;
-  background-color: var(--color-surface-alt);
+  background: transparent;
 }
 
 .section-grain::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 0;
+  content: none;
 }
 
 /* Blur-in animation */
@@ -314,7 +378,9 @@ body {
 }
 
 .glow-primary:hover {
-  box-shadow: 0 0 24px rgba(0, 110, 37, 0.25), 0 0 48px rgba(0, 110, 37, 0.1);
+  box-shadow:
+    0 0 24px rgba(0, 110, 37, 0.25),
+    0 0 48px rgba(0, 110, 37, 0.1);
 }
 
 /* Organic decorative blob */
@@ -369,12 +435,6 @@ body {
     opacity: 1;
     transform: none;
     filter: none;
-  }
-
-  .fade-in-view {
-    opacity: 1;
-    transform: none;
-    transition: none;
   }
 
   .glow-primary {

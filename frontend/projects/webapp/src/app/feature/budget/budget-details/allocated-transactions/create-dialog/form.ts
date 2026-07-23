@@ -37,6 +37,7 @@ import { UserSettingsStore } from '@core/user-settings';
 import { touchedFieldErrors } from '@core/validators';
 import { Logger } from '@core/logging/logger';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
+import { TagPicker } from '@app/pattern/tag-picker/tag-picker';
 import { computeBudgetPeriodDateConstraints } from './budget-period-date-constraints';
 
 export interface CreateAllocatedTransactionFormData {
@@ -51,6 +52,7 @@ interface CreateAllocatedTransactionModel {
   money: AmountFormSlice;
   transactionDate: Date;
   isChecked: boolean;
+  tagIds: string[];
 }
 
 @Component({
@@ -63,6 +65,7 @@ interface CreateAllocatedTransactionModel {
     TranslocoPipe,
     FormField,
     AmountInput,
+    TagPicker,
   ],
   template: `
     <form
@@ -120,6 +123,8 @@ interface CreateAllocatedTransactionModel {
           }}</mat-error>
         }
       </mat-form-field>
+
+      <pulpe-tag-picker [control]="transactionForm.tagIds" />
 
       <div class="flex items-center justify-between py-2 px-1">
         <span class="text-body-medium text-on-surface">{{
@@ -181,6 +186,7 @@ export class CreateAllocatedTransactionForm {
             }),
             transactionDate: this.#dateConstraints().defaultDate,
             isChecked: false,
+            tagIds: [],
           },
       ),
   });
@@ -237,8 +243,8 @@ export class CreateAllocatedTransactionForm {
               amount,
               kind: budgetLine.kind,
               transactionDate: formatLocalDate(m.transactionDate),
-              category: null,
               isChecked: m.isChecked,
+              tagIds: m.tagIds,
               conversion: metadata ?? null,
             }),
         };

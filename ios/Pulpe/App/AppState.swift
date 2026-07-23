@@ -463,13 +463,14 @@ enum Tab: String, CaseIterable, Identifiable {
 
 // MARK: - Navigation Destinations
 
-enum BudgetDestination: Hashable {
-    case details(budgetId: String)
+enum BudgetDestination: Hashable { case details(budgetId: String) }
+
+enum SavingsGoalDestination: Hashable {
+    case list
+    case detail(SavingsGoal)
 }
 
-enum TemplateDestination: Hashable {
-    case details(templateId: String)
-}
+enum TemplateDestination: Hashable { case details(templateId: String) }
 
 // MARK: - Pending Onboarding User
 

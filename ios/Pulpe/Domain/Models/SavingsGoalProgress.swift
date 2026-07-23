@@ -46,6 +46,9 @@ struct SavingsGoalProgress: Decodable, Sendable, Equatable {
     let plannedCumulative: Decimal
     /// Checked-only realised total — the money actually pointé.
     let confirmed: Decimal
+    /// Stock already saved before tracking started (PUL-293), already folded
+    /// into `confirmed`. Defaults to 0 for a legacy payload without the field.
+    let initialAmount: Decimal
     /// 0…100, computed on `confirmed` (never on `plannedCumulative`).
     let achievementPercent: Int
 
@@ -114,6 +117,7 @@ struct SavingsGoalProgress: Decodable, Sendable, Equatable {
         targetDate: String,
         plannedCumulative: Decimal,
         confirmed: Decimal,
+        initialAmount: Decimal = 0,
         achievementPercent: Int,
         monthsElapsed: Int,
         monthsRemaining: Int,
@@ -139,6 +143,7 @@ struct SavingsGoalProgress: Decodable, Sendable, Equatable {
         self.targetDate = targetDate
         self.plannedCumulative = plannedCumulative
         self.confirmed = confirmed
+        self.initialAmount = initialAmount
         self.achievementPercent = achievementPercent
         self.monthsElapsed = monthsElapsed
         self.monthsRemaining = monthsRemaining
@@ -172,6 +177,7 @@ struct SavingsGoalProgress: Decodable, Sendable, Equatable {
         targetDate = try container.decode(String.self, forKey: .targetDate)
         plannedCumulative = try container.decode(Decimal.self, forKey: .plannedCumulative)
         confirmed = try container.decode(Decimal.self, forKey: .confirmed)
+        initialAmount = try container.decodeIfPresent(Decimal.self, forKey: .initialAmount) ?? 0
         achievementPercent = try container.decode(Int.self, forKey: .achievementPercent)
         monthsElapsed = try container.decode(Int.self, forKey: .monthsElapsed)
         monthsRemaining = try container.decode(Int.self, forKey: .monthsRemaining)
@@ -194,7 +200,7 @@ struct SavingsGoalProgress: Decodable, Sendable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case goalId, status, targetAmount, targetDate
-        case plannedCumulative, confirmed, achievementPercent
+        case plannedCumulative, confirmed, initialAmount, achievementPercent
         case monthsElapsed, monthsRemaining, isOverdue
         case pace, confirmedPace, required, projected, paceStatus, suggestCompletion, linkedLineCount
         case originalTargetAmount, originalCurrency, targetCurrency, exchangeRate

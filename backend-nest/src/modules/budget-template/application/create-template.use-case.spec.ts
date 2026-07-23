@@ -82,6 +82,40 @@ describe('CreateTemplateUseCase', () => {
     expect(mockRepo.createTemplateWithLines).toHaveBeenCalledTimes(1);
   });
 
+  it('should forward tags together with a savings goal on inline lines', async () => {
+    const savingsGoalId = '11111111-1111-4111-8111-111111111111';
+    const tagId = '22222222-2222-4222-8222-222222222222';
+
+    await useCase.execute(
+      {
+        ...baseDto,
+        lines: [
+          {
+            name: 'Projet maison',
+            amount: 250,
+            kind: 'saving',
+            recurrence: 'fixed',
+            description: '',
+            savingsGoalId,
+            tagIds: [tagId],
+          },
+        ],
+      },
+      mockUser,
+    );
+
+    expect(mockRepo.createTemplateWithLines).toHaveBeenCalledWith(
+      expect.objectContaining({
+        lines: [
+          expect.objectContaining({
+            savingsGoalId,
+            tagIds: [tagId],
+          }),
+        ],
+      }),
+    );
+  });
+
   it('should throw TEMPLATE_LIMIT_EXCEEDED when fast-path count is at the limit', async () => {
     mockRepo.countForUser.mockResolvedValueOnce(5);
 

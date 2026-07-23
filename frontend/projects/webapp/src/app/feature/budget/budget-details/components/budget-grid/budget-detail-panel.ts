@@ -25,6 +25,7 @@ import {
   FormatConversionPipe,
 } from '@core/currency';
 import { FeatureFlagsService } from '@core/feature-flags';
+import { TagStore } from '@core/tag';
 import { UserSettingsStore } from '@core/user-settings';
 import { getDateDisplayFormats } from '@core/date/date-display-formats';
 import { TranslocoPipe } from '@jsverse/transloco';
@@ -33,6 +34,7 @@ import { FinancialKindDirective } from '@ui/financial-kind';
 import { FinancialKindIndicator } from '@ui/financial-kind-indicator';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import { SpreadOccurrencesList } from '@ui/spread-occurrences-list';
+import { TagIndicator } from '@ui/tag-indicator';
 import { createBudgetLineConsumptionDisplay } from '../../view-models/budget-item-data-builder';
 import type { BudgetLineTableItem } from '../../view-models/table-items.view-model';
 import { SegmentedBudgetProgress } from '../segmented-budget-progress';
@@ -86,6 +88,7 @@ const DETAIL_SEGMENT_COUNT = 12;
     SegmentedBudgetProgress,
     FinancialKindIndicator,
     SpreadOccurrencesList,
+    TagIndicator,
   ],
   template: `
     @let envelope = envelopeItem();
@@ -274,12 +277,18 @@ const DETAIL_SEGMENT_COUNT = 12;
                   [attr.data-testid]="'detail-transaction-' + tx.id"
                 >
                   <div class="flex-1 min-w-0">
-                    <div
-                      class="text-body-medium font-medium truncate ph-no-capture"
-                      [class.line-through]="tx.checkedAt"
-                      [class.text-on-surface-variant]="tx.checkedAt"
-                    >
-                      {{ tx.name }}
+                    <div class="flex items-center gap-1.5 min-w-0">
+                      <span
+                        class="flex-1 min-w-0 text-body-medium font-medium truncate ph-no-capture"
+                        [class.line-through]="tx.checkedAt"
+                        [class.text-on-surface-variant]="tx.checkedAt"
+                      >
+                        {{ tx.name }}
+                      </span>
+                      <pulpe-tag-indicator
+                        [tagNames]="tagNamesFor(tx.tagIds)"
+                        class="shrink-0"
+                      />
                     </div>
                     <div class="text-label-small text-on-surface-variant">
                       {{ tx.transactionDate | date: shortDateFormat() }}
@@ -398,6 +407,7 @@ export class BudgetDetailPanel {
   readonly #store = inject(BudgetDetailsStore);
   readonly #userSettings = inject(UserSettingsStore);
   readonly #featureFlags = inject(FeatureFlagsService);
+  readonly #tagStore = inject(TagStore);
   protected readonly currency = this.#userSettings.currency;
   // Date locale (fr-CH / fr-FR) for month names — NOT numberLocale (de-CH),
   // which would render the spread months in German ("Juni" instead of "juin").
@@ -454,6 +464,10 @@ export class BudgetDetailPanel {
       (tx) => tx.budgetLineId === this.data.item.data.id,
     );
   });
+
+  protected tagNamesFor(tagIds: readonly string[] | undefined): string[] {
+    return this.#tagStore.resolveNames(tagIds);
+  }
 
   // PUL-17 — spread occurrences/tracker are derived once in the store (single
   // source for every detail surface); these are thin protected aliases so the

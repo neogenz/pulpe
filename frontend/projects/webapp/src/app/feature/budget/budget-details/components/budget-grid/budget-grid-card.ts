@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
   output,
 } from '@angular/core';
@@ -16,7 +17,10 @@ import { FinancialKindDirective } from '@ui/financial-kind';
 import { FinancialKindIndicator } from '@ui/financial-kind-indicator';
 import { OriginalAmountLine } from '@ui/original-amount-line';
 import { SpreadBadge } from '@ui/spread-badge';
+import { SavingsWithdrawalBadge } from '@ui/savings-withdrawal-badge';
+import { TagIndicator } from '@ui/tag-indicator';
 import { RecurrenceLabelPipe } from '@ui/transaction-display';
+import { TagStore } from '@core/tag';
 import { formatMatchAnnotation } from '../../view-models/budget-item-constants';
 import type { BudgetLineTableItem } from '../../view-models/table-items.view-model';
 import { SegmentedBudgetProgress } from '../segmented-budget-progress';
@@ -54,6 +58,8 @@ import { BudgetActionMenu } from '../budget-action-menu';
     FinancialKindIndicator,
     BudgetActionMenu,
     SpreadBadge,
+    SavingsWithdrawalBadge,
+    TagIndicator,
   ],
   template: `
     <div
@@ -89,7 +95,26 @@ import { BudgetActionMenu } from '../budget-action-menu';
             @if (item().metadata.isSpread) {
               <pulpe-spread-badge />
             }
+            @if (item().metadata.isSavingsWithdrawalIncome) {
+              <pulpe-savings-withdrawal-badge />
+            }
+            <pulpe-tag-indicator [tagNames]="tagNames()" class="shrink-0" />
           </div>
+          @if (item().metadata.savingsWithdrawalOriginLabel; as originLabel) {
+            <div
+              class="flex items-center gap-1 min-w-0 text-on-surface-variant"
+            >
+              <mat-icon
+                class="text-sm! shrink-0 h-auto! w-auto!"
+                aria-hidden="true"
+                >savings</mat-icon
+              >
+              <span class="text-label-small truncate">{{
+                'budget.savingsWithdrawal.originSubtitle'
+                  | transloco: { month: originLabel }
+              }}</span>
+            </div>
+          }
           @if (linkedGoalName()) {
             <div
               class="flex items-center gap-1 min-w-0 text-on-surface-variant"
@@ -249,8 +274,14 @@ export class BudgetGridCard {
   /** Name of the linked savings goal, when this saving envelope targets one (PUL-12) */
   readonly linkedGoalName = input<string | undefined>(undefined);
 
+  readonly #tagStore = inject(TagStore);
+
   readonly matchAnnotation = computed(() =>
     formatMatchAnnotation(this.item().metadata.matchingTransactionNames),
+  );
+
+  readonly tagNames = computed(() =>
+    this.#tagStore.resolveNames(this.item().data.tagIds),
   );
 
   readonly cardClick = output<BudgetLineTableItem>();

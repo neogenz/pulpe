@@ -270,14 +270,46 @@ describe('SupabaseDemoRepository', () => {
       expect(fromFn).not.toHaveBeenCalled();
     });
 
-    it('should encrypt amount before insert', async () => {
-      const captured: unknown[] = [];
-      const supabase = createMockSupabase(() => ({
-        insert: (rows: unknown) => {
-          captured.push(rows);
-          return Promise.resolve({ error: null });
-        },
-      }));
+    it('should encrypt amount before insert and link the seeded tag', async () => {
+      const capturedTransactions: unknown[] = [];
+      const capturedTags: unknown[] = [];
+      const capturedLinks: unknown[] = [];
+      const supabase = createMockSupabase((table: string) => {
+        if (table === 'transaction') {
+          return {
+            insert: (rows: unknown) => {
+              capturedTransactions.push(rows);
+              return {
+                select: () =>
+                  Promise.resolve({ data: [{ id: 'tx-1' }], error: null }),
+              };
+            },
+          };
+        }
+        if (table === 'tag') {
+          return {
+            select: () => ({
+              eq: () => Promise.resolve({ data: [], error: null }),
+            }),
+            insert: (rows: unknown) => {
+              capturedTags.push(rows);
+              return {
+                select: () =>
+                  Promise.resolve({
+                    data: [{ id: 'tag-1', name: 'Food' }],
+                    error: null,
+                  }),
+              };
+            },
+          };
+        }
+        return {
+          insert: (rows: unknown) => {
+            capturedLinks.push(rows);
+            return Promise.resolve({ error: null });
+          },
+        };
+      });
 
       await repo.insertTransactions(
         [
@@ -286,7 +318,7 @@ describe('SupabaseDemoRepository', () => {
             name: 'Coffee',
             amount: 4.5,
             kind: 'expense',
-            category: 'Food',
+            tagName: 'Food',
             transactionDate: '2026-05-08T12:00:00Z',
           },
         ],
@@ -294,9 +326,79 @@ describe('SupabaseDemoRepository', () => {
         supabase,
       );
 
-      const inserted = captured[0] as Array<{ amount: string; name: string }>;
+      const inserted = capturedTransactions[0] as Array<{
+        amount: string;
+        name: string;
+      }>;
       expect(inserted[0].amount).toBe('enc-4.5');
       expect(inserted[0].name).toBe('Coffee');
+      expect(capturedTags[0]).toEqual([{ user_id: 'user-1', name: 'Food' }]);
+      expect(capturedLinks[0]).toEqual([
+        { transaction_id: 'tx-1', tag_id: 'tag-1' },
+      ]);
+    });
+
+    it('should reuse an existing tag with different case', async () => {
+      const capturedTags: unknown[] = [];
+      const capturedLinks: unknown[] = [];
+      const filterByOwner = jest.fn().mockResolvedValue({
+        data: [{ id: 'tag-existing', name: 'courses' }],
+        error: null,
+      });
+      const supabase = createMockSupabase((table: string) => {
+        if (table === 'transaction') {
+          return {
+            insert: () => ({
+              select: () =>
+                Promise.resolve({ data: [{ id: 'tx-1' }], error: null }),
+            }),
+          };
+        }
+        if (table === 'tag') {
+          return {
+            select: () => ({
+              eq: filterByOwner,
+            }),
+            insert: (rows: unknown) => {
+              capturedTags.push(rows);
+              return {
+                select: () =>
+                  Promise.resolve({
+                    data: null,
+                    error: { code: '23505', message: 'duplicate tag' },
+                  }),
+              };
+            },
+          };
+        }
+        return {
+          insert: (rows: unknown) => {
+            capturedLinks.push(rows);
+            return Promise.resolve({ error: null });
+          },
+        };
+      });
+
+      await repo.insertTransactions(
+        [
+          {
+            budgetId: 'b-1',
+            name: 'Supermarket',
+            amount: 42,
+            kind: 'expense',
+            tagName: 'Courses',
+            transactionDate: '2026-05-08T12:00:00Z',
+          },
+        ],
+        'user-1',
+        supabase,
+      );
+
+      expect(filterByOwner).toHaveBeenCalledWith('user_id', 'user-1');
+      expect(capturedTags).toHaveLength(0);
+      expect(capturedLinks[0]).toEqual([
+        { transaction_id: 'tx-1', tag_id: 'tag-existing' },
+      ]);
     });
   });
 });

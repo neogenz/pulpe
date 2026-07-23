@@ -1,6 +1,6 @@
 # Angular Cache & SWR Pattern
 
-A zero-dependency, signal-native caching layer for Angular 21+ that brings stale-while-revalidate semantics to `resource()` — instant navigations, background refreshes, and no spinners on return visits.
+A zero-dependency, signal-native caching layer for Angular 22+ that brings stale-while-revalidate semantics to `resource()` — instant navigations, background refreshes, and no spinners on return visits.
 
 ## Overview
 
@@ -70,7 +70,7 @@ A store is a **server state + UI state manager** scoped to a feature route. The 
 
 ## Why Cache Lives in the API Layer
 
-**1. Survival.** Feature API services are `providedIn: 'root'` singletons — they survive route navigations. Stores are route-scoped and get destroyed when the user navigates away. Putting cache in the store would lose it on every navigation.
+**1. Survival.** Feature API services are auto-provided `@Service()` singletons — they survive route navigations. Stores are route-scoped and get destroyed when the user navigates away. Putting cache in the store would lose it on every navigation.
 
 **2. Sharing.** Multiple stores can consume the same API. An order list store and an order dashboard store both call `orderApi.getAll$()`. A single cache in the API layer serves both without duplication.
 
@@ -335,7 +335,7 @@ class DataCache<T> {
 A shared signal that stores include in their resource params. When it increments, all listening resources automatically reload.
 
 ```typescript
-@Injectable({ providedIn: 'root' })
+@Service()
 export class OrderInvalidationService {
   readonly #version = signal(0);
   readonly version = this.#version.asReadonly();
@@ -408,7 +408,7 @@ Key: set stale data **before** changing the param. This way, when the resource t
 Preload critical data at startup so the first navigation is instant:
 
 ```typescript
-@Injectable({ providedIn: 'root' })
+@Service()
 export class PreloadService {
   readonly #orderApi = inject(OrderApi);
   readonly #productApi = inject(ProductApi);

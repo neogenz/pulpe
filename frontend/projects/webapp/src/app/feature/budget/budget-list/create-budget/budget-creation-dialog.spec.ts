@@ -7,6 +7,7 @@ import {
   provideZonelessChangeDetection,
   signal,
   type WritableSignal,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
@@ -84,6 +85,7 @@ const createTestTemplateViewModel = (
 // Mock component for testing without template rendering issues
 @Component({
   selector: 'pulpe-templates-list',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: '<div>Mock Templates List</div>',
 })
 class MockTemplatesList {

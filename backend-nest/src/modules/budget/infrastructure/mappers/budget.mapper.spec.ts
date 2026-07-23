@@ -12,6 +12,7 @@ const baseLine: BudgetLineDecrypted = {
   templateLineId: null,
   savingsGoalId: null,
   spreadGroupId: null,
+  savingsWithdrawalGroupId: null,
   name: 'Prime assurance',
   amount: 100,
   originalAmount: null,
@@ -20,6 +21,7 @@ const baseLine: BudgetLineDecrypted = {
   exchangeRate: null,
   kind: 'expense',
   recurrence: 'one_off',
+  tagIds: [],
   isManuallyAdjusted: false,
   checkedAt: null,
   createdAt: '2026-01-01T00:00:00Z',
@@ -50,6 +52,7 @@ describe('BudgetMapper spreadGroupId', () => {
       const entity: BudgetLineDecrypted = {
         ...baseLine,
         spreadGroupId: 'a3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d',
+        savingsWithdrawalGroupId: null,
       };
 
       const dto = mapper.toBudgetLineApi(entity);
@@ -73,6 +76,7 @@ describe('BudgetMapper spreadGroupId', () => {
             ...baseLine,
             id: 'spread-line',
             spreadGroupId: 'a3f1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d',
+            savingsWithdrawalGroupId: null,
           },
           { ...baseLine, id: 'plain-line', spreadGroupId: null },
         ],

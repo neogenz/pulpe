@@ -7,6 +7,7 @@ import { CurrencyModule } from '@modules/currency/currency.module';
 import { createInfoLoggerProvider } from '@common/logger';
 import { BudgetLineController } from './infrastructure/http/budget-line.controller';
 import { SupabaseBudgetLineRepository } from './infrastructure/persistence/supabase-budget-line.repository';
+import { SupabaseBudgetLineSpreadReader } from './infrastructure/persistence/supabase-budget-line-spread.reader';
 import { BudgetLineMapper } from './infrastructure/mappers/budget-line.mapper';
 import { BUDGET_LINE_REPOSITORY } from './domain/ports/budget-line-repository.port';
 import { BUDGET_LINE_SPREAD_PORT } from './domain/ports/budget-line-spread.port';
@@ -19,6 +20,8 @@ import { FindBudgetLineUseCase } from './application/find-budget-line.use-case';
 import { FindBudgetLinesByBudgetUseCase } from './application/find-budget-lines-by-budget.use-case';
 import { CreateBudgetLineUseCase } from './application/create-budget-line.use-case';
 import { CreateBudgetLineSpreadUseCase } from './application/create-budget-line-spread.use-case';
+import { CreateSavingsWithdrawalUseCase } from './application/create-savings-withdrawal.use-case';
+import { DeleteSavingsWithdrawalUseCase } from './application/delete-savings-withdrawal.use-case';
 import { SpreadBudgetLineFromLineUseCase } from './application/spread-budget-line-from-line.use-case';
 import { FindBudgetLinesBySpreadGroupUseCase } from './application/find-budget-lines-by-spread-group.use-case';
 import { UpdateBudgetLineUseCase } from './application/update-budget-line.use-case';
@@ -43,6 +46,8 @@ import { PostponeBudgetLineUseCase } from './application/postpone-budget-line.us
     FindBudgetLinesByBudgetUseCase,
     CreateBudgetLineUseCase,
     CreateBudgetLineSpreadUseCase,
+    CreateSavingsWithdrawalUseCase,
+    DeleteSavingsWithdrawalUseCase,
     SpreadBudgetLineFromLineUseCase,
     FindBudgetLinesBySpreadGroupUseCase,
     UpdateBudgetLineUseCase,
@@ -51,6 +56,7 @@ import { PostponeBudgetLineUseCase } from './application/postpone-budget-line.us
     ToggleBudgetLineCheckUseCase,
     CheckTransactionsUseCase,
     PostponeBudgetLineUseCase,
+    SupabaseBudgetLineSpreadReader,
     { provide: BUDGET_LINE_REPOSITORY, useClass: SupabaseBudgetLineRepository },
     {
       provide: BUDGET_LINE_SPREAD_PORT,
@@ -66,11 +72,14 @@ import { PostponeBudgetLineUseCase } from './application/postpone-budget-line.us
     },
     BudgetLineMapper,
     createInfoLoggerProvider(BudgetLineController.name),
+    createInfoLoggerProvider(SupabaseBudgetLineRepository.name),
     createInfoLoggerProvider(FindAllBudgetLinesUseCase.name),
     createInfoLoggerProvider(FindBudgetLineUseCase.name),
     createInfoLoggerProvider(FindBudgetLinesByBudgetUseCase.name),
     createInfoLoggerProvider(CreateBudgetLineUseCase.name),
     createInfoLoggerProvider(CreateBudgetLineSpreadUseCase.name),
+    createInfoLoggerProvider(CreateSavingsWithdrawalUseCase.name),
+    createInfoLoggerProvider(DeleteSavingsWithdrawalUseCase.name),
     createInfoLoggerProvider(SpreadBudgetLineFromLineUseCase.name),
     createInfoLoggerProvider(FindBudgetLinesBySpreadGroupUseCase.name),
     createInfoLoggerProvider(UpdateBudgetLineUseCase.name),

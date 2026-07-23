@@ -8,6 +8,8 @@ protocol SavingsGoalServicing: Sendable {
     func getProgress(id: String) async throws -> SavingsGoalProgress
     func getContributions(id: String) async throws -> [SavingsGoalContribution]
     func applyPlan(id: String, _ payload: SavingsGoalPlanApply) async throws -> SavingsGoalPlanApplyResult
+    func getFutureLines(id: String) async throws -> [SavingsGoalFutureLine]
+    func applyGenerationStop(id: String, _ payload: SavingsGoalGenerationStop) async throws -> SavingsGoalGenerationStopResult
     func create(_ data: SavingsGoalCreate) async throws -> SavingsGoal
     func update(id: String, data: SavingsGoalUpdate) async throws -> SavingsGoal
     func delete(id: String) async throws
@@ -46,6 +48,18 @@ actor SavingsGoalService: SavingsGoalServicing {
     /// and returns the decrypted lines. Idempotent by construction (UPDATE-by-value).
     func applyPlan(id: String, _ payload: SavingsGoalPlanApply) async throws -> SavingsGoalPlanApplyResult {
         try await apiClient.request(.savingsGoalPlanApply(id: id), body: payload, method: .post)
+    }
+
+    /// Advisory candidates at generation stop (PUL-285 CA5): linked, unchecked,
+    /// non-manually-adjusted lines of the current payDay cycle and beyond.
+    func getFutureLines(id: String) async throws -> [SavingsGoalFutureLine] {
+        try await apiClient.request(.savingsGoalFutureLines(id: id), method: .get)
+    }
+
+    /// Applies the explicit freeze/remove decision (PUL-285 CA8). Atomic —
+    /// any ineligible line refuses the whole batch server-side.
+    func applyGenerationStop(id: String, _ payload: SavingsGoalGenerationStop) async throws -> SavingsGoalGenerationStopResult {
+        try await apiClient.request(.savingsGoalGenerationStop(id: id), body: payload, method: .post)
     }
 
     func create(_ data: SavingsGoalCreate) async throws -> SavingsGoal {

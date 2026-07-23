@@ -2,8 +2,8 @@
  * PUL-12 CA10 — savings_goal_id propagation through the SECURITY DEFINER RPCs.
  *
  * Exercises the real local Postgres (RLS + auth.uid()), not mocks:
- *   - apply_template_line_operations propagates savings_goal_id to
- *     non-manually-adjusted budget_line rows and untags on null.
+ *   - the atomic scalar + tag wrapper propagates savings_goal_id to
+ *     non-manually-adjusted budget_line rows and rolls back both link families.
  *   - is_manually_adjusted budget_line rows are protected.
  *   - PUL-272 cross-tenant budget guard still rejects a foreign budget_id.
  *   - create_budget_from_template copies the link into the generated budget.
@@ -63,7 +63,7 @@ afterAll(async () => {
 });
 
 describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
-  it('apply_template_line_operations propagates the link, protects adjusted lines, untags on null', async () => {
+  it('the atomic wrapper propagates the link, protects adjusted lines, and untags on null', async () => {
     if (!env) return; // skip — no local Supabase
 
     const userA = await makeUser(`sg-prop-a-${crypto.randomUUID()}@test.local`);
@@ -132,15 +132,16 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
 
     // TAG: update template_line.savings_goal_id with propagation.
     const { error: tagError } = await userA.client.rpc(
-      'apply_template_line_operations',
+      'apply_template_line_operations_with_tags',
       {
-        template_id: templateId,
-        budget_ids: [budgetId],
-        delete_ids: [],
-        updated_lines: [
+        p_template_id: templateId,
+        p_budget_ids: [budgetId],
+        p_delete_ids: [],
+        p_updated_lines: [
           { id: templateLineId, savings_goal_id: goalId },
         ] as never,
-        created_lines: [] as never,
+        p_created_lines: [] as never,
+        p_line_tag_pairs: [] as never,
       },
     );
     expect(tagError).toBeNull();
@@ -164,13 +165,16 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
 
     // UNTAG: savings_goal_id = null.
     const { error: untagError } = await userA.client.rpc(
-      'apply_template_line_operations',
+      'apply_template_line_operations_with_tags',
       {
-        template_id: templateId,
-        budget_ids: [budgetId],
-        delete_ids: [],
-        updated_lines: [{ id: templateLineId, savings_goal_id: null }] as never,
-        created_lines: [] as never,
+        p_template_id: templateId,
+        p_budget_ids: [budgetId],
+        p_delete_ids: [],
+        p_updated_lines: [
+          { id: templateLineId, savings_goal_id: null },
+        ] as never,
+        p_created_lines: [] as never,
+        p_line_tag_pairs: [] as never,
       },
     );
     expect(untagError).toBeNull();
@@ -181,6 +185,239 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
       .eq('id', autoLineId)
       .single();
     expect(untagged.data?.savings_goal_id).toBeNull();
+  });
+
+  it('rolls back template, budget, savings-goal and tag mutations when bulk tag sync fails', async () => {
+    if (!env) return;
+
+    const user = await makeUser(
+      `sg-atomic-tags-${crypto.randomUUID()}@test.local`,
+    );
+    const foreignTagOwner = await makeUser(
+      `sg-atomic-tags-foreign-${crypto.randomUUID()}@test.local`,
+    );
+    createdUserIds.push(user.id, foreignTagOwner.id);
+
+    const templateId = crypto.randomUUID();
+    const updatedTemplateLineId = crypto.randomUUID();
+    const deletedTemplateLineId = crypto.randomUUID();
+    const createdTemplateLineId = crypto.randomUUID();
+    const budgetId = crypto.randomUUID();
+    const updatedBudgetLineId = crypto.randomUUID();
+    const deletedBudgetLineId = crypto.randomUUID();
+    const originalGoalId = crypto.randomUUID();
+    const replacementGoalId = crypto.randomUUID();
+    const originalTagId = crypto.randomUUID();
+    const replacementTagId = crypto.randomUUID();
+    const foreignTagId = crypto.randomUUID();
+
+    await admin.from('template').insert({
+      id: templateId,
+      user_id: user.id,
+      name: 'Atomic template',
+      is_default: false,
+    });
+    await admin.from('savings_goal').insert([
+      {
+        id: originalGoalId,
+        user_id: user.id,
+        name: 'Original goal',
+        target_amount: 'enc',
+        target_date: '2099-01-01',
+        status: 'ACTIVE',
+      },
+      {
+        id: replacementGoalId,
+        user_id: user.id,
+        name: 'Replacement goal',
+        target_amount: 'enc',
+        target_date: '2099-01-01',
+        status: 'ACTIVE',
+      },
+    ]);
+    await admin.from('tag').insert([
+      { id: originalTagId, user_id: user.id, name: 'Original tag' },
+      { id: replacementTagId, user_id: user.id, name: 'Replacement tag' },
+      {
+        id: foreignTagId,
+        user_id: foreignTagOwner.id,
+        name: 'Foreign tag',
+      },
+    ]);
+    await admin.from('template_line').insert([
+      {
+        id: updatedTemplateLineId,
+        template_id: templateId,
+        savings_goal_id: originalGoalId,
+        name: 'Original update line',
+        amount: 'ciphertext-original',
+        kind: 'saving',
+        recurrence: 'fixed',
+      },
+      {
+        id: deletedTemplateLineId,
+        template_id: templateId,
+        name: 'Original delete line',
+        amount: 'ciphertext-delete',
+        kind: 'expense',
+        recurrence: 'fixed',
+      },
+    ]);
+    await admin.from('monthly_budget').insert({
+      id: budgetId,
+      user_id: user.id,
+      template_id: templateId,
+      month: 8,
+      year: 2099,
+      description: '',
+    });
+    await admin.from('budget_line').insert([
+      {
+        id: updatedBudgetLineId,
+        budget_id: budgetId,
+        template_line_id: updatedTemplateLineId,
+        savings_goal_id: originalGoalId,
+        name: 'Original update line',
+        amount: 'ciphertext-original',
+        kind: 'saving',
+        recurrence: 'fixed',
+        is_manually_adjusted: false,
+      },
+      {
+        id: deletedBudgetLineId,
+        budget_id: budgetId,
+        template_line_id: deletedTemplateLineId,
+        name: 'Original delete line',
+        amount: 'ciphertext-delete',
+        kind: 'expense',
+        recurrence: 'fixed',
+        is_manually_adjusted: false,
+      },
+    ]);
+    await admin.from('template_line_tag').insert({
+      template_line_id: updatedTemplateLineId,
+      tag_id: originalTagId,
+    });
+    await admin.from('budget_line_tag').insert({
+      budget_line_id: updatedBudgetLineId,
+      tag_id: originalTagId,
+    });
+
+    const { error } = await user.client.rpc(
+      'apply_template_line_operations_with_tags',
+      {
+        p_template_id: templateId,
+        p_budget_ids: [budgetId],
+        p_delete_ids: [deletedTemplateLineId],
+        p_updated_lines: [
+          {
+            id: updatedTemplateLineId,
+            name: 'Mutated update line',
+            amount: 'ciphertext-mutated',
+            savings_goal_id: replacementGoalId,
+          },
+        ] as never,
+        p_created_lines: [
+          {
+            id: createdTemplateLineId,
+            name: 'Created line',
+            amount: 'ciphertext-created',
+            kind: 'expense',
+            recurrence: 'one_off',
+          },
+        ] as never,
+        p_line_tag_pairs: [
+          {
+            template_line_id: updatedTemplateLineId,
+            tag_ids: [foreignTagId],
+          },
+        ] as never,
+      },
+    );
+    expect(error).not.toBeNull();
+
+    const templateLinesAfterFailure = await admin
+      .from('template_line')
+      .select('id, name, amount, savings_goal_id')
+      .in('id', [
+        updatedTemplateLineId,
+        deletedTemplateLineId,
+        createdTemplateLineId,
+      ]);
+    const templateById = new Map(
+      (templateLinesAfterFailure.data ?? []).map((line) => [line.id, line]),
+    );
+    expect(templateById.get(updatedTemplateLineId)).toMatchObject({
+      name: 'Original update line',
+      amount: 'ciphertext-original',
+      savings_goal_id: originalGoalId,
+    });
+    expect(templateById.has(deletedTemplateLineId)).toBeTrue();
+    expect(templateById.has(createdTemplateLineId)).toBeFalse();
+
+    const budgetLinesAfterFailure = await admin
+      .from('budget_line')
+      .select('id, template_line_id, name, amount, savings_goal_id')
+      .eq('budget_id', budgetId);
+    const budgetByTemplateLineId = new Map(
+      (budgetLinesAfterFailure.data ?? []).map((line) => [
+        line.template_line_id,
+        line,
+      ]),
+    );
+    expect(budgetByTemplateLineId.get(updatedTemplateLineId)).toMatchObject({
+      name: 'Original update line',
+      amount: 'ciphertext-original',
+      savings_goal_id: originalGoalId,
+    });
+    expect(budgetByTemplateLineId.has(deletedTemplateLineId)).toBeTrue();
+    expect(budgetByTemplateLineId.has(createdTemplateLineId)).toBeFalse();
+
+    const templateTagsAfterFailure = await admin
+      .from('template_line_tag')
+      .select('tag_id')
+      .eq('template_line_id', updatedTemplateLineId);
+    const budgetTagsAfterFailure = await admin
+      .from('budget_line_tag')
+      .select('tag_id')
+      .eq('budget_line_id', updatedBudgetLineId);
+    expect(templateTagsAfterFailure.data).toEqual([{ tag_id: originalTagId }]);
+    expect(budgetTagsAfterFailure.data).toEqual([{ tag_id: originalTagId }]);
+
+    const nominal = await user.client.rpc(
+      'apply_template_line_operations_with_tags',
+      {
+        p_template_id: templateId,
+        p_budget_ids: [budgetId],
+        p_delete_ids: [],
+        p_updated_lines: [
+          {
+            id: updatedTemplateLineId,
+            savings_goal_id: replacementGoalId,
+          },
+        ] as never,
+        p_created_lines: [] as never,
+        p_line_tag_pairs: [
+          {
+            template_line_id: updatedTemplateLineId,
+            tag_ids: [replacementTagId],
+          },
+        ] as never,
+      },
+    );
+    expect(nominal.error).toBeNull();
+
+    const nominalBudgetLine = await admin
+      .from('budget_line')
+      .select('savings_goal_id')
+      .eq('id', updatedBudgetLineId)
+      .single();
+    const nominalBudgetTags = await admin
+      .from('budget_line_tag')
+      .select('tag_id')
+      .eq('budget_line_id', updatedBudgetLineId);
+    expect(nominalBudgetLine.data?.savings_goal_id).toBe(replacementGoalId);
+    expect(nominalBudgetTags.data).toEqual([{ tag_id: replacementTagId }]);
   });
 
   it('PUL-272: cross-tenant budget_id is rejected (guard survives the rewrite)', async () => {
@@ -261,15 +498,16 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
     expect(budgetLineSeedError).toBeNull();
 
     const { error } = await attacker.client.rpc(
-      'apply_template_line_operations',
+      'apply_template_line_operations_with_tags',
       {
-        template_id: atkTemplateId,
-        budget_ids: [vicBudgetId], // foreign budget
-        delete_ids: [],
-        updated_lines: [
+        p_template_id: atkTemplateId,
+        p_budget_ids: [vicBudgetId], // foreign budget
+        p_delete_ids: [],
+        p_updated_lines: [
           { id: atkLineId, savings_goal_id: crypto.randomUUID() },
         ] as never,
-        created_lines: [] as never,
+        p_created_lines: [] as never,
+        p_line_tag_pairs: [] as never,
       },
     );
     expect(error).not.toBeNull();
@@ -324,15 +562,16 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
     });
 
     const { error } = await attacker.client.rpc(
-      'apply_template_line_operations',
+      'apply_template_line_operations_with_tags',
       {
-        template_id: templateId,
-        budget_ids: [budgetId],
-        delete_ids: [],
-        updated_lines: [
+        p_template_id: templateId,
+        p_budget_ids: [budgetId],
+        p_delete_ids: [],
+        p_updated_lines: [
           { id: templateLineId, savings_goal_id: foreignGoalId },
         ] as never,
-        created_lines: [] as never,
+        p_created_lines: [] as never,
+        p_line_tag_pairs: [] as never,
       },
     );
 
@@ -389,6 +628,143 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
       .eq('template_line_id', templateLineId);
     expect(lines.data?.length).toBeGreaterThan(0);
     expect(lines.data?.[0]?.savings_goal_id).toBe(goalId);
+  });
+
+  it('PUL-285 CA5: create_budget_from_template skips lines linked to PAUSED/COMPLETED goals and resumes on reopen', async () => {
+    if (!env) return;
+
+    const user = await makeUser(`sg-stop-${crypto.randomUUID()}@test.local`);
+    createdUserIds.push(user.id);
+
+    const templateId = crypto.randomUUID();
+    const pausedGoalId = crypto.randomUUID();
+    const completedGoalId = crypto.randomUUID();
+    const activeGoalId = crypto.randomUUID();
+    const pausedLineId = crypto.randomUUID();
+    const completedLineId = crypto.randomUUID();
+    const activeLineId = crypto.randomUUID();
+    const unlinkedLineId = crypto.randomUUID();
+
+    await admin.from('template').insert({
+      id: templateId,
+      user_id: user.id,
+      name: 'T',
+      is_default: false,
+    });
+    await admin.from('savings_goal').insert([
+      {
+        id: pausedGoalId,
+        user_id: user.id,
+        name: 'En pause',
+        target_amount: 'enc',
+        target_date: '2099-01-01',
+        status: 'PAUSED',
+      },
+      {
+        id: completedGoalId,
+        user_id: user.id,
+        name: 'Atteint',
+        target_amount: 'enc',
+        target_date: '2099-01-01',
+        status: 'COMPLETED',
+      },
+      {
+        id: activeGoalId,
+        user_id: user.id,
+        name: 'Actif',
+        target_amount: 'enc',
+        target_date: '2099-01-01',
+        status: 'ACTIVE',
+      },
+    ]);
+    await admin.from('template_line').insert([
+      {
+        id: pausedLineId,
+        template_id: templateId,
+        name: 'Épargne pause',
+        amount: 'enc',
+        kind: 'saving',
+        recurrence: 'fixed',
+        savings_goal_id: pausedGoalId,
+      },
+      {
+        id: completedLineId,
+        template_id: templateId,
+        name: 'Épargne atteinte',
+        amount: 'enc',
+        kind: 'saving',
+        recurrence: 'fixed',
+        savings_goal_id: completedGoalId,
+      },
+      {
+        id: activeLineId,
+        template_id: templateId,
+        name: 'Épargne active',
+        amount: 'enc',
+        kind: 'saving',
+        recurrence: 'fixed',
+        savings_goal_id: activeGoalId,
+      },
+      {
+        id: unlinkedLineId,
+        template_id: templateId,
+        name: 'Épargne libre',
+        amount: 'enc',
+        kind: 'saving',
+        recurrence: 'fixed',
+      },
+    ]);
+
+    const { data, error } = await admin.rpc('create_budget_from_template', {
+      p_user_id: user.id,
+      p_template_id: templateId,
+      p_month: 6,
+      p_year: 2099,
+      p_description: '',
+    });
+    expect(error).toBeNull();
+    expect(
+      (data as { budget_lines_created: number }).budget_lines_created,
+    ).toBe(2);
+
+    const generated = await admin
+      .from('budget_line')
+      .select('template_line_id')
+      .in('template_line_id', [
+        pausedLineId,
+        completedLineId,
+        activeLineId,
+        unlinkedLineId,
+      ]);
+    const generatedTemplateLineIds = new Set(
+      (generated.data ?? []).map((row) => row.template_line_id),
+    );
+    expect(generatedTemplateLineIds.has(pausedLineId)).toBe(false);
+    expect(generatedTemplateLineIds.has(completedLineId)).toBe(false);
+    expect(generatedTemplateLineIds.has(activeLineId)).toBe(true);
+    expect(generatedTemplateLineIds.has(unlinkedLineId)).toBe(true);
+
+    await admin
+      .from('savings_goal')
+      .update({ status: 'ACTIVE' })
+      .eq('id', pausedGoalId);
+    const { error: reopenError } = await admin.rpc(
+      'create_budget_from_template',
+      {
+        p_user_id: user.id,
+        p_template_id: templateId,
+        p_month: 7,
+        p_year: 2099,
+        p_description: '',
+      },
+    );
+    expect(reopenError).toBeNull();
+
+    const afterReopen = await admin
+      .from('budget_line')
+      .select('id')
+      .eq('template_line_id', pausedLineId);
+    expect(afterReopen.data?.length).toBe(1);
   });
 
   it('create_template_with_lines persists an inline savings_goal_id (batch path)', async () => {

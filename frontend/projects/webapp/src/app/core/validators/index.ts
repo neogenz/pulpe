@@ -5,3 +5,4 @@ export {
   formatRecoveryKeyInput,
 } from './recovery-key.validator';
 export { touchedFieldErrors } from './touched-field-errors';
+export { safeFieldTreeRead } from './safe-field-tree';

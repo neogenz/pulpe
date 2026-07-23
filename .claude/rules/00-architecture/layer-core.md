@@ -12,7 +12,7 @@ paths: "frontend/**/core/**/*"
 ## Quick Rules
 
 - **Headless ONLY** - services, guards, interceptors, functions (NO components)
-- All services MUST use `providedIn: 'root'`
+- All services MUST use `@Service()` — auto-provided at the root injector
 - NEVER import from `feature/`, `layout/`, `pattern/`, or `ui/`
 - Can ONLY import from `styles/`
 - All code here is shared across the entire application

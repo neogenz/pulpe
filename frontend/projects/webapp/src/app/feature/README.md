@@ -92,7 +92,7 @@ feature/
 # Generate feature component
 ng generate component feature/[feature-name]/[feature-name] --standalone
 
-# Generate feature service (DO NOT use providedIn: 'root')
+# Generate feature service (declare it @Service({ autoProvided: false }))
 ng generate service feature/[feature-name]/services/[service-name]
 
 # Generate sub-component

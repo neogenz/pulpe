@@ -47,7 +47,7 @@ pnpm dev:backend              # Backend + shared
 
 | Layer         | Tech                                           |
 | ------------- | ---------------------------------------------- |
-| Frontend      | Angular 21+, Signals, Material 21, Tailwind v4 |
+| Frontend      | Angular 22+, Signals, Material 22, Tailwind v4 |
 | Backend       | NestJS 11+, Bun, Supabase (PostgreSQL + Auth)  |
 | iOS           | SwiftUI, Xcode                                 |
 | Landing       | Next.js, Tailwind v4                           |

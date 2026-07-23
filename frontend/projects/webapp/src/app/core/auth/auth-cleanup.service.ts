@@ -1,9 +1,10 @@
-import { Injectable, inject } from '@angular/core';
+import { Service, inject } from '@angular/core';
 
 import { BudgetApi } from '@core/budget';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { ClientKeyService } from '@core/encryption';
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
+import { TagApi } from '@core/tag/tag-api';
 
 import { DemoModeService } from '../demo/demo-mode.service';
 import { PreloadService } from '../preload/preload.service';
@@ -12,14 +13,13 @@ import { StorageService } from '../storage';
 import { UserSettingsStore } from '../user-settings/user-settings-store';
 import { Logger } from '../logging/logger';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class AuthCleanupService {
   readonly #budgetApi = inject(BudgetApi);
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
   readonly #clientKeyService = inject(ClientKeyService);
   readonly #savingsGoalApi = inject(SavingsGoalApi);
+  readonly #tagApi = inject(TagApi);
   readonly #demoModeService = inject(DemoModeService);
   readonly #preloadService = inject(PreloadService);
   readonly #postHogService = inject(PostHogService);
@@ -45,6 +45,7 @@ export class AuthCleanupService {
       () => this.#savingsGoalApi.clearCache(),
       'savings goals data cache',
     );
+    this.#safeCleanup(() => this.#tagApi.clearCache(), 'tags data cache');
     this.#safeCleanup(() => this.#preloadService.reset(), 'preload state');
     this.#safeCleanup(() => this.#userSettingsStore.reset(), 'user settings');
     this.#safeCleanup(() => this.#postHogService.reset(), 'PostHog');

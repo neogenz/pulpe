@@ -1,10 +1,10 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Service } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslocoService } from '@jsverse/transloco';
 
 import type { SubmitWithConversionOutcome } from './submit-with-conversion';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class StaleRateNotifier {
   readonly #snackBar = inject(MatSnackBar);
   readonly #transloco = inject(TranslocoService);

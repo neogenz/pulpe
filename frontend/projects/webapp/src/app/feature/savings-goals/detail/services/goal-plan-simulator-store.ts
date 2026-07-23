@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Service, computed, inject, signal } from '@angular/core';
 import {
   allocateMonthAmountToLines,
   isContributivePlanMonth,
@@ -34,7 +34,7 @@ function niceCeil(value: number): number {
  * du calculateur `pulpe-shared` ; ce store ne fait qu'orchestrer overrides →
  * `simulateSavingsPlan`.
  */
-@Injectable()
+@Service({ autoProvided: false })
 export class GoalPlanSimulatorStore {
   readonly #store = inject(SavingsGoalStore);
 
@@ -126,6 +126,7 @@ export class GoalPlanSimulatorStore {
       targetAmount: this.targetAmount(),
       adjustments: this.#adjustments(),
       globalMonthlyAmount: this.#globalAmount() ?? undefined,
+      initialAmount: this.#store.progress()?.initialAmount ?? 0,
     });
   });
 
@@ -186,6 +187,7 @@ export class GoalPlanSimulatorStore {
       timeline: this.baseline(),
       targetAmount: this.targetAmount(),
       pinnedAdjustments: this.#adjustments(),
+      initialAmount: this.#store.progress()?.initialAmount ?? 0,
     });
     if (result.isDistributable) {
       const next = new Map(this.#overrides());

@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Service, inject } from '@angular/core';
 import { Logger } from '../logging/logger';
 import { getSchemaConfig } from './storage-schemas';
 import { applyMigrations, getMigrationsForKey } from './storage-migrations';
@@ -27,9 +27,7 @@ export type { StorageKey } from './storage.types';
  * - 'user': Cleared on logout (clearAllUserData)
  * - 'app': Preserved across sessions
  */
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class StorageService {
   readonly #logger = inject(Logger);
   readonly #migratedKeys = new Set<StorageKey>();

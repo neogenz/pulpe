@@ -258,8 +258,77 @@ test.describe('Global Search Across Budgets', () => {
 
     // Should show the dialog with min chars message
     await expect(
-      authenticatedPage.getByText('Saisissez au moins 2 caractères'),
+      authenticatedPage.getByText(
+        'Saisis au moins 2 caractères ou sélectionne un tag',
+      ),
     ).toBeVisible();
+  });
+
+  test('should combine a tag with a year filter', async ({
+    authenticatedPage,
+  }) => {
+    const tagId = '4df3df43-2b73-467a-a7ac-322f3ab8ed49';
+    let latestSearchUrl = '';
+
+    await authenticatedPage.route('**/api/v1/tags', (route) => {
+      void route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: [
+            {
+              id: tagId,
+              userId: '96bd5e0e-0ae4-46f4-a776-908f7c2ae21e',
+              name: 'Courses',
+              createdAt: '2026-01-01T00:00:00.000Z',
+              updatedAt: '2026-01-01T00:00:00.000Z',
+            },
+          ],
+        }),
+      });
+    });
+    await authenticatedPage.route('**/api/v1/transactions/search*', (route) => {
+      latestSearchUrl = route.request().url();
+      void route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: [] }),
+      });
+    });
+
+    await authenticatedPage.goto('/budget');
+    const tagsLoaded = authenticatedPage.waitForResponse(
+      (response) =>
+        response.url().endsWith('/api/v1/tags') && response.status() === 200,
+    );
+    await authenticatedPage.getByTestId('search-transactions-btn').click();
+    await tagsLoaded;
+    await authenticatedPage.getByTestId('tag-filter').click();
+    await authenticatedPage.getByRole('option', { name: 'Courses' }).click();
+    await authenticatedPage
+      .locator('.cdk-overlay-transparent-backdrop')
+      .click({ position: { x: 1, y: 1 } });
+    await expect(
+      authenticatedPage.locator('.cdk-overlay-transparent-backdrop'),
+    ).toHaveCount(0);
+
+    await authenticatedPage
+      .getByRole('combobox', { name: 'Filtrer par année' })
+      .press('Enter');
+    const yearOption = authenticatedPage.getByRole('option').first();
+    const selectedYear = (await yearOption.textContent())?.trim();
+    await yearOption.click();
+
+    await expect
+      .poll(() => {
+        const params = new URL(latestSearchUrl).searchParams;
+        return {
+          tagIds: params.getAll('tagIds'),
+          years: params.getAll('years'),
+        };
+      })
+      .toEqual({ tagIds: [tagId], years: [selectedYear] });
   });
 
   test('should display search results with period, name, and amount', async ({
@@ -276,7 +345,6 @@ test.describe('Global Search Across Budgets', () => {
           kind: 'expense',
           recurrence: 'fixed',
           transactionDate: '2025-01-15T12:00:00Z',
-          category: null,
           budgetId: TEST_UUIDS.BUDGET_1,
           budgetName: 'Budget Janvier',
           year: 2025,
@@ -291,7 +359,6 @@ test.describe('Global Search Across Budgets', () => {
           kind: 'expense',
           recurrence: 'fixed',
           transactionDate: null,
-          category: null,
           budgetId: TEST_UUIDS.BUDGET_2,
           budgetName: 'Budget Février',
           year: 2025,
@@ -343,7 +410,6 @@ test.describe('Global Search Across Budgets', () => {
           kind: 'expense',
           recurrence: 'fixed',
           transactionDate: '2025-01-15T12:00:00Z',
-          category: null,
           budgetId: targetBudgetId,
           budgetName: 'Budget Janvier',
           year: 2025,

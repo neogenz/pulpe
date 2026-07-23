@@ -10,11 +10,13 @@ final class MockSavingsGoalService: SavingsGoalServicing {
     var stubbedProgress: SavingsGoalProgress?
     var stubbedContributions: [SavingsGoalContribution] = []
     var stubbedApplyResult: SavingsGoalPlanApplyResult?
+    var stubbedFutureLines: [SavingsGoalFutureLine] = []
     /// When set, every call throws this instead of returning.
     var error: Error?
     var getProgressError: Error?
     var getContributionsError: Error?
     var updateError: Error?
+    var createError: Error?
 
     private(set) var getAllCallCount = 0
     private(set) var getProgressCallCount = 0
@@ -89,9 +91,30 @@ final class MockSavingsGoalService: SavingsGoalServicing {
         return stubbedApplyResult ?? SavingsGoalPlanApplyResult(updatedLines: [])
     }
 
+    private(set) var getFutureLinesCallCount = 0
+    private(set) var generationStopCallCount = 0
+    private(set) var lastGenerationStop: SavingsGoalGenerationStop?
+
+    func getFutureLines(id _: String) async throws -> [SavingsGoalFutureLine] {
+        getFutureLinesCallCount += 1
+        if let error { throw error }
+        return stubbedFutureLines
+    }
+
+    func applyGenerationStop(
+        id _: String,
+        _ payload: SavingsGoalGenerationStop
+    ) async throws -> SavingsGoalGenerationStopResult {
+        generationStopCallCount += 1
+        lastGenerationStop = payload
+        if let error { throw error }
+        return SavingsGoalGenerationStopResult(affectedCount: payload.budgetLineIds.count)
+    }
+
     func create(_ data: SavingsGoalCreate) async throws -> SavingsGoal {
         createCallCount += 1
         lastCreate = data
+        if let createError { throw createError }
         if let error { throw error }
         let created = SavingsGoal(
             id: "goal-\(createCallCount)",
@@ -101,7 +124,8 @@ final class MockSavingsGoalService: SavingsGoalServicing {
             targetDate: data.targetDate,
             status: data.status,
             createdAt: Date(timeIntervalSince1970: 0),
-            updatedAt: Date(timeIntervalSince1970: 0)
+            updatedAt: Date(timeIntervalSince1970: 0),
+            initialAmount: data.initialAmount
         )
         stubbedGoals.append(created)
         return created
@@ -124,7 +148,8 @@ final class MockSavingsGoalService: SavingsGoalServicing {
             targetDate: data.targetDate ?? existing.targetDate,
             status: data.status ?? existing.status,
             createdAt: existing.createdAt,
-            updatedAt: Date(timeIntervalSince1970: 0)
+            updatedAt: Date(timeIntervalSince1970: 0),
+            initialAmount: data.initialAmount ?? existing.initialAmount
         )
         if let index = stubbedGoals.firstIndex(where: { $0.id == id }) {
             stubbedGoals[index] = updated

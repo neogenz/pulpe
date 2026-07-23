@@ -25,7 +25,8 @@ export interface Transaction {
   targetCurrency: string | null;
   exchangeRate: number | null;
   kind: TransactionKind;
-  category: string | null;
+  /** Tags associés (PUL-18) — remplace l'ancien champ libre `category`. */
+  tagIds: string[];
   transactionDate: string;
   checkedAt: string | null;
   createdAt: string;
@@ -69,7 +70,7 @@ export interface TransactionCreateInput {
   targetCurrency?: SupportedCurrency | null;
   exchangeRate?: number | null;
   kind: TransactionKind;
-  category?: string | null;
+  tagIds?: string[];
   transactionDate: string;
   checkedAt?: string | null;
 }
@@ -87,7 +88,8 @@ export interface TransactionUpdatePatch {
   targetCurrency?: SupportedCurrency | null;
   exchangeRate?: number | null;
   kind?: TransactionKind;
-  category?: string | null;
+  /** présent = remplace l'ensemble des tags ; absent = ne touche pas */
+  tagIds?: string[];
   transactionDate?: string;
   checkedAt?: string | null;
 }
@@ -111,7 +113,6 @@ export interface TransactionSearchTransactionRow {
   amount: number;
   kind: string;
   transactionDate: string;
-  category: string | null;
   budgetId: string;
   budget: { description: string; month: number; year: number } | null;
 }

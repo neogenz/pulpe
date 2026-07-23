@@ -41,6 +41,7 @@ export class BudgetTemplateMapper {
       kind: entity.kind,
       recurrence: entity.recurrence,
       description: entity.description ?? '',
+      tagIds: entity.tagIds,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       ...mapCurrencyMetadataToApi({

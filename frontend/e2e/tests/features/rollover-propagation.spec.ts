@@ -9,9 +9,9 @@ import {
  * E2E Tests for Rollover Propagation (Scenario 7.3)
  *
  * Verifies:
- * - Rollover from month M surfaces in month M+1 via the dedicated read-only widget
- *   (`pulpe-budget-rollover-info`), not as a budget line.
- * - Cross-month navigation toggles widget visibility based on rollover state.
+ * - Rollover from month M surfaces in month M+1 as a read-only disclosure under the
+ *   hero amount it is baked into, not as a budget line.
+ * - Cross-month navigation toggles that disclosure based on rollover state.
  * - Financial overview Reste reflects rollover from the previous month.
  */
 
@@ -133,7 +133,7 @@ function setupRoutes(authenticatedPage: import('@playwright/test').Page) {
 }
 
 test.describe('Rollover Propagation - Impact on next month', () => {
-  test('rollover from Feb surfaces in March via dedicated widget', async ({
+  test('rollover from Feb is disclosed under the March hero amount', async ({
     authenticatedPage,
     budgetDetailsPage,
   }) => {
@@ -143,16 +143,22 @@ test.describe('Rollover Propagation - Impact on next month', () => {
     const heading = authenticatedPage.locator('h1');
     await expect(heading).toContainText('mars 2026');
 
-    const rolloverWidget = authenticatedPage.locator(
-      'pulpe-budget-rollover-info',
+    const rolloverWidget = authenticatedPage.getByTestId(
+      'financial-overview-rollover',
     );
     await expect(rolloverWidget).toBeVisible();
     await expect(rolloverWidget).toContainText(/Report/i);
     await expect(rolloverWidget).toContainText('+3’800');
     await expect(rolloverWidget).toContainText('CHF');
+
+    // Screen readers get the ISO code, per the project currency rule.
+    await expect(rolloverWidget).toHaveAttribute(
+      'aria-label',
+      /^Report positif du mois précédent inclus : .+ CHF$/,
+    );
   });
 
-  test('widget visibility toggles correctly across month navigation', async ({
+  test('rollover disclosure toggles correctly across month navigation', async ({
     authenticatedPage,
     budgetDetailsPage,
   }) => {
@@ -162,8 +168,8 @@ test.describe('Rollover Propagation - Impact on next month', () => {
     const heading = authenticatedPage.locator('h1');
     await expect(heading).toContainText('février 2026');
 
-    const rolloverWidget = authenticatedPage.locator(
-      'pulpe-budget-rollover-info',
+    const rolloverWidget = authenticatedPage.getByTestId(
+      'financial-overview-rollover',
     );
     await expect(rolloverWidget).not.toBeVisible();
 

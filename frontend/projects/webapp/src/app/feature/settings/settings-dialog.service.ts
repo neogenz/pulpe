@@ -1,14 +1,14 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Service } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { TranslocoService } from '@jsverse/transloco';
 import { firstValueFrom } from 'rxjs';
-import type { SupportedCurrency } from 'pulpe-shared';
+import { CURRENCY_METADATA, type SupportedCurrency } from 'pulpe-shared';
 import {
   ConfirmationDialog,
   type ConfirmationDialogData,
 } from '@ui/dialogs/confirmation-dialog';
 
-@Injectable()
+@Service({ autoProvided: false })
 export class SettingsDialogService {
   readonly #dialog = inject(MatDialog);
   readonly #transloco = inject(TranslocoService);
@@ -24,7 +24,7 @@ export class SettingsDialogService {
       data: {
         title: this.#transloco.translate('settings.currencyChangeTitle'),
         message: this.#transloco.translate('settings.currencyChangeMessage', {
-          currency: newCurrency,
+          symbol: CURRENCY_METADATA[newCurrency].symbol,
         }),
         confirmText: this.#transloco.translate(
           'settings.currencyChangeConfirm',
@@ -32,6 +32,7 @@ export class SettingsDialogService {
         cancelText: this.#transloco.translate('common.cancel'),
       } satisfies ConfirmationDialogData,
       width: '400px',
+      autoFocus: '[data-testid="confirmation-confirm-button"]',
     });
     return (await firstValueFrom(dialogRef.afterClosed())) === true;
   }

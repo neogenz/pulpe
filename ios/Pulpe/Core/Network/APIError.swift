@@ -28,6 +28,12 @@ enum APIError: LocalizedError {
     case recoveryKeyInvalid
     case recoveryKeyNotConfigured
     case rekeyPartialFailure
+    case savingsWithdrawalMonthUnprovisionable
+    case savingsWithdrawalGroupNotFound
+    case savingsWithdrawalConflict
+    case savingsWithdrawalRecalculationFailed
+    case savingsGoalBaselineRecalculationFailed
+    case savingsGoalGenerationStopRecalculationFailed
 
     var errorDescription: String? {
         switch self {
@@ -79,6 +85,23 @@ enum APIError: LocalizedError {
             return "Aucune clé de secours n'est enregistrée — génère-en une depuis « Clé de secours »."
         case .rekeyPartialFailure:
             return "Le changement de PIN a réussi mais la clé de secours n'a pas pu être mise à jour"
+
+        // Savings withdrawal (PUL-292) — copy aligned with the webapp fr.json.
+        case .savingsWithdrawalMonthUnprovisionable:
+            return "Le mois suivant n'a pas de modèle par défaut — impossible d'y placer le remboursement"
+        case .savingsWithdrawalGroupNotFound:
+            return "Cette pioche est introuvable — elle a peut-être déjà été supprimée"
+        case .savingsWithdrawalConflict:
+            return "Une pioche est déjà en place pour ce mois"
+        case .savingsWithdrawalRecalculationFailed:
+            return "La pioche a bien été créée, mais les soldes n'ont pas pu être actualisés — "
+                + "recharge la page sans relancer la pioche"
+        case .savingsGoalBaselineRecalculationFailed:
+            return "L'objectif et sa prévision mensuelle ont bien été créés, mais les soldes "
+                + "n'ont pas pu être actualisés — recharge la page sans recréer l'objectif"
+        case .savingsGoalGenerationStopRecalculationFailed:
+            return "La décision a bien été enregistrée, mais les soldes n'ont pas pu être actualisés — "
+                + "recharge la page sans réessayer"
         }
     }
 
@@ -106,6 +129,12 @@ enum APIError: LocalizedError {
         "ERR_RECOVERY_KEY_INVALID": .recoveryKeyInvalid,
         "ERR_RECOVERY_KEY_NOT_CONFIGURED": .recoveryKeyNotConfigured,
         "ERR_ENCRYPTION_REKEY_PARTIAL_FAILURE": .rekeyPartialFailure,
+        "ERR_SAVINGS_WITHDRAWAL_MONTH_UNPROVISIONABLE": .savingsWithdrawalMonthUnprovisionable,
+        "ERR_SAVINGS_WITHDRAWAL_GROUP_NOT_FOUND": .savingsWithdrawalGroupNotFound,
+        "ERR_SAVINGS_WITHDRAWAL_CONFLICT": .savingsWithdrawalConflict,
+        "ERR_SAVINGS_WITHDRAWAL_RECALCULATION_FAILED": .savingsWithdrawalRecalculationFailed,
+        "ERR_SAVINGS_GOAL_BASELINE_RECALCULATION_FAILED": .savingsGoalBaselineRecalculationFailed,
+        "ERR_SAVINGS_GOAL_GENERATION_STOP_RECALCULATION_FAILED": .savingsGoalGenerationStopRecalculationFailed,
     ]
 
     /// Create APIError from server error code

@@ -42,6 +42,7 @@ import { CurrencyConverterWidget } from '@pattern/currency-converter-widget';
 import {
   ANALYTICS_EVENTS,
   ANALYTICS_PROPERTIES,
+  CURRENCY_METADATA,
   PAY_DAY_MAX,
   type SupportedCurrency,
 } from 'pulpe-shared';
@@ -231,6 +232,41 @@ import { SettingsDialogService } from './settings-dialog.service';
               </div>
             }
           </div>
+        </div>
+      </section>
+
+      <mat-divider class="my-8!"></mat-divider>
+
+      <!-- ═══ Section: Organisation ═══ -->
+      <section class="grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-8">
+        <div>
+          <h2 class="text-title-medium font-bold mb-2">
+            {{ 'settings.organizationSection' | transloco }}
+          </h2>
+          <p class="text-body-small text-on-surface-variant leading-relaxed">
+            {{ 'settings.organizationDescription' | transloco }}
+          </p>
+        </div>
+
+        <div class="md:col-span-2 flex items-center justify-between gap-6">
+          <div class="space-y-1">
+            <h3 class="text-title-small">
+              {{ 'settings.tags.title' | transloco }}
+            </h3>
+            <p class="text-body-small text-on-surface-variant">
+              {{ 'settings.tags.description' | transloco }}
+            </p>
+          </div>
+          <button
+            matButton="outlined"
+            type="button"
+            class="shrink-0"
+            data-testid="tags-settings-link"
+            [attr.aria-label]="'settings.tags.open' | transloco"
+            (click)="openTagCatalog()"
+          >
+            {{ 'settings.tags.manage' | transloco }}
+          </button>
         </div>
       </section>
 
@@ -453,6 +489,10 @@ export default class SettingsPage {
     this.selectedCurrency.set(value);
   }
 
+  openTagCatalog(): void {
+    void this.#router.navigate(['/', ROUTES.SETTINGS, ROUTES.SETTINGS_TAGS]);
+  }
+
   async saveSettings(): Promise<void> {
     if (this.isSaving()) return;
 
@@ -487,15 +527,17 @@ export default class SettingsPage {
         newSelector,
       });
 
-      this.#snackBar.open(
-        this.#transloco.translate('settings.saveSuccess'),
-        'OK',
-        {
-          duration: 3000,
-          horizontalPosition: 'center',
-          verticalPosition: 'bottom',
-        },
-      );
+      const saveMessage =
+        previousCurrency !== newCurrency
+          ? this.#transloco.translate('settings.currencyChangeSuccess', {
+              symbol: CURRENCY_METADATA[newCurrency].symbol,
+            })
+          : this.#transloco.translate('settings.saveSuccess');
+      this.#snackBar.open(saveMessage, 'OK', {
+        duration: 3000,
+        horizontalPosition: 'center',
+        verticalPosition: 'bottom',
+      });
     } catch (error) {
       this.#logger.error('Failed to save settings', error);
       this.#snackBar.open(

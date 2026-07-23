@@ -23,7 +23,7 @@ describe('BudgetCalculator', () => {
     budgetId: 'test-budget-id',
     budgetLineId,
     transactionDate: new Date().toISOString(),
-    category: null,
+    tagIds: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     checkedAt: null,

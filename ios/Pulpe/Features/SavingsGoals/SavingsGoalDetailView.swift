@@ -24,6 +24,8 @@ struct SavingsGoalDetailView: View {
     @State private var viewModel: SavingsGoalDetailViewModel
     @State private var editTarget: SavingsGoal?
     @State private var isSimulating = false
+    @State private var showGenerationStop = false
+    @State private var generationStopCandidates: [SavingsGoalFutureLine] = []
 
     init(goal: SavingsGoal) {
         self.goal = goal
@@ -50,7 +52,7 @@ struct SavingsGoalDetailView: View {
             }
         }
         .navigationTitle(currentGoal.name)
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         .pulpeBackground()
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -65,7 +67,19 @@ struct SavingsGoalDetailView: View {
         .sheet(item: $editTarget, onDismiss: handleEditDismiss) { goal in
             SavingsGoalFormSheet(goal: goal, userCurrency: currency)
         }
-        .task { await viewModel.load() }
+        .sheet(isPresented: $showGenerationStop) {
+            GoalGenerationStopSheet(
+                lines: generationStopCandidates,
+                status: currentGoal.status,
+                currency: currency,
+                onApply: { mode in try await applyGenerationStop(mode) }
+            )
+            .standardSheetPresentation()
+        }
+        .task {
+            await viewModel.load()
+            await refreshFutureLinesIfStopped()
+        }
         .trackScreen("SavingsGoalDetail")
     }
 
@@ -81,18 +95,17 @@ struct SavingsGoalDetailView: View {
                     GoalEmptyGuidanceCard()
                 } else {
                     progressCard(progress: progress)
-                    if let pace = progress.paceStatus {
-                        paceChip(pace)
-                    }
                 }
 
                 GoalDerivedStateCards(
                     progress: progress,
                     status: currentGoal.status,
                     isMutatingStatus: viewModel.isMutatingStatus,
+                    futureLinesCount: viewModel.futureLines.count,
                     onEdit: { editTarget = currentGoal },
                     onComplete: { Task { await setStatus(.completed) } },
-                    onReopen: { Task { await setStatus(.active) } }
+                    onReopen: { Task { await setStatus(.active) } },
+                    onManageFutureLines: { Task { await proposeGenerationStop() } }
                 )
 
                 if progress.linkedLineCount > 0, !progress.months.isEmpty {
@@ -191,12 +204,14 @@ struct SavingsGoalDetailView: View {
 
             layeredBar(progress: progress)
 
+            if let pace = progress.paceStatus {
+                paceIndicator(pace)
+            }
+
             VStack(spacing: DesignTokens.Spacing.sm) {
-                statRow(
-                    label: "Pointé",
-                    value: progress.confirmed.asCompactCurrency(currency),
-                    swatch: Color.financialSavings
-                )
+                if progress.initialAmount > 0 {
+                    statRow(label: "Montant de départ", value: progress.initialAmount.asCompactCurrency(currency))
+                }
                 statRow(
                     label: "Prévu cumulé",
                     value: progress.plannedCumulative.asCompactCurrency(currency),
@@ -208,10 +223,6 @@ struct SavingsGoalDetailView: View {
                         value: "\(required.asCompactCurrency(currency)) / mois"
                     )
                 }
-                statRow(
-                    label: "Projection à l'échéance",
-                    value: progress.projected.asCompactCurrency(currency)
-                )
             }
         }
         .pulpeCard()
@@ -231,7 +242,7 @@ struct SavingsGoalDetailView: View {
         }
         .frame(height: DesignTokens.ProgressBar.thickHeight)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(progress.achievementPercent)% de la cible pointé")
+        .accessibilityLabel("\(progress.achievementPercent)% de la cible épargné")
     }
 
     @ViewBuilder
@@ -258,8 +269,10 @@ struct SavingsGoalDetailView: View {
 
     // MARK: - Pace verdict
 
-    private func paceChip(_ pace: SavingsGoalPaceStatus) -> some View {
-        PulpeChip(icon: paceIcon(pace), label: paceLabel(pace), style: .muted)
+    private func paceIndicator(_ pace: SavingsGoalPaceStatus) -> some View {
+        Label(paceLabel(pace), systemImage: paceIcon(pace))
+            .font(PulpeTypography.metricLabelBold)
+            .foregroundStyle(Color.textSecondary)
             .accessibilityLabel("Rythme : \(paceLabel(pace))")
     }
 
@@ -300,18 +313,63 @@ struct SavingsGoalDetailView: View {
         await viewModel.changeStatus(to: status, via: store)
         if let error = viewModel.error {
             toastManager.show(DomainErrorLocalizer.localize(error), type: .error)
-        } else {
-            toastManager.show(status == .completed ? "Objectif marqué comme atteint" : "Objectif ré-ouvert")
+            return
+        }
+        toastManager.show(status == .completed ? "Objectif marqué comme atteint" : "Objectif ré-ouvert")
+        if status != .active {
+            await proposeGenerationStop()
         }
     }
 
     private func handleEditDismiss() {
         if store.goals.contains(where: { $0.id == goal.id }) {
-            Task { await viewModel.load() }
+            Task {
+                await viewModel.load()
+                // The edit form can pause/complete the goal — refresh the
+                // advisory candidates so the CA8 card reflects the new status.
+                await refreshFutureLinesIfStopped()
+            }
         } else {
             // Goal was deleted from the edit form — pop back to the list.
             dismiss()
         }
+    }
+
+    // MARK: - Generation stop (PUL-285 CA8)
+
+    private func refreshFutureLinesIfStopped() async {
+        guard currentGoal.status != .active else { return }
+        await viewModel.loadFutureLines()
+    }
+
+    /// Fetches fresh candidates and presents the advisory sheet when the
+    /// stopped goal still has linked prévisions on future months. Dismissing
+    /// writes nothing — the derived card stays as re-entry.
+    private func proposeGenerationStop() async {
+        await viewModel.loadFutureLines()
+        guard !viewModel.futureLines.isEmpty else { return }
+        generationStopCandidates = viewModel.futureLines
+        showGenerationStop = true
+    }
+
+    /// Applies the decision through the store seam, which owns the aggregate
+    /// invalidation (frozen or deleted budget lines stale every store projecting
+    /// them, PUL-270). Then refetches this goal's progression and candidates.
+    private func applyGenerationStop(_ mode: SavingsGoalGenerationStopMode) async throws {
+        let result = try await store.applyGenerationStop(
+            id: goal.id,
+            SavingsGoalGenerationStop(
+                mode: mode,
+                budgetLineIds: generationStopCandidates.map(\.budgetLineId)
+            )
+        )
+        await viewModel.load()
+        await viewModel.loadFutureLines()
+        toastManager.show(
+            mode == .freeze
+                ? "\(result.affectedCount) prévision(s) conservée(s) sans objectif"
+                : "\(result.affectedCount) prévision(s) retirée(s) de tes mois futurs"
+        )
     }
 }
 
@@ -327,6 +385,7 @@ final class SavingsGoalDetailViewModel {
 
     private(set) var progress: SavingsGoalProgress?
     private(set) var contributions: [SavingsGoalContribution] = []
+    private(set) var futureLines: [SavingsGoalFutureLine] = []
     private(set) var isLoading = true
     private(set) var isLoadingContributions = false
     private(set) var isMutatingStatus = false
@@ -385,113 +444,12 @@ final class SavingsGoalDetailViewModel {
             if reportError { self.error = error }
         }
     }
-}
 
-private struct GoalContributionsSection: View {
-    let contributions: [SavingsGoalContribution]
-    let currency: SupportedCurrency
-    let isLoading: Bool
-    let error: Error?
-    let onRetry: () -> Void
+    // MARK: - Generation stop (PUL-285 CA8)
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            Text("Ton suivi")
-                .font(PulpeTypography.headline)
-                .foregroundStyle(Color.textPrimary)
-
-            if isLoading, contributions.isEmpty {
-                ProgressView("Chargement du suivi…")
-                    .frame(maxWidth: .infinity)
-                    .padding(DesignTokens.Spacing.xl)
-            } else if let error, contributions.isEmpty {
-                GoalInfoCard(
-                    icon: "arrow.clockwise",
-                    title: "Suivi indisponible",
-                    message: DomainErrorLocalizer.localize(error)
-                ) {
-                    Button("Réessayer", action: onRetry)
-                        .secondaryButtonStyle()
-                }
-            } else {
-                ForEach(contributions) { contribution in
-                    contributionCard(contribution)
-                }
-            }
-        }
-    }
-
-    private func contributionCard(_ contribution: SavingsGoalContribution) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            HStack(spacing: DesignTokens.Spacing.md) {
-                Image(systemName: contribution.isChecked ? "checkmark.circle.fill" : "circle")
-                    .font(PulpeTypography.actionIcon)
-                    .foregroundStyle(contribution.isChecked ? Color.financialSavings : Color.textTertiary)
-                    .accessibilityLabel(contribution.isChecked ? "Prévision pointée" : "Prévision à pointer")
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                    Text(contribution.name)
-                        .font(PulpeTypography.listRowTitle)
-                        .foregroundStyle(Color.textPrimary)
-                        .lineLimit(2)
-                    Text("\(Formatters.monthName(for: contribution.budgetMonth)) \(contribution.budgetYear)")
-                        .font(PulpeTypography.listRowSubtitle)
-                        .foregroundStyle(Color.textTertiary)
-                }
-
-                Spacer(minLength: DesignTokens.Spacing.sm)
-
-                Text(contribution.amount.asCurrency(currency))
-                    .font(PulpeTypography.amountCard)
-                    .monospacedDigit()
-                    .foregroundStyle(Color.textPrimary)
-                    .sensitiveAmount()
-            }
-
-            if !contribution.transactions.isEmpty {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    Text("Transactions réelles")
-                        .font(PulpeTypography.metricLabel)
-                        .foregroundStyle(Color.textSecondary)
-
-                    ForEach(Array(contribution.transactions.enumerated()), id: \.element.id) { index, transaction in
-                        if index > 0 { Divider() }
-                        contributionTransactionRow(transaction)
-                    }
-                }
-                .padding(DesignTokens.Spacing.md)
-                .background(
-                    Color.surfaceContainerHigh,
-                    in: RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.sm)
-                )
-            }
-        }
-        .pulpeCard()
-    }
-
-    private func contributionTransactionRow(_ transaction: Transaction) -> some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            Image(systemName: transaction.isChecked ? "checkmark.circle.fill" : "circle")
-                .foregroundStyle(transaction.isChecked ? Color.financialSavings : Color.textTertiary)
-                .accessibilityLabel(transaction.isChecked ? "Transaction pointée" : "Transaction à pointer")
-
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                Text(transaction.name)
-                    .font(PulpeTypography.listRowSubtitle)
-                    .foregroundStyle(Color.textPrimary)
-                    .lineLimit(2)
-                Text(transaction.transactionDate.formatted(date: .abbreviated, time: .omitted))
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.textTertiary)
-            }
-
-            Spacer(minLength: DesignTokens.Spacing.sm)
-
-            Text(transaction.amount.asCurrency(currency))
-                .font(PulpeTypography.metricLabelBold)
-                .monospacedDigit()
-                .foregroundStyle(Color.textPrimary)
-                .sensitiveAmount()
-        }
+    /// Advisory candidates: the goal's future linked lines. Read is advisory —
+    /// a failure just leaves the card hidden (the user can pull-to-refresh).
+    func loadFutureLines() async {
+        futureLines = (try? await service.getFutureLines(id: goalId)) ?? []
     }
 }

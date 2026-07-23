@@ -10,10 +10,13 @@ export interface BudgetLineApiSource {
   templateLineId: string | null;
   savingsGoalId: string | null;
   spreadGroupId: string | null;
+  savingsWithdrawalGroupId: string | null;
   name: string;
   amount: number;
   kind: BudgetLineApi['kind'];
   recurrence: BudgetLineApi['recurrence'];
+  /** Optionnel: les projections RPC ne joignent pas les tags. */
+  tagIds?: string[];
   isManuallyAdjusted: boolean;
   checkedAt: string | null;
   createdAt: string;
@@ -48,10 +51,12 @@ export function mapBudgetLineToApi(entity: BudgetLineApiSource): BudgetLineApi {
     templateLineId: entity.templateLineId,
     savingsGoalId: entity.savingsGoalId,
     spreadGroupId: entity.spreadGroupId,
+    savingsWithdrawalGroupId: entity.savingsWithdrawalGroupId,
     name: entity.name,
     amount: entity.amount,
     kind: entity.kind,
     recurrence: entity.recurrence,
+    tagIds: entity.tagIds,
     isManuallyAdjusted: entity.isManuallyAdjusted,
     checkedAt: entity.checkedAt,
     createdAt: entity.createdAt,

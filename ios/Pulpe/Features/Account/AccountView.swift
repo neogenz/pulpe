@@ -91,6 +91,15 @@ extension AccountView {
             ) {
                 PreferencesView()
             }
+
+            settingsNavigationRow(
+                icon: "tag",
+                iconColor: Color.textSecondary,
+                title: "Mes tags",
+                subtitle: "Tes tags personnels"
+            ) {
+                TagsSettingsView()
+            }
         } header: {
             Text("PARAMÈTRES DE L'APPLICATION")
         }

@@ -3,12 +3,13 @@ import {
   calculateAllConsumptions,
   calculateBudgetLineConsumption,
 } from '@core/budget/budget-line-consumption';
-import type {
-  BudgetLineConsumptionDisplay,
-  BudgetLineTableItem,
-  GroupHeaderTableItem,
-  TableRowItem,
-  TransactionTableItem,
+import {
+  isDataRow,
+  type BudgetLineConsumptionDisplay,
+  type BudgetLineTableItem,
+  type GroupHeaderTableItem,
+  type TableRowItem,
+  type TransactionTableItem,
 } from './table-items.view-model';
 import {
   KIND_ICONS,
@@ -122,12 +123,6 @@ function createDisplayItems(
   return items;
 }
 
-function isDataItem(
-  item: TableRowItem,
-): item is BudgetLineTableItem | TransactionTableItem {
-  return item.metadata.itemType !== 'group_header';
-}
-
 function calculateBalancesInDisplayOrder(
   items: TableRowItem[],
   consumptionMap: Map<string, { consumed: number }>,
@@ -136,7 +131,7 @@ function calculateBalancesInDisplayOrder(
   let runningBalance = openingBalance;
 
   items.forEach((item) => {
-    if (!isDataItem(item)) return;
+    if (!isDataRow(item)) return;
 
     const kind = item.data.kind;
     let effectiveAmount = item.data.amount;
@@ -225,6 +220,7 @@ function createBudgetLineViewModel(
   budgetLine: BudgetLine,
   consumptionMap: Map<string, { consumed: number; transactionCount: number }>,
   postpone: PostponeContext,
+  savingsWithdrawalOriginLabel: string,
 ): BudgetLineTableItem {
   const isPropagationLocked =
     !!budgetLine.templateLineId && !!budgetLine.isManuallyAdjusted;
@@ -236,11 +232,13 @@ function createBudgetLineViewModel(
   // A one-off forecast with no allocated transactions can be reported; a
   // recurring line, a consumed envelope, or a spread occurrence cannot (those
   // stay hidden). Moving a single spread occurrence would break its group's
-  // cross-month distribution (PUL-17 × PUL-22).
+  // cross-month distribution (PUL-17 × PUL-22). A savings-withdrawal half is
+  // excluded too — reporting one side would orphan its M/M+1 sibling (PUL-292).
   const isPostponeRelevant =
     budgetLine.recurrence === 'one_off' &&
     transactionCount === 0 &&
-    !budgetLine.spreadGroupId;
+    !budgetLine.spreadGroupId &&
+    !budgetLine.savingsWithdrawalGroupId;
   const postponeDisabledReason = getPostponeDisabledReason(
     isPostponeRelevant,
     budgetLine.checkedAt,
@@ -269,7 +267,17 @@ function createBudgetLineViewModel(
         budgetLine.recurrence === 'one_off' &&
         budgetLine.kind !== 'income' &&
         !budgetLine.spreadGroupId &&
+        !budgetLine.savingsWithdrawalGroupId &&
         budgetLine.amount > 0,
+      // PUL-292 — the two halves of a pioche both carry the group id; kind splits
+      // them: income → the badged Revenu, saving → the M+1 « Remettre sur ton
+      // épargne » repayment (its origin month is the viewed budget's month − 1).
+      isSavingsWithdrawalIncome:
+        budgetLine.kind === 'income' && !!budgetLine.savingsWithdrawalGroupId,
+      savingsWithdrawalOriginLabel:
+        budgetLine.kind === 'saving' && budgetLine.savingsWithdrawalGroupId
+          ? savingsWithdrawalOriginLabel
+          : null,
     },
     consumption: {
       consumed,
@@ -329,10 +337,16 @@ function mapToTableItems(
   items: BudgetItemWithBalance[],
   consumptionMap: Map<string, { consumed: number; transactionCount: number }>,
   postpone: PostponeContext,
+  savingsWithdrawalOriginLabel: string,
 ): (BudgetLineTableItem | TransactionTableItem)[] {
   return items.map((item) => {
     if (item.itemType === 'budget_line') {
-      return createBudgetLineViewModel(item.item, consumptionMap, postpone);
+      return createBudgetLineViewModel(
+        item.item,
+        consumptionMap,
+        postpone,
+        savingsWithdrawalOriginLabel,
+      );
     }
     return createTransactionViewModel(item.item, postpone);
   });
@@ -377,6 +391,7 @@ export function buildViewData(params: {
   openingBalance?: number;
   searchText?: string;
   postpone?: PostponeContext;
+  savingsWithdrawalOriginLabel?: string;
 }): TableRowItem[] {
   const {
     budgetLines,
@@ -384,6 +399,7 @@ export function buildViewData(params: {
     openingBalance = 0,
     searchText,
     postpone = NO_POSTPONE_CONTEXT,
+    savingsWithdrawalOriginLabel = '',
   } = params;
 
   const consumptionMap = calculateAllConsumptions(budgetLines, transactions);
@@ -391,7 +407,12 @@ export function buildViewData(params: {
     compareItems,
   );
 
-  const mappedItems = mapToTableItems(items, consumptionMap, postpone);
+  const mappedItems = mapToTableItems(
+    items,
+    consumptionMap,
+    postpone,
+    savingsWithdrawalOriginLabel,
+  );
 
   if (searchText) {
     const search = normalizeText(searchText);

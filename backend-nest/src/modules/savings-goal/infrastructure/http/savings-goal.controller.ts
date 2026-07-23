@@ -24,6 +24,8 @@ import {
   type SavingsGoalProgressResponse,
   type SavingsGoalContributionsResponse,
   type SavingsGoalPlanApplyResponse,
+  type SavingsGoalFutureLinesResponse,
+  type SavingsGoalGenerationStopResponse,
 } from 'pulpe-shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
@@ -41,6 +43,9 @@ import {
   SavingsGoalContributionsResponseDto,
   SavingsGoalPlanApplyDto,
   SavingsGoalPlanApplyResponseDto,
+  SavingsGoalFutureLinesResponseDto,
+  SavingsGoalGenerationStopDto,
+  SavingsGoalGenerationStopResponseDto,
 } from './dto/savings-goal-swagger.dto';
 import { FindAllSavingsGoalsUseCase } from '../../application/find-all-savings-goals.use-case';
 import { FindSavingsGoalUseCase } from '../../application/find-savings-goal.use-case';
@@ -50,6 +55,8 @@ import { RemoveSavingsGoalUseCase } from '../../application/remove-savings-goal.
 import { GetSavingsGoalProgressUseCase } from '../../application/get-savings-goal-progress.use-case';
 import { GetSavingsGoalContributionsUseCase } from '../../application/get-savings-goal-contributions.use-case';
 import { ApplySavingsGoalPlanUseCase } from '../../application/apply-savings-goal-plan.use-case';
+import { GetSavingsGoalFutureLinesUseCase } from '../../application/get-savings-goal-future-lines.use-case';
+import { ApplySavingsGoalGenerationStopUseCase } from '../../application/apply-savings-goal-generation-stop.use-case';
 import { SavingsGoalMapper } from '../mappers/savings-goal.mapper';
 
 @ApiTags('Savings Goals')
@@ -74,6 +81,8 @@ export class SavingsGoalController {
     private readonly progressUseCase: GetSavingsGoalProgressUseCase,
     private readonly contributionsUseCase: GetSavingsGoalContributionsUseCase,
     private readonly applyPlanUseCase: ApplySavingsGoalPlanUseCase,
+    private readonly futureLinesUseCase: GetSavingsGoalFutureLinesUseCase,
+    private readonly generationStopUseCase: ApplySavingsGoalGenerationStopUseCase,
     private readonly mapper: SavingsGoalMapper,
   ) {}
 
@@ -170,6 +179,45 @@ export class SavingsGoalController {
         updatedLines: result.updatedLines,
       },
     };
+  }
+
+  @Get(':id/future-lines')
+  @ApiOperation({
+    summary:
+      'Prévisions liées futures candidates à figer/retirer à l’arrêt de génération (PUL-285)',
+  })
+  @ApiParam({ name: 'id', description: "Identifiant unique de l'objectif" })
+  @ApiResponse({
+    status: 200,
+    description: 'Candidates récupérées avec succès',
+    type: SavingsGoalFutureLinesResponseDto,
+  })
+  async futureLines(
+    @Param('id') id: string,
+    @User() user: AuthenticatedUser,
+  ): Promise<SavingsGoalFutureLinesResponse> {
+    const lines = await this.futureLinesUseCase.execute(id, user);
+    return { success: true, data: this.mapper.toFutureLinesApi(lines) };
+  }
+
+  @Post(':id/generation-stop')
+  @ApiOperation({
+    summary:
+      'Applique la décision advisory figer/retirer sur les prévisions liées futures (PUL-285)',
+  })
+  @ApiParam({ name: 'id', description: "Identifiant unique de l'objectif" })
+  @ApiResponse({
+    status: 201,
+    description: 'Décision appliquée avec succès',
+    type: SavingsGoalGenerationStopResponseDto,
+  })
+  async generationStop(
+    @Param('id') id: string,
+    @Body() stopDto: SavingsGoalGenerationStopDto,
+    @User() user: AuthenticatedUser,
+  ): Promise<SavingsGoalGenerationStopResponse> {
+    const result = await this.generationStopUseCase.execute(id, stopDto, user);
+    return { success: true, data: result };
   }
 
   @Get(':id')

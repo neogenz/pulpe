@@ -57,6 +57,8 @@ export interface TemplateLine {
   kind: TransactionKindEnum;
   recurrence: TransactionRecurrenceEnum;
   description: string | null;
+  /** PUL-18 — tag ids attached to the line (resolved to names client-side). */
+  tagIds: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -85,6 +87,8 @@ export interface TemplateLineCreateInput {
   kind: TransactionKindEnum;
   recurrence: TransactionRecurrenceEnum;
   description: string;
+  /** PUL-18 — tags to attach to the line. Absent/empty = no tags. */
+  tagIds?: string[];
 }
 
 /**
@@ -103,6 +107,8 @@ export interface TemplateLineUpdatePatch {
   kind?: TransactionKindEnum;
   recurrence?: TransactionRecurrenceEnum;
   description?: string;
+  /** PUL-18 — present replaces the line's exact tag set; absent leaves tags untouched. */
+  tagIds?: string[];
 }
 
 /**
@@ -132,6 +138,8 @@ export interface TemplateLineRpcInput {
   kind: TransactionKindEnum;
   recurrence: TransactionRecurrenceEnum;
   description: string;
+  /** PUL-18 — tags written atomically with the template and its lines. */
+  tagIds?: string[];
 }
 
 /**
@@ -158,12 +166,17 @@ export interface TemplateLineRpcUpdate {
   kind?: TransactionKindEnum;
   recurrence?: TransactionRecurrenceEnum;
   description?: string;
+  /**
+   * PUL-18 — tags stay outside the scalar JSONB and travel as dedicated pairs
+   * in the same atomic wrapper. Present replaces the set; absent preserves it.
+   */
+  tagIds?: string[];
 }
 
 /**
- * Bulk operations input for `apply_template_line_operations`. Both updated and
+ * Bulk operations input for the atomic scalar + tag wrapper. Both updated and
  * created lines are post-insert items with assigned `id`s — repo encrypts
- * amounts internally and validates Zod payload before invoking the RPC.
+ * amounts and separates tagIds before invoking the single transactional RPC.
  */
 export interface BulkTemplateLineOperationsInput {
   templateId: string;

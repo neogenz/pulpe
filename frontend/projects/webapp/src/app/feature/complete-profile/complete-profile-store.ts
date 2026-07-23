@@ -1,4 +1,4 @@
-import { Injectable, inject, signal, computed } from '@angular/core';
+import { Service, inject, signal, computed } from '@angular/core';
 import {
   ProfileSetupService,
   type ProfileData,
@@ -139,7 +139,7 @@ function createInitialState(): CompleteProfileState {
   };
 }
 
-@Injectable()
+@Service({ autoProvided: false })
 export class CompleteProfileStore {
   readonly #profileSetupService = inject(ProfileSetupService);
   readonly #budgetApi = inject(BudgetApi);

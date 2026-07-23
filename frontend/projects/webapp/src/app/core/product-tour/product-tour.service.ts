@@ -6,7 +6,7 @@
  */
 
 import { DOCUMENT } from '@angular/common';
-import { inject, Injectable } from '@angular/core';
+import { inject, Service } from '@angular/core';
 import { AuthStore } from '@core/auth/auth-store';
 import { StorageService, type StorageKey } from '@core/storage';
 import { driver, type Config, type Driver, type DriveStep } from 'driver.js';
@@ -58,9 +58,7 @@ const TOUR_IDS = {
   'savings-goals': 'savings-goals',
 } as const;
 
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class ProductTourService {
   readonly #document = inject(DOCUMENT);
   readonly #storageService = inject(StorageService);

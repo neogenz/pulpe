@@ -40,6 +40,7 @@ import { UserSettingsStore } from '@core/user-settings';
 import { dateFnsLocaleFor } from '@core/locale';
 import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
+import { TagPicker } from '@app/pattern/tag-picker/tag-picker';
 import { SavingsGoalPickerField } from '@app/pattern/savings-goal-picker/savings-goal-picker-field';
 import {
   TransactionIconPipe,
@@ -75,6 +76,7 @@ interface AddBudgetLineModel {
   kind: TransactionKind;
   recurrence: TransactionRecurrence;
   isChecked: boolean;
+  tagIds: string[];
   savingsGoalId: string | null;
   money: AmountFormSlice;
 }
@@ -96,6 +98,7 @@ interface AddBudgetLineModel {
     TransactionLabelPipe,
     FormField,
     AmountInput,
+    TagPicker,
     SavingsGoalPickerField,
   ],
   host: { 'data-testid': 'add-budget-line-dialog' },
@@ -337,6 +340,7 @@ interface AddBudgetLineModel {
               }
             </div>
           } @else {
+            <pulpe-tag-picker [control]="addForm.tagIds" />
             @if (model().kind === 'saving') {
               <pulpe-savings-goal-picker-field
                 [value]="model().savingsGoalId"
@@ -344,6 +348,21 @@ interface AddBudgetLineModel {
                   model.update((m) => ({ ...m, savingsGoalId: $event }))
                 "
               />
+            }
+            @if (model().kind === 'income') {
+              <div class="flex items-center justify-between py-2 px-1">
+                <span class="text-body-medium text-on-surface">{{
+                  'budget.savingsWithdrawal.repayToggle' | transloco
+                }}</span>
+                <mat-slide-toggle
+                  [checked]="repayNextMonth()"
+                  (change)="repayNextMonth.set($event.checked)"
+                  [attr.aria-label]="
+                    'budget.savingsWithdrawal.repayToggle' | transloco
+                  "
+                  data-testid="repay-next-month-toggle"
+                />
+              </div>
             }
             <div class="flex items-center justify-between py-2 px-1">
               <span class="text-body-medium text-on-surface">{{
@@ -435,6 +454,7 @@ export class AddBudgetLineDialog {
     kind: 'expense',
     recurrence: 'one_off',
     isChecked: false,
+    tagIds: [],
     savingsGoalId: null,
     money: createAmountSlice({ initialCurrency: this.#settings.currency() }),
   });
@@ -478,6 +498,11 @@ export class AddBudgetLineDialog {
   // post-commit failure replays the same spread group server-side instead of
   // creating a duplicate. A new dialog = a new intent = a new key.
   readonly #spreadGroupId = crypto.randomUUID();
+
+  // PUL-292 — income-only toggle: when ON, submitting a Revenu doesn't create a
+  // plain line but hands a `savingsWithdrawal` prefill back so the caller opens
+  // the two-month withdrawal flow. Ignored for non-income kinds.
+  protected readonly repayNextMonth = signal(false);
 
   readonly #start = signal<SpreadMonth>({
     year: this.#data.budgetYear,
@@ -621,6 +646,18 @@ export class AddBudgetLineDialog {
       await this.#submitSpread();
       return;
     }
+    const m = this.model();
+    if (m.kind === 'income' && this.repayNextMonth()) {
+      this.#dialogRef.close({
+        mode: 'savingsWithdrawal',
+        prefill: {
+          amount: m.money.amount ?? 0,
+          source: m.name.trim(),
+          inputCurrency: m.money.inputCurrency,
+        },
+      });
+      return;
+    }
     await this.#submitSingle();
   }
 
@@ -644,6 +681,7 @@ export class AddBudgetLineDialog {
               kind: m.kind,
               recurrence: m.recurrence,
               isChecked: m.isChecked,
+              tagIds: m.tagIds,
               savingsGoalId: m.kind === 'saving' ? m.savingsGoalId : null,
               conversion: metadata,
             }),

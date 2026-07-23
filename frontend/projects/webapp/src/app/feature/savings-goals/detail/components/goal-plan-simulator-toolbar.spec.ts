@@ -6,6 +6,7 @@ import {
   Output,
   provideZonelessChangeDetection,
   signal,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
@@ -25,6 +26,7 @@ import { GoalPlanSimulatorToolbar } from './goal-plan-simulator-toolbar';
 @Component({
   selector: 'pulpe-currency-input',
   imports: [MatInputModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <input
       matInput
@@ -78,6 +80,7 @@ function makeProgress(): SavingsGoalProgress {
     targetDate: '2026-08-01',
     plannedCumulative: 400,
     confirmed: 0,
+    initialAmount: 0,
     achievementPercent: 0,
     monthsElapsed: 1,
     monthsRemaining: 2,

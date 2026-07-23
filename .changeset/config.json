@@ -7,7 +7,7 @@
   ],
   "linked": [],
   "access": "restricted",
-  "baseBranch": "main",
+  "baseBranch": "preview",
   "updateInternalDependencies": "patch",
   "ignore": []
 }

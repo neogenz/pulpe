@@ -1,13 +1,13 @@
 ---
-description: Material 21 button directive patterns for Angular templates
+description: Material 22 button directive patterns for Angular templates
 paths:
   - "frontend/**/*.html"
   - "frontend/**/*.ts"
 ---
 
-# Material 21 Buttons
+# Material 22 Buttons
 
-Use the new Material 21 button directives:
+Use the new Material 22 button directives:
 
 ```html
 matButton            <!-- text button -->

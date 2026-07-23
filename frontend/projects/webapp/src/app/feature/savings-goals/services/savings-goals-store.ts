@@ -1,8 +1,11 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Service, computed, inject, signal } from '@angular/core';
 import {
+  API_ERROR_CODES,
   type SavingsGoal,
   type SavingsGoalContribution,
   type SavingsGoalCreate,
+  type SavingsGoalFutureLine,
+  type SavingsGoalGenerationStop,
   type SavingsGoalPlanApply,
   type SavingsGoalPlanApplyResponse,
   type SavingsGoalProgress,
@@ -13,8 +16,9 @@ import { cachedResource, cachedMutation } from 'ngx-ziflux';
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
+import { isApiError } from '@core/api/api-error';
 
-@Injectable()
+@Service({ autoProvided: false })
 export class SavingsGoalStore {
   readonly #api = inject(SavingsGoalApi);
   readonly #budgetApi = inject(BudgetApi);
@@ -111,6 +115,26 @@ export class SavingsGoalStore {
       // awaited mutate() return value settles the cache; latest-wins gotcha
       // means we never rely on onSuccess to push state.
     },
+    onSuccess: (_result, input) => {
+      // Auto-décomposition (PUL-285) : le serveur a posé une template_line
+      // liée + des budget_lines sur les budgets courant/futurs.
+      if (input.monthlyContribution != null) {
+        this.#budgetApi.cache.invalidate(['budget']);
+        this.#budgetTemplatesApi.cache.invalidate(['templates']);
+      }
+    },
+    onError: (error) => {
+      if (
+        !isApiError(error) ||
+        error.code !==
+          API_ERROR_CODES.SAVINGS_GOAL_BASELINE_RECALCULATION_FAILED
+      ) {
+        return;
+      }
+      this.#api.cache.invalidate(['savings-goals']);
+      this.#budgetApi.cache.invalidate(['budget']);
+      this.#budgetTemplatesApi.cache.invalidate(['templates']);
+    },
   });
 
   readonly #updateMutation = cachedMutation<
@@ -172,6 +196,86 @@ export class SavingsGoalStore {
       this.#selectedGoalId.set(snapshot.selectedGoalId);
     },
   });
+
+  // Arrêt de génération (PUL-285 CA5/CA8) — candidates advisory quand
+  // l'objectif n'est pas ACTIVE : prévisions liées futures figeables/retirables.
+  readonly #futureLinesResource = cachedResource<
+    SavingsGoalFutureLine[],
+    { goalId: string }
+  >({
+    cache: this.#api.cache,
+    cacheKey: (params) => ['savings-goals', 'future-lines', params.goalId],
+    params: () => {
+      const goal = this.selectedGoal();
+      return goal && goal.status !== 'ACTIVE' ? { goalId: goal.id } : undefined;
+    },
+    loader: ({ params }) =>
+      firstValueFrom(
+        this.#api
+          .getFutureLines$(params.goalId)
+          .pipe(map((res) => res.data ?? [])),
+      ),
+  });
+
+  readonly futureLines = computed<SavingsGoalFutureLine[]>(
+    () => this.#futureLinesResource.value() ?? [],
+  );
+
+  // Pessimistic: lines are frozen or DELETED server-side, atomically — no
+  // optimistic patch; the domain prefix invalidation covers future-lines too.
+  readonly #generationStopMutation = cachedMutation<
+    { goalId: string; decision: SavingsGoalGenerationStop },
+    { affectedCount: number },
+    void
+  >({
+    cache: this.#api.cache,
+    invalidateKeys: () => [['savings-goals']],
+    mutationFn: ({ goalId, decision }) =>
+      this.#api
+        .applyGenerationStop$(goalId, decision)
+        .pipe(map((response) => response.data)),
+    onSuccess: () => {
+      this.#budgetApi.cache.invalidate(['budget']);
+    },
+    onError: () => {
+      // Un 409/422 signifie que les candidates ont drifté (pointage, cycle) —
+      // la RPC est atomique (rien d'écrit) mais les caches de lecture sont
+      // périmés : même règle « succès ET erreur » que #applyPlanMutation.
+      this.#budgetApi.cache.invalidate(['budget']);
+      this.#api.cache.invalidate(['savings-goals']);
+    },
+  });
+
+  /**
+   * Fresh advisory list for a post-transition prompt. Writes the result into
+   * the resource's cache key so the re-entry card and the dialog share one
+   * server truth instead of issuing parallel GETs.
+   */
+  async fetchFutureLines(goalId: string): Promise<SavingsGoalFutureLine[]> {
+    const lines = await firstValueFrom(
+      this.#api.getFutureLines$(goalId).pipe(map((res) => res.data ?? [])),
+    );
+    this.#api.cache.set(['savings-goals', 'future-lines', goalId], lines);
+    return lines;
+  }
+
+  async applyGenerationStop(
+    goalId: string,
+    decision: SavingsGoalGenerationStop,
+  ): Promise<{ affectedCount: number }> {
+    const result = await this.#generationStopMutation.mutate({
+      goalId,
+      decision,
+    });
+    if (!result) {
+      throw (
+        this.#generationStopMutation.error() ??
+        new Error('Failed to apply the generation-stop decision')
+      );
+    }
+    this.reloadProgress();
+    return result;
+  }
 
   // Plan apply (PUL-12 simulateur) — pessimistic write. The server owns the
   // recomputed progression, so no optimistic patch: invalidate the whole domain

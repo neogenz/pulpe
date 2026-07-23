@@ -77,6 +77,38 @@ describe('GoalPlanTimeline', () => {
     expect(rows[1].nativeElement.textContent).toContain('900');
   });
 
+  it('announces the formatted amount and locked state for a checked row', () => {
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({
+        lines: [
+          {
+            budgetLineId: '11111111-1111-4111-8111-111111111111',
+            amount: 450,
+            checkedAt: '2026-03-15T10:00:00.000Z',
+            isManuallyAdjusted: false,
+          },
+        ],
+      }),
+    ]);
+    fixture.detectChanges();
+
+    const amount = rowsQuery()[0].nativeElement.querySelector(
+      'span[aria-label]',
+    ) as HTMLSpanElement;
+    expect(amount.getAttribute('aria-label')).toBe(
+      '450.00 CHF, pointé, verrouillé',
+    );
+  });
+
+  it('does not add a locked amount aria-label to an unchecked row', () => {
+    setTestInput(fixture.componentInstance.months, [makeMonth()]);
+    fixture.detectChanges();
+
+    expect(
+      rowsQuery()[0].nativeElement.querySelector('span[aria-label]'),
+    ).toBeNull();
+  });
+
   it('badges the current month and shows the « Pas de budget » chip for gaps', () => {
     setTestInput(fixture.componentInstance.months, [
       makeMonth({ month: 3, state: 'current' }),

@@ -67,6 +67,7 @@ struct SavingsGoalProgressCodableTests {
             "targetDate": "2027-12-31",
             "plannedCumulative": 12000,
             "confirmed": 9000,
+            "initialAmount": 3000,
             "achievementPercent": 18,
             "monthsElapsed": 6,
             "monthsRemaining": 18,
@@ -93,6 +94,7 @@ struct SavingsGoalProgressCodableTests {
         #expect(progress.targetDate == "2027-12-31")
         #expect(progress.plannedCumulative == 12000)
         #expect(progress.confirmed == 9000)
+        #expect(progress.initialAmount == 3000)
         #expect(progress.achievementPercent == 18)
         #expect(progress.monthsRemaining == 18)
         #expect(progress.isOverdue == false)
@@ -142,6 +144,7 @@ struct SavingsGoalProgressCodableTests {
 
         #expect(progress.isOverdue == true)
         #expect(progress.monthsRemaining == -2)
+        #expect(progress.initialAmount == 0, "legacy payload without the field defaults to 0")
         #expect(progress.required == nil)
         #expect(progress.paceStatus == nil)
         #expect(progress.targetDate == "2025-01-01")

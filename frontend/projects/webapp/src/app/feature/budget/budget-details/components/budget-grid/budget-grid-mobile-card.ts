@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
   output,
 } from '@angular/core';
@@ -15,8 +16,11 @@ import { type BudgetLine, type SupportedCurrency } from 'pulpe-shared';
 import { AppCurrencyPipe, FormatConversionPipe } from '@core/currency';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { SpreadBadge } from '@ui/spread-badge';
+import { SavingsWithdrawalBadge } from '@ui/savings-withdrawal-badge';
+import { TagIndicator } from '@ui/tag-indicator';
 import { FinancialLineCard } from '@pattern/financial-line-card';
 import { OriginalAmountLine } from '@ui/original-amount-line';
+import { TagStore } from '@core/tag';
 import { formatMatchAnnotation } from '../../view-models/budget-item-constants';
 import type { BudgetLineTableItem } from '../../view-models/table-items.view-model';
 import { SegmentedBudgetProgress } from '../segmented-budget-progress';
@@ -39,6 +43,8 @@ import { BudgetActionMenu } from '../budget-action-menu';
     SegmentedBudgetProgress,
     BudgetActionMenu,
     SpreadBadge,
+    SavingsWithdrawalBadge,
+    TagIndicator,
   ],
   template: `
     <pulpe-financial-line-card
@@ -69,7 +75,12 @@ import { BudgetActionMenu } from '../budget-action-menu';
         </span>
       </ng-container>
 
-      @if (item().metadata.isPropagationLocked || item().metadata.isSpread) {
+      @if (
+        item().metadata.isPropagationLocked ||
+        item().metadata.isSpread ||
+        item().metadata.isSavingsWithdrawalIncome ||
+        tagNames().length > 0
+      ) {
         <ng-container ngProjectAs="[indicators]">
           @if (item().metadata.isPropagationLocked) {
             <mat-icon
@@ -82,6 +93,10 @@ import { BudgetActionMenu } from '../budget-action-menu';
           @if (item().metadata.isSpread) {
             <pulpe-spread-badge />
           }
+          @if (item().metadata.isSavingsWithdrawalIncome) {
+            <pulpe-savings-withdrawal-badge />
+          }
+          <pulpe-tag-indicator [tagNames]="tagNames()" class="shrink-0" />
         </ng-container>
       }
 
@@ -157,6 +172,22 @@ import { BudgetActionMenu } from '../budget-action-menu';
             >
             <span class="text-label-small truncate ph-no-capture">{{
               linkedGoalName()
+            }}</span>
+          </div>
+        }
+
+        @if (item().metadata.savingsWithdrawalOriginLabel; as originLabel) {
+          <div
+            class="flex items-center gap-1 min-w-0 mb-3 text-on-surface-variant"
+          >
+            <mat-icon
+              class="text-sm! shrink-0 h-auto! w-auto!"
+              aria-hidden="true"
+              >savings</mat-icon
+            >
+            <span class="text-label-small truncate">{{
+              'budget.savingsWithdrawal.originSubtitle'
+                | transloco: { month: originLabel }
             }}</span>
           </div>
         }
@@ -269,7 +300,12 @@ import { BudgetActionMenu } from '../budget-action-menu';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BudgetGridMobileCard {
+  readonly #tagStore = inject(TagStore);
   readonly item = input.required<BudgetLineTableItem>();
+
+  readonly tagNames = computed(() =>
+    this.#tagStore.resolveNames(this.item().data.tagIds),
+  );
   readonly currency = input<SupportedCurrency>('CHF');
   readonly isSelected = input<boolean>(false);
   readonly isMultiCurrencyEnabled = input<boolean>(false);

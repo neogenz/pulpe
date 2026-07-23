@@ -11,8 +11,12 @@ import { Logger } from '@core/logging/logger';
 import { CurrencyConverterService } from '@core/currency';
 import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
+import { TagStore } from '@core/tag';
+import { createMockTagStore } from '@app/testing/tag-store.mock';
 import type { SupportedCurrency, Transaction } from 'pulpe-shared';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+const TAG_ID = '00000000-0000-4000-8000-0000000000f1';
 
 const mockStorageService: Partial<StorageService> = {
   get: () => null,
@@ -51,6 +55,7 @@ describe('EditTransactionForm', () => {
         { provide: StorageService, useValue: mockStorageService },
         { provide: Logger, useValue: mockLogger },
         { provide: CurrencyConverterService, useValue: converter },
+        { provide: TagStore, useValue: createMockTagStore() },
       ],
     }).compileComponents();
 
@@ -82,7 +87,7 @@ describe('EditTransactionForm', () => {
       expect(tf.money).toBeDefined();
       expect(tf.kind).toBeDefined();
       expect(tf.transactionDate).toBeDefined();
-      expect(tf.category).toBeDefined();
+      expect(tf.tagIds).toBeDefined();
     });
 
     it('should have proper field validators', () => {
@@ -151,6 +156,7 @@ describe('EditTransactionForm', () => {
         name: 'Loyer',
         amount: 1200,
         kind: 'expense',
+        tagIds: [TAG_ID],
       });
       setTestInput(component.transaction, tx);
       fixture.detectChanges();
@@ -158,6 +164,7 @@ describe('EditTransactionForm', () => {
       expect(component['model']().name).toBe('Loyer');
       expect(component['model']().money.amount).toBe(1200);
       expect(component['model']().kind).toBe('expense');
+      expect(component['model']().tagIds).toEqual([TAG_ID]);
     });
   });
 
@@ -187,7 +194,6 @@ describe('EditTransactionForm', () => {
         money: { ...m.money, amount: 100 },
         kind: 'expense',
         transactionDate: new Date(),
-        category: 'Test Category',
       }));
 
       expect(component.isUpdating()).toBe(false);
@@ -235,7 +241,6 @@ describe('EditTransactionForm', () => {
         money: { ...m.money, amount: 100 },
         kind: 'expense',
         transactionDate: new Date(),
-        category: 'Test',
       }));
 
       const submitPromise = component.onSubmit();
@@ -341,7 +346,7 @@ describe('EditTransactionForm', () => {
     it('should default to empty array (no hidden fields)', () => {
       expect(component.hiddenFields()).toEqual([]);
       expect(component['isFieldHidden']('kind')).toBe(false);
-      expect(component['isFieldHidden']('category')).toBe(false);
+      expect(component['isFieldHidden']('tags')).toBe(false);
     });
 
     it('should still emit original values for hidden fields on submit', async () => {
@@ -362,7 +367,7 @@ describe('EditTransactionForm', () => {
         money: { ...m.money, amount: 100 },
         kind: 'expense',
         transactionDate: new Date(),
-        category: 'Notes',
+        tagIds: [TAG_ID],
       }));
 
       let emittedData: TransactionUpdate | undefined;
@@ -374,7 +379,7 @@ describe('EditTransactionForm', () => {
 
       expect(emittedData).toBeDefined();
       expect(emittedData!.kind).toBe('expense');
-      expect(emittedData!.category).toBe('Notes');
+      expect(emittedData!.tagIds).toEqual([TAG_ID]);
     });
   });
 });
@@ -399,7 +404,7 @@ function makeTransaction(overrides: Partial<Transaction> = {}): Transaction {
     amount: 1200,
     kind: 'expense',
     transactionDate: new Date().toISOString(),
-    category: null,
+    tagIds: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     checkedAt: null,

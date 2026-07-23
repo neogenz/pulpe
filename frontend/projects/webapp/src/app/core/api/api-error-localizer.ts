@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Service, inject } from '@angular/core';
 import { TranslocoService } from '@jsverse/transloco';
 import { API_ERROR_CODES, type ApiErrorCode } from 'pulpe-shared';
 import {
@@ -25,6 +25,14 @@ const CODE_KEY_MAP = {
     'apiError.budgetLineDeleteFailed',
   [API_ERROR_CODES.BUDGET_LINE_SPREAD_RECALCULATION_FAILED]:
     'apiError.budgetLineSpreadRecalculationFailed',
+  [API_ERROR_CODES.SAVINGS_WITHDRAWAL_GROUP_NOT_FOUND]:
+    'apiError.savingsWithdrawalGroupNotFound',
+  [API_ERROR_CODES.SAVINGS_WITHDRAWAL_CONFLICT]:
+    'apiError.savingsWithdrawalConflict',
+  [API_ERROR_CODES.SAVINGS_WITHDRAWAL_MONTH_UNPROVISIONABLE]:
+    'apiError.savingsWithdrawalMonthUnprovisionable',
+  [API_ERROR_CODES.SAVINGS_WITHDRAWAL_RECALCULATION_FAILED]:
+    'apiError.savingsWithdrawalRecalculationFailed',
   [API_ERROR_CODES.TRANSACTION_NOT_FOUND]: 'apiError.transactionNotFound',
   [API_ERROR_CODES.TRANSACTION_CREATE_FAILED]:
     'apiError.transactionCreationFailed',
@@ -46,12 +54,20 @@ const CODE_KEY_MAP = {
   [API_ERROR_CODES.TEMPLATE_CREATE_FAILED]: 'apiError.templateCreationFailed',
   [API_ERROR_CODES.TEMPLATE_UPDATE_FAILED]: 'apiError.templateUpdateFailed',
   [API_ERROR_CODES.TEMPLATE_DELETE_FAILED]: 'apiError.templateDeleteFailed',
+  [API_ERROR_CODES.SAVINGS_GOAL_BASELINE_RECALCULATION_FAILED]:
+    'apiError.savingsGoalBaselineRecalculationFailed',
   [API_ERROR_CODES.SAVINGS_GOAL_PLAN_CONFLICT]:
     'apiError.savingsGoalPlanConflict',
   [API_ERROR_CODES.SAVINGS_GOAL_PLAN_LINE_INVALID]:
     'apiError.savingsGoalPlanLineInvalid',
   [API_ERROR_CODES.SAVINGS_GOAL_PLAN_APPLY_FAILED]:
     'apiError.savingsGoalPlanApplyFailed',
+  [API_ERROR_CODES.SAVINGS_GOAL_GENERATION_STOP_CONFLICT]:
+    'apiError.savingsGoalGenerationStopConflict',
+  [API_ERROR_CODES.SAVINGS_GOAL_GENERATION_STOP_LINE_INVALID]:
+    'apiError.savingsGoalGenerationStopLineInvalid',
+  [API_ERROR_CODES.SAVINGS_GOAL_GENERATION_STOP_RECALCULATION_FAILED]:
+    'apiError.savingsGoalGenerationStopRecalculationFailed',
   [API_ERROR_CODES.USER_NOT_FOUND]: 'apiError.profileNotFound',
   [API_ERROR_CODES.USER_PROFILE_UPDATE_FAILED]: 'apiError.profileUpdateFailed',
   [API_ERROR_CODES.VALIDATION_FAILED]: 'apiError.validationFailed',
@@ -62,7 +78,7 @@ const CODE_KEY_MAP = {
   [CLIENT_ERROR_CODES.ZOD_PARSE_ERROR]: 'apiError.clientValidationFailed',
 } as const satisfies Partial<Record<LocalizableCode, string>>;
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class ApiErrorLocalizer {
   readonly #transloco = inject(TranslocoService);
 

@@ -89,21 +89,22 @@
     </div>
   </header>
 
-  <!-- Financial Overview -->
+  <!-- Financial Overview — discloses the previous-month rollover baked into the total -->
   <pulpe-budget-financial-overview
     [totals]="financialTotals()"
+    [rollover]="store.previousMonthRollover()"
     [currency]="userSettingsStore.currency()"
     [locale]="currencyLocale()"
     data-tour="financial-overview"
   />
 
-  <!-- Previous-month rollover (read-only context, not editable, not pointable) -->
-  <pulpe-budget-rollover-info
-    [rollover]="store.previousMonthRollover()"
-    [rolloverSourceBudgetId]="store.previousMonthBudgetId()"
-    [currency]="userSettingsStore.currency()"
-    [locale]="currencyLocale()"
+  <!-- Savings-withdrawal nudge (PUL-292): only on a current/future month in deficit -->
+  @if (store.shouldShowSavingsWithdrawalCard()) {
+  <pulpe-savings-withdrawal-card
+    (withdraw)="openSavingsWithdrawalFromCard()"
+    (dismiss)="dismissSavingsWithdrawalCard()"
   />
+  }
 
   <!-- Budget Items -->
   <pulpe-budget-items data-tour="budget-table" />

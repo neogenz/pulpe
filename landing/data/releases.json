@@ -3,9 +3,7 @@
     "version": "0.37.1",
     "date": "2026-07-01",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.37.1",
-    "platforms": [
-      "web"
-    ],
+    "platforms": ["web"],
     "changes": {
       "features": [],
       "fixes": [
@@ -19,48 +17,45 @@
   },
   {
     "version": "0.37.0",
+    "iosVersion": "1.1.0",
     "date": "2026-07-01",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.37.0",
-    "platforms": [
-      "web",
-      "ios"
-    ],
+    "platforms": ["web", "ios"],
     "changes": {
       "features": [
         {
           "title": "Lisser une dépense",
-          "description": "Répartis une grosse dépense sur plusieurs mois, avec le suivi du reste à provisionner et du montant à prévoir chaque mois"
+          "description": "Répartis une grosse dépense sur plusieurs mois et vois exactement ce qu’il reste à provisionner"
         },
         {
           "title": "Reporter une dépense",
-          "description": "Reporte une dépense non pointée au mois suivant en un geste"
+          "description": "Décale une dépense non pointée au mois suivant, en un geste"
         },
         {
-          "title": "Transactions dans le détail (iOS)",
-          "description": "Pointe, modifie et supprime tes transactions directement depuis le détail du budget"
+          "title": "Gérer tes transactions",
+          "description": "Pointe, modifie ou supprime une transaction sans quitter ton budget"
         }
       ],
       "fixes": [
         {
-          "title": "Sécurité renforcée",
-          "description": "Correctifs de sécurité et limitation des sessions de démonstration non vérifiées"
-        },
-        {
-          "title": "Stabilité iOS",
-          "description": "Clavier qui restait ouvert, déverrouillage biométrique hors-ligne et voile de confidentialité au retour d'app fiabilisés"
+          "title": "Plus fluide au quotidien",
+          "description": "Clavier, déverrouillage hors ligne et confidentialité au retour dans l’app sont plus fiables"
         }
       ],
-      "technical": []
+      "technical": [
+        {
+          "title": "Sécurité renforcée",
+          "description": "Correctifs de sécurité et limitation des sessions de démonstration non vérifiées"
+        }
+      ]
     }
   },
   {
     "version": "0.36.0",
+    "iosVersion": "1.0.4",
     "date": "2026-06-19",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.36.0",
-    "platforms": [
-      "web",
-      "ios"
-    ],
+    "platforms": ["web", "ios"],
     "changes": {
       "features": [
         {
@@ -108,12 +103,10 @@
   },
   {
     "version": "0.35.0",
+    "iosVersion": "1.0.3",
     "date": "2026-05-14",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.35.0",
-    "platforms": [
-      "web",
-      "ios"
-    ],
+    "platforms": ["web", "ios"],
     "changes": {
       "features": [
         {
@@ -163,9 +156,7 @@
     "version": "0.34.1",
     "date": "2026-05-06",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.34.1",
-    "platforms": [
-      "web"
-    ],
+    "platforms": ["web"],
     "changes": {
       "features": [],
       "fixes": [
@@ -188,12 +179,10 @@
   },
   {
     "version": "0.34.0",
+    "iosVersion": "1.0.0",
     "date": "2026-05-05",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.34.0",
-    "platforms": [
-      "web",
-      "ios"
-    ],
+    "platforms": ["web", "ios"],
     "changes": {
       "features": [
         {
@@ -295,9 +284,7 @@
     "version": "0.33.1",
     "date": "2026-04-13",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.33.1",
-    "platforms": [
-      "web"
-    ],
+    "platforms": ["web"],
     "changes": {
       "features": [],
       "fixes": [
@@ -320,11 +307,10 @@
   },
   {
     "version": "0.33.0",
+    "iosVersion": "1.0.0",
     "date": "2026-04-08",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.33.0",
-    "platforms": [
-      "ios"
-    ],
+    "platforms": ["ios"],
     "changes": {
       "features": [
         {
@@ -349,10 +335,7 @@
     "version": "0.32.1",
     "date": "2026-04-03",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.32.1",
-    "platforms": [
-      "web",
-      "ios"
-    ],
+    "platforms": ["web", "ios"],
     "changes": {
       "features": [],
       "fixes": [
@@ -376,10 +359,7 @@
     "version": "0.32.0",
     "date": "2026-04-02",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.32.0",
-    "platforms": [
-      "web",
-      "ios"
-    ],
+    "platforms": ["web", "ios"],
     "changes": {
       "features": [
         {
@@ -429,9 +409,7 @@
     "version": "0.31.2",
     "date": "2026-03-29",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.31.2",
-    "platforms": [
-      "ios"
-    ],
+    "platforms": ["ios"],
     "changes": {
       "features": [],
       "fixes": [
@@ -459,9 +437,7 @@
     "version": "0.31.1",
     "date": "2026-03-27",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.31.1",
-    "platforms": [
-      "ios"
-    ],
+    "platforms": ["ios"],
     "changes": {
       "features": [],
       "fixes": [
@@ -497,10 +473,7 @@
     "version": "0.31.0",
     "date": "2026-03-27",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.31.0",
-    "platforms": [
-      "web",
-      "ios"
-    ],
+    "platforms": ["web", "ios"],
     "changes": {
       "features": [
         {
@@ -574,10 +547,7 @@
     "version": "0.30.0",
     "date": "2026-03-13",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.30.0",
-    "platforms": [
-      "web",
-      "ios"
-    ],
+    "platforms": ["web", "ios"],
     "changes": {
       "features": [
         {
@@ -651,10 +621,7 @@
     "version": "0.29.0",
     "date": "2026-03-04",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.29.0",
-    "platforms": [
-      "web",
-      "ios"
-    ],
+    "platforms": ["web", "ios"],
     "changes": {
       "features": [
         {
@@ -708,10 +675,7 @@
     "version": "0.28.0",
     "date": "2026-02-28",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.28.0",
-    "platforms": [
-      "web",
-      "ios"
-    ],
+    "platforms": ["web", "ios"],
     "changes": {
       "features": [
         {
@@ -752,10 +716,7 @@
     "version": "0.27.0",
     "date": "2026-02-27",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.27.0",
-    "platforms": [
-      "web",
-      "ios"
-    ],
+    "platforms": ["web", "ios"],
     "changes": {
       "features": [
         {
@@ -808,9 +769,7 @@
     "version": "0.26.0",
     "date": "2026-02-27",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.26.0",
-    "platforms": [
-      "web"
-    ],
+    "platforms": ["web"],
     "changes": {
       "features": [
         {
@@ -848,9 +807,7 @@
     "version": "0.25.0",
     "date": "2026-02-25",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.25.0",
-    "platforms": [
-      "web"
-    ],
+    "platforms": ["web"],
     "changes": {
       "features": [
         {
@@ -870,9 +827,7 @@
     "version": "0.24.0",
     "date": "2026-02-25",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.24.0",
-    "platforms": [
-      "web"
-    ],
+    "platforms": ["web"],
     "changes": {
       "features": [
         {
@@ -897,9 +852,7 @@
     "version": "0.23.1",
     "date": "2026-02-25",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.23.1",
-    "platforms": [
-      "web"
-    ],
+    "platforms": ["web"],
     "changes": {
       "features": [],
       "fixes": [
@@ -919,9 +872,7 @@
     "version": "0.23.0",
     "date": "2026-02-20",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.23.0",
-    "platforms": [
-      "web"
-    ],
+    "platforms": ["web"],
     "changes": {
       "features": [
         {
@@ -954,10 +905,7 @@
     "version": "0.22.0",
     "date": "2026-02-15",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.22.0",
-    "platforms": [
-      "web",
-      "ios"
-    ],
+    "platforms": ["web", "ios"],
     "changes": {
       "features": [
         {
@@ -1019,9 +967,7 @@
     "version": "0.21.0",
     "date": "2026-02-14",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.21.0",
-    "platforms": [
-      "web"
-    ],
+    "platforms": ["web"],
     "changes": {
       "features": [
         {
@@ -1055,10 +1001,7 @@
     "version": "0.20.0",
     "date": "2026-02-13",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.20.0",
-    "platforms": [
-      "web",
-      "ios"
-    ],
+    "platforms": ["web", "ios"],
     "changes": {
       "features": [
         {
@@ -1082,9 +1025,7 @@
     "version": "0.19.1",
     "date": "2026-02-11",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.19.1",
-    "platforms": [
-      "web"
-    ],
+    "platforms": ["web"],
     "changes": {
       "features": [],
       "fixes": [
@@ -1100,10 +1041,7 @@
     "version": "0.19.0",
     "date": "2026-02-10",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.19.0",
-    "platforms": [
-      "web",
-      "ios"
-    ],
+    "platforms": ["web", "ios"],
     "changes": {
       "features": [
         {
@@ -1155,10 +1093,7 @@
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.18.0",
     "headline": "Premiere release officielle",
     "description": "Pulpe est une application de gestion budgetaire personnelle pour le marche suisse. Cette premiere release regroupe l'ensemble des fonctionnalites developpees depuis la creation du projet.",
-    "platforms": [
-      "web",
-      "ios"
-    ],
+    "platforms": ["web", "ios"],
     "changes": {
       "features": [
         {

@@ -131,6 +131,26 @@ import { ThemeService } from '@core/theme';
               [totals]="deficitTotals"
             />
           </div>
+          <div class="space-y-2">
+            <p class="text-label-large text-on-surface-variant">
+              With rollover
+            </p>
+            <pulpe-budget-financial-overview
+              [currency]="'CHF'"
+              [totals]="comfortableTotals"
+              [rollover]="177"
+            />
+          </div>
+          <div class="space-y-2">
+            <p class="text-label-large text-on-surface-variant">
+              With negative rollover
+            </p>
+            <pulpe-budget-financial-overview
+              [currency]="'CHF'"
+              [totals]="deficitTotals"
+              [rollover]="-240"
+            />
+          </div>
         </div>
       </section>
 

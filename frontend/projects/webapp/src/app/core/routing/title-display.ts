@@ -1,4 +1,4 @@
-import { Injectable, inject, afterNextRender, Injector } from '@angular/core';
+import { Service, inject, afterNextRender, Injector } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { Router, NavigationEnd } from '@angular/router';
 import {
@@ -19,9 +19,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
  * Note: Due to Angular's intentional timing (NavigationEnd fires before title update),
  * we use afterNextRender to ensure proper synchronization with the DOM title.
  */
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class TitleDisplay {
   readonly #browserTitle = inject(Title);
   readonly #router = inject(Router);

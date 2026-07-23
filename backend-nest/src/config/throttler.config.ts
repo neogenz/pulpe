@@ -16,12 +16,30 @@ import type { ExecutionContext } from '@nestjs/common';
  */
 export const DEMO_UNVERIFIED_HOURLY_LIMIT = 10;
 
-const DEMO_SESSION_PATH = '/api/v1/demo/session';
+// Trailing slash is load-bearing: without it the prefix would also match a
+// sibling like `/api/v1/demography`. Every real demo route is nested under
+// `/api/v1/demo/` (session, cleanup), so the slash narrows to exactly them.
+const DEMO_PATH_PREFIX = '/api/v1/demo/';
+const DEMO_SESSION_PATH = `${DEMO_PATH_PREFIX}session`;
 
 interface ThrottlerRequest {
   url?: string;
   body?: { turnstileToken?: unknown };
 }
+
+/**
+ * True for any demo route. Demo-session creation hands the caller a usable
+ * Bearer token, so these paths MUST stay IP-keyed in the throttler: a
+ * user-keyed bucket is self-mintable (create a demo user, replay the request
+ * with its own token, land in a brand-new empty bucket, repeat). That would
+ * defeat the `demo` / `demoUnverified` per-IP caps the fail-open Turnstile
+ * path depends on. Consumed by UserThrottlerGuard.getTracker.
+ *
+ * Lowercased for the same reason as isUnverifiedDemoSessionRequest: Express
+ * routes case-insensitively.
+ */
+export const isDemoPath = (url?: string): boolean =>
+  url?.toLowerCase().startsWith(DEMO_PATH_PREFIX) ?? false;
 
 /**
  * True when the request is a demo-session creation carrying an empty (or

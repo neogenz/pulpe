@@ -1,16 +1,23 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "lib": ["ES2022", "DOM"],
-    "module": "ESNext",
-    "moduleResolution": "node",
+    "lib": ["ES2023", "DOM"],
+    "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["node", "@playwright/test"]
+    "types": ["node", "@playwright/test"],
+    "paths": {
+      "@core/*": ["../projects/webapp/src/app/core/*"],
+      "@ui/*": ["../projects/webapp/src/app/ui/*"],
+      "@features/*": ["../projects/webapp/src/app/feature/*"],
+      "@env/*": ["../projects/webapp/src/environments/*"],
+      "@layout/*": ["../projects/webapp/src/app/layout/*"],
+      "@pattern/*": ["../projects/webapp/src/app/pattern/*"],
+      "@app/*": ["../projects/webapp/src/app/*"]
+    }
   },
   "include": ["**/*.ts", "**/*.js"]
 }

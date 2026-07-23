@@ -13,10 +13,6 @@ import SwiftUI
 ///   tap row     → push `BudgetLinePushRoute.editTx(transactionId:)`
 ///   tap "Ajouter" → push `BudgetLinePushRoute.addAllocatedTx(lineId:)`
 ///
-/// Header menu actions:
-///   "Modifier" → `onEditLine` callback (parent presents `editBudgetLine` sheet)
-///   "Supprimer" → confirmation alert → `softDeleteBudgetLine` + automatic pop
-///
 /// When the underlying line is removed (deleted or filtered out by sync), the
 /// page auto-pops via `dismiss()` from the empty branch — no stale state.
 struct BudgetLineDetailPage: View {
@@ -192,7 +188,12 @@ private extension BudgetLineDetailPage {
             )
 
             Button(role: .destructive) {
-                showDeleteConfirmation = true
+                // Linked line → explicit choice alert, not single-line delete (CA9).
+                if line.savingsWithdrawalGroupId == nil {
+                    showDeleteConfirmation = true
+                } else {
+                    deleteBudgetLine(line)
+                }
             } label: {
                 Label("Supprimer", systemImage: "trash")
             }
@@ -203,11 +204,13 @@ private extension BudgetLineDetailPage {
     }
 
     /// A prévision is spreadable only when it's a one-off expense/épargne that
-    /// isn't already lissée and isn't a rollover row (PUL-17 v1.1, total-preserving).
+    /// isn't already lissée, isn't a rollover, and isn't half of a withdrawal
+    /// couple — spreading that deletes the source server-side and orphans it (CA9).
     func canSpread(_ line: BudgetLine) -> Bool {
         line.kind != .income
             && line.recurrence == .oneOff
             && line.spreadGroupId == nil
+            && line.savingsWithdrawalGroupId == nil
             && !(line.isRollover ?? false)
     }
 
@@ -225,11 +228,9 @@ private extension BudgetLineDetailPage {
     }
 
     func deleteBudgetLine(_ line: BudgetLine) {
-        // `softDeleteBudgetLine` removes the line from the data store
-        // synchronously. Observation re-evaluates the body, the empty branch
-        // fires `autoPopIfStillEmpty`, and the page pops.
-        // We do NOT call `dismiss()` here — racing the auto-pop branch can
-        // double-pop and accidentally pop the parent `BudgetDetailsView`.
+        // Soft-delete removes the line synchronously; the empty branch auto-pops.
+        // No `dismiss()` — racing auto-pop can double-pop the parent. A linked
+        // line is diverted by the coordinator to the choice alert (CA9).
         let ctx = ToastContext(
             toastManager: appState.toastManager,
             presentationCurrency: userSettingsStore.currency

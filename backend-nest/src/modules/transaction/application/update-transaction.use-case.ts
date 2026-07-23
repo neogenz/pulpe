@@ -46,7 +46,7 @@ export class UpdateTransactionUseCase {
       ...(withRate.transactionDate !== undefined && {
         transactionDate: withRate.transactionDate,
       }),
-      ...(withRate.category !== undefined && { category: withRate.category }),
+      ...(withRate.tagIds !== undefined && { tagIds: withRate.tagIds }),
       ...(withRate.originalAmount !== undefined && {
         originalAmount: withRate.originalAmount,
       }),
