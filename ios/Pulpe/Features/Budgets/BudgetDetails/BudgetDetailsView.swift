@@ -126,6 +126,21 @@ struct BudgetDetailsView: View {
                 .accessibilityLabel("Suivi du budget")
             }
         }
+        // Scroll-independent month navigation (system title chevron). The sticky
+        // pager only reveals after ~32pt of scroll — a short filtered list (e.g.
+        // "À pointer" fully checked) can never produce that, so the title menu is
+        // the guaranteed path; the pager stays as the scrolled fast path.
+        .toolbarTitleMenu {
+            // Newest first: a title menu is a quick-jump list and the recent
+            // months are the target in practice — chronological order would bury
+            // the current month under years of history (the pager keeps its
+            // ascending rail; different affordance, different reading order).
+            Picker("Mois", selection: monthSelection) {
+                ForEach(coordinator.dataStore.pagerMonths.reversed(), id: \.id) { sparse in
+                    Text(Self.monthMenuLabel(for: sparse)).tag(sparse.id)
+                }
+            }
+        }
         .task(id: screenState.budgetId) {
             coordinator.bind(
                 budgetListStore: budgetListStore,
@@ -325,5 +340,31 @@ struct BudgetDetailsView: View {
         // (pulpeStickyBottomCTA). Must stay LAST so both overlays inherit it; if
         // a bottom text field is ever added here, remove or scope this.
         .ignoresSafeArea(.keyboard, edges: .bottom)
+    }
+
+    // MARK: - Title menu month navigation
+
+    /// Same routing as the sticky pager's `onSelect` — one navigation semantic,
+    /// two affordances.
+    private var monthSelection: Binding<String> {
+        Binding(
+            get: { coordinator.dataStore.budgetId },
+            set: { id in
+                guard id != coordinator.dataStore.budgetId else { return }
+                Task { await coordinator.dispatch(.prepareNavigation(to: id)) }
+            }
+        )
+    }
+
+    /// Always the disambiguated "Mai 2025" form: a vertical menu has no space
+    /// pressure, and mixed short/long labels would read as inconsistency.
+    private static func monthMenuLabel(for sparse: BudgetSparse) -> String {
+        guard let month = sparse.month, let year = sparse.year else { return "—" }
+        var components = DateComponents()
+        components.month = month
+        components.year = year
+        components.day = 1
+        guard let date = Calendar.current.date(from: components) else { return "—" }
+        return Formatters.monthYear.string(from: date).capitalized
     }
 }
