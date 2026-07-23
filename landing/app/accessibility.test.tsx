@@ -79,6 +79,10 @@ const componentSources = {
     new URL("../components/sections/FinalCTA.tsx", import.meta.url),
     "utf8",
   ),
+  arrowNote: readFileSync(
+    new URL("../components/ui/ArrowNote.tsx", import.meta.url),
+    "utf8",
+  ),
   faq: readFileSync(
     new URL("../components/sections/FAQ.tsx", import.meta.url),
     "utf8",
@@ -495,6 +499,23 @@ describe("landing accessibility contracts", () => {
       globalsCss,
       /feTurbulence|cubic-bezier\(0\.34,\s*1\.56/,
     );
+  });
+
+  it("draws the CTA annotation once without hiding its fallback", () => {
+    assert.match(componentSources.arrowNote, /IntersectionObserver/);
+    assert.match(componentSources.arrowNote, /prefers-reduced-motion: reduce/);
+    assert.match(componentSources.arrowNote, /observer\.disconnect\(\)/);
+    assert.doesNotMatch(getDeclarations(".arrow-note-label"), /opacity:\s*0/);
+    assert.match(
+      getDeclarations(".arrow-note-ready .arrow-note-label"),
+      /clip-path:\s*inset\(0 100% 0 0\)/,
+    );
+    assert.doesNotMatch(
+      getDeclarations(".arrow-note-path"),
+      /stroke-dashoffset:\s*1/,
+    );
+    assert.match(globalsCss, /\.arrow-note-ready \.arrow-note-label/);
+    assert.match(globalsCss, /@media \(prefers-reduced-motion: reduce\)/);
   });
 
   it("pairs each of the three static setup steps with its own screenshot", () => {

@@ -179,6 +179,96 @@ h3,
   }
 }
 
+/* CTA annotation: centered on mobile, offset to the button edge on desktop. */
+.arrow-note {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  color: var(--color-text);
+  pointer-events: none;
+}
+
+.arrow-note-label {
+  display: block;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  transform: rotate(-3deg);
+  transform-origin: bottom right;
+}
+
+.arrow-note-svg {
+  display: block;
+  width: 96px;
+  height: 72px;
+  margin-right: 16px;
+  overflow: visible;
+}
+
+@media (min-width: 768px) {
+  .arrow-note-svg {
+    width: 120px;
+    height: 90px;
+    margin-right: 48px;
+  }
+}
+
+.arrow-note-path {
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+
+.arrow-note-ready .arrow-note-label {
+  clip-path: inset(0 100% 0 0);
+}
+
+.arrow-note-ready .arrow-note-path {
+  stroke-dashoffset: 1;
+}
+
+.arrow-note-ready.arrow-note-drawn .arrow-note-label {
+  animation: arrow-note-write 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.arrow-note-ready.arrow-note-drawn .arrow-note-path {
+  animation: arrow-note-draw 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both;
+}
+
+.arrow-note-ready.arrow-note-drawn .arrow-note-head {
+  animation-duration: 0.2s;
+  animation-delay: 0.55s;
+}
+
+@keyframes arrow-note-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes arrow-note-write {
+  to {
+    clip-path: inset(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arrow-note-ready .arrow-note-label {
+    clip-path: none;
+    animation: none;
+  }
+
+  .arrow-note-ready .arrow-note-path {
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+}
+
 /* Reserve the screenshot box per breakpoint (portrait mobile asset, landscape
    desktop asset) so neither causes a decode-time layout shift. Vars are set
    inline per instance from the real asset dimensions. */

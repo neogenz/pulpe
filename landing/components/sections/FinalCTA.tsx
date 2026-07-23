@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Container } from "@/components/ui";
+import { ArrowNote, Button, Container } from "@/components/ui";
 import { angularUrl } from "@/lib/config";
 import { trackCTAClick } from "@/lib/posthog";
 
@@ -16,15 +16,17 @@ export function FinalCTA() {
             Commence gratuitement, sans connecter tes comptes bancaires. Tes
             montants sont chiffrés.
           </p>
-          <Button
-            href={angularUrl("/signup", "final_cta_commencer")}
-            className="mt-10"
-            onClick={() =>
-              trackCTAClick("commencer_gratuitement", "final_cta", "/signup")
-            }
-          >
-            Créer mon budget gratuitement
-          </Button>
+          <div className="relative mt-32 inline-block md:mt-28">
+            <ArrowNote className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 md:-mb-10 md:left-auto md:right-0 md:translate-x-38" />
+            <Button
+              href={angularUrl("/signup", "final_cta_commencer")}
+              onClick={() =>
+                trackCTAClick("commencer_gratuitement", "final_cta", "/signup")
+              }
+            >
+              Créer mon budget gratuitement
+            </Button>
+          </div>
         </div>
       </Container>
     </section>
