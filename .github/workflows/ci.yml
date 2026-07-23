@@ -729,17 +729,45 @@ jobs:
         if: always()
         run: xcrun simctl shutdown all 2>/dev/null || true
 
-  # 🗄️ MIGRATION DRY-RUN (PRs only — détecte les problèmes avant merge)
-  migrate-dryrun:
-    name: 🗄️ Migration Dry-Run
-    # Dependabot PRs run with the Dependabot secret store, so prod Supabase
-    # secrets are empty and `supabase link` fails. Skip — a dep bump touches no
-    # migrations. ci-success treats migrate-dryrun=skipped as success.
+  # 🔍 DETECT MIGRATION CHANGES (PRs only — gates whether the prod-linked
+  # dry-run runs at all, so ordinary PRs never hit the manual approval gate)
+  detect-migrations:
+    name: 🔍 Detect Migration Changes
     if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      changed: ${{ steps.filter.outputs.changed }}
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+      - name: 🔍 Any migration file touched?
+        id: filter
+        run: |
+          if git diff --name-only "origin/${{ github.base_ref }}...HEAD" -- 'backend-nest/supabase/migrations/' | grep -q .; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # 🗄️ MIGRATION DRY-RUN (PRs touching migrations only — detects prod drift
+  # before merge). Path-gated so it only runs — and only trips the required-
+  # reviewer approval gate — when a PR actually changes migration files. Code
+  # PRs skip it entirely, so autonomous agents open PRs without manual gates.
+  migrate-dryrun:
+    name: 🗄️ Migration Dry-Run
+    needs: [detect-migrations]
+    # Runs only when migrations changed (implies pull_request + non-dependabot,
+    # since detect-migrations carries those guards). ci-success treats a skipped
+    # migrate-dryrun as success.
+    if: needs.detect-migrations.outputs.changed == 'true'
+    runs-on: ubuntu-latest
     timeout-minutes: 5
-    # Prod secrets only resolve inside the gated Environment: a PR run (whose
-    # YAML comes from the PR head) waits for human approval before touching them.
+    # Prod secrets only resolve inside the gated Environment: a migration PR
+    # (whose YAML comes from the PR head) waits for human approval before
+    # touching them — desirable oversight precisely when the schema changes.
     environment: production
     steps:
       - name: 📥 Checkout
