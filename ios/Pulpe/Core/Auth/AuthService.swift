@@ -463,6 +463,14 @@ extension AuthService {
             firstName = name
         }
 
+        // OAuth profile photo — Google exposes both `avatar_url` and `picture`; Apple/email none.
+        var avatarUrl: String?
+        if case .string(let url) = metadata["avatar_url"] {
+            avatarUrl = url
+        } else if case .string(let url) = metadata["picture"] {
+            avatarUrl = url
+        }
+
         // `provider` drives post-auth routing (see `AppState.applyPostAuthDestination`).
         let appMetadata = user.appMetadata
         var provider: AuthProvider?
@@ -479,6 +487,7 @@ extension AuthService {
             email: user.email ?? fallbackEmail,
             firstName: firstName,
             provider: provider,
+            avatarUrl: avatarUrl,
             isEarlyAdopter: isEarlyAdopter
         )
     }

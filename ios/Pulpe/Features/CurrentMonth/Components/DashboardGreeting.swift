@@ -1,10 +1,12 @@
 import SwiftUI
 
-/// Greeting + motivational headline displayed above the hero card.
-/// Adapts tone and color to the current budget emotion state.
+/// Tour 11 header — hour-based greeting + account avatar (photo → initials → glyph)
+/// opening the account sheet.
 struct DashboardGreeting: View {
-    let emotionState: BudgetFormulas.EmotionState
     var firstName: String?
+    var email: String?
+    var avatarUrl: String?
+    var onAvatarTap: () -> Void
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: .now)
@@ -16,50 +18,91 @@ struct DashboardGreeting: View {
         default: timeGreeting = "Bonsoir"
         }
         if let name = firstName, !name.isEmpty {
-            return "\(timeGreeting) \(name)"
+            return "\(timeGreeting), \(name)"
         }
         return timeGreeting
     }
 
-    private var headline: String {
-        switch emotionState {
-        case .comfortable: "Tu gères bien ce mois-ci"
-        case .tight: "Serré — mais tu le sais"
-        case .deficit: "Ça arrive — on gère"
+    /// Initials for the avatar: up to two from the first name's words ("Maxime De" → "MD"),
+    /// else the email's first letter (matches `AccountView`), so a logged-in user without a
+    /// stored name still gets a letter rather than the anonymous glyph.
+    private var initials: String? {
+        if let firstName, !firstName.isEmpty {
+            let letters = firstName
+                .split(separator: " ")
+                .prefix(2)
+                .compactMap(\.first)
+            if !letters.isEmpty { return String(letters).uppercased() }
         }
-    }
-
-    private var greetingColor: Color {
-        switch emotionState {
-        case .comfortable: .pulpePrimary
-        case .tight: .warningPrimary
-        case .deficit: .financialOverBudget
+        if let first = email?.first {
+            return String(first).uppercased()
         }
+        return nil
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+        HStack {
             Text(greeting)
-                .font(PulpeTypography.labelLarge)
-                .foregroundStyle(greetingColor)
-
-            Text(headline)
-                .font(PulpeTypography.onboardingTitle)
+                .font(PulpeTypography.cardTitle)
                 .foregroundStyle(Color.textPrimary)
+
+            Spacer()
+
+            Button(action: onAvatarTap) {
+                avatar
+            }
+            .circleIconButtonStyle()
+            .accessibilityLabel("Mon compte")
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
+    }
+
+    private var avatar: some View {
+        Circle()
+            .fill(Color.surfaceContainerLowest)
+            .frame(width: DesignTokens.IconSize.listRow, height: DesignTokens.IconSize.listRow)
+            .overlay { avatarContent }
+            .clipShape(Circle())
+            .shadow(DesignTokens.Shadow.subtle)
+    }
+
+    /// Profile photo when the account has one (Google); otherwise initials, otherwise a glyph.
+    /// The fallback also shows while the photo loads, so the avatar is never blank.
+    @ViewBuilder
+    private var avatarContent: some View {
+        if let avatarUrl, let url = URL(string: avatarUrl) {
+            CachedAsyncImage(url: url) { image in
+                image
+                    .resizable()
+                    .scaledToFill()
+            } placeholder: {
+                avatarFallback
+            }
+        } else {
+            avatarFallback
+        }
+    }
+
+    @ViewBuilder
+    private var avatarFallback: some View {
+        if let initials {
+            Text(initials)
+                .font(PulpeTypography.metricLabelBold)
+                .foregroundStyle(Color.textTertiary)
+        } else {
+            Image(systemName: "person.fill")
+                .font(PulpeTypography.metricLabelBold)
+                .foregroundStyle(Color.textTertiary)
+        }
     }
 }
 
-// MARK: - Preview
-
-#Preview("Dashboard Greeting — 3 States") {
-    VStack(spacing: 32) {
-        DashboardGreeting(emotionState: .comfortable)
-        DashboardGreeting(emotionState: .tight)
-        DashboardGreeting(emotionState: .deficit)
+#Preview {
+    VStack(spacing: 24) {
+        DashboardGreeting(firstName: "Maxime", email: "maxime@pulpe.app", avatarUrl: nil, onAvatarTap: {})
+        DashboardGreeting(firstName: nil, email: "sofia@pulpe.app", avatarUrl: nil, onAvatarTap: {})
+        DashboardGreeting(firstName: nil, email: nil, avatarUrl: nil, onAvatarTap: {})
     }
     .padding()
-    .pulpeBackground()
+    .background(Color.homeBackground)
 }

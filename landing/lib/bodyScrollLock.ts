@@ -39,6 +39,9 @@ export function lockBodyScroll(): () => void {
     style.width = previous.width
     style.overflow = previous.overflow
     style.paddingRight = previous.paddingRight
-    window.scrollTo(0, scrollY)
+    // Instant, not the html rule's smooth behavior: the page already sits at
+    // scroll 0 once `position: fixed` is removed, so a smooth restore would
+    // visibly scroll from the top of the page back to the user's spot.
+    window.scrollTo({ top: scrollY, behavior: 'instant' })
   }
 }

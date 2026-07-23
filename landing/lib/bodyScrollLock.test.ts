@@ -25,7 +25,7 @@ test('compensates a classic scrollbar while the body is locked', () => {
     overflow: '',
     paddingRight: '4px',
   }
-  const scrollCalls: Array<[number, number]> = []
+  const scrollCalls: Array<{ top: number; behavior: string }> = []
 
   try {
     Object.defineProperty(globalThis, 'window', {
@@ -34,7 +34,8 @@ test('compensates a classic scrollbar while the body is locked', () => {
         scrollY: 120,
         innerWidth: 1024,
         getComputedStyle: () => ({ paddingRight: '4px' }),
-        scrollTo: (x: number, y: number) => scrollCalls.push([x, y]),
+        scrollTo: (options: { top: number; behavior: string }) =>
+          scrollCalls.push(options),
       },
     })
     Object.defineProperty(globalThis, 'document', {
@@ -50,7 +51,7 @@ test('compensates a classic scrollbar while the body is locked', () => {
     assert.equal(style.paddingRight, '19px')
     unlock()
     assert.equal(style.paddingRight, '4px')
-    assert.deepEqual(scrollCalls, [[0, 120]])
+    assert.deepEqual(scrollCalls, [{ top: 120, behavior: 'instant' }])
   } finally {
     restoreGlobal('window', originalWindow)
     restoreGlobal('document', originalDocument)

@@ -49,14 +49,16 @@ extension BudgetFormulas {
         )
     }
 
-    /// Calculate realized metrics
+    /// Calculate realized metrics. `rollover` carries the previous month's report into the
+    /// balance — the flows exclude the virtual rollover line (see `calculateRealizedIncome`).
     static func calculateRealizedMetrics(
         budgetLines: [BudgetLine],
-        transactions: [Transaction] = []
+        transactions: [Transaction] = [],
+        rollover: Decimal = 0
     ) -> RealizedMetrics {
         let realizedIncome = calculateRealizedIncome(budgetLines: budgetLines, transactions: transactions)
         let realizedExpenses = calculateRealizedExpenses(budgetLines: budgetLines, transactions: transactions)
-        let realizedBalance = realizedIncome - realizedExpenses
+        let realizedBalance = realizedIncome - realizedExpenses + rollover
 
         let checkedCount = budgetLines.filter { $0.isChecked }.count + transactions.filter { $0.isChecked }.count
         let totalCount = budgetLines.count + transactions.count

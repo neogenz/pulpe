@@ -145,6 +145,11 @@ enum DesignTokens {
         static let borderFocused: Double = 0.45
         /// Heavy overlays
         static let heavy: Double = 0.5
+        /// Muted ink on the mint hero card — suffixes, chevrons, progress-track hairline.
+        /// Floor set by WCAG 1.4.11: at `heavy` (0.5) these composite to 2.69:1 against the
+        /// hero gradient's darkest light-mode stop; 0.6 lifts them to 3.42–3.57:1 light and
+        /// 4.01–4.68:1 dark across both gradient stops.
+        static let heroInkMuted: Double = 0.6
         /// Disabled controls (e.g. type pills with count==0)
         static let disabled: Double = 0.4
         /// Dimmed row card — DM2.1.b.c5 pointed state on per-row card
@@ -224,6 +229,9 @@ enum DesignTokens {
         }
 
         // MARK: - Easing
+
+        /// Scale a confirmed element settles to as it resolves away (check-exit transition).
+        static let settleScale: CGFloat = 0.94
 
         static var smoothEaseOut: SwiftUI.Animation {
             .easeOut(duration: normal)
@@ -392,6 +400,33 @@ enum DesignTokens {
             static let horizontalPadding: CGFloat = Spacing.tightGap
             static let verticalPadding: CGFloat = Spacing.xxs
         }
+
+        /// Leading state-dot diameter (`PulpeChip(dotColor:)`).
+        static let stateDotSize: CGFloat = Spacing.tightGap
+    }
+
+    // MARK: - Skeleton
+
+    /// Placeholder dimensions for loading states — sized to the real content they stand in for,
+    /// so the skeleton doesn't reflow when data lands.
+    enum Skeleton {
+        /// Greeting line ("Bonjour, Maxime").
+        static let greetingWidth: CGFloat = 180
+        /// A single line of placeholder text.
+        static let lineHeight: CGFloat = 18
+        /// Home hero card placeholder.
+        static let heroHeight: CGFloat = 240
+    }
+
+    // MARK: - Text Scale
+
+    /// Floors for `minimumScaleFactor` on text that must not wrap or truncate under
+    /// Dynamic Type — amounts, units and compact controls that share a row with a sibling.
+    enum TextScale {
+        /// Amounts and units held to a single line (hero figure, currency suffix).
+        static let floor: CGFloat = 0.6
+        /// Short labels that only need to give up a little (compact toggles, chips).
+        static let compact: CGFloat = 0.8
     }
 
     // MARK: - Progress Bar

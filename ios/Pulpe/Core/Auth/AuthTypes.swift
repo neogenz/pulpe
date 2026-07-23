@@ -59,15 +59,19 @@ struct UserInfo: Codable, Equatable, Sendable {
     let email: String
     var firstName: String?
     let provider: AuthProvider?
+    /// OAuth profile photo URL from Supabase `user_metadata` (`avatar_url` / `picture`).
+    /// Present for Google sign-in; Apple and email provide none (avatar falls back to initials).
+    var avatarUrl: String?
     /// Mirrored from Supabase `auth.users.app_metadata.early_adopter` — PostHog feature flag target.
     var isEarlyAdopter: Bool = false
 
     init(id: String, email: String, firstName: String? = nil,
-         provider: AuthProvider? = nil, isEarlyAdopter: Bool = false) {
+         provider: AuthProvider? = nil, avatarUrl: String? = nil, isEarlyAdopter: Bool = false) {
         self.id = id
         self.email = email
         self.firstName = firstName
         self.provider = provider
+        self.avatarUrl = avatarUrl
         self.isEarlyAdopter = isEarlyAdopter
     }
 }

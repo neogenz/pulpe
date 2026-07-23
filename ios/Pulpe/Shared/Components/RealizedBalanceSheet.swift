@@ -123,7 +123,7 @@ struct RealizedBalanceSheet: View {
 
                 CategoryRow(
                     kind: .expense,
-                    realized: realizedMetrics.realizedExpenses,
+                    realized: realizedMetrics.realizedSpending,
                     planned: metrics.totalExpenses - metrics.totalSavings
                 )
 

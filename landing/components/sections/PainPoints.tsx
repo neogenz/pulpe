@@ -1,22 +1,16 @@
-import { CalendarX, House, Wallet } from "lucide-react";
+import { ChartNoAxesCombined, FileSpreadsheet } from "lucide-react";
 import { Section } from "@/components/ui";
 
-const PROOFS = [
-  { value: "12 mois", label: "visibles d’un coup" },
-  { value: "3 minutes", label: "pour poser ton année" },
-  { value: "Web + iOS", label: "le même budget partout" },
-];
-
-const SUPPORTING = [
+const LIMITS = [
   {
-    icon: House,
-    title: "Ton loyer augmente de 50 CHF.",
-    text: "Tu le modifies une fois dans Pulpe. Les mois suivants se recalculent.",
+    icon: FileSpreadsheet,
+    title: "Avec un tableur, tu dois tout tenir à jour.",
+    text: "Au moindre changement, tu modifies les lignes, les mois et parfois les formules. Si ton fichier n’est plus à jour, ta projection ne l’est plus non plus.",
   },
   {
-    icon: Wallet,
-    title: "Tu peux réserver ce week-end ?",
-    text: "Pulpe te montre ce qu’il te restera après les factures et l’épargne. Tu décides avec un chiffre, pas au feeling.",
+    icon: ChartNoAxesCombined,
+    title: "Le suivi commence une fois l’argent dépensé.",
+    text: "Une app de suivi t’explique où ton argent est parti. Elle t’aide moins à savoir si une dépense prévue en septembre tient encore dans ton budget.",
   },
 ];
 
@@ -24,59 +18,36 @@ export function PainPoints() {
   return (
     <Section
       id="pain-points"
-      className="pain-points-mesh relative overflow-hidden md:pt-10 lg:pt-8"
+      className="pain-points-mesh relative overflow-hidden"
     >
-      <dl className="grid border-y border-text/10 sm:grid-cols-3">
-        {PROOFS.map((proof, index) => (
-          <div
-            key={proof.value}
-            className={`grid grid-cols-[7rem_minmax(0,1fr)] items-baseline gap-x-4 py-4 sm:block sm:px-6 sm:py-5 sm:text-center ${
-              index > 0
-                ? "border-t border-text/10 sm:border-l sm:border-t-0"
-                : ""
-            }`}
-          >
-            <dt className="text-xl font-semibold text-text">{proof.value}</dt>
-            <dd className="pretty text-sm leading-relaxed text-text-secondary sm:mt-1">
-              {proof.label}
-            </dd>
-          </div>
-        ))}
-      </dl>
+      <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
+        <header className="max-w-xl lg:col-span-5">
+          <h2 className="text-4xl font-bold leading-[1.12] tracking-[-0.035em] text-text sm:text-5xl">
+            Les impôts tombent en juillet. Tu sais déjà combien il te restera en
+            août.
+          </h2>
+          <p className="pretty mt-6 text-lg leading-relaxed text-text-secondary">
+            Une grosse dépense tombe un mois, mais son effet se fait sentir bien
+            après. Avec un tableur, tu dois recalculer la suite. Une app de
+            suivi ne la montre qu&apos;une fois payée.
+          </p>
+        </header>
 
-      <div className="mt-10 grid items-stretch gap-8 md:mt-20 lg:grid-cols-5 lg:gap-12">
-        <div className="relative overflow-hidden rounded-[var(--radius-large)] bg-surface-alt p-7 sm:p-10 lg:col-span-3 lg:p-12">
-          <div
-            aria-hidden="true"
-            className="absolute -right-16 -top-16 size-56 rounded-full bg-primary/10 blur-3xl"
-          />
-          <div className="relative max-w-xl">
-            <div className="mb-8 flex size-12 items-center justify-center rounded-full bg-surface text-primary shadow-[var(--shadow-organic)]">
-              <CalendarX className="size-6" strokeWidth={1.7} />
-            </div>
-            <p className="text-sm font-medium text-primary">Juillet</p>
-            <h2 className="mt-3 text-4xl font-bold leading-[1.05] tracking-[-0.035em] text-text sm:text-5xl">
-              Les impôts tombent. Ton mois ne devrait pas tomber avec.
-            </h2>
-            <p className="mt-6 max-w-lg text-base leading-relaxed text-text-secondary sm:text-lg">
-              Avec Pulpe, les grosses dépenses ont déjà leur place dans ton
-              année. Tu vois ce qu&apos;il te restera en juillet, en août et
-              après.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-col justify-center lg:col-span-2">
-          {SUPPORTING.map((point, index) => (
+        <div className="border-y border-text/10 lg:col-span-7">
+          {LIMITS.map((point, index) => (
             <article
               key={point.title}
-              className={`py-7 ${index > 0 ? "border-t border-text/10" : ""}`}
+              className={`py-7 sm:py-8 ${index > 0 ? "border-t border-text/10" : ""}`}
             >
-              <point.icon className="size-6 text-primary" strokeWidth={1.7} />
+              <point.icon
+                className="size-6 text-primary"
+                strokeWidth={1.7}
+                aria-hidden="true"
+              />
               <h3 className="mt-5 text-xl font-semibold text-text">
                 {point.title}
               </h3>
-              <p className="mt-3 leading-relaxed text-text-secondary">
+              <p className="pretty mt-3 max-w-xl leading-relaxed text-text-secondary">
                 {point.text}
               </p>
             </article>

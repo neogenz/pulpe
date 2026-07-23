@@ -1,33 +1,32 @@
 "use client";
 
-import { Button, Container } from "@/components/ui";
+import { ArrowNote, Button, Container } from "@/components/ui";
 import { angularUrl } from "@/lib/config";
 import { trackCTAClick } from "@/lib/posthog";
 
 export function FinalCTA() {
   return (
-    <section className="py-24 sm:py-28 lg:py-36">
+    <section id="final-cta" className="py-24 sm:py-28 lg:py-36">
       <Container>
         <div className="mx-auto max-w-5xl text-center">
-          <p className="text-sm font-medium text-primary">
-            Ton année peut être claire dès aujourd&apos;hui
-          </p>
-          <h2 className="mt-5 text-[clamp(2.75rem,7vw,6rem)] font-bold leading-[0.98] tracking-[-0.05em] text-text">
-            Prends des mois d&apos;avance sur ce qu&apos;il te restera.
+          <h2 className="text-[clamp(2.75rem,7vw,6rem)] font-bold leading-[1.12] tracking-[-0.04em] text-text">
+            Prépare ton année. Vois combien il te restera chaque mois.
           </h2>
           <p className="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-text/80 sm:text-xl">
-            Gratuit aujourd&apos;hui. Sans connexion bancaire. Tes montants sont
-            chiffrés.
+            Commence gratuitement, sans connecter tes comptes bancaires. Tes
+            montants sont chiffrés.
           </p>
-          <Button
-            href={angularUrl("/signup", "final_cta_commencer")}
-            className="mt-10"
-            onClick={() =>
-              trackCTAClick("commencer_gratuitement", "final_cta", "/signup")
-            }
-          >
-            Commencer gratuitement
-          </Button>
+          <div className="relative mt-32 inline-block md:mt-28">
+            <ArrowNote className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 md:-mb-10 md:left-auto md:right-0 md:translate-x-38" />
+            <Button
+              href={angularUrl("/signup", "final_cta_commencer")}
+              onClick={() =>
+                trackCTAClick("commencer_gratuitement", "final_cta", "/signup")
+              }
+            >
+              Créer mon budget gratuitement
+            </Button>
+          </div>
         </div>
       </Container>
     </section>

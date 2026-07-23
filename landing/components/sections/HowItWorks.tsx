@@ -1,91 +1,120 @@
-import { Section, Screenshot } from "@/components/ui";
+import { Screenshot } from "@/components/ui";
 
 const STEPS = [
   {
-    number: "01",
-    title: "Pose ton mois type",
+    number: "1",
+    title: "Renseigne un mois habituel",
     description:
       "Ajoute tes revenus, tes dépenses récurrentes et ce que tu veux mettre de côté.",
-    src: "/screenshots/responsive/ecran-des-modeles.webp",
-    desktopSrc: "/screenshots/webapp/ecran-des-modeles.webp",
-    label: "Modèle mensuel dans Pulpe",
-    desktopWidth: 1261,
-    desktopHeight: 956,
+    image: {
+      caption: "Ton mois type",
+      content: (
+        <Screenshot
+          src="/screenshots/responsive/ecran-des-modeles.webp"
+          iosSrc="/screenshots/ios/ecran-des-modeles.webp"
+          desktopSrc="/screenshots/webapp/ecran-des-modeles.webp"
+          label="Le mois type qui sert de base au budget"
+          mobileWidth={750}
+          mobileHeight={1190}
+          desktopWidth={1440}
+          desktopHeight={1080}
+          desktopAspectRatio="4 / 3"
+          fit="contain"
+        />
+      ),
+    },
   },
   {
-    number: "02",
-    title: "Ajoute les exceptions",
+    number: "2",
+    title: "Place ce qui change",
     description:
-      "Place les impôts, vacances et gros achats dans les mois où ils auront vraiment lieu.",
-    src: "/screenshots/responsive/modal-ajout-transaction.webp",
-    desktopSrc: "/screenshots/webapp/modal-ajout-transaction.webp",
-    label: "Ajout d’une dépense prévue dans Pulpe",
-    desktopWidth: 1260,
-    desktopHeight: 955,
+      "Ajoute les impôts, les vacances et les gros achats dans les mois où ils auront lieu.",
+    image: {
+      caption: "Ton année",
+      content: (
+        <Screenshot
+          src="/screenshots/responsive/vue-calendrier-annuel.webp"
+          iosSrc="/screenshots/ios/vue-annuelle-des-budgets.webp"
+          desktopSrc="/screenshots/webapp/vue-calendrier-annuel.webp"
+          label="Les mois projetés à partir du mois type"
+          mobileWidth={750}
+          mobileHeight={1190}
+          desktopWidth={1440}
+          desktopHeight={1080}
+          desktopAspectRatio="4 / 3"
+          fit="contain"
+        />
+      ),
+    },
   },
   {
-    number: "03",
-    title: "Lis ton année",
+    number: "3",
+    title: "Vois combien il te restera",
     description:
-      "Chaque mois affiche ton disponible. Si le réel change, la projection suit.",
-    src: "/screenshots/responsive/vue-calendrier-annuel.webp",
-    desktopSrc: "/screenshots/webapp/vue-calendrier-annuel.webp",
-    label: "Vue annuelle du budget dans Pulpe",
-    desktopWidth: 1695,
-    desktopHeight: 1354,
+      "Ouvre un mois à venir pour voir ton disponible, puis ajuste ton budget si besoin.",
+    image: {
+      caption: "Ton disponible mensuel",
+      content: (
+        <Screenshot
+          src="/screenshots/responsive/liste-des-previsions.webp"
+          iosSrc="/screenshots/ios/detail-du-budget.webp"
+          desktopSrc="/screenshots/webapp/liste-des-previsions.webp"
+          label="Le disponible prévu pour un mois à venir"
+          mobileWidth={750}
+          mobileHeight={1190}
+          desktopWidth={1440}
+          desktopHeight={1080}
+          desktopAspectRatio="4 / 3"
+          fit="contain"
+        />
+      ),
+    },
   },
 ];
 
 export function HowItWorks() {
   return (
-    <Section id="how-it-works">
-      <div className="mx-auto max-w-3xl text-center">
-        <p className="text-sm font-medium text-primary">De zéro à douze mois</p>
-        <h2 className="mt-3 text-4xl font-bold leading-[1.05] tracking-[-0.035em] sm:text-5xl lg:text-6xl">
-          Ton année prend forme en trois gestes.
-        </h2>
-        <p className="mx-auto mt-5 max-w-xl text-lg text-text-secondary">
-          Pas de catégorie à deviner ni de rapport à décoder. Tu renseignes ce
-          qui compte, Pulpe montre la suite.
-        </p>
-      </div>
+    <ol className="mx-auto mt-12 grid max-w-6xl gap-y-12 sm:mt-16 md:grid-cols-3 md:gap-x-6 md:gap-y-0 lg:gap-x-8">
+      {STEPS.map((step) => (
+        <li key={step.number} className="flex min-w-0 flex-col">
+          {/* Mobile reads label-then-proof: the copy sits above its screenshot
+              so the next step's image never bleeds into the previous step's
+              text. Desktop keeps the image-first row, where the three columns
+              align on their own. */}
+          <StepCopy
+            step={step}
+            className="mb-5 md:order-2 md:mb-0 md:mt-5 md:text-center"
+          />
+          <figure className="mx-auto w-full max-w-sm md:order-1 md:max-w-none">
+            <figcaption className="sr-only">{step.image.caption}</figcaption>
+            {step.image.content}
+          </figure>
+        </li>
+      ))}
+    </ol>
+  );
+}
 
-      <div className="relative mt-14">
-        <div
-          aria-hidden="true"
-          className="absolute left-[16.66%] right-[16.66%] top-5 hidden h-px bg-primary/20 md:block"
-        />
-        <ol className="relative grid gap-12 md:grid-cols-3 md:gap-5 lg:gap-8">
-          {STEPS.map((step) => (
-            <li key={step.number} className="relative">
-              <div className="relative z-10 flex items-center gap-4 md:flex-col md:gap-3 md:text-center">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white shadow-[var(--shadow-organic)]">
-                  {step.number}
-                </span>
-                <div>
-                  <h3 className="text-xl font-semibold text-text">
-                    {step.title}
-                  </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-text-secondary md:min-h-20">
-                    {step.description}
-                  </p>
-                </div>
-              </div>
-              <div className="mt-6">
-                <Screenshot
-                  src={step.src}
-                  desktopSrc={step.desktopSrc}
-                  label={step.label}
-                  mobileWidth={750}
-                  mobileHeight={1190}
-                  desktopWidth={step.desktopWidth}
-                  desktopHeight={step.desktopHeight}
-                />
-              </div>
-            </li>
-          ))}
-        </ol>
+function StepCopy({
+  step,
+  className = "",
+}: {
+  step: (typeof STEPS)[number];
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      <div className="flex items-center gap-3 md:flex-col">
+        <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white">
+          {step.number}
+        </span>
+        <h3 className="text-xl font-semibold tracking-[-0.02em] text-text lg:text-2xl">
+          {step.title}
+        </h3>
       </div>
-    </Section>
+      <p className="pretty mt-3 pl-11 text-base leading-relaxed text-text-secondary sm:text-lg md:pl-0 md:text-sm lg:text-base">
+        {step.description}
+      </p>
+    </div>
   );
 }

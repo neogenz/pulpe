@@ -11,6 +11,7 @@ import { useImageLightbox } from "@/contexts/useImageLightbox";
 
 interface ScreenshotProps {
   src?: string;
+  iosSrc?: string;
   desktopSrc?: string;
   label: string;
   className?: string;
@@ -23,11 +24,14 @@ interface ScreenshotProps {
       Defaults to the mobile size when omitted (same aspect at every breakpoint). */
   desktopWidth?: number;
   desktopHeight?: number;
+  desktopAspectRatio?: string;
+  fit?: "cover" | "contain";
 }
 
 const DESKTOP_MEDIA_QUERY = "(min-width: 768px)";
 const MOBILE_IMAGE_WIDTH = 750;
 const TABLET_IMAGE_WIDTH = 1548;
+const IOS_IMAGE_HEIGHT = 1630;
 
 function toWebP(path: string): string {
   return path.replace(/\.png$/, ".webp");
@@ -53,8 +57,20 @@ function getServerSnapshot() {
   return false;
 }
 
+function subscribeToDevice(_callback: () => void) {
+  // navigator.userAgent never changes at runtime — no subscription needed.
+  return () => undefined;
+}
+
+function getIsIPhone() {
+  return typeof navigator !== "undefined"
+    ? /iPhone|iPod/.test(navigator.userAgent)
+    : false;
+}
+
 export const Screenshot = memo(function Screenshot({
   src,
+  iosSrc,
   desktopSrc,
   label,
   className = "",
@@ -64,6 +80,8 @@ export const Screenshot = memo(function Screenshot({
   mobileHeight = 1190,
   desktopWidth,
   desktopHeight,
+  desktopAspectRatio,
+  fit = "cover",
 }: ScreenshotProps) {
   const { openLightbox } = useImageLightbox();
   const isDesktop = useSyncExternalStore(
@@ -71,31 +89,54 @@ export const Screenshot = memo(function Screenshot({
     getIsDesktop,
     getServerSnapshot,
   );
+  const isIPhone = useSyncExternalStore(
+    subscribeToDevice,
+    getIsIPhone,
+    getServerSnapshot,
+  );
+  const iosMobileSrc = !isDesktop && isIPhone ? iosSrc : undefined;
+  const renderedMobileHeight = iosMobileSrc
+    ? IOS_IMAGE_HEIGHT
+    : mobileHeight;
 
   const handleClick = useCallback(() => {
     if (!src) return;
-    const imageSrc = isDesktop && desktopSrc ? toWebP(desktopSrc) : toWebP(src);
+    const imageSrc =
+      isDesktop && desktopSrc
+        ? toWebP(desktopSrc)
+        : toWebP(iosMobileSrc ?? src);
     openLightbox(imageSrc, label);
-  }, [src, desktopSrc, label, isDesktop, openLightbox]);
+  }, [src, desktopSrc, iosMobileSrc, label, isDesktop, openLightbox]);
 
   // Reserve the correct box at each breakpoint so the landscape desktop asset
-  // and the portrait mobile asset never cause a decode-time layout shift (CLS).
+  // and the portrait mobile asset never cause a decode-time layout shift.
+  // Known tradeoff: on iPhone the reserved ratio swaps from `mobileHeight` to
+  // `IOS_IMAGE_HEIGHT` once hydration detects the device (UA sniffing is
+  // impossible in a static export). All current usages sit below the fold and
+  // lazy-load, so the one-time swap happens off-viewport and does not register
+  // as CLS. Reserving the iOS ratio for everyone would instead crop ~27% of
+  // the responsive asset under object-cover — the worse outcome.
   const frameStyle = {
-    "--m-ar": `${mobileWidth} / ${mobileHeight}`,
-    "--d-ar": `${desktopWidth ?? mobileWidth} / ${desktopHeight ?? mobileHeight}`,
+    "--m-ar": `${mobileWidth} / ${renderedMobileHeight}`,
+    "--d-ar":
+      desktopAspectRatio ??
+      `${desktopWidth ?? mobileWidth} / ${desktopHeight ?? mobileHeight}`,
   } as CSSProperties;
 
   if (src) {
     const mobileWebP = toMobileWebP(src);
     const tabletWebP = toWebP(src);
-    const mobileSrcSet = `${mobileWebP} ${MOBILE_IMAGE_WIDTH}w, ${tabletWebP} ${TABLET_IMAGE_WIDTH}w`;
+    const selectedMobileSrc = iosMobileSrc ?? mobileWebP;
+    const mobileSrcSet = iosMobileSrc
+      ? iosMobileSrc
+      : `${mobileWebP} ${MOBILE_IMAGE_WIDTH}w, ${tabletWebP} ${TABLET_IMAGE_WIDTH}w`;
 
     return (
       <button
         type="button"
         onClick={handleClick}
         style={frameStyle}
-        className="screenshot-frame group relative block w-full cursor-pointer overflow-hidden rounded-[var(--radius-card)] shadow-[var(--shadow-screenshot)] outline outline-1 -outline-offset-1 outline-black/10 transition-transform duration-200 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 motion-reduce:transition-none motion-reduce:translate-y-0"
+        className={`screenshot-frame group relative block w-full cursor-pointer overflow-hidden rounded-[var(--radius-card)] shadow-[var(--shadow-screenshot)] outline outline-1 -outline-offset-1 outline-black/10 transition-transform duration-200 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 motion-reduce:transition-none motion-reduce:translate-y-0 ${fit === "contain" ? "bg-surface-alt" : ""}`}
         aria-label={`Agrandir : ${label}`}
       >
         <picture>
@@ -108,25 +149,32 @@ export const Screenshot = memo(function Screenshot({
           )}
           <source
             srcSet={mobileSrcSet}
-            sizes="(max-width: 767px) 100vw, 50vw"
+            sizes={
+              iosMobileSrc ? undefined : "(max-width: 767px) 100vw, 50vw"
+            }
             type="image/webp"
           />
           {desktopSrc && (
             <source media="(min-width: 768px)" srcSet={desktopSrc} />
           )}
           <img
-            src={mobileWebP}
+            src={selectedMobileSrc}
             alt={label}
             width={mobileWidth}
-            height={mobileHeight}
+            height={renderedMobileHeight}
             loading={isLCP ? "eager" : "lazy"}
             fetchPriority={fetchPriority}
-            className={`h-full w-full object-cover ${className}`}
+            className={`h-full w-full ${fit === "contain" ? "object-contain" : "object-cover"} ${className}`}
           />
         </picture>
-        <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none motion-reduce:transition-none">
-          <span className="bg-black/50 backdrop-blur-sm rounded-full p-3">
-            <Maximize2 className="w-5 h-5 text-white" />
+        {/* Touch devices never hover: the zoom affordance stays visible. */}
+        <span className="pointer-events-none absolute right-2 bottom-2 rounded-full bg-black/45 p-2 [@media(hover:hover)]:hidden">
+          <Maximize2 className="h-4 w-4 text-white" aria-hidden="true" />
+        </span>
+        {/* Pointer devices get the centered overlay on hover. */}
+        <span className="pointer-events-none absolute inset-0 hidden items-center justify-center opacity-0 transition-opacity duration-200 group-hover:opacity-100 motion-reduce:transition-none [@media(hover:hover)]:flex">
+          <span className="rounded-full bg-black/50 p-3 backdrop-blur-sm">
+            <Maximize2 className="h-5 w-5 text-white" aria-hidden="true" />
           </span>
         </span>
       </button>
