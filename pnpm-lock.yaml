@@ -375,9 +375,6 @@ importers:
         specifier: ^19.2.8
         version: 19.2.8(react@19.2.8)
     devDependencies:
-      '@eslint/eslintrc':
-        specifier: ^3.3.6
-        version: 3.3.6
       '@resvg/resvg-js':
         specifier: ^2.6.2
         version: 2.6.2

@@ -734,10 +734,6 @@ async function generateOgImage() {
     console.log(`Created directory: ${publicDir}`);
   }
 
-  const svgPath = join(publicDir, "pulpe-social-preview.svg");
-  writeFileSync(svgPath, svg);
-  console.log(`SVG saved to: ${svgPath}`);
-
   const resvg = new Resvg(svg, {
     fitTo: {
       mode: "width",
