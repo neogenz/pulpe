@@ -56,7 +56,9 @@
     "designSystem": "Design System"
   },
   "auth": {
-    "googleLoading": "Connexion en cours...",
+    "oauthLoading": "Connexion en cours...",
+    "continueWithGoogle": "Continuer avec Google",
+    "continueWithApple": "Continuer avec Apple",
     "login": {
       "title": "Content de te revoir",
       "subtitle": "Retrouve ton budget là où tu l'as laissé",

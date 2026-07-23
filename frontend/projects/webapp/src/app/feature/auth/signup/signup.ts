@@ -28,7 +28,7 @@ import { AuthCredentialsService, PASSWORD_MIN_LENGTH } from '@core/auth';
 import { PostHogService } from '@core/analytics/posthog';
 import { Logger } from '@core/logging/logger';
 import { ROUTES } from '@core/routing/routes-constants';
-import { GoogleOAuthButton } from '@app/pattern/google-oauth';
+import { OAuthProviderButton } from '@app/pattern/oauth-provider';
 import { ErrorAlert } from '@ui/error-alert';
 import { LoadingButton } from '@ui/loading-button';
 import { PasswordCriteria } from '@ui/password-criteria';
@@ -54,7 +54,7 @@ function containsPattern(pattern: RegExp, errorKey: string) {
     MatIconModule,
     MatDividerModule,
     RouterLink,
-    GoogleOAuthButton,
+    OAuthProviderButton,
     ErrorAlert,
     LoadingButton,
     PasswordCriteria,
@@ -83,11 +83,20 @@ function containsPattern(pattern: RegExp, errorKey: string) {
         </p>
       </div>
 
-      <pulpe-google-oauth-button
-        testId="google-signup-button"
-        (authError)="errorMessage.set($event)"
-        (loadingChange)="isGoogleLoading.set($event)"
-      />
+      <div class="flex flex-col gap-3">
+        <pulpe-oauth-provider-button
+          [provider]="'apple'"
+          testId="apple-signup-button"
+          (authError)="errorMessage.set($event)"
+          (loadingChange)="isOAuthLoading.set($event)"
+        />
+        <pulpe-oauth-provider-button
+          [provider]="'google'"
+          testId="google-signup-button"
+          (authError)="errorMessage.set($event)"
+          (loadingChange)="isOAuthLoading.set($event)"
+        />
+      </div>
 
       <div class="flex items-center gap-4 my-6">
         <mat-divider class="flex-1" />
@@ -282,13 +291,13 @@ export default class Signup {
   protected readonly isPasswordHidden = signal(true);
   protected readonly isConfirmPasswordHidden = signal(true);
   protected readonly isSubmitting = signal(false);
-  protected readonly isGoogleLoading = signal(false);
+  protected readonly isOAuthLoading = signal(false);
   protected readonly errorMessage = signal('');
-  // Disables inputs + submit when EITHER email submit or Google OAuth is in
-  // flight — prevents double-submit without freezing the form just because
-  // Google redirect is briefly loading.
+  // Disables inputs + submit when EITHER email submit or an OAuth redirect is
+  // in flight — prevents double-submit without freezing the form just because
+  // a provider redirect is briefly loading.
   protected readonly isBusy = computed(
-    () => this.isSubmitting() || this.isGoogleLoading(),
+    () => this.isSubmitting() || this.isOAuthLoading(),
   );
 
   private readonly emailInput =

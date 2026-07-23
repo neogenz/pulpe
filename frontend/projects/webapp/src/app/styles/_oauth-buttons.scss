@@ -1,0 +1,12 @@
+@use "@angular/material" as mat;
+
+// Apple HIG (Sign in with Apple): logo + label strictly black or white — never
+// a brand color. Outlined style on light backgrounds → black; dark theme → white.
+// The Apple mark svg uses currentColor, so it follows the label color.
+.pulpe-apple-signin {
+  @include mat.button-overrides(
+    (
+      outlined-label-text-color: light-dark(black, white),
+    )
+  );
+}
