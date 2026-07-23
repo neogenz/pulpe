@@ -195,13 +195,17 @@ struct CurrentMonthWidgetView: View {
 
     private var emptyView: some View {
         VStack(spacing: DesignTokens.Spacing.sm) {
-            Image(systemName: "calendar.badge.plus")
+            Image(systemName: "banknote")
                 .font(PulpeTypography.sectionIcon)
                 .foregroundStyle(Color.textSecondary)
 
-            Text("Ouvre l'app")
+            Text("Ouvre Pulpe")
                 .font(PulpeTypography.detailLabel)
                 .foregroundStyle(Color.textSecondary)
+
+            Text("Ton disponible s'affichera ici")
+                .font(PulpeTypography.metricMini)
+                .foregroundStyle(Color.textTertiary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
