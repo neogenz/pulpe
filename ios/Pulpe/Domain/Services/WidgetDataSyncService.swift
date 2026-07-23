@@ -112,7 +112,8 @@ actor WidgetDataSyncService {
             currentMonth: currentMonthData,
             yearBudgets: yearBudgets,
             lastUpdated: Date(),
-            currency: currency
+            currency: currency,
+            payDayOfMonth: payDayOfMonth
         )
 
         let didSave = coordinator.save(cache)
