@@ -113,9 +113,9 @@ struct GoalContributionsSection: View {
     private func statusSubtitle(base: String, isChecked: Bool) -> some View {
         (
             Text("\(base) · ")
-                .foregroundColor(Color.textTertiary)
+                .foregroundStyle(Color.textTertiary)
             + Text(isChecked ? "Pointé" : "À pointer")
-                .foregroundColor(isChecked ? Color.financialSavings : Color.textTertiary)
+                .foregroundStyle(isChecked ? Color.financialSavings : Color.textTertiary)
         )
         .font(PulpeTypography.listRowSubtitle)
     }
