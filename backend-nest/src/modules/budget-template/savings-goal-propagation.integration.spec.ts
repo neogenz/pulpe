@@ -839,9 +839,10 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
     expect(pastTargetTemplateLineIds.has(linkedLineId)).toBe(false);
     expect(pastTargetTemplateLineIds.has(unlinkedLineId)).toBe(true);
 
-    // Same template, a period still within the horizon: the default empty
-    // exclusion list keeps the historical behaviour for every other caller.
-    const { error: withinHorizonError } = await admin.rpc(
+    // Omitting the argument keeps the pre-PUL-311 behaviour, deadline or not:
+    // the horizon decision belongs to the caller, never to the RPC. 4/2099 is
+    // past the deadline too, and the linked line is still copied.
+    const { error: omittedArgError } = await admin.rpc(
       'create_budget_from_template',
       {
         p_user_id: user.id,
@@ -851,19 +852,19 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
         p_description: '',
       },
     );
-    expect(withinHorizonError).toBeNull();
+    expect(omittedArgError).toBeNull();
 
-    const withinHorizonLines = await admin
+    const omittedArgLines = await admin
       .from('budget_line')
       .select('template_line_id, monthly_budget!inner(month, year)')
       .eq('monthly_budget.month', 4)
       .eq('monthly_budget.year', 2099)
       .eq('monthly_budget.user_id', user.id);
-    const withinHorizonTemplateLineIds = new Set(
-      (withinHorizonLines.data ?? []).map((row) => row.template_line_id),
+    const omittedArgTemplateLineIds = new Set(
+      (omittedArgLines.data ?? []).map((row) => row.template_line_id),
     );
-    expect(withinHorizonTemplateLineIds.has(linkedLineId)).toBe(true);
-    expect(withinHorizonTemplateLineIds.has(unlinkedLineId)).toBe(true);
+    expect(omittedArgTemplateLineIds.has(linkedLineId)).toBe(true);
+    expect(omittedArgTemplateLineIds.has(unlinkedLineId)).toBe(true);
   });
 
   it('create_template_with_lines persists an inline savings_goal_id (batch path)', async () => {

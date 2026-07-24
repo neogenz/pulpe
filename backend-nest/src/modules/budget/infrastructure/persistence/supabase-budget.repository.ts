@@ -518,11 +518,17 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
     period: BudgetPeriod,
   ): Promise<string[]> {
     const supabase = this.supabaseProvider.client;
-    const { data, error } = await supabase
-      .from('savings_goal')
-      .select('id, target_date')
-      .eq('user_id', this.supabaseProvider.user.id)
-      .eq('status', 'ACTIVE');
+    // Les deux lectures sont indépendantes, et `getPayDayOfMonth` part sur le
+    // réseau (GoTrue `GET /user`) : les séquencer doublerait la latence ajoutée
+    // à chaque matérialisation, or `generate-budgets` en enchaîne jusqu'à 36.
+    const [{ data, error }, payDayOfMonth] = await Promise.all([
+      supabase
+        .from('savings_goal')
+        .select('id, target_date')
+        .eq('user_id', this.supabaseProvider.user.id)
+        .eq('status', 'ACTIVE'),
+      this.getPayDayOfMonth(),
+    ]);
 
     if (error) {
       throw new BusinessException(
@@ -536,7 +542,6 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       );
     }
 
-    const payDayOfMonth = await this.getPayDayOfMonth();
     const budgetPeriodIndex = periodIndex(period);
     return (data ?? [])
       .filter(
