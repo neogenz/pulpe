@@ -1,4 +1,8 @@
-import type { TransactionKind, TransactionRecurrence } from 'pulpe-shared';
+import type {
+  BudgetPeriod,
+  TransactionKind,
+  TransactionRecurrence,
+} from 'pulpe-shared';
 import type { TemplateLine } from '../budget-template.entity';
 
 export const TEMPLATE_LINE_PROPAGATION_PORT = Symbol(
@@ -14,6 +18,12 @@ export interface LinkedTemplateLineCreateInput {
   recurrence: TransactionRecurrence;
   /** Lien objectif (PUL-285 CA2) — porté par le modèle, il survit aux régénérations. */
   savingsGoalId: string;
+  /**
+   * Dernière période recevant la ligne (PUL-311), incluse. Sans elle la
+   * propagation atteindrait tous les budgets futurs et engagerait de l'épargne
+   * après l'échéance de l'objectif.
+   */
+  maxPeriod?: BudgetPeriod;
 }
 
 /**

@@ -8,7 +8,16 @@ import {
   ENCRYPTION_PORT,
   type EncryptionPort,
 } from '@modules/encryption/encryption.tokens';
-import { BudgetFormulas, type TransactionKind } from 'pulpe-shared';
+import {
+  BudgetFormulas,
+  PAY_DAY_MAX,
+  PAY_DAY_MIN,
+  getBudgetPeriodForDate,
+  parseIsoDateLocal,
+  periodIndex,
+  type BudgetPeriod,
+  type TransactionKind,
+} from 'pulpe-shared';
 import type {
   Budget,
   BudgetForRollover,
@@ -461,10 +470,13 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
     template_name: string;
   }> {
     const supabase = this.supabaseProvider.client;
-    const { data, error } = await supabase.rpc(
-      'create_budget_from_template',
-      payload,
-    );
+    const { data, error } = await supabase.rpc('create_budget_from_template', {
+      ...payload,
+      p_excluded_savings_goal_ids: await this.fetchGoalIdsPastTarget({
+        month: payload.p_month,
+        year: payload.p_year,
+      }),
+    });
 
     if (error) {
       throw error;
@@ -491,6 +503,61 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       }
       throw err;
     }
+  }
+
+  /**
+   * PUL-311 — objectifs d'épargne dont l'échéance précède la période
+   * matérialisée. Leurs `template_line` liées sont sautées par la génération :
+   * la mensualité suggérée couvre `monthsRemaining` périodes, en générer
+   * au-delà sur-engagerait l'utilisateur (cf. `docs/SAVINGS.md` §3.5).
+   *
+   * Le calcul de période vit ici plutôt que dans la RPC : `payDayOfMonth` est
+   * dans `auth.users.user_metadata`, hors de portée du SQL.
+   */
+  private async fetchGoalIdsPastTarget(
+    period: BudgetPeriod,
+  ): Promise<string[]> {
+    const supabase = this.supabaseProvider.client;
+    const { data, error } = await supabase
+      .from('savings_goal')
+      .select('id, target_date')
+      .eq('user_id', this.supabaseProvider.user.id)
+      .eq('status', 'ACTIVE');
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
+        { reason: 'Unable to read savings goal deadlines' },
+        {
+          operation: 'fetchGoalIdsPastTarget',
+          userId: this.supabaseProvider.user.id,
+        },
+        { cause: error },
+      );
+    }
+
+    const payDayOfMonth = await this.getPayDayOfMonth();
+    const budgetPeriodIndex = periodIndex(period);
+    return (data ?? [])
+      .filter(
+        (goal) =>
+          periodIndex(
+            getBudgetPeriodForDate(
+              parseIsoDateLocal(goal.target_date),
+              payDayOfMonth,
+            ),
+          ) < budgetPeriodIndex,
+      )
+      .map((goal) => goal.id);
+  }
+
+  private async getPayDayOfMonth(): Promise<number> {
+    const { data } = await this.supabaseProvider.client.auth.getUser();
+    const raw = data?.user?.user_metadata?.payDayOfMonth;
+
+    if (typeof raw !== 'number' || !Number.isInteger(raw)) return PAY_DAY_MIN;
+
+    return Math.max(PAY_DAY_MIN, Math.min(PAY_DAY_MAX, raw));
   }
 
   async persistEndingBalance(

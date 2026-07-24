@@ -35,6 +35,7 @@ export class TemplateLinePropagationAdapter implements TemplateLinePropagationPo
         propagateToBudgets: true,
       },
       { id: input.userId },
+      { maxPropagationPeriod: input.maxPeriod },
     );
 
     const [createdLine] = result.createdLines;

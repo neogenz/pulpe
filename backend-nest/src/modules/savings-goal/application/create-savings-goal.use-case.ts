@@ -3,7 +3,11 @@ import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import { type SavingsGoalCreate } from 'pulpe-shared';
+import {
+  getBudgetPeriodForDate,
+  parseIsoDateLocal,
+  type SavingsGoalCreate,
+} from 'pulpe-shared';
 import {
   BUDGET_TEMPLATE_REPOSITORY,
   type BudgetTemplateRepositoryPort,
@@ -73,7 +77,9 @@ export class CreateSavingsGoalUseCase {
   /**
    * PUL-285 CA1/CA2 — auto-décomposition : pose la prévision Épargne
    * récurrente liée sur le Mois Type par défaut et la propage aux budgets
-   * matérialisés (RG-001). Une création de ligne échouée reste best-effort car
+   * matérialisés (RG-001), jusqu'à la période d'échéance incluse (PUL-311 —
+   * la mensualité couvre `monthsRemaining`, propager au-delà sur-engagerait
+   * l'utilisateur). Une création de ligne échouée reste best-effort car
    * l'objectif est déjà committé. Si la ligne a elle aussi été committée mais
    * que le recalcul échoue, un code dédié prévient le client de rafraîchir sans
    * recréer l'objectif.
@@ -96,6 +102,7 @@ export class CreateSavingsGoalUseCase {
         );
         return false;
       }
+      const payDayOfMonth = await this.repo.findPayDayOfMonth();
       await this.templateLinePropagation.createLineAndPropagate({
         templateId,
         userId: user.id,
@@ -104,6 +111,10 @@ export class CreateSavingsGoalUseCase {
         kind: 'saving',
         recurrence: 'fixed',
         savingsGoalId: goal.id,
+        maxPeriod: getBudgetPeriodForDate(
+          parseIsoDateLocal(goal.targetDate),
+          payDayOfMonth,
+        ),
       });
       return true;
     } catch (err) {
