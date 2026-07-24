@@ -238,7 +238,10 @@ export default class WelcomePage {
   protected readonly turnstileWidget =
     viewChild<NgxTurnstileComponent>('turnstileWidget');
 
-  onOAuthLoadingChange(method: OAuthProvider, isLoading: boolean): void {
+  protected onOAuthLoadingChange(
+    method: OAuthProvider,
+    isLoading: boolean,
+  ): void {
     this.isOAuthLoading.set(isLoading);
     if (isLoading) {
       this.#postHogService.setPendingSignupMethod(method);
@@ -250,7 +253,7 @@ export default class WelcomePage {
     // (capturePendingSignupCompleted) ; l'échec avéré passe par onOAuthError.
   }
 
-  onOAuthError(message: string): void {
+  protected onOAuthError(message: string): void {
     this.errorMessage.set(message);
     this.#postHogService.clearPendingSignupMethod();
   }
