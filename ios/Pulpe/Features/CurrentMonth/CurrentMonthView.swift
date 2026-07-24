@@ -6,6 +6,7 @@ private enum SheetDestination: Identifiable {
     case realizedBalance
     case account
     case createBudget
+    case notificationPrime
 
     var id: Self { self }
 }
@@ -35,6 +36,13 @@ struct CurrentMonthView: View {
     private var canCreateBudget: Bool {
         budgetListStore.nextAvailableMonth != nil
     }
+
+    /// One-time post-onboarding handoff (teaches the pointer ritual + Lock Screen
+    /// widget). Stateless UserDefaults wrapper — cheap to hold per render.
+    private let postOnboardingFlags = PostOnboardingFlagsStore()
+
+    /// Local reminder opt-in state. Stateless UserDefaults wrapper.
+    private let reminderPrefs = ReminderPreferences()
 
     var body: some View {
         ZStack {
@@ -94,28 +102,41 @@ struct CurrentMonthView: View {
             }
         }
         .sheet(item: $activeSheet) { sheet in
-            switch sheet {
-            case .realizedBalance:
-                RealizedBalanceSheet(
-                    metrics: store.metrics,
-                    realizedMetrics: store.realizedMetrics
-                )
-            case .account:
-                AccountView()
-            case .createBudget:
-                if let nextMonth = budgetListStore.nextAvailableMonth {
-                    CreateBudgetView(
-                        month: nextMonth.month,
-                        year: nextMonth.year
-                    ) { budget in
-                        budgetListStore.addBudget(budget)
-                        store.invalidateCache()
-                        Task {
-                            await store.loadDetailsIfNeeded()
+            Group {
+                switch sheet {
+                case .realizedBalance:
+                    RealizedBalanceSheet(
+                        metrics: store.metrics,
+                        realizedMetrics: store.realizedMetrics
+                    )
+                case .account:
+                    AccountView()
+                case .notificationPrime:
+                    NotificationPrimeSheet {
+                        Task { await enableReminders() }
+                    }
+                case .createBudget:
+                    if let nextMonth = budgetListStore.nextAvailableMonth {
+                        CreateBudgetView(
+                            month: nextMonth.month,
+                            year: nextMonth.year
+                        ) { budget in
+                            budgetListStore.addBudget(budget)
+                            store.invalidateCache()
+                            Task {
+                                await store.loadDetailsIfNeeded()
+                            }
                         }
                     }
                 }
             }
+            .suppressesTips()
+        }
+        .fullScreenCover(isPresented: showPostOnboardingHandoff) {
+            PostOnboardingHandoffView {
+                dismissPostOnboardingHandoff()
+            }
+            .suppressesTips()
         }
         .task {
             store.prepareForReload()
@@ -160,9 +181,6 @@ struct CurrentMonthView: View {
             Task {
                 await store.loadDetailsIfNeeded()
             }
-        }
-        .onChange(of: activeSheet) { _, sheet in
-            ProductTips.isSheetPresented = sheet != nil
         }
     }
 
@@ -220,6 +238,9 @@ struct CurrentMonthView: View {
                                         undo: { await undoToggle(item) },
                                         onFinishedWithoutUndo: {}
                                     )
+                                    // The pointer just happened — the one moment worth asking
+                                    // for notifications (offered once, behind a value screen).
+                                    await maybePrimeReminders()
                                 } else {
                                     // The optimistic row silently reverts otherwise, right
                                     // after the success haptic already told the user it worked.
@@ -346,6 +367,73 @@ struct CurrentMonthView: View {
         let goalIds = Set(store.budgetLines.filter { $0.kind == .saving }.map(\.savingsGoalId))
         guard goalIds.count == 1, let goalId = goalIds.first ?? nil else { return nil }
         return savingsGoalStore.goals.first { $0.id == goalId }?.name
+    }
+}
+
+// MARK: - Retention hooks (post-onboarding handoff + notification priming)
+//
+// Kept in a same-file extension so the main `CurrentMonthView` body stays within its
+// type-length budget while still reaching the view's `private` state (same-file
+// access), rather than loosening encapsulation to move it to another file.
+extension CurrentMonthView {
+    /// Presents the handoff exactly once, only for a user who JUST finished onboarding
+    /// (`appState.justCompletedOnboarding`) and hasn't seen it before.
+    private var showPostOnboardingHandoff: Binding<Bool> {
+        Binding(
+            get: {
+                appState.justCompletedOnboarding
+                    && !postOnboardingFlags.hasSeenPostOnboardingHandoff
+            },
+            set: { newValue in
+                if !newValue { dismissPostOnboardingHandoff() }
+            }
+        )
+    }
+
+    private func dismissPostOnboardingHandoff() {
+        postOnboardingFlags.setHasSeenPostOnboardingHandoff()
+        appState.justCompletedOnboarding = false
+    }
+
+    /// After the user's first real "pointer", offer reminders exactly once — behind a
+    /// value-framed sheet, and only while the OS prompt is still undecided so we never
+    /// burn the one-shot iOS permission cold.
+    private func maybePrimeReminders() async {
+        guard !reminderPrefs.hasPrimedReminders else { return }
+        guard await NotificationScheduler.shared.authorizationStatus() == .notDetermined,
+              !reminderPrefs.hasPrimedReminders
+        else { return }
+        reminderPrefs.setHasPrimedReminders()
+        AnalyticsService.shared.capture(.notificationPrimeShown)
+        activeSheet = .notificationPrime
+    }
+
+    /// Fires the real OS prompt (from the "Activer" tap) and schedules the monthly
+    /// reminder on grant. On denial we only record it — the toggle in Préférences
+    /// stays the recovery path. Permission events gate on `promptShown` like
+    /// `applyReminderPreference`: the sheet only appears on `.notDetermined`, but the
+    /// status can settle from iOS Settings while it sits open, and a replayed verdict
+    /// must not count as a fresh grant/denial.
+    private func enableReminders() async {
+        let promptShown = await NotificationScheduler.shared.authorizationStatus() == .notDetermined
+        let granted = await NotificationScheduler.shared.requestAuthorization()
+        guard granted else {
+            if promptShown {
+                AnalyticsService.shared.capture(.notificationPermissionDenied)
+            }
+            return
+        }
+        // Same event order as `applyReminderPreference` — permission verdict, then
+        // toggle — so an ordered PostHog funnel captures both activation paths.
+        if promptShown {
+            AnalyticsService.shared.capture(.notificationPermissionGranted)
+        }
+        reminderPrefs.setRemindersEnabled(true)
+        AnalyticsService.shared.capture(.reminderToggled, properties: ["enabled": true])
+        // Settings not loaded yet → don't schedule for a made-up day 1; prefs are on,
+        // so the next foreground reschedule heals with the real pay-day.
+        guard let payDay = userSettingsStore.payDayOfMonth else { return }
+        await NotificationScheduler.shared.scheduleMonthlyReminder(payDay: payDay)
     }
 }
 

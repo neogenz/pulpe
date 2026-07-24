@@ -146,14 +146,26 @@ struct GoalProjectionChart: View {
 // MARK: - Read-mode section
 
 /// « Ta trajectoire » (pilier A) — the read-mode chart section on the goal detail:
-/// title, chart, and the two new metrics (écart cumulé + date d'atteinte estimée).
+/// title, chart, and the two metrics (écart de pointage + date d'atteinte estimée).
 /// Both metrics are neutral information (RG-002): a positive gap is a pointing lag,
-/// never an alert.
+/// never an alert. The caller gates the whole section on
+/// `GoalProjectionSeries.hasConfirmedTrend` — nothing replaces it before then.
 struct GoalTrajectorySection: View {
     let progress: SavingsGoalProgress
+    /// Injectée par le parent (qui gate déjà sur `hasConfirmedTrend` avec la
+    /// même instance) — la re-dériver ici doublait la lecture par render.
+    let series: GoalProjectionSeries
     let currency: SupportedCurrency
 
-    private var series: GoalProjectionSeries { .read(from: progress) }
+    /// `cumulativeGap` = prévu cumulé − pointé (never clamped): positive is a
+    /// pointing LAG, negative an advance. The accounting signed value
+    /// (`+300 CHF`) read as good news on a lag — the copy spells the direction
+    /// out instead; zero gap carries no amount.
+    static func gapCopy(for gap: Decimal, currency: SupportedCurrency) -> (lead: String, amount: String?) {
+        if gap > 0 { return ("Il te manque", gap.asCompactCurrency(currency)) }
+        if gap < 0 { return ("Tu es en avance de", gap.absoluteValue.asCompactCurrency(currency)) }
+        return ("Pile sur ton plan", nil)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
@@ -164,9 +176,10 @@ struct GoalTrajectorySection: View {
             GoalProjectionChart(series: series, currency: currency)
 
             HStack(alignment: .top, spacing: DesignTokens.Spacing.lg) {
+                let gap = Self.gapCopy(for: progress.cumulativeGap, currency: currency)
                 metric(
-                    label: "Écart cumulé",
-                    value: progress.cumulativeGap.asArithmeticSignedCompactCurrency(currency),
+                    label: gap.lead,
+                    value: gap.amount,
                     isSensitive: true
                 )
 
@@ -186,16 +199,18 @@ struct GoalTrajectorySection: View {
     }
 
     @ViewBuilder
-    private func metric(label: String, value: String, isSensitive: Bool) -> some View {
+    private func metric(label: String, value: String?, isSensitive: Bool) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
             Text(label)
                 .font(PulpeTypography.metricLabel)
                 .foregroundStyle(Color.textSecondary)
-            Text(value)
-                .font(PulpeTypography.metricLabelBold)
-                .foregroundStyle(Color.textPrimary)
-                .monospacedDigit()
-                .modifier(SensitiveIf(isSensitive))
+            if let value {
+                Text(value)
+                    .font(PulpeTypography.metricLabelBold)
+                    .foregroundStyle(Color.textPrimary)
+                    .monospacedDigit()
+                    .modifier(SensitiveIf(isSensitive))
+            }
         }
     }
 
@@ -240,6 +255,14 @@ struct GoalProjectionSeries: Equatable {
     let ticks: [Tick]
 
     var isEmpty: Bool { planned.isEmpty && confirmed.isEmpty && projection.isEmpty }
+
+    /// Predicate choice for gating « Ta trajectoire »: at least 2 confirmed
+    /// points — one elapsed month plus the current (`read` emits one confirmed
+    /// point per month up to the current). Below that the reality layer is a
+    /// single dot and the chart is pure decoration (axes + dashed target),
+    /// intimidating on day 1. Stricter than `hasClosedPlanMonth` on purpose:
+    /// a current month locked by pointage still has no trend to draw.
+    var hasConfirmedTrend: Bool { confirmed.count >= 2 }
 
     /// Read mode: Prévu (full), Pointé (up to current), Projection at the confirmed
     /// pace from the current month onward.

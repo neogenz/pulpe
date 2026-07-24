@@ -6,6 +6,7 @@ import { DashboardStore, DASHBOARD_NOW } from './dashboard-store';
 import { BudgetApi } from '@core/budget';
 import { UserSettingsStore } from '@core/user-settings';
 import { Logger } from '@core/logging/logger';
+import { PostHogService } from '@core/analytics/posthog';
 import type { Budget, BudgetLine, Transaction } from 'pulpe-shared';
 import { BudgetFormulas } from 'pulpe-shared';
 
@@ -115,6 +116,9 @@ function createMocks() {
       payDayOfMonth: signal<number | null>(1),
       isLoading: signal(false),
     },
+    postHogService: {
+      captureEvent: vi.fn(),
+    },
   };
 }
 
@@ -127,6 +131,7 @@ function setup(mocks = createMocks()) {
       { provide: BudgetApi, useValue: mocks.budgetApi },
       { provide: UserSettingsStore, useValue: mocks.userSettingsStore },
       { provide: Logger, useValue: mocks.logger },
+      { provide: PostHogService, useValue: mocks.postHogService },
       { provide: DASHBOARD_NOW, useValue: FIXED_DATE },
     ],
   });
@@ -292,6 +297,10 @@ describe('DashboardStore - Business Scenarios', () => {
       expect(mocks.budgetApi.createTransaction$).toHaveBeenCalled();
       expect(store.transactions().length).toBe(1);
       expect(store.transactions()[0].id).toBe('tx-new');
+      expect(mocks.postHogService.captureEvent).toHaveBeenCalledWith(
+        'transaction_created',
+        { type: 'expense' },
+      );
     });
 
     it('should not insert transaction and should set error signal when addTransaction fails', async () => {
@@ -328,6 +337,7 @@ describe('DashboardStore - Business Scenarios', () => {
       expect(store.transactions().length).toBe(1);
       expect(store.transactions()[0].id).toBe('tx-existing');
       expect(store.error()).toBe('transaction-add-failed');
+      expect(mocks.postHogService.captureEvent).not.toHaveBeenCalled();
     });
   });
 
@@ -1145,6 +1155,7 @@ describe('DashboardStore - Upcoming Budgets Data', () => {
         provideZonelessChangeDetection(),
         { provide: BudgetApi, useValue: mocks.budgetApi },
         { provide: UserSettingsStore, useValue: mocks.userSettingsStore },
+        { provide: PostHogService, useValue: mocks.postHogService },
         { provide: DASHBOARD_NOW, useValue: decemberDate },
       ],
     });

@@ -27,7 +27,9 @@ struct PulpeChip<Trailing: View>: View {
         case outlined
         /// Informational chip — `surfaceContainerHigh` fill, no border.
         case muted
-        /// State chip on a tinted hero surface — explicit fill + foreground, no border.
+        /// Explicit fill + foreground pair, no border — hero-surface state chips and
+        /// status badges on the bare canvas, where `.muted`'s `surfaceContainerHigh`
+        /// is indistinguishable from `appBackground` (1.04:1).
         case tinted(surface: Color, foreground: Color)
     }
 

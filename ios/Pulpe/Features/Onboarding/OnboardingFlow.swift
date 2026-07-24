@@ -6,6 +6,7 @@ struct OnboardingFlow: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     @State private var state: OnboardingState
+    @State private var showPinSetup = false
     @State private var showExitConfirmation = false
     @State private var hasEmittedResumed = false
     @State private var hasEmittedStarted = false
@@ -118,6 +119,7 @@ struct OnboardingFlow: View {
                 Task { await finishOnboarding(user: user) }
             }
             .onChange(of: state.currentStep) { oldStep, newStep in
+                presentPinSetupIfNeeded(for: newStep)
                 // Fresh email path: user just tapped the welcome CTA and advanced
                 // to firstName. Social and email-recovery paths are handled in `.task`
                 // where the pending user is consumed.
@@ -126,7 +128,20 @@ struct OnboardingFlow: View {
                 }
                 emitStartedIfNeeded()
             }
+            .fullScreenCover(isPresented: $showPinSetup) {
+                PinSetupView(
+                    onComplete: {
+                        state.hasCompletedPinSetup = true
+                        state.saveToStorage()
+                        showPinSetup = false
+                    },
+                    onLogout: nil
+                )
+            }
             .task {
+                // Cold-start resume landing directly on the budget preview with the
+                // PIN ceremony still pending (app died between PIN and the reveal).
+                presentPinSetupIfNeeded(for: state.currentStep)
                 // Consume the pending user from AppState. Social users are entering
                 // the flow for the first time post-OAuth → `onboarding_started`.
                 // Email pending users are cold-starting a signup in progress →
@@ -216,8 +231,24 @@ struct OnboardingFlow: View {
         case .savings:
             SavingsStep(state: state)
         case .budgetPreview:
-            BudgetPreviewStep(state: state)
+            // The reveal stays hidden until the PIN + recovery ceremony is done —
+            // the flow must end on the budget, not flash it under the security cover.
+            if state.hasCompletedPinSetup {
+                BudgetPreviewStep(state: state)
+            } else {
+                Color.onboardingFormBase
+            }
         }
+    }
+
+    /// Presents the mid-flow PIN ceremony when the user reaches the budget preview
+    /// without a configured PIN. The session exists since the registration step, so
+    /// key derivation works; budget bootstrap stays on the final CTA.
+    private func presentPinSetupIfNeeded(for step: OnboardingStep) {
+        guard step == .budgetPreview, !state.hasCompletedPinSetup, state.isAuthenticated else {
+            return
+        }
+        showPinSetup = true
     }
 
     // MARK: - Analytics
@@ -309,7 +340,8 @@ struct OnboardingFlow: View {
             user: user,
             onboardingData: state.createTemplateData(),
             signupMethod: state.authMethodProperty,
-            currency: state.currency
+            currency: state.currency,
+            pinConfiguredDuringOnboarding: state.hasCompletedPinSetup
         )
         if appState.showPostAuthError {
             // Capture error locally and clear global flag

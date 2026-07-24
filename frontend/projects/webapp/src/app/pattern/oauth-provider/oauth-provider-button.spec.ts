@@ -2,15 +2,21 @@ import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { GoogleOAuthButton } from './google-oauth-button';
+import { OAuthProviderButton } from './oauth-provider-button';
 import { AuthOAuthService } from '@core/auth';
 import { Logger } from '@core/logging/logger';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
-describe('GoogleOAuthButton', () => {
-  let component: GoogleOAuthButton;
+describe('OAuthProviderButton', () => {
+  let component: OAuthProviderButton;
   let mockAuthOAuth: { signInWithOAuth: ReturnType<typeof vi.fn> };
   let mockLogger: { error: ReturnType<typeof vi.fn> };
+
+  function createComponent(): OAuthProviderButton {
+    const fixture = TestBed.createComponent(OAuthProviderButton);
+    fixture.detectChanges();
+    return fixture.componentInstance;
+  }
 
   beforeEach(async () => {
     mockAuthOAuth = {
@@ -22,7 +28,7 @@ describe('GoogleOAuthButton', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [GoogleOAuthButton],
+      imports: [OAuthProviderButton],
       providers: [
         ...provideTranslocoForTest(),
         provideZonelessChangeDetection(),
@@ -32,7 +38,7 @@ describe('GoogleOAuthButton', () => {
       ],
     }).compileComponents();
 
-    component = TestBed.createComponent(GoogleOAuthButton).componentInstance;
+    component = createComponent();
   });
 
   describe('Component Structure', () => {
@@ -40,47 +46,47 @@ describe('GoogleOAuthButton', () => {
       expect(component).toBeTruthy();
     });
 
-    it('should have input properties defined', () => {
-      expect(component.buttonLabel).toBeDefined();
-      expect(component.buttonType).toBeDefined();
-      expect(component.testId).toBeDefined();
-    });
-
     it('should have output properties defined', () => {
       expect(component.loadingChange).toBeDefined();
       expect(component.authError).toBeDefined();
     });
 
-    it('should have isLoading signal defined', () => {
-      expect(component.isLoading).toBeDefined();
-      expect(typeof component.isLoading).toBe('function');
-    });
-  });
-
-  describe('Default Values', () => {
-    it('should have default buttonLabel', () => {
-      expect(component.buttonLabel()).toBe('Continuer avec Google');
+    it('should have isLoading false by default', () => {
+      expect(component['isLoading']()).toBe(false);
     });
 
     it('should have default buttonType as outlined', () => {
       expect(component.buttonType()).toBe('outlined');
     });
+  });
 
-    it('should have default testId', () => {
-      expect(component.testId()).toBe('google-oauth-button');
+  // The vitest JIT env cannot bind signal inputs (registered only in AOT),
+  // so provider-derived behavior is asserted on the default; the apple
+  // variant is covered by the AOT build + Playwright visual verification.
+  describe('Provider-derived defaults', () => {
+    it('should derive the testId from the provider when not overridden', () => {
+      expect(component['resolvedTestId']()).toBe('google-oauth-button');
     });
 
-    it('should have isLoading false by default', () => {
-      expect(component.isLoading()).toBe(false);
+    it('should derive the label key from the provider', () => {
+      expect(component['labelKey']()).toBe('auth.continueWithGoogle');
     });
   });
 
-  describe('signInWithGoogle - Success Path', () => {
+  describe('signIn - Success Path', () => {
+    it('should call the OAuth service with its provider', async () => {
+      mockAuthOAuth.signInWithOAuth.mockResolvedValue({ success: true });
+
+      await component['signIn']();
+
+      expect(mockAuthOAuth.signInWithOAuth).toHaveBeenCalledWith('google');
+    });
+
     it('should set isLoading to true when called', async () => {
       mockAuthOAuth.signInWithOAuth.mockResolvedValue({ success: true });
 
-      const promise = component.signInWithGoogle();
-      expect(component.isLoading()).toBe(true);
+      const promise = component['signIn']();
+      expect(component['isLoading']()).toBe(true);
 
       await promise;
     });
@@ -90,7 +96,7 @@ describe('GoogleOAuthButton', () => {
       const loadingEmitSpy = vi.fn();
       component.loadingChange.subscribe(loadingEmitSpy);
 
-      await component.signInWithGoogle();
+      await component['signIn']();
 
       expect(loadingEmitSpy).toHaveBeenCalledWith(true);
     });
@@ -100,21 +106,38 @@ describe('GoogleOAuthButton', () => {
       const errorEmitSpy = vi.fn();
       component.authError.subscribe(errorEmitSpy);
 
-      await component.signInWithGoogle();
+      await component['signIn']();
 
       expect(errorEmitSpy).not.toHaveBeenCalled();
     });
 
-    it('should reset isLoading after signInWithGoogle completes (finally block)', async () => {
+    it('should reset isLoading after signIn completes (finally block)', async () => {
       mockAuthOAuth.signInWithOAuth.mockResolvedValue({ success: true });
 
-      await component.signInWithGoogle();
+      await component['signIn']();
 
-      expect(component.isLoading()).toBe(false);
+      expect(component['isLoading']()).toBe(false);
+    });
+
+    it('should ignore a second call while one is already in flight', async () => {
+      let resolveAuth!: (value: { success: boolean }) => void;
+      mockAuthOAuth.signInWithOAuth.mockReturnValue(
+        new Promise((resolve) => {
+          resolveAuth = resolve;
+        }),
+      );
+
+      const firstCall = component['signIn']();
+      await component['signIn']();
+
+      expect(mockAuthOAuth.signInWithOAuth).toHaveBeenCalledTimes(1);
+
+      resolveAuth({ success: true });
+      await firstCall;
     });
   });
 
-  describe('signInWithGoogle - Failure Path', () => {
+  describe('signIn - Failure Path', () => {
     it('should emit error when API returns failure', async () => {
       mockAuthOAuth.signInWithOAuth.mockResolvedValue({
         success: false,
@@ -123,7 +146,7 @@ describe('GoogleOAuthButton', () => {
       const errorEmitSpy = vi.fn();
       component.authError.subscribe(errorEmitSpy);
 
-      await component.signInWithGoogle();
+      await component['signIn']();
 
       expect(errorEmitSpy).toHaveBeenCalledWith('Compte non autorisé');
     });
@@ -133,7 +156,7 @@ describe('GoogleOAuthButton', () => {
       const errorEmitSpy = vi.fn();
       component.authError.subscribe(errorEmitSpy);
 
-      await component.signInWithGoogle();
+      await component['signIn']();
 
       expect(errorEmitSpy).toHaveBeenCalledWith(
         'La connexion a échoué — réessaie',
@@ -143,9 +166,9 @@ describe('GoogleOAuthButton', () => {
     it('should reset isLoading on failure', async () => {
       mockAuthOAuth.signInWithOAuth.mockResolvedValue({ success: false });
 
-      await component.signInWithGoogle();
+      await component['signIn']();
 
-      expect(component.isLoading()).toBe(false);
+      expect(component['isLoading']()).toBe(false);
     });
 
     it('should emit loading false on failure', async () => {
@@ -153,13 +176,13 @@ describe('GoogleOAuthButton', () => {
       const loadingEmitSpy = vi.fn();
       component.loadingChange.subscribe(loadingEmitSpy);
 
-      await component.signInWithGoogle();
+      await component['signIn']();
 
       expect(loadingEmitSpy).toHaveBeenCalledWith(false);
     });
   });
 
-  describe('signInWithGoogle - Exception Path', () => {
+  describe('signIn - Exception Path', () => {
     it('should emit error when exception is thrown', async () => {
       mockAuthOAuth.signInWithOAuth.mockRejectedValue(
         new Error('Network error'),
@@ -167,7 +190,7 @@ describe('GoogleOAuthButton', () => {
       const errorEmitSpy = vi.fn();
       component.authError.subscribe(errorEmitSpy);
 
-      await component.signInWithGoogle();
+      await component['signIn']();
 
       expect(errorEmitSpy).toHaveBeenCalledWith(
         'La connexion a échoué — réessaie',
@@ -178,10 +201,10 @@ describe('GoogleOAuthButton', () => {
       const error = new Error('Network error');
       mockAuthOAuth.signInWithOAuth.mockRejectedValue(error);
 
-      await component.signInWithGoogle();
+      await component['signIn']();
 
       expect(mockLogger.error).toHaveBeenCalledWith(
-        'Google OAuth error',
+        'google OAuth error',
         error,
       );
     });
@@ -191,9 +214,9 @@ describe('GoogleOAuthButton', () => {
         new Error('Network error'),
       );
 
-      await component.signInWithGoogle();
+      await component['signIn']();
 
-      expect(component.isLoading()).toBe(false);
+      expect(component['isLoading']()).toBe(false);
     });
 
     it('should emit loading false on exception', async () => {
@@ -203,9 +226,15 @@ describe('GoogleOAuthButton', () => {
       const loadingEmitSpy = vi.fn();
       component.loadingChange.subscribe(loadingEmitSpy);
 
-      await component.signInWithGoogle();
+      await component['signIn']();
 
       expect(loadingEmitSpy).toHaveBeenCalledWith(false);
     });
+
+    // Pas de test unitaire sur `disabled` : cet env vitest JIT n'applique pas
+    // les bindings d'input après la première instanciation du type (cf. le
+    // commentaire sur `provider` dans le composant) — ni `setInput` ni
+    // `inputBinding` n'atteignent le signal. Le binding `[disabled]` des
+    // parents est type-checké par le build AOT.
   });
 });

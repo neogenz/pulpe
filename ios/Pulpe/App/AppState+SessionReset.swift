@@ -270,8 +270,15 @@ extension AppState {
         enrollmentPolicy.clearUserExplicitlyDisabled()
         hasReturningUser = false
         returningUserFlagLoaded = true
+        onboardingPinConfiguredMidFlow = false
         OnboardingState.clearPersistedData()
         onboardingBootstrapper.clearPendingData()
+        // Frontière d'identité : le prochain compte sur ce device ne doit ni
+        // hériter des rappels de celui-ci, ni perdre son propre handoff
+        // post-onboarding, ni recevoir une notification déjà programmée.
+        ReminderPreferences().reset()
+        PostOnboardingFlagsStore().reset()
+        await NotificationScheduler.shared.cancelMonthlyReminder()
         clearManualBiometricRetryRequiredFlag()
         // Account deletion / signup abandon → revoke JWT server-side so a
         // snapped access_token cannot be replayed within its ~1h expiry window.
@@ -326,6 +333,9 @@ extension AppState {
         currentUser = nil
         authState = .unauthenticated
         biometricError = scope.errorMessage
+        // La prochaine session ne doit pas hériter du handoff post-onboarding
+        // (multi-user même process : le flag est consommé par CurrentMonthView).
+        justCompletedOnboarding = false
 
         // Reset feature stores atomically with session state
         sessionDataResetter?.resetStores()
@@ -340,8 +350,11 @@ extension AppState {
             savingsGoalsPath = NavigationPath()
             templatePath = NavigationPath()
             selectedTab = .currentMonth
-            widgetSyncing.clearAndReload()
         }
+        // Tout scope aboutit à `.unauthenticated` : le solde caché dans l'app
+        // group vit HORS du périmètre PIN et ne doit survivre à aucune fin de
+        // session — expiration comprise, pas seulement le logout explicite.
+        widgetSyncing.clearAndReload()
         if scope.setsManualBiometricRetry {
             setManualBiometricRetryRequiredFlag(true)
         }

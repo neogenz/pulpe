@@ -40,19 +40,20 @@ struct GoalContributionsSection: View {
     private func contributionCard(_ contribution: SavingsGoalContribution) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             HStack(spacing: DesignTokens.Spacing.md) {
-                Image(systemName: contribution.isChecked ? "checkmark.circle.fill" : "circle")
-                    .font(PulpeTypography.actionIcon)
-                    .foregroundStyle(contribution.isChecked ? Color.financialSavings : Color.textTertiary)
-                    .accessibilityLabel(contribution.isChecked ? "Prévision pointée" : "Prévision à pointer")
-
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                     Text(contribution.name)
                         .font(PulpeTypography.listRowTitle)
                         .foregroundStyle(Color.textPrimary)
                         .lineLimit(2)
-                    Text("\(Formatters.monthName(for: contribution.budgetMonth)) \(contribution.budgetYear)")
-                        .font(PulpeTypography.listRowSubtitle)
-                        .foregroundStyle(Color.textTertiary)
+                    // Statut en texte, pas en glyphe : le cercle vide est le
+                    // vocabulaire du `PointCircle` interactif partout ailleurs —
+                    // ici la surface est passive, un faux contrôle trahit le tap.
+                    // `String(year)` : l'interpolation d'Int dans Text applique le
+                    // groupement localisé ("2'026" en de-CH) — jamais sur une année.
+                    statusSubtitle(
+                        base: "\(Formatters.monthName(for: contribution.budgetMonth)) \(String(contribution.budgetYear))",
+                        isChecked: contribution.isChecked
+                    )
                 }
 
                 Spacer(minLength: DesignTokens.Spacing.sm)
@@ -63,6 +64,7 @@ struct GoalContributionsSection: View {
                     .foregroundStyle(Color.textPrimary)
                     .sensitiveAmount()
             }
+            .accessibilityElement(children: .combine)
 
             if !contribution.transactions.isEmpty {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
@@ -75,7 +77,7 @@ struct GoalContributionsSection: View {
                         contributionTransactionRow(transaction)
                     }
                 }
-                .padding(.leading, DesignTokens.IconSize.compact + DesignTokens.Spacing.md)
+                .padding(.leading, DesignTokens.Spacing.md)
             }
         }
         .pulpeCard()
@@ -83,18 +85,15 @@ struct GoalContributionsSection: View {
 
     private func contributionTransactionRow(_ transaction: Transaction) -> some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
-            Image(systemName: transaction.isChecked ? "checkmark.circle.fill" : "circle")
-                .foregroundStyle(transaction.isChecked ? Color.financialSavings : Color.textTertiary)
-                .accessibilityLabel(transaction.isChecked ? "Transaction pointée" : "Transaction à pointer")
-
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                 Text(transaction.name)
                     .font(PulpeTypography.listRowSubtitle)
                     .foregroundStyle(Color.textPrimary)
                     .lineLimit(2)
-                Text(transaction.transactionDate.formatted(date: .abbreviated, time: .omitted))
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.textTertiary)
+                statusSubtitle(
+                    base: transaction.transactionDate.formatted(date: .abbreviated, time: .omitted),
+                    isChecked: transaction.isChecked
+                )
             }
 
             Spacer(minLength: DesignTokens.Spacing.sm)
@@ -105,5 +104,19 @@ struct GoalContributionsSection: View {
                 .foregroundStyle(Color.textPrimary)
                 .sensitiveAmount()
         }
+        .accessibilityElement(children: .combine)
+    }
+
+    /// « Juillet 2026 · Pointé » / « 23 juil. 2026 · À pointer » — le statut de
+    /// pointage vit dans la ligne de métadonnées ; seul « Pointé » prend la
+    /// couleur épargne pour signaler le comptabilisé d'un coup d'œil.
+    private func statusSubtitle(base: String, isChecked: Bool) -> some View {
+        (
+            Text("\(base) · ")
+                .foregroundStyle(Color.textTertiary)
+            + Text(isChecked ? "Pointé" : "À pointer")
+                .foregroundStyle(isChecked ? Color.financialSavings : Color.textTertiary)
+        )
+        .font(PulpeTypography.listRowSubtitle)
     }
 }

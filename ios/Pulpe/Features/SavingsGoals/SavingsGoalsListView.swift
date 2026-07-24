@@ -152,15 +152,3 @@ private struct SavingsGoalRow: View {
         .padding(.vertical, DesignTokens.Spacing.xs)
     }
 }
-
-// MARK: - Status badge
-
-private struct SavingsGoalStatusBadge: View {
-    let status: SavingsGoalStatus
-
-    // Same muted PulpeChip as the detail header — one treatment per status
-    // everywhere, neutral only (RG-002: savings is never an alert color).
-    var body: some View {
-        PulpeChip(label: status.label, style: .muted)
-    }
-}

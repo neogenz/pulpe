@@ -98,10 +98,21 @@ struct MainTabView: View {
         // Track the device's bottom safe-area inset so `tabBarClearance` reserves
         // exactly the right space regardless of device (the bar is positioned from
         // the physical bottom; content respects the safe area).
-        .onGeometryChange(for: CGFloat.self) { proxy in
-            proxy.safeAreaInsets.bottom
-        } action: { newInset in
-            bottomSafeAreaInset = newInset
+        //
+        // The read is hosted on a keyboard-exempt background, NOT on the TabView
+        // itself: the TabView's own bottom inset includes the keyboard, and a
+        // sheet/push keyboard session racing its dismissal can leave the latched
+        // @State at ~keyboard height (stale-inset, seen on iOS 26). That collapsed
+        // `tabBarClearance` to 0 while the bar was visible — page-local FABs slid
+        // under the bar until the next keyboard cycle re-fired the callback.
+        .background {
+            Color.clear
+                .ignoresSafeArea(.keyboard, edges: .bottom)
+                .onGeometryChange(for: CGFloat.self) { proxy in
+                    proxy.safeAreaInsets.bottom
+                } action: { newInset in
+                    bottomSafeAreaInset = newInset
+                }
         }
         // Publish the floating-bar reservation through the environment so each
         // tab's `NavigationStack` can re-apply the canonical safe-area pattern

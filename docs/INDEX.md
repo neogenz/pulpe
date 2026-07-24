@@ -32,6 +32,7 @@
 - **[ENCRYPTION.md](./ENCRYPTION.md)** - Chiffrement AES-256-GCM des montants financiers (split-key, stockage clientKey web + iOS)
 - **[CSP.md](./CSP.md)** - Content Security Policy : état actuel, dette `unsafe-inline`, plan de remédiation
 - **[SCENARIOS.md](./SCENARIOS.md)** - Scénarios métier Web App + iOS (auth, biométrie, grace period, widget)
+- **[CONSENT.md](./CONSENT.md)** - Consentement à l'inscription : sign-in wrap, formulation, limites et conditions de réexamen
 
 ### 💰 Métier
 - **[SAVINGS.md](./SAVINGS.md)** - Objectifs d'épargne, progression et simulateur de plan

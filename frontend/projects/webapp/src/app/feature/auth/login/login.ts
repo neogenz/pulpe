@@ -23,7 +23,7 @@ import {
   PASSWORD_MIN_LENGTH,
   SCHEDULED_DELETION_PARAMS,
 } from '@core/auth';
-import { GoogleOAuthButton } from '@app/pattern/google-oauth';
+import { OAuthProviderButton } from '@app/pattern/oauth-provider';
 import { ROUTES } from '@core/routing/routes-constants';
 import { Logger } from '@core/logging/logger';
 import { ErrorAlert } from '@ui/error-alert';
@@ -40,7 +40,7 @@ import { LoadingButton } from '@ui/loading-button';
     MatIconModule,
     MatDividerModule,
     RouterLink,
-    GoogleOAuthButton,
+    OAuthProviderButton,
     ErrorAlert,
     LoadingButton,
     TranslocoPipe,
@@ -68,11 +68,22 @@ import { LoadingButton } from '@ui/loading-button';
         </p>
       </div>
 
-      <pulpe-google-oauth-button
-        testId="google-login-button"
-        (authError)="errorMessage.set($event)"
-        (loadingChange)="isGoogleLoading.set($event)"
-      />
+      <div class="flex flex-col gap-3">
+        <pulpe-oauth-provider-button
+          [provider]="'apple'"
+          testId="apple-login-button"
+          [disabled]="isBusy()"
+          (authError)="errorMessage.set($event)"
+          (loadingChange)="isOAuthLoading.set($event)"
+        />
+        <pulpe-oauth-provider-button
+          [provider]="'google'"
+          testId="google-login-button"
+          [disabled]="isBusy()"
+          (authError)="errorMessage.set($event)"
+          (loadingChange)="isOAuthLoading.set($event)"
+        />
+      </div>
 
       <div class="flex items-center gap-4 my-6">
         <mat-divider class="flex-1" />
@@ -203,13 +214,13 @@ export default class Login {
   protected readonly ROUTES = ROUTES;
   protected readonly isPasswordHidden = signal(true);
   protected readonly isSubmitting = signal(false);
-  protected readonly isGoogleLoading = signal(false);
+  protected readonly isOAuthLoading = signal(false);
   protected readonly errorMessage = signal('');
   // Disables inputs + submit when EITHER email submit or Google OAuth is in
   // flight — prevents double-submit without freezing the form just because
   // Google redirect is briefly loading.
   protected readonly isBusy = computed(
-    () => this.isSubmitting() || this.isGoogleLoading(),
+    () => this.isSubmitting() || this.isOAuthLoading(),
   );
 
   private readonly emailInput =

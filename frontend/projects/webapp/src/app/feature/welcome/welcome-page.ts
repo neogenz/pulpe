@@ -11,7 +11,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
-import { GoogleOAuthButton } from '@app/pattern/google-oauth';
+import { OAuthProviderButton } from '@app/pattern/oauth-provider';
+import type { OAuthProvider } from '@core/auth';
 import { PostHogService } from '@core/analytics/posthog';
 import { DemoInitializerService } from '@core/demo/demo-initializer.service';
 import { Logger } from '@core/logging/logger';
@@ -29,7 +30,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
     RouterLink,
     NgxTurnstileModule,
     TranslocoPipe,
-    GoogleOAuthButton,
+    OAuthProviderButton,
     ErrorAlert,
     LoadingButton,
   ],
@@ -57,7 +58,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
 
       <!-- Headline -->
       <h1
-        class="font-bold tracking-[-0.02em] leading-[1.02] text-[2rem] md:text-[2.5rem] mt-4 text-on-surface [text-wrap:balance]"
+        class="font-bold text-headline-large md:text-display-small mt-4 text-on-surface [text-wrap:balance]"
         data-testid="welcome-title"
       >
         {{ 'welcome.title' | transloco }}
@@ -70,6 +71,25 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
       >
         {{ 'welcome.subtitle' | transloco }}
       </p>
+
+      <!-- Benefits — show, don't tell: what the product does before asking anything -->
+      <ul
+        class="mt-6 flex flex-col gap-3 self-center text-left"
+        data-testid="welcome-benefits"
+      >
+        @for (benefit of BENEFITS; track benefit.labelKey) {
+          <li class="flex items-center gap-3">
+            <mat-icon
+              aria-hidden="true"
+              class="text-primary !text-xl !w-5 !h-5 shrink-0"
+              >{{ benefit.icon }}</mat-icon
+            >
+            <span class="text-body-medium text-on-surface-variant">
+              {{ benefit.labelKey | transloco }}
+            </span>
+          </li>
+        }
+      </ul>
 
       <!-- CTAs -->
       <div class="mt-7 flex flex-col gap-3 w-full">
@@ -96,7 +116,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
             #turnstileWidget
             [siteKey]="turnstileService.siteKey()"
             [appearance]="'interaction-only'"
-            [theme]="'light'"
+            [theme]="'auto'"
             (resolved)="turnstileService.handleResolved($event)"
             (errored)="turnstileService.handleError()"
             class="hidden"
@@ -106,18 +126,28 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
         <div class="flex items-center gap-4 my-0.5" aria-hidden="true">
           <div class="flex-1 h-px bg-outline-variant/40"></div>
           <span
-            class="text-[10px] font-semibold text-on-surface-variant/70 uppercase tracking-[0.2em]"
+            class="text-label-small font-semibold text-on-surface-variant/70 uppercase tracking-[0.2em]"
             >{{ 'common.or' | transloco }}</span
           >
           <div class="flex-1 h-px bg-outline-variant/40"></div>
         </div>
 
-        <pulpe-google-oauth-button
+        <pulpe-oauth-provider-button
           class="w-full"
-          buttonType="outlined"
+          [provider]="'apple'"
+          testId="apple-oauth-button"
+          [disabled]="isLoading()"
+          (authError)="onOAuthError($event)"
+          (loadingChange)="onOAuthLoadingChange('apple', $event)"
+        />
+
+        <pulpe-oauth-provider-button
+          class="w-full"
+          [provider]="'google'"
           testId="google-oauth-button"
-          (authError)="errorMessage.set($event)"
-          (loadingChange)="onGoogleLoadingChange($event)"
+          [disabled]="isLoading()"
+          (authError)="onOAuthError($event)"
+          (loadingChange)="onOAuthLoadingChange('google', $event)"
         />
 
         <button
@@ -183,6 +213,11 @@ export default class WelcomePage {
   readonly #transloco = inject(TranslocoService);
   protected readonly turnstileService = inject(TurnstileService);
   protected readonly ROUTES = ROUTES;
+  protected readonly BENEFITS = [
+    { icon: 'event_note', labelKey: 'welcome.benefits.setup' },
+    { icon: 'check_circle', labelKey: 'welcome.benefits.track' },
+    { icon: 'lock', labelKey: 'welcome.benefits.privacy' },
+  ] as const;
 
   constructor() {
     afterNextRender(() => {
@@ -191,26 +226,36 @@ export default class WelcomePage {
   }
 
   protected readonly errorMessage = signal('');
-  protected readonly isGoogleLoading = signal(false);
+  protected readonly isOAuthLoading = signal(false);
   protected readonly isDemoInitializing = this.#demoInitializer.isInitializing;
   protected readonly isDemoLoading = computed(
     () => this.turnstileService.isProcessing() || this.isDemoInitializing(),
   );
   protected readonly isLoading = computed(
-    () => this.isGoogleLoading() || this.isDemoLoading(),
+    () => this.isOAuthLoading() || this.isDemoLoading(),
   );
 
   protected readonly turnstileWidget =
     viewChild<NgxTurnstileComponent>('turnstileWidget');
 
-  onGoogleLoadingChange(isLoading: boolean): void {
-    this.isGoogleLoading.set(isLoading);
+  protected onOAuthLoadingChange(
+    method: OAuthProvider,
+    isLoading: boolean,
+  ): void {
+    this.isOAuthLoading.set(isLoading);
     if (isLoading) {
-      this.#postHogService.setPendingSignupMethod('google');
-      this.#postHogService.captureEvent('signup_started', { method: 'google' });
-    } else {
-      this.#postHogService.clearPendingSignupMethod();
+      this.#postHogService.setPendingSignupMethod(method);
+      this.#postHogService.captureEvent('signup_started', { method });
     }
+    // Pas de clear sur `false` : le succès OAuth émet loadingChange(false)
+    // avant que le redirect n'emporte la page — effacer ici tue le
+    // signup_completed lu au retour. La clé est consommée à la lecture
+    // (capturePendingSignupCompleted) ; l'échec avéré passe par onOAuthError.
+  }
+
+  protected onOAuthError(message: string): void {
+    this.errorMessage.set(message);
+    this.#postHogService.clearPendingSignupMethod();
   }
 
   onEmailSignupClick(): void {

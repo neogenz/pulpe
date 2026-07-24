@@ -65,7 +65,6 @@ describe('Signup', () => {
       email: 'test@example.com',
       password: 'password123',
       confirmPassword: 'password123',
-      acceptTerms: true,
     });
   }
 
@@ -86,7 +85,6 @@ describe('Signup', () => {
       expect(component['signupForm'].get('email')).toBeDefined();
       expect(component['signupForm'].get('password')).toBeDefined();
       expect(component['signupForm'].get('confirmPassword')).toBeDefined();
-      expect(component['signupForm'].get('acceptTerms')).toBeDefined();
     });
   });
 
@@ -158,13 +156,22 @@ describe('Signup', () => {
       expect(confirmPasswordControl?.hasError('required')).toBe(true);
     });
 
-    it('should require acceptTerms to be true', () => {
-      const acceptTermsControl = component['signupForm'].get('acceptTerms');
-      acceptTermsControl?.setValue(false);
-      expect(acceptTermsControl?.hasError('required')).toBe(true);
+    it('should require at least one digit in the password (iOS parity)', () => {
+      const passwordControl = component['signupForm'].get('password');
+      passwordControl?.setValue('onlyLettersHere');
+      expect(passwordControl?.hasError('hasNumber')).toBe(true);
 
-      acceptTermsControl?.setValue(true);
-      expect(acceptTermsControl?.hasError('required')).toBe(false);
+      passwordControl?.setValue('lettersAnd1');
+      expect(passwordControl?.hasError('hasNumber')).toBe(false);
+    });
+
+    it('should require at least one letter in the password (iOS parity)', () => {
+      const passwordControl = component['signupForm'].get('password');
+      passwordControl?.setValue('1234567890');
+      expect(passwordControl?.hasError('hasLetter')).toBe(true);
+
+      passwordControl?.setValue('1234567a');
+      expect(passwordControl?.hasError('hasLetter')).toBe(false);
     });
   });
 
@@ -269,7 +276,6 @@ describe('Signup', () => {
         email: 'foo@bar.c',
         password: 'password123',
         confirmPassword: 'password123',
-        acceptTerms: true,
       });
 
       await component['signUp']();

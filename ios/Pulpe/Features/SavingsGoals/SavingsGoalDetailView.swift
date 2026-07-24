@@ -109,7 +109,12 @@ struct SavingsGoalDetailView: View {
                 )
 
                 if progress.linkedLineCount > 0, !progress.months.isEmpty {
-                    GoalTrajectorySection(progress: progress, currency: currency)
+                    // Construite une seule fois : la même série gate la section
+                    // et alimente le chart (jusqu'à ~96 mois mappés par lecture).
+                    let series = GoalProjectionSeries.read(from: progress)
+                    if series.hasConfirmedTrend {
+                        GoalTrajectorySection(progress: progress, series: series, currency: currency)
+                    }
                     GoalPlanTimelineSection(
                         months: progress.months,
                         currency: currency,
@@ -162,7 +167,7 @@ struct SavingsGoalDetailView: View {
     @ViewBuilder
     private func header(progress: SavingsGoalProgress) -> some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
-            PulpeChip(icon: statusIcon(currentGoal.status), label: currentGoal.status.label, style: .muted)
+            SavingsGoalStatusBadge(status: currentGoal.status, showsIcon: true)
 
             if let date = progress.targetDateValue {
                 Text("Échéance \(date.formatted(date: .abbreviated, time: .omitted))")
@@ -174,18 +179,11 @@ struct SavingsGoalDetailView: View {
         }
     }
 
-    private func statusIcon(_ status: SavingsGoalStatus) -> String {
-        switch status {
-        case .active: "target"
-        case .completed: "checkmark.circle.fill"
-        case .paused: "pause.circle"
-        }
-    }
-
     // MARK: - Progress card (prévu / confirmé)
 
     private func progressCard(progress: SavingsGoalProgress) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+        let hasClosedPlanMonth = SavingsGoalDetailViewModel.hasClosedPlanMonth(progress.months)
+        return VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             HStack(alignment: .firstTextBaseline) {
                 Text(progress.confirmed.asCompactCurrency(currency))
                     .font(PulpeTypography.amountCard)
@@ -205,7 +203,11 @@ struct SavingsGoalDetailView: View {
             layeredBar(progress: progress)
 
             if let pace = progress.paceStatus {
-                paceIndicator(pace)
+                if hasClosedPlanMonth {
+                    paceIndicator(pace)
+                } else if let amount = SavingsGoalDetailViewModel.currentMonthPlannedAmount(progress.months) {
+                    planReadyIndicator(amount)
+                }
             }
 
             VStack(spacing: DesignTokens.Spacing.sm) {
@@ -213,15 +215,22 @@ struct SavingsGoalDetailView: View {
                     statRow(label: "Montant de départ", value: progress.initialAmount.asCompactCurrency(currency))
                 }
                 statRow(
-                    label: "Prévu cumulé",
+                    label: "Déjà prévu",
                     value: progress.plannedCumulative.asCompactCurrency(currency),
                     swatch: Color.financialSavings.opacity(DesignTokens.Opacity.strong)
                 )
-                if let required = progress.required {
-                    statRow(
-                        label: "Pour tenir ton échéance",
-                        value: "\(required.asCompactCurrency(currency)) / mois"
-                    )
+                if let required = progress.required, hasClosedPlanMonth {
+                    if SavingsGoalDetailViewModel.requiredMatchesPlannedPace(
+                        planned: progress.pace,
+                        required: required
+                    ) {
+                        statRow(
+                            label: "Pour tenir ton échéance",
+                            value: "\(required.asCompactCurrency(currency)) / mois"
+                        )
+                    } else {
+                        deadlineReconciliation(progress: progress, required: required)
+                    }
                 }
             }
         }
@@ -267,6 +276,24 @@ struct SavingsGoalDetailView: View {
         }
     }
 
+    /// When the required pace drifts from the planned one, two bare numbers in
+    /// separate rows read as a contradiction — one sentence relates them instead.
+    private func deadlineReconciliation(progress: SavingsGoalProgress, required: Decimal) -> some View {
+        let deadlinePart = progress.targetDateValue
+            .map { "pour finir le \($0.formatted(date: .abbreviated, time: .omitted))" }
+            ?? "pour tenir ton échéance"
+        let plannedPart = "Ton rythme prévu : \(progress.pace.asCompactCurrency(currency))/mois"
+        return Text(
+            "\(plannedPart) · \(deadlinePart), vise \(required.asCompactCurrency(currency))/mois"
+        )
+        .font(PulpeTypography.metricLabel)
+        .foregroundStyle(Color.textSecondary)
+        .monospacedDigit()
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .sensitiveAmount()
+    }
+
     // MARK: - Pace verdict
 
     private func paceIndicator(_ pace: SavingsGoalPaceStatus) -> some View {
@@ -274,6 +301,19 @@ struct SavingsGoalDetailView: View {
             .font(PulpeTypography.metricLabelBold)
             .foregroundStyle(Color.textSecondary)
             .accessibilityLabel("Rythme : \(paceLabel(pace))")
+    }
+
+    /// Jour-1 beat in the verdict slot: before any plan month has closed there
+    /// is nothing to judge, so the verdict would read as a reproach at the
+    /// moment of engagement. Whole label sensitive — the amount is inline.
+    private func planReadyIndicator(_ amount: Decimal) -> some View {
+        Label(
+            "Ton plan est prêt — \(amount.asCurrency(currency)) à mettre de côté ce mois.",
+            systemImage: "checkmark.circle"
+        )
+        .font(PulpeTypography.metricLabelBold)
+        .foregroundStyle(Color.textSecondary)
+        .sensitiveAmount()
     }
 
     /// Bienveillant, factuel — never anxiogène (behind reads as a gentle nudge).
@@ -397,6 +437,33 @@ final class SavingsGoalDetailViewModel {
     init(goalId: String, service: any SavingsGoalServicing = SavingsGoalService.shared) {
         self.goalId = goalId
         self.service = service
+    }
+
+    // MARK: - Day-1 verdict gate
+
+    /// No pace verdict before the first plan month has closed: a fresh goal has
+    /// nothing to be judged on yet. Closed = server-locked (strictly-past cycle
+    /// or everything pointé — same signal the timeline dims rows on).
+    static func hasClosedPlanMonth(_ months: [SavingsGoalPlanMonth]) -> Bool {
+        months.contains { $0.isLocked }
+    }
+
+    /// Amount for the day-1 « plan prêt » beat: the current month's planned
+    /// amount. `nil` (beat hidden) when the timeline has no funded current
+    /// month — legacy payload without `months`, or a gap month.
+    static func currentMonthPlannedAmount(_ months: [SavingsGoalPlanMonth]) -> Decimal? {
+        guard let amount = months.first(where: { $0.state == .current })?.plannedAmount,
+              amount > 0 else { return nil }
+        return amount
+    }
+
+    /// « requis ≈ prévu » band for the deadline stat — same ±5 % relative
+    /// tolerance as the server's pace verdict (`PACE_TOLERANCE_PERCENT`), so
+    /// the stat never contradicts the verdict shown above it. Outside the band
+    /// the stat becomes one sentence relating both rhythms.
+    static func requiredMatchesPlannedPace(planned: Decimal, required: Decimal) -> Bool {
+        guard planned > 0 else { return required <= 0 }
+        return abs(required - planned) <= planned * SavingsGoalProgress.paceTolerancePercent / 100
     }
 
     /// Initial / pull-to-refresh load. Shows the full-screen spinner while the

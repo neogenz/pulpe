@@ -126,6 +126,21 @@ struct BudgetDetailsView: View {
                 .accessibilityLabel("Suivi du budget")
             }
         }
+        // Scroll-independent month navigation (system title chevron). The sticky
+        // pager only reveals after ~32pt of scroll — a short filtered list (e.g.
+        // "À pointer" fully checked) can never produce that, so the title menu is
+        // the guaranteed path; the pager stays as the scrolled fast path.
+        .toolbarTitleMenu {
+            // Newest first: a title menu is a quick-jump list and the recent
+            // months are the target in practice — chronological order would bury
+            // the current month under years of history (the pager keeps its
+            // ascending rail; different affordance, different reading order).
+            Picker("Mois", selection: monthSelection) {
+                ForEach(coordinator.dataStore.pagerMonths.reversed(), id: \.id) { sparse in
+                    Text(Self.monthMenuLabel(for: sparse)).tag(sparse.id)
+                }
+            }
+        }
         .task(id: screenState.budgetId) {
             coordinator.bind(
                 budgetListStore: budgetListStore,

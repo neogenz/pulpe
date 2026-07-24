@@ -52,6 +52,12 @@ extension AppState {
             await clientKeyManager.clearAll()
             await biometric.disable()
             enrollmentPolicy.clearUserExplicitlyDisabled()
+            // Frontière d'identité : rappels, prime et handoff appartiennent au
+            // compte précédent — l'entrant repart de zéro, et une notification
+            // déjà programmée par l'ancien compte ne doit pas lui parvenir.
+            ReminderPreferences().reset()
+            PostOnboardingFlagsStore().reset()
+            await NotificationScheduler.shared.cancelMonthlyReminder()
         } else {
             await clientKeyManager.clearSession()
         }
@@ -318,7 +324,8 @@ extension AppState {
         user: UserInfo,
         onboardingData: BudgetTemplateCreateFromOnboarding,
         signupMethod: String,
-        currency: SupportedCurrency? = nil
+        currency: SupportedCurrency? = nil,
+        pinConfiguredDuringOnboarding: Bool = false
     ) async {
         authDebug("AUTH_ONBOARDING", "complete email=\(user.email.prefix(3))***")
         clearPreLoginFlags()
@@ -326,6 +333,7 @@ extension AppState {
         await keychainManager.saveLastUsedEmail(user.email)
         hasReturningUser = true
         returningUserFlagLoaded = true
+        onboardingPinConfiguredMidFlow = pinConfiguredDuringOnboarding
         onboardingBootstrapper.setPendingData(
             onboardingData,
             signupMethod: signupMethod,
@@ -337,7 +345,7 @@ extension AppState {
         // Handles reused emails where encryption keys already exist.
         let destination = await postAuthResolver.resolve()
         authDebug("AUTH_ONBOARDING", "destination=\(destination)")
-        handleOnboardingDestination(destination)
+        await handleOnboardingDestination(destination)
     }
 
     func retryOnboardingPostAuth() async {
@@ -345,10 +353,10 @@ extension AppState {
         showPostAuthError = false
         let destination = await postAuthResolver.resolve()
         authDebug("AUTH_ONBOARDING", "retry destination=\(destination)")
-        handleOnboardingDestination(destination)
+        await handleOnboardingDestination(destination)
     }
 
-    func handleOnboardingDestination(_ destination: PostAuthDestination) {
+    func handleOnboardingDestination(_ destination: PostAuthDestination) async {
         authDebug("AUTH_ONBOARDING_DEST", "destination=\(destination)")
         switch destination {
         case .needsPinSetup:
@@ -357,11 +365,41 @@ extension AppState {
             recoveryFlowCoordinator.setPendingConsent(needsRecoveryConsent)
             authState = .needsPinEntry
         case .authenticated:
-            // Vault fully configured — verify existing PIN
-            authState = .needsPinEntry
+            if onboardingPinConfiguredMidFlow {
+                // PIN + recovery ran inside the onboarding flow: the client key is
+                // already stored, so bootstrap the first budget and enter directly —
+                // re-verifying a PIN chosen seconds ago would end the flow on friction.
+                await bootstrapAndEnterAuthenticated()
+            } else {
+                // Vault fully configured (reused email) — verify existing PIN
+                authState = .needsPinEntry
+            }
         case .unauthenticatedSessionExpired, .vaultCheckFailed:
             showPostAuthError = true
         }
+    }
+
+    /// Finish path for a user whose PIN was configured mid-onboarding. Mirrors
+    /// `completePinSetup`'s bootstrap-with-retry, minus the `.needsPinSetup` gate.
+    /// On failure the state shape matches `.vaultCheckFailed`: `showPostAuthError`
+    /// is set and `finishOnboarding` surfaces a local retry banner.
+    private func bootstrapAndEnterAuthenticated() async {
+        var bootstrapped = await onboardingBootstrapper.bootstrapIfNeeded()
+        if !bootstrapped {
+            bootstrapped = await onboardingBootstrapper.bootstrapIfNeeded()
+        }
+
+        guard bootstrapped else {
+            authDebug("AUTH_ONBOARDING_DEST", "bootstrap failed after retry")
+            showPostAuthError = true
+            return
+        }
+
+        authDebug("AUTH_ONBOARDING_DEST", "bootstrap done, entering authenticated")
+        // Fresh-onboarding completion via the mid-flow PIN path — arm the one-time
+        // post-onboarding handoff, same contract as `completePinSetup`.
+        justCompletedOnboarding = true
+        await enterAuthenticated(context: .pinSetup)
     }
 
     // MARK: - PIN
@@ -386,6 +424,10 @@ extension AppState {
         }
 
         authDebug("AUTH_PIN_SETUP", "bootstrap done, entering authenticated")
+        // Fresh-onboarding completion — arm the one-time post-onboarding handoff.
+        // This path is reached only when a brand-new user sets up their PIN; returning
+        // users go through `completePinEntry` (context `.pinEntry`) and never set this.
+        justCompletedOnboarding = true
         await enterAuthenticated(context: .pinSetup)
     }
 

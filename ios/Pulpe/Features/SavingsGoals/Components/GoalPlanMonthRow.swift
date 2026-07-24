@@ -20,7 +20,7 @@ enum GoalPlanMonthAvailability: Equatable {
         case .linkedForecast:
             ""
         case .noLinkedForecast:
-            "Aucune prévision liée"
+            "Rien de prévu ce mois"
         case .missingBudget:
             "Pas de budget"
         }
@@ -45,15 +45,20 @@ enum GoalPlanMonthAvailability: Equatable {
 /// `amount` / `cumulative` are injected so the same row serves read mode
 /// (`plannedAmount` / `plannedCumulative`) and the simulator (`simulatedAmount` /
 /// `simulatedCumulative`). Locked rows are dimmed + non-interactive; the current
-/// period carries a « Ce mois » chip; a month without a linked forecast states why. Amount
+/// period accents its title (semibold, savings green) — a chip would read as a
+/// button on a passive marker; a month without a linked forecast states why. Amount
 /// is the ligne 2-decimal (`asCurrency`), cumulative the aggregation compact
-/// (`asCompactCurrency`, `→` prefix). Savings green + neutrals only (RG-002).
+/// (`asCompactCurrency`, `→` prefix) — simulator only (`showsCumulative`): while
+/// adjusting, the running total is the feedback; in read mode it already lives in
+/// the hero (« Déjà prévu »), a per-row echo is triple-encoding. Savings green +
+/// neutrals only (RG-002).
 struct GoalPlanMonthRow: View {
     let month: SavingsGoalPlanMonth
     let amount: Decimal
     let cumulative: Decimal
     let currency: SupportedCurrency
     var isAdjusted: Bool = false
+    var showsCumulative: Bool = false
 
     private var isCurrentPeriod: Bool { month.state == .current }
     private var availability: GoalPlanMonthAvailability { GoalPlanMonthAvailability(month: month) }
@@ -63,30 +68,36 @@ struct GoalPlanMonthRow: View {
         !month.lines.isEmpty && month.lines.allSatisfy(\.isChecked)
     }
 
-    private var stateIcon: (name: String, color: Color)? {
-        if allChecked { return ("checkmark.circle.fill", .financialSavings) }
-        if month.isLocked { return ("lock.fill", .textTertiary) }
+    /// Statut de pointage/verrouillage dans la ligne de métadonnées — même
+    /// grammaire que « Ton suivi » (`GoalContributionsSection`). L'ancien slot
+    /// d'icône réservé (28pt) laissait une colonne fantôme sur tout le plan
+    /// quand aucun mois ne portait de coche ni de cadenas (le cas commun d'un
+    /// objectif qui démarre).
+    private var stateText: (label: String, color: Color)? {
+        if allChecked { return ("Pointé", .financialSavings) }
+        if month.isLocked { return ("Verrouillé", .textTertiary) }
         return nil
     }
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
-            iconSlot
-
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                 Text(monthLabel)
                     .font(PulpeTypography.listRowTitle)
-                    .foregroundStyle(Color.textPrimary)
+                    .fontWeight(isCurrentPeriod ? .semibold : nil)
+                    .foregroundStyle(isCurrentPeriod ? Color.financialSavings : Color.textPrimary)
 
                 HStack(spacing: DesignTokens.Spacing.sm) {
-                    if isCurrentPeriod {
-                        PulpeChip(label: "Ce mois", style: .muted)
-                    }
-
                     if let availabilityIcon = availability.icon {
                         Label(availability.label, systemImage: availabilityIcon)
                             .font(PulpeTypography.listRowSubtitle)
                             .foregroundStyle(Color.textSecondary)
+                    }
+
+                    if let state = stateText {
+                        Text(state.label)
+                            .font(PulpeTypography.listRowSubtitle)
+                            .foregroundStyle(state.color)
                     }
                 }
             }
@@ -95,23 +106,14 @@ struct GoalPlanMonthRow: View {
 
             amountView
         }
-        .padding(.vertical, DesignTokens.Spacing.xs)
+        // Rythme sémantique des rangées de liste — sans le minHeight de
+        // `ListRow` : il dérive des rangées à icône 40pt et centrerait ces
+        // rangées texte-seul dans une bande trop haute.
+        .padding(.vertical, DesignTokens.ListRow.verticalPadding)
         .opacity(month.isLocked ? DesignTokens.Opacity.pointedDim : 1)
         .allowsHitTesting(!month.isLocked)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
-    }
-
-    @ViewBuilder
-    private var iconSlot: some View {
-        if let icon = stateIcon {
-            Image(systemName: icon.name)
-                .font(PulpeTypography.listRowTitle)
-                .foregroundStyle(icon.color)
-                .frame(width: DesignTokens.IconSize.compact)
-        } else {
-            Color.clear.frame(width: DesignTokens.IconSize.compact, height: 1)
-        }
     }
 
     @ViewBuilder
@@ -123,10 +125,12 @@ struct GoalPlanMonthRow: View {
                     .monospacedDigit()
                     .foregroundStyle(isAdjusted ? Color.pulpePrimary : Color.textPrimary)
             }
-            Text("→ \(cumulative.asCompactCurrency(currency))")
-                .font(PulpeTypography.metricMini)
-                .monospacedDigit()
-                .foregroundStyle(Color.textTertiary)
+            if showsCumulative {
+                Text("→ \(cumulative.asCompactCurrency(currency))")
+                    .font(PulpeTypography.metricMini)
+                    .monospacedDigit()
+                    .foregroundStyle(Color.textTertiary)
+            }
         }
         .sensitiveAmount()
     }
@@ -142,7 +146,9 @@ struct GoalPlanMonthRow: View {
         } else {
             parts.append(availability.label)
         }
-        parts.append("cumulé \(cumulative.asCurrency(currency))")
+        if showsCumulative {
+            parts.append("cumulé \(cumulative.asCurrency(currency))")
+        }
         if isCurrentPeriod { parts.append("ce mois") }
         if allChecked { parts.append("pointé") }
         if month.isLocked { parts.append("verrouillé") }

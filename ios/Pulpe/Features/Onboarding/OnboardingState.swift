@@ -53,6 +53,11 @@ final class OnboardingState {
     /// Not `private(set)` because `OnboardingState+Persistence.swift` restores it from disk.
     var wasEmailRegistered: Bool = false
 
+    /// True once the mid-flow PIN + recovery ceremony completed for this signup.
+    /// Persisted so a cold start between PIN and the budget reveal skips the ceremony,
+    /// and forwarded to `completeOnboarding` so the finish path enters the app directly.
+    var hasCompletedPinSetup: Bool = false
+
     // MARK: - Analytics Idempotency Guards
     //
     // These live on the state (not on individual step views) because step views are

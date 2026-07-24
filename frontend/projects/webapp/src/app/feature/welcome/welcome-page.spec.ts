@@ -125,7 +125,7 @@ describe('WelcomePage', () => {
       );
 
       expect(button).toBeTruthy();
-      expect(button.textContent).toContain("S'inscrire par e-mail");
+      expect(button.textContent).toContain("S'inscrire avec email");
     });
 
     it('should have demo mode button', () => {
@@ -230,11 +230,20 @@ describe('WelcomePage', () => {
 
   describe('analytics', () => {
     it('should track signup_started with google method when OAuth loading', () => {
-      component.onGoogleLoadingChange(true);
+      component['onOAuthLoadingChange']('google', true);
 
       expect(mockPostHogService.captureEvent).toHaveBeenCalledWith(
         'signup_started',
         { method: 'google' },
+      );
+    });
+
+    it('should track signup_started with apple method when OAuth loading', () => {
+      component['onOAuthLoadingChange']('apple', true);
+
+      expect(mockPostHogService.captureEvent).toHaveBeenCalledWith(
+        'signup_started',
+        { method: 'apple' },
       );
     });
 
@@ -246,9 +255,28 @@ describe('WelcomePage', () => {
 
     it('should not track signup_started when OAuth stops loading', () => {
       mockPostHogService.captureEvent.mockClear();
-      component.onGoogleLoadingChange(false);
+      component['onOAuthLoadingChange']('google', false);
 
       expect(mockPostHogService.captureEvent).not.toHaveBeenCalled();
+    });
+
+    it('should keep the pending signup method when OAuth stops loading (survives the redirect)', () => {
+      // Le succès OAuth émet loadingChange(false) avant la navigation : un
+      // clear ici effacerait la clé avant que /dashboard ne la consomme.
+      component['onOAuthLoadingChange']('apple', true);
+      component['onOAuthLoadingChange']('apple', false);
+
+      expect(
+        mockPostHogService.clearPendingSignupMethod,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should clear the pending signup method on OAuth error', () => {
+      component['onOAuthLoadingChange']('apple', true);
+      component['onOAuthError']('provider indisponible');
+
+      expect(mockPostHogService.clearPendingSignupMethod).toHaveBeenCalled();
+      expect(component['errorMessage']()).toBe('provider indisponible');
     });
 
     it('should track signup_started with email method on email click', () => {

@@ -30,7 +30,8 @@ struct CurrentMonthProvider: TimelineProvider {
 
     private func loadEntry() -> CurrentMonthEntry? {
         guard let cache = coordinator.load(),
-              let currentMonth = cache.currentMonth else {
+              let currentMonth = cache.currentMonth,
+              cache.currentMonthMatches(Date()) else {
             return nil
         }
 

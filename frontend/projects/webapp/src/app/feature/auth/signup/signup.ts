@@ -8,9 +8,15 @@ import {
   viewChild,
   type ElementRef,
 } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { toSignal } from '@angular/core/rxjs-interop';
+import {
+  type AbstractControl,
+  FormBuilder,
+  ReactiveFormsModule,
+  type ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -18,15 +24,29 @@ import { MatInputModule } from '@angular/material/input';
 import { Router, RouterLink } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
-import { AuthCredentialsService, PASSWORD_MIN_LENGTH } from '@core/auth';
+import {
+  AuthCredentialsService,
+  PASSWORD_MIN_LENGTH,
+  type OAuthProvider,
+} from '@core/auth';
 import { PostHogService } from '@core/analytics/posthog';
 import { Logger } from '@core/logging/logger';
 import { ROUTES } from '@core/routing/routes-constants';
-import { GoogleOAuthButton } from '@app/pattern/google-oauth';
+import { OAuthProviderButton } from '@app/pattern/oauth-provider';
 import { ErrorAlert } from '@ui/error-alert';
 import { LoadingButton } from '@ui/loading-button';
+import { PasswordCriteria } from '@ui/password-criteria';
 import { createFieldsMatchValidator } from '@core/validators';
-import { signupFormSchema } from './signup-form.schema';
+import {
+  PASSWORD_HAS_LETTER,
+  PASSWORD_HAS_NUMBER,
+  signupFormSchema,
+} from './signup-form.schema';
+
+function containsPattern(pattern: RegExp, errorKey: string) {
+  return (control: AbstractControl): ValidationErrors | null =>
+    pattern.test(control.value ?? '') ? null : { [errorKey]: true };
+}
 
 @Component({
   selector: 'pulpe-signup',
@@ -37,11 +57,11 @@ import { signupFormSchema } from './signup-form.schema';
     MatButtonModule,
     MatIconModule,
     MatDividerModule,
-    MatCheckboxModule,
     RouterLink,
-    GoogleOAuthButton,
+    OAuthProviderButton,
     ErrorAlert,
     LoadingButton,
+    PasswordCriteria,
     TranslocoPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -67,11 +87,22 @@ import { signupFormSchema } from './signup-form.schema';
         </p>
       </div>
 
-      <pulpe-google-oauth-button
-        testId="google-signup-button"
-        (authError)="errorMessage.set($event)"
-        (loadingChange)="isGoogleLoading.set($event)"
-      />
+      <div class="flex flex-col gap-3">
+        <pulpe-oauth-provider-button
+          [provider]="'apple'"
+          testId="apple-signup-button"
+          [disabled]="isBusy()"
+          (authError)="onOAuthError($event)"
+          (loadingChange)="onOAuthLoadingChange('apple', $event)"
+        />
+        <pulpe-oauth-provider-button
+          [provider]="'google'"
+          testId="google-signup-button"
+          [disabled]="isBusy()"
+          (authError)="onOAuthError($event)"
+          (loadingChange)="onOAuthLoadingChange('google', $event)"
+        />
+      </div>
 
       <div class="flex items-center gap-4 my-6">
         <mat-divider class="flex-1" />
@@ -93,6 +124,7 @@ import { signupFormSchema } from './signup-form.schema';
             #emailInput
             matInput
             type="email"
+            autocomplete="email"
             formControlName="email"
             data-testid="email-input"
             (input)="clearMessages()"
@@ -118,6 +150,7 @@ import { signupFormSchema } from './signup-form.schema';
           <input
             matInput
             [type]="isPasswordHidden() ? 'password' : 'text'"
+            autocomplete="new-password"
             formControlName="password"
             data-testid="password-input"
             (input)="clearMessages()"
@@ -137,26 +170,31 @@ import { signupFormSchema } from './signup-form.schema';
               isPasswordHidden() ? 'visibility_off' : 'visibility'
             }}</mat-icon>
           </button>
-          <mat-hint>{{ 'form.passwordHint' | transloco }}</mat-hint>
+          <!-- Seule l'erreur required a un message ici : minlength/hasNumber/
+               hasLetter sont portées par la checklist pulpe-password-criteria
+               ci-dessous. Le gate sur required évite un mat-error vide (région
+               live annoncée sans contenu) pour ces erreurs-là. -->
           @if (
-            signupForm.get('password')?.invalid &&
+            signupForm.get('password')?.hasError('required') &&
             signupForm.get('password')?.touched
           ) {
             <mat-error>
-              @if (signupForm.get('password')?.hasError('required')) {
-                {{ 'form.passwordRequired' | transloco }}
-              } @else if (signupForm.get('password')?.hasError('minlength')) {
-                {{ 'form.passwordMinLength' | transloco }}
-              }
+              {{ 'form.passwordRequired' | transloco }}
             </mat-error>
           }
         </mat-form-field>
+
+        <pulpe-password-criteria
+          [password]="passwordValue()"
+          [minLength]="PASSWORD_MIN_LENGTH"
+        />
 
         <mat-form-field appearance="outline" class="w-full">
           <mat-label>{{ 'form.confirmPasswordLabel' | transloco }}</mat-label>
           <input
             matInput
             [type]="isConfirmPasswordHidden() ? 'password' : 'text'"
+            autocomplete="new-password"
             formControlName="confirmPassword"
             data-testid="confirm-password-input"
             (input)="clearMessages()"
@@ -192,45 +230,6 @@ import { signupFormSchema } from './signup-form.schema';
           }
         </mat-form-field>
 
-        <div class="pt-2">
-          <mat-checkbox
-            formControlName="acceptTerms"
-            [disabled]="isBusy()"
-            data-testid="accept-terms-checkbox"
-          >
-            <span class="text-body-medium">
-              {{ 'auth.signup.acceptTerms' | transloco }}
-              <a
-                [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_TERMS]"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="text-primary underline"
-                (click)="$event.stopPropagation()"
-              >
-                {{ 'auth.signup.termsOfService' | transloco }}
-              </a>
-              {{ 'auth.signup.acceptTermsAnd' | transloco }}
-              <a
-                [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_PRIVACY]"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="text-primary underline"
-                (click)="$event.stopPropagation()"
-              >
-                {{ 'auth.signup.privacyPolicy' | transloco }}
-              </a>
-            </span>
-          </mat-checkbox>
-          @if (
-            signupForm.get('acceptTerms')?.invalid &&
-            signupForm.get('acceptTerms')?.touched
-          ) {
-            <p class="text-error text-body-small mt-1">
-              {{ 'auth.signup.acceptTermsRequired' | transloco }}
-            </p>
-          }
-        </div>
-
         <pulpe-error-alert [message]="errorMessage()" />
 
         <pulpe-loading-button
@@ -243,6 +242,36 @@ import { signupFormSchema } from './signup-form.schema';
         >
           <span class="ml-2">{{ 'auth.signup.submit' | transloco }}</span>
         </pulpe-loading-button>
+
+        <!-- Consentement implicite (sign-in wrap) — parité iOS. Deux verbes
+             distincts volontairement : on ACCEPTE les CGU (contrat), on PREND
+             CONNAISSANCE de la politique de confidentialité (information art. 13).
+             Les fusionner sous un seul « tu acceptes » est la forme d'acceptation
+             groupée que visent l'art. 7(2) RGPD et les LD 2/2019 §20 du CEPD.
+             Voir docs/CONSENT.md. -->
+        <p
+          class="text-body-small text-on-surface-variant text-center mt-3"
+          data-testid="implicit-consent"
+        >
+          {{ 'auth.signup.implicitConsent' | transloco }}
+          <a
+            [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_TERMS]"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-primary underline underline-offset-2"
+          >
+            {{ 'auth.signup.termsOfService' | transloco }}
+          </a>
+          {{ 'auth.signup.privacyAcknowledgement' | transloco }}
+          <a
+            [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_PRIVACY]"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-primary underline underline-offset-2"
+          >
+            {{ 'auth.signup.privacyPolicy' | transloco }}</a
+          >.
+        </p>
       </form>
 
       <div class="text-center mt-6">
@@ -274,13 +303,13 @@ export default class Signup {
   protected readonly isPasswordHidden = signal(true);
   protected readonly isConfirmPasswordHidden = signal(true);
   protected readonly isSubmitting = signal(false);
-  protected readonly isGoogleLoading = signal(false);
+  protected readonly isOAuthLoading = signal(false);
   protected readonly errorMessage = signal('');
-  // Disables inputs + submit when EITHER email submit or Google OAuth is in
-  // flight — prevents double-submit without freezing the form just because
-  // Google redirect is briefly loading.
+  // Disables inputs + submit when EITHER email submit or an OAuth redirect is
+  // in flight — prevents double-submit without freezing the form just because
+  // a provider redirect is briefly loading.
   protected readonly isBusy = computed(
-    () => this.isSubmitting() || this.isGoogleLoading(),
+    () => this.isSubmitting() || this.isOAuthLoading(),
   );
 
   private readonly emailInput =
@@ -292,15 +321,21 @@ export default class Signup {
     });
   }
 
+  protected readonly PASSWORD_MIN_LENGTH = PASSWORD_MIN_LENGTH;
+
   protected readonly signupForm = this.#formBuilder.nonNullable.group(
     {
       email: ['', [Validators.required, Validators.email]],
       password: [
         '',
-        [Validators.required, Validators.minLength(PASSWORD_MIN_LENGTH)],
+        [
+          Validators.required,
+          Validators.minLength(PASSWORD_MIN_LENGTH),
+          containsPattern(PASSWORD_HAS_NUMBER, 'hasNumber'),
+          containsPattern(PASSWORD_HAS_LETTER, 'hasLetter'),
+        ],
       ],
       confirmPassword: ['', [Validators.required]],
-      acceptTerms: [false, [Validators.requiredTrue]],
     },
     {
       validators: createFieldsMatchValidator(
@@ -310,6 +345,35 @@ export default class Signup {
       ),
     },
   );
+
+  protected readonly passwordValue = toSignal(
+    this.signupForm.controls.password.valueChanges,
+    { initialValue: '' },
+  );
+
+  // Same contract as the welcome page: stores the pending method so
+  // `capturePendingSignupCompleted` can emit signup_completed after the
+  // OAuth redirect — without it, an OAuth signup from /signup is invisible
+  // to the funnel.
+  protected onOAuthLoadingChange(
+    method: OAuthProvider,
+    isLoading: boolean,
+  ): void {
+    this.isOAuthLoading.set(isLoading);
+    if (isLoading) {
+      this.#postHogService.setPendingSignupMethod(method);
+      this.#postHogService.captureEvent('signup_started', { method });
+    }
+    // Pas de clear sur `false` : le succès OAuth émet loadingChange(false)
+    // avant que le redirect n'emporte la page — effacer ici tue le
+    // signup_completed lu au retour. La clé est consommée à la lecture
+    // (capturePendingSignupCompleted) ; l'échec avéré passe par onOAuthError.
+  }
+
+  protected onOAuthError(message: string): void {
+    this.errorMessage.set(message);
+    this.#postHogService.clearPendingSignupMethod();
+  }
 
   protected togglePasswordVisibility(): void {
     this.isPasswordHidden.set(!this.isPasswordHidden());

@@ -16,9 +16,9 @@ private struct AuthFieldContainer<Content: View>: View {
     }
 
     private var borderColor: Color {
-        if hasError { return Color.errorPrimary.opacity(0.5) }
-        if isFocused { return Color.pulpePrimary.opacity(0.45) }
-        if isFilled { return Color.pulpePrimary.opacity(0.2) }
+        if hasError { return Color.errorPrimary.opacity(DesignTokens.Opacity.heavy) }
+        if isFocused { return Color.pulpePrimary.opacity(DesignTokens.Opacity.borderFocused) }
+        if isFilled { return Color.pulpePrimary.opacity(DesignTokens.Opacity.secondary) }
         return Color.authInputBorder
     }
 

@@ -139,6 +139,10 @@ enum DesignTokens {
         static let outlinePill: Double = 0.22
         /// Strong accents, selected states
         static let strong: Double = 0.3
+        /// Onboarding progress indicator — completed-segment track fill
+        static let progressTrackActive: Double = 0.32
+        /// Auth field border — focused state (between disabled 0.4 and heavy 0.5)
+        static let borderFocused: Double = 0.45
         /// Heavy overlays
         static let heavy: Double = 0.5
         /// Muted ink on the mint hero card — suffixes, chevrons, progress-track hairline.

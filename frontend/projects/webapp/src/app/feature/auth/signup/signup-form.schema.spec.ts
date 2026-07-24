@@ -1,16 +1,33 @@
 import { describe, expect, it } from 'vitest';
-import { signupFormSchema, type SignupFormValue } from './signup-form.schema';
+import {
+  PASSWORD_HAS_LETTER,
+  PASSWORD_HAS_NUMBER,
+  signupFormSchema,
+  type SignupFormValue,
+} from './signup-form.schema';
+import * as passwordCriteriaSource from '@ui/password-criteria';
 
 const validFormValue: SignupFormValue = {
   email: 'user@example.com',
   password: 'superSecret1',
   confirmPassword: 'superSecret1',
-  acceptTerms: true,
 };
 
 describe('signupFormSchema', () => {
+  it('validates with the exact regexes the visual checklist renders', () => {
+    // Source unique : le schema ré-exporte les objets RegExp de
+    // ui/password-criteria. Si quelqu'un redéclare une copie locale d'un côté,
+    // l'identité casse ici — la soumission et la checklist divergeraient.
+    expect(PASSWORD_HAS_NUMBER).toBe(
+      passwordCriteriaSource.PASSWORD_HAS_NUMBER,
+    );
+    expect(PASSWORD_HAS_LETTER).toBe(
+      passwordCriteriaSource.PASSWORD_HAS_LETTER,
+    );
+  });
+
   describe('transform', () => {
-    it('should omit confirmPassword and acceptTerms from the output DTO', () => {
+    it('should omit confirmPassword from the output DTO', () => {
       const result = signupFormSchema.parse(validFormValue);
 
       expect(result).toEqual({
@@ -18,7 +35,6 @@ describe('signupFormSchema', () => {
         password: 'superSecret1',
       });
       expect('confirmPassword' in result).toBe(false);
-      expect('acceptTerms' in result).toBe(false);
     });
   });
 
@@ -58,19 +74,39 @@ describe('signupFormSchema', () => {
         email: 'user@example.com',
         password: 'short',
         confirmPassword: 'short',
-        acceptTerms: true,
       });
 
       expect(result.success).toBe(false);
     });
 
-    it('should reject acceptTerms=false', () => {
+    it('should reject a password without any digit (iOS parity)', () => {
       const result = signupFormSchema.safeParse({
-        ...validFormValue,
-        acceptTerms: false,
+        email: 'user@example.com',
+        password: 'onlyLettersHere',
+        confirmPassword: 'onlyLettersHere',
       });
 
       expect(result.success).toBe(false);
+    });
+
+    it('should reject a password without any letter (iOS parity)', () => {
+      const result = signupFormSchema.safeParse({
+        email: 'user@example.com',
+        password: '1234567890',
+        confirmPassword: '1234567890',
+      });
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should accept an accented-letter password (unicode letter class)', () => {
+      const result = signupFormSchema.safeParse({
+        email: 'user@example.com',
+        password: 'événement42',
+        confirmPassword: 'événement42',
+      });
+
+      expect(result.success).toBe(true);
     });
   });
 });

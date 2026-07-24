@@ -56,6 +56,9 @@
     "designSystem": "Design System"
   },
   "auth": {
+    "oauthLoading": "Connexion en cours...",
+    "continueWithGoogle": "Continuer avec Google",
+    "continueWithApple": "Continuer avec Apple",
     "login": {
       "title": "Content de te revoir",
       "subtitle": "Retrouve ton budget là où tu l'as laissé",
@@ -69,7 +72,7 @@
     },
     "scheduledDeletion": "Ton compte est programmé pour suppression le {{ date }}. Si c'est une erreur, contacte le support.",
     "signup": {
-      "title": "Prêt en 3 minutes",
+      "title": "Prêt en 2 minutes",
       "subtitle": "Crée ton espace et vois clair dans tes finances",
       "submit": "Créer mon compte",
       "submitting": "Création en cours...",
@@ -77,11 +80,10 @@
       "signin": "Se connecter",
       "backToHome": "Retour à l'accueil",
       "errorDefault": "La création du compte a échoué — réessaie",
-      "acceptTerms": "J'accepte les",
+      "implicitConsent": "En créant ton compte, tu acceptes les",
       "termsOfService": "Conditions d'Utilisation",
       "privacyPolicy": "Politique de Confidentialité",
-      "acceptTermsAnd": "et la",
-      "acceptTermsRequired": "Accepte les conditions pour continuer"
+      "privacyAcknowledgement": "et confirmes avoir pris connaissance de la"
     },
     "forgotPassword": {
       "title": "Mot de passe oublié",
@@ -168,10 +170,15 @@
     }
   },
   "welcome": {
-    "eyebrow": "Budget annuel en 3 minutes",
+    "eyebrow": "Ton budget prêt en 2 minutes",
     "title": "Vois clair dans tes finances",
     "subtitle": "Enfin un budget qui te laisse respirer.",
-    "emailSignup": "S'inscrire par e-mail",
+    "benefits": {
+      "setup": "Un plan clair pour chaque mois",
+      "track": "Tes dépenses pointées en un geste",
+      "privacy": "Chiffré — tes montants restent privés"
+    },
+    "emailSignup": "S'inscrire avec email",
     "tryWithoutAccount": "Essayer sans compte",
     "demoLoading": "Préparation...",
     "alreadyAccount": "Déjà un compte ?",
@@ -861,6 +868,7 @@
     "recentTransactionsSubtitle": "Ce mois ({{ count }})",
     "noTransaction": "Aucune transaction",
     "noTransactionThisMonth": "Aucune transaction ce mois",
+    "addFirstTransaction": "Ajouter ma première dépense",
     "nextMonthTitle": "Mois prochain",
     "nextMonthEstimatedRollover": "Budget anticipé — report estimé :",
     "nextMonthNoBudget": "Pas encore de budget pour {{ month }}",
@@ -1160,6 +1168,15 @@
     "passwordPlaceholder": "Mot de passe",
     "passwordHint": "8 caractères minimum pour sécuriser ton compte",
     "passwordMinLengthHint": "8 caractères minimum",
+    "passwordCriteria": {
+      "minLength": "{{count}} caractères minimum",
+      "hasNumber": "Au moins un chiffre",
+      "hasLetter": "Au moins une lettre",
+      "met": "validé",
+      "notMet": "non validé",
+      "remaining": "Critères restants : {{count}}",
+      "allMet": "Tous les critères sont validés"
+    },
     "showPassword": "Afficher le mot de passe",
     "confirmPasswordLabel": "Confirmer le mot de passe",
     "confirmPasswordPlaceholder": "Confirmer le mot de passe",

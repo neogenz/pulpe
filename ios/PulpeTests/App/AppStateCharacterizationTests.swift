@@ -303,6 +303,43 @@ struct AppStateCharacterizationTests {
         #expect(sut.pendingOnboardingData == nil)
         #expect(sut.hasReturningUser == false)
     }
+    @Test("authenticated destination with mid-flow PIN enters authenticated directly")
+    func handleOnboardingDestination_authenticatedWithMidFlowPin_entersAuthenticated() async {
+        let sut = makeSUT(destination: .authenticated(needsRecoveryKeyConsent: false))
+        sut.onboardingPinConfiguredMidFlow = true
+        // No pending onboarding data → bootstrapIfNeeded is a no-op returning true.
+
+        await sut.handleOnboardingDestination(.authenticated(needsRecoveryKeyConsent: false))
+
+        #expect(sut.authState == .authenticated)
+        #expect(sut.showPostAuthError == false)
+    }
+    @Test("authenticated destination without mid-flow PIN still requires PIN entry (reused email)")
+    func handleOnboardingDestination_authenticatedWithoutMidFlowPin_requiresPinEntry() async {
+        let sut = makeSUT(destination: .authenticated(needsRecoveryKeyConsent: false))
+        sut.onboardingPinConfiguredMidFlow = false
+
+        await sut.handleOnboardingDestination(.authenticated(needsRecoveryKeyConsent: false))
+
+        #expect(sut.authState == .needsPinEntry)
+    }
+    @Test("completeOnboarding with mid-flow PIN keeps pending data and surfaces error when bootstrap fails")
+    func completeOnboarding_midFlowPin_bootstrapFailure_surfacesRetryableError() async {
+        // The default `OnboardingBootstrapper` makes a real API call which fails with 401
+        // under test — same failure harness as the `completePinSetup` characterization above.
+        let sut = makeSUT(destination: .authenticated(needsRecoveryKeyConsent: false))
+
+        await sut.completeOnboarding(
+            user: user,
+            onboardingData: BudgetTemplateCreateFromOnboarding(),
+            signupMethod: "email",
+            pinConfiguredDuringOnboarding: true
+        )
+
+        #expect(sut.authState != .authenticated)
+        #expect(sut.showPostAuthError == true)
+        #expect(sut.pendingOnboardingData != nil, "pending data must be retained for the retry path")
+    }
     @Test("resolvePostAuth needsPinSetup without pending data redirects to onboarding (PUL-102)")
     func resolvePostAuth_needsPinSetup_noPendingData_redirectsToOnboarding() async {
         let sut = makeSUT(destination: .needsPinSetup)
@@ -590,6 +627,39 @@ struct AppStateCharacterizationTests {
             mockWidget.clearAndReloadCalled.value == true,
             "logout must call widgetSyncing.clearAndReload() via injected dependency"
         )
+    }
+
+    @Test("resetSession clears widget data for EVERY scope — the app group lives outside the PIN")
+    func resetSession_everyScope_clearsWidgetData() async {
+        // Regression guard: `.sessionExpiry`/`.recoverySessionExpiry` used to skip the
+        // widget purge because it lived inside the `clearsNavigation` branch, leaving
+        // the last balance readable outside the PIN until the next login.
+        let scopes: [AppState.SessionResetScope] = [
+            .userLogout, .systemLogout, .sessionExpiry, .recoverySessionExpiry, .passwordReset,
+        ]
+        for scope in scopes {
+            let mockWidget = MockWidgetSync()
+            let deps = AppStateDependencies(
+                authService: .shared,
+                clientKeyManager: .shared,
+                keychainManager: MockKeychainStore(),
+                encryptionAPI: .shared,
+                postAuthResolver: CharStubResolver(
+                    destination: .authenticated(needsRecoveryKeyConsent: false)
+                ),
+                biometricService: .shared,
+                biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
+                widgetSyncing: mockWidget
+            )
+            let sut = AppState(dependencies: deps)
+
+            sut.resetSession(scope)
+
+            #expect(
+                mockWidget.clearAndReloadCalled.value == true,
+                "resetSession(.\(scope)) must purge the app-group widget cache"
+            )
+        }
     }
 
     @Test("completePinSetup uses injected createTemplate/createBudget, not Service.shared")

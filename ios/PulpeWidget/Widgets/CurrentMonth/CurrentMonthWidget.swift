@@ -10,7 +10,13 @@ struct CurrentMonthWidget: Widget {
         }
         .configurationDisplayName("Budget du mois")
         .description("Affiche le montant disponible à dépenser")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .supportedFamilies([
+            .systemSmall,
+            .systemMedium,
+            .accessoryRectangular,
+            .accessoryCircular,
+            .accessoryInline,
+        ])
     }
 }
 
@@ -21,6 +27,24 @@ struct CurrentMonthWidget: Widget {
 }
 
 #Preview("Medium", as: .systemMedium) {
+    CurrentMonthWidget()
+} timeline: {
+    CurrentMonthEntry.preview
+}
+
+#Preview("Rectangular", as: .accessoryRectangular) {
+    CurrentMonthWidget()
+} timeline: {
+    CurrentMonthEntry.preview
+}
+
+#Preview("Circular", as: .accessoryCircular) {
+    CurrentMonthWidget()
+} timeline: {
+    CurrentMonthEntry.preview
+}
+
+#Preview("Inline", as: .accessoryInline) {
     CurrentMonthWidget()
 } timeline: {
     CurrentMonthEntry.preview

@@ -382,4 +382,53 @@ struct BudgetDetailsScreenStateProjectionTests {
 
         #expect(checkedTickHash(for: base) == checkedTickHash(for: edited))
     }
+
+    // MARK: - "Tout est pointé" completion state
+
+    @Test
+    func project_uncheckedFilterAllChecked_showsEmptyChecked() {
+        let stack = makeStores(checkedFilter: .unchecked)
+        stack.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "line-1", isChecked: true))
+        stack.data.appendTransaction(TestDataFactory.createTransaction(id: "tx-1", isChecked: true))
+
+        let state = BudgetDetailsProjector.project(
+            dataStore: stack.data,
+            filtersStore: stack.filters,
+            syncStore: stack.sync,
+            searchText: ""
+        )
+
+        #expect(state.canShowEmptyChecked)
+    }
+
+    @Test
+    func project_uncheckedFilterEmptyBudget_hidesEmptyChecked() {
+        // A budget with nothing at all must not celebrate a completion.
+        let stack = makeStores(checkedFilter: .unchecked)
+
+        let state = BudgetDetailsProjector.project(
+            dataStore: stack.data,
+            filtersStore: stack.filters,
+            syncStore: stack.sync,
+            searchText: ""
+        )
+
+        #expect(!state.canShowEmptyChecked)
+    }
+
+    @Test
+    func project_uncheckedFilterOneRemaining_hidesEmptyChecked() {
+        let stack = makeStores(checkedFilter: .unchecked)
+        stack.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "line-1", isChecked: true))
+        stack.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "line-2", isChecked: false))
+
+        let state = BudgetDetailsProjector.project(
+            dataStore: stack.data,
+            filtersStore: stack.filters,
+            syncStore: stack.sync,
+            searchText: ""
+        )
+
+        #expect(!state.canShowEmptyChecked)
+    }
 }

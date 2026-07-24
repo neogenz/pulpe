@@ -37,6 +37,12 @@ struct SavingsGoalContribution: Decodable, Sendable, Equatable, Identifiable {
 /// `SavingsGoal.swift`. `targetDate` stays a `String` for the same reason
 /// `SavingsGoal.targetDate` does (bare `YYYY-MM-DD`, not a datetime).
 struct SavingsGoalProgress: Decodable, Sendable, Equatable {
+    /// Miroir Swift de `PACE_TOLERANCE_PERCENT`
+    /// (`shared/src/calculators/savings-goal-progress.ts`) — la bande relative
+    /// ±5 % du verdict de rythme serveur. Toute comparaison de rythmes côté
+    /// affichage doit pointer ici, jamais un littéral.
+    static let paceTolerancePercent: Decimal = 5
+
     let goalId: String
     let status: SavingsGoalStatus
     let targetAmount: Decimal

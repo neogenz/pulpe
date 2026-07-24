@@ -118,7 +118,8 @@ struct GoalPlanTimelineSection: View {
                 )
             }
         }
-        .padding(DesignTokens.Spacing.lg)
+        // pulpeCard() porte déjà l'inset lg — un padding ici le doublait (32pt)
+        // et désalignait cette carte de « Ton suivi » juste en dessous.
         .pulpeCard()
     }
 }

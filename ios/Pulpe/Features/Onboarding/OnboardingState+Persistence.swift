@@ -27,7 +27,8 @@ extension OnboardingState {
             phonePlan: phonePlan,
             transportCosts: transportCosts,
             leasingCredit: leasingCredit,
-            isEmailRegistered: !isSocialAuth && isAuthenticated ? true : nil
+            isEmailRegistered: !isSocialAuth && isAuthenticated ? true : nil,
+            hasCompletedPinSetup: hasCompletedPinSetup ? true : nil
         )
 
         do {
@@ -58,6 +59,7 @@ extension OnboardingState {
         transportCosts = decoded.transportCosts
         leasingCredit = decoded.leasingCredit
         wasEmailRegistered = decoded.isEmailRegistered ?? false
+        hasCompletedPinSetup = decoded.hasCompletedPinSetup ?? false
 
         if let storedTx = decoded.customTransactions {
             customTransactions = storedTx.compactMap { stored in
@@ -104,6 +106,7 @@ extension OnboardingState {
         leasingCredit = nil
         customTransactions = []
         wasEmailRegistered = false
+        hasCompletedPinSetup = false
         // Below: not persisted, but leaks across same-instance auth-path pivots.
         email = ""
         hasEmittedWelcomeViewed = false
@@ -139,6 +142,8 @@ private struct OnboardingStorageData: Codable {
     let transportCosts: Decimal?
     let leasingCredit: Decimal?
     let isEmailRegistered: Bool?
+    // Optional for backwards compat with drafts saved before the mid-flow PIN step.
+    let hasCompletedPinSetup: Bool?
 
     struct StoredTransaction: Codable {
         // Optional for backwards compat with drafts saved by versions that didn't

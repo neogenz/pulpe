@@ -33,13 +33,17 @@ struct YearOverviewProvider: TimelineProvider {
     private func loadEntry() -> YearOverviewEntry? {
         guard let cache = coordinator.load() else { return nil }
 
+        // Recomputed from today's payDay-aware period rather than the `isCurrentMonth` cached
+        // at sync time, so the highlight doesn't stay stuck on a month that has since ended.
+        let todayPeriod = BudgetPeriodCalculator.periodForDate(Date(), payDayOfMonth: cache.payDayOfMonth)
+
         let months = cache.yearBudgets.map { budget in
             MonthData(
                 id: budget.id,
                 month: budget.month,
                 shortName: budget.shortMonthName,
                 available: budget.available,
-                isCurrentMonth: budget.isCurrentMonth
+                isCurrentMonth: budget.month == todayPeriod.month && budget.year == todayPeriod.year
             )
         }
 

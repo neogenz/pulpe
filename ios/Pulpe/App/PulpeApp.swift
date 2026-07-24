@@ -123,6 +123,7 @@ struct PulpeApp: App {
                         if newPhase == .active {
                             featureFlagsStore.refresh()
                             Task { await appVersionStore.check() }
+                            Task { await rescheduleRemindersIfEnabled() }
                         }
                     }
                     .onOpenURL { url in
@@ -150,6 +151,19 @@ struct PulpeApp: App {
             return url
         }
         return nil
+    }
+
+    /// Refresh the monthly reminder on each foreground so it tracks a changed pay-day
+    /// (or is re-armed after an OS-level change). No-op unless the user opted in and
+    /// the real pay-day is loaded — skipping while `payDayOfMonth` is nil avoids
+    /// re-arming on day 1 (the `?? 1` fallback would fire before `UserSettingsStore`
+    /// loads, e.g. foregrounding on the PIN screen). Authorization is checked inside
+    /// `scheduleMonthlyReminder` itself, which no-ops when not authorized.
+    private func rescheduleRemindersIfEnabled() async {
+        guard ReminderPreferences().remindersEnabled,
+              let payDay = userSettingsStore.payDayOfMonth
+        else { return }
+        await NotificationScheduler.shared.scheduleMonthlyReminder(payDay: payDay)
     }
 
     /// Routes a UI test launch scenario to the matching harness.
