@@ -220,7 +220,7 @@ struct SavingsGoalDetailView: View {
                     statRow(label: "Montant de départ", value: progress.initialAmount.asCompactCurrency(currency))
                 }
                 statRow(
-                    label: "Prévu cumulé",
+                    label: "Déjà prévu",
                     value: progress.plannedCumulative.asCompactCurrency(currency),
                     swatch: Color.financialSavings.opacity(DesignTokens.Opacity.strong)
                 )

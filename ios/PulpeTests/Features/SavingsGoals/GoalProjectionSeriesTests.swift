@@ -33,6 +33,22 @@ struct GoalProjectionSeriesTests {
         #expect(series.hasConfirmedTrend == true)
     }
 
+    @Test("gap copy names the direction — lag, advance, on-plan (amount unsigned)")
+    func gapCopyNamesDirection() {
+        let lag = GoalTrajectorySection.gapCopy(for: 300, currency: .chf)
+        let advance = GoalTrajectorySection.gapCopy(for: -150, currency: .chf)
+        let onPlan = GoalTrajectorySection.gapCopy(for: 0, currency: .chf)
+        let expectedLag = Decimal(300).asCompactCurrency(.chf)
+        let expectedAdvance = Decimal(150).asCompactCurrency(.chf)
+
+        #expect(lag.lead == "Il te manque")
+        #expect(lag.amount == expectedLag)
+        #expect(advance.lead == "Tu es en avance de")
+        #expect(advance.amount == expectedAdvance)
+        #expect(onPlan.lead == "Pile sur ton plan")
+        #expect(onPlan.amount == nil)
+    }
+
     private func makeProgress(currentIndex: Int, count: Int = 4) -> SavingsGoalProgress {
         let months: [SavingsGoalPlanMonth] = (0..<count).map { offset in
             let state: SavingsPlanMonthState

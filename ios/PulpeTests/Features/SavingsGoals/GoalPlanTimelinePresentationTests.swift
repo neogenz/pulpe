@@ -12,7 +12,7 @@ struct GoalPlanTimelinePresentationTests {
 
         #expect(GoalPlanMonthAvailability(month: august).icon == nil)
         #expect(GoalPlanMonthAvailability(month: september) == .noLinkedForecast)
-        #expect(GoalPlanMonthAvailability(month: september).label == "Aucune prévision liée")
+        #expect(GoalPlanMonthAvailability(month: september).label == "Rien de prévu ce mois")
         #expect(GoalPlanMonthAvailability(month: november) == .missingBudget)
         #expect(GoalPlanMonthAvailability(month: november).label == "Pas de budget")
     }

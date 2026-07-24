@@ -20,7 +20,7 @@ enum GoalPlanMonthAvailability: Equatable {
         case .linkedForecast:
             ""
         case .noLinkedForecast:
-            "Aucune prévision liée"
+            "Rien de prévu ce mois"
         case .missingBudget:
             "Pas de budget"
         }
@@ -50,7 +50,7 @@ enum GoalPlanMonthAvailability: Equatable {
 /// is the ligne 2-decimal (`asCurrency`), cumulative the aggregation compact
 /// (`asCompactCurrency`, `→` prefix) — simulator only (`showsCumulative`): while
 /// adjusting, the running total is the feedback; in read mode it already lives in
-/// the hero (« Prévu cumulé »), a per-row echo is triple-encoding. Savings green +
+/// the hero (« Déjà prévu »), a per-row echo is triple-encoding. Savings green +
 /// neutrals only (RG-002).
 struct GoalPlanMonthRow: View {
     let month: SavingsGoalPlanMonth
