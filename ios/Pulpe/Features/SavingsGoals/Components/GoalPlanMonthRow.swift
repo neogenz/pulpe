@@ -106,10 +106,9 @@ struct GoalPlanMonthRow: View {
 
             amountView
         }
-        // Rythme canonique des rangées de liste (`ListRow`), pas un Spacing
-        // choisi à la main : le minHeight égalise les mois à 1 ligne (courant
-        // sans statut) et à 2 lignes — même règle que BudgetLineMixedRow.
-        .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
+        // Rythme sémantique des rangées de liste — sans le minHeight de
+        // `ListRow` : il dérive des rangées à icône 40pt et centrerait ces
+        // rangées texte-seul dans une bande trop haute.
         .padding(.vertical, DesignTokens.ListRow.verticalPadding)
         .opacity(month.isLocked ? DesignTokens.Opacity.pointedDim : 1)
         .allowsHitTesting(!month.isLocked)
