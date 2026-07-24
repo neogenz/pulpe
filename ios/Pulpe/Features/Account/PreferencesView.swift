@@ -104,9 +104,10 @@ struct PreferencesView: View {
         }
         reminderPrefs.setRemindersEnabled(true)
         AnalyticsService.shared.capture(.reminderToggled, properties: ["enabled": true])
-        await NotificationScheduler.shared.scheduleMonthlyReminder(
-            payDay: userSettingsStore.payDayOfMonth ?? 1
-        )
+        // Settings not loaded yet → don't schedule for a made-up day 1; prefs are on,
+        // so the next foreground reschedule heals with the real pay-day.
+        guard let payDay = userSettingsStore.payDayOfMonth else { return }
+        await NotificationScheduler.shared.scheduleMonthlyReminder(payDay: payDay)
     }
 
     /// Reconciles a stale ON toggle: if reminders were enabled but notifications have

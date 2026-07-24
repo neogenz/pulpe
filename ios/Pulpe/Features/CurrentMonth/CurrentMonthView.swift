@@ -418,10 +418,12 @@ extension CurrentMonthView {
             return
         }
         reminderPrefs.setRemindersEnabled(true)
+        AnalyticsService.shared.capture(.reminderToggled, properties: ["enabled": true])
         AnalyticsService.shared.capture(.notificationPermissionGranted)
-        await NotificationScheduler.shared.scheduleMonthlyReminder(
-            payDay: userSettingsStore.payDayOfMonth ?? 1
-        )
+        // Settings not loaded yet → don't schedule for a made-up day 1; prefs are on,
+        // so the next foreground reschedule heals with the real pay-day.
+        guard let payDay = userSettingsStore.payDayOfMonth else { return }
+        await NotificationScheduler.shared.scheduleMonthlyReminder(payDay: payDay)
     }
 }
 

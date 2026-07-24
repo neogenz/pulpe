@@ -203,6 +203,13 @@ struct CurrentMonthWidgetView: View {
         } icon: {
             Image(systemName: "banknote")
         }
+        .accessibilityLabel(inlineAccessibilityLabel)
+    }
+
+    private var inlineAccessibilityLabel: String {
+        guard entry.hasData else { return "Pulpe, ouvre l'app" }
+        guard let amount = spokenAvailable else { return "Disponible" }
+        return "Disponible \(amount)"
     }
 
     private var emptyView: some View {
