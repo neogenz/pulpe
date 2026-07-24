@@ -101,7 +101,7 @@ export class OAuthProviderButton {
   readonly loadingChange = output<boolean>();
   readonly authError = output<string>();
 
-  readonly isLoading = signal<boolean>(false);
+  protected readonly isLoading = signal<boolean>(false);
 
   protected readonly labelKey = computed(
     () => PROVIDER_LABEL_KEYS[this.provider()],
@@ -110,7 +110,7 @@ export class OAuthProviderButton {
     () => this.testId() || `${this.provider()}-oauth-button`,
   );
 
-  async signIn(): Promise<void> {
+  protected async signIn(): Promise<void> {
     if (this.disabled()) return;
     this.isLoading.set(true);
     this.loadingChange.emit(true);

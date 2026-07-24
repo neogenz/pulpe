@@ -52,7 +52,7 @@ describe('OAuthProviderButton', () => {
     });
 
     it('should have isLoading false by default', () => {
-      expect(component.isLoading()).toBe(false);
+      expect(component['isLoading']()).toBe(false);
     });
 
     it('should have default buttonType as outlined', () => {
@@ -77,7 +77,7 @@ describe('OAuthProviderButton', () => {
     it('should call the OAuth service with its provider', async () => {
       mockAuthOAuth.signInWithOAuth.mockResolvedValue({ success: true });
 
-      await component.signIn();
+      await component['signIn']();
 
       expect(mockAuthOAuth.signInWithOAuth).toHaveBeenCalledWith('google');
     });
@@ -85,8 +85,8 @@ describe('OAuthProviderButton', () => {
     it('should set isLoading to true when called', async () => {
       mockAuthOAuth.signInWithOAuth.mockResolvedValue({ success: true });
 
-      const promise = component.signIn();
-      expect(component.isLoading()).toBe(true);
+      const promise = component['signIn']();
+      expect(component['isLoading']()).toBe(true);
 
       await promise;
     });
@@ -96,7 +96,7 @@ describe('OAuthProviderButton', () => {
       const loadingEmitSpy = vi.fn();
       component.loadingChange.subscribe(loadingEmitSpy);
 
-      await component.signIn();
+      await component['signIn']();
 
       expect(loadingEmitSpy).toHaveBeenCalledWith(true);
     });
@@ -106,7 +106,7 @@ describe('OAuthProviderButton', () => {
       const errorEmitSpy = vi.fn();
       component.authError.subscribe(errorEmitSpy);
 
-      await component.signIn();
+      await component['signIn']();
 
       expect(errorEmitSpy).not.toHaveBeenCalled();
     });
@@ -114,9 +114,9 @@ describe('OAuthProviderButton', () => {
     it('should reset isLoading after signIn completes (finally block)', async () => {
       mockAuthOAuth.signInWithOAuth.mockResolvedValue({ success: true });
 
-      await component.signIn();
+      await component['signIn']();
 
-      expect(component.isLoading()).toBe(false);
+      expect(component['isLoading']()).toBe(false);
     });
   });
 
@@ -129,7 +129,7 @@ describe('OAuthProviderButton', () => {
       const errorEmitSpy = vi.fn();
       component.authError.subscribe(errorEmitSpy);
 
-      await component.signIn();
+      await component['signIn']();
 
       expect(errorEmitSpy).toHaveBeenCalledWith('Compte non autorisé');
     });
@@ -139,7 +139,7 @@ describe('OAuthProviderButton', () => {
       const errorEmitSpy = vi.fn();
       component.authError.subscribe(errorEmitSpy);
 
-      await component.signIn();
+      await component['signIn']();
 
       expect(errorEmitSpy).toHaveBeenCalledWith(
         'La connexion a échoué — réessaie',
@@ -149,9 +149,9 @@ describe('OAuthProviderButton', () => {
     it('should reset isLoading on failure', async () => {
       mockAuthOAuth.signInWithOAuth.mockResolvedValue({ success: false });
 
-      await component.signIn();
+      await component['signIn']();
 
-      expect(component.isLoading()).toBe(false);
+      expect(component['isLoading']()).toBe(false);
     });
 
     it('should emit loading false on failure', async () => {
@@ -159,7 +159,7 @@ describe('OAuthProviderButton', () => {
       const loadingEmitSpy = vi.fn();
       component.loadingChange.subscribe(loadingEmitSpy);
 
-      await component.signIn();
+      await component['signIn']();
 
       expect(loadingEmitSpy).toHaveBeenCalledWith(false);
     });
@@ -173,7 +173,7 @@ describe('OAuthProviderButton', () => {
       const errorEmitSpy = vi.fn();
       component.authError.subscribe(errorEmitSpy);
 
-      await component.signIn();
+      await component['signIn']();
 
       expect(errorEmitSpy).toHaveBeenCalledWith(
         'La connexion a échoué — réessaie',
@@ -184,7 +184,7 @@ describe('OAuthProviderButton', () => {
       const error = new Error('Network error');
       mockAuthOAuth.signInWithOAuth.mockRejectedValue(error);
 
-      await component.signIn();
+      await component['signIn']();
 
       expect(mockLogger.error).toHaveBeenCalledWith(
         'google OAuth error',
@@ -197,9 +197,9 @@ describe('OAuthProviderButton', () => {
         new Error('Network error'),
       );
 
-      await component.signIn();
+      await component['signIn']();
 
-      expect(component.isLoading()).toBe(false);
+      expect(component['isLoading']()).toBe(false);
     });
 
     it('should emit loading false on exception', async () => {
@@ -209,7 +209,7 @@ describe('OAuthProviderButton', () => {
       const loadingEmitSpy = vi.fn();
       component.loadingChange.subscribe(loadingEmitSpy);
 
-      await component.signIn();
+      await component['signIn']();
 
       expect(loadingEmitSpy).toHaveBeenCalledWith(false);
     });
