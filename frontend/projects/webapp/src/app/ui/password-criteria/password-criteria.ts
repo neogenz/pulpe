@@ -75,7 +75,10 @@ export function passwordCriteria(
           <mat-icon aria-hidden="true" class="!text-base !w-4 !h-4">
             {{ criterion.isMet ? 'check_circle' : 'radio_button_unchecked' }}
           </mat-icon>
-          <span>{{ criterion.labelKey | transloco }}</span>
+          <!-- count ne sert qu'au label minLength ; les autres clés l'ignorent. -->
+          <span>{{
+            criterion.labelKey | transloco: { count: minLength() }
+          }}</span>
           <span class="sr-only">
             {{
               (criterion.isMet

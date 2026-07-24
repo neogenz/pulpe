@@ -1169,7 +1169,7 @@
     "passwordHint": "8 caractères minimum pour sécuriser ton compte",
     "passwordMinLengthHint": "8 caractères minimum",
     "passwordCriteria": {
-      "minLength": "8 caractères minimum",
+      "minLength": "{{count}} caractères minimum",
       "hasNumber": "Au moins un chiffre",
       "hasLetter": "Au moins une lettre",
       "met": "validé",
