@@ -4,6 +4,14 @@ import WidgetKit
 struct CurrentMonthWidgetView: View {
     var entry: CurrentMonthEntry
     @Environment(\.widgetFamily) var family
+    @Environment(\.redactionReasons) private var redactionReasons
+
+    /// Sous redaction `.privacy` (device verrouillé), le `Text` visuel est expurgé
+    /// mais un `accessibilityLabel` explicite ne l'est pas forcément — VoiceOver
+    /// ne doit pas prononcer le solde à travers l'écran de verrouillage.
+    private var spokenAvailable: String? {
+        redactionReasons.contains(.privacy) ? nil : entry.available.asCurrency(entry.currency)
+    }
 
     var body: some View {
         content
@@ -143,11 +151,13 @@ struct CurrentMonthWidgetView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(
-            entry.hasData
-                ? "Disponible à dépenser \(entry.available.asCurrency(entry.currency)), \(entry.monthName)"
-                : "Pulpe, ouvre l'app"
-        )
+        .accessibilityLabel(rectangularAccessibilityLabel)
+    }
+
+    private var rectangularAccessibilityLabel: String {
+        guard entry.hasData else { return "Pulpe, ouvre l'app" }
+        guard let amount = spokenAvailable else { return "Disponible à dépenser, \(entry.monthName)" }
+        return "Disponible à dépenser \(amount), \(entry.monthName)"
     }
 
     private var accessoryCircularView: some View {
@@ -171,11 +181,13 @@ struct CurrentMonthWidgetView: View {
             }
             .padding(2)
         }
-        .accessibilityLabel(
-            entry.hasData
-                ? "Disponible \(entry.available.asCurrency(entry.currency))"
-                : "Pulpe"
-        )
+        .accessibilityLabel(circularAccessibilityLabel)
+    }
+
+    private var circularAccessibilityLabel: String {
+        guard entry.hasData else { return "Pulpe" }
+        guard let amount = spokenAvailable else { return "Disponible" }
+        return "Disponible \(amount)"
     }
 
     private var accessoryInlineView: some View {

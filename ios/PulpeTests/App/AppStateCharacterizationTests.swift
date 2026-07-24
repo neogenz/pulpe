@@ -629,6 +629,39 @@ struct AppStateCharacterizationTests {
         )
     }
 
+    @Test("resetSession clears widget data for EVERY scope — the app group lives outside the PIN")
+    func resetSession_everyScope_clearsWidgetData() async {
+        // Regression guard: `.sessionExpiry`/`.recoverySessionExpiry` used to skip the
+        // widget purge because it lived inside the `clearsNavigation` branch, leaving
+        // the last balance readable outside the PIN until the next login.
+        let scopes: [AppState.SessionResetScope] = [
+            .userLogout, .systemLogout, .sessionExpiry, .recoverySessionExpiry, .passwordReset,
+        ]
+        for scope in scopes {
+            let mockWidget = MockWidgetSync()
+            let deps = AppStateDependencies(
+                authService: .shared,
+                clientKeyManager: .shared,
+                keychainManager: MockKeychainStore(),
+                encryptionAPI: .shared,
+                postAuthResolver: CharStubResolver(
+                    destination: .authenticated(needsRecoveryKeyConsent: false)
+                ),
+                biometricService: .shared,
+                biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
+                widgetSyncing: mockWidget
+            )
+            let sut = AppState(dependencies: deps)
+
+            sut.resetSession(scope)
+
+            #expect(
+                mockWidget.clearAndReloadCalled.value == true,
+                "resetSession(.\(scope)) must purge the app-group widget cache"
+            )
+        }
+    }
+
     @Test("completePinSetup uses injected createTemplate/createBudget, not Service.shared")
     func completePinSetup_usesInjectedOnboardingCreators() async {
         let templateSpy = AtomicFlag()

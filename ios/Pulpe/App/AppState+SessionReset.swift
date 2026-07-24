@@ -344,8 +344,11 @@ extension AppState {
             savingsGoalsPath = NavigationPath()
             templatePath = NavigationPath()
             selectedTab = .currentMonth
-            widgetSyncing.clearAndReload()
         }
+        // Tout scope aboutit à `.unauthenticated` : le solde caché dans l'app
+        // group vit HORS du périmètre PIN et ne doit survivre à aucune fin de
+        // session — expiration comprise, pas seulement le logout explicite.
+        widgetSyncing.clearAndReload()
         if scope.setsManualBiometricRetry {
             setManualBiometricRetryRequiredFlag(true)
         }
