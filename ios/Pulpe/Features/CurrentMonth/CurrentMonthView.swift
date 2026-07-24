@@ -423,11 +423,13 @@ extension CurrentMonthView {
             }
             return
         }
-        reminderPrefs.setRemindersEnabled(true)
-        AnalyticsService.shared.capture(.reminderToggled, properties: ["enabled": true])
+        // Same event order as `applyReminderPreference` — permission verdict, then
+        // toggle — so an ordered PostHog funnel captures both activation paths.
         if promptShown {
             AnalyticsService.shared.capture(.notificationPermissionGranted)
         }
+        reminderPrefs.setRemindersEnabled(true)
+        AnalyticsService.shared.capture(.reminderToggled, properties: ["enabled": true])
         // Settings not loaded yet → don't schedule for a made-up day 1; prefs are on,
         // so the next foreground reschedule heals with the real pay-day.
         guard let payDay = userSettingsStore.payDayOfMonth else { return }
