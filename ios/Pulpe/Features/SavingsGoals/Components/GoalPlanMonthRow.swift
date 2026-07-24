@@ -106,7 +106,9 @@ struct GoalPlanMonthRow: View {
 
             amountView
         }
-        .padding(.vertical, DesignTokens.Spacing.xs)
+        // `sm`, pas `xs` comme le clone lissage : sans slot d'icône ni cumul,
+        // ce padding est le seul air de la rangée (pilier Légèreté).
+        .padding(.vertical, DesignTokens.Spacing.sm)
         .opacity(month.isLocked ? DesignTokens.Opacity.pointedDim : 1)
         .allowsHitTesting(!month.isLocked)
         .accessibilityElement(children: .combine)
