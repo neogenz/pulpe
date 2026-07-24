@@ -43,4 +43,12 @@ struct ReminderPreferences: @unchecked Sendable {
     func setHasPrimedReminders() {
         defaults.set(true, forKey: Key.hasPrimedReminders)
     }
+
+    /// Frontière d'identité (suppression de compte, switch d'utilisateur) : ces
+    /// flags décrivent UN utilisateur sur ce device — le suivant doit repartir
+    /// de zéro (opt-in et prime re-proposables). Jamais appelé au logout simple.
+    func reset() {
+        defaults.removeObject(forKey: Key.remindersEnabled)
+        defaults.removeObject(forKey: Key.hasPrimedReminders)
+    }
 }

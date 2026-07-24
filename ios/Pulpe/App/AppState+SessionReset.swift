@@ -273,6 +273,12 @@ extension AppState {
         onboardingPinConfiguredMidFlow = false
         OnboardingState.clearPersistedData()
         onboardingBootstrapper.clearPendingData()
+        // Frontière d'identité : le prochain compte sur ce device ne doit ni
+        // hériter des rappels de celui-ci, ni perdre son propre handoff
+        // post-onboarding, ni recevoir une notification déjà programmée.
+        ReminderPreferences().reset()
+        PostOnboardingFlagsStore().reset()
+        await NotificationScheduler.shared.cancelMonthlyReminder()
         clearManualBiometricRetryRequiredFlag()
         // Account deletion / signup abandon → revoke JWT server-side so a
         // snapped access_token cannot be replayed within its ~1h expiry window.

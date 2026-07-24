@@ -24,4 +24,10 @@ struct PostOnboardingFlagsStore: @unchecked Sendable {
     func setHasSeenPostOnboardingHandoff() {
         defaults.set(true, forKey: Key.hasSeenPostOnboardingHandoff)
     }
+
+    /// Frontière d'identité (suppression de compte, switch d'utilisateur) : un
+    /// compte qui re-onboarde sur ce device doit revoir le handoff.
+    func reset() {
+        defaults.removeObject(forKey: Key.hasSeenPostOnboardingHandoff)
+    }
 }

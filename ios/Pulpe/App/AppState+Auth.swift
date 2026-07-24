@@ -52,6 +52,12 @@ extension AppState {
             await clientKeyManager.clearAll()
             await biometric.disable()
             enrollmentPolicy.clearUserExplicitlyDisabled()
+            // Frontière d'identité : rappels, prime et handoff appartiennent au
+            // compte précédent — l'entrant repart de zéro, et une notification
+            // déjà programmée par l'ancien compte ne doit pas lui parvenir.
+            ReminderPreferences().reset()
+            PostOnboardingFlagsStore().reset()
+            await NotificationScheduler.shared.cancelMonthlyReminder()
         } else {
             await clientKeyManager.clearSession()
         }

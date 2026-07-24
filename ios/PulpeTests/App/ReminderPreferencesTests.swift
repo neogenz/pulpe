@@ -28,6 +28,19 @@ struct ReminderPreferencesTests {
         #expect(sut.remindersEnabled == true)
     }
 
+    @Test func resetClearsOptInAndPrime() throws {
+        let (defaults, suiteName) = try makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let sut = ReminderPreferences(defaults: defaults)
+        sut.setRemindersEnabled(true)
+        sut.setHasPrimedReminders()
+
+        sut.reset()
+
+        #expect(sut.remindersEnabled == false)
+        #expect(sut.hasPrimedReminders == false)
+    }
+
     private func makeDefaults() throws -> (UserDefaults, String) {
         let suiteName = "ReminderPreferencesTests-\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suiteName))
