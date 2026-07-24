@@ -185,7 +185,8 @@ struct SavingsGoalDetailView: View {
     // MARK: - Progress card (prévu / confirmé)
 
     private func progressCard(progress: SavingsGoalProgress) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+        let hasClosedPlanMonth = SavingsGoalDetailViewModel.hasClosedPlanMonth(progress.months)
+        return VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             HStack(alignment: .firstTextBaseline) {
                 Text(progress.confirmed.asCompactCurrency(currency))
                     .font(PulpeTypography.amountCard)
@@ -205,7 +206,11 @@ struct SavingsGoalDetailView: View {
             layeredBar(progress: progress)
 
             if let pace = progress.paceStatus {
-                paceIndicator(pace)
+                if hasClosedPlanMonth {
+                    paceIndicator(pace)
+                } else if let amount = SavingsGoalDetailViewModel.currentMonthPlannedAmount(progress.months) {
+                    planReadyIndicator(amount)
+                }
             }
 
             VStack(spacing: DesignTokens.Spacing.sm) {
@@ -217,7 +222,7 @@ struct SavingsGoalDetailView: View {
                     value: progress.plannedCumulative.asCompactCurrency(currency),
                     swatch: Color.financialSavings.opacity(DesignTokens.Opacity.strong)
                 )
-                if let required = progress.required {
+                if let required = progress.required, hasClosedPlanMonth {
                     statRow(
                         label: "Pour tenir ton échéance",
                         value: "\(required.asCompactCurrency(currency)) / mois"
@@ -274,6 +279,19 @@ struct SavingsGoalDetailView: View {
             .font(PulpeTypography.metricLabelBold)
             .foregroundStyle(Color.textSecondary)
             .accessibilityLabel("Rythme : \(paceLabel(pace))")
+    }
+
+    /// Jour-1 beat in the verdict slot: before any plan month has closed there
+    /// is nothing to judge, so the verdict would read as a reproach at the
+    /// moment of engagement. Whole label sensitive — the amount is inline.
+    private func planReadyIndicator(_ amount: Decimal) -> some View {
+        Label(
+            "Ton plan est prêt — \(amount.asCurrency(currency)) à mettre de côté ce mois.",
+            systemImage: "checkmark.circle"
+        )
+        .font(PulpeTypography.metricLabelBold)
+        .foregroundStyle(Color.textSecondary)
+        .sensitiveAmount()
     }
 
     /// Bienveillant, factuel — never anxiogène (behind reads as a gentle nudge).
@@ -397,6 +415,24 @@ final class SavingsGoalDetailViewModel {
     init(goalId: String, service: any SavingsGoalServicing = SavingsGoalService.shared) {
         self.goalId = goalId
         self.service = service
+    }
+
+    // MARK: - Day-1 verdict gate
+
+    /// No pace verdict before the first plan month has closed: a fresh goal has
+    /// nothing to be judged on yet. Closed = server-locked (strictly-past cycle
+    /// or everything pointé — same signal the timeline dims rows on).
+    static func hasClosedPlanMonth(_ months: [SavingsGoalPlanMonth]) -> Bool {
+        months.contains { $0.isLocked }
+    }
+
+    /// Amount for the day-1 « plan prêt » beat: the current month's planned
+    /// amount. `nil` (beat hidden) when the timeline has no funded current
+    /// month — legacy payload without `months`, or a gap month.
+    static func currentMonthPlannedAmount(_ months: [SavingsGoalPlanMonth]) -> Decimal? {
+        guard let amount = months.first(where: { $0.state == .current })?.plannedAmount,
+              amount > 0 else { return nil }
+        return amount
     }
 
     /// Initial / pull-to-refresh load. Shows the full-screen spinner while the

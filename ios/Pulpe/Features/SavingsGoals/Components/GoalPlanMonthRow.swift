@@ -45,7 +45,8 @@ enum GoalPlanMonthAvailability: Equatable {
 /// `amount` / `cumulative` are injected so the same row serves read mode
 /// (`plannedAmount` / `plannedCumulative`) and the simulator (`simulatedAmount` /
 /// `simulatedCumulative`). Locked rows are dimmed + non-interactive; the current
-/// period carries a « Ce mois » chip; a month without a linked forecast states why. Amount
+/// period accents its title (semibold, savings green) — a chip would read as a
+/// button on a passive marker; a month without a linked forecast states why. Amount
 /// is the ligne 2-decimal (`asCurrency`), cumulative the aggregation compact
 /// (`asCompactCurrency`, `→` prefix). Savings green + neutrals only (RG-002).
 struct GoalPlanMonthRow: View {
@@ -79,13 +80,10 @@ struct GoalPlanMonthRow: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                 Text(monthLabel)
                     .font(PulpeTypography.listRowTitle)
-                    .foregroundStyle(Color.textPrimary)
+                    .fontWeight(isCurrentPeriod ? .semibold : nil)
+                    .foregroundStyle(isCurrentPeriod ? Color.financialSavings : Color.textPrimary)
 
                 HStack(spacing: DesignTokens.Spacing.sm) {
-                    if isCurrentPeriod {
-                        PulpeChip(label: "Ce mois", style: .muted)
-                    }
-
                     if let availabilityIcon = availability.icon {
                         Label(availability.label, systemImage: availabilityIcon)
                             .font(PulpeTypography.listRowSubtitle)

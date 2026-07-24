@@ -163,6 +163,72 @@ struct SavingsGoalDetailViewModelTests {
         #expect(viewModel.error == nil, "a failed refresh must not turn a persisted status change into an error")
     }
 
+    // MARK: - Day-1 verdict gate (no reproach at commitment time)
+
+    private func makePlanMonth(
+        month: Int,
+        state: SavingsPlanMonthState,
+        isLocked: Bool,
+        planned: Decimal = 200
+    ) -> SavingsGoalPlanMonth {
+        SavingsGoalPlanMonth(
+            month: month,
+            year: 2099,
+            state: state,
+            isLocked: isLocked,
+            plannedAmount: planned,
+            confirmedAmount: 0,
+            plannedCumulative: planned,
+            confirmedCumulative: 0,
+            lines: []
+        )
+    }
+
+    @Test("day 1 — no plan month closed yet: the pace verdict stays hidden")
+    func hasClosedPlanMonth_day1_isFalse() {
+        let months = [
+            makePlanMonth(month: 7, state: .current, isLocked: false),
+            makePlanMonth(month: 8, state: .future, isLocked: false),
+        ]
+
+        let hasClosed = SavingsGoalDetailViewModel.hasClosedPlanMonth(months)
+
+        #expect(hasClosed == false)
+    }
+
+    @Test("one closed month behind: the pace verdict comes back")
+    func hasClosedPlanMonth_lockedMonthBehind_isTrue() {
+        let months = [
+            makePlanMonth(month: 6, state: .past, isLocked: true),
+            makePlanMonth(month: 7, state: .current, isLocked: false),
+        ]
+
+        let hasClosed = SavingsGoalDetailViewModel.hasClosedPlanMonth(months)
+
+        #expect(hasClosed == true)
+    }
+
+    @Test("empty timeline (legacy payload): no verdict, and no beat amount either")
+    func emptyTimeline_hidesVerdictAndBeat() {
+        let hasClosed = SavingsGoalDetailViewModel.hasClosedPlanMonth([])
+        let beatAmount = SavingsGoalDetailViewModel.currentMonthPlannedAmount([])
+
+        #expect(hasClosed == false)
+        #expect(beatAmount == nil)
+    }
+
+    @Test("the day-1 beat carries the current month's planned amount")
+    func currentMonthPlannedAmount_readsCurrentMonth() {
+        let months = [
+            makePlanMonth(month: 7, state: .current, isLocked: false, planned: 250),
+            makePlanMonth(month: 8, state: .future, isLocked: false, planned: 300),
+        ]
+
+        let amount = SavingsGoalDetailViewModel.currentMonthPlannedAmount(months)
+
+        #expect(amount == 250)
+    }
+
     private func makeContribution() -> SavingsGoalContribution {
         SavingsGoalContribution(
             lineId: "line-1",
