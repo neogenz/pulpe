@@ -47,7 +47,7 @@ Ce fichier définit le template **exact** à utiliser pour toute user story. Cha
 7. **Estimation** : passer uniquement via le champ `estimate` de Linear (`save_issue`). **Ne jamais écrire l'estimation dans le body de l'issue.**
 8. **Langue** : tout en français
 9. **Vocabulaire domaine** : utiliser les termes du glossaire Pulpe (prévisions, récurrent, prévu, etc.)
-10. **Si > 20 points** : ne pas créer la story, la découper en stories plus petites et demander validation
+10. **Si > 21 points** (au-delà du max de l'échelle) : ne pas créer la story, la découper en stories plus petites et demander validation
 
 ## Barème d'estimation (Story Points)
 
@@ -58,7 +58,7 @@ Ce fichier définit le template **exact** à utiliser pour toute user story. Cha
 | **5** | Dev "simple" mais multi-couches (ex: Angular + NestJS). OU dev un peu plus complexe sur une seule couche (règles métier, complexité graphique). OU bug un peu complexe |
 | **8** | Dev multi-couches nécessitant conception / modélisation / architecture, long mais sans trop de doutes sur la complexité. OU bug complexe, compliqué à analyser et/ou reproduire |
 | **13** | Dev très complexe (ou très long) multi-couches, nécessitant conception / architecture, avec des doutes sur la complexité ou la profondeur. OU bug très compliqué impliquant probablement toutes les couches, une refacto, ou de l'analyse de code |
-| **20** | Sujet extrêmement compliqué ET/OU extrêmement chronophage, avec du doute et de l'inconnu |
+| **21** | Sujet extrêmement compliqué ET/OU extrêmement chronophage, avec du doute et de l'inconnu (max de l'échelle Linear — Fibonacci étendu) |
 
 ### Règles d'estimation
 

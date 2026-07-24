@@ -13,7 +13,7 @@ allowed-tools:
   - AskUserQuestion
 metadata:
   mcp-server: linear-server
-  version: 2.0.0
+  version: 2.1.0
 ---
 
 # Product Owner — Pulpe
@@ -31,7 +31,7 @@ Before any action, load the relevant context:
 |------|-------------|
 | Product vision, scope, V1 features | `memory-bank/projectbrief.md` |
 | Business rules, domain glossary, formulas | `memory-bank/productContext.md` |
-| Roadmap, milestones, release plan | `memory-bank/roadmap.md` |
+| Roadmap, chantiers en cours | Linear projects (`list_projects`, state ≠ Completed) |
 | Architecture, patterns | `memory-bank/systemPatterns.md` |
 | Tech decisions (MADR) | `memory-bank/techContext.md` |
 | Brand, DA, vocabulary | `memory-bank/DA.md` |
@@ -47,14 +47,13 @@ Read only the files relevant to the current request. Do not load everything syst
 
 ### Projects
 
-Projects replace GitHub milestones. Every issue MUST belong to a project.
+**Un projet Linear = un chantier finissable** — une poussée cohérente qui se termine puis se ferme (ex. « Tags de bout en bout », « Activation & rétention », « Marketing - Faire connaître Pulpe »). Le modèle release-train (MVP, R1, R2) est terminé : ces projets sont Completed depuis juillet 2026 — ne jamais les rouvrir ni recréer d'équivalent perpétuel.
 
-| Project | Purpose |
+| Projet permanent | Purpose |
 |---------|---------|
-| MVP | Core features, production-ready webapp + backend |
-| R1 - App Store Ready | First release: iOS App Store submission |
-| R2 - Worth Sharing | Second release: product worth sharing |
 | Ice Box | Parked ideas for later |
+
+Le travail de fond (bugfix, petites améliorations, dette isolée) vit **sans projet**, piloté par statut + label + priorité + cycles. Une issue ne reçoit un projet que si elle sert un chantier ouvert — `list_projects` donne la liste à jour, ne pas se fier à une liste codée en dur.
 
 ### Labels
 
@@ -122,7 +121,7 @@ Call MCP tool: `create_issue` with these parameters:
 - `team`: "Pulpe"
 - `description`: Markdown body in French
 - `assignee`: "me"
-- `project`: One of: "MVP", "R1 - App Store Ready", "R2 - Worth Sharing", "Ice Box"
+- `project`: only if the issue serves an open chantier (`list_projects`) or Ice Box — otherwise omit
 - `labels`: At least one label name
 - `priority`: 0=None, 1=Urgent, 2=High, 3=Normal, 4=Low
 
@@ -130,29 +129,30 @@ When creating issues:
 - Write titles and body in French
 - Use the user-story format from `references/user-story-format.md` when appropriate
 - Always assign to `me`
-- Always set a project (ask if unclear)
+- Set a project only when the issue belongs to an open chantier or Ice Box; default = no project
 - Always set at least one label
 
 ### 2. Backlog Grooming
 
 1. Fetch open issues: `list_issues` with `team: "Pulpe"`, `state: "backlog"`
-2. Read `memory-bank/roadmap.md` for priorities
-3. Present a structured view grouped by project, sorted by priority
-4. Suggest actions: cancel stale issues, re-prioritize, split large issues, add missing labels/projects
+2. Read `PRODUCT.md` and the open Linear projects (`list_projects`) for priorities
+3. For any issue older than ~1 month, verify its premises against the current code before acting on it — audit findings rot (purge de juillet 2026 : ~30 tickets obsolètes fermés après vérification code)
+4. Present a structured view grouped by project, sorted by priority
+5. Suggest actions: cancel stale issues, re-prioritize, split large issues, add missing labels/projects
 
 ### 3. Sprint / Project Planning
 
 To plan work for a project:
 1. Fetch issues: `list_issues` with `project: "PROJECT_NAME"`, `team: "Pulpe"`
-2. Read `memory-bank/roadmap.md` for release goals
+2. Read `PRODUCT.md` and the project description (`get_project`) for goals
 3. Present issues grouped by label (Bug > Feature > Improvement > technical)
 4. Suggest ordering and dependencies
 5. Optionally use `list_cycles` to align with a cycle
 
 ### 4. Roadmap Status
 
-1. Read `memory-bank/roadmap.md`
-2. For each project, fetch issue counts: `list_issues` with `project: "PROJECT_NAME"` for each status
+1. List open chantiers: `list_projects` (state ≠ Completed)
+2. For each open project, fetch issue counts: `list_issues` with `project: "PROJECT_NAME"` for each status
 3. Fetch recent GitHub releases: `gh release list --repo neogenz/pulpe --limit 10`
 4. Present a progress dashboard with completion percentages
 
@@ -182,7 +182,7 @@ Lors de la création ou du triage d'une issue, toujours attribuer des **story po
 #### Calculer la vélocité d'un sprint
 
 1. Fetch les issues "Done" du sprint : `list_issues` avec `cycle: "Sprint N"`, `state: "Done"`, `team: "Pulpe"`
-2. Pour chaque issue, évaluer les story points selon le barème (2, 3, 5, 8, 13, 20) en analysant :
+2. Pour chaque issue, évaluer les story points selon le barème (2, 3, 5, 8, 13, 21 — Fibonacci étendu, l'échelle Linear du workspace) en analysant :
    - Le nombre de couches touchées (packages)
    - La complexité technique (crypto, architecture, business logic)
    - Le type (bug vs feature vs refactoring)
@@ -193,9 +193,12 @@ Lors de la création ou du triage d'une issue, toujours attribuer des **story po
 
 #### Référence vélocité
 
-| Sprint | Points | Heures investies | Pts/heure | Période |
-|--------|--------|-----------------|-----------|---------|
-| Sprint 1 | 127 | 40h | ~3.2 | 13 fév — 1 mar 2026 |
+| Référence | Valeur | Note |
+|--------|--------|------|
+| Sprint 1 (13 fév — 1 mar 2026) | 127 pts | 40h investies, ~3.2 pts/h |
+| Moyenne S1-S11 (fév — juil 2026) | ~59 pts/sprint | médiane 64 ; croisière 55-65, push dédié 80-127 ; profil bimodal normal en solo |
+
+Méthode du calcul historique (analyse du 24.07.2026) : bucketer les issues `Done` par `completedAt` sur les fenêtres de cycle (2 semaines) plutôt que par `cycleId` ; exclure du « réel » les fermetures d'audit (travail ancien clôturé en masse) ; signaler les issues Done sans estimation — elles sous-comptent la vélocité du sprint concerné.
 
 ### 7. Issue Triage
 
