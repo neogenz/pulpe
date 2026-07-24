@@ -179,7 +179,7 @@ struct BudgetLineMixedRow: View {
             KindTagInline(kind: line.kind)
 
             if line.isSpread {
-                PulpeChip(icon: "calendar", label: "Lissé", style: .muted)
+                PulpeChip(icon: "calendar", label: "Lissé", style: .semantic(.financialSavings))
                     .accessibilityLabel("Dépense lissée")
             }
 
@@ -189,7 +189,7 @@ struct BudgetLineMixedRow: View {
             }
 
             if let savingsGoalName {
-                PulpeChip(icon: "target", label: savingsGoalName, style: .muted)
+                PulpeChip(icon: "target", label: savingsGoalName, style: .semantic(.financialSavings))
                     .lineLimit(1)
                     .accessibilityLabel("Objectif : \(savingsGoalName)")
             }

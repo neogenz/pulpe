@@ -31,6 +31,16 @@ struct PulpeChip<Trailing: View>: View {
         /// status badges on the bare canvas, where `.muted`'s `surfaceContainerHigh`
         /// is indistinguishable from `appBackground` (1.04:1).
         case tinted(surface: Color, foreground: Color)
+
+        /// The default way to build a state or informational chip: one semantic color
+        /// carrying both the wash and the ink. Pairs whose fill and ink differ (the
+        /// paused savings-goal badge) still spell out `.tinted` themselves.
+        static func semantic(_ color: Color) -> Style {
+            .tinted(
+                surface: color.opacity(DesignTokens.Opacity.badgeBackground),
+                foreground: color
+            )
+        }
     }
 
     // MARK: - Size
