@@ -109,8 +109,11 @@ struct SavingsGoalDetailView: View {
                 )
 
                 if progress.linkedLineCount > 0, !progress.months.isEmpty {
-                    if GoalProjectionSeries.read(from: progress).hasConfirmedTrend {
-                        GoalTrajectorySection(progress: progress, currency: currency)
+                    // Construite une seule fois : la même série gate la section
+                    // et alimente le chart (jusqu'à ~96 mois mappés par lecture).
+                    let series = GoalProjectionSeries.read(from: progress)
+                    if series.hasConfirmedTrend {
+                        GoalTrajectorySection(progress: progress, series: series, currency: currency)
                     }
                     GoalPlanTimelineSection(
                         months: progress.months,
@@ -279,8 +282,9 @@ struct SavingsGoalDetailView: View {
         let deadlinePart = progress.targetDateValue
             .map { "pour finir le \($0.formatted(date: .abbreviated, time: .omitted))" }
             ?? "pour tenir ton échéance"
+        let plannedPart = "Ton rythme prévu : \(progress.pace.asCompactCurrency(currency))/mois"
         return Text(
-            "Ton rythme prévu : \(progress.pace.asCompactCurrency(currency))/mois · \(deadlinePart), vise \(required.asCompactCurrency(currency))/mois"
+            "\(plannedPart) · \(deadlinePart), vise \(required.asCompactCurrency(currency))/mois"
         )
         .font(PulpeTypography.metricLabel)
         .foregroundStyle(Color.textSecondary)
@@ -459,7 +463,7 @@ final class SavingsGoalDetailViewModel {
     /// the stat becomes one sentence relating both rhythms.
     static func requiredMatchesPlannedPace(planned: Decimal, required: Decimal) -> Bool {
         guard planned > 0 else { return required <= 0 }
-        return abs(required - planned) <= planned * 5 / 100
+        return abs(required - planned) <= planned * SavingsGoalProgress.paceTolerancePercent / 100
     }
 
     /// Initial / pull-to-refresh load. Shows the full-screen spinner while the

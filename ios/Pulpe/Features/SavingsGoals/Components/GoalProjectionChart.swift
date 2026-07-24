@@ -152,9 +152,10 @@ struct GoalProjectionChart: View {
 /// `GoalProjectionSeries.hasConfirmedTrend` — nothing replaces it before then.
 struct GoalTrajectorySection: View {
     let progress: SavingsGoalProgress
+    /// Injectée par le parent (qui gate déjà sur `hasConfirmedTrend` avec la
+    /// même instance) — la re-dériver ici doublait la lecture par render.
+    let series: GoalProjectionSeries
     let currency: SupportedCurrency
-
-    private var series: GoalProjectionSeries { .read(from: progress) }
 
     /// `cumulativeGap` = prévu cumulé − pointé (never clamped): positive is a
     /// pointing LAG, negative an advance. The accounting signed value
