@@ -341,30 +341,4 @@ struct BudgetDetailsView: View {
         // a bottom text field is ever added here, remove or scope this.
         .ignoresSafeArea(.keyboard, edges: .bottom)
     }
-
-    // MARK: - Title menu month navigation
-
-    /// Same routing as the sticky pager's `onSelect` — one navigation semantic,
-    /// two affordances.
-    private var monthSelection: Binding<String> {
-        Binding(
-            get: { coordinator.dataStore.budgetId },
-            set: { id in
-                guard id != coordinator.dataStore.budgetId else { return }
-                Task { await coordinator.dispatch(.prepareNavigation(to: id)) }
-            }
-        )
-    }
-
-    /// Always the disambiguated "Mai 2025" form: a vertical menu has no space
-    /// pressure, and mixed short/long labels would read as inconsistency.
-    private static func monthMenuLabel(for sparse: BudgetSparse) -> String {
-        guard let month = sparse.month, let year = sparse.year else { return "—" }
-        var components = DateComponents()
-        components.month = month
-        components.year = year
-        components.day = 1
-        guard let date = Calendar.current.date(from: components) else { return "—" }
-        return Formatters.monthYear.string(from: date).capitalized
-    }
 }
