@@ -36,6 +36,38 @@ export interface SilentIosReleaseEntry {
  */
 export const RELEASES: WhatsNewReleaseEntry[] = [
   {
+    version: '0.38.0',
+    iosVersion: '1.2.0',
+    date: '2026-07-24',
+    platforms: ['web', 'ios'],
+    changes: {
+      features: [
+        {
+          title: "Objectifs d'épargne",
+          description:
+            'Définis un objectif, suis sa progression prévue et confirmée, simule ton plan mensuel et visualise ta trajectoire',
+        },
+        {
+          title: 'Tags',
+          description:
+            'Les étiquettes remplacent la catégorie en texte libre sur les transactions et les prévisions, avec un catalogue dans les réglages et un historique sur plusieurs mois',
+        },
+        {
+          title: "Retrait d'épargne",
+          description:
+            'Un parcours dédié pour piocher dans ton épargne quand le mois est serré, avec suppression groupée et relance tant que le mois reste en déficit',
+        },
+        {
+          title: "Nouvelle page d'accueil iOS",
+          description:
+            "Hiérarchie repensée autour du solde réel, fond adouci et objectifs d'épargne promus en onglet principal",
+        },
+      ],
+      fixes: [],
+      technical: [],
+    },
+  },
+  {
     version: '0.37.0',
     iosVersion: '1.1.0',
     date: '2026-07-01',

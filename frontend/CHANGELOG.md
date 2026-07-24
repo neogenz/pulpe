@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.38.0
+
+### Minor Changes
+
+- Objectifs d'épargne, tags et retrait d'épargne : suis un objectif de sa création à son terme, remplace les catégories libres par des étiquettes réutilisables, et pioche dans ton épargne quand le mois est serré.
+
+### Patch Changes
+
+- pulpe-shared@0.38.0
+
 ## 0.37.1
 
 ### Patch Changes

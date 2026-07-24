@@ -1,5 +1,80 @@
 [
   {
+    "version": "0.38.0",
+    "iosVersion": "1.2.0",
+    "date": "2026-07-24",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.38.0",
+    "platforms": ["web", "ios"],
+    "changes": {
+      "features": [
+        {
+          "title": "Objectifs d'épargne",
+          "description": "Définis un objectif, suis sa progression prévue et confirmée, simule ton plan mensuel et visualise ta trajectoire"
+        },
+        {
+          "title": "Tags",
+          "description": "Les étiquettes remplacent la catégorie en texte libre sur les transactions et les prévisions, avec un catalogue dans les réglages et un historique sur plusieurs mois"
+        },
+        {
+          "title": "Filtres par tag",
+          "description": "La recherche du budget se filtre désormais par étiquette"
+        },
+        {
+          "title": "Retrait d'épargne",
+          "description": "Un parcours dédié pour piocher dans ton épargne quand le mois est serré, avec suppression groupée et relance tant que le mois reste en déficit"
+        },
+        {
+          "title": "Connexion avec Apple",
+          "description": "Disponible sur l'accueil, l'inscription et la connexion, aux côtés d'une inscription par e-mail sans friction"
+        },
+        {
+          "title": "Nouvelle page d'accueil iOS",
+          "description": "Hiérarchie repensée autour du solde réel, fond adouci et objectifs d'épargne promus en onglet principal"
+        },
+        {
+          "title": "Rappels et widget d'écran verrouillé",
+          "description": "Garde ton budget sous les yeux et reçois des rappels pour pointer tes dépenses"
+        },
+        {
+          "title": "Nouveau site vitrine",
+          "description": "Récit produit, témoignages et feuille de route"
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Sécurité renforcée",
+          "description": "Le recalcul des soldes échoue désormais de façon sûre en cas d'échec de déchiffrement, la validation de clé est limitée en fréquence et les messages d'erreur internes ne fuitent plus"
+        },
+        {
+          "title": "Cohérence des données",
+          "description": "Un contrôle en base garantit qu'une transaction reste liée à une prévision valide"
+        },
+        {
+          "title": "Consentement",
+          "description": "Les libellés d'acceptation et de prise de connaissance sont désormais distincts sur les deux plateformes"
+        },
+        {
+          "title": "Accessibilité iOS",
+          "description": "La page d'accueil ne casse plus aux grandes tailles de texte et les widgets respectent la période de paie"
+        },
+        {
+          "title": "Connexion",
+          "description": "Le bouton est gelé pendant l'envoi et la méthode d'inscription survit à la redirection"
+        }
+      ],
+      "technical": [
+        {
+          "title": "Chargement initial allégé",
+          "description": "PostHog et Supabase chargés à la demande, Chart.js réduit de 24 ko, requêtes obsolètes annulées"
+        },
+        {
+          "title": "Montée de version",
+          "description": "Passage à Angular 22 et durcissement de la chaîne CI/CD"
+        }
+      ]
+    }
+  },
+  {
     "version": "0.37.1",
     "date": "2026-07-01",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.37.1",

@@ -9,10 +9,12 @@ export interface SkippedWhatsNewRelease {
 }
 
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: '0.37.0',
+  version: '0.38.0',
   features: [
-    'Lisser une dépense sur plusieurs mois',
-    'Reporter une dépense au mois suivant',
+    'Objectifs d’épargne avec plan mensuel',
+    'Tags à la place des catégories libres',
+    'Retrait d’épargne quand le mois est serré',
+    'Connexion avec Apple',
   ],
 };
 
