@@ -164,7 +164,7 @@ struct SavingsGoalDetailView: View {
     @ViewBuilder
     private func header(progress: SavingsGoalProgress) -> some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
-            PulpeChip(icon: statusIcon(currentGoal.status), label: currentGoal.status.label, style: .muted)
+            SavingsGoalStatusBadge(status: currentGoal.status, showsIcon: true)
 
             if let date = progress.targetDateValue {
                 Text("Échéance \(date.formatted(date: .abbreviated, time: .omitted))")
@@ -173,14 +173,6 @@ struct SavingsGoalDetailView: View {
             }
 
             Spacer(minLength: 0)
-        }
-    }
-
-    private func statusIcon(_ status: SavingsGoalStatus) -> String {
-        switch status {
-        case .active: "target"
-        case .completed: "checkmark.circle.fill"
-        case .paused: "pause.circle"
         }
     }
 

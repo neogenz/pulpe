@@ -322,7 +322,8 @@ The Budget Detail filter rail uses `PulpeChip` (`ios/Pulpe/Shared/Components/Pul
 
 - **`PulpeChip.Style.solid`:** `Color.textPrimary` fill, `Color(.systemBackground)` text, count badge in `Color(.systemBackground).opacity(0.2)` capsule. Used for the active filter pill.
 - **`PulpeChip.Style.outlined`:** `Color.surface` fill, hairline `Color.onSurfaceVariant.opacity(outlinePill)` border, primary text. Used for inactive filter pills, the leading menu chip, and most chip-shaped controls.
-- **`PulpeChip.Style.muted`:** `Color.surfaceContainerHigh` fill, no border. Reserved for stat / informational chips on tinted hero surfaces.
+- **`PulpeChip.Style.muted`:** `Color.surfaceContainerHigh` fill, no border. Reserved for stat / informational chips on tinted hero surfaces or cards — **never on the bare `appBackground`**, where the fill is indistinguishable from the canvas (1.04:1).
+- **`PulpeChip.Style.tinted(surface:foreground:)`:** explicit fill + ink pair, no border. State chips whose backdrop `.muted` can't handle: the dashboard hero (`HomeHeroCard`) and the savings-goal status badge (`SavingsGoalStatusBadge`, semantic tint at `Opacity.badgeBackground` + matching ink). The chosen pair must separate from the actual backdrop.
 - **`PulpeChip.Size.standard`:** ~40pt visual, padding `(lg, md)` from `ChipMetrics.Standard`. Pulpe default.
 - **`PulpeChip.Size.prominent`:** ~48pt visual, padding `(xl, lg)`. Used for the dominant action chip on a screen.
 - **No `.compact`:** Pulpe pillar `Légèreté` excludes tight density.
