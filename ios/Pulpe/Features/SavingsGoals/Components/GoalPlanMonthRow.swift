@@ -106,9 +106,11 @@ struct GoalPlanMonthRow: View {
 
             amountView
         }
-        // `sm`, pas `xs` comme le clone lissage : sans slot d'icône ni cumul,
-        // ce padding est le seul air de la rangée (pilier Légèreté).
-        .padding(.vertical, DesignTokens.Spacing.sm)
+        // Rythme canonique des rangées de liste (`ListRow`), pas un Spacing
+        // choisi à la main : le minHeight égalise les mois à 1 ligne (courant
+        // sans statut) et à 2 lignes — même règle que BudgetLineMixedRow.
+        .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
+        .padding(.vertical, DesignTokens.ListRow.verticalPadding)
         .opacity(month.isLocked ? DesignTokens.Opacity.pointedDim : 1)
         .allowsHitTesting(!month.isLocked)
         .accessibilityElement(children: .combine)
