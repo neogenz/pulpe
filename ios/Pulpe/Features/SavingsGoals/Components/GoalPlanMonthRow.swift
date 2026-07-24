@@ -63,16 +63,19 @@ struct GoalPlanMonthRow: View {
         !month.lines.isEmpty && month.lines.allSatisfy(\.isChecked)
     }
 
-    private var stateIcon: (name: String, color: Color)? {
-        if allChecked { return ("checkmark.circle.fill", .financialSavings) }
-        if month.isLocked { return ("lock.fill", .textTertiary) }
+    /// Statut de pointage/verrouillage dans la ligne de métadonnées — même
+    /// grammaire que « Ton suivi » (`GoalContributionsSection`). L'ancien slot
+    /// d'icône réservé (28pt) laissait une colonne fantôme sur tout le plan
+    /// quand aucun mois ne portait de coche ni de cadenas (le cas commun d'un
+    /// objectif qui démarre).
+    private var stateText: (label: String, color: Color)? {
+        if allChecked { return ("Pointé", .financialSavings) }
+        if month.isLocked { return ("Verrouillé", .textTertiary) }
         return nil
     }
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
-            iconSlot
-
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                 Text(monthLabel)
                     .font(PulpeTypography.listRowTitle)
@@ -88,6 +91,12 @@ struct GoalPlanMonthRow: View {
                             .font(PulpeTypography.listRowSubtitle)
                             .foregroundStyle(Color.textSecondary)
                     }
+
+                    if let state = stateText {
+                        Text(state.label)
+                            .font(PulpeTypography.listRowSubtitle)
+                            .foregroundStyle(state.color)
+                    }
                 }
             }
 
@@ -100,18 +109,6 @@ struct GoalPlanMonthRow: View {
         .allowsHitTesting(!month.isLocked)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
-    }
-
-    @ViewBuilder
-    private var iconSlot: some View {
-        if let icon = stateIcon {
-            Image(systemName: icon.name)
-                .font(PulpeTypography.listRowTitle)
-                .foregroundStyle(icon.color)
-                .frame(width: DesignTokens.IconSize.compact)
-        } else {
-            Color.clear.frame(width: DesignTokens.IconSize.compact, height: 1)
-        }
     }
 
     @ViewBuilder
