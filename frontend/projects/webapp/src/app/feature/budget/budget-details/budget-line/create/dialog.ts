@@ -655,14 +655,14 @@ export class AddBudgetLineDialog {
       await this.#submitSpread();
       return;
     }
-    const m = this.model();
-    if (m.kind === 'income' && this.repayNextMonth()) {
+    const lineDraft = this.model();
+    if (lineDraft.kind === 'income' && this.repayNextMonth()) {
       this.#dialogRef.close({
         mode: 'savingsWithdrawal',
         prefill: {
-          amount: m.money.amount ?? 0,
-          source: m.name.trim(),
-          inputCurrency: m.money.inputCurrency,
+          amount: lineDraft.money.amount ?? 0,
+          source: lineDraft.name.trim(),
+          inputCurrency: lineDraft.money.inputCurrency,
         },
       });
       return;
@@ -675,16 +675,16 @@ export class AddBudgetLineDialog {
   // hands over a prefill when an amount was actually typed (the withdrawal
   // dialog otherwise starts at its amount step with the deficit chip).
   protected requestSavingsWithdrawal(): void {
-    const m = this.model();
-    const amount = m.money.amount ?? 0;
+    const lineDraft = this.model();
+    const typedAmount = lineDraft.money.amount ?? 0;
     this.#dialogRef.close({
       mode: 'savingsWithdrawal',
-      ...(amount > 0
+      ...(typedAmount > 0
         ? {
             prefill: {
-              amount,
-              source: m.name.trim(),
-              inputCurrency: m.money.inputCurrency,
+              amount: typedAmount,
+              source: lineDraft.name.trim(),
+              inputCurrency: lineDraft.money.inputCurrency,
             },
           }
         : {}),
@@ -697,22 +697,23 @@ export class AddBudgetLineDialog {
       isSubmitting: this.isSubmitting,
       conversionError: this.conversionError,
       prepare: () => {
-        const m = this.model();
+        const lineDraft = this.model();
         return {
-          amountSlice: m.money,
+          amountSlice: lineDraft.money,
           targetCurrency: this.#settings.currency(),
           converter: this.#converter,
           logger: this.#logger,
           build: (amount, metadata) =>
             budgetLineCreateFromFormSchema.parse({
               budgetId: this.#data.budgetId,
-              name: m.name.trim(),
+              name: lineDraft.name.trim(),
               amount,
-              kind: m.kind,
-              recurrence: m.recurrence,
-              isChecked: m.isChecked,
-              tagIds: m.tagIds,
-              savingsGoalId: m.kind === 'saving' ? m.savingsGoalId : null,
+              kind: lineDraft.kind,
+              recurrence: lineDraft.recurrence,
+              isChecked: lineDraft.isChecked,
+              tagIds: lineDraft.tagIds,
+              savingsGoalId:
+                lineDraft.kind === 'saving' ? lineDraft.savingsGoalId : null,
               conversion: metadata,
             }),
         };
@@ -730,16 +731,16 @@ export class AddBudgetLineDialog {
       isSubmitting: this.isSubmitting,
       conversionError: this.conversionError,
       prepare: () => {
-        const m = this.model();
+        const lineDraft = this.model();
         return {
-          amountSlice: m.money,
+          amountSlice: lineDraft.money,
           targetCurrency: this.#settings.currency(),
           converter: this.#converter,
           logger: this.#logger,
           build: (amount, metadata) =>
             budgetLineSpreadCreateFromFormSchema.parse({
-              name: m.name.trim(),
-              kind: m.kind,
+              name: lineDraft.name.trim(),
+              kind: lineDraft.kind,
               mode: this.#amountMode(),
               amount,
               months: this.selectedMonths(),
