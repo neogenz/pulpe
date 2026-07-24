@@ -32,7 +32,7 @@ import {
   MAX_CUSTOM_TRANSACTIONS,
   getOnboardingSuggestions,
 } from './complete-profile-store';
-import { OnboardingPreviewDesktop } from './components/onboarding-preview-desktop';
+import { OnboardingLivePreview } from './components/onboarding-live-preview';
 import {
   CURRENCY_METADATA,
   PAY_DAY_MAX,
@@ -56,7 +56,7 @@ import {
     CurrencyInput,
     ErrorAlert,
     LoadingButton,
-    OnboardingPreviewDesktop,
+    OnboardingLivePreview,
   ],
   providers: [CompleteProfileStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -293,7 +293,7 @@ import {
                 </div>
 
                 <!-- Mobile live preview (between form and CTA) -->
-                <pulpe-onboarding-preview-desktop
+                <pulpe-onboarding-live-preview
                   class="lg:hidden block mt-8"
                   [firstName]="store.firstName()"
                   [monthlyIncome]="store.monthlyIncome()"
@@ -332,7 +332,7 @@ import {
               </div>
 
               <!-- Right column: sticky live preview (desktop only) -->
-              <pulpe-onboarding-preview-desktop
+              <pulpe-onboarding-live-preview
                 class="hidden lg:block lg:sticky lg:top-8"
                 [firstName]="store.firstName()"
                 [monthlyIncome]="store.monthlyIncome()"

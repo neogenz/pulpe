@@ -19,7 +19,7 @@ import { AppCurrencyPipe } from '@core/currency';
 const COUNTER_DURATION_MS = 600;
 
 @Component({
-  selector: 'pulpe-onboarding-preview-desktop',
+  selector: 'pulpe-onboarding-live-preview',
   imports: [MatIconModule, TranslocoPipe, AppCurrencyPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   animations: [
@@ -56,7 +56,7 @@ const COUNTER_DURATION_MS = 600;
   ],
   template: `
     <div
-      class="onboarding-preview-desktop relative overflow-hidden p-8 rounded-3xl bg-surface-container border border-outline-variant/40"
+      class="onboarding-live-preview relative overflow-hidden p-8 rounded-3xl bg-surface-container border border-outline-variant/40"
       [class.is-ready]="isReady()"
       [attr.aria-label]="'completeProfile.preview.ariaLabel' | transloco"
     >
@@ -159,11 +159,11 @@ const COUNTER_DURATION_MS = 600;
     </div>
   `,
   styles: `
-    .onboarding-preview-desktop {
+    .onboarding-live-preview {
       transition: border-color var(--pulpe-motion-slow)
         var(--pulpe-ease-emphasized);
     }
-    .onboarding-preview-desktop.is-ready {
+    .onboarding-live-preview.is-ready {
       border-color: color-mix(
         in oklch,
         var(--mat-sys-primary) 15%,
@@ -183,13 +183,13 @@ const COUNTER_DURATION_MS = 600;
       line-height: 20px;
     }
     @media (prefers-reduced-motion: reduce) {
-      .onboarding-preview-desktop {
+      .onboarding-live-preview {
         transition: none;
       }
     }
   `,
 })
-export class OnboardingPreviewDesktop {
+export class OnboardingLivePreview {
   readonly firstName = input.required<string>();
   readonly monthlyIncome = input.required<number | null>();
   readonly payDayOfMonth = input.required<number | null>();
