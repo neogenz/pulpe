@@ -1,20 +1,20 @@
 import SwiftUI
 
 /// Decides + persists whether the "mois un peu juste" card shows (PUL-292, CA1).
-/// Pure so the "current-or-future deficit, not already withdrawn, not dismissed"
-/// rule is testable without a view — mirrors `SavingsGoalsIntroGate`. Dismissal
-/// is keyed per budget id in a comma-joined `@AppStorage` string; the card
-/// surfaces at most once per month until the user acts or taps "Plus tard".
+/// Pure so the "current-or-future deficit, not dismissed" rule is testable
+/// without a view — mirrors `SavingsGoalsIntroGate`. An existing pioche does
+/// NOT hide the card: a month can dip back into deficit after a first
+/// withdrawal. Dismissal is keyed per budget id in a comma-joined `@AppStorage`
+/// string; "Plus tard" silences the card for that month.
 enum SavingsWithdrawalCardGate {
     static let storageKey = "dismissedSavingsWithdrawalCardBudgetIds"
 
     static func shouldPresent(
         available: Decimal,
         isCurrentOrFutureMonth: Bool,
-        hasWithdrawalLine: Bool,
         isDismissed: Bool
     ) -> Bool {
-        available < 0 && isCurrentOrFutureMonth && !hasWithdrawalLine && !isDismissed
+        available < 0 && isCurrentOrFutureMonth && !isDismissed
     }
 
     static func isDismissed(budgetId: String, in raw: String) -> Bool {

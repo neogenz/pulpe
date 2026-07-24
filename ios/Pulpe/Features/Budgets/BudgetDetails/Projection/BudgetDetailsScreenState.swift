@@ -68,11 +68,6 @@ struct BudgetDetailsScreenState: Equatable {
     /// confirmation / menu copy. Routed through the DTO for the same reason.
     let nextMonthLabel: String?
 
-    /// `true` when any line of the month already carries a
-    /// `savingsWithdrawalGroupId` (PUL-292). Gates the "mois un peu juste" card
-    /// out once a withdrawal exists — derived here so the view never scans lines.
-    let hasSavingsWithdrawalLine: Bool
-
     /// Kind of the first non-empty section after all filters. Drives the
     /// "first section gets the gestures tip" rule.
     let firstSectionKind: TransactionKind?
@@ -124,7 +119,6 @@ struct BudgetDetailsScreenState: Equatable {
         isShowingOnlyUnchecked: true,
         canPostpone: false,
         nextMonthLabel: nil,
-        hasSavingsWithdrawalLine: false,
         firstSectionKind: nil,
         canShowEmptyChecked: false,
         consumptionByLineId: [:],

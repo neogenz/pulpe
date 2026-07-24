@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
@@ -60,6 +62,8 @@ function configureDialog({
     imports: [AddBudgetLineDialog],
     providers: [
       provideZonelessChangeDetection(),
+      provideHttpClient(),
+      provideHttpClientTesting(),
       provideAnimationsAsync(),
       ...provideTranslocoForTest(),
       {
@@ -376,6 +380,55 @@ describe('AddBudgetLineDialog', () => {
       expect(dto).not.toHaveProperty('originalCurrency');
       expect(dto).not.toHaveProperty('targetCurrency');
       expect(dto).not.toHaveProperty('exchangeRate');
+    });
+  });
+
+  describe('savings withdrawal shortcut (saving kind)', () => {
+    it('should render the pioche button only for the saving kind', () => {
+      const { fixture, component } = configureDialog();
+
+      component['model'].update((m) => ({ ...m, kind: 'saving' }));
+      fixture.detectChanges();
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="open-savings-withdrawal"]',
+        ),
+      ).not.toBeNull();
+
+      component['model'].update((m) => ({ ...m, kind: 'expense' }));
+      fixture.detectChanges();
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="open-savings-withdrawal"]',
+        ),
+      ).toBeNull();
+    });
+
+    it('should close with savingsWithdrawal mode and no prefill when no amount was typed', () => {
+      const { component, dialogRef } = configureDialog();
+
+      component['requestSavingsWithdrawal']();
+
+      expect(dialogRef.close).toHaveBeenCalledWith({
+        mode: 'savingsWithdrawal',
+      });
+    });
+
+    it('should carry the typed amount, trimmed name and input currency as prefill', () => {
+      const { component, dialogRef } = configureDialog();
+      component['model'].update((m) => ({
+        ...m,
+        name: '  Vacances  ',
+        kind: 'saving',
+        money: { amount: 250, inputCurrency: 'CHF' },
+      }));
+
+      component['requestSavingsWithdrawal']();
+
+      expect(dialogRef.close).toHaveBeenCalledWith({
+        mode: 'savingsWithdrawal',
+        prefill: { amount: 250, source: 'Vacances', inputCurrency: 'CHF' },
+      });
     });
   });
 

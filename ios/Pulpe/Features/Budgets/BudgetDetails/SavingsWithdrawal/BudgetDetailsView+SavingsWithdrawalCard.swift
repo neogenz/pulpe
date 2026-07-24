@@ -15,9 +15,9 @@ extension BudgetDetailsView {
     }
 
     /// Non-nil prefill when the deficit card should surface for the viewed month
-    /// (PUL-292, CA1/CA3): a current-or-future deficit, no existing withdrawal in
-    /// the month, not dismissed for this budget. The card offers |available| via
-    /// the sheet's quick-fill chip rather than imposing it.
+    /// (PUL-292, CA1/CA3): a current-or-future deficit, not dismissed for this
+    /// budget — an existing withdrawal does not hide it. The card offers
+    /// |available| via the sheet's quick-fill chip rather than imposing it.
     var tightMonthCardPrefill: SavingsWithdrawalPrefill? {
         let screenState = projector.screenState
         guard let month = screenState.hero.month, let year = screenState.hero.year else { return nil }
@@ -38,7 +38,6 @@ extension BudgetDetailsView {
         guard SavingsWithdrawalCardGate.shouldPresent(
             available: available,
             isCurrentOrFutureMonth: isCurrentOrFutureMonth,
-            hasWithdrawalLine: screenState.hasSavingsWithdrawalLine,
             isDismissed: isDismissed
         ) else { return nil }
 
