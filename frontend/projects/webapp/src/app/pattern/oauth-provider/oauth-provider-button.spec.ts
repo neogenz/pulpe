@@ -118,6 +118,23 @@ describe('OAuthProviderButton', () => {
 
       expect(component['isLoading']()).toBe(false);
     });
+
+    it('should ignore a second call while one is already in flight', async () => {
+      let resolveAuth!: (value: { success: boolean }) => void;
+      mockAuthOAuth.signInWithOAuth.mockReturnValue(
+        new Promise((resolve) => {
+          resolveAuth = resolve;
+        }),
+      );
+
+      const firstCall = component['signIn']();
+      await component['signIn']();
+
+      expect(mockAuthOAuth.signInWithOAuth).toHaveBeenCalledTimes(1);
+
+      resolveAuth({ success: true });
+      await firstCall;
+    });
   });
 
   describe('signIn - Failure Path', () => {

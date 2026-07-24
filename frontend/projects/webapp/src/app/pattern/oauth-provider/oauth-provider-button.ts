@@ -111,7 +111,7 @@ export class OAuthProviderButton {
   );
 
   protected async signIn(): Promise<void> {
-    if (this.disabled()) return;
+    if (this.disabled() || this.isLoading()) return;
     this.isLoading.set(true);
     this.loadingChange.emit(true);
 
