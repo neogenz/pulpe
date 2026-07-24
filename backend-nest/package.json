@@ -65,7 +65,7 @@
     "compression": "^1.8.1",
     "curl-generator": "^0.4.2",
     "date-fns": "^4.1.0",
-    "express-rate-limit": "^8.0.1",
+    "express-rate-limit": "^8.2.2",
     "helmet": "^8.1.0",
     "nestjs-cls": "^6.2.0",
     "nestjs-pino": "^4.4.0",
