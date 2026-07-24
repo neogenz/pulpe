@@ -156,14 +156,24 @@ VALUES
 -- =====================================================
 -- 3. CREATE SAVINGS GOALS
 -- =====================================================
-INSERT INTO public.savings_goal (id, user_id, name, target_amount, target_date, priority, status)
+-- Échéances relatives à la date du jour : des dates absolues rendraient tous
+-- les objectifs « en retard » dès que le seed vieillit d'un an.
+--
+-- `created_at` est antidaté avec les contributions liées (section 5b) : le
+-- rythme vaut `plannedCumulative / monthsElapsed`, et `monthsElapsed` compte
+-- depuis la création. Un objectif créé aujourd'hui mais porteur de six mois de
+-- contributions afficherait tout le cumul comme cadence mensuelle.
+INSERT INTO public.savings_goal (id, user_id, name, target_amount, target_date, priority, status, created_at)
 VALUES
   ('aaaaaaaa-1111-1111-8111-111111111111', '11111111-1111-1111-8111-111111111111',
-   'Vacances Japon', 3000.00, '2025-07-01', 'HIGH', 'ACTIVE'),
+   'Vacances Japon', 3000.00, (CURRENT_DATE + INTERVAL '8 months')::date, 'HIGH', 'ACTIVE',
+   make_timestamptz(2026, 1, 5, 9, 0, 0)),
   ('aaaaaaaa-2222-2222-8222-222222222222', '11111111-1111-1111-8111-111111111111',
-   'MacBook Pro', 2500.00, '2025-03-01', 'MEDIUM', 'ACTIVE'),
+   'MacBook Pro', 2500.00, (CURRENT_DATE + INTERVAL '4 months')::date, 'MEDIUM', 'ACTIVE',
+   make_timestamptz(2026, 1, 5, 9, 0, 0)),
   ('aaaaaaaa-3333-3333-8333-333333333333', '11111111-1111-1111-8111-111111111111',
-   'Fond d''urgence', 5000.00, '2025-12-31', 'HIGH', 'ACTIVE');
+   'Fond d''urgence', 5000.00, (CURRENT_DATE + INTERVAL '18 months')::date, 'HIGH', 'ACTIVE',
+   make_timestamptz(2026, 1, 5, 9, 0, 0));
 
 -- =====================================================
 -- 4. CREATE MONTHLY BUDGETS
@@ -532,6 +542,45 @@ END
 $seed_transactions$;
 
 -- =====================================================
+-- 5b. LINK SAVINGS GOALS TO MONTHLY CONTRIBUTIONS
+-- =====================================================
+-- Sans prévision portant un savings_goal_id, un objectif reste figé à 0 :
+-- ni progression, ni suivi des contributions, ni courbe de trajectoire.
+-- Les mois révolus sont pointés, le mois courant reste à pointer.
+INSERT INTO public.budget_line
+  (budget_id, savings_goal_id, name, amount, kind, recurrence, checked_at)
+SELECT
+  b.budget_id,
+  g.goal_id,
+  g.line_name,
+  g.monthly_amount,
+  'saving'::transaction_kind,
+  'fixed'::transaction_recurrence,
+  CASE
+    WHEN make_date(2026, b.month, 1) < date_trunc('month', CURRENT_DATE)::date
+    THEN make_timestamptz(2026, b.month, 5, 12, 0, 0)
+  END
+FROM (VALUES
+  ('22222222-0001-4026-a001-111111111111'::uuid, 1),
+  ('22222222-0002-4026-a002-222222222222'::uuid, 2),
+  ('22222222-0003-4026-a003-333333333333'::uuid, 3),
+  ('22222222-0004-4026-a004-444444444444'::uuid, 4),
+  ('22222222-0005-4026-a005-555555555555'::uuid, 5),
+  ('22222222-0006-4026-a006-666666666666'::uuid, 6),
+  ('22222222-0007-4026-a007-777777777777'::uuid, 7),
+  ('22222222-0008-4026-a008-888888888888'::uuid, 8),
+  ('22222222-0009-4026-a009-999999999999'::uuid, 9),
+  ('22222222-0010-4026-a010-aaaaaaaaaaaa'::uuid, 10),
+  ('22222222-0011-4026-a011-bbbbbbbbbbbb'::uuid, 11),
+  ('22222222-0012-4026-a012-cccccccccccc'::uuid, 12)
+) AS b(budget_id, month)
+CROSS JOIN (VALUES
+  ('aaaaaaaa-2222-2222-8222-222222222222'::uuid, 'Épargne MacBook Pro', '250.00'),
+  ('aaaaaaaa-1111-1111-8111-111111111111'::uuid, 'Épargne Vacances Japon', '150.00'),
+  ('aaaaaaaa-3333-3333-8333-333333333333'::uuid, 'Épargne Fond d''urgence', '100.00')
+) AS g(goal_id, line_name, monthly_amount);
+
+-- =====================================================
 -- 6. LOG SUMMARY
 -- =====================================================
 DO $$
@@ -539,7 +588,7 @@ BEGIN
   RAISE NOTICE '=== SEED DATA CREATED SUCCESSFULLY ===';
   RAISE NOTICE 'User: maxime.desogus@gmail.com / 12345678';
   RAISE NOTICE 'Templates: 2 (Budget Mensuel Standard, Budget Étudiant)';
-  RAISE NOTICE 'Savings Goals: 3';
+  RAISE NOTICE 'Savings Goals: 3 (échéances relatives, contributions liées sur 2026)';
   RAISE NOTICE 'Monthly Budgets: 24 (2025 complet + 2026 complet)';
   RAISE NOTICE 'Transactions: ~100+ (transactions pour tous les mois)';
   RAISE NOTICE '=====================================';
