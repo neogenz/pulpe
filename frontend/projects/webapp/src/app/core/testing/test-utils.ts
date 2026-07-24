@@ -66,6 +66,61 @@ export function createMockSupabaseClient(): MockSupabaseClient {
 }
 
 /**
+ * Mock interface for a ngx-ziflux `DataCache`.
+ *
+ * `_fetch` and `_settle` are `@internal` in ngx-ziflux and stripped from its
+ * published types, yet `cachedResource` calls them on every load. They have to
+ * be stubbed here and cannot be checked against the real `DataCache` type, so
+ * call sites cast this mock at the injection point.
+ */
+export interface MockDataCache {
+  get: Mock;
+  set: Mock;
+  has: Mock;
+  invalidate: Mock;
+  deduplicate: Mock;
+  prefetch: Mock;
+  clear: Mock;
+  _fetch: Mock;
+  _settle: Mock;
+  version: WritableSignal<number>;
+  _dataVersion: WritableSignal<number>;
+}
+
+/**
+ * Creates a mock DataCache carrying everything `cachedResource` and
+ * `cachedMutation` reach for: both version signals, the read/write methods, and
+ * the internal fetch pair.
+ *
+ * `_fetch` delegates to `deduplicate`, mirroring ngx-ziflux where `_fetch` is
+ * `deduplicate()` plus the record `_settle()` reads. A spec overriding
+ * `deduplicate` therefore still controls what the loader resolves with.
+ */
+export function createMockDataCache(): MockDataCache {
+  const mock: MockDataCache = {
+    get: vi.fn().mockReturnValue(null),
+    set: vi.fn(),
+    has: vi.fn().mockReturnValue(false),
+    invalidate: vi.fn(),
+    deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) => fn()),
+    prefetch: vi.fn((_key: string[], fn: () => Promise<unknown>) => fn()),
+    clear: vi.fn(),
+    _fetch: vi.fn(async (key: string[], fn: () => Promise<unknown>) => ({
+      data: await mock.deduplicate(key, fn),
+      record: { promise: Promise.resolve(), raced: false, superseded: false },
+    })),
+    // Mirrors the real `_settle`, which writes through to `set()`, so specs
+    // asserting on `set` keep observing the same calls they did before 0.2.0.
+    _settle: vi.fn((key: string[], result: { data: unknown }, write = true) => {
+      if (write) mock.set(key, result.data);
+    }),
+    version: signal(0),
+    _dataVersion: signal(0),
+  };
+  return mock;
+}
+
+/**
  * Creates a type-safe mock ResourceRef for testing
  * @param initialValue The initial value for the resource
  * @returns A mocked ResourceRef with all required methods

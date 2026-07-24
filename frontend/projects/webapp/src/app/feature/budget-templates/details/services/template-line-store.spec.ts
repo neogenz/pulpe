@@ -17,6 +17,7 @@ import {
   type TemplateLineFormInput,
 } from './template-line-store';
 import { TemplateDetailsStore } from './template-details-store';
+import { createMockDataCache, type MockDataCache } from '@core/testing';
 
 const TEMPLATE_ID = 'template-1';
 
@@ -84,7 +85,7 @@ describe('TemplateLineStore', () => {
   >;
   let templatesApiMock: {
     bulkOperationsTemplateLines$: ReturnType<typeof vi.fn>;
-    cache: Record<string, unknown>;
+    cache: MockDataCache;
   };
   let budgetApiMock: { cache: { invalidate: ReturnType<typeof vi.fn> } };
   let detailsStoreMock: {
@@ -109,20 +110,7 @@ describe('TemplateLineStore', () => {
 
     templatesApiMock = {
       bulkOperationsTemplateLines$: vi.fn(),
-      cache: {
-        version: signal(0),
-        _dataVersion: signal(0),
-        get: vi.fn().mockReturnValue(null),
-        set: vi.fn(),
-        has: vi.fn().mockReturnValue(false),
-        invalidate: vi.fn(),
-        deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) =>
-          fn(),
-        ),
-        prefetch: vi.fn(),
-        clear: vi.fn(),
-        clearDirty: vi.fn(),
-      },
+      cache: createMockDataCache(),
     };
 
     budgetApiMock = {

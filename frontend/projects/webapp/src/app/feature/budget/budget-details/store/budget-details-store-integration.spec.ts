@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { provideZonelessChangeDetection, signal } from '@angular/core';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import {
   provideHttpClientTesting,
@@ -22,6 +22,7 @@ import {
   createMockTransaction,
 } from '../../../../testing/mock-factories';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
+import { createMockDataCache, type MockDataCache } from '@core/testing';
 
 // Mock data
 const mockBudgetId = 'budget-123';
@@ -85,7 +86,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     deleteTransaction$: ReturnType<typeof vi.fn>;
     toggleTransactionCheck$: ReturnType<typeof vi.fn>;
     postponeTransaction$: ReturnType<typeof vi.fn>;
-    cache: Record<string, unknown>;
+    cache: MockDataCache;
   };
   let mockLogger: {
     debug: ReturnType<typeof vi.fn>;
@@ -131,20 +132,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       deleteTransaction$: vi.fn(),
       toggleTransactionCheck$: vi.fn(),
       postponeTransaction$: vi.fn(),
-      cache: {
-        version: signal(0),
-        _dataVersion: signal(0),
-        get: vi.fn().mockReturnValue(null),
-        set: vi.fn(),
-        has: vi.fn().mockReturnValue(false),
-        invalidate: vi.fn(),
-        deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) =>
-          fn(),
-        ),
-        prefetch: vi.fn().mockResolvedValue(undefined),
-        clear: vi.fn(),
-        clearDirty: vi.fn(),
-      },
+      cache: createMockDataCache(),
     };
 
     mockLogger = {
@@ -176,20 +164,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
           provide: SavingsGoalApi,
           useValue: {
             getAll$: vi.fn().mockReturnValue(of({ success: true, data: [] })),
-            cache: {
-              version: signal(0),
-              _dataVersion: signal(0),
-              get: vi.fn().mockReturnValue(null),
-              set: vi.fn(),
-              has: vi.fn().mockReturnValue(false),
-              invalidate: vi.fn(),
-              deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) =>
-                fn(),
-              ),
-              prefetch: vi.fn(),
-              clear: vi.fn(),
-              clearDirty: vi.fn(),
-            },
+            cache: createMockDataCache(),
           },
         },
         { provide: Logger, useValue: mockLogger },

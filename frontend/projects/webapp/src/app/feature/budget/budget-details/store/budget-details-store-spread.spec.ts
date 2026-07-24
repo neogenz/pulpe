@@ -21,6 +21,7 @@ import { PostHogService } from '@core/analytics/posthog';
 import { UserSettingsStore } from '@core/user-settings';
 import { createMockBudgetDetailsResponse } from '../../../../testing/mock-factories';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
+import { createMockDataCache } from '@core/testing';
 
 /**
  * Integration: the réalisé tracker exposed by the store, the single source every
@@ -144,40 +145,14 @@ describe('BudgetDetailsStore — spread réalisé tracker', () => {
             createBudgetLineSpread$: vi
               .fn()
               .mockReturnValue(throwError(() => recalcError)),
-            cache: {
-              version: signal(0),
-              _dataVersion: signal(0),
-              get: vi.fn().mockReturnValue(null),
-              set: vi.fn(),
-              has: vi.fn().mockReturnValue(false),
-              invalidate: vi.fn(),
-              deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) =>
-                fn(),
-              ),
-              prefetch: vi.fn(),
-              clear: vi.fn(),
-              clearDirty: vi.fn(),
-            },
+            cache: createMockDataCache(),
           },
         },
         {
           provide: SavingsGoalApi,
           useValue: {
             getAll$: vi.fn().mockReturnValue(of({ success: true, data: [] })),
-            cache: {
-              version: signal(0),
-              _dataVersion: signal(0),
-              get: vi.fn().mockReturnValue(null),
-              set: vi.fn(),
-              has: vi.fn().mockReturnValue(false),
-              invalidate: vi.fn(),
-              deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) =>
-                fn(),
-              ),
-              prefetch: vi.fn(),
-              clear: vi.fn(),
-              clearDirty: vi.fn(),
-            },
+            cache: createMockDataCache(),
           },
         },
         { provide: Logger, useValue: { error: vi.fn() } },

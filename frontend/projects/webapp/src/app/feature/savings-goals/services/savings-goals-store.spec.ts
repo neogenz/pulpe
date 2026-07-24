@@ -1,28 +1,18 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
-import { provideZonelessChangeDetection, signal } from '@angular/core';
+import { provideZonelessChangeDetection } from '@angular/core';
 import type { SavingsGoal, SavingsGoalProgress } from 'pulpe-shared';
 import { SavingsGoalStore } from './savings-goals-store';
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { ApiError } from '@core/api/api-error';
+import { createMockDataCache } from '@core/testing';
 
 // ngx-ziflux 0.0.13 DataCache mock — MUST carry both `version` and
 // `_dataVersion` signals or cachedResource crashes at first snapshot read.
-const mockCache = {
-  get: vi.fn().mockReturnValue(null),
-  set: vi.fn(),
-  has: vi.fn().mockReturnValue(false),
-  invalidate: vi.fn(),
-  deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) => fn()),
-  prefetch: vi.fn((_key: string[], fn: () => Promise<unknown>) => fn()),
-  clear: vi.fn(),
-  clearDirty: vi.fn(),
-  version: signal(0),
-  _dataVersion: signal(0),
-};
+const mockCache = createMockDataCache();
 
 const mockBudgetCache = { invalidate: vi.fn() };
 const mockTemplateCache = { invalidate: vi.fn() };

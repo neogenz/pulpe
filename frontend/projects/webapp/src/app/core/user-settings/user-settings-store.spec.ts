@@ -10,19 +10,9 @@ import { AuthStore } from '../auth/auth-store';
 import { ClientKeyService } from '../encryption/client-key.service';
 import { DemoModeService } from '../demo/demo-mode.service';
 import type { UserSettings } from 'pulpe-shared';
+import { createMockDataCache } from '@core/testing';
 
-const mockCache = {
-  get: vi.fn().mockReturnValue(null),
-  set: vi.fn(),
-  has: vi.fn().mockReturnValue(false),
-  invalidate: vi.fn(),
-  deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) => fn()),
-  prefetch: vi.fn((_key: string[], fn: () => Promise<unknown>) => fn()),
-  clear: vi.fn(),
-  clearDirty: vi.fn(),
-  version: signal(0),
-  _dataVersion: signal(0),
-};
+const mockCache = createMockDataCache();
 
 describe('UserSettingsStore', () => {
   let store: UserSettingsStore;

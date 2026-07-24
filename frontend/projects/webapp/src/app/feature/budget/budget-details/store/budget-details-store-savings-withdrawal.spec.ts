@@ -23,6 +23,7 @@ import {
   createMockBudgetLine,
 } from '../../../../testing/mock-factories';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
+import { createMockDataCache } from '@core/testing';
 
 const mockBudgetId = 'budget-savings-withdrawal-test';
 
@@ -121,18 +122,7 @@ describe('BudgetDetailsStore — savings withdrawal (PUL-292)', () => {
     await waitFor(() => store.savingsWithdrawalDeficit() !== 1000);
   };
 
-  const makeCache = () => ({
-    version: signal(0),
-    _dataVersion: signal(0),
-    get: vi.fn().mockReturnValue(null),
-    set: vi.fn(),
-    has: vi.fn().mockReturnValue(false),
-    invalidate: vi.fn(),
-    deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) => fn()),
-    prefetch: vi.fn(),
-    clear: vi.fn(),
-    clearDirty: vi.fn(),
-  });
+  const makeCache = () => createMockDataCache();
 
   beforeEach(async () => {
     localStorage.clear();
