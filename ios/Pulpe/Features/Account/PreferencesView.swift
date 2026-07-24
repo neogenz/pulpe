@@ -5,6 +5,7 @@ struct PreferencesView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var showPayDayPicker = false
     @State private var remindersEnabled = ReminderPreferences().remindersEnabled
+    @State private var reminderTask: Task<Void, Never>?
     @FocusState private var currencyConverterFocus: CurrencySettingView.ConverterField?
 
     private let reminderPrefs = ReminderPreferences()
@@ -61,19 +62,26 @@ struct PreferencesView: View {
             get: { remindersEnabled },
             set: { newValue in
                 remindersEnabled = newValue  // optimistic; reverted below on denial
-                Task { await applyReminderPreference(newValue) }
+                reminderTask?.cancel()  // latest toggle wins; a stale in-flight apply must not land after this one
+                reminderTask = Task { await applyReminderPreference(newValue) }
             }
         )
     }
 
     /// Applies the toggle: schedule on enable (requesting authorization first), cancel
-    /// on disable. Analytics fire HERE — after grant/deny resolves — so a denied enable
-    /// never emits a phantom `enabled: true`. Permission events fire only when the OS
-    /// prompt actually resolved (prior status `.notDetermined`): `requestAuthorization`
-    /// replays the stored verdict on every later call, so re-emitting would count
-    /// toggle churn as grants/denials. On denial, flip the toggle back so it never
-    /// claims reminders are on when the system won't deliver them.
+    /// on disable. Latest toggle wins: the binding cancels the previous in-flight task,
+    /// and every suspension re-checks cancellation before touching prefs or the toggle —
+    /// otherwise a rapid ON→OFF let the stale enable resume last and re-persist `true`
+    /// under an OFF toggle, which the next foreground reconcile then "restored".
+    /// Analytics fire HERE — after grant/deny resolves — so a denied enable never emits
+    /// a phantom `enabled: true`. Permission events fire only when the OS prompt
+    /// actually resolved (prior status `.notDetermined`): `requestAuthorization` replays
+    /// the stored verdict on every later call, so re-emitting would count toggle churn
+    /// as grants/denials — and they fire even if superseded, because the prompt verdict
+    /// is a fact regardless of where the toggle landed. On denial, flip the toggle back
+    /// so it never claims reminders are on when the system won't deliver them.
     private func applyReminderPreference(_ enabled: Bool) async {
+        guard !Task.isCancelled else { return }
         guard enabled else {
             reminderPrefs.setRemindersEnabled(false)
             AnalyticsService.shared.capture(.reminderToggled, properties: ["enabled": false])
@@ -81,20 +89,21 @@ struct PreferencesView: View {
             return
         }
         let promptShown = await NotificationScheduler.shared.authorizationStatus() == .notDetermined
+        guard !Task.isCancelled else { return }  // don't fire the one-shot OS prompt for a toggle already superseded
         let granted = await NotificationScheduler.shared.requestAuthorization()
+        if promptShown {
+            AnalyticsService.shared.capture(
+                granted ? .notificationPermissionGranted : .notificationPermissionDenied
+            )
+        }
+        guard !Task.isCancelled else { return }
         guard granted else {
-            if promptShown {
-                AnalyticsService.shared.capture(.notificationPermissionDenied)
-            }
             reminderPrefs.setRemindersEnabled(false)
             remindersEnabled = false  // revert; direct write does not re-invoke the binding setter
             return
         }
         reminderPrefs.setRemindersEnabled(true)
         AnalyticsService.shared.capture(.reminderToggled, properties: ["enabled": true])
-        if promptShown {
-            AnalyticsService.shared.capture(.notificationPermissionGranted)
-        }
         await NotificationScheduler.shared.scheduleMonthlyReminder(
             payDay: userSettingsStore.payDayOfMonth ?? 1
         )
