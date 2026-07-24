@@ -10,8 +10,6 @@ import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { ApiError } from '@core/api/api-error';
 import { createMockDataCache } from '@core/testing';
 
-// ngx-ziflux 0.0.13 DataCache mock — MUST carry both `version` and
-// `_dataVersion` signals or cachedResource crashes at first snapshot read.
 const mockCache = createMockDataCache();
 
 const mockBudgetCache = { invalidate: vi.fn() };
