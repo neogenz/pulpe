@@ -146,6 +146,9 @@ export class ResumeRefreshService {
 
       this.#budgetApi.cache.invalidate(['budget']);
       this.#budgetTemplatesApi.cache.invalidate(['templates']);
+      // Eager refetch rather than an invalidation like the two above: settings
+      // are already painted on resume, so stale currency and pay-day formatting
+      // would stay on screen until the next read.
       this.#userSettingsStore.reload();
       this.#logger.info('[ResumeRefresh] Soft refresh completed after resume', {
         reason,

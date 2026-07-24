@@ -141,7 +141,7 @@ describe('CreateBudgetDialogComponent', () => {
     const selectedTemplateSignal = signal<BudgetTemplate | null>(null);
     const templateTotalsMapSignal = signal<Record<string, TemplateTotals>>({});
     const isLoadingSignal = signal<boolean>(false);
-    const errorSignal = signal<Error | null>(null);
+    const errorSignal = signal<Error | undefined>(undefined);
     const isCreatingBudgetSignal = signal<boolean>(false);
     const createBudgetErrorSignal = signal<unknown>(undefined);
 

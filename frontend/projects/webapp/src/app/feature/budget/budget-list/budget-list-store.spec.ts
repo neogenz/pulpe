@@ -6,18 +6,9 @@ import { BudgetListStore } from './budget-list-store';
 import { BudgetApi } from '@core/budget/budget-api';
 import { UserSettingsStore } from '@core/user-settings';
 import { createMockBudget } from '@app/testing/mock-factories';
+import { createMockDataCache } from '@core/testing';
 
-const mockCache = {
-  get: vi.fn().mockReturnValue(null),
-  set: vi.fn(),
-  has: vi.fn().mockReturnValue(false),
-  invalidate: vi.fn(),
-  deduplicate: vi.fn((key: string[], fn: () => Promise<unknown>) => fn()),
-  clear: vi.fn(),
-  clearDirty: vi.fn(),
-  version: signal(0),
-  _dataVersion: signal(0),
-};
+const mockCache = createMockDataCache();
 
 const mockUserSettingsStore = {
   payDayOfMonth: signal<number | null>(25),

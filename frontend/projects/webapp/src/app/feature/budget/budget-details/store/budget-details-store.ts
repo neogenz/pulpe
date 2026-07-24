@@ -194,9 +194,7 @@ export class BudgetDetailsStore {
       return id ? { spreadGroupId: id } : undefined;
     },
     loader: ({ params }) =>
-      firstValueFrom(
-        this.#budgetApi.getSpreadOccurrences$(params.spreadGroupId),
-      ),
+      this.#budgetApi.getSpreadOccurrences$(params.spreadGroupId),
   });
 
   readonly spreadOccurrences = computed(

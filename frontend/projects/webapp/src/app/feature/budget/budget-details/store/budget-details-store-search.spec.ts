@@ -21,6 +21,7 @@ import {
   createMockTransaction,
 } from '../../../../testing/mock-factories';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
+import { createMockDataCache } from '@core/testing';
 
 const mockBudgetId = 'budget-search-test';
 
@@ -133,40 +134,14 @@ describe('BudgetDetailsStore - Search Filtering', () => {
               .fn()
               .mockReturnValue(of(mockBudgetDetailsResponse)),
             getAllBudgets$: vi.fn().mockReturnValue(of([])),
-            cache: {
-              version: signal(0),
-              _dataVersion: signal(0),
-              get: vi.fn().mockReturnValue(null),
-              set: vi.fn(),
-              has: vi.fn().mockReturnValue(false),
-              invalidate: vi.fn(),
-              deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) =>
-                fn(),
-              ),
-              prefetch: vi.fn(),
-              clear: vi.fn(),
-              clearDirty: vi.fn(),
-            },
+            cache: createMockDataCache(),
           },
         },
         {
           provide: SavingsGoalApi,
           useValue: {
             getAll$: vi.fn().mockReturnValue(of({ success: true, data: [] })),
-            cache: {
-              version: signal(0),
-              _dataVersion: signal(0),
-              get: vi.fn().mockReturnValue(null),
-              set: vi.fn(),
-              has: vi.fn().mockReturnValue(false),
-              invalidate: vi.fn(),
-              deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) =>
-                fn(),
-              ),
-              prefetch: vi.fn(),
-              clear: vi.fn(),
-              clearDirty: vi.fn(),
-            },
+            cache: createMockDataCache(),
           },
         },
         { provide: Logger, useValue: { error: vi.fn() } },

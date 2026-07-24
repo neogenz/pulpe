@@ -1,24 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
-import { provideZonelessChangeDetection, signal } from '@angular/core';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { BudgetTemplatesStore } from './budget-templates-store';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import type { BudgetTemplate, BudgetTemplateCreate } from 'pulpe-shared';
+import { createMockDataCache } from '@core/testing';
 
-const mockCache = {
-  get: vi.fn().mockReturnValue(null),
-  set: vi.fn(),
-  has: vi.fn().mockReturnValue(false),
-  invalidate: vi.fn(),
-  deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) => fn()),
-  prefetch: vi.fn((_key: string[], fn: () => Promise<unknown>) => fn()),
-  clear: vi.fn(),
-  clearDirty: vi.fn(),
-  version: signal(0),
-  _dataVersion: signal(0),
-};
+const mockCache = createMockDataCache();
 
 describe('BudgetTemplatesStore', () => {
   let store: BudgetTemplatesStore;

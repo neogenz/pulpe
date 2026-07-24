@@ -7,6 +7,7 @@ import { BudgetApi } from '@core/budget';
 import { UserSettingsStore } from '@core/user-settings';
 import { Logger } from '@core/logging/logger';
 import { PostHogService } from '@core/analytics/posthog';
+import { createMockDataCache } from '@core/testing';
 import type { Budget, BudgetLine, Transaction } from 'pulpe-shared';
 import { BudgetFormulas } from 'pulpe-shared';
 
@@ -68,21 +69,22 @@ function createMockTransaction(overrides: Partial<Transaction>): Transaction {
 
 // ── Mock setup ──
 function createMocks() {
-  const deduplicate = (() => {
-    const inflight = new Map<string, Promise<unknown>>();
-    return vi
-      .fn()
-      .mockImplementation((key: string[], fn: () => Promise<unknown>) => {
-        const k = Array.isArray(key) ? key.join('|') : String(key);
-        const existing = inflight.get(k);
-        if (existing) return existing;
-        const p = Promise.resolve()
-          .then(() => fn())
-          .finally(() => inflight.delete(k));
-        inflight.set(k, p);
-        return p;
-      });
-  })();
+  // Real in-flight deduplication, so the specs exercise the shared-promise path.
+  // `_fetch` delegates to `deduplicate`, so overriding it here is enough.
+  const cache = createMockDataCache();
+  const inflight = new Map<string, Promise<unknown>>();
+  cache.deduplicate.mockImplementation(
+    (key: string[], fn: () => Promise<unknown>) => {
+      const k = Array.isArray(key) ? key.join('|') : String(key);
+      const existing = inflight.get(k);
+      if (existing) return existing;
+      const p = Promise.resolve()
+        .then(() => fn())
+        .finally(() => inflight.delete(k));
+      inflight.set(k, p);
+      return p;
+    },
+  );
 
   return {
     budgetApi: {
@@ -95,16 +97,7 @@ function createMocks() {
       getBudgetById$: vi.fn().mockReturnValue(of(createMockBudget())),
       createTransaction$: vi.fn(),
       toggleBudgetLineCheck$: vi.fn(),
-      cache: {
-        version: signal(0),
-        _dataVersion: signal(0),
-        get: vi.fn().mockReturnValue(null),
-        set: vi.fn(),
-        invalidate: vi.fn(),
-        deduplicate,
-        prefetch: vi.fn(),
-        clearDirty: vi.fn(),
-      },
+      cache,
     },
     logger: {
       error: vi.fn(),

@@ -59,9 +59,7 @@ export class SavingsGoalStore {
       return id ? { goalId: id } : undefined;
     },
     loader: ({ params }) =>
-      firstValueFrom(
-        this.#api.getProgress$(params.goalId).pipe(map((res) => res.data)),
-      ),
+      this.#api.getProgress$(params.goalId).pipe(map((res) => res.data)),
   });
 
   readonly progress = computed<SavingsGoalProgress | null>(
@@ -82,9 +80,7 @@ export class SavingsGoalStore {
       return id ? { goalId: id } : undefined;
     },
     loader: ({ params }) =>
-      firstValueFrom(
-        this.#api.getContributions$(params.goalId).pipe(map((res) => res.data)),
-      ),
+      this.#api.getContributions$(params.goalId).pipe(map((res) => res.data)),
   });
 
   readonly contributions = computed<SavingsGoalContribution[]>(
@@ -210,11 +206,9 @@ export class SavingsGoalStore {
       return goal && goal.status !== 'ACTIVE' ? { goalId: goal.id } : undefined;
     },
     loader: ({ params }) =>
-      firstValueFrom(
-        this.#api
-          .getFutureLines$(params.goalId)
-          .pipe(map((res) => res.data ?? [])),
-      ),
+      this.#api
+        .getFutureLines$(params.goalId)
+        .pipe(map((res) => res.data ?? [])),
   });
 
   readonly futureLines = computed<SavingsGoalFutureLine[]>(

@@ -1,35 +1,16 @@
 import { TestBed } from '@angular/core/testing';
-import { provideZonelessChangeDetection, signal } from '@angular/core';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { of, switchMap } from 'rxjs';
 import { type TemplateLine } from 'pulpe-shared';
 import { TemplateStore } from './template-store';
 import { BudgetApi } from '@core/budget/budget-api';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
 import { Logger } from '@core/logging/logger';
+import { createMockDataCache } from '@core/testing';
 
-const mockCache = {
-  get: vi.fn().mockReturnValue(undefined),
-  set: vi.fn(),
-  has: vi.fn().mockReturnValue(false),
-  invalidate: vi.fn(),
-  deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) => fn()),
-  clear: vi.fn(),
-  clearDirty: vi.fn(),
-  version: signal(0),
-  _dataVersion: signal(0),
-};
+const mockCache = createMockDataCache();
 
-const mockBudgetCache = {
-  get: vi.fn().mockReturnValue(undefined),
-  set: vi.fn(),
-  has: vi.fn().mockReturnValue(false),
-  invalidate: vi.fn(),
-  deduplicate: vi.fn((_key: string[], fn: () => Promise<unknown>) => fn()),
-  clear: vi.fn(),
-  clearDirty: vi.fn(),
-  version: signal(0),
-  _dataVersion: signal(0),
-};
+const mockBudgetCache = createMockDataCache();
 
 describe('TemplateStore', () => {
   let store: TemplateStore;
