@@ -261,8 +261,37 @@ describe('BudgetDetailsStore — savings withdrawal (PUL-292)', () => {
   });
 
   describe('shouldShowSavingsWithdrawalCard', () => {
-    it('shows the card on a current/future month in deficit with no pioche yet', () => {
+    it('shows the card on a current/future month in deficit', () => {
       expect(store.savingsWithdrawalDeficit()).toBe(1000);
+      expect(store.shouldShowSavingsWithdrawalCard()).toBe(true);
+    });
+
+    it('shows the card again when a pioche exists and the month is back in deficit', async () => {
+      const detailsWithExistingWithdrawal = createMockBudgetDetailsResponse({
+        budget: { id: mockBudgetId, month: 6, year: 2099 },
+        budgetLines: [
+          createMockBudgetLine({
+            id: 'expense-1',
+            budgetId: mockBudgetId,
+            name: 'Loyer',
+            amount: 1000,
+            kind: 'expense',
+          }),
+          createMockBudgetLine({
+            id: 'withdrawal-income-1',
+            budgetId: mockBudgetId,
+            name: 'compte maison',
+            amount: 500,
+            kind: 'income',
+            savingsWithdrawalGroupId: '00000000-0000-4000-8000-0000000000bb',
+          }),
+        ],
+        transactions: [],
+      });
+
+      await reloadWith(detailsWithExistingWithdrawal);
+
+      expect(store.savingsWithdrawalDeficit()).toBe(500);
       expect(store.shouldShowSavingsWithdrawalCard()).toBe(true);
     });
 
