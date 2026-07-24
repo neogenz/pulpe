@@ -1,14 +1,19 @@
 import { z } from 'zod/v4';
 import { PASSWORD_MIN_LENGTH } from '@core/auth';
+// Règles définies dans ui/password-criteria (source unique avec la checklist
+// visuelle — parité iOS PasswordValidator) ; ré-exportées pour les consommateurs
+// existants du schema.
+import {
+  PASSWORD_HAS_LETTER,
+  PASSWORD_HAS_NUMBER,
+} from '@ui/password-criteria';
+
+export { PASSWORD_HAS_LETTER, PASSWORD_HAS_NUMBER };
 
 export interface SignupSubmit {
   readonly email: string;
   readonly password: string;
 }
-
-// Parité avec iOS PasswordValidator: 8 caractères + au moins un chiffre + une lettre.
-export const PASSWORD_HAS_NUMBER = /\p{N}/u;
-export const PASSWORD_HAS_LETTER = /\p{L}/u;
 
 export const signupFormSchema = z
   .object({

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { signupFormSchema, type SignupFormValue } from './signup-form.schema';
+import {
+  PASSWORD_HAS_LETTER,
+  PASSWORD_HAS_NUMBER,
+  signupFormSchema,
+  type SignupFormValue,
+} from './signup-form.schema';
+import * as passwordCriteriaSource from '@ui/password-criteria';
 
 const validFormValue: SignupFormValue = {
   email: 'user@example.com',
@@ -8,6 +14,18 @@ const validFormValue: SignupFormValue = {
 };
 
 describe('signupFormSchema', () => {
+  it('validates with the exact regexes the visual checklist renders', () => {
+    // Source unique : le schema ré-exporte les objets RegExp de
+    // ui/password-criteria. Si quelqu'un redéclare une copie locale d'un côté,
+    // l'identité casse ici — la soumission et la checklist divergeraient.
+    expect(PASSWORD_HAS_NUMBER).toBe(
+      passwordCriteriaSource.PASSWORD_HAS_NUMBER,
+    );
+    expect(PASSWORD_HAS_LETTER).toBe(
+      passwordCriteriaSource.PASSWORD_HAS_LETTER,
+    );
+  });
+
   describe('transform', () => {
     it('should omit confirmPassword from the output DTO', () => {
       const result = signupFormSchema.parse(validFormValue);

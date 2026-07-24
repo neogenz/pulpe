@@ -7,9 +7,38 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { TranslocoPipe } from '@jsverse/transloco';
 
-interface PasswordCriterion {
+export interface PasswordCriterion {
   readonly labelKey: string;
   readonly isMet: boolean;
+}
+
+// Source unique des règles de mot de passe côté web (parité iOS
+// `PasswordValidator`). `signup-form.schema.ts` les importe d'ici — ui/ ne
+// peut pas importer feature/, donc la règle vit dans la couche la plus basse.
+export const PASSWORD_HAS_NUMBER = /\p{N}/u;
+export const PASSWORD_HAS_LETTER = /\p{L}/u;
+
+/// Pure et exportée : la checklist visuelle et ses tests partagent ce calcul —
+/// l'env vitest JIT ne liant pas les inputs après la première instanciation,
+/// la logique doit rester testable hors TestBed.
+export function passwordCriteria(
+  value: string,
+  minLength: number,
+): PasswordCriterion[] {
+  return [
+    {
+      labelKey: 'form.passwordCriteria.minLength',
+      isMet: value.length >= minLength,
+    },
+    {
+      labelKey: 'form.passwordCriteria.hasNumber',
+      isMet: PASSWORD_HAS_NUMBER.test(value),
+    },
+    {
+      labelKey: 'form.passwordCriteria.hasLetter',
+      isMet: PASSWORD_HAS_LETTER.test(value),
+    },
+  ];
 }
 
 /**
@@ -69,21 +98,7 @@ export class PasswordCriteria {
     () => this.criteria().filter((criterion) => !criterion.isMet).length,
   );
 
-  protected readonly criteria = computed<PasswordCriterion[]>(() => {
-    const value = this.password();
-    return [
-      {
-        labelKey: 'form.passwordCriteria.minLength',
-        isMet: value.length >= this.minLength(),
-      },
-      {
-        labelKey: 'form.passwordCriteria.hasNumber',
-        isMet: /\p{N}/u.test(value),
-      },
-      {
-        labelKey: 'form.passwordCriteria.hasLetter',
-        isMet: /\p{L}/u.test(value),
-      },
-    ];
-  });
+  protected readonly criteria = computed<PasswordCriterion[]>(() =>
+    passwordCriteria(this.password(), this.minLength()),
+  );
 }

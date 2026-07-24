@@ -72,12 +72,14 @@ import { LoadingButton } from '@ui/loading-button';
         <pulpe-oauth-provider-button
           [provider]="'apple'"
           testId="apple-login-button"
+          [disabled]="isBusy()"
           (authError)="errorMessage.set($event)"
           (loadingChange)="isOAuthLoading.set($event)"
         />
         <pulpe-oauth-provider-button
           [provider]="'google'"
           testId="google-login-button"
+          [disabled]="isBusy()"
           (authError)="errorMessage.set($event)"
           (loadingChange)="isOAuthLoading.set($event)"
         />
