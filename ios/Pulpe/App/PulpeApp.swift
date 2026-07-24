@@ -154,14 +154,14 @@ struct PulpeApp: App {
     }
 
     /// Refresh the monthly reminder on each foreground so it tracks a changed pay-day
-    /// (or is re-armed after an OS-level change). No-op unless the user opted in,
-    /// notifications are authorized, and the real pay-day is loaded — skipping while
-    /// `payDayOfMonth` is nil avoids re-arming on day 1 (the `?? 1` fallback would
-    /// fire before `UserSettingsStore` loads, e.g. foregrounding on the PIN screen).
+    /// (or is re-armed after an OS-level change). No-op unless the user opted in and
+    /// the real pay-day is loaded — skipping while `payDayOfMonth` is nil avoids
+    /// re-arming on day 1 (the `?? 1` fallback would fire before `UserSettingsStore`
+    /// loads, e.g. foregrounding on the PIN screen). Authorization is checked inside
+    /// `scheduleMonthlyReminder` itself, which no-ops when not authorized.
     private func rescheduleRemindersIfEnabled() async {
         guard ReminderPreferences().remindersEnabled,
-              let payDay = userSettingsStore.payDayOfMonth,
-              await NotificationScheduler.shared.authorizationStatus() == .authorized
+              let payDay = userSettingsStore.payDayOfMonth
         else { return }
         await NotificationScheduler.shared.scheduleMonthlyReminder(payDay: payDay)
     }
