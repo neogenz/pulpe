@@ -317,6 +317,7 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
     rpc: ReturnType<typeof jest.fn>,
     getUser: ReturnType<typeof jest.fn> = jest.fn().mockResolvedValue({
       data: { user: { user_metadata: { payDayOfMonth } } },
+      error: null,
     }),
   ): AuthenticatedSupabaseProvider {
     const client = {
@@ -396,6 +397,37 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
       'create_budget_from_template',
       expect.objectContaining({ p_excluded_savings_goal_ids: [] }),
     );
+  });
+
+  it('fails the creation rather than bounding on a guessed pay day', async () => {
+    // Falling back to the calendar default would shift the horizon by one
+    // period for a custom payDay and silently drop a contribution.
+    const rpc = jest.fn().mockResolvedValue({ data: rpcResponse, error: null });
+    const getUser = jest
+      .fn()
+      .mockResolvedValue({ data: null, error: { message: 'GoTrue down' } });
+    const repo = new SupabaseBudgetRepository(
+      generationProvider(
+        [{ id: OVERDUE_GOAL_UUID, target_date: '2026-10-12' }],
+        27,
+        rpc,
+        getUser,
+      ),
+      createMockEncryption(),
+    );
+
+    let caught: unknown;
+    try {
+      await repo.createBudgetFromTemplateRpc(payload);
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(BusinessException);
+    expect((caught as BusinessException).code).toBe(
+      ERROR_DEFINITIONS.BUDGET_CREATE_FAILED.code,
+    );
+    expect(rpc).not.toHaveBeenCalled();
   });
 
   it('sends an empty exclusion list without reading payDay when the user has no active goal', async () => {
