@@ -348,6 +348,15 @@ interface AddBudgetLineModel {
                   model.update((m) => ({ ...m, savingsGoalId: $event }))
                 "
               />
+              <button
+                matButton="tonal"
+                type="button"
+                (click)="requestSavingsWithdrawal()"
+                data-testid="open-savings-withdrawal"
+              >
+                <mat-icon>savings</mat-icon>
+                {{ 'budget.savingsWithdrawal.cta' | transloco }}
+              </button>
             }
             @if (model().kind === 'income') {
               <div class="flex items-center justify-between py-2 px-1">
@@ -659,6 +668,27 @@ export class AddBudgetLineDialog {
       return;
     }
     await this.#submitSingle();
+  }
+
+  // PUL-292 — saving-kind shortcut into the two-month withdrawal flow. Bypasses
+  // form validation on purpose: it redirects instead of submitting, and only
+  // hands over a prefill when an amount was actually typed (the withdrawal
+  // dialog otherwise starts at its amount step with the deficit chip).
+  protected requestSavingsWithdrawal(): void {
+    const m = this.model();
+    const amount = m.money.amount ?? 0;
+    this.#dialogRef.close({
+      mode: 'savingsWithdrawal',
+      ...(amount > 0
+        ? {
+            prefill: {
+              amount,
+              source: m.name.trim(),
+              inputCurrency: m.money.inputCurrency,
+            },
+          }
+        : {}),
+    });
   }
 
   async #submitSingle(): Promise<void> {
