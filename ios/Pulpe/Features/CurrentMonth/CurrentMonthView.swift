@@ -410,16 +410,24 @@ extension CurrentMonthView {
 
     /// Fires the real OS prompt (from the "Activer" tap) and schedules the monthly
     /// reminder on grant. On denial we only record it — the toggle in Préférences
-    /// stays the recovery path.
+    /// stays the recovery path. Permission events gate on `promptShown` like
+    /// `applyReminderPreference`: the sheet only appears on `.notDetermined`, but the
+    /// status can settle from iOS Settings while it sits open, and a replayed verdict
+    /// must not count as a fresh grant/denial.
     private func enableReminders() async {
+        let promptShown = await NotificationScheduler.shared.authorizationStatus() == .notDetermined
         let granted = await NotificationScheduler.shared.requestAuthorization()
         guard granted else {
-            AnalyticsService.shared.capture(.notificationPermissionDenied)
+            if promptShown {
+                AnalyticsService.shared.capture(.notificationPermissionDenied)
+            }
             return
         }
         reminderPrefs.setRemindersEnabled(true)
         AnalyticsService.shared.capture(.reminderToggled, properties: ["enabled": true])
-        AnalyticsService.shared.capture(.notificationPermissionGranted)
+        if promptShown {
+            AnalyticsService.shared.capture(.notificationPermissionGranted)
+        }
         // Settings not loaded yet → don't schedule for a made-up day 1; prefs are on,
         // so the next foreground reschedule heals with the real pay-day.
         guard let payDay = userSettingsStore.payDayOfMonth else { return }
