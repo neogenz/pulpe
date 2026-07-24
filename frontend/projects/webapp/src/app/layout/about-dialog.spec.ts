@@ -26,7 +26,7 @@ describe('AboutDialog', () => {
       imports: [AboutDialog],
       providers: [
         provideZonelessChangeDetection(),
-        provideRouter([]),
+        provideRouter([{ path: '**', children: [] }]),
         ...provideTranslocoForTest(),
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: ApplicationConfiguration, useValue: mockApplicationConfig },
