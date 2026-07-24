@@ -315,6 +315,9 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
     goals: { id: string; target_date: string }[],
     payDayOfMonth: number | null,
     rpc: ReturnType<typeof jest.fn>,
+    getUser: ReturnType<typeof jest.fn> = jest.fn().mockResolvedValue({
+      data: { user: { user_metadata: { payDayOfMonth } } },
+    }),
   ): AuthenticatedSupabaseProvider {
     const client = {
       from: (table: string) => {
@@ -329,11 +332,7 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
           }),
         };
       },
-      auth: {
-        getUser: jest.fn().mockResolvedValue({
-          data: { user: { user_metadata: { payDayOfMonth } } },
-        }),
-      },
+      auth: { getUser },
       rpc,
     } as unknown as AuthenticatedSupabaseClient;
 
@@ -399,16 +398,20 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
     );
   });
 
-  it('sends an empty exclusion list when the user has no active goal', async () => {
+  it('sends an empty exclusion list without reading payDay when the user has no active goal', async () => {
+    // Most users own no savings goal; paying a GoTrue round-trip per
+    // materialization would cost `generate-budgets` up to 36 of them.
     const rpc = jest.fn().mockResolvedValue({ data: rpcResponse, error: null });
+    const getUser = jest.fn();
     const repo = new SupabaseBudgetRepository(
-      generationProvider([], null, rpc),
+      generationProvider([], null, rpc, getUser),
       createMockEncryption(),
     );
 
     const result = await repo.createBudgetFromTemplateRpc(payload);
 
     expect(result.budget.id).toBe(BUDGET_UUID);
+    expect(getUser).not.toHaveBeenCalled();
     expect(rpc).toHaveBeenCalledWith(
       'create_budget_from_template',
       expect.objectContaining({

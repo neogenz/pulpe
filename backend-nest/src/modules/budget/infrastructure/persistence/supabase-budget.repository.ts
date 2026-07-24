@@ -518,17 +518,11 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
     period: BudgetPeriod,
   ): Promise<string[]> {
     const supabase = this.supabaseProvider.client;
-    // Les deux lectures sont indépendantes, et `getPayDayOfMonth` part sur le
-    // réseau (GoTrue `GET /user`) : les séquencer doublerait la latence ajoutée
-    // à chaque matérialisation, or `generate-budgets` en enchaîne jusqu'à 36.
-    const [{ data, error }, payDayOfMonth] = await Promise.all([
-      supabase
-        .from('savings_goal')
-        .select('id, target_date')
-        .eq('user_id', this.supabaseProvider.user.id)
-        .eq('status', 'ACTIVE'),
-      this.getPayDayOfMonth(),
-    ]);
+    const { data, error } = await supabase
+      .from('savings_goal')
+      .select('id, target_date')
+      .eq('user_id', this.supabaseProvider.user.id)
+      .eq('status', 'ACTIVE');
 
     if (error) {
       throw new BusinessException(
@@ -542,8 +536,15 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
       );
     }
 
+    const goals = data ?? [];
+    // Sans objectif actif il n'y a rien à borner : sortir ici évite un appel
+    // GoTrue (`GET /user`) par matérialisation, et `generate-budgets` en
+    // enchaîne jusqu'à 36. C'est le cas de la majorité des utilisateurs.
+    if (goals.length === 0) return [];
+
+    const payDayOfMonth = await this.getPayDayOfMonth();
     const budgetPeriodIndex = periodIndex(period);
-    return (data ?? [])
+    return goals
       .filter(
         (goal) =>
           periodIndex(
