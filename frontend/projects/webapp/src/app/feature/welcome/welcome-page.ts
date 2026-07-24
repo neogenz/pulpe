@@ -136,7 +136,8 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
           class="w-full"
           [provider]="'apple'"
           testId="apple-oauth-button"
-          (authError)="errorMessage.set($event)"
+          [disabled]="isLoading()"
+          (authError)="onOAuthError($event)"
           (loadingChange)="onOAuthLoadingChange('apple', $event)"
         />
 
@@ -144,7 +145,8 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
           class="w-full"
           [provider]="'google'"
           testId="google-oauth-button"
-          (authError)="errorMessage.set($event)"
+          [disabled]="isLoading()"
+          (authError)="onOAuthError($event)"
           (loadingChange)="onOAuthLoadingChange('google', $event)"
         />
 
@@ -241,9 +243,16 @@ export default class WelcomePage {
     if (isLoading) {
       this.#postHogService.setPendingSignupMethod(method);
       this.#postHogService.captureEvent('signup_started', { method });
-    } else {
-      this.#postHogService.clearPendingSignupMethod();
     }
+    // Pas de clear sur `false` : le succès OAuth émet loadingChange(false)
+    // avant que le redirect n'emporte la page — effacer ici tue le
+    // signup_completed lu au retour. La clé est consommée à la lecture
+    // (capturePendingSignupCompleted) ; l'échec avéré passe par onOAuthError.
+  }
+
+  onOAuthError(message: string): void {
+    this.errorMessage.set(message);
+    this.#postHogService.clearPendingSignupMethod();
   }
 
   onEmailSignupClick(): void {

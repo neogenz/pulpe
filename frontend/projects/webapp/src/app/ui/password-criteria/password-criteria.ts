@@ -21,6 +21,21 @@ interface PasswordCriterion {
   imports: [MatIconModule, TranslocoPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <!-- Zone live séparée : un lecteur d'écran entend l'évolution globale
+         pendant la saisie, sans annonce par critère (verbosité). -->
+    <span
+      class="sr-only"
+      role="status"
+      aria-live="polite"
+      data-testid="password-criteria-live"
+    >
+      {{
+        remainingCount() === 0
+          ? ('form.passwordCriteria.allMet' | transloco)
+          : ('form.passwordCriteria.remaining'
+            | transloco: { count: remainingCount() })
+      }}
+    </span>
     <ul class="flex flex-col gap-1 mt-1" data-testid="password-criteria">
       @for (criterion of criteria(); track criterion.labelKey) {
         <li
@@ -49,6 +64,10 @@ export class PasswordCriteria {
   readonly password = input.required<string>();
   // ui/ layer cannot import @core — the caller passes PASSWORD_MIN_LENGTH.
   readonly minLength = input(8);
+
+  protected readonly remainingCount = computed(
+    () => this.criteria().filter((criterion) => !criterion.isMet).length,
+  );
 
   protected readonly criteria = computed<PasswordCriterion[]>(() => {
     const value = this.password();

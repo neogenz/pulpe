@@ -260,6 +260,25 @@ describe('WelcomePage', () => {
       expect(mockPostHogService.captureEvent).not.toHaveBeenCalled();
     });
 
+    it('should keep the pending signup method when OAuth stops loading (survives the redirect)', () => {
+      // Le succès OAuth émet loadingChange(false) avant la navigation : un
+      // clear ici effacerait la clé avant que /dashboard ne la consomme.
+      component.onOAuthLoadingChange('apple', true);
+      component.onOAuthLoadingChange('apple', false);
+
+      expect(
+        mockPostHogService.clearPendingSignupMethod,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should clear the pending signup method on OAuth error', () => {
+      component.onOAuthLoadingChange('apple', true);
+      component.onOAuthError('provider indisponible');
+
+      expect(mockPostHogService.clearPendingSignupMethod).toHaveBeenCalled();
+      expect(component['errorMessage']()).toBe('provider indisponible');
+    });
+
     it('should track signup_started with email method on email click', () => {
       component.onEmailSignupClick();
 

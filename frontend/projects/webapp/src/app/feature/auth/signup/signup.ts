@@ -91,13 +91,15 @@ function containsPattern(pattern: RegExp, errorKey: string) {
         <pulpe-oauth-provider-button
           [provider]="'apple'"
           testId="apple-signup-button"
-          (authError)="errorMessage.set($event)"
+          [disabled]="isBusy()"
+          (authError)="onOAuthError($event)"
           (loadingChange)="onOAuthLoadingChange('apple', $event)"
         />
         <pulpe-oauth-provider-button
           [provider]="'google'"
           testId="google-signup-button"
-          (authError)="errorMessage.set($event)"
+          [disabled]="isBusy()"
+          (authError)="onOAuthError($event)"
           (loadingChange)="onOAuthLoadingChange('google', $event)"
         />
       </div>
@@ -355,9 +357,16 @@ export default class Signup {
     if (isLoading) {
       this.#postHogService.setPendingSignupMethod(method);
       this.#postHogService.captureEvent('signup_started', { method });
-    } else {
-      this.#postHogService.clearPendingSignupMethod();
     }
+    // Pas de clear sur `false` : le succès OAuth émet loadingChange(false)
+    // avant que le redirect n'emporte la page — effacer ici tue le
+    // signup_completed lu au retour. La clé est consommée à la lecture
+    // (capturePendingSignupCompleted) ; l'échec avéré passe par onOAuthError.
+  }
+
+  protected onOAuthError(message: string): void {
+    this.errorMessage.set(message);
+    this.#postHogService.clearPendingSignupMethod();
   }
 
   protected togglePasswordVisibility(): void {

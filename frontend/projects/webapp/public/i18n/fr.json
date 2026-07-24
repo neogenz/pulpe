@@ -1173,7 +1173,9 @@
       "hasNumber": "Au moins un chiffre",
       "hasLetter": "Au moins une lettre",
       "met": "validé",
-      "notMet": "non validé"
+      "notMet": "non validé",
+      "remaining": "Critères restants : {{count}}",
+      "allMet": "Tous les critères sont validés"
     },
     "showPassword": "Afficher le mot de passe",
     "confirmPasswordLabel": "Confirmer le mot de passe",

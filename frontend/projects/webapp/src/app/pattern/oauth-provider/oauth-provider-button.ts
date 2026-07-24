@@ -42,7 +42,7 @@ const PROVIDER_LABEL_KEYS: Record<OAuthProvider, string> = {
         type="button"
         class="w-full h-12"
         [attr.data-testid]="resolvedTestId()"
-        [disabled]="isLoading()"
+        [disabled]="isLoading() || disabled()"
         (click)="signIn()"
       >
         <ng-container *ngTemplateOutlet="buttonContent" />
@@ -54,7 +54,7 @@ const PROVIDER_LABEL_KEYS: Record<OAuthProvider, string> = {
         class="w-full h-12"
         [class.pulpe-apple-signin]="provider() === 'apple'"
         [attr.data-testid]="resolvedTestId()"
-        [disabled]="isLoading()"
+        [disabled]="isLoading() || disabled()"
         (click)="signIn()"
       >
         <ng-container *ngTemplateOutlet="buttonContent" />
@@ -93,6 +93,10 @@ export class OAuthProviderButton {
   readonly provider = input<OAuthProvider>('google');
   readonly buttonType = input<'filled' | 'outlined'>('outlined');
   readonly testId = input<string>('');
+  // Le parent gèle le bouton pendant qu'un autre submit est en vol (email,
+  // demo/turnstile) : un redirect OAuth abandonnerait un compte peut-être
+  // déjà créé côté serveur.
+  readonly disabled = input(false);
 
   readonly loadingChange = output<boolean>();
   readonly authError = output<string>();
@@ -107,6 +111,7 @@ export class OAuthProviderButton {
   );
 
   async signIn(): Promise<void> {
+    if (this.disabled()) return;
     this.isLoading.set(true);
     this.loadingChange.emit(true);
 

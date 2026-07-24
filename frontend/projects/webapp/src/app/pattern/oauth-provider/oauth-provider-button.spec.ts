@@ -213,5 +213,11 @@ describe('OAuthProviderButton', () => {
 
       expect(loadingEmitSpy).toHaveBeenCalledWith(false);
     });
+
+    // Pas de test unitaire sur `disabled` : cet env vitest JIT n'applique pas
+    // les bindings d'input après la première instanciation du type (cf. le
+    // commentaire sur `provider` dans le composant) — ni `setInput` ni
+    // `inputBinding` n'atteignent le signal. Le binding `[disabled]` des
+    // parents est type-checké par le build AOT.
   });
 });
