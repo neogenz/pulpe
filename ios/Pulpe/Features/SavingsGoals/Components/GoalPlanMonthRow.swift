@@ -48,13 +48,17 @@ enum GoalPlanMonthAvailability: Equatable {
 /// period accents its title (semibold, savings green) — a chip would read as a
 /// button on a passive marker; a month without a linked forecast states why. Amount
 /// is the ligne 2-decimal (`asCurrency`), cumulative the aggregation compact
-/// (`asCompactCurrency`, `→` prefix). Savings green + neutrals only (RG-002).
+/// (`asCompactCurrency`, `→` prefix) — simulator only (`showsCumulative`): while
+/// adjusting, the running total is the feedback; in read mode it already lives in
+/// the hero (« Prévu cumulé »), a per-row echo is triple-encoding. Savings green +
+/// neutrals only (RG-002).
 struct GoalPlanMonthRow: View {
     let month: SavingsGoalPlanMonth
     let amount: Decimal
     let cumulative: Decimal
     let currency: SupportedCurrency
     var isAdjusted: Bool = false
+    var showsCumulative: Bool = false
 
     private var isCurrentPeriod: Bool { month.state == .current }
     private var availability: GoalPlanMonthAvailability { GoalPlanMonthAvailability(month: month) }
@@ -118,10 +122,12 @@ struct GoalPlanMonthRow: View {
                     .monospacedDigit()
                     .foregroundStyle(isAdjusted ? Color.pulpePrimary : Color.textPrimary)
             }
-            Text("→ \(cumulative.asCompactCurrency(currency))")
-                .font(PulpeTypography.metricMini)
-                .monospacedDigit()
-                .foregroundStyle(Color.textTertiary)
+            if showsCumulative {
+                Text("→ \(cumulative.asCompactCurrency(currency))")
+                    .font(PulpeTypography.metricMini)
+                    .monospacedDigit()
+                    .foregroundStyle(Color.textTertiary)
+            }
         }
         .sensitiveAmount()
     }
@@ -137,7 +143,9 @@ struct GoalPlanMonthRow: View {
         } else {
             parts.append(availability.label)
         }
-        parts.append("cumulé \(cumulative.asCurrency(currency))")
+        if showsCumulative {
+            parts.append("cumulé \(cumulative.asCurrency(currency))")
+        }
         if isCurrentPeriod { parts.append("ce mois") }
         if allChecked { parts.append("pointé") }
         if month.isLocked { parts.append("verrouillé") }

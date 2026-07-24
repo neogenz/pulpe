@@ -148,7 +148,8 @@ struct GoalProjectionChart: View {
 /// « Ta trajectoire » (pilier A) — the read-mode chart section on the goal detail:
 /// title, chart, and the two new metrics (écart cumulé + date d'atteinte estimée).
 /// Both metrics are neutral information (RG-002): a positive gap is a pointing lag,
-/// never an alert.
+/// never an alert. The caller gates the whole section on
+/// `GoalProjectionSeries.hasConfirmedTrend` — nothing replaces it before then.
 struct GoalTrajectorySection: View {
     let progress: SavingsGoalProgress
     let currency: SupportedCurrency
@@ -240,6 +241,14 @@ struct GoalProjectionSeries: Equatable {
     let ticks: [Tick]
 
     var isEmpty: Bool { planned.isEmpty && confirmed.isEmpty && projection.isEmpty }
+
+    /// Predicate choice for gating « Ta trajectoire »: at least 2 confirmed
+    /// points — one elapsed month plus the current (`read` emits one confirmed
+    /// point per month up to the current). Below that the reality layer is a
+    /// single dot and the chart is pure decoration (axes + dashed target),
+    /// intimidating on day 1. Stricter than `hasClosedPlanMonth` on purpose:
+    /// a current month locked by pointage still has no trend to draw.
+    var hasConfirmedTrend: Bool { confirmed.count >= 2 }
 
     /// Read mode: Prévu (full), Pointé (up to current), Projection at the confirmed
     /// pace from the current month onward.

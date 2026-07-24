@@ -235,7 +235,8 @@ struct GoalPlanSimulatorSheet: View {
                 month: simMonth.month,
                 amount: simMonth.simulatedAmount,
                 cumulative: simMonth.simulatedCumulative,
-                currency: currency
+                currency: currency,
+                showsCumulative: true
             )
         }
     }

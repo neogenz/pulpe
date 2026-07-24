@@ -109,7 +109,9 @@ struct SavingsGoalDetailView: View {
                 )
 
                 if progress.linkedLineCount > 0, !progress.months.isEmpty {
-                    GoalTrajectorySection(progress: progress, currency: currency)
+                    if GoalProjectionSeries.read(from: progress).hasConfirmedTrend {
+                        GoalTrajectorySection(progress: progress, currency: currency)
+                    }
                     GoalPlanTimelineSection(
                         months: progress.months,
                         currency: currency,
@@ -223,10 +225,17 @@ struct SavingsGoalDetailView: View {
                     swatch: Color.financialSavings.opacity(DesignTokens.Opacity.strong)
                 )
                 if let required = progress.required, hasClosedPlanMonth {
-                    statRow(
-                        label: "Pour tenir ton échéance",
-                        value: "\(required.asCompactCurrency(currency)) / mois"
-                    )
+                    if SavingsGoalDetailViewModel.requiredMatchesPlannedPace(
+                        planned: progress.pace,
+                        required: required
+                    ) {
+                        statRow(
+                            label: "Pour tenir ton échéance",
+                            value: "\(required.asCompactCurrency(currency)) / mois"
+                        )
+                    } else {
+                        deadlineReconciliation(progress: progress, required: required)
+                    }
                 }
             }
         }
@@ -270,6 +279,23 @@ struct SavingsGoalDetailView: View {
                 .monospacedDigit()
                 .sensitiveAmount()
         }
+    }
+
+    /// When the required pace drifts from the planned one, two bare numbers in
+    /// separate rows read as a contradiction — one sentence relates them instead.
+    private func deadlineReconciliation(progress: SavingsGoalProgress, required: Decimal) -> some View {
+        let deadlinePart = progress.targetDateValue
+            .map { "pour finir le \($0.formatted(date: .abbreviated, time: .omitted))" }
+            ?? "pour tenir ton échéance"
+        return Text(
+            "Ton rythme prévu : \(progress.pace.asCompactCurrency(currency))/mois · \(deadlinePart), vise \(required.asCompactCurrency(currency))/mois"
+        )
+        .font(PulpeTypography.metricLabel)
+        .foregroundStyle(Color.textSecondary)
+        .monospacedDigit()
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .sensitiveAmount()
     }
 
     // MARK: - Pace verdict
@@ -433,6 +459,15 @@ final class SavingsGoalDetailViewModel {
         guard let amount = months.first(where: { $0.state == .current })?.plannedAmount,
               amount > 0 else { return nil }
         return amount
+    }
+
+    /// « requis ≈ prévu » band for the deadline stat — same ±5 % relative
+    /// tolerance as the server's pace verdict (`PACE_TOLERANCE_PERCENT`), so
+    /// the stat never contradicts the verdict shown above it. Outside the band
+    /// the stat becomes one sentence relating both rhythms.
+    static func requiredMatchesPlannedPace(planned: Decimal, required: Decimal) -> Bool {
+        guard planned > 0 else { return required <= 0 }
+        return abs(required - planned) <= planned * 5 / 100
     }
 
     /// Initial / pull-to-refresh load. Shows the full-screen spinner while the
