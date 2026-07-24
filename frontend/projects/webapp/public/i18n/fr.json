@@ -83,7 +83,7 @@
       "implicitConsent": "En créant ton compte, tu acceptes les",
       "termsOfService": "Conditions d'Utilisation",
       "privacyPolicy": "Politique de Confidentialité",
-      "acceptTermsAnd": "et la"
+      "privacyAcknowledgement": "et confirmes avoir pris connaissance de la"
     },
     "forgotPassword": {
       "title": "Mot de passe oublié",

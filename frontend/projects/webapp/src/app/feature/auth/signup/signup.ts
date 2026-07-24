@@ -243,8 +243,12 @@ function containsPattern(pattern: RegExp, errorKey: string) {
           <span class="ml-2">{{ 'auth.signup.submit' | transloco }}</span>
         </pulpe-loading-button>
 
-        <!-- Consentement implicite (sign-in wrap) — parité iOS, la politique de
-             confidentialité est un document d'information (art. 13 RGPD), pas un contrat. -->
+        <!-- Consentement implicite (sign-in wrap) — parité iOS. Deux verbes
+             distincts volontairement : on ACCEPTE les CGU (contrat), on PREND
+             CONNAISSANCE de la politique de confidentialité (information art. 13).
+             Les fusionner sous un seul « tu acceptes » est la forme d'acceptation
+             groupée que visent l'art. 7(2) RGPD et les LD 2/2019 §20 du CEPD.
+             Voir docs/CONSENT.md. -->
         <p
           class="text-body-small text-on-surface-variant text-center mt-3"
           data-testid="implicit-consent"
@@ -258,7 +262,7 @@ function containsPattern(pattern: RegExp, errorKey: string) {
           >
             {{ 'auth.signup.termsOfService' | transloco }}
           </a>
-          {{ 'auth.signup.acceptTermsAnd' | transloco }}
+          {{ 'auth.signup.privacyAcknowledgement' | transloco }}
           <a
             [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_PRIVACY]"
             target="_blank"
