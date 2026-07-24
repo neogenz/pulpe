@@ -87,8 +87,7 @@ jobs:
         working-directory: backend-nest
         run: |
           echo "🚀 Starting Supabase local instance..."
-          # Exclure les services non nécessaires pour gain de performance
-          supabase start --exclude studio,mailpit,imgproxy,edge-runtime,realtime,storage-api,logflare,vector,postgres-meta
+          bash "$GITHUB_WORKSPACE/.github/scripts/start-supabase.sh"
 
           echo "⏳ Health check robuste..."
           timeout=180
@@ -164,34 +163,13 @@ jobs:
         with:
           bun-version: ${{ env.BUN_VERSION }}
 
-      - name: 🗄️ Setup Supabase CLI
-        uses: ./.github/actions/setup-supabase-cli
-        with:
-          version: ${{ env.SUPABASE_CLI_VERSION }}
-
+      # Les types régénérés depuis le schéma local suffisent : compiler ne parle
+      # à aucune base, donc pas de conteneurs Supabase à démarrer ici.
       - name: 📥 Download Supabase State
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: supabase-state
           path: backend-nest/
-
-      - name: 🐳 Restore Supabase
-        working-directory: backend-nest
-        run: |
-          supabase start --exclude studio,mailpit,imgproxy,edge-runtime,realtime,storage-api,logflare,vector,postgres-meta
-
-          # Health check rapide pour restore
-          timeout=60
-          counter=0
-          until curl -s http://127.0.0.1:54321/rest/v1/ >/dev/null; do
-            if [ $counter -gt $timeout ]; then
-              echo "❌ Failed to restore Supabase"
-              exit 1
-            fi
-            sleep 1
-            counter=$((counter + 1))
-          done
-          echo "✅ Supabase restored"
 
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
@@ -301,10 +279,7 @@ jobs:
         id: start-supabase-tests
         working-directory: backend-nest
         run: |
-          # Tests only need db + kong + gotrue + postgrest. The extra services
-          # (Alpine-based realtime/storage-api among them) destabilize the stack
-          # on the 20260607+ runner images and waste runner RAM/CPU.
-          supabase start --exclude studio,mailpit,imgproxy,edge-runtime,realtime,storage-api,logflare,vector,postgres-meta
+          bash "$GITHUB_WORKSPACE/.github/scripts/start-supabase.sh"
 
           # Health check pour tests — REST (postgrest) puis Auth (gotrue, sondé par les specs encryption)
           timeout=60
@@ -535,7 +510,7 @@ jobs:
         id: start-supabase-performance
         working-directory: backend-nest
         run: |
-          supabase start --exclude studio,mailpit,imgproxy,edge-runtime,realtime,storage-api,logflare,vector,postgres-meta
+          bash "$GITHUB_WORKSPACE/.github/scripts/start-supabase.sh"
 
           # Health check pour tests — REST (postgrest) puis Auth (gotrue, sondé par les specs encryption)
           timeout=60
