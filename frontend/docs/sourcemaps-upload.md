@@ -29,8 +29,8 @@ POSTHOG_HOST=https://eu.i.posthog.com
 
 1. Connectez-vous à votre dashboard PostHog
 2. Allez dans **Settings > Personal API Keys**
-3. Créez une nouvelle clé avec les permissions `sourcemap:upload`
-4. Copiez la clé (format: `phc_...`)
+3. Créez une nouvelle clé avec les scopes `error tracking: write` et `organization: read`
+4. Copiez la clé (format: `phx_...`)
 
 ### 3. Obtenir le Project ID
 
