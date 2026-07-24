@@ -27,8 +27,8 @@ actor WidgetDataSyncService {
         payDayOfMonth: Int?,
         currency: SupportedCurrency?
     ) async -> (payDayOfMonth: Int?, currency: SupportedCurrency) {
-        guard payDayOfMonth == nil || currency == nil else {
-            return (payDayOfMonth, currency!)
+        if let payDayOfMonth, let currency {
+            return (payDayOfMonth, currency)
         }
         let (fetchedPayDay, fetchedCurrency) = await userSettingsService.getSettingsWithDefaults(context: "syncAll")
         return (payDayOfMonth ?? fetchedPayDay, currency ?? fetchedCurrency)

@@ -224,20 +224,20 @@ export default class WelcomePage {
   }
 
   protected readonly errorMessage = signal('');
-  protected readonly isGoogleLoading = signal(false);
+  protected readonly isOAuthLoading = signal(false);
   protected readonly isDemoInitializing = this.#demoInitializer.isInitializing;
   protected readonly isDemoLoading = computed(
     () => this.turnstileService.isProcessing() || this.isDemoInitializing(),
   );
   protected readonly isLoading = computed(
-    () => this.isGoogleLoading() || this.isDemoLoading(),
+    () => this.isOAuthLoading() || this.isDemoLoading(),
   );
 
   protected readonly turnstileWidget =
     viewChild<NgxTurnstileComponent>('turnstileWidget');
 
   onOAuthLoadingChange(method: OAuthProvider, isLoading: boolean): void {
-    this.isGoogleLoading.set(isLoading);
+    this.isOAuthLoading.set(isLoading);
     if (isLoading) {
       this.#postHogService.setPendingSignupMethod(method);
       this.#postHogService.captureEvent('signup_started', { method });

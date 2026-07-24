@@ -327,6 +327,9 @@ extension AppState {
         currentUser = nil
         authState = .unauthenticated
         biometricError = scope.errorMessage
+        // La prochaine session ne doit pas hériter du handoff post-onboarding
+        // (multi-user même process : le flag est consommé par CurrentMonthView).
+        justCompletedOnboarding = false
 
         // Reset feature stores atomically with session state
         sessionDataResetter?.resetStores()
