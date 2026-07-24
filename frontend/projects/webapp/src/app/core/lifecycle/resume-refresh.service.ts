@@ -146,13 +146,9 @@ export class ResumeRefreshService {
 
       this.#budgetApi.cache.invalidate(['budget']);
       this.#budgetTemplatesApi.cache.invalidate(['templates']);
-      // Eager refetch, not an invalidation like the two above: settings drive
-      // currency and pay-day formatting across the app and are already painted
-      // by the time we resume, so leaving them stale would show the old values
-      // until something else happened to re-read them. Since ngx-ziflux 0.2.0
-      // this really does hit the network inside `staleTime`; that is wanted —
-      // resume only fires on bfcache/discarded restore, and the session refresh
-      // above has already paid a round-trip.
+      // Eager refetch rather than an invalidation like the two above: settings
+      // are already painted on resume, so stale currency and pay-day formatting
+      // would stay on screen until the next read.
       this.#userSettingsStore.reload();
       this.#logger.info('[ResumeRefresh] Soft refresh completed after resume', {
         reason,
