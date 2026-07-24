@@ -68,8 +68,11 @@ struct PreferencesView: View {
 
     /// Applies the toggle: schedule on enable (requesting authorization first), cancel
     /// on disable. Analytics fire HERE — after grant/deny resolves — so a denied enable
-    /// never emits a phantom `enabled: true`. On denial, flip the toggle back so it
-    /// never claims reminders are on when the system won't deliver them.
+    /// never emits a phantom `enabled: true`. Permission events fire only when the OS
+    /// prompt actually resolved (prior status `.notDetermined`): `requestAuthorization`
+    /// replays the stored verdict on every later call, so re-emitting would count
+    /// toggle churn as grants/denials. On denial, flip the toggle back so it never
+    /// claims reminders are on when the system won't deliver them.
     private func applyReminderPreference(_ enabled: Bool) async {
         guard enabled else {
             reminderPrefs.setRemindersEnabled(false)
@@ -77,16 +80,21 @@ struct PreferencesView: View {
             await NotificationScheduler.shared.cancelMonthlyReminder()
             return
         }
+        let promptShown = await NotificationScheduler.shared.authorizationStatus() == .notDetermined
         let granted = await NotificationScheduler.shared.requestAuthorization()
         guard granted else {
-            AnalyticsService.shared.capture(.notificationPermissionDenied)
+            if promptShown {
+                AnalyticsService.shared.capture(.notificationPermissionDenied)
+            }
             reminderPrefs.setRemindersEnabled(false)
             remindersEnabled = false  // revert; direct write does not re-invoke the binding setter
             return
         }
         reminderPrefs.setRemindersEnabled(true)
         AnalyticsService.shared.capture(.reminderToggled, properties: ["enabled": true])
-        AnalyticsService.shared.capture(.notificationPermissionGranted)
+        if promptShown {
+            AnalyticsService.shared.capture(.notificationPermissionGranted)
+        }
         await NotificationScheduler.shared.scheduleMonthlyReminder(
             payDay: userSettingsStore.payDayOfMonth ?? 1
         )
