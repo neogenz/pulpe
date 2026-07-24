@@ -21,11 +21,10 @@ extension BudgetLineDetailPage {
                 PulpeChip(
                     icon: "target",
                     label: "Objectif : \(goal.name)",
-                    style: .muted,
+                    style: .semantic(.financialSavings),
                     trailing: {
                         Image(systemName: "chevron.right")
                             .font(PulpeTypography.metricMini)
-                            .foregroundStyle(Color.textTertiary)
                     }
                 )
                 .lineLimit(1)

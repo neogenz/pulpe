@@ -4,7 +4,7 @@ import SwiftUI
 /// one treatment per status everywhere. ACTIVE/COMPLETED tint épargne,
 /// PAUSED stays neutral (RG-002: savings is never an alert color).
 ///
-/// `.tinted` rather than `.muted`: the detail header sits on the bare
+/// Tinted rather than `.muted`: the detail header sits on the bare
 /// `appBackground`, where `surfaceContainerHigh` is indistinguishable from
 /// the canvas (1.04:1 light) — an explicit tint + ink pair separates on
 /// canvas and card alike.
@@ -16,11 +16,23 @@ struct SavingsGoalStatusBadge: View {
         PulpeChip(
             icon: showsIcon ? icon : nil,
             label: status.label,
-            style: .tinted(
-                surface: tint.opacity(DesignTokens.Opacity.badgeBackground),
-                foreground: ink
-            )
+            style: style
         )
+    }
+
+    /// ACTIVE / COMPLETED share one savings color for wash and ink, so they take the
+    /// shared `.semantic` recipe. PAUSED deliberately splits the pair — a neutral wash
+    /// under a readable secondary ink — and keeps its explicit `.tinted`.
+    private var style: PulpeChip<EmptyView>.Style {
+        switch status {
+        case .active, .completed:
+            .semantic(.financialSavings)
+        case .paused:
+            .tinted(
+                surface: Color.textTertiary.opacity(DesignTokens.Opacity.badgeBackground),
+                foreground: Color.textSecondary
+            )
+        }
     }
 
     private var icon: String {
@@ -28,20 +40,6 @@ struct SavingsGoalStatusBadge: View {
         case .active: "target"
         case .completed: "checkmark.circle.fill"
         case .paused: "pause.circle"
-        }
-    }
-
-    private var tint: Color {
-        switch status {
-        case .active, .completed: Color.financialSavings
-        case .paused: Color.textTertiary
-        }
-    }
-
-    private var ink: Color {
-        switch status {
-        case .active, .completed: Color.financialSavings
-        case .paused: Color.textSecondary
         }
     }
 }
