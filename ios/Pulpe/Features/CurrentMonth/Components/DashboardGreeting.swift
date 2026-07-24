@@ -23,23 +23,6 @@ struct DashboardGreeting: View {
         return timeGreeting
     }
 
-    /// Initials for the avatar: up to two from the first name's words ("Maxime De" → "MD"),
-    /// else the email's first letter (matches `AccountView`), so a logged-in user without a
-    /// stored name still gets a letter rather than the anonymous glyph.
-    private var initials: String? {
-        if let firstName, !firstName.isEmpty {
-            let letters = firstName
-                .split(separator: " ")
-                .prefix(2)
-                .compactMap(\.first)
-            if !letters.isEmpty { return String(letters).uppercased() }
-        }
-        if let first = email?.first {
-            return String(first).uppercased()
-        }
-        return nil
-    }
-
     var body: some View {
         HStack {
             Text(greeting)
@@ -49,51 +32,13 @@ struct DashboardGreeting: View {
             Spacer()
 
             Button(action: onAvatarTap) {
-                avatar
+                ProfileAvatar(firstName: firstName, email: email, avatarUrl: avatarUrl)
+                    .shadow(DesignTokens.Shadow.subtle)
             }
             .circleIconButtonStyle()
             .accessibilityLabel("Mon compte")
         }
         .accessibilityElement(children: .contain)
-    }
-
-    private var avatar: some View {
-        Circle()
-            .fill(Color.surfaceContainerLowest)
-            .frame(width: DesignTokens.IconSize.listRow, height: DesignTokens.IconSize.listRow)
-            .overlay { avatarContent }
-            .clipShape(Circle())
-            .shadow(DesignTokens.Shadow.subtle)
-    }
-
-    /// Profile photo when the account has one (Google); otherwise initials, otherwise a glyph.
-    /// The fallback also shows while the photo loads, so the avatar is never blank.
-    @ViewBuilder
-    private var avatarContent: some View {
-        if let avatarUrl, let url = URL(string: avatarUrl) {
-            CachedAsyncImage(url: url) { image in
-                image
-                    .resizable()
-                    .scaledToFill()
-            } placeholder: {
-                avatarFallback
-            }
-        } else {
-            avatarFallback
-        }
-    }
-
-    @ViewBuilder
-    private var avatarFallback: some View {
-        if let initials {
-            Text(initials)
-                .font(PulpeTypography.metricLabelBold)
-                .foregroundStyle(Color.textTertiary)
-        } else {
-            Image(systemName: "person.fill")
-                .font(PulpeTypography.metricLabelBold)
-                .foregroundStyle(Color.textTertiary)
-        }
     }
 }
 

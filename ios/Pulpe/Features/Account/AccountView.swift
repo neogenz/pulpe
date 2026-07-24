@@ -51,15 +51,18 @@ extension AccountView {
         Section {
             VStack(spacing: DesignTokens.Spacing.sm) {
                 let email = appState.currentUser?.email ?? ""
-                let initial = email.first.map { String($0).uppercased() } ?? "?"
-                ZStack {
-                    Circle()
-                        .fill(Color.pulpePrimary)
-                        .frame(width: 56, height: 56)
-                    Text(initial)
-                        .font(PulpeTypography.amountXL)
-                        .foregroundStyle(Color.textOnPrimary)
-                }
+                // Decorative: the email right below already carries the identity, so
+                // VoiceOver has no reason to announce a lone initial or the photo.
+                ProfileAvatar(
+                    firstName: appState.currentUser?.firstName,
+                    email: appState.currentUser?.email,
+                    avatarUrl: appState.currentUser?.avatarUrl,
+                    diameter: DesignTokens.IconSize.heroBadge,
+                    background: .pulpePrimary,
+                    foreground: .textOnPrimary,
+                    font: PulpeTypography.amountXL
+                )
+                .accessibilityHidden(true)
                 Text(email.isEmpty ? "Non connecté(e)" : email)
                     .font(PulpeTypography.bodyLarge)
                 Text("Pulpe")
