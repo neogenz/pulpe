@@ -170,14 +170,16 @@ function containsPattern(pattern: RegExp, errorKey: string) {
               isPasswordHidden() ? 'visibility_off' : 'visibility'
             }}</mat-icon>
           </button>
+          <!-- Seule l'erreur required a un message ici : minlength/hasNumber/
+               hasLetter sont portées par la checklist pulpe-password-criteria
+               ci-dessous. Le gate sur required évite un mat-error vide (région
+               live annoncée sans contenu) pour ces erreurs-là. -->
           @if (
-            signupForm.get('password')?.invalid &&
+            signupForm.get('password')?.hasError('required') &&
             signupForm.get('password')?.touched
           ) {
             <mat-error>
-              @if (signupForm.get('password')?.hasError('required')) {
-                {{ 'form.passwordRequired' | transloco }}
-              }
+              {{ 'form.passwordRequired' | transloco }}
             </mat-error>
           }
         </mat-form-field>
