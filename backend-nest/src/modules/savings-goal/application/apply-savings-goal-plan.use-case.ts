@@ -188,6 +188,10 @@ export class ApplySavingsGoalPlanUseCase {
     );
 
     try {
+      // No `spreadGroupId` on purpose: this flow is retry-safe by re-reading,
+      // not by replay. A retry re-derives `periodsToProvision` from freshly
+      // fetched linked lines, so a period the failed attempt already filled is
+      // simply no longer missing.
       const result = await this.spread.fanOut(
         {
           name: goal.name,
