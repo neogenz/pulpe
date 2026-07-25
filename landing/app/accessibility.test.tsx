@@ -162,14 +162,18 @@ describe("landing accessibility contracts", () => {
       /@media \(max-width: 767px\)[\s\S]*\.hero-mesh,\s*\.pain-points-mesh\s*\{[\s\S]*overflow:\s*visible;/,
     );
     assert.ok(sectionFields, "The shared mobile section field is missing");
-    assert.match(sectionFields, /width:\s*40vw;/);
-    assert.match(sectionFields, /height:\s*60vh;/);
+    // Le fondu Borumi est conservé, mais dessiné en dégradé : un `blur(150px)`
+    // sur une boîte plus étroite que son rayon forçait une couche hors écran
+    // d'environ 52 Mo par halo, quatre fois par page.
+    assert.match(sectionFields, /width:\s*calc\(40vw \+ 600px\);/);
+    assert.match(sectionFields, /height:\s*calc\(60vh \+ 600px\);/);
     assert.match(
       sectionFields,
       /transform:\s*translateY\(-50%\) rotate\(-30deg\);/,
     );
-    assert.match(sectionFields, /filter:\s*blur\(150px\);/);
-    assert.match(sectionFields, /opacity:\s*0\.4;/);
+    assert.doesNotMatch(sectionFields, /filter:\s*blur/);
+    assert.match(sectionFields, /radial-gradient\([\s\S]*var\(--halo\)/);
+    assert.match(sectionFields, /opacity:\s*0\.07;/);
     assert.match(globalsCss, /--ambient-mobile-leaf:\s*oklch\(70% 0\.2 145\);/);
     assert.match(
       globalsCss,
@@ -179,25 +183,27 @@ describe("landing accessibility contracts", () => {
       globalsCss,
       /--ambient-mobile-lime:\s*oklch\(82% 0\.19 121\);/,
     );
+    // Les ancrages compensent l'agrandissement de la boîte pour que le centre
+    // de chaque halo reste là où le flou le plaçait.
     assert.match(
       globalsCss,
-      /\.hero-mesh::before,[\s\S]*?\.pain-points-mesh::before\s*\{(?=[\s\S]*?left:\s*-10%;)(?=[\s\S]*?top:\s*90%;)/,
+      /\.hero-mesh::before,[\s\S]*?\.pain-points-mesh::before\s*\{(?=[\s\S]*?left:\s*calc\(-10% - 300px\);)(?=[\s\S]*?top:\s*90%;)/,
     );
     assert.match(
       globalsCss,
-      /\.hero-mesh::after,[\s\S]*?\.pain-points-mesh::after\s*\{(?=[\s\S]*?right:\s*-10%;)(?=[\s\S]*?top:\s*10%;)/,
+      /\.hero-mesh::after,[\s\S]*?\.pain-points-mesh::after\s*\{(?=[\s\S]*?right:\s*calc\(-10% - 300px\);)(?=[\s\S]*?top:\s*10%;)/,
     );
     assert.match(
       globalsCss,
-      /\.hero-mesh::before,[\s\S]*?background-color:\s*var\(--ambient-mobile-leaf\);/,
+      /\.hero-mesh::before,[\s\S]*?--halo:\s*var\(--ambient-mobile-leaf\);/,
     );
     assert.match(
       globalsCss,
-      /\.hero-mesh::after,[\s\S]*?background-color:\s*var\(--ambient-mobile-mint\);/,
+      /\.hero-mesh::after,[\s\S]*?--halo:\s*var\(--ambient-mobile-mint\);/,
     );
     assert.doesNotMatch(
       globalsCss,
-      /\.pain-points-mesh::after\s*\{[^}]*background-color:\s*var\(--ambient-mobile-leaf\);/,
+      /\.pain-points-mesh::after\s*\{[^}]*--halo:\s*var\(--ambient-mobile-leaf\);/,
     );
     assert.match(componentSources.painPoints, /pain-points-mesh/);
   });
@@ -240,7 +246,7 @@ describe("landing accessibility contracts", () => {
     );
     assert.match(
       componentSources.header,
-      /transition-\[background-color,backdrop-filter,box-shadow\] duration-500/,
+      /transition-\[background-color,box-shadow\] duration-500/,
     );
     assert.match(
       componentSources.header,

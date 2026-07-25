@@ -60,7 +60,12 @@ export function Header() {
       />
       <header className="fixed inset-x-2.5 top-2.5 z-50">
         <nav
-          className="relative z-20 flex h-14 items-center justify-between gap-3 rounded-2xl bg-white/40 px-6 shadow-none ring-1 ring-transparent backdrop-blur-none transition-[background-color,backdrop-filter,box-shadow] duration-500 scrolled:bg-surface/80 scrolled:shadow-[0_4px_30px_rgba(0,0,0,0.1)] scrolled:ring-white/60 scrolled:backdrop-blur-[14px] scrolled:backdrop-saturate-150 lg:h-[72px] motion-reduce:transition-none"
+          // `backdrop-filter` est volontairement hors de la transition : Safari
+          // interpolerait le rayon de flou sur 500 ms, plein écran, au moment
+          // précis où le défilement démarre. Les deux états gardent leur flou,
+          // seul le fondu du rayon disparaît — et il était de toute façon
+          // masqué par le fond qui se fond sur la même durée.
+          className="relative z-20 flex h-14 items-center justify-between gap-3 rounded-2xl bg-white/40 px-6 shadow-none ring-1 ring-transparent backdrop-blur-none transition-[background-color,box-shadow] duration-500 scrolled:bg-surface/80 scrolled:shadow-[0_4px_30px_rgba(0,0,0,0.1)] scrolled:ring-white/60 scrolled:backdrop-blur-[14px] scrolled:backdrop-saturate-150 lg:h-[72px] motion-reduce:transition-none"
           aria-label="Navigation principale"
         >
           <Link

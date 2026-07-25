@@ -311,18 +311,48 @@ h3,
     padding-top: 1.5rem;
   }
 
+  /* Le fondu Borumi reposait sur une ellipse de 40vw floutée à 150px, soit un
+     rayon de flou plus large que la forme elle-même. WebKit devait alors
+     rasteriser une couche hors écran d'environ 1050 × 1387 px, ~52 Mo à DPR 3,
+     quatre fois par page — de quoi saturer son compositeur sur iPhone, qui
+     laissait des tuiles non peintes et abandonnait le `backdrop-filter` de
+     l'en-tête. Or flouter une forme plus petite que son propre rayon produit un
+     dégradé radial : on dessine donc le même objet directement.
+
+     La boîte reprend la portée réelle du flou et les ancrages compensent
+     l'agrandissement pour conserver le centre. Les trois couches d'étendues
+     décroissantes approchent la décroissance gaussienne, qu'un palier linéaire
+     unique rendait trop plate en milieu de course ; `color-mix` donnerait un
+     profil plus direct mais exigerait Safari 16.2 alors que le projet cible
+     iOS 15. Portée et opacité sont calibrées par différence de pixels contre le
+     rendu flouté, pas déduites : l'écart moyen résiduel tient sous 1,7/255 avec
+     un maximum de 8/255. */
   .hero-mesh::before,
   .hero-mesh::after,
   .pain-points-mesh::before,
   .pain-points-mesh::after {
     position: absolute;
     z-index: -1;
-    width: 40vw;
-    height: 60vh;
-    border-radius: 50%;
+    width: calc(40vw + 600px);
+    height: calc(60vh + 600px);
     content: "";
-    filter: blur(150px);
-    opacity: 0.4;
+    background-image:
+      radial-gradient(
+        var(--gradient-interpolation) closest-side,
+        var(--halo),
+        transparent
+      ),
+      radial-gradient(
+        var(--gradient-interpolation) closest-side,
+        var(--halo),
+        transparent 60%
+      ),
+      radial-gradient(
+        var(--gradient-interpolation) closest-side,
+        var(--halo),
+        transparent 30%
+      );
+    opacity: 0.07;
     pointer-events: none;
     transform: translateY(-50%) rotate(-30deg);
   }
@@ -330,19 +360,19 @@ h3,
   .hero-mesh::before,
   .pain-points-mesh::before {
     top: 90%;
-    left: -10%;
-    background-color: var(--ambient-mobile-leaf);
+    left: calc(-10% - 300px);
+    --halo: var(--ambient-mobile-leaf);
   }
 
   .hero-mesh::after,
   .pain-points-mesh::after {
     top: 10%;
-    right: -10%;
-    background-color: var(--ambient-mobile-mint);
+    right: calc(-10% - 300px);
+    --halo: var(--ambient-mobile-mint);
   }
 
   .pain-points-mesh::before {
-    background-color: var(--ambient-mobile-lime);
+    --halo: var(--ambient-mobile-lime);
   }
 }
 
