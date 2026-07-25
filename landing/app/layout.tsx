@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import { PostHogProvider } from "../components/PostHogProvider";
+import { SCROLL_SENTINEL_ID } from "../lib/config";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -73,6 +74,25 @@ export const metadata: Metadata = {
   },
 };
 
+// L'état scrollé de la navbar vit hors de React : le bundle applicatif arrive
+// plusieurs secondes après la peinture sur mobile, et un `useEffect` laisserait
+// l'en-tête transparent pendant tout ce temps. Ce script observe la sentinelle
+// déjà présente dans le HTML statique et pose l'attribut sur `<html>`, un nœud
+// que React ne rend pas, donc sans divergence d'hydratation possible.
+const scrollStateScript = `(function(){
+if(window.pulpeScrollStateReady)return;
+window.pulpeScrollStateReady=1;
+function start(){
+var sentinel=document.getElementById('${SCROLL_SENTINEL_ID}');
+if(!sentinel||!window.IntersectionObserver)return;
+new IntersectionObserver(function(entries){
+document.documentElement.toggleAttribute('data-scrolled',!entries[0].isIntersecting);
+}).observe(sentinel);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);
+else start();
+})();`;
+
 const jsonLd = {
   "@context": "https://schema.org",
   "@graph": [
@@ -111,6 +131,7 @@ export default function RootLayout({
   return (
     <html lang="fr" className={poppins.variable}>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: scrollStateScript }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

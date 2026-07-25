@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Posée par le script inline du layout dès la fin du parsing, bien avant
+   l'hydratation : la navbar réagit au scroll sans dépendre du bundle. */
+@custom-variant scrolled (html[data-scrolled] &);
+
 @theme {
   --font-family-sans: var(--font-poppins), "Poppins", system-ui, sans-serif;
 

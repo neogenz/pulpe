@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui";
-import { angularUrl } from "@/lib/config";
+import { SCROLL_SENTINEL_ID, angularUrl } from "@/lib/config";
 import { trackCTAClick } from "@/lib/posthog";
 
 const navLinks = [
@@ -20,23 +20,7 @@ const DESKTOP_BREAKPOINT_PX = 1024;
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const scrollSentinelRef = useRef<HTMLDivElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
-
-  // A sentinel sitting at the top of the document tells us whether the page has
-  // moved, without a per-frame scroll handler and its throttling guesswork.
-  useEffect(() => {
-    const sentinel = scrollSentinelRef.current;
-    if (!sentinel) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => setScrolled(!entry.isIntersecting),
-      { threshold: 0 },
-    );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     if (!mobileMenuOpen) return;
@@ -66,19 +50,17 @@ export function Header() {
 
   return (
     <>
+      {/* Rendue côté serveur : le script inline du layout l'observe dès la fin du
+          parsing, sans attendre React. */}
       <div
-        ref={scrollSentinelRef}
+        id={SCROLL_SENTINEL_ID}
         aria-hidden="true"
         className="pointer-events-none absolute left-0 top-0 w-px"
         style={{ height: SCROLL_THRESHOLD_PX }}
       />
       <header className="fixed inset-x-2.5 top-2.5 z-50">
         <nav
-          className={`relative z-20 flex h-14 items-center justify-between gap-3 rounded-2xl px-6 transition-[background-color,backdrop-filter,box-shadow] duration-500 lg:h-[72px] motion-reduce:transition-none ${
-            scrolled
-              ? "bg-surface/80 shadow-[0_4px_30px_rgba(0,0,0,0.1)] backdrop-blur-[14px] backdrop-saturate-150 ring-1 ring-white/60"
-              : "bg-white/40 shadow-none backdrop-blur-none ring-1 ring-transparent"
-          }`}
+          className="relative z-20 flex h-14 items-center justify-between gap-3 rounded-2xl bg-white/40 px-6 shadow-none ring-1 ring-transparent backdrop-blur-none transition-[background-color,backdrop-filter,box-shadow] duration-500 scrolled:bg-surface/80 scrolled:shadow-[0_4px_30px_rgba(0,0,0,0.1)] scrolled:ring-white/60 scrolled:backdrop-blur-[14px] scrolled:backdrop-saturate-150 lg:h-[72px] motion-reduce:transition-none"
           aria-label="Navigation principale"
         >
           <Link

@@ -232,11 +232,11 @@ describe("landing accessibility contracts", () => {
   it("keeps the liquid-glass navbar readable over page content", () => {
     assert.match(
       componentSources.header,
-      /bg-surface\/80 shadow-\[0_4px_30px_rgba\(0,0,0,0\.1\)\] backdrop-blur-\[14px\] backdrop-saturate-150 ring-1 ring-white\/60/,
+      /scrolled:bg-surface\/80 scrolled:shadow-\[0_4px_30px_rgba\(0,0,0,0\.1\)\] scrolled:ring-white\/60 scrolled:backdrop-blur-\[14px\] scrolled:backdrop-saturate-150/,
     );
     assert.match(
       componentSources.header,
-      /bg-white\/40 shadow-none backdrop-blur-none ring-1 ring-transparent/,
+      /bg-white\/40 px-6 shadow-none ring-1 ring-transparent backdrop-blur-none/,
     );
     assert.match(
       componentSources.header,
@@ -246,6 +246,16 @@ describe("landing accessibility contracts", () => {
       componentSources.header,
       /href=\{link\.href\}[\s\S]*?className="[^"]*\btext-text\b[^"]*"/,
     );
+  });
+
+  it("drives the scrolled navbar without waiting for hydration", () => {
+    assert.match(
+      globalsCss,
+      /@custom-variant scrolled \(html\[data-scrolled\] &\);/,
+    );
+    assert.match(componentSources.header, /id=\{SCROLL_SENTINEL_ID\}/);
+    assert.match(componentSources.layout, /toggleAttribute\('data-scrolled'/);
+    assert.doesNotMatch(componentSources.header, /IntersectionObserver/);
   });
 
   it("frames the problem and current alternatives before the solution", () => {
