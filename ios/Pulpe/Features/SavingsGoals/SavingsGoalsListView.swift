@@ -77,24 +77,14 @@ struct SavingsGoalsListView: View {
     // MARK: - Empty state
 
     private var emptyState: some View {
-        VStack(spacing: DesignTokens.Spacing.lg) {
-            Image(systemName: "target")
-                .font(PulpeTypography.emojiDisplay)
-                .foregroundStyle(Color.textTertiary)
-                .symbolEffect(.pulse, options: .nonRepeating)
-            Text("Fixe ton premier objectif")
-                .font(PulpeTypography.stepTitle)
-                .foregroundStyle(Color.textPrimary)
-            Text("Suis tes projets d'épargne long terme, sans recalculer à la main")
-                .font(PulpeTypography.bodyLarge)
-                .foregroundStyle(Color.textTertiary)
-                .multilineTextAlignment(.center)
-            Button("Créer un objectif") {
-                isCreatingGoal = true
-            }
-            .primaryButtonStyle()
+        PulpeEmptyState(
+            systemImage: "target",
+            title: "Fixe ton premier objectif",
+            message: "Suis tes projets d'épargne long terme, sans recalculer à la main",
+            actionTitle: "Créer un objectif"
+        ) {
+            isCreatingGoal = true
         }
-        .padding(DesignTokens.Spacing.xxxl)
     }
 
     // MARK: - List

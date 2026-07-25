@@ -22,24 +22,14 @@ struct TemplateListView: View {
                 }
                 .transition(.opacity)
             } else if viewModel.templates.isEmpty {
-                VStack(spacing: DesignTokens.Spacing.lg) {
-                    Image(systemName: "doc.on.doc")
-                        .font(PulpeTypography.emojiDisplay)
-                        .foregroundStyle(Color.textTertiary)
-                        .symbolEffect(.pulse, options: .nonRepeating)
-                    Text("Pas encore de modèle")
-                        .font(PulpeTypography.stepTitle)
-                        .foregroundStyle(Color.textPrimary)
-                    Text("Crée-en un pour préparer tes prochains budgets plus vite")
-                        .font(PulpeTypography.bodyLarge)
-                        .foregroundStyle(Color.textTertiary)
-                        .multilineTextAlignment(.center)
-                    Button("Créer un modèle") {
-                        showCreateTemplate = true
-                    }
-                    .primaryButtonStyle()
+                PulpeEmptyState(
+                    systemImage: "doc.on.doc",
+                    title: "Pas encore de modèle",
+                    message: "Crée-en un pour préparer tes prochains budgets plus vite",
+                    actionTitle: "Créer un modèle"
+                ) {
+                    showCreateTemplate = true
                 }
-                .padding(DesignTokens.Spacing.xxxl)
                 .transition(.opacity)
             } else {
                 templateList
