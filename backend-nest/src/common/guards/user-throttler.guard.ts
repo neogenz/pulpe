@@ -12,6 +12,7 @@ import { Request } from 'express';
 import { SupabaseService } from '@modules/supabase/supabase.service';
 import { isDemoPath } from '@config/throttler.config';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
+import { resolvePayDayOfMonth } from '@common/utils/pay-day';
 
 interface RequestWithThrottlerCache extends Request {
   __throttlerUserCache?: AuthenticatedUser | null;
@@ -112,6 +113,7 @@ export class UserThrottlerGuard extends ThrottlerGuard {
         email: user.email ?? '',
         firstName: user.user_metadata?.firstName,
         lastName: user.user_metadata?.lastName,
+        payDayOfMonth: resolvePayDayOfMonth(user.user_metadata),
         accessToken: token,
         clientKey,
       };

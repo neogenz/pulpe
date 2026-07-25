@@ -10,8 +10,6 @@ import {
 } from '@modules/encryption/encryption.tokens';
 import {
   BudgetFormulas,
-  PAY_DAY_MAX,
-  PAY_DAY_MIN,
   getBudgetPeriodForDate,
   parseIsoDateLocal,
   periodIndex,
@@ -542,7 +540,7 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
     // enchaîne jusqu'à 36. C'est le cas de la majorité des utilisateurs.
     if (goals.length === 0) return [];
 
-    const payDayOfMonth = await this.getPayDayOfMonth();
+    const payDayOfMonth = this.supabaseProvider.user.payDayOfMonth ?? null;
     const budgetPeriodIndex = periodIndex(period);
     return goals
       .filter(
@@ -555,35 +553,6 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
           ) < budgetPeriodIndex,
       )
       .map((goal) => goal.id);
-  }
-
-  /**
-   * Contrairement aux lectures d'affichage du module, celle-ci décide quelles
-   * prévisions sont générées : un échec GoTrue silencieux retomberait sur le
-   * comportement calendaire et déplacerait la borne d'une période pour un
-   * utilisateur à payDay personnalisé. Même traitement que l'échec de lecture
-   * des objectifs juste au-dessus — les deux nourrissent la même décision.
-   */
-  private async getPayDayOfMonth(): Promise<number> {
-    const { data, error } = await this.supabaseProvider.client.auth.getUser();
-
-    if (error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
-        { reason: 'Unable to read the pay day' },
-        {
-          operation: 'fetchGoalIdsPastTarget.payDay',
-          userId: this.supabaseProvider.user.id,
-        },
-        { cause: error },
-      );
-    }
-
-    const raw = data?.user?.user_metadata?.payDayOfMonth;
-
-    if (typeof raw !== 'number' || !Number.isInteger(raw)) return PAY_DAY_MIN;
-
-    return Math.max(PAY_DAY_MIN, Math.min(PAY_DAY_MAX, raw));
   }
 
   async persistEndingBalance(

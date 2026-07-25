@@ -20,6 +20,7 @@ export const createMockAuthenticatedUser = (
   lastName: 'Doe',
   accessToken: 'mock-access-token',
   clientKey: Buffer.from('ab'.repeat(32), 'hex'),
+  payDayOfMonth: null,
   ...overrides,
 });
 
