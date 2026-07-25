@@ -6,16 +6,14 @@ import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import {
   getBudgetPeriodForDate,
   parseIsoDateLocal,
+  periodIndex,
   type SavingsGoalCreate,
 } from 'pulpe-shared';
 import {
-  BUDGET_TEMPLATE_REPOSITORY,
-  type BudgetTemplateRepositoryPort,
-} from '@modules/budget-template/domain/ports/budget-template-repository.port';
-import {
-  TEMPLATE_LINE_PROPAGATION_PORT,
-  type TemplateLinePropagationPort,
-} from '@modules/budget-template/domain/ports/template-line-propagation.port';
+  BUDGET_LINE_SPREAD_PORT,
+  type BudgetLineSpreadPort,
+  type SpreadTranche,
+} from '@modules/budget-line/domain/ports/budget-line-spread.port';
 import {
   SAVINGS_GOAL_REPOSITORY,
   type SavingsGoalRepositoryPort,
@@ -27,10 +25,8 @@ export class CreateSavingsGoalUseCase {
   constructor(
     @Inject(SAVINGS_GOAL_REPOSITORY)
     private readonly repo: SavingsGoalRepositoryPort,
-    @Inject(BUDGET_TEMPLATE_REPOSITORY)
-    private readonly templateRepo: BudgetTemplateRepositoryPort,
-    @Inject(TEMPLATE_LINE_PROPAGATION_PORT)
-    private readonly templateLinePropagation: TemplateLinePropagationPort,
+    @Inject(BUDGET_LINE_SPREAD_PORT)
+    private readonly spread: BudgetLineSpreadPort,
     @InjectInfoLogger(CreateSavingsGoalUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -53,7 +49,7 @@ export class CreateSavingsGoalUseCase {
 
     let baselineCreated = false;
     if (dto.monthlyContribution != null) {
-      baselineCreated = await this.generateLinkedBaseline(
+      baselineCreated = await this.materializeContributions(
         entity,
         dto.monthlyContribution,
         user,
@@ -75,48 +71,56 @@ export class CreateSavingsGoalUseCase {
   }
 
   /**
-   * PUL-285 CA1/CA2 — auto-décomposition : pose la prévision Épargne
-   * récurrente liée sur le Mois Type par défaut et la propage aux budgets
-   * matérialisés (RG-001), jusqu'à la période d'échéance incluse (PUL-311 —
-   * la mensualité couvre `monthsRemaining`, propager au-delà sur-engagerait
-   * l'utilisateur). Une création de ligne échouée reste best-effort car
-   * l'objectif est déjà committé. Si la ligne a elle aussi été committée mais
-   * que le recalcul échoue, un code dédié prévient le client de rafraîchir sans
+   * PUL-316 — un objectif daté est un engagement BORNÉ, donc il se matérialise
+   * en prévisions `one_off` liées, une par mois budgété du mois courant à
+   * l'échéance incluse. Le Mois Type reste intact : y poser une récurrence
+   * signifierait « tous les mois, indéfiniment », ce qui contredit l'échéance et
+   * fausse le solde net du modèle au-delà d'elle (PUL-311, PUL-312).
+   *
+   * Créer un objectif ne crée AUCUN budget : seuls les mois déjà budgétés
+   * reçoivent leur prévision. Les mois plus lointains restent des trous du plan,
+   * que « Ajuster mon plan » comble à la demande.
+   *
+   * Best-effort : l'objectif est déjà committé, donc un échec de matérialisation
+   * ne le fait jamais échouer. Si les prévisions ont bien été committées mais que
+   * le recalcul échoue, un code dédié prévient le client de rafraîchir sans
    * recréer l'objectif.
    */
-  private async generateLinkedBaseline(
+  private async materializeContributions(
     goal: SavingsGoal,
     monthlyContribution: number,
     user: AuthenticatedUser,
   ): Promise<boolean> {
     try {
-      const templateId = await this.templateRepo.findDefaultTemplateId(user.id);
-      if (!templateId) {
+      const tranches = await this.budgetedTranches(
+        goal,
+        monthlyContribution,
+        user.payDayOfMonth ?? null,
+      );
+      if (tranches.length === 0) {
         this.logger.warn(
           {
             operation: 'savingsGoal.autoDecompose',
             userId: user.id,
             savingsGoalId: goal.id,
           },
-          'No default template — goal created without its linked baseline',
+          'No budgeted month in the goal horizon — goal created without its forecasts',
         );
         return false;
       }
-      const payDayOfMonth = await this.repo.findPayDayOfMonth();
-      await this.templateLinePropagation.createLineAndPropagate({
-        templateId,
-        userId: user.id,
-        name: goal.name,
-        amount: monthlyContribution,
-        kind: 'saving',
-        recurrence: 'fixed',
-        savingsGoalId: goal.id,
-        maxPeriod: getBudgetPeriodForDate(
-          parseIsoDateLocal(goal.targetDate),
-          payDayOfMonth,
-        ),
-      });
-      return true;
+
+      const { lines } = await this.spread.fanOut(
+        {
+          name: goal.name,
+          kind: 'saving',
+          savingsGoalId: goal.id,
+          tranches,
+          // One goal, one spread group: the goal id IS the idempotency key.
+          spreadGroupId: goal.id,
+        },
+        user,
+      );
+      return lines.length > 0;
     } catch (err) {
       this.rethrowCommittedBaselineFailure(err, goal.id, user.id);
       this.logger.warn(
@@ -126,10 +130,42 @@ export class CreateSavingsGoalUseCase {
           savingsGoalId: goal.id,
           err,
         },
-        'Linked baseline generation failed — goal created without it',
+        'Linked forecast generation failed — goal created without it',
       );
       return false;
     }
+  }
+
+  /**
+   * Mois courant et échéance INCLUS (docs/SAVINGS.md §3.5 :
+   * `monthsRemaining = indexÉchéance − indexCourant + 1`), et la comparaison est
+   * payDay-aware — un objectif échéant le 12 octobre avec une paie au 27
+   * appartient au cycle d'octobre, pas à celui de septembre.
+   */
+  private async budgetedTranches(
+    goal: SavingsGoal,
+    monthlyContribution: number,
+    payDayOfMonth: number | null,
+  ): Promise<SpreadTranche[]> {
+    const currentIndex = periodIndex(
+      getBudgetPeriodForDate(new Date(), payDayOfMonth),
+    );
+    const targetIndex = periodIndex(
+      getBudgetPeriodForDate(parseIsoDateLocal(goal.targetDate), payDayOfMonth),
+    );
+
+    const budgetedPeriods = await this.repo.findMaterializedPeriods();
+    return budgetedPeriods
+      .filter((period) => {
+        const index = periodIndex(period);
+        return index >= currentIndex && index <= targetIndex;
+      })
+      .sort((a, b) => periodIndex(a) - periodIndex(b))
+      .map((period) => ({
+        year: period.year,
+        month: period.month,
+        amount: monthlyContribution,
+      }));
   }
 
   private rethrowCommittedBaselineFailure(

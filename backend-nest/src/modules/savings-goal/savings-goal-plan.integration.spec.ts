@@ -35,7 +35,7 @@ import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { EncryptionPort } from '@modules/encryption/domain/ports/encryption.port';
 import type { InfoLogger } from '@common/logger';
 import type { BudgetRecalculationPort } from '@modules/budget/domain/ports/budget-recalculation.port';
-import type { BudgetProvisioningPort } from '@modules/budget/domain/ports/budget-provisioning.port';
+import type { BudgetLineSpreadPort } from '@modules/budget-line/domain/ports/budget-line-spread.port';
 import type { CacheService } from '@modules/cache/cache.service';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
@@ -163,24 +163,19 @@ function applyPlanUseCaseFor(user: TestUser): {
   const cacheStub = {
     invalidateForUser: async () => {},
   } as unknown as CacheService;
-  const provisioningStub = {
-    ensureBudgetsForPeriods: async () => ({
-      budgetIdByPeriod: new Map(),
+  const spreadStub = {
+    fanOut: async () => ({
+      spreadGroupId: 'spread-group',
+      lines: [],
       createdBudgets: [],
       skippedMonths: [],
     }),
-  } as unknown as BudgetProvisioningPort;
-  const templateRepo = new SupabaseBudgetTemplateRepository(
-    providerFor(user, authUser),
-    encryptionStub,
-    noopLogger,
-  );
+  } as unknown as BudgetLineSpreadPort;
   return {
     useCase: new ApplySavingsGoalPlanUseCase(
       repo,
       recalcPort,
-      provisioningStub,
-      templateRepo,
+      spreadStub,
       cacheStub,
       noopLogger,
     ),

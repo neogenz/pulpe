@@ -5,10 +5,8 @@ import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import {
-  type BudgetPeriod,
   type TemplateLinesBulkOperations,
   type TemplateLinesPropagationSummary,
-  periodIndex,
   templateLinesBulkOperationsSchema,
 } from 'pulpe-shared';
 import { CurrencyService } from '@modules/currency/currency.service';
@@ -53,7 +51,6 @@ export class BulkTemplateLineOperationsUseCase {
     templateId: string,
     bulkOperationsDto: TemplateLinesBulkOperations,
     user: Pick<AuthenticatedUser, 'id'>,
-    options?: { maxPropagationPeriod?: BudgetPeriod },
   ): Promise<BulkTemplateLineOperationsResult> {
     const startTime = Date.now();
 
@@ -80,11 +77,7 @@ export class BulkTemplateLineOperationsUseCase {
     const createdLines = await this.toRpcCreates(rawCreates);
 
     const budgetIds = validated.propagateToBudgets
-      ? await this.fetchPropagationBudgetIds(
-          templateId,
-          user.id,
-          options?.maxPropagationPeriod,
-        )
+      ? await this.fetchPropagationBudgetIds(templateId, user.id)
       : [];
 
     const hasAnyMutation =
@@ -158,20 +151,13 @@ export class BulkTemplateLineOperationsUseCase {
   private async fetchPropagationBudgetIds(
     templateId: string,
     userId: string,
-    maxPeriod?: BudgetPeriod,
   ): Promise<string[]> {
     const now = new Date();
     const budgets = await this.repo.fetchFutureBudgets(templateId, userId, {
       year: now.getUTCFullYear(),
       month: now.getUTCMonth() + 1,
     });
-    if (!maxPeriod) {
-      return budgets.map((b) => b.id);
-    }
-    const maxIndex = periodIndex(maxPeriod);
-    return budgets
-      .filter((b) => periodIndex({ month: b.month, year: b.year }) <= maxIndex)
-      .map((b) => b.id);
+    return budgets.map((b) => b.id);
   }
 
   private async toRpcUpdates(

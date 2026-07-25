@@ -287,7 +287,7 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
     );
   });
 
-  describe('propagation horizon (PUL-311)', () => {
+  describe('propagation reach', () => {
     const createPayload: TemplateLinesBulkOperations = {
       update: [],
       create: [
@@ -312,19 +312,7 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
       ]);
     });
 
-    it('should stop propagating at the max period, that period included', async () => {
-      await useCase.execute('template-1', createPayload, mockUser, {
-        maxPropagationPeriod: { month: 10, year: 2026 },
-      });
-
-      expect(mockRepo.bulkApplyTemplateLineOperations).toHaveBeenCalledWith(
-        expect.objectContaining({
-          budgetIds: ['budget-07-2026', 'budget-10-2026'],
-        }),
-      );
-    });
-
-    it('should propagate to every future budget when no max period is given', async () => {
+    it('should propagate to every future budget', async () => {
       await useCase.execute('template-1', createPayload, mockUser);
 
       expect(mockRepo.bulkApplyTemplateLineOperations).toHaveBeenCalledWith(

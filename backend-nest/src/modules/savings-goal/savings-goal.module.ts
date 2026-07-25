@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { SupabaseModule } from '@modules/supabase/supabase.module';
 import { EncryptionModule } from '@modules/encryption/encryption.module';
 import { BudgetModule } from '@modules/budget/budget.module';
+import { BudgetLineModule } from '@modules/budget-line/budget-line.module';
 import { BudgetTemplateModule } from '@modules/budget-template/budget-template.module';
 import { createInfoLoggerProvider } from '@common/logger';
 import { SavingsGoalController } from './infrastructure/http/savings-goal.controller';
@@ -21,11 +22,14 @@ import { ApplySavingsGoalGenerationStopUseCase } from './application/apply-savin
 
 @Module({
   // BudgetModule provides BUDGET_RECALCULATION_PORT (plan apply recalculates the
-  // touched budgets). CacheService is @Global — no import needed.
+  // touched budgets); BudgetLineModule provides BUDGET_LINE_SPREAD_PORT, which
+  // materializes a dated goal as bounded linked forecasts (PUL-316).
+  // CacheService is @Global — no import needed.
   imports: [
     SupabaseModule,
     EncryptionModule,
     BudgetModule,
+    BudgetLineModule,
     BudgetTemplateModule,
   ],
   controllers: [SavingsGoalController],

@@ -245,7 +245,7 @@ struct SavingsGoalFormSheet: View {
                     currency: currency,
                     visualStyle: .flat
                 )
-                Text("Pré-rempli avec cible ÷ mois restants. Cette prévision récurrente sera ajoutée à ton Mois Type.")
+                Text("Pré-rempli avec cible ÷ mois restants. Ce montant sera prévu sur chacun de tes budgets, jusqu'à l'échéance.")
                     .font(PulpeTypography.caption)
                     .foregroundStyle(Color.onSurfaceVariant)
             }

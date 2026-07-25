@@ -17,7 +17,6 @@ import {
   BUDGET_TEMPLATE_REPOSITORY,
   type BudgetTemplateRepositoryPort,
 } from '@modules/budget-template/domain/ports/budget-template-repository.port';
-import type { TemplateLine } from '@modules/budget-template/domain/budget-template.entity';
 import type {
   SavingsGoal,
   SavingsGoalProgressComputation,
@@ -61,14 +60,10 @@ export class GetSavingsGoalProgressUseCase {
       this.repo.findMaterializedPeriods(),
       this.templateRepo.findDefaultTemplateId(user.id),
     ]);
-    const templateLines = defaultTemplateId
-      ? await this.templateRepo.findLinesByTemplateId(defaultTemplateId)
-      : [];
-
     const input = this.buildInput(goal, {
       payDayOfMonth,
       materializedPeriods,
-      templateLines,
+      hasDefaultTemplate: defaultTemplateId != null,
       lines,
       transactions,
     });
@@ -94,7 +89,7 @@ export class GetSavingsGoalProgressUseCase {
     data: {
       payDayOfMonth: number | null;
       materializedPeriods: BudgetPeriod[];
-      templateLines: TemplateLine[];
+      hasDefaultTemplate: boolean;
       lines: LinkedSavingLine[];
       transactions: LinkedSavingTransaction[];
     },
@@ -106,9 +101,10 @@ export class GetSavingsGoalProgressUseCase {
       targetDate: goal.targetDate,
       payDayOfMonth: data.payDayOfMonth,
       materializedPeriods: data.materializedPeriods,
-      canProvisionMissingPeriods: data.templateLines.some(
-        (line) => line.kind === 'saving' && line.savingsGoalId === goal.id,
-      ),
+      // PUL-316 — combler un trou ne recopie plus une ligne du Mois Type : il
+      // crée la prévision liée directement. Seul le modèle par défaut reste
+      // nécessaire, pour matérialiser le budget du mois absent.
+      canProvisionMissingPeriods: data.hasDefaultTemplate,
       initialAmount: goal.initialAmount ?? 0,
       lines: data.lines,
       transactions: data.transactions,
