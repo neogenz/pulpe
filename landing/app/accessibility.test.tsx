@@ -59,6 +59,10 @@ const componentSources = {
     new URL("../components/sections/HowItWorks.tsx", import.meta.url),
     "utf8",
   ),
+  accordionItem: readFileSync(
+    new URL("../components/ui/AccordionItem.tsx", import.meta.url),
+    "utf8",
+  ),
   fadeIn: readFileSync(
     new URL("../components/ui/FadeIn.tsx", import.meta.url),
     "utf8",
@@ -392,10 +396,22 @@ describe("landing accessibility contracts", () => {
       <AccordionItem question="Question" answer="Réponse" />,
     );
 
-    assert.match(html, /aria-expanded="false"/);
-    const panel = html.match(/<div[^>]*role="region"[^>]*>/)?.[0];
-    assert.ok(panel, "Accordion panel region is missing");
-    assert.match(panel, /aria-hidden="true"/);
+    // L'état ouvert, le clavier et l'annonce viennent désormais de `<details>`,
+    // qui répond sans attendre l'hydratation. `invisible` remplace l'ancien
+    // `aria-hidden` pour retirer le contenu replié de l'arbre d'accessibilité,
+    // le `display: none` natif ne se transitionnant pas.
+    assert.match(html, /^<details/);
+    assert.match(html, /<summary/);
+    assert.doesNotMatch(html, /\bopen\b=|<details open/);
+    const panel = html.match(/<div class="[^"]*grid-rows-\[0fr\][^"]*"/)?.[0];
+    assert.ok(panel, "Accordion collapsed panel is missing");
+    assert.match(panel, /\binvisible\b/);
+    assert.match(panel, /group-open:visible/);
+  });
+
+  it("keeps the accordion out of the client bundle", () => {
+    assert.doesNotMatch(componentSources.accordionItem, /use client/);
+    assert.doesNotMatch(componentSources.accordionItem, /useState/);
   });
 
   it("transitions only the properties that change", () => {
@@ -430,15 +446,30 @@ describe("landing accessibility contracts", () => {
       componentSources.header,
       /scale-\[0\.25\] opacity-0 blur-\[4px\]/,
     );
-    assert.match(
-      componentSources.header,
-      /transition-\[opacity,filter,scale\]/,
-    );
+    assert.match(componentSources.header, /transition-\[opacity,filter,scale\]/);
+    assert.match(componentSources.header, /group-open:blur-\[4px\]/);
+    assert.match(componentSources.header, /group-open:blur-none/);
+    // `blur-0` est une classe Tailwind v3 : la v4 ne la génère pas et l'ignore
+    // en silence, ce qui laissait la croix floutée une fois le menu ouvert.
+    assert.doesNotMatch(componentSources.header, /[\s"]blur-0[\s"]/);
   });
 
-  it("associates the mobile menu button with its navigation panel", () => {
-    assert.match(componentSources.header, /aria-controls="mobile-nav-panel"/);
-    assert.match(componentSources.header, /id="mobile-nav-panel"/);
+  it("opens the mobile menu without waiting for hydration", () => {
+    // `<details>`/`<summary>` associe nativement le bouton à son panneau et
+    // annonce l'état ouvert : plus besoin d'`aria-controls` ni d'`aria-expanded`
+    // pilotés à la main, et surtout le menu répond avant l'hydratation.
+    assert.match(componentSources.header, /<details id=\{MOBILE_NAV_ID\}/);
+    assert.match(componentSources.header, /<summary/);
+    assert.match(componentSources.header, /id=\{MOBILE_NAV_PANEL_ID\}/);
+    assert.doesNotMatch(componentSources.header, /useState/);
+    assert.doesNotMatch(componentSources.header, /onClick=\{\(\) => setMobile/);
+    // Le panneau ne doit jamais retourner sous le `<nav>` de la barre : celui-ci
+    // porte un `backdrop-filter` en état scrollé, ce qui en ferait un bloc
+    // conteneur et casserait son `fixed inset-0`.
+    assert.match(
+      componentSources.header,
+      /<\/nav>\s*\n[\s\S]*<details id=\{MOBILE_NAV_ID\}/,
+    );
   });
 
   it("waits for analytics before decorating cross-domain links", () => {
@@ -489,16 +520,16 @@ describe("landing accessibility contracts", () => {
     );
   });
 
-  it("dismisses the mobile navigation when the page starts scrolling", () => {
-    assert.match(componentSources.header, /const closeOnScroll/);
-    assert.match(
-      componentSources.header,
-      /addEventListener\(['"]scroll['"], closeOnScroll, \{ passive: true \}\)/,
-    );
-    assert.match(
-      componentSources.header,
-      /removeEventListener\(['"]scroll['"], closeOnScroll\)/,
-    );
+  it("dismisses the mobile navigation without waiting for hydration", () => {
+    // Les fermetures automatiques vivent dans le script inline du layout, au
+    // même titre que l'ouverture : sinon elles ne répondraient qu'après les
+    // 3,2 s d'attente du bundle.
+    const script = componentSources.layout;
+    assert.match(script, /window\.addEventListener\('scroll',close,\{passive:true\}\)/);
+    assert.match(script, /e\.key!=='Escape'/);
+    assert.match(script, /window\.innerWidth>=\$\{DESKTOP_BREAKPOINT_PX\}/);
+    assert.match(script, /MOBILE_NAV_PANEL_ID\} a'\)\)close\(\)/);
+    assert.doesNotMatch(componentSources.header, /addEventListener/);
   });
 
   it("keeps marketing content and product proof visible by default", () => {

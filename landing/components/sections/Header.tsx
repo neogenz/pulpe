@@ -2,10 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui";
-import { SCROLL_SENTINEL_ID, angularUrl } from "@/lib/config";
+import {
+  MOBILE_NAV_ID,
+  MOBILE_NAV_PANEL_ID,
+  SCROLL_SENTINEL_ID,
+  angularUrl,
+} from "@/lib/config";
 import { trackCTAClick } from "@/lib/posthog";
 
 const navLinks = [
@@ -16,38 +20,8 @@ const navLinks = [
 ];
 
 const SCROLL_THRESHOLD_PX = 20;
-const DESKTOP_BREAKPOINT_PX = 1024;
 
 export function Header() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (!mobileMenuOpen) return;
-
-    const closeOnDesktop = () => {
-      if (window.innerWidth >= DESKTOP_BREAKPOINT_PX) {
-        setMobileMenuOpen(false);
-      }
-    };
-    const closeOnScroll = () => setMobileMenuOpen(false);
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setMobileMenuOpen(false);
-        menuButtonRef.current?.focus({ preventScroll: true });
-      }
-    };
-
-    window.addEventListener("resize", closeOnDesktop);
-    window.addEventListener("scroll", closeOnScroll, { passive: true });
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("resize", closeOnDesktop);
-      window.removeEventListener("scroll", closeOnScroll);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [mobileMenuOpen]);
-
   return (
     <>
       {/* Rendue côté serveur : le script inline du layout l'observe dès la fin du
@@ -108,68 +82,60 @@ export function Header() {
               </Button>
             </div>
 
-            <button
-              ref={menuButtonRef}
-              type="button"
-              className="grid min-h-11 min-w-11 place-items-center rounded-lg text-text-secondary transition-[color,background-color,scale] duration-200 hover:bg-primary/8 hover:text-text active:scale-[0.96] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 lg:hidden motion-reduce:transition-none motion-reduce:scale-100"
-              onClick={() => setMobileMenuOpen((open) => !open)}
-              aria-label={mobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
-              aria-expanded={mobileMenuOpen}
-              aria-controls="mobile-nav-panel"
-            >
-              <span className="relative block h-6 w-6" aria-hidden="true">
-                <Menu
-                  className={`absolute inset-0 transition-[opacity,filter,scale] duration-300 ease-[cubic-bezier(0.2,0,0,1)] motion-reduce:transition-none motion-reduce:blur-none ${
-                    mobileMenuOpen
-                      ? "scale-[0.25] opacity-0 blur-[4px]"
-                      : "scale-100 opacity-100 blur-0"
-                  }`}
-                />
-                <X
-                  className={`absolute inset-0 transition-[opacity,filter,scale] duration-300 ease-[cubic-bezier(0.2,0,0,1)] motion-reduce:transition-none motion-reduce:blur-none ${
-                    mobileMenuOpen
-                      ? "scale-100 opacity-100 blur-0"
-                      : "scale-[0.25] opacity-0 blur-[4px]"
-                  }`}
-                />
-              </span>
-            </button>
           </div>
         </nav>
 
-        <nav
-          id="mobile-nav-panel"
-          aria-label="Navigation mobile"
-          className={`fixed inset-0 z-10 flex items-center overflow-y-auto bg-surface/95 p-4 pt-24 backdrop-blur-xl transition-opacity duration-300 lg:hidden motion-reduce:transition-none ${
-            mobileMenuOpen
-              ? "pointer-events-auto opacity-100"
-              : "pointer-events-none opacity-0"
-          }`}
-          {...(!mobileMenuOpen && { inert: true })}
-        >
-          <div className="flex w-full flex-col gap-2">
-            {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="flex min-h-14 items-center justify-center rounded-lg px-4 py-3 text-center text-lg font-semibold text-text transition-[background-color,scale] duration-200 hover:bg-primary/8 active:scale-[0.96] active:bg-primary/12 motion-reduce:transition-none motion-reduce:scale-100"
-                onClick={() => setMobileMenuOpen(false)}
+        {/* `<details>` porte nativement l'état ouvert, la commande clavier et
+            l'annonce lecteur d'écran, et répond dès le premier affichage : le
+            menu n'attend plus l'hydratation, mesurée à 3,2 s sur mobile.
+            Il reste hors du `<nav>` de la barre parce que celui-ci porte un
+            `backdrop-filter` en état scrollé, ce qui en ferait un bloc
+            conteneur et casserait le `fixed inset-0` du panneau. */}
+        <details id={MOBILE_NAV_ID} className="group">
+          <summary
+            aria-label="Menu"
+            className="absolute right-6 top-0 z-30 grid h-14 min-h-11 min-w-11 cursor-pointer list-none place-items-center rounded-lg text-text-secondary transition-[color,background-color,scale] duration-200 hover:bg-primary/8 hover:text-text active:scale-[0.96] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 lg:hidden motion-reduce:transition-none motion-reduce:scale-100 [&::-webkit-details-marker]:hidden"
+          >
+            {/* `blur-none` et non `blur-0` : cette dernière est une classe
+                Tailwind v3, que la v4 ne génère plus. Elle échouait en silence
+                et laissait la croix floutée à 4px une fois le menu ouvert. */}
+            <span className="relative block h-6 w-6" aria-hidden="true">
+              <Menu className="absolute inset-0 scale-100 opacity-100 blur-none transition-[opacity,filter,scale] duration-300 ease-[cubic-bezier(0.2,0,0,1)] group-open:scale-[0.25] group-open:opacity-0 group-open:blur-[4px] motion-reduce:transition-none motion-reduce:blur-none" />
+              <X className="absolute inset-0 scale-[0.25] opacity-0 blur-[4px] transition-[opacity,filter,scale] duration-300 ease-[cubic-bezier(0.2,0,0,1)] group-open:scale-100 group-open:opacity-100 group-open:blur-none motion-reduce:transition-none motion-reduce:blur-none" />
+            </span>
+          </summary>
+
+          {/* Le panneau reste affiché pour conserver son fondu : le
+              `display: none` natif d'un `<details>` replié ne se transitionne
+              pas. `invisible` le retire alors de l'arbre d'accessibilité et du
+              parcours de tabulation, ce que faisait l'ancien `inert`. */}
+          <nav
+            id={MOBILE_NAV_PANEL_ID}
+            aria-label="Navigation mobile"
+            className="invisible fixed inset-0 z-10 flex items-center overflow-y-auto bg-surface/95 p-4 pt-24 opacity-0 backdrop-blur-xl transition-[opacity,visibility] duration-300 group-open:visible group-open:opacity-100 lg:hidden motion-reduce:transition-none"
+          >
+            <div className="flex w-full flex-col gap-2">
+              {navLinks.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="flex min-h-14 items-center justify-center rounded-lg px-4 py-3 text-center text-lg font-semibold text-text transition-[background-color,scale] duration-200 hover:bg-primary/8 active:scale-[0.96] active:bg-primary/12 motion-reduce:transition-none motion-reduce:scale-100"
+                >
+                  {link.label}
+                </a>
+              ))}
+              <Button
+                href={angularUrl("/signup", "mobile_menu_commencer")}
+                className="mt-4 w-full"
+                onClick={() =>
+                  trackCTAClick("commencer", "mobile_menu", "/signup")
+                }
               >
-                {link.label}
-              </a>
-            ))}
-            <Button
-              href={angularUrl("/signup", "mobile_menu_commencer")}
-              className="mt-4 w-full"
-              onClick={() => {
-                setMobileMenuOpen(false);
-                trackCTAClick("commencer", "mobile_menu", "/signup");
-              }}
-            >
-              Créer mon budget
-            </Button>
-          </div>
-        </nav>
+                Créer mon budget
+              </Button>
+            </div>
+          </nav>
+        </details>
       </header>
     </>
   );

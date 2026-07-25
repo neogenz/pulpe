@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import { PostHogProvider } from "../components/PostHogProvider";
-import { SCROLL_SENTINEL_ID } from "../lib/config";
+import {
+  DESKTOP_BREAKPOINT_PX,
+  MOBILE_NAV_ID,
+  MOBILE_NAV_PANEL_ID,
+  SCROLL_SENTINEL_ID,
+} from "../lib/config";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -74,20 +79,39 @@ export const metadata: Metadata = {
   },
 };
 
-// L'état scrollé de la navbar vit hors de React : le bundle applicatif arrive
-// plusieurs secondes après la peinture sur mobile, et un `useEffect` laisserait
-// l'en-tête transparent pendant tout ce temps. Ce script observe la sentinelle
-// déjà présente dans le HTML statique et pose l'attribut sur `<html>`, un nœud
-// que React ne rend pas, donc sans divergence d'hydratation possible.
-const scrollStateScript = `(function(){
-if(window.pulpeScrollStateReady)return;
-window.pulpeScrollStateReady=1;
+// L'en-tête vit hors de React : le bundle applicatif arrive plusieurs secondes
+// après la peinture sur mobile, et un `useEffect` laisserait la navbar
+// transparente et le menu inerte pendant tout ce temps. L'ouverture du menu est
+// native (`<details>`) ; ce script ne fournit que ce que le navigateur ne fait
+// pas seul, et pose l'attribut de défilement sur `<html>`, un nœud que React ne
+// rend pas, donc sans divergence d'hydratation possible.
+const headerScript = `(function(){
+if(window.pulpeHeaderReady)return;
+window.pulpeHeaderReady=1;
 function start(){
 var sentinel=document.getElementById('${SCROLL_SENTINEL_ID}');
-if(!sentinel||!window.IntersectionObserver)return;
+if(sentinel&&window.IntersectionObserver){
 new IntersectionObserver(function(entries){
 document.documentElement.toggleAttribute('data-scrolled',!entries[0].isIntersecting);
 }).observe(sentinel);
+}
+var nav=document.getElementById('${MOBILE_NAV_ID}');
+if(!nav)return;
+function close(){if(nav.open)nav.open=false;}
+nav.addEventListener('click',function(e){
+var t=e.target;
+if(t&&t.closest&&t.closest('#${MOBILE_NAV_PANEL_ID} a'))close();
+});
+document.addEventListener('keydown',function(e){
+if(e.key!=='Escape'||!nav.open)return;
+nav.open=false;
+var summary=nav.querySelector('summary');
+if(summary)summary.focus({preventScroll:true});
+});
+window.addEventListener('scroll',close,{passive:true});
+window.addEventListener('resize',function(){
+if(window.innerWidth>=${DESKTOP_BREAKPOINT_PX})close();
+});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);
 else start();
@@ -131,7 +155,7 @@ export default function RootLayout({
   return (
     <html lang="fr" className={poppins.variable}>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: scrollStateScript }} />
+        <script dangerouslySetInnerHTML={{ __html: headerScript }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
