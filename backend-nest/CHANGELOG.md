@@ -1,5 +1,12 @@
 # backend-nest
 
+## 0.38.1
+
+### Patch Changes
+
+- Les prévisions d'épargne rattachées à un objectif s'arrêtent à sa date cible, et l'échéance reste juste pour les jours de paie personnalisés.
+  - pulpe-shared@0.38.1
+
 ## 0.38.0
 
 ### Patch Changes

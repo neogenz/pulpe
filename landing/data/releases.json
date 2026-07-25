@@ -1,5 +1,30 @@
 [
   {
+    "version": "0.38.1",
+    "date": "2026-07-25",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.38.1",
+    "platforms": ["web"],
+    "changes": {
+      "features": [],
+      "fixes": [
+        {
+          "title": "Prévisions d'épargne bornées à l'échéance",
+          "description": "Un objectif d'épargne ne crée plus de prévisions dans les budgets dont la période dépasse sa date cible"
+        },
+        {
+          "title": "Échéance fiable avec un jour de paie personnalisé",
+          "description": "Une erreur de lecture du jour de paie ne décale plus l'échéance d'un objectif d'une période"
+        }
+      ],
+      "technical": [
+        {
+          "title": "Génération de budgets allégée",
+          "description": "La lecture du jour de paie est évitée quand aucun objectif d'épargne actif ne borne la génération"
+        }
+      ]
+    }
+  },
+  {
     "version": "0.38.0",
     "iosVersion": "1.2.0",
     "date": "2026-07-24",

@@ -24,4 +24,9 @@ export const SKIPPED_RELEASES: readonly SkippedWhatsNewRelease[] = [
     reason:
       'Omission historique acceptée après publication, sans rejouer le toast',
   },
+  {
+    version: '0.38.1',
+    reason:
+      'Correction serveur des prévisions d’épargne au-delà de l’échéance, un jour après le toast 0.38.0 : rien de neuf à annoncer',
+  },
 ];
