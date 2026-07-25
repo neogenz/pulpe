@@ -66,7 +66,9 @@ export class ApplySavingsGoalPlanUseCase {
     user: AuthenticatedUser,
   ): Promise<SavingsGoalPlanApplyResult> {
     const goal = await this.repo.findById(id);
-    const payDayOfMonth = await this.repo.findPayDayOfMonth();
+    // Same live `user_metadata` the guard already read for this request
+    // (PUL-315) — re-asking GoTrue here would just be a second round trip.
+    const payDayOfMonth = user.payDayOfMonth ?? null;
     // The current cycle stays editable while unchecked; everything strictly
     // before it is locked. Same period helper the client simulates with.
     const minPeriodIndex = periodIndex(

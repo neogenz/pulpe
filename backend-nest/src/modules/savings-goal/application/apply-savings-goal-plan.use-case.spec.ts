@@ -123,6 +123,16 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
     expect(recalculation.recalculate).toHaveBeenCalledTimes(24);
   });
 
+  it('never re-reads the pay day from GoTrue — the guard already carries it', async () => {
+    await useCase.execute(
+      'goal-1',
+      { monthAdjustments: [], missingMonthAdjustments: [] },
+      user,
+    );
+
+    expect(repo.findPayDayOfMonth).not.toHaveBeenCalled();
+  });
+
   it('fills a missing month with a linked forecast, no Mois Type line involved', async () => {
     await useCase.execute(
       'goal-1',
