@@ -42,11 +42,6 @@ export interface SavingsGoalRepositoryPort {
    * décroissant). Les lignes sont triées chronologiquement croissant.
    */
   findContributions(goalId: string): Promise<SavingsGoalContribution[]>;
-  /**
-   * payDayOfMonth de l'utilisateur authentifié (borné 1-31), ou null pour le
-   * comportement calendaire standard. Lu depuis `auth.users.user_metadata`.
-   */
-  findPayDayOfMonth(): Promise<number | null>;
   /** Périodes possédant déjà un budget pour l'utilisateur authentifié. */
   findMaterializedPeriods(): Promise<BudgetPeriod[]>;
   /**

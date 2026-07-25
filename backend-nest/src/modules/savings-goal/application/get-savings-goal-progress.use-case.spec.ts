@@ -36,7 +36,6 @@ describe('GetSavingsGoalProgressUseCase', () => {
   let mockRepo: {
     findById: ReturnType<typeof jest.fn>;
     findLinkedContributions: ReturnType<typeof jest.fn>;
-    findPayDayOfMonth: ReturnType<typeof jest.fn>;
     findMaterializedPeriods: ReturnType<typeof jest.fn>;
   };
   let mockTemplateRepo: {
@@ -49,7 +48,6 @@ describe('GetSavingsGoalProgressUseCase', () => {
       findLinkedContributions: jest
         .fn()
         .mockResolvedValue({ lines: [], transactions: [] }),
-      findPayDayOfMonth: jest.fn().mockResolvedValue(null),
       findMaterializedPeriods: jest.fn().mockResolvedValue([]),
     };
     mockTemplateRepo = {
@@ -148,9 +146,11 @@ describe('GetSavingsGoalProgressUseCase', () => {
       ...goal,
       createdAt: created.toISOString(),
     });
-    mockRepo.findPayDayOfMonth.mockResolvedValue(payDay);
 
-    const { computed } = await useCase.execute('goal-1', mockUser);
+    const { computed } = await useCase.execute('goal-1', {
+      ...mockUser,
+      payDayOfMonth: payDay,
+    });
 
     const index = (p: { month: number; year: number }) => p.year * 12 + p.month;
     const expectedElapsed = Math.max(
@@ -159,7 +159,6 @@ describe('GetSavingsGoalProgressUseCase', () => {
         index(getBudgetPeriodForDate(created, payDay)) +
         1,
     );
-    expect(mockRepo.findPayDayOfMonth).toHaveBeenCalled();
     expect(computed.monthsElapsed).toBe(expectedElapsed);
   });
 

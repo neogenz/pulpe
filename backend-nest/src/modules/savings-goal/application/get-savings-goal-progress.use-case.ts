@@ -49,19 +49,14 @@ export class GetSavingsGoalProgressUseCase {
   ): Promise<SavingsGoalProgressComputation> {
     // findById throws SAVINGS_GOAL_NOT_FOUND for a missing/foreign goal (RLS).
     const goal = await this.repo.findById(id);
-    const [
-      { lines, transactions },
-      payDayOfMonth,
-      materializedPeriods,
-      defaultTemplateId,
-    ] = await Promise.all([
-      this.repo.findLinkedContributions(id),
-      this.repo.findPayDayOfMonth(),
-      this.repo.findMaterializedPeriods(),
-      this.templateRepo.findDefaultTemplateId(user.id),
-    ]);
+    const [{ lines, transactions }, materializedPeriods, defaultTemplateId] =
+      await Promise.all([
+        this.repo.findLinkedContributions(id),
+        this.repo.findMaterializedPeriods(),
+        this.templateRepo.findDefaultTemplateId(user.id),
+      ]);
     const input = this.buildInput(goal, {
-      payDayOfMonth,
+      payDayOfMonth: user.payDayOfMonth ?? null,
       materializedPeriods,
       hasDefaultTemplate: defaultTemplateId != null,
       lines,

@@ -3,8 +3,6 @@ import type { Buffer } from 'node:buffer';
 import type { PostgrestError } from '@supabase/supabase-js';
 import { ZodError } from 'zod';
 import {
-  PAY_DAY_MAX,
-  PAY_DAY_MIN,
   type BudgetLine,
   type BudgetPeriod,
   type LinkedSavingLine,
@@ -339,13 +337,6 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       .sort(
         (a, b) => a.budgetYear - b.budgetYear || a.budgetMonth - b.budgetMonth,
       );
-  }
-
-  async findPayDayOfMonth(): Promise<number | null> {
-    const { data } = await this.supabaseProvider.client.auth.getUser();
-    const raw: unknown = data?.user?.user_metadata?.payDayOfMonth;
-    if (typeof raw !== 'number' || !Number.isInteger(raw)) return null;
-    return Math.max(PAY_DAY_MIN, Math.min(PAY_DAY_MAX, raw));
   }
 
   async findMaterializedPeriods(): Promise<BudgetPeriod[]> {

@@ -42,7 +42,7 @@ export class ApplySavingsGoalGenerationStopUseCase {
     user: AuthenticatedUser,
   ): Promise<{ affectedCount: number }> {
     await this.repo.findById(id);
-    const payDayOfMonth = await this.repo.findPayDayOfMonth();
+    const payDayOfMonth = user.payDayOfMonth ?? null;
     const minPeriodIndex = periodIndex(
       getBudgetPeriodForDate(new Date(), payDayOfMonth),
     );
