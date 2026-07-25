@@ -212,6 +212,19 @@ describe('CreateSavingsGoalUseCase — bounded materialization (PUL-316)', () =>
     expect(logger.warn).toHaveBeenCalledTimes(1);
   });
 
+  it('should warn when a budgeted month received no forecast', async () => {
+    spread.fanOut.mockResolvedValue({
+      spreadGroupId: GOAL_ID,
+      lines: [{ id: 'line-1' }],
+      createdBudgets: [],
+      skippedMonths: [periodAtOffset(1)],
+    });
+
+    await createGoal(dayOfPeriod(periodAtOffset(2), 15), 692.5);
+
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+  });
+
   it('should still create the goal when the fan-out fails', async () => {
     spread.fanOut.mockRejectedValue(new Error('spread down'));
 

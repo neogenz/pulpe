@@ -109,7 +109,7 @@ export class CreateSavingsGoalUseCase {
         return false;
       }
 
-      const { lines } = await this.spread.fanOut(
+      const { lines, skippedMonths } = await this.spread.fanOut(
         {
           name: goal.name,
           kind: 'saving',
@@ -120,6 +120,20 @@ export class CreateSavingsGoalUseCase {
         },
         user,
       );
+      // Every tranche targets an already-budgeted period, so a skipped month
+      // means one vanished between the two reads. Rare, but it must not pass as
+      // a fully materialized plan.
+      if (skippedMonths.length > 0) {
+        this.logger.warn(
+          {
+            operation: 'savingsGoal.autoDecompose',
+            userId: user.id,
+            savingsGoalId: goal.id,
+            skippedMonthCount: skippedMonths.length,
+          },
+          'Some budgeted months received no forecast',
+        );
+      }
       return lines.length > 0;
     } catch (err) {
       this.rethrowCommittedBaselineFailure(err, goal.id, user.id);

@@ -180,12 +180,10 @@ export class ApplySavingsGoalPlanUseCase {
     );
     if (periodsToProvision.length === 0) return 0;
 
-    const amountByPeriod = new Map(
-      missing.map((adjustment) => [
-        this.periodKey(adjustment),
-        adjustment.amount,
-      ]),
-    );
+    // Filter `missing` itself rather than looking amounts up by period: the
+    // amount then travels with its own period, so no key can go unmatched and
+    // no zero-amount fallback can ever reach a budget.
+    const provisionKeys = new Set(periodsToProvision.map(this.periodKey));
 
     try {
       // No `spreadGroupId` on purpose: this flow is retry-safe by re-reading,
@@ -197,11 +195,11 @@ export class ApplySavingsGoalPlanUseCase {
           name: goal.name,
           kind: 'saving',
           savingsGoalId: goal.id,
-          tranches: periodsToProvision.map((period) => ({
-            year: period.year,
-            month: period.month,
-            amount: amountByPeriod.get(this.periodKey(period)) ?? 0,
-          })),
+          tranches: missing
+            .filter((adjustment) =>
+              provisionKeys.has(this.periodKey(adjustment)),
+            )
+            .map(({ year, month, amount }) => ({ year, month, amount })),
         },
         user,
       );
