@@ -6,10 +6,13 @@ import { ClsService } from 'nestjs-cls';
 import { AuthGuard } from './auth.guard';
 import { SupabaseService } from '@modules/supabase/supabase.service';
 import { BusinessException } from '@common/exceptions/business.exception';
+import { PAY_DAY_MAX } from 'pulpe-shared';
+import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import {
   createMockAuthenticatedUser,
   createMockSupabaseClient,
   expectErrorThrown,
+  MOCK_USER_ID,
   MockSupabaseClient,
 } from '../../test/test-mocks';
 
@@ -304,6 +307,66 @@ describe('AuthGuard', () => {
       expect(
         (mockRequest as typeof mockRequest & { user: unknown }).user,
       ).toEqual(mockUser);
+    });
+
+    // The guard already loads user_metadata for every request. Carrying the pay
+    // day here is what lets downstream code stop re-asking GoTrue for it.
+    it('should carry a clamped payDayOfMonth from the user metadata', async () => {
+      const mockRequest = {
+        headers: {
+          authorization: 'Bearer valid-token',
+          'x-client-key': 'ab'.repeat(32),
+        },
+      };
+      const mockContext = {
+        switchToHttp: () => ({ getRequest: () => mockRequest }),
+        getHandler: () => ({}),
+        getClass: () => ({}),
+      } as ExecutionContext;
+
+      mockSupabaseClient
+        .setMockData({
+          id: MOCK_USER_ID,
+          email: 'test@example.com',
+          user_metadata: { payDayOfMonth: 99 },
+        })
+        .setMockError(null);
+
+      await authGuard.canActivate(mockContext);
+
+      expect(
+        (mockRequest as typeof mockRequest & { user: AuthenticatedUser }).user
+          .payDayOfMonth,
+      ).toBe(PAY_DAY_MAX);
+    });
+
+    it('should carry a null payDayOfMonth when the metadata holds none', async () => {
+      const mockRequest = {
+        headers: {
+          authorization: 'Bearer valid-token',
+          'x-client-key': 'ab'.repeat(32),
+        },
+      };
+      const mockContext = {
+        switchToHttp: () => ({ getRequest: () => mockRequest }),
+        getHandler: () => ({}),
+        getClass: () => ({}),
+      } as ExecutionContext;
+
+      mockSupabaseClient
+        .setMockData({
+          id: MOCK_USER_ID,
+          email: 'test@example.com',
+          user_metadata: { firstName: 'John' },
+        })
+        .setMockError(null);
+
+      await authGuard.canActivate(mockContext);
+
+      expect(
+        (mockRequest as typeof mockRequest & { user: AuthenticatedUser }).user
+          .payDayOfMonth,
+      ).toBeNull();
     });
 
     it('should handle errors in cache branch gracefully', async () => {

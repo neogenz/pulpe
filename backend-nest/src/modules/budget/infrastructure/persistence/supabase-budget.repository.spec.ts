@@ -308,17 +308,15 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
   };
 
   /**
-   * Provider exposing the three surfaces the generation path touches: the
-   * savings_goal read, the payDay read, and the RPC itself.
+   * Provider exposing the two surfaces the generation path touches: the
+   * savings_goal read and the RPC. `auth.getUser` is wired as a spy that must
+   * stay untouched — the pay day now travels on the authenticated user.
    */
   function generationProvider(
     goals: { id: string; target_date: string }[],
     payDayOfMonth: number | null,
     rpc: ReturnType<typeof jest.fn>,
-    getUser: ReturnType<typeof jest.fn> = jest.fn().mockResolvedValue({
-      data: { user: { user_metadata: { payDayOfMonth } } },
-      error: null,
-    }),
+    getUser: ReturnType<typeof jest.fn> = jest.fn(),
   ): AuthenticatedSupabaseProvider {
     const client = {
       from: (table: string) => {
@@ -342,7 +340,7 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
         return client;
       },
       get user() {
-        return { ...mockUser, id: USER_UUID };
+        return { ...mockUser, id: USER_UUID, payDayOfMonth };
       },
     } as unknown as AuthenticatedSupabaseProvider;
   }
@@ -399,13 +397,11 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
     );
   });
 
-  it('fails the creation rather than bounding on a guessed pay day', async () => {
-    // Falling back to the calendar default would shift the horizon by one
-    // period for a custom payDay and silently drop a contribution.
+  it('never re-reads the pay day from GoTrue — the guard already carries it', async () => {
+    // The guard fetches user_metadata once per request; re-asking here cost
+    // `generate-budgets` up to 36 redundant round-trips.
     const rpc = jest.fn().mockResolvedValue({ data: rpcResponse, error: null });
-    const getUser = jest
-      .fn()
-      .mockResolvedValue({ data: null, error: { message: 'GoTrue down' } });
+    const getUser = jest.fn();
     const repo = new SupabaseBudgetRepository(
       generationProvider(
         [{ id: OVERDUE_GOAL_UUID, target_date: '2026-10-12' }],
@@ -416,23 +412,18 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
       createMockEncryption(),
     );
 
-    let caught: unknown;
-    try {
-      await repo.createBudgetFromTemplateRpc(payload);
-    } catch (error) {
-      caught = error;
-    }
+    await repo.createBudgetFromTemplateRpc(payload);
 
-    expect(caught).toBeInstanceOf(BusinessException);
-    expect((caught as BusinessException).code).toBe(
-      ERROR_DEFINITIONS.BUDGET_CREATE_FAILED.code,
+    expect(getUser).not.toHaveBeenCalled();
+    expect(rpc).toHaveBeenCalledWith(
+      'create_budget_from_template',
+      expect.objectContaining({
+        p_excluded_savings_goal_ids: [OVERDUE_GOAL_UUID],
+      }),
     );
-    expect(rpc).not.toHaveBeenCalled();
   });
 
-  it('sends an empty exclusion list without reading payDay when the user has no active goal', async () => {
-    // Most users own no savings goal; paying a GoTrue round-trip per
-    // materialization would cost `generate-budgets` up to 36 of them.
+  it('sends an empty exclusion list when the user has no active goal', async () => {
     const rpc = jest.fn().mockResolvedValue({ data: rpcResponse, error: null });
     const getUser = jest.fn();
     const repo = new SupabaseBudgetRepository(

@@ -8,6 +8,7 @@ import { SupabaseService } from '@modules/supabase/supabase.service';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { SupabaseClient } from '@/types/supabase-helpers';
 import { SKIP_CLIENT_KEY } from '@common/decorators/skip-client-key.decorator';
+import { resolvePayDayOfMonth } from '@common/utils/pay-day';
 import { ClsService } from 'nestjs-cls';
 
 interface RequestWithCache extends Request {
@@ -112,6 +113,7 @@ export class AuthGuard implements CanActivate {
         lastName: user.user_metadata?.lastName,
         accessToken,
         clientKey,
+        payDayOfMonth: resolvePayDayOfMonth(user.user_metadata),
       };
 
       request.user = authenticatedUser;
