@@ -1,5 +1,12 @@
 # backend-nest
 
+## 0.38.2
+
+### Patch Changes
+
+- Le jour de paie voyage désormais avec l'utilisateur authentifié, ce qui supprime un appel réseau par budget matérialisé.
+  - pulpe-shared@0.38.2
+
 ## 0.38.1
 
 ### Patch Changes

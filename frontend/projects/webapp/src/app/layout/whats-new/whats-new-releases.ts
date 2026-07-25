@@ -29,4 +29,9 @@ export const SKIPPED_RELEASES: readonly SkippedWhatsNewRelease[] = [
     reason:
       'Correction serveur des prévisions d’épargne au-delà de l’échéance, un jour après le toast 0.38.0 : rien de neuf à annoncer',
   },
+  {
+    version: '0.38.2',
+    reason:
+      'Release technique : le jour de paie voyage avec l’utilisateur authentifié, supprimant un appel réseau par budget matérialisé — rien de visible pour la webapp',
+  },
 ];
