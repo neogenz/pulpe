@@ -767,6 +767,106 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
     expect(afterReopen.data?.length).toBe(1);
   });
 
+  it('create_budget_from_template skips the goals listed as past their target date (PUL-311)', async () => {
+    if (!env) return;
+
+    const user = await makeUser(`sg-horizon-${crypto.randomUUID()}@test.local`);
+    createdUserIds.push(user.id);
+
+    const templateId = crypto.randomUUID();
+    const goalId = crypto.randomUUID();
+    const linkedLineId = crypto.randomUUID();
+    const unlinkedLineId = crypto.randomUUID();
+
+    await admin.from('template').insert({
+      id: templateId,
+      user_id: user.id,
+      name: 'Mois type',
+      is_default: true,
+    });
+    await admin.from('savings_goal').insert({
+      id: goalId,
+      user_id: user.id,
+      name: 'Canapé',
+      target_amount: 'enc',
+      // Still ACTIVE — an overdue goal never leaves ACTIVE (docs/SAVINGS.md §6),
+      // so the status predicate alone cannot stop the generation.
+      target_date: '2099-01-01',
+      status: 'ACTIVE',
+    });
+    await admin.from('template_line').insert([
+      {
+        id: linkedLineId,
+        template_id: templateId,
+        savings_goal_id: goalId,
+        name: 'Canapé',
+        amount: 'enc',
+        kind: 'saving',
+        recurrence: 'fixed',
+      },
+      {
+        id: unlinkedLineId,
+        template_id: templateId,
+        name: 'Loyer',
+        amount: 'enc',
+        kind: 'expense',
+        recurrence: 'fixed',
+      },
+    ]);
+
+    const { error: pastTargetError } = await admin.rpc(
+      'create_budget_from_template',
+      {
+        p_user_id: user.id,
+        p_template_id: templateId,
+        p_month: 3,
+        p_year: 2099,
+        p_description: '',
+        p_excluded_savings_goal_ids: [goalId],
+      },
+    );
+    expect(pastTargetError).toBeNull();
+
+    const pastTargetLines = await admin
+      .from('budget_line')
+      .select('template_line_id, monthly_budget!inner(month, year)')
+      .eq('monthly_budget.month', 3)
+      .eq('monthly_budget.year', 2099)
+      .eq('monthly_budget.user_id', user.id);
+    const pastTargetTemplateLineIds = new Set(
+      (pastTargetLines.data ?? []).map((row) => row.template_line_id),
+    );
+    expect(pastTargetTemplateLineIds.has(linkedLineId)).toBe(false);
+    expect(pastTargetTemplateLineIds.has(unlinkedLineId)).toBe(true);
+
+    // Omitting the argument keeps the pre-PUL-311 behaviour, deadline or not:
+    // the horizon decision belongs to the caller, never to the RPC. 4/2099 is
+    // past the deadline too, and the linked line is still copied.
+    const { error: omittedArgError } = await admin.rpc(
+      'create_budget_from_template',
+      {
+        p_user_id: user.id,
+        p_template_id: templateId,
+        p_month: 4,
+        p_year: 2099,
+        p_description: '',
+      },
+    );
+    expect(omittedArgError).toBeNull();
+
+    const omittedArgLines = await admin
+      .from('budget_line')
+      .select('template_line_id, monthly_budget!inner(month, year)')
+      .eq('monthly_budget.month', 4)
+      .eq('monthly_budget.year', 2099)
+      .eq('monthly_budget.user_id', user.id);
+    const omittedArgTemplateLineIds = new Set(
+      (omittedArgLines.data ?? []).map((row) => row.template_line_id),
+    );
+    expect(omittedArgTemplateLineIds.has(linkedLineId)).toBe(true);
+    expect(omittedArgTemplateLineIds.has(unlinkedLineId)).toBe(true);
+  });
+
   it('create_template_with_lines persists an inline savings_goal_id (batch path)', async () => {
     if (!env) return;
 

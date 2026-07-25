@@ -287,6 +287,59 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
     );
   });
 
+  describe('propagation horizon (PUL-311)', () => {
+    const createPayload: TemplateLinesBulkOperations = {
+      update: [],
+      create: [
+        {
+          name: 'Canapé',
+          amount: 692.5,
+          kind: 'saving',
+          recurrence: 'fixed',
+          description: '',
+        },
+      ],
+      delete: [],
+      propagateToBudgets: true,
+    };
+
+    beforeEach(() => {
+      mockRepo.fetchFutureBudgets.mockResolvedValue([
+        { id: 'budget-07-2026', month: 7, year: 2026 },
+        { id: 'budget-10-2026', month: 10, year: 2026 },
+        { id: 'budget-11-2026', month: 11, year: 2026 },
+        { id: 'budget-01-2027', month: 1, year: 2027 },
+      ]);
+    });
+
+    it('should stop propagating at the max period, that period included', async () => {
+      await useCase.execute('template-1', createPayload, mockUser, {
+        maxPropagationPeriod: { month: 10, year: 2026 },
+      });
+
+      expect(mockRepo.bulkApplyTemplateLineOperations).toHaveBeenCalledWith(
+        expect.objectContaining({
+          budgetIds: ['budget-07-2026', 'budget-10-2026'],
+        }),
+      );
+    });
+
+    it('should propagate to every future budget when no max period is given', async () => {
+      await useCase.execute('template-1', createPayload, mockUser);
+
+      expect(mockRepo.bulkApplyTemplateLineOperations).toHaveBeenCalledWith(
+        expect.objectContaining({
+          budgetIds: [
+            'budget-07-2026',
+            'budget-10-2026',
+            'budget-11-2026',
+            'budget-01-2027',
+          ],
+        }),
+      );
+    });
+  });
+
   describe('cache invalidation ordering (R1)', () => {
     const buildPropagationPayload = (): TemplateLinesBulkOperations => ({
       update: [

@@ -646,6 +646,7 @@ export type Database = {
       create_budget_from_template: {
         Args: {
           p_description: string;
+          p_excluded_savings_goal_ids?: string[];
           p_month: number;
           p_template_id: string;
           p_user_id: string;

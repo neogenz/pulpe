@@ -284,6 +284,177 @@ describe('SupabaseBudgetRepository fetchBudgetDataForRecalc (strict decrypt)', (
   });
 });
 
+describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal horizon (PUL-311)', () => {
+  const USER_UUID = 'f1f0c5d6-9b3a-4c2e-8d7f-1a2b3c4d5e6f';
+  const TEMPLATE_UUID = '2b7c1e90-5d4a-4f31-9c8b-6e5d4c3b2a19';
+  const BUDGET_UUID = '9c8b7a65-4d3e-4210-8f7e-6d5c4b3a2918';
+  const OVERDUE_GOAL_UUID = '11111111-2222-4333-8444-555555555555';
+  const ON_TIME_GOAL_UUID = '66666666-7777-4888-8999-aaaaaaaaaaaa';
+
+  const rpcResponse = {
+    budget: {
+      id: BUDGET_UUID,
+      user_id: USER_UUID,
+      template_id: TEMPLATE_UUID,
+      month: 11,
+      year: 2026,
+      description: '',
+      ending_balance: null,
+      created_at: '2026-10-27T00:00:00Z',
+      updated_at: '2026-10-27T00:00:00Z',
+    },
+    budget_lines_created: 1,
+    template_name: 'Mois type',
+  };
+
+  /**
+   * Provider exposing the three surfaces the generation path touches: the
+   * savings_goal read, the payDay read, and the RPC itself.
+   */
+  function generationProvider(
+    goals: { id: string; target_date: string }[],
+    payDayOfMonth: number | null,
+    rpc: ReturnType<typeof jest.fn>,
+    getUser: ReturnType<typeof jest.fn> = jest.fn().mockResolvedValue({
+      data: { user: { user_metadata: { payDayOfMonth } } },
+      error: null,
+    }),
+  ): AuthenticatedSupabaseProvider {
+    const client = {
+      from: (table: string) => {
+        if (table !== 'savings_goal') {
+          throw new Error(`unexpected table: ${table}`);
+        }
+        return {
+          select: () => ({
+            eq: () => ({
+              eq: () => Promise.resolve({ data: goals, error: null }),
+            }),
+          }),
+        };
+      },
+      auth: { getUser },
+      rpc,
+    } as unknown as AuthenticatedSupabaseClient;
+
+    return {
+      get client() {
+        return client;
+      },
+      get user() {
+        return { ...mockUser, id: USER_UUID };
+      },
+    } as unknown as AuthenticatedSupabaseProvider;
+  }
+
+  const payload = {
+    p_user_id: USER_UUID,
+    p_template_id: TEMPLATE_UUID,
+    p_month: 11,
+    p_year: 2026,
+    p_description: '',
+  };
+
+  it('excludes a goal whose target period precedes the budget period, payDay-aware', async () => {
+    // payDay 27: 12.10.2026 belongs to period 10/2026, before the 11/2026
+    // budget being materialized — the reported over-commitment scenario.
+    const rpc = jest.fn().mockResolvedValue({ data: rpcResponse, error: null });
+    const repo = new SupabaseBudgetRepository(
+      generationProvider(
+        [{ id: OVERDUE_GOAL_UUID, target_date: '2026-10-12' }],
+        27,
+        rpc,
+      ),
+      createMockEncryption(),
+    );
+
+    await repo.createBudgetFromTemplateRpc(payload);
+
+    expect(rpc).toHaveBeenCalledWith(
+      'create_budget_from_template',
+      expect.objectContaining({
+        p_excluded_savings_goal_ids: [OVERDUE_GOAL_UUID],
+      }),
+    );
+  });
+
+  it('keeps a goal whose target period is the budget period itself', async () => {
+    // payDay 27: 12.11.2026 belongs to period 11/2026 — the deadline period is
+    // contributive (docs/SAVINGS.md §4.2, formule 5: échéance incluse).
+    const rpc = jest.fn().mockResolvedValue({ data: rpcResponse, error: null });
+    const repo = new SupabaseBudgetRepository(
+      generationProvider(
+        [{ id: ON_TIME_GOAL_UUID, target_date: '2026-11-12' }],
+        27,
+        rpc,
+      ),
+      createMockEncryption(),
+    );
+
+    await repo.createBudgetFromTemplateRpc(payload);
+
+    expect(rpc).toHaveBeenCalledWith(
+      'create_budget_from_template',
+      expect.objectContaining({ p_excluded_savings_goal_ids: [] }),
+    );
+  });
+
+  it('fails the creation rather than bounding on a guessed pay day', async () => {
+    // Falling back to the calendar default would shift the horizon by one
+    // period for a custom payDay and silently drop a contribution.
+    const rpc = jest.fn().mockResolvedValue({ data: rpcResponse, error: null });
+    const getUser = jest
+      .fn()
+      .mockResolvedValue({ data: null, error: { message: 'GoTrue down' } });
+    const repo = new SupabaseBudgetRepository(
+      generationProvider(
+        [{ id: OVERDUE_GOAL_UUID, target_date: '2026-10-12' }],
+        27,
+        rpc,
+        getUser,
+      ),
+      createMockEncryption(),
+    );
+
+    let caught: unknown;
+    try {
+      await repo.createBudgetFromTemplateRpc(payload);
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(BusinessException);
+    expect((caught as BusinessException).code).toBe(
+      ERROR_DEFINITIONS.BUDGET_CREATE_FAILED.code,
+    );
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it('sends an empty exclusion list without reading payDay when the user has no active goal', async () => {
+    // Most users own no savings goal; paying a GoTrue round-trip per
+    // materialization would cost `generate-budgets` up to 36 of them.
+    const rpc = jest.fn().mockResolvedValue({ data: rpcResponse, error: null });
+    const getUser = jest.fn();
+    const repo = new SupabaseBudgetRepository(
+      generationProvider([], null, rpc, getUser),
+      createMockEncryption(),
+    );
+
+    const result = await repo.createBudgetFromTemplateRpc(payload);
+
+    expect(result.budget.id).toBe(BUDGET_UUID);
+    expect(getUser).not.toHaveBeenCalled();
+    expect(rpc).toHaveBeenCalledWith(
+      'create_budget_from_template',
+      expect.objectContaining({
+        p_excluded_savings_goal_ids: [],
+        p_month: 11,
+        p_year: 2026,
+      }),
+    );
+  });
+});
+
 describe('SupabaseBudgetRepository toBudgetLineDecrypted', () => {
   it('maps spread_group_id (snake) to spreadGroupId (camel) when set', async () => {
     const provider = fetchBudgetDataProvider({

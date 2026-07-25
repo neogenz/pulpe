@@ -41,7 +41,10 @@ const createDto = {
 
 describe('CreateSavingsGoalUseCase auto-décomposition (PUL-285 CA1/CA2)', () => {
   let useCase: CreateSavingsGoalUseCase;
-  let repo: { insert: ReturnType<typeof jest.fn> };
+  let repo: {
+    insert: ReturnType<typeof jest.fn>;
+    findPayDayOfMonth: ReturnType<typeof jest.fn>;
+  };
   let templateRepo: { findDefaultTemplateId: ReturnType<typeof jest.fn> };
   let propagation: { createLineAndPropagate: ReturnType<typeof jest.fn> };
   let logger: {
@@ -50,7 +53,10 @@ describe('CreateSavingsGoalUseCase auto-décomposition (PUL-285 CA1/CA2)', () =>
   };
 
   beforeEach(async () => {
-    repo = { insert: jest.fn().mockResolvedValue(goal) };
+    repo = {
+      insert: jest.fn().mockResolvedValue(goal),
+      findPayDayOfMonth: jest.fn().mockResolvedValue(null),
+    };
     templateRepo = {
       findDefaultTemplateId: jest.fn().mockResolvedValue('template-1'),
     };
@@ -93,7 +99,22 @@ describe('CreateSavingsGoalUseCase auto-décomposition (PUL-285 CA1/CA2)', () =>
       kind: 'saving',
       recurrence: 'fixed',
       savingsGoalId: goal.id,
+      maxPeriod: { month: 5, year: 2030 },
     });
+  });
+
+  it('should bound the baseline at the target period, payDay-aware (PUL-311)', async () => {
+    repo.insert.mockResolvedValue({ ...goal, targetDate: '2026-10-12' });
+    repo.findPayDayOfMonth.mockResolvedValue(27);
+
+    await useCase.execute(
+      { ...createDto, targetDate: '2026-10-12', monthlyContribution: 692.5 },
+      user,
+    );
+
+    expect(propagation.createLineAndPropagate).toHaveBeenCalledWith(
+      expect.objectContaining({ maxPeriod: { month: 10, year: 2026 } }),
+    );
   });
 
   it('should still create the goal when the user has no default template', async () => {
