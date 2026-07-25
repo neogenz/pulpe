@@ -56,26 +56,15 @@ struct CurrentMonthView: View {
                 }
                 .transition(.opacity)
             case .empty:
-                VStack(spacing: DesignTokens.Spacing.lg) {
-                    Image(systemName: "calendar.badge.plus")
-                        .font(PulpeTypography.emojiDisplay)
-                        .foregroundStyle(Color.textTertiary)
-                        .symbolEffect(.pulse, options: .nonRepeating)
-                        .accessibilityHidden(true)
-                    Text("Pas encore de budget ce mois-ci")
-                        .font(PulpeTypography.stepTitle)
-                        .foregroundStyle(Color.textPrimary)
-                    Text("Crée-le pour voir ton tableau de bord")
-                        .font(PulpeTypography.bodyLarge)
-                        .foregroundStyle(Color.textTertiary)
-                        .multilineTextAlignment(.center)
-                    Button("Créer un budget") {
-                        activeSheet = .createBudget
-                    }
-                    .disabled(!canCreateBudget)
-                    .primaryButtonStyle(isEnabled: canCreateBudget)
+                PulpeEmptyState(
+                    systemImage: "calendar.badge.plus",
+                    title: "Pas encore de budget ce mois-ci",
+                    message: "Crée-le pour voir ton tableau de bord",
+                    actionTitle: "Créer un budget",
+                    isActionEnabled: canCreateBudget
+                ) {
+                    activeSheet = .createBudget
                 }
-                .padding(DesignTokens.Spacing.xxxl)
                 .transition(.opacity)
             case .loaded:
                 dashboardContent

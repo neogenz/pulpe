@@ -10,6 +10,7 @@ struct PulpeEmptyState: View {
     let title: String
     let message: String
     let actionTitle: String?
+    let isActionEnabled: Bool
     let action: (() -> Void)?
 
     init(
@@ -17,12 +18,14 @@ struct PulpeEmptyState: View {
         title: String,
         message: String,
         actionTitle: String? = nil,
+        isActionEnabled: Bool = true,
         action: (() -> Void)? = nil
     ) {
         self.systemImage = systemImage
         self.title = title
         self.message = message
         self.actionTitle = actionTitle
+        self.isActionEnabled = isActionEnabled
         self.action = action
     }
 
@@ -32,6 +35,9 @@ struct PulpeEmptyState: View {
                 .font(PulpeTypography.emojiDisplay)
                 .foregroundStyle(Color.textTertiary)
                 .symbolEffect(.pulse, options: .nonRepeating)
+                // Decorative: VoiceOver would otherwise read the SF Symbol name
+                // before the title.
+                .accessibilityHidden(true)
             Text(title)
                 .font(PulpeTypography.stepTitle)
                 .foregroundStyle(Color.textPrimary)
@@ -41,7 +47,8 @@ struct PulpeEmptyState: View {
                 .multilineTextAlignment(.center)
             if let actionTitle, let action {
                 Button(actionTitle, action: action)
-                    .primaryButtonStyle()
+                    .disabled(!isActionEnabled)
+                    .primaryButtonStyle(isEnabled: isActionEnabled)
             }
         }
         .padding(DesignTokens.Spacing.xxxl)
