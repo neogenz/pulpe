@@ -153,6 +153,20 @@ describe('SavingsGoalApi', () => {
     expect((await responsePromise).data.targetAmount).toBeNull();
   });
 
+  it('passes the proposed deadline to the future-lines preview', async () => {
+    const responsePromise = firstValueFrom(
+      service.getFutureLines$(GOAL_ID, '2027-07-24'),
+    );
+
+    const req = httpTesting.expectOne(
+      `http://localhost:3000/api/v1/savings-goals/${GOAL_ID}/future-lines?targetDate=2027-07-24`,
+    );
+    expect(req.request.method).toBe('GET');
+    req.flush({ success: true, data: [] });
+
+    expect((await responsePromise).data).toEqual([]);
+  });
+
   it('getContributions$ GETs the goal contributions endpoint and parses the schema', async () => {
     const responsePromise = firstValueFrom(service.getContributions$(GOAL_ID));
 

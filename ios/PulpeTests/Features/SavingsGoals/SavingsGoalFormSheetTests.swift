@@ -211,4 +211,74 @@ struct SavingsGoalFormSheetTests {
             ) == .some(nil)
         )
     }
+
+    @Test("editing returns one complete patch with simultaneous changes")
+    func editPayload_preservesEveryEditedField() throws {
+        let goal = goalWithInitialAmount(5000)
+        let start = try #require(SavingsGoalDateFormatter.parse("2028-01-15"))
+        let target = try #require(SavingsGoalDateFormatter.parse("2029-04-27"))
+
+        let patch = SavingsGoalFormSheet.editPayload(
+            name: "  Nouvelle maison  ",
+            targetAmount: 120_000,
+            initialAmount: 7000,
+            startDate: start,
+            hasStartDate: true,
+            targetDate: target,
+            hasTargetDate: true,
+            status: .paused,
+            original: goal
+        )
+
+        #expect(patch.name == "Nouvelle maison")
+        #expect(patch.targetAmount == .some(120_000))
+        #expect(patch.initialAmount == 7000)
+        #expect(patch.startDate == .some("2028-01-15"))
+        #expect(patch.targetDate == .some("2029-04-27"))
+        #expect(patch.status == .paused)
+    }
+
+    @Test("deadline preview is payDay-aware and requires two non-null dates")
+    func deadlinePreviewTarget_obeysPeriodTransitions() {
+        #expect(
+            SavingsGoalDetailView.deadlinePreviewTarget(
+                previous: "2030-05-27",
+                update: .some("2030-05-26"),
+                payDayOfMonth: 27
+            ) == "2030-05-26"
+        )
+        #expect(
+            SavingsGoalDetailView.deadlinePreviewTarget(
+                previous: "2030-05-26",
+                update: .some("2030-05-20"),
+                payDayOfMonth: 27
+            ) == nil,
+            "Two earlier dates in the same budget period need no preview"
+        )
+        #expect(
+            SavingsGoalDetailView.deadlinePreviewTarget(
+                previous: nil,
+                update: .some("2030-05-20"),
+                payDayOfMonth: 27
+            ) == nil
+        )
+        #expect(
+            SavingsGoalDetailView.deadlinePreviewTarget(
+                previous: "2030-05-27",
+                update: .some(nil),
+                payDayOfMonth: 27
+            ) == nil
+        )
+    }
+
+    @Test("generation-stop sheet exposes distinct status and deadline contexts")
+    func generationStopContexts_haveDistinctCopy() {
+        let status = GoalGenerationStopContext.status(.paused)
+        let deadline = GoalGenerationStopContext.deadline(targetDate: "2030-05-26")
+
+        #expect(status.title == "Objectif en pause")
+        #expect(deadline.title == "Échéance avancée")
+        #expect(deadline.removeLabel == "Supprimer les prévisions")
+        #expect(deadline.isRemovalDestructive)
+    }
 }

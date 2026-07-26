@@ -195,6 +195,7 @@ describe('SavingsGoalDetailPage', () => {
   const refresh = vi.fn();
   const navigate = vi.fn();
   const snackBarOpen = vi.fn();
+  const payDayOfMonthSig = signal<number | null>(25);
 
   const futureLinesSig = signal<SavingsGoalFutureLine[]>([]);
 
@@ -237,6 +238,7 @@ describe('SavingsGoalDetailPage', () => {
     listInitialLoadingSig.set(false);
     listErrorSig.set(null);
     futureLinesSig.set([]);
+    payDayOfMonthSig.set(25);
     vi.clearAllMocks();
 
     await TestBed.configureTestingModule({
@@ -248,7 +250,10 @@ describe('SavingsGoalDetailPage', () => {
         { provide: SavingsGoalsDialogService, useValue: mockDialogs },
         {
           provide: UserSettingsStore,
-          useValue: { currency: signal('CHF'), payDayOfMonth: signal(25) },
+          useValue: {
+            currency: signal('CHF'),
+            payDayOfMonth: payDayOfMonthSig,
+          },
         },
         { provide: Router, useValue: { navigate } },
         { provide: MatSnackBar, useValue: { open: snackBarOpen } },
@@ -548,6 +553,230 @@ describe('SavingsGoalDetailPage', () => {
       { duration: 5000 },
     );
   });
+
+  it('updates directly when an earlier ISO date stays in the same budget period', async () => {
+    goalSig.set(makeGoal({ targetDate: '2027-08-26' }));
+    mockDialogs.openEdit.mockResolvedValueOnce({
+      name: 'Même cycle',
+      targetDate: '2027-08-25',
+    });
+
+    await component['onEdit']();
+
+    expect(mockStore.fetchFutureLines).not.toHaveBeenCalled();
+    expect(mockStore.editGoal).toHaveBeenCalledWith('goal-1', {
+      name: 'Même cycle',
+      targetDate: '2027-08-25',
+    });
+  });
+
+  it('cancels a deadline reconciliation without any write', async () => {
+    goalSig.set(makeGoal({ targetDate: '2027-08-26' }));
+    mockDialogs.openEdit.mockResolvedValueOnce({
+      name: 'Nom conservé',
+      targetDate: '2027-08-24',
+    });
+    mockStore.fetchFutureLines.mockResolvedValueOnce([futureLine]);
+    mockDialogs.openGenerationStop.mockResolvedValueOnce(undefined);
+
+    await component['onEdit']();
+
+    expect(mockStore.fetchFutureLines).toHaveBeenCalledWith(
+      'goal-1',
+      '2027-08-24',
+    );
+    expect(mockDialogs.openGenerationStop).toHaveBeenCalledWith(
+      expect.objectContaining({
+        lines: [futureLine],
+        context: { kind: 'deadline', targetDate: '2027-08-24' },
+      }),
+    );
+    expect(mockStore.editGoal).not.toHaveBeenCalled();
+    expect(mockStore.applyGenerationStop).not.toHaveBeenCalled();
+  });
+
+  it.each(['freeze', 'remove'] as const)(
+    'sends one atomic PATCH and no generation-stop POST for deadline %s',
+    async (mode) => {
+      goalSig.set(makeGoal({ targetDate: '2027-08-26' }));
+      const patch = {
+        name: 'Vacances avancées',
+        startDate: '2027-01-01',
+        targetAmount: 2500,
+        targetDate: '2027-08-24',
+        status: 'PAUSED' as const,
+      };
+      mockDialogs.openEdit.mockResolvedValueOnce(patch);
+      mockStore.fetchFutureLines.mockResolvedValueOnce([futureLine]);
+      mockDialogs.openGenerationStop.mockResolvedValueOnce(mode);
+
+      await component['onEdit']();
+
+      expect(mockStore.editGoal).toHaveBeenCalledOnce();
+      expect(mockStore.editGoal).toHaveBeenCalledWith('goal-1', {
+        ...patch,
+        reconciliation: {
+          mode,
+          budgetLineIds: ['line-1'],
+        },
+      });
+      expect(mockStore.applyGenerationStop).not.toHaveBeenCalled();
+    },
+  );
+
+  it('applies an earlier deadline directly when the preview is empty', async () => {
+    goalSig.set(makeGoal({ targetDate: '2027-08-26' }));
+    const patch = { targetDate: '2027-08-24' };
+    mockDialogs.openEdit.mockResolvedValueOnce(patch);
+    mockStore.fetchFutureLines.mockResolvedValueOnce([]);
+
+    await component['onEdit']();
+
+    expect(mockStore.editGoal).toHaveBeenCalledWith('goal-1', patch);
+    expect(mockDialogs.openGenerationStop).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      current: null,
+      update: '2027-08-24',
+      label: 'adds a deadline to an undated goal',
+    },
+    {
+      current: '2027-08-26',
+      update: null,
+      label: 'removes a deadline',
+    },
+    {
+      current: '2027-08-26',
+      update: '2027-09-26',
+      label: 'moves a deadline later',
+    },
+  ])('$label without preview', async ({ current, update }) => {
+    goalSig.set(makeGoal({ targetDate: current }));
+    mockDialogs.openEdit.mockResolvedValueOnce({ targetDate: update });
+
+    await component['onEdit']();
+
+    expect(mockStore.fetchFutureLines).not.toHaveBeenCalled();
+    expect(mockStore.editGoal).toHaveBeenCalledWith('goal-1', {
+      targetDate: update,
+    });
+  });
+
+  it.each([
+    [
+      API_ERROR_CODES.SAVINGS_GOAL_RECONCILIATION_REQUIRED,
+      'Cette nouvelle échéance laisse des prévisions au-delà — choisis comment les traiter',
+    ],
+    [
+      API_ERROR_CODES.SAVINGS_GOAL_RECONCILIATION_CONFLICT,
+      'Les prévisions ont changé entre-temps — vérifie la nouvelle liste et réessaie',
+    ],
+  ])(
+    'reloads, reopens, then sends one new PATCH after %s',
+    async (code, localizedMessage) => {
+      const refreshedLine = { ...futureLine, budgetLineId: 'line-2' };
+      goalSig.set(makeGoal({ targetDate: '2027-08-26' }));
+      mockDialogs.openEdit.mockResolvedValueOnce({
+        targetDate: '2027-08-24',
+      });
+      mockStore.fetchFutureLines
+        .mockResolvedValueOnce([futureLine])
+        .mockResolvedValueOnce([refreshedLine]);
+      mockDialogs.openGenerationStop
+        .mockResolvedValueOnce('freeze')
+        .mockResolvedValueOnce('remove');
+      mockStore.editGoal.mockRejectedValueOnce(
+        new ApiError('Candidates drifted', code, 409, null),
+      );
+
+      await component['onEdit']();
+
+      expect(mockStore.fetchFutureLines).toHaveBeenCalledTimes(2);
+      expect(mockDialogs.openGenerationStop).toHaveBeenCalledTimes(2);
+      expect(mockDialogs.openGenerationStop).toHaveBeenLastCalledWith(
+        expect.objectContaining({ lines: [refreshedLine] }),
+      );
+      expect(mockStore.editGoal).toHaveBeenCalledTimes(2);
+      expect(mockStore.editGoal).toHaveBeenLastCalledWith('goal-1', {
+        targetDate: '2027-08-24',
+        reconciliation: {
+          mode: 'remove',
+          budgetLineIds: ['line-2'],
+        },
+      });
+      expect(mockStore.applyGenerationStop).not.toHaveBeenCalled();
+      expect(snackBarOpen).toHaveBeenCalledWith(
+        localizedMessage,
+        'Fermer',
+        expect.objectContaining({ duration: 5000 }),
+      );
+    },
+  );
+
+  it('does not retry without a fresh reconciliation decision', async () => {
+    goalSig.set(makeGoal({ targetDate: '2027-08-26' }));
+    mockDialogs.openEdit.mockResolvedValueOnce({
+      targetDate: '2027-08-24',
+    });
+    mockStore.fetchFutureLines
+      .mockResolvedValueOnce([futureLine])
+      .mockResolvedValueOnce([]);
+    mockDialogs.openGenerationStop.mockResolvedValueOnce('freeze');
+    mockStore.editGoal.mockRejectedValueOnce(
+      new ApiError(
+        'Reconciliation required',
+        API_ERROR_CODES.SAVINGS_GOAL_RECONCILIATION_REQUIRED,
+        409,
+        null,
+      ),
+    );
+
+    await component['onEdit']();
+
+    expect(mockStore.fetchFutureLines).toHaveBeenCalledTimes(2);
+    expect(mockDialogs.openGenerationStop).toHaveBeenCalledOnce();
+    expect(mockStore.editGoal).toHaveBeenCalledOnce();
+    expect(mockStore.applyGenerationStop).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      API_ERROR_CODES.SAVINGS_GOAL_RECONCILIATION_FAILED,
+      "La mise à jour de l'échéance a échoué — réessaie",
+    ],
+    [
+      API_ERROR_CODES.SAVINGS_GOAL_RECONCILIATION_RECALCULATION_FAILED,
+      "L'échéance et les prévisions ont bien été mises à jour, mais les soldes n'ont pas pu être actualisés — recharge la page sans réessayer",
+    ],
+  ])(
+    'localizes %s without retry or false success',
+    async (code, localizedMessage) => {
+      goalSig.set(makeGoal({ targetDate: '2027-08-26' }));
+      mockDialogs.openEdit.mockResolvedValueOnce({
+        targetDate: '2027-08-24',
+      });
+      mockStore.fetchFutureLines.mockResolvedValueOnce([futureLine]);
+      mockDialogs.openGenerationStop.mockResolvedValueOnce('remove');
+      mockStore.editGoal.mockRejectedValueOnce(
+        new ApiError('Server detail', code, 500, null),
+      );
+
+      await component['onEdit']();
+
+      expect(mockStore.fetchFutureLines).toHaveBeenCalledOnce();
+      expect(mockDialogs.openGenerationStop).toHaveBeenCalledOnce();
+      expect(mockStore.editGoal).toHaveBeenCalledOnce();
+      expect(mockStore.applyGenerationStop).not.toHaveBeenCalled();
+      expect(snackBarOpen).toHaveBeenCalledOnce();
+      expect(snackBarOpen).toHaveBeenCalledWith(
+        localizedMessage,
+        'Fermer',
+        expect.objectContaining({ duration: 5000 }),
+      );
+    },
+  );
 
   it('hides the pace chip when paceStatus is null', () => {
     progressSig.set(makeProgress({ paceStatus: null }));

@@ -34,6 +34,10 @@ enum APIError: LocalizedError {
     case savingsWithdrawalRecalculationFailed
     case savingsGoalBaselineRecalculationFailed
     case savingsGoalGenerationStopRecalculationFailed
+    case savingsGoalReconciliationRequired
+    case savingsGoalReconciliationConflict
+    case savingsGoalReconciliationFailed
+    case savingsGoalReconciliationRecalculationFailed
 
     var errorDescription: String? {
         switch self {
@@ -102,6 +106,15 @@ enum APIError: LocalizedError {
         case .savingsGoalGenerationStopRecalculationFailed:
             return "La décision a bien été enregistrée, mais les soldes n'ont pas pu être actualisés — "
                 + "recharge la page sans réessayer"
+        case .savingsGoalReconciliationRequired:
+            return "Les prévisions liées ont changé — choisis à nouveau comment les traiter"
+        case .savingsGoalReconciliationConflict:
+            return "Les prévisions liées ont changé depuis l'aperçu — vérifie la nouvelle liste"
+        case .savingsGoalReconciliationFailed:
+            return "Impossible de modifier l'échéance et ses prévisions — réessaie"
+        case .savingsGoalReconciliationRecalculationFailed:
+            return "L'échéance a bien été modifiée, mais les soldes n'ont pas pu être actualisés — "
+                + "recharge sans réessayer"
         }
     }
 
@@ -135,6 +148,10 @@ enum APIError: LocalizedError {
         "ERR_SAVINGS_WITHDRAWAL_RECALCULATION_FAILED": .savingsWithdrawalRecalculationFailed,
         "ERR_SAVINGS_GOAL_BASELINE_RECALCULATION_FAILED": .savingsGoalBaselineRecalculationFailed,
         "ERR_SAVINGS_GOAL_GENERATION_STOP_RECALCULATION_FAILED": .savingsGoalGenerationStopRecalculationFailed,
+        "ERR_SAVINGS_GOAL_RECONCILIATION_REQUIRED": .savingsGoalReconciliationRequired,
+        "ERR_SAVINGS_GOAL_RECONCILIATION_CONFLICT": .savingsGoalReconciliationConflict,
+        "ERR_SAVINGS_GOAL_RECONCILIATION_FAILED": .savingsGoalReconciliationFailed,
+        "ERR_SAVINGS_GOAL_RECONCILIATION_RECALCULATION_FAILED": .savingsGoalReconciliationRecalculationFailed,
     ]
 
     /// Create APIError from server error code
@@ -148,6 +165,17 @@ enum APIError: LocalizedError {
         }
 
         return .serverError(message: message ?? code)
+    }
+}
+
+extension APIError {
+    var requiresSavingsGoalReconciliationRefresh: Bool {
+        switch self {
+        case .savingsGoalReconciliationRequired, .savingsGoalReconciliationConflict:
+            true
+        default:
+            false
+        }
     }
 }
 

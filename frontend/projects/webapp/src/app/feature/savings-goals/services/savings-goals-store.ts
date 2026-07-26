@@ -139,25 +139,44 @@ export class SavingsGoalStore {
     SavingsGoal[]
   >({
     cache: this.#api.cache,
-    invalidateKeys: ({ id }) => [
-      ['savings-goals', 'list'],
-      // A status change (COMPLETED / ACTIVE) shifts the derived progression, so
-      // refetch it — progress lives under a distinct key (prefix-based invalidation).
-      ['savings-goals', 'progress', id],
-    ],
+    invalidateKeys: ({ id, updates }) =>
+      updates.reconciliation
+        ? [['savings-goals']]
+        : [
+            ['savings-goals', 'list'],
+            // A status change (COMPLETED / ACTIVE) shifts the derived
+            // progression, so refetch its distinct cache key.
+            ['savings-goals', 'progress', id],
+          ],
     mutationFn: ({ id, updates }) =>
       this.#api.update$(id, updates).pipe(map((response) => response.data)),
     onMutate: ({ id, updates }) => {
       const previous = this.savingsGoals.value() ?? [];
+      const optimisticUpdates = { ...updates };
+      delete optimisticUpdates.reconciliation;
       this.savingsGoals.update((data) =>
         (data ?? []).map((goal) =>
-          goal.id === id ? { ...goal, ...updates } : goal,
+          goal.id === id ? { ...goal, ...optimisticUpdates } : goal,
         ),
       );
       return previous;
     },
-    onError: (_err, _vars, previous) => {
+    onSuccess: (_result, { updates }) => {
+      if (updates.reconciliation) {
+        this.#budgetApi.cache.invalidate(['budget']);
+      }
+    },
+    onError: (error, { updates }, previous) => {
       if (previous) this.savingsGoals.set(previous);
+      if (
+        updates.reconciliation &&
+        isApiError(error) &&
+        error.code ===
+          API_ERROR_CODES.SAVINGS_GOAL_RECONCILIATION_RECALCULATION_FAILED
+      ) {
+        this.#api.cache.invalidate(['savings-goals']);
+        this.#budgetApi.cache.invalidate(['budget']);
+      }
     },
   });
 
@@ -245,11 +264,18 @@ export class SavingsGoalStore {
    * the resource's cache key so the re-entry card and the dialog share one
    * server truth instead of issuing parallel GETs.
    */
-  async fetchFutureLines(goalId: string): Promise<SavingsGoalFutureLine[]> {
+  async fetchFutureLines(
+    goalId: string,
+    targetDate?: string,
+  ): Promise<SavingsGoalFutureLine[]> {
     const lines = await firstValueFrom(
-      this.#api.getFutureLines$(goalId).pipe(map((res) => res.data ?? [])),
+      this.#api
+        .getFutureLines$(goalId, targetDate)
+        .pipe(map((res) => res.data ?? [])),
     );
-    this.#api.cache.set(['savings-goals', 'future-lines', goalId], lines);
+    if (targetDate === undefined) {
+      this.#api.cache.set(['savings-goals', 'future-lines', goalId], lines);
+    }
     return lines;
   }
 

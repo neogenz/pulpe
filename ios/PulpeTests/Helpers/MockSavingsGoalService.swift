@@ -92,11 +92,15 @@ final class MockSavingsGoalService: SavingsGoalServicing {
     }
 
     private(set) var getFutureLinesCallCount = 0
+    private(set) var lastFutureLinesId: String?
+    private(set) var lastFutureLinesTargetDate: String?
     private(set) var generationStopCallCount = 0
     private(set) var lastGenerationStop: SavingsGoalGenerationStop?
 
-    func getFutureLines(id _: String) async throws -> [SavingsGoalFutureLine] {
+    func getFutureLines(id: String, targetDate: String?) async throws -> [SavingsGoalFutureLine] {
         getFutureLinesCallCount += 1
+        lastFutureLinesId = id
+        lastFutureLinesTargetDate = targetDate
         if let error { throw error }
         return stubbedFutureLines
     }
@@ -149,6 +153,7 @@ final class MockSavingsGoalService: SavingsGoalServicing {
             status: data.status ?? existing.status,
             createdAt: existing.createdAt,
             updatedAt: Date(timeIntervalSince1970: 0),
+            startDate: data.startDate ?? existing.startDate,
             initialAmount: data.initialAmount ?? existing.initialAmount
         )
         if let index = stubbedGoals.firstIndex(where: { $0.id == id }) {

@@ -25,9 +25,14 @@ import { Router } from '@angular/router';
 import { debounceTime } from 'rxjs';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import {
+  API_ERROR_CODES,
+  compareBudgetPeriods,
+  getBudgetPeriodForDate,
+  parseIsoDateLocal,
   type SavingsGoalFutureLine,
   type SavingsGoalPaceStatus,
   type SavingsGoalStatus,
+  type SavingsGoalUpdate,
 } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
 import { isApiError } from '@core/api/api-error';
@@ -814,6 +819,14 @@ export default class SavingsGoalDetailPage {
     if (!goal) return;
     const result = await this.#dialogs.openEdit(goal);
     if (!result) return;
+    const deadlineWasAdvanced = this.#movesDeadlineEarlier(
+      goal.targetDate,
+      result,
+    );
+    if (deadlineWasAdvanced && result.targetDate) {
+      await this.#editAdvancedDeadline(goal.id, result, result.targetDate);
+      return;
+    }
     try {
       await this.store.editGoal(goal.id, result);
     } catch (error) {
@@ -828,6 +841,69 @@ export default class SavingsGoalDetailPage {
       result.status !== goal.status
     ) {
       await this.#proposeGenerationStop(goal.id, result.status);
+    }
+  }
+
+  async #editAdvancedDeadline(
+    goalId: string,
+    updates: SavingsGoalUpdate,
+    targetDate: string,
+  ): Promise<void> {
+    let lines: SavingsGoalFutureLine[];
+    try {
+      lines = await this.store.fetchFutureLines(goalId, targetDate);
+    } catch (error) {
+      this.#showLocalizedApiError(error);
+      return;
+    }
+
+    while (true) {
+      let patch = updates;
+      if (lines.length > 0) {
+        const decision = await this.#dialogs.openGenerationStop({
+          lines,
+          context: { kind: 'deadline', targetDate },
+          currency: this.currency(),
+          locale: this.locale,
+          payDayOfMonth: this.payDayOfMonth(),
+        });
+        if (!decision) return;
+        patch = {
+          ...updates,
+          reconciliation: {
+            mode: decision,
+            budgetLineIds: lines.map((line) => line.budgetLineId),
+          },
+        };
+      }
+
+      try {
+        await this.store.editGoal(goalId, patch);
+        return;
+      } catch (error) {
+        const retryable =
+          isApiError(error) &&
+          (error.code ===
+            API_ERROR_CODES.SAVINGS_GOAL_RECONCILIATION_CONFLICT ||
+            error.code ===
+              API_ERROR_CODES.SAVINGS_GOAL_RECONCILIATION_REQUIRED);
+        if (isApiError(error) && (patch.reconciliation || retryable)) {
+          this.#showLocalizedApiError(error);
+        } else {
+          this.#showError(error);
+        }
+        if (!retryable) return;
+
+        try {
+          lines = await this.store.fetchFutureLines(goalId, targetDate);
+        } catch (previewError) {
+          this.#showLocalizedApiError(previewError);
+          return;
+        }
+        // The server no longer asks for a decision. Never reinterpret that as
+        // consent to retry the deadline PATCH without reconciliation.
+        if (lines.length === 0) return;
+      }
     }
   }
 
@@ -882,7 +958,7 @@ export default class SavingsGoalDetailPage {
 
     const decision = await this.#dialogs.openGenerationStop({
       lines,
-      status,
+      context: { kind: 'status', status },
       currency: this.currency(),
       locale: this.locale,
       payDayOfMonth: this.payDayOfMonth(),
@@ -924,6 +1000,23 @@ export default class SavingsGoalDetailPage {
     } catch {
       this.#showStatusError();
     }
+  }
+
+  #movesDeadlineEarlier(
+    currentTargetDate: string | null,
+    update: SavingsGoalUpdate,
+  ): boolean {
+    if (!currentTargetDate || !update.targetDate) return false;
+    const payDay = this.payDayOfMonth();
+    const currentPeriod = getBudgetPeriodForDate(
+      parseIsoDateLocal(currentTargetDate),
+      payDay,
+    );
+    const nextPeriod = getBudgetPeriodForDate(
+      parseIsoDateLocal(update.targetDate),
+      payDay,
+    );
+    return compareBudgetPeriods(nextPeriod, currentPeriod) < 0;
   }
 
   // ── Simulation (pilier C) ──
@@ -996,8 +1089,7 @@ export default class SavingsGoalDetailPage {
   }
 
   #showLocalizedApiError(error: unknown): void {
-    // Plan and generation-stop error codes are localized centrally in
-    // ApiErrorLocalizer.
+    // Domain error codes are localized centrally in ApiErrorLocalizer.
     const message = isApiError(error)
       ? this.#errorLocalizer.localizeApiError(error)
       : this.#transloco.translate('common.error');

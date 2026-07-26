@@ -83,6 +83,9 @@ struct SavingsGoalUpdate: Encodable {
     /// Omis = inchangé ; `0` efface le montant de départ (miroir serveur).
     var initialAmount: Decimal?
     var startDate: String??
+    /// Atomic decision required when an earlier deadline excludes linked
+    /// prévisions. Omitted for every ordinary metadata/status update.
+    var reconciliation: SavingsGoalGenerationStop?
 }
 
 // MARK: - Kind guard

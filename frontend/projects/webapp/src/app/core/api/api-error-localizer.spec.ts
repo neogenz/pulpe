@@ -59,6 +59,30 @@ describe('ApiErrorLocalizer', () => {
     );
   });
 
+  it('should ask for a fresh deadline preview after a reconciliation conflict', () => {
+    const error = new ApiError(
+      'Candidates drifted',
+      'ERR_SAVINGS_GOAL_RECONCILIATION_CONFLICT',
+      409,
+      null,
+    );
+    expect(service.localizeApiError(error)).toBe(
+      'Les prévisions ont changé entre-temps — vérifie la nouvelle liste et réessaie',
+    );
+  });
+
+  it('should warn when deadline reconciliation committed but balance refresh failed', () => {
+    const error = new ApiError(
+      'Reconciliation committed but recalculation failed',
+      'ERR_SAVINGS_GOAL_RECONCILIATION_RECALCULATION_FAILED',
+      500,
+      null,
+    );
+    expect(service.localizeApiError(error)).toBe(
+      "L'échéance et les prévisions ont bien été mises à jour, mais les soldes n'ont pas pu être actualisés — recharge la page sans réessayer",
+    );
+  });
+
   it('should warn that goal creation committed when baseline recalculation fails', () => {
     const error = new ApiError(
       'Goal and baseline committed but recalculation failed',

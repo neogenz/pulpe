@@ -1,3 +1,4 @@
+// swiftlint:disable file_length type_body_length
 import SwiftUI
 
 /// Create / edit a savings goal (PUL-12). `goal == nil` → create.
@@ -7,6 +8,7 @@ import SwiftUI
 /// in v1, CA27).
 struct SavingsGoalFormSheet: View {
     let goal: SavingsGoal?
+    private let onUpdate: ((SavingsGoalUpdate) -> Void)?
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
@@ -35,10 +37,16 @@ struct SavingsGoalFormSheet: View {
     private let planningTargetDates: ClosedRange<Date>
     private let allowedTargetDates: ClosedRange<Date>
 
-    init(goal: SavingsGoal?, userCurrency: SupportedCurrency, payDayOfMonth: Int? = nil) {
+    init(
+        goal: SavingsGoal?,
+        userCurrency: SupportedCurrency,
+        payDayOfMonth: Int? = nil,
+        onUpdate: ((SavingsGoalUpdate) -> Void)? = nil
+    ) {
         self.goal = goal
         self.currency = userCurrency
         self.payDayOfMonth = payDayOfMonth
+        self.onUpdate = onUpdate
         _name = State(initialValue: goal?.name ?? "")
         _status = State(initialValue: goal?.status ?? .active)
 
@@ -112,6 +120,29 @@ struct SavingsGoalFormSheet: View {
     nonisolated static func initialAmountUpdate(for value: Decimal?, original goal: SavingsGoal) -> Decimal? {
         let normalized = value ?? 0
         return normalized == (goal.initialAmount ?? 0) ? nil : normalized
+    }
+
+    // Kept explicit so a deadline reconciliation reuses the complete form PATCH.
+    // swiftlint:disable:next function_parameter_count
+    nonisolated static func editPayload(
+        name: String,
+        targetAmount: Decimal?,
+        initialAmount: Decimal?,
+        startDate: Date,
+        hasStartDate: Bool,
+        targetDate: Date,
+        hasTargetDate: Bool,
+        status: SavingsGoalStatus,
+        original goal: SavingsGoal
+    ) -> SavingsGoalUpdate {
+        SavingsGoalUpdate(
+            name: name.trimmingCharacters(in: .whitespaces),
+            targetAmount: targetAmountUpdate(for: targetAmount, original: goal),
+            targetDate: targetDateUpdate(for: targetDate, isEnabled: hasTargetDate, original: goal),
+            status: status,
+            initialAmount: initialAmountUpdate(for: initialAmount, original: goal),
+            startDate: startDateUpdate(for: startDate, isEnabled: hasStartDate, original: goal)
+        )
     }
 
     nonisolated static func isTargetDateSubmittable(
@@ -361,42 +392,41 @@ private extension SavingsGoalFormSheet {
         let startDateString = hasStartDate ? SavingsGoalDateFormatter.string(from: startDate) : nil
         let targetDateString = hasTargetDate ? SavingsGoalDateFormatter.string(from: targetDate) : nil
 
-        do {
-            if let goal {
-                _ = try await store.update(
-                    id: goal.id,
-                    data: SavingsGoalUpdate(
-                        name: trimmedName,
-                        targetAmount: Self.targetAmountUpdate(for: amount, original: goal),
-                        targetDate: Self.targetDateUpdate(
-                            for: targetDate,
-                            isEnabled: hasTargetDate,
-                            original: goal
-                        ),
-                        status: status,
-                        initialAmount: Self.initialAmountUpdate(for: initialAmount, original: goal),
-                        startDate: Self.startDateUpdate(
-                            for: startDate,
-                            isEnabled: hasStartDate,
-                            original: goal
-                        )
-                    )
-                )
-                toastManager.show("Objectif modifié")
-            } else {
-                _ = try await store.create(
-                    SavingsGoalCreate(
-                        name: trimmedName,
-                        targetAmount: amount,
-                        targetDate: targetDateString,
-                        status: .active,
-                        monthlyContribution: creationContribution,
-                        initialAmount: initialAmount,
-                        startDate: startDateString
-                    )
-                )
-                toastManager.show("Objectif créé")
+        if let goal {
+            guard let onUpdate else {
+                assertionFailure("SavingsGoalFormSheet edit requires an onUpdate callback")
+                return
             }
+            onUpdate(
+                Self.editPayload(
+                    name: name,
+                    targetAmount: amount,
+                    initialAmount: initialAmount,
+                    startDate: startDate,
+                    hasStartDate: hasStartDate,
+                    targetDate: targetDate,
+                    hasTargetDate: hasTargetDate,
+                    status: status,
+                    original: goal
+                )
+            )
+            dismiss()
+            return
+        }
+
+        do {
+            _ = try await store.create(
+                SavingsGoalCreate(
+                    name: trimmedName,
+                    targetAmount: amount,
+                    targetDate: targetDateString,
+                    status: .active,
+                    monthlyContribution: creationContribution,
+                    initialAmount: initialAmount,
+                    startDate: startDateString
+                )
+            )
+            toastManager.show("Objectif créé")
             submitSuccessTrigger += 1
             dismiss()
         } catch {
