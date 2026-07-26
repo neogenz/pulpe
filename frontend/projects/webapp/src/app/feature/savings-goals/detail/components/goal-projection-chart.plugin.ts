@@ -1,6 +1,10 @@
 import type { Plugin } from 'chart.js';
 import type { SavingsGoalPlanMonth } from 'pulpe-shared';
-import { type ChartThemeColors, colorWithAlpha } from '@core/chart/chart-theme';
+import {
+  type ChartThemeColors,
+  CHART_FONT_FAMILY,
+  colorWithAlpha,
+} from '@core/chart/chart-theme';
 
 export function findCurrentPeriodIndex(
   months: readonly SavingsGoalPlanMonth[],
@@ -11,9 +15,11 @@ export function findCurrentPeriodIndex(
 export function buildGoalProjectionGuidePlugin(
   currentIndex: number,
   theme: ChartThemeColors,
+  label: string,
 ): Plugin {
   const futureBackground = colorWithAlpha(theme.tickColor, 0.035);
   const markerColor = colorWithAlpha(theme.tickColor, 0.35);
+  const labelBackground = colorWithAlpha(theme.tickColor, 0.1);
 
   return {
     id: 'goal-projection-guide',
@@ -53,6 +59,35 @@ export function buildGoalProjectionGuidePlugin(
       ctx.moveTo(x, chartArea.top);
       ctx.lineTo(x, chartArea.bottom);
       ctx.stroke();
+      ctx.restore();
+    },
+    afterDraw(chart) {
+      if (currentIndex < 0 || !label) return;
+      const xScale = chart.scales['x'];
+      const { ctx, chartArea } = chart;
+      if (!xScale || !chartArea) return;
+
+      const x = xScale.getPixelForValue(currentIndex);
+      if (!Number.isFinite(x)) return;
+
+      ctx.save();
+      ctx.font = `600 11px ${CHART_FONT_FAMILY}`;
+      const width = ctx.measureText(label).width + 14;
+      const height = 20;
+      const centerX = Math.min(
+        chartArea.right - width / 2,
+        Math.max(chartArea.left + width / 2, x),
+      );
+      const top = chartArea.top + 4;
+
+      ctx.fillStyle = labelBackground;
+      ctx.beginPath();
+      ctx.roundRect(centerX - width / 2, top, width, height, 5);
+      ctx.fill();
+      ctx.fillStyle = theme.tickColor;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, centerX, top + height / 2);
       ctx.restore();
     },
   };

@@ -12,7 +12,7 @@ import {
   CHART_FONT_FAMILY,
 } from '@core/chart/chart-theme';
 
-const MASKED_VALUE = '•••••';
+export const MASKED_VALUE = '•••••';
 
 export interface GoalProjectionChartLabels {
   target: string;
@@ -47,14 +47,14 @@ export function buildGoalProjectionChartOptions(
     maintainAspectRatio: false,
     animation: reducedMotion ? false : undefined,
     interaction: { mode: 'index', intersect: false },
-    layout: { padding: { top: 8, right: 4, left: 4 } },
+    layout: { padding: { top: 8, right: 16, left: 4 } },
     elements: {
       line: { cubicInterpolationMode: 'monotone', borderWidth: 2 },
       point: { radius: 0, hoverRadius: 4 },
     },
     plugins: {
       legend: {
-        display: true,
+        display: false,
         position: 'top',
         align: 'end',
         labels: {

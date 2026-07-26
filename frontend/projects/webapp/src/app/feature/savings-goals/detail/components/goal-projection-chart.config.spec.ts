@@ -183,6 +183,7 @@ describe('buildGoalProjectionChartOptions', () => {
     expect(options?.scales?.['x']?.grid?.display).toBe(false);
     expect(options?.scales?.['y']?.display).toBe(false);
     expect(options?.elements?.line?.cubicInterpolationMode).toBe('monotone');
+    expect(options?.plugins?.legend?.display).toBe(false);
   });
 });
 

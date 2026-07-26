@@ -1006,7 +1006,9 @@
       "chartTarget": "Cible",
       "chartConfirmed": "Épargné",
       "chartProjection": "Projection planifiée",
-      "chartAria": "Trajectoire d'épargne : épargné {{ confirmed }}, projection planifiée {{ projected }}, cible {{ target }}."
+      "chartCurrentPeriod": "Maintenant",
+      "chartAria": "Trajectoire d'épargne : cible {{ target }}, épargné {{ confirmed }}, projection à l'échéance {{ projected }}.",
+      "chartAriaHidden": "Trajectoire d'épargne : les montants sont masqués."
     },
     "simulate": {
       "everyMonth": "Chaque mois, je mets",

@@ -47,7 +47,41 @@ const progress = {
   linkedLineCount: 2,
   cumulativeGap: 300,
   estimatedCompletion: { month: 6, year: 2027 },
-  months: [],
+  months: [
+    {
+      month: 6,
+      year: 2026,
+      state: 'past',
+      isLocked: true,
+      plannedAmount: 300,
+      confirmedAmount: 300,
+      plannedCumulative: 600,
+      confirmedCumulative: 600,
+      lines: [],
+    },
+    {
+      month: 7,
+      year: 2026,
+      state: 'current',
+      isLocked: false,
+      plannedAmount: 400,
+      confirmedAmount: 300,
+      plannedCumulative: 1000,
+      confirmedCumulative: 900,
+      lines: [],
+    },
+    {
+      month: 8,
+      year: 2027,
+      state: 'future',
+      isLocked: false,
+      plannedAmount: 3500,
+      confirmedAmount: 0,
+      plannedCumulative: 4500,
+      confirmedCumulative: 900,
+      lines: [],
+    },
+  ],
   originalTargetAmount: null,
   originalCurrency: null,
   targetCurrency: null,
@@ -118,6 +152,19 @@ test.describe('Savings goal progression (PUL-8)', () => {
     await expect(page.getByTestId('progress-projected-layer')).toBeVisible();
     await expect(page.getByTestId('savings-goal-detail-page')).toContainText(
       'Épargné',
+    );
+    await expect(page.getByTestId('goal-projection-panel')).toBeVisible();
+    await expect(
+      page.getByTestId('goal-projection-summary-target'),
+    ).toContainText(/3[\s’']?000/);
+    await expect(
+      page.getByTestId('goal-projection-summary-confirmed'),
+    ).toContainText('900');
+    await expect(
+      page.getByTestId('goal-projection-summary-projection'),
+    ).toContainText(/4[\s’']?500/);
+    await expect(page.getByTestId('stat-projected')).toContainText(
+      /4[\s’']?500/,
     );
 
     // D2 — completion suggestion CTA is visible.

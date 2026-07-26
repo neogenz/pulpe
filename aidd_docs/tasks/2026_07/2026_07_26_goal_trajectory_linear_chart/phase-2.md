@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Composer la synthèse responsive et accessible
@@ -107,7 +107,7 @@ Mobile
 
 1. Réutiliser `AmountsVisibilityService` pour masquer les trois valeurs de la synthèse et des tooltips.
 2. Lorsque les montants sont masqués, remplacer la phrase `aria-live` chiffrée par une phrase dédiée sans montant.
-3. Lorsque les montants sont visibles, annoncer Épargné, Projection à l’échéance et Cible dans le même ordre que la synthèse.
+3. Lorsque les montants sont visibles, annoncer Cible, Épargné et Projection à l’échéance dans le même ordre que la synthèse.
 4. Garder le canvas décoratif pour les lecteurs d’écran et la synthèse HTML sémantique.
 5. Conserver un contraste WCAG AA, un focus inchangé et aucune information portée uniquement par une teinte.
 
@@ -129,7 +129,7 @@ Mobile
 | 1 | La valeur de projection affichée dans la synthèse correspond à `projected`, ou à `draft.simulatedFinal` pendant une simulation. |
 | 1 | Les trois séries restent identifiables sans couleur grâce au trait, au libellé et à leur valeur. |
 | 2 | Le mode montants masqués ne révèle aucune somme dans la synthèse, les tooltips ou l’annonce `aria-live`. |
-| 2 | Le mode visible annonce Épargné, Projection à l’échéance et Cible avec la devise active, dans le même ordre que l’interface. |
+| 2 | Le mode visible annonce Cible, Épargné et Projection à l’échéance avec la devise active, dans le même ordre que l’interface. |
 | 3 | La carte Projection à l’échéance, le dernier point projeté et la synthèse affichent le même montant dans le scénario E2E. |
 | 3 | Les trois viewports, les deux thèmes et les horizons court ou long restent lisibles sans chevauchement ni troncature trompeuse. |
 | 3 | Les tests ciblés, le scénario Playwright et la qualité du dépôt passent sans nouvelle dépendance ni modification backend, shared ou iOS. |
