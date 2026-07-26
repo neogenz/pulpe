@@ -10,7 +10,7 @@ import {
   signal,
 } from '@angular/core';
 import { BaseChartDirective } from 'ng2-charts';
-import type { ChartType } from 'chart.js';
+import type { Plugin } from 'chart.js';
 import { TranslocoService } from '@jsverse/transloco';
 import {
   type SavingsGoalPlanMonth,
@@ -18,6 +18,7 @@ import {
   type SupportedCurrency,
 } from 'pulpe-shared';
 import { AmountsVisibilityService } from '@core/amounts-visibility/amounts-visibility.service';
+import { AppCurrencyPipe } from '@core/currency';
 import {
   type ChartThemeColors,
   formatCurrency,
@@ -27,30 +28,92 @@ import {
 import {
   buildGoalProjectionChartData,
   buildGoalProjectionChartOptions,
+  MASKED_VALUE,
 } from './goal-projection-chart.config';
+import {
+  buildGoalProjectionGuidePlugin,
+  findCurrentPeriodIndex,
+} from './goal-projection-chart.plugin';
 
 /**
  * « Ta trajectoire » (docs/SAVINGS.md §10.1). Read-only cumulated
- * chart (savings green only, RG-002 — never amber/red). Switches its data source
- * to the simulation sandbox when `draft` is provided. The canvas is paired with
- * an offscreen `aria-live` sentence so screen readers get the trajectory without
- * the visual.
+ * chart: confirmed savings in green, planned projection in tertiary blue, and a
+ * neutral target. Switches its data source to the simulation sandbox when
+ * `draft` is provided. The canvas is paired with an offscreen `aria-live`
+ * sentence so screen readers get the trajectory without the visual.
  */
 @Component({
   selector: 'pulpe-goal-projection-chart',
-  imports: [BaseChartDirective],
+  imports: [AppCurrencyPipe, BaseChartDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="flex flex-col gap-2">
-      <div class="relative h-[260px] w-full">
-        <canvas
-          baseChart
-          aria-hidden="true"
-          [data]="chartData()"
-          [options]="chartOptions()"
-          [type]="chartType"
-        ></canvas>
+    <div
+      class="min-w-0 rounded-2xl bg-surface-container-low p-3 sm:p-4"
+      data-testid="goal-projection-panel"
+    >
+      <div
+        class="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-4"
+      >
+        <div class="relative h-[220px] min-w-0 w-full sm:h-[260px]">
+          <canvas
+            baseChart
+            aria-hidden="true"
+            [data]="chartData()"
+            [options]="chartOptions()"
+            [plugins]="chartPlugins()"
+            [type]="chartType"
+          ></canvas>
+        </div>
+
+        <dl
+          class="min-w-0 border-t border-outline-variant/50 lg:border-t-0 lg:border-l"
+          data-testid="goal-projection-summary"
+        >
+          @for (item of summaryItems(); track item.series) {
+            <div
+              class="flex min-w-0 items-center gap-3 border-t border-outline-variant/50 py-3 first:border-t-0 lg:px-4"
+            >
+              <dt
+                class="flex min-w-0 items-center gap-2 text-body-medium text-on-surface-variant"
+              >
+                @switch (item.series) {
+                  @case ('target') {
+                    <span
+                      class="h-px w-5 shrink-0 bg-on-surface-variant/60"
+                      aria-hidden="true"
+                    ></span>
+                  }
+                  @case ('confirmed') {
+                    <span
+                      class="h-0.5 w-5 shrink-0 rounded-full bg-financial-savings"
+                      aria-hidden="true"
+                    ></span>
+                  }
+                  @case ('projection') {
+                    <span
+                      class="w-5 shrink-0 border-t-2 border-dashed border-tertiary"
+                      aria-hidden="true"
+                    ></span>
+                  }
+                }
+                <span class="truncate">{{ item.label }}</span>
+              </dt>
+              <dd
+                class="ph-no-capture ml-auto shrink-0 text-body-medium font-semibold tabular-nums"
+                [class.amounts-visible]="amountsHidden()"
+                [attr.data-testid]="'goal-projection-summary-' + item.series"
+              >
+                @if (amountsHidden()) {
+                  {{ maskedValue }}
+                } @else {
+                  {{ item.amount | appCurrency: currency() : '1.0-0' }}
+                }
+              </dd>
+            </div>
+          }
+        </dl>
       </div>
+
       <p class="sr-only" aria-live="polite" data-testid="goal-projection-aria">
         {{ ariaSentence() }}
       </p>
@@ -59,6 +122,7 @@ import {
   styles: `
     :host {
       display: block;
+      min-width: 0;
     }
     .sr-only {
       position: absolute;
@@ -89,13 +153,23 @@ export class GoalProjectionChart {
   readonly #theme = signal<ChartThemeColors | null>(null);
   readonly #reducedMotion = signal(false);
 
-  readonly chartType: ChartType = 'line';
+  readonly chartType = 'line' as const;
+  protected readonly amountsHidden = this.#amountsVisibility.amountsHidden;
+  protected readonly maskedValue = MASKED_VALUE;
 
   readonly #labels = {
     target: this.#transloco.translate('savingsGoals.plan.chartTarget'),
     confirmed: this.#transloco.translate('savingsGoals.plan.chartConfirmed'),
     projection: this.#transloco.translate('savingsGoals.plan.chartProjection'),
   };
+  readonly #summaryLabels = {
+    target: this.#labels.target,
+    confirmed: this.#labels.confirmed,
+    projection: this.#transloco.translate('savingsGoals.detail.projected'),
+  };
+  readonly #currentPeriodLabel = this.#transloco.translate(
+    'savingsGoals.plan.chartCurrentPeriod',
+  );
 
   constructor() {
     afterNextRender(() => {
@@ -130,9 +204,43 @@ export class GoalProjectionChart {
     }),
   );
 
+  readonly chartPlugins = computed<Plugin[]>(() => {
+    const theme = this.#theme();
+    if (!theme) return [];
+
+    return [
+      buildGoalProjectionGuidePlugin(
+        findCurrentPeriodIndex(this.months()),
+        theme,
+        this.#currentPeriodLabel,
+      ),
+    ];
+  });
+
+  protected readonly summaryItems = computed(() => [
+    {
+      series: 'target' as const,
+      label: this.#summaryLabels.target,
+      amount: this.targetAmount(),
+    },
+    {
+      series: 'confirmed' as const,
+      label: this.#summaryLabels.confirmed,
+      amount: this.confirmed(),
+    },
+    {
+      series: 'projection' as const,
+      label: this.#summaryLabels.projection,
+      amount: this.draft()?.simulatedFinal ?? this.projected(),
+    },
+  ]);
+
   protected readonly ariaSentence = computed(() => {
     const months = this.months();
     if (months.length === 0) return '';
+    if (this.#amountsVisibility.amountsHidden()) {
+      return this.#transloco.translate('savingsGoals.plan.chartAriaHidden');
+    }
     const draft = this.draft();
     const currency = this.currency();
     const projectedFinal = draft?.simulatedFinal ?? this.projected();

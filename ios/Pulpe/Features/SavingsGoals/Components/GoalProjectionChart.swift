@@ -6,8 +6,8 @@ import SwiftUI
 /// Three balance series anchored → target (`docs/SAVINGS.md` §10.1):
 /// **Épargné** (reality, stops at current month), **Projection planifiée**
 /// (confirmed balance + remaining planned contributions), and a flat **Cible**
-/// rule. Savings green + neutrals only — never
-/// amber/red (RG-002). Cloned from `RealizedBalanceSheet.BalanceTrendChart`.
+/// rule. Confirmed savings stay green; the planned future uses the existing
+/// blue income/information token. Cloned from `RealizedBalanceSheet.BalanceTrendChart`.
 struct GoalProjectionChart: View {
     let series: GoalProjectionSeries
     let currency: SupportedCurrency
@@ -67,7 +67,7 @@ struct GoalProjectionChart: View {
                 )
                 .interpolationMethod(.monotone)
                 .lineStyle(StrokeStyle(lineWidth: DesignTokens.BorderWidth.medium, lineCap: .round, dash: [5, 4]))
-                .foregroundStyle(Color.financialSavings.opacity(DesignTokens.Opacity.strong))
+                .foregroundStyle(Color.financialIncome)
             }
         }
         .chartXAxis {

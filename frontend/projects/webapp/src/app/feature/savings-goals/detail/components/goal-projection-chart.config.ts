@@ -12,8 +12,7 @@ import {
   CHART_FONT_FAMILY,
 } from '@core/chart/chart-theme';
 
-const AXIS_ABBREVIATION_THRESHOLD = 1000;
-const MASKED_VALUE = '•••••';
+export const MASKED_VALUE = '•••••';
 
 export interface GoalProjectionChartLabels {
   target: string;
@@ -40,7 +39,6 @@ export function buildGoalProjectionChartOptions(
   reducedMotion = false,
 ): ChartConfiguration['options'] {
   const tickColor = theme?.tickColor || undefined;
-  const gridColor = theme?.gridColor || undefined;
   const tooltipBg = theme?.tooltipBg || undefined;
 
   return {
@@ -48,13 +46,14 @@ export function buildGoalProjectionChartOptions(
     maintainAspectRatio: false,
     animation: reducedMotion ? false : undefined,
     interaction: { mode: 'index', intersect: false },
+    layout: { padding: { top: 8, right: 16, left: 4 } },
     elements: {
-      line: { tension: 0.2, borderWidth: 2 },
+      line: { cubicInterpolationMode: 'monotone', borderWidth: 2 },
       point: { radius: 0, hoverRadius: 4 },
     },
     plugins: {
       legend: {
-        display: true,
+        display: false,
         position: 'top',
         align: 'end',
         labels: {
@@ -90,27 +89,19 @@ export function buildGoalProjectionChartOptions(
     },
     scales: {
       x: {
-        grid: { display: false },
+        border: { display: false },
+        grid: { display: false, drawTicks: false },
         ticks: {
           font: { family: CHART_FONT_FAMILY, size: 11 },
           color: tickColor,
           maxRotation: 0,
           autoSkipPadding: 12,
+          padding: 8,
         },
       },
       y: {
-        grid: { color: gridColor },
-        ticks: {
-          font: { family: CHART_FONT_FAMILY, size: 11 },
-          color: tickColor,
-          callback: function (value: string | number) {
-            if (amountsHidden) return '•';
-            const num = Number(value);
-            if (num >= AXIS_ABBREVIATION_THRESHOLD)
-              return num / AXIS_ABBREVIATION_THRESHOLD + 'k';
-            return num;
-          },
-        },
+        display: false,
+        grid: { display: false },
       },
     },
   };
@@ -156,11 +147,18 @@ function buildPlannedProjection(
   return data;
 }
 
+function terminalPointRadii(data: readonly (number | null)[]): number[] {
+  let lastValueIndex = -1;
+  data.forEach((value, index) => {
+    if (value !== null) lastValueIndex = index;
+  });
+  return data.map((_, index) => (index === lastValueIndex ? 3 : 0));
+}
+
 /**
- * Three balance series over the anchor → target axis (RG-002 — savings never
- * amber/red): cible, réalité épargnée through the current month, and planned
- * projection anchored on that reality. Simulation replaces the projection with
- * the sandbox trajectory.
+ * Three balance series over the anchor → target axis: neutral target, savings
+ * green for confirmed reality, and tertiary blue for the planned projection.
+ * Simulation replaces the projection with the sandbox trajectory.
  */
 export function buildGoalProjectionChartData(
   input: GoalProjectionChartInput,
@@ -207,8 +205,7 @@ export function buildGoalProjectionChartData(
       data: targetData,
       label: labels.target,
       borderColor: colorWithAlpha(theme.tickColor, 0.5),
-      borderWidth: 1,
-      borderDash: [4, 4],
+      borderWidth: 1.5,
       pointRadius: 0,
       pointHoverRadius: 0,
       fill: false,
@@ -219,16 +216,22 @@ export function buildGoalProjectionChartData(
       borderColor: theme.savings,
       backgroundColor: colorWithAlpha(theme.savings, 0.12),
       pointBackgroundColor: theme.savings,
+      pointBorderColor: theme.savings,
+      pointBorderWidth: 2,
+      pointRadius: terminalPointRadii(confirmedData),
       spanGaps: false,
       fill: 'origin',
     } as ChartConfiguration['data']['datasets'][number],
     {
       data: projectionData,
       label: labels.projection,
-      borderColor: theme.savings,
-      borderDash: [6, 4],
+      borderColor: theme.income,
+      borderDash: [4, 4],
       backgroundColor: 'transparent',
-      pointBackgroundColor: theme.savings,
+      pointBackgroundColor: theme.income,
+      pointBorderColor: theme.income,
+      pointBorderWidth: 2,
+      pointRadius: terminalPointRadii(projectionData),
       fill: false,
     } as ChartConfiguration['data']['datasets'][number],
   ];
