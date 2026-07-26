@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "./Button";
 import { angularUrl } from "@/lib/config";
-import { trackCTAClick } from "@/lib/posthog";
 
 /**
  * Persistent CTA below the desktop header breakpoint: appears once the hero
@@ -53,7 +52,9 @@ export function StickyCTA() {
         href={angularUrl("/signup", "sticky_cta_commencer")}
         glow
         className="w-full shadow-[0_8px_30px_rgba(0,110,37,0.35)]"
-        onClick={() => trackCTAClick("commencer", "sticky_cta", "/signup")}
+        data-cta-name="commencer"
+        data-cta-location="sticky_cta"
+        data-cta-destination="/signup"
         tabIndex={visible ? undefined : -1}
       >
         Créer mon budget gratuitement

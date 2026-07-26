@@ -83,6 +83,14 @@ const componentSources = {
     new URL("../components/sections/FinalCTA.tsx", import.meta.url),
     "utf8",
   ),
+  platforms: readFileSync(
+    new URL("../components/sections/Platforms.tsx", import.meta.url),
+    "utf8",
+  ),
+  stickyCta: readFileSync(
+    new URL("../components/ui/StickyCTA.tsx", import.meta.url),
+    "utf8",
+  ),
   arrowNote: readFileSync(
     new URL("../components/ui/ArrowNote.tsx", import.meta.url),
     "utf8",
@@ -412,6 +420,38 @@ describe("landing accessibility contracts", () => {
   it("keeps the accordion out of the client bundle", () => {
     assert.doesNotMatch(componentSources.accordionItem, /use client/);
     assert.doesNotMatch(componentSources.accordionItem, /useState/);
+  });
+
+  it("tracks every CTA through a single delegated listener", () => {
+    // Un seul écouteur émet l'évènement. Si une section reposait encore son
+    // propre `onClick` de suivi, chaque clic compterait deux fois.
+    assert.match(
+      componentSources.posthogProvider,
+      /closest<HTMLElement>\(\s*"\[data-cta-name\]",?\s*\)/,
+    );
+    for (const source of [
+      componentSources.header,
+      componentSources.hero,
+      componentSources.finalCta,
+      componentSources.platforms,
+      componentSources.stickyCta,
+    ]) {
+      assert.doesNotMatch(source, /trackCTAClick/);
+      assert.match(source, /data-cta-name=/);
+    }
+  });
+
+  it("keeps sections that only tracked clicks out of the client bundle", () => {
+    for (const source of [
+      componentSources.header,
+      componentSources.finalCta,
+      componentSources.platforms,
+    ]) {
+      assert.doesNotMatch(source, /use client/);
+    }
+    // Ceux-là gardent React : devise du visiteur et observateur de défilement.
+    assert.match(componentSources.hero, /use client/);
+    assert.match(componentSources.stickyCta, /use client/);
   });
 
   it("transitions only the properties that change", () => {

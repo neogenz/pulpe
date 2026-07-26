@@ -3,7 +3,6 @@
 import { useSyncExternalStore } from "react";
 import { Button, HeroDashboard } from "@/components/ui";
 import { angularUrl } from "@/lib/config";
-import { trackCTAClick } from "@/lib/posthog";
 
 function subscribeToNothing() {
   return () => undefined;
@@ -59,7 +58,9 @@ export function Hero() {
             <Button
               href={angularUrl("/signup", "hero_commencer")}
               glow
-              onClick={() => trackCTAClick("commencer", "hero", "/signup")}
+              data-cta-name="commencer"
+              data-cta-location="hero"
+              data-cta-destination="/signup"
             >
               Créer mon budget gratuitement
             </Button>

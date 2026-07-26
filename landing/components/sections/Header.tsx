@@ -1,5 +1,3 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
@@ -10,7 +8,6 @@ import {
   SCROLL_SENTINEL_ID,
   angularUrl,
 } from "@/lib/config";
-import { trackCTAClick } from "@/lib/posthog";
 
 const navLinks = [
   { href: "/#pain-points", label: "Pourquoi Pulpe" },
@@ -76,7 +73,9 @@ export function Header() {
                 href={angularUrl("/signup", "header_commencer")}
                 size="sm"
                 className="shrink-0"
-                onClick={() => trackCTAClick("commencer", "header", "/signup")}
+                data-cta-name="commencer"
+                data-cta-location="header"
+                data-cta-destination="/signup"
               >
                 Créer mon budget
               </Button>
@@ -127,9 +126,9 @@ export function Header() {
               <Button
                 href={angularUrl("/signup", "mobile_menu_commencer")}
                 className="mt-4 w-full"
-                onClick={() =>
-                  trackCTAClick("commencer", "mobile_menu", "/signup")
-                }
+                data-cta-name="commencer"
+                data-cta-location="mobile_menu"
+                data-cta-destination="/signup"
               >
                 Créer mon budget
               </Button>

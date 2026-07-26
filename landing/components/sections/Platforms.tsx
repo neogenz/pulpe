@@ -1,9 +1,6 @@
-"use client";
-
 import { Globe, Smartphone } from "lucide-react";
 import { Badge, Button, Section } from "@/components/ui";
 import { angularUrl } from "@/lib/config";
-import { trackCTAClick } from "@/lib/posthog";
 
 const IOS_APP_URL = "https://apps.apple.com/app/pulpe/id6758464920";
 
@@ -61,9 +58,9 @@ export function Platforms() {
               rel="noopener noreferrer"
               className="mt-10 inline-flex w-fit rounded-xl transition-opacity duration-200 hover:opacity-85 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary motion-reduce:transition-none"
               aria-label="Télécharger Pulpe sur l’App Store"
-              onClick={() =>
-                trackCTAClick("download_app_store", "platforms", IOS_APP_URL)
-              }
+              data-cta-name="download_app_store"
+              data-cta-location="platforms"
+              data-cta-destination={IOS_APP_URL}
             >
               <img
                 src="/app-store-badge.svg"
@@ -89,9 +86,9 @@ export function Platforms() {
             href={angularUrl("/welcome", "platforms_ouvrir")}
             variant="secondary"
             className="mt-7 w-full"
-            onClick={() =>
-              trackCTAClick("ouvrir_navigateur", "platforms", "/welcome")
-            }
+            data-cta-name="ouvrir_navigateur"
+            data-cta-location="platforms"
+            data-cta-destination="/welcome"
           >
             Ouvrir l&apos;app web
           </Button>
