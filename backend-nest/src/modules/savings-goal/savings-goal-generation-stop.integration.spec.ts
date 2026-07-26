@@ -291,3 +291,235 @@ describe('PUL-285 — apply_savings_goal_generation_stop (RPC integration)', () 
     );
   });
 });
+
+describe('PUL-313 — reconcile_savings_goal_target_date (RPC integration)', () => {
+  const targetPeriodIndex = 2099 * 12 + 6;
+  const targetDate = '2099-06-15';
+
+  it('freezes the exact post-deadline candidates and patches the goal atomically', async () => {
+    if (!env) return;
+
+    const seed = await seedGoalWithBudgets([4, 6, 7, 8]);
+    const past = await seedLinkedLine(seed, 4);
+    const atTarget = await seedLinkedLine(seed, 6);
+    const candidate = await seedLinkedLine(seed, 7);
+    const checked = await seedLinkedLine(seed, 7, {
+      checkedAt: '2099-07-01T00:00:00Z',
+    });
+    const adjusted = await seedLinkedLine(seed, 8, {
+      isManuallyAdjusted: true,
+    });
+
+    const { data, error } = await seed.user.client.rpc(
+      'reconcile_savings_goal_target_date',
+      {
+        p_goal_id: seed.goalId,
+        p_mode: 'freeze',
+        p_budget_line_ids: [candidate],
+        p_min_period_index: MIN_PERIOD_INDEX,
+        p_target_period_index: targetPeriodIndex,
+        p_patch: {
+          name: 'Maison proche',
+          target_amount: 'enc:4000',
+          target_date: targetDate,
+        },
+      },
+    );
+
+    expect(error).toBeNull();
+    expect(data).toMatchObject({
+      affected_line_ids: [candidate],
+      touched_budget_ids: [seed.budgetIdByMonth.get(7)!],
+      goal: {
+        id: seed.goalId,
+        name: 'Maison proche',
+        target_amount: 'enc:4000',
+        target_date: targetDate,
+      },
+    });
+
+    const { data: lines } = await admin
+      .from('budget_line')
+      .select('id, savings_goal_id, is_manually_adjusted')
+      .in('id', [past, atTarget, candidate, checked, adjusted]);
+    const byId = new Map((lines ?? []).map((line) => [line.id, line]));
+    expect(byId.get(candidate)).toMatchObject({
+      savings_goal_id: null,
+      is_manually_adjusted: true,
+    });
+    for (const id of [past, atTarget, checked, adjusted]) {
+      expect(byId.get(id)?.savings_goal_id).toBe(seed.goalId);
+    }
+  });
+
+  it('removes candidates and frees their transactions in the same goal patch', async () => {
+    if (!env) return;
+
+    const seed = await seedGoalWithBudgets([7]);
+    const candidate = await seedLinkedLine(seed, 7);
+    const transactionId = crypto.randomUUID();
+    await admin.from('transaction').insert({
+      id: transactionId,
+      budget_id: seed.budgetIdByMonth.get(7)!,
+      budget_line_id: candidate,
+      name: 'Virement épargne',
+      amount: 'enc',
+      kind: 'saving',
+      transaction_date: '2099-07-05T00:00:00Z',
+    });
+
+    const { error } = await seed.user.client.rpc(
+      'reconcile_savings_goal_target_date',
+      {
+        p_goal_id: seed.goalId,
+        p_mode: 'remove',
+        p_budget_line_ids: [candidate],
+        p_min_period_index: MIN_PERIOD_INDEX,
+        p_target_period_index: targetPeriodIndex,
+        p_patch: { target_date: targetDate },
+      },
+    );
+
+    expect(error).toBeNull();
+    const removed = await admin
+      .from('budget_line')
+      .select('id')
+      .eq('id', candidate);
+    expect(removed.data).toEqual([]);
+    const transaction = await admin
+      .from('transaction')
+      .select('budget_line_id')
+      .eq('id', transactionId)
+      .single();
+    expect(transaction.data?.budget_line_id).toBeNull();
+    const goal = await admin
+      .from('savings_goal')
+      .select('target_date')
+      .eq('id', seed.goalId)
+      .single();
+    expect(goal.data?.target_date).toBe(targetDate);
+  });
+
+  it('rolls back date and lines when the candidate set drifted', async () => {
+    if (!env) return;
+
+    const seed = await seedGoalWithBudgets([7, 8]);
+    const confirmed = await seedLinkedLine(seed, 7);
+    const appearedAfterPreview = await seedLinkedLine(seed, 8);
+
+    const { error } = await seed.user.client.rpc(
+      'reconcile_savings_goal_target_date',
+      {
+        p_goal_id: seed.goalId,
+        p_mode: 'remove',
+        p_budget_line_ids: [confirmed],
+        p_min_period_index: MIN_PERIOD_INDEX,
+        p_target_period_index: targetPeriodIndex,
+        p_patch: { target_date: targetDate },
+      },
+    );
+
+    expect(error?.message ?? '').toContain(
+      'Savings goal reconciliation conflict',
+    );
+    const lines = await admin
+      .from('budget_line')
+      .select('id')
+      .in('id', [confirmed, appearedAfterPreview]);
+    expect(lines.data).toHaveLength(2);
+    const goal = await admin
+      .from('savings_goal')
+      .select('target_date')
+      .eq('id', seed.goalId)
+      .single();
+    expect(goal.data?.target_date).toBe('2099-12-01');
+  });
+
+  it.each([
+    ['foreign id', {}],
+    ['line became checked', { checkedAt: '2099-07-01T00:00:00Z' }],
+  ] as const)(
+    'rolls back on %s between preview and confirmation',
+    async (_label, options) => {
+      if (!env) return;
+
+      const seed = await seedGoalWithBudgets([7]);
+      const lineId =
+        'checkedAt' in options
+          ? await seedLinkedLine(seed, 7, options)
+          : crypto.randomUUID();
+
+      const { error } = await seed.user.client.rpc(
+        'reconcile_savings_goal_target_date',
+        {
+          p_goal_id: seed.goalId,
+          p_mode: 'freeze',
+          p_budget_line_ids: [lineId],
+          p_min_period_index: MIN_PERIOD_INDEX,
+          p_target_period_index: targetPeriodIndex,
+          p_patch: { target_date: targetDate },
+        },
+      );
+
+      expect(error?.message ?? '').toContain(
+        'Savings goal reconciliation conflict',
+      );
+      const goal = await admin
+        .from('savings_goal')
+        .select('target_date')
+        .eq('id', seed.goalId)
+        .single();
+      expect(goal.data?.target_date).toBe('2099-12-01');
+      if ('checkedAt' in options) {
+        const line = await admin
+          .from('budget_line')
+          .select('savings_goal_id, is_manually_adjusted')
+          .eq('id', lineId)
+          .single();
+        expect(line.data).toMatchObject({
+          savings_goal_id: seed.goalId,
+          is_manually_adjusted: false,
+        });
+      }
+    },
+  );
+
+  it('rolls back candidate changes when the goal patch is invalid', async () => {
+    if (!env) return;
+
+    const seed = await seedGoalWithBudgets([7]);
+    const candidate = await seedLinkedLine(seed, 7);
+
+    const { error } = await seed.user.client.rpc(
+      'reconcile_savings_goal_target_date',
+      {
+        p_goal_id: seed.goalId,
+        p_mode: 'freeze',
+        p_budget_line_ids: [candidate],
+        p_min_period_index: MIN_PERIOD_INDEX,
+        p_target_period_index: targetPeriodIndex,
+        p_patch: {
+          target_date: targetDate,
+          status: 'INVALID',
+        },
+      },
+    );
+
+    expect(error).not.toBeNull();
+    const line = await admin
+      .from('budget_line')
+      .select('savings_goal_id, is_manually_adjusted')
+      .eq('id', candidate)
+      .single();
+    expect(line.data).toMatchObject({
+      savings_goal_id: seed.goalId,
+      is_manually_adjusted: false,
+    });
+    const goal = await admin
+      .from('savings_goal')
+      .select('target_date')
+      .eq('id', seed.goalId)
+      .single();
+    expect(goal.data?.target_date).toBe('2099-12-01');
+  });
+});

@@ -1041,4 +1041,111 @@ describe('SupabaseSavingsGoalRepository', () => {
       });
     });
   });
+
+  describe('reconcileTargetDate (PUL-313)', () => {
+    const goalId = '123e4567-e89b-12d3-a456-426614174001';
+    const lineId = '123e4567-e89b-12d3-a456-426614174002';
+    const budgetId = '123e4567-e89b-12d3-a456-426614174003';
+
+    it('encrypts the financial patch and sends one atomic RPC command', async () => {
+      const rpc = jest.fn().mockResolvedValue({
+        data: {
+          goal: {
+            ...mockRow,
+            id: goalId,
+            user_id: '123e4567-e89b-12d3-a456-426614174004',
+            name: 'Maison proche',
+            target_amount: 'enc:4000',
+            target_date: '2030-03-15',
+            initial_amount: 'enc:250',
+          },
+          affected_line_ids: [lineId],
+          touched_budget_ids: [budgetId],
+        },
+        error: null,
+      });
+      const provider = {
+        get client() {
+          return { rpc } as unknown as AuthenticatedSupabaseClient;
+        },
+        get user() {
+          return mockUser;
+        },
+      } as AuthenticatedSupabaseProvider;
+      const encryption = createMockEncryption();
+      const repo = new SupabaseSavingsGoalRepository(provider, encryption);
+
+      const result = await repo.reconcileTargetDate(goalId, {
+        patch: {
+          name: 'Maison proche',
+          targetAmount: 4000,
+          targetDate: '2030-03-15',
+          initialAmount: 250,
+        },
+        reconciliation: { mode: 'freeze', budgetLineIds: [lineId] },
+        minPeriodIndex: 24_319,
+        targetPeriodIndex: 24_363,
+      });
+
+      expect(rpc).toHaveBeenCalledWith('reconcile_savings_goal_target_date', {
+        p_goal_id: goalId,
+        p_mode: 'freeze',
+        p_budget_line_ids: [lineId],
+        p_min_period_index: 24_319,
+        p_target_period_index: 24_363,
+        p_patch: {
+          name: 'Maison proche',
+          target_amount: 'enc:4000',
+          target_date: '2030-03-15',
+          initial_amount: 'enc:250',
+        },
+      });
+      expect(result).toMatchObject({
+        goal: {
+          id: goalId,
+          name: 'Maison proche',
+          targetAmount: 4000,
+          targetDate: '2030-03-15',
+          initialAmount: 250,
+        },
+        affectedLineIds: [lineId],
+        touchedBudgetIds: [budgetId],
+      });
+      expect(encryption.encryptAmount).toHaveBeenCalledWith(
+        4000,
+        expect.any(Buffer),
+      );
+    });
+
+    it('maps candidate-set drift to reconciliation conflict', async () => {
+      const dbError = {
+        code: 'P0001',
+        message: 'Savings goal reconciliation conflict',
+      };
+      const rpc = jest.fn().mockResolvedValue({ data: null, error: dbError });
+      const provider = {
+        get client() {
+          return { rpc } as unknown as AuthenticatedSupabaseClient;
+        },
+        get user() {
+          return mockUser;
+        },
+      } as AuthenticatedSupabaseProvider;
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      await expect(
+        repo.reconcileTargetDate(goalId, {
+          patch: { targetDate: '2030-03-15' },
+          reconciliation: { mode: 'remove', budgetLineIds: [lineId] },
+          minPeriodIndex: 24_319,
+          targetPeriodIndex: 24_363,
+        }),
+      ).rejects.toMatchObject({
+        code: 'ERR_SAVINGS_GOAL_RECONCILIATION_CONFLICT',
+      });
+    });
+  });
 });

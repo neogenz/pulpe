@@ -2,6 +2,11 @@ import { beforeEach, describe, expect, it, jest } from 'bun:test';
 import { Buffer } from 'node:buffer';
 import { Test } from '@nestjs/testing';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
+import {
+  getBudgetPeriodForDate,
+  parseIsoDateLocal,
+  periodIndex,
+} from 'pulpe-shared';
 import { SAVINGS_GOAL_REPOSITORY } from '../domain/ports/savings-goal-repository.port';
 import { GetSavingsGoalFutureLinesUseCase } from './get-savings-goal-future-lines.use-case';
 
@@ -83,5 +88,31 @@ describe('GetSavingsGoalFutureLinesUseCase (PUL-285 CA5/CA9)', () => {
     const result = await useCase.execute('goal-1', user);
 
     expect(result).toEqual([farFuture]);
+  });
+
+  it('previews only candidates strictly after the proposed payDay-aware target period', async () => {
+    const payDayUser = { ...user, payDayOfMonth: 27 };
+    const proposedDate = new Date();
+    proposedDate.setUTCMonth(proposedDate.getUTCMonth() + 2, 27);
+    const targetDate = proposedDate.toISOString().slice(0, 10);
+    const targetIndex = periodIndex(
+      getBudgetPeriodForDate(parseIsoDateLocal(targetDate), 27),
+    );
+    const atTarget = {
+      ...line(0),
+      id: 'at-target',
+      ...periodFromIndex(targetIndex),
+    };
+    const afterTarget = {
+      ...line(0),
+      id: 'after-target',
+      ...periodFromIndex(targetIndex + 1),
+    };
+    repo.findLinkedSavingLines.mockResolvedValue([afterTarget, atTarget]);
+
+    const result = await useCase.execute('goal-1', payDayUser, targetDate);
+
+    expect(result.map((item) => item.id)).toEqual(['after-target']);
+    expect(repo.findLinkedSavingLines).toHaveBeenCalledTimes(1);
   });
 });

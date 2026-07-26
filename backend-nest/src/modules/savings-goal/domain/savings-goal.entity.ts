@@ -4,6 +4,7 @@ import type {
   LinkedSavingTransaction,
   SavingsGoalPlanApply,
   SavingsGoalProgressResult,
+  SavingsGoalReconciliation,
   SavingsPlanTimelineMonth,
   SupportedCurrency,
 } from 'pulpe-shared';
@@ -136,6 +137,19 @@ export interface SavingsGoalPlanApplyResult {
  * post-commit recalc.
  */
 export interface SavingsGoalGenerationStopResult {
+  affectedLineIds: string[];
+  touchedBudgetIds: string[];
+}
+
+export interface SavingsGoalTargetDateReconciliationCommand {
+  patch: SavingsGoalUpdatePatch;
+  reconciliation: SavingsGoalReconciliation;
+  minPeriodIndex: number;
+  targetPeriodIndex: number;
+}
+
+export interface SavingsGoalTargetDateReconciliationResult {
+  goal: SavingsGoal;
   affectedLineIds: string[];
   touchedBudgetIds: string[];
 }

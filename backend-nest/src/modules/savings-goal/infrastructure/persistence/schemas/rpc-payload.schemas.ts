@@ -1,4 +1,8 @@
 import { z } from 'zod';
+import {
+  exchangeRateWirePositive,
+  supportedCurrencySchema,
+} from 'pulpe-shared';
 
 // ----------------------------------------------------------------------------
 // apply_savings_goal_plan — JSONB item shapes (PUL-12 plan apply).
@@ -54,3 +58,55 @@ export const GENERATION_STOP_ADJUSTED_RPC_MESSAGE =
   'Generation stop line manually adjusted';
 export const GENERATION_STOP_PAST_RPC_MESSAGE =
   'Generation stop line in past period';
+
+// reconcile_savings_goal_target_date (PUL-313) — le repository chiffre tous
+// les montants avant de franchir la frontière RPC. `target_date` est requis :
+// cette commande n'existe que pour une échéance non nulle avancée.
+export const reconcileSavingsGoalTargetDatePatchSchema = z
+  .object({
+    name: z.string().min(1).optional(),
+    start_date: z.iso.date().nullable().optional(),
+    target_amount: z.string().min(1).nullable().optional(),
+    target_date: z.iso.date(),
+    status: z.enum(['ACTIVE', 'COMPLETED', 'PAUSED']).optional(),
+    original_target_amount: z.string().min(1).nullable().optional(),
+    original_currency: supportedCurrencySchema.nullable().optional(),
+    target_currency: supportedCurrencySchema.nullable().optional(),
+    exchange_rate: exchangeRateWirePositive.nullable().optional(),
+    initial_amount: z.string().min(1).nullable().optional(),
+  })
+  .strict();
+
+export type ReconcileSavingsGoalTargetDatePatch = z.infer<
+  typeof reconcileSavingsGoalTargetDatePatchSchema
+>;
+
+export const reconcileSavingsGoalTargetDateResponseSchema = z.object({
+  goal: z
+    .object({
+      id: z.uuid(),
+      user_id: z.uuid(),
+      name: z.string(),
+      start_date: z.iso.date().nullable(),
+      target_amount: z.string().nullable(),
+      target_date: z.iso.date().nullable(),
+      status: z.enum(['ACTIVE', 'COMPLETED', 'PAUSED']),
+      created_at: z.string(),
+      updated_at: z.string(),
+      original_target_amount: z.string().nullable(),
+      original_currency: z.string().nullable(),
+      target_currency: z.string().nullable(),
+      exchange_rate: z.coerce.number().nullable(),
+      initial_amount: z.string().nullable(),
+    })
+    .passthrough(),
+  affected_line_ids: z.array(z.uuid()),
+  touched_budget_ids: z.array(z.uuid()),
+});
+
+export type ReconcileSavingsGoalTargetDateResponse = z.infer<
+  typeof reconcileSavingsGoalTargetDateResponseSchema
+>;
+
+export const RECONCILIATION_CONFLICT_RPC_MESSAGE =
+  'Savings goal reconciliation conflict';

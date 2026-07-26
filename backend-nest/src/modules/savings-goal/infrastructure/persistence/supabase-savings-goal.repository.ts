@@ -34,6 +34,8 @@ import type {
   SavingsGoalPlanApplyResult,
   SavingsGoalPlanMonthAdjustment,
   SavingsGoalRow,
+  SavingsGoalTargetDateReconciliationCommand,
+  SavingsGoalTargetDateReconciliationResult,
   SavingsGoalUpdatePatch,
 } from '../../domain/savings-goal.entity';
 import {
@@ -45,6 +47,9 @@ import {
   PLAN_LINE_CHECKED_RPC_MESSAGE,
   PLAN_LINE_NOT_LINKED_RPC_MESSAGE,
   PLAN_LINE_PAST_RPC_MESSAGE,
+  RECONCILIATION_CONFLICT_RPC_MESSAGE,
+  reconcileSavingsGoalTargetDatePatchSchema,
+  reconcileSavingsGoalTargetDateResponseSchema,
   type ApplySavingsGoalPlanLine,
 } from './schemas/rpc-payload.schemas';
 
@@ -418,6 +423,109 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       affectedLineIds: data.map((row) => row.line_id),
       touchedBudgetIds: [...new Set(data.map((row) => row.budget_id))],
     };
+  }
+
+  async reconcileTargetDate(
+    goalId: string,
+    command: SavingsGoalTargetDateReconciliationCommand,
+  ): Promise<SavingsGoalTargetDateReconciliationResult> {
+    const user = this.supabaseProvider.user;
+    const encryptedPatch = await this.toUpdateRow(command.patch, user);
+    let patchPayload: ReturnType<
+      typeof reconcileSavingsGoalTargetDatePatchSchema.parse
+    >;
+    try {
+      patchPayload =
+        reconcileSavingsGoalTargetDatePatchSchema.parse(encryptedPatch);
+    } catch (cause) {
+      if (cause instanceof ZodError) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.SAVINGS_GOAL_RECONCILIATION_FAILED,
+          undefined,
+          {
+            operation: 'reconcileSavingsGoalTargetDate.payload',
+            validationErrors: cause.issues,
+          },
+          { cause },
+        );
+      }
+      throw cause;
+    }
+
+    const { data, error } = await this.supabaseProvider.client.rpc(
+      'reconcile_savings_goal_target_date',
+      {
+        p_goal_id: goalId,
+        p_mode: command.reconciliation.mode,
+        p_budget_line_ids: command.reconciliation.budgetLineIds,
+        p_min_period_index: command.minPeriodIndex,
+        p_target_period_index: command.targetPeriodIndex,
+        p_patch: patchPayload,
+      },
+    );
+    if (error || !data) {
+      this.throwTargetDateReconciliationRpcError(error);
+    }
+
+    try {
+      const parsed = reconcileSavingsGoalTargetDateResponseSchema.parse(data);
+      const dek = await this.encryption.getDekFor(user);
+      return {
+        goal: this.toEntity(parsed.goal as unknown as SavingsGoalRow, dek),
+        affectedLineIds: parsed.affected_line_ids,
+        touchedBudgetIds: parsed.touched_budget_ids,
+      };
+    } catch (cause) {
+      if (cause instanceof ZodError) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.SAVINGS_GOAL_RECONCILIATION_FAILED,
+          undefined,
+          {
+            operation: 'reconcileSavingsGoalTargetDate.response',
+            validationErrors: cause.issues,
+          },
+          { cause },
+        );
+      }
+      throw cause;
+    }
+  }
+
+  private throwTargetDateReconciliationRpcError(
+    error: PostgrestError | null,
+  ): never {
+    if (isSavingsGoalLinkDenied(error)) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
+        undefined,
+        {
+          operation: 'reconcileSavingsGoalTargetDate',
+          entityType: 'savings_goal',
+        },
+        { cause: error ?? undefined },
+      );
+    }
+    if ((error?.message ?? '').includes(RECONCILIATION_CONFLICT_RPC_MESSAGE)) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_RECONCILIATION_CONFLICT,
+        undefined,
+        {
+          operation: 'reconcileSavingsGoalTargetDate',
+          entityType: 'savings_goal',
+        },
+        { cause: error ?? undefined },
+      );
+    }
+    throw new BusinessException(
+      ERROR_DEFINITIONS.SAVINGS_GOAL_RECONCILIATION_FAILED,
+      undefined,
+      {
+        operation: 'reconcileSavingsGoalTargetDate',
+        entityType: 'savings_goal',
+        supabaseError: error,
+      },
+      { cause: error ?? undefined },
+    );
   }
 
   /**

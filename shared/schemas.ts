@@ -259,6 +259,23 @@ export type SavingsGoal = z.infer<typeof savingsGoalSchema>;
 /** Mois courant inclus : l'échéance maximale est la 120e période. */
 export const MAX_SAVINGS_GOAL_PLAN_PERIODS = 120;
 
+/**
+ * Décision explicite sur les prévisions devenues hors horizon. Le même contrat
+ * sert à l'arrêt de génération et à l'avancement atomique d'une échéance.
+ */
+export const savingsGoalReconciliationSchema = z
+  .strictObject({
+    mode: z.enum(['freeze', 'remove']),
+    budgetLineIds: z.array(z.uuid()).min(1).max(MAX_SAVINGS_GOAL_PLAN_PERIODS),
+  })
+  .refine(
+    (value) => new Set(value.budgetLineIds).size === value.budgetLineIds.length,
+    { error: 'Une prévision apparaît deux fois dans la décision.' },
+  );
+export type SavingsGoalReconciliation = z.infer<
+  typeof savingsGoalReconciliationSchema
+>;
+
 function isWithinSavingsGoalPlanHorizon(value: string): boolean {
   const [year, month] = value.split('-').map(Number);
   const now = new Date();
@@ -331,6 +348,7 @@ export const savingsGoalUpdateSchema = z
     exchangeRate: exchangeRateWirePositive.optional(),
     /** Omis = inchangé ; `0` efface le montant de départ. */
     initialAmount: z.number().nonnegative().optional(),
+    reconciliation: savingsGoalReconciliationSchema.optional(),
   })
   .superRefine(({ startDate, targetDate }, context) => {
     if (startDate != null && targetDate != null && startDate > targetDate) {
@@ -599,6 +617,13 @@ export const savingsGoalFutureLineSchema = z.object({
 });
 export type SavingsGoalFutureLine = z.infer<typeof savingsGoalFutureLineSchema>;
 
+export const savingsGoalFutureLinesQuerySchema = z.strictObject({
+  targetDate: z.iso.date().optional(),
+});
+export type SavingsGoalFutureLinesQuery = z.infer<
+  typeof savingsGoalFutureLinesQuerySchema
+>;
+
 /**
  * Décision advisory à l'arrêt de génération
  * (`POST /savings-goals/:id/generation-stop`, PUL-285 CA5/CA8) :
@@ -610,16 +635,7 @@ export type SavingsGoalFutureLine = z.infer<typeof savingsGoalFutureLineSchema>;
  * Refus atomique (CA9) : jamais de mois passé, de ligne pointée ou déjà
  * ajustée à la main.
  */
-export const savingsGoalGenerationStopSchema = z
-  .strictObject({
-    mode: z.enum(['freeze', 'remove']),
-    budgetLineIds: z.array(z.uuid()).min(1).max(MAX_SAVINGS_GOAL_PLAN_PERIODS),
-  })
-  // Un doublon fausserait le comptage d'éligibilité de la RPC (422 trompeur).
-  .refine(
-    (value) => new Set(value.budgetLineIds).size === value.budgetLineIds.length,
-    { error: 'Une prévision apparaît deux fois dans la décision.' },
-  );
+export const savingsGoalGenerationStopSchema = savingsGoalReconciliationSchema;
 export type SavingsGoalGenerationStop = z.infer<
   typeof savingsGoalGenerationStopSchema
 >;

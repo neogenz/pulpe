@@ -6,6 +6,8 @@ import type {
   SavingsGoalLinkedContributions,
   SavingsGoalPlanApplyResult,
   SavingsGoalPlanMonthAdjustment,
+  SavingsGoalTargetDateReconciliationCommand,
+  SavingsGoalTargetDateReconciliationResult,
   SavingsGoalUpdatePatch,
 } from '../savings-goal.entity';
 import type {
@@ -69,4 +71,8 @@ export interface SavingsGoalRepositoryPort {
     budgetLineIds: string[],
     minPeriodIndex: number,
   ): Promise<SavingsGoalGenerationStopResult>;
+  reconcileTargetDate(
+    goalId: string,
+    command: SavingsGoalTargetDateReconciliationCommand,
+  ): Promise<SavingsGoalTargetDateReconciliationResult>;
 }

@@ -33,6 +33,8 @@ import type { EncryptionPort } from '@modules/encryption/domain/ports/encryption
 import type { InfoLogger } from '@common/logger';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import type { BudgetRecalculationPort } from '@modules/budget/domain/ports/budget-recalculation.port';
+import type { CacheService } from '@modules/cache/cache.service';
 import { SupabaseSavingsGoalRepository } from './infrastructure/persistence/supabase-savings-goal.repository';
 import { GetSavingsGoalProgressUseCase } from './application/get-savings-goal-progress.use-case';
 import { UpdateSavingsGoalUseCase } from './application/update-savings-goal.use-case';
@@ -84,7 +86,10 @@ async function makeUser(email: string): Promise<TestUser> {
 }
 
 /** Real repository + real use-case running under the user's own JWT (RLS live). */
-function progressUseCaseFor(user: TestUser): {
+function progressUseCaseFor(
+  user: TestUser,
+  payDayOfMonth?: number,
+): {
   useCase: GetSavingsGoalProgressUseCase;
   updateUseCase: UpdateSavingsGoalUseCase;
   authUser: AuthenticatedUser;
@@ -94,6 +99,7 @@ function progressUseCaseFor(user: TestUser): {
     email: 'x@test.local',
     accessToken: 'token',
     clientKey: Buffer.alloc(32),
+    payDayOfMonth,
   } as unknown as AuthenticatedUser;
   const provider = {
     get client() {
@@ -111,7 +117,12 @@ function progressUseCaseFor(user: TestUser): {
   );
   return {
     useCase: new GetSavingsGoalProgressUseCase(repo, templateRepo, noopLogger),
-    updateUseCase: new UpdateSavingsGoalUseCase(repo, noopLogger),
+    updateUseCase: new UpdateSavingsGoalUseCase(
+      repo,
+      { recalculate: async () => {} } as BudgetRecalculationPort,
+      { invalidateForUser: async () => {} } as unknown as CacheService,
+      noopLogger,
+    ),
     authUser,
   };
 }
@@ -360,6 +371,46 @@ describe('PUL-8 — savings-goal progress data path (local Supabase)', () => {
     expect(datedGoal.goal.targetDate).toBe('2099-12-01');
     expect(datedGoal.computed.plannedCumulative).toBe(300);
 
+    const after = await userA.client
+      .from('budget_line')
+      .select('id, amount, savings_goal_id')
+      .eq('savings_goal_id', goalAId)
+      .order('id');
+    expect(after.error).toBeNull();
+    expect(after.data).toEqual(before.data);
+  });
+
+  it('updates an earlier date in the same payDay-aware cycle without reconciliation', async () => {
+    if (!env) return;
+
+    const { updateUseCase, authUser } = progressUseCaseFor(userA, 25);
+    const previousCalendarMonth = shiftPeriod(nowPeriod, -1);
+    const originalDate = `${dateOfPeriod(nowPeriod).slice(0, 8)}15`;
+    const earlierSameCycleDate = `${dateOfPeriod(previousCalendarMonth).slice(0, 8)}26`;
+    const before = await userA.client
+      .from('budget_line')
+      .select('id, amount, savings_goal_id')
+      .eq('savings_goal_id', goalAId)
+      .order('id');
+    expect(before.error).toBeNull();
+
+    await updateUseCase.execute(
+      goalAId,
+      { startDate: null, targetDate: null },
+      authUser,
+    );
+    await updateUseCase.execute(
+      goalAId,
+      { targetDate: originalDate },
+      authUser,
+    );
+    const updated = await updateUseCase.execute(
+      goalAId,
+      { targetDate: earlierSameCycleDate },
+      authUser,
+    );
+
+    expect(updated.targetDate).toBe(earlierSameCycleDate);
     const after = await userA.client
       .from('budget_line')
       .select('id, amount, savings_goal_id')

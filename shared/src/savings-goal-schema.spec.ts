@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import {
   savingsGoalCreateSchema,
+  savingsGoalFutureLinesQuerySchema,
   savingsGoalPlanApplySchema,
   savingsGoalProgressSchema,
   savingsGoalUpdateSchema,
@@ -193,6 +194,44 @@ describe('PUL-314 — optional savings interval contract', () => {
         targetDate: isoDateOffsetDays(30),
       }).success,
     ).toBe(true);
+  });
+
+  test('accepts an explicit freeze/remove reconciliation on update', () => {
+    const result = savingsGoalUpdateSchema.safeParse({
+      targetDate: isoDateOffsetDays(15),
+      reconciliation: {
+        mode: 'freeze',
+        budgetLineIds: [UUID],
+      },
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  test('rejects duplicate line IDs in an update reconciliation', () => {
+    const result = savingsGoalUpdateSchema.safeParse({
+      targetDate: isoDateOffsetDays(15),
+      reconciliation: {
+        mode: 'remove',
+        budgetLineIds: [UUID, UUID],
+      },
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  test('validates the optional targetDate preview query strictly', () => {
+    expect(savingsGoalFutureLinesQuerySchema.safeParse({}).success).toBe(true);
+    expect(
+      savingsGoalFutureLinesQuerySchema.safeParse({
+        targetDate: isoDateOffsetDays(15),
+      }).success,
+    ).toBe(true);
+    expect(
+      savingsGoalFutureLinesQuerySchema.safeParse({
+        targetDate: 'not-a-date',
+      }).success,
+    ).toBe(false);
   });
 
   test('reads an objective without start, target, or deadline', () => {

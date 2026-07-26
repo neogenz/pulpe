@@ -5,6 +5,8 @@ import {
   PLAN_LINE_CHECKED_RPC_MESSAGE,
   PLAN_LINE_NOT_LINKED_RPC_MESSAGE,
   PLAN_LINE_PAST_RPC_MESSAGE,
+  RECONCILIATION_CONFLICT_RPC_MESSAGE,
+  reconcileSavingsGoalTargetDatePatchSchema,
 } from './rpc-payload.schemas';
 
 const UUID = '123e4567-e89b-12d3-a456-426614174000';
@@ -57,5 +59,45 @@ describe('RPC P0001 message constants', () => {
     expect(PLAN_LINE_NOT_LINKED_RPC_MESSAGE).toBe('Plan line not linked');
     expect(PLAN_LINE_CHECKED_RPC_MESSAGE).toBe('Plan line already checked');
     expect(PLAN_LINE_PAST_RPC_MESSAGE).toBe('Plan line in past period');
+  });
+});
+
+describe('reconcileSavingsGoalTargetDatePatchSchema', () => {
+  const patch = {
+    name: 'Maison proche',
+    target_date: '2030-03-15',
+    target_amount: 'AES-cipher-target',
+    initial_amount: 'AES-cipher-initial',
+    status: 'ACTIVE' as const,
+  };
+
+  it('accepts an encrypted strict patch carrying the new target date', () => {
+    expect(reconcileSavingsGoalTargetDatePatchSchema.parse(patch)).toEqual(
+      patch,
+    );
+  });
+
+  it('rejects plaintext financial amounts', () => {
+    expect(() =>
+      reconcileSavingsGoalTargetDatePatchSchema.parse({
+        ...patch,
+        target_amount: 5000,
+      }),
+    ).toThrow();
+  });
+
+  it('rejects unknown keys', () => {
+    expect(() =>
+      reconcileSavingsGoalTargetDatePatchSchema.parse({
+        ...patch,
+        reconciliation: {},
+      }),
+    ).toThrow();
+  });
+
+  it('pins the transaction drift error message', () => {
+    expect(RECONCILIATION_CONFLICT_RPC_MESSAGE).toBe(
+      'Savings goal reconciliation conflict',
+    );
   });
 });

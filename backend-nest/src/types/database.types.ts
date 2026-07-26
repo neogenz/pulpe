@@ -701,6 +701,17 @@ export type Database = {
         };
         Returns: Json;
       };
+      reconcile_savings_goal_target_date: {
+        Args: {
+          p_budget_line_ids: string[];
+          p_goal_id: string;
+          p_min_period_index: number;
+          p_mode: string;
+          p_patch: Json;
+          p_target_period_index: number;
+        };
+        Returns: Json;
+      };
       rekey_user_encrypted_data: {
         Args: {
           p_budget_lines?: Json;
