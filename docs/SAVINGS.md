@@ -12,7 +12,8 @@ L'utilisateur veut **suivre un objectif d'épargne long terme sans recalculer à
 
 La fonctionnalité reste volontairement minimale afin de préserver le parcours quotidien :
 
-- Un **objectif** = un nom, une cible, une échéance, un statut.
+- Un **objectif** = un nom obligatoire, avec début, cible et échéance
+  indépendamment optionnels, plus un statut.
 - Une **contribution** = le rattachement manuel d'une Prévision Épargne existante à cet objectif. Pas de nouveau geste de saisie, de priorité ni de sollicitation.
 - Une **progression** dérivée des Prévisions liées et de leur pointage, exprimée en deux couches (prévu / confirmé).
 
@@ -24,19 +25,27 @@ Sur iOS, **Objectifs** est un onglet principal permanent. La **carte Épargne du
 
 ### 2.1 `savings_goal`
 
-| Colonne         | Type                          | Note                                                                                                                                                                                                                    |
-| --------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`            | uuid                          | PK                                                                                                                                                                                                                      |
-| `user_id`       | uuid                          | RLS par user                                                                                                                                                                                                            |
-| `name`          | text                          | libellé objectif                                                                                                                                                                                                        |
-| `target_amount` | text                          | **chiffré AES-256-GCM** (cf. `docs/ENCRYPTION.md`)                                                                                                                                                                      |
-| `target_date`   | date                          | échéance ; à la création, `z.iso.date()` + `.refine(d => d >= today)` (**pas** `.min()` — en Zod 4, `.min()` sur une string ISO mesure la **longueur**, pas la date) ; au plus la **120e période**, mois courant inclus |
-| `status`        | enum                          | `ACTIVE` / `COMPLETED` / `PAUSED` (cf. §6)                                                                                                                                                                              |
-| `initial_amount` | text (nullable)              | **chiffré AES-256-GCM** — montant de départ déjà épargné avant le suivi. `null ≡ 0`. Devise du compte, **hors** contrainte `fx_metadata_coherent` (pas de FX v1). Stock one-shot : compte dans le confirmé, jamais dans le rythme (cf. §4)  |
-| `priority`      | enum (nullable, **dormante**) | **retirée du produit** — voir ci-dessous                                                                                                                                                                                |
-| colonnes FX     | text/null                     | métadonnées de devise, nulles dans la devise du compte (cf. §8)                                                                                                                                                         |
+| Colonne          | Type                          | Note                                                                                                                                                                                                                                       |
+| ---------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`             | uuid                          | PK                                                                                                                                                                                                                                         |
+| `user_id`        | uuid                          | RLS par user                                                                                                                                                                                                                               |
+| `name`           | text                          | libellé objectif                                                                                                                                                                                                                           |
+| `start_date`     | date (nullable)               | début explicite de l'intervalle ; s'il est absent, l'ancrage historique reste le cycle de création                                                                                                                                         |
+| `target_amount`  | text (nullable)               | **chiffré AES-256-GCM** (cf. `docs/ENCRYPTION.md`) ; une cible absente reste SQL `NULL`, jamais un zéro chiffré                                                                                                                            |
+| `target_date`    | date (nullable)               | échéance ; si présente à la création, `z.iso.date()` + `.refine(d => d >= today)` (**pas** `.min()` — en Zod 4, `.min()` sur une string ISO mesure la **longueur**, pas la date) ; au plus la **120e période**, mois courant inclus        |
+| `status`         | enum                          | `ACTIVE` / `COMPLETED` / `PAUSED` (cf. §6)                                                                                                                                                                                                 |
+| `initial_amount` | text (nullable)               | **chiffré AES-256-GCM** — montant de départ déjà épargné avant le suivi. `null ≡ 0`. Devise du compte, **hors** contrainte `fx_metadata_coherent` (pas de FX v1). Stock one-shot : compte dans le confirmé, jamais dans le rythme (cf. §4) |
+| `priority`       | enum (nullable, **dormante**) | **retirée du produit** — voir ci-dessous                                                                                                                                                                                                   |
+| colonnes FX      | text/null                     | métadonnées de devise, nulles dans la devise du compte (cf. §8)                                                                                                                                                                            |
 
 **Priorité** : le produit n'expose aucune notion de priorité sur l'épargne. `priority` est absente du formulaire et des schémas `create`/`response`. La colonne nullable reste dormante pour préserver la compatibilité du schéma.
+
+**Contrat d'intervalle** : `POST` exige seulement `name`. `startDate`,
+`targetAmount` et `targetDate` peuvent être fournis indépendamment. Sur `PATCH`,
+une propriété omise reste inchangée, `null` la retire et une valeur la remplace.
+Si début et échéance sont tous deux présents après fusion du patch,
+`startDate <= targetDate`. Retirer la cible efface aussi toutes ses métadonnées
+FX (`original_target_amount`, devises et taux).
 
 ### 2.2 Le lien Prévision ↔ objectif (décision clé)
 
@@ -90,7 +99,9 @@ Si une Prévision passe de `saving` à un autre `kind`, `savingsGoalId` est forc
 - **Pourquoi le lien survit sans `template_line`** : §3.2 protège un lien qui doit traverser la régénération mensuelle. Une `one_off` n'est jamais régénérée — il n'y a rien à quoi survivre. La progression (§4.1) ne filtre d'ailleurs aucune récurrence : une `one_off` liée compte exactement comme une récurrente.
 - **Maintenance** : les prévisions générées sont ensuite des Prévisions comme les autres, modifiables et supprimables une par une. Le nom de l'objectif ne leur sert que de **valeur initiale**. Pulpe ne recalcule **jamais** leur montant en silence (« Redistribution jamais silencieuse ») : la dérive se gère via le simulateur (§10).
 
-> Un objectif **sans échéance** (« pot » perpétuel) n'existe pas encore — `savings_goal.target_date` est `NOT NULL`. Quand PUL-314 le rendra optionnel, l'horizon ouvert appellera le contenant inverse : une récurrence sur le Mois Type, qu'on ne peut pas remplacer par une liste finie de `one_off`.
+Un objectif **sans échéance** est un horizon ouvert : la création ne tente pas
+de matérialiser une liste finie de `one_off`. Sa timeline s'arrête au dernier
+mois lié, avec un plancher au cycle courant.
 
 ---
 
@@ -117,16 +128,21 @@ linkedSavingLines =
 ### 4.2 Les neuf formules
 
 ```
-// Ancrage : cycle de goal.createdAt (payDay-aware, via getBudgetPeriodForDate)
-indexAncrage   = year(ancrage) * 12 + month(ancrage)
+// Ancrage historique stable, payDay-aware
+indexCreation  = cycle(goal.createdAt)
+indexDebut     = cycle(goal.startDate) si présent, sinon indexCreation
+indexAncrage   = max(indexCreation, indexDebut)
 indexCourant   = year(now)     * 12 + month(now)
-indexEcheance  = year(target)  * 12 + month(target)
+indexRestant   = max(indexCourant, indexAncrage)
+indexEcheance  = cycle(targetDate) si présente
 
 monthsElapsed    = indexCourant − indexAncrage + 1          // ≥ 1 par construction
-monthsRemaining  = indexEcheance − indexCourant + 1         // mois courant ET échéance inclus (le mois courant reste contributif ; ≤ 0 ⇒ échéance dépassée)
+monthsRemaining  = indexEcheance − indexRestant + 1         // null sans échéance
 
 // 1. Prévu cumulé — pur line.amount des mois ≤ now (PAS d'enveloppe transactions)
-plannedCumulative = Σ line.amount  (linkedSavingLines des mois ≤ indexCourant)
+plannedCumulative = Σ line.amount  (indexAncrage ≤ mois ≤ indexCourant)
+plannedProjection = initialAmount + Σ line.amount
+                    (indexAncrage ≤ mois ≤ indexEcheance, ou sans borne haute)
 
 // 2. Confirmé — STOCK = montant de départ + enveloppe checked-only (checkedAt), tous mois
 //    calculateRealizedSavings : filtre kind==='saving' STRICT (PAS isOutflowKind)
@@ -137,6 +153,7 @@ confirmed      = initialAmount + linesConfirmed     // initialAmount (§2.1) : s
 // 3. % d'atteinte — sur le CONFIRMÉ, jamais le prévu
 achievementPercent = round( min(confirmed / targetAmount, 1) * 100 )
 //   garde : targetAmount = 0 → 0   (ne JAMAIS diviser par une cible non déchiffrée / nulle)
+//   cible absente → null
 
 // 4. Rythme — DEUX rythmes, tous deux en FLUX (le montant de départ, stock one-shot, en est EXCLU :
 //    l'inclure gonflerait projection et date d'atteinte estimée)
@@ -145,11 +162,11 @@ confirmedPace = linesConfirmed    / max(1, monthsElapsed)   // réel pointé —
 
 // 5. Requis pour tenir l'échéance
 required = max(0, targetAmount − confirmed) / monthsRemaining
-//   = null si monthsRemaining ≤ 0  (échéance dépassée)
+//   = null sans cible, sans échéance ou si monthsRemaining ≤ 0
 
 // 6. Projection à l'échéance — sur le rythme CONFIRMÉ (sinon contredit la barre, qui est sur confirmed)
 projected = confirmed + confirmedPace * monthsRemaining
-//   = confirmed si monthsRemaining ≤ 0
+//   = null sans cible ou sans échéance ; = confirmed si échéance dépassée
 
 // 7. Statut de rythme (tolérance ±5 %, projected vs targetAmount)
 paceStatus = behind | on_track | ahead          // via paceStatus(projected, targetAmount, PACE_TOLERANCE_PERCENT)
@@ -159,16 +176,27 @@ paceStatus = behind | on_track | ahead          // via paceStatus(projected, tar
 
 ### 4.3 Cas limites des formules
 
-| Cas                                   | Règle                                                                                                                                |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Division par zéro (cible)**         | `targetAmount = 0` → `achievementPercent = 0`. Jamais de division sans déchiffrement préalable.                                      |
-| **Division par zéro (mois)**          | `max(1, monthsElapsed)` avant tout `/ pace`. `monthsRemaining ≤ 0` → `required = null`, `projected = confirmed`.                     |
-| **Échéance dépassée**                 | `monthsRemaining ≤ 0` → état dédié (§6), pas de `paceStatus` négatif.                                                                |
-| **PAUSED**                            | `paceStatus = null` (pas de jugement de rythme sur un objectif en pause).                                                            |
-| **Ancrage**                           | `createdAt` ramené à son **cycle** via `getBudgetPeriodForDate` (un objectif créé le 28 d'un payDay=25 appartient au cycle suivant). |
-| **Pointage anticipé d'un mois futur** | Le pointage est accepté ; le confirmé peut dépasser le prévu cumulé.                                                                 |
+| Cas                                   | Règle                                                                                                                                                                            |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Division par zéro (cible)**         | `targetAmount = 0` → `achievementPercent = 0`. Jamais de division sans déchiffrement préalable.                                                                                  |
+| **Division par zéro (mois)**          | `max(1, monthsElapsed)` avant tout `/ pace`. `monthsRemaining ≤ 0` → `required = null`, `projected = confirmed`.                                                                 |
+| **Échéance dépassée**                 | `monthsRemaining ≤ 0` → état dédié (§6), pas de `paceStatus` négatif.                                                                                                            |
+| **PAUSED**                            | `paceStatus = null` (pas de jugement de rythme sur un objectif en pause).                                                                                                        |
+| **Ancrage**                           | `createdAt` ramené à son **cycle** via `getBudgetPeriodForDate` (un objectif créé le 28 d'un payDay=25 appartient au cycle suivant).                                             |
+| **Pointage anticipé d'un mois futur** | Le pointage est accepté ; le confirmé peut dépasser le prévu cumulé.                                                                                                             |
 | **Montant de départ (stock vs flux)** | `initialAmount` entre dans `confirmed` (barre, %, `required`, `projected`, D2) mais **jamais** dans `confirmedPace` ni `cumulativeGap` (`= plannedCumulative − linesConfirmed`). |
-| **Montant de départ ≥ cible**         | `suggestCompletion = true` dès la création (D2) — jamais d'auto-flip, l'utilisateur confirme.                                        |
+| **Montant de départ ≥ cible**         | `suggestCompletion = true` dès la création (D2) — jamais d'auto-flip, l'utilisateur confirme.                                                                                    |
+| **Cible absente**                     | `achievementPercent` et `suggestCompletion` sont `null`. La simulation garde son cumul final mais ses verdicts cible et la redistribution sont désactivés.                       |
+| **Échéance absente**                  | `monthsRemaining`, `required`, `projected` et `paceStatus` sont `null`, `isOverdue = false`. Une cible présente conserve `estimatedCompletion` si le rythme confirmé suffit.     |
+
+### 4.4 Matrice cible / échéance
+
+| Cible | Échéance | Métriques applicables                                                             |
+| ----- | -------- | --------------------------------------------------------------------------------- |
+| non   | non      | cumuls, rythme observé et `plannedProjection` ; aucune métrique cible ou échéance |
+| oui   | non      | progression cible et estimation d'atteinte ; aucune métrique d'échéance           |
+| non   | oui      | fenêtre temporelle ; aucune projection ou verdict de cible                        |
+| oui   | oui      | contrat complet, dont requis, projection et statut de rythme                      |
 
 ---
 
@@ -202,11 +230,11 @@ Deux couches, deux sémantiques — ne jamais les confondre dans l'UI :
         └────────────┘
 ```
 
-| Statut      | Sens     | Effet sur les Prévisions liées                                                                          |
-| ----------- | -------- | -------------------------------------------------------------------------------------------------------- |
-| `ACTIVE`    | en cours | aucun                                                                                                    |
-| `COMPLETED` | atteint  | **arrêt de génération** (PUL-285 CA5) — réversible via CTA « ré-ouvrir »                                 |
-| `PAUSED`    | en pause | **arrêt de génération** (PUL-285 CA5) — `paceStatus = null`                                              |
+| Statut      | Sens     | Effet sur les Prévisions liées                                           |
+| ----------- | -------- | ------------------------------------------------------------------------ |
+| `ACTIVE`    | en cours | aucun                                                                    |
+| `COMPLETED` | atteint  | **arrêt de génération** (PUL-285 CA5) — réversible via CTA « ré-ouvrir » |
+| `PAUSED`    | en pause | **arrêt de génération** (PUL-285 CA5) — `paceStatus = null`              |
 
 **Arrêt de génération (PUL-285 CA5)** : quand l'objectif n'est pas `ACTIVE`, `create_budget_from_template` ne copie plus ses `template_line` liées — les nouveaux budgets naissent **sans** la prévision liée (les autres lignes du Mois Type sont intactes). Le retour à `ACTIVE` reprend la génération pour les budgets suivants ; les mois générés pendant l'arrêt ne sont **pas** rétro-remplis (gaps assumés, cf. §10.2). Les Prévisions liées **déjà générées** ne sont jamais modifiées ni supprimées par une transition de statut — leur gestion est advisory : `GET /v1/savings-goals/:id/future-lines` liste les candidates (liées, non pointées, non ajustées à la main, cycle courant payDay-aware et au-delà), puis `POST /v1/savings-goals/:id/generation-stop` applique la décision explicite — `freeze` = garder la prévision, la délier et la marquer `is_manually_adjusted` (bouclier RG-001) ; `remove` = la supprimer (ses transactions deviennent libres). Gardes CA9 atomiques : jamais de mois passé, de ligne pointée ou déjà ajustée. Les transitions utilisent `PATCH` avec `ACTIVE`, `COMPLETED` ou `PAUSED`.
 
@@ -251,7 +279,8 @@ Deux gardes préservent la cohérence des métadonnées :
 | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Suppression d'objectif**           | Les FK `ON DELETE SET NULL` délient `budget_line` et `template_line`. Aucune Prévision n'est supprimée.                                                         |
 | **Déchiffrement de `target_amount`** | La liste, le détail et `/progress` déchiffrent la cible avant de l'exposer.                                                                                     |
-| **`target_amount` lu = 0**           | Toléré en lecture (le chiffrement écrit `0` en clair). Garde `achievementPercent = 0`. Ne jamais diviser par la cible sans déchiffrement.                       |
+| **`target_amount = NULL`**           | Cible absente : reste `null` en lecture et après rekey, sans conversion en zéro ni chiffrement factice.                                                         |
+| **`target_amount` lu = 0**           | Toléré pour les anciennes données. Garde `achievementPercent = 0`. Ne jamais diviser par la cible sans déchiffrement.                                           |
 | **iOS `BudgetLineUpdate`**           | Le DTO Swift porte `savingsGoalId` afin de permettre le rattachement en édition.                                                                                |
 | **Changement de `kind`**             | `kind ≠ saving` ⇒ `savingsGoalId = null` ; la progression re-filtre toujours `kind=saving`.                                                                     |
 | **`target_date` à la création**      | Le schéma impose `z.iso.date()` et une date au moins égale à aujourd'hui.                                                                                       |
@@ -282,11 +311,18 @@ Le simulateur répond à « qu'est-ce que je fais maintenant ? » sans modifier 
 `GET /v1/savings-goals/:id/progress` reste l'unique lecture. En plus des métriques de progression, il expose :
 
 - `cumulativeGap = plannedCumulative - linesConfirmed`, signé et jamais borné (flux : le montant de départ en est exclu, cf. §4.3) ;
+- `plannedProjection = initialAmount + Σ Prévisions liées` dans l'intervalle ;
 - `estimatedCompletion`, période d'atteinte estimée au rythme pointé, ou `null` si elle n'est pas calculable ;
 - `initialAmount`, le montant de départ déchiffré (0 si absent) — écho pour l'affichage et le seed des simulations client ;
 - `months[]`, une ligne par période avec état temporel, montants prévu/pointé/cumulés, lignes liées et capacité de provisioning. Le cumul confirmé est **seedé** à `initialAmount` : `months[indexCourant].confirmedCumulative == confirmed`.
 
-La timeline est payDay-aware et bornée à 120 périodes. Un budget absent est ajustable dès lors qu'un **Mois Type par défaut** existe — il sert à matérialiser le budget du mois, plus à recopier une ligne (PUL-316). Un budget existant sans ligne liée reste un gap non provisionnable.
+La timeline est payDay-aware. Une timeline datée reste bornée à 120 périodes ;
+une timeline ouverte n'est pas plafonnée et finit au dernier mois lié ou au
+cycle courant. Les lignes antérieures à l'ancrage explicite restent visibles
+mais n'alimentent ni cumul, ni contribution, ni redistribution. Un budget absent
+est ajustable dès lors qu'un **Mois Type par défaut** existe — il sert à
+matérialiser le budget du mois, plus à recopier une ligne (PUL-316). Un budget
+existant sans ligne liée reste un gap non provisionnable.
 
 ### 10.3 Simulation locale
 

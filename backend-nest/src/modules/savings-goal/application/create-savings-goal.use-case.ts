@@ -37,8 +37,9 @@ export class CreateSavingsGoalUseCase {
   ): Promise<SavingsGoal> {
     const entity = await this.repo.insert({
       name: dto.name,
-      targetAmount: dto.targetAmount,
-      targetDate: dto.targetDate,
+      startDate: dto.startDate ?? null,
+      targetAmount: dto.targetAmount ?? null,
+      targetDate: dto.targetDate ?? null,
       status: dto.status ?? 'ACTIVE',
       originalTargetAmount: dto.originalTargetAmount ?? null,
       originalCurrency: dto.originalCurrency ?? null,
@@ -48,7 +49,7 @@ export class CreateSavingsGoalUseCase {
     });
 
     let baselineCreated = false;
-    if (dto.monthlyContribution != null) {
+    if (dto.monthlyContribution != null && entity.targetDate != null) {
       baselineCreated = await this.materializeContributions(
         entity,
         dto.monthlyContribution,
@@ -161,9 +162,24 @@ export class CreateSavingsGoalUseCase {
     monthlyContribution: number,
     payDayOfMonth: number | null,
   ): Promise<SpreadTranche[]> {
+    if (goal.targetDate == null) return [];
+
     const currentIndex = periodIndex(
       getBudgetPeriodForDate(new Date(), payDayOfMonth),
     );
+    const createdIndex = periodIndex(
+      getBudgetPeriodForDate(new Date(goal.createdAt), payDayOfMonth),
+    );
+    const startIndex =
+      goal.startDate == null
+        ? createdIndex
+        : periodIndex(
+            getBudgetPeriodForDate(
+              parseIsoDateLocal(goal.startDate),
+              payDayOfMonth,
+            ),
+          );
+    const minPeriodIndex = Math.max(currentIndex, createdIndex, startIndex);
     const targetIndex = periodIndex(
       getBudgetPeriodForDate(parseIsoDateLocal(goal.targetDate), payDayOfMonth),
     );
@@ -172,7 +188,7 @@ export class CreateSavingsGoalUseCase {
     return budgetedPeriods
       .filter((period) => {
         const index = periodIndex(period);
-        return index >= currentIndex && index <= targetIndex;
+        return index >= minPeriodIndex && index <= targetIndex;
       })
       .sort((a, b) => periodIndex(a) - periodIndex(b))
       .map((period) => ({

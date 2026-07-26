@@ -313,7 +313,7 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
    * stay untouched — the pay day now travels on the authenticated user.
    */
   function generationProvider(
-    goals: { id: string; target_date: string }[],
+    goals: { id: string; target_date: string | null }[],
     payDayOfMonth: number | null,
     rpc: ReturnType<typeof jest.fn>,
     getUser: ReturnType<typeof jest.fn> = jest.fn(),
@@ -383,6 +383,25 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
     const repo = new SupabaseBudgetRepository(
       generationProvider(
         [{ id: ON_TIME_GOAL_UUID, target_date: '2026-11-12' }],
+        27,
+        rpc,
+      ),
+      createMockEncryption(),
+    );
+
+    await repo.createBudgetFromTemplateRpc(payload);
+
+    expect(rpc).toHaveBeenCalledWith(
+      'create_budget_from_template',
+      expect.objectContaining({ p_excluded_savings_goal_ids: [] }),
+    );
+  });
+
+  it('keeps an undated goal active for future budget generation', async () => {
+    const rpc = jest.fn().mockResolvedValue({ data: rpcResponse, error: null });
+    const repo = new SupabaseBudgetRepository(
+      generationProvider(
+        [{ id: ON_TIME_GOAL_UUID, target_date: null }],
         27,
         rpc,
       ),

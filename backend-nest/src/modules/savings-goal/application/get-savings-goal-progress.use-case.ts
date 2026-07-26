@@ -93,6 +93,7 @@ export class GetSavingsGoalProgressUseCase {
       targetAmount: goal.targetAmount,
       status: goal.status,
       createdAt: goal.createdAt,
+      startDate: goal.startDate,
       targetDate: goal.targetDate,
       payDayOfMonth: data.payDayOfMonth,
       materializedPeriods: data.materializedPeriods,

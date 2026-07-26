@@ -721,9 +721,10 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       id: row.id,
       userId: row.user_id,
       name: row.name,
+      startDate: row.start_date,
       targetAmount: row.target_amount
         ? this.encryption.tryDecryptAmount(row.target_amount, dek, 0)
-        : 0,
+        : null,
       targetDate: row.target_date,
       status: row.status,
       createdAt: row.created_at,
@@ -748,8 +749,11 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     input: SavingsGoalCreateInput,
     user: AuthenticatedUser,
   ): Promise<SavingsGoalInsert> {
-    const dek = await this.encryption.getDekFor(user);
-    const targetAmount = this.encryption.encryptAmount(input.targetAmount, dek);
+    const targetAmount = await this.encryption.encryptOptionalAmount(
+      input.targetAmount,
+      user.id,
+      user.clientKey,
+    );
     const originalTargetAmount = await this.encryption.encryptOptionalAmount(
       input.originalTargetAmount,
       user.id,
@@ -764,6 +768,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     return {
       user_id: user.id,
       name: input.name,
+      start_date: input.startDate,
       target_amount: targetAmount,
       original_target_amount: originalTargetAmount,
       initial_amount: initialAmount,
@@ -786,19 +791,27 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
   ): Promise<Partial<SavingsGoalInsert>> {
     const updateData: Partial<SavingsGoalInsert> = {};
     if (patch.name !== undefined) updateData.name = patch.name;
+    if (patch.startDate !== undefined) updateData.start_date = patch.startDate;
     if (patch.targetDate !== undefined)
       updateData.target_date = patch.targetDate;
     if (patch.status !== undefined) updateData.status = patch.status;
 
     if (patch.targetAmount !== undefined) {
-      const dek = await this.encryption.getDekFor(user);
-      updateData.target_amount = this.encryption.encryptAmount(
-        patch.targetAmount,
-        dek,
-      );
+      if (patch.targetAmount == null) {
+        updateData.target_amount = null;
+      } else {
+        const dek = await this.encryption.getDekFor(user);
+        updateData.target_amount = this.encryption.encryptAmount(
+          patch.targetAmount,
+          dek,
+        );
+      }
     }
 
-    if (patch.originalTargetAmount !== undefined) {
+    if (
+      patch.targetAmount !== null &&
+      patch.originalTargetAmount !== undefined
+    ) {
       updateData.original_target_amount =
         await this.encryption.encryptOptionalAmount(
           patch.originalTargetAmount,
@@ -815,17 +828,26 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       );
     }
 
-    Object.assign(
-      updateData,
-      mapCurrencyNonAmountMetadataToDb(
-        {
-          originalCurrency: patch.originalCurrency,
-          targetCurrency: patch.targetCurrency,
-          exchangeRate: patch.exchangeRate,
-        },
-        { userId: user.id },
-      ),
-    );
+    if (patch.targetAmount === null) {
+      Object.assign(updateData, {
+        original_target_amount: null,
+        original_currency: null,
+        target_currency: null,
+        exchange_rate: null,
+      });
+    } else {
+      Object.assign(
+        updateData,
+        mapCurrencyNonAmountMetadataToDb(
+          {
+            originalCurrency: patch.originalCurrency,
+            targetCurrency: patch.targetCurrency,
+            exchangeRate: patch.exchangeRate,
+          },
+          { userId: user.id },
+        ),
+      );
+    }
 
     return updateData;
   }

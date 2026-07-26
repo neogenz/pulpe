@@ -24,9 +24,11 @@ function makeProgress(
   return {
     goalId: GOAL_ID,
     status: 'ACTIVE',
+    startDate: null,
     targetAmount: 3000,
     targetDate: '2027-08-01',
     plannedCumulative: 1200,
+    plannedProjection: 1200,
     confirmed: 900,
     initialAmount: 0,
     achievementPercent: 30,

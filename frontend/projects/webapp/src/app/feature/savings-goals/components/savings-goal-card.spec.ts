@@ -13,6 +13,7 @@ const goal: SavingsGoal = {
   id: 'goal-1',
   userId: 'user-1',
   name: 'Vacances privées 2027',
+  startDate: null,
   targetAmount: 3000,
   targetDate: '2027-08-01',
   status: 'ACTIVE',

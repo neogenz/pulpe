@@ -19,6 +19,7 @@ const goal: SavingsGoal = {
   id: 'goal-1',
   userId: 'user-1',
   name: 'Maison',
+  startDate: null,
   targetAmount: 12_000,
   targetDate: '2099-12-15',
   status: 'ACTIVE',
@@ -199,6 +200,23 @@ describe('GetSavingsGoalProgressUseCase', () => {
 
     await expect(useCase.execute('missing', mockUser)).rejects.toThrow(error);
     expect(mockRepo.findLinkedContributions).not.toHaveBeenCalled();
+  });
+
+  it('returns only applicable metrics for an objective without target or deadline', async () => {
+    mockRepo.findById.mockResolvedValue({
+      ...goal,
+      targetAmount: null,
+      targetDate: null,
+    });
+
+    const { computed } = await useCase.execute('goal-1', mockUser);
+
+    expect(computed.achievementPercent).toBeNull();
+    expect(computed.monthsRemaining).toBeNull();
+    expect(computed.required).toBeNull();
+    expect(computed.projected).toBeNull();
+    expect(computed.paceStatus).toBeNull();
+    expect(computed.suggestCompletion).toBeNull();
   });
 
   it('marks only truly missing periods as provisionable', async () => {

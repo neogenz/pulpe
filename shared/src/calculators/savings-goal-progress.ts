@@ -62,12 +62,14 @@ export interface LinkedSavingTransaction {
 }
 
 export interface SavingsGoalProgressInput {
-  targetAmount: number;
+  targetAmount: number | null;
   status: SavingsGoalStatus;
   /** ISO datetime — ancrage ramené à son cycle payDay-aware. */
   createdAt: string;
+  /** ISO date `YYYY-MM-DD`. Absente ou passée = cycle courant. */
+  startDate?: string | null;
   /** ISO date `YYYY-MM-DD`. */
-  targetDate: string;
+  targetDate: string | null;
   payDayOfMonth?: number | null;
   /** Injectable pour les tests ; défaut = maintenant. */
   now?: Date;
@@ -87,17 +89,19 @@ export interface SavingsGoalProgressInput {
 
 export interface SavingsGoalProgressResult {
   plannedCumulative: number;
+  /** Montant de départ + prévisions liées dans la fenêtre de contribution. */
+  plannedProjection: number;
   confirmed: number;
-  achievementPercent: number;
+  achievementPercent: number | null;
   monthsElapsed: number;
-  monthsRemaining: number;
+  monthsRemaining: number | null;
   isOverdue: boolean;
   pace: number;
   confirmedPace: number;
   required: number | null;
-  projected: number;
+  projected: number | null;
   paceStatus: SavingsGoalPaceStatus | null;
-  suggestCompletion: boolean;
+  suggestCompletion: boolean | null;
   linkedLineCount: number;
   /** Formule 10 — écart cumulé `plannedCumulative − confirmed` (signé, jamais clampé). */
   cumulativeGap: number;
@@ -114,12 +118,18 @@ export interface SavingsGoalProgressResult {
  */
 function computeEstimatedCompletion(input: {
   status: SavingsGoalStatus;
-  targetAmount: number;
+  targetAmount: number | null;
   confirmed: number;
   confirmedPace: number;
   indexCurrent: number;
 }): BudgetPeriod | null {
-  if (input.status === 'PAUSED' || input.targetAmount <= 0) return null;
+  if (
+    input.status === 'PAUSED' ||
+    input.targetAmount == null ||
+    input.targetAmount <= 0
+  ) {
+    return null;
+  }
   if (input.confirmed >= input.targetAmount) {
     return periodFromIndex(input.indexCurrent);
   }
@@ -150,6 +160,8 @@ export function calculatePaceStatus(
 
 export interface SuggestedMonthlyContributionInput {
   targetAmount: number;
+  /** ISO date `YYYY-MM-DD`. Absente ou passée = cycle courant. */
+  startDate?: string | null;
   /** ISO date `YYYY-MM-DD`. */
   targetDate: string;
   payDayOfMonth?: number | null;
@@ -178,13 +190,23 @@ export function suggestedMonthlyContribution(
   const indexCurrent = periodIndex(
     getBudgetPeriodForDate(now, input.payDayOfMonth),
   );
+  const indexStart =
+    input.startDate == null
+      ? indexCurrent
+      : periodIndex(
+          getBudgetPeriodForDate(
+            parseIsoDateLocal(input.startDate),
+            input.payDayOfMonth,
+          ),
+        );
+  const effectiveStartIndex = Math.max(indexCurrent, indexStart);
   const indexTarget = periodIndex(
     getBudgetPeriodForDate(
       parseIsoDateLocal(input.targetDate),
       input.payDayOfMonth,
     ),
   );
-  const monthsRemaining = indexTarget - indexCurrent + 1;
+  const monthsRemaining = indexTarget - effectiveStartIndex + 1;
   if (monthsRemaining <= 0 || input.targetAmount <= 0) return null;
   const remaining = input.targetAmount - (input.initialAmount ?? 0);
   if (remaining <= 0) return null;
@@ -201,31 +223,50 @@ export function computeSavingsGoalProgress(
   const now = input.now ?? new Date();
   const payDay = input.payDayOfMonth;
 
-  const indexAnchor = periodIndex(
+  const indexCreated = periodIndex(
     getBudgetPeriodForDate(new Date(input.createdAt), payDay),
   );
   const indexCurrent = periodIndex(getBudgetPeriodForDate(now, payDay));
-  const indexTarget = periodIndex(
-    getBudgetPeriodForDate(parseIsoDateLocal(input.targetDate), payDay),
-  );
+  const indexStart =
+    input.startDate == null
+      ? indexCreated
+      : periodIndex(
+          getBudgetPeriodForDate(parseIsoDateLocal(input.startDate), payDay),
+        );
+  const historicalAnchorIndex = Math.max(indexCreated, indexStart);
+  const remainingStartIndex = Math.max(indexCurrent, historicalAnchorIndex);
+  const indexTarget =
+    input.targetDate == null
+      ? null
+      : periodIndex(
+          getBudgetPeriodForDate(parseIsoDateLocal(input.targetDate), payDay),
+        );
 
-  // ≥ 1 par construction — la garde couvre le cas createdAt rattaché au cycle
-  // SUIVANT (créé le 28 avec payDay 25 ⇒ indexAnchor = indexCurrent + 1).
-  const monthsElapsed = Math.max(1, indexCurrent - indexAnchor + 1);
-  // Mois courant ET mois d'échéance inclus (le mois courant reste contributif).
-  const monthsRemaining = indexTarget - indexCurrent + 1;
-  const isOverdue = monthsRemaining <= 0;
+  const monthsElapsed = Math.max(1, indexCurrent - historicalAnchorIndex + 1);
+  const monthsRemaining =
+    indexTarget == null ? null : indexTarget - remainingStartIndex + 1;
+  const isOverdue =
+    indexTarget == null ? false : indexTarget - indexCurrent + 1 <= 0;
 
   // Double garde kind=saving (le lien est déjà kind-guardé à l'écriture) +
   // exclusion des lignes de report virtuelles côté client.
-  const savingLines = input.lines.filter(
+  const allSavingLines = input.lines.filter(
     (line) => line.kind === 'saving' && line.isRollover !== true,
+  );
+  const savingLines = allSavingLines.filter(
+    (line) => periodIndex(line) >= historicalAnchorIndex,
   );
 
   // 1. Prévu cumulé — pur line.amount des mois ≤ courant, PAS d'enveloppe.
   const plannedCumulative = savingLines
     .filter((line) => periodIndex(line) <= indexCurrent)
     .reduce((sum, line) => sum + line.amount, 0);
+  const initialAmount = input.initialAmount ?? 0;
+  const plannedProjection =
+    initialAmount +
+    savingLines
+      .filter((line) => indexTarget == null || periodIndex(line) <= indexTarget)
+      .reduce((sum, line) => sum + line.amount, 0);
 
   // 2. Confirmé — enveloppe checked-only, TOUS mois (pointage anticipé compte).
   // `confirmed` (STOCK) additionne le montant de départ ; `linesConfirmed`
@@ -234,14 +275,15 @@ export function computeSavingsGoalProgress(
     savingLines,
     input.transactions,
   );
-  const initialAmount = input.initialAmount ?? 0;
   const confirmed = initialAmount + linesConfirmed;
 
   // 3. % d'atteinte — sur le CONFIRMÉ ; cible nulle/non déchiffrée ⇒ 0.
   const achievementPercent =
-    input.targetAmount > 0
-      ? Math.round(Math.min(confirmed / input.targetAmount, 1) * 100)
-      : 0;
+    input.targetAmount == null
+      ? null
+      : input.targetAmount > 0
+        ? Math.round(Math.min(confirmed / input.targetAmount, 1) * 100)
+        : 0;
 
   // 4. Deux rythmes — la projection se base sur le rythme CONFIRMÉ.
   // confirmedPace exclut le montant de départ (un stock n'est pas un rythme).
@@ -249,24 +291,35 @@ export function computeSavingsGoalProgress(
   const confirmedPace = linesConfirmed / monthsElapsed;
 
   // 5-6. Requis / projection — neutralisés quand l'échéance est dépassée (D1).
-  const required = isOverdue
-    ? null
-    : Math.max(0, input.targetAmount - confirmed) / monthsRemaining;
-  const projected = isOverdue
-    ? confirmed
-    : confirmed + confirmedPace * monthsRemaining;
+  const required =
+    input.targetAmount == null || monthsRemaining == null || isOverdue
+      ? null
+      : Math.max(0, input.targetAmount - confirmed) / monthsRemaining;
+  const projected =
+    input.targetAmount == null || monthsRemaining == null
+      ? null
+      : isOverdue
+        ? confirmed
+        : confirmed + confirmedPace * monthsRemaining;
 
   // 7. Statut de rythme — PAUSED et échéance dépassée n'ont PAS de jugement.
   const paceStatus =
-    input.status === 'PAUSED' || isOverdue || input.targetAmount <= 0
+    input.status === 'PAUSED' ||
+    isOverdue ||
+    input.targetAmount == null ||
+    input.targetAmount <= 0
       ? null
-      : calculatePaceStatus(projected, input.targetAmount);
+      : projected == null
+        ? null
+        : calculatePaceStatus(projected, input.targetAmount);
 
   // D2 — suggérer « marquer terminé ? » sur le confirmé, jamais d'auto-flip.
   const suggestCompletion =
-    input.status === 'ACTIVE' &&
-    input.targetAmount > 0 &&
-    confirmed >= input.targetAmount;
+    input.targetAmount == null
+      ? null
+      : input.status === 'ACTIVE' &&
+        input.targetAmount > 0 &&
+        confirmed >= input.targetAmount;
 
   // 10. Écart cumulé — signé, jamais clampé (négatif = pointage anticipé/avance).
   // Adhérence au plan de pointage (FLUX) ⇒ exclut le montant de départ.
@@ -283,6 +336,7 @@ export function computeSavingsGoalProgress(
 
   return {
     plannedCumulative,
+    plannedProjection,
     confirmed,
     achievementPercent,
     monthsElapsed,
@@ -294,7 +348,7 @@ export function computeSavingsGoalProgress(
     projected,
     paceStatus,
     suggestCompletion,
-    linkedLineCount: savingLines.length,
+    linkedLineCount: allSavingLines.length,
     cumulativeGap,
     estimatedCompletion,
     initialAmount,

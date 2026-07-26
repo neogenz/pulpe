@@ -47,6 +47,7 @@ export class SavingsGoalMapper {
       id: entity.id,
       userId: entity.userId,
       name: entity.name,
+      startDate: entity.startDate,
       targetAmount: entity.targetAmount,
       targetDate: entity.targetDate,
       status: entity.status,
@@ -73,6 +74,7 @@ export class SavingsGoalMapper {
     return {
       goalId: goal.id,
       status: goal.status,
+      startDate: goal.startDate,
       targetAmount: goal.targetAmount,
       targetDate: goal.targetDate,
       ...computed,

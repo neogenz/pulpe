@@ -704,7 +704,7 @@ export default class SavingsGoalDetailPage {
   // this ratio only positions the secondary visual layer.
   protected readonly plannedPercent = computed(() => {
     const p = this.progress();
-    if (!p || p.targetAmount <= 0) return 0;
+    if (!p || p.targetAmount == null || p.targetAmount <= 0) return 0;
     return Math.min(
       Math.round((p.plannedCumulative / p.targetAmount) * 100),
       100,

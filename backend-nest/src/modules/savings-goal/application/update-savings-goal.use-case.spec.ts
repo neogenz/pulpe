@@ -16,6 +16,7 @@ const goal = {
   id: 'goal-1',
   userId: user.id,
   name: 'Maison',
+  startDate: null,
   targetAmount: 100_000,
   targetDate: '2030-05-15',
   status: 'ACTIVE' as const,
@@ -30,10 +31,16 @@ const goal = {
 
 describe('UpdateSavingsGoalUseCase — initialAmount patch semantics (PUL-293)', () => {
   let useCase: UpdateSavingsGoalUseCase;
-  let repo: { update: ReturnType<typeof jest.fn> };
+  let repo: {
+    findById: ReturnType<typeof jest.fn>;
+    update: ReturnType<typeof jest.fn>;
+  };
 
   beforeEach(async () => {
-    repo = { update: jest.fn().mockResolvedValue(goal) };
+    repo = {
+      findById: jest.fn().mockResolvedValue(goal),
+      update: jest.fn().mockResolvedValue(goal),
+    };
 
     const module = await Test.createTestingModule({
       providers: [
@@ -62,11 +69,38 @@ describe('UpdateSavingsGoalUseCase — initialAmount patch semantics (PUL-293)',
     const patch = repo.update.mock.calls[0][1];
     expect('initialAmount' in patch).toBe(false);
     expect(patch).toEqual({ status: 'PAUSED' });
+    expect(repo.findById).not.toHaveBeenCalled();
   });
 
   it('should forward a positive initial amount', async () => {
     await useCase.execute('goal-1', { initialAmount: 5000 }, user);
 
     expect(repo.update).toHaveBeenCalledWith('goal-1', { initialAmount: 5000 });
+  });
+
+  it('forwards explicit nulls while preserving omitted interval fields', async () => {
+    await useCase.execute(
+      'goal-1',
+      { startDate: null, targetAmount: null },
+      user,
+    );
+
+    expect(repo.update).toHaveBeenCalledWith('goal-1', {
+      startDate: null,
+      targetAmount: null,
+    });
+  });
+
+  it('rejects a partial patch whose merged interval starts after its deadline', async () => {
+    repo.findById.mockResolvedValue({
+      ...goal,
+      startDate: '2030-01-01',
+      targetDate: '2030-05-15',
+    });
+
+    await expect(
+      useCase.execute('goal-1', { startDate: '2030-06-01' }, user),
+    ).rejects.toMatchObject({ code: 'ERR_BUSINESS_RULE_VIOLATION' });
+    expect(repo.update).not.toHaveBeenCalled();
   });
 });

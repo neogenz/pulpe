@@ -76,9 +76,11 @@ function makeProgress(): SavingsGoalProgress {
   return {
     goalId: 'goal-1',
     status: 'ACTIVE',
+    startDate: null,
     targetAmount: 800,
     targetDate: '2026-08-01',
     plannedCumulative: 400,
+    plannedProjection: 400,
     confirmed: 0,
     initialAmount: 0,
     achievementPercent: 0,

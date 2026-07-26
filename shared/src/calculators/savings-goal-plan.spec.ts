@@ -159,10 +159,12 @@ describe('buildSavingsGoalTimeline', () => {
       ...input,
       createdAt: '2000-01-01T00:00:00.000Z',
       targetDate: '9999-12-31',
+      initialAmount: 750,
       lines: [],
     });
 
     expect(timeline).toHaveLength(120);
+    expect(timeline[0].confirmedCumulative).toBe(750);
     expect(
       timeline.some((month) => month.month === 3 && month.year === 2026),
     ).toBe(true);
@@ -531,5 +533,113 @@ describe('allocateMonthAmountToLines', () => {
 
     const total = result.reduce((sum, line) => sum + sumCents(line.amount), 0);
     expect(total).toBe(10000);
+  });
+});
+
+describe('PUL-314 — timeline and simulation over an optional interval', () => {
+  it('ends an undated timeline at the last linked period without a 120-month cap', () => {
+    const timeline = buildSavingsGoalTimeline({
+      targetAmount: null,
+      status: 'ACTIVE',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      targetDate: null,
+      now: new Date(2026, 0, 15),
+      lines: [savingLine({ month: 2, year: 2037 })],
+      transactions: [],
+    });
+
+    expect(timeline.at(-1)).toMatchObject({ month: 2, year: 2037 });
+    expect(timeline.length).toBeGreaterThan(120);
+  });
+
+  it('keeps pre-start rows but excludes them from contribution and redistribution', () => {
+    const timeline = buildSavingsGoalTimeline({
+      targetAmount: 2000,
+      status: 'ACTIVE',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      startDate: '2026-02-15',
+      targetDate: '2026-03-31',
+      now: new Date(2026, 0, 15),
+      lines: [
+        savingLine({ month: 1, year: 2026 }),
+        savingLine({ month: 2, year: 2026 }),
+        savingLine({ month: 3, year: 2026 }),
+      ],
+      transactions: [],
+    });
+
+    expect(timeline[0]).toMatchObject({
+      month: 1,
+      isContributionEligible: false,
+      plannedCumulative: 0,
+    });
+
+    const result = redistributeRemainingEffort({
+      timeline,
+      targetAmount: 2000,
+    });
+    expect(result.adjustments.map(({ month }) => month)).toEqual([2, 3]);
+  });
+
+  it('does not deduct a locked contribution that predates the historical anchor', () => {
+    const timeline = buildSavingsGoalTimeline({
+      targetAmount: 2000,
+      status: 'ACTIVE',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      startDate: '2026-02-15',
+      targetDate: '2026-03-31',
+      now: new Date(2026, 2, 15),
+      lines: [
+        savingLine({
+          month: 1,
+          year: 2026,
+          checkedAt: '2026-01-20T00:00:00.000Z',
+        }),
+        savingLine({ month: 3, year: 2026 }),
+      ],
+      transactions: [],
+    });
+
+    const result = redistributeRemainingEffort({
+      timeline,
+      targetAmount: 2000,
+    });
+
+    expect(result.adjustments).toEqual([
+      { month: 3, year: 2026, amount: 2000 },
+    ]);
+
+    const simulation = simulateSavingsPlan({
+      timeline,
+      targetAmount: 2000,
+    });
+    expect(simulation.simulatedFinal).toBe(500);
+  });
+
+  it('simulates monthly amounts without a target and returns null target verdicts', () => {
+    const result = simulateSavingsPlan({
+      timeline: [planMonth({ month: 6, year: 2026 })],
+      targetAmount: null,
+      globalMonthlyAmount: 750,
+    });
+
+    expect(result.simulatedFinal).toBe(750);
+    expect(result.gapToTarget).toBeNull();
+    expect(result.isTargetMet).toBeNull();
+    expect(result.attainedPeriod).toBeNull();
+  });
+
+  it('disables redistribution when no target exists', () => {
+    const result = redistributeRemainingEffort({
+      timeline: [planMonth({ month: 6, year: 2026 })],
+      targetAmount: null,
+    });
+
+    expect(result).toMatchObject({
+      adjustments: [],
+      remainingEffort: 0,
+      perRemainingMonth: 0,
+      isDistributable: false,
+    });
   });
 });

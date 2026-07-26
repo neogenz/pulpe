@@ -240,9 +240,10 @@ export const savingsGoalSchema = z.object({
   id: z.uuid(),
   userId: z.uuid(),
   name: z.string().min(1).max(100).trim(),
+  startDate: z.iso.date().nullable().default(null),
   // coerce: Supabase PostgREST returns numeric(12,2) columns as strings
-  targetAmount: z.coerce.number().nonnegative(),
-  targetDate: z.iso.date(), // ISO date (YYYY-MM-DD)
+  targetAmount: z.coerce.number().nonnegative().nullable(),
+  targetDate: z.iso.date().nullable(), // ISO date (YYYY-MM-DD)
   status: savingsGoalStatusSchema,
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
@@ -268,55 +269,80 @@ function isWithinSavingsGoalPlanHorizon(value: string): boolean {
   );
 }
 
-export const savingsGoalCreateSchema = z.strictObject({
-  name: z.string().min(1).max(100).trim(),
-  targetAmount: z.number().positive(),
-  // z.iso.date() + refine ≥ today. NOT .min() — in Zod 4, .min() on an ISO
-  // string measures LENGTH, not the date. ISO 'YYYY-MM-DD' strings compare
-  // lexicographically === chronologically, so a string compare is correct.
-  targetDate: z.iso
-    .date()
-    .refine((value) => value >= new Date().toISOString().slice(0, 10), {
-      error: 'Target date cannot be in the past',
-    })
-    .refine(isWithinSavingsGoalPlanHorizon, {
-      error: 'Target date exceeds the 120-period planning horizon',
-    }),
-  status: savingsGoalStatusSchema.default('ACTIVE'),
-  /**
-   * Opt-in auto-décomposition (PUL-285 CA1/CA6) : montant mensuel choisi pour
-   * la prévision Épargne récurrente liée que le serveur génère sur le Mois
-   * Type par défaut et propage aux budgets matérialisés. Présence = opt-in ;
-   * le client pré-remplit via `suggestedMonthlyContribution` mais l'utilisateur
-   * garde la main (« pré-remplit, n'impose pas »).
-   */
-  monthlyContribution: z.number().positive().optional(),
-  originalTargetAmount: z.number().positive().optional(),
-  originalCurrency: supportedCurrencySchema.optional(),
-  targetCurrency: supportedCurrencySchema.optional(),
-  exchangeRate: exchangeRateWirePositive.optional(),
-  /** Montant déjà épargné avant le suivi (stock one-shot). Omis = 0. */
-  initialAmount: z.number().nonnegative().optional(),
-});
+export const savingsGoalCreateSchema = z
+  .strictObject({
+    name: z.string().min(1).max(100).trim(),
+    startDate: z.iso.date().optional(),
+    targetAmount: z.number().positive().optional(),
+    // z.iso.date() + refine ≥ today. NOT .min() — in Zod 4, .min() on an ISO
+    // string measures LENGTH, not the date. ISO 'YYYY-MM-DD' strings compare
+    // lexicographically === chronologically, so a string compare is correct.
+    targetDate: z.iso
+      .date()
+      .refine((value) => value >= new Date().toISOString().slice(0, 10), {
+        error: 'Target date cannot be in the past',
+      })
+      .refine(isWithinSavingsGoalPlanHorizon, {
+        error: 'Target date exceeds the 120-period planning horizon',
+      })
+      .optional(),
+    status: savingsGoalStatusSchema.default('ACTIVE'),
+    /**
+     * Opt-in auto-décomposition (PUL-285 CA1/CA6) : montant mensuel choisi pour
+     * la prévision Épargne récurrente liée que le serveur génère sur le Mois
+     * Type par défaut et propage aux budgets matérialisés. Présence = opt-in ;
+     * le client pré-remplit via `suggestedMonthlyContribution` mais l'utilisateur
+     * garde la main (« pré-remplit, n'impose pas »).
+     */
+    monthlyContribution: z.number().positive().optional(),
+    originalTargetAmount: z.number().positive().optional(),
+    originalCurrency: supportedCurrencySchema.optional(),
+    targetCurrency: supportedCurrencySchema.optional(),
+    exchangeRate: exchangeRateWirePositive.optional(),
+    /** Montant déjà épargné avant le suivi (stock one-shot). Omis = 0. */
+    initialAmount: z.number().nonnegative().optional(),
+  })
+  .superRefine(({ startDate, targetDate }, context) => {
+    if (startDate != null && targetDate != null && startDate > targetDate) {
+      context.addIssue({
+        code: 'custom',
+        path: ['startDate'],
+        message: 'Start date cannot be after target date',
+      });
+    }
+  });
 export type SavingsGoalCreate = z.infer<typeof savingsGoalCreateSchema>;
 
-export const savingsGoalUpdateSchema = z.strictObject({
-  name: z.string().min(1).max(100).trim().optional(),
-  targetAmount: z.number().positive().optional(),
-  targetDate: z.iso
-    .date()
-    .refine(isWithinSavingsGoalPlanHorizon, {
-      error: 'Target date exceeds the 120-period planning horizon',
-    })
-    .optional(),
-  status: savingsGoalStatusSchema.optional(),
-  originalTargetAmount: z.number().positive().optional(),
-  originalCurrency: supportedCurrencySchema.optional(),
-  targetCurrency: supportedCurrencySchema.optional(),
-  exchangeRate: exchangeRateWirePositive.optional(),
-  /** Omis = inchangé ; `0` efface le montant de départ. */
-  initialAmount: z.number().nonnegative().optional(),
-});
+export const savingsGoalUpdateSchema = z
+  .strictObject({
+    name: z.string().min(1).max(100).trim().optional(),
+    startDate: z.iso.date().nullable().optional(),
+    targetAmount: z.number().positive().nullable().optional(),
+    targetDate: z
+      .union([
+        z.iso.date().refine(isWithinSavingsGoalPlanHorizon, {
+          error: 'Target date exceeds the 120-period planning horizon',
+        }),
+        z.null(),
+      ])
+      .optional(),
+    status: savingsGoalStatusSchema.optional(),
+    originalTargetAmount: z.number().positive().optional(),
+    originalCurrency: supportedCurrencySchema.optional(),
+    targetCurrency: supportedCurrencySchema.optional(),
+    exchangeRate: exchangeRateWirePositive.optional(),
+    /** Omis = inchangé ; `0` efface le montant de départ. */
+    initialAmount: z.number().nonnegative().optional(),
+  })
+  .superRefine(({ startDate, targetDate }, context) => {
+    if (startDate != null && targetDate != null && startDate > targetDate) {
+      context.addIssue({
+        code: 'custom',
+        path: ['startDate'],
+        message: 'Start date cannot be after target date',
+      });
+    }
+  });
 export type SavingsGoalUpdate = z.infer<typeof savingsGoalUpdateSchema>;
 
 // Tag schemas (PUL-18)
@@ -444,6 +470,8 @@ export const savingsGoalPlanMonthSchema = z.object({
   year: z.number().int(),
   state: savingsPlanMonthStateSchema,
   isLocked: z.boolean(),
+  /** False pour les rows conservées avant le début effectif de contribution. */
+  isContributionEligible: z.boolean().optional(),
   isProvisionable: z.boolean().optional(),
   plannedAmount: z.number(),
   confirmedAmount: z.number(),
@@ -463,22 +491,24 @@ export type SavingsGoalPlanMonth = z.infer<typeof savingsGoalPlanMonthSchema>;
 export const savingsGoalProgressSchema = z.object({
   goalId: z.uuid(),
   status: savingsGoalStatusSchema,
-  targetAmount: z.number().nonnegative(),
-  targetDate: z.iso.date(),
+  startDate: z.iso.date().nullable().default(null),
+  targetAmount: z.number().nonnegative().nullable(),
+  targetDate: z.iso.date().nullable(),
   plannedCumulative: z.number(),
+  plannedProjection: z.number(),
   confirmed: z.number(),
-  achievementPercent: z.number().int().min(0).max(100),
+  achievementPercent: z.number().int().min(0).max(100).nullable(),
   monthsElapsed: z.number().int().min(1),
   // Mois courant ET mois d'échéance inclus ; ≤ 0 ⇒ échéance dépassée (D1).
-  monthsRemaining: z.number().int(),
+  monthsRemaining: z.number().int().nullable(),
   isOverdue: z.boolean(),
   pace: z.number(),
   confirmedPace: z.number(),
   required: z.number().nullable(),
-  projected: z.number(),
+  projected: z.number().nullable(),
   paceStatus: savingsGoalPaceStatusSchema.nullable(),
   // D2 — suggestion « marquer terminé ? ». Jamais d'auto-flip côté serveur.
-  suggestCompletion: z.boolean(),
+  suggestCompletion: z.boolean().nullable(),
   linkedLineCount: z.number().int().min(0),
   // Formule 10 — écart cumulé (prévu − confirmé), signé, jamais clampé.
   cumulativeGap: z.number(),

@@ -48,6 +48,8 @@ export interface SavingsPlanTimelineMonth {
   state: SavingsPlanMonthState;
   /** Non éditable : cycle passé OU toutes les lignes du mois pointées. */
   isLocked: boolean;
+  /** La période appartient à la fenêtre début → échéance de contribution. */
+  isContributionEligible?: boolean;
   /** Budget absent pouvant être créé depuis une ligne liée du Mois Type. */
   isProvisionable?: boolean;
   /** Σ line.amount des lignes épargne liées, ce mois. */
@@ -82,7 +84,10 @@ export function isOpenPlanMonth(month: SavingsPlanTimelineMonth): boolean {
 export function isContributivePlanMonth(
   month: SavingsPlanTimelineMonth,
 ): boolean {
-  return isOpenPlanMonth(month) || month.isProvisionable === true;
+  return (
+    month.isContributionEligible !== false &&
+    (isOpenPlanMonth(month) || month.isProvisionable === true)
+  );
 }
 
 /**
@@ -100,37 +105,51 @@ export function buildSavingsGoalTimeline(
   const now = input.now ?? new Date();
   const payDay = input.payDayOfMonth;
 
-  const indexAnchor = periodIndex(
+  const indexCreated = periodIndex(
     getBudgetPeriodForDate(new Date(input.createdAt), payDay),
   );
   const indexCurrent = periodIndex(getBudgetPeriodForDate(now, payDay));
-  const indexTarget = periodIndex(
-    getBudgetPeriodForDate(parseIsoDateLocal(input.targetDate), payDay),
-  );
+  const indexStart =
+    input.startDate == null
+      ? indexCreated
+      : periodIndex(
+          getBudgetPeriodForDate(parseIsoDateLocal(input.startDate), payDay),
+        );
+  const historicalAnchorIndex = Math.max(indexCreated, indexStart);
+  const indexTarget =
+    input.targetDate == null
+      ? null
+      : periodIndex(
+          getBudgetPeriodForDate(parseIsoDateLocal(input.targetDate), payDay),
+        );
 
   const savingLines = input.lines.filter(
     (line) => line.kind === 'saving' && line.isRollover !== true,
   );
 
   const lineIndices = savingLines.map((line) => periodIndex(line));
-  const rawStartIndex = Math.min(indexAnchor, indexCurrent, ...lineIndices);
-  const rawEndIndex = Math.max(indexTarget, indexCurrent, ...lineIndices);
-  const endIndex = Math.min(
-    rawEndIndex,
-    indexCurrent + MAX_SAVINGS_GOAL_PLAN_PERIODS - 1,
+  const rawStartIndex = Math.min(
+    historicalAnchorIndex,
+    indexCurrent,
+    ...lineIndices,
   );
-  const startIndex = Math.max(
-    rawStartIndex,
-    endIndex - MAX_SAVINGS_GOAL_PLAN_PERIODS + 1,
-  );
+  const rawEndIndex = Math.max(indexTarget ?? indexCurrent, ...lineIndices);
+  const endIndex =
+    indexTarget == null
+      ? rawEndIndex
+      : Math.min(rawEndIndex, indexCurrent + MAX_SAVINGS_GOAL_PLAN_PERIODS - 1);
+  const startIndex =
+    indexTarget == null
+      ? rawStartIndex
+      : Math.max(rawStartIndex, endIndex - MAX_SAVINGS_GOAL_PLAN_PERIODS + 1);
   const materializedPeriodIndices = input.materializedPeriods
     ? new Set(input.materializedPeriods.map(periodIndex))
     : null;
 
   const months: SavingsPlanTimelineMonth[] = [];
   let plannedCumulative = 0;
-  // Le montant de départ (stock) amorce le cumul confirmé, jamais le prévu.
-  let confirmedCumulative = input.initialAmount ?? 0;
+  let confirmedCumulative =
+    historicalAnchorIndex < startIndex ? (input.initialAmount ?? 0) : 0;
 
   for (let index = startIndex; index <= endIndex; index++) {
     const period = periodFromIndex(index);
@@ -146,9 +165,17 @@ export function buildSavingsGoalTimeline(
       monthLines.map(toBudgetFormulaLine),
       input.transactions,
     );
+    const isInHistoricalInterval = index >= historicalAnchorIndex;
+    const isContributionEligible =
+      isInHistoricalInterval && (indexTarget == null || index <= indexTarget);
 
-    plannedCumulative += plannedAmount;
-    confirmedCumulative += confirmedAmount;
+    if (isInHistoricalInterval) {
+      plannedCumulative += plannedAmount;
+      confirmedCumulative += confirmedAmount;
+      if (index === historicalAnchorIndex) {
+        confirmedCumulative += input.initialAmount ?? 0;
+      }
+    }
 
     const hasLines = monthLines.length > 0;
     const allChecked =
@@ -157,7 +184,7 @@ export function buildSavingsGoalTimeline(
     const isProvisionable =
       !hasLines &&
       !isLocked &&
-      index <= indexTarget &&
+      isContributionEligible &&
       materializedPeriodIndices != null &&
       !materializedPeriodIndices.has(index) &&
       input.canProvisionMissingPeriods === true;
@@ -173,6 +200,7 @@ export function buildSavingsGoalTimeline(
       year: period.year,
       state,
       isLocked,
+      isContributionEligible,
       isProvisionable,
       plannedAmount,
       confirmedAmount,
@@ -207,8 +235,8 @@ export interface SavingsPlanSimulationResult {
   /** Cumulé final : réalité (mois verrouillés) + plan simulé (mois ouverts). */
   simulatedFinal: number;
   /** `targetAmount − simulatedFinal` — signé, jamais clampé. */
-  gapToTarget: number;
-  isTargetMet: boolean;
+  gapToTarget: number | null;
+  isTargetMet: boolean | null;
   /** Premier mois où le cumulé simulé atteint la cible (verdict « atteint en … »). */
   attainedPeriod: BudgetPeriod | null;
 }
@@ -225,7 +253,7 @@ function adjustmentKey(item: { month: number; year: number }): number {
  */
 export function simulateSavingsPlan(input: {
   timeline: SavingsPlanTimelineMonth[];
-  targetAmount: number;
+  targetAmount: number | null;
   adjustments?: SavingsPlanAdjustment[];
   globalMonthlyAmount?: number;
   /** Montant de départ (stock) — amorce `simulatedCumulative`, exclu des mois simulés. */
@@ -259,7 +287,9 @@ export function simulateSavingsPlan(input: {
 
     let simulatedAmount: number;
     let isAdjusted = false;
-    if (!isContributive) {
+    if (month.isContributionEligible === false) {
+      simulatedAmount = 0;
+    } else if (!isContributive) {
       simulatedAmount = month.confirmedAmount;
     } else if (adjustmentsByKey.has(key)) {
       simulatedAmount = adjustmentsByKey.get(key)!;
@@ -274,6 +304,8 @@ export function simulateSavingsPlan(input: {
     simulatedCumulative += simulatedAmount;
     if (
       attainedPeriod == null &&
+      month.isContributionEligible !== false &&
+      input.targetAmount != null &&
       input.targetAmount > 0 &&
       simulatedCumulative >= input.targetAmount
     ) {
@@ -292,8 +324,12 @@ export function simulateSavingsPlan(input: {
   return {
     months,
     simulatedFinal,
-    gapToTarget: input.targetAmount - simulatedFinal,
-    isTargetMet: input.targetAmount > 0 && simulatedFinal >= input.targetAmount,
+    gapToTarget:
+      input.targetAmount == null ? null : input.targetAmount - simulatedFinal,
+    isTargetMet:
+      input.targetAmount == null
+        ? null
+        : input.targetAmount > 0 && simulatedFinal >= input.targetAmount,
     attainedPeriod,
   };
 }
@@ -315,11 +351,20 @@ export interface RedistributeRemainingEffortResult {
  */
 export function redistributeRemainingEffort(input: {
   timeline: SavingsPlanTimelineMonth[];
-  targetAmount: number;
+  targetAmount: number | null;
   pinnedAdjustments?: SavingsPlanAdjustment[];
   /** Montant de départ (stock) — déduit de la cible avant répartition. */
   initialAmount?: number;
 }): RedistributeRemainingEffortResult {
+  if (input.targetAmount == null) {
+    return {
+      adjustments: [],
+      remainingEffort: 0,
+      perRemainingMonth: 0,
+      isDistributable: false,
+    };
+  }
+
   const pinnedByKey = new Map<number, number>();
   for (const pin of input.pinnedAdjustments ?? []) {
     pinnedByKey.set(adjustmentKey(pin), pin.amount);
@@ -333,7 +378,7 @@ export function redistributeRemainingEffort(input: {
   );
 
   const lockedConfirmedSum = input.timeline
-    .filter((month) => month.isLocked)
+    .filter((month) => month.isContributionEligible !== false && month.isLocked)
     .reduce((sum, month) => sum + month.confirmedAmount, 0);
 
   const pinnedSum = openMonths
@@ -349,7 +394,10 @@ export function redistributeRemainingEffort(input: {
   );
 
   const hasUnavailablePeriod = input.timeline.some(
-    (month) => !month.isLocked && !isContributivePlanMonth(month),
+    (month) =>
+      month.isContributionEligible !== false &&
+      !month.isLocked &&
+      !isContributivePlanMonth(month),
   );
 
   if (hasUnavailablePeriod || openUnpinned.length === 0) {

@@ -101,6 +101,7 @@ const baseSavingsGoal: SavingsGoal = {
   id: TRANSACTION_ID,
   userId: USER_ID,
   name: 'New car',
+  startDate: null,
   targetAmount: 5000,
   targetDate: '2099-01-01',
   status: 'ACTIVE',

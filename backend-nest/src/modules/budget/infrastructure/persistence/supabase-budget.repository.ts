@@ -545,6 +545,7 @@ export class SupabaseBudgetRepository implements BudgetRepositoryPort {
     return goals
       .filter(
         (goal) =>
+          goal.target_date != null &&
           periodIndex(
             getBudgetPeriodForDate(
               parseIsoDateLocal(goal.target_date),

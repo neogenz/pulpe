@@ -42,6 +42,7 @@ const goalWithTargetDate = (targetDate: string) => ({
   id: GOAL_ID,
   userId: user.id,
   name: 'Canapé',
+  startDate: null,
   targetAmount: 3700,
   targetDate,
   status: 'ACTIVE' as const,
@@ -200,6 +201,30 @@ describe('CreateSavingsGoalUseCase — bounded materialization (PUL-316)', () =>
     expect(result.id).toBe(GOAL_ID);
     expect(spread.fanOut).not.toHaveBeenCalled();
     expect(repo.findMaterializedPeriods).not.toHaveBeenCalled();
+  });
+
+  it('should create a name-only objective with a null interval', async () => {
+    repo.insert.mockResolvedValue({
+      ...goalWithTargetDate('2099-01-01'),
+      targetAmount: null,
+      targetDate: null,
+    });
+
+    await useCase.execute({ name: 'Matelas', status: 'ACTIVE' }, user);
+
+    expect(repo.insert).toHaveBeenCalledWith({
+      name: 'Matelas',
+      startDate: null,
+      targetAmount: null,
+      targetDate: null,
+      status: 'ACTIVE',
+      originalTargetAmount: null,
+      originalCurrency: null,
+      targetCurrency: null,
+      exchangeRate: null,
+      initialAmount: null,
+    });
+    expect(spread.fanOut).not.toHaveBeenCalled();
   });
 
   it('should still create the goal when no budget exists in the horizon', async () => {
