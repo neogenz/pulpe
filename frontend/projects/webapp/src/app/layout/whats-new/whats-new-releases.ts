@@ -9,13 +9,8 @@ export interface SkippedWhatsNewRelease {
 }
 
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: '0.38.0',
-  features: [
-    'Objectifs d’épargne avec plan mensuel',
-    'Tags à la place des catégories libres',
-    'Retrait d’épargne quand le mois est serré',
-    'Connexion avec Apple',
-  ],
+  version: '0.38.3',
+  features: ['Mensualités arrêtées à l’échéance'],
 };
 
 export const SKIPPED_RELEASES: readonly SkippedWhatsNewRelease[] = [

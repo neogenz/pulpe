@@ -1,5 +1,34 @@
 [
   {
+    "version": "0.38.3",
+    "iosVersion": "1.2.1",
+    "date": "2026-07-26",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.38.3",
+    "platforms": ["web", "ios"],
+    "changes": {
+      "features": [],
+      "fixes": [
+        {
+          "title": "Mensualités arrêtées à l'échéance",
+          "description": "La mensualité d'un objectif daté n'est plus ajoutée au Mois Type, où elle pouvait continuer à peser sur les budgets suivants"
+        },
+        {
+          "title": "Menu et FAQ disponibles plus tôt",
+          "description": "Sur la page d'accueil, le menu mobile et la FAQ fonctionnent sans attendre la fin du chargement"
+        },
+        {
+          "title": "Affichage corrigé sur iPhone",
+          "description": "La page d'accueil couvre correctement les zones autour de l'encoche et le menu garde son fond pendant le défilement"
+        },
+        {
+          "title": "Écrans vides corrigés sur iOS",
+          "description": "Les pages sans budget, objectif ou modèle remplissent maintenant tout l'écran au lieu d'afficher une bande grise ; VoiceOver ignore aussi les icônes décoratives"
+        }
+      ],
+      "technical": []
+    }
+  },
+  {
     "version": "0.38.1",
     "date": "2026-07-25",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.38.1",

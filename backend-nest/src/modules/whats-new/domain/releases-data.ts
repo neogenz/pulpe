@@ -36,6 +36,28 @@ export interface SilentIosReleaseEntry {
  */
 export const RELEASES: WhatsNewReleaseEntry[] = [
   {
+    version: '0.38.3',
+    iosVersion: '1.2.1',
+    date: '2026-07-26',
+    platforms: ['web', 'ios'],
+    changes: {
+      features: [],
+      fixes: [
+        {
+          title: "Mensualités arrêtées à l'échéance",
+          description:
+            "La mensualité d'un objectif daté n'est plus ajoutée au Mois Type, où elle pouvait continuer à peser sur les budgets suivants",
+        },
+        {
+          title: 'Écrans vides corrigés sur iOS',
+          description:
+            "Les pages sans budget, objectif ou modèle remplissent maintenant tout l'écran au lieu d'afficher une bande grise ; VoiceOver ignore aussi les icônes décoratives",
+        },
+      ],
+      technical: [],
+    },
+  },
+  {
     version: '0.38.0',
     iosVersion: '1.2.0',
     date: '2026-07-24',

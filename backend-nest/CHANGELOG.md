@@ -1,5 +1,12 @@
 # backend-nest
 
+## 0.38.3
+
+### Patch Changes
+
+- Les objectifs datés ne prolongent plus leur mensualité au-delà de l'échéance. Le site public répond avant la fin de son chargement et les écrans vides iOS couvrent tout l'écran.
+  - pulpe-shared@0.38.3
+
 ## 0.38.2
 
 ### Patch Changes
