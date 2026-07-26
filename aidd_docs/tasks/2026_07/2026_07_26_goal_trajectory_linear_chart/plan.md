@@ -1,6 +1,6 @@
 ---
 objective: "Le détail web d’un objectif présente une trajectoire aussi lisible que la référence Linear, avec le réalisé, la projection planifiée et la cible clairement distincts et accessibles."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Clarifier la trajectoire d’un objectif
