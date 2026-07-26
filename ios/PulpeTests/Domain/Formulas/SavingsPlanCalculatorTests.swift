@@ -74,6 +74,41 @@ struct SavingsPlanCalculatorTests {
         #expect(result.attainedPeriod == nil)
     }
 
+    @Test("never simulates an open month below its already confirmed amount")
+    func simulate_preservesConfirmedFloorOnOpenMonth() throws {
+        let current = planMonth(
+            month: 3,
+            year: 2026,
+            state: .current,
+            plannedAmount: 1_000,
+            confirmedAmount: 1_200,
+            lines: [
+                SavingsGoalPlanLine(
+                    budgetLineId: "checked",
+                    amount: 500,
+                    checkedAt: "2026-03-10T00:00:00Z",
+                    isManuallyAdjusted: false
+                ),
+                SavingsGoalPlanLine(
+                    budgetLineId: "open",
+                    amount: 500,
+                    checkedAt: nil,
+                    isManuallyAdjusted: false
+                ),
+            ]
+        )
+
+        let result = try SavingsPlanCalculator.simulate(
+            timeline: [current],
+            targetAmount: 2_000,
+            globalMonthlyAmount: 800
+        )
+
+        #expect(result.months[0].simulatedAmount == 800)
+        #expect(result.months[0].simulatedCumulative == 1_200)
+        #expect(result.simulatedFinal == 1_200)
+    }
+
     @Test("applies a global monthly amount to every open month")
     func simulate_appliesGlobalMonthlyAmount() throws {
         let result = try SavingsPlanCalculator.simulate(
