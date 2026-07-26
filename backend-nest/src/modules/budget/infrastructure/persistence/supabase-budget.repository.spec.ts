@@ -1,4 +1,4 @@
-import { describe, it, expect, jest } from 'bun:test';
+import { afterAll, beforeAll, describe, it, expect, jest } from 'bun:test';
 import { Buffer } from 'node:buffer';
 import { SupabaseBudgetRepository } from './supabase-budget.repository';
 import { BusinessException } from '@common/exceptions/business.exception';
@@ -286,6 +286,9 @@ describe('SupabaseBudgetRepository fetchBudgetDataForRecalc (strict decrypt)', (
 });
 
 describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal horizon (PUL-311)', () => {
+  beforeAll(() => jest.setSystemTime(new Date('2026-07-15T12:00:00Z')));
+  afterAll(() => jest.useRealTimers());
+
   const USER_UUID = 'f1f0c5d6-9b3a-4c2e-8d7f-1a2b3c4d5e6f';
   const TEMPLATE_UUID = '2b7c1e90-5d4a-4f31-9c8b-6e5d4c3b2a19';
   const BUDGET_UUID = '9c8b7a65-4d3e-4210-8f7e-6d5c4b3a2918';
@@ -314,7 +317,12 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
    * stay untouched — the pay day now travels on the authenticated user.
    */
   function generationProvider(
-    goals: { id: string; target_date: string | null }[],
+    goals: {
+      id: string;
+      created_at: string;
+      start_date: string | null;
+      target_date: string | null;
+    }[],
     payDayOfMonth: number | null,
     rpc: ReturnType<typeof jest.fn>,
     getUser: ReturnType<typeof jest.fn> = jest.fn(),
@@ -361,7 +369,14 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
     const rpc = jest.fn().mockResolvedValue({ data: rpcResponse, error: null });
     const repo = new SupabaseBudgetRepository(
       generationProvider(
-        [{ id: OVERDUE_GOAL_UUID, target_date: '2026-10-12' }],
+        [
+          {
+            id: OVERDUE_GOAL_UUID,
+            created_at: '2026-01-01T00:00:00Z',
+            start_date: null,
+            target_date: '2026-10-12',
+          },
+        ],
         27,
         rpc,
       ),
@@ -384,7 +399,14 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
     const rpc = jest.fn().mockResolvedValue({ data: rpcResponse, error: null });
     const repo = new SupabaseBudgetRepository(
       generationProvider(
-        [{ id: ON_TIME_GOAL_UUID, target_date: '2026-11-12' }],
+        [
+          {
+            id: ON_TIME_GOAL_UUID,
+            created_at: '2026-01-01T00:00:00Z',
+            start_date: null,
+            target_date: '2026-11-12',
+          },
+        ],
         27,
         rpc,
       ),
@@ -403,7 +425,14 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
     const rpc = jest.fn().mockResolvedValue({ data: rpcResponse, error: null });
     const repo = new SupabaseBudgetRepository(
       generationProvider(
-        [{ id: ON_TIME_GOAL_UUID, target_date: null }],
+        [
+          {
+            id: ON_TIME_GOAL_UUID,
+            created_at: '2026-01-01T00:00:00Z',
+            start_date: null,
+            target_date: null,
+          },
+        ],
         27,
         rpc,
       ),
@@ -418,6 +447,34 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
     );
   });
 
+  it('excludes an undated goal before its explicit start period', async () => {
+    const rpc = jest.fn().mockResolvedValue({ data: rpcResponse, error: null });
+    const repo = new SupabaseBudgetRepository(
+      generationProvider(
+        [
+          {
+            id: ON_TIME_GOAL_UUID,
+            created_at: '2026-01-01T00:00:00Z',
+            start_date: '2026-12-01',
+            target_date: null,
+          },
+        ],
+        27,
+        rpc,
+      ),
+      createMockEncryption(),
+    );
+
+    await repo.createBudgetFromTemplateRpc(payload);
+
+    expect(rpc).toHaveBeenCalledWith(
+      'create_budget_from_template',
+      expect.objectContaining({
+        p_excluded_savings_goal_ids: [ON_TIME_GOAL_UUID],
+      }),
+    );
+  });
+
   it('never re-reads the pay day from GoTrue — the guard already carries it', async () => {
     // The guard fetches user_metadata once per request; re-asking here cost
     // `generate-budgets` up to 36 redundant round-trips.
@@ -425,7 +482,14 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
     const getUser = jest.fn();
     const repo = new SupabaseBudgetRepository(
       generationProvider(
-        [{ id: OVERDUE_GOAL_UUID, target_date: '2026-10-12' }],
+        [
+          {
+            id: OVERDUE_GOAL_UUID,
+            created_at: '2026-01-01T00:00:00Z',
+            start_date: null,
+            target_date: '2026-10-12',
+          },
+        ],
         27,
         rpc,
         getUser,
@@ -466,9 +530,14 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
     );
   });
 
-  describe('periodsPastHorizon (PUL-312)', () => {
+  describe('periodsOutsideInterval (PUL-312/PUL-314)', () => {
     function horizonProvider(
-      goals: { id: string; target_date: string | null }[],
+      goals: {
+        id: string;
+        created_at: string;
+        start_date: string | null;
+        target_date: string | null;
+      }[],
       payDayOfMonth: number | null,
     ): {
       provider: AuthenticatedSupabaseProvider;
@@ -526,9 +595,24 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
       ];
       const { provider, from, eq, inFilter } = horizonProvider(
         [
-          { id: FIRST_GOAL_UUID, target_date: '2026-10-12' },
-          { id: SECOND_GOAL_UUID, target_date: '2026-11-12' },
-          { id: UNDATED_GOAL_UUID, target_date: null },
+          {
+            id: FIRST_GOAL_UUID,
+            created_at: '2026-01-01T00:00:00Z',
+            start_date: '2026-10-01',
+            target_date: '2026-10-12',
+          },
+          {
+            id: SECOND_GOAL_UUID,
+            created_at: '2026-01-01T00:00:00Z',
+            start_date: null,
+            target_date: '2026-11-12',
+          },
+          {
+            id: UNDATED_GOAL_UUID,
+            created_at: '2026-01-01T00:00:00Z',
+            start_date: '2026-11-01',
+            target_date: null,
+          },
         ],
         27,
       );
@@ -537,7 +621,7 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
         createMockEncryption(),
       );
 
-      const exclusions = await repo.periodsPastHorizon(
+      const exclusions = await repo.periodsOutsideInterval(
         requestedGoalIds,
         periods,
       );
@@ -554,7 +638,7 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
         new Map([
           [FIRST_GOAL_UUID, ['budget-11-2026', 'budget-01-2027']],
           [SECOND_GOAL_UUID, ['budget-01-2027']],
-          [UNDATED_GOAL_UUID, []],
+          [UNDATED_GOAL_UUID, ['budget-10-2026']],
         ]),
       );
     });
@@ -566,10 +650,10 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
         createMockEncryption(),
       );
 
-      expect(await repo.periodsPastHorizon([], [])).toEqual(new Map());
-      expect(await repo.periodsPastHorizon([OVERDUE_GOAL_UUID], [])).toEqual(
-        new Map(),
-      );
+      expect(await repo.periodsOutsideInterval([], [])).toEqual(new Map());
+      expect(
+        await repo.periodsOutsideInterval([OVERDUE_GOAL_UUID], []),
+      ).toEqual(new Map());
       expect(from).not.toHaveBeenCalled();
     });
   });

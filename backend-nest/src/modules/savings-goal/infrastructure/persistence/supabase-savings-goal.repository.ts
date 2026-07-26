@@ -458,8 +458,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
         p_goal_id: goalId,
         p_mode: command.reconciliation.mode,
         p_budget_line_ids: command.reconciliation.budgetLineIds,
-        p_min_period_index: command.minPeriodIndex,
-        p_target_period_index: command.targetPeriodIndex,
+        p_expected_target_date: command.expectedTargetDate,
         p_patch: patchPayload,
       },
     );

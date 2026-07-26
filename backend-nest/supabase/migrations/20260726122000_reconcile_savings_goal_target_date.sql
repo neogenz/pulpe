@@ -5,12 +5,15 @@
 -- per-goal advisory lock used by plan/generation-stop writers. Any drift,
 -- ownership failure or invalid patch raises and rolls back both goal and lines.
 
+DROP FUNCTION IF EXISTS public.reconcile_savings_goal_target_date(
+  uuid, text, uuid[], int, int, jsonb
+);
+
 CREATE OR REPLACE FUNCTION public.reconcile_savings_goal_target_date(
   p_goal_id uuid,
   p_mode text,
   p_budget_line_ids uuid[],
-  p_min_period_index int,
-  p_target_period_index int,
+  p_expected_target_date date,
   p_patch jsonb
 ) RETURNS jsonb
 LANGUAGE plpgsql
@@ -25,8 +28,15 @@ DECLARE
   v_confirmed_ids uuid[];
   v_affected_line_ids uuid[];
   v_touched_budget_ids uuid[];
+  v_pay_day int;
   v_new_start_date date;
   v_new_target_date date;
+  v_current_period_start date;
+  v_previous_target_period_start date;
+  v_new_target_period_start date;
+  v_current_period_index int;
+  v_previous_target_period_index int;
+  v_new_target_period_index int;
   v_goal_json jsonb;
 BEGIN
   IF v_uid IS NULL THEN
@@ -82,6 +92,13 @@ BEGIN
     RAISE EXCEPTION 'Savings goal access denied' USING ERRCODE = 'P0001';
   END IF;
 
+  IF v_goal.target_date IS NULL
+    OR v_goal.target_date IS DISTINCT FROM p_expected_target_date
+  THEN
+    RAISE EXCEPTION 'Savings goal reconciliation conflict'
+      USING ERRCODE = 'P0001';
+  END IF;
+
   v_new_target_date := (p_patch->>'target_date')::date;
   v_new_start_date := CASE
     WHEN p_patch ? 'start_date' THEN (p_patch->>'start_date')::date
@@ -91,6 +108,61 @@ BEGIN
     AND v_new_start_date > v_new_target_date
   THEN
     RAISE EXCEPTION 'Savings goal reconciliation patch invalid'
+      USING ERRCODE = 'P0001';
+  END IF;
+
+  SELECT CASE
+    WHEN raw_user_meta_data->>'payDayOfMonth' ~ '^[0-9]+$'
+    THEN GREATEST(
+      1,
+      LEAST(31, (raw_user_meta_data->>'payDayOfMonth')::int)
+    )
+    ELSE NULL
+  END
+  INTO v_pay_day
+  FROM auth.users
+  WHERE id = v_uid;
+
+  v_current_period_start := date_trunc('month', CURRENT_DATE)::date;
+  v_previous_target_period_start :=
+    date_trunc('month', v_goal.target_date)::date;
+  v_new_target_period_start := date_trunc('month', v_new_target_date)::date;
+
+  IF v_pay_day IS NOT NULL AND v_pay_day <> 1 THEN
+    IF EXTRACT(DAY FROM CURRENT_DATE) < v_pay_day THEN
+      v_current_period_start :=
+        (v_current_period_start - INTERVAL '1 month')::date;
+    END IF;
+    IF EXTRACT(DAY FROM v_goal.target_date) < v_pay_day THEN
+      v_previous_target_period_start :=
+        (v_previous_target_period_start - INTERVAL '1 month')::date;
+    END IF;
+    IF EXTRACT(DAY FROM v_new_target_date) < v_pay_day THEN
+      v_new_target_period_start :=
+        (v_new_target_period_start - INTERVAL '1 month')::date;
+    END IF;
+    IF v_pay_day > 15 THEN
+      v_current_period_start :=
+        (v_current_period_start + INTERVAL '1 month')::date;
+      v_previous_target_period_start :=
+        (v_previous_target_period_start + INTERVAL '1 month')::date;
+      v_new_target_period_start :=
+        (v_new_target_period_start + INTERVAL '1 month')::date;
+    END IF;
+  END IF;
+
+  v_current_period_index :=
+    EXTRACT(YEAR FROM v_current_period_start)::int * 12
+    + EXTRACT(MONTH FROM v_current_period_start)::int;
+  v_previous_target_period_index :=
+    EXTRACT(YEAR FROM v_previous_target_period_start)::int * 12
+    + EXTRACT(MONTH FROM v_previous_target_period_start)::int;
+  v_new_target_period_index :=
+    EXTRACT(YEAR FROM v_new_target_period_start)::int * 12
+    + EXTRACT(MONTH FROM v_new_target_period_start)::int;
+
+  IF v_new_target_period_index >= v_previous_target_period_index THEN
+    RAISE EXCEPTION 'Savings goal reconciliation conflict'
       USING ERRCODE = 'P0001';
   END IF;
 
@@ -109,8 +181,8 @@ BEGIN
       AND bl.kind = 'saving'::public.transaction_kind
       AND bl.checked_at IS NULL
       AND bl.is_manually_adjusted = false
-      AND (mb.year * 12 + mb.month) >= p_min_period_index
-      AND (mb.year * 12 + mb.month) > p_target_period_index
+      AND (mb.year * 12 + mb.month) >= v_current_period_index
+      AND (mb.year * 12 + mb.month) > v_new_target_period_index
     FOR UPDATE OF bl
   LOOP
     INSERT INTO reconciliation_candidates (line_id, budget_id)
@@ -217,12 +289,12 @@ END;
 $$;
 
 ALTER FUNCTION public.reconcile_savings_goal_target_date(
-  uuid, text, uuid[], int, int, jsonb
+  uuid, text, uuid[], date, jsonb
 ) OWNER TO postgres;
 
 REVOKE EXECUTE ON FUNCTION public.reconcile_savings_goal_target_date(
-  uuid, text, uuid[], int, int, jsonb
+  uuid, text, uuid[], date, jsonb
 ) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.reconcile_savings_goal_target_date(
-  uuid, text, uuid[], int, int, jsonb
+  uuid, text, uuid[], date, jsonb
 ) TO authenticated, service_role;

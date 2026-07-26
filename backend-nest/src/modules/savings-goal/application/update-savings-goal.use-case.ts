@@ -97,6 +97,10 @@ export class UpdateSavingsGoalUseCase {
     patch: SavingsGoalUpdatePatch,
     user: AuthenticatedUser,
   ): Promise<SavingsGoal> {
+    const expectedTargetDate = current.targetDate;
+    if (expectedTargetDate === null) {
+      return this.repo.update(id, patch);
+    }
     const payDayOfMonth = user.payDayOfMonth ?? null;
     const lines = await this.repo.findLinkedSavingLines(id);
     const candidates = selectEligibleSavingsGoalFutureLines(
@@ -120,17 +124,10 @@ export class UpdateSavingsGoalUseCase {
       );
     }
 
-    const minPeriodIndex = periodIndex(
-      getBudgetPeriodForDate(new Date(), payDayOfMonth),
-    );
-    const targetPeriodIndex = periodIndex(
-      getBudgetPeriodForDate(parseIsoDateLocal(dto.targetDate), payDayOfMonth),
-    );
     const result = await this.repo.reconcileTargetDate(id, {
       patch,
       reconciliation: dto.reconciliation,
-      minPeriodIndex,
-      targetPeriodIndex,
+      expectedTargetDate,
     });
 
     await this.refreshAfterCommit(result.touchedBudgetIds, id, user.id);

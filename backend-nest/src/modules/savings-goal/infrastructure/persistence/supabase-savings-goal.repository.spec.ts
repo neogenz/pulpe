@@ -1083,16 +1083,14 @@ describe('SupabaseSavingsGoalRepository', () => {
           initialAmount: 250,
         },
         reconciliation: { mode: 'freeze', budgetLineIds: [lineId] },
-        minPeriodIndex: 24_319,
-        targetPeriodIndex: 24_363,
+        expectedTargetDate: '2030-05-15',
       });
 
       expect(rpc).toHaveBeenCalledWith('reconcile_savings_goal_target_date', {
         p_goal_id: goalId,
         p_mode: 'freeze',
         p_budget_line_ids: [lineId],
-        p_min_period_index: 24_319,
-        p_target_period_index: 24_363,
+        p_expected_target_date: '2030-05-15',
         p_patch: {
           name: 'Maison proche',
           target_amount: 'enc:4000',
@@ -1140,8 +1138,7 @@ describe('SupabaseSavingsGoalRepository', () => {
         repo.reconcileTargetDate(goalId, {
           patch: { targetDate: '2030-03-15' },
           reconciliation: { mode: 'remove', budgetLineIds: [lineId] },
-          minPeriodIndex: 24_319,
-          targetPeriodIndex: 24_363,
+          expectedTargetDate: '2030-05-15',
         }),
       ).rejects.toMatchObject({
         code: 'ERR_SAVINGS_GOAL_RECONCILIATION_CONFLICT',

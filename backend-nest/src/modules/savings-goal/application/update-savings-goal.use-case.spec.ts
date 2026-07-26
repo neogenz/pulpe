@@ -196,8 +196,7 @@ describe('UpdateSavingsGoalUseCase', () => {
           targetDate: '2030-03-15',
         },
         reconciliation: { mode: 'freeze', budgetLineIds: [lineId] },
-        minPeriodIndex: expect.any(Number),
-        targetPeriodIndex: 2030 * 12 + 3,
+        expectedTargetDate: '2030-05-15',
       }),
     );
     expect(repo.update).not.toHaveBeenCalled();

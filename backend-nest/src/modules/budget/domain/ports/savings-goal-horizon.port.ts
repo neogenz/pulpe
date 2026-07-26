@@ -7,8 +7,8 @@ export interface MaterializedBudgetPeriod extends BudgetPeriod {
 }
 
 export interface SavingsGoalHorizonPort {
-  goalIdsPastPeriod(period: BudgetPeriod): Promise<string[]>;
-  periodsPastHorizon(
+  goalIdsExcludedFromPeriod(period: BudgetPeriod): Promise<string[]>;
+  periodsOutsideInterval(
     goalIds: string[],
     periods: MaterializedBudgetPeriod[],
   ): Promise<ReadonlyMap<string, readonly string[]>>;

@@ -181,6 +181,25 @@ struct SavingsGoalFormSheetTests {
         }
     }
 
+    @Test("a deadline without a target exposes a manual monthly contribution")
+    func form_deadlineOnlyShowsManualContribution() {
+        #expect(
+            SavingsGoalFormSheet.showsManualMonthlyContribution(
+                isEditing: false,
+                hasTargetDate: true,
+                targetAmount: nil
+            )
+        )
+        #expect(
+            SavingsGoalFormSheet.manualMonthlyContributionHint(hasTargetDate: true)
+                == "Ce montant sera prévu chaque mois, jusqu'à l'échéance."
+        )
+        #expect(
+            SavingsGoalFormSheet.manualMonthlyContributionHint(hasTargetDate: false)
+                == "Ce montant alimentera ton pot chaque mois, sans échéance imposée."
+        )
+    }
+
     @Test("a start after the deadline is rejected")
     func form_rejectsInvertedInterval() throws {
         let start = try #require(calendar.date(from: DateComponents(year: 2027, month: 2, day: 1)))

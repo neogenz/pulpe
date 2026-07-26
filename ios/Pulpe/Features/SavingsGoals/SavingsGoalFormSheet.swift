@@ -174,7 +174,11 @@ struct SavingsGoalFormSheet: View {
             targetDateField
             if !isEditing && hasTargetDate && hasRemainingToSave {
                 decomposeSection
-            } else if !isEditing && !hasTargetDate {
+            } else if Self.showsManualMonthlyContribution(
+                isEditing: isEditing,
+                hasTargetDate: hasTargetDate,
+                targetAmount: amount
+            ) {
                 manualMonthlySection
             }
             if isEditing {
@@ -344,7 +348,7 @@ struct SavingsGoalFormSheet: View {
                 currency: currency,
                 visualStyle: .flat
             )
-            Text("Ce montant alimentera ton pot chaque mois, sans échéance imposée.")
+            Text(Self.manualMonthlyContributionHint(hasTargetDate: hasTargetDate))
                 .font(PulpeTypography.caption)
                 .foregroundStyle(Color.onSurfaceVariant)
         }
@@ -472,6 +476,20 @@ extension SavingsGoalFormSheet {
     ) -> Bool {
         isEditing || !decomposeEnabled || !hasRemainingToSave || (contribution ?? 0) > 0
     }
+
+    nonisolated static func showsManualMonthlyContribution(
+        isEditing: Bool,
+        hasTargetDate: Bool,
+        targetAmount: Decimal?
+    ) -> Bool {
+        !isEditing && (!hasTargetDate || targetAmount == nil)
+    }
+
+    nonisolated static func manualMonthlyContributionHint(hasTargetDate: Bool) -> String {
+        hasTargetDate
+            ? "Ce montant sera prévu chaque mois, jusqu'à l'échéance."
+            : "Ce montant alimentera ton pot chaque mois, sans échéance imposée."
+    }
 }
 
 private extension SavingsGoalFormSheet {
@@ -479,7 +497,7 @@ private extension SavingsGoalFormSheet {
         if hasTargetDate, hasRemainingToSave, decomposeEnabled {
             return monthlyContributionOverride ?? suggestedMonthly
         }
-        return hasTargetDate ? nil : monthlyContributionOverride
+        return hasTargetDate && amount != nil ? nil : monthlyContributionOverride
     }
 
     var canSubmit: Bool {
@@ -490,7 +508,14 @@ private extension SavingsGoalFormSheet {
                 planningRange: planningTargetDates,
                 calendar: .current
             )
-        let monthlyContributionIsValid = hasTargetDate
+        let usesManualContribution = Self.showsManualMonthlyContribution(
+            isEditing: isEditing,
+            hasTargetDate: hasTargetDate,
+            targetAmount: amount
+        )
+        let monthlyContributionIsValid = usesManualContribution
+            ? monthlyContributionOverride.map { $0 > 0 } ?? true
+            : hasTargetDate
             ? Self.isMonthlyContributionSubmittable(
                 isEditing: isEditing,
                 decomposeEnabled: decomposeEnabled,

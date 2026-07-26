@@ -293,13 +293,17 @@ describe('PUL-285 — apply_savings_goal_generation_stop (RPC integration)', () 
 });
 
 describe('PUL-313 — reconcile_savings_goal_target_date (RPC integration)', () => {
-  const targetPeriodIndex = 2099 * 12 + 6;
   const targetDate = '2099-06-15';
+  const expectedTargetDate = '2099-12-01';
 
   it('freezes the exact post-deadline candidates and patches the goal atomically', async () => {
     if (!env) return;
 
     const seed = await seedGoalWithBudgets([4, 6, 7, 8]);
+    const metadataUpdate = await admin.auth.admin.updateUserById(seed.user.id, {
+      user_metadata: { payDayOfMonth: 27 },
+    });
+    expect(metadataUpdate.error).toBeNull();
     const past = await seedLinkedLine(seed, 4);
     const atTarget = await seedLinkedLine(seed, 6);
     const candidate = await seedLinkedLine(seed, 7);
@@ -316,8 +320,7 @@ describe('PUL-313 — reconcile_savings_goal_target_date (RPC integration)', () 
         p_goal_id: seed.goalId,
         p_mode: 'freeze',
         p_budget_line_ids: [candidate],
-        p_min_period_index: MIN_PERIOD_INDEX,
-        p_target_period_index: targetPeriodIndex,
+        p_expected_target_date: expectedTargetDate,
         p_patch: {
           name: 'Maison proche',
           target_amount: 'enc:4000',
@@ -374,8 +377,7 @@ describe('PUL-313 — reconcile_savings_goal_target_date (RPC integration)', () 
         p_goal_id: seed.goalId,
         p_mode: 'remove',
         p_budget_line_ids: [candidate],
-        p_min_period_index: MIN_PERIOD_INDEX,
-        p_target_period_index: targetPeriodIndex,
+        p_expected_target_date: expectedTargetDate,
         p_patch: { target_date: targetDate },
       },
     );
@@ -413,8 +415,7 @@ describe('PUL-313 — reconcile_savings_goal_target_date (RPC integration)', () 
         p_goal_id: seed.goalId,
         p_mode: 'remove',
         p_budget_line_ids: [confirmed],
-        p_min_period_index: MIN_PERIOD_INDEX,
-        p_target_period_index: targetPeriodIndex,
+        p_expected_target_date: expectedTargetDate,
         p_patch: { target_date: targetDate },
       },
     );
@@ -455,8 +456,7 @@ describe('PUL-313 — reconcile_savings_goal_target_date (RPC integration)', () 
           p_goal_id: seed.goalId,
           p_mode: 'freeze',
           p_budget_line_ids: [lineId],
-          p_min_period_index: MIN_PERIOD_INDEX,
-          p_target_period_index: targetPeriodIndex,
+          p_expected_target_date: expectedTargetDate,
           p_patch: { target_date: targetDate },
         },
       );
@@ -496,8 +496,7 @@ describe('PUL-313 — reconcile_savings_goal_target_date (RPC integration)', () 
         p_goal_id: seed.goalId,
         p_mode: 'freeze',
         p_budget_line_ids: [candidate],
-        p_min_period_index: MIN_PERIOD_INDEX,
-        p_target_period_index: targetPeriodIndex,
+        p_expected_target_date: expectedTargetDate,
         p_patch: {
           target_date: targetDate,
           status: 'INVALID',
@@ -515,6 +514,40 @@ describe('PUL-313 — reconcile_savings_goal_target_date (RPC integration)', () 
       savings_goal_id: seed.goalId,
       is_manually_adjusted: false,
     });
+    const goal = await admin
+      .from('savings_goal')
+      .select('target_date')
+      .eq('id', seed.goalId)
+      .single();
+    expect(goal.data?.target_date).toBe('2099-12-01');
+  });
+
+  it('rejects a stale expected deadline before changing the goal or its lines', async () => {
+    if (!env) return;
+
+    const seed = await seedGoalWithBudgets([7]);
+    const candidate = await seedLinkedLine(seed, 7);
+
+    const { error } = await seed.user.client.rpc(
+      'reconcile_savings_goal_target_date',
+      {
+        p_goal_id: seed.goalId,
+        p_mode: 'remove',
+        p_budget_line_ids: [candidate],
+        p_expected_target_date: '2099-11-01',
+        p_patch: { target_date: targetDate },
+      } as never,
+    );
+
+    expect(error?.message ?? '').toContain(
+      'Savings goal reconciliation conflict',
+    );
+    const line = await admin
+      .from('budget_line')
+      .select('savings_goal_id')
+      .eq('id', candidate)
+      .single();
+    expect(line.data?.savings_goal_id).toBe(seed.goalId);
     const goal = await admin
       .from('savings_goal')
       .select('target_date')

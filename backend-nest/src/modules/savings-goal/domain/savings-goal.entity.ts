@@ -144,8 +144,7 @@ export interface SavingsGoalGenerationStopResult {
 export interface SavingsGoalTargetDateReconciliationCommand {
   patch: SavingsGoalUpdatePatch;
   reconciliation: SavingsGoalReconciliation;
-  minPeriodIndex: number;
-  targetPeriodIndex: number;
+  expectedTargetDate: string;
 }
 
 export interface SavingsGoalTargetDateReconciliationResult {

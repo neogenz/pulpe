@@ -476,7 +476,7 @@ export class SupabaseBudgetRepository
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase.rpc('create_budget_from_template', {
       ...payload,
-      p_excluded_savings_goal_ids: await this.goalIdsPastPeriod({
+      p_excluded_savings_goal_ids: await this.goalIdsExcludedFromPeriod({
         month: payload.p_month,
         year: payload.p_year,
       }),
@@ -509,34 +509,26 @@ export class SupabaseBudgetRepository
     }
   }
 
-  /**
-   * PUL-311 — objectifs d'épargne dont l'échéance précède la période
-   * matérialisée. Leurs `template_line` liées sont sautées par la génération :
-   * la mensualité suggérée couvre `monthsRemaining` périodes, en générer
-   * au-delà sur-engagerait l'utilisateur (cf. `docs/SAVINGS.md` §3.5).
-   *
-   * Le calcul de période vit ici plutôt que dans la RPC : `payDayOfMonth` est
-   * dans `auth.users.user_metadata`, hors de portée du SQL.
-   */
-  async goalIdsPastPeriod(period: BudgetPeriod): Promise<string[]> {
+  async goalIdsExcludedFromPeriod(period: BudgetPeriod): Promise<string[]> {
     const goals = await this.fetchGoalHorizons();
     const payDayOfMonth = this.supabaseProvider.user.payDayOfMonth ?? null;
     const budgetPeriodIndex = periodIndex(period);
     return goals
       .filter(
         (goal) =>
-          goal.target_date != null &&
-          periodIndex(
-            getBudgetPeriodForDate(
-              parseIsoDateLocal(goal.target_date),
-              payDayOfMonth,
-            ),
-          ) < budgetPeriodIndex,
+          budgetPeriodIndex < this.goalStartPeriodIndex(goal, payDayOfMonth) ||
+          (goal.target_date != null &&
+            periodIndex(
+              getBudgetPeriodForDate(
+                parseIsoDateLocal(goal.target_date),
+                payDayOfMonth,
+              ),
+            ) < budgetPeriodIndex),
       )
       .map((goal) => goal.id);
   }
 
-  async periodsPastHorizon(
+  async periodsOutsideInterval(
     goalIds: string[],
     periods: MaterializedBudgetPeriod[],
   ): Promise<ReadonlyMap<string, readonly string[]>> {
@@ -547,18 +539,26 @@ export class SupabaseBudgetRepository
     const payDayOfMonth = this.supabaseProvider.user.payDayOfMonth ?? null;
 
     const exclusions: [string, string[]][] = goals.map((goal) => {
-      if (goal.target_date == null) return [goal.id, []];
-
-      const horizonPeriodIndex = periodIndex(
-        getBudgetPeriodForDate(
-          parseIsoDateLocal(goal.target_date),
-          payDayOfMonth,
-        ),
-      );
+      const startPeriodIndex = this.goalStartPeriodIndex(goal, payDayOfMonth);
+      const targetPeriodIndex =
+        goal.target_date == null
+          ? null
+          : periodIndex(
+              getBudgetPeriodForDate(
+                parseIsoDateLocal(goal.target_date),
+                payDayOfMonth,
+              ),
+            );
       return [
         goal.id,
         periods
-          .filter((period) => horizonPeriodIndex < periodIndex(period))
+          .filter((period) => {
+            const index = periodIndex(period);
+            return (
+              index < startPeriodIndex ||
+              (targetPeriodIndex != null && targetPeriodIndex < index)
+            );
+          })
           .map((period) => period.id),
       ];
     });
@@ -566,13 +566,18 @@ export class SupabaseBudgetRepository
     return new Map(exclusions);
   }
 
-  private async fetchGoalHorizons(
-    goalIds?: string[],
-  ): Promise<{ id: string; target_date: string | null }[]> {
+  private async fetchGoalHorizons(goalIds?: string[]): Promise<
+    {
+      id: string;
+      created_at: string;
+      start_date: string | null;
+      target_date: string | null;
+    }[]
+  > {
     const supabase = this.supabaseProvider.client;
     let query = supabase
       .from('savings_goal')
-      .select('id, target_date')
+      .select('id, created_at, start_date, target_date')
       .eq('user_id', this.supabaseProvider.user.id);
 
     if (goalIds) {
@@ -593,6 +598,31 @@ export class SupabaseBudgetRepository
     }
 
     return data ?? [];
+  }
+
+  private goalStartPeriodIndex(
+    goal: {
+      created_at: string;
+      start_date: string | null;
+    },
+    payDayOfMonth: number | null,
+  ): number {
+    const currentIndex = periodIndex(
+      getBudgetPeriodForDate(new Date(), payDayOfMonth),
+    );
+    const createdIndex = periodIndex(
+      getBudgetPeriodForDate(new Date(goal.created_at), payDayOfMonth),
+    );
+    const explicitStartIndex =
+      goal.start_date == null
+        ? createdIndex
+        : periodIndex(
+            getBudgetPeriodForDate(
+              parseIsoDateLocal(goal.start_date),
+              payDayOfMonth,
+            ),
+          );
+    return Math.max(currentIndex, createdIndex, explicitStartIndex);
   }
 
   async persistEndingBalance(

@@ -303,6 +303,26 @@ describe('PUL-12 — savings_goal DB integration', () => {
     expect(harness.recalculatedBudgetIds.sort()).toEqual(
       [currentBudgetId, futureBudgetId].sort(),
     );
+
+    const futureStart = `${futurePeriod.year}-${String(
+      futurePeriod.month,
+    ).padStart(2, '0')}-15`;
+    const futureRecurring = await harness.useCase.execute(
+      savingsGoalCreateSchema.parse({
+        name: 'Projet futur',
+        startDate: futureStart,
+        monthlyContribution: 125,
+      }),
+      harness.authUser,
+    );
+    const futureRecurringLines = await user.client
+      .from('budget_line')
+      .select('budget_id')
+      .eq('savings_goal_id', futureRecurring.id);
+    expect(futureRecurringLines.error).toBeNull();
+    expect(futureRecurringLines.data?.map((line) => line.budget_id)).toEqual([
+      futureBudgetId,
+    ]);
   });
 
   it('CA5: deleting a goal unlinks tagged lines, deletes no prévision', async () => {

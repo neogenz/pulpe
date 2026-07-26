@@ -192,7 +192,7 @@ export class BulkTemplateLineOperationsUseCase {
       return { updatedLines, createdLines };
     }
 
-    const exclusions = await this.savingsGoalHorizon.periodsPastHorizon(
+    const exclusions = await this.savingsGoalHorizon.periodsOutsideInterval(
       goalIds,
       periods,
     );

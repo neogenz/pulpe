@@ -415,11 +415,12 @@ export class SavingsGoalFormDialog {
   );
   readonly #monthlyContributionOverride = signal<number | null>(null);
   readonly #suggestedMonthly = computed(() => {
-    const { targetAmount, targetDate, initialAmount } = this.model();
+    const { targetAmount, targetDate, initialAmount, startDate } = this.model();
     const target = inputNumber(targetAmount);
     if (target == null || target <= 0 || !targetDate) return null;
     return suggestedMonthlyContribution({
       targetAmount: target,
+      startDate: startDate || null,
       targetDate,
       // Le montant de départ est déjà acquis : décomposer la cible ENTIÈRE
       // sur-provisionnerait la prévision récurrente générée (PUL-285 CA2).

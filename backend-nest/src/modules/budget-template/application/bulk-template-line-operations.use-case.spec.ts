@@ -50,7 +50,7 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
   let mockCache: { invalidateForUser: ReturnType<typeof jest.fn> };
   let mockBudgetRecalculation: { recalculate: ReturnType<typeof jest.fn> };
   let mockSavingsGoalHorizon: {
-    periodsPastHorizon: ReturnType<typeof jest.fn>;
+    periodsOutsideInterval: ReturnType<typeof jest.fn>;
   };
 
   beforeEach(async () => {
@@ -90,7 +90,7 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
       recalculate: jest.fn().mockResolvedValue(undefined),
     };
     mockSavingsGoalHorizon = {
-      periodsPastHorizon: jest.fn().mockResolvedValue(new Map()),
+      periodsOutsideInterval: jest.fn().mockResolvedValue(new Map()),
     };
 
     const module = await Test.createTestingModule({
@@ -286,7 +286,9 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
     await useCase.execute('template-1', payload, mockUser);
 
     expect(mockRepo.findLineById).not.toHaveBeenCalled();
-    expect(mockSavingsGoalHorizon.periodsPastHorizon).not.toHaveBeenCalled();
+    expect(
+      mockSavingsGoalHorizon.periodsOutsideInterval,
+    ).not.toHaveBeenCalled();
     expect(mockRepo.bulkApplyTemplateLineOperations).toHaveBeenCalledWith(
       expect.objectContaining({
         updatedLines: [
@@ -342,7 +344,7 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
     it('resolves distinct horizons once and attaches exclusions per linked line', async () => {
       const goalA = '8a0f6c80-1234-4e5f-89ab-111111111111';
       const goalB = '8a0f6c80-1234-4e5f-89ab-222222222222';
-      mockSavingsGoalHorizon.periodsPastHorizon.mockResolvedValue(
+      mockSavingsGoalHorizon.periodsOutsideInterval.mockResolvedValue(
         new Map([
           [goalA, ['budget-11-2026', 'budget-01-2027']],
           [goalB, ['budget-01-2027']],
@@ -385,7 +387,9 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
         mockUser,
       );
 
-      expect(mockSavingsGoalHorizon.periodsPastHorizon).toHaveBeenCalledWith(
+      expect(
+        mockSavingsGoalHorizon.periodsOutsideInterval,
+      ).toHaveBeenCalledWith(
         [goalA, goalB],
         [
           { id: 'budget-07-2026', month: 7, year: 2026 },
@@ -394,9 +398,9 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
           { id: 'budget-01-2027', month: 1, year: 2027 },
         ],
       );
-      expect(mockSavingsGoalHorizon.periodsPastHorizon).toHaveBeenCalledTimes(
-        1,
-      );
+      expect(
+        mockSavingsGoalHorizon.periodsOutsideInterval,
+      ).toHaveBeenCalledTimes(1);
       expect(
         mockRepo.bulkApplyTemplateLineOperations.mock.calls[0]?.[0]
           .createdLines,
@@ -465,7 +469,7 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
         );
 
         expect(
-          mockSavingsGoalHorizon.periodsPastHorizon,
+          mockSavingsGoalHorizon.periodsOutsideInterval,
         ).not.toHaveBeenCalled();
       },
     );
