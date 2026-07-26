@@ -103,10 +103,25 @@ var nav=document.getElementById('${MOBILE_NAV_ID}');
 if(!nav)return;
 function close(){if(nav.open)nav.open=false;}
 var panel=document.getElementById('${MOBILE_NAV_PANEL_ID}');
-if(panel)panel.addEventListener('click',function(e){
+if(panel){
+function syncPanel(){
+var closed=!nav.open;
+panel.inert=closed;
+if(closed)panel.setAttribute('aria-hidden','true');
+else panel.removeAttribute('aria-hidden');
+var links=panel.querySelectorAll('a');
+for(var i=0;i<links.length;i++){
+if(closed)links[i].setAttribute('tabindex','-1');
+else links[i].removeAttribute('tabindex');
+}
+}
+syncPanel();
+nav.addEventListener('toggle',syncPanel);
+panel.addEventListener('click',function(e){
 var t=e.target;
 if(t&&t.closest&&t.closest('#${MOBILE_NAV_PANEL_ID} a'))close();
 });
+}
 document.addEventListener('keydown',function(e){
 if(e.key!=='Escape'||!nav.open)return;
 nav.open=false;

@@ -281,7 +281,18 @@ describe("landing accessibility contracts", () => {
       componentSources.layout,
       /export const viewport: Viewport = \{[\s\S]*viewportFit: "cover"/,
     );
-    assert.match(globalsCss, /padding-top:\s*env\(safe-area-inset-top\)/);
+    assert.match(
+      getDeclarations("html"),
+      /background-color:\s*var\(--color-background\)/,
+    );
+    assert.doesNotMatch(
+      getDeclarations("body"),
+      /padding-top:\s*env\(safe-area-inset-top\)/,
+    );
+    assert.match(
+      componentSources.hero,
+      /pt-\[calc\(9rem\+env\(safe-area-inset-top\)\)\]/,
+    );
     assert.match(
       componentSources.header,
       /top-\[calc\(env\(safe-area-inset-top\)\+0\.625rem\)\]/,
@@ -546,9 +557,26 @@ describe("landing accessibility contracts", () => {
       componentSources.header,
       /<\/details>[\s\S]*?<nav\s+id=\{MOBILE_NAV_PANEL_ID\}/,
     );
+    assert.match(componentSources.header, /\binert\b/);
+    assert.match(componentSources.header, /aria-hidden="true"/);
     assert.match(
       componentSources.header,
-      /peer-open:visible peer-open:opacity-100/,
+      /\bfixed\b[^"]*\bh-screen\b/,
+    );
+    assert.match(
+      componentSources.header,
+      /pointer-events-none[^"]*peer-open:pointer-events-auto[^"]*peer-open:opacity-100/,
+    );
+    assert.match(componentSources.header, /will-change-\[opacity\]/);
+    assert.equal(
+      componentSources.header.match(/tabIndex=\{-1\}/g)?.length,
+      2,
+    );
+    assert.doesNotMatch(componentSources.header, /\binvisible\b/);
+    assert.doesNotMatch(componentSources.header, /\bbackdrop-blur-xl\b/);
+    assert.match(
+      componentSources.layout,
+      /panel\.inert=closed[\s\S]*setAttribute\('aria-hidden','true'\)[\s\S]*removeAttribute\('aria-hidden'\)[\s\S]*setAttribute\('tabindex','-1'\)[\s\S]*removeAttribute\('tabindex'\)[\s\S]*nav\.addEventListener\('toggle',syncPanel\)/,
     );
   });
 

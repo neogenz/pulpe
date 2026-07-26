@@ -106,18 +106,22 @@ export function Header() {
           </summary>
         </details>
 
-        {/* Hors du `<details>` pour rester plein écran quand il est replié :
-            Safari peut ainsi composer la couche fixe avant l'ouverture. */}
+        {/* Hors du `<details>` et toujours peint pour que Safari compose la
+            couche fixe avant l'ouverture. `inert` retire ses liens du clavier
+            et de l'arbre d'accessibilité ; le script couvre aussi Safari 15. */}
         <nav
           id={MOBILE_NAV_PANEL_ID}
           aria-label="Navigation mobile"
-          className="invisible fixed inset-0 z-10 flex items-center overflow-y-auto bg-surface/95 pt-24 pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] opacity-0 backdrop-blur-xl transition-[opacity,visibility] duration-300 peer-open:visible peer-open:opacity-100 lg:hidden motion-reduce:transition-none"
+          aria-hidden="true"
+          inert
+          className="pointer-events-none fixed inset-x-0 top-0 z-10 flex h-screen items-center overflow-y-auto bg-surface pt-24 pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] opacity-0 transition-opacity duration-300 will-change-[opacity] peer-open:pointer-events-auto peer-open:opacity-100 lg:hidden motion-reduce:transition-none"
         >
           <div className="flex w-full flex-col gap-2">
             {navLinks.map((link) => (
               <a
                 key={link.href}
                 href={link.href}
+                tabIndex={-1}
                 className="flex min-h-14 items-center justify-center rounded-lg px-4 py-3 text-center text-lg font-semibold text-text transition-[background-color,scale] duration-200 hover:bg-primary/8 active:scale-[0.96] active:bg-primary/12 motion-reduce:transition-none motion-reduce:scale-100"
               >
                 {link.label}
@@ -125,6 +129,7 @@ export function Header() {
             ))}
             <Button
               href={angularUrl("/signup", "mobile_menu_commencer")}
+              tabIndex={-1}
               className="mt-4 w-full"
               data-cta-name="commencer"
               data-cta-location="mobile_menu"
