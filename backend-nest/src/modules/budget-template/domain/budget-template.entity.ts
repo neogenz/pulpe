@@ -156,6 +156,8 @@ export interface TemplateLineRpcInput {
  */
 export interface TemplateLineRpcUpdate {
   id: string;
+  /** Budget occurrences skipped when this line is first propagated. */
+  excludedBudgetIds?: string[];
   name?: string;
   amount?: number;
   savingsGoalId?: string | null;

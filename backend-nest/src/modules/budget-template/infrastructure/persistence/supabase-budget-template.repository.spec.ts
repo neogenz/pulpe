@@ -703,6 +703,7 @@ describe('SupabaseBudgetTemplateRepository', () => {
         createdLines: [
           {
             id: '8a0f6c80-1234-4e5f-89ab-111111111111',
+            excludedBudgetIds: ['8a0f6c80-1234-4e5f-89ab-333333333333'],
             name: 'Loyer',
             amount: 1200,
             originalAmount: null,
@@ -724,6 +725,7 @@ describe('SupabaseBudgetTemplateRepository', () => {
             expect.objectContaining({
               id: '8a0f6c80-1234-4e5f-89ab-111111111111',
               amount: VALID_CIPHERTEXT,
+              excluded_budget_ids: ['8a0f6c80-1234-4e5f-89ab-333333333333'],
             }),
           ]),
         }),

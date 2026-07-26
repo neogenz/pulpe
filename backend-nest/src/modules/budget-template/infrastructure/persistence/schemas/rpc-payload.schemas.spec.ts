@@ -226,6 +226,29 @@ describe('applyTemplateLineOperationsItemSchema', () => {
     expect(() => applyTemplateLineOperationsItemSchema.parse(bad)).toThrow();
   });
 
+  it('accepts only UUID arrays for per-line propagation exclusions', () => {
+    const budgetId = '8a0f6c80-1234-4e5f-89ab-333333333333';
+
+    expect(
+      applyTemplateLineOperationsItemSchema.parse({
+        ...base,
+        excluded_budget_ids: [budgetId],
+      }).excluded_budget_ids,
+    ).toEqual([budgetId]);
+    expect(() =>
+      applyTemplateLineOperationsItemSchema.parse({
+        ...base,
+        excluded_budget_ids: ['not-a-uuid'],
+      }),
+    ).toThrow();
+    expect(() =>
+      applyTemplateLineOperationsItemSchema.parse({
+        ...base,
+        excludedBudgetIds: [budgetId],
+      }),
+    ).toThrow();
+  });
+
   it('should reject unsupported currency', () => {
     const bad = { ...base, original_currency: 'USD', target_currency: 'CHF' };
 

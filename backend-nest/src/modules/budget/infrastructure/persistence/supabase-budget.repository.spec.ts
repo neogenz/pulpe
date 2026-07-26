@@ -8,6 +8,7 @@ import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.ser
 import type { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
 import type { EncryptionPort } from '@modules/encryption/encryption.tokens';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
+import type { MaterializedBudgetPeriod } from '../../domain/ports/savings-goal-horizon.port';
 
 const mockUser: AuthenticatedUser = {
   id: 'user-1',
@@ -318,18 +319,19 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
     rpc: ReturnType<typeof jest.fn>,
     getUser: ReturnType<typeof jest.fn> = jest.fn(),
   ): AuthenticatedSupabaseProvider {
+    const result = Promise.resolve({ data: goals, error: null });
+    const query = {
+      eq: jest.fn(),
+      then: result.then.bind(result),
+    };
+    query.eq.mockReturnValue(query);
+
     const client = {
       from: (table: string) => {
         if (table !== 'savings_goal') {
           throw new Error(`unexpected table: ${table}`);
         }
-        return {
-          select: () => ({
-            eq: () => ({
-              eq: () => Promise.resolve({ data: goals, error: null }),
-            }),
-          }),
-        };
+        return { select: () => query };
       },
       auth: { getUser },
       rpc,
@@ -442,7 +444,7 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
     );
   });
 
-  it('sends an empty exclusion list when the user has no active goal', async () => {
+  it('sends an empty exclusion list when the user has no goal', async () => {
     const rpc = jest.fn().mockResolvedValue({ data: rpcResponse, error: null });
     const getUser = jest.fn();
     const repo = new SupabaseBudgetRepository(
@@ -462,6 +464,114 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
         p_year: 2026,
       }),
     );
+  });
+
+  describe('periodsPastHorizon (PUL-312)', () => {
+    function horizonProvider(
+      goals: { id: string; target_date: string | null }[],
+      payDayOfMonth: number | null,
+    ): {
+      provider: AuthenticatedSupabaseProvider;
+      from: ReturnType<typeof jest.fn>;
+      eq: ReturnType<typeof jest.fn>;
+      inFilter: ReturnType<typeof jest.fn>;
+    } {
+      const result = Promise.resolve({ data: goals, error: null });
+      const query = {
+        eq: jest.fn(),
+        in: jest.fn(),
+        then: result.then.bind(result),
+      };
+      query.eq.mockReturnValue(query);
+      query.in.mockReturnValue(query);
+
+      const from = jest.fn().mockImplementation((table: string) => {
+        if (table !== 'savings_goal') {
+          throw new Error(`unexpected table: ${table}`);
+        }
+        return { select: () => query };
+      });
+      const client = { from } as unknown as AuthenticatedSupabaseClient;
+      const provider = {
+        get client() {
+          return client;
+        },
+        get user() {
+          return { ...mockUser, id: USER_UUID, payDayOfMonth };
+        },
+      } as unknown as AuthenticatedSupabaseProvider;
+
+      return {
+        provider,
+        from,
+        eq: query.eq,
+        inFilter: query.in,
+      };
+    }
+
+    it('resolves distinct exclusions for multiple goals, including PAUSED, in one payDay-aware query', async () => {
+      const FIRST_GOAL_UUID = '11111111-2222-4333-8444-555555555555';
+      const SECOND_GOAL_UUID = '66666666-7777-4888-8999-aaaaaaaaaaaa';
+      const UNDATED_GOAL_UUID = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff';
+      const requestedGoalIds = [
+        FIRST_GOAL_UUID,
+        SECOND_GOAL_UUID,
+        FIRST_GOAL_UUID,
+        UNDATED_GOAL_UUID,
+      ];
+      const periods: MaterializedBudgetPeriod[] = [
+        { id: 'budget-10-2026', month: 10, year: 2026 },
+        { id: 'budget-11-2026', month: 11, year: 2026 },
+        { id: 'budget-01-2027', month: 1, year: 2027 },
+      ];
+      const { provider, from, eq, inFilter } = horizonProvider(
+        [
+          { id: FIRST_GOAL_UUID, target_date: '2026-10-12' },
+          { id: SECOND_GOAL_UUID, target_date: '2026-11-12' },
+          { id: UNDATED_GOAL_UUID, target_date: null },
+        ],
+        27,
+      );
+      const repo = new SupabaseBudgetRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      const exclusions = await repo.periodsPastHorizon(
+        requestedGoalIds,
+        periods,
+      );
+
+      expect(from).toHaveBeenCalledTimes(1);
+      expect(inFilter).toHaveBeenCalledWith('id', [
+        FIRST_GOAL_UUID,
+        SECOND_GOAL_UUID,
+        UNDATED_GOAL_UUID,
+      ]);
+      expect(eq).toHaveBeenCalledWith('user_id', USER_UUID);
+      expect(eq).not.toHaveBeenCalledWith('status', expect.anything());
+      expect(exclusions).toEqual(
+        new Map([
+          [FIRST_GOAL_UUID, ['budget-11-2026', 'budget-01-2027']],
+          [SECOND_GOAL_UUID, ['budget-01-2027']],
+          [UNDATED_GOAL_UUID, []],
+        ]),
+      );
+    });
+
+    it('does not query when no linked goal or no materialized period is supplied', async () => {
+      const { provider, from } = horizonProvider([], null);
+      const repo = new SupabaseBudgetRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      expect(await repo.periodsPastHorizon([], [])).toEqual(new Map());
+      expect(await repo.periodsPastHorizon([OVERDUE_GOAL_UUID], [])).toEqual(
+        new Map(),
+      );
+      expect(from).not.toHaveBeenCalled();
+    });
   });
 });
 

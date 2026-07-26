@@ -630,6 +630,159 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
     expect(lines.data?.[0]?.savings_goal_id).toBe(goalId);
   });
 
+  it('PUL-312 excludes budgets per created line but still updates an existing line past its horizon', async () => {
+    if (!env) return;
+
+    const user = await makeUser(
+      `sg-bounded-propagation-${crypto.randomUUID()}@test.local`,
+    );
+    createdUserIds.push(user.id);
+
+    const templateId = crypto.randomUUID();
+    const goalAId = crypto.randomUUID();
+    const goalBId = crypto.randomUUID();
+    const createdLineAId = crypto.randomUUID();
+    const createdLineBId = crypto.randomUUID();
+    const existingLineId = crypto.randomUUID();
+    const beforeBudgetId = crypto.randomUUID();
+    const targetBudgetId = crypto.randomUUID();
+    const afterBudgetId = crypto.randomUUID();
+    const existingAfterLineId = crypto.randomUUID();
+
+    await admin.from('template').insert({
+      id: templateId,
+      user_id: user.id,
+      name: 'Mois type',
+      is_default: true,
+    });
+    await admin.from('savings_goal').insert([
+      {
+        id: goalAId,
+        user_id: user.id,
+        name: 'Objectif A',
+        target_amount: 'enc',
+        target_date: '2099-02-01',
+        status: 'PAUSED',
+      },
+      {
+        id: goalBId,
+        user_id: user.id,
+        name: 'Objectif B',
+        target_amount: 'enc',
+        target_date: null,
+        status: 'ACTIVE',
+      },
+    ]);
+    await admin.from('monthly_budget').insert([
+      {
+        id: beforeBudgetId,
+        user_id: user.id,
+        template_id: templateId,
+        month: 1,
+        year: 2099,
+        description: '',
+      },
+      {
+        id: targetBudgetId,
+        user_id: user.id,
+        template_id: templateId,
+        month: 2,
+        year: 2099,
+        description: '',
+      },
+      {
+        id: afterBudgetId,
+        user_id: user.id,
+        template_id: templateId,
+        month: 3,
+        year: 2099,
+        description: '',
+      },
+    ]);
+    await admin.from('template_line').insert({
+      id: existingLineId,
+      template_id: templateId,
+      name: 'Existing',
+      amount: 'enc-old',
+      kind: 'saving',
+      recurrence: 'fixed',
+      savings_goal_id: goalAId,
+    });
+    await admin.from('budget_line').insert({
+      id: existingAfterLineId,
+      budget_id: afterBudgetId,
+      template_line_id: existingLineId,
+      name: 'Existing',
+      amount: 'enc-old',
+      kind: 'saving',
+      recurrence: 'fixed',
+      savings_goal_id: goalAId,
+      is_manually_adjusted: false,
+    });
+
+    const { error } = await user.client.rpc(
+      'apply_template_line_operations_with_tags',
+      {
+        p_template_id: templateId,
+        p_budget_ids: [beforeBudgetId, targetBudgetId, afterBudgetId],
+        p_delete_ids: [],
+        p_updated_lines: [
+          {
+            id: existingLineId,
+            amount: 'enc-new',
+            excluded_budget_ids: [afterBudgetId],
+          },
+        ] as never,
+        p_created_lines: [
+          {
+            id: createdLineAId,
+            name: 'Objectif A',
+            amount: 'enc-a',
+            kind: 'saving',
+            recurrence: 'fixed',
+            savings_goal_id: goalAId,
+            excluded_budget_ids: [afterBudgetId],
+          },
+          {
+            id: createdLineBId,
+            name: 'Objectif B',
+            amount: 'enc-b',
+            kind: 'saving',
+            recurrence: 'fixed',
+            savings_goal_id: goalBId,
+            excluded_budget_ids: [],
+          },
+        ] as never,
+        p_line_tag_pairs: [] as never,
+      },
+    );
+    expect(error).toBeNull();
+
+    const created = await admin
+      .from('budget_line')
+      .select('budget_id, template_line_id')
+      .in('template_line_id', [createdLineAId, createdLineBId]);
+    const budgetsByLine = new Map<string, Set<string>>();
+    for (const row of created.data ?? []) {
+      const ids = budgetsByLine.get(row.template_line_id ?? '') ?? new Set();
+      ids.add(row.budget_id);
+      budgetsByLine.set(row.template_line_id ?? '', ids);
+    }
+    expect(budgetsByLine.get(createdLineAId)).toEqual(
+      new Set([beforeBudgetId, targetBudgetId]),
+    );
+    expect(budgetsByLine.get(createdLineBId)).toEqual(
+      new Set([beforeBudgetId, targetBudgetId, afterBudgetId]),
+    );
+
+    const updated = await admin
+      .from('budget_line')
+      .select('amount')
+      .eq('id', existingAfterLineId)
+      .single();
+    expect(updated.data?.amount).toBe('enc-new');
+  });
+
   it('PUL-285 CA5: create_budget_from_template skips lines linked to PAUSED/COMPLETED goals and resumes on reopen', async () => {
     if (!env) return;
 
