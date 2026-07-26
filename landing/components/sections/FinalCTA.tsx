@@ -1,8 +1,5 @@
-"use client";
-
 import { ArrowNote, Button, Container } from "@/components/ui";
 import { angularUrl } from "@/lib/config";
-import { trackCTAClick } from "@/lib/posthog";
 
 export function FinalCTA() {
   return (
@@ -20,9 +17,9 @@ export function FinalCTA() {
             <ArrowNote className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 md:-mb-10 md:left-auto md:right-0 md:translate-x-38" />
             <Button
               href={angularUrl("/signup", "final_cta_commencer")}
-              onClick={() =>
-                trackCTAClick("commencer_gratuitement", "final_cta", "/signup")
-              }
+              data-cta-name="commencer_gratuitement"
+              data-cta-location="final_cta"
+              data-cta-destination="/signup"
             >
               Créer mon budget gratuitement
             </Button>

@@ -59,6 +59,10 @@ const componentSources = {
     new URL("../components/sections/HowItWorks.tsx", import.meta.url),
     "utf8",
   ),
+  accordionItem: readFileSync(
+    new URL("../components/ui/AccordionItem.tsx", import.meta.url),
+    "utf8",
+  ),
   fadeIn: readFileSync(
     new URL("../components/ui/FadeIn.tsx", import.meta.url),
     "utf8",
@@ -77,6 +81,14 @@ const componentSources = {
   ),
   finalCta: readFileSync(
     new URL("../components/sections/FinalCTA.tsx", import.meta.url),
+    "utf8",
+  ),
+  platforms: readFileSync(
+    new URL("../components/sections/Platforms.tsx", import.meta.url),
+    "utf8",
+  ),
+  stickyCta: readFileSync(
+    new URL("../components/ui/StickyCTA.tsx", import.meta.url),
     "utf8",
   ),
   arrowNote: readFileSync(
@@ -162,14 +174,18 @@ describe("landing accessibility contracts", () => {
       /@media \(max-width: 767px\)[\s\S]*\.hero-mesh,\s*\.pain-points-mesh\s*\{[\s\S]*overflow:\s*visible;/,
     );
     assert.ok(sectionFields, "The shared mobile section field is missing");
-    assert.match(sectionFields, /width:\s*40vw;/);
-    assert.match(sectionFields, /height:\s*60vh;/);
+    // Le fondu Borumi est conservé, mais dessiné en dégradé : un `blur(150px)`
+    // sur une boîte plus étroite que son rayon forçait une couche hors écran
+    // d'environ 52 Mo par halo, quatre fois par page.
+    assert.match(sectionFields, /width:\s*calc\(40vw \+ 600px\);/);
+    assert.match(sectionFields, /height:\s*calc\(60vh \+ 600px\);/);
     assert.match(
       sectionFields,
       /transform:\s*translateY\(-50%\) rotate\(-30deg\);/,
     );
-    assert.match(sectionFields, /filter:\s*blur\(150px\);/);
-    assert.match(sectionFields, /opacity:\s*0\.4;/);
+    assert.doesNotMatch(sectionFields, /filter:\s*blur/);
+    assert.match(sectionFields, /radial-gradient\([\s\S]*var\(--halo\)/);
+    assert.match(sectionFields, /opacity:\s*0\.07;/);
     assert.match(globalsCss, /--ambient-mobile-leaf:\s*oklch\(70% 0\.2 145\);/);
     assert.match(
       globalsCss,
@@ -179,25 +195,27 @@ describe("landing accessibility contracts", () => {
       globalsCss,
       /--ambient-mobile-lime:\s*oklch\(82% 0\.19 121\);/,
     );
+    // Les ancrages compensent l'agrandissement de la boîte pour que le centre
+    // de chaque halo reste là où le flou le plaçait.
     assert.match(
       globalsCss,
-      /\.hero-mesh::before,[\s\S]*?\.pain-points-mesh::before\s*\{(?=[\s\S]*?left:\s*-10%;)(?=[\s\S]*?top:\s*90%;)/,
+      /\.hero-mesh::before,[\s\S]*?\.pain-points-mesh::before\s*\{(?=[\s\S]*?left:\s*calc\(-10% - 300px\);)(?=[\s\S]*?top:\s*90%;)/,
     );
     assert.match(
       globalsCss,
-      /\.hero-mesh::after,[\s\S]*?\.pain-points-mesh::after\s*\{(?=[\s\S]*?right:\s*-10%;)(?=[\s\S]*?top:\s*10%;)/,
+      /\.hero-mesh::after,[\s\S]*?\.pain-points-mesh::after\s*\{(?=[\s\S]*?right:\s*calc\(-10% - 300px\);)(?=[\s\S]*?top:\s*10%;)/,
     );
     assert.match(
       globalsCss,
-      /\.hero-mesh::before,[\s\S]*?background-color:\s*var\(--ambient-mobile-leaf\);/,
+      /\.hero-mesh::before,[\s\S]*?--halo:\s*var\(--ambient-mobile-leaf\);/,
     );
     assert.match(
       globalsCss,
-      /\.hero-mesh::after,[\s\S]*?background-color:\s*var\(--ambient-mobile-mint\);/,
+      /\.hero-mesh::after,[\s\S]*?--halo:\s*var\(--ambient-mobile-mint\);/,
     );
     assert.doesNotMatch(
       globalsCss,
-      /\.pain-points-mesh::after\s*\{[^}]*background-color:\s*var\(--ambient-mobile-leaf\);/,
+      /\.pain-points-mesh::after\s*\{[^}]*--halo:\s*var\(--ambient-mobile-leaf\);/,
     );
     assert.match(componentSources.painPoints, /pain-points-mesh/);
   });
@@ -232,19 +250,64 @@ describe("landing accessibility contracts", () => {
   it("keeps the liquid-glass navbar readable over page content", () => {
     assert.match(
       componentSources.header,
-      /bg-surface\/80 shadow-\[0_4px_30px_rgba\(0,0,0,0\.1\)\] backdrop-blur-\[14px\] backdrop-saturate-150 ring-1 ring-white\/60/,
+      /scrolled:bg-surface\/80 scrolled:shadow-\[0_4px_30px_rgba\(0,0,0,0\.1\)\] scrolled:ring-white\/60 scrolled:backdrop-blur-\[14px\] scrolled:backdrop-saturate-150/,
     );
     assert.match(
       componentSources.header,
-      /bg-white\/40 shadow-none backdrop-blur-none ring-1 ring-transparent/,
+      /bg-white\/40 px-6 shadow-none ring-1 ring-transparent backdrop-blur-none/,
     );
     assert.match(
       componentSources.header,
-      /transition-\[background-color,backdrop-filter,box-shadow\] duration-500/,
+      /transition-\[background-color,box-shadow\] duration-500/,
     );
     assert.match(
       componentSources.header,
       /href=\{link\.href\}[\s\S]*?className="[^"]*\btext-text\b[^"]*"/,
+    );
+  });
+
+  it("drives the scrolled navbar without waiting for hydration", () => {
+    assert.match(
+      globalsCss,
+      /@custom-variant scrolled \(html\[data-scrolled\] &\);/,
+    );
+    assert.match(componentSources.header, /id=\{SCROLL_SENTINEL_ID\}/);
+    assert.match(componentSources.layout, /toggleAttribute\('data-scrolled'/);
+    assert.doesNotMatch(componentSources.header, /IntersectionObserver/);
+  });
+
+  it("extends the landing into the iOS safe area without hiding the header", () => {
+    assert.match(
+      componentSources.layout,
+      /export const viewport: Viewport = \{[\s\S]*themeColor: "#eaf6e6"[\s\S]*viewportFit: "cover"/,
+    );
+    assert.match(
+      getDeclarations("html"),
+      /background-color:\s*var\(--color-surface-alt\)/,
+    );
+    assert.doesNotMatch(
+      getDeclarations("body"),
+      /padding-top:\s*env\(safe-area-inset-top\)/,
+    );
+    assert.match(
+      componentSources.hero,
+      /pt-\[calc\(9rem\+env\(safe-area-inset-top\)\)\]/,
+    );
+    assert.match(
+      componentSources.header,
+      /top-\[calc\(env\(safe-area-inset-top\)\+0\.625rem\)\]/,
+    );
+    assert.match(
+      globalsCss,
+      /padding-inline:\s*env\(safe-area-inset-left\)\s+env\(safe-area-inset-right\)/,
+    );
+    assert.match(
+      componentSources.header,
+      /left-\[calc\(env\(safe-area-inset-left\)\+0\.625rem\)\][^"]*right-\[calc\(env\(safe-area-inset-right\)\+0\.625rem\)\]/,
+    );
+    assert.match(
+      componentSources.header,
+      /pl-\[max\(1rem,env\(safe-area-inset-left\)\)\][^"]*pr-\[max\(1rem,env\(safe-area-inset-right\)\)\]/,
     );
   });
 
@@ -376,10 +439,54 @@ describe("landing accessibility contracts", () => {
       <AccordionItem question="Question" answer="Réponse" />,
     );
 
-    assert.match(html, /aria-expanded="false"/);
-    const panel = html.match(/<div[^>]*role="region"[^>]*>/)?.[0];
-    assert.ok(panel, "Accordion panel region is missing");
-    assert.match(panel, /aria-hidden="true"/);
+    // L'état ouvert, le clavier et l'annonce viennent désormais de `<details>`,
+    // qui répond sans attendre l'hydratation. `invisible` remplace l'ancien
+    // `aria-hidden` pour retirer le contenu replié de l'arbre d'accessibilité,
+    // le `display: none` natif ne se transitionnant pas.
+    assert.match(html, /^<details/);
+    assert.match(html, /<summary/);
+    assert.doesNotMatch(html, /\bopen\b=|<details open/);
+    const panel = html.match(/<div class="[^"]*grid-rows-\[0fr\][^"]*"/)?.[0];
+    assert.ok(panel, "Accordion collapsed panel is missing");
+    assert.match(panel, /\binvisible\b/);
+    assert.match(panel, /group-open:visible/);
+  });
+
+  it("keeps the accordion out of the client bundle", () => {
+    assert.doesNotMatch(componentSources.accordionItem, /use client/);
+    assert.doesNotMatch(componentSources.accordionItem, /useState/);
+  });
+
+  it("tracks every CTA through a single delegated listener", () => {
+    // Un seul écouteur émet l'évènement. Si une section reposait encore son
+    // propre `onClick` de suivi, chaque clic compterait deux fois.
+    assert.match(
+      componentSources.posthogProvider,
+      /closest<HTMLElement>\(\s*"\[data-cta-name\]",?\s*\)/,
+    );
+    for (const source of [
+      componentSources.header,
+      componentSources.hero,
+      componentSources.finalCta,
+      componentSources.platforms,
+      componentSources.stickyCta,
+    ]) {
+      assert.doesNotMatch(source, /trackCTAClick/);
+      assert.match(source, /data-cta-name=/);
+    }
+  });
+
+  it("keeps sections that only tracked clicks out of the client bundle", () => {
+    for (const source of [
+      componentSources.header,
+      componentSources.finalCta,
+      componentSources.platforms,
+    ]) {
+      assert.doesNotMatch(source, /use client/);
+    }
+    // Ceux-là gardent React : devise du visiteur et observateur de défilement.
+    assert.match(componentSources.hero, /use client/);
+    assert.match(componentSources.stickyCta, /use client/);
   });
 
   it("transitions only the properties that change", () => {
@@ -414,15 +521,63 @@ describe("landing accessibility contracts", () => {
       componentSources.header,
       /scale-\[0\.25\] opacity-0 blur-\[4px\]/,
     );
+    assert.match(componentSources.header, /transition-\[opacity,filter,scale\]/);
+    assert.match(componentSources.header, /group-open:blur-\[4px\]/);
+    assert.match(componentSources.header, /group-open:blur-none/);
+    // `blur-0` est une classe Tailwind v3 : la v4 ne la génère pas et l'ignore
+    // en silence, ce qui laissait la croix floutée une fois le menu ouvert.
+    assert.doesNotMatch(componentSources.header, /[\s"]blur-0[\s"]/);
+  });
+
+  it("opens the mobile menu without waiting for hydration", () => {
+    // `<details>`/`<summary>` associe nativement le bouton à son panneau et
+    // annonce l'état ouvert : plus besoin d'`aria-controls` ni d'`aria-expanded`
+    // pilotés à la main, et surtout le menu répond avant l'hydratation.
+    assert.match(componentSources.header, /<details id=\{MOBILE_NAV_ID\}/);
+    assert.match(componentSources.header, /<summary/);
     assert.match(
       componentSources.header,
-      /transition-\[opacity,filter,scale\]/,
+      /aria-controls=\{MOBILE_NAV_PANEL_ID\}/,
+    );
+    assert.match(componentSources.header, /id=\{MOBILE_NAV_PANEL_ID\}/);
+    assert.doesNotMatch(componentSources.header, /useState/);
+    assert.doesNotMatch(componentSources.header, /onClick=\{\(\) => setMobile/);
+    // Le panneau ne doit jamais retourner sous le `<nav>` de la barre : celui-ci
+    // porte un `backdrop-filter` en état scrollé, ce qui en ferait un bloc
+    // conteneur et casserait son `fixed inset-0`.
+    assert.match(
+      componentSources.header,
+      /<\/nav>\s*\n[\s\S]*<details id=\{MOBILE_NAV_ID\}/,
     );
   });
 
-  it("associates the mobile menu button with its navigation panel", () => {
-    assert.match(componentSources.header, /aria-controls="mobile-nav-panel"/);
-    assert.match(componentSources.header, /id="mobile-nav-panel"/);
+  it("keeps the closed mobile panel viewport-sized for instant compositing", () => {
+    assert.match(componentSources.header, /className="group peer"/);
+    assert.match(
+      componentSources.header,
+      /<\/details>[\s\S]*?<nav\s+id=\{MOBILE_NAV_PANEL_ID\}/,
+    );
+    assert.match(componentSources.header, /\binert\b/);
+    assert.match(componentSources.header, /aria-hidden="true"/);
+    assert.match(
+      componentSources.header,
+      /\bfixed\b[^"]*\bh-screen\b/,
+    );
+    assert.match(
+      componentSources.header,
+      /pointer-events-none[^"]*peer-open:pointer-events-auto[^"]*peer-open:opacity-100/,
+    );
+    assert.match(componentSources.header, /will-change-\[opacity\]/);
+    assert.equal(
+      componentSources.header.match(/tabIndex=\{-1\}/g)?.length,
+      2,
+    );
+    assert.doesNotMatch(componentSources.header, /\binvisible\b/);
+    assert.doesNotMatch(componentSources.header, /\bbackdrop-blur-xl\b/);
+    assert.match(
+      componentSources.layout,
+      /panel\.inert=closed[\s\S]*setAttribute\('aria-hidden','true'\)[\s\S]*removeAttribute\('aria-hidden'\)[\s\S]*setAttribute\('tabindex','-1'\)[\s\S]*removeAttribute\('tabindex'\)[\s\S]*nav\.addEventListener\('toggle',syncPanel\)/,
+    );
   });
 
   it("waits for analytics before decorating cross-domain links", () => {
@@ -473,16 +628,16 @@ describe("landing accessibility contracts", () => {
     );
   });
 
-  it("dismisses the mobile navigation when the page starts scrolling", () => {
-    assert.match(componentSources.header, /const closeOnScroll/);
-    assert.match(
-      componentSources.header,
-      /addEventListener\(['"]scroll['"], closeOnScroll, \{ passive: true \}\)/,
-    );
-    assert.match(
-      componentSources.header,
-      /removeEventListener\(['"]scroll['"], closeOnScroll\)/,
-    );
+  it("dismisses the mobile navigation without waiting for hydration", () => {
+    // Les fermetures automatiques vivent dans le script inline du layout, au
+    // même titre que l'ouverture : sinon elles ne répondraient qu'après les
+    // 3,2 s d'attente du bundle.
+    const script = componentSources.layout;
+    assert.match(script, /window\.addEventListener\('scroll',close,\{passive:true\}\)/);
+    assert.match(script, /e\.key!=='Escape'/);
+    assert.match(script, /window\.innerWidth>=\$\{DESKTOP_BREAKPOINT_PX\}/);
+    assert.match(script, /MOBILE_NAV_PANEL_ID\} a'\)\)close\(\)/);
+    assert.doesNotMatch(componentSources.header, /addEventListener/);
   });
 
   it("keeps marketing content and product proof visible by default", () => {
