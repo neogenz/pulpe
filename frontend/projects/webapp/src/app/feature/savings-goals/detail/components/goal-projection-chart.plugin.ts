@@ -1,4 +1,4 @@
-import type { Plugin } from 'chart.js';
+import type { Chart, Plugin } from 'chart.js';
 import type { SavingsGoalPlanMonth } from 'pulpe-shared';
 import {
   type ChartThemeColors,
@@ -10,6 +10,16 @@ export function findCurrentPeriodIndex(
   months: readonly SavingsGoalPlanMonth[],
 ): number {
   return months.findIndex((month) => month.state === 'current');
+}
+
+function resolveGuidePosition(chart: Chart, currentIndex: number) {
+  if (currentIndex < 0) return null;
+  const xScale = chart.scales['x'];
+  const { ctx, chartArea } = chart;
+  if (!xScale || !chartArea) return null;
+
+  const x = xScale.getPixelForValue(currentIndex);
+  return Number.isFinite(x) ? { ctx, chartArea, x } : null;
 }
 
 export function buildGoalProjectionGuidePlugin(
@@ -24,13 +34,9 @@ export function buildGoalProjectionGuidePlugin(
   return {
     id: 'goal-projection-guide',
     beforeDatasetsDraw(chart) {
-      if (currentIndex < 0) return;
-      const xScale = chart.scales['x'];
-      const { ctx, chartArea } = chart;
-      if (!xScale || !chartArea) return;
-
-      const x = xScale.getPixelForValue(currentIndex);
-      if (!Number.isFinite(x)) return;
+      const guide = resolveGuidePosition(chart, currentIndex);
+      if (!guide) return;
+      const { ctx, chartArea, x } = guide;
 
       ctx.save();
       ctx.fillStyle = futureBackground;
@@ -43,13 +49,9 @@ export function buildGoalProjectionGuidePlugin(
       ctx.restore();
     },
     afterDatasetsDraw(chart) {
-      if (currentIndex < 0) return;
-      const xScale = chart.scales['x'];
-      const { ctx, chartArea } = chart;
-      if (!xScale || !chartArea) return;
-
-      const x = xScale.getPixelForValue(currentIndex);
-      if (!Number.isFinite(x)) return;
+      const guide = resolveGuidePosition(chart, currentIndex);
+      if (!guide) return;
+      const { ctx, chartArea, x } = guide;
 
       ctx.save();
       ctx.beginPath();
@@ -62,13 +64,10 @@ export function buildGoalProjectionGuidePlugin(
       ctx.restore();
     },
     afterDraw(chart) {
-      if (currentIndex < 0 || !label) return;
-      const xScale = chart.scales['x'];
-      const { ctx, chartArea } = chart;
-      if (!xScale || !chartArea) return;
-
-      const x = xScale.getPixelForValue(currentIndex);
-      if (!Number.isFinite(x)) return;
+      if (!label) return;
+      const guide = resolveGuidePosition(chart, currentIndex);
+      if (!guide) return;
+      const { ctx, chartArea, x } = guide;
 
       ctx.save();
       ctx.font = `600 11px ${CHART_FONT_FAMILY}`;
