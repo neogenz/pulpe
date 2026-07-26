@@ -294,8 +294,10 @@ describe('SavingsGoalDetailPage', () => {
     expect(projected).toBeTruthy();
     // Confirmed layer uses the server-provided achievementPercent (30%).
     expect(confirmed.nativeElement.style.width).toBe('30%');
+    expect(confirmed.nativeElement.classList).toContain('bg-financial-savings');
     // Projected balance layer uses the server endpoint: 2400/3000 = 80%.
     expect(projected.nativeElement.style.width).toBe('80%');
+    expect(projected.nativeElement.classList).toContain('bg-tertiary');
 
     const bar = query('savings-goal-progress-bar');
     expect(bar.attributes['aria-valuenow']).toBe('30');

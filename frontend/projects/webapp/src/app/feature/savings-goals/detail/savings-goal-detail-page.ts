@@ -235,7 +235,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                   data-testid="savings-goal-progress-bar"
                 >
                   <div
-                    class="absolute inset-y-0 left-0 rounded-full bg-financial-savings/35 motion-safe:transition-[width] motion-safe:duration-700"
+                    class="absolute inset-y-0 left-0 rounded-full bg-tertiary motion-safe:transition-[width] motion-safe:duration-700"
                     [style.width.%]="projectedPercent()"
                     data-testid="progress-projected-layer"
                   ></div>
@@ -333,7 +333,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                     class="flex items-center gap-1.5 text-body-small text-on-surface-variant"
                   >
                     <span
-                      class="inline-block size-2.5 rounded-full bg-financial-savings/35"
+                      class="inline-block size-2.5 rounded-full bg-tertiary"
                       aria-hidden="true"
                     ></span>
                     {{ 'savingsGoals.detail.projected' | transloco }}

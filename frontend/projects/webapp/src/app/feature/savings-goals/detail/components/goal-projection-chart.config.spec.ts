@@ -107,7 +107,9 @@ describe('buildGoalProjectionChartData', () => {
     >[];
     expect(target.borderDash).toBeUndefined();
     expect(confirmed.pointRadius).toEqual([0, 3, 0]);
+    expect(confirmed.borderColor).toBe(theme.savings);
     expect(projection.borderDash).toEqual([4, 4]);
+    expect(projection.borderColor).toBe(theme.income);
     expect(projection.pointRadius).toEqual([0, 0, 3]);
   });
 

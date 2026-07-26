@@ -46,7 +46,7 @@ struct GoalProgressCard: View {
                 )
                 statRow(
                     label: "Projection à l'échéance", value: progress.projected.asCompactCurrency(currency),
-                    swatch: Color.financialSavings.opacity(DesignTokens.Opacity.strong)
+                    swatch: Color.financialIncome
                 )
                 if let required = progress.required, hasClosedPlanMonth {
                     if SavingsGoalDetailViewModel.requiredMatchesPlannedPace(
@@ -72,7 +72,7 @@ struct GoalProgressCard: View {
                 .fill(Color.progressTrack)
 
             ProgressBarShape(progress: CGFloat(progress.projectedFraction))
-                .fill(Color.financialSavings.opacity(DesignTokens.Opacity.strong))
+                .fill(Color.financialIncome)
                 .animation(DesignTokens.Animation.gentleSpring, value: progress.projectedFraction)
 
             ProgressBarShape(progress: CGFloat(progress.confirmedFraction))

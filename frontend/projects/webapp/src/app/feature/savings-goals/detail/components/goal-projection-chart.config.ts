@@ -39,7 +39,6 @@ export function buildGoalProjectionChartOptions(
   reducedMotion = false,
 ): ChartConfiguration['options'] {
   const tickColor = theme?.tickColor || undefined;
-  const gridColor = theme?.gridColor || undefined;
   const tooltipBg = theme?.tooltipBg || undefined;
 
   return {
@@ -102,7 +101,7 @@ export function buildGoalProjectionChartOptions(
       },
       y: {
         display: false,
-        grid: { display: false, color: gridColor },
+        grid: { display: false },
       },
     },
   };
@@ -157,10 +156,9 @@ function terminalPointRadii(data: readonly (number | null)[]): number[] {
 }
 
 /**
- * Three balance series over the anchor → target axis (RG-002 — savings never
- * amber/red): cible, réalité épargnée through the current month, and planned
- * projection anchored on that reality. Simulation replaces the projection with
- * the sandbox trajectory.
+ * Three balance series over the anchor → target axis: neutral target, savings
+ * green for confirmed reality, and tertiary blue for the planned projection.
+ * Simulation replaces the projection with the sandbox trajectory.
  */
 export function buildGoalProjectionChartData(
   input: GoalProjectionChartInput,
@@ -227,11 +225,11 @@ export function buildGoalProjectionChartData(
     {
       data: projectionData,
       label: labels.projection,
-      borderColor: theme.savings,
+      borderColor: theme.income,
       borderDash: [4, 4],
       backgroundColor: 'transparent',
-      pointBackgroundColor: theme.savings,
-      pointBorderColor: theme.savings,
+      pointBackgroundColor: theme.income,
+      pointBorderColor: theme.income,
       pointBorderWidth: 2,
       pointRadius: terminalPointRadii(projectionData),
       fill: false,

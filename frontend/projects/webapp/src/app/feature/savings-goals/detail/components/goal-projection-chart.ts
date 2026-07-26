@@ -37,10 +37,10 @@ import {
 
 /**
  * « Ta trajectoire » (docs/SAVINGS.md §10.1). Read-only cumulated
- * chart (savings green only, RG-002 — never amber/red). Switches its data source
- * to the simulation sandbox when `draft` is provided. The canvas is paired with
- * an offscreen `aria-live` sentence so screen readers get the trajectory without
- * the visual.
+ * chart: confirmed savings in green, planned projection in tertiary blue, and a
+ * neutral target. Switches its data source to the simulation sandbox when
+ * `draft` is provided. The canvas is paired with an offscreen `aria-live`
+ * sentence so screen readers get the trajectory without the visual.
  */
 @Component({
   selector: 'pulpe-goal-projection-chart',
@@ -91,7 +91,7 @@ import {
                   }
                   @case ('projection') {
                     <span
-                      class="w-5 shrink-0 border-t-2 border-dashed border-financial-savings"
+                      class="w-5 shrink-0 border-t-2 border-dashed border-tertiary"
                       aria-hidden="true"
                     ></span>
                   }
