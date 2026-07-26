@@ -276,6 +276,30 @@ describe("landing accessibility contracts", () => {
     assert.doesNotMatch(componentSources.header, /IntersectionObserver/);
   });
 
+  it("extends the landing into the iOS safe area without hiding the header", () => {
+    assert.match(
+      componentSources.layout,
+      /export const viewport: Viewport = \{[\s\S]*viewportFit: "cover"/,
+    );
+    assert.match(globalsCss, /padding-top:\s*env\(safe-area-inset-top\)/);
+    assert.match(
+      componentSources.header,
+      /top-\[calc\(env\(safe-area-inset-top\)\+0\.625rem\)\]/,
+    );
+    assert.match(
+      globalsCss,
+      /padding-inline:\s*env\(safe-area-inset-left\)\s+env\(safe-area-inset-right\)/,
+    );
+    assert.match(
+      componentSources.header,
+      /left-\[calc\(env\(safe-area-inset-left\)\+0\.625rem\)\][^"]*right-\[calc\(env\(safe-area-inset-right\)\+0\.625rem\)\]/,
+    );
+    assert.match(
+      componentSources.header,
+      /pl-\[max\(1rem,env\(safe-area-inset-left\)\)\][^"]*pr-\[max\(1rem,env\(safe-area-inset-right\)\)\]/,
+    );
+  });
+
   it("frames the problem and current alternatives before the solution", () => {
     assert.match(
       componentSources.painPoints,
@@ -500,6 +524,10 @@ describe("landing accessibility contracts", () => {
     // pilotés à la main, et surtout le menu répond avant l'hydratation.
     assert.match(componentSources.header, /<details id=\{MOBILE_NAV_ID\}/);
     assert.match(componentSources.header, /<summary/);
+    assert.match(
+      componentSources.header,
+      /aria-controls=\{MOBILE_NAV_PANEL_ID\}/,
+    );
     assert.match(componentSources.header, /id=\{MOBILE_NAV_PANEL_ID\}/);
     assert.doesNotMatch(componentSources.header, /useState/);
     assert.doesNotMatch(componentSources.header, /onClick=\{\(\) => setMobile/);
@@ -509,6 +537,18 @@ describe("landing accessibility contracts", () => {
     assert.match(
       componentSources.header,
       /<\/nav>\s*\n[\s\S]*<details id=\{MOBILE_NAV_ID\}/,
+    );
+  });
+
+  it("keeps the closed mobile panel viewport-sized for instant compositing", () => {
+    assert.match(componentSources.header, /className="group peer"/);
+    assert.match(
+      componentSources.header,
+      /<\/details>[\s\S]*?<nav\s+id=\{MOBILE_NAV_PANEL_ID\}/,
+    );
+    assert.match(
+      componentSources.header,
+      /peer-open:visible peer-open:opacity-100/,
     );
   });
 

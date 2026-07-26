@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Poppins } from "next/font/google";
 import { PostHogProvider } from "../components/PostHogProvider";
 import {
@@ -79,6 +79,10 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  viewportFit: "cover",
+};
+
 // L'en-tête vit hors de React : le bundle applicatif arrive plusieurs secondes
 // après la peinture sur mobile, et un `useEffect` laisserait la navbar
 // transparente et le menu inerte pendant tout ce temps. L'ouverture du menu est
@@ -98,7 +102,8 @@ document.documentElement.toggleAttribute('data-scrolled',!entries[0].isIntersect
 var nav=document.getElementById('${MOBILE_NAV_ID}');
 if(!nav)return;
 function close(){if(nav.open)nav.open=false;}
-nav.addEventListener('click',function(e){
+var panel=document.getElementById('${MOBILE_NAV_PANEL_ID}');
+if(panel)panel.addEventListener('click',function(e){
 var t=e.target;
 if(t&&t.closest&&t.closest('#${MOBILE_NAV_PANEL_ID} a'))close();
 });

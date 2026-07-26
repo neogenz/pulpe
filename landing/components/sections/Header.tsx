@@ -29,7 +29,7 @@ export function Header() {
         className="pointer-events-none absolute left-0 top-0 w-px"
         style={{ height: SCROLL_THRESHOLD_PX }}
       />
-      <header className="fixed inset-x-2.5 top-2.5 z-50">
+      <header className="fixed left-[calc(env(safe-area-inset-left)+0.625rem)] right-[calc(env(safe-area-inset-right)+0.625rem)] top-[calc(env(safe-area-inset-top)+0.625rem)] z-50">
         <nav
           // `backdrop-filter` est volontairement hors de la transition : Safari
           // interpolerait le rayon de flou sur 500 ms, plein écran, au moment
@@ -90,9 +90,10 @@ export function Header() {
             Il reste hors du `<nav>` de la barre parce que celui-ci porte un
             `backdrop-filter` en état scrollé, ce qui en ferait un bloc
             conteneur et casserait le `fixed inset-0` du panneau. */}
-        <details id={MOBILE_NAV_ID} className="group">
+        <details id={MOBILE_NAV_ID} className="group peer">
           <summary
             aria-label="Menu"
+            aria-controls={MOBILE_NAV_PANEL_ID}
             className="absolute right-6 top-0 z-30 grid h-14 min-h-11 min-w-11 cursor-pointer list-none place-items-center rounded-lg text-text-secondary transition-[color,background-color,scale] duration-200 hover:bg-primary/8 hover:text-text active:scale-[0.96] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 lg:hidden motion-reduce:transition-none motion-reduce:scale-100 [&::-webkit-details-marker]:hidden"
           >
             {/* `blur-none` et non `blur-0` : cette dernière est une classe
@@ -103,38 +104,36 @@ export function Header() {
               <X className="absolute inset-0 scale-[0.25] opacity-0 blur-[4px] transition-[opacity,filter,scale] duration-300 ease-[cubic-bezier(0.2,0,0,1)] group-open:scale-100 group-open:opacity-100 group-open:blur-none motion-reduce:transition-none motion-reduce:blur-none" />
             </span>
           </summary>
-
-          {/* Le panneau reste affiché pour conserver son fondu : le
-              `display: none` natif d'un `<details>` replié ne se transitionne
-              pas. `invisible` le retire alors de l'arbre d'accessibilité et du
-              parcours de tabulation, ce que faisait l'ancien `inert`. */}
-          <nav
-            id={MOBILE_NAV_PANEL_ID}
-            aria-label="Navigation mobile"
-            className="invisible fixed inset-0 z-10 flex items-center overflow-y-auto bg-surface/95 p-4 pt-24 opacity-0 backdrop-blur-xl transition-[opacity,visibility] duration-300 group-open:visible group-open:opacity-100 lg:hidden motion-reduce:transition-none"
-          >
-            <div className="flex w-full flex-col gap-2">
-              {navLinks.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  className="flex min-h-14 items-center justify-center rounded-lg px-4 py-3 text-center text-lg font-semibold text-text transition-[background-color,scale] duration-200 hover:bg-primary/8 active:scale-[0.96] active:bg-primary/12 motion-reduce:transition-none motion-reduce:scale-100"
-                >
-                  {link.label}
-                </a>
-              ))}
-              <Button
-                href={angularUrl("/signup", "mobile_menu_commencer")}
-                className="mt-4 w-full"
-                data-cta-name="commencer"
-                data-cta-location="mobile_menu"
-                data-cta-destination="/signup"
-              >
-                Créer mon budget
-              </Button>
-            </div>
-          </nav>
         </details>
+
+        {/* Hors du `<details>` pour rester plein écran quand il est replié :
+            Safari peut ainsi composer la couche fixe avant l'ouverture. */}
+        <nav
+          id={MOBILE_NAV_PANEL_ID}
+          aria-label="Navigation mobile"
+          className="invisible fixed inset-0 z-10 flex items-center overflow-y-auto bg-surface/95 pt-24 pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] opacity-0 backdrop-blur-xl transition-[opacity,visibility] duration-300 peer-open:visible peer-open:opacity-100 lg:hidden motion-reduce:transition-none"
+        >
+          <div className="flex w-full flex-col gap-2">
+            {navLinks.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                className="flex min-h-14 items-center justify-center rounded-lg px-4 py-3 text-center text-lg font-semibold text-text transition-[background-color,scale] duration-200 hover:bg-primary/8 active:scale-[0.96] active:bg-primary/12 motion-reduce:transition-none motion-reduce:scale-100"
+              >
+                {link.label}
+              </a>
+            ))}
+            <Button
+              href={angularUrl("/signup", "mobile_menu_commencer")}
+              className="mt-4 w-full"
+              data-cta-name="commencer"
+              data-cta-location="mobile_menu"
+              data-cta-destination="/signup"
+            >
+              Créer mon budget
+            </Button>
+          </div>
+        </nav>
       </header>
     </>
   );
