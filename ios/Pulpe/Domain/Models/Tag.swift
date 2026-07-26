@@ -7,3 +7,7 @@ struct Tag: Codable, Sendable, Identifiable, Equatable {
     let createdAt: Date
     let updatedAt: Date
 }
+
+struct TagCreate: Encodable, Sendable {
+    let name: String
+}

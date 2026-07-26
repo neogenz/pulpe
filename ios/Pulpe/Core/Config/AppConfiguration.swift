@@ -98,6 +98,7 @@ enum AppConfiguration {
 
     static let maxTemplates = 5
     static let maxBudgetYearsAhead = 3
+    static let maxTagsPerTransaction = 10
 
     // MARK: - Cache Durations
 
