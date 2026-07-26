@@ -279,11 +279,11 @@ describe("landing accessibility contracts", () => {
   it("extends the landing into the iOS safe area without hiding the header", () => {
     assert.match(
       componentSources.layout,
-      /export const viewport: Viewport = \{[\s\S]*viewportFit: "cover"/,
+      /export const viewport: Viewport = \{[\s\S]*themeColor: "#eaf6e6"[\s\S]*viewportFit: "cover"/,
     );
     assert.match(
       getDeclarations("html"),
-      /background-color:\s*var\(--color-background\)/,
+      /background-color:\s*var\(--color-surface-alt\)/,
     );
     assert.doesNotMatch(
       getDeclarations("body"),

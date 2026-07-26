@@ -56,7 +56,7 @@
 }
 
 html {
-  background-color: var(--color-background);
+  background-color: var(--color-surface-alt);
   scroll-behavior: smooth;
   scroll-padding-top: 112px;
 }
