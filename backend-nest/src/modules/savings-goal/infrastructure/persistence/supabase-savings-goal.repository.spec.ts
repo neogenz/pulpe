@@ -202,26 +202,6 @@ function createGoalContributionsProvider(config: {
   };
 }
 
-function createAuthProvider(
-  userMetadata: Record<string, unknown> | undefined,
-): AuthenticatedSupabaseProvider {
-  const client = {
-    auth: {
-      getUser: jest
-        .fn()
-        .mockResolvedValue({ data: { user: { user_metadata: userMetadata } } }),
-    },
-  } as unknown as AuthenticatedSupabaseClient;
-  return {
-    get client() {
-      return client;
-    },
-    get user() {
-      return mockUser;
-    },
-  } as unknown as AuthenticatedSupabaseProvider;
-}
-
 const linkedLineRow = {
   id: 'line-1',
   amount: 'enc:500',
@@ -925,40 +905,6 @@ describe('SupabaseSavingsGoalRepository', () => {
         entityType: 'monthly_budget',
         userId: mockUser.id,
       });
-    });
-  });
-
-  describe('findPayDayOfMonth', () => {
-    it('returns the payDayOfMonth from user_metadata', async () => {
-      const repo = new SupabaseSavingsGoalRepository(
-        createAuthProvider({ payDayOfMonth: 25 }),
-        createMockEncryption(),
-      );
-      expect(await repo.findPayDayOfMonth()).toBe(25);
-    });
-
-    it('clamps an out-of-range payDayOfMonth into [PAY_DAY_MIN, PAY_DAY_MAX]', async () => {
-      const repo = new SupabaseSavingsGoalRepository(
-        createAuthProvider({ payDayOfMonth: 40 }),
-        createMockEncryption(),
-      );
-      expect(await repo.findPayDayOfMonth()).toBe(31); // PAY_DAY_MAX
-    });
-
-    it('returns null when payDayOfMonth is absent', async () => {
-      const repo = new SupabaseSavingsGoalRepository(
-        createAuthProvider({}),
-        createMockEncryption(),
-      );
-      expect(await repo.findPayDayOfMonth()).toBeNull();
-    });
-
-    it('returns null when payDayOfMonth is not an integer', async () => {
-      const repo = new SupabaseSavingsGoalRepository(
-        createAuthProvider({ payDayOfMonth: 15.5 }),
-        createMockEncryption(),
-      );
-      expect(await repo.findPayDayOfMonth()).toBeNull();
     });
   });
 

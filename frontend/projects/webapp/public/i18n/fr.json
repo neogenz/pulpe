@@ -913,7 +913,7 @@
     "fieldStatus": "Statut",
     "decomposeToggle": "Décomposer en mensualités",
     "fieldMonthlyContribution": "Épargne mensuelle",
-    "decomposeHint": "Pré-rempli avec cible ÷ mois restants. Cette prévision récurrente sera ajoutée à ton Mois Type.",
+    "decomposeHint": "Pré-rempli avec cible ÷ mois restants. Ce montant sera prévu sur chacun de tes budgets, jusqu'à l'échéance.",
     "monthlyContributionInvalid": "Un montant mensuel positif est requis (ou désactive l'option)",
     "statusActive": "Actif",
     "statusCompleted": "Atteint",

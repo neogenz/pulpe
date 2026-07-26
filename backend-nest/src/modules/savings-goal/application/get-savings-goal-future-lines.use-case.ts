@@ -26,10 +26,10 @@ export class GetSavingsGoalFutureLinesUseCase {
 
   async execute(
     id: string,
-    _user: AuthenticatedUser,
+    user: AuthenticatedUser,
   ): Promise<LinkedSavingLine[]> {
     await this.repo.findById(id);
-    const payDayOfMonth = await this.repo.findPayDayOfMonth();
+    const payDayOfMonth = user.payDayOfMonth ?? null;
     const minPeriodIndex = periodIndex(
       getBudgetPeriodForDate(new Date(), payDayOfMonth),
     );

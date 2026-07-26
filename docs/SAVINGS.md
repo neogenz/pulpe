@@ -78,15 +78,19 @@ Une contribution n'est **jamais** un nouveau type de saisie : c'est le champ `sa
 
 Si une Prévision passe de `saving` à un autre `kind`, `savingsGoalId` est forcé à `null`. La progression re-filtre **toujours** `kind=saving` côté lecture (double garde).
 
-### 3.5 Auto-décomposition à la création (PUL-285)
+### 3.5 Auto-décomposition à la création (PUL-285, PUL-316)
 
-À la création d'un objectif, une option (proposée par défaut, jamais imposée) décompose la cible en mensualité et pose la baseline récurrente liée :
+À la création d'un objectif, une option (proposée par défaut, jamais imposée) décompose la cible en mensualité et matérialise le plan :
 
 - **Formule** : même base que la formule 5 (`required` avec confirmé = 0) — `cible / monthsRemaining`, payDay-aware, mois courant ET mois d'échéance inclus. Arrondi au **centime supérieur** pour que `mensualité × mois ≥ cible` (jamais de shortfall d'arrondi). Helper partagé `suggestedMonthlyContribution` (`shared/src/calculators/savings-goal-progress.ts`), miroir Swift dans `SavingsPlanCalculator`.
 - **Contrat** : le client pré-remplit la suggestion, l'utilisateur garde la main sur le montant. `POST /v1/savings-goals` porte `monthlyContribution` (optionnel, positif) — présence = opt-in ; le serveur écrit le montant reçu tel quel.
-- **Écriture** : le serveur pose une `template_line` liée (`kind=saving`, récurrence `fixed`, nom = celui de l'objectif) sur le **Mois Type par défaut**, puis la propage aux budgets matérialisés courant+futurs — même machinerie atomique que le bulk template-line (RG-001 : budgets manuellement ajustés protégés, montants chiffrés). Best-effort : sans Mois Type par défaut ou si la propagation échoue, l'objectif est créé sans ligne (log warn, jamais d'échec de création).
-- **Horizon de propagation (PUL-311)** : la propagation s'arrête à la **période d'échéance, incluse** (payDay-aware, via `getBudgetPeriodForDate`). La mensualité couvre exactement `monthsRemaining` périodes (formule 5) : propager au-delà engagerait l'utilisateur sur une épargne qu'il n'a jamais demandée et ferait dépasser la cible. Un budget déjà matérialisé pour une période postérieure ne reçoit donc aucune ligne liée. Ce plafond ne s'applique qu'à la baseline d'un objectif ; une `template_line` ordinaire continue de se propager à tous les budgets futurs.
-- **Maintenance** : la ligne générée est ensuite une Prévision comme les autres — le lien survit via §3.2, la propagation RG-001 la maintient jusqu'à override manuel. Pulpe ne recalcule **jamais** son montant en silence (« Redistribution jamais silencieuse ») : la dérive se gère via le simulateur (§10).
+- **Le contenant épouse l'horizon (PUL-316)** : un objectif daté est un engagement **borné**, donc il se matérialise en Prévisions `one_off` liées — une par période, du mois courant à l'échéance incluse — et **ne pose rien sur le Mois Type**. Y poser une récurrence signifierait « tous les mois, indéfiniment » : le modèle porterait l'objectif à vie et son solde net serait faux dès le mois suivant l'échéance. C'est la cause racine que PUL-311 n'avait pu que contenir côté génération.
+- **Écriture** : le serveur passe par le lissage (`BUDGET_LINE_SPREAD_PORT`, cf. `docs/SPREAD.md`) — insertion ensembliste atomique, groupée par `spread_group_id`, recalcul des budgets touchés et invalidation de cache incluses. L'identifiant de l'objectif **est** la clé d'idempotence du groupe : un objectif, un groupe. Best-effort : si le lissage échoue, l'objectif est créé sans prévision (log warn, jamais d'échec de création) ; s'il a committé mais que le recalcul échoue, un code dédié demande au client de rafraîchir sans recréer.
+- **Aucun budget créé au passage** : seules les périodes **déjà budgétées** reçoivent leur prévision. Créer un objectif ne matérialise jamais de budget — un objectif à dix ans n'a pas à faire apparaître dix ans de budgets. Les périodes plus lointaines restent des **trous du plan**, que le simulateur comble à la demande (§10).
+- **Pourquoi le lien survit sans `template_line`** : §3.2 protège un lien qui doit traverser la régénération mensuelle. Une `one_off` n'est jamais régénérée — il n'y a rien à quoi survivre. La progression (§4.1) ne filtre d'ailleurs aucune récurrence : une `one_off` liée compte exactement comme une récurrente.
+- **Maintenance** : les prévisions générées sont ensuite des Prévisions comme les autres, modifiables et supprimables une par une. Le nom de l'objectif ne leur sert que de **valeur initiale**. Pulpe ne recalcule **jamais** leur montant en silence (« Redistribution jamais silencieuse ») : la dérive se gère via le simulateur (§10).
+
+> Un objectif **sans échéance** (« pot » perpétuel) n'existe pas encore — `savings_goal.target_date` est `NOT NULL`. Quand PUL-314 le rendra optionnel, l'horizon ouvert appellera le contenant inverse : une récurrence sur le Mois Type, qu'on ne peut pas remplacer par une liste finie de `one_off`.
 
 ---
 
@@ -210,6 +214,8 @@ Deux couches, deux sémantiques — ne jamais les confondre dans l'UI :
 
 **Arrêt de génération par échéance (PUL-311)** : l'objectif restant `ACTIVE`, le prédicat de statut ne suffit pas à stopper la génération — `create_budget_from_template` saute **aussi** les `template_line` liées à un objectif dont la période d'échéance précède celle du budget matérialisé. La borne est décidée par l'appelant (TypeScript, payDay-aware via `getBudgetPeriodForDate`) et transmise à la RPC sous forme d'ids à exclure : `payDayOfMonth` vit dans `auth.users.user_metadata`, illisible depuis une fonction SQL SECURITY INVOKER, et réimplémenter la règle quinzaine en PL/pgSQL dupliquerait une formule canonique de `shared/`. Comme pour l'arrêt par statut, les Prévisions **déjà générées** ne sont jamais supprimées rétroactivement.
 
+> Depuis PUL-316, la création d'un objectif ne pose plus de `template_line` (§3.5), donc ce garde-fou ne protège plus que deux cas : les objectifs créés **avant** PUL-316, dont la ligne de Mois Type subsiste, et les rattachements **manuels** faits depuis le Mois Type. Il reste donc nécessaire.
+
 **Complétion suggérée** : quand `confirmed ≥ targetAmount`, Pulpe propose « marquer terminé ? ». Le statut ne change jamais sans confirmation de l'utilisateur.
 
 ---
@@ -280,7 +286,7 @@ Le simulateur répond à « qu'est-ce que je fais maintenant ? » sans modifier 
 - `initialAmount`, le montant de départ déchiffré (0 si absent) — écho pour l'affichage et le seed des simulations client ;
 - `months[]`, une ligne par période avec état temporel, montants prévu/pointé/cumulés, lignes liées et capacité de provisioning. Le cumul confirmé est **seedé** à `initialAmount` : `months[indexCourant].confirmedCumulative == confirmed`.
 
-La timeline est payDay-aware et bornée à 120 périodes. Un budget absent n'est ajustable que si le Mois Type par défaut contient une Prévision Épargne liée permettant de le créer. Un budget existant sans ligne liée reste un gap non provisionnable.
+La timeline est payDay-aware et bornée à 120 périodes. Un budget absent est ajustable dès lors qu'un **Mois Type par défaut** existe — il sert à matérialiser le budget du mois, plus à recopier une ligne (PUL-316). Un budget existant sans ligne liée reste un gap non provisionnable.
 
 ### 10.3 Simulation locale
 
@@ -303,6 +309,8 @@ Le serveur reste autoritaire à l'écriture. Les clients ne recalculent jamais l
 - `missingMonthAdjustments[]` : `{ month, year, amount }` pour les périodes absentes mais provisionnables.
 
 Le flux valide toutes les préconditions avant mutation, provisionne les budgets absents de façon idempotente, puis applique les montants dans une RPC atomique sérialisée par objectif. La RPC refuse toute ligne étrangère, non liée, non-Épargne, passée ou pointée. Les ajustements appliqués deviennent manuels et sortent de RG-001 ; le Mois Type n'est jamais modifié.
+
+Depuis PUL-316, un mois manquant reçoit sa Prévision liée **directement**, par le même lissage que la création (§3.5) : il matérialise le budget absent puis y insère la ligne — exactement le geste d'un ajout manuel dans le budget du mois. Exiger au préalable une ligne du Mois Type à recopier rendrait le comblement impossible pour un objectif daté, qui n'en pose plus.
 
 Les montants sont chiffrés via `ENCRYPTION_PORT`. Une application dans la devise du compte remet les métadonnées FX source de la Prévision à `null`. Après succès ou provisioning partiel suivi d'un échec, les caches objectifs et budgets sont invalidés avant relecture.
 

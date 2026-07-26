@@ -19,18 +19,17 @@ import {
   type BudgetRecalculationPort,
 } from '@modules/budget/domain/ports/budget-recalculation.port';
 import {
-  BUDGET_PROVISIONING_PORT,
-  type BudgetProvisioningPort,
-} from '@modules/budget/domain/ports/budget-provisioning.port';
-import {
-  BUDGET_TEMPLATE_REPOSITORY,
-  type BudgetTemplateRepositoryPort,
-} from '@modules/budget-template/domain/ports/budget-template-repository.port';
+  BUDGET_LINE_SPREAD_PORT,
+  type BudgetLineSpreadPort,
+} from '@modules/budget-line/domain/ports/budget-line-spread.port';
 import {
   SAVINGS_GOAL_REPOSITORY,
   type SavingsGoalRepositoryPort,
 } from '../domain/ports/savings-goal-repository.port';
-import type { SavingsGoalPlanApplyResult } from '../domain/savings-goal.entity';
+import type {
+  SavingsGoal,
+  SavingsGoalPlanApplyResult,
+} from '../domain/savings-goal.entity';
 
 /**
  * Applies a simulated savings-goal plan (PUL-12, docs/SAVINGS.md §10.4).
@@ -54,10 +53,8 @@ export class ApplySavingsGoalPlanUseCase {
     private readonly repo: SavingsGoalRepositoryPort,
     @Inject(BUDGET_RECALCULATION_PORT)
     private readonly budgetRecalculation: BudgetRecalculationPort,
-    @Inject(BUDGET_PROVISIONING_PORT)
-    private readonly provisioning: BudgetProvisioningPort,
-    @Inject(BUDGET_TEMPLATE_REPOSITORY)
-    private readonly templateRepo: BudgetTemplateRepositoryPort,
+    @Inject(BUDGET_LINE_SPREAD_PORT)
+    private readonly spread: BudgetLineSpreadPort,
     private readonly cacheService: CacheService,
     @InjectInfoLogger(ApplySavingsGoalPlanUseCase.name)
     private readonly logger: InfoLogger,
@@ -69,7 +66,9 @@ export class ApplySavingsGoalPlanUseCase {
     user: AuthenticatedUser,
   ): Promise<SavingsGoalPlanApplyResult> {
     const goal = await this.repo.findById(id);
-    const payDayOfMonth = await this.repo.findPayDayOfMonth();
+    // Same live `user_metadata` the guard already read for this request
+    // (PUL-315) — re-asking GoTrue here would just be a second round trip.
+    const payDayOfMonth = user.payDayOfMonth ?? null;
     // The current cycle stays editable while unchecked; everything strictly
     // before it is locked. Same period helper the client simulates with.
     const minPeriodIndex = periodIndex(
@@ -92,11 +91,10 @@ export class ApplySavingsGoalPlanUseCase {
     let provisionedMonthCount = 0;
     if (missing.length > 0) {
       provisionedMonthCount = await this.provisionMissingPeriods(
-        id,
+        goal,
         missing,
         linkedBefore.lines,
-        minPeriodIndex,
-        targetPeriodIndex,
+        { minPeriodIndex, targetPeriodIndex },
         user,
       );
     }
@@ -160,49 +158,57 @@ export class ApplySavingsGoalPlanUseCase {
     }
   }
 
+  /**
+   * PUL-316 — le mois manquant reçoit sa prévision liée DIRECTEMENT, sans passer
+   * par le Mois Type. Un objectif daté n'y pose plus de récurrence : exiger une
+   * ligne modèle à recopier rendrait le comblement de trou impossible. Le
+   * lissage provisionne le budget absent puis y insère la prévision liée —
+   * exactement le geste d'un ajout manuel dans le budget du mois.
+   */
   private async provisionMissingPeriods(
-    goalId: string,
+    goal: SavingsGoal,
     missing: NonNullable<SavingsGoalPlanApply['missingMonthAdjustments']>,
     linkedLines: LinkedSavingLine[],
-    minPeriodIndex: number,
-    targetPeriodIndex: number,
+    bounds: { minPeriodIndex: number; targetPeriodIndex: number },
     user: AuthenticatedUser,
   ): Promise<number> {
-    const periods = missing.map(({ month, year }) => ({ month, year }));
     const materialized = await this.repo.findMaterializedPeriods();
     const periodsToProvision = this.findPeriodsToProvision(
-      periods,
+      missing.map(({ month, year }) => ({ month, year })),
       materialized,
       linkedLines,
-      minPeriodIndex,
-      targetPeriodIndex,
-      goalId,
-      user.id,
+      bounds,
+      { goalId: goal.id, userId: user.id },
     );
     if (periodsToProvision.length === 0) return 0;
 
-    const templateId = await this.templateRepo.findDefaultTemplateId(user.id);
-    if (!templateId) this.throwMonthUnprovisionable(goalId, user.id);
-    const templateLines =
-      await this.templateRepo.findLinesByTemplateId(templateId);
-    if (
-      !templateLines.some(
-        (line) => line.kind === 'saving' && line.savingsGoalId === goalId,
-      )
-    ) {
-      this.throwMonthUnprovisionable(goalId, user.id);
-    }
+    // Filter `missing` itself rather than looking amounts up by period: the
+    // amount then travels with its own period, so no key can go unmatched and
+    // no zero-amount fallback can ever reach a budget.
+    const provisionKeys = new Set(periodsToProvision.map(this.periodKey));
 
     try {
-      const ensured = await this.provisioning.ensureBudgetsForPeriods(
-        periodsToProvision,
-        templateId,
-        user.id,
+      // No `spreadGroupId` on purpose: this flow is retry-safe by re-reading,
+      // not by replay. A retry re-derives `periodsToProvision` from freshly
+      // fetched linked lines, so a period the failed attempt already filled is
+      // simply no longer missing.
+      const result = await this.spread.fanOut(
+        {
+          name: goal.name,
+          kind: 'saving',
+          savingsGoalId: goal.id,
+          tranches: missing
+            .filter((adjustment) =>
+              provisionKeys.has(this.periodKey(adjustment)),
+            )
+            .map(({ year, month, amount }) => ({ year, month, amount })),
+        },
+        user,
       );
-      if (ensured.skippedMonths.length > 0) {
-        this.throwMonthUnprovisionable(goalId, user.id);
+      if (result.skippedMonths.length > 0) {
+        this.throwMonthUnprovisionable(goal.id, user.id);
       }
-      return ensured.createdBudgets.length;
+      return result.createdBudgets.length;
     } catch (error) {
       await this.cacheService.invalidateForUser(user.id);
       throw error;
@@ -213,28 +219,29 @@ export class ApplySavingsGoalPlanUseCase {
     periods: BudgetPeriod[],
     materialized: BudgetPeriod[],
     linkedLines: LinkedSavingLine[],
-    minPeriodIndex: number,
-    targetPeriodIndex: number,
-    goalId: string,
-    userId: string,
+    bounds: { minPeriodIndex: number; targetPeriodIndex: number },
+    owner: { goalId: string; userId: string },
   ): BudgetPeriod[] {
     const materializedKeys = new Set(materialized.map(this.periodKey));
     const linkedPeriodKeys = new Set(linkedLines.map(this.periodKey));
     if (
       periods.some(
         (period) =>
-          periodIndex(period) < minPeriodIndex ||
-          periodIndex(period) > targetPeriodIndex ||
-          periodIndex(period) >= minPeriodIndex + MAX_SAVINGS_GOAL_PLAN_PERIODS,
+          periodIndex(period) < bounds.minPeriodIndex ||
+          periodIndex(period) > bounds.targetPeriodIndex ||
+          periodIndex(period) >=
+            bounds.minPeriodIndex + MAX_SAVINGS_GOAL_PLAN_PERIODS,
       )
     ) {
-      this.throwLineInvalid(goalId, userId);
+      this.throwLineInvalid(owner.goalId, owner.userId);
     }
 
     return periods.filter((period) => {
       const key = this.periodKey(period);
       if (!materializedKeys.has(key)) return true;
-      if (!linkedPeriodKeys.has(key)) this.throwLineInvalid(goalId, userId);
+      if (!linkedPeriodKeys.has(key)) {
+        this.throwLineInvalid(owner.goalId, owner.userId);
+      }
       return false;
     });
   }

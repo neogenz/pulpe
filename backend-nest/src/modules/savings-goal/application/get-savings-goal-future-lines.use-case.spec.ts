@@ -40,7 +40,6 @@ describe('GetSavingsGoalFutureLinesUseCase (PUL-285 CA5/CA9)', () => {
     currentIndex = now.getFullYear() * 12 + now.getMonth() + 1;
     repo = {
       findById: jest.fn().mockResolvedValue({ id: 'goal-1' }),
-      findPayDayOfMonth: jest.fn().mockResolvedValue(null),
       findLinkedSavingLines: jest.fn().mockResolvedValue([]),
       findLinkedContributions: jest
         .fn()

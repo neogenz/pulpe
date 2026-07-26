@@ -4,8 +4,7 @@ import { Test } from '@nestjs/testing';
 import { CacheService } from '@modules/cache/cache.service';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { BUDGET_RECALCULATION_PORT } from '@modules/budget/domain/ports/budget-recalculation.port';
-import { BUDGET_PROVISIONING_PORT } from '@modules/budget/domain/ports/budget-provisioning.port';
-import { BUDGET_TEMPLATE_REPOSITORY } from '@modules/budget-template/domain/ports/budget-template-repository.port';
+import { BUDGET_LINE_SPREAD_PORT } from '@modules/budget-line/domain/ports/budget-line-spread.port';
 import { SAVINGS_GOAL_REPOSITORY } from '../domain/ports/savings-goal-repository.port';
 import { ApplySavingsGoalPlanUseCase } from './apply-savings-goal-plan.use-case';
 
@@ -27,8 +26,7 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
   let existingLines: Record<string, unknown>[];
   let allLines: Record<string, unknown>[];
   let repo: Record<string, ReturnType<typeof jest.fn>>;
-  let provisioning: { ensureBudgetsForPeriods: ReturnType<typeof jest.fn> };
-  let templateRepo: Record<string, ReturnType<typeof jest.fn>>;
+  let spread: { fanOut: ReturnType<typeof jest.fn> };
   let recalculation: { recalculate: ReturnType<typeof jest.fn> };
   let cache: { invalidateForUser: ReturnType<typeof jest.fn> };
   let logger: { info: ReturnType<typeof jest.fn> };
@@ -53,12 +51,12 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
       findById: jest.fn().mockResolvedValue({
         id: 'goal-1',
         userId: user.id,
+        name: 'Maison',
         targetAmount: 24_000,
         targetDate: `${periods[23].year}-${String(periods[23].month).padStart(2, '0')}-15`,
         status: 'ACTIVE',
         createdAt: now.toISOString(),
       }),
-      findPayDayOfMonth: jest.fn().mockResolvedValue(null),
       findMaterializedPeriods: jest.fn().mockResolvedValue(periods.slice(0, 2)),
       findLinkedContributions: jest
         .fn()
@@ -69,21 +67,16 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
         touchedBudgetIds: periods.map((_, index) => `budget-${index}`),
       }),
     };
-    provisioning = {
-      ensureBudgetsForPeriods: jest.fn().mockResolvedValue({
-        budgetIdByPeriod: new Map(),
+    spread = {
+      fanOut: jest.fn().mockResolvedValue({
+        spreadGroupId: 'group-1',
+        lines: [],
         createdBudgets: periods.slice(2).map((item, index) => ({
           id: `budget-${index + 2}`,
           ...item,
         })),
         skippedMonths: [],
       }),
-    };
-    templateRepo = {
-      findDefaultTemplateId: jest.fn().mockResolvedValue('template-1'),
-      findLinesByTemplateId: jest
-        .fn()
-        .mockResolvedValue([{ kind: 'saving', savingsGoalId: 'goal-1' }]),
     };
     recalculation = { recalculate: jest.fn().mockResolvedValue(undefined) };
     cache = { invalidateForUser: jest.fn().mockResolvedValue(undefined) };
@@ -93,8 +86,7 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
       providers: [
         ApplySavingsGoalPlanUseCase,
         { provide: SAVINGS_GOAL_REPOSITORY, useValue: repo },
-        { provide: BUDGET_PROVISIONING_PORT, useValue: provisioning },
-        { provide: BUDGET_TEMPLATE_REPOSITORY, useValue: templateRepo },
+        { provide: BUDGET_LINE_SPREAD_PORT, useValue: spread },
         { provide: BUDGET_RECALCULATION_PORT, useValue: recalculation },
         { provide: CacheService, useValue: cache },
         {
@@ -122,33 +114,29 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
       user,
     );
 
-    expect(provisioning.ensureBudgetsForPeriods).toHaveBeenCalledWith(
-      periods.slice(2),
-      'template-1',
-      user.id,
+    expect(spread.fanOut.mock.calls[0][0].tranches).toEqual(
+      periods.slice(2).map((item) => ({ ...item, amount: 1000 })),
     );
     expect(repo.applyPlan).toHaveBeenCalledTimes(1);
     expect(repo.applyPlan.mock.calls[0][1]).toHaveLength(24);
     expect(recalculation.recalculate).toHaveBeenCalledTimes(24);
   });
 
-  it('rejects missing periods before provisioning when no linked default template exists', async () => {
-    templateRepo.findDefaultTemplateId.mockResolvedValue(null);
+  it('fills a missing month with a linked forecast, no Mois Type line involved', async () => {
+    await useCase.execute(
+      'goal-1',
+      {
+        monthAdjustments: [],
+        missingMonthAdjustments: [{ ...periods[2], amount: 1000 }],
+      },
+      user,
+    );
 
-    await expect(
-      useCase.execute(
-        'goal-1',
-        {
-          monthAdjustments: [],
-          missingMonthAdjustments: [{ ...periods[2], amount: 1000 }],
-        },
-        user,
-      ),
-    ).rejects.toMatchObject({
-      code: 'ERR_SAVINGS_GOAL_PLAN_MONTH_UNPROVISIONABLE',
-    });
-    expect(provisioning.ensureBudgetsForPeriods).not.toHaveBeenCalled();
-    expect(repo.applyPlan).not.toHaveBeenCalled();
+    const [input] = spread.fanOut.mock.calls[0];
+    expect(input.kind).toBe('saving');
+    expect(input.savingsGoalId).toBe('goal-1');
+    expect(input.name).toBe('Maison');
+    expect(input.tranches).toEqual([{ ...periods[2], amount: 1000 }]);
   });
 
   it('rejects a materialized budget without a linked saving line', async () => {
@@ -167,27 +155,7 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
         user,
       ),
     ).rejects.toMatchObject({ code: 'ERR_SAVINGS_GOAL_PLAN_LINE_INVALID' });
-    expect(provisioning.ensureBudgetsForPeriods).not.toHaveBeenCalled();
-  });
-
-  it('rejects a default template whose saving line is not linked to the goal', async () => {
-    templateRepo.findLinesByTemplateId.mockResolvedValue([
-      { kind: 'saving', savingsGoalId: null },
-    ]);
-
-    await expect(
-      useCase.execute(
-        'goal-1',
-        {
-          monthAdjustments: [],
-          missingMonthAdjustments: [{ ...periods[2], amount: 1000 }],
-        },
-        user,
-      ),
-    ).rejects.toMatchObject({
-      code: 'ERR_SAVINGS_GOAL_PLAN_MONTH_UNPROVISIONABLE',
-    });
-    expect(provisioning.ensureBudgetsForPeriods).not.toHaveBeenCalled();
+    expect(spread.fanOut).not.toHaveBeenCalled();
   });
 
   it('rejects a missing period outside the goal horizon', async () => {
@@ -205,12 +173,13 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
         user,
       ),
     ).rejects.toMatchObject({ code: 'ERR_SAVINGS_GOAL_PLAN_LINE_INVALID' });
-    expect(provisioning.ensureBudgetsForPeriods).not.toHaveBeenCalled();
+    expect(spread.fanOut).not.toHaveBeenCalled();
   });
 
   it('invalidates after partial provisioning when one period is skipped', async () => {
-    provisioning.ensureBudgetsForPeriods.mockResolvedValue({
-      budgetIdByPeriod: new Map(),
+    spread.fanOut.mockResolvedValue({
+      spreadGroupId: 'group-1',
+      lines: [],
       createdBudgets: [{ id: 'budget-created' }],
       skippedMonths: [periods[3]],
     });
@@ -248,7 +217,7 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
       ),
     ).rejects.toThrow('rpc failed');
 
-    expect(provisioning.ensureBudgetsForPeriods).toHaveBeenCalledTimes(1);
+    expect(spread.fanOut).toHaveBeenCalledTimes(1);
     expect(cache.invalidateForUser).toHaveBeenCalledWith(user.id);
     expect(recalculation.recalculate).not.toHaveBeenCalled();
   });
@@ -273,7 +242,7 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
 
     await expect(useCase.execute('goal-1', dto, user)).resolves.toBeDefined();
 
-    expect(provisioning.ensureBudgetsForPeriods).toHaveBeenCalledTimes(1);
+    expect(spread.fanOut).toHaveBeenCalledTimes(1);
     expect(repo.applyPlan).toHaveBeenCalledTimes(2);
     expect(logger.info).toHaveBeenCalledWith(
       expect.objectContaining({ provisionedMonthCount: 0 }),

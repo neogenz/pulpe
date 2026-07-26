@@ -18,7 +18,6 @@ describe('ApplySavingsGoalGenerationStopUseCase', () => {
   let useCase: ApplySavingsGoalGenerationStopUseCase;
   let repo: {
     findById: ReturnType<typeof jest.fn>;
-    findPayDayOfMonth: ReturnType<typeof jest.fn>;
     applyGenerationStop: ReturnType<typeof jest.fn>;
   };
   let budgetRecalculation: { recalculate: ReturnType<typeof jest.fn> };
@@ -27,7 +26,6 @@ describe('ApplySavingsGoalGenerationStopUseCase', () => {
   beforeEach(async () => {
     repo = {
       findById: jest.fn().mockResolvedValue({ id: 'goal-1' }),
-      findPayDayOfMonth: jest.fn().mockResolvedValue(null),
       applyGenerationStop: jest.fn().mockResolvedValue({
         affectedLineIds: ['line-1'],
         touchedBudgetIds: ['budget-1'],
