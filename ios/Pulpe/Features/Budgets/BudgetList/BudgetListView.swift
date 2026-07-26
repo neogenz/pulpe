@@ -30,24 +30,14 @@ struct BudgetListView: View {
                 }
                 .transition(.opacity)
             } else if store.budgets.isEmpty {
-                VStack(spacing: DesignTokens.Spacing.lg) {
-                    Image(systemName: "chart.bar.doc.horizontal")
-                        .font(PulpeTypography.emojiDisplay)
-                        .foregroundStyle(Color.textTertiary)
-                        .symbolEffect(.pulse, options: .nonRepeating)
-                    Text("Pas encore de budget")
-                        .font(PulpeTypography.stepTitle)
-                        .foregroundStyle(Color.textPrimary)
-                    Text("Crée-en un pour commencer à suivre tes dépenses")
-                        .font(PulpeTypography.bodyLarge)
-                        .foregroundStyle(Color.textTertiary)
-                        .multilineTextAlignment(.center)
-                    Button("Créer un budget") {
-                        createBudgetTarget = store.nextAvailableMonth
-                    }
-                    .primaryButtonStyle()
+                PulpeEmptyState(
+                    systemImage: "chart.bar.doc.horizontal",
+                    title: "Pas encore de budget",
+                    message: "Crée-en un pour commencer à suivre tes dépenses",
+                    actionTitle: "Créer un budget"
+                ) {
+                    createBudgetTarget = store.nextAvailableMonth
                 }
-                .padding(DesignTokens.Spacing.xxxl)
                 .transition(.opacity)
             } else {
                 budgetList
