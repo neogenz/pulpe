@@ -145,4 +145,70 @@ struct SavingsGoalFormSheetTests {
             )
         )
     }
+
+    @Test("a name-only open pot is valid")
+    func form_nameOnlyIsValid() {
+        #expect(
+            SavingsGoalFormSheet.isFormSubmittable(
+                name: "Imprévus",
+                targetAmount: nil,
+                startDate: nil,
+                targetDate: nil
+            )
+        )
+    }
+
+    @Test("all four target and deadline combinations are valid")
+    func form_acceptsEveryTargetDeadlineCombination() throws {
+        let deadline = try #require(calendar.date(from: DateComponents(year: 2027, month: 1, day: 1)))
+        let combinations: [(Decimal?, Date?)] = [
+            (nil, nil),
+            (10_000, nil),
+            (nil, deadline),
+            (10_000, deadline),
+        ]
+
+        for (targetAmount, targetDate) in combinations {
+            #expect(
+                SavingsGoalFormSheet.isFormSubmittable(
+                    name: "Projet",
+                    targetAmount: targetAmount,
+                    startDate: nil,
+                    targetDate: targetDate,
+                    calendar: calendar
+                )
+            )
+        }
+    }
+
+    @Test("a start after the deadline is rejected")
+    func form_rejectsInvertedInterval() throws {
+        let start = try #require(calendar.date(from: DateComponents(year: 2027, month: 2, day: 1)))
+        let target = try #require(calendar.date(from: DateComponents(year: 2027, month: 1, day: 1)))
+
+        #expect(
+            !SavingsGoalFormSheet.isFormSubmittable(
+                name: "Maison",
+                targetAmount: 10_000,
+                startDate: start,
+                targetDate: target,
+                calendar: calendar
+            )
+        )
+    }
+
+    @Test("clearing target fields creates explicit-null PATCH values")
+    func optionalFieldUpdates_clearWithNull() throws {
+        let goal = goalWithInitialAmount(nil)
+        let date = try #require(SavingsGoalDateFormatter.parse("2030-05-15"))
+
+        #expect(SavingsGoalFormSheet.targetAmountUpdate(for: nil, original: goal) == .some(nil))
+        #expect(
+            SavingsGoalFormSheet.targetDateUpdate(
+                for: date,
+                isEnabled: false,
+                original: goal
+            ) == .some(nil)
+        )
+    }
 }

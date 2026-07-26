@@ -14,9 +14,11 @@ struct SavingsGoalFormSheet: View {
 
     @State private var name: String
     @State private var amount: Decimal?
-    @State private var amountText: String
     @State private var initialAmount: Decimal?
+    @State private var startDate: Date
+    @State private var hasStartDate: Bool
     @State private var targetDate: Date
+    @State private var hasTargetDate: Bool
     @State private var status: SavingsGoalStatus
     @State private var isLoading = false
     @State private var error: Error?
@@ -42,16 +44,15 @@ struct SavingsGoalFormSheet: View {
 
         let amount = goal?.targetAmount
         _amount = State(initialValue: amount)
-        let amountString = amount.map {
-            Formatters.amountInput(for: userCurrency).string(from: $0 as NSDecimalNumber) ?? ""
-        } ?? ""
-        _amountText = State(initialValue: amountString)
         _initialAmount = State(initialValue: goal?.initialAmount)
 
         let now = Date()
         let calendar = Calendar.current
         let defaultDate = Calendar.current.date(byAdding: .year, value: 1, to: now) ?? now
+        _startDate = State(initialValue: goal?.startDateValue ?? now)
+        _hasStartDate = State(initialValue: goal?.startDate != nil)
         _targetDate = State(initialValue: goal?.targetDateValue ?? defaultDate)
+        _hasTargetDate = State(initialValue: goal?.targetDate != nil)
         planningTargetDates = Self.targetDateRange(goal: nil, now: now, calendar: calendar)
         allowedTargetDates = Self.targetDateRange(goal: goal, now: now, calendar: calendar)
     }
@@ -67,8 +68,8 @@ struct SavingsGoalFormSheet: View {
         let lastPeriodStart = calendar.date(byAdding: .month, value: 119, to: currentMonth) ?? currentMonth
         let nextPeriodStart = calendar.date(byAdding: .month, value: 1, to: lastPeriodStart) ?? lastPeriodStart
         let planningMaximum = calendar.date(byAdding: .day, value: -1, to: nextPeriodStart) ?? lastPeriodStart
-        let existingTarget = goal.flatMap {
-            SavingsGoalDateFormatter.parse($0.targetDate, timeZone: calendar.timeZone)
+        let existingTarget = goal?.targetDate.flatMap {
+            SavingsGoalDateFormatter.parse($0, timeZone: calendar.timeZone)
         }
 
         return min(today, existingTarget ?? today)...max(planningMaximum, existingTarget ?? planningMaximum)
@@ -76,11 +77,33 @@ struct SavingsGoalFormSheet: View {
 
     nonisolated static func targetDateUpdate(
         for date: Date,
+        isEnabled: Bool = true,
         original goal: SavingsGoal,
         timeZone: TimeZone = .autoupdatingCurrent
-    ) -> String? {
-        let dateString = SavingsGoalDateFormatter.string(from: date, timeZone: timeZone)
-        return dateString == goal.targetDate ? nil : dateString
+    ) -> String?? {
+        let value = isEnabled
+            ? SavingsGoalDateFormatter.string(from: date, timeZone: timeZone)
+            : nil
+        return value == goal.targetDate ? nil : .some(value)
+    }
+
+    nonisolated static func startDateUpdate(
+        for date: Date,
+        isEnabled: Bool,
+        original goal: SavingsGoal,
+        timeZone: TimeZone = .autoupdatingCurrent
+    ) -> String?? {
+        let value = isEnabled
+            ? SavingsGoalDateFormatter.string(from: date, timeZone: timeZone)
+            : nil
+        return value == goal.startDate ? nil : .some(value)
+    }
+
+    nonisolated static func targetAmountUpdate(
+        for value: Decimal?,
+        original goal: SavingsGoal
+    ) -> Decimal?? {
+        value == goal.targetAmount ? nil : .some(value)
     }
 
     /// Diffs the edited initial amount against the goal's current one (both
@@ -98,8 +121,8 @@ struct SavingsGoalFormSheet: View {
         calendar: Calendar
     ) -> Bool {
         if planningRange.contains(date) { return true }
-        guard let existingTarget = goal.flatMap({
-            SavingsGoalDateFormatter.parse($0.targetDate, timeZone: calendar.timeZone)
+        guard let existingTarget = goal?.targetDate.flatMap({
+            SavingsGoalDateFormatter.parse($0, timeZone: calendar.timeZone)
         }) else { return false }
         return calendar.isDate(date, inSameDayAs: existingTarget)
     }
@@ -111,21 +134,17 @@ struct SavingsGoalFormSheet: View {
             title: isEditing ? "Modifier l'objectif" : "Nouvel objectif",
             isLoading: isLoading,
             focus: $focusedField,
-            focusOrder: [.amount, .description]
+            focusOrder: [.description]
         ) {
-            HeroAmountField(
-                amount: $amount,
-                amountText: $amountText,
-                focus: $focusedField,
-                field: .amount,
-                currency: currency,
-                accentColor: accentColor
-            )
             nameField
             initialAmountField
-            dateField
-            if !isEditing && hasRemainingToSave {
+            targetAmountField
+            startDateField
+            targetDateField
+            if !isEditing && hasTargetDate && hasRemainingToSave {
                 decomposeSection
+            } else if !isEditing && !hasTargetDate {
+                manualMonthlySection
             }
             if isEditing {
                 CapsulePicker(selection: $status, title: "Statut") { item, _ in
@@ -184,19 +203,48 @@ struct SavingsGoalFormSheet: View {
         )
     }
 
-    private var dateField: some View {
+    private var targetAmountField: some View {
+        CurrencyField(
+            value: $amount,
+            label: "Cible (optionnelle)",
+            currency: currency,
+            visualStyle: .flat
+        )
+    }
+
+    private var startDateField: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text("Échéance")
+            Toggle("Début (optionnel)", isOn: $hasStartDate)
                 .font(PulpeTypography.labelMedium)
                 .foregroundStyle(Color.onSurfaceVariant)
-            DatePicker(
-                "Échéance",
-                selection: $targetDate,
-                in: allowedTargetDates,
-                displayedComponents: .date
-            )
-            .labelsHidden()
-            .datePickerStyle(.compact)
+                .tint(accentColor)
+            if hasStartDate {
+                DatePicker(
+                    "Date de début",
+                    selection: $startDate,
+                    displayedComponents: .date
+                )
+                .datePickerStyle(.compact)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var targetDateField: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            Toggle("Échéance (optionnelle)", isOn: $hasTargetDate)
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.onSurfaceVariant)
+                .tint(accentColor)
+            if hasTargetDate {
+                DatePicker(
+                    "Date d'échéance",
+                    selection: $targetDate,
+                    in: allowedTargetDates,
+                    displayedComponents: .date
+                )
+                .datePickerStyle(.compact)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -211,6 +259,7 @@ struct SavingsGoalFormSheet: View {
             targetAmount: amount,
             targetDate: targetDate,
             payDayOfMonth: payDayOfMonth,
+            startDate: hasStartDate ? startDate : nil,
             initialAmount: initialAmount ?? 0
         )
     }
@@ -245,10 +294,28 @@ struct SavingsGoalFormSheet: View {
                     currency: currency,
                     visualStyle: .flat
                 )
-                Text("Pré-rempli avec cible ÷ mois restants. Ce montant sera prévu sur chacun de tes budgets, jusqu'à l'échéance.")
+                Text(
+                    "Pré-rempli avec cible ÷ mois restants. Ce montant sera prévu"
+                        + " sur chacun de tes budgets, jusqu'à l'échéance."
+                )
                     .font(PulpeTypography.caption)
                     .foregroundStyle(Color.onSurfaceVariant)
             }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var manualMonthlySection: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            CurrencyField(
+                value: $monthlyContributionOverride,
+                label: "Épargne mensuelle (optionnelle)",
+                currency: currency,
+                visualStyle: .flat
+            )
+            Text("Ce montant alimentera ton pot chaque mois, sans échéance imposée.")
+                .font(PulpeTypography.caption)
+                .foregroundStyle(Color.onSurfaceVariant)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -279,17 +346,20 @@ struct SavingsGoalFormSheet: View {
         .plainPressedButtonStyle()
         .disabled(isLoading)
     }
+}
 
+private extension SavingsGoalFormSheet {
     // MARK: - Logic
 
     private func save() async {
-        guard let amount else { return }
+        guard canSubmit else { return }
         isLoading = true
         defer { isLoading = false }
         error = nil
 
         let trimmedName = name.trimmingCharacters(in: .whitespaces)
-        let dateString = SavingsGoalDateFormatter.string(from: targetDate)
+        let startDateString = hasStartDate ? SavingsGoalDateFormatter.string(from: startDate) : nil
+        let targetDateString = hasTargetDate ? SavingsGoalDateFormatter.string(from: targetDate) : nil
 
         do {
             if let goal {
@@ -297,26 +367,32 @@ struct SavingsGoalFormSheet: View {
                     id: goal.id,
                     data: SavingsGoalUpdate(
                         name: trimmedName,
-                        targetAmount: amount,
-                        targetDate: Self.targetDateUpdate(for: targetDate, original: goal),
+                        targetAmount: Self.targetAmountUpdate(for: amount, original: goal),
+                        targetDate: Self.targetDateUpdate(
+                            for: targetDate,
+                            isEnabled: hasTargetDate,
+                            original: goal
+                        ),
                         status: status,
-                        initialAmount: Self.initialAmountUpdate(for: initialAmount, original: goal)
+                        initialAmount: Self.initialAmountUpdate(for: initialAmount, original: goal),
+                        startDate: Self.startDateUpdate(
+                            for: startDate,
+                            isEnabled: hasStartDate,
+                            original: goal
+                        )
                     )
                 )
                 toastManager.show("Objectif modifié")
             } else {
-                let contribution = monthlyContributionOverride ?? suggestedMonthly ?? 0
                 _ = try await store.create(
                     SavingsGoalCreate(
                         name: trimmedName,
                         targetAmount: amount,
-                        targetDate: dateString,
+                        targetDate: targetDateString,
                         status: .active,
-                        monthlyContribution: decomposeEnabled && hasRemainingToSave
-                            && contribution > 0
-                            ? contribution
-                            : nil,
-                        initialAmount: initialAmount
+                        monthlyContribution: creationContribution,
+                        initialAmount: initialAmount,
+                        startDate: startDateString
                     )
                 )
                 toastManager.show("Objectif créé")
@@ -345,6 +421,19 @@ struct SavingsGoalFormSheet: View {
 }
 
 extension SavingsGoalFormSheet {
+    nonisolated static func isFormSubmittable(
+        name: String,
+        targetAmount: Decimal?,
+        startDate: Date?,
+        targetDate: Date?,
+        calendar: Calendar = .current
+    ) -> Bool {
+        guard !name.trimmingCharacters(in: .whitespaces).isEmpty else { return false }
+        if let targetAmount, targetAmount <= 0 { return false }
+        guard let startDate, let targetDate else { return true }
+        return calendar.startOfDay(for: startDate) <= calendar.startOfDay(for: targetDate)
+    }
+
     nonisolated static func isMonthlyContributionSubmittable(
         isEditing: Bool,
         decomposeEnabled: Bool,
@@ -356,22 +445,37 @@ extension SavingsGoalFormSheet {
 }
 
 private extension SavingsGoalFormSheet {
+    var creationContribution: Decimal? {
+        if hasTargetDate, hasRemainingToSave, decomposeEnabled {
+            return monthlyContributionOverride ?? suggestedMonthly
+        }
+        return hasTargetDate ? nil : monthlyContributionOverride
+    }
+
     var canSubmit: Bool {
-        guard let amount, amount > 0 else { return false }
         let contribution = monthlyContributionOverride ?? suggestedMonthly
-        return !name.trimmingCharacters(in: .whitespaces).isEmpty
-            && Self.isTargetDateSubmittable(
+        let targetDateIsValid = !hasTargetDate || Self.isTargetDateSubmittable(
                 targetDate,
                 original: goal,
                 planningRange: planningTargetDates,
                 calendar: .current
             )
-            && Self.isMonthlyContributionSubmittable(
+        let monthlyContributionIsValid = hasTargetDate
+            ? Self.isMonthlyContributionSubmittable(
                 isEditing: isEditing,
                 decomposeEnabled: decomposeEnabled,
                 hasRemainingToSave: hasRemainingToSave,
                 contribution: contribution
             )
+            : isEditing || monthlyContributionOverride.map { $0 > 0 } ?? true
+        return Self.isFormSubmittable(
+            name: name,
+            targetAmount: amount,
+            startDate: hasStartDate ? startDate : nil,
+            targetDate: hasTargetDate ? targetDate : nil
+        )
+            && targetDateIsValid
+            && monthlyContributionIsValid
             && !isLoading
     }
 }

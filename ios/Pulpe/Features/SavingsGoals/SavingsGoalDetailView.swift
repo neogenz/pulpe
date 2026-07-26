@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import SwiftUI
 
 /// Progression detail for a single savings goal (PUL-8, CA7–CA9). Pushed from the
@@ -91,10 +92,9 @@ struct SavingsGoalDetailView: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
                 header(progress: progress)
 
+                progressCard(progress: progress)
                 if progress.linkedLineCount == 0 {
                     GoalEmptyGuidanceCard()
-                } else {
-                    progressCard(progress: progress)
                 }
 
                 GoalDerivedStateCards(
@@ -159,7 +159,7 @@ struct SavingsGoalDetailView: View {
     /// one open month. Hidden for PAUSED/COMPLETED (no rhythm verdict → no editing).
     private func canAdjust(_ progress: SavingsGoalProgress) -> Bool {
         guard currentGoal.status == .active, progress.linkedLineCount > 0 else { return false }
-        return progress.months.contains { SavingsPlanCalculator.isOpenPlanMonth($0) }
+        return progress.months.contains { SavingsPlanCalculator.isContributivePlanMonth($0) }
     }
 
     // MARK: - Header
@@ -169,8 +169,19 @@ struct SavingsGoalDetailView: View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             SavingsGoalStatusBadge(status: currentGoal.status, showsIcon: true)
 
-            if let date = progress.targetDateValue {
+            if let start = progress.startDateValue, let end = progress.targetDateValue {
+                Text(
+                    "\(start.formatted(date: .abbreviated, time: .omitted))"
+                        + " → \(end.formatted(date: .abbreviated, time: .omitted))"
+                )
+                .font(PulpeTypography.listRowSubtitle)
+                .foregroundStyle(Color.textTertiary)
+            } else if let date = progress.targetDateValue {
                 Text("Échéance \(date.formatted(date: .abbreviated, time: .omitted))")
+                    .font(PulpeTypography.listRowSubtitle)
+                    .foregroundStyle(Color.textTertiary)
+            } else if let date = progress.startDateValue {
+                Text("Depuis \(date.formatted(date: .abbreviated, time: .omitted))")
                     .font(PulpeTypography.listRowSubtitle)
                     .foregroundStyle(Color.textTertiary)
             }
@@ -185,22 +196,31 @@ struct SavingsGoalDetailView: View {
         let hasClosedPlanMonth = SavingsGoalDetailViewModel.hasClosedPlanMonth(progress.months)
         return VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             HStack(alignment: .firstTextBaseline) {
-                Text(progress.confirmed.asCompactCurrency(currency))
-                    .font(PulpeTypography.amountCard)
-                    .foregroundStyle(Color.financialSavings)
-                    .monospacedDigit()
-                    .sensitiveAmount()
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                    Text("Épargné")
+                        .font(PulpeTypography.metricLabel)
+                        .foregroundStyle(Color.textSecondary)
+                    Text(progress.confirmed.asCompactCurrency(currency))
+                        .font(PulpeTypography.amountCard)
+                        .foregroundStyle(Color.financialSavings)
+                        .monospacedDigit()
+                        .sensitiveAmount()
+                }
 
                 Spacer()
 
-                Text("sur \(progress.targetAmount.asCurrency(currency))")
-                    .font(PulpeTypography.metricLabel)
-                    .foregroundStyle(Color.textSecondary)
-                    .monospacedDigit()
-                    .sensitiveAmount()
+                if let targetAmount = progress.targetAmount {
+                    Text("sur \(targetAmount.asCurrency(currency))")
+                        .font(PulpeTypography.metricLabel)
+                        .foregroundStyle(Color.textSecondary)
+                        .monospacedDigit()
+                        .sensitiveAmount()
+                }
             }
 
-            layeredBar(progress: progress)
+            if progress.targetAmount != nil {
+                layeredBar(progress: progress)
+            }
 
             if let pace = progress.paceStatus {
                 if hasClosedPlanMonth {
@@ -210,48 +230,56 @@ struct SavingsGoalDetailView: View {
                 }
             }
 
-            VStack(spacing: DesignTokens.Spacing.sm) {
-                if progress.initialAmount > 0 {
-                    statRow(label: "Montant de départ", value: progress.initialAmount.asCompactCurrency(currency))
-                }
-                statRow(
-                    label: "Déjà prévu",
-                    value: progress.plannedCumulative.asCompactCurrency(currency),
-                    swatch: Color.financialSavings.opacity(DesignTokens.Opacity.strong)
-                )
-                if let required = progress.required, hasClosedPlanMonth {
-                    if SavingsGoalDetailViewModel.requiredMatchesPlannedPace(
-                        planned: progress.pace,
-                        required: required
-                    ) {
-                        statRow(
-                            label: "Pour tenir ton échéance",
-                            value: "\(required.asCompactCurrency(currency)) / mois"
-                        )
-                    } else {
-                        deadlineReconciliation(progress: progress, required: required)
-                    }
-                }
-            }
+            progressStats(progress, hasClosedPlanMonth: hasClosedPlanMonth)
         }
         .pulpeCard()
     }
 
+    @ViewBuilder
+    private func progressStats(_ progress: SavingsGoalProgress, hasClosedPlanMonth: Bool) -> some View {
+        VStack(spacing: DesignTokens.Spacing.sm) {
+            if progress.initialAmount > 0 {
+                statRow(label: "Montant de départ", value: progress.initialAmount.asCompactCurrency(currency))
+            }
+            statRow(
+                label: "Déjà prévu",
+                value: progress.plannedCumulative.asCompactCurrency(currency),
+                swatch: Color.financialSavings.opacity(DesignTokens.Opacity.strong)
+            )
+            statRow(label: "Projection du plan", value: progress.plannedProjection.asCompactCurrency(currency))
+            if let required = progress.required, hasClosedPlanMonth {
+                if SavingsGoalDetailViewModel.requiredMatchesPlannedPace(
+                    planned: progress.pace,
+                    required: required
+                ) {
+                    statRow(
+                        label: "Pour tenir ton échéance",
+                        value: "\(required.asCompactCurrency(currency)) / mois"
+                    )
+                } else {
+                    deadlineReconciliation(progress: progress, required: required)
+                }
+            }
+        }
+    }
+
     private func layeredBar(progress: SavingsGoalProgress) -> some View {
-        ZStack(alignment: .leading) {
+        let plannedFraction = progress.plannedFraction ?? 0
+        let confirmedFraction = progress.confirmedFraction ?? 0
+        return ZStack(alignment: .leading) {
             Capsule()
                 .fill(Color.progressTrack)
 
-            ProgressBarShape(progress: CGFloat(progress.plannedFraction))
+            ProgressBarShape(progress: CGFloat(plannedFraction))
                 .fill(Color.financialSavings.opacity(DesignTokens.Opacity.strong))
 
-            ProgressBarShape(progress: CGFloat(progress.confirmedFraction))
+            ProgressBarShape(progress: CGFloat(confirmedFraction))
                 .fill(Color.financialSavings)
-                .animation(DesignTokens.Animation.gentleSpring, value: progress.confirmedFraction)
+                .animation(DesignTokens.Animation.gentleSpring, value: confirmedFraction)
         }
         .frame(height: DesignTokens.ProgressBar.thickHeight)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(progress.achievementPercent)% de la cible épargné")
+        .accessibilityLabel("\(progress.achievementPercent ?? 0)% de la cible épargné")
     }
 
     @ViewBuilder
@@ -332,7 +360,9 @@ struct SavingsGoalDetailView: View {
         case .ahead: "sparkles"
         }
     }
+}
 
+private extension SavingsGoalDetailView {
     // MARK: - Actions
 
     /// Post-apply invalidation (PUL-270): a plan apply rewrites budget-line amounts,
@@ -445,7 +475,7 @@ final class SavingsGoalDetailViewModel {
     /// nothing to be judged on yet. Closed = server-locked (strictly-past cycle
     /// or everything pointé — same signal the timeline dims rows on).
     static func hasClosedPlanMonth(_ months: [SavingsGoalPlanMonth]) -> Bool {
-        months.contains { $0.isLocked }
+        months.contains { $0.isContributionEligible && $0.isLocked }
     }
 
     /// Amount for the day-1 « plan prêt » beat: the current month's planned

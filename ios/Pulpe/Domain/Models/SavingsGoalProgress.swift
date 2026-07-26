@@ -45,33 +45,36 @@ struct SavingsGoalProgress: Decodable, Sendable, Equatable {
 
     let goalId: String
     let status: SavingsGoalStatus
-    let targetAmount: Decimal
-    let targetDate: String
+    let startDate: String?
+    let targetAmount: Decimal?
+    let targetDate: String?
 
     /// Σ `line.amount` of linked Épargne prévisions up to now — the engagement.
     let plannedCumulative: Decimal
+    /// Stock + toutes les prévisions connues jusqu'à l'échéance éventuelle.
+    let plannedProjection: Decimal
     /// Checked-only realised total — the money actually pointé.
     let confirmed: Decimal
     /// Stock already saved before tracking started (PUL-293), already folded
     /// into `confirmed`. Defaults to 0 for a legacy payload without the field.
     let initialAmount: Decimal
     /// 0…100, computed on `confirmed` (never on `plannedCumulative`).
-    let achievementPercent: Int
+    let achievementPercent: Int?
 
     let monthsElapsed: Int
     /// Can be ≤ 0 once the échéance is reached/passed (current month inclusive).
-    let monthsRemaining: Int
+    let monthsRemaining: Int?
     let isOverdue: Bool
 
     let pace: Decimal
     let confirmedPace: Decimal
     /// Per-month amount needed to hit the target — `nil` when overdue.
     let required: Decimal?
-    let projected: Decimal
+    let projected: Decimal?
     /// `nil` for PAUSED or échéance dépassée (no rhythm verdict then).
     let paceStatus: SavingsGoalPaceStatus?
     /// D2 — the backend suggests marking COMPLETED; it never auto-flips.
-    let suggestCompletion: Bool
+    let suggestCompletion: Bool?
     let linkedLineCount: Int
 
     // Currency conversion metadata (dormant in v1 — always null).
@@ -94,18 +97,23 @@ struct SavingsGoalProgress: Decodable, Sendable, Equatable {
 
     /// `targetDate` parsed for display, or `nil` on a malformed value.
     var targetDateValue: Date? {
-        SavingsGoalDateFormatter.parse(targetDate)
+        targetDate.flatMap { SavingsGoalDateFormatter.parse($0) }
+    }
+
+    var startDateValue: Date? {
+        startDate.flatMap { SavingsGoalDateFormatter.parse($0) }
     }
 
     /// Progress fraction (0…1) of the confirmed layer, derived from the
     /// server-computed `achievementPercent` so the bar and the % never diverge.
-    var confirmedFraction: Double {
-        Double(achievementPercent) / 100
+    var confirmedFraction: Double? {
+        achievementPercent.map { Double($0) / 100 }
     }
 
     /// Progress fraction (0…1) of the prévu layer against the target. Guarded
     /// against a zero / undecrypted target (never divide by it — §4.3).
-    var plannedFraction: Double {
+    var plannedFraction: Double? {
+        guard let targetAmount else { return nil }
         guard targetAmount > 0 else { return 0 }
         let ratio = ((plannedCumulative / targetAmount) as NSDecimalNumber).doubleValue
         return min(max(ratio, 0), 1)
@@ -119,21 +127,23 @@ struct SavingsGoalProgress: Decodable, Sendable, Equatable {
     init(
         goalId: String,
         status: SavingsGoalStatus,
-        targetAmount: Decimal,
-        targetDate: String,
+        startDate: String? = nil,
+        targetAmount: Decimal?,
+        targetDate: String?,
         plannedCumulative: Decimal,
+        plannedProjection: Decimal? = nil,
         confirmed: Decimal,
         initialAmount: Decimal = 0,
-        achievementPercent: Int,
+        achievementPercent: Int?,
         monthsElapsed: Int,
-        monthsRemaining: Int,
+        monthsRemaining: Int?,
         isOverdue: Bool,
         pace: Decimal,
         confirmedPace: Decimal,
         required: Decimal?,
-        projected: Decimal,
+        projected: Decimal?,
         paceStatus: SavingsGoalPaceStatus?,
-        suggestCompletion: Bool,
+        suggestCompletion: Bool?,
         linkedLineCount: Int,
         originalTargetAmount: Decimal?,
         originalCurrency: SupportedCurrency?,
@@ -145,9 +155,11 @@ struct SavingsGoalProgress: Decodable, Sendable, Equatable {
     ) {
         self.goalId = goalId
         self.status = status
+        self.startDate = startDate
         self.targetAmount = targetAmount
         self.targetDate = targetDate
         self.plannedCumulative = plannedCumulative
+        self.plannedProjection = plannedProjection ?? plannedCumulative
         self.confirmed = confirmed
         self.initialAmount = initialAmount
         self.achievementPercent = achievementPercent
@@ -179,21 +191,26 @@ struct SavingsGoalProgress: Decodable, Sendable, Equatable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         goalId = try container.decode(String.self, forKey: .goalId)
         status = try container.decode(SavingsGoalStatus.self, forKey: .status)
-        targetAmount = try container.decode(Decimal.self, forKey: .targetAmount)
-        targetDate = try container.decode(String.self, forKey: .targetDate)
+        startDate = try container.decodeIfPresent(String.self, forKey: .startDate)
+        targetAmount = try container.decodeIfPresent(Decimal.self, forKey: .targetAmount)
+        targetDate = try container.decodeIfPresent(String.self, forKey: .targetDate)
         plannedCumulative = try container.decode(Decimal.self, forKey: .plannedCumulative)
+        plannedProjection = try container.decodeIfPresent(
+            Decimal.self,
+            forKey: .plannedProjection
+        ) ?? plannedCumulative
         confirmed = try container.decode(Decimal.self, forKey: .confirmed)
         initialAmount = try container.decodeIfPresent(Decimal.self, forKey: .initialAmount) ?? 0
-        achievementPercent = try container.decode(Int.self, forKey: .achievementPercent)
+        achievementPercent = try container.decodeIfPresent(Int.self, forKey: .achievementPercent)
         monthsElapsed = try container.decode(Int.self, forKey: .monthsElapsed)
-        monthsRemaining = try container.decode(Int.self, forKey: .monthsRemaining)
+        monthsRemaining = try container.decodeIfPresent(Int.self, forKey: .monthsRemaining)
         isOverdue = try container.decode(Bool.self, forKey: .isOverdue)
         pace = try container.decode(Decimal.self, forKey: .pace)
         confirmedPace = try container.decode(Decimal.self, forKey: .confirmedPace)
         required = try container.decodeIfPresent(Decimal.self, forKey: .required)
-        projected = try container.decode(Decimal.self, forKey: .projected)
+        projected = try container.decodeIfPresent(Decimal.self, forKey: .projected)
         paceStatus = try container.decodeIfPresent(SavingsGoalPaceStatus.self, forKey: .paceStatus)
-        suggestCompletion = try container.decode(Bool.self, forKey: .suggestCompletion)
+        suggestCompletion = try container.decodeIfPresent(Bool.self, forKey: .suggestCompletion)
         linkedLineCount = try container.decode(Int.self, forKey: .linkedLineCount)
         originalTargetAmount = try container.decodeIfPresent(Decimal.self, forKey: .originalTargetAmount)
         originalCurrency = try container.decodeIfPresent(SupportedCurrency.self, forKey: .originalCurrency)
@@ -205,8 +222,8 @@ struct SavingsGoalProgress: Decodable, Sendable, Equatable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case goalId, status, targetAmount, targetDate
-        case plannedCumulative, confirmed, initialAmount, achievementPercent
+        case goalId, status, startDate, targetAmount, targetDate
+        case plannedCumulative, plannedProjection, confirmed, initialAmount, achievementPercent
         case monthsElapsed, monthsRemaining, isOverdue
         case pace, confirmedPace, required, projected, paceStatus, suggestCompletion, linkedLineCount
         case originalTargetAmount, originalCurrency, targetCurrency, exchangeRate

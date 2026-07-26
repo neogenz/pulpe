@@ -21,7 +21,7 @@ struct GoalProjectionChart: View {
         let seriesMax = (series.planned + series.confirmed + series.projection)
             .map(\.value)
             .max() ?? 0
-        let candidate = max(seriesMax, series.target)
+        let candidate = max(seriesMax, series.target ?? 0)
         // Swift Charts crashes on a zero-height domain — guarantee a positive range.
         return candidate <= 0 ? 1 : candidate
     }
@@ -32,14 +32,16 @@ struct GoalProjectionChart: View {
 
     var body: some View {
         Chart {
-            RuleMark(y: .value("Cible", series.target))
-                .foregroundStyle(Color.textTertiary.opacity(DesignTokens.Opacity.heavy))
-                .lineStyle(StrokeStyle(lineWidth: DesignTokens.BorderWidth.thin, dash: [4]))
-                .annotation(position: .top, alignment: .leading) {
-                    Text("Cible")
-                        .font(PulpeTypography.caption2)
-                        .foregroundStyle(Color.textTertiary)
-                }
+            if let target = series.target {
+                RuleMark(y: .value("Cible", target))
+                    .foregroundStyle(Color.textTertiary.opacity(DesignTokens.Opacity.heavy))
+                    .lineStyle(StrokeStyle(lineWidth: DesignTokens.BorderWidth.thin, dash: [4]))
+                    .annotation(position: .top, alignment: .leading) {
+                        Text("Cible")
+                            .font(PulpeTypography.caption2)
+                            .foregroundStyle(Color.textTertiary)
+                    }
+            }
 
             ForEach(series.planned) { point in
                 LineMark(
@@ -117,8 +119,10 @@ struct GoalProjectionChart: View {
     private var accessibilitySummary: String {
         let confirmed = Decimal(series.confirmed.last?.value ?? 0).asCompactCurrency(currency)
         let projection = Decimal(series.projection.last?.value ?? 0).asCompactCurrency(currency)
-        let target = Decimal(series.target).asCompactCurrency(currency)
-        return "Pointé \(confirmed), projection \(projection), cible \(target)"
+        guard let target = series.target else {
+            return "Pointé \(confirmed), projection \(projection)"
+        }
+        return "Pointé \(confirmed), projection \(projection), cible \(Decimal(target).asCompactCurrency(currency))"
     }
 
     private var areaGradient: LinearGradient {
@@ -251,7 +255,7 @@ struct GoalProjectionSeries: Equatable {
     let planned: [Point]
     let confirmed: [Point]
     let projection: [Point]
-    let target: Double
+    let target: Double?
     let ticks: [Tick]
 
     var isEmpty: Bool { planned.isEmpty && confirmed.isEmpty && projection.isEmpty }
@@ -271,7 +275,7 @@ struct GoalProjectionSeries: Equatable {
         guard !months.isEmpty else { return .empty }
 
         let currentIndex = months.firstIndex { $0.state == .current } ?? months.count - 1
-        let target = double(progress.targetAmount)
+        let target = progress.targetAmount.map(double)
         let pace = double(progress.confirmedPace)
         let startConfirmed = double(months[currentIndex].confirmedCumulative)
 
@@ -296,7 +300,7 @@ struct GoalProjectionSeries: Equatable {
     /// trajectory reads clearly (`docs/SAVINGS.md` §10.1, en simulation).
     static func simulation(
         from result: SavingsPlanCalculator.SimulationResult,
-        targetAmount: Decimal
+        targetAmount: Decimal?
     ) -> GoalProjectionSeries {
         let months = result.months
         guard !months.isEmpty else { return .empty }
@@ -311,12 +315,12 @@ struct GoalProjectionSeries: Equatable {
             planned: [],
             confirmed: confirmed,
             projection: projection,
-            target: double(targetAmount),
+            target: targetAmount.map(double),
             ticks: ticks(for: months.map(\.month), currentIndex: currentIndex)
         )
     }
 
-    static let empty = GoalProjectionSeries(planned: [], confirmed: [], projection: [], target: 0, ticks: [])
+    static let empty = GoalProjectionSeries(planned: [], confirmed: [], projection: [], target: nil, ticks: [])
 
     // MARK: - Helpers
 

@@ -1,3 +1,4 @@
+// swiftlint:disable type_body_length
 import Foundation
 @testable import Pulpe
 import Testing
@@ -26,6 +27,7 @@ struct SavingsPlanCalculatorTests {
         year: Int,
         state: SavingsPlanMonthState = .future,
         isLocked: Bool = false,
+        isContributionEligible: Bool = true,
         isProvisionable: Bool = false,
         plannedAmount: Decimal = 500,
         confirmedAmount: Decimal = 0,
@@ -44,6 +46,7 @@ struct SavingsPlanCalculatorTests {
             year: year,
             state: state,
             isLocked: isLocked,
+            isContributionEligible: isContributionEligible,
             isProvisionable: isProvisionable,
             plannedAmount: plannedAmount,
             confirmedAmount: confirmedAmount,
@@ -131,6 +134,43 @@ struct SavingsPlanCalculatorTests {
                 adjustments: [.init(month: 1, year: 2026, amount: 800)]
             )
         }
+    }
+
+    @Test("excludes pre-start months from simulation, even when locked and confirmed")
+    func simulate_excludesPreStartMonths() throws {
+        let timeline = [
+            planMonth(
+                month: 1,
+                year: 2026,
+                state: .past,
+                isLocked: true,
+                isContributionEligible: false,
+                confirmedAmount: 500
+            ),
+            planMonth(month: 3, year: 2026, state: .current),
+        ]
+
+        let result = try SavingsPlanCalculator.simulate(
+            timeline: timeline,
+            targetAmount: 2_000
+        )
+
+        #expect(result.simulatedFinal == 500)
+        #expect(result.months.first?.simulatedAmount == 0)
+    }
+
+    @Test("keeps the monthly simulation but omits every target verdict without a target")
+    func simulate_targetlessGoalOmitsVerdict() throws {
+        let result = try SavingsPlanCalculator.simulate(
+            timeline: [planMonth(month: 6, year: 2026)],
+            targetAmount: nil,
+            globalMonthlyAmount: 750
+        )
+
+        #expect(result.simulatedFinal == 750)
+        #expect(result.gapToTarget == nil)
+        #expect(result.isTargetMet == nil)
+        #expect(result.attainedPeriod == nil)
     }
 
     // MARK: - redistributeRemainingEffort
@@ -242,6 +282,43 @@ struct SavingsPlanCalculatorTests {
             .init(month: 3, year: 2026, amount: 0),
             .init(month: 4, year: 2026, amount: 0),
         ])
+    }
+
+    @Test("redistributes only over contribution-eligible months")
+    func redistribute_excludesPreStartMonths() {
+        let result = SavingsPlanCalculator.redistributeRemainingEffort(
+            timeline: [
+                planMonth(
+                    month: 1,
+                    year: 2026,
+                    state: .past,
+                    isLocked: true,
+                    isContributionEligible: false,
+                    confirmedAmount: 500
+                ),
+                planMonth(month: 2, year: 2026, state: .current),
+                planMonth(month: 3, year: 2026),
+            ],
+            targetAmount: 2_000
+        )
+
+        #expect(result.adjustments == [
+            .init(month: 2, year: 2026, amount: 1_000),
+            .init(month: 3, year: 2026, amount: 1_000),
+        ])
+    }
+
+    @Test("disables redistribution without a target")
+    func redistribute_targetlessGoalIsDisabled() {
+        let result = SavingsPlanCalculator.redistributeRemainingEffort(
+            timeline: [planMonth(month: 6, year: 2026)],
+            targetAmount: nil
+        )
+
+        #expect(result.adjustments.isEmpty)
+        #expect(result.remainingEffort == 0)
+        #expect(result.perRemainingMonth == 0)
+        #expect(result.isDistributable == false)
     }
 
     // MARK: - allocateMonthAmountToLines

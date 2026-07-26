@@ -40,6 +40,8 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
     let state: SavingsPlanMonthState
     /// Non-editable: strictly-past cycle OR every linked line pointé.
     let isLocked: Bool
+    /// False for rows retained before the effective contribution start.
+    let isContributionEligible: Bool
     /// Budget absent pouvant être créé depuis une ligne liée du Mois Type.
     let isProvisionable: Bool
     /// Σ `line.amount` of the linked Épargne prévisions this month.
@@ -55,6 +57,7 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
         year: Int,
         state: SavingsPlanMonthState,
         isLocked: Bool,
+        isContributionEligible: Bool = true,
         isProvisionable: Bool = false,
         plannedAmount: Decimal,
         confirmedAmount: Decimal,
@@ -66,6 +69,7 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
         self.year = year
         self.state = state
         self.isLocked = isLocked
+        self.isContributionEligible = isContributionEligible
         self.isProvisionable = isProvisionable
         self.plannedAmount = plannedAmount
         self.confirmedAmount = confirmedAmount
@@ -80,6 +84,10 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
         year = try container.decode(Int.self, forKey: .year)
         state = try container.decode(SavingsPlanMonthState.self, forKey: .state)
         isLocked = try container.decode(Bool.self, forKey: .isLocked)
+        isContributionEligible = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .isContributionEligible
+        ) ?? true
         isProvisionable = try container.decodeIfPresent(Bool.self, forKey: .isProvisionable) ?? false
         plannedAmount = try container.decode(Decimal.self, forKey: .plannedAmount)
         confirmedAmount = try container.decode(Decimal.self, forKey: .confirmedAmount)
@@ -89,7 +97,7 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case month, year, state, isLocked, isProvisionable
+        case month, year, state, isLocked, isContributionEligible, isProvisionable
         case plannedAmount, confirmedAmount, plannedCumulative, confirmedCumulative, lines
     }
 

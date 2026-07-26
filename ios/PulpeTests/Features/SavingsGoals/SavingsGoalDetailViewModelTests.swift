@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import Foundation
 @testable import Pulpe
 import Testing
@@ -208,6 +209,24 @@ struct SavingsGoalDetailViewModelTests {
         #expect(hasClosed == true)
     }
 
+    @Test("a locked pre-start row does not trigger a pace verdict")
+    func hasClosedPlanMonth_preStartRowIsIgnored() {
+        let month = SavingsGoalPlanMonth(
+            month: 6,
+            year: 2099,
+            state: .past,
+            isLocked: true,
+            isContributionEligible: false,
+            plannedAmount: 200,
+            confirmedAmount: 200,
+            plannedCumulative: 0,
+            confirmedCumulative: 0,
+            lines: []
+        )
+
+        #expect(SavingsGoalDetailViewModel.hasClosedPlanMonth([month]) == false)
+    }
+
     @Test("empty timeline (legacy payload): no verdict, and no beat amount either")
     func emptyTimeline_hidesVerdictAndBeat() {
         let hasClosed = SavingsGoalDetailViewModel.hasClosedPlanMonth([])
@@ -285,13 +304,16 @@ struct SavingsGoalDetailViewModelTests {
 
 @MainActor
 struct GoalPlanSimulatorViewModelTests {
-    private func makeGoal() -> SavingsGoal {
+    private func makeGoal(
+        targetAmount: Decimal? = 1_000,
+        targetDate: String? = "2099-03-01"
+    ) -> SavingsGoal {
         SavingsGoal(
             id: "g1",
             userId: "user-1",
             name: "Maison",
-            targetAmount: 1_000,
-            targetDate: "2099-03-01",
+            targetAmount: targetAmount,
+            targetDate: targetDate,
             status: .active,
             createdAt: Date(timeIntervalSince1970: 0),
             updatedAt: Date(timeIntervalSince1970: 0)
@@ -326,13 +348,15 @@ struct GoalPlanSimulatorViewModelTests {
 
     private func makeProgress(
         months: [SavingsGoalPlanMonth]? = nil,
-        initialAmount: Decimal = 0
+        initialAmount: Decimal = 0,
+        targetAmount: Decimal? = 1_000,
+        targetDate: String? = "2099-03-01"
     ) -> SavingsGoalProgress {
         SavingsGoalProgress(
             goalId: "g1",
             status: .active,
-            targetAmount: 1_000,
-            targetDate: "2099-03-01",
+            targetAmount: targetAmount,
+            targetDate: targetDate,
             plannedCumulative: 600,
             confirmed: 0,
             initialAmount: initialAmount,
@@ -482,6 +506,28 @@ struct GoalPlanSimulatorViewModelTests {
 
         #expect(viewModel.hasVariableMonthlyAmounts)
         #expect(viewModel.globalAmount == nil)
+    }
+
+    @Test("a targetless open pot remains simulatable without target verdict or redistribution")
+    func targetlessGoal_simulatesWithoutTargetOperations() {
+        let progress = makeProgress(targetAmount: nil, targetDate: nil)
+        let viewModel = GoalPlanSimulatorViewModel(
+            goal: makeGoal(targetAmount: nil, targetDate: nil),
+            progress: progress,
+            currency: .chf,
+            payDay: 1,
+            service: MockSavingsGoalService()
+        )
+
+        #expect(viewModel.draft.simulatedFinal == 600)
+        #expect(viewModel.draft.gapToTarget == nil)
+        #expect(viewModel.draft.isTargetMet == nil)
+        #expect(viewModel.canRedistribute == false)
+        #expect(viewModel.verdictText.contains("auras prévu"))
+
+        viewModel.setGlobalAmount(250)
+        #expect(viewModel.draft.simulatedFinal == 750)
+        #expect(viewModel.planChanges.count == 3)
     }
 }
 

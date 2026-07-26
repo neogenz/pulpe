@@ -69,6 +69,43 @@ struct SavingsGoalCodableTests {
         #expect(try decode("").initialAmount == nil)
     }
 
+    @Test("SavingsGoal decodes valued, null and absent optional interval fields")
+    func savingsGoal_decodesMixedOptionalIntervals() throws {
+        let json = Data("""
+        [
+          {
+            "id": "valued", "userId": "2", "name": "Maison",
+            "startDate": "2026-06-01", "targetAmount": 50000, "targetDate": "2027-12-31",
+            "status": "ACTIVE", "createdAt": "2026-06-23T10:00:00Z",
+            "updatedAt": "2026-06-23T10:00:00Z"
+          },
+          {
+            "id": "null", "userId": "2", "name": "Pot libre",
+            "startDate": null, "targetAmount": null, "targetDate": null,
+            "status": "ACTIVE", "createdAt": "2026-06-23T10:00:00Z",
+            "updatedAt": "2026-06-23T10:00:00Z"
+          },
+          {
+            "id": "absent", "userId": "2", "name": "Historique",
+            "status": "ACTIVE", "createdAt": "2026-06-23T10:00:00Z",
+            "updatedAt": "2026-06-23T10:00:00Z"
+          }
+        ]
+        """.utf8)
+
+        let goals = try decoder().decode([SavingsGoal].self, from: json)
+
+        #expect(goals.count == 3)
+        #expect(goals[0].startDate == "2026-06-01")
+        #expect(goals[0].targetAmount == 50000)
+        #expect(goals[1].startDate == nil)
+        #expect(goals[1].targetAmount == nil)
+        #expect(goals[1].targetDate == nil)
+        #expect(goals[2].startDate == nil)
+        #expect(goals[2].targetAmount == nil)
+        #expect(goals[2].targetDate == nil)
+    }
+
     @Test("SavingsGoalStatus maps every raw value")
     func status_rawValues() {
         #expect(SavingsGoalStatus(rawValue: "ACTIVE") == .active)
@@ -125,6 +162,42 @@ struct SavingsGoalCodableTests {
 
         #expect((try encodedObject(withSeed)["initialAmount"] as? NSNumber)?.intValue == 5000)
         #expect(try encodedObject(withoutSeed)["initialAmount"] == nil)
+    }
+
+    @Test("SavingsGoalCreate supports a name-only open pot")
+    func savingsGoalCreate_nameOnly() throws {
+        let object = try encodedObject(SavingsGoalCreate(name: "Imprévus", status: .active))
+
+        #expect(object["name"] as? String == "Imprévus")
+        #expect(object["startDate"] == nil)
+        #expect(object["targetAmount"] == nil)
+        #expect(object["targetDate"] == nil)
+    }
+
+    @Test("SavingsGoalUpdate tri-states start, target amount and target date")
+    func savingsGoalUpdate_triStatesOptionalFields() throws {
+        let omitted = try encodedObject(SavingsGoalUpdate(name: "Maison"))
+        #expect(omitted["startDate"] == nil)
+        #expect(omitted["targetAmount"] == nil)
+        #expect(omitted["targetDate"] == nil)
+
+        var cleared = SavingsGoalUpdate()
+        cleared.startDate = .some(nil)
+        cleared.targetAmount = .some(nil)
+        cleared.targetDate = .some(nil)
+        let clearedObject = try encodedObject(cleared)
+        #expect(clearedObject["startDate"] is NSNull)
+        #expect(clearedObject["targetAmount"] is NSNull)
+        #expect(clearedObject["targetDate"] is NSNull)
+
+        var valued = SavingsGoalUpdate()
+        valued.startDate = .some("2026-06-01")
+        valued.targetAmount = .some(12_000)
+        valued.targetDate = .some("2028-01-01")
+        let valuedObject = try encodedObject(valued)
+        #expect(valuedObject["startDate"] as? String == "2026-06-01")
+        #expect((valuedObject["targetAmount"] as? NSNumber)?.intValue == 12_000)
+        #expect(valuedObject["targetDate"] as? String == "2028-01-01")
     }
 
     @Test("SavingsGoalUpdate omits initialAmount when unset, sends 0 to erase")
