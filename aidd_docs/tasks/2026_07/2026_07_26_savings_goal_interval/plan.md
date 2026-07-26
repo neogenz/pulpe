@@ -1,6 +1,6 @@
 ---
 objective: "Faire de l’objectif d’épargne un intervalle optionnel cohérent sur le backend, le web et iOS, borner ses prévisions et sécuriser les changements d’échéance."
-status: in-progress
+status: completed
 ---
 
 # Plan: Implémenter l’objectif d’épargne comme intervalle optionnel

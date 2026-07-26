@@ -69,6 +69,7 @@ interface MockStore {
   nextMonthLabel: ReturnType<typeof signal<string>>;
   savingsWithdrawalOriginLabel: ReturnType<typeof signal<string>>;
   savingsWithdrawalDeficit: ReturnType<typeof signal<number>>;
+  savingsGoalNameById: ReturnType<typeof signal<ReadonlyMap<string, string>>>;
   error: ReturnType<typeof signal<string | null>>;
   setSearchText: ReturnType<typeof vi.fn>;
   setIsShowingOnlyUnchecked: ReturnType<typeof vi.fn>;
@@ -105,6 +106,7 @@ function createMockStore(): MockStore {
     nextMonthLabel: signal(''),
     savingsWithdrawalOriginLabel: signal(''),
     savingsWithdrawalDeficit: signal(0),
+    savingsGoalNameById: signal<ReadonlyMap<string, string>>(new Map()),
     error: signal<string | null>(null),
     setSearchText: vi.fn(),
     setIsShowingOnlyUnchecked: vi.fn(),

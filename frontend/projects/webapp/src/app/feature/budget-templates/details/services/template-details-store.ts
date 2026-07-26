@@ -1,7 +1,8 @@
 import { inject, Service, signal, computed } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, map } from 'rxjs';
 import { cachedResource } from 'ngx-ziflux';
 import { BudgetTemplatesApi } from '@core/budget-template/budget-templates-api';
+import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 import {
   type BudgetTemplateResponse,
   type TemplateLineListResponse,
@@ -16,6 +17,7 @@ export interface BudgetTemplateDetailViewModel {
 @Service({ autoProvided: false })
 export class TemplateDetailsStore {
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
+  readonly #savingsGoalApi = inject(SavingsGoalApi);
 
   readonly #templateId = signal<string | null>(null);
 
@@ -43,6 +45,15 @@ export class TemplateDetailsStore {
     },
   });
 
+  readonly #savingsGoalsResource = cachedResource({
+    cache: this.#savingsGoalApi.cache,
+    cacheKey: ['savings-goals', 'list'],
+    loader: () =>
+      this.#savingsGoalApi
+        .getAll$()
+        .pipe(map((response) => response.data ?? [])),
+  });
+
   readonly templateDetails = computed(
     () => this.#templateDetailsResource.value() ?? null,
   );
@@ -53,6 +64,15 @@ export class TemplateDetailsStore {
   readonly template = computed(() => this.templateDetails()?.template ?? null);
   readonly templateLines = computed(
     () => this.templateDetails()?.transactions ?? [],
+  );
+  readonly savingsGoalNameById = computed<ReadonlyMap<string, string>>(
+    () =>
+      new Map(
+        (this.#savingsGoalsResource.value() ?? []).map((goal) => [
+          goal.id,
+          goal.name,
+        ]),
+      ),
   );
 
   readonly totals = computed(() => {

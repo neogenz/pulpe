@@ -59,6 +59,9 @@ interface TemplateLineGroup {
                 <pulpe-template-line-card
                   [line]="line"
                   [currency]="currency()"
+                  [linkedGoalName]="
+                    savingsGoalNameById().get(line.savingsGoalId ?? '')
+                  "
                   (edit)="edit.emit($event)"
                   (delete)="delete.emit($event)"
                 />
@@ -79,6 +82,7 @@ interface TemplateLineGroup {
 export class TemplateLinesGrid {
   readonly lines = input.required<readonly TemplateLine[]>();
   readonly currency = input<SupportedCurrency>('CHF');
+  readonly savingsGoalNameById = input<ReadonlyMap<string, string>>(new Map());
   readonly edit = output<TemplateLine>();
   readonly delete = output<string>();
   readonly add = output<void>();

@@ -49,6 +49,12 @@ describe('TemplateLinesGrid', () => {
     it('should default currency to CHF', () => {
       expect(component.currency()).toBe('CHF');
     });
+
+    it('should expose the savings goal name map', () => {
+      const names = new Map([['goal-1', 'Vacances']]);
+      setTestInput(component.savingsGoalNameById, names);
+      expect(component.savingsGoalNameById()).toBe(names);
+    });
   });
 
   describe('groupedLines', () => {

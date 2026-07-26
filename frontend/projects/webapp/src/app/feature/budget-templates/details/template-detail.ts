@@ -202,6 +202,7 @@ import { TemplateLineStore } from './services/template-line-store';
             <pulpe-template-lines-grid
               [lines]="templateDetailsStore.templateLines()"
               [currency]="currency()"
+              [savingsGoalNameById]="templateDetailsStore.savingsGoalNameById()"
               (edit)="handleEditLine($event)"
               (delete)="handleDeleteLine($event)"
               (add)="handleAddLine()"

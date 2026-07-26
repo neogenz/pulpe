@@ -53,6 +53,7 @@ registerLocaleData(localeDeCH, 'de-CH');
 class StubTemplateLinesGrid {
   readonly lines = input.required<readonly TemplateLine[]>();
   readonly currency = input<SupportedCurrency>('CHF');
+  readonly savingsGoalNameById = input<ReadonlyMap<string, string>>(new Map());
   readonly edit = output<TemplateLine>();
   readonly delete = output<string>();
   readonly add = output<void>();
@@ -127,6 +128,7 @@ const storeTemplateDetails: WritableSignal<BudgetTemplateDetailViewModel | null>
   signal(mockTemplateDetails);
 const storeIsLoading = signal(false);
 const storeError: WritableSignal<unknown> = signal(null);
+const storeSavingsGoalNameById = signal<ReadonlyMap<string, string>>(new Map());
 
 const storeTemplateLines = computed(
   () => storeTemplateDetails()?.transactions ?? [],
@@ -156,6 +158,7 @@ const mockStore = {
   hasValue: computed(() => !!storeTemplateDetails()),
   template: computed(() => storeTemplateDetails()?.template ?? null),
   templateLines: storeTemplateLines,
+  savingsGoalNameById: storeSavingsGoalNameById,
   totals: storeTotals,
   netBalance: storeNetBalance,
   initializeTemplateId: vi.fn(),
@@ -305,6 +308,7 @@ describe('TemplateDetail', () => {
     storeTemplateDetails.set(mockTemplateDetails);
     storeIsLoading.set(false);
     storeError.set(null);
+    storeSavingsGoalNameById.set(new Map());
     mockBudgetTemplatesStore.checkUsage.mockResolvedValue({
       isUsed: false,
       budgetCount: 0,

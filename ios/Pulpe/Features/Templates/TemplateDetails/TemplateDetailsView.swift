@@ -3,6 +3,7 @@ import SwiftUI
 struct TemplateDetailsView: View {
     let templateId: String
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(SavingsGoalStore.self) private var savingsGoalStore
     @State private var viewModel: TemplateDetailsViewModel
     @State private var selectedLineForEdit: TemplateLine?
 
@@ -30,6 +31,7 @@ struct TemplateDetailsView: View {
         .navigationTitle(viewModel.template?.name ?? "Modèle")
         .navigationBarTitleDisplayMode(.inline)
         .task {
+            await savingsGoalStore.loadIfNeeded()
             await viewModel.loadIfNeeded()
         }
         .sheet(item: $selectedLineForEdit) { line in
@@ -192,6 +194,16 @@ struct TemplateLineRow: View {
     let onEdit: () -> Void
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(SavingsGoalStore.self) private var savingsGoalStore
+
+    static func goalName(for goalId: String?, in goals: [SavingsGoal]) -> String? {
+        guard let goalId else { return nil }
+        return goals.first { $0.id == goalId }?.name
+    }
+
+    private var goalName: String? {
+        Self.goalName(for: line.savingsGoalId, in: savingsGoalStore.goals)
+    }
 
     var body: some View {
         Button(action: onEdit) {
@@ -209,6 +221,15 @@ struct TemplateLineRow: View {
                     Text(line.name)
                         .font(PulpeTypography.listRowTitle)
                         .lineLimit(1)
+
+                    if let goalName {
+                        PulpeChip(
+                            icon: "target",
+                            label: "Objectif : \(goalName)",
+                            style: .semantic(.financialSavings)
+                        )
+                        .lineLimit(1)
+                    }
 
                     RecurrenceBadge(line.recurrence, style: .compact)
                 }

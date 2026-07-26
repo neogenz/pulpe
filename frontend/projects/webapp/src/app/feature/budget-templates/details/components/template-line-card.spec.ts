@@ -1,10 +1,28 @@
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
+import {
+  Component,
+  input,
+  provideZonelessChangeDetection,
+} from '@angular/core';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { setTestInput } from '@app/testing/signal-test-utils';
 import type { TemplateLine } from 'pulpe-shared';
+import { FinancialLineCard } from '@pattern/financial-line-card';
 import { TemplateLineCard } from './template-line-card';
+
+@Component({
+  selector: 'pulpe-financial-line-card',
+  template: '<ng-content select="[footer]" />',
+})
+class StubFinancialLineCard {
+  readonly kind = input();
+  readonly name = input();
+  readonly amount = input();
+  readonly currency = input();
+  readonly recurrence = input();
+  readonly dataTestId = input();
+}
 
 const mockLine: TemplateLine = {
   id: 'line-1',
@@ -30,7 +48,12 @@ describe('TemplateLineCard', () => {
         provideZonelessChangeDetection(),
         ...provideTranslocoForTest(),
       ],
-    }).compileComponents();
+    })
+      .overrideComponent(TemplateLineCard, {
+        remove: { imports: [FinancialLineCard] },
+        add: { imports: [StubFinancialLineCard] },
+      })
+      .compileComponents();
 
     fixture = TestBed.createComponent(TemplateLineCard);
     component = fixture.componentInstance;
@@ -50,6 +73,39 @@ describe('TemplateLineCard', () => {
     it('should expose line input', () => {
       setTestInput(component.line, mockLine);
       expect(component.line()).toEqual(mockLine);
+    });
+  });
+
+  describe('Savings goal affordance', () => {
+    it('shows the current linked goal name with a savings icon', () => {
+      setTestInput(component.line, {
+        ...mockLine,
+        savingsGoalId: 'goal-1',
+      });
+      setTestInput(component.linkedGoalName, 'Vacances');
+
+      fixture.detectChanges();
+
+      const affordance: HTMLElement | null =
+        fixture.nativeElement.querySelector(
+          '[data-testid="template-line-linked-goal-line-1"]',
+        );
+      expect(affordance?.textContent).toContain('Vacances');
+      expect(affordance?.querySelector('mat-icon')?.textContent?.trim()).toBe(
+        'savings',
+      );
+    });
+
+    it('leaves an unlinked line unchanged', () => {
+      setTestInput(component.line, mockLine);
+
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="template-line-linked-goal-line-1"]',
+        ),
+      ).toBeNull();
     });
   });
 

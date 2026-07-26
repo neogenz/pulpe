@@ -242,6 +242,7 @@ import {
       } @else {
         <pulpe-budget-table
           [tableData]="budgetTableData()"
+          [savingsGoalNameById]="store.savingsGoalNameById()"
           (update)="handleUpdateBudgetLine($event)"
           (delete)="handleDeleteItem($event)"
           (add)="openAddBudgetLineDialog()"
