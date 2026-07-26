@@ -1,6 +1,7 @@
 import { test, expect } from '../../fixtures/test-fixtures';
 import type {
   SavingsGoalContribution,
+  SavingsGoalPlanMonth,
   SavingsGoalProgress,
 } from 'pulpe-shared';
 
@@ -14,6 +15,34 @@ const GOAL_ID = '00000000-0000-4000-a000-000000000301';
 const USER_ID = '00000000-0000-4000-a000-000000000201';
 const GOAL_NAME = 'Vacances été 2027';
 
+function buildPlanMonths(): SavingsGoalPlanMonth[] {
+  const plannedAmounts = [
+    600,
+    600,
+    ...Array.from({ length: 12 }, () => 250),
+    300,
+  ];
+  let plannedCumulative = 0;
+
+  return plannedAmounts.map((plannedAmount, index) => {
+    plannedCumulative += plannedAmount;
+    const monthIndex = 5 + index;
+    const confirmedAmount = index === 0 ? 600 : index === 1 ? 300 : 0;
+
+    return {
+      month: (monthIndex % 12) + 1,
+      year: 2026 + Math.floor(monthIndex / 12),
+      state: index === 0 ? 'past' : index === 1 ? 'current' : 'future',
+      isLocked: index === 0,
+      plannedAmount,
+      confirmedAmount,
+      plannedCumulative,
+      confirmedCumulative: index === 0 ? 600 : 900,
+      lines: [],
+    };
+  });
+}
+
 const goal = {
   id: GOAL_ID,
   userId: USER_ID,
@@ -21,8 +50,8 @@ const goal = {
   targetAmount: 3000,
   targetDate: '2027-08-01',
   status: 'ACTIVE',
-  createdAt: '2026-01-01T00:00:00.000Z',
-  updatedAt: '2026-01-01T00:00:00.000Z',
+  createdAt: '2026-06-01T00:00:00.000Z',
+  updatedAt: '2026-06-01T00:00:00.000Z',
 };
 
 const progress = {
@@ -34,54 +63,19 @@ const progress = {
   plannedCumulative: 1200,
   confirmed: 900,
   achievementPercent: 30,
-  monthsElapsed: 3,
-  monthsRemaining: 12,
+  monthsElapsed: 2,
+  monthsRemaining: 14,
   isOverdue: false,
-  pace: 400,
-  confirmedPace: 300,
-  required: 175,
+  pace: 600,
+  confirmedPace: 450,
+  required: 150,
   projected: 4500,
-  paceStatus: 'on_track',
-  // D2 — surface the "mark completed" suggestion.
-  suggestCompletion: true,
+  paceStatus: 'ahead',
+  suggestCompletion: false,
   linkedLineCount: 2,
   cumulativeGap: 300,
-  estimatedCompletion: { month: 6, year: 2027 },
-  months: [
-    {
-      month: 6,
-      year: 2026,
-      state: 'past',
-      isLocked: true,
-      plannedAmount: 300,
-      confirmedAmount: 300,
-      plannedCumulative: 600,
-      confirmedCumulative: 600,
-      lines: [],
-    },
-    {
-      month: 7,
-      year: 2026,
-      state: 'current',
-      isLocked: false,
-      plannedAmount: 400,
-      confirmedAmount: 300,
-      plannedCumulative: 1000,
-      confirmedCumulative: 900,
-      lines: [],
-    },
-    {
-      month: 8,
-      year: 2027,
-      state: 'future',
-      isLocked: false,
-      plannedAmount: 3500,
-      confirmedAmount: 0,
-      plannedCumulative: 4500,
-      confirmedCumulative: 900,
-      lines: [],
-    },
-  ],
+  estimatedCompletion: { month: 12, year: 2026 },
+  months: buildPlanMonths(),
   originalTargetAmount: null,
   originalCurrency: null,
   targetCurrency: null,
@@ -110,7 +104,7 @@ const contributions = [
 ] satisfies SavingsGoalContribution[];
 
 test.describe('Savings goal progression (PUL-8)', () => {
-  test('navigates list → detail and shows the progress bar, Épargné label and D2 CTA', async ({
+  test('navigates list → detail and shows a coherent responsive trajectory', async ({
     authenticatedPage: page,
   }) => {
     // Registered after the global fixture mocks → matched first (LIFO).
@@ -136,6 +130,7 @@ test.describe('Savings goal progression (PUL-8)', () => {
       }),
     );
 
+    await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/savings-goals');
     await page.waitForLoadState('domcontentloaded');
 
@@ -153,7 +148,10 @@ test.describe('Savings goal progression (PUL-8)', () => {
     await expect(page.getByTestId('savings-goal-detail-page')).toContainText(
       'Épargné',
     );
-    await expect(page.getByTestId('goal-projection-panel')).toBeVisible();
+    const projectionPanel = page.getByTestId('goal-projection-panel');
+    const projectionCanvas = projectionPanel.locator('canvas');
+    const projectionSummary = page.getByTestId('goal-projection-summary');
+    await expect(projectionPanel).toBeVisible();
     await expect(
       page.getByTestId('goal-projection-summary-target'),
     ).toContainText(/3[\s’']?000/);
@@ -167,9 +165,43 @@ test.describe('Savings goal progression (PUL-8)', () => {
       /4[\s’']?500/,
     );
 
-    // D2 — completion suggestion CTA is visible.
-    await expect(
-      page.getByTestId('savings-goal-mark-completed-button'),
-    ).toBeVisible();
+    const [desktopCanvas, desktopSummary] = await Promise.all([
+      projectionCanvas.boundingBox(),
+      projectionSummary.boundingBox(),
+    ]);
+    expect(desktopCanvas).not.toBeNull();
+    expect(desktopSummary).not.toBeNull();
+    if (!desktopCanvas || !desktopSummary) {
+      throw new Error('Desktop projection geometry is unavailable');
+    }
+    expect(desktopSummary.x).toBeGreaterThan(
+      desktopCanvas.x + desktopCanvas.width,
+    );
+
+    for (const viewport of [
+      { width: 768, height: 1024 },
+      { width: 390, height: 844 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await expect
+        .poll(() =>
+          projectionPanel.evaluate(
+            (element) => element.scrollWidth - element.clientWidth,
+          ),
+        )
+        .toBeLessThanOrEqual(0);
+      const [stackedCanvas, stackedSummary] = await Promise.all([
+        projectionCanvas.boundingBox(),
+        projectionSummary.boundingBox(),
+      ]);
+      expect(stackedCanvas).not.toBeNull();
+      expect(stackedSummary).not.toBeNull();
+      if (!stackedCanvas || !stackedSummary) {
+        throw new Error('Stacked projection geometry is unavailable');
+      }
+      expect(stackedSummary.y).toBeGreaterThan(
+        stackedCanvas.y + stackedCanvas.height,
+      );
+    }
   });
 });
