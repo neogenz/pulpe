@@ -4,8 +4,13 @@ import type {
   SavingsPlanSimulatedMonth,
   SavingsPlanSimulationResult,
 } from 'pulpe-shared';
+import type { ChartDataset } from 'chart.js';
 import type { ChartThemeColors } from '@core/chart/chart-theme';
-import { buildGoalProjectionChartData } from './goal-projection-chart.config';
+import {
+  buildGoalProjectionChartData,
+  buildGoalProjectionChartOptions,
+} from './goal-projection-chart.config';
+import { findCurrentPeriodIndex } from './goal-projection-chart.plugin';
 
 const theme: ChartThemeColors = {
   income: 'rgb(76, 175, 80)',
@@ -96,6 +101,14 @@ describe('buildGoalProjectionChartData', () => {
       'Épargné',
       'Projection planifiée',
     ]);
+    const [target, confirmed, projection] = data.datasets as ChartDataset<
+      'line',
+      (number | null)[]
+    >[];
+    expect(target.borderDash).toBeUndefined();
+    expect(confirmed.pointRadius).toEqual([0, 3, 0]);
+    expect(projection.borderDash).toEqual([4, 4]);
+    expect(projection.pointRadius).toEqual([0, 0, 3]);
   });
 
   it('nulls the pointé series after the current month', () => {
@@ -160,5 +173,26 @@ describe('buildGoalProjectionChartData', () => {
       (d) => d.label === 'Projection planifiée',
     );
     expect(projection?.data).toEqual([null, 180, 420]);
+  });
+});
+
+describe('buildGoalProjectionChartOptions', () => {
+  it('keeps the timeline sparse and hides the vertical accounting axis', () => {
+    const options = buildGoalProjectionChartOptions(theme);
+
+    expect(options?.scales?.['x']?.grid?.display).toBe(false);
+    expect(options?.scales?.['y']?.display).toBe(false);
+    expect(options?.elements?.line?.cubicInterpolationMode).toBe('monotone');
+  });
+});
+
+describe('findCurrentPeriodIndex', () => {
+  it('returns only a real current period', () => {
+    expect(findCurrentPeriodIndex(months)).toBe(1);
+    expect(
+      findCurrentPeriodIndex(
+        months.map((month) => ({ ...month, state: 'past' })),
+      ),
+    ).toBe(-1);
   });
 });

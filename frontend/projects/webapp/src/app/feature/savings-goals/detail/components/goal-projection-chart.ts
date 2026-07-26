@@ -10,7 +10,7 @@ import {
   signal,
 } from '@angular/core';
 import { BaseChartDirective } from 'ng2-charts';
-import type { ChartType } from 'chart.js';
+import type { Plugin } from 'chart.js';
 import { TranslocoService } from '@jsverse/transloco';
 import {
   type SavingsGoalPlanMonth,
@@ -28,6 +28,10 @@ import {
   buildGoalProjectionChartData,
   buildGoalProjectionChartOptions,
 } from './goal-projection-chart.config';
+import {
+  buildGoalProjectionGuidePlugin,
+  findCurrentPeriodIndex,
+} from './goal-projection-chart.plugin';
 
 /**
  * « Ta trajectoire » (docs/SAVINGS.md §10.1). Read-only cumulated
@@ -48,6 +52,7 @@ import {
           aria-hidden="true"
           [data]="chartData()"
           [options]="chartOptions()"
+          [plugins]="chartPlugins()"
           [type]="chartType"
         ></canvas>
       </div>
@@ -89,7 +94,7 @@ export class GoalProjectionChart {
   readonly #theme = signal<ChartThemeColors | null>(null);
   readonly #reducedMotion = signal(false);
 
-  readonly chartType: ChartType = 'line';
+  readonly chartType = 'line' as const;
 
   readonly #labels = {
     target: this.#transloco.translate('savingsGoals.plan.chartTarget'),
@@ -129,6 +134,18 @@ export class GoalProjectionChart {
       labels: this.#labels,
     }),
   );
+
+  readonly chartPlugins = computed<Plugin[]>(() => {
+    const theme = this.#theme();
+    if (!theme) return [];
+
+    return [
+      buildGoalProjectionGuidePlugin(
+        findCurrentPeriodIndex(this.months()),
+        theme,
+      ),
+    ];
+  });
 
   protected readonly ariaSentence = computed(() => {
     const months = this.months();
