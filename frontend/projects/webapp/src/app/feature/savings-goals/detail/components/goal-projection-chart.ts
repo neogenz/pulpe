@@ -81,7 +81,7 @@ export class GoalProjectionChart {
 
   readonly months = input.required<readonly SavingsGoalPlanMonth[]>();
   readonly draft = input<SavingsPlanSimulationResult | null>(null);
-  readonly targetAmount = input.required<number>();
+  readonly targetAmount = input.required<number | null>();
   readonly currency = input.required<SupportedCurrency>();
   readonly confirmedPace = input<number>(0);
 
@@ -143,10 +143,17 @@ export class GoalProjectionChart {
       ? draft.simulatedFinal
       : (months.at(-1)?.plannedCumulative ?? 0);
 
-    return this.#transloco.translate('savingsGoals.plan.chartAria', {
+    const targetAmount = this.targetAmount();
+    const key =
+      targetAmount == null
+        ? 'savingsGoals.plan.chartAriaWithoutTarget'
+        : 'savingsGoals.plan.chartAria';
+    return this.#transloco.translate(key, {
       confirmed: formatCurrency(confirmedNow, currency),
       planned: formatCurrency(plannedFinal, currency),
-      target: formatCurrency(this.targetAmount(), currency),
+      ...(targetAmount == null
+        ? {}
+        : { target: formatCurrency(targetAmount, currency) }),
     });
   });
 }

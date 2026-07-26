@@ -19,13 +19,28 @@ const PAST_DATE = '2000-01-01';
 
 const baseValue: SavingsGoalFormValue = {
   name: 'Vacances été',
-  targetAmount: 3000,
-  initialAmount: 0,
+  startDate: '',
+  targetAmount: '3000',
+  initialAmount: '',
   targetDate: FUTURE_DATE,
   status: 'ACTIVE',
 };
 
 describe('buildSavingsGoalCreate', () => {
+  it('creates an open pot from its name alone', () => {
+    expect(
+      buildSavingsGoalCreate({
+        ...baseValue,
+        name: 'Coussin de sécurité',
+        targetAmount: '',
+        targetDate: '',
+      }),
+    ).toEqual({
+      name: 'Coussin de sécurité',
+      status: 'ACTIVE',
+    });
+  });
+
   it('produces a SavingsGoalCreate DTO from a valid form value', () => {
     expect(buildSavingsGoalCreate(baseValue)).toEqual({
       name: 'Vacances été',
@@ -52,7 +67,7 @@ describe('buildSavingsGoalCreate', () => {
 
   it('rejects a non-positive target amount', () => {
     expect(() =>
-      buildSavingsGoalCreate({ ...baseValue, targetAmount: 0 }),
+      buildSavingsGoalCreate({ ...baseValue, targetAmount: '0' }),
     ).toThrow();
   });
 
@@ -84,7 +99,7 @@ describe('buildSavingsGoalCreate', () => {
 
   it('carries initialAmount when positive (PUL-293)', () => {
     expect(
-      buildSavingsGoalCreate({ ...baseValue, initialAmount: 5000 }),
+      buildSavingsGoalCreate({ ...baseValue, initialAmount: '5000' }),
     ).toEqual({
       name: 'Vacances été',
       targetAmount: 3000,
@@ -94,7 +109,7 @@ describe('buildSavingsGoalCreate', () => {
     });
   });
 
-  it('omits initialAmount when 0 (the field default)', () => {
+  it('omits initialAmount when the field is empty', () => {
     expect(buildSavingsGoalCreate(baseValue)).toEqual({
       name: 'Vacances été',
       targetAmount: 3000,
@@ -103,18 +118,31 @@ describe('buildSavingsGoalCreate', () => {
     });
   });
 
-  it('treats a cleared field (null) as no initial amount (PUL-293)', () => {
-    // Clearing a signal-forms number input writes null into the model, and the
-    // optional validator lets it through (null >= 0 is true in JS) — sending it
-    // raw would throw on the strict schema and kill the submit silently.
+  it('keeps a manual monthly contribution available without target or deadline', () => {
     expect(
-      buildSavingsGoalCreate({ ...baseValue, initialAmount: null }),
+      buildSavingsGoalCreate(
+        {
+          ...baseValue,
+          name: 'Épargne libre',
+          targetAmount: '',
+          targetDate: '',
+        },
+        250,
+      ),
     ).toEqual({
-      name: 'Vacances été',
-      targetAmount: 3000,
-      targetDate: FUTURE_DATE,
+      name: 'Épargne libre',
       status: 'ACTIVE',
+      monthlyContribution: 250,
     });
+  });
+
+  it('rejects a start date after the deadline', () => {
+    expect(() =>
+      buildSavingsGoalCreate({
+        ...baseValue,
+        startDate: isoDateOffsetMonths(2),
+      }),
+    ).toThrow();
   });
 });
 
@@ -128,6 +156,7 @@ describe('buildSavingsGoalUpdate', () => {
       name: 'Vacances été',
       targetAmount: 3000,
       initialAmount: 0,
+      startDate: null,
       targetDate: FUTURE_DATE,
       status: 'COMPLETED',
     });
@@ -140,6 +169,7 @@ describe('buildSavingsGoalUpdate', () => {
       name: 'Vacances été',
       targetAmount: 3000,
       initialAmount: 0,
+      startDate: null,
       targetDate: PAST_DATE,
       status: 'ACTIVE',
     });
@@ -160,8 +190,9 @@ describe('buildSavingsGoalUpdate', () => {
     const dto = buildSavingsGoalUpdate(
       {
         name: 'Vacances été',
-        targetAmount: 3000,
-        initialAmount: 0,
+        startDate: '',
+        targetAmount: '3000',
+        initialAmount: '',
         targetDate: PAST_DATE,
         status: 'COMPLETED',
       },
@@ -186,7 +217,7 @@ describe('buildSavingsGoalUpdate', () => {
     } as SavingsGoal;
 
     const dto = buildSavingsGoalUpdate(
-      { ...baseValue, initialAmount: 5000, status: 'COMPLETED' },
+      { ...baseValue, initialAmount: '5000', status: 'COMPLETED' },
       original,
     );
 
@@ -207,35 +238,41 @@ describe('buildSavingsGoalUpdate', () => {
     } as SavingsGoal;
 
     const dto = buildSavingsGoalUpdate(
-      { ...baseValue, initialAmount: 0 },
+      { ...baseValue, initialAmount: '' },
       original,
     );
 
     expect(dto).toEqual({ initialAmount: 0 });
   });
 
-  it('clears via an emptied field: null becomes an explicit 0, never a throw (PUL-293)', () => {
-    // The real erase gesture — emptying the input, which the signal-forms
-    // number binding writes as null. Sending null raw throws on the strict
-    // schema, silently killing the save.
+  it('clears target, start and deadline explicitly with null', () => {
     const original = {
       id: '00000000-0000-4000-8000-0000000000a1',
       userId: '00000000-0000-4000-8000-0000000000b1',
       name: 'Vacances été',
+      startDate: FUTURE_DATE,
       targetAmount: 3000,
-      targetDate: FUTURE_DATE,
+      targetDate: isoDateOffsetMonths(2),
       status: 'ACTIVE',
-      initialAmount: 5000,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     } as SavingsGoal;
 
     const dto = buildSavingsGoalUpdate(
-      { ...baseValue, initialAmount: null },
+      {
+        ...baseValue,
+        startDate: '',
+        targetAmount: '',
+        targetDate: '',
+      },
       original,
     );
 
-    expect(dto).toEqual({ initialAmount: 0 });
+    expect(dto).toEqual({
+      startDate: null,
+      targetAmount: null,
+      targetDate: null,
+    });
   });
 
   it('leaves a never-set initial amount alone when the field stays empty (PUL-293)', () => {
@@ -251,7 +288,7 @@ describe('buildSavingsGoalUpdate', () => {
     } as SavingsGoal;
 
     const dto = buildSavingsGoalUpdate(
-      { ...baseValue, initialAmount: null, status: 'COMPLETED' },
+      { ...baseValue, initialAmount: '', status: 'COMPLETED' },
       original,
     );
 
@@ -266,7 +303,8 @@ describe('buildSavingsGoalUpdate', () => {
           id: '00000000-0000-4000-8000-0000000000a1',
           userId: '00000000-0000-4000-8000-0000000000b1',
           name: baseValue.name,
-          targetAmount: baseValue.targetAmount,
+          startDate: null,
+          targetAmount: 3000,
           targetDate: FUTURE_DATE,
           status: 'ACTIVE',
           createdAt: '2026-01-01T00:00:00.000Z',

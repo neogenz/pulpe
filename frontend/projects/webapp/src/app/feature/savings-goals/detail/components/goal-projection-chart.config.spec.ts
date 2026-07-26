@@ -96,6 +96,24 @@ describe('buildGoalProjectionChartData', () => {
     ]);
   });
 
+  it('keeps the savings series and omits only the target without a target amount', () => {
+    const data = buildGoalProjectionChartData({
+      months,
+      draft: null,
+      targetAmount: null,
+      confirmedPace: 90,
+      theme,
+      locale: 'fr-CH',
+      labels,
+    });
+
+    expect(data.datasets.map((dataset) => dataset.label)).toEqual([
+      'Prévu cumulé',
+      'Pointé',
+      'Projection',
+    ]);
+  });
+
   it('nulls the pointé series after the current month', () => {
     const data = buildGoalProjectionChartData({
       months,

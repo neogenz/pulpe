@@ -18,6 +18,7 @@ const goal = {
   id: GOAL_ID,
   userId: USER_ID,
   name: GOAL_NAME,
+  startDate: null,
   targetAmount: 3000,
   targetDate: '2027-08-01',
   status: 'ACTIVE',
@@ -126,5 +127,104 @@ test.describe('Savings goal progression (PUL-8)', () => {
     await expect(
       page.getByTestId('savings-goal-mark-completed-button'),
     ).toBeVisible();
+  });
+
+  test('creates a name-only objective and shows its free metrics without a target bar', async ({
+    authenticatedPage: page,
+  }) => {
+    const openGoalId = '00000000-0000-4000-a000-000000000302';
+    const openGoal = {
+      id: openGoalId,
+      userId: USER_ID,
+      name: 'Matelas',
+      startDate: null,
+      targetAmount: null,
+      targetDate: null,
+      status: 'ACTIVE',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+    const openProgress = {
+      goalId: openGoalId,
+      status: 'ACTIVE',
+      startDate: null,
+      targetAmount: null,
+      targetDate: null,
+      initialAmount: 0,
+      plannedCumulative: 0,
+      plannedProjection: 0,
+      confirmed: 0,
+      achievementPercent: null,
+      monthsElapsed: 1,
+      monthsRemaining: null,
+      isOverdue: false,
+      pace: 0,
+      confirmedPace: 0,
+      required: null,
+      projected: null,
+      paceStatus: null,
+      suggestCompletion: null,
+      linkedLineCount: 0,
+      cumulativeGap: 0,
+      estimatedCompletion: null,
+      months: [],
+      originalTargetAmount: null,
+      originalCurrency: null,
+      targetCurrency: null,
+      exchangeRate: null,
+    } satisfies SavingsGoalProgress;
+    await page.route('**/api/v1/savings-goals/*/progress', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: openProgress }),
+      }),
+    );
+    await page.route('**/api/v1/savings-goals/*/contributions', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: [] }),
+      }),
+    );
+    await page.route('**/api/v1/savings-goals', (route) => {
+      if (route.request().method() === 'POST') {
+        return route.fulfill({
+          status: 201,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: openGoal }),
+        });
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: [] }),
+      });
+    });
+
+    await page.goto('/savings-goals');
+    await page.getByTestId('create-savings-goal-button').click();
+    await page.getByTestId('savings-goal-name').fill('Matelas');
+    const createRequest = page.waitForRequest(
+      (request) =>
+        request.method() === 'POST' &&
+        request.url().endsWith('/api/v1/savings-goals'),
+    );
+    await page.getByTestId('savings-goal-save').click();
+
+    expect((await createRequest).postDataJSON()).toEqual({
+      name: 'Matelas',
+      status: 'ACTIVE',
+    });
+
+    const createdCard = page.getByTestId(`savings-goal-${openGoalId}`);
+    await expect(createdCard).toBeVisible();
+    await createdCard.click();
+
+    await expect(page).toHaveURL(new RegExp(`/savings-goals/${openGoalId}$`));
+    await expect(page.getByTestId('stat-confirmed')).toBeVisible();
+    await expect(page.getByTestId('stat-planned')).toBeVisible();
+    await expect(page.getByTestId('stat-planned-projection')).toBeVisible();
+    await expect(page.getByTestId('savings-goal-progress-bar')).toHaveCount(0);
   });
 });

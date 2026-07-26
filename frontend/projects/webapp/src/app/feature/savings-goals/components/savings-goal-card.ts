@@ -68,29 +68,60 @@ import { UserSettingsStore } from '@core/user-settings';
             {{ goal().name }}
           </h2>
 
-          <div class="flex items-end justify-between gap-2 mt-auto">
-            <span
-              class="ph-no-capture text-headline-small font-bold text-financial-savings"
-            >
-              {{ goal().targetAmount | appCurrency: currency() : '1.0-0' }}
-            </span>
-            <span
-              class="inline-flex items-center gap-1 text-body-small text-on-surface-variant shrink-0"
-              [attr.aria-label]="
-                ('savingsGoals.targetDate' | transloco) +
-                ' : ' +
-                (goal().targetDate | date: shortDateFormat())
-              "
-              data-testid="savings-goal-target-date"
-            >
-              <mat-icon
-                class="text-base! w-auto! h-auto! leading-none"
-                aria-hidden="true"
-                >event</mat-icon
-              >
-              {{ goal().targetDate | date: shortDateFormat() }}
-            </span>
-          </div>
+          @if (
+            goal().targetAmount !== null ||
+            goal().startDate ||
+            goal().targetDate
+          ) {
+            <div class="flex items-end justify-between gap-2 mt-auto">
+              @if (goal().targetAmount !== null) {
+                <span
+                  class="ph-no-capture text-headline-small font-bold text-financial-savings"
+                  data-testid="savings-goal-target-amount"
+                >
+                  {{ goal().targetAmount | appCurrency: currency() : '1.0-0' }}
+                </span>
+              }
+              <div class="ml-auto flex flex-col items-end gap-1">
+                @if (goal().startDate) {
+                  <span
+                    class="inline-flex items-center gap-1 text-body-small text-on-surface-variant"
+                    [attr.aria-label]="
+                      ('savingsGoals.startDate' | transloco) +
+                      ' : ' +
+                      (goal().startDate | date: shortDateFormat())
+                    "
+                    data-testid="savings-goal-start-date"
+                  >
+                    <mat-icon
+                      class="text-base! w-auto! h-auto! leading-none"
+                      aria-hidden="true"
+                      >play_circle</mat-icon
+                    >
+                    {{ goal().startDate | date: shortDateFormat() }}
+                  </span>
+                }
+                @if (goal().targetDate) {
+                  <span
+                    class="inline-flex items-center gap-1 text-body-small text-on-surface-variant"
+                    [attr.aria-label]="
+                      ('savingsGoals.targetDate' | transloco) +
+                      ' : ' +
+                      (goal().targetDate | date: shortDateFormat())
+                    "
+                    data-testid="savings-goal-target-date"
+                  >
+                    <mat-icon
+                      class="text-base! w-auto! h-auto! leading-none"
+                      aria-hidden="true"
+                      >event</mat-icon
+                    >
+                    {{ goal().targetDate | date: shortDateFormat() }}
+                  </span>
+                }
+              </div>
+            </div>
+          }
         </mat-card-content>
       </mat-card>
     </a>

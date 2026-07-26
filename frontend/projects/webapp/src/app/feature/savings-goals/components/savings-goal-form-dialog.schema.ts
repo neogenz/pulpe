@@ -14,21 +14,21 @@ import {
  * raw model through those schemas so the same validation (targetDate ≥ today,
  * targetAmount positive, name length) runs client-side before the request.
  *
- * targetDate stays a STRING ('YYYY-MM-DD') end to end — never a Date.
+ * Optional controls stay non-null in Signal Forms: an empty string means
+ * "absent". Builders translate it to omission on CREATE and explicit null on
+ * PATCH, so clearing a field never becomes an accidental no-op.
  */
 export interface SavingsGoalFormValue {
   name: string;
-  targetAmount: number;
-  /**
-   * Montant déjà épargné avant le suivi (stock one-shot). 0 = aucun.
-   * `null` quand l'utilisateur vide le champ : le binding number de
-   * signal-forms écrit `null`, et le validateur optionnel le laisse passer
-   * (`null >= 0` est vrai en JS). Champ vidé = aucun montant de départ,
-   * normalisé en 0 par les builders — l'envoyer tel quel ferait jeter Zod.
-   */
-  initialAmount: number | null;
+  startDate: string;
+  targetAmount: string;
+  initialAmount: string;
   targetDate: string;
   status: SavingsGoalCreate['status'];
+}
+
+function optionalNumber(value: string): number | undefined {
+  return value.trim() === '' ? undefined : Number(value);
 }
 
 /**
@@ -44,16 +44,20 @@ export function buildSavingsGoalCreate(
   value: SavingsGoalFormValue,
   monthlyContribution?: number | null,
 ): SavingsGoalCreate {
-  const initialAmount = value.initialAmount ?? 0;
+  const targetAmount = optionalNumber(value.targetAmount);
+  const initialAmount = optionalNumber(value.initialAmount);
   return savingsGoalCreateSchema.parse({
     name: value.name,
-    targetAmount: value.targetAmount,
-    targetDate: value.targetDate,
+    ...(value.startDate ? { startDate: value.startDate } : {}),
+    ...(targetAmount !== undefined ? { targetAmount } : {}),
+    ...(value.targetDate ? { targetDate: value.targetDate } : {}),
     status: value.status,
     ...(monthlyContribution != null && monthlyContribution > 0
       ? { monthlyContribution }
       : {}),
-    ...(initialAmount > 0 ? { initialAmount } : {}),
+    ...(initialAmount !== undefined && initialAmount > 0
+      ? { initialAmount }
+      : {}),
   });
 }
 
@@ -71,21 +75,31 @@ export function buildSavingsGoalUpdate(
   value: SavingsGoalFormValue,
   original?: SavingsGoal,
 ): SavingsGoalUpdate {
+  const startDate = value.startDate || null;
+  const targetAmount = optionalNumber(value.targetAmount) ?? null;
+  const targetDate = value.targetDate || null;
+  const initialAmount = optionalNumber(value.initialAmount) ?? 0;
+
+  // A PATCH is sparse, but the form always holds the complete candidate.
+  // Validate the interval before diffing so changing only one bound cannot
+  // bypass the shared cross-field rule.
+  if (startDate != null && targetDate != null && startDate > targetDate) {
+    savingsGoalUpdateSchema.parse({ startDate, targetDate });
+  }
+
   const patch: Partial<SavingsGoalUpdate> = {};
   if (!original || value.name !== original.name) patch.name = value.name;
-  if (!original || value.targetAmount !== original.targetAmount) {
-    patch.targetAmount = value.targetAmount;
+  if (!original || targetAmount !== (original.targetAmount ?? null)) {
+    patch.targetAmount = targetAmount;
   }
-  // Both sides normalize to 0: original.initialAmount is nullable/optional
-  // (schemas.ts) and the form holds null once the field is cleared, so an
-  // unset baseline, a cleared field and an explicit 0 all mean "no initial
-  // amount" — and 0, unlike null, is what the strict schema accepts.
-  const initialAmount = value.initialAmount ?? 0;
   if (!original || initialAmount !== (original.initialAmount ?? 0)) {
     patch.initialAmount = initialAmount;
   }
-  if (!original || value.targetDate !== original.targetDate) {
-    patch.targetDate = value.targetDate;
+  if (!original || startDate !== (original.startDate ?? null)) {
+    patch.startDate = startDate;
+  }
+  if (!original || targetDate !== (original.targetDate ?? null)) {
+    patch.targetDate = targetDate;
   }
   if (!original || value.status !== original.status)
     patch.status = value.status;

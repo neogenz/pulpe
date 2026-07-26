@@ -130,6 +130,35 @@ describe('GoalPlanSimulatorStore', () => {
     expect(store.draft()).not.toBeNull();
   });
 
+  it('keeps monthly adjustments available without inventing a target', () => {
+    progressSig.set(
+      makeProgress({
+        targetAmount: null,
+        targetDate: null,
+        achievementPercent: null,
+        monthsRemaining: null,
+        required: null,
+        projected: null,
+        paceStatus: null,
+        suggestCompletion: null,
+      }),
+    );
+
+    expect(store.canSimulate()).toBe(true);
+    expect(store.targetAmount()).toBeNull();
+
+    store.enter();
+    store.setMonth(6, 2026, 500);
+
+    expect(store.draft()?.gapToTarget).toBeNull();
+    expect(store.draft()?.isTargetMet).toBeNull();
+    expect(store.draft()?.attainedPeriod).toBeNull();
+    expect(store.buildApplyPayload().monthAdjustments).toEqual([
+      { budgetLineId: LINE_CURRENT, amount: 500 },
+    ]);
+    expect(store.redistribute().isDistributable).toBe(false);
+  });
+
   it('seeds the slider on the current plan amount, not the deadline anchor', () => {
     // makeProgress: open months planned 200/mo; required (deadline anchor) 400.
     // Option C — the slider must open where the plan actually is (200), so it

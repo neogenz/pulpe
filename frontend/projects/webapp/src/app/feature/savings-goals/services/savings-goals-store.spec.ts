@@ -213,6 +213,31 @@ describe('SavingsGoalStore', () => {
     );
   });
 
+  it('editGoal preserves explicit nullable interval clears', async () => {
+    const updated = makeGoal({
+      id: 'goal-1',
+      startDate: null,
+      targetAmount: null,
+      targetDate: null,
+    });
+    mockApi.update$ = vi
+      .fn()
+      .mockReturnValue(of({ data: updated, success: true }));
+    await settle();
+
+    const clears = {
+      startDate: null,
+      targetAmount: null,
+      targetDate: null,
+    };
+    await store.editGoal('goal-1', clears);
+
+    expect(mockApi.update$).toHaveBeenCalledWith('goal-1', clears);
+    expect(store.goals().find((goal) => goal.id === 'goal-1')).toMatchObject(
+      clears,
+    );
+  });
+
   it('editGoal rolls back the optimistic change on error', async () => {
     mockApi.update$ = vi
       .fn()

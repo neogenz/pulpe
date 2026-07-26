@@ -72,4 +72,68 @@ describe('SavingsGoalCard', () => {
       false,
     );
   });
+
+  it.each([
+    {
+      label: 'target and deadline',
+      overrides: { targetAmount: 3000, targetDate: '2027-08-01' },
+      hasTarget: true,
+      hasDeadline: true,
+    },
+    {
+      label: 'target only',
+      overrides: { targetAmount: 3000, targetDate: null },
+      hasTarget: true,
+      hasDeadline: false,
+    },
+    {
+      label: 'deadline only',
+      overrides: { targetAmount: null, targetDate: '2027-08-01' },
+      hasTarget: false,
+      hasDeadline: true,
+    },
+    {
+      label: 'neither target nor deadline',
+      overrides: { targetAmount: null, targetDate: null },
+      hasTarget: false,
+      hasDeadline: false,
+    },
+  ])(
+    'renders only the available fields with $label',
+    async ({ overrides, hasTarget, hasDeadline }) => {
+      setTestInput(fixture.componentInstance.goal, { ...goal, ...overrides });
+      await fixture.whenStable();
+
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="savings-goal-target-amount"]',
+        ) !== null,
+      ).toBe(hasTarget);
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="savings-goal-target-date"]',
+        ) !== null,
+      ).toBe(hasDeadline);
+    },
+  );
+
+  it('shows the optional start date without reserving an empty slot', async () => {
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="savings-goal-start-date"]',
+      ),
+    ).toBeNull();
+
+    setTestInput(fixture.componentInstance.goal, {
+      ...goal,
+      startDate: '2027-01-01',
+    });
+    await fixture.whenStable();
+
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="savings-goal-start-date"]',
+      ),
+    ).not.toBeNull();
+  });
 });

@@ -72,7 +72,9 @@ function openMonth(
   };
 }
 
-function makeProgress(): SavingsGoalProgress {
+function makeProgress(
+  overrides: Partial<SavingsGoalProgress> = {},
+): SavingsGoalProgress {
   return {
     goalId: 'goal-1',
     status: 'ACTIVE',
@@ -101,6 +103,7 @@ function makeProgress(): SavingsGoalProgress {
     originalCurrency: null,
     targetCurrency: null,
     exchangeRate: null,
+    ...overrides,
   };
 }
 
@@ -221,6 +224,44 @@ describe('GoalPlanSimulatorToolbar', () => {
       fixture.nativeElement.querySelector(
         '[data-testid="goal-plan-target-hint"]',
       ),
+    ).toBeNull();
+  });
+
+  it('keeps amount controls but hides target actions for an objective without a target', async () => {
+    progressSig.set(
+      makeProgress({
+        targetAmount: null,
+        targetDate: null,
+        achievementPercent: null,
+        monthsRemaining: null,
+        required: null,
+        projected: null,
+        paceStatus: null,
+        suggestCompletion: null,
+      }),
+    );
+    await fixture.whenStable();
+
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="goal-plan-slider"]'),
+    ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="goal-plan-amount-input"]',
+      ),
+    ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="goal-plan-target-hint"]',
+      ),
+    ).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="goal-plan-redistribute"]',
+      ),
+    ).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="goal-plan-verdict"]'),
     ).toBeNull();
   });
 

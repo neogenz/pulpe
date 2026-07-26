@@ -75,7 +75,7 @@ class StubBaseLoading {
 class StubGoalProjectionChart {
   readonly months = input<unknown>();
   readonly draft = input<unknown>(null);
-  readonly targetAmount = input<number>(0);
+  readonly targetAmount = input<number | null>(null);
   readonly currency = input<string>('CHF');
   readonly confirmedPace = input<number>(0);
 }
@@ -106,6 +106,7 @@ class StubGoalPlanSimulatorToolbar {
   readonly currency = input<string>('CHF');
   readonly verdict = input<string>('');
   readonly ariaVerdict = input<string>('');
+  readonly targetReached = input(false);
 }
 
 @Component({
@@ -305,6 +306,96 @@ describe('SavingsGoalDetailPage', () => {
     expect(fixture.nativeElement.textContent).toContain('Épargné');
   });
 
+  it('renders only applicable metrics for a name-only objective', () => {
+    goalSig.set(
+      makeGoal({
+        startDate: null,
+        targetAmount: null,
+        targetDate: null,
+      }),
+    );
+    progressSig.set(
+      makeProgress({
+        startDate: null,
+        targetAmount: null,
+        targetDate: null,
+        plannedCumulative: 500,
+        plannedProjection: 900,
+        confirmed: 200,
+        achievementPercent: null,
+        monthsRemaining: null,
+        required: null,
+        projected: null,
+        paceStatus: null,
+        suggestCompletion: null,
+        linkedLineCount: 0,
+      }),
+    );
+
+    fixture.detectChanges();
+
+    expect(query('savings-goal-empty-lines')).toBeTruthy();
+    expect(query('stat-confirmed')).toBeTruthy();
+    expect(query('stat-planned')).toBeTruthy();
+    expect(query('stat-planned-projection')).toBeTruthy();
+    expect(query('savings-goal-progress-bar')).toBeFalsy();
+    expect(query('savings-goal-achievement')).toBeFalsy();
+    expect(query('savings-goal-target-date')).toBeFalsy();
+    expect(query('savings-goal-start-date')).toBeFalsy();
+    expect(query('stat-required')).toBeFalsy();
+    expect(query('stat-projected')).toBeFalsy();
+    expect(query('savings-goal-pace-chip')).toBeFalsy();
+    expect(query('savings-goal-suggest-completion')).toBeFalsy();
+  });
+
+  it('shows an estimated completion for a target without a deadline', () => {
+    goalSig.set(makeGoal({ targetDate: null }));
+    progressSig.set(
+      makeProgress({
+        targetDate: null,
+        monthsRemaining: null,
+        required: null,
+        projected: null,
+        paceStatus: null,
+        estimatedCompletion: { month: 6, year: 2027 },
+      }),
+    );
+
+    fixture.detectChanges();
+
+    expect(query('savings-goal-progress-bar')).toBeTruthy();
+    expect(query('stat-estimated-completion')).toBeTruthy();
+    expect(query('stat-required')).toBeFalsy();
+    expect(query('stat-projected')).toBeFalsy();
+    expect(query('savings-goal-pace-chip')).toBeFalsy();
+  });
+
+  it('renders start and deadline independently when present', () => {
+    goalSig.set(
+      makeGoal({
+        startDate: '2026-06-01',
+        targetAmount: null,
+      }),
+    );
+    progressSig.set(
+      makeProgress({
+        startDate: '2026-06-01',
+        targetAmount: null,
+        achievementPercent: null,
+        required: null,
+        projected: null,
+        paceStatus: null,
+        suggestCompletion: null,
+      }),
+    );
+
+    fixture.detectChanges();
+
+    expect(query('savings-goal-start-date')).toBeTruthy();
+    expect(query('savings-goal-target-date')).toBeTruthy();
+    expect(query('savings-goal-progress-bar')).toBeFalsy();
+  });
+
   it('shows the "Montant de départ" stat only when initialAmount > 0 (PUL-293)', () => {
     fixture.detectChanges();
     expect(query('stat-initial-amount')).toBeFalsy();
@@ -478,10 +569,10 @@ describe('SavingsGoalDetailPage', () => {
   it('shows the empty state when linkedLineCount is 0', () => {
     progressSig.set(makeProgress({ linkedLineCount: 0 }));
     fixture.detectChanges();
-    // Flat guidance replaces the bar/stats, but the header (edit) still renders.
+    // Flat guidance complements the applicable metrics and keeps edit available.
     expect(query('savings-goal-empty-lines')).toBeTruthy();
-    expect(query('savings-goal-progress-bar')).toBeFalsy();
-    expect(query('stat-confirmed')).toBeFalsy();
+    expect(query('savings-goal-progress-bar')).toBeTruthy();
+    expect(query('stat-confirmed')).toBeTruthy();
     expect(query('edit-savings-goal-button')).toBeTruthy();
   });
 

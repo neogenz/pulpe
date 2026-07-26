@@ -26,7 +26,7 @@ export interface GoalProjectionChartInput {
   months: readonly SavingsGoalPlanMonth[];
   /** Non-null in simulation mode: the plan line follows the sandbox trajectory. */
   draft: SavingsPlanSimulationResult | null;
-  targetAmount: number;
+  targetAmount: number | null;
   confirmedPace: number;
   theme: ChartThemeColors | null;
   locale: string;
@@ -149,8 +149,6 @@ export function buildGoalProjectionChartData(
   const usingDraft = draft != null;
   const currentIndex = currentMonthIndex(months);
 
-  const targetData = months.map(() => targetAmount);
-
   const plannedData = usingDraft
     ? draft.months.map((month) => month.simulatedCumulative)
     : months.map((month) => month.plannedCumulative);
@@ -162,16 +160,6 @@ export function buildGoalProjectionChartData(
   );
 
   const datasets: ChartConfiguration['data']['datasets'] = [
-    {
-      data: targetData,
-      label: labels.target,
-      borderColor: colorWithAlpha(theme.tickColor, 0.5),
-      borderWidth: 1,
-      borderDash: [4, 4],
-      pointRadius: 0,
-      pointHoverRadius: 0,
-      fill: false,
-    } as ChartConfiguration['data']['datasets'][number],
     {
       data: plannedData,
       label: labels.planned,
@@ -190,6 +178,19 @@ export function buildGoalProjectionChartData(
       fill: 'origin',
     } as ChartConfiguration['data']['datasets'][number],
   ];
+
+  if (targetAmount != null) {
+    datasets.unshift({
+      data: months.map(() => targetAmount),
+      label: labels.target,
+      borderColor: colorWithAlpha(theme.tickColor, 0.5),
+      borderWidth: 1,
+      borderDash: [4, 4],
+      pointRadius: 0,
+      pointHoverRadius: 0,
+      fill: false,
+    } as ChartConfiguration['data']['datasets'][number]);
+  }
 
   if (!usingDraft && confirmedPace > 0 && currentIndex >= 0) {
     const anchor = months[currentIndex].confirmedCumulative;
