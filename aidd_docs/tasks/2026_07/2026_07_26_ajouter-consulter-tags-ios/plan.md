@@ -1,6 +1,6 @@
 ---
 objective: "Les utilisateurs iOS peuvent créer, sélectionner et consulter jusqu’à dix tags sur les prévisions, réels et lignes de modèle sans perdre les associations lors d’une modification inchangée."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Ajouter et consulter les tags sur iOS
