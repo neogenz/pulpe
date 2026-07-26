@@ -194,7 +194,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                 </p>
               </div>
             } @else {
-              <!-- Two-layer progress bar (Prévu behind, Pointé in front) -->
+              <!-- Two-layer progress bar (projection behind, reality in front) -->
               <div class="flex flex-col gap-3">
                 <div class="flex items-end justify-between gap-2">
                   <span
@@ -224,12 +224,20 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                     'savingsGoals.detail.progressAriaLabel'
                       | transloco: { percent: p.achievementPercent }
                   "
+                  [attr.aria-valuetext]="
+                    'savingsGoals.detail.progressAriaValue'
+                      | transloco
+                        : {
+                            confirmed: p.achievementPercent,
+                            projected: projectedPercent(),
+                          }
+                  "
                   data-testid="savings-goal-progress-bar"
                 >
                   <div
-                    class="absolute inset-y-0 left-0 rounded-full bg-financial-savings/35 motion-safe:transition-[width] motion-safe:duration-700"
-                    [style.width.%]="plannedPercent()"
-                    data-testid="progress-planned-layer"
+                    class="absolute inset-y-0 left-0 rounded-full bg-tertiary motion-safe:transition-[width] motion-safe:duration-700"
+                    [style.width.%]="projectedPercent()"
+                    data-testid="progress-projected-layer"
                   ></div>
                   <div
                     class="absolute inset-y-0 left-0 rounded-full bg-financial-savings motion-safe:transition-[width] motion-safe:duration-700"
@@ -289,13 +297,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                   </span>
                 </div>
                 <div class="flex flex-col gap-1" data-testid="stat-planned">
-                  <span
-                    class="flex items-center gap-1.5 text-body-small text-on-surface-variant"
-                  >
-                    <span
-                      class="inline-block size-2.5 rounded-full bg-financial-savings/35"
-                      aria-hidden="true"
-                    ></span>
+                  <span class="text-body-small text-on-surface-variant">
                     {{ 'savingsGoals.detail.plannedCumulative' | transloco }}
                   </span>
                   <span
@@ -327,13 +329,21 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                   </div>
                 }
                 <div class="flex flex-col gap-1" data-testid="stat-projected">
-                  <span class="text-body-small text-on-surface-variant">
+                  <span
+                    class="flex items-center gap-1.5 text-body-small text-on-surface-variant"
+                  >
+                    <span
+                      class="inline-block size-2.5 rounded-full bg-tertiary"
+                      aria-hidden="true"
+                    ></span>
                     {{ 'savingsGoals.detail.projected' | transloco }}
                   </span>
                   <span
                     class="text-title-large font-semibold tabular-nums ph-no-capture"
                   >
-                    {{ p.projected | appCurrency: currency() : '1.0-0' }}
+                    {{
+                      displayedProjection() | appCurrency: currency() : '1.0-0'
+                    }}
                   </span>
                 </div>
               </div>
@@ -472,7 +482,8 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                   [draft]="simulator.draft()"
                   [targetAmount]="p.targetAmount"
                   [currency]="currency()"
-                  [confirmedPace]="p.confirmedPace"
+                  [confirmed]="p.confirmed"
+                  [projected]="displayedProjection()"
                 />
               </section>
             }
@@ -699,14 +710,18 @@ export default class SavingsGoalDetailPage {
     () => this.progress()?.linkedLineCount === 0,
   );
 
-  // Display-only bar width for the "Prévu" layer. The server owns every
-  // business metric (achievementPercent is the authoritative confirmed value);
-  // this ratio only positions the secondary visual layer.
-  protected readonly plannedPercent = computed(() => {
+  protected readonly displayedProjection = computed(
+    () =>
+      this.simulator.draft()?.simulatedFinal ?? this.progress()?.projected ?? 0,
+  );
+
+  // Display-only bar width for the planned projection layer. The server owns
+  // the read-mode endpoint; the sandbox owns it while simulation is active.
+  protected readonly projectedPercent = computed(() => {
     const p = this.progress();
     if (!p || p.targetAmount <= 0) return 0;
     return Math.min(
-      Math.round((p.plannedCumulative / p.targetAmount) * 100),
+      Math.round((this.displayedProjection() / p.targetAmount) * 100),
       100,
     );
   });

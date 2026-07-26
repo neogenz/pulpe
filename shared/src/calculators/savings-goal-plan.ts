@@ -220,6 +220,7 @@ function adjustmentKey(item: { month: number; year: number }): number {
 /**
  * Simule le plan : chaque mois verrouillé garde sa réalité (`confirmedAmount`),
  * chaque mois contributif prend `adjustment ?? globalMonthlyAmount ?? plannedAmount`.
+ * Son cumul ne peut jamais repasser sous le montant déjà confirmé du mois.
  * Cibler un mois verrouillé ou indisponible via `adjustments` lève une erreur (révèle un
  * bug d'UI en développement — même doctrine que `splitTotalPreserving`).
  */
@@ -271,7 +272,7 @@ export function simulateSavingsPlan(input: {
       simulatedAmount = month.plannedAmount;
     }
 
-    simulatedCumulative += simulatedAmount;
+    simulatedCumulative += Math.max(simulatedAmount, month.confirmedAmount);
     if (
       attainedPeriod == null &&
       input.targetAmount > 0 &&

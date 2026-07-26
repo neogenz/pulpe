@@ -77,7 +77,8 @@ class StubGoalProjectionChart {
   readonly draft = input<unknown>(null);
   readonly targetAmount = input<number>(0);
   readonly currency = input<string>('CHF');
-  readonly confirmedPace = input<number>(0);
+  readonly confirmed = input<number>(0);
+  readonly projected = input<number>(0);
 }
 
 @Component({
@@ -283,23 +284,30 @@ describe('SavingsGoalDetailPage', () => {
     return fixture.debugElement.query(By.css(`[data-testid="${testId}"]`));
   }
 
-  it('renders the two prévu/confirmé layers from the progress response', () => {
+  it('renders the projected balance and confirmed layers from the progress response', () => {
+    progressSig.set(makeProgress({ projected: 2400 }));
     fixture.detectChanges();
 
     const confirmed = query('progress-confirmed-layer');
-    const planned = query('progress-planned-layer');
+    const projected = query('progress-projected-layer');
     expect(confirmed).toBeTruthy();
-    expect(planned).toBeTruthy();
+    expect(projected).toBeTruthy();
     // Confirmed layer uses the server-provided achievementPercent (30%).
     expect(confirmed.nativeElement.style.width).toBe('30%');
-    // Planned layer is a display ratio 1200/3000 = 40%.
-    expect(planned.nativeElement.style.width).toBe('40%');
+    expect(confirmed.nativeElement.classList).toContain('bg-financial-savings');
+    // Projected balance layer uses the server endpoint: 2400/3000 = 80%.
+    expect(projected.nativeElement.style.width).toBe('80%');
+    expect(projected.nativeElement.classList).toContain('bg-tertiary');
 
     const bar = query('savings-goal-progress-bar');
     expect(bar.attributes['aria-valuenow']).toBe('30');
+    expect(bar.attributes['aria-valuetext']).toContain('80');
     // « Épargné » labels the aggregate layer: it sums the never-pointed
     // initial amount with the checked lines, so « Pointé » would overclaim.
     expect(fixture.nativeElement.textContent).toContain('Épargné');
+    expect(fixture.nativeElement.textContent).toContain(
+      'Versements prévus à date',
+    );
   });
 
   it('shows the "Montant de départ" stat only when initialAmount > 0 (PUL-293)', () => {

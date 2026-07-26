@@ -243,20 +243,41 @@ export function computeSavingsGoalProgress(
       ? Math.round(Math.min(confirmed / input.targetAmount, 1) * 100)
       : 0;
 
-  // 4. Deux rythmes — la projection se base sur le rythme CONFIRMÉ.
+  // 4. Deux rythmes — mesures de FLUX, indépendantes de la projection du plan.
   // confirmedPace exclut le montant de départ (un stock n'est pas un rythme).
   const pace = plannedCumulative / monthsElapsed;
   const confirmedPace = linesConfirmed / monthsElapsed;
 
-  // 5-6. Requis / projection — neutralisés quand l'échéance est dépassée (D1).
+  // 5. Requis — neutralisé quand l'échéance est dépassée (D1).
   const required = isOverdue
     ? null
     : Math.max(0, input.targetAmount - confirmed) / monthsRemaining;
-  const projected = isOverdue
-    ? confirmed
-    : confirmed + confirmedPace * monthsRemaining;
 
-  // 7. Statut de rythme — PAUSED et échéance dépassée n'ont PAS de jugement.
+  // 6. Projection à l'échéance — actif confirmé + reliquat du plan courant/futur.
+  // Le max mensuel évite de recompter une contribution déjà pointée et conserve
+  // un éventuel dépassement réel dans `confirmed`.
+  const remainingLinesByPeriod = new Map<number, LinkedSavingLine[]>();
+  for (const line of savingLines) {
+    const index = periodIndex(line);
+    if (index < indexCurrent || index > indexTarget) continue;
+    const periodLines = remainingLinesByPeriod.get(index) ?? [];
+    periodLines.push(line);
+    remainingLinesByPeriod.set(index, periodLines);
+  }
+  const plannedRemaining = [...remainingLinesByPeriod.values()].reduce(
+    (total, periodLines) => {
+      const planned = periodLines.reduce((sum, line) => sum + line.amount, 0);
+      const realized = BudgetFormulas.calculateRealizedSavings(
+        periodLines,
+        input.transactions,
+      );
+      return total + Math.max(0, planned - realized);
+    },
+    0,
+  );
+  const projected = confirmed + plannedRemaining;
+
+  // 7. Statut du plan — PAUSED et échéance dépassée n'ont PAS de jugement.
   const paceStatus =
     input.status === 'PAUSED' || isOverdue || input.targetAmount <= 0
       ? null

@@ -403,8 +403,9 @@ export type TagHistory = z.infer<typeof tagHistorySchema>;
  *   restent des mesures de FLUX et excluent ce stock.
  *
  * `achievementPercent` et `suggestCompletion` (D2) portent EXCLUSIVEMENT sur
- * le confirmé — jamais le prévu. La projection (`projected`) et `paceStatus`
- * se basent sur `confirmedPace` pour rester cohérents avec la barre.
+ * le confirmé — jamais le prévu. La projection (`projected`) ajoute au confirmé
+ * le reliquat planifié courant/futur jusqu'à l'échéance ; `paceStatus` compare
+ * ce solde projeté à la cible. `confirmedPace` reste une mesure du rythme réel.
  *
  * D1 échéance dépassée (`monthsRemaining ≤ 0`, exposé via `isOverdue`) :
  * `required` et `paceStatus` sont `null`, `projected = confirmed` — état

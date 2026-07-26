@@ -229,6 +229,40 @@ describe('simulateSavingsPlan', () => {
     expect(result.attainedPeriod).toBeNull();
   });
 
+  it('should never simulate an open month below its already confirmed amount', () => {
+    const current = planMonth({
+      month: 3,
+      year: 2026,
+      state: 'current',
+      plannedAmount: 1_000,
+      confirmedAmount: 1_200,
+      lines: [
+        {
+          budgetLineId: 'checked',
+          amount: 500,
+          checkedAt: '2026-03-10T00:00:00Z',
+          isManuallyAdjusted: false,
+        },
+        {
+          budgetLineId: 'open',
+          amount: 500,
+          checkedAt: null,
+          isManuallyAdjusted: false,
+        },
+      ],
+    });
+
+    const result = simulateSavingsPlan({
+      timeline: [current],
+      targetAmount: 2_000,
+      globalMonthlyAmount: 800,
+    });
+
+    expect(result.months[0].simulatedAmount).toBe(800);
+    expect(result.months[0].simulatedCumulative).toBe(1_200);
+    expect(result.simulatedFinal).toBe(1_200);
+  });
+
   it('should apply a global monthly amount to every open month', () => {
     const result = simulateSavingsPlan({
       timeline,
