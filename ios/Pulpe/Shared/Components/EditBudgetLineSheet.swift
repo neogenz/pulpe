@@ -12,6 +12,7 @@ struct EditBudgetLineSheet: View {
     @State private var amount: Decimal?
     @State private var kind: TransactionKind
     @State private var savingsGoalId: String?
+    @State private var selectedTagIds: Set<String>
     @State private var isLoading = false
     @State private var error: Error?
     @FocusState private var focusedField: AmountDescriptionField?
@@ -19,6 +20,7 @@ struct EditBudgetLineSheet: View {
     @State private var submitSuccessTrigger = false
     private let inputCurrency: SupportedCurrency
     private let isAlternateCurrency: Bool
+    private let initialTagIds: Set<String>
 
     private let dependencies: EditBudgetLineDependencies
     private let conversionService = CurrencyConversionService.shared
@@ -35,6 +37,9 @@ struct EditBudgetLineSheet: View {
         _name = State(initialValue: budgetLine.name)
         _kind = State(initialValue: budgetLine.kind)
         _savingsGoalId = State(initialValue: budgetLine.savingsGoalId)
+        let tagIds = Set(budgetLine.tagIds ?? [])
+        _selectedTagIds = State(initialValue: tagIds)
+        initialTagIds = tagIds
 
         let inputCurrency = budgetLine.originalCurrency ?? userCurrency
         let editableAmount = Self.initialAmount(for: budgetLine, userCurrency: userCurrency)
@@ -83,6 +88,7 @@ struct EditBudgetLineSheet: View {
             if kind == .saving {
                 SavingsGoalPickerField(selection: $savingsGoalId)
             }
+            TagPickerField(selection: $selectedTagIds)
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
@@ -149,7 +155,8 @@ struct EditBudgetLineSheet: View {
                 name: name.trimmingCharacters(in: .whitespaces),
                 amount: amount,
                 kind: kind,
-                conversion: conversion
+                conversion: conversion,
+                tagIds: TagPickerField.updatedTagIds(initial: initialTagIds, current: selectedTagIds)
             )
             // Always emit the link (id or explicit null) so a saving line can be
             // tagged or untagged; the kind-guard clears it for non-saving kinds.
@@ -193,7 +200,8 @@ struct EditBudgetLineSheet: View {
         name: String,
         amount: Decimal,
         kind: TransactionKind,
-        conversion: CurrencyConversion?
+        conversion: CurrencyConversion?,
+        tagIds: [String]? = nil
     ) -> BudgetLineUpdate {
         guard let conversion else {
             return BudgetLineUpdate(
@@ -201,7 +209,8 @@ struct EditBudgetLineSheet: View {
                 name: name,
                 amount: amount,
                 kind: kind,
-                isManuallyAdjusted: true
+                isManuallyAdjusted: true,
+                tagIds: tagIds
             )
         }
         return BudgetLineUpdate(
@@ -213,7 +222,8 @@ struct EditBudgetLineSheet: View {
             originalAmount: conversion.originalAmount,
             originalCurrency: conversion.originalCurrency,
             targetCurrency: conversion.targetCurrency,
-            exchangeRate: conversion.exchangeRate
+            exchangeRate: conversion.exchangeRate,
+            tagIds: tagIds
         )
     }
 }
@@ -252,4 +262,5 @@ struct EditBudgetLineDependencies: Sendable {
     .environment(UserSettingsStore())
     .environment(FeatureFlagsStore())
     .environment(SavingsGoalStore())
+    .environment(TagStore())
 }

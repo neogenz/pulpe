@@ -17,6 +17,7 @@ struct AddBudgetLineSheet: View {
     @State private var amount: Decimal?
     @State private var kind: TransactionKind = .expense
     @State private var savingsGoalId: String?
+    @State private var selectedTagIds: Set<String> = []
     @State private var isChecked = false
     @State private var isLoading = false
     @State private var error: Error?
@@ -143,6 +144,7 @@ struct AddBudgetLineSheet: View {
                 if kind == .saving {
                     SavingsGoalPickerField(selection: $savingsGoalId)
                 }
+                TagPickerField(selection: $selectedTagIds)
                 if kind == .income {
                     remitToggle
                 }
@@ -275,7 +277,8 @@ struct AddBudgetLineSheet: View {
                 originalAmount: conversion?.originalAmount,
                 originalCurrency: conversion?.originalCurrency,
                 targetCurrency: conversion?.targetCurrency,
-                exchangeRate: conversion?.exchangeRate
+                exchangeRate: conversion?.exchangeRate,
+                tagIds: TagPickerField.createdTagIds(from: selectedTagIds)
             )
 
             let budgetLine = try await dependencies.createBudgetLine(data)
@@ -346,4 +349,5 @@ struct AddBudgetLineSheet: View {
     .environment(UserSettingsStore())
     .environment(BudgetListStore())
     .environment(SavingsGoalStore())
+    .environment(TagStore())
 }

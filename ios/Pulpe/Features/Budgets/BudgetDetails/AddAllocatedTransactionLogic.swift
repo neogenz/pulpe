@@ -14,6 +14,7 @@ enum AddAllocatedTransactionLogic {
         let transactionDate: Date
         let isChecked: Bool
         let conversion: CurrencyConversion?
+        let tagIds: [String]?
     }
 
     static func isFormValid(name: String, amount: Decimal?, isLoading: Bool) -> Bool {
@@ -60,7 +61,8 @@ enum AddAllocatedTransactionLogic {
             originalAmount: input.conversion?.originalAmount,
             originalCurrency: input.conversion?.originalCurrency,
             targetCurrency: input.conversion?.targetCurrency,
-            exchangeRate: input.conversion?.exchangeRate
+            exchangeRate: input.conversion?.exchangeRate,
+            tagIds: input.tagIds
         )
     }
 }

@@ -116,6 +116,31 @@ struct EditTemplateLineSheetTests {
         #expect(update.exchangeRate == Decimal(0.95))
     }
 
+    @Test("buildUpdate forwards an explicit tag change")
+    func buildUpdate_includesChangedTags() {
+        let update = EditTemplateLineSheet.buildUpdate(
+            name: "Tagged",
+            amount: 50,
+            kind: .expense,
+            recurrence: .fixed,
+            conversion: nil,
+            tagIds: ["tag-1"]
+        )
+
+        #expect(update.tagIds == ["tag-1"])
+    }
+
+    @Test("Propagation keeps the direct update tag payload")
+    func propagationUpdate_includesChangedTags() {
+        var update = TemplateLineUpdate()
+        update.tagIds = []
+
+        let propagated = EditTemplateLineSheet.propagationUpdate(id: "tl-1", data: update)
+
+        #expect(propagated.id == "tl-1")
+        #expect(propagated.tagIds == [])
+    }
+
     // MARK: - Case 7: pure helper snapshot stability
 
     @Test("Case 7: pure helper — repeated calls with stable inputs are deterministic")

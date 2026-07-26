@@ -200,6 +200,20 @@ struct EditTransactionLogicTests {
         #expect(update.exchangeRate == Decimal(0.95))
     }
 
+    @Test("buildUpdate forwards an explicit tag change")
+    func buildUpdate_includesChangedTags() {
+        let update = EditTransactionLogic.buildUpdate(
+            name: "Tagged",
+            amount: 50,
+            kind: .expense,
+            transactionDate: TestDataFactory.fixedDate,
+            conversion: nil,
+            tagIds: []
+        )
+
+        #expect(update.tagIds == [])
+    }
+
     @Test("Case 7: pure helper — repeated calls with stable inputs are deterministic")
     func shouldShowAlternateCurrency_isPure() {
         let tx = Self.makeTransaction(originalCurrency: .eur)
