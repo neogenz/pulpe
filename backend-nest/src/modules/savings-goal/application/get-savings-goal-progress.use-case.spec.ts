@@ -219,6 +219,45 @@ describe('GetSavingsGoalProgressUseCase', () => {
     expect(computed.suggestCompletion).toBeNull();
   });
 
+  it('does not mark timeline gaps as provisionable without a deadline', async () => {
+    const now = new Date();
+    const currentIndex = now.getFullYear() * 12 + now.getMonth() + 1;
+    const period = (offset: number) => {
+      const index = currentIndex + offset;
+      const year = Math.floor((index - 1) / 12);
+      return { month: index - year * 12, year };
+    };
+    const missing = period(1);
+    const linkedFuture = period(2);
+    mockRepo.findById.mockResolvedValue({
+      ...goal,
+      targetAmount: null,
+      targetDate: null,
+      createdAt: now.toISOString(),
+    });
+    mockRepo.findLinkedContributions.mockResolvedValue({
+      lines: [
+        {
+          id: 'line-future',
+          amount: 500,
+          kind: 'saving',
+          checkedAt: null,
+          ...linkedFuture,
+        },
+      ],
+      transactions: [],
+    });
+    mockTemplateRepo.findDefaultTemplateId.mockResolvedValue('template-1');
+
+    const { months } = await useCase.execute(goal.id, mockUser);
+
+    expect(
+      months.find(
+        (month) => month.month === missing.month && month.year === missing.year,
+      )?.isProvisionable,
+    ).toBe(false);
+  });
+
   it('marks only truly missing periods as provisionable', async () => {
     const now = new Date();
     const currentIndex = now.getFullYear() * 12 + now.getMonth() + 1;

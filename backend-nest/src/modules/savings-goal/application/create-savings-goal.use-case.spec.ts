@@ -11,6 +11,8 @@ import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { BUDGET_LINE_SPREAD_PORT } from '@modules/budget-line/domain/ports/budget-line-spread.port';
+import { BUDGET_TEMPLATE_REPOSITORY } from '@modules/budget-template/domain/ports/budget-template-repository.port';
+import { TEMPLATE_LINE_PROPAGATION_PORT } from '@modules/budget-template/domain/ports/template-line-propagation.port';
 import { SAVINGS_GOAL_REPOSITORY } from '../domain/ports/savings-goal-repository.port';
 import { CreateSavingsGoalUseCase } from './create-savings-goal.use-case';
 
@@ -55,13 +57,15 @@ const goalWithTargetDate = (targetDate: string) => ({
   initialAmount: null,
 });
 
-describe('CreateSavingsGoalUseCase — bounded materialization (PUL-316)', () => {
+describe('CreateSavingsGoalUseCase — contribution plans', () => {
   let useCase: CreateSavingsGoalUseCase;
   let repo: {
     insert: ReturnType<typeof jest.fn>;
     findMaterializedPeriods: ReturnType<typeof jest.fn>;
   };
   let spread: { fanOut: ReturnType<typeof jest.fn> };
+  let templateRepo: { findDefaultTemplateId: ReturnType<typeof jest.fn> };
+  let propagation: { createLineAndPropagate: ReturnType<typeof jest.fn> };
   let logger: {
     info: ReturnType<typeof jest.fn>;
     warn: ReturnType<typeof jest.fn>;
@@ -73,6 +77,8 @@ describe('CreateSavingsGoalUseCase — bounded materialization (PUL-316)', () =>
         CreateSavingsGoalUseCase,
         { provide: SAVINGS_GOAL_REPOSITORY, useValue: repo },
         { provide: BUDGET_LINE_SPREAD_PORT, useValue: spread },
+        { provide: BUDGET_TEMPLATE_REPOSITORY, useValue: templateRepo },
+        { provide: TEMPLATE_LINE_PROPAGATION_PORT, useValue: propagation },
         {
           provide: `INFO_LOGGER:${CreateSavingsGoalUseCase.name}`,
           useValue: logger,
@@ -122,6 +128,12 @@ describe('CreateSavingsGoalUseCase — bounded materialization (PUL-316)', () =>
         skippedMonths: [],
       }),
     };
+    templateRepo = {
+      findDefaultTemplateId: jest.fn().mockResolvedValue('template-1'),
+    };
+    propagation = {
+      createLineAndPropagate: jest.fn().mockResolvedValue({ id: 'line-1' }),
+    };
     logger = { info: jest.fn(), warn: jest.fn() };
     await buildUseCase();
   });
@@ -158,6 +170,33 @@ describe('CreateSavingsGoalUseCase — bounded materialization (PUL-316)', () =>
     await createGoal(dayOfPeriod(periodAtOffset(2), 15), 692.5);
 
     expect(trancheePeriods()).not.toContainEqual(periodAtOffset(-1));
+  });
+
+  it('starts dated forecasts at a future start date', async () => {
+    const startDate = dayOfPeriod(periodAtOffset(2), 15);
+    const targetDate = dayOfPeriod(periodAtOffset(4), 15);
+    repo.insert.mockResolvedValue({
+      ...goalWithTargetDate(targetDate),
+      startDate,
+    });
+
+    await useCase.execute(
+      {
+        name: 'Canapé',
+        startDate,
+        targetAmount: 3700,
+        targetDate,
+        status: 'ACTIVE',
+        monthlyContribution: 692.5,
+      },
+      user,
+    );
+
+    expect(trancheePeriods()).toEqual([
+      periodAtOffset(2),
+      periodAtOffset(3),
+      periodAtOffset(4),
+    ]);
   });
 
   it('should never materialize a month that has no budget yet', async () => {
@@ -206,6 +245,7 @@ describe('CreateSavingsGoalUseCase — bounded materialization (PUL-316)', () =>
   it('should create a name-only objective with a null interval', async () => {
     repo.insert.mockResolvedValue({
       ...goalWithTargetDate('2099-01-01'),
+      name: 'Matelas',
       targetAmount: null,
       targetDate: null,
     });
@@ -225,6 +265,66 @@ describe('CreateSavingsGoalUseCase — bounded materialization (PUL-316)', () =>
       initialAmount: null,
     });
     expect(spread.fanOut).not.toHaveBeenCalled();
+  });
+
+  it('creates one linked recurring template line for an undated monthly contribution', async () => {
+    repo.insert.mockResolvedValue({
+      ...goalWithTargetDate('2099-01-01'),
+      name: 'Matelas',
+      targetAmount: null,
+      targetDate: null,
+    });
+
+    await useCase.execute(
+      {
+        name: 'Matelas',
+        status: 'ACTIVE',
+        monthlyContribution: 250,
+      },
+      user,
+    );
+
+    expect(repo.findMaterializedPeriods).not.toHaveBeenCalled();
+    expect(spread.fanOut).not.toHaveBeenCalled();
+    expect(propagation.createLineAndPropagate).toHaveBeenCalledWith({
+      templateId: 'template-1',
+      userId: user.id,
+      name: 'Matelas',
+      amount: 250,
+      kind: 'saving',
+      recurrence: 'fixed',
+      savingsGoalId: GOAL_ID,
+    });
+  });
+
+  it('keeps dated monthly contributions on bounded one-off forecasts', async () => {
+    await createGoal(dayOfPeriod(periodAtOffset(2), 15), 692.5);
+
+    expect(spread.fanOut).toHaveBeenCalledTimes(1);
+    expect(propagation.createLineAndPropagate).not.toHaveBeenCalled();
+    expect(templateRepo.findDefaultTemplateId).not.toHaveBeenCalled();
+  });
+
+  it('keeps an undated goal when no default template exists', async () => {
+    templateRepo.findDefaultTemplateId.mockResolvedValue(null);
+    repo.insert.mockResolvedValue({
+      ...goalWithTargetDate('2099-01-01'),
+      targetDate: null,
+    });
+
+    const result = await useCase.execute(
+      {
+        name: 'Matelas',
+        targetAmount: 3000,
+        status: 'ACTIVE',
+        monthlyContribution: 250,
+      },
+      user,
+    );
+
+    expect(result.id).toBe(GOAL_ID);
+    expect(propagation.createLineAndPropagate).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledTimes(1);
   });
 
   it('should still create the goal when no budget exists in the horizon', async () => {

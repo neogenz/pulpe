@@ -35,6 +35,7 @@ import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { SupabaseSavingsGoalRepository } from './infrastructure/persistence/supabase-savings-goal.repository';
 import { GetSavingsGoalProgressUseCase } from './application/get-savings-goal-progress.use-case';
+import { UpdateSavingsGoalUseCase } from './application/update-savings-goal.use-case';
 import { SupabaseBudgetTemplateRepository } from '@modules/budget-template/infrastructure/persistence/supabase-budget-template.repository';
 
 const PASSWORD = 'test-password-123';
@@ -42,6 +43,7 @@ const PASSWORD = 'test-password-123';
 // Stubs shared across every use-case instance below.
 const encryptionStub = {
   getDekFor: async () => Buffer.alloc(32),
+  encryptAmount: (amount: number) => `enc:${amount}`,
   tryDecryptAmount: (cipher: string | null, _dek: Buffer, fallback: number) =>
     typeof cipher === 'string' && cipher.startsWith('enc:')
       ? Number(cipher.slice(4))
@@ -84,6 +86,7 @@ async function makeUser(email: string): Promise<TestUser> {
 /** Real repository + real use-case running under the user's own JWT (RLS live). */
 function progressUseCaseFor(user: TestUser): {
   useCase: GetSavingsGoalProgressUseCase;
+  updateUseCase: UpdateSavingsGoalUseCase;
   authUser: AuthenticatedUser;
 } {
   const authUser = {
@@ -108,6 +111,7 @@ function progressUseCaseFor(user: TestUser): {
   );
   return {
     useCase: new GetSavingsGoalProgressUseCase(repo, templateRepo, noopLogger),
+    updateUseCase: new UpdateSavingsGoalUseCase(repo, noopLogger),
     authUser,
   };
 }
@@ -130,6 +134,8 @@ function shiftPeriod(period: Period, delta: number): Period {
 
 const pastPeriod = shiftPeriod(nowPeriod, -1);
 const futurePeriod = shiftPeriod(nowPeriod, 1);
+const dateOfPeriod = (period: Period): string =>
+  `${period.year}-${String(period.month).padStart(2, '0')}-01`;
 
 const goalAId = crypto.randomUUID();
 const goalBId = crypto.randomUUID();
@@ -165,6 +171,7 @@ beforeAll(async () => {
     target_amount: 'enc:1000',
     target_date: '2099-12-01',
     status: 'ACTIVE',
+    created_at: `${dateOfPeriod(pastPeriod)}T00:00:00.000Z`,
   });
   await admin.from('template').insert({
     id: templateAId,
@@ -315,6 +322,51 @@ describe('PUL-8 — savings-goal progress data path (local Supabase)', () => {
     expect(computed.confirmed).toBe(350);
     // Exactly the three lines tagged with the goal — unlinked + foreign excluded.
     expect(computed.linkedLineCount).toBe(3);
+  });
+
+  it('changes interval metadata without rewriting linked forecasts', async () => {
+    if (!env) return;
+
+    const { useCase, updateUseCase, authUser } = progressUseCaseFor(userA);
+    const before = await userA.client
+      .from('budget_line')
+      .select('id, amount, savings_goal_id')
+      .eq('savings_goal_id', goalAId)
+      .order('id');
+    expect(before.error).toBeNull();
+
+    await updateUseCase.execute(
+      goalAId,
+      {
+        startDate: dateOfPeriod(nowPeriod),
+        targetAmount: null,
+        targetDate: null,
+      },
+      authUser,
+    );
+    const openGoal = await useCase.execute(goalAId, authUser);
+    expect(openGoal.goal.targetAmount).toBeNull();
+    expect(openGoal.goal.targetDate).toBeNull();
+    expect(openGoal.computed.plannedCumulative).toBe(300);
+    expect(openGoal.computed.achievementPercent).toBeNull();
+
+    await updateUseCase.execute(
+      goalAId,
+      { targetAmount: 2000, targetDate: '2099-12-01' },
+      authUser,
+    );
+    const datedGoal = await useCase.execute(goalAId, authUser);
+    expect(datedGoal.goal.targetAmount).toBe(2000);
+    expect(datedGoal.goal.targetDate).toBe('2099-12-01');
+    expect(datedGoal.computed.plannedCumulative).toBe(300);
+
+    const after = await userA.client
+      .from('budget_line')
+      .select('id, amount, savings_goal_id')
+      .eq('savings_goal_id', goalAId)
+      .order('id');
+    expect(after.error).toBeNull();
+    expect(after.data).toEqual(before.data);
   });
 
   it('hides a foreign user’s goal — NOT_FOUND, no contribution leak', async () => {

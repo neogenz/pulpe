@@ -81,13 +81,14 @@ describe('UpdateSavingsGoalUseCase — initialAmount patch semantics (PUL-293)',
   it('forwards explicit nulls while preserving omitted interval fields', async () => {
     await useCase.execute(
       'goal-1',
-      { startDate: null, targetAmount: null },
+      { startDate: null, targetAmount: null, targetDate: null },
       user,
     );
 
     expect(repo.update).toHaveBeenCalledWith('goal-1', {
       startDate: null,
       targetAmount: null,
+      targetDate: null,
     });
   });
 

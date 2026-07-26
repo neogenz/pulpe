@@ -164,6 +164,32 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
     expect(repo.applyPlan).toHaveBeenCalledTimes(1);
   });
 
+  it('does not provision missing months for an objective without a deadline', async () => {
+    repo.findById.mockResolvedValue({
+      id: 'goal-1',
+      userId: user.id,
+      name: 'Pot libre',
+      startDate: null,
+      targetAmount: null,
+      targetDate: null,
+      status: 'ACTIVE',
+      createdAt: new Date().toISOString(),
+    });
+
+    await expect(
+      useCase.execute(
+        'goal-1',
+        {
+          monthAdjustments: [],
+          missingMonthAdjustments: [{ ...periods[2], amount: 500 }],
+        },
+        user,
+      ),
+    ).rejects.toMatchObject({ code: 'ERR_SAVINGS_GOAL_PLAN_LINE_INVALID' });
+    expect(spread.fanOut).not.toHaveBeenCalled();
+    expect(repo.applyPlan).not.toHaveBeenCalled();
+  });
+
   it('rejects a materialized budget without a linked saving line', async () => {
     repo.findMaterializedPeriods.mockResolvedValue([
       ...periods.slice(0, 2),

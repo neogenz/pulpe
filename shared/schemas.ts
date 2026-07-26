@@ -288,11 +288,9 @@ export const savingsGoalCreateSchema = z
       .optional(),
     status: savingsGoalStatusSchema.default('ACTIVE'),
     /**
-     * Opt-in auto-décomposition (PUL-285 CA1/CA6) : montant mensuel choisi pour
-     * la prévision Épargne récurrente liée que le serveur génère sur le Mois
-     * Type par défaut et propage aux budgets matérialisés. Présence = opt-in ;
-     * le client pré-remplit via `suggestedMonthlyContribution` mais l'utilisateur
-     * garde la main (« pré-remplit, n'impose pas »).
+     * Opt-in auto-décomposition : une échéance produit des prévisions `one_off`
+     * bornées ; sans échéance, le serveur crée une récurrence liée dans le Mois
+     * Type. Le client ne suggère un montant qu'avec cible + échéance.
      */
     monthlyContribution: z.number().positive().optional(),
     originalTargetAmount: z.number().positive().optional(),

@@ -110,6 +110,9 @@ export class ApplySavingsGoalPlanUseCase {
       id,
       user.id,
     );
+    if (missing.length > 0 && targetPeriodIndex == null) {
+      this.throwLineInvalid(id, user.id);
+    }
 
     let provisionedMonthCount = 0;
     if (missing.length > 0) {

@@ -100,7 +100,8 @@ export class GetSavingsGoalProgressUseCase {
       // PUL-316 — combler un trou ne recopie plus une ligne du Mois Type : il
       // crée la prévision liée directement. Seul le modèle par défaut reste
       // nécessaire, pour matérialiser le budget du mois absent.
-      canProvisionMissingPeriods: data.hasDefaultTemplate,
+      canProvisionMissingPeriods:
+        goal.targetDate != null && data.hasDefaultTemplate,
       initialAmount: goal.initialAmount ?? 0,
       lines: data.lines,
       transactions: data.transactions,
