@@ -17,6 +17,7 @@ import SwiftUI
 struct BudgetDetailsFreeTransactionsList: View {
     let items: [BudgetDetailsScreenState.FreeTransactionItem]
     let currency: SupportedCurrency
+    let tagNamesById: [String: String]
     let onTap: (Transaction) -> Void
     let onTogglePointed: (Transaction) -> Void
 
@@ -59,6 +60,7 @@ struct BudgetDetailsFreeTransactionsList: View {
                     transaction: item.transaction,
                     isSyncing: item.isSyncing,
                     currency: currency,
+                    tagNames: TagChips.names(for: item.transaction.tagIds, namesById: tagNamesById),
                     onTap: { onTap(item.transaction) },
                     onTogglePointed: { onTogglePointed(item.transaction) }
                 )
@@ -100,6 +102,7 @@ private struct BudgetDetailsFreeTransactionRow: View {
     let transaction: Transaction
     let isSyncing: Bool
     let currency: SupportedCurrency
+    let tagNames: [String]
     let onTap: () -> Void
     let onTogglePointed: () -> Void
 
@@ -146,7 +149,8 @@ private struct BudgetDetailsFreeTransactionRow: View {
         let amount = transaction.amount.asCurrency(currency)
         let pointed = isPointed ? "Pointé" : "À pointer"
         let date = transaction.transactionDate.dayMonthFormatted
-        return "\(kind.label) · \(transaction.name) · \(amount) · \(date) · \(pointed)"
+        let tags = tagNames.isEmpty ? "" : " · Tags : \(tagNames.joined(separator: ", "))"
+        return "\(kind.label) · \(transaction.name) · \(amount) · \(date) · \(pointed)\(tags)"
     }
 
     private func handleTogglePointed() {
@@ -205,6 +209,10 @@ private struct BudgetDetailsFreeTransactionRow: View {
                 .strikethrough(isPointed, color: Color.textTertiary)
                 .lineLimit(1)
                 .truncationMode(.tail)
+
+            if !tagNames.isEmpty {
+                TagChips(names: tagNames, maxVisible: 2)
+            }
 
             Text(transaction.transactionDate.dayInMonthFormatted)
                 .font(PulpeTypography.metricLabelBold)

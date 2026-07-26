@@ -40,7 +40,6 @@ struct AddBudgetLineSheet: View {
     private let anchorYear: Int
     private let dependencies: AddBudgetLineDependencies
     private let conversionService = CurrencyConversionService.shared
-
     init(
         budgetId: String,
         anchorMonth: Int,
@@ -68,8 +67,7 @@ struct AddBudgetLineSheet: View {
     /// Income "remets le mois prochain" ON — the CTA reroutes to the withdrawal preview (PUL-292).
     private var isSavingsWithdrawalMode: Bool { kind == .income && remitNextMonth }
 
-    /// Hero hint follows the amount mode in spread mode — "Montant total" when the
-    /// server divides, "Montant par mois" when it replicates. `nil` outside spread.
+    /// Hero hint follows the amount mode in spread mode.
     private var amountFieldHint: String? {
         guard isSpreadMode else { return nil }
         return amountMode == .total ? "Montant total" : "Montant par mois"
@@ -124,7 +122,6 @@ struct AddBudgetLineSheet: View {
             )
             .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
 
-            // Spread toggle hidden for income — revenu lissé is out of scope (PUL-17).
             if kind != .income {
                 SpreadModeToggle(selection: $mode, accentColor: kind.color)
             }
@@ -234,8 +231,7 @@ struct AddBudgetLineSheet: View {
         }
     }
 
-    /// Hands a prefilled withdrawal intent to the router (PUL-292): the typed
-    /// name becomes the optional source, the sheet opens at its preview step.
+    /// Hands a prefilled withdrawal intent to the router (PUL-292).
     private func routeToSavingsWithdrawal() {
         guard let amount, amount > 0 else { return }
         let trimmed = name.trimmingCharacters(in: .whitespaces)

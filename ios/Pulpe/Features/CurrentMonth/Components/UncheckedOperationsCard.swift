@@ -5,6 +5,7 @@ import SwiftUI
 struct UncheckedOperationsCard: View {
     let items: [CurrentMonthStore.CheckableItem]
     let totalCount: Int
+    var tagNamesById: [String: String] = [:]
     let syncingBudgetLineIds: Set<String>
     let syncingTransactionIds: Set<String>
     var onToggle: (CurrentMonthStore.CheckableItem) -> Void
@@ -204,6 +205,11 @@ struct UncheckedOperationsCard: View {
             }
             .accessibilityElement(children: .combine)
 
+            let tagNames = tagNames(for: item)
+            if !tagNames.isEmpty {
+                TagChips(names: tagNames, maxVisible: 2)
+            }
+
             actionsRow(item)
         }
         .padding(.horizontal, DesignTokens.Spacing.xl)
@@ -307,6 +313,15 @@ struct UncheckedOperationsCard: View {
             transaction.transactionDate.relativeFormatted.lowercased()
         case .budgetLine(let line, _):
             line.recurrence.label.lowercased()
+        }
+    }
+
+    private func tagNames(for item: CurrentMonthStore.CheckableItem) -> [String] {
+        switch item {
+        case .transaction(let transaction, _):
+            TagChips.names(for: transaction.tagIds, namesById: tagNamesById)
+        case .budgetLine(let line, _):
+            TagChips.names(for: line.tagIds, namesById: tagNamesById)
         }
     }
 

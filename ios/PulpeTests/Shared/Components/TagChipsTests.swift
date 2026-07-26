@@ -18,5 +18,16 @@ struct TagChipsTests {
 
         #expect(Array(chips.visibleNames) == ["A", "B"])
         #expect(chips.hiddenCount == 0)
+        #expect(chips.accessibilityLabel == "Tags : A, B")
+    }
+
+    @Test("Names resolve in server order and stale ids are ignored")
+    func resolvedNames() {
+        let names = TagChips.names(
+            for: ["tag-2", "missing", "tag-1"],
+            namesById: ["tag-1": "Courses", "tag-2": "Vacances"]
+        )
+
+        #expect(names == ["Vacances", "Courses"])
     }
 }

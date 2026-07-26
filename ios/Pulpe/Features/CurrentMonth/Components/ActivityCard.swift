@@ -4,6 +4,7 @@ import SwiftUI
 /// the only variateur that maps to real usage.
 struct ActivityCard: View {
     let transactions: [Transaction]
+    var tagNamesById: [String: String] = [:]
     var onViewAll: () -> Void
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
@@ -165,6 +166,11 @@ struct ActivityCard: View {
                     .font(PulpeTypography.labelLarge)
                     .foregroundStyle(Color.textPrimary)
                     .lineLimit(1)
+
+                let tagNames = TagChips.names(for: transaction.tagIds, namesById: tagNamesById)
+                if !tagNames.isEmpty {
+                    TagChips(names: tagNames, maxVisible: 2)
+                }
 
                 Text(transaction.transactionDate.relativeFormatted.lowercased())
                     .font(PulpeTypography.labelMedium)

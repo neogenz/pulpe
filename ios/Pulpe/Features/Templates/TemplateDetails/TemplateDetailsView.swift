@@ -3,6 +3,7 @@ import SwiftUI
 struct TemplateDetailsView: View {
     let templateId: String
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(TagStore.self) private var tagStore
     @State private var viewModel: TemplateDetailsViewModel
     @State private var selectedLineForEdit: TemplateLine?
 
@@ -31,6 +32,9 @@ struct TemplateDetailsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await viewModel.loadIfNeeded()
+            if viewModel.lines.contains(where: { !($0.tagIds ?? []).isEmpty }) {
+                await tagStore.loadIfNeeded()
+            }
         }
         .sheet(item: $selectedLineForEdit) { line in
             EditTemplateLineSheet(
@@ -168,7 +172,7 @@ struct TemplateDetailsView: View {
     private func templateLineSection(title: String, lines: [TemplateLine], kind: TransactionKind) -> some View {
         Section {
             ForEach(lines) { line in
-                TemplateLineRow(line: line) {
+                TemplateLineRow(line: line, tagNamesById: tagStore.namesById) {
                     selectedLineForEdit = line
                 }
             }
@@ -189,6 +193,7 @@ struct TemplateDetailsView: View {
 
 struct TemplateLineRow: View {
     let line: TemplateLine
+    let tagNamesById: [String: String]
     let onEdit: () -> Void
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
@@ -211,6 +216,11 @@ struct TemplateLineRow: View {
                         .lineLimit(1)
 
                     RecurrenceBadge(line.recurrence, style: .compact)
+
+                    let tagNames = TagChips.names(for: line.tagIds, namesById: tagNamesById)
+                    if !tagNames.isEmpty {
+                        TagChips(names: tagNames, maxVisible: 2)
+                    }
                 }
 
                 Spacer()
@@ -379,4 +389,5 @@ private struct TemplateDetailsSkeletonView: View {
         TemplateDetailsView(templateId: "test")
     }
     .environment(UserSettingsStore())
+    .environment(TagStore())
 }

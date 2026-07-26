@@ -17,6 +17,7 @@ struct CurrentMonthView: View {
     @Environment(BudgetListStore.self) private var budgetListStore
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(SavingsGoalStore.self) private var savingsGoalStore
+    @Environment(TagStore.self) private var tagStore
     @Environment(ToastManager.self) private var toastManager
     @State private var activeSheet: SheetDestination?
     @State private var navigateToBudget = false
@@ -140,6 +141,10 @@ struct CurrentMonthView: View {
             if store.budgetLines.contains(where: { $0.savingsGoalId != nil }) {
                 await savingsGoalStore.loadIfNeeded()
             }
+            if store.budgetLines.contains(where: { !($0.tagIds ?? []).isEmpty })
+                || store.transactions.contains(where: { !($0.tagIds ?? []).isEmpty }) {
+                await tagStore.loadIfNeeded()
+            }
             if reduceMotion {
                 hasAppeared = true
             } else {
@@ -206,6 +211,7 @@ struct CurrentMonthView: View {
                     UncheckedOperationsCard(
                         items: store.uncheckedItems,
                         totalCount: store.uncheckedCount,
+                        tagNamesById: tagStore.namesById,
                         syncingBudgetLineIds: store.syncingBudgetLineIds,
                         syncingTransactionIds: store.syncingTransactionIds,
                         onToggle: { item in
@@ -253,6 +259,7 @@ struct CurrentMonthView: View {
                     DriftCard(
                         drifts: store.driftLines,
                         totalOver: store.driftTotal,
+                        tagNamesById: tagStore.namesById,
                         adjustMonthName: nextMonthName,
                         onViewBudget: { navigateToBudget = true },
                         onCatchUp: { navigateToBudget = true }
@@ -273,6 +280,7 @@ struct CurrentMonthView: View {
                 if !store.transactions.isEmpty {
                     ActivityCard(
                         transactions: store.transactions,
+                        tagNamesById: tagStore.namesById,
                         onViewAll: { navigateToBudget = true }
                     )
                     .staggeredEntrance(isVisible: hasAppeared, index: 4)
@@ -479,5 +487,6 @@ private struct CurrentMonthSkeletonView: View {
     .environment(BudgetListStore())
     .environment(UserSettingsStore())
     .environment(SavingsGoalStore())
+    .environment(TagStore())
     .environment(ToastManager())
 }

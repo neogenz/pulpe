@@ -13,6 +13,10 @@ struct TagChips: View {
         names.count - visibleNames.count
     }
 
+    var accessibilityLabel: String {
+        "Tags : \(names.joined(separator: ", "))"
+    }
+
     var body: some View {
         ScrollView(.horizontal) {
             HStack(spacing: DesignTokens.ChipMetrics.Standard.interChipGap) {
@@ -26,5 +30,11 @@ struct TagChips: View {
             }
         }
         .scrollIndicators(.hidden)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    static func names(for ids: [String]?, namesById: [String: String]) -> [String] {
+        ids?.compactMap { namesById[$0] } ?? []
     }
 }

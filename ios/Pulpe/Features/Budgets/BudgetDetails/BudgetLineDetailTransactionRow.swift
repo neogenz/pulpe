@@ -6,6 +6,7 @@ import SwiftUI
 struct BudgetLineDetailTransactionRow: View {
     let transaction: Transaction
     let displayCurrency: SupportedCurrency
+    let tagNames: [String]
     let onTap: () -> Void
 
     var body: some View {
@@ -17,6 +18,10 @@ struct BudgetLineDetailTransactionRow: View {
                         .foregroundStyle(transaction.isChecked ? .secondary : .primary)
                         .strikethrough(transaction.isChecked, color: .secondary)
                         .lineLimit(1)
+
+                    if !tagNames.isEmpty {
+                        TagChips(names: tagNames, maxVisible: 2)
+                    }
 
                     Text(transaction.transactionDate.relativeFormatted)
                         .font(PulpeTypography.metricMini)
