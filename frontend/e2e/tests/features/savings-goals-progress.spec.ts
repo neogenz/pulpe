@@ -112,10 +112,10 @@ test.describe('Savings goal progression (PUL-8)', () => {
     await expect(page).toHaveURL(new RegExp(`/savings-goals/${GOAL_ID}$`));
     await expect(page.getByTestId('savings-goal-detail-page')).toBeVisible();
 
-    // Two-layer progress bar with the confirmed (Épargné) layer.
+    // Two-layer progress bar: confirmed balance in front, planned projection behind.
     await expect(page.getByTestId('savings-goal-progress-bar')).toBeVisible();
     await expect(page.getByTestId('progress-confirmed-layer')).toBeVisible();
-    await expect(page.getByTestId('progress-planned-layer')).toBeVisible();
+    await expect(page.getByTestId('progress-projected-layer')).toBeVisible();
     await expect(page.getByTestId('savings-goal-detail-page')).toContainText(
       'Épargné',
     );

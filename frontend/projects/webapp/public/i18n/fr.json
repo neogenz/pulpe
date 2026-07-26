@@ -959,10 +959,11 @@
       "target": "Cible",
       "achievement": "{{ percent }} % atteint",
       "progressAriaLabel": "Progression : {{ percent }} % de la cible atteints (épargné)",
+      "progressAriaValue": "{{ confirmed }} % épargnés, projection planifiée à {{ projected }} % de la cible",
       "lockedAmountAria": "{{ amount }}, pointé, verrouillé",
       "confirmed": "Épargné",
       "initialAmount": "Montant de départ",
-      "plannedCumulative": "Prévu cumulé",
+      "plannedCumulative": "Versements prévus à date",
       "required": "Pour tenir ton échéance",
       "requiredPerMonth": "{{ amount }} / mois",
       "projected": "Projection à l'échéance",
@@ -1003,10 +1004,9 @@
       "seeLess": "Réduire",
       "editAmount": "Montant de ce mois",
       "chartTarget": "Cible",
-      "chartPlanned": "Prévu cumulé",
       "chartConfirmed": "Épargné",
-      "chartProjection": "Projection",
-      "chartAria": "Trajectoire d'épargne : épargné {{ confirmed }}, prévu {{ planned }}, cible {{ target }}."
+      "chartProjection": "Projection planifiée",
+      "chartAria": "Trajectoire d'épargne : épargné {{ confirmed }}, projection planifiée {{ projected }}, cible {{ target }}."
     },
     "simulate": {
       "everyMonth": "Chaque mois, je mets",

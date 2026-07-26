@@ -3,10 +3,10 @@ import SwiftUI
 
 /// « Ta trajectoire » (PUL-12+, pilier A) — cumulative savings chart.
 ///
-/// Four cumulative series anchored → target (`docs/SAVINGS.md` §10.1):
-/// **Pointé** (reality, stops at current month), **Prévu cumulé** (engagement, full
-/// span), **Projection** (extrapolation at the confirmed pace, or the edited plan
-/// in simulation), and a flat **Cible** rule. Savings green + neutrals only — never
+/// Three balance series anchored → target (`docs/SAVINGS.md` §10.1):
+/// **Épargné** (reality, stops at current month), **Projection planifiée**
+/// (confirmed balance + remaining planned contributions), and a flat **Cible**
+/// rule. Savings green + neutrals only — never
 /// amber/red (RG-002). Cloned from `RealizedBalanceSheet.BalanceTrendChart`.
 struct GoalProjectionChart: View {
     let series: GoalProjectionSeries
@@ -18,7 +18,7 @@ struct GoalProjectionChart: View {
     private var yMin: Double { 0 }
 
     private var yMax: Double {
-        let seriesMax = (series.planned + series.confirmed + series.projection)
+        let seriesMax = (series.confirmed + series.projection)
             .map(\.value)
             .max() ?? 0
         let candidate = max(seriesMax, series.target)
@@ -41,17 +41,6 @@ struct GoalProjectionChart: View {
                         .foregroundStyle(Color.textTertiary)
                 }
 
-            ForEach(series.planned) { point in
-                LineMark(
-                    x: .value("Mois", point.index),
-                    y: .value("Prévu", point.value),
-                    series: .value("Série", "planned")
-                )
-                .interpolationMethod(.monotone)
-                .lineStyle(StrokeStyle(lineWidth: DesignTokens.BorderWidth.medium))
-                .foregroundStyle(Color.financialSavings.opacity(DesignTokens.Opacity.strong))
-            }
-
             ForEach(series.confirmed) { point in
                 AreaMark(
                     x: .value("Mois", point.index),
@@ -73,12 +62,12 @@ struct GoalProjectionChart: View {
             ForEach(series.projection) { point in
                 LineMark(
                     x: .value("Mois", point.index),
-                    y: .value("Projection", point.value),
+                    y: .value("Projection planifiée", point.value),
                     series: .value("Série", "projection")
                 )
                 .interpolationMethod(.monotone)
                 .lineStyle(StrokeStyle(lineWidth: DesignTokens.BorderWidth.medium, lineCap: .round, dash: [5, 4]))
-                .foregroundStyle(Color.pulpePrimary)
+                .foregroundStyle(Color.financialSavings.opacity(DesignTokens.Opacity.strong))
             }
         }
         .chartXAxis {
@@ -118,7 +107,7 @@ struct GoalProjectionChart: View {
         let confirmed = Decimal(series.confirmed.last?.value ?? 0).asCompactCurrency(currency)
         let projection = Decimal(series.projection.last?.value ?? 0).asCompactCurrency(currency)
         let target = Decimal(series.target).asCompactCurrency(currency)
-        return "Pointé \(confirmed), projection \(projection), cible \(target)"
+        return "Épargné \(confirmed), projection planifiée \(projection), cible \(target)"
     }
 
     private var areaGradient: LinearGradient {
@@ -248,13 +237,12 @@ struct GoalProjectionSeries: Equatable {
         var id: Int { index }
     }
 
-    let planned: [Point]
     let confirmed: [Point]
     let projection: [Point]
     let target: Double
     let ticks: [Tick]
 
-    var isEmpty: Bool { planned.isEmpty && confirmed.isEmpty && projection.isEmpty }
+    var isEmpty: Bool { confirmed.isEmpty && projection.isEmpty }
 
     /// Predicate choice for gating « Ta trajectoire »: at least 2 confirmed
     /// points — one elapsed month plus the current (`read` emits one confirmed
@@ -264,26 +252,35 @@ struct GoalProjectionSeries: Equatable {
     /// a current month locked by pointage still has no trend to draw.
     var hasConfirmedTrend: Bool { confirmed.count >= 2 }
 
-    /// Read mode: Prévu (full), Pointé (up to current), Projection at the confirmed
-    /// pace from the current month onward.
+    /// Read mode: confirmed balance through the current month, then the planned
+    /// balance projection through the deadline.
     static func read(from progress: SavingsGoalProgress) -> GoalProjectionSeries {
         let months = progress.months
         guard !months.isEmpty else { return .empty }
 
         let currentIndex = months.firstIndex { $0.state == .current } ?? months.count - 1
+        let lastIndex = months.count - 1
         let target = double(progress.targetAmount)
-        let pace = double(progress.confirmedPace)
-        let startConfirmed = double(months[currentIndex].confirmedCumulative)
-
-        let planned = months.enumerated().map { Point(index: $0.offset, value: double($0.element.plannedCumulative)) }
-        let confirmed = months.prefix(currentIndex + 1).enumerated()
+        var confirmed = months.prefix(currentIndex + 1).enumerated()
             .map { Point(index: $0.offset, value: double($0.element.confirmedCumulative)) }
-        let projection = months.indices[currentIndex...].map { index in
-            Point(index: index, value: startConfirmed + pace * Double(index - currentIndex))
+        confirmed[confirmed.count - 1] = Point(index: currentIndex, value: double(progress.confirmed))
+
+        var projection = [Point(index: currentIndex, value: double(progress.confirmed))]
+        if currentIndex == lastIndex {
+            projection[0] = Point(index: currentIndex, value: double(progress.projected))
+        } else {
+            var cumulative = progress.confirmed
+            for index in currentIndex ... lastIndex {
+                cumulative += max(0, months[index].plannedAmount - months[index].confirmedAmount)
+                if index > currentIndex {
+                    projection.append(Point(index: index, value: double(cumulative)))
+                }
+            }
+            // The API owns the canonical endpoint and absorbs decimal rounding.
+            projection[projection.count - 1] = Point(index: lastIndex, value: double(progress.projected))
         }
 
         return GoalProjectionSeries(
-            planned: planned,
             confirmed: confirmed,
             projection: projection,
             target: target,
@@ -292,23 +289,36 @@ struct GoalProjectionSeries: Equatable {
     }
 
     /// Simulation mode: Pointé unchanged, Projection follows the edited plan
-    /// (`simulatedCumulative`); the Prévu reference is dropped so the deforming
-    /// trajectory reads clearly (`docs/SAVINGS.md` §10.1, en simulation).
+    /// (`simulatedCumulative`) while the confirmed balance stays unchanged.
     static func simulation(
         from result: SavingsPlanCalculator.SimulationResult,
-        targetAmount: Decimal
+        targetAmount: Decimal,
+        confirmedAmount: Decimal
     ) -> GoalProjectionSeries {
         let months = result.months
         guard !months.isEmpty else { return .empty }
 
         let currentIndex = months.firstIndex { $0.month.state == .current } ?? months.count - 1
-        let confirmed = months.prefix(currentIndex + 1).enumerated()
+        let lastIndex = months.count - 1
+        var confirmed = months.prefix(currentIndex + 1).enumerated()
             .map { Point(index: $0.offset, value: double($0.element.month.confirmedCumulative)) }
-        let projection = months.enumerated()
-            .map { Point(index: $0.offset, value: double($0.element.simulatedCumulative)) }
+        confirmed[confirmed.count - 1] = Point(index: currentIndex, value: double(confirmedAmount))
+
+        var projection = [Point(index: currentIndex, value: double(confirmedAmount))]
+        if currentIndex == lastIndex {
+            projection[0] = Point(index: currentIndex, value: double(result.simulatedFinal))
+        } else {
+            var cumulative = confirmedAmount
+            for index in currentIndex ... lastIndex {
+                cumulative += max(0, months[index].simulatedAmount - months[index].month.confirmedAmount)
+                if index > currentIndex {
+                    projection.append(Point(index: index, value: double(cumulative)))
+                }
+            }
+            projection[projection.count - 1] = Point(index: lastIndex, value: double(result.simulatedFinal))
+        }
 
         return GoalProjectionSeries(
-            planned: [],
             confirmed: confirmed,
             projection: projection,
             target: double(targetAmount),
@@ -316,7 +326,7 @@ struct GoalProjectionSeries: Equatable {
         )
     }
 
-    static let empty = GoalProjectionSeries(planned: [], confirmed: [], projection: [], target: 0, ticks: [])
+    static let empty = GoalProjectionSeries(confirmed: [], projection: [], target: 0, ticks: [])
 
     // MARK: - Helpers
 

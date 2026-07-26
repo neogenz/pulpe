@@ -83,7 +83,8 @@ export class GoalProjectionChart {
   readonly draft = input<SavingsPlanSimulationResult | null>(null);
   readonly targetAmount = input.required<number>();
   readonly currency = input.required<SupportedCurrency>();
-  readonly confirmedPace = input<number>(0);
+  readonly confirmed = input.required<number>();
+  readonly projected = input.required<number>();
 
   readonly #theme = signal<ChartThemeColors | null>(null);
   readonly #reducedMotion = signal(false);
@@ -92,7 +93,6 @@ export class GoalProjectionChart {
 
   readonly #labels = {
     target: this.#transloco.translate('savingsGoals.plan.chartTarget'),
-    planned: this.#transloco.translate('savingsGoals.plan.chartPlanned'),
     confirmed: this.#transloco.translate('savingsGoals.plan.chartConfirmed'),
     projection: this.#transloco.translate('savingsGoals.plan.chartProjection'),
   };
@@ -122,7 +122,8 @@ export class GoalProjectionChart {
       months: this.months(),
       draft: this.draft(),
       targetAmount: this.targetAmount(),
-      confirmedPace: this.confirmedPace(),
+      confirmed: this.confirmed(),
+      projected: this.projected(),
       theme: this.#theme(),
       locale: this.#locale,
       labels: this.#labels,
@@ -134,18 +135,11 @@ export class GoalProjectionChart {
     if (months.length === 0) return '';
     const draft = this.draft();
     const currency = this.currency();
-
-    const confirmed = [...months]
-      .reverse()
-      .find((month) => month.state === 'current' || month.state === 'past');
-    const confirmedNow = confirmed?.confirmedCumulative ?? 0;
-    const plannedFinal = draft
-      ? draft.simulatedFinal
-      : (months.at(-1)?.plannedCumulative ?? 0);
+    const projectedFinal = draft?.simulatedFinal ?? this.projected();
 
     return this.#transloco.translate('savingsGoals.plan.chartAria', {
-      confirmed: formatCurrency(confirmedNow, currency),
-      planned: formatCurrency(plannedFinal, currency),
+      confirmed: formatCurrency(this.confirmed(), currency),
+      projected: formatCurrency(projectedFinal, currency),
       target: formatCurrency(this.targetAmount(), currency),
     });
   });

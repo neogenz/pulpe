@@ -17,7 +17,6 @@ const MASKED_VALUE = '•••••';
 
 export interface GoalProjectionChartLabels {
   target: string;
-  planned: string;
   confirmed: string;
   projection: string;
 }
@@ -27,7 +26,8 @@ export interface GoalProjectionChartInput {
   /** Non-null in simulation mode: the plan line follows the sandbox trajectory. */
   draft: SavingsPlanSimulationResult | null;
   targetAmount: number;
-  confirmedPace: number;
+  confirmed: number;
+  projected: number;
   theme: ChartThemeColors | null;
   locale: string;
   labels: GoalProjectionChartLabels;
@@ -128,37 +128,78 @@ function currentMonthIndex(months: readonly SavingsGoalPlanMonth[]): number {
   return lastLocked;
 }
 
+function buildPlannedProjection(
+  months: readonly SavingsGoalPlanMonth[],
+  currentIndex: number,
+  confirmed: number,
+  projected: number,
+  monthlyAmounts = months.map((month) => month.plannedAmount),
+): (number | null)[] {
+  const data: (number | null)[] = months.map(() => null);
+  if (currentIndex < 0) return data;
+
+  const lastIndex = months.length - 1;
+  if (currentIndex === lastIndex) {
+    data[currentIndex] = projected;
+    return data;
+  }
+
+  data[currentIndex] = confirmed;
+  let cumulative = confirmed;
+  for (let index = currentIndex; index <= lastIndex; index++) {
+    const month = months[index];
+    cumulative += Math.max(0, monthlyAmounts[index] - month.confirmedAmount);
+    if (index > currentIndex) data[index] = cumulative;
+  }
+  // The server owns the canonical endpoint; this also absorbs float rounding.
+  data[lastIndex] = projected;
+  return data;
+}
+
 /**
- * Four cumulated series over the anchor → target axis (RG-002 — savings never
- * amber/red). In read mode: cible (neutral dashed), prévu cumulé (savings 0.35),
- * pointé (savings solid + light fill, null after the current month), projection
- * (savings dashed, extrapolated at `confirmedPace`). In simulation mode the
- * prévu line follows the sandbox trajectory and the projection series is dropped
- * (the sandbox IS the edited plan).
+ * Three balance series over the anchor → target axis (RG-002 — savings never
+ * amber/red): cible, réalité épargnée through the current month, and planned
+ * projection anchored on that reality. Simulation replaces the projection with
+ * the sandbox trajectory.
  */
 export function buildGoalProjectionChartData(
   input: GoalProjectionChartInput,
 ): ChartConfiguration['data'] {
-  const { months, draft, targetAmount, confirmedPace, theme, locale, labels } =
-    input;
+  const {
+    months,
+    draft,
+    targetAmount,
+    confirmed,
+    projected,
+    theme,
+    locale,
+    labels,
+  } = input;
 
   if (months.length === 0 || !theme) {
     return { datasets: [], labels: [] };
   }
 
-  const usingDraft = draft != null;
   const currentIndex = currentMonthIndex(months);
-
   const targetData = months.map(() => targetAmount);
-
-  const plannedData = usingDraft
-    ? draft.months.map((month) => month.simulatedCumulative)
-    : months.map((month) => month.plannedCumulative);
+  const projectionData = draft
+    ? buildPlannedProjection(
+        months,
+        currentIndex,
+        confirmed,
+        draft.simulatedFinal,
+        draft.months.map((month) => month.simulatedAmount),
+      )
+    : buildPlannedProjection(months, currentIndex, confirmed, projected);
 
   // Reality stops at the current month — a null tail keeps the line from
   // implying pointé data exists in the future.
   const confirmedData = months.map((month, index) =>
-    index <= currentIndex ? month.confirmedCumulative : null,
+    index < currentIndex
+      ? month.confirmedCumulative
+      : index === currentIndex
+        ? confirmed
+        : null,
   );
 
   const datasets: ChartConfiguration['data']['datasets'] = [
@@ -173,14 +214,6 @@ export function buildGoalProjectionChartData(
       fill: false,
     } as ChartConfiguration['data']['datasets'][number],
     {
-      data: plannedData,
-      label: labels.planned,
-      borderColor: colorWithAlpha(theme.savings, 0.35),
-      backgroundColor: 'transparent',
-      pointBackgroundColor: colorWithAlpha(theme.savings, 0.35),
-      fill: false,
-    } as ChartConfiguration['data']['datasets'][number],
-    {
       data: confirmedData,
       label: labels.confirmed,
       borderColor: theme.savings,
@@ -189,16 +222,7 @@ export function buildGoalProjectionChartData(
       spanGaps: false,
       fill: 'origin',
     } as ChartConfiguration['data']['datasets'][number],
-  ];
-
-  if (!usingDraft && confirmedPace > 0 && currentIndex >= 0) {
-    const anchor = months[currentIndex].confirmedCumulative;
-    const projectionData = months.map((_, index) =>
-      index < currentIndex
-        ? null
-        : anchor + confirmedPace * (index - currentIndex),
-    );
-    datasets.push({
+    {
       data: projectionData,
       label: labels.projection,
       borderColor: theme.savings,
@@ -206,8 +230,8 @@ export function buildGoalProjectionChartData(
       backgroundColor: 'transparent',
       pointBackgroundColor: theme.savings,
       fill: false,
-    } as ChartConfiguration['data']['datasets'][number]);
-  }
+    } as ChartConfiguration['data']['datasets'][number],
+  ];
 
   return {
     // Two-line `[mois, année]` at each January and on the first point so a

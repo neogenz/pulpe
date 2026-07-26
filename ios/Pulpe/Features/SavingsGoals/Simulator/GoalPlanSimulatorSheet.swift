@@ -263,20 +263,18 @@ struct GoalPlanSimulatorSheet: View {
     }
 }
 
-/// Sandbox for the plan simulator. Holds the immutable `baseline` (server months),
-/// the user's `overrides` / `globalAmount`, and the live `draft` recomputed via
-/// `SavingsPlanCalculator`. All figures are client-side; the server stays
-/// authoritative at write time (`apply`).
+/// Sandbox for the plan simulator: immutable server baseline, user overrides,
+/// and a live client-side draft. The server stays authoritative at write time.
 @Observable @MainActor
 final class GoalPlanSimulatorViewModel {
     private let goalId: String
     private let currency: SupportedCurrency
     private let baseline: [SavingsGoalPlanMonth]
     private let targetAmount: Decimal
+    private let confirmedAmount: Decimal
     private let initialAmount: Decimal // PUL-293 seed for every simulate/redistribute call below
     private let service: any SavingsGoalServicing
 
-    /// Deadline period for the early/on-time verdict — refined once payDay lands.
     private var deadlineDate: Date
     private var deadlinePeriod: BudgetPeriod
 
@@ -303,6 +301,7 @@ final class GoalPlanSimulatorViewModel {
         self.service = service
         baseline = progress.months
         targetAmount = progress.targetAmount
+        confirmedAmount = progress.confirmed
         initialAmount = progress.initialAmount
 
         let resolvedDeadline = goal.targetDateValue ?? Date()
@@ -332,7 +331,7 @@ final class GoalPlanSimulatorViewModel {
     }
 
     var chartSeries: GoalProjectionSeries {
-        .simulation(from: draft, targetAmount: targetAmount)
+        .simulation(from: draft, targetAmount: targetAmount, confirmedAmount: confirmedAmount)
     }
 
     /// The adjusted, contributive months — the write footprint and recap rows.

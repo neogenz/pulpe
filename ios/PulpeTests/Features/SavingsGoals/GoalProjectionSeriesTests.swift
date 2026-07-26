@@ -33,6 +33,35 @@ struct GoalProjectionSeriesTests {
         #expect(series.hasConfirmedTrend == true)
     }
 
+    @Test("planned projection starts on confirmed and ends on the API projection")
+    func plannedProjectionAnchorsAndMatchesEndpoint() {
+        let series = GoalProjectionSeries.read(from: makeProgress(currentIndex: 1))
+
+        #expect(series.confirmed.last?.value == 85_000)
+        #expect(series.projection.map(\.index) == [1, 2, 3])
+        #expect(series.projection.map(\.value) == [85_000, 86_000, 86_500])
+    }
+
+    @Test("simulation projection keeps the confirmed anchor and draft endpoint")
+    func simulationProjectionAnchorsAndMatchesEndpoint() throws {
+        let progress = makeProgress(currentIndex: 1)
+        let draft = try SavingsPlanCalculator.simulate(
+            timeline: progress.months,
+            targetAmount: progress.targetAmount,
+            globalMonthlyAmount: 750,
+            initialAmount: progress.initialAmount
+        )
+
+        let series = GoalProjectionSeries.simulation(
+            from: draft,
+            targetAmount: progress.targetAmount,
+            confirmedAmount: progress.confirmed
+        )
+
+        #expect(series.projection.first?.value == 85_000)
+        #expect(series.projection.last?.value == NSDecimalNumber(decimal: draft.simulatedFinal).doubleValue)
+    }
+
     @Test("gap copy names the direction — lag, advance, on-plan (amount unsigned)")
     func gapCopyNamesDirection() {
         let lag = GoalTrajectorySection.gapCopy(for: 300, currency: .chf)
@@ -67,25 +96,25 @@ struct GoalProjectionSeriesTests {
                 plannedAmount: 500,
                 confirmedAmount: 0,
                 plannedCumulative: Decimal(500 * (offset + 1)),
-                confirmedCumulative: 0,
+                confirmedCumulative: offset <= currentIndex ? 85_000 : 0,
                 lines: []
             )
         }
         return SavingsGoalProgress(
             goalId: "g1",
             status: .active,
-            targetAmount: 2_000,
+            targetAmount: 200_000,
             targetDate: "2099-04-01",
             plannedCumulative: 500,
-            confirmed: 0,
-            achievementPercent: 0,
+            confirmed: 85_000,
+            achievementPercent: 43,
             monthsElapsed: currentIndex + 1,
             monthsRemaining: count - currentIndex,
             isOverdue: false,
             pace: 500,
             confirmedPace: 0,
             required: 500,
-            projected: 0,
+            projected: 85_000 + Decimal(500 * (count - currentIndex)),
             paceStatus: .behind,
             suggestCompletion: false,
             linkedLineCount: 1,

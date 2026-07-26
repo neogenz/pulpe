@@ -19,9 +19,8 @@ const theme: ChartThemeColors = {
 
 const labels = {
   target: 'Cible',
-  planned: 'Prévu cumulé',
-  confirmed: 'Pointé',
-  projection: 'Projection',
+  confirmed: 'Épargné',
+  projection: 'Projection planifiée',
 };
 
 function makeMonth(
@@ -52,6 +51,7 @@ const months: SavingsGoalPlanMonth[] = [
     month: 2,
     state: 'current',
     isLocked: false,
+    confirmedAmount: 20,
     plannedCumulative: 200,
     confirmedCumulative: 180,
   }),
@@ -59,6 +59,7 @@ const months: SavingsGoalPlanMonth[] = [
     month: 3,
     state: 'future',
     isLocked: false,
+    confirmedAmount: 0,
     plannedCumulative: 300,
     confirmedCumulative: 180,
   }),
@@ -70,7 +71,8 @@ describe('buildGoalProjectionChartData', () => {
       months: [],
       draft: null,
       targetAmount: 300,
-      confirmedPace: 90,
+      confirmed: 180,
+      projected: 360,
       theme,
       locale: 'fr-CH',
       labels,
@@ -78,21 +80,21 @@ describe('buildGoalProjectionChartData', () => {
     expect(data.datasets).toHaveLength(0);
   });
 
-  it('builds four series in read mode (cible, prévu, pointé, projection)', () => {
+  it('builds cible, épargné et projection planifiée in read mode', () => {
     const data = buildGoalProjectionChartData({
       months,
       draft: null,
       targetAmount: 300,
-      confirmedPace: 90,
+      confirmed: 180,
+      projected: 360,
       theme,
       locale: 'fr-CH',
       labels,
     });
     expect(data.datasets.map((d) => d.label)).toEqual([
       'Cible',
-      'Prévu cumulé',
-      'Pointé',
-      'Projection',
+      'Épargné',
+      'Projection planifiée',
     ]);
   });
 
@@ -101,23 +103,41 @@ describe('buildGoalProjectionChartData', () => {
       months,
       draft: null,
       targetAmount: 300,
-      confirmedPace: 90,
+      confirmed: 180,
+      projected: 360,
       theme,
       locale: 'fr-CH',
       labels,
     });
-    const confirmed = data.datasets.find((d) => d.label === 'Pointé');
+    const confirmed = data.datasets.find((d) => d.label === 'Épargné');
     // Index 2 is the future month → reality must stop (null), not extend.
     expect(confirmed?.data).toEqual([100, 180, null]);
   });
 
-  it('drops the projection series and follows the sandbox in simulation mode', () => {
+  it('anchors the planned projection on confirmed and ends on projected', () => {
+    const data = buildGoalProjectionChartData({
+      months,
+      draft: null,
+      targetAmount: 300,
+      confirmed: 180,
+      projected: 360,
+      theme,
+      locale: 'fr-CH',
+      labels,
+    });
+    const projection = data.datasets.find(
+      (d) => d.label === 'Projection planifiée',
+    );
+    expect(projection?.data).toEqual([null, 180, 360]);
+  });
+
+  it('follows the sandbox as the planned projection in simulation mode', () => {
     const draft: SavingsPlanSimulationResult = {
       months: months.map(
         (month, index): SavingsPlanSimulatedMonth => ({
           ...month,
-          simulatedAmount: month.plannedAmount,
-          simulatedCumulative: [100, 260, 420][index],
+          simulatedAmount: [100, 100, 160][index],
+          simulatedCumulative: [160, 260, 420][index],
           isAdjusted: index === 2,
         }),
       ),
@@ -130,27 +150,15 @@ describe('buildGoalProjectionChartData', () => {
       months,
       draft,
       targetAmount: 300,
-      confirmedPace: 90,
+      confirmed: 180,
+      projected: 360,
       theme,
       locale: 'fr-CH',
       labels,
     });
-    const dsLabels = data.datasets.map((d) => d.label);
-    expect(dsLabels).not.toContain('Projection');
-    const planned = data.datasets.find((d) => d.label === 'Prévu cumulé');
-    expect(planned?.data).toEqual([100, 260, 420]);
-  });
-
-  it('omits the projection series when the confirmed pace is zero', () => {
-    const data = buildGoalProjectionChartData({
-      months,
-      draft: null,
-      targetAmount: 300,
-      confirmedPace: 0,
-      theme,
-      locale: 'fr-CH',
-      labels,
-    });
-    expect(data.datasets.map((d) => d.label)).not.toContain('Projection');
+    const projection = data.datasets.find(
+      (d) => d.label === 'Projection planifiée',
+    );
+    expect(projection?.data).toEqual([null, 180, 420]);
   });
 });
