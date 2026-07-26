@@ -17,12 +17,14 @@ frontend/
     │   └── ✏️ fr.json
     └── src/app/feature/savings-goals/detail/components/
         ├── ✏️ goal-projection-chart.config.ts
+        ├── ✏️ goal-projection-chart.plugin.ts
         ├── ✅ goal-projection-chart.spec.ts
         └── ✏️ goal-projection-chart.ts
 ```
 
 - `goal-projection-chart.ts` : remplacer la légende canvas par une synthèse Angular latérale ou empilée et aligner l’alternative accessible.
 - `goal-projection-chart.config.ts` : désactiver la légende intégrée une fois la synthèse HTML en place.
+- `goal-projection-chart.plugin.ts` : ajouter le libellé visuel du repère courant sans exposer de nouvelle donnée.
 - `goal-projection-chart.spec.ts` : couvrir valeurs, simulation, confidentialité et structure sémantique.
 - `fr.json` : ajouter uniquement le libellé du repère courant et l’alternative sans montants ; réutiliser les libellés existants pour les trois séries.
 - `savings-goals-progress.spec.ts` : vérifier le parcours réel sur desktop et mobile.
