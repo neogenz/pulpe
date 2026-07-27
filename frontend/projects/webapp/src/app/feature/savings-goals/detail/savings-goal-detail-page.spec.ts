@@ -529,6 +529,7 @@ describe('SavingsGoalDetailPage', () => {
       maxWidth: '95vw',
       height: '90dvh',
       maxHeight: '90dvh',
+      injector: expect.anything(),
     });
     expect(mockStore.deleteGoal).toHaveBeenCalledWith(
       'goal-1',

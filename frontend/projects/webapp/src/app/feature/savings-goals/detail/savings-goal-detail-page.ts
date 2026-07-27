@@ -4,6 +4,7 @@ import {
   computed,
   DestroyRef,
   inject,
+  Injector,
   input,
   LOCALE_ID,
   signal,
@@ -639,6 +640,7 @@ export default class SavingsGoalDetailPage {
   readonly #settings = inject(UserSettingsStore);
   readonly #dialogs = inject(SavingsGoalsDialogService);
   readonly #dialog = inject(MatDialog);
+  readonly #injector = inject(Injector);
   readonly #router = inject(Router);
   readonly #snackBar = inject(MatSnackBar);
   readonly #transloco = inject(TranslocoService);
@@ -821,6 +823,7 @@ export default class SavingsGoalDetailPage {
       maxWidth: '95vw',
       height: '90dvh',
       maxHeight: '90dvh',
+      injector: this.#injector,
     });
     const command = await firstValueFrom(dialogRef.afterClosed());
     if (!command) return;
