@@ -18,6 +18,7 @@ final class TagStore: StoreProtocol {
     private var lastLoadTime: Date?
     private var loadTask: Task<Void, Never>?
     private var loadGeneration = 0
+    private var sessionGeneration = 0
     private let service: any TagServicing
 
     init(service: any TagServicing = TagService.shared) {
@@ -68,7 +69,9 @@ final class TagStore: StoreProtocol {
 
     @discardableResult
     func create(name: String) async throws -> Tag {
+        let generation = sessionGeneration
         let created = try await service.create(TagCreate(name: name))
+        guard sessionGeneration == generation else { throw CancellationError() }
         tags = (tags + [created]).sortedForDisplay()
         return created
     }
@@ -81,6 +84,7 @@ final class TagStore: StoreProtocol {
         loadTask?.cancel()
         loadTask = nil
         loadGeneration += 1
+        sessionGeneration += 1
         tags = []
         isLoading = false
         error = nil

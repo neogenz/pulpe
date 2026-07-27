@@ -33,12 +33,63 @@ struct TagStoreTests {
         #expect(!store.hasLoadedOnce)
         #expect(store.error == nil)
     }
+
+    @Test("a create finishing after reset cannot mutate the next session")
+    func createAfterResetIsDiscarded() async {
+        let service = MockTagService()
+        let store = TagStore(service: service)
+        service.gateCreate()
+
+        let creation = Task { try await store.create(name: "Privé A") }
+        await waitForCondition("create must reach the service") { service.didEnterCreate }
+
+        store.reset()
+        service.tags = [service.makeTag(id: "session-b", name: "Session B")]
+        await store.forceRefresh()
+        service.releaseCreate()
+
+        await #expect(throws: CancellationError.self) {
+            try await creation.value
+        }
+        #expect(store.tags.map(\.name) == ["Session B"])
+    }
+
+    @Test("a refresh in the same session does not discard a valid create")
+    func createSurvivesSameSessionRefresh() async throws {
+        let service = MockTagService()
+        let store = TagStore(service: service)
+        service.tags = [service.makeTag(id: "existing", name: "Courses")]
+        service.gateCreate()
+
+        let creation = Task { try await store.create(name: "Assurance") }
+        await waitForCondition("create must reach the service") { service.didEnterCreate }
+
+        await store.forceRefresh()
+        service.releaseCreate()
+        let created = try await creation.value
+
+        #expect(created.name == "Assurance")
+        #expect(store.tags.map(\.name) == ["Assurance", "Courses"])
+    }
 }
 
 @MainActor
 private final class MockTagService: TagServicing {
     var tags: [PulpeTag] = []
     private(set) var lastCreate: TagCreate?
+    private(set) var didEnterCreate = false
+    private var createContinuation: CheckedContinuation<Void, Never>?
+    private var shouldGateCreate = false
+
+    func gateCreate() {
+        shouldGateCreate = true
+    }
+
+    func releaseCreate() {
+        shouldGateCreate = false
+        createContinuation?.resume()
+        createContinuation = nil
+    }
 
     func makeTag(id: String, name: String) -> PulpeTag {
         PulpeTag(
@@ -56,6 +107,12 @@ private final class MockTagService: TagServicing {
 
     func create(_ data: TagCreate) async throws -> PulpeTag {
         lastCreate = data
+        didEnterCreate = true
+        if shouldGateCreate {
+            await withCheckedContinuation { continuation in
+                createContinuation = continuation
+            }
+        }
         return makeTag(id: "created", name: data.name)
     }
 }
