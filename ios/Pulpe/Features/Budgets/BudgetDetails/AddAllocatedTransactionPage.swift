@@ -94,7 +94,7 @@ struct AddAllocatedTransactionPage: View {
     @ViewBuilder
     private func formContent(for line: BudgetLine) -> some View {
         VStack(spacing: DesignTokens.Spacing.xxl) {
-            if userSettingsStore.showCurrencySelectorEffective {
+            if userSettingsStore.showCurrencySelector {
                 CurrencyAmountPicker(selectedCurrency: inputCurrencyBinding)
             }
 

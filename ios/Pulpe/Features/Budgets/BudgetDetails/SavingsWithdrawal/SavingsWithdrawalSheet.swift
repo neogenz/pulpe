@@ -99,7 +99,7 @@ struct SavingsWithdrawalSheet: View {
     private var amountStep: some View {
         ScrollView {
             VStack(spacing: DesignTokens.Spacing.xxl) {
-                if userSettingsStore.showCurrencySelectorEffective {
+                if userSettingsStore.showCurrencySelector {
                     CurrencyAmountPicker(selectedCurrency: $inputCurrency)
                 }
                 HeroAmountField(

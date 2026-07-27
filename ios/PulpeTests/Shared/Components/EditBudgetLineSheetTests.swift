@@ -155,16 +155,11 @@ struct EditBudgetLineSheetTests {
 
     // MARK: - Matrix (cases 1-7)
 
-    @Test("Case 4: flag OFF fallback — helper ignores flag; view gates visibility separately")
-    func shouldShowAlternateCurrency_ignoresFeatureFlag() {
-        // The pure helper reports the line/currency relationship. The view is responsible
-        // for combining it with `showCurrencySelectorEffective` — so even if the helper
-        // returns true, the view hides the picker when the flag is OFF.
+    @Test("Case 4: helper reports an alternate currency")
+    func shouldShowAlternateCurrency_reportsAlternateCurrency() {
         let line = Self.makeLine(originalCurrency: .eur)
 
         #expect(EditBudgetLineSheet.shouldShowAlternateCurrency(for: line, userCurrency: .chf) == true)
-        // The combined gate is `showCurrencySelectorEffective && isAlternateCurrency`,
-        // proven by reading the body of EditBudgetLineSheet.
     }
 
     @Test(

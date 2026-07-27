@@ -160,7 +160,7 @@ struct EditTransactionPage: View {
 
             KindToggle(selection: $kind)
 
-            if userSettingsStore.showCurrencySelectorEffective && isAlternateCurrency {
+            if userSettingsStore.showCurrencySelector && isAlternateCurrency {
                 CurrencyAmountPicker(
                     selectedCurrency: .constant(inputCurrency),
                     isReadOnly: true

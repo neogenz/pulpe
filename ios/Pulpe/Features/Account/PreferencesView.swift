@@ -132,6 +132,5 @@ struct PreferencesView: View {
             .environment(CurrentMonthStore())
             .environment(BudgetListStore())
             .environment(DashboardStore())
-            .environment(FeatureFlagsStore())
     }
 }

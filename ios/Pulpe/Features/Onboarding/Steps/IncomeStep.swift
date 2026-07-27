@@ -2,7 +2,6 @@ import SwiftUI
 
 struct IncomeStep: View {
     @Bindable var state: OnboardingState
-    @Environment(FeatureFlagsStore.self) private var featureFlagsStore
     @State private var showAddIncome = false
     @State private var editingTransaction: OnboardingTransaction?
     /// Drives the keyboard auto-focus on the main income field when the step
@@ -22,35 +21,33 @@ struct IncomeStep: View {
             content: {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sectionGap) {
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                        if featureFlagsStore.isMultiCurrencyEnabled {
-                            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                                Text("Tu comptes en francs ou en euros ?")
-                                    .font(PulpeTypography.labelMedium)
-                                    .foregroundStyle(Color.onSurfaceVariant)
-                                Text("Tu pourras changer plus tard si besoin.")
-                                    .font(PulpeTypography.caption)
-                                    .foregroundStyle(Color.textTertiaryOnboarding)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                CapsulePicker(
-                                    selection: Binding(
-                                        get: { state.currency },
-                                        set: { state.selectCurrency($0) }
-                                    ),
-                                    title: nil
-                                ) { currency, isSelected in
-                                    HStack(spacing: DesignTokens.Spacing.xs) {
-                                        Text(currency.flag)
-                                        VStack(alignment: .leading, spacing: 0) {
-                                            Text(currency.rawValue)
-                                                .font(PulpeTypography.labelLarge)
-                                            Text(currency.nativeName)
-                                                .font(PulpeTypography.caption2)
-                                                .foregroundStyle(
-                                                    isSelected
-                                                        ? Color.textOnPrimaryMuted
-                                                        : Color.textSecondaryOnboarding
-                                                )
-                                        }
+                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                            Text("Tu comptes en francs ou en euros ?")
+                                .font(PulpeTypography.labelMedium)
+                                .foregroundStyle(Color.onSurfaceVariant)
+                            Text("Tu pourras changer plus tard si besoin.")
+                                .font(PulpeTypography.caption)
+                                .foregroundStyle(Color.textTertiaryOnboarding)
+                                .fixedSize(horizontal: false, vertical: true)
+                            CapsulePicker(
+                                selection: Binding(
+                                    get: { state.currency },
+                                    set: { state.selectCurrency($0) }
+                                ),
+                                title: nil
+                            ) { currency, isSelected in
+                                HStack(spacing: DesignTokens.Spacing.xs) {
+                                    Text(currency.flag)
+                                    VStack(alignment: .leading, spacing: 0) {
+                                        Text(currency.rawValue)
+                                            .font(PulpeTypography.labelLarge)
+                                        Text(currency.nativeName)
+                                            .font(PulpeTypography.caption2)
+                                            .foregroundStyle(
+                                                isSelected
+                                                    ? Color.textOnPrimaryMuted
+                                                    : Color.textSecondaryOnboarding
+                                            )
                                     }
                                 }
                             }
@@ -146,5 +143,4 @@ struct IncomeStep: View {
 
 #Preview {
     IncomeStep(state: OnboardingState())
-        .environment(FeatureFlagsStore())
 }
