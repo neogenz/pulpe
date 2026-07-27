@@ -41,6 +41,7 @@ private struct BudgetLineMixedRowPreviewHost: View {
                         isSyncing: false,
                         currency: .chf,
                         savingsGoalName: nil,
+                        tagNames: [],
                         onTap: {},
                         onTogglePointed: {}
                     )

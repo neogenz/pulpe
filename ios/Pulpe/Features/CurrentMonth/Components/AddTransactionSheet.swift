@@ -19,6 +19,7 @@ struct AddTransactionSheet: View {
     @State private var amountText = ""
     @State private var submitSuccessTrigger = false
     @State private var inputCurrency: SupportedCurrency = .chf
+    @State private var selectedTagIds: Set<String> = []
 
     private let dependencies: AddTransactionDependencies
     private let conversionService = CurrencyConversionService.shared
@@ -87,6 +88,7 @@ struct AddTransactionSheet: View {
             descriptionField
             dateSelector
             CheckedToggle(isOn: $isChecked, tintColor: kind.color)
+            TagPickerField(selection: $selectedTagIds)
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
@@ -168,7 +170,8 @@ struct AddTransactionSheet: View {
                 originalAmount: conversion?.originalAmount,
                 originalCurrency: conversion?.originalCurrency,
                 targetCurrency: conversion?.targetCurrency,
-                exchangeRate: conversion?.exchangeRate
+                exchangeRate: conversion?.exchangeRate,
+                tagIds: TagPickerField.createdTagIds(from: selectedTagIds)
             )
 
             let transaction = try await dependencies.createTransaction(data)
@@ -198,6 +201,7 @@ struct AddTransactionDependencies: Sendable {
         print("Added: \(transaction)")
     }
     .environment(ToastManager())
+    .environment(TagStore())
 }
 
 // MARK: - Deep Link Wrapper

@@ -77,13 +77,15 @@ struct SessionDataResetterTests {
         let dashboardStore = DashboardStore()
         let userSettingsStore = UserSettingsStore()
         let savingsGoalStore = SavingsGoalStore()
+        let tagStore = TagStore()
 
         let sut = LiveSessionDataResetter(
             currentMonthStore: currentMonthStore,
             budgetListStore: budgetListStore,
             dashboardStore: dashboardStore,
             userSettingsStore: userSettingsStore,
-            savingsGoalStore: savingsGoalStore
+            savingsGoalStore: savingsGoalStore,
+            tagStore: tagStore
         )
 
         sut.resetStores()
@@ -97,6 +99,7 @@ struct SessionDataResetterTests {
         #expect(dashboardStore.sparseBudgets.isEmpty)
         #expect(userSettingsStore.payDayOfMonth == nil)
         #expect(savingsGoalStore.goals.isEmpty)
+        #expect(tagStore.tags.isEmpty)
     }
 }
 

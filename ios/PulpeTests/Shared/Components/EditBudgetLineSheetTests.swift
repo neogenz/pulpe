@@ -153,6 +153,20 @@ struct EditBudgetLineSheetTests {
         #expect(update.isManuallyAdjusted == true)
     }
 
+    @Test("buildUpdate forwards an explicit tag change")
+    func buildUpdate_includesChangedTags() {
+        let update = EditBudgetLineSheet.buildUpdate(
+            id: "line-1",
+            name: "Tagged",
+            amount: 50,
+            kind: .expense,
+            conversion: nil,
+            tagIds: ["tag-1"]
+        )
+
+        #expect(update.tagIds == ["tag-1"])
+    }
+
     // MARK: - Matrix (cases 1-7)
 
     @Test("Case 4: flag OFF fallback — helper ignores flag; view gates visibility separately")

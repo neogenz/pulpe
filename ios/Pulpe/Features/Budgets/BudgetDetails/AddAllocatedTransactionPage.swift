@@ -28,6 +28,7 @@ struct AddAllocatedTransactionPage: View {
     @State private var isLoading = false
     @State private var submitSuccessTrigger = false
     @State private var didAutofocus = false
+    @State private var selectedTagIds: Set<String> = []
     @FocusState private var focusedField: AmountDescriptionField?
 
     private let conversionService = CurrencyConversionService.shared
@@ -121,6 +122,7 @@ struct AddAllocatedTransactionPage: View {
             TransactionDateSelector(date: $transactionDate, currency: userSettingsStore.currency)
 
             CheckedToggle(isOn: $isChecked, tintColor: line.kind.color)
+            TagPickerField(selection: $selectedTagIds)
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
@@ -201,7 +203,8 @@ struct AddAllocatedTransactionPage: View {
                     amount: amount,
                     transactionDate: transactionDate,
                     isChecked: isChecked,
-                    conversion: conversion
+                    conversion: conversion,
+                    tagIds: TagPickerField.createdTagIds(from: selectedTagIds)
                 )
             )
 

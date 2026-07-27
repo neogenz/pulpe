@@ -43,14 +43,16 @@ enum EditTransactionLogic {
         amount: Decimal,
         kind: TransactionKind,
         transactionDate: Date,
-        conversion: CurrencyConversion?
+        conversion: CurrencyConversion?,
+        tagIds: [String]? = nil
     ) -> TransactionUpdate {
         guard let conversion else {
             return TransactionUpdate(
                 name: name,
                 amount: amount,
                 kind: kind,
-                transactionDate: transactionDate
+                transactionDate: transactionDate,
+                tagIds: tagIds
             )
         }
         return TransactionUpdate(
@@ -61,7 +63,8 @@ enum EditTransactionLogic {
             originalAmount: conversion.originalAmount,
             originalCurrency: conversion.originalCurrency,
             targetCurrency: conversion.targetCurrency,
-            exchangeRate: conversion.exchangeRate
+            exchangeRate: conversion.exchangeRate,
+            tagIds: tagIds
         )
     }
 }

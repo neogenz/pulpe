@@ -38,6 +38,7 @@ enum APIError: LocalizedError {
     case savingsGoalReconciliationConflict
     case savingsGoalReconciliationFailed
     case savingsGoalReconciliationRecalculationFailed
+    case tagAlreadyExists
 
     var errorDescription: String? {
         switch self {
@@ -115,6 +116,8 @@ enum APIError: LocalizedError {
         case .savingsGoalReconciliationRecalculationFailed:
             return "L'échéance a bien été modifiée, mais les soldes n'ont pas pu être actualisés — "
                 + "recharge sans réessayer"
+        case .tagAlreadyExists:
+            return "Un tag porte déjà ce nom — choisis-en un autre"
         }
     }
 
@@ -152,6 +155,7 @@ enum APIError: LocalizedError {
         "ERR_SAVINGS_GOAL_RECONCILIATION_CONFLICT": .savingsGoalReconciliationConflict,
         "ERR_SAVINGS_GOAL_RECONCILIATION_FAILED": .savingsGoalReconciliationFailed,
         "ERR_SAVINGS_GOAL_RECONCILIATION_RECALCULATION_FAILED": .savingsGoalReconciliationRecalculationFailed,
+        "ERR_TAG_ALREADY_EXISTS": .tagAlreadyExists,
     ]
 
     /// Create APIError from server error code

@@ -6,6 +6,7 @@ import SwiftUI
 struct DriftCard: View {
     let drifts: [(line: BudgetLine, consumption: BudgetFormulas.Consumption)]
     let totalOver: Decimal
+    var tagNamesById: [String: String] = [:]
     /// Next-month name for the "ajuster {mois}" lever in the footer subtitle.
     let adjustMonthName: String
     var onViewBudget: () -> Void
@@ -38,8 +39,10 @@ struct DriftCard: View {
     }
 
     private func rowAccessibilityLabel(_ line: BudgetLine, overBy: Decimal) -> String {
-        guard !amountsHidden else { return "\(line.name), au-delà du plan" }
-        return "\(line.name), \(overBy.asCompactCurrency(currency)) au-delà du plan"
+        let names = TagChips.names(for: line.tagIds, namesById: tagNamesById)
+        let tags = names.isEmpty ? "" : ", tags : \(names.joined(separator: ", "))"
+        guard !amountsHidden else { return "\(line.name), au-delà du plan\(tags)" }
+        return "\(line.name), \(overBy.asCompactCurrency(currency)) au-delà du plan\(tags)"
     }
 
     var body: some View {
@@ -141,6 +144,11 @@ struct DriftCard: View {
                     .lineLimit(1)
                     .minimumScaleFactor(DesignTokens.TextScale.floor)
                     .sensitiveAmount()
+            }
+
+            let tagNames = TagChips.names(for: line.tagIds, namesById: tagNamesById)
+            if !tagNames.isEmpty {
+                TagChips(names: tagNames, presentation: .count)
             }
 
             HomeSegmentedBar(

@@ -1,5 +1,6 @@
 protocol TagServicing: Sendable {
     func getAll() async throws -> [Tag]
+    func create(_ data: TagCreate) async throws -> Tag
 }
 
 actor TagService: TagServicing {
@@ -13,5 +14,9 @@ actor TagService: TagServicing {
 
     func getAll() async throws -> [Tag] {
         try await apiClient.request(.tags, method: .get)
+    }
+
+    func create(_ data: TagCreate) async throws -> Tag {
+        try await apiClient.request(.tags, body: data, method: .post)
     }
 }

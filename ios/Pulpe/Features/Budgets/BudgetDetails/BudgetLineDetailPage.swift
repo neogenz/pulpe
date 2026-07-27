@@ -17,8 +17,8 @@ import SwiftUI
 /// page auto-pops via `dismiss()` from the empty branch — no stale state.
 struct BudgetLineDetailPage: View {
     let lineId: String
+    let tagNamesById: [String: String]
     let onEditLine: (BudgetLine) -> Void
-
     @Environment(BudgetDetailsCoordinator.self) var coordinator
     @Environment(BudgetDetailsProjector.self) var projector
     @Environment(AppState.self) var appState
@@ -74,6 +74,7 @@ struct BudgetLineDetailPage: View {
                 .padding(.bottom, DesignTokens.Spacing.md)
 
             savingsGoalLink(for: line)
+            tagChips(for: line.tagIds)
 
             if let spreadGroupId = line.spreadGroupId {
                 SpreadAffordanceButton {
@@ -147,6 +148,7 @@ struct BudgetLineDetailPage: View {
         BudgetLineDetailTransactionRow(
             transaction: transaction,
             displayCurrency: userSettingsStore.currency,
+            tagNames: TagChips.names(for: transaction.tagIds, namesById: tagNamesById),
             onTap: {
                 router.push(.editTx(transactionId: transaction.id))
             }

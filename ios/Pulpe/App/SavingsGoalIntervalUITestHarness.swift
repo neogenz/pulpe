@@ -296,8 +296,14 @@ struct SavingsGoalIntervalUITestHarness: View {
         case .savingsGoalTemplateLines:
             NavigationStack {
                 List {
-                    TemplateLineRow(line: templateLine(id: "linked-line", savingsGoalId: "ui-test-goal")) {}
-                    TemplateLineRow(line: templateLine(id: "free-line", savingsGoalId: nil)) {}
+                    TemplateLineRow(
+                        line: templateLine(id: "linked-line", savingsGoalId: "ui-test-goal"),
+                        tagNamesById: [:]
+                    ) {}
+                    TemplateLineRow(
+                        line: templateLine(id: "free-line", savingsGoalId: nil),
+                        tagNamesById: [:]
+                    ) {}
                 }
                 .navigationTitle("Mois Type")
             }
