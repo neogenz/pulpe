@@ -36,6 +36,34 @@ export interface SilentIosReleaseEntry {
  */
 export const RELEASES: WhatsNewReleaseEntry[] = [
   {
+    version: '0.39.0',
+    iosVersion: '1.2.2',
+    date: '2026-07-27',
+    platforms: ['web', 'ios'],
+    changes: {
+      features: [
+        {
+          title: 'Une trajectoire plus lisible',
+          description:
+            "Le graphique distingue clairement l'épargne confirmée, la projection du plan et la cible",
+        },
+      ],
+      fixes: [
+        {
+          title: 'Une projection fidèle au plan',
+          description:
+            "Le montant estimé à l'échéance part désormais de l'épargne confirmée et ajoute les versements encore prévus",
+        },
+        {
+          title: 'Des simulations plus fiables',
+          description:
+            'Une simulation ne peut plus réduire un montant déjà confirmé',
+        },
+      ],
+      technical: [],
+    },
+  },
+  {
     version: '0.38.3',
     iosVersion: '1.2.1',
     date: '2026-07-26',
