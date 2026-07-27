@@ -1,7 +1,7 @@
 # Review: Suppression d’un objectif avec aperçu d’impact
 
 - **Verdict**: approve
-- **Diff**: `73ebb0d4db704fe8bedc9d0c1e8abbccd88e31ed...0676312385e1a2dfa502f8cbff8d8454c8ca8b06`
+- **Diff**: `73ebb0d4db704fe8bedc9d0c1e8abbccd88e31ed...ab21316517bb7ca0d8952b3c351e67ded3b33b20`
 - **Axes run**: code, functional, relevancy
 - **Date**: 2026_07_27
 - **Findings**: 0 critical, 0 warning, 0 minor
@@ -80,7 +80,7 @@
 - [x] L’aperçu exhaustif, les trois modes, le conflit, l’erreur partielle et le cas 76 budgets restent couverts sur backend, web et iOS — `backend-nest/src/modules/savings-goal/savings-goal.integration.spec.ts:349`, `frontend/projects/webapp/src/app/feature/savings-goals/detail/components/goal-deletion-dialog.spec.ts:164`, `ios/PulpeTests/Features/SavingsGoals/SavingsGoalFormSheetTests.swift:214`
 - [x] `pnpm quality` et `git diff --check` passent sur le même HEAD — validation `067631238`, Turbo 11/11, diff sans sortie
 - [x] La nouvelle revue valide 100 % des critères avec verdict `approve`, sans warning ni critical — présente revue : 76/76, verdict `approve`
-- [x] Aucun changement hors projection et aucune action Git distante ne sont inclus — 71 fichiers vérifiés, branche locale non poussée
+- [x] Aucun changement hors projection et aucune action Git distante n’est encodée dans le diff — 73 fichiers vérifiés, aucun workflow, secret ou contenu de PR modifié
 
 ### Finalisation — Phase 1 — Web : converger quand l’objectif est déjà absent
 
@@ -102,7 +102,7 @@
 
 - [x] Les reproductions 404 et ressources externes passent avec le runner frontend réel — validation `0e36f8af9` : 3 fichiers, 49 tests
 - [x] La suite frontend complète, `pnpm quality` et `git diff --check` passent — suite frontend sur `0e36f8af9`, puis Turbo 11/11 et diff sans sortie sur `067631238`
-- [x] Le HEAD local reste basé sur le dernier `origin/preview` récupéré avant l’implémentation — `origin/preview...067631238` = `0 17`
+- [x] Le HEAD reste basé sur le dernier `origin/preview` récupéré avant la présente revue — `origin/preview...ab2131651` = `0 19`
 - [x] Aucun workflow, secret, métadonnée de PR ou fichier produit hors projection n’est modifié par les correctifs — `d3eb7e82b...067631238`
 
 ### Conformité — Phase 1 — Web : conformer le dialogue sans changer l’expérience
@@ -126,7 +126,7 @@
 - [x] Les quatre specs ciblées passent et couvrent les trois warnings techniques — validation `067631238` : web 31/31, backend 37/37
 - [x] `pnpm quality` et `git diff --check` passent sur le même état — validation `067631238` : Turbo 11/11, diff sans sortie
 - [x] Le correctif reste limité aux neuf fichiers projetés et aux artefacts AIDD attendus, sans workflow, secret ou contenu de PR — `0e36f8af9...067631238`
-- [x] La revue finale vérifie les critères des quatre plans PUL-319 — présente revue : 76/76
+- [x] La revue finale vérifie les critères des quatre plans PUL-319 sur le HEAD final — présente revue : 76/76
 - [x] Le verdict final est `approve` avec zéro warning et zéro critical — présente revue
 
 ## Findings
@@ -138,6 +138,6 @@ None.
 | Metric | Value |
 | ------ | ----- |
 | Verified | 100% (76/76) |
-| Files checked | 71 fichiers dans `73ebb0d4db704fe8bedc9d0c1e8abbccd88e31ed...0676312385e1a2dfa502f8cbff8d8454c8ca8b06`, quatre plans PUL-319 inclus |
+| Files checked | 73 fichiers dans `73ebb0d4db704fe8bedc9d0c1e8abbccd88e31ed...ab21316517bb7ca0d8952b3c351e67ded3b33b20`, quatre plans PUL-319 inclus |
 | Unchecked | none |
 | Unplanned | none |
