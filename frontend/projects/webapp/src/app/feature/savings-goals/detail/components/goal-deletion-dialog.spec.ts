@@ -15,6 +15,10 @@ import {
   GoalDeletionDialog,
   type GoalDeletionDialogData,
 } from './goal-deletion-dialog';
+// @ts-expect-error Vitest resolves raw assets; the spec tsconfig has no wildcard declaration
+import goalDeletionDialogTemplate from './goal-deletion-dialog/goal-deletion-dialog.html?raw';
+// @ts-expect-error Vitest resolves raw assets; the spec tsconfig has no wildcard declaration
+import goalDeletionDialogStyles from './goal-deletion-dialog/goal-deletion-dialog.scss?raw';
 
 registerLocaleData(localeDE);
 
@@ -108,6 +112,16 @@ describe('GoalDeletionDialog', () => {
   const fetchDeletionImpact = vi.fn();
 
   async function createDialog(): Promise<void> {
+    TestBed.overrideComponent(GoalDeletionDialog, {
+      set: {
+        template: goalDeletionDialogTemplate,
+        templateUrl: undefined,
+        styles: [goalDeletionDialogStyles],
+        styleUrl: undefined,
+      },
+    });
+    await TestBed.compileComponents();
+
     await TestBed.configureTestingModule({
       imports: [GoalDeletionDialog],
       providers: [

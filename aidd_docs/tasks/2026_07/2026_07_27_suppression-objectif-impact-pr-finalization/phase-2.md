@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Web — exécuter le dialogue avec le runner Vitest réel
