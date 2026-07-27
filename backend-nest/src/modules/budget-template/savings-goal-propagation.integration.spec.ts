@@ -223,7 +223,7 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
         user_id: user.id,
         name: 'Original goal',
         target_amount: 'enc',
-        target_date: '2099-01-01',
+        target_date: '2099-12-01',
         status: 'ACTIVE',
       },
       {
@@ -231,7 +231,7 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
         user_id: user.id,
         name: 'Replacement goal',
         target_amount: 'enc',
-        target_date: '2099-01-01',
+        target_date: '2099-12-01',
         status: 'ACTIVE',
       },
     ]);
@@ -600,7 +600,7 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
       user_id: userA.id,
       name: 'Voiture',
       target_amount: 'enc',
-      target_date: '2099-01-01',
+      target_date: '2099-12-01',
       status: 'ACTIVE',
     });
     await admin.from('template_line').insert({
@@ -630,7 +630,7 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
     expect(lines.data?.[0]?.savings_goal_id).toBe(goalId);
   });
 
-  it('PUL-312 excludes budgets per created line but still updates an existing line past its horizon', async () => {
+  it('PUL-312 bounds a newly linked existing line while propagating its other fields everywhere', async () => {
     if (!env) return;
 
     const user = await makeUser(
@@ -647,6 +647,8 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
     const beforeBudgetId = crypto.randomUUID();
     const targetBudgetId = crypto.randomUUID();
     const afterBudgetId = crypto.randomUUID();
+    const existingBeforeLineId = crypto.randomUUID();
+    const existingTargetLineId = crypto.randomUUID();
     const existingAfterLineId = crypto.randomUUID();
 
     await admin.from('template').insert({
@@ -706,19 +708,23 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
       amount: 'enc-old',
       kind: 'saving',
       recurrence: 'fixed',
-      savings_goal_id: goalAId,
     });
-    await admin.from('budget_line').insert({
-      id: existingAfterLineId,
-      budget_id: afterBudgetId,
-      template_line_id: existingLineId,
-      name: 'Existing',
-      amount: 'enc-old',
-      kind: 'saving',
-      recurrence: 'fixed',
-      savings_goal_id: goalAId,
-      is_manually_adjusted: false,
-    });
+    await admin.from('budget_line').insert(
+      [
+        [existingBeforeLineId, beforeBudgetId],
+        [existingTargetLineId, targetBudgetId],
+        [existingAfterLineId, afterBudgetId],
+      ].map(([id, budgetId]) => ({
+        id,
+        budget_id: budgetId,
+        template_line_id: existingLineId,
+        name: 'Existing',
+        amount: 'enc-old',
+        kind: 'saving' as const,
+        recurrence: 'fixed' as const,
+        is_manually_adjusted: false,
+      })),
+    );
 
     const { error } = await user.client.rpc(
       'apply_template_line_operations_with_tags',
@@ -730,6 +736,7 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
           {
             id: existingLineId,
             amount: 'enc-new',
+            savings_goal_id: goalAId,
             excluded_budget_ids: [afterBudgetId],
           },
         ] as never,
@@ -775,12 +782,36 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
       new Set([beforeBudgetId, targetBudgetId, afterBudgetId]),
     );
 
+    const updatedTemplate = await admin
+      .from('template_line')
+      .select('savings_goal_id')
+      .eq('id', existingLineId)
+      .single();
+    expect(updatedTemplate.data?.savings_goal_id).toBe(goalAId);
+
     const updated = await admin
       .from('budget_line')
-      .select('amount')
-      .eq('id', existingAfterLineId)
-      .single();
-    expect(updated.data?.amount).toBe('enc-new');
+      .select('id, amount, savings_goal_id')
+      .in('id', [
+        existingBeforeLineId,
+        existingTargetLineId,
+        existingAfterLineId,
+      ]);
+    const updatedById = new Map(
+      (updated.data ?? []).map((line) => [line.id, line]),
+    );
+    expect(updatedById.get(existingBeforeLineId)).toMatchObject({
+      amount: 'enc-new',
+      savings_goal_id: goalAId,
+    });
+    expect(updatedById.get(existingTargetLineId)).toMatchObject({
+      amount: 'enc-new',
+      savings_goal_id: goalAId,
+    });
+    expect(updatedById.get(existingAfterLineId)).toMatchObject({
+      amount: 'enc-new',
+      savings_goal_id: null,
+    });
   });
 
   it('PUL-285 CA5: create_budget_from_template skips lines linked to PAUSED/COMPLETED goals and resumes on reopen', async () => {
@@ -810,7 +841,7 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
         user_id: user.id,
         name: 'En pause',
         target_amount: 'enc',
-        target_date: '2099-01-01',
+        target_date: '2099-12-01',
         status: 'PAUSED',
       },
       {
@@ -818,7 +849,7 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
         user_id: user.id,
         name: 'Atteint',
         target_amount: 'enc',
-        target_date: '2099-01-01',
+        target_date: '2099-12-01',
         status: 'COMPLETED',
       },
       {
@@ -826,7 +857,7 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
         user_id: user.id,
         name: 'Actif',
         target_amount: 'enc',
-        target_date: '2099-01-01',
+        target_date: '2099-12-01',
         status: 'ACTIVE',
       },
     ]);
@@ -992,9 +1023,8 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
     expect(pastTargetTemplateLineIds.has(linkedLineId)).toBe(false);
     expect(pastTargetTemplateLineIds.has(unlinkedLineId)).toBe(true);
 
-    // Omitting the argument keeps the pre-PUL-311 behaviour, deadline or not:
-    // the horizon decision belongs to the caller, never to the RPC. 4/2099 is
-    // past the deadline too, and the linked line is still copied.
+    // Defense in depth: omitting the advisory exclusion cannot create a linked
+    // occurrence after the deadline. The trigger rolls the whole RPC back.
     const { error: omittedArgError } = await admin.rpc(
       'create_budget_from_template',
       {
@@ -1005,7 +1035,9 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
         p_description: '',
       },
     );
-    expect(omittedArgError).toBeNull();
+    expect(omittedArgError?.message ?? '').toContain(
+      'Savings goal line outside target horizon',
+    );
 
     const omittedArgLines = await admin
       .from('budget_line')
@@ -1016,8 +1048,7 @@ describe('PUL-12 — savings_goal_id propagation (RPC integration)', () => {
     const omittedArgTemplateLineIds = new Set(
       (omittedArgLines.data ?? []).map((row) => row.template_line_id),
     );
-    expect(omittedArgTemplateLineIds.has(linkedLineId)).toBe(true);
-    expect(omittedArgTemplateLineIds.has(unlinkedLineId)).toBe(true);
+    expect(omittedArgTemplateLineIds).toEqual(new Set());
   });
 
   it('create_template_with_lines persists an inline savings_goal_id (batch path)', async () => {

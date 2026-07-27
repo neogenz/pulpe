@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Borner le nouveau lien propagé depuis le Mois Type
