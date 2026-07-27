@@ -25,6 +25,7 @@ import { Router } from '@angular/router';
 import { debounceTime } from 'rxjs';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import {
+  API_ERROR_CODES,
   type SavingsGoalFutureLine,
   type SavingsGoalPaceStatus,
   type SavingsGoalStatus,
@@ -797,12 +798,26 @@ export default class SavingsGoalDetailPage {
   protected async onDelete(): Promise<void> {
     const goal = this.goal();
     if (!goal) return;
-    if (!(await this.#dialogs.confirmDelete())) return;
+    const command = await this.#dialogs.openDeletion({
+      goalId: goal.id,
+      goalName: goal.name,
+      currency: this.currency(),
+      locale: this.locale,
+      payDayOfMonth: this.payDayOfMonth(),
+    });
+    if (!command) return;
     try {
-      await this.store.removeGoal(goal.id);
+      await this.store.deleteGoal(goal.id, command);
       this.goBack();
     } catch (error) {
-      this.#showError(error);
+      this.#showLocalizedApiError(error);
+      if (
+        isApiError(error) &&
+        error.code ===
+          API_ERROR_CODES.SAVINGS_GOAL_DELETION_RECALCULATION_FAILED
+      ) {
+        this.goBack();
+      }
     }
   }
 

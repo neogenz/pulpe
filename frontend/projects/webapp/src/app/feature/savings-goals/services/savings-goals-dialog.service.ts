@@ -5,7 +5,9 @@ import { firstValueFrom } from 'rxjs';
 import type {
   SavingsGoal,
   SavingsGoalCreate,
+  SavingsGoalDeletionCommand,
   SavingsGoalUpdate,
+  SupportedCurrency,
 } from 'pulpe-shared';
 import {
   ConfirmationDialog,
@@ -24,6 +26,10 @@ import {
   type GoalGenerationStopDecision,
   type GoalGenerationStopDialogData,
 } from '../detail/components/goal-generation-stop-dialog';
+import {
+  GoalDeletionDialog,
+  type GoalDeletionDialogData,
+} from '../detail/components/goal-deletion-dialog';
 
 @Service({ autoProvided: false })
 export class SavingsGoalsDialogService {
@@ -70,18 +76,21 @@ export class SavingsGoalsDialogService {
     return firstValueFrom(dialogRef.afterClosed());
   }
 
-  async confirmDelete(): Promise<boolean> {
-    const dialogRef = this.#dialog.open(ConfirmationDialog, {
-      data: {
-        title: this.#transloco.translate('savingsGoals.deleteConfirmTitle'),
-        message: this.#transloco.translate('savingsGoals.deleteConfirmMessage'),
-        confirmText: this.#transloco.translate('common.delete'),
-        confirmColor: 'warn',
-      } satisfies ConfirmationDialogData,
-      width: '400px',
+  async openDeletion(data: {
+    goalId: string;
+    goalName: string;
+    currency: SupportedCurrency;
+    locale: string;
+    payDayOfMonth: number | null;
+  }): Promise<SavingsGoalDeletionCommand | undefined> {
+    const dialogRef = this.#dialog.open(GoalDeletionDialog, {
+      data: data satisfies GoalDeletionDialogData,
+      width: '720px',
+      maxWidth: '95vw',
+      height: '90dvh',
+      maxHeight: '90dvh',
     });
-    const confirmed = await firstValueFrom(dialogRef.afterClosed());
-    return confirmed === true;
+    return firstValueFrom(dialogRef.afterClosed());
   }
 
   /** « Abandonner tes ajustements ? » — exit the simulator with pending changes. */

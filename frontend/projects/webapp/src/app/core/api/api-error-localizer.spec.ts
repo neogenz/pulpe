@@ -59,6 +59,30 @@ describe('ApiErrorLocalizer', () => {
     );
   });
 
+  it('should ask for a fresh deletion preview when its impact changed', () => {
+    const error = new ApiError(
+      'Impact changed',
+      'ERR_SAVINGS_GOAL_DELETION_IMPACT_CHANGED',
+      409,
+      null,
+    );
+    expect(service.localizeApiError(error)).toBe(
+      'Les éléments rattachés ont changé entre-temps — ouvre à nouveau la suppression pour vérifier le nouvel impact',
+    );
+  });
+
+  it('should warn that deletion committed when balance refresh fails', () => {
+    const error = new ApiError(
+      'Deletion committed but recalculation failed',
+      'ERR_SAVINGS_GOAL_DELETION_RECALCULATION_FAILED',
+      500,
+      null,
+    );
+    expect(service.localizeApiError(error)).toBe(
+      "L'objectif et les éléments choisis ont bien été supprimés, mais les soldes n'ont pas pu être actualisés — recharge les budgets sans relancer la suppression",
+    );
+  });
+
   it('should warn that goal creation committed when baseline recalculation fails', () => {
     const error = new ApiError(
       'Goal and baseline committed but recalculation failed',

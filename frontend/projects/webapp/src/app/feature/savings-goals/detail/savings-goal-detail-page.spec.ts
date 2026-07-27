@@ -17,6 +17,7 @@ import {
   API_ERROR_CODES,
   type SavingsGoal,
   type SavingsGoalContribution,
+  type SavingsGoalDeletionCommand,
   type SavingsGoalFutureLine,
   type SavingsGoalProgress,
 } from 'pulpe-shared';
@@ -173,6 +174,15 @@ const futureLine: SavingsGoalFutureLine = {
   year: 2026,
 };
 
+const deletionCommand: SavingsGoalDeletionCommand = {
+  mode: 'goal_only',
+  revision: {
+    templateLines: [],
+    budgetLines: [],
+    transactions: [],
+  },
+};
+
 describe('SavingsGoalDetailPage', () => {
   let fixture: ComponentFixture<SavingsGoalDetailPage>;
   let component: SavingsGoalDetailPage;
@@ -213,7 +223,7 @@ describe('SavingsGoalDetailPage', () => {
     completeGoal,
     reopenGoal,
     editGoal: vi.fn().mockResolvedValue(makeGoal()),
-    removeGoal: vi.fn().mockResolvedValue(undefined),
+    deleteGoal: vi.fn().mockResolvedValue(undefined),
     fetchFutureLines: vi.fn().mockResolvedValue([]),
     applyGenerationStop: vi.fn().mockResolvedValue({ affectedCount: 0 }),
   };
@@ -221,7 +231,7 @@ describe('SavingsGoalDetailPage', () => {
   const mockDialogs = {
     openEdit: vi.fn(),
     openGenerationStop: vi.fn(),
-    confirmDelete: vi.fn(),
+    openDeletion: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -490,25 +500,81 @@ describe('SavingsGoalDetailPage', () => {
     expect(query('edit-savings-goal-button')).toBeTruthy();
   });
 
-  it('deletes the goal after confirmation and navigates back to the list', async () => {
-    mockDialogs.confirmDelete.mockResolvedValue(true);
+  it('deletes the goal with the preview revision then navigates back', async () => {
+    mockDialogs.openDeletion.mockResolvedValue(deletionCommand);
     fixture.detectChanges();
 
     query('delete-savings-goal-button').nativeElement.click();
     await fixture.whenStable();
 
-    expect(mockStore.removeGoal).toHaveBeenCalledWith('goal-1');
+    expect(mockDialogs.openDeletion).toHaveBeenCalledWith({
+      goalId: 'goal-1',
+      goalName: 'Vacances été 2027',
+      currency: 'CHF',
+      locale: 'en-US',
+      payDayOfMonth: 25,
+    });
+    expect(mockStore.deleteGoal).toHaveBeenCalledWith(
+      'goal-1',
+      deletionCommand,
+    );
     expect(navigate).toHaveBeenCalledWith(['/', 'savings-goals']);
   });
 
-  it('does not delete when the confirmation is declined', async () => {
-    mockDialogs.confirmDelete.mockResolvedValue(false);
+  it('does not delete when the impact dialog is dismissed', async () => {
+    mockDialogs.openDeletion.mockResolvedValue(undefined);
     fixture.detectChanges();
 
     query('delete-savings-goal-button').nativeElement.click();
     await fixture.whenStable();
 
-    expect(mockStore.removeGoal).not.toHaveBeenCalled();
+    expect(mockStore.deleteGoal).not.toHaveBeenCalled();
+  });
+
+  it('stays on the goal when the displayed deletion impact changed', async () => {
+    mockDialogs.openDeletion.mockResolvedValue(deletionCommand);
+    mockStore.deleteGoal.mockRejectedValueOnce(
+      new ApiError(
+        'Impact changed',
+        API_ERROR_CODES.SAVINGS_GOAL_DELETION_IMPACT_CHANGED,
+        409,
+        null,
+      ),
+    );
+    fixture.detectChanges();
+
+    query('delete-savings-goal-button').nativeElement.click();
+    await fixture.whenStable();
+
+    expect(navigate).not.toHaveBeenCalled();
+    expect(snackBarOpen).toHaveBeenCalledWith(
+      'Les éléments rattachés ont changé entre-temps — ouvre à nouveau la suppression pour vérifier le nouvel impact',
+      'Fermer',
+      expect.objectContaining({ duration: 5000 }),
+    );
+  });
+
+  it('navigates after a committed deletion with recalculation failure', async () => {
+    mockDialogs.openDeletion.mockResolvedValue(deletionCommand);
+    mockStore.deleteGoal.mockRejectedValueOnce(
+      new ApiError(
+        'Deletion committed',
+        API_ERROR_CODES.SAVINGS_GOAL_DELETION_RECALCULATION_FAILED,
+        500,
+        null,
+      ),
+    );
+    fixture.detectChanges();
+
+    query('delete-savings-goal-button').nativeElement.click();
+    await fixture.whenStable();
+
+    expect(navigate).toHaveBeenCalledWith(['/', 'savings-goals']);
+    expect(snackBarOpen).toHaveBeenCalledWith(
+      "L'objectif et les éléments choisis ont bien été supprimés, mais les soldes n'ont pas pu être actualisés — recharge les budgets sans relancer la suppression",
+      'Fermer',
+      expect.objectContaining({ duration: 5000 }),
+    );
   });
 
   it('shows the loading state while progress is loading', () => {

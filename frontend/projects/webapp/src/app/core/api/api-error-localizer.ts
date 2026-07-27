@@ -68,6 +68,10 @@ const CODE_KEY_MAP = {
     'apiError.savingsGoalGenerationStopLineInvalid',
   [API_ERROR_CODES.SAVINGS_GOAL_GENERATION_STOP_RECALCULATION_FAILED]:
     'apiError.savingsGoalGenerationStopRecalculationFailed',
+  [API_ERROR_CODES.SAVINGS_GOAL_DELETION_IMPACT_CHANGED]:
+    'apiError.savingsGoalDeletionImpactChanged',
+  [API_ERROR_CODES.SAVINGS_GOAL_DELETION_RECALCULATION_FAILED]:
+    'apiError.savingsGoalDeletionRecalculationFailed',
   [API_ERROR_CODES.USER_NOT_FOUND]: 'apiError.profileNotFound',
   [API_ERROR_CODES.USER_PROFILE_UPDATE_FAILED]: 'apiError.profileUpdateFailed',
   [API_ERROR_CODES.VALIDATION_FAILED]: 'apiError.validationFailed',

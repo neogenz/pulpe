@@ -11,6 +11,10 @@ import {
   savingsGoalResponseSchema,
   type SavingsGoalDeleteResponse,
   savingsGoalDeleteResponseSchema,
+  type SavingsGoalDeletionCommand,
+  savingsGoalDeletionCommandSchema,
+  type SavingsGoalDeletionImpactResponse,
+  savingsGoalDeletionImpactResponseSchema,
   type SavingsGoalContributionsResponse,
   savingsGoalContributionsResponseSchema,
   type SavingsGoalUpdate,
@@ -97,10 +101,24 @@ export class SavingsGoalApi {
     );
   }
 
-  delete$(id: string): Observable<SavingsGoalDeleteResponse> {
-    return this.#api.delete$(
-      `/savings-goals/${id}`,
+  getDeletionImpact$(
+    id: string,
+  ): Observable<SavingsGoalDeletionImpactResponse> {
+    return this.#api.get$(
+      `/savings-goals/${id}/deletion-impact`,
+      savingsGoalDeletionImpactResponseSchema,
+    );
+  }
+
+  applyDeletion$(
+    id: string,
+    command: SavingsGoalDeletionCommand,
+  ): Observable<SavingsGoalDeleteResponse> {
+    return this.#api.post$(
+      `/savings-goals/${id}/deletion`,
+      command,
       savingsGoalDeleteResponseSchema,
+      savingsGoalDeletionCommandSchema,
     );
   }
 
