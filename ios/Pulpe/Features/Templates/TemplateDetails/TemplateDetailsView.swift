@@ -3,6 +3,7 @@ import SwiftUI
 struct TemplateDetailsView: View {
     let templateId: String
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(SavingsGoalStore.self) private var savingsGoalStore
     @State private var viewModel: TemplateDetailsViewModel
     @State private var selectedLineForEdit: TemplateLine?
 
@@ -29,8 +30,8 @@ struct TemplateDetailsView: View {
         .animation(DesignTokens.Animation.smoothEaseOut, value: viewModel.isLoading)
         .navigationTitle(viewModel.template?.name ?? "Modèle")
         .navigationBarTitleDisplayMode(.inline)
-        .task {
-            await viewModel.loadIfNeeded()
+        .task(id: savingsGoalStore.templateDataVersion) {
+            await viewModel.loadDetails()
         }
         .sheet(item: $selectedLineForEdit) { line in
             EditTemplateLineSheet(
@@ -379,4 +380,5 @@ private struct TemplateDetailsSkeletonView: View {
         TemplateDetailsView(templateId: "test")
     }
     .environment(UserSettingsStore())
+    .environment(SavingsGoalStore())
 }

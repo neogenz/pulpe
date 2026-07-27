@@ -34,6 +34,7 @@ enum APIError: LocalizedError {
     case savingsWithdrawalRecalculationFailed
     case savingsGoalBaselineRecalculationFailed
     case savingsGoalGenerationStopRecalculationFailed
+    case savingsGoalNotFound
     case savingsGoalDeletionImpactChanged
     case savingsGoalDeletionRecalculationFailed
 
@@ -104,6 +105,8 @@ enum APIError: LocalizedError {
         case .savingsGoalGenerationStopRecalculationFailed:
             return "La décision a bien été enregistrée, mais les soldes n'ont pas pu être actualisés — "
                 + "recharge la page sans réessayer"
+        case .savingsGoalNotFound:
+            return "Cet objectif n'existe plus"
         case .savingsGoalDeletionImpactChanged:
             return "Les éléments rattachés ont changé entre-temps — "
                 + "vérifie le nouvel impact avant de confirmer"
@@ -143,6 +146,7 @@ enum APIError: LocalizedError {
         "ERR_SAVINGS_WITHDRAWAL_RECALCULATION_FAILED": .savingsWithdrawalRecalculationFailed,
         "ERR_SAVINGS_GOAL_BASELINE_RECALCULATION_FAILED": .savingsGoalBaselineRecalculationFailed,
         "ERR_SAVINGS_GOAL_GENERATION_STOP_RECALCULATION_FAILED": .savingsGoalGenerationStopRecalculationFailed,
+        "ERR_SAVINGS_GOAL_NOT_FOUND": .savingsGoalNotFound,
         "ERR_SAVINGS_GOAL_DELETION_IMPACT_CHANGED": .savingsGoalDeletionImpactChanged,
         "ERR_SAVINGS_GOAL_DELETION_RECALCULATION_FAILED": .savingsGoalDeletionRecalculationFailed,
     ]

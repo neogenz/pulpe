@@ -27,6 +27,7 @@ final class SavingsGoalStore: StoreProtocol {
     private var lastLoadTime: Date?
     private var loadTask: Task<Void, Never>?
     private var loadGeneration = 0
+    private(set) var templateDataVersion = 0
     @ObservationIgnored var onBudgetDataMutation: (@MainActor () -> Void)?
 
     // MARK: - Services
@@ -128,8 +129,14 @@ final class SavingsGoalStore: StoreProtocol {
         do {
             try await service.delete(id: id, command: command)
         } catch let apiError as APIError {
-            if case .savingsGoalDeletionRecalculationFailed = apiError {
+            switch apiError {
+            case .savingsGoalNotFound:
                 settleCommittedDeletion(id: id)
+                return
+            case .savingsGoalDeletionRecalculationFailed:
+                settleCommittedDeletion(id: id)
+            default:
+                break
             }
             throw apiError
         }
@@ -138,6 +145,7 @@ final class SavingsGoalStore: StoreProtocol {
 
     private func settleCommittedDeletion(id: String) {
         goals.removeAll { $0.id == id }
+        templateDataVersion += 1
         onBudgetDataMutation?()
     }
 
@@ -174,6 +182,7 @@ final class SavingsGoalStore: StoreProtocol {
         hasLoadedOnce = false
         lastLoadTime = nil
         error = nil
+        templateDataVersion = 0
     }
 }
 

@@ -166,6 +166,7 @@ struct SavingsGoalStoreTests {
         #expect(service.lastDeletedId == "g1")
         #expect(service.lastDeletionCommand == command)
         #expect(invalidationCount == 1)
+        #expect(store.templateDataVersion == 1)
     }
 
     @Test("delete preserves the goal when the displayed impact changed")
@@ -187,6 +188,7 @@ struct SavingsGoalStoreTests {
 
         #expect(store.goals.map(\.id) == ["g1"])
         #expect(invalidationCount == 0)
+        #expect(store.templateDataVersion == 0)
     }
 
     @Test("delete settles committed state when recalculation failed")
@@ -208,6 +210,44 @@ struct SavingsGoalStoreTests {
 
         #expect(store.goals.isEmpty)
         #expect(invalidationCount == 1)
+        #expect(store.templateDataVersion == 1)
+    }
+
+    @Test("delete treats an already absent goal as committed")
+    func delete_notFoundSettlesCommittedState() async throws {
+        let service = MockSavingsGoalService()
+        service.stubbedGoals = [makeGoal(id: "g1")]
+        let store = SavingsGoalStore(service: service)
+        nonisolated(unsafe) var invalidationCount = 0
+        store.onBudgetDataMutation = { invalidationCount += 1 }
+        await store.forceRefresh()
+        service.deletionError = APIError.from(code: "ERR_SAVINGS_GOAL_NOT_FOUND", message: "Savings goal not found")
+
+        try await store.delete(id: "g1", command: deletionCommand())
+
+        #expect(store.goals.isEmpty)
+        #expect(invalidationCount == 1)
+        #expect(store.templateDataVersion == 1)
+        #expect(service.deleteCallCount == 1)
+    }
+
+    @Test("delete preserves local projections on a pre-commit failure")
+    func delete_preCommitFailurePreservesLocalState() async {
+        let service = MockSavingsGoalService()
+        service.stubbedGoals = [makeGoal(id: "g1")]
+        let store = SavingsGoalStore(service: service)
+        nonisolated(unsafe) var invalidationCount = 0
+        store.onBudgetDataMutation = { invalidationCount += 1 }
+        await store.forceRefresh()
+        service.deletionError = APIError.networkError(URLError(.notConnectedToInternet))
+
+        await #expect(throws: APIError.self) {
+            try await store.delete(id: "g1", command: deletionCommand())
+        }
+
+        #expect(store.goals.map(\.id) == ["g1"])
+        #expect(invalidationCount == 0)
+        #expect(store.templateDataVersion == 0)
     }
 
     @Test("applyGenerationStop forwards the decision and invalidates sibling stores once")
@@ -301,11 +341,14 @@ struct SavingsGoalStoreTests {
         let store = SavingsGoalStore(service: service)
         await store.forceRefresh()
         #expect(!store.goals.isEmpty)
+        try? await store.delete(id: "g1", command: deletionCommand())
+        #expect(store.templateDataVersion == 1)
 
         store.reset()
 
         #expect(store.goals.isEmpty)
         #expect(store.hasLoadedOnce == false)
         #expect(store.error == nil)
+        #expect(store.templateDataVersion == 0)
     }
 }
