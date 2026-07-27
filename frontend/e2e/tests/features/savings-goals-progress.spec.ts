@@ -4,6 +4,7 @@ import {
   API_ERROR_CODES,
   type SavingsGoal,
   type SavingsGoalContribution,
+  type SavingsGoalDeletionImpact,
   type SavingsGoalPlanMonth,
   type SavingsGoalProgress,
 } from 'pulpe-shared';
@@ -308,6 +309,25 @@ test.describe('Savings goal optional interval (PUL-314)', () => {
     }) => {
       let currentGoal: SavingsGoal | null = null;
       const patches: Record<string, unknown>[] = [];
+      const deletionImpact = {
+        goalId: scenario.id,
+        summary: {
+          templateLineCount: 0,
+          templateLineTotal: 0,
+          budgetCount: 0,
+          budgetLineCount: 0,
+          budgetLineTotal: 0,
+          transactionCount: 0,
+          transactionTotal: 0,
+        },
+        templateLines: [],
+        budgets: [],
+        revision: {
+          templateLines: [],
+          budgetLines: [],
+          transactions: [],
+        },
+      } satisfies SavingsGoalDeletionImpact;
 
       await page.route('**/api/v1/savings-goals/*/progress', (route) =>
         route.fulfill({
@@ -325,6 +345,26 @@ test.describe('Savings goal optional interval (PUL-314)', () => {
           contentType: 'application/json',
           body: JSON.stringify({ success: true, data: [] }),
         }),
+      );
+      await page.route(
+        `**/api/v1/savings-goals/${scenario.id}/deletion-impact`,
+        (route) =>
+          route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ success: true, data: deletionImpact }),
+          }),
+      );
+      await page.route(
+        `**/api/v1/savings-goals/${scenario.id}/deletion`,
+        (route) => {
+          currentGoal = null;
+          return route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ success: true, message: 'deleted' }),
+          });
+        },
       );
       await page.route(/\/api\/v1\/savings-goals(?:\?.*)?$/, (route) => {
         if (route.request().method() === 'POST') {
@@ -511,14 +551,20 @@ test.describe('Savings goal optional interval (PUL-314)', () => {
       }
       await expect(page.getByTestId('page-title')).toContainText(updatedName);
 
-      const deleteRequest = page.waitForRequest(
+      const deletionRequest = page.waitForRequest(
         (request) =>
-          request.method() === 'DELETE' &&
-          request.url().endsWith(`/api/v1/savings-goals/${scenario.id}`),
+          request.method() === 'POST' &&
+          request
+            .url()
+            .endsWith(`/api/v1/savings-goals/${scenario.id}/deletion`),
       );
       await page.getByTestId('delete-savings-goal-button').click();
-      await page.getByTestId('confirmation-confirm-button').click();
-      await deleteRequest;
+      await expect(page.getByTestId('goal-deletion-summary')).toBeVisible();
+      await page.getByTestId('goal-deletion-confirm').click();
+      expect((await deletionRequest).postDataJSON()).toEqual({
+        mode: 'goal_only',
+        revision: deletionImpact.revision,
+      });
       await expect(page).toHaveURL(/\/savings-goals$/);
       await expect(page.getByTestId(`savings-goal-${scenario.id}`)).toHaveCount(
         0,
