@@ -108,6 +108,7 @@ private struct TagPickerSheet: View {
     @State private var newTagName = ""
     @State private var createError: String?
     @State private var isCreating = false
+    @FocusState private var isNewTagNameFocused: Bool
 
     private var normalizedName: String {
         TagPickerField.normalizedName(newTagName)
@@ -211,10 +212,12 @@ private struct TagPickerSheet: View {
             HStack(spacing: DesignTokens.Spacing.md) {
                 Image(systemName: "tag")
                     .foregroundStyle(Color.onSurfaceVariant)
+                    .accessibilityHidden(true)
 
                 TextField("Nom du nouveau tag", text: $newTagName)
                     .textInputAutocapitalization(.sentences)
                     .submitLabel(.done)
+                    .focused($isNewTagNameFocused)
                     .onSubmit {
                         guard canCreate else { return }
                         Task { await createTag() }
@@ -238,6 +241,8 @@ private struct TagPickerSheet: View {
                 }
             }
             .frame(minHeight: DesignTokens.TapTarget.minimum)
+            .contentShape(.interaction, Rectangle())
+            .onTapGesture { isNewTagNameFocused = true }
         } header: {
             Text("Nouveau tag")
         } footer: {

@@ -1,6 +1,6 @@
 ---
 objective: "La PR PUL-294 conserve un catalogue de tags unique et résout les tags après chaque évolution des données, avec un sélecteur conforme aux règles tactiles, visuelles et VoiceOver d’iOS."
-status: implemented
+status: in-progress
 ---
 
 # Plan: Stabiliser les tags iOS avant merge
