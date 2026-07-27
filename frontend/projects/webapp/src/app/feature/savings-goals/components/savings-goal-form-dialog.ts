@@ -136,6 +136,7 @@ function inputNumber(value: string): number | null {
         <mat-form-field
           appearance="outline"
           subscriptSizing="dynamic"
+          floatLabel="always"
           class="w-full"
         >
           <mat-label>{{

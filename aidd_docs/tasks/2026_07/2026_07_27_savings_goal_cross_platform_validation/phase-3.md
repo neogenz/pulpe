@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Inspecter le rendu cross-platform et publier les preuves
@@ -10,11 +10,15 @@ status: pending
 
 ```txt
 .
-└── Aucun fichier du dépôt
+└── frontend
+    ├── e2e/tests/features
+    │   └── savings-goal-initial-amount.spec.ts ✏️ régression mobile label/suffixe
+    └── projects/webapp/src/app/feature/savings-goals/components
+        └── savings-goal-form-dialog.ts ✏️ label toujours flottant
 ```
 
 - Les captures navigateur, captures simulateur et journaux d’exécution restent des artefacts attachés à la PR #553.
-- Création : aucune. Modification : aucune. Suppression : aucune.
+- Création : aucune. Suppression : aucune.
 
 ## User Journey
 
@@ -85,7 +89,15 @@ flowchart TD
 
 ## Tasks to do
 
-### `1)` Inspecter le rendu Angular réel
+### `1)` Corriger le chevauchement du montant de départ
+
+> Garder le libellé facultatif lisible face au suffixe monétaire sur mobile.
+
+1. Écrire une régression Playwright à 390×844 qui mesure les rectangles du label vide et du suffixe `CHF`.
+2. Forcer le label du montant de départ à flotter avec l'API native Angular Material déjà utilisée dans le dépôt.
+3. Vérifier que la régression échoue avant le correctif puis passe après.
+
+### `2)` Inspecter le rendu Angular réel
 
 > Comparer les surfaces réelles au wireframe et aux règles `DESIGN.md`.
 
@@ -95,7 +107,7 @@ flowchart TD
 4. Vérifier les surfaces chaudes, la sémantique Épargne, le rouge limité à la suppression et les montants tabulaires.
 5. Capturer chaque surface retenue aux deux largeurs ; le mode Tableau n’exige qu’une capture desktop.
 
-### `2)` Inspecter le rendu SwiftUI réel
+### `3)` Inspecter le rendu SwiftUI réel
 
 > Valider les mêmes intentions dans un iPhone Simulator, pas dans une preview statique.
 
@@ -105,7 +117,7 @@ flowchart TD
 4. Vérifier absence de coupe, scroll accessible, cibles tactiles, action principale unique, surfaces de sheet, couleurs sémantiques et montants stables.
 5. Attacher les captures comme `XCTAttachment` au `.xcresult`, puis exporter le jeu retenu pour la PR.
 
-### `3)` Publier une preuve reproductible
+### `4)` Publier une preuve reproductible
 
 > Transformer les exécutions et captures en verdict vérifiable sur la PR #553.
 
@@ -119,9 +131,11 @@ flowchart TD
 
 | Task | Acceptance criteria |
 | ---- | ------------------- |
-| 1 | Les surfaces web retenues sont visibles et utilisables à 1440×900 et 390×844, sans coupe, chevauchement, scroll bloqué ni contenu conditionnel fantôme. |
-| 1 | Le formulaire, les détails, la confirmation et les lignes liées respectent la hiérarchie et les règles sémantiques Pulpe ; le mode Tableau reste lisible en desktop. |
-| 2 | Les mêmes surfaces sont validées dans un iPhone Simulator en thème clair, et les cas ciblés restent utilisables en Dynamic Type d’accessibilité et thème sombre. |
-| 2 | Aucun contrôle essentiel ni montant n’est tronqué ; la sheet de confirmation et le chip lié conservent leur hiérarchie. |
-| 3 | Les quatre documents du plan sont suivis par Git et la PR contient le SHA, les résultats des tests et un jeu de captures rattaché à chaque surface et environnement. |
-| 3 | Tout échec donne un verdict `not ready` et maintient la PR en draft ; aucun succès n’est déduit d’une build seule ou d’une capture non inspectée. |
+| 1 | À 390×844, le label vide « Montant de départ (optionnel) » et le suffixe monétaire occupent des rectangles distincts. |
+| 1 | Le correctif repose sur le comportement natif de `mat-form-field`, sans CSS local ni modification des autres champs. |
+| 2 | Les surfaces web retenues sont visibles et utilisables à 1440×900 et 390×844, sans coupe, chevauchement, scroll bloqué ni contenu conditionnel fantôme. |
+| 2 | Le formulaire, les détails, la confirmation et les lignes liées respectent la hiérarchie et les règles sémantiques Pulpe ; le mode Tableau reste lisible en desktop. |
+| 3 | Les mêmes surfaces sont validées dans un iPhone Simulator en thème clair, et les cas ciblés restent utilisables en Dynamic Type d’accessibilité et thème sombre. |
+| 3 | Aucun contrôle essentiel ni montant n’est tronqué ; la sheet de confirmation et le chip lié conservent leur hiérarchie. |
+| 4 | Les quatre documents du plan sont suivis par Git et la PR contient le SHA, les résultats des tests et un jeu de captures rattaché à chaque surface et environnement. |
+| 4 | Tout échec donne un verdict `not ready` et maintient la PR en draft ; aucun succès n’est déduit d’une build seule ou d’une capture non inspectée. |
