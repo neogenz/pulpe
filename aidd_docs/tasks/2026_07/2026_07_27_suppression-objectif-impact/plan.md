@@ -1,6 +1,6 @@
 ---
 objective: "La suppression d’un objectif présente un impact complet et permet de conserver, délier ou supprimer explicitement ses prévisions et transactions sur le web et iOS."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Prévisualiser et choisir l’impact de la suppression d’un objectif
