@@ -86,7 +86,7 @@ final class SavingsGoalStore: StoreProtocol {
 
     /// Creates a goal and inserts it into the cached list on success. With
     /// `monthlyContribution` set (PUL-285 auto-décomposition), the server also
-    /// posed a linked template_line + budget_lines → budget data changed.
+    /// creates linked one-off lines in existing budgets → budget data changed.
     @discardableResult
     func create(_ data: SavingsGoalCreate) async throws -> SavingsGoal {
         do {

@@ -34,7 +34,8 @@ export interface SavingsGoalFormValue {
 /**
  * `monthlyContribution` (PUL-285 CA6) : montant mensuel choisi quand l'option
  * « décomposer en mensualités » est active — présence = opt-in serveur (la
- * prévision Épargne récurrente liée est générée sur le Mois Type par défaut).
+ * mensualité est matérialisée en prévisions `one_off` liées dans les budgets
+ * déjà existants, jusqu'à l'échéance ; le Mois Type reste intact).
  * Nul, absent ou non positif ⇒ création classique sans décomposition.
  *
  * `initialAmount` n'est envoyé que si positif — 0 (défaut du champ) est

@@ -60,8 +60,8 @@ struct SavingsGoalCreate: Encodable {
     let targetDate: String
     let status: SavingsGoalStatus
     /// Opt-in auto-décomposition (PUL-285 CA1/CA6) : montant mensuel choisi —
-    /// présence = le serveur génère la prévision Épargne récurrente liée sur le
-    /// Mois Type par défaut. `nil` est omis du body (encodeIfPresent synthétisé).
+    /// présence = le serveur crée des prévisions Épargne `one_off` liées dans
+    /// les budgets existants jusqu'à l'échéance. `nil` est omis du body.
     var monthlyContribution: Decimal?
     /// Stock déjà épargné avant le suivi (PUL-293). Omis = 0 (défaut serveur).
     var initialAmount: Decimal?

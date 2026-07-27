@@ -240,7 +240,6 @@ export const savingsGoalSchema = z.object({
   id: z.uuid(),
   userId: z.uuid(),
   name: z.string().min(1).max(100).trim(),
-  // coerce: Supabase PostgREST returns numeric(12,2) columns as strings
   targetAmount: z.coerce.number().nonnegative(),
   targetDate: z.iso.date(), // ISO date (YYYY-MM-DD)
   status: savingsGoalStatusSchema,
@@ -285,8 +284,8 @@ export const savingsGoalCreateSchema = z.strictObject({
   status: savingsGoalStatusSchema.default('ACTIVE'),
   /**
    * Opt-in auto-décomposition (PUL-285 CA1/CA6) : montant mensuel choisi pour
-   * la prévision Épargne récurrente liée que le serveur génère sur le Mois
-   * Type par défaut et propage aux budgets matérialisés. Présence = opt-in ;
+   * les prévisions Épargne `one_off` liées que le serveur matérialise dans les
+   * budgets déjà existants, jusqu'à l'échéance incluse. Présence = opt-in ;
    * le client pré-remplit via `suggestedMonthlyContribution` mais l'utilisateur
    * garde la main (« pré-remplit, n'impose pas »).
    */
@@ -612,11 +611,9 @@ export const budgetLineSchema = z.object({
   id: z.uuid(),
   budgetId: z.uuid(),
   templateLineId: z.uuid().nullable(),
-  // NOTE: savingsGoalId pour feature future (pas dans SPECS V1)
+  // Lien optionnel vers un objectif, autorisé uniquement pour kind=saving.
   savingsGoalId: z.uuid().nullable(),
   name: z.string().min(1).max(100).trim(),
-  // nonnegative: API may return 0 when encryption is active (real value in *_encrypted)
-  // coerce: Supabase PostgREST returns numeric(12,2) columns as strings
   amount: z.coerce.number().nonnegative(),
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
@@ -940,7 +937,6 @@ export const spreadOccurrenceSchema = z.object({
   month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
   year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
   name: z.string(),
-  // coerce: PostgREST returns numeric as string; nonnegative: 0 when encrypted
   amount: z.coerce.number().nonnegative(),
   kind: transactionKindSchema,
   checkedAt: z.iso.datetime({ offset: true }).nullable(),
@@ -1103,8 +1099,6 @@ export const transactionSchema = z.object({
   budgetId: z.uuid(),
   budgetLineId: z.uuid().nullable(),
   name: z.string().min(1).max(100).trim(),
-  // nonnegative: API may return 0 when encryption is active (real value in *_encrypted)
-  // coerce: Supabase PostgREST returns numeric(12,2) columns as strings
   amount: z.coerce.number().nonnegative(),
   kind: transactionKindSchema,
   transactionDate: z.iso.datetime({ offset: true }),
@@ -1211,7 +1205,6 @@ export const transactionSearchResultSchema = z.object({
   id: z.uuid(),
   itemType: searchItemTypeSchema,
   name: z.string(),
-  // coerce: Supabase PostgREST returns numeric(12,2) columns as strings
   amount: z.coerce.number(),
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema.or(z.null()),
@@ -1253,8 +1246,6 @@ export const templateLineSchema = z.object({
   // line stays tagged across monthly regenerations.
   savingsGoalId: z.uuid().nullable(),
   name: z.string().min(1).max(100).trim(),
-  // nonnegative: API may return 0 when encryption is active (real value in *_encrypted)
-  // coerce: Supabase PostgREST returns numeric(12,2) columns as strings
   amount: z.coerce.number().nonnegative(),
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
