@@ -70,20 +70,6 @@ export class SavingsGoalsDialogService {
     return firstValueFrom(dialogRef.afterClosed());
   }
 
-  async confirmDelete(): Promise<boolean> {
-    const dialogRef = this.#dialog.open(ConfirmationDialog, {
-      data: {
-        title: this.#transloco.translate('savingsGoals.deleteConfirmTitle'),
-        message: this.#transloco.translate('savingsGoals.deleteConfirmMessage'),
-        confirmText: this.#transloco.translate('common.delete'),
-        confirmColor: 'warn',
-      } satisfies ConfirmationDialogData,
-      width: '400px',
-    });
-    const confirmed = await firstValueFrom(dialogRef.afterClosed());
-    return confirmed === true;
-  }
-
   /** « Abandonner tes ajustements ? » — exit the simulator with pending changes. */
   async confirmDiscardChanges(): Promise<boolean> {
     const dialogRef = this.#dialog.open(ConfirmationDialog, {

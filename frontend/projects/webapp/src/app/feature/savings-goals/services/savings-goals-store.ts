@@ -4,6 +4,8 @@ import {
   type SavingsGoal,
   type SavingsGoalContribution,
   type SavingsGoalCreate,
+  type SavingsGoalDeletionCommand,
+  type SavingsGoalDeletionImpact,
   type SavingsGoalFutureLine,
   type SavingsGoalGenerationStop,
   type SavingsGoalPlanApply,
@@ -158,38 +160,6 @@ export class SavingsGoalStore {
     },
     onError: (_err, _vars, previous) => {
       if (previous) this.savingsGoals.set(previous);
-    },
-  });
-
-  readonly #deleteMutation = cachedMutation<
-    string,
-    void,
-    { goals: SavingsGoal[]; selectedGoalId: string | null }
-  >({
-    cache: this.#api.cache,
-    // The goal is gone — list, progress AND contributions are all stale, so
-    // nuke the whole domain prefix (same shape as create).
-    invalidateKeys: () => [['savings-goals']],
-    mutationFn: (id) => this.#api.delete$(id).pipe(map(() => void 0 as void)),
-    onMutate: (id) => {
-      const snapshot = {
-        goals: this.savingsGoals.value() ?? [],
-        selectedGoalId: this.#selectedGoalId(),
-      };
-      this.#selectedGoalId.set(null);
-      this.savingsGoals.update((data) =>
-        (data ?? []).filter((goal) => goal.id !== id),
-      );
-      return snapshot;
-    },
-    onSuccess: () => {
-      this.#budgetApi.cache.invalidate(['budget']);
-      this.#budgetTemplatesApi.cache.invalidate(['templates']);
-    },
-    onError: (_err, _id, snapshot) => {
-      if (!snapshot) return;
-      this.savingsGoals.set(snapshot.goals);
-      this.#selectedGoalId.set(snapshot.selectedGoalId);
     },
   });
 
@@ -348,16 +318,45 @@ export class SavingsGoalStore {
     return this.editGoal(id, { status: 'ACTIVE' });
   }
 
-  async removeGoal(id: string): Promise<void> {
-    // delete resolves to `void`, so the return value cannot signal failure —
-    // rely on the mutation status (onError already rolled back the optimistic
-    // removal in onMutate).
-    await this.#deleteMutation.mutate(id);
-    if (this.#deleteMutation.status() === 'error') {
-      throw (
-        this.#deleteMutation.error() ??
-        new Error('Failed to delete savings goal')
-      );
+  async fetchDeletionImpact(id: string): Promise<SavingsGoalDeletionImpact> {
+    return firstValueFrom(
+      this.#api.getDeletionImpact$(id).pipe(map((response) => response.data)),
+    );
+  }
+
+  async deleteGoal(
+    id: string,
+    command: SavingsGoalDeletionCommand,
+  ): Promise<void> {
+    try {
+      await firstValueFrom(this.#api.applyDeletion$(id, command));
+    } catch (error) {
+      if (
+        isApiError(error) &&
+        error.code === API_ERROR_CODES.SAVINGS_GOAL_NOT_FOUND
+      ) {
+        this.#settleCommittedDeletion(id);
+        return;
+      }
+      if (
+        isApiError(error) &&
+        error.code ===
+          API_ERROR_CODES.SAVINGS_GOAL_DELETION_RECALCULATION_FAILED
+      ) {
+        this.#settleCommittedDeletion(id);
+      }
+      throw error;
     }
+    this.#settleCommittedDeletion(id);
+  }
+
+  #settleCommittedDeletion(id: string): void {
+    if (this.#selectedGoalId() === id) this.#selectedGoalId.set(null);
+    this.savingsGoals.update((data) =>
+      (data ?? []).filter((goal) => goal.id !== id),
+    );
+    this.#api.cache.invalidate(['savings-goals']);
+    this.#budgetApi.cache.invalidate(['budget']);
+    this.#budgetTemplatesApi.cache.invalidate(['templates']);
   }
 }

@@ -75,6 +75,8 @@ enum Endpoint {
     case savingsGoalPlanApply(id: String)
     case savingsGoalFutureLines(id: String)
     case savingsGoalGenerationStop(id: String)
+    case savingsGoalDeletionImpact(id: String)
+    case savingsGoalDeletion(id: String)
 
     // MARK: - Currency
 
@@ -161,6 +163,8 @@ enum Endpoint {
         case .savingsGoalPlanApply(let id): return "/savings-goals/\(id)/plan"
         case .savingsGoalFutureLines(let id): return "/savings-goals/\(id)/future-lines"
         case .savingsGoalGenerationStop(let id): return "/savings-goals/\(id)/generation-stop"
+        case .savingsGoalDeletionImpact(let id): return "/savings-goals/\(id)/deletion-impact"
+        case .savingsGoalDeletion(let id): return "/savings-goals/\(id)/deletion"
 
         // Currency
         case .currencyRate: return "/currency/rate"
@@ -191,14 +195,14 @@ enum Endpoint {
              .transactionToggle, .transactionPostpone,
              .encryptionValidateKey, .encryptionSetupRecovery, .encryptionRegenerateRecovery, .encryptionRecover,
              .encryptionVerifyRecoveryKey, .encryptionChangePin,
-             .savingsGoalPlanApply, .savingsGoalGenerationStop:
+             .savingsGoalPlanApply, .savingsGoalGenerationStop, .savingsGoalDeletion:
             return .post
 
         case .validateSession, .userProfile, .budget, .budgetDetails, .budgetsExport,
              .budgetLine, .budgetLinesSpreadOccurrences, .transaction, .template, .templateUsage, .templateLine,
              .transactionsByBudget, .budgetsSparse,
              .savingsGoals, .savingsGoal, .savingsGoalProgress, .savingsGoalContributions,
-             .savingsGoalFutureLines,
+             .savingsGoalFutureLines, .savingsGoalDeletionImpact,
              .encryptionVaultStatus, .encryptionSalt,
              .userSettings, .tags, .currencyRate, .whatsNewIos:
             return .get

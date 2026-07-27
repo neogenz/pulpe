@@ -2,6 +2,8 @@ import type {
   SavingsGoal,
   SavingsGoalContribution,
   SavingsGoalCreateInput,
+  SavingsGoalDeletionImpactResult,
+  SavingsGoalDeletionResult,
   SavingsGoalGenerationStopResult,
   SavingsGoalLinkedContributions,
   SavingsGoalPlanApplyResult,
@@ -11,6 +13,7 @@ import type {
 import type {
   BudgetPeriod,
   LinkedSavingLine,
+  SavingsGoalDeletionCommand,
   SavingsGoalGenerationStop,
 } from 'pulpe-shared';
 
@@ -22,6 +25,11 @@ export interface SavingsGoalRepositoryPort {
   insert(input: SavingsGoalCreateInput): Promise<SavingsGoal>;
   update(id: string, patch: SavingsGoalUpdatePatch): Promise<SavingsGoal>;
   delete(id: string): Promise<void>;
+  getDeletionImpact(goalId: string): Promise<SavingsGoalDeletionImpactResult>;
+  applyDeletion(
+    goalId: string,
+    command: SavingsGoalDeletionCommand,
+  ): Promise<SavingsGoalDeletionResult>;
   /**
    * Prévisions Épargne liées au goal (kind=saving, RLS-scoped, décryptées)
    * avec leur période budgétaire + les transactions qui leur sont allouées

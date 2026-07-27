@@ -6,7 +6,8 @@ enum DomainErrorLocalizer {
     /// Localize any error to a user-friendly French message
     /// Always follows the pattern: "[What happened] — [suggestion]"
     static func localize(_ error: Error) -> String {
-        // APIError already has proper localization
+        // APIError owns known-code localization, including deletion conflicts
+        // and committed savings-goal deletions that only failed recalculation.
         if let apiError = error as? APIError {
             return apiError.localizedDescription
         }

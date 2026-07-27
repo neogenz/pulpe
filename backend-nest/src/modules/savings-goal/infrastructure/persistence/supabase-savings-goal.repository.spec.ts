@@ -943,4 +943,233 @@ describe('SupabaseSavingsGoalRepository', () => {
       });
     });
   });
+
+  describe('PUL-319 deletion impact', () => {
+    const goalId = '123e4567-e89b-42d3-a456-426614174001';
+    const budgetId = '123e4567-e89b-42d3-a456-426614174002';
+    const lineId = '123e4567-e89b-42d3-a456-426614174003';
+    const transactionId = '123e4567-e89b-42d3-a456-426614174004';
+    const now = '2026-07-27T10:00:00+00:00';
+    const revision = {
+      templateLines: [],
+      budgetLines: [{ id: lineId, updatedAt: now }],
+      transactions: [{ id: transactionId, updatedAt: now }],
+    };
+
+    it('decrypts the complete preview and computes its totals', async () => {
+      const rpc = jest.fn().mockResolvedValue({
+        data: {
+          goalId,
+          templateLines: [],
+          budgets: [
+            {
+              budgetId,
+              month: 7,
+              year: 2026,
+              lines: [
+                {
+                  lineId,
+                  name: 'Épargne',
+                  amount: 'enc:500',
+                  recurrence: 'fixed',
+                  checkedAt: null,
+                  updatedAt: now,
+                  transactions: [
+                    {
+                      id: transactionId,
+                      budgetId,
+                      budgetLineId: lineId,
+                      name: 'Virement',
+                      amount: 'enc:200',
+                      kind: 'saving',
+                      transactionDate: now,
+                      checkedAt: null,
+                      createdAt: now,
+                      updatedAt: now,
+                      originalAmount: null,
+                      originalCurrency: null,
+                      targetCurrency: null,
+                      exchangeRate: null,
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+          revision,
+        },
+        error: null,
+      });
+      const provider = {
+        get client() {
+          return { rpc } as unknown as AuthenticatedSupabaseClient;
+        },
+        get user() {
+          return mockUser;
+        },
+      } as AuthenticatedSupabaseProvider;
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      const impact = await repo.getDeletionImpact(goalId);
+
+      expect(impact.summary).toEqual({
+        templateLineCount: 0,
+        templateLineTotal: 0,
+        budgetCount: 1,
+        budgetLineCount: 1,
+        budgetLineTotal: 500,
+        transactionCount: 1,
+        transactionTotal: 200,
+      });
+      expect(impact.budgets[0].lines[0].transactions[0].amount).toBe(200);
+      expect(impact.revision).toEqual(revision);
+    });
+
+    it('maps a foreign preview to SAVINGS_GOAL_NOT_FOUND', async () => {
+      const dbError = {
+        code: 'P0001',
+        message: 'Savings goal access denied',
+      };
+      const rpc = jest.fn().mockResolvedValue({
+        data: null,
+        error: dbError,
+      });
+      const provider = {
+        get client() {
+          return { rpc } as unknown as AuthenticatedSupabaseClient;
+        },
+        get user() {
+          return mockUser;
+        },
+      } as AuthenticatedSupabaseProvider;
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      const caught = await repo
+        .getDeletionImpact(goalId)
+        .catch((error) => error);
+
+      expect(caught).toBeInstanceOf(BusinessException);
+      expect(caught).toMatchObject({
+        code: ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND.code,
+        cause: dbError,
+        loggingContext: {
+          operation: 'getSavingsGoalDeletionImpact',
+          entityId: goalId,
+          entityType: 'savings_goal',
+          userId: mockUser.id,
+        },
+      });
+    });
+
+    it('sends the exact mode and revision and deduplicates touched budgets', async () => {
+      const rpc = jest.fn().mockResolvedValue({
+        data: [{ budget_id: budgetId }, { budget_id: budgetId }],
+        error: null,
+      });
+      const provider = {
+        get client() {
+          return { rpc } as unknown as AuthenticatedSupabaseClient;
+        },
+        get user() {
+          return mockUser;
+        },
+      } as AuthenticatedSupabaseProvider;
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      await expect(
+        repo.applyDeletion(goalId, {
+          mode: 'goal_and_forecasts',
+          revision,
+        }),
+      ).resolves.toEqual({ touchedBudgetIds: [budgetId] });
+      expect(rpc).toHaveBeenCalledWith('apply_savings_goal_deletion', {
+        p_goal_id: goalId,
+        p_mode: 'goal_and_forecasts',
+        p_revision: revision,
+      });
+    });
+
+    it('keeps a generic deletion RPC error only in the cause chain', async () => {
+      const dbError = {
+        code: 'XX000',
+        message: 'Unexpected deletion failure',
+      };
+      const rpc = jest.fn().mockResolvedValue({
+        data: null,
+        error: dbError,
+      });
+      const provider = {
+        get client() {
+          return { rpc } as unknown as AuthenticatedSupabaseClient;
+        },
+        get user() {
+          return mockUser;
+        },
+      } as AuthenticatedSupabaseProvider;
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      const caught = await repo
+        .applyDeletion(goalId, { mode: 'goal_only', revision })
+        .catch((error) => error);
+
+      expect(caught).toBeInstanceOf(BusinessException);
+      expect(caught).toMatchObject({
+        code: ERROR_DEFINITIONS.SAVINGS_GOAL_DELETE_FAILED.code,
+        cause: dbError,
+        loggingContext: {
+          operation: 'applySavingsGoalDeletion',
+          entityType: 'savings_goal',
+          userId: mockUser.id,
+        },
+      });
+    });
+
+    it('maps a changed revision to a 409 concurrent modification', async () => {
+      const dbError = {
+        code: 'P0001',
+        message: 'Savings goal deletion impact changed',
+      };
+      const rpc = jest.fn().mockResolvedValue({
+        data: null,
+        error: dbError,
+      });
+      const provider = {
+        get client() {
+          return { rpc } as unknown as AuthenticatedSupabaseClient;
+        },
+        get user() {
+          return mockUser;
+        },
+      } as AuthenticatedSupabaseProvider;
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      await expect(
+        repo.applyDeletion(goalId, { mode: 'goal_only', revision }),
+      ).rejects.toMatchObject({
+        code: ERROR_DEFINITIONS.CONCURRENT_MODIFICATION.code,
+        status: 409,
+        cause: dbError,
+        loggingContext: {
+          operation: 'applySavingsGoalDeletion',
+          entityType: 'savings_goal',
+          userId: mockUser.id,
+        },
+      });
+    });
+  });
 });

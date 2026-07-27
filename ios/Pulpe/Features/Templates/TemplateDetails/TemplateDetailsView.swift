@@ -3,6 +3,7 @@ import SwiftUI
 struct TemplateDetailsView: View {
     let templateId: String
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(SavingsGoalStore.self) private var savingsGoalStore
     @Environment(TagStore.self) private var tagStore
     @State private var viewModel: TemplateDetailsViewModel
     @State private var selectedLineForEdit: TemplateLine?
@@ -30,8 +31,8 @@ struct TemplateDetailsView: View {
         .animation(DesignTokens.Animation.smoothEaseOut, value: viewModel.isLoading)
         .navigationTitle(viewModel.template?.name ?? "Modèle")
         .navigationBarTitleDisplayMode(.inline)
-        .task {
-            await viewModel.loadIfNeeded()
+        .task(id: savingsGoalStore.templateDataVersion) {
+            await viewModel.loadDetails()
         }
         .task(id: referencedTagIds) {
             await tagStore.loadIfNeeded(for: referencedTagIds)
@@ -393,5 +394,6 @@ private struct TemplateDetailsSkeletonView: View {
         TemplateDetailsView(templateId: "test")
     }
     .environment(UserSettingsStore())
+    .environment(SavingsGoalStore())
     .environment(TagStore())
 }

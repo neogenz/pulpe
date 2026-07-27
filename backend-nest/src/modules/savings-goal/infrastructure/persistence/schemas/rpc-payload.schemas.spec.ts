@@ -5,6 +5,9 @@ import {
   PLAN_LINE_CHECKED_RPC_MESSAGE,
   PLAN_LINE_NOT_LINKED_RPC_MESSAGE,
   PLAN_LINE_PAST_RPC_MESSAGE,
+  savingsGoalDeletionImpactRpcSchema,
+  savingsGoalDeletionResultRpcSchema,
+  SAVINGS_GOAL_DELETION_IMPACT_CHANGED_RPC_MESSAGE,
 } from './rpc-payload.schemas';
 
 const UUID = '123e4567-e89b-12d3-a456-426614174000';
@@ -57,5 +60,58 @@ describe('RPC P0001 message constants', () => {
     expect(PLAN_LINE_NOT_LINKED_RPC_MESSAGE).toBe('Plan line not linked');
     expect(PLAN_LINE_CHECKED_RPC_MESSAGE).toBe('Plan line already checked');
     expect(PLAN_LINE_PAST_RPC_MESSAGE).toBe('Plan line in past period');
+  });
+});
+
+describe('PUL-319 deletion RPC payloads', () => {
+  const now = '2026-07-27T10:00:00+00:00';
+
+  it('validates encrypted impact rows and rejects unknown keys', () => {
+    const impact = {
+      goalId: UUID,
+      templateLines: [],
+      budgets: [
+        {
+          budgetId: UUID,
+          month: 7,
+          year: 2026,
+          lines: [
+            {
+              lineId: UUID,
+              name: 'Épargne',
+              amount: 'ciphertext',
+              recurrence: 'fixed',
+              checkedAt: null,
+              updatedAt: now,
+              transactions: [],
+            },
+          ],
+        },
+      ],
+      revision: {
+        templateLines: [],
+        budgetLines: [{ id: UUID, updatedAt: now }],
+        transactions: [],
+      },
+    };
+
+    expect(() =>
+      savingsGoalDeletionImpactRpcSchema.parse(impact),
+    ).not.toThrow();
+    expect(() =>
+      savingsGoalDeletionImpactRpcSchema.parse({ ...impact, plaintext: 100 }),
+    ).toThrow();
+  });
+
+  it('validates touched budget rows', () => {
+    expect(
+      savingsGoalDeletionResultRpcSchema.parse([{ budget_id: UUID }]),
+    ).toEqual([{ budget_id: UUID }]);
+  });
+
+  it('pins the revision conflict message to the SQL migration', () => {
+    expect(SAVINGS_GOAL_DELETION_IMPACT_CHANGED_RPC_MESSAGE).toBe(
+      'Savings goal deletion impact changed',
+    );
   });
 });

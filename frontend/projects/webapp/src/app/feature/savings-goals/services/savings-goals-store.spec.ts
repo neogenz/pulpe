@@ -1,8 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { provideZonelessChangeDetection } from '@angular/core';
-import type { SavingsGoal, SavingsGoalProgress } from 'pulpe-shared';
+import {
+  API_ERROR_CODES,
+  type SavingsGoal,
+  type SavingsGoalDeleteResponse,
+  type SavingsGoalDeletionCommand,
+  type SavingsGoalDeletionImpact,
+  type SavingsGoalProgress,
+} from 'pulpe-shared';
 import { SavingsGoalStore } from './savings-goals-store';
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 import { BudgetApi } from '@core/budget/budget-api';
@@ -62,6 +69,33 @@ function makeProgress(
   };
 }
 
+function makeDeletionImpact(): SavingsGoalDeletionImpact {
+  return {
+    goalId: 'goal-1',
+    summary: {
+      templateLineCount: 0,
+      templateLineTotal: 0,
+      budgetCount: 0,
+      budgetLineCount: 0,
+      budgetLineTotal: 0,
+      transactionCount: 0,
+      transactionTotal: 0,
+    },
+    templateLines: [],
+    budgets: [],
+    revision: {
+      templateLines: [],
+      budgetLines: [],
+      transactions: [],
+    },
+  };
+}
+
+const deletionCommand: SavingsGoalDeletionCommand = {
+  mode: 'goal_only',
+  revision: makeDeletionImpact().revision,
+};
+
 const settle = () => new Promise((resolve) => setTimeout(resolve, 50));
 
 describe('SavingsGoalStore', () => {
@@ -90,7 +124,12 @@ describe('SavingsGoalStore', () => {
         .mockReturnValue(of({ data: makeProgress(), success: true })),
       create$: vi.fn(),
       update$: vi.fn(),
-      delete$: vi.fn(),
+      getDeletionImpact$: vi
+        .fn()
+        .mockReturnValue(of({ data: makeDeletionImpact(), success: true })),
+      applyDeletion$: vi
+        .fn()
+        .mockReturnValue(of({ success: true, message: 'deleted' })),
       applyPlan$: vi.fn().mockReturnValue(
         of({
           data: { updatedLines: [], touchedBudgetIds: [] },
@@ -222,42 +261,124 @@ describe('SavingsGoalStore', () => {
     expect(store.goals().find((g) => g.id === 'goal-1')?.status).toBe('ACTIVE');
   });
 
-  it('removeGoal optimistically removes then calls the API', async () => {
-    mockApi.delete$ = vi
-      .fn()
-      .mockReturnValue(of({ success: true, message: 'deleted' }));
+  it('fetchDeletionImpact always requests a fresh impact', async () => {
+    const impact = await store.fetchDeletionImpact('goal-1');
+
+    expect(mockApi.getDeletionImpact$).toHaveBeenCalledWith('goal-1');
+    expect(impact.revision).toEqual(deletionCommand.revision);
+  });
+
+  it('deleteGoal keeps the goal until the deletion commits', async () => {
+    const response = new Subject<SavingsGoalDeleteResponse>();
+    mockApi.applyDeletion$ = vi.fn().mockReturnValue(response);
     await settle();
     store.setSelectedGoalId('goal-2');
     await settle();
     expect(store.selectedGoal()?.id).toBe('goal-2');
-    expect(store.progress()).not.toBeNull();
 
-    const promise = store.removeGoal('goal-2');
-    // optimistic removal is synchronous (onMutate)
-    expect(store.goals().some((g) => g.id === 'goal-2')).toBe(false);
-    expect(store.selectedGoal()).toBeNull();
-    expect(store.progress()).toBeNull();
+    const promise = store.deleteGoal('goal-2', deletionCommand);
+    expect(store.goals().some((goal) => goal.id === 'goal-2')).toBe(true);
+    expect(store.selectedGoal()?.id).toBe('goal-2');
+
+    response.next({ success: true, message: 'deleted' });
+    response.complete();
     await promise;
-    expect(mockApi.delete$).toHaveBeenCalledWith('goal-2');
-    // Progress/contributions of the deleted goal must not survive in cache
-    // (back-button on the detail URL would replay them) — whole-prefix nuke.
+
+    expect(mockApi.applyDeletion$).toHaveBeenCalledWith(
+      'goal-2',
+      deletionCommand,
+    );
+    expect(store.goals().some((goal) => goal.id === 'goal-2')).toBe(false);
+    expect(store.selectedGoal()).toBeNull();
     expect(mockCache.invalidate).toHaveBeenCalledWith(['savings-goals']);
     expect(mockBudgetCache.invalidate).toHaveBeenCalledWith(['budget']);
     expect(mockTemplateCache.invalidate).toHaveBeenCalledWith(['templates']);
   });
 
-  it('removeGoal rolls back when the API fails', async () => {
-    mockApi.delete$ = vi
+  it('deleteGoal preserves the goal when the displayed impact changed', async () => {
+    mockApi.applyDeletion$ = vi
       .fn()
-      .mockReturnValue(throwError(() => new Error('delete failed')));
+      .mockReturnValue(
+        throwError(
+          () =>
+            new ApiError(
+              'Impact changed',
+              'ERR_SAVINGS_GOAL_DELETION_IMPACT_CHANGED',
+              409,
+              null,
+            ),
+        ),
+      );
     await settle();
     store.setSelectedGoalId('goal-2');
 
-    await expect(store.removeGoal('goal-2')).rejects.toThrow();
-    expect(store.goals().some((g) => g.id === 'goal-2')).toBe(true);
+    await expect(store.deleteGoal('goal-2', deletionCommand)).rejects.toThrow(
+      'Impact changed',
+    );
+
+    expect(store.goals().some((goal) => goal.id === 'goal-2')).toBe(true);
     expect(store.selectedGoal()?.id).toBe('goal-2');
     expect(mockBudgetCache.invalidate).not.toHaveBeenCalled();
     expect(mockTemplateCache.invalidate).not.toHaveBeenCalled();
+  });
+
+  it('deleteGoal settles an already absent goal as a terminal success', async () => {
+    mockApi.applyDeletion$ = vi
+      .fn()
+      .mockReturnValue(
+        throwError(
+          () =>
+            new ApiError(
+              'Goal already absent',
+              API_ERROR_CODES.SAVINGS_GOAL_NOT_FOUND,
+              404,
+              null,
+            ),
+        ),
+      );
+    await settle();
+    store.setSelectedGoalId('goal-2');
+
+    await expect(
+      store.deleteGoal('goal-2', deletionCommand),
+    ).resolves.toBeUndefined();
+
+    expect(store.goals().some((goal) => goal.id === 'goal-2')).toBe(false);
+    expect(store.selectedGoal()).toBeNull();
+    expect(mockCache.invalidate).toHaveBeenCalledOnce();
+    expect(mockCache.invalidate).toHaveBeenCalledWith(['savings-goals']);
+    expect(mockBudgetCache.invalidate).toHaveBeenCalledOnce();
+    expect(mockBudgetCache.invalidate).toHaveBeenCalledWith(['budget']);
+    expect(mockTemplateCache.invalidate).toHaveBeenCalledOnce();
+    expect(mockTemplateCache.invalidate).toHaveBeenCalledWith(['templates']);
+  });
+
+  it('deleteGoal settles a committed deletion when recalculation fails', async () => {
+    mockApi.applyDeletion$ = vi
+      .fn()
+      .mockReturnValue(
+        throwError(
+          () =>
+            new ApiError(
+              'Deletion committed',
+              'ERR_SAVINGS_GOAL_DELETION_RECALCULATION_FAILED',
+              500,
+              null,
+            ),
+        ),
+      );
+    await settle();
+    store.setSelectedGoalId('goal-2');
+
+    await expect(store.deleteGoal('goal-2', deletionCommand)).rejects.toThrow(
+      'Deletion committed',
+    );
+
+    expect(store.goals().some((goal) => goal.id === 'goal-2')).toBe(false);
+    expect(store.selectedGoal()).toBeNull();
+    expect(mockCache.invalidate).toHaveBeenCalledWith(['savings-goals']);
+    expect(mockBudgetCache.invalidate).toHaveBeenCalledWith(['budget']);
+    expect(mockTemplateCache.invalidate).toHaveBeenCalledWith(['templates']);
   });
 
   it('applyPlan invalidates budget and goal caches after success', async () => {

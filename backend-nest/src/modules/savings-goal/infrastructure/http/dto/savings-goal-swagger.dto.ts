@@ -12,6 +12,8 @@ import {
   savingsGoalFutureLinesResponseSchema,
   savingsGoalGenerationStopSchema,
   savingsGoalGenerationStopResponseSchema,
+  savingsGoalDeletionCommandSchema,
+  savingsGoalDeletionImpactResponseSchema,
 } from 'pulpe-shared';
 
 // Swagger DTOs derived from the shared Zod schemas (single source of truth).
@@ -50,4 +52,10 @@ export class SavingsGoalGenerationStopDto extends createZodDto(
 ) {}
 export class SavingsGoalGenerationStopResponseDto extends createZodDto(
   savingsGoalGenerationStopResponseSchema,
+) {}
+export class SavingsGoalDeletionCommandDto extends createZodDto(
+  savingsGoalDeletionCommandSchema,
+) {}
+export class SavingsGoalDeletionImpactResponseDto extends createZodDto(
+  savingsGoalDeletionImpactResponseSchema,
 ) {}

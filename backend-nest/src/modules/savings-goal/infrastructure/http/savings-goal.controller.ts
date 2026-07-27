@@ -26,6 +26,7 @@ import {
   type SavingsGoalPlanApplyResponse,
   type SavingsGoalFutureLinesResponse,
   type SavingsGoalGenerationStopResponse,
+  type SavingsGoalDeletionImpactResponse,
 } from 'pulpe-shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
@@ -46,6 +47,8 @@ import {
   SavingsGoalFutureLinesResponseDto,
   SavingsGoalGenerationStopDto,
   SavingsGoalGenerationStopResponseDto,
+  SavingsGoalDeletionCommandDto,
+  SavingsGoalDeletionImpactResponseDto,
 } from './dto/savings-goal-swagger.dto';
 import { FindAllSavingsGoalsUseCase } from '../../application/find-all-savings-goals.use-case';
 import { FindSavingsGoalUseCase } from '../../application/find-savings-goal.use-case';
@@ -57,6 +60,7 @@ import { GetSavingsGoalContributionsUseCase } from '../../application/get-saving
 import { ApplySavingsGoalPlanUseCase } from '../../application/apply-savings-goal-plan.use-case';
 import { GetSavingsGoalFutureLinesUseCase } from '../../application/get-savings-goal-future-lines.use-case';
 import { ApplySavingsGoalGenerationStopUseCase } from '../../application/apply-savings-goal-generation-stop.use-case';
+import { GetSavingsGoalDeletionImpactUseCase } from '../../application/get-savings-goal-deletion-impact.use-case';
 import { SavingsGoalMapper } from '../mappers/savings-goal.mapper';
 
 @ApiTags('Savings Goals')
@@ -83,6 +87,7 @@ export class SavingsGoalController {
     private readonly applyPlanUseCase: ApplySavingsGoalPlanUseCase,
     private readonly futureLinesUseCase: GetSavingsGoalFutureLinesUseCase,
     private readonly generationStopUseCase: ApplySavingsGoalGenerationStopUseCase,
+    private readonly deletionImpactUseCase: GetSavingsGoalDeletionImpactUseCase,
     private readonly mapper: SavingsGoalMapper,
   ) {}
 
@@ -218,6 +223,45 @@ export class SavingsGoalController {
   ): Promise<SavingsGoalGenerationStopResponse> {
     const result = await this.generationStopUseCase.execute(id, stopDto, user);
     return { success: true, data: result };
+  }
+
+  @Get(':id/deletion-impact')
+  @ApiOperation({
+    summary:
+      "Prévisualise toutes les prévisions et transactions affectées par la suppression de l'objectif (PUL-319)",
+  })
+  @ApiParam({ name: 'id', description: "Identifiant unique de l'objectif" })
+  @ApiResponse({
+    status: 200,
+    description: 'Impact de suppression récupéré avec succès',
+    type: SavingsGoalDeletionImpactResponseDto,
+  })
+  async deletionImpact(
+    @Param('id') id: string,
+    @User() user: AuthenticatedUser,
+  ): Promise<SavingsGoalDeletionImpactResponse> {
+    const impact = await this.deletionImpactUseCase.execute(id, user);
+    return { success: true, data: this.mapper.toDeletionImpactApi(impact) };
+  }
+
+  @Post(':id/deletion')
+  @ApiOperation({
+    summary:
+      "Supprime l'objectif selon le périmètre prévisualisé et validé (PUL-319)",
+  })
+  @ApiParam({ name: 'id', description: "Identifiant unique de l'objectif" })
+  @ApiResponse({
+    status: 201,
+    description: 'Objectif supprimé avec succès',
+    type: SavingsGoalDeleteResponseDto,
+  })
+  async removeWithImpact(
+    @Param('id') id: string,
+    @Body() command: SavingsGoalDeletionCommandDto,
+    @User() user: AuthenticatedUser,
+  ): Promise<SavingsGoalDeleteResponse> {
+    await this.removeUseCase.execute(id, user, command);
+    return { success: true, message: 'Savings goal deleted successfully' };
   }
 
   @Get(':id')

@@ -532,6 +532,18 @@ export const ERROR_DEFINITIONS = {
     message: () => 'Failed to fetch savings goals',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
+  SAVINGS_GOAL_DELETION_IMPACT_CHANGED: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_DELETION_IMPACT_CHANGED,
+    message: () =>
+      'The deletion impact changed since it was previewed. Reload the preview.',
+    httpStatus: HttpStatus.CONFLICT,
+  },
+  SAVINGS_GOAL_DELETION_RECALCULATION_FAILED: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_DELETION_RECALCULATION_FAILED,
+    message: () =>
+      'The savings goal was deleted, but budget balances could not be refreshed. Reload without retrying the deletion.',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
   // Savings goal plan apply (PUL-12 — POST /savings-goals/:id/plan)
   SAVINGS_GOAL_PLAN_LINE_INVALID: {
     code: API_ERROR_CODES.SAVINGS_GOAL_PLAN_LINE_INVALID,

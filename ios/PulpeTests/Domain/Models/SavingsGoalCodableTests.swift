@@ -2,6 +2,70 @@ import Foundation
 @testable import Pulpe
 import Testing
 
+private let deletionImpactJSON = Data("""
+{
+  "goalId": "11111111-1111-4111-8111-111111111111",
+  "summary": {
+    "templateLineCount": 1,
+    "templateLineTotal": 200,
+    "budgetCount": 1,
+    "budgetLineCount": 1,
+    "budgetLineTotal": 200,
+    "transactionCount": 1,
+    "transactionTotal": 180
+  },
+  "templateLines": [{
+    "lineId": "22222222-2222-4222-8222-222222222222",
+    "templateId": "33333333-3333-4333-8333-333333333333",
+    "templateName": "Mois Type",
+    "name": "Épargne vacances",
+    "amount": 200,
+    "recurrence": "fixed",
+    "updatedAt": "2026-07-27T10:00:00.123456+00:00"
+  }],
+  "budgets": [{
+    "budgetId": "44444444-4444-4444-8444-444444444444",
+    "month": 8,
+    "year": 2026,
+    "lines": [{
+      "lineId": "55555555-5555-4555-8555-555555555555",
+      "name": "Épargne vacances",
+      "amount": 200,
+      "recurrence": "fixed",
+      "checkedAt": null,
+      "updatedAt": "2026-07-27T10:00:00.123456+00:00",
+      "transactions": [{
+        "id": "66666666-6666-4666-8666-666666666666",
+        "budgetId": "44444444-4444-4444-8444-444444444444",
+        "budgetLineId": "55555555-5555-4555-8555-555555555555",
+        "name": "Virement épargne",
+        "amount": 180,
+        "kind": "saving",
+        "transactionDate": "2026-07-27T10:00:00Z",
+        "category": null,
+        "checkedAt": "2026-07-27T10:00:00Z",
+        "createdAt": "2026-07-27T10:00:00Z",
+        "updatedAt": "2026-07-27T10:00:00Z"
+      }]
+    }]
+  }],
+  "revision": {
+    "templateLines": [{
+      "id": "22222222-2222-4222-8222-222222222222",
+      "updatedAt": "2026-07-27T10:00:00.123456+00:00"
+    }],
+    "budgetLines": [{
+      "id": "55555555-5555-4555-8555-555555555555",
+      "updatedAt": "2026-07-27T10:00:00.123456+00:00"
+    }],
+    "transactions": [{
+      "id": "66666666-6666-4666-8666-666666666666",
+      "updatedAt": "2026-07-27T10:00:00.123456+00:00"
+    }]
+  }
+}
+""".utf8)
+
 /// Locks the PUL-12 iOS ↔ API contract: `SavingsGoal` decoding, the create DTO
 /// shape, and — critically — the tri-state `savingsGoalId` PATCH encoding
 /// (omit / explicit-null / value) that drives tagging & untagging.
@@ -134,6 +198,47 @@ struct SavingsGoalCodableTests {
 
         let erased = try encodedObject(SavingsGoalUpdate(initialAmount: 0))
         #expect((erased["initialAmount"] as? NSNumber)?.intValue == 0)
+    }
+
+    // MARK: - Deletion impact
+
+    @Test("SavingsGoalDeletionImpact decodes the complete nested preview")
+    func deletionImpact_decodesCompletePreview() throws {
+        let impact = try decoder().decode(
+            SavingsGoalDeletionImpact.self,
+            from: deletionImpactJSON
+        )
+
+        #expect(impact.summary.budgetCount == 1)
+        #expect(impact.templateLines.first?.amount == 200)
+        #expect(impact.budgets.first?.lines.first?.transactions.first?.amount == 180)
+        #expect(
+            impact.revision.transactions.first?.updatedAt
+                == "2026-07-27T10:00:00.123456+00:00"
+        )
+    }
+
+    @Test(
+        "SavingsGoalDeletionCommand preserves every mode and the exact revision string",
+        arguments: SavingsGoalDeletionMode.allCases
+    )
+    func deletionCommand_encodesExactRevision(mode: SavingsGoalDeletionMode) throws {
+        let updatedAt = "2026-07-27T10:00:00.123456+00:00"
+        let command = SavingsGoalDeletionCommand(
+            mode: mode,
+            revision: SavingsGoalDeletionRevision(
+                templateLines: [.init(id: "template-line", updatedAt: updatedAt)],
+                budgetLines: [],
+                transactions: []
+            )
+        )
+
+        let object = try encodedObject(command)
+        let revision = try #require(object["revision"] as? [String: Any])
+        let entries = try #require(revision["templateLines"] as? [[String: Any]])
+
+        #expect(object["mode"] as? String == mode.rawValue)
+        #expect(entries.first?["updatedAt"] as? String == updatedAt)
     }
 
     // MARK: - Kind guard
