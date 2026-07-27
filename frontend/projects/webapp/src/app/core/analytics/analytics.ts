@@ -43,7 +43,7 @@ export class AnalyticsService implements OnDestroy {
 
   // Track the auth synchronization effect to ensure idempotency
   #authEffect?: EffectRef;
-  // Re-emits person properties when settings or flag exposure change post-identify
+  // Re-emits person properties when settings change post-identify
   #personPropertiesEffect?: EffectRef;
 
   /**

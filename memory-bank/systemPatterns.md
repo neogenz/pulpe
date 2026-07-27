@@ -261,55 +261,22 @@ app_opened → welcome_screen_viewed → signup_started
 
 **Financial data sanitization**: properties split by `_`, each component checked vs word set (`amount`, `balance`, `income`, `savings`, `total`, `projection`, `rollover`, `expenses`, `available`). Catches compound keys like `total_amount`, `current_balance`.
 
-**User identification**: `identify(userId:, properties:)` called in `applyPostAuthDestination()` (covers login + signup). `early_adopter` person property (from Supabase `auth.users.app_metadata.early_adopter`) passed every identify call to drive PostHog feature flag targeting. Reset on logout.
+**User identification**: `identify(userId:, properties:)` called in `applyPostAuthDestination()` (covers login + signup). `early_adopter` person property (from Supabase `auth.users.app_metadata.early_adopter`) is passed on every identify call for cohort analysis and future flag targeting. Reset on logout.
 
 ### Feature Flags (PostHog — Cross-Platform)
 
-Single source of truth in `shared/src/feature-flags.ts` :
-
-```typescript
-export const FEATURE_FLAGS = {
-  MULTI_CURRENCY: 'multi-currency-enabled',
-} as const;
-
-export const ANALYTICS_PROPERTIES = {
-  EARLY_ADOPTER: 'early_adopter',
-} as const;
-```
-
-iOS mirrors `FEATURE_FLAGS.MULTI_CURRENCY` manually as `FeatureFlagsStore.multiCurrencyKey` + `ANALYTICS_PROPERTIES.EARLY_ADOPTER` as `AnalyticsService.earlyAdopterProperty` (sync-comment back to shared TS file).
+No product feature is currently gated. The multi-currency rollout completed on 2026-07-27 and its dedicated flag adapters were removed.
 
 | Aspect | Frontend (Angular) | iOS (SwiftUI) |
 |--------|-------------------|---------------|
-| Service | `FeatureFlagsService` (`core/feature-flags/`) | `FeatureFlagsStore` (`Domain/Store/`) |
-| Pattern | Injectable + `computed()` signals | `@Observable @MainActor final class` |
-| Reactivity | `PostHogService.flagsVersion` signal bumped via `posthog.onFeatureFlags()` | `refresh()` reads `AnalyticsService.isFeatureEnabled()` + updates `@Observable` property |
-| Persistence | Built into posthog-js (localStorage) | UserDefaults (avoid boot-time flicker) |
-| Refresh triggers | Auto via posthog-js | `.task` at root + `.onChange(of: scenePhase = .active)` |
+| Generic primitives | `PostHogService.isFeatureEnabled()` + reactive `flagsVersion` | `AnalyticsService.isFeatureEnabled()` + `reloadFeatureFlags()` |
+| Active dedicated adapter | None | None |
 
-**Usage pattern** :
+**Multi-currency sources of truth**:
+- Optional selector visibility: raw `UserSettingsStore.showCurrencySelector` preference on both platforms.
+- Conversion badges and details: persisted FX metadata (`originalCurrency`, `targetCurrency`, `exchangeRate`).
 
-```typescript
-// Frontend — adding a new flag
-readonly isXxxEnabled = computed(() => {
-  this.#posthog.flagsVersion(); // reactive dep
-  return this.#posthog.isFeatureEnabled(FEATURE_FLAGS.XXX);
-});
-```
-
-```swift
-// iOS — adding a new flag in FeatureFlagsStore
-private(set) var isXxxEnabled: Bool
-// + read from AnalyticsService.isFeatureEnabled() in refresh()
-```
-
-**Targeting strategy** : person property `early_adopter` (from Supabase) → PostHog dashboard conditions. Enables dashboard-only rollout, no deploy (cf. DR-013).
-
-**Central gating** : prefer one entry point per feature, avoid dispersion.
-- Multi-currency frontend : `injectCurrencyFormConfig()` returns gated `showCurrencySelector` → 8 forms transparent
-- Multi-currency iOS : `UserSettingsStore.showCurrencySelectorEffective` (flag && user toggle) → 6 sheets transparent
-
-**Flag lifecycle** : 3 phases (cf. DR-013) — targeted rollout via dashboard → 100% via dashboard → PR `chore: remove <flag>` after stabilization. **Feature flags temporary by default** — flag forever = tech debt.
+For a future temporary rollout, add one dedicated adapter at the feature boundary and remove it after stabilization. Feature flags control rollout, not paid/free authorization; entitlements must be enforced server-side.
 
 ### Error Handling Pattern
 
