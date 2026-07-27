@@ -1,6 +1,6 @@
 ---
 objective: "Les trois warnings de conformité de la revue PUL-319 sont fermés sans modifier l’interface ni les effets de suppression, puis la revue finale passe sans warning ni critical."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Mettre la suppression d’un objectif en conformité
