@@ -9,6 +9,39 @@ struct SavingsGoalFormSheetTests {
         return calendar
     }
 
+    private func makeDeletionImpact(
+        budgetCount: Int = 0,
+        transactionCount: Int = 1
+    ) -> SavingsGoalDeletionImpact {
+        let budgets = (0..<budgetCount).reversed().map { index in
+            SavingsGoalDeletionBudget(
+                budgetId: "budget-\(index)",
+                month: (index % 12) + 1,
+                year: 2026 + index / 12,
+                lines: []
+            )
+        }
+        return SavingsGoalDeletionImpact(
+            goalId: "goal-1",
+            summary: SavingsGoalDeletionSummary(
+                templateLineCount: 0,
+                templateLineTotal: 0,
+                budgetCount: budgetCount,
+                budgetLineCount: 0,
+                budgetLineTotal: 0,
+                transactionCount: transactionCount,
+                transactionTotal: 0
+            ),
+            templateLines: [],
+            budgets: budgets,
+            revision: SavingsGoalDeletionRevision(
+                templateLines: [],
+                budgetLines: [],
+                transactions: []
+            )
+        )
+    }
+
     @Test("the target date range covers at most 120 monthly periods")
     func targetDateRange_limitsNewGoalsTo120Periods() throws {
         let now = try #require(calendar.date(from: DateComponents(year: 2026, month: 7, day: 13)))
@@ -144,5 +177,50 @@ struct SavingsGoalFormSheetTests {
                 contribution: 0
             )
         )
+    }
+
+    @Test("deletion presentation defaults to goal only")
+    func deletionPresentation_defaultsToGoalOnly() {
+        let presentation = GoalDeletionPresentation(
+            impact: makeDeletionImpact()
+        )
+
+        #expect(presentation.mode == .goalOnly)
+        #expect(presentation.command?.mode == .goalOnly)
+    }
+
+    @Test("transaction deletion requires forecasts and existing transactions")
+    func deletionPresentation_transactionSelectionIsNested() {
+        var presentation = GoalDeletionPresentation(
+            impact: makeDeletionImpact()
+        )
+
+        presentation.setDeletesTransactions(true)
+        #expect(presentation.mode == .goalOnly)
+
+        presentation.setDeletesForecasts(true)
+        presentation.setDeletesTransactions(true)
+        #expect(presentation.mode == .goalForecastsAndTransactions)
+
+        presentation.setDeletesForecasts(false)
+        #expect(presentation.mode == .goalOnly)
+
+        presentation.show(makeDeletionImpact(transactionCount: 0))
+        presentation.setDeletesForecasts(true)
+        presentation.setDeletesTransactions(true)
+        #expect(presentation.mode == .goalAndForecasts)
+    }
+
+    @Test("deletion presentation keeps and sorts all 76 budgets")
+    func deletionPresentation_keepsAllBudgets() {
+        let presentation = GoalDeletionPresentation(
+            impact: makeDeletionImpact(budgetCount: 76)
+        )
+
+        #expect(presentation.budgets.count == 76)
+        #expect(presentation.budgets.first?.month == 1)
+        #expect(presentation.budgets.first?.year == 2026)
+        #expect(presentation.budgets.last?.month == 4)
+        #expect(presentation.budgets.last?.year == 2032)
     }
 }

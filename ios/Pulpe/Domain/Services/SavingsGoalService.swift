@@ -9,10 +9,14 @@ protocol SavingsGoalServicing: Sendable {
     func getContributions(id: String) async throws -> [SavingsGoalContribution]
     func applyPlan(id: String, _ payload: SavingsGoalPlanApply) async throws -> SavingsGoalPlanApplyResult
     func getFutureLines(id: String) async throws -> [SavingsGoalFutureLine]
-    func applyGenerationStop(id: String, _ payload: SavingsGoalGenerationStop) async throws -> SavingsGoalGenerationStopResult
+    func applyGenerationStop(
+        id: String,
+        _ payload: SavingsGoalGenerationStop
+    ) async throws -> SavingsGoalGenerationStopResult
+    func getDeletionImpact(id: String) async throws -> SavingsGoalDeletionImpact
+    func delete(id: String, command: SavingsGoalDeletionCommand) async throws
     func create(_ data: SavingsGoalCreate) async throws -> SavingsGoal
     func update(id: String, data: SavingsGoalUpdate) async throws -> SavingsGoal
-    func delete(id: String) async throws
 }
 
 /// Service for savings-goal API operations (PUL-12). The backend wraps responses
@@ -58,8 +62,19 @@ actor SavingsGoalService: SavingsGoalServicing {
 
     /// Applies the explicit freeze/remove decision (PUL-285 CA8). Atomic —
     /// any ineligible line refuses the whole batch server-side.
-    func applyGenerationStop(id: String, _ payload: SavingsGoalGenerationStop) async throws -> SavingsGoalGenerationStopResult {
+    func applyGenerationStop(
+        id: String,
+        _ payload: SavingsGoalGenerationStop
+    ) async throws -> SavingsGoalGenerationStopResult {
         try await apiClient.request(.savingsGoalGenerationStop(id: id), body: payload, method: .post)
+    }
+
+    func getDeletionImpact(id: String) async throws -> SavingsGoalDeletionImpact {
+        try await apiClient.request(.savingsGoalDeletionImpact(id: id), method: .get)
+    }
+
+    func delete(id: String, command: SavingsGoalDeletionCommand) async throws {
+        try await apiClient.requestVoid(.savingsGoalDeletion(id: id), body: command, method: .post)
     }
 
     func create(_ data: SavingsGoalCreate) async throws -> SavingsGoal {
@@ -68,9 +83,5 @@ actor SavingsGoalService: SavingsGoalServicing {
 
     func update(id: String, data: SavingsGoalUpdate) async throws -> SavingsGoal {
         try await apiClient.request(.savingsGoal(id: id), body: data, method: .patch)
-    }
-
-    func delete(id: String) async throws {
-        try await apiClient.requestVoid(.savingsGoal(id: id), method: .delete)
     }
 }

@@ -34,6 +34,8 @@ enum APIError: LocalizedError {
     case savingsWithdrawalRecalculationFailed
     case savingsGoalBaselineRecalculationFailed
     case savingsGoalGenerationStopRecalculationFailed
+    case savingsGoalDeletionImpactChanged
+    case savingsGoalDeletionRecalculationFailed
 
     var errorDescription: String? {
         switch self {
@@ -102,6 +104,12 @@ enum APIError: LocalizedError {
         case .savingsGoalGenerationStopRecalculationFailed:
             return "La décision a bien été enregistrée, mais les soldes n'ont pas pu être actualisés — "
                 + "recharge la page sans réessayer"
+        case .savingsGoalDeletionImpactChanged:
+            return "Les éléments rattachés ont changé entre-temps — "
+                + "vérifie le nouvel impact avant de confirmer"
+        case .savingsGoalDeletionRecalculationFailed:
+            return "L'objectif et les éléments choisis ont bien été supprimés, mais les soldes "
+                + "n'ont pas pu être actualisés — recharge les budgets sans relancer la suppression"
         }
     }
 
@@ -135,6 +143,8 @@ enum APIError: LocalizedError {
         "ERR_SAVINGS_WITHDRAWAL_RECALCULATION_FAILED": .savingsWithdrawalRecalculationFailed,
         "ERR_SAVINGS_GOAL_BASELINE_RECALCULATION_FAILED": .savingsGoalBaselineRecalculationFailed,
         "ERR_SAVINGS_GOAL_GENERATION_STOP_RECALCULATION_FAILED": .savingsGoalGenerationStopRecalculationFailed,
+        "ERR_SAVINGS_GOAL_DELETION_IMPACT_CHANGED": .savingsGoalDeletionImpactChanged,
+        "ERR_SAVINGS_GOAL_DELETION_RECALCULATION_FAILED": .savingsGoalDeletionRecalculationFailed,
     ]
 
     /// Create APIError from server error code
