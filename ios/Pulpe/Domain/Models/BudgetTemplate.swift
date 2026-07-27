@@ -29,6 +29,7 @@ struct TemplateLine: Codable, Identifiable, Hashable, Sendable {
 
     // Savings goal link (PUL-12) — the primary tagging surface lives on the template
     var savingsGoalId: String?
+    var tagIds: [String]?
 
     // Currency conversion metadata
     var originalAmount: Decimal?
@@ -75,6 +76,7 @@ struct TemplateLineCreate: Encodable {
     let originalCurrency: SupportedCurrency?
     let targetCurrency: SupportedCurrency?
     let exchangeRate: Decimal?
+    let tagIds: [String]?
 
     init(
         name: String,
@@ -86,7 +88,8 @@ struct TemplateLineCreate: Encodable {
         originalAmount: Decimal? = nil,
         originalCurrency: SupportedCurrency? = nil,
         targetCurrency: SupportedCurrency? = nil,
-        exchangeRate: Decimal? = nil
+        exchangeRate: Decimal? = nil,
+        tagIds: [String]? = nil
     ) {
         self.name = name
         self.amount = amount
@@ -98,6 +101,7 @@ struct TemplateLineCreate: Encodable {
         self.originalCurrency = originalCurrency
         self.targetCurrency = targetCurrency
         self.exchangeRate = exchangeRate
+        self.tagIds = tagIds
     }
 }
 
@@ -113,6 +117,7 @@ struct TemplateLineUpdate: Encodable {
     var originalCurrency: SupportedCurrency?
     var targetCurrency: SupportedCurrency?
     var exchangeRate: Decimal?
+    var tagIds: [String]?
 }
 
 // MARK: - Bulk Operations
@@ -149,6 +154,7 @@ struct TemplateLineUpdateWithId: Encodable {
     var originalCurrency: SupportedCurrency?
     var targetCurrency: SupportedCurrency?
     var exchangeRate: Decimal?
+    var tagIds: [String]?
 }
 
 // MARK: - Response Types

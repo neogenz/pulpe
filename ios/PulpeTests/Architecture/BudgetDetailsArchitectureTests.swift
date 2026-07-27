@@ -268,4 +268,14 @@ struct BudgetDetailsArchitectureTests {
 
         #expect(offenders.isEmpty, "Offenders: \(offenders.joined(separator: ", "))")
     }
+
+    @Test("BudgetDetails reloads tag names when referenced ids change")
+    func budgetDetailsReloadsTagsForReferencedIds() {
+        let source = Self.read(
+            Self.featureDirectory().appendingPathComponent("BudgetDetailsView.swift")
+        )
+
+        #expect(source.contains(".task(id: screenState.referencedTagIds)"))
+        #expect(source.contains("await tagStore.loadIfNeeded(for: screenState.referencedTagIds)"))
+    }
 }

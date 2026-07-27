@@ -4,9 +4,7 @@ import SwiftUI
 struct AddBudgetLineSheet: View {
     let budgetId: String
     let onAdd: (BudgetLine) -> Void
-    /// When the income "remets le mois prochain" toggle is ON, the CTA routes
-    /// here with a prefilled withdrawal intent instead of creating a plain
-    /// income (PUL-292). `nil` outside BudgetDetails (e.g. previews).
+    /// PUL-292: routes the CTA to a prefilled withdrawal instead of creating plain income.
     let onRequestSavingsWithdrawal: ((SavingsWithdrawalPrefill) -> Void)?
 
     @Environment(\.dismiss) private var dismiss
@@ -17,6 +15,7 @@ struct AddBudgetLineSheet: View {
     @State private var amount: Decimal?
     @State private var kind: TransactionKind = .expense
     @State private var savingsGoalId: String?
+    @State private var selectedTagIds: Set<String> = []
     @State private var isChecked = false
     @State private var isLoading = false
     @State private var error: Error?
@@ -39,7 +38,6 @@ struct AddBudgetLineSheet: View {
     private let anchorYear: Int
     private let dependencies: AddBudgetLineDependencies
     private let conversionService = CurrencyConversionService.shared
-
     init(
         budgetId: String,
         anchorMonth: Int,
@@ -64,11 +62,10 @@ struct AddBudgetLineSheet: View {
 
     private var isSpreadMode: Bool { mode == .spread }
 
-    /// Income "remets le mois prochain" ON — the CTA reroutes to the withdrawal preview (PUL-292).
+    static func showsTagPicker(spread: Bool, withdrawal: Bool) -> Bool { !spread && !withdrawal }
+
     private var isSavingsWithdrawalMode: Bool { kind == .income && remitNextMonth }
 
-    /// Hero hint follows the amount mode in spread mode — "Montant total" when the
-    /// server divides, "Montant par mois" when it replicates. `nil` outside spread.
     private var amountFieldHint: String? {
         guard isSpreadMode else { return nil }
         return amountMode == .total ? "Montant total" : "Montant par mois"
@@ -123,7 +120,6 @@ struct AddBudgetLineSheet: View {
             )
             .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
 
-            // Spread toggle hidden for income — revenu lissé is out of scope (PUL-17).
             if kind != .income {
                 SpreadModeToggle(selection: $mode, accentColor: kind.color)
             }
@@ -142,6 +138,9 @@ struct AddBudgetLineSheet: View {
             } else {
                 if kind == .saving {
                     SavingsGoalPickerField(selection: $savingsGoalId)
+                }
+                if Self.showsTagPicker(spread: isSpreadMode, withdrawal: isSavingsWithdrawalMode) {
+                    TagPickerField(selection: $selectedTagIds)
                 }
                 if kind == .income {
                     remitToggle
@@ -232,8 +231,7 @@ struct AddBudgetLineSheet: View {
         }
     }
 
-    /// Hands a prefilled withdrawal intent to the router (PUL-292): the typed
-    /// name becomes the optional source, the sheet opens at its preview step.
+    /// Hands a prefilled withdrawal intent to the router (PUL-292).
     private func routeToSavingsWithdrawal() {
         guard let amount, amount > 0 else { return }
         let trimmed = name.trimmingCharacters(in: .whitespaces)
@@ -275,7 +273,8 @@ struct AddBudgetLineSheet: View {
                 originalAmount: conversion?.originalAmount,
                 originalCurrency: conversion?.originalCurrency,
                 targetCurrency: conversion?.targetCurrency,
-                exchangeRate: conversion?.exchangeRate
+                exchangeRate: conversion?.exchangeRate,
+                tagIds: TagPickerField.createdTagIds(from: selectedTagIds)
             )
 
             let budgetLine = try await dependencies.createBudgetLine(data)
@@ -346,4 +345,5 @@ struct AddBudgetLineSheet: View {
     .environment(UserSettingsStore())
     .environment(BudgetListStore())
     .environment(SavingsGoalStore())
+    .environment(TagStore())
 }

@@ -3,6 +3,16 @@ import SwiftUI
 // MARK: - Savings goal link (PUL-12)
 
 extension BudgetLineDetailPage {
+    @ViewBuilder
+    func tagChips(for ids: [String]?) -> some View {
+        let names = TagChips.names(for: ids, namesById: tagNamesById)
+        if !names.isEmpty {
+            TagChips(names: names)
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.bottom, DesignTokens.Spacing.md)
+        }
+    }
+
     /// Tappable "Objectif : <name>" chip shown on a saving prévision that is
     /// linked to a savings goal. Pushes the goal's progression detail through
     /// the router (the budget stack registers `SavingsGoalDestination`).

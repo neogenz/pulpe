@@ -15,6 +15,8 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
     let createdAt: Date
     let updatedAt: Date
 
+    var tagIds: [String]?
+
     /// Shared identifier of the spread group when this line is one occurrence of a
     /// "Lisser" expense (PUL-17). Non-financial UUID — never encrypted. `nil` for
     /// ordinary lines. Generated server-side by `POST /budget-lines/spread`.
@@ -98,6 +100,7 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
             checkedAt: isChecked ? nil : Date(),
             createdAt: createdAt,
             updatedAt: Date(),
+            tagIds: tagIds,
             spreadGroupId: spreadGroupId,
             savingsWithdrawalGroupId: savingsWithdrawalGroupId,
             originalAmount: originalAmount,
@@ -139,6 +142,7 @@ struct BudgetLineCreate: Encodable {
     let originalCurrency: SupportedCurrency?
     let targetCurrency: SupportedCurrency?
     let exchangeRate: Decimal?
+    let tagIds: [String]?
 
     init(
         budgetId: String,
@@ -153,7 +157,8 @@ struct BudgetLineCreate: Encodable {
         originalAmount: Decimal? = nil,
         originalCurrency: SupportedCurrency? = nil,
         targetCurrency: SupportedCurrency? = nil,
-        exchangeRate: Decimal? = nil
+        exchangeRate: Decimal? = nil,
+        tagIds: [String]? = nil
     ) {
         self.budgetId = budgetId
         self.templateLineId = templateLineId
@@ -168,6 +173,7 @@ struct BudgetLineCreate: Encodable {
         self.originalCurrency = originalCurrency
         self.targetCurrency = targetCurrency
         self.exchangeRate = exchangeRate
+        self.tagIds = tagIds
     }
 }
 
@@ -187,6 +193,7 @@ struct BudgetLineUpdate: Encodable {
     var originalCurrency: SupportedCurrency?
     var targetCurrency: SupportedCurrency?
     var exchangeRate: Decimal?
+    var tagIds: [String]?
 }
 
 // MARK: - Collection Helpers

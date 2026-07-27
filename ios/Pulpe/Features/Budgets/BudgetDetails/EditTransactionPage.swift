@@ -30,6 +30,8 @@ struct EditTransactionPage: View {
     @State private var didAutofocus = false
     @State private var showDeleteConfirmation = false
     @State private var pendingPostpone: PostponeTarget?
+    @State private var selectedTagIds: Set<String> = []
+    @State private var initialTagIds: Set<String> = []
     @FocusState private var focusedField: AmountDescriptionField?
 
     private let conversionService = CurrencyConversionService.shared
@@ -185,6 +187,7 @@ struct EditTransactionPage: View {
             descriptionField
 
             TransactionDateSelector(date: $transactionDate, currency: userSettingsStore.currency)
+            TagPickerField(selection: $selectedTagIds)
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
@@ -281,6 +284,9 @@ struct EditTransactionPage: View {
         name = tx.name
         kind = tx.kind
         transactionDate = tx.transactionDate
+        let tagIds = Set(tx.tagIds ?? [])
+        selectedTagIds = tagIds
+        initialTagIds = tagIds
 
         let editable = EditTransactionLogic.initialAmount(
             for: tx,
@@ -314,7 +320,8 @@ struct EditTransactionPage: View {
                 amount: amount,
                 kind: kind,
                 transactionDate: transactionDate,
-                conversion: conversion
+                conversion: conversion,
+                tagIds: TagPickerField.updatedTagIds(initial: initialTagIds, current: selectedTagIds)
             )
 
             // Routes the server call through the coordinator (Rule 9 — no

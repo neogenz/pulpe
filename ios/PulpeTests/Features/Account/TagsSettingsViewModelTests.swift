@@ -76,4 +76,14 @@ private actor StubTagService: TagServicing {
         }
         return tags
     }
+
+    func create(_ data: TagCreate) async throws -> PulpeTag {
+        PulpeTag(
+            id: "created",
+            userId: "user-1",
+            name: data.name,
+            createdAt: Date(timeIntervalSince1970: 0),
+            updatedAt: Date(timeIntervalSince1970: 0)
+        )
+    }
 }

@@ -14,6 +14,7 @@ struct BudgetDetailsView: View {
     @Environment(DashboardStore.self) private var dashboardStore
     @Environment(CurrentMonthStore.self) private var currentMonthStore
     @Environment(SavingsGoalStore.self) private var savingsGoalStore
+    @Environment(TagStore.self) var tagStore
     @Environment(\.amountsHidden) private var amountsHidden
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.tabBarClearance) private var tabBarClearance
@@ -149,12 +150,14 @@ struct BudgetDetailsView: View {
             )
             // Resolve "Objectif" names for saving rows / the line detail chip.
             await savingsGoalStore.loadIfNeeded()
+            await tagStore.loadIfNeeded()
             if !screenState.hasAllBudgets {
                 await coordinator.dispatch(.loadDetails(force: false))
             } else {
                 await coordinator.dispatch(.reloadCurrentBudget)
             }
         }
+        .task(id: screenState.referencedTagIds) { await tagStore.loadIfNeeded(for: screenState.referencedTagIds) }
         .onChange(of: searchText) { _, newValue in
             projector.setSearchText(newValue)
         }
@@ -267,6 +270,7 @@ struct BudgetDetailsView: View {
                         items: section.items,
                         currency: userSettingsStore.currency,
                         goalNamesById: savingsGoalNamesById,
+                        tagNamesById: tagStore.namesById,
                         savingsWithdrawalOriginMonthName: savingsWithdrawalOriginMonthName,
                         onTap: { line in
                             router.push(.lineDetail(lineId: line.id))
@@ -286,6 +290,7 @@ struct BudgetDetailsView: View {
                     BudgetDetailsFreeTransactionsList(
                         items: free,
                         currency: userSettingsStore.currency,
+                        tagNamesById: tagStore.namesById,
                         onTap: { transaction in
                             router.push(.editTx(transactionId: transaction.id))
                         },

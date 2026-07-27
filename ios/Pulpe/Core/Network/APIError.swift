@@ -37,6 +37,7 @@ enum APIError: LocalizedError {
     case savingsGoalNotFound
     case savingsGoalDeletionImpactChanged
     case savingsGoalDeletionRecalculationFailed
+    case tagAlreadyExists
 
     var errorDescription: String? {
         switch self {
@@ -113,6 +114,8 @@ enum APIError: LocalizedError {
         case .savingsGoalDeletionRecalculationFailed:
             return "L'objectif et les éléments choisis ont bien été supprimés, mais les soldes "
                 + "n'ont pas pu être actualisés — recharge les budgets sans relancer la suppression"
+        case .tagAlreadyExists:
+            return "Un tag porte déjà ce nom — choisis-en un autre"
         }
     }
 
@@ -149,6 +152,7 @@ enum APIError: LocalizedError {
         "ERR_SAVINGS_GOAL_NOT_FOUND": .savingsGoalNotFound,
         "ERR_SAVINGS_GOAL_DELETION_IMPACT_CHANGED": .savingsGoalDeletionImpactChanged,
         "ERR_SAVINGS_GOAL_DELETION_RECALCULATION_FAILED": .savingsGoalDeletionRecalculationFailed,
+        "ERR_TAG_ALREADY_EXISTS": .tagAlreadyExists,
     ]
 
     /// Create APIError from server error code
