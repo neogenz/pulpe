@@ -1,0 +1,212 @@
+<h2 mat-dialog-title>{{ 'savingsGoals.deletion.title' | transloco }}</h2>
+
+<mat-dialog-content>
+  <p class="text-body-medium text-on-surface-variant">
+    {{ 'savingsGoals.deletion.intro' | transloco: { name: data.goalName } }}
+  </p>
+
+  @if (isLoading()) {
+  <div
+    class="flex flex-1 flex-col items-center justify-center gap-3 py-10"
+    data-testid="goal-deletion-loading"
+  >
+    <mat-spinner diameter="36" />
+    <span class="text-body-medium"
+      >{{ 'savingsGoals.deletion.loading' | transloco }}</span
+    >
+  </div>
+  } @else if (hasLoadError()) {
+  <div
+    class="flex flex-1 flex-col items-center justify-center gap-3 py-10 text-center"
+    data-testid="goal-deletion-error"
+  >
+    <mat-icon class="text-error">error_outline</mat-icon>
+    <p class="text-body-medium">
+      {{ 'savingsGoals.deletion.loadError' | transloco }}
+    </p>
+    <button
+      matButton="outlined"
+      (click)="loadImpact()"
+      data-testid="goal-deletion-retry"
+    >
+      {{ 'common.retry' | transloco }}
+    </button>
+  </div>
+  } @else if (impact(); as currentImpact) {
+  <section
+    class="grid grid-cols-3 gap-2"
+    [attr.aria-label]="'savingsGoals.deletion.summaryLabel' | transloco"
+    data-testid="goal-deletion-summary"
+  >
+    <div class="rounded-xl bg-surface-container px-3 py-2">
+      <p class="text-label-small text-on-surface-variant">
+        {{ 'savingsGoals.deletion.templateSummary' | transloco }}
+      </p>
+      <p class="text-title-medium tabular-nums">
+        {{ currentImpact.summary.templateLineCount }}
+      </p>
+      <p class="ph-no-capture text-body-small tabular-nums">
+        {{ currentImpact.summary.templateLineTotal | appCurrency: data.currency
+        : '1.2-2' }}
+      </p>
+    </div>
+    <div class="rounded-xl bg-surface-container px-3 py-2">
+      <p class="text-label-small text-on-surface-variant">
+        {{ 'savingsGoals.deletion.budgetSummary' | transloco: { lines:
+        currentImpact.summary.budgetLineCount } }}
+      </p>
+      <p class="text-title-medium tabular-nums">
+        {{ currentImpact.summary.budgetCount }}
+      </p>
+      <p class="ph-no-capture text-body-small tabular-nums">
+        {{ currentImpact.summary.budgetLineTotal | appCurrency: data.currency :
+        '1.2-2' }}
+      </p>
+    </div>
+    <div class="rounded-xl bg-surface-container px-3 py-2">
+      <p class="text-label-small text-on-surface-variant">
+        {{ 'savingsGoals.deletion.transactionSummary' | transloco }}
+      </p>
+      <p class="text-title-medium tabular-nums">
+        {{ currentImpact.summary.transactionCount }}
+      </p>
+      <p class="ph-no-capture text-body-small tabular-nums">
+        {{ currentImpact.summary.transactionTotal | appCurrency: data.currency :
+        '1.2-2' }}
+      </p>
+    </div>
+  </section>
+
+  <mat-radio-group
+    [value]="scope()"
+    (change)="selectScope($event.value)"
+    class="flex flex-col gap-2"
+    [attr.aria-label]="'savingsGoals.deletion.scopeLabel' | transloco"
+    data-testid="goal-deletion-scope"
+  >
+    <mat-radio-button value="goal_only" data-testid="goal-deletion-goal-only">
+      <span class="text-body-medium"
+        >{{ 'savingsGoals.deletion.goalOnly' | transloco }}</span
+      >
+    </mat-radio-button>
+    <mat-radio-button
+      value="goal_and_forecasts"
+      data-testid="goal-deletion-forecasts"
+    >
+      <span class="text-body-medium"
+        >{{ 'savingsGoals.deletion.withForecasts' | transloco }}</span
+      >
+    </mat-radio-button>
+  </mat-radio-group>
+
+  @if ( scope() === 'goal_and_forecasts' &&
+  currentImpact.summary.transactionCount > 0 ) {
+  <mat-checkbox
+    [checked]="deleteTransactions()"
+    (change)="deleteTransactions.set($event.checked)"
+    class="ml-7"
+    data-testid="goal-deletion-transactions"
+  >
+    {{ 'savingsGoals.deletion.withTransactions' | transloco }}
+  </mat-checkbox>
+  }
+
+  <div
+    class="min-h-32 flex-1 overflow-y-auto rounded-xl border border-outline-variant p-3"
+    role="region"
+    tabindex="0"
+    [attr.aria-label]="
+        'savingsGoals.deletion.impactListLabel' | transloco
+      "
+    data-testid="goal-deletion-impact-list"
+  >
+    @if ( currentImpact.templateLines.length === 0 &&
+    currentImpact.budgets.length === 0 ) {
+    <p class="text-body-medium text-on-surface-variant">
+      {{ 'savingsGoals.deletion.noLinkedData' | transloco }}
+    </p>
+    } @if (currentImpact.templateLines.length > 0) {
+    <section class="mb-5">
+      <h3 class="mb-2 text-title-medium">
+        {{ 'savingsGoals.deletion.templateSection' | transloco }}
+      </h3>
+      <ul class="flex flex-col gap-2">
+        @for (line of currentImpact.templateLines; track line.lineId) {
+        <li class="flex items-start justify-between gap-4">
+          <span class="min-w-0">
+            <span class="ph-no-capture block truncate text-body-medium">
+              {{ line.name }}
+            </span>
+            <span
+              class="ph-no-capture block text-body-small text-on-surface-variant"
+            >
+              {{ line.templateName }}
+            </span>
+          </span>
+          <span class="ph-no-capture shrink-0 text-body-medium tabular-nums">
+            {{ line.amount | appCurrency: data.currency : '1.2-2' }}
+          </span>
+        </li>
+        }
+      </ul>
+    </section>
+    } @for (budget of budgets(); track budget.budgetId) {
+    <section
+      class="border-t border-outline-variant py-3 first:border-t-0 first:pt-0"
+      data-testid="goal-deletion-budget"
+    >
+      <h3 class="mb-2 text-title-medium">
+        {{ formatPeriod(budget.month, budget.year) }}
+      </h3>
+      <ul class="flex flex-col gap-3">
+        @for (line of budget.lines; track line.lineId) {
+        <li>
+          <div class="flex items-center justify-between gap-4">
+            <span class="ph-no-capture min-w-0 truncate text-body-medium">
+              {{ line.name }}
+            </span>
+            <span class="ph-no-capture shrink-0 text-body-medium tabular-nums">
+              {{ line.amount | appCurrency: data.currency : '1.2-2' }}
+            </span>
+          </div>
+          @if (line.transactions.length > 0) {
+          <ul
+            class="ml-4 mt-1 flex flex-col gap-1 border-l border-outline-variant pl-3"
+          >
+            @for ( transaction of line.transactions; track transaction.id ) {
+            <li
+              class="flex items-center justify-between gap-4 text-body-small text-on-surface-variant"
+            >
+              <span class="ph-no-capture min-w-0 truncate">
+                {{ transaction.name }}
+              </span>
+              <span class="ph-no-capture shrink-0 tabular-nums">
+                {{ transaction.amount | appCurrency: data.currency : '1.2-2' }}
+              </span>
+            </li>
+            }
+          </ul>
+          }
+        </li>
+        }
+      </ul>
+    </section>
+    }
+  </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button matButton mat-dialog-close data-testid="goal-deletion-cancel">
+    {{ 'common.cancel' | transloco }}
+  </button>
+  <button
+    matButton="filled"
+    class="warn-theme"
+    [disabled]="!impact() || isLoading()"
+    (click)="confirm()"
+    data-testid="goal-deletion-confirm"
+  >
+    {{ confirmLabelKey() | transloco }}
+  </button>
+</mat-dialog-actions>
