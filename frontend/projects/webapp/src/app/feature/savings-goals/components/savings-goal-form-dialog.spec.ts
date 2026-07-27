@@ -40,22 +40,34 @@ describe('SavingsGoalFormDialog', () => {
         },
       ],
     });
-    const component = TestBed.createComponent(
-      SavingsGoalFormDialog,
-    ).componentInstance;
+    const fixture = TestBed.createComponent(SavingsGoalFormDialog);
+    fixture.detectChanges();
     const startDate = futureDate(3);
     const targetDate = futureDate(5);
 
-    component['model'].set({
-      name: 'Projet futur',
-      startDate,
-      targetAmount: '1200',
-      initialAmount: '',
-      targetDate,
-      status: 'ACTIVE',
-    });
+    const input = (testId: string) =>
+      fixture.nativeElement.querySelector(
+        `[data-testid="${testId}"]`,
+      ) as HTMLInputElement;
+    const change = (testId: string, value: string) => {
+      const element = input(testId);
+      element.value = value;
+      element.dispatchEvent(new Event('input', { bubbles: true }));
+      fixture.detectChanges();
+    };
+    const changeDate = (testId: string, value: string) => {
+      change(testId, value);
+      input(testId).dispatchEvent(new Event('change', { bubbles: true }));
+      fixture.detectChanges();
+    };
 
-    expect(component['monthlyContribution']()).toBe(
+    change('savings-goal-name', 'Projet futur');
+    change('savings-goal-target-amount', '1200');
+    changeDate('savings-goal-target-date', targetDate);
+    changeDate('savings-goal-start-date', startDate);
+
+    const renderedContribution = input('savings-goal-monthly-contribution');
+    expect(Number(renderedContribution.value)).toBe(
       suggestedMonthlyContribution({
         targetAmount: 1200,
         startDate,

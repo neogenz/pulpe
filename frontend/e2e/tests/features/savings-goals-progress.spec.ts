@@ -599,6 +599,8 @@ test.describe('Savings goal deadline reconciliation (PUL-313)', () => {
     const state = {
       goal: options.initialGoal ?? (goal satisfies SavingsGoal),
       patchPayloads: [] as Record<string, unknown>[],
+      generationStopPayloads: [] as Record<string, unknown>[],
+      requestOrder: [] as string[],
       previewCount: 0,
       generationStopCount: 0,
     };
@@ -631,6 +633,13 @@ test.describe('Savings goal deadline reconciliation (PUL-313)', () => {
     await page.route(
       new RegExp(`/api/v1/savings-goals/${GOAL_ID}/future-lines(?:\\?.*)?$`),
       (route) => {
+        const targetDate = new URL(route.request().url()).searchParams.get(
+          'targetDate',
+        );
+        const previewKind = targetDate ? 'deadline-preview' : 'status-preview';
+        if (!state.requestOrder.includes(previewKind)) {
+          state.requestOrder.push(previewKind);
+        }
         const lines =
           futureLineBatches[
             Math.min(state.previewCount, futureLineBatches.length - 1)
@@ -646,6 +655,10 @@ test.describe('Savings goal deadline reconciliation (PUL-313)', () => {
     await page.route(
       new RegExp(`/api/v1/savings-goals/${GOAL_ID}/generation-stop$`),
       (route) => {
+        state.requestOrder.push('generation-stop');
+        state.generationStopPayloads.push(
+          route.request().postDataJSON() as Record<string, unknown>,
+        );
         state.generationStopCount += 1;
         return route.fulfill({
           status: 200,
@@ -665,6 +678,7 @@ test.describe('Savings goal deadline reconciliation (PUL-313)', () => {
           string,
           unknown
         >;
+        state.requestOrder.push('patch');
         state.patchPayloads.push(requestPayload);
         if (options.conflictOnce && state.patchPayloads.length === 1) {
           return route.fulfill({
@@ -692,13 +706,25 @@ test.describe('Savings goal deadline reconciliation (PUL-313)', () => {
     return state;
   }
 
-  async function openEarlierDeadline(page: Page) {
+  async function openEarlierDeadline(
+    page: Page,
+    status?: 'PAUSED' | 'COMPLETED',
+  ) {
     await page.goto('/savings-goals');
     await page.getByTestId(`savings-goal-${GOAL_ID}`).click();
     await page.getByTestId('edit-savings-goal-button').click();
     const editDialog = page.getByTestId('savings-goal-form-dialog');
     await editDialog.getByTestId('savings-goal-name').fill('Vacances avancées');
     await pickFutureDate(page, editDialog, 'savings-goal-target-date', -1);
+    if (status) {
+      await editDialog.getByTestId('savings-goal-status').click();
+      await page
+        .getByRole('option', {
+          name: status === 'PAUSED' ? 'En pause' : 'Atteint',
+          exact: true,
+        })
+        .click();
+    }
     await editDialog.getByTestId('savings-goal-save').click();
   }
 
@@ -727,6 +753,51 @@ test.describe('Savings goal deadline reconciliation (PUL-313)', () => {
       expect(state.patchPayloads[0]?.['targetDate']).toMatch(/^2027-07-15$/);
     });
   }
+
+  test('separates deadline and status decisions in strict request order', async ({
+    authenticatedPage: page,
+  }) => {
+    const remainingLine = {
+      ...futureLine,
+      budgetLineId: '00000000-0000-4000-a000-000000000453',
+      amount: 275,
+    };
+    const state = await setupReconciliation(page, {
+      futureLineBatches: [[futureLine], [remainingLine]],
+    });
+
+    await openEarlierDeadline(page, 'PAUSED');
+    await expect(page.getByTestId('goal-generation-stop-lines')).toContainText(
+      '400',
+    );
+    await page.getByTestId('goal-generation-stop-remove').click();
+    await expect(page.getByTestId('goal-generation-stop-lines')).toContainText(
+      '275',
+    );
+    await page.getByTestId('goal-generation-stop-freeze').click();
+
+    await expect.poll(() => state.generationStopCount).toBe(1);
+    expect(state.requestOrder).toEqual([
+      'deadline-preview',
+      'patch',
+      'status-preview',
+      'generation-stop',
+    ]);
+    expect(state.patchPayloads).toHaveLength(1);
+    expect(state.patchPayloads[0]).toMatchObject({
+      status: 'PAUSED',
+      reconciliation: {
+        mode: 'remove',
+        budgetLineIds: [futureLine.budgetLineId],
+      },
+    });
+    expect(state.generationStopPayloads).toEqual([
+      {
+        mode: 'freeze',
+        budgetLineIds: [remainingLine.budgetLineId],
+      },
+    ]);
+  });
 
   test('cancels reconciliation without writing', async ({
     authenticatedPage: page,

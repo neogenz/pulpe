@@ -848,14 +848,19 @@ export default class SavingsGoalDetailPage {
       result,
     );
     if (deadlineWasAdvanced && result.targetDate) {
-      await this.#editAdvancedDeadline(goal.id, result, result.targetDate);
-      return;
-    }
-    try {
-      await this.store.editGoal(goal.id, result);
-    } catch (error) {
-      this.#showError(error);
-      return;
+      const applied = await this.#editAdvancedDeadline(
+        goal.id,
+        result,
+        result.targetDate,
+      );
+      if (!applied) return;
+    } else {
+      try {
+        await this.store.editGoal(goal.id, result);
+      } catch (error) {
+        this.#showError(error);
+        return;
+      }
     }
     // Advisory sur les vraies TRANSITIONS seulement — renommer un objectif
     // déjà en pause ne doit pas rouvrir le dialog (la carte reste la porte
@@ -872,13 +877,13 @@ export default class SavingsGoalDetailPage {
     goalId: string,
     updates: SavingsGoalUpdate,
     targetDate: string,
-  ): Promise<void> {
+  ): Promise<boolean> {
     let lines: SavingsGoalFutureLine[];
     try {
       lines = await this.store.fetchFutureLines(goalId, targetDate);
     } catch (error) {
       this.#showLocalizedApiError(error);
-      return;
+      return false;
     }
 
     while (true) {
@@ -891,7 +896,7 @@ export default class SavingsGoalDetailPage {
           locale: this.locale,
           payDayOfMonth: this.payDayOfMonth(),
         });
-        if (!decision) return;
+        if (!decision) return false;
         patch = {
           ...updates,
           reconciliation: {
@@ -903,7 +908,7 @@ export default class SavingsGoalDetailPage {
 
       try {
         await this.store.editGoal(goalId, patch);
-        return;
+        return true;
       } catch (error) {
         const retryable =
           isApiError(error) &&
@@ -916,17 +921,17 @@ export default class SavingsGoalDetailPage {
         } else {
           this.#showError(error);
         }
-        if (!retryable) return;
+        if (!retryable) return false;
 
         try {
           lines = await this.store.fetchFutureLines(goalId, targetDate);
         } catch (previewError) {
           this.#showLocalizedApiError(previewError);
-          return;
+          return false;
         }
         // The server no longer asks for a decision. Never reinterpret that as
         // consent to retry the deadline PATCH without reconciliation.
-        if (lines.length === 0) return;
+        if (lines.length === 0) return false;
       }
     }
   }

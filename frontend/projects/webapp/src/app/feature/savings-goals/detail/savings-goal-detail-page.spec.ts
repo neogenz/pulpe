@@ -241,6 +241,14 @@ describe('SavingsGoalDetailPage', () => {
     futureLinesSig.set([]);
     payDayOfMonthSig.set(25);
     vi.clearAllMocks();
+    mockStore.editGoal.mockReset().mockResolvedValue(makeGoal());
+    mockStore.fetchFutureLines.mockReset().mockResolvedValue([]);
+    mockStore.applyGenerationStop
+      .mockReset()
+      .mockResolvedValue({ affectedCount: 0 });
+    mockDialogs.openEdit.mockReset();
+    mockDialogs.openGenerationStop.mockReset();
+    mockDialogs.confirmDelete.mockReset();
 
     await TestBed.configureTestingModule({
       imports: [SavingsGoalDetailPage],
@@ -604,8 +612,9 @@ describe('SavingsGoalDetailPage', () => {
   });
 
   it.each(['freeze', 'remove'] as const)(
-    'sends one atomic PATCH and no generation-stop POST for deadline %s',
+    'applies deadline %s, then uses the remaining status candidates',
     async (mode) => {
+      const remainingLine = { ...futureLine, budgetLineId: 'line-2' };
       goalSig.set(makeGoal({ targetDate: '2027-08-26' }));
       const patch = {
         name: 'Vacances avancées',
@@ -615,8 +624,13 @@ describe('SavingsGoalDetailPage', () => {
         status: 'PAUSED' as const,
       };
       mockDialogs.openEdit.mockResolvedValueOnce(patch);
-      mockStore.fetchFutureLines.mockResolvedValueOnce([futureLine]);
-      mockDialogs.openGenerationStop.mockResolvedValueOnce(mode);
+      mockStore.fetchFutureLines
+        .mockResolvedValueOnce([futureLine])
+        .mockResolvedValueOnce([remainingLine]);
+      mockDialogs.openGenerationStop
+        .mockResolvedValueOnce(mode)
+        .mockResolvedValueOnce('freeze');
+      mockStore.applyGenerationStop.mockResolvedValueOnce({ affectedCount: 1 });
 
       await component['onEdit']();
 
@@ -628,9 +642,80 @@ describe('SavingsGoalDetailPage', () => {
           budgetLineIds: ['line-1'],
         },
       });
-      expect(mockStore.applyGenerationStop).not.toHaveBeenCalled();
+      expect(mockStore.fetchFutureLines).toHaveBeenNthCalledWith(2, 'goal-1');
+      expect(mockDialogs.openGenerationStop).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          lines: [remainingLine],
+          context: { kind: 'status', status: 'PAUSED' },
+        }),
+      );
+      expect(mockStore.applyGenerationStop).toHaveBeenCalledWith('goal-1', {
+        mode: 'freeze',
+        budgetLineIds: ['line-2'],
+      });
+      expect(mockStore.editGoal.mock.invocationCallOrder[0]).toBeLessThan(
+        mockStore.fetchFutureLines.mock.invocationCallOrder[1]!,
+      );
     },
   );
+
+  it('keeps the applied deadline patch when the status decision is dismissed', async () => {
+    goalSig.set(makeGoal({ targetDate: '2027-08-26' }));
+    const patch = {
+      targetDate: '2027-08-24',
+      status: 'COMPLETED' as const,
+    };
+    mockDialogs.openEdit.mockResolvedValueOnce(patch);
+    mockStore.fetchFutureLines
+      .mockResolvedValueOnce([futureLine])
+      .mockResolvedValueOnce([{ ...futureLine, budgetLineId: 'line-2' }]);
+    mockDialogs.openGenerationStop
+      .mockResolvedValueOnce('remove')
+      .mockResolvedValueOnce(undefined);
+
+    await component['onEdit']();
+
+    expect(mockStore.editGoal).toHaveBeenCalledOnce();
+    expect(mockStore.fetchFutureLines).toHaveBeenCalledTimes(2);
+    expect(mockStore.applyGenerationStop).not.toHaveBeenCalled();
+  });
+
+  it('does not open a status dialog when no future line remains', async () => {
+    goalSig.set(makeGoal({ targetDate: '2027-08-26' }));
+    mockDialogs.openEdit.mockResolvedValueOnce({
+      targetDate: '2027-08-24',
+      status: 'PAUSED',
+    });
+    mockStore.fetchFutureLines
+      .mockResolvedValueOnce([futureLine])
+      .mockResolvedValueOnce([]);
+    mockDialogs.openGenerationStop.mockResolvedValueOnce('freeze');
+
+    await component['onEdit']();
+
+    expect(mockStore.editGoal).toHaveBeenCalledOnce();
+    expect(mockStore.fetchFutureLines).toHaveBeenCalledTimes(2);
+    expect(mockDialogs.openGenerationStop).toHaveBeenCalledOnce();
+    expect(mockStore.applyGenerationStop).not.toHaveBeenCalled();
+  });
+
+  it('stops before any write or status decision when deadline preview fails', async () => {
+    goalSig.set(makeGoal({ targetDate: '2027-08-26' }));
+    mockDialogs.openEdit.mockResolvedValueOnce({
+      targetDate: '2027-08-24',
+      status: 'PAUSED',
+    });
+    mockStore.fetchFutureLines.mockRejectedValueOnce(
+      new ApiError('Unavailable', undefined, 500, null),
+    );
+
+    await component['onEdit']();
+
+    expect(mockStore.fetchFutureLines).toHaveBeenCalledOnce();
+    expect(mockStore.editGoal).not.toHaveBeenCalled();
+    expect(mockDialogs.openGenerationStop).not.toHaveBeenCalled();
+    expect(mockStore.applyGenerationStop).not.toHaveBeenCalled();
+  });
 
   it('applies an earlier deadline directly when the preview is empty', async () => {
     goalSig.set(makeGoal({ targetDate: '2027-08-26' }));
