@@ -1,0 +1,1166 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "pulpe-workspace",
+    "languages": ["TypeScript", "Swift"],
+    "frameworks": ["Angular", "NestJS", "SwiftUI", "Next.js", "Supabase"],
+    "description": "Pulpe is a Swiss personal-budget planning application that turns reusable templates into monthly budgets, tracks actual transactions, and plans savings goals across web and iOS clients.",
+    "analyzedAt": "2026-07-27T06:06:29Z",
+    "gitCommitHash": "34fce27dc655ffeebc4bd13e3dc80e907e94a07e"
+  },
+  "nodes": [
+    {
+      "id": "domain:budget-planning",
+      "type": "domain",
+      "name": "Budget Planning",
+      "summary": "This domain builds reusable budget templates and turns them into monthly plans made of income, recurring, one-off, and saving forecasts. It also maintains balances when forecasts or actual operations change.",
+      "tags": ["budget", "forecast", "template"],
+      "complexity": "complex",
+      "domainMeta": {
+        "entities": ["BudgetTemplate", "TemplateLine", "MonthlyBudget", "BudgetLine"],
+        "businessRules": [
+          "A monthly budget belongs to a period and is generated from a template.",
+          "Forecast amounts and ending balances are encrypted before persistence.",
+          "Balance recalculation must account for forecast lines and actual transactions."
+        ],
+        "crossDomainInteractions": [
+          "Transactions consume or remain outside budget lines.",
+          "Saving forecast lines can link to savings goals.",
+          "Tags and currency metadata enrich forecast lines."
+        ]
+      }
+    },
+    {
+      "id": "domain:transaction-tracking",
+      "type": "domain",
+      "name": "Transaction Tracking",
+      "summary": "This domain records actual income, expenses, and savings, then associates them with monthly budgets and optional forecast envelopes. It supports pointing, searching, postponing, spreading, and allocation workflows.",
+      "tags": ["transaction", "allocation", "pointing"],
+      "complexity": "complex",
+      "domainMeta": {
+        "entities": ["Transaction", "BudgetLine", "Allocation", "SpreadOccurrence"],
+        "businessRules": [
+          "A transaction belongs to a monthly budget and may be allocated to one budget line.",
+          "Transaction amounts are encrypted before persistence.",
+          "Mutations trigger budget balance recalculation."
+        ],
+        "crossDomainInteractions": [
+          "Allocated transactions consume budget forecasts.",
+          "Saving transactions contribute to linked savings goals.",
+          "Tags and currency metadata support classification and display."
+        ]
+      }
+    },
+    {
+      "id": "domain:savings-goals",
+      "type": "domain",
+      "name": "Savings Goals",
+      "summary": "This domain defines target-based savings objectives and derives their progress from linked saving forecasts and actual contributions. It can simulate and apply future contribution plans, stop future generation, and model withdrawals.",
+      "tags": ["savings", "goal", "projection"],
+      "complexity": "complex",
+      "domainMeta": {
+        "entities": ["SavingsGoal", "SavingsGoalPlan", "SavingsGoalProgress", "SavingsWithdrawal"],
+        "businessRules": [
+          "Target amounts and initial amounts are encrypted before persistence.",
+          "Progress is derived from linked budget lines and actual saving transactions.",
+          "Applied plans create or update future saving forecast lines."
+        ],
+        "crossDomainInteractions": [
+          "Goals link to budget-template and monthly-budget saving lines.",
+          "Transactions provide realized contributions.",
+          "Currency settings determine displayed amounts."
+        ]
+      }
+    },
+    {
+      "id": "domain:account-and-vault",
+      "type": "domain",
+      "name": "Account and Financial Vault",
+      "summary": "This domain authenticates users, manages profile and budgeting preferences, and protects financial data with a client key, PIN, and recovery key. It also schedules and executes account deletion after a grace period.",
+      "tags": ["account", "authentication", "encryption"],
+      "complexity": "complex",
+      "domainMeta": {
+        "entities": ["AuthenticatedUser", "UserProfile", "UserSettings", "EncryptionKey", "ScheduledDeletionUser"],
+        "businessRules": [
+          "Authenticated financial requests require both a valid session and client encryption key.",
+          "Recovery and PIN changes must preserve access to encrypted financial data.",
+          "Scheduled deletion observes a three-day grace period."
+        ],
+        "crossDomainInteractions": [
+          "All financial domains depend on authenticated ownership and decrypted amounts.",
+          "Pay-day and currency preferences affect budget periods and amount presentation.",
+          "Account deletion removes user-owned domain data and analytics identity."
+        ]
+      }
+    },
+    {
+      "id": "domain:financial-metadata",
+      "type": "domain",
+      "name": "Financial Metadata",
+      "summary": "This domain classifies financial records with reusable tags and supplies currency conversion metadata. It supports tag history and consistent display of base and foreign-currency amounts.",
+      "tags": ["tag", "currency", "classification"],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entities": ["Tag", "TagHistory", "CurrencyRate", "CurrencyMetadata"],
+        "businessRules": [
+          "Tags can be linked atomically to templates, forecasts, and transactions.",
+          "Currency conversion retains source-currency metadata alongside the base amount.",
+          "Tag history is derived from the user's financial records."
+        ],
+        "crossDomainInteractions": [
+          "Budget lines and transactions consume tags and currency metadata.",
+          "User settings provide the base currency.",
+          "Search uses tag filters."
+        ]
+      }
+    },
+    {
+      "id": "domain:guided-product-experience",
+      "type": "domain",
+      "name": "Guided Product Experience",
+      "summary": "This domain helps users reach and operate the core budgeting experience through onboarding, demo data, the current-month dashboard, maintenance gating, version gating, and release notes. It coordinates platform lifecycle state around the financial domains.",
+      "tags": ["onboarding", "demo", "lifecycle"],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entities": ["DemoSession", "CurrentMonthState", "AppVersion", "WhatsNew"],
+        "businessRules": [
+          "Demo sessions use isolated generated data and expire automatically.",
+          "Startup can be gated by maintenance and minimum app-version checks.",
+          "Current-month views aggregate budgets, forecasts, and transactions."
+        ],
+        "crossDomainInteractions": [
+          "Onboarding seeds the first budget template.",
+          "The current-month dashboard aggregates budgets, transactions, and savings.",
+          "Demo generation populates financial-domain data."
+        ]
+      }
+    },
+
+    {
+      "id": "flow:onboard-first-budget",
+      "type": "flow",
+      "name": "Onboard the First Budget",
+      "summary": "Collect the user's initial income, charges, and saving intentions and create the first reusable budget template.",
+      "tags": ["onboarding", "template"],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entryPoint": "User completes the onboarding flow",
+        "entryType": "manual"
+      }
+    },
+    {
+      "id": "step:onboard-first-budget:collect-financial-baseline",
+      "type": "step",
+      "name": "Collect Financial Baseline",
+      "summary": "Capture income, recurring charges, custom expenses, and planned savings.",
+      "tags": ["onboarding", "input"],
+      "complexity": "moderate",
+      "filePath": "ios/Pulpe/Features/Onboarding/OnboardingState.swift"
+    },
+    {
+      "id": "step:onboard-first-budget:preview-budget-plan",
+      "type": "step",
+      "name": "Preview Budget Plan",
+      "summary": "Present the resulting monthly budget balance before persistence.",
+      "tags": ["onboarding", "preview"],
+      "complexity": "simple",
+      "filePath": "ios/Pulpe/Features/Onboarding/Steps/BudgetPreviewStep.swift"
+    },
+    {
+      "id": "step:onboard-first-budget:create-template",
+      "type": "step",
+      "name": "Create Template",
+      "summary": "Convert onboarding data into a persisted budget template and template lines.",
+      "tags": ["template", "persistence"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/budget-template/application/create-template-from-onboarding.use-case.ts"
+    },
+
+    {
+      "id": "flow:manage-budget-templates",
+      "type": "flow",
+      "name": "Manage Budget Templates",
+      "summary": "Create, read, update, and remove reusable templates and their forecast lines.",
+      "tags": ["template", "forecast"],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entryPoint": "Budget template management screen",
+        "entryType": "manual"
+      }
+    },
+    {
+      "id": "step:manage-budget-templates:validate-template",
+      "type": "step",
+      "name": "Validate Template",
+      "summary": "Enforce template naming, ownership, and structural invariants.",
+      "tags": ["template", "validation"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/budget-template/domain/budget-template.invariants.ts"
+    },
+    {
+      "id": "step:manage-budget-templates:mutate-template-and-lines",
+      "type": "step",
+      "name": "Mutate Template and Lines",
+      "summary": "Apply create, update, delete, or bulk line operations to the template.",
+      "tags": ["template", "mutation"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/budget-template/application/bulk-template-line-operations.use-case.ts"
+    },
+    {
+      "id": "step:manage-budget-templates:persist-template",
+      "type": "step",
+      "name": "Persist Template",
+      "summary": "Store the template, encrypted amounts, and tag links in Supabase.",
+      "tags": ["template", "supabase"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/budget-template/infrastructure/persistence/supabase-budget-template.repository.ts"
+    },
+
+    {
+      "id": "flow:generate-monthly-budgets",
+      "type": "flow",
+      "name": "Generate Monthly Budgets",
+      "summary": "Generate one or more monthly budgets from a selected reusable template.",
+      "tags": ["budget", "generation"],
+      "complexity": "complex",
+      "domainMeta": {
+        "entryPoint": "Authenticated budget-generation request",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "step:generate-monthly-budgets:resolve-periods",
+      "type": "step",
+      "name": "Resolve Periods",
+      "summary": "Determine which monthly periods need budgets.",
+      "tags": ["budget", "period"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/budget/application/ensure-budgets-for-periods.use-case.ts"
+    },
+    {
+      "id": "step:generate-monthly-budgets:copy-template-lines",
+      "type": "step",
+      "name": "Copy Template Lines",
+      "summary": "Provision each budget with the template's forecast lines and links.",
+      "tags": ["budget", "template"],
+      "complexity": "complex",
+      "filePath": "backend-nest/src/modules/budget/application/generate-budgets.use-case.ts"
+    },
+    {
+      "id": "step:generate-monthly-budgets:persist-generated-budgets",
+      "type": "step",
+      "name": "Persist Generated Budgets",
+      "summary": "Store monthly budgets and encrypted financial values in Supabase.",
+      "tags": ["budget", "supabase"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/budget/infrastructure/persistence/supabase-budget.repository.ts"
+    },
+
+    {
+      "id": "flow:manage-budget-forecast-lines",
+      "type": "flow",
+      "name": "Manage Budget Forecast Lines",
+      "summary": "Create, edit, delete, postpone, reset, or spread forecasts inside a monthly budget.",
+      "tags": ["budget-line", "forecast"],
+      "complexity": "complex",
+      "domainMeta": {
+        "entryPoint": "Budget detail forecast mutation",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "step:manage-budget-forecast-lines:validate-forecast",
+      "type": "step",
+      "name": "Validate Forecast",
+      "summary": "Validate kind, amount, recurrence, links, and conflicting spread state.",
+      "tags": ["budget-line", "validation"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/budget-line/domain/budget-line.invariants.ts"
+    },
+    {
+      "id": "step:manage-budget-forecast-lines:apply-forecast-mutation",
+      "type": "step",
+      "name": "Apply Forecast Mutation",
+      "summary": "Execute the requested create, update, deletion, reset, postpone, or spread operation.",
+      "tags": ["budget-line", "mutation"],
+      "complexity": "complex",
+      "filePath": "backend-nest/src/modules/budget-line/infrastructure/http/budget-line.controller.ts"
+    },
+    {
+      "id": "step:manage-budget-forecast-lines:persist-encrypted-forecast",
+      "type": "step",
+      "name": "Persist Encrypted Forecast",
+      "summary": "Encrypt the amount and persist the forecast with its domain links.",
+      "tags": ["budget-line", "encryption"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/budget-line/infrastructure/persistence/supabase-budget-line.repository.ts"
+    },
+
+    {
+      "id": "flow:recalculate-and-roll-over-budget",
+      "type": "flow",
+      "name": "Recalculate and Roll Over Budget",
+      "summary": "Recompute current balances and resolve continuity with the next monthly budget.",
+      "tags": ["budget", "balance", "rollover"],
+      "complexity": "complex",
+      "domainMeta": {
+        "entryPoint": "Financial mutation affecting a budget",
+        "entryType": "event"
+      }
+    },
+    {
+      "id": "step:recalculate-and-roll-over-budget:load-budget-aggregates",
+      "type": "step",
+      "name": "Load Budget Aggregates",
+      "summary": "Load forecast and transaction data required by the balance formula.",
+      "tags": ["budget", "aggregate"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/budget/domain/ports/budget-repository.port.ts"
+    },
+    {
+      "id": "step:recalculate-and-roll-over-budget:compute-balances",
+      "type": "step",
+      "name": "Compute Balances",
+      "summary": "Apply shared budget formulas to planned and realized operations.",
+      "tags": ["budget", "formula"],
+      "complexity": "complex",
+      "filePath": "backend-nest/src/modules/budget/domain/budget.formulas.ts"
+    },
+    {
+      "id": "step:recalculate-and-roll-over-budget:resolve-next-month",
+      "type": "step",
+      "name": "Resolve Next Month",
+      "summary": "Propagate the resulting balance into the following budget when applicable.",
+      "tags": ["budget", "rollover"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/budget/application/resolve-next-month-budget.use-case.ts"
+    },
+
+    {
+      "id": "flow:record-financial-transactions",
+      "type": "flow",
+      "name": "Record Financial Transactions",
+      "summary": "Create, edit, or remove actual income, expense, and saving operations.",
+      "tags": ["transaction", "actual"],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entryPoint": "Transaction form submission",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "step:record-financial-transactions:validate-transaction",
+      "type": "step",
+      "name": "Validate Transaction",
+      "summary": "Validate ownership, amount, kind, date, budget, and optional forecast allocation.",
+      "tags": ["transaction", "validation"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/transaction/domain/transaction.invariants.ts"
+    },
+    {
+      "id": "step:record-financial-transactions:apply-transaction-mutation",
+      "type": "step",
+      "name": "Apply Transaction Mutation",
+      "summary": "Execute the requested create, update, or removal use case.",
+      "tags": ["transaction", "mutation"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/transaction/infrastructure/http/transaction.controller.ts"
+    },
+    {
+      "id": "step:record-financial-transactions:persist-encrypted-transaction",
+      "type": "step",
+      "name": "Persist Encrypted Transaction",
+      "summary": "Encrypt the amount and persist the operation and its links in Supabase.",
+      "tags": ["transaction", "encryption"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/transaction/infrastructure/persistence/supabase-transaction.repository.ts"
+    },
+
+    {
+      "id": "flow:allocate-transaction-to-forecast",
+      "type": "flow",
+      "name": "Allocate Transaction to Forecast",
+      "summary": "Attach an actual operation to a forecast envelope and expose related consumption details.",
+      "tags": ["transaction", "allocation"],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entryPoint": "Allocation request from budget details",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "step:allocate-transaction-to-forecast:select-forecast",
+      "type": "step",
+      "name": "Select Forecast",
+      "summary": "Choose an eligible budget line for the transaction.",
+      "tags": ["allocation", "budget-line"],
+      "complexity": "simple",
+      "filePath": "ios/Pulpe/Features/Budgets/BudgetDetails/AddAllocatedTransactionPage.swift"
+    },
+    {
+      "id": "step:allocate-transaction-to-forecast:update-allocation",
+      "type": "step",
+      "name": "Update Allocation",
+      "summary": "Create or update the transaction with the selected budget-line link.",
+      "tags": ["allocation", "transaction"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/allocation/infrastructure/http/allocation-transaction.controller.ts"
+    },
+    {
+      "id": "step:allocate-transaction-to-forecast:return-consumption",
+      "type": "step",
+      "name": "Return Consumption",
+      "summary": "Return linked transactions and forecast-spread information for the envelope.",
+      "tags": ["allocation", "consumption"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/allocation/infrastructure/http/allocation-budget-line.controller.ts"
+    },
+
+    {
+      "id": "flow:point-financial-operations",
+      "type": "flow",
+      "name": "Point Financial Operations",
+      "summary": "Mark transactions or forecast envelopes as checked while preserving cascade rules.",
+      "tags": ["pointing", "transaction", "budget-line"],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entryPoint": "User toggles the checked state",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "step:point-financial-operations:toggle-transaction-state",
+      "type": "step",
+      "name": "Toggle Transaction State",
+      "summary": "Set or clear the transaction's checked timestamp.",
+      "tags": ["transaction", "pointing"],
+      "complexity": "simple",
+      "filePath": "backend-nest/src/modules/transaction/application/toggle-transaction-check.use-case.ts"
+    },
+    {
+      "id": "step:point-financial-operations:evaluate-envelope-cascade",
+      "type": "step",
+      "name": "Evaluate Envelope Cascade",
+      "summary": "Apply the budget-line pointing rule to related transactions where required.",
+      "tags": ["budget-line", "cascade"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/budget-line/application/check-transactions.use-case.ts"
+    },
+    {
+      "id": "step:point-financial-operations:refresh-budget-state",
+      "type": "step",
+      "name": "Refresh Budget State",
+      "summary": "Reload the affected budget detail and derived totals.",
+      "tags": ["budget", "refresh"],
+      "complexity": "simple",
+      "filePath": "ios/Pulpe/Features/Budgets/BudgetDetails/Coordinator/BudgetDetailsCoordinator+Mutations.swift"
+    },
+
+    {
+      "id": "flow:reschedule-financial-operations",
+      "type": "flow",
+      "name": "Reschedule Financial Operations",
+      "summary": "Move an operation to another month or spread one amount across multiple months.",
+      "tags": ["postpone", "spread", "transaction"],
+      "complexity": "complex",
+      "domainMeta": {
+        "entryPoint": "Postpone or spread action in budget details",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "step:reschedule-financial-operations:choose-target-periods",
+      "type": "step",
+      "name": "Choose Target Periods",
+      "summary": "Select a destination month or a range of spread months.",
+      "tags": ["period", "spread"],
+      "complexity": "simple",
+      "filePath": "ios/Pulpe/Features/Budgets/BudgetDetails/Spread/SpreadMonthPickerSheet.swift"
+    },
+    {
+      "id": "step:reschedule-financial-operations:calculate-distribution",
+      "type": "step",
+      "name": "Calculate Distribution",
+      "summary": "Split or transfer the amount while preserving the requested total.",
+      "tags": ["spread", "formula"],
+      "complexity": "complex",
+      "filePath": "backend-nest/src/modules/transaction/application/spread-transaction-from-txn.use-case.ts"
+    },
+    {
+      "id": "step:reschedule-financial-operations:persist-occurrences",
+      "type": "step",
+      "name": "Persist Occurrences",
+      "summary": "Create the target operations and their spread-group linkage.",
+      "tags": ["spread", "persistence"],
+      "complexity": "complex",
+      "filePath": "backend-nest/src/modules/budget-line/application/spread-budget-line-from-line.use-case.ts"
+    },
+
+    {
+      "id": "flow:search-transaction-history",
+      "type": "flow",
+      "name": "Search Transaction History",
+      "summary": "Find actual operations by text, year, and tag filters.",
+      "tags": ["transaction", "search"],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entryPoint": "Authenticated transaction search request",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "step:search-transaction-history:parse-search-filters",
+      "type": "step",
+      "name": "Parse Search Filters",
+      "summary": "Normalize the query text, requested years, and tag identifiers.",
+      "tags": ["search", "filter"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/transaction/infrastructure/http/transaction.controller.ts"
+    },
+    {
+      "id": "step:search-transaction-history:query-user-transactions",
+      "type": "step",
+      "name": "Query User Transactions",
+      "summary": "Search only transactions owned by the authenticated user.",
+      "tags": ["search", "ownership"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/transaction/application/search-transactions.use-case.ts"
+    },
+    {
+      "id": "step:search-transaction-history:map-search-results",
+      "type": "step",
+      "name": "Map Search Results",
+      "summary": "Decrypt and map matching records with currency and tag metadata.",
+      "tags": ["search", "mapping"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/common/utils/transaction-api.mapper.ts"
+    },
+
+    {
+      "id": "flow:manage-savings-goal",
+      "type": "flow",
+      "name": "Manage Savings Goal",
+      "summary": "Create, view, update, or remove a target-based savings objective.",
+      "tags": ["savings-goal", "target"],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entryPoint": "Savings-goal form or detail action",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "step:manage-savings-goal:collect-goal-parameters",
+      "type": "step",
+      "name": "Collect Goal Parameters",
+      "summary": "Capture the goal name, target amount, target date, and initial amount.",
+      "tags": ["savings-goal", "input"],
+      "complexity": "simple",
+      "filePath": "ios/Pulpe/Features/SavingsGoals/SavingsGoalFormSheet.swift"
+    },
+    {
+      "id": "step:manage-savings-goal:execute-goal-mutation",
+      "type": "step",
+      "name": "Execute Goal Mutation",
+      "summary": "Run the create, update, or removal use case for the authenticated owner.",
+      "tags": ["savings-goal", "mutation"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/savings-goal/infrastructure/http/savings-goal.controller.ts"
+    },
+    {
+      "id": "step:manage-savings-goal:persist-encrypted-goal",
+      "type": "step",
+      "name": "Persist Encrypted Goal",
+      "summary": "Encrypt financial amounts and persist the goal in Supabase.",
+      "tags": ["savings-goal", "encryption"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/savings-goal/infrastructure/persistence/supabase-savings-goal.repository.ts"
+    },
+
+    {
+      "id": "flow:track-savings-progress",
+      "type": "flow",
+      "name": "Track Savings Progress",
+      "summary": "Derive goal progress, contributions, and future linked forecasts.",
+      "tags": ["savings-goal", "progress"],
+      "complexity": "complex",
+      "domainMeta": {
+        "entryPoint": "Savings-goal detail load",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "step:track-savings-progress:load-linked-contributions",
+      "type": "step",
+      "name": "Load Linked Contributions",
+      "summary": "Load saving forecasts and actual contributions linked to the goal.",
+      "tags": ["savings-goal", "contribution"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/savings-goal/application/get-savings-goal-contributions.use-case.ts"
+    },
+    {
+      "id": "step:track-savings-progress:calculate-progress",
+      "type": "step",
+      "name": "Calculate Progress",
+      "summary": "Compute current, planned, remaining, and projected goal amounts.",
+      "tags": ["savings-goal", "formula"],
+      "complexity": "complex",
+      "filePath": "shared/src/calculators/savings-goal-progress.ts"
+    },
+    {
+      "id": "step:track-savings-progress:present-goal-timeline",
+      "type": "step",
+      "name": "Present Goal Timeline",
+      "summary": "Render progress cards, projection chart, contributions, and future months.",
+      "tags": ["savings-goal", "presentation"],
+      "complexity": "moderate",
+      "filePath": "ios/Pulpe/Features/SavingsGoals/SavingsGoalDetailView.swift"
+    },
+
+    {
+      "id": "flow:simulate-and-apply-savings-plan",
+      "type": "flow",
+      "name": "Simulate and Apply Savings Plan",
+      "summary": "Calculate a future monthly contribution plan, allow edits, and apply it to future budgets.",
+      "tags": ["savings-goal", "simulation", "plan"],
+      "complexity": "complex",
+      "domainMeta": {
+        "entryPoint": "Savings-goal simulator",
+        "entryType": "manual"
+      }
+    },
+    {
+      "id": "step:simulate-and-apply-savings-plan:calculate-plan",
+      "type": "step",
+      "name": "Calculate Plan",
+      "summary": "Build suggested monthly contributions from the remaining target and time horizon.",
+      "tags": ["savings-goal", "formula"],
+      "complexity": "complex",
+      "filePath": "shared/src/calculators/savings-goal-plan.ts"
+    },
+    {
+      "id": "step:simulate-and-apply-savings-plan:edit-simulation",
+      "type": "step",
+      "name": "Edit Simulation",
+      "summary": "Let the user adjust individual future contribution amounts before applying.",
+      "tags": ["savings-goal", "simulation"],
+      "complexity": "moderate",
+      "filePath": "ios/Pulpe/Features/SavingsGoals/Simulator/GoalPlanSimulatorSheet.swift"
+    },
+    {
+      "id": "step:simulate-and-apply-savings-plan:apply-future-lines",
+      "type": "step",
+      "name": "Apply Future Lines",
+      "summary": "Create or update goal-linked saving forecasts in the affected future periods.",
+      "tags": ["savings-goal", "budget-line"],
+      "complexity": "complex",
+      "filePath": "backend-nest/src/modules/savings-goal/application/apply-savings-goal-plan.use-case.ts"
+    },
+
+    {
+      "id": "flow:withdraw-or-stop-savings",
+      "type": "flow",
+      "name": "Withdraw or Stop Savings",
+      "summary": "Represent a withdrawal from accumulated savings or stop future goal-line generation.",
+      "tags": ["savings-goal", "withdrawal", "stop"],
+      "complexity": "complex",
+      "domainMeta": {
+        "entryPoint": "Savings action from budget or goal details",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "step:withdraw-or-stop-savings:preview-impact",
+      "type": "step",
+      "name": "Preview Impact",
+      "summary": "Show the withdrawal or generation-stop impact on the current plan.",
+      "tags": ["savings", "preview"],
+      "complexity": "moderate",
+      "filePath": "ios/Pulpe/Features/Budgets/BudgetDetails/SavingsWithdrawal/SavingsWithdrawalPreviewView.swift"
+    },
+    {
+      "id": "step:withdraw-or-stop-savings:validate-conflicts",
+      "type": "step",
+      "name": "Validate Conflicts",
+      "summary": "Reject withdrawal or spread combinations that would violate group invariants.",
+      "tags": ["savings", "validation"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/budget-line/domain/savings-withdrawal-conflict.error.ts"
+    },
+    {
+      "id": "step:withdraw-or-stop-savings:apply-savings-change",
+      "type": "step",
+      "name": "Apply Savings Change",
+      "summary": "Persist the withdrawal group or stop future goal-linked generation.",
+      "tags": ["savings", "mutation"],
+      "complexity": "complex",
+      "filePath": "backend-nest/src/modules/savings-goal/application/apply-savings-goal-generation-stop.use-case.ts"
+    },
+
+    {
+      "id": "flow:validate-user-session",
+      "type": "flow",
+      "name": "Validate User Session",
+      "summary": "Authenticate the user and establish the identity used by protected financial requests.",
+      "tags": ["authentication", "session"],
+      "complexity": "complex",
+      "domainMeta": {
+        "entryPoint": "Login, signup, OAuth, or protected request",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "step:validate-user-session:authenticate-with-provider",
+      "type": "step",
+      "name": "Authenticate With Provider",
+      "summary": "Sign in with credentials or a supported social identity provider.",
+      "tags": ["authentication", "provider"],
+      "complexity": "moderate",
+      "filePath": "ios/Pulpe/Core/Auth/AuthService.swift"
+    },
+    {
+      "id": "step:validate-user-session:guard-request",
+      "type": "step",
+      "name": "Guard Request",
+      "summary": "Validate the Supabase session, user context, pay-day metadata, and required client key.",
+      "tags": ["authentication", "authorization"],
+      "complexity": "complex",
+      "filePath": "backend-nest/src/common/guards/auth.guard.ts"
+    },
+    {
+      "id": "step:validate-user-session:return-user-context",
+      "type": "step",
+      "name": "Return User Context",
+      "summary": "Expose the authenticated identity to downstream use cases.",
+      "tags": ["authentication", "user"],
+      "complexity": "simple",
+      "filePath": "backend-nest/src/modules/auth/auth.controller.ts"
+    },
+
+    {
+      "id": "flow:manage-financial-vault",
+      "type": "flow",
+      "name": "Manage Financial Vault",
+      "summary": "Set up, validate, change, or recover the client key used to encrypt financial amounts.",
+      "tags": ["vault", "pin", "encryption"],
+      "complexity": "complex",
+      "domainMeta": {
+        "entryPoint": "Vault setup, unlock, PIN change, or recovery",
+        "entryType": "manual"
+      }
+    },
+    {
+      "id": "step:manage-financial-vault:derive-client-key",
+      "type": "step",
+      "name": "Derive Client Key",
+      "summary": "Derive or unlock the client encryption key from the user's PIN and stored salt.",
+      "tags": ["vault", "key-derivation"],
+      "complexity": "complex",
+      "filePath": "ios/Pulpe/Core/Encryption/CryptoService.swift"
+    },
+    {
+      "id": "step:manage-financial-vault:validate-or-rotate-key",
+      "type": "step",
+      "name": "Validate or Rotate Key",
+      "summary": "Validate the supplied key or re-encrypt key material during a PIN change.",
+      "tags": ["vault", "encryption"],
+      "complexity": "complex",
+      "filePath": "backend-nest/src/modules/encryption/application/change-pin.use-case.ts"
+    },
+    {
+      "id": "step:manage-financial-vault:recover-vault-access",
+      "type": "step",
+      "name": "Recover Vault Access",
+      "summary": "Verify the recovery key and restore access to the encrypted financial vault.",
+      "tags": ["vault", "recovery"],
+      "complexity": "complex",
+      "filePath": "backend-nest/src/modules/encryption/application/recover-with-recovery-key.use-case.ts"
+    },
+
+    {
+      "id": "flow:manage-user-profile-and-settings",
+      "type": "flow",
+      "name": "Manage User Profile and Settings",
+      "summary": "Read and update profile data, pay day, base currency, and related preferences.",
+      "tags": ["profile", "settings"],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entryPoint": "Account preferences screen",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "step:manage-user-profile-and-settings:load-user-settings",
+      "type": "step",
+      "name": "Load User Settings",
+      "summary": "Fetch the authenticated user's budgeting and display preferences.",
+      "tags": ["settings", "read"],
+      "complexity": "simple",
+      "filePath": "backend-nest/src/modules/user/application/get-user-settings.use-case.ts"
+    },
+    {
+      "id": "step:manage-user-profile-and-settings:validate-settings",
+      "type": "step",
+      "name": "Validate Settings",
+      "summary": "Validate profile and setting changes such as pay day and currency.",
+      "tags": ["settings", "validation"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/user/domain/user.invariants.ts"
+    },
+    {
+      "id": "step:manage-user-profile-and-settings:persist-settings",
+      "type": "step",
+      "name": "Persist Settings",
+      "summary": "Store the validated profile and preferences for later budget calculations.",
+      "tags": ["settings", "persistence"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/user/infrastructure/persistence/supabase-user.repository.ts"
+    },
+
+    {
+      "id": "flow:retire-user-account",
+      "type": "flow",
+      "name": "Retire User Account",
+      "summary": "Schedule deletion, enforce the grace period, and remove expired user accounts and analytics identities.",
+      "tags": ["account", "deletion", "retention"],
+      "complexity": "complex",
+      "domainMeta": {
+        "entryPoint": "User schedules deletion; nightly cleanup completes it",
+        "entryType": "cron"
+      }
+    },
+    {
+      "id": "step:retire-user-account:schedule-deletion",
+      "type": "step",
+      "name": "Schedule Deletion",
+      "summary": "Record the user's deletion request and scheduled timestamp.",
+      "tags": ["account", "deletion"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/user/application/schedule-account-deletion.use-case.ts"
+    },
+    {
+      "id": "step:retire-user-account:find-expired-schedules",
+      "type": "step",
+      "name": "Find Expired Schedules",
+      "summary": "Select scheduled users whose three-day grace period has elapsed.",
+      "tags": ["account", "retention"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/account-deletion/application/cleanup-expired-deletions.use-case.ts"
+    },
+    {
+      "id": "step:retire-user-account:delete-account-data",
+      "type": "step",
+      "name": "Delete Account Data",
+      "summary": "Delete the Supabase account and associated PostHog person data.",
+      "tags": ["account", "cleanup"],
+      "complexity": "complex",
+      "filePath": "backend-nest/src/modules/account-deletion/infrastructure/scheduler/account-deletion.cron.ts"
+    },
+
+    {
+      "id": "flow:manage-financial-tags",
+      "type": "flow",
+      "name": "Manage Financial Tags",
+      "summary": "Create and maintain reusable tags and inspect their usage history.",
+      "tags": ["tag", "classification"],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entryPoint": "Tag settings or tag-history request",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "step:manage-financial-tags:mutate-tag",
+      "type": "step",
+      "name": "Mutate Tag",
+      "summary": "Create, update, or remove a tag owned by the authenticated user.",
+      "tags": ["tag", "mutation"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/tag/infrastructure/http/tag.controller.ts"
+    },
+    {
+      "id": "step:manage-financial-tags:update-entity-links",
+      "type": "step",
+      "name": "Update Entity Links",
+      "summary": "Atomically update tag links on templates, forecasts, or transactions.",
+      "tags": ["tag", "link"],
+      "complexity": "complex",
+      "filePath": "backend-nest/src/common/utils/tag-links.util.ts"
+    },
+    {
+      "id": "step:manage-financial-tags:build-tag-history",
+      "type": "step",
+      "name": "Build Tag History",
+      "summary": "Aggregate tagged financial records for history display.",
+      "tags": ["tag", "history"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/tag/application/get-tag-history.use-case.ts"
+    },
+
+    {
+      "id": "flow:convert-financial-amounts",
+      "type": "flow",
+      "name": "Convert Financial Amounts",
+      "summary": "Fetch exchange rates and retain source-currency metadata for financial entries.",
+      "tags": ["currency", "conversion"],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entryPoint": "Currency-rate request or foreign-currency amount entry",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "step:convert-financial-amounts:request-exchange-rate",
+      "type": "step",
+      "name": "Request Exchange Rate",
+      "summary": "Request a rate between the user's base currency and the selected currency.",
+      "tags": ["currency", "rate"],
+      "complexity": "simple",
+      "filePath": "backend-nest/src/modules/currency/currency.controller.ts"
+    },
+    {
+      "id": "step:convert-financial-amounts:resolve-cached-rate",
+      "type": "step",
+      "name": "Resolve Cached Rate",
+      "summary": "Resolve the conversion rate through the currency service and cache.",
+      "tags": ["currency", "cache"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/currency/currency.service.ts"
+    },
+    {
+      "id": "step:convert-financial-amounts:map-currency-metadata",
+      "type": "step",
+      "name": "Map Currency Metadata",
+      "summary": "Return the source amount, source currency, exchange rate, and converted amount metadata.",
+      "tags": ["currency", "mapping"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/common/utils/currency-metadata.mapper.ts"
+    },
+
+    {
+      "id": "flow:run-demo-session",
+      "type": "flow",
+      "name": "Run Demo Session",
+      "summary": "Create an isolated temporary user with generated planning data and clean it up after expiry.",
+      "tags": ["demo", "session"],
+      "complexity": "complex",
+      "domainMeta": {
+        "entryPoint": "User starts demo mode",
+        "entryType": "http"
+      }
+    },
+    {
+      "id": "step:run-demo-session:create-demo-identity",
+      "type": "step",
+      "name": "Create Demo Identity",
+      "summary": "Create temporary credentials and an isolated demo session.",
+      "tags": ["demo", "identity"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/demo/application/create-demo-session.use-case.ts"
+    },
+    {
+      "id": "step:run-demo-session:generate-demo-financial-data",
+      "type": "step",
+      "name": "Generate Demo Financial Data",
+      "summary": "Populate representative templates, budgets, forecasts, and transactions.",
+      "tags": ["demo", "seed"],
+      "complexity": "complex",
+      "filePath": "backend-nest/src/modules/demo/application/generate-demo-data.use-case.ts"
+    },
+    {
+      "id": "step:run-demo-session:cleanup-expired-demo",
+      "type": "step",
+      "name": "Clean Up Expired Demo",
+      "summary": "Delete demo users and generated data after the configured expiry.",
+      "tags": ["demo", "cleanup"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/demo/infrastructure/scheduler/demo-cleanup.cron.ts"
+    },
+
+    {
+      "id": "flow:review-current-month",
+      "type": "flow",
+      "name": "Review Current Month",
+      "summary": "Aggregate the active budget, alerts, forecasts, actual transactions, and savings into the main dashboard.",
+      "tags": ["current-month", "dashboard"],
+      "complexity": "complex",
+      "domainMeta": {
+        "entryPoint": "User opens the current-month screen",
+        "entryType": "manual"
+      }
+    },
+    {
+      "id": "step:review-current-month:load-active-budget",
+      "type": "step",
+      "name": "Load Active Budget",
+      "summary": "Resolve and load the monthly budget matching the user's pay-day period.",
+      "tags": ["current-month", "budget"],
+      "complexity": "moderate",
+      "filePath": "ios/Pulpe/Domain/Store/CurrentMonthStore.swift"
+    },
+    {
+      "id": "step:review-current-month:derive-dashboard-metrics",
+      "type": "step",
+      "name": "Derive Dashboard Metrics",
+      "summary": "Calculate remaining balance, drift, projection, unchecked operations, and savings state.",
+      "tags": ["current-month", "metrics"],
+      "complexity": "complex",
+      "filePath": "ios/Pulpe/Domain/Formulas/BudgetFormulas+Metrics.swift"
+    },
+    {
+      "id": "step:review-current-month:present-dashboard",
+      "type": "step",
+      "name": "Present Dashboard",
+      "summary": "Render the current-month overview and quick actions.",
+      "tags": ["current-month", "presentation"],
+      "complexity": "moderate",
+      "filePath": "ios/Pulpe/Features/CurrentMonth/CurrentMonthView.swift"
+    },
+
+    {
+      "id": "flow:gate-application-lifecycle",
+      "type": "flow",
+      "name": "Gate Application Lifecycle",
+      "summary": "Gate startup for maintenance or required updates and present release notes when appropriate.",
+      "tags": ["lifecycle", "version", "maintenance"],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entryPoint": "Application startup",
+        "entryType": "event"
+      }
+    },
+    {
+      "id": "step:gate-application-lifecycle:check-maintenance",
+      "type": "step",
+      "name": "Check Maintenance",
+      "summary": "Block normal API operation and app entry while maintenance mode is active.",
+      "tags": ["maintenance", "gate"],
+      "complexity": "simple",
+      "filePath": "backend-nest/src/common/middleware/maintenance.middleware.ts"
+    },
+    {
+      "id": "step:gate-application-lifecycle:check-app-version",
+      "type": "step",
+      "name": "Check App Version",
+      "summary": "Compare the current iOS version with minimum and latest supported versions.",
+      "tags": ["version", "gate"],
+      "complexity": "moderate",
+      "filePath": "backend-nest/src/modules/app-version/app-version.controller.ts"
+    },
+    {
+      "id": "step:gate-application-lifecycle:present-release-notes",
+      "type": "step",
+      "name": "Present Release Notes",
+      "summary": "Return and display platform release notes after the lifecycle checks.",
+      "tags": ["whats-new", "release"],
+      "complexity": "simple",
+      "filePath": "backend-nest/src/modules/whats-new/infrastructure/http/whats-new.controller.ts"
+    }
+  ],
+  "edges": [
+    { "source": "domain:budget-planning", "target": "flow:onboard-first-budget", "type": "contains_flow", "direction": "forward", "weight": 1.0 },
+    { "source": "domain:budget-planning", "target": "flow:manage-budget-templates", "type": "contains_flow", "direction": "forward", "weight": 1.0 },
+    { "source": "domain:budget-planning", "target": "flow:generate-monthly-budgets", "type": "contains_flow", "direction": "forward", "weight": 1.0 },
+    { "source": "domain:budget-planning", "target": "flow:manage-budget-forecast-lines", "type": "contains_flow", "direction": "forward", "weight": 1.0 },
+    { "source": "domain:budget-planning", "target": "flow:recalculate-and-roll-over-budget", "type": "contains_flow", "direction": "forward", "weight": 1.0 },
+    { "source": "domain:transaction-tracking", "target": "flow:record-financial-transactions", "type": "contains_flow", "direction": "forward", "weight": 1.0 },
+    { "source": "domain:transaction-tracking", "target": "flow:allocate-transaction-to-forecast", "type": "contains_flow", "direction": "forward", "weight": 1.0 },
+    { "source": "domain:transaction-tracking", "target": "flow:point-financial-operations", "type": "contains_flow", "direction": "forward", "weight": 1.0 },
+    { "source": "domain:transaction-tracking", "target": "flow:reschedule-financial-operations", "type": "contains_flow", "direction": "forward", "weight": 1.0 },
+    { "source": "domain:transaction-tracking", "target": "flow:search-transaction-history", "type": "contains_flow", "direction": "forward", "weight": 1.0 },
+    { "source": "domain:savings-goals", "target": "flow:manage-savings-goal", "type": "contains_flow", "direction": "forward", "weight": 1.0 },
+    { "source": "domain:savings-goals", "target": "flow:track-savings-progress", "type": "contains_flow", "direction": "forward", "weight": 1.0 },
+    { "source": "domain:savings-goals", "target": "flow:simulate-and-apply-savings-plan", "type": "contains_flow", "direction": "forward", "weight": 1.0 },
+    { "source": "domain:savings-goals", "target": "flow:withdraw-or-stop-savings", "type": "contains_flow", "direction": "forward", "weight": 1.0 },
+    { "source": "domain:account-and-vault", "target": "flow:validate-user-session", "type": "contains_flow", "direction": "forward", "weight": 1.0 },
+    { "source": "domain:account-and-vault", "target": "flow:manage-financial-vault", "type": "contains_flow", "direction": "forward", "weight": 1.0 },
+    { "source": "domain:account-and-vault", "target": "flow:manage-user-profile-and-settings", "type": "contains_flow", "direction": "forward", "weight": 1.0 },
+    { "source": "domain:account-and-vault", "target": "flow:retire-user-account", "type": "contains_flow", "direction": "forward", "weight": 1.0 },
+    { "source": "domain:financial-metadata", "target": "flow:manage-financial-tags", "type": "contains_flow", "direction": "forward", "weight": 1.0 },
+    { "source": "domain:financial-metadata", "target": "flow:convert-financial-amounts", "type": "contains_flow", "direction": "forward", "weight": 1.0 },
+    { "source": "domain:guided-product-experience", "target": "flow:run-demo-session", "type": "contains_flow", "direction": "forward", "weight": 1.0 },
+    { "source": "domain:guided-product-experience", "target": "flow:review-current-month", "type": "contains_flow", "direction": "forward", "weight": 1.0 },
+    { "source": "domain:guided-product-experience", "target": "flow:gate-application-lifecycle", "type": "contains_flow", "direction": "forward", "weight": 1.0 },
+
+    { "source": "flow:onboard-first-budget", "target": "step:onboard-first-budget:collect-financial-baseline", "type": "flow_step", "direction": "forward", "weight": 0.3 },
+    { "source": "flow:onboard-first-budget", "target": "step:onboard-first-budget:preview-budget-plan", "type": "flow_step", "direction": "forward", "weight": 0.6 },
+    { "source": "flow:onboard-first-budget", "target": "step:onboard-first-budget:create-template", "type": "flow_step", "direction": "forward", "weight": 0.9 },
+    { "source": "flow:manage-budget-templates", "target": "step:manage-budget-templates:validate-template", "type": "flow_step", "direction": "forward", "weight": 0.3 },
+    { "source": "flow:manage-budget-templates", "target": "step:manage-budget-templates:mutate-template-and-lines", "type": "flow_step", "direction": "forward", "weight": 0.6 },
+    { "source": "flow:manage-budget-templates", "target": "step:manage-budget-templates:persist-template", "type": "flow_step", "direction": "forward", "weight": 0.9 },
+    { "source": "flow:generate-monthly-budgets", "target": "step:generate-monthly-budgets:resolve-periods", "type": "flow_step", "direction": "forward", "weight": 0.3 },
+    { "source": "flow:generate-monthly-budgets", "target": "step:generate-monthly-budgets:copy-template-lines", "type": "flow_step", "direction": "forward", "weight": 0.6 },
+    { "source": "flow:generate-monthly-budgets", "target": "step:generate-monthly-budgets:persist-generated-budgets", "type": "flow_step", "direction": "forward", "weight": 0.9 },
+    { "source": "flow:manage-budget-forecast-lines", "target": "step:manage-budget-forecast-lines:validate-forecast", "type": "flow_step", "direction": "forward", "weight": 0.3 },
+    { "source": "flow:manage-budget-forecast-lines", "target": "step:manage-budget-forecast-lines:apply-forecast-mutation", "type": "flow_step", "direction": "forward", "weight": 0.6 },
+    { "source": "flow:manage-budget-forecast-lines", "target": "step:manage-budget-forecast-lines:persist-encrypted-forecast", "type": "flow_step", "direction": "forward", "weight": 0.9 },
+    { "source": "flow:recalculate-and-roll-over-budget", "target": "step:recalculate-and-roll-over-budget:load-budget-aggregates", "type": "flow_step", "direction": "forward", "weight": 0.3 },
+    { "source": "flow:recalculate-and-roll-over-budget", "target": "step:recalculate-and-roll-over-budget:compute-balances", "type": "flow_step", "direction": "forward", "weight": 0.6 },
+    { "source": "flow:recalculate-and-roll-over-budget", "target": "step:recalculate-and-roll-over-budget:resolve-next-month", "type": "flow_step", "direction": "forward", "weight": 0.9 },
+    { "source": "flow:record-financial-transactions", "target": "step:record-financial-transactions:validate-transaction", "type": "flow_step", "direction": "forward", "weight": 0.3 },
+    { "source": "flow:record-financial-transactions", "target": "step:record-financial-transactions:apply-transaction-mutation", "type": "flow_step", "direction": "forward", "weight": 0.6 },
+    { "source": "flow:record-financial-transactions", "target": "step:record-financial-transactions:persist-encrypted-transaction", "type": "flow_step", "direction": "forward", "weight": 0.9 },
+    { "source": "flow:allocate-transaction-to-forecast", "target": "step:allocate-transaction-to-forecast:select-forecast", "type": "flow_step", "direction": "forward", "weight": 0.3 },
+    { "source": "flow:allocate-transaction-to-forecast", "target": "step:allocate-transaction-to-forecast:update-allocation", "type": "flow_step", "direction": "forward", "weight": 0.6 },
+    { "source": "flow:allocate-transaction-to-forecast", "target": "step:allocate-transaction-to-forecast:return-consumption", "type": "flow_step", "direction": "forward", "weight": 0.9 },
+    { "source": "flow:point-financial-operations", "target": "step:point-financial-operations:toggle-transaction-state", "type": "flow_step", "direction": "forward", "weight": 0.3 },
+    { "source": "flow:point-financial-operations", "target": "step:point-financial-operations:evaluate-envelope-cascade", "type": "flow_step", "direction": "forward", "weight": 0.6 },
+    { "source": "flow:point-financial-operations", "target": "step:point-financial-operations:refresh-budget-state", "type": "flow_step", "direction": "forward", "weight": 0.9 },
+    { "source": "flow:reschedule-financial-operations", "target": "step:reschedule-financial-operations:choose-target-periods", "type": "flow_step", "direction": "forward", "weight": 0.3 },
+    { "source": "flow:reschedule-financial-operations", "target": "step:reschedule-financial-operations:calculate-distribution", "type": "flow_step", "direction": "forward", "weight": 0.6 },
+    { "source": "flow:reschedule-financial-operations", "target": "step:reschedule-financial-operations:persist-occurrences", "type": "flow_step", "direction": "forward", "weight": 0.9 },
+    { "source": "flow:search-transaction-history", "target": "step:search-transaction-history:parse-search-filters", "type": "flow_step", "direction": "forward", "weight": 0.3 },
+    { "source": "flow:search-transaction-history", "target": "step:search-transaction-history:query-user-transactions", "type": "flow_step", "direction": "forward", "weight": 0.6 },
+    { "source": "flow:search-transaction-history", "target": "step:search-transaction-history:map-search-results", "type": "flow_step", "direction": "forward", "weight": 0.9 },
+    { "source": "flow:manage-savings-goal", "target": "step:manage-savings-goal:collect-goal-parameters", "type": "flow_step", "direction": "forward", "weight": 0.3 },
+    { "source": "flow:manage-savings-goal", "target": "step:manage-savings-goal:execute-goal-mutation", "type": "flow_step", "direction": "forward", "weight": 0.6 },
+    { "source": "flow:manage-savings-goal", "target": "step:manage-savings-goal:persist-encrypted-goal", "type": "flow_step", "direction": "forward", "weight": 0.9 },
+    { "source": "flow:track-savings-progress", "target": "step:track-savings-progress:load-linked-contributions", "type": "flow_step", "direction": "forward", "weight": 0.3 },
+    { "source": "flow:track-savings-progress", "target": "step:track-savings-progress:calculate-progress", "type": "flow_step", "direction": "forward", "weight": 0.6 },
+    { "source": "flow:track-savings-progress", "target": "step:track-savings-progress:present-goal-timeline", "type": "flow_step", "direction": "forward", "weight": 0.9 },
+    { "source": "flow:simulate-and-apply-savings-plan", "target": "step:simulate-and-apply-savings-plan:calculate-plan", "type": "flow_step", "direction": "forward", "weight": 0.3 },
+    { "source": "flow:simulate-and-apply-savings-plan", "target": "step:simulate-and-apply-savings-plan:edit-simulation", "type": "flow_step", "direction": "forward", "weight": 0.6 },
+    { "source": "flow:simulate-and-apply-savings-plan", "target": "step:simulate-and-apply-savings-plan:apply-future-lines", "type": "flow_step", "direction": "forward", "weight": 0.9 },
+    { "source": "flow:withdraw-or-stop-savings", "target": "step:withdraw-or-stop-savings:preview-impact", "type": "flow_step", "direction": "forward", "weight": 0.3 },
+    { "source": "flow:withdraw-or-stop-savings", "target": "step:withdraw-or-stop-savings:validate-conflicts", "type": "flow_step", "direction": "forward", "weight": 0.6 },
+    { "source": "flow:withdraw-or-stop-savings", "target": "step:withdraw-or-stop-savings:apply-savings-change", "type": "flow_step", "direction": "forward", "weight": 0.9 },
+    { "source": "flow:validate-user-session", "target": "step:validate-user-session:authenticate-with-provider", "type": "flow_step", "direction": "forward", "weight": 0.3 },
+    { "source": "flow:validate-user-session", "target": "step:validate-user-session:guard-request", "type": "flow_step", "direction": "forward", "weight": 0.6 },
+    { "source": "flow:validate-user-session", "target": "step:validate-user-session:return-user-context", "type": "flow_step", "direction": "forward", "weight": 0.9 },
+    { "source": "flow:manage-financial-vault", "target": "step:manage-financial-vault:derive-client-key", "type": "flow_step", "direction": "forward", "weight": 0.3 },
+    { "source": "flow:manage-financial-vault", "target": "step:manage-financial-vault:validate-or-rotate-key", "type": "flow_step", "direction": "forward", "weight": 0.6 },
+    { "source": "flow:manage-financial-vault", "target": "step:manage-financial-vault:recover-vault-access", "type": "flow_step", "direction": "forward", "weight": 0.9 },
+    { "source": "flow:manage-user-profile-and-settings", "target": "step:manage-user-profile-and-settings:load-user-settings", "type": "flow_step", "direction": "forward", "weight": 0.3 },
+    { "source": "flow:manage-user-profile-and-settings", "target": "step:manage-user-profile-and-settings:validate-settings", "type": "flow_step", "direction": "forward", "weight": 0.6 },
+    { "source": "flow:manage-user-profile-and-settings", "target": "step:manage-user-profile-and-settings:persist-settings", "type": "flow_step", "direction": "forward", "weight": 0.9 },
+    { "source": "flow:retire-user-account", "target": "step:retire-user-account:schedule-deletion", "type": "flow_step", "direction": "forward", "weight": 0.3 },
+    { "source": "flow:retire-user-account", "target": "step:retire-user-account:find-expired-schedules", "type": "flow_step", "direction": "forward", "weight": 0.6 },
+    { "source": "flow:retire-user-account", "target": "step:retire-user-account:delete-account-data", "type": "flow_step", "direction": "forward", "weight": 0.9 },
+    { "source": "flow:manage-financial-tags", "target": "step:manage-financial-tags:mutate-tag", "type": "flow_step", "direction": "forward", "weight": 0.3 },
+    { "source": "flow:manage-financial-tags", "target": "step:manage-financial-tags:update-entity-links", "type": "flow_step", "direction": "forward", "weight": 0.6 },
+    { "source": "flow:manage-financial-tags", "target": "step:manage-financial-tags:build-tag-history", "type": "flow_step", "direction": "forward", "weight": 0.9 },
+    { "source": "flow:convert-financial-amounts", "target": "step:convert-financial-amounts:request-exchange-rate", "type": "flow_step", "direction": "forward", "weight": 0.3 },
+    { "source": "flow:convert-financial-amounts", "target": "step:convert-financial-amounts:resolve-cached-rate", "type": "flow_step", "direction": "forward", "weight": 0.6 },
+    { "source": "flow:convert-financial-amounts", "target": "step:convert-financial-amounts:map-currency-metadata", "type": "flow_step", "direction": "forward", "weight": 0.9 },
+    { "source": "flow:run-demo-session", "target": "step:run-demo-session:create-demo-identity", "type": "flow_step", "direction": "forward", "weight": 0.3 },
+    { "source": "flow:run-demo-session", "target": "step:run-demo-session:generate-demo-financial-data", "type": "flow_step", "direction": "forward", "weight": 0.6 },
+    { "source": "flow:run-demo-session", "target": "step:run-demo-session:cleanup-expired-demo", "type": "flow_step", "direction": "forward", "weight": 0.9 },
+    { "source": "flow:review-current-month", "target": "step:review-current-month:load-active-budget", "type": "flow_step", "direction": "forward", "weight": 0.3 },
+    { "source": "flow:review-current-month", "target": "step:review-current-month:derive-dashboard-metrics", "type": "flow_step", "direction": "forward", "weight": 0.6 },
+    { "source": "flow:review-current-month", "target": "step:review-current-month:present-dashboard", "type": "flow_step", "direction": "forward", "weight": 0.9 },
+    { "source": "flow:gate-application-lifecycle", "target": "step:gate-application-lifecycle:check-maintenance", "type": "flow_step", "direction": "forward", "weight": 0.3 },
+    { "source": "flow:gate-application-lifecycle", "target": "step:gate-application-lifecycle:check-app-version", "type": "flow_step", "direction": "forward", "weight": 0.6 },
+    { "source": "flow:gate-application-lifecycle", "target": "step:gate-application-lifecycle:present-release-notes", "type": "flow_step", "direction": "forward", "weight": 0.9 },
+
+    { "source": "domain:account-and-vault", "target": "domain:budget-planning", "type": "cross_domain", "direction": "forward", "description": "Authentication, ownership, decryption, pay-day, and currency settings govern every budget operation.", "weight": 0.6 },
+    { "source": "domain:budget-planning", "target": "domain:transaction-tracking", "type": "cross_domain", "direction": "forward", "description": "Monthly budgets receive actual transactions and expose forecast envelopes for allocation.", "weight": 0.6 },
+    { "source": "domain:transaction-tracking", "target": "domain:budget-planning", "type": "cross_domain", "direction": "forward", "description": "Transaction mutations trigger budget balance recalculation.", "weight": 0.6 },
+    { "source": "domain:savings-goals", "target": "domain:budget-planning", "type": "cross_domain", "direction": "forward", "description": "Savings plans create and update goal-linked saving forecast lines.", "weight": 0.6 },
+    { "source": "domain:transaction-tracking", "target": "domain:savings-goals", "type": "cross_domain", "direction": "forward", "description": "Actual saving transactions contribute to linked-goal progress.", "weight": 0.6 },
+    { "source": "domain:financial-metadata", "target": "domain:budget-planning", "type": "cross_domain", "direction": "forward", "description": "Tags and currency metadata classify and display budget forecasts.", "weight": 0.6 },
+    { "source": "domain:financial-metadata", "target": "domain:transaction-tracking", "type": "cross_domain", "direction": "forward", "description": "Tags and currency metadata classify transactions and support filtered search.", "weight": 0.6 },
+    { "source": "domain:guided-product-experience", "target": "domain:budget-planning", "type": "cross_domain", "direction": "forward", "description": "Onboarding and demo flows seed budgets, while the current-month view aggregates them.", "weight": 0.6 },
+    { "source": "domain:guided-product-experience", "target": "domain:transaction-tracking", "type": "cross_domain", "direction": "forward", "description": "Demo generation and the current-month dashboard populate and present actual operations.", "weight": 0.6 }
+  ],
+  "layers": [],
+  "tour": []
+}
