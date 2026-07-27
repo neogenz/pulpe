@@ -54,3 +54,91 @@ export const GENERATION_STOP_ADJUSTED_RPC_MESSAGE =
   'Generation stop line manually adjusted';
 export const GENERATION_STOP_PAST_RPC_MESSAGE =
   'Generation stop line in past period';
+
+// get/apply_savings_goal_deletion (PUL-319). Amounts are still ciphertexts at
+// this boundary and are decrypted only by the repository.
+const deletionRevisionEntrySchema = z
+  .object({
+    id: z.uuid(),
+    updatedAt: z.iso.datetime({ offset: true }),
+  })
+  .strict();
+
+const deletionRevisionSchema = z
+  .object({
+    templateLines: z.array(deletionRevisionEntrySchema),
+    budgetLines: z.array(deletionRevisionEntrySchema),
+    transactions: z.array(deletionRevisionEntrySchema),
+  })
+  .strict();
+
+const deletionTransactionSchema = z
+  .object({
+    id: z.uuid(),
+    budgetId: z.uuid(),
+    budgetLineId: z.uuid(),
+    name: z.string(),
+    amount: z.string().nullable(),
+    kind: z.enum(['income', 'expense', 'saving']),
+    transactionDate: z.iso.datetime({ offset: true }),
+    checkedAt: z.iso.datetime({ offset: true }).nullable(),
+    createdAt: z.iso.datetime({ offset: true }),
+    updatedAt: z.iso.datetime({ offset: true }),
+    originalAmount: z.string().nullable(),
+    originalCurrency: z.string().nullable(),
+    targetCurrency: z.string().nullable(),
+    exchangeRate: z.number().nullable(),
+  })
+  .strict();
+
+const deletionBudgetLineSchema = z
+  .object({
+    lineId: z.uuid(),
+    name: z.string(),
+    amount: z.string().nullable(),
+    recurrence: z.enum(['fixed', 'one_off']),
+    checkedAt: z.iso.datetime({ offset: true }).nullable(),
+    updatedAt: z.iso.datetime({ offset: true }),
+    transactions: z.array(deletionTransactionSchema),
+  })
+  .strict();
+
+export const savingsGoalDeletionImpactRpcSchema = z
+  .object({
+    goalId: z.uuid(),
+    templateLines: z.array(
+      z
+        .object({
+          lineId: z.uuid(),
+          templateId: z.uuid(),
+          templateName: z.string(),
+          name: z.string(),
+          amount: z.string().nullable(),
+          recurrence: z.enum(['fixed', 'one_off']),
+          updatedAt: z.iso.datetime({ offset: true }),
+        })
+        .strict(),
+    ),
+    budgets: z.array(
+      z
+        .object({
+          budgetId: z.uuid(),
+          month: z.number().int().min(1).max(12),
+          year: z.number().int(),
+          lines: z.array(deletionBudgetLineSchema),
+        })
+        .strict(),
+    ),
+    revision: deletionRevisionSchema,
+  })
+  .strict();
+export type SavingsGoalDeletionImpactRpc = z.infer<
+  typeof savingsGoalDeletionImpactRpcSchema
+>;
+
+export const savingsGoalDeletionResultRpcSchema = z.array(
+  z.object({ budget_id: z.uuid() }).strict(),
+);
+
+export const SAVINGS_GOAL_DELETION_IMPACT_CHANGED_RPC_MESSAGE =
+  'Savings goal deletion impact changed';

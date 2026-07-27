@@ -3,9 +3,11 @@ import type { Buffer } from 'node:buffer';
 import type { PostgrestError } from '@supabase/supabase-js';
 import { ZodError } from 'zod';
 import {
+  savingsGoalDeletionImpactSchema,
   type BudgetLine,
   type BudgetPeriod,
   type LinkedSavingLine,
+  type SavingsGoalDeletionCommand,
   type SavingsGoalGenerationStop,
 } from 'pulpe-shared';
 import { BusinessException } from '@common/exceptions/business.exception';
@@ -28,6 +30,8 @@ import type {
   SavingsGoal,
   SavingsGoalContribution,
   SavingsGoalCreateInput,
+  SavingsGoalDeletionImpactResult,
+  SavingsGoalDeletionResult,
   SavingsGoalGenerationStopResult,
   SavingsGoalInsert,
   SavingsGoalLinkedContributions,
@@ -45,7 +49,11 @@ import {
   PLAN_LINE_CHECKED_RPC_MESSAGE,
   PLAN_LINE_NOT_LINKED_RPC_MESSAGE,
   PLAN_LINE_PAST_RPC_MESSAGE,
+  savingsGoalDeletionImpactRpcSchema,
+  savingsGoalDeletionResultRpcSchema,
+  SAVINGS_GOAL_DELETION_IMPACT_CHANGED_RPC_MESSAGE,
   type ApplySavingsGoalPlanLine,
+  type SavingsGoalDeletionImpactRpc,
 } from './schemas/rpc-payload.schemas';
 
 type TransactionKindEnum = Database['public']['Enums']['transaction_kind'];
@@ -253,6 +261,73 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
           entityId: id,
           entityType: 'savings_goal',
           supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+  }
+
+  async getDeletionImpact(
+    goalId: string,
+  ): Promise<SavingsGoalDeletionImpactResult> {
+    const { data, error } = await this.supabaseProvider.client.rpc(
+      'get_savings_goal_deletion_impact',
+      { p_goal_id: goalId },
+    );
+
+    if (error || !data) {
+      throw this.deletionImpactReadError(error, goalId);
+    }
+
+    try {
+      const raw = savingsGoalDeletionImpactRpcSchema.parse(data);
+      return await this.toDeletionImpact(raw);
+    } catch (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_FETCH_FAILED,
+        { id: goalId },
+        {
+          operation: 'getSavingsGoalDeletionImpact',
+          entityId: goalId,
+          entityType: 'savings_goal',
+          validationErrors:
+            error instanceof ZodError ? error.issues : undefined,
+        },
+        { cause: error },
+      );
+    }
+  }
+
+  async applyDeletion(
+    goalId: string,
+    command: SavingsGoalDeletionCommand,
+  ): Promise<SavingsGoalDeletionResult> {
+    const { data, error } = await this.supabaseProvider.client.rpc(
+      'apply_savings_goal_deletion',
+      {
+        p_goal_id: goalId,
+        p_mode: command.mode,
+        p_revision: command.revision,
+      },
+    );
+
+    if (error || !data) this.throwDeletionRpcError(error);
+
+    try {
+      const rows = savingsGoalDeletionResultRpcSchema.parse(data);
+      return {
+        touchedBudgetIds: [...new Set(rows.map((row) => row.budget_id))],
+      };
+    } catch (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_DELETE_FAILED,
+        { id: goalId },
+        {
+          operation: 'applySavingsGoalDeletion',
+          entityId: goalId,
+          entityType: 'savings_goal',
+          validationErrors:
+            error instanceof ZodError ? error.issues : undefined,
         },
         { cause: error },
       );
@@ -475,6 +550,65 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       undefined,
       {
         operation: 'applySavingsGoalGenerationStop',
+        entityType: 'savings_goal',
+        supabaseError: error,
+      },
+      { cause: error ?? undefined },
+    );
+  }
+
+  private throwDeletionRpcError(error: PostgrestError | null): never {
+    if (isSavingsGoalLinkDenied(error)) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
+        undefined,
+        {
+          operation: 'applySavingsGoalDeletion',
+          entityType: 'savings_goal',
+        },
+        { cause: error ?? undefined },
+      );
+    }
+    if (
+      (error?.message ?? '').includes(
+        SAVINGS_GOAL_DELETION_IMPACT_CHANGED_RPC_MESSAGE,
+      )
+    ) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.CONCURRENT_MODIFICATION,
+        { resource: 'savings_goal_deletion_impact' },
+        {
+          operation: 'applySavingsGoalDeletion',
+          entityType: 'savings_goal',
+        },
+        { cause: error ?? undefined },
+      );
+    }
+    throw new BusinessException(
+      ERROR_DEFINITIONS.SAVINGS_GOAL_DELETE_FAILED,
+      undefined,
+      {
+        operation: 'applySavingsGoalDeletion',
+        entityType: 'savings_goal',
+        supabaseError: error,
+      },
+      { cause: error ?? undefined },
+    );
+  }
+
+  private deletionImpactReadError(
+    error: PostgrestError | null,
+    goalId: string,
+  ): BusinessException {
+    const definition = isSavingsGoalLinkDenied(error)
+      ? ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND
+      : ERROR_DEFINITIONS.SAVINGS_GOAL_FETCH_FAILED;
+    return new BusinessException(
+      definition,
+      { id: goalId },
+      {
+        operation: 'getSavingsGoalDeletionImpact',
+        entityId: goalId,
         entityType: 'savings_goal',
         supabaseError: error,
       },
@@ -713,6 +847,73 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       checkedAt: decrypted.checked_at,
       createdAt: decrypted.created_at,
       updatedAt: decrypted.updated_at,
+    };
+  }
+
+  private async toDeletionImpact(
+    raw: SavingsGoalDeletionImpactRpc,
+  ): Promise<SavingsGoalDeletionImpactResult> {
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    const templateLines = raw.templateLines.map((line) => ({
+      ...line,
+      amount: this.encryption.tryDecryptAmount(line.amount, dek, 0),
+    }));
+    const budgets = raw.budgets.map((budget) => ({
+      ...budget,
+      lines: budget.lines.map((line) => ({
+        ...line,
+        amount: this.encryption.tryDecryptAmount(line.amount, dek, 0),
+        transactions: line.transactions.map((transaction) =>
+          this.toDeletionTransaction(transaction, dek),
+        ),
+      })),
+    }));
+    const budgetLines = budgets.flatMap((budget) => budget.lines);
+    const transactions = budgetLines.flatMap((line) => line.transactions);
+
+    return savingsGoalDeletionImpactSchema.parse({
+      goalId: raw.goalId,
+      summary: {
+        templateLineCount: templateLines.length,
+        templateLineTotal: templateLines.reduce(
+          (total, line) => total + line.amount,
+          0,
+        ),
+        budgetCount: budgets.length,
+        budgetLineCount: budgetLines.length,
+        budgetLineTotal: budgetLines.reduce(
+          (total, line) => total + line.amount,
+          0,
+        ),
+        transactionCount: transactions.length,
+        transactionTotal: transactions.reduce(
+          (total, transaction) => total + transaction.amount,
+          0,
+        ),
+      },
+      templateLines,
+      budgets,
+      revision: raw.revision,
+    });
+  }
+
+  private toDeletionTransaction(
+    transaction: SavingsGoalDeletionImpactRpc['budgets'][number]['lines'][number]['transactions'][number],
+    dek: Buffer,
+  ): Transaction {
+    return {
+      ...transaction,
+      amount: this.encryption.tryDecryptAmount(transaction.amount, dek, 0),
+      originalAmount: transaction.originalAmount
+        ? this.encryption.tryDecryptAmount(
+            transaction.originalAmount,
+            dek,
+            null,
+          )
+        : null,
+      originalCurrency: parseCurrency(transaction.originalCurrency) ?? null,
+      targetCurrency: parseCurrency(transaction.targetCurrency) ?? null,
+      tagIds: [],
     };
   }
 

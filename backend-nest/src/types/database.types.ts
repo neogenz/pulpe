@@ -534,6 +534,12 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      apply_savings_goal_deletion: {
+        Args: { p_goal_id: string; p_mode: string; p_revision: Json };
+        Returns: {
+          budget_id: string;
+        }[];
+      };
       apply_savings_goal_generation_stop: {
         Args: {
           p_budget_line_ids: string[];
@@ -696,6 +702,10 @@ export type Database = {
           p_name: string;
           p_user_id: string;
         };
+        Returns: Json;
+      };
+      get_savings_goal_deletion_impact: {
+        Args: { p_goal_id: string };
         Returns: Json;
       };
       rekey_user_encrypted_data: {
