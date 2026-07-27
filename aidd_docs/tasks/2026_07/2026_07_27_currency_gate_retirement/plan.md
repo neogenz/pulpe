@@ -1,6 +1,6 @@
 ---
 objective: "Le frontend Angular et l’app iOS exposent toujours les fonctionnalités multi-devise sans consulter le flag PostHog retiré, tout en conservant la préférence utilisateur du sélecteur et les primitives génériques de feature flags."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Retrait du gate multi-devise
