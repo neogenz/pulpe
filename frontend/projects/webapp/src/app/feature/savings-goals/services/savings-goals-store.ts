@@ -333,6 +333,13 @@ export class SavingsGoalStore {
     } catch (error) {
       if (
         isApiError(error) &&
+        error.code === API_ERROR_CODES.SAVINGS_GOAL_NOT_FOUND
+      ) {
+        this.#settleCommittedDeletion(id);
+        return;
+      }
+      if (
+        isApiError(error) &&
         error.code ===
           API_ERROR_CODES.SAVINGS_GOAL_DELETION_RECALCULATION_FAILED
       ) {

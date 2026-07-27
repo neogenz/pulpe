@@ -2,12 +2,13 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { of, Subject, throwError } from 'rxjs';
 import { provideZonelessChangeDetection } from '@angular/core';
-import type {
-  SavingsGoal,
-  SavingsGoalDeleteResponse,
-  SavingsGoalDeletionCommand,
-  SavingsGoalDeletionImpact,
-  SavingsGoalProgress,
+import {
+  API_ERROR_CODES,
+  type SavingsGoal,
+  type SavingsGoalDeleteResponse,
+  type SavingsGoalDeletionCommand,
+  type SavingsGoalDeletionImpact,
+  type SavingsGoalProgress,
 } from 'pulpe-shared';
 import { SavingsGoalStore } from './savings-goals-store';
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
@@ -319,6 +320,37 @@ describe('SavingsGoalStore', () => {
     expect(store.selectedGoal()?.id).toBe('goal-2');
     expect(mockBudgetCache.invalidate).not.toHaveBeenCalled();
     expect(mockTemplateCache.invalidate).not.toHaveBeenCalled();
+  });
+
+  it('deleteGoal settles an already absent goal as a terminal success', async () => {
+    mockApi.applyDeletion$ = vi
+      .fn()
+      .mockReturnValue(
+        throwError(
+          () =>
+            new ApiError(
+              'Goal already absent',
+              API_ERROR_CODES.SAVINGS_GOAL_NOT_FOUND,
+              404,
+              null,
+            ),
+        ),
+      );
+    await settle();
+    store.setSelectedGoalId('goal-2');
+
+    await expect(
+      store.deleteGoal('goal-2', deletionCommand),
+    ).resolves.toBeUndefined();
+
+    expect(store.goals().some((goal) => goal.id === 'goal-2')).toBe(false);
+    expect(store.selectedGoal()).toBeNull();
+    expect(mockCache.invalidate).toHaveBeenCalledOnce();
+    expect(mockCache.invalidate).toHaveBeenCalledWith(['savings-goals']);
+    expect(mockBudgetCache.invalidate).toHaveBeenCalledOnce();
+    expect(mockBudgetCache.invalidate).toHaveBeenCalledWith(['budget']);
+    expect(mockTemplateCache.invalidate).toHaveBeenCalledOnce();
+    expect(mockTemplateCache.invalidate).toHaveBeenCalledWith(['templates']);
   });
 
   it('deleteGoal settles a committed deletion when recalculation fails', async () => {

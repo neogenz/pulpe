@@ -1,10 +1,10 @@
 # Review: Corrections de la suppression d’un objectif avec aperçu d’impact
 
-- **Verdict**: approve
-- **Diff**: `4d0d94bc68ce0562ce71c9abca66a041c724f917...e7367cb2083d0124c0283b17617de9ef0fa7f22e`
+- **Verdict**: changes-requested
+- **Diff**: `73ebb0d4db704fe8bedc9d0c1e8abbccd88e31ed...d3eb7e82bd1623bc25c7099b3771bad155ea2276`
 - **Axes run**: code, functional, relevancy
 - **Date**: 2026_07_27
-- **Findings**: 0 critical, 0 warning, 0 minor
+- **Findings**: 0 critical, 4 warning, 1 minor
 
 ## Phases
 
@@ -68,7 +68,7 @@
 
 ### Remédiation — Phase 3 — Web : extraire la vue sans changer son rendu
 
-- [x] Le dialogue compile avec un template HTML et un style SCSS externes, sans nouveau composant ni nouvelle dépendance — `frontend/projects/webapp/src/app/feature/savings-goals/detail/components/goal-deletion-dialog.ts:51`
+- [ ] Le dialogue compile avec un template HTML et un style SCSS externes, sans nouveau composant ni nouvelle dépendance — fix: résoudre les ressources externes dans le setup Vitest direct ; le job `Unit Tests` échoue dans `goal-deletion-dialog.spec.ts:111`
 - [x] `goal-deletion-dialog.ts` contient 134 lignes et exclusivement la logique du composant — `frontend/projects/webapp/src/app/feature/savings-goals/detail/components/goal-deletion-dialog.ts:1`
 - [x] Les trois modes renvoient les mêmes commandes et la révision affichée avant l’extraction — `frontend/projects/webapp/src/app/feature/savings-goals/detail/components/goal-deletion-dialog.spec.ts:150`
 - [x] Les 76 budgets restent tous rendus dans la même région scrollable accessible, avec résumé et actions hors défilement — `frontend/projects/webapp/src/app/feature/savings-goals/detail/components/goal-deletion-dialog.spec.ts:197`
@@ -77,20 +77,26 @@
 ### Remédiation — Phase 4 — Validation croisée et nouvelle revue
 
 - [x] Les quatre reproductions ciblées passent et chacune protège son correctif — backend 7/7, iOS transport/store 16/16, Angular dialogue 5/5
-- [x] L’aperçu exhaustif, les trois modes, le conflit, l’erreur partielle et le cas 76 budgets restent verts sur backend, web et iOS — partagé 555/555, backend ciblé 47/47, intégration 9/9, web 54/54, iOS 44/44
+- [x] L’aperçu exhaustif, les trois modes, le conflit, l’erreur partielle et le cas 76 budgets restent verts sur backend, web et iOS — partagé 557/557, backend ciblé 47/47, intégration 9/9, web ciblé Angular 54/54, iOS 44/44
 - [x] `pnpm quality` et `git diff --check` passent sur le même HEAD — Turbo 11/11, `git diff --check` sans sortie
-- [x] La nouvelle revue valide les 47 critères combinés avec verdict `approve`, sans warning ni critical — `review.md:3`
-- [x] Aucun changement hors projection et aucune action Git distante ne sont inclus — 62 fichiers du diff initial plus remédiation vérifiés ; aucun push ni PR
+- [ ] La nouvelle revue valide les 47 critères combinés avec verdict `approve`, sans warning ni critical — fix: corriger les warnings de code et de CI, puis relancer la revue
+- [x] Aucun changement hors projection n’est inclus — 64 fichiers du diff de la PR #554 vérifiés
 
 ## Findings
 
-None.
+| Severity | Kind | Phase | Location | Finding | Fix |
+| -------- | ---- | ----- | -------- | ------- | --- |
+| 🟡 warning | code | Plan initial — Phase 4 | `frontend/projects/webapp/src/app/feature/savings-goals/services/savings-goals-store.ts:334` | Un replay après suppression peut recevoir `SAVINGS_GOAL_NOT_FOUND`. Le web relance alors l’erreur sans solder l’état local, contrairement à iOS ; la page conserve un objectif déjà absent du serveur. | Traiter ce code comme une suppression terminale commise dans le store, naviguer comme après succès et ajouter la reproduction ciblée. |
+| 🟡 warning | functional | Remédiation — Phase 3 | `frontend/projects/webapp/src/app/feature/savings-goals/detail/components/goal-deletion-dialog.spec.ts:111` | Le job `Unit Tests` échoue : Vitest direct ne résout pas `templateUrl` et `styleUrl`. Résultat CI : 5 échecs dans ce fichier, 2 373 tests réussis. | Adapter le setup du test pour résoudre les ressources externes, puis reproduire avec le script `test` réel du package frontend. |
+| 🟡 warning | functional | Remédiation — Phase 4 | PR #554 | Le critère d’approbation finale n’est pas atteint : `Unit Tests` échoue et le finding 404 reste ouvert. | Corriger les deux causes, obtenir les checks requis verts, puis relancer cette revue. |
+| 🟡 warning | rot | — | PR #554 / `claude-review` | Le check ne produit aucune revue : exécution terminée avec `is_error:true` et clé Anthropic vide. | Configurer le secret attendu ou rendre ce check non bloquant selon la politique du dépôt, puis le relancer. |
+| 🟢 minor | rot | — | PR #554 / description, section `Testing` | La description affirme que la validation de routine n’a pas été exécutée, alors que les validations locales et CI existent. | Remplacer cette mention par les commandes et résultats réels, en conservant les échecs résiduels visibles. |
 
 ## Verification
 
 | Metric | Value |
 | ------ | ----- |
-| Verified | 100% (47/47) |
-| Files checked | All 62 changed files in `4d0d94bc68ce0562ce71c9abca66a041c724f917...e7367cb2083d0124c0283b17617de9ef0fa7f22e` |
-| Unchecked | none |
-| Unplanned | none |
+| Verified | 95.7% (45/47) |
+| Files checked | All 64 changed files in `73ebb0d4db704fe8bedc9d0c1e8abbccd88e31ed...d3eb7e82bd1623bc25c7099b3771bad155ea2276` |
+| Unchecked | Remédiation Phase 3 : compilation Vitest directe avec ressources externes ; Remédiation Phase 4 : verdict final sans warning |
+| Unplanned | Check `claude-review` en erreur d’infrastructure ; description de PR obsolète |
