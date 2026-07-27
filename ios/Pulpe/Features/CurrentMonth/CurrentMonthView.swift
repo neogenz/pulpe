@@ -17,6 +17,7 @@ struct CurrentMonthView: View {
     @Environment(BudgetListStore.self) private var budgetListStore
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(SavingsGoalStore.self) private var savingsGoalStore
+    @Environment(TagStore.self) private var tagStore
     @Environment(ToastManager.self) private var toastManager
     @State private var activeSheet: SheetDestination?
     @State private var navigateToBudget = false
@@ -35,6 +36,10 @@ struct CurrentMonthView: View {
 
     private var canCreateBudget: Bool {
         budgetListStore.nextAvailableMonth != nil
+    }
+
+    private var referencedTagIds: Set<String> {
+        Set(store.budgetLines.flatMap { $0.tagIds ?? [] } + store.transactions.flatMap { $0.tagIds ?? [] })
     }
 
     /// One-time post-onboarding handoff (teaches the pointer ritual + Lock Screen
@@ -148,6 +153,9 @@ struct CurrentMonthView: View {
                 }
             }
         }
+        .task(id: referencedTagIds) {
+            await tagStore.loadIfNeeded(for: referencedTagIds)
+        }
         .onChange(of: navigateToBudget) { _, shouldNavigate in
             if shouldNavigate, let budgetId = store.budget?.id {
                 navigateToBudget = false
@@ -206,6 +214,7 @@ struct CurrentMonthView: View {
                     UncheckedOperationsCard(
                         items: store.uncheckedItems,
                         totalCount: store.uncheckedCount,
+                        tagNamesById: tagStore.namesById,
                         syncingBudgetLineIds: store.syncingBudgetLineIds,
                         syncingTransactionIds: store.syncingTransactionIds,
                         onToggle: { item in
@@ -253,6 +262,7 @@ struct CurrentMonthView: View {
                     DriftCard(
                         drifts: store.driftLines,
                         totalOver: store.driftTotal,
+                        tagNamesById: tagStore.namesById,
                         adjustMonthName: nextMonthName,
                         onViewBudget: { navigateToBudget = true },
                         onCatchUp: { navigateToBudget = true }
@@ -273,6 +283,7 @@ struct CurrentMonthView: View {
                 if !store.transactions.isEmpty {
                     ActivityCard(
                         transactions: store.transactions,
+                        tagNamesById: tagStore.namesById,
                         onViewAll: { navigateToBudget = true }
                     )
                     .staggeredEntrance(isVisible: hasAppeared, index: 4)
@@ -479,5 +490,6 @@ private struct CurrentMonthSkeletonView: View {
     .environment(BudgetListStore())
     .environment(UserSettingsStore())
     .environment(SavingsGoalStore())
+    .environment(TagStore())
     .environment(ToastManager())
 }

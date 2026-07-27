@@ -34,6 +34,7 @@ enum APIError: LocalizedError {
     case savingsWithdrawalRecalculationFailed
     case savingsGoalBaselineRecalculationFailed
     case savingsGoalGenerationStopRecalculationFailed
+    case tagAlreadyExists
 
     var errorDescription: String? {
         switch self {
@@ -102,6 +103,8 @@ enum APIError: LocalizedError {
         case .savingsGoalGenerationStopRecalculationFailed:
             return "La décision a bien été enregistrée, mais les soldes n'ont pas pu être actualisés — "
                 + "recharge la page sans réessayer"
+        case .tagAlreadyExists:
+            return "Un tag porte déjà ce nom — choisis-en un autre"
         }
     }
 
@@ -135,6 +138,7 @@ enum APIError: LocalizedError {
         "ERR_SAVINGS_WITHDRAWAL_RECALCULATION_FAILED": .savingsWithdrawalRecalculationFailed,
         "ERR_SAVINGS_GOAL_BASELINE_RECALCULATION_FAILED": .savingsGoalBaselineRecalculationFailed,
         "ERR_SAVINGS_GOAL_GENERATION_STOP_RECALCULATION_FAILED": .savingsGoalGenerationStopRecalculationFailed,
+        "ERR_TAG_ALREADY_EXISTS": .tagAlreadyExists,
     ]
 
     /// Create APIError from server error code

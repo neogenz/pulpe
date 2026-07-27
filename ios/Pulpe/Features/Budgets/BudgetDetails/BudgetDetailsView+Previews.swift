@@ -14,6 +14,7 @@ import TipKit
     .environment(DashboardStore())
     .environment(CurrentMonthStore())
     .environment(SavingsGoalStore())
+    .environment(TagStore())
 }
 
 #Preview("Gestures Tip") {

@@ -23,6 +23,7 @@ struct PulpeApp: App {
     @State private var userSettingsStore: UserSettingsStore
     @State private var featureFlagsStore: FeatureFlagsStore
     @State private var savingsGoalStore: SavingsGoalStore
+    @State private var tagStore: TagStore
     @State private var runtimeCoordinator: AppRuntimeCoordinator
     @State private var deepLinkDestination: DeepLinkDestination?
     @State private var appVersionStore = AppVersionStore()
@@ -36,13 +37,15 @@ struct PulpeApp: App {
         let featureFlagsStore = FeatureFlagsStore()
         let userSettingsStore = UserSettingsStore(featureFlags: featureFlagsStore)
         let savingsGoalStore = SavingsGoalStore()
+        let tagStore = TagStore()
 
         appState.sessionDataResetter = LiveSessionDataResetter(
             currentMonthStore: currentMonthStore,
             budgetListStore: budgetListStore,
             dashboardStore: dashboardStore,
             userSettingsStore: userSettingsStore,
-            savingsGoalStore: savingsGoalStore
+            savingsGoalStore: savingsGoalStore,
+            tagStore: tagStore
         )
 
         // Cross-store consistency (PUL-270): any amount-changing mutation on
@@ -77,6 +80,7 @@ struct PulpeApp: App {
         _userSettingsStore = State(initialValue: userSettingsStore)
         _featureFlagsStore = State(initialValue: featureFlagsStore)
         _savingsGoalStore = State(initialValue: savingsGoalStore)
+        _tagStore = State(initialValue: tagStore)
         _runtimeCoordinator = State(initialValue: AppRuntimeCoordinator(
             appState: appState,
             currentMonthStore: currentMonthStore,
@@ -110,6 +114,7 @@ struct PulpeApp: App {
                     .environment(userSettingsStore)
                     .environment(featureFlagsStore)
                     .environment(savingsGoalStore)
+                    .environment(tagStore)
                     .environment(appVersionStore)
                     .environment(whatsNewStore)
                     .overlay(alignment: .topLeading) {

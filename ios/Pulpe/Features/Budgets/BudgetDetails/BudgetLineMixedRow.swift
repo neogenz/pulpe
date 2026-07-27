@@ -29,6 +29,7 @@ struct BudgetLineMixedRow: View {
     /// `nil` when unlinked / not a saving line / the goal cache is still loading.
     /// Passed as a primitive so the row never reads `SavingsGoalStore` directly.
     let savingsGoalName: String?
+    let tagNames: [String]
     /// Origin month name (M) of a savings-withdrawal repayment (PUL-292), shown as
     /// a subtitle complement on the M+1 "Remettre sur ton épargne" saving line.
     /// Passed pre-resolved (budget month − 1) so the row never does date math.
@@ -201,6 +202,10 @@ struct BudgetLineMixedRow: View {
                 .lineLimit(1)
                 .truncationMode(.tail)
 
+            if !tagNames.isEmpty {
+                TagChips(names: tagNames, presentation: .count)
+            }
+
             subtitleView
                 .font(PulpeTypography.metricLabelBold)
                 .lineLimit(1)
@@ -334,6 +339,7 @@ struct BudgetLineMixedRow: View {
         let kindWord = line.kind.label
         let pointed = isPointed ? "Pointé" : "À pointer"
         let amount = displayAmount.asCurrency(currency)
-        return "\(kindWord) · \(line.name) · \(amount) · \(pointed)"
+        let tags = tagNames.isEmpty ? "" : " · Tags : \(tagNames.joined(separator: ", "))"
+        return "\(kindWord) · \(line.name) · \(amount) · \(pointed)\(tags)"
     }
 }

@@ -180,6 +180,10 @@ final class BudgetDetailsProjector {
             consumptionByLineId: ctx.consumptionByLineId,
             lineById: ctx.lineById,
             transactionsByLineId: ctx.transactionsByLineId,
+            referencedTagIds: makeReferencedTagIds(
+                budgetLines: ctx.dataStore.budgetLines,
+                transactions: ctx.dataStore.transactions
+            ),
             checkedTickHash: makeCheckedTickHash(
                 budgetLines: ctx.dataStore.budgetLines,
                 transactions: ctx.dataStore.transactions
@@ -252,6 +256,20 @@ final class BudgetDetailsProjector {
         return grouped.mapValues { txs in
             txs.sorted { $0.transactionDate > $1.transactionDate }
         }
+    }
+
+    private static func makeReferencedTagIds(
+        budgetLines: [BudgetLine],
+        transactions: [Transaction]
+    ) -> Set<String> {
+        var ids: Set<String> = []
+        for line in budgetLines {
+            ids.formUnion(line.tagIds ?? [])
+        }
+        for transaction in transactions {
+            ids.formUnion(transaction.tagIds ?? [])
+        }
+        return ids
     }
 
     private static func makePagerMonths(

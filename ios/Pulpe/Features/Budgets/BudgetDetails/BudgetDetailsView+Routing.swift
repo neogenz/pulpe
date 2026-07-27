@@ -14,6 +14,7 @@ extension BudgetDetailsView {
         case .lineDetail(let lineId):
             BudgetLineDetailPage(
                 lineId: lineId,
+                tagNamesById: tagStore.namesById,
                 onEditLine: { line in router.present(.editBudgetLine(line)) }
             )
         case .addAllocatedTx(let lineId):

@@ -3,6 +3,7 @@ import SwiftUI
 struct TemplateDetailsView: View {
     let templateId: String
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(TagStore.self) private var tagStore
     @State private var viewModel: TemplateDetailsViewModel
     @State private var selectedLineForEdit: TemplateLine?
 
@@ -32,6 +33,9 @@ struct TemplateDetailsView: View {
         .task {
             await viewModel.loadIfNeeded()
         }
+        .task(id: referencedTagIds) {
+            await tagStore.loadIfNeeded(for: referencedTagIds)
+        }
         .sheet(item: $selectedLineForEdit) { line in
             EditTemplateLineSheet(
                 templateLine: line,
@@ -40,6 +44,10 @@ struct TemplateDetailsView: View {
                 Task { await viewModel.updateTemplateLine(updatedLine) }
             }
         }
+    }
+
+    private var referencedTagIds: Set<String> {
+        Set(viewModel.lines.flatMap { $0.tagIds ?? [] })
     }
 
     private func content(template: BudgetTemplate) -> some View {
@@ -168,7 +176,7 @@ struct TemplateDetailsView: View {
     private func templateLineSection(title: String, lines: [TemplateLine], kind: TransactionKind) -> some View {
         Section {
             ForEach(lines) { line in
-                TemplateLineRow(line: line) {
+                TemplateLineRow(line: line, tagNamesById: tagStore.namesById) {
                     selectedLineForEdit = line
                 }
             }
@@ -189,6 +197,7 @@ struct TemplateDetailsView: View {
 
 struct TemplateLineRow: View {
     let line: TemplateLine
+    let tagNamesById: [String: String]
     let onEdit: () -> Void
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
@@ -211,6 +220,11 @@ struct TemplateLineRow: View {
                         .lineLimit(1)
 
                     RecurrenceBadge(line.recurrence, style: .compact)
+
+                    let tagNames = TagChips.names(for: line.tagIds, namesById: tagNamesById)
+                    if !tagNames.isEmpty {
+                        TagChips(names: tagNames, presentation: .count)
+                    }
                 }
 
                 Spacer()
@@ -379,4 +393,5 @@ private struct TemplateDetailsSkeletonView: View {
         TemplateDetailsView(templateId: "test")
     }
     .environment(UserSettingsStore())
+    .environment(TagStore())
 }

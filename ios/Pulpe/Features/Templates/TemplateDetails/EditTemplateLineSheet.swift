@@ -13,6 +13,7 @@ struct EditTemplateLineSheet: View {
     @State private var kind: TransactionKind
     @State private var recurrence: TransactionRecurrence
     @State private var savingsGoalId: String?
+    @State private var selectedTagIds: Set<String>
     @State private var isLoading = false
     @State private var error: Error?
     @FocusState private var focusedField: AmountDescriptionField?
@@ -24,6 +25,7 @@ struct EditTemplateLineSheet: View {
     @State private var pendingUpdate: TemplateLineUpdate?
     private let inputCurrency: SupportedCurrency
     private let isAlternateCurrency: Bool
+    private let initialTagIds: Set<String>
 
     private let dependencies: EditTemplateLineDependencies
     private let conversionService = CurrencyConversionService.shared
@@ -41,6 +43,9 @@ struct EditTemplateLineSheet: View {
         _kind = State(initialValue: templateLine.kind)
         _recurrence = State(initialValue: templateLine.recurrence)
         _savingsGoalId = State(initialValue: templateLine.savingsGoalId)
+        let tagIds = Set(templateLine.tagIds ?? [])
+        _selectedTagIds = State(initialValue: tagIds)
+        initialTagIds = tagIds
 
         let inputCurrency = templateLine.originalCurrency ?? userCurrency
         let editableAmount = Self.initialAmount(for: templateLine, userCurrency: userCurrency)
@@ -90,6 +95,7 @@ struct EditTemplateLineSheet: View {
             if kind == .saving {
                 SavingsGoalPickerField(selection: $savingsGoalId)
             }
+            TagPickerField(selection: $selectedTagIds)
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
@@ -199,7 +205,8 @@ struct EditTemplateLineSheet: View {
                 amount: amount,
                 kind: kind,
                 recurrence: recurrence,
-                conversion: conversion
+                conversion: conversion,
+                tagIds: TagPickerField.updatedTagIds(initial: initialTagIds, current: selectedTagIds)
             )
             // Always emit the link (id or explicit null) so a saving line can be
             // tagged or untagged; the kind-guard clears it for non-saving kinds.
@@ -241,19 +248,7 @@ struct EditTemplateLineSheet: View {
 
         do {
             let operations = TemplateLinesBulkOperations(
-                update: [TemplateLineUpdateWithId(
-                    id: templateLine.id,
-                    name: data.name,
-                    amount: data.amount,
-                    kind: data.kind,
-                    recurrence: data.recurrence,
-                    description: data.description,
-                    savingsGoalId: data.savingsGoalId,
-                    originalAmount: data.originalAmount,
-                    originalCurrency: data.originalCurrency,
-                    targetCurrency: data.targetCurrency,
-                    exchangeRate: data.exchangeRate
-                )],
+                update: [Self.propagationUpdate(id: templateLine.id, data: data)],
                 propagateToBudgets: true
             )
             let response = try await dependencies.bulkUpdateWithPropagation(templateLine.templateId, operations)
@@ -300,14 +295,16 @@ struct EditTemplateLineSheet: View {
         amount: Decimal,
         kind: TransactionKind,
         recurrence: TransactionRecurrence,
-        conversion: CurrencyConversion?
+        conversion: CurrencyConversion?,
+        tagIds: [String]? = nil
     ) -> TemplateLineUpdate {
         guard let conversion else {
             return TemplateLineUpdate(
                 name: name,
                 amount: amount,
                 kind: kind,
-                recurrence: recurrence
+                recurrence: recurrence,
+                tagIds: tagIds
             )
         }
         return TemplateLineUpdate(
@@ -318,7 +315,25 @@ struct EditTemplateLineSheet: View {
             originalAmount: conversion.originalAmount,
             originalCurrency: conversion.originalCurrency,
             targetCurrency: conversion.targetCurrency,
-            exchangeRate: conversion.exchangeRate
+            exchangeRate: conversion.exchangeRate,
+            tagIds: tagIds
+        )
+    }
+
+    static func propagationUpdate(id: String, data: TemplateLineUpdate) -> TemplateLineUpdateWithId {
+        TemplateLineUpdateWithId(
+            id: id,
+            name: data.name,
+            amount: data.amount,
+            kind: data.kind,
+            recurrence: data.recurrence,
+            description: data.description,
+            savingsGoalId: data.savingsGoalId,
+            originalAmount: data.originalAmount,
+            originalCurrency: data.originalCurrency,
+            targetCurrency: data.targetCurrency,
+            exchangeRate: data.exchangeRate,
+            tagIds: data.tagIds
         )
     }
 }
@@ -364,4 +379,5 @@ struct EditTemplateLineDependencies: Sendable {
     .environment(UserSettingsStore())
     .environment(FeatureFlagsStore())
     .environment(SavingsGoalStore())
+    .environment(TagStore())
 }
