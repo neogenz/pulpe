@@ -38,6 +38,10 @@ struct CurrentMonthView: View {
         budgetListStore.nextAvailableMonth != nil
     }
 
+    private var referencedTagIds: Set<String> {
+        Set(store.budgetLines.flatMap { $0.tagIds ?? [] } + store.transactions.flatMap { $0.tagIds ?? [] })
+    }
+
     /// One-time post-onboarding handoff (teaches the pointer ritual + Lock Screen
     /// widget). Stateless UserDefaults wrapper — cheap to hold per render.
     private let postOnboardingFlags = PostOnboardingFlagsStore()
@@ -141,10 +145,6 @@ struct CurrentMonthView: View {
             if store.budgetLines.contains(where: { $0.savingsGoalId != nil }) {
                 await savingsGoalStore.loadIfNeeded()
             }
-            if store.budgetLines.contains(where: { !($0.tagIds ?? []).isEmpty })
-                || store.transactions.contains(where: { !($0.tagIds ?? []).isEmpty }) {
-                await tagStore.loadIfNeeded()
-            }
             if reduceMotion {
                 hasAppeared = true
             } else {
@@ -152,6 +152,9 @@ struct CurrentMonthView: View {
                     hasAppeared = true
                 }
             }
+        }
+        .task(id: referencedTagIds) {
+            await tagStore.loadIfNeeded(for: referencedTagIds)
         }
         .onChange(of: navigateToBudget) { _, shouldNavigate in
             if shouldNavigate, let budgetId = store.budget?.id {

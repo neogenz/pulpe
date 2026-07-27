@@ -33,6 +33,13 @@ final class TagStore: StoreProtocol {
         await forceRefresh()
     }
 
+    func loadIfNeeded(for referencedIds: Set<String>) async {
+        guard !referencedIds.isEmpty else { return }
+        let knownIds = Set(tags.map(\.id))
+        guard !referencedIds.isSubset(of: knownIds) else { return }
+        await forceRefresh()
+    }
+
     func forceRefresh() async {
         loadTask?.cancel()
         loadGeneration += 1
@@ -76,7 +83,7 @@ final class TagStore: StoreProtocol {
         loadTask = nil
         loadGeneration += 1
         isLoading = false
-        tags = (tags + [created]).sortedForDisplay()
+        tags = (tags.filter { $0.id != created.id } + [created]).sortedForDisplay()
         return created
     }
 

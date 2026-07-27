@@ -32,9 +32,9 @@ struct TemplateDetailsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await viewModel.loadIfNeeded()
-            if viewModel.lines.contains(where: { !($0.tagIds ?? []).isEmpty }) {
-                await tagStore.loadIfNeeded()
-            }
+        }
+        .task(id: referencedTagIds) {
+            await tagStore.loadIfNeeded(for: referencedTagIds)
         }
         .sheet(item: $selectedLineForEdit) { line in
             EditTemplateLineSheet(
@@ -44,6 +44,10 @@ struct TemplateDetailsView: View {
                 Task { await viewModel.updateTemplateLine(updatedLine) }
             }
         }
+    }
+
+    private var referencedTagIds: Set<String> {
+        Set(viewModel.lines.flatMap { $0.tagIds ?? [] })
     }
 
     private func content(template: BudgetTemplate) -> some View {

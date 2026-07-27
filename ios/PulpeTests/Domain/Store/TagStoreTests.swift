@@ -64,12 +64,34 @@ struct TagStoreTests {
         let creation = Task { try await store.create(name: "Assurance") }
         await waitForCondition("create must reach the service") { service.didEnterCreate }
 
+        service.tags.append(service.makeTag(id: "created", name: "Assurance"))
         await store.forceRefresh()
         service.releaseCreate()
         let created = try await creation.value
 
         #expect(created.name == "Assurance")
         #expect(store.tags.map(\.name) == ["Assurance", "Courses"])
+        #expect(store.tags.count(where: { $0.id == created.id }) == 1)
+        #expect(store.namesById[created.id] == "Assurance")
+    }
+
+    @Test("referenced tag ids refresh only when a name is missing")
+    func referencedTagIdsRefreshUnknownNames() async {
+        let service = MockTagService()
+        service.tags = [service.makeTag(id: "known", name: "Courses")]
+        let store = TagStore(service: service)
+        await store.forceRefresh()
+
+        await store.loadIfNeeded(for: [])
+        await store.loadIfNeeded(for: ["known"])
+
+        #expect(service.getAllCallCount == 1)
+
+        service.tags.append(service.makeTag(id: "missing", name: "Transport"))
+        await store.loadIfNeeded(for: ["missing"])
+
+        #expect(service.getAllCallCount == 2)
+        #expect(store.namesById["missing"] == "Transport")
     }
 
     @Test("a refresh finishing after create cannot overwrite it")
