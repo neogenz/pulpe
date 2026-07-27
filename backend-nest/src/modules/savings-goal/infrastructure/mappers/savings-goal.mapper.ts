@@ -3,6 +3,7 @@ import {
   type LinkedSavingLine,
   type SavingsGoal as SavingsGoalApi,
   type SavingsGoalContribution as SavingsGoalContributionApi,
+  type SavingsGoalDeletionImpact,
   type SavingsGoalFutureLine,
   type SavingsGoalProgress,
   type SupportedCurrency,
@@ -12,6 +13,7 @@ import { mapTransactionsToApi } from '@common/utils/transaction-api.mapper';
 import type {
   SavingsGoal,
   SavingsGoalContribution,
+  SavingsGoalDeletionImpactResult,
   SavingsGoalProgressComputation,
 } from '../../domain/savings-goal.entity';
 
@@ -59,6 +61,12 @@ export class SavingsGoalMapper {
 
   toApiList(entities: SavingsGoal[]): SavingsGoalApi[] {
     return entities.map((entity) => this.toApi(entity));
+  }
+
+  toDeletionImpactApi(
+    impact: SavingsGoalDeletionImpactResult,
+  ): SavingsGoalDeletionImpact {
+    return impact;
   }
 
   /**

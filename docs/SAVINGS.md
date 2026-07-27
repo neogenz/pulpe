@@ -47,7 +47,7 @@ Le rattachement vit **au niveau du modèle**, pas seulement sur la Prévision du
 | `template_line` | `savings_goal_id` (nullable) | source de vérité récurrente |
 | `budget_line`   | `savings_goal_id` (nullable) | lien effectif d'un mois     |
 
-**FK** : `savings_goal_id → savings_goal.id` utilise **`ON DELETE SET NULL`** sur les deux tables. Supprimer un objectif délie les Prévisions sans les supprimer.
+**FK** : `savings_goal_id → savings_goal.id` utilise **`ON DELETE SET NULL`** sur les deux tables. Le mode de suppression sûr s'appuie sur cette règle pour délier les Prévisions sans les supprimer ; les modes destructifs les suppriment explicitement (§9).
 
 **Pourquoi `template_line` doit porter le lien** : sans ça, une épargne récurrente régénérée chaque mois repartirait **non-liée** → l'objectif perdrait ses contributions futures. Le lien doit survivre à la régénération mensuelle (cf. §3).
 
@@ -250,7 +250,7 @@ Deux gardes préservent la cohérence des métadonnées :
 
 | Cas                                  | Décision                                                                                                                                                        |
 | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Suppression d'objectif**           | Les FK `ON DELETE SET NULL` délient `budget_line` et `template_line`. Aucune Prévision n'est supprimée.                                                         |
+| **Suppression d'objectif**           | Un aperçu exhaustif précède le choix : objectif seul, objectif + Prévisions, ou objectif + Prévisions + Réels rattachés. Voir le contrat ci-dessous.             |
 | **Déchiffrement de `target_amount`** | La liste, le détail et `/progress` déchiffrent la cible avant de l'exposer.                                                                                     |
 | **`target_amount` lu = 0**           | Toléré en lecture (le chiffrement écrit `0` en clair). Garde `achievementPercent = 0`. Ne jamais diviser par la cible sans déchiffrement.                       |
 | **iOS `BudgetLineUpdate`**           | Le DTO Swift porte `savingsGoalId` afin de permettre le rattachement en édition.                                                                                |
@@ -262,6 +262,20 @@ Deux gardes préservent la cohérence des métadonnées :
 | **Régénération mensuelle**           | Le lien survit via `template_line.savings_goal_id` (génération + propagation RG-001, budgets ajustés protégés).                                                 |
 
 Le lien vit sur `budget_line` et `template_line`, jamais sur `transaction`. Les formulaires de transaction ne proposent donc pas de rattachement à un objectif.
+
+### 9.1 Suppression avec aperçu (PUL-319)
+
+`GET /v1/savings-goals/:id/deletion-impact` retourne les Prévisions du Mois Type, les Prévisions de chaque budget lié et leurs Réels alloués, avec compteurs, totaux et une révision `id + updatedAt`. Aucun plafond de présentation n'est appliqué.
+
+`POST /v1/savings-goals/:id/deletion` exige cette révision et l'un des trois modes :
+
+1. `goal_only` supprime l'objectif ; les FK délient les Prévisions, les Réels restent alloués.
+2. `goal_and_forecasts` supprime les `template_line` et `budget_line` liées ; les Réels restent et deviennent libres via `transaction.budget_line_id ON DELETE SET NULL`.
+3. `goal_forecasts_and_transactions` supprime les Réels alloués, les Prévisions puis l'objectif.
+
+La RPC verrouille l'objectif, les Prévisions et les Réels avant de comparer la révision. Toute différence produit un conflit sans mutation. Les suppressions et déliaisons sont atomiques. Le recalcul des budgets reste post-commit car il déchiffre les montants dans NestJS : son échec retourne `ERR_SAVINGS_GOAL_DELETION_RECALCULATION_FAILED` avec `partialFailure`, sans retry de la suppression déjà commise.
+
+L'ancien `DELETE /v1/savings-goals/:id` reste compatible et conserve la sémantique `goal_only`.
 
 ---
 
