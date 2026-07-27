@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Ajouter la preuve UI iOS déterministe et réparer la preview
@@ -20,6 +20,7 @@ ios/
 │   └── Templates/TemplateDetails/
 │       └── ✏️ TemplateDetailsView.swift
 └── PulpeUITests/
+    ├── ✏️ BudgetLineLongPressTests.swift
     └── ✅ SavingsGoalIntervalUITests.swift
 ```
 
@@ -28,6 +29,7 @@ ios/
 - `SavingsGoalIntervalUITestHarness.swift` : héberger les vues de production avec un service mémoire local et exposer les mutations observées.
 - `SavingsGoalDetailView.swift` : injecter `SavingsGoalServicing` dans le view model via un paramètre par défaut, sans changer les appels de production.
 - `TemplateDetailsView.swift` : injecter `SavingsGoalStore()` dans la preview existante ; le harness réutilise `TemplateLineRow` tel quel.
+- `BudgetLineLongPressTests.swift` : cibler la première occurrence du bouton quand SwiftUI propage l’identifiant aux sous-éléments.
 - `SavingsGoalIntervalUITests.swift` : exercer la matrice, la décision d’échéance et l’objectif lié depuis XCUITest.
 - Suppression : aucune.
 

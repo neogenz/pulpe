@@ -38,9 +38,12 @@ struct SavingsGoalDetailView: View {
     @State private var pendingDeadlineUpdate: SavingsGoalUpdate?
     @State private var reopenGenerationStop = false
 
-    init(goal: SavingsGoal) {
+    init(
+        goal: SavingsGoal,
+        service: any SavingsGoalServicing = SavingsGoalService.shared
+    ) {
         self.goal = goal
-        _viewModel = State(initialValue: SavingsGoalDetailViewModel(goalId: goal.id))
+        _viewModel = State(initialValue: SavingsGoalDetailViewModel(goalId: goal.id, service: service))
     }
 
     /// Latest goal from the cache so name/status edits reflect after the form

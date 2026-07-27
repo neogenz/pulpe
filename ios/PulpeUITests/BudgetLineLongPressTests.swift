@@ -58,10 +58,10 @@ final class BudgetLineLongPressTests: XCTestCase {
         timeout: TimeInterval = 10
     ) -> XCUIElement {
         let strategies: [(String, XCUIElement)] = [
-            ("buttons[\(primaryIdentifier)]", app.buttons[primaryIdentifier]),
-            ("otherElements[\(primaryIdentifier)]", app.otherElements[primaryIdentifier]),
-            ("buttons[\(fallbackLabel)]", app.buttons[fallbackLabel]),
-            ("staticTexts[\(fallbackLabel)]", app.staticTexts[fallbackLabel]),
+            ("buttons[\(primaryIdentifier)]", app.buttons[primaryIdentifier].firstMatch),
+            ("otherElements[\(primaryIdentifier)]", app.otherElements[primaryIdentifier].firstMatch),
+            ("buttons[\(fallbackLabel)]", app.buttons[fallbackLabel].firstMatch),
+            ("staticTexts[\(fallbackLabel)]", app.staticTexts[fallbackLabel].firstMatch),
         ]
 
         // First strategy gets the full timeout; fallbacks get 1s each
