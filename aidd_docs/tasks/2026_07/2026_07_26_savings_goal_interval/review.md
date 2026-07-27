@@ -1,10 +1,10 @@
 # Review: Intervalle optionnel des objectifs d’épargne
 
-- **Verdict**: approve
-- **Diff**: `preview...codex/pul-314-savings-goal-interval`
+- **Verdict**: changes-requested
+- **Diff**: `origin/preview...58e0256811975a7a788c4f1905d3acb483f9f487`
 - **Axes run**: code, functional, relevancy
 - **Date**: 2026_07_27
-- **Findings**: 0 critical, 0 warning, 0 minor
+- **Findings**: 0 critical, 10 warning, 1 minor
 
 ## Phases
 
@@ -94,7 +94,7 @@
 
 ### Phase 8 — Afficher les objectifs liés dans les budgets
 
-- [x] Toutes les lignes sont résolues depuis une seule liste ; aucune requête par ligne ou par ID n’existe. — `frontend/projects/webapp/src/app/feature/budget-templates/details/services/template-details-store.spec.ts:184`
+- [x] Toutes les lignes sont résolues depuis une seule liste ; aucune requête par ligne ou par ID n'existe. — `frontend/projects/webapp/src/app/feature/budget-templates/details/services/template-details-store.spec.ts:184`
 - [x] Une navigation froide produit au plus un GET, une liste déjà cachée n’en produit aucun. — `frontend/projects/webapp/src/app/feature/budget-templates/details/services/template-details-store.spec.ts:185`
 - [x] Une ligne liée du Mois Type web affiche le nom courant de l’objectif ; une ligne libre ne change pas. — `frontend/projects/webapp/src/app/feature/budget-templates/details/components/template-line-card.spec.ts:79`
 - [x] Un renommage met à jour l’affordance via le cache réactif. — `frontend/projects/webapp/src/app/feature/budget-templates/details/services/template-details-store.spec.ts:215`
@@ -103,15 +103,47 @@
 - [x] Le Mois Type iOS réutilise le chip épargne existant et reflète un renommage. — `ios/PulpeTests/Features/Templates/TemplateDetailsGoalLinkTests.swift:21`
 - [x] Tests Angular/iOS ciblés et build `PulpeLocal` passent. — Angular 2403/2403, iOS ciblé et build verts
 
+### Phase 9 — Prouver les parcours critiques sur le web
+
+- [ ] Nom-seul, cible-seule, échéance-seule et cible+échéance peuvent être créés, ouverts, modifiés et nettoyés sans valeur fictive. — fix: les scénarios ajoutés s'arrêtent après la création et l'ouverture du détail (`frontend/e2e/tests/features/savings-goals-progress.spec.ts:318`)
+- [ ] Un champ inchangé est omis, un champ retiré vaut `null`, un champ ajouté porte sa valeur ; début après échéance n'émet aucune écriture. — fix: seuls les payloads de création omission/valeur sont observés ; aucun PATCH, retrait explicite ou intervalle invalide n'est exercé (`frontend/e2e/tests/features/savings-goals-progress.spec.ts:389`)
+- [ ] Chaque détail expose uniquement les métriques et actions définies pour sa combinaison. — fix: les assertions sont partielles et le mock émet des métriques d'échéance impossibles pour la cible-seule (`frontend/e2e/tests/features/savings-goals-progress.spec.ts:106`)
+- [ ] Une échéance avancée avec candidats affiche la preview avant toute mutation ; zéro candidat ou date non avancée n'affiche pas le dialogue. — fix: seul le chemin avec candidat est présent (`frontend/e2e/tests/features/savings-goals-progress.spec.ts:426`)
+- [ ] Annuler produit zéro écriture ; freeze et remove produisent chacun un PATCH atomique complet et zéro POST séparé. — fix: seul `freeze` est couvert (`frontend/e2e/tests/features/savings-goals-progress.spec.ts:519`)
+- [ ] Un conflit laisse l'objectif et les prévisions inchangés et n'affiche aucun faux succès. — fix: aucune réponse conflit n'est mockée (`frontend/e2e/tests/features/savings-goals-progress.spec.ts:488`)
+- [x] Le Mois Type et le mode Tableau affichent le nom courant d'un objectif lié ; une ligne libre reste inchangée. — `frontend/e2e/tests/features/template-details-view.spec.ts:168`, `frontend/e2e/tests/features/budget-table-mobile-menu.spec.ts:233`
+- [ ] Une liste froide provoque au plus un GET d'objectifs et aucune requête par ligne ou par ID. — fix: le Mois Type compte la liste sans interdire les requêtes par ID ; le mode Tableau interdit les IDs sans compter la liste (`frontend/e2e/tests/features/template-details-view.spec.ts:172`, `frontend/e2e/tests/features/budget-table-mobile-menu.spec.ts:56`)
+- [x] Les trois specs ciblées passent sans retry masquant un premier échec. — exécution antérieure ciblée : 23/23, retries 0
+
+### Phase 10 — Prouver les parcours critiques sur iOS
+
+- [ ] Les critères et la preuve UI iOS sont disponibles dans la branche. — fix: `plan.md` référence `phase-2.md`, absent de `HEAD`, et aucun harness/XCUITest d'intervalle n'est ajouté (`aidd_docs/tasks/2026_07/2026_07_27_savings_goal_cross_platform_validation/plan.md:20`)
+
+### Phase 11 — Valider le rendu cross-platform et publier les preuves
+
+- [ ] Les critères et les preuves visuelles web/iOS sont disponibles dans la branche. — fix: `plan.md` référence `phase-3.md`, absent de `HEAD`; aucune preuve de rendu inspecté n'est rattachée au SHA (`aidd_docs/tasks/2026_07/2026_07_27_savings_goal_cross_platform_validation/plan.md:21`)
+
 ## Findings
 
-None.
+| Sev | Kind | Phase | Location | Issue | Fix |
+| --- | ---- | ----- | -------- | ----- | --- |
+| 🟡 warning | code | 9 | `frontend/e2e/tests/features/savings-goals-progress.spec.ts:125` | `progressFor` retourne `projected=3600` et `paceStatus=on_track` pour une cible sans échéance, alors que le calculateur canonique retourne `null`; il retourne aussi `suggestCompletion=false` sans cible au lieu de `null`. Le test traverse donc des états serveur impossibles. | Produire le mock depuis la matrice contractuelle et vérifier explicitement l'absence de `stat-projected`, du chip de rythme et des actions non applicables. |
+| 🟡 warning | functional | 9 | `frontend/e2e/tests/features/savings-goals-progress.spec.ts:318` | Le critère création → ouverture → modification → retrait → nettoyage n'est pas satisfait : aucun scénario matriciel ne passe en édition. | Étendre chaque scénario jusqu'au PATCH, au retrait explicite et au nettoyage. |
+| 🟡 warning | functional | 9 | `frontend/e2e/tests/features/savings-goals-progress.spec.ts:389` | La preuve tri-state et la garde `startDate <= targetDate` manquent au niveau UI : aucun `null` de retrait ni absence de requête sur intervalle invalide n'est observé. | Observer les PATCH omission/`null`/valeur et compter zéro écriture sur intervalle invalide. |
+| 🟡 warning | functional | 9 | `frontend/e2e/tests/features/savings-goals-progress.spec.ts:106` | La matrice ne prouve pas l'ensemble des métriques, trajectoires et actions conditionnelles, et son mock contredit le contrat sur le cas cible-seule. | Utiliser des payloads backend possibles et assert chaque région applicable ou absente. |
+| 🟡 warning | functional | 9 | `frontend/e2e/tests/features/savings-goals-progress.spec.ts:426` | La réconciliation ne couvre ni zéro candidat ni les transitions de date qui ne doivent pas ouvrir le dialogue. | Ajouter zéro candidat, date reculée, date retirée et date ajoutée depuis `null`. |
+| 🟡 warning | functional | 9 | `frontend/e2e/tests/features/savings-goals-progress.spec.ts:519` | Annulation et mode `remove` ne sont pas testés; seule la confirmation `freeze` prouve le PATCH atomique. | Ajouter annulation avec zéro écriture et `remove` avec un PATCH et zéro POST. |
+| 🟡 warning | functional | 9 | `frontend/e2e/tests/features/savings-goals-progress.spec.ts:488` | Aucun scénario conflit/drift ne prouve l'absence de mutation partielle et de faux succès. | Mocker le conflit, vérifier l'état inchangé, le rechargement de preview et l'absence de succès. |
+| 🟡 warning | functional | 9 | `frontend/e2e/tests/features/template-details-view.spec.ts:172` | La preuve réseau PUL-317 est scindée entre deux specs : le Mois Type ne piège pas les GET par ID et le mode Tableau ne borne pas le nombre de GET liste. | Dans chaque surface, compter la liste et faire échouer toute route par ID. |
+| 🟡 warning | functional | 10 | `aidd_docs/tasks/2026_07/2026_07_27_savings_goal_cross_platform_validation/plan.md:20` | La phase iOS référencée n'est pas versionnée et aucun test UI iOS déterministe ne prouve les parcours demandés. | Versionner la phase, implémenter le harness/XCUITest minimal et conserver la preuve simulateur. |
+| 🟡 warning | functional | 11 | `aidd_docs/tasks/2026_07/2026_07_27_savings_goal_cross_platform_validation/plan.md:21` | La validation visuelle demandée n'existe pas dans la branche : ni phase versionnée, ni captures web/iOS liées au SHA, ni verdict reproductible. | Versionner la phase et publier les captures/conditions d'inspection prévues avant de déclarer la PR prête. |
+| 🟢 minor | code | 8 | `ios/Pulpe/Features/Templates/TemplateDetails/TemplateDetailsView.swift:398` | La vue exige désormais `SavingsGoalStore` dans l'environnement, mais sa preview n'en injecte pas; la preview plante à l'ouverture. | Ajouter `.environment(SavingsGoalStore())` à la preview. |
 
 ## Verification
 
 | Metric | Value |
 | --- | --- |
-| Verified | 97.2% (69/71) |
-| Files checked | `plan.md`, `phase-1.md` à `phase-8.md`, migrations PUL-312/PUL-313/PUL-314, calculateurs shared, repositories/use cases backend, parcours Angular, parcours iOS |
-| Unchecked | P2.1 échec historique avant correction — not-applicable; P5.8 ordre réel du rollout production — not-applicable |
+| Verified | 86.6% (71/82) |
+| Files checked | 135 fichiers du diff : deux plans, migrations PUL-312/PUL-313/PUL-314, contrats et calculateurs shared, ports/repositories/use cases backend, parcours et tests Angular/Playwright, modèles/stores/vues/tests iOS; revue statique, aucune commande de test ou build relancée |
+| Unchecked | P2.1 échec historique avant correction — not-applicable; P5.8 ordre réel du rollout production — not-applicable; P9.1–P9.6 et P9.8 — fix; P10 phase/preuves iOS absentes — fix; P11 phase/preuves visuelles absentes — fix |
 | Unplanned | none |

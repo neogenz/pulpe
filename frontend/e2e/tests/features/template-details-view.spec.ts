@@ -170,6 +170,7 @@ test.describe('Template Details View', () => {
   }) => {
     const goalId = '00000000-0000-4000-a000-000000000601';
     let goalListRequests = 0;
+    let goalByIdRequests = 0;
 
     await page.route('**/api/v1/savings-goals', (route) => {
       goalListRequests += 1;
@@ -193,6 +194,10 @@ test.describe('Template Details View', () => {
           ],
         }),
       });
+    });
+    await page.route('**/api/v1/savings-goals/*', (route) => {
+      goalByIdRequests += 1;
+      return route.abort('failed');
     });
     await page.route(
       `**/api/v1/budget-templates/${TEST_CONFIG.TEMPLATES.DEFAULT.id}/lines`,
@@ -243,5 +248,6 @@ test.describe('Template Details View', () => {
       page.getByTestId(`template-line-linked-goal-${TEST_UUIDS.LINE_4}`),
     ).toHaveCount(0);
     expect(goalListRequests).toBe(1);
+    expect(goalByIdRequests).toBe(0);
   });
 });
