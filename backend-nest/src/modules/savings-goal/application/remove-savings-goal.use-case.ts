@@ -35,8 +35,7 @@ export class RemoveSavingsGoalUseCase {
       ? await this.applyDeletion(id, command)
       : await this.applyLegacyDeletion(id);
 
-    await this.cacheService.invalidateForUser(user.id);
-    await this.recalculateAfterCommit(touchedBudgetIds, id, user.id);
+    await this.finalizeAfterCommit(touchedBudgetIds, id, user.id);
 
     this.logger.info(
       {
@@ -80,12 +79,13 @@ export class RemoveSavingsGoalUseCase {
     }
   }
 
-  private async recalculateAfterCommit(
+  private async finalizeAfterCommit(
     budgetIds: string[],
     savingsGoalId: string,
     userId: string,
   ): Promise<void> {
     try {
+      await this.cacheService.invalidateForUser(userId);
       await Promise.all(
         budgetIds.map((budgetId) =>
           this.budgetRecalculation.recalculate(budgetId),
@@ -96,7 +96,7 @@ export class RemoveSavingsGoalUseCase {
         ERROR_DEFINITIONS.SAVINGS_GOAL_DELETION_RECALCULATION_FAILED,
         undefined,
         {
-          operation: 'savingsGoal.remove.recalcAfterCommit',
+          operation: 'savingsGoal.remove.afterCommit',
           severity: 'critical',
           partialFailure: true,
           affectedBudgetIds: budgetIds,

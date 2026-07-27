@@ -74,6 +74,7 @@ describe('RemoveSavingsGoalUseCase', () => {
     await expect(useCase.execute('goal-1', mockUser)).rejects.toThrow(error);
 
     expect(mockCache.invalidateForUser).not.toHaveBeenCalled();
+    expect(budgetRecalculation.recalculate).not.toHaveBeenCalled();
   });
 
   it('applies an explicit scope, invalidates cache and recalculates touched budgets', async () => {
@@ -107,6 +108,7 @@ describe('RemoveSavingsGoalUseCase', () => {
       status: 409,
     });
     expect(mockCache.invalidateForUser).not.toHaveBeenCalled();
+    expect(budgetRecalculation.recalculate).not.toHaveBeenCalled();
   });
 
   it('marks a recalculation failure as post-commit and non-retentable', async () => {
@@ -133,5 +135,49 @@ describe('RemoveSavingsGoalUseCase', () => {
       ]);
     }
     expect(mockCache.invalidateForUser).toHaveBeenCalledWith(mockUser.id);
+  });
+
+  it('marks a cache invalidation failure as post-commit and non-retentable', async () => {
+    const cacheError = new Error('cache invalidation failed');
+    mockCache.invalidateForUser.mockRejectedValueOnce(cacheError);
+
+    try {
+      await useCase.execute('goal-1', mockUser, {
+        mode: 'goal_forecasts_and_transactions',
+        revision: { templateLines: [], budgetLines: [], transactions: [] },
+      });
+      throw new Error('expected to throw');
+    } catch (error) {
+      expect(error).toBeInstanceOf(BusinessException);
+      const businessError = error as BusinessException;
+      expect(businessError.code).toBe(
+        'ERR_SAVINGS_GOAL_DELETION_RECALCULATION_FAILED',
+      );
+      expect(businessError.cause).toBe(cacheError);
+      expect(businessError.loggingContext.partialFailure).toBe(true);
+      expect(businessError.loggingContext.affectedBudgetIds).toEqual([
+        'budget-1',
+        'budget-2',
+      ]);
+    }
+    expect(budgetRecalculation.recalculate).not.toHaveBeenCalled();
+  });
+
+  it('marks a cache invalidation failure after legacy deletion as post-commit', async () => {
+    const cacheError = new Error('cache invalidation failed');
+    mockCache.invalidateForUser.mockRejectedValueOnce(cacheError);
+
+    await expect(useCase.execute('goal-1', mockUser)).rejects.toMatchObject({
+      code: 'ERR_SAVINGS_GOAL_DELETION_RECALCULATION_FAILED',
+      cause: cacheError,
+      loggingContext: {
+        partialFailure: true,
+        affectedBudgetIds: [],
+        savingsGoalId: 'goal-1',
+        userId: mockUser.id,
+      },
+    });
+    expect(mockRepo.delete).toHaveBeenCalledWith('goal-1');
+    expect(budgetRecalculation.recalculate).not.toHaveBeenCalled();
   });
 });
