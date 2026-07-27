@@ -4,9 +4,7 @@ import SwiftUI
 struct AddBudgetLineSheet: View {
     let budgetId: String
     let onAdd: (BudgetLine) -> Void
-    /// When the income "remets le mois prochain" toggle is ON, the CTA routes
-    /// here with a prefilled withdrawal intent instead of creating a plain
-    /// income (PUL-292). `nil` outside BudgetDetails (e.g. previews).
+    /// PUL-292: routes the CTA to a prefilled withdrawal instead of creating plain income.
     let onRequestSavingsWithdrawal: ((SavingsWithdrawalPrefill) -> Void)?
 
     @Environment(\.dismiss) private var dismiss
@@ -64,10 +62,10 @@ struct AddBudgetLineSheet: View {
 
     private var isSpreadMode: Bool { mode == .spread }
 
-    /// Income "remets le mois prochain" ON — the CTA reroutes to the withdrawal preview (PUL-292).
+    static func showsTagPicker(spread: Bool, withdrawal: Bool) -> Bool { !spread && !withdrawal }
+
     private var isSavingsWithdrawalMode: Bool { kind == .income && remitNextMonth }
 
-    /// Hero hint follows the amount mode in spread mode.
     private var amountFieldHint: String? {
         guard isSpreadMode else { return nil }
         return amountMode == .total ? "Montant total" : "Montant par mois"
@@ -141,7 +139,9 @@ struct AddBudgetLineSheet: View {
                 if kind == .saving {
                     SavingsGoalPickerField(selection: $savingsGoalId)
                 }
-                TagPickerField(selection: $selectedTagIds)
+                if Self.showsTagPicker(spread: isSpreadMode, withdrawal: isSavingsWithdrawalMode) {
+                    TagPickerField(selection: $selectedTagIds)
+                }
                 if kind == .income {
                     remitToggle
                 }

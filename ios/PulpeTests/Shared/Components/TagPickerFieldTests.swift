@@ -54,5 +54,15 @@ struct TagPickerFieldTests {
         #expect(TagPickerField.createdTagIds(from: []) == nil)
         #expect(TagPickerField.createdTagIds(from: ["tag-2", "tag-1"]) == ["tag-1", "tag-2"])
         #expect(TagPickerField.selection(afterCreating: tag, current: ["tag-1"]) == ["tag-1", "tag-2"])
+
+        let fullSelection = Set((0..<AppConfiguration.maxTagsPerTransaction).map { "tag-\($0)" })
+        let eleventhTag = Tag(
+            id: "tag-10",
+            userId: "user-1",
+            name: "Onzième",
+            createdAt: .distantPast,
+            updatedAt: .distantPast
+        )
+        #expect(TagPickerField.selection(afterCreating: eleventhTag, current: fullSelection) == fullSelection)
     }
 }

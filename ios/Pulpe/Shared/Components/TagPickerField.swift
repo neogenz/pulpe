@@ -85,7 +85,7 @@ struct TagPickerField: View {
     }
 
     static func selection(afterCreating tag: Tag, current: Set<String>) -> Set<String> {
-        current.union([tag.id])
+        current.contains(tag.id) ? current : toggledTag(tag.id, in: current)
     }
 }
 
@@ -147,10 +147,13 @@ private struct TagPickerSheet: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Terminé") { dismiss() }
+                        .disabled(isCreating)
                 }
             }
+            .disabled(isCreating)
         }
         .standardSheetPresentation()
+        .interactiveDismissDisabled(isCreating)
     }
 
     @ViewBuilder

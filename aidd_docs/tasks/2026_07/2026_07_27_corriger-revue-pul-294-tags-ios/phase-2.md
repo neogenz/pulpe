@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Sécuriser le sélecteur et le flux de prévision
