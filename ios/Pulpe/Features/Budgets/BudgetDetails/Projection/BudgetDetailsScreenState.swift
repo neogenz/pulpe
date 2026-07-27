@@ -93,6 +93,10 @@ struct BudgetDetailsScreenState: Equatable {
     /// the view body.
     let transactionsByLineId: [String: [Transaction]]
 
+    /// Tag ids referenced by any line or transaction in the current budget.
+    /// Drives catalog refreshes when a reload introduces an unknown tag.
+    let referencedTagIds: Set<String>
+
     /// Cheap value that changes if-and-only-if any item's `isChecked` flag
     /// flips. Used as the `value:` of the list-level `.animation(_:value:)`
     /// modifier so the animation does not allocate per body re-eval.
@@ -124,6 +128,7 @@ struct BudgetDetailsScreenState: Equatable {
         consumptionByLineId: [:],
         lineById: [:],
         transactionsByLineId: [:],
+        referencedTagIds: [],
         checkedTickHash: 0
     )
 

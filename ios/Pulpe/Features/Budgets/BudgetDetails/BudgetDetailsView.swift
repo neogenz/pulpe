@@ -157,6 +157,7 @@ struct BudgetDetailsView: View {
                 await coordinator.dispatch(.reloadCurrentBudget)
             }
         }
+        .task(id: screenState.referencedTagIds) { await tagStore.loadIfNeeded(for: screenState.referencedTagIds) }
         .onChange(of: searchText) { _, newValue in
             projector.setSearchText(newValue)
         }
