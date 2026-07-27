@@ -578,7 +578,11 @@ CROSS JOIN (VALUES
   ('aaaaaaaa-2222-2222-8222-222222222222'::uuid, 'Épargne MacBook Pro', '250.00'),
   ('aaaaaaaa-1111-1111-8111-111111111111'::uuid, 'Épargne Vacances Japon', '150.00'),
   ('aaaaaaaa-3333-3333-8333-333333333333'::uuid, 'Épargne Fond d''urgence', '100.00')
-) AS g(goal_id, line_name, monthly_amount);
+) AS g(goal_id, line_name, monthly_amount)
+JOIN public.savings_goal sg ON sg.id = g.goal_id
+WHERE sg.target_date IS NULL
+   OR 2026 * 12 + b.month <= EXTRACT(YEAR FROM sg.target_date)::int * 12
+      + EXTRACT(MONTH FROM sg.target_date)::int;
 
 -- =====================================================
 -- 6. LOG SUMMARY
