@@ -1,6 +1,6 @@
 ---
 objective: "Les deux incohérences d’écriture à impact réel sur l’horizon d’un objectif d’épargne sont fermées sans modifier les contrats clients ni les migrations existantes."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Fermer les incohérences d’horizon à valeur réelle
