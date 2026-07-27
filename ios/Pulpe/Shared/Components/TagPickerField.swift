@@ -21,6 +21,8 @@ struct TagPickerField: View {
                 isPresented = true
             } label: {
                 HStack(spacing: DesignTokens.Spacing.sm) {
+                    Image(systemName: "tag")
+                        .foregroundStyle(selection.isEmpty ? Color.onSurfaceVariant : Color.pulpePrimary)
                     Text(summary)
                         .foregroundStyle(selection.isEmpty ? Color.onSurfaceVariant : Color.textPrimary)
                         .lineLimit(1)
@@ -30,13 +32,14 @@ struct TagPickerField: View {
                         .foregroundStyle(Color.onSurfaceVariant)
                 }
                 .padding(.horizontal, DesignTokens.Spacing.lg)
-                .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum, alignment: .leading)
-                .background(
-                    Color.surfaceContainerLow,
-                    in: RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button)
-                )
             }
-            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum, alignment: .leading)
+            .background(
+                Color.surfaceContainerLow,
+                in: RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.button)
+            )
+            .contentShape(Rectangle())
+            .plainPressedButtonStyle()
             .accessibilityLabel("Tags")
             .accessibilityValue(summary)
         }
@@ -47,11 +50,19 @@ struct TagPickerField: View {
     }
 
     private var summary: String {
-        if selection.isEmpty { return "Aucun tag" }
-        if selectedNames.isEmpty {
-            return "\(selection.count) \(selection.count == 1 ? "tag" : "tags")"
+        Self.summary(selectedNames: selectedNames, selectionCount: selection.count)
+    }
+
+    static func summary(selectedNames: [String], selectionCount: Int) -> String {
+        guard selectionCount > 0 else { return "Aucun tag" }
+        guard !selectedNames.isEmpty else {
+            return "\(selectionCount) \(selectionCount == 1 ? "tag" : "tags")"
         }
-        return selectedNames.joined(separator: ", ")
+
+        let visibleNames = selectedNames.prefix(2)
+        let hiddenCount = max(selectionCount - visibleNames.count, 0)
+        let names = visibleNames.joined(separator: ", ")
+        return hiddenCount > 0 ? "\(names) +\(hiddenCount)" : names
     }
 
     static func normalizedName(_ name: String) -> String {
@@ -102,10 +113,6 @@ private struct TagPickerSheet: View {
         TagPickerField.normalizedName(newTagName)
     }
 
-    private var selectedNames: [String] {
-        store.tags.filter { selection.contains($0.id) }.map(\.name)
-    }
-
     private var validationMessage: String? {
         if normalizedName.count > 30 { return "30 caractères maximum" }
         if TagPickerField.duplicate(named: normalizedName, in: store.tags) != nil {
@@ -127,22 +134,13 @@ private struct TagPickerSheet: View {
     var body: some View {
         NavigationStack {
             List {
-                if !selectedNames.isEmpty {
-                    Section("Sélection") {
-                        TagChips(names: selectedNames)
-                            .listRowInsets(EdgeInsets(
-                                top: DesignTokens.Spacing.sm,
-                                leading: 0,
-                                bottom: DesignTokens.Spacing.sm,
-                                trailing: 0
-                            ))
-                    }
-                }
-
-                tagList
                 createSection
+                tagList
             }
-            .navigationTitle("Choisir les tags")
+            .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(Color.sheetBackground)
+            .navigationTitle("Tags")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -152,21 +150,23 @@ private struct TagPickerSheet: View {
             }
             .disabled(isCreating)
         }
-        .standardSheetPresentation()
+        .standardSheetPresentation(detents: [.medium, .large])
         .interactiveDismissDisabled(isCreating)
     }
 
     @ViewBuilder
     private var tagList: some View {
-        Section("Tags disponibles · \(selection.count)/\(AppConfiguration.maxTagsPerTransaction)") {
+        Section {
             if store.isLoading, !store.hasLoadedOnce {
                 ProgressView("Chargement…")
             } else if store.hasError {
-                Button("Réessayer") {
+                Button {
                     Task { await store.forceRefresh() }
+                } label: {
+                    Label("Réessayer", systemImage: "arrow.clockwise")
                 }
             } else if store.tags.isEmpty {
-                Text("Aucun tag")
+                Text("Crée ton premier tag ci-dessus.")
                     .foregroundStyle(Color.onSurfaceVariant)
             } else {
                 ForEach(store.tags) { tag in
@@ -174,46 +174,78 @@ private struct TagPickerSheet: View {
                     Button {
                         selection = TagPickerField.toggledTag(tag.id, in: selection)
                     } label: {
-                        HStack {
+                        HStack(spacing: DesignTokens.Spacing.md) {
+                            Image(systemName: "tag")
+                                .foregroundStyle(isSelected ? Color.pulpePrimary : Color.onSurfaceVariant)
+                                .accessibilityHidden(true)
                             Text(tag.name)
                                 .foregroundStyle(Color.textPrimary)
                             Spacer()
-                            if isSelected {
-                                Image(systemName: "checkmark")
-                            }
+                            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                                .font(PulpeTypography.actionIcon)
+                                .foregroundStyle(isSelected ? Color.pulpePrimary : Color.outlineVariant)
+                                .contentTransition(.symbolEffect(.replace))
+                                .accessibilityHidden(true)
                         }
                     }
+                    .frame(minHeight: DesignTokens.TapTarget.minimum)
+                    .contentShape(Rectangle())
+                    .plainPressedButtonStyle()
                     .disabled(!isSelected && selection.count >= AppConfiguration.maxTagsPerTransaction)
+                    .accessibilityLabel(tag.name)
                     .accessibilityValue(isSelected ? "Sélectionné" : "Non sélectionné")
                 }
+            }
+        } header: {
+            HStack {
+                Text("Mes tags")
+                Spacer()
+                Text("\(selection.count) sur \(AppConfiguration.maxTagsPerTransaction)")
+                    .monospacedDigit()
             }
         }
     }
 
     private var createSection: some View {
         Section {
-            TextField("Nouveau tag", text: $newTagName)
-                .textInputAutocapitalization(.sentences)
-                .onChange(of: newTagName) { _, _ in createError = nil }
+            HStack(spacing: DesignTokens.Spacing.md) {
+                Image(systemName: "tag")
+                    .foregroundStyle(Color.onSurfaceVariant)
 
-            Button {
-                Task { await createTag() }
-            } label: {
+                TextField("Nom du nouveau tag", text: $newTagName)
+                    .textInputAutocapitalization(.sentences)
+                    .submitLabel(.done)
+                    .onSubmit {
+                        guard canCreate else { return }
+                        Task { await createTag() }
+                    }
+                    .onChange(of: newTagName) { _, _ in createError = nil }
+
                 if isCreating {
                     ProgressView()
+                        .controlSize(.small)
                 } else {
-                    Label("Créer et sélectionner", systemImage: "plus")
+                    Button {
+                        Task { await createTag() }
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(PulpeTypography.actionIcon)
+                            .foregroundStyle(canCreate ? Color.pulpePrimary : Color.onSurfaceVariant)
+                    }
+                    .circleIconButtonStyle()
+                    .disabled(!canCreate)
+                    .accessibilityLabel("Créer et sélectionner")
                 }
             }
-            .disabled(!canCreate)
+            .frame(minHeight: DesignTokens.TapTarget.minimum)
         } header: {
-            Text("Créer un tag")
+            Text("Nouveau tag")
         } footer: {
             if let validationMessage {
                 Text(validationMessage)
                     .foregroundStyle(Color.destructivePrimary)
             } else {
-                Text("1 à 30 caractères")
+                Text("1 à 30 caractères · ajouté à la sélection")
             }
         }
     }

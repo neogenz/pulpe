@@ -4,20 +4,20 @@ import Testing
 @Suite("TagChips Tests")
 @MainActor
 struct TagChipsTests {
-    @Test("The rail limits visible chips and exposes the overflow count")
-    func visibleSummary() {
-        let chips = TagChips(names: ["A", "B", "C"], maxVisible: 2)
+    @Test("The compact presentation exposes one icon-and-count indicator")
+    func compactIndicator() {
+        let chips = TagChips(names: ["A", "B", "C"], presentation: .count)
 
-        #expect(Array(chips.visibleNames) == ["A", "B"])
-        #expect(chips.hiddenCount == 1)
+        #expect(chips.presentation == .count)
+        #expect(chips.countLabel == "3")
+        #expect(chips.accessibilityLabel == "Tags : A, B, C")
     }
 
-    @Test("The full rail has no overflow")
+    @Test("The full rail keeps every tag name")
     func fullRail() {
         let chips = TagChips(names: ["A", "B"])
 
-        #expect(Array(chips.visibleNames) == ["A", "B"])
-        #expect(chips.hiddenCount == 0)
+        #expect(chips.presentation == .names)
         #expect(chips.accessibilityLabel == "Tags : A, B")
     }
 

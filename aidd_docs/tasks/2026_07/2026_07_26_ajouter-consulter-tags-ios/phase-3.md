@@ -119,10 +119,10 @@ flowchart TD
 
 > Faire tenir jusqu’à dix associations sans casser les rows compactes.
 
-1. Dans les listes, afficher les deux premiers noms puis un chip de débordement.
+1. Dans les listes, afficher une icône de tag avec le nombre d'associations.
 2. Dans les pages détail et le sélecteur, rendre tous les noms disponibles.
 3. Donner à VoiceOver la liste complète des tags, même quand le visuel est résumé.
-4. Tester l’ordre stable, le nombre masqué et le libellé d’accessibilité.
+4. Tester l’ordre stable, le compteur et le libellé d’accessibilité.
 5. Exécuter les tests `TagChips`, les invariants d’architecture Budget Details et un build `PulpeLocal`.
 
 ## Test acceptance criteria

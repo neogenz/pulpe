@@ -207,7 +207,7 @@ struct UncheckedOperationsCard: View {
 
             let tagNames = tagNames(for: item)
             if !tagNames.isEmpty {
-                TagChips(names: tagNames, maxVisible: 2)
+                TagChips(names: tagNames, presentation: .count)
             }
 
             actionsRow(item)

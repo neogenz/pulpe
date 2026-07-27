@@ -32,6 +32,18 @@ struct TagPickerFieldTests {
         #expect(TagPickerField.toggledTag("tag-1", in: ["tag-1"]) == [])
     }
 
+    @Test("The field summary stays compact beyond two tags")
+    func compactSummary() {
+        #expect(TagPickerField.summary(selectedNames: [], selectionCount: 0) == "Aucun tag")
+        #expect(TagPickerField.summary(selectedNames: [], selectionCount: 3) == "3 tags")
+        #expect(
+            TagPickerField.summary(
+                selectedNames: ["Alimentation", "Maison", "Week-end", "Vacances"],
+                selectionCount: 4
+            ) == "Alimentation, Maison +2"
+        )
+    }
+
     @Test("PATCH omits unchanged tags and sends an empty array when detached")
     func patchSemantics() {
         let initial: Set<String> = ["tag-2", "tag-1"]

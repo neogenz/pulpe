@@ -211,7 +211,7 @@ private struct BudgetDetailsFreeTransactionRow: View {
                 .truncationMode(.tail)
 
             if !tagNames.isEmpty {
-                TagChips(names: tagNames, maxVisible: 2)
+                TagChips(names: tagNames, presentation: .count)
             }
 
             Text(transaction.transactionDate.dayInMonthFormatted)

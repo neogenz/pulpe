@@ -20,7 +20,7 @@ struct BudgetLineDetailTransactionRow: View {
                         .lineLimit(1)
 
                     if !tagNames.isEmpty {
-                        TagChips(names: tagNames, maxVisible: 2)
+                        TagChips(names: tagNames, presentation: .count)
                     }
 
                     Text(transaction.transactionDate.relativeFormatted)

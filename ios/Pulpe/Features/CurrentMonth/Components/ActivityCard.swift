@@ -169,7 +169,7 @@ struct ActivityCard: View {
 
                 let tagNames = TagChips.names(for: transaction.tagIds, namesById: tagNamesById)
                 if !tagNames.isEmpty {
-                    TagChips(names: tagNames, maxVisible: 2)
+                    TagChips(names: tagNames, presentation: .count)
                 }
 
                 Text(transaction.transactionDate.relativeFormatted.lowercased())

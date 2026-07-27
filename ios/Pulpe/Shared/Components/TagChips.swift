@@ -1,37 +1,45 @@
 import SwiftUI
 
-/// Horizontal tag rail shared by forms and line details.
+/// Tag metadata rendered as full names in details or as a compact count on dense rows.
 struct TagChips: View {
+    enum Presentation: Equatable {
+        case names
+        case count
+    }
+
     let names: [String]
-    var maxVisible: Int?
-
-    var visibleNames: ArraySlice<String> {
-        names.prefix(maxVisible ?? names.count)
-    }
-
-    var hiddenCount: Int {
-        names.count - visibleNames.count
-    }
+    var presentation: Presentation = .names
 
     var accessibilityLabel: String {
         "Tags : \(names.joined(separator: ", "))"
     }
 
+    var countLabel: String {
+        "\(names.count)"
+    }
+
+    @ViewBuilder
     var body: some View {
-        ScrollView(.horizontal) {
-            HStack(spacing: DesignTokens.ChipMetrics.Standard.interChipGap) {
-                ForEach(Array(visibleNames.enumerated()), id: \.offset) { _, name in
-                    PulpeChip(label: name, style: .muted)
+        if !names.isEmpty {
+            switch presentation {
+            case .names:
+                ScrollView(.horizontal) {
+                    HStack(spacing: DesignTokens.ChipMetrics.Standard.interChipGap) {
+                        ForEach(Array(names.enumerated()), id: \.offset) { _, name in
+                            PulpeChip(label: name, style: .outlined)
+                        }
+                    }
                 }
-                if hiddenCount > 0 {
-                    PulpeChip(label: "+\(hiddenCount)", style: .muted)
-                        .accessibilityLabel("\(hiddenCount) tags supplémentaires")
-                }
+                .scrollIndicators(.hidden)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(accessibilityLabel)
+
+            case .count:
+                PulpeChip(icon: "tag", label: countLabel, style: .outlined)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(accessibilityLabel)
             }
         }
-        .scrollIndicators(.hidden)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilityLabel)
     }
 
     static func names(for ids: [String]?, namesById: [String: String]) -> [String] {

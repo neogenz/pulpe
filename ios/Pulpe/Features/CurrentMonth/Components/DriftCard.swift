@@ -148,7 +148,7 @@ struct DriftCard: View {
 
             let tagNames = TagChips.names(for: line.tagIds, namesById: tagNamesById)
             if !tagNames.isEmpty {
-                TagChips(names: tagNames, maxVisible: 2)
+                TagChips(names: tagNames, presentation: .count)
             }
 
             HomeSegmentedBar(
