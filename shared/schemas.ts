@@ -642,6 +642,111 @@ export type SavingsGoalGenerationStop = z.infer<
 >;
 
 /**
+ * Suppression d'un objectif (PUL-319).
+ *
+ * La révision reprend l'identité et la date de modification de chaque entité
+ * affichée. Le client la renvoie telle quelle ; la RPC refuse la mutation si
+ * l'impact courant diffère.
+ */
+export const savingsGoalDeletionRevisionEntrySchema = z.strictObject({
+  id: z.uuid(),
+  updatedAt: z.iso.datetime({ offset: true }),
+});
+export type SavingsGoalDeletionRevisionEntry = z.infer<
+  typeof savingsGoalDeletionRevisionEntrySchema
+>;
+
+const uniqueDeletionRevisionEntries = z
+  .array(savingsGoalDeletionRevisionEntrySchema)
+  .refine(
+    (entries) => new Set(entries.map(({ id }) => id)).size === entries.length,
+    {
+      error: 'Une entité apparaît deux fois dans la révision de suppression.',
+    },
+  );
+
+export const savingsGoalDeletionRevisionSchema = z.strictObject({
+  templateLines: uniqueDeletionRevisionEntries,
+  budgetLines: uniqueDeletionRevisionEntries,
+  transactions: uniqueDeletionRevisionEntries,
+});
+export type SavingsGoalDeletionRevision = z.infer<
+  typeof savingsGoalDeletionRevisionSchema
+>;
+
+export const savingsGoalDeletionModeSchema = z.enum([
+  'goal_only',
+  'goal_and_forecasts',
+  'goal_forecasts_and_transactions',
+]);
+export type SavingsGoalDeletionMode = z.infer<
+  typeof savingsGoalDeletionModeSchema
+>;
+
+export const savingsGoalDeletionCommandSchema = z.strictObject({
+  mode: savingsGoalDeletionModeSchema,
+  revision: savingsGoalDeletionRevisionSchema,
+});
+export type SavingsGoalDeletionCommand = z.infer<
+  typeof savingsGoalDeletionCommandSchema
+>;
+
+export const savingsGoalDeletionTemplateLineSchema = z.object({
+  lineId: z.uuid(),
+  templateId: z.uuid(),
+  templateName: z.string().min(1),
+  name: z.string().min(1),
+  amount: z.coerce.number().nonnegative(),
+  recurrence: transactionRecurrenceSchema,
+  updatedAt: z.iso.datetime({ offset: true }),
+});
+export type SavingsGoalDeletionTemplateLine = z.infer<
+  typeof savingsGoalDeletionTemplateLineSchema
+>;
+
+export const savingsGoalDeletionBudgetLineSchema = z.object({
+  lineId: z.uuid(),
+  name: z.string().min(1),
+  amount: z.coerce.number().nonnegative(),
+  recurrence: transactionRecurrenceSchema,
+  checkedAt: z.iso.datetime({ offset: true }).nullable(),
+  updatedAt: z.iso.datetime({ offset: true }),
+  transactions: z.array(z.lazy(() => transactionSchema)),
+});
+export type SavingsGoalDeletionBudgetLine = z.infer<
+  typeof savingsGoalDeletionBudgetLineSchema
+>;
+
+export const savingsGoalDeletionBudgetSchema = z.object({
+  budgetId: z.uuid(),
+  month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
+  year: z.number().int().min(MIN_YEAR),
+  lines: z.array(savingsGoalDeletionBudgetLineSchema),
+});
+export type SavingsGoalDeletionBudget = z.infer<
+  typeof savingsGoalDeletionBudgetSchema
+>;
+
+export const savingsGoalDeletionImpactSchema = z.object({
+  goalId: z.uuid(),
+  summary: z.object({
+    templateLineCount: z.number().int().nonnegative(),
+    templateLineTotal: z.number().nonnegative(),
+    budgetCount: z.number().int().nonnegative(),
+    budgetLineCount: z.number().int().nonnegative(),
+    budgetLineTotal: z.number().nonnegative(),
+    transactionCount: z.number().int().nonnegative(),
+    transactionTotal: z.number().nonnegative(),
+  }),
+  templateLines: z.array(savingsGoalDeletionTemplateLineSchema),
+  budgets: z.array(savingsGoalDeletionBudgetSchema),
+  revision: savingsGoalDeletionRevisionSchema,
+});
+export type SavingsGoalDeletionImpact = z.infer<
+  typeof savingsGoalDeletionImpactSchema
+>;
+
+/**
  * BUDGET LINE - Ligne budgétaire planifiée
  *
  * Selon SPECS.md section 2 "Concepts Métier":
@@ -1816,6 +1921,13 @@ export type SavingsGoalListResponse = z.infer<
 export const savingsGoalDeleteResponseSchema = deleteResponseSchema;
 export type SavingsGoalDeleteResponse = z.infer<
   typeof savingsGoalDeleteResponseSchema
+>;
+
+export const savingsGoalDeletionImpactResponseSchema = createSuccessResponse(
+  savingsGoalDeletionImpactSchema,
+);
+export type SavingsGoalDeletionImpactResponse = z.infer<
+  typeof savingsGoalDeletionImpactResponseSchema
 >;
 
 // Tag response schemas (PUL-18)

@@ -3,9 +3,8 @@ import SwiftUI
 
 /// Create / edit a savings goal (PUL-12). `goal == nil` → create.
 /// In edit mode it also drives status changes (Actif / En pause / Atteint —
-/// COMPLETED is reversible) and deletion (the backend unlinks prévisions; none
-/// are deleted). Target amount is in the account currency (no currency selector
-/// in v1, CA27).
+/// COMPLETED is reversible) and deletion through an exhaustive impact preview.
+/// Target amount is in the account currency (no currency selector in v1, CA27).
 struct SavingsGoalFormSheet: View {
     let goal: SavingsGoal?
     private let onUpdate: ((SavingsGoalUpdate) -> Void)?
@@ -24,7 +23,7 @@ struct SavingsGoalFormSheet: View {
     @State private var status: SavingsGoalStatus
     @State private var isLoading = false
     @State private var error: Error?
-    @State private var showDeleteConfirmation = false
+    @State private var showDeletionSheet = false
     @State private var submitSuccessTrigger = 0
     // PUL-285 CA6 — opt-in « décomposer en mensualités », création uniquement.
     @State private var decomposeEnabled = true
@@ -198,17 +197,15 @@ struct SavingsGoalFormSheet: View {
                 deleteButton
             }
         }
-        .confirmationDialog(
-            "Supprimer cet objectif ?",
-            isPresented: $showDeleteConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button("Supprimer", role: .destructive) {
-                Task { await deleteGoal() }
+        .sheet(isPresented: $showDeletionSheet) {
+            if let goal {
+                GoalDeletionSheet(
+                    goal: goal,
+                    currency: currency,
+                    onDeleted: deletionDidCommit
+                )
+                .standardSheetPresentation(detents: [.large])
             }
-            Button("Annuler", role: .cancel) {}
-        } message: {
-            Text("Tes prévisions rattachées seront déliées, jamais supprimées.")
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
     }
@@ -370,7 +367,7 @@ struct SavingsGoalFormSheet: View {
 
     private var deleteButton: some View {
         Button(role: .destructive) {
-            showDeleteConfirmation = true
+            showDeletionSheet = true
         } label: {
             Text("Supprimer l'objectif")
                 .font(PulpeTypography.buttonSecondary)
@@ -439,19 +436,15 @@ private extension SavingsGoalFormSheet {
         }
     }
 
-    private func deleteGoal() async {
-        guard let goal else { return }
-        isLoading = true
-        defer { isLoading = false }
-        error = nil
-        do {
-            try await store.delete(id: goal.id)
+    private func deletionDidCommit(warning: String?) {
+        showDeletionSheet = false
+        if let warning {
+            toastManager.show(warning, type: .error)
+        } else {
             toastManager.show("Objectif supprimé")
             submitSuccessTrigger += 1
-            dismiss()
-        } catch {
-            self.error = error
         }
+        dismiss()
     }
 }
 

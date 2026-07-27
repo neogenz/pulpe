@@ -7,6 +7,7 @@ import { SavingsGoalMapper } from './savings-goal.mapper';
 import type {
   SavingsGoal,
   SavingsGoalContribution,
+  SavingsGoalDeletionImpactResult,
 } from '../../domain/savings-goal.entity';
 
 const base: SavingsGoal = {
@@ -66,6 +67,26 @@ describe('SavingsGoalMapper', () => {
     expect(api.exchangeRate).toBe(0.96);
     // The generic mapper would have emitted `originalAmount` — prove we don't.
     expect('originalAmount' in api).toBe(false);
+  });
+
+  it('keeps the validated deletion impact and revision intact', () => {
+    const impact = {
+      goalId: '00000000-0000-4000-8000-000000000001',
+      summary: {
+        templateLineCount: 0,
+        templateLineTotal: 0,
+        budgetCount: 0,
+        budgetLineCount: 0,
+        budgetLineTotal: 0,
+        transactionCount: 0,
+        transactionTotal: 0,
+      },
+      templateLines: [],
+      budgets: [],
+      revision: { templateLines: [], budgetLines: [], transactions: [] },
+    } satisfies SavingsGoalDeletionImpactResult;
+
+    expect(mapper.toDeletionImpactApi(impact)).toBe(impact);
   });
 
   describe('toProgressApi', () => {

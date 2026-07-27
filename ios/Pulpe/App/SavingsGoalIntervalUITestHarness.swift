@@ -134,7 +134,29 @@ final class SavingsGoalIntervalUITestService: SavingsGoalServicing {
         return updated
     }
 
-    func delete(id: String) async throws {
+    func getDeletionImpact(id: String) async throws -> SavingsGoalDeletionImpact {
+        SavingsGoalDeletionImpact(
+            goalId: id,
+            summary: SavingsGoalDeletionSummary(
+                templateLineCount: 0,
+                templateLineTotal: 0,
+                budgetCount: 0,
+                budgetLineCount: 0,
+                budgetLineTotal: 0,
+                transactionCount: 0,
+                transactionTotal: 0
+            ),
+            templateLines: [],
+            budgets: [],
+            revision: SavingsGoalDeletionRevision(
+                templateLines: [],
+                budgetLines: [],
+                transactions: []
+            )
+        )
+    }
+
+    func delete(id: String, command _: SavingsGoalDeletionCommand) async throws {
         goals.removeAll { $0.id == id }
     }
 

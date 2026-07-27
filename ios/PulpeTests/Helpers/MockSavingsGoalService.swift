@@ -11,12 +11,14 @@ final class MockSavingsGoalService: SavingsGoalServicing {
     var stubbedContributions: [SavingsGoalContribution] = []
     var stubbedApplyResult: SavingsGoalPlanApplyResult?
     var stubbedFutureLines: [SavingsGoalFutureLine] = []
+    var stubbedDeletionImpact: SavingsGoalDeletionImpact?
     /// When set, every call throws this instead of returning.
     var error: Error?
     var getProgressError: Error?
     var getContributionsError: Error?
     var updateError: Error?
     var createError: Error?
+    var deletionError: Error?
 
     private(set) var getAllCallCount = 0
     private(set) var getProgressCallCount = 0
@@ -25,12 +27,14 @@ final class MockSavingsGoalService: SavingsGoalServicing {
     private(set) var createCallCount = 0
     private(set) var updateCallCount = 0
     private(set) var deleteCallCount = 0
+    private(set) var getDeletionImpactCallCount = 0
     private(set) var lastCreate: SavingsGoalCreate?
     private(set) var lastUpdateId: String?
     private(set) var lastUpdate: SavingsGoalUpdate?
     private(set) var lastApplyId: String?
     private(set) var lastApplyPayload: SavingsGoalPlanApply?
     private(set) var lastDeletedId: String?
+    private(set) var lastDeletionCommand: SavingsGoalDeletionCommand?
 
     private(set) var didEnterSecondGetAll = false
     private var secondGetAllContinuation: CheckedContinuation<Void, Never>?
@@ -162,9 +166,20 @@ final class MockSavingsGoalService: SavingsGoalServicing {
         return updated
     }
 
-    func delete(id: String) async throws {
+    func getDeletionImpact(id _: String) async throws -> SavingsGoalDeletionImpact {
+        getDeletionImpactCallCount += 1
+        if let error { throw error }
+        guard let stubbedDeletionImpact else {
+            throw URLError(.badServerResponse)
+        }
+        return stubbedDeletionImpact
+    }
+
+    func delete(id: String, command: SavingsGoalDeletionCommand) async throws {
         deleteCallCount += 1
         lastDeletedId = id
+        lastDeletionCommand = command
+        if let deletionError { throw deletionError }
         if let error { throw error }
         stubbedGoals.removeAll { $0.id == id }
     }

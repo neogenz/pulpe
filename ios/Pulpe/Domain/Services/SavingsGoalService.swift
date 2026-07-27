@@ -13,9 +13,10 @@ protocol SavingsGoalServicing: Sendable {
         id: String,
         _ payload: SavingsGoalGenerationStop
     ) async throws -> SavingsGoalGenerationStopResult
+    func getDeletionImpact(id: String) async throws -> SavingsGoalDeletionImpact
+    func delete(id: String, command: SavingsGoalDeletionCommand) async throws
     func create(_ data: SavingsGoalCreate) async throws -> SavingsGoal
     func update(id: String, data: SavingsGoalUpdate) async throws -> SavingsGoal
-    func delete(id: String) async throws
 }
 
 extension SavingsGoalServicing {
@@ -77,15 +78,19 @@ actor SavingsGoalService: SavingsGoalServicing {
         try await apiClient.request(.savingsGoalGenerationStop(id: id), body: payload, method: .post)
     }
 
+    func getDeletionImpact(id: String) async throws -> SavingsGoalDeletionImpact {
+        try await apiClient.request(.savingsGoalDeletionImpact(id: id), method: .get)
+    }
+
+    func delete(id: String, command: SavingsGoalDeletionCommand) async throws {
+        try await apiClient.requestVoid(.savingsGoalDeletion(id: id), body: command, method: .post)
+    }
+
     func create(_ data: SavingsGoalCreate) async throws -> SavingsGoal {
         try await apiClient.request(.savingsGoals, body: data, method: .post)
     }
 
     func update(id: String, data: SavingsGoalUpdate) async throws -> SavingsGoal {
         try await apiClient.request(.savingsGoal(id: id), body: data, method: .patch)
-    }
-
-    func delete(id: String) async throws {
-        try await apiClient.requestVoid(.savingsGoal(id: id), method: .delete)
     }
 }

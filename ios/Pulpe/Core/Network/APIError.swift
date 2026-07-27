@@ -38,6 +38,9 @@ enum APIError: LocalizedError {
     case savingsGoalReconciliationConflict
     case savingsGoalReconciliationFailed
     case savingsGoalReconciliationRecalculationFailed
+    case savingsGoalNotFound
+    case savingsGoalDeletionImpactChanged
+    case savingsGoalDeletionRecalculationFailed
     case tagAlreadyExists
 
     var errorDescription: String? {
@@ -116,6 +119,14 @@ enum APIError: LocalizedError {
         case .savingsGoalReconciliationRecalculationFailed:
             return "L'échéance a bien été modifiée, mais les soldes n'ont pas pu être actualisés — "
                 + "recharge sans réessayer"
+        case .savingsGoalNotFound:
+            return "Cet objectif n'existe plus"
+        case .savingsGoalDeletionImpactChanged:
+            return "Les éléments rattachés ont changé entre-temps — "
+                + "vérifie le nouvel impact avant de confirmer"
+        case .savingsGoalDeletionRecalculationFailed:
+            return "L'objectif et les éléments choisis ont bien été supprimés, mais les soldes "
+                + "n'ont pas pu être actualisés — recharge les budgets sans relancer la suppression"
         case .tagAlreadyExists:
             return "Un tag porte déjà ce nom — choisis-en un autre"
         }
@@ -155,6 +166,9 @@ enum APIError: LocalizedError {
         "ERR_SAVINGS_GOAL_RECONCILIATION_CONFLICT": .savingsGoalReconciliationConflict,
         "ERR_SAVINGS_GOAL_RECONCILIATION_FAILED": .savingsGoalReconciliationFailed,
         "ERR_SAVINGS_GOAL_RECONCILIATION_RECALCULATION_FAILED": .savingsGoalReconciliationRecalculationFailed,
+        "ERR_SAVINGS_GOAL_NOT_FOUND": .savingsGoalNotFound,
+        "ERR_SAVINGS_GOAL_DELETION_IMPACT_CHANGED": .savingsGoalDeletionImpactChanged,
+        "ERR_SAVINGS_GOAL_DELETION_RECALCULATION_FAILED": .savingsGoalDeletionRecalculationFailed,
         "ERR_TAG_ALREADY_EXISTS": .tagAlreadyExists,
     ]
 

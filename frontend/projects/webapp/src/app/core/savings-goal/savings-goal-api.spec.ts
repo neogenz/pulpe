@@ -7,7 +7,10 @@ import {
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
 import { firstValueFrom } from 'rxjs';
-import type { SavingsGoalProgress } from 'pulpe-shared';
+import type {
+  SavingsGoalDeletionImpact,
+  SavingsGoalProgress,
+} from 'pulpe-shared';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { BudgetApi } from '@core/budget/budget-api';
 import { SavingsGoalApi } from './savings-goal-api';
@@ -50,6 +53,28 @@ function makeProgress(
     targetCurrency: null,
     exchangeRate: null,
     ...overrides,
+  };
+}
+
+function makeDeletionImpact(): SavingsGoalDeletionImpact {
+  return {
+    goalId: GOAL_ID,
+    summary: {
+      templateLineCount: 0,
+      templateLineTotal: 0,
+      budgetCount: 0,
+      budgetLineCount: 0,
+      budgetLineTotal: 0,
+      transactionCount: 0,
+      transactionTotal: 0,
+    },
+    templateLines: [],
+    budgets: [],
+    revision: {
+      templateLines: [],
+      budgetLines: [],
+      transactions: [],
+    },
   };
 }
 
@@ -209,6 +234,44 @@ describe('SavingsGoalApi', () => {
     expect(response.data[0].amount).toBe(500);
     expect(response.data[0].checkedAt).not.toBeNull();
     expect(response.data[0].transactions[0].amount).toBe(150);
+  });
+
+  it('getDeletionImpact$ GETs and parses the full deletion impact', async () => {
+    const responsePromise = firstValueFrom(service.getDeletionImpact$(GOAL_ID));
+
+    const req = httpTesting.expectOne(
+      `http://localhost:3000/api/v1/savings-goals/${GOAL_ID}/deletion-impact`,
+    );
+    expect(req.request.method).toBe('GET');
+    req.flush({ success: true, data: makeDeletionImpact() });
+
+    await expect(responsePromise).resolves.toEqual({
+      success: true,
+      data: makeDeletionImpact(),
+    });
+  });
+
+  it('applyDeletion$ POSTs the selected mode with the displayed revision', async () => {
+    const impact = makeDeletionImpact();
+    const command = {
+      mode: 'goal_and_forecasts' as const,
+      revision: impact.revision,
+    };
+    const responsePromise = firstValueFrom(
+      service.applyDeletion$(GOAL_ID, command),
+    );
+
+    const req = httpTesting.expectOne(
+      `http://localhost:3000/api/v1/savings-goals/${GOAL_ID}/deletion`,
+    );
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual(command);
+    req.flush({ success: true, message: 'deleted' });
+
+    await expect(responsePromise).resolves.toEqual({
+      success: true,
+      message: 'deleted',
+    });
   });
 
   // Bug repro: a transaction pointée on a goal-linked line invalidates the

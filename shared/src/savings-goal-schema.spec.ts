@@ -2,6 +2,8 @@ import { describe, expect, test } from 'vitest';
 import {
   savingsGoalCreateSchema,
   savingsGoalFutureLinesQuerySchema,
+  savingsGoalDeletionCommandSchema,
+  savingsGoalDeletionImpactSchema,
   savingsGoalPlanApplySchema,
   savingsGoalProgressSchema,
   savingsGoalUpdateSchema,
@@ -14,6 +16,11 @@ import {
 } from '../schemas.js';
 
 const UUID = '00000000-0000-0000-0000-000000000000';
+const UUID_2 = '00000000-0000-4000-8000-000000000002';
+
+function uuid(index: number): string {
+  return `00000000-0000-4000-8000-${index.toString().padStart(12, '0')}`;
+}
 
 function isoDateOffsetDays(days: number): string {
   const d = new Date();
@@ -391,6 +398,119 @@ describe('PUL-293 — savingsGoalProgressSchema.initialAmount default', () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.initialAmount).toBe(0);
+    }
+  });
+});
+
+describe('PUL-319 — savings goal deletion contract', () => {
+  const now = new Date().toISOString();
+  const emptyRevision = {
+    templateLines: [],
+    budgetLines: [],
+    transactions: [],
+  };
+
+  test.each([
+    'goal_only',
+    'goal_and_forecasts',
+    'goal_forecasts_and_transactions',
+  ] as const)('accepts the explicit %s mode', (mode) => {
+    expect(
+      savingsGoalDeletionCommandSchema.safeParse({
+        mode,
+        revision: emptyRevision,
+      }).success,
+    ).toBe(true);
+  });
+
+  test('rejects duplicate entities in the preview revision', () => {
+    const duplicate = { id: UUID, updatedAt: now };
+    expect(
+      savingsGoalDeletionCommandSchema.safeParse({
+        mode: 'goal_only',
+        revision: {
+          ...emptyRevision,
+          budgetLines: [duplicate, duplicate],
+        },
+      }).success,
+    ).toBe(false);
+  });
+
+  test('accepts a non-empty unique revision and rejects an unknown mode', () => {
+    expect(
+      savingsGoalDeletionCommandSchema.safeParse({
+        mode: 'goal_and_forecasts',
+        revision: {
+          ...emptyRevision,
+          budgetLines: [{ id: UUID, updatedAt: now }],
+        },
+      }).success,
+    ).toBe(true);
+    expect(
+      savingsGoalDeletionCommandSchema.safeParse({
+        mode: 'delete_everything',
+        revision: emptyRevision,
+      }).success,
+    ).toBe(false);
+  });
+
+  test('accepts a complete impact spanning 76 budgets without truncation', () => {
+    const budgets = Array.from({ length: 76 }, (_, index) => {
+      const lineId = uuid(index + 100);
+      return {
+        budgetId: uuid(index + 1),
+        month: (index % 12) + 1,
+        year: 2026 + Math.floor(index / 12),
+        lines: [
+          {
+            lineId,
+            name: `Épargne ${index + 1}`,
+            amount: 100,
+            recurrence: 'fixed' as const,
+            checkedAt: null,
+            updatedAt: now,
+            transactions: [],
+          },
+        ],
+      };
+    });
+    const result = savingsGoalDeletionImpactSchema.safeParse({
+      goalId: UUID,
+      summary: {
+        templateLineCount: 1,
+        templateLineTotal: 100,
+        budgetCount: 76,
+        budgetLineCount: 76,
+        budgetLineTotal: 7600,
+        transactionCount: 0,
+        transactionTotal: 0,
+      },
+      templateLines: [
+        {
+          lineId: UUID_2,
+          templateId: uuid(999),
+          templateName: 'Mois Type',
+          name: 'Épargne',
+          amount: 100,
+          recurrence: 'fixed',
+          updatedAt: now,
+        },
+      ],
+      budgets,
+      revision: {
+        templateLines: [{ id: UUID_2, updatedAt: now }],
+        budgetLines: budgets.map(({ lines }) => ({
+          id: lines[0].lineId,
+          updatedAt: now,
+        })),
+        transactions: [],
+      },
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.budgets).toHaveLength(76);
+      expect(result.data.summary.budgetLineTotal).toBe(7600);
     }
   });
 });

@@ -2,6 +2,7 @@ import type {
   BudgetLine,
   LinkedSavingLine,
   LinkedSavingTransaction,
+  SavingsGoalDeletionImpact,
   SavingsGoalPlanApply,
   SavingsGoalProgressResult,
   SavingsGoalReconciliation,
@@ -153,5 +154,13 @@ export interface SavingsGoalTargetDateReconciliationCommand {
 export interface SavingsGoalTargetDateReconciliationResult {
   goal: SavingsGoal;
   affectedLineIds: string[];
+  touchedBudgetIds: string[];
+}
+
+/** Impact déchiffré présenté avant suppression (PUL-319). */
+export type SavingsGoalDeletionImpactResult = SavingsGoalDeletionImpact;
+
+/** Résultat DB de la suppression ; les budgets sont recalculés post-commit. */
+export interface SavingsGoalDeletionResult {
   touchedBudgetIds: string[];
 }

@@ -19,6 +19,7 @@ import { GetSavingsGoalContributionsUseCase } from './application/get-savings-go
 import { ApplySavingsGoalPlanUseCase } from './application/apply-savings-goal-plan.use-case';
 import { GetSavingsGoalFutureLinesUseCase } from './application/get-savings-goal-future-lines.use-case';
 import { ApplySavingsGoalGenerationStopUseCase } from './application/apply-savings-goal-generation-stop.use-case';
+import { GetSavingsGoalDeletionImpactUseCase } from './application/get-savings-goal-deletion-impact.use-case';
 
 @Module({
   // BudgetModule provides BUDGET_RECALCULATION_PORT (plan apply recalculates the
@@ -44,6 +45,7 @@ import { ApplySavingsGoalGenerationStopUseCase } from './application/apply-savin
     ApplySavingsGoalPlanUseCase,
     GetSavingsGoalFutureLinesUseCase,
     ApplySavingsGoalGenerationStopUseCase,
+    GetSavingsGoalDeletionImpactUseCase,
     {
       provide: SAVINGS_GOAL_REPOSITORY,
       useClass: SupabaseSavingsGoalRepository,
@@ -58,6 +60,7 @@ import { ApplySavingsGoalGenerationStopUseCase } from './application/apply-savin
     createInfoLoggerProvider(GetSavingsGoalContributionsUseCase.name),
     createInfoLoggerProvider(ApplySavingsGoalPlanUseCase.name),
     createInfoLoggerProvider(ApplySavingsGoalGenerationStopUseCase.name),
+    createInfoLoggerProvider(GetSavingsGoalDeletionImpactUseCase.name),
   ],
   exports: [],
 })

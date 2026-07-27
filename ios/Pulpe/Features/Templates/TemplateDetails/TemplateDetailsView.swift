@@ -31,8 +31,8 @@ struct TemplateDetailsView: View {
         .animation(DesignTokens.Animation.smoothEaseOut, value: viewModel.isLoading)
         .navigationTitle(viewModel.template?.name ?? "Modèle")
         .navigationBarTitleDisplayMode(.inline)
-        .task {
-            await viewModel.loadIfNeeded()
+        .task(id: savingsGoalStore.templateDataVersion) {
+            await viewModel.loadDetails()
         }
         .task {
             await savingsGoalStore.loadIfNeeded()

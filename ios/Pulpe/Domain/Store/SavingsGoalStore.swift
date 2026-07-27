@@ -3,11 +3,12 @@ import Foundation
 /// Caches the user's savings goals (PUL-12). Backs both the goals list/form and
 /// the "Objectif" picker in the prévision editors, so it is injected at app root.
 ///
-/// Editing a goal only changes its metadata. Deleting one unlinks its
-/// prévisions, creating one with `monthlyContribution` generates a linked
-/// baseline across budgets (PUL-285), and a generation-stop decision freezes or
-/// removes future lines — `onBudgetDataMutation` states that ONE fact (PUL-270
-/// seam) so the app invalidates every store exposing budget data.
+/// Editing a goal only changes its metadata. Deleting one applies the explicit
+/// scope accepted from a fresh impact preview, creating one with
+/// `monthlyContribution` generates a linked baseline across budgets (PUL-285),
+/// and a generation-stop decision freezes or removes future lines —
+/// `onBudgetDataMutation` states that ONE fact (PUL-270 seam) so the app
+/// invalidates every store exposing budget data.
 @Observable @MainActor
 final class SavingsGoalStore: StoreProtocol {
     // MARK: - State
@@ -26,6 +27,7 @@ final class SavingsGoalStore: StoreProtocol {
     private var lastLoadTime: Date?
     private var loadTask: Task<Void, Never>?
     private var loadGeneration = 0
+    private(set) var templateDataVersion = 0
     @ObservationIgnored var onBudgetDataMutation: (@MainActor () -> Void)?
 
     // MARK: - Services
@@ -134,10 +136,36 @@ final class SavingsGoalStore: StoreProtocol {
         try await service.getFutureLines(id: id, targetDate: targetDate)
     }
 
-    /// Deletes a goal (the backend unlinks its prévisions; none are deleted).
-    func delete(id: String) async throws {
-        try await service.delete(id: id)
+    /// Always bypasses the store cache: the revision must describe the exact
+    /// entities shown immediately before deletion.
+    func getDeletionImpact(id: String) async throws -> SavingsGoalDeletionImpact {
+        try await service.getDeletionImpact(id: id)
+    }
+
+    /// Pessimistic deletion: the cached goal remains visible until the backend
+    /// commits. A recalculation failure is post-commit, so local state still
+    /// settles before the warning is rethrown.
+    func delete(id: String, command: SavingsGoalDeletionCommand) async throws {
+        do {
+            try await service.delete(id: id, command: command)
+        } catch let apiError as APIError {
+            switch apiError {
+            case .savingsGoalNotFound:
+                settleCommittedDeletion(id: id)
+                return
+            case .savingsGoalDeletionRecalculationFailed:
+                settleCommittedDeletion(id: id)
+            default:
+                break
+            }
+            throw apiError
+        }
+        settleCommittedDeletion(id: id)
+    }
+
+    private func settleCommittedDeletion(id: String) {
         goals.removeAll { $0.id == id }
+        templateDataVersion += 1
         onBudgetDataMutation?()
     }
 
@@ -174,6 +202,7 @@ final class SavingsGoalStore: StoreProtocol {
         hasLoadedOnce = false
         lastLoadTime = nil
         error = nil
+        templateDataVersion = 0
     }
 }
 

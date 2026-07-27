@@ -11,12 +11,15 @@ import {
 import { By } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 import { registerLocaleData } from '@angular/common';
+import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import localeDE from '@angular/common/locales/de-CH';
+import { of } from 'rxjs';
 import {
   API_ERROR_CODES,
   type SavingsGoal,
   type SavingsGoalContribution,
+  type SavingsGoalDeletionCommand,
   type SavingsGoalFutureLine,
   type SavingsGoalProgress,
 } from 'pulpe-shared';
@@ -31,6 +34,7 @@ import { GoalProjectionChart } from './components/goal-projection-chart';
 import { GoalPlanTimeline } from './components/goal-plan-timeline';
 import { GoalPlanSimulatorToolbar } from './components/goal-plan-simulator-toolbar';
 import { GoalContributionsList } from './components/goal-contributions-list';
+import { GoalDeletionDialog } from './components/goal-deletion-dialog';
 import { setTestInput } from '../../../testing/signal-test-utils';
 import { provideTranslocoForTest } from '../../../testing/transloco-testing';
 
@@ -177,6 +181,15 @@ const futureLine: SavingsGoalFutureLine = {
   year: 2026,
 };
 
+const deletionCommand: SavingsGoalDeletionCommand = {
+  mode: 'goal_only',
+  revision: {
+    templateLines: [],
+    budgetLines: [],
+    transactions: [],
+  },
+};
+
 describe('SavingsGoalDetailPage', () => {
   let fixture: ComponentFixture<SavingsGoalDetailPage>;
   let component: SavingsGoalDetailPage;
@@ -199,6 +212,12 @@ describe('SavingsGoalDetailPage', () => {
   const payDayOfMonthSig = signal<number | null>(25);
 
   const futureLinesSig = signal<SavingsGoalFutureLine[]>([]);
+  let deletionDialogResult: SavingsGoalDeletionCommand | undefined;
+  const mockDialog = {
+    open: vi.fn().mockImplementation(() => ({
+      afterClosed: () => of(deletionDialogResult),
+    })),
+  };
 
   const mockStore = {
     selectedGoal: goalSig,
@@ -218,7 +237,7 @@ describe('SavingsGoalDetailPage', () => {
     completeGoal,
     reopenGoal,
     editGoal: vi.fn().mockResolvedValue(makeGoal()),
-    removeGoal: vi.fn().mockResolvedValue(undefined),
+    deleteGoal: vi.fn().mockResolvedValue(undefined),
     fetchFutureLines: vi.fn().mockResolvedValue([]),
     applyGenerationStop: vi.fn().mockResolvedValue({ affectedCount: 0 }),
   };
@@ -226,7 +245,6 @@ describe('SavingsGoalDetailPage', () => {
   const mockDialogs = {
     openEdit: vi.fn(),
     openGenerationStop: vi.fn(),
-    confirmDelete: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -240,6 +258,7 @@ describe('SavingsGoalDetailPage', () => {
     listErrorSig.set(null);
     futureLinesSig.set([]);
     payDayOfMonthSig.set(25);
+    deletionDialogResult = undefined;
     vi.clearAllMocks();
     mockStore.editGoal.mockReset().mockResolvedValue(makeGoal());
     mockStore.fetchFutureLines.mockReset().mockResolvedValue([]);
@@ -248,7 +267,6 @@ describe('SavingsGoalDetailPage', () => {
       .mockResolvedValue({ affectedCount: 0 });
     mockDialogs.openEdit.mockReset();
     mockDialogs.openGenerationStop.mockReset();
-    mockDialogs.confirmDelete.mockReset();
 
     await TestBed.configureTestingModule({
       imports: [SavingsGoalDetailPage],
@@ -257,6 +275,7 @@ describe('SavingsGoalDetailPage', () => {
         ...provideTranslocoForTest(),
         { provide: SavingsGoalStore, useValue: mockStore },
         { provide: SavingsGoalsDialogService, useValue: mockDialogs },
+        { provide: MatDialog, useValue: mockDialog },
         {
           provide: UserSettingsStore,
           useValue: {
@@ -898,25 +917,87 @@ describe('SavingsGoalDetailPage', () => {
     expect(query('edit-savings-goal-button')).toBeTruthy();
   });
 
-  it('deletes the goal after confirmation and navigates back to the list', async () => {
-    mockDialogs.confirmDelete.mockResolvedValue(true);
+  it('deletes the goal with the preview revision then navigates back', async () => {
+    deletionDialogResult = deletionCommand;
     fixture.detectChanges();
 
     query('delete-savings-goal-button').nativeElement.click();
     await fixture.whenStable();
 
-    expect(mockStore.removeGoal).toHaveBeenCalledWith('goal-1');
+    expect(mockDialog.open).toHaveBeenCalledWith(GoalDeletionDialog, {
+      data: {
+        goalId: 'goal-1',
+        goalName: 'Vacances été 2027',
+        currency: 'CHF',
+        locale: 'en-US',
+        payDayOfMonth: 25,
+      },
+      width: '720px',
+      maxWidth: '95vw',
+      height: '90dvh',
+      maxHeight: '90dvh',
+      injector: expect.anything(),
+    });
+    expect(mockStore.deleteGoal).toHaveBeenCalledWith(
+      'goal-1',
+      deletionCommand,
+    );
     expect(navigate).toHaveBeenCalledWith(['/', 'savings-goals']);
   });
 
-  it('does not delete when the confirmation is declined', async () => {
-    mockDialogs.confirmDelete.mockResolvedValue(false);
+  it('does not delete when the impact dialog is dismissed', async () => {
     fixture.detectChanges();
 
     query('delete-savings-goal-button').nativeElement.click();
     await fixture.whenStable();
 
-    expect(mockStore.removeGoal).not.toHaveBeenCalled();
+    expect(mockStore.deleteGoal).not.toHaveBeenCalled();
+  });
+
+  it('stays on the goal when the displayed deletion impact changed', async () => {
+    deletionDialogResult = deletionCommand;
+    mockStore.deleteGoal.mockRejectedValueOnce(
+      new ApiError(
+        'Impact changed',
+        API_ERROR_CODES.SAVINGS_GOAL_DELETION_IMPACT_CHANGED,
+        409,
+        null,
+      ),
+    );
+    fixture.detectChanges();
+
+    query('delete-savings-goal-button').nativeElement.click();
+    await fixture.whenStable();
+
+    expect(navigate).not.toHaveBeenCalled();
+    expect(snackBarOpen).toHaveBeenCalledWith(
+      'Les éléments rattachés ont changé entre-temps — ouvre à nouveau la suppression pour vérifier le nouvel impact',
+      'Fermer',
+      expect.objectContaining({ duration: 5000 }),
+    );
+  });
+
+  it('navigates after a committed deletion with recalculation failure', async () => {
+    deletionDialogResult = deletionCommand;
+    mockStore.deleteGoal.mockRejectedValueOnce(
+      new ApiError(
+        'Deletion committed',
+        API_ERROR_CODES.SAVINGS_GOAL_DELETION_RECALCULATION_FAILED,
+        500,
+        null,
+      ),
+    );
+    fixture.detectChanges();
+
+    query('delete-savings-goal-button').nativeElement.click();
+    await fixture.whenStable();
+
+    expect(navigate).toHaveBeenCalledWith(['/', 'savings-goals']);
+    expect(snackBarOpen).toHaveBeenCalledWith(
+      "L'objectif et les éléments choisis ont bien été supprimés, mais les soldes n'ont pas pu être actualisés — recharge les budgets sans relancer la suppression",
+      'Fermer',
+      expect.objectContaining({ duration: 5000 }),
+    );
   });
 
   it('shows the loading state while progress is loading', () => {

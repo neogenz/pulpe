@@ -176,6 +176,123 @@ function shiftPeriod(
   };
 }
 
+interface DeletionSeed {
+  user: { id: string; client: SupabaseClient<Database> };
+  goalId: string;
+  templateLineId: string;
+  budgetIds: string[];
+  budgetLineIds: string[];
+  transactionId: string;
+}
+
+interface DeletionImpactPayload {
+  budgets: unknown[];
+  revision: Database['public']['Functions']['apply_savings_goal_deletion']['Args']['p_revision'];
+}
+
+async function seedDeletionImpact(budgetCount = 1): Promise<DeletionSeed> {
+  const user = await makeUser(`sg-impact-${crypto.randomUUID()}@test.local`);
+  createdUserIds.push(user.id);
+  const goalId = crypto.randomUUID();
+  const templateId = crypto.randomUUID();
+  const templateLineId = crypto.randomUUID();
+  const budgetIds = Array.from({ length: budgetCount }, () =>
+    crypto.randomUUID(),
+  );
+  const budgetLineIds = Array.from({ length: budgetCount }, () =>
+    crypto.randomUUID(),
+  );
+  const transactionId = crypto.randomUUID();
+
+  const inserts = await Promise.all([
+    admin.from('savings_goal').insert({
+      id: goalId,
+      user_id: user.id,
+      name: 'Maison',
+      target_amount: 'enc:10000',
+      target_date: '2099-01-01',
+      status: 'ACTIVE',
+    }),
+    admin.from('template').insert({
+      id: templateId,
+      user_id: user.id,
+      name: 'Mois Type',
+      is_default: true,
+    }),
+  ]);
+  for (const result of inserts) expect(result.error).toBeNull();
+
+  const templateLine = await admin.from('template_line').insert({
+    id: templateLineId,
+    template_id: templateId,
+    name: 'Épargne maison',
+    amount: 'enc:100',
+    kind: 'saving',
+    recurrence: 'fixed',
+    savings_goal_id: goalId,
+  });
+  expect(templateLine.error).toBeNull();
+
+  const budgets = await admin.from('monthly_budget').insert(
+    budgetIds.map((id, index) => ({
+      id,
+      user_id: user.id,
+      template_id: templateId,
+      month: (index % 12) + 1,
+      year: 2090 + Math.floor(index / 12),
+      description: '',
+    })),
+  );
+  expect(budgets.error).toBeNull();
+
+  const lines = await admin.from('budget_line').insert(
+    budgetLineIds.map((id, index) => ({
+      id,
+      budget_id: budgetIds[index],
+      template_line_id: templateLineId,
+      name: `Épargne ${index + 1}`,
+      amount: 'enc:100',
+      kind: 'saving' as const,
+      recurrence: 'fixed' as const,
+      is_manually_adjusted: false,
+      savings_goal_id: goalId,
+    })),
+  );
+  expect(lines.error).toBeNull();
+
+  const transaction = await admin.from('transaction').insert({
+    id: transactionId,
+    budget_id: budgetIds[0],
+    budget_line_id: budgetLineIds[0],
+    name: 'Virement',
+    amount: 'enc:50',
+    kind: 'saving',
+    transaction_date: '2090-01-05T00:00:00Z',
+  });
+  expect(transaction.error).toBeNull();
+
+  return {
+    user,
+    goalId,
+    templateLineId,
+    budgetIds,
+    budgetLineIds,
+    transactionId,
+  };
+}
+
+async function getDeletionImpact(
+  seed: DeletionSeed,
+): Promise<DeletionImpactPayload> {
+  const { data, error } = await seed.user.client.rpc(
+    'get_savings_goal_deletion_impact',
+    { p_goal_id: seed.goalId },
+  );
+  expect(error).toBeNull();
+  if (!data) throw new Error('Deletion impact missing');
+  return data as unknown as DeletionImpactPayload;
+}
+
 beforeAll(async () => {
   try {
     env = await ensureSupabaseAvailable();
@@ -496,5 +613,160 @@ describe('PUL-12 — savings_goal DB integration', () => {
       savings_goal_id: foreignGoalId,
     });
     expect(budgetLine.error).not.toBeNull();
+  });
+
+  it.each([
+    ['goal_only', true, true, true, null],
+    ['goal_and_forecasts', false, false, true, null],
+    ['goal_forecasts_and_transactions', false, false, false, null],
+  ] as const)(
+    'PUL-319: %s applies the exact deletion scope',
+    async (
+      mode,
+      keepsTemplateLine,
+      keepsBudgetLine,
+      keepsTransaction,
+      expectedGoalLink,
+    ) => {
+      if (!env) return;
+      const seed = await seedDeletionImpact();
+      const impact = await getDeletionImpact(seed);
+
+      const { data, error } = await seed.user.client.rpc(
+        'apply_savings_goal_deletion',
+        {
+          p_goal_id: seed.goalId,
+          p_mode: mode,
+          p_revision: impact.revision,
+        },
+      );
+
+      expect(error).toBeNull();
+      expect(data?.length).toBe(mode === 'goal_only' ? 0 : 1);
+
+      const [goal, templateLine, budgetLine, transaction] = await Promise.all([
+        admin.from('savings_goal').select('id').eq('id', seed.goalId),
+        admin
+          .from('template_line')
+          .select('id, savings_goal_id')
+          .eq('id', seed.templateLineId),
+        admin
+          .from('budget_line')
+          .select('id, savings_goal_id')
+          .eq('id', seed.budgetLineIds[0]),
+        admin
+          .from('transaction')
+          .select('id, budget_line_id')
+          .eq('id', seed.transactionId),
+      ]);
+
+      expect(goal.data).toHaveLength(0);
+      expect(templateLine.data).toHaveLength(keepsTemplateLine ? 1 : 0);
+      expect(budgetLine.data).toHaveLength(keepsBudgetLine ? 1 : 0);
+      if (keepsTemplateLine) {
+        expect(templateLine.data?.[0]?.savings_goal_id).toBe(expectedGoalLink);
+      }
+      if (keepsBudgetLine) {
+        expect(budgetLine.data?.[0]?.savings_goal_id).toBe(expectedGoalLink);
+      }
+      expect(transaction.data).toHaveLength(keepsTransaction ? 1 : 0);
+      if (keepsTransaction) {
+        expect(transaction.data?.[0]?.budget_line_id).toBe(
+          keepsBudgetLine ? seed.budgetLineIds[0] : null,
+        );
+      }
+    },
+  );
+
+  it('PUL-319: rejects a stale preview and rolls back every mutation', async () => {
+    if (!env) return;
+    const seed = await seedDeletionImpact();
+    const impact = await getDeletionImpact(seed);
+
+    const changed = await admin
+      .from('budget_line')
+      .update({ name: 'Épargne modifiée' })
+      .eq('id', seed.budgetLineIds[0]);
+    expect(changed.error).toBeNull();
+
+    const { error } = await seed.user.client.rpc(
+      'apply_savings_goal_deletion',
+      {
+        p_goal_id: seed.goalId,
+        p_mode: 'goal_forecasts_and_transactions',
+        p_revision: impact.revision,
+      },
+    );
+
+    expect(error?.message ?? '').toContain(
+      'Savings goal deletion impact changed',
+    );
+    const [goal, lines, transactions] = await Promise.all([
+      admin.from('savings_goal').select('id').eq('id', seed.goalId),
+      admin
+        .from('budget_line')
+        .select('id, savings_goal_id')
+        .in('id', seed.budgetLineIds),
+      admin
+        .from('transaction')
+        .select('id, budget_line_id')
+        .eq('id', seed.transactionId),
+    ]);
+    expect(goal.data).toHaveLength(1);
+    expect(lines.data).toHaveLength(1);
+    expect(lines.data?.[0]?.savings_goal_id).toBe(seed.goalId);
+    expect(transactions.data).toHaveLength(1);
+    expect(transactions.data?.[0]?.budget_line_id).toBe(seed.budgetLineIds[0]);
+  });
+
+  it('PUL-319: hides preview and mutation from another user', async () => {
+    if (!env) return;
+    const seed = await seedDeletionImpact();
+    const attacker = await makeUser(
+      `sg-impact-attacker-${crypto.randomUUID()}@test.local`,
+    );
+    createdUserIds.push(attacker.id);
+    const impact = await getDeletionImpact(seed);
+
+    const preview = await attacker.client.rpc(
+      'get_savings_goal_deletion_impact',
+      { p_goal_id: seed.goalId },
+    );
+    expect(preview.error?.message ?? '').toContain(
+      'Savings goal access denied',
+    );
+
+    const deletion = await attacker.client.rpc('apply_savings_goal_deletion', {
+      p_goal_id: seed.goalId,
+      p_mode: 'goal_only',
+      p_revision: impact.revision,
+    });
+    expect(deletion.error?.message ?? '').toContain(
+      'Savings goal access denied',
+    );
+  });
+
+  it('PUL-319: previews and removes all lines across 76 budgets', async () => {
+    if (!env) return;
+    const seed = await seedDeletionImpact(76);
+    const impact = await getDeletionImpact(seed);
+
+    expect(impact.budgets).toHaveLength(76);
+    const { data, error } = await seed.user.client.rpc(
+      'apply_savings_goal_deletion',
+      {
+        p_goal_id: seed.goalId,
+        p_mode: 'goal_and_forecasts',
+        p_revision: impact.revision,
+      },
+    );
+
+    expect(error).toBeNull();
+    expect(data).toHaveLength(76);
+    const remaining = await admin
+      .from('budget_line')
+      .select('id')
+      .in('id', seed.budgetLineIds);
+    expect(remaining.data).toHaveLength(0);
   });
 });
