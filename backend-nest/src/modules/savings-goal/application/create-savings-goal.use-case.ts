@@ -132,6 +132,7 @@ export class CreateSavingsGoalUseCase {
     await this.templateLinePropagation.createLineAndPropagate({
       templateId,
       userId: user.id,
+      payDayOfMonth: user.payDayOfMonth ?? null,
       name: goal.name,
       amount: monthlyContribution,
       kind: 'saving',

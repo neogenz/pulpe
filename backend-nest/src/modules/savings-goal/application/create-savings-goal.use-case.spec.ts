@@ -289,6 +289,7 @@ describe('CreateSavingsGoalUseCase — contribution plans', () => {
     expect(propagation.createLineAndPropagate).toHaveBeenCalledWith({
       templateId: 'template-1',
       userId: user.id,
+      payDayOfMonth: user.payDayOfMonth,
       name: 'Matelas',
       amount: 250,
       kind: 'saving',

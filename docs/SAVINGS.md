@@ -100,8 +100,11 @@ Si une Prévision passe de `saving` à un autre `kind`, `savingsGoalId` est forc
 - **Maintenance** : les prévisions générées sont ensuite des Prévisions comme les autres, modifiables et supprimables une par une. Le nom de l'objectif ne leur sert que de **valeur initiale**. Pulpe ne recalcule **jamais** leur montant en silence (« Redistribution jamais silencieuse ») : la dérive se gère via le simulateur (§10).
 
 Un objectif **sans échéance** est un horizon ouvert : la création ne tente pas
-de matérialiser une liste finie de `one_off`. Sa timeline s'arrête au dernier
-mois lié, avec un plancher au cycle courant.
+de matérialiser une liste finie de `one_off`. Si la mensualité est activée, elle
+reste une `template_line` récurrente et sa propagation commence au cycle courant
+calculé avec `payDayOfMonth` — y compris le budget du mois civil précédent avant
+le jour de paie. Sa timeline s'arrête au dernier mois lié, avec un plancher au
+cycle courant.
 
 ---
 
@@ -243,6 +246,14 @@ Deux couches, deux sémantiques — ne jamais les confondre dans l'UI :
 
 **Arrêt de génération par échéance (PUL-311)** : l'objectif restant `ACTIVE`, le prédicat de statut ne suffit pas à stopper la génération — `create_budget_from_template` saute **aussi** les `template_line` liées à un objectif dont la période d'échéance précède celle du budget matérialisé. La borne est décidée par l'appelant (TypeScript, payDay-aware via `getBudgetPeriodForDate`) et transmise à la RPC sous forme d'ids à exclure : `payDayOfMonth` vit dans `auth.users.user_metadata`, illisible depuis une fonction SQL SECURITY INVOKER, et réimplémenter la règle quinzaine en PL/pgSQL dupliquerait une formule canonique de `shared/`. Comme pour l'arrêt par statut, les Prévisions **déjà générées** ne sont jamais supprimées rétroactivement.
 
+**Raccourcissement d'échéance (PUL-313)** : le client confirme la liste complète
+des Prévisions désormais hors horizon, sans plafond arbitraire sur leur nombre ;
+la RPC verrouille l'objectif, reconstitue cette liste puis applique atomiquement
+`freeze` ou `remove` avec la nouvelle date. Le trigger de cohérence verrouille le
+même objectif lors de tout nouveau rattachement et refuse une période strictement
+postérieure à sa borne payDay-aware : une création concurrente ne peut donc ni
+échapper à la réconciliation, ni laisser un lien hors horizon.
+
 > Depuis PUL-316, la création d'un objectif ne pose plus de `template_line` (§3.5), donc ce garde-fou ne protège plus que deux cas : les objectifs créés **avant** PUL-316, dont la ligne de Mois Type subsiste, et les rattachements **manuels** faits depuis le Mois Type. Il reste donc nécessaire.
 
 **Complétion suggérée** : quand `confirmed ≥ targetAmount`, Pulpe propose « marquer terminé ? ». Le statut ne change jamais sans confirmation de l'utilisateur.
@@ -315,7 +326,7 @@ Le simulateur répond à « qu'est-ce que je fais maintenant ? » sans modifier 
 - `plannedProjection = initialAmount + Σ Prévisions liées` dans l'intervalle ;
 - `estimatedCompletion`, période d'atteinte estimée au rythme pointé, ou `null` si elle n'est pas calculable ;
 - `initialAmount`, le montant de départ déchiffré (0 si absent) — écho pour l'affichage et le seed des simulations client ;
-- `months[]`, une ligne par période avec état temporel, montants prévu/pointé/cumulés, lignes liées et capacité de provisioning. Le cumul confirmé est **seedé** à `initialAmount` : `months[indexCourant].confirmedCumulative == confirmed`.
+- `months[]`, une ligne par période avec état temporel, montants prévu/pointé/cumulés, lignes liées et capacité de provisioning. Le cumul confirmé est **seedé** à `initialAmount` dès la première ligne rendue, même si elle précède `startDate` ; au cycle courant, il est égal à `confirmed`.
 
 La timeline est payDay-aware. Une timeline datée reste bornée à 120 périodes ;
 une timeline ouverte n'est pas plafonnée et finit au dernier mois lié ou au

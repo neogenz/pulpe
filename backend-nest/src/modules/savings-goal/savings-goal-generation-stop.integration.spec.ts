@@ -436,6 +436,101 @@ describe('PUL-313 — reconcile_savings_goal_target_date (RPC integration)', () 
     expect(goal.data?.target_date).toBe('2099-12-01');
   });
 
+  it('never commits an advanced deadline with a concurrent out-of-horizon link', async () => {
+    if (!env) return;
+
+    const seed = await seedGoalWithBudgets([7]);
+    const concurrentLineId = crypto.randomUUID();
+
+    const [reconciliation, insertion] = await Promise.all([
+      seed.user.client.rpc('reconcile_savings_goal_target_date', {
+        p_goal_id: seed.goalId,
+        p_mode: 'remove',
+        p_budget_line_ids: [],
+        p_expected_target_date: expectedTargetDate,
+        p_patch: { target_date: targetDate },
+      }),
+      admin.from('budget_line').insert({
+        id: concurrentLineId,
+        budget_id: seed.budgetIdByMonth.get(7)!,
+        name: 'Épargne concurrente',
+        amount: 'enc',
+        kind: 'saving',
+        recurrence: 'fixed',
+        savings_goal_id: seed.goalId,
+      }),
+    ]);
+
+    const goal = await admin
+      .from('savings_goal')
+      .select('target_date')
+      .eq('id', seed.goalId)
+      .single();
+    const linkedLine = await admin
+      .from('budget_line')
+      .select('savings_goal_id')
+      .eq('id', concurrentLineId)
+      .maybeSingle();
+
+    expect(
+      goal.data?.target_date === targetDate &&
+        linkedLine.data?.savings_goal_id === seed.goalId,
+    ).toBe(false);
+    if (goal.data?.target_date === targetDate) {
+      expect(reconciliation.error).toBeNull();
+      expect(insertion.error?.message ?? '').toContain(
+        'Savings goal line outside target horizon',
+      );
+    } else {
+      expect(reconciliation.error?.message ?? '').toContain(
+        'Savings goal reconciliation conflict',
+      );
+      expect(insertion.error).toBeNull();
+    }
+  });
+
+  it('enforces the horizon only when a budget-line link changes', async () => {
+    if (!env) return;
+
+    const seed = await seedGoalWithBudgets([6, 7]);
+    const existingLateLine = await seedLinkedLine(seed, 7);
+    const { error: targetUpdateError } = await admin
+      .from('savings_goal')
+      .update({ target_date: '2099-06-01' })
+      .eq('id', seed.goalId);
+    expect(targetUpdateError).toBeNull();
+
+    const inHorizonLine = await seedLinkedLine(seed, 6);
+    const inHorizon = await admin
+      .from('budget_line')
+      .select('id')
+      .eq('id', inHorizonLine)
+      .single();
+    expect(inHorizon.data?.id).toBe(inHorizonLine);
+
+    const { error: lateInsertError } = await admin.from('budget_line').insert({
+      id: crypto.randomUUID(),
+      budget_id: seed.budgetIdByMonth.get(7)!,
+      name: 'Épargne tardive',
+      amount: 'enc',
+      kind: 'saving',
+      recurrence: 'fixed',
+      savings_goal_id: seed.goalId,
+    });
+    expect(lateInsertError?.message ?? '').toContain(
+      'Savings goal line outside target horizon',
+    );
+
+    const { error: historicalUpdateError } = await admin
+      .from('budget_line')
+      .update({
+        amount: 'enc-updated',
+        savings_goal_id: seed.goalId,
+      })
+      .eq('id', existingLateLine);
+    expect(historicalUpdateError).toBeNull();
+  });
+
   it.each([
     ['foreign id', {}],
     ['line became checked', { checkedAt: '2099-07-01T00:00:00Z' }],

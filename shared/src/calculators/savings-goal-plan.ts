@@ -148,8 +148,7 @@ export function buildSavingsGoalTimeline(
 
   const months: SavingsPlanTimelineMonth[] = [];
   let plannedCumulative = 0;
-  let confirmedCumulative =
-    historicalAnchorIndex < startIndex ? (input.initialAmount ?? 0) : 0;
+  let confirmedCumulative = input.initialAmount ?? 0;
 
   for (let index = startIndex; index <= endIndex; index++) {
     const period = periodFromIndex(index);
@@ -172,9 +171,6 @@ export function buildSavingsGoalTimeline(
     if (isInHistoricalInterval) {
       plannedCumulative += plannedAmount;
       confirmedCumulative += confirmedAmount;
-      if (index === historicalAnchorIndex) {
-        confirmedCumulative += input.initialAmount ?? 0;
-      }
     }
 
     const hasLines = monthLines.length > 0;

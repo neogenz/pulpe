@@ -1144,5 +1144,40 @@ describe('SupabaseSavingsGoalRepository', () => {
         code: 'ERR_SAVINGS_GOAL_RECONCILIATION_CONFLICT',
       });
     });
+
+    it('keeps an unexpected database error only in the cause chain', async () => {
+      const dbError = { code: 'XX000', message: 'database unavailable' };
+      const rpc = jest.fn().mockResolvedValue({ data: null, error: dbError });
+      const provider = {
+        get client() {
+          return { rpc } as unknown as AuthenticatedSupabaseClient;
+        },
+        get user() {
+          return mockUser;
+        },
+      } as AuthenticatedSupabaseProvider;
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      let caught: unknown;
+      try {
+        await repo.reconcileTargetDate(goalId, {
+          patch: { targetDate: '2030-03-15' },
+          reconciliation: { mode: 'remove', budgetLineIds: [lineId] },
+          expectedTargetDate: '2030-05-15',
+        });
+      } catch (error) {
+        caught = error;
+      }
+
+      expect(caught).toBeInstanceOf(BusinessException);
+      expect((caught as BusinessException).cause).toBe(dbError);
+      expect((caught as BusinessException).loggingContext).toEqual({
+        operation: 'reconcileSavingsGoalTargetDate',
+        entityType: 'savings_goal',
+      });
+    });
   });
 });

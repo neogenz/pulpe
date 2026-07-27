@@ -6,6 +6,7 @@ import { TemplateLinePropagationAdapter } from './template-line-propagation.adap
 const input = {
   templateId: 'template-1',
   userId: 'user-1',
+  payDayOfMonth: 5,
   savingsGoalId: 'goal-1',
   name: 'Maison',
   amount: 250,
@@ -43,7 +44,7 @@ describe('TemplateLinePropagationAdapter', () => {
         delete: [],
         propagateToBudgets: true,
       },
-      { id: 'user-1' },
+      { id: 'user-1', payDayOfMonth: 5 },
     );
   });
 

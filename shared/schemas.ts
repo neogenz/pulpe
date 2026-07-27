@@ -266,7 +266,7 @@ export const MAX_SAVINGS_GOAL_PLAN_PERIODS = 120;
 export const savingsGoalReconciliationSchema = z
   .strictObject({
     mode: z.enum(['freeze', 'remove']),
-    budgetLineIds: z.array(z.uuid()).min(1).max(MAX_SAVINGS_GOAL_PLAN_PERIODS),
+    budgetLineIds: z.array(z.uuid()).min(1),
   })
   .refine(
     (value) => new Set(value.budgetLineIds).size === value.budgetLineIds.length,

@@ -8,6 +8,7 @@ export const TEMPLATE_LINE_PROPAGATION_PORT = Symbol(
 export interface LinkedTemplateLineCreateInput {
   templateId: string;
   userId: string;
+  payDayOfMonth: number | null;
   name: string;
   amount: number;
   kind: TransactionKind;

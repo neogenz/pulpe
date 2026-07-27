@@ -5,6 +5,7 @@ import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import {
+  getBudgetPeriodForDate,
   type TemplateLinesBulkOperations,
   type TemplateLinesPropagationSummary,
   templateLinesBulkOperationsSchema,
@@ -57,7 +58,7 @@ export class BulkTemplateLineOperationsUseCase {
   async execute(
     templateId: string,
     bulkOperationsDto: TemplateLinesBulkOperations,
-    user: Pick<AuthenticatedUser, 'id'>,
+    user: Pick<AuthenticatedUser, 'id' | 'payDayOfMonth'>,
   ): Promise<BulkTemplateLineOperationsResult> {
     const startTime = Date.now();
 
@@ -84,7 +85,11 @@ export class BulkTemplateLineOperationsUseCase {
     let createdLines = await this.toRpcCreates(rawCreates);
 
     const propagationBudgets = validated.propagateToBudgets
-      ? await this.fetchPropagationBudgets(templateId, user.id)
+      ? await this.fetchPropagationBudgets(
+          templateId,
+          user.id,
+          user.payDayOfMonth ?? null,
+        )
       : [];
     const budgetIds = propagationBudgets.map((budget) => budget.id);
     ({ updatedLines, createdLines } = await this.withHorizonExclusions(
@@ -164,12 +169,13 @@ export class BulkTemplateLineOperationsUseCase {
   private async fetchPropagationBudgets(
     templateId: string,
     userId: string,
+    payDayOfMonth: number | null,
   ): Promise<MaterializedBudgetPeriod[]> {
-    const now = new Date();
-    const budgets = await this.repo.fetchFutureBudgets(templateId, userId, {
-      year: now.getUTCFullYear(),
-      month: now.getUTCMonth() + 1,
-    });
+    const budgets = await this.repo.fetchFutureBudgets(
+      templateId,
+      userId,
+      getBudgetPeriodForDate(new Date(), payDayOfMonth),
+    );
     return budgets;
   }
 

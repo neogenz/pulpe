@@ -34,7 +34,7 @@ export class TemplateLinePropagationAdapter implements TemplateLinePropagationPo
         delete: [],
         propagateToBudgets: true,
       },
-      { id: input.userId },
+      { id: input.userId, payDayOfMonth: input.payDayOfMonth },
     );
 
     const [createdLine] = result.createdLines;

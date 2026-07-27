@@ -341,6 +341,26 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
       );
     });
 
+    it('starts propagation at the active pay-day period before payday', async () => {
+      const realNow = new Date();
+      jest.setSystemTime(new Date(2026, 6, 4, 12));
+
+      try {
+        await useCase.execute('template-1', createPayload, {
+          ...mockUser,
+          payDayOfMonth: 5,
+        });
+      } finally {
+        jest.setSystemTime(realNow);
+      }
+
+      expect(mockRepo.fetchFutureBudgets).toHaveBeenCalledWith(
+        'template-1',
+        mockUser.id,
+        { month: 6, year: 2026 },
+      );
+    });
+
     it('resolves distinct horizons once and attaches exclusions per linked line', async () => {
       const goalA = '8a0f6c80-1234-4e5f-89ab-111111111111';
       const goalB = '8a0f6c80-1234-4e5f-89ab-222222222222';

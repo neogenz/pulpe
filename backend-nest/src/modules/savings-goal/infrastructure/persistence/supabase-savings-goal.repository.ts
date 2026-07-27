@@ -521,7 +521,6 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       {
         operation: 'reconcileSavingsGoalTargetDate',
         entityType: 'savings_goal',
-        supabaseError: error,
       },
       { cause: error ?? undefined },
     );

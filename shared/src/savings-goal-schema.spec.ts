@@ -220,6 +220,18 @@ describe('PUL-314 — optional savings interval contract', () => {
     expect(result.success).toBe(false);
   });
 
+  test('accepts an exact reconciliation snapshot containing more than 120 lines', () => {
+    const result = savingsGoalUpdateSchema.safeParse({
+      targetDate: isoDateOffsetDays(15),
+      reconciliation: {
+        mode: 'remove',
+        budgetLineIds: Array.from({ length: 121 }, () => crypto.randomUUID()),
+      },
+    });
+
+    expect(result.success).toBe(true);
+  });
+
   test('validates the optional targetDate preview query strictly', () => {
     expect(savingsGoalFutureLinesQuerySchema.safeParse({}).success).toBe(true);
     expect(

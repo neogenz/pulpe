@@ -195,6 +195,28 @@ describe('buildSavingsGoalTimeline', () => {
     );
   });
 
+  it('seeds initialAmount before a future start even without future lines', () => {
+    const timeline = buildSavingsGoalTimeline({
+      targetAmount: null,
+      status: 'ACTIVE',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      startDate: '2026-03-15',
+      targetDate: null,
+      initialAmount: 500,
+      now: new Date(2026, 0, 15),
+      lines: [],
+      transactions: [],
+    });
+
+    expect(timeline).toHaveLength(1);
+    expect(timeline[0]).toMatchObject({
+      month: 1,
+      isContributionEligible: false,
+      plannedCumulative: 0,
+      confirmedCumulative: 500,
+    });
+  });
+
   it('should produce an identical timeline whether initialAmount is absent or 0', () => {
     const absent = buildSavingsGoalTimeline(input);
     const zero = buildSavingsGoalTimeline({ ...input, initialAmount: 0 });
