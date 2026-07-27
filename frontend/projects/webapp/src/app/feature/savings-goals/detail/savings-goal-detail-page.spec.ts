@@ -11,8 +11,10 @@ import {
 import { By } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 import { registerLocaleData } from '@angular/common';
+import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import localeDE from '@angular/common/locales/de-CH';
+import { of } from 'rxjs';
 import {
   API_ERROR_CODES,
   type SavingsGoal,
@@ -32,6 +34,7 @@ import { GoalProjectionChart } from './components/goal-projection-chart';
 import { GoalPlanTimeline } from './components/goal-plan-timeline';
 import { GoalPlanSimulatorToolbar } from './components/goal-plan-simulator-toolbar';
 import { GoalContributionsList } from './components/goal-contributions-list';
+import { GoalDeletionDialog } from './components/goal-deletion-dialog';
 import { setTestInput } from '../../../testing/signal-test-utils';
 import { provideTranslocoForTest } from '../../../testing/transloco-testing';
 
@@ -204,6 +207,12 @@ describe('SavingsGoalDetailPage', () => {
   const snackBarOpen = vi.fn();
 
   const futureLinesSig = signal<SavingsGoalFutureLine[]>([]);
+  let deletionDialogResult: SavingsGoalDeletionCommand | undefined;
+  const mockDialog = {
+    open: vi.fn().mockImplementation(() => ({
+      afterClosed: () => of(deletionDialogResult),
+    })),
+  };
 
   const mockStore = {
     selectedGoal: goalSig,
@@ -231,7 +240,6 @@ describe('SavingsGoalDetailPage', () => {
   const mockDialogs = {
     openEdit: vi.fn(),
     openGenerationStop: vi.fn(),
-    openDeletion: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -244,6 +252,7 @@ describe('SavingsGoalDetailPage', () => {
     listInitialLoadingSig.set(false);
     listErrorSig.set(null);
     futureLinesSig.set([]);
+    deletionDialogResult = undefined;
     vi.clearAllMocks();
 
     await TestBed.configureTestingModule({
@@ -253,6 +262,7 @@ describe('SavingsGoalDetailPage', () => {
         ...provideTranslocoForTest(),
         { provide: SavingsGoalStore, useValue: mockStore },
         { provide: SavingsGoalsDialogService, useValue: mockDialogs },
+        { provide: MatDialog, useValue: mockDialog },
         {
           provide: UserSettingsStore,
           useValue: { currency: signal('CHF'), payDayOfMonth: signal(25) },
@@ -501,18 +511,24 @@ describe('SavingsGoalDetailPage', () => {
   });
 
   it('deletes the goal with the preview revision then navigates back', async () => {
-    mockDialogs.openDeletion.mockResolvedValue(deletionCommand);
+    deletionDialogResult = deletionCommand;
     fixture.detectChanges();
 
     query('delete-savings-goal-button').nativeElement.click();
     await fixture.whenStable();
 
-    expect(mockDialogs.openDeletion).toHaveBeenCalledWith({
-      goalId: 'goal-1',
-      goalName: 'Vacances été 2027',
-      currency: 'CHF',
-      locale: 'en-US',
-      payDayOfMonth: 25,
+    expect(mockDialog.open).toHaveBeenCalledWith(GoalDeletionDialog, {
+      data: {
+        goalId: 'goal-1',
+        goalName: 'Vacances été 2027',
+        currency: 'CHF',
+        locale: 'en-US',
+        payDayOfMonth: 25,
+      },
+      width: '720px',
+      maxWidth: '95vw',
+      height: '90dvh',
+      maxHeight: '90dvh',
     });
     expect(mockStore.deleteGoal).toHaveBeenCalledWith(
       'goal-1',
@@ -522,7 +538,6 @@ describe('SavingsGoalDetailPage', () => {
   });
 
   it('does not delete when the impact dialog is dismissed', async () => {
-    mockDialogs.openDeletion.mockResolvedValue(undefined);
     fixture.detectChanges();
 
     query('delete-savings-goal-button').nativeElement.click();
@@ -532,7 +547,7 @@ describe('SavingsGoalDetailPage', () => {
   });
 
   it('stays on the goal when the displayed deletion impact changed', async () => {
-    mockDialogs.openDeletion.mockResolvedValue(deletionCommand);
+    deletionDialogResult = deletionCommand;
     mockStore.deleteGoal.mockRejectedValueOnce(
       new ApiError(
         'Impact changed',
@@ -555,7 +570,7 @@ describe('SavingsGoalDetailPage', () => {
   });
 
   it('navigates after a committed deletion with recalculation failure', async () => {
-    mockDialogs.openDeletion.mockResolvedValue(deletionCommand);
+    deletionDialogResult = deletionCommand;
     mockStore.deleteGoal.mockRejectedValueOnce(
       new ApiError(
         'Deletion committed',

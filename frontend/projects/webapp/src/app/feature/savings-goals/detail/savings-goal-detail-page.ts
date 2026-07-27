@@ -18,14 +18,16 @@ import {
 import { DatePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
-import { debounceTime } from 'rxjs';
+import { debounceTime, firstValueFrom } from 'rxjs';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import {
   API_ERROR_CODES,
+  type SavingsGoalDeletionCommand,
   type SavingsGoalFutureLine,
   type SavingsGoalPaceStatus,
   type SavingsGoalStatus,
@@ -41,6 +43,10 @@ import { BaseLoading } from '@ui/loading';
 import { StateCard } from '@ui/state-card/state-card';
 import { SavingsGoalStore } from '../services/savings-goals-store';
 import { SavingsGoalsDialogService } from '../services/savings-goals-dialog.service';
+import {
+  GoalDeletionDialog,
+  type GoalDeletionDialogData,
+} from './components/goal-deletion-dialog';
 import { type GoalGenerationStopDecision } from './components/goal-generation-stop-dialog';
 import { GoalPlanSimulatorStore } from './services/goal-plan-simulator-store';
 import { GoalProjectionChart } from './components/goal-projection-chart';
@@ -632,6 +638,7 @@ export default class SavingsGoalDetailPage {
   protected readonly simulator = inject(GoalPlanSimulatorStore);
   readonly #settings = inject(UserSettingsStore);
   readonly #dialogs = inject(SavingsGoalsDialogService);
+  readonly #dialog = inject(MatDialog);
   readonly #router = inject(Router);
   readonly #snackBar = inject(MatSnackBar);
   readonly #transloco = inject(TranslocoService);
@@ -798,13 +805,24 @@ export default class SavingsGoalDetailPage {
   protected async onDelete(): Promise<void> {
     const goal = this.goal();
     if (!goal) return;
-    const command = await this.#dialogs.openDeletion({
-      goalId: goal.id,
-      goalName: goal.name,
-      currency: this.currency(),
-      locale: this.locale,
-      payDayOfMonth: this.payDayOfMonth(),
+    const dialogRef = this.#dialog.open<
+      GoalDeletionDialog,
+      GoalDeletionDialogData,
+      SavingsGoalDeletionCommand
+    >(GoalDeletionDialog, {
+      data: {
+        goalId: goal.id,
+        goalName: goal.name,
+        currency: this.currency(),
+        locale: this.locale,
+        payDayOfMonth: this.payDayOfMonth(),
+      },
+      width: '720px',
+      maxWidth: '95vw',
+      height: '90dvh',
+      maxHeight: '90dvh',
     });
+    const command = await firstValueFrom(dialogRef.afterClosed());
     if (!command) return;
     try {
       await this.store.deleteGoal(goal.id, command);

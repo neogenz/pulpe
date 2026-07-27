@@ -5,9 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import type {
   SavingsGoal,
   SavingsGoalCreate,
-  SavingsGoalDeletionCommand,
   SavingsGoalUpdate,
-  SupportedCurrency,
 } from 'pulpe-shared';
 import {
   ConfirmationDialog,
@@ -26,10 +24,6 @@ import {
   type GoalGenerationStopDecision,
   type GoalGenerationStopDialogData,
 } from '../detail/components/goal-generation-stop-dialog';
-import {
-  GoalDeletionDialog,
-  type GoalDeletionDialogData,
-} from '../detail/components/goal-deletion-dialog';
 
 @Service({ autoProvided: false })
 export class SavingsGoalsDialogService {
@@ -72,23 +66,6 @@ export class SavingsGoalsDialogService {
       data,
       width: '480px',
       maxWidth: '90vw',
-    });
-    return firstValueFrom(dialogRef.afterClosed());
-  }
-
-  async openDeletion(data: {
-    goalId: string;
-    goalName: string;
-    currency: SupportedCurrency;
-    locale: string;
-    payDayOfMonth: number | null;
-  }): Promise<SavingsGoalDeletionCommand | undefined> {
-    const dialogRef = this.#dialog.open(GoalDeletionDialog, {
-      data: data satisfies GoalDeletionDialogData,
-      width: '720px',
-      maxWidth: '95vw',
-      height: '90dvh',
-      maxHeight: '90dvh',
     });
     return firstValueFrom(dialogRef.afterClosed());
   }

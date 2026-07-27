@@ -173,6 +173,16 @@ describe('GoalDeletionDialog', () => {
     } satisfies SavingsGoalDeletionCommand);
   });
 
+  it('masks the user-entered goal name in the introduction', async () => {
+    await createDialog();
+
+    const introduction = fixture.debugElement.query(
+      By.css('mat-dialog-content > p'),
+    );
+    expect(introduction.nativeElement.textContent).toContain('Vacances');
+    expect(introduction.nativeElement.classList).toContain('ph-no-capture');
+  });
+
   it('returns the forecast deletion mode with the displayed revision', async () => {
     await createDialog();
     const controls = component as unknown as DialogControls;
