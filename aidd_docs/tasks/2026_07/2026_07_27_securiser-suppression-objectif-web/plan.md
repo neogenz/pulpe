@@ -1,6 +1,6 @@
 ---
 objective: "Le parcours web de suppression d’un objectif ouvre le vrai dialogue depuis la route, affiche son impact et exécute le choix confirmé sans erreur d’injection, avec une régression E2E qui protège ce joint."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Sécuriser la suppression d’un objectif sur le web
