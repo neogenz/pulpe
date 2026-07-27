@@ -1,6 +1,6 @@
 ---
 objective: "Les résultats asynchrones liés aux tags respectent la session et la limite de dix, et aucun formulaire iOS n’affiche une sélection que son flux de sauvegarde ignore."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Corriger les findings de revue PUL-294
