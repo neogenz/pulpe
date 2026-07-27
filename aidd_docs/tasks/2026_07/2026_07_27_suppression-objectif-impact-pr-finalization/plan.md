@@ -1,6 +1,6 @@
 ---
 objective: "Le correctif de la PR #554 converge après un replay 404 et passe localement le runner Vitest réel sans élargir le périmètre."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Finaliser la suppression d’un objectif
