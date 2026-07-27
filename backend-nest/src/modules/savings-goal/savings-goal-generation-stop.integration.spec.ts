@@ -10,12 +10,22 @@
  * Skips cleanly when local Supabase is unreachable.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import { Buffer } from 'node:buffer';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import {
   ensureSupabaseAvailable,
   type SupabaseEnv,
 } from '@/test/local-supabase';
 import type { Database } from '@/types/database.types';
+import type { AuthenticatedUser } from '@common/decorators/user.decorator';
+import type { InfoLogger } from '@common/logger';
+import type { BudgetRecalculationPort } from '@modules/budget/domain/ports/budget-recalculation.port';
+import type { CacheService } from '@modules/cache/cache.service';
+import type { EncryptionPort } from '@modules/encryption/domain/ports/encryption.port';
+import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
+import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
+import { UpdateSavingsGoalUseCase } from './application/update-savings-goal.use-case';
+import { SupabaseSavingsGoalRepository } from './infrastructure/persistence/supabase-savings-goal.repository';
 
 const PASSWORD = 'test-password-123';
 // Budgets are seeded in 2099; month 4 is "past", months >= 5 are current/future.
@@ -43,6 +53,50 @@ async function makeUser(
   });
   if (signInError) throw new Error(`signIn failed: ${signInError.message}`);
   return { id: data.user.id, client };
+}
+
+function updateUseCaseFor(user: SeededGoal['user']): {
+  useCase: UpdateSavingsGoalUseCase;
+  repo: SupabaseSavingsGoalRepository;
+  authUser: AuthenticatedUser;
+} {
+  const authUser = {
+    id: user.id,
+    email: 'x@test.local',
+    accessToken: 'token',
+    clientKey: Buffer.alloc(32),
+  } as AuthenticatedUser;
+  const provider = {
+    get client() {
+      return user.client as unknown as AuthenticatedSupabaseClient;
+    },
+    get user() {
+      return authUser;
+    },
+  } as unknown as AuthenticatedSupabaseProvider;
+  const encryption = {
+    getDekFor: async () => Buffer.alloc(32),
+    tryDecryptAmount: (
+      ciphertext: string | null,
+      _dek: Buffer,
+      fallback: number | null,
+    ) =>
+      typeof ciphertext === 'string' && ciphertext.startsWith('enc:')
+        ? Number(ciphertext.slice(4))
+        : fallback,
+  } as unknown as EncryptionPort;
+  const repo = new SupabaseSavingsGoalRepository(provider, encryption);
+  const logger = { info: () => {} } as unknown as InfoLogger;
+  return {
+    useCase: new UpdateSavingsGoalUseCase(
+      repo,
+      { recalculate: async () => {} } as BudgetRecalculationPort,
+      { invalidateForUser: async () => {} } as unknown as CacheService,
+      logger,
+    ),
+    repo,
+    authUser,
+  };
 }
 
 interface SeededGoal {
@@ -436,57 +490,102 @@ describe('PUL-313 — reconcile_savings_goal_target_date (RPC integration)', () 
     expect(goal.data?.target_date).toBe('2099-12-01');
   });
 
-  it('never commits an advanced deadline with a concurrent out-of-horizon link', async () => {
+  it('serializes an empty-preview deadline advance in both commit orders through the use case', async () => {
+    if (!env) return;
+
+    const linkFirst = await seedGoalWithBudgets([7]);
+    const linkFirstUseCase = updateUseCaseFor(linkFirst.user);
+    const findLinkedSavingLines =
+      linkFirstUseCase.repo.findLinkedSavingLines.bind(linkFirstUseCase.repo);
+    let releasePreview!: () => void;
+    const previewReleased = new Promise<void>((resolve) => {
+      releasePreview = resolve;
+    });
+    let previewRead!: () => void;
+    const previewWasRead = new Promise<void>((resolve) => {
+      previewRead = resolve;
+    });
+    linkFirstUseCase.repo.findLinkedSavingLines = async (goalId) => {
+      const lines = await findLinkedSavingLines(goalId);
+      previewRead();
+      await previewReleased;
+      return lines;
+    };
+
+    const advanceAfterPreview = linkFirstUseCase.useCase.execute(
+      linkFirst.goalId,
+      { targetDate },
+      linkFirstUseCase.authUser,
+    );
+    await previewWasRead;
+    const concurrentLineId = crypto.randomUUID();
+    const linkBeforeRpc = await admin.from('budget_line').insert({
+      id: concurrentLineId,
+      budget_id: linkFirst.budgetIdByMonth.get(7)!,
+      name: 'Épargne concurrente',
+      amount: 'enc',
+      kind: 'saving',
+      recurrence: 'fixed',
+      savings_goal_id: linkFirst.goalId,
+    });
+    expect(linkBeforeRpc.error).toBeNull();
+    releasePreview();
+    await expect(advanceAfterPreview).rejects.toMatchObject({
+      code: 'ERR_SAVINGS_GOAL_RECONCILIATION_CONFLICT',
+    });
+
+    const unchangedGoal = await admin
+      .from('savings_goal')
+      .select('target_date')
+      .eq('id', linkFirst.goalId)
+      .single();
+    expect(unchangedGoal.data?.target_date).toBe(expectedTargetDate);
+
+    const deadlineFirst = await seedGoalWithBudgets([7]);
+    const deadlineFirstUseCase = updateUseCaseFor(deadlineFirst.user);
+    await deadlineFirstUseCase.useCase.execute(
+      deadlineFirst.goalId,
+      { targetDate },
+      deadlineFirstUseCase.authUser,
+    );
+    const linkAfterRpc = await admin.from('budget_line').insert({
+      id: crypto.randomUUID(),
+      budget_id: deadlineFirst.budgetIdByMonth.get(7)!,
+      name: 'Épargne trop tardive',
+      amount: 'enc',
+      kind: 'saving',
+      recurrence: 'fixed',
+      savings_goal_id: deadlineFirst.goalId,
+    });
+    expect(linkAfterRpc.error?.message ?? '').toContain(
+      'Savings goal line outside target horizon',
+    );
+  });
+
+  it('orders an ordinary open-to-dated patch before a later link', async () => {
     if (!env) return;
 
     const seed = await seedGoalWithBudgets([7]);
-    const concurrentLineId = crypto.randomUUID();
-
-    const [reconciliation, insertion] = await Promise.all([
-      seed.user.client.rpc('reconcile_savings_goal_target_date', {
-        p_goal_id: seed.goalId,
-        p_mode: 'remove',
-        p_budget_line_ids: [],
-        p_expected_target_date: expectedTargetDate,
-        p_patch: { target_date: targetDate },
-      }),
-      admin.from('budget_line').insert({
-        id: concurrentLineId,
-        budget_id: seed.budgetIdByMonth.get(7)!,
-        name: 'Épargne concurrente',
-        amount: 'enc',
-        kind: 'saving',
-        recurrence: 'fixed',
-        savings_goal_id: seed.goalId,
-      }),
-    ]);
-
-    const goal = await admin
+    await admin
       .from('savings_goal')
-      .select('target_date')
-      .eq('id', seed.goalId)
-      .single();
-    const linkedLine = await admin
-      .from('budget_line')
-      .select('savings_goal_id')
-      .eq('id', concurrentLineId)
-      .maybeSingle();
+      .update({ target_date: null })
+      .eq('id', seed.goalId);
+    const { useCase, authUser } = updateUseCaseFor(seed.user);
 
-    expect(
-      goal.data?.target_date === targetDate &&
-        linkedLine.data?.savings_goal_id === seed.goalId,
-    ).toBe(false);
-    if (goal.data?.target_date === targetDate) {
-      expect(reconciliation.error).toBeNull();
-      expect(insertion.error?.message ?? '').toContain(
-        'Savings goal line outside target horizon',
-      );
-    } else {
-      expect(reconciliation.error?.message ?? '').toContain(
-        'Savings goal reconciliation conflict',
-      );
-      expect(insertion.error).toBeNull();
-    }
+    await useCase.execute(seed.goalId, { targetDate }, authUser);
+    const lateLink = await admin.from('budget_line').insert({
+      id: crypto.randomUUID(),
+      budget_id: seed.budgetIdByMonth.get(7)!,
+      name: 'Épargne après datation',
+      amount: 'enc',
+      kind: 'saving',
+      recurrence: 'fixed',
+      savings_goal_id: seed.goalId,
+    });
+
+    expect(lateLink.error?.message ?? '').toContain(
+      'Savings goal line outside target horizon',
+    );
   });
 
   it('enforces the horizon only when a budget-line link changes', async () => {

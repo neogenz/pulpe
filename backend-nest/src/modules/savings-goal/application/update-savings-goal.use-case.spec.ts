@@ -247,15 +247,19 @@ describe('UpdateSavingsGoalUseCase', () => {
     expect(repo.reconcileTargetDate).not.toHaveBeenCalled();
   });
 
-  it('uses the ordinary PATCH when an earlier deadline has no candidate', async () => {
+  it('reconciles an earlier deadline with an empty internal snapshot', async () => {
     repo.findLinkedSavingLines.mockResolvedValue([]);
 
     await useCase.execute('goal-1', { targetDate: '2030-03-15' }, user);
 
-    expect(repo.update).toHaveBeenCalledWith('goal-1', {
-      targetDate: '2030-03-15',
+    expect(repo.update).not.toHaveBeenCalled();
+    expect(repo.reconcileTargetDate).toHaveBeenCalledWith('goal-1', {
+      patch: { targetDate: '2030-03-15' },
+      reconciliation: { mode: 'freeze', budgetLineIds: [] },
+      expectedTargetDate: '2030-05-15',
     });
-    expect(repo.reconcileTargetDate).not.toHaveBeenCalled();
+    expect(invalidateForUser).not.toHaveBeenCalled();
+    expect(recalculate).not.toHaveBeenCalled();
   });
 
   it('reports recalculation failure as critical after the transaction committed', async () => {

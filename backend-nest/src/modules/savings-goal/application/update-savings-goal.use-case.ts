@@ -108,10 +108,7 @@ export class UpdateSavingsGoalUseCase {
       payDayOfMonth,
       dto.targetDate,
     );
-    if (candidates.length === 0) {
-      return this.repo.update(id, patch);
-    }
-    if (!dto.reconciliation) {
+    if (candidates.length > 0 && !dto.reconciliation) {
       throw new BusinessException(
         ERROR_DEFINITIONS.SAVINGS_GOAL_RECONCILIATION_REQUIRED,
         undefined,
@@ -126,7 +123,10 @@ export class UpdateSavingsGoalUseCase {
 
     const result = await this.repo.reconcileTargetDate(id, {
       patch,
-      reconciliation: dto.reconciliation,
+      reconciliation: dto.reconciliation ?? {
+        mode: 'freeze',
+        budgetLineIds: [],
+      },
       expectedTargetDate,
     });
 
@@ -139,6 +139,8 @@ export class UpdateSavingsGoalUseCase {
     savingsGoalId: string,
     userId: string,
   ): Promise<void> {
+    if (budgetIds.length === 0) return;
+
     try {
       await this.cacheService.invalidateForUser(userId);
       await Promise.all(
