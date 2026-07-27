@@ -12,12 +12,10 @@ import {
   CHART_FONT_FAMILY,
 } from '@core/chart/chart-theme';
 
-const AXIS_ABBREVIATION_THRESHOLD = 1000;
-const MASKED_VALUE = '•••••';
+export const MASKED_VALUE = '•••••';
 
 export interface GoalProjectionChartLabels {
   target: string;
-  planned: string;
   confirmed: string;
   projection: string;
 }
@@ -27,7 +25,8 @@ export interface GoalProjectionChartInput {
   /** Non-null in simulation mode: the plan line follows the sandbox trajectory. */
   draft: SavingsPlanSimulationResult | null;
   targetAmount: number | null;
-  confirmedPace: number;
+  confirmed: number;
+  projected: number;
   theme: ChartThemeColors | null;
   locale: string;
   labels: GoalProjectionChartLabels;
@@ -40,7 +39,6 @@ export function buildGoalProjectionChartOptions(
   reducedMotion = false,
 ): ChartConfiguration['options'] {
   const tickColor = theme?.tickColor || undefined;
-  const gridColor = theme?.gridColor || undefined;
   const tooltipBg = theme?.tooltipBg || undefined;
 
   return {
@@ -48,13 +46,14 @@ export function buildGoalProjectionChartOptions(
     maintainAspectRatio: false,
     animation: reducedMotion ? false : undefined,
     interaction: { mode: 'index', intersect: false },
+    layout: { padding: { top: 8, right: 16, left: 4 } },
     elements: {
-      line: { tension: 0.2, borderWidth: 2 },
+      line: { cubicInterpolationMode: 'monotone', borderWidth: 2 },
       point: { radius: 0, hoverRadius: 4 },
     },
     plugins: {
       legend: {
-        display: true,
+        display: false,
         position: 'top',
         align: 'end',
         labels: {
@@ -90,27 +89,19 @@ export function buildGoalProjectionChartOptions(
     },
     scales: {
       x: {
-        grid: { display: false },
+        border: { display: false },
+        grid: { display: false, drawTicks: false },
         ticks: {
           font: { family: CHART_FONT_FAMILY, size: 11 },
           color: tickColor,
           maxRotation: 0,
           autoSkipPadding: 12,
+          padding: 8,
         },
       },
       y: {
-        grid: { color: gridColor },
-        ticks: {
-          font: { family: CHART_FONT_FAMILY, size: 11 },
-          color: tickColor,
-          callback: function (value: string | number) {
-            if (amountsHidden) return '•';
-            const num = Number(value);
-            if (num >= AXIS_ABBREVIATION_THRESHOLD)
-              return num / AXIS_ABBREVIATION_THRESHOLD + 'k';
-            return num;
-          },
-        },
+        display: false,
+        grid: { display: false },
       },
     },
   };
@@ -128,54 +119,110 @@ function currentMonthIndex(months: readonly SavingsGoalPlanMonth[]): number {
   return lastLocked;
 }
 
+function buildPlannedProjection(
+  months: readonly SavingsGoalPlanMonth[],
+  currentIndex: number,
+  confirmed: number,
+  projected: number,
+  monthlyAmounts = months.map((month) => month.plannedAmount),
+): (number | null)[] {
+  const data: (number | null)[] = months.map(() => null);
+  if (currentIndex < 0) return data;
+
+  const lastIndex = months.length - 1;
+  if (currentIndex === lastIndex) {
+    data[currentIndex] = projected;
+    return data;
+  }
+
+  data[currentIndex] = confirmed;
+  let cumulative = confirmed;
+  for (let index = currentIndex; index <= lastIndex; index++) {
+    const month = months[index];
+    cumulative += Math.max(0, monthlyAmounts[index] - month.confirmedAmount);
+    if (index > currentIndex) data[index] = cumulative;
+  }
+  // The server owns the canonical endpoint; this also absorbs float rounding.
+  data[lastIndex] = projected;
+  return data;
+}
+
+function terminalPointRadii(data: readonly (number | null)[]): number[] {
+  let lastValueIndex = -1;
+  data.forEach((value, index) => {
+    if (value !== null) lastValueIndex = index;
+  });
+  return data.map((_, index) => (index === lastValueIndex ? 3 : 0));
+}
+
 /**
- * Four cumulated series over the anchor → target axis (RG-002 — savings never
- * amber/red). In read mode: cible (neutral dashed), prévu cumulé (savings 0.35),
- * pointé (savings solid + light fill, null after the current month), projection
- * (savings dashed, extrapolated at `confirmedPace`). In simulation mode the
- * prévu line follows the sandbox trajectory and the projection series is dropped
- * (the sandbox IS the edited plan).
+ * Three balance series over the anchor → target axis: neutral target, savings
+ * green for confirmed reality, and tertiary blue for the planned projection.
+ * Simulation replaces the projection with the sandbox trajectory.
  */
 export function buildGoalProjectionChartData(
   input: GoalProjectionChartInput,
 ): ChartConfiguration['data'] {
-  const { months, draft, targetAmount, confirmedPace, theme, locale, labels } =
-    input;
+  const {
+    months,
+    draft,
+    targetAmount,
+    confirmed,
+    projected,
+    theme,
+    locale,
+    labels,
+  } = input;
 
   if (months.length === 0 || !theme) {
     return { datasets: [], labels: [] };
   }
 
-  const usingDraft = draft != null;
   const currentIndex = currentMonthIndex(months);
-
-  const plannedData = usingDraft
-    ? draft.months.map((month) => month.simulatedCumulative)
-    : months.map((month) => month.plannedCumulative);
+  const projectionData = draft
+    ? buildPlannedProjection(
+        months,
+        currentIndex,
+        confirmed,
+        draft.simulatedFinal,
+        draft.months.map((month) => month.simulatedAmount),
+      )
+    : buildPlannedProjection(months, currentIndex, confirmed, projected);
 
   // Reality stops at the current month — a null tail keeps the line from
   // implying pointé data exists in the future.
   const confirmedData = months.map((month, index) =>
-    index <= currentIndex ? month.confirmedCumulative : null,
+    index < currentIndex
+      ? month.confirmedCumulative
+      : index === currentIndex
+        ? confirmed
+        : null,
   );
 
   const datasets: ChartConfiguration['data']['datasets'] = [
-    {
-      data: plannedData,
-      label: labels.planned,
-      borderColor: colorWithAlpha(theme.savings, 0.35),
-      backgroundColor: 'transparent',
-      pointBackgroundColor: colorWithAlpha(theme.savings, 0.35),
-      fill: false,
-    } as ChartConfiguration['data']['datasets'][number],
     {
       data: confirmedData,
       label: labels.confirmed,
       borderColor: theme.savings,
       backgroundColor: colorWithAlpha(theme.savings, 0.12),
       pointBackgroundColor: theme.savings,
+      pointBorderColor: theme.savings,
+      pointBorderWidth: 2,
+      pointRadius: terminalPointRadii(confirmedData),
       spanGaps: false,
       fill: 'origin',
+    } as ChartConfiguration['data']['datasets'][number],
+    {
+      data: projectionData,
+      label: labels.projection,
+      borderColor: theme.income,
+      borderDash: [4, 4],
+      backgroundColor: 'transparent',
+      pointBackgroundColor: theme.income,
+      pointBorderColor: theme.income,
+      pointBorderWidth: 2,
+      pointRadius: terminalPointRadii(projectionData),
+      fill: false,
     } as ChartConfiguration['data']['datasets'][number],
   ];
 
@@ -184,28 +231,9 @@ export function buildGoalProjectionChartData(
       data: months.map(() => targetAmount),
       label: labels.target,
       borderColor: colorWithAlpha(theme.tickColor, 0.5),
-      borderWidth: 1,
-      borderDash: [4, 4],
+      borderWidth: 1.5,
       pointRadius: 0,
       pointHoverRadius: 0,
-      fill: false,
-    } as ChartConfiguration['data']['datasets'][number]);
-  }
-
-  if (!usingDraft && confirmedPace > 0 && currentIndex >= 0) {
-    const anchor = months[currentIndex].confirmedCumulative;
-    const projectionData = months.map((_, index) =>
-      index < currentIndex
-        ? null
-        : anchor + confirmedPace * (index - currentIndex),
-    );
-    datasets.push({
-      data: projectionData,
-      label: labels.projection,
-      borderColor: theme.savings,
-      borderDash: [6, 4],
-      backgroundColor: 'transparent',
-      pointBackgroundColor: theme.savings,
       fill: false,
     } as ChartConfiguration['data']['datasets'][number]);
   }

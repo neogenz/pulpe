@@ -155,18 +155,19 @@ achievementPercent = round( min(confirmed / targetAmount, 1) * 100 )
 //   garde : targetAmount = 0 → 0   (ne JAMAIS diviser par une cible non déchiffrée / nulle)
 //   cible absente → null
 
-// 4. Rythme — DEUX rythmes, tous deux en FLUX (le montant de départ, stock one-shot, en est EXCLU :
-//    l'inclure gonflerait projection et date d'atteinte estimée)
+// 4. Rythme — DEUX rythmes, tous deux en FLUX (le montant de départ, stock one-shot, en est EXCLU)
 pace          = plannedCumulative / max(1, monthsElapsed)   // engagement (indicatif secondaire)
-confirmedPace = linesConfirmed    / max(1, monthsElapsed)   // réel pointé — base de la projection
+confirmedPace = linesConfirmed    / max(1, monthsElapsed)   // réel pointé — base de la date d'atteinte estimée
 
 // 5. Requis pour tenir l'échéance
 required = max(0, targetAmount − confirmed) / monthsRemaining
 //   = null sans cible, sans échéance ou si monthsRemaining ≤ 0
 
-// 6. Projection à l'échéance — sur le rythme CONFIRMÉ (sinon contredit la barre, qui est sur confirmed)
-projected = confirmed + confirmedPace * monthsRemaining
-//   = null sans cible ou sans échéance ; = confirmed si échéance dépassée
+// 6. Projection à l'échéance — solde confirmé + reliquat du plan courant/futur
+//    Pour chaque période courante→échéance :
+//    remaining(period) = max(0, Σ line.amount − calculateRealizedSavings(period))
+projected = confirmed + Σ remaining(period)
+//   = null sans cible ou sans échéance ; = confirmed si monthsRemaining ≤ 0
 
 // 7. Statut de rythme (tolérance ±5 %, projected vs targetAmount)
 paceStatus = behind | on_track | ahead          // via paceStatus(projected, targetAmount, PACE_TOLERANCE_PERCENT)
@@ -176,14 +177,14 @@ paceStatus = behind | on_track | ahead          // via paceStatus(projected, tar
 
 ### 4.3 Cas limites des formules
 
-| Cas                                   | Règle                                                                                                                                                                            |
-| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Division par zéro (cible)**         | `targetAmount = 0` → `achievementPercent = 0`. Jamais de division sans déchiffrement préalable.                                                                                  |
-| **Division par zéro (mois)**          | `max(1, monthsElapsed)` avant tout `/ pace`. `monthsRemaining ≤ 0` → `required = null`, `projected = confirmed`.                                                                 |
-| **Échéance dépassée**                 | `monthsRemaining ≤ 0` → état dédié (§6), pas de `paceStatus` négatif.                                                                                                            |
-| **PAUSED**                            | `paceStatus = null` (pas de jugement de rythme sur un objectif en pause).                                                                                                        |
-| **Ancrage**                           | `createdAt` ramené à son **cycle** via `getBudgetPeriodForDate` (un objectif créé le 28 d'un payDay=25 appartient au cycle suivant).                                             |
-| **Pointage anticipé d'un mois futur** | Le pointage est accepté ; le confirmé peut dépasser le prévu cumulé.                                                                                                             |
+| Cas                                   | Règle                                                                                                                                |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **Division par zéro (cible)**         | `targetAmount = 0` → `achievementPercent = 0`. Jamais de division sans déchiffrement préalable.                                      |
+| **Division par zéro (mois)**          | `max(1, monthsElapsed)` avant tout `/ pace`. `monthsRemaining ≤ 0` → `required = null`, `projected = confirmed`.                     |
+| **Échéance dépassée**                 | `monthsRemaining ≤ 0` → état dédié (§6), pas de `paceStatus` négatif.                                                                |
+| **PAUSED**                            | `paceStatus = null` (pas de jugement de rythme sur un objectif en pause).                                                            |
+| **Ancrage**                           | `createdAt` ramené à son **cycle** via `getBudgetPeriodForDate` (un objectif créé le 28 d'un payDay=25 appartient au cycle suivant). |
+| **Pointage anticipé d'un mois futur** | Le pointage est accepté ; il entre dans `confirmed` et est retiré du reliquat planifié pour ne pas être compté deux fois.             |
 | **Montant de départ (stock vs flux)** | `initialAmount` entre dans `confirmed` (barre, %, `required`, `projected`, D2) mais **jamais** dans `confirmedPace` ni `cumulativeGap` (`= plannedCumulative − linesConfirmed`). |
 | **Montant de départ ≥ cible**         | `suggestCompletion = true` dès la création (D2) — jamais d'auto-flip, l'utilisateur confirme.                                                                                    |
 | **Cible absente**                     | `achievementPercent` et `suggestCompletion` sont `null`. La simulation garde son cumul final mais ses verdicts cible et la redistribution sont désactivés.                       |
@@ -299,7 +300,7 @@ Le simulateur répond à « qu'est-ce que je fais maintenant ? » sans modifier 
 
 ### 10.1 Surfaces et sémantique
 
-- **Ta trajectoire** : quatre séries cumulées, Pointé, Prévu, Projection et Cible. La simulation remplace la projection future par le brouillon.
+- **Ta trajectoire** : trois séries de solde, Épargné, Projection planifiée et Cible. Le flux `plannedCumulative` reste disponible séparément ; la simulation remplace la projection future par le brouillon.
 - **Ton plan, mois par mois** : timeline verticale de l'ancrage à l'échéance. Les mois passés et les Prévisions pointées sont verrouillés.
 - **Ajuster mon plan** : sandbox client, montant global et ajustements mensuels. « Réajuster la suite » redistribue le reste sur les mois ouverts.
 - **Appliquer** : récapitulatif obligatoire puis écriture pessimiste. Annuler ou quitter ne persiste rien.

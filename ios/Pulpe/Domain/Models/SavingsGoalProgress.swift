@@ -1,7 +1,7 @@
 import Foundation
 
-/// Rhythm verdict for a savings goal (PUL-8). Computed server-side from the
-/// projection vs the target, with a ±5 % tolerance. `nil` when there is no
+/// Plan verdict for a savings goal (PUL-8). Computed server-side from the
+/// planned balance projection vs the target, with a ±5 % tolerance. `nil` when there is no
 /// verdict to give (PAUSED goal, or échéance dépassée — see `docs/SAVINGS.md`
 /// §4.2 / §6). Épargne is never an alert, so this drives neutral copy only.
 enum SavingsGoalPaceStatus: String, Decodable, Sendable, Equatable {
@@ -27,8 +27,8 @@ struct SavingsGoalContribution: Decodable, Sendable, Equatable, Identifiable {
 
 /// Derived progression of a savings goal (PUL-8, `GET /savings-goals/:id/progress`).
 ///
-/// The backend computes **every** figure — the two layers (`plannedCumulative`
-/// prévu / `confirmed` pointé), the achievement %, the pace verdict, and the
+/// The backend computes **every** figure — the confirmed balance, the planned
+/// balance projection, the achievement %, the plan verdict, and the
 /// dérived states D1 (`isOverdue`) / D2 (`suggestCompletion`). The client renders,
 /// it never recomputes (see `docs/SAVINGS.md` §4).
 ///
@@ -70,6 +70,7 @@ struct SavingsGoalProgress: Decodable, Sendable, Equatable {
     let confirmedPace: Decimal
     /// Per-month amount needed to hit the target — `nil` when overdue.
     let required: Decimal?
+    /// Confirmed balance + remaining planned contributions through the deadline.
     let projected: Decimal?
     /// `nil` for PAUSED or échéance dépassée (no rhythm verdict then).
     let paceStatus: SavingsGoalPaceStatus?
@@ -110,12 +111,19 @@ struct SavingsGoalProgress: Decodable, Sendable, Equatable {
         achievementPercent.map { Double($0) / 100 }
     }
 
-    /// Progress fraction (0…1) of the prévu layer against the target. Guarded
+    /// Progress fraction (0…1) of the full known plan against the target.
     /// against a zero / undecrypted target (never divide by it — §4.3).
     var plannedFraction: Double? {
         guard let targetAmount else { return nil }
         guard targetAmount > 0 else { return 0 }
-        let ratio = ((plannedCumulative / targetAmount) as NSDecimalNumber).doubleValue
+        let ratio = ((plannedProjection / targetAmount) as NSDecimalNumber).doubleValue
+        return min(max(ratio, 0), 1)
+    }
+
+    /// Deadline projection fraction used by the current progress card.
+    var projectedFraction: Double {
+        guard let targetAmount, targetAmount > 0, let projected else { return 0 }
+        let ratio = ((projected / targetAmount) as NSDecimalNumber).doubleValue
         return min(max(ratio, 0), 1)
     }
 

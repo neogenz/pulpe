@@ -90,6 +90,7 @@ enum SavingsPlanCalculator {
 
     /// Simulates the plan: each locked month keeps its reality (`confirmedAmount`),
     /// each open month takes `adjustment ?? globalMonthlyAmount ?? plannedAmount`.
+    /// Its cumulative value can never fall below the amount already confirmed that month.
     /// Targeting a locked or gap month via `adjustments` throws.
     /// `initialAmount` (PUL-293 stock de départ) seeds `simulatedCumulative`.
     static func simulate(
@@ -135,7 +136,9 @@ enum SavingsPlanCalculator {
                 simulatedAmount = month.plannedAmount
             }
 
-            simulatedCumulative += simulatedAmount
+            if month.isContributionEligible {
+                simulatedCumulative += max(simulatedAmount, month.confirmedAmount)
+            }
             if let targetAmount,
                attainedPeriod == nil,
                month.isContributionEligible,

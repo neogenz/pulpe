@@ -112,8 +112,8 @@ export class SavingsGoalStore {
       // means we never rely on onSuccess to push state.
     },
     onSuccess: (_result, input) => {
-      // Auto-décomposition (PUL-285) : le serveur a posé une template_line
-      // liée + des budget_lines sur les budgets courant/futurs.
+      // Auto-décomposition (PUL-285/PUL-316) : le serveur a posé des
+      // budget_lines one_off liées dans les budgets existants de l'horizon.
       if (input.monthlyContribution != null) {
         this.#budgetApi.cache.invalidate(['budget']);
         this.#budgetTemplatesApi.cache.invalidate(['templates']);

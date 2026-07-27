@@ -44,7 +44,7 @@ Chaque table stocke les montants chiffrés dans une colonne texte (type `text`).
 | `budget_line` | `amount`, `original_amount` |
 | `transaction` | `amount`, `original_amount` |
 | `template_line` | `amount`, `original_amount` |
-| `savings_goal` | `target_amount`, `original_target_amount` |
+| `savings_goal` | `target_amount`, `initial_amount`, `original_target_amount` |
 | `monthly_budget` | `ending_balance` |
 
 ### Colonnes plaintext liées mathématiquement aux montants chiffrés

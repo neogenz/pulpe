@@ -223,6 +223,31 @@ describe('computeSavingsGoalProgress — les deux couches', () => {
 });
 
 describe('computeSavingsGoalProgress — rythme et projection (CA3)', () => {
+  it('projette le confirmé avec le reliquat prévu du cycle courant à l’échéance, sans double compter le pointé', () => {
+    const past = savingLine(1_000, { month: 5, year: 2026 });
+    const current = savingLine(500, { month: 6, year: 2026 });
+    const future = savingLine(500, { month: 7, year: 2026 });
+    const futureChecked = savingLine(
+      500,
+      { month: 8, year: 2026 },
+      { checkedAt: '2026-06-10T00:00:00Z' },
+    );
+    const afterDeadline = savingLine(900, { month: 1, year: 2027 });
+
+    const result = computeSavingsGoalProgress(
+      baseInput({
+        targetAmount: 200_000,
+        initialAmount: 85_000,
+        targetDate: '2026-12-15',
+        lines: [past, current, future, futureChecked, afterDeadline],
+        transactions: [checkedTx(current.id, 200)],
+      }),
+    );
+
+    expect(result.confirmed).toBe(85_700);
+    expect(result.projected).toBe(86_500);
+  });
+
   it('monthsElapsed inclut le mois courant ; pace = prévu / mois écoulés, confirmedPace = confirmé / mois écoulés', () => {
     const lines = [1, 2, 3, 4, 5, 6].map((month) =>
       savingLine(
@@ -242,9 +267,9 @@ describe('computeSavingsGoalProgress — rythme et projection (CA3)', () => {
     expect(result.monthsRemaining).toBe(7);
     // required = (12000 − 5000) / 7 = 1000
     expect(result.required).toBe(1_000);
-    // projected = 5000 + (5000/6)*7 — base CONFIRMÉE, cohérente avec la barre
-    expect(result.projected).toBeCloseTo(5_000 + (5_000 / 6) * 7, 10);
-    expect(result.paceStatus).toBe('behind'); // ≈10833 < 11400 (95 %)
+    // Projection = 5000 confirmés + le reliquat prévu du mois courant.
+    expect(result.projected).toBe(6_000);
+    expect(result.paceStatus).toBe('behind');
   });
 
   it('required est plancher à 0 quand le confirmé dépasse la cible', () => {

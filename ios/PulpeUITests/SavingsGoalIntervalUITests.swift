@@ -135,11 +135,16 @@ final class SavingsGoalIntervalUITests: XCTestCase {
         XCTAssertTrue(edit.waitForExistence(timeout: 10))
         edit.tap()
 
-        let deadline = app.datePickers.element(boundBy: 1)
+        let closeKeyboard = app.buttons["Fermer le clavier"]
+        if closeKeyboard.waitForExistence(timeout: 2) {
+            closeKeyboard.tap()
+        }
+
+        let deadline = app.datePickers["savingsGoalTargetDatePicker"]
         XCTAssertTrue(deadline.waitForExistence(timeout: 5))
         deadline.tap()
 
-        let previousMonth = element(labelContaining: "précédent", type: .button)
+        let previousMonth = app.buttons["DatePicker.PreviousMonth"]
         XCTAssertTrue(
             previousMonth.waitForExistence(timeout: 3),
             "Expected the compact date picker previous-month control. Tree:\n\(app.debugDescription)"
@@ -157,7 +162,7 @@ final class SavingsGoalIntervalUITests: XCTestCase {
 
     private func launch(_ scenario: String) {
         app = XCUIApplication()
-        app.launchArguments += [scenario]
+        app.launchArguments = ["-\(scenario)"]
         app.launchEnvironment["UITEST_SCENARIO"] = scenario
         app.launch()
     }

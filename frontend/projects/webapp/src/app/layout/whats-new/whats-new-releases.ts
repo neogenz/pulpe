@@ -9,8 +9,12 @@ export interface SkippedWhatsNewRelease {
 }
 
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: '0.38.3',
-  features: ['Mensualités arrêtées à l’échéance'],
+  version: '0.39.0',
+  features: [
+    'Une trajectoire plus lisible',
+    'Une projection fidèle au plan',
+    'Des simulations plus fiables',
+  ],
 };
 
 export const SKIPPED_RELEASES: readonly SkippedWhatsNewRelease[] = [

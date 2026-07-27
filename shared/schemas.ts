@@ -445,8 +445,9 @@ export type TagHistory = z.infer<typeof tagHistorySchema>;
  *   restent des mesures de FLUX et excluent ce stock.
  *
  * `achievementPercent` et `suggestCompletion` (D2) portent EXCLUSIVEMENT sur
- * le confirmé — jamais le prévu. La projection (`projected`) et `paceStatus`
- * se basent sur `confirmedPace` pour rester cohérents avec la barre.
+ * le confirmé — jamais le prévu. La projection (`projected`) ajoute au confirmé
+ * le reliquat planifié courant/futur jusqu'à l'échéance ; `paceStatus` compare
+ * ce solde projeté à la cible. `confirmedPace` reste une mesure du rythme réel.
  *
  * D1 échéance dépassée (`monthsRemaining ≤ 0`, exposé via `isOverdue`) :
  * `required` et `paceStatus` sont `null`, `projected = confirmed` — état
@@ -655,11 +656,9 @@ export const budgetLineSchema = z.object({
   id: z.uuid(),
   budgetId: z.uuid(),
   templateLineId: z.uuid().nullable(),
-  // NOTE: savingsGoalId pour feature future (pas dans SPECS V1)
+  // Lien optionnel vers un objectif, autorisé uniquement pour kind=saving.
   savingsGoalId: z.uuid().nullable(),
   name: z.string().min(1).max(100).trim(),
-  // nonnegative: API may return 0 when encryption is active (real value in *_encrypted)
-  // coerce: Supabase PostgREST returns numeric(12,2) columns as strings
   amount: z.coerce.number().nonnegative(),
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
@@ -983,7 +982,6 @@ export const spreadOccurrenceSchema = z.object({
   month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
   year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
   name: z.string(),
-  // coerce: PostgREST returns numeric as string; nonnegative: 0 when encrypted
   amount: z.coerce.number().nonnegative(),
   kind: transactionKindSchema,
   checkedAt: z.iso.datetime({ offset: true }).nullable(),
@@ -1146,8 +1144,6 @@ export const transactionSchema = z.object({
   budgetId: z.uuid(),
   budgetLineId: z.uuid().nullable(),
   name: z.string().min(1).max(100).trim(),
-  // nonnegative: API may return 0 when encryption is active (real value in *_encrypted)
-  // coerce: Supabase PostgREST returns numeric(12,2) columns as strings
   amount: z.coerce.number().nonnegative(),
   kind: transactionKindSchema,
   transactionDate: z.iso.datetime({ offset: true }),
@@ -1254,7 +1250,6 @@ export const transactionSearchResultSchema = z.object({
   id: z.uuid(),
   itemType: searchItemTypeSchema,
   name: z.string(),
-  // coerce: Supabase PostgREST returns numeric(12,2) columns as strings
   amount: z.coerce.number(),
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema.or(z.null()),
@@ -1296,8 +1291,6 @@ export const templateLineSchema = z.object({
   // line stays tagged across monthly regenerations.
   savingsGoalId: z.uuid().nullable(),
   name: z.string().min(1).max(100).trim(),
-  // nonnegative: API may return 0 when encryption is active (real value in *_encrypted)
-  // coerce: Supabase PostgREST returns numeric(12,2) columns as strings
   amount: z.coerce.number().nonnegative(),
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,

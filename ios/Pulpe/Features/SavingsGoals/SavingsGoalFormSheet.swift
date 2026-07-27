@@ -279,6 +279,7 @@ struct SavingsGoalFormSheet: View {
                     displayedComponents: .date
                 )
                 .datePickerStyle(.compact)
+                .accessibilityIdentifier("savingsGoalTargetDatePicker")
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

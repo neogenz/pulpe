@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.39.0
+
+### Minor Changes
+
+- Clarifie la trajectoire des objectifs d'épargne et fiabilise leur projection.
+
+### Patch Changes
+
+- pulpe-shared@0.39.0
+
 ## 0.38.3
 
 ### Patch Changes

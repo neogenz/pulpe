@@ -11,8 +11,8 @@ struct SavingsGoalDeadlineDecision {
 /// goals list row; the edit form now opens from here (toolbar + the D1 CTA),
 /// never straight from the row.
 ///
-/// Renders the two server-computed layers — « Prévu » (`plannedCumulative`) and
-/// « Pointé » (`confirmed`) — toward the target, plus the pace verdict and the
+/// Renders the confirmed balance and its planned projection toward the target,
+/// plus the plan verdict and the
 /// derived states D1 (échéance dépassée) / D2 (auto-complétion suggérée). Épargne
 /// is never an alert, so every accent is savings/primary or neutral — never
 /// amber/red (RG-002, `docs/SAVINGS.md` §7).

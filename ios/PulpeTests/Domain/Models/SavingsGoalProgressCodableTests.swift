@@ -125,9 +125,9 @@ struct SavingsGoalProgressCodableTests {
         #expect(progress.linkedLineCount == 2)
         #expect(progress.originalTargetAmount == nil)
         #expect(progress.targetDateValue == SavingsGoalDateFormatter.parse("2027-12-31"))
-        // Bar fractions: confirmed from the server %, planned vs target.
+        // Bar fractions: confirmed from the server %, projected vs target.
         #expect(progress.confirmedFraction == 0.18)
-        #expect(progress.plannedFraction == 0.24)
+        #expect(progress.projectedFraction == 0.72)
     }
 
     @Test("SavingsGoalProgress decodes a targetless open pot without fictitious metrics")
@@ -216,8 +216,8 @@ struct SavingsGoalProgressCodableTests {
         #expect(SavingsGoalPaceStatus(rawValue: "ahead") == .ahead)
     }
 
-    @Test("plannedFraction guards against a zero / undecrypted target")
-    func plannedFraction_zeroTargetGuard() throws {
+    @Test("projectedFraction guards against a zero / undecrypted target")
+    func projectedFraction_zeroTargetGuard() throws {
         let json = Data("""
         {
             "goalId": "33333333-3333-3333-3333-333333333333",
@@ -246,7 +246,7 @@ struct SavingsGoalProgressCodableTests {
 
         let progress = try JSONDecoder().decode(SavingsGoalProgress.self, from: json)
 
-        #expect(progress.plannedFraction == 0)
+        #expect(progress.projectedFraction == 0)
         #expect(progress.confirmedFraction == 0)
     }
 

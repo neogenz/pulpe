@@ -3,8 +3,8 @@
  *
  * Vision métier des workflows. Statut : fondation, progression, simulateur et
  * auto-décomposition (PUL-285) implémentés.
- *  - la ligne auto vit sur template_line (Mois Type) et suit RG-001 jusqu'à
- *    override manuel — jamais de recalcul silencieux de son montant ;
+ *  - l'auto-décomposition crée des budget_line one_off bornées dans les
+ *    budgets déjà matérialisés — jamais de récurrence sur le Mois Type ;
  *  - la progression à 2 couches et l'application explicite du simulateur sont livrées.
  *
  * Tags : #foundation · #progression · #simulator · #automation.
@@ -103,22 +103,22 @@ model {
       #progression
       description "Cumul multi-mois, % atteint, rythme, requis, projeté. Déchiffrement backend."
     }
-    goalDecompose = usecase "Auto-décompose → ligne récurrente" {
+    goalDecompose = usecase "Auto-décompose → lignes bornées" {
       #automation
-      description "Cible / mois restants (payDay-aware, arrondi centime sup) → template_line liée sur le Mois Type par défaut + propagation RG-001 aux budgets matérialisés."
+      description "Reste à épargner / mois restants (payDay-aware, arrondi centime sup) → budget_line one_off liée dans chaque période déjà budgétée, jusqu'à l'échéance incluse. Le Mois Type reste intact."
     }
     goalReproject = usecase "Appliquer un plan simulé" {
       #simulator
       description "Valide et applique atomiquement les montants confirmés. Ne modifie jamais le Mois Type."
     }
     encryption = service "Encryption AES-256-GCM" {
-      description "Chiffre target_amount à l'écriture, déchiffre à l'agrégation."
+      description "Chiffre target_amount, initial_amount et original_target_amount à l'écriture, puis déchiffre avant calcul et sérialisation."
     }
   }
 
   db = datastore "Supabase (Postgres + RLS)" {
     goalTable = store "savings_goal" {
-      description "name, target_amount (chiffré), target_date, status. Colonnes FX nulles dans la devise du compte. Priorité absente du produit."
+      description "name, target_amount et initial_amount chiffrés, target_date, status. Colonnes FX nulles dans la devise du compte. Priorité absente du produit."
     }
     lineTable = store "budget_line" {
       description "savings_goal_id (nullable) = le lien. amount chiffré, checked_at = pointage."
@@ -159,9 +159,9 @@ views {
 
   dynamic view createGoal {
     title "Workflow 1 — Créer un objectif (fondation · rattachement manuel)"
-    user -> ios.goalForm "saisit nom, montant cible, échéance"
+    user -> ios.goalForm "saisit nom, montant cible, montant de départ, échéance"
     ios.goalForm -> backend.goalCrud "POST /savings-goals (devise du compte)"
-    backend.goalCrud -> backend.encryption "chiffre target_amount"
+    backend.goalCrud -> backend.encryption "chiffre target_amount et initial_amount"
     backend.goalCrud -> db.goalTable "INSERT — status ACTIVE, FX null"
     backend.goalCrud -> ios.goalsList "objectif créé, apparaît dans la liste"
   }
@@ -202,8 +202,8 @@ views {
     user -> ios.goalForm "crée « Maison 100k / 48 mois », mensualité pré-remplie éditable"
     ios.goalForm -> backend.goalCrud "POST + monthlyContribution (opt-in)"
     backend.goalCrud -> backend.goalDecompose "pose la baseline choisie (2083.34 / mois)"
-    backend.goalDecompose -> db.lineTable "template_line liée sur le Mois Type par défaut, propagée aux budgets courant+futurs (RG-001)"
-    backend.goalDecompose -> ios.goalDetail "objectif + ligne baseline maintenue par Pulpe jusqu'à override manuel"
+    backend.goalDecompose -> db.lineTable "crée une budget_line one_off liée dans chaque budget existant, du mois courant à l'échéance"
+    backend.goalDecompose -> ios.goalDetail "objectif + prévisions bornées ; les mois non budgétés restent des trous du plan"
   }
 
   dynamic view redistribution {
