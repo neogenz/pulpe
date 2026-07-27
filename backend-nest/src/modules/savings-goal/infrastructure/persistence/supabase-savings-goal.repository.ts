@@ -290,6 +290,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
           operation: 'getSavingsGoalDeletionImpact',
           entityId: goalId,
           entityType: 'savings_goal',
+          userId: this.supabaseProvider.user.id,
           validationErrors:
             error instanceof ZodError ? error.issues : undefined,
         },
@@ -326,6 +327,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
           operation: 'applySavingsGoalDeletion',
           entityId: goalId,
           entityType: 'savings_goal',
+          userId: this.supabaseProvider.user.id,
           validationErrors:
             error instanceof ZodError ? error.issues : undefined,
         },
@@ -565,6 +567,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
         {
           operation: 'applySavingsGoalDeletion',
           entityType: 'savings_goal',
+          userId: this.supabaseProvider.user.id,
         },
         { cause: error ?? undefined },
       );
@@ -580,6 +583,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
         {
           operation: 'applySavingsGoalDeletion',
           entityType: 'savings_goal',
+          userId: this.supabaseProvider.user.id,
         },
         { cause: error ?? undefined },
       );
@@ -590,7 +594,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       {
         operation: 'applySavingsGoalDeletion',
         entityType: 'savings_goal',
-        supabaseError: error,
+        userId: this.supabaseProvider.user.id,
       },
       { cause: error ?? undefined },
     );
@@ -610,7 +614,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
         operation: 'getSavingsGoalDeletionImpact',
         entityId: goalId,
         entityType: 'savings_goal',
-        supabaseError: error,
+        userId: this.supabaseProvider.user.id,
       },
       { cause: error ?? undefined },
     );

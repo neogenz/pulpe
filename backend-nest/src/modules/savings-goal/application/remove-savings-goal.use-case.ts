@@ -32,7 +32,7 @@ export class RemoveSavingsGoalUseCase {
     command?: SavingsGoalDeletionCommand,
   ): Promise<void> {
     const touchedBudgetIds = command
-      ? await this.applyDeletion(id, command)
+      ? await this.applyDeletion(id, command, user.id)
       : await this.applyLegacyDeletion(id);
 
     await this.finalizeAfterCommit(touchedBudgetIds, id, user.id);
@@ -57,6 +57,7 @@ export class RemoveSavingsGoalUseCase {
   private async applyDeletion(
     id: string,
     command: SavingsGoalDeletionCommand,
+    userId: string,
   ): Promise<string[]> {
     try {
       return (await this.repo.applyDeletion(id, command)).touchedBudgetIds;
@@ -71,6 +72,7 @@ export class RemoveSavingsGoalUseCase {
           {
             operation: 'savingsGoal.remove',
             savingsGoalId: id,
+            userId,
           },
           { cause },
         );

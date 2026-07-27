@@ -106,6 +106,11 @@ describe('RemoveSavingsGoalUseCase', () => {
     ).rejects.toMatchObject({
       code: 'ERR_SAVINGS_GOAL_DELETION_IMPACT_CHANGED',
       status: 409,
+      loggingContext: {
+        operation: 'savingsGoal.remove',
+        savingsGoalId: 'goal-1',
+        userId: mockUser.id,
+      },
     });
     expect(mockCache.invalidateForUser).not.toHaveBeenCalled();
     expect(budgetRecalculation.recalculate).not.toHaveBeenCalled();
