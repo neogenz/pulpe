@@ -1,6 +1,6 @@
 ---
 objective: "Fermer les 15 findings actionnables du review de l’intervalle d’épargne sans élargir la feature, puis rattacher au SHA validé des preuves web et iOS complètes."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Corriger les findings à valeur réelle de l’intervalle d’épargne
