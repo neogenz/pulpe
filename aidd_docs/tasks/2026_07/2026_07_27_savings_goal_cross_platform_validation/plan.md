@@ -1,6 +1,6 @@
 ---
 objective: "Tous les findings du review de PUL-312, PUL-313, PUL-314 et PUL-317 sont fermés par des preuves UI déterministes, des mocks contractuels et une validation visuelle web/iOS rattachée au SHA testé."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Résoudre les écarts de validation des objectifs d’épargne
