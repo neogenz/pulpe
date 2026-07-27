@@ -72,6 +72,10 @@ final class TagStore: StoreProtocol {
         let generation = sessionGeneration
         let created = try await service.create(TagCreate(name: name))
         guard sessionGeneration == generation else { throw CancellationError() }
+        loadTask?.cancel()
+        loadTask = nil
+        loadGeneration += 1
+        isLoading = false
         tags = (tags + [created]).sortedForDisplay()
         return created
     }

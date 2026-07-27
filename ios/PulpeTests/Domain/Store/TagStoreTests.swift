@@ -71,15 +71,51 @@ struct TagStoreTests {
         #expect(created.name == "Assurance")
         #expect(store.tags.map(\.name) == ["Assurance", "Courses"])
     }
+
+    @Test("a refresh finishing after create cannot overwrite it")
+    func staleRefreshCannotOverwriteCreate() async throws {
+        let service = MockTagService()
+        service.tags = [service.makeTag(id: "existing", name: "Courses")]
+        let store = TagStore(service: service)
+        await store.forceRefresh()
+
+        service.gateGetAll()
+        let refresh = Task {
+            await store.forceRefresh()
+        }
+        await waitForCondition("refresh must reach the service") {
+            service.getAllCallCount == 2
+        }
+
+        _ = try await store.create(name: "Assurance")
+        service.releaseGetAll()
+        await refresh.value
+
+        #expect(store.tags.map(\.name) == ["Assurance", "Courses"])
+        #expect(!store.isLoading)
+    }
 }
 
 @MainActor
 private final class MockTagService: TagServicing {
     var tags: [PulpeTag] = []
+    private(set) var getAllCallCount = 0
     private(set) var lastCreate: TagCreate?
     private(set) var didEnterCreate = false
+    private var getAllContinuation: CheckedContinuation<Void, Never>?
     private var createContinuation: CheckedContinuation<Void, Never>?
+    private var shouldGateGetAll = false
     private var shouldGateCreate = false
+
+    func gateGetAll() {
+        shouldGateGetAll = true
+    }
+
+    func releaseGetAll() {
+        shouldGateGetAll = false
+        getAllContinuation?.resume()
+        getAllContinuation = nil
+    }
 
     func gateCreate() {
         shouldGateCreate = true
@@ -102,7 +138,13 @@ private final class MockTagService: TagServicing {
     }
 
     func getAll() async throws -> [PulpeTag] {
-        tags
+        getAllCallCount += 1
+        if shouldGateGetAll {
+            await withCheckedContinuation { continuation in
+                getAllContinuation = continuation
+            }
+        }
+        return tags
     }
 
     func create(_ data: TagCreate) async throws -> PulpeTag {
