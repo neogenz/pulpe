@@ -100,17 +100,10 @@ enum SavingsPlanCalculator {
         globalMonthlyAmount: Decimal? = nil,
         initialAmount: Decimal = 0
     ) throws -> SimulationResult {
-        var adjustmentsByKey: [Int: Decimal] = [:]
-        for adjustment in adjustments {
-            adjustmentsByKey[periodKey(month: adjustment.month, year: adjustment.year)] = adjustment.amount
-        }
-
-        let contributiveKeys = Set(timeline
-            .filter(isContributivePlanMonth)
-            .map { periodKey(month: $0.month, year: $0.year) })
-        for key in adjustmentsByKey.keys where !contributiveKeys.contains(key) {
-            throw SimulationError.adjustmentTargetsLockedOrGapMonth
-        }
+        let adjustmentsByKey = try validatedAdjustmentsByPeriod(
+            adjustments,
+            timeline: timeline
+        )
 
         var months: [SimulatedMonth] = []
         var simulatedCumulative: Decimal = initialAmount
@@ -159,6 +152,23 @@ enum SavingsPlanCalculator {
             gapToTarget: targetAmount.map { $0 - simulatedFinal },
             isTargetMet: targetAmount.map { $0 > 0 && simulatedFinal >= $0 }, attainedPeriod: attainedPeriod
         )
+    }
+
+    private static func validatedAdjustmentsByPeriod(
+        _ adjustments: [Adjustment],
+        timeline: [SavingsGoalPlanMonth]
+    ) throws -> [Int: Decimal] {
+        let adjustmentsByKey = Dictionary(
+            adjustments.map { (periodKey(month: $0.month, year: $0.year), $0.amount) },
+            uniquingKeysWith: { _, latest in latest }
+        )
+        let contributiveKeys = Set(timeline
+            .filter(isContributivePlanMonth)
+            .map { periodKey(month: $0.month, year: $0.year) })
+        guard adjustmentsByKey.keys.allSatisfy(contributiveKeys.contains) else {
+            throw SimulationError.adjustmentTargetsLockedOrGapMonth
+        }
+        return adjustmentsByKey
     }
 
     // MARK: - Redistribute remaining effort

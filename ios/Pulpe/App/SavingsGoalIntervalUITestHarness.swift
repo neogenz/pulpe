@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 
 @MainActor
@@ -27,6 +28,7 @@ final class SavingsGoalIntervalUITestService: SavingsGoalServicing {
         let goal = try goal(id)
         let hasTarget = goal.targetAmount != nil
         let hasDeadline = goal.targetDate != nil
+        let hasPlan = hasTarget
         return SavingsGoalProgress(
             goalId: id,
             status: goal.status,
@@ -35,41 +37,30 @@ final class SavingsGoalIntervalUITestService: SavingsGoalServicing {
             targetDate: goal.targetDate,
             plannedCumulative: 1_200,
             plannedProjection: 3_600,
-            confirmed: 900,
+            confirmed: 600,
             initialAmount: goal.initialAmount ?? 0,
-            achievementPercent: hasTarget ? 30 : nil,
+            achievementPercent: hasTarget
+                ? (scenario == .savingsGoalDetailTargetOnly ? 120 : 20)
+                : nil,
             monthsElapsed: 3,
             monthsRemaining: hasDeadline ? 12 : nil,
             isOverdue: false,
             pace: 300,
             confirmedPace: 225,
-            required: hasTarget && hasDeadline ? 175 : nil,
+            required: hasTarget && hasDeadline ? 300 : nil,
             projected: hasTarget && hasDeadline ? 3_600 : nil,
             paceStatus: hasTarget && hasDeadline ? .onTrack : nil,
-            suggestCompletion: hasTarget ? false : nil,
-            linkedLineCount: 0,
+            suggestCompletion: hasTarget
+                ? scenario == .savingsGoalDetailTargetOnly
+                : nil,
+            linkedLineCount: hasPlan ? 1 : 0,
             originalTargetAmount: nil,
             originalCurrency: nil,
             targetCurrency: nil,
             exchangeRate: nil,
-            months: hasTarget && hasDeadline
-                ? [
-                    SavingsGoalPlanMonth(
-                        month: 6,
-                        year: 2027,
-                        state: .past,
-                        isLocked: true,
-                        plannedAmount: 300,
-                        confirmedAmount: 300,
-                        plannedCumulative: 900,
-                        confirmedCumulative: 900,
-                        lines: []
-                    ),
-                ]
-                : [],
-            estimatedCompletion: hasTarget && !hasDeadline
-                ? BudgetPeriod(month: 5, year: 2027)
-                : nil
+            months: hasPlan ? Self.planMonths : [],
+            cumulativeGap: hasPlan ? 600 : 0,
+            estimatedCompletion: hasTarget ? BudgetPeriod(month: 6, year: 2027) : nil
         )
     }
 
@@ -156,6 +147,38 @@ final class SavingsGoalIntervalUITestService: SavingsGoalServicing {
 
     private static let now = Date(timeIntervalSince1970: 1_700_000_000)
 
+    private static let planMonths = [
+        planMonth(month: 5, state: .past, isLocked: true, isChecked: true),
+        planMonth(month: 6, state: .current, isLocked: false, isChecked: false),
+        planMonth(month: 7, state: .future, isLocked: false, isChecked: false),
+    ]
+
+    private static func planMonth(
+        month: Int,
+        state: SavingsPlanMonthState,
+        isLocked: Bool,
+        isChecked: Bool
+    ) -> SavingsGoalPlanMonth {
+        SavingsGoalPlanMonth(
+            month: month,
+            year: 2027,
+            state: state,
+            isLocked: isLocked,
+            plannedAmount: 300,
+            confirmedAmount: isChecked ? 300 : 0,
+            plannedCumulative: Decimal(month - 3) * 300,
+            confirmedCumulative: 600,
+            lines: [
+                SavingsGoalPlanLine(
+                    budgetLineId: "plan-\(month)",
+                    amount: 300,
+                    checkedAt: isChecked ? "2027-05-15T00:00:00Z" : nil,
+                    isManuallyAdjusted: false
+                ),
+            ]
+        )
+    }
+
     private static func initialGoals(for scenario: UITestLaunchScenario) -> [SavingsGoal] {
         let targetAmount: Decimal?
         let targetDate: String?
@@ -163,7 +186,7 @@ final class SavingsGoalIntervalUITestService: SavingsGoalServicing {
 
         switch scenario {
         case .savingsGoalDetailTargetOnly:
-            targetAmount = 3_000
+            targetAmount = 500
             targetDate = nil
             startDate = nil
         case .savingsGoalDetailDeadlineOnly:
@@ -221,6 +244,8 @@ struct SavingsGoalIntervalUITestHarness: View {
 
     var body: some View {
         content
+            .environment(\.dynamicTypeSize, dynamicTypeSize)
+            .preferredColorScheme(preferredColorScheme)
             .environment(store)
             .environment(userSettingsStore)
             .environment(toastManager)
@@ -233,6 +258,18 @@ struct SavingsGoalIntervalUITestHarness: View {
             .task {
                 await store.forceRefresh()
             }
+    }
+
+    private var dynamicTypeSize: DynamicTypeSize {
+        ProcessInfo.processInfo.environment["UITEST_DYNAMIC_TYPE"] == "accessibility3"
+            ? .accessibility3
+            : .large
+    }
+
+    private var preferredColorScheme: ColorScheme? {
+        ProcessInfo.processInfo.environment["UITEST_COLOR_SCHEME"] == "dark"
+            ? .dark
+            : nil
     }
 
     @ViewBuilder

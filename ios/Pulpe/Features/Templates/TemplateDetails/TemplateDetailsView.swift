@@ -31,8 +31,10 @@ struct TemplateDetailsView: View {
         .navigationTitle(viewModel.template?.name ?? "Modèle")
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            await savingsGoalStore.loadIfNeeded()
             await viewModel.loadIfNeeded()
+        }
+        .task {
+            await savingsGoalStore.loadIfNeeded()
         }
         .sheet(item: $selectedLineForEdit) { line in
             EditTemplateLineSheet(

@@ -68,7 +68,11 @@ struct GoalProjectionChart: View {
                     series: .value("Série", "projection")
                 )
                 .interpolationMethod(.monotone)
-                .lineStyle(StrokeStyle(lineWidth: DesignTokens.BorderWidth.medium, lineCap: .round, dash: [5, 4]))
+                .lineStyle(StrokeStyle(
+                    lineWidth: DesignTokens.BorderWidth.medium,
+                    lineCap: .round,
+                    dash: [5, 4]
+                ))
                 .foregroundStyle(Color.financialIncome)
             }
         }
@@ -111,7 +115,8 @@ struct GoalProjectionChart: View {
         guard let target = series.target else {
             return "Épargné \(confirmed), projection planifiée \(projection)"
         }
-        return "Épargné \(confirmed), projection planifiée \(projection), cible \(Decimal(target).asCompactCurrency(currency))"
+        let targetLabel = Decimal(target).asCompactCurrency(currency)
+        return "Épargné \(confirmed), projection planifiée \(projection), cible \(targetLabel)"
     }
 
     private var areaGradient: LinearGradient {
