@@ -421,7 +421,6 @@ private struct BudgetPreviewEncouragingMessage: View {
         state.phonePlan = 50
         return state
     }())
-    .environment(FeatureFlagsStore())
 }
 
 #Preview("Tight") {
@@ -435,7 +434,6 @@ private struct BudgetPreviewEncouragingMessage: View {
         state.transportCosts = 300
         return state
     }())
-    .environment(FeatureFlagsStore())
 }
 
 #Preview("Deficit") {
@@ -450,5 +448,4 @@ private struct BudgetPreviewEncouragingMessage: View {
         state.leasingCredit = 400
         return state
     }())
-    .environment(FeatureFlagsStore())
 }

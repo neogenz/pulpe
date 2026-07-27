@@ -5,7 +5,6 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { UserSettingsStore } from '@core/user-settings';
 import { CurrencyConverterService } from '@core/currency';
-import { FeatureFlagsService } from '@core/feature-flags';
 import type { TemplateLine } from 'pulpe-shared';
 import {
   EditTemplateLineDialog,
@@ -49,10 +48,6 @@ function setup(options: SetupOptions = {}): {
     settings: signal(null),
   };
 
-  const mockFeatureFlags = {
-    isMultiCurrencyEnabled: signal(false),
-  };
-
   const data: EditTemplateLineDialogData = {
     line: options.line,
     templateName: options.templateName ?? 'Mon modèle',
@@ -67,7 +62,6 @@ function setup(options: SetupOptions = {}): {
       { provide: MAT_DIALOG_DATA, useValue: data },
       { provide: UserSettingsStore, useValue: mockUserSettings },
       { provide: CurrencyConverterService, useValue: converter },
-      { provide: FeatureFlagsService, useValue: mockFeatureFlags },
     ],
   });
 
@@ -207,7 +201,6 @@ describe('EditTemplateLineDialog', () => {
 interface CurrencySetupOptions {
   line?: TemplateLine;
   userCurrency: 'CHF' | 'EUR';
-  flagEnabled: boolean;
 }
 
 function setupWithCurrency(options: CurrencySetupOptions): {
@@ -215,7 +208,6 @@ function setupWithCurrency(options: CurrencySetupOptions): {
   component: EditTemplateLineDialog;
   dialogRef: { close: Mock };
   converter: { convertWithMetadata: Mock };
-  flags: { isMultiCurrencyEnabled: ReturnType<typeof signal> };
   settings: {
     currency: ReturnType<typeof signal<'CHF' | 'EUR'>>;
   };
@@ -226,7 +218,6 @@ function setupWithCurrency(options: CurrencySetupOptions): {
       .fn()
       .mockResolvedValue({ convertedAmount: 0, metadata: null }),
   };
-  const flags = { isMultiCurrencyEnabled: signal(options.flagEnabled) };
   const settings = {
     currency: signal<'CHF' | 'EUR'>(options.userCurrency),
   };
@@ -245,7 +236,6 @@ function setupWithCurrency(options: CurrencySetupOptions): {
       { provide: MAT_DIALOG_DATA, useValue: data },
       { provide: UserSettingsStore, useValue: settings },
       { provide: CurrencyConverterService, useValue: converter },
-      { provide: FeatureFlagsService, useValue: flags },
     ],
   });
 
@@ -255,7 +245,6 @@ function setupWithCurrency(options: CurrencySetupOptions): {
     component: fixture.componentInstance,
     dialogRef,
     converter,
-    flags,
     settings,
   };
 }
@@ -266,7 +255,6 @@ describe('EditTemplateLineDialog — Create mode currency rules', () => {
   it('B4: should initialize inputCurrency to user currency', () => {
     const { component } = setupWithCurrency({
       userCurrency: 'EUR',
-      flagEnabled: true,
     });
 
     expect(component['model']().money.inputCurrency).toBe('EUR');
@@ -275,7 +263,6 @@ describe('EditTemplateLineDialog — Create mode currency rules', () => {
   it('B6: should call convertWithMetadata and include metadata in result when currencies differ', async () => {
     const { component, dialogRef, converter } = setupWithCurrency({
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     converter.convertWithMetadata.mockResolvedValue({
@@ -312,7 +299,6 @@ describe('EditTemplateLineDialog — Create mode currency rules', () => {
   it('B7: should block submit and set conversionError when convertWithMetadata throws', async () => {
     const { component, dialogRef, converter } = setupWithCurrency({
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     converter.convertWithMetadata.mockRejectedValue(new Error('rate down'));
@@ -332,7 +318,6 @@ describe('EditTemplateLineDialog — Create mode currency rules', () => {
   it('B8: should omit metadata fields from result when inputCurrency equals userCurrency', async () => {
     const { component, dialogRef, converter } = setupWithCurrency({
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     converter.convertWithMetadata.mockResolvedValue({
@@ -359,7 +344,6 @@ describe('EditTemplateLineDialog — Create mode currency rules', () => {
   it('B18: with no data.line, should resolve to create-mode behavior (isEditMode false)', () => {
     const { component } = setupWithCurrency({
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     expect(component['isEditMode']()).toBe(false);
@@ -383,7 +367,6 @@ describe('EditTemplateLineDialog — Edit mode currency rules', () => {
     const { component: c1 } = setupWithCurrency({
       line: altLine,
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
     expect(c1['model']().money.inputCurrency).toBe('EUR');
 
@@ -392,7 +375,6 @@ describe('EditTemplateLineDialog — Edit mode currency rules', () => {
     const { component: c2 } = setupWithCurrency({
       line: baseLine,
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
     expect(c2['model']().money.inputCurrency).toBe('CHF');
   });
@@ -401,7 +383,6 @@ describe('EditTemplateLineDialog — Edit mode currency rules', () => {
     const { component, dialogRef, converter } = setupWithCurrency({
       line: altLine,
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     converter.convertWithMetadata.mockResolvedValue({
@@ -439,7 +420,6 @@ describe('EditTemplateLineDialog — Edit mode currency rules', () => {
     const { component, dialogRef, converter } = setupWithCurrency({
       line: baseLine,
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     converter.convertWithMetadata.mockResolvedValue({
@@ -470,7 +450,6 @@ describe('EditTemplateLineDialog — Edit mode currency rules', () => {
     const { component, dialogRef, converter } = setupWithCurrency({
       line: altLine,
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     converter.convertWithMetadata.mockRejectedValue(new Error('rate down'));
@@ -489,7 +468,6 @@ describe('EditTemplateLineDialog — Edit mode currency rules', () => {
     const { component } = setupWithCurrency({
       line: baseLine,
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     expect(component['isEditMode']()).toBe(true);

@@ -6,7 +6,6 @@ import { provideNativeDateAdapter } from '@angular/material/core';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { setTestInput } from '@app/testing/signal-test-utils';
 import { CurrencyConverterService } from '@core/currency';
-import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import { TagStore } from '@core/tag';
 import { createMockTagStore } from '@app/testing/tag-store.mock';
@@ -78,14 +77,11 @@ const setupForm = (
 
 const setupWithCurrency = ({
   userCurrency,
-  flagEnabled,
   showCurrencyPref = true,
 }: {
   userCurrency: SupportedCurrency;
-  flagEnabled: boolean;
   showCurrencyPref?: boolean;
 }) => {
-  const flags = { isMultiCurrencyEnabled: signal(flagEnabled) };
   const settings = {
     currency: signal<SupportedCurrency>(userCurrency),
     showCurrencySelector: signal(showCurrencyPref),
@@ -104,7 +100,6 @@ const setupWithCurrency = ({
       provideAnimationsAsync(),
       provideNativeDateAdapter(),
       ...provideTranslocoForTest(),
-      { provide: FeatureFlagsService, useValue: flags },
       { provide: UserSettingsStore, useValue: settings },
       { provide: CurrencyConverterService, useValue: converter },
       { provide: TagStore, useValue: createMockTagStore() },
@@ -124,7 +119,6 @@ const setupWithCurrency = ({
     createdSpy,
     converter,
     settings,
-    flags,
   };
 };
 
@@ -414,7 +408,6 @@ describe('CreateAllocatedTransactionForm — currency create rules', () => {
   it('should initialize money slice with user currency', () => {
     const { component } = setupWithCurrency({
       userCurrency: 'EUR',
-      flagEnabled: true,
     });
 
     expect(component['model']().money.inputCurrency).toBe('EUR');
@@ -423,7 +416,6 @@ describe('CreateAllocatedTransactionForm — currency create rules', () => {
   it('should call convertWithMetadata and include metadata in payload when currencies differ', async () => {
     const { component, createdSpy, converter } = setupWithCurrency({
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     converter.convertWithMetadata.mockResolvedValue({
@@ -467,7 +459,6 @@ describe('CreateAllocatedTransactionForm — currency create rules', () => {
   it('should block submit and set conversionError when convertWithMetadata throws', async () => {
     const { component, createdSpy, converter } = setupWithCurrency({
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     converter.convertWithMetadata.mockRejectedValue(new Error('rate down'));
@@ -492,7 +483,6 @@ describe('CreateAllocatedTransactionForm — currency create rules', () => {
   it('should omit metadata fields from payload when inputCurrency equals userCurrency', async () => {
     const { component, createdSpy, converter } = setupWithCurrency({
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     converter.convertWithMetadata.mockResolvedValue({

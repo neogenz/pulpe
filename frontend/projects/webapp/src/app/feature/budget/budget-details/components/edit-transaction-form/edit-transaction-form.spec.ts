@@ -9,7 +9,6 @@ import { provideLocale } from '@core/locale';
 import { StorageService } from '@core/storage/storage.service';
 import { Logger } from '@core/logging/logger';
 import { CurrencyConverterService } from '@core/currency';
-import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import { TagStore } from '@core/tag';
 import { createMockTagStore } from '@app/testing/tag-store.mock';
@@ -384,9 +383,6 @@ describe('EditTransactionForm', () => {
   });
 });
 
-interface FlagsMock {
-  isMultiCurrencyEnabled: ReturnType<typeof signal>;
-}
 interface SettingsMock {
   currency: ReturnType<typeof signal<SupportedCurrency>>;
   showCurrencySelector: ReturnType<typeof signal<boolean>>;
@@ -412,16 +408,7 @@ function makeTransaction(overrides: Partial<Transaction> = {}): Transaction {
   } as Transaction;
 }
 
-function configureForm({
-  userCurrency,
-  flagEnabled,
-}: {
-  userCurrency: SupportedCurrency;
-  flagEnabled: boolean;
-}) {
-  const flags: FlagsMock = {
-    isMultiCurrencyEnabled: signal(flagEnabled),
-  };
+function configureForm({ userCurrency }: { userCurrency: SupportedCurrency }) {
   const settings: SettingsMock = {
     currency: signal<SupportedCurrency>(userCurrency),
     showCurrencySelector: signal(true),
@@ -442,7 +429,6 @@ function configureForm({
       ...provideLocale(),
       { provide: StorageService, useValue: mockStorageService },
       { provide: Logger, useValue: mockLogger },
-      { provide: FeatureFlagsService, useValue: flags },
       { provide: UserSettingsStore, useValue: settings },
       { provide: CurrencyConverterService, useValue: converter },
     ],
@@ -450,16 +436,15 @@ function configureForm({
 
   const fixture = TestBed.createComponent(EditTransactionForm);
   const component = fixture.componentInstance;
-  return { fixture, component, converter, settings, flags };
+  return { fixture, component, converter, settings };
 }
 
 describe('EditTransactionForm — currency edit rules', () => {
   beforeEach(() => TestBed.resetTestingModule());
 
-  it('shows picker when flag ON and originalCurrency differs from user currency', () => {
+  it('shows picker when originalCurrency differs from user currency', () => {
     const { fixture, component } = configureForm({
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     setTestInput(
@@ -476,30 +461,9 @@ describe('EditTransactionForm — currency edit rules', () => {
     expect(component['showCurrencySelector']()).toBe(true);
   });
 
-  it('hides picker when flag is OFF (even with alternate originalCurrency)', () => {
-    const { fixture, component } = configureForm({
-      userCurrency: 'CHF',
-      flagEnabled: false,
-    });
-
-    setTestInput(
-      component.transaction,
-      makeTransaction({
-        originalAmount: 100,
-        originalCurrency: 'EUR',
-        targetCurrency: 'CHF',
-        exchangeRate: 1.2,
-      }),
-    );
-    fixture.detectChanges();
-
-    expect(component['showCurrencySelector']()).toBe(false);
-  });
-
   it('hides picker when originalCurrency is null/undefined (mono-currency)', () => {
     const { fixture, component } = configureForm({
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     setTestInput(component.transaction, makeTransaction({ amount: 200 }));
@@ -511,7 +475,6 @@ describe('EditTransactionForm — currency edit rules', () => {
   it('hides picker when originalCurrency equals user currency', () => {
     const { fixture, component } = configureForm({
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     setTestInput(
@@ -531,7 +494,6 @@ describe('EditTransactionForm — currency edit rules', () => {
   it('pre-fills form with originalAmount when picker is visible (alternate currency)', () => {
     const { fixture, component } = configureForm({
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     setTestInput(
@@ -552,7 +514,6 @@ describe('EditTransactionForm — currency edit rules', () => {
   it('emits update with metadata when alternate-currency edit submits', async () => {
     const { fixture, component, converter } = configureForm({
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     setTestInput(
@@ -605,7 +566,6 @@ describe('EditTransactionForm — currency edit rules', () => {
   it('emits update with metadata=null when mono-currency edit submits (converter short-circuits)', async () => {
     const { fixture, component, converter } = configureForm({
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     setTestInput(
@@ -647,7 +607,6 @@ describe('EditTransactionForm — currency edit rules', () => {
   it('blocks submit and sets conversionError when convertWithMetadata throws on alternate-currency edit', async () => {
     const { fixture, component, converter } = configureForm({
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     setTestInput(
@@ -682,7 +641,6 @@ describe('EditTransactionForm — currency edit rules', () => {
   it('should NOT reset user-edited model fields when settings.currency() changes', () => {
     const { fixture, component, settings } = configureForm({
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     setTestInput(

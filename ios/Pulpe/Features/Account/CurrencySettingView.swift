@@ -20,7 +20,6 @@ struct CurrencySettingView: View {
 
     @Environment(AppState.self) private var appState
     @Environment(UserSettingsStore.self) private var userSettingsStore
-    @Environment(FeatureFlagsStore.self) private var featureFlagsStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var viewModel = CurrencySettingViewModel()
     @State private var submitSuccessTrigger = false
@@ -30,48 +29,46 @@ struct CurrencySettingView: View {
     @State private var saveSelectorToggleTask: Task<Void, Never>?
 
     var body: some View {
-        if featureFlagsStore.isMultiCurrencyEnabled {
-            Section {
-                currencyPicker
-                currencySelectorToggle
-                converterDisclosure
-            } header: {
-                Text("DEVISE")
-                    .font(PulpeTypography.labelLarge)
+        Section {
+            currencyPicker
+            currencySelectorToggle
+            converterDisclosure
+        } header: {
+            Text("DEVISE")
+                .font(PulpeTypography.labelLarge)
+        }
+        .listRowBackground(Color.surfaceContainerHigh)
+        .sensoryFeedback(.success, trigger: submitSuccessTrigger)
+        // PUL-205: alert (not action sheet) confirming the flip before it
+        // persists — the copy makes explicit that amounts are not converted.
+        .alert(
+            "Changer la devise d'affichage ?",
+            isPresented: isCurrencyConfirmationPresented,
+            presenting: pendingCurrency
+        ) { currency in
+            Button("Annuler", role: .cancel) {}
+            Button("Changer") { applyCurrencyChange(to: currency) }
+        } message: { currency in
+            Text(
+                "Tes montants existants ne sont pas convertis — 100 restera 100, "
+                    + "affiché en \(currency.symbol). Seule la devise d'affichage change."
+            )
+        }
+        .onChange(of: userSettingsStore.currency) { _, newValue in
+            viewModel.syncCurrency(newValue)
+            if isConverterExpanded {
+                viewModel.reloadRate()
             }
-            .listRowBackground(Color.surfaceContainerHigh)
-            .sensoryFeedback(.success, trigger: submitSuccessTrigger)
-            // PUL-205: alert (not action sheet) confirming the flip before it
-            // persists — the copy makes explicit that amounts are not converted.
-            .alert(
-                "Changer la devise d'affichage ?",
-                isPresented: isCurrencyConfirmationPresented,
-                presenting: pendingCurrency
-            ) { currency in
-                Button("Annuler", role: .cancel) {}
-                Button("Changer") { applyCurrencyChange(to: currency) }
-            } message: { currency in
-                Text(
-                    "Tes montants existants ne sont pas convertis — 100 restera 100, "
-                        + "affiché en \(currency.symbol). Seule la devise d'affichage change."
-                )
+        }
+        .onChange(of: isConverterExpanded) { _, expanded in
+            if expanded {
+                viewModel.reloadRate()
+            } else {
+                converterFocus.wrappedValue = nil
             }
-            .onChange(of: userSettingsStore.currency) { _, newValue in
-                viewModel.syncCurrency(newValue)
-                if isConverterExpanded {
-                    viewModel.reloadRate()
-                }
-            }
-            .onChange(of: isConverterExpanded) { _, expanded in
-                if expanded {
-                    viewModel.reloadRate()
-                } else {
-                    converterFocus.wrappedValue = nil
-                }
-            }
-            .task {
-                viewModel.syncCurrency(userSettingsStore.currency)
-            }
+        }
+        .task {
+            viewModel.syncCurrency(userSettingsStore.currency)
         }
     }
 
@@ -418,5 +415,4 @@ private struct ConverterRowAccessibilityModifier: ViewModifier {
     .background(Color.surface)
     .environment(AppState())
     .environment(UserSettingsStore())
-    .environment(FeatureFlagsStore())
 }

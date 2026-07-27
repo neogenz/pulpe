@@ -26,25 +26,11 @@ final class UserSettingsStore: StoreProtocol {
     // MARK: - Services
 
     private let service: any UserSettingsServicing
-    private let featureFlags: FeatureFlagsStore?
 
     // MARK: - Initialization
 
-    init(
-        service: any UserSettingsServicing = UserSettingsService.shared,
-        featureFlags: FeatureFlagsStore? = nil
-    ) {
+    init(service: any UserSettingsServicing = UserSettingsService.shared) {
         self.service = service
-        self.featureFlags = featureFlags
-    }
-
-    // MARK: - Feature-gated computed
-
-    /// `showCurrencySelector` AND the multi-currency feature flag.
-    /// Views that render the currency picker must read this instead of the
-    /// raw `showCurrencySelector` field so the flag acts as a kill switch.
-    var showCurrencySelectorEffective: Bool {
-        (featureFlags?.isMultiCurrencyEnabled ?? false) && showCurrencySelector
     }
 
     // MARK: - Smart Loading (StoreProtocol)

@@ -13,7 +13,6 @@ import type { BudgetLineConsumption } from '@core/budget';
 import type { AllocatedTransactionsDialogData } from './dialog';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { UserSettingsStore } from '@core/user-settings';
-import { FeatureFlagsService } from '@core/feature-flags';
 import { BudgetDetailsStore } from '../../store/budget-details-store';
 import { AllocatedTransactionsBottomSheet } from './bottom-sheet';
 
@@ -110,10 +109,6 @@ describe('AllocatedTransactionsBottomSheet', () => {
         {
           provide: UserSettingsStore,
           useValue: { currency: signal('CHF'), payDayOfMonth: signal(1) },
-        },
-        {
-          provide: FeatureFlagsService,
-          useValue: { isMultiCurrencyEnabled: signal(false) },
         },
         {
           provide: BudgetDetailsStore,

@@ -12,7 +12,6 @@ import { PostHogService } from './posthog';
 import { Logger } from '../logging/logger';
 import { DemoModeService } from '../demo/demo-mode.service';
 import { UserSettingsStore } from '../user-settings/user-settings-store';
-import { FeatureFlagsService } from '../feature-flags/feature-flags.service';
 import type { Properties } from 'posthog-js';
 
 // Trim + reject empty so re-identify can't overwrite a known-good
@@ -34,7 +33,6 @@ export class AnalyticsService implements OnDestroy {
   readonly #logger = inject(Logger);
   readonly #demoModeService = inject(DemoModeService);
   readonly #userSettingsStore = inject(UserSettingsStore);
-  readonly #featureFlagsService = inject(FeatureFlagsService);
 
   // Track if we've already enabled tracking for the current session
   #trackingEnabledForSession = false;
@@ -45,7 +43,7 @@ export class AnalyticsService implements OnDestroy {
 
   // Track the auth synchronization effect to ensure idempotency
   #authEffect?: EffectRef;
-  // Re-emits person properties when settings or flag exposure change post-identify
+  // Re-emits person properties when settings change post-identify
   #personPropertiesEffect?: EffectRef;
 
   /**
@@ -80,9 +78,9 @@ export class AnalyticsService implements OnDestroy {
           }
 
           // Identify carries the user identity (email, name, supabase_user_id)
-          // plus stable session flags (early adopter, demo). Settings + the
-          // multi-currency flag are pushed separately via `$set` from
-          // `#personPropertiesEffect` — they are heavier signal deps that
+          // plus stable session flags (early adopter, demo). Settings are
+          // pushed separately via `$set` from `#personPropertiesEffect` —
+          // they are heavier signal deps that
           // would otherwise re-fire identify on every settings tick or PostHog
           // `flagsVersion` bump (feedback loop with this same identify call).
           const isDemoMode = this.#demoModeService.isDemoMode();
@@ -125,8 +123,6 @@ export class AnalyticsService implements OnDestroy {
 
       this.#personPropertiesEffect = effect(() => {
         const userSettings = this.#userSettingsStore.settings();
-        const isMultiCurrencyEnabled =
-          this.#featureFlagsService.isMultiCurrencyEnabled();
 
         // Skip until identify has fired and settings have actually loaded.
         // Without this guard a user with `currency = EUR` would briefly land
@@ -139,7 +135,6 @@ export class AnalyticsService implements OnDestroy {
           [ANALYTICS_PROPERTIES.CURRENCY]: userSettings.currency,
           [ANALYTICS_PROPERTIES.SHOW_CURRENCY_SELECTOR]:
             userSettings.showCurrencySelector,
-          [ANALYTICS_PROPERTIES.MULTI_CURRENCY_ENABLED]: isMultiCurrencyEnabled,
         });
       });
 

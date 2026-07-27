@@ -31,7 +31,6 @@ import {
 } from 'pulpe-shared';
 import { transactionUpdateFromFormSchema } from './edit-transaction-form.schema';
 import { startOfMonth, endOfMonth } from 'date-fns';
-import { FeatureFlagsService } from '@core/feature-flags';
 import {
   applyAmountValidators,
   type AmountFormSlice,
@@ -215,7 +214,6 @@ interface DateOutOfRangeError {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EditTransactionForm {
-  readonly #flags = inject(FeatureFlagsService);
   readonly #settings = inject(UserSettingsStore);
   readonly #converter = inject(CurrencyConverterService);
   readonly #logger = inject(Logger);
@@ -257,7 +255,6 @@ export class EditTransactionForm {
 
   protected readonly showCurrencySelector = computed(() =>
     isCurrencyPickerVisible({
-      isMultiCurrencyEnabled: this.#flags.isMultiCurrencyEnabled(),
       originalCurrency: this.originalCurrency(),
       userCurrency: this.#settings.currency(),
     }),

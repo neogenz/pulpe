@@ -13,7 +13,6 @@ import { MatInputModule } from '@angular/material/input';
 import { TranslocoPipe } from '@jsverse/transloco';
 import type { SupportedCurrency } from 'pulpe-shared';
 
-import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import { safeFieldTreeRead } from '@core/validators';
 import {
@@ -29,7 +28,7 @@ export type AmountInputMode = 'create' | 'edit';
 /**
  * Composite "amount + currency + live conversion preview" form field.
  *
- * Owns: visibility rules (flag x user pref x edit-mode original currency),
+ * Owns: visibility rules (user pref x edit-mode original currency),
  * picker enabled/disabled state, and live conversion preview rendering.
  *
  * Caller owns: form state (`control`), submit-time `conversionError`, and the
@@ -104,7 +103,6 @@ export class AmountInput {
   }
 
   readonly #settings = inject(UserSettingsStore);
-  readonly #flags = inject(FeatureFlagsService);
 
   protected readonly displayCurrency = this.#settings.currency;
 
@@ -135,15 +133,11 @@ export class AmountInput {
   protected readonly showSelector = computed(() => {
     if (this.mode() === 'edit') {
       return isCurrencyPickerVisible({
-        isMultiCurrencyEnabled: this.#flags.isMultiCurrencyEnabled(),
         originalCurrency: this.originalCurrency(),
         userCurrency: this.displayCurrency(),
       });
     }
-    return (
-      this.#flags.isMultiCurrencyEnabled() &&
-      this.#settings.showCurrencySelector()
-    );
+    return this.#settings.showCurrencySelector();
   });
 
   protected readonly pickerDisabled = computed(() => this.mode() === 'edit');

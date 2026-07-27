@@ -21,7 +21,6 @@ struct PulpeApp: App {
     @State private var budgetListStore: BudgetListStore
     @State private var dashboardStore: DashboardStore
     @State private var userSettingsStore: UserSettingsStore
-    @State private var featureFlagsStore: FeatureFlagsStore
     @State private var savingsGoalStore: SavingsGoalStore
     @State private var tagStore: TagStore
     @State private var runtimeCoordinator: AppRuntimeCoordinator
@@ -34,8 +33,7 @@ struct PulpeApp: App {
         let currentMonthStore = CurrentMonthStore()
         let budgetListStore = BudgetListStore()
         let dashboardStore = DashboardStore()
-        let featureFlagsStore = FeatureFlagsStore()
-        let userSettingsStore = UserSettingsStore(featureFlags: featureFlagsStore)
+        let userSettingsStore = UserSettingsStore()
         let savingsGoalStore = SavingsGoalStore()
         let tagStore = TagStore()
 
@@ -78,7 +76,6 @@ struct PulpeApp: App {
         _budgetListStore = State(initialValue: budgetListStore)
         _dashboardStore = State(initialValue: dashboardStore)
         _userSettingsStore = State(initialValue: userSettingsStore)
-        _featureFlagsStore = State(initialValue: featureFlagsStore)
         _savingsGoalStore = State(initialValue: savingsGoalStore)
         _tagStore = State(initialValue: tagStore)
         _runtimeCoordinator = State(initialValue: AppRuntimeCoordinator(
@@ -112,7 +109,6 @@ struct PulpeApp: App {
                     .environment(budgetListStore)
                     .environment(dashboardStore)
                     .environment(userSettingsStore)
-                    .environment(featureFlagsStore)
                     .environment(savingsGoalStore)
                     .environment(tagStore)
                     .environment(appVersionStore)
@@ -121,12 +117,10 @@ struct PulpeApp: App {
                         ToastOverlayWindowHost(toastManager: appState.toastManager)
                     }
                     .task {
-                        featureFlagsStore.refresh()
                         await appVersionStore.check()
                     }
                     .onChange(of: scenePhase) { _, newPhase in
                         if newPhase == .active {
-                            featureFlagsStore.refresh()
                             Task { await appVersionStore.check() }
                             Task { await rescheduleRemindersIfEnabled() }
                         }

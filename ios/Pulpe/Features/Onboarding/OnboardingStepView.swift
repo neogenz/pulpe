@@ -68,7 +68,6 @@ struct OnboardingStepView<Content: View>: View {
     @ViewBuilder let content: () -> Content
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(FeatureFlagsStore.self) private var featureFlags
     @State private var showContent = false
     @State private var isAtBottom = false
     @State private var contentOverflows = false
@@ -87,7 +86,7 @@ struct OnboardingStepView<Content: View>: View {
     }
 
     private var shouldShowCurrencyChip: Bool {
-        featureFlags.isMultiCurrencyEnabled && [.charges, .savings, .budgetPreview].contains(step)
+        [.charges, .savings, .budgetPreview].contains(step)
     }
 
     private var isEnabled: Bool {

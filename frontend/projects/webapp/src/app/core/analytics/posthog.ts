@@ -136,7 +136,7 @@ export class PostHogService {
    * - `__E2E_POSTHOG_FLAGS__` global — set by the E2E harness before bootstrap.
    * - `pulpe-dev-feature-flags` in localStorage — manual dev toggle that
    *   survives reloads. Enable from the console:
-   *   `localStorage.setItem('pulpe-dev-feature-flags','{"version":1,"data":{"multi-currency-enabled":true},"updatedAt":""}')`
+   *   `localStorage.setItem('pulpe-dev-feature-flags','{"version":1,"data":{"example-flag":true},"updatedAt":""}')`
    *   then reload. Disable with `localStorage.removeItem('pulpe-dev-feature-flags')`.
    */
   #readFlagOverrides(): Record<string, boolean> | undefined {

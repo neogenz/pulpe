@@ -28,7 +28,6 @@ import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import { isApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
 import { UserSettingsStore } from '@core/user-settings';
-import { FeatureFlagsService } from '@core/feature-flags';
 import { AuthSessionService } from '@core/auth/auth-session.service';
 import { AuthStore } from '@core/auth';
 import { ClientKeyService, EncryptionApi } from '@core/encryption';
@@ -108,68 +107,65 @@ import { SettingsDialogService } from './settings-dialog.service';
           </div>
 
           <div class="space-y-4">
-            @if (isMultiCurrencyEnabled()) {
-              <!-- Currency Selector -->
-              <div class="flex flex-col gap-2">
-                <p class="text-label-medium text-on-surface-variant">
-                  {{ 'settings.currencyLabel' | transloco }}
+            <!-- Currency Selector -->
+            <div class="flex flex-col gap-2">
+              <p class="text-label-medium text-on-surface-variant">
+                {{ 'settings.currencyLabel' | transloco }}
+              </p>
+              <mat-button-toggle-group
+                [attr.aria-label]="'settings.currencyLabel' | transloco"
+                [value]="selectedCurrency()"
+                (change)="onCurrencyChange($event.value)"
+                data-testid="currency-toggle"
+                class="w-full"
+                hideSingleSelectionIndicator
+              >
+                <mat-button-toggle value="CHF" class="flex-1">
+                  <span class="flex flex-col items-center leading-tight py-1">
+                    <span class="text-base"
+                      ><span class="text-lg mr-1">🇨🇭</span>CHF</span
+                    >
+                    <span class="text-xs text-on-surface-variant">{{
+                      'currency.swissFranc' | transloco
+                    }}</span>
+                  </span>
+                </mat-button-toggle>
+                <mat-button-toggle value="EUR" class="flex-1">
+                  <span class="flex flex-col items-center leading-tight py-1">
+                    <span class="text-base"
+                      ><span class="text-lg mr-1">🇪🇺</span>EUR</span
+                    >
+                    <span class="text-xs text-on-surface-variant">{{
+                      'currency.euro' | transloco
+                    }}</span>
+                  </span>
+                </mat-button-toggle>
+              </mat-button-toggle-group>
+            </div>
+
+            <!-- Currency Selector Toggle -->
+            <div class="flex items-center justify-between gap-4 py-2">
+              <div class="space-y-0.5">
+                <p class="text-body-medium">
+                  {{ 'settings.currencySelectorLabel' | transloco }}
                 </p>
-                <mat-button-toggle-group
-                  [attr.aria-label]="'settings.currencyLabel' | transloco"
-                  [value]="selectedCurrency()"
-                  (change)="onCurrencyChange($event.value)"
-                  data-testid="currency-toggle"
-                  class="w-full"
-                  hideSingleSelectionIndicator
-                >
-                  <mat-button-toggle value="CHF" class="flex-1">
-                    <span class="flex flex-col items-center leading-tight py-1">
-                      <span class="text-base"
-                        ><span class="text-lg mr-1">🇨🇭</span>CHF</span
-                      >
-                      <span class="text-xs text-on-surface-variant">{{
-                        'currency.swissFranc' | transloco
-                      }}</span>
-                    </span>
-                  </mat-button-toggle>
-                  <mat-button-toggle value="EUR" class="flex-1">
-                    <span class="flex flex-col items-center leading-tight py-1">
-                      <span class="text-base"
-                        ><span class="text-lg mr-1">🇪🇺</span>EUR</span
-                      >
-                      <span class="text-xs text-on-surface-variant">{{
-                        'currency.euro' | transloco
-                      }}</span>
-                    </span>
-                  </mat-button-toggle>
-                </mat-button-toggle-group>
+                <p class="text-body-small text-on-surface-variant">
+                  {{ 'settings.currencySelectorDescription' | transloco }}
+                </p>
               </div>
+              <mat-slide-toggle
+                [checked]="selectedShowCurrencySelector()"
+                (change)="onShowCurrencySelectorChange($event.checked)"
+                data-testid="show-currency-selector-toggle"
+              />
+            </div>
 
-              <!-- Currency Selector Toggle -->
-              <div class="flex items-center justify-between gap-4 py-2">
-                <div class="space-y-0.5">
-                  <p class="text-body-medium">
-                    {{ 'settings.currencySelectorLabel' | transloco }}
-                  </p>
-                  <p class="text-body-small text-on-surface-variant">
-                    {{ 'settings.currencySelectorDescription' | transloco }}
-                  </p>
-                </div>
-                <mat-slide-toggle
-                  [checked]="selectedShowCurrencySelector()"
-                  (change)="onShowCurrencySelectorChange($event.checked)"
-                  data-testid="show-currency-selector-toggle"
-                />
-              </div>
-
-              @if (isConverterVisible()) {
-                <pulpe-currency-converter-widget
-                  [savedCurrency]="initialCurrency()"
-                  [draftCurrency]="selectedCurrency()"
-                />
-              }
+            @if (isConverterVisible()) {
+              <pulpe-currency-converter-widget
+                [savedCurrency]="initialCurrency()"
+                [draftCurrency]="selectedCurrency()"
+              />
             }
-
             <mat-form-field
               appearance="outline"
               subscriptSizing="dynamic"
@@ -429,13 +425,10 @@ export default class SettingsPage {
   readonly #encryptionApi = inject(EncryptionApi);
   readonly #authStore = inject(AuthStore);
   readonly #transloco = inject(TranslocoService);
-  readonly #featureFlags = inject(FeatureFlagsService);
   readonly #analytics = inject(AnalyticsService);
   readonly #settingsDialog = inject(SettingsDialogService);
 
   readonly isDemoMode = this.#demoMode.isDemoMode;
-  protected readonly isMultiCurrencyEnabled =
-    this.#featureFlags.isMultiCurrencyEnabled;
   protected readonly isOAuthOnly = this.#authStore.isOAuthOnly;
   protected readonly isSaving = signal(false);
   protected readonly isDeleting = signal(false);

@@ -17,7 +17,6 @@ import { ClientKeyService, EncryptionApi } from '@core/encryption';
 import { DemoModeService } from '@core/demo/demo-mode.service';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { CurrencyConverterService } from '@core/currency';
-import { FeatureFlagsService } from '@core/feature-flags';
 import { AnalyticsService } from '@core/analytics';
 import { ROUTES } from '@core/routing';
 
@@ -41,9 +40,6 @@ describe('SettingsPage', () => {
   };
   let mockAuthSession: { signOut: ReturnType<typeof vi.fn> };
   let mockAuthStore: { isOAuthOnly: ReturnType<typeof signal<boolean>> };
-  let mockFeatureFlags: {
-    isMultiCurrencyEnabled: ReturnType<typeof signal<boolean>>;
-  };
   let mockAnalytics: {
     captureEvent: ReturnType<typeof vi.fn>;
     setPersonProperties: ReturnType<typeof vi.fn>;
@@ -86,10 +82,6 @@ describe('SettingsPage', () => {
       isOAuthOnly: signal(false),
     };
 
-    mockFeatureFlags = {
-      isMultiCurrencyEnabled: signal(true),
-    };
-
     mockAnalytics = {
       captureEvent: vi.fn(),
       setPersonProperties: vi.fn(),
@@ -117,7 +109,6 @@ describe('SettingsPage', () => {
         },
         { provide: AuthSessionService, useValue: mockAuthSession },
         { provide: AuthStore, useValue: mockAuthStore },
-        { provide: FeatureFlagsService, useValue: mockFeatureFlags },
         { provide: AnalyticsService, useValue: mockAnalytics },
         {
           provide: EncryptionApi,
@@ -237,23 +228,7 @@ describe('SettingsPage', () => {
   });
 
   describe('currency section visibility', () => {
-    it('should hide currency-toggle when isMultiCurrencyEnabled is false', async () => {
-      mockFeatureFlags.isMultiCurrencyEnabled.set(false);
-      fixture.detectChanges();
-      await fixture.whenStable();
-
-      const toggle = fixture.nativeElement.querySelector(
-        '[data-testid="currency-toggle"]',
-      );
-
-      expect(toggle).toBeNull();
-    });
-
-    it('should show currency-toggle when isMultiCurrencyEnabled is true', async () => {
-      mockFeatureFlags.isMultiCurrencyEnabled.set(true);
-      fixture.detectChanges();
-      await fixture.whenStable();
-
+    it('should always show currency-toggle', () => {
       const toggle = fixture.nativeElement.querySelector(
         '[data-testid="currency-toggle"]',
       );

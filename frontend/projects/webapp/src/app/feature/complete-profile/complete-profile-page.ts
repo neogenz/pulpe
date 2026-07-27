@@ -24,7 +24,6 @@ import { LoadingButton } from '@ui/loading-button';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { PostHogService } from '@core/analytics/posthog';
-import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import { ROUTES } from '@core/routing/routes-constants';
 import {
@@ -168,62 +167,58 @@ import {
                 </div>
 
                 <div class="w-full space-y-6">
-                  @if (isMultiCurrencyEnabled()) {
-                    <fieldset class="flex flex-col gap-2">
-                      <legend
-                        class="text-label-medium text-on-surface-variant mb-2"
-                      >
-                        {{ 'completeProfile.currencyLabel' | transloco }}
-                      </legend>
-                      <div class="grid grid-cols-2 gap-3" role="radiogroup">
-                        @for (currency of currencies; track currency) {
-                          @let meta = currencyMetadata[currency];
-                          @let isSelected = selectedCurrency() === currency;
-                          <button
-                            type="button"
-                            role="radio"
-                            [attr.aria-checked]="isSelected"
-                            (click)="onCurrencyChange(currency)"
-                            class="currency-tile group flex items-center gap-3 px-4 py-3 rounded-2xl border-2 text-left transition-all duration-300 ease-emphasized focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                            [class.border-primary]="isSelected"
-                            [class.bg-primary-container]="isSelected"
-                            [class.text-on-primary-container]="isSelected"
-                            [class.border-outline-variant]="!isSelected"
-                            [class.bg-surface-container-low]="!isSelected"
-                            [class.hover:border-outline]="!isSelected"
-                            [attr.data-testid]="'currency-tile-' + currency"
+                  <fieldset class="flex flex-col gap-2">
+                    <legend
+                      class="text-label-medium text-on-surface-variant mb-2"
+                    >
+                      {{ 'completeProfile.currencyLabel' | transloco }}
+                    </legend>
+                    <div class="grid grid-cols-2 gap-3" role="radiogroup">
+                      @for (currency of currencies; track currency) {
+                        @let meta = currencyMetadata[currency];
+                        @let isSelected = selectedCurrency() === currency;
+                        <button
+                          type="button"
+                          role="radio"
+                          [attr.aria-checked]="isSelected"
+                          (click)="onCurrencyChange(currency)"
+                          class="currency-tile group flex items-center gap-3 px-4 py-3 rounded-2xl border-2 text-left transition-all duration-300 ease-emphasized focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                          [class.border-primary]="isSelected"
+                          [class.bg-primary-container]="isSelected"
+                          [class.text-on-primary-container]="isSelected"
+                          [class.border-outline-variant]="!isSelected"
+                          [class.bg-surface-container-low]="!isSelected"
+                          [class.hover:border-outline]="!isSelected"
+                          [attr.data-testid]="'currency-tile-' + currency"
+                        >
+                          <span
+                            class="text-2xl leading-none"
+                            aria-hidden="true"
+                            >{{ meta.flag }}</span
                           >
+                          <span class="flex flex-col min-w-0">
+                            <span class="text-title-medium font-semibold">{{
+                              currency
+                            }}</span>
                             <span
-                              class="text-2xl leading-none"
-                              aria-hidden="true"
-                              >{{ meta.flag }}</span
+                              class="text-label-small opacity-80 truncate"
+                              >{{ meta.nativeName }}</span
                             >
-                            <span class="flex flex-col min-w-0">
-                              <span class="text-title-medium font-semibold">{{
-                                currency
-                              }}</span>
-                              <span
-                                class="text-label-small opacity-80 truncate"
-                                >{{ meta.nativeName }}</span
-                              >
-                            </span>
-                            <mat-icon
-                              class="currency-tile-check ml-auto shrink-0 transition-opacity duration-300"
-                              [class.opacity-100]="isSelected"
-                              [class.opacity-0]="!isSelected"
-                              aria-hidden="true"
-                              >check_circle</mat-icon
-                            >
-                          </button>
-                        }
-                      </div>
-                      <p
-                        class="text-label-small text-on-surface-variant/80 mt-1"
-                      >
-                        {{ 'completeProfile.currencyHint' | transloco }}
-                      </p>
-                    </fieldset>
-                  }
+                          </span>
+                          <mat-icon
+                            class="currency-tile-check ml-auto shrink-0 transition-opacity duration-300"
+                            [class.opacity-100]="isSelected"
+                            [class.opacity-0]="!isSelected"
+                            aria-hidden="true"
+                            >check_circle</mat-icon
+                          >
+                        </button>
+                      }
+                    </div>
+                    <p class="text-label-small text-on-surface-variant/80 mt-1">
+                      {{ 'completeProfile.currencyHint' | transloco }}
+                    </p>
+                  </fieldset>
 
                   <mat-form-field
                     appearance="outline"
@@ -858,7 +853,6 @@ export default class CompleteProfilePage {
   readonly #postHogService = inject(PostHogService);
   readonly #transloco = inject(TranslocoService);
   readonly #userSettings = inject(UserSettingsStore);
-  readonly #featureFlags = inject(FeatureFlagsService);
 
   readonly #locale = inject(LOCALE_ID);
   // Currency-dependent: CHF → "3ème pilier", EUR → "Épargne retraite".
@@ -907,12 +901,8 @@ export default class CompleteProfilePage {
         );
   });
 
-  protected readonly isMultiCurrencyEnabled =
-    this.#featureFlags.isMultiCurrencyEnabled;
-  protected readonly showCurrencySelector = computed(
-    () =>
-      this.#featureFlags.isMultiCurrencyEnabled() &&
-      this.#userSettings.showCurrencySelector(),
+  protected readonly showCurrencySelector = computed(() =>
+    this.#userSettings.showCurrencySelector(),
   );
   protected readonly selectedCurrency = signal<SupportedCurrency>(
     this.#userSettings.currency(),

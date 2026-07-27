@@ -30,7 +30,6 @@ import { CurrencyConversionBadge } from '@ui/currency-conversion-badge';
 import { SpreadOccurrencesList } from '@ui/spread-occurrences-list';
 import { TagIndicator } from '@ui/tag-indicator';
 import type { BudgetLineConsumption } from '@core/budget';
-import { FeatureFlagsService } from '@core/feature-flags';
 import { TagStore } from '@core/tag';
 import { UserSettingsStore } from '@core/user-settings';
 import { getDateDisplayFormats } from '@core/date/date-display-formats';
@@ -103,14 +102,12 @@ export interface AllocatedTransactionsDialogResult {
               class="text-title-medium font-semibold ph-no-capture flex items-center justify-center gap-1"
             >
               {{ data.budgetLine.amount | appCurrency: currency() }}
-              @if (isMultiCurrencyEnabled()) {
-                <pulpe-currency-conversion-badge
-                  [originalAmount]="data.budgetLine.originalAmount"
-                  [originalCurrency]="data.budgetLine.originalCurrency"
-                  [exchangeRate]="data.budgetLine.exchangeRate"
-                  [tooltipText]="data.budgetLine | formatConversion"
-                />
-              }
+              <pulpe-currency-conversion-badge
+                [originalAmount]="data.budgetLine.originalAmount"
+                [originalCurrency]="data.budgetLine.originalCurrency"
+                [exchangeRate]="data.budgetLine.exchangeRate"
+                [tooltipText]="data.budgetLine | formatConversion"
+              />
             </div>
           </div>
           <div class="text-center">
@@ -193,14 +190,12 @@ export interface AllocatedTransactionsDialogResult {
               >
                 <span class="inline-flex items-center gap-1">
                   {{ tx.amount | appCurrency: currency() }}
-                  @if (isMultiCurrencyEnabled()) {
-                    <pulpe-currency-conversion-badge
-                      [originalAmount]="tx.originalAmount"
-                      [originalCurrency]="tx.originalCurrency"
-                      [exchangeRate]="tx.exchangeRate"
-                      [tooltipText]="tx | formatConversion"
-                    />
-                  }
+                  <pulpe-currency-conversion-badge
+                    [originalAmount]="tx.originalAmount"
+                    [originalCurrency]="tx.originalCurrency"
+                    [exchangeRate]="tx.exchangeRate"
+                    [tooltipText]="tx | formatConversion"
+                  />
                 </span>
               </td>
             </ng-container>
@@ -308,7 +303,6 @@ export interface AllocatedTransactionsDialogResult {
 })
 export class AllocatedTransactionsDialog {
   readonly #userSettings = inject(UserSettingsStore);
-  readonly #featureFlags = inject(FeatureFlagsService);
   readonly #tagStore = inject(TagStore);
   readonly #router = inject(Router);
   protected readonly store = inject(BudgetDetailsStore);
@@ -321,8 +315,6 @@ export class AllocatedTransactionsDialog {
   protected readonly shortDateFormat = computed(
     () => getDateDisplayFormats(this.currency()).shortDate,
   );
-  protected readonly isMultiCurrencyEnabled =
-    this.#featureFlags.isMultiCurrencyEnabled;
   readonly data = inject<AllocatedTransactionsDialogData>(MAT_DIALOG_DATA);
   readonly #dialogRef = inject(
     MatDialogRef<

@@ -24,7 +24,6 @@ import {
   CURRENCY_CONFIG,
   FormatConversionPipe,
 } from '@core/currency';
-import { FeatureFlagsService } from '@core/feature-flags';
 import { TagStore } from '@core/tag';
 import { UserSettingsStore } from '@core/user-settings';
 import { getDateDisplayFormats } from '@core/date/date-display-formats';
@@ -123,14 +122,12 @@ import type {
           <div class="text-title-small font-semibold ph-no-capture">
             {{ data.budgetLine.amount | appCurrency: currency() : '1.2-2' }}
           </div>
-          @if (isMultiCurrencyEnabled()) {
-            <pulpe-original-amount-line
-              [originalAmount]="data.budgetLine.originalAmount"
-              [originalCurrency]="data.budgetLine.originalCurrency"
-              [displayCurrency]="currency()"
-              [tooltipText]="data.budgetLine | formatConversion"
-            />
-          }
+          <pulpe-original-amount-line
+            [originalAmount]="data.budgetLine.originalAmount"
+            [originalCurrency]="data.budgetLine.originalCurrency"
+            [displayCurrency]="currency()"
+            [tooltipText]="data.budgetLine | formatConversion"
+          />
         </div>
         <!-- Reste -->
         <div class="text-center p-2 bg-surface-container rounded-lg">
@@ -223,14 +220,12 @@ import type {
                   >
                     {{ tx.transactionDate | date: shortDateFormat() }}
                   </span>
-                  @if (isMultiCurrencyEnabled()) {
-                    <pulpe-currency-conversion-badge
-                      [originalAmount]="tx.originalAmount"
-                      [originalCurrency]="tx.originalCurrency"
-                      [exchangeRate]="tx.exchangeRate"
-                      [tooltipText]="tx | formatConversion"
-                    />
-                  }
+                  <pulpe-currency-conversion-badge
+                    [originalAmount]="tx.originalAmount"
+                    [originalCurrency]="tx.originalCurrency"
+                    [exchangeRate]="tx.exchangeRate"
+                    [tooltipText]="tx | formatConversion"
+                  />
                 </div>
               </div>
             }
@@ -299,7 +294,6 @@ import type {
 })
 export class AllocatedTransactionsBottomSheet {
   readonly #userSettings = inject(UserSettingsStore);
-  readonly #featureFlags = inject(FeatureFlagsService);
   readonly #tagStore = inject(TagStore);
   readonly #router = inject(Router);
   protected readonly store = inject(BudgetDetailsStore);
@@ -312,8 +306,6 @@ export class AllocatedTransactionsBottomSheet {
   protected readonly shortDateFormat = computed(
     () => getDateDisplayFormats(this.currency()).shortDate,
   );
-  protected readonly isMultiCurrencyEnabled =
-    this.#featureFlags.isMultiCurrencyEnabled;
   readonly data = inject<AllocatedTransactionsDialogData>(
     MAT_BOTTOM_SHEET_DATA,
   );

@@ -9,7 +9,6 @@ import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { createMockTagStore } from '@app/testing/tag-store.mock';
 import { CurrencyConverterService } from '@core/currency';
 import { TagStore } from '@core/tag';
-import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import { AddTransactionBottomSheet } from './add-transaction-bottom-sheet';
 import {
@@ -39,10 +38,6 @@ async function configureBottomSheet() {
       provideAnimationsAsync(),
       ...provideTranslocoForTest(),
       { provide: MatBottomSheetRef, useValue: bottomSheetRef },
-      {
-        provide: FeatureFlagsService,
-        useValue: { isMultiCurrencyEnabled: signal(false) },
-      },
       { provide: UserSettingsStore, useValue: settings },
       { provide: CurrencyConverterService, useValue: converter },
       { provide: TagStore, useValue: createMockTagStore() },

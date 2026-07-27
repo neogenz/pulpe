@@ -11,7 +11,6 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { createMockBudgetLine } from '@app/testing/mock-factories';
 import { CurrencyConverterService } from '@core/currency';
-import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import { TagStore } from '@core/tag';
 import { createMockTagStore } from '@app/testing/tag-store.mock';
@@ -20,9 +19,6 @@ import { EditBudgetLineDialog, type EditBudgetLineDialogData } from './dialog';
 
 const TAG_ID = '00000000-0000-4000-8000-0000000000f1';
 
-interface FlagsMock {
-  isMultiCurrencyEnabled: ReturnType<typeof signal>;
-}
 interface SettingsMock {
   currency: ReturnType<typeof signal<SupportedCurrency>>;
   showCurrencySelector: ReturnType<typeof signal<boolean>>;
@@ -36,15 +32,9 @@ interface DialogRefMock {
 
 function configureDialog(
   budgetLine: BudgetLine,
-  {
-    userCurrency,
-    flagEnabled,
-  }: { userCurrency: SupportedCurrency; flagEnabled: boolean },
+  { userCurrency }: { userCurrency: SupportedCurrency },
 ) {
   const dialogRef: DialogRefMock = { close: vi.fn() };
-  const flags: FlagsMock = {
-    isMultiCurrencyEnabled: signal(flagEnabled),
-  };
   const settings: SettingsMock = {
     currency: signal<SupportedCurrency>(userCurrency),
     showCurrencySelector: signal(true),
@@ -63,7 +53,6 @@ function configureDialog(
         provide: MAT_DIALOG_DATA,
         useValue: { budgetLine } satisfies EditBudgetLineDialogData,
       },
-      { provide: FeatureFlagsService, useValue: flags },
       { provide: UserSettingsStore, useValue: settings },
       { provide: CurrencyConverterService, useValue: converter },
       { provide: TagStore, useValue: createMockTagStore() },
@@ -78,7 +67,7 @@ function configureDialog(
 describe('EditBudgetLineDialog — currency edit rules', () => {
   beforeEach(() => TestBed.resetTestingModule());
 
-  it('shows disabled picker and pre-fills originalAmount when line.originalCurrency differs from user currency (flag ON)', () => {
+  it('shows disabled picker and pre-fills originalAmount when line.originalCurrency differs from user currency', () => {
     const line = createMockBudgetLine({
       amount: 120,
       originalAmount: 100,
@@ -89,7 +78,6 @@ describe('EditBudgetLineDialog — currency edit rules', () => {
 
     const { component } = configureDialog(line, {
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     expect(component['showCurrencySelector']()).toBe(true);
@@ -107,7 +95,6 @@ describe('EditBudgetLineDialog — currency edit rules', () => {
 
     const { component } = configureDialog(line, {
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     expect(component['showCurrencySelector']()).toBe(false);
@@ -119,29 +106,10 @@ describe('EditBudgetLineDialog — currency edit rules', () => {
 
     const { component } = configureDialog(line, {
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     expect(component['showCurrencySelector']()).toBe(false);
     expect(component['model']().money.amount).toBe(200);
-  });
-
-  it('hides picker when feature flag is OFF, even if originalCurrency differs', () => {
-    const line = createMockBudgetLine({
-      amount: 120,
-      originalAmount: 100,
-      originalCurrency: 'EUR',
-      targetCurrency: 'CHF',
-      exchangeRate: 1.2,
-    });
-
-    const { component } = configureDialog(line, {
-      userCurrency: 'CHF',
-      flagEnabled: false,
-    });
-
-    expect(component['showCurrencySelector']()).toBe(false);
-    expect(component['model']().money.amount).toBe(120);
   });
 
   it('on submit (mono-currency edit), PATCH does not include currency metadata (converter short-circuits same currency)', async () => {
@@ -149,7 +117,6 @@ describe('EditBudgetLineDialog — currency edit rules', () => {
 
     const { component, dialogRef, converter } = configureDialog(line, {
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     converter.convertWithMetadata.mockResolvedValue({
@@ -184,7 +151,6 @@ describe('EditBudgetLineDialog — currency edit rules', () => {
 
     const { component, dialogRef, converter } = configureDialog(line, {
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     converter.convertWithMetadata.mockResolvedValue({
@@ -210,7 +176,6 @@ describe('EditBudgetLineDialog — currency edit rules', () => {
 
     const { component, dialogRef, converter } = configureDialog(line, {
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     converter.convertWithMetadata.mockResolvedValue({
@@ -255,7 +220,6 @@ describe('EditBudgetLineDialog — currency edit rules', () => {
 
     const { component, dialogRef, converter } = configureDialog(line, {
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     converter.convertWithMetadata.mockRejectedValue(new Error('rate down'));
@@ -276,7 +240,6 @@ describe('EditBudgetLineDialog — currency edit rules', () => {
 
     const { component } = configureDialog(line, {
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     expect(component['originalCurrency']).toBe(null);

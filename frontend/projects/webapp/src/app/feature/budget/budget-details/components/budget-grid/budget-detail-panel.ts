@@ -24,7 +24,6 @@ import {
   CURRENCY_CONFIG,
   FormatConversionPipe,
 } from '@core/currency';
-import { FeatureFlagsService } from '@core/feature-flags';
 import { TagStore } from '@core/tag';
 import { UserSettingsStore } from '@core/user-settings';
 import { getDateDisplayFormats } from '@core/date/date-display-formats';
@@ -155,11 +154,7 @@ const DETAIL_SEGMENT_COUNT = 12;
               [originalAmount]="envelope.data.originalAmount"
               [originalCurrency]="envelope.data.originalCurrency"
               [displayCurrency]="currency()"
-              [tooltipText]="
-                isMultiCurrencyEnabled()
-                  ? (envelope.data | formatConversion)
-                  : ''
-              "
+              [tooltipText]="envelope.data | formatConversion"
             />
           </div>
           <div class="text-center">
@@ -306,9 +301,7 @@ const DETAIL_SEGMENT_COUNT = 12;
                       [originalAmount]="tx.originalAmount"
                       [originalCurrency]="tx.originalCurrency"
                       [displayCurrency]="currency()"
-                      [tooltipText]="
-                        isMultiCurrencyEnabled() ? (tx | formatConversion) : ''
-                      "
+                      [tooltipText]="tx | formatConversion"
                     />
                   </div>
                   <div class="flex items-center gap-1">
@@ -406,7 +399,6 @@ export class BudgetDetailPanel {
   readonly #router = inject(Router);
   readonly #store = inject(BudgetDetailsStore);
   readonly #userSettings = inject(UserSettingsStore);
-  readonly #featureFlags = inject(FeatureFlagsService);
   readonly #tagStore = inject(TagStore);
   protected readonly currency = this.#userSettings.currency;
   // Date locale (fr-CH / fr-FR) for month names — NOT numberLocale (de-CH),
@@ -417,8 +409,6 @@ export class BudgetDetailPanel {
   protected readonly shortDateFormat = computed(
     () => getDateDisplayFormats(this.currency()).shortDate,
   );
-  protected readonly isMultiCurrencyEnabled =
-    this.#featureFlags.isMultiCurrencyEnabled;
   protected readonly data = inject<BudgetDetailPanelData>(MAT_DIALOG_DATA);
 
   readonly detailSegmentCount = DETAIL_SEGMENT_COUNT;

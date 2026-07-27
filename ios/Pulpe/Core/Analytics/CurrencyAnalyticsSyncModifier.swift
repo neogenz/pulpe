@@ -4,9 +4,8 @@ import SwiftUI
 ///
 /// Applied once near the authenticated app root. The modifier observes the
 /// canonical sources of truth — `UserSettingsStore` for `currency` and
-/// `showCurrencySelector`, `FeatureFlagsStore` for the
-/// `multi-currency-enabled` flag — and pushes a `$set` whenever any of them
-/// changes. `AnalyticsService.setPersonProperties` already no-ops until the
+/// `showCurrencySelector` — and pushes a `$set` whenever either changes.
+/// `AnalyticsService.setPersonProperties` already no-ops until the
 /// user has been identified, so the modifier is safe to mount before
 /// authentication completes; the SDK also dedupes identical payloads, so
 /// the redundant call on initial appearance is free.
@@ -17,7 +16,6 @@ import SwiftUI
 /// the canonical state.
 struct CurrencyAnalyticsSyncModifier: ViewModifier {
     @Environment(UserSettingsStore.self) private var userSettingsStore
-    @Environment(FeatureFlagsStore.self) private var featureFlagsStore
 
     func body(content: Content) -> some View {
         content
@@ -27,16 +25,12 @@ struct CurrencyAnalyticsSyncModifier: ViewModifier {
             .onChange(of: userSettingsStore.showCurrencySelector) { _, _ in
                 pushPersonProperties()
             }
-            .onChange(of: featureFlagsStore.isMultiCurrencyEnabled) { _, _ in
-                pushPersonProperties()
-            }
     }
 
     private func pushPersonProperties() {
         AnalyticsService.shared.setPersonProperties([
             AnalyticsService.currencyProperty: userSettingsStore.currency.rawValue,
-            AnalyticsService.showCurrencySelectorProperty: userSettingsStore.showCurrencySelector,
-            AnalyticsService.multiCurrencyEnabledProperty: featureFlagsStore.isMultiCurrencyEnabled
+            AnalyticsService.showCurrencySelectorProperty: userSettingsStore.showCurrencySelector
         ])
     }
 }

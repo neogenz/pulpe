@@ -8,16 +8,11 @@ import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { createMockTagStore } from '@app/testing/tag-store.mock';
 import { CurrencyConverterService } from '@core/currency';
 import { TagStore } from '@core/tag';
-import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import {
   AddTransactionForm,
   type TransactionFormData,
 } from './add-transaction-form';
-
-interface FlagsMock {
-  isMultiCurrencyEnabled: ReturnType<typeof signal>;
-}
 
 interface SettingsMock {
   currency: ReturnType<typeof signal<SupportedCurrency>>;
@@ -30,16 +25,11 @@ interface ConverterMock {
 
 function configureForm({
   userCurrency = 'CHF' as SupportedCurrency,
-  flagEnabled = false,
   showCurrencyPref = true,
 }: {
   userCurrency?: SupportedCurrency;
-  flagEnabled?: boolean;
   showCurrencyPref?: boolean;
 } = {}) {
-  const flags: FlagsMock = {
-    isMultiCurrencyEnabled: signal(flagEnabled),
-  };
   const settings: SettingsMock = {
     currency: signal<SupportedCurrency>(userCurrency),
     showCurrencySelector: signal(showCurrencyPref),
@@ -57,7 +47,6 @@ function configureForm({
       provideZonelessChangeDetection(),
       provideAnimationsAsync(),
       ...provideTranslocoForTest(),
-      { provide: FeatureFlagsService, useValue: flags },
       { provide: UserSettingsStore, useValue: settings },
       { provide: CurrencyConverterService, useValue: converter },
       { provide: TagStore, useValue: createMockTagStore() },
@@ -283,7 +272,6 @@ describe('AddTransactionForm', () => {
     it('should emit the converted amount and metadata', async () => {
       const { component, createdSpy, converter } = configureForm({
         userCurrency: 'CHF',
-        flagEnabled: true,
       });
       converter.convertWithMetadata.mockResolvedValueOnce({
         convertedAmount: 108.97,

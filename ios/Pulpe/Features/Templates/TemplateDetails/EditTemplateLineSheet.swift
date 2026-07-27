@@ -71,7 +71,7 @@ struct EditTemplateLineSheet: View {
             focusOrder: [.amount, .description]
         ) {
             KindToggle(selection: $kind)
-            if userSettingsStore.showCurrencySelectorEffective && isAlternateCurrency {
+            if userSettingsStore.showCurrencySelector && isAlternateCurrency {
                 CurrencyAmountPicker(
                     selectedCurrency: .constant(inputCurrency),
                     isReadOnly: true
@@ -377,7 +377,6 @@ struct EditTemplateLineDependencies: Sendable {
     }
     .environment(ToastManager())
     .environment(UserSettingsStore())
-    .environment(FeatureFlagsStore())
     .environment(SavingsGoalStore())
     .environment(TagStore())
 }

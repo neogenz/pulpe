@@ -104,6 +104,7 @@ Apple rejected app — asked firstName to user auth'd via Apple Sign In when pro
 ## DR-015: Feature Flags via PostHog with Early Adopter Targeting
 
 **Date**: 2026-04-12
+**Status**: Superseded on 2026-07-27 after the multi-currency rollout completed.
 
 ### Problem
 
@@ -131,64 +132,24 @@ No feature flag existed in project — first flag introduced, must serve as reus
 | C: Static toggle config (env var / shared constant) | No SDK, simple recompiled bool | Rejected — no progressive rollout, no per-user targeting, requires deploy each change |
 | D: Supabase RLS-based gating | Filter currency columns backend from `app_metadata.early_adopter` | Rejected — backend/UI flag coupling, complex rollback, perf degraded |
 
-### Decision
+### Initial decision
 
-1. **PostHog feature flags** with single source of truth in `shared/src/feature-flags.ts`:
-   - `FEATURE_FLAGS.MULTI_CURRENCY = 'multi-currency-enabled'`
-   - `ANALYTICS_PROPERTIES.EARLY_ADOPTER = 'early_adopter'`
-   - iOS manual mirror via `AnalyticsService.earlyAdopterProperty` (explicit sync comment)
+Use PostHog and the existing `early_adopter` person property for a temporary, targeted multi-currency rollout. Keep backend currency data readable independently from UI exposure and remove the gate after stabilization.
 
-2. **Targeting by person property**: `early_adopter` sent to PostHog via `identify()` each login (reads `app_metadata.early_adopter` Supabase)
+### Final state
 
-3. **Reactive pattern per platform**:
-   - **Frontend**: `PostHogService.isFeatureEnabled()` + signal `flagsVersion` bumped via `posthog.onFeatureFlags(callback)`. `FeatureFlagsService.isMultiCurrencyEnabled` = `computed()` reads `flagsVersion` for reactivity. Angular templates with `@if (isMultiCurrencyEnabled())`.
-   - **iOS**: `AnalyticsService.isFeatureEnabled()` + `FeatureFlagsStore` (`@Observable @MainActor`) with UserDefaults persistence to avoid boot flicker. Refresh on identify (post-login) + `scenePhase = .active` (foreground).
-
-4. **Centralized gating on 2 entry points** (transparent for ~14 forms):
-   - Frontend: `injectCurrencyFormConfig()` returns `showCurrencySelector` computed gated by flag
-   - iOS: `UserSettingsStore.showCurrencySelectorEffective` (flag && user toggle) — 6 sheets rename their reference
-
-5. **3-phase rollout strategy** (industry-standard pattern):
-   - **Phase 1**: targeted `early_adopter = true` (dashboard-only)
-   - **Phase 2**: `100% of all users` (dashboard-only, kill switch still active)
-   - **Phase 3**: dedicated PR `chore: remove multi-currency feature flag` after stabilization (~6 weeks), find/replace + flag removal from code + PostHog archival
-
-### Rationale
-
-- **Zero deploy for rollout**: phases 1 + 2 are 100% dashboard-only — Product/Eng Lead can tune no code touch
-- **Reusable pattern**: next gated feature just adds constant in `FEATURE_FLAGS` + computed in `FeatureFlagsService` / `FeatureFlagsStore`
-- **Backend untouched**: currency endpoints remain open, schemas still accept metadata. If rollback flag after users created EUR transactions, data stays readable (degraded display no badge but amount intact)
-- **Tech debt hygiene**: phase 3 explicitly planned + tracked in PUL-99. Temp flags must die — difference between "temp feature flag" (good) + "permanent toggle" (debt)
-- **No race condition at boot**: `posthog.onFeatureFlags()` registered immediately after `posthog.init()` synchronously. Default `false` when flags not yet resolved = safe (feature hidden, not revealed)
-- **Person property vs cohort**: person property more dynamic (can change for existing user via SQL) than static cohort, already in Supabase
+- Rollout phases completed; the dedicated multi-currency flag, web adapter and iOS store are removed.
+- Multi-currency settings and account currency are visible to every user.
+- Optional amount selector visibility follows `UserSettingsStore.showCurrencySelector` directly.
+- Conversion UI follows persisted FX metadata, independently from analytics.
+- Generic PostHog primitives remain in `PostHogService` and `AnalyticsService` for a future temporary rollout.
+- `early_adopter` remains an analytics person property and may be reused for future targeting.
 
 ### Consequences
 
-- **Positive**:
-  - Progressive rollout possible no deploy (phases 1 + 2 dashboard-only)
-  - Instant kill switch via PostHog dashboard
-  - Auto `$feature_flag_called` metrics to track who has feature
-  - Pattern documented for future flags
-  - 4 iOS previews rendering `CurrencyConversionBadge` received `.environment(FeatureFlagsStore())` to avoid crashes (env-based gating)
-- **Trade-off**:
-  - `flagsVersion` signal bump invalidates ALL flag-dependent computeds simultaneously. Acceptable at 1 flag, monitor if >10+ active flags (consider per-flag signals)
-  - iOS `FeatureFlagsStore.refresh()` runs each `scenePhase = .active` — light network overhead (one PostHog call per foreground)
-  - Phase 1/2 code contains `@if (isMultiCurrencyEnabled())` that must disappear phase 3 to avoid debt
-- **Impact**: 32 files in commit `e74efa1ad`. New: `shared/src/feature-flags.ts`, `frontend/projects/webapp/src/app/core/feature-flags/`, `ios/Pulpe/Domain/Store/FeatureFlagsStore.swift`. Extended: `PostHogService` (frontend), `AnalyticsService` (iOS), `analytics.ts` + `auth-store.ts` (frontend), `AppState+Auth.swift` + `AuthService.swift` (iOS), `UserSettingsStore` (iOS), `PulpeApp.swift`
-
-### Notes
-
-- **Local flag test**:
-  - Webapp: `localStorage.setItem('phc_<projectKey>_feature_flags', '{"multi-currency-enabled": true}')` then reload
-  - iOS: use account with `app_metadata.early_adopter = true` or temp override in `FeatureFlagsStore.refresh()`
-- **Tag user early adopter via Supabase**:
-  ```sql
-  UPDATE auth.users
-  SET raw_app_meta_data = jsonb_set(coalesce(raw_app_meta_data, '{}'), '{early_adopter}', 'true')
-  WHERE email = 'user@example.com';
-  ```
-  User must reconnect for new value to be sent to PostHog via `identify()`
-- **Full operational reference**: ticket PUL-99 contains detailed Phase 1/2/3 runbook with exhaustive file list to delete on clean removal
+- No PostHog response can hide the currency settings or override the user's selector preference.
+- Future feature flags require a new dedicated adapter at the feature boundary; no dormant multi-currency adapter remains.
+- Feature flags are rollout controls, not paid/free entitlements. Subscription access must be validated server-side.
 
 ---
 

@@ -13,7 +13,6 @@ final class AnalyticsService {
     nonisolated static let earlyAdopterProperty = "early_adopter"
     nonisolated static let currencyProperty = "currency"
     nonisolated static let showCurrencySelectorProperty = "show_currency_selector"
-    nonisolated static let multiCurrencyEnabledProperty = "multi_currency_enabled"
     nonisolated static let emailProperty = "email"
     nonisolated static let nameProperty = "name"
     nonisolated static let supabaseUserIdProperty = "supabase_user_id"

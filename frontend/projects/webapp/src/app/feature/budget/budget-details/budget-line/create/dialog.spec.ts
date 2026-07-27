@@ -7,7 +7,6 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { CurrencyConverterService } from '@core/currency';
-import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import { TagStore } from '@core/tag';
 import { createMockTagStore } from '@app/testing/tag-store.mock';
@@ -16,9 +15,6 @@ import { AddBudgetLineDialog, type BudgetLineDialogData } from './dialog';
 
 const TAG_ID = '00000000-0000-4000-8000-0000000000f1';
 
-interface FlagsMock {
-  isMultiCurrencyEnabled: ReturnType<typeof signal>;
-}
 interface SettingsMock {
   currency: ReturnType<typeof signal<SupportedCurrency>>;
   showCurrencySelector: ReturnType<typeof signal<boolean>>;
@@ -34,17 +30,12 @@ interface DialogRefMock {
 
 function configureDialog({
   userCurrency = 'CHF',
-  flagEnabled = false,
   showCurrencyPref = true,
 }: {
   userCurrency?: SupportedCurrency;
-  flagEnabled?: boolean;
   showCurrencyPref?: boolean;
 } = {}) {
   const dialogRef: DialogRefMock = { close: vi.fn() };
-  const flags: FlagsMock = {
-    isMultiCurrencyEnabled: signal(flagEnabled),
-  };
   const settings: SettingsMock = {
     currency: signal<SupportedCurrency>(userCurrency),
     showCurrencySelector: signal(showCurrencyPref),
@@ -75,7 +66,6 @@ function configureDialog({
         } satisfies BudgetLineDialogData,
       },
       { provide: MatDialogRef, useValue: dialogRef },
-      { provide: FeatureFlagsService, useValue: flags },
       { provide: UserSettingsStore, useValue: settings },
       { provide: CurrencyConverterService, useValue: converter },
       { provide: TagStore, useValue: createMockTagStore() },
@@ -84,7 +74,7 @@ function configureDialog({
 
   const fixture = TestBed.createComponent(AddBudgetLineDialog);
   const component = fixture.componentInstance;
-  return { fixture, component, dialogRef, converter, settings, flags };
+  return { fixture, component, dialogRef, converter, settings };
 }
 
 describe('AddBudgetLineDialog', () => {
@@ -312,7 +302,6 @@ describe('AddBudgetLineDialog', () => {
     it('should call convertWithMetadata with (amount, inputCurrency, userCurrency) and include metadata in payload when currencies differ', async () => {
       const { component, dialogRef, converter } = configureDialog({
         userCurrency: 'CHF',
-        flagEnabled: true,
       });
       converter.convertWithMetadata.mockResolvedValue({
         convertedAmount: 180,
@@ -351,7 +340,6 @@ describe('AddBudgetLineDialog', () => {
     it('should omit metadata fields from payload when inputCurrency equals userCurrency', async () => {
       const { component, dialogRef, converter } = configureDialog({
         userCurrency: 'CHF',
-        flagEnabled: true,
       });
       converter.convertWithMetadata.mockResolvedValue({
         convertedAmount: 1200,

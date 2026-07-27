@@ -98,7 +98,7 @@ struct AddBudgetLineSheet: View {
             focusOrder: [.amount, .description]
         ) {
             KindToggle(selection: $kind)
-            if userSettingsStore.showCurrencySelectorEffective {
+            if userSettingsStore.showCurrencySelector {
                 CurrencyAmountPicker(selectedCurrency: $inputCurrency)
             }
             HeroAmountField(

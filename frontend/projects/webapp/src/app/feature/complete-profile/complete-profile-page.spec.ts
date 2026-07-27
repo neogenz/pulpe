@@ -14,7 +14,6 @@ import CompleteProfilePage from './complete-profile-page';
 import { CompleteProfileStore } from './complete-profile-store';
 import { PostHogService } from '@core/analytics/posthog';
 import { UserSettingsStore } from '@core/user-settings';
-import { FeatureFlagsService } from '@core/feature-flags';
 import { provideTranslocoForTest } from '../../testing/transloco-testing';
 
 describe('CompleteProfilePage — health-insurance currency gating', () => {
@@ -44,10 +43,6 @@ describe('CompleteProfilePage — health-insurance currency gating', () => {
             currency: signal(initialCurrency),
             showCurrencySelector: signal(false),
           },
-        },
-        {
-          provide: FeatureFlagsService,
-          useValue: { isMultiCurrencyEnabled: signal(true) },
         },
         { provide: LOCALE_ID, useValue: 'fr-CH' },
       ],

@@ -6,7 +6,6 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { describe, expect, it, vi } from 'vitest';
 import { TagStore } from '@core/tag';
-import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { FinancialKindIndicator } from '@ui/financial-kind-indicator';
@@ -74,10 +73,6 @@ async function setup(
       {
         provide: UserSettingsStore,
         useValue: { currency: signal('CHF') },
-      },
-      {
-        provide: FeatureFlagsService,
-        useValue: { isMultiCurrencyEnabled: signal(false) },
       },
       {
         provide: TagStore,
