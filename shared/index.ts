@@ -191,12 +191,10 @@ export { API_ERROR_CODES, type ApiErrorCode } from './src/error-codes.js';
 // Export HTTP header constants
 export { REQUEST_ID_HEADER } from './src/http-headers.js';
 
-// Export feature flag keys
+// Export analytics contracts
 export {
-  FEATURE_FLAGS,
   ANALYTICS_PROPERTIES,
   ANALYTICS_EVENTS,
-  type FeatureFlagKey,
   type AnalyticsEventName,
 } from './src/feature-flags.js';
 

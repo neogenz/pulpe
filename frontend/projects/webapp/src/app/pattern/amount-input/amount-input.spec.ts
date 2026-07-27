@@ -12,15 +12,11 @@ import {
   createAmountSlice,
   type AmountFormSlice,
 } from '@core/currency';
-import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import type { SupportedCurrency } from 'pulpe-shared';
 
 import { AmountInput } from './amount-input';
 
-interface FlagsMock {
-  isMultiCurrencyEnabled: ReturnType<typeof signal>;
-}
 interface SettingsMock {
   currency: ReturnType<typeof signal<SupportedCurrency>>;
   showCurrencySelector: ReturnType<typeof signal<boolean>>;
@@ -33,20 +29,15 @@ interface ConverterMock {
 
 function configure({
   userCurrency,
-  flagEnabled,
   showCurrencyPref = true,
   initialAmount = null,
   initialCurrency,
 }: {
   userCurrency: SupportedCurrency;
-  flagEnabled: boolean;
   showCurrencyPref?: boolean;
   initialAmount?: number | null;
   initialCurrency?: SupportedCurrency;
 }) {
-  const flags: FlagsMock = {
-    isMultiCurrencyEnabled: signal(flagEnabled),
-  };
   const settings: SettingsMock = {
     currency: signal<SupportedCurrency>(userCurrency),
     showCurrencySelector: signal(showCurrencyPref),
@@ -66,7 +57,6 @@ function configure({
       provideZonelessChangeDetection(),
       provideAnimationsAsync(),
       ...provideTranslocoForTest(),
-      { provide: FeatureFlagsService, useValue: flags },
       { provide: UserSettingsStore, useValue: settings },
       { provide: CurrencyConverterService, useValue: converter },
     ],
@@ -87,14 +77,14 @@ function configure({
   setTestInput(component.control, testForm);
   fixture.detectChanges();
 
-  return { fixture, component, model, testForm, flags, settings, converter };
+  return { fixture, component, model, testForm, settings, converter };
 }
 
 describe('AmountInput', () => {
   beforeEach(() => TestBed.resetTestingModule());
 
   it('renders mat-label and amount input', () => {
-    const { fixture } = configure({ userCurrency: 'CHF', flagEnabled: false });
+    const { fixture } = configure({ userCurrency: 'CHF' });
 
     const input = fixture.nativeElement.querySelector(
       '[data-testid="amount-input-value"]',
@@ -106,7 +96,6 @@ describe('AmountInput', () => {
   it('exposes control as a required signal input', () => {
     const { component } = configure({
       userCurrency: 'CHF',
-      flagEnabled: false,
       initialAmount: 42,
     });
 
@@ -120,7 +109,6 @@ describe('AmountInput', () => {
   it('exposes required + min(0.01) errors via field state', () => {
     const { fixture, model, testForm } = configure({
       userCurrency: 'CHF',
-      flagEnabled: false,
     });
 
     expect(testForm.amount().value()).toBeNull();
@@ -138,20 +126,18 @@ describe('AmountInput', () => {
     ).toBe(true);
   });
 
-  it('hides currency picker when MULTI_CURRENCY flag is OFF (any mode)', () => {
+  it('shows currency picker in mode=create when preference is ON', () => {
     const { component } = configure({
       userCurrency: 'CHF',
-      flagEnabled: false,
       showCurrencyPref: true,
     });
 
-    expect(component['showSelector']()).toBe(false);
+    expect(component['showSelector']()).toBe(true);
   });
 
-  it('hides currency picker in mode=create when showCurrencySelector pref is OFF (flag ON)', () => {
+  it('hides currency picker in mode=create when showCurrencySelector pref is OFF', () => {
     const { component } = configure({
       userCurrency: 'CHF',
-      flagEnabled: true,
       showCurrencyPref: false,
     });
 
@@ -161,7 +147,6 @@ describe('AmountInput', () => {
   it('shows currency picker in mode=edit when originalCurrency differs from user currency', () => {
     const { fixture, component } = configure({
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     setTestInput(component.mode, 'edit');
@@ -174,7 +159,6 @@ describe('AmountInput', () => {
   it('hides currency picker in mode=edit when originalCurrency equals user currency', () => {
     const { fixture, component } = configure({
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     setTestInput(component.mode, 'edit');
@@ -187,7 +171,6 @@ describe('AmountInput', () => {
   it('reports pickerDisabled=true in mode=edit', () => {
     const { fixture, component } = configure({
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     setTestInput(component.mode, 'edit');
@@ -200,7 +183,6 @@ describe('AmountInput', () => {
   it('writes inputCurrency to field when setInputCurrency is called', () => {
     const { fixture, component, model, testForm } = configure({
       userCurrency: 'CHF',
-      flagEnabled: true,
     });
 
     component['setInputCurrency']('EUR');

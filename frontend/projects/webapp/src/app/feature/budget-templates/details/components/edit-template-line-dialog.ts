@@ -36,7 +36,6 @@ import {
   StaleRateNotifier,
 } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
-import { FeatureFlagsService } from '@core/feature-flags';
 import { Logger } from '@core/logging/logger';
 import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
@@ -195,7 +194,6 @@ export class EditTemplateLineDialog {
   readonly #data = inject<EditTemplateLineDialogData>(MAT_DIALOG_DATA);
   readonly #settings = inject(UserSettingsStore);
   readonly #converter = inject(CurrencyConverterService);
-  readonly #flags = inject(FeatureFlagsService);
   readonly #logger = inject(Logger);
   readonly #staleRateNotifier = inject(StaleRateNotifier);
 
@@ -253,7 +251,6 @@ export class EditTemplateLineDialog {
 
     return createInitialAmountSlice({
       isPickerVisible: isCurrencyPickerVisible({
-        isMultiCurrencyEnabled: this.#flags.isMultiCurrencyEnabled(),
         originalCurrency: line.originalCurrency ?? null,
         userCurrency,
       }),

@@ -8,7 +8,6 @@ import { provideLocale } from '@core/locale';
 import { StorageService } from '@core/storage/storage.service';
 import { STORAGE_KEYS } from '@core/storage/storage-keys';
 import { CurrencyConverterService } from '@core/currency';
-import { FeatureFlagsService } from '@core/feature-flags';
 import { UserSettingsStore } from '@core/user-settings';
 import { Logger } from '@core/logging/logger';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
@@ -57,10 +56,6 @@ function baseProviders(currency: SupportedCurrency) {
     provideAnimationsAsync(),
     ...provideLocale(),
     { provide: StorageService, useValue: makeStorageServiceMock(currency) },
-    {
-      provide: FeatureFlagsService,
-      useValue: { isMultiCurrencyEnabled: signal(false) },
-    },
     {
       provide: UserSettingsStore,
       useValue: {

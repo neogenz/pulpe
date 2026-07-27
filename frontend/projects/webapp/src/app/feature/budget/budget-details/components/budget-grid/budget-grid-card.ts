@@ -192,9 +192,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
           [originalAmount]="item().data.originalAmount"
           [originalCurrency]="item().data.originalCurrency"
           [displayCurrency]="currency()"
-          [tooltipText]="
-            isMultiCurrencyEnabled() ? (item().data | formatConversion) : ''
-          "
+          [tooltipText]="item().data | formatConversion"
         />
       </div>
 
@@ -270,7 +268,6 @@ export class BudgetGridCard {
   readonly item = input.required<BudgetLineTableItem>();
   readonly currency = input<SupportedCurrency>('CHF');
   readonly isSelected = input<boolean>(false);
-  readonly isMultiCurrencyEnabled = input<boolean>(false);
   /** Name of the linked savings goal, when this saving envelope targets one (PUL-12) */
   readonly linkedGoalName = input<string | undefined>(undefined);
 

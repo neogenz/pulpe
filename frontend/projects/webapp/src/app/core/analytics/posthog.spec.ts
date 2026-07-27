@@ -287,7 +287,7 @@ describe('PostHogService', () => {
 });
 
 describe('PostHogService — dev feature-flag override', () => {
-  const MULTI_CURRENCY = 'multi-currency-enabled';
+  const EXAMPLE_FLAG = 'example-flag';
   let environment: ReturnType<typeof signal<string>>;
   let devFlags: Record<string, boolean> | null;
 
@@ -319,19 +319,19 @@ describe('PostHogService — dev feature-flag override', () => {
   });
 
   it('enables a flag from the localStorage override in a dev environment', () => {
-    devFlags = { [MULTI_CURRENCY]: true };
+    devFlags = { [EXAMPLE_FLAG]: true };
 
     const service = TestBed.inject(PostHogService);
 
-    expect(service.isFeatureEnabled(MULTI_CURRENCY)).toBe(true);
+    expect(service.isFeatureEnabled(EXAMPLE_FLAG)).toBe(true);
   });
 
   it('ignores the localStorage override in production', () => {
     environment.set('production');
-    devFlags = { [MULTI_CURRENCY]: true };
+    devFlags = { [EXAMPLE_FLAG]: true };
 
     const service = TestBed.inject(PostHogService);
 
-    expect(service.isFeatureEnabled(MULTI_CURRENCY)).toBe(false);
+    expect(service.isFeatureEnabled(EXAMPLE_FLAG)).toBe(false);
   });
 });

@@ -9,7 +9,6 @@ import { AuthStore } from '../auth/auth-store';
 import { Logger } from '../logging/logger';
 import { DemoModeService } from '../demo/demo-mode.service';
 import { UserSettingsStore } from '../user-settings/user-settings-store';
-import { FeatureFlagsService } from '../feature-flags/feature-flags.service';
 import {
   createMockPostHogService,
   createMockLogger,
@@ -28,14 +27,6 @@ function createMockUserSettingsStore(
   return {
     settings: settingsSignal,
     setSettings: (value: UserSettings | null) => settingsSignal.set(value),
-  };
-}
-
-function createMockFeatureFlagsService(initial = false) {
-  const isMultiCurrencyEnabled = signal(initial);
-  return {
-    isMultiCurrencyEnabled,
-    setEnabled: (value: boolean) => isMultiCurrencyEnabled.set(value),
   };
 }
 
@@ -58,7 +49,6 @@ describe('User consent and tracking behavior', () => {
   let mockAuthState: ReturnType<typeof signal>;
   let mockPostHogService: ReturnType<typeof createMockPostHogService>;
   let mockUserSettingsStore: ReturnType<typeof createMockUserSettingsStore>;
-  let mockFeatureFlagsService: ReturnType<typeof createMockFeatureFlagsService>;
 
   beforeEach(() => {
     // Create mock auth state signal
@@ -84,7 +74,6 @@ describe('User consent and tracking behavior', () => {
     };
 
     mockUserSettingsStore = createMockUserSettingsStore();
-    mockFeatureFlagsService = createMockFeatureFlagsService();
 
     TestBed.configureTestingModule({
       providers: [
@@ -95,7 +84,6 @@ describe('User consent and tracking behavior', () => {
         { provide: Logger, useValue: mockLogger },
         { provide: DemoModeService, useValue: mockDemoModeService },
         { provide: UserSettingsStore, useValue: mockUserSettingsStore },
-        { provide: FeatureFlagsService, useValue: mockFeatureFlagsService },
       ],
     });
 
@@ -311,13 +299,12 @@ describe('User consent and tracking behavior', () => {
 
   describe('currency person properties', () => {
     it('should push currency person properties via setPersonProperties once settings load', () => {
-      // GIVEN: User has EUR + selector toggle on, multi-currency flag enabled
+      // GIVEN: User has EUR + selector toggle on
       mockUserSettingsStore.setSettings({
         payDayOfMonth: 25,
         currency: 'EUR',
         showCurrencySelector: true,
       });
-      mockFeatureFlagsService.setEnabled(true);
 
       TestBed.runInInjectionContext(() => {
         analyticsService.initializeAnalyticsTracking();
@@ -337,18 +324,16 @@ describe('User consent and tracking behavior', () => {
         'user-currency-1',
         expectedIdentifyProperties('user-currency-1', 'user@example.com'),
       );
-      // AND: setPersonProperties carries the currency triplet via $set
+      // AND: setPersonProperties carries the currency settings via $set
       expect(mockPostHogService.setPersonProperties).toHaveBeenCalledWith({
         currency: 'EUR',
         show_currency_selector: true,
-        multi_currency_enabled: true,
       });
     });
 
     it('should not push person properties while user settings are still null', () => {
       // GIVEN: Settings still null (resource not resolved)
       mockUserSettingsStore.setSettings(null);
-      mockFeatureFlagsService.setEnabled(false);
 
       TestBed.runInInjectionContext(() => {
         analyticsService.initializeAnalyticsTracking();
@@ -399,7 +384,6 @@ describe('User consent and tracking behavior', () => {
       expect(mockPostHogService.setPersonProperties).toHaveBeenCalledWith({
         currency: 'EUR',
         show_currency_selector: false,
-        multi_currency_enabled: false,
       });
     });
   });
@@ -571,10 +555,6 @@ describe('captureEvent', () => {
           provide: UserSettingsStore,
           useValue: createMockUserSettingsStore(),
         },
-        {
-          provide: FeatureFlagsService,
-          useValue: createMockFeatureFlagsService(),
-        },
       ],
     });
 
@@ -670,10 +650,6 @@ describe('Demo mode tracking', () => {
         {
           provide: UserSettingsStore,
           useValue: createMockUserSettingsStore(),
-        },
-        {
-          provide: FeatureFlagsService,
-          useValue: createMockFeatureFlagsService(),
         },
       ],
     });

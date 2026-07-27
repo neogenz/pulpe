@@ -16,7 +16,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { AppCurrencyPipe, FormatConversionPipe } from '@core/currency';
 import { getDateDisplayFormats } from '@core/date/date-display-formats';
-import { FeatureFlagsService } from '@core/feature-flags';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { FinancialKindIndicator } from '@ui/financial-kind-indicator';
 import { OriginalAmountLine } from '@ui/original-amount-line';
@@ -96,7 +95,6 @@ export function groupByKind<T extends { data: { kind: string } }>(
           <pulpe-budget-grid-mobile-card
             [item]="item"
             [currency]="currency()"
-            [isMultiCurrencyEnabled]="isMultiCurrencyEnabled()"
             [linkedGoalName]="
               savingsGoalNameById().get(item.data.savingsGoalId ?? '')
             "
@@ -151,7 +149,6 @@ export function groupByKind<T extends { data: { kind: string } }>(
                   <pulpe-budget-grid-card
                     [item]="item"
                     [currency]="currency()"
-                    [isMultiCurrencyEnabled]="isMultiCurrencyEnabled()"
                     [linkedGoalName]="
                       savingsGoalNameById().get(item.data.savingsGoalId ?? '')
                     "
@@ -262,9 +259,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
                 [originalAmount]="item.data.originalAmount"
                 [originalCurrency]="item.data.originalCurrency"
                 [displayCurrency]="currency()"
-                [tooltipText]="
-                  isMultiCurrencyEnabled() ? (item.data | formatConversion) : ''
-                "
+                [tooltipText]="item.data | formatConversion"
               />
             </div>
             @if (item.data.transactionDate) {
@@ -340,9 +335,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
             [originalAmount]="item.data.originalAmount"
             [originalCurrency]="item.data.originalCurrency"
             [displayCurrency]="currency()"
-            [tooltipText]="
-              isMultiCurrencyEnabled() ? (item.data | formatConversion) : ''
-            "
+            [tooltipText]="item.data | formatConversion"
           />
         </div>
 
@@ -387,7 +380,6 @@ export function groupByKind<T extends { data: { kind: string } }>(
 export class BudgetGrid {
   readonly #dialog = inject(MatDialog);
   readonly #viewContainerRef = inject(ViewContainerRef);
-  readonly #featureFlags = inject(FeatureFlagsService);
 
   // Inputs
   readonly currency = input<SupportedCurrency>('CHF');
@@ -425,9 +417,6 @@ export class BudgetGrid {
   readonly postponeTransaction = output<string>();
   readonly toggleCheck = output<string>();
   readonly toggleTransactionCheck = output<string>();
-
-  protected readonly isMultiCurrencyEnabled =
-    this.#featureFlags.isMultiCurrencyEnabled;
 
   protected readonly freeTransactionItems = computed(() =>
     filterFreeTransactionItems(this.transactionItems()),
