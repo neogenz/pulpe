@@ -1,6 +1,6 @@
 ---
 objective: "Le seed local respecte l’échéance de chaque objectif d’épargne et permet au pipeline CI de démarrer Supabase puis d’exécuter ses contrôles."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Corriger le seed des objectifs d’épargne bornés
