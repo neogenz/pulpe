@@ -1,6 +1,6 @@
 ---
 objective: "Les quatre findings de la revue PUL-319 sont fermés sans modifier les trois périmètres de suppression ni leur aperçu exhaustif."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Corriger la revue de la suppression d’un objectif
