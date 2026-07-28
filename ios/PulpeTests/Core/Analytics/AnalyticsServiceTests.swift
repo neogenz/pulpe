@@ -129,6 +129,37 @@ struct AnalyticsServiceTests {
         #expect(Set(sanitized.keys) == ["safe_state"])
     }
 
+    @Test func sanitizeProperties_recursivelyRemovesSensitiveData() {
+        let sanitized = AnalyticsService.sanitizeProperties([
+            "metadata": [
+                "safe_state": "completed",
+                "amount": 1200,
+                "label": "Loyer"
+            ],
+            "steps": [
+                [
+                    "safe_code": "validated",
+                    "access_token": "jwt"
+                ],
+                [
+                    "safe_code": "recovered",
+                    "recovery_key": "PULPE-SECRET-KEY"
+                ]
+            ]
+        ])
+
+        let metadata = sanitized["metadata"] as? [String: Any]
+        let steps = sanitized["steps"] as? [[String: Any]]
+
+        #expect(metadata?["safe_state"] as? String == "completed")
+        #expect(metadata?["amount"] == nil)
+        #expect(metadata?["label"] == nil)
+        #expect(steps?[0]["safe_code"] as? String == "validated")
+        #expect(steps?[0]["access_token"] == nil)
+        #expect(steps?[1]["safe_code"] as? String == "recovered")
+        #expect(steps?[1]["recovery_key"] == nil)
+    }
+
     @Test func sessionReplay_isNeverEnabledInProduction() {
         #expect(
             AnalyticsService.shouldEnableSessionReplay(

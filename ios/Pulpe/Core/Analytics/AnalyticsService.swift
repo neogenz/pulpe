@@ -217,7 +217,8 @@ final class AnalyticsService {
     /// Uses word-component matching: splits keys by `_` and checks each component.
     static func sanitizeProperties(_ properties: [String: Any]) -> [String: Any] {
         guard !properties.isEmpty else { return properties }
-        return properties.filter { key, _ in
+        return properties.reduce(into: [:]) { sanitized, property in
+            let (key, value) = property
             let normalized = key.lowercased()
             let containsFinancialWord = normalized
                 .split(separator: "_")
@@ -225,10 +226,23 @@ final class AnalyticsService {
             let containsSecret = sensitiveKeyFragments.contains {
                 normalized.contains($0)
             }
-            return !containsFinancialWord
-                && !containsSecret
-                && !typedContentKeys.contains(normalized)
+            guard !containsFinancialWord,
+                  !containsSecret,
+                  !typedContentKeys.contains(normalized)
+            else { return }
+
+            sanitized[key] = sanitizeValue(value)
         }
+    }
+
+    private static func sanitizeValue(_ value: Any) -> Any {
+        if let properties = value as? [String: Any] {
+            return sanitizeProperties(properties)
+        }
+        if let values = value as? [Any] {
+            return values.map(sanitizeValue)
+        }
+        return value
     }
 
     private static func sanitizePersonProperties(
@@ -237,7 +251,7 @@ final class AnalyticsService {
         var sanitized = sanitizeProperties(properties)
         for key in allowedPersonProperties {
             if let value = properties[key] {
-                sanitized[key] = value
+                sanitized[key] = sanitizeValue(value)
             }
         }
         return sanitized
