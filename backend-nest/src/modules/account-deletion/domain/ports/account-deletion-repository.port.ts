@@ -8,7 +8,7 @@ export interface AccountDeletionRepositoryPort {
   /**
    * List users whose grace period has expired (relative to `now`).
    * Implementations are expected to scan all users via the admin API
-   * and filter those whose `user_metadata.scheduledDeletionAt + grace`
+   * and filter those whose `app_metadata.scheduledDeletionAt + grace`
    * has passed.
    */
   listExpiredScheduledUsers(now: Date): Promise<ScheduledDeletionUser[]>;

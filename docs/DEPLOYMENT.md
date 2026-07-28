@@ -67,6 +67,19 @@ supabase migration up
 ```
 Then `db push` will apply new migrations to the remote database.
 
+#### Account-deletion metadata migration
+
+Before deploying the switch to server-owned deletion claims:
+
+1. With a one-off service-role script, list users whose
+   `user_metadata.scheduledDeletionAt` is a valid ISO date and whose
+   `app_metadata.scheduledDeletionAt` is absent.
+2. Copy that date with `auth.admin.updateUserById`, preserving every existing
+   `app_metadata` key.
+3. Re-list users and verify that no valid legacy-only deletion remains.
+4. Deploy the backend and clients only after this verification. The runtime
+   intentionally has no fallback to client-writable `user_metadata`.
+
 #### Export data (optional)
 
 ```bash

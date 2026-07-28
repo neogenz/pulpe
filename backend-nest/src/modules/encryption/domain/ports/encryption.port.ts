@@ -10,6 +10,8 @@ import type { Buffer } from 'node:buffer';
  * are reserved for the encryption controller (recovery flows, PIN change, key wrap/unwrap, etc.).
  */
 export interface EncryptionPort {
+  /** Validate the client key against the user's stored key-check canary. */
+  verifyAndEnsureKeyCheck(userId: string, clientKey: Buffer): Promise<boolean>;
   /** Derive (or retrieve from cache) the user's DEK. Validates keyCheck on cache miss. */
   ensureUserDEK(userId: string, clientKey: Buffer): Promise<Buffer>;
   /** Retrieve cached DEK; skip keyCheck validation. Use after `ensureUserDEK` already ran. */

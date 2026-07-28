@@ -439,15 +439,17 @@ describe('AuthGuard', () => {
         getClass: () => ({}),
       } as ExecutionContext;
 
-      // Set up the auth mock to return a user with scheduledDeletionAt
+      // Set up the auth mock to return a server-owned deletion claim.
       mockSupabaseClient
         .setMockData({
           id: 'user-scheduled-deletion',
           email: 'scheduled@example.com',
+          app_metadata: {
+            scheduledDeletionAt: '2025-01-20T12:00:00.000Z',
+          },
           user_metadata: {
             firstName: 'John',
             lastName: 'Doe',
-            scheduledDeletionAt: '2025-01-20T12:00:00.000Z',
           },
         })
         .setMockError(null);
@@ -458,6 +460,22 @@ describe('AuthGuard', () => {
         BusinessException,
         'Account is scheduled for deletion',
       );
+    });
+
+    it('should ignore a client-owned scheduledDeletionAt claim', async () => {
+      const mockContext = createMockExecutionContext('Bearer valid-token');
+      mockSupabaseClient
+        .setMockData({
+          id: 'active-user',
+          email: 'active@example.com',
+          app_metadata: {},
+          user_metadata: {
+            scheduledDeletionAt: '2020-01-01T00:00:00.000Z',
+          },
+        })
+        .setMockError(null);
+
+      await expect(authGuard.canActivate(mockContext)).resolves.toBe(true);
     });
   });
 

@@ -14,8 +14,7 @@ export const USER_REPOSITORY = Symbol('USER_REPOSITORY');
  * service-role) per method:
  * - profile reads/writes go through the authenticated (JWT-scoped) client;
  * - settings writes and the deletion-scheduling path require the service-role
- *   client because Supabase only allows admin to mutate `user_metadata`
- *   atomically when the change must be applied with full metadata replacement.
+ *   client because only admins can mutate server-owned `app_metadata`.
  */
 export interface UserRepositoryPort {
   /**
@@ -41,7 +40,7 @@ export interface UserRepositoryPort {
   ): Promise<UserSettings>;
 
   /**
-   * Set `user_metadata.scheduledDeletionAt` to "now" if absent. Returns the
+   * Set `app_metadata.scheduledDeletionAt` to "now" if absent. Returns the
    * (existing or newly written) ISO timestamp and a flag indicating whether
    * a write actually occurred. Uses the service-role admin client.
    */

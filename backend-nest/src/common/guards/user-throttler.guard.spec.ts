@@ -313,16 +313,18 @@ describe('UserThrottlerGuard', () => {
       expect(tracker).not.toContain('user:');
     });
 
-    it('should fall back to IP when user has scheduledDeletionAt', async () => {
+    it('should fall back to IP when app_metadata schedules deletion', async () => {
       // Arrange - User with account scheduled for deletion
       mockSupabaseClient
         .setMockData({
           id: 'user-scheduled-deletion',
           email: 'scheduled@example.com',
+          app_metadata: {
+            scheduledDeletionAt: '2025-01-20T12:00:00.000Z',
+          },
           user_metadata: {
             firstName: 'John',
             lastName: 'Doe',
-            scheduledDeletionAt: '2025-01-20T12:00:00.000Z',
           },
         })
         .setMockError(null);
@@ -340,6 +342,27 @@ describe('UserThrottlerGuard', () => {
       expect(tracker).toBeDefined();
       expect(tracker).not.toContain('user:'); // Should fall back to IP-based tracking
       expect(tracker).not.toContain('user-scheduled-deletion');
+    });
+
+    it('should ignore a client-owned scheduledDeletionAt claim', async () => {
+      mockSupabaseClient
+        .setMockData({
+          id: 'active-user',
+          email: 'active@example.com',
+          app_metadata: {},
+          user_metadata: {
+            scheduledDeletionAt: '2020-01-01T00:00:00.000Z',
+          },
+        })
+        .setMockError(null);
+
+      const tracker = await (guard as any).getTracker({
+        headers: { authorization: 'Bearer valid-token' },
+        ip: '192.168.1.100',
+        ips: [],
+      });
+
+      expect(tracker).toBe('user:active-user');
     });
   });
 
