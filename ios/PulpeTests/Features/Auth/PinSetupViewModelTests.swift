@@ -185,6 +185,7 @@ struct PinSetupFlowTests {
         #expect(await result.encryptionAPI.validateKeyCallCount == 0)
         #expect(await result.encryptionAPI.setupRecoveryCallCount == 1)
         #expect(await result.storage.storeCallCount == 1)
+        #expect(await result.storage.clearSessionCallCount == 0)
         #expect(result.sut.recoveryKey == "ABCD-EFGH-IJKL-MNOP")
         #expect(result.sut.showRecoverySheet == true)
         #expect(result.sut.completedWithoutRecovery == false)
@@ -225,6 +226,7 @@ struct PinSetupFlowTests {
         #expect(sut.errorMessage == "Un code PIN existe déjà pour ce compte — saisis-le")
         #expect(await encryptionAPI.validateKeyCallCount == 0)
         #expect(await storage.storeCallCount == 1)
+        #expect(await storage.clearSessionCallCount == 1)
     }
 
     @Test("generic API error shows generic error message")
@@ -256,6 +258,7 @@ struct PinSetupFlowTests {
         #expect(sut.errorMessage == "Une erreur est survenue, réessaie")
         #expect(await encryptionAPI.validateKeyCallCount == 0)
         #expect(await storage.storeCallCount == 1)
+        #expect(await storage.clearSessionCallCount == 1)
     }
 }
 
@@ -310,11 +313,16 @@ private actor StubEncryptionSetup: PinEncryptionSetup {
     }
 }
 
-private actor StubClientKeyStorage: PinClientKeyStorage {
+private actor StubClientKeyStorage: PinClientKeySetupStorage {
     private(set) var storeCallCount = 0
+    private(set) var clearSessionCallCount = 0
 
     func store(_ clientKeyHex: String, enableBiometric: Bool) async {
         storeCallCount += 1
+    }
+
+    func clearSession() async {
+        clearSessionCallCount += 1
     }
 }
 

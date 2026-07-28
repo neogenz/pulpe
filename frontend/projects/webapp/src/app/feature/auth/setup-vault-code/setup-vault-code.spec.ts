@@ -25,6 +25,7 @@ describe('SetupVaultCode', () => {
   };
   let mockClientKeyService: {
     setDirectKey: ReturnType<typeof vi.fn>;
+    clear: ReturnType<typeof vi.fn>;
   };
   let mockEncryptionApi: {
     getSalt$: ReturnType<typeof vi.fn>;
@@ -57,6 +58,7 @@ describe('SetupVaultCode', () => {
 
     mockClientKeyService = {
       setDirectKey: vi.fn(),
+      clear: vi.fn(),
     };
 
     mockEncryptionApi = {
@@ -319,6 +321,7 @@ describe('SetupVaultCode', () => {
       await component['onSubmit']();
 
       expect(mockUpdateUser).not.toHaveBeenCalled();
+      expect(mockClientKeyService.clear).toHaveBeenCalledOnce();
     });
 
     it('should not navigate when updateUser fails', async () => {
@@ -327,6 +330,7 @@ describe('SetupVaultCode', () => {
       await component['onSubmit']();
 
       expect(navigateSpy).not.toHaveBeenCalled();
+      expect(mockClientKeyService.clear).not.toHaveBeenCalled();
       expect(component['errorMessage']()).toContain(
         "Quelque chose n'a pas fonctionné",
       );
