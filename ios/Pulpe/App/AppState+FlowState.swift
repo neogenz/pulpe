@@ -193,7 +193,7 @@ extension AppState {
             await handleSessionExpired()
             return true
         case .sessionRefreshFailed:
-            await logout(source: .system)
+            await logout(source: .system, resetScope: .sessionRefreshFailed)
             return true
         case .authenticationSucceeded(let user):
             await resolvePostAuth(user: user)

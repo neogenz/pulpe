@@ -136,9 +136,13 @@ Both events are available to every authenticated user. The selector itself follo
 `auth_session_observed` value spaces:
 
 - `source`: `sdk_event` | `session_validation` | `forced_refresh` | `api_401_refresh` | `supabase_auth_response` | `session_reset`
-- `outcome`: `initial_session` | `token_refreshed` | `signed_out` | `started` | `succeeded` | `failed_retryable` | `storage_unreadable` | `missing_blob` | `undecodable_blob` | `valid_blob` | `session_not_found` | `session_expired` | `refresh_token_not_found` | `refresh_token_already_used`; terminal reset reasons are added in phase 2
+- `outcome`: `initial_session` | `token_refreshed` | `signed_out` | `started` | `succeeded` | `failed_retryable` | `storage_unreadable` | `missing_blob` | `undecodable_blob` | `valid_blob` | `session_not_found` | `session_expired` | `refresh_token_not_found` | `refresh_token_already_used` | `user_logout` | `account_deleted` | `signup_abandoned` | `startup_retry_abandoned` | `password_reset` | `api_session_expired` | `recovery_session_expired` | `background_session_missing` | `session_refresh_failed` | `system_unspecified`
 - `storage_state`: `available` | `missing` | `undecodable` | `unreadable`
-- `is_expected_user_action`: reserved for terminal reset classification in phase 2
+- `is_expected_user_action`: `true` for logout, account deletion, signup/retry abandon and password reset; `false` for expiry, missing/failed sessions and the `system_unspecified` sentinel
+
+`session_reset` is captured before PostHog resets its identity. `system_unspecified` is a detectable
+compatibility sentinel; no known production path should emit it. Supabase terminal codes are only
+present when the SDK exposes a matching response and are never inferred from an API 401.
 
 **iOS funnel idempotency guarantees:**
 - `onboarding_started` fire once per `OnboardingFlow` instance (@State guard). Reset on view re-instantiation via `.id(appState.onboardingSessionID)` after abandon.

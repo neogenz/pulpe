@@ -14,6 +14,29 @@ import Testing
 @MainActor
 @Suite(.serialized)
 struct AppStateLogoutScopeTests {
+    @Test("Every terminal reset has a unique reason and explicit classification")
+    func terminalResetScopes_haveStableDiagnosticTaxonomy() {
+        let cases: [(AppState.SessionResetScope, (String, Bool))] = [
+            (.userLogout, ("user_logout", true)),
+            (.accountDeleted, ("account_deleted", true)),
+            (.signupAbandoned, ("signup_abandoned", true)),
+            (.startupRetryAbandoned, ("startup_retry_abandoned", true)),
+            (.passwordReset, ("password_reset", true)),
+            (.sessionExpiry, ("api_session_expired", false)),
+            (.recoverySessionExpiry, ("recovery_session_expired", false)),
+            (.backgroundSessionMissing, ("background_session_missing", false)),
+            (.sessionRefreshFailed, ("session_refresh_failed", false)),
+            (.systemLogout, ("system_unspecified", false))
+        ]
+        var outcomes = Set<String>()
+
+        for (scope, expected) in cases {
+            #expect(scope.diagnosticOutcome == expected.0)
+            #expect(scope.isExpectedUserAction == expected.1)
+            #expect(outcomes.insert(scope.diagnosticOutcome).inserted)
+        }
+    }
+
     @Test("deleteAccount() triggers performSignOut with .global scope")
     func deleteAccount_triggersGlobalSignOutScope() async {
         let receivedScope = AtomicProperty<SignOutScope?>(nil)
