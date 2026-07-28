@@ -11,6 +11,7 @@ import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
+import { DEMO_CLIENT_KEY_BUFFER } from '../../domain/encryption.constants';
 import { SupabaseEncryptionKeyRepository } from '../persistence/supabase-encryption-key.repository';
 import type { UserEncryptionKey } from '../../domain/encryption.entity';
 import {
@@ -198,7 +199,7 @@ export class AesGcmCryptoService {
     const { salt, keyCheck } = await this.#ensureUserSalt(userId);
     const dek = this.#deriveDEK(clientKey, salt, userId);
 
-    if (keyCheck && !this.validateKeyCheck(keyCheck, dek)) {
+    if (!keyCheck || !this.validateKeyCheck(keyCheck, dek)) {
       throw new BusinessException(
         ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
       );
@@ -235,7 +236,7 @@ export class AesGcmCryptoService {
     // derived DEK is still returned (reads keep their fallback-0 UX) but never
     // cached, so a concurrent write re-derives and rejects the key instead of
     // encrypting under a wrong DEK.
-    if (row.key_check && !this.validateKeyCheck(row.key_check, dek)) {
+    if (!row.key_check || !this.validateKeyCheck(row.key_check, dek)) {
       return dek;
     }
 
@@ -244,6 +245,36 @@ export class AesGcmCryptoService {
       expiry: Date.now() + DEK_CACHE_TTL_MS,
     });
 
+    return dek;
+  }
+
+  async ensureDemoUserDEK(userId: string): Promise<Buffer> {
+    const cacheKey = this.#buildCacheKey(userId, DEMO_CLIENT_KEY_BUFFER);
+    const cached = this.#dekCache.get(cacheKey);
+    if (cached && cached.expiry > Date.now()) {
+      return cached.dek;
+    }
+
+    const { salt, keyCheck } = await this.#ensureUserSalt(userId);
+    const dek = this.#deriveDEK(DEMO_CLIENT_KEY_BUFFER, salt, userId);
+
+    if (keyCheck) {
+      if (!this.validateKeyCheck(keyCheck, dek)) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
+        );
+      }
+    } else {
+      await this.#repository.updateKeyCheckIfNull(
+        userId,
+        this.generateKeyCheck(dek),
+      );
+    }
+
+    this.#dekCache.set(cacheKey, {
+      dek,
+      expiry: Date.now() + DEK_CACHE_TTL_MS,
+    });
     return dek;
   }
 
@@ -318,38 +349,22 @@ export class AesGcmCryptoService {
     }
   }
 
-  async verifyAndEnsureKeyCheck(
+  async verifyExistingKeyCheck(
     userId: string,
     clientKey: Buffer,
   ): Promise<boolean> {
     const row = await this.#repository.findByUserId(userId);
 
-    if (!row) {
-      const dek = await this.ensureUserDEK(userId, clientKey);
-      const keyCheck = this.generateKeyCheck(dek);
-      await this.#repository.updateKeyCheckIfNull(userId, keyCheck);
-      return true;
-    }
+    if (!row?.key_check) return false;
 
     const salt = Buffer.from(row.salt, 'hex');
     const dek = this.#deriveDEK(clientKey, salt, userId);
 
     // Invariant: only a canary-validated DEK enters the cache — a wrong key
     // must never leave a poisoned entry behind for a later ensureUserDEK hit.
-    if (row.key_check) {
-      if (!this.validateKeyCheck(row.key_check, dek)) {
-        return false;
-      }
-      this.#dekCache.set(this.#buildCacheKey(userId, clientKey), {
-        dek,
-        expiry: Date.now() + DEK_CACHE_TTL_MS,
-      });
-      return true;
+    if (!this.validateKeyCheck(row.key_check, dek)) {
+      return false;
     }
-
-    // First use: this DEK bootstraps the canary, valid by definition.
-    const keyCheck = this.generateKeyCheck(dek);
-    await this.#repository.updateKeyCheckIfNull(userId, keyCheck);
     this.#dekCache.set(this.#buildCacheKey(userId, clientKey), {
       dek,
       expiry: Date.now() + DEK_CACHE_TTL_MS,
@@ -360,16 +375,40 @@ export class AesGcmCryptoService {
   async createRecoveryKey(
     userId: string,
     clientKey: Buffer,
+    supabase: AuthenticatedSupabaseClient,
   ): Promise<{ formatted: string }> {
-    const dek = await this.ensureUserDEK(userId, clientKey);
+    const existing = await this.#repository.findByUserId(userId);
+    if (!existing) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
+      );
+    }
+
+    const isInitialSetup = existing.key_check === null;
+    if (
+      isInitialSetup &&
+      (existing.wrapped_dek !== null ||
+        (await this.#hasEncryptedUserData(userId, supabase)))
+    ) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
+      );
+    }
+
+    const dek = isInitialSetup
+      ? this.#deriveDEK(clientKey, Buffer.from(existing.salt, 'hex'), userId)
+      : await this.ensureUserDEK(userId, clientKey);
     const { raw, formatted } = this.generateRecoveryKey();
 
     try {
       const wrappedDEK = this.wrapDEK(dek, raw);
-      const wasUpdated = await this.#repository.updateWrappedDEKIfNull(
-        userId,
-        wrappedDEK,
-      );
+      const wasUpdated = isInitialSetup
+        ? await this.#repository.initializeVaultIfEmpty(
+            userId,
+            this.generateKeyCheck(dek),
+            wrappedDEK,
+          )
+        : await this.#repository.updateWrappedDEKIfNull(userId, wrappedDEK);
 
       if (!wasUpdated) {
         throw new BusinessException(
@@ -377,13 +416,54 @@ export class AesGcmCryptoService {
         );
       }
 
-      const keyCheck = this.generateKeyCheck(dek);
-      await this.#repository.updateKeyCheckIfNull(userId, keyCheck);
+      if (isInitialSetup) {
+        this.#dekCache.set(this.#buildCacheKey(userId, clientKey), {
+          dek,
+          expiry: Date.now() + DEK_CACHE_TTL_MS,
+        });
+      }
     } finally {
       raw.fill(0);
     }
 
     return { formatted };
+  }
+
+  async #hasEncryptedUserData(
+    userId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<boolean> {
+    const [monthlyBudgets, templateIds] = await Promise.all([
+      this.#fetchMonthlyBudgets(userId, supabase),
+      this.#fetchUserTemplateIds(userId, supabase),
+    ]);
+    const budgetIds = monthlyBudgets.map((budget) => budget.id);
+    const [budgetLines, transactions, templateLines, savingsGoals] =
+      await Promise.all([
+        this.#fetchBudgetLines(budgetIds, supabase),
+        this.#fetchTransactions(budgetIds, supabase),
+        this.#fetchTemplateLines(templateIds, supabase),
+        this.#fetchSavingsGoals(userId, supabase),
+      ]);
+
+    return (
+      monthlyBudgets.some((row) => row.ending_balance !== null) ||
+      budgetLines.some(
+        (row) => row.amount !== null || row.original_amount !== null,
+      ) ||
+      transactions.some(
+        (row) => row.amount !== null || row.original_amount !== null,
+      ) ||
+      templateLines.some(
+        (row) => row.amount !== null || row.original_amount !== null,
+      ) ||
+      savingsGoals.some(
+        (row) =>
+          row.target_amount !== null ||
+          row.original_target_amount !== null ||
+          row.initial_amount !== null,
+      )
+    );
   }
 
   async regenerateRecoveryKey(

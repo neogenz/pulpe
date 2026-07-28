@@ -282,23 +282,20 @@ export default class SetupVaultCode {
         kdfIterations,
       );
 
-      // 2. Validate key (generates key_check for new users)
-      await firstValueFrom(this.#encryptionApi.validateKey$(clientKeyHex));
-
-      // 3. Store new client key
+      // 2. Store the candidate key so setup-recovery can send it in the header
       this.#clientKeyService.setDirectKey(clientKeyHex, rememberDevice);
 
-      // 4. Setup recovery key (must succeed before marking configured)
+      // 3. Atomically initialize key_check + recovery key server-side
       await this.#showRecoveryKey();
 
-      // 5. Mark user as configured only after recovery key is saved
+      // 4. Mark user as configured only after recovery key is saved
       await this.#authSession
         .getClient()
         .auth.updateUser({ data: { vaultCodeConfigured: true } });
 
       this.#postHogService.captureEvent('vault_code_setup_completed');
 
-      // 6. Redirect to dashboard
+      // 5. Redirect to dashboard
       this.#router.navigate(['/', ROUTES.DASHBOARD]);
     } catch (error) {
       this.#logger.error('Setup vault code failed:', error);

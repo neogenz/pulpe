@@ -13,7 +13,7 @@ const createMockLogger = () => ({
 describe('ValidateUserKeyUseCase', () => {
   it('returns void when crypto service confirms key validity', async () => {
     const cryptoService = {
-      verifyAndEnsureKeyCheck: mock(() => Promise.resolve(true)),
+      verifyExistingKeyCheck: mock(() => Promise.resolve(true)),
     };
     const logger = createMockLogger();
     const useCase = new ValidateUserKeyUseCase(
@@ -23,13 +23,13 @@ describe('ValidateUserKeyUseCase', () => {
 
     await useCase.execute('user-1', Buffer.alloc(32, 0xab));
 
-    expect(cryptoService.verifyAndEnsureKeyCheck).toHaveBeenCalledTimes(1);
+    expect(cryptoService.verifyExistingKeyCheck).toHaveBeenCalledTimes(1);
     expect(logger.warn).not.toHaveBeenCalled();
   });
 
   it('throws ENCRYPTION_KEY_CHECK_FAILED and warns when crypto service returns false', async () => {
     const cryptoService = {
-      verifyAndEnsureKeyCheck: mock(() => Promise.resolve(false)),
+      verifyExistingKeyCheck: mock(() => Promise.resolve(false)),
     };
     const logger = createMockLogger();
     const useCase = new ValidateUserKeyUseCase(
@@ -57,7 +57,7 @@ describe('ValidateUserKeyUseCase', () => {
   it('forwards userId and clientKey to crypto service unchanged', async () => {
     const calls: any[] = [];
     const cryptoService = {
-      verifyAndEnsureKeyCheck: mock((...args: unknown[]) => {
+      verifyExistingKeyCheck: mock((...args: unknown[]) => {
         calls.push(args);
         return Promise.resolve(true);
       }),

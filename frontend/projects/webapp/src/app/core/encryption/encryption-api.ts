@@ -28,7 +28,7 @@ export class EncryptionApi {
 
   /**
    * Validates the client key against the stored key_check.
-   * For new users (no key_check yet), generates and stores one as a side effect.
+   * Fails closed when no key_check has been initialized.
    */
   validateKey$(clientKeyHex: string): Observable<void> {
     return this.#api.postVoid$<EncryptionValidateKeyRequest>(

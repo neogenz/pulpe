@@ -35,7 +35,7 @@ export class ScheduleAccountDeletionUseCase {
   ) {}
 
   async execute(user: AuthenticatedUser): Promise<ScheduledAccountDeletion> {
-    const keyIsValid = await this.encryption.verifyAndEnsureKeyCheck(
+    const keyIsValid = await this.encryption.verifyExistingKeyCheck(
       user.id,
       user.clientKey,
     );

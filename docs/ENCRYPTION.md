@@ -121,10 +121,18 @@ La recovery key permet de récupérer l'accès aux données chiffrées quand le 
 ### Architecture
 
 ```
-Setup (depuis les paramètres) :
-  1. recoveryKey = randomBytes(32)                      // affiché une fois
-  2. wrappedDEK = AES-256-GCM(DEK, recoveryKey)        // DEK chiffrée
-  3. Stocker wrappedDEK dans user_encryption_key.wrapped_dek
+Setup initial :
+  1. Le client dérive clientKey depuis le nouveau PIN
+  2. Le backend confirme que key_check et wrapped_dek sont absents
+     et qu'aucune donnée chiffrée n'existe
+  3. recoveryKey = randomBytes(32)                      // affiché une fois
+  4. wrappedDEK = AES-256-GCM(DEK, recoveryKey)        // DEK chiffrée
+  5. Stocker key_check + wrapped_dek dans une même mise à jour conditionnelle
+
+Ajout d'une recovery key à un coffre configuré :
+  1. Vérifier clientKey avec le key_check existant
+  2. Générer recoveryKey et wrappedDEK
+  3. Stocker wrapped_dek seulement s'il est encore absent
 
 Recovery (code PIN oublié) :
   1. User fournit recoveryKey + nouveau code PIN
@@ -178,10 +186,11 @@ La colonne `key_check` de `user_encryption_key` stocke un ciphertext canary : `A
 
 | Événement | Action |
 |-----------|--------|
-| Première validation (key_check absent) | Généré et stocké |
+| Setup initial (`/setup-recovery`) | `key_check` et `wrapped_dek` créés atomiquement si le coffre est vide |
+| Validation avec `key_check` absent | Refusée sans mutation |
 | Recovery (`/recover`) | Régénéré avec la nouvelle DEK |
 | Changement de PIN (`/change-pin`) | Régénéré avec la nouvelle DEK |
-| Setup recovery key | Généré si absent |
+| Mode démo | Initialisé avec la clé démo fixe, hors parcours utilisateur |
 
 ### Rate limiting
 
