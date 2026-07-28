@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.40.0
+
+### Minor Changes
+
+- Objectifs d’épargne plus flexibles, suppression maîtrisée et étiquettes iOS.
+
+### Patch Changes
+
+- pulpe-shared@0.40.0
+
 ## 0.39.0
 
 ### Minor Changes

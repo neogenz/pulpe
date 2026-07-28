@@ -36,6 +36,38 @@ export interface SilentIosReleaseEntry {
  */
 export const RELEASES: WhatsNewReleaseEntry[] = [
   {
+    version: '0.40.0',
+    iosVersion: '1.3.0',
+    date: '2026-07-28',
+    platforms: ['web', 'ios'],
+    changes: {
+      features: [
+        {
+          title: 'Des objectifs plus flexibles',
+          description:
+            'Crée et adapte un objectif avec un début, une cible ou une échéance indépendamment optionnels',
+        },
+        {
+          title: 'Une suppression maîtrisée',
+          description:
+            'Visualise l’impact avant de supprimer un objectif et choisis le sort de ses prévisions associées',
+        },
+        {
+          title: 'Les objectifs visibles dans le budget',
+          description:
+            'Les prévisions indiquent désormais l’objectif d’épargne auquel elles contribuent',
+        },
+        {
+          title: 'Les étiquettes arrivent sur iOS',
+          description:
+            'Ajoute, crée et consulte tes étiquettes depuis les transactions et les prévisions',
+        },
+      ],
+      fixes: [],
+      technical: [],
+    },
+  },
+  {
     version: '0.39.0',
     iosVersion: '1.2.2',
     date: '2026-07-27',

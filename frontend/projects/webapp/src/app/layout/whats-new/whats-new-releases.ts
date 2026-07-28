@@ -9,11 +9,12 @@ export interface SkippedWhatsNewRelease {
 }
 
 export const LATEST_RELEASE: WhatsNewRelease = {
-  version: '0.39.0',
+  version: '0.40.0',
   features: [
-    'Une trajectoire plus lisible',
-    'Une projection fidèle au plan',
-    'Des simulations plus fiables',
+    'Des objectifs plus flexibles',
+    'Une suppression maîtrisée',
+    'Les objectifs visibles dans le budget',
+    'Des échéances cohérentes',
   ],
 };
 
