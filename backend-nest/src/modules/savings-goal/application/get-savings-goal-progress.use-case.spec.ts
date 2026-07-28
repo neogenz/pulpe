@@ -19,6 +19,7 @@ const goal: SavingsGoal = {
   id: 'goal-1',
   userId: 'user-1',
   name: 'Maison',
+  startDate: null,
   targetAmount: 12_000,
   targetDate: '2099-12-15',
   status: 'ACTIVE',
@@ -199,6 +200,62 @@ describe('GetSavingsGoalProgressUseCase', () => {
 
     await expect(useCase.execute('missing', mockUser)).rejects.toThrow(error);
     expect(mockRepo.findLinkedContributions).not.toHaveBeenCalled();
+  });
+
+  it('returns only applicable metrics for an objective without target or deadline', async () => {
+    mockRepo.findById.mockResolvedValue({
+      ...goal,
+      targetAmount: null,
+      targetDate: null,
+    });
+
+    const { computed } = await useCase.execute('goal-1', mockUser);
+
+    expect(computed.achievementPercent).toBeNull();
+    expect(computed.monthsRemaining).toBeNull();
+    expect(computed.required).toBeNull();
+    expect(computed.projected).toBeNull();
+    expect(computed.paceStatus).toBeNull();
+    expect(computed.suggestCompletion).toBeNull();
+  });
+
+  it('does not mark timeline gaps as provisionable without a deadline', async () => {
+    const now = new Date();
+    const currentIndex = now.getFullYear() * 12 + now.getMonth() + 1;
+    const period = (offset: number) => {
+      const index = currentIndex + offset;
+      const year = Math.floor((index - 1) / 12);
+      return { month: index - year * 12, year };
+    };
+    const missing = period(1);
+    const linkedFuture = period(2);
+    mockRepo.findById.mockResolvedValue({
+      ...goal,
+      targetAmount: null,
+      targetDate: null,
+      createdAt: now.toISOString(),
+    });
+    mockRepo.findLinkedContributions.mockResolvedValue({
+      lines: [
+        {
+          id: 'line-future',
+          amount: 500,
+          kind: 'saving',
+          checkedAt: null,
+          ...linkedFuture,
+        },
+      ],
+      transactions: [],
+    });
+    mockTemplateRepo.findDefaultTemplateId.mockResolvedValue('template-1');
+
+    const { months } = await useCase.execute(goal.id, mockUser);
+
+    expect(
+      months.find(
+        (month) => month.month === missing.month && month.year === missing.year,
+      )?.isProvisionable,
+    ).toBe(false);
   });
 
   it('marks only truly missing periods as provisionable', async () => {

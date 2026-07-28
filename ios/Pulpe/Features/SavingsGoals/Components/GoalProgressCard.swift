@@ -12,22 +12,31 @@ struct GoalProgressCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             HStack(alignment: .firstTextBaseline) {
-                Text(progress.confirmed.asCompactCurrency(currency))
-                    .font(PulpeTypography.amountCard)
-                    .foregroundStyle(Color.financialSavings)
-                    .monospacedDigit()
-                    .sensitiveAmount()
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                    Text("Épargné")
+                        .font(PulpeTypography.metricLabel)
+                        .foregroundStyle(Color.textSecondary)
+                    Text(progress.confirmed.asCompactCurrency(currency))
+                        .font(PulpeTypography.amountCard)
+                        .foregroundStyle(Color.financialSavings)
+                        .monospacedDigit()
+                        .sensitiveAmount()
+                }
 
                 Spacer()
 
-                Text("sur \(progress.targetAmount.asCurrency(currency))")
-                    .font(PulpeTypography.metricLabel)
-                    .foregroundStyle(Color.textSecondary)
-                    .monospacedDigit()
-                    .sensitiveAmount()
+                if let targetAmount = progress.targetAmount {
+                    Text("sur \(targetAmount.asCurrency(currency))")
+                        .font(PulpeTypography.metricLabel)
+                        .foregroundStyle(Color.textSecondary)
+                        .monospacedDigit()
+                        .sensitiveAmount()
+                }
             }
 
-            layeredBar
+            if progress.targetAmount != nil {
+                layeredBar
+            }
 
             if let pace = progress.paceStatus {
                 if hasClosedPlanMonth {
@@ -42,11 +51,13 @@ struct GoalProgressCard: View {
                     statRow(label: "Montant de départ", value: progress.initialAmount.asCompactCurrency(currency))
                 }
                 statRow(
-                    label: "Versements prévus à date", value: progress.plannedCumulative.asCompactCurrency(currency)
+                    label: "Déjà prévu",
+                    value: progress.plannedCumulative.asCompactCurrency(currency),
+                    swatch: Color.financialSavings.opacity(DesignTokens.Opacity.strong)
                 )
                 statRow(
-                    label: "Projection à l'échéance", value: progress.projected.asCompactCurrency(currency),
-                    swatch: Color.financialIncome
+                    label: "Projection du plan",
+                    value: progress.plannedProjection.asCompactCurrency(currency)
                 )
                 if let required = progress.required, hasClosedPlanMonth {
                     if SavingsGoalDetailViewModel.requiredMatchesPlannedPace(
@@ -67,24 +78,22 @@ struct GoalProgressCard: View {
     }
 
     private var layeredBar: some View {
-        ZStack(alignment: .leading) {
+        let plannedFraction = progress.plannedFraction ?? 0
+        let confirmedFraction = progress.confirmedFraction ?? 0
+        return ZStack(alignment: .leading) {
             ProgressBarShape(progress: 1)
                 .fill(Color.progressTrack)
 
-            ProgressBarShape(progress: CGFloat(progress.projectedFraction))
-                .fill(Color.financialIncome)
-                .animation(DesignTokens.Animation.gentleSpring, value: progress.projectedFraction)
+            ProgressBarShape(progress: CGFloat(plannedFraction))
+                .fill(Color.financialSavings.opacity(DesignTokens.Opacity.strong))
 
-            ProgressBarShape(progress: CGFloat(progress.confirmedFraction))
+            ProgressBarShape(progress: CGFloat(confirmedFraction))
                 .fill(Color.financialSavings)
-                .animation(DesignTokens.Animation.gentleSpring, value: progress.confirmedFraction)
+                .animation(DesignTokens.Animation.gentleSpring, value: confirmedFraction)
         }
         .frame(height: DesignTokens.ProgressBar.thickHeight)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Progression de l'objectif")
-        .accessibilityValue(
-            "\(progress.achievementPercent)% épargné, \(Int((progress.projectedFraction * 100).rounded()))% projeté"
-        )
+        .accessibilityLabel("\(progress.achievementPercent ?? 0)% de la cible épargné")
     }
 
     @ViewBuilder

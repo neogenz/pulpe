@@ -15,6 +15,14 @@ import {
   type SpreadTranche,
 } from '@modules/budget-line/domain/ports/budget-line-spread.port';
 import {
+  BUDGET_TEMPLATE_REPOSITORY,
+  type BudgetTemplateRepositoryPort,
+} from '@modules/budget-template/domain/ports/budget-template-repository.port';
+import {
+  TEMPLATE_LINE_PROPAGATION_PORT,
+  type TemplateLinePropagationPort,
+} from '@modules/budget-template/domain/ports/template-line-propagation.port';
+import {
   SAVINGS_GOAL_REPOSITORY,
   type SavingsGoalRepositoryPort,
 } from '../domain/ports/savings-goal-repository.port';
@@ -27,6 +35,10 @@ export class CreateSavingsGoalUseCase {
     private readonly repo: SavingsGoalRepositoryPort,
     @Inject(BUDGET_LINE_SPREAD_PORT)
     private readonly spread: BudgetLineSpreadPort,
+    @Inject(BUDGET_TEMPLATE_REPOSITORY)
+    private readonly templateRepo: BudgetTemplateRepositoryPort,
+    @Inject(TEMPLATE_LINE_PROPAGATION_PORT)
+    private readonly templateLinePropagation: TemplateLinePropagationPort,
     @InjectInfoLogger(CreateSavingsGoalUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -37,8 +49,9 @@ export class CreateSavingsGoalUseCase {
   ): Promise<SavingsGoal> {
     const entity = await this.repo.insert({
       name: dto.name,
-      targetAmount: dto.targetAmount,
-      targetDate: dto.targetDate,
+      startDate: dto.startDate ?? null,
+      targetAmount: dto.targetAmount ?? null,
+      targetDate: dto.targetDate ?? null,
       status: dto.status ?? 'ACTIVE',
       originalTargetAmount: dto.originalTargetAmount ?? null,
       originalCurrency: dto.originalCurrency ?? null,
@@ -49,7 +62,7 @@ export class CreateSavingsGoalUseCase {
 
     let baselineCreated = false;
     if (dto.monthlyContribution != null) {
-      baselineCreated = await this.materializeContributions(
+      baselineCreated = await this.createContributionPlan(
         entity,
         dto.monthlyContribution,
         user,
@@ -68,6 +81,65 @@ export class CreateSavingsGoalUseCase {
     );
 
     return entity;
+  }
+
+  private async createContributionPlan(
+    goal: SavingsGoal,
+    monthlyContribution: number,
+    user: AuthenticatedUser,
+  ): Promise<boolean> {
+    try {
+      return goal.targetDate == null
+        ? await this.createRecurringContribution(
+            goal,
+            monthlyContribution,
+            user,
+          )
+        : await this.materializeContributions(goal, monthlyContribution, user);
+    } catch (err) {
+      this.rethrowCommittedBaselineFailure(err, goal.id, user.id);
+      this.logger.warn(
+        {
+          operation: 'savingsGoal.autoDecompose',
+          userId: user.id,
+          savingsGoalId: goal.id,
+          err,
+        },
+        'Linked forecast generation failed — goal created without it',
+      );
+      return false;
+    }
+  }
+
+  private async createRecurringContribution(
+    goal: SavingsGoal,
+    monthlyContribution: number,
+    user: AuthenticatedUser,
+  ): Promise<boolean> {
+    const templateId = await this.templateRepo.findDefaultTemplateId(user.id);
+    if (!templateId) {
+      this.logger.warn(
+        {
+          operation: 'savingsGoal.autoDecompose',
+          userId: user.id,
+          savingsGoalId: goal.id,
+        },
+        'No default template — goal created without its linked forecast',
+      );
+      return false;
+    }
+
+    await this.templateLinePropagation.createLineAndPropagate({
+      templateId,
+      userId: user.id,
+      payDayOfMonth: user.payDayOfMonth ?? null,
+      name: goal.name,
+      amount: monthlyContribution,
+      kind: 'saving',
+      recurrence: 'fixed',
+      savingsGoalId: goal.id,
+    });
+    return true;
   }
 
   /**
@@ -91,63 +163,49 @@ export class CreateSavingsGoalUseCase {
     monthlyContribution: number,
     user: AuthenticatedUser,
   ): Promise<boolean> {
-    try {
-      const tranches = await this.budgetedTranches(
-        goal,
-        monthlyContribution,
-        user.payDayOfMonth ?? null,
-      );
-      if (tranches.length === 0) {
-        this.logger.warn(
-          {
-            operation: 'savingsGoal.autoDecompose',
-            userId: user.id,
-            savingsGoalId: goal.id,
-          },
-          'No budgeted month in the goal horizon — goal created without its forecasts',
-        );
-        return false;
-      }
-
-      const { lines, skippedMonths } = await this.spread.fanOut(
-        {
-          name: goal.name,
-          kind: 'saving',
-          savingsGoalId: goal.id,
-          tranches,
-          // One goal, one spread group: the goal id IS the idempotency key.
-          spreadGroupId: goal.id,
-        },
-        user,
-      );
-      // Every tranche targets an already-budgeted period, so a skipped month
-      // means one vanished between the two reads. Rare, but it must not pass as
-      // a fully materialized plan.
-      if (skippedMonths.length > 0) {
-        this.logger.warn(
-          {
-            operation: 'savingsGoal.autoDecompose',
-            userId: user.id,
-            savingsGoalId: goal.id,
-            skippedMonthCount: skippedMonths.length,
-          },
-          'Some budgeted months received no forecast',
-        );
-      }
-      return lines.length > 0;
-    } catch (err) {
-      this.rethrowCommittedBaselineFailure(err, goal.id, user.id);
+    const tranches = await this.budgetedTranches(
+      goal,
+      monthlyContribution,
+      user.payDayOfMonth ?? null,
+    );
+    if (tranches.length === 0) {
       this.logger.warn(
         {
           operation: 'savingsGoal.autoDecompose',
           userId: user.id,
           savingsGoalId: goal.id,
-          err,
         },
-        'Linked forecast generation failed — goal created without it',
+        'No budgeted month in the goal horizon — goal created without its forecasts',
       );
       return false;
     }
+
+    const { lines, skippedMonths } = await this.spread.fanOut(
+      {
+        name: goal.name,
+        kind: 'saving',
+        savingsGoalId: goal.id,
+        tranches,
+        // One goal, one spread group: the goal id IS the idempotency key.
+        spreadGroupId: goal.id,
+      },
+      user,
+    );
+    // Every tranche targets an already-budgeted period, so a skipped month
+    // means one vanished between the two reads. Rare, but it must not pass as
+    // a fully materialized plan.
+    if (skippedMonths.length > 0) {
+      this.logger.warn(
+        {
+          operation: 'savingsGoal.autoDecompose',
+          userId: user.id,
+          savingsGoalId: goal.id,
+          skippedMonthCount: skippedMonths.length,
+        },
+        'Some budgeted months received no forecast',
+      );
+    }
+    return lines.length > 0;
   }
 
   /**
@@ -161,9 +219,24 @@ export class CreateSavingsGoalUseCase {
     monthlyContribution: number,
     payDayOfMonth: number | null,
   ): Promise<SpreadTranche[]> {
+    if (goal.targetDate == null) return [];
+
     const currentIndex = periodIndex(
       getBudgetPeriodForDate(new Date(), payDayOfMonth),
     );
+    const createdIndex = periodIndex(
+      getBudgetPeriodForDate(new Date(goal.createdAt), payDayOfMonth),
+    );
+    const startIndex =
+      goal.startDate == null
+        ? createdIndex
+        : periodIndex(
+            getBudgetPeriodForDate(
+              parseIsoDateLocal(goal.startDate),
+              payDayOfMonth,
+            ),
+          );
+    const minPeriodIndex = Math.max(currentIndex, createdIndex, startIndex);
     const targetIndex = periodIndex(
       getBudgetPeriodForDate(parseIsoDateLocal(goal.targetDate), payDayOfMonth),
     );
@@ -172,7 +245,7 @@ export class CreateSavingsGoalUseCase {
     return budgetedPeriods
       .filter((period) => {
         const index = periodIndex(period);
-        return index >= currentIndex && index <= targetIndex;
+        return index >= minPeriodIndex && index <= targetIndex;
       })
       .sort((a, b) => periodIndex(a) - periodIndex(b))
       .map((period) => ({

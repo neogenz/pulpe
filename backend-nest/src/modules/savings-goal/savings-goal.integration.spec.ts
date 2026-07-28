@@ -7,14 +7,62 @@
  * Skips cleanly when local Supabase is unreachable.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import { Buffer } from 'node:buffer';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { getBudgetPeriodForDate, savingsGoalCreateSchema } from 'pulpe-shared';
 import {
   ensureSupabaseAvailable,
   type SupabaseEnv,
 } from '@/test/local-supabase';
 import type { Database } from '@/types/database.types';
+import type { AuthenticatedUser } from '@common/decorators/user.decorator';
+import type { InfoLogger } from '@common/logger';
+import type { BudgetLineSpreadPort } from '@modules/budget-line/domain/ports/budget-line-spread.port';
+import { SupabaseBudgetRepository } from '@modules/budget/infrastructure/persistence/supabase-budget.repository';
+import type { BudgetRecalculationPort } from '@modules/budget/domain/ports/budget-recalculation.port';
+import { BulkTemplateLineOperationsUseCase } from '@modules/budget-template/application/bulk-template-line-operations.use-case';
+import { TemplateLinePropagationAdapter } from '@modules/budget-template/infrastructure/adapters/template-line-propagation.adapter';
+import { SupabaseBudgetTemplateRepository } from '@modules/budget-template/infrastructure/persistence/supabase-budget-template.repository';
+import type { CacheService } from '@modules/cache/cache.service';
+import { CurrencyService } from '@modules/currency/currency.service';
+import type { EncryptionPort } from '@modules/encryption/domain/ports/encryption.port';
+import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
+import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
+import { CreateSavingsGoalUseCase } from './application/create-savings-goal.use-case';
+import { SupabaseSavingsGoalRepository } from './infrastructure/persistence/supabase-savings-goal.repository';
 
 const PASSWORD = 'test-password-123';
+
+const decodeEnc = (
+  cipher: string | null,
+  fallback: number | null,
+): number | null =>
+  typeof cipher === 'string' && cipher.startsWith('enc:')
+    ? Number(cipher.slice(4))
+    : fallback;
+
+const encryptionStub = {
+  ensureUserDEK: async () => Buffer.alloc(32),
+  getDekFor: async () => Buffer.alloc(32),
+  encryptAmount: (amount: number) => `enc:${amount}`,
+  encryptOptionalAmount: async (amount: number | null | undefined) =>
+    amount == null ? null : `enc:${amount}`,
+  prepareAmountData: async (amount: number) => ({ amount: `enc:${amount}` }),
+  prepareAmountsData: async (amounts: number[]) =>
+    amounts.map((amount) => ({ amount: `enc:${amount}` })),
+  tryDecryptAmount: (
+    cipher: string | null,
+    _dek: Buffer,
+    fallback: number | null,
+  ) => decodeEnc(cipher, fallback),
+} as unknown as EncryptionPort;
+
+const noopLogger = {
+  info: () => {},
+  debug: () => {},
+  warn: () => {},
+  trace: () => {},
+} as unknown as InfoLogger;
 
 let env: SupabaseEnv | null = null;
 let admin: SupabaseClient<Database>;
@@ -36,6 +84,96 @@ async function makeUser(
   });
   if (signInError) throw new Error(`signIn: ${signInError.message}`);
   return { id: data.user.id, client };
+}
+
+function createUseCaseFor(user: {
+  id: string;
+  client: SupabaseClient<Database>;
+}): {
+  useCase: CreateSavingsGoalUseCase;
+  authUser: AuthenticatedUser;
+  spreadCalls: unknown[][];
+  recalculatedBudgetIds: string[];
+} {
+  const authUser = {
+    id: user.id,
+    email: 'x@test.local',
+    accessToken: 'token',
+    clientKey: Buffer.alloc(32),
+    payDayOfMonth: null,
+  } as AuthenticatedUser;
+  const provider = {
+    get client() {
+      return user.client as unknown as AuthenticatedSupabaseClient;
+    },
+    get user() {
+      return authUser;
+    },
+  } as unknown as AuthenticatedSupabaseProvider;
+  const savingsGoalRepo = new SupabaseSavingsGoalRepository(
+    provider,
+    encryptionStub,
+  );
+  const templateRepo = new SupabaseBudgetTemplateRepository(
+    provider,
+    encryptionStub,
+    noopLogger,
+  );
+  const budgetRepo = new SupabaseBudgetRepository(provider, encryptionStub);
+  const spreadCalls: unknown[][] = [];
+  const spread = {
+    fanOut: async (...args: unknown[]) => {
+      spreadCalls.push(args);
+      return {
+        spreadGroupId: 'unexpected-spread',
+        lines: [],
+        createdBudgets: [],
+        skippedMonths: [],
+      };
+    },
+  } as unknown as BudgetLineSpreadPort;
+  const recalculatedBudgetIds: string[] = [];
+  const recalculation = {
+    recalculate: async (budgetId: string) => {
+      recalculatedBudgetIds.push(budgetId);
+    },
+  } as BudgetRecalculationPort;
+  const cache = {
+    invalidateForUser: async () => {},
+  } as unknown as CacheService;
+  const bulkOperations = new BulkTemplateLineOperationsUseCase(
+    templateRepo,
+    new CurrencyService(noopLogger),
+    cache,
+    recalculation,
+    budgetRepo,
+    noopLogger,
+  );
+  const propagation = new TemplateLinePropagationAdapter(bulkOperations);
+
+  return {
+    useCase: new CreateSavingsGoalUseCase(
+      savingsGoalRepo,
+      spread,
+      templateRepo,
+      propagation,
+      noopLogger,
+    ),
+    authUser,
+    spreadCalls,
+    recalculatedBudgetIds,
+  };
+}
+
+function shiftPeriod(
+  period: { month: number; year: number },
+  delta: number,
+): { month: number; year: number } {
+  const index = period.year * 12 + period.month - 1 + delta;
+  return {
+    year: Math.floor(index / 12),
+    month: (index % 12) + 1,
+  };
 }
 
 interface DeletionSeed {
@@ -173,6 +311,137 @@ afterAll(async () => {
 });
 
 describe('PUL-12 — savings_goal DB integration', () => {
+  it('wires name-only and undated recurring creation through the real repositories', async () => {
+    if (!env) return;
+
+    const user = await makeUser(`sg-create-${crypto.randomUUID()}@test.local`);
+    createdUserIds.push(user.id);
+
+    const templateId = crypto.randomUUID();
+    const currentPeriod = getBudgetPeriodForDate(new Date(), null);
+    const pastPeriod = shiftPeriod(currentPeriod, -1);
+    const futurePeriod = shiftPeriod(currentPeriod, 1);
+    const pastBudgetId = crypto.randomUUID();
+    const currentBudgetId = crypto.randomUUID();
+    const futureBudgetId = crypto.randomUUID();
+
+    const templateInsert = await admin.from('template').insert({
+      id: templateId,
+      user_id: user.id,
+      name: 'Mois type',
+      is_default: true,
+    });
+    expect(templateInsert.error).toBeNull();
+    const budgetsInsert = await admin.from('monthly_budget').insert([
+      {
+        id: pastBudgetId,
+        user_id: user.id,
+        template_id: templateId,
+        ...pastPeriod,
+        description: '',
+      },
+      {
+        id: currentBudgetId,
+        user_id: user.id,
+        template_id: templateId,
+        ...currentPeriod,
+        description: '',
+      },
+      {
+        id: futureBudgetId,
+        user_id: user.id,
+        template_id: templateId,
+        ...futurePeriod,
+        description: '',
+      },
+    ]);
+    expect(budgetsInsert.error).toBeNull();
+
+    const harness = createUseCaseFor(user);
+    const nameOnly = await harness.useCase.execute(
+      savingsGoalCreateSchema.parse({ name: 'Matelas' }),
+      harness.authUser,
+    );
+
+    const nameOnlyTemplateLines = await user.client
+      .from('template_line')
+      .select('id')
+      .eq('savings_goal_id', nameOnly.id);
+    const nameOnlyBudgetLines = await user.client
+      .from('budget_line')
+      .select('id')
+      .eq('savings_goal_id', nameOnly.id);
+    expect(nameOnlyTemplateLines.error).toBeNull();
+    expect(nameOnlyTemplateLines.data).toEqual([]);
+    expect(nameOnlyBudgetLines.error).toBeNull();
+    expect(nameOnlyBudgetLines.data).toEqual([]);
+
+    const recurring = await harness.useCase.execute(
+      savingsGoalCreateSchema.parse({
+        name: 'Voyage',
+        monthlyContribution: 250,
+      }),
+      harness.authUser,
+    );
+
+    const templateLines = await user.client
+      .from('template_line')
+      .select('id, template_id, savings_goal_id, kind, recurrence')
+      .eq('savings_goal_id', recurring.id);
+    expect(templateLines.error).toBeNull();
+    expect(templateLines.data).toHaveLength(1);
+    expect(templateLines.data?.[0]).toMatchObject({
+      template_id: templateId,
+      savings_goal_id: recurring.id,
+      kind: 'saving',
+      recurrence: 'fixed',
+    });
+
+    const budgetLines = await user.client
+      .from('budget_line')
+      .select('budget_id, template_line_id, savings_goal_id, kind, recurrence')
+      .eq('savings_goal_id', recurring.id);
+    expect(budgetLines.error).toBeNull();
+    expect(budgetLines.data?.map((line) => line.budget_id).sort()).toEqual(
+      [currentBudgetId, futureBudgetId].sort(),
+    );
+    expect(
+      budgetLines.data?.every(
+        (line) =>
+          line.template_line_id === templateLines.data?.[0]?.id &&
+          line.kind === 'saving' &&
+          line.recurrence === 'fixed',
+      ),
+    ).toBe(true);
+    expect(
+      budgetLines.data?.some((line) => line.budget_id === pastBudgetId),
+    ).toBe(false);
+    expect(harness.spreadCalls).toEqual([]);
+    expect(harness.recalculatedBudgetIds.sort()).toEqual(
+      [currentBudgetId, futureBudgetId].sort(),
+    );
+
+    const futureStart = `${futurePeriod.year}-${String(
+      futurePeriod.month,
+    ).padStart(2, '0')}-15`;
+    const futureRecurring = await harness.useCase.execute(
+      savingsGoalCreateSchema.parse({
+        name: 'Projet futur',
+        startDate: futureStart,
+        monthlyContribution: 125,
+      }),
+      harness.authUser,
+    );
+    const futureRecurringLines = await user.client
+      .from('budget_line')
+      .select('budget_id')
+      .eq('savings_goal_id', futureRecurring.id);
+    expect(futureRecurringLines.error).toBeNull();
+    expect(futureRecurringLines.data?.map((line) => line.budget_id)).toEqual([
+      futureBudgetId,
+    ]);
+  });
+
   it('CA5: deleting a goal unlinks tagged lines, deletes no prévision', async () => {
     if (!env) return;
 

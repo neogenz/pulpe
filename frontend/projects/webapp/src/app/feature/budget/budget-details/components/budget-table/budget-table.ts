@@ -73,7 +73,10 @@ import { BudgetDetailsDialogService } from '../../budget-details-dialog.service'
             {{ 'budget.tableDescription' | transloco }}
           </th>
           <td mat-cell *matCellDef="let line">
-            <pulpe-name-cell [line]="line" />
+            <pulpe-name-cell
+              [line]="line"
+              [savingsGoalNameById]="savingsGoalNameById()"
+            />
           </td>
         </ng-container>
 
@@ -300,6 +303,7 @@ export class BudgetTable {
 
   // Inputs
   readonly tableData = input.required<TableRowItem[]>();
+  readonly savingsGoalNameById = input<ReadonlyMap<string, string>>(new Map());
 
   // Outputs
   readonly update = output<BudgetLineUpdate>();

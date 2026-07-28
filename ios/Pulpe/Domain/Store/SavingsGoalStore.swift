@@ -108,12 +108,32 @@ final class SavingsGoalStore: StoreProtocol {
     /// Updates a goal (incl. status changes) and replaces it in the cache.
     @discardableResult
     func update(id: String, data: SavingsGoalUpdate) async throws -> SavingsGoal {
-        let updated = try await service.update(id: id, data: data)
-        if let index = goals.firstIndex(where: { $0.id == id }) {
-            goals[index] = updated
+        do {
+            let updated = try await service.update(id: id, data: data)
+            if let index = goals.firstIndex(where: { $0.id == id }) {
+                goals[index] = updated
+            }
+            goals = goals.sortedForDisplay()
+            if data.reconciliation != nil {
+                invalidateCache()
+                onBudgetDataMutation?()
+            }
+            return updated
+        } catch let error as APIError {
+            if data.reconciliation != nil,
+               case .savingsGoalReconciliationRecalculationFailed = error {
+                invalidateCache()
+                onBudgetDataMutation?()
+                await forceRefresh()
+            }
+            throw error
         }
-        goals = goals.sortedForDisplay()
-        return updated
+    }
+
+    /// Server-owned candidate set for an advanced deadline. The target date is
+    /// part of the preview contract; no client filtering is applied.
+    func getFutureLines(id: String, targetDate: String) async throws -> [SavingsGoalFutureLine] {
+        try await service.getFutureLines(id: id, targetDate: targetDate)
     }
 
     /// Always bypasses the store cache: the revision must describe the exact

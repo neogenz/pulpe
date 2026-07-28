@@ -58,6 +58,24 @@ import { FinancialLineCard } from '@pattern/financial-line-card';
           </button>
         </mat-menu>
       </div>
+      <ng-container ngProjectAs="[footer]">
+        @if (linkedGoalName(); as goalName) {
+          <div
+            class="flex items-center gap-1 min-w-0 mb-3 text-on-surface-variant"
+            [attr.data-testid]="'template-line-linked-goal-' + line().id"
+          >
+            <mat-icon
+              class="text-sm! shrink-0 h-auto! w-auto!"
+              aria-hidden="true"
+            >
+              savings
+            </mat-icon>
+            <span class="text-label-small truncate ph-no-capture">
+              {{ goalName }}
+            </span>
+          </div>
+        }
+      </ng-container>
     </pulpe-financial-line-card>
   `,
   styles: `
@@ -70,6 +88,7 @@ import { FinancialLineCard } from '@pattern/financial-line-card';
 export class TemplateLineCard {
   readonly line = input.required<TemplateLine>();
   readonly currency = input<SupportedCurrency>('CHF');
+  readonly linkedGoalName = input<string>();
   readonly edit = output<TemplateLine>();
   readonly delete = output<string>();
 }

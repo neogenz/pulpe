@@ -20,6 +20,7 @@ const mockRow: SavingsGoalRow = {
   id: 'goal-1',
   user_id: 'user-1',
   name: 'Maison',
+  start_date: null,
   target_amount: 'enc:5000',
   target_date: '2099-01-01',
   priority: null,
@@ -254,6 +255,28 @@ describe('SupabaseSavingsGoalRepository', () => {
     expect(result.initialAmount).toBeNull();
   });
 
+  it('findById preserves an absent target as null instead of a fictitious zero', async () => {
+    const { provider } = createFindByIdProvider({
+      data: {
+        ...mockRow,
+        start_date: '2026-08-01',
+        target_amount: null,
+        target_date: null,
+      },
+      error: null,
+    });
+    const repo = new SupabaseSavingsGoalRepository(
+      provider,
+      createMockEncryption(),
+    );
+
+    const result = await repo.findById('goal-1');
+
+    expect(result.startDate).toBe('2026-08-01');
+    expect(result.targetAmount).toBeNull();
+    expect(result.targetDate).toBeNull();
+  });
+
   it('findById decrypts initial_amount (PUL-293)', async () => {
     const { provider } = createFindByIdProvider({
       data: { ...mockRow, initial_amount: 'enc:2000' },
@@ -354,6 +377,7 @@ describe('SupabaseSavingsGoalRepository', () => {
 
     await repo.insert({
       name: 'Maison',
+      startDate: null,
       targetAmount: 5000,
       targetDate: '2099-01-01',
       status: 'ACTIVE',
@@ -364,6 +388,45 @@ describe('SupabaseSavingsGoalRepository', () => {
     expect(captured?.user_id).toBe('user-1');
     expect(captured?.status).toBe('ACTIVE');
     expect('priority' in (captured ?? {})).toBe(false); // dropped from product
+  });
+
+  it('insert keeps an omitted interval as SQL null without encrypting zero', async () => {
+    let captured: Record<string, unknown> | undefined;
+    const encryption = createMockEncryption();
+    const provider = createMockProvider(() => ({
+      insert: (row: Record<string, unknown>) => {
+        captured = row;
+        return {
+          select: () => ({
+            single: jest.fn().mockResolvedValue({
+              data: {
+                ...mockRow,
+                start_date: null,
+                target_amount: null,
+                target_date: null,
+              },
+              error: null,
+            }),
+          }),
+        };
+      },
+    }));
+    const repo = new SupabaseSavingsGoalRepository(provider, encryption);
+
+    await repo.insert({
+      name: 'Matelas',
+      startDate: null,
+      targetAmount: null,
+      targetDate: null,
+      status: 'ACTIVE',
+    });
+
+    expect(captured).toMatchObject({
+      start_date: null,
+      target_amount: null,
+      target_date: null,
+    });
+    expect(encryption.encryptAmount).not.toHaveBeenCalled();
   });
 
   it('insert encrypts initialAmount, the row never carries the plaintext (PUL-293)', async () => {
@@ -385,6 +448,7 @@ describe('SupabaseSavingsGoalRepository', () => {
 
     await repo.insert({
       name: 'Maison',
+      startDate: null,
       targetAmount: 5000,
       targetDate: '2099-01-01',
       status: 'ACTIVE',
@@ -414,6 +478,7 @@ describe('SupabaseSavingsGoalRepository', () => {
 
     await repo.insert({
       name: 'Maison',
+      startDate: null,
       targetAmount: 5000,
       targetDate: '2099-01-01',
       status: 'ACTIVE',
@@ -472,6 +537,39 @@ describe('SupabaseSavingsGoalRepository', () => {
     await repo.update('goal-1', { name: 'Maison 2' });
 
     expect('initial_amount' in (captured ?? {})).toBe(false);
+  });
+
+  it('clears the encrypted target and all FX metadata in the same patch', async () => {
+    let captured: Record<string, unknown> | undefined;
+    const provider = createMockProvider(() => ({
+      update: (row: Record<string, unknown>) => {
+        captured = row;
+        return {
+          eq: () => ({
+            select: () => ({
+              single: jest.fn().mockResolvedValue({
+                data: { ...mockRow, target_amount: null },
+                error: null,
+              }),
+            }),
+          }),
+        };
+      },
+    }));
+    const repo = new SupabaseSavingsGoalRepository(
+      provider,
+      createMockEncryption(),
+    );
+
+    await repo.update('goal-1', { targetAmount: null });
+
+    expect(captured).toMatchObject({
+      target_amount: null,
+      original_target_amount: null,
+      original_currency: null,
+      target_currency: null,
+      exchange_rate: null,
+    });
   });
 
   it('update maps real database errors to SAVINGS_GOAL_UPDATE_FAILED', async () => {
@@ -940,6 +1038,145 @@ describe('SupabaseSavingsGoalRepository', () => {
         p_goal_id: '123e4567-e89b-12d3-a456-426614174001',
         p_min_period_index: 24_319,
         p_line_updates: [{ budget_line_id: lineId, amount: 'enc:123' }],
+      });
+    });
+  });
+
+  describe('reconcileTargetDate (PUL-313)', () => {
+    const goalId = '123e4567-e89b-12d3-a456-426614174001';
+    const lineId = '123e4567-e89b-12d3-a456-426614174002';
+    const budgetId = '123e4567-e89b-12d3-a456-426614174003';
+
+    it('encrypts the financial patch and sends one atomic RPC command', async () => {
+      const rpc = jest.fn().mockResolvedValue({
+        data: {
+          goal: {
+            ...mockRow,
+            id: goalId,
+            user_id: '123e4567-e89b-12d3-a456-426614174004',
+            name: 'Maison proche',
+            target_amount: 'enc:4000',
+            target_date: '2030-03-15',
+            initial_amount: 'enc:250',
+          },
+          affected_line_ids: [lineId],
+          touched_budget_ids: [budgetId],
+        },
+        error: null,
+      });
+      const provider = {
+        get client() {
+          return { rpc } as unknown as AuthenticatedSupabaseClient;
+        },
+        get user() {
+          return mockUser;
+        },
+      } as AuthenticatedSupabaseProvider;
+      const encryption = createMockEncryption();
+      const repo = new SupabaseSavingsGoalRepository(provider, encryption);
+
+      const result = await repo.reconcileTargetDate(goalId, {
+        patch: {
+          name: 'Maison proche',
+          targetAmount: 4000,
+          targetDate: '2030-03-15',
+          initialAmount: 250,
+        },
+        reconciliation: { mode: 'freeze', budgetLineIds: [lineId] },
+        expectedTargetDate: '2030-05-15',
+      });
+
+      expect(rpc).toHaveBeenCalledWith('reconcile_savings_goal_target_date', {
+        p_goal_id: goalId,
+        p_mode: 'freeze',
+        p_budget_line_ids: [lineId],
+        p_expected_target_date: '2030-05-15',
+        p_patch: {
+          name: 'Maison proche',
+          target_amount: 'enc:4000',
+          target_date: '2030-03-15',
+          initial_amount: 'enc:250',
+        },
+      });
+      expect(result).toMatchObject({
+        goal: {
+          id: goalId,
+          name: 'Maison proche',
+          targetAmount: 4000,
+          targetDate: '2030-03-15',
+          initialAmount: 250,
+        },
+        affectedLineIds: [lineId],
+        touchedBudgetIds: [budgetId],
+      });
+      expect(encryption.encryptAmount).toHaveBeenCalledWith(
+        4000,
+        expect.any(Buffer),
+      );
+    });
+
+    it('maps candidate-set drift to reconciliation conflict', async () => {
+      const dbError = {
+        code: 'P0001',
+        message: 'Savings goal reconciliation conflict',
+      };
+      const rpc = jest.fn().mockResolvedValue({ data: null, error: dbError });
+      const provider = {
+        get client() {
+          return { rpc } as unknown as AuthenticatedSupabaseClient;
+        },
+        get user() {
+          return mockUser;
+        },
+      } as AuthenticatedSupabaseProvider;
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      await expect(
+        repo.reconcileTargetDate(goalId, {
+          patch: { targetDate: '2030-03-15' },
+          reconciliation: { mode: 'remove', budgetLineIds: [lineId] },
+          expectedTargetDate: '2030-05-15',
+        }),
+      ).rejects.toMatchObject({
+        code: 'ERR_SAVINGS_GOAL_RECONCILIATION_CONFLICT',
+      });
+    });
+
+    it('keeps an unexpected database error only in the cause chain', async () => {
+      const dbError = { code: 'XX000', message: 'database unavailable' };
+      const rpc = jest.fn().mockResolvedValue({ data: null, error: dbError });
+      const provider = {
+        get client() {
+          return { rpc } as unknown as AuthenticatedSupabaseClient;
+        },
+        get user() {
+          return mockUser;
+        },
+      } as AuthenticatedSupabaseProvider;
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      let caught: unknown;
+      try {
+        await repo.reconcileTargetDate(goalId, {
+          patch: { targetDate: '2030-03-15' },
+          reconciliation: { mode: 'remove', budgetLineIds: [lineId] },
+          expectedTargetDate: '2030-05-15',
+        });
+      } catch (error) {
+        caught = error;
+      }
+
+      expect(caught).toBeInstanceOf(BusinessException);
+      expect((caught as BusinessException).cause).toBe(dbError);
+      expect((caught as BusinessException).loggingContext).toEqual({
+        operation: 'reconcileSavingsGoalTargetDate',
+        entityType: 'savings_goal',
       });
     });
   });

@@ -912,6 +912,9 @@ export class SupabaseBudgetTemplateRepository implements BudgetTemplateRepositor
         }
         if (line.kind !== undefined) payload.kind = line.kind;
         if (line.recurrence !== undefined) payload.recurrence = line.recurrence;
+        if (line.excludedBudgetIds !== undefined) {
+          payload.excluded_budget_ids = line.excludedBudgetIds;
+        }
         if (line.savingsGoalId !== undefined) {
           payload.savings_goal_id = line.savingsGoalId;
         }

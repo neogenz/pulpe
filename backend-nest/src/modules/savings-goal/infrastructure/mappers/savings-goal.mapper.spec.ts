@@ -14,6 +14,7 @@ const base: SavingsGoal = {
   id: 'goal-1',
   userId: 'user-1',
   name: 'Maison',
+  startDate: null,
   targetAmount: 5000,
   targetDate: '2099-01-01',
   status: 'ACTIVE',
@@ -91,6 +92,7 @@ describe('SavingsGoalMapper', () => {
   describe('toProgressApi', () => {
     const computed: SavingsGoalProgressResult = {
       plannedCumulative: 500,
+      plannedProjection: 2500,
       confirmed: 350,
       achievementPercent: 35,
       monthsElapsed: 2,
@@ -115,12 +117,41 @@ describe('SavingsGoalMapper', () => {
 
       expect(progress.goalId).toBe(base.id);
       expect(progress.status).toBe('ACTIVE');
+      expect(progress.startDate).toBeNull();
       expect(progress.targetAmount).toBe(5000);
       expect(progress.targetDate).toBe('2099-01-01');
       // Every computed metric is passed through unchanged.
       expect(progress).toMatchObject(computed);
       // The timeline is serialized alongside the formulas.
       expect(progress.months).toBe(months);
+    });
+
+    it('passes nullable interval fields through without inventing values', () => {
+      const progress = mapper.toProgressApi({
+        goal: {
+          ...base,
+          startDate: '2026-08-01',
+          targetAmount: null,
+          targetDate: null,
+        },
+        computed: {
+          ...computed,
+          achievementPercent: null,
+          monthsRemaining: null,
+          required: null,
+          projected: null,
+          paceStatus: null,
+          suggestCompletion: null,
+          estimatedCompletion: null,
+        },
+        months,
+      });
+
+      expect(progress.startDate).toBe('2026-08-01');
+      expect(progress.targetAmount).toBeNull();
+      expect(progress.targetDate).toBeNull();
+      expect(progress.achievementPercent).toBeNull();
+      expect(progress.monthsRemaining).toBeNull();
     });
 
     it('mirrors the goal FX door-keepers — all null in v1 (CA6)', () => {

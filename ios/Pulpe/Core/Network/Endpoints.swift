@@ -73,7 +73,7 @@ enum Endpoint {
     case savingsGoalProgress(id: String)
     case savingsGoalContributions(id: String)
     case savingsGoalPlanApply(id: String)
-    case savingsGoalFutureLines(id: String)
+    case savingsGoalFutureLines(id: String, targetDate: String?)
     case savingsGoalGenerationStop(id: String)
     case savingsGoalDeletionImpact(id: String)
     case savingsGoalDeletion(id: String)
@@ -161,7 +161,7 @@ enum Endpoint {
         case .savingsGoalProgress(let id): return "/savings-goals/\(id)/progress"
         case .savingsGoalContributions(let id): return "/savings-goals/\(id)/contributions"
         case .savingsGoalPlanApply(let id): return "/savings-goals/\(id)/plan"
-        case .savingsGoalFutureLines(let id): return "/savings-goals/\(id)/future-lines"
+        case .savingsGoalFutureLines(let id, _): return "/savings-goals/\(id)/future-lines"
         case .savingsGoalGenerationStop(let id): return "/savings-goals/\(id)/generation-stop"
         case .savingsGoalDeletionImpact(let id): return "/savings-goals/\(id)/deletion-impact"
         case .savingsGoalDeletion(let id): return "/savings-goals/\(id)/deletion"
@@ -243,6 +243,12 @@ enum Endpoint {
             var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
             components?.queryItems = [URLQueryItem(name: "scope", value: scope)]
             url = components?.url ?? url
+        case let .savingsGoalFutureLines(_, targetDate):
+            if let targetDate {
+                var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+                components?.queryItems = [URLQueryItem(name: "targetDate", value: targetDate)]
+                url = components?.url ?? url
+            }
         case let .whatsNewIos(currentVersion, lastSeenVersion):
             var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
             components?.queryItems = [

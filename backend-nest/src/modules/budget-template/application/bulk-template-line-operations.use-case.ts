@@ -5,6 +5,7 @@ import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import {
+  getBudgetPeriodForDate,
   type TemplateLinesBulkOperations,
   type TemplateLinesPropagationSummary,
   templateLinesBulkOperationsSchema,
@@ -19,6 +20,11 @@ import {
   BUDGET_RECALCULATION_PORT,
   type BudgetRecalculationPort,
 } from '@modules/budget/domain/ports/budget-recalculation.port';
+import {
+  SAVINGS_GOAL_HORIZON_PORT,
+  type MaterializedBudgetPeriod,
+  type SavingsGoalHorizonPort,
+} from '@modules/budget/domain/ports/savings-goal-horizon.port';
 import {
   BUDGET_TEMPLATE_REPOSITORY,
   type BudgetTemplateRepositoryPort,
@@ -43,6 +49,8 @@ export class BulkTemplateLineOperationsUseCase {
     private readonly cacheService: CacheService,
     @Inject(BUDGET_RECALCULATION_PORT)
     private readonly budgetRecalculation: BudgetRecalculationPort,
+    @Inject(SAVINGS_GOAL_HORIZON_PORT)
+    private readonly savingsGoalHorizon: SavingsGoalHorizonPort,
     @InjectInfoLogger(BulkTemplateLineOperationsUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -50,7 +58,7 @@ export class BulkTemplateLineOperationsUseCase {
   async execute(
     templateId: string,
     bulkOperationsDto: TemplateLinesBulkOperations,
-    user: Pick<AuthenticatedUser, 'id'>,
+    user: Pick<AuthenticatedUser, 'id' | 'payDayOfMonth'>,
   ): Promise<BulkTemplateLineOperationsResult> {
     const startTime = Date.now();
 
@@ -73,12 +81,22 @@ export class BulkTemplateLineOperationsUseCase {
       );
     }
 
-    const updatedLines = await this.toRpcUpdates(rawUpdates);
-    const createdLines = await this.toRpcCreates(rawCreates);
+    let updatedLines = await this.toRpcUpdates(rawUpdates);
+    let createdLines = await this.toRpcCreates(rawCreates);
 
-    const budgetIds = validated.propagateToBudgets
-      ? await this.fetchPropagationBudgetIds(templateId, user.id)
+    const propagationBudgets = validated.propagateToBudgets
+      ? await this.fetchPropagationBudgets(
+          templateId,
+          user.id,
+          user.payDayOfMonth ?? null,
+        )
       : [];
+    const budgetIds = propagationBudgets.map((budget) => budget.id);
+    ({ updatedLines, createdLines } = await this.withHorizonExclusions(
+      updatedLines,
+      createdLines,
+      propagationBudgets,
+    ));
 
     const hasAnyMutation =
       deleteIds.length > 0 ||
@@ -148,16 +166,54 @@ export class BulkTemplateLineOperationsUseCase {
     };
   }
 
-  private async fetchPropagationBudgetIds(
+  private async fetchPropagationBudgets(
     templateId: string,
     userId: string,
-  ): Promise<string[]> {
-    const now = new Date();
-    const budgets = await this.repo.fetchFutureBudgets(templateId, userId, {
-      year: now.getUTCFullYear(),
-      month: now.getUTCMonth() + 1,
-    });
-    return budgets.map((b) => b.id);
+    payDayOfMonth: number | null,
+  ): Promise<MaterializedBudgetPeriod[]> {
+    const budgets = await this.repo.fetchFutureBudgets(
+      templateId,
+      userId,
+      getBudgetPeriodForDate(new Date(), payDayOfMonth),
+    );
+    return budgets;
+  }
+
+  private async withHorizonExclusions(
+    updatedLines: TemplateLineRpcUpdate[],
+    createdLines: TemplateLineRpcUpdate[],
+    periods: MaterializedBudgetPeriod[],
+  ): Promise<{
+    updatedLines: TemplateLineRpcUpdate[];
+    createdLines: TemplateLineRpcUpdate[];
+  }> {
+    const goalIds = [
+      ...new Set(
+        [...updatedLines, ...createdLines]
+          .map((line) => line.savingsGoalId)
+          .filter((id): id is string => typeof id === 'string'),
+      ),
+    ];
+    if (goalIds.length === 0 || periods.length === 0) {
+      return { updatedLines, createdLines };
+    }
+
+    const exclusions = await this.savingsGoalHorizon.periodsOutsideInterval(
+      goalIds,
+      periods,
+    );
+    const attach = (line: TemplateLineRpcUpdate): TemplateLineRpcUpdate =>
+      typeof line.savingsGoalId === 'string'
+        ? {
+            ...line,
+            excludedBudgetIds: [...(exclusions.get(line.savingsGoalId) ?? [])],
+          }
+        : line;
+
+    return {
+      updatedLines: updatedLines.map(attach),
+      createdLines: createdLines.map(attach),
+    };
   }
 
   private async toRpcUpdates(

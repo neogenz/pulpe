@@ -1,4 +1,5 @@
 import { test, expect } from '../../fixtures/test-fixtures';
+import type { Page } from '@playwright/test';
 import {
   createBudgetDetailsMock,
   createBudgetLineMock,
@@ -16,17 +17,22 @@ import {
  */
 test.describe('Budget Table Mobile Menu', () => {
   const budgetId = TEST_UUIDS.BUDGET_1;
+  const goalId = '00000000-0000-4000-a000-000000000602';
+  const goalRequestCounts = new WeakMap<Page, { list: number; byId: number }>();
 
   // Helper to set up route mocking (used by each nested describe's beforeEach)
-  async function setupBudgetDetailsMock(page: import('@playwright/test').Page) {
+  async function setupBudgetDetailsMock(page: Page) {
+    const requests = { list: 0, byId: 0 };
+    goalRequestCounts.set(page, requests);
     const mockResponse = createBudgetDetailsMock(budgetId, {
       budget: { month: 8, year: 2025 },
       budgetLines: [
         createBudgetLineMock(TEST_UUIDS.LINE_1, budgetId, {
-          name: 'Groceries',
+          name: 'Épargne voyage',
           amount: 400,
-          kind: 'expense',
+          kind: 'saving',
           recurrence: 'fixed',
+          savingsGoalId: goalId,
         }),
         createBudgetLineMock(TEST_UUIDS.LINE_2, budgetId, {
           name: 'Salary',
@@ -51,6 +57,33 @@ test.describe('Budget Table Mobile Menu', () => {
         body: JSON.stringify(mockResponse),
       }),
     );
+    await page.route('**/api/v1/savings-goals/*', (route) => {
+      requests.byId += 1;
+      return route.abort('failed');
+    });
+    await page.route('**/api/v1/savings-goals', (route) => {
+      requests.list += 1;
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: [
+            {
+              id: goalId,
+              userId: TEST_UUIDS.USER_1,
+              name: 'Voyage au Japon',
+              startDate: null,
+              targetAmount: 5000,
+              targetDate: null,
+              status: 'ACTIVE',
+              createdAt: '2026-01-01T00:00:00.000Z',
+              updatedAt: '2026-01-01T00:00:00.000Z',
+            },
+          ],
+        }),
+      });
+    });
   }
 
   test.describe('Mobile View', () => {
@@ -201,6 +234,18 @@ test.describe('Budget Table Mobile Menu', () => {
       // Desktop view uses actions-menu-* prefix in the table
       const menuButton = page.locator('[data-testid^="actions-menu-"]').first();
       await expect(menuButton).toBeVisible();
+    });
+
+    test('shows a linked goal in the name cell without changing free rows', async ({
+      authenticatedPage: page,
+    }) => {
+      await expect(
+        page.getByTestId(`budget-table-linked-goal-${TEST_UUIDS.LINE_1}`),
+      ).toContainText('Voyage au Japon');
+      await expect(
+        page.getByTestId(`budget-table-linked-goal-${TEST_UUIDS.LINE_2}`),
+      ).toHaveCount(0);
+      expect(goalRequestCounts.get(page)).toEqual({ list: 1, byId: 0 });
     });
 
     test('opens menu and shows edit option when clicking menu button', async ({

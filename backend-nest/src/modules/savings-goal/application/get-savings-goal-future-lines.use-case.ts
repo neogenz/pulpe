@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   getBudgetPeriodForDate,
+  parseIsoDateLocal,
   periodIndex,
   type LinkedSavingLine,
 } from 'pulpe-shared';
@@ -27,21 +28,46 @@ export class GetSavingsGoalFutureLinesUseCase {
   async execute(
     id: string,
     user: AuthenticatedUser,
+    targetDate?: string,
   ): Promise<LinkedSavingLine[]> {
     await this.repo.findById(id);
-    const payDayOfMonth = user.payDayOfMonth ?? null;
-    const minPeriodIndex = periodIndex(
-      getBudgetPeriodForDate(new Date(), payDayOfMonth),
-    );
-
     const lines = await this.repo.findLinkedSavingLines(id);
-    return lines
-      .filter(
-        (line) =>
-          line.checkedAt == null &&
-          line.isManuallyAdjusted !== true &&
-          periodIndex(line) >= minPeriodIndex,
-      )
-      .sort((a, b) => periodIndex(a) - periodIndex(b));
+    return selectEligibleSavingsGoalFutureLines(
+      lines,
+      user.payDayOfMonth ?? null,
+      targetDate,
+    );
   }
+}
+
+/**
+ * Sélection pure partagée entre preview et PATCH. La borne proposée est
+ * strictement exclusive : le cycle de l'échéance reste contributif.
+ */
+export function selectEligibleSavingsGoalFutureLines(
+  lines: LinkedSavingLine[],
+  payDayOfMonth: number | null,
+  targetDate?: string,
+): LinkedSavingLine[] {
+  const minPeriodIndex = periodIndex(
+    getBudgetPeriodForDate(new Date(), payDayOfMonth),
+  );
+  const targetPeriodIndex =
+    targetDate === undefined
+      ? null
+      : periodIndex(
+          getBudgetPeriodForDate(parseIsoDateLocal(targetDate), payDayOfMonth),
+        );
+
+  return lines
+    .filter((line) => {
+      const linePeriodIndex = periodIndex(line);
+      return (
+        line.checkedAt == null &&
+        line.isManuallyAdjusted !== true &&
+        linePeriodIndex >= minPeriodIndex &&
+        (targetPeriodIndex == null || linePeriodIndex > targetPeriodIndex)
+      );
+    })
+    .sort((a, b) => periodIndex(a) - periodIndex(b));
 }

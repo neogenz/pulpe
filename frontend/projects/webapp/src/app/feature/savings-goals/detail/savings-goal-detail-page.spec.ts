@@ -79,7 +79,7 @@ class StubBaseLoading {
 class StubGoalProjectionChart {
   readonly months = input<unknown>();
   readonly draft = input<unknown>(null);
-  readonly targetAmount = input<number>(0);
+  readonly targetAmount = input<number | null>(null);
   readonly currency = input<string>('CHF');
   readonly confirmed = input<number>(0);
   readonly projected = input<number>(0);
@@ -111,6 +111,7 @@ class StubGoalPlanSimulatorToolbar {
   readonly currency = input<string>('CHF');
   readonly verdict = input<string>('');
   readonly ariaVerdict = input<string>('');
+  readonly targetReached = input(false);
 }
 
 @Component({
@@ -128,6 +129,7 @@ function makeGoal(overrides: Partial<SavingsGoal> = {}): SavingsGoal {
     id: 'goal-1',
     userId: 'user-1',
     name: 'Vacances été 2027',
+    startDate: null,
     targetAmount: 3000,
     targetDate: '2027-08-01',
     status: 'ACTIVE',
@@ -143,9 +145,11 @@ function makeProgress(
   return {
     goalId: 'goal-1',
     status: 'ACTIVE',
+    startDate: null,
     targetAmount: 3000,
     targetDate: '2027-08-01',
     plannedCumulative: 1200,
+    plannedProjection: 1200,
     confirmed: 900,
     initialAmount: 0,
     achievementPercent: 30,
@@ -205,6 +209,7 @@ describe('SavingsGoalDetailPage', () => {
   const refresh = vi.fn();
   const navigate = vi.fn();
   const snackBarOpen = vi.fn();
+  const payDayOfMonthSig = signal<number | null>(25);
 
   const futureLinesSig = signal<SavingsGoalFutureLine[]>([]);
   let deletionDialogResult: SavingsGoalDeletionCommand | undefined;
@@ -252,8 +257,16 @@ describe('SavingsGoalDetailPage', () => {
     listInitialLoadingSig.set(false);
     listErrorSig.set(null);
     futureLinesSig.set([]);
+    payDayOfMonthSig.set(25);
     deletionDialogResult = undefined;
     vi.clearAllMocks();
+    mockStore.editGoal.mockReset().mockResolvedValue(makeGoal());
+    mockStore.fetchFutureLines.mockReset().mockResolvedValue([]);
+    mockStore.applyGenerationStop
+      .mockReset()
+      .mockResolvedValue({ affectedCount: 0 });
+    mockDialogs.openEdit.mockReset();
+    mockDialogs.openGenerationStop.mockReset();
 
     await TestBed.configureTestingModule({
       imports: [SavingsGoalDetailPage],
@@ -265,7 +278,10 @@ describe('SavingsGoalDetailPage', () => {
         { provide: MatDialog, useValue: mockDialog },
         {
           provide: UserSettingsStore,
-          useValue: { currency: signal('CHF'), payDayOfMonth: signal(25) },
+          useValue: {
+            currency: signal('CHF'),
+            payDayOfMonth: payDayOfMonthSig,
+          },
         },
         { provide: Router, useValue: { navigate } },
         { provide: MatSnackBar, useValue: { open: snackBarOpen } },
@@ -328,6 +344,96 @@ describe('SavingsGoalDetailPage', () => {
     expect(fixture.nativeElement.textContent).toContain(
       'Versements prévus à date',
     );
+  });
+
+  it('renders only applicable metrics for a name-only objective', () => {
+    goalSig.set(
+      makeGoal({
+        startDate: null,
+        targetAmount: null,
+        targetDate: null,
+      }),
+    );
+    progressSig.set(
+      makeProgress({
+        startDate: null,
+        targetAmount: null,
+        targetDate: null,
+        plannedCumulative: 500,
+        plannedProjection: 900,
+        confirmed: 200,
+        achievementPercent: null,
+        monthsRemaining: null,
+        required: null,
+        projected: null,
+        paceStatus: null,
+        suggestCompletion: null,
+        linkedLineCount: 0,
+      }),
+    );
+
+    fixture.detectChanges();
+
+    expect(query('savings-goal-empty-lines')).toBeTruthy();
+    expect(query('stat-confirmed')).toBeTruthy();
+    expect(query('stat-planned')).toBeTruthy();
+    expect(query('stat-planned-projection')).toBeTruthy();
+    expect(query('savings-goal-progress-bar')).toBeFalsy();
+    expect(query('savings-goal-achievement')).toBeFalsy();
+    expect(query('savings-goal-target-date')).toBeFalsy();
+    expect(query('savings-goal-start-date')).toBeFalsy();
+    expect(query('stat-required')).toBeFalsy();
+    expect(query('stat-projected')).toBeFalsy();
+    expect(query('savings-goal-pace-chip')).toBeFalsy();
+    expect(query('savings-goal-suggest-completion')).toBeFalsy();
+  });
+
+  it('shows an estimated completion for a target without a deadline', () => {
+    goalSig.set(makeGoal({ targetDate: null }));
+    progressSig.set(
+      makeProgress({
+        targetDate: null,
+        monthsRemaining: null,
+        required: null,
+        projected: null,
+        paceStatus: null,
+        estimatedCompletion: { month: 6, year: 2027 },
+      }),
+    );
+
+    fixture.detectChanges();
+
+    expect(query('savings-goal-progress-bar')).toBeTruthy();
+    expect(query('stat-estimated-completion')).toBeTruthy();
+    expect(query('stat-required')).toBeFalsy();
+    expect(query('stat-projected')).toBeFalsy();
+    expect(query('savings-goal-pace-chip')).toBeFalsy();
+  });
+
+  it('renders start and deadline independently when present', () => {
+    goalSig.set(
+      makeGoal({
+        startDate: '2026-06-01',
+        targetAmount: null,
+      }),
+    );
+    progressSig.set(
+      makeProgress({
+        startDate: '2026-06-01',
+        targetAmount: null,
+        achievementPercent: null,
+        required: null,
+        projected: null,
+        paceStatus: null,
+        suggestCompletion: null,
+      }),
+    );
+
+    fixture.detectChanges();
+
+    expect(query('savings-goal-start-date')).toBeTruthy();
+    expect(query('savings-goal-target-date')).toBeTruthy();
+    expect(query('savings-goal-progress-bar')).toBeFalsy();
   });
 
   it('shows the "Montant de départ" stat only when initialAmount > 0 (PUL-293)', () => {
@@ -483,6 +589,307 @@ describe('SavingsGoalDetailPage', () => {
     );
   });
 
+  it('updates directly when an earlier ISO date stays in the same budget period', async () => {
+    goalSig.set(makeGoal({ targetDate: '2027-08-26' }));
+    mockDialogs.openEdit.mockResolvedValueOnce({
+      name: 'Même cycle',
+      targetDate: '2027-08-25',
+    });
+
+    await component['onEdit']();
+
+    expect(mockStore.fetchFutureLines).not.toHaveBeenCalled();
+    expect(mockStore.editGoal).toHaveBeenCalledWith('goal-1', {
+      name: 'Même cycle',
+      targetDate: '2027-08-25',
+    });
+  });
+
+  it('cancels a deadline reconciliation without any write', async () => {
+    goalSig.set(makeGoal({ targetDate: '2027-08-26' }));
+    mockDialogs.openEdit.mockResolvedValueOnce({
+      name: 'Nom conservé',
+      targetDate: '2027-08-24',
+    });
+    mockStore.fetchFutureLines.mockResolvedValueOnce([futureLine]);
+    mockDialogs.openGenerationStop.mockResolvedValueOnce(undefined);
+
+    await component['onEdit']();
+
+    expect(mockStore.fetchFutureLines).toHaveBeenCalledWith(
+      'goal-1',
+      '2027-08-24',
+    );
+    expect(mockDialogs.openGenerationStop).toHaveBeenCalledWith(
+      expect.objectContaining({
+        lines: [futureLine],
+        context: { kind: 'deadline', targetDate: '2027-08-24' },
+      }),
+    );
+    expect(mockStore.editGoal).not.toHaveBeenCalled();
+    expect(mockStore.applyGenerationStop).not.toHaveBeenCalled();
+  });
+
+  it.each(['freeze', 'remove'] as const)(
+    'applies deadline %s, then uses the remaining status candidates',
+    async (mode) => {
+      const remainingLine = { ...futureLine, budgetLineId: 'line-2' };
+      goalSig.set(makeGoal({ targetDate: '2027-08-26' }));
+      const patch = {
+        name: 'Vacances avancées',
+        startDate: '2027-01-01',
+        targetAmount: 2500,
+        targetDate: '2027-08-24',
+        status: 'PAUSED' as const,
+      };
+      mockDialogs.openEdit.mockResolvedValueOnce(patch);
+      mockStore.fetchFutureLines
+        .mockResolvedValueOnce([futureLine])
+        .mockResolvedValueOnce([remainingLine]);
+      mockDialogs.openGenerationStop
+        .mockResolvedValueOnce(mode)
+        .mockResolvedValueOnce('freeze');
+      mockStore.applyGenerationStop.mockResolvedValueOnce({ affectedCount: 1 });
+
+      await component['onEdit']();
+
+      expect(mockStore.editGoal).toHaveBeenCalledOnce();
+      expect(mockStore.editGoal).toHaveBeenCalledWith('goal-1', {
+        ...patch,
+        reconciliation: {
+          mode,
+          budgetLineIds: ['line-1'],
+        },
+      });
+      expect(mockStore.fetchFutureLines).toHaveBeenNthCalledWith(2, 'goal-1');
+      expect(mockDialogs.openGenerationStop).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          lines: [remainingLine],
+          context: { kind: 'status', status: 'PAUSED' },
+        }),
+      );
+      expect(mockStore.applyGenerationStop).toHaveBeenCalledWith('goal-1', {
+        mode: 'freeze',
+        budgetLineIds: ['line-2'],
+      });
+      expect(mockStore.editGoal.mock.invocationCallOrder[0]).toBeLessThan(
+        mockStore.fetchFutureLines.mock.invocationCallOrder[1]!,
+      );
+    },
+  );
+
+  it('keeps the applied deadline patch when the status decision is dismissed', async () => {
+    goalSig.set(makeGoal({ targetDate: '2027-08-26' }));
+    const patch = {
+      targetDate: '2027-08-24',
+      status: 'COMPLETED' as const,
+    };
+    mockDialogs.openEdit.mockResolvedValueOnce(patch);
+    mockStore.fetchFutureLines
+      .mockResolvedValueOnce([futureLine])
+      .mockResolvedValueOnce([{ ...futureLine, budgetLineId: 'line-2' }]);
+    mockDialogs.openGenerationStop
+      .mockResolvedValueOnce('remove')
+      .mockResolvedValueOnce(undefined);
+
+    await component['onEdit']();
+
+    expect(mockStore.editGoal).toHaveBeenCalledOnce();
+    expect(mockStore.fetchFutureLines).toHaveBeenCalledTimes(2);
+    expect(mockStore.applyGenerationStop).not.toHaveBeenCalled();
+  });
+
+  it('does not open a status dialog when no future line remains', async () => {
+    goalSig.set(makeGoal({ targetDate: '2027-08-26' }));
+    mockDialogs.openEdit.mockResolvedValueOnce({
+      targetDate: '2027-08-24',
+      status: 'PAUSED',
+    });
+    mockStore.fetchFutureLines
+      .mockResolvedValueOnce([futureLine])
+      .mockResolvedValueOnce([]);
+    mockDialogs.openGenerationStop.mockResolvedValueOnce('freeze');
+
+    await component['onEdit']();
+
+    expect(mockStore.editGoal).toHaveBeenCalledOnce();
+    expect(mockStore.fetchFutureLines).toHaveBeenCalledTimes(2);
+    expect(mockDialogs.openGenerationStop).toHaveBeenCalledOnce();
+    expect(mockStore.applyGenerationStop).not.toHaveBeenCalled();
+  });
+
+  it('stops before any write or status decision when deadline preview fails', async () => {
+    goalSig.set(makeGoal({ targetDate: '2027-08-26' }));
+    mockDialogs.openEdit.mockResolvedValueOnce({
+      targetDate: '2027-08-24',
+      status: 'PAUSED',
+    });
+    mockStore.fetchFutureLines.mockRejectedValueOnce(
+      new ApiError('Unavailable', undefined, 500, null),
+    );
+
+    await component['onEdit']();
+
+    expect(mockStore.fetchFutureLines).toHaveBeenCalledOnce();
+    expect(mockStore.editGoal).not.toHaveBeenCalled();
+    expect(mockDialogs.openGenerationStop).not.toHaveBeenCalled();
+    expect(mockStore.applyGenerationStop).not.toHaveBeenCalled();
+  });
+
+  it('applies an earlier deadline directly when the preview is empty', async () => {
+    goalSig.set(makeGoal({ targetDate: '2027-08-26' }));
+    const patch = { targetDate: '2027-08-24' };
+    mockDialogs.openEdit.mockResolvedValueOnce(patch);
+    mockStore.fetchFutureLines.mockResolvedValueOnce([]);
+
+    await component['onEdit']();
+
+    expect(mockStore.editGoal).toHaveBeenCalledWith('goal-1', patch);
+    expect(mockDialogs.openGenerationStop).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      current: null,
+      update: '2027-08-24',
+      label: 'adds a deadline to an undated goal',
+    },
+    {
+      current: '2027-08-26',
+      update: null,
+      label: 'removes a deadline',
+    },
+    {
+      current: '2027-08-26',
+      update: '2027-09-26',
+      label: 'moves a deadline later',
+    },
+  ])('$label without preview', async ({ current, update }) => {
+    goalSig.set(makeGoal({ targetDate: current }));
+    mockDialogs.openEdit.mockResolvedValueOnce({ targetDate: update });
+
+    await component['onEdit']();
+
+    expect(mockStore.fetchFutureLines).not.toHaveBeenCalled();
+    expect(mockStore.editGoal).toHaveBeenCalledWith('goal-1', {
+      targetDate: update,
+    });
+  });
+
+  it.each([
+    [
+      API_ERROR_CODES.SAVINGS_GOAL_RECONCILIATION_REQUIRED,
+      'Cette nouvelle échéance laisse des prévisions au-delà — choisis comment les traiter',
+    ],
+    [
+      API_ERROR_CODES.SAVINGS_GOAL_RECONCILIATION_CONFLICT,
+      'Les prévisions ont changé entre-temps — vérifie la nouvelle liste et réessaie',
+    ],
+  ])(
+    'reloads, reopens, then sends one new PATCH after %s',
+    async (code, localizedMessage) => {
+      const refreshedLine = { ...futureLine, budgetLineId: 'line-2' };
+      goalSig.set(makeGoal({ targetDate: '2027-08-26' }));
+      mockDialogs.openEdit.mockResolvedValueOnce({
+        targetDate: '2027-08-24',
+      });
+      mockStore.fetchFutureLines
+        .mockResolvedValueOnce([futureLine])
+        .mockResolvedValueOnce([refreshedLine]);
+      mockDialogs.openGenerationStop
+        .mockResolvedValueOnce('freeze')
+        .mockResolvedValueOnce('remove');
+      mockStore.editGoal.mockRejectedValueOnce(
+        new ApiError('Candidates drifted', code, 409, null),
+      );
+
+      await component['onEdit']();
+
+      expect(mockStore.fetchFutureLines).toHaveBeenCalledTimes(2);
+      expect(mockDialogs.openGenerationStop).toHaveBeenCalledTimes(2);
+      expect(mockDialogs.openGenerationStop).toHaveBeenLastCalledWith(
+        expect.objectContaining({ lines: [refreshedLine] }),
+      );
+      expect(mockStore.editGoal).toHaveBeenCalledTimes(2);
+      expect(mockStore.editGoal).toHaveBeenLastCalledWith('goal-1', {
+        targetDate: '2027-08-24',
+        reconciliation: {
+          mode: 'remove',
+          budgetLineIds: ['line-2'],
+        },
+      });
+      expect(mockStore.applyGenerationStop).not.toHaveBeenCalled();
+      expect(snackBarOpen).toHaveBeenCalledWith(
+        localizedMessage,
+        'Fermer',
+        expect.objectContaining({ duration: 5000 }),
+      );
+    },
+  );
+
+  it('does not retry without a fresh reconciliation decision', async () => {
+    goalSig.set(makeGoal({ targetDate: '2027-08-26' }));
+    mockDialogs.openEdit.mockResolvedValueOnce({
+      targetDate: '2027-08-24',
+    });
+    mockStore.fetchFutureLines
+      .mockResolvedValueOnce([futureLine])
+      .mockResolvedValueOnce([]);
+    mockDialogs.openGenerationStop.mockResolvedValueOnce('freeze');
+    mockStore.editGoal.mockRejectedValueOnce(
+      new ApiError(
+        'Reconciliation required',
+        API_ERROR_CODES.SAVINGS_GOAL_RECONCILIATION_REQUIRED,
+        409,
+        null,
+      ),
+    );
+
+    await component['onEdit']();
+
+    expect(mockStore.fetchFutureLines).toHaveBeenCalledTimes(2);
+    expect(mockDialogs.openGenerationStop).toHaveBeenCalledOnce();
+    expect(mockStore.editGoal).toHaveBeenCalledOnce();
+    expect(mockStore.applyGenerationStop).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      API_ERROR_CODES.SAVINGS_GOAL_RECONCILIATION_FAILED,
+      "La mise à jour de l'échéance a échoué — réessaie",
+    ],
+    [
+      API_ERROR_CODES.SAVINGS_GOAL_RECONCILIATION_RECALCULATION_FAILED,
+      "L'échéance et les prévisions ont bien été mises à jour, mais les soldes n'ont pas pu être actualisés — recharge la page sans réessayer",
+    ],
+  ])(
+    'localizes %s without retry or false success',
+    async (code, localizedMessage) => {
+      goalSig.set(makeGoal({ targetDate: '2027-08-26' }));
+      mockDialogs.openEdit.mockResolvedValueOnce({
+        targetDate: '2027-08-24',
+      });
+      mockStore.fetchFutureLines.mockResolvedValueOnce([futureLine]);
+      mockDialogs.openGenerationStop.mockResolvedValueOnce('remove');
+      mockStore.editGoal.mockRejectedValueOnce(
+        new ApiError('Server detail', code, 500, null),
+      );
+
+      await component['onEdit']();
+
+      expect(mockStore.fetchFutureLines).toHaveBeenCalledOnce();
+      expect(mockDialogs.openGenerationStop).toHaveBeenCalledOnce();
+      expect(mockStore.editGoal).toHaveBeenCalledOnce();
+      expect(mockStore.applyGenerationStop).not.toHaveBeenCalled();
+      expect(snackBarOpen).toHaveBeenCalledOnce();
+      expect(snackBarOpen).toHaveBeenCalledWith(
+        localizedMessage,
+        'Fermer',
+        expect.objectContaining({ duration: 5000 }),
+      );
+    },
+  );
+
   it('hides the pace chip when paceStatus is null', () => {
     progressSig.set(makeProgress({ paceStatus: null }));
     fixture.detectChanges();
@@ -503,10 +910,10 @@ describe('SavingsGoalDetailPage', () => {
   it('shows the empty state when linkedLineCount is 0', () => {
     progressSig.set(makeProgress({ linkedLineCount: 0 }));
     fixture.detectChanges();
-    // Flat guidance replaces the bar/stats, but the header (edit) still renders.
+    // Flat guidance complements the applicable metrics and keeps edit available.
     expect(query('savings-goal-empty-lines')).toBeTruthy();
-    expect(query('savings-goal-progress-bar')).toBeFalsy();
-    expect(query('stat-confirmed')).toBeFalsy();
+    expect(query('savings-goal-progress-bar')).toBeTruthy();
+    expect(query('stat-confirmed')).toBeTruthy();
     expect(query('edit-savings-goal-button')).toBeTruthy();
   });
 

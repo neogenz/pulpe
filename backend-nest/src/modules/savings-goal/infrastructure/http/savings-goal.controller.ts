@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -14,6 +15,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiQuery,
   ApiUnauthorizedResponse,
   ApiInternalServerErrorResponse,
 } from '@nestjs/swagger';
@@ -45,6 +47,7 @@ import {
   SavingsGoalPlanApplyDto,
   SavingsGoalPlanApplyResponseDto,
   SavingsGoalFutureLinesResponseDto,
+  SavingsGoalFutureLinesQueryDto,
   SavingsGoalGenerationStopDto,
   SavingsGoalGenerationStopResponseDto,
   SavingsGoalDeletionCommandDto,
@@ -192,6 +195,12 @@ export class SavingsGoalController {
       'Prévisions liées futures candidates à figer/retirer à l’arrêt de génération (PUL-285)',
   })
   @ApiParam({ name: 'id', description: "Identifiant unique de l'objectif" })
+  @ApiQuery({
+    name: 'targetDate',
+    required: false,
+    description:
+      'Échéance proposée : limite la preview aux cycles strictement postérieurs',
+  })
   @ApiResponse({
     status: 200,
     description: 'Candidates récupérées avec succès',
@@ -199,9 +208,14 @@ export class SavingsGoalController {
   })
   async futureLines(
     @Param('id') id: string,
+    @Query() query: SavingsGoalFutureLinesQueryDto,
     @User() user: AuthenticatedUser,
   ): Promise<SavingsGoalFutureLinesResponse> {
-    const lines = await this.futureLinesUseCase.execute(id, user);
+    const lines = await this.futureLinesUseCase.execute(
+      id,
+      user,
+      query.targetDate,
+    );
     return { success: true, data: this.mapper.toFutureLinesApi(lines) };
   }
 

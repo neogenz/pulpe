@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { BulkTemplateLineOperationsUseCase } from './bulk-template-line-operations.use-case';
 import { BUDGET_TEMPLATE_REPOSITORY } from '../domain/ports/budget-template-repository.port';
 import { BUDGET_RECALCULATION_PORT } from '@modules/budget/domain/ports/budget-recalculation.port';
+import { SAVINGS_GOAL_HORIZON_PORT } from '@modules/budget/domain/ports/savings-goal-horizon.port';
 import { CurrencyService } from '@modules/currency/currency.service';
 import { CacheService } from '@modules/cache/cache.service';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
@@ -48,6 +49,9 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
   let mockCurrency: { overrideExchangeRate: ReturnType<typeof jest.fn> };
   let mockCache: { invalidateForUser: ReturnType<typeof jest.fn> };
   let mockBudgetRecalculation: { recalculate: ReturnType<typeof jest.fn> };
+  let mockSavingsGoalHorizon: {
+    periodsOutsideInterval: ReturnType<typeof jest.fn>;
+  };
 
   beforeEach(async () => {
     mockRepo = {
@@ -85,6 +89,9 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
     mockBudgetRecalculation = {
       recalculate: jest.fn().mockResolvedValue(undefined),
     };
+    mockSavingsGoalHorizon = {
+      periodsOutsideInterval: jest.fn().mockResolvedValue(new Map()),
+    };
 
     const module = await Test.createTestingModule({
       providers: [
@@ -95,6 +102,10 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
         {
           provide: BUDGET_RECALCULATION_PORT,
           useValue: mockBudgetRecalculation,
+        },
+        {
+          provide: SAVINGS_GOAL_HORIZON_PORT,
+          useValue: mockSavingsGoalHorizon,
         },
         {
           provide: `INFO_LOGGER:${BulkTemplateLineOperationsUseCase.name}`,
@@ -259,7 +270,7 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
     );
   });
 
-  it('untags (savingsGoalId null) without fetching the current lines', async () => {
+  it('untags without fetching the current line or resolving a horizon', async () => {
     const payload: TemplateLinesBulkOperations = {
       update: [
         {
@@ -269,12 +280,15 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
       ],
       create: [],
       delete: [],
-      propagateToBudgets: false,
+      propagateToBudgets: true,
     };
 
     await useCase.execute('template-1', payload, mockUser);
 
     expect(mockRepo.findLineById).not.toHaveBeenCalled();
+    expect(
+      mockSavingsGoalHorizon.periodsOutsideInterval,
+    ).not.toHaveBeenCalled();
     expect(mockRepo.bulkApplyTemplateLineOperations).toHaveBeenCalledWith(
       expect.objectContaining({
         updatedLines: [
@@ -326,6 +340,159 @@ describe('BulkTemplateLineOperationsUseCase — atomicity', () => {
         }),
       );
     });
+
+    it('starts propagation at the active pay-day period before payday', async () => {
+      const realNow = new Date();
+      jest.setSystemTime(new Date(2026, 6, 4, 12));
+
+      try {
+        await useCase.execute('template-1', createPayload, {
+          ...mockUser,
+          payDayOfMonth: 5,
+        });
+      } finally {
+        jest.setSystemTime(realNow);
+      }
+
+      expect(mockRepo.fetchFutureBudgets).toHaveBeenCalledWith(
+        'template-1',
+        mockUser.id,
+        { month: 6, year: 2026 },
+      );
+    });
+
+    it('resolves distinct horizons once and attaches exclusions per linked line', async () => {
+      const goalA = '8a0f6c80-1234-4e5f-89ab-111111111111';
+      const goalB = '8a0f6c80-1234-4e5f-89ab-222222222222';
+      mockSavingsGoalHorizon.periodsOutsideInterval.mockResolvedValue(
+        new Map([
+          [goalA, ['budget-11-2026', 'budget-01-2027']],
+          [goalB, ['budget-01-2027']],
+        ]),
+      );
+
+      await useCase.execute(
+        'template-1',
+        {
+          update: [],
+          create: [
+            {
+              name: 'Objectif A',
+              amount: 100,
+              kind: 'saving',
+              recurrence: 'fixed',
+              description: '',
+              savingsGoalId: goalA,
+            },
+            {
+              name: 'Objectif B',
+              amount: 200,
+              kind: 'saving',
+              recurrence: 'fixed',
+              description: '',
+              savingsGoalId: goalB,
+            },
+            {
+              name: 'Objectif A bis',
+              amount: 300,
+              kind: 'saving',
+              recurrence: 'fixed',
+              description: '',
+              savingsGoalId: goalA,
+            },
+          ],
+          delete: [],
+          propagateToBudgets: true,
+        },
+        mockUser,
+      );
+
+      expect(
+        mockSavingsGoalHorizon.periodsOutsideInterval,
+      ).toHaveBeenCalledWith(
+        [goalA, goalB],
+        [
+          { id: 'budget-07-2026', month: 7, year: 2026 },
+          { id: 'budget-10-2026', month: 10, year: 2026 },
+          { id: 'budget-11-2026', month: 11, year: 2026 },
+          { id: 'budget-01-2027', month: 1, year: 2027 },
+        ],
+      );
+      expect(
+        mockSavingsGoalHorizon.periodsOutsideInterval,
+      ).toHaveBeenCalledTimes(1);
+      expect(
+        mockRepo.bulkApplyTemplateLineOperations.mock.calls[0]?.[0]
+          .createdLines,
+      ).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            savingsGoalId: goalA,
+            excludedBudgetIds: ['budget-11-2026', 'budget-01-2027'],
+          }),
+          expect.objectContaining({
+            savingsGoalId: goalB,
+            excludedBudgetIds: ['budget-01-2027'],
+          }),
+        ]),
+      );
+    });
+
+    it.each([
+      {
+        label: 'propagation is disabled',
+        propagateToBudgets: false,
+        line: {
+          name: 'Goal',
+          amount: 100,
+          kind: 'saving' as const,
+          recurrence: 'fixed' as const,
+          description: '',
+          savingsGoalId: '8a0f6c80-1234-4e5f-89ab-111111111111',
+        },
+      },
+      {
+        label: 'the line is not linked',
+        propagateToBudgets: true,
+        line: {
+          name: 'Free saving',
+          amount: 100,
+          kind: 'saving' as const,
+          recurrence: 'fixed' as const,
+          description: '',
+        },
+      },
+      {
+        label: 'a non-saving line carries a forged link',
+        propagateToBudgets: true,
+        line: {
+          name: 'Rent',
+          amount: 100,
+          kind: 'expense' as const,
+          recurrence: 'fixed' as const,
+          description: '',
+          savingsGoalId: '8a0f6c80-1234-4e5f-89ab-111111111111',
+        },
+      },
+    ])(
+      'does not resolve horizons when $label',
+      async ({ line, propagateToBudgets }) => {
+        await useCase.execute(
+          'template-1',
+          {
+            update: [],
+            create: [line],
+            delete: [],
+            propagateToBudgets,
+          },
+          mockUser,
+        );
+
+        expect(
+          mockSavingsGoalHorizon.periodsOutsideInterval,
+        ).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('cache invalidation ordering (R1)', () => {

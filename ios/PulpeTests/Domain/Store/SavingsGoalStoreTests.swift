@@ -1,3 +1,4 @@
+// swiftlint:disable type_body_length
 import Foundation
 @testable import Pulpe
 import Testing
@@ -133,6 +134,139 @@ struct SavingsGoalStoreTests {
 
         #expect(store.goals.first { $0.id == "g1" }?.status == .completed)
         #expect(service.lastUpdate?.status == .completed)
+    }
+
+    @Test("deadline reconciliation is one PATCH and invalidates budget data")
+    func update_reconciliationForwardsAtomicallyAndInvalidates() async throws {
+        let service = MockSavingsGoalService()
+        service.stubbedGoals = [makeGoal(id: "g1")]
+        let store = SavingsGoalStore(service: service)
+        nonisolated(unsafe) var invalidationCount = 0
+        store.onBudgetDataMutation = { invalidationCount += 1 }
+        await store.forceRefresh()
+
+        _ = try await store.update(
+            id: "g1",
+            data: SavingsGoalUpdate(
+                name: "Maison",
+                targetDate: .some("2098-01-01"),
+                reconciliation: SavingsGoalGenerationStop(
+                    mode: .freeze,
+                    budgetLineIds: ["line-1"]
+                )
+            )
+        )
+
+        #expect(service.updateCallCount == 1)
+        #expect(service.generationStopCallCount == 0)
+        #expect(service.lastUpdate?.name == "Maison")
+        #expect(service.lastUpdate?.reconciliation?.mode == .freeze)
+        #expect(service.lastUpdate?.reconciliation?.budgetLineIds == ["line-1"])
+        #expect(invalidationCount == 1)
+    }
+
+    @Test("deadline preview forwards the requested target date")
+    func futureLines_forwardsTargetDate() async throws {
+        let service = MockSavingsGoalService()
+        let store = SavingsGoalStore(service: service)
+
+        _ = try await store.getFutureLines(id: "g1", targetDate: "2030-04-27")
+
+        #expect(service.lastFutureLinesId == "g1")
+        #expect(service.lastFutureLinesTargetDate == "2030-04-27")
+    }
+
+    @Test("required refresh never retries PATCH and only reopens for fresh candidates")
+    func reconciliationRequired_refreshesBeforeAnotherDecision() async throws {
+        let service = MockSavingsGoalService()
+        let store = SavingsGoalStore(service: service)
+        var patch = SavingsGoalUpdate(
+            name: "Maison",
+            targetDate: .some("2030-04-27"),
+            reconciliation: SavingsGoalGenerationStop(mode: .freeze, budgetLineIds: ["stale"])
+        )
+
+        let empty = try await SavingsGoalDetailView.refreshedDeadlineDecision(
+            id: "g1",
+            update: patch,
+            targetDate: "2030-04-27",
+            store: store
+        )
+        #expect(empty?.lines == nil)
+        #expect(service.updateCallCount == 0)
+
+        service.stubbedFutureLines = [
+            SavingsGoalFutureLine(budgetLineId: "fresh", amount: 100, month: 5, year: 2030),
+        ]
+        patch.reconciliation = SavingsGoalGenerationStop(mode: .remove, budgetLineIds: ["stale"])
+        let refreshed = try await SavingsGoalDetailView.refreshedDeadlineDecision(
+            id: "g1",
+            update: patch,
+            targetDate: "2030-04-27",
+            store: store
+        )
+        let decision = try #require(refreshed)
+
+        #expect(decision.lines.map(\.budgetLineId) == ["fresh"])
+        #expect(decision.update.reconciliation?.budgetLineIds == nil, "A fresh decision is mandatory")
+        #expect(service.updateCallCount == 0, "Refreshing must never auto-retry the PATCH")
+    }
+
+    @Test("committed reconciliation recalculation failure refreshes goals without retrying PATCH")
+    func update_reconciliationPartialFailureRefreshesGoals() async {
+        let service = MockSavingsGoalService()
+        service.stubbedGoals = [makeGoal(id: "g1", name: "Avant")]
+        let store = SavingsGoalStore(service: service)
+        nonisolated(unsafe) var invalidationCount = 0
+        store.onBudgetDataMutation = { invalidationCount += 1 }
+        await store.forceRefresh()
+        service.stubbedGoals = [makeGoal(id: "g1", name: "Après")]
+        service.updateError = APIError.savingsGoalReconciliationRecalculationFailed
+
+        await #expect(throws: APIError.self) {
+            _ = try await store.update(
+                id: "g1",
+                data: SavingsGoalUpdate(
+                    reconciliation: SavingsGoalGenerationStop(mode: .remove, budgetLineIds: ["line-1"])
+                )
+            )
+        }
+
+        #expect(service.updateCallCount == 1)
+        #expect(service.getAllCallCount == 2)
+        #expect(store.goals.first?.name == "Après")
+        #expect(invalidationCount == 1)
+    }
+
+    @Test("all deadline reconciliation API codes are localized and classified")
+    func reconciliationErrors_areMapped() {
+        let required = APIError.from(code: "ERR_SAVINGS_GOAL_RECONCILIATION_REQUIRED", message: nil)
+        let conflict = APIError.from(code: "ERR_SAVINGS_GOAL_RECONCILIATION_CONFLICT", message: nil)
+        let failed = APIError.from(code: "ERR_SAVINGS_GOAL_RECONCILIATION_FAILED", message: nil)
+        let recalculation = APIError.from(
+            code: "ERR_SAVINGS_GOAL_RECONCILIATION_RECALCULATION_FAILED",
+            message: nil
+        )
+
+        #expect(required.requiresSavingsGoalReconciliationRefresh)
+        #expect(conflict.requiresSavingsGoalReconciliationRefresh)
+        #expect(!failed.requiresSavingsGoalReconciliationRefresh)
+        #expect(!recalculation.requiresSavingsGoalReconciliationRefresh)
+        #expect([required, conflict, failed, recalculation].allSatisfy { $0.errorDescription != nil })
+    }
+
+    @Test("future-lines endpoint encodes targetDate as a query item")
+    func futureLinesEndpoint_encodesTargetDate() throws {
+        let baseURL = try #require(URL(string: "https://api.pulpe.app"))
+        let request = Endpoint.savingsGoalFutureLines(
+            id: "goal-1",
+            targetDate: "2030-04-27"
+        ).urlRequest(baseURL: baseURL)
+        let url = try #require(request.url)
+        let components = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
+
+        #expect(components.path == "/savings-goals/goal-1/future-lines")
+        #expect(components.queryItems == [URLQueryItem(name: "targetDate", value: "2030-04-27")])
     }
 
     @Test("getDeletionImpact always asks the service for a fresh preview")

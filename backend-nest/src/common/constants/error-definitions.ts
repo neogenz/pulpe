@@ -591,6 +591,29 @@ export const ERROR_DEFINITIONS = {
       'One or more prévisions are no longer linked to this goal. Refresh the list.',
     httpStatus: HttpStatus.UNPROCESSABLE_ENTITY,
   },
+  SAVINGS_GOAL_RECONCILIATION_REQUIRED: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_RECONCILIATION_REQUIRED,
+    message: () =>
+      'Advancing this deadline requires a freeze or remove decision for the linked prévisions.',
+    httpStatus: HttpStatus.CONFLICT,
+  },
+  SAVINGS_GOAL_RECONCILIATION_CONFLICT: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_RECONCILIATION_CONFLICT,
+    message: () =>
+      'The linked prévisions changed since the reconciliation preview. Refresh and retry.',
+    httpStatus: HttpStatus.CONFLICT,
+  },
+  SAVINGS_GOAL_RECONCILIATION_FAILED: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_RECONCILIATION_FAILED,
+    message: () => 'Failed to reconcile the savings goal deadline',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  SAVINGS_GOAL_RECONCILIATION_RECALCULATION_FAILED: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_RECONCILIATION_RECALCULATION_FAILED,
+    message: () =>
+      'The deadline reconciliation was saved, but budget balances could not be refreshed. Reload without retrying.',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
   BUDGET_LINE_BUDGET_MISMATCH: {
     code: API_ERROR_CODES.BUDGET_LINE_BUDGET_MISMATCH,
     message: (details?: Record<string, unknown>) =>

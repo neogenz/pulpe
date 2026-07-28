@@ -9,6 +9,7 @@ import {
   savingsGoalContributionsResponseSchema,
   savingsGoalPlanApplySchema,
   savingsGoalPlanApplyResponseSchema,
+  savingsGoalFutureLinesQuerySchema,
   savingsGoalFutureLinesResponseSchema,
   savingsGoalGenerationStopSchema,
   savingsGoalGenerationStopResponseSchema,
@@ -46,6 +47,9 @@ export class SavingsGoalPlanApplyResponseDto extends createZodDto(
 ) {}
 export class SavingsGoalFutureLinesResponseDto extends createZodDto(
   savingsGoalFutureLinesResponseSchema,
+) {}
+export class SavingsGoalFutureLinesQueryDto extends createZodDto(
+  savingsGoalFutureLinesQuerySchema,
 ) {}
 export class SavingsGoalGenerationStopDto extends createZodDto(
   savingsGoalGenerationStopSchema,

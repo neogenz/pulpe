@@ -38,6 +38,8 @@ import type {
   SavingsGoalPlanApplyResult,
   SavingsGoalPlanMonthAdjustment,
   SavingsGoalRow,
+  SavingsGoalTargetDateReconciliationCommand,
+  SavingsGoalTargetDateReconciliationResult,
   SavingsGoalUpdatePatch,
 } from '../../domain/savings-goal.entity';
 import {
@@ -49,6 +51,9 @@ import {
   PLAN_LINE_CHECKED_RPC_MESSAGE,
   PLAN_LINE_NOT_LINKED_RPC_MESSAGE,
   PLAN_LINE_PAST_RPC_MESSAGE,
+  RECONCILIATION_CONFLICT_RPC_MESSAGE,
+  reconcileSavingsGoalTargetDatePatchSchema,
+  reconcileSavingsGoalTargetDateResponseSchema,
   savingsGoalDeletionImpactRpcSchema,
   savingsGoalDeletionResultRpcSchema,
   SAVINGS_GOAL_DELETION_IMPACT_CHANGED_RPC_MESSAGE,
@@ -497,6 +502,107 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     };
   }
 
+  async reconcileTargetDate(
+    goalId: string,
+    command: SavingsGoalTargetDateReconciliationCommand,
+  ): Promise<SavingsGoalTargetDateReconciliationResult> {
+    const user = this.supabaseProvider.user;
+    const encryptedPatch = await this.toUpdateRow(command.patch, user);
+    let patchPayload: ReturnType<
+      typeof reconcileSavingsGoalTargetDatePatchSchema.parse
+    >;
+    try {
+      patchPayload =
+        reconcileSavingsGoalTargetDatePatchSchema.parse(encryptedPatch);
+    } catch (cause) {
+      if (cause instanceof ZodError) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.SAVINGS_GOAL_RECONCILIATION_FAILED,
+          undefined,
+          {
+            operation: 'reconcileSavingsGoalTargetDate.payload',
+            validationErrors: cause.issues,
+          },
+          { cause },
+        );
+      }
+      throw cause;
+    }
+
+    const { data, error } = await this.supabaseProvider.client.rpc(
+      'reconcile_savings_goal_target_date',
+      {
+        p_goal_id: goalId,
+        p_mode: command.reconciliation.mode,
+        p_budget_line_ids: command.reconciliation.budgetLineIds,
+        p_expected_target_date: command.expectedTargetDate,
+        p_patch: patchPayload,
+      },
+    );
+    if (error || !data) {
+      this.throwTargetDateReconciliationRpcError(error);
+    }
+
+    try {
+      const parsed = reconcileSavingsGoalTargetDateResponseSchema.parse(data);
+      const dek = await this.encryption.getDekFor(user);
+      return {
+        goal: this.toEntity(parsed.goal as unknown as SavingsGoalRow, dek),
+        affectedLineIds: parsed.affected_line_ids,
+        touchedBudgetIds: parsed.touched_budget_ids,
+      };
+    } catch (cause) {
+      if (cause instanceof ZodError) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.SAVINGS_GOAL_RECONCILIATION_FAILED,
+          undefined,
+          {
+            operation: 'reconcileSavingsGoalTargetDate.response',
+            validationErrors: cause.issues,
+          },
+          { cause },
+        );
+      }
+      throw cause;
+    }
+  }
+
+  private throwTargetDateReconciliationRpcError(
+    error: PostgrestError | null,
+  ): never {
+    if (isSavingsGoalLinkDenied(error)) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
+        undefined,
+        {
+          operation: 'reconcileSavingsGoalTargetDate',
+          entityType: 'savings_goal',
+        },
+        { cause: error ?? undefined },
+      );
+    }
+    if ((error?.message ?? '').includes(RECONCILIATION_CONFLICT_RPC_MESSAGE)) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_RECONCILIATION_CONFLICT,
+        undefined,
+        {
+          operation: 'reconcileSavingsGoalTargetDate',
+          entityType: 'savings_goal',
+        },
+        { cause: error ?? undefined },
+      );
+    }
+    throw new BusinessException(
+      ERROR_DEFINITIONS.SAVINGS_GOAL_RECONCILIATION_FAILED,
+      undefined,
+      {
+        operation: 'reconcileSavingsGoalTargetDate',
+        entityType: 'savings_goal',
+      },
+      { cause: error ?? undefined },
+    );
+  }
+
   /**
    * Maps an `apply_savings_goal_generation_stop` RPC failure to the right
    * business error (same idiom as `throwPlanRpcError`):
@@ -926,9 +1032,10 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       id: row.id,
       userId: row.user_id,
       name: row.name,
+      startDate: row.start_date,
       targetAmount: row.target_amount
         ? this.encryption.tryDecryptAmount(row.target_amount, dek, 0)
-        : 0,
+        : null,
       targetDate: row.target_date,
       status: row.status,
       createdAt: row.created_at,
@@ -953,8 +1060,11 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     input: SavingsGoalCreateInput,
     user: AuthenticatedUser,
   ): Promise<SavingsGoalInsert> {
-    const dek = await this.encryption.getDekFor(user);
-    const targetAmount = this.encryption.encryptAmount(input.targetAmount, dek);
+    const targetAmount = await this.encryption.encryptOptionalAmount(
+      input.targetAmount,
+      user.id,
+      user.clientKey,
+    );
     const originalTargetAmount = await this.encryption.encryptOptionalAmount(
       input.originalTargetAmount,
       user.id,
@@ -969,6 +1079,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     return {
       user_id: user.id,
       name: input.name,
+      start_date: input.startDate,
       target_amount: targetAmount,
       original_target_amount: originalTargetAmount,
       initial_amount: initialAmount,
@@ -991,19 +1102,27 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
   ): Promise<Partial<SavingsGoalInsert>> {
     const updateData: Partial<SavingsGoalInsert> = {};
     if (patch.name !== undefined) updateData.name = patch.name;
+    if (patch.startDate !== undefined) updateData.start_date = patch.startDate;
     if (patch.targetDate !== undefined)
       updateData.target_date = patch.targetDate;
     if (patch.status !== undefined) updateData.status = patch.status;
 
     if (patch.targetAmount !== undefined) {
-      const dek = await this.encryption.getDekFor(user);
-      updateData.target_amount = this.encryption.encryptAmount(
-        patch.targetAmount,
-        dek,
-      );
+      if (patch.targetAmount == null) {
+        updateData.target_amount = null;
+      } else {
+        const dek = await this.encryption.getDekFor(user);
+        updateData.target_amount = this.encryption.encryptAmount(
+          patch.targetAmount,
+          dek,
+        );
+      }
     }
 
-    if (patch.originalTargetAmount !== undefined) {
+    if (
+      patch.targetAmount !== null &&
+      patch.originalTargetAmount !== undefined
+    ) {
       updateData.original_target_amount =
         await this.encryption.encryptOptionalAmount(
           patch.originalTargetAmount,
@@ -1020,17 +1139,26 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       );
     }
 
-    Object.assign(
-      updateData,
-      mapCurrencyNonAmountMetadataToDb(
-        {
-          originalCurrency: patch.originalCurrency,
-          targetCurrency: patch.targetCurrency,
-          exchangeRate: patch.exchangeRate,
-        },
-        { userId: user.id },
-      ),
-    );
+    if (patch.targetAmount === null) {
+      Object.assign(updateData, {
+        original_target_amount: null,
+        original_currency: null,
+        target_currency: null,
+        exchange_rate: null,
+      });
+    } else {
+      Object.assign(
+        updateData,
+        mapCurrencyNonAmountMetadataToDb(
+          {
+            originalCurrency: patch.originalCurrency,
+            targetCurrency: patch.targetCurrency,
+            exchangeRate: patch.exchangeRate,
+          },
+          { userId: user.id },
+        ),
+      );
+    }
 
     return updateData;
   }

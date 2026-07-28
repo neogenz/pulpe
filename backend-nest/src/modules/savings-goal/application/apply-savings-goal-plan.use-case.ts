@@ -71,12 +71,35 @@ export class ApplySavingsGoalPlanUseCase {
     const payDayOfMonth = user.payDayOfMonth ?? null;
     // The current cycle stays editable while unchecked; everything strictly
     // before it is locked. Same period helper the client simulates with.
-    const minPeriodIndex = periodIndex(
+    const currentPeriodIndex = periodIndex(
       getBudgetPeriodForDate(new Date(), payDayOfMonth),
     );
-    const targetPeriodIndex = periodIndex(
-      getBudgetPeriodForDate(parseIsoDateLocal(goal.targetDate), payDayOfMonth),
+    const createdPeriodIndex = periodIndex(
+      getBudgetPeriodForDate(new Date(goal.createdAt), payDayOfMonth),
     );
+    const startPeriodIndex =
+      goal.startDate == null
+        ? createdPeriodIndex
+        : periodIndex(
+            getBudgetPeriodForDate(
+              parseIsoDateLocal(goal.startDate),
+              payDayOfMonth,
+            ),
+          );
+    const minPeriodIndex = Math.max(
+      currentPeriodIndex,
+      createdPeriodIndex,
+      startPeriodIndex,
+    );
+    const targetPeriodIndex =
+      goal.targetDate == null
+        ? null
+        : periodIndex(
+            getBudgetPeriodForDate(
+              parseIsoDateLocal(goal.targetDate),
+              payDayOfMonth,
+            ),
+          );
     const missing = dto.missingMonthAdjustments ?? [];
     const linkedBefore = await this.repo.findLinkedContributions(id);
     this.validateDirectAdjustments(
@@ -87,6 +110,9 @@ export class ApplySavingsGoalPlanUseCase {
       id,
       user.id,
     );
+    if (missing.length > 0 && targetPeriodIndex == null) {
+      this.throwLineInvalid(id, user.id);
+    }
 
     let provisionedMonthCount = 0;
     if (missing.length > 0) {
@@ -169,7 +195,7 @@ export class ApplySavingsGoalPlanUseCase {
     goal: SavingsGoal,
     missing: NonNullable<SavingsGoalPlanApply['missingMonthAdjustments']>,
     linkedLines: LinkedSavingLine[],
-    bounds: { minPeriodIndex: number; targetPeriodIndex: number },
+    bounds: { minPeriodIndex: number; targetPeriodIndex: number | null },
     user: AuthenticatedUser,
   ): Promise<number> {
     const materialized = await this.repo.findMaterializedPeriods();
@@ -219,7 +245,7 @@ export class ApplySavingsGoalPlanUseCase {
     periods: BudgetPeriod[],
     materialized: BudgetPeriod[],
     linkedLines: LinkedSavingLine[],
-    bounds: { minPeriodIndex: number; targetPeriodIndex: number },
+    bounds: { minPeriodIndex: number; targetPeriodIndex: number | null },
     owner: { goalId: string; userId: string },
   ): BudgetPeriod[] {
     const materializedKeys = new Set(materialized.map(this.periodKey));
@@ -228,9 +254,10 @@ export class ApplySavingsGoalPlanUseCase {
       periods.some(
         (period) =>
           periodIndex(period) < bounds.minPeriodIndex ||
-          periodIndex(period) > bounds.targetPeriodIndex ||
-          periodIndex(period) >=
-            bounds.minPeriodIndex + MAX_SAVINGS_GOAL_PLAN_PERIODS,
+          (bounds.targetPeriodIndex != null &&
+            (periodIndex(period) > bounds.targetPeriodIndex ||
+              periodIndex(period) >=
+                bounds.minPeriodIndex + MAX_SAVINGS_GOAL_PLAN_PERIODS)),
       )
     ) {
       this.throwLineInvalid(owner.goalId, owner.userId);

@@ -76,7 +76,7 @@ import { GoalPlanSimulatorStore } from '../services/goal-plan-simulator-store';
             />
           </div>
         </div>
-        @if (!targetReached()) {
+        @if (store.hasTarget() && !targetReached()) {
           <p
             class="text-body-small text-on-surface-variant text-pretty"
             data-testid="goal-plan-target-hint"
@@ -110,35 +110,39 @@ import { GoalPlanSimulatorStore } from '../services/goal-plan-simulator-store';
         <!-- Verdict callout. RG-002: savings is never an alert color — attention
              comes from the tinted container + leading icon + weight, all in the
              savings-green/neutral family, never amber/red. -->
-        <div
-          class="mt-1 flex items-start gap-2 rounded-xl bg-financial-savings/10 px-3 py-2.5"
-          data-testid="goal-plan-verdict"
-          aria-hidden="true"
-        >
-          <mat-icon
-            class="mt-0.5 shrink-0 text-financial-savings text-lg! w-auto! h-auto! leading-none"
+        @if (store.hasTarget()) {
+          <div
+            class="mt-1 flex items-start gap-2 rounded-xl bg-financial-savings/10 px-3 py-2.5"
+            data-testid="goal-plan-verdict"
             aria-hidden="true"
           >
-            {{ targetReached() ? 'check_circle' : 'flag' }}
-          </mat-icon>
-          <p class="text-body-medium font-semibold text-financial-savings">
-            {{ verdict() }}
-          </p>
-        </div>
-        <p class="sr-only" aria-live="polite">{{ ariaVerdict() }}</p>
+            <mat-icon
+              class="mt-0.5 shrink-0 text-financial-savings text-lg! w-auto! h-auto! leading-none"
+              aria-hidden="true"
+            >
+              {{ targetReached() ? 'check_circle' : 'flag' }}
+            </mat-icon>
+            <p class="text-body-medium font-semibold text-financial-savings">
+              {{ verdict() }}
+            </p>
+          </div>
+          <p class="sr-only" aria-live="polite">{{ ariaVerdict() }}</p>
+        }
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
-        <button
-          matButton="tonal"
-          (click)="onRedistribute()"
-          [matTooltip]="'savingsGoals.simulate.redistributeHint' | transloco"
-          matTooltipPosition="above"
-          data-testid="goal-plan-redistribute"
-        >
-          <mat-icon>auto_awesome</mat-icon>
-          {{ 'savingsGoals.simulate.redistribute' | transloco }}
-        </button>
+        @if (store.hasTarget()) {
+          <button
+            matButton="tonal"
+            (click)="onRedistribute()"
+            [matTooltip]="'savingsGoals.simulate.redistributeHint' | transloco"
+            matTooltipPosition="above"
+            data-testid="goal-plan-redistribute"
+          >
+            <mat-icon>auto_awesome</mat-icon>
+            {{ 'savingsGoals.simulate.redistribute' | transloco }}
+          </button>
+        }
         <button
           matButton
           (click)="onRevert()"

@@ -145,7 +145,7 @@ export class GoalProjectionChart {
 
   readonly months = input.required<readonly SavingsGoalPlanMonth[]>();
   readonly draft = input<SavingsPlanSimulationResult | null>(null);
-  readonly targetAmount = input.required<number>();
+  readonly targetAmount = input.required<number | null>();
   readonly currency = input.required<SupportedCurrency>();
   readonly confirmed = input.required<number>();
   readonly projected = input.required<number>();
@@ -217,23 +217,31 @@ export class GoalProjectionChart {
     ];
   });
 
-  protected readonly summaryItems = computed(() => [
-    {
-      series: 'target' as const,
-      label: this.#summaryLabels.target,
-      amount: this.targetAmount(),
-    },
-    {
-      series: 'confirmed' as const,
-      label: this.#summaryLabels.confirmed,
-      amount: this.confirmed(),
-    },
-    {
-      series: 'projection' as const,
-      label: this.#summaryLabels.projection,
-      amount: this.draft()?.simulatedFinal ?? this.projected(),
-    },
-  ]);
+  protected readonly summaryItems = computed(() => {
+    const items = [
+      {
+        series: 'confirmed' as const,
+        label: this.#summaryLabels.confirmed,
+        amount: this.confirmed(),
+      },
+      {
+        series: 'projection' as const,
+        label: this.#summaryLabels.projection,
+        amount: this.draft()?.simulatedFinal ?? this.projected(),
+      },
+    ];
+    const targetAmount = this.targetAmount();
+    return targetAmount == null
+      ? items
+      : [
+          {
+            series: 'target' as const,
+            label: this.#summaryLabels.target,
+            amount: targetAmount,
+          },
+          ...items,
+        ];
+  });
 
   protected readonly ariaSentence = computed(() => {
     const months = this.months();
@@ -245,10 +253,17 @@ export class GoalProjectionChart {
     const currency = this.currency();
     const projectedFinal = draft?.simulatedFinal ?? this.projected();
 
-    return this.#transloco.translate('savingsGoals.plan.chartAria', {
+    const targetAmount = this.targetAmount();
+    const key =
+      targetAmount == null
+        ? 'savingsGoals.plan.chartAriaWithoutTarget'
+        : 'savingsGoals.plan.chartAria';
+    return this.#transloco.translate(key, {
       confirmed: formatCurrency(this.confirmed(), currency),
       projected: formatCurrency(projectedFinal, currency),
-      target: formatCurrency(this.targetAmount(), currency),
+      ...(targetAmount == null
+        ? {}
+        : { target: formatCurrency(targetAmount, currency) }),
     });
   });
 }

@@ -139,6 +139,57 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
     expect(input.tranches).toEqual([{ ...periods[2], amount: 1000 }]);
   });
 
+  it('applies existing-line adjustments when the objective has no deadline', async () => {
+    repo.findById.mockResolvedValue({
+      id: 'goal-1',
+      userId: user.id,
+      name: 'Pot libre',
+      startDate: null,
+      targetAmount: null,
+      targetDate: null,
+      status: 'ACTIVE',
+      createdAt: new Date().toISOString(),
+    });
+
+    await useCase.execute(
+      'goal-1',
+      {
+        monthAdjustments: [
+          { budgetLineId: existingLines[0].id as string, amount: 500 },
+        ],
+      },
+      user,
+    );
+
+    expect(repo.applyPlan).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not provision missing months for an objective without a deadline', async () => {
+    repo.findById.mockResolvedValue({
+      id: 'goal-1',
+      userId: user.id,
+      name: 'Pot libre',
+      startDate: null,
+      targetAmount: null,
+      targetDate: null,
+      status: 'ACTIVE',
+      createdAt: new Date().toISOString(),
+    });
+
+    await expect(
+      useCase.execute(
+        'goal-1',
+        {
+          monthAdjustments: [],
+          missingMonthAdjustments: [{ ...periods[2], amount: 500 }],
+        },
+        user,
+      ),
+    ).rejects.toMatchObject({ code: 'ERR_SAVINGS_GOAL_PLAN_LINE_INVALID' });
+    expect(spread.fanOut).not.toHaveBeenCalled();
+    expect(repo.applyPlan).not.toHaveBeenCalled();
+  });
+
   it('rejects a materialized budget without a linked saving line', async () => {
     repo.findMaterializedPeriods.mockResolvedValue([
       ...periods.slice(0, 2),

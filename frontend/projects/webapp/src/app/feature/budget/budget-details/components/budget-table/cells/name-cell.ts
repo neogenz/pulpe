@@ -94,6 +94,17 @@ import type {
               }}
             </span>
           }
+          @if (linkedGoalName(); as goalName) {
+            <span
+              class="flex items-center gap-1 text-label-small text-on-surface-variant"
+              [attr.data-testid]="'budget-table-linked-goal-' + line().data.id"
+            >
+              <mat-icon class="text-sm! shrink-0 h-auto! w-auto!">
+                savings
+              </mat-icon>
+              <span class="truncate ph-no-capture">{{ goalName }}</span>
+            </span>
+          }
           @if (matchAnnotation()) {
             <span
               class="inline-flex items-center gap-1 text-label-small
@@ -127,6 +138,13 @@ export class NameCell {
     () => getDateDisplayFormats(this.#userSettings.currency()).dayMonth,
   );
   readonly line = input.required<BudgetLineTableItem | TransactionTableItem>();
+  readonly savingsGoalNameById = input<ReadonlyMap<string, string>>(new Map());
+
+  readonly linkedGoalName = computed(() => {
+    const data = this.line().data;
+    if (!('savingsGoalId' in data) || !data.savingsGoalId) return undefined;
+    return this.savingsGoalNameById().get(data.savingsGoalId);
+  });
 
   readonly matchAnnotation = computed(() =>
     formatMatchAnnotation(this.line().metadata.matchingTransactionNames),

@@ -113,6 +113,24 @@ describe('buildGoalProjectionChartData', () => {
     expect(projection.pointRadius).toEqual([0, 0, 3]);
   });
 
+  it('keeps the savings series and omits only the target without a target amount', () => {
+    const data = buildGoalProjectionChartData({
+      months,
+      draft: null,
+      targetAmount: null,
+      confirmed: 180,
+      projected: 360,
+      theme,
+      locale: 'fr-CH',
+      labels,
+    });
+
+    expect(data.datasets.map((dataset) => dataset.label)).toEqual([
+      'Épargné',
+      'Projection planifiée',
+    ]);
+  });
+
   it('nulls the pointé series after the current month', () => {
     const data = buildGoalProjectionChartData({
       months,

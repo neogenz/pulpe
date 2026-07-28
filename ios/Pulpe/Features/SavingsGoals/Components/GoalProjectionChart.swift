@@ -21,7 +21,7 @@ struct GoalProjectionChart: View {
         let seriesMax = (series.confirmed + series.projection)
             .map(\.value)
             .max() ?? 0
-        let candidate = max(seriesMax, series.target)
+        let candidate = max(seriesMax, series.target ?? 0)
         // Swift Charts crashes on a zero-height domain — guarantee a positive range.
         return candidate <= 0 ? 1 : candidate
     }
@@ -32,14 +32,16 @@ struct GoalProjectionChart: View {
 
     var body: some View {
         Chart {
-            RuleMark(y: .value("Cible", series.target))
-                .foregroundStyle(Color.textTertiary.opacity(DesignTokens.Opacity.heavy))
-                .lineStyle(StrokeStyle(lineWidth: DesignTokens.BorderWidth.thin, dash: [4]))
-                .annotation(position: .top, alignment: .leading) {
-                    Text("Cible")
-                        .font(PulpeTypography.caption2)
-                        .foregroundStyle(Color.textTertiary)
-                }
+            if let target = series.target {
+                RuleMark(y: .value("Cible", target))
+                    .foregroundStyle(Color.textTertiary.opacity(DesignTokens.Opacity.heavy))
+                    .lineStyle(StrokeStyle(lineWidth: DesignTokens.BorderWidth.thin, dash: [4]))
+                    .annotation(position: .top, alignment: .leading) {
+                        Text("Cible")
+                            .font(PulpeTypography.caption2)
+                            .foregroundStyle(Color.textTertiary)
+                    }
+            }
 
             ForEach(series.confirmed) { point in
                 AreaMark(
@@ -66,7 +68,11 @@ struct GoalProjectionChart: View {
                     series: .value("Série", "projection")
                 )
                 .interpolationMethod(.monotone)
-                .lineStyle(StrokeStyle(lineWidth: DesignTokens.BorderWidth.medium, lineCap: .round, dash: [5, 4]))
+                .lineStyle(StrokeStyle(
+                    lineWidth: DesignTokens.BorderWidth.medium,
+                    lineCap: .round,
+                    dash: [5, 4]
+                ))
                 .foregroundStyle(Color.financialIncome)
             }
         }
@@ -106,8 +112,11 @@ struct GoalProjectionChart: View {
     private var accessibilitySummary: String {
         let confirmed = Decimal(series.confirmed.last?.value ?? 0).asCompactCurrency(currency)
         let projection = Decimal(series.projection.last?.value ?? 0).asCompactCurrency(currency)
-        let target = Decimal(series.target).asCompactCurrency(currency)
-        return "Épargné \(confirmed), projection planifiée \(projection), cible \(target)"
+        guard let target = series.target else {
+            return "Épargné \(confirmed), projection planifiée \(projection)"
+        }
+        let targetLabel = Decimal(target).asCompactCurrency(currency)
+        return "Épargné \(confirmed), projection planifiée \(projection), cible \(targetLabel)"
     }
 
     private var areaGradient: LinearGradient {
@@ -239,7 +248,7 @@ struct GoalProjectionSeries: Equatable {
 
     let confirmed: [Point]
     let projection: [Point]
-    let target: Double
+    let target: Double?
     let ticks: [Tick]
 
     var isEmpty: Bool { confirmed.isEmpty && projection.isEmpty }
@@ -260,14 +269,15 @@ struct GoalProjectionSeries: Equatable {
 
         let currentIndex = months.firstIndex { $0.state == .current } ?? months.count - 1
         let lastIndex = months.count - 1
-        let target = double(progress.targetAmount)
+        let target = progress.targetAmount.map(double)
         var confirmed = months.prefix(currentIndex + 1).enumerated()
             .map { Point(index: $0.offset, value: double($0.element.confirmedCumulative)) }
         confirmed[confirmed.count - 1] = Point(index: currentIndex, value: double(progress.confirmed))
 
+        let projected = progress.projected ?? progress.plannedProjection
         var projection = [Point(index: currentIndex, value: double(progress.confirmed))]
         if currentIndex == lastIndex {
-            projection[0] = Point(index: currentIndex, value: double(progress.projected))
+            projection[0] = Point(index: currentIndex, value: double(projected))
         } else {
             var cumulative = progress.confirmed
             for index in currentIndex ... lastIndex {
@@ -277,7 +287,7 @@ struct GoalProjectionSeries: Equatable {
                 }
             }
             // The API owns the canonical endpoint and absorbs decimal rounding.
-            projection[projection.count - 1] = Point(index: lastIndex, value: double(progress.projected))
+            projection[projection.count - 1] = Point(index: lastIndex, value: double(projected))
         }
 
         return GoalProjectionSeries(
@@ -292,7 +302,7 @@ struct GoalProjectionSeries: Equatable {
     /// (`simulatedCumulative`) while the confirmed balance stays unchanged.
     static func simulation(
         from result: SavingsPlanCalculator.SimulationResult,
-        targetAmount: Decimal,
+        targetAmount: Decimal?,
         confirmedAmount: Decimal
     ) -> GoalProjectionSeries {
         let months = result.months
@@ -321,12 +331,12 @@ struct GoalProjectionSeries: Equatable {
         return GoalProjectionSeries(
             confirmed: confirmed,
             projection: projection,
-            target: double(targetAmount),
+            target: targetAmount.map(double),
             ticks: ticks(for: months.map(\.month), currentIndex: currentIndex)
         )
     }
 
-    static let empty = GoalProjectionSeries(confirmed: [], projection: [], target: 0, ticks: [])
+    static let empty = GoalProjectionSeries(confirmed: [], projection: [], target: nil, ticks: [])
 
     // MARK: - Helpers
 

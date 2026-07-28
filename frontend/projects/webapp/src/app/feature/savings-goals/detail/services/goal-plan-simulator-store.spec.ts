@@ -40,9 +40,11 @@ function makeProgress(
   return {
     goalId: 'goal-1',
     status: 'ACTIVE',
+    startDate: null,
     targetAmount: 800,
     targetDate: '2026-08-01',
     plannedCumulative: 400,
+    plannedProjection: 400,
     confirmed: 0,
     initialAmount: 0,
     achievementPercent: 0,
@@ -126,6 +128,35 @@ describe('GoalPlanSimulatorStore', () => {
     store.enter();
     expect(store.isSimulating()).toBe(true);
     expect(store.draft()).not.toBeNull();
+  });
+
+  it('keeps monthly adjustments available without inventing a target', () => {
+    progressSig.set(
+      makeProgress({
+        targetAmount: null,
+        targetDate: null,
+        achievementPercent: null,
+        monthsRemaining: null,
+        required: null,
+        projected: null,
+        paceStatus: null,
+        suggestCompletion: null,
+      }),
+    );
+
+    expect(store.canSimulate()).toBe(true);
+    expect(store.targetAmount()).toBeNull();
+
+    store.enter();
+    store.setMonth(6, 2026, 500);
+
+    expect(store.draft()?.gapToTarget).toBeNull();
+    expect(store.draft()?.isTargetMet).toBeNull();
+    expect(store.draft()?.attainedPeriod).toBeNull();
+    expect(store.buildApplyPayload().monthAdjustments).toEqual([
+      { budgetLineId: LINE_CURRENT, amount: 500 },
+    ]);
+    expect(store.redistribute().isDistributable).toBe(false);
   });
 
   it('seeds the slider on the current plan amount, not the deadline anchor', () => {

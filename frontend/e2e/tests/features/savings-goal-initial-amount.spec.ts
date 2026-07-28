@@ -12,6 +12,33 @@ const DETAIL_GOAL_ID = '00000000-0000-4000-a000-000000000502';
 const USER_ID = '00000000-0000-4000-a000-000000000201';
 
 test.describe('Savings goal initial amount (PUL-293)', () => {
+  test('keeps the empty initial amount label clear of its suffix on mobile', async ({
+    authenticatedPage: page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/savings-goals');
+    await page.getByTestId('create-savings-goal-button').click();
+
+    const field = page
+      .getByTestId('savings-goal-initial-amount')
+      .locator('xpath=ancestor::mat-form-field');
+    const [labelBox, suffixBox] = await Promise.all([
+      field.locator('.mat-mdc-floating-label').boundingBox(),
+      field.locator('.mat-mdc-form-field-text-suffix').boundingBox(),
+    ]);
+
+    expect(labelBox).not.toBeNull();
+    expect(suffixBox).not.toBeNull();
+    if (!labelBox || !suffixBox) return;
+
+    const overlaps =
+      labelBox.x < suffixBox.x + suffixBox.width &&
+      labelBox.x + labelBox.width > suffixBox.x &&
+      labelBox.y < suffixBox.y + suffixBox.height &&
+      labelBox.y + labelBox.height > suffixBox.y;
+    expect(overlaps).toBe(false);
+  });
+
   test('creates a goal with an initial amount and sends it in the POST payload', async ({
     authenticatedPage: page,
   }) => {
@@ -60,7 +87,10 @@ test.describe('Savings goal initial amount (PUL-293)', () => {
     // model signal, which under load can snapshot the model before a value
     // filled microseconds earlier has propagated — humans can't hit that
     // window, but Playwright can, so no field fill may follow the date pick.
-    await dialog.getByRole('button', { name: 'Open calendar' }).click();
+    await dialog
+      .getByTestId('savings-goal-target-date')
+      .locator('xpath=ancestor::mat-form-field//mat-datepicker-toggle//button')
+      .click();
     await page.locator('.mat-calendar-body-today').click();
     // Calendar fully gone before anything else is touched: its fading backdrop
     // still swallows pointer events and would eat the save click. (The dialog
@@ -89,6 +119,7 @@ test.describe('Savings goal initial amount (PUL-293)', () => {
       id: DETAIL_GOAL_ID,
       userId: USER_ID,
       name: 'Vacances été 2027',
+      startDate: null,
       targetAmount: 10000,
       targetDate: '2027-08-01',
       status: 'ACTIVE',
@@ -100,9 +131,11 @@ test.describe('Savings goal initial amount (PUL-293)', () => {
     const progress = {
       goalId: DETAIL_GOAL_ID,
       status: 'ACTIVE',
+      startDate: null,
       targetAmount: 10000,
       targetDate: '2027-08-01',
       plannedCumulative: 5200,
+      plannedProjection: 5200,
       confirmed: 5200,
       initialAmount: 5000,
       achievementPercent: 52,

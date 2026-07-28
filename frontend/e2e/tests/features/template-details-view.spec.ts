@@ -1,6 +1,7 @@
 import { test, test as base, expect } from '../../fixtures/test-fixtures';
 import { setupAuthBypass } from '../../utils/auth-bypass';
 import { TEST_CONFIG } from '../../config/test-config';
+import { TEST_UUIDS } from '../../helpers/api-mocks';
 
 test.describe.configure({ mode: 'parallel' });
 
@@ -162,5 +163,91 @@ test.describe('Template Details View', () => {
     const heroAmount = financialSection.getByTestId('template-hero-amount');
     await expect(heroAmount).toBeVisible();
     await expect(heroAmount).toContainText(/1.900/);
+  });
+
+  test('shows the linked savings goal from a single cached list request', async ({
+    authenticatedPage: page,
+  }) => {
+    const goalId = '00000000-0000-4000-a000-000000000601';
+    let goalListRequests = 0;
+    let goalByIdRequests = 0;
+
+    await page.route('**/api/v1/savings-goals', (route) => {
+      goalListRequests += 1;
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: [
+            {
+              id: goalId,
+              userId: TEST_CONFIG.USER.ID,
+              name: 'Voyage au Japon',
+              startDate: null,
+              targetAmount: 5000,
+              targetDate: null,
+              status: 'ACTIVE',
+              createdAt: '2026-01-01T00:00:00.000Z',
+              updatedAt: '2026-01-01T00:00:00.000Z',
+            },
+          ],
+        }),
+      });
+    });
+    await page.route('**/api/v1/savings-goals/*', (route) => {
+      goalByIdRequests += 1;
+      return route.abort('failed');
+    });
+    await page.route(
+      `**/api/v1/budget-templates/${TEST_CONFIG.TEMPLATES.DEFAULT.id}/lines`,
+      (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: [
+              {
+                id: TEST_UUIDS.LINE_5,
+                templateId: TEST_CONFIG.TEMPLATES.DEFAULT.id,
+                savingsGoalId: goalId,
+                name: 'Épargne voyage',
+                amount: 500,
+                kind: 'saving',
+                recurrence: 'fixed',
+                description: '',
+                createdAt: '2026-01-01T00:00:00.000Z',
+                updatedAt: '2026-01-01T00:00:00.000Z',
+              },
+              {
+                id: TEST_UUIDS.LINE_4,
+                templateId: TEST_CONFIG.TEMPLATES.DEFAULT.id,
+                savingsGoalId: null,
+                name: 'Transport',
+                amount: 200,
+                kind: 'expense',
+                recurrence: 'fixed',
+                description: '',
+                createdAt: '2026-01-01T00:00:00.000Z',
+                updatedAt: '2026-01-01T00:00:00.000Z',
+              },
+            ],
+          }),
+        }),
+    );
+
+    await page.goto(
+      `/budget-templates/details/${TEST_CONFIG.TEMPLATES.DEFAULT.id}`,
+    );
+
+    await expect(
+      page.getByTestId(`template-line-linked-goal-${TEST_UUIDS.LINE_5}`),
+    ).toContainText('Voyage au Japon');
+    await expect(
+      page.getByTestId(`template-line-linked-goal-${TEST_UUIDS.LINE_4}`),
+    ).toHaveCount(0);
+    expect(goalListRequests).toBe(1);
+    expect(goalByIdRequests).toBe(0);
   });
 });

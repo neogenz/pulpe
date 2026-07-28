@@ -74,7 +74,7 @@ struct GoalDerivedStateCards: View {
             }
         }
 
-        if status == .active, progress.suggestCompletion {
+        if status == .active, progress.suggestCompletion == true {
             GoalInfoCard(
                 icon: "checkmark.seal.fill",
                 title: "Objectif atteint",
@@ -102,7 +102,8 @@ struct GoalDerivedStateCards: View {
             GoalInfoCard(
                 icon: "calendar.badge.clock",
                 title: "Prévisions liées sur tes mois futurs",
-                message: "Cet objectif est arrêté, mais \(futureLinesCount) prévision(s) Épargne lui restent réservées sur les mois à venir."
+                message: "Cet objectif est arrêté, mais \(futureLinesCount) prévision(s) Épargne"
+                    + " lui restent réservées sur les mois à venir."
             ) {
                 Button("Gérer ces prévisions", action: onManageFutureLines)
                     .secondaryButtonStyle()

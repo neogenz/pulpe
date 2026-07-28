@@ -39,6 +39,22 @@ struct SavingsGoalProgressCodableTests {
 
         #expect(available.isProvisionable == true)
         #expect(legacy.isProvisionable == false)
+        #expect(available.isContributionEligible == true)
+        #expect(legacy.isContributionEligible == true)
+    }
+
+    @Test("SavingsGoalPlanMonth decodes an explicitly ineligible pre-start row")
+    func planMonth_decodesContributionEligibility() throws {
+        let month = try JSONDecoder().decode(SavingsGoalPlanMonth.self, from: Data("""
+        {
+            "month": 5, "year": 2026, "state": "past", "isLocked": true,
+            "isContributionEligible": false, "plannedAmount": 500,
+            "confirmedAmount": 500, "plannedCumulative": 0,
+            "confirmedCumulative": 0, "lines": []
+        }
+        """.utf8))
+
+        #expect(month.isContributionEligible == false)
     }
 
     @Test("SavingsGoalPlanApply encodes missing periods without a template leg")
@@ -66,6 +82,7 @@ struct SavingsGoalProgressCodableTests {
             "targetAmount": 50000,
             "targetDate": "2027-12-31",
             "plannedCumulative": 12000,
+            "plannedProjection": 36000,
             "confirmed": 9000,
             "initialAmount": 3000,
             "achievementPercent": 18,
@@ -93,6 +110,7 @@ struct SavingsGoalProgressCodableTests {
         #expect(progress.targetAmount == 50000)
         #expect(progress.targetDate == "2027-12-31")
         #expect(progress.plannedCumulative == 12000)
+        #expect(progress.plannedProjection == 36000)
         #expect(progress.confirmed == 9000)
         #expect(progress.initialAmount == 3000)
         #expect(progress.achievementPercent == 18)
@@ -110,6 +128,47 @@ struct SavingsGoalProgressCodableTests {
         // Bar fractions: confirmed from the server %, projected vs target.
         #expect(progress.confirmedFraction == 0.18)
         #expect(progress.projectedFraction == 0.72)
+    }
+
+    @Test("SavingsGoalProgress decodes a targetless open pot without fictitious metrics")
+    func progress_decodesTargetlessOpenPot() throws {
+        let json = Data("""
+        {
+            "goalId": "open",
+            "status": "ACTIVE",
+            "startDate": null,
+            "targetAmount": null,
+            "targetDate": null,
+            "plannedCumulative": 200,
+            "plannedProjection": 600,
+            "confirmed": 100,
+            "initialAmount": 100,
+            "achievementPercent": null,
+            "monthsElapsed": 1,
+            "monthsRemaining": null,
+            "isOverdue": false,
+            "pace": 200,
+            "confirmedPace": 100,
+            "required": null,
+            "projected": null,
+            "paceStatus": null,
+            "suggestCompletion": null,
+            "linkedLineCount": 1
+        }
+        """.utf8)
+
+        let progress = try JSONDecoder().decode(SavingsGoalProgress.self, from: json)
+
+        #expect(progress.startDate == nil)
+        #expect(progress.targetAmount == nil)
+        #expect(progress.targetDate == nil)
+        #expect(progress.plannedProjection == 600)
+        #expect(progress.achievementPercent == nil)
+        #expect(progress.monthsRemaining == nil)
+        #expect(progress.projected == nil)
+        #expect(progress.suggestCompletion == nil)
+        #expect(progress.confirmedFraction == nil)
+        #expect(progress.plannedFraction == nil)
     }
 
     @Test("SavingsGoalProgress decodes the overdue null shape (required/paceStatus null)")

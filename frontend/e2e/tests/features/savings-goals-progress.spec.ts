@@ -1,8 +1,12 @@
 import { test, expect } from '../../fixtures/test-fixtures';
-import type {
-  SavingsGoalContribution,
-  SavingsGoalPlanMonth,
-  SavingsGoalProgress,
+import type { Locator, Page } from '@playwright/test';
+import {
+  API_ERROR_CODES,
+  type SavingsGoal,
+  type SavingsGoalContribution,
+  type SavingsGoalDeletionImpact,
+  type SavingsGoalPlanMonth,
+  type SavingsGoalProgress,
 } from 'pulpe-shared';
 
 /**
@@ -47,20 +51,23 @@ const goal = {
   id: GOAL_ID,
   userId: USER_ID,
   name: GOAL_NAME,
+  startDate: null,
   targetAmount: 3000,
   targetDate: '2027-08-01',
   status: 'ACTIVE',
   createdAt: '2026-06-01T00:00:00.000Z',
   updatedAt: '2026-06-01T00:00:00.000Z',
-};
+} satisfies SavingsGoal;
 
 const progress = {
   goalId: GOAL_ID,
   status: 'ACTIVE',
+  startDate: null,
   targetAmount: 3000,
   targetDate: '2027-08-01',
   initialAmount: 0,
   plannedCumulative: 1200,
+  plannedProjection: 1200,
   confirmed: 900,
   achievementPercent: 30,
   monthsElapsed: 2,
@@ -102,6 +109,64 @@ const contributions = [
     transactions: [],
   },
 ] satisfies SavingsGoalContribution[];
+
+async function pickFutureDate(
+  page: Page,
+  dialog: Locator,
+  inputTestId: string,
+  monthsAhead: number,
+) {
+  await dialog
+    .getByTestId(inputTestId)
+    .locator('xpath=ancestor::mat-form-field//mat-datepicker-toggle//button')
+    .click();
+  const navigationLabel = monthsAhead < 0 ? 'Previous month' : 'Next month';
+  for (let month = 0; month < Math.abs(monthsAhead); month += 1) {
+    await page.getByLabel(navigationLabel).click();
+  }
+  await page
+    .locator(
+      '.mat-calendar-body-cell:not(.mat-calendar-body-disabled) .mat-calendar-body-cell-content',
+    )
+    .filter({ hasText: /^\s*15\s*$/ })
+    .click();
+  await expect(page.locator('mat-datepicker-content')).toHaveCount(0);
+}
+
+function progressFor(goalState: SavingsGoal): SavingsGoalProgress {
+  const hasTarget = goalState.targetAmount !== null;
+  const hasDeadline = goalState.targetDate !== null;
+  return {
+    goalId: goalState.id,
+    status: goalState.status,
+    startDate: goalState.startDate,
+    targetAmount: goalState.targetAmount,
+    targetDate: goalState.targetDate,
+    initialAmount: goalState.initialAmount ?? 0,
+    plannedCumulative: 300,
+    plannedProjection: 600,
+    confirmed: 300,
+    achievementPercent: hasTarget ? 10 : null,
+    monthsElapsed: 1,
+    monthsRemaining: hasDeadline ? 2 : null,
+    isOverdue: false,
+    pace: 300,
+    confirmedPace: 300,
+    required: hasTarget && hasDeadline ? 1350 : null,
+    projected: hasTarget && hasDeadline ? 3600 : null,
+    paceStatus: hasTarget && hasDeadline ? 'on_track' : null,
+    suggestCompletion: hasTarget ? false : null,
+    linkedLineCount: 0,
+    cumulativeGap: 0,
+    estimatedCompletion:
+      hasTarget && !hasDeadline ? { month: 5, year: 2027 } : null,
+    months: [],
+    originalTargetAmount: null,
+    originalCurrency: null,
+    targetCurrency: null,
+    exchangeRate: null,
+  };
+}
 
 test.describe('Savings goal progression (PUL-8)', () => {
   test('navigates list → detail and shows a coherent responsive trajectory', async ({
@@ -204,4 +269,666 @@ test.describe('Savings goal progression (PUL-8)', () => {
       );
     }
   });
+});
+
+test.describe('Savings goal optional interval (PUL-314)', () => {
+  const matrix = [
+    {
+      label: 'name only',
+      id: '00000000-0000-4000-a000-000000000310',
+      target: false,
+      deadline: false,
+      start: false,
+    },
+    {
+      label: 'target only',
+      id: '00000000-0000-4000-a000-000000000311',
+      target: true,
+      deadline: false,
+      start: false,
+    },
+    {
+      label: 'deadline only',
+      id: '00000000-0000-4000-a000-000000000312',
+      target: false,
+      deadline: true,
+      start: false,
+    },
+    {
+      label: 'target, future start and deadline',
+      id: '00000000-0000-4000-a000-000000000313',
+      target: true,
+      deadline: true,
+      start: true,
+    },
+  ] as const;
+
+  for (const scenario of matrix) {
+    test(`creates, edits and removes ${scenario.label}`, async ({
+      authenticatedPage: page,
+    }) => {
+      let currentGoal: SavingsGoal | null = null;
+      const patches: Record<string, unknown>[] = [];
+      const deletionImpact = {
+        goalId: scenario.id,
+        summary: {
+          templateLineCount: 0,
+          templateLineTotal: 0,
+          budgetCount: 0,
+          budgetLineCount: 0,
+          budgetLineTotal: 0,
+          transactionCount: 0,
+          transactionTotal: 0,
+        },
+        templateLines: [],
+        budgets: [],
+        revision: {
+          templateLines: [],
+          budgetLines: [],
+          transactions: [],
+        },
+      } satisfies SavingsGoalDeletionImpact;
+
+      await page.route('**/api/v1/savings-goals/*/progress', (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: progressFor(currentGoal!),
+          }),
+        }),
+      );
+      await page.route('**/api/v1/savings-goals/*/contributions', (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: [] }),
+        }),
+      );
+      await page.route(
+        `**/api/v1/savings-goals/${scenario.id}/deletion-impact`,
+        (route) =>
+          route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ success: true, data: deletionImpact }),
+          }),
+      );
+      await page.route(
+        `**/api/v1/savings-goals/${scenario.id}/deletion`,
+        (route) => {
+          currentGoal = null;
+          return route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ success: true, message: 'deleted' }),
+          });
+        },
+      );
+      await page.route(/\/api\/v1\/savings-goals(?:\?.*)?$/, (route) => {
+        if (route.request().method() === 'POST') {
+          const payload = route.request().postDataJSON();
+          currentGoal = {
+            id: scenario.id,
+            userId: USER_ID,
+            name: String(payload['name']),
+            startDate: (payload['startDate'] as string | undefined) ?? null,
+            targetAmount:
+              (payload['targetAmount'] as number | undefined) ?? null,
+            targetDate: (payload['targetDate'] as string | undefined) ?? null,
+            status: 'ACTIVE',
+            initialAmount:
+              (payload['initialAmount'] as number | undefined) ?? 0,
+            createdAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-01-01T00:00:00.000Z',
+          };
+          return route.fulfill({
+            status: 201,
+            contentType: 'application/json',
+            body: JSON.stringify({ success: true, data: currentGoal }),
+          });
+        }
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: currentGoal ? [currentGoal] : [],
+          }),
+        });
+      });
+      await page.route(
+        new RegExp(`/api/v1/savings-goals/${scenario.id}$`),
+        (route) => {
+          if (route.request().method() === 'PATCH') {
+            const updates = route.request().postDataJSON() as Record<
+              string,
+              unknown
+            >;
+            patches.push(updates);
+            currentGoal = {
+              ...currentGoal!,
+              name:
+                typeof updates['name'] === 'string'
+                  ? updates['name']
+                  : currentGoal!.name,
+              startDate:
+                'startDate' in updates
+                  ? (updates['startDate'] as string | null)
+                  : currentGoal!.startDate,
+              targetAmount:
+                'targetAmount' in updates
+                  ? (updates['targetAmount'] as number | null)
+                  : currentGoal!.targetAmount,
+              targetDate:
+                'targetDate' in updates
+                  ? (updates['targetDate'] as string | null)
+                  : currentGoal!.targetDate,
+              updatedAt: '2026-01-02T00:00:00.000Z',
+            };
+            return route.fulfill({
+              status: 200,
+              contentType: 'application/json',
+              body: JSON.stringify({ success: true, data: currentGoal }),
+            });
+          }
+          if (route.request().method() === 'DELETE') {
+            currentGoal = null;
+            return route.fulfill({
+              status: 200,
+              contentType: 'application/json',
+              body: JSON.stringify({ success: true, message: 'deleted' }),
+            });
+          }
+          return route.fallback();
+        },
+      );
+
+      await page.goto('/savings-goals');
+      await page.getByTestId('create-savings-goal-button').click();
+      const dialog = page.getByTestId('savings-goal-form-dialog');
+      await dialog
+        .getByTestId('savings-goal-name')
+        .fill(`Objectif ${scenario.label}`);
+      if (scenario.target) {
+        await dialog.getByTestId('savings-goal-target-amount').fill('3000');
+      }
+      if (scenario.deadline) {
+        await pickFutureDate(page, dialog, 'savings-goal-target-date', 2);
+      }
+      if (scenario.start) {
+        await pickFutureDate(page, dialog, 'savings-goal-start-date', 1);
+      }
+
+      const createRequest = page.waitForRequest(
+        (request) =>
+          request.method() === 'POST' &&
+          request.url().endsWith('/api/v1/savings-goals'),
+      );
+      await dialog.getByTestId('savings-goal-save').click();
+      const createPayload = (await createRequest).postDataJSON();
+
+      expect(createPayload['targetAmount'] !== undefined).toBe(scenario.target);
+      expect(createPayload['targetDate'] !== undefined).toBe(scenario.deadline);
+      expect(createPayload['startDate'] !== undefined).toBe(scenario.start);
+      if (scenario.start) {
+        expect(
+          String(createPayload['startDate']) <=
+            String(createPayload['targetDate']),
+        ).toBe(true);
+      }
+
+      await page.getByTestId(`savings-goal-${scenario.id}`).click();
+      await expect(page.getByTestId('savings-goal-detail-page')).toBeVisible();
+      await expect(page.getByTestId('savings-goal-progress-bar')).toHaveCount(
+        scenario.target ? 1 : 0,
+      );
+      await expect(page.getByTestId('savings-goal-target-date')).toHaveCount(
+        scenario.deadline ? 1 : 0,
+      );
+      await expect(page.getByTestId('stat-required')).toHaveCount(
+        scenario.target && scenario.deadline ? 1 : 0,
+      );
+      await expect(page.getByTestId('stat-estimated-completion')).toHaveCount(
+        scenario.target && !scenario.deadline ? 1 : 0,
+      );
+      await expect(page.getByTestId('stat-projected')).toHaveCount(
+        scenario.target && scenario.deadline ? 1 : 0,
+      );
+      await expect(page.getByTestId('savings-goal-pace-chip')).toHaveCount(
+        scenario.target && scenario.deadline ? 1 : 0,
+      );
+      await expect(
+        page.getByTestId('savings-goal-suggest-completion'),
+      ).toHaveCount(0);
+      await expect(page.getByTestId('savings-goal-trajectory')).toHaveCount(0);
+
+      await page.getByTestId('edit-savings-goal-button').click();
+      const editDialog = page.getByTestId('savings-goal-form-dialog');
+      const updatedName = `Objectif ${scenario.label} modifié`;
+      await editDialog.getByTestId('savings-goal-name').fill(updatedName);
+      if (scenario.label === 'name only') {
+        await editDialog.getByTestId('savings-goal-target-amount').fill('3500');
+        await pickFutureDate(page, editDialog, 'savings-goal-target-date', 3);
+      } else if (scenario.label === 'target only') {
+        await editDialog.getByTestId('savings-goal-target-amount').clear();
+        await pickFutureDate(page, editDialog, 'savings-goal-target-date', 3);
+      } else if (scenario.label === 'deadline only') {
+        await editDialog.getByTestId('savings-goal-target-amount').fill('3500');
+        await editDialog.getByTestId('savings-goal-clear-target-date').click();
+      } else {
+        await editDialog.getByTestId('savings-goal-clear-start-date').click();
+      }
+
+      const patchRequest = page.waitForRequest(
+        (request) =>
+          request.method() === 'PATCH' &&
+          request.url().endsWith(`/api/v1/savings-goals/${scenario.id}`),
+      );
+      await editDialog.getByTestId('savings-goal-save').click();
+      const patchPayload = (await patchRequest).postDataJSON() as Record<
+        string,
+        unknown
+      >;
+      await expect.poll(() => patches).toEqual([patchPayload]);
+      expect(patchPayload).toMatchObject({ name: updatedName });
+      if (scenario.label === 'name only') {
+        expect(patchPayload).toMatchObject({ targetAmount: 3500 });
+        expect(patchPayload['targetDate']).toMatch(/^\d{4}-\d{2}-15$/);
+      } else if (scenario.label === 'target only') {
+        expect(patchPayload).toMatchObject({ targetAmount: null });
+        expect(patchPayload['targetDate']).toMatch(/^\d{4}-\d{2}-15$/);
+      } else if (scenario.label === 'deadline only') {
+        expect(patchPayload).toMatchObject({
+          targetAmount: 3500,
+          targetDate: null,
+        });
+      } else {
+        expect(patchPayload).toMatchObject({ startDate: null });
+        expect(patchPayload).not.toHaveProperty('targetAmount');
+        expect(patchPayload).not.toHaveProperty('targetDate');
+      }
+      await expect(page.getByTestId('page-title')).toContainText(updatedName);
+
+      const deletionRequest = page.waitForRequest(
+        (request) =>
+          request.method() === 'POST' &&
+          request
+            .url()
+            .endsWith(`/api/v1/savings-goals/${scenario.id}/deletion`),
+      );
+      await page.getByTestId('delete-savings-goal-button').click();
+      await expect(page.getByTestId('goal-deletion-summary')).toBeVisible();
+      await page.getByTestId('goal-deletion-confirm').click();
+      expect((await deletionRequest).postDataJSON()).toEqual({
+        mode: 'goal_only',
+        revision: deletionImpact.revision,
+      });
+      await expect(page).toHaveURL(/\/savings-goals$/);
+      await expect(page.getByTestId(`savings-goal-${scenario.id}`)).toHaveCount(
+        0,
+      );
+    });
+  }
+
+  test('blocks an invalid interval without writing, then saves after correction', async ({
+    authenticatedPage: page,
+  }) => {
+    let writeCount = 0;
+    const validGoalId = '00000000-0000-4000-a000-000000000314';
+    await page.route(/\/api\/v1\/savings-goals(?:\?.*)?$/, (route) => {
+      if (route.request().method() !== 'POST') {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: [] }),
+        });
+      }
+      writeCount += 1;
+      const payload = route.request().postDataJSON() as Record<string, unknown>;
+      return route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            id: validGoalId,
+            userId: USER_ID,
+            name: payload['name'],
+            startDate: payload['startDate'] ?? null,
+            targetAmount: null,
+            targetDate: payload['targetDate'] ?? null,
+            status: 'ACTIVE',
+            initialAmount: 0,
+            createdAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-01-01T00:00:00.000Z',
+          },
+        }),
+      });
+    });
+
+    await page.goto('/savings-goals');
+    await page.getByTestId('create-savings-goal-button').click();
+    const dialog = page.getByTestId('savings-goal-form-dialog');
+    await dialog.getByTestId('savings-goal-name').fill('Intervalle');
+    await pickFutureDate(page, dialog, 'savings-goal-start-date', 2);
+    await pickFutureDate(page, dialog, 'savings-goal-target-date', 1);
+
+    await expect(dialog.getByTestId('savings-goal-save')).toBeDisabled();
+    expect(writeCount).toBe(0);
+
+    await dialog.getByTestId('savings-goal-clear-target-date').click();
+    await pickFutureDate(page, dialog, 'savings-goal-target-date', 3);
+    await expect(dialog.getByTestId('savings-goal-save')).toBeEnabled();
+    await dialog.getByTestId('savings-goal-save').click();
+    await expect.poll(() => writeCount).toBe(1);
+  });
+});
+
+test.describe('Savings goal deadline reconciliation (PUL-313)', () => {
+  const futureLine = {
+    budgetLineId: '00000000-0000-4000-a000-000000000451',
+    amount: 400,
+    month: 8,
+    year: 2027,
+  };
+
+  async function setupReconciliation(
+    page: Page,
+    options: {
+      initialGoal?: SavingsGoal;
+      futureLineBatches?: (typeof futureLine)[][];
+      conflictOnce?: boolean;
+    } = {},
+  ) {
+    const state = {
+      goal: options.initialGoal ?? (goal satisfies SavingsGoal),
+      patchPayloads: [] as Record<string, unknown>[],
+      generationStopPayloads: [] as Record<string, unknown>[],
+      requestOrder: [] as string[],
+      previewCount: 0,
+      generationStopCount: 0,
+    };
+    const futureLineBatches = options.futureLineBatches ?? [[futureLine]];
+
+    await page.route('**/api/v1/savings-goals/*/progress', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: progressFor(state.goal),
+        }),
+      }),
+    );
+    await page.route('**/api/v1/savings-goals/*/contributions', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: [] }),
+      }),
+    );
+    await page.route(/\/api\/v1\/savings-goals(?:\?.*)?$/, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: [state.goal] }),
+      }),
+    );
+    await page.route(
+      new RegExp(`/api/v1/savings-goals/${GOAL_ID}/future-lines(?:\\?.*)?$`),
+      (route) => {
+        const targetDate = new URL(route.request().url()).searchParams.get(
+          'targetDate',
+        );
+        const previewKind = targetDate ? 'deadline-preview' : 'status-preview';
+        if (!state.requestOrder.includes(previewKind)) {
+          state.requestOrder.push(previewKind);
+        }
+        const lines =
+          futureLineBatches[
+            Math.min(state.previewCount, futureLineBatches.length - 1)
+          ];
+        state.previewCount += 1;
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: lines }),
+        });
+      },
+    );
+    await page.route(
+      new RegExp(`/api/v1/savings-goals/${GOAL_ID}/generation-stop$`),
+      (route) => {
+        state.requestOrder.push('generation-stop');
+        state.generationStopPayloads.push(
+          route.request().postDataJSON() as Record<string, unknown>,
+        );
+        state.generationStopCount += 1;
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: { affectedCount: 1 },
+          }),
+        });
+      },
+    );
+    await page.route(
+      new RegExp(`/api/v1/savings-goals/${GOAL_ID}$`),
+      (route) => {
+        if (route.request().method() !== 'PATCH') return route.fallback();
+        const requestPayload = route.request().postDataJSON() as Record<
+          string,
+          unknown
+        >;
+        state.requestOrder.push('patch');
+        state.patchPayloads.push(requestPayload);
+        if (options.conflictOnce && state.patchPayloads.length === 1) {
+          return route.fulfill({
+            status: 409,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              success: false,
+              statusCode: 409,
+              error: 'Conflict',
+              code: API_ERROR_CODES.SAVINGS_GOAL_RECONCILIATION_CONFLICT,
+              message: 'Candidates drifted',
+            }),
+          });
+        }
+        const { reconciliation: _wireOnly, ...persistedUpdates } =
+          requestPayload;
+        state.goal = { ...state.goal, ...persistedUpdates };
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, data: state.goal }),
+        });
+      },
+    );
+    return state;
+  }
+
+  async function openEarlierDeadline(
+    page: Page,
+    status?: 'PAUSED' | 'COMPLETED',
+  ) {
+    await page.goto('/savings-goals');
+    await page.getByTestId(`savings-goal-${GOAL_ID}`).click();
+    await page.getByTestId('edit-savings-goal-button').click();
+    const editDialog = page.getByTestId('savings-goal-form-dialog');
+    await editDialog.getByTestId('savings-goal-name').fill('Vacances avancées');
+    await pickFutureDate(page, editDialog, 'savings-goal-target-date', -1);
+    if (status) {
+      await editDialog.getByTestId('savings-goal-status').click();
+      await page
+        .getByRole('option', {
+          name: status === 'PAUSED' ? 'En pause' : 'Atteint',
+          exact: true,
+        })
+        .click();
+    }
+    await editDialog.getByTestId('savings-goal-save').click();
+  }
+
+  for (const decision of ['freeze', 'remove'] as const) {
+    test(`sends one atomic ${decision} PATCH and no generation-stop POST`, async ({
+      authenticatedPage: page,
+    }) => {
+      const state = await setupReconciliation(page);
+
+      await openEarlierDeadline(page);
+      await expect(
+        page.getByTestId('goal-generation-stop-lines'),
+      ).toBeVisible();
+      await page.getByTestId(`goal-generation-stop-${decision}`).click();
+
+      await expect.poll(() => state.patchPayloads.length).toBe(1);
+      expect(state.previewCount).toBe(1);
+      expect(state.generationStopCount).toBe(0);
+      expect(state.patchPayloads[0]).toMatchObject({
+        name: 'Vacances avancées',
+        reconciliation: {
+          mode: decision,
+          budgetLineIds: [futureLine.budgetLineId],
+        },
+      });
+      expect(state.patchPayloads[0]?.['targetDate']).toMatch(/^2027-07-15$/);
+    });
+  }
+
+  test('separates deadline and status decisions in strict request order', async ({
+    authenticatedPage: page,
+  }) => {
+    const remainingLine = {
+      ...futureLine,
+      budgetLineId: '00000000-0000-4000-a000-000000000453',
+      amount: 275,
+    };
+    const state = await setupReconciliation(page, {
+      futureLineBatches: [[futureLine], [remainingLine]],
+    });
+
+    await openEarlierDeadline(page, 'PAUSED');
+    await expect(page.getByTestId('goal-generation-stop-lines')).toContainText(
+      '400',
+    );
+    await page.getByTestId('goal-generation-stop-remove').click();
+    await expect(page.getByTestId('goal-generation-stop-lines')).toContainText(
+      '275',
+    );
+    await page.getByTestId('goal-generation-stop-freeze').click();
+
+    await expect.poll(() => state.generationStopCount).toBe(1);
+    expect(state.requestOrder).toEqual([
+      'deadline-preview',
+      'patch',
+      'status-preview',
+      'generation-stop',
+    ]);
+    expect(state.patchPayloads).toHaveLength(1);
+    expect(state.patchPayloads[0]).toMatchObject({
+      status: 'PAUSED',
+      reconciliation: {
+        mode: 'remove',
+        budgetLineIds: [futureLine.budgetLineId],
+      },
+    });
+    expect(state.generationStopPayloads).toEqual([
+      {
+        mode: 'freeze',
+        budgetLineIds: [remainingLine.budgetLineId],
+      },
+    ]);
+  });
+
+  test('cancels reconciliation without writing', async ({
+    authenticatedPage: page,
+  }) => {
+    const state = await setupReconciliation(page);
+
+    await openEarlierDeadline(page);
+    await expect(page.getByTestId('goal-generation-stop-lines')).toBeVisible();
+    await page.getByTestId('goal-generation-stop-dismiss').click();
+
+    expect(state.previewCount).toBe(1);
+    expect(state.patchPayloads).toEqual([]);
+    expect(state.generationStopCount).toBe(0);
+  });
+
+  test('reloads candidates after conflict without partial success', async ({
+    authenticatedPage: page,
+  }) => {
+    const refreshedLine = {
+      ...futureLine,
+      budgetLineId: '00000000-0000-4000-a000-000000000452',
+      amount: 550,
+    };
+    const state = await setupReconciliation(page, {
+      futureLineBatches: [[futureLine], [refreshedLine]],
+      conflictOnce: true,
+    });
+
+    await openEarlierDeadline(page);
+    await page.getByTestId('goal-generation-stop-freeze').click();
+
+    await expect.poll(() => state.previewCount).toBe(2);
+    await expect(page.getByTestId('goal-generation-stop-lines')).toContainText(
+      '550',
+    );
+    await expect(page.locator('simple-snack-bar')).toContainText(
+      'Les prévisions ont changé entre-temps',
+    );
+    await expect(page.getByTestId('page-title')).toContainText(GOAL_NAME);
+    expect(state.patchPayloads).toHaveLength(1);
+    expect(state.goal.name).toBe(GOAL_NAME);
+    expect(state.generationStopCount).toBe(0);
+    await page.getByTestId('goal-generation-stop-dismiss').click();
+  });
+
+  test('updates an earlier deadline directly when preview is empty', async ({
+    authenticatedPage: page,
+  }) => {
+    const state = await setupReconciliation(page, {
+      futureLineBatches: [[]],
+    });
+
+    await openEarlierDeadline(page);
+
+    await expect.poll(() => state.patchPayloads.length).toBe(1);
+    await expect(page.getByTestId('goal-generation-stop-lines')).toHaveCount(0);
+    expect(state.previewCount).toBe(1);
+  });
+
+  for (const transition of ['later', 'remove', 'add'] as const) {
+    test(`${transition} deadline skips reconciliation preview`, async ({
+      authenticatedPage: page,
+    }) => {
+      const initialGoal =
+        transition === 'add'
+          ? ({ ...goal, targetDate: null } satisfies SavingsGoal)
+          : (goal satisfies SavingsGoal);
+      const state = await setupReconciliation(page, { initialGoal });
+
+      await page.goto('/savings-goals');
+      await page.getByTestId(`savings-goal-${GOAL_ID}`).click();
+      await page.getByTestId('edit-savings-goal-button').click();
+      const editDialog = page.getByTestId('savings-goal-form-dialog');
+      if (transition === 'remove') {
+        await editDialog.getByTestId('savings-goal-clear-target-date').click();
+      } else {
+        await pickFutureDate(page, editDialog, 'savings-goal-target-date', 1);
+      }
+      await editDialog.getByTestId('savings-goal-save').click();
+
+      await expect.poll(() => state.patchPayloads.length).toBe(1);
+      expect(state.previewCount).toBe(0);
+      await expect(page.getByTestId('goal-generation-stop-lines')).toHaveCount(
+        0,
+      );
+    });
+  }
 });

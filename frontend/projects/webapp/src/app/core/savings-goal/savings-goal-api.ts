@@ -145,9 +145,15 @@ export class SavingsGoalApi {
    * liées futures non pointées, non ajustées à la main. Le serveur calcule la
    * borne payDay-aware — le client ne filtre rien.
    */
-  getFutureLines$(id: string): Observable<SavingsGoalFutureLinesResponse> {
+  getFutureLines$(
+    id: string,
+    targetDate?: string,
+  ): Observable<SavingsGoalFutureLinesResponse> {
+    const query = targetDate
+      ? `?targetDate=${encodeURIComponent(targetDate)}`
+      : '';
     return this.#api.get$(
-      `/savings-goals/${id}/future-lines`,
+      `/savings-goals/${id}/future-lines${query}`,
       savingsGoalFutureLinesResponseSchema,
     );
   }

@@ -122,19 +122,32 @@ private struct SavingsGoalRow: View {
                     .foregroundStyle(Color.textPrimary)
                 HStack(spacing: DesignTokens.Spacing.sm) {
                     SavingsGoalStatusBadge(status: goal.status)
-                    if let date = goal.targetDateValue {
+                    if let start = goal.startDateValue, let end = goal.targetDateValue {
+                        Text(
+                            "\(start.formatted(date: .abbreviated, time: .omitted))"
+                                + " → \(end.formatted(date: .abbreviated, time: .omitted))"
+                        )
+                        .font(PulpeTypography.listRowSubtitle)
+                        .foregroundStyle(Color.textTertiary)
+                    } else if let date = goal.targetDateValue {
                         Text("Échéance \(date.formatted(date: .abbreviated, time: .omitted))")
+                            .font(PulpeTypography.listRowSubtitle)
+                            .foregroundStyle(Color.textTertiary)
+                    } else if let date = goal.startDateValue {
+                        Text("Depuis \(date.formatted(date: .abbreviated, time: .omitted))")
                             .font(PulpeTypography.listRowSubtitle)
                             .foregroundStyle(Color.textTertiary)
                     }
                 }
             }
             Spacer()
-            Text(goal.targetAmount.asCurrency(currency))
-                .font(PulpeTypography.amountCard)
-                .monospacedDigit()
-                .foregroundStyle(Color.textPrimary)
-                .sensitiveAmount()
+            if let targetAmount = goal.targetAmount {
+                Text(targetAmount.asCurrency(currency))
+                    .font(PulpeTypography.amountCard)
+                    .monospacedDigit()
+                    .foregroundStyle(Color.textPrimary)
+                    .sensitiveAmount()
+            }
         }
         .padding(DesignTokens.Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)

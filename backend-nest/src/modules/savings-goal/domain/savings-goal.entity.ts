@@ -5,6 +5,7 @@ import type {
   SavingsGoalDeletionImpact,
   SavingsGoalPlanApply,
   SavingsGoalProgressResult,
+  SavingsGoalReconciliation,
   SavingsPlanTimelineMonth,
   SupportedCurrency,
 } from 'pulpe-shared';
@@ -29,8 +30,9 @@ export interface SavingsGoal {
   id: string;
   userId: string;
   name: string;
-  targetAmount: number;
-  targetDate: string;
+  startDate: string | null;
+  targetAmount: number | null;
+  targetDate: string | null;
   status: SavingsGoalStatus;
   createdAt: string;
   updatedAt: string;
@@ -47,8 +49,9 @@ export interface SavingsGoal {
  */
 export interface SavingsGoalCreateInput {
   name: string;
-  targetAmount: number;
-  targetDate: string;
+  startDate: string | null;
+  targetAmount: number | null;
+  targetDate: string | null;
   status: SavingsGoalStatus;
   originalTargetAmount?: number | null;
   originalCurrency?: SupportedCurrency | null;
@@ -64,8 +67,9 @@ export interface SavingsGoalCreateInput {
  */
 export interface SavingsGoalUpdatePatch {
   name?: string;
-  targetAmount?: number;
-  targetDate?: string;
+  startDate?: string | null;
+  targetAmount?: number | null;
+  targetDate?: string | null;
   status?: SavingsGoalStatus;
   originalTargetAmount?: number | null;
   originalCurrency?: SupportedCurrency | null;
@@ -134,6 +138,21 @@ export interface SavingsGoalPlanApplyResult {
  * post-commit recalc.
  */
 export interface SavingsGoalGenerationStopResult {
+  affectedLineIds: string[];
+  touchedBudgetIds: string[];
+}
+
+export interface SavingsGoalTargetDateReconciliationCommand {
+  patch: SavingsGoalUpdatePatch;
+  reconciliation: {
+    mode: SavingsGoalReconciliation['mode'];
+    budgetLineIds: string[];
+  };
+  expectedTargetDate: string;
+}
+
+export interface SavingsGoalTargetDateReconciliationResult {
+  goal: SavingsGoal;
   affectedLineIds: string[];
   touchedBudgetIds: string[];
 }

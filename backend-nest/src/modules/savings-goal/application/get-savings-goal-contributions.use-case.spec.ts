@@ -20,6 +20,7 @@ const goal: SavingsGoal = {
   id: 'goal-1',
   userId: 'user-1',
   name: 'Maison',
+  startDate: null,
   targetAmount: 12_000,
   targetDate: '2099-12-15',
   status: 'ACTIVE',

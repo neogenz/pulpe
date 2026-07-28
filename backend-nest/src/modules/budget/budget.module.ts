@@ -21,6 +21,7 @@ import { RecalculateBudgetBalancesUseCase } from './application/recalculate-budg
 import { ResolveNextMonthBudgetUseCase } from './application/resolve-next-month-budget.use-case';
 import { EnsureBudgetsForPeriodsUseCase } from './application/ensure-budgets-for-periods.use-case';
 import { BUDGET_PROVISIONING_PORT } from './domain/ports/budget-provisioning.port';
+import { SAVINGS_GOAL_HORIZON_PORT } from './domain/ports/savings-goal-horizon.port';
 
 @Module({
   imports: [EncryptionModule],
@@ -39,7 +40,12 @@ import { BUDGET_PROVISIONING_PORT } from './domain/ports/budget-provisioning.por
     RecalculateBudgetBalancesUseCase,
     ResolveNextMonthBudgetUseCase,
     EnsureBudgetsForPeriodsUseCase,
-    { provide: BUDGET_REPOSITORY, useClass: SupabaseBudgetRepository },
+    SupabaseBudgetRepository,
+    { provide: BUDGET_REPOSITORY, useExisting: SupabaseBudgetRepository },
+    {
+      provide: SAVINGS_GOAL_HORIZON_PORT,
+      useExisting: SupabaseBudgetRepository,
+    },
     {
       provide: BUDGET_RECALCULATION_PORT,
       useExisting: RecalculateBudgetBalancesUseCase,
@@ -72,6 +78,7 @@ import { BUDGET_PROVISIONING_PORT } from './domain/ports/budget-provisioning.por
     BUDGET_RECALCULATION_PORT,
     BUDGET_PERIOD_LOOKUP_PORT,
     BUDGET_PROVISIONING_PORT,
+    SAVINGS_GOAL_HORIZON_PORT,
   ],
 })
 export class BudgetModule {}

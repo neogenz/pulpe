@@ -202,6 +202,7 @@ describe('Encryption integration (local Supabase)', () => {
     const transactionId = randomUUID();
     const templateLineId = randomUUID();
     const savingsGoalId = randomUUID();
+    const nullableSavingsGoalId = randomUUID();
 
     try {
       await adminClient.from('template').insert({
@@ -279,6 +280,24 @@ describe('Encryption integration (local Supabase)', () => {
         target_date: '2026-12-31',
       });
       if (sgError) throw sgError;
+      const { error: nullableSgError } = await adminClient
+        .from('savings_goal')
+        .insert({
+          id: nullableSavingsGoalId,
+          user_id: userId,
+          name: 'Savings goal without target',
+          status: 'ACTIVE',
+          target_amount: null,
+          target_date: '2026-12-31',
+        });
+      if (nullableSgError) throw nullableSgError;
+
+      const { data: nullableSavingsGoalBefore } = await adminClient
+        .from('savings_goal')
+        .select('target_amount')
+        .eq('id', nullableSavingsGoalId)
+        .single();
+      expect(nullableSavingsGoalBefore?.target_amount).toBeNull();
 
       await adminClient
         .from('monthly_budget')
@@ -323,12 +342,18 @@ describe('Encryption integration (local Supabase)', () => {
         .select('ending_balance')
         .eq('id', budgetId)
         .single();
+      const { data: nullableSavingsGoalAfter } = await adminClient
+        .from('savings_goal')
+        .select('target_amount')
+        .eq('id', nullableSavingsGoalId)
+        .single();
 
       expect(budgetLine?.amount).toBeTruthy();
       expect(transaction?.amount).toBeTruthy();
       expect(templateLine?.amount).toBeTruthy();
       expect(savingsGoal?.target_amount).toBeTruthy();
       expect(monthlyBudget?.ending_balance).toBeTruthy();
+      expect(nullableSavingsGoalAfter?.target_amount).toBeNull();
 
       expect(encryptionService.decryptAmount(budgetLine!.amount!, newDek)).toBe(
         150,

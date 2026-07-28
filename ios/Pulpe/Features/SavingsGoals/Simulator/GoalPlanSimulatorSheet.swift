@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import SwiftUI
 
 /// « Ajuster mon plan » (PUL-12+, pilier C) — the full-height simulation sheet.
@@ -221,7 +222,7 @@ struct GoalPlanSimulatorSheet: View {
 
     @ViewBuilder
     private func row(for simMonth: SavingsPlanCalculator.SimulatedMonth) -> some View {
-        if SavingsPlanCalculator.isOpenPlanMonth(simMonth.month) {
+        if SavingsPlanCalculator.isContributivePlanMonth(simMonth.month) {
             GoalPlanSimEditRow(
                 simMonth: simMonth,
                 currency: currency,
@@ -270,13 +271,14 @@ final class GoalPlanSimulatorViewModel {
     private let goalId: String
     private let currency: SupportedCurrency
     private let baseline: [SavingsGoalPlanMonth]
-    private let targetAmount: Decimal
+    private let targetAmount: Decimal?
     private let confirmedAmount: Decimal
     private let initialAmount: Decimal // PUL-293 seed for every simulate/redistribute call below
     private let service: any SavingsGoalServicing
 
-    private var deadlineDate: Date
-    private var deadlinePeriod: BudgetPeriod
+    /// Deadline period for the early/on-time verdict — refined once payDay lands.
+    private var deadlineDate: Date?
+    private var deadlinePeriod: BudgetPeriod?
 
     private(set) var overrides: [Int: Decimal] = [:]
     private(set) var globalAmount: Decimal?
@@ -304,9 +306,10 @@ final class GoalPlanSimulatorViewModel {
         confirmedAmount = progress.confirmed
         initialAmount = progress.initialAmount
 
-        let resolvedDeadline = goal.targetDateValue ?? Date()
-        deadlineDate = resolvedDeadline
-        deadlinePeriod = BudgetPeriodCalculator.periodForDate(resolvedDeadline, payDayOfMonth: payDay)
+        deadlineDate = goal.targetDateValue
+        deadlinePeriod = goal.targetDateValue.map {
+            BudgetPeriodCalculator.periodForDate($0, payDayOfMonth: payDay)
+        }
 
         let openPlannedMax = progress.months
             .filter { SavingsPlanCalculator.isOpenPlanMonth($0) }
@@ -324,7 +327,7 @@ final class GoalPlanSimulatorViewModel {
             months: [],
             simulatedFinal: 0,
             gapToTarget: progress.targetAmount,
-            isTargetMet: false,
+            isTargetMet: progress.targetAmount.map { $0 <= 0 },
             attainedPeriod: nil
         )
         syncGlobalControlFromDraft()
@@ -364,11 +367,16 @@ final class GoalPlanSimulatorViewModel {
     var redistributePerMonth: Decimal { redistributePreview.perRemainingMonth }
 
     var verdictText: String {
+        guard targetAmount != nil else {
+            return "Avec ce plan, tu auras prévu \(draft.simulatedFinal.asCompactCurrency(currency))."
+        }
         guard let attained = draft.attainedPeriod else {
-            return "Avec ce plan, il te manque \(draft.gapToTarget.asCompactCurrency(currency)) pour ta cible."
+            let gap = draft.gapToTarget ?? 0
+            return "Avec ce plan, il te manque \(gap.asCompactCurrency(currency)) pour ta cible."
         }
         let label = "\(Formatters.monthName(for: attained.month)) \(attained.year)"
-        if BudgetPeriodCalculator.comparePeriods(attained, deadlinePeriod) < 0 {
+        if let deadlinePeriod,
+           BudgetPeriodCalculator.comparePeriods(attained, deadlinePeriod) < 0 {
             return "Avec ce plan, tu atteins ta cible dès \(label), en avance."
         }
         return "Avec ce plan, tu atteins ta cible en \(label)."
@@ -377,7 +385,9 @@ final class GoalPlanSimulatorViewModel {
     func simulatedAmount(forKey key: Int) -> Decimal { draft.months.first { $0.id == key }?.simulatedAmount ?? 0 }
 
     func setPayDay(_ payDay: Int?) {
-        deadlinePeriod = BudgetPeriodCalculator.periodForDate(deadlineDate, payDayOfMonth: payDay)
+        deadlinePeriod = deadlineDate.map {
+            BudgetPeriodCalculator.periodForDate($0, payDayOfMonth: payDay)
+        }
     }
 
     /// Slider / twin field — sets a uniform amount and wipes per-month overrides.

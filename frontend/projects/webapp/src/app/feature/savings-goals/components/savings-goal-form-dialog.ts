@@ -3,6 +3,7 @@ import {
   Component,
   computed,
   inject,
+  linkedSignal,
   signal,
 } from '@angular/core';
 import {
@@ -61,6 +62,12 @@ function isoToDate(value: string): Date | null {
   return isNaN(parsed.getTime()) ? null : parsed;
 }
 
+function inputNumber(value: string): number | null {
+  if (value.trim() === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 @Component({
   selector: 'pulpe-savings-goal-form-dialog',
   imports: [
@@ -112,14 +119,14 @@ function isoToDate(value: string): Date | null {
           }}</mat-label>
           <input
             matInput
-            type="number"
+            type="text"
             step="0.01"
             inputmode="decimal"
             [formField]="goalForm.targetAmount"
             data-testid="savings-goal-target-amount"
           />
           <span matTextSuffix>{{ currencySymbol() }}</span>
-          @if (targetAmountErrors().required) {
+          @if (targetAmountErrors().positive) {
             <mat-error>{{
               'savingsGoals.targetAmountRequired' | transloco
             }}</mat-error>
@@ -129,6 +136,7 @@ function isoToDate(value: string): Date | null {
         <mat-form-field
           appearance="outline"
           subscriptSizing="dynamic"
+          floatLabel="always"
           class="w-full"
         >
           <mat-label>{{
@@ -136,7 +144,7 @@ function isoToDate(value: string): Date | null {
           }}</mat-label>
           <input
             matInput
-            type="number"
+            type="text"
             step="0.01"
             inputmode="decimal"
             [formField]="goalForm.initialAmount"
@@ -159,6 +167,42 @@ function isoToDate(value: string): Date | null {
           subscriptSizing="dynamic"
           class="w-full"
         >
+          <mat-label>{{ 'savingsGoals.fieldStartDate' | transloco }}</mat-label>
+          <input
+            matInput
+            [matDatepicker]="startPicker"
+            [max]="targetDateAsDate()"
+            [value]="startDateAsDate()"
+            (dateChange)="onStartDateChange($event)"
+            data-testid="savings-goal-start-date"
+            readonly
+          />
+          @if (model().startDate) {
+            <button
+              type="button"
+              matIconButton
+              matIconSuffix
+              (click)="clearStartDate()"
+              [attr.aria-label]="'savingsGoals.clearStartDate' | transloco"
+              data-testid="savings-goal-clear-start-date"
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+          }
+          <mat-datepicker-toggle matIconSuffix [for]="startPicker" />
+          <mat-datepicker #startPicker />
+          @if (startDateErrors().afterTarget) {
+            <mat-error>{{
+              'savingsGoals.startDateAfterTarget' | transloco
+            }}</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field
+          appearance="outline"
+          subscriptSizing="dynamic"
+          class="w-full"
+        >
           <mat-label>{{
             'savingsGoals.fieldTargetDate' | transloco
           }}</mat-label>
@@ -172,13 +216,21 @@ function isoToDate(value: string): Date | null {
             data-testid="savings-goal-target-date"
             readonly
           />
+          @if (model().targetDate) {
+            <button
+              type="button"
+              matIconButton
+              matIconSuffix
+              (click)="clearTargetDate()"
+              [attr.aria-label]="'savingsGoals.clearTargetDate' | transloco"
+              data-testid="savings-goal-clear-target-date"
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+          }
           <mat-datepicker-toggle matIconSuffix [for]="picker" />
           <mat-datepicker #picker />
-          @if (targetDateErrors().required) {
-            <mat-error>{{
-              'savingsGoals.targetDateRequired' | transloco
-            }}</mat-error>
-          } @else if (targetDateErrors().pastDate) {
+          @if (targetDateErrors().pastDate) {
             <mat-error>{{
               'savingsGoals.targetDatePast' | transloco
             }}</mat-error>
@@ -222,9 +274,13 @@ function isoToDate(value: string): Date | null {
                 <mat-hint class="text-error">{{
                   'savingsGoals.monthlyContributionInvalid' | transloco
                 }}</mat-hint>
-              } @else {
+              } @else if (model().targetDate) {
                 <mat-hint>{{
                   'savingsGoals.decomposeHint' | transloco
+                }}</mat-hint>
+              } @else {
+                <mat-hint>{{
+                  'savingsGoals.openContributionHint' | transloco
                 }}</mat-hint>
               }
             </mat-form-field>
@@ -297,8 +353,15 @@ export class SavingsGoalFormDialog {
 
   protected readonly model = signal<SavingsGoalFormValue>({
     name: this.#data.goal?.name ?? '',
-    targetAmount: this.#data.goal?.targetAmount ?? 0,
-    initialAmount: this.#data.goal?.initialAmount ?? 0,
+    startDate: this.#data.goal?.startDate ?? '',
+    targetAmount:
+      this.#data.goal?.targetAmount != null
+        ? String(this.#data.goal.targetAmount)
+        : '',
+    initialAmount:
+      this.#data.goal?.initialAmount != null
+        ? String(this.#data.goal.initialAmount)
+        : '',
     targetDate: this.#data.goal?.targetDate ?? '',
     status: this.#data.goal?.status ?? 'ACTIVE',
   });
@@ -306,19 +369,27 @@ export class SavingsGoalFormDialog {
   protected readonly goalForm = form(this.model, (path) => {
     required(path.name, { message: 'savingsGoals.fieldName' });
     maxLength(path.name, 100);
-    required(path.targetAmount, { message: 'savingsGoals.fieldTargetAmount' });
-    validate(path.targetAmount, ({ value }) =>
-      value() > 0 ? null : { kind: 'required' },
-    );
-    // Optional field (no `min` attribute — the signal-forms `[formField]`
-    // directive rejects it on NG8022) — enforce non-negative via schema instead.
-    // A cleared field reads null: that means "no initial amount", so it is
-    // valid, and the builders normalize it to 0 before the strict schema.
-    validate(path.initialAmount, ({ value }) => {
-      const amount = value();
-      return amount == null || amount >= 0 ? null : { kind: 'negative' };
+    validate(path.targetAmount, ({ value }) => {
+      const raw = value();
+      const amount = inputNumber(raw);
+      return raw === '' || (amount != null && amount > 0)
+        ? null
+        : { kind: 'positive' };
     });
-    required(path.targetDate, { message: 'savingsGoals.fieldTargetDate' });
+    validate(path.initialAmount, ({ value }) => {
+      const raw = value();
+      const amount = inputNumber(raw);
+      return raw === '' || (amount != null && amount >= 0)
+        ? null
+        : { kind: 'negative' };
+    });
+    validate(path.startDate, ({ value, valueOf }) => {
+      const startDate = value();
+      const targetDate = valueOf(path.targetDate);
+      return startDate && targetDate && startDate > targetDate
+        ? { kind: 'afterTarget' }
+        : null;
+    });
     validate(path.targetDate, ({ value }) => {
       const v = value();
       if (!v) return null;
@@ -332,26 +403,37 @@ export class SavingsGoalFormDialog {
   });
 
   // PUL-285 CA6 — opt-in « décomposer en mensualités », création uniquement.
-  // Pré-coché ; la suggestion suit cible/échéance tant que l'utilisateur n'a
-  // pas saisi son propre montant (vider le champ rend la main à la suggestion).
-  protected readonly decomposeEnabled = signal(!this.#data.goal);
+  // L'opt-in s'active automatiquement dès que cible + échéance existent
+  // (comportement historique), mais reste disponible manuellement pour un pot.
+  // Sans cible ni échéance, le nom seul reste immédiatement enregistrable.
+  readonly #hasTargetInterval = computed(() => {
+    const { targetAmount, targetDate } = this.model();
+    const amount = inputNumber(targetAmount);
+    return amount != null && amount > 0 && !!targetDate;
+  });
+  protected readonly decomposeEnabled = linkedSignal(
+    () => !this.isEdit() && this.#hasTargetInterval(),
+  );
   readonly #monthlyContributionOverride = signal<number | null>(null);
   readonly #suggestedMonthly = computed(() => {
-    const { targetAmount, targetDate, initialAmount } = this.model();
-    if (!targetAmount || targetAmount <= 0 || !targetDate) return null;
+    const { targetAmount, targetDate, initialAmount, startDate } = this.model();
+    const target = inputNumber(targetAmount);
+    if (target == null || target <= 0 || !targetDate) return null;
     return suggestedMonthlyContribution({
-      targetAmount,
+      targetAmount: target,
+      startDate: startDate || null,
       targetDate,
       // Le montant de départ est déjà acquis : décomposer la cible ENTIÈRE
       // sur-provisionnerait la prévision récurrente générée (PUL-285 CA2).
-      initialAmount: initialAmount ?? 0,
+      initialAmount: inputNumber(initialAmount) ?? 0,
       payDayOfMonth: this.#settings.payDayOfMonth(),
     });
   });
   /** Le montant de départ couvre déjà la cible ⇒ plus rien à décomposer. */
   protected readonly hasRemainingToSave = computed(() => {
     const { targetAmount, initialAmount } = this.model();
-    return targetAmount - (initialAmount ?? 0) > 0;
+    const target = inputNumber(targetAmount);
+    return target == null || target - (inputNumber(initialAmount) ?? 0) > 0;
   });
   protected readonly monthlyContribution = computed(
     () => this.#monthlyContributionOverride() ?? this.#suggestedMonthly(),
@@ -375,6 +457,9 @@ export class SavingsGoalFormDialog {
   protected readonly targetDateAsDate = computed(() =>
     isoToDate(this.model().targetDate),
   );
+  protected readonly startDateAsDate = computed(() =>
+    isoToDate(this.model().startDate),
+  );
 
   protected readonly nameErrors = touchedFieldErrors(
     () => this.goalForm.name,
@@ -382,7 +467,7 @@ export class SavingsGoalFormDialog {
   );
   protected readonly targetAmountErrors = touchedFieldErrors(
     () => this.goalForm.targetAmount,
-    'required',
+    'positive',
   );
   protected readonly initialAmountErrors = touchedFieldErrors(
     () => this.goalForm.initialAmount,
@@ -390,9 +475,12 @@ export class SavingsGoalFormDialog {
   );
   protected readonly targetDateErrors = touchedFieldErrors(
     () => this.goalForm.targetDate,
-    'required',
     'pastDate',
     'tooFar',
+  );
+  protected readonly startDateErrors = touchedFieldErrors(
+    () => this.goalForm.startDate,
+    'afterTarget',
   );
 
   protected statusLabelKey(status: SavingsGoalStatus): string {
@@ -421,6 +509,25 @@ export class SavingsGoalFormDialog {
       targetDate: date ? format(date, ISO_DATE) : '',
     }));
     // Mark the field touched so validation messages can surface.
+    this.goalForm.targetDate().markAsTouched();
+  }
+
+  protected onStartDateChange(event: MatDatepickerInputEvent<Date>): void {
+    const date = event.value;
+    this.model.update((model) => ({
+      ...model,
+      startDate: date ? format(date, ISO_DATE) : '',
+    }));
+    this.goalForm.startDate().markAsTouched();
+  }
+
+  protected clearStartDate(): void {
+    this.model.update((model) => ({ ...model, startDate: '' }));
+    this.goalForm.startDate().markAsTouched();
+  }
+
+  protected clearTargetDate(): void {
+    this.model.update((model) => ({ ...model, targetDate: '' }));
     this.goalForm.targetDate().markAsTouched();
   }
 

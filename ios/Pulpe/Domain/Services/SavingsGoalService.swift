@@ -8,7 +8,7 @@ protocol SavingsGoalServicing: Sendable {
     func getProgress(id: String) async throws -> SavingsGoalProgress
     func getContributions(id: String) async throws -> [SavingsGoalContribution]
     func applyPlan(id: String, _ payload: SavingsGoalPlanApply) async throws -> SavingsGoalPlanApplyResult
-    func getFutureLines(id: String) async throws -> [SavingsGoalFutureLine]
+    func getFutureLines(id: String, targetDate: String?) async throws -> [SavingsGoalFutureLine]
     func applyGenerationStop(
         id: String,
         _ payload: SavingsGoalGenerationStop
@@ -17,6 +17,12 @@ protocol SavingsGoalServicing: Sendable {
     func delete(id: String, command: SavingsGoalDeletionCommand) async throws
     func create(_ data: SavingsGoalCreate) async throws -> SavingsGoal
     func update(id: String, data: SavingsGoalUpdate) async throws -> SavingsGoal
+}
+
+extension SavingsGoalServicing {
+    func getFutureLines(id: String) async throws -> [SavingsGoalFutureLine] {
+        try await getFutureLines(id: id, targetDate: nil)
+    }
 }
 
 /// Service for savings-goal API operations (PUL-12). The backend wraps responses
@@ -56,8 +62,11 @@ actor SavingsGoalService: SavingsGoalServicing {
 
     /// Advisory candidates at generation stop (PUL-285 CA5): linked, unchecked,
     /// non-manually-adjusted lines of the current payDay cycle and beyond.
-    func getFutureLines(id: String) async throws -> [SavingsGoalFutureLine] {
-        try await apiClient.request(.savingsGoalFutureLines(id: id), method: .get)
+    func getFutureLines(id: String, targetDate: String?) async throws -> [SavingsGoalFutureLine] {
+        try await apiClient.request(
+            .savingsGoalFutureLines(id: id, targetDate: targetDate),
+            method: .get
+        )
     }
 
     /// Applies the explicit freeze/remove decision (PUL-285 CA8). Atomic —

@@ -27,6 +27,7 @@ function makeGoal(overrides: Partial<SavingsGoal> = {}): SavingsGoal {
     id: 'goal-1',
     userId: 'user-1',
     name: 'Vacances été 2027',
+    startDate: null,
     targetAmount: 3000,
     targetDate: '2027-08-01',
     status: 'ACTIVE',
@@ -42,9 +43,11 @@ function makeProgress(
   return {
     goalId: 'goal-1',
     status: 'ACTIVE',
+    startDate: null,
     targetAmount: 3000,
     targetDate: '2027-08-01',
     plannedCumulative: 1200,
+    plannedProjection: 1200,
     confirmed: 900,
     initialAmount: 0,
     achievementPercent: 30,
@@ -124,6 +127,7 @@ describe('SavingsGoalStore', () => {
         .mockReturnValue(of({ data: makeProgress(), success: true })),
       create$: vi.fn(),
       update$: vi.fn(),
+      getFutureLines$: vi.fn().mockReturnValue(of({ data: [], success: true })),
       getDeletionImpact$: vi
         .fn()
         .mockReturnValue(of({ data: makeDeletionImpact(), success: true })),
@@ -247,6 +251,117 @@ describe('SavingsGoalStore', () => {
     expect(store.goals().find((g) => g.id === 'goal-1')?.status).toBe(
       'COMPLETED',
     );
+  });
+
+  it('editGoal preserves explicit nullable interval clears', async () => {
+    const updated = makeGoal({
+      id: 'goal-1',
+      startDate: null,
+      targetAmount: null,
+      targetDate: null,
+    });
+    mockApi.update$ = vi
+      .fn()
+      .mockReturnValue(of({ data: updated, success: true }));
+    await settle();
+
+    const clears = {
+      startDate: null,
+      targetAmount: null,
+      targetDate: null,
+    };
+    await store.editGoal('goal-1', clears);
+
+    expect(mockApi.update$).toHaveBeenCalledWith('goal-1', clears);
+    expect(store.goals().find((goal) => goal.id === 'goal-1')).toMatchObject(
+      clears,
+    );
+  });
+
+  it('keeps reconciliation wire-only and invalidates budget data', async () => {
+    const updated = makeGoal({ id: 'goal-1', targetDate: '2027-07-24' });
+    mockApi.update$ = vi
+      .fn()
+      .mockReturnValue(of({ data: updated, success: true }));
+    await settle();
+
+    const updates = {
+      name: 'Vacances avancées',
+      targetDate: '2027-07-24',
+      reconciliation: {
+        mode: 'freeze' as const,
+        budgetLineIds: ['00000000-0000-4000-8000-000000000101'],
+      },
+    };
+    const promise = store.editGoal('goal-1', updates);
+
+    expect(store.goals().find((goal) => goal.id === 'goal-1')).toMatchObject({
+      name: 'Vacances avancées',
+      targetDate: '2027-07-24',
+    });
+    expect(
+      store.goals().find((goal) => goal.id === 'goal-1'),
+    ).not.toHaveProperty('reconciliation');
+
+    await promise;
+
+    expect(mockApi.update$).toHaveBeenCalledWith('goal-1', updates);
+    expect(mockCache.invalidate).toHaveBeenCalledWith(['savings-goals']);
+    expect(mockBudgetCache.invalidate).toHaveBeenCalledWith(['budget']);
+  });
+
+  it('loads a deadline preview without replacing the status-stop cache', async () => {
+    const line = {
+      budgetLineId: '00000000-0000-4000-8000-000000000101',
+      amount: 250,
+      month: 8,
+      year: 2027,
+    };
+    mockApi.getFutureLines$ = vi
+      .fn()
+      .mockReturnValue(of({ data: [line], success: true }));
+
+    const result = await store.fetchFutureLines('goal-1', '2027-07-24');
+
+    expect(result).toEqual([line]);
+    expect(mockApi.getFutureLines$).toHaveBeenCalledWith(
+      'goal-1',
+      '2027-07-24',
+    );
+    expect(mockCache.set).not.toHaveBeenCalledWith(
+      ['savings-goals', 'future-lines', 'goal-1'],
+      expect.anything(),
+    );
+  });
+
+  it('invalidates committed reconciliation data after recalculation fails', async () => {
+    mockApi.update$ = vi
+      .fn()
+      .mockReturnValue(
+        throwError(
+          () =>
+            new ApiError(
+              'Committed but recalc failed',
+              'ERR_SAVINGS_GOAL_RECONCILIATION_RECALCULATION_FAILED',
+              500,
+              null,
+            ),
+        ),
+      );
+
+    await expect(
+      store.editGoal('goal-1', {
+        targetDate: '2027-07-24',
+        reconciliation: {
+          mode: 'remove',
+          budgetLineIds: ['00000000-0000-4000-8000-000000000101'],
+        },
+      }),
+    ).rejects.toThrow();
+
+    expect(mockApi.update$).toHaveBeenCalledOnce();
+    expect(mockCache.invalidate).toHaveBeenCalledWith(['savings-goals']);
+    expect(mockBudgetCache.invalidate).toHaveBeenCalledWith(['budget']);
   });
 
   it('editGoal rolls back the optimistic change on error', async () => {

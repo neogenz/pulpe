@@ -20,20 +20,20 @@ enum SavingsGoalStatus: String, Codable, Sendable, CaseIterable {
 /// A long-term savings goal (PUL-12).
 ///
 /// `targetAmount` is encrypted at rest on the backend and returned decrypted.
-/// `targetDate` is a bare ISO date (`YYYY-MM-DD`), not a datetime — it is kept as
-/// a `String` to match the API exactly and avoid the ISO8601 *datetime* decoder
-/// (which would reject `2027-01-01`). FX fields are dormant in v1 (account
-/// currency only) and come back `null`.
+/// Interval dates are bare ISO dates (`YYYY-MM-DD`), not datetimes — they stay
+/// strings to match the API and avoid the ISO8601 *datetime* decoder.
 struct SavingsGoal: Codable, Identifiable, Hashable, Sendable {
     let id: String
     let userId: String?
     let name: String
-    let targetAmount: Decimal
-    let targetDate: String
+    var targetAmount: Decimal?
+    var targetDate: String?
     let status: SavingsGoalStatus
     let createdAt: Date
     let updatedAt: Date
 
+    /// Optional beginning of the contribution interval.
+    var startDate: String?
     /// Stock already saved before tracking started (PUL-293), encrypted at
     /// rest. `nil` when unset — a synthesized memberwise default keeps every
     /// existing call site compilable.
@@ -48,7 +48,11 @@ struct SavingsGoal: Codable, Identifiable, Hashable, Sendable {
     /// The `targetDate` parsed into a `Date` for display / editing, or `nil` if
     /// the API ever returns a malformed value.
     var targetDateValue: Date? {
-        SavingsGoalDateFormatter.parse(targetDate)
+        targetDate.flatMap { SavingsGoalDateFormatter.parse($0) }
+    }
+
+    var startDateValue: Date? {
+        startDate.flatMap { SavingsGoalDateFormatter.parse($0) }
     }
 }
 
@@ -56,8 +60,8 @@ struct SavingsGoal: Codable, Identifiable, Hashable, Sendable {
 
 struct SavingsGoalCreate: Encodable {
     let name: String
-    let targetAmount: Decimal
-    let targetDate: String
+    var targetAmount: Decimal?
+    var targetDate: String?
     let status: SavingsGoalStatus
     /// Opt-in auto-décomposition (PUL-285 CA1/CA6) : montant mensuel choisi —
     /// présence = le serveur crée des prévisions Épargne `one_off` liées dans
@@ -65,17 +69,23 @@ struct SavingsGoalCreate: Encodable {
     var monthlyContribution: Decimal?
     /// Stock déjà épargné avant le suivi (PUL-293). Omis = 0 (défaut serveur).
     var initialAmount: Decimal?
+    /// Début explicite facultatif de l'intervalle de contribution.
+    var startDate: String?
 }
 
-/// Partial update — only the set fields are sent (Swift synthesises
-/// `encodeIfPresent` for optionals, so `nil` fields are omitted from the body).
+/// Partial update. Double optionals preserve PATCH's three states:
+/// outer nil = omitted, `.some(nil)` = JSON null, `.some(value)` = value.
 struct SavingsGoalUpdate: Encodable {
     var name: String?
-    var targetAmount: Decimal?
-    var targetDate: String?
+    var targetAmount: Decimal??
+    var targetDate: String??
     var status: SavingsGoalStatus?
     /// Omis = inchangé ; `0` efface le montant de départ (miroir serveur).
     var initialAmount: Decimal?
+    var startDate: String??
+    /// Atomic decision required when an earlier deadline excludes linked
+    /// prévisions. Omitted for every ordinary metadata/status update.
+    var reconciliation: SavingsGoalGenerationStop?
 }
 
 // MARK: - Kind guard

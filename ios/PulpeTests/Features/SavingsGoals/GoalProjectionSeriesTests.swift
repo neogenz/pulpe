@@ -78,7 +78,20 @@ struct GoalProjectionSeriesTests {
         #expect(onPlan.amount == nil)
     }
 
-    private func makeProgress(currentIndex: Int, count: Int = 4) -> SavingsGoalProgress {
+    @Test("a targetless series keeps its data without inventing a chart target")
+    func targetlessSeries_hasNoTargetRuleValue() {
+        let series = GoalProjectionSeries.read(from: makeProgress(currentIndex: 1, targetAmount: nil))
+
+        #expect(series.target == nil)
+        #expect(series.projection.count == 3)
+        #expect(series.confirmed.count == 2)
+    }
+
+    private func makeProgress(
+        currentIndex: Int,
+        count: Int = 4,
+        targetAmount: Decimal? = 2_000
+    ) -> SavingsGoalProgress {
         let months: [SavingsGoalPlanMonth] = (0..<count).map { offset in
             let state: SavingsPlanMonthState
             if offset < currentIndex {
@@ -103,7 +116,7 @@ struct GoalProjectionSeriesTests {
         return SavingsGoalProgress(
             goalId: "g1",
             status: .active,
-            targetAmount: 200_000,
+            targetAmount: targetAmount,
             targetDate: "2099-04-01",
             plannedCumulative: 500,
             confirmed: 85_000,

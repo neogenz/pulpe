@@ -206,10 +206,11 @@ export type Database = {
           original_currency: string | null;
           original_target_amount: string | null;
           priority: Database['public']['Enums']['priority_level'] | null;
+          start_date: string | null;
           status: Database['public']['Enums']['savings_goal_status'];
           target_amount: string | null;
           target_currency: string | null;
-          target_date: string;
+          target_date: string | null;
           updated_at: string;
           user_id: string;
         };
@@ -222,10 +223,11 @@ export type Database = {
           original_currency?: string | null;
           original_target_amount?: string | null;
           priority?: Database['public']['Enums']['priority_level'] | null;
+          start_date?: string | null;
           status?: Database['public']['Enums']['savings_goal_status'];
           target_amount?: string | null;
           target_currency?: string | null;
-          target_date: string;
+          target_date?: string | null;
           updated_at?: string;
           user_id: string;
         };
@@ -238,10 +240,11 @@ export type Database = {
           original_currency?: string | null;
           original_target_amount?: string | null;
           priority?: Database['public']['Enums']['priority_level'] | null;
+          start_date?: string | null;
           status?: Database['public']['Enums']['savings_goal_status'];
           target_amount?: string | null;
           target_currency?: string | null;
-          target_date?: string;
+          target_date?: string | null;
           updated_at?: string;
           user_id?: string;
         };
@@ -706,6 +709,16 @@ export type Database = {
       };
       get_savings_goal_deletion_impact: {
         Args: { p_goal_id: string };
+        Returns: Json;
+      };
+      reconcile_savings_goal_target_date: {
+        Args: {
+          p_budget_line_ids: string[];
+          p_expected_target_date: string;
+          p_goal_id: string;
+          p_mode: string;
+          p_patch: Json;
+        };
         Returns: Json;
       };
       rekey_user_encrypted_data: {

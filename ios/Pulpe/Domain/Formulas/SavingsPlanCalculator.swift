@@ -40,9 +40,9 @@ enum SavingsPlanCalculator {
         let months: [SimulatedMonth]
         /// Cumulé final : reality (locked months) + simulated plan (open months).
         let simulatedFinal: Decimal
-        /// `targetAmount − simulatedFinal` — signed, never clamped.
-        let gapToTarget: Decimal
-        let isTargetMet: Bool
+        /// `targetAmount − simulatedFinal` — signed, nil without a target.
+        let gapToTarget: Decimal?
+        let isTargetMet: Bool?
         /// First month whose simulated cumulative reaches the target.
         let attainedPeriod: BudgetPeriod?
     }
@@ -66,7 +66,7 @@ enum SavingsPlanCalculator {
     }
 
     enum SimulationError: Error, Equatable {
-        /// An adjustment targeted a locked or gap month — reveals a UI bug in dev
+        /// An adjustment targeted a locked, gap, or pre-start month — reveals a UI bug in dev
         /// (same doctrine as `splitTotalPreserving` throwing on a non-positive total).
         case adjustmentTargetsLockedOrGapMonth
     }
@@ -83,7 +83,7 @@ enum SavingsPlanCalculator {
     /// A month participates in global simulation and redistribution when it is
     /// editable now or can be created from the linked default template.
     static func isContributivePlanMonth(_ month: SavingsGoalPlanMonth) -> Bool {
-        isOpenPlanMonth(month) || month.isProvisionable
+        month.isContributionEligible && (isOpenPlanMonth(month) || month.isProvisionable)
     }
 
     // MARK: - Simulate
@@ -95,24 +95,15 @@ enum SavingsPlanCalculator {
     /// `initialAmount` (PUL-293 stock de départ) seeds `simulatedCumulative`.
     static func simulate(
         timeline: [SavingsGoalPlanMonth],
-        targetAmount: Decimal,
+        targetAmount: Decimal?,
         adjustments: [Adjustment] = [],
         globalMonthlyAmount: Decimal? = nil,
         initialAmount: Decimal = 0
     ) throws -> SimulationResult {
-        var adjustmentsByKey: [Int: Decimal] = [:]
-        for adjustment in adjustments {
-            adjustmentsByKey[periodKey(month: adjustment.month, year: adjustment.year)] = adjustment.amount
-        }
-
-        let contributiveKeys = Set(
-            timeline
-                .filter { isContributivePlanMonth($0) }
-                .map { periodKey(month: $0.month, year: $0.year) }
+        let adjustmentsByKey = try validatedAdjustmentsByPeriod(
+            adjustments,
+            timeline: timeline
         )
-        for key in adjustmentsByKey.keys where !contributiveKeys.contains(key) {
-            throw SimulationError.adjustmentTargetsLockedOrGapMonth
-        }
 
         var months: [SimulatedMonth] = []
         var simulatedCumulative: Decimal = initialAmount
@@ -124,7 +115,9 @@ enum SavingsPlanCalculator {
 
             let simulatedAmount: Decimal
             var isAdjusted = false
-            if !isContributive {
+            if !month.isContributionEligible {
+                simulatedAmount = 0
+            } else if !isContributive {
                 simulatedAmount = month.confirmedAmount
             } else if let override = adjustmentsByKey[key] {
                 simulatedAmount = override
@@ -136,27 +129,46 @@ enum SavingsPlanCalculator {
                 simulatedAmount = month.plannedAmount
             }
 
-            simulatedCumulative += max(simulatedAmount, month.confirmedAmount)
-            if attainedPeriod == nil, targetAmount > 0, simulatedCumulative >= targetAmount {
+            if month.isContributionEligible {
+                simulatedCumulative += max(simulatedAmount, month.confirmedAmount)
+            }
+            if let targetAmount,
+               attainedPeriod == nil,
+               month.isContributionEligible,
+               targetAmount > 0,
+               simulatedCumulative >= targetAmount {
                 attainedPeriod = month.period
             }
 
             months.append(SimulatedMonth(
-                month: month,
-                simulatedAmount: simulatedAmount,
-                simulatedCumulative: simulatedCumulative,
-                isAdjusted: isAdjusted
+                month: month, simulatedAmount: simulatedAmount,
+                simulatedCumulative: simulatedCumulative, isAdjusted: isAdjusted
             ))
         }
 
         let simulatedFinal = simulatedCumulative
         return SimulationResult(
-            months: months,
-            simulatedFinal: simulatedFinal,
-            gapToTarget: targetAmount - simulatedFinal,
-            isTargetMet: targetAmount > 0 && simulatedFinal >= targetAmount,
-            attainedPeriod: attainedPeriod
+            months: months, simulatedFinal: simulatedFinal,
+            gapToTarget: targetAmount.map { $0 - simulatedFinal },
+            isTargetMet: targetAmount.map { $0 > 0 && simulatedFinal >= $0 }, attainedPeriod: attainedPeriod
         )
+    }
+
+    private static func validatedAdjustmentsByPeriod(
+        _ adjustments: [Adjustment],
+        timeline: [SavingsGoalPlanMonth]
+    ) throws -> [Int: Decimal] {
+        let adjustmentsByKey = Dictionary(
+            adjustments.map { (periodKey(month: $0.month, year: $0.year), $0.amount) },
+            uniquingKeysWith: { _, latest in latest }
+        )
+        let contributiveKeys = Set(timeline
+            .filter(isContributivePlanMonth)
+            .map { periodKey(month: $0.month, year: $0.year) })
+        guard adjustmentsByKey.keys.allSatisfy(contributiveKeys.contains) else {
+            throw SimulationError.adjustmentTargetsLockedOrGapMonth
+        }
+        return adjustmentsByKey
     }
 
     // MARK: - Redistribute remaining effort
@@ -170,10 +182,19 @@ enum SavingsPlanCalculator {
     /// `initialAmount` (PUL-293 stock de départ) is deducted before distributing.
     static func redistributeRemainingEffort(
         timeline: [SavingsGoalPlanMonth],
-        targetAmount: Decimal,
+        targetAmount: Decimal?,
         pinnedAdjustments: [Adjustment] = [],
         initialAmount: Decimal = 0
     ) -> RedistributeResult {
+        guard let targetAmount else {
+            return RedistributeResult(
+                adjustments: [],
+                remainingEffort: 0,
+                perRemainingMonth: 0,
+                isDistributable: false
+            )
+        }
+
         var pinnedByKey: [Int: Decimal] = [:]
         for pin in pinnedAdjustments {
             pinnedByKey[periodKey(month: pin.month, year: pin.year)] = pin.amount
@@ -183,7 +204,7 @@ enum SavingsPlanCalculator {
         let openUnpinned = openMonths.filter { pinnedByKey[periodKey(month: $0.month, year: $0.year)] == nil }
 
         let lockedConfirmedSum = timeline
-            .filter(\.isLocked)
+            .filter { $0.isContributionEligible && $0.isLocked }
             .reduce(Decimal(0)) { $0 + $1.confirmedAmount }
 
         let pinnedSum = openMonths
@@ -193,7 +214,7 @@ enum SavingsPlanCalculator {
         let remaining = max(0, targetAmount - initialAmount - lockedConfirmedSum - pinnedSum)
 
         let hasUnavailablePeriod = timeline.contains {
-            !$0.isLocked && !isContributivePlanMonth($0)
+            $0.isContributionEligible && !$0.isLocked && !isContributivePlanMonth($0)
         }
 
         if hasUnavailablePeriod || openUnpinned.isEmpty {
@@ -291,13 +312,20 @@ enum SavingsPlanCalculator {
         targetAmount: Decimal,
         targetDate: Date,
         payDayOfMonth: Int?,
+        startDate: Date? = nil,
         initialAmount: Decimal = 0,
         now: Date = Date()
     ) -> Decimal? {
         let current = BudgetPeriodCalculator.periodForDate(now, payDayOfMonth: payDayOfMonth)
+        let start = startDate.map {
+            BudgetPeriodCalculator.periodForDate($0, payDayOfMonth: payDayOfMonth)
+        }
         let target = BudgetPeriodCalculator.periodForDate(targetDate, payDayOfMonth: payDayOfMonth)
+        let currentIndex = periodKey(month: current.month, year: current.year)
+        let startIndex = start.map { periodKey(month: $0.month, year: $0.year) } ?? currentIndex
+        let effectiveStartIndex = max(currentIndex, startIndex)
         let monthsRemaining = periodKey(month: target.month, year: target.year)
-            - periodKey(month: current.month, year: current.year) + 1
+            - effectiveStartIndex + 1
         guard monthsRemaining > 0, targetAmount > 0 else { return nil }
         let remaining = targetAmount - initialAmount
         guard remaining > 0 else { return nil }

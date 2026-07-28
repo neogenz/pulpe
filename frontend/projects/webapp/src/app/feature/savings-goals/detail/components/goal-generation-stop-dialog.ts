@@ -14,6 +14,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { TranslocoPipe } from '@jsverse/transloco';
 import {
   formatBudgetPeriod,
+  getBudgetPeriodForDate,
+  parseIsoDateLocal,
   type SavingsGoalFutureLine,
   type SavingsGoalGenerationStop,
   type SavingsGoalStatus,
@@ -21,9 +23,13 @@ import {
 } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
 
+export type GoalGenerationStopDialogContext =
+  | { kind: 'status'; status: SavingsGoalStatus }
+  | { kind: 'deadline'; targetDate: string };
+
 export interface GoalGenerationStopDialogData {
   lines: SavingsGoalFutureLine[];
-  status: SavingsGoalStatus;
+  context: GoalGenerationStopDialogContext;
   currency: SupportedCurrency;
   locale: string;
   payDayOfMonth: number | null;
@@ -49,20 +55,10 @@ const MAX_LINE_ROWS = 5;
     AppCurrencyPipe,
   ],
   template: `
-    <h2 mat-dialog-title>
-      {{
-        (data.status === 'PAUSED'
-          ? 'savingsGoals.generationStop.titlePaused'
-          : 'savingsGoals.generationStop.titleCompleted'
-        ) | transloco
-      }}
-    </h2>
+    <h2 mat-dialog-title>{{ titleKey() | transloco }}</h2>
     <mat-dialog-content class="flex flex-col gap-4">
       <p class="text-body-medium text-on-surface">
-        {{
-          'savingsGoals.generationStop.message'
-            | transloco: { count: data.lines.length }
-        }}
+        {{ messageKey() | transloco: messageParams() }}
       </p>
 
       <ul class="flex flex-col gap-2" data-testid="goal-generation-stop-lines">
@@ -111,6 +107,7 @@ const MAX_LINE_ROWS = 5;
         <button
           matButton="outlined"
           class="w-full"
+          [class.warn-theme]="data.context.kind === 'deadline'"
           (click)="decide('remove')"
           data-testid="goal-generation-stop-remove"
         >
@@ -128,7 +125,7 @@ const MAX_LINE_ROWS = 5;
         mat-dialog-close
         data-testid="goal-generation-stop-dismiss"
       >
-        {{ 'savingsGoals.generationStop.dismiss' | transloco }}
+        {{ dismissKey() | transloco }}
       </button>
     </mat-dialog-actions>
   `,
@@ -141,6 +138,48 @@ export class GoalGenerationStopDialog {
     );
   protected readonly data =
     inject<GoalGenerationStopDialogData>(MAT_DIALOG_DATA);
+
+  protected readonly titleKey = computed(() => {
+    const context = this.data.context;
+    if (context.kind === 'deadline') {
+      return 'savingsGoals.generationStop.deadlineTitle';
+    }
+    return context.status === 'PAUSED'
+      ? 'savingsGoals.generationStop.titlePaused'
+      : 'savingsGoals.generationStop.titleCompleted';
+  });
+
+  protected readonly messageKey = computed(() =>
+    this.data.context.kind === 'deadline'
+      ? 'savingsGoals.generationStop.deadlineMessage'
+      : 'savingsGoals.generationStop.message',
+  );
+
+  protected readonly messageParams = computed(() => {
+    const context = this.data.context;
+    if (context.kind === 'status') {
+      return { count: this.data.lines.length };
+    }
+    const period = getBudgetPeriodForDate(
+      parseIsoDateLocal(context.targetDate),
+      this.data.payDayOfMonth,
+    );
+    return {
+      count: this.data.lines.length,
+      period: formatBudgetPeriod(
+        period.month,
+        period.year,
+        this.data.payDayOfMonth,
+        this.data.locale,
+      ),
+    };
+  });
+
+  protected readonly dismissKey = computed(() =>
+    this.data.context.kind === 'deadline'
+      ? 'savingsGoals.generationStop.deadlineDismiss'
+      : 'savingsGoals.generationStop.dismiss',
+  );
 
   protected readonly visibleLines = computed(() =>
     this.data.lines.slice(0, MAX_LINE_ROWS),

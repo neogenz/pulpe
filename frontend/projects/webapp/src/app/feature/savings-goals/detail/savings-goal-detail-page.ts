@@ -28,10 +28,14 @@ import { debounceTime, firstValueFrom } from 'rxjs';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import {
   API_ERROR_CODES,
+  compareBudgetPeriods,
+  getBudgetPeriodForDate,
+  parseIsoDateLocal,
   type SavingsGoalDeletionCommand,
   type SavingsGoalFutureLine,
   type SavingsGoalPaceStatus,
   type SavingsGoalStatus,
+  type SavingsGoalUpdate,
 } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
 import { isApiError } from '@core/api/api-error';
@@ -165,13 +169,24 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
               >
                 {{ statusLabelKey(g.status) | transloco }}
               </mat-chip>
-              <span
-                class="text-body-medium text-on-surface-variant"
-                data-testid="savings-goal-target-date"
-              >
-                {{ 'savingsGoals.targetDate' | transloco }} :
-                {{ g.targetDate | date: shortDateFormat() }}
-              </span>
+              @if (g.startDate) {
+                <span
+                  class="text-body-medium text-on-surface-variant"
+                  data-testid="savings-goal-start-date"
+                >
+                  {{ 'savingsGoals.startDate' | transloco }} :
+                  {{ g.startDate | date: shortDateFormat() }}
+                </span>
+              }
+              @if (g.targetDate) {
+                <span
+                  class="text-body-medium text-on-surface-variant"
+                  data-testid="savings-goal-target-date"
+                >
+                  {{ 'savingsGoals.targetDate' | transloco }} :
+                  {{ g.targetDate | date: shortDateFormat() }}
+                </span>
+              }
               @if (!simulator.isSimulating()) {
                 <button
                   matButton="outlined"
@@ -201,7 +216,8 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                   {{ 'savingsGoals.detail.emptyMessage' | transloco }}
                 </p>
               </div>
-            } @else {
+            }
+            @if (p.targetAmount !== null && p.achievementPercent !== null) {
               <!-- Two-layer progress bar (projection behind, reality in front) -->
               <div class="flex flex-col gap-3">
                 <div class="flex items-end justify-between gap-2">
@@ -254,88 +270,106 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                   ></div>
                 </div>
               </div>
+            }
 
-              @if (paceChip(); as chip) {
-                <div
-                  class="flex items-center gap-1.5 rounded-full px-4 py-1.5 w-fit text-label-large"
-                  [class]="chip.classes"
-                  data-testid="savings-goal-pace-chip"
+            @if (paceChip(); as chip) {
+              <div
+                class="flex items-center gap-1.5 rounded-full px-4 py-1.5 w-fit text-label-large"
+                [class]="chip.classes"
+                data-testid="savings-goal-pace-chip"
+              >
+                <mat-icon
+                  class="text-base! w-auto! h-auto! leading-none"
+                  aria-hidden="true"
+                  >{{ chip.icon }}</mat-icon
                 >
-                  <mat-icon
-                    class="text-base! w-auto! h-auto! leading-none"
-                    aria-hidden="true"
-                    >{{ chip.icon }}</mat-icon
+                {{ chip.labelKey | transloco }}
+              </div>
+            }
+
+            <!-- Stats -->
+            <div class="mt-2 grid grid-cols-2 md:grid-cols-4 gap-4">
+              @if (p.initialAmount > 0) {
+                <div
+                  class="flex flex-col gap-1"
+                  data-testid="stat-initial-amount"
+                >
+                  <span class="text-body-small text-on-surface-variant">
+                    {{ 'savingsGoals.detail.initialAmount' | transloco }}
+                  </span>
+                  <span
+                    class="text-title-large font-semibold tabular-nums ph-no-capture"
                   >
-                  {{ chip.labelKey | transloco }}
+                    {{ p.initialAmount | appCurrency: currency() : '1.0-0' }}
+                  </span>
                 </div>
               }
-
-              <!-- Stats -->
-              <div class="mt-2 grid grid-cols-2 md:grid-cols-4 gap-4">
-                @if (p.initialAmount > 0) {
-                  <div
-                    class="flex flex-col gap-1"
-                    data-testid="stat-initial-amount"
-                  >
-                    <span class="text-body-small text-on-surface-variant">
-                      {{ 'savingsGoals.detail.initialAmount' | transloco }}
-                    </span>
-                    <span
-                      class="text-title-large font-semibold tabular-nums ph-no-capture"
-                    >
-                      {{ p.initialAmount | appCurrency: currency() : '1.0-0' }}
-                    </span>
-                  </div>
-                }
-                <!-- The colored dots double as the legend of the two bar layers. -->
-                <div class="flex flex-col gap-1" data-testid="stat-confirmed">
+              <!-- The colored dots double as the legend of the two bar layers. -->
+              <div class="flex flex-col gap-1" data-testid="stat-confirmed">
+                <span
+                  class="flex items-center gap-1.5 text-body-small text-on-surface-variant"
+                >
                   <span
-                    class="flex items-center gap-1.5 text-body-small text-on-surface-variant"
-                  >
-                    <span
-                      class="inline-block size-2.5 rounded-full bg-financial-savings"
-                      aria-hidden="true"
-                    ></span>
-                    {{ 'savingsGoals.detail.confirmed' | transloco }}
-                  </span>
+                    class="inline-block size-2.5 rounded-full bg-financial-savings"
+                    aria-hidden="true"
+                  ></span>
+                  {{ 'savingsGoals.detail.confirmed' | transloco }}
+                </span>
+                <span
+                  class="text-title-large font-bold text-financial-savings tabular-nums ph-no-capture"
+                >
+                  {{ p.confirmed | appCurrency: currency() : '1.0-0' }}
+                </span>
+              </div>
+              <div class="flex flex-col gap-1" data-testid="stat-planned">
+                <span
+                  class="flex items-center gap-1.5 text-body-small text-on-surface-variant"
+                >
                   <span
-                    class="text-title-large font-bold text-financial-savings tabular-nums ph-no-capture"
-                  >
-                    {{ p.confirmed | appCurrency: currency() : '1.0-0' }}
-                  </span>
-                </div>
-                <div class="flex flex-col gap-1" data-testid="stat-planned">
+                    class="inline-block size-2.5 rounded-full bg-financial-savings/35"
+                    aria-hidden="true"
+                  ></span>
+                  {{ 'savingsGoals.detail.plannedCumulative' | transloco }}
+                </span>
+                <span
+                  class="text-title-large font-semibold tabular-nums ph-no-capture"
+                >
+                  {{ p.plannedCumulative | appCurrency: currency() : '1.0-0' }}
+                </span>
+              </div>
+              <div
+                class="flex flex-col gap-1"
+                data-testid="stat-planned-projection"
+              >
+                <span class="text-body-small text-on-surface-variant">
+                  {{ 'savingsGoals.detail.plannedProjection' | transloco }}
+                </span>
+                <span
+                  class="text-title-large font-semibold tabular-nums ph-no-capture"
+                >
+                  {{ p.plannedProjection | appCurrency: currency() : '1.0-0' }}
+                </span>
+              </div>
+              @if (p.required !== null) {
+                <div class="flex flex-col gap-1" data-testid="stat-required">
                   <span class="text-body-small text-on-surface-variant">
-                    {{ 'savingsGoals.detail.plannedCumulative' | transloco }}
+                    {{ 'savingsGoals.detail.required' | transloco }}
                   </span>
                   <span
                     class="text-title-large font-semibold tabular-nums ph-no-capture"
                   >
                     {{
-                      p.plannedCumulative | appCurrency: currency() : '1.0-0'
+                      'savingsGoals.detail.requiredPerMonth'
+                        | transloco
+                          : {
+                              amount:
+                                p.required | appCurrency: currency() : '1.0-0',
+                            }
                     }}
                   </span>
                 </div>
-                @if (p.required !== null) {
-                  <div class="flex flex-col gap-1" data-testid="stat-required">
-                    <span class="text-body-small text-on-surface-variant">
-                      {{ 'savingsGoals.detail.required' | transloco }}
-                    </span>
-                    <span
-                      class="text-title-large font-semibold tabular-nums ph-no-capture"
-                    >
-                      {{
-                        'savingsGoals.detail.requiredPerMonth'
-                          | transloco
-                            : {
-                                amount:
-                                  p.required
-                                  | appCurrency: currency() : '1.0-0',
-                              }
-                      }}
-                    </span>
-                  </div>
-                }
+              }
+              @if (p.projected !== null) {
                 <div class="flex flex-col gap-1" data-testid="stat-projected">
                   <span
                     class="flex items-center gap-1.5 text-body-small text-on-surface-variant"
@@ -354,120 +388,144 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                     }}
                   </span>
                 </div>
-              </div>
-
-              <!-- D1 — deadline passed (stays ACTIVE, neutral, actionable) -->
-              @if (p.isOverdue && g.status === 'ACTIVE') {
+              }
+              @if (
+                p.targetAmount !== null &&
+                  p.targetDate === null &&
+                  estimatedCompletionLabel();
+                as period
+              ) {
                 <div
-                  class="mt-2 flex flex-col gap-2 rounded-2xl bg-surface-container p-4"
-                  data-testid="savings-goal-overdue-block"
+                  class="flex flex-col gap-1"
+                  data-testid="stat-estimated-completion"
                 >
-                  <div
-                    class="flex items-center gap-2 text-on-surface text-title-small font-medium"
-                  >
-                    <mat-icon aria-hidden="true">event</mat-icon>
-                    {{ 'savingsGoals.detail.overdueTitle' | transloco }}
-                  </div>
-                  <p class="text-body-medium text-on-surface-variant">
-                    {{ 'savingsGoals.detail.overdueMessage' | transloco }}
-                  </p>
-                  <!-- Outlined : un seul bouton primaire par écran (DA §3.5) —
+                  <span class="text-body-small text-on-surface-variant">
+                    {{ 'savingsGoals.detail.estimatedCompletion' | transloco }}
+                  </span>
+                  <span class="text-title-large font-semibold">
+                    {{ period }}
+                  </span>
+                </div>
+              }
+            </div>
+
+            <!-- D1 — deadline passed (stays ACTIVE, neutral, actionable) -->
+            @if (
+              p.targetDate !== null && p.isOverdue && g.status === 'ACTIVE'
+            ) {
+              <div
+                class="mt-2 flex flex-col gap-2 rounded-2xl bg-surface-container p-4"
+                data-testid="savings-goal-overdue-block"
+              >
+                <div
+                  class="flex items-center gap-2 text-on-surface text-title-small font-medium"
+                >
+                  <mat-icon aria-hidden="true">event</mat-icon>
+                  {{ 'savingsGoals.detail.overdueTitle' | transloco }}
+                </div>
+                <p class="text-body-medium text-on-surface-variant">
+                  {{ 'savingsGoals.detail.overdueMessage' | transloco }}
+                </p>
+                <!-- Outlined : un seul bouton primaire par écran (DA §3.5) —
                          D1 et D2 peuvent coexister, le filled reste au CTA D2. -->
-                  <button
-                    matButton="outlined"
-                    class="w-fit"
-                    (click)="onEdit()"
-                    data-testid="savings-goal-postpone-button"
-                  >
-                    <mat-icon>edit_calendar</mat-icon>
-                    {{ 'savingsGoals.detail.postpone' | transloco }}
-                  </button>
-                </div>
-              }
-
-              <!-- D2 — suggest completion (never auto-flipped) -->
-              @if (p.suggestCompletion && g.status === 'ACTIVE') {
-                <div
-                  class="mt-2 flex flex-col gap-2 rounded-2xl bg-financial-savings/10 p-4"
-                  data-testid="savings-goal-suggest-completion"
+                <button
+                  matButton="outlined"
+                  class="w-fit"
+                  (click)="onEdit()"
+                  data-testid="savings-goal-postpone-button"
                 >
-                  <div
-                    class="flex items-center gap-2 text-financial-savings text-title-small font-medium"
-                  >
-                    <mat-icon aria-hidden="true">check_circle</mat-icon>
-                    {{ 'savingsGoals.detail.suggestTitle' | transloco }}
-                  </div>
-                  <p class="text-body-medium text-on-surface-variant">
-                    {{ 'savingsGoals.detail.suggestMessage' | transloco }}
-                  </p>
-                  <button
-                    matButton="filled"
-                    class="w-fit"
-                    (click)="onComplete()"
-                    data-testid="savings-goal-mark-completed-button"
-                  >
-                    <mat-icon>flag</mat-icon>
-                    {{ 'savingsGoals.detail.markCompleted' | transloco }}
-                  </button>
-                </div>
-              }
+                  <mat-icon>edit_calendar</mat-icon>
+                  {{ 'savingsGoals.detail.postpone' | transloco }}
+                </button>
+              </div>
+            }
 
-              <!-- COMPLETED — reversible -->
-              @if (g.status === 'COMPLETED') {
+            <!-- D2 — suggest completion (never auto-flipped) -->
+            @if (
+              p.targetAmount !== null &&
+              p.suggestCompletion &&
+              g.status === 'ACTIVE'
+            ) {
+              <div
+                class="mt-2 flex flex-col gap-2 rounded-2xl bg-financial-savings/10 p-4"
+                data-testid="savings-goal-suggest-completion"
+              >
                 <div
-                  class="mt-2 flex flex-col gap-2 rounded-2xl bg-surface-container p-4"
-                  data-testid="savings-goal-completed-block"
+                  class="flex items-center gap-2 text-financial-savings text-title-small font-medium"
                 >
-                  <div
-                    class="flex items-center gap-2 text-on-surface text-title-small font-medium"
-                  >
-                    <mat-icon aria-hidden="true">emoji_events</mat-icon>
-                    {{ 'savingsGoals.detail.completedTitle' | transloco }}
-                  </div>
-                  <p class="text-body-medium text-on-surface-variant">
-                    {{ 'savingsGoals.detail.completedMessage' | transloco }}
-                  </p>
-                  <button
-                    matButton="outlined"
-                    class="w-fit"
-                    (click)="onReopen()"
-                    data-testid="savings-goal-reopen-button"
-                  >
-                    <mat-icon>refresh</mat-icon>
-                    {{ 'savingsGoals.detail.reopen' | transloco }}
-                  </button>
+                  <mat-icon aria-hidden="true">check_circle</mat-icon>
+                  {{ 'savingsGoals.detail.suggestTitle' | transloco }}
                 </div>
-              }
+                <p class="text-body-medium text-on-surface-variant">
+                  {{ 'savingsGoals.detail.suggestMessage' | transloco }}
+                </p>
+                <button
+                  matButton="filled"
+                  class="w-fit"
+                  (click)="onComplete()"
+                  data-testid="savings-goal-mark-completed-button"
+                >
+                  <mat-icon>flag</mat-icon>
+                  {{ 'savingsGoals.detail.markCompleted' | transloco }}
+                </button>
+              </div>
+            }
 
-              <!-- PUL-285 CA8 — advisory: future linked lines of a stopped goal -->
-              @if (g.status !== 'ACTIVE' && store.futureLines().length > 0) {
+            <!-- COMPLETED — reversible -->
+            @if (g.status === 'COMPLETED') {
+              <div
+                class="mt-2 flex flex-col gap-2 rounded-2xl bg-surface-container p-4"
+                data-testid="savings-goal-completed-block"
+              >
                 <div
-                  class="mt-2 flex flex-col gap-2 rounded-2xl bg-surface-container p-4"
-                  data-testid="savings-goal-generation-stop-card"
+                  class="flex items-center gap-2 text-on-surface text-title-small font-medium"
                 >
-                  <div
-                    class="flex items-center gap-2 text-on-surface text-title-small font-medium"
-                  >
-                    <mat-icon aria-hidden="true">event_upcoming</mat-icon>
-                    {{ 'savingsGoals.generationStop.cardTitle' | transloco }}
-                  </div>
-                  <p class="text-body-medium text-on-surface-variant">
-                    {{
-                      'savingsGoals.generationStop.cardMessage'
-                        | transloco: { count: store.futureLines().length }
-                    }}
-                  </p>
-                  <button
-                    matButton="outlined"
-                    class="w-fit"
-                    (click)="onManageFutureLines()"
-                    data-testid="savings-goal-generation-stop-button"
-                  >
-                    <mat-icon>tune</mat-icon>
-                    {{ 'savingsGoals.generationStop.cardCta' | transloco }}
-                  </button>
+                  <mat-icon aria-hidden="true">emoji_events</mat-icon>
+                  {{ 'savingsGoals.detail.completedTitle' | transloco }}
                 </div>
-              }
+                <p class="text-body-medium text-on-surface-variant">
+                  {{ 'savingsGoals.detail.completedMessage' | transloco }}
+                </p>
+                <button
+                  matButton="outlined"
+                  class="w-fit"
+                  (click)="onReopen()"
+                  data-testid="savings-goal-reopen-button"
+                >
+                  <mat-icon>refresh</mat-icon>
+                  {{ 'savingsGoals.detail.reopen' | transloco }}
+                </button>
+              </div>
+            }
+
+            <!-- PUL-285 CA8 — advisory: future linked lines of a stopped goal -->
+            @if (g.status !== 'ACTIVE' && store.futureLines().length > 0) {
+              <div
+                class="mt-2 flex flex-col gap-2 rounded-2xl bg-surface-container p-4"
+                data-testid="savings-goal-generation-stop-card"
+              >
+                <div
+                  class="flex items-center gap-2 text-on-surface text-title-small font-medium"
+                >
+                  <mat-icon aria-hidden="true">event_upcoming</mat-icon>
+                  {{ 'savingsGoals.generationStop.cardTitle' | transloco }}
+                </div>
+                <p class="text-body-medium text-on-surface-variant">
+                  {{
+                    'savingsGoals.generationStop.cardMessage'
+                      | transloco: { count: store.futureLines().length }
+                  }}
+                </p>
+                <button
+                  matButton="outlined"
+                  class="w-fit"
+                  (click)="onManageFutureLines()"
+                  data-testid="savings-goal-generation-stop-button"
+                >
+                  <mat-icon>tune</mat-icon>
+                  {{ 'savingsGoals.generationStop.cardCta' | transloco }}
+                </button>
+              </div>
             }
           </div>
 
@@ -667,6 +725,10 @@ export default class SavingsGoalDetailPage {
   protected readonly chartMonths = computed(
     () => this.progress()?.months ?? [],
   );
+  protected readonly estimatedCompletionLabel = computed(() => {
+    const period = this.progress()?.estimatedCompletion;
+    return period ? this.#formatMonthYear(period.month, period.year) : null;
+  });
 
   readonly #timelineExpanded = signal(false);
   protected readonly timelineExpanded = computed(
@@ -680,7 +742,7 @@ export default class SavingsGoalDetailPage {
   // debounced ~500 ms so a screen reader is not spammed during a drag.
   protected readonly verdict = computed(() => {
     const draft = this.simulator.draft();
-    if (!draft) return '';
+    if (!draft || draft.isTargetMet === null) return '';
     const attained = draft.attainedPeriod;
     if (!attained) {
       return this.#transloco.translate(
@@ -722,14 +784,17 @@ export default class SavingsGoalDetailPage {
 
   protected readonly displayedProjection = computed(
     () =>
-      this.simulator.draft()?.simulatedFinal ?? this.progress()?.projected ?? 0,
+      this.simulator.draft()?.simulatedFinal ??
+      this.progress()?.projected ??
+      this.progress()?.plannedProjection ??
+      0,
   );
 
   // Display-only bar width for the planned projection layer. The server owns
   // the read-mode endpoint; the sandbox owns it while simulation is active.
   protected readonly projectedPercent = computed(() => {
     const p = this.progress();
-    if (!p || p.targetAmount <= 0) return 0;
+    if (!p || p.targetAmount == null || p.targetAmount <= 0) return 0;
     return Math.min(
       Math.round((this.displayedProjection() / p.targetAmount) * 100),
       100,
@@ -787,11 +852,24 @@ export default class SavingsGoalDetailPage {
     if (!goal) return;
     const result = await this.#dialogs.openEdit(goal);
     if (!result) return;
-    try {
-      await this.store.editGoal(goal.id, result);
-    } catch (error) {
-      this.#showError(error);
-      return;
+    const deadlineWasAdvanced = this.#movesDeadlineEarlier(
+      goal.targetDate,
+      result,
+    );
+    if (deadlineWasAdvanced && result.targetDate) {
+      const applied = await this.#editAdvancedDeadline(
+        goal.id,
+        result,
+        result.targetDate,
+      );
+      if (!applied) return;
+    } else {
+      try {
+        await this.store.editGoal(goal.id, result);
+      } catch (error) {
+        this.#showError(error);
+        return;
+      }
     }
     // Advisory sur les vraies TRANSITIONS seulement — renommer un objectif
     // déjà en pause ne doit pas rouvrir le dialog (la carte reste la porte
@@ -801,6 +879,69 @@ export default class SavingsGoalDetailPage {
       result.status !== goal.status
     ) {
       await this.#proposeGenerationStop(goal.id, result.status);
+    }
+  }
+
+  async #editAdvancedDeadline(
+    goalId: string,
+    updates: SavingsGoalUpdate,
+    targetDate: string,
+  ): Promise<boolean> {
+    let lines: SavingsGoalFutureLine[];
+    try {
+      lines = await this.store.fetchFutureLines(goalId, targetDate);
+    } catch (error) {
+      this.#showLocalizedApiError(error);
+      return false;
+    }
+
+    while (true) {
+      let patch = updates;
+      if (lines.length > 0) {
+        const decision = await this.#dialogs.openGenerationStop({
+          lines,
+          context: { kind: 'deadline', targetDate },
+          currency: this.currency(),
+          locale: this.locale,
+          payDayOfMonth: this.payDayOfMonth(),
+        });
+        if (!decision) return false;
+        patch = {
+          ...updates,
+          reconciliation: {
+            mode: decision,
+            budgetLineIds: lines.map((line) => line.budgetLineId),
+          },
+        };
+      }
+
+      try {
+        await this.store.editGoal(goalId, patch);
+        return true;
+      } catch (error) {
+        const retryable =
+          isApiError(error) &&
+          (error.code ===
+            API_ERROR_CODES.SAVINGS_GOAL_RECONCILIATION_CONFLICT ||
+            error.code ===
+              API_ERROR_CODES.SAVINGS_GOAL_RECONCILIATION_REQUIRED);
+        if (isApiError(error) && (patch.reconciliation || retryable)) {
+          this.#showLocalizedApiError(error);
+        } else {
+          this.#showError(error);
+        }
+        if (!retryable) return false;
+
+        try {
+          lines = await this.store.fetchFutureLines(goalId, targetDate);
+        } catch (previewError) {
+          this.#showLocalizedApiError(previewError);
+          return false;
+        }
+        // The server no longer asks for a decision. Never reinterpret that as
+        // consent to retry the deadline PATCH without reconciliation.
+        if (lines.length === 0) return false;
+      }
     }
   }
 
@@ -881,7 +1022,7 @@ export default class SavingsGoalDetailPage {
 
     const decision = await this.#dialogs.openGenerationStop({
       lines,
-      status,
+      context: { kind: 'status', status },
       currency: this.currency(),
       locale: this.locale,
       payDayOfMonth: this.payDayOfMonth(),
@@ -923,6 +1064,23 @@ export default class SavingsGoalDetailPage {
     } catch {
       this.#showStatusError();
     }
+  }
+
+  #movesDeadlineEarlier(
+    currentTargetDate: string | null,
+    update: SavingsGoalUpdate,
+  ): boolean {
+    if (!currentTargetDate || !update.targetDate) return false;
+    const payDay = this.payDayOfMonth();
+    const currentPeriod = getBudgetPeriodForDate(
+      parseIsoDateLocal(currentTargetDate),
+      payDay,
+    );
+    const nextPeriod = getBudgetPeriodForDate(
+      parseIsoDateLocal(update.targetDate),
+      payDay,
+    );
+    return compareBudgetPeriods(nextPeriod, currentPeriod) < 0;
   }
 
   // ── Simulation (pilier C) ──
@@ -995,8 +1153,7 @@ export default class SavingsGoalDetailPage {
   }
 
   #showLocalizedApiError(error: unknown): void {
-    // Plan and generation-stop error codes are localized centrally in
-    // ApiErrorLocalizer.
+    // Domain error codes are localized centrally in ApiErrorLocalizer.
     const message = isApiError(error)
       ? this.#errorLocalizer.localizeApiError(error)
       : this.#transloco.translate('common.error');

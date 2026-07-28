@@ -556,6 +556,18 @@ describe('computeSavingsGoalProgress — initialAmount (stock vs flux)', () => {
 });
 
 describe('suggestedMonthlyContribution (PUL-285 CA1/CA6)', () => {
+  it('uses a future contribution start instead of the current month (PUL-314 CA13)', () => {
+    const suggestion = suggestedMonthlyContribution({
+      targetAmount: 1_400,
+      startDate: '2027-06-15',
+      targetDate: '2027-12-15',
+      now: new Date(2026, 6, 15),
+      payDayOfMonth: null,
+    });
+
+    expect(suggestion).toBe(200);
+  });
+
   it('should divide the target across the remaining months, current and deadline months inclusive', () => {
     const suggestion = suggestedMonthlyContribution({
       targetAmount: 100_000,
@@ -706,5 +718,87 @@ describe('suggestedMonthlyContribution (PUL-285 CA1/CA6)', () => {
     });
 
     expect(suggestion).toBeNull();
+  });
+});
+
+describe('PUL-314 — open savings interval', () => {
+  it('keeps history from createdAt when startDate is absent', () => {
+    const historical = savingLine(400, { month: 2, year: 2026 });
+    const result = computeSavingsGoalProgress(
+      baseInput({
+        lines: [
+          {
+            ...historical,
+            checkedAt: '2026-02-15T10:00:00Z',
+          },
+        ],
+      }),
+    );
+
+    expect(result.plannedCumulative).toBe(400);
+    expect(result.confirmed).toBe(400);
+    expect(result.monthsElapsed).toBe(6);
+  });
+
+  it('returns no fictitious target or deadline metrics when both are absent', () => {
+    const current = savingLine(200, { month: 6, year: 2026 });
+    const future = savingLine(300, { month: 7, year: 2026 });
+    const result = computeSavingsGoalProgress(
+      baseInput({
+        targetAmount: null,
+        targetDate: null,
+        initialAmount: 100,
+        lines: [current, future],
+      }),
+    );
+
+    expect(result).toMatchObject({
+      achievementPercent: null,
+      monthsRemaining: null,
+      isOverdue: false,
+      required: null,
+      projected: null,
+      paceStatus: null,
+      suggestCompletion: null,
+      plannedCumulative: 200,
+      plannedProjection: 600,
+    });
+  });
+
+  it('keeps estimated completion with a target but no deadline', () => {
+    const current = savingLine(1000, { month: 6, year: 2026 });
+    const result = computeSavingsGoalProgress(
+      baseInput({
+        targetAmount: 3000,
+        targetDate: null,
+        lines: [
+          {
+            ...current,
+            checkedAt: '2026-06-15T10:00:00Z',
+          },
+        ],
+      }),
+    );
+
+    expect(result.monthsRemaining).toBeNull();
+    expect(result.required).toBeNull();
+    expect(result.projected).toBeNull();
+    expect(result.paceStatus).toBeNull();
+    expect(result.estimatedCompletion).toEqual({ month: 6, year: 2027 });
+  });
+
+  it('excludes linked lines before the effective start from aggregates', () => {
+    const before = savingLine(1000, { month: 6, year: 2026 });
+    const atStart = savingLine(500, { month: 7, year: 2026 });
+    const result = computeSavingsGoalProgress(
+      baseInput({
+        startDate: '2026-07-15',
+        targetDate: '2026-08-15',
+        lines: [before, atStart],
+      }),
+    );
+
+    expect(result.plannedCumulative).toBe(0);
+    expect(result.plannedProjection).toBe(500);
   });
 });

@@ -1,4 +1,11 @@
+// swiftlint:disable file_length
 import SwiftUI
+
+struct SavingsGoalDeadlineDecision {
+    var update: SavingsGoalUpdate
+    let targetDate: String
+    let lines: [SavingsGoalFutureLine]
+}
 
 /// Progression detail for a single savings goal (PUL-8, CA7–CA9). Pushed from the
 /// goals list row; the edit form now opens from here (toolbar + the D1 CTA),
@@ -26,10 +33,17 @@ struct SavingsGoalDetailView: View {
     @State private var isSimulating = false
     @State private var showGenerationStop = false
     @State private var generationStopCandidates: [SavingsGoalFutureLine] = []
+    @State private var generationStopContext: GoalGenerationStopContext?
+    @State private var pendingEditUpdate: SavingsGoalUpdate?
+    @State private var pendingDeadlineUpdate: SavingsGoalUpdate?
+    @State private var reopenGenerationStop = false
 
-    init(goal: SavingsGoal) {
+    init(
+        goal: SavingsGoal,
+        service: any SavingsGoalServicing = SavingsGoalService.shared
+    ) {
         self.goal = goal
-        _viewModel = State(initialValue: SavingsGoalDetailViewModel(goalId: goal.id))
+        _viewModel = State(initialValue: SavingsGoalDetailViewModel(goalId: goal.id, service: service))
     }
 
     /// Latest goal from the cache so name/status edits reflect after the form
@@ -65,14 +79,25 @@ struct SavingsGoalDetailView: View {
             }
         }
         .sheet(item: $editTarget, onDismiss: handleEditDismiss) { goal in
-            SavingsGoalFormSheet(goal: goal, userCurrency: currency)
+            SavingsGoalFormSheet(
+                goal: goal,
+                userCurrency: currency,
+                payDayOfMonth: userSettingsStore.payDayOfMonth,
+                onUpdate: { pendingEditUpdate = $0 }
+            )
         }
-        .sheet(isPresented: $showGenerationStop) {
+        .sheet(isPresented: $showGenerationStop, onDismiss: handleGenerationStopDismiss) {
             GoalGenerationStopSheet(
                 lines: generationStopCandidates,
-                status: currentGoal.status,
+                context: generationStopContext ?? .status(currentGoal.status),
                 currency: currency,
-                onApply: { mode in try await applyGenerationStop(mode) }
+                onApply: { mode in
+                    if pendingDeadlineUpdate != nil {
+                        try await applyDeadlineReconciliation(mode)
+                    } else {
+                        try await applyGenerationStop(mode)
+                    }
+                }
             )
             .standardSheetPresentation()
         }
@@ -91,10 +116,9 @@ struct SavingsGoalDetailView: View {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
                 header(progress: progress)
 
+                GoalProgressCard(progress: progress, currency: currency)
                 if progress.linkedLineCount == 0 {
                     GoalEmptyGuidanceCard()
-                } else {
-                    GoalProgressCard(progress: progress, currency: currency)
                 }
 
                 GoalDerivedStateCards(
@@ -159,7 +183,7 @@ struct SavingsGoalDetailView: View {
     /// one open month. Hidden for PAUSED/COMPLETED (no rhythm verdict → no editing).
     private func canAdjust(_ progress: SavingsGoalProgress) -> Bool {
         guard currentGoal.status == .active, progress.linkedLineCount > 0 else { return false }
-        return progress.months.contains { SavingsPlanCalculator.isOpenPlanMonth($0) }
+        return progress.months.contains { SavingsPlanCalculator.isContributivePlanMonth($0) }
     }
 
     // MARK: - Header
@@ -169,8 +193,19 @@ struct SavingsGoalDetailView: View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             SavingsGoalStatusBadge(status: currentGoal.status, showsIcon: true)
 
-            if let date = progress.targetDateValue {
+            if let start = progress.startDateValue, let end = progress.targetDateValue {
+                Text(
+                    "\(start.formatted(date: .abbreviated, time: .omitted))"
+                        + " → \(end.formatted(date: .abbreviated, time: .omitted))"
+                )
+                .font(PulpeTypography.listRowSubtitle)
+                .foregroundStyle(Color.textTertiary)
+            } else if let date = progress.targetDateValue {
                 Text("Échéance \(date.formatted(date: .abbreviated, time: .omitted))")
+                    .font(PulpeTypography.listRowSubtitle)
+                    .foregroundStyle(Color.textTertiary)
+            } else if let date = progress.startDateValue {
+                Text("Depuis \(date.formatted(date: .abbreviated, time: .omitted))")
                     .font(PulpeTypography.listRowSubtitle)
                     .foregroundStyle(Color.textTertiary)
             }
@@ -178,7 +213,9 @@ struct SavingsGoalDetailView: View {
             Spacer(minLength: 0)
         }
     }
+}
 
+private extension SavingsGoalDetailView {
     // MARK: - Actions
 
     /// Post-apply invalidation (PUL-270): a plan apply rewrites budget-line amounts,
@@ -208,6 +245,11 @@ struct SavingsGoalDetailView: View {
     }
 
     private func handleEditDismiss() {
+        if let update = pendingEditUpdate {
+            pendingEditUpdate = nil
+            Task { await submitEdit(update) }
+            return
+        }
         if store.goals.contains(where: { $0.id == goal.id }) {
             Task {
                 await viewModel.load()
@@ -218,6 +260,56 @@ struct SavingsGoalDetailView: View {
         } else {
             // Goal was deleted from the edit form — pop back to the list.
             dismiss()
+        }
+    }
+
+    private func submitEdit(_ update: SavingsGoalUpdate) async {
+        if let targetDate = Self.deadlinePreviewTarget(
+            previous: currentGoal.targetDate,
+            update: update.targetDate,
+            payDayOfMonth: userSettingsStore.payDayOfMonth
+        ) {
+            do {
+                let lines = try await store.getFutureLines(id: goal.id, targetDate: targetDate)
+                if !lines.isEmpty {
+                    pendingDeadlineUpdate = update
+                    generationStopCandidates = lines
+                    generationStopContext = .deadline(targetDate: targetDate)
+                    showGenerationStop = true
+                    return
+                }
+            } catch {
+                toastManager.show(DomainErrorLocalizer.localize(error), type: .error)
+                return
+            }
+        }
+        await applyEdit(update)
+    }
+
+    private func applyEdit(_ update: SavingsGoalUpdate) async {
+        do {
+            _ = try await store.update(id: goal.id, data: update)
+            await viewModel.load()
+            await refreshFutureLinesIfStopped()
+            toastManager.show("Objectif modifié")
+        } catch let error as APIError where error.requiresSavingsGoalReconciliationRefresh {
+            guard case .some(let updatedTarget) = update.targetDate,
+                  let targetDate = updatedTarget else {
+                toastManager.show(DomainErrorLocalizer.localize(error), type: .error)
+                return
+            }
+            do {
+                try await refreshDeadlineDecision(
+                    update,
+                    targetDate: targetDate,
+                    after: error,
+                    reopenAfterDismiss: false
+                )
+            } catch {
+                toastManager.show(DomainErrorLocalizer.localize(error), type: .error)
+            }
+        } catch {
+            toastManager.show(DomainErrorLocalizer.localize(error), type: .error)
         }
     }
 
@@ -235,7 +327,66 @@ struct SavingsGoalDetailView: View {
         await viewModel.loadFutureLines()
         guard !viewModel.futureLines.isEmpty else { return }
         generationStopCandidates = viewModel.futureLines
+        generationStopContext = .status(currentGoal.status)
         showGenerationStop = true
+    }
+
+    private func handleGenerationStopDismiss() {
+        if reopenGenerationStop {
+            reopenGenerationStop = false
+            showGenerationStop = true
+        } else {
+            pendingDeadlineUpdate = nil
+            generationStopContext = nil
+        }
+    }
+
+    private func applyDeadlineReconciliation(_ mode: SavingsGoalGenerationStopMode) async throws {
+        guard var update = pendingDeadlineUpdate,
+              case .deadline(let targetDate) = generationStopContext else { return }
+        update.reconciliation = SavingsGoalGenerationStop(
+            mode: mode,
+            budgetLineIds: generationStopCandidates.map(\.budgetLineId)
+        )
+        do {
+            _ = try await store.update(id: goal.id, data: update)
+            await viewModel.load()
+            await refreshFutureLinesIfStopped()
+            toastManager.show("Objectif modifié")
+        } catch let error as APIError where error.requiresSavingsGoalReconciliationRefresh {
+            try await refreshDeadlineDecision(
+                update,
+                targetDate: targetDate,
+                after: error,
+                reopenAfterDismiss: true
+            )
+        }
+    }
+
+    private func refreshDeadlineDecision(
+        _ update: SavingsGoalUpdate,
+        targetDate: String,
+        after error: APIError,
+        reopenAfterDismiss: Bool
+    ) async throws {
+        toastManager.show(DomainErrorLocalizer.localize(error), type: .error)
+        guard let decision = try await Self.refreshedDeadlineDecision(
+            id: goal.id,
+            update: update,
+            targetDate: targetDate,
+            store: store
+        ) else {
+            pendingDeadlineUpdate = nil
+            return
+        }
+        pendingDeadlineUpdate = decision.update
+        generationStopCandidates = decision.lines
+        generationStopContext = .deadline(targetDate: decision.targetDate)
+        if reopenAfterDismiss {
+            reopenGenerationStop = true
+        } else {
+            showGenerationStop = true
+        }
     }
 
     /// Applies the decision through the store seam, which owns the aggregate
@@ -256,6 +407,37 @@ struct SavingsGoalDetailView: View {
                 ? "\(result.affectedCount) prévision(s) conservée(s) sans objectif"
                 : "\(result.affectedCount) prévision(s) retirée(s) de tes mois futurs"
         )
+    }
+}
+
+extension SavingsGoalDetailView {
+    @MainActor
+    static func refreshedDeadlineDecision(
+        id: String,
+        update: SavingsGoalUpdate,
+        targetDate: String,
+        store: SavingsGoalStore
+    ) async throws -> SavingsGoalDeadlineDecision? {
+        let lines = try await store.getFutureLines(id: id, targetDate: targetDate)
+        guard !lines.isEmpty else { return nil }
+        var update = update
+        update.reconciliation = nil
+        return SavingsGoalDeadlineDecision(update: update, targetDate: targetDate, lines: lines)
+    }
+
+    nonisolated static func deadlinePreviewTarget(
+        previous: String?,
+        update: String??,
+        payDayOfMonth: Int?
+    ) -> String? {
+        guard let previous,
+              case .some(let updatedValue) = update,
+              let updated = updatedValue,
+              let previousDate = SavingsGoalDateFormatter.parse(previous),
+              let updatedDate = SavingsGoalDateFormatter.parse(updated) else { return nil }
+        let previousPeriod = BudgetPeriodCalculator.periodForDate(previousDate, payDayOfMonth: payDayOfMonth)
+        let updatedPeriod = BudgetPeriodCalculator.periodForDate(updatedDate, payDayOfMonth: payDayOfMonth)
+        return BudgetPeriodCalculator.comparePeriods(updatedPeriod, previousPeriod) < 0 ? updated : nil
     }
 }
 
@@ -291,7 +473,7 @@ final class SavingsGoalDetailViewModel {
     /// nothing to be judged on yet. Closed = server-locked (strictly-past cycle
     /// or everything pointé — same signal the timeline dims rows on).
     static func hasClosedPlanMonth(_ months: [SavingsGoalPlanMonth]) -> Bool {
-        months.contains { $0.isLocked }
+        months.contains { $0.isContributionEligible && $0.isLocked }
     }
 
     /// Amount for the day-1 « plan prêt » beat: the current month's planned

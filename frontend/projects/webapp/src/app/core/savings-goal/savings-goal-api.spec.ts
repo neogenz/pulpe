@@ -27,9 +27,11 @@ function makeProgress(
   return {
     goalId: GOAL_ID,
     status: 'ACTIVE',
+    startDate: null,
     targetAmount: 3000,
     targetDate: '2027-08-01',
     plannedCumulative: 1200,
+    plannedProjection: 1200,
     confirmed: 900,
     initialAmount: 0,
     achievementPercent: 30,
@@ -138,6 +140,56 @@ describe('SavingsGoalApi', () => {
     expect(response.data.isOverdue).toBe(true);
     expect(response.data.required).toBeNull();
     expect(response.data.paceStatus).toBeNull();
+  });
+
+  it('PATCHes explicit nulls without coercing them to zero', async () => {
+    const responsePromise = firstValueFrom(
+      service.update$(GOAL_ID, {
+        startDate: null,
+        targetAmount: null,
+        targetDate: null,
+      }),
+    );
+
+    const req = httpTesting.expectOne(
+      `http://localhost:3000/api/v1/savings-goals/${GOAL_ID}`,
+    );
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body).toEqual({
+      startDate: null,
+      targetAmount: null,
+      targetDate: null,
+    });
+    req.flush({
+      success: true,
+      data: {
+        id: GOAL_ID,
+        userId: '00000000-0000-4000-8000-000000000001',
+        name: 'Pot libre',
+        startDate: null,
+        targetAmount: null,
+        targetDate: null,
+        status: 'ACTIVE',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+    });
+
+    expect((await responsePromise).data.targetAmount).toBeNull();
+  });
+
+  it('passes the proposed deadline to the future-lines preview', async () => {
+    const responsePromise = firstValueFrom(
+      service.getFutureLines$(GOAL_ID, '2027-07-24'),
+    );
+
+    const req = httpTesting.expectOne(
+      `http://localhost:3000/api/v1/savings-goals/${GOAL_ID}/future-lines?targetDate=2027-07-24`,
+    );
+    expect(req.request.method).toBe('GET');
+    req.flush({ success: true, data: [] });
+
+    expect((await responsePromise).data).toEqual([]);
   });
 
   it('getContributions$ GETs the goal contributions endpoint and parses the schema', async () => {

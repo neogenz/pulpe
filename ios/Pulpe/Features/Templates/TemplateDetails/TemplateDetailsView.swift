@@ -34,6 +34,9 @@ struct TemplateDetailsView: View {
         .task(id: savingsGoalStore.templateDataVersion) {
             await viewModel.loadDetails()
         }
+        .task {
+            await savingsGoalStore.loadIfNeeded()
+        }
         .task(id: referencedTagIds) {
             await tagStore.loadIfNeeded(for: referencedTagIds)
         }
@@ -202,6 +205,16 @@ struct TemplateLineRow: View {
     let onEdit: () -> Void
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(SavingsGoalStore.self) private var savingsGoalStore
+
+    static func goalName(for goalId: String?, in goals: [SavingsGoal]) -> String? {
+        guard let goalId else { return nil }
+        return goals.first { $0.id == goalId }?.name
+    }
+
+    private var goalName: String? {
+        Self.goalName(for: line.savingsGoalId, in: savingsGoalStore.goals)
+    }
 
     var body: some View {
         Button(action: onEdit) {
@@ -219,6 +232,15 @@ struct TemplateLineRow: View {
                     Text(line.name)
                         .font(PulpeTypography.listRowTitle)
                         .lineLimit(1)
+
+                    if let goalName {
+                        PulpeChip(
+                            icon: "target",
+                            label: "Objectif : \(goalName)",
+                            style: .semantic(.financialSavings)
+                        )
+                        .lineLimit(1)
+                    }
 
                     RecurrenceBadge(line.recurrence, style: .compact)
 

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import {
   savingsGoalCreateSchema,
+  savingsGoalFutureLinesQuerySchema,
   savingsGoalDeletionCommandSchema,
   savingsGoalDeletionImpactSchema,
   savingsGoalPlanApplySchema,
@@ -148,6 +149,161 @@ describe('PUL-12 — savingsGoalUpdateSchema keeps PATCH semantics', () => {
   });
 });
 
+describe('PUL-314 — optional savings interval contract', () => {
+  test('accepts a creation with only the required name', () => {
+    const result = savingsGoalCreateSchema.safeParse({ name: 'Matelas' });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toEqual({ name: 'Matelas', status: 'ACTIVE' });
+    }
+  });
+
+  test.each([
+    {},
+    { startDate: isoDateOffsetDays(1) },
+    { targetAmount: 3000 },
+    { targetDate: isoDateOffsetDays(30) },
+    {
+      startDate: isoDateOffsetDays(1),
+      targetAmount: 3000,
+      targetDate: isoDateOffsetDays(30),
+    },
+  ])('accepts independent optional fields: %o', (fields) => {
+    expect(
+      savingsGoalCreateSchema.safeParse({ name: 'Matelas', ...fields }).success,
+    ).toBe(true);
+  });
+
+  test('rejects startDate after targetDate when both are present', () => {
+    expect(
+      savingsGoalCreateSchema.safeParse({
+        name: 'Matelas',
+        startDate: isoDateOffsetDays(31),
+        targetDate: isoDateOffsetDays(30),
+      }).success,
+    ).toBe(false);
+  });
+
+  test('accepts omission, null, or a value for each interval field on update', () => {
+    expect(savingsGoalUpdateSchema.safeParse({}).success).toBe(true);
+    expect(
+      savingsGoalUpdateSchema.safeParse({
+        startDate: null,
+        targetAmount: null,
+        targetDate: null,
+      }).success,
+    ).toBe(true);
+    expect(
+      savingsGoalUpdateSchema.safeParse({
+        startDate: isoDateOffsetDays(1),
+        targetAmount: 3000,
+        targetDate: isoDateOffsetDays(30),
+      }).success,
+    ).toBe(true);
+  });
+
+  test('accepts an explicit freeze/remove reconciliation on update', () => {
+    const result = savingsGoalUpdateSchema.safeParse({
+      targetDate: isoDateOffsetDays(15),
+      reconciliation: {
+        mode: 'freeze',
+        budgetLineIds: [UUID],
+      },
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  test('rejects duplicate line IDs in an update reconciliation', () => {
+    const result = savingsGoalUpdateSchema.safeParse({
+      targetDate: isoDateOffsetDays(15),
+      reconciliation: {
+        mode: 'remove',
+        budgetLineIds: [UUID, UUID],
+      },
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  test('accepts an exact reconciliation snapshot containing more than 120 lines', () => {
+    const result = savingsGoalUpdateSchema.safeParse({
+      targetDate: isoDateOffsetDays(15),
+      reconciliation: {
+        mode: 'remove',
+        budgetLineIds: Array.from({ length: 121 }, () => crypto.randomUUID()),
+      },
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  test('validates the optional targetDate preview query strictly', () => {
+    expect(savingsGoalFutureLinesQuerySchema.safeParse({}).success).toBe(true);
+    expect(
+      savingsGoalFutureLinesQuerySchema.safeParse({
+        targetDate: isoDateOffsetDays(15),
+      }).success,
+    ).toBe(true);
+    expect(
+      savingsGoalFutureLinesQuerySchema.safeParse({
+        targetDate: 'not-a-date',
+      }).success,
+    ).toBe(false);
+  });
+
+  test('reads an objective without start, target, or deadline', () => {
+    const now = new Date().toISOString();
+    const result = savingsGoalSchema.safeParse({
+      id: UUID,
+      userId: UUID,
+      name: 'Matelas',
+      startDate: null,
+      targetAmount: null,
+      targetDate: null,
+      status: 'ACTIVE',
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  test('accepts null target/deadline metrics and the planned projection', () => {
+    const result = savingsGoalProgressSchema.safeParse({
+      goalId: UUID,
+      status: 'ACTIVE',
+      startDate: null,
+      targetAmount: null,
+      targetDate: null,
+      plannedCumulative: 0,
+      plannedProjection: 500,
+      confirmed: 0,
+      achievementPercent: null,
+      monthsElapsed: 1,
+      monthsRemaining: null,
+      isOverdue: false,
+      pace: 0,
+      confirmedPace: 0,
+      required: null,
+      projected: null,
+      paceStatus: null,
+      suggestCompletion: null,
+      linkedLineCount: 0,
+      cumulativeGap: 0,
+      estimatedCompletion: null,
+      months: [],
+      originalTargetAmount: null,
+      originalCurrency: null,
+      targetCurrency: null,
+      exchangeRate: null,
+    });
+
+    expect(result.success).toBe(true);
+  });
+});
+
 describe('PUL-293 — savingsGoalCreateSchema.initialAmount', () => {
   const base = {
     name: 'Vacances 2027',
@@ -215,6 +371,7 @@ describe('PUL-293 — savingsGoalProgressSchema.initialAmount default', () => {
     targetAmount: 1000,
     targetDate: isoDateOffsetDays(30),
     plannedCumulative: 100,
+    plannedProjection: 1000,
     confirmed: 100,
     achievementPercent: 10,
     monthsElapsed: 1,

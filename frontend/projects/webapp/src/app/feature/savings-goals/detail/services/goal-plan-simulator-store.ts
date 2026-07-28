@@ -51,8 +51,9 @@ export class GoalPlanSimulatorStore {
     () => this.#store.progress()?.months ?? [],
   );
   readonly targetAmount = computed(
-    () => this.#store.progress()?.targetAmount ?? 0,
+    () => this.#store.progress()?.targetAmount ?? null,
   );
+  readonly hasTarget = computed(() => this.targetAmount() != null);
 
   readonly openMonthCount = computed(
     () =>

@@ -241,6 +241,7 @@ async function flagOf(lineId: string): Promise<boolean> {
 }
 
 const targetDateIso = `${targetPeriod.year}-${String(targetPeriod.month).padStart(2, '0')}-01`;
+const createdAtIso = `${pastPeriod.year}-${String(pastPeriod.month).padStart(2, '0')}-01T00:00:00.000Z`;
 
 beforeAll(async () => {
   const resolved = await ensureSupabaseAvailable().catch((error) => {
@@ -261,6 +262,7 @@ beforeAll(async () => {
     target_amount: 'enc:10000',
     target_date: targetDateIso,
     status: 'ACTIVE',
+    created_at: createdAtIso,
   });
   await admin.from('template').insert({
     id: templateAId,
@@ -382,7 +384,7 @@ describe('PUL-12 — plan timeline (read) on local Supabase', () => {
     const { useCase, authUser } = progressUseCaseFor(userA);
     const { computed, months } = await useCase.execute(goalAId, authUser);
 
-    // ancrage(current) ... but the past line pulls the start back to nowPeriod-1.
+    // The persisted creation period makes the historical anchor explicit.
     expect(months.length).toBeGreaterThanOrEqual(5);
 
     const past = months.find(

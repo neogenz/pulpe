@@ -119,4 +119,17 @@ struct SavingsPlanSuggestedContributionTests {
             now: Self.date(2026, 6, 15)
         ) == nil)
     }
+
+    @Test("starts the contribution window at the later explicit start period")
+    func suggestion_anchorsAtExplicitStartDate() {
+        let suggestion = SavingsPlanCalculator.suggestedMonthlyContribution(
+            targetAmount: 1_400,
+            targetDate: Self.date(2026, 12, 15),
+            payDayOfMonth: nil,
+            startDate: Self.date(2026, 6, 15),
+            now: Self.date(2026, 5, 15)
+        )
+
+        #expect(suggestion == 200)
+    }
 }

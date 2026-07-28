@@ -24,7 +24,7 @@ export interface GoalProjectionChartInput {
   months: readonly SavingsGoalPlanMonth[];
   /** Non-null in simulation mode: the plan line follows the sandbox trajectory. */
   draft: SavingsPlanSimulationResult | null;
-  targetAmount: number;
+  targetAmount: number | null;
   confirmed: number;
   projected: number;
   theme: ChartThemeColors | null;
@@ -179,7 +179,6 @@ export function buildGoalProjectionChartData(
   }
 
   const currentIndex = currentMonthIndex(months);
-  const targetData = months.map(() => targetAmount);
   const projectionData = draft
     ? buildPlannedProjection(
         months,
@@ -201,15 +200,6 @@ export function buildGoalProjectionChartData(
   );
 
   const datasets: ChartConfiguration['data']['datasets'] = [
-    {
-      data: targetData,
-      label: labels.target,
-      borderColor: colorWithAlpha(theme.tickColor, 0.5),
-      borderWidth: 1.5,
-      pointRadius: 0,
-      pointHoverRadius: 0,
-      fill: false,
-    } as ChartConfiguration['data']['datasets'][number],
     {
       data: confirmedData,
       label: labels.confirmed,
@@ -235,6 +225,18 @@ export function buildGoalProjectionChartData(
       fill: false,
     } as ChartConfiguration['data']['datasets'][number],
   ];
+
+  if (targetAmount != null) {
+    datasets.unshift({
+      data: months.map(() => targetAmount),
+      label: labels.target,
+      borderColor: colorWithAlpha(theme.tickColor, 0.5),
+      borderWidth: 1.5,
+      pointRadius: 0,
+      pointHoverRadius: 0,
+      fill: false,
+    } as ChartConfiguration['data']['datasets'][number]);
+  }
 
   return {
     // Two-line `[mois, année]` at each January and on the first point so a
