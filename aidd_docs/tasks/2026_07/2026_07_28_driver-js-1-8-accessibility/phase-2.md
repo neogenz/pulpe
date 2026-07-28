@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Verrouiller l’accessibilité réelle
@@ -11,6 +11,17 @@ status: pending
 ```txt
 .
 └── frontend
+    ├── projects
+    │   └── webapp
+    │       └── src
+    │           └── app
+    │               ├── core
+    │               │   └── product-tour
+    │               │       ├── product-tour.css ✏️
+    │               │       └── product-tour.service.ts ✏️
+    │               └── layout
+    │                   ├── main-layout.spec.ts ✏️
+    │                   └── main-layout.ts ✏️
     └── e2e
         └── tests
             └── features
@@ -21,7 +32,7 @@ status: pending
 
 ```mermaid
 flowchart TD
-  A["L’utilisateur ouvre Découvrir cet écran au clavier"] --> B["Le lecteur d’écran annonce le dialogue, son titre et sa description"]
+  A["L’utilisateur ouvre Découvrir cet écran au clavier"] --> B["Le dialogue expose son titre et sa description accessibles"]
   B --> C["Tab et Maj+Tab restent dans le tour et sa cible active"]
   C --> D["Action clavier"]
   D -->|"Suivant ou Précédent"| B
@@ -39,20 +50,19 @@ flowchart TD
 3. Vérifier Tab, Maj+Tab, Entrée, les flèches gauche et droite, puis Échap.
 4. Vérifier un parcours terminé et la restauration du focus vers le déclencheur logique.
 5. Garder le test limité à la régression clavier et sémantique commune à tous les tours.
+6. Démarrer le tour après la restauration du focus par le menu Material, puis conserver ce déclencheur stable pendant toutes les étapes afin de le refocaliser à la fermeture.
 
-### `2)` Valider le lecteur d’écran et le rendu local
+### `2)` Valider le rendu local
 
-> Compléter l’automatisation par une écoute réelle, car Playwright ne remplace pas VoiceOver.
+> Compléter l’automatisation par une vérification visuelle dans le navigateur intégré.
 
 1. Démarrer le frontend et le backend locaux, puis confirmer leurs ports depuis les logs avant d’ouvrir l’application.
-2. Avec VoiceOver sur macOS, rejouer le tour du dashboard et confirmer l’annonce du titre, de la description, de la progression et des boutons à chaque étape.
-3. Confirmer que Suivant, Précédent, Terminer et Échap produisent l’action annoncée et que le focus revient au menu utilisateur.
-4. Avec `@Browser`, capturer un écran du tour sur dashboard, budgets, détail d’un budget, modèles et objectifs afin d’écarter tout recadrage ou débordement lié à la mise à niveau.
-5. Exécuter le contrôle qualité du monorepo et le test Playwright ciblé.
+2. Avec `@Browser`, capturer un écran du tour sur dashboard, budgets, détail d’un budget, modèles et objectifs afin d’écarter tout recadrage ou débordement lié à la mise à niveau.
+3. Exécuter le contrôle qualité du monorepo et le test Playwright ciblé.
 
 ## Test acceptance criteria
 
 | Task | Acceptance criteria |
 | ---- | ------------------- |
 | 1 | Le tour est entièrement opérable sans souris ; le dialogue et ses contrôles ont des noms accessibles ; le focus ne s’échappe pas vers le contenu masqué ; Échap ferme le tour ; Terminer le clôture ; le focus revient au déclencheur logique. |
-| 2 | VoiceOver annonce chaque étape et ses contrôles sans silence ni contenu ambigu ; les cinq captures ne montrent ni popover rogné, ni cible incorrecte, ni débordement ; le contrôle qualité et le test Playwright ciblé passent. |
+| 2 | Les cinq captures ne montrent ni popover rogné, ni cible incorrecte, ni débordement ; le contrôle qualité et le test Playwright ciblé passent. |

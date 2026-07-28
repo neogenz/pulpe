@@ -335,6 +335,8 @@ interface NavigationItem {
                 <button
                   matButton
                   [matMenuTriggerFor]="userMenu"
+                  (click)="rememberUserMenuTrigger($event)"
+                  (menuClosed)="startRequestedPageTour()"
                   [attr.aria-label]="
                     isLoggingOut()
                       ? ('layout.loggingOut' | transloco)
@@ -385,7 +387,7 @@ interface NavigationItem {
               @if (currentTourPageId()) {
                 <button
                   mat-menu-item
-                  (click)="startPageTour()"
+                  (click)="requestPageTour()"
                   [attr.aria-label]="'navigation.discoverPage' | transloco"
                   data-testid="page-tour-button"
                 >
@@ -940,10 +942,27 @@ export default class MainLayout {
     });
   }
 
-  protected startPageTour(): void {
-    const pageId = this.currentTourPageId();
+  #requestedPageTour: TourPageId | null = null;
+  #userMenuTrigger: HTMLElement | null = null;
+
+  protected rememberUserMenuTrigger(event: Event): void {
+    if (event.currentTarget instanceof HTMLElement) {
+      this.#userMenuTrigger = event.currentTarget;
+    }
+  }
+
+  protected requestPageTour(): void {
+    this.#requestedPageTour = this.currentTourPageId();
+  }
+
+  protected startRequestedPageTour(): void {
+    const pageId = this.#requestedPageTour;
+    this.#requestedPageTour = null;
     if (pageId) {
-      this.#productTourService.startPageTour(pageId);
+      this.#productTourService.startPageTour(
+        pageId,
+        this.#userMenuTrigger ?? undefined,
+      );
     }
   }
 

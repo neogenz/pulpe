@@ -192,15 +192,23 @@ export class ProductTourService {
   }
 
   /** Start contextual, replayable help for the current page. */
-  startPageTour(pageId: TourPageId): void {
+  startPageTour(pageId: TourPageId, focusTarget?: HTMLElement): void {
     if (!this.isAuthenticated() || this.#activeDriver) {
       return;
     }
 
-    this.#prepareTour(TOUR_IDS[pageId], this.#getPageSteps(pageId));
+    this.#prepareTour(
+      TOUR_IDS[pageId],
+      this.#getPageSteps(pageId),
+      focusTarget,
+    );
   }
 
-  #prepareTour(tourId: TourId, steps: DriveStep[]): void {
+  #prepareTour(
+    tourId: TourId,
+    steps: DriveStep[],
+    focusTarget: Element | null = this.#document.activeElement,
+  ): void {
     this.#cancelPendingTour();
 
     const firstPageTarget = steps.find(
@@ -218,7 +226,7 @@ export class ProductTourService {
         if (!this.#document.querySelector(firstPageTarget)) return;
 
         this.#cancelPendingTour();
-        this.#startTour(tourId, steps);
+        this.#startTour(tourId, steps, focusTarget);
       });
       const timeoutId = view.setTimeout(
         () => this.#cancelPendingTour(),
@@ -230,10 +238,14 @@ export class ProductTourService {
       return;
     }
 
-    this.#startTour(tourId, steps);
+    this.#startTour(tourId, steps, focusTarget);
   }
 
-  #startTour(tourId: TourId, steps: DriveStep[]): void {
+  #startTour(
+    tourId: TourId,
+    steps: DriveStep[],
+    focusTarget: Element | null,
+  ): void {
     const availableSteps = steps.filter(
       (step) =>
         typeof step.element !== 'string' ||
@@ -280,6 +292,9 @@ export class ProductTourService {
         this.#activeDriver = null;
         this.#cleanupDriverArtifacts();
         this.#markTour(tourId, completed ? 'completed' : 'dismissed');
+        if (focusTarget instanceof HTMLElement && focusTarget.isConnected) {
+          focusTarget.focus();
+        }
       },
     };
 

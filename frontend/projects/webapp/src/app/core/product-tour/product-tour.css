@@ -245,6 +245,12 @@ body.driver-active {
   box-shadow: none !important;
 }
 
+.driver-popover button:focus-visible,
+.driver-active-element:focus-visible {
+  outline: 2px solid var(--mat-sys-primary) !important;
+  outline-offset: 2px !important;
+}
+
 /* Override Driver.js overflow:hidden only for flex containers with buttons
    The original rule breaks button layouts in flex containers */
 .flex:has(> button.driver-active-element) {

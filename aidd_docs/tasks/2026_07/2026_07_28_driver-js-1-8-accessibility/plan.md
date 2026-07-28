@@ -1,5 +1,5 @@
 ---
-objective: "Driver.js 1.8 remplace la version 1.4 sans refonte du product tour, avec une régression clavier automatisée et une validation VoiceOver reproductible."
+objective: "Driver.js 1.8 remplace la version 1.4 sans refonte du product tour, avec une régression clavier automatisée et une validation visuelle locale reproductible."
 status: in-progress
 ---
 

@@ -85,7 +85,8 @@ function mockWindowLocation(): {
 type MainLayoutWithPrivates = MainLayout & {
   isHandset(): boolean;
   closeDrawerOnMobile(drawer: { close: () => void }): void;
-  startPageTour(): void;
+  requestPageTour(): void;
+  startRequestedPageTour(): void;
 };
 
 // Mock PulpeBreadcrumb component
@@ -369,14 +370,16 @@ describe('MainLayout', () => {
       ['/budget-templates', 'templates-list'],
       ['/budget', 'budget-list'],
       ['/budget/123', 'budget-details'],
-    ] as const)('maps %s to the %s tour', (url, expectedPageId) => {
+    ] as const)('maps %s to the %s tour', async (url, expectedPageId) => {
       mockRouter.url = url;
       mockRouter.events.next(new NavigationEnd(1, url, url));
-
-      (component as unknown as MainLayoutWithPrivates).startPageTour();
+      const layout = component as unknown as MainLayoutWithPrivates;
+      layout.requestPageTour();
+      layout.startRequestedPageTour();
 
       expect(mockProductTourService.startPageTour).toHaveBeenCalledWith(
         expectedPageId,
+        undefined,
       );
     });
   });
