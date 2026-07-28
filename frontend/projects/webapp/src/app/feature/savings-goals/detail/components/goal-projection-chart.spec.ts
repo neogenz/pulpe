@@ -129,7 +129,7 @@ describe('GoalProjectionChart', () => {
       fixture.nativeElement.querySelector(
         '[data-testid="goal-projection-target-legend"]',
       )?.classList,
-    ).toContain('bg-on-surface-variant');
+    ).toContain('bg-financial-expense');
     expect(
       fixture.nativeElement.querySelector(
         '[data-testid="goal-projection-summary-projection"]',

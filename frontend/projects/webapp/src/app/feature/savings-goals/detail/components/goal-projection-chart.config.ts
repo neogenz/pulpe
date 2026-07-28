@@ -156,7 +156,7 @@ function terminalPointRadii(data: readonly (number | null)[]): number[] {
 }
 
 /**
- * Three balance series over the anchor → target axis: neutral target, savings
+ * Three balance series over the anchor → target axis: amber target, savings
  * green for confirmed reality, and tertiary blue for the planned projection.
  * Simulation replaces the projection with the sandbox trajectory.
  */
@@ -230,7 +230,7 @@ export function buildGoalProjectionChartData(
     datasets.unshift({
       data: months.map(() => targetAmount),
       label: labels.target,
-      borderColor: theme.tickColor,
+      borderColor: theme.expense,
       borderWidth: 1.5,
       pointRadius: 0,
       pointHoverRadius: 0,

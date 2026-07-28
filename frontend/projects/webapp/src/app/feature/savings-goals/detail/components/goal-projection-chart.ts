@@ -37,8 +37,8 @@ import {
 
 /**
  * « Ta trajectoire » (docs/SAVINGS.md §10.1). Read-only cumulated
- * chart: confirmed savings in green, planned projection in tertiary blue, and a
- * neutral target. Switches its data source to the simulation sandbox when
+ * chart: confirmed savings in green, planned projection in tertiary blue, and an
+ * amber target. Switches its data source to the simulation sandbox when
  * `draft` is provided. The canvas is paired with an offscreen `aria-live`
  * sentence so screen readers get the trajectory without the visual.
  */
@@ -79,7 +79,7 @@ import {
                 @switch (item.series) {
                   @case ('target') {
                     <span
-                      class="h-px w-5 shrink-0 bg-on-surface-variant"
+                      class="h-px w-5 shrink-0 bg-financial-expense"
                       aria-hidden="true"
                       data-testid="goal-projection-target-legend"
                     ></span>
