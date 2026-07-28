@@ -704,14 +704,11 @@ jobs:
         if: always()
         run: xcrun simctl shutdown all 2>/dev/null || true
 
-  # 🔍 DETECT MIGRATION CHANGES — gates whether the prod-linked migration jobs
-  # run at all, so ordinary PRs and code-only releases never hit the manual
-  # approval gate. Runs on migration-relevant PRs and on push to main.
+  # 🔍 DETECT MIGRATION CHANGES — main only. Pull-request code never enters a
+  # job with the production environment or its secrets.
   detect-migrations:
     name: 🔍 Detect Migration Changes
-    if: >-
-      (github.event_name == 'pull_request' && github.actor != 'dependabot[bot]') ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 2
     outputs:
@@ -724,13 +721,10 @@ jobs:
       - name: 🔍 Any migration file touched?
         id: filter
         env:
-          BASE_REF: ${{ github.base_ref }}
           BEFORE_SHA: ${{ github.event.before }}
         run: |
           MIGRATIONS_PATH='backend-nest/supabase/migrations/'
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            DIFF=$(git diff --name-only "origin/${BASE_REF}...HEAD" -- "$MIGRATIONS_PATH")
-          elif [ -z "$BEFORE_SHA" ] || [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
+          if [ -z "$BEFORE_SHA" ] || [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
             # New branch / unknown base — can't diff safely, so gate the migrate
             # job (fail-safe: never silently skip applying a real migration).
             echo "changed=true" >> "$GITHUB_OUTPUT"
@@ -744,52 +738,12 @@ jobs:
             echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
 
-  # 🗄️ MIGRATION DRY-RUN (PRs touching migrations only — detects prod drift
-  # before merge). Path-gated so it only runs — and only trips the required-
-  # reviewer approval gate — when a PR actually changes migration files. Code
-  # PRs skip it entirely, so autonomous agents open PRs without manual gates.
-  migrate-dryrun:
-    name: 🗄️ Migration Dry-Run
-    needs: [detect-migrations]
-    # Runs only on a PR that changed migrations. ci-success treats a skipped
-    # migrate-dryrun as success.
-    if: github.event_name == 'pull_request' && needs.detect-migrations.outputs.changed == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    # Prod secrets only resolve inside the gated Environment: a migration PR
-    # (whose YAML comes from the PR head) waits for human approval before
-    # touching them — desirable oversight precisely when the schema changes.
-    environment: production
-    steps:
-      - name: 📥 Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: 🗄️ Setup Supabase CLI
-        uses: ./.github/actions/setup-supabase-cli
-        with:
-          version: ${{ env.SUPABASE_CLI_VERSION }}
-
-      - name: 🔗 Link Supabase Project
-        working-directory: backend-nest
-        run: supabase link --project-ref $SUPABASE_PROJECT_ID
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
-          SUPABASE_PROJECT_ID: ${{ secrets.PRODUCTION_PROJECT_ID }}
-
-      - name: 🧪 Dry-Run Migrations
-        working-directory: backend-nest
-        run: supabase db push --dry-run
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
-
   # ✅ SUCCESS JOB pour status checks
   ci-success:
     name: ✅ CI Success
     runs-on: ubuntu-latest
     timeout-minutes: 1
-    needs: [build, test-unit, test-backend-integration, test-e2e, quality, test-performance, test-ios, migrate-dryrun]
+    needs: [build, test-unit, test-backend-integration, test-e2e, quality, test-performance, test-ios]
     if: always()
     steps:
       - name: ✅ Check all jobs
@@ -800,8 +754,7 @@ jobs:
           needs.test-e2e.result == 'success' &&
           needs.quality.result == 'success' &&
           needs.test-performance.result == 'success' &&
-          needs.test-ios.result == 'success' &&
-          contains(fromJSON('["success", "skipped"]'), needs.migrate-dryrun.result)
+          needs.test-ios.result == 'success'
         run: echo "🎉 All CI checks passed!"
 
       - name: ❌ Check failures
@@ -812,8 +765,7 @@ jobs:
           needs.test-e2e.result != 'success' ||
           needs.quality.result != 'success' ||
           needs.test-performance.result != 'success' ||
-          needs.test-ios.result != 'success' ||
-          !contains(fromJSON('["success", "skipped"]'), needs.migrate-dryrun.result)
+          needs.test-ios.result != 'success'
         run: |
           echo "❌ Some CI checks failed"
           echo "Build: ${{ needs.build.result }}"
@@ -823,7 +775,6 @@ jobs:
           echo "Quality: ${{ needs.quality.result }}"
           echo "Performance: ${{ needs.test-performance.result }}"
           echo "iOS Tests: ${{ needs.test-ios.result }}"
-          echo "Migration Dry-Run: ${{ needs.migrate-dryrun.result }}"
           exit 1
 
   # 🗄️ MIGRATION PRODUCTION (push main only — applique les migrations après CI verte)
@@ -837,6 +788,8 @@ jobs:
     timeout-minutes: 5
     needs: [ci-success, detect-migrations]
     environment: production
+    permissions:
+      contents: read
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -848,11 +801,18 @@ jobs:
 
       - name: 🔗 Link Supabase Project
         working-directory: backend-nest
-        run: supabase link --project-ref $SUPABASE_PROJECT_ID
+        run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
           SUPABASE_PROJECT_ID: ${{ secrets.PRODUCTION_PROJECT_ID }}
+
+      - name: 🧪 Dry-Run Migrations
+        working-directory: backend-nest
+        run: supabase db push --dry-run
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
 
       - name: 🚀 Push Migrations
         working-directory: backend-nest

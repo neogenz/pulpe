@@ -57,7 +57,12 @@ supabase db push --db-url "postgresql://postgres.uzsgvcwchwqcuwejjtdb:[PASSWORD]
 supabase unlink
 ```
 
-- Migrations run automatically on push to `main` if files exist in `backend-nest/supabase/migrations/`.
+- Migrations run automatically on push to `main` if files changed in
+  `backend-nest/supabase/migrations/`. No pull-request job receives the
+  production environment or its secrets.
+- After the main CI succeeds and the protected `production` environment is
+  approved, the migration job verifies its pinned Supabase CLI archive, runs
+  `supabase db push --dry-run`, then applies the migration from the same commit.
 - To create a new migration: `supabase migration new [description]` then `supabase db push` after editing the generated SQL. Warning: this pushes to the linked (prod) project.
 
 ##### Apply migrations locally
@@ -350,7 +355,7 @@ git push origin "$SHA:refs/heads/main"
 
 Never promote `origin/preview` directly: that ref can advance after its validated CI run. Never use a force push.
 
-The `main` push starts Vercel and Railway production deployments immediately through their GitHub integrations. Those webhooks are not delayed by `ci-success`. In GitHub Actions, the main-only `migrate`, `posthog-annotate`, and `verify-prod-csp` jobs do depend on `ci-success`.
+The `main` push starts Vercel and Railway production deployments immediately through their GitHub integrations. Those webhooks are not delayed by `ci-success`. In GitHub Actions, the main-only `migrate`, `posthog-annotate`, and `verify-prod-csp` jobs do depend on `ci-success`. The migration job performs its production dry-run immediately before applying changes; pull requests never receive those credentials.
 
 Before creating the immutable tag or GitHub Release:
 
