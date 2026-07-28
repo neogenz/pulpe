@@ -224,7 +224,9 @@ export class GoalPlanTimeline {
 
   protected readonly rows = computed<GoalPlanTimelineRow[]>(() => {
     const simulated = this.simulatedMonths();
-    const source = simulated ?? this.months();
+    const source = (simulated ?? this.months()).filter(
+      (month) => month.isContributionEligible !== false,
+    );
     return source.map((month) => {
       const isChecked =
         month.lines.length > 0 &&

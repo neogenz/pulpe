@@ -128,6 +128,61 @@ describe('GoalPlanTimeline', () => {
     expect(query('goal-plan-gap-hint')).toBeTruthy();
   });
 
+  it('starts the monthly plan at the first contribution-eligible month', () => {
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({
+        month: 7,
+        state: 'current',
+        isContributionEligible: false,
+        plannedAmount: 0,
+        plannedCumulative: 0,
+        lines: [],
+      }),
+      makeMonth({
+        month: 8,
+        state: 'gap',
+        isContributionEligible: false,
+        plannedAmount: 0,
+        plannedCumulative: 0,
+        lines: [],
+      }),
+      makeMonth({
+        month: 9,
+        isContributionEligible: true,
+        plannedAmount: 1385,
+        plannedCumulative: 1385,
+      }),
+      makeMonth({
+        month: 10,
+        state: 'gap',
+        isContributionEligible: true,
+        plannedAmount: 0,
+        plannedCumulative: 1385,
+        lines: [],
+      }),
+    ]);
+    setTestInput(fixture.componentInstance.expanded, true);
+    fixture.detectChanges();
+
+    expect(rowsQuery()).toHaveLength(2);
+    expect(
+      fixture.debugElement.query(
+        By.css(`[data-testid="goal-plan-row-${2026 * 12 + 7}"]`),
+      ),
+    ).toBeFalsy();
+    expect(
+      fixture.debugElement.query(
+        By.css(`[data-testid="goal-plan-row-${2026 * 12 + 8}"]`),
+      ),
+    ).toBeFalsy();
+    expect(
+      fixture.debugElement.queryAll(
+        By.css('[data-testid="goal-plan-gap-chip"]'),
+      ),
+    ).toHaveLength(1);
+    expect(query('goal-plan-gap-hint')).toBeTruthy();
+  });
+
   it('exposes an inline edit affordance only for open months when editable', () => {
     setTestInput(fixture.componentInstance.months, [
       makeMonth({ month: 3, state: 'current' }),
