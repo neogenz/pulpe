@@ -962,7 +962,6 @@ export default class SavingsGoalDetailPage {
       },
       width: '720px',
       maxWidth: '95vw',
-      height: '90dvh',
       maxHeight: '90dvh',
       injector: this.#injector,
     });

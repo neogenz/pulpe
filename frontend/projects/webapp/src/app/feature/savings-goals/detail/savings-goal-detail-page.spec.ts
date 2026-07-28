@@ -934,10 +934,10 @@ describe('SavingsGoalDetailPage', () => {
       },
       width: '720px',
       maxWidth: '95vw',
-      height: '90dvh',
       maxHeight: '90dvh',
       injector: expect.anything(),
     });
+    expect(mockDialog.open.mock.calls[0][1]).not.toHaveProperty('height');
     expect(mockStore.deleteGoal).toHaveBeenCalledWith(
       'goal-1',
       deletionCommand,
