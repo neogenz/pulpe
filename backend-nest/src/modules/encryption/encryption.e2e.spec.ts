@@ -139,14 +139,21 @@ describe('Encryption E2E (local Supabase)', () => {
     expect(saltRes.body.salt).toBeTruthy();
     expect(saltRes.body.kdfIterations).toBe(600000);
 
-    // 2. Validate old key (establishes DEK + key_check)
+    // 2. Initialize the empty vault atomically (key_check + recovery wrapper)
+    await request(app.getHttpServer())
+      .post('/api/v1/encryption/setup-recovery')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('X-Client-Key', OLD_CLIENT_KEY_HEX)
+      .expect(201);
+
+    // 3. Validate old key against the initialized key_check
     await request(app.getHttpServer())
       .post('/api/v1/encryption/validate-key')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ clientKey: OLD_CLIENT_KEY_HEX })
       .expect(204);
 
-    // 3. Change PIN
+    // 4. Change PIN
     const changePinRes = await request(app.getHttpServer())
       .post('/api/v1/encryption/change-pin')
       .set('Authorization', `Bearer ${accessToken}`)
@@ -162,14 +169,14 @@ describe('Encryption E2E (local Supabase)', () => {
       /^[A-Z2-7]{4}(-[A-Z2-7]{4})+$/,
     );
 
-    // 4. Validate new key succeeds
+    // 5. Validate new key succeeds
     await request(app.getHttpServer())
       .post('/api/v1/encryption/validate-key')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ clientKey: NEW_CLIENT_KEY_HEX })
       .expect(204);
 
-    // 5. Verify old key now fails
+    // 6. Verify old key now fails
     const oldKeyRes = await request(app.getHttpServer())
       .post('/api/v1/encryption/validate-key')
       .set('Authorization', `Bearer ${accessToken}`)

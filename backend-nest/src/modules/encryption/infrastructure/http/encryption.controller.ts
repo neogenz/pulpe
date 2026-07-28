@@ -148,8 +148,13 @@ export class EncryptionController {
   })
   async setupRecovery(
     @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<{ recoveryKey: string }> {
-    return this.setupRecoveryKeyUseCase.execute(user.id, user.clientKey);
+    return this.setupRecoveryKeyUseCase.execute(
+      user.id,
+      user.clientKey,
+      supabase,
+    );
   }
 
   @Post('regenerate-recovery')

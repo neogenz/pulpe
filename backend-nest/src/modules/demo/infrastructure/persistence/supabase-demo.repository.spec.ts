@@ -13,6 +13,7 @@ function createMockSupabase(
 function buildMockEncryption(): EncryptionPort {
   return {
     ensureUserDEK: async () => Buffer.alloc(32),
+    ensureDemoUserDEK: async () => Buffer.alloc(32),
     getUserDEK: async () => Buffer.alloc(32),
     encryptAmount: (n: number) => `enc-${n}`,
     decryptAmount: (s: string) => Number(s.replace('enc-', '')),

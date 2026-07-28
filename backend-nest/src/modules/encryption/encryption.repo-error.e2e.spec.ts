@@ -37,6 +37,22 @@ const KDF_ITERATIONS = 600_000;
 const LEAKY_SUPABASE_CODE = 'XX000';
 const LEAKY_SUPABASE_MESSAGE = 'connection refused at host XYZ';
 
+function makeEmptyEncryptedDataClient() {
+  const buildFluent = () => {
+    const builder = {
+      select: () => builder,
+      eq: () => builder,
+      in: () => builder,
+      then: (
+        onResolve: (value: SupabaseResult) => unknown,
+        onReject?: (reason: unknown) => unknown,
+      ) => Promise.resolve({ data: [], error: null }).then(onResolve, onReject),
+    };
+    return builder;
+  };
+  return { from: () => buildFluent() };
+}
+
 class MockAuthGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const req = context.switchToHttp().getRequest();
@@ -46,7 +62,7 @@ class MockAuthGuard implements CanActivate {
       accessToken: 'mock-token',
       clientKey: Buffer.alloc(32, 0xab),
     };
-    req.supabase = {};
+    req.supabase = makeEmptyEncryptedDataClient();
     return true;
   }
 }
@@ -243,6 +259,33 @@ const saltOkWithRow: SupabaseResult = {
 
 const noopOk: SupabaseResult = { data: null, error: null };
 
+async function buildConfiguredSaltRow(): Promise<SupabaseResult> {
+  const row = saltOkWithRow.data as {
+    salt: string;
+    kdf_iterations: number;
+    wrapped_dek: null;
+    key_check: null;
+  };
+  const cryptoService = new AesGcmCryptoService(
+    createMockPinoLogger() as PinoLogger,
+    {
+      get: (key: string) =>
+        key === 'ENCRYPTION_MASTER_KEY' ? TEST_MASTER_KEY : undefined,
+    } as ConfigService,
+    {
+      findSaltByUserId: () => Promise.resolve(row),
+    } as unknown as SupabaseEncryptionKeyRepository,
+  );
+  const dek = await cryptoService.getUserDEK(
+    MOCK_USER_ID,
+    Buffer.from(VALID_HEX_KEY, 'hex'),
+  );
+  return {
+    data: { ...row, key_check: cryptoService.generateKeyCheck(dek) },
+    error: null,
+  };
+}
+
 let activeApp: INestApplication | undefined;
 
 beforeAll(() => {
@@ -351,19 +394,19 @@ describe('Encryption repo error contract (HI-03 regression armor)', () => {
       assertGenericRepositoryFailure(res.body);
     });
 
-    it('returns 204 on happy path (row missing key_check, write succeeds)', async () => {
+    it('returns 400 without bootstrapping when key_check is missing', async () => {
       activeApp = await bootstrapApp([saltOkWithRow, noopOk]);
 
       await request(activeApp.getHttpServer())
         .post('/api/v1/encryption/validate-key')
         .send({ clientKey: VALID_HEX_KEY })
-        .expect(204);
+        .expect(400);
     });
   });
 
   describe('POST /api/v1/encryption/setup-recovery', () => {
     it('returns 500 sanitized envelope when wrap step errors after salt resolves', async () => {
-      activeApp = await bootstrapApp([saltOk, dbFailure]);
+      activeApp = await bootstrapApp([saltOkWithRow, dbFailure]);
 
       const res = await request(activeApp.getHttpServer())
         .post('/api/v1/encryption/setup-recovery')
@@ -375,9 +418,8 @@ describe('Encryption repo error contract (HI-03 regression armor)', () => {
 
     it('returns 201 with formatted recovery key on happy path', async () => {
       activeApp = await bootstrapApp([
-        saltOk,
+        saltOkWithRow,
         { data: { user_id: MOCK_USER_ID }, error: null },
-        noopOk,
       ]);
 
       const res = await request(activeApp.getHttpServer())
@@ -404,7 +446,8 @@ describe('Encryption repo error contract (HI-03 regression armor)', () => {
     });
 
     it('returns 201 with formatted recovery key on happy path', async () => {
-      activeApp = await bootstrapApp([saltOkWithRow, saltOk, noopOk, noopOk]);
+      const configuredRow = await buildConfiguredSaltRow();
+      activeApp = await bootstrapApp([configuredRow, configuredRow, noopOk]);
 
       const res = await request(activeApp.getHttpServer())
         .post('/api/v1/encryption/regenerate-recovery')

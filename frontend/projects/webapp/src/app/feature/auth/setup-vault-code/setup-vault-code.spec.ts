@@ -212,6 +212,17 @@ describe('SetupVaultCode', () => {
       );
     });
 
+    it('should leave vault initialization to setupRecoveryKey$', async () => {
+      await component['onSubmit']();
+      expect(mockEncryptionApi.validateKey$).not.toHaveBeenCalled();
+      expect(mockEncryptionApi.setupRecoveryKey$).toHaveBeenCalledOnce();
+      expect(
+        mockClientKeyService.setDirectKey.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        mockEncryptionApi.setupRecoveryKey$.mock.invocationCallOrder[0] ?? 0,
+      );
+    });
+
     it('should call updateUser to set vaultCodeConfigured', async () => {
       await component['onSubmit']();
       expect(mockUpdateUser).toHaveBeenCalledWith({

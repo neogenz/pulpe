@@ -211,6 +211,41 @@ export class SupabaseEncryptionKeyRepository implements EncryptionKeyRepositoryP
     }
   }
 
+  async initializeVaultIfEmpty(
+    userId: string,
+    keyCheck: string,
+    wrappedDEK: string,
+  ): Promise<boolean> {
+    const supabase = this.#supabaseService.getServiceRoleClient();
+    const { data, error } = await supabase
+      .from('user_encryption_key')
+      .update({
+        key_check: keyCheck,
+        wrapped_dek: wrappedDEK,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId)
+      .is('key_check', null)
+      .is('wrapped_dek', null)
+      .select('user_id')
+      .maybeSingle();
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_REPOSITORY_FAILURE,
+        undefined,
+        {
+          userId,
+          operation: 'initializeVaultIfEmpty',
+          supabaseCode: error.code,
+          supabaseMessage: error.message,
+        },
+        { cause: error },
+      );
+    }
+    return data !== null;
+  }
+
   async updateWrappedDEKIfNull(
     userId: string,
     wrappedDEK: string,

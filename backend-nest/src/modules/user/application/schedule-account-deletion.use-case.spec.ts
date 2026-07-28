@@ -17,7 +17,7 @@ describe('ScheduleAccountDeletionUseCase', () => {
     warn: ReturnType<typeof mock>;
   };
   let mockEncryption: {
-    verifyAndEnsureKeyCheck: ReturnType<typeof mock>;
+    verifyExistingKeyCheck: ReturnType<typeof mock>;
   };
 
   beforeEach(async () => {
@@ -30,7 +30,7 @@ describe('ScheduleAccountDeletionUseCase', () => {
     };
     mockLogger = { info: mock(() => {}), warn: mock(() => {}) };
     mockEncryption = {
-      verifyAndEnsureKeyCheck: mock(async () => true),
+      verifyExistingKeyCheck: mock(async () => true),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -50,7 +50,7 @@ describe('ScheduleAccountDeletionUseCase', () => {
 
   it('validates the vault key, schedules deletion, then signs out globally', async () => {
     const callOrder: string[] = [];
-    mockEncryption.verifyAndEnsureKeyCheck = mock(async () => {
+    mockEncryption.verifyExistingKeyCheck = mock(async () => {
       callOrder.push('verifyKey');
       return true;
     });
@@ -73,7 +73,7 @@ describe('ScheduleAccountDeletionUseCase', () => {
       'scheduleDeletion',
       'signOutGlobally',
     ]);
-    expect(mockEncryption.verifyAndEnsureKeyCheck).toHaveBeenCalledWith(
+    expect(mockEncryption.verifyExistingKeyCheck).toHaveBeenCalledWith(
       user.id,
       user.clientKey,
     );
@@ -106,7 +106,7 @@ describe('ScheduleAccountDeletionUseCase', () => {
   });
 
   it('rejects a wrong vault key before scheduling or signing out', async () => {
-    mockEncryption.verifyAndEnsureKeyCheck = mock(async () => false);
+    mockEncryption.verifyExistingKeyCheck = mock(async () => false);
 
     await expect(
       useCase.execute(createMockAuthenticatedUser()),

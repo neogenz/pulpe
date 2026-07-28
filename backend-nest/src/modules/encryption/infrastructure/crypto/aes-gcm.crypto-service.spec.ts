@@ -22,6 +22,28 @@ const createMockConfigService = () => ({
   },
 });
 
+const createEncryptedDataClient = (
+  rowsByTable: Record<string, unknown[]> = {},
+) => {
+  const buildQuery = (data: unknown[]) => {
+    const query = {
+      select: () => query,
+      eq: () => query,
+      in: () => query,
+      then: (
+        onResolve: (value: { data: unknown[]; error: null }) => unknown,
+        onReject?: (reason: unknown) => unknown,
+      ) => Promise.resolve({ data, error: null }).then(onResolve, onReject),
+    };
+    return query;
+  };
+  return {
+    from: (table: string) => buildQuery(rowsByTable[table] ?? []),
+  };
+};
+
+const createEmptyEncryptedDataClient = () => createEncryptedDataClient();
+
 const createMockRepository = (overrides?: {
   findSaltByUserId?: ReturnType<typeof mock>;
   findByUserId?: ReturnType<typeof mock>;
@@ -30,11 +52,19 @@ const createMockRepository = (overrides?: {
   updateWrappedDEKIfNull?: ReturnType<typeof mock>;
   hasRecoveryKey?: ReturnType<typeof mock>;
   updateKeyCheckIfNull?: ReturnType<typeof mock>;
+  initializeVaultIfEmpty?: ReturnType<typeof mock>;
   getVaultStatus?: ReturnType<typeof mock>;
 }) => ({
   findSaltByUserId:
     overrides?.findSaltByUserId ?? mock(() => Promise.resolve(null)),
-  findByUserId: overrides?.findByUserId ?? mock(() => Promise.resolve(null)),
+  findByUserId:
+    overrides?.findByUserId ??
+    (overrides?.findSaltByUserId
+      ? mock(async (userId: string) => {
+          const row = await overrides.findSaltByUserId!(userId);
+          return row ? { ...row, wrapped_dek: null } : null;
+        })
+      : mock(() => Promise.resolve(null))),
   upsertSalt: overrides?.upsertSalt ?? mock(() => Promise.resolve()),
   updateWrappedDEK:
     overrides?.updateWrappedDEK ?? mock(() => Promise.resolve()),
@@ -49,6 +79,19 @@ const createMockRepository = (overrides?: {
     overrides?.hasRecoveryKey ?? mock(() => Promise.resolve(false)),
   updateKeyCheckIfNull:
     overrides?.updateKeyCheckIfNull ?? mock(() => Promise.resolve()),
+  initializeVaultIfEmpty:
+    overrides?.initializeVaultIfEmpty ??
+    mock(async (userId: string, keyCheck: string, wrappedDEK: string) => {
+      let updated = true;
+      if (overrides?.updateWrappedDEKIfNull) {
+        updated = await overrides.updateWrappedDEKIfNull(userId, wrappedDEK);
+      } else if (overrides?.updateWrappedDEK) {
+        await overrides.updateWrappedDEK(userId, wrappedDEK);
+      }
+      if (!updated) return false;
+      await overrides?.updateKeyCheckIfNull?.(userId, keyCheck);
+      return true;
+    }),
   getVaultStatus:
     overrides?.getVaultStatus ??
     mock(() =>
@@ -59,6 +102,30 @@ const createMockRepository = (overrides?: {
       }),
     ),
 });
+
+const buildConfiguredRow = async (
+  clientKey = TEST_CLIENT_KEY,
+  salt = randomBytes(16).toString('hex'),
+) => {
+  const uninitializedRow = {
+    salt,
+    kdf_iterations: 600000,
+    key_check: null,
+  };
+  const bootstrapService = new AesGcmCryptoService(
+    createMockLogger() as any,
+    createMockConfigService() as any,
+    createMockRepository({
+      findSaltByUserId: mock(() => Promise.resolve(uninitializedRow)),
+    }) as any,
+  );
+  const dek = await bootstrapService.getUserDEK(TEST_USER_ID, clientKey);
+  return {
+    ...uninitializedRow,
+    wrapped_dek: null,
+    key_check: bootstrapService.generateKeyCheck(dek),
+  };
+};
 
 describe('AesGcmCryptoService', () => {
   let service: AesGcmCryptoService;
@@ -350,7 +417,7 @@ describe('AesGcmCryptoService', () => {
   });
 
   describe('ensureUserDEK', () => {
-    it('should derive DEK and create salt when none exists', async () => {
+    it('should create the missing salt but reject writes until the vault is initialized', async () => {
       const generatedSalt = randomBytes(16).toString('hex');
       let findCallCount = 0;
       const findSaltByUserId = mock(() => {
@@ -373,14 +440,15 @@ describe('AesGcmCryptoService', () => {
         repo as any,
       );
 
-      const dek = await service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
-
-      expect(dek).toBeDefined();
-      expect(dek.length).toBe(32);
+      await expect(
+        service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY),
+      ).rejects.toMatchObject({
+        code: ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED.code,
+      });
       expect(upsertSalt).toHaveBeenCalled();
     });
 
-    it('should derive DEK from existing salt', async () => {
+    it('should reject writes when an existing salt has no key check', async () => {
       const existingSalt = randomBytes(16).toString('hex');
       const findSaltByUserId = mock(() =>
         Promise.resolve({
@@ -398,10 +466,11 @@ describe('AesGcmCryptoService', () => {
         repo as any,
       );
 
-      const dek = await service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
-
-      expect(dek).toBeDefined();
-      expect(dek.length).toBe(32);
+      await expect(
+        service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY),
+      ).rejects.toMatchObject({
+        code: ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED.code,
+      });
     });
 
     it('should throw BusinessException without leaking userId when salt re-read returns null after upsert', async () => {
@@ -438,14 +507,8 @@ describe('AesGcmCryptoService', () => {
     });
 
     it('should return cached DEK on second call', async () => {
-      const existingSalt = randomBytes(16).toString('hex');
-      const findSaltByUserId = mock(() =>
-        Promise.resolve({
-          salt: existingSalt,
-          kdf_iterations: 600000,
-          key_check: null,
-        }),
-      );
+      const row = await buildConfiguredRow();
+      const findSaltByUserId = mock(() => Promise.resolve(row));
 
       const repo = createMockRepository({ findSaltByUserId });
 
@@ -463,14 +526,8 @@ describe('AesGcmCryptoService', () => {
     });
 
     it('should derive same DEK for same clientKey and salt', async () => {
-      const existingSalt = randomBytes(16).toString('hex');
-      const findSaltByUserId = mock(() =>
-        Promise.resolve({
-          salt: existingSalt,
-          kdf_iterations: 600000,
-          key_check: null,
-        }),
-      );
+      const row = await buildConfiguredRow();
+      const findSaltByUserId = mock(() => Promise.resolve(row));
 
       const repo = createMockRepository({ findSaltByUserId });
 
@@ -491,20 +548,13 @@ describe('AesGcmCryptoService', () => {
       expect(dek1).toEqual(dek2);
     });
 
-    it('should derive different DEK for different clientKeys', async () => {
-      const existingSalt = randomBytes(16).toString('hex');
-      const findSaltByUserId = mock(() =>
-        Promise.resolve({
-          salt: existingSalt,
-          kdf_iterations: 600000,
-          key_check: null,
-        }),
-      );
-
-      const repo = createMockRepository({ findSaltByUserId });
-
+    it('should reject a different client key for the configured vault', async () => {
       const clientKey1 = randomBytes(32);
       const clientKey2 = randomBytes(32);
+      const row = await buildConfiguredRow(clientKey1);
+      const findSaltByUserId = mock(() => Promise.resolve(row));
+
+      const repo = createMockRepository({ findSaltByUserId });
 
       const service1 = new AesGcmCryptoService(
         createMockLogger() as any,
@@ -518,44 +568,17 @@ describe('AesGcmCryptoService', () => {
       );
 
       const dek1 = await service1.ensureUserDEK(TEST_USER_ID, clientKey1);
-      const dek2 = await service2.ensureUserDEK(TEST_USER_ID, clientKey2);
-
-      expect(dek1).not.toEqual(dek2);
+      expect(dek1.length).toBe(32);
+      await expect(
+        service2.ensureUserDEK(TEST_USER_ID, clientKey2),
+      ).rejects.toMatchObject({
+        code: ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED.code,
+      });
     });
 
     it('should return DEK when key_check is valid', async () => {
-      const existingSalt = randomBytes(16).toString('hex');
-
-      // First, derive DEK to generate a valid key_check
-      const initialFindSaltByUserId = mock(() =>
-        Promise.resolve({
-          salt: existingSalt,
-          kdf_iterations: 600000,
-          key_check: null,
-        }),
-      );
-      const initialRepo = createMockRepository({
-        findSaltByUserId: initialFindSaltByUserId,
-      });
-      const initialService = new AesGcmCryptoService(
-        createMockLogger() as any,
-        mockConfigService as any,
-        initialRepo as any,
-      );
-      const dek = await initialService.ensureUserDEK(
-        TEST_USER_ID,
-        TEST_CLIENT_KEY,
-      );
-      const validKeyCheck = initialService.generateKeyCheck(dek);
-
-      // Now test with valid key_check
-      const findSaltByUserId = mock(() =>
-        Promise.resolve({
-          salt: existingSalt,
-          kdf_iterations: 600000,
-          key_check: validKeyCheck,
-        }),
-      );
+      const row = await buildConfiguredRow();
+      const findSaltByUserId = mock(() => Promise.resolve(row));
       const repo = createMockRepository({ findSaltByUserId });
       service = new AesGcmCryptoService(
         createMockLogger() as any,
@@ -564,7 +587,7 @@ describe('AesGcmCryptoService', () => {
       );
 
       const result = await service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
-      expect(result).toEqual(dek);
+      expect(service.validateKeyCheck(row.key_check, result)).toBe(true);
     });
 
     it('should throw ENCRYPTION_KEY_CHECK_FAILED when key_check mismatches', async () => {
@@ -603,7 +626,7 @@ describe('AesGcmCryptoService', () => {
       }
     });
 
-    it('should pass through when key_check is null (pre-migration user)', async () => {
+    it('should fail closed when key_check is null', async () => {
       const existingSalt = randomBytes(16).toString('hex');
       const findSaltByUserId = mock(() =>
         Promise.resolve({
@@ -620,13 +643,15 @@ describe('AesGcmCryptoService', () => {
         repo as any,
       );
 
-      const dek = await service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
-      expect(dek).toBeDefined();
-      expect(dek.length).toBe(32);
+      await expect(
+        service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY),
+      ).rejects.toMatchObject({
+        code: ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED.code,
+      });
     });
 
-    it('should skip key_check validation on cache hit', async () => {
-      const existingSalt = randomBytes(16).toString('hex');
+    it('should reuse a previously validated DEK on cache hit', async () => {
+      const row = await buildConfiguredRow();
       const wrongDek = randomBytes(32);
 
       service = new AesGcmCryptoService(
@@ -636,14 +661,7 @@ describe('AesGcmCryptoService', () => {
       );
       const invalidKeyCheck = service.generateKeyCheck(wrongDek);
 
-      // First call: no key_check → caches DEK
-      const findSaltByUserId = mock(() =>
-        Promise.resolve({
-          salt: existingSalt,
-          kdf_iterations: 600000,
-          key_check: null as string | null,
-        }),
-      );
+      const findSaltByUserId = mock(() => Promise.resolve(row));
       const repo = createMockRepository({ findSaltByUserId });
       service = new AesGcmCryptoService(
         createMockLogger() as any,
@@ -653,10 +671,9 @@ describe('AesGcmCryptoService', () => {
 
       const dek = await service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
 
-      // Swap mock to return invalid key_check — should not matter because cache hit
       findSaltByUserId.mockImplementation(() =>
         Promise.resolve({
-          salt: existingSalt,
+          ...row,
           kdf_iterations: 600000,
           key_check: invalidKeyCheck,
         }),
@@ -1117,7 +1134,7 @@ describe('AesGcmCryptoService', () => {
     });
   });
 
-  describe('verifyAndEnsureKeyCheck', () => {
+  describe('verifyExistingKeyCheck', () => {
     it('should validate existing key_check and return true', async () => {
       const existingSalt = randomBytes(16).toString('hex');
 
@@ -1167,7 +1184,7 @@ describe('AesGcmCryptoService', () => {
         repo as any,
       );
 
-      const result = await service.verifyAndEnsureKeyCheck(
+      const result = await service.verifyExistingKeyCheck(
         TEST_USER_ID,
         TEST_CLIENT_KEY,
       );
@@ -1204,7 +1221,7 @@ describe('AesGcmCryptoService', () => {
         repo as any,
       );
 
-      const result = await service.verifyAndEnsureKeyCheck(
+      const result = await service.verifyExistingKeyCheck(
         TEST_USER_ID,
         TEST_CLIENT_KEY,
       );
@@ -1212,7 +1229,7 @@ describe('AesGcmCryptoService', () => {
       expect(result).toBe(false);
     });
 
-    it('should generate and store key_check when missing', async () => {
+    it('should fail closed without creating key_check when missing', async () => {
       const existingSalt = randomBytes(16).toString('hex');
 
       const findByUserId = mock(() =>
@@ -1245,15 +1262,13 @@ describe('AesGcmCryptoService', () => {
         repo as any,
       );
 
-      const result = await service.verifyAndEnsureKeyCheck(
+      const result = await service.verifyExistingKeyCheck(
         TEST_USER_ID,
         TEST_CLIENT_KEY,
       );
 
-      expect(result).toBe(true);
-      expect(updateKeyCheckIfNull).toHaveBeenCalledTimes(1);
-      expect(updateKeyCheckIfNull.mock.calls[0][0]).toBe(TEST_USER_ID);
-      expect(typeof updateKeyCheckIfNull.mock.calls[0][1]).toBe('string');
+      expect(result).toBe(false);
+      expect(updateKeyCheckIfNull).not.toHaveBeenCalled();
     });
 
     it('should propagate repository errors on findByUserId failure', async () => {
@@ -1269,7 +1284,7 @@ describe('AesGcmCryptoService', () => {
       );
 
       await expect(
-        service.verifyAndEnsureKeyCheck(TEST_USER_ID, TEST_CLIENT_KEY),
+        service.verifyExistingKeyCheck(TEST_USER_ID, TEST_CLIENT_KEY),
       ).rejects.toThrow('Database connection failed');
     });
   });
@@ -1301,7 +1316,7 @@ describe('AesGcmCryptoService', () => {
       };
     };
 
-    it('should not cache the DEK when verifyAndEnsureKeyCheck fails — subsequent write rejects the key', async () => {
+    it('should not cache the DEK when verifyExistingKeyCheck fails — subsequent write rejects the key', async () => {
       const row = await buildRowWithCanaryFor(TEST_CLIENT_KEY);
       const wrongClientKey = randomBytes(32);
       const repo = createMockRepository({
@@ -1314,7 +1329,7 @@ describe('AesGcmCryptoService', () => {
         repo as any,
       );
 
-      const verified = await service.verifyAndEnsureKeyCheck(
+      const verified = await service.verifyExistingKeyCheck(
         TEST_USER_ID,
         wrongClientKey,
       );
@@ -1333,7 +1348,7 @@ describe('AesGcmCryptoService', () => {
       }
     });
 
-    it('should keep populating the cache on successful verifyAndEnsureKeyCheck', async () => {
+    it('should keep populating the cache on successful verifyExistingKeyCheck', async () => {
       const row = await buildRowWithCanaryFor(TEST_CLIENT_KEY);
       const findSaltByUserId = mock(() => Promise.resolve(row));
       const repo = createMockRepository({
@@ -1346,7 +1361,7 @@ describe('AesGcmCryptoService', () => {
         repo as any,
       );
 
-      const verified = await service.verifyAndEnsureKeyCheck(
+      const verified = await service.verifyExistingKeyCheck(
         TEST_USER_ID,
         TEST_CLIENT_KEY,
       );
@@ -1388,6 +1403,31 @@ describe('AesGcmCryptoService', () => {
       }
     });
 
+    it('should not cache an unverified DEK when key_check is missing', async () => {
+      const row = {
+        salt: randomBytes(16).toString('hex'),
+        kdf_iterations: 600000,
+        key_check: null,
+      };
+      const findSaltByUserId = mock(() => Promise.resolve(row));
+      const repo = createMockRepository({ findSaltByUserId });
+      service = new AesGcmCryptoService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
+
+      const readDek = await service.getUserDEK(TEST_USER_ID, TEST_CLIENT_KEY);
+      expect(readDek.length).toBe(32);
+
+      await expect(
+        service.ensureUserDEK(TEST_USER_ID, TEST_CLIENT_KEY),
+      ).rejects.toMatchObject({
+        code: ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED.code,
+      });
+      expect(findSaltByUserId).toHaveBeenCalledTimes(2);
+    });
+
     it('should reject createRecoveryKey with a wrong key before wrapping anything', async () => {
       const row = await buildRowWithCanaryFor(TEST_CLIENT_KEY);
       const wrongClientKey = randomBytes(32);
@@ -1403,7 +1443,11 @@ describe('AesGcmCryptoService', () => {
       );
 
       try {
-        await service.createRecoveryKey(TEST_USER_ID, wrongClientKey);
+        await service.createRecoveryKey(
+          TEST_USER_ID,
+          wrongClientKey,
+          createEmptyEncryptedDataClient() as any,
+        );
         expect.unreachable(
           'a recovery key must never wrap a DEK that failed the canary',
         );
@@ -1419,14 +1463,8 @@ describe('AesGcmCryptoService', () => {
 
   describe('prepareAmountData', () => {
     it('should return encrypted string as amount', async () => {
-      const existingSalt = randomBytes(16).toString('hex');
-      const findSaltByUserId = mock(() =>
-        Promise.resolve({
-          salt: existingSalt,
-          kdf_iterations: 600000,
-          key_check: null,
-        }),
-      );
+      const row = await buildConfiguredRow();
+      const findSaltByUserId = mock(() => Promise.resolve(row));
       const repo = createMockRepository({ findSaltByUserId });
 
       service = new AesGcmCryptoService(
@@ -1447,14 +1485,8 @@ describe('AesGcmCryptoService', () => {
     });
 
     it('should produce encrypted value that can be decrypted back to original amount', async () => {
-      const existingSalt = randomBytes(16).toString('hex');
-      const findSaltByUserId = mock(() =>
-        Promise.resolve({
-          salt: existingSalt,
-          kdf_iterations: 600000,
-          key_check: null,
-        }),
-      );
+      const row = await buildConfiguredRow();
+      const findSaltByUserId = mock(() => Promise.resolve(row));
       const repo = createMockRepository({ findSaltByUserId });
 
       service = new AesGcmCryptoService(
@@ -1477,14 +1509,8 @@ describe('AesGcmCryptoService', () => {
     });
 
     it('should handle zero amount correctly', async () => {
-      const existingSalt = randomBytes(16).toString('hex');
-      const findSaltByUserId = mock(() =>
-        Promise.resolve({
-          salt: existingSalt,
-          kdf_iterations: 600000,
-          key_check: null,
-        }),
-      );
+      const row = await buildConfiguredRow();
+      const findSaltByUserId = mock(() => Promise.resolve(row));
       const repo = createMockRepository({ findSaltByUserId });
 
       service = new AesGcmCryptoService(
@@ -1509,14 +1535,8 @@ describe('AesGcmCryptoService', () => {
 
   describe('prepareAmountsData', () => {
     it('should return encrypted strings as amounts', async () => {
-      const existingSalt = randomBytes(16).toString('hex');
-      const findSaltByUserId = mock(() =>
-        Promise.resolve({
-          salt: existingSalt,
-          kdf_iterations: 600000,
-          key_check: null,
-        }),
-      );
+      const row = await buildConfiguredRow();
+      const findSaltByUserId = mock(() => Promise.resolve(row));
       const repo = createMockRepository({ findSaltByUserId });
 
       service = new AesGcmCryptoService(
@@ -1540,14 +1560,8 @@ describe('AesGcmCryptoService', () => {
     });
 
     it('should produce encrypted values that can be decrypted back to original amounts', async () => {
-      const existingSalt = randomBytes(16).toString('hex');
-      const findSaltByUserId = mock(() =>
-        Promise.resolve({
-          salt: existingSalt,
-          kdf_iterations: 600000,
-          key_check: null,
-        }),
-      );
+      const row = await buildConfiguredRow();
+      const findSaltByUserId = mock(() => Promise.resolve(row));
       const repo = createMockRepository({ findSaltByUserId });
 
       service = new AesGcmCryptoService(
@@ -1571,14 +1585,8 @@ describe('AesGcmCryptoService', () => {
     });
 
     it('should handle empty array', async () => {
-      const existingSalt = randomBytes(16).toString('hex');
-      const findSaltByUserId = mock(() =>
-        Promise.resolve({
-          salt: existingSalt,
-          kdf_iterations: 600000,
-          key_check: null,
-        }),
-      );
+      const row = await buildConfiguredRow();
+      const findSaltByUserId = mock(() => Promise.resolve(row));
       const repo = createMockRepository({ findSaltByUserId });
 
       service = new AesGcmCryptoService(
@@ -1597,14 +1605,8 @@ describe('AesGcmCryptoService', () => {
     });
 
     it('should handle single amount', async () => {
-      const existingSalt = randomBytes(16).toString('hex');
-      const findSaltByUserId = mock(() =>
-        Promise.resolve({
-          salt: existingSalt,
-          kdf_iterations: 600000,
-          key_check: null,
-        }),
-      );
+      const row = await buildConfiguredRow();
+      const findSaltByUserId = mock(() => Promise.resolve(row));
       const repo = createMockRepository({ findSaltByUserId });
 
       service = new AesGcmCryptoService(
@@ -1670,7 +1672,7 @@ describe('AesGcmCryptoService', () => {
   });
 
   describe('createRecoveryKey', () => {
-    it('should create recovery key when none exists', async () => {
+    it('should atomically initialize key_check and wrapped_dek for an empty vault', async () => {
       const existingSalt = randomBytes(16).toString('hex');
       const findSaltByUserId = mock(() =>
         Promise.resolve({
@@ -1679,11 +1681,18 @@ describe('AesGcmCryptoService', () => {
           key_check: null,
         }),
       );
+      const initializeVaultIfEmpty = mock(
+        (_userId: string, _keyCheck: string, _wrappedDEK: string) =>
+          Promise.resolve(true),
+      );
       const updateWrappedDEKIfNull = mock(() => Promise.resolve(true));
+      const updateKeyCheckIfNull = mock(() => Promise.resolve());
 
       const repo = createMockRepository({
         findSaltByUserId,
+        initializeVaultIfEmpty,
         updateWrappedDEKIfNull,
+        updateKeyCheckIfNull,
       });
       service = new AesGcmCryptoService(
         createMockLogger() as any,
@@ -1694,12 +1703,18 @@ describe('AesGcmCryptoService', () => {
       const result = await service.createRecoveryKey(
         TEST_USER_ID,
         TEST_CLIENT_KEY,
+        createEmptyEncryptedDataClient() as any,
       );
       expect(result.formatted).toMatch(/^[A-Z2-7]{4}(-[A-Z2-7]{4})+$/);
-      expect(updateWrappedDEKIfNull).toHaveBeenCalledTimes(1);
+      expect(initializeVaultIfEmpty).toHaveBeenCalledTimes(1);
+      expect(initializeVaultIfEmpty.mock.calls[0]?.[0]).toBe(TEST_USER_ID);
+      expect(typeof initializeVaultIfEmpty.mock.calls[0]?.[1]).toBe('string');
+      expect(typeof initializeVaultIfEmpty.mock.calls[0]?.[2]).toBe('string');
+      expect(updateWrappedDEKIfNull).not.toHaveBeenCalled();
+      expect(updateKeyCheckIfNull).not.toHaveBeenCalled();
     });
 
-    it('should throw RECOVERY_KEY_ALREADY_EXISTS when wrapped_dek exists', async () => {
+    it('should throw RECOVERY_KEY_ALREADY_EXISTS when the atomic initialization race is lost', async () => {
       const existingSalt = randomBytes(16).toString('hex');
       const findSaltByUserId = mock(() =>
         Promise.resolve({
@@ -1708,11 +1723,11 @@ describe('AesGcmCryptoService', () => {
           key_check: null,
         }),
       );
-      const updateWrappedDEKIfNull = mock(() => Promise.resolve(false));
+      const initializeVaultIfEmpty = mock(() => Promise.resolve(false));
 
       const repo = createMockRepository({
         findSaltByUserId,
-        updateWrappedDEKIfNull,
+        initializeVaultIfEmpty,
       });
       service = new AesGcmCryptoService(
         createMockLogger() as any,
@@ -1721,7 +1736,11 @@ describe('AesGcmCryptoService', () => {
       );
 
       try {
-        await service.createRecoveryKey(TEST_USER_ID, TEST_CLIENT_KEY);
+        await service.createRecoveryKey(
+          TEST_USER_ID,
+          TEST_CLIENT_KEY,
+          createEmptyEncryptedDataClient() as any,
+        );
         expect.unreachable('Should have thrown');
       } catch (error: unknown) {
         expect(error).toBeInstanceOf(BusinessException);
@@ -1730,26 +1749,84 @@ describe('AesGcmCryptoService', () => {
         );
       }
     });
+
+    it('should refuse a recovery-only legacy vault without mutating it', async () => {
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: randomBytes(16).toString('hex'),
+          kdf_iterations: 600000,
+          wrapped_dek: 'existing-wrapped-dek',
+          key_check: null,
+        }),
+      );
+      const initializeVaultIfEmpty = mock(() => Promise.resolve(true));
+      const repo = createMockRepository({
+        findByUserId,
+        initializeVaultIfEmpty,
+      });
+      service = new AesGcmCryptoService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
+
+      await expect(
+        service.createRecoveryKey(
+          TEST_USER_ID,
+          TEST_CLIENT_KEY,
+          createEmptyEncryptedDataClient() as any,
+        ),
+      ).rejects.toMatchObject({
+        code: ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED.code,
+      });
+      expect(initializeVaultIfEmpty).not.toHaveBeenCalled();
+    });
+
+    it('should refuse bootstrap when encrypted user data already exists', async () => {
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: randomBytes(16).toString('hex'),
+          kdf_iterations: 600000,
+          wrapped_dek: null,
+          key_check: null,
+        }),
+      );
+      const initializeVaultIfEmpty = mock(() => Promise.resolve(true));
+      const repo = createMockRepository({
+        findByUserId,
+        initializeVaultIfEmpty,
+      });
+      service = new AesGcmCryptoService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        repo as any,
+      );
+
+      await expect(
+        service.createRecoveryKey(
+          TEST_USER_ID,
+          TEST_CLIENT_KEY,
+          createEncryptedDataClient({
+            monthly_budget: [
+              { id: 'budget-1', ending_balance: 'existing-ciphertext' },
+            ],
+          }) as any,
+        ),
+      ).rejects.toMatchObject({
+        code: ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED.code,
+      });
+      expect(initializeVaultIfEmpty).not.toHaveBeenCalled();
+    });
   });
 
   describe('regenerateRecoveryKey', () => {
     it('should regenerate recovery key even when one already exists', async () => {
-      const existingSalt = randomBytes(16).toString('hex');
-      const findSaltByUserId = mock(() =>
-        Promise.resolve({
-          salt: existingSalt,
-          kdf_iterations: 600000,
-          key_check: null,
-        }),
-      );
-      const findByUserId = mock(() =>
-        Promise.resolve({
-          salt: existingSalt,
-          kdf_iterations: 600000,
-          wrapped_dek: 'existing-wrapped-dek',
-          key_check: 'existing-key-check',
-        }),
-      );
+      const row = {
+        ...(await buildConfiguredRow()),
+        wrapped_dek: 'existing-wrapped-dek',
+      };
+      const findSaltByUserId = mock(() => Promise.resolve(row));
+      const findByUserId = mock(() => Promise.resolve(row));
       const updateWrappedDEK = mock(() => Promise.resolve());
 
       const repo = createMockRepository({
@@ -1771,16 +1848,10 @@ describe('AesGcmCryptoService', () => {
       expect(updateWrappedDEK).toHaveBeenCalledTimes(1);
     });
 
-    it('should regenerate recovery key when none exists', async () => {
-      const existingSalt = randomBytes(16).toString('hex');
-      const findSaltByUserId = mock(() =>
-        Promise.resolve({
-          salt: existingSalt,
-          kdf_iterations: 600000,
-          key_check: null,
-        }),
-      );
-      const findByUserId = mock(() => Promise.resolve(null));
+    it('should create a recovery key for a configured vault without one', async () => {
+      const row = await buildConfiguredRow();
+      const findSaltByUserId = mock(() => Promise.resolve(row));
+      const findByUserId = mock(() => Promise.resolve(row));
       const updateWrappedDEK = mock(() => Promise.resolve());
 
       const repo = createMockRepository({
@@ -2068,6 +2139,7 @@ describe('AesGcmCryptoService', () => {
       const { formatted } = await svc1.createRecoveryKey(
         TEST_USER_ID,
         clientKey,
+        createEmptyEncryptedDataClient() as any,
       );
 
       // The createRecoveryKey stored a wrappedDEK — capture it
@@ -2172,7 +2244,11 @@ describe('AesGcmCryptoService', () => {
       );
 
       const clientKey = randomBytes(32);
-      const first = await service.createRecoveryKey(TEST_USER_ID, clientKey);
+      const first = await service.createRecoveryKey(
+        TEST_USER_ID,
+        clientKey,
+        createEmptyEncryptedDataClient() as any,
+      );
       const firstWrapped = wrappedDek;
       expect(firstWrapped).not.toBeNull();
 
@@ -2228,6 +2304,7 @@ describe('AesGcmCryptoService', () => {
       const { formatted } = await svc1.createRecoveryKey(
         TEST_USER_ID,
         clientKey,
+        createEmptyEncryptedDataClient() as any,
       );
       const storedWrappedDek = wrappedDekUpdates[wrappedDekUpdates.length - 1];
       expect(storedWrappedDek).not.toBeNull();
@@ -2319,6 +2396,7 @@ describe('AesGcmCryptoService', () => {
       const { formatted } = await svc1.createRecoveryKey(
         TEST_USER_ID,
         clientKey,
+        createEmptyEncryptedDataClient() as any,
       );
       const storedWrappedDek = wrappedDekUpdates[wrappedDekUpdates.length - 1];
 
@@ -2418,6 +2496,7 @@ describe('AesGcmCryptoService', () => {
       const { formatted } = await svc1.createRecoveryKey(
         TEST_USER_ID,
         bootstrapClientKey,
+        createEmptyEncryptedDataClient() as any,
       );
       const storedWrappedDek = wrappedDekUpdates[wrappedDekUpdates.length - 1];
 
@@ -2511,6 +2590,7 @@ describe('AesGcmCryptoService', () => {
       const { formatted } = await svc1.createRecoveryKey(
         TEST_USER_ID,
         bootstrapClientKey,
+        createEmptyEncryptedDataClient() as any,
       );
       const storedWrappedDek = wrappedDekUpdates[wrappedDekUpdates.length - 1];
 
@@ -2628,6 +2708,7 @@ describe('AesGcmCryptoService', () => {
       const { formatted } = await svc1.createRecoveryKey(
         TEST_USER_ID,
         bootstrapClientKey,
+        createEmptyEncryptedDataClient() as any,
       );
       const storedWrappedDek = wrappedDekUpdates[wrappedDekUpdates.length - 1];
 

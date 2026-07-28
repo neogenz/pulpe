@@ -2,7 +2,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import { DEMO_CLIENT_KEY_BUFFER } from '@modules/encryption/domain/encryption.constants';
 import {
   ENCRYPTION_PORT,
   type EncryptionPort,
@@ -326,7 +325,7 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
   }
 
   private async getDemoDek(userId: string): Promise<Buffer> {
-    return this.encryption.ensureUserDEK(userId, DEMO_CLIENT_KEY_BUFFER);
+    return this.encryption.ensureDemoUserDEK(userId);
   }
 
   private toSeededTemplateLine(
