@@ -1,6 +1,6 @@
 ---
 objective: "Toute fin de session iOS en production laisse un diagnostic ordonné, rattaché au bon utilisateur, catégorisé précisément et compatible avec la version Supabase livrée."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Fiabiliser les diagnostics de déconnexion iOS
