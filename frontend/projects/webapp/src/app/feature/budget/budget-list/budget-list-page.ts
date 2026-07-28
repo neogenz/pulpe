@@ -1,6 +1,5 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import {
-  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -37,10 +36,6 @@ import {
   type BudgetExportResponse,
   type TransactionSearchResult,
 } from 'pulpe-shared';
-import {
-  ProductTourService,
-  TOUR_START_DELAY,
-} from '@core/product-tour/product-tour.service';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import { CURRENCY_CONFIG } from '@core/currency';
@@ -168,7 +163,6 @@ import { UserSettingsStore } from '@core/user-settings';
 export default class BudgetListPage {
   protected readonly state = inject(BudgetListStore);
   protected readonly titleDisplay = inject(TitleDisplay);
-  readonly #productTourService = inject(ProductTourService);
   readonly #dialog = inject(MatDialog);
   readonly #router = inject(Router);
   readonly #breakpointObserver = inject(BreakpointObserver);
@@ -211,15 +205,6 @@ export default class BudgetListPage {
 
     this.#destroyRef.onDestroy(() => {
       this.#loadingIndicator.setLoading(false);
-    });
-
-    afterNextRender(() => {
-      if (!this.#productTourService.hasSeenPageTour('budget-list')) {
-        setTimeout(
-          () => this.#productTourService.startPageTour('budget-list'),
-          TOUR_START_DELAY,
-        );
-      }
     });
   }
 

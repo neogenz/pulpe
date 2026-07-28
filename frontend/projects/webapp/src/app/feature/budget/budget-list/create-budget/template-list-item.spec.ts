@@ -8,11 +8,26 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { setTestInput } from '@app/testing/signal-test-utils';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { TemplateListItem } from './template-list-item';
-// NOTE: BudgetTemplate type removed as it's no longer used in tests
+import { type TemplateViewModel } from './template-view-model';
 
-// NOTE: TestHostComponent removed due to NG0950 errors with input.required() in Angular 20
+const templateViewModel: TemplateViewModel = {
+  template: {
+    id: '00000000-0000-4000-8000-000000000111',
+    name: 'Mois standard',
+    description: 'Budget mensuel',
+    isDefault: true,
+    userId: 'user-123',
+    createdAt: '2026-07-28T00:00:00Z',
+    updatedAt: '2026-07-28T00:00:00Z',
+  },
+  income: 5_000,
+  expenses: 3_000,
+  netBalance: 2_000,
+  loading: false,
+};
 
 describe('TemplateListItem', () => {
   let component: TemplateListItem;
@@ -37,15 +52,11 @@ describe('TemplateListItem', () => {
       ],
     }).compileComponents();
 
-    // Test standalone component
     fixture = TestBed.createComponent(TemplateListItem);
     component = fixture.componentInstance;
   });
 
   describe('Standalone Component - Basic Structure', () => {
-    // NOTE: We test the component structure through the host component
-    // since Angular 20 required inputs cannot be set directly on standalone components
-
     it('should have input and output properties defined', () => {
       // These are the properties that should exist on the component class with new Angular input/output APIs
       expect(component.templateViewModel).toBeDefined();
@@ -68,6 +79,24 @@ describe('TemplateListItem', () => {
     });
   });
 
-  // NOTE: Integration tests removed due to NG0950 errors with input.required()
-  // in Angular 20. Component behavior is adequately tested in higher-level integration tests.
+  it('renders the translated details action without selecting the template', () => {
+    const showDetails = vi.fn();
+    const selectTemplate = vi.fn();
+    component.showDetails.subscribe(showDetails);
+    component.selectTemplate.subscribe(selectTemplate);
+    setTestInput(component.templateViewModel, templateViewModel);
+
+    fixture.detectChanges();
+
+    const detailsButton = fixture.nativeElement.querySelector(
+      'button',
+    ) as HTMLButtonElement | null;
+    expect(detailsButton?.textContent).toContain('Détails');
+    expect(detailsButton?.textContent).not.toContain('template.details');
+
+    detailsButton?.click();
+
+    expect(showDetails).toHaveBeenCalledWith(templateViewModel);
+    expect(selectTemplate).not.toHaveBeenCalled();
+  });
 });

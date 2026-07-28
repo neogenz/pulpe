@@ -12,7 +12,6 @@ import { ExcelExportService } from '@core/budget/excel-export.service';
 import { downloadAsExcelFile, downloadAsJsonFile } from '@core/file-download';
 import { Logger } from '@core/logging/logger';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
-import { ProductTourService } from '@core/product-tour/product-tour.service';
 import { TitleDisplay } from '@core/routing';
 import { UserSettingsStore } from '@core/user-settings';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
@@ -54,13 +53,6 @@ describe('BudgetListPage', () => {
         ...provideTranslocoForTest(),
         { provide: BudgetListStore, useValue: mockStore },
         { provide: TitleDisplay, useValue: { currentTitle: signal('') } },
-        {
-          provide: ProductTourService,
-          useValue: {
-            hasSeenPageTour: vi.fn().mockReturnValue(true),
-            startPageTour: vi.fn(),
-          },
-        },
         { provide: MatDialog, useValue: { open: vi.fn() } },
         {
           provide: BreakpointObserver,

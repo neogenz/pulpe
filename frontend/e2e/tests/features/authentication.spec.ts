@@ -67,6 +67,69 @@ test.describe('Authentication', () => {
     await expect(submitButton).toBeVisible();
   });
 
+  test('should keep password criteria clear of the confirmation label', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/signup');
+
+    const passwordInput = page.getByTestId('password-input');
+    const confirmPasswordInput = page.getByTestId('confirm-password-input');
+    const lastCriterion = page
+      .getByTestId('password-criteria')
+      .locator('li')
+      .last();
+    const confirmPasswordLabel = confirmPasswordInput
+      .locator('xpath=ancestor::mat-form-field')
+      .locator('.mat-mdc-floating-label');
+
+    const expectNoOverlap = async () => {
+      const [criterionBox, labelBox] = await Promise.all([
+        lastCriterion.boundingBox(),
+        confirmPasswordLabel.boundingBox(),
+      ]);
+
+      expect(criterionBox).not.toBeNull();
+      expect(labelBox).not.toBeNull();
+      expect(criterionBox!.y + criterionBox!.height).toBeLessThanOrEqual(
+        labelBox!.y,
+      );
+    };
+
+    await passwordInput.fill('abc');
+    await confirmPasswordInput.focus();
+    await expectNoOverlap();
+
+    await passwordInput.fill('Password1');
+    await confirmPasswordInput.fill('Password1');
+    await expectNoOverlap();
+  });
+
+  test('should keep compact password criterion icons unclipped', async ({
+    page,
+  }) => {
+    await page.goto('/signup');
+
+    const icons = page.getByTestId('password-criteria').locator('mat-icon');
+    await expect(icons).toHaveCount(3);
+
+    const layouts = await icons.evaluateAll((elements) =>
+      elements.map((element) => {
+        const style = getComputedStyle(element);
+        return {
+          height: style.height,
+          isInline: element.classList.contains('mat-icon-inline'),
+          lineHeight: style.lineHeight,
+        };
+      }),
+    );
+
+    for (const layout of layouts) {
+      expect(layout.isInline).toBe(true);
+      expect(layout.lineHeight).toBe(layout.height);
+    }
+  });
+
   test('should maintain session after refresh', async ({
     authenticatedPage,
   }) => {

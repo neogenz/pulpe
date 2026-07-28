@@ -7,7 +7,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
-import { Router, type NavigationEnd, ActivatedRoute } from '@angular/router';
+import { Router, NavigationEnd, ActivatedRoute } from '@angular/router';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { ScrollDispatcher } from '@angular/cdk/scrolling';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -85,6 +85,8 @@ function mockWindowLocation(): {
 type MainLayoutWithPrivates = MainLayout & {
   isHandset(): boolean;
   closeDrawerOnMobile(drawer: { close: () => void }): void;
+  requestPageTour(): void;
+  startRequestedPageTour(): void;
 };
 
 // Mock PulpeBreadcrumb component
@@ -139,6 +141,9 @@ describe('MainLayout', () => {
   };
   let mockDialog: {
     open: ReturnType<typeof vi.fn>;
+  };
+  let mockProductTourService: {
+    startPageTour: ReturnType<typeof vi.fn>;
   };
   let breakpointSubject: Subject<{ matches: boolean }>;
 
@@ -196,6 +201,9 @@ describe('MainLayout', () => {
     mockDialog = {
       open: vi.fn().mockReturnValue({ afterClosed: () => EMPTY }),
     };
+    mockProductTourService = {
+      startPageTour: vi.fn(),
+    };
 
     // Configure TestBed
     TestBed.configureTestingModule({
@@ -247,7 +255,7 @@ describe('MainLayout', () => {
         },
         {
           provide: ProductTourService,
-          useValue: { startPageTour: vi.fn() },
+          useValue: mockProductTourService,
         },
         {
           provide: LoadingIndicator,
@@ -325,6 +333,69 @@ describe('MainLayout', () => {
     it('should observe breakpoint changes', () => {
       fixture.detectChanges();
       expect(mockBreakpointObserver.observe).toHaveBeenCalled();
+    });
+
+    it('anchors the navigation tour to the visible desktop or handset control', () => {
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="desktop-navigation"][data-tour="navigation"]',
+        ),
+      ).toBeTruthy();
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="menu-toggle"][data-tour="navigation"]',
+        ),
+      ).toBeNull();
+
+      breakpointSubject.next({ matches: true });
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="desktop-navigation"][data-tour="navigation"]',
+        ),
+      ).toBeNull();
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="menu-toggle"][data-tour="navigation"]',
+        ),
+      ).toBeTruthy();
+    });
+  });
+
+  describe('Product Tour Routing', () => {
+    it.each([
+      ['/budget-templates', 'templates-list'],
+      ['/budget-templates/', 'templates-list'],
+      ['/budget-templates?source=menu', 'templates-list'],
+      ['/budget', 'budget-list'],
+      ['/budget/123', 'budget-details'],
+    ] as const)('maps %s to the %s tour', async (url, expectedPageId) => {
+      mockRouter.url = url;
+      mockRouter.events.next(new NavigationEnd(1, url, url));
+      const layout = component as unknown as MainLayoutWithPrivates;
+      layout.requestPageTour();
+      layout.startRequestedPageTour();
+
+      expect(mockProductTourService.startPageTour).toHaveBeenCalledWith(
+        expectedPageId,
+        undefined,
+      );
+    });
+
+    it.each([
+      '/budget-templates/create',
+      '/budget-templates/details/template-123',
+    ])('does not expose the templates list tour on %s', (url) => {
+      mockRouter.url = url;
+      mockRouter.events.next(new NavigationEnd(1, url, url));
+      const layout = component as unknown as MainLayoutWithPrivates;
+      layout.requestPageTour();
+      layout.startRequestedPageTour();
+
+      expect(mockProductTourService.startPageTour).not.toHaveBeenCalled();
     });
   });
 

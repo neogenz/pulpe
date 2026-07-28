@@ -1,5 +1,4 @@
 import {
-  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
@@ -18,10 +17,6 @@ import { DatePipe } from '@angular/common';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { BreadcrumbState } from '@core/shell/breadcrumb-state';
-import {
-  ProductTourService,
-  TOUR_START_DELAY,
-} from '@core/product-tour/product-tour.service';
 import { formatDate } from 'date-fns';
 import { dateFnsLocaleFor } from '@core/locale';
 import { BaseLoading } from '@ui/loading';
@@ -144,7 +139,6 @@ export default class BudgetDetailsPage {
   protected readonly userSettingsStore = inject(UserSettingsStore);
   readonly #router = inject(Router);
   readonly #breadcrumbState = inject(BreadcrumbState);
-  readonly #productTourService = inject(ProductTourService);
   readonly #loadingIndicator = inject(LoadingIndicator);
   readonly #destroyRef = inject(DestroyRef);
   readonly #dialogService = inject(BudgetDetailsDialogService);
@@ -205,15 +199,6 @@ export default class BudgetDetailsPage {
         onCleanup(() => {
           this.#breadcrumbState.clearDynamicBreadcrumb();
         });
-      }
-    });
-
-    afterNextRender(() => {
-      if (!this.#productTourService.hasSeenPageTour('budget-details')) {
-        setTimeout(
-          () => this.#productTourService.startPageTour('budget-details'),
-          TOUR_START_DELAY,
-        );
       }
     });
   }

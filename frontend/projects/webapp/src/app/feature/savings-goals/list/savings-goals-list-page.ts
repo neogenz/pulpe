@@ -1,9 +1,4 @@
-import {
-  afterNextRender,
-  ChangeDetectionStrategy,
-  Component,
-  inject,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -11,10 +6,6 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { TitleDisplay } from '@core/routing';
 import { isApiError } from '@core/api/api-error';
 import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
-import {
-  ProductTourService,
-  TOUR_START_DELAY,
-} from '@core/product-tour/product-tour.service';
 import { BaseLoading } from '@ui/loading';
 import { StateCard } from '@ui/state-card/state-card';
 import { SavingsGoalStore } from '../services/savings-goals-store';
@@ -119,19 +110,9 @@ export default class SavingsGoalsListPage {
   readonly #snackBar = inject(MatSnackBar);
   readonly #transloco = inject(TranslocoService);
   readonly #errorLocalizer = inject(ApiErrorLocalizer);
-  readonly #productTour = inject(ProductTourService);
 
   constructor() {
     this.store.refresh();
-
-    afterNextRender(() => {
-      if (!this.#productTour.hasSeenPageTour('savings-goals')) {
-        setTimeout(
-          () => this.#productTour.startPageTour('savings-goals'),
-          TOUR_START_DELAY,
-        );
-      }
-    });
   }
 
   protected async onCreate(): Promise<void> {

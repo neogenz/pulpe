@@ -185,7 +185,7 @@ describe('ProfileSetupService', () => {
         expect.objectContaining({
           startMonth: 1,
           startYear: 2026,
-          count: 12,
+          count: 13,
         }),
       );
     });
@@ -204,7 +204,7 @@ describe('ProfileSetupService', () => {
         expect.objectContaining({
           startMonth: 2,
           startYear: 2026,
-          count: 12,
+          count: 13,
         }),
       );
     });
@@ -227,7 +227,7 @@ describe('ProfileSetupService', () => {
       ).toHaveBeenCalledWith(['budget', 'list'], expect.any(Function));
     });
 
-    it('should handle year boundary correctly', async () => {
+    it('should request the current period and twelve future periods across a year boundary', async () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-01-02'));
 
@@ -238,13 +238,26 @@ describe('ProfileSetupService', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(mockBudgetApi.generateBudgets$).toHaveBeenCalledWith(
-        expect.objectContaining({
-          startMonth: 12,
-          startYear: 2025,
-          count: 12,
-        }),
-      );
+      const request = mockBudgetApi.generateBudgets$.mock.calls[0]![0] as {
+        startMonth: number;
+        startYear: number;
+        count: number;
+      };
+      const periods = Array.from({ length: request.count }, (_, offset) => {
+        const monthIndex = request.startMonth - 1 + offset;
+        return {
+          month: (monthIndex % 12) + 1,
+          year: request.startYear + Math.floor(monthIndex / 12),
+        };
+      });
+
+      expect(periods).toEqual([
+        { month: 12, year: 2025 },
+        ...Array.from({ length: 12 }, (_, index) => ({
+          month: index + 1,
+          year: 2026,
+        })),
+      ]);
     });
 
     it('should pass templateId from template creation response', async () => {

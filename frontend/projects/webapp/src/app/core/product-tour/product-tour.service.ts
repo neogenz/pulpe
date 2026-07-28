@@ -1,54 +1,33 @@
-/**
- * Product Tour Service using Driver.js
- *
- * Page-specific product tours with spotlight highlighting.
- * Uses Driver.js library with Material Design 3 theming.
- */
-
 import { DOCUMENT } from '@angular/common';
 import { inject, Service } from '@angular/core';
 import { AuthStore } from '@core/auth/auth-store';
 import { StorageService, type StorageKey } from '@core/storage';
+import { TranslocoService } from '@jsverse/transloco';
 import { driver, type Config, type Driver, type DriveStep } from 'driver.js';
+import {
+  createProductTourSteps,
+  type TourId,
+  type TourPageId,
+} from './product-tour.steps';
 
-/**
- * Selectors for layout containers that need scroll reset after tour.
- * Driver.js scrollIntoView() affects all scrollable ancestors.
- */
-const SCROLL_RESET_SELECTORS = [
+const SCROLL_CONTAINER_SELECTORS = [
   '[data-testid="page-content"]',
   '[data-testid="main-content"] > div',
 ] as const;
 
-/** Driver.js CSS class applied to highlighted elements (driver.js v1.x) */
 const DRIVER_ACTIVE_ELEMENT_CLASS = 'driver-active-element';
-
-/** Driver.js CSS classes applied to document body (driver.js v1.x) */
 const DRIVER_BODY_CLASSES = [
   'driver-active',
   'driver-fade',
   'driver-simple',
 ] as const;
 
-export type TourPageId =
-  | 'dashboard'
-  | 'budget-list'
-  | 'budget-details'
-  | 'templates-list'
-  | 'savings-goals';
+export type { TourPageId } from './product-tour.steps';
+type TourState = 'completed' | 'dismissed';
 
-export type TourId = 'intro' | TourPageId;
-
-/**
- * Delay before starting tour to ensure DOM is fully rendered
- * and Angular animations have completed
- */
 export const TOUR_START_DELAY = 500;
+const TOUR_TARGET_TIMEOUT = 10_000;
 
-/**
- * Tour identifiers used to generate storage keys.
- * Keys are stored as `pulpe-tour-{tourId}` (device-scoped, not user-scoped).
- */
 const TOUR_IDS = {
   intro: 'intro',
   dashboard: 'dashboard',
@@ -63,65 +42,43 @@ export class ProductTourService {
   readonly #document = inject(DOCUMENT);
   readonly #storageService = inject(StorageService);
   readonly #authStore = inject(AuthStore);
+  readonly #transloco = inject(TranslocoService);
+  readonly #steps = createProductTourSteps(this.#transloco);
 
-  /** Active Driver.js instance to prevent concurrent tours */
   #activeDriver: Driver | null = null;
 
-  /**
-   * Check if user is authenticated.
-   * Tours require authentication to start because they reference app content
-   * that only exists for logged-in users, even though tour completion state
-   * is stored device-scoped (persists across account changes on same device).
-   */
+  #pendingTour: {
+    observer: MutationObserver;
+    timeoutId: number;
+  } | null = null;
+
+  readonly #scrollPositions = new Map<HTMLElement, number>();
+
   isAuthenticated(): boolean {
     return !!this.#authStore.user()?.id;
   }
 
-  /**
-   * Generate a storage key for a tour.
-   * Keys are device-scoped (no userId) to persist across account changes.
-   */
   #getTourKey(tourId: TourId): StorageKey {
     return `pulpe-tour-${tourId}`;
   }
 
-  /**
-   * Check if user has seen the intro (welcome + navigation)
-   */
   hasSeenIntro(): boolean {
-    return (
-      this.#storageService.getString(this.#getTourKey(TOUR_IDS.intro)) ===
-      'true'
-    );
+    return this.#hasSeenTour(TOUR_IDS.intro);
   }
 
-  /**
-   * Check if user has seen a specific page tour
-   */
   hasSeenPageTour(pageId: TourPageId): boolean {
-    return (
-      this.#storageService.getString(this.#getTourKey(TOUR_IDS[pageId])) ===
-      'true'
-    );
+    return this.#hasSeenTour(TOUR_IDS[pageId]);
   }
 
-  /**
-   * Mark intro as completed
-   */
-  #markIntroCompleted(): void {
-    this.#storageService.setString(this.#getTourKey(TOUR_IDS.intro), 'true');
+  #hasSeenTour(tourId: TourId): boolean {
+    const state = this.#storageService.getString(this.#getTourKey(tourId));
+    return state === 'true' || state === 'completed' || state === 'dismissed';
   }
 
-  /**
-   * Mark a page tour as completed
-   */
-  #markPageTourCompleted(pageId: TourPageId): void {
-    this.#storageService.setString(this.#getTourKey(TOUR_IDS[pageId]), 'true');
+  #markTour(tourId: TourId, state: TourState): void {
+    this.#storageService.setString(this.#getTourKey(tourId), state);
   }
 
-  /**
-   * Reset all tours (device-scoped)
-   */
   resetAllTours(): void {
     this.#storageService.remove(this.#getTourKey(TOUR_IDS.intro));
     this.#storageService.remove(this.#getTourKey(TOUR_IDS.dashboard));
@@ -131,24 +88,26 @@ export class ProductTourService {
     this.#storageService.remove(this.#getTourKey(TOUR_IDS['savings-goals']));
   }
 
-  /**
-   * Cancel active tour if running
-   */
   cancelActiveTour(): void {
+    this.#cancelPendingTour();
     if (this.#activeDriver) {
       this.#activeDriver.destroy();
       this.#activeDriver = null;
     }
   }
 
-  /**
-   * Clean up Driver.js artifacts that may persist after tour ends.
-   * Delayed execution ensures cleanup runs after Driver.js completes its own teardown.
-   */
+  #cancelPendingTour(): void {
+    if (!this.#pendingTour) return;
+
+    this.#pendingTour.observer.disconnect();
+    this.#document.defaultView?.clearTimeout(this.#pendingTour.timeoutId);
+    this.#pendingTour = null;
+  }
+
   #cleanupDriverArtifacts(): void {
     setTimeout(() => {
       this.#removeDriverClasses();
-      this.#resetScrollPositions();
+      this.#restoreScrollPositions();
     }, 0);
   }
 
@@ -161,319 +120,144 @@ export class ProductTourService {
     this.#document.body.classList.remove(...DRIVER_BODY_CLASSES);
   }
 
-  #resetScrollPositions(): void {
-    for (const selector of SCROLL_RESET_SELECTORS) {
+  #rememberScrollPositions(): void {
+    this.#scrollPositions.clear();
+    for (const selector of SCROLL_CONTAINER_SELECTORS) {
       const element = this.#document.querySelector<HTMLElement>(selector);
       if (element) {
-        element.scrollTop = 0;
+        this.#scrollPositions.set(element, element.scrollTop);
       }
     }
   }
 
-  /**
-   * Start a page-specific tour
-   * Includes intro steps if user hasn't seen them yet
-   * Does nothing if user is not authenticated or a tour is already active
-   */
-  startPageTour(pageId: TourPageId): void {
+  #restoreScrollPositions(): void {
+    this.#scrollPositions.forEach((scrollTop, element) => {
+      element.scrollTop = scrollTop;
+    });
+    this.#scrollPositions.clear();
+  }
+
+  startFirstRunTour(): void {
+    if (!this.isAuthenticated() || this.hasSeenIntro() || this.#activeDriver) {
+      return;
+    }
+
+    this.#prepareTour(TOUR_IDS.intro, this.#steps.intro);
+  }
+
+  startPageTour(pageId: TourPageId, focusTarget?: HTMLElement): void {
     if (!this.isAuthenticated() || this.#activeDriver) {
       return;
     }
 
-    const includeIntro = !this.hasSeenIntro();
-    const steps = this.#getStepsForPage(pageId, includeIntro);
+    this.#prepareTour(TOUR_IDS[pageId], this.#steps[pageId], focusTarget);
+  }
 
-    // Create driver instance first to avoid closure timing issues
+  #prepareTour(
+    tourId: TourId,
+    steps: DriveStep[],
+    focusTarget: Element | null = this.#document.activeElement,
+  ): void {
+    this.#cancelPendingTour();
+
+    const firstPageTarget = steps.find(
+      (step) => typeof step.element === 'string',
+    )?.element;
+
+    if (
+      typeof firstPageTarget === 'string' &&
+      !this.#document.querySelector(firstPageTarget)
+    ) {
+      const view = this.#document.defaultView;
+      if (!view) return;
+
+      const observer = new view.MutationObserver(() => {
+        if (!this.#document.querySelector(firstPageTarget)) return;
+
+        this.#cancelPendingTour();
+        this.#startTour(tourId, steps, focusTarget);
+      });
+      const timeoutId = view.setTimeout(
+        () => this.#cancelPendingTour(),
+        TOUR_TARGET_TIMEOUT,
+      );
+
+      this.#pendingTour = { observer, timeoutId };
+      observer.observe(this.#document.body, { childList: true, subtree: true });
+      return;
+    }
+
+    this.#startTour(tourId, steps, focusTarget);
+  }
+
+  #startTour(
+    tourId: TourId,
+    steps: DriveStep[],
+    focusTarget: Element | null,
+  ): void {
+    const availableSteps = steps.filter(
+      (step) =>
+        typeof step.element !== 'string' ||
+        !!this.#document.querySelector(step.element),
+    );
+    if (availableSteps.length === 0) return;
+
     const tourDriver = driver();
     this.#activeDriver = tourDriver;
+    this.#rememberScrollPositions();
+    let completed = false;
 
     const driverConfig: Config = {
       showProgress: true,
       showButtons: ['next', 'previous', 'close'],
-      progressText: 'Étape {{current}} sur {{total}}',
-      nextBtnText: 'Suivant',
-      prevBtnText: 'Précédent',
-      doneBtnText: 'Terminer',
+      progressText: this.#transloco
+        .translate('productTour.controls.progress', {
+          current: '__driver_current__',
+          total: '__driver_total__',
+        })
+        .replace('__driver_current__', '{{current}}')
+        .replace('__driver_total__', '{{total}}'),
+      nextBtnText: this.#transloco.translate('productTour.controls.next'),
+      prevBtnText: this.#transloco.translate('productTour.controls.previous'),
+      doneBtnText: this.#transloco.translate('productTour.controls.done'),
       allowClose: true,
       overlayColor: '#000',
-      overlayOpacity: 0.75,
+      overlayOpacity: 0.55,
       smoothScroll: true,
-      animate: true,
+      animate: !this.#document.defaultView?.matchMedia?.(
+        '(prefers-reduced-motion: reduce)',
+      ).matches,
       disableActiveInteraction: false,
       stagePadding: 10,
       stageRadius: 8,
       popoverOffset: 16,
+      onPopoverRender: (popover) => {
+        popover.closeButton.setAttribute(
+          'aria-label',
+          this.#transloco.translate('productTour.controls.close'),
+        );
+      },
+      onNextClick: (_element, _step, { driver: currentDriver }) => {
+        if (currentDriver.isLastStep()) {
+          completed = true;
+          currentDriver.destroy();
+          return;
+        }
+
+        currentDriver.moveNext();
+      },
       onDestroyed: () => {
         this.#activeDriver = null;
         this.#cleanupDriverArtifacts();
-        if (includeIntro) {
-          this.#markIntroCompleted();
+        this.#markTour(tourId, completed ? 'completed' : 'dismissed');
+        if (focusTarget instanceof HTMLElement && focusTarget.isConnected) {
+          focusTarget.focus();
         }
-        this.#markPageTourCompleted(pageId);
       },
     };
 
     tourDriver.setConfig(driverConfig);
-    tourDriver.setSteps(steps);
+    tourDriver.setSteps(availableSteps);
     tourDriver.drive();
   }
-
-  /**
-   * Get steps for a specific page, optionally including intro
-   */
-  #getStepsForPage(pageId: TourPageId, includeIntro: boolean): DriveStep[] {
-    const introSteps = includeIntro ? this.#introSteps : [];
-    const pageSteps = this.#getPageSteps(pageId);
-    return [...introSteps, ...pageSteps];
-  }
-
-  /**
-   * Get page-specific steps
-   */
-  #getPageSteps(pageId: TourPageId): DriveStep[] {
-    switch (pageId) {
-      case 'dashboard':
-        return this.#dashboardSteps;
-      case 'budget-list':
-        return this.#budgetListSteps;
-      case 'budget-details':
-        return this.#budgetDetailsSteps;
-      case 'templates-list':
-        return this.#templatesListSteps;
-      case 'savings-goals':
-        return this.#savingsGoalsSteps;
-      default: {
-        const _exhaustive: never = pageId;
-        throw new Error(`Unknown page ID: ${_exhaustive}`);
-      }
-    }
-  }
-
-  // ============================================
-  // Step Definitions
-  // ============================================
-
-  readonly #introSteps: DriveStep[] = [
-    {
-      popover: {
-        title: 'Bienvenue dans Pulpe',
-        description: `
-          <p>Avec Pulpe, fini le stress de la fin de mois. Tu anticipes tes dépenses, et tu vis sereinement.</p>
-          <p>On y va ? C'est parti pour 2 minutes de découverte.</p>
-        `,
-      },
-    },
-    {
-      element: '[data-tour="navigation"]',
-      popover: {
-        title: 'Quatre espaces, un cap',
-        description: `
-          <ul>
-            <li><strong>Tableau de bord</strong> : ici, tu suis tes dépenses en temps réel, sans surprise.</li>
-            <li><strong>Budgets</strong> : prépare tes prochains mois en 2 clics, et vois loin.</li>
-            <li><strong>Modèles</strong> : ta recette mensuelle, à réutiliser sans effort.</li>
-            <li><strong>Objectifs</strong> : mets de l'argent de côté pour tes projets, mois après mois.</li>
-          </ul>
-        `,
-        side: 'right',
-        align: 'start',
-      },
-    },
-  ];
-
-  readonly #dashboardSteps: DriveStep[] = [
-    {
-      element: '[data-tour="dashboard-hero"]',
-      popover: {
-        title: 'Ton reste à dépenser',
-        description: `
-          <p>Ici, tu vois en un clin d'œil ce qu'il te reste à dépenser ce mois-ci.</p>
-          <p>Plus de mauvaises surprises, juste de la clarté.</p>
-        `,
-        side: 'bottom',
-        align: 'center',
-      },
-    },
-    {
-      element: '[data-tour="dashboard-lists"]',
-      popover: {
-        title: 'Tes prévisions et transactions',
-        description: `
-          <p>Tes frais fixes sont déjà pris en compte. Le reste, c'est toi qui décides.</p>
-          <p>Un coup d'œil, et tu sais où tu en es.</p>
-        `,
-        side: 'top',
-        align: 'start',
-      },
-    },
-    {
-      element: '[data-tour="add-transaction-fab"]',
-      popover: {
-        title: 'Note une dépense',
-        description: `
-          <p>Note tes dépenses en 5 secondes. C'est rapide, et ça te libère l'esprit.</p>
-          <p>Une petite habitude pour un grand soulagement.</p>
-        `,
-        side: 'top',
-        align: 'end',
-      },
-    },
-  ];
-
-  readonly #budgetListSteps: DriveStep[] = [
-    {
-      element: '[data-tour="year-tabs"] > mat-tab-header',
-      popover: {
-        title: 'Vois loin',
-        description: `
-          <p>Passe d'une année à l'autre pour anticiper tes gros mois (vacances, impôts, fêtes…).</p>
-          <p>Préparé à l'avance = plus de sérénité après.</p>
-        `,
-        side: 'bottom',
-        align: 'start',
-      },
-    },
-    {
-      element: '[data-tour="calendar-grid"]',
-      popover: {
-        title: "Ton année en un coup d'œil",
-        description: `
-          <p>Chaque mois a son propre budget. Ceux en gris sont prêts à être créés.</p>
-          <p>Clique sur un mois pour le personnaliser en 30 secondes.</p>
-        `,
-        side: 'top',
-        align: 'center',
-      },
-    },
-    {
-      element: '[data-tour="create-budget"]',
-      popover: {
-        title: 'Crée ton budget',
-        description: `
-          <p>Sélectionne un modèle, et ton budget est prêt en un instant.</p>
-          <p>Plus de saisie fastidieuse : tout est déjà là.</p>
-        `,
-        side: 'left',
-        align: 'start',
-      },
-    },
-  ];
-
-  readonly #budgetDetailsSteps: DriveStep[] = [
-    {
-      element: '[data-tour="financial-overview"]',
-      popover: {
-        title: 'Ton solde réel',
-        description: `
-          <p>Ton solde se met à jour automatiquement quand tu coches tes dépenses.</p>
-          <p>Tu sais toujours où tu en es, sans avoir à faire de calculs.</p>
-        `,
-        side: 'bottom',
-        align: 'center',
-      },
-    },
-    {
-      element: '[data-tour="budget-table"]',
-      popover: {
-        title: 'Tes prévisions',
-        description: `
-          <p>Coche tes dépenses au fur et à mesure pour suivre ton budget en temps réel.</p>
-          <p>Un clic sur une ligne pour tout modifier si besoin.</p>
-        `,
-        side: 'top',
-        align: 'center',
-      },
-    },
-    {
-      element: '[data-tour="add-budget-line"]',
-      popover: {
-        title: 'Ajuste ton mois',
-        description: `
-          <p>Besoin d'ajouter un revenu, une dépense ou une épargne ? C'est ici.</p>
-          <p>Choisis si c'est tous les mois ("récurrent") ou juste pour ce mois-ci.</p>
-        `,
-        side: 'left',
-        align: 'start',
-      },
-    },
-  ];
-
-  readonly #templatesListSteps: DriveStep[] = [
-    {
-      element: '[data-tour="templates-list"]',
-      popover: {
-        title: 'Ta base mensuelle',
-        description: `
-          <p>Ici, tu notes tes revenus et tes frais fixes (loyer, abonnements…).</p>
-          <p>C'est ta base pour créer tous tes budgets en un clic.</p>
-        `,
-        side: 'top',
-        align: 'start',
-      },
-    },
-    {
-      element: '[data-tour="template-counter"]',
-      popover: {
-        title: "Garde l'esprit léger",
-        description: `
-          <p>5 modèles max, c'est largement assez pour couvrir tous tes besoins.</p>
-          <p>Un pour les mois classiques, un pour les vacances… et hop, c'est prêt !</p>
-        `,
-        side: 'bottom',
-        align: 'start',
-      },
-    },
-    {
-      element: '[data-tour="create-template"]',
-      popover: {
-        title: 'Lance-toi',
-        description: `
-          <p>Crée ton premier modèle, et tes budgets futurs seront prêts en 1 clic.</p>
-          <p>C'est parti pour 2 minutes de configuration !</p>
-        `,
-        side: 'left',
-        align: 'start',
-      },
-    },
-  ];
-
-  readonly #savingsGoalsSteps: DriveStep[] = [
-    {
-      popover: {
-        title: 'Épargne pour tes projets',
-        description: `
-          <p>Un voyage, un imprévu, un gros achat… Fixe un montant à atteindre et une date, Pulpe s'occupe du calcul.</p>
-          <p>Ton objectif est réparti sur les mois qui restent : tu épargnes un peu chaque mois, sans y penser.</p>
-        `,
-      },
-    },
-    {
-      element: '[data-tour="savings-goals-list"]',
-      popover: {
-        title: 'Tout au même endroit',
-        description: `
-          <p>Chaque objectif affiche son montant visé et son échéance, en un coup d'œil.</p>
-          <p>En l'ouvrant, tu retrouves ton plan mois par mois et tu suis ta progression.</p>
-        `,
-        // 'bottom' anchors the popover in the empty space below the goals grid
-        // (or the empty-state card on first run). A large, full-width target
-        // leaves no room above, so 'top' forces driver.js to flip — and its
-        // reposition pass leaves the popover stuck at opacity 0.
-        side: 'bottom',
-        align: 'center',
-      },
-    },
-    {
-      element: '[data-tour="create-goal"]',
-      popover: {
-        title: 'Lance-toi',
-        description: `
-          <p>Crée ton premier objectif : donne-lui un nom, un montant et une date.</p>
-          <p>Pulpe prépare le reste. À toi de jouer !</p>
-        `,
-        side: 'bottom',
-        align: 'end',
-      },
-    },
-  ];
 }

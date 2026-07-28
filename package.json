@@ -49,6 +49,6 @@
     "typescript": "~6.0.3"
   },
   "dependencies": {
-    "driver.js": "^1.4.0"
+    "driver.js": "^1.8.0"
   }
 }

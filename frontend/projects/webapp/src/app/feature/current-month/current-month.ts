@@ -350,12 +350,11 @@ export default class Dashboard {
     });
 
     afterNextRender(() => {
-      if (!this.#productTourService.hasSeenPageTour('dashboard')) {
-        setTimeout(
-          () => this.#productTourService.startPageTour('dashboard'),
-          TOUR_START_DELAY,
-        );
-      }
+      const tourTimeout = setTimeout(
+        () => this.#productTourService.startFirstRunTour(),
+        TOUR_START_DELAY,
+      );
+      this.#destroyRef.onDestroy(() => clearTimeout(tourTimeout));
     });
   }
 

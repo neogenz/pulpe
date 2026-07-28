@@ -48,12 +48,79 @@
     "settings": "Paramètres",
     "about": "À propos",
     "newFeatures": "Nouveautés",
-    "discoverPage": "Découvrir cette page",
+    "discoverPage": "Aide sur cette page",
     "dashboardTooltip": "Ta vue d'ensemble du mois",
     "budgetsTooltip": "Planifie tous tes mois",
     "templatesTooltip": "Prépare tes bases mensuelles",
     "savingsGoalsTooltip": "Suis tes objectifs d'épargne",
     "designSystem": "Design System"
+  },
+  "productTour": {
+    "controls": {
+      "progress": "Étape {{current}} sur {{total}}",
+      "next": "Suivant",
+      "previous": "Précédent",
+      "done": "Terminer",
+      "close": "Fermer"
+    },
+    "intro": {
+      "hero": {
+        "title": "Ton mois en un coup d'œil",
+        "description": "<p>Commence ici : <strong>Disponible à dépenser</strong> tient compte de tes revenus, dépenses et épargnes. Ouvre ce bloc pour ajuster le budget du mois.</p>"
+      },
+      "tracking": {
+        "title": "Commence par ce qui bouge",
+        "description": "<p><strong>À pointer</strong> signifie que le mouvement est encore prévu. Passe-le à <strong>Pointé</strong> dès qu'il se réalise.</p>"
+      },
+      "navigation": {
+        "title": "Retrouve chaque besoin",
+        "description": "<p><strong>Budgets</strong> pour tes mois, <strong>Modèles</strong> pour préparer ce qui revient, <strong>Objectifs</strong> pour tes projets d'épargne. Tu peux revoir l'aide de chaque écran depuis ton menu.</p>"
+      }
+    },
+    "budgetList": {
+      "calendar": {
+        "title": "Choisis le mois à gérer",
+        "description": "<p>Ouvre un budget existant pour le suivre. Sélectionne un mois vide pour le préparer.</p>"
+      },
+      "create": {
+        "title": "Prépare un nouveau mois",
+        "description": "<p>Choisis un mois et, si tu veux, un modèle. Ses prévisions seront copiées dans le nouveau budget.</p>"
+      }
+    },
+    "budgetDetails": {
+      "overview": {
+        "title": "Vérifie le cap du mois",
+        "description": "<p>Ce bloc résume les revenus, les dépenses, l'épargne et le report éventuel du mois précédent.</p>"
+      },
+      "tracking": {
+        "title": "Suis ce qui se réalise",
+        "description": "<p><strong>À pointer</strong> signifie que le mouvement est encore prévu. Passe-le à <strong>Pointé</strong> quand il se réalise, puis ouvre la ligne pour voir ses transactions.</p>"
+      },
+      "create": {
+        "title": "Ajoute une prévision",
+        "description": "<p>Choisis <strong>Récurrent</strong> pour ce qui revient ou <strong>Prévu</strong> pour un mouvement ponctuel.</p>"
+      }
+    },
+    "templatesList": {
+      "list": {
+        "title": "Prépare ce qui revient",
+        "description": "<p>Un modèle regroupe les revenus, dépenses et épargnes que tu veux réutiliser. Ouvre un modèle pour modifier ses prévisions.</p>"
+      },
+      "create": {
+        "title": "Crée ton prochain modèle",
+        "description": "<p>Crée un modèle, puis ajoute les prévisions à reprendre dans tes futurs budgets.</p>"
+      }
+    },
+    "savingsGoals": {
+      "list": {
+        "title": "Suis un projet d'épargne",
+        "description": "<p>Ouvre un objectif pour voir sa progression, les prévisions liées et ajuster ton plan.</p>"
+      },
+      "create": {
+        "title": "Commence simplement",
+        "description": "<p>Seul le nom est obligatoire. Ajoute le montant, les dates et l'épargne mensuelle maintenant ou plus tard.</p>"
+      }
+    }
   },
   "auth": {
     "oauthLoading": "Connexion en cours...",
@@ -802,6 +869,7 @@
     "lineDeleteSuccess": "Prévision supprimée",
     "selectAriaLabel": "Sélectionner {{ name }}",
     "defaultTag": "Par défaut",
+    "details": "Détails",
     "calculating": "Calcul en cours...",
     "analyzingData": "Analyse de vos données financières",
     "monthlyIncomes": "Revenus mensuels",

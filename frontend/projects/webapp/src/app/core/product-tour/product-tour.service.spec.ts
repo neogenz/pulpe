@@ -3,6 +3,28 @@ import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ProductTourService, type TourPageId } from './product-tour.service';
 import { AuthStore } from '@core/auth';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
+import type { Config, DriveStep, Driver } from 'driver.js';
+
+const driverMocks = vi.hoisted(() => {
+  const instance = {
+    setConfig: vi.fn(),
+    setSteps: vi.fn(),
+    drive: vi.fn(),
+    destroy: vi.fn(),
+    isLastStep: vi.fn(),
+    moveNext: vi.fn(),
+  };
+
+  return {
+    factory: vi.fn(() => instance),
+    instance,
+  };
+});
+
+vi.mock('driver.js', () => ({
+  driver: driverMocks.factory,
+}));
 
 /**
  * Generate a tour storage key for testing.
@@ -24,12 +46,38 @@ function setVersionedValue(key: string, value: string): void {
   localStorage.setItem(key, JSON.stringify(entry));
 }
 
+function getStoredTourState(tourId: string): string | null {
+  const raw = localStorage.getItem(getTourKey(tourId));
+  if (!raw) return null;
+
+  return JSON.parse(raw).data as string;
+}
+
+function getDriverConfig(): Config {
+  return driverMocks.instance.setConfig.mock.calls.at(-1)![0] as Config;
+}
+
+function callDriverHook(
+  hook: Config['onNextClick'] | Config['onDestroyed'],
+  step: DriveStep,
+): void {
+  const config = getDriverConfig();
+  hook?.(undefined, step, {
+    config,
+    state: {},
+    driver: driverMocks.instance as unknown as Driver,
+    index: undefined,
+  });
+}
+
 describe('ProductTourService', () => {
   let service: ProductTourService;
   let mockCurrentUser: { id: string } | null;
 
   beforeEach(() => {
     localStorage.clear();
+    document.body.replaceChildren();
+    vi.clearAllMocks();
     mockCurrentUser = { id: 'test-user-123' };
 
     const mockAuthStore = {
@@ -39,6 +87,7 @@ describe('ProductTourService', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
         ProductTourService,
         { provide: AuthStore, useValue: mockAuthStore },
       ],
@@ -48,7 +97,11 @@ describe('ProductTourService', () => {
   });
 
   afterEach(() => {
+    service.cancelActiveTour();
     localStorage.clear();
+    document.body.replaceChildren();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
@@ -63,7 +116,16 @@ describe('ProductTourService', () => {
       expect(service.hasSeenIntro()).toBe(true);
     });
 
-    it('should return false for non-true values', () => {
+    it.each(['completed', 'dismissed'])(
+      'should treat %s as a seen intro',
+      (state) => {
+        setVersionedValue(getTourKey('intro'), state);
+
+        expect(service.hasSeenIntro()).toBe(true);
+      },
+    );
+
+    it('should return false for unknown values', () => {
       setVersionedValue(getTourKey('intro'), 'false');
 
       expect(service.hasSeenIntro()).toBe(false);
@@ -181,12 +243,242 @@ describe('ProductTourService', () => {
     });
 
     it('should prevent concurrent tours (second call is ignored)', () => {
-      // GIVEN: A tour is already running
+      setVersionedValue(getTourKey('intro'), 'true');
+      const hero = document.createElement('div');
+      hero.dataset['tour'] = 'dashboard-hero';
+      document.body.append(hero);
+
+      service.startPageTour('dashboard');
+      service.startPageTour('budget-list');
+
+      expect(driverMocks.factory).toHaveBeenCalledOnce();
+    });
+
+    it('waits for the first page target and removes missing later targets', async () => {
+      setVersionedValue(getTourKey('intro'), 'true');
+
       service.startPageTour('dashboard');
 
-      // WHEN: Another tour is started
-      // THEN: No error occurs (call is silently ignored)
-      expect(() => service.startPageTour('budget-list')).not.toThrow();
+      expect(driverMocks.factory).not.toHaveBeenCalled();
+
+      const hero = document.createElement('div');
+      hero.dataset['tour'] = 'dashboard-hero';
+      document.body.append(hero);
+      await vi.waitFor(() =>
+        expect(driverMocks.instance.drive).toHaveBeenCalledOnce(),
+      );
+
+      const steps = driverMocks.instance.setSteps.mock.calls[0]![0];
+      expect(steps).toHaveLength(1);
+      expect(
+        steps.every(
+          (step: { element?: string }) =>
+            typeof step.element !== 'string' ||
+            document.querySelector(step.element),
+        ),
+      ).toBe(true);
+    });
+
+    it('does not start or mark a tour after the target timeout', () => {
+      vi.useFakeTimers();
+
+      service.startPageTour('dashboard');
+      vi.advanceTimersByTime(10_000);
+
+      expect(driverMocks.factory).not.toHaveBeenCalled();
+      expect(service.hasSeenIntro()).toBe(false);
+      expect(service.hasSeenPageTour('dashboard')).toBe(false);
+    });
+
+    it('replaces a pending tour with the latest page request', async () => {
+      setVersionedValue(getTourKey('intro'), 'true');
+
+      service.startPageTour('dashboard');
+      service.startPageTour('budget-list');
+
+      const dashboardHero = document.createElement('div');
+      dashboardHero.dataset['tour'] = 'dashboard-hero';
+      document.body.append(dashboardHero);
+      await Promise.resolve();
+      expect(driverMocks.factory).not.toHaveBeenCalled();
+
+      const calendar = document.createElement('div');
+      calendar.dataset['tour'] = 'calendar-grid';
+      document.body.append(calendar);
+      await vi.waitFor(() =>
+        expect(driverMocks.instance.drive).toHaveBeenCalledOnce(),
+      );
+    });
+
+    it('does not start a pending tour after cancellation', async () => {
+      setVersionedValue(getTourKey('intro'), 'true');
+
+      service.startPageTour('dashboard');
+      service.cancelActiveTour();
+
+      const hero = document.createElement('div');
+      hero.dataset['tour'] = 'dashboard-hero';
+      document.body.append(hero);
+      await Promise.resolve();
+
+      expect(driverMocks.factory).not.toHaveBeenCalled();
+      expect(service.hasSeenPageTour('dashboard')).toBe(false);
+    });
+
+    it('keeps only the template list and add action', () => {
+      document.body.innerHTML = `
+        <div data-tour="templates-list"></div>
+        <button data-tour="template-counter"></button>
+        <button data-tour="create-template"></button>
+      `;
+
+      service.startPageTour('templates-list');
+
+      const steps = driverMocks.instance.setSteps.mock.calls[0]![0];
+      expect(steps.map((step: { element?: string }) => step.element)).toEqual([
+        '[data-tour="templates-list"]',
+        '[data-tour="create-template"]',
+      ]);
+    });
+
+    it('targets the always-present add budget line FAB', () => {
+      document.body.innerHTML = `
+        <div data-tour="financial-overview"></div>
+        <div data-tour="budget-table"></div>
+        <button data-testid="add-budget-line-fab"></button>
+      `;
+
+      service.startPageTour('budget-details');
+
+      const steps = driverMocks.instance.setSteps.mock.calls[0]![0];
+      expect(steps.at(-1)?.element).toBe('[data-testid="add-budget-line-fab"]');
+    });
+
+    it('disables animation when reduced motion is preferred', () => {
+      vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: true }));
+      setVersionedValue(getTourKey('intro'), 'true');
+      document.body.innerHTML = `
+        <div data-tour="dashboard-hero"></div>
+        <div data-tour="dashboard-lists"></div>
+        <button data-tour="add-transaction-fab"></button>
+      `;
+
+      service.startPageTour('dashboard');
+
+      expect(driverMocks.instance.setConfig).toHaveBeenCalledWith(
+        expect.objectContaining({ animate: false }),
+      );
+    });
+
+    it('does not prepend global onboarding to contextual page help', () => {
+      document.body.innerHTML = `
+        <div data-tour="templates-list"></div>
+        <button data-tour="create-template"></button>
+      `;
+
+      service.startPageTour('templates-list');
+
+      const steps = driverMocks.instance.setSteps.mock.calls[0]![0];
+      expect(steps).toHaveLength(2);
+      expect(steps.every((step: DriveStep) => !!step.element)).toBe(true);
+    });
+
+    it('uses translated controls and explains pointing statuses', () => {
+      document.body.innerHTML = `
+        <div data-tour="dashboard-hero"></div>
+        <div data-tour="dashboard-lists"></div>
+        <nav data-tour="navigation"></nav>
+      `;
+
+      service.startPageTour('dashboard');
+
+      const config = getDriverConfig();
+      const steps = driverMocks.instance.setSteps.mock.calls[0]![0];
+      const renderedTour = JSON.stringify({ config, steps });
+      expect(config).toMatchObject({
+        progressText: 'Étape {{current}} sur {{total}}',
+        nextBtnText: 'Suivant',
+        prevBtnText: 'Précédent',
+        doneBtnText: 'Terminer',
+      });
+      expect(renderedTour).toContain('Pointé');
+      expect(renderedTour).toContain('À pointer');
+      expect(renderedTour).not.toMatch(/productTour\./);
+    });
+
+    it('explains the recurrent and planned budget line vocabulary', () => {
+      document.body.innerHTML = `
+        <div data-tour="financial-overview"></div>
+        <div data-tour="budget-table"></div>
+        <button data-testid="add-budget-line-fab"></button>
+      `;
+
+      service.startPageTour('budget-details');
+
+      const steps = driverMocks.instance.setSteps.mock.calls[0]![0];
+      const renderedSteps = JSON.stringify(steps);
+      expect(renderedSteps).toContain('Récurrent');
+      expect(renderedSteps).toContain('Prévu');
+      expect(renderedSteps).not.toMatch(/productTour\./);
+    });
+  });
+
+  describe('startFirstRunTour', () => {
+    beforeEach(() => {
+      document.body.innerHTML = `
+        <div data-tour="dashboard-hero"></div>
+        <div data-tour="dashboard-lists"></div>
+        <nav data-tour="navigation"></nav>
+      `;
+    });
+
+    it('starts one short orientation from the dashboard', () => {
+      service.startFirstRunTour();
+
+      const steps = driverMocks.instance.setSteps.mock.calls[0]![0];
+      expect(steps.map((step: DriveStep) => step.element)).toEqual([
+        '[data-tour="dashboard-hero"]',
+        '[data-tour="dashboard-lists"]',
+        '[data-tour="navigation"]',
+      ]);
+    });
+
+    it('does not relaunch after the user dismissed it', () => {
+      setVersionedValue(getTourKey('intro'), 'dismissed');
+
+      service.startFirstRunTour();
+
+      expect(driverMocks.factory).not.toHaveBeenCalled();
+    });
+
+    it('stores dismissal separately from completion', () => {
+      service.startFirstRunTour();
+
+      const config = getDriverConfig();
+      const steps = driverMocks.instance.setSteps.mock.calls[0]![0];
+      callDriverHook(config.onDestroyed, steps[0]);
+
+      expect(getStoredTourState('intro')).toBe('dismissed');
+      expect(service.hasSeenIntro()).toBe(true);
+    });
+
+    it('marks completion only after advancing from the last step', () => {
+      service.startFirstRunTour();
+
+      const config = getDriverConfig();
+      const steps = driverMocks.instance.setSteps.mock.calls[0]![0];
+
+      driverMocks.instance.isLastStep.mockReturnValue(false);
+      callDriverHook(config.onNextClick, steps[0]);
+      expect(driverMocks.instance.moveNext).toHaveBeenCalledOnce();
+      expect(getStoredTourState('intro')).toBeNull();
+
+      driverMocks.instance.isLastStep.mockReturnValue(true);
+      callDriverHook(config.onNextClick, steps.at(-1));
+      callDriverHook(config.onDestroyed, steps.at(-1));
+
+      expect(driverMocks.instance.destroy).toHaveBeenCalledOnce();
+      expect(getStoredTourState('intro')).toBe('completed');
     });
   });
 

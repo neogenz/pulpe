@@ -17,7 +17,8 @@ import {
   type ProfileSetupResult,
 } from './profile-setup.types';
 
-const INITIAL_BUDGET_MONTHS = 12;
+// Current budget period plus the twelve periods shown by the projection.
+const INITIAL_BUDGET_MONTHS = 13;
 
 @Service()
 export class ProfileSetupService {

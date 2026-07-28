@@ -263,6 +263,7 @@ interface NavigationItem {
                 (click)="drawer.toggle()"
                 aria-label="Toggle navigation"
                 data-testid="menu-toggle"
+                data-tour="navigation"
               >
                 <mat-icon>menu</mat-icon>
               </button>
@@ -334,6 +335,8 @@ interface NavigationItem {
                 <button
                   matButton
                   [matMenuTriggerFor]="userMenu"
+                  (click)="rememberUserMenuTrigger($event)"
+                  (menuClosed)="startRequestedPageTour()"
                   [attr.aria-label]="
                     isLoggingOut()
                       ? ('layout.loggingOut' | transloco)
@@ -384,7 +387,7 @@ interface NavigationItem {
               @if (currentTourPageId()) {
                 <button
                   mat-menu-item
-                  (click)="startPageTour()"
+                  (click)="requestPageTour()"
                   [attr.aria-label]="'navigation.discoverPage' | transloco"
                   data-testid="page-tour-button"
                 >
@@ -853,12 +856,13 @@ export default class MainLayout {
 
   // Current tour page ID based on route
   protected readonly currentTourPageId = computed((): TourPageId | null => {
-    const url = this.#currentRoute();
-    if (url.includes(`/${ROUTES.DASHBOARD}`)) return 'dashboard';
-    if (url.match(/\/budget\/[^/]+$/)) return 'budget-details';
-    if (url.includes(`/${ROUTES.BUDGET}`)) return 'budget-list';
-    if (url.includes(`/${ROUTES.BUDGET_TEMPLATES}`)) return 'templates-list';
-    if (url.match(/\/savings-goals$/)) return 'savings-goals';
+    const path =
+      this.#currentRoute().split(/[?#]/, 1)[0]?.replace(/\/+$/, '') || '/';
+    if (path === `/${ROUTES.DASHBOARD}`) return 'dashboard';
+    if (path.match(/\/budget\/[^/]+$/)) return 'budget-details';
+    if (path === `/${ROUTES.BUDGET_TEMPLATES}`) return 'templates-list';
+    if (path === `/${ROUTES.BUDGET}`) return 'budget-list';
+    if (path === `/${ROUTES.SAVINGS_GOALS}`) return 'savings-goals';
     return null;
   });
 
@@ -939,10 +943,27 @@ export default class MainLayout {
     });
   }
 
-  protected startPageTour(): void {
-    const pageId = this.currentTourPageId();
+  #requestedPageTour: TourPageId | null = null;
+  #userMenuTrigger: HTMLElement | null = null;
+
+  protected rememberUserMenuTrigger(event: Event): void {
+    if (event.currentTarget instanceof HTMLElement) {
+      this.#userMenuTrigger = event.currentTarget;
+    }
+  }
+
+  protected requestPageTour(): void {
+    this.#requestedPageTour = this.currentTourPageId();
+  }
+
+  protected startRequestedPageTour(): void {
+    const pageId = this.#requestedPageTour;
+    this.#requestedPageTour = null;
     if (pageId) {
-      this.#productTourService.startPageTour(pageId);
+      this.#productTourService.startPageTour(
+        pageId,
+        this.#userMenuTrigger ?? undefined,
+      );
     }
   }
 
