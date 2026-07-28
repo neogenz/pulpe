@@ -140,18 +140,18 @@ actor APIClient {
             (data, response) = try await session.data(for: request)
         } catch {
             if !isRetry, Self.isTransientError(error) {
-                Logger.network.warning(
-                    "Transient network error, retrying: \(error.localizedDescription, privacy: .public)"
-                )
+                logRetry(error, request: request)
                 try await requestVoid(endpoint, body: body, method: method, isRetry: true)
                 return
             }
+            logNetworkError(error, request: request)
             throw APIError.networkError(error)
         }
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
+        logRequest(request, response: httpResponse)
 
         // Handle 401 - try token refresh (once only to prevent infinite retry loop)
         if httpResponse.statusCode == 401 {
@@ -188,6 +188,10 @@ actor APIClient {
         if let clientKey = await clientKeyProvider(), !clientKey.isEmpty {
             request.setValue(clientKey, forHTTPHeaderField: "X-Client-Key")
         }
+        request.setValue(
+            UUID().uuidString.lowercased(),
+            forHTTPHeaderField: "X-Request-Id"
+        )
 
         if let body {
             request.httpBody = try encoder.encode(body)
@@ -213,11 +217,10 @@ actor APIClient {
         } catch {
             // Retry once on transient network errors
             if !isRetry, Self.isTransientError(error) {
-                Logger.network.warning(
-                    "Transient network error, retrying: \(error.localizedDescription, privacy: .public)"
-                )
+                logRetry(error, request: request)
                 return try await performRequest(request, endpoint: endpoint, body: body, method: method, isRetry: true)
             }
+            logNetworkError(error, request: request)
             throw APIError.networkError(error)
         }
 
@@ -225,9 +228,7 @@ actor APIClient {
             throw APIError.invalidResponse
         }
 
-        #if DEBUG
-        logRequest(request, response: httpResponse, data: data)
-        #endif
+        logRequest(request, response: httpResponse)
 
         // Handle 401 - try token refresh (once only to prevent infinite retry loop)
         if httpResponse.statusCode == 401 {
@@ -346,20 +347,34 @@ actor APIClient {
             return false
         }
     }
+}
 
-    private func logRequest(_ request: URLRequest, response: HTTPURLResponse, data: Data) {
+private extension APIClient {
+    func logRetry(_ error: Error, request: URLRequest) {
+        let requestID = request.value(forHTTPHeaderField: "X-Request-Id") ?? "?"
+        let summary = "requestId=\(requestID): \(error.localizedDescription)"
+        Logger.network.warning("Retrying network request \(summary, privacy: .public)")
+    }
+
+    func logRequest(_ request: URLRequest, response: HTTPURLResponse) {
         let method = request.httpMethod ?? "?"
         let path = request.url?.path ?? "?"
         let status = response.statusCode
+        let requestID = request.value(forHTTPHeaderField: "X-Request-Id") ?? "?"
+        let summary = "\(method) \(path) \(status) requestId=\(requestID)"
 
-        Logger.network.debug(
-            "[\(method, privacy: .public)] \(path, privacy: .public) -> \(status, privacy: .public)"
-        )
+        #if DEBUG
+        Logger.network.debug("HTTP \(summary, privacy: .public)")
+        #endif
         if status >= 400 {
-            Logger.network.error(
-                "Request failed: [\(method, privacy: .public)] \(path, privacy: .public) -> \(status, privacy: .public)"
-            )
+            Logger.network.error("HTTP failed \(summary, privacy: .public)")
         }
+    }
+
+    func logNetworkError(_ error: Error, request: URLRequest) {
+        let requestID = request.value(forHTTPHeaderField: "X-Request-Id") ?? "?"
+        let summary = "requestId=\(requestID): \(error.localizedDescription)"
+        Logger.network.error("Network request failed \(summary, privacy: .public)")
     }
 }
 

@@ -156,6 +156,7 @@ describe('TurnstileService', () => {
               response: 'test-token',
               remoteip: '1.2.3.4',
             }),
+            signal: expect.any(AbortSignal),
           },
         );
       });
@@ -201,6 +202,19 @@ describe('TurnstileService', () => {
 
         const result = await prodService.verify('test-token');
         expect(result).toBe(false);
+      });
+
+      it('should treat the native five-second timeout as a controlled failure', async () => {
+        fetchMock.mockRejectedValueOnce(
+          new DOMException('The operation timed out', 'TimeoutError'),
+        );
+
+        const result = await prodService.verify('test-token');
+        const options = fetchMock.mock.calls[0]?.[1] as RequestInit;
+
+        expect(options.signal).toBeInstanceOf(AbortSignal);
+        expect(result).toBe(false);
+        expect(mockLogger.warn).toHaveBeenCalled();
       });
     });
   });

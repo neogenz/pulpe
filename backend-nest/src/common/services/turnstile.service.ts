@@ -91,6 +91,7 @@ export class TurnstileService {
             response: token,
             remoteip: ip,
           }),
+          signal: AbortSignal.timeout(5000),
         },
       );
 

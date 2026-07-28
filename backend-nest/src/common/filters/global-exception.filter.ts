@@ -11,6 +11,8 @@ import { ZodValidationException } from 'nestjs-zod';
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { BusinessException } from '@common/exceptions/business.exception';
+import { resolveHttpLoggingDecision } from '@config/environment';
+import { sanitizeLogValue } from '@common/utils/log-anonymization';
 
 interface ErrorContext {
   readonly requestId?: string;
@@ -293,32 +295,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     return process.env.NODE_ENV === 'development';
   }
 
-  /**
-   * Sanitizes request body for logging by removing sensitive fields
-   */
-  private sanitizeRequestBody(body: unknown): unknown {
-    if (!body || typeof body !== 'object') {
-      return body;
-    }
-
-    const sensitiveFields = [
-      'password',
-      'token',
-      'secret',
-      'authorization',
-      'auth',
-    ];
-    const sanitized = { ...body } as Record<string, unknown>;
-
-    for (const field of sensitiveFields) {
-      if (field in sanitized) {
-        sanitized[field] = '[REDACTED]';
-      }
-    }
-
-    return sanitized;
-  }
-
   private logException(
     errorData: ErrorData,
     request: Request,
@@ -333,16 +309,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       errorCode: errorData.code,
       userAgent: this.isDevelopment() ? context.userAgent : undefined,
       ip: this.isDevelopment() ? context.ip : undefined,
-      // Dev-only: sanitizeRequestBody is a denylist and has drifted from the
-      // secrets it must cover (clientKey / oldClientKey / newClientKey /
-      // recoveryKey are vault key material, and amounts are encrypted at rest).
-      // The pino `redact` paths in app.module.ts target `req.body.*` and do not
-      // reach this hand-built object, so production must not carry a body here.
-      requestBody: this.isDevelopment()
-        ? this.sanitizeRequestBody(request.body)
+      requestBody: this.isDetailedHttpLogging()
+        ? sanitizeLogValue(request.body)
         : undefined,
       ...errorData.loggingContext, // Merge context provided by the service
     };
+    const sanitizedLogContext = sanitizeLogValue(logContext) as Record<
+      string,
+      unknown
+    >;
 
     // Extract readable message from errorData.message
     const errorMessage = this.extractReadableMessage(errorData.message);
@@ -351,15 +326,25 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       // Server errors: log with structured context including error object
       this.logger.error(
         {
-          ...logContext,
+          ...sanitizedLogContext,
           err: errorData.originalError || new Error(errorMessage),
         },
         `SERVER ERROR: ${errorMessage}`,
       );
     } else {
       // Client errors: log as warning with structured context
-      this.logger.warn(logContext, `CLIENT ERROR: ${errorMessage}`);
+      this.logger.warn(sanitizedLogContext, `CLIENT ERROR: ${errorMessage}`);
     }
+  }
+
+  private isDetailedHttpLogging(): boolean {
+    return (
+      resolveHttpLoggingDecision({
+        NODE_ENV: process.env.NODE_ENV,
+        DEBUG_HTTP_FULL: process.env.DEBUG_HTTP_FULL,
+        RAILWAY_ENVIRONMENT_NAME: process.env.RAILWAY_ENVIRONMENT_NAME,
+      }).mode === 'detailed'
+    );
   }
 
   private extractReadableMessage(message: string | object): string {

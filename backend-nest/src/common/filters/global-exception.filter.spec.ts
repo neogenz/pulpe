@@ -104,6 +104,8 @@ describe('GlobalExceptionFilter', () => {
     // Restore the value set by src/test/setup.ts — NODE_ENV now has no boot
     // default, so leaving it unset breaks any app bootstrapped by later specs.
     process.env.NODE_ENV = 'test';
+    delete process.env.DEBUG_HTTP_FULL;
+    delete process.env.RAILWAY_ENVIRONMENT_NAME;
   });
 
   describe('Context extraction', () => {
@@ -657,9 +659,10 @@ describe('GlobalExceptionFilter', () => {
       expect(JSON.stringify(logContext)).not.toContain('ab'.repeat(32));
     });
 
-    it('should log the sanitized request body in development', async () => {
+    it('should log the sanitized request body in detailed development mode', async () => {
       // Arrange
       process.env.NODE_ENV = 'development';
+      process.env.DEBUG_HTTP_FULL = 'true';
       const warn = spyOn(mockLogger, 'warn');
       const request = createMockRequest({
         method: 'POST',

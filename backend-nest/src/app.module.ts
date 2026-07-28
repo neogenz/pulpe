@@ -8,7 +8,6 @@ import {
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { CurlGenerator } from 'curl-generator';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { ClsModule } from 'nestjs-cls';
 import { LoggerModule } from 'nestjs-pino';
@@ -59,11 +58,19 @@ import { PayloadSizeMiddleware } from '@common/middleware/payload-size.middlewar
 import { ResponseLoggerMiddleware } from '@common/middleware/response-logger.middleware';
 
 // Configuration
-import { isProductionLike, validateConfig } from '@config/environment';
+import {
+  isProductionLike,
+  resolveHttpLoggingDecision,
+  validateConfig,
+} from '@config/environment';
 import { ScheduleModule } from '@nestjs/schedule';
 
 // Utils
-import { anonymizeIp, parseDeviceType } from '@common/utils/log-anonymization';
+import {
+  anonymizeIp,
+  parseDeviceType,
+  sanitizeLogValue,
+} from '@common/utils/log-anonymization';
 import { createRequestIdGenerator } from '@common/utils/request-id';
 
 function createLoggerTransport(isProdLike: boolean) {
@@ -84,37 +91,7 @@ function createLoggerTransport(isProdLike: boolean) {
   return undefined;
 }
 
-function createCurlCommand(
-  req: IncomingMessage & {
-    method?: string;
-    url?: string;
-    headers?: Record<string, string | string[] | undefined>;
-    body?: unknown;
-  },
-) {
-  const headers = Object.fromEntries(
-    Object.entries(req.headers || {})
-      .filter(([k]) => !['host', 'connection', 'content-length'].includes(k))
-      .map(([k, v]) => [k, Array.isArray(v) ? v[0] : v || '']),
-  );
-
-  return CurlGenerator({
-    url: `http://localhost:3000${req.url}`,
-    method: (req.method || 'GET') as
-      | 'GET'
-      | 'POST'
-      | 'PUT'
-      | 'DELETE'
-      | 'PATCH'
-      | 'get'
-      | 'post'
-      | 'put'
-      | 'patch'
-      | 'delete',
-    headers,
-    body: req.body as string | Record<string, unknown> | undefined,
-  });
-}
+const requestPath = (url?: string): string | undefined => url?.split('?')[0];
 
 function createDebugSerializers() {
   return {
@@ -129,13 +106,13 @@ function createDebugSerializers() {
       },
     ) => {
       return {
+        id: req.id,
         method: req.method,
-        url: req.url,
-        headers: req.headers,
-        body: req.body,
-        query: req.query,
-        params: req.params,
-        curl: createCurlCommand(req),
+        url: requestPath(req.url),
+        headers: sanitizeLogValue(req.headers),
+        body: sanitizeLogValue(req.body),
+        query: sanitizeLogValue(req.query),
+        params: sanitizeLogValue(req.params),
       };
     },
     res: (
@@ -145,7 +122,7 @@ function createDebugSerializers() {
       },
     ) => ({
       statusCode: res.statusCode,
-      headers: res.headers,
+      headers: sanitizeLogValue(res.headers),
     }),
   };
 }
@@ -159,8 +136,9 @@ function createProductionSerializers() {
         headers?: Record<string, string | string[] | undefined>;
       },
     ) => ({
+      id: req.id,
       method: req.method,
-      url: req.url,
+      url: requestPath(req.url),
       deviceType: parseDeviceType(req.headers?.['user-agent'] as string),
       ip: anonymizeIp(
         (req.headers?.['x-forwarded-for'] ||
@@ -173,31 +151,38 @@ function createProductionSerializers() {
   };
 }
 
-function createPinoLoggerConfig(configService: ConfigService) {
+export function createPinoLoggerConfig(configService: ConfigService) {
   const nodeEnv = configService.get<string>('NODE_ENV');
-  const productionLike = isProductionLike(nodeEnv);
-  const debugHttpFull = configService.get<string>('DEBUG_HTTP_FULL') === 'true';
+  const railwayEnvironmentName = configService.get<string>(
+    'RAILWAY_ENVIRONMENT_NAME',
+  );
+  const productionLike =
+    isProductionLike(nodeEnv) ||
+    railwayEnvironmentName?.trim().toLowerCase() === 'production';
+  const loggingDecision = resolveHttpLoggingDecision({
+    NODE_ENV: nodeEnv,
+    DEBUG_HTTP_FULL: configService.get<string>('DEBUG_HTTP_FULL'),
+    RAILWAY_ENVIRONMENT_NAME: railwayEnvironmentName,
+  });
 
   return {
     pinoHttp: {
       level: productionLike ? 'info' : 'debug',
       genReqId: createRequestIdGenerator(),
-      redact: debugHttpFull
-        ? undefined
-        : {
-            paths: [
-              'req.headers.authorization',
-              'req.headers.cookie',
-              'req.headers["x-client-key"]',
-              'req.body.password',
-              'req.body.clientKey',
-              'req.body.newClientKey',
-              'req.body.recoveryKey',
-              'req.body.token',
-              'res.headers["set-cookie"]',
-            ],
-            censor: '[REDACTED]',
-          },
+      redact: {
+        paths: [
+          'req.headers.authorization',
+          'req.headers.cookie',
+          'req.headers["x-client-key"]',
+          'req.body.password',
+          'req.body.clientKey',
+          'req.body.newClientKey',
+          'req.body.recoveryKey',
+          'req.body.token',
+          'res.headers["set-cookie"]',
+        ],
+        censor: '[REDACTED]',
+      },
       transport: createLoggerTransport(productionLike),
       autoLogging: true,
       customSuccessMessage: (
@@ -205,18 +190,19 @@ function createPinoLoggerConfig(configService: ConfigService) {
         res: ServerResponse & { statusCode?: number },
         responseTime: number,
       ) => {
-        return `${req.method} ${req.url} ${res.statusCode} - ${Math.round(responseTime)}ms`;
+        return `${req.method} ${requestPath(req.url)} ${res.statusCode} - ${Math.round(responseTime)}ms`;
       },
       customErrorMessage: (
         req: IncomingMessage & { method?: string; url?: string },
         res: ServerResponse & { statusCode?: number },
         error: Error,
       ) => {
-        return `${req.method} ${req.url} ${res.statusCode} - ${error.message}`;
+        return `${req.method} ${requestPath(req.url)} ${res.statusCode} - ${error.message}`;
       },
-      serializers: debugHttpFull
-        ? createDebugSerializers()
-        : createProductionSerializers(),
+      serializers:
+        loggingDecision.mode === 'detailed'
+          ? createDebugSerializers()
+          : createProductionSerializers(),
     },
     renameContext: 'module',
   };

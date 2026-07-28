@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test';
 import { PinoLogger } from 'nestjs-pino';
 import { GlobalExceptionFilter } from '../common/filters/global-exception.filter';
+import { createPinoLoggerConfig } from '../app.module';
+import { ResponseLoggerMiddleware } from '../common/middleware/response-logger.middleware';
 
 // Mock helpers
 const createMockRequest = (overrides: any = {}): any => {
@@ -63,6 +65,8 @@ describe('Sensitive Data Redaction Test', () => {
     // production guarantee asserted in 'GlobalExceptionFilter Redaction'.
     // The sanitize denylist below therefore describes dev-only behaviour.
     process.env.NODE_ENV = 'development';
+    process.env.DEBUG_HTTP_FULL = 'true';
+    delete process.env.RAILWAY_ENVIRONMENT_NAME;
 
     // Create mock logger that captures log calls
     mockLogger = {
@@ -87,28 +91,141 @@ describe('Sensitive Data Redaction Test', () => {
     // Restore the value set by src/test/setup.ts — NODE_ENV now has no boot
     // default, so leaving it unset breaks any app bootstrapped by later specs.
     process.env.NODE_ENV = 'test';
+    delete process.env.DEBUG_HTTP_FULL;
+    delete process.env.RAILWAY_ENVIRONMENT_NAME;
   });
 
   describe('Pino Logger Configuration', () => {
-    it('should have correct redaction paths configured', () => {
-      // Test the expected redaction paths that should be configured in app.module.ts
-      const expectedPaths = [
-        'req.headers.authorization',
-        'req.headers.cookie',
-        'req.body.password',
-        'req.body.token',
-        'res.headers["set-cookie"]',
-      ];
+    const buildConfig = (values: Record<string, string | undefined>) =>
+      createPinoLoggerConfig({
+        get: (key: string) => values[key],
+      } as ConfigService);
 
-      // Verify the paths are properly defined as strings
-      expectedPaths.forEach((path) => {
-        expect(typeof path).toBe('string');
-        expect(path.length).toBeGreaterThan(0);
+    it('keeps pino redaction active in detailed preview mode', () => {
+      const config = buildConfig({
+        NODE_ENV: 'preview',
+        DEBUG_HTTP_FULL: 'true',
       });
 
-      // Document that these paths should be configured in the pino logger config
-      // The actual implementation is in createPinoLoggerConfig function
-      expect(expectedPaths).toHaveLength(5);
+      expect(config.pinoHttp.redact).toBeDefined();
+    });
+
+    it('sanitizes detailed request data and never creates a cURL command', () => {
+      const config = buildConfig({
+        NODE_ENV: 'preview',
+        DEBUG_HTTP_FULL: 'true',
+      });
+      const serialize = config.pinoHttp.serializers.req;
+      const serialized = serialize({
+        id: 'req-123',
+        method: 'POST',
+        url: '/api/test?token=QUERY_SENTINEL',
+        headers: {
+          authorization: 'Bearer HEADER_SENTINEL',
+          'x-client-key': 'CLIENT_KEY_SENTINEL',
+        },
+        query: { token: 'QUERY_SENTINEL', visible: 'yes' },
+        body: {
+          nested: [{ recoveryKey: 'RECOVERY_SENTINEL' }],
+          visible: 'yes',
+        },
+      } as any);
+      const output = JSON.stringify(serialized);
+
+      expect(serialized).not.toHaveProperty('curl');
+      expect(output).not.toContain('HEADER_SENTINEL');
+      expect(output).not.toContain('CLIENT_KEY_SENTINEL');
+      expect(output).not.toContain('QUERY_SENTINEL');
+      expect(output).not.toContain('RECOVERY_SENTINEL');
+      expect(output).toContain('yes');
+    });
+
+    it('uses the standard serializer for either production signal', () => {
+      for (const values of [
+        { NODE_ENV: 'production', DEBUG_HTTP_FULL: 'true' },
+        {
+          NODE_ENV: 'development',
+          RAILWAY_ENVIRONMENT_NAME: 'production',
+          DEBUG_HTTP_FULL: 'true',
+        },
+      ]) {
+        const config = buildConfig(values);
+        const serialized = config.pinoHttp.serializers.req({
+          id: 'req-123',
+          method: 'POST',
+          url: '/api/test?token=QUERY_SENTINEL',
+          headers: {},
+          query: { token: 'QUERY_SENTINEL' },
+          body: { visible: 'must-not-be-logged' },
+        } as any);
+
+        expect(serialized).toEqual({
+          id: 'req-123',
+          method: 'POST',
+          url: '/api/test',
+          deviceType: 'unknown',
+          ip: undefined,
+        });
+      }
+    });
+
+    it('omits query strings from automatic HTTP log messages', () => {
+      const config = buildConfig({ NODE_ENV: 'production' });
+      const request = {
+        method: 'GET',
+        url: '/api/test?token=QUERY_SENTINEL',
+      } as any;
+      const response = { statusCode: 200 } as any;
+
+      expect(
+        config.pinoHttp.customSuccessMessage(request, response, 12),
+      ).not.toContain('QUERY_SENTINEL');
+      expect(
+        config.pinoHttp.customErrorMessage(
+          request,
+          response,
+          new Error('failed'),
+        ),
+      ).not.toContain('QUERY_SENTINEL');
+    });
+
+    it('sanitizes response bodies captured in detailed preview mode', () => {
+      const logger = { debug: mock(() => undefined) };
+      const listeners = new Map<string, () => void>();
+      const response = {
+        locals: {},
+        statusCode: 200,
+        json: mock((body: unknown) => body),
+        send: mock((body: unknown) => body),
+        on: mock((event: string, listener: () => void) => {
+          listeners.set(event, listener);
+        }),
+      } as any;
+      const middleware = new ResponseLoggerMiddleware(
+        {
+          get: (key: string) =>
+            ({
+              NODE_ENV: 'preview',
+              DEBUG_HTTP_FULL: 'true',
+            })[key],
+        } as ConfigService,
+        logger as any,
+      );
+
+      middleware.use(
+        {} as any,
+        response,
+        mock(() => undefined),
+      );
+      response.json({
+        visible: 'yes',
+        nested: [{ RefreshToken: 'RESPONSE_TOKEN_SENTINEL' }],
+      });
+      listeners.get('finish')?.();
+
+      const output = JSON.stringify(logger.debug.mock.calls);
+      expect(output).not.toContain('RESPONSE_TOKEN_SENTINEL');
+      expect(output).toContain('yes');
     });
   });
 
@@ -157,6 +274,13 @@ describe('Sensitive Data Redaction Test', () => {
       expect(logContext.requestBody.token).toBe('[REDACTED]');
       expect(logContext.requestBody.secret).toBe('[REDACTED]');
       expect(logContext.requestBody.authorization).toBe('[REDACTED]');
+      expect(logContext).toMatchObject({
+        requestId: 'req-123-456',
+        method: 'POST',
+        url: '/api/v1/test',
+        statusCode: 400,
+        errorCode: 'HTTP_400',
+      });
 
       // Check that normal fields are preserved
       expect(logContext.requestBody.normalField).toBe('normal-value');
@@ -206,14 +330,14 @@ describe('Sensitive Data Redaction Test', () => {
       });
     });
 
-    it('should demonstrate current limitation: nested sensitive fields are NOT redacted', () => {
+    it('should redact nested sensitive fields', () => {
       const request = createMockRequest({
         body: {
           user: {
             auth: 'nested-auth-token',
           },
           settings: {
-            apiKey: 'should-not-be-redacted', // Only specific fields are redacted
+            apiKey: 'nested-api-key',
           },
         },
       });
@@ -228,14 +352,8 @@ describe('Sensitive Data Redaction Test', () => {
 
       const logContext = capturedLogs[0].context;
 
-      // SECURITY CONCERN: Nested sensitive fields are NOT currently redacted
-      // This test documents the current behavior - nested fields are exposed
-      expect(logContext.requestBody.user.auth).toBe('nested-auth-token');
-
-      // Non-redacted fields should remain unchanged
-      expect(logContext.requestBody.settings.apiKey).toBe(
-        'should-not-be-redacted',
-      );
+      expect(logContext.requestBody.user.auth).toBe('[REDACTED]');
+      expect(logContext.requestBody.settings.apiKey).toBe('[REDACTED]');
     });
 
     it('should handle server errors (5xx) differently from client errors (4xx)', () => {
@@ -268,7 +386,7 @@ describe('Sensitive Data Redaction Test', () => {
   });
 
   describe('Edge Cases', () => {
-    it('should demonstrate current limitation: arrays and nested structures are NOT deeply redacted', () => {
+    it('should deeply redact arrays and nested structures', () => {
       const request = createMockRequest({
         body: {
           passwords: ['password1', 'password2'], // Field name matches but it's an array
@@ -287,13 +405,8 @@ describe('Sensitive Data Redaction Test', () => {
 
       const logContext = capturedLogs[0].context;
 
-      // SECURITY CONCERN: Arrays with sensitive field names are NOT redacted
-      // This test documents the current behavior
-      expect(logContext.requestBody.passwords).toEqual([
-        'password1',
-        'password2',
-      ]);
-      expect(logContext.requestBody.tokens).toEqual([{ token: 'array-token' }]);
+      expect(logContext.requestBody.passwords).toBe('[REDACTED]');
+      expect(logContext.requestBody.tokens).toBe('[REDACTED]');
 
       // Normal data should be preserved
       expect(logContext.requestBody.data).toBe('normal-data');
@@ -350,11 +463,10 @@ describe('Sensitive Data Redaction Test', () => {
 
       const logContext = capturedLogs[0].context;
 
-      // Only exact lowercase matches should be redacted
       expect(logContext.requestBody.password).toBe('[REDACTED]');
       expect(logContext.requestBody.token).toBe('[REDACTED]');
-      expect(logContext.requestBody.Password).toBe('should-not-be-redacted');
-      expect(logContext.requestBody.TOKEN).toBe('should-not-be-redacted');
+      expect(logContext.requestBody.Password).toBe('[REDACTED]');
+      expect(logContext.requestBody.TOKEN).toBe('[REDACTED]');
     });
   });
 
