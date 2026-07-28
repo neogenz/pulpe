@@ -11,6 +11,8 @@
   `ph-no-capture`.
 - La landing `https://pulpe.app` garde une identité analytics indépendante. Aucun
   `distinct_id` n'est transféré vers `https://app.pulpe.app`.
+- PostHog est actif en production selon les variables d'environnement et reste
+  configurable dans les environnements local et preview.
 - Le session replay est forcé à l'arrêt en production. Il reste activable par
   configuration dans les environnements local et preview.
 - Le réglage « Partager les diagnostics », activé par défaut, utilise l'opt-out persistant
@@ -286,7 +288,8 @@ pnpm upload:sourcemaps  # Nécessite POSTHOG_PERSONAL_API_KEY local
 
 ### Données Automatiquement Masquées
 - **Données financières** : Montants et transactions
-- **PII** : Emails et données sensibles
+- **Identification support** : UUID Supabase, email et prénom restent disponibles
+- **Autres données sensibles** : Contenus saisis, secrets et identifiants métier détaillés exclus
 - **Mots de passe** : Automatiquement redacted
 - **Tokens** : API keys masquées
 
@@ -297,8 +300,9 @@ pnpm upload:sourcemaps  # Nécessite POSTHOG_PERSONAL_API_KEY local
 - **Isolation** : Chaque déploiement = Symbol set unique
 
 ### Configuration Production
-- PostHog activé uniquement en production
-- Désactivé automatiquement en développement/test
+- PostHog actif en production selon les variables d'environnement
+- PostHog configurable en local et preview
+- Session replay désactivé en production
 - Variables sécurisées via Vercel Dashboard
 - Rotation régulière des API keys
 

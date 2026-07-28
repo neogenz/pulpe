@@ -254,7 +254,11 @@ export const sanitizeUrl = (url: string): string => {
 
     const sanitizedParams = new URLSearchParams(parsed.searchParams);
     for (const key of Array.from(sanitizedParams.keys())) {
-      if (PROTECTED_QUERY_PARAMETERS.has(key.toLowerCase())) {
+      const normalizedKey = key.toLowerCase();
+      if (
+        PROTECTED_QUERY_PARAMETERS.has(normalizedKey) ||
+        isSensitiveProperty(normalizedKey)
+      ) {
         sanitizedParams.delete(key);
       }
     }
@@ -274,7 +278,7 @@ export const sanitizeUrl = (url: string): string => {
 
     return `${sanitizedPath}${query}${hash}`;
   } catch {
-    return applyDynamicSegmentMasks(url);
+    return '';
   }
 };
 

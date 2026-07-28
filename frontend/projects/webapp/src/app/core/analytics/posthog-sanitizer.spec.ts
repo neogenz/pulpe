@@ -28,6 +28,30 @@ describe('posthog-sanitizer', () => {
 
       expect(sanitized).toBe('/transaction/[id]');
     });
+
+    it.each([
+      [
+        'https://app.local/budgets/123?access_token=a&refresh_token=b&password=c&recovery_key=d&keep=1',
+        'https://app.local/budget/[id]?keep=1',
+      ],
+      [
+        '//cdn.example.com/assets?access_token=a&refresh_token=b&password=c&recovery_key=d&keep=1',
+        '//cdn.example.com/assets?keep=1',
+      ],
+      [
+        '/transactions/456?access_token=a&refresh_token=b&password=c&recovery_key=d&keep=1',
+        '/transaction/[id]?keep=1',
+      ],
+    ])(
+      'strips sensitive parameters while preserving the URL format',
+      (url, expected) => {
+        expect(sanitizeUrl(url)).toBe(expected);
+      },
+    );
+
+    it('fails closed when the URL cannot be parsed', () => {
+      expect(sanitizeUrl('http://[invalid')).toBe('');
+    });
   });
 
   describe('sanitizeRecord', () => {
