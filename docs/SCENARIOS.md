@@ -1203,8 +1203,8 @@ Ce qui est **perdu** :
 **Workflow** : LoginView > "Mot de passe oublié ?" > Saisir email > Recevoir deep link par email > Cliquer le lien > `ResetPasswordFlowView` s'ouvre en sheet > Saisir le nouveau mot de passe > Valider
 
 **Détail technique** :
-1. `ForgotPasswordSheet` → `AuthService.requestPasswordReset(email:)` → Supabase envoie un universal link `https://pulpe.app/app/reset-password`
-2. Le routeur iOS accepte uniquement HTTPS + `pulpe.app` + `/app/reset-password`, puis `PulpeApp` ouvre `.resetPassword(url:)`
+1. `ForgotPasswordSheet` → `AuthService.requestPasswordReset(email:)` → Supabase envoie un universal link `https://app.pulpe.app/reset-password`
+2. Le routeur iOS accepte uniquement HTTPS + `app.pulpe.app` + `/reset-password`, puis `PulpeApp` ouvre `.resetPassword(url:)`
 3. `AuthService.beginPasswordRecovery(from: url)` crée une session de recovery Supabase
 4. `AuthService.updatePassword(newPassword)` met à jour le mot de passe
 5. `completePasswordResetFlow()` :
@@ -1379,7 +1379,7 @@ Ce qui est **perdu** :
 | API source de vérité | Aucun stockage local de données métier | Pas de SQLite/CoreData local |
 | Token refresh automatique | SDK Supabase + sauvegarde Keychain à chaque accès | Transparent pour l'utilisateur |
 | Navigation préservée | `NavigationPath` maintenu après background/foreground | L'utilisateur revient où il était |
-| Deep link password reset | Universal link `https://pulpe.app/app/reset-password` validé strictement | Flow natif possédé par le domaine; repli web sans l’app |
+| Deep link password reset | Universal link `https://app.pulpe.app/reset-password` validé strictement | Flow natif possédé par le domaine de l’app; repli web sans l’app |
 | Logout biométrique préserve les tokens | `logoutKeepingBiometricSession()` ne révoque pas le refresh token | Reconnexion Face ID rapide après logout |
 | Logout biométrique résilient | Si sauvegarde tokens échoue → full logout au lieu de perte silencieuse de Face ID | L'utilisateur n'est pas surpris par un Face ID non fonctionnel |
 | Séparation Keychain régulier / biométrique | Tokens et clés séparés avec niveaux d'accès distincts | Pas de mélange de credentials |

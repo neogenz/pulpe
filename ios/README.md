@@ -116,8 +116,8 @@ Surcharges locales non versionnées:
 
 ### Password Reset Deep Link
 
-- Redirect URI iOS utilisée pour le reset: `https://pulpe.app/app/reset-password`
-- Association: `applinks:pulpe.app` et AASA limité au chemin `/app/reset-password`
+- Redirect URI iOS utilisée pour le reset: `https://app.pulpe.app/reset-password`
+- Association: `applinks:app.pulpe.app` et AASA limité au chemin `/reset-password`
 - Supabase local: l’URL exacte est versionnée dans `backend-nest/supabase/config.toml`
 - Supabase preview/production: ajouter manuellement cette URL exacte dans **Authentication > URL Configuration > Redirect URLs**
 - Le schéma `pulpe://` reste réservé aux liens non sensibles `add-expense` et `budget`

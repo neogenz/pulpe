@@ -16,8 +16,8 @@ enum DeepLinkDestination: Hashable, Sendable {
         let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
 
         if url.scheme?.lowercased() == "https",
-           url.host?.lowercased() == "pulpe.app",
-           components?.percentEncodedPath == "/app/reset-password" {
+           url.host?.lowercased() == "app.pulpe.app",
+           components?.percentEncodedPath == "/reset-password" {
             return .resetPassword(url: url)
         }
 
