@@ -105,13 +105,17 @@ import { ROUTES } from '@core/routing';
               jamais transmis
             </li>
             <li>Mots de passe, tokens d'authentification</li>
-            <li>Identifiants de transactions ou de catégories budgétaires</li>
+            <li>Clés de récupération</li>
+            <li>
+              Libellés financiers, identifiants de transactions et contenus
+              saisis
+            </li>
           </ul>
           <p class="text-body-large mt-4">
-            <strong>Enregistrement de sessions :</strong> PostHog peut
-            enregistrer des sessions d'utilisation (replay des interactions)
-            pour m'aider à comprendre et résoudre les problèmes techniques. Tous
-            les champs de saisie sont automatiquement masqués.
+            <strong>Enregistrement de sessions :</strong> le replay est
+            désactivé en production. Il peut être activé par configuration dans
+            les environnements local et preview utilisés pour tester et
+            diagnostiquer une version avant sa publication.
           </p>
           <p class="text-body-large mt-4">
             <strong>Base légale :</strong> intérêt légitime (article 6.1.f du
@@ -123,6 +127,13 @@ import { ROUTES } from '@core/routing';
             Agreement a été signé avec PostHog Inc., conforme à l'article 28 du
             RGPD. PostHog agit en tant que sous-traitant (processor) pour les
             données collectées via Pulpe.
+          </p>
+          <p class="text-body-large mt-4">
+            Vous pouvez arrêter immédiatement cette collecte sur l'appareil
+            depuis <strong>Paramètres → Données de diagnostic</strong>, en
+            désactivant « Partager les diagnostics ». Ce choix efface
+            l'association locale à votre identité PostHog et reste mémorisé sur
+            cet appareil.
           </p>
         </section>
 
@@ -254,23 +265,21 @@ import { ROUTES } from '@core/routing';
             <li>Assurer la sécurité du service</li>
           </ul>
           <p class="text-body-large mt-4">
-            <strong>Cookies d'analyse (PostHog) :</strong>
+            <strong>Traceurs d'analyse (PostHog) :</strong>
           </p>
           <ul class="list-disc pl-6 text-body-large">
             <li>
               Activés automatiquement (base légale : intérêt légitime, article
               6.1.f du RGPD). Vous pouvez exercer votre droit d'opposition à
-              tout moment via l'email de contact ci-dessous.
+              tout moment via le réglage « Partager les diagnostics ».
             </li>
             <li>
               Données identifiables (email, identifiant utilisateur, prénom) —
               voir section 4 pour le détail des données envoyées à PostHog
             </li>
             <li>
-              Vous pouvez vous opposer à ces cookies en me contactant à
-              <a href="mailto:maxime.desogus@gmail.com" class="text-primary"
-                >maxime.desogus@gmail.com</a
-              >
+              Le choix est propre à chaque appareil et à chaque plateforme. Il
+              n'affecte pas les données nécessaires au fonctionnement du compte.
             </li>
           </ul>
         </section>
@@ -341,5 +350,5 @@ import { ROUTES } from '@core/routing';
 export default class PrivacyPolicyComponent {
   protected readonly ROUTES = ROUTES;
 
-  protected readonly currentDate = '6 mai 2026';
+  protected readonly currentDate = '28 juillet 2026';
 }

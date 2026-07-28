@@ -1,3 +1,4 @@
 // Helper for URL escaping in xcconfig (// is interpreted as comment)
 SLASH = /
 POSTHOG_HOST = https:$(SLASH)$(SLASH)eu.i.posthog.com
+POSTHOG_SESSION_REPLAY_ENABLED = false

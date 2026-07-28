@@ -1,13 +1,11 @@
 import type { PostHog } from "posthog-js";
 
-type PostHogClient = Pick<PostHog, "capture" | "get_distinct_id">;
+type PostHogClient = Pick<PostHog, "capture">;
 
 const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY ?? "";
 const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "/ph";
 const POSTHOG_UI_HOST = "https://eu.posthog.com";
 const POSTHOG_ENABLED = process.env.NEXT_PUBLIC_POSTHOG_ENABLED === "true";
-
-export const CROSS_DOMAIN_PARAM = "ph_did";
 
 const VERCEL_ENV_MAP: Record<string, string> = {
   production: "production",
@@ -40,7 +38,6 @@ export function initPostHog(): Promise<void> | undefined {
         capture_pageleave: true,
         person_profiles: "identified_only",
         persistence: "localStorage+cookie",
-        cross_subdomain_cookie: true,
       });
 
       posthog.register({
@@ -73,13 +70,4 @@ export function trackCTAClick(
       destination,
     });
   });
-}
-
-export function getDistinctId(): string | undefined {
-  if (!POSTHOG_ENABLED || !posthogClient) return undefined;
-  try {
-    return posthogClient.get_distinct_id();
-  } catch {
-    return undefined;
-  }
 }

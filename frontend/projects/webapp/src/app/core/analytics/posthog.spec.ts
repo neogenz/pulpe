@@ -17,6 +17,7 @@ import { createMockLogger } from '../../testing/mock-posthog';
 let beforeSendHandler:
   | ((event: CaptureResult | null) => CaptureResult | null)
   | undefined;
+let optedOut = false;
 
 vi.mock('posthog-js', () => {
   return {
@@ -27,13 +28,23 @@ vi.mock('posthog-js', () => {
           options.loaded();
         }
       }),
-      opt_in_capturing: vi.fn(),
+      has_opted_out_capturing: vi.fn(() => optedOut),
+      opt_in_capturing: vi.fn(() => {
+        optedOut = false;
+      }),
+      opt_out_capturing: vi.fn(() => {
+        optedOut = true;
+      }),
+      stopSessionRecording: vi.fn(),
       capture: vi.fn(),
       captureException: vi.fn(),
       identify: vi.fn(),
       reset: vi.fn(),
       register: vi.fn(),
       set_config: vi.fn(),
+      onFeatureFlags: vi.fn(),
+      isFeatureEnabled: vi.fn(() => false),
+      setPersonProperties: vi.fn(),
     },
   };
 });
@@ -54,20 +65,23 @@ describe('PostHogService', () => {
     debug: false,
   } as const;
   let postHogSignal: ReturnType<typeof signal<typeof defaultConfig>>;
+  let environmentSignal: ReturnType<typeof signal<string>>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     beforeSendHandler = undefined;
+    optedOut = false;
 
     const posthogModule = await import('posthog-js');
     vi.mocked(posthogModule.default.set_config).mockClear();
 
     postHogSignal = signal({ ...defaultConfig });
     const isDevelopmentSignal = signal(false);
+    environmentSignal = signal('test');
 
     const mockAppConfig = {
       postHog: postHogSignal,
-      environment: signal('test'),
+      environment: environmentSignal,
       supabaseUrl: signal('https://test.supabase.co'),
       supabaseAnonKey: signal('test-key'),
       isDevelopment: isDevelopmentSignal,
@@ -134,6 +148,35 @@ describe('PostHogService', () => {
     expect(posthog.capture).toHaveBeenCalledWith('$pageview');
   });
 
+  it('forces session replay off in production', async () => {
+    const posthogModule = await import('posthog-js');
+    const posthog = posthogModule.default;
+    environmentSignal.set('production');
+
+    await service.initialize();
+
+    expect(posthog.init).toHaveBeenCalledWith(
+      defaultConfig.apiKey,
+      expect.objectContaining({ disable_session_recording: true }),
+    );
+  });
+
+  it.each(['local', 'preview'])(
+    'keeps session replay configurable in %s',
+    async (environment) => {
+      const posthogModule = await import('posthog-js');
+      const posthog = posthogModule.default;
+      environmentSignal.set(environment);
+
+      await service.initialize();
+
+      expect(posthog.init).toHaveBeenCalledWith(
+        defaultConfig.apiKey,
+        expect.objectContaining({ disable_session_recording: false }),
+      );
+    },
+  );
+
   it('identifies the user when analytics is active', async () => {
     const posthogModule = await import('posthog-js');
     const posthog = posthogModule.default;
@@ -164,6 +207,35 @@ describe('PostHogService', () => {
     expect(posthog.capture).toHaveBeenCalledWith('user_action', {
       feature: 'budget',
     });
+  });
+
+  it('opts out immediately, clears identity, and preserves the local choice', async () => {
+    const posthogModule = await import('posthog-js');
+    const posthog = posthogModule.default;
+    await service.initialize();
+
+    service.setDiagnosticSharingEnabled(false);
+    service.captureEvent('blocked_event');
+
+    expect(posthog.stopSessionRecording).toHaveBeenCalledTimes(1);
+    expect(posthog.reset).toHaveBeenCalledWith(true);
+    expect(posthog.opt_out_capturing).toHaveBeenCalledTimes(1);
+    expect(service.diagnosticSharingEnabled()).toBe(false);
+    expect(posthog.capture).not.toHaveBeenCalledWith('blocked_event');
+  });
+
+  it('opts back in without emitting a consent event', async () => {
+    const posthogModule = await import('posthog-js');
+    const posthog = posthogModule.default;
+    optedOut = true;
+    await service.initialize();
+
+    service.setDiagnosticSharingEnabled(true);
+
+    expect(posthog.opt_in_capturing).toHaveBeenCalledWith({
+      captureEventName: false,
+    });
+    expect(service.diagnosticSharingEnabled()).toBe(true);
   });
 
   it('resets PostHog state', async () => {
@@ -206,7 +278,7 @@ describe('PostHogService', () => {
     expect(result?.properties?.['amount']).toBeUndefined();
     expect(result?.properties?.['balance']).toBeUndefined();
     expect(result?.properties?.['password']).toBeUndefined();
-    expect(result?.properties?.['authToken']).toBe('token-value');
+    expect(result?.properties?.['authToken']).toBeUndefined();
     expect(result?.properties?.['nested']).toEqual({
       url: 'https://app.test/budget/[id]?safe=true',
     });
@@ -238,7 +310,7 @@ describe('PostHogService', () => {
     expect(result?.properties?.['info']).toEqual({ date: eventDate });
   });
 
-  it('preserves PostHog reserved keys and passthrough token properties', async () => {
+  it('preserves only PostHog SDK token fields', async () => {
     await service.initialize();
 
     const rawEvent = {
@@ -262,10 +334,10 @@ describe('PostHogService', () => {
     expect(payload?.api_key).toBe(defaultConfig.apiKey);
     expect(payload?.properties?.['token']).toBe(defaultConfig.apiKey);
     expect(payload?.properties?.['api_key']).toBe(defaultConfig.apiKey);
-    expect(payload?.properties?.['authToken']).toBe('should-be-removed');
+    expect(payload?.properties?.['authToken']).toBeUndefined();
   });
 
-  it('keeps PostHog system fields and token-like custom properties intact', async () => {
+  it('keeps PostHog system fields and strips token-like custom properties', async () => {
     await service.initialize();
 
     const rawEvent = {
@@ -282,7 +354,7 @@ describe('PostHogService', () => {
     expect(result?.properties?.['distinct_id']).toBe('uid-123');
     expect(result?.properties?.['$lib']).toBe('posthog-js');
     expect(result?.properties?.['$lib_version']).toBe('1.260.2');
-    expect(result?.properties?.['authToken']).toBe('should-be-stripped');
+    expect(result?.properties?.['authToken']).toBeUndefined();
   });
 });
 

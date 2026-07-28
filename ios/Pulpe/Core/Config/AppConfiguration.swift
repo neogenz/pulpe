@@ -75,6 +75,10 @@ enum AppConfiguration {
         optionalValue(for: "POSTHOG_ENABLED") == "true"
     }
 
+    static var isPostHogSessionReplayEnabled: Bool {
+        optionalValue(for: "POSTHOG_SESSION_REPLAY_ENABLED") == "true"
+    }
+
     // MARK: - App Info
 
     static var appVersion: String {
@@ -168,6 +172,8 @@ enum AppConfiguration {
         case "POSTHOG_HOST":
             return "https://eu.i.posthog.com"
         case "POSTHOG_ENABLED":
+            return "false"
+        case "POSTHOG_SESSION_REPLAY_ENABLED":
             return "false"
         case "GOOGLE_CLIENT_ID":
             return "test-google-client-id"

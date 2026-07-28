@@ -93,13 +93,12 @@ describe('posthog-sanitizer', () => {
         transactionid: 'tx-456',
         templateid: 'tpl-789',
         token: 'auth-token',
-        description: 'Safe to keep',
+        description: 'Personal budget label',
       });
 
       expect(sanitized).toEqual({
         budgetid: 'bud-123',
         templateid: 'tpl-789',
-        description: 'Safe to keep',
       });
     });
 
@@ -135,7 +134,6 @@ describe('posthog-sanitizer', () => {
       expect(sanitized).toEqual({
         budget: {
           id: 'bud-123',
-          name: 'Monthly Budget',
         },
         metadata: {
           created: '2026-02-01',
@@ -153,10 +151,7 @@ describe('posthog-sanitizer', () => {
       });
 
       expect(sanitized).toEqual({
-        transactions: [
-          { id: 'tx-1', description: 'Grocery' },
-          { id: 'tx-2', description: 'Gas' },
-        ],
+        transactions: [{ id: 'tx-1' }, { id: 'tx-2' }],
       });
     });
 
@@ -192,7 +187,6 @@ describe('posthog-sanitizer', () => {
 
       expect(sanitized?.properties).toEqual({
         budget_id: 'bud-123',
-        description: 'Monthly',
       });
     });
 
@@ -322,7 +316,6 @@ describe('posthog-sanitizer', () => {
       const sanitized = sanitizeEventPayload(event);
 
       expect(sanitized?.properties).toEqual({
-        description: 'Grocery shopping',
         kind: 'expense',
         budget_id: 'bud-456',
       });
@@ -375,11 +368,7 @@ describe('posthog-sanitizer', () => {
       expect(sanitized?.properties).toEqual({
         budget: {
           id: 'bud-123',
-          name: 'Monthly',
-          lines: [
-            { id: 'line-1', name: 'Groceries' },
-            { id: 'line-2', name: 'Transport' },
-          ],
+          lines: [{ id: 'line-1' }, { id: 'line-2' }],
         },
         export_format: 'csv',
         user_id: 'usr-456',
@@ -407,7 +396,6 @@ describe('posthog-sanitizer', () => {
 
       expect(sanitized?.properties).toEqual({
         goal_id: 'sg-001',
-        name: 'Emergency Fund',
         status: 'ACTIVE',
       });
     });
@@ -433,12 +421,28 @@ describe('posthog-sanitizer', () => {
 
       expect(sanitized?.properties).toEqual({
         budget_id: 'bud-123',
-        transactions: [
-          { id: 'tx-1', label: 'food' },
-          { id: 'tx-2', label: 'transport' },
-        ],
+        transactions: [{ id: 'tx-1' }, { id: 'tx-2' }],
         view_duration_seconds: 45,
         has_savings: true,
+      });
+    });
+
+    it('strips recovery keys, tokens, and typed business text recursively', () => {
+      const sanitized = sanitizeRecord({
+        recovery_key: 'PULPE-SECRET-KEY',
+        accessToken: 'jwt',
+        label: 'Loyer',
+        nested: {
+          title: 'Vacances',
+          content: 'Texte saisi librement',
+          safe_state: 'completed',
+        },
+      });
+
+      expect(sanitized).toEqual({
+        nested: {
+          safe_state: 'completed',
+        },
       });
     });
   });

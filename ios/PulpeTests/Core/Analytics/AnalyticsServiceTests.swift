@@ -117,6 +117,52 @@ struct AnalyticsServiceTests {
         #expect(sanitized.isEmpty)
     }
 
+    @Test func sanitizeProperties_removesSecretsAndTypedBusinessText() {
+        let sanitized = AnalyticsService.sanitizeProperties([
+            "recovery_key": "PULPE-SECRET-KEY",
+            "access_token": "jwt",
+            "label": "Loyer",
+            "description": "Texte saisi",
+            "safe_state": "completed"
+        ])
+
+        #expect(Set(sanitized.keys) == ["safe_state"])
+    }
+
+    @Test func sessionReplay_isNeverEnabledInProduction() {
+        #expect(
+            AnalyticsService.shouldEnableSessionReplay(
+                environment: .production,
+                configured: true
+            ) == false
+        )
+        #expect(
+            AnalyticsService.shouldEnableSessionReplay(
+                environment: .preview,
+                configured: true
+            )
+        )
+    }
+
+    @Test func diagnosticSharing_optOutClearsIdentityAndOptInRestoresIt() {
+        let service = AnalyticsService(isConfiguredEnabled: true)
+        service.initialize()
+        service.identify(userId: "support-user", properties: [
+            AnalyticsService.emailProperty: "support@example.com"
+        ])
+        #expect(service.isIdentified)
+
+        service.setDiagnosticSharingEnabled(false)
+        #expect(service.isDiagnosticSharingEnabled == false)
+        #expect(service.isEventCapturingEnabled == false)
+        #expect(service.isIdentified == false)
+
+        service.setDiagnosticSharingEnabled(true)
+        #expect(service.isDiagnosticSharingEnabled)
+        #expect(service.isEventCapturingEnabled)
+        #expect(service.isIdentified)
+    }
+
     // MARK: - Guard Paths (not initialized in test environment)
 
     @Test func capture_whenNotInitialized_doesNotCrash() {

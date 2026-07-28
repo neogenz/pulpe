@@ -8,8 +8,6 @@ import { STORAGE_KEYS } from '../storage/storage-keys';
 import { buildInfo } from '@env/build-info';
 import { sanitizeEventPayload } from './posthog-sanitizer';
 
-const CROSS_DOMAIN_PARAM = 'ph_did';
-
 /**
  * PostHog service for analytics and error tracking.
  * Uses PostHog's built-in privacy protection and minimal configuration.
@@ -24,6 +22,7 @@ export class PostHogService {
   #posthog: PostHog | null = null;
   readonly #isInitialized = signal<boolean>(false);
   readonly #flagsVersion = signal<number>(0);
+  readonly #diagnosticSharingEnabled = signal(true);
   #isTrackingEnabled = false;
 
   constructor() {
@@ -34,6 +33,8 @@ export class PostHogService {
   }
 
   readonly isInitialized = this.#isInitialized.asReadonly();
+  readonly diagnosticSharingEnabled =
+    this.#diagnosticSharingEnabled.asReadonly();
   readonly isEnabled = computed(() => {
     const config = this.#applicationConfiguration.postHogConfig();
     return config?.enabled ?? false;
@@ -66,18 +67,16 @@ export class PostHogService {
     try {
       this.#logger.info('Initializing PostHog', { host: config.host });
 
-      const crossDomainId = this.#extractCrossDomainId();
-
       const posthog = (await import('posthog-js')).default;
       this.#posthog = posthog;
+      const sessionReplayEnabled =
+        this.#applicationConfiguration.environment() !== 'production' &&
+        config.sessionRecording?.enabled === true;
 
       posthog.init(config.apiKey, {
         api_host: config.host,
         ui_host: 'https://eu.posthog.com',
         debug: config.debug,
-
-        // Cross-domain: use landing page distinct_id when available
-        bootstrap: crossDomainId ? { distinctID: crossDomainId } : undefined,
 
         // Privacy-first: anonymous events flow immediately, person profiles
         // only created after identify(). Full auto-capture enabled after auth.
@@ -90,19 +89,23 @@ export class PostHogService {
           maskAllInputs: true, // PostHog handles financial data masking
           recordCrossOriginIframes: false,
         },
-        disable_session_recording: !config.sessionRecording?.enabled,
+        disable_session_recording: !sessionReplayEnabled,
 
         // Built-in privacy protection
         person_profiles: 'identified_only',
         persistence: 'localStorage+cookie',
-        cross_subdomain_cookie: true,
 
         // Sanitize financial data before sending
         before_send: this.#sanitizeEvent.bind(this),
 
         loaded: () => {
-          this.#registerGlobalProperties();
+          this.#diagnosticSharingEnabled.set(
+            !posthog.has_opted_out_capturing(),
+          );
           this.#isInitialized.set(true);
+          if (this.#diagnosticSharingEnabled()) {
+            this.#registerGlobalProperties();
+          }
           this.#logger.info('PostHog initialized successfully');
         },
       });
@@ -123,8 +126,43 @@ export class PostHogService {
   isFeatureEnabled(key: string): boolean {
     const overrides = this.#readFlagOverrides();
     if (overrides && key in overrides) return overrides[key] === true;
-    if (!this.#isInitialized()) return false;
+    if (!this.#isInitialized() || !this.#diagnosticSharingEnabled()) {
+      return false;
+    }
     return this.#posthog?.isFeatureEnabled(key) === true;
+  }
+
+  setDiagnosticSharingEnabled(enabled: boolean): void {
+    if (
+      !isPlatformBrowser(this.#platformId) ||
+      !this.#isInitialized() ||
+      !this.isEnabled() ||
+      enabled === this.#diagnosticSharingEnabled()
+    ) {
+      return;
+    }
+
+    try {
+      if (enabled) {
+        this.#posthog?.opt_in_capturing({ captureEventName: false });
+        this.#diagnosticSharingEnabled.set(true);
+        this.#isTrackingEnabled = false;
+        this.#registerGlobalProperties();
+      } else {
+        this.#posthog?.stopSessionRecording();
+        this.#posthog?.set_config({
+          capture_pageview: false,
+          capture_pageleave: false,
+          autocapture: false,
+        });
+        this.#posthog?.reset(true);
+        this.#posthog?.opt_out_capturing();
+        this.#diagnosticSharingEnabled.set(false);
+        this.#isTrackingEnabled = false;
+      }
+    } catch (error) {
+      this.#logger.error('Failed to update diagnostic sharing', error);
+    }
   }
 
   /**
@@ -302,32 +340,12 @@ export class PostHogService {
     }
   }
 
-  /**
-   * Extract cross-domain distinct_id from URL and clean up the param.
-   * Used to link landing page (pulpe.app) sessions with webapp (app.pulpe.app).
-   */
-  #extractCrossDomainId(): string | null {
-    const url = new URL(window.location.href);
-    const distinctId = url.searchParams.get(CROSS_DOMAIN_PARAM);
-    if (!distinctId) return null;
-
-    url.searchParams.delete(CROSS_DOMAIN_PARAM);
-    window.history.replaceState({}, '', url.toString());
-
-    if (distinctId.length > 100 || !/^[\w-]+$/.test(distinctId)) {
-      this.#logger.warn('Invalid cross-domain distinct_id format, ignoring');
-      return null;
-    }
-
-    this.#logger.info('Cross-domain distinct_id received from landing');
-    return distinctId;
-  }
-
   #canCapture(): boolean {
     return (
       isPlatformBrowser(this.#platformId) &&
       this.#isInitialized() &&
-      this.isEnabled()
+      this.isEnabled() &&
+      this.#diagnosticSharingEnabled()
     );
   }
 

@@ -19,12 +19,17 @@ final class AnalyticsService {
 
     private(set) var isInitialized = false
     private(set) var isEventCapturingEnabled = false
+    private(set) var isDiagnosticSharingEnabled = true
     /// Tracks whether `identify(userId:)` has fired in this session. Person property
     /// updates are gated on this flag to prevent writing to the anonymous profile
     /// before the user has been identified.
     private(set) var isIdentified = false
+    private let isConfiguredEnabled: Bool
+    private var cachedIdentity: (userId: String, properties: [String: Any])?
 
-    private init() {}
+    init(isConfiguredEnabled: Bool = AppConfiguration.isPostHogEnabled) {
+        self.isConfiguredEnabled = isConfiguredEnabled
+    }
 
     // MARK: - Setup
 
@@ -34,16 +39,33 @@ final class AnalyticsService {
         let config = PostHogConfig(apiKey: apiKey, host: AppConfiguration.postHogHost)
         config.captureScreenViews = false
         config.captureApplicationLifecycleEvents = false
+        config.sessionReplay = Self.shouldEnableSessionReplay(
+            environment: AppConfiguration.environment,
+            configured: AppConfiguration.isPostHogSessionReplayEnabled
+        )
         PostHogSDK.shared.setup(config)
 
+        isDiagnosticSharingEnabled = !PostHogSDK.shared.isOptOut()
+        isInitialized = true
+        isEventCapturingEnabled = isConfiguredEnabled && isDiagnosticSharingEnabled
+        if isDiagnosticSharingEnabled {
+            registerGlobalProperties()
+        }
+    }
+
+    nonisolated static func shouldEnableSessionReplay(
+        environment: AppConfiguration.Environment,
+        configured: Bool
+    ) -> Bool {
+        environment != .production && configured
+    }
+
+    private func registerGlobalProperties() {
         PostHogSDK.shared.register([
             "environment": AppConfiguration.environment.rawValue,
             "app_version": AppConfiguration.appVersion,
             "platform": "ios"
         ])
-
-        isInitialized = true
-        isEventCapturingEnabled = AppConfiguration.isPostHogEnabled
     }
 
     // MARK: - Event Capture
@@ -74,8 +96,9 @@ final class AnalyticsService {
     // MARK: - User Identity
 
     func identify(userId: String, properties: [String: Any] = [:]) {
+        let sanitized = Self.sanitizePersonProperties(properties)
+        cachedIdentity = (userId, sanitized)
         guard isEventCapturingEnabled else { return }
-        let sanitized = Self.sanitizeProperties(properties)
         PostHogSDK.shared.identify(
             userId,
             userProperties: sanitized,
@@ -97,8 +120,42 @@ final class AnalyticsService {
 
     func reset() {
         guard isInitialized else { return }
+        let wasOptedOut = PostHogSDK.shared.isOptOut()
+        if wasOptedOut {
+            // reset() removes the SDK's persisted opt-out key. Flip to opt-in
+            // first so the final optOut() writes the user's choice back.
+            PostHogSDK.shared.optIn()
+        }
         PostHogSDK.shared.reset()
+        if wasOptedOut {
+            PostHogSDK.shared.optOut()
+        }
+        cachedIdentity = nil
         isIdentified = false
+    }
+
+    func setDiagnosticSharingEnabled(_ enabled: Bool) {
+        guard isInitialized, enabled != isDiagnosticSharingEnabled else { return }
+
+        if enabled {
+            PostHogSDK.shared.optIn()
+            isDiagnosticSharingEnabled = true
+            isEventCapturingEnabled = isConfiguredEnabled
+            registerGlobalProperties()
+            if let cachedIdentity {
+                identify(
+                    userId: cachedIdentity.userId,
+                    properties: cachedIdentity.properties
+                )
+            }
+        } else {
+            PostHogSDK.shared.stopSessionRecording()
+            PostHogSDK.shared.reset()
+            PostHogSDK.shared.optOut()
+            isDiagnosticSharingEnabled = false
+            isEventCapturingEnabled = false
+            isIdentified = false
+        }
     }
 
     // MARK: - Feature Flags
@@ -146,13 +203,43 @@ final class AnalyticsService {
         "amount", "balance", "income", "savings", "total",
         "projection", "rollover", "expenses", "available"
     ]
+    private static let sensitiveKeyFragments = [
+        "token", "password", "secret", "credential", "recovery", "pincode", "pin_code"
+    ]
+    private static let typedContentKeys: Set<String> = [
+        "description", "label", "name", "title", "content", "text", "message"
+    ]
+    private static let allowedPersonProperties: Set<String> = [
+        emailProperty, nameProperty, supabaseUserIdProperty
+    ]
 
     /// Strips properties containing financial keywords from event data.
     /// Uses word-component matching: splits keys by `_` and checks each component.
     static func sanitizeProperties(_ properties: [String: Any]) -> [String: Any] {
         guard !properties.isEmpty else { return properties }
         return properties.filter { key, _ in
-            return !key.split(separator: "_").contains { financialWords.contains(String($0)) }
+            let normalized = key.lowercased()
+            let containsFinancialWord = normalized
+                .split(separator: "_")
+                .contains { financialWords.contains(String($0)) }
+            let containsSecret = sensitiveKeyFragments.contains {
+                normalized.contains($0)
+            }
+            return !containsFinancialWord
+                && !containsSecret
+                && !typedContentKeys.contains(normalized)
         }
+    }
+
+    private static func sanitizePersonProperties(
+        _ properties: [String: Any]
+    ) -> [String: Any] {
+        var sanitized = sanitizeProperties(properties)
+        for key in allowedPersonProperties {
+            if let value = properties[key] {
+                sanitized[key] = value
+            }
+        }
+        return sanitized
     }
 }
