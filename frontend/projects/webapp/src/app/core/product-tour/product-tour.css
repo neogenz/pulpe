@@ -22,9 +22,11 @@ body.driver-active {
 .driver-popover {
   background-color: var(--mat-sys-surface-container-high) !important;
   color: var(--mat-sys-on-surface) !important;
-  border-radius: 28px !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.24) !important;
   max-width: 400px !important;
+  max-height: calc(100vh - 32px) !important;
+  overflow-y: auto !important;
   padding: 24px !important;
 }
 
@@ -104,7 +106,7 @@ body.driver-active {
   border: none !important;
   border-radius: var(--mat-sys-corner-full) !important;
   padding: 10px 24px !important;
-  min-height: 40px !important;
+  min-height: 44px !important;
   font-family: var(--mat-sys-label-large-font) !important;
   font-size: var(--mat-sys-label-large-size) !important;
   font-weight: 500 !important;
@@ -155,7 +157,7 @@ body.driver-active {
   border: none !important;
   border-radius: var(--mat-sys-corner-full) !important;
   padding: 10px 16px !important;
-  min-height: 40px !important;
+  min-height: 44px !important;
   font-family: var(--mat-sys-label-large-font) !important;
   font-size: var(--mat-sys-label-large-size) !important;
   font-weight: 500 !important;
@@ -194,7 +196,7 @@ body.driver-active {
   border: none !important;
   border-radius: var(--mat-sys-corner-full) !important;
   padding: 10px 16px !important;
-  min-height: 40px !important;
+  min-height: 44px !important;
   font-family: var(--mat-sys-label-large-font) !important;
   font-size: var(--mat-sys-label-large-size) !important;
   font-weight: 500 !important;
@@ -216,10 +218,10 @@ body.driver-active {
 /* Close button - positioned in top right corner */
 .driver-popover-close-btn {
   position: absolute !important;
-  top: 16px !important;
-  right: 16px !important;
-  width: 32px !important;
-  height: 32px !important;
+  top: 10px !important;
+  right: 10px !important;
+  width: 44px !important;
+  height: 44px !important;
   border-radius: 50% !important;
   display: flex !important;
   align-items: center !important;

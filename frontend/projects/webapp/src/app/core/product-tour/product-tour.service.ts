@@ -11,11 +11,8 @@ import { AuthStore } from '@core/auth/auth-store';
 import { StorageService, type StorageKey } from '@core/storage';
 import { driver, type Config, type Driver, type DriveStep } from 'driver.js';
 
-/**
- * Selectors for layout containers that need scroll reset after tour.
- * Driver.js scrollIntoView() affects all scrollable ancestors.
- */
-const SCROLL_RESET_SELECTORS = [
+/** Scrollable layout containers affected by Driver.js scrollIntoView(). */
+const SCROLL_CONTAINER_SELECTORS = [
   '[data-testid="page-content"]',
   '[data-testid="main-content"] > div',
 ] as const;
@@ -38,6 +35,7 @@ export type TourPageId =
   | 'savings-goals';
 
 export type TourId = 'intro' | TourPageId;
+type TourState = 'completed' | 'dismissed';
 
 /**
  * Delay before starting tour to ensure DOM is fully rendered
@@ -73,6 +71,8 @@ export class ProductTourService {
     timeoutId: number;
   } | null = null;
 
+  readonly #scrollPositions = new Map<HTMLElement, number>();
+
   /**
    * Check if user is authenticated.
    * Tours require authentication to start because they reference app content
@@ -95,34 +95,23 @@ export class ProductTourService {
    * Check if user has seen the intro (welcome + navigation)
    */
   hasSeenIntro(): boolean {
-    return (
-      this.#storageService.getString(this.#getTourKey(TOUR_IDS.intro)) ===
-      'true'
-    );
+    return this.#hasSeenTour(TOUR_IDS.intro);
   }
 
   /**
    * Check if user has seen a specific page tour
    */
   hasSeenPageTour(pageId: TourPageId): boolean {
-    return (
-      this.#storageService.getString(this.#getTourKey(TOUR_IDS[pageId])) ===
-      'true'
-    );
+    return this.#hasSeenTour(TOUR_IDS[pageId]);
   }
 
-  /**
-   * Mark intro as completed
-   */
-  #markIntroCompleted(): void {
-    this.#storageService.setString(this.#getTourKey(TOUR_IDS.intro), 'true');
+  #hasSeenTour(tourId: TourId): boolean {
+    const state = this.#storageService.getString(this.#getTourKey(tourId));
+    return state === 'true' || state === 'completed' || state === 'dismissed';
   }
 
-  /**
-   * Mark a page tour as completed
-   */
-  #markPageTourCompleted(pageId: TourPageId): void {
-    this.#storageService.setString(this.#getTourKey(TOUR_IDS[pageId]), 'true');
+  #markTour(tourId: TourId, state: TourState): void {
+    this.#storageService.setString(this.#getTourKey(tourId), state);
   }
 
   /**
@@ -163,7 +152,7 @@ export class ProductTourService {
   #cleanupDriverArtifacts(): void {
     setTimeout(() => {
       this.#removeDriverClasses();
-      this.#resetScrollPositions();
+      this.#restoreScrollPositions();
     }, 0);
   }
 
@@ -176,30 +165,45 @@ export class ProductTourService {
     this.#document.body.classList.remove(...DRIVER_BODY_CLASSES);
   }
 
-  #resetScrollPositions(): void {
-    for (const selector of SCROLL_RESET_SELECTORS) {
+  #rememberScrollPositions(): void {
+    this.#scrollPositions.clear();
+    for (const selector of SCROLL_CONTAINER_SELECTORS) {
       const element = this.#document.querySelector<HTMLElement>(selector);
       if (element) {
-        element.scrollTop = 0;
+        this.#scrollPositions.set(element, element.scrollTop);
       }
     }
   }
 
-  /**
-   * Start a page-specific tour
-   * Includes intro steps if user hasn't seen them yet
-   * Does nothing if user is not authenticated or a tour is already active
-   */
+  #restoreScrollPositions(): void {
+    this.#scrollPositions.forEach((scrollTop, element) => {
+      element.scrollTop = scrollTop;
+    });
+    this.#scrollPositions.clear();
+  }
+
+  /** Start the one-time orientation from the first dashboard visit. */
+  startFirstRunTour(): void {
+    if (!this.isAuthenticated() || this.hasSeenIntro() || this.#activeDriver) {
+      return;
+    }
+
+    this.#prepareTour(TOUR_IDS.intro, this.#firstRunSteps);
+  }
+
+  /** Start contextual, replayable help for the current page. */
   startPageTour(pageId: TourPageId): void {
     if (!this.isAuthenticated() || this.#activeDriver) {
       return;
     }
 
+    this.#prepareTour(TOUR_IDS[pageId], this.#getPageSteps(pageId));
+  }
+
+  #prepareTour(tourId: TourId, steps: DriveStep[]): void {
     this.#cancelPendingTour();
 
-    const includeIntro = !this.hasSeenIntro();
-    const steps = this.#getStepsForPage(pageId, includeIntro);
-    const firstPageTarget = this.#getPageSteps(pageId).find(
+    const firstPageTarget = steps.find(
       (step) => typeof step.element === 'string',
     )?.element;
 
@@ -214,7 +218,7 @@ export class ProductTourService {
         if (!this.#document.querySelector(firstPageTarget)) return;
 
         this.#cancelPendingTour();
-        this.#startTour(pageId, includeIntro, steps);
+        this.#startTour(tourId, steps);
       });
       const timeoutId = view.setTimeout(
         () => this.#cancelPendingTour(),
@@ -226,14 +230,10 @@ export class ProductTourService {
       return;
     }
 
-    this.#startTour(pageId, includeIntro, steps);
+    this.#startTour(tourId, steps);
   }
 
-  #startTour(
-    pageId: TourPageId,
-    includeIntro: boolean,
-    steps: DriveStep[],
-  ): void {
+  #startTour(tourId: TourId, steps: DriveStep[]): void {
     const availableSteps = steps.filter(
       (step) =>
         typeof step.element !== 'string' ||
@@ -243,6 +243,8 @@ export class ProductTourService {
 
     const tourDriver = driver();
     this.#activeDriver = tourDriver;
+    this.#rememberScrollPositions();
+    let completed = false;
 
     const driverConfig: Config = {
       showProgress: true,
@@ -253,7 +255,7 @@ export class ProductTourService {
       doneBtnText: 'Terminer',
       allowClose: true,
       overlayColor: '#000',
-      overlayOpacity: 0.75,
+      overlayOpacity: 0.55,
       smoothScroll: true,
       animate: !this.#document.defaultView?.matchMedia?.(
         '(prefers-reduced-motion: reduce)',
@@ -262,28 +264,28 @@ export class ProductTourService {
       stagePadding: 10,
       stageRadius: 8,
       popoverOffset: 16,
+      onPopoverRender: (popover) => {
+        popover.closeButton.setAttribute('aria-label', 'Fermer');
+      },
+      onNextClick: (_element, _step, { driver: currentDriver }) => {
+        if (currentDriver.isLastStep()) {
+          completed = true;
+          currentDriver.destroy();
+          return;
+        }
+
+        currentDriver.moveNext();
+      },
       onDestroyed: () => {
         this.#activeDriver = null;
         this.#cleanupDriverArtifacts();
-        if (includeIntro) {
-          this.#markIntroCompleted();
-        }
-        this.#markPageTourCompleted(pageId);
+        this.#markTour(tourId, completed ? 'completed' : 'dismissed');
       },
     };
 
     tourDriver.setConfig(driverConfig);
     tourDriver.setSteps(availableSteps);
     tourDriver.drive();
-  }
-
-  /**
-   * Get steps for a specific page, optionally including intro
-   */
-  #getStepsForPage(pageId: TourPageId, includeIntro: boolean): DriveStep[] {
-    const introSteps = includeIntro ? this.#introSteps : [];
-    const pageSteps = this.#getPageSteps(pageId);
-    return [...introSteps, ...pageSteps];
   }
 
   /**
@@ -312,40 +314,13 @@ export class ProductTourService {
   // Step Definitions
   // ============================================
 
-  readonly #introSteps: DriveStep[] = [
-    {
-      popover: {
-        title: 'Bienvenue dans Pulpe',
-        description: `
-          <p>Pulpe t'aide à préparer tes mois et à suivre tes revenus, dépenses et épargnes. Voici les repères utiles pour commencer.</p>
-        `,
-      },
-    },
-    {
-      element: '[data-tour="navigation"]',
-      popover: {
-        title: 'Les espaces de Pulpe',
-        description: `
-          <ul>
-            <li><strong>Tableau de bord</strong> : suis le mois en cours et pointe tes prévisions.</li>
-            <li><strong>Budgets</strong> : consulte, crée et ajuste chaque mois.</li>
-            <li><strong>Modèles</strong> : prépare des revenus, dépenses et épargnes à réutiliser.</li>
-            <li><strong>Objectifs</strong> : suis tes projets d'épargne et les prévisions qui leur sont liées.</li>
-          </ul>
-        `,
-        side: 'right',
-        align: 'start',
-      },
-    },
-  ];
-
-  readonly #dashboardSteps: DriveStep[] = [
+  readonly #firstRunSteps: DriveStep[] = [
     {
       element: '[data-tour="dashboard-hero"]',
       popover: {
-        title: 'Disponible à dépenser',
+        title: "Ton mois en un coup d'œil",
         description: `
-          <p>Ce montant résume ce qu'il reste pour le mois en tenant compte des revenus, dépenses et épargnes. Ouvre ce bloc pour accéder au budget détaillé.</p>
+          <p>Commence ici : <strong>Disponible à dépenser</strong> tient compte de tes revenus, dépenses et épargnes. Ouvre ce bloc pour ajuster le budget du mois.</p>
         `,
         side: 'bottom',
         align: 'center',
@@ -354,45 +329,36 @@ export class ProductTourService {
     {
       element: '[data-tour="dashboard-lists"]',
       popover: {
-        title: 'Prévisions à pointer et transactions',
+        title: 'Commence par ce qui bouge',
         description: `
-          <p>Retrouve ici les prévisions encore à pointer et les dernières transactions du mois. Ouvre le budget pour voir la liste complète.</p>
+          <p>Quand une prévision se réalise, pointe-la. Tes dernières transactions restent visibles juste à côté.</p>
         `,
         side: 'top',
         align: 'start',
       },
     },
     {
-      element: '[data-tour="add-transaction-fab"]',
+      element: '[data-tour="navigation"]',
       popover: {
-        title: 'Ajouter une transaction',
+        title: 'Retrouve chaque besoin',
         description: `
-          <p>Ajoute un revenu, une dépense ou une épargne depuis ce bouton.</p>
+          <p><strong>Budgets</strong> pour tes mois, <strong>Modèles</strong> pour préparer ce qui revient, <strong>Objectifs</strong> pour tes projets d'épargne. Tu peux revoir l'aide de chaque écran depuis ton menu.</p>
         `,
-        side: 'top',
-        align: 'end',
+        side: 'right',
+        align: 'start',
       },
     },
   ];
 
+  readonly #dashboardSteps = this.#firstRunSteps;
+
   readonly #budgetListSteps: DriveStep[] = [
-    {
-      element: '[data-tour="year-tabs"] > mat-tab-header',
-      popover: {
-        title: 'Parcourir les années',
-        description: `
-          <p>Passe d'une année à l'autre avec ces onglets.</p>
-        `,
-        side: 'bottom',
-        align: 'start',
-      },
-    },
     {
       element: '[data-tour="calendar-grid"]',
       popover: {
-        title: 'Ouvrir ou créer un mois',
+        title: 'Choisis le mois à gérer',
         description: `
-          <p>Sélectionne un mois existant pour ouvrir son budget, ou un mois vide pour le créer.</p>
+          <p>Ouvre un budget existant pour le suivre. Sélectionne un mois vide pour le préparer.</p>
         `,
         side: 'top',
         align: 'center',
@@ -401,9 +367,9 @@ export class ProductTourService {
     {
       element: '[data-tour="create-budget"]',
       popover: {
-        title: 'Ajouter un budget',
+        title: 'Prépare un nouveau mois',
         description: `
-          <p>Choisis un mois et un modèle. Les prévisions du modèle sont copiées dans le nouveau budget.</p>
+          <p>Choisis un mois et, si tu veux, un modèle. Ses prévisions seront copiées dans le nouveau budget.</p>
         `,
         side: 'left',
         align: 'start',
@@ -415,7 +381,7 @@ export class ProductTourService {
     {
       element: '[data-tour="financial-overview"]',
       popover: {
-        title: 'Disponible du mois',
+        title: 'Vérifie le cap du mois',
         description: `
           <p>Ce bloc résume les revenus, les dépenses, l'épargne et le report éventuel du mois précédent.</p>
         `,
@@ -426,7 +392,7 @@ export class ProductTourService {
     {
       element: '[data-tour="budget-table"]',
       popover: {
-        title: 'Prévisions du mois',
+        title: 'Suis ce qui se réalise',
         description: `
           <p>Pointe une prévision quand elle est réalisée. Ouvre une ligne pour la modifier ou consulter ses transactions.</p>
         `,
@@ -437,9 +403,9 @@ export class ProductTourService {
     {
       element: '[data-testid="add-budget-line-fab"]',
       popover: {
-        title: 'Ajouter une prévision',
+        title: 'Prévois un mouvement ponctuel',
         description: `
-          <p>Ajoute un Revenu, une Dépense ou une Épargne, puis choisis sa fréquence : Récurrent ou Prévu.</p>
+          <p>Ajoute ici une prévision ponctuelle. Pour ce qui revient, ajoute d'abord la prévision à un modèle.</p>
         `,
         side: 'left',
         align: 'start',
@@ -451,7 +417,7 @@ export class ProductTourService {
     {
       element: '[data-tour="templates-list"]',
       popover: {
-        title: 'Tes modèles de budget',
+        title: 'Prépare ce qui revient',
         description: `
           <p>Un modèle regroupe les revenus, dépenses et épargnes que tu veux réutiliser. Ouvre un modèle pour modifier ses prévisions.</p>
         `,
@@ -462,7 +428,7 @@ export class ProductTourService {
     {
       element: '[data-tour="create-template"]',
       popover: {
-        title: 'Ajouter un modèle',
+        title: 'Crée ton prochain modèle',
         description: `
           <p>Crée un modèle, puis ajoute les prévisions à reprendre dans tes futurs budgets.</p>
         `,
@@ -474,19 +440,11 @@ export class ProductTourService {
 
   readonly #savingsGoalsSteps: DriveStep[] = [
     {
-      popover: {
-        title: 'Des objectifs à ton rythme',
-        description: `
-          <p>Seul le nom est obligatoire. Tu peux ajouter un montant cible, une date de début ou une échéance selon ton besoin. L'option d'épargne mensuelle peut préparer les prévisions associées sans créer de nouveaux budgets.</p>
-        `,
-      },
-    },
-    {
       element: '[data-tour="savings-goals-list"]',
       popover: {
-        title: 'Tes objectifs',
+        title: 'Suis un projet d’épargne',
         description: `
-          <p>Chaque carte affiche les informations renseignées. Ouvre un objectif pour suivre les prévisions liées et ajuster son plan.</p>
+          <p>Ouvre un objectif pour voir sa progression, les prévisions liées et ajuster ton plan.</p>
         `,
         // 'bottom' anchors the popover in the empty space below the goals grid
         // (or the empty-state card on first run). A large, full-width target
@@ -499,9 +457,9 @@ export class ProductTourService {
     {
       element: '[data-tour="create-goal"]',
       popover: {
-        title: 'Nouvel objectif',
+        title: 'Commence simplement',
         description: `
-          <p>Commence par le nom. Tu pourras compléter le montant, les dates et l'épargne mensuelle maintenant ou plus tard.</p>
+          <p>Seul le nom est obligatoire. Ajoute le montant, les dates et l’épargne mensuelle maintenant ou plus tard.</p>
         `,
         side: 'bottom',
         align: 'end',

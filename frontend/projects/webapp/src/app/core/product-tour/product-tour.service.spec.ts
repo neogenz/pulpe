@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ProductTourService, type TourPageId } from './product-tour.service';
 import { AuthStore } from '@core/auth';
+import type { Config, DriveStep, Driver } from 'driver.js';
 
 const driverMocks = vi.hoisted(() => {
   const instance = {
@@ -10,6 +11,8 @@ const driverMocks = vi.hoisted(() => {
     setSteps: vi.fn(),
     drive: vi.fn(),
     destroy: vi.fn(),
+    isLastStep: vi.fn(),
+    moveNext: vi.fn(),
   };
 
   return {
@@ -40,6 +43,29 @@ function setVersionedValue(key: string, value: string): void {
     updatedAt: new Date().toISOString(),
   };
   localStorage.setItem(key, JSON.stringify(entry));
+}
+
+function getStoredTourState(tourId: string): string | null {
+  const raw = localStorage.getItem(getTourKey(tourId));
+  if (!raw) return null;
+
+  return JSON.parse(raw).data as string;
+}
+
+function getDriverConfig(): Config {
+  return driverMocks.instance.setConfig.mock.calls.at(-1)![0] as Config;
+}
+
+function callDriverHook(
+  hook: Config['onNextClick'] | Config['onDestroyed'],
+  step: DriveStep,
+): void {
+  const config = getDriverConfig();
+  hook?.(undefined, step, {
+    config,
+    state: {},
+    driver: driverMocks.instance as unknown as Driver,
+  });
 }
 
 describe('ProductTourService', () => {
@@ -87,7 +113,16 @@ describe('ProductTourService', () => {
       expect(service.hasSeenIntro()).toBe(true);
     });
 
-    it('should return false for non-true values', () => {
+    it.each(['completed', 'dismissed'])(
+      'should treat %s as a seen intro',
+      (state) => {
+        setVersionedValue(getTourKey('intro'), state);
+
+        expect(service.hasSeenIntro()).toBe(true);
+      },
+    );
+
+    it('should return false for unknown values', () => {
       setVersionedValue(getTourKey('intro'), 'false');
 
       expect(service.hasSeenIntro()).toBe(false);
@@ -264,10 +299,9 @@ describe('ProductTourService', () => {
       await Promise.resolve();
       expect(driverMocks.factory).not.toHaveBeenCalled();
 
-      const yearTabs = document.createElement('div');
-      yearTabs.dataset['tour'] = 'year-tabs';
-      yearTabs.append(document.createElement('mat-tab-header'));
-      document.body.append(yearTabs);
+      const calendar = document.createElement('div');
+      calendar.dataset['tour'] = 'calendar-grid';
+      document.body.append(calendar);
       await vi.waitFor(() =>
         expect(driverMocks.instance.drive).toHaveBeenCalledOnce(),
       );
@@ -289,7 +323,6 @@ describe('ProductTourService', () => {
     });
 
     it('keeps only the template list and add action', () => {
-      setVersionedValue(getTourKey('intro'), 'true');
       document.body.innerHTML = `
         <div data-tour="templates-list"></div>
         <button data-tour="template-counter"></button>
@@ -306,7 +339,6 @@ describe('ProductTourService', () => {
     });
 
     it('targets the always-present add budget line FAB', () => {
-      setVersionedValue(getTourKey('intro'), 'true');
       document.body.innerHTML = `
         <div data-tour="financial-overview"></div>
         <div data-tour="budget-table"></div>
@@ -333,6 +365,78 @@ describe('ProductTourService', () => {
       expect(driverMocks.instance.setConfig).toHaveBeenCalledWith(
         expect.objectContaining({ animate: false }),
       );
+    });
+
+    it('does not prepend global onboarding to contextual page help', () => {
+      document.body.innerHTML = `
+        <div data-tour="templates-list"></div>
+        <button data-tour="create-template"></button>
+      `;
+
+      service.startPageTour('templates-list');
+
+      const steps = driverMocks.instance.setSteps.mock.calls[0]![0];
+      expect(steps).toHaveLength(2);
+      expect(steps.every((step: DriveStep) => !!step.element)).toBe(true);
+    });
+  });
+
+  describe('startFirstRunTour', () => {
+    beforeEach(() => {
+      document.body.innerHTML = `
+        <div data-tour="dashboard-hero"></div>
+        <div data-tour="dashboard-lists"></div>
+        <nav data-tour="navigation"></nav>
+      `;
+    });
+
+    it('starts one short orientation from the dashboard', () => {
+      service.startFirstRunTour();
+
+      const steps = driverMocks.instance.setSteps.mock.calls[0]![0];
+      expect(steps.map((step: DriveStep) => step.element)).toEqual([
+        '[data-tour="dashboard-hero"]',
+        '[data-tour="dashboard-lists"]',
+        '[data-tour="navigation"]',
+      ]);
+    });
+
+    it('does not relaunch after the user dismissed it', () => {
+      setVersionedValue(getTourKey('intro'), 'dismissed');
+
+      service.startFirstRunTour();
+
+      expect(driverMocks.factory).not.toHaveBeenCalled();
+    });
+
+    it('stores dismissal separately from completion', () => {
+      service.startFirstRunTour();
+
+      const config = getDriverConfig();
+      const steps = driverMocks.instance.setSteps.mock.calls[0]![0];
+      callDriverHook(config.onDestroyed, steps[0]);
+
+      expect(getStoredTourState('intro')).toBe('dismissed');
+      expect(service.hasSeenIntro()).toBe(true);
+    });
+
+    it('marks completion only after advancing from the last step', () => {
+      service.startFirstRunTour();
+
+      const config = getDriverConfig();
+      const steps = driverMocks.instance.setSteps.mock.calls[0]![0];
+
+      driverMocks.instance.isLastStep.mockReturnValue(false);
+      callDriverHook(config.onNextClick, steps[0]);
+      expect(driverMocks.instance.moveNext).toHaveBeenCalledOnce();
+      expect(getStoredTourState('intro')).toBeNull();
+
+      driverMocks.instance.isLastStep.mockReturnValue(true);
+      callDriverHook(config.onNextClick, steps.at(-1));
+      callDriverHook(config.onDestroyed, steps.at(-1));
+
+      expect(driverMocks.instance.destroy).toHaveBeenCalledOnce();
+      expect(getStoredTourState('intro')).toBe('completed');
     });
   });
 

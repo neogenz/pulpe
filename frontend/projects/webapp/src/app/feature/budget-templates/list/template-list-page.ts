@@ -1,5 +1,4 @@
 import {
-  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
@@ -17,10 +16,6 @@ import { BaseLoading } from '@ui/loading';
 import { TemplatesError } from '../components/templates-error';
 import { TitleDisplay } from '@core/routing';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
-import {
-  ProductTourService,
-  TOUR_START_DELAY,
-} from '@core/product-tour/product-tour.service';
 
 @Component({
   selector: 'pulpe-template-list-page',
@@ -133,7 +128,6 @@ import {
 export default class TemplateListPage {
   protected readonly store = inject(BudgetTemplatesStore);
   protected readonly title = inject(TitleDisplay);
-  readonly #productTourService = inject(ProductTourService);
   readonly #destroyRef = inject(DestroyRef);
   readonly #loadingIndicator = inject(LoadingIndicator);
 
@@ -147,15 +141,6 @@ export default class TemplateListPage {
 
     this.#destroyRef.onDestroy(() => {
       this.#loadingIndicator.setLoading(false);
-    });
-
-    afterNextRender(() => {
-      if (!this.#productTourService.hasSeenPageTour('templates-list')) {
-        setTimeout(
-          () => this.#productTourService.startPageTour('templates-list'),
-          TOUR_START_DELAY,
-        );
-      }
     });
   }
 }

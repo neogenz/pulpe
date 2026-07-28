@@ -4,10 +4,6 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { describe, beforeEach, expect, it, vi } from 'vitest';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { ApiError } from '@core/api/api-error';
-import {
-  ProductTourService,
-  type ProductTourService as ProductTourServiceType,
-} from '@core/product-tour/product-tour.service';
 import { TitleDisplay } from '@core/routing';
 import SavingsGoalsListPage from './savings-goals-list-page';
 import { SavingsGoalsDialogService } from '../services/savings-goals-dialog.service';
@@ -48,13 +44,6 @@ describe('SavingsGoalsListPage', () => {
         { provide: SavingsGoalsDialogService, useValue: dialogs },
         { provide: MatSnackBar, useValue: snackBar },
         { provide: TitleDisplay, useValue: { currentTitle: signal('') } },
-        {
-          provide: ProductTourService,
-          useValue: {
-            hasSeenPageTour: vi.fn().mockReturnValue(true),
-            startPageTour: vi.fn(),
-          } satisfies Partial<ProductTourServiceType>,
-        },
       ],
     }).compileComponents();
 
