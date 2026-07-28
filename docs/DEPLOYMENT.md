@@ -251,7 +251,7 @@ Domain purchased at **Infomaniak**.
 - **Site URL**: `https://app.pulpe.app`
 - **Redirect URLs**:
   - `https://app.pulpe.app/**`
-  - `https://pulpe.app/app/reset-password`
+  - `https://app.pulpe.app/reset-password`
   - `https://www.pulpe.app/**`
 
 Les previews Vercel ne doivent pas utiliser `https://*.vercel.app/**`. Si un
@@ -260,11 +260,11 @@ borné au slug réel de l’équipe propriétaire, puis le consigner ici.
 
 **Vérifications manuelles après déploiement du reset iOS**:
 
-- [ ] Les projets Supabase preview et production autorisent exactement `https://pulpe.app/app/reset-password`
-- [ ] `https://pulpe.app/.well-known/apple-app-site-association` répond en `application/json`
-- [ ] Le fichier AASA contient uniquement `AJ37X7C82G.app.pulpe.ios` et `/app/reset-password`
+- [ ] Les projets Supabase preview et production autorisent exactement `https://app.pulpe.app/reset-password`
+- [ ] `https://app.pulpe.app/.well-known/apple-app-site-association` répond en `application/json`
+- [ ] Le fichier AASA contient uniquement `AJ37X7C82G.app.pulpe.ios` et `/reset-password`
 - [ ] Le lien ouvre l’app signée sur appareil réel
-- [ ] Sans l’app, `/app/reset-password` redirige vers `https://app.pulpe.app/reset-password`
+- [ ] Sans l’app, `/reset-password` ouvre le parcours Angular
 - [ ] Une app qui déclare seulement `pulpe://` ne reçoit pas le callback de récupération
 
 #### Google OAuth (Cloud Console)

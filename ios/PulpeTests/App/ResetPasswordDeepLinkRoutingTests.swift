@@ -6,7 +6,7 @@ import Testing
 @MainActor
 struct ResetPasswordDeepLinkRoutingTests {
     private let testURL = URL(
-        string: "https://pulpe.app/app/reset-password#access_token=test&type=recovery"
+        string: "https://app.pulpe.app/reset-password#access_token=test&type=recovery"
     ) ?? URL(fileURLWithPath: "/")
 
     // MARK: - URL Routing Tests
@@ -19,10 +19,11 @@ struct ResetPasswordDeepLinkRoutingTests {
 
     @Test func routing_rejectsUnownedOrLegacyResetLinks() throws {
         let rejectedURLs = try [
-            "http://pulpe.app/app/reset-password",
-            "https://example.com/app/reset-password",
+            "http://app.pulpe.app/reset-password",
+            "https://example.com/reset-password",
             "https://pulpe.app/reset-password",
-            "https://pulpe.app/app/reset-password/",
+            "https://app.pulpe.app/app/reset-password",
+            "https://app.pulpe.app/reset-password/",
             "pulpe://reset-password"
         ].map { try #require(URL(string: $0)) }
 

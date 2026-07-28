@@ -7,7 +7,7 @@
         ],
         "components": [
           {
-            "/": "/app/reset-password",
+            "/": "/reset-password",
             "comment": "Password recovery callback"
           }
         ]
