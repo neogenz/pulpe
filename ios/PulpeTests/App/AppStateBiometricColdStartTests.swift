@@ -299,8 +299,8 @@ struct AppStateBiometricColdStartTests {
         )
     }
 
-    @Test("checkAuthState sets biometricError when session expired path is triggered")
-    func checkAuthState_biometricEnabled_noTokens_transitionsToUnauthenticated() async {
+    @Test("checkAuthState clears biometric state when no regular session exists")
+    func checkAuthState_biometricEnabled_noSession_clearsBiometricState() async {
         let sut = AppState(
             biometricPreferenceStore: BiometricPreferenceStore(
                 keychain: MockBiometricPreferenceStore(enabled: true),
@@ -319,11 +319,12 @@ struct AppStateBiometricColdStartTests {
 
         #expect(sut.authState == .unauthenticated)
         #expect(sut.biometricError != nil)
+        #expect(sut.biometricEnabled == false)
         #expect(sut.biometricCredentialsAvailable == false)
     }
 
-    @Test("checkAuthState with biometric enabled + no biometric session + valid regular session routes to PIN")
-    func checkAuthState_bioNil_regularSessionValid_routesToPin() async {
+    @Test("checkAuthState with biometric enabled + valid regular session routes to PIN")
+    func checkAuthState_biometricEnabled_regularSessionValid_routesToPin() async {
         let user = UserInfo(id: "user-regular-fallback", email: "regular@pulpe.app", firstName: "Max")
         let sut = AppState(
             postAuthResolver: MockPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false)),
@@ -332,7 +333,6 @@ struct AppStateBiometricColdStartTests {
                 defaults: MockBiometricPreferenceStore(enabled: false)
             ),
             validateRegularSession: { user },
-            validateBiometricSession: { nil },
             maintenanceChecking: { false }
         )
 
@@ -343,26 +343,6 @@ struct AppStateBiometricColdStartTests {
 
         #expect(sut.authState == AppState.AuthStatus.needsPinEntry)
         #expect(sut.currentUser?.id == user.id)
-    }
-
-    @Test("checkAuthState with biometric enabled + no biometric session + no regular session routes to unauthenticated")
-    func checkAuthState_bioNil_regularSessionNil_routesToUnauthenticated() async {
-        let sut = AppState(
-            biometricPreferenceStore: BiometricPreferenceStore(
-                keychain: MockBiometricPreferenceStore(enabled: true),
-                defaults: MockBiometricPreferenceStore(enabled: false)
-            ),
-            validateRegularSession: { nil },
-            validateBiometricSession: { nil },
-            maintenanceChecking: { false }
-        )
-
-        await sut.bootstrap()
-
-        await sut.checkAuthState()
-
-        #expect(sut.authState == AppState.AuthStatus.unauthenticated)
-        #expect(sut.biometricError != nil)
     }
 
     // MARK: - Session-Based Cold Start Routing (no biometric)
@@ -467,112 +447,7 @@ struct AppStateBiometricColdStartTests {
         #expect(sut.hasReturningUser == false, "No email → hasReturningUser should be false → OnboardingFlow")
     }
 
-    // MARK: - biometricEnabled Preserved After Errors
-
-    @Test("checkAuthState preserves biometricEnabled when biometric session expires")
-    func checkAuthState_sessionExpired_preservesBiometricEnabled() async {
-        UserDefaults.standard.set(true, forKey: "pulpe-has-launched-before")
-        // PUL-132: biometric-keychain validation runs only on explicit-logout cold-start.
-        UserDefaults.standard.set(true, forKey: "pulpe-did-explicit-logout")
-        defer {
-            UserDefaults.standard.removeObject(forKey: "pulpe-has-launched-before")
-            UserDefaults.standard.removeObject(forKey: "pulpe-did-explicit-logout")
-        }
-
-        let sut = AppState(
-            biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            validateRegularSession: { nil },
-            validateBiometricSession: { throw AuthServiceError.biometricSessionExpired },
-            maintenanceChecking: { false }
-        )
-
-        await sut.bootstrap()
-
-        await sut.checkAuthState()
-
-        #expect(sut.authState == .unauthenticated)
-        #expect(sut.biometricError != nil)
-        // biometricEnabled must survive AuthServiceError so Face ID works after re-login
-        #expect(sut.biometricEnabled == true)
-        // biometricCredentialsAvailable must be false so PIN screen hides Face ID button
-        #expect(sut.biometricCredentialsAvailable == false)
-    }
-
-    @Test("checkAuthState keeps biometric credentials and offers retry on unknown error")
-    func checkAuthState_unknownError_preservesSessionAndBiometricCredentials() async {
-        struct SimulatedUnknownError: Error {}
-
-        UserDefaults.standard.set(true, forKey: "pulpe-has-launched-before")
-        // PUL-132: biometric-keychain validation runs only on explicit-logout cold-start.
-        UserDefaults.standard.set(true, forKey: "pulpe-did-explicit-logout")
-        defer {
-            UserDefaults.standard.removeObject(forKey: "pulpe-has-launched-before")
-            UserDefaults.standard.removeObject(forKey: "pulpe-did-explicit-logout")
-        }
-
-        let sut = AppState(
-            biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            validateRegularSession: { nil },
-            validateBiometricSession: { throw SimulatedUnknownError() },
-            maintenanceChecking: { false }
-        )
-
-        await sut.bootstrap()
-        sut.biometricCredentialsAvailable = true
-
-        await sut.checkAuthState()
-
-        #expect(sut.authState == .loading)
-        #expect(sut.isNetworkUnavailable == true)
-        #expect(sut.biometricError != nil)
-        #expect(sut.biometricEnabled == true)
-        #expect(sut.biometricCredentialsAvailable == true)
-    }
-
-    // MARK: - biometricCredentialsAvailable After Session Expiry
-
-    @Test("Face ID button hidden on PIN screen after session expiry and re-login")
-    func sessionExpiry_thenRelogin_faceIDButtonHiddenOnPinScreen() async {
-        let user = UserInfo(id: "user-1", email: "test@pulpe.app", firstName: "Max")
-
-        UserDefaults.standard.set(true, forKey: "pulpe-has-launched-before")
-        // PUL-132: biometric-keychain validation runs only on explicit-logout cold-start.
-        UserDefaults.standard.set(true, forKey: "pulpe-did-explicit-logout")
-        defer {
-            UserDefaults.standard.removeObject(forKey: "pulpe-has-launched-before")
-            UserDefaults.standard.removeObject(forKey: "pulpe-did-explicit-logout")
-        }
-
-        let sut = AppState(
-            postAuthResolver: MockPostAuthResolver(
-                destination: .needsPinEntry(needsRecoveryKeyConsent: false)
-            ),
-            biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            resolveBiometricKey: { nil },
-            validateRegularSession: { nil },
-            validateBiometricSession: { throw AuthServiceError.biometricSessionExpired },
-            maintenanceChecking: { false }
-        )
-
-        await sut.bootstrap()
-
-        // Cold start: biometric session validation fails
-        await sut.checkAuthState()
-
-        #expect(sut.authState == .unauthenticated)
-        #expect(sut.biometricEnabled == true, "Preference preserved for future re-activation")
-        #expect(sut.biometricCredentialsAvailable == false, "Credentials cleared by session expiry")
-
-        // User logs in with email/password → routed to PIN entry
-        sut.hasReturningUser = true
-        await sut.resolvePostAuth(user: user)
-
-        #expect(sut.authState == .needsPinEntry)
-        // PulpeApp uses: biometricEnabled && biometricCredentialsAvailable
-        let showFaceIDButton = sut.biometricEnabled && sut.biometricCredentialsAvailable
-        #expect(showFaceIDButton == false,
-                "Face ID button must be hidden when biometric credentials are unavailable")
-    }
+    // MARK: - Biometric Credentials After PIN Entry
 
     @Test("biometricCredentialsAvailable restored after PIN entry with successful biometric sync")
     func biometricCredentialsAvailable_restoredAfterSuccessfulSync() async {
@@ -613,20 +488,14 @@ struct AppStateBiometricColdStartTests {
         let keychain = MockKeychainStore(lastUsedEmail: "returning@pulpe.app")
 
         UserDefaults.standard.set(true, forKey: "pulpe-has-launched-before")
-        // Explicit-logout cold-start so the biometric path runs (PUL-132). Both the biometric
-        // and the regular path now surface a transient URLError as `.networkError` (not a
-        // logout / credentials prompt), so the retry screen is shown either way.
-        UserDefaults.standard.set(true, forKey: "pulpe-did-explicit-logout")
         defer {
             UserDefaults.standard.removeObject(forKey: "pulpe-has-launched-before")
-            UserDefaults.standard.removeObject(forKey: "pulpe-did-explicit-logout")
         }
 
         let sut = AppState(
             keychainManager: keychain,
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
             validateRegularSession: { throw URLError(.notConnectedToInternet) },
-            validateBiometricSession: { throw URLError(.notConnectedToInternet) },
             maintenanceChecking: { false }
         )
 
@@ -652,23 +521,19 @@ struct AppStateBiometricColdStartTests {
         )
     }
 
-    @Test("checkAuthState with biometric session expired loads hasReturningUser before unauthenticated")
-    func checkAuthState_biometricSessionExpired_loadsReturningUserBeforeUnauthenticated() async {
+    @Test("checkAuthState with expired biometric state loads hasReturningUser before unauthenticated")
+    func checkAuthState_expiredBiometricState_loadsReturningUserBeforeUnauthenticated() async {
         let keychain = MockKeychainStore(lastUsedEmail: "returning@pulpe.app")
 
         UserDefaults.standard.set(true, forKey: "pulpe-has-launched-before")
-        // PUL-132: biometric-keychain validation runs only on explicit-logout cold-start.
-        UserDefaults.standard.set(true, forKey: "pulpe-did-explicit-logout")
         defer {
             UserDefaults.standard.removeObject(forKey: "pulpe-has-launched-before")
-            UserDefaults.standard.removeObject(forKey: "pulpe-did-explicit-logout")
         }
 
         let sut = AppState(
             keychainManager: keychain,
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
             validateRegularSession: { nil },
-            validateBiometricSession: { throw AuthServiceError.biometricSessionExpired },
             maintenanceChecking: { false }
         )
 

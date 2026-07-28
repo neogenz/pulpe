@@ -423,28 +423,6 @@ struct AppStateCharacterizationTests {
 
         #expect(sut.authState == .needsPinEntry)
     }
-    @Test("checkAuthState with biometric enabled + explicit logout resolves via biometric session")
-    func checkAuthState_biometricEnabled_resolvesViaBiometric() async {
-        // PUL-132: biometric-keychain validation runs only on explicit-logout cold-start.
-        UserDefaults.standard.set(true, forKey: "pulpe-did-explicit-logout")
-        defer { UserDefaults.standard.removeObject(forKey: "pulpe-did-explicit-logout") }
-
-        let sut = makeSUT(
-            destination: .needsPinEntry(needsRecoveryKeyConsent: false),
-            biometricEnabled: true,
-            validateBiometricSession: { [user] in
-                BiometricSessionResult(user: user, clientKeyHex: nil)
-            }
-        )
-        sut.hasReturningUser = true
-        sut.returningUserFlagLoaded = true
-
-        await sut.bootstrap()
-
-        await sut.checkAuthState()
-
-        #expect(sut.authState == .needsPinEntry)
-    }
     @Test("prepareForForeground after grace period sets isRestoringSession")
     func prepareForForeground_afterGrace_setsRestoringSession() async {
         let now = AtomicProperty(Date(timeIntervalSince1970: 0))
