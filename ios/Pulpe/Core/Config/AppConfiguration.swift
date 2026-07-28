@@ -40,7 +40,7 @@ enum AppConfiguration {
     // MARK: - Auth Redirects
 
     static var passwordResetRedirectURL: URL {
-        guard let url = URL(string: "pulpe://reset-password") else {
+        guard let url = URL(string: "https://pulpe.app/app/reset-password") else {
             fatalError("passwordResetRedirectURL is invalid")
         }
         return url
