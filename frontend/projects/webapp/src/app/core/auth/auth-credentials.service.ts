@@ -68,7 +68,7 @@ export class AuthCredentialsService {
       }
 
       const scheduledDeletionAt =
-        data.session?.user?.user_metadata?.['scheduledDeletionAt'];
+        data.session?.user?.app_metadata?.['scheduledDeletionAt'];
       if (scheduledDeletionAt) {
         this.#logger.warn('Login attempt with account scheduled for deletion', {
           userId: data.session?.user.id,

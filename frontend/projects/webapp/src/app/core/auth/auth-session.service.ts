@@ -328,9 +328,9 @@ export class AuthSessionService {
       (event === 'SIGNED_IN' ||
         event === 'TOKEN_REFRESHED' ||
         event === 'USER_UPDATED') &&
-      session?.user?.user_metadata?.['scheduledDeletionAt']
+      session?.user?.app_metadata?.['scheduledDeletionAt']
     ) {
-      const deletionDate = session.user.user_metadata['scheduledDeletionAt'];
+      const deletionDate = session.user.app_metadata['scheduledDeletionAt'];
       this.#logger.warn(
         'User account scheduled for deletion detected, signing out',
         { userId: session.user.id },

@@ -100,7 +100,7 @@ export class AuthGuard implements CanActivate {
         throw new BusinessException(ERROR_DEFINITIONS.AUTH_TOKEN_INVALID);
       }
 
-      if (user.user_metadata?.scheduledDeletionAt) {
+      if (user.app_metadata?.scheduledDeletionAt) {
         throw new BusinessException(ERROR_DEFINITIONS.USER_ACCOUNT_BLOCKED);
       }
 

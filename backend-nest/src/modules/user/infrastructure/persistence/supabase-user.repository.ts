@@ -25,12 +25,12 @@ interface SupabaseUserMetadata {
   payDayOfMonth?: number | null;
   currency?: string;
   showCurrencySelector?: boolean;
-  scheduledDeletionAt?: string;
 }
 
 interface SupabaseUserShape {
   id: string;
   email?: string;
+  app_metadata?: unknown;
   user_metadata?: SupabaseUserMetadata;
 }
 
@@ -98,7 +98,8 @@ export class SupabaseUserRepository implements UserRepositoryPort {
     userId: string,
     patch: UpdateUserSettingsInput,
   ): Promise<UserSettings> {
-    const currentMetadata = await this.#fetchCurrentMetadata();
+    const currentMetadata =
+      (await this.#fetchCurrentUser()).user_metadata ?? {};
     const merged: SupabaseUserMetadata = {
       ...currentMetadata,
       ...(patch.payDayOfMonth !== undefined && {
@@ -135,7 +136,9 @@ export class SupabaseUserRepository implements UserRepositoryPort {
   async scheduleDeletion(
     userId: string,
   ): Promise<{ scheduledDeletionAt: string; alreadyScheduled: boolean }> {
-    const currentMetadata = await this.#fetchCurrentMetadata();
+    const currentMetadata = this.#normalizeAppMetadata(
+      (await this.#fetchCurrentUser()).app_metadata,
+    );
     const existing = currentMetadata.scheduledDeletionAt;
     if (typeof existing === 'string' && existing.length > 0) {
       return { scheduledDeletionAt: existing, alreadyScheduled: true };
@@ -144,7 +147,7 @@ export class SupabaseUserRepository implements UserRepositoryPort {
     const serviceClient = this.supabaseService.getServiceRoleClient();
     const scheduledDeletionAt = new Date().toISOString();
     const { error } = await serviceClient.auth.admin.updateUserById(userId, {
-      user_metadata: { ...currentMetadata, scheduledDeletionAt },
+      app_metadata: { ...currentMetadata, scheduledDeletionAt },
     });
 
     if (error) {
@@ -180,7 +183,7 @@ export class SupabaseUserRepository implements UserRepositoryPort {
     }
   }
 
-  async #fetchCurrentMetadata(): Promise<SupabaseUserMetadata> {
+  async #fetchCurrentUser(): Promise<SupabaseUserShape> {
     const supabase = this.authenticatedProvider.client;
     const { data, error } = await supabase.auth.getUser();
 
@@ -193,7 +196,13 @@ export class SupabaseUserRepository implements UserRepositoryPort {
       );
     }
 
-    return (data.user as SupabaseUserShape).user_metadata ?? {};
+    return data.user as SupabaseUserShape;
+  }
+
+  #normalizeAppMetadata(value: unknown): Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
   }
 
   #toUserProfile(user: SupabaseUserShape): UserProfile {
