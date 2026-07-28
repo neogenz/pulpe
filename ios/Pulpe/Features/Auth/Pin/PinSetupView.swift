@@ -195,7 +195,7 @@ final class PinSetupViewModel {
     private var errorResetTask: Task<Void, Never>?
     private let cryptoService: any PinCryptoKeyDerivation
     private let encryptionAPI: any PinEncryptionSetup
-    private let clientKeyManager: any PinClientKeyStorage
+    private let clientKeyManager: any PinClientKeySetupStorage
 
     // MARK: - Init
 
@@ -203,7 +203,7 @@ final class PinSetupViewModel {
         mode: PinSetupMode = .chooseAndSetupRecovery,
         cryptoService: any PinCryptoKeyDerivation = CryptoService.shared,
         encryptionAPI: any PinEncryptionSetup = EncryptionAPI.shared,
-        clientKeyManager: any PinClientKeyStorage = ClientKeyManager.shared
+        clientKeyManager: any PinClientKeySetupStorage = ClientKeyManager.shared
     ) {
         self.mode = mode
         self.cryptoService = cryptoService
@@ -278,7 +278,13 @@ final class PinSetupViewModel {
             )
             await clientKeyManager.store(result.clientKeyHex, enableBiometric: false)
 
-            let key = try await encryptionAPI.setupRecoveryKey()
+            let key: String
+            do {
+                key = try await encryptionAPI.setupRecoveryKey()
+            } catch {
+                await clientKeyManager.clearSession()
+                throw error
+            }
             recoveryKey = key
             completeWithSuccess(showRecovery: true)
         } catch let apiError as APIError {

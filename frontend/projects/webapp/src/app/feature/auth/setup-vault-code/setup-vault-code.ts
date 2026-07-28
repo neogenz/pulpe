@@ -311,7 +311,10 @@ export default class SetupVaultCode {
   async #showRecoveryKey(): Promise<void> {
     const { recoveryKey } = await firstValueFrom(
       this.#encryptionApi.setupRecoveryKey$(),
-    );
+    ).catch((error: unknown) => {
+      this.#clientKeyService.clear();
+      throw error;
+    });
 
     const dialogData: RecoveryKeyDialogData = { recoveryKey };
     const dialogRef = this.#dialog.open(RecoveryKeyDialog, {

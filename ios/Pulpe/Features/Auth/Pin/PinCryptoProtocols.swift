@@ -69,10 +69,16 @@ protocol PinClientKeyStorage: Sendable {
     func store(_ clientKeyHex: String, enableBiometric: Bool) async
 }
 
+protocol PinClientKeySetupStorage: PinClientKeyStorage {
+    /// Removes a candidate key when server-side vault initialization fails.
+    func clearSession() async
+}
+
 // MARK: - Default Conformances
 
 extension CryptoService: PinCryptoKeyDerivation {}
 extension ClientKeyManager: PinClientKeyStorage {}
+extension ClientKeyManager: PinClientKeySetupStorage {}
 
 extension EncryptionAPI: PinEncryptionValidation {}
 extension EncryptionAPI: PinEncryptionSetup {}
