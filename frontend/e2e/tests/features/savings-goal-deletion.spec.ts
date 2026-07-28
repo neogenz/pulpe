@@ -17,6 +17,7 @@ const UPDATED_AT = '2026-07-27T10:00:00.000Z';
 test('deletes a savings goal from its impact preview', async ({
   authenticatedPage: page,
 }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
   const goal = {
     id: GOAL_ID,
     userId: USER_ID,
@@ -175,6 +176,19 @@ test('deletes a savings goal from its impact preview', async ({
   await page.getByTestId('delete-savings-goal-button').click();
   await expect(page.getByTestId('goal-deletion-summary')).toBeVisible();
   expect(angularErrors).toEqual([]);
+  const [dialogBox, actionsBox] = await Promise.all([
+    page.locator('mat-dialog-container').boundingBox(),
+    page.locator('mat-dialog-actions').boundingBox(),
+  ]);
+  expect(dialogBox).not.toBeNull();
+  expect(actionsBox).not.toBeNull();
+  if (!dialogBox || !actionsBox) {
+    throw new Error('Deletion dialog geometry is unavailable');
+  }
+  expect(dialogBox.height).toBeLessThan(900 * 0.9);
+  expect(actionsBox.y + actionsBox.height).toBeLessThanOrEqual(
+    dialogBox.y + dialogBox.height,
+  );
 
   await page.getByTestId('goal-deletion-forecasts').click();
   await page.getByTestId('goal-deletion-transactions').click();

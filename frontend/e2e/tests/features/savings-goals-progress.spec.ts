@@ -269,6 +269,168 @@ test.describe('Savings goal progression (PUL-8)', () => {
       );
     }
   });
+
+  test('explains the projection and starts the monthly plan at the goal start', async ({
+    authenticatedPage: page,
+  }) => {
+    const futureGoal = {
+      ...goal,
+      name: 'Canapé',
+      startDate: '2026-09-01',
+      targetAmount: 3700,
+      targetDate: '2026-10-12',
+      initialAmount: 930,
+    } satisfies SavingsGoal;
+    const futureProgress = {
+      ...progress,
+      startDate: futureGoal.startDate,
+      targetAmount: futureGoal.targetAmount,
+      targetDate: futureGoal.targetDate,
+      initialAmount: 930,
+      plannedCumulative: 0,
+      plannedProjection: 2315,
+      confirmed: 930,
+      achievementPercent: 25,
+      monthsElapsed: 1,
+      monthsRemaining: 2,
+      required: 1385,
+      projected: 2315,
+      paceStatus: 'behind',
+      months: [
+        {
+          month: 7,
+          year: 2026,
+          state: 'current',
+          isLocked: false,
+          isContributionEligible: false,
+          plannedAmount: 0,
+          confirmedAmount: 0,
+          plannedCumulative: 0,
+          confirmedCumulative: 0,
+          lines: [],
+        },
+        {
+          month: 8,
+          year: 2026,
+          state: 'gap',
+          isLocked: false,
+          isContributionEligible: false,
+          plannedAmount: 0,
+          confirmedAmount: 0,
+          plannedCumulative: 0,
+          confirmedCumulative: 0,
+          lines: [],
+        },
+        {
+          month: 9,
+          year: 2026,
+          state: 'future',
+          isLocked: false,
+          isContributionEligible: true,
+          plannedAmount: 1385,
+          confirmedAmount: 0,
+          plannedCumulative: 1385,
+          confirmedCumulative: 0,
+          lines: [],
+        },
+        {
+          month: 10,
+          year: 2026,
+          state: 'gap',
+          isLocked: false,
+          isContributionEligible: true,
+          plannedAmount: 0,
+          confirmedAmount: 0,
+          plannedCumulative: 1385,
+          confirmedCumulative: 0,
+          lines: [],
+        },
+      ],
+    } satisfies SavingsGoalProgress;
+
+    await page.route('**/api/v1/savings-goals/*/progress', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: futureProgress }),
+      }),
+    );
+    await page.route('**/api/v1/savings-goals/*/contributions', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: [] }),
+      }),
+    );
+    await page.route('**/api/v1/savings-goals', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: [futureGoal] }),
+      }),
+    );
+
+    await page.goto('/savings-goals');
+    await page.getByTestId(`savings-goal-${GOAL_ID}`).click();
+    await expect(page.getByTestId('savings-goal-detail-page')).toBeVisible();
+
+    const projectedLayer = page.getByTestId('progress-projected-layer');
+    const projectedStat = page.getByTestId('stat-projected');
+    const [layerColor, legendColor] = await Promise.all([
+      projectedLayer.evaluate(
+        (element) => getComputedStyle(element).backgroundColor,
+      ),
+      projectedStat
+        .locator('span[aria-hidden="true"]')
+        .evaluate((element) => getComputedStyle(element).backgroundColor),
+    ]);
+    expect(legendColor).toBe(layerColor);
+    await expect(
+      page.getByTestId('stat-planned-projection-legend'),
+    ).toHaveCount(0);
+
+    const targetLegend = page.getByTestId('goal-projection-target-legend');
+    const [targetColor, savingsColor, projectionColor, targetTokenColor] =
+      await Promise.all([
+        targetLegend.evaluate(
+          (element) => getComputedStyle(element).backgroundColor,
+        ),
+        page
+          .getByTestId('stat-confirmed')
+          .locator('span[aria-hidden="true"]')
+          .evaluate((element) => getComputedStyle(element).backgroundColor),
+        projectedStat
+          .locator('span[aria-hidden="true"]')
+          .evaluate((element) => getComputedStyle(element).backgroundColor),
+        targetLegend.evaluate((element) => {
+          const probe = document.createElement('span');
+          probe.style.backgroundColor = 'var(--pulpe-financial-expense)';
+          element.parentElement?.appendChild(probe);
+          const color = getComputedStyle(probe).backgroundColor;
+          probe.remove();
+          return color;
+        }),
+      ]);
+    expect(targetColor).toBe(targetTokenColor);
+    expect(targetColor).not.toBe(savingsColor);
+    expect(targetColor).not.toBe(projectionColor);
+
+    const timeline = page.getByTestId('goal-plan-timeline');
+    await expect(
+      timeline.locator('[data-testid^="goal-plan-row-"]'),
+    ).toHaveCount(2);
+    await expect(
+      page.getByTestId(`goal-plan-row-${2026 * 12 + 7}`),
+    ).toHaveCount(0);
+    await expect(
+      page.getByTestId(`goal-plan-row-${2026 * 12 + 8}`),
+    ).toHaveCount(0);
+    await expect(
+      page.getByTestId(`goal-plan-row-${2026 * 12 + 9}`),
+    ).toContainText(/1\D?385/);
+    await expect(page.getByTestId('goal-plan-gap-chip')).toHaveCount(1);
+    await expect(page.getByTestId('goal-plan-gap-hint')).toBeVisible();
+  });
 });
 
 test.describe('Savings goal optional interval (PUL-314)', () => {
