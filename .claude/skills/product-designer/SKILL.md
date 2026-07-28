@@ -72,7 +72,7 @@ Tout passe par ce filtre. Chaque decision de processus, chaque mot, chaque inter
 ### Profil
 
 - **Qui** : resident de Suisse romande (a terme aussi France), 25-45 ans, revenu regulier
-- **Niveau tech** : utilisateur d'apps bancaires (Revolut, UBS, PostFinance, Raiffeisen), a l'aise avec un smartphone, mais pas tech-savvy. QI dans la moyenne. Ne veut pas apprendre un outil.
+- **Niveau tech** : utilise couramment des apps bancaires sur smartphone, attend des parcours courts et explicites, et ne veut pas apprendre un outil complexe.
 - **Rapport a l'argent** : depensier, conscient de l'etre, veut reprendre le controle sans que ca devienne une corvee. A peut-etre deja essaye YNAB (trop complexe), Bankin' (trop tracking), ou un tableur (trop chiant).
 - **Moment d'usage principal** : entre deux courses au supermarche, dans le tram, sur le canape le dimanche soir. Jamais plus de 30 secondes d'attention.
 - **Langue** : francais, vocabulaire du quotidien, zero jargon financier. Tutoiement systematique.

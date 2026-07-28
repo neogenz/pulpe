@@ -7,7 +7,7 @@ import { angularUrl, GITHUB_URL, CONTACT_EMAIL } from '@/lib/config'
 export const metadata: Metadata = {
   title: 'Aide et questions fréquentes',
   description:
-    'Tout ce que tu veux savoir sur Pulpe : gratuité, sécurité, modèles de budget, chiffrement de bout en bout. Réponses claires, sans jargon.',
+    'Tout ce que tu veux savoir sur Pulpe : gratuité, sécurité, modèles de budget, chiffrement AES-256-GCM. Réponses claires, sans jargon.',
   alternates: {
     canonical: '/support',
   },
@@ -231,12 +231,14 @@ const faqs: FaqItem[] = [
           iPhone toujours synchronisé.
         </p>
         <p className="mt-3">
-          Et tes données restent chiffrées, ce qu'un fichier Excel sur Google Drive ne fait pas.
+          Et tes montants financiers sont chiffrés en base avec AES-256-GCM. Le serveur les
+          déchiffre pendant tes requêtes authentifiées grâce à la clé dérivée de ton PIN et à sa clé
+          serveur.
         </p>
       </>
     ),
     plainAnswer:
-      "Excel fonctionne, mais les formules cassent, il n'y a pas de vue globale, la saisie mobile est pénible et il n'y a pas de synchro entre appareils. Pulpe reprend le même principe — prévisions, suivi, ajustements — mais avec des modèles réutilisables, un report automatique du solde, et un accès web + iPhone toujours synchronisé. En prime, tes données sont chiffrées de bout en bout.",
+      "Excel fonctionne, mais les formules cassent, il n'y a pas de vue globale, la saisie mobile est pénible et il n'y a pas de synchro entre appareils. Pulpe reprend le même principe — prévisions, suivi, ajustements — mais avec des modèles réutilisables, un report automatique du solde, et un accès web + iPhone toujours synchronisé. Les montants financiers sont chiffrés en base avec AES-256-GCM et déchiffrés côté serveur pendant les requêtes authentifiées.",
   },
   {
     question: 'Pourquoi Pulpe ne se connecte pas à ma banque ?',
@@ -315,14 +317,18 @@ const faqs: FaqItem[] = [
             Tu as <strong>3 jours pour changer d'avis</strong> — la suppression n'est pas immédiate
           </li>
           <li>
-            Passé ce délai, <strong>toutes tes données sont définitivement effacées</strong>
+            Passé ce délai, ton compte et tes données sont{' '}
+            <strong>supprimés des systèmes actifs</strong>
           </li>
         </ol>
-        <p className="mt-3">Rien n'est conservé. Zéro trace. C'est la promesse zero-knowledge.</p>
+        <p className="mt-3">
+          Des copies peuvent subsister temporairement dans les sauvegardes techniques, puis expirent
+          selon la politique de rétention du fournisseur d'hébergement.
+        </p>
       </>
     ),
     plainAnswer:
-      "Va dans les paramètres de l'app et choisis Supprimer mon compte. Tu as 3 jours pour changer d'avis. Passé ce délai, toutes tes données sont définitivement effacées. Rien n'est conservé.",
+      "Va dans les paramètres de l'app et choisis Supprimer mon compte. Tu as 3 jours pour changer d'avis. Passé ce délai, ton compte et tes données sont supprimés des systèmes actifs. Des copies peuvent subsister temporairement dans les sauvegardes techniques, puis expirent selon la politique de rétention du fournisseur d'hébergement.",
   },
 ]
 

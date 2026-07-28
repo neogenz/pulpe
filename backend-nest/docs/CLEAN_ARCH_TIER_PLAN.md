@@ -1,29 +1,21 @@
 # Clean Architecture — Tier 2 + Tier 3 Implementation Plan
 
-> Self-contained brief for an autonomous agent. Read top to bottom before touching code. Phase 0–6 already shipped (43 commits on `neogenz/marseille`). This plan covers the remaining caveats.
+> Historical implementation brief. Read top to bottom before touching code. Phase 0–6
+> already shipped; this plan covers the remaining caveats.
 
-## 0. Snapshot (state when this plan was written)
-
-| Item | Value |
-|------|-------|
-| Branch | `neogenz/marseille` |
-| Last commit | `f60555166` (chore(backend): remove dead flat-layout files) |
-| Tests | 560/560 pass |
-| Quality | 0 errors, 26 pre-existing `max-lines-per-function` warnings |
-| Prettier | clean |
-| `lint:arch` | 34 errors — `no-application-to-infrastructure` (use cases import mappers from infrastructure/) |
+## 0. Vérification du contexte
 
 Verify before starting:
 ```bash
-cd /Users/maximedesogus/conductor/workspaces/pulpe-workspace/marseille
-git log --oneline -1                           # f60555166 expected
-git status --short                              # empty
-cd backend-nest && bun test 2>&1 | tail -3      # 560/560 pass
-cd backend-nest && bun run quality 2>&1 | tail -3   # 0 errors
-cd backend-nest && bun run lint:arch 2>&1 | tail -5  # 34 errors expected
+git status --short
+cd backend-nest
+bun test
+bun run quality
+bun run lint:arch
 ```
 
-If any of the above doesn't match, **STOP** and reconcile before proceeding.
+Record the current baseline before changing architecture. If it is already failing,
+**STOP** and reconcile before proceeding.
 
 ## 1. Goals & Non-Goals
 

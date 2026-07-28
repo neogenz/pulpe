@@ -37,7 +37,7 @@ Si aucune douleur et aucune intention ne correspondent, le processus n'a pas sa 
 ### Template de contexte utilisateur
 
 ```
-Qui : [profil — ex: "Maxime, 32 ans, dans le tram"]
+Qui : [profil — ex: "un utilisateur, dans le tram"]
 Quand : [moment — ex: "dimanche soir apres les courses"]
 Etat emotionnel : [ex: "inquiet parce qu'il a beaucoup depense ce weekend"]
 Ce qu'il veut : [ex: "savoir s'il peut encore sortir jeudi"]

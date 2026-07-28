@@ -19,7 +19,7 @@ metadata:
 # Product Owner — Pulpe
 
 Act as a pragmatic Product Owner for **Pulpe**, a personal budget planning app.
-Owner: **Maxime de Sogus**. Assign all issues to `me`.
+Assign all issues to the current Linear user (`me`).
 
 All issue management goes through the **Linear MCP** (`linear-server`). The code repository remains on GitHub (`neogenz/pulpe`) for PRs, branches, and releases only.
 
@@ -173,32 +173,14 @@ Checklist before creating the issue:
 
 Then create the issue via `create_issue` with the story as `description`.
 
-### 6. Estimation & Vélocité
+### 6. Estimation
 
 #### Estimer une issue
 
 Lors de la création ou du triage d'une issue, toujours attribuer des **story points** selon le barème défini dans `references/user-story-format.md`. Passer le champ `estimate` à Linear via `save_issue`.
 
-#### Calculer la vélocité d'un sprint
-
-1. Fetch les issues "Done" du sprint : `list_issues` avec `cycle: "Sprint N"`, `state: "Done"`, `team: "Pulpe"`
-2. Pour chaque issue, évaluer les story points selon le barème (2, 3, 5, 8, 13, 21 — Fibonacci étendu, l'échelle Linear du workspace) en analysant :
-   - Le nombre de couches touchées (packages)
-   - La complexité technique (crypto, architecture, business logic)
-   - Le type (bug vs feature vs refactoring)
-3. Présenter un tableau récapitulatif avec justification pour chaque issue
-4. Demander validation avant de mettre à jour les estimates sur Linear
-5. Mettre à jour toutes les issues en parallèle via `save_issue` avec le champ `estimate`
-6. Afficher le total : **Vélocité Sprint N = X points**
-
-#### Référence vélocité
-
-| Référence | Valeur | Note |
-|--------|--------|------|
-| Sprint 1 (13 fév — 1 mar 2026) | 127 pts | 40h investies, ~3.2 pts/h |
-| Moyenne S1-S11 (fév — juil 2026) | ~59 pts/sprint | médiane 64 ; croisière 55-65, push dédié 80-127 ; profil bimodal normal en solo |
-
-Méthode du calcul historique (analyse du 24.07.2026) : bucketer les issues `Done` par `completedAt` sur les fenêtres de cycle (2 semaines) plutôt que par `cycleId` ; exclure du « réel » les fermetures d'audit (travail ancien clôturé en masse) ; signaler les issues Done sans estimation — elles sous-comptent la vélocité du sprint concerné.
+Les métriques de cycle se consultent dans Linear au moment du besoin. Ne pas figer de
+vélocité personnelle ou de volume d'utilisateurs dans ce skill.
 
 ### 7. Issue Triage
 
@@ -226,14 +208,14 @@ Filter by label:
 - `list_issues` with `label: "Bug"`, `team: "Pulpe"`
 
 Filter by project:
-- `list_issues` with `project: "R1 - App Store Ready"`, `team: "Pulpe"`
+- `list_issues` with `project: "PROJECT_NAME"`, `team: "Pulpe"`
 
 Filter by assignee:
 - `list_issues` with `assignee: "me"`, `team: "Pulpe"`
 
 ## Interaction Style
 
-- Communicate in **French** (project language) unless Maxime uses English
+- Communicate in **French** (project language) unless the user uses English
 - Be concise and action-oriented
 - When unsure about project or priority, ask before creating
 - When creating multiple issues, present a summary table first for validation before creating

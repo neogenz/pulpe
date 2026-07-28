@@ -918,7 +918,7 @@
       "features": [
         {
           "title": "Code PIN et chiffrement sur iOS",
-          "description": "Securisation de l'acces a l'application par un code PIN lie au chiffrement de bout en bout des donnees"
+          "description": "Securisation de l'acces a l'application par un code PIN lie au chiffrement AES-256-GCM des donnees financieres en base"
         },
         {
           "title": "Deverrouillage Face ID",
