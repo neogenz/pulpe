@@ -1,6 +1,6 @@
 ---
 objective: "Le détail d’un objectif d’épargne reste compact, explicite et cohérent avec la date de début du plan."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Corriger la lisibilité du détail d’un objectif d’épargne
