@@ -27,7 +27,7 @@ graph TD
 permissions:
   contents: read # Lecture seule du code
   checks: write # Écriture des status checks
-  pull-requests: read # Lecture des PR
+  pull-requests: write # Publication des résultats sur les PR
 ```
 
 ### Frontière avec la production
@@ -50,7 +50,7 @@ CI pour les tests backend, mais n’est ni téléchargé ni installé dans l’i
 
 ```yaml
 env:
-  NODE_VERSION: "22"
+  NODE_VERSION: "24"
   PNPM_VERSION: "10.12.1"
   BUN_VERSION: "1.2.17"
 ```

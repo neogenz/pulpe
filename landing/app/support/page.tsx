@@ -104,8 +104,8 @@ const faqs: FaqItem[] = [
             fuite de la base de données, tes montants restent illisibles.
           </li>
           <li>
-            <strong>Pas de revente, pas de partage</strong> : tes données ne sortent jamais de ton
-            compte
+            <strong>Pas d'exploitation publicitaire</strong> : tes montants et libellés financiers
+            ne sont ni transmis à des fins publicitaires ni revendus
           </li>
           <li>
             <strong>Open source</strong> : le code de chiffrement est auditable par n'importe qui
@@ -121,7 +121,7 @@ const faqs: FaqItem[] = [
       </>
     ),
     plainAnswer:
-      "Tes montants sont chiffrés en base de données avec AES-256-GCM. Pulpe utilise une architecture split-key : le déchiffrement nécessite deux clés qui ne sont jamais stockées au même endroit — ton code PIN et une clé serveur. Même en cas de fuite de la base de données, tes montants restent illisibles. Le code est open source et auditable sur GitHub.",
+      "Tes montants sont chiffrés en base de données avec AES-256-GCM. Pulpe utilise une architecture split-key : le déchiffrement nécessite deux clés qui ne sont jamais stockées au même endroit — ton code PIN et une clé serveur. Même en cas de fuite de la base de données, tes montants restent illisibles. Tes montants et libellés financiers ne sont ni transmis à des fins publicitaires ni revendus. Le code est open source et auditable sur GitHub.",
   },
   {
     question: "Comment retrouver mes données entre le web et l'iPhone ?",

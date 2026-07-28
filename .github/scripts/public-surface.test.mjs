@@ -61,6 +61,14 @@ test("public security and deletion claims describe the implemented model", () =>
   assert.doesNotMatch(support, /rien n['’]est conservé|zéro trace/i);
   assert.match(support, /systèmes actifs/i);
   assert.match(support, /sauvegardes/i);
+  assert.doesNotMatch(
+    support,
+    /tes données ne sortent jamais de ton compte/i,
+  );
+  assert.match(
+    support,
+    /tes montants et libellés financiers ne sont ni transmis\s+à des fins publicitaires ni revendus/i,
+  );
 
   const consent = read("docs/CONSENT.md");
   assert.doesNotMatch(
@@ -69,15 +77,22 @@ test("public security and deletion claims describe the implemented model", () =>
   );
 });
 
+test("public CI guide mirrors the enforced workflow contracts", () => {
+  const workflow = read(".github/workflows/ci.yml");
+  const guide = read("docs/CI.md");
+
+  assert.match(workflow, /pull-requests:\s*write/);
+  assert.match(guide, /pull-requests:\s*write/);
+  assert.match(workflow, /NODE_VERSION:\s*["']24["']/);
+  assert.match(guide, /NODE_VERSION:\s*["']24["']/);
+});
+
 test("tracked project files exclude local archives and obsolete fixtures", () => {
   const ignore = read(".gitignore");
   const seed = read("backend-nest/supabase/seed.sql");
 
   assert.equal(git("ls-files", "--", "aidd_docs/tasks"), "");
-  assert.equal(
-    existsSync(new URL("../../backend-nest/schema.sql", import.meta.url)),
-    false,
-  );
+  assert.equal(git("ls-files", "--", "backend-nest/schema.sql"), "");
   assert.match(ignore, /^backend-nest\/schema\.sql$/m);
   assert.doesNotMatch(
     seed,
