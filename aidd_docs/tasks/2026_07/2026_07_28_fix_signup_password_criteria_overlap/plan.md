@@ -1,6 +1,6 @@
 ---
 objective: "The signup form preserves its layout, product tours stay anchored and accurate, and onboarding creates a complete twelve-month future projection."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Fix webapp first-run regressions
