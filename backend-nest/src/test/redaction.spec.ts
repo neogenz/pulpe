@@ -1,7 +1,10 @@
 import { ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ExpressAdapter } from '@nestjs/platform-express';
 import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test';
 import { PinoLogger } from 'nestjs-pino';
+import request from 'supertest';
+import type { Express, NextFunction, Request, Response } from 'express';
 import { GlobalExceptionFilter } from '../common/filters/global-exception.filter';
 import { createPinoLoggerConfig } from '../app.module';
 import { ResponseLoggerMiddleware } from '../common/middleware/response-logger.middleware';
@@ -110,6 +113,27 @@ describe('Sensitive Data Redaction Test', () => {
       expect(config.pinoHttp.redact).toBeDefined();
     });
 
+    it('aligns the pino level with the resolved logging mode', () => {
+      expect(
+        buildConfig({
+          NODE_ENV: 'preview',
+          DEBUG_HTTP_FULL: 'true',
+        }).pinoHttp.level,
+      ).toBe('debug');
+      expect(
+        buildConfig({
+          NODE_ENV: 'preview',
+          DEBUG_HTTP_FULL: 'false',
+        }).pinoHttp.level,
+      ).toBe('info');
+      expect(
+        buildConfig({
+          NODE_ENV: 'production',
+          DEBUG_HTTP_FULL: 'true',
+        }).pinoHttp.level,
+      ).toBe('info');
+    });
+
     it('sanitizes detailed request data and never creates a cURL command', () => {
       const config = buildConfig({
         NODE_ENV: 'preview',
@@ -189,18 +213,14 @@ describe('Sensitive Data Redaction Test', () => {
       ).not.toContain('QUERY_SENTINEL');
     });
 
-    it('sanitizes response bodies captured in detailed preview mode', () => {
-      const logger = { debug: mock(() => undefined) };
-      const listeners = new Map<string, () => void>();
-      const response = {
-        locals: {},
-        statusCode: 200,
-        json: mock((body: unknown) => body),
-        send: mock((body: unknown) => body),
-        on: mock((event: string, listener: () => void) => {
-          listeners.set(event, listener);
-        }),
-      } as any;
+    it('captures the real Express json-to-send chain once as a sanitized object', async () => {
+      const responseLogs: Array<{
+        response: { statusCode: number; body: unknown };
+      }> = [];
+      const logger = {
+        debug: (entry: (typeof responseLogs)[number]) =>
+          responseLogs.push(entry),
+      };
       const middleware = new ResponseLoggerMiddleware(
         {
           get: (key: string) =>
@@ -211,25 +231,115 @@ describe('Sensitive Data Redaction Test', () => {
         } as ConfigService,
         logger as any,
       );
-
-      middleware.use(
-        {} as any,
-        response,
-        mock(() => undefined),
+      const app = new ExpressAdapter().getInstance() as Express;
+      app.use((req: Request, res: Response, next: NextFunction) =>
+        middleware.use(req, res, next),
       );
-      response.json({
-        visible: 'yes',
-        nested: [{ RefreshToken: 'RESPONSE_TOKEN_SENTINEL' }],
+      app.get('/response', (_req: Request, res: Response) => {
+        res.json({
+          visible: 'yes',
+          nested: { refreshToken: 'RESPONSE_TOKEN_SENTINEL' },
+        });
       });
-      listeners.get('finish')?.();
 
-      const output = JSON.stringify(logger.debug.mock.calls);
-      expect(output).not.toContain('RESPONSE_TOKEN_SENTINEL');
-      expect(output).toContain('yes');
+      const response = await request(app).get('/response').expect(200);
+
+      expect(response.body).toEqual({
+        visible: 'yes',
+        nested: { refreshToken: 'RESPONSE_TOKEN_SENTINEL' },
+      });
+      expect(responseLogs).toHaveLength(1);
+      const loggedResponse = responseLogs[0].response;
+      expect(loggedResponse.body).toEqual({
+        visible: 'yes',
+        nested: { refreshToken: '[REDACTED]' },
+      });
+      expect(typeof loggedResponse.body).toBe('object');
+    });
+
+    it('captures a direct Express send without changing status or payload', async () => {
+      const responseLogs: Array<{
+        response: { statusCode: number; body: unknown };
+      }> = [];
+      const logger = {
+        debug: (entry: (typeof responseLogs)[number]) =>
+          responseLogs.push(entry),
+      };
+      const middleware = new ResponseLoggerMiddleware(
+        {
+          get: (key: string) =>
+            ({
+              NODE_ENV: 'preview',
+              DEBUG_HTTP_FULL: 'true',
+            })[key],
+        } as ConfigService,
+        logger as any,
+      );
+      const app = new ExpressAdapter().getInstance() as Express;
+      app.use((req: Request, res: Response, next: NextFunction) =>
+        middleware.use(req, res, next),
+      );
+      app.get('/response', (_req: Request, res: Response) => {
+        res.status(202).send('diagnostic visible');
+      });
+
+      const response = await request(app).get('/response').expect(202);
+
+      expect(response.text).toBe('diagnostic visible');
+      expect(responseLogs).toHaveLength(1);
+      expect(responseLogs[0]).toMatchObject({
+        response: {
+          statusCode: 202,
+          body: 'diagnostic visible',
+        },
+      });
     });
   });
 
   describe('GlobalExceptionFilter Redaction', () => {
+    it('logs only sanitized query fields in detailed preview mode', () => {
+      process.env.NODE_ENV = 'preview';
+      process.env.DEBUG_HTTP_FULL = 'true';
+      const request = createMockRequest({
+        url: '/api/v1/search?term=groceries&token=QUERY_TOKEN_SENTINEL',
+        query: { term: 'groceries', token: 'QUERY_TOKEN_SENTINEL' },
+      });
+      const host = createMockArgumentsHost(request, createMockResponse());
+
+      globalExceptionFilter.catch(
+        new HttpException('Test error', HttpStatus.BAD_REQUEST),
+        host,
+      );
+
+      const logContext = capturedLogs[0].context;
+      expect(logContext.url).toBe('/api/v1/search');
+      expect(logContext.requestQuery).toEqual({
+        term: 'groceries',
+        token: '[REDACTED]',
+      });
+      expect(JSON.stringify(logContext)).not.toContain('QUERY_TOKEN_SENTINEL');
+    });
+
+    it('omits the query entirely from production error logs', () => {
+      process.env.NODE_ENV = 'production';
+      process.env.DEBUG_HTTP_FULL = 'true';
+      const request = createMockRequest({
+        url: '/api/v1/search?term=groceries&token=QUERY_TOKEN_SENTINEL',
+        query: { term: 'groceries', token: 'QUERY_TOKEN_SENTINEL' },
+      });
+      const host = createMockArgumentsHost(request, createMockResponse());
+
+      globalExceptionFilter.catch(
+        new HttpException('Test error', HttpStatus.BAD_REQUEST),
+        host,
+      );
+
+      const logContext = capturedLogs[0].context;
+      expect(logContext.url).toBe('/api/v1/search');
+      expect(logContext.requestQuery).toBeUndefined();
+      expect(JSON.stringify(logContext)).not.toContain('QUERY_TOKEN_SENTINEL');
+    });
+
     it('should omit the request body entirely outside development', () => {
       // The denylist below covers only password/token/secret/authorization/auth.
       // Vault key material (clientKey, oldClientKey, newClientKey, recoveryKey)

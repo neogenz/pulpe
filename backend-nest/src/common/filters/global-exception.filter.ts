@@ -12,7 +12,7 @@ import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { resolveHttpLoggingDecision } from '@config/environment';
-import { sanitizeLogValue } from '@common/utils/log-anonymization';
+import { sanitizeLogValue, toLogPath } from '@common/utils/log-anonymization';
 
 interface ErrorContext {
   readonly requestId?: string;
@@ -155,7 +155,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       success: false,
       statusCode: errorData.status,
       timestamp: new Date().toISOString(),
-      path: request.url,
+      path: toLogPath(request.url) ?? '',
       method: request.method,
       message: errorData.message,
       error: errorData.error,
@@ -300,17 +300,19 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     request: Request,
     context: ErrorContext,
   ): void {
+    const detailedLogging = this.isDetailedHttpLogging();
     const logContext = {
       requestId: context.requestId,
       userId: context.userId,
       method: request.method,
-      url: request.url,
+      url: toLogPath(request.url),
       statusCode: errorData.status,
       errorCode: errorData.code,
       userAgent: this.isDevelopment() ? context.userAgent : undefined,
       ip: this.isDevelopment() ? context.ip : undefined,
-      requestBody: this.isDetailedHttpLogging()
-        ? sanitizeLogValue(request.body)
+      requestBody: detailedLogging ? sanitizeLogValue(request.body) : undefined,
+      requestQuery: detailedLogging
+        ? sanitizeLogValue(request.query)
         : undefined,
       ...errorData.loggingContext, // Merge context provided by the service
     };

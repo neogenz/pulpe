@@ -527,7 +527,7 @@ describe('GlobalExceptionFilter', () => {
       };
       const request = createMockRequest({
         method: 'POST',
-        url: '/api/v1/auth/login',
+        url: '/api/v1/auth/login?token=QUERY_TOKEN_SENTINEL',
       });
       const context = {
         requestId: 'req-abc-123',

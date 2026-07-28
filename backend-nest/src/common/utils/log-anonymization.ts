@@ -37,6 +37,9 @@ export function parseDeviceType(userAgent: string | undefined): string {
   return 'desktop';
 }
 
+export const toLogPath = (url?: string): string | undefined =>
+  url?.split('?')[0];
+
 const REDACTED = '[REDACTED]';
 const TRUNCATED = '[TRUNCATED]';
 const MAX_LOG_DEPTH = 5;
