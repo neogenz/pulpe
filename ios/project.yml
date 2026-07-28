@@ -88,6 +88,8 @@ targets:
           - group.app.pulpe.ios
         com.apple.developer.applesignin:
           - Default
+        com.apple.developer.associated-domains:
+          - applinks:pulpe.app
     configFiles:
       Local: Config/Local.xcconfig
       Preview: Config/Preview.xcconfig

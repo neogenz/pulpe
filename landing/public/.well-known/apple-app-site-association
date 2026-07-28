@@ -1,0 +1,17 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "AJ37X7C82G.app.pulpe.ios"
+        ],
+        "components": [
+          {
+            "/": "/app/reset-password",
+            "comment": "Password recovery callback"
+          }
+        ]
+      }
+    ]
+  }
+}

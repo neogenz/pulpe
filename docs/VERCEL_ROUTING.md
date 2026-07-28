@@ -7,6 +7,8 @@ Configuration du routing Vercel pour les deux projets : landing page (Next.js) e
 ```
 pulpe.app/                    → Landing page (Next.js) — Projet Vercel "pulpe-landing"
 ├── /                         → Homepage
+├── /.well-known/apple-app-site-association → Association universal link iOS
+├── /app/reset-password      → Repli web vers app.pulpe.app/reset-password
 ├── /support                  → Page support/FAQ
 ├── /changelog                → Changelog
 ├── /legal/*                  → Pages légales (CGU, confidentialité)
@@ -61,12 +63,20 @@ pnpm build:shared && turbo build --filter=pulpe-frontend && pnpm --filter=pulpe-
 ]
 ```
 
-Le routing des pages (`/`, `/support`, `/changelog`, `/legal/*`) est géré nativement par Next.js — pas besoin de rewrites.
+Le routing des pages (`/`, `/support`, `/changelog`, `/legal/*`) est géré nativement par Next.js.
+`/app/reset-password` est redirigé vers le reset Angular lorsque l’universal link
+n’est pas intercepté par l’app iOS.
 
 ### Headers de sécurité
 
 ```json
 "headers": [
+  {
+    "source": "/.well-known/apple-app-site-association",
+    "headers": [
+      { "key": "Content-Type", "value": "application/json" }
+    ]
+  },
   {
     "source": "/(.*)",
     "headers": [
@@ -145,6 +155,10 @@ GET pulpe.app/
 
 GET pulpe.app/support
   → Next.js → Page support
+
+GET pulpe.app/app/reset-password
+  → App iOS si l’association est active
+  → Sinon redirect 308 → app.pulpe.app/reset-password
 
 GET app.pulpe.app/welcome
   → Catch-all → /index.html → Angular SPA
