@@ -3,6 +3,7 @@ import {
   anonymizeIp,
   parseDeviceType,
   sanitizeLogValue,
+  toLogPath,
 } from './log-anonymization';
 
 describe('anonymizeIp', () => {
@@ -102,6 +103,16 @@ describe('parseDeviceType', () => {
     expect(parseDeviceType('IPHONE')).toBe('mobile');
     expect(parseDeviceType('IPAD')).toBe('tablet');
     expect(parseDeviceType('ANDROID')).toBe('mobile');
+  });
+});
+
+describe('toLogPath', () => {
+  it('removes the query string without changing the route', () => {
+    expect(toLogPath('/api/v1/search?term=groceries&token=secret')).toBe(
+      '/api/v1/search',
+    );
+    expect(toLogPath('/api/v1/search')).toBe('/api/v1/search');
+    expect(toLogPath(undefined)).toBeUndefined();
   });
 });
 

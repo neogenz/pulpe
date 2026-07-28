@@ -70,6 +70,7 @@ import {
   anonymizeIp,
   parseDeviceType,
   sanitizeLogValue,
+  toLogPath,
 } from '@common/utils/log-anonymization';
 import { createRequestIdGenerator } from '@common/utils/request-id';
 
@@ -91,8 +92,6 @@ function createLoggerTransport(isProdLike: boolean) {
   return undefined;
 }
 
-const requestPath = (url?: string): string | undefined => url?.split('?')[0];
-
 function createDebugSerializers() {
   return {
     req: (
@@ -108,7 +107,7 @@ function createDebugSerializers() {
       return {
         id: req.id,
         method: req.method,
-        url: requestPath(req.url),
+        url: toLogPath(req.url),
         headers: sanitizeLogValue(req.headers),
         body: sanitizeLogValue(req.body),
         query: sanitizeLogValue(req.query),
@@ -138,7 +137,7 @@ function createProductionSerializers() {
     ) => ({
       id: req.id,
       method: req.method,
-      url: requestPath(req.url),
+      url: toLogPath(req.url),
       deviceType: parseDeviceType(req.headers?.['user-agent'] as string),
       ip: anonymizeIp(
         (req.headers?.['x-forwarded-for'] ||
@@ -167,7 +166,12 @@ export function createPinoLoggerConfig(configService: ConfigService) {
 
   return {
     pinoHttp: {
-      level: productionLike ? 'info' : 'debug',
+      level:
+        loggingDecision.mode === 'detailed'
+          ? 'debug'
+          : productionLike
+            ? 'info'
+            : 'debug',
       genReqId: createRequestIdGenerator(),
       redact: {
         paths: [
@@ -190,14 +194,14 @@ export function createPinoLoggerConfig(configService: ConfigService) {
         res: ServerResponse & { statusCode?: number },
         responseTime: number,
       ) => {
-        return `${req.method} ${requestPath(req.url)} ${res.statusCode} - ${Math.round(responseTime)}ms`;
+        return `${req.method} ${toLogPath(req.url)} ${res.statusCode} - ${Math.round(responseTime)}ms`;
       },
       customErrorMessage: (
         req: IncomingMessage & { method?: string; url?: string },
         res: ServerResponse & { statusCode?: number },
         error: Error,
       ) => {
-        return `${req.method} ${requestPath(req.url)} ${res.statusCode} - ${error.message}`;
+        return `${req.method} ${toLogPath(req.url)} ${res.statusCode} - ${error.message}`;
       },
       serializers:
         loggingDecision.mode === 'detailed'

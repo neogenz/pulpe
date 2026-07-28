@@ -27,16 +27,20 @@ export class ResponseLoggerMiddleware implements NestMiddleware {
     // Store the original methods
     const originalSend = res.send;
     const originalJson = res.json;
+    let responseCaptured = false;
 
     // Override json method
     res.json = function (body: unknown) {
       res.locals.responseBody = sanitizeLogValue(body);
+      responseCaptured = true;
       return originalJson.call(this, body);
     };
 
     // Override send method
     res.send = function (body: unknown) {
-      res.locals.responseBody = sanitizeLogValue(body);
+      if (!responseCaptured) {
+        res.locals.responseBody = sanitizeLogValue(body);
+      }
       return originalSend.call(this, body);
     };
 
