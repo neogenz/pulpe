@@ -295,6 +295,32 @@ describe('User consent and tracking behavior', () => {
       expect(initialCallCount).toBe(1);
       // Note: In real implementation, enableTracking is only called once due to session flag
     });
+
+    it('should stop immediately and re-identify the authenticated user after opt-in', () => {
+      TestBed.runInInjectionContext(() => {
+        analyticsService.initializeAnalyticsTracking();
+      });
+      mockAuthState.set({
+        user: { id: 'support-user', email: 'support@example.com' },
+        session: { access_token: 'token', refresh_token: 'refresh' },
+        isLoading: false,
+        isAuthenticated: true,
+      });
+      TestBed.tick();
+      mockPostHogService.identify.mockClear();
+
+      analyticsService.setDiagnosticSharingEnabled(false);
+      TestBed.tick();
+      expect(analyticsService.diagnosticSharingEnabled()).toBe(false);
+
+      analyticsService.setDiagnosticSharingEnabled(true);
+      TestBed.tick();
+
+      expect(mockPostHogService.identify).toHaveBeenCalledWith(
+        'support-user',
+        expectedIdentifyProperties('support-user', 'support@example.com'),
+      );
+    });
   });
 
   describe('currency person properties', () => {

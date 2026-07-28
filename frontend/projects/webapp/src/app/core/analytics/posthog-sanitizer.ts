@@ -1,13 +1,3 @@
-/**
- * IMPORTANT: PostHog SDK does NOT automatically filter authentication tokens.
- * Currently not filtering tokens because:
- * 1. We don't send user objects or auth context in events
- * 2. We control all tracking code (solo developer)
- *
- * If we ever start tracking objects that might contain auth_token,
- * refreshToken, access_token, etc., add filtering here.
- */
-
 import type { CaptureResult } from 'posthog-js';
 
 type DynamicSegmentMask = readonly [RegExp, string];
@@ -114,6 +104,10 @@ const SENSITIVE_KEYWORDS = [
   'password',
   'secret',
   'credential',
+  'token',
+  'recovery',
+  'pin_code',
+  'pincode',
   'credit_card',
   'creditcard',
   'ssn',
@@ -124,6 +118,19 @@ const SENSITIVE_KEYWORDS = [
 const SENSITIVE_EXACT_KEYS = new Set([
   'apikey', // Generic API key fields - note: PostHog uses 'api_key' and 'token' which are different
   'token',
+  'description',
+  'label',
+  'name',
+  'title',
+  'content',
+  'text',
+  'message',
+]);
+
+const ALLOWED_PERSON_PROPERTIES = new Set([
+  'email',
+  'name',
+  'supabase_user_id',
 ]);
 
 const PROTECTED_QUERY_PARAMETERS = new Set(
@@ -297,6 +304,18 @@ export const sanitizeRecord = (
   return result;
 };
 
+const sanitizePersonProperties = (
+  properties: Record<string, unknown>,
+): Record<string, unknown> => {
+  const sanitized = sanitizeRecord(properties);
+  for (const key of ALLOWED_PERSON_PROPERTIES) {
+    if (properties[key] !== undefined) {
+      sanitized[key] = properties[key];
+    }
+  }
+  return sanitized;
+};
+
 function sanitizeUnknown(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map((item) => sanitizeUnknown(item));
@@ -339,7 +358,9 @@ export const sanitizeEventPayload = (
   }
 
   if (event.$set) {
-    event.$set = sanitizeRecord(event.$set as Record<string, unknown>);
+    event.$set = sanitizePersonProperties(
+      event.$set as Record<string, unknown>,
+    );
   }
 
   if (event.$set_once) {

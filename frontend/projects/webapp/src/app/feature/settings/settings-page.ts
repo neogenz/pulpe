@@ -366,6 +366,32 @@ import { SettingsDialogService } from './settings-dialog.service';
         <mat-divider class="my-8!"></mat-divider>
       }
 
+      <!-- ═══ Section: Données de diagnostic ═══ -->
+      <section class="grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-8">
+        <div>
+          <h2 class="text-title-medium font-bold mb-2">
+            {{ 'settings.diagnosticDataSection' | transloco }}
+          </h2>
+          <p class="text-body-small text-on-surface-variant leading-relaxed">
+            {{ 'settings.diagnosticSharingDescription' | transloco }}
+          </p>
+        </div>
+
+        <div class="md:col-span-2 flex items-center justify-between gap-6">
+          <span class="text-body-medium">
+            {{ 'settings.diagnosticSharingLabel' | transloco }}
+          </span>
+          <mat-slide-toggle
+            [checked]="diagnosticSharingEnabled()"
+            (change)="onDiagnosticSharingChange($event.checked)"
+            [attr.aria-label]="'settings.diagnosticSharingLabel' | transloco"
+            data-testid="diagnostic-sharing-toggle"
+          />
+        </div>
+      </section>
+
+      <mat-divider class="my-8!"></mat-divider>
+
       <!-- ═══ Section: Zone de danger ═══ -->
       @if (!isDemoMode()) {
         <section class="grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-8 pb-12">
@@ -429,6 +455,7 @@ export default class SettingsPage {
   readonly #settingsDialog = inject(SettingsDialogService);
 
   readonly isDemoMode = this.#demoMode.isDemoMode;
+  readonly diagnosticSharingEnabled = this.#analytics.diagnosticSharingEnabled;
   protected readonly isOAuthOnly = this.#authStore.isOAuthOnly;
   protected readonly isSaving = signal(false);
   protected readonly isDeleting = signal(false);
@@ -476,6 +503,10 @@ export default class SettingsPage {
 
   onShowCurrencySelectorChange(value: boolean): void {
     this.selectedShowCurrencySelector.set(value);
+  }
+
+  onDiagnosticSharingChange(enabled: boolean): void {
+    this.#analytics.setDiagnosticSharingEnabled(enabled);
   }
 
   onCurrencyChange(value: SupportedCurrency): void {

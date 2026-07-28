@@ -63,6 +63,8 @@
 	<string>$(POSTHOG_ENABLED)</string>
 	<key>POSTHOG_HOST</key>
 	<string>$(POSTHOG_HOST)</string>
+	<key>POSTHOG_SESSION_REPLAY_ENABLED</key>
+	<string>$(POSTHOG_SESSION_REPLAY_ENABLED)</string>
 	<key>SUPABASE_ANON_KEY</key>
 	<string>$(SUPABASE_ANON_KEY)</string>
 	<key>SUPABASE_URL</key>

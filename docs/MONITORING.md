@@ -2,6 +2,24 @@
 
 > **Configuration complète PostHog** : sourcemaps automatiques, error tracking, et debugging en production
 
+## Modèle de collecte livré
+
+- Les sessions authentifiées utilisent l'UUID Supabase comme `distinct_id`; email et
+  prénom restent disponibles dans PostHog pour relier un incident à un compte de support.
+- Les montants, libellés financiers, clés de récupération, tokens et contenus saisis sont
+  retirés avant envoi. Le sanitizer web est fail-closed et les surfaces sensibles portent
+  `ph-no-capture`.
+- La landing `https://pulpe.app` garde une identité analytics indépendante. Aucun
+  `distinct_id` n'est transféré vers `https://app.pulpe.app`.
+- Le session replay est forcé à l'arrêt en production. Il reste activable par
+  configuration dans les environnements local et preview.
+- Le réglage « Partager les diagnostics », activé par défaut, utilise l'opt-out persistant
+  natif de PostHog sur chaque appareil. Sa désactivation arrête les captures, efface
+  l'identité locale et n'affecte ni le compte Supabase ni les autres appareils.
+
+Ce document décrit le comportement technique; il ne constitue pas une validation
+juridique du fondement choisi.
+
 ## 🚀 TLDR - Monitoring Opérationnel
 
 ### ⚡ Status Check Rapide
@@ -13,7 +31,7 @@
 # Vérifier présence Symbol Sets récents
 
 # Test error tracking
-curl https://www.pulpe.app/api/debug/error  # Force une erreur (dev only)
+# Utiliser uniquement le parcours de test documenté dans l'environnement preview.
 ```
 
 ### ⚡ Variables Critiques Vercel
@@ -169,7 +187,7 @@ export class MyComponent {
 app_version = "2025.11.0"           # Erreurs version spécifique
 environment = "production"          # Production uniquement
 error_type = "TypeError"           # Type d'erreur
-user_id = "user-123"               # Erreurs utilisateur spécifique
+supabase_user_id = "user-123"      # Compte support spécifique
 ```
 
 ## 🔍 Debugging & Utilisation {#troubleshooting}

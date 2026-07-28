@@ -580,15 +580,12 @@ describe("landing accessibility contracts", () => {
     );
   });
 
-  it("waits for analytics before decorating cross-domain links", () => {
-    assert.match(
-      componentSources.posthogProvider,
-      /const initialization = initPostHog\(\);[\s\S]*if \(!initialization\) return;[\s\S]*e\.preventDefault\(\);[\s\S]*await Promise\.race\(\[[\s\S]*initialization,[\s\S]*POSTHOG_NAVIGATION_TIMEOUT_MS[\s\S]*const distinctId = getDistinctId\(\);/,
-    );
-    assert.match(
-      componentSources.posthogProvider,
-      /const POSTHOG_NAVIGATION_TIMEOUT_MS = 300;/,
-    );
+  it("keeps landing analytics isolated from authenticated app identity", () => {
+    assert.doesNotMatch(componentSources.posthogProvider, /preventDefault/);
+    assert.doesNotMatch(componentSources.posthogProvider, /getDistinctId/);
+    assert.doesNotMatch(componentSources.posthogProvider, /ph_did/);
+    assert.doesNotMatch(componentSources.posthog, /get_distinct_id/);
+    assert.doesNotMatch(componentSources.posthog, /cross_subdomain_cookie:\s*true/);
     assert.match(
       componentSources.posthog,
       /export function initPostHog\(\): Promise<void> \| undefined/,
@@ -596,7 +593,7 @@ describe("landing accessibility contracts", () => {
     assert.match(componentSources.posthog, /import type \{ PostHog \}/);
     assert.match(
       componentSources.posthog,
-      /type PostHogClient = Pick<\s*PostHog,\s*"capture" \| "get_distinct_id"\s*>;/,
+      /type PostHogClient = Pick<PostHog, "capture">;/,
     );
   });
 

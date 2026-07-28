@@ -5,6 +5,8 @@ struct PreferencesView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var showPayDayPicker = false
     @State private var remindersEnabled = ReminderPreferences().remindersEnabled
+    @State private var diagnosticSharingEnabled =
+        AnalyticsService.shared.isDiagnosticSharingEnabled
     @State private var reminderTask: Task<Void, Never>?
     @FocusState private var currencyConverterFocus: CurrencySettingView.ConverterField?
 
@@ -38,6 +40,24 @@ struct PreferencesView: View {
                 Text("Un rappel par mois, le jour de paie, pour pointer tes dépenses. Tu peux couper quand tu veux.")
             }
             .listRowBackground(Color.surfaceContainerHigh)
+
+            Section {
+                Toggle(
+                    "Partager les diagnostics",
+                    isOn: diagnosticSharingBinding
+                )
+                .tint(Color.pulpePrimary)
+            } header: {
+                Text("DONNÉES ET CONFIDENTIALITÉ")
+                    .font(PulpeTypography.labelLarge)
+            } footer: {
+                Text(
+                    "Associe à ton compte les événements techniques et erreurs "
+                        + "pour comprendre les problèmes et t’aider plus rapidement. "
+                        + "Aucun montant ni contenu saisi n’est collecté."
+                )
+            }
+            .listRowBackground(Color.surfaceContainerHigh)
         }
         .scrollContentBackground(.hidden)
         .pulpeBackground()
@@ -64,6 +84,16 @@ struct PreferencesView: View {
                 remindersEnabled = newValue  // optimistic; reverted below on denial
                 reminderTask?.cancel()  // latest toggle wins; a stale in-flight apply must not land after this one
                 reminderTask = Task { await applyReminderPreference(newValue) }
+            }
+        )
+    }
+
+    private var diagnosticSharingBinding: Binding<Bool> {
+        Binding(
+            get: { diagnosticSharingEnabled },
+            set: { enabled in
+                diagnosticSharingEnabled = enabled
+                AnalyticsService.shared.setDiagnosticSharingEnabled(enabled)
             }
         )
     }

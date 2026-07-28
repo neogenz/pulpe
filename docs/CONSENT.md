@@ -19,6 +19,19 @@ Surfaces : `feature/auth/signup` (web), `Onboarding/Steps/WelcomeStep` et
 `RegistrationStep` (iOS, via `AppURLs.legalDisclosure`). `LoginView.termsFooter` est un
 simple pied de liens, sans énoncé d'acceptation — hors périmètre.
 
+## Analytics identifiées
+
+L'acceptation des CGU ne vaut pas accord distinct à l'analytics. Pulpe active par défaut
+les diagnostics PostHog sur la base produit documentée de l'intérêt légitime et expose,
+sur web et iOS, un réglage local immédiatement révocable :
+**Paramètres → Données de diagnostic → Partager les diagnostics**.
+
+La désactivation arrête les captures et le replay, efface l'association locale à
+l'identité PostHog et conserve le choix sur l'appareil. La réactivation associe de nouveau
+la session authentifiée à l'UUID Supabase, l'email et le prénom utiles au support.
+Ce choix d'implémentation n'est pas une conclusion de conformité juridique et doit être
+revu par un professionnel si le contexte commercial ou la collecte évolue.
+
 ## Pourquoi deux verbes
 
 On **accepte** un contrat (CGU) ; on **prend connaissance** d'une information
@@ -74,4 +87,4 @@ Repasser à une acceptation explicite et tracée si l'un de ces éléments appar
 | Abonnement payant facturé en direct (hors achat intégré) | Contrat à titre onéreux, exigences consommateur renforcées |
 | Clause à saillance renforcée (juridiction, limitation de responsabilité, tacite reconduction `L. 215-1`) | Formalisme d'opposabilité spécifique |
 | Clientèle professionnelle | Régime contractuel distinct |
-| Activation d'un traitement analytique lié à l'authentification | Le consentement analytique doit être un acte dédié et révocable, distinct de la création de compte |
+| Une revue juridique impose le consentement préalable pour l'analytics identifiée | Remplacer l'opt-out local par un acte dédié, traçable et révocable, distinct de la création de compte |

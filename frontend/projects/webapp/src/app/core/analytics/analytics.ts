@@ -51,9 +51,13 @@ export class AnalyticsService implements OnDestroy {
    */
   readonly isActive = computed(() => {
     return (
-      this.#postHogService.isInitialized() && this.#postHogService.isEnabled()
+      this.#postHogService.isInitialized() &&
+      this.#postHogService.isEnabled() &&
+      this.#postHogService.diagnosticSharingEnabled()
     );
   });
+  readonly diagnosticSharingEnabled =
+    this.#postHogService.diagnosticSharingEnabled;
 
   /**
    * Initialize analytics tracking.
@@ -111,11 +115,11 @@ export class AnalyticsService implements OnDestroy {
             userId: authState.user.id,
             isDemoMode,
           });
-        } else if (!authState.isAuthenticated && !authState.isLoading) {
-          // Do NOT call posthog.reset() on every anonymous tick: it would
-          // destroy the distinct_id bootstrapped from the landing via ?ph_did=
-          // and wipe registered super properties (platform, environment, app_version).
-          // reset() belongs in the explicit signOut flow; see AuthStore.
+        } else if (
+          !active ||
+          (!authState.isAuthenticated && !authState.isLoading)
+        ) {
+          // Identity reset belongs to explicit logout or the local opt-out.
           this.#trackingEnabledForSession = false;
           this.#isIdentified = false;
         }
@@ -161,6 +165,10 @@ export class AnalyticsService implements OnDestroy {
       return;
     }
     this.#postHogService.setPersonProperties(properties);
+  }
+
+  setDiagnosticSharingEnabled(enabled: boolean): void {
+    this.#postHogService.setDiagnosticSharingEnabled(enabled);
   }
 
   /**
