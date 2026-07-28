@@ -38,6 +38,7 @@ enum AnalyticsEvent: String, CaseIterable {
     case loginFailed = "login_failed"
     case signupFailed = "signup_failed"
     case sessionRestoreFailed = "session_restore_failed"
+    case authSessionDiagnostic = "auth_session_diagnostic"
     case logoutCompleted = "logout_completed"
     case pinSetupCompleted = "pin_setup_completed"
     case pinEntered = "pin_entered"

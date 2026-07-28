@@ -1,3 +1,5 @@
+// swiftlint:disable file_length
+
 import Foundation
 import LocalAuthentication
 import OSLog
@@ -49,7 +51,8 @@ actor AuthService {
                     storage: storage,
                     storageKey: PulpeAuthStorage.sessionStorageKey,
                     emitLocalSessionAsInitialSession: true
-                )
+                ),
+                global: .init(logger: PulpeSupabaseLogger())
             )
         )
     }
@@ -60,11 +63,28 @@ actor AuthService {
         authStateListenerTask = Task(name: "AuthService.authStateListener") { [weak self] in
             for await (event, session) in stream {
                 switch event {
-                case .initialSession, .tokenRefreshed:
+                case .initialSession:
                     Logger.auth.debug("[AUTH] session synchronized via PulpeAuthStorage")
+                    Self.captureSessionDiagnostic(
+                        source: "sdk_event",
+                        outcome: "initial_session",
+                        session: session
+                    )
+                    await self?.refreshBiometricSnapshotIfPresent(session)
+                case .tokenRefreshed:
+                    Logger.auth.debug("[AUTH] session synchronized via PulpeAuthStorage")
+                    Self.captureSessionDiagnostic(
+                        source: "sdk_event",
+                        outcome: "token_refreshed",
+                        session: session
+                    )
                     await self?.refreshBiometricSnapshotIfPresent(session)
                 case .signedOut:
                     Logger.auth.debug("[AUTH] signedOut — SDK cleared storage")
+                    AnalyticsService.captureAuthSessionDiagnostic(
+                        source: "sdk_event",
+                        outcome: "signed_out"
+                    )
                 default:
                     break
                 }
@@ -111,7 +131,10 @@ actor AuthService {
     /// so "sessionMissing + no blob" is a reliable terminal verdict. NEVER write that
     /// blob from the app: the SDK persists every rotation itself, and a second writer
     /// could overwrite a freshly-rotated session with a consumed refresh token.
-    private func checkAndHandleConfirmedTerminalSessionFailure(_ error: any Error) -> Bool {
+    private func checkAndHandleConfirmedTerminalSessionFailure(
+        _ error: any Error,
+        source: String
+    ) -> Bool {
         guard Self.isTerminalSessionFailure(error) else { return false }
         let blob: Data?
         do {
@@ -119,18 +142,36 @@ actor AuthService {
         } catch {
             // Slot unreadable — cannot confirm a logout on a keychain read failure.
             Logger.auth.warning("session slot unreadable - \(error, privacy: .public)")
+            AnalyticsService.captureAuthSessionDiagnostic(
+                source: source,
+                outcome: "storage_unreadable"
+            )
             return false
         }
-        guard let blob else { return true }
+        guard let blob else {
+            AnalyticsService.captureAuthSessionDiagnostic(
+                source: source,
+                outcome: "missing_blob"
+            )
+            return true
+        }
         // sessionMissing with a persisted blob: either a benign write race (the SDK
         // re-reads the slot on the next attempt) or an undecodable blob the SDK can
         // never restore. Purge the latter so the app converges to the login screen
         // instead of an endless retry loop against a corrupt slot.
         if (try? Self.sessionDecoder.decode(Session.self, from: blob)) == nil {
             Logger.auth.error("session slot undecodable — purging so logout can be confirmed")
+            AnalyticsService.captureAuthSessionDiagnostic(
+                source: source,
+                outcome: "undecodable_blob"
+            )
             try? storage.remove(key: PulpeAuthStorage.sessionStorageKey)
             return true
         }
+        AnalyticsService.captureAuthSessionDiagnostic(
+            source: source,
+            outcome: "valid_blob"
+        )
         return false
     }
 
@@ -141,11 +182,17 @@ actor AuthService {
     }
 
     func validateSession() async throws -> UserInfo? {
+        capturePersistedSessionDiagnostic(source: "session_validation", outcome: "started")
         do {
             let session = try await supabase.auth.session
+            Self.captureSessionDiagnostic(
+                source: "session_validation",
+                outcome: "succeeded",
+                session: session
+            )
             return Self.userInfo(from: session.user, fallbackEmail: "")
         } catch {
-            if checkAndHandleConfirmedTerminalSessionFailure(error) {
+            if checkAndHandleConfirmedTerminalSessionFailure(error, source: "session_validation") {
                 Logger.auth.info("validateSession: no active session (logged out)")
                 return nil
             }
@@ -206,15 +253,18 @@ actor AuthService {
 
     /// Forces Supabase to rotate the refresh token even when the access token has not expired.
     /// Used after an API 401 so retrying cannot reuse the token that the backend rejected.
-    func forceRefreshAccessToken() async throws -> String? {
+    func forceRefreshAccessToken(source: String = "forced_refresh") async throws -> String? {
+        capturePersistedSessionDiagnostic(source: source, outcome: "started")
         do {
             let session = try await supabase.auth.refreshSession()
+            Self.captureSessionDiagnostic(source: source, outcome: "succeeded", session: session)
             return session.accessToken
         } catch {
-            if checkAndHandleConfirmedTerminalSessionFailure(error) {
+            if checkAndHandleConfirmedTerminalSessionFailure(error, source: source) {
                 Logger.auth.info("forceRefreshAccessToken: no active session (logged out)")
                 return nil
             }
+            AnalyticsService.captureAuthSessionDiagnostic(source: source, outcome: "failed_retryable")
             Logger.auth.warning(
                 "forceRefreshAccessToken: refresh unavailable - \(error, privacy: .public)"
             )
@@ -270,7 +320,7 @@ actor AuthService {
         } catch {
             // Keep retrying after transport and transient SDK failures. A confirmed
             // terminal logout is the only case where pending work cannot succeed.
-            if checkAndHandleConfirmedTerminalSessionFailure(error) {
+            if checkAndHandleConfirmedTerminalSessionFailure(error, source: "biometric_resync") {
                 pendingBiometricResync = false
             }
         }
@@ -343,6 +393,49 @@ actor AuthService {
     }
 }
 
+// MARK: - Session Diagnostics
+
+private extension AuthService {
+    static func captureSessionDiagnostic(source: String, outcome: String, session: Session?) {
+        AnalyticsService.captureAuthSessionDiagnostic(
+            source: source,
+            outcome: outcome,
+            storageState: session == nil ? "missing" : "available",
+            accessTokenExpiresInSeconds: session.map {
+                Int($0.expiresAt - Date().timeIntervalSince1970)
+            }
+        )
+    }
+
+    func capturePersistedSessionDiagnostic(source: String, outcome: String) {
+        do {
+            guard let blob = try storage.retrieve(key: PulpeAuthStorage.sessionStorageKey) else {
+                AnalyticsService.captureAuthSessionDiagnostic(
+                    source: source,
+                    outcome: outcome,
+                    storageState: "missing"
+                )
+                return
+            }
+            guard let session = try? Self.sessionDecoder.decode(Session.self, from: blob) else {
+                AnalyticsService.captureAuthSessionDiagnostic(
+                    source: source,
+                    outcome: outcome,
+                    storageState: "undecodable"
+                )
+                return
+            }
+            Self.captureSessionDiagnostic(source: source, outcome: outcome, session: session)
+        } catch {
+            AnalyticsService.captureAuthSessionDiagnostic(
+                source: source,
+                outcome: outcome,
+                storageState: "unreadable"
+            )
+        }
+    }
+}
+
 // MARK: - OAuth
 
 extension AuthService {
@@ -362,6 +455,41 @@ extension AuthService {
     private func signInWithIdToken(_ credentials: OpenIDConnectCredentials) async throws -> UserInfo {
         let session = try await supabase.auth.signInWithIdToken(credentials: credentials)
         return Self.userInfo(from: session.user, fallbackEmail: "")
+    }
+}
+
+/// Captures only Supabase's terminal session code. The SDK otherwise maps four
+/// different server responses to `sessionMissing` after deleting local storage.
+/// Request bodies and logger context contain refresh tokens and are never forwarded.
+struct PulpeSupabaseLogger: SupabaseLogger {
+    private static let cleanupCodes: Set<String> = [
+        "session_not_found",
+        "session_expired",
+        "refresh_token_not_found",
+        "refresh_token_already_used"
+    ]
+
+    func log(message: SupabaseLogMessage) {
+        guard let (code, status) = Self.cleanupError(from: message.message) else { return }
+        AnalyticsService.captureAuthSessionDiagnostic(
+            source: "supabase_auth_response",
+            outcome: code,
+            status: status
+        )
+    }
+
+    static func cleanupError(from message: String) -> (code: String, status: Int)? {
+        let prefix = "Response: Status code: "
+        guard message.hasPrefix(prefix),
+              let status = Int(message.dropFirst(prefix.count).prefix(while: \.isNumber)),
+              let bodyRange = message.range(of: "\nBody: "),
+              let data = String(message[bodyRange.upperBound...]).data(using: .utf8),
+              let body = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let code = (body["code"] as? String) ?? (body["error_code"] as? String),
+              cleanupCodes.contains(code) else {
+            return nil
+        }
+        return (code, status)
     }
 }
 

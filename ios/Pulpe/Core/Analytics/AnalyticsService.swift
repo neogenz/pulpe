@@ -39,6 +39,7 @@ final class AnalyticsService {
         PostHogSDK.shared.register([
             "environment": AppConfiguration.environment.rawValue,
             "app_version": AppConfiguration.appVersion,
+            "build_number": AppConfiguration.buildNumber,
             "platform": "ios"
         ])
 
@@ -61,6 +62,43 @@ final class AnalyticsService {
             "error_kind": String(describing: kind),
             "error_message": AuthErrorLocalizer.localize(error)
         ])
+    }
+
+    nonisolated static func captureAuthSessionDiagnostic(
+        source: String,
+        outcome: String,
+        status: Int? = nil,
+        requestID: String? = nil,
+        endpoint: String? = nil,
+        isRetry: Bool? = nil,
+        storageState: String? = nil,
+        accessTokenExpiresInSeconds: Int? = nil
+    ) {
+        Task { @MainActor in
+            var properties: [String: Any] = [
+                "source": source,
+                "outcome": outcome
+            ]
+            if let status {
+                properties["status"] = status
+            }
+            if let requestID {
+                properties["request_id"] = requestID
+            }
+            if let endpoint {
+                properties["endpoint"] = endpoint
+            }
+            if let isRetry {
+                properties["is_retry"] = isRetry
+            }
+            if let storageState {
+                properties["storage_state"] = storageState
+            }
+            if let accessTokenExpiresInSeconds {
+                properties["access_token_expires_in_seconds"] = accessTokenExpiresInSeconds
+            }
+            shared.capture(.authSessionDiagnostic, properties: properties)
+        }
     }
 
     // MARK: - Screen Tracking

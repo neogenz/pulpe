@@ -25,6 +25,7 @@ struct AnalyticsServiceTests {
         #expect(AnalyticsEvent.signupCompleted.rawValue == "signup_completed")
         #expect(AnalyticsEvent.onboardingStepCompleted.rawValue == "onboarding_step_completed")
         #expect(AnalyticsEvent.loginCompleted.rawValue == "login_completed")
+        #expect(AnalyticsEvent.authSessionDiagnostic.rawValue == "auth_session_diagnostic")
         #expect(AnalyticsEvent.pinSetupCompleted.rawValue == "pin_setup_completed")
         #expect(AnalyticsEvent.budgetCreated.rawValue == "budget_created")
         #expect(AnalyticsEvent.transactionCreated.rawValue == "transaction_created")

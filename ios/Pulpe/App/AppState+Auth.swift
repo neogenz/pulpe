@@ -148,6 +148,10 @@ extension AppState {
             identifyUserForAnalytics(user, destination: destination)
         }
         authState = .loading
+        AnalyticsService.captureAuthSessionDiagnostic(
+            source: "post_auth_destination",
+            outcome: destination.diagnosticOutcome
+        )
 
         if shouldRedirectToOnboarding(for: destination), let user = currentUser {
             recoveryFlowCoordinator.reset()

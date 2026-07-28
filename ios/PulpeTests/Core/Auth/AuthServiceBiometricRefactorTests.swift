@@ -63,6 +63,33 @@ struct AuthServiceBiometricRefactorTests {
         #expect(!AuthService.isTerminalSessionFailure(serverError))
     }
 
+    @Test("Supabase cleanup response preserves the exact server error code for diagnostics")
+    func supabaseLogger_extractsExactCleanupCode() throws {
+        let message = """
+        Response: Status code: 400 Content-Length: 91
+        Body: {
+          "error_code" : "refresh_token_already_used",
+          "msg" : "Invalid Refresh Token"
+        }
+        """
+
+        let result = try #require(PulpeSupabaseLogger.cleanupError(from: message))
+        #expect(result.code == "refresh_token_already_used")
+        #expect(result.status == 400)
+    }
+
+    @Test("Supabase logger ignores request bodies containing refresh tokens")
+    func supabaseLogger_doesNotParseSensitiveRequestBody() {
+        let message = """
+        Request: POST https://example.supabase.co/auth/v1/token?grant_type=refresh_token
+        Body: {
+          "refresh_token" : "secret-token"
+        }
+        """
+
+        #expect(PulpeSupabaseLogger.cleanupError(from: message) == nil)
+    }
+
     // MARK: - Token rotation slot consistency
 
     @Test("Token rotation via PulpeAuthStorage does not touch biometric slot bytes",
