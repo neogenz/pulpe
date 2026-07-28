@@ -47,6 +47,7 @@ export function passwordCriteria(
  */
 @Component({
   selector: 'pulpe-password-criteria',
+  host: { class: 'block' },
   imports: [MatIconModule, TranslocoPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

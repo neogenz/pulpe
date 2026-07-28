@@ -67,6 +67,44 @@ test.describe('Authentication', () => {
     await expect(submitButton).toBeVisible();
   });
 
+  test('should keep password criteria clear of the confirmation label', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/signup');
+
+    const passwordInput = page.getByTestId('password-input');
+    const confirmPasswordInput = page.getByTestId('confirm-password-input');
+    const lastCriterion = page
+      .getByTestId('password-criteria')
+      .locator('li')
+      .last();
+    const confirmPasswordLabel = confirmPasswordInput
+      .locator('xpath=ancestor::mat-form-field')
+      .locator('.mat-mdc-floating-label');
+
+    const expectNoOverlap = async () => {
+      const [criterionBox, labelBox] = await Promise.all([
+        lastCriterion.boundingBox(),
+        confirmPasswordLabel.boundingBox(),
+      ]);
+
+      expect(criterionBox).not.toBeNull();
+      expect(labelBox).not.toBeNull();
+      expect(criterionBox!.y + criterionBox!.height).toBeLessThanOrEqual(
+        labelBox!.y,
+      );
+    };
+
+    await passwordInput.fill('abc');
+    await confirmPasswordInput.focus();
+    await expectNoOverlap();
+
+    await passwordInput.fill('Password1');
+    await confirmPasswordInput.fill('Password1');
+    await expectNoOverlap();
+  });
+
   test('should maintain session after refresh', async ({
     authenticatedPage,
   }) => {
