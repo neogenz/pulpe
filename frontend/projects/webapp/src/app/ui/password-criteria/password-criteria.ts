@@ -73,7 +73,7 @@ export function passwordCriteria(
           [class.text-primary]="criterion.isMet"
           [class.text-on-surface-variant]="!criterion.isMet"
         >
-          <mat-icon aria-hidden="true" class="!text-base !w-4 !h-4">
+          <mat-icon inline aria-hidden="true" class="text-base! leading-none!">
             {{ criterion.isMet ? 'check_circle' : 'radio_button_unchecked' }}
           </mat-icon>
           <!-- count ne sert qu'au label minLength ; les autres clés l'ignorent. -->

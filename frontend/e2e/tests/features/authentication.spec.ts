@@ -105,6 +105,31 @@ test.describe('Authentication', () => {
     await expectNoOverlap();
   });
 
+  test('should keep compact password criterion icons unclipped', async ({
+    page,
+  }) => {
+    await page.goto('/signup');
+
+    const icons = page.getByTestId('password-criteria').locator('mat-icon');
+    await expect(icons).toHaveCount(3);
+
+    const layouts = await icons.evaluateAll((elements) =>
+      elements.map((element) => {
+        const style = getComputedStyle(element);
+        return {
+          height: style.height,
+          isInline: element.classList.contains('mat-icon-inline'),
+          lineHeight: style.lineHeight,
+        };
+      }),
+    );
+
+    for (const layout of layouts) {
+      expect(layout.isInline).toBe(true);
+      expect(layout.lineHeight).toBe(layout.height);
+    }
+  });
+
   test('should maintain session after refresh', async ({
     authenticatedPage,
   }) => {

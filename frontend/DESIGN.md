@@ -57,6 +57,7 @@ All Material components are themed via `mat.<component>-overrides()` mixins in g
 - **Form fields:** `matInput` with floating labels. Custom `--pulpe-input-*` overrides for brand consistency.
 - **Cards:** Plain `<div>` with Tailwind utilities; `mat-card` is used only when its accessibility behaviors are required.
 - **Chips:** TODO — chip vocabulary not yet extracted. The `PulpeChip` atom on iOS does not have a webapp counterpart yet. **Open question:** should we ship a shared web `<pulpe-chip>` Angular component, or rely on `mat-chip` with `--pulpe-*` overrides? Decide during the next extraction pass.
+- **Inline icons:** Use Angular Material's native `<mat-icon inline>` whenever an icon follows surrounding text sizing or is smaller than the default 24 px. Size the glyph with typography utilities; never force matching `width` and `height`, which clips the 24 px Material line box.
 
 ### Webapp-Specific Named Rules
 
