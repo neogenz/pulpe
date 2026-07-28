@@ -43,6 +43,7 @@ export class SearchTransactionsUseCase {
     filters: TransactionSearchQuery,
     user: AuthenticatedUser,
   ): Promise<TransactionSearchResult[]> {
+    const startedAt = performance.now();
     const searchPattern = filters.q ? this.buildSearchPattern(filters.q) : null;
 
     const budgetIds = filters.years?.length
@@ -71,11 +72,9 @@ export class SearchTransactionsUseCase {
 
     this.logger.info(
       {
-        userId: user.id,
-        query: filters.q,
         years: filters.years,
-        tagIds: filters.tagIds,
         resultCount: allResults.length,
+        durationMs: Math.round(performance.now() - startedAt),
         operation: 'transaction.search',
       },
       'Transactions searched',

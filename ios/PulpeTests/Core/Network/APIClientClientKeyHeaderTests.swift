@@ -28,6 +28,8 @@ struct APIClientClientKeyHeaderTests {
         let request = recorder.request
         #expect(request?.value(forHTTPHeaderField: "Authorization") == "Bearer \(authToken)")
         #expect(request?.value(forHTTPHeaderField: "X-Client-Key") == clientKey)
+        let requestID = request?.value(forHTTPHeaderField: "X-Request-Id")
+        #expect(requestID.flatMap(UUID.init(uuidString:)) != nil)
     }
 
     @Test func requestVoid_includesClientKeyAndAuthorizationHeaders() async throws {
@@ -44,6 +46,8 @@ struct APIClientClientKeyHeaderTests {
         let request = recorder.request
         #expect(request?.value(forHTTPHeaderField: "Authorization") == "Bearer \(authToken)")
         #expect(request?.value(forHTTPHeaderField: "X-Client-Key") == clientKey)
+        let requestID = request?.value(forHTTPHeaderField: "X-Request-Id")
+        #expect(requestID.flatMap(UUID.init(uuidString:)) != nil)
     }
 
     @Test func request_omitsClientKeyHeaderWhenUnavailable() async throws {

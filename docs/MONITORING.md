@@ -174,6 +174,19 @@ user_id = "user-123"               # Erreurs utilisateur spécifique
 
 ## 🔍 Debugging & Utilisation {#troubleshooting}
 
+### Diagnostic HTTP distant en preview
+
+1. Définir `DEBUG_HTTP_FULL=true` uniquement sur le backend Railway de preview,
+   puis redéployer.
+2. Reproduire avec un compte et des données de test.
+3. Relever le `X-Request-Id` du client web ou iOS et filtrer les logs backend
+   avec cet identifiant.
+4. Remettre `DEBUG_HTTP_FULL=false` et redéployer après le diagnostic.
+
+Le mode détaillé conserve des payloads assainis et tronqués, sans commande
+cURL. Authorization, cookies, tokens, mots de passe, PIN et clés restent
+masqués. Le flag est toujours ignoré en production.
+
 ### Identifier une Erreur
 1. **PostHog Dashboard** → Events → Errors
 2. Filtrer par `app_version` si nécessaire

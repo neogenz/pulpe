@@ -251,6 +251,11 @@ IP_BLACKLIST=
 DEBUG_HTTP_FULL=false
 ```
 
+`DEBUG_HTTP_FULL=true` ajoute en development/preview les headers, paramètres et
+payloads récursivement assainis et bornés. Le flag est ignoré si `NODE_ENV` ou
+`RAILWAY_ENVIRONMENT_NAME` vaut `production`. Les logs standards conservent
+l’ID de requête, la route, le statut et la durée.
+
 ### Endpoints Utiles
 
 - **API** : http://localhost:3000/api/v1
