@@ -59,7 +59,7 @@
     "@tailwindcss/postcss": "^4.1.17",
     "chart.js": "^4.5.1",
     "date-fns": "^4.1.0",
-    "driver.js": "^1.4.0",
+    "driver.js": "^1.8.0",
     "lottie-web": "^5.13.0",
     "ng2-charts": "^8.0.0",
     "ngx-lottie": "^22.0.0",
