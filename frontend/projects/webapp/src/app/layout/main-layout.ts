@@ -263,6 +263,7 @@ interface NavigationItem {
                 (click)="drawer.toggle()"
                 aria-label="Toggle navigation"
                 data-testid="menu-toggle"
+                data-tour="navigation"
               >
                 <mat-icon>menu</mat-icon>
               </button>
@@ -856,8 +857,8 @@ export default class MainLayout {
     const url = this.#currentRoute();
     if (url.includes(`/${ROUTES.DASHBOARD}`)) return 'dashboard';
     if (url.match(/\/budget\/[^/]+$/)) return 'budget-details';
-    if (url.includes(`/${ROUTES.BUDGET}`)) return 'budget-list';
     if (url.includes(`/${ROUTES.BUDGET_TEMPLATES}`)) return 'templates-list';
+    if (url.includes(`/${ROUTES.BUDGET}`)) return 'budget-list';
     if (url.match(/\/savings-goals$/)) return 'savings-goals';
     return null;
   });

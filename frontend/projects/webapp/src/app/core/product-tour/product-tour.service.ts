@@ -44,6 +44,7 @@ export type TourId = 'intro' | TourPageId;
  * and Angular animations have completed
  */
 export const TOUR_START_DELAY = 500;
+const TOUR_TARGET_TIMEOUT = 10_000;
 
 /**
  * Tour identifiers used to generate storage keys.
@@ -66,6 +67,11 @@ export class ProductTourService {
 
   /** Active Driver.js instance to prevent concurrent tours */
   #activeDriver: Driver | null = null;
+
+  #pendingTour: {
+    observer: MutationObserver;
+    timeoutId: number;
+  } | null = null;
 
   /**
    * Check if user is authenticated.
@@ -135,10 +141,19 @@ export class ProductTourService {
    * Cancel active tour if running
    */
   cancelActiveTour(): void {
+    this.#cancelPendingTour();
     if (this.#activeDriver) {
       this.#activeDriver.destroy();
       this.#activeDriver = null;
     }
+  }
+
+  #cancelPendingTour(): void {
+    if (!this.#pendingTour) return;
+
+    this.#pendingTour.observer.disconnect();
+    this.#document.defaultView?.clearTimeout(this.#pendingTour.timeoutId);
+    this.#pendingTour = null;
   }
 
   /**
@@ -180,10 +195,52 @@ export class ProductTourService {
       return;
     }
 
+    this.#cancelPendingTour();
+
     const includeIntro = !this.hasSeenIntro();
     const steps = this.#getStepsForPage(pageId, includeIntro);
+    const firstPageTarget = this.#getPageSteps(pageId).find(
+      (step) => typeof step.element === 'string',
+    )?.element;
 
-    // Create driver instance first to avoid closure timing issues
+    if (
+      typeof firstPageTarget === 'string' &&
+      !this.#document.querySelector(firstPageTarget)
+    ) {
+      const view = this.#document.defaultView;
+      if (!view) return;
+
+      const observer = new view.MutationObserver(() => {
+        if (!this.#document.querySelector(firstPageTarget)) return;
+
+        this.#cancelPendingTour();
+        this.#startTour(pageId, includeIntro, steps);
+      });
+      const timeoutId = view.setTimeout(
+        () => this.#cancelPendingTour(),
+        TOUR_TARGET_TIMEOUT,
+      );
+
+      this.#pendingTour = { observer, timeoutId };
+      observer.observe(this.#document.body, { childList: true, subtree: true });
+      return;
+    }
+
+    this.#startTour(pageId, includeIntro, steps);
+  }
+
+  #startTour(
+    pageId: TourPageId,
+    includeIntro: boolean,
+    steps: DriveStep[],
+  ): void {
+    const availableSteps = steps.filter(
+      (step) =>
+        typeof step.element !== 'string' ||
+        !!this.#document.querySelector(step.element),
+    );
+    if (availableSteps.length === 0) return;
+
     const tourDriver = driver();
     this.#activeDriver = tourDriver;
 
@@ -198,7 +255,9 @@ export class ProductTourService {
       overlayColor: '#000',
       overlayOpacity: 0.75,
       smoothScroll: true,
-      animate: true,
+      animate: !this.#document.defaultView?.matchMedia?.(
+        '(prefers-reduced-motion: reduce)',
+      ).matches,
       disableActiveInteraction: false,
       stagePadding: 10,
       stageRadius: 8,
@@ -214,7 +273,7 @@ export class ProductTourService {
     };
 
     tourDriver.setConfig(driverConfig);
-    tourDriver.setSteps(steps);
+    tourDriver.setSteps(availableSteps);
     tourDriver.drive();
   }
 
@@ -258,21 +317,20 @@ export class ProductTourService {
       popover: {
         title: 'Bienvenue dans Pulpe',
         description: `
-          <p>Avec Pulpe, fini le stress de la fin de mois. Tu anticipes tes dépenses, et tu vis sereinement.</p>
-          <p>On y va ? C'est parti pour 2 minutes de découverte.</p>
+          <p>Pulpe t'aide à préparer tes mois et à suivre tes revenus, dépenses et épargnes. Voici les repères utiles pour commencer.</p>
         `,
       },
     },
     {
       element: '[data-tour="navigation"]',
       popover: {
-        title: 'Quatre espaces, un cap',
+        title: 'Les espaces de Pulpe',
         description: `
           <ul>
-            <li><strong>Tableau de bord</strong> : ici, tu suis tes dépenses en temps réel, sans surprise.</li>
-            <li><strong>Budgets</strong> : prépare tes prochains mois en 2 clics, et vois loin.</li>
-            <li><strong>Modèles</strong> : ta recette mensuelle, à réutiliser sans effort.</li>
-            <li><strong>Objectifs</strong> : mets de l'argent de côté pour tes projets, mois après mois.</li>
+            <li><strong>Tableau de bord</strong> : suis le mois en cours et pointe tes prévisions.</li>
+            <li><strong>Budgets</strong> : consulte, crée et ajuste chaque mois.</li>
+            <li><strong>Modèles</strong> : prépare des revenus, dépenses et épargnes à réutiliser.</li>
+            <li><strong>Objectifs</strong> : suis tes projets d'épargne et les prévisions qui leur sont liées.</li>
           </ul>
         `,
         side: 'right',
@@ -285,10 +343,9 @@ export class ProductTourService {
     {
       element: '[data-tour="dashboard-hero"]',
       popover: {
-        title: 'Ton reste à dépenser',
+        title: 'Disponible à dépenser',
         description: `
-          <p>Ici, tu vois en un clin d'œil ce qu'il te reste à dépenser ce mois-ci.</p>
-          <p>Plus de mauvaises surprises, juste de la clarté.</p>
+          <p>Ce montant résume ce qu'il reste pour le mois en tenant compte des revenus, dépenses et épargnes. Ouvre ce bloc pour accéder au budget détaillé.</p>
         `,
         side: 'bottom',
         align: 'center',
@@ -297,10 +354,9 @@ export class ProductTourService {
     {
       element: '[data-tour="dashboard-lists"]',
       popover: {
-        title: 'Tes prévisions et transactions',
+        title: 'Prévisions à pointer et transactions',
         description: `
-          <p>Tes frais fixes sont déjà pris en compte. Le reste, c'est toi qui décides.</p>
-          <p>Un coup d'œil, et tu sais où tu en es.</p>
+          <p>Retrouve ici les prévisions encore à pointer et les dernières transactions du mois. Ouvre le budget pour voir la liste complète.</p>
         `,
         side: 'top',
         align: 'start',
@@ -309,10 +365,9 @@ export class ProductTourService {
     {
       element: '[data-tour="add-transaction-fab"]',
       popover: {
-        title: 'Note une dépense',
+        title: 'Ajouter une transaction',
         description: `
-          <p>Note tes dépenses en 5 secondes. C'est rapide, et ça te libère l'esprit.</p>
-          <p>Une petite habitude pour un grand soulagement.</p>
+          <p>Ajoute un revenu, une dépense ou une épargne depuis ce bouton.</p>
         `,
         side: 'top',
         align: 'end',
@@ -324,10 +379,9 @@ export class ProductTourService {
     {
       element: '[data-tour="year-tabs"] > mat-tab-header',
       popover: {
-        title: 'Vois loin',
+        title: 'Parcourir les années',
         description: `
-          <p>Passe d'une année à l'autre pour anticiper tes gros mois (vacances, impôts, fêtes…).</p>
-          <p>Préparé à l'avance = plus de sérénité après.</p>
+          <p>Passe d'une année à l'autre avec ces onglets.</p>
         `,
         side: 'bottom',
         align: 'start',
@@ -336,10 +390,9 @@ export class ProductTourService {
     {
       element: '[data-tour="calendar-grid"]',
       popover: {
-        title: "Ton année en un coup d'œil",
+        title: 'Ouvrir ou créer un mois',
         description: `
-          <p>Chaque mois a son propre budget. Ceux en gris sont prêts à être créés.</p>
-          <p>Clique sur un mois pour le personnaliser en 30 secondes.</p>
+          <p>Sélectionne un mois existant pour ouvrir son budget, ou un mois vide pour le créer.</p>
         `,
         side: 'top',
         align: 'center',
@@ -348,10 +401,9 @@ export class ProductTourService {
     {
       element: '[data-tour="create-budget"]',
       popover: {
-        title: 'Crée ton budget',
+        title: 'Ajouter un budget',
         description: `
-          <p>Sélectionne un modèle, et ton budget est prêt en un instant.</p>
-          <p>Plus de saisie fastidieuse : tout est déjà là.</p>
+          <p>Choisis un mois et un modèle. Les prévisions du modèle sont copiées dans le nouveau budget.</p>
         `,
         side: 'left',
         align: 'start',
@@ -363,10 +415,9 @@ export class ProductTourService {
     {
       element: '[data-tour="financial-overview"]',
       popover: {
-        title: 'Ton solde réel',
+        title: 'Disponible du mois',
         description: `
-          <p>Ton solde se met à jour automatiquement quand tu coches tes dépenses.</p>
-          <p>Tu sais toujours où tu en es, sans avoir à faire de calculs.</p>
+          <p>Ce bloc résume les revenus, les dépenses, l'épargne et le report éventuel du mois précédent.</p>
         `,
         side: 'bottom',
         align: 'center',
@@ -375,22 +426,20 @@ export class ProductTourService {
     {
       element: '[data-tour="budget-table"]',
       popover: {
-        title: 'Tes prévisions',
+        title: 'Prévisions du mois',
         description: `
-          <p>Coche tes dépenses au fur et à mesure pour suivre ton budget en temps réel.</p>
-          <p>Un clic sur une ligne pour tout modifier si besoin.</p>
+          <p>Pointe une prévision quand elle est réalisée. Ouvre une ligne pour la modifier ou consulter ses transactions.</p>
         `,
         side: 'top',
         align: 'center',
       },
     },
     {
-      element: '[data-tour="add-budget-line"]',
+      element: '[data-testid="add-budget-line-fab"]',
       popover: {
-        title: 'Ajuste ton mois',
+        title: 'Ajouter une prévision',
         description: `
-          <p>Besoin d'ajouter un revenu, une dépense ou une épargne ? C'est ici.</p>
-          <p>Choisis si c'est tous les mois ("récurrent") ou juste pour ce mois-ci.</p>
+          <p>Ajoute un Revenu, une Dépense ou une Épargne, puis choisis sa fréquence : Récurrent ou Prévu.</p>
         `,
         side: 'left',
         align: 'start',
@@ -402,34 +451,20 @@ export class ProductTourService {
     {
       element: '[data-tour="templates-list"]',
       popover: {
-        title: 'Ta base mensuelle',
+        title: 'Tes modèles de budget',
         description: `
-          <p>Ici, tu notes tes revenus et tes frais fixes (loyer, abonnements…).</p>
-          <p>C'est ta base pour créer tous tes budgets en un clic.</p>
+          <p>Un modèle regroupe les revenus, dépenses et épargnes que tu veux réutiliser. Ouvre un modèle pour modifier ses prévisions.</p>
         `,
         side: 'top',
         align: 'start',
       },
     },
     {
-      element: '[data-tour="template-counter"]',
-      popover: {
-        title: "Garde l'esprit léger",
-        description: `
-          <p>5 modèles max, c'est largement assez pour couvrir tous tes besoins.</p>
-          <p>Un pour les mois classiques, un pour les vacances… et hop, c'est prêt !</p>
-        `,
-        side: 'bottom',
-        align: 'start',
-      },
-    },
-    {
       element: '[data-tour="create-template"]',
       popover: {
-        title: 'Lance-toi',
+        title: 'Ajouter un modèle',
         description: `
-          <p>Crée ton premier modèle, et tes budgets futurs seront prêts en 1 clic.</p>
-          <p>C'est parti pour 2 minutes de configuration !</p>
+          <p>Crée un modèle, puis ajoute les prévisions à reprendre dans tes futurs budgets.</p>
         `,
         side: 'left',
         align: 'start',
@@ -440,24 +475,22 @@ export class ProductTourService {
   readonly #savingsGoalsSteps: DriveStep[] = [
     {
       popover: {
-        title: 'Épargne pour tes projets',
+        title: 'Des objectifs à ton rythme',
         description: `
-          <p>Un voyage, un imprévu, un gros achat… Fixe un montant à atteindre et une date, Pulpe s'occupe du calcul.</p>
-          <p>Ton objectif est réparti sur les mois qui restent : tu épargnes un peu chaque mois, sans y penser.</p>
+          <p>Seul le nom est obligatoire. Tu peux ajouter un montant cible, une date de début ou une échéance selon ton besoin. L'option d'épargne mensuelle peut préparer les prévisions associées sans créer de nouveaux budgets.</p>
         `,
       },
     },
     {
       element: '[data-tour="savings-goals-list"]',
       popover: {
-        title: 'Tout au même endroit',
+        title: 'Tes objectifs',
         description: `
-          <p>Chaque objectif affiche son montant visé et son échéance, en un coup d'œil.</p>
-          <p>En l'ouvrant, tu retrouves ton plan mois par mois et tu suis ta progression.</p>
+          <p>Chaque carte affiche les informations renseignées. Ouvre un objectif pour suivre les prévisions liées et ajuster son plan.</p>
         `,
         // 'bottom' anchors the popover in the empty space below the goals grid
         // (or the empty-state card on first run). A large, full-width target
-        // leaves no room above, so 'top' forces driver.js to flip — and its
+        // leaves no room above, so 'top' forces driver.js to flip, and its
         // reposition pass leaves the popover stuck at opacity 0.
         side: 'bottom',
         align: 'center',
@@ -466,10 +499,9 @@ export class ProductTourService {
     {
       element: '[data-tour="create-goal"]',
       popover: {
-        title: 'Lance-toi',
+        title: 'Nouvel objectif',
         description: `
-          <p>Crée ton premier objectif : donne-lui un nom, un montant et une date.</p>
-          <p>Pulpe prépare le reste. À toi de jouer !</p>
+          <p>Commence par le nom. Tu pourras compléter le montant, les dates et l'épargne mensuelle maintenant ou plus tard.</p>
         `,
         side: 'bottom',
         align: 'end',
