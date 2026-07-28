@@ -230,7 +230,7 @@ export function buildGoalProjectionChartData(
     datasets.unshift({
       data: months.map(() => targetAmount),
       label: labels.target,
-      borderColor: colorWithAlpha(theme.tickColor, 0.5),
+      borderColor: theme.tickColor,
       borderWidth: 1.5,
       pointRadius: 0,
       pointHoverRadius: 0,

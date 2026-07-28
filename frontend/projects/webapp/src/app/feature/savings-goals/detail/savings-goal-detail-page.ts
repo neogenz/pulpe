@@ -341,7 +341,16 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                 class="flex flex-col gap-1"
                 data-testid="stat-planned-projection"
               >
-                <span class="text-body-small text-on-surface-variant">
+                <span
+                  class="flex items-center gap-1.5 text-body-small text-on-surface-variant"
+                >
+                  @if (p.projected === null) {
+                    <span
+                      class="inline-block size-2.5 rounded-full bg-tertiary"
+                      aria-hidden="true"
+                      data-testid="stat-planned-projection-legend"
+                    ></span>
+                  }
                   {{ 'savingsGoals.detail.plannedProjection' | transloco }}
                 </span>
                 <span

@@ -127,6 +127,11 @@ describe('GoalProjectionChart', () => {
     expect(summary?.textContent).toContain("Projection à l'échéance");
     expect(
       fixture.nativeElement.querySelector(
+        '[data-testid="goal-projection-target-legend"]',
+      )?.classList,
+    ).toContain('bg-on-surface-variant');
+    expect(
+      fixture.nativeElement.querySelector(
         '[data-testid="goal-projection-summary-projection"]',
       )?.textContent,
     ).toContain('360');

@@ -407,6 +407,11 @@ describe('SavingsGoalDetailPage', () => {
     expect(query('stat-estimated-completion')).toBeTruthy();
     expect(query('stat-required')).toBeFalsy();
     expect(query('stat-projected')).toBeFalsy();
+    expect(
+      query('stat-planned-projection').query(
+        By.css('[data-testid="stat-planned-projection-legend"]'),
+      ),
+    ).toBeTruthy();
     expect(query('savings-goal-pace-chip')).toBeFalsy();
   });
 

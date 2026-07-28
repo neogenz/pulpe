@@ -79,8 +79,9 @@ import {
                 @switch (item.series) {
                   @case ('target') {
                     <span
-                      class="h-px w-5 shrink-0 bg-on-surface-variant/60"
+                      class="h-px w-5 shrink-0 bg-on-surface-variant"
                       aria-hidden="true"
+                      data-testid="goal-projection-target-legend"
                     ></span>
                   }
                   @case ('confirmed') {
