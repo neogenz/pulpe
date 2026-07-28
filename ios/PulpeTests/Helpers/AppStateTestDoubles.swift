@@ -75,16 +75,13 @@ extension AtomicFlag {
 final class MockAppAuthFlagsStore: AppAuthFlagsStoring, @unchecked Sendable {
     private let lock = NSLock()
     private var _hasLaunchedBefore: Bool
-    private var _didExplicitLogout: Bool
     private var _manualBiometricRetryRequired: Bool
 
     init(
         hasLaunchedBefore: Bool = true,
-        didExplicitLogout: Bool = false,
         manualBiometricRetryRequired: Bool = false
     ) {
         _hasLaunchedBefore = hasLaunchedBefore
-        _didExplicitLogout = didExplicitLogout
         _manualBiometricRetryRequired = manualBiometricRetryRequired
     }
 
@@ -98,24 +95,6 @@ final class MockAppAuthFlagsStore: AppAuthFlagsStoring, @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         _hasLaunchedBefore = true
-    }
-
-    var didExplicitLogout: Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return _didExplicitLogout
-    }
-
-    func setDidExplicitLogout(_ value: Bool) {
-        lock.lock()
-        defer { lock.unlock() }
-        _didExplicitLogout = value
-    }
-
-    func clearExplicitLogoutFlag() {
-        lock.lock()
-        defer { lock.unlock() }
-        _didExplicitLogout = false
     }
 
     var manualBiometricRetryRequired: Bool {

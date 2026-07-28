@@ -1,5 +1,4 @@
 import OSLog
-import Supabase
 
 /// Coordinates app startup with single-flight guarantee.
 /// Ensures only one auth resolution runs at a time, with proper cancellation of obsolete runs.
@@ -24,7 +23,6 @@ actor StartupCoordinator {
 
     struct StartupContext: Equatable, Sendable {
         let biometricEnabled: Bool
-        let didExplicitLogout: Bool
         let manualBiometricRetryRequired: Bool
     }
 
@@ -39,31 +37,19 @@ actor StartupCoordinator {
     // MARK: - Dependencies
 
     private let checkMaintenance: @Sendable () async throws -> Bool
-    private let validateBiometricSession: @Sendable () async throws -> BiometricSessionResult?
     private let validateRegularSession: @Sendable () async throws -> UserInfo?
-    private let validateBiometricKey: @Sendable (String) async -> Bool
-    private let storeSessionClientKey: @Sendable (String) async -> Void
-    private let clearStaleBiometricState: @Sendable () async -> Void
     private let clearExpiredBiometricState: @Sendable () async -> Void
     private let resolvePostAuth: @Sendable () async -> PostAuthDestination
 
     init(
         checkMaintenance: @escaping @Sendable () async throws -> Bool,
-        validateBiometricSession: @escaping @Sendable () async throws -> BiometricSessionResult?,
         validateRegularSession: @escaping @Sendable () async throws -> UserInfo?,
         resolvePostAuth: @escaping @Sendable () async -> PostAuthDestination,
-        validateBiometricKey: @escaping @Sendable (String) async -> Bool = { _ in true },
-        storeSessionClientKey: @escaping @Sendable (String) async -> Void = { _ in },
-        clearStaleBiometricState: @escaping @Sendable () async -> Void = {},
         clearExpiredBiometricState: @escaping @Sendable () async -> Void = {},
         timeout: Duration = StartupCoordinator.defaultTimeout
     ) {
         self.checkMaintenance = checkMaintenance
-        self.validateBiometricSession = validateBiometricSession
         self.validateRegularSession = validateRegularSession
-        self.validateBiometricKey = validateBiometricKey
-        self.storeSessionClientKey = storeSessionClientKey
-        self.clearStaleBiometricState = clearStaleBiometricState
         self.clearExpiredBiometricState = clearExpiredBiometricState
         self.resolvePostAuth = resolvePostAuth
         self.timeout = timeout
@@ -87,53 +73,31 @@ actor StartupCoordinator {
         }
         currentTask = startupTask
 
-        // When biometric auth will run, FaceID blocks on user interaction which
-        // can take an arbitrary amount of time (phone on desk, etc.).
-        // Skip the startup timeout — individual network operations within the
-        // biometric flow have their own URLSession timeouts.
-        // PUL-132: biometric-keychain read only happens on explicit-logout cold start
-        // (re-entry path). Normal cold-start with biometric enabled relies on the
-        // SDK-restored session from PulpeAuthStorage.
-        let biometricWillRun = context.biometricEnabled
-            && context.didExplicitLogout
-            && !context.manualBiometricRetryRequired
-
-        let result: StartupResult
-
-        if biometricWillRun {
-            Logger.auth.debug("[STARTUP] Biometric path — no startup timeout")
-            result = await startupTask.value
-        } else {
-            // Race startup against timeout for non-biometric paths
-            result = await withTaskGroup(of: StartupResult.self) { group in
-                group.addTask {
-                    await startupTask.value
-                }
-                group.addTask { [timeout] in
-                    do {
-                        try await Task.sleep(for: timeout)
-                        return .timeout
-                    } catch {
-                        // Cancelled - startup finished first
-                        return .cancelled
-                    }
-                }
-
-                // Return whichever finishes first
-                guard let firstResult = await group.next() else {
-                    return StartupResult.cancelled
-                }
-                group.cancelAll()
-
-                // If timeout won, invalidate the run and cancel the startup task
-                if firstResult == .timeout {
-                    self.currentRunId = nil
-                    startupTask.cancel()
-                    Logger.auth.warning("[STARTUP] Startup timed out after \(self.timeout)")
-                }
-
-                return firstResult
+        let result = await withTaskGroup(of: StartupResult.self) { group in
+            group.addTask {
+                await startupTask.value
             }
+            group.addTask { [timeout] in
+                do {
+                    try await Task.sleep(for: timeout)
+                    return .timeout
+                } catch {
+                    return .cancelled
+                }
+            }
+
+            guard let firstResult = await group.next() else {
+                return StartupResult.cancelled
+            }
+            group.cancelAll()
+
+            if firstResult == .timeout {
+                self.currentRunId = nil
+                startupTask.cancel()
+                Logger.auth.warning("[STARTUP] Startup timed out after \(self.timeout)")
+            }
+
+            return firstResult
         }
 
         // Only update state if this run wasn't superseded
@@ -188,10 +152,6 @@ actor StartupCoordinator {
             return .unauthenticated
         }
 
-        if let biometricResult = await performBiometricValidationIfNeeded(runId: runId, context: context) {
-            return biometricResult
-        }
-
         guard isCurrentRun(runId) && !Task.isCancelled else { return .cancelled }
         return await performRegularValidation(runId: runId, context: context)
     }
@@ -223,90 +183,6 @@ actor StartupCoordinator {
         return nil
     }
 
-    private func performBiometricValidationIfNeeded(runId: UUID, context: StartupContext) async -> StartupResult? {
-        // PUL-132: biometric-keychain read is the re-entry path after an explicit logout.
-        // For normal cold-start with biometric enabled (didExplicitLogout == false),
-        // SDK-restored session from PulpeAuthStorage is used via performRegularValidation.
-        guard context.biometricEnabled, context.didExplicitLogout else { return nil }
-        Logger.auth.debug("[STARTUP] Attempting biometric session validation (explicit-logout re-entry)")
-
-        do {
-            guard let biometricResult = try await validateBiometricSession() else {
-                return nil
-            }
-            guard isCurrentRun(runId) else { return .cancelled }
-            if let clientKeyHex = biometricResult.clientKeyHex {
-                await handleBiometricClientKey(runId: runId, hex: clientKeyHex)
-            }
-            return await makeAuthenticatedResult(runId: runId, user: biometricResult.user, source: "Biometric")
-        } catch {
-            return await handleBiometricValidationError(error, runId: runId)
-        }
-    }
-
-    private func handleBiometricValidationError(_ error: Error, runId: UUID) async -> StartupResult? {
-        if error is CancellationError {
-            return .cancelled
-        }
-        if let urlError = error as? URLError {
-            return handleBiometricURLError(urlError)
-        }
-        if let keychainError = error as? KeychainError {
-            return await handleBiometricKeychainError(keychainError, runId: runId)
-        }
-        if let authServiceError = error as? AuthServiceError,
-           authServiceError == .biometricSessionExpired {
-            guard isCurrentRun(runId) else { return .cancelled }
-            await clearExpiredBiometricState()
-            return .biometricSessionExpired
-        }
-        if let authError = error as? AuthError,
-           case .sessionMissing = authError {
-            guard isCurrentRun(runId) else { return .cancelled }
-            await clearExpiredBiometricState()
-            return .biometricSessionExpired
-        }
-        Logger.auth.warning("[STARTUP] Biometric validation deferred: \(error)")
-        guard isCurrentRun(runId) else { return .cancelled }
-        return .networkError(AuthErrorMessages.connectionUnavailable)
-    }
-
-    private func handleBiometricURLError(_ error: URLError) -> StartupResult {
-        if error.code == .cancelled {
-            Logger.auth.debug("[STARTUP] Biometric validation URL request cancelled")
-            return .cancelled
-        } else {
-            Logger.auth.warning("[STARTUP] Biometric validation network error: \(error)")
-            return .networkError(AuthErrorMessages.connectionUnavailable)
-        }
-    }
-
-    private func handleBiometricKeychainError(_ error: KeychainError, runId: UUID) async -> StartupResult? {
-        switch error {
-        case .userCanceled:
-            Logger.auth.info("[STARTUP] Biometric auth cancelled by user — falling back to regular session")
-            return nil
-        case .authFailed:
-            Logger.auth.info("[STARTUP] Biometric auth failed — falling back to regular session")
-            return nil
-        default:
-            Logger.auth.warning("[STARTUP] Biometric keychain validation deferred: \(error)")
-            guard isCurrentRun(runId) else { return .cancelled }
-            return .networkError(AuthErrorMessages.connectionUnavailable)
-        }
-    }
-
-    private func handleBiometricClientKey(runId: UUID, hex: String) async {
-        if await validateBiometricKey(hex) {
-            guard isCurrentRun(runId) else { return }
-            await storeSessionClientKey(hex)
-        } else {
-            Logger.auth.warning("[STARTUP] Stale biometric key, clearing state")
-            guard isCurrentRun(runId) else { return }
-            await clearStaleBiometricState()
-        }
-    }
-
     private func performRegularValidation(
         runId: UUID,
         context: StartupContext
@@ -317,7 +193,7 @@ actor StartupCoordinator {
             guard let user = try await validateRegularSession() else {
                 Logger.auth.info("[STARTUP] No valid session found - unauthenticated")
                 guard isCurrentRun(runId) else { return .cancelled }
-                if context.biometricEnabled && !context.didExplicitLogout {
+                if context.biometricEnabled {
                     await clearExpiredBiometricState()
                     return .biometricSessionExpired
                 }

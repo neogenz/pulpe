@@ -242,7 +242,6 @@ final class AppState {
         let startup: StartupCoordinator
     }
 
-    // swiftlint:disable:next function_body_length
     private static func makeCoordinators(
         deps: AppStateDependencies,
         biometric: BiometricManager,
@@ -278,21 +277,13 @@ final class AppState {
         )
         let startup = StartupCoordinator(
             checkMaintenance: deps.maintenanceChecking,
-            validateBiometricSession: deps.validateBiometricSession
-                ?? defaultValidateBiometricSession(deps.authService),
             validateRegularSession: validateRegularSession,
             resolvePostAuth: { await postAuthResolver.resolve() },
-            validateBiometricKey: { [biometric] clientKeyHex in
-                await biometric.validateKey(clientKeyHex)
-            },
-            storeSessionClientKey: { [clientKeyManager = deps.clientKeyManager] clientKeyHex in
-                await clientKeyManager.store(clientKeyHex, enableBiometric: false)
-            },
-            clearStaleBiometricState: { [biometric] in
-                await biometric.handleStaleKey()
-            },
             clearExpiredBiometricState: { [biometric] in
                 await biometric.handleSessionExpired()
+                await MainActor.run {
+                    biometric.isEnabled = false
+                }
             }
         )
         return Coordinators(

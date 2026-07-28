@@ -295,11 +295,7 @@ struct RootView: View {
 
         case .login:
             if appState.hasReturningUser {
-                LoginView(
-                    onBiometric: appState.biometricEnabled && appState.biometricCredentialsAvailable ? {
-                        Task { await appState.loginWithBiometric() }
-                    } : nil
-                )
+                LoginView()
             } else {
                 OnboardingFlow(pendingUser: appState.pendingOnboardingUser)
                     .id(appState.onboardingSessionID)
