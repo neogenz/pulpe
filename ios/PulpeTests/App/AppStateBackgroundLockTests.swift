@@ -550,13 +550,7 @@ struct AppStateBackgroundLockTests {
         }
 
         #expect(sut.authState == .unauthenticated)
-
-        // The explicit logout flag must survive — if the background task's system logout
-        // clears it, FaceID would auto-trigger on next cold start instead of showing login.
-        let didExplicitLogout = UserDefaults.standard.bool(forKey: "pulpe-did-explicit-logout")
-        #expect(didExplicitLogout == true, "Background task must not clear explicit logout flag")
-
-        // Cleanup
-        UserDefaults.standard.removeObject(forKey: "pulpe-did-explicit-logout")
+        #expect(!sut.biometricEnabled)
+        #expect(!sut.biometricCredentialsAvailable)
     }
 }

@@ -945,7 +945,6 @@ Après inscription :
 **Workflow** : Écran de login > Saisir email + mot de passe > "Se connecter"
 
 **Détail technique** :
-- Si `biometricEnabled` + tokens biométriques existent : un bouton "Continuer avec Face ID" est affiché en premier, séparé par "ou"
 - Champs email + mot de passe avec toggle oeil (afficher/masquer)
 - "Mot de passe oublié ?" → `ForgotPasswordSheet`
 - `AuthService.login(email, password)` → tokens sauvés dans le Keychain régulier
@@ -953,7 +952,6 @@ Après inscription :
 - `resolvePostAuth()` route selon l'état du vault
 
 **Critères** :
-- Si biométrie active et tokens existent : bouton "Continuer avec Face ID" visible en haut
 - Les champs ne sont pas effacés en cas d'erreur de connexion
 - Le bouton "Se connecter" est désactivé si email ou mot de passe vide
 - Après login réussi : PIN setup si premier login, PIN entry sinon
@@ -998,26 +996,21 @@ Après inscription :
 - Si un flow recovery key est en cours au moment du PIN, l'alerte attend la fin du flow (voir `RecoveryFlowState.isModalActive`)
 - Même flow `biometric.enable(source: .automatic)` qu'en 12.3
 
-### 12.7 Connexion avec Face ID — lancement à froid
+### 12.7 Relance à froid avec Face ID activé
 
-**Workflow** : Fermer l'app > Rouvrir l'app (biométrie activée) > Face ID se déclenche automatiquement > Arriver sur le mois courant
+**Workflow** : Être connecté avec Face ID activé > Fermer l'app > Rouvrir l'app
 
 **Détail technique** :
 1. `checkAuthState()` charge `biometricEnabled` depuis le Keychain
 2. `clearSession()` efface la clé client du Keychain régulier + cache (empêche un bypass avec une clé périmée)
-3. `attemptBiometricSessionValidation()` : prompt Face ID unique via `LAContext` pré-authentifié
-4. Lecture du `biometric_refresh_token` et `biometric_client_key` avec le contexte pré-authentifié (pas de double prompt)
-5. Rafraîchissement de la session Supabase avec le refresh token
-6. Validation de la clé client biométrique avec le serveur
-7. `resolvePostAuth()` route vers le bon état
+3. `StartupCoordinator` valide uniquement la session persistée par le SDK Supabase
+4. `resolvePostAuth()` route vers la saisie du PIN puisque la clé client de session a été effacée
 
 **Critères** :
-- Face ID est proposé automatiquement au lancement (un seul prompt, pas de double prompt)
-- Si Face ID réussit, l'utilisateur arrive sur le dashboard sans saisir de code PIN
-- Si Face ID échoue/annulé (`KeychainError.userCanceled`/`.authFailed`) : fallback vers l'écran de login sans effacer l'état biométrique (`biometricEnabled` reste `true`, credentials préservés pour retry via bouton Face ID)
-- Si erreur réseau : message "Connexion impossible, réessaie", `biometricEnabled` reste `true` pour retry
-- Si la clé client biométrique est périmée (validation serveur échoue) : `clearAll()` + `biometricEnabled = false`, l'utilisateur est renvoyé au PIN ou au login
-- Si session biométrique expirée : efface tokens + clés, `credentialsAvailable = false` mais `biometricEnabled` reste `true` (la préférence survit), message "Ta session a expiré", écran de login. Au prochain login + PIN, la biométrie pourra être ré-enrollée automatiquement
+- Aucun prompt Face ID au lancement à froid
+- Session Supabase valide : écran PIN directement, sans repasser par le login
+- Session absente ou expirée : credentials biométriques purgés, Face ID désactivé, écran de login
+- Face ID reste disponible pour déverrouiller une session active après la grace period (12.8)
 
 ### 12.8 Verrouillage après grace period en arrière-plan (RG-006)
 
@@ -1069,18 +1062,19 @@ Après inscription :
 **Workflow** : Être connecté avec Face ID activé > Se déconnecter
 
 **Détail technique** :
-1. `saveBiometricTokens()` rafraîchit les tokens biométriques avec la session courante (fallback : `saveBiometricTokensFromKeychain()`)
-2. Si la sauvegarde réussit : `logoutKeepingBiometricSession()` recrée le `SupabaseClient` (arrête l'auto-refresh), efface le Keychain régulier, **ne fait PAS** `signOut(scope: .local)` → le refresh token biométrique reste valide côté serveur
-3. Si les deux tentatives de sauvegarde échouent : `authService.logout()` complet (révoque le refresh token) + `biometricEnabled = false` → Face ID perdu, mais l'utilisateur est informé au prochain login
-4. `clearSession()` : efface la clé client du cache + Keychain régulier (la clé biométrique est préservée si sauvegarde réussie)
-5. Nettoyage UI : `currentUser = nil`, navigation reset, widget data cleared
+1. `authService.logout(scope: .local)` appelle `supabase.auth.signOut` et révoque le refresh token courant
+2. `biometric.handleSessionExpired()` efface les tokens et la clé client biométriques
+3. `biometricEnabled = false`
+4. `clearSession()` efface la clé client du cache et du Keychain régulier
+5. Nettoyage UI : `currentUser = nil`, navigation reset, données du widget effacées
 
 **Critères** :
-- Avant logout, les tokens biométriques sont rafraîchis avec la session courante
+- `signOut(scope: .local)` est appelé
+- Le refresh token courant est révoqué côté serveur
 - Le client key en mémoire et dans le keychain standard est effacé
-- Le client key biométrique est **préservé** pour le prochain login Face ID
-- Le refresh token biométrique reste **valide côté serveur** (pas de `signOut`)
-- Au prochain lancement, Face ID est proposé automatiquement (12.13)
+- Les tokens et le client key biométriques sont effacés
+- Face ID est désactivé jusqu'à une nouvelle activation après reconnexion
+- Au prochain lancement, aucune réentrée Face ID n'est possible (12.13)
 - Les données du widget sont effacées
 
 ### 12.12 Déconnexion sans biométrie
@@ -1088,8 +1082,8 @@ Après inscription :
 **Workflow** : Être connecté sans biométrie > Se déconnecter
 
 **Détail technique** :
-1. `authService.logout()` : appelle `supabase.auth.signOut(scope: .local)` (révoque le refresh token côté serveur) + `keychain.clearTokens()`
-2. `clientKeyManager.clearSession()` : efface cache + Keychain régulier
+1. Même chemin partagé que 12.11 : `supabase.auth.signOut(scope: .local)`
+2. Nettoyage défensif des slots biométriques et de la clé client
 
 **Critères** :
 - `signOut(scope: .local)` est appelé → le refresh token est révoqué côté serveur
@@ -1097,18 +1091,15 @@ Après inscription :
 - L'écran de login classique est affiché (si `hasReturningUser == true`, basé sur `last_used_email`), sinon l'onboarding
 - Les données du widget sont effacées
 
-### 12.13 Reconnexion après déconnexion — biométrie activée
+### 12.13 Reconnexion après déconnexion
 
 **Workflow** : S'être déconnecté (12.11) > Rouvrir l'app
 
 **Critères** :
-- `biometricEnabled == true` est chargé depuis le Keychain
-- Les tokens biométriques existent (préservés lors du logout)
-- `didExplicitLogout == true` empêche le prompt Face ID automatique au cold start (choix de design : après un logout explicite, l'utilisateur doit initier la reconnexion)
-- L'écran de login affiche un bouton "Continuer avec Face ID" que l'utilisateur doit taper manuellement
-- Si Face ID réussit : la session est rafraîchie → `resolvePostAuth()` → écran de saisie du PIN (la clé client session a été effacée au logout)
-- Si Face ID annulé : la session régulière est invalide (tokens effacés) → PIN entry si vault configuré, sinon login
-- L'écran PIN affiche le bouton Face ID (possibilité de réessayer sans saisir le PIN)
+- `biometricEnabled == false`
+- Aucun token biométrique ni refresh token Supabase ne permet de restaurer la session
+- L'écran de login classique est affiché
+- Après connexion puis PIN réussis, Face ID peut être réactivé selon la politique d'enrollment
 
 ### 12.14 Reconnexion après déconnexion — biométrie désactivée
 
@@ -1119,7 +1110,7 @@ Après inscription :
 - Si `hasReturningUser == true` (basé sur `last_used_email`) → `LoginView` affichée
 - Email pré-rempli avec le dernier email utilisé (sauvegardé dans le Keychain via `last_used_email`)
 - Après login réussi : `resolvePostAuth()` → `.needsPinEntry` (clé client absente)
-- PinEntryView affichée sans bouton Face ID
+- PinEntryView affichée sans bouton Face ID tant que la biométrie n'a pas été réactivée
 
 ### 12.15 Kill de l'app et relance
 
@@ -1130,16 +1121,15 @@ Après inscription :
 2. Keychain régulier : tokens + clé client **présents** (pas effacés par le kill)
 3. Keychain biométrique : tokens + clé client biométrique **présents**
 4. `checkAuthState()` commence par `clearSession()` → efface la clé client du Keychain régulier + cache
-5. Si biométrie activée → Face ID (flow 12.7)
-6. Si biométrie désactivée → `validateSession()` vérifie les tokens réguliers :
-   - Si session valide → `resolvePostAuth()` → écran PIN directement (pas de login)
-   - Si session invalide → `hasReturningUser` basé sur `last_used_email` dans le Keychain → LoginView ou OnboardingFlow
+5. `StartupCoordinator` vérifie la session persistée par le SDK Supabase
+6. Si session valide → `resolvePostAuth()` → écran PIN directement
+7. Si session invalide → purge biométrique puis LoginView ou OnboardingFlow selon `last_used_email`
 
 **Critères** :
-- Si biométrie activée : Face ID automatique → si réussit, dashboard direct
-- Si biométrie désactivée + session valide : **écran PIN directement** (pas de login)
-- Si biométrie désactivée + session invalide + email sauvegardé : écran de login
-- Si biométrie désactivée + session invalide + pas d'email : écran d'onboarding
+- Aucun prompt Face ID automatique au cold start
+- Session valide : **écran PIN directement** (pas de login)
+- Session invalide + email sauvegardé : écran de login
+- Session invalide + pas d'email : écran d'onboarding
 - Les données ne sont pas perdues (API est la source de vérité)
 - La navigation est réinitialisée (l'utilisateur arrive sur l'onglet "Accueil")
 
@@ -1163,12 +1153,9 @@ Ce qui est **perdu** :
 - Cache mémoire, fichiers app (Documents/, Caches/)
 
 **Critères** :
-- Si `biometricEnabled == true` dans le Keychain ET les tokens biométriques sont encore valides côté serveur → Face ID fonctionne, reconnexion transparente
-- Si `biometricEnabled == true` mais les tokens biométriques sont expirés côté serveur → efface tout, `biometricEnabled = false`, écran de login avec message "Ta session a expiré"
-- Si `biometricEnabled == false` + session valide → écran PIN directement
-- Si `biometricEnabled == false` + session invalide + `last_used_email` présent → écran de login (pas l'onboarding)
-- Si `biometricEnabled == false` + session invalide + pas d'email → écran d'onboarding
 - `clearKeychainIfReinstalled()` détecte la réinstallation via `UserDefaults("hasLaunchedBefore")` et efface tout le Keychain (`clearAllData()`) + `biometricEnabled = false` + `hasReturningUser = false`
+- Aucune ancienne session ni configuration Face ID n'est restaurée après cette purge
+- L'onboarding propre est affiché
 
 ### 12.17 Désactivation de Face ID
 
@@ -1380,13 +1367,12 @@ Ce qui est **perdu** :
 | Token refresh automatique | SDK Supabase + sauvegarde Keychain à chaque accès | Transparent pour l'utilisateur |
 | Navigation préservée | `NavigationPath` maintenu après background/foreground | L'utilisateur revient où il était |
 | Deep link password reset | Universal link `https://app.pulpe.app/reset-password` validé strictement | Flow natif possédé par le domaine de l’app; repli web sans l’app |
-| Logout biométrique préserve les tokens | `logoutKeepingBiometricSession()` ne révoque pas le refresh token | Reconnexion Face ID rapide après logout |
-| Logout biométrique résilient | Si sauvegarde tokens échoue → full logout au lieu de perte silencieuse de Face ID | L'utilisateur n'est pas surpris par un Face ID non fonctionnel |
+| Logout complet | `signOut(scope: .local)` puis purge des slots biométriques | Aucun refresh token réutilisable après déconnexion |
 | Séparation Keychain régulier / biométrique | Tokens et clés séparés avec niveaux d'accès distincts | Pas de mélange de credentials |
 | Pré-remplir email au login | Dernier email sauvegardé dans Keychain (`last_used_email`) | Pré-rempli dans `LoginViewModel.init()`, effacé à la suppression de compte |
 | 401 non-récupérable mid-session | Notification `.sessionExpired` → `handleSessionExpired()` | L'UI passe à `.unauthenticated` immédiatement |
 | Deep link reset password sécurisé | Ignoré silencieusement si déjà authentifié | Pas de logout surprise via deep link |
-| Cold start clé biométrique périmée | `biometricEnabled = false` après `clearAll()` | Cohérent avec les autres paths de clé stale |
+| Cold start sans réentrée biométrique | Seule la session SDK Supabase est validée | Face ID reste un verrou local de session active |
 
 ### 13.4 Résumé des recommandations prioritaires
 
@@ -1412,9 +1398,9 @@ Ce qui est **perdu** :
 
 10. **Deep link reset password sécurisé** — ✓ Ignoré si déjà authentifié, pas de logout surprise.
 
-11. **Cold start clé biométrique périmée** — ✓ `biometricEnabled = false` après `clearAll()` dans `attemptBiometricSessionValidation()`.
+11. **Cold start sans réentrée biométrique** — ✓ Le démarrage valide uniquement la session persistée par le SDK Supabase.
 
-12. **Logout biométrique résilient** — ✓ Si sauvegarde tokens échoue → full logout + `biometricEnabled = false` au lieu de perte silencieuse.
+12. **Logout biométrique complet** — ✓ `signOut(scope: .local)` puis purge des tokens, clés et préférence biométriques.
 
 ### Recommandations restantes
 

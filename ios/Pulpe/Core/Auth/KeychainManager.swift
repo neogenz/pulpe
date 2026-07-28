@@ -55,7 +55,7 @@ actor KeychainManager {
     // `AuthLocalStorage`). Nothing writes the `access_token` / `refresh_token`
     // keychain slots in production anymore. `clearTokens()` is kept as a
     // defensive cleanup for installations migrating from the pre-PUL-132 dual-slot
-    // layout (called from `AuthService.logout` and `logoutKeepingBiometricSession`).
+    // layout (called from `AuthService.logout`).
 
     func clearTokens() {
         delete(key: accessTokenKey)

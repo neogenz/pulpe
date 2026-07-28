@@ -115,7 +115,6 @@ extension AppState {
 
     func logout(
         source: LogoutSource = .userInitiated,
-        preserveBiometricSession: Bool? = nil,
         scope: SignOutScope = .local
     ) async {
         guard !isLoggingOut else { return }
@@ -129,45 +128,11 @@ extension AppState {
         backgroundRefreshTask?.cancel()
         backgroundRefreshTask = nil
 
-        switch source {
-        case .userInitiated:
-            flagsStore.setDidExplicitLogout(true)
-        case .system:
-            clearExplicitLogoutFlag()
-        }
         clearManualBiometricRetryRequiredFlag()
 
-        let shouldPreserveBiometric = preserveBiometricSession ?? (source == .userInitiated)
-        authDebug("AUTH_LOGOUT", "preserveBiometric=\(shouldPreserveBiometric)")
-        if shouldPreserveBiometric && biometric.isEnabled {
-            // Snapshot the live session into the biometric slot for cold-start re-entry.
-            // PUL-132: removed `saveBiometricTokensFromKeychain` fallback — SDK storage
-            // (PulpeAuthStorage) IS the source of truth, so a missing SDK session means
-            // there's nothing valid to snapshot.
-            var biometricTokensSaved = false
-            do {
-                try await authService.saveBiometricTokens()
-                biometricTokensSaved = true
-            } catch {
-                Logger.auth.warning("logout: biometric snapshot failed - \(error)")
-            }
-
-            if biometricTokensSaved {
-                // Clear local SDK state WITHOUT calling /logout (would revoke the refresh token)
-                await authService.logoutKeepingBiometricSession()
-            } else {
-                // Both save attempts failed — biometric tokens are unusable.
-                // Do a full logout instead of silently losing Face ID.
-                Logger.auth.error("logout: biometric token preservation failed, doing full logout")
-                await runSignOutOrSurfaceFailure(scope: scope)
-                await biometric.handleSessionExpired()
-                biometric.isEnabled = false
-            }
-        } else {
-            await runSignOutOrSurfaceFailure(scope: scope)
-            await biometric.handleSessionExpired()
-            biometric.isEnabled = false
-        }
+        await runSignOutOrSurfaceFailure(scope: scope)
+        await biometric.handleSessionExpired()
+        biometric.isEnabled = false
 
         await clientKeyManager.clearSession()
         authDebug("AUTH_LOGOUT", "session cleared, resetting")
@@ -229,7 +194,7 @@ extension AppState {
         do {
             try await performSignOut(scope)
         } catch {
-            Logger.auth.error("global revoke failed: \(error, privacy: .public)")
+            Logger.auth.error("server sign-out failed: \(error, privacy: .public)")
             toastManager.show(
                 "Déconnexion locale OK, mais serveur injoignable. "
                 + "Si tu suspectes un vol de session, change ton mot de passe à nouveau dans 5 min.",
@@ -264,7 +229,7 @@ extension AppState {
 
     /// Shared cleanup for both account deletion and in-progress signup abandon.
     /// Clears the returning-user footprint (keychain email, onboarding draft, flags)
-    /// and logs out without preserving biometric session.
+    /// and logs out globally.
     private func clearLocalSignupState() async {
         await keychainManager.clearLastUsedEmail()
         enrollmentPolicy.clearUserExplicitlyDisabled()
@@ -282,7 +247,7 @@ extension AppState {
         clearManualBiometricRetryRequiredFlag()
         // Account deletion / signup abandon → revoke JWT server-side so a
         // snapped access_token cannot be replayed within its ~1h expiry window.
-        await logout(source: .system, preserveBiometricSession: false, scope: .global)
+        await logout(source: .system, scope: .global)
     }
 
     // MARK: - Session Reset
@@ -361,10 +326,6 @@ extension AppState {
     }
 
     // MARK: - Auth Flags Helpers
-
-    func clearExplicitLogoutFlag() {
-        flagsStore.clearExplicitLogoutFlag()
-    }
 
     func setManualBiometricRetryRequiredFlag(_ required: Bool) {
         flagsStore.setManualBiometricRetryRequired(required)

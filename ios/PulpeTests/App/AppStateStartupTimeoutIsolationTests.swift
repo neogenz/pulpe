@@ -56,70 +56,6 @@ struct AppStateStartupTimeoutIsolationTests {
 
     // MARK: - Gap 2: Late Side Effects After StartupCoordinator Timeout/Cancel
 
-    @Test("After cancel, biometric key side-effect closures are blocked by runId guard")
-    func startupCoordinator_afterCancel_biometricKeySideEffectBlocked() async {
-        // Scenario: validateBiometricKey hangs, cancel fires during it.
-        // After cancel, storeSessionClientKey should NOT be called because the
-        // runId guard before it detects the invalidated run.
-        //
-        // Note: biometric paths intentionally skip the startup timeout (FaceID
-        // can block indefinitely), so we use cancel() to invalidate the runId.
-        // The guard at handleBiometricClientKey doesn't care HOW currentRunId
-        // was cleared — it just checks isCurrentRun(runId).
-        let storeKeyCalled = AtomicFlag()
-        let validateKeyStarted = AtomicFlag()
-
-        let sut = StartupCoordinator(
-            checkMaintenance: { false },
-            validateBiometricSession: {
-                BiometricSessionResult(
-                    user: UserInfo(id: "bio-user", email: "bio@pulpe.app", firstName: "Bio"),
-                    clientKeyHex: "valid-key"
-                )
-            },
-            validateRegularSession: { nil },
-            resolvePostAuth: { .authenticated(needsRecoveryKeyConsent: false) },
-            validateBiometricKey: { _ in
-                validateKeyStarted.set()
-                // Hang to give cancel time to fire and invalidate the runId
-                try? await Task.sleep(for: .milliseconds(300))
-                return true
-            },
-            storeSessionClientKey: { _ in
-                storeKeyCalled.set()
-            }
-        )
-
-        // PUL-132: biometric path requires didExplicitLogout=true.
-        let context = StartupCoordinator.StartupContext(
-            biometricEnabled: true,
-            didExplicitLogout: true,
-            manualBiometricRetryRequired: false
-        )
-
-        let task = Task {
-            await sut.start(context: context)
-        }
-
-        // Wait for validateBiometricKey to start executing
-        await waitForCondition(timeout: .seconds(1), "validateBiometricKey must start") {
-            validateKeyStarted.value
-        }
-
-        // Cancel while validateBiometricKey is in-flight
-        await sut.cancel()
-
-        // Wait for any in-flight closures to settle
-        try? await Task.sleep(for: .milliseconds(500))
-
-        _ = await task.value
-
-        #expect(
-            storeKeyCalled.value == false,
-            "storeSessionClientKey must not be called after cancel invalidates runId"
-        )
-    }
-
     @Test("After cancel, subsequent side-effect closures are blocked by runId guard")
     func startupCoordinator_afterCancel_inFlightSideEffectStillRuns() async {
         // Scenario: validateRegularSession hangs, cancel fires during it.
@@ -130,7 +66,6 @@ struct AppStateStartupTimeoutIsolationTests {
 
         let sut = StartupCoordinator(
             checkMaintenance: { false },
-            validateBiometricSession: { nil },
             validateRegularSession: {
                 validationStarted.set()
                 // Hang to give cancel time to fire
@@ -145,7 +80,6 @@ struct AppStateStartupTimeoutIsolationTests {
 
         let context = StartupCoordinator.StartupContext(
             biometricEnabled: false,
-            didExplicitLogout: false,
             manualBiometricRetryRequired: false
         )
 
@@ -184,7 +118,6 @@ struct AppStateStartupTimeoutIsolationTests {
 
         let sut = StartupCoordinator(
             checkMaintenance: { false },
-            validateBiometricSession: { nil },
             validateRegularSession: { [testUser] in
                 callCount.increment()
                 let currentCall = callCount.value
@@ -212,7 +145,6 @@ struct AppStateStartupTimeoutIsolationTests {
 
         let context = StartupCoordinator.StartupContext(
             biometricEnabled: false,
-            didExplicitLogout: false,
             manualBiometricRetryRequired: false
         )
 

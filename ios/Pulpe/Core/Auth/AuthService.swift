@@ -9,7 +9,7 @@ actor AuthService {
     static let shared = AuthService()
     private static let sessionDecoder = JSONDecoder()
 
-    private var supabase: SupabaseClient
+    private let supabase: SupabaseClient
     private let keychain: KeychainManager
     private let storage: any AuthLocalStorage
     private var authStateListenerTask: Task<Void, Never>?
@@ -32,13 +32,6 @@ actor AuthService {
     }
     var isBiometricResyncPendingForTesting: Bool { pendingBiometricResync }
     #endif
-
-    private func resetClient() {
-        authStateListenerTask?.cancel()
-        authStateListenerTask = nil
-        supabase = Self.makeSupabaseClient(storage: storage)
-        startAuthStateListener()
-    }
 
     private static func makeSupabaseClient(storage: any AuthLocalStorage) -> SupabaseClient {
         SupabaseClient(
@@ -167,22 +160,6 @@ actor AuthService {
         try await supabase.auth.signOut(scope: scope)
 
         // SDK clears its own storage on signOut; clear legacy slot defensively.
-        await keychain.clearTokens()
-    }
-
-    /// Logout without revoking the server-side refresh token.
-    /// Order matters: clear the SDK-owned storage slot BEFORE replacing the
-    /// SupabaseClient. The new client's `emitInitialSession` reads from
-    /// PulpeAuthStorage on subscribe and may trigger a silent refresh that
-    /// writes the slot back — see AuthClient.swift `emitInitialSession`.
-    /// Biometric tokens stay intact as cold-storage for re-entry.
-    func logoutKeepingBiometricSession() async {
-        do {
-            try storage.remove(key: PulpeAuthStorage.sessionStorageKey)
-        } catch {
-            Logger.auth.warning("logoutKeepingBiometricSession: storage.remove failed - \(error)")
-        }
-        resetClient()
         await keychain.clearTokens()
     }
 
