@@ -368,6 +368,8 @@ describe('MainLayout', () => {
   describe('Product Tour Routing', () => {
     it.each([
       ['/budget-templates', 'templates-list'],
+      ['/budget-templates/', 'templates-list'],
+      ['/budget-templates?source=menu', 'templates-list'],
       ['/budget', 'budget-list'],
       ['/budget/123', 'budget-details'],
     ] as const)('maps %s to the %s tour', async (url, expectedPageId) => {
@@ -381,6 +383,19 @@ describe('MainLayout', () => {
         expectedPageId,
         undefined,
       );
+    });
+
+    it.each([
+      '/budget-templates/create',
+      '/budget-templates/details/template-123',
+    ])('does not expose the templates list tour on %s', (url) => {
+      mockRouter.url = url;
+      mockRouter.events.next(new NavigationEnd(1, url, url));
+      const layout = component as unknown as MainLayoutWithPrivates;
+      layout.requestPageTour();
+      layout.startRequestedPageTour();
+
+      expect(mockProductTourService.startPageTour).not.toHaveBeenCalled();
     });
   });
 

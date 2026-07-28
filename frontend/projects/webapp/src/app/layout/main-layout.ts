@@ -856,12 +856,13 @@ export default class MainLayout {
 
   // Current tour page ID based on route
   protected readonly currentTourPageId = computed((): TourPageId | null => {
-    const url = this.#currentRoute();
-    if (url.includes(`/${ROUTES.DASHBOARD}`)) return 'dashboard';
-    if (url.match(/\/budget\/[^/]+$/)) return 'budget-details';
-    if (url.includes(`/${ROUTES.BUDGET_TEMPLATES}`)) return 'templates-list';
-    if (url.includes(`/${ROUTES.BUDGET}`)) return 'budget-list';
-    if (url.match(/\/savings-goals$/)) return 'savings-goals';
+    const path =
+      this.#currentRoute().split(/[?#]/, 1)[0]?.replace(/\/+$/, '') || '/';
+    if (path === `/${ROUTES.DASHBOARD}`) return 'dashboard';
+    if (path.match(/\/budget\/[^/]+$/)) return 'budget-details';
+    if (path === `/${ROUTES.BUDGET_TEMPLATES}`) return 'templates-list';
+    if (path === `/${ROUTES.BUDGET}`) return 'budget-list';
+    if (path === `/${ROUTES.SAVINGS_GOALS}`) return 'savings-goals';
     return null;
   });
 

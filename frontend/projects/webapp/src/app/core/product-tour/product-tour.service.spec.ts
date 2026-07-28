@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ProductTourService, type TourPageId } from './product-tour.service';
 import { AuthStore } from '@core/auth';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import type { Config, DriveStep, Driver } from 'driver.js';
 
 const driverMocks = vi.hoisted(() => {
@@ -86,6 +87,7 @@ describe('ProductTourService', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
         ProductTourService,
         { provide: AuthStore, useValue: mockAuthStore },
       ],
@@ -379,6 +381,45 @@ describe('ProductTourService', () => {
       const steps = driverMocks.instance.setSteps.mock.calls[0]![0];
       expect(steps).toHaveLength(2);
       expect(steps.every((step: DriveStep) => !!step.element)).toBe(true);
+    });
+
+    it('uses translated controls and explains pointing statuses', () => {
+      document.body.innerHTML = `
+        <div data-tour="dashboard-hero"></div>
+        <div data-tour="dashboard-lists"></div>
+        <nav data-tour="navigation"></nav>
+      `;
+
+      service.startPageTour('dashboard');
+
+      const config = getDriverConfig();
+      const steps = driverMocks.instance.setSteps.mock.calls[0]![0];
+      const renderedTour = JSON.stringify({ config, steps });
+      expect(config).toMatchObject({
+        progressText: 'Étape {{current}} sur {{total}}',
+        nextBtnText: 'Suivant',
+        prevBtnText: 'Précédent',
+        doneBtnText: 'Terminer',
+      });
+      expect(renderedTour).toContain('Pointé');
+      expect(renderedTour).toContain('À pointer');
+      expect(renderedTour).not.toMatch(/productTour\./);
+    });
+
+    it('explains the recurrent and planned budget line vocabulary', () => {
+      document.body.innerHTML = `
+        <div data-tour="financial-overview"></div>
+        <div data-tour="budget-table"></div>
+        <button data-testid="add-budget-line-fab"></button>
+      `;
+
+      service.startPageTour('budget-details');
+
+      const steps = driverMocks.instance.setSteps.mock.calls[0]![0];
+      const renderedSteps = JSON.stringify(steps);
+      expect(renderedSteps).toContain('Récurrent');
+      expect(renderedSteps).toContain('Prévu');
+      expect(renderedSteps).not.toMatch(/productTour\./);
     });
   });
 
