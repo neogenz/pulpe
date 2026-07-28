@@ -1,5 +1,3 @@
-// swiftlint:disable file_length
-
 import Foundation
 import LocalAuthentication
 import OSLog
@@ -9,7 +7,6 @@ import Supabase
 /// Mirrors the frontend Angular approach - talks directly to Supabase, not the backend
 actor AuthService {
     static let shared = AuthService()
-    private static let sessionDecoder = JSONDecoder()
 
     private var supabase: SupabaseClient
     private let keychain: KeychainManager
@@ -65,7 +62,7 @@ actor AuthService {
                 switch event {
                 case .initialSession:
                     Logger.auth.debug("[AUTH] session synchronized via PulpeAuthStorage")
-                    Self.captureSessionDiagnostic(
+                    AuthSessionDiagnostics.capture(
                         source: "sdk_event",
                         outcome: "initial_session",
                         session: session
@@ -73,7 +70,7 @@ actor AuthService {
                     await self?.refreshBiometricSnapshotIfPresent(session)
                 case .tokenRefreshed:
                     Logger.auth.debug("[AUTH] session synchronized via PulpeAuthStorage")
-                    Self.captureSessionDiagnostic(
+                    AuthSessionDiagnostics.capture(
                         source: "sdk_event",
                         outcome: "token_refreshed",
                         session: session
@@ -113,19 +110,6 @@ actor AuthService {
 
     // MARK: - Session Validation
 
-    static func isTerminalSessionFailure(_ error: any Error) -> Bool {
-        guard let authError = error as? AuthError else { return false }
-        if case .sessionMissing = authError { return true }
-        return false
-    }
-
-    static func isConfirmedTerminalSessionFailure(
-        _ error: any Error,
-        persistedSessionExists: Bool
-    ) -> Bool {
-        isTerminalSessionFailure(error) && !persistedSessionExists
-    }
-
     /// The SDK removes its persisted blob on sign-out and on confirmed server-side
     /// revocation (reuse-detection, expired session) BEFORE surfacing `sessionMissing`,
     /// so "sessionMissing + no blob" is a reliable terminal verdict. NEVER write that
@@ -159,7 +143,7 @@ actor AuthService {
         // re-reads the slot on the next attempt) or an undecodable blob the SDK can
         // never restore. Purge the latter so the app converges to the login screen
         // instead of an endless retry loop against a corrupt slot.
-        if (try? Self.sessionDecoder.decode(Session.self, from: blob)) == nil {
+        if !AuthSessionDiagnostics.isDecodableSession(blob) {
             Logger.auth.error("session slot undecodable — purging so logout can be confirmed")
             AnalyticsService.captureAuthSessionDiagnostic(
                 source: source,
@@ -182,10 +166,14 @@ actor AuthService {
     }
 
     func validateSession() async throws -> UserInfo? {
-        capturePersistedSessionDiagnostic(source: "session_validation", outcome: "started")
+        AuthSessionDiagnostics.capturePersisted(
+            source: "session_validation",
+            outcome: "started",
+            storage: storage
+        )
         do {
             let session = try await supabase.auth.session
-            Self.captureSessionDiagnostic(
+            AuthSessionDiagnostics.capture(
                 source: "session_validation",
                 outcome: "succeeded",
                 session: session
@@ -254,10 +242,14 @@ actor AuthService {
     /// Forces Supabase to rotate the refresh token even when the access token has not expired.
     /// Used after an API 401 so retrying cannot reuse the token that the backend rejected.
     func forceRefreshAccessToken(source: String = "forced_refresh") async throws -> String? {
-        capturePersistedSessionDiagnostic(source: source, outcome: "started")
+        AuthSessionDiagnostics.capturePersisted(
+            source: source,
+            outcome: "started",
+            storage: storage
+        )
         do {
             let session = try await supabase.auth.refreshSession()
-            Self.captureSessionDiagnostic(source: source, outcome: "succeeded", session: session)
+            AuthSessionDiagnostics.capture(source: source, outcome: "succeeded", session: session)
             return session.accessToken
         } catch {
             if checkAndHandleConfirmedTerminalSessionFailure(error, source: source) {
@@ -393,49 +385,6 @@ actor AuthService {
     }
 }
 
-// MARK: - Session Diagnostics
-
-private extension AuthService {
-    static func captureSessionDiagnostic(source: String, outcome: String, session: Session?) {
-        AnalyticsService.captureAuthSessionDiagnostic(
-            source: source,
-            outcome: outcome,
-            storageState: session == nil ? "missing" : "available",
-            accessTokenExpiresInSeconds: session.map {
-                Int($0.expiresAt - Date().timeIntervalSince1970)
-            }
-        )
-    }
-
-    func capturePersistedSessionDiagnostic(source: String, outcome: String) {
-        do {
-            guard let blob = try storage.retrieve(key: PulpeAuthStorage.sessionStorageKey) else {
-                AnalyticsService.captureAuthSessionDiagnostic(
-                    source: source,
-                    outcome: outcome,
-                    storageState: "missing"
-                )
-                return
-            }
-            guard let session = try? Self.sessionDecoder.decode(Session.self, from: blob) else {
-                AnalyticsService.captureAuthSessionDiagnostic(
-                    source: source,
-                    outcome: outcome,
-                    storageState: "undecodable"
-                )
-                return
-            }
-            Self.captureSessionDiagnostic(source: source, outcome: outcome, session: session)
-        } catch {
-            AnalyticsService.captureAuthSessionDiagnostic(
-                source: source,
-                outcome: outcome,
-                storageState: "unreadable"
-            )
-        }
-    }
-}
-
 // MARK: - OAuth
 
 extension AuthService {
@@ -455,41 +404,6 @@ extension AuthService {
     private func signInWithIdToken(_ credentials: OpenIDConnectCredentials) async throws -> UserInfo {
         let session = try await supabase.auth.signInWithIdToken(credentials: credentials)
         return Self.userInfo(from: session.user, fallbackEmail: "")
-    }
-}
-
-/// Captures only Supabase's terminal session code. The SDK otherwise maps four
-/// different server responses to `sessionMissing` after deleting local storage.
-/// Request bodies and logger context contain refresh tokens and are never forwarded.
-struct PulpeSupabaseLogger: SupabaseLogger {
-    private static let cleanupCodes: Set<String> = [
-        "session_not_found",
-        "session_expired",
-        "refresh_token_not_found",
-        "refresh_token_already_used"
-    ]
-
-    func log(message: SupabaseLogMessage) {
-        guard let (code, status) = Self.cleanupError(from: message.message) else { return }
-        AnalyticsService.captureAuthSessionDiagnostic(
-            source: "supabase_auth_response",
-            outcome: code,
-            status: status
-        )
-    }
-
-    static func cleanupError(from message: String) -> (code: String, status: Int)? {
-        let prefix = "Response: Status code: "
-        guard message.hasPrefix(prefix),
-              let status = Int(message.dropFirst(prefix.count).prefix(while: \.isNumber)),
-              let bodyRange = message.range(of: "\nBody: "),
-              let data = String(message[bodyRange.upperBound...]).data(using: .utf8),
-              let body = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let code = (body["code"] as? String) ?? (body["error_code"] as? String),
-              cleanupCodes.contains(code) else {
-            return nil
-        }
-        return (code, status)
     }
 }
 
@@ -572,51 +486,5 @@ extension AuthService {
             }
             throw error
         }
-    }
-}
-
-// MARK: - User Info Extraction
-
-extension AuthService {
-    static func userInfo(from user: User, fallbackEmail: String) -> UserInfo {
-        let metadata = user.userMetadata
-
-        // Priority: firstName (email signup) > given_name (Google) > name (Apple, first sign-in only)
-        var firstName: String?
-        if case .string(let name) = metadata["firstName"] {
-            firstName = name
-        } else if case .string(let name) = metadata["given_name"] {
-            firstName = name
-        } else if case .string(let name) = metadata["name"] {
-            firstName = name
-        }
-
-        // OAuth profile photo — Google exposes both `avatar_url` and `picture`; Apple/email none.
-        var avatarUrl: String?
-        if case .string(let url) = metadata["avatar_url"] {
-            avatarUrl = url
-        } else if case .string(let url) = metadata["picture"] {
-            avatarUrl = url
-        }
-
-        // `provider` drives post-auth routing (see `AppState.applyPostAuthDestination`).
-        let appMetadata = user.appMetadata
-        var provider: AuthProvider?
-        if case .string(let value) = appMetadata["provider"] {
-            provider = AuthProvider.fromSupabase(value)
-        }
-        var isEarlyAdopter = false
-        if case .bool(let flag) = appMetadata[AnalyticsService.earlyAdopterProperty] {
-            isEarlyAdopter = flag
-        }
-
-        return UserInfo(
-            id: user.id.uuidString,
-            email: user.email ?? fallbackEmail,
-            firstName: firstName,
-            provider: provider,
-            avatarUrl: avatarUrl,
-            isEarlyAdopter: isEarlyAdopter
-        )
     }
 }

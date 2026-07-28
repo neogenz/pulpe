@@ -16,7 +16,7 @@ configs:
 packages:
   supabase-swift:
     url: https://github.com/supabase/supabase-swift
-    from: "2.0.0"
+    exactVersion: "2.54.0"
   lottie-spm:
     url: https://github.com/airbnb/lottie-spm
     from: "4.0.0"

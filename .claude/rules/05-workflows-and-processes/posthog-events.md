@@ -120,6 +120,7 @@ Both events are available to every authenticated user. The selector itself follo
 | `login_failed` | Login fail (any method) | `method`, `error_kind`, `error_message` |
 | `signup_failed` | Signup fail | `method`, `error_kind`, `error_message` |
 | `session_restore_failed` | Session restore at startup fail | `method`, `error_kind`, `error_message` |
+| `auth_session_observed` | Supabase session lifecycle or storage signal | `source`, `outcome`, optional `status`, `request_id`, `endpoint`, `is_retry`, `storage_state`, `access_token_expires_in_seconds`, `is_expected_user_action` |
 | `pin_setup_completed` | PIN created | — |
 | `pin_entered` | PIN entered on return visit | — |
 | `first_budget_created` | Initial budget created at end of onboarding | `signup_method` (`email` \| `apple` \| `google`), `has_pay_day`, `charges_count`, `custom_transactions_count` |
@@ -131,6 +132,13 @@ Both events are available to every authenticated user. The selector itself follo
 | `tab_switched` | User switch tab | `tab` (`currentMonth` \| `budgets` \| `templates`) |
 | `logout_completed` | User log out | — |
 | `ios_whats_new_shown` | Dialog shown after app update with new release notes | `version` |
+
+`auth_session_observed` value spaces:
+
+- `source`: `sdk_event` | `session_validation` | `forced_refresh` | `api_401_refresh` | `supabase_auth_response` | `session_reset`
+- `outcome`: `initial_session` | `token_refreshed` | `signed_out` | `started` | `succeeded` | `failed_retryable` | `storage_unreadable` | `missing_blob` | `undecodable_blob` | `valid_blob` | `session_not_found` | `session_expired` | `refresh_token_not_found` | `refresh_token_already_used`; terminal reset reasons are added in phase 2
+- `storage_state`: `available` | `missing` | `undecodable` | `unreadable`
+- `is_expected_user_action`: reserved for terminal reset classification in phase 2
 
 **iOS funnel idempotency guarantees:**
 - `onboarding_started` fire once per `OnboardingFlow` instance (@State guard). Reset on view re-instantiation via `.id(appState.onboardingSessionID)` after abandon.

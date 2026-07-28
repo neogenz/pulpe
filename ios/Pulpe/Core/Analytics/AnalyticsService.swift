@@ -1,6 +1,20 @@
 import Foundation
 import PostHog
 
+struct AuthSessionDiagnosticSnapshot: Sendable {
+    let distinctID: String
+    let timestamp: Date
+    let source: String
+    let outcome: String
+    let status: Int?
+    let requestID: String?
+    let endpoint: String?
+    let isRetry: Bool?
+    let storageState: String?
+    let accessTokenExpiresInSeconds: Int?
+    let isExpectedUserAction: Bool?
+}
+
 /// Central analytics service wrapping PostHog iOS SDK.
 /// All callers are @MainActor (SwiftUI views, stores), so MainActor isolation
 /// ensures thread-safe access to `isInitialized` without requiring actor hops.
@@ -49,10 +63,23 @@ final class AnalyticsService {
 
     // MARK: - Event Capture
 
-    func capture(_ event: AnalyticsEvent, properties: [String: Any] = [:]) {
+    func capture(
+        _ event: AnalyticsEvent,
+        properties: [String: Any] = [:],
+        distinctID: String? = nil,
+        timestamp: Date? = nil
+    ) {
         guard isEventCapturingEnabled else { return }
         let sanitized = Self.sanitizeProperties(properties)
-        PostHogSDK.shared.capture(event.rawValue, properties: sanitized)
+        PostHogSDK.shared.capture(
+            event.rawValue,
+            distinctId: distinctID,
+            properties: sanitized,
+            userProperties: nil,
+            userPropertiesSetOnce: nil,
+            groups: nil,
+            timestamp: timestamp
+        )
     }
 
     func captureAuthError(_ event: AnalyticsEvent, error: Error, method: String) {
@@ -72,33 +99,81 @@ final class AnalyticsService {
         endpoint: String? = nil,
         isRetry: Bool? = nil,
         storageState: String? = nil,
-        accessTokenExpiresInSeconds: Int? = nil
+        accessTokenExpiresInSeconds: Int? = nil,
+        isExpectedUserAction: Bool? = nil
     ) {
+        let snapshot = makeAuthSessionDiagnosticSnapshot(
+            source: source,
+            outcome: outcome,
+            status: status,
+            requestID: requestID,
+            endpoint: endpoint,
+            isRetry: isRetry,
+            storageState: storageState,
+            accessTokenExpiresInSeconds: accessTokenExpiresInSeconds,
+            isExpectedUserAction: isExpectedUserAction
+        )
         Task { @MainActor in
             var properties: [String: Any] = [
-                "source": source,
-                "outcome": outcome
+                "source": snapshot.source,
+                "outcome": snapshot.outcome
             ]
-            if let status {
+            if let status = snapshot.status {
                 properties["status"] = status
             }
-            if let requestID {
+            if let requestID = snapshot.requestID {
                 properties["request_id"] = requestID
             }
-            if let endpoint {
+            if let endpoint = snapshot.endpoint {
                 properties["endpoint"] = endpoint
             }
-            if let isRetry {
+            if let isRetry = snapshot.isRetry {
                 properties["is_retry"] = isRetry
             }
-            if let storageState {
+            if let storageState = snapshot.storageState {
                 properties["storage_state"] = storageState
             }
-            if let accessTokenExpiresInSeconds {
+            if let accessTokenExpiresInSeconds = snapshot.accessTokenExpiresInSeconds {
                 properties["access_token_expires_in_seconds"] = accessTokenExpiresInSeconds
             }
-            shared.capture(.authSessionDiagnostic, properties: properties)
+            if let isExpectedUserAction = snapshot.isExpectedUserAction {
+                properties["is_expected_user_action"] = isExpectedUserAction
+            }
+            shared.capture(
+                .authSessionObserved,
+                properties: properties,
+                distinctID: snapshot.distinctID,
+                timestamp: snapshot.timestamp
+            )
         }
+    }
+
+    nonisolated static func makeAuthSessionDiagnosticSnapshot(
+        source: String,
+        outcome: String,
+        status: Int? = nil,
+        requestID: String? = nil,
+        endpoint: String? = nil,
+        isRetry: Bool? = nil,
+        storageState: String? = nil,
+        accessTokenExpiresInSeconds: Int? = nil,
+        isExpectedUserAction: Bool? = nil,
+        distinctIDProvider: () -> String = { PostHogSDK.shared.getDistinctId() },
+        now: () -> Date = { Date() }
+    ) -> AuthSessionDiagnosticSnapshot {
+        AuthSessionDiagnosticSnapshot(
+            distinctID: distinctIDProvider(),
+            timestamp: now(),
+            source: source,
+            outcome: outcome,
+            status: status,
+            requestID: requestID,
+            endpoint: endpoint,
+            isRetry: isRetry,
+            storageState: storageState,
+            accessTokenExpiresInSeconds: accessTokenExpiresInSeconds,
+            isExpectedUserAction: isExpectedUserAction
+        )
     }
 
     // MARK: - Screen Tracking

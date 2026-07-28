@@ -63,18 +63,26 @@ struct AuthServiceBiometricRefactorTests {
         #expect(!AuthService.isTerminalSessionFailure(serverError))
     }
 
-    @Test("Supabase cleanup response preserves the exact server error code for diagnostics")
-    func supabaseLogger_extractsExactCleanupCode() throws {
+    @Test(
+        "Supabase cleanup response preserves every terminal server error code",
+        arguments: [
+            "session_not_found",
+            "session_expired",
+            "refresh_token_not_found",
+            "refresh_token_already_used"
+        ]
+    )
+    func supabaseLogger_extractsExactCleanupCode(code: String) throws {
         let message = """
         Response: Status code: 400 Content-Length: 91
         Body: {
-          "error_code" : "refresh_token_already_used",
+          "error_code" : "\(code)",
           "msg" : "Invalid Refresh Token"
         }
         """
 
         let result = try #require(PulpeSupabaseLogger.cleanupError(from: message))
-        #expect(result.code == "refresh_token_already_used")
+        #expect(result.code == code)
         #expect(result.status == 400)
     }
 
