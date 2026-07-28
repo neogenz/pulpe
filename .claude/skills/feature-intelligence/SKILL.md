@@ -43,7 +43,7 @@ Read **all** of these. No exceptions. If a file is missing, ask before proceedin
 - Personal budget management app for the Swiss market (CHF only, V1).
 - **Philosophy:** Planning > Tracking, Simplicity > Completeness, Serenity > Control, Isolation > DRY.
 - **Tone:** Informal French ("tu"), encouraging, never anxiety-inducing. Green palette (not red). Relief over control.
-- **Users:** 3 production users. iOS App Store submission pending. Primary target is iOS (SwiftUI), with Angular webapp and Next.js landing.
+- **Current status:** Read `PRODUCT.md` and the latest public GitHub releases. Do not hardcode user counts or release-review status here. Primary target is iOS (SwiftUI), with Angular webapp and Next.js landing.
 - **Core flow:** Template -> Budget -> Budget Line -> Transaction.
 - **Calculation:** Available = Income + Rollover; Remaining = Available - Expenses; Ending Balance -> next month's Rollover.
 

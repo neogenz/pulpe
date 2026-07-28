@@ -40,7 +40,7 @@ Ce fichier définit le template **exact** à utiliser pour toute user story. Cha
 
 1. **Toutes les sections sont obligatoires** — ne jamais en supprimer une
 2. **Ordre des sections fixe** — toujours dans cet ordre exact
-3. **Personas autorisés** : `Utilisateur` (utilisateur final) ou `Développeur` (Maxime, pour issues techniques)
+3. **Personas autorisés** : `Utilisateur` (utilisateur final) ou `Développeur` (mainteneur, pour les issues techniques)
 4. **Critères d'acceptation** : préfixés `CA1:`, `CA2:`, etc. avec checkbox `- [ ]`. Chaque CA doit être vérifiable par oui/non
 5. **Regroupement des CA** : si multi-plateforme, regrouper sous des sous-titres en gras (ex: `**Web :**`, `**iOS :**`, `**Commun :**`)
 6. **Notes techniques** : toujours commencer par la ligne `Package(s) concerné(s)` en gras

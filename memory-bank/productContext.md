@@ -142,8 +142,8 @@ Cette dissymétrie (visuel à 50 %, logique à 80 %) est volontaire : le tint do
 - **Never stored server-side** (only `wrappedDEK` stored)
 - Clipboard copy available; no email/cloud backup
 - Regenerable anytime from Account settings (requires password verification)
-- Both PIN + recovery key lost: encrypted financial data **permanently inaccessible** (zero-knowledge model)
-- Account recoverable via email password reset, but encrypted amounts become undecipherable
+- Without a stored client key or recovery key, financial amount recovery is unavailable
+- The backend decrypts amounts during authenticated requests when the client key is provided; an email password reset alone does not restore that key
 - iOS: "J'ai noté ma clé" button dismisses without paste-back confirmation (spec says `Confirmation obligatoire` but iOS does not enforce — known deviation)
 
 ### RG-009: Multi-Currency & Conversion

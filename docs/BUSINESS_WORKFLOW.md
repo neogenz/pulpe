@@ -257,15 +257,15 @@ Chaque intention = un vrai moment de vie. Chaque feature de Pulpe doit servir au
 
 ### 11. "Mes donnees financieres doivent rester privees"
 
-**Besoin** : avoir la certitude que personne --- meme Pulpe --- ne peut lire mes montants.
+**Besoin** : eviter qu'une fuite de la base expose directement mes montants.
 
 **Douleurs** : confiance
 
 **Scenario** :
-1. Tous les montants financiers sont chiffres de bout en bout (AES-256-GCM)
-2. Le PIN deverrouille la cle de chiffrement, stockee uniquement sur l'appareil
+1. Tous les montants financiers sont chiffres au repos avec AES-256-GCM
+2. Le PIN derive une cle client, combinee a la cle serveur pour dechiffrer les montants cote serveur pendant les requetes authentifiees
 3. La cle de secours est affichee une seule fois, jamais stockee cote serveur
-4. Si PIN et cle de secours sont perdus → les donnees financieres sont irrecuperables (zero-knowledge)
+4. Sans cle client conservee sur un appareil ni cle de secours, la recuperation des montants n'est plus possible
 5. Le verrouillage automatique (30s en background) protege l'acces physique
 6. Face ID / Touch ID comme raccourci de deverrouillage
 
