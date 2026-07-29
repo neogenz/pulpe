@@ -18,11 +18,17 @@ let beforeSendHandler:
   | ((event: CaptureResult | null) => CaptureResult | null)
   | undefined;
 let optedOut = false;
+let initializationOptions: Record<string, unknown> | undefined;
+let legacyCookiePresentAtInit = false;
 
 vi.mock('posthog-js', () => {
   return {
     default: {
       init: vi.fn((_apiKey, options) => {
+        initializationOptions = options;
+        legacyCookiePresentAtInit = document.cookie.includes(
+          'ph_test-api-key_posthog=',
+        );
         beforeSendHandler = options?.before_send;
         if (options?.loaded) {
           options.loaded();
@@ -71,6 +77,10 @@ describe('PostHogService', () => {
     vi.clearAllMocks();
     beforeSendHandler = undefined;
     optedOut = false;
+    initializationOptions = undefined;
+    legacyCookiePresentAtInit = false;
+    document.cookie =
+      'ph_test-api-key_posthog=; Max-Age=0; Path=/; SameSite=Lax';
 
     const posthogModule = await import('posthog-js');
     vi.mocked(posthogModule.default.set_config).mockClear();
@@ -131,6 +141,23 @@ describe('PostHogService', () => {
         platform: 'web',
       }),
     );
+  });
+
+  it('isolates app persistence and removes the legacy shared identity before init', async () => {
+    document.cookie =
+      'ph_test-api-key_posthog=legacy-identity; Path=/; SameSite=Lax';
+    localStorage.setItem('__ph_opt_in_out_test-api-key', '0');
+
+    await service.initialize();
+
+    expect(legacyCookiePresentAtInit).toBe(false);
+    expect(initializationOptions).toEqual(
+      expect.objectContaining({
+        persistence_name: 'pulpe_app',
+        cross_subdomain_cookie: false,
+      }),
+    );
+    expect(localStorage.getItem('__ph_opt_in_out_test-api-key')).toBe('0');
   });
 
   it('enables tracking and records initial pageview after consent', async () => {

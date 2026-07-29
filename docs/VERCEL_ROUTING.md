@@ -130,9 +130,13 @@ Les deux projets proxifient les requêtes PostHog via Vercel pour contourner les
 
 Les deux SDKs ajoutent aussi `ui_host: 'https://eu.posthog.com'` pour la toolbar PostHog.
 
-### Cross-subdomain tracking
+### Isolation des identités
 
-Les deux apps utilisent `cross_subdomain_cookie: true` pour partager le cookie PostHog sur `*.pulpe.app`, permettant de suivre le parcours landing → app comme une seule session.
+Les deux apps utilisent `cross_subdomain_cookie: false` et des
+`persistence_name` distincts. La landing et l'app authentifiée ne partagent donc
+ni `distinct_id`, ni appareil, ni session. Les anciens cookies partagés sont
+expirés avant l'initialisation du SDK. Les CTA conservent uniquement leurs
+paramètres UTM dans l'URL.
 
 ## Ignored Build Step
 

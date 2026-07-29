@@ -10,7 +10,8 @@
   retirés avant envoi. Le sanitizer web est fail-closed et les surfaces sensibles portent
   `ph-no-capture`.
 - La landing `https://pulpe.app` garde une identité analytics indépendante. Aucun
-  `distinct_id` n'est transféré vers `https://app.pulpe.app`.
+  `distinct_id`, identifiant d'appareil ou identifiant de session n'est transféré
+  vers `https://app.pulpe.app`; les CTA ne transmettent que leurs paramètres UTM.
 - PostHog est actif en production selon les variables d'environnement et reste
   configurable dans les environnements local et preview.
 - Le session replay est forcé à l'arrêt en production. Il reste activable par

@@ -8,6 +8,19 @@ import { STORAGE_KEYS } from '../storage/storage-keys';
 import { buildInfo } from '@env/build-info';
 import { sanitizeEventPayload } from './posthog-sanitizer';
 
+const POSTHOG_PERSISTENCE_NAME = 'pulpe_app';
+
+function expireLegacySharedCookie(apiKey: string): void {
+  const expiredCookie = `ph_${apiKey}_posthog=; Max-Age=0; Path=/; SameSite=Lax`;
+  document.cookie = expiredCookie;
+  if (
+    location.hostname === 'pulpe.app' ||
+    location.hostname.endsWith('.pulpe.app')
+  ) {
+    document.cookie = `${expiredCookie}; Domain=.pulpe.app`;
+  }
+}
+
 /**
  * PostHog service for analytics and error tracking.
  * Uses PostHog's built-in privacy protection and minimal configuration.
@@ -67,6 +80,7 @@ export class PostHogService {
     try {
       this.#logger.info('Initializing PostHog', { host: config.host });
 
+      expireLegacySharedCookie(config.apiKey);
       const posthog = (await import('posthog-js')).default;
       this.#posthog = posthog;
       const sessionReplayEnabled =
@@ -94,6 +108,8 @@ export class PostHogService {
         // Built-in privacy protection
         person_profiles: 'identified_only',
         persistence: 'localStorage+cookie',
+        persistence_name: POSTHOG_PERSISTENCE_NAME,
+        cross_subdomain_cookie: false,
 
         // Sanitize financial data before sending
         before_send: this.#sanitizeEvent.bind(this),
