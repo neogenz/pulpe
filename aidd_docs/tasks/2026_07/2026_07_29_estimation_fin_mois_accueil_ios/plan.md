@@ -1,6 +1,6 @@
 ---
 objective: "L’accueil iOS affiche un solde de fin de mois fondé sur le budget restant et les écarts déjà connus, tandis que le graphique distingue le réalisé du reste du plan sans extrapolation journalière."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Estimation de fin de mois sur l’accueil iOS
