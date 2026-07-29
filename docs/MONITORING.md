@@ -19,7 +19,9 @@
   télémétrie réseau associée restent désactivés dans tous les environnements.
 - Le réglage « Partager les diagnostics », activé par défaut, utilise l'opt-out persistant
   natif de PostHog sur chaque appareil. Sa désactivation arrête les captures, efface
-  l'identité locale et n'affecte ni le compte Supabase ni les autres appareils.
+  l'identité locale et n'affecte ni le compte Supabase ni les autres appareils. Il se
+  trouve dans `Paramètres → Données de diagnostic` sur le web et
+  `Préférences → Données et confidentialité` sur iOS.
 
 Ce document décrit le comportement technique; il ne constitue pas une validation
 juridique du fondement choisi.

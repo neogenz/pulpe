@@ -72,18 +72,52 @@ supabase migration up
 ```
 Then `db push` will apply new migrations to the remote database.
 
-#### Account-deletion metadata migration
+#### Pre-rollout data gates
 
-Before deploying the switch to server-owned deletion claims:
+Run this aggregate-only query with read-only production access. It returns no
+identity or financial value:
 
-1. With a one-off service-role script, list users whose
-   `user_metadata.scheduledDeletionAt` is a valid ISO date and whose
-   `app_metadata.scheduledDeletionAt` is absent.
-2. Copy that date with `auth.admin.updateUserById`, preserving every existing
-   `app_metadata` key.
-3. Re-list users and verify that no valid legacy-only deletion remains.
-4. Deploy the backend and clients only after this verification. The runtime
-   intentionally has no fallback to client-writable `user_metadata`.
+```sql
+WITH financial_users AS (
+  SELECT user_id FROM monthly_budget WHERE ending_balance IS NOT NULL
+  UNION SELECT mb.user_id FROM budget_line bl
+    JOIN monthly_budget mb ON mb.id = bl.budget_id
+    WHERE bl.amount IS NOT NULL OR bl.original_amount IS NOT NULL
+  UNION SELECT mb.user_id FROM transaction tx
+    JOIN monthly_budget mb ON mb.id = tx.budget_id
+    WHERE tx.amount IS NOT NULL OR tx.original_amount IS NOT NULL
+  UNION SELECT t.user_id FROM template_line tl
+    JOIN template t ON t.id = tl.template_id
+    WHERE tl.amount IS NOT NULL OR tl.original_amount IS NOT NULL
+  UNION SELECT user_id FROM savings_goal
+    WHERE target_amount IS NOT NULL OR initial_amount IS NOT NULL OR original_target_amount IS NOT NULL
+)
+SELECT
+  count(*) FILTER (WHERE k.user_id IS NULL OR k.key_check IS NULL) AS financial_users_without_key_check,
+  count(*) FILTER (WHERE k.user_id IS NOT NULL AND k.wrapped_dek IS NULL) AS vaults_without_wrapped_dek
+FROM financial_users f LEFT JOIN user_encryption_key k ON k.user_id = f.user_id;
+```
+
+`financial_users_without_key_check` must be zero before the strict backend rollout.
+Review `vaults_without_wrapped_dek` separately; never export the matching users.
+
+For legacy deletion claims, load the intended Supabase environment securely, then run:
+
+```bash
+bun run migrate:scheduled-deletion         # dry-run, aggregate counters only
+bun run migrate:scheduled-deletion --apply # explicit write
+bun run migrate:scheduled-deletion         # eligible must now be zero
+```
+
+The tool is paginated, preserves existing `app_metadata`, never overwrites an
+existing server-owned claim, and stops on the first list or update error. Production
+`--apply` requires explicit approval. The runtime has no fallback to client-writable
+`user_metadata`.
+
+For a strict vault rollout, publish the iOS client that creates a vault through
+`/encryption/setup-recovery` first and wait until it is downloadable from the App
+Store. Only then deploy an incompatible backend or raise `MIN_IOS_VERSION`; use the
+rollback procedure in [VERSIONING.md](./VERSIONING.md) if the gate was raised early.
 
 #### Export data (optional)
 

@@ -74,6 +74,8 @@ test("public security and deletion claims describe the implemented model", () =>
   );
 
   const consent = read("docs/CONSENT.md");
+  assert.match(consent, /Paramètres → Données de diagnostic/);
+  assert.match(consent, /Préférences → Données et confidentialité/);
   assert.doesNotMatch(
     consent,
     /intérêt légitime|jurisprudence|valeur probatoire|problème produit n°1/i,

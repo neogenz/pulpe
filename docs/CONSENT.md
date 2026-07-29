@@ -23,8 +23,10 @@ Surfaces concernées :
 ## Diagnostics identifiés
 
 Les diagnostics PostHog sont activés par défaut. Un réglage local permet de les désactiver
-immédiatement sur web et iOS :
-**Paramètres → Données de diagnostic → Partager les diagnostics**.
+immédiatement :
+
+- web : **Paramètres → Données de diagnostic → Partager les diagnostics** ;
+- iOS : **Préférences → Données et confidentialité → Partager les diagnostics**.
 
 Quand le réglage est actif, la session authentifiée peut être associée à l'UUID Supabase,
 à l'email et au prénom afin de relier les incidents signalés au compte concerné.

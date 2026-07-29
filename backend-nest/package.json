@@ -21,6 +21,7 @@
     "supabase:diff": "supabase db diff --schema public",
     "supabase:push": "supabase db push",
     "supabase:pull": "supabase db pull",
+    "migrate:scheduled-deletion": "bun scripts/migrate-scheduled-deletion-metadata.ts",
     "dev:local": "NODE_ENV=development bun --env-file=.env.local --watch src/main.ts",
     "generate-types:local": "bun x supabase gen types typescript --local > src/types/database.types.ts",
     "test": "bun test",
