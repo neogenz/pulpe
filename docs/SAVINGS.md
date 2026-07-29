@@ -374,7 +374,13 @@ Le serveur reste autoritaire à l'écriture. Les clients ne recalculent jamais l
 
 Pour une récupération, les clients arrondissent `required` au **centime supérieur** puis réutilisent exactement ce montant positif dans la preview, sa projection et chaque `missingMonthAdjustment`. Un `required` nul ne propose aucune récupération.
 
-Le flux valide toutes les préconditions avant mutation, provisionne les budgets absents ou réutilise les budgets existants de façon idempotente, puis applique les montants dans une RPC atomique sérialisée par objectif. La RPC refuse toute ligne étrangère, non liée, non-Épargne, passée ou pointée. Les ajustements appliqués deviennent manuels et sortent de RG-001 ; le Mois Type n'est jamais modifié.
+Le flux valide toutes les préconditions avant mutation. Il provisionne d'abord
+les budgets absents ou réutilise les budgets existants. Un nouvel essai
+séquentiel relit l'état et réutilise ce qui a déjà été provisionné. L'application des
+montants passe ensuite par une RPC atomique sérialisée par objectif. La RPC
+refuse toute ligne étrangère, non liée, non-Épargne, passée ou pointée. Les
+ajustements appliqués deviennent manuels et sortent de RG-001 ; le Mois Type
+n'est jamais modifié.
 
 Depuis PUL-316, un mois manquant reçoit sa Prévision liée **directement**, par le même lissage que la création (§3.5) : le budget est matérialisé s'il manque, sinon il est réutilisé, puis la ligne y est insérée — exactement le geste d'un ajout manuel dans le budget du mois. Exiger au préalable une ligne du Mois Type à recopier rendrait le comblement impossible pour un objectif daté, qui n'en pose plus.
 
@@ -386,7 +392,13 @@ Les montants sont chiffrés via `ENCRYPTION_PORT`. Une application dans la devis
 - ligne pointée ou période devenue passée pendant la simulation : conflit 409, puis relecture et nouvelle simulation ;
 - autre échec d'application : erreur serveur et retry sûr sur les budgets déjà provisionnés.
 
-L'application ne requiert pas de clé d'idempotence : le provisioning réutilise les budgets existants et l'écriture finale est un update par valeur sous verrou.
+Le client n'envoie pas de clé d'idempotence. La reprise est sûre pour des
+demandes séquentielles : le provisioning réutilise les budgets existants et
+l'écriture finale met une valeur à jour sous verrou.
+
+Le provisioning n'est pas sérialisé entre deux demandes indépendantes. Deux
+appareils ou onglets qui confirment au même instant sortent donc de cette
+garantie.
 
 ---
 
