@@ -29,6 +29,7 @@ juridique du fondement choisi.
 ## 🚀 TLDR - Monitoring Opérationnel
 
 ### ⚡ Status Check Rapide
+
 ```bash
 # Vérifier sourcemaps uploadés (logs Vercel)
 # Chercher: "🎉 PostHog source maps processing completed!"
@@ -41,6 +42,7 @@ juridique du fondement choisi.
 ```
 
 ### ⚡ Variables Critiques Vercel
+
 ```env
 # OBLIGATOIRES pour sourcemaps automatiques
 POSTHOG_PERSONAL_API_KEY=phx_your_personal_api_key_here
@@ -51,6 +53,7 @@ POSTHOG_HOST=https://eu.i.posthog.com
 ## 📋 Configuration PostHog Complète
 
 ### Architecture Error Tracking
+
 L'application capture automatiquement toutes les erreurs avec contexte complet incluant version, commit, et stack traces lisibles via sourcemaps.
 
 ```mermaid
@@ -68,30 +71,33 @@ flowchart TD
 ```
 
 ### Version Tracking Automatique
+
 Chaque événement PostHog inclut automatiquement :
 
 ```typescript
 // Super Properties (tous les événements)
-app_version: "0.19.1"
-app_commit: "e000f97"
-environment: "production"
-platform: "web"
+app_version: "0.19.1";
+app_commit: "e000f97";
+environment: "production";
+platform: "web";
 
 // Person Properties (profil utilisateur)
-first_app_version: "0.19.1"
-first_commit: "e000f97"
+first_app_version: "0.19.1";
+first_commit: "e000f97";
 
 // Événements d'erreur spécifiques
-release: "0.19.1"
-commit: "e000f97"
+release: "0.19.1";
+commit: "e000f97";
 ```
 
 ## 🔧 Sourcemaps Automatiques {#sourcemaps}
 
 ### Configuration Complète
+
 L'upload des sourcemaps est **100% automatisé** dans le processus de déploiement Vercel. Aucune intervention manuelle requise.
 
 ### Variables Environnement Vercel
+
 ```env
 # OBLIGATOIRE: Clé API personnelle PostHog
 POSTHOG_PERSONAL_API_KEY=phx_your_personal_api_key_here
@@ -106,6 +112,7 @@ POSTHOG_HOST=https://eu.i.posthog.com
 **Important** : Ces variables sont déclarées dans `turbo.json` pour être accessibles au CLI PostHog pendant le build.
 
 ### Workflow Automatique
+
 ```bash
 # Déclenchement automatique lors déploiement Vercel
 1. Configuration génération ✅
@@ -117,11 +124,13 @@ POSTHOG_HOST=https://eu.i.posthog.com
 ### Obtenir les Clés PostHog
 
 #### Clé API Personnelle
+
 1. PostHog Dashboard → **Settings > Personal API Keys**
 2. Créer nouvelle clé avec permissions `sourcemap:upload`
 3. Copier la clé (format: `phx_...`)
 
 #### Project ID
+
 1. PostHog Dashboard → **Settings > Project variables**
 2. Copier **Project ID** (nombre entier, ex: `12345`)
 3. Utiliser pour `POSTHOG_CLI_ENV_ID`
@@ -132,16 +141,17 @@ PostHog releases et annotations sont créées automatiquement à chaque deploy. 
 
 ### Ce qui se passe automatiquement
 
-| App | Déclencheur | Actions PostHog |
-|-----|------------|-----------------|
-| Webapp (Angular) | Build Vercel | Sourcemaps upload + release avec source linking GitHub |
-| Landing (Next.js) | Build Vercel | Release via API (version + commit) |
-| iOS (SwiftUI) | Push main (paths: ios/**) | Release `ios-X.Y.Z+BUILD` + annotation |
-| Toutes | Push main (CI verte) | Annotation sur le projet PostHog 87621 |
+| App               | Déclencheur                 | Actions PostHog                                        |
+| ----------------- | --------------------------- | ------------------------------------------------------ |
+| Webapp (Angular)  | Build Vercel                | Sourcemaps upload + release avec source linking GitHub |
+| Landing (Next.js) | Build Vercel                | Release via API (version + commit)                     |
+| iOS (SwiftUI)     | Push main (paths: ios/\*\*) | Release `ios-X.Y.Z+BUILD` + annotation                 |
+| Toutes            | Push main (CI verte)        | Annotation sur le projet PostHog 87621                 |
 
 ### Source linking GitHub
 
 Les stack traces dans Error Tracking incluent des liens cliquables vers le code source dans GitHub au bon commit. Nécessite :
+
 - GitHub connecté dans PostHog (Settings → Error Tracking → Integrations)
 - Releases créées avec infos Git (automatique via le CLI)
 
@@ -158,6 +168,7 @@ Voir [DEPLOYMENT.md](./DEPLOYMENT.md) (sections GitHub Actions Secrets et Landin
 ## 📊 Error Tracking Configuration {#error-tracking}
 
 ### Capture Automatique
+
 Les erreurs sont automatiquement capturées via `GlobalErrorHandler` avec contexte complet :
 
 ```typescript
@@ -172,6 +183,7 @@ Les erreurs sont automatiquement capturées via `GlobalErrorHandler` avec contex
 ```
 
 ### Capture Manuelle
+
 ```typescript
 // Dans composant Angular
 export class MyComponent {
@@ -179,8 +191,8 @@ export class MyComponent {
 
   onError(error: Error) {
     this.postHog.captureException(error, {
-      component: 'MyComponent',
-      action: 'user_action',
+      component: "MyComponent",
+      action: "user_action",
       // Contexte additionnel
     });
   }
@@ -188,6 +200,7 @@ export class MyComponent {
 ```
 
 ### Filtres Disponibles (Dashboard)
+
 ```bash
 # Filtres PostHog Dashboard
 app_version = "2025.11.0"           # Erreurs version spécifique
@@ -209,11 +222,13 @@ supabase_user_id = "user-123"      # Compte support spécifique
 
 Le mode détaillé conserve la structure des payloads assainis et tronqués, sans
 commande cURL. Authorization, cookies, tokens, mots de passe, PIN, clés,
-recherches et textes saisis restent masqués. Les erreurs conservent statut,
-code, type, request ID et frames fichier/ligne, jamais leur message brut. Le
-flag est toujours ignoré en production.
+recherches, textes saisis, montants, soldes et agrégats financiers restent
+masqués. Les noms de champs et la structure technique restent visibles. Les
+erreurs conservent statut, code, type, request ID et frames fichier/ligne,
+jamais leur message brut. Le flag est toujours ignoré en production.
 
 ### Identifier une Erreur
+
 1. **PostHog Dashboard** → Events → Errors
 2. Filtrer par `app_version` si nécessaire
 3. Cliquer sur erreur pour contexte complet :
@@ -222,12 +237,14 @@ flag est toujours ignoré en production.
    - Contexte utilisateur et page
 
 ### Corréler avec Déploiements
+
 - Chaque version correspond à un commit Git
 - Chaque déploiement a ses propres sourcemaps
 - Timeline des erreurs visible par version
 - Symbol sets conservés 90 jours
 
 ### Métriques Utiles
+
 - **Erreurs par version** : Impact des releases
 - **Top erreurs** : Priorités de fix
 - **Régression** : Nouvelles erreurs après déploiement
@@ -236,9 +253,11 @@ flag est toujours ignoré en production.
 ## 🛠️ Troubleshooting Sourcemaps
 
 ### Erreur: "POSTHOG_PERSONAL_API_KEY environment variable is required"
+
 **Cause** : Clé API non configurée dans Vercel
 
 **Solution** :
+
 ```bash
 # 1. Vérifier variables Vercel Dashboard
 # 2. Ajouter POSTHOG_PERSONAL_API_KEY
@@ -246,9 +265,11 @@ flag est toujours ignoré en production.
 ```
 
 ### Erreur: "POSTHOG_CLI_ENV_ID environment variable is required"
+
 **Cause** : Project ID PostHog manquant
 
 **Solution** :
+
 ```bash
 # 1. PostHog Dashboard → Settings → Project variables
 # 2. Copier Project ID
@@ -257,9 +278,11 @@ flag est toujours ignoré en production.
 ```
 
 ### Erreur: "Couldn't load credentials"
+
 **Cause** : Variables incomplètes ou permissions API insuffisantes
 
 **Solution** :
+
 ```bash
 # 1. Vérifier 3 variables dans Vercel:
 #    - POSTHOG_PERSONAL_API_KEY
@@ -270,12 +293,15 @@ flag est toujours ignoré en production.
 ```
 
 ### Stack Traces Toujours Minifiées
+
 **Causes possibles** :
+
 - Sourcemaps pas uploadées
 - Symbol Sets manquants/expirés
 - Version mismatch
 
 **Solutions** :
+
 ```bash
 # 1. Vérifier upload dans logs Vercel
 # Chercher: "PostHog source maps processing completed!"
@@ -293,6 +319,7 @@ pnpm upload:sourcemaps  # Nécessite POSTHOG_PERSONAL_API_KEY local
 ## 🔐 Sécurité & Données
 
 ### Données Automatiquement Masquées
+
 - **Données financières** : Montants et transactions
 - **Identification support** : UUID Supabase, email et prénom restent disponibles
 - **Autres données sensibles** : Contenus saisis, secrets et identifiants métier détaillés exclus
@@ -300,12 +327,14 @@ pnpm upload:sourcemaps  # Nécessite POSTHOG_PERSONAL_API_KEY local
 - **Tokens** : API keys masquées
 
 ### Sourcemaps Sécurisées
+
 - **Non exposées publiquement** : `hidden: true` configuration
 - **Upload sécurisé** : API key personnelle requise
 - **Rétention limitée** : Symbol sets conservés 90 jours
 - **Isolation** : Chaque déploiement = Symbol set unique
 
 ### Configuration Production
+
 - PostHog actif en production selon les variables d'environnement
 - PostHog configurable en local et preview
 - Session replay désactivé en production
@@ -350,6 +379,7 @@ vercel ls                              # Status derniers deployments
 ---
 
 **Resources** :
+
 - **PostHog Error Tracking** : https://posthog.com/docs/error-tracking
 - **Symbol Sets Management** : Dashboard PostHog > Settings > Error tracking
 - **Variables critiques** : [DEPLOYMENT.md](./DEPLOYMENT.md)

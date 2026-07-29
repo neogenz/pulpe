@@ -148,9 +148,18 @@ describe('Sensitive Data Redaction Test', () => {
           authorization: 'Bearer HEADER_SENTINEL',
           'x-client-key': 'CLIENT_KEY_SENTINEL',
         },
-        query: { token: 'QUERY_SENTINEL', visible: 'yes' },
+        query: {
+          token: 'QUERY_SENTINEL',
+          remaining: 'FINANCIAL_VALUE_SENTINEL',
+          visible: 'yes',
+        },
         body: {
-          nested: [{ recoveryKey: 'RECOVERY_SENTINEL' }],
+          nested: [
+            {
+              recoveryKey: 'RECOVERY_SENTINEL',
+              targetAmount: 'FINANCIAL_VALUE_SENTINEL',
+            },
+          ],
           visible: 'yes',
         },
       } as any);
@@ -161,6 +170,7 @@ describe('Sensitive Data Redaction Test', () => {
       expect(output).not.toContain('CLIENT_KEY_SENTINEL');
       expect(output).not.toContain('QUERY_SENTINEL');
       expect(output).not.toContain('RECOVERY_SENTINEL');
+      expect(output).not.toContain('FINANCIAL_VALUE_SENTINEL');
       expect(output).toContain('yes');
     });
 
@@ -266,6 +276,7 @@ describe('Sensitive Data Redaction Test', () => {
       app.get('/response', (_req: Request, res: Response) => {
         res.json({
           visible: 'yes',
+          endingBalance: 'FINANCIAL_VALUE_SENTINEL',
           nested: { refreshToken: 'RESPONSE_TOKEN_SENTINEL' },
         });
       });
@@ -274,12 +285,14 @@ describe('Sensitive Data Redaction Test', () => {
 
       expect(response.body).toEqual({
         visible: 'yes',
+        endingBalance: 'FINANCIAL_VALUE_SENTINEL',
         nested: { refreshToken: 'RESPONSE_TOKEN_SENTINEL' },
       });
       expect(responseLogs).toHaveLength(1);
       const loggedResponse = responseLogs[0].response;
       expect(loggedResponse.body).toEqual({
         visible: 'yes',
+        endingBalance: '[REDACTED]',
         nested: { refreshToken: '[REDACTED]' },
       });
       expect(typeof loggedResponse.body).toBe('object');

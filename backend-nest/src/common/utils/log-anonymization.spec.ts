@@ -152,6 +152,37 @@ describe('sanitizeLogValue', () => {
     expect(serialized).toContain('visible');
   });
 
+  it('redacts nested financial values while preserving technical structure', () => {
+    const sentinel = 'FINANCIAL_VALUE_SENTINEL';
+    const sanitized = sanitizeLogValue({
+      requestId: 'req-123',
+      body: {
+        amount: sentinel,
+        original_amount: sentinel,
+        targetAmount: sentinel,
+        endingBalance: sentinel,
+        metrics: {
+          totalIncome: sentinel,
+          totalExpenses: sentinel,
+          totalSavings: sentinel,
+          remaining: sentinel,
+          available: sentinel,
+          rollover: sentinel,
+          consumed: sentinel,
+        },
+      },
+      statusCode: 200,
+    });
+    const serialized = JSON.stringify(sanitized);
+
+    expect(serialized).not.toContain(sentinel);
+    expect(sanitized).toMatchObject({
+      requestId: 'req-123',
+      statusCode: 200,
+      body: { amount: '[REDACTED]', metrics: { remaining: '[REDACTED]' } },
+    });
+  });
+
   it('truncates large strings, arrays, objects, and excessive depth', () => {
     const sanitized = sanitizeLogValue({
       text: 'x'.repeat(10_000),

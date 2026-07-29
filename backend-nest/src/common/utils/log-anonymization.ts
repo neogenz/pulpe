@@ -46,10 +46,24 @@ const MAX_LOG_DEPTH = 5;
 const MAX_LOG_STRING_LENGTH = 2048;
 const MAX_LOG_COLLECTION_SIZE = 25;
 const MAX_STACK_FRAMES = 20;
+const FINANCIAL_LOG_KEYS = new Set([
+  'available',
+  'availabletospend',
+  'remaining',
+  'rollover',
+  'consumed',
+  'exchangerate',
+]);
 
 function isSensitiveLogKey(key: string): boolean {
   const normalized = key.toLowerCase().replace(/[\s_-]/g, '');
   return (
+    normalized.includes('amount') ||
+    normalized.includes('balance') ||
+    FINANCIAL_LOG_KEYS.has(normalized) ||
+    ['income', 'expense', 'expenses', 'saving', 'savings'].some((suffix) =>
+      normalized.endsWith(suffix),
+    ) ||
     [
       'auth',
       'authorization',

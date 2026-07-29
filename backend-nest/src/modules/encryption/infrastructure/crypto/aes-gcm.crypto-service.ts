@@ -10,6 +10,7 @@ import {
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
+import { sanitizeLogTechnicalValue } from '@common/utils/log-anonymization';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { DEMO_CLIENT_KEY_BUFFER } from '../../domain/encryption.constants';
 import { SupabaseEncryptionKeyRepository } from '../persistence/supabase-encryption-key.repository';
@@ -42,6 +43,10 @@ interface CachedDEK {
   dek: Buffer;
   expiry: number;
 }
+
+const safeErrorType = (error: unknown): string =>
+  sanitizeLogTechnicalValue(error instanceof Error ? error.name : undefined) ??
+  'UnknownError';
 
 @Injectable()
 export class AesGcmCryptoService {
@@ -132,7 +137,7 @@ export class AesGcmCryptoService {
         {
           op: 'crypto.decrypt.fallback',
           severity: 'critical',
-          error: error instanceof Error ? error.message : String(error),
+          errorType: safeErrorType(error),
           ciphertextLength: ciphertext.length,
         },
         'Decryption failed, using fallback amount — possible cross-DEK ciphertext or tamper',
@@ -722,10 +727,7 @@ export class AesGcmCryptoService {
             {
               userId,
               operation: 'recover.restore_wrapped_dek_failed',
-              error:
-                restoreError instanceof Error
-                  ? restoreError.message
-                  : String(restoreError),
+              errorType: safeErrorType(restoreError),
             },
             'Failed to restore wrapped_dek after rekey failure — stuck at null until recovery key regeneration',
           );
@@ -756,10 +758,7 @@ export class AesGcmCryptoService {
             {
               userId,
               operation: 'recover.nullify_wrapped_dek_failed',
-              error:
-                nullifyError instanceof Error
-                  ? nullifyError.message
-                  : String(nullifyError),
+              errorType: safeErrorType(nullifyError),
             },
             'Failed to nullify wrapped_dek after wrap failure — stale wrapped_dek may remain until recovery key regeneration',
           );
@@ -913,10 +912,7 @@ export class AesGcmCryptoService {
             {
               userId,
               operation: 'change_pin.restore_wrapped_dek_failed',
-              error:
-                restoreError instanceof Error
-                  ? restoreError.message
-                  : String(restoreError),
+              errorType: safeErrorType(restoreError),
             },
             'Failed to restore wrapped_dek after rekey failure — stuck at null until recovery key regeneration',
           );
@@ -946,10 +942,7 @@ export class AesGcmCryptoService {
             {
               userId,
               operation: 'change_pin.nullify_wrapped_dek_failed',
-              error:
-                nullifyError instanceof Error
-                  ? nullifyError.message
-                  : String(nullifyError),
+              errorType: safeErrorType(nullifyError),
             },
             'Failed to nullify wrapped_dek after wrap failure — stale wrapped_dek may remain until recovery key regeneration',
           );

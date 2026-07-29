@@ -414,13 +414,35 @@ describe('AesGcmCryptoService', () => {
       expect(result).toBe(amount);
     });
 
-    it('should return fallback on decryption failure', () => {
+    it('should return fallback without logging the raw decryption error', () => {
       const dek = randomBytes(32);
       const fallback = 999.99;
+      const warn = mock(() => {});
+      const logger = { ...createMockLogger(), warn };
+      service = new AesGcmCryptoService(
+        logger as any,
+        mockConfigService as any,
+        mockRepository as any,
+      );
+      const decryptSpy = spyOn(service, 'decryptAmount').mockImplementation(
+        () => {
+          const error = new Error('CRYPTO_LOG_SENTINEL');
+          error.name = 'CryptoFailure';
+          throw error;
+        },
+      );
 
       const result = service.tryDecryptAmount('corrupted-data', dek, fallback);
 
       expect(result).toBe(fallback);
+      expect(warn).toHaveBeenCalledWith(
+        expect.objectContaining({ errorType: 'CryptoFailure' }),
+        expect.any(String),
+      );
+      expect(JSON.stringify(warn.mock.calls)).not.toContain(
+        'CRYPTO_LOG_SENTINEL',
+      );
+      decryptSpy.mockRestore();
     });
 
     it('should return 0 fallback when decryption fails and fallback is 0', () => {
@@ -2675,10 +2697,12 @@ describe('AesGcmCryptoService', () => {
         }),
       );
       let callCount = 0;
+      const providerError = new Error('RECOVER_RESTORE_LOG_SENTINEL');
+      providerError.name = 'DatabaseFailure';
       const updateWrappedDEK2 = mock(() => {
         callCount++;
         if (callCount === 2) {
-          return Promise.reject(new Error('DB write failed'));
+          return Promise.reject(providerError);
         }
         return Promise.resolve();
       });
@@ -2721,9 +2745,12 @@ describe('AesGcmCryptoService', () => {
         expect.objectContaining({
           userId: TEST_USER_ID,
           operation: 'recover.restore_wrapped_dek_failed',
-          error: 'DB write failed',
+          errorType: 'DatabaseFailure',
         }),
         expect.stringContaining('Failed to restore wrapped_dek'),
+      );
+      expect(JSON.stringify(warnSpy.mock.calls)).not.toContain(
+        'RECOVER_RESTORE_LOG_SENTINEL',
       );
     });
 
@@ -2986,14 +3013,21 @@ describe('AesGcmCryptoService', () => {
           key_check: null,
         }),
       );
-      const updateWrappedDEK = mock(() => Promise.resolve());
+      let callCount = 0;
+      const nullifyError = new Error('RECOVER_NULLIFY_LOG_SENTINEL');
+      nullifyError.name = 'DatabaseFailure';
+      const updateWrappedDEK = mock(() =>
+        ++callCount === 2 ? Promise.reject(nullifyError) : Promise.resolve(),
+      );
+      const mockLogger = createMockLogger();
+      const warnSpy = spyOn(mockLogger, 'warn');
 
       const repo2 = createMockRepository({
         findByUserId,
         updateWrappedDEK,
       });
       const svc2 = new AesGcmCryptoService(
-        createMockLogger() as any,
+        mockLogger as any,
         mockConfigService as any,
         repo2 as any,
       );
@@ -3035,6 +3069,16 @@ describe('AesGcmCryptoService', () => {
       const calls = updateWrappedDEK.mock.calls as unknown[][];
       expect(calls[0][1]).toBeNull(); // before re-encryption
       expect(calls[1][1]).toBeNull(); // after wrap failure
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          operation: 'recover.nullify_wrapped_dek_failed',
+          errorType: 'DatabaseFailure',
+        }),
+        expect.any(String),
+      );
+      expect(JSON.stringify(warnSpy.mock.calls)).not.toContain(
+        'RECOVER_NULLIFY_LOG_SENTINEL',
+      );
 
       reEncryptSpy.mockRestore();
       wrapSpy.mockRestore();
@@ -3410,11 +3454,13 @@ describe('AesGcmCryptoService', () => {
         }),
       );
       let callCount = 0;
+      const providerError = new Error('PIN_RESTORE_LOG_SENTINEL');
+      providerError.name = 'DatabaseFailure';
       const updateWrappedDEK = mock(() => {
         callCount++;
         // First call (nullify) succeeds, second call (restore) fails
         if (callCount === 2) {
-          return Promise.reject(new Error('DB write failed'));
+          return Promise.reject(providerError);
         }
         return Promise.resolve();
       });
@@ -3454,9 +3500,12 @@ describe('AesGcmCryptoService', () => {
         expect.objectContaining({
           userId: TEST_USER_ID,
           operation: 'change_pin.restore_wrapped_dek_failed',
-          error: 'DB write failed',
+          errorType: 'DatabaseFailure',
         }),
         expect.stringContaining('Failed to restore wrapped_dek'),
+      );
+      expect(JSON.stringify(warnSpy.mock.calls)).not.toContain(
+        'PIN_RESTORE_LOG_SENTINEL',
       );
 
       reEncryptSpy.mockRestore();
@@ -3507,14 +3556,21 @@ describe('AesGcmCryptoService', () => {
           key_check: validKeyCheck,
         }),
       );
-      const updateWrappedDEK = mock(() => Promise.resolve());
+      let callCount = 0;
+      const nullifyError = new Error('PIN_NULLIFY_LOG_SENTINEL');
+      nullifyError.name = 'DatabaseFailure';
+      const updateWrappedDEK = mock(() =>
+        ++callCount === 2 ? Promise.reject(nullifyError) : Promise.resolve(),
+      );
+      const mockLogger = createMockLogger();
+      const warnSpy = spyOn(mockLogger, 'warn');
 
       const repo = createMockRepository({
         findByUserId,
         updateWrappedDEK,
       });
       service = new AesGcmCryptoService(
-        createMockLogger() as any,
+        mockLogger as any,
         mockConfigService as any,
         repo as any,
       );
@@ -3549,6 +3605,16 @@ describe('AesGcmCryptoService', () => {
       const calls = updateWrappedDEK.mock.calls as unknown[][];
       expect(calls[0][1]).toBeNull(); // before re-encryption
       expect(calls[1][1]).toBeNull(); // after wrap failure (best-effort cleanup)
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          operation: 'change_pin.nullify_wrapped_dek_failed',
+          errorType: 'DatabaseFailure',
+        }),
+        expect.any(String),
+      );
+      expect(JSON.stringify(warnSpy.mock.calls)).not.toContain(
+        'PIN_NULLIFY_LOG_SENTINEL',
+      );
 
       reEncryptSpy.mockRestore();
       wrapSpy.mockRestore();
