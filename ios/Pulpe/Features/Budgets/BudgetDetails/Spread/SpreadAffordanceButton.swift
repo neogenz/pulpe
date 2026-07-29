@@ -26,9 +26,9 @@ struct SpreadAffordanceButton: View {
                     .foregroundStyle(Color.textTertiary)
                     .accessibilityHidden(true)
             }
-            .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum, alignment: .leading)
-            .contentShape(Rectangle())
         }
+        .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum, alignment: .leading)
+        .contentShape(Rectangle())
         .plainPressedButtonStyle()
         .accessibilityLabel("\(Self.title(for: kind)), voir les mois")
     }

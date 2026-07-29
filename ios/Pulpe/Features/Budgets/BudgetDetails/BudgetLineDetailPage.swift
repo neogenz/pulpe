@@ -113,19 +113,7 @@ struct BudgetLineDetailPage: View {
             }
             .listSectionSeparator(.hidden)
 
-            if hasSavingsGoalLink(for: line) || line.isSpread {
-                Section {
-                    savingsGoalLink(for: line)
-                        .listRowSeparator(line.isSpread ? .visible : .hidden)
-
-                    if let spreadGroupId = line.spreadGroupId {
-                        SpreadAffordanceButton(kind: line.kind) {
-                            router.present(.spreadOccurrences(spreadGroupId: spreadGroupId.uuidString))
-                        }
-                        .listRowSeparator(.hidden)
-                    }
-                }
-            }
+            contextualLinksSection(for: line)
 
             if transactions.isEmpty {
                 Section {

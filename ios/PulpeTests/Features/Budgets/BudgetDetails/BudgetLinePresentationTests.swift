@@ -4,7 +4,7 @@ import Testing
 @Suite("Budget line presentation")
 struct BudgetLinePresentationTests {
     @Test("spread and goal collapse into one metadata line")
-    func combinedMetadata() {
+    func metadataText_whenSpreadAndGoal_combinesIntoOneLine() {
         #expect(
             BudgetLineMixedRow.metadataText(isSpread: true, savingsGoalName: "Maison")
                 == "Lissé · objectif Maison"
@@ -12,7 +12,7 @@ struct BudgetLinePresentationTests {
     }
 
     @Test("a plain line has no contextual metadata")
-    func noMetadata() {
+    func metadataText_whenPlainLine_returnsNil() {
         #expect(BudgetLineMixedRow.metadataText(isSpread: false, savingsGoalName: nil) == nil)
     }
 
@@ -23,7 +23,7 @@ struct BudgetLinePresentationTests {
             (TransactionKind.expense, "Dépense lissée"),
         ]
     )
-    func spreadTitle(kind: TransactionKind, expected: String) {
+    func spreadTitle_whenFinancialKind_matchesLocalizedLabel(kind: TransactionKind, expected: String) {
         #expect(SpreadAffordanceButton.title(for: kind) == expected)
     }
 }

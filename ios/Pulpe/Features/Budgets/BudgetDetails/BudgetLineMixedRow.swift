@@ -1,44 +1,25 @@
 import SwiftUI
 
-/// Per-row mixed-list card for the budget detail screen (DM2.1.b.c5).
-///
-/// Surface card displaying one budget line in the mixed (income / saving / expense)
-/// flow. Replaces the `BudgetLineRow` Revolut-style row inside `BudgetDetailsView`.
-///
-/// Layout:
-///
-///     [PointCircle]  KIND TAG
-///                    Label                        Amount CHF   [chev]
-///                    Subtitle                     / X prévu
-///
-/// Tap on the circle toggles `isChecked` (`onTogglePointed`); tap on the row
-/// surface opens the `BudgetLineDetailSheet` (`onTap`). No swipe actions —
-/// edit / delete live in the sheet's header `Menu`.
-///
-/// Spec: `Pulpe v2 / components/screen-envd-mobile-bc5.jsx` (lines 245–345).
-/// Subtitle rules (§08) and amount color rules (§07) are encoded inline.
+/// Mixed-list budget card. Standard sizes keep the compact amount column;
+/// Accessibility sizes move amount and chevron below the descriptive content.
+/// The point circle remains independently actionable from the card surface.
 struct BudgetLineMixedRow: View {
     let line: BudgetLine
     let consumption: BudgetFormulas.Consumption
     let isSyncing: Bool
-    /// Display currency. Passed as a primitive `let` instead of read from
-    /// the user-settings environment so the row does not observe the whole
-    /// store and re-render on unrelated changes (broad observation fan-out).
+    /// Primitive value avoids observing the full user-settings store.
     let currency: SupportedCurrency
-    /// Name of the savings goal this saving prévision is linked to (PUL-12), or
-    /// `nil` when unlinked / not a saving line / the goal cache is still loading.
-    /// Passed as a primitive so the row never reads `SavingsGoalStore` directly.
+    /// Pre-resolved goal name; the row never reads `SavingsGoalStore`.
     let savingsGoalName: String?
     let tagNames: [String]
-    /// Origin month name (M) of a savings-withdrawal repayment (PUL-292), shown as
-    /// a subtitle complement on the M+1 "Remettre sur ton épargne" saving line.
-    /// Passed pre-resolved (budget month − 1) so the row never does date math.
+    /// Pre-resolved origin month for a savings-withdrawal repayment.
     var savingsWithdrawalOriginMonthName: String?
     let onTap: () -> Void
     let onTogglePointed: () -> Void
 
     @Environment(\.amountsHidden) private var amountsHidden
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     @State private var triggerToggleFeedback = false
 
@@ -147,13 +128,21 @@ struct BudgetLineMixedRow: View {
                     onToggle: handleTogglePointed
                 )
 
-                centerColumn
-
-                Spacer(minLength: DesignTokens.Spacing.sm)
-
-                amountColumn
-
-                chevron
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                        centerColumn
+                        HStack {
+                            Spacer(minLength: DesignTokens.Spacing.none)
+                            amountColumn
+                            chevron
+                        }
+                    }
+                } else {
+                    centerColumn
+                    Spacer(minLength: DesignTokens.Spacing.sm)
+                    amountColumn
+                    chevron
+                }
             }
             .padding(.vertical, DesignTokens.Spacing.md)
             .padding(.leading, DesignTokens.Spacing.xs)
@@ -190,7 +179,7 @@ struct BudgetLineMixedRow: View {
                 .font(PulpeTypography.listRowTitle)
                 .foregroundStyle(Color.textPrimary)
                 .strikethrough(isPointed, color: Color.textTertiary)
-                .lineLimit(1)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                 .truncationMode(.tail)
 
             if let metadata = Self.metadataText(
@@ -200,7 +189,7 @@ struct BudgetLineMixedRow: View {
                 Text(metadata)
                     .font(PulpeTypography.labelMedium)
                     .foregroundStyle(Color.textTertiary)
-                    .lineLimit(1)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                     .truncationMode(.tail)
             }
 

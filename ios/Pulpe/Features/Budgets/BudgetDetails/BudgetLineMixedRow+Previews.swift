@@ -68,6 +68,21 @@ private struct BudgetLineMixedRowPreviewHost: View {
     )
     let consumption = BudgetFormulas.Consumption(allocated: 0, available: line.amount, percentage: 0)
     return BudgetLineMixedRowPreviewHost(cases: [(line, consumption)], savingsGoalName: "Maison")
+        .preferredColorScheme(.light)
+}
+
+#Preview("Saving — spread with goal · AX3 dark") {
+    let line = BudgetLine.preview(
+        name: "Maison",
+        amount: 413,
+        kind: .saving,
+        savingsGoalId: "goal-maison",
+        spreadGroupId: UUID()
+    )
+    let consumption = BudgetFormulas.Consumption(allocated: 0, available: line.amount, percentage: 0)
+    return BudgetLineMixedRowPreviewHost(cases: [(line, consumption)], savingsGoalName: "Maison")
+        .dynamicTypeSize(.accessibility3)
+        .preferredColorScheme(.dark)
 }
 
 #Preview("Expense — empty (no real)") {

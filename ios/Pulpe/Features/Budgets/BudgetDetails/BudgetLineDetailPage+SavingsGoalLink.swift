@@ -4,6 +4,23 @@ import SwiftUI
 
 extension BudgetLineDetailPage {
     @ViewBuilder
+    func contextualLinksSection(for line: BudgetLine) -> some View {
+        if hasSavingsGoalLink(for: line) || line.isSpread {
+            Section {
+                savingsGoalLink(for: line)
+                    .listRowSeparator(line.isSpread ? .visible : .hidden)
+
+                if let spreadGroupId = line.spreadGroupId {
+                    SpreadAffordanceButton(kind: line.kind) {
+                        router.present(.spreadOccurrences(spreadGroupId: spreadGroupId.uuidString))
+                    }
+                    .listRowSeparator(.hidden)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
     func tagChips(for ids: [String]?) -> some View {
         let names = TagChips.names(for: ids, namesById: tagNamesById)
         if !names.isEmpty {
@@ -36,7 +53,7 @@ extension BudgetLineDetailPage {
                     Text("Objectif : \(goal.name)")
                         .font(PulpeTypography.listRowTitle)
                         .foregroundStyle(Color.textPrimary)
-                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     Spacer()
 
@@ -45,9 +62,9 @@ extension BudgetLineDetailPage {
                         .foregroundStyle(Color.textTertiary)
                         .accessibilityHidden(true)
                 }
-                .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum, alignment: .leading)
-                .contentShape(Rectangle())
             }
+            .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum, alignment: .leading)
+            .contentShape(Rectangle())
             .plainPressedButtonStyle()
             .accessibilityLabel("Objectif d'épargne : \(goal.name)")
             .accessibilityHint("Touche pour ouvrir l'objectif")
