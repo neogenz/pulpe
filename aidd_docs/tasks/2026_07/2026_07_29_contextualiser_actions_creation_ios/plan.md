@@ -1,6 +1,6 @@
 ---
 objective: "Stabiliser la navigation iOS en séparant les destinations globales des actions de création contextuelles."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Contextualiser les actions de création iOS
