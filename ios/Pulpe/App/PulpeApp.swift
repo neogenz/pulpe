@@ -29,6 +29,8 @@ struct PulpeApp: App {
     @State private var whatsNewStore = WhatsNewStore()
 
     init() {
+        AnalyticsService.shared.initialize()
+
         let appState = AppState()
         let currentMonthStore = CurrentMonthStore()
         let budgetListStore = BudgetListStore()
@@ -89,7 +91,6 @@ struct PulpeApp: App {
             .datastoreLocation(.applicationDefault)
         ])
         BackgroundTaskService.shared.registerTasks()
-        AnalyticsService.shared.initialize()
     }
 
     @Environment(\.scenePhase) private var scenePhase
