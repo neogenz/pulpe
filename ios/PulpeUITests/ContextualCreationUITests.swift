@@ -38,11 +38,43 @@ final class ContextualCreationUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Ajouter"].firstMatch.waitForExistence(timeout: 5))
     }
 
-    private func launch(_ scenario: String) {
+    func testHomeChartAnnotationsAcrossVisualMatrix() {
+        for colorScheme in ["light", "dark"] {
+            for dynamicType in ["large", "accessibility3"] {
+                for period in ["calendar", "shifted"] {
+                    launch(
+                        "UITEST_CONTEXTUAL_CREATION_HOME",
+                        dynamicType: dynamicType,
+                        colorScheme: colorScheme,
+                        chartPeriod: period
+                    )
+
+                    let detail = app.buttons["Voir le détail du budget"]
+                    XCTAssertTrue(detail.waitForExistence(timeout: 10), app.debugDescription)
+                    attachScreenshot("home-chart-\(colorScheme)-\(dynamicType)-\(period)")
+                    app.terminate()
+                }
+            }
+        }
+    }
+
+    private func launch(
+        _ scenario: String,
+        dynamicType: String = "accessibility3",
+        colorScheme: String? = nil,
+        chartPeriod: String? = nil
+    ) {
         app = XCUIApplication()
         app.launchArguments = ["-\(scenario)"]
         app.launchEnvironment["UITEST_SCENARIO"] = scenario
-        app.launchEnvironment["UITEST_DYNAMIC_TYPE"] = "accessibility3"
+        app.launchEnvironment["UITEST_DYNAMIC_TYPE"] = dynamicType
+        if let colorScheme {
+            app.launchEnvironment["UITEST_COLOR_SCHEME"] = colorScheme
+        }
+        if let chartPeriod {
+            app.launchEnvironment["UITEST_HOME_CHART_MATRIX"] = "1"
+            app.launchEnvironment["UITEST_CHART_PERIOD"] = chartPeriod
+        }
         app.launch()
     }
 

@@ -177,6 +177,7 @@ struct HomeHeroCard: View {
                     ) {
                         Text(annotations.plannedLabel)
                             .font(PulpeTypography.caption2)
+                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                             .foregroundStyle(Color.homeHeroSupport)
                             .lineLimit(1)
                     }
@@ -223,6 +224,7 @@ struct HomeHeroCard: View {
                     ) {
                         Text(annotations.todayLabel)
                             .font(PulpeTypography.caption2)
+                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                             .foregroundStyle(Color.homeHeroSupport)
                             .lineLimit(1)
                     }
@@ -257,6 +259,7 @@ struct HomeHeroCard: View {
                     ) {
                         Text(annotations.destinationLabel)
                             .font(PulpeTypography.caption2)
+                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                             .foregroundStyle(Color.homeHeroSupport)
                             .lineLimit(1)
                     }
