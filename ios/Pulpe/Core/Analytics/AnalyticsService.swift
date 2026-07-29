@@ -26,6 +26,7 @@ final class AnalyticsService {
     private(set) var isIdentified = false
     private let isConfiguredEnabled: Bool
     private var cachedIdentity: (userId: String, properties: [String: Any])?
+    private(set) var currentPersonProperties: [String: Any] = [:]
 
     init(isConfiguredEnabled: Bool = AppConfiguration.isPostHogEnabled) {
         self.isConfiguredEnabled = isConfiguredEnabled
@@ -39,10 +40,7 @@ final class AnalyticsService {
         let config = PostHogConfig(apiKey: apiKey, host: AppConfiguration.postHogHost)
         config.captureScreenViews = false
         config.captureApplicationLifecycleEvents = false
-        config.sessionReplay = Self.shouldEnableSessionReplay(
-            environment: AppConfiguration.environment,
-            configured: AppConfiguration.isPostHogSessionReplayEnabled
-        )
+        Self.disableSensitiveCapture(in: config)
         PostHogSDK.shared.setup(config)
 
         isDiagnosticSharingEnabled = !PostHogSDK.shared.isOptOut()
@@ -53,11 +51,9 @@ final class AnalyticsService {
         }
     }
 
-    nonisolated static func shouldEnableSessionReplay(
-        environment: AppConfiguration.Environment,
-        configured: Bool
-    ) -> Bool {
-        environment != .production && configured
+    nonisolated static func disableSensitiveCapture(in config: PostHogConfig) {
+        config.sessionReplay = false
+        config.sessionReplayConfig.captureNetworkTelemetry = false
     }
 
     private func registerGlobalProperties() {
@@ -107,14 +103,18 @@ final class AnalyticsService {
             ]
         )
         isIdentified = true
+        if !currentPersonProperties.isEmpty {
+            setPersonProperties(currentPersonProperties)
+        }
     }
 
     /// Updates person properties on the currently identified user via PostHog `$set`.
     /// No-op when the user has not yet been identified — prevents leaking
     /// preferences onto the anonymous person profile.
     func setPersonProperties(_ properties: [String: Any]) {
-        guard isEventCapturingEnabled, isIdentified else { return }
         let sanitized = Self.sanitizeProperties(properties)
+        currentPersonProperties.merge(sanitized) { _, latest in latest }
+        guard isEventCapturingEnabled, isIdentified else { return }
         PostHogSDK.shared.setPersonProperties(userPropertiesToSet: sanitized)
     }
 
@@ -131,6 +131,7 @@ final class AnalyticsService {
             PostHogSDK.shared.optOut()
         }
         cachedIdentity = nil
+        currentPersonProperties = [:]
         isIdentified = false
     }
 
@@ -163,7 +164,7 @@ final class AnalyticsService {
     /// Returns true when the given feature flag is enabled for the current user.
     /// Safe default: returns false before PostHog initializes.
     func isFeatureEnabled(_ key: String) -> Bool {
-        guard isInitialized else { return false }
+        guard isInitialized, isDiagnosticSharingEnabled else { return false }
         return PostHogSDK.shared.isFeatureEnabled(key)
     }
 
@@ -173,6 +174,10 @@ final class AnalyticsService {
     /// Call after identify() so person-property-based flags re-evaluate.
     func reloadFeatureFlags(onComplete: (@MainActor @Sendable () -> Void)? = nil) {
         guard isInitialized else { return }
+        guard isDiagnosticSharingEnabled else {
+            onComplete?()
+            return
+        }
         // The callback must be created in a nonisolated context: Swift 6 would otherwise
         // infer @MainActor on the closure (we're inside a @MainActor class), causing
         // a runtime crash when PostHog calls it from a background thread.

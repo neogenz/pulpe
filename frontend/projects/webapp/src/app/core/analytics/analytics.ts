@@ -3,6 +3,7 @@ import {
   inject,
   effect,
   computed,
+  signal,
   type EffectRef,
   type OnDestroy,
 } from '@angular/core';
@@ -39,7 +40,7 @@ export class AnalyticsService implements OnDestroy {
 
   // Tracks whether `identify(userId)` has fired this session. Person property
   // updates are gated on this flag — mirrors the iOS `isIdentified` guard.
-  #isIdentified = false;
+  readonly #isIdentified = signal(false);
 
   // Track the auth synchronization effect to ensure idempotency
   #authEffect?: EffectRef;
@@ -109,7 +110,7 @@ export class AnalyticsService implements OnDestroy {
           };
 
           this.#postHogService.identify(authState.user.id, identifyProperties);
-          this.#isIdentified = true;
+          this.#isIdentified.set(true);
           this.#postHogService.capturePendingSignupCompleted();
           this.#logger.debug('User identified for analytics', {
             userId: authState.user.id,
@@ -121,7 +122,7 @@ export class AnalyticsService implements OnDestroy {
         ) {
           // Identity reset belongs to explicit logout or the local opt-out.
           this.#trackingEnabledForSession = false;
-          this.#isIdentified = false;
+          this.#isIdentified.set(false);
         }
       });
 
@@ -131,7 +132,7 @@ export class AnalyticsService implements OnDestroy {
         // Skip until identify has fired and settings have actually loaded.
         // Without this guard a user with `currency = EUR` would briefly land
         // on the CHF cohort before the settings resource resolves.
-        if (!this.#isIdentified || !userSettings) {
+        if (!this.#isIdentified() || !userSettings) {
           return;
         }
 
@@ -161,7 +162,7 @@ export class AnalyticsService implements OnDestroy {
    * preferences onto the anonymous person profile.
    */
   setPersonProperties(properties: Properties): void {
-    if (!this.#isIdentified) {
+    if (!this.#isIdentified()) {
       return;
     }
     this.#postHogService.setPersonProperties(properties);
@@ -181,7 +182,7 @@ export class AnalyticsService implements OnDestroy {
     this.#personPropertiesEffect?.destroy();
     this.#personPropertiesEffect = undefined;
     this.#trackingEnabledForSession = false;
-    this.#isIdentified = false;
+    this.#isIdentified.set(false);
   }
 
   ngOnDestroy(): void {

@@ -41,6 +41,7 @@ vi.mock('posthog-js', () => {
       opt_out_capturing: vi.fn(() => {
         optedOut = true;
       }),
+      startSessionRecording: vi.fn(),
       stopSessionRecording: vi.fn(),
       capture: vi.fn(),
       captureException: vi.fn(),
@@ -262,7 +263,20 @@ describe('PostHogService', () => {
     expect(posthog.opt_in_capturing).toHaveBeenCalledWith({
       captureEventName: false,
     });
+    expect(posthog.startSessionRecording).toHaveBeenCalledTimes(1);
     expect(service.diagnosticSharingEnabled()).toBe(true);
+  });
+
+  it('never restarts session replay after production opt-in', async () => {
+    const posthogModule = await import('posthog-js');
+    const posthog = posthogModule.default;
+    optedOut = true;
+    environmentSignal.set('production');
+    await service.initialize();
+
+    service.setDiagnosticSharingEnabled(true);
+
+    expect(posthog.startSessionRecording).not.toHaveBeenCalled();
   });
 
   it('resets PostHog state', async () => {

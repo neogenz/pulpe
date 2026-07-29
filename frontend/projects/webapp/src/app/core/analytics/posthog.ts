@@ -37,6 +37,7 @@ export class PostHogService {
   readonly #flagsVersion = signal<number>(0);
   readonly #diagnosticSharingEnabled = signal(true);
   #isTrackingEnabled = false;
+  #sessionReplayEnabled = false;
 
   constructor() {
     const overrides = this.#readFlagOverrides();
@@ -83,7 +84,7 @@ export class PostHogService {
       expireLegacySharedCookie(config.apiKey);
       const posthog = (await import('posthog-js')).default;
       this.#posthog = posthog;
-      const sessionReplayEnabled =
+      this.#sessionReplayEnabled =
         this.#applicationConfiguration.environment() !== 'production' &&
         config.sessionRecording?.enabled === true;
 
@@ -103,7 +104,7 @@ export class PostHogService {
           maskAllInputs: true, // PostHog handles financial data masking
           recordCrossOriginIframes: false,
         },
-        disable_session_recording: !sessionReplayEnabled,
+        disable_session_recording: !this.#sessionReplayEnabled,
 
         // Built-in privacy protection
         person_profiles: 'identified_only',
@@ -164,6 +165,9 @@ export class PostHogService {
         this.#diagnosticSharingEnabled.set(true);
         this.#isTrackingEnabled = false;
         this.#registerGlobalProperties();
+        if (this.#sessionReplayEnabled) {
+          this.#posthog?.startSessionRecording();
+        }
       } else {
         this.#posthog?.stopSessionRecording();
         this.#posthog?.set_config({

@@ -14,8 +14,9 @@
   vers `https://app.pulpe.app`; les CTA ne transmettent que leurs paramètres UTM.
 - PostHog est actif en production selon les variables d'environnement et reste
   configurable dans les environnements local et preview.
-- Le session replay est forcé à l'arrêt en production. Il reste activable par
-  configuration dans les environnements local et preview.
+- Le session replay web est forcé à l'arrêt en production. Il reste activable par
+  configuration dans les environnements local et preview. Sur iOS, replay et
+  télémétrie réseau associée restent désactivés dans tous les environnements.
 - Le réglage « Partager les diagnostics », activé par défaut, utilise l'opt-out persistant
   natif de PostHog sur chaque appareil. Sa désactivation arrête les captures, efface
   l'identité locale et n'affecte ni le compte Supabase ni les autres appareils.

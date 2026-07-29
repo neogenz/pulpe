@@ -1,8 +1,10 @@
 import Foundation
+import PostHog
 @testable import Pulpe
 import Testing
 
 @MainActor
+@Suite(.serialized)
 struct AnalyticsServiceTests {
     private let sut = AnalyticsService.shared
 
@@ -160,26 +162,27 @@ struct AnalyticsServiceTests {
         #expect(steps?[1]["recovery_key"] == nil)
     }
 
-    @Test func sessionReplay_isNeverEnabledInProduction() {
-        #expect(
-            AnalyticsService.shouldEnableSessionReplay(
-                environment: .production,
-                configured: true
-            ) == false
-        )
-        #expect(
-            AnalyticsService.shouldEnableSessionReplay(
-                environment: .preview,
-                configured: true
-            )
-        )
+    @Test func postHogConfig_disablesReplayAndNetworkTelemetry() {
+        let config = PostHogConfig(apiKey: "test")
+
+        AnalyticsService.disableSensitiveCapture(in: config)
+
+        #expect(config.sessionReplay == false)
+        #expect(config.sessionReplayConfig.captureNetworkTelemetry == false)
     }
 
-    @Test func diagnosticSharing_optOutClearsIdentityAndOptInRestoresIt() {
+    @Test func diagnosticSharing_optOutAndOptInRestoresIdentityAndPreferences() {
         let service = AnalyticsService(isConfiguredEnabled: true)
+        let identityProperties: [String: Any] = [
+            AnalyticsService.emailProperty: "support@example.com",
+            AnalyticsService.nameProperty: "Support",
+            AnalyticsService.supabaseUserIdProperty: "support-user"
+        ]
         service.initialize()
-        service.identify(userId: "support-user", properties: [
-            AnalyticsService.emailProperty: "support@example.com"
+        service.identify(userId: "support-user", properties: identityProperties)
+        service.setPersonProperties([
+            AnalyticsService.currencyProperty: "EUR",
+            AnalyticsService.showCurrencySelectorProperty: true
         ])
         #expect(service.isIdentified)
 
@@ -187,11 +190,25 @@ struct AnalyticsServiceTests {
         #expect(service.isDiagnosticSharingEnabled == false)
         #expect(service.isEventCapturingEnabled == false)
         #expect(service.isIdentified == false)
+        #expect(service.isFeatureEnabled("disabled-flag") == false)
+
+        service.identify(userId: "support-user", properties: identityProperties)
+        var reloadCompleted = false
+        service.reloadFeatureFlags {
+            reloadCompleted = true
+        }
+        #expect(reloadCompleted)
 
         service.setDiagnosticSharingEnabled(true)
         #expect(service.isDiagnosticSharingEnabled)
         #expect(service.isEventCapturingEnabled)
         #expect(service.isIdentified)
+        #expect(PostHogSDK.shared.getDistinctId() == "support-user")
+        #expect(service.currentPersonProperties[AnalyticsService.currencyProperty] as? String == "EUR")
+        #expect(
+            service.currentPersonProperties[AnalyticsService.showCurrencySelectorProperty]
+                as? Bool == true
+        )
     }
 
     // MARK: - Guard Paths (not initialized in test environment)
