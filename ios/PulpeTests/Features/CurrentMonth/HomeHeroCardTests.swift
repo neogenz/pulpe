@@ -275,6 +275,8 @@ struct HomeHeroCardTests {
         #expect(standard.todayLabel == "Aujourd’hui")
 
         #expect(accessibility.plannedPosition != accessibility.destinationPosition)
+        #expect(accessibility.todayPosition == .trailing)
+        #expect(accessibility.todayAlignment == .top)
         #expect(accessibility.plannedLabel == "Prévu")
         #expect(accessibility.destinationLabel == "Fin")
         #expect(!accessibility.plannedLabel.contains("\n"))

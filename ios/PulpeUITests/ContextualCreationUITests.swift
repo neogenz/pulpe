@@ -49,8 +49,8 @@ final class ContextualCreationUITests: XCTestCase {
                         chartPeriod: period
                     )
 
-                    let detail = app.buttons["Voir le détail du budget"]
-                    XCTAssertTrue(detail.waitForExistence(timeout: 10), app.debugDescription)
+                    let chart = app.descendants(matching: .any)["home-balance-chart"]
+                    XCTAssertTrue(chart.waitForExistence(timeout: 10), app.debugDescription)
                     attachScreenshot("home-chart-\(colorScheme)-\(dynamicType)-\(period)")
                     app.terminate()
                 }

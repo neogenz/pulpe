@@ -177,7 +177,6 @@ struct HomeHeroCard: View {
                     ) {
                         Text(annotations.plannedLabel)
                             .font(PulpeTypography.caption2)
-                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                             .foregroundStyle(Color.homeHeroSupport)
                             .lineLimit(1)
                     }
@@ -224,7 +223,6 @@ struct HomeHeroCard: View {
                     ) {
                         Text(annotations.todayLabel)
                             .font(PulpeTypography.caption2)
-                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                             .foregroundStyle(Color.homeHeroSupport)
                             .lineLimit(1)
                     }
@@ -259,7 +257,6 @@ struct HomeHeroCard: View {
                     ) {
                         Text(annotations.destinationLabel)
                             .font(PulpeTypography.caption2)
-                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                             .foregroundStyle(Color.homeHeroSupport)
                             .lineLimit(1)
                     }
@@ -272,6 +269,7 @@ struct HomeHeroCard: View {
             .chartLegend(.hidden)
             .frame(height: chartHeight)
             .sensitiveAmount()
+            .accessibilityIdentifier("home-balance-chart")
             .accessibilityHidden(true)
         }
     }
@@ -316,14 +314,16 @@ extension HomeHeroCard {
             plannedAlignment = .leading
             destinationPosition = .top
             destinationAlignment = .trailing
-            todayPosition = .bottom
-            todayAlignment = .trailing
             todayLabel = "Aujourd’hui"
 
             if dynamicTypeSize.isAccessibilitySize {
+                todayPosition = .trailing
+                todayAlignment = .top
                 plannedLabel = "Prévu"
                 destinationLabel = "Fin"
             } else {
+                todayPosition = .bottom
+                todayAlignment = .trailing
                 plannedLabel = "Prévu fin de période"
                 destinationLabel = "Fin de période"
             }

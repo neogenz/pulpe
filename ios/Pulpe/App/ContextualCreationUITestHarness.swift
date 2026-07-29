@@ -197,7 +197,7 @@ struct ContextualCreationUITestHarness: View {
             remaining: 2_500,
             rollover: 0
         )
-        let trajectory = BudgetFormulas.calculateBalanceTrajectory(
+        guard let trajectory = BudgetFormulas.calculateBalanceTrajectory(
             budgetLines: [],
             transactions: transactions,
             metrics: metrics,
@@ -205,7 +205,9 @@ struct ContextualCreationUITestHarness: View {
             budget: budget,
             payDayOfMonth: payDay,
             referenceDate: referenceDate
-        )
+        ) else {
+            preconditionFailure("Chart UI test trajectory must exist")
+        }
         return ChartFixture(
             metrics: metrics,
             plannedBalance: 2_500,
@@ -245,7 +247,7 @@ struct ContextualCreationUITestHarness: View {
     private struct ChartFixture {
         let metrics: BudgetFormulas.Metrics
         let plannedBalance: Decimal
-        let trajectory: BudgetFormulas.BalanceTrajectory?
+        let trajectory: BudgetFormulas.BalanceTrajectory
         let monthName: String
     }
 }
