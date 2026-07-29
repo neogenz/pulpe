@@ -1,6 +1,6 @@
 ---
 objective: "Les trois findings de la revue Support sont fermés sans nouveau composant ni changement de composition."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Corriger la revue de la page Support
