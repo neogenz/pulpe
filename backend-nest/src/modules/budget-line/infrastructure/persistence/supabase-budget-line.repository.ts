@@ -422,6 +422,14 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     error: PostgrestError | null,
     spreadGroupId: string,
   ): never {
+    if (isSavingsGoalLinkDenied(error)) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
+        undefined,
+        { operation: 'createSpreadBudgetLines', entityType: 'budget_line' },
+        { cause: error ?? undefined },
+      );
+    }
     if (error?.message?.includes(SPREAD_GROUP_EXISTS_RPC_MESSAGE)) {
       throw new SpreadGroupAlreadyExistsError(spreadGroupId);
     }

@@ -887,6 +887,7 @@ export const budgetLineSpreadCreateSchema = z
   .strictObject({
     name: z.string().min(1).max(100).trim(),
     kind: transactionKindSchema.exclude(['income']),
+    savingsGoalId: z.uuid().nullable().optional(),
     mode: z.enum(['perMonth', 'total']),
     months: z
       .array(spreadFromExistingPeriodSchema)

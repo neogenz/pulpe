@@ -867,6 +867,32 @@ describe('SupabaseBudgetLineRepository', () => {
       ).rejects.toThrow(BusinessException);
     });
 
+    it('maps a rejected savings-goal link to SAVINGS_GOAL_NOT_FOUND', async () => {
+      const mockRpc = jest.fn().mockResolvedValue({
+        data: null,
+        error: {
+          code: 'P0001',
+          message: 'Savings goal access denied',
+        },
+      });
+      const provider = createMockProvider(() => ({}), mockRpc);
+      repo = createRepository(
+        provider,
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+      await expect(
+        repo.createSpread(spreadGroupId, [
+          {
+            ...spreadInput,
+            kind: 'saving',
+            savingsGoalId: '550e8400-e29b-41d4-a716-446655440000',
+          },
+        ]),
+      ).rejects.toMatchObject({ code: 'ERR_SAVINGS_GOAL_NOT_FOUND' });
+    });
+
     it('maps a consumed source (concurrent retry) to a 409 conflict', async () => {
       const mockRpc = jest.fn().mockResolvedValue({
         data: null,

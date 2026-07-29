@@ -70,6 +70,7 @@ Une contribution n'est **jamais** un nouveau type de saisie : c'est le champ `sa
 
 - **Primaire** : l'**éditeur de Prévision du Mois Type** (template-line editor, iOS + web) → pose `template_line.savings_goal_id`, ce qui propage à tous les mois générés.
 - **Secondaire** : le picker sur `budget_line` → ponctuel, mois courant, ou rétroactif.
+- **Création lissée** : une nouvelle Prévision Épargne peut porter un objectif ; le même `savingsGoalId` est appliqué atomiquement à toutes ses tranches `one_off`, en mode total comme par mois.
 
 ### 3.2 Comment le lien survit aux mois
 

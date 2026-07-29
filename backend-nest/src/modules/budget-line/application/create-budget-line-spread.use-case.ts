@@ -4,6 +4,7 @@ import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { savingsGoalIdForKind } from '@common/utils/savings-goal-link';
 import { type BudgetLineSpreadCreate } from 'pulpe-shared';
 import { CacheService } from '@modules/cache/cache.service';
 import {
@@ -91,6 +92,7 @@ export class CreateBudgetLineSpreadUseCase implements BudgetLineSpreadPort {
     dto: BudgetLineSpreadCreate,
     user: AuthenticatedUser,
   ): Promise<CreateSpreadResult> {
+    const savingsGoalId = savingsGoalIdForKind(dto.kind, dto.savingsGoalId);
     const fx = {
       originalCurrency: dto.originalCurrency ?? null,
       targetCurrency: dto.targetCurrency ?? null,
@@ -110,6 +112,7 @@ export class CreateBudgetLineSpreadUseCase implements BudgetLineSpreadPort {
             dto.totalOriginalAmount ?? null,
           ),
           spreadGroupId: dto.spreadGroupId,
+          savingsGoalId,
           ...fx,
         },
         user,
@@ -128,6 +131,7 @@ export class CreateBudgetLineSpreadUseCase implements BudgetLineSpreadPort {
           dto.perMonthOriginalAmount ?? null,
         ),
         spreadGroupId: dto.spreadGroupId,
+        savingsGoalId,
         ...fx,
       },
       user,

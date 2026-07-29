@@ -1,4 +1,4 @@
-# Lissage d'une dépense sur plusieurs mois (PUL-17)
+# Lissage d'une prévision sur plusieurs mois (PUL-17)
 
 > Pourquoi cette feature existe, et comment le modèle la résout sans nouvelle entité. La valeur métier d'abord ; les détails d'implémentation pointent vers le code.
 
@@ -10,7 +10,7 @@ Avant le lissage, l'enum `recurrence` n'offrait que deux extrêmes : **Récurren
 
 ## Création additive : deux modes de saisie (`mode`)
 
-La création d'une nouvelle dépense lissée offre **deux modes**, un seul champ `mode` les discrimine. Les deux se matérialisent en **N prévisions `one_off` INDÉPENDANTES**, une par mois, partageant un `spread_group_id` (interprétation modèle inchangée — seule la saisie diffère) :
+La création d'une nouvelle dépense ou épargne lissée offre **deux modes**, un seul champ `mode` les discrimine. Les deux se matérialisent en **N prévisions `one_off` INDÉPENDANTES**, une par mois, partageant un `spread_group_id` (interprétation modèle inchangée — seule la saisie diffère) :
 
 |                        | **`total` — Total ÷ N** ⭐ (défaut)                                           | **`perMonth` — Montant/mois répliqué**                 |
 | ---------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------ |
@@ -25,7 +25,7 @@ Le mode `total` est l'**interprétation A** (initialement différée dans le pé
 
 L'utilisateur choisit le mode via un toggle (défaut `total`), saisit le montant correspondant et sélectionne les mois cibles. En mode `total`, le client divise **uniquement pour l'aperçu live** via `splitTotalPreserving` (l'aperçu égale le persisté, reste en centimes sur les premiers mois) ; en mode `perMonth`, l'aperçu est un simple `montant × n mois`.
 
-**Clé de voûte :** le serveur **construit lui-même les tranches** — il reçoit une INTENTION (`{mode, perMonthAmount|totalAmount, months[], FX?}`), jamais des tranches pré-calculées. `perMonth` → `buildSpreadTranches` (réplication) ; `total` → `buildSpreadTranchesFromTotal` (division `splitTotalPreserving`, Σ === total). Le flux v1.1 « lisser un existant » est lui aussi total-préservant et fournit ses propres tranches via le même PORT.
+**Clé de voûte :** le serveur **construit lui-même les tranches** — il reçoit une INTENTION (`{mode, perMonthAmount|totalAmount, months[], FX?, savingsGoalId?}`), jamais des tranches pré-calculées. `perMonth` → `buildSpreadTranches` (réplication) ; `total` → `buildSpreadTranchesFromTotal` (division `splitTotalPreserving`, Σ === total). Le flux v1.1 « lisser un existant » est lui aussi total-préservant et fournit ses propres tranches via le même PORT.
 
 ## Résolution du modèle (les 3 « formes de dépense »)
 
@@ -42,7 +42,7 @@ L'utilisateur choisit le mode via un toggle (défaut `total`), saisit le montant
 
 ## Le fan-out (Lot A — le cœur)
 
-`POST /v1/budget-lines/spread` reçoit `{ name, kind, mode, perMonthAmount|totalAmount, months[], FX?, spreadGroupId }` et retourne `{ spreadGroupId, lines, createdBudgets, skippedMonths }`. `spreadGroupId` est la **clé d'idempotence** (cf. _Idempotence_ ci-dessous) : le client minte **un** uuid stable par intention de création et le rejoue tel quel sur un retry. Selon `mode`, le serveur **réplique** `perMonthAmount` ou **divise** `totalAmount` (`splitTotalPreserving`, Σ === total) sur chaque `{year, month}` de `months[]` pour construire les tranches avant le fan-out. En `total`, un mois non-provisionnable fait **échouer tout** (`fanOutStrict`, contrat Σ=total) ; en `perMonth`, le mois part dans `skippedMonths` (`fanOut` tolérant).
+`POST /v1/budget-lines/spread` reçoit `{ name, kind, mode, perMonthAmount|totalAmount, months[], FX?, savingsGoalId?, spreadGroupId }` et retourne `{ spreadGroupId, lines, createdBudgets, skippedMonths }`. `spreadGroupId` est la **clé d'idempotence** (cf. _Idempotence_ ci-dessous) : le client minte **un** uuid stable par intention de création et le rejoue tel quel sur un retry. Selon `mode`, le serveur **réplique** `perMonthAmount` ou **divise** `totalAmount` (`splitTotalPreserving`, Σ === total) sur chaque `{year, month}` de `months[]` pour construire les tranches avant le fan-out. Une épargne liée conserve le même `savingsGoalId` sur chaque tranche ; toute valeur forgée sur un autre `kind` est forcée à `null`, et la RPC refuse atomiquement un objectif absent ou étranger. En `total`, un mois non-provisionnable fait **échouer tout** (`fanOutStrict`, contrat Σ=total) ; en `perMonth`, le mois part dans `skippedMonths` (`fanOut` tolérant).
 
 1. **Auto-création des mois manquants** _(scope caché majeur)_ : pour chaque `{year, month}` sans budget, on crée le `monthly_budget` depuis le **template par défaut** (`is_default`) de l'utilisateur. Chaque création est sa **propre transaction courte** (idempotente : un mois existant est réutilisé), **hors** de la transaction du fan-out. Pas de template par défaut → le mois part dans `skippedMonths` et ne reçoit aucune ligne.
 2. **Fan-out atomique** : un **seul** `INSERT … SELECT FROM jsonb_to_recordset(p_lines)` **set-based** (jamais une boucle PL/pgSQL) dans une RPC `SECURITY DEFINER` owner-only → **tout-ou-rien**. Chaque tranche est chiffrée via `ENCRYPTION_PORT` **dans le repository** avant l'appel ; `spread_group_id` (uuid partagé, issu de la clé d'idempotence client ou généré serveur) ne l'est jamais.
