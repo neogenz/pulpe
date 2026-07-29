@@ -1,6 +1,6 @@
 ---
 objective: "La matrice UI échoue si le chart n’est pas rendu et ses annotations respectent la taille Dynamic Type réellement demandée."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Corriger la validation du chart de l’accueil iOS
