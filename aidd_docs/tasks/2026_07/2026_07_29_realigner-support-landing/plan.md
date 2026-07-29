@@ -1,6 +1,6 @@
 ---
 objective: "La page Support reprend la composition visuelle de la landing et répond aux principales objections avec des formulations factuelles alignées sur la publication LinkedIn."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Réaligner la page Support de la landing
