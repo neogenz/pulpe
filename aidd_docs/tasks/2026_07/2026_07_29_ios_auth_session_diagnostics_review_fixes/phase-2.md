@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Rendre le contrat exhaustif et le garde qualité honnête

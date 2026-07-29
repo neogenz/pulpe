@@ -28,6 +28,7 @@ struct AppStateLogoutScopeTests {
             (.sessionRefreshFailed, ("session_refresh_failed", false)),
             (.systemLogout, ("system_unspecified", false))
         ]
+        #expect(Set(cases.map(\.0)) == Set(AppState.SessionResetScope.allCases))
         var outcomes = Set<String>()
 
         for (scope, expected) in cases {

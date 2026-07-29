@@ -300,7 +300,7 @@ extension AppState {
 
     // MARK: - Session Reset
 
-    enum SessionResetScope: String {
+    enum SessionResetScope: String, CaseIterable {
         case userLogout = "user_logout"
         case systemLogout = "system_unspecified"
         case sessionExpiry = "api_session_expired"
@@ -319,7 +319,8 @@ extension AppState {
             case .userLogout, .passwordReset, .startupRetryAbandoned,
                  .accountDeleted, .signupAbandoned:
                 true
-            default:
+            case .systemLogout, .sessionExpiry, .recoverySessionExpiry,
+                 .backgroundSessionMissing, .sessionRefreshFailed:
                 false
             }
         }
