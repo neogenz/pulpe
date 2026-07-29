@@ -21,6 +21,7 @@ import {
   type SavingsGoalContribution,
   type SavingsGoalDeletionCommand,
   type SavingsGoalFutureLine,
+  type SavingsGoalPlanMonth,
   type SavingsGoalProgress,
 } from 'pulpe-shared';
 import { ApiError } from '@core/api/api-error';
@@ -174,6 +175,26 @@ function makeProgress(
   };
 }
 
+function makePlanMonth(
+  overrides: Partial<SavingsGoalPlanMonth> = {},
+): SavingsGoalPlanMonth {
+  return {
+    month: 8,
+    year: 2026,
+    state: 'gap',
+    isLocked: false,
+    isContributionEligible: true,
+    hasBudget: true,
+    isProvisionable: true,
+    plannedAmount: 0,
+    confirmedAmount: 0,
+    plannedCumulative: 1200,
+    confirmedCumulative: 900,
+    lines: [],
+    ...overrides,
+  };
+}
+
 const futureLine: SavingsGoalFutureLine = {
   budgetLineId: 'line-1',
   amount: 250,
@@ -240,11 +261,14 @@ describe('SavingsGoalDetailPage', () => {
     deleteGoal: vi.fn().mockResolvedValue(undefined),
     fetchFutureLines: vi.fn().mockResolvedValue([]),
     applyGenerationStop: vi.fn().mockResolvedValue({ affectedCount: 0 }),
+    applyPlan: vi.fn().mockResolvedValue({}),
   };
 
   const mockDialogs = {
     openEdit: vi.fn(),
     openGenerationStop: vi.fn(),
+    openApplyPlan: vi.fn(),
+    confirmDiscardChanges: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -265,8 +289,11 @@ describe('SavingsGoalDetailPage', () => {
     mockStore.applyGenerationStop
       .mockReset()
       .mockResolvedValue({ affectedCount: 0 });
+    mockStore.applyPlan.mockReset().mockResolvedValue({});
     mockDialogs.openEdit.mockReset();
     mockDialogs.openGenerationStop.mockReset();
+    mockDialogs.openApplyPlan.mockReset();
+    mockDialogs.confirmDiscardChanges.mockReset();
 
     await TestBed.configureTestingModule({
       imports: [SavingsGoalDetailPage],
@@ -920,6 +947,122 @@ describe('SavingsGoalDetailPage', () => {
     expect(query('savings-goal-progress-bar')).toBeTruthy();
     expect(query('stat-confirmed')).toBeTruthy();
     expect(query('edit-savings-goal-button')).toBeTruthy();
+  });
+
+  it('offers a preview only for budgets that exist without a linked forecast', () => {
+    progressSig.set(
+      makeProgress({
+        required: 175.345,
+        months: [
+          makePlanMonth({
+            month: 7,
+            hasBudget: false,
+          }),
+          makePlanMonth({ month: 8 }),
+          makePlanMonth({
+            month: 9,
+            state: 'future',
+            hasBudget: true,
+            isProvisionable: false,
+            plannedAmount: 250,
+            lines: [
+              {
+                budgetLineId: '11111111-1111-4111-8111-111111111111',
+                amount: 250,
+                checkedAt: null,
+                isManuallyAdjusted: false,
+              },
+            ],
+          }),
+        ],
+      }),
+    );
+
+    fixture.detectChanges();
+
+    expect(query('goal-plan-repair-callout')).toBeTruthy();
+    expect(
+      query('goal-plan-repair-preview').nativeElement.textContent,
+    ).toContain('Prévisualiser');
+  });
+
+  it('does not offer recovery when every gap still lacks a budget', () => {
+    progressSig.set(
+      makeProgress({
+        months: [makePlanMonth({ hasBudget: false })],
+      }),
+    );
+
+    fixture.detectChanges();
+
+    expect(query('goal-plan-repair-callout')).toBeFalsy();
+  });
+
+  it('previews the rounded required amount and cancels without writing', async () => {
+    progressSig.set(
+      makeProgress({ required: 175.345, months: [makePlanMonth()] }),
+    );
+    mockDialogs.openApplyPlan.mockResolvedValueOnce(false);
+    fixture.detectChanges();
+
+    query('goal-plan-repair-preview').nativeElement.click();
+    await fixture.whenStable();
+
+    expect(mockDialogs.openApplyPlan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'creation',
+        changes: [
+          {
+            month: 8,
+            year: 2026,
+            before: 0,
+            after: 175.35,
+          },
+        ],
+      }),
+    );
+    expect(mockStore.applyPlan).not.toHaveBeenCalled();
+  });
+
+  it('creates all previewed forecasts then hides recovery after authoritative reload', async () => {
+    progressSig.set(
+      makeProgress({ required: 175.345, months: [makePlanMonth()] }),
+    );
+    mockDialogs.openApplyPlan.mockResolvedValueOnce(true);
+    mockStore.applyPlan.mockImplementationOnce(async () => {
+      progressSig.set(
+        makeProgress({
+          required: 175.345,
+          months: [
+            makePlanMonth({
+              state: 'future',
+              isProvisionable: false,
+              plannedAmount: 175.35,
+              lines: [
+                {
+                  budgetLineId: '22222222-2222-4222-8222-222222222222',
+                  amount: 175.35,
+                  checkedAt: null,
+                  isManuallyAdjusted: true,
+                },
+              ],
+            }),
+          ],
+        }),
+      );
+      return {};
+    });
+    fixture.detectChanges();
+
+    query('goal-plan-repair-preview').nativeElement.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(mockStore.applyPlan).toHaveBeenCalledWith('goal-1', {
+      monthAdjustments: [],
+      missingMonthAdjustments: [{ month: 8, year: 2026, amount: 175.35 }],
+    });
+    expect(query('goal-plan-repair-callout')).toBeFalsy();
   });
 
   it('deletes the goal with the preview revision then navigates back', async () => {

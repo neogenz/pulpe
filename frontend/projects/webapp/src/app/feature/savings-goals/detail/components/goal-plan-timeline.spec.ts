@@ -109,22 +109,39 @@ describe('GoalPlanTimeline', () => {
     ).toBeNull();
   });
 
-  it('badges the current month and shows the « Pas de budget » chip for gaps', () => {
+  it('distinguishes a missing budget, a repairable budget and a linked forecast', () => {
     setTestInput(fixture.componentInstance.months, [
       makeMonth({ month: 3, state: 'current' }),
       makeMonth({
         month: 4,
         state: 'gap',
+        hasBudget: false,
+        isProvisionable: true,
         plannedAmount: 0,
         plannedCumulative: 900,
         lines: [],
       }),
+      makeMonth({
+        month: 5,
+        state: 'gap',
+        hasBudget: true,
+        isProvisionable: true,
+        plannedAmount: 0,
+        plannedCumulative: 900,
+        lines: [],
+      }),
+      makeMonth({ month: 6, hasBudget: true }),
     ]);
     setTestInput(fixture.componentInstance.expanded, true);
     fixture.detectChanges();
 
     expect(query('goal-plan-current-badge')).toBeTruthy();
-    expect(query('goal-plan-gap-chip')).toBeTruthy();
+    expect(
+      fixture.debugElement.queryAll(
+        By.css('[data-testid="goal-plan-gap-chip"]'),
+      ),
+    ).toHaveLength(1);
+    expect(query('goal-plan-repair-chip')).toBeTruthy();
     expect(query('goal-plan-gap-hint')).toBeTruthy();
   });
 

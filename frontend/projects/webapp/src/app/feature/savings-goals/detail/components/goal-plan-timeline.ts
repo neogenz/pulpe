@@ -30,6 +30,8 @@ interface GoalPlanTimelineRow {
   isCurrent: boolean;
   isChecked: boolean;
   isGap: boolean;
+  hasBudget: boolean;
+  isRepairable: boolean;
   isOpen: boolean;
   isAdjusted: boolean;
   amount: number;
@@ -101,9 +103,18 @@ const WINDOW_OPEN_ROWS = 3;
                 <span
                   class="text-label-small font-medium rounded-full px-2 py-0.5
                          bg-surface-container-high text-on-surface-variant shrink-0"
-                  data-testid="goal-plan-gap-chip"
+                  [attr.data-testid]="
+                    row.isRepairable
+                      ? 'goal-plan-repair-chip'
+                      : 'goal-plan-gap-chip'
+                  "
                 >
-                  {{ 'savingsGoals.plan.gapChip' | transloco }}
+                  {{
+                    (row.isRepairable
+                      ? 'savingsGoals.plan.repairChip'
+                      : 'savingsGoals.plan.gapChip'
+                    ) | transloco
+                  }}
                 </span>
               }
             </span>
@@ -242,6 +253,11 @@ export class GoalPlanTimeline {
         isCurrent: month.state === 'current',
         isChecked,
         isGap: month.state === 'gap',
+        hasBudget: month.hasBudget === true,
+        isRepairable:
+          month.state === 'gap' &&
+          month.hasBudget === true &&
+          month.isProvisionable === true,
         isOpen,
         isAdjusted: simulated ? (sim.isAdjusted ?? false) : false,
         amount: simulated ? sim.simulatedAmount : month.plannedAmount,
@@ -281,7 +297,7 @@ export class GoalPlanTimeline {
   );
 
   protected readonly gapCount = computed(
-    () => this.rows().filter((row) => row.isGap).length,
+    () => this.rows().filter((row) => row.isGap && !row.hasBudget).length,
   );
 
   protected formatPeriod(month: number, year: number): string {

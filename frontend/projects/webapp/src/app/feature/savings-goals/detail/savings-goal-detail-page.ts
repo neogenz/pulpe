@@ -607,6 +607,42 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                   </button>
                 }
               </div>
+              @if (!simulator.isSimulating() && repairableMonths().length > 0) {
+                <div
+                  class="flex flex-col gap-3 rounded-xl bg-surface-container-low p-4
+                         sm:flex-row sm:items-center sm:justify-between"
+                  data-testid="goal-plan-repair-callout"
+                >
+                  <div class="flex items-start gap-3">
+                    <mat-icon
+                      class="mt-0.5 shrink-0 text-financial-savings"
+                      aria-hidden="true"
+                      >savings</mat-icon
+                    >
+                    <div class="flex flex-col gap-1">
+                      <h3 class="text-title-medium font-semibold">
+                        {{ 'savingsGoals.plan.repairTitle' | transloco }}
+                      </h3>
+                      <p class="text-body-medium text-on-surface-variant">
+                        {{
+                          'savingsGoals.plan.repairMessage'
+                            | transloco: { count: repairableMonths().length }
+                        }}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    matButton="outlined"
+                    class="shrink-0 self-end sm:self-auto"
+                    (click)="onPreviewPlanRepair()"
+                    [disabled]="isApplying()"
+                    data-testid="goal-plan-repair-preview"
+                  >
+                    <mat-icon>preview</mat-icon>
+                    {{ 'savingsGoals.plan.repairPreview' | transloco }}
+                  </button>
+                </div>
+              }
               <pulpe-goal-plan-timeline
                 [months]="chartMonths()"
                 [simulatedMonths]="
@@ -733,6 +769,26 @@ export default class SavingsGoalDetailPage {
 
   protected readonly chartMonths = computed(
     () => this.progress()?.months ?? [],
+  );
+  protected readonly repairableMonths = computed(() => {
+    const progress = this.progress();
+    if (
+      !progress ||
+      progress.status !== 'ACTIVE' ||
+      progress.required == null
+    ) {
+      return [];
+    }
+    return progress.months.filter(
+      (month) =>
+        month.hasBudget === true &&
+        month.isProvisionable === true &&
+        !month.isLocked &&
+        month.isContributionEligible !== false,
+    );
+  });
+  protected readonly repairAmount = computed(
+    () => Math.round((this.progress()?.required ?? 0) * 100) / 100,
   );
   protected readonly estimatedCompletionLabel = computed(() => {
     const period = this.progress()?.estimatedCompletion;
@@ -1143,6 +1199,55 @@ export default class SavingsGoalDetailPage {
     try {
       await this.simulator.apply();
       this.#timelineExpanded.set(false);
+      this.#openSnackBar(
+        this.#transloco.translate('savingsGoals.simulate.applySuccess'),
+      );
+    } catch (error) {
+      this.#showLocalizedApiError(error);
+    } finally {
+      this.#isApplying.set(false);
+    }
+  }
+
+  protected async onPreviewPlanRepair(): Promise<void> {
+    const goal = this.goal();
+    const progress = this.progress();
+    const months = this.repairableMonths();
+    if (!goal || !progress || months.length === 0) return;
+
+    const amount = this.repairAmount();
+    const changes = months.map((month) => ({
+      month: month.month,
+      year: month.year,
+      before: 0,
+      after: amount,
+    }));
+    const projected = progress.plannedProjection + amount * changes.length;
+    const confirmed = await this.#dialogs.openApplyPlan({
+      mode: 'creation',
+      changes,
+      currency: this.currency(),
+      locale: this.locale,
+      payDayOfMonth: this.payDayOfMonth(),
+      verdict: this.#transloco.translate('savingsGoals.plan.repairProjection', {
+        amount: new Intl.NumberFormat(this.locale, {
+          style: 'currency',
+          currency: this.currency(),
+        }).format(projected),
+      }),
+    });
+    if (!confirmed) return;
+
+    this.#isApplying.set(true);
+    try {
+      await this.store.applyPlan(goal.id, {
+        monthAdjustments: [],
+        missingMonthAdjustments: changes.map((change) => ({
+          month: change.month,
+          year: change.year,
+          amount: change.after,
+        })),
+      });
       this.#openSnackBar(
         this.#transloco.translate('savingsGoals.simulate.applySuccess'),
       );

@@ -23,6 +23,7 @@ export interface GoalPlanApplyChange {
 }
 
 export interface GoalPlanApplyDialogData {
+  mode?: 'adjustment' | 'creation';
   changes: GoalPlanApplyChange[];
   currency: SupportedCurrency;
   locale: string;
@@ -51,14 +52,11 @@ const MAX_DIFF_ROWS = 5;
   ],
   template: `
     <h2 mat-dialog-title>
-      {{ 'savingsGoals.simulate.applyTitle' | transloco }}
+      {{ titleKey() | transloco }}
     </h2>
     <mat-dialog-content class="flex flex-col gap-4">
       <p class="text-body-medium text-on-surface">
-        {{
-          'savingsGoals.simulate.applyCount'
-            | transloco: { count: data.changes.length }
-        }}
+        {{ countKey() | transloco: { count: data.changes.length } }}
       </p>
 
       @if (uniformChange(); as u) {
@@ -89,10 +87,12 @@ const MAX_DIFF_ROWS = 5;
                 formatPeriod(row)
               }}</span>
               <span class="ph-no-capture shrink-0 tabular-nums">
-                <span class="text-on-surface-variant"
-                  >{{ row.before | appCurrency: data.currency : '1.2-2' }}
-                  &rarr;
-                </span>
+                @if (!isCreation()) {
+                  <span class="text-on-surface-variant"
+                    >{{ row.before | appCurrency: data.currency : '1.2-2' }}
+                    &rarr;
+                  </span>
+                }
                 <span class="font-semibold text-on-surface">{{
                   row.after | appCurrency: data.currency : '1.2-2'
                 }}</span>
@@ -135,10 +135,7 @@ const MAX_DIFF_ROWS = 5;
         (click)="confirm()"
         data-testid="goal-plan-apply-confirm"
       >
-        {{
-          'savingsGoals.simulate.applyConfirm'
-            | transloco: { count: data.changes.length }
-        }}
+        {{ confirmKey() | transloco: { count: data.changes.length } }}
       </button>
     </mat-dialog-actions>
   `,
@@ -148,8 +145,25 @@ export class GoalPlanApplyDialog {
   readonly #dialogRef =
     inject<MatDialogRef<GoalPlanApplyDialog, boolean>>(MatDialogRef);
   protected readonly data = inject<GoalPlanApplyDialogData>(MAT_DIALOG_DATA);
+  protected readonly isCreation = computed(() => this.data.mode === 'creation');
+  protected readonly titleKey = computed(() =>
+    this.isCreation()
+      ? 'savingsGoals.simulate.createTitle'
+      : 'savingsGoals.simulate.applyTitle',
+  );
+  protected readonly countKey = computed(() =>
+    this.isCreation()
+      ? 'savingsGoals.simulate.createCount'
+      : 'savingsGoals.simulate.applyCount',
+  );
+  protected readonly confirmKey = computed(() =>
+    this.isCreation()
+      ? 'savingsGoals.simulate.createConfirm'
+      : 'savingsGoals.simulate.applyConfirm',
+  );
 
   protected readonly uniformChange = computed(() => {
+    if (this.isCreation()) return null;
     const changes = this.data.changes;
     if (changes.length === 0) return null;
     const first = changes[0];
@@ -161,11 +175,15 @@ export class GoalPlanApplyDialog {
   });
 
   protected readonly visibleChanges = computed(() =>
-    this.data.changes.slice(0, MAX_DIFF_ROWS),
+    this.isCreation()
+      ? this.data.changes
+      : this.data.changes.slice(0, MAX_DIFF_ROWS),
   );
 
   protected readonly hiddenCount = computed(() =>
-    Math.max(0, this.data.changes.length - MAX_DIFF_ROWS),
+    this.isCreation()
+      ? 0
+      : Math.max(0, this.data.changes.length - MAX_DIFF_ROWS),
   );
 
   protected formatPeriod(change: GoalPlanApplyChange): string {
