@@ -27,6 +27,7 @@ const componentSources = {
     "utf8",
   ),
   page: readFileSync(new URL("./page.tsx", import.meta.url), "utf8"),
+  support: readFileSync(new URL("./support/page.tsx", import.meta.url), "utf8"),
   painPoints: readFileSync(
     new URL("../components/sections/PainPoints.tsx", import.meta.url),
     "utf8",
@@ -911,6 +912,41 @@ describe("landing accessibility contracts", () => {
     assert.match(
       componentSources.faq,
       /Les questions qu&apos;on me pose le plus/,
+    );
+  });
+
+  it("reuses the landing composition and accordion on the support page", () => {
+    assert.match(componentSources.support, /href="#main-content"/);
+    assert.match(componentSources.support, /<main id="main-content"/);
+    assert.match(componentSources.support, /hero-mesh/);
+    assert.match(componentSources.support, /max-w-3xl/);
+    assert.match(componentSources.support, /<AccordionItem/);
+    assert.match(componentSources.support, /<FinalCTA \/>/);
+    assert.doesNotMatch(componentSources.support, /<details|<summary/);
+  });
+
+  it("keeps support answers factual and aligned with the landing FAQ", () => {
+    assert.equal(componentSources.support.match(/\n {4}question:/g)?.length, 9);
+
+    for (const source of [componentSources.support, componentSources.faq]) {
+      assert.match(source, /prestataires externes/);
+      assert.match(source, /contraintes réglementaires/);
+      assert.match(source, /coût est trop élevé/);
+      assert.match(source, /saisie reste manuelle/);
+      assert.match(source, /deux clés conservées séparément/);
+      assert.match(source, /dérivée de (?:ton|votre) code PIN/);
+      assert.match(source, /fuite de la base seule/);
+      assert.doesNotMatch(
+        source,
+        /choix délibéré|banques et les armées|zero-knowledge|—|–/,
+      );
+    }
+
+    assert.match(componentSources.support, /mainEntity: faqs\.map/);
+    assert.match(componentSources.support, /text: faq\.plainAnswer/);
+    assert.doesNotMatch(
+      componentSources.support,
+      /chiffrement de bout en bout|Google Drive/,
     );
   });
 
