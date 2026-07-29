@@ -625,8 +625,10 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                       </h3>
                       <p class="text-body-medium text-on-surface-variant">
                         {{
-                          'savingsGoals.plan.repairMessage'
-                            | transloco: { count: repairableMonths().length }
+                          (repairableMonths().length === 1
+                            ? 'savingsGoals.plan.repairMessageOne'
+                            : 'savingsGoals.plan.repairMessageMany'
+                          ) | transloco: { count: repairableMonths().length }
                         }}
                       </p>
                     </div>

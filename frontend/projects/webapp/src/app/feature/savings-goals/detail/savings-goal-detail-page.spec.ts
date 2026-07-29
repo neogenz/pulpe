@@ -980,10 +980,30 @@ describe('SavingsGoalDetailPage', () => {
 
     fixture.detectChanges();
 
-    expect(query('goal-plan-repair-callout')).toBeTruthy();
+    const callout = query('goal-plan-repair-callout');
+    expect(callout).toBeTruthy();
+    expect(callout.nativeElement.textContent).toContain(
+      '1 prévision Épargne peut maintenant être ajoutée automatiquement.',
+    );
     expect(
       query('goal-plan-repair-preview').nativeElement.textContent,
     ).toContain('Prévisualiser');
+  });
+
+  it('uses natural plural agreement for several repairable budgets', () => {
+    progressSig.set(
+      makeProgress({
+        months: [makePlanMonth({ month: 8 }), makePlanMonth({ month: 9 })],
+      }),
+    );
+
+    fixture.detectChanges();
+
+    expect(
+      query('goal-plan-repair-callout').nativeElement.textContent,
+    ).toContain(
+      '2 prévisions Épargne peuvent maintenant être ajoutées automatiquement.',
+    );
   });
 
   it('does not offer recovery when every gap still lacks a budget', () => {

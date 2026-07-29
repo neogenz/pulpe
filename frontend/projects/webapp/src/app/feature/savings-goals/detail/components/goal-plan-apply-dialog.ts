@@ -153,7 +153,9 @@ export class GoalPlanApplyDialog {
   );
   protected readonly countKey = computed(() =>
     this.isCreation()
-      ? 'savingsGoals.simulate.createCount'
+      ? this.data.changes.length === 1
+        ? 'savingsGoals.simulate.createCountOne'
+        : 'savingsGoals.simulate.createCountMany'
       : 'savingsGoals.simulate.applyCount',
   );
   protected readonly confirmKey = computed(() =>
