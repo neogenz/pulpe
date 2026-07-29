@@ -215,7 +215,7 @@ struct SavingsGoalDetailView: View {
     private func recoveryChanges(
         _ progress: SavingsGoalProgress
     ) -> [SavingsPlanCalculator.SimulatedMonth] {
-        guard let amount = progress.required?.rounded(2) else { return [] }
+        guard let amount = SavingsGoalDetailViewModel.recoveryAmount(progress) else { return [] }
         return progress.months.filter(\.isRepairable).map {
             SavingsPlanCalculator.SimulatedMonth(
                 month: $0,
@@ -541,8 +541,13 @@ final class SavingsGoalDetailViewModel {
         return abs(required - planned) <= planned * SavingsGoalProgress.paceTolerancePercent / 100
     }
 
+    static func recoveryAmount(_ progress: SavingsGoalProgress) -> Decimal? {
+        guard let amount = progress.required?.rounded(2, .up), amount > 0 else { return nil }
+        return amount
+    }
+
     static func canRepairPlan(_ progress: SavingsGoalProgress, status: SavingsGoalStatus) -> Bool {
-        status == .active && (progress.required ?? 0) > 0
+        status == .active && recoveryAmount(progress) != nil
     }
 
     static func shouldShowPlanTimeline(_ progress: SavingsGoalProgress) -> Bool {
@@ -588,14 +593,14 @@ final class SavingsGoalDetailViewModel {
 
     func applyMissingForecasts(from progress: SavingsGoalProgress) async -> Bool {
         error = nil
-        guard let required = progress.required, required > 0 else { return false }
+        guard let amount = Self.recoveryAmount(progress) else { return false }
         let adjustments = progress.months
             .filter(\.isRepairable)
             .map {
                 SavingsGoalPlanApply.MissingMonthAdjustment(
                     month: $0.month,
                     year: $0.year,
-                    amount: required.rounded(2)
+                    amount: amount
                 )
             }
         guard !adjustments.isEmpty else { return false }

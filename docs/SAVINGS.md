@@ -372,6 +372,8 @@ Le serveur reste autoritaire à l'écriture. Les clients ne recalculent jamais l
 - `monthAdjustments[]` : `{ budgetLineId, amount }` pour les Prévisions matérialisées ;
 - `missingMonthAdjustments[]` : `{ month, year, amount }` pour les périodes sans Prévision liée mais provisionnables, que le budget soit absent ou déjà matérialisé. Le montant est strictement positif : ramener une Prévision existante à zéro passe uniquement par `monthAdjustments`.
 
+Pour une récupération, les clients arrondissent `required` au **centime supérieur** puis réutilisent exactement ce montant positif dans la preview, sa projection et chaque `missingMonthAdjustment`. Un `required` nul ne propose aucune récupération.
+
 Le flux valide toutes les préconditions avant mutation, provisionne les budgets absents ou réutilise les budgets existants de façon idempotente, puis applique les montants dans une RPC atomique sérialisée par objectif. La RPC refuse toute ligne étrangère, non liée, non-Épargne, passée ou pointée. Les ajustements appliqués deviennent manuels et sortent de RG-001 ; le Mois Type n'est jamais modifié.
 
 Depuis PUL-316, un mois manquant reçoit sa Prévision liée **directement**, par le même lissage que la création (§3.5) : le budget est matérialisé s'il manque, sinon il est réutilisé, puis la ligne y est insérée — exactement le geste d'un ajout manuel dans le budget du mois. Exiger au préalable une ligne du Mois Type à recopier rendrait le comblement impossible pour un objectif daté, qui n'en pose plus.

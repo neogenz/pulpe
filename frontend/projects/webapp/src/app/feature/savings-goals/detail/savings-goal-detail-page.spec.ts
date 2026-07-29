@@ -1006,6 +1006,34 @@ describe('SavingsGoalDetailPage', () => {
     expect(query('goal-plan-repair-callout')).toBeFalsy();
   });
 
+  it('previews and sends a positive sub-cent recovery as one cent', async () => {
+    progressSig.set(
+      makeProgress({ required: 0.004, months: [makePlanMonth()] }),
+    );
+    mockDialogs.openApplyPlan.mockResolvedValueOnce(true);
+    fixture.detectChanges();
+
+    query('goal-plan-repair-preview').nativeElement.click();
+    await fixture.whenStable();
+
+    expect(mockDialogs.openApplyPlan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        changes: [
+          {
+            month: 8,
+            year: 2026,
+            before: 0,
+            after: 0.01,
+          },
+        ],
+      }),
+    );
+    expect(mockStore.applyPlan).toHaveBeenCalledWith('goal-1', {
+      monthAdjustments: [],
+      missingMonthAdjustments: [{ month: 8, year: 2026, amount: 0.01 }],
+    });
+  });
+
   it('previews the rounded required amount and cancels without writing', async () => {
     progressSig.set(
       makeProgress({ required: 175.345, months: [makePlanMonth()] }),

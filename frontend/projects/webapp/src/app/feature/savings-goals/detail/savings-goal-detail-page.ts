@@ -770,14 +770,12 @@ export default class SavingsGoalDetailPage {
   protected readonly chartMonths = computed(
     () => this.progress()?.months ?? [],
   );
+  protected readonly repairAmount = computed(
+    () => Math.ceil((this.progress()?.required ?? 0) * 100) / 100,
+  );
   protected readonly repairableMonths = computed(() => {
     const progress = this.progress();
-    if (
-      !progress ||
-      progress.status !== 'ACTIVE' ||
-      progress.required == null ||
-      progress.required <= 0
-    ) {
+    if (!progress || progress.status !== 'ACTIVE' || this.repairAmount() <= 0) {
       return [];
     }
     return progress.months.filter(
@@ -788,9 +786,6 @@ export default class SavingsGoalDetailPage {
         month.isContributionEligible !== false,
     );
   });
-  protected readonly repairAmount = computed(
-    () => Math.round((this.progress()?.required ?? 0) * 100) / 100,
-  );
   protected readonly estimatedCompletionLabel = computed(() => {
     const period = this.progress()?.estimatedCompletion;
     return period ? this.#formatMonthYear(period.month, period.year) : null;

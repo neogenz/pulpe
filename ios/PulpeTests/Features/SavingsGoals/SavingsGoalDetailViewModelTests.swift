@@ -222,13 +222,17 @@ struct SavingsGoalDetailViewModelTests {
         month: Int,
         state: SavingsPlanMonthState,
         isLocked: Bool,
-        planned: Decimal = 200
+        planned: Decimal = 200,
+        hasBudget: Bool = false,
+        isProvisionable: Bool = false
     ) -> SavingsGoalPlanMonth {
         SavingsGoalPlanMonth(
             month: month,
             year: 2099,
             state: state,
             isLocked: isLocked,
+            hasBudget: hasBudget,
+            isProvisionable: isProvisionable,
             plannedAmount: planned,
             confirmedAmount: 0,
             plannedCumulative: planned,
@@ -380,6 +384,35 @@ extension SavingsGoalDetailViewModelTests {
 
         #expect(!succeeded)
         #expect(service.lastApplyPayload == nil)
+    }
+
+    @Test("recovery previews and sends a positive sub-cent amount as one cent")
+    func applyMissingForecasts_roundsPositiveSubCentUp() async throws {
+        let service = MockSavingsGoalService()
+        let required = try #require(Decimal(string: "0.004"))
+        let progress = makeProgress(
+            linkedLineCount: 0,
+            required: required,
+            months: [
+                makePlanMonth(
+                    month: 8,
+                    state: .gap,
+                    isLocked: false,
+                    planned: 0,
+                    hasBudget: true,
+                    isProvisionable: true
+                ),
+            ]
+        )
+        let viewModel = SavingsGoalDetailViewModel(goalId: "g1", service: service)
+
+        let succeeded = await viewModel.applyMissingForecasts(from: progress)
+        let payload = try #require(service.lastApplyPayload)
+
+        #expect(SavingsGoalDetailViewModel.recoveryAmount(progress) == Decimal(string: "0.01"))
+        #expect(SavingsGoalDetailViewModel.canRepairPlan(progress, status: .active))
+        #expect(succeeded)
+        #expect(payload.missingMonthAdjustments.first?.amount == Decimal(string: "0.01"))
     }
 
     @Test("recovery action stays hidden when the required amount is zero")
