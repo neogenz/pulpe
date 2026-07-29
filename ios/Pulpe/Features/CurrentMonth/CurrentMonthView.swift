@@ -219,7 +219,7 @@ struct CurrentMonthView: View {
 
                     HomeHeroCard(
                         metrics: store.metrics,
-                        projection: store.projection,
+                        plannedBalance: store.plannedRemaining,
                         trajectory: store.balanceTrajectory,
                         monthName: currentMonthName,
                         uncheckedCount: store.uncheckedCount,

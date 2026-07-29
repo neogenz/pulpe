@@ -1,11 +1,11 @@
 import Charts
 import SwiftUI
 
-/// Month-end projection hero. Financial formulas stay in `BudgetFormulas`; this view only
+/// Month-end estimate hero. Financial formulas stay in `BudgetFormulas`; this view only
 /// translates their results into the signed, glanceable comparison shown on the dashboard.
 struct HomeHeroCard: View {
     let metrics: BudgetFormulas.Metrics
-    let projection: BudgetFormulas.Projection?
+    let plannedBalance: Decimal
     let trajectory: BudgetFormulas.BalanceTrajectory?
     let monthName: String
     let uncheckedCount: Int
@@ -20,7 +20,10 @@ struct HomeHeroCard: View {
 
     private var currency: SupportedCurrency { userSettingsStore.currency }
     private var presentation: PresentationState {
-        PresentationState(plannedBalance: metrics.remaining, projection: projection)
+        PresentationState(
+            plannedBalance: plannedBalance,
+            estimatedBalance: metrics.remaining
+        )
     }
 
     // MARK: - Semantic Styling
@@ -28,26 +31,23 @@ struct HomeHeroCard: View {
     private var accentColor: Color {
         switch presentation.tone {
         case .favorable: .financialSavings
-        case .caution: .homeHeroInk
+        case .caution: .financialOverBudget
         case .deficit: .driftAccent
-        case .neutral: .homeHeroInk
         }
     }
 
-    private var varianceTitle: String {
-        "Écart estimé"
+    private var comparisonText: String {
+        switch presentation.verdict {
+        case .gain:
+            "\(abs(presentation.variance).asCompactCurrency(currency)) de mieux que prévu"
+        case .overrun:
+            "\(abs(presentation.variance).asCompactCurrency(currency)) de moins que prévu"
+        case .onPlan:
+            "Conforme à ton budget"
+        }
     }
 
-    private var varianceValue: String {
-        presentation.variance?.asArithmeticSignedCompactCurrency(currency) ?? "—"
-    }
-
-    private var insight: String {
-        guard let projection else { return "Projection indisponible" }
-        let dailyRate = projection.dailySpendingRate.asCompactCurrency(currency)
-        let days = projection.daysRemaining
-        return "\(dailyRate)/jour · \(days) \(days == 1 ? "jour" : "jours")"
-    }
+    private var uncheckedText: String { "\(uncheckedCount) à pointer" }
 
     // MARK: - Accessibility
 
@@ -55,7 +55,8 @@ struct HomeHeroCard: View {
         presentation.accessibilityDescription(
             monthName: monthName,
             currency: currency,
-            amountsHidden: amountsHidden
+            amountsHidden: amountsHidden,
+            uncheckedCount: uncheckedCount
         )
     }
 
@@ -76,46 +77,18 @@ struct HomeHeroCard: View {
             .accessibilityHint("Ouvrir le suivi du réalisé")
 
             Button(action: onTapDetail) {
-                if dynamicTypeSize >= .xxLarge {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        HStack {
-                            Text("Budget")
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                        }
-                        .font(PulpeTypography.labelLarge)
-                        .foregroundStyle(Color.homeHeroInk)
-
-                        Text(insight)
-                            .font(PulpeTypography.labelMedium)
-                            .foregroundStyle(Color.homeHeroSupport)
-                            .monospacedDigit()
-                            .sensitiveAmount()
-                    }
-                } else {
-                    HStack(spacing: DesignTokens.Spacing.sm) {
-                        Text("Budget")
-                            .font(PulpeTypography.labelLarge)
-                            .foregroundStyle(Color.homeHeroInk)
-
-                        Spacer(minLength: DesignTokens.Spacing.md)
-
-                        Text(insight)
-                            .font(PulpeTypography.labelMedium)
-                            .foregroundStyle(Color.homeHeroSupport)
-                            .monospacedDigit()
-                            .sensitiveAmount()
-
-                        Image(systemName: "chevron.right")
-                            .font(PulpeTypography.labelLarge)
-                            .foregroundStyle(Color.homeHeroInk)
-                    }
+                HStack(spacing: DesignTokens.Spacing.sm) {
+                    Text("Voir le budget")
+                    Spacer(minLength: DesignTokens.Spacing.md)
+                    Image(systemName: "chevron.right")
                 }
+                .font(PulpeTypography.labelLarge)
+                .foregroundStyle(Color.homeHeroInk)
             }
             .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum, alignment: .leading)
             .contentShape(Rectangle())
             .textLinkButtonStyle()
-            .accessibilityLabel("Détail du budget, \(insight)")
+            .accessibilityLabel("Voir le détail du budget")
         }
     }
 
@@ -124,7 +97,7 @@ struct HomeHeroCard: View {
     private var metricsContent: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
             VStack(spacing: DesignTokens.Spacing.xs) {
-                Text(presentation.displayedBalance.asArithmeticSignedCompactCurrency(currency))
+                Text(presentation.estimatedBalance.asArithmeticSignedCompactCurrency(currency))
                     .font(PulpeTypography.heroIcon)
                     .tracking(DesignTokens.Tracking.hero)
                     .monospacedDigit()
@@ -133,13 +106,9 @@ struct HomeHeroCard: View {
                     .foregroundStyle(Color.homeHeroInk)
                     .sensitiveAmount()
 
-                Text(
-                    presentation.projectedBalance == nil
-                        ? "solde planifié"
-                        : "solde final projeté"
-                )
-                .font(PulpeTypography.labelMedium)
-                .foregroundStyle(Color.homeHeroSupport)
+                Text("estimé fin \(monthName)")
+                    .font(PulpeTypography.labelMedium)
+                    .foregroundStyle(Color.homeHeroSupport)
             }
 
             summaryMetrics
@@ -154,59 +123,34 @@ struct HomeHeroCard: View {
     private var summaryMetrics: some View {
         if dynamicTypeSize >= .xxLarge {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                moneyMetric(
-                    title: "Plan",
-                    value: metrics.remaining.asArithmeticSignedCompactCurrency(currency)
-                )
-                moneyMetric(title: varianceTitle, value: varianceValue)
-                countMetric
+                comparisonLabel
+                uncheckedLabel
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         } else {
-            HStack(spacing: DesignTokens.Spacing.none) {
-                moneyMetric(
-                    title: "Plan",
-                    value: metrics.remaining.asArithmeticSignedCompactCurrency(currency)
-                )
-                Divider()
-                    .frame(height: DesignTokens.TapTarget.minimum)
-                moneyMetric(title: varianceTitle, value: varianceValue)
-                Divider()
-                    .frame(height: DesignTokens.TapTarget.minimum)
-                countMetric
+            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
+                comparisonLabel
+                Spacer(minLength: DesignTokens.Spacing.sm)
+                uncheckedLabel
             }
         }
     }
 
-    private func moneyMetric(title: String, value: String) -> some View {
-        VStack(spacing: DesignTokens.Spacing.xxs) {
-            Text(value)
-                .font(PulpeTypography.progressValue)
-                .foregroundStyle(Color.homeHeroInk)
-                .monospacedDigit()
-                .lineLimit(1)
-                .minimumScaleFactor(DesignTokens.TextScale.compact)
-                .sensitiveAmount()
-
-            Text(title)
-                .font(PulpeTypography.labelMedium)
-                .foregroundStyle(Color.homeHeroSupport)
-        }
-        .frame(maxWidth: .infinity)
+    private var comparisonLabel: some View {
+        Text(comparisonText)
+            .font(PulpeTypography.labelLarge)
+            .foregroundStyle(accentColor)
+            .monospacedDigit()
+            .fixedSize(horizontal: false, vertical: true)
+            .sensitiveAmount()
     }
 
-    private var countMetric: some View {
-        VStack(spacing: DesignTokens.Spacing.xxs) {
-            Text("\(uncheckedCount)")
-                .font(PulpeTypography.progressValue)
-                .foregroundStyle(Color.homeHeroInk)
-                .monospacedDigit()
-
-            Text("À pointer")
-                .font(PulpeTypography.labelMedium)
-                .foregroundStyle(Color.homeHeroSupport)
-        }
-        .frame(maxWidth: .infinity)
+    private var uncheckedLabel: some View {
+        Text(uncheckedText)
+            .font(PulpeTypography.labelMedium)
+            .foregroundStyle(Color.homeHeroSupport)
+            .monospacedDigit()
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     // MARK: - Monthly Trajectory
@@ -247,8 +191,8 @@ struct HomeHeroCard: View {
                 ForEach(trajectory.projected) { point in
                     LineMark(
                         x: .value("Jour", point.day),
-                        y: .value("Solde projeté", Self.decimalValue(point.balance)),
-                        series: .value("Série", "Projection")
+                        y: .value("Solde estimé", Self.decimalValue(point.balance)),
+                        series: .value("Série", "Reste du plan")
                     )
                     .interpolationMethod(.linear)
                     .lineStyle(StrokeStyle(
@@ -325,92 +269,68 @@ extension HomeHeroCard {
             case gain
             case overrun
             case onPlan
-            case unavailable
         }
 
         enum Tone: Equatable {
             case favorable
             case caution
             case deficit
-            case neutral
         }
 
         let plannedBalance: Decimal
-        let projectedBalance: Decimal?
-        let variance: Decimal?
+        let estimatedBalance: Decimal
+        let variance: Decimal
         let verdict: Verdict
         let tone: Tone
 
-        var displayedBalance: Decimal { projectedBalance ?? plannedBalance }
-
-        init(plannedBalance: Decimal, projection: BudgetFormulas.Projection?) {
-            self.init(
-                plannedBalance: plannedBalance,
-                projectedBalance: projection?.projectedEndOfMonthBalance
-            )
-        }
-
-        init(plannedBalance: Decimal, projectedBalance: Decimal?) {
+        init(plannedBalance: Decimal, estimatedBalance: Decimal) {
             self.plannedBalance = plannedBalance
-            self.projectedBalance = projectedBalance
+            self.estimatedBalance = estimatedBalance
 
-            guard let projectedBalance else {
-                variance = nil
-                verdict = .unavailable
-                tone = .neutral
-                return
-            }
-
-            let difference = projectedBalance - plannedBalance
+            let difference = estimatedBalance - plannedBalance
             variance = difference
             verdict = difference > 0 ? .gain : difference < 0 ? .overrun : .onPlan
-            tone = projectedBalance < 0 ? .deficit : difference < 0 ? .caution : .favorable
+            tone = estimatedBalance < 0 ? .deficit : difference < 0 ? .caution : .favorable
         }
 
         func accessibilityDescription(
             monthName: String,
             currency: SupportedCurrency,
-            amountsHidden: Bool
+            amountsHidden: Bool,
+            uncheckedCount: Int
         ) -> String {
             let month = monthName.capitalized
-            guard !amountsHidden else {
-                return "\(month). Solde final projeté, montant masqué. Comparaison au plan masquée."
+            let unchecked = switch uncheckedCount {
+            case 0: "Aucune opération à pointer."
+            case 1: "1 opération à pointer."
+            default: "\(uncheckedCount) opérations à pointer."
             }
-            guard let projectedBalance, let variance else {
+            guard !amountsHidden else {
                 return """
-                \(month). Solde planifié \(plannedBalance.asArithmeticSignedCurrency(currency)). \
-                Projection indisponible.
+                \(month). Solde estimé fin de mois, montant masqué. \
+                Comparaison au budget masquée. \(unchecked)
                 """
             }
 
             let comparison: String
             switch verdict {
             case .gain:
-                comparison = "Gain sur le plan \(variance.asArithmeticSignedCurrency(currency))"
+                comparison = "\(abs(variance).asCurrency(currency)) de mieux que prévu"
             case .overrun:
-                comparison = "Dépassement du plan \(variance.asArithmeticSignedCurrency(currency))"
+                comparison = "\(abs(variance).asCurrency(currency)) de moins que prévu"
             case .onPlan:
-                comparison = "Conforme au plan"
-            case .unavailable:
-                comparison = "Projection indisponible"
+                comparison = "Conforme à ton budget"
             }
 
             return """
-            \(month). Solde final projeté \(projectedBalance.asArithmeticSignedCurrency(currency)). \
-            Plan \(plannedBalance.asArithmeticSignedCurrency(currency)). \(comparison).
+            \(month). Solde estimé fin de mois \
+            \(estimatedBalance.asArithmeticSignedCurrency(currency)). \(comparison). \(unchecked)
             """
         }
     }
 }
 
-#Preview("Projection hero") {
-    let gain = BudgetFormulas.Projection(
-        projectedEndOfMonthBalance: 1260,
-        dailySpendingRate: 120,
-        daysElapsed: 17,
-        daysRemaining: 14,
-        isOnTrack: true
-    )
+#Preview("Estimated balance hero") {
     let gainTrajectory = BudgetFormulas.BalanceTrajectory(
         actual: [
             .init(day: 0, balance: 8032),
@@ -431,14 +351,14 @@ extension HomeHeroCard {
         HomeHeroCard(
             metrics: .init(
                 totalIncome: 8032,
-                totalExpenses: 7400,
+                totalExpenses: 6772,
                 totalSavings: 0,
                 available: 8032,
-                endingBalance: 632,
-                remaining: 632,
+                endingBalance: 1260,
+                remaining: 1260,
                 rollover: 0
             ),
-            projection: gain,
+            plannedBalance: 632,
             trajectory: gainTrajectory,
             monthName: "juillet",
             uncheckedCount: 5,

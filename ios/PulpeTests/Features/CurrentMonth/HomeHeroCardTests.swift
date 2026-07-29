@@ -3,44 +3,35 @@ import Foundation
 import Testing
 
 struct HomeHeroCardTests {
-    @Test func gainAbovePlan_keepsSignedMeaning() {
+    @Test func estimateComparison_keepsSignedMeaning() {
         let state = HomeHeroCard.PresentationState(
             plannedBalance: 450,
-            projectedBalance: 800
+            estimatedBalance: 800
         )
 
-        #expect(state.displayedBalance == 800)
+        #expect(state.estimatedBalance == 800)
         #expect(state.variance == 350)
         #expect(state.verdict == .gain)
         #expect(state.tone == .favorable)
 
         let onPlan = HomeHeroCard.PresentationState(
             plannedBalance: 450,
-            projectedBalance: 450
+            estimatedBalance: 450
         )
         #expect(onPlan.variance == 0)
         #expect(onPlan.verdict == .onPlan)
     }
 
-    @Test func deficitAcrossZero_isOverrunAndUnavailableNeverFakesProjection() {
+    @Test func deficitAcrossZero_isOverrunAndDeficit() {
         let state = HomeHeroCard.PresentationState(
             plannedBalance: 450,
-            projectedBalance: -3000
+            estimatedBalance: -3000
         )
 
-        #expect(state.displayedBalance == -3000)
+        #expect(state.estimatedBalance == -3000)
         #expect(state.variance == -3450)
         #expect(state.verdict == .overrun)
         #expect(state.tone == .deficit)
-
-        let unavailable = HomeHeroCard.PresentationState(
-            plannedBalance: 450,
-            projectedBalance: nil
-        )
-        #expect(unavailable.displayedBalance == 450)
-        #expect(unavailable.projectedBalance == nil)
-        #expect(unavailable.variance == nil)
-        #expect(unavailable.verdict == .unavailable)
     }
 
     @Test func trajectory_usesRealizedStepsAndConnectsRemainingPlan() throws {
@@ -104,19 +95,51 @@ struct HomeHeroCardTests {
     @Test func hiddenAmounts_accessibilityDescriptionContainsNoFinancialValue() {
         let state = HomeHeroCard.PresentationState(
             plannedBalance: 450,
-            projectedBalance: -3000
+            estimatedBalance: -3000
         )
 
         let description = state.accessibilityDescription(
             monthName: "juillet",
             currency: .chf,
-            amountsHidden: true
+            amountsHidden: true,
+            uncheckedCount: 1
         )
 
-        #expect(description == "Juillet. Solde final projeté, montant masqué. Comparaison au plan masquée.")
+        #expect(
+            description
+                == """
+                Juillet. Solde estimé fin de mois, montant masqué. \
+                Comparaison au budget masquée. 1 opération à pointer.
+                """
+        )
         #expect(!description.contains("CHF"))
         #expect(!description.contains("450"))
         #expect(!description.contains("3000"))
+    }
+
+    @Test func accessibilityDescription_explainsComparisonInEverydayFrench() {
+        let gain = HomeHeroCard.PresentationState(plannedBalance: 450, estimatedBalance: 800)
+        let overrun = HomeHeroCard.PresentationState(plannedBalance: 450, estimatedBalance: 300)
+        let onPlan = HomeHeroCard.PresentationState(plannedBalance: 450, estimatedBalance: 450)
+
+        #expect(gain.accessibilityDescription(
+            monthName: "juillet",
+            currency: .chf,
+            amountsHidden: false,
+            uncheckedCount: 2
+        ).contains("350.00 CHF de mieux que prévu"))
+        #expect(overrun.accessibilityDescription(
+            monthName: "juillet",
+            currency: .chf,
+            amountsHidden: false,
+            uncheckedCount: 0
+        ).contains("150.00 CHF de moins que prévu"))
+        #expect(onPlan.accessibilityDescription(
+            monthName: "juillet",
+            currency: .chf,
+            amountsHidden: false,
+            uncheckedCount: 1
+        ).contains("Conforme à ton budget"))
     }
 
     @Test func loadedDashboardUsesOneFullScreenGradientBackground() throws {
@@ -144,6 +167,20 @@ struct HomeHeroCardTests {
 
         #expect(source.contains(".annotation(position: .top, alignment: .leading)"))
         #expect(source.contains(".annotation(position: .bottom, alignment: .trailing)"))
+    }
+
+    @Test func heroCopyDropsPlanVarianceAndDailyRateKpis() throws {
+        let sourceFile = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appending(path: "Pulpe/Features/CurrentMonth/Components/HomeHeroCard.swift")
+        let source = try String(contentsOf: sourceFile, encoding: .utf8)
+
+        #expect(!source.contains("\"Écart estimé\""))
+        #expect(!source.contains("\"Plan\""))
+        #expect(!source.contains("/jour"))
     }
 
     private func checkedExpense(
