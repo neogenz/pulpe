@@ -19,6 +19,7 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '@common/guards/auth.guard';
 import { SkipClientKey } from '@common/decorators/skip-client-key.decorator';
+import { AllowVaultBootstrap } from '@common/decorators/allow-vault-bootstrap.decorator';
 import {
   User,
   SupabaseClient,
@@ -134,6 +135,7 @@ export class EncryptionController {
   }
 
   @Post('setup-recovery')
+  @AllowVaultBootstrap()
   @HttpCode(HttpStatus.CREATED)
   // 5 req/hour — allows retries if user closes the dialog accidentally
   @Throttle({ default: { limit: 5, ttl: 3600000 } })

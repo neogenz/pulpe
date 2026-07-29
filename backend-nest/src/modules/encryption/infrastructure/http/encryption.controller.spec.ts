@@ -3,6 +3,7 @@ import { EncryptionController } from './encryption.controller';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
+import { ALLOW_VAULT_BOOTSTRAP } from '@common/decorators/allow-vault-bootstrap.decorator';
 
 const createMockUseCases = (overrides?: {
   getVaultStatus?: ReturnType<typeof mock>;
@@ -225,6 +226,15 @@ describe('EncryptionController', () => {
   });
 
   describe('setupRecovery', () => {
+    it('should explicitly allow the first vault bootstrap before a canary exists', () => {
+      expect(
+        Reflect.getMetadata(
+          ALLOW_VAULT_BOOTSTRAP,
+          EncryptionController.prototype.setupRecovery,
+        ),
+      ).toBe(true);
+    });
+
     it('should delegate to SetupRecoveryKeyUseCase with userId, clientKey and authenticated client', async () => {
       const user = createMockUser();
       const supabase = { from: mock(() => undefined) };

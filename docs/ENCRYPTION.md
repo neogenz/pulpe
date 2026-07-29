@@ -16,7 +16,7 @@ DEK = HKDF-SHA256(clientKey + masterKey, salt, "pulpe-dek-{userId}")
 | `masterKey` | Variable d'environnement `ENCRYPTION_MASTER_KEY` | Serveur uniquement. GitHub Secrets en prod, `.env` en local. |
 | `salt` | Généré aléatoirement par utilisateur | Table `user_encryption_key` (accessible uniquement au `service_role`). |
 
-La DEK n'est jamais stockée. Elle est recalculée à chaque requête (avec un cache en mémoire de 5 minutes).
+La DEK n'est jamais stockée. Un cache mémoire de 5 minutes évite de répéter la dérivation, mais chaque nouvelle requête de mutation revalide son entrée avec le `key_check` courant.
 
 ### Ce que ça implique en cas de fuite
 
@@ -71,10 +71,11 @@ Le mode démo utilise un `clientKey` déterministe (`DEMO_CLIENT_KEY_BUFFER`) po
    - Authorization: Bearer {jwt}
    - X-Client-Key: {clientKey en hex}
 3. AuthGuard extrait le clientKey du header
-4. Service métier appelle encryptionService.ensureUserDEK(userId, clientKey)
-5. DEK = HKDF(clientKey + masterKey, salt)
-6. Les montants sont chiffrés/déchiffrés avec cette DEK
-7. ClientKeyCleanupInterceptor efface le clientKey de la mémoire (buffer.fill(0))
+4. Pour une mutation, AuthGuard valide le `key_check` courant avant le contrôleur
+5. Le service métier réutilise cette preuve uniquement dans la requête courante
+6. DEK = HKDF(clientKey + masterKey, salt)
+7. Les montants sont chiffrés/déchiffrés avec cette DEK
+8. ClientKeyCleanupInterceptor efface le clientKey de la mémoire (buffer.fill(0))
 ```
 
 ## Changement / reset de mot de passe (auth uniquement)

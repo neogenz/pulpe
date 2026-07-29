@@ -12,7 +12,7 @@ import type { Buffer } from 'node:buffer';
 export interface EncryptionPort {
   /** Validate the client key against an existing key-check canary. Never bootstraps it. */
   verifyExistingKeyCheck(userId: string, clientKey: Buffer): Promise<boolean>;
-  /** Derive (or retrieve from cache) the user's DEK. Validates keyCheck on cache miss. */
+  /** Require a current key-check proof, once per HTTP request and on every non-HTTP call. */
   ensureUserDEK(userId: string, clientKey: Buffer): Promise<Buffer>;
   /** Initialize or validate the disposable demo vault with its server-owned fixed key. */
   ensureDemoUserDEK(userId: string): Promise<Buffer>;

@@ -43,6 +43,11 @@ function makeEmptyEncryptedDataClient() {
       select: () => builder,
       eq: () => builder,
       in: () => builder,
+      not: () => builder,
+      or: () => builder,
+      limit: () => builder,
+      order: () => builder,
+      range: () => builder,
       then: (
         onResolve: (value: SupabaseResult) => unknown,
         onReject?: (reason: unknown) => unknown,

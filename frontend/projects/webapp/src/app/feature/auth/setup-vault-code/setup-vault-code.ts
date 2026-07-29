@@ -39,6 +39,8 @@ import {
 import { LogoutDialog } from '@ui/dialogs/logout-dialog';
 import { PostHogService } from '@core/analytics';
 import { setupVaultCodeFormSchema } from './setup-vault-code-form.schema';
+import { isApiError } from '@core/api/api-error';
+import { API_ERROR_CODES } from 'pulpe-shared';
 
 @Component({
   selector: 'pulpe-setup-vault-code',
@@ -286,12 +288,13 @@ export default class SetupVaultCode {
       this.#clientKeyService.setDirectKey(clientKeyHex, rememberDevice);
 
       // 3. Atomically initialize key_check + recovery key server-side
-      await this.#showRecoveryKey();
+      await this.#showRecoveryKey(clientKeyHex);
 
       // 4. Mark user as configured only after recovery key is saved
-      await this.#authSession
+      const { error } = await this.#authSession
         .getClient()
         .auth.updateUser({ data: { vaultCodeConfigured: true } });
+      if (error) throw error;
 
       this.#postHogService.captureEvent('vault_code_setup_completed');
 
@@ -308,13 +311,32 @@ export default class SetupVaultCode {
     }
   }
 
-  async #showRecoveryKey(): Promise<void> {
-    const { recoveryKey } = await firstValueFrom(
-      this.#encryptionApi.setupRecoveryKey$(),
-    ).catch((error: unknown) => {
-      this.#clientKeyService.clear();
-      throw error;
-    });
+  async #showRecoveryKey(clientKeyHex: string): Promise<void> {
+    let recoveryKey: string;
+    try {
+      ({ recoveryKey } = await firstValueFrom(
+        this.#encryptionApi.setupRecoveryKey$(),
+      ));
+    } catch (error) {
+      if (
+        !isApiError(error) ||
+        error.code !== API_ERROR_CODES.RECOVERY_KEY_ALREADY_EXISTS
+      ) {
+        this.#clientKeyService.clear();
+        throw error;
+      }
+
+      try {
+        await firstValueFrom(this.#encryptionApi.validateKey$(clientKeyHex));
+      } catch (validationError) {
+        this.#clientKeyService.clear();
+        throw validationError;
+      }
+
+      ({ recoveryKey } = await firstValueFrom(
+        this.#encryptionApi.regenerateRecoveryKey$(),
+      ));
+    }
 
     const dialogData: RecoveryKeyDialogData = { recoveryKey };
     const dialogRef = this.#dialog.open(RecoveryKeyDialog, {

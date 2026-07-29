@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   createCipheriv,
@@ -21,6 +21,7 @@ import {
   rekeyTemplateLinesRpcPayloadSchema,
   rekeyTransactionsRpcPayloadSchema,
 } from '../persistence/schemas/rpc-payload.schemas';
+import { ClsService } from 'nestjs-cls';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
@@ -32,6 +33,7 @@ const HKDF_DIGEST = 'sha256';
 const DEK_CACHE_TTL_MS = 5 * 60 * 1000;
 const POSTGREST_PAGE_SIZE = 1_000;
 const POSTGREST_FILTER_CHUNK_SIZE = 100;
+const VAULT_VALIDATION_CONTEXT_KEY = 'encryption.validatedVaultCacheKey';
 
 // Base32 alphabet (RFC 4648, no padding) — avoids 0/O and 1/l ambiguity
 const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
@@ -52,6 +54,7 @@ export class AesGcmCryptoService {
     private readonly logger: InfoLogger,
     configService: ConfigService,
     repository: SupabaseEncryptionKeyRepository,
+    @Optional() private readonly cls?: ClsService,
   ) {
     const masterKeyHex = configService.get<string>('ENCRYPTION_MASTER_KEY');
     if (!masterKeyHex) {
@@ -194,14 +197,30 @@ export class AesGcmCryptoService {
   async ensureUserDEK(userId: string, clientKey: Buffer): Promise<Buffer> {
     const cacheKey = this.#buildCacheKey(userId, clientKey);
     const cached = this.#dekCache.get(cacheKey);
-    if (cached && cached.expiry > Date.now()) {
+    if (
+      cached &&
+      cached.expiry > Date.now() &&
+      this.#isValidatedInCurrentRequest(cacheKey)
+    ) {
       return cached.dek;
     }
 
     const { salt, keyCheck } = await this.#ensureUserSalt(userId);
+    if (
+      cached &&
+      cached.expiry > Date.now() &&
+      keyCheck &&
+      this.validateKeyCheck(keyCheck, cached.dek)
+    ) {
+      this.#markValidatedInCurrentRequest(cacheKey);
+      return cached.dek;
+    }
+
+    this.#evictCachedDEK(cacheKey);
     const dek = this.#deriveDEK(clientKey, salt, userId);
 
     if (!keyCheck || !this.validateKeyCheck(keyCheck, dek)) {
+      dek.fill(0);
       throw new BusinessException(
         ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
       );
@@ -211,6 +230,7 @@ export class AesGcmCryptoService {
       dek,
       expiry: Date.now() + DEK_CACHE_TTL_MS,
     });
+    this.#markValidatedInCurrentRequest(cacheKey);
 
     return dek;
   }
@@ -1248,6 +1268,25 @@ export class AesGcmCryptoService {
         }
         this.#dekCache.delete(key);
       }
+    }
+  }
+
+  #evictCachedDEK(cacheKey: string): void {
+    const cached = this.#dekCache.get(cacheKey);
+    cached?.dek.fill(0);
+    this.#dekCache.delete(cacheKey);
+  }
+
+  #isValidatedInCurrentRequest(cacheKey: string): boolean {
+    return (
+      this.cls?.isActive() === true &&
+      this.cls.get<string>(VAULT_VALIDATION_CONTEXT_KEY) === cacheKey
+    );
+  }
+
+  #markValidatedInCurrentRequest(cacheKey: string): void {
+    if (this.cls?.isActive()) {
+      this.cls.set(VAULT_VALIDATION_CONTEXT_KEY, cacheKey);
     }
   }
 

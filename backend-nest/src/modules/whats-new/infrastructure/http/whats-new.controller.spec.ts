@@ -7,6 +7,7 @@ import { whatsNewResponseSchema } from 'pulpe-shared';
 import request from 'supertest';
 import { AuthGuard } from '@common/guards/auth.guard';
 import { SupabaseService } from '@modules/supabase/supabase.service';
+import { ENCRYPTION_PORT } from '@modules/encryption/encryption.tokens';
 import { createMockPinoLogger } from '@/test/test-mocks';
 import { GetIosWhatsNewUseCase } from '../../application/get-ios-whats-new.use-case';
 import { WhatsNewController } from './whats-new.controller';
@@ -39,6 +40,7 @@ beforeAll(async () => {
         useValue: createMockPinoLogger(),
       },
       { provide: ClsService, useValue: { set: () => {} } },
+      { provide: ENCRYPTION_PORT, useValue: { ensureUserDEK: () => {} } },
     ],
   }).compile();
 
