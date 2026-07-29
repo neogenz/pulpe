@@ -101,7 +101,21 @@ FROM financial_users f LEFT JOIN user_encryption_key k ON k.user_id = f.user_id;
 `financial_users_without_key_check` must be zero before the strict backend rollout.
 Review `vaults_without_wrapped_dek` separately; never export the matching users.
 
-For legacy deletion claims, load the intended Supabase environment securely, then run:
+For legacy deletion claims, prepare the reviewed backend checkout and load the
+intended Supabase environment securely before starting the maintenance window.
+Production `--apply` requires explicit approval.
+
+1. Set Railway `MAINTENANCE_MODE=true`, wait for the deployment, then verify both
+   the public status and a protected route:
+
+```bash
+curl https://api.pulpe.app/api/v1/maintenance/status
+# {"maintenanceMode":true,...}
+curl -i https://api.pulpe.app/api/v1/budgets
+# HTTP 503 with code MAINTENANCE
+```
+
+2. From `backend-nest/`, run:
 
 ```bash
 bun run migrate:scheduled-deletion         # dry-run, aggregate counters only
@@ -109,10 +123,20 @@ bun run migrate:scheduled-deletion --apply # explicit write
 bun run migrate:scheduled-deletion         # eligible must now be zero
 ```
 
-The tool is paginated, preserves existing `app_metadata`, never overwrites an
-existing server-owned claim, and stops on the first list or update error. Production
-`--apply` requires explicit approval. The runtime has no fallback to client-writable
-`user_metadata`.
+The apply mode re-reads every eligible user immediately before updating, skips a
+server-owned claim that appeared since listing, and merges only the fresh
+`app_metadata`. Provider failures are reduced to a stable operation and page; the
+tool never prints a user id, email, remote message, or business value.
+
+3. Keep maintenance enabled on any failure. Once the final dry-run reports
+   `eligible: 0`, set `MAINTENANCE_MODE=false`, wait for Railway, then verify
+   `maintenanceMode: false` and `/health`.
+
+All non-exempt API routes return `503 MAINTENANCE` during this window. `/health`,
+`/`, `/api/v1/maintenance/status`, and `/api/v1/app/version` remain available for
+control and rollback. The Admin API has no compare-and-swap for `app_metadata`, so
+the fresh read reduces stale writes but does not replace the maintenance window.
+The runtime has no fallback to client-writable `user_metadata`.
 
 For a strict vault rollout, publish the iOS client that creates a vault through
 `/encryption/setup-recovery` first and wait until it is downloadable from the App

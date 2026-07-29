@@ -13,9 +13,22 @@ interface AdminError {
   message: string;
 }
 
+type AdminOperation = 'list' | 'read' | 'update';
+
+class ScheduledDeletionMigrationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ScheduledDeletionMigrationError';
+  }
+}
+
 export interface ScheduledDeletionAdminApi {
   listUsers(params: { page: number; perPage: number }): Promise<{
     data: { users: MigrationUser[] } | null;
+    error: AdminError | null;
+  }>;
+  getUserById(id: string): Promise<{
+    data: { user: MigrationUser | null };
     error: AdminError | null;
   }>;
   updateUserById(
@@ -44,6 +57,29 @@ const isCanonicalIsoDate = (value: unknown): value is string => {
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString() === value;
 };
 
+const adminFailure = (
+  operation: AdminOperation,
+  page: number,
+): ScheduledDeletionMigrationError =>
+  new ScheduledDeletionMigrationError(
+    `Scheduled deletion metadata ${operation} failed on page ${page}`,
+  );
+
+async function runAdminOperation<T extends { error: AdminError | null }>(
+  operation: AdminOperation,
+  page: number,
+  call: () => Promise<T>,
+): Promise<T> {
+  let result: T;
+  try {
+    result = await call();
+  } catch {
+    throw adminFailure(operation, page);
+  }
+  if (result.error) throw adminFailure(operation, page);
+  return result;
+}
+
 export async function migrateScheduledDeletionMetadata(
   admin: ScheduledDeletionAdminApi,
   apply = false,
@@ -58,63 +94,88 @@ export async function migrateScheduledDeletionMetadata(
   };
 
   for (let page = 1; page <= MAX_PAGES; page += 1) {
-    const { data, error } = await admin.listUsers({
-      page,
-      perPage: PER_PAGE,
-    });
-    if (error || !data) {
-      throw new Error(
-        `Scheduled deletion metadata list failed on page ${page}: ${error?.message ?? 'empty response'}`,
-      );
-    }
+    const { data } = await runAdminOperation('list', page, () =>
+      admin.listUsers({
+        page,
+        perPage: PER_PAGE,
+      }),
+    );
+    if (!data) throw adminFailure('list', page);
 
     for (const user of data.users) {
       summary.scanned += 1;
-      const appMetadata = asRecord(user.app_metadata);
-      if (Object.hasOwn(appMetadata, 'scheduledDeletionAt')) {
+      const listedAppMetadata = asRecord(user.app_metadata);
+      if (Object.hasOwn(listedAppMetadata, 'scheduledDeletionAt')) {
         summary.alreadyOwned += 1;
         continue;
       }
 
-      const legacyDate = asRecord(user.user_metadata).scheduledDeletionAt;
-      if (legacyDate === undefined) continue;
-      if (!isCanonicalIsoDate(legacyDate)) {
+      const listedLegacyDate = asRecord(user.user_metadata).scheduledDeletionAt;
+      if (listedLegacyDate === undefined) continue;
+      if (!isCanonicalIsoDate(listedLegacyDate)) {
+        summary.invalidLegacy += 1;
+        continue;
+      }
+
+      if (!apply) {
+        summary.eligible += 1;
+        continue;
+      }
+
+      const { data: freshData } = await runAdminOperation('read', page, () =>
+        admin.getUserById(user.id),
+      );
+      if (!freshData.user) throw adminFailure('read', page);
+
+      const freshAppMetadata = asRecord(freshData.user.app_metadata);
+      if (Object.hasOwn(freshAppMetadata, 'scheduledDeletionAt')) {
+        summary.alreadyOwned += 1;
+        continue;
+      }
+
+      const freshLegacyDate = asRecord(
+        freshData.user.user_metadata,
+      ).scheduledDeletionAt;
+      if (freshLegacyDate === undefined) continue;
+      if (!isCanonicalIsoDate(freshLegacyDate)) {
         summary.invalidLegacy += 1;
         continue;
       }
 
       summary.eligible += 1;
-      if (!apply) continue;
-      const update = await admin.updateUserById(user.id, {
-        app_metadata: {
-          ...appMetadata,
-          scheduledDeletionAt: legacyDate,
-        },
-      });
-      if (update.error) {
-        throw new Error(
-          `Scheduled deletion metadata update failed on page ${page}: ${update.error.message}`,
-        );
-      }
+      await runAdminOperation('update', page, () =>
+        admin.updateUserById(user.id, {
+          app_metadata: {
+            ...freshAppMetadata,
+            scheduledDeletionAt: freshLegacyDate,
+          },
+        }),
+      );
       summary.migrated += 1;
     }
 
     if (data.users.length < PER_PAGE) return summary;
   }
 
-  throw new Error(`Scheduled deletion metadata exceeded ${MAX_PAGES} pages`);
+  throw new ScheduledDeletionMigrationError(
+    `Scheduled deletion metadata exceeded ${MAX_PAGES} pages`,
+  );
 }
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   if (args.some((arg) => arg !== '--apply') || args.length > 1) {
-    throw new Error('Usage: migrate-scheduled-deletion-metadata.ts [--apply]');
+    throw new ScheduledDeletionMigrationError(
+      'Usage: migrate-scheduled-deletion-metadata.ts [--apply]',
+    );
   }
 
   const url = process.env.SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !serviceRoleKey) {
-    throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required');
+    throw new ScheduledDeletionMigrationError(
+      'SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required',
+    );
   }
 
   const admin = createClient(url, serviceRoleKey, {
@@ -129,7 +190,11 @@ async function main(): Promise<void> {
 
 if (require.main === module) {
   main().catch((error: unknown) => {
-    console.error(error instanceof Error ? error.message : 'Migration failed');
+    console.error(
+      error instanceof ScheduledDeletionMigrationError
+        ? error.message
+        : 'Scheduled deletion metadata migration failed',
+    );
     process.exitCode = 1;
   });
 }
