@@ -25,13 +25,10 @@ struct AddBudgetLineSheet: View {
     @State private var inputCurrency: SupportedCurrency = .chf
     @State private var mode: BudgetLineCreationMode = .once
     @State private var amountMode: SpreadAmountMode = .total
-    /// PUL-292 — income-only, OFF by default. ON reroutes the CTA to the
-    /// "piocher dans son épargne" preview, prefilled.
+    /// PUL-292: income-only; reroutes the CTA to a prefilled withdrawal.
     @State private var remitNextMonth = false
     @State private var spreadCalculator: SpreadCalculator
-    /// Idempotency key for the spread create (PUL-17), minted ONCE per sheet
-    /// presentation and replayed on every submit retry so a double-tap replays
-    /// the group instead of duplicating it. Lowercased to mirror `crypto.randomUUID()`.
+    /// One idempotency key per sheet, replayed on retries (PUL-17).
     @State private var spreadGroupId = UUID().uuidString.lowercased()
 
     private let anchorMonth: Int
@@ -52,8 +49,7 @@ struct AddBudgetLineSheet: View {
         self.dependencies = dependencies
         self.onRequestSavingsWithdrawal = onRequestSavingsWithdrawal
         self.onAdd = onAdd
-        // Anchor the spread on the OPENED budget's period — not the device's
-        // current month — so tranches land in the right months (PUL-17).
+        // Anchor the spread on the opened budget's period (PUL-17).
         self._spreadCalculator = State(initialValue: SpreadCalculator(
             anchorMonth: anchorMonth,
             anchorYear: anchorYear
@@ -64,9 +60,7 @@ struct AddBudgetLineSheet: View {
 
     static func showsTagPicker(spread: Bool, withdrawal: Bool) -> Bool { !spread && !withdrawal }
 
-    static func showsSavingsGoalPicker(kind: TransactionKind, spread _: Bool) -> Bool {
-        kind == .saving
-    }
+    static func showsSavingsGoalPicker(kind: TransactionKind) -> Bool { kind == .saving }
 
     private var isSavingsWithdrawalMode: Bool { kind == .income && remitNextMonth }
 
@@ -130,7 +124,7 @@ struct AddBudgetLineSheet: View {
 
             descriptionField
 
-            if Self.showsSavingsGoalPicker(kind: kind, spread: isSpreadMode) {
+            if Self.showsSavingsGoalPicker(kind: kind) {
                 SavingsGoalPickerField(selection: $savingsGoalId)
             }
 

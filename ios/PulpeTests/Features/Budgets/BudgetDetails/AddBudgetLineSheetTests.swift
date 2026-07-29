@@ -11,9 +11,8 @@ struct AddBudgetLineSheetTests {
 
     @Test("Savings goal picker is visible for saving in both creation modes")
     func savingsGoalPickerVisibility() {
-        #expect(AddBudgetLineSheet.showsSavingsGoalPicker(kind: .saving, spread: false))
-        #expect(AddBudgetLineSheet.showsSavingsGoalPicker(kind: .saving, spread: true))
-        #expect(!AddBudgetLineSheet.showsSavingsGoalPicker(kind: .expense, spread: false))
-        #expect(!AddBudgetLineSheet.showsSavingsGoalPicker(kind: .income, spread: true))
+        #expect(AddBudgetLineSheet.showsSavingsGoalPicker(kind: .saving))
+        #expect(!AddBudgetLineSheet.showsSavingsGoalPicker(kind: .expense))
+        #expect(!AddBudgetLineSheet.showsSavingsGoalPicker(kind: .income))
     }
 }
