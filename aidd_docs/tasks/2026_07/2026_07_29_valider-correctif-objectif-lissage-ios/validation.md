@@ -6,7 +6,7 @@
 | --- | --- |
 | Date | 29 juillet 2026 |
 | Branche | `codex/fix-ios-goal-spread-metadata` |
-| Commit de phase | `<phase-commit>` |
+| Commit de phase | `fae574dab` |
 | Simulateur | iPhone SE (3e génération), iOS 18.5 (22F77) |
 | UDID | `4BFB26E9-0BA2-442A-AAAE-0AF677407DD8` |
 | Scénario | `UITEST_BUDGET_GOAL_SPREAD_METADATA` |

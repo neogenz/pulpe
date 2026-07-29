@@ -1,6 +1,6 @@
 ---
 objective: "Le correctif Objectif/Lissé possède une preuve reproductible sur petit iPhone pour les deux écrans, leurs quatre états d’accessibilité et d’apparence, et leurs deux destinations."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Valider le correctif Objectif et Lissé sur iOS
