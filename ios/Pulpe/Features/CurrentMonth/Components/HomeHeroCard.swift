@@ -35,12 +35,7 @@ struct HomeHeroCard: View {
     }
 
     private var varianceTitle: String {
-        switch presentation.verdict {
-        case .gain: "Gain"
-        case .overrun: "Dépassement"
-        case .onPlan: "Écart"
-        case .unavailable: "Écart"
-        }
+        "Écart estimé"
     }
 
     private var varianceValue: String {
@@ -228,7 +223,7 @@ struct HomeHeroCard: View {
                         lineWidth: DesignTokens.BorderWidth.thin,
                         dash: DesignTokens.Chart.markerDash
                     ))
-                    .annotation(position: .top, alignment: .trailing) {
+                    .annotation(position: .top, alignment: .leading) {
                         Text("Solde prévu")
                             .font(PulpeTypography.caption2)
                             .foregroundStyle(Color.homeHeroSupport)

@@ -119,6 +119,33 @@ struct HomeHeroCardTests {
         #expect(!description.contains("3000"))
     }
 
+    @Test func loadedDashboardUsesOneFullScreenGradientBackground() throws {
+        let sourceFile = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appending(path: "Pulpe/Features/CurrentMonth/CurrentMonthView.swift")
+        let source = try String(contentsOf: sourceFile, encoding: .utf8)
+
+        #expect(source.contains(".background { dashboardBackground.ignoresSafeArea() }"))
+        #expect(!source.contains(".background(Color.homeBackground)"))
+        #expect(source.components(separatedBy: "LinearGradient(").count == 2)
+    }
+
+    @Test func chartAnnotationsStayOnOppositeSides() throws {
+        let sourceFile = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appending(path: "Pulpe/Features/CurrentMonth/Components/HomeHeroCard.swift")
+        let source = try String(contentsOf: sourceFile, encoding: .utf8)
+
+        #expect(source.contains(".annotation(position: .top, alignment: .leading)"))
+        #expect(source.contains(".annotation(position: .bottom, alignment: .trailing)"))
+    }
+
     private func checkedExpense(
         id: String,
         amount: Decimal,

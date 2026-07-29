@@ -38,6 +38,25 @@ struct CurrentMonthView: View {
         budgetListStore.nextAvailableMonth != nil
     }
 
+    @ViewBuilder
+    private var dashboardBackground: some View {
+        switch store.contentState {
+        case .loaded:
+            LinearGradient(
+                stops: [
+                    .init(color: .homeHeroSurfaceTop, location: 0),
+                    .init(color: .homeHeroSurface, location: 0.32),
+                    .init(color: .homeBackground, location: 0.72),
+                    .init(color: .homeBackground, location: 1),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        case .idle, .loading, .failed, .empty:
+            Color.homeBackground
+        }
+    }
+
     private var referencedTagIds: Set<String> {
         Set(store.budgetLines.flatMap { $0.tagIds ?? [] } + store.transactions.flatMap { $0.tagIds ?? [] })
     }
@@ -76,10 +95,7 @@ struct CurrentMonthView: View {
                     .transition(.opacity)
             }
         }
-        .background(
-            (store.contentState == .loaded ? Color.homeHeroSurfaceTop : Color.homeBackground)
-                .ignoresSafeArea()
-        )
+        .background { dashboardBackground.ignoresSafeArea() }
         .trackScreen("Dashboard")
         .animation(DesignTokens.Animation.smoothEaseOut, value: animationPhase)
         .navigationTitle("")
@@ -214,19 +230,11 @@ struct CurrentMonthView: View {
                 .padding(.horizontal, DesignTokens.Spacing.xxl)
                 .padding(.top, DesignTokens.Spacing.lg)
                 .padding(.bottom, DesignTokens.Spacing.xxl)
-                .background {
-                    LinearGradient(
-                        colors: [.homeHeroSurfaceTop, .homeHeroSurface, .homeBackground],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                }
 
                 dashboardDetails
                 .frame(maxWidth: .infinity)
                 .padding(.top, DesignTokens.Spacing.lg)
                 .padding(.bottom, tabBarClearance + DesignTokens.Spacing.lg)
-                .background(Color.homeBackground)
                 .animation(DesignTokens.Animation.smoothEaseOut, value: conditionalBlocksState)
             }
         }
