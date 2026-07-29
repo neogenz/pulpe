@@ -11,10 +11,28 @@ struct GoalPlanTimelinePresentationTests {
         let november = makeMonth(month: 11, state: .gap, hasBudget: false, isProvisionable: true)
 
         #expect(GoalPlanMonthAvailability(month: august).icon == nil)
-        #expect(GoalPlanMonthAvailability(month: september) == .noLinkedForecast)
+        #expect(GoalPlanMonthAvailability(month: september) == .repairableForecast)
         #expect(GoalPlanMonthAvailability(month: september).label == "Épargne à ajouter")
         #expect(GoalPlanMonthAvailability(month: november) == .missingBudget)
         #expect(GoalPlanMonthAvailability(month: november).label == "Pas de budget")
+    }
+
+    @Test("keeps locked and non-provisionable budgets neutral")
+    func distinguishesNeutralUnlinkedForecasts() {
+        let locked = makeMonth(
+            month: 9,
+            state: .past,
+            isLocked: true,
+            isProvisionable: true
+        )
+        let nonProvisionable = makeMonth(month: 10, state: .future)
+
+        for month in [locked, nonProvisionable] {
+            let availability = GoalPlanMonthAvailability(month: month)
+            #expect(availability == .noLinkedForecast)
+            #expect(availability.label == "Aucune épargne prévue")
+            #expect(availability.icon != nil)
+        }
     }
 
     @Test("keeps the current month plus three future months collapsed and exposes the full plan expanded")

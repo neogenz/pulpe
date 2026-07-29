@@ -2,12 +2,15 @@ import SwiftUI
 
 enum GoalPlanMonthAvailability: Equatable {
     case linkedForecast
+    case repairableForecast
     case noLinkedForecast
     case missingBudget
 
     init(month: SavingsGoalPlanMonth) {
         if !month.lines.isEmpty {
             self = .linkedForecast
+        } else if month.isRepairable {
+            self = .repairableForecast
         } else if month.hasBudget {
             self = .noLinkedForecast
         } else {
@@ -19,8 +22,10 @@ enum GoalPlanMonthAvailability: Equatable {
         switch self {
         case .linkedForecast:
             ""
-        case .noLinkedForecast:
+        case .repairableForecast:
             "Épargne à ajouter"
+        case .noLinkedForecast:
+            "Aucune épargne prévue"
         case .missingBudget:
             "Pas de budget"
         }
@@ -30,8 +35,10 @@ enum GoalPlanMonthAvailability: Equatable {
         switch self {
         case .linkedForecast:
             nil
-        case .noLinkedForecast:
+        case .repairableForecast:
             "link"
+        case .noLinkedForecast:
+            "minus.circle"
         case .missingBudget:
             "calendar.badge.exclamationmark"
         }
