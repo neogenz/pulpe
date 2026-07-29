@@ -16,7 +16,7 @@ struct AuthDiagnosticsStartupTests {
     }
 
     @Test("Analytics initializes once before AppState")
-    func analyticsInitializesOnceBeforeAppState() throws {
+    func analyticsInitialization_beforeAppState_occursExactlyOnce() throws {
         let source = try Self.pulpeAppSource()
         let analyticsCall = "AnalyticsService.shared.initialize()"
         let analyticsRange = try #require(source.range(of: analyticsCall))
