@@ -89,6 +89,7 @@ extension AppState {
             currentUser = user
             await applyPostAuthDestination(destination, user: user)
         case .unauthenticated:
+            AnalyticsService.captureAuthSessionDiagnostic(source: "startup_result", outcome: "unauthenticated")
             isNetworkUnavailable = false
             isInMaintenance = false
             await ensureReturningUserFlagLoaded()
@@ -98,11 +99,15 @@ extension AppState {
             isInMaintenance = true
             authState = .loading
         case .networkError(let message):
+            AnalyticsService.captureAuthSessionDiagnostic(source: "startup_result", outcome: "network_error")
             isNetworkUnavailable = true
             isInMaintenance = false
             biometricError = message
             authState = .loading
         case .biometricSessionExpired:
+            AnalyticsService.captureAuthSessionDiagnostic(
+                source: "startup_result", outcome: "biometric_session_expired"
+            )
             isNetworkUnavailable = false
             isInMaintenance = false
             biometricError = "Ta session a expiré, connecte-toi avec ton mot de passe"
@@ -112,6 +117,7 @@ extension AppState {
             // No-op: a superseding startup run is in progress.
             break
         case .timeout:
+            AnalyticsService.captureAuthSessionDiagnostic(source: "startup_result", outcome: "timeout")
             isNetworkUnavailable = true
             isInMaintenance = false
             biometricError = "Le chargement a pris trop de temps, réessaie"

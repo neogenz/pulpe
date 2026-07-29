@@ -173,6 +173,12 @@ struct APIClientClientKeyHeaderTests {
         #expect(invalidationCalled.value == false)
     }
 
+    @Test func diagnosticPath_redactsResourceIdentifiers() {
+        let id = "52d65f63-c7c9-4fcb-bf20-b8080fed6288"
+
+        #expect(APIClient.diagnosticPath(for: .budgetDetails(id: id)) == "/budgets/:id/details")
+    }
+
     private func makeSUT(
         token: String?,
         clientKey: String?,

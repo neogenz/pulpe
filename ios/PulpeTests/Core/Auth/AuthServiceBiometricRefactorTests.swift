@@ -49,6 +49,41 @@ struct AuthServiceBiometricRefactorTests {
         #expect(!AuthService.isTerminalSessionFailure(serverError))
     }
 
+    @Test(
+        "Supabase cleanup response preserves every terminal server error code",
+        arguments: [
+            "session_not_found",
+            "session_expired",
+            "refresh_token_not_found",
+            "refresh_token_already_used"
+        ]
+    )
+    func supabaseLogger_extractsExactCleanupCode(code: String) throws {
+        let message = """
+        Response: Status code: 400 Content-Length: 91
+        Body: {
+          "error_code" : "\(code)",
+          "msg" : "Invalid Refresh Token"
+        }
+        """
+
+        let result = try #require(PulpeSupabaseLogger.cleanupError(from: message))
+        #expect(result.code == code)
+        #expect(result.status == 400)
+    }
+
+    @Test("Supabase logger ignores request bodies containing refresh tokens")
+    func supabaseLogger_doesNotParseSensitiveRequestBody() {
+        let message = """
+        Request: POST https://example.supabase.co/auth/v1/token?grant_type=refresh_token
+        Body: {
+          "refresh_token" : "secret-token"
+        }
+        """
+
+        #expect(PulpeSupabaseLogger.cleanupError(from: message) == nil)
+    }
+
     @Test("Cold-start with biometric enabled uses the regular persisted session")
     func coldStart_biometricEnabled_usesRegularValidation() async {
         let user = testUser()

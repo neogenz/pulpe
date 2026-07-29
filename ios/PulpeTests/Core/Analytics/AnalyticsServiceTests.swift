@@ -27,11 +27,40 @@ struct AnalyticsServiceTests {
         #expect(AnalyticsEvent.signupCompleted.rawValue == "signup_completed")
         #expect(AnalyticsEvent.onboardingStepCompleted.rawValue == "onboarding_step_completed")
         #expect(AnalyticsEvent.loginCompleted.rawValue == "login_completed")
+        #expect(AnalyticsEvent.authSessionObserved.rawValue == "auth_session_observed")
         #expect(AnalyticsEvent.pinSetupCompleted.rawValue == "pin_setup_completed")
         #expect(AnalyticsEvent.budgetCreated.rawValue == "budget_created")
         #expect(AnalyticsEvent.transactionCreated.rawValue == "transaction_created")
         #expect(AnalyticsEvent.tabSwitched.rawValue == "tab_switched")
         #expect(AnalyticsEvent.currencyPersistFailed.rawValue == "currency_persist_failed")
+    }
+
+    @Test func authSessionSnapshot_identityChangesBeforeCapture_keepsSignalValues() {
+        let signalTimestamp = Date(timeIntervalSince1970: 1_700_000_000)
+        var currentDistinctID = "identified-user"
+        var currentTimestamp = signalTimestamp
+
+        let snapshot = AnalyticsService.makeAuthSessionDiagnosticSnapshot(
+            source: "session_validation",
+            outcome: "missing_blob",
+            distinctIDProvider: { currentDistinctID },
+            now: { currentTimestamp }
+        )
+
+        currentDistinctID = "anonymous-after-reset"
+        currentTimestamp = signalTimestamp.addingTimeInterval(60)
+
+        #expect(snapshot.distinctID == "identified-user")
+        #expect(snapshot.timestamp == signalTimestamp)
+    }
+
+    @Test func appContextProperties_matchRuntimeConfiguration() {
+        let properties = AnalyticsService.appContextProperties
+
+        #expect(properties["environment"] as? String == AppConfiguration.environment.rawValue)
+        #expect(properties["app_version"] as? String == AppConfiguration.appVersion)
+        #expect(properties["build_number"] as? String == AppConfiguration.buildNumber)
+        #expect(properties["platform"] as? String == "ios")
     }
 
     // MARK: - Sanitization

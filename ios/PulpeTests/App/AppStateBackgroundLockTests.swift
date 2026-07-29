@@ -384,6 +384,12 @@ struct AppStateBackgroundLockTests {
     }
 
     @Test func foregroundBiometricUnlock_sessionRefreshReturnsNil_logsOut() async {
+        #expect(
+            AppState.SessionResetScope.backgroundSessionMissing.diagnosticOutcome
+                == "background_session_missing"
+        )
+        #expect(!AppState.SessionResetScope.backgroundSessionMissing.isExpectedUserAction)
+
         let sessionRefreshAttempted = AtomicFlag()
         let now = AtomicProperty(Date(timeIntervalSince1970: 0))
 

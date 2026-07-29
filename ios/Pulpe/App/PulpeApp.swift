@@ -29,6 +29,8 @@ struct PulpeApp: App {
     @State private var whatsNewStore = WhatsNewStore()
 
     init() {
+        AnalyticsService.shared.initialize()
+
         let appState = AppState()
         let currentMonthStore = CurrentMonthStore()
         let budgetListStore = BudgetListStore()
@@ -89,7 +91,6 @@ struct PulpeApp: App {
             .datastoreLocation(.applicationDefault)
         ])
         BackgroundTaskService.shared.registerTasks()
-        AnalyticsService.shared.initialize()
     }
 
     @Environment(\.scenePhase) private var scenePhase
@@ -185,6 +186,20 @@ struct PulpeApp: App {
 
     private func handleDeepLink(_ url: URL) {
         if let destination = DeepLinkDestination.resolve(url) {
+            switch destination {
+            case .addExpense:
+                AnalyticsService.captureAuthSessionDiagnostic(
+                    source: "deep_link",
+                    outcome: "widget_add_expense_received"
+                )
+            case .viewBudget:
+                AnalyticsService.captureAuthSessionDiagnostic(
+                    source: "deep_link",
+                    outcome: "widget_budget_received"
+                )
+            case .resetPassword:
+                break
+            }
             deepLinkDestination = destination
             return
         }
