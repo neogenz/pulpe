@@ -89,9 +89,9 @@ enum AuthErrorLocalizer {
     private static func classifyTypedError(_ error: Error) -> AuthErrorKind? {
         if let authError = error as? AuthServiceError {
             switch authError {
-            case .sessionExpired, .biometricSessionExpired:
+            case .sessionExpired:
                 return .sessionExpired
-            case .signupFailed, .loginFailed, .biometricSaveFailed:
+            case .signupFailed, .loginFailed:
                 return nil
             }
         }

@@ -23,7 +23,7 @@ extension AppState {
     func handleRecoverySessionExpired() async {
         authDebug("AUTH_RECOVERY", "sessionExpired isLoggingOut=\(isLoggingOut)")
         guard !isLoggingOut else { return }
-        await clientKeyManager.clearSession()
+        await biometric.handleSessionExpired()
         resetSession(.recoverySessionExpiry)
     }
 

@@ -12,16 +12,14 @@ struct AppStateLogoutTests {
     private static func makeAuthenticatedSUT(
         destination: PostAuthDestination = .authenticated(needsRecoveryKeyConsent: false),
         biometricEnabled: Bool = false,
-        biometricCapability: @escaping @Sendable () -> Bool = { false },
-        syncBiometricCredentials: (@Sendable () async -> Bool)? = nil
+        biometricCapability: @escaping @Sendable () -> Bool = { false }
     ) -> AppState {
         AppState(
             postAuthResolver: MockPostAuthResolver(destination: destination),
             biometricPreferenceStore: biometricEnabled
                 ? AppStateTestFactory.biometricEnabledStore()
                 : AppStateTestFactory.biometricDisabledStore(),
-            biometricCapability: biometricCapability,
-            syncBiometricCredentials: syncBiometricCredentials
+            biometricCapability: biometricCapability
         )
     }
 
@@ -167,8 +165,7 @@ struct AppStateLogoutTests {
         let user = UserInfo(id: "user-bio-enabled", email: "bioenabled@pulpe.app", firstName: "BioEnabled")
         let sut = Self.makeAuthenticatedSUT(
             biometricEnabled: true,
-            biometricCapability: { true },
-            syncBiometricCredentials: { true }
+            biometricCapability: { true }
         )
 
         await sut.bootstrap()

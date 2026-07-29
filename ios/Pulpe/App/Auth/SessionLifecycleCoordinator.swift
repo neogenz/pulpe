@@ -1,8 +1,7 @@
 import OSLog
-import Supabase
 
-/// Coordinates session lifecycle: cold start auth routing, background/foreground
-/// lock with grace period, and foreground session restoration via biometric unlock.
+/// Coordinates the background/foreground lock with grace period and biometric
+/// client-key restoration.
 ///
 /// Returns typed result enums for AppState to map into auth state transitions.
 /// Does NOT set `authState` directly.
@@ -13,17 +12,6 @@ import Supabase
 @Observable @MainActor
 final class SessionLifecycleCoordinator {
     // MARK: - Result Types
-    enum ColdStartResult: Equatable {
-        case biometricAuthenticated(user: UserInfo, clientKeyHex: String?)
-        case regularSession(user: UserInfo)
-        case unauthenticated
-        case networkError(String)
-        case biometricSessionExpired
-        /// The user dismissed or failed the Face ID prompt — nothing to apply,
-        /// credentials and the login-screen button must stay intact.
-        case cancelled
-    }
-
     enum ForegroundResult: Equatable {
         case noLockNeeded
         case biometricUnlockSuccess
@@ -40,8 +28,6 @@ final class SessionLifecycleCoordinator {
 
     private let biometric: BiometricManager
     private let clientKeyManager: ClientKeyManager
-    private let validateRegularSession: @Sendable () async throws -> UserInfo?
-    private let validateBiometricSession: @Sendable () async throws -> BiometricSessionResult?
     private let nowProvider: () -> Date
 
     /// Upper bound on the foreground biometric unlock (PUL-279). Injectable so tests can
@@ -51,125 +37,13 @@ final class SessionLifecycleCoordinator {
     init(
         biometric: BiometricManager,
         clientKeyManager: ClientKeyManager,
-        validateRegularSession: @escaping @Sendable () async throws -> UserInfo?,
-        validateBiometricSession: @escaping @Sendable () async throws -> BiometricSessionResult?,
         nowProvider: @escaping () -> Date,
         foregroundUnlockTimeout: Duration = AppConfiguration.foregroundUnlockTimeout
     ) {
         self.biometric = biometric
         self.clientKeyManager = clientKeyManager
-        self.validateRegularSession = validateRegularSession
-        self.validateBiometricSession = validateBiometricSession
         self.nowProvider = nowProvider
         self.foregroundUnlockTimeout = foregroundUnlockTimeout
-    }
-
-    // MARK: - Cold Start
-
-    /// Validates the biometric session and returns a result for AppState to apply.
-    func attemptBiometricSessionValidation() async -> ColdStartResult {
-        authDebug("AUTH_BIO_VALIDATE_START", "attemptBiometricSessionValidation")
-        do {
-            if let result = try await validateBiometricSession() {
-                if let clientKeyHex = result.clientKeyHex {
-                    if await biometric.validateKey(clientKeyHex) {
-                        await clientKeyManager.store(clientKeyHex, enableBiometric: false)
-                    } else {
-                        Logger.auth.warning("attemptBiometricSessionValidation: stale biometric key, clearing")
-                        await biometric.handleStaleKey()
-                    }
-                }
-                authDebug("AUTH_BIO_VALIDATE_RESULT", "success")
-                return .biometricAuthenticated(user: result.user, clientKeyHex: result.clientKeyHex)
-            } else {
-                authDebug("AUTH_BIO_VALIDATE_RESULT", "no_tokens")
-                return await fallbackToRegularSession(reason: "no_tokens")
-            }
-        } catch let error as KeychainError {
-            return await handleBiometricKeychainError(error)
-        } catch AuthServiceError.biometricSessionExpired {
-            Logger.auth.error("checkAuthState: biometric session expired")
-            await biometric.handleSessionExpired()
-            authDebug("AUTH_BIO_VALIDATE_RESULT", "session_expired")
-            return .biometricSessionExpired
-        } catch AuthError.sessionMissing {
-            Logger.auth.error("checkAuthState: biometric session missing")
-            await biometric.handleSessionExpired()
-            authDebug("AUTH_BIO_VALIDATE_RESULT", "session_missing")
-            return .biometricSessionExpired
-        } catch let error as URLError {
-            Logger.auth.warning("checkAuthState: network error during biometric login - \(error)")
-            authDebug("AUTH_BIO_VALIDATE_RESULT", "network")
-            return .networkError(AuthErrorMessages.connectionUnavailable)
-        } catch {
-            Logger.auth.warning("checkAuthState: biometric validation deferred - \(error)")
-            authDebug("AUTH_BIO_VALIDATE_RESULT", "retryable_error")
-            return .networkError(AuthErrorMessages.connectionUnavailable)
-        }
-    }
-
-    /// Maps a keychain failure from the biometric unlock to a cold-start result.
-    /// Dismissing or failing the Face ID prompt is not a credential problem: falling
-    /// back to the regular session (deleted on logout-keep-biometric) would confirm
-    /// "no session" and wipe the biometric snapshot — the user would lose the Face ID
-    /// button for a simple cancel. Only genuine keychain errors take the fallback.
-    private func handleBiometricKeychainError(_ error: KeychainError) async -> ColdStartResult {
-        switch error {
-        case .userCanceled:
-            authDebug("AUTH_BIO_VALIDATE_RESULT", "user_cancel")
-            return .cancelled
-        case .authFailed:
-            authDebug("AUTH_BIO_VALIDATE_RESULT", "auth_failed")
-            return .cancelled
-        default:
-            authDebug("AUTH_BIO_VALIDATE_RESULT", "keychain_error")
-            return await fallbackToRegularSession(reason: "keychain_error")
-        }
-    }
-
-    /// Falls back to regular session validation after biometric failure.
-    private func fallbackToRegularSession(reason: String) async -> ColdStartResult {
-        authDebug("AUTH_COLD_START_REGULAR_FALLBACK", "reason=\(reason)")
-        do {
-            if let user = try await validateRegularSession() {
-                authDebug("AUTH_COLD_START_REGULAR_VALID", "reason=\(reason)")
-                return .regularSession(user: user)
-            } else {
-                authDebug("AUTH_COLD_START_REGULAR_MISSING", "reason=\(reason)")
-                return .unauthenticated
-            }
-        } catch let error as URLError {
-            // Transient connectivity failure — not a session loss. Surface the retry UI
-            // rather than dropping the user to the login screen.
-            Logger.auth.warning("checkAuthState: regular session fallback network error - \(error, privacy: .public)")
-            authDebug("AUTH_COLD_START_REGULAR_NETWORK", "reason=\(reason)")
-            return .networkError(AuthErrorMessages.connectionUnavailable)
-        } catch {
-            Logger.auth.warning("checkAuthState: regular session fallback deferred - \(error)")
-            authDebug("AUTH_COLD_START_REGULAR_RETRY", "reason=\(reason)")
-            return .networkError(AuthErrorMessages.connectionUnavailable)
-        }
-    }
-
-    /// Validates a regular (non-biometric) session.
-    func attemptRegularSessionValidation() async -> ColdStartResult {
-        do {
-            if let user = try await validateRegularSession() {
-                authDebug("AUTH_COLD_START_REGULAR_VALID", "source=checkAuthState")
-                return .regularSession(user: user)
-            }
-        } catch let error as URLError {
-            // Transient connectivity failure — not a session loss. Surface the retry UI.
-            Logger.auth.warning("checkAuthState: regular session validation network error - \(error, privacy: .public)")
-            authDebug("AUTH_COLD_START_REGULAR_NETWORK", "source=checkAuthState")
-            return .networkError(AuthErrorMessages.connectionUnavailable)
-        } catch {
-            Logger.auth.warning("checkAuthState: regular session validation deferred - \(error)")
-            authDebug("AUTH_COLD_START_REGULAR_RETRY", "source=checkAuthState")
-            return .networkError(AuthErrorMessages.connectionUnavailable)
-        }
-        authDebug("AUTH_COLD_START_REGULAR_MISSING", "source=checkAuthState")
-        return .unauthenticated
     }
 
     // MARK: - Background Lock

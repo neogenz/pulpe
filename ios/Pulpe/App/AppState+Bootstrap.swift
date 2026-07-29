@@ -9,6 +9,7 @@ extension AppState {
         guard !isBootstrapped else { return }
         isBootstrapped = true
         await clearKeychainIfReinstalled()
+        await authService.clearLegacyBiometricTokens()
         if !returningUserFlagLoaded {
             hasReturningUser = await keychainManager.getLastUsedEmail() != nil
             returningUserFlagLoaded = true

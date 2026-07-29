@@ -211,7 +211,6 @@ struct AppStateBackgroundLockTests {
         let sut = AppState(
             postAuthResolver: pinResolver,
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            syncBiometricCredentials: { true },
             resolveBiometricKey: { "restored-key" },
             validateBiometricKey: { _ in true },
             nowProvider: { now.value }
@@ -235,7 +234,6 @@ struct AppStateBackgroundLockTests {
         let sut = AppState(
             postAuthResolver: pinResolver,
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            syncBiometricCredentials: { true },
             resolveBiometricKey: { nil },
             nowProvider: { now.value }
         )
@@ -263,7 +261,6 @@ struct AppStateBackgroundLockTests {
         let sut = AppState(
             postAuthResolver: pinResolver,
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            syncBiometricCredentials: { true },
             resolveBiometricKey: {
                 // Simulate a Face ID prompt the user never answers — `resolveKey` never returns.
                 try? await Task.sleep(for: .seconds(60))
@@ -294,7 +291,6 @@ struct AppStateBackgroundLockTests {
         let sut = AppState(
             postAuthResolver: pinResolver,
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            syncBiometricCredentials: { true },
             resolveBiometricKey: { "restored-key" },
             validateBiometricKey: { _ in
                 // Key resolves, but validation never returns (e.g. a stalled crypto/keychain call).
@@ -359,7 +355,6 @@ struct AppStateBackgroundLockTests {
         let sut = AppState(
             postAuthResolver: pinResolver,
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            syncBiometricCredentials: { true },
             resolveBiometricKey: { "restored-key" },
             validateBiometricKey: { _ in true },
             validateRegularSession: {
@@ -395,7 +390,6 @@ struct AppStateBackgroundLockTests {
         let sut = AppState(
             postAuthResolver: pinResolver,
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            syncBiometricCredentials: { true },
             resolveBiometricKey: { "restored-key" },
             validateBiometricKey: { _ in true },
             validateRegularSession: {
@@ -449,7 +443,6 @@ struct AppStateBackgroundLockTests {
         let sut = AppState(
             postAuthResolver: pinResolver,
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            syncBiometricCredentials: { true },
             resolveBiometricKey: { "restored-key" },
             validateBiometricKey: { _ in true },
             validateRegularSession: {
@@ -516,7 +509,6 @@ struct AppStateBackgroundLockTests {
         let sut = AppState(
             postAuthResolver: pinResolver,
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            syncBiometricCredentials: { true },
             resolveBiometricKey: { "restored-key" },
             validateBiometricKey: { _ in true },
             validateRegularSession: {

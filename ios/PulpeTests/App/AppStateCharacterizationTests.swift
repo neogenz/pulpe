@@ -23,12 +23,10 @@ struct AppStateCharacterizationTests {
         biometricEnabled: Bool = false,
         capability: Bool = true,
         onAuthenticate: (@Sendable () async throws -> Void)? = nil,
-        syncBiometricCredentials: (@Sendable () async -> Bool)? = nil,
         resolveBiometricKey: (@Sendable () async -> String?)? = nil,
         validateBiometricKey: (@Sendable (String) async -> Bool)? = nil,
         setupRecoveryKey: (@Sendable () async throws -> String)? = nil,
         validateRegularSession: (@Sendable () async throws -> UserInfo?)? = nil,
-        validateBiometricSession: (@Sendable () async throws -> BiometricSessionResult?)? = nil,
         maintenanceChecking: (@Sendable () async throws -> Bool)? = nil,
         nowProvider: @escaping @Sendable () -> Date = { Date() }
     ) -> AppState {
@@ -46,13 +44,11 @@ struct AppStateCharacterizationTests {
             biometricPreferenceStore: store,
             biometricCapability: { capability },
             biometricAuthenticate: onAuthenticate ?? { },
-            syncBiometricCredentials: syncBiometricCredentials,
             resolveBiometricKey: resolveBiometricKey,
             validateBiometricKey: validateBiometricKey,
             biometricOptOutStore: AppStateTestFactory.cleanOptOutStore,
             setupRecoveryKey: setupRecoveryKey,
             validateRegularSession: validateRegularSession,
-            validateBiometricSession: validateBiometricSession,
             maintenanceChecking: maintenanceChecking ?? { false },
             nowProvider: nowProvider
         )
@@ -123,34 +119,6 @@ struct AppStateCharacterizationTests {
         // Per-transition policy resets, so enrollment retries
         #expect(await spy.callCount() == 2, "Enrollment policy must reset on each new transition")
     }
-    @Test("enterAuthenticated calls biometric sync before enrollment policy evaluation")
-    func enterAuthenticated_callsSyncBeforeEnrollment() async {
-        let timeline = CharTimeline()
-        let sut = makeSUT(
-            destination: .needsPinEntry(needsRecoveryKeyConsent: false),
-            onAuthenticate: {
-                await timeline.record("enrollment")
-            },
-            syncBiometricCredentials: {
-                await timeline.record("sync")
-                return true
-            }
-        )
-
-        await sut.resolvePostAuth(user: user)
-        await sut.completePinEntry()
-
-        #expect(sut.authState == .authenticated)
-
-        let events = await timeline.events()
-        // transitionToAuthenticated calls syncAfterAuth first, then enterAuthenticated evaluates enrollment
-        #expect(events.count >= 1, "At least sync should be called")
-        if let syncIndex = events.firstIndex(of: "sync"),
-           let enrollmentIndex = events.firstIndex(of: "enrollment") {
-            #expect(syncIndex < enrollmentIndex, "Sync must happen before enrollment")
-        }
-    }
-
     // MARK: - Section 2: Recovery Flow State Machine Characterization
     @Test("acceptRecoveryKeyRepairConsent transitions consentPrompt to presentingKey on success")
     func acceptRecoveryConsent_success_transitionsToPresenting() async {
@@ -401,10 +369,7 @@ struct AppStateCharacterizationTests {
     }
     @Test("checkAuthState without any session results in unauthenticated")
     func checkAuthState_noSession_becomesUnauthenticated() async {
-        let sut = makeSUT(
-            validateRegularSession: { nil },
-            validateBiometricSession: { nil }
-        )
+        let sut = makeSUT(validateRegularSession: { nil })
 
         await sut.checkAuthState()
 
@@ -692,8 +657,7 @@ struct AppStateCharacterizationTests {
         let sut = AppState(
             keychainManager: spyKeychain,
             biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
-            validateRegularSession: { nil },
-            validateBiometricSession: { nil }
+            validateRegularSession: { nil }
         )
 
         // First bootstrap: loads returning user flag from spy keychain

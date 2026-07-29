@@ -5,12 +5,6 @@ import Testing
 
 @Suite("AuthService biometric storage")
 struct AuthServiceBiometricRefactorTests {
-    private static let testService = "app.pulpe.ios.tests.AuthServiceBiometricRefactor"
-
-    private func makeStorage() -> PulpeAuthStorage {
-        PulpeAuthStorage(service: Self.testService)
-    }
-
     private func testUser() -> UserInfo {
         UserInfo(id: "test-user", email: "test@pulpe.app", firstName: "Test")
     }
@@ -53,28 +47,6 @@ struct AuthServiceBiometricRefactorTests {
 
         #expect(!AuthService.isTerminalSessionFailure(URLError(.timedOut)))
         #expect(!AuthService.isTerminalSessionFailure(serverError))
-    }
-
-    @Test(
-        "Token rotation via PulpeAuthStorage does not touch biometric slot bytes",
-        .enabled(if: KeychainManager.checkAvailability())
-    )
-    func tokenRotation_doesNotTouchBiometricSlot() throws {
-        let storage = makeStorage()
-        let sessionKey = "session-\(UUID().uuidString)"
-        defer { try? storage.remove(key: sessionKey) }
-
-        let biometricSnapshot = Data("biometric-refresh-token-r0".utf8)
-        let snapshotStorage = PulpeAuthStorage(service: "\(Self.testService).biometric")
-        let snapshotKey = "snapshot-\(UUID().uuidString)"
-        defer { try? snapshotStorage.remove(key: snapshotKey) }
-        try snapshotStorage.store(key: snapshotKey, value: biometricSnapshot)
-
-        for index in 0..<3 {
-            try storage.store(key: sessionKey, value: Data("session-r\(index)".utf8))
-        }
-
-        #expect(try snapshotStorage.retrieve(key: snapshotKey) == biometricSnapshot)
     }
 
     @Test("Cold-start with biometric enabled uses the regular persisted session")

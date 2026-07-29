@@ -53,9 +53,8 @@ actor BackgroundTaskService {
     }
 
     private func refreshWidgetData() async throws {
-        // Gate on the live SDK session, not the biometric snapshot: after a
-        // logout-keep-biometric the snapshot exists but there is NO session — an API
-        // call would 401, confirm "no session" and wipe the Face ID re-entry snapshot.
+        // Background refresh requires the SDK-owned Supabase session. The Face ID
+        // client-key slot is deliberately unrelated to authentication.
         guard await AuthService.shared.hasPersistedSession() else { return }
 
         let (payDay, currency) = await userSettingsService.getSettingsWithDefaults(context: "BackgroundTaskService")

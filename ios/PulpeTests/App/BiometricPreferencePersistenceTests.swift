@@ -117,11 +117,9 @@ struct BiometricPreferencePersistenceTests {
                 keychain: StubBiometricPreferenceKeychain(initial: true),
                 defaults: StubBiometricPreferenceDefaults(initial: false)
             ),
-            authService: .shared,
             clientKeyManager: .shared,
             capability: { true },
             authenticate: {},
-            syncCredentials: { true },
             resolveKey: { nil },
             validateKey: { _ in true },
             credentialsAvailability: credentialsAvailability

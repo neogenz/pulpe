@@ -2,20 +2,15 @@ import Foundation
 @testable import Pulpe
 import Testing
 
-// swiftlint:disable type_body_length
 @Suite(.serialized)
 @MainActor
 struct SessionLifecycleCoordinatorTests {
-    private let testUser = UserInfo(id: "slc-user", email: "slc@pulpe.app", firstName: "SLC")
-
     // MARK: - SUT Factory
 
     private func makeSUT(
         biometricEnabled: Bool = false,
         resolveKey: (@Sendable () async -> String?)? = nil,
         validateKey: (@Sendable (String) async -> Bool)? = nil,
-        validateRegularSession: (@Sendable () async throws -> UserInfo?)? = nil,
-        validateBiometricSession: (@Sendable () async throws -> BiometricSessionResult?)? = nil,
         nowProvider: @escaping () -> Date = Date.init
     ) -> SessionLifecycleCoordinator {
         let biometric = makeBiometricManager(
@@ -26,8 +21,6 @@ struct SessionLifecycleCoordinatorTests {
         return SessionLifecycleCoordinator(
             biometric: biometric,
             clientKeyManager: .shared,
-            validateRegularSession: validateRegularSession ?? { nil },
-            validateBiometricSession: validateBiometricSession ?? { nil },
             nowProvider: nowProvider
         )
     }
@@ -42,11 +35,9 @@ struct SessionLifecycleCoordinatorTests {
                 keychain: StubBiometricKeychain(initial: biometricEnabled),
                 defaults: StubBiometricDefaults(initial: false)
             ),
-            authService: .shared,
             clientKeyManager: .shared,
             capability: { true },
             authenticate: { },
-            syncCredentials: { true },
             resolveKey: resolveKey ?? { nil },
             validateKey: validateKey ?? { _ in true }
         )
@@ -54,195 +45,6 @@ struct SessionLifecycleCoordinatorTests {
         return biometric
     }
 
-    // MARK: - Cold Start: Biometric Session Validation
-    @Test("Biometric session valid returns biometricAuthenticated")
-    func biometricValid_returnsBiometricAuthenticated() async {
-        let sut = makeSUT(
-            validateBiometricSession: { [testUser] in
-                BiometricSessionResult(user: testUser, clientKeyHex: nil)
-            }
-        )
-
-        let result = await sut.attemptBiometricSessionValidation()
-
-        if case .biometricAuthenticated(let user, _) = result {
-            #expect(user.id == testUser.id)
-        } else {
-            Issue.record("Expected .biometricAuthenticated, got \(result)")
-        }
-    }
-    @Test("Biometric session nil falls back to regular session")
-    func biometricNil_fallsBackToRegular() async {
-        let sut = makeSUT(
-            validateRegularSession: { [testUser] in testUser },
-            validateBiometricSession: { nil }
-        )
-
-        let result = await sut.attemptBiometricSessionValidation()
-
-        if case .regularSession(let user) = result {
-            #expect(user.id == testUser.id)
-        } else {
-            Issue.record("Expected .regularSession, got \(result)")
-        }
-    }
-    @Test("Biometric session nil and no regular session returns unauthenticated")
-    func biometricNil_noRegular_returnsUnauthenticated() async {
-        let sut = makeSUT(
-            validateRegularSession: { nil },
-            validateBiometricSession: { nil }
-        )
-
-        let result = await sut.attemptBiometricSessionValidation()
-
-        #expect(result == .unauthenticated)
-    }
-    @Test("Face ID cancel returns cancelled without falling back to the regular session")
-    func keychainUserCanceled_returnsCancelled() async {
-        nonisolated(unsafe) var regularValidationAttempted = false
-        let sut = makeSUT(
-            validateRegularSession: {
-                regularValidationAttempted = true
-                return nil
-            },
-            validateBiometricSession: { throw KeychainError.userCanceled }
-        )
-
-        let result = await sut.attemptBiometricSessionValidation()
-
-        #expect(result == .cancelled)
-        #expect(
-            regularValidationAttempted == false,
-            "A cancel must not probe the (possibly dead) regular session — that path wipes the snapshot"
-        )
-    }
-    @Test("Face ID auth failure returns cancelled without falling back to the regular session")
-    func keychainAuthFailed_returnsCancelled() async {
-        nonisolated(unsafe) var regularValidationAttempted = false
-        let sut = makeSUT(
-            validateRegularSession: {
-                regularValidationAttempted = true
-                return nil
-            },
-            validateBiometricSession: { throw KeychainError.authFailed }
-        )
-
-        let result = await sut.attemptBiometricSessionValidation()
-
-        #expect(result == .cancelled)
-        #expect(regularValidationAttempted == false)
-    }
-    @Test("Non-auth keychain error falls back to regular session")
-    func keychainError_fallsBackToRegular() async {
-        let sut = makeSUT(
-            validateRegularSession: { [testUser] in testUser },
-            validateBiometricSession: { throw KeychainError.unknown(-1) }
-        )
-
-        let result = await sut.attemptBiometricSessionValidation()
-
-        if case .regularSession(let user) = result {
-            #expect(user.id == testUser.id)
-        } else {
-            Issue.record("Expected .regularSession, got \(result)")
-        }
-    }
-    @Test("Network error returns networkError with message")
-    func networkError_returnsNetworkError() async {
-        let sut = makeSUT(
-            validateBiometricSession: { throw URLError(.notConnectedToInternet) }
-        )
-
-        let result = await sut.attemptBiometricSessionValidation()
-
-        if case .networkError(let message) = result {
-            #expect(message.contains("Connexion impossible"))
-        } else {
-            Issue.record("Expected .networkError, got \(result)")
-        }
-    }
-    @Test("AuthServiceError returns biometricSessionExpired")
-    func authServiceError_returnsBiometricSessionExpired() async {
-        let sut = makeSUT(
-            validateBiometricSession: { throw AuthServiceError.biometricSessionExpired }
-        )
-
-        let result = await sut.attemptBiometricSessionValidation()
-
-        #expect(result == .biometricSessionExpired)
-    }
-    @Test("Unknown biometric error returns networkError without expiring the session")
-    func unknownBiometricError_returnsNetworkError() async {
-        struct TestError: Error {}
-        let sut = makeSUT(
-            validateBiometricSession: { throw TestError() }
-        )
-
-        let result = await sut.attemptBiometricSessionValidation()
-
-        if case .networkError = result {
-            // Expected retry state.
-        } else {
-            Issue.record("Expected .networkError, got \(result)")
-        }
-    }
-    @Test("Regular session fallback error returns networkError")
-    func regularFallback_throws_returnsNetworkError() async {
-        struct TestError: Error {}
-        let sut = makeSUT(
-            validateRegularSession: { throw TestError() },
-            validateBiometricSession: { nil }
-        )
-
-        let result = await sut.attemptBiometricSessionValidation()
-
-        if case .networkError = result {
-            // Expected retry state.
-        } else {
-            Issue.record("Expected .networkError, got \(result)")
-        }
-    }
-
-    // MARK: - Cold Start: Regular Session Validation
-    @Test("Regular session valid returns regularSession")
-    func regularValid_returnsRegularSession() async {
-        let sut = makeSUT(
-            validateRegularSession: { [testUser] in testUser }
-        )
-
-        let result = await sut.attemptRegularSessionValidation()
-
-        if case .regularSession(let user) = result {
-            #expect(user.id == testUser.id)
-        } else {
-            Issue.record("Expected .regularSession, got \(result)")
-        }
-    }
-    @Test("Regular session nil returns unauthenticated")
-    func regularNil_returnsUnauthenticated() async {
-        let sut = makeSUT(
-            validateRegularSession: { nil }
-        )
-
-        let result = await sut.attemptRegularSessionValidation()
-
-        #expect(result == .unauthenticated)
-    }
-    @Test("Regular session unknown error returns networkError")
-    func regularUnknownError_returnsNetworkError() async {
-        struct TestError: Error {}
-        let sut = makeSUT(
-            validateRegularSession: { throw TestError() }
-        )
-
-        let result = await sut.attemptRegularSessionValidation()
-
-        if case .networkError = result {
-            // Expected retry state.
-        } else {
-            Issue.record("Expected .networkError, got \(result)")
-        }
-    }
     // MARK: - Background Lock: handleEnterBackground
     @Test("handleEnterBackground records date")
     func handleEnterBackground_recordsDate() {

@@ -1,4 +1,3 @@
-// swiftlint:disable type_body_length
 import Foundation
 @testable import Pulpe
 import Testing
@@ -19,7 +18,6 @@ struct AppStateBiometricKeyValidationTests {
                 defaults: MockBiometricPreferenceStore(enabled: false)
             ),
             biometricCapability: { true },
-            syncBiometricCredentials: { true },
             resolveBiometricKey: { "valid-client-key-hex" },
             validateBiometricKey: { _ in true }
         )
@@ -39,7 +37,6 @@ struct AppStateBiometricKeyValidationTests {
                 defaults: MockBiometricPreferenceStore(enabled: false)
             ),
             biometricCapability: { true },
-            syncBiometricCredentials: { true },
             resolveBiometricKey: { "stale-client-key-hex" },
             validateBiometricKey: { _ in false }
         )
@@ -95,7 +92,6 @@ struct AppStateBiometricKeyValidationTests {
                 defaults: MockBiometricPreferenceStore(enabled: false)
             ),
             biometricCapability: { true },
-            syncBiometricCredentials: { true },
             resolveBiometricKey: { "stale-client-key" },
             validateBiometricKey: { _ in false }
         )
@@ -119,7 +115,6 @@ struct AppStateBiometricKeyValidationTests {
                 defaults: MockBiometricPreferenceStore(enabled: false)
             ),
             biometricCapability: { true },
-            syncBiometricCredentials: { true },
             resolveBiometricKey: { "valid-key-hex" },
             validateBiometricKey: { _ in true }
         )
@@ -248,7 +243,6 @@ struct AppStateBiometricKeyValidationTests {
                 keychain: MockBiometricPreferenceStore(enabled: true),
                 defaults: MockBiometricPreferenceStore(enabled: false)
             ),
-            syncBiometricCredentials: { true },
             resolveBiometricKey: { "valid-key" },
             validateBiometricKey: { _ in true },
             nowProvider: { now }
@@ -280,7 +274,6 @@ struct AppStateBiometricKeyValidationTests {
                 keychain: MockBiometricPreferenceStore(enabled: true),
                 defaults: MockBiometricPreferenceStore(enabled: false)
             ),
-            syncBiometricCredentials: { true },
             resolveBiometricKey: { "stale-key" },
             validateBiometricKey: { _ in false },
             nowProvider: { now }

@@ -24,7 +24,6 @@ struct AppStateLogoutBiometricTests {
             ),
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
             biometricCapability: { true },
-            syncBiometricCredentials: { true },
             performSignOut: { _ in signOutCalled.set() }
         )
 
@@ -41,26 +40,36 @@ struct AppStateLogoutBiometricTests {
         #expect(sut.authState == .unauthenticated)
     }
 
-    @Test("Cold-start never reads the biometric token snapshot")
-    func checkAuthState_biometricEnabled_usesRegularSessionOnly() async {
-        let biometricAttempted = AtomicFlag()
+    @Test("Cold-start expiration preserves the Face ID preference without usable credentials")
+    func checkAuthState_biometricEnabled_noSession_preservesPreference() async {
         UserDefaults.standard.set(true, forKey: Self.hasLaunchedBeforeKey)
         defer { UserDefaults.standard.removeObject(forKey: Self.hasLaunchedBeforeKey) }
 
         let sut = AppState(
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
             validateRegularSession: { nil },
-            validateBiometricSession: {
-                biometricAttempted.set()
-                return nil
-            },
             maintenanceChecking: { false }
         )
 
         await sut.checkAuthState()
 
-        #expect(!biometricAttempted.value)
-        #expect(!sut.biometricEnabled)
+        #expect(sut.biometricEnabled)
+        #expect(!sut.biometricCredentialsAvailable)
+        #expect(sut.authState == .unauthenticated)
+    }
+
+    @Test("System logout preserves the Face ID preference without usable credentials")
+    func systemLogout_preservesPreferenceAndClearsCredentials() async {
+        let sut = AppState(
+            biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
+            performSignOut: { _ in }
+        )
+        await sut.bootstrap()
+        sut.biometricCredentialsAvailable = true
+
+        await sut.logout(source: .system)
+
+        #expect(sut.biometricEnabled)
         #expect(!sut.biometricCredentialsAvailable)
         #expect(sut.authState == .unauthenticated)
     }
@@ -133,7 +142,6 @@ struct AppStateLogoutBiometricTests {
                 destination: .authenticated(needsRecoveryKeyConsent: false)
             ),
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            syncBiometricCredentials: { true },
             deleteAccountRequest: {
                 deleteCalled.set()
                 return DeleteAccountResponse(

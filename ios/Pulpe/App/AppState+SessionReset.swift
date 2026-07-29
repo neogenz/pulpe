@@ -21,13 +21,6 @@ extension AppState {
         defer { sessionLifecycleCoordinator.clearRestoringSession() }
         authDebug("AUTH_FG", "begin isRestoring=\(sessionLifecycleCoordinator.isRestoringSession)")
 
-        // Replay a biometric snapshot resync that failed while the device was locked
-        // (background token rotation) — the slot is WhenUnlocked-protected, and we are
-        // in the foreground now, so the device is unlocked.
-        Task(name: "AppState.biometricResyncRetry") { [authService] in
-            await authService.retryPendingBiometricResync()
-        }
-
         if sessionLifecycleCoordinator.isRestoringSession {
             lastLockReason = .backgroundTimeout
         }
@@ -131,8 +124,11 @@ extension AppState {
         clearManualBiometricRetryRequiredFlag()
 
         await runSignOutOrSurfaceFailure(scope: scope)
-        await biometric.handleSessionExpired()
-        biometric.isEnabled = false
+        if source == .userInitiated {
+            await biometric.disable()
+        } else {
+            await biometric.handleSessionExpired()
+        }
 
         await clientKeyManager.clearSession()
         authDebug("AUTH_LOGOUT", "session cleared, resetting")
@@ -158,12 +154,10 @@ extension AppState {
     /// and returning the app to the regular login screen.
     func completePasswordResetFlow() async {
         authDebug("AUTH_PASSWORD_RESET", "complete")
-        // Password reset → revoke JWT server-side so a snapped access_token
-        // cannot be replayed within its ~1h expiry window.
+        // Password reset invalidates the local Face ID enrollment.
         await runSignOutOrSurfaceFailure(scope: .global)
-        await authService.clearBiometricTokens()
-        await clientKeyManager.clearAll()
-        biometric.isEnabled = false
+        await biometric.disable()
+        await clientKeyManager.clearSession()
         resetSession(.passwordReset)
         toastManager.show("Mot de passe réinitialisé, reconnecte-toi", type: .success)
     }
@@ -172,12 +166,10 @@ extension AppState {
     /// and returning the app to the regular login screen without success feedback.
     func cancelPasswordResetFlow() async {
         authDebug("AUTH_PASSWORD_RESET", "cancel")
-        // Cancel mid-recovery → revoke JWT server-side. Recovery session is
-        // write-capable (can change password) so a snapped token must not survive.
+        // Cancel mid-recovery and invalidate the local Face ID enrollment.
         await runSignOutOrSurfaceFailure(scope: .global)
-        await authService.clearBiometricTokens()
-        await clientKeyManager.clearAll()
-        biometric.isEnabled = false
+        await biometric.disable()
+        await clientKeyManager.clearSession()
         resetSession(.passwordReset)
     }
 
@@ -245,8 +237,7 @@ extension AppState {
         PostOnboardingFlagsStore().reset()
         await NotificationScheduler.shared.cancelMonthlyReminder()
         clearManualBiometricRetryRequiredFlag()
-        // Account deletion / signup abandon → revoke JWT server-side so a
-        // snapped access_token cannot be replayed within its ~1h expiry window.
+        await biometric.disable()
         await logout(source: .system, scope: .global)
     }
 
