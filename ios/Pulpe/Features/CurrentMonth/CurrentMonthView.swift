@@ -3,11 +3,8 @@ import TipKit
 import WidgetKit
 
 private enum SheetDestination: Identifiable {
-    case realizedBalance
-    case account
-    case createBudget
-    case notificationPrime
-
+    case realizedBalance, account, createBudget, notificationPrime
+    case addTransaction
     var id: Self { self }
 }
 
@@ -128,6 +125,10 @@ struct CurrentMonthView: View {
                     NotificationPrimeSheet {
                         Task { await enableReminders() }
                     }
+                case .addTransaction:
+                    if let budgetId = store.budget?.id {
+                        AddTransactionSheet(budgetId: budgetId, onAdd: store.addTransaction)
+                    }
                 case .createBudget:
                     if let nextMonth = budgetListStore.nextAvailableMonth {
                         CreateBudgetView(
@@ -245,6 +246,15 @@ struct CurrentMonthView: View {
 
     private var dashboardDetails: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
+            if store.budget != nil {
+                Button("Ajouter une opération", systemImage: "plus") { activeSheet = .addTransaction }
+                    .font(PulpeTypography.labelLarge)
+                    .foregroundStyle(Color.pulpePrimary)
+                    .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum, alignment: .leading)
+                    .plainPressedButtonStyle()
+                    .accessibilityLabel("Ajouter une opération")
+            }
+
             // Opérations à pointer — only while something needs checking
             if !store.uncheckedItems.isEmpty {
                 UncheckedOperationsCard(
@@ -320,7 +330,14 @@ struct CurrentMonthView: View {
         }
         .padding(.horizontal, DesignTokens.Spacing.lg)
     }
+}
 
+// MARK: - Retention hooks (post-onboarding handoff + notification priming)
+//
+// Kept in a same-file extension so the main `CurrentMonthView` body stays within its
+// type-length budget while still reaching the view's `private` state (same-file
+// access), rather than loosening encapsulation to move it to another file.
+extension CurrentMonthView {
     /// Drives insert/remove animations of the conditional blocks.
     private var conditionalBlocksState: [Bool] {
         [store.uncheckedItems.isEmpty, store.driftLines.isEmpty, store.savingsSummary.isComplete]
@@ -328,7 +345,6 @@ struct CurrentMonthView: View {
 
     /// Reverse a successful check from the undo toast. The store toggles based on the
     /// passed value's state, so the undone item must be handed over as already-checked.
-    /// A failed undo surfaces like a failed check — the rollback is invisible otherwise.
     private func undoToggle(_ item: CurrentMonthStore.CheckableItem) async {
         let didSucceed: Bool
         switch item {
@@ -344,14 +360,7 @@ struct CurrentMonthView: View {
             )
         }
     }
-}
 
-// MARK: - Retention hooks (post-onboarding handoff + notification priming)
-//
-// Kept in a same-file extension so the main `CurrentMonthView` body stays within its
-// type-length budget while still reaching the view's `private` state (same-file
-// access), rather than loosening encapsulation to move it to another file.
-extension CurrentMonthView {
     // MARK: - Copy Helpers
 
     private var currentMonthName: String {

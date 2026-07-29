@@ -1,14 +1,7 @@
 import SwiftUI
 
-struct AddTransactionItem: Identifiable {
-    let id: String
-    var budgetId: String { id }
-}
-
 struct MainTabView: View {
     @Environment(AppState.self) private var appState
-    @Environment(CurrentMonthStore.self) private var monthStore
-    @State private var addTransactionBudgetId: AddTransactionItem?
     @State private var keyboardVisible = false
     @State private var bottomSafeAreaInset: CGFloat = 0
     @Namespace private var tabSelectionNamespace
@@ -139,11 +132,6 @@ struct MainTabView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
             keyboardVisible = false
         }
-        .sheet(item: $addTransactionBudgetId) { item in
-            AddTransactionSheet(budgetId: item.budgetId) { transaction in
-                monthStore.addTransaction(transaction)
-            }
-        }
     }
 
     // MARK: - Floating Tab Bar
@@ -178,27 +166,19 @@ struct MainTabView: View {
     @available(iOS 26.0, *)
     @ViewBuilder
     private func iOS26TabBar(selectedTab: Binding<Tab>) -> some View {
-        GlassEffectContainer(spacing: DesignTokens.Spacing.compactGap) {
-            HStack(spacing: DesignTokens.Spacing.compactGap) {
-                tabSegment(selectedTab: selectedTab)
-                    .glassEffect(.regular.interactive(), in: .capsule)
-                actionFAB(selectedTab: selectedTab)
-            }
-        }
-        .frame(height: DesignTokens.FrameHeight.tabBar)
-        .animation(.smooth(duration: DesignTokens.Animation.quickSnap), value: selectedTab.wrappedValue)
+        tabSegment(selectedTab: selectedTab)
+            .glassEffect(.regular.interactive(), in: .capsule)
+            .frame(height: DesignTokens.FrameHeight.tabBar)
+            .animation(.smooth(duration: DesignTokens.Animation.quickSnap), value: selectedTab.wrappedValue)
     }
 
     @ViewBuilder
     private func legacyTabBar(selectedTab: Binding<Tab>) -> some View {
-        HStack(spacing: DesignTokens.Spacing.compactGap) {
-            tabSegment(selectedTab: selectedTab)
-                .background(.ultraThinMaterial)
-                .clipShape(Capsule())
-            actionFAB(selectedTab: selectedTab)
-        }
-        .frame(height: DesignTokens.FrameHeight.tabBar)
-        .animation(.smooth(duration: DesignTokens.Animation.quickSnap), value: selectedTab.wrappedValue)
+        tabSegment(selectedTab: selectedTab)
+            .background(.ultraThinMaterial)
+            .clipShape(Capsule())
+            .frame(height: DesignTokens.FrameHeight.tabBar)
+            .animation(.smooth(duration: DesignTokens.Animation.quickSnap), value: selectedTab.wrappedValue)
     }
 
     @ViewBuilder
@@ -238,57 +218,12 @@ struct MainTabView: View {
     }
 
     @ViewBuilder
-    private func actionFAB(selectedTab: Binding<Tab>) -> some View {
-        if selectedTab.wrappedValue == .currentMonth, let budgetId = monthStore.budget?.id {
-            Button {
-                addTransactionBudgetId = AddTransactionItem(id: budgetId)
-            } label: {
-                Image(systemName: "plus")
-                    .font(PulpeTypography.sectionIcon)
-                    .foregroundStyle(actionFABForeground)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            .frame(width: DesignTokens.FrameHeight.tabBar, height: DesignTokens.FrameHeight.tabBar)
-            .contentShape(Circle())
-            .modifier(ActionFABBackgroundModifier())
-            .transition(.asymmetric(
-                insertion: .scale(scale: 0.5).combined(with: .opacity),
-                removal: .scale.combined(with: .opacity)
-            ))
-        }
-    }
-
-    private var actionFABForeground: Color {
-        if #available(iOS 26.0, *) {
-            return Color.textOnPrimary
-        } else {
-            return Color.pulpePrimary
-        }
-    }
-
-    @ViewBuilder
     private func tabBarIcon(for tab: Tab, isSelected: Bool) -> some View {
         ZStack {
             Image(systemName: tab.icon).opacity(isSelected ? 0 : 1)
             Image(systemName: tab.icon).symbolVariant(.fill).opacity(isSelected ? 1 : 0)
         }
         .font(.title3)
-    }
-}
-
-// MARK: - Action FAB Background
-
-/// Liquid Glass tint on iOS 26+; pre-iOS 26 falls back to a solid pulpePrimary
-/// capsule.
-private struct ActionFABBackgroundModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
-            content.glassEffect(.regular.tint(Color.pulpePrimary).interactive(), in: .capsule)
-        } else {
-            content
-                .background(.ultraThinMaterial)
-                .clipShape(Capsule())
-        }
     }
 }
 

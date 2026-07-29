@@ -79,6 +79,45 @@ struct MainTabViewLayoutTests {
     }
 }
 
+@Suite("MainTabView navigation ownership")
+struct MainTabViewNavigationOwnershipTests {
+    private static func iosSource(_ components: [String]) -> URL {
+        var url = URL(fileURLWithPath: #filePath)
+        url = url.deletingLastPathComponent() // App/
+        url = url.deletingLastPathComponent() // PulpeTests/
+        url = url.deletingLastPathComponent() // ios/
+        return components.reduce(url) { $0.appendingPathComponent($1) }
+    }
+
+    private static func read(_ components: String...) throws -> String {
+        try String(contentsOf: iosSource(components), encoding: .utf8)
+    }
+
+    @Test("Global tab bar owns navigation only")
+    func globalTabBarOwnsNavigationOnly() throws {
+        let source = try Self.read("Pulpe", "App", "MainTabView.swift")
+
+        #expect(Tab.allCases.count == 4)
+        #expect(source.contains("ForEach(Tab.allCases)"))
+        #expect(!source.contains("AddTransactionSheet("))
+        #expect(!source.contains("actionFAB("))
+    }
+
+    @Test("Current Month owns transaction creation")
+    func currentMonthOwnsTransactionCreation() throws {
+        let source = try Self.read(
+            "Pulpe",
+            "Features",
+            "CurrentMonth",
+            "CurrentMonthView.swift"
+        )
+
+        #expect(source.contains("case addTransaction"))
+        #expect(source.contains("AddTransactionSheet("))
+        #expect(source.contains("onAdd: store.addTransaction"))
+    }
+}
+
 /// Bar top above the physical bottom + the content spacing — the clearance to
 /// reserve when the device contributes no bottom safe area of its own. Derived
 /// from the same tokens the production formula uses (not magic).
