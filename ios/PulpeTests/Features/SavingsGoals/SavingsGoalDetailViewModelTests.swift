@@ -354,6 +354,35 @@ struct SavingsGoalDetailViewModelTests {
     }
 }
 
+extension SavingsGoalDetailViewModelTests {
+    @Test("recovery ignores a zero required amount")
+    func applyMissingForecasts_rejectsZeroRequired() async {
+        let service = MockSavingsGoalService()
+        let progress = makeProgress(
+            linkedLineCount: 0,
+            required: 0,
+            months: [makePlanMonth(month: 8, state: .gap, isLocked: false, planned: 0)]
+        )
+        let viewModel = SavingsGoalDetailViewModel(goalId: "g1", service: service)
+
+        let succeeded = await viewModel.applyMissingForecasts(from: progress)
+
+        #expect(!succeeded)
+        #expect(service.lastApplyPayload == nil)
+    }
+
+    @Test("recovery action stays hidden when the required amount is zero")
+    func canRepairPlan_zeroRequired_isFalse() {
+        let progress = makeProgress(
+            linkedLineCount: 0,
+            required: 0,
+            months: [makePlanMonth(month: 8, state: .gap, isLocked: false, planned: 0)]
+        )
+
+        #expect(SavingsGoalDetailViewModel.canRepairPlan(progress, status: .active) == false)
+    }
+}
+
 @MainActor
 struct GoalPlanSimulatorViewModelTests {
     private func makeGoal(

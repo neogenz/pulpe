@@ -552,7 +552,8 @@ export const MAX_PLAN_ADJUSTMENTS = MAX_SAVINGS_GOAL_PLAN_PERIODS;
 /**
  * Requête d'application d'un plan simulé (`POST /savings-goals/:id/plan`,
  * docs/SAVINGS.md §10.4). `monthAdjustments` = budgets matérialisés ;
- * `missingMonthAdjustments` = budgets absents à provisionner par période.
+ * `missingMonthAdjustments` = périodes sans Prévision liée, budget absent ou
+ * déjà matérialisé.
  */
 export const savingsGoalPlanApplySchema = z
   .strictObject({
@@ -570,7 +571,7 @@ export const savingsGoalPlanApplySchema = z
         z.strictObject({
           month: z.number().int().min(1).max(12),
           year: z.number().int(),
-          amount: z.number().nonnegative(),
+          amount: z.number().positive(),
         }),
       )
       .max(MAX_PLAN_ADJUSTMENTS)

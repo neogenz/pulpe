@@ -775,7 +775,8 @@ export default class SavingsGoalDetailPage {
     if (
       !progress ||
       progress.status !== 'ACTIVE' ||
-      progress.required == null
+      progress.required == null ||
+      progress.required <= 0
     ) {
       return [];
     }

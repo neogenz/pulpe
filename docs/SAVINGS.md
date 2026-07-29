@@ -370,7 +370,7 @@ Le serveur reste autoritaire à l'écriture. Les clients ne recalculent jamais l
 `POST /v1/savings-goals/:id/plan` accepte deux collections strictes :
 
 - `monthAdjustments[]` : `{ budgetLineId, amount }` pour les Prévisions matérialisées ;
-- `missingMonthAdjustments[]` : `{ month, year, amount }` pour les périodes sans Prévision liée mais provisionnables, que le budget soit absent ou déjà matérialisé.
+- `missingMonthAdjustments[]` : `{ month, year, amount }` pour les périodes sans Prévision liée mais provisionnables, que le budget soit absent ou déjà matérialisé. Le montant est strictement positif : ramener une Prévision existante à zéro passe uniquement par `monthAdjustments`.
 
 Le flux valide toutes les préconditions avant mutation, provisionne les budgets absents ou réutilise les budgets existants de façon idempotente, puis applique les montants dans une RPC atomique sérialisée par objectif. La RPC refuse toute ligne étrangère, non liée, non-Épargne, passée ou pointée. Les ajustements appliqués deviennent manuels et sortent de RG-001 ; le Mois Type n'est jamais modifié.
 

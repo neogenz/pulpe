@@ -165,7 +165,10 @@ struct SavingsGoalDetailView: View {
                         months: progress.months,
                         currency: currency,
                         canAdjust: canAdjust(progress),
-                        canRepair: currentGoal.status == .active && progress.required != nil,
+                        canRepair: SavingsGoalDetailViewModel.canRepairPlan(
+                            progress,
+                            status: currentGoal.status
+                        ),
                         onAdjust: { isSimulating = true },
                         onRepair: { showRecoveryRecap = true }
                     )
@@ -539,6 +542,10 @@ final class SavingsGoalDetailViewModel {
         return abs(required - planned) <= planned * SavingsGoalProgress.paceTolerancePercent / 100
     }
 
+    static func canRepairPlan(_ progress: SavingsGoalProgress, status: SavingsGoalStatus) -> Bool {
+        status == .active && (progress.required ?? 0) > 0
+    }
+
     /// Initial / pull-to-refresh load. Shows the full-screen spinner while the
     /// first fetch is in flight (progress still nil).
     func load() async {
@@ -578,7 +585,7 @@ final class SavingsGoalDetailViewModel {
 
     func applyMissingForecasts(from progress: SavingsGoalProgress) async -> Bool {
         error = nil
-        guard let required = progress.required else { return false }
+        guard let required = progress.required, required > 0 else { return false }
         let adjustments = progress.months
             .filter(\.isRepairable)
             .map {

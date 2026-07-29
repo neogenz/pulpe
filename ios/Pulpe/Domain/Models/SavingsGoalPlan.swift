@@ -121,7 +121,8 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
 /// Line-scoped plan apply payload (`docs/SAVINGS.md` §10.4). 1:1 the strict
 /// Zod `savingsGoalPlanApplySchema`; Swift's synthesised `Encodable` omits nil so
 /// nothing extra leaks. `monthAdjustments` patch materialised `budget_line`s;
-/// `missingMonthAdjustments` provision absent budgets by period.
+/// `missingMonthAdjustments` create a linked forecast in an absent or materialised
+/// budget period.
 struct SavingsGoalPlanApply: Encodable, Sendable {
     let monthAdjustments: [MonthAdjustment]
     let missingMonthAdjustments: [MissingMonthAdjustment]

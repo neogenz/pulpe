@@ -532,7 +532,7 @@ describe('PUL-12 — savingsGoalPlanApplySchema final contract', () => {
 
   test('accepts a typed web payload with a materialized adjustment', () => {
     const input: SavingsGoalPlanApply = {
-      monthAdjustments: [{ budgetLineId: UUID, amount: 1000 }],
+      monthAdjustments: [{ budgetLineId: UUID, amount: 0 }],
       missingMonthAdjustments: [],
     };
 
@@ -540,6 +540,15 @@ describe('PUL-12 — savingsGoalPlanApplySchema final contract', () => {
 
     expect(result.success).toBe(true);
     if (result.success) expect(result.data.missingMonthAdjustments).toEqual([]);
+  });
+
+  test('rejects creating a missing forecast with a zero amount', () => {
+    const result = savingsGoalPlanApplySchema.safeParse({
+      monthAdjustments: [],
+      missingMonthAdjustments: [{ month: 8, year: 2026, amount: 0 }],
+    });
+
+    expect(result.success).toBe(false);
   });
 
   test('accepts missing budgets described by unique periods', () => {

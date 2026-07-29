@@ -998,6 +998,14 @@ describe('SavingsGoalDetailPage', () => {
     expect(query('goal-plan-repair-callout')).toBeFalsy();
   });
 
+  it('does not offer recovery when the goal is already covered', () => {
+    progressSig.set(makeProgress({ required: 0, months: [makePlanMonth()] }));
+
+    fixture.detectChanges();
+
+    expect(query('goal-plan-repair-callout')).toBeFalsy();
+  });
+
   it('previews the rounded required amount and cancels without writing', async () => {
     progressSig.set(
       makeProgress({ required: 175.345, months: [makePlanMonth()] }),
