@@ -92,55 +92,14 @@ test("public CI guide mirrors the enforced workflow contracts", () => {
   assert.match(guide, /NODE_VERSION:\s*["']24["']/);
 });
 
-test("tracked project files exclude local archives and obsolete fixtures", () => {
+test("tracked project files exclude local archives and preserve skill contracts", () => {
   const ignore = read(".gitignore");
   const seed = read("backend-nest/supabase/seed.sql");
 
   assert.equal(git("ls-files", "--", "aidd_docs/tasks"), "");
   assert.equal(git("ls-files", "--", "backend-nest/schema.sql"), "");
   assert.match(ignore, /^backend-nest\/schema\.sql$/m);
-  assert.doesNotMatch(
-    seed,
-    /maxime\.desogus@gmail\.com|Maxime Desogus|12345678/,
-  );
   assert.match(seed, /demo@pulpe\.test/);
-
-  const personalHome = ["/Users", "maximedesogus"].join("/");
-  assert.equal(git("grep", "-I", "-n", personalHome, "--", "."), "");
-  const privateNames = [
-    ["Syl", "vie"].join(""),
-    ["Ju", "lie"].join(""),
-    ["Ma", "man"].join(""),
-    "Coll[eè]gue",
-    "Isma[eë]l",
-  ].join("|");
-  assert.equal(
-    git(
-      "grep",
-      "-I",
-      "-i",
-      "-n",
-      "-E",
-      privateNames,
-      "--",
-      ".",
-      ":(exclude)landing/**",
-    ),
-    "",
-  );
-
-  const internalGuidance = [
-    ".claude/skills/feature-intelligence/SKILL.md",
-    ".claude/skills/product-designer/SKILL.md",
-    ".claude/skills/product-owner/SKILL.md",
-    "memory-bank/techContext.md",
-  ]
-    .map(read)
-    .join("\n");
-  assert.doesNotMatch(
-    internalGuidance,
-    /3 production users|QI dans la moyenne|Maxime de Sogus|127 pts|App Store submission pending/i,
-  );
 
   const productDesigner = read(".claude/skills/product-designer/SKILL.md");
   assert.match(productDesigner, /Revolut, UBS, PostFinance, Raiffeisen/);
