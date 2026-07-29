@@ -44,6 +44,7 @@ const PASSWORD = 'test-password-123';
 
 // Stubs shared across every use-case instance below.
 const encryptionStub = {
+  ensureUserDEK: async () => Buffer.alloc(32),
   getDekFor: async () => Buffer.alloc(32),
   encryptAmount: (amount: number) => `enc:${amount}`,
   tryDecryptAmount: (cipher: string | null, _dek: Buffer, fallback: number) =>
