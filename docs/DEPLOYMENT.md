@@ -101,8 +101,24 @@ FROM financial_users f LEFT JOIN user_encryption_key k ON k.user_id = f.user_id;
 `financial_users_without_key_check` must be zero before the strict backend rollout.
 Review `vaults_without_wrapped_dek` separately; never export the matching users.
 
-For legacy deletion claims, prepare the reviewed backend checkout and load the
-intended Supabase environment securely before starting the maintenance window.
+##### One-time scheduled-deletion pre-release gate
+
+The `/release` skill detects the release that introduces the server-owned
+`scheduledDeletionAt` model from its diff since the previous tag. During that
+release it runs the aggregate dry-run **before** the release commit and before
+promotion to `main`.
+
+- `eligible: 0`: the release continues without maintenance or another approval.
+- `eligible > 0`: the release stops, requests explicit approval, and completes
+  the maintenance/apply/dry-run sequence below before it can continue.
+
+There is no scheduled-deletion action to remember after deployment, and later
+releases do not repeat the gate when the relevant migration/runtime files are no
+longer in their release diff. This is an Auth Admin metadata operation, not a SQL
+migration; the production SQL migration job in CI does not execute it.
+
+For a required apply, prepare the reviewed backend checkout and load the intended
+Supabase production environment securely before starting the maintenance window.
 Production `--apply` requires explicit approval.
 
 1. Set Railway `MAINTENANCE_MODE=true`, wait for the deployment, then verify both
