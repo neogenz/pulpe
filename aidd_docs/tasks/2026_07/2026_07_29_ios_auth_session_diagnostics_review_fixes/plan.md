@@ -1,6 +1,6 @@
 ---
 objective: "Toute expiration iOS atteint un reset terminal attribuable avant la rotation PostHog, avec un contrat analytics exact et aucun nouveau défaut de qualité."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Fermer les écarts de revue des diagnostics de session iOS
