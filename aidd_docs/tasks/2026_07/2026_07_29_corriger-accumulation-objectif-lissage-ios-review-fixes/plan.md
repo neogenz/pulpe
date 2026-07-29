@@ -1,6 +1,6 @@
 ---
 objective: "Le correctif Objectif/Lissé devient livrable : les deux écrans restent exploitables sur petit iPhone à Accessibility 3, leurs actions respectent les hitboxes SwiftUI et BudgetDetails repasse sous ses limites d’architecture."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Stabiliser le correctif Objectif et Lissé sur iOS
