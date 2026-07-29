@@ -13,7 +13,7 @@ interface AccordionItemProps {
 export function AccordionItem({ question, answer }: AccordionItemProps) {
   return (
     <details className="group overflow-hidden rounded-[var(--radius-card)] border border-text/5 bg-surface">
-      <summary className="flex w-full cursor-pointer select-none items-center justify-between p-5 text-left font-medium text-text transition-colors duration-200 hover:bg-primary/5 active:bg-primary/10 motion-reduce:transition-none list-none [&::-webkit-details-marker]:hidden">
+      <summary className="flex w-full cursor-pointer select-none items-center justify-between p-5 text-left font-medium text-text transition-colors duration-200 hover:bg-primary/5 active:bg-primary/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary motion-reduce:transition-none list-none [&::-webkit-details-marker]:hidden">
         <span>{question}</span>
         <span
           aria-hidden="true"

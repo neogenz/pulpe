@@ -2,8 +2,8 @@ import { AccordionItem, Section } from "@/components/ui";
 
 const FAQ_ITEMS = [
   {
-    q: "Pourquoi Pulpe plutôt qu’Excel ou YNAB ?",
-    a: "Pulpe est fait pour planifier les mois qui viennent, pas pour suivre chaque dépense au jour le jour. Avec Excel, tu construis et entretiens toi-même la projection. YNAB t’aide surtout à répartir l’argent que tu as aujourd’hui. Dans Pulpe, tu places tes revenus et tes dépenses au mois où ils arriveront. Le solde se reporte d’un mois à l’autre pour te montrer si ton budget tient sur l’année.",
+    q: "Pourquoi Pulpe plutôt qu’Excel ?",
+    a: "Excel fait le job, mais les formules deviennent vite fragiles dès que tu bouges une ligne. Et sur mobile, c’est pénible. Pulpe garde la vue d’ensemble et recalcule la suite quand tu ajustes ton budget.",
   },
   {
     q: "C’est vraiment gratuit ?",
@@ -15,11 +15,11 @@ const FAQ_ITEMS = [
   },
   {
     q: "Mes montants sont-ils protégés ?",
-    a: "Oui. Ils ne sont jamais stockés en clair dans la base. Pulpe les chiffre avec AES-256-GCM à l’aide de deux clés conservées séparément. Une fuite de la base seule ne suffit donc pas à les lire.",
+    a: "Oui. Tes montants ne sont jamais stockés en clair. Ils sont chiffrés en base avec AES-256-GCM. Ils sont déchiffrés côté serveur pendant tes requêtes authentifiées grâce à deux clés conservées séparément, dont une dérivée de ton code PIN. Une fuite de la base seule ne suffit donc pas à les lire. Tes montants et libellés financiers ne sont ni transmis à des fins publicitaires ni revendus. Le code source est public.",
   },
   {
     q: "Pourquoi pas de connexion à ma banque ?",
-    a: "C’est volontaire. Pulpe ne demande aucun accès à tes comptes. Tu gardes la main sur ce que tu ajoutes et ce que tu pointes.",
+    a: "J’aurais aimé proposer une synchronisation bancaire. Pour le faire correctement en Suisse et en France, il faut passer par des prestataires externes et gérer des contraintes réglementaires. Pour un projet que je développe seul, le soir après le boulot, le coût est trop élevé. Donc, pour l’instant, la saisie reste manuelle.",
   },
   {
     q: "Combien de temps faut-il pour commencer ?",

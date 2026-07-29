@@ -88,8 +88,8 @@ export const viewport: Viewport = {
 // après la peinture sur mobile, et un `useEffect` laisserait la navbar
 // transparente et le menu inerte pendant tout ce temps. L'ouverture du menu est
 // native (`<details>`) ; ce script ne fournit que ce que le navigateur ne fait
-// pas seul, et pose l'attribut de défilement sur `<html>`, un nœud que React ne
-// rend pas, donc sans divergence d'hydratation possible.
+// pas seul, et pose l'attribut de défilement sur `<html>` avant l'hydratation.
+// Cet écart attendu est ignoré directement sur l'élément racine.
 const headerScript = `(function(){
 if(window.pulpeHeaderReady)return;
 window.pulpeHeaderReady=1;
@@ -174,7 +174,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fr" className={poppins.variable}>
+    <html lang="fr" className={poppins.variable} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: headerScript }} />
         <script

@@ -28,6 +28,7 @@ const componentSources = {
     "utf8",
   ),
   page: readFileSync(new URL("./page.tsx", import.meta.url), "utf8"),
+  support: readFileSync(new URL("./support/page.tsx", import.meta.url), "utf8"),
   painPoints: readFileSync(
     new URL("../components/sections/PainPoints.tsx", import.meta.url),
     "utf8",
@@ -1053,6 +1054,178 @@ describe("landing accessibility contracts", () => {
       componentSources.faq,
       /Les questions qu&apos;on me pose le plus/,
     );
+  });
+
+  it("reuses the landing composition and accordion on the support page", () => {
+    assert.match(componentSources.support, /href="#main-content"/);
+    assert.match(componentSources.support, /<main id="main-content"/);
+    assert.match(componentSources.support, /hero-mesh/);
+    assert.match(componentSources.support, /max-w-3xl/);
+    assert.match(componentSources.support, /<AccordionItem/);
+    assert.match(componentSources.support, /<FinalCTA \/>/);
+    assert.doesNotMatch(componentSources.support, /<details|<summary/);
+  });
+
+  it("keeps skip links keyboard-only and moves focus to main content", () => {
+    for (const source of [componentSources.page, componentSources.support]) {
+      const skipLinkClass = source.match(
+        /href="#main-content"\s+className="([^"]+)"/,
+      )?.[1];
+
+      assert.ok(skipLinkClass, "Skip link classes are missing");
+      assert.match(skipLinkClass, /focus-visible:not-sr-only/);
+      assert.doesNotMatch(skipLinkClass, /(?:^|\s)focus:/);
+      assert.match(source, /<main id="main-content" tabIndex=\{-1\}>/);
+      assert.ok(
+        source.indexOf('href="#main-content"') < source.indexOf("<Header"),
+      );
+    }
+  });
+
+  it("keeps audited support details polished on mobile and keyboard", () => {
+    assert.match(
+      componentSources.accordionItem,
+      /focus:outline-none[^"]*focus-visible:ring-2[^"]*focus-visible:ring-inset[^"]*focus-visible:ring-primary/,
+    );
+    assert.match(
+      componentSources.layout,
+      /<html[^>]*suppressHydrationWarning/,
+    );
+
+    const questions = [
+      ...componentSources.support.matchAll(/question: "([^"]+)"/g),
+    ].map((match) => match[1]);
+    assert.equal(questions.length, 9);
+    assert.ok(questions.every((question) => question.endsWith("\u202f?")));
+    assert.ok(questions.includes("Ça marche en Suisse et en France\u202f?"));
+    assert.match(
+      componentSources.support,
+      /Si la tienne manque, écris-moi\./,
+    );
+    assert.doesNotMatch(
+      componentSources.support,
+      /Si la tienne manque, écris-moi directement\./,
+    );
+  });
+
+  it("keeps support answers factual and aligned with the landing FAQ", () => {
+    assert.equal(componentSources.support.match(/\n {4}question:/g)?.length, 9);
+
+    for (const source of [componentSources.support, componentSources.faq]) {
+      assert.match(source, /prestataires externes/);
+      assert.match(source, /contraintes réglementaires/);
+      assert.match(source, /coût est trop élevé/);
+      assert.match(source, /saisie reste manuelle/);
+      assert.match(source, /deux clés conservées séparément/);
+      assert.match(source, /dérivée de (?:ton|votre) code PIN/);
+      assert.match(source, /fuite de la base seule/);
+      assert.match(source, /AES-256-GCM/);
+      assert.match(source, /déchiffrés côté serveur/);
+      assert.match(
+        source,
+        /montants et libellés financiers ne sont ni transmis à des fins publicitaires ni revendus/,
+      );
+      assert.doesNotMatch(
+        source,
+        /choix délibéré|banques et les armées|zero-knowledge|—|–/,
+      );
+    }
+
+    assert.match(componentSources.support, /mainEntity: faqs\.map/);
+    assert.match(componentSources.support, /text: faq\.plainAnswer/);
+    assert.doesNotMatch(
+      componentSources.support,
+      /chiffrement de bout en bout|Google Drive/,
+    );
+  });
+
+  it("keeps support links accessible and answer copy canonical", () => {
+    assert.match(
+      componentSources.support,
+      /const SETTINGS_URL = angularUrl\("\/settings", "faq_delete_account"\);/,
+    );
+    assert.match(
+      componentSources.support,
+      /question: "Comment supprimer mon compte et mes données\u202f\?"[\s\S]*?href=\{SETTINGS_URL\}[\s\S]*?>\s*paramètres\s*<\/a>[\s\S]*?plainAnswer:/,
+    );
+    assert.match(componentSources.support, /answer\?: ReactNode;/);
+    assert.match(
+      componentSources.support,
+      /answer=\{faq\.answer \?\? faq\.plainAnswer\}/,
+    );
+    assert.equal(
+      componentSources.support.match(
+        /inline-flex min-h-11 items-center/g,
+      )?.length,
+      2,
+    );
+    assert.doesNotMatch(
+      componentSources.support,
+      /const linkClass\s*=\s*"[^"]*min-h-11/,
+    );
+    assert.equal(componentSources.support.match(/\n {4}answer:/g)?.length, 4);
+
+    for (const linkedAnswer of [
+      {
+        question: "Pourquoi confier mes chiffres à Pulpe\u202f?",
+        href: "href={GITHUB_URL}",
+        facts: [
+          "Tes montants ne sont jamais stockés en clair.",
+          "deux clés conservées séparément",
+          "code source est public",
+        ],
+      },
+      {
+        question: "Est-ce que je peux essayer sans créer de compte\u202f?",
+        href: "href={DEMO_URL}",
+        facts: [
+          "mode démo",
+          "utiliser Pulpe sans compte",
+          "sans saisir tes propres",
+        ],
+      },
+      {
+        question: "C'est vraiment gratuit\u202f?",
+        href: "href={GITHUB_URL}",
+        facts: [
+          "Pulpe est gratuit, sans publicité ni abonnement.",
+          "projet solo",
+          "code source est public",
+        ],
+      },
+      {
+        question: "Comment supprimer mon compte et mes données\u202f?",
+        href: "href={SETTINGS_URL}",
+        facts: [
+          "demander la suppression",
+          "paramètres",
+          "programmés pour être supprimés dans trois jours",
+          "supprimés des systèmes actifs",
+          "sauvegardes techniques",
+          "politique de rétention",
+        ],
+      },
+    ]) {
+      const start = componentSources.support.indexOf(
+        `question: "${linkedAnswer.question}",`,
+      );
+      const end = componentSources.support.indexOf("\n  },", start);
+      assert.ok(start >= 0 && end > start);
+
+      const block = componentSources.support
+        .slice(start, end)
+        .replace(/\s+/g, " ");
+      const plainAnswerIndex = block.indexOf("plainAnswer:");
+      assert.ok(plainAnswerIndex > 0);
+
+      const visibleAnswer = block.slice(0, plainAnswerIndex);
+      const plainAnswer = block.slice(plainAnswerIndex);
+      assert.ok(visibleAnswer.includes(linkedAnswer.href));
+      for (const fact of linkedAnswer.facts) {
+        assert.ok(visibleAnswer.includes(fact));
+        assert.ok(plainAnswer.includes(fact));
+      }
+    }
   });
 
   it("keeps final CTA supporting copy legible over the ambient field", () => {
