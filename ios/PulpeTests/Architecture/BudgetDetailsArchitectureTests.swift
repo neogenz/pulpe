@@ -278,4 +278,17 @@ struct BudgetDetailsArchitectureTests {
         #expect(source.contains(".task(id: screenState.referencedTagIds)"))
         #expect(source.contains("await tagStore.loadIfNeeded(for: screenState.referencedTagIds)"))
     }
+
+    @Test("Budget line creation belongs to the native toolbar")
+    func budgetLineCreationBelongsToToolbar() {
+        let directory = Self.featureDirectory()
+        let source = Self.read(directory.appendingPathComponent("BudgetDetailsView.swift"))
+        let fabPath = directory.appendingPathComponent("BudgetDetailsAddFAB.swift").path
+
+        #expect(source.contains("ToolbarItemGroup(placement: .topBarTrailing)"))
+        #expect(source.contains("router.present(.addBudgetLine)"))
+        #expect(source.contains(#".accessibilityLabel("Ajouter une prévision")"#))
+        #expect(!source.contains(".overlay(alignment: .bottomTrailing)"))
+        #expect(!FileManager.default.fileExists(atPath: fabPath))
+    }
 }

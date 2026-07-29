@@ -353,7 +353,9 @@ Stat pills on hero cards use `Capsule + tint.opacity(0.15)` background keyed to 
 
 ### Navigation
 - **NavigationStack (typed destinations):** `NavigationStack(path: $path)` with feature-scoped `enum Destination: Hashable`. Never `NavigationView` (deprecated). Never `NavigationLink` without typed destination.
-- **Tab Bar (`CustomTabBar`):** Floating capsule, 62pt height, Liquid Glass background. Auto-hides on focus pages.
+- **Tab Bar (`MainTabView`):** Floating capsule, 62pt height, Liquid Glass background, exactly four navigation destinations: Accueil, Budgets, Objectifs and Modèles. Never place a creation action in the tab bar or change its shape per tab.
+- **Contextual creation:** The owner screen presents the action closest to the object it creates. Accueil uses a visible, labelled content action for an operation. Budget detail uses a native `topBarTrailing` toolbar action for a forecast. Root lists use their native toolbar action; local form additions stay inside their section. Every icon-only action has an explicit accessibility label and a 44pt minimum target.
+- **Visibility:** Keep the tab bar visible on root screens and the first Budget detail. Hide it only for deeper focus flows or while the keyboard is visible.
 - **Sheet Forms vs Push:** Sheets for modal forms and detail edits. Push for hierarchical content (budget → budget detail → line detail). `.fullScreenCover` for immersive flows (auth, onboarding).
 
 ### iOS-Specific Named Rules

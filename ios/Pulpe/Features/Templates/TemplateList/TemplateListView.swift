@@ -47,6 +47,7 @@ struct TemplateListView: View {
                     Image(systemName: "plus")
                 }
                 .disabled(viewModel.isLimitReached)
+                .accessibilityLabel("Créer un modèle")
             }
         }
         .sheet(isPresented: $showCreateTemplate) {
