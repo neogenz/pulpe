@@ -16,23 +16,28 @@ extension BudgetFormulas {
         let totalDays: Int
     }
 
-    /// Daily realized balance through today, then the forward projection used by the dashboard.
+    /// Daily realized balance through today, then a link to the balance left by the full budget.
     static func calculateBalanceTrajectory(
         budgetLines: [BudgetLine],
         transactions: [Transaction],
         metrics: Metrics,
-        projection: Projection,
-        budget: Budget
+        plannedBalance: Decimal,
+        budget: Budget,
+        referenceDate: Date = Date()
     ) -> BalanceTrajectory? {
         let calendar = Calendar.current
         guard let monthStart = calendar.date(from: DateComponents(
             year: budget.year,
             month: budget.month,
             day: 1
-        )) else { return nil }
+        )),
+            calendar.component(.year, from: referenceDate) == budget.year,
+            calendar.component(.month, from: referenceDate) == budget.month,
+            let monthDays = calendar.range(of: .day, in: .month, for: monthStart)
+        else { return nil }
 
-        let totalDays = max(projection.daysElapsed + projection.daysRemaining, 1)
-        let today = min(max(projection.daysElapsed, 1), totalDays)
+        let totalDays = max(monthDays.count, 1)
+        let today = min(max(calendar.component(.day, from: referenceDate), 1), totalDays)
         let actual = (0 ... today).compactMap { day -> BalanceTrajectory.Point? in
             guard day > 0 else {
                 return .init(day: 0, balance: metrics.available)
@@ -53,12 +58,12 @@ extension BudgetFormulas {
 
         guard let current = actual.last else { return nil }
         let projected = today < totalDays
-            ? [current, .init(day: totalDays, balance: projection.projectedEndOfMonthBalance)]
+            ? [current, .init(day: totalDays, balance: metrics.remaining)]
             : []
         return BalanceTrajectory(
             actual: actual,
             projected: projected,
-            plannedBalance: metrics.remaining,
+            plannedBalance: plannedBalance,
             today: today,
             totalDays: totalDays
         )

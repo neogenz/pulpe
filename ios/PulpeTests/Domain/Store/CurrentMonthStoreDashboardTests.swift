@@ -4,6 +4,61 @@ import Testing
 
 @MainActor
 struct CurrentMonthStoreDashboardTests {
+    // MARK: - End-of-Month Estimate
+
+    @Test func endOfMonthEstimate_keepsSecondHalfForecastsReserved() throws {
+        let store = CurrentMonthStore()
+        store.populateForTesting(
+            budget: TestDataFactory.createBudget(month: 7, year: 2026),
+            budgetLines: [
+                TestDataFactory.createBudgetLine(
+                    id: "income",
+                    amount: 8_000,
+                    kind: .income,
+                    isChecked: true
+                ),
+                TestDataFactory.createBudgetLine(
+                    id: "first-half",
+                    amount: 1_500,
+                    kind: .expense,
+                    isChecked: true
+                ),
+                TestDataFactory.createBudgetLine(
+                    id: "second-half",
+                    amount: 4_000,
+                    kind: .expense,
+                    isChecked: false
+                ),
+            ]
+        )
+
+        #expect(store.plannedRemaining == 2_500)
+        #expect(store.metrics.remaining == 2_500)
+        #expect(try #require(store.projection).projectedEndOfMonthBalance == 2_500)
+    }
+
+    @Test func endOfMonthEstimate_integratesKnownEnvelopeOverrun() {
+        let store = CurrentMonthStore()
+        store.populateForTesting(
+            budgetLines: [
+                TestDataFactory.createBudgetLine(id: "income", amount: 8_000, kind: .income),
+                TestDataFactory.createBudgetLine(id: "expense", amount: 5_500, kind: .expense),
+            ],
+            transactions: [
+                TestDataFactory.createTransaction(
+                    id: "known-overrun",
+                    budgetLineId: "expense",
+                    amount: 6_000,
+                    kind: .expense,
+                    isChecked: false
+                ),
+            ]
+        )
+
+        #expect(store.plannedRemaining == 2_500)
+        #expect(store.metrics.remaining == 2_000)
+    }
+
     // MARK: - Unchecked Items (Combined) Logic
 
     @Test func uncheckedItems_freeTransactionsFirst_thenAllocated_thenBudgetLines() {

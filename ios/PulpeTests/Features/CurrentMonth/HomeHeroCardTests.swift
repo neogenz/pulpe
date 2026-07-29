@@ -43,7 +43,7 @@ struct HomeHeroCardTests {
         #expect(unavailable.verdict == .unavailable)
     }
 
-    @Test func trajectory_usesRealizedStepsAndConnectsProjection() throws {
+    @Test func trajectory_usesRealizedStepsAndConnectsRemainingPlan() throws {
         let transactions = [
             try checkedExpense(id: "day-2", amount: 100, day: 2),
             try checkedExpense(id: "day-3", amount: 50, day: 3),
@@ -57,28 +57,28 @@ struct HomeHeroCardTests {
             remaining: 300,
             rollover: 0
         )
-        let projection = BudgetFormulas.Projection(
-            projectedEndOfMonthBalance: -550,
-            dailySpendingRate: 50,
-            daysElapsed: 3,
-            daysRemaining: 28,
-            isOnTrack: false
-        )
+        let referenceDate = try #require(Calendar.current.date(from: DateComponents(
+            year: 2026,
+            month: 7,
+            day: 3,
+            hour: 12
+        )))
 
         let trajectory = try #require(BudgetFormulas.calculateBalanceTrajectory(
             budgetLines: [],
             transactions: transactions,
             metrics: metrics,
-            projection: projection,
-            budget: TestDataFactory.createBudget(month: 7, year: 2026)
+            plannedBalance: 250,
+            budget: TestDataFactory.createBudget(month: 7, year: 2026),
+            referenceDate: referenceDate
         ))
 
         #expect(trajectory.actual.map(\.balance) == [1000, 1000, 900, 850])
         #expect(trajectory.projected == [
             .init(day: 3, balance: 850),
-            .init(day: 31, balance: -550),
+            .init(day: 31, balance: 300),
         ])
-        #expect(trajectory.plannedBalance == 300)
+        #expect(trajectory.plannedBalance == 250)
         #expect(trajectory.today == 3)
         #expect(trajectory.totalDays == 31)
     }

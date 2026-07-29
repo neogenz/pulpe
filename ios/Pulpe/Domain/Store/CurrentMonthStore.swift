@@ -358,6 +358,14 @@ final class CurrentMonthStore: StoreProtocol {
         )
     }
 
+    /// End-of-month balance from the budget alone, before known transactions adjust envelopes.
+    var plannedRemaining: Decimal {
+        BudgetFormulas.calculateAllMetrics(
+            budgetLines: budgetLines,
+            rollover: budget?.rollover.orZero ?? 0
+        ).remaining
+    }
+
     var realizedMetrics: BudgetFormulas.RealizedMetrics {
         cachedRealizedMetrics ?? BudgetFormulas.calculateRealizedMetrics(
             budgetLines: displayBudgetLines,
@@ -598,25 +606,34 @@ extension CurrentMonthStore {
         )
     }
 
-    /// Forward-looking projection based on current spending rate
+    /// Compatibility payload for the current hero. Its month-end balance comes from the
+    /// complete budget, while the pace fields remain available until the hero no longer
+    /// renders the legacy daily-rate insight.
     var projection: BudgetFormulas.Projection? {
         guard let budget else { return nil }
-        return BudgetFormulas.calculateProjection(
+        guard let pace = BudgetFormulas.calculateProjection(
             realizedExpenses: realizedMetrics.realizedExpenses,
             totalBudgetedExpenses: metrics.totalExpenses,
             available: metrics.available,
             month: budget.month,
             year: budget.year
+        ) else { return nil }
+        return BudgetFormulas.Projection(
+            projectedEndOfMonthBalance: metrics.remaining,
+            dailySpendingRate: pace.dailySpendingRate,
+            daysElapsed: pace.daysElapsed,
+            daysRemaining: pace.daysRemaining,
+            isOnTrack: metrics.remaining >= plannedRemaining
         )
     }
 
     var balanceTrajectory: BudgetFormulas.BalanceTrajectory? {
-        guard let budget, let projection else { return nil }
+        guard let budget else { return nil }
         return BudgetFormulas.calculateBalanceTrajectory(
             budgetLines: budgetLines,
             transactions: transactions,
             metrics: metrics,
-            projection: projection,
+            plannedBalance: plannedRemaining,
             budget: budget
         )
     }
