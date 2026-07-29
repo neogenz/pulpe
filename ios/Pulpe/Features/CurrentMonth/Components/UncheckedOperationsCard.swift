@@ -178,7 +178,7 @@ struct UncheckedOperationsCard: View {
                     Text(item.name)
                         .font(PulpeTypography.labelLarge)
                         .foregroundStyle(Color.textPrimary)
-                    + Text(" · \(subtitle(for: item))")
+                    + Text(metadataText(for: item))
                         .font(PulpeTypography.labelMedium)
                         .foregroundStyle(Color.textTertiary)
                 )
@@ -316,6 +316,12 @@ struct UncheckedOperationsCard: View {
         case .budgetLine(let line, _):
             TagChips.names(for: line.tagIds, namesById: tagNamesById)
         }
+    }
+
+    private func metadataText(for item: CurrentMonthStore.CheckableItem) -> String {
+        let tagCount = tagNames(for: item).count
+        guard tagCount > 0 else { return " · \(subtitle(for: item))" }
+        return " · \(subtitle(for: item)) · \(tagCount) tag\(tagCount > 1 ? "s" : "")"
     }
 
     private func amountText(for item: CurrentMonthStore.CheckableItem) -> String {

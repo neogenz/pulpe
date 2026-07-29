@@ -339,8 +339,6 @@ enum DesignTokens {
     enum FrameHeight {
         /// Primary action buttons
         static let button: CGFloat = 54
-        /// Custom floating tab bar
-        static let tabBar: CGFloat = 62
         /// Progress bar track
         static let progressBar: CGFloat = 8
         /// Thin separator lines

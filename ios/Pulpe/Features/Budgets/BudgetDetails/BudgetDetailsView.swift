@@ -14,7 +14,6 @@ struct BudgetDetailsView: View {
     @Environment(TagStore.self) var tagStore
     @Environment(\.amountsHidden) private var amountsHidden
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.tabBarClearance) private var tabBarClearance
     @State var coordinator: BudgetDetailsCoordinator
     // Internal so the savings-withdrawal extension can read its screen state.
     @State var projector: BudgetDetailsProjector
@@ -310,7 +309,7 @@ struct BudgetDetailsView: View {
                     )
                 }
 
-                Color.clear.frame(height: tabBarClearance + DesignTokens.Spacing.lg)
+                Color.clear.frame(height: DesignTokens.Spacing.lg)
             }
         }
         .scrollContentBackground(.hidden)

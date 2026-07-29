@@ -258,7 +258,6 @@ struct BudgetGoalSpreadUITestHarness: View {
             savingsGoalService: savingsGoalService
         )
         .environment(\.dynamicTypeSize, dynamicTypeSize)
-        .environment(\.tabBarClearance, MainTabView.tabBarClearance(bottomSafeAreaInset: 0))
         .preferredColorScheme(preferredColorScheme)
         .environment(appState)
         .environment(userSettingsStore)

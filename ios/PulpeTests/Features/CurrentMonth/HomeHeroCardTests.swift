@@ -256,6 +256,36 @@ struct HomeHeroCardTests {
         #expect(source.components(separatedBy: "LinearGradient(").count == 2)
     }
 
+    @Test func uncheckedOperationTagsStayInSecondaryMetadata() throws {
+        let sourceFile = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appending(path: "Pulpe/Features/CurrentMonth/Components/UncheckedOperationsCard.swift")
+        let source = try String(contentsOf: sourceFile, encoding: .utf8)
+
+        #expect(source.contains("Text(metadataText(for: item))"))
+        #expect(!source.contains("TagChips(names: tagNames, presentation: .count)"))
+    }
+
+    @Test func loadingDashboardSkeletonMirrorsTheChartHero() throws {
+        let sourceFile = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appending(path: "Pulpe/Features/CurrentMonth/Components/CurrentMonthSkeletonView.swift")
+        let source = try String(contentsOf: sourceFile, encoding: .utf8)
+
+        #expect(source.contains("CurrentMonthHeroSkeleton()"))
+        #expect(source.contains("private var chartSkeleton: some View"))
+        #expect(source.contains("contentActionSkeleton"))
+        #expect(source.contains("uncheckedCardSkeleton"))
+        #expect(source.contains("activityCardSkeleton"))
+        #expect(!source.contains("height: DesignTokens.Skeleton.heroHeight"))
+    }
+
     @MainActor
     @Test func chartAnnotationLayoutSeparatesPlanAndDestinationAtEveryTextSize() {
         let standard = HomeHeroCard.ChartAnnotationLayout(dynamicTypeSize: .large)

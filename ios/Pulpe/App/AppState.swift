@@ -407,10 +407,8 @@ final class AppState {
 // MARK: - Tab
 
 enum Tab: String, CaseIterable, Identifiable {
-    case currentMonth = "current-month"
-    case budgets = "budgets"
-    case savingsGoals = "savings-goals"
-    case templates = "templates"
+    case currentMonth = "current-month", budgets = "budgets"
+    case savingsGoals = "savings-goals", templates = "templates"
 
     var id: String { rawValue }
 
@@ -430,10 +428,6 @@ enum Tab: String, CaseIterable, Identifiable {
         case .savingsGoals: "target"
         case .templates: "doc.text"
         }
-    }
-
-    var index: Int {
-        Self.allCases.firstIndex(of: self) ?? 0
     }
 }
 

@@ -97,6 +97,10 @@ struct ContextualCreationUITestHarness: View {
         ProcessInfo.processInfo.environment["UITEST_HOME_CHART_MATRIX"] == "1"
     }
 
+    private var isHomeSkeletonEnabled: Bool {
+        ProcessInfo.processInfo.environment["UITEST_HOME_SKELETON"] == "1"
+    }
+
     private var isShiftedPeriod: Bool {
         ProcessInfo.processInfo.environment["UITEST_CHART_PERIOD"] == "shifted"
     }
@@ -105,7 +109,10 @@ struct ContextualCreationUITestHarness: View {
     private var content: some View {
         switch scenario {
         case .contextualCreationHome:
-            if isChartMatrixEnabled {
+            if isHomeSkeletonEnabled {
+                CurrentMonthSkeletonView()
+                    .background(Color.homeHeroSurface.ignoresSafeArea())
+            } else if isChartMatrixEnabled {
                 chartMatrixContent
             } else {
                 NavigationStack {

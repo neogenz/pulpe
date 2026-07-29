@@ -20,7 +20,6 @@ struct CurrentMonthView: View {
     @State private var navigateToBudget = false
     @State private var hasAppeared = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.tabBarClearance) private var tabBarClearance
 
     private var animationPhase: Int {
         switch store.contentState {
@@ -38,7 +37,7 @@ struct CurrentMonthView: View {
     @ViewBuilder
     private var dashboardBackground: some View {
         switch store.contentState {
-        case .loaded:
+        case .idle, .loading, .loaded:
             LinearGradient(
                 stops: [
                     .init(color: .homeHeroSurfaceTop, location: 0),
@@ -49,7 +48,7 @@ struct CurrentMonthView: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
-        case .idle, .loading, .failed, .empty:
+        case .failed, .empty:
             Color.homeBackground
         }
     }
@@ -235,7 +234,7 @@ struct CurrentMonthView: View {
                 dashboardDetails
                 .frame(maxWidth: .infinity)
                 .padding(.top, DesignTokens.Spacing.lg)
-                .padding(.bottom, tabBarClearance + DesignTokens.Spacing.lg)
+                .padding(.bottom, DesignTokens.Spacing.lg)
                 .animation(DesignTokens.Animation.smoothEaseOut, value: conditionalBlocksState)
             }
         }
@@ -439,50 +438,6 @@ extension CurrentMonthView {
         // so the next foreground reschedule heals with the real pay-day.
         guard let payDay = userSettingsStore.payDayOfMonth else { return }
         await NotificationScheduler.shared.scheduleMonthlyReminder(payDay: payDay)
-    }
-}
-
-// MARK: - Skeleton
-
-private struct CurrentMonthSkeletonView: View {
-    @Environment(\.tabBarClearance) private var tabBarClearance
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: DesignTokens.Spacing.lg) {
-                // Greeting placeholder
-                HStack {
-                    SkeletonShape(
-                        width: DesignTokens.Skeleton.greetingWidth,
-                        height: DesignTokens.Skeleton.lineHeight
-                    )
-                    Spacer()
-                    SkeletonCircle(size: DesignTokens.IconSize.listRow)
-                }
-
-                // Hero card placeholder
-                SkeletonShape(
-                    height: DesignTokens.Skeleton.heroHeight,
-                    cornerRadius: DesignTokens.CornerRadius.lg
-                )
-
-                // Cards placeholders
-                ForEach(0..<2, id: \.self) { _ in
-                    VStack(spacing: DesignTokens.Spacing.sm) {
-                        ForEach(0..<2, id: \.self) { _ in
-                            SkeletonRow()
-                        }
-                    }
-                    .padding(DesignTokens.Spacing.lg)
-                    .pulpeCardBackground()
-                }
-            }
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, tabBarClearance + DesignTokens.Spacing.lg)
-        }
-        .shimmering()
-        .accessibilityLabel("Préparation de ton tableau de bord")
     }
 }
 

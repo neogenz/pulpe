@@ -129,6 +129,35 @@ private struct TemplateListSkeletonView: View {
     var body: some View {
         List {
             Section {
+                HStack(spacing: DesignTokens.Spacing.md) {
+                    SkeletonCircle(size: DesignTokens.IconSize.compact)
+
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        SkeletonShape(width: 180, height: 14)
+                        SkeletonShape(width: 240, height: 12)
+                    }
+
+                    Spacer()
+
+                    SkeletonShape(
+                        width: DesignTokens.Spacing.xs,
+                        height: DesignTokens.Spacing.md,
+                        cornerRadius: DesignTokens.CornerRadius.xs
+                    )
+                }
+                .padding(DesignTokens.Spacing.md)
+                .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.md)
+            }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(
+                top: DesignTokens.Spacing.sm,
+                leading: DesignTokens.Spacing.lg,
+                bottom: DesignTokens.Spacing.sm,
+                trailing: DesignTokens.Spacing.lg
+            ))
+            .listRowSeparator(.hidden)
+
+            Section {
                 ForEach(0..<3, id: \.self) { _ in
                     HStack {
                         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {

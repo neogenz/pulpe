@@ -9,6 +9,7 @@ struct BudgetDetailsSkeletonView: View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 heroSkeleton
+                contextualCardSkeleton
                 filterBarSkeleton
                 sectionSkeleton
             }
@@ -57,14 +58,41 @@ struct BudgetDetailsSkeletonView: View {
     // MARK: - Filter bar
 
     private var filterBarSkeleton: some View {
-        HStack(spacing: DesignTokens.Spacing.tightGap) {
-            ForEach(0..<4, id: \.self) { _ in
-                SkeletonShape(width: 96, height: 36, cornerRadius: 18)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: DesignTokens.Spacing.tightGap) {
+                SkeletonShape(width: 120, height: 36, cornerRadius: .infinity)
+
+                ForEach(0..<4, id: \.self) { _ in
+                    SkeletonShape(width: 80, height: 36, cornerRadius: .infinity)
+                }
             }
         }
-        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .contentMargins(.horizontal, DesignTokens.Spacing.lg, for: .scrollContent)
         .padding(.vertical, DesignTokens.Spacing.xs)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var contextualCardSkeleton: some View {
+        HStack(spacing: DesignTokens.Spacing.md) {
+            SkeletonCircle(size: DesignTokens.IconSize.compact)
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                SkeletonShape(width: 180, height: 14)
+                SkeletonShape(width: 240, height: 12)
+            }
+
+            Spacer()
+
+            SkeletonShape(
+                width: DesignTokens.Spacing.xs,
+                height: DesignTokens.Spacing.md,
+                cornerRadius: DesignTokens.CornerRadius.xs
+            )
+        }
+        .padding(DesignTokens.Spacing.lg)
+        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.md)
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .padding(.bottom, DesignTokens.Spacing.sm)
     }
 
     // MARK: - Section + rows

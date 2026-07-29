@@ -131,7 +131,6 @@ struct DesignTokensTests {
 
     @Test func frameHeightTokensArePositive() {
         #expect(DesignTokens.FrameHeight.button > 0)
-        #expect(DesignTokens.FrameHeight.tabBar > 0)
         #expect(DesignTokens.FrameHeight.progressBar > 0)
         #expect(DesignTokens.FrameHeight.separator > 0)
     }

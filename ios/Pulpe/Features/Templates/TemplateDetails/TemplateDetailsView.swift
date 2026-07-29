@@ -392,6 +392,7 @@ private struct TemplateDetailsSkeletonView: View {
                             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
                                 SkeletonShape(width: 120, height: 14)
                                 SkeletonShape(width: 55, height: 20, cornerRadius: DesignTokens.CornerRadius.sm)
+                                SkeletonShape(width: 72, height: 20, cornerRadius: DesignTokens.CornerRadius.sm)
                             }
                             Spacer()
                             SkeletonShape(width: 70, height: 14)
