@@ -15,6 +15,7 @@ struct SavingsGoalProgressCodableTests {
             "year": 2026,
             "state": "gap",
             "isLocked": false,
+            "hasBudget": true,
             "isProvisionable": true,
             "plannedAmount": 0,
             "confirmedAmount": 0,
@@ -39,6 +40,8 @@ struct SavingsGoalProgressCodableTests {
 
         #expect(available.isProvisionable == true)
         #expect(legacy.isProvisionable == false)
+        #expect(available.hasBudget == true)
+        #expect(legacy.hasBudget == false)
         #expect(available.isContributionEligible == true)
         #expect(legacy.isContributionEligible == true)
     }

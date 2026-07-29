@@ -25,7 +25,9 @@ struct SavingsGoalDetailViewModelTests {
         goalId: String = "g1",
         status: SavingsGoalStatus = .active,
         suggestCompletion: Bool = false,
-        linkedLineCount: Int = 2
+        linkedLineCount: Int = 2,
+        required: Decimal = 2277.78,
+        months: [SavingsGoalPlanMonth] = []
     ) -> SavingsGoalProgress {
         SavingsGoalProgress(
             goalId: goalId,
@@ -40,7 +42,7 @@ struct SavingsGoalDetailViewModelTests {
             isOverdue: false,
             pace: 2000,
             confirmedPace: 1500,
-            required: 2277.78,
+            required: required,
             projected: 36000,
             paceStatus: .behind,
             suggestCompletion: suggestCompletion,
@@ -48,7 +50,8 @@ struct SavingsGoalDetailViewModelTests {
             originalTargetAmount: nil,
             originalCurrency: nil,
             targetCurrency: nil,
-            exchangeRate: nil
+            exchangeRate: nil,
+            months: months
         )
     }
 
@@ -100,6 +103,55 @@ struct SavingsGoalDetailViewModelTests {
         #expect(viewModel.progress != nil)
         #expect(viewModel.error == nil)
         #expect(viewModel.contributionsError != nil)
+    }
+
+    @Test("recovery applies only repairable budgets with the rounded required amount")
+    func applyMissingForecasts_buildsPeriodPayload() async throws {
+        let service = MockSavingsGoalService()
+        let repairable = makePlanMonth(month: 8, state: .gap, isLocked: false, planned: 0)
+        let missingBudget = SavingsGoalPlanMonth(
+            month: 9,
+            year: 2099,
+            state: .gap,
+            isLocked: false,
+            hasBudget: false,
+            isProvisionable: true,
+            plannedAmount: 0,
+            confirmedAmount: 0,
+            plannedCumulative: 0,
+            confirmedCumulative: 0,
+            lines: []
+        )
+        let required = try #require(Decimal(string: "175.345"))
+        let progress = makeProgress(
+            required: required,
+            months: [
+                SavingsGoalPlanMonth(
+                    month: repairable.month,
+                    year: repairable.year,
+                    state: repairable.state,
+                    isLocked: repairable.isLocked,
+                    hasBudget: true,
+                    isProvisionable: true,
+                    plannedAmount: repairable.plannedAmount,
+                    confirmedAmount: repairable.confirmedAmount,
+                    plannedCumulative: repairable.plannedCumulative,
+                    confirmedCumulative: repairable.confirmedCumulative,
+                    lines: repairable.lines
+                ),
+                missingBudget,
+            ]
+        )
+        let viewModel = SavingsGoalDetailViewModel(goalId: "g1", service: service)
+
+        let succeeded = await viewModel.applyMissingForecasts(from: progress)
+        let payload = try #require(service.lastApplyPayload)
+
+        #expect(succeeded)
+        #expect(payload.monthAdjustments.isEmpty)
+        #expect(payload.missingMonthAdjustments.count == 1)
+        #expect(payload.missingMonthAdjustments.first?.month == 8)
+        #expect(payload.missingMonthAdjustments.first?.amount == Decimal(string: "175.35"))
     }
 
     @Test("changeStatus updates via the store then refetches progress (D2 path)")

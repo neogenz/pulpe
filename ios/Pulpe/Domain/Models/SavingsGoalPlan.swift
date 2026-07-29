@@ -42,7 +42,9 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
     let isLocked: Bool
     /// False for rows retained before the effective contribution start.
     let isContributionEligible: Bool
-    /// Budget absent pouvant être créé depuis une ligne liée du Mois Type.
+    /// Whether the server found a materialized budget for this period.
+    let hasBudget: Bool
+    /// Missing linked forecast that the apply endpoint can create.
     let isProvisionable: Bool
     /// Σ `line.amount` of the linked Épargne prévisions this month.
     let plannedAmount: Decimal
@@ -58,6 +60,7 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
         state: SavingsPlanMonthState,
         isLocked: Bool,
         isContributionEligible: Bool = true,
+        hasBudget: Bool = false,
         isProvisionable: Bool = false,
         plannedAmount: Decimal,
         confirmedAmount: Decimal,
@@ -70,6 +73,7 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
         self.state = state
         self.isLocked = isLocked
         self.isContributionEligible = isContributionEligible
+        self.hasBudget = hasBudget
         self.isProvisionable = isProvisionable
         self.plannedAmount = plannedAmount
         self.confirmedAmount = confirmedAmount
@@ -88,6 +92,7 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
             Bool.self,
             forKey: .isContributionEligible
         ) ?? true
+        hasBudget = try container.decodeIfPresent(Bool.self, forKey: .hasBudget) ?? false
         isProvisionable = try container.decodeIfPresent(Bool.self, forKey: .isProvisionable) ?? false
         plannedAmount = try container.decode(Decimal.self, forKey: .plannedAmount)
         confirmedAmount = try container.decode(Decimal.self, forKey: .confirmedAmount)
@@ -97,7 +102,7 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case month, year, state, isLocked, isContributionEligible, isProvisionable
+        case month, year, state, isLocked, isContributionEligible, hasBudget, isProvisionable
         case plannedAmount, confirmedAmount, plannedCumulative, confirmedCumulative, lines
     }
 
@@ -105,6 +110,10 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
     var id: Int { year * 12 + month }
 
     var period: BudgetPeriod { BudgetPeriod(month: month, year: year) }
+
+    var isRepairable: Bool {
+        lines.isEmpty && hasBudget && isProvisionable && !isLocked && isContributionEligible
+    }
 }
 
 // MARK: - Apply DTO (write path — POST /savings-goals/:id/plan)

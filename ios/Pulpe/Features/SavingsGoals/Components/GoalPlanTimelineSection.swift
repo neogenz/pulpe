@@ -31,6 +31,10 @@ struct GoalPlanTimelinePresentation {
     var remainingUnlinkedMonthCount: Int {
         months.dropFirst(currentIndex).count(where: { $0.lines.isEmpty })
     }
+
+    var repairableMonths: [SavingsGoalPlanMonth] {
+        months.dropFirst(currentIndex).filter(\.isRepairable)
+    }
 }
 
 /// « Ton plan, mois par mois » (PUL-12+, pilier B) — the read-mode timeline section
@@ -44,7 +48,9 @@ struct GoalPlanTimelineSection: View {
     let months: [SavingsGoalPlanMonth]
     let currency: SupportedCurrency
     let canAdjust: Bool
+    let canRepair: Bool
     let onAdjust: () -> Void
+    let onRepair: () -> Void
 
     @State private var isExpanded = false
 
@@ -69,6 +75,19 @@ struct GoalPlanTimelineSection: View {
                     .frame(minHeight: DesignTokens.TapTarget.minimum)
                     .textLinkButtonStyle()
                     .accessibilityLabel("Ajuster le plan")
+                }
+            }
+
+            if canRepair, !presentation.repairableMonths.isEmpty {
+                let count = presentation.repairableMonths.count
+                GoalInfoCard(
+                    icon: "calendar.badge.plus",
+                    title: "Tes nouveaux budgets sont prêts",
+                    message: "\(count) prévision(s) Épargne peuvent maintenant être ajoutées à cet objectif."
+                ) {
+                    Button("Prévisualiser", action: onRepair)
+                        .secondaryButtonStyle()
+                        .accessibilityLabel("Prévisualiser les épargnes à ajouter")
                 }
             }
 

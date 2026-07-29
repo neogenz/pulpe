@@ -31,6 +31,7 @@ struct SavingsGoalDetailView: View {
     @State private var viewModel: SavingsGoalDetailViewModel
     @State private var editTarget: SavingsGoal?
     @State private var isSimulating = false
+    @State private var showRecoveryRecap = false
     @State private var showGenerationStop = false
     @State private var generationStopCandidates: [SavingsGoalFutureLine] = []
     @State private var generationStopContext: GoalGenerationStopContext?
@@ -85,6 +86,27 @@ struct SavingsGoalDetailView: View {
                 payDayOfMonth: userSettingsStore.payDayOfMonth,
                 onUpdate: { pendingEditUpdate = $0 }
             )
+        }
+        .sheet(isPresented: $showRecoveryRecap) {
+            if let progress = viewModel.progress {
+                GoalPlanApplyRecapSheet(
+                    mode: .creation,
+                    changes: recoveryChanges(progress),
+                    verdict: recoveryVerdict(progress),
+                    currency: currency,
+                    onConfirm: {
+                        let succeeded = await viewModel.applyMissingForecasts(from: progress)
+                        guard succeeded else {
+                            if let error = viewModel.error {
+                                toastManager.show(DomainErrorLocalizer.localize(error), type: .error)
+                            }
+                            return false
+                        }
+                        await handlePlanApplied(message: "Tes épargnes ont été ajoutées")
+                        return true
+                    }
+                )
+            }
         }
         .sheet(isPresented: $showGenerationStop, onDismiss: handleGenerationStopDismiss) {
             GoalGenerationStopSheet(
@@ -143,7 +165,9 @@ struct SavingsGoalDetailView: View {
                         months: progress.months,
                         currency: currency,
                         canAdjust: canAdjust(progress),
-                        onAdjust: { isSimulating = true }
+                        canRepair: currentGoal.status == .active && progress.required != nil,
+                        onAdjust: { isSimulating = true },
+                        onRepair: { showRecoveryRecap = true }
                     )
                 }
 
@@ -186,6 +210,27 @@ struct SavingsGoalDetailView: View {
         return progress.months.contains { SavingsPlanCalculator.isContributivePlanMonth($0) }
     }
 
+    private func recoveryChanges(
+        _ progress: SavingsGoalProgress
+    ) -> [SavingsPlanCalculator.SimulatedMonth] {
+        guard let amount = progress.required?.rounded(2) else { return [] }
+        return progress.months.filter(\.isRepairable).map {
+            SavingsPlanCalculator.SimulatedMonth(
+                month: $0,
+                simulatedAmount: amount,
+                simulatedCumulative: $0.plannedCumulative + amount,
+                isAdjusted: true
+            )
+        }
+    }
+
+    private func recoveryVerdict(_ progress: SavingsGoalProgress) -> String {
+        let changes = recoveryChanges(progress)
+        let added = changes.reduce(Decimal.zero) { $0 + $1.simulatedAmount }
+        return "Après création, ta projection sera de "
+            + (progress.plannedProjection + added).asCompactCurrency(currency) + "."
+    }
+
     // MARK: - Header
 
     @ViewBuilder
@@ -222,14 +267,14 @@ private extension SavingsGoalDetailView {
     /// so every store projecting those aggregates goes stale. Invalidate them, drop
     /// the shared budget-detail cache and the goal list, then refetch this goal's
     /// progression and confirm.
-    private func handlePlanApplied() async {
+    private func handlePlanApplied(message: String = "Ton plan est à jour") async {
         currentMonthStore.invalidateCache()
         budgetListStore.invalidateCache()
         dashboardStore.invalidateCache()
         BudgetDetailCache.shared.invalidateAll()
         store.invalidateCache()
         await viewModel.load()
-        toastManager.show("Ton plan est à jour")
+        toastManager.show(message)
     }
 
     private func setStatus(_ status: SavingsGoalStatus) async {
@@ -528,6 +573,35 @@ final class SavingsGoalDetailViewModel {
             await fetchProgress(reportError: false)
         } catch {
             self.error = error
+        }
+    }
+
+    func applyMissingForecasts(from progress: SavingsGoalProgress) async -> Bool {
+        error = nil
+        guard let required = progress.required else { return false }
+        let adjustments = progress.months
+            .filter(\.isRepairable)
+            .map {
+                SavingsGoalPlanApply.MissingMonthAdjustment(
+                    month: $0.month,
+                    year: $0.year,
+                    amount: required.rounded(2)
+                )
+            }
+        guard !adjustments.isEmpty else { return false }
+
+        do {
+            _ = try await service.applyPlan(
+                id: goalId,
+                SavingsGoalPlanApply(
+                    monthAdjustments: [],
+                    missingMonthAdjustments: adjustments
+                )
+            )
+            return true
+        } catch {
+            self.error = error
+            return false
         }
     }
 

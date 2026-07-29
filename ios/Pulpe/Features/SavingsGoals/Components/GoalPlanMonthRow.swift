@@ -8,10 +8,10 @@ enum GoalPlanMonthAvailability: Equatable {
     init(month: SavingsGoalPlanMonth) {
         if !month.lines.isEmpty {
             self = .linkedForecast
-        } else if month.isProvisionable {
-            self = .missingBudget
-        } else {
+        } else if month.hasBudget {
             self = .noLinkedForecast
+        } else {
+            self = .missingBudget
         }
     }
 
@@ -20,7 +20,7 @@ enum GoalPlanMonthAvailability: Equatable {
         case .linkedForecast:
             ""
         case .noLinkedForecast:
-            "Rien de prévu ce mois"
+            "Épargne à ajouter"
         case .missingBudget:
             "Pas de budget"
         }

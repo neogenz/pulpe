@@ -7,12 +7,12 @@ struct GoalPlanTimelinePresentationTests {
     @Test("distinguishes a materialized month without a linked forecast from a missing budget")
     func distinguishesUnlinkedForecastFromMissingBudget() {
         let august = makeMonth(month: 8, state: .future, hasLinkedForecast: true)
-        let september = makeMonth(month: 9, state: .gap)
-        let november = makeMonth(month: 11, state: .gap, isProvisionable: true)
+        let september = makeMonth(month: 9, state: .gap, hasBudget: true, isProvisionable: true)
+        let november = makeMonth(month: 11, state: .gap, hasBudget: false, isProvisionable: true)
 
         #expect(GoalPlanMonthAvailability(month: august).icon == nil)
         #expect(GoalPlanMonthAvailability(month: september) == .noLinkedForecast)
-        #expect(GoalPlanMonthAvailability(month: september).label == "Rien de prévu ce mois")
+        #expect(GoalPlanMonthAvailability(month: september).label == "Épargne à ajouter")
         #expect(GoalPlanMonthAvailability(month: november) == .missingBudget)
         #expect(GoalPlanMonthAvailability(month: november).label == "Pas de budget")
     }
@@ -33,6 +33,7 @@ struct GoalPlanTimelinePresentationTests {
         #expect(collapsed.visibleMonths.map(\.month) == [7, 8, 9, 10])
         #expect(collapsed.hiddenCount == 1)
         #expect(collapsed.remainingUnlinkedMonthCount == 3)
+        #expect(collapsed.repairableMonths.map(\.month) == [11])
         #expect(expanded.visibleMonths.map(\.month) == [7, 8, 9, 10, 11])
         #expect(expanded.hiddenCount == 0)
     }
@@ -80,6 +81,7 @@ struct GoalPlanTimelinePresentationTests {
         month: Int,
         state: SavingsPlanMonthState,
         isLocked: Bool = false,
+        hasBudget: Bool = true,
         isProvisionable: Bool = false,
         hasLinkedForecast: Bool = false
     ) -> SavingsGoalPlanMonth {
@@ -99,6 +101,7 @@ struct GoalPlanTimelinePresentationTests {
             year: 2026,
             state: state,
             isLocked: isLocked,
+            hasBudget: hasBudget,
             isProvisionable: isProvisionable,
             plannedAmount: hasLinkedForecast ? 500 : 0,
             confirmedAmount: 0,
