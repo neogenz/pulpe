@@ -16,32 +16,27 @@ export const metadata: Metadata = {
 const linkClass =
   "rounded-sm font-medium text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary";
 const DEMO_URL = angularUrl("/welcome", "faq_demo");
+const SETTINGS_URL = angularUrl("/settings", "faq_delete_account");
 
 interface FaqItem {
   question: string;
-  answer: ReactNode;
+  answer?: ReactNode;
   plainAnswer: string;
 }
 
 const faqs: FaqItem[] = [
   {
     question: "À quoi sert Pulpe, concrètement ?",
-    answer:
-      "Tu poses ton année une fois, puis tu ajustes au fur et à mesure. Si tu déplaces une dépense, rediriges de l'épargne ou décales un projet, tu vois ce que ça change sur les mois suivants sans repartir de zéro.",
     plainAnswer:
       "Tu poses ton année une fois, puis tu ajustes au fur et à mesure. Si tu déplaces une dépense, rediriges de l'épargne ou décales un projet, tu vois ce que ça change sur les mois suivants sans repartir de zéro.",
   },
   {
     question: "Pourquoi Pulpe plutôt qu'Excel ?",
-    answer:
-      "Excel fait le job, mais les formules deviennent vite fragiles dès que tu bouges une ligne. Et sur mobile, c'est pénible. Pulpe garde la vue d'ensemble et recalcule la suite quand tu ajustes ton budget.",
     plainAnswer:
       "Excel fait le job, mais les formules deviennent vite fragiles dès que tu bouges une ligne. Et sur mobile, c'est pénible. Pulpe garde la vue d'ensemble et recalcule la suite quand tu ajustes ton budget.",
   },
   {
     question: "Pourquoi Pulpe ne se connecte pas à ma banque ?",
-    answer:
-      "J'aurais aimé proposer une synchronisation bancaire. Pour le faire correctement en Suisse et en France, il faut passer par des prestataires externes et gérer des contraintes réglementaires. Pour un projet que je développe seul, le soir après le boulot, le coût est trop élevé. Donc, pour l'instant, la saisie reste manuelle.",
     plainAnswer:
       "J'aurais aimé proposer une synchronisation bancaire. Pour le faire correctement en Suisse et en France, il faut passer par des prestataires externes et gérer des contraintes réglementaires. Pour un projet que je développe seul, le soir après le boulot, le coût est trop élevé. Donc, pour l'instant, la saisie reste manuelle.",
   },
@@ -103,22 +98,27 @@ const faqs: FaqItem[] = [
   },
   {
     question: "Pulpe fonctionne-t-il en Suisse et en France ?",
-    answer:
-      "Oui. Pulpe fonctionne avec les francs suisses et les euros, sur le web et sur iPhone.",
     plainAnswer:
       "Oui. Pulpe fonctionne avec les francs suisses et les euros, sur le web et sur iPhone.",
   },
   {
     question: "Comment retrouver mes budgets entre le web et l'iPhone ?",
-    answer:
-      "Connecte-toi au même compte sur les deux. Tes budgets et tes modifications sont synchronisés automatiquement.",
     plainAnswer:
       "Connecte-toi au même compte sur les deux. Tes budgets et tes modifications sont synchronisés automatiquement.",
   },
   {
     question: "Comment supprimer mon compte et mes données ?",
-    answer:
-      "Tu peux demander la suppression depuis les paramètres. Le compte est alors programmé pour être supprimé dans trois jours, ce qui te laisse ce délai pour changer d'avis. Après ça, la suppression est définitive.",
+    answer: (
+      <>
+        Tu peux demander la suppression depuis les{" "}
+        <a href={SETTINGS_URL} className={linkClass}>
+          paramètres
+        </a>
+        . Le compte est alors programmé pour être supprimé dans trois jours, ce
+        qui te laisse ce délai pour changer d&apos;avis. Après ça, la suppression
+        est définitive.
+      </>
+    ),
     plainAnswer:
       "Tu peux demander la suppression depuis les paramètres. Le compte est alors programmé pour être supprimé dans trois jours, ce qui te laisse ce délai pour changer d'avis. Après ça, la suppression est définitive.",
   },
@@ -185,7 +185,7 @@ export default function SupportPage() {
                 <AccordionItem
                   key={faq.question}
                   question={faq.question}
-                  answer={faq.answer}
+                  answer={faq.answer ?? faq.plainAnswer}
                 />
               ))}
             </div>
@@ -205,14 +205,17 @@ export default function SupportPage() {
               moi-même.
             </p>
             <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-text-secondary">
-              <a href={`mailto:${CONTACT_EMAIL}`} className={linkClass}>
+              <a
+                href={`mailto:${CONTACT_EMAIL}`}
+                className={`${linkClass} inline-flex min-h-11 items-center`}
+              >
                 {CONTACT_EMAIL}
               </a>
               <a
                 href={GITHUB_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={linkClass}
+                className={`${linkClass} inline-flex min-h-11 items-center`}
               >
                 Bug ou suggestion sur GitHub
               </a>

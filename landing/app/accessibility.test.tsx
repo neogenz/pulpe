@@ -950,6 +950,93 @@ describe("landing accessibility contracts", () => {
     );
   });
 
+  it("keeps support links accessible and answer copy canonical", () => {
+    assert.match(
+      componentSources.support,
+      /const SETTINGS_URL = angularUrl\("\/settings", "faq_delete_account"\);/,
+    );
+    assert.match(
+      componentSources.support,
+      /question: "Comment supprimer mon compte et mes données \?"[\s\S]*?href=\{SETTINGS_URL\}[\s\S]*?>\s*paramètres\s*<\/a>[\s\S]*?plainAnswer:/,
+    );
+    assert.match(componentSources.support, /answer\?: ReactNode;/);
+    assert.match(
+      componentSources.support,
+      /answer=\{faq\.answer \?\? faq\.plainAnswer\}/,
+    );
+    assert.equal(
+      componentSources.support.match(
+        /inline-flex min-h-11 items-center/g,
+      )?.length,
+      2,
+    );
+    assert.doesNotMatch(
+      componentSources.support,
+      /const linkClass\s*=\s*"[^"]*min-h-11/,
+    );
+    assert.equal(componentSources.support.match(/\n {4}answer:/g)?.length, 4);
+
+    for (const linkedAnswer of [
+      {
+        question: "Pourquoi confier mes chiffres à Pulpe ?",
+        href: "href={GITHUB_URL}",
+        facts: [
+          "Tes montants ne sont jamais stockés en clair.",
+          "deux clés conservées séparément",
+          "code source est public",
+        ],
+      },
+      {
+        question: "Est-ce que je peux essayer sans créer de compte ?",
+        href: "href={DEMO_URL}",
+        facts: [
+          "mode démo",
+          "utiliser Pulpe sans compte",
+          "sans saisir tes propres",
+        ],
+      },
+      {
+        question: "C'est vraiment gratuit ?",
+        href: "href={GITHUB_URL}",
+        facts: [
+          "Pulpe est gratuit, sans publicité ni abonnement.",
+          "projet solo",
+          "code source est public",
+        ],
+      },
+      {
+        question: "Comment supprimer mon compte et mes données ?",
+        href: "href={SETTINGS_URL}",
+        facts: [
+          "demander la suppression",
+          "paramètres",
+          "programmé pour être supprimé dans trois jours",
+          "suppression est définitive.",
+        ],
+      },
+    ]) {
+      const start = componentSources.support.indexOf(
+        `question: "${linkedAnswer.question}",`,
+      );
+      const end = componentSources.support.indexOf("\n  },", start);
+      assert.ok(start >= 0 && end > start);
+
+      const block = componentSources.support
+        .slice(start, end)
+        .replace(/\s+/g, " ");
+      const plainAnswerIndex = block.indexOf("plainAnswer:");
+      assert.ok(plainAnswerIndex > 0);
+
+      const visibleAnswer = block.slice(0, plainAnswerIndex);
+      const plainAnswer = block.slice(plainAnswerIndex);
+      assert.ok(visibleAnswer.includes(linkedAnswer.href));
+      for (const fact of linkedAnswer.facts) {
+        assert.ok(visibleAnswer.includes(fact));
+        assert.ok(plainAnswer.includes(fact));
+      }
+    }
+  });
+
   it("keeps final CTA supporting copy legible over the ambient field", () => {
     assert.match(componentSources.finalCta, /max-w-2xl[^"\n]*text-text\/80/);
     assert.doesNotMatch(
