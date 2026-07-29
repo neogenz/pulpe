@@ -2,6 +2,7 @@ import Foundation
 @testable import Pulpe
 import Testing
 
+// swiftlint:disable:next type_body_length
 struct HomeHeroCardTests {
     @Test func estimateComparison_keepsSignedMeaning() {
         let state = HomeHeroCard.PresentationState(
@@ -99,6 +100,44 @@ struct HomeHeroCardTests {
         ])
     }
 
+    @Test func trajectory_payDayPeriodIgnoresBudgetLinesCheckedBeforeItsStart() throws {
+        let trajectory = try #require(BudgetFormulas.calculateBalanceTrajectory(
+            budgetLines: [
+                try checkedExpenseLine(
+                    id: "before",
+                    amount: 25,
+                    year: 2026,
+                    month: 2,
+                    day: 26
+                ),
+                try checkedExpenseLine(
+                    id: "start",
+                    amount: 100,
+                    year: 2026,
+                    month: 2,
+                    day: 27
+                ),
+            ],
+            transactions: [
+                try checkedExpense(
+                    id: "allocated",
+                    amount: 150,
+                    budgetLineId: "start",
+                    year: 2026,
+                    month: 3,
+                    day: 1
+                ),
+            ],
+            metrics: metrics(available: 1_000, remaining: 300),
+            plannedBalance: 250,
+            budget: TestDataFactory.createBudget(month: 3, year: 2026),
+            payDayOfMonth: 27,
+            referenceDate: try date(year: 2026, month: 3, day: 1)
+        ))
+
+        #expect(trajectory.tracked.map(\.balance) == [1_000, 900, 900, 850])
+    }
+
     @Test func trajectory_firstHalfPayDayUsesTheFollowingCalendarMonth() throws {
         let trajectory = try #require(BudgetFormulas.calculateBalanceTrajectory(
             budgetLines: [],
@@ -137,17 +176,17 @@ struct HomeHeroCardTests {
 
     @MainActor
     @Test func chartDomain_containsPlanAboveBelowAndEqualToTrajectory() {
-        let above = trajectory(actual: [100, 80], projected: [80, 60], plan: 200)
+        let above = trajectory(tracked: [100, 80], remainingPlan: [80, 60], plan: 200)
         let aboveDomain = HomeHeroCard.chartYDomain(for: above)
         #expect(aboveDomain.contains(60))
         #expect(aboveDomain.contains(200))
 
-        let below = trajectory(actual: [100, 80], projected: [80, 60], plan: -100)
+        let below = trajectory(tracked: [100, 80], remainingPlan: [80, 60], plan: -100)
         let belowDomain = HomeHeroCard.chartYDomain(for: below)
         #expect(belowDomain.contains(-100))
         #expect(belowDomain.contains(100))
 
-        let flat = trajectory(actual: [50, 50], projected: [50, 50], plan: 50)
+        let flat = trajectory(tracked: [50, 50], remainingPlan: [50, 50], plan: 50)
         let flatDomain = HomeHeroCard.chartYDomain(for: flat)
         #expect(flatDomain.lowerBound < 50)
         #expect(flatDomain.upperBound > 50)
@@ -251,6 +290,7 @@ struct HomeHeroCardTests {
     private func checkedExpense(
         id: String,
         amount: Decimal,
+        budgetLineId: String? = nil,
         year: Int = 2026,
         month: Int = 7,
         day: Int
@@ -259,7 +299,7 @@ struct HomeHeroCardTests {
         return Transaction(
             id: id,
             budgetId: "july",
-            budgetLineId: nil,
+            budgetLineId: budgetLineId,
             name: id,
             amount: amount,
             kind: .expense,
@@ -271,14 +311,40 @@ struct HomeHeroCardTests {
         )
     }
 
+    private func checkedExpenseLine(
+        id: String,
+        amount: Decimal,
+        year: Int,
+        month: Int,
+        day: Int
+    ) throws -> BudgetLine {
+        let checkedAt = try date(year: year, month: month, day: day)
+        return BudgetLine(
+            id: id,
+            budgetId: "july",
+            templateLineId: nil,
+            savingsGoalId: nil,
+            name: id,
+            amount: amount,
+            kind: .expense,
+            recurrence: .fixed,
+            isManuallyAdjusted: false,
+            checkedAt: checkedAt,
+            createdAt: checkedAt,
+            updatedAt: checkedAt
+        )
+    }
+
     private func trajectory(
-        actual: [Decimal],
-        projected: [Decimal],
+        tracked: [Decimal],
+        remainingPlan: [Decimal],
         plan: Decimal
     ) -> BudgetFormulas.BalanceTrajectory {
         BudgetFormulas.BalanceTrajectory(
-            tracked: actual.enumerated().map { .init(day: $0.offset, balance: $0.element) },
-            remainingPlan: projected.enumerated().map { .init(day: $0.offset + 1, balance: $0.element) },
+            tracked: tracked.enumerated().map { .init(day: $0.offset, balance: $0.element) },
+            remainingPlan: remainingPlan.enumerated().map {
+                .init(day: $0.offset + 1, balance: $0.element)
+            },
             plannedBalance: plan,
             today: 1,
             totalDays: 2

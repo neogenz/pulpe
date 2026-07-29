@@ -98,7 +98,9 @@ extension BudgetFormulas {
         for line in budgetLines where line.kind.isOutflow && !(line.isRollover ?? false) {
             let consumed = transactionsByLineId[line.id]?
                 .reduce(Decimal.zero) { $0 + $1.amount } ?? 0
-            let wasChecked = line.checkedAt.map { $0 < endExclusive } ?? false
+            let wasChecked = line.checkedAt.map {
+                $0 >= periodStart && $0 < endExclusive
+            } ?? false
             total += wasChecked ? max(line.amount, consumed) : consumed
         }
 
