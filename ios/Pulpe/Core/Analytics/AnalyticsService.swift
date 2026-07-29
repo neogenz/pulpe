@@ -31,6 +31,15 @@ final class AnalyticsService {
     nonisolated static let nameProperty = "name"
     nonisolated static let supabaseUserIdProperty = "supabase_user_id"
 
+    static var appContextProperties: [String: Any] {
+        [
+            "environment": AppConfiguration.environment.rawValue,
+            "app_version": AppConfiguration.appVersion,
+            "build_number": AppConfiguration.buildNumber,
+            "platform": "ios"
+        ]
+    }
+
     private(set) var isInitialized = false
     private(set) var isEventCapturingEnabled = false
     /// Tracks whether `identify(userId:)` has fired in this session. Person property
@@ -50,12 +59,7 @@ final class AnalyticsService {
         config.captureApplicationLifecycleEvents = false
         PostHogSDK.shared.setup(config)
 
-        PostHogSDK.shared.register([
-            "environment": AppConfiguration.environment.rawValue,
-            "app_version": AppConfiguration.appVersion,
-            "build_number": AppConfiguration.buildNumber,
-            "platform": "ios"
-        ])
+        registerAppContext()
 
         isInitialized = true
         isEventCapturingEnabled = AppConfiguration.isPostHogEnabled
@@ -114,38 +118,42 @@ final class AnalyticsService {
             isExpectedUserAction: isExpectedUserAction
         )
         Task { @MainActor in
-            var properties: [String: Any] = [
-                "source": snapshot.source,
-                "outcome": snapshot.outcome
-            ]
-            if let status = snapshot.status {
-                properties["status"] = status
-            }
-            if let requestID = snapshot.requestID {
-                properties["request_id"] = requestID
-            }
-            if let endpoint = snapshot.endpoint {
-                properties["endpoint"] = endpoint
-            }
-            if let isRetry = snapshot.isRetry {
-                properties["is_retry"] = isRetry
-            }
-            if let storageState = snapshot.storageState {
-                properties["storage_state"] = storageState
-            }
-            if let accessTokenExpiresInSeconds = snapshot.accessTokenExpiresInSeconds {
-                properties["access_token_expires_in_seconds"] = accessTokenExpiresInSeconds
-            }
-            if let isExpectedUserAction = snapshot.isExpectedUserAction {
-                properties["is_expected_user_action"] = isExpectedUserAction
-            }
-            shared.capture(
-                .authSessionObserved,
-                properties: properties,
-                distinctID: snapshot.distinctID,
-                timestamp: snapshot.timestamp
-            )
+            shared.captureAuthSessionDiagnostic(snapshot)
         }
+    }
+
+    func captureAuthSessionDiagnostic(_ snapshot: AuthSessionDiagnosticSnapshot) {
+        var properties: [String: Any] = [
+            "source": snapshot.source,
+            "outcome": snapshot.outcome
+        ]
+        if let status = snapshot.status {
+            properties["status"] = status
+        }
+        if let requestID = snapshot.requestID {
+            properties["request_id"] = requestID
+        }
+        if let endpoint = snapshot.endpoint {
+            properties["endpoint"] = endpoint
+        }
+        if let isRetry = snapshot.isRetry {
+            properties["is_retry"] = isRetry
+        }
+        if let storageState = snapshot.storageState {
+            properties["storage_state"] = storageState
+        }
+        if let accessTokenExpiresInSeconds = snapshot.accessTokenExpiresInSeconds {
+            properties["access_token_expires_in_seconds"] = accessTokenExpiresInSeconds
+        }
+        if let isExpectedUserAction = snapshot.isExpectedUserAction {
+            properties["is_expected_user_action"] = isExpectedUserAction
+        }
+        capture(
+            .authSessionObserved,
+            properties: properties,
+            distinctID: snapshot.distinctID,
+            timestamp: snapshot.timestamp
+        )
     }
 
     nonisolated static func makeAuthSessionDiagnosticSnapshot(
@@ -211,7 +219,12 @@ final class AnalyticsService {
     func reset() {
         guard isInitialized else { return }
         PostHogSDK.shared.reset()
+        registerAppContext()
         isIdentified = false
+    }
+
+    private func registerAppContext() {
+        PostHogSDK.shared.register(Self.appContextProperties)
     }
 
     // MARK: - Feature Flags

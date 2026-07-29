@@ -52,6 +52,15 @@ struct AnalyticsServiceTests {
         #expect(snapshot.timestamp == signalTimestamp)
     }
 
+    @Test func appContextProperties_matchRuntimeConfiguration() {
+        let properties = AnalyticsService.appContextProperties
+
+        #expect(properties["environment"] as? String == AppConfiguration.environment.rawValue)
+        #expect(properties["app_version"] as? String == AppConfiguration.appVersion)
+        #expect(properties["build_number"] as? String == AppConfiguration.buildNumber)
+        #expect(properties["platform"] as? String == "ios")
+    }
+
     // MARK: - Sanitization
 
     @Test func sanitizeProperties_removesFinancialData() {

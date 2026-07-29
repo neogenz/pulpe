@@ -351,11 +351,12 @@ extension AppState {
     }
 
     func resetSession(_ scope: SessionResetScope) {
-        AnalyticsService.captureAuthSessionDiagnostic(
+        let diagnostic = AnalyticsService.makeAuthSessionDiagnosticSnapshot(
             source: "session_reset",
             outcome: scope.diagnosticOutcome,
             isExpectedUserAction: scope.isExpectedUserAction
         )
+        AnalyticsService.shared.captureAuthSessionDiagnostic(diagnostic)
         authDebug(
             "AUTH_RESET_SESSION",
             "scope=\(scope) clearsNav=\(scope.clearsNavigation) clearsUI=\(scope.clearsUIState)"

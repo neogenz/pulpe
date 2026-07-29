@@ -181,9 +181,8 @@ extension AppState {
             await enterAuthenticated(context: .directAuthenticated)
         case .unauthenticatedSessionExpired:
             authDebug("AUTH_POST_AUTH_DEST", "unauthenticatedSessionExpired")
-            recoveryFlowCoordinator.reset()
+            await handleSessionExpired()
             biometricError = "Ta session a expiré, connecte-toi avec ton mot de passe"
-            authState = .unauthenticated
         case .vaultCheckFailed:
             recoveryFlowCoordinator.reset()
             authDebug("AUTH_POST_AUTH_DEST", "vaultCheckFailed")
