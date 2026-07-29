@@ -1,32 +1,39 @@
 import SwiftUI
 
-/// PUL-17 — the "Dépense lissée → voir les mois" affordance: a dedicated Button
-/// (never a whole detail row) wrapping a tinted PulpeChip + chevron. Shared by
+/// PUL-17 — the "Prévision lissée → voir les mois" affordance. Shared by
 /// the budget-line detail page AND the transaction detail page so both surfaces
-/// of a spread expense reach the occurrences timeline in lockstep. The caller
+/// of a spread line reach the occurrences timeline in lockstep. The caller
 /// provides the action (it owns the router + the spread group id).
-///
-/// Both pages put this chip on the bare `appBackground`, where `.muted` washes out
-/// (1.04:1) — hence the semantic tint. The chevron takes no color of its own so it
-/// inherits the chip's ink.
 struct SpreadAffordanceButton: View {
+    let kind: TransactionKind
     let onTap: () -> Void
 
     var body: some View {
         Button(action: onTap) {
-            PulpeChip(
-                icon: "calendar",
-                label: "Dépense lissée",
-                style: .semantic(.financialSavings),
-                trailing: {
-                    Image(systemName: "chevron.right")
-                        .font(PulpeTypography.metricMini)
-                }
-            )
-            .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: DesignTokens.Spacing.md) {
+                Image(systemName: "calendar")
+                    .font(PulpeTypography.actionIcon)
+                    .foregroundStyle(kind.color)
+
+                Text(Self.title(for: kind))
+                    .font(PulpeTypography.listRowTitle)
+                    .foregroundStyle(Color.textPrimary)
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.textTertiary)
+                    .accessibilityHidden(true)
+            }
+            .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum, alignment: .leading)
+            .contentShape(Rectangle())
         }
-        .contentShape(Rectangle())
         .plainPressedButtonStyle()
-        .accessibilityLabel("Voir les mois de la dépense lissée")
+        .accessibilityLabel("\(Self.title(for: kind)), voir les mois")
+    }
+
+    static func title(for kind: TransactionKind) -> String {
+        "\(kind.label) lissée"
     }
 }

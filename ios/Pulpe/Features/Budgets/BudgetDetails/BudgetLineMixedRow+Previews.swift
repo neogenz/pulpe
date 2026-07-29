@@ -9,13 +9,15 @@ private extension BudgetLine {
         amount: Decimal,
         kind: TransactionKind,
         recurrence: TransactionRecurrence = .fixed,
-        isChecked: Bool = false
+        isChecked: Bool = false,
+        savingsGoalId: String? = nil,
+        spreadGroupId: UUID? = nil
     ) -> BudgetLine {
-        BudgetLine(
+        var line = BudgetLine(
             id: id,
             budgetId: "preview-budget",
             templateLineId: nil,
-            savingsGoalId: nil,
+            savingsGoalId: savingsGoalId,
             name: name,
             amount: amount,
             kind: kind,
@@ -25,11 +27,14 @@ private extension BudgetLine {
             createdAt: Date(),
             updatedAt: Date()
         )
+        line.spreadGroupId = spreadGroupId
+        return line
     }
 }
 
 private struct BudgetLineMixedRowPreviewHost: View {
     let cases: [(line: BudgetLine, consumption: BudgetFormulas.Consumption)]
+    var savingsGoalName: String?
 
     var body: some View {
         ScrollView {
@@ -40,7 +45,7 @@ private struct BudgetLineMixedRowPreviewHost: View {
                         consumption: item.consumption,
                         isSyncing: false,
                         currency: .chf,
-                        savingsGoalName: nil,
+                        savingsGoalName: savingsGoalName,
                         tagNames: [],
                         onTap: {},
                         onTogglePointed: {}
@@ -51,6 +56,18 @@ private struct BudgetLineMixedRowPreviewHost: View {
         }
         .background(Color.appBackground)
     }
+}
+
+#Preview("Saving — spread with goal") {
+    let line = BudgetLine.preview(
+        name: "Maison",
+        amount: 413,
+        kind: .saving,
+        savingsGoalId: "goal-maison",
+        spreadGroupId: UUID()
+    )
+    let consumption = BudgetFormulas.Consumption(allocated: 0, available: line.amount, percentage: 0)
+    return BudgetLineMixedRowPreviewHost(cases: [(line, consumption)], savingsGoalName: "Maison")
 }
 
 #Preview("Expense — empty (no real)") {

@@ -73,16 +73,7 @@ struct BudgetLineDetailPage: View {
                 .padding(.top, DesignTokens.Spacing.lg)
                 .padding(.bottom, DesignTokens.Spacing.md)
 
-            savingsGoalLink(for: line)
             tagChips(for: line.tagIds)
-
-            if let spreadGroupId = line.spreadGroupId {
-                SpreadAffordanceButton {
-                    router.present(.spreadOccurrences(spreadGroupId: spreadGroupId.uuidString))
-                }
-                .padding(.horizontal, DesignTokens.Spacing.lg)
-                .padding(.bottom, DesignTokens.Spacing.md)
-            }
 
             transactionsList(line: line, transactions: transactions)
         }
@@ -121,6 +112,20 @@ struct BudgetLineDetailPage: View {
                     .listRowCustomStyled(insets: EdgeInsets())
             }
             .listSectionSeparator(.hidden)
+
+            if hasSavingsGoalLink(for: line) || line.isSpread {
+                Section {
+                    savingsGoalLink(for: line)
+                        .listRowSeparator(line.isSpread ? .visible : .hidden)
+
+                    if let spreadGroupId = line.spreadGroupId {
+                        SpreadAffordanceButton(kind: line.kind) {
+                            router.present(.spreadOccurrences(spreadGroupId: spreadGroupId.uuidString))
+                        }
+                        .listRowSeparator(.hidden)
+                    }
+                }
+            }
 
             if transactions.isEmpty {
                 Section {

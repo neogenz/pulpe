@@ -57,6 +57,13 @@ struct BudgetLineMixedRow: View {
     private var isSaving: Bool { line.kind == .saving }
     private var isExpense: Bool { line.kind == .expense }
 
+    static func metadataText(isSpread: Bool, savingsGoalName: String?) -> String? {
+        var parts: [String] = []
+        if isSpread { parts.append("Lissé") }
+        if let savingsGoalName { parts.append("objectif \(savingsGoalName)") }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
     /// Hero amount shown on the right — kind-aware semantics (spec §2.6):
     /// expenses surface the *remaining* envelope (the actionable info), while
     /// income/saving surface the *real* received/transferred amount (mental
@@ -179,28 +186,28 @@ struct BudgetLineMixedRow: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
             KindTagInline(kind: line.kind)
 
-            if line.isSpread {
-                PulpeChip(icon: "calendar", label: "Lissé", style: .semantic(.financialSavings))
-                    .accessibilityLabel("Dépense lissée")
-            }
-
-            if line.isSavingsWithdrawalIncome {
-                PulpeChip(icon: TransactionKind.savingsIcon, label: "pris sur ton épargne", style: .muted)
-                    .accessibilityLabel("Revenu pris sur ton épargne")
-            }
-
-            if let savingsGoalName {
-                PulpeChip(icon: "target", label: savingsGoalName, style: .semantic(.financialSavings))
-                    .lineLimit(1)
-                    .accessibilityLabel("Objectif : \(savingsGoalName)")
-            }
-
             Text(line.name)
                 .font(PulpeTypography.listRowTitle)
                 .foregroundStyle(Color.textPrimary)
                 .strikethrough(isPointed, color: Color.textTertiary)
                 .lineLimit(1)
                 .truncationMode(.tail)
+
+            if let metadata = Self.metadataText(
+                isSpread: line.isSpread,
+                savingsGoalName: savingsGoalName
+            ) {
+                Text(metadata)
+                    .font(PulpeTypography.labelMedium)
+                    .foregroundStyle(Color.textTertiary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+
+            if line.isSavingsWithdrawalIncome {
+                PulpeChip(icon: TransactionKind.savingsIcon, label: "pris sur ton épargne", style: .muted)
+                    .accessibilityLabel("Revenu pris sur ton épargne")
+            }
 
             if !tagNames.isEmpty {
                 TagChips(names: tagNames, presentation: .count)
@@ -340,6 +347,10 @@ struct BudgetLineMixedRow: View {
         let pointed = isPointed ? "Pointé" : "À pointer"
         let amount = displayAmount.asCurrency(currency)
         let tags = tagNames.isEmpty ? "" : " · Tags : \(tagNames.joined(separator: ", "))"
-        return "\(kindWord) · \(line.name) · \(amount) · \(pointed)\(tags)"
+        let metadata = Self.metadataText(
+            isSpread: line.isSpread,
+            savingsGoalName: savingsGoalName
+        ).map { " · \($0)" } ?? ""
+        return "\(kindWord) · \(line.name)\(metadata) · \(amount) · \(pointed)\(tags)"
     }
 }

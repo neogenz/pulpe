@@ -13,12 +13,12 @@ extension BudgetLineDetailPage {
         }
     }
 
-    /// Tappable "Objectif : <name>" chip shown on a saving prévision that is
+    /// Tappable "Objectif : <name>" row shown on a saving prévision that is
     /// linked to a savings goal. Pushes the goal's progression detail through
     /// the router (the budget stack registers `SavingsGoalDestination`).
     ///
     /// Renders nothing for non-saving lines, unlinked lines, or while the
-    /// goals cache hasn't resolved the id yet — the chip appears once
+    /// goals cache hasn't resolved the id yet — the row appears once
     /// `SavingsGoalStore` loads (graceful fallback, no placeholder flash).
     @ViewBuilder
     func savingsGoalLink(for line: BudgetLine) -> some View {
@@ -28,23 +28,35 @@ extension BudgetLineDetailPage {
             Button {
                 router.pushSavingsGoal(goal)
             } label: {
-                PulpeChip(
-                    icon: "target",
-                    label: "Objectif : \(goal.name)",
-                    style: .semantic(.financialSavings),
-                    trailing: {
-                        Image(systemName: "chevron.right")
-                            .font(PulpeTypography.metricMini)
-                    }
-                )
-                .lineLimit(1)
+                HStack(spacing: DesignTokens.Spacing.md) {
+                    Image(systemName: "target")
+                        .font(PulpeTypography.actionIcon)
+                        .foregroundStyle(Color.financialSavings)
+
+                    Text("Objectif : \(goal.name)")
+                        .font(PulpeTypography.listRowTitle)
+                        .foregroundStyle(Color.textPrimary)
+                        .lineLimit(1)
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(Color.textTertiary)
+                        .accessibilityHidden(true)
+                }
+                .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum, alignment: .leading)
+                .contentShape(Rectangle())
             }
             .plainPressedButtonStyle()
             .accessibilityLabel("Objectif d'épargne : \(goal.name)")
             .accessibilityHint("Touche pour ouvrir l'objectif")
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.bottom, DesignTokens.Spacing.md)
         }
+    }
+
+    func hasSavingsGoalLink(for line: BudgetLine) -> Bool {
+        line.kind == .saving
+            && line.savingsGoalId.flatMap(linkedGoal(id:)) != nil
     }
 
     /// Resolves the linked goal from the app-level cache, or `nil` if the id is
