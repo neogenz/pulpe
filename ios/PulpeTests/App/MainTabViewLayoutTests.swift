@@ -116,6 +116,37 @@ struct MainTabViewNavigationOwnershipTests {
         #expect(source.contains("AddTransactionSheet("))
         #expect(source.contains("onAdd: store.addTransaction"))
     }
+
+    @Test("Current Month transaction action fills its declared hit area")
+    func currentMonthTransactionActionFillsHitArea() throws {
+        let source = try Self.read(
+            "Pulpe",
+            "Features",
+            "CurrentMonth",
+            "CurrentMonthView.swift"
+        )
+        guard let start = source.range(of: #"Button("Ajouter une opération""#),
+              let end = source.range(
+                  of: #".accessibilityLabel("Ajouter une opération")"#,
+                  range: start.upperBound..<source.endIndex
+              )
+        else {
+            Issue.record("Missing Current Month transaction action")
+            return
+        }
+
+        let action = source[start.lowerBound..<end.upperBound]
+        guard let frame = action.range(of: "minHeight: DesignTokens.TapTarget.minimum"),
+              let contentShape = action.range(of: ".contentShape(Rectangle())"),
+              let pressedStyle = action.range(of: ".plainPressedButtonStyle()")
+        else {
+            Issue.record("Transaction action must declare its frame, content shape and pressed style")
+            return
+        }
+
+        #expect(frame.lowerBound < contentShape.lowerBound)
+        #expect(contentShape.lowerBound < pressedStyle.lowerBound)
+    }
 }
 
 /// Bar top above the physical bottom + the content spacing — the clearance to

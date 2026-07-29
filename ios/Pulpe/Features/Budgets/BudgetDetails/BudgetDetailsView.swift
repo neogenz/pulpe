@@ -126,12 +126,12 @@ struct BudgetDetailsView: View {
                 }
                 .accessibilityLabel("Suivi du budget")
 
-                Button {
-                    router.present(.addBudgetLine)
-                } label: {
-                    Image(systemName: "plus")
+                if screenState.isBudgetPresent {
+                    Button { router.present(.addBudgetLine) } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel("Ajouter une prévision")
                 }
-                .accessibilityLabel("Ajouter une prévision")
             }
         }
         // Scroll-independent month navigation (system title chevron). The sticky

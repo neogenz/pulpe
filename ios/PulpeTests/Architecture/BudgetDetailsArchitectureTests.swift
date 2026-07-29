@@ -287,6 +287,10 @@ struct BudgetDetailsArchitectureTests {
 
         #expect(source.contains("ToolbarItemGroup(placement: .topBarTrailing)"))
         #expect(source.contains("router.present(.addBudgetLine)"))
+        #expect(source.range(
+            of: #"if\s+screenState\.isBudgetPresent\s*\{\s*Button\s*\{\s*router\.present\(\.addBudgetLine\)"#,
+            options: .regularExpression
+        ) != nil)
         #expect(source.contains(#".accessibilityLabel("Ajouter une prévision")"#))
         #expect(!source.contains(".overlay(alignment: .bottomTrailing)"))
         #expect(!FileManager.default.fileExists(atPath: fabPath))

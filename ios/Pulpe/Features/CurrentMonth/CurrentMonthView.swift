@@ -251,10 +251,10 @@ struct CurrentMonthView: View {
                     .font(PulpeTypography.labelLarge)
                     .foregroundStyle(Color.pulpePrimary)
                     .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum, alignment: .leading)
+                    .contentShape(Rectangle())
                     .plainPressedButtonStyle()
                     .accessibilityLabel("Ajouter une opération")
             }
-
             // Opérations à pointer — only while something needs checking
             if !store.uncheckedItems.isEmpty {
                 UncheckedOperationsCard(
