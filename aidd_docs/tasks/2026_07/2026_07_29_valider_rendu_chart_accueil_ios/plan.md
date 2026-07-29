@@ -1,6 +1,6 @@
 ---
 objective: "Le chart de l’accueil est prouvé sans collision ni troncature sur les huit combinaisons de thème, taille de texte et période budgétaire."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Valider le rendu du chart de l’accueil iOS
