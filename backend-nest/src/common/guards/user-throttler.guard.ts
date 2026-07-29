@@ -97,7 +97,7 @@ export class UserThrottlerGuard extends ThrottlerGuard {
 
       if (error || !user) return undefined;
 
-      if (user.user_metadata?.scheduledDeletionAt) {
+      if (user.app_metadata?.scheduledDeletionAt) {
         return undefined;
       }
 

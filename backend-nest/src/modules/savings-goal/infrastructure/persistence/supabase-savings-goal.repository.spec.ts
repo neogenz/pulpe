@@ -539,16 +539,16 @@ describe('SupabaseSavingsGoalRepository', () => {
     expect('initial_amount' in (captured ?? {})).toBe(false);
   });
 
-  it('clears the encrypted target and all FX metadata in the same patch', async () => {
-    let captured: Record<string, unknown> | undefined;
+  it('validates the vault before replacing or clearing the encrypted target', async () => {
+    const captured: Record<string, unknown>[] = [];
     const provider = createMockProvider(() => ({
       update: (row: Record<string, unknown>) => {
-        captured = row;
+        captured.push(row);
         return {
           eq: () => ({
             select: () => ({
               single: jest.fn().mockResolvedValue({
-                data: { ...mockRow, target_amount: null },
+                data: { ...mockRow, target_amount: row.target_amount },
                 error: null,
               }),
             }),
@@ -556,20 +556,25 @@ describe('SupabaseSavingsGoalRepository', () => {
         };
       },
     }));
-    const repo = new SupabaseSavingsGoalRepository(
-      provider,
-      createMockEncryption(),
-    );
+    const encryption = createMockEncryption();
+    const repo = new SupabaseSavingsGoalRepository(provider, encryption);
 
     await repo.update('goal-1', { targetAmount: null });
+    await repo.update('goal-1', { targetAmount: 6000 });
 
-    expect(captured).toMatchObject({
+    expect(captured[0]).toMatchObject({
       target_amount: null,
       original_target_amount: null,
       original_currency: null,
       target_currency: null,
       exchange_rate: null,
     });
+    expect(captured[1]?.target_amount).toBe('enc:6000');
+    expect(encryption.ensureUserDEK).toHaveBeenCalledWith(
+      mockUser.id,
+      mockUser.clientKey,
+    );
+    expect(encryption.ensureUserDEK).toHaveBeenCalledTimes(2);
   });
 
   it('update maps real database errors to SAVINGS_GOAL_UPDATE_FAILED', async () => {

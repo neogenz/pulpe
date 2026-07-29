@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { Request } from 'express';
@@ -10,6 +15,13 @@ import type { SupabaseClient } from '@/types/supabase-helpers';
 import { SKIP_CLIENT_KEY } from '@common/decorators/skip-client-key.decorator';
 import { resolvePayDayOfMonth } from '@common/utils/pay-day';
 import { ClsService } from 'nestjs-cls';
+import {
+  ENCRYPTION_PORT,
+  type EncryptionPort,
+} from '@modules/encryption/encryption.tokens';
+import { ALLOW_VAULT_BOOTSTRAP } from '@common/decorators/allow-vault-bootstrap.decorator';
+
+const SAFE_HTTP_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 interface RequestWithCache extends Request {
   __throttlerUserCache?: AuthenticatedUser | null;
@@ -25,11 +37,17 @@ export class AuthGuard implements CanActivate {
     private readonly supabaseService: SupabaseService,
     private readonly reflector: Reflector,
     private readonly cls: ClsService,
+    @Inject(ENCRYPTION_PORT)
+    private readonly encryption: EncryptionPort,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const skipClientKey = this.reflector.getAllAndOverride<boolean>(
       SKIP_CLIENT_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+    const allowVaultBootstrap = this.reflector.getAllAndOverride<boolean>(
+      ALLOW_VAULT_BOOTSTRAP,
       [context.getHandler(), context.getClass()],
     );
 
@@ -41,17 +59,28 @@ export class AuthGuard implements CanActivate {
     }
 
     if (request.__throttlerUserCache) {
-      return this.authenticateWithCache(request, accessToken, skipClientKey);
+      return this.authenticateWithCache(
+        request,
+        accessToken,
+        skipClientKey,
+        allowVaultBootstrap,
+      );
     }
 
-    return this.authenticateWithSupabase(request, accessToken, skipClientKey);
+    return this.authenticateWithSupabase(
+      request,
+      accessToken,
+      skipClientKey,
+      allowVaultBootstrap,
+    );
   }
 
-  private authenticateWithCache(
+  private async authenticateWithCache(
     request: RequestWithCache,
     accessToken: string,
     skipClientKey: boolean,
-  ): boolean {
+    allowVaultBootstrap: boolean,
+  ): Promise<boolean> {
     try {
       const cachedUser = request.__throttlerUserCache;
       if (!cachedUser?.id) {
@@ -68,12 +97,13 @@ export class AuthGuard implements CanActivate {
 
       const clientKey = this.#resolveClientKey(request, skipClientKey);
       const authenticatedUser = { ...cachedUser, accessToken, clientKey };
-      request.user = authenticatedUser;
-      request.supabase = supabase;
-      this.cls.set('user', authenticatedUser);
-      this.cls.set('supabase', supabase);
-
-      return true;
+      return this.#finishAuthentication(
+        request,
+        authenticatedUser,
+        supabase,
+        skipClientKey,
+        allowVaultBootstrap,
+      );
     } catch (error) {
       if (error instanceof BusinessException) {
         throw error;
@@ -86,6 +116,7 @@ export class AuthGuard implements CanActivate {
     request: RequestWithCache,
     accessToken: string,
     skipClientKey: boolean,
+    allowVaultBootstrap: boolean,
   ): Promise<boolean> {
     try {
       const supabase =
@@ -100,7 +131,7 @@ export class AuthGuard implements CanActivate {
         throw new BusinessException(ERROR_DEFINITIONS.AUTH_TOKEN_INVALID);
       }
 
-      if (user.user_metadata?.scheduledDeletionAt) {
+      if (user.app_metadata?.scheduledDeletionAt) {
         throw new BusinessException(ERROR_DEFINITIONS.USER_ACCOUNT_BLOCKED);
       }
 
@@ -116,12 +147,13 @@ export class AuthGuard implements CanActivate {
         payDayOfMonth: resolvePayDayOfMonth(user.user_metadata),
       };
 
-      request.user = authenticatedUser;
-      request.supabase = supabase;
-      this.cls.set('user', authenticatedUser);
-      this.cls.set('supabase', supabase);
-
-      return true;
+      return this.#finishAuthentication(
+        request,
+        authenticatedUser,
+        supabase,
+        skipClientKey,
+        allowVaultBootstrap,
+      );
     } catch (error) {
       if (error instanceof BusinessException) {
         throw error;
@@ -144,6 +176,35 @@ export class AuthGuard implements CanActivate {
     return skipClientKey
       ? Buffer.alloc(32, 0)
       : this.#extractClientKey(request);
+  }
+
+  async #finishAuthentication(
+    request: RequestWithCache,
+    user: AuthenticatedUser,
+    supabase: SupabaseClient,
+    skipClientKey: boolean,
+    allowVaultBootstrap: boolean,
+  ): Promise<boolean> {
+    const method = request.method?.toUpperCase();
+    if (
+      method &&
+      !SAFE_HTTP_METHODS.has(method) &&
+      !skipClientKey &&
+      !allowVaultBootstrap
+    ) {
+      try {
+        await this.encryption.ensureUserDEK(user.id, user.clientKey);
+      } catch (error) {
+        user.clientKey.fill(0);
+        throw error;
+      }
+    }
+
+    request.user = user;
+    request.supabase = supabase;
+    this.cls.set('user', user);
+    this.cls.set('supabase', supabase);
+    return true;
   }
 
   #extractClientKey(request: RequestWithCache): Buffer {

@@ -53,11 +53,21 @@ public struct PulpeAuthStorage: AuthLocalStorage {
         case errSecItemNotFound:
             break
         default:
+            AnalyticsService.captureAuthSessionDiagnostic(
+                source: "keychain_write",
+                outcome: "update_failed",
+                status: Int(updateStatus)
+            )
             let deleteStatus = SecItemDelete(baseQuery as CFDictionary)
             Logger.auth.warning(
                 "PulpeAuthStorage update failed (\(updateStatus)), delete=\(deleteStatus) for key: \(key)"
             )
             guard deleteStatus == errSecSuccess || deleteStatus == errSecItemNotFound else {
+                AnalyticsService.captureAuthSessionDiagnostic(
+                    source: "keychain_write",
+                    outcome: "fallback_delete_failed",
+                    status: Int(deleteStatus)
+                )
                 // Preserve original failure cause (update) — delete was best-effort cleanup.
                 throw PulpeAuthStorageError.storeFailed(updateStatus)
             }
@@ -75,6 +85,11 @@ public struct PulpeAuthStorage: AuthLocalStorage {
         // re-inserted the item between our SecItemDelete and SecItemAdd. Treat
         // as success — the slot now holds a more recent value than ours would.
         guard addStatus == errSecSuccess || addStatus == errSecDuplicateItem else {
+            AnalyticsService.captureAuthSessionDiagnostic(
+                source: "keychain_write",
+                outcome: "add_failed",
+                status: Int(addStatus)
+            )
             throw PulpeAuthStorageError.storeFailed(addStatus)
         }
     }
@@ -97,6 +112,11 @@ public struct PulpeAuthStorage: AuthLocalStorage {
         case errSecItemNotFound:
             return nil
         default:
+            AnalyticsService.captureAuthSessionDiagnostic(
+                source: "keychain_read",
+                outcome: "failed",
+                status: Int(status)
+            )
             throw PulpeAuthStorageError.retrieveFailed(status)
         }
     }
@@ -110,6 +130,11 @@ public struct PulpeAuthStorage: AuthLocalStorage {
 
         let status = SecItemDelete(query as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else {
+            AnalyticsService.captureAuthSessionDiagnostic(
+                source: "keychain_remove",
+                outcome: "failed",
+                status: Int(status)
+            )
             throw PulpeAuthStorageError.removeFailed(status)
         }
     }

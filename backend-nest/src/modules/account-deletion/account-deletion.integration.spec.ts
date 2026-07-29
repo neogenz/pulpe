@@ -10,6 +10,10 @@ import {
   type PostHogPersonDeletionPort,
 } from './domain/ports/posthog-person-deletion.port';
 import type { Database } from '../../types/database.types';
+import {
+  ensureSupabaseAvailable,
+  IS_DEDICATED_INTEGRATION_RUN,
+} from '@/test/local-supabase';
 
 const stubPostHogPort: PostHogPersonDeletionPort = {
   deletePerson: async () => ({ ok: true, statusCode: 202 }),
@@ -17,27 +21,8 @@ const stubPostHogPort: PostHogPersonDeletionPort = {
 
 const FOUR_DAYS_MS = 4 * 24 * 60 * 60 * 1000;
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-async function isSupabaseReachable(): Promise<boolean> {
-  if (!supabaseUrl || !serviceRoleKey) return false;
-  try {
-    const client = createClient<Database>(supabaseUrl, serviceRoleKey);
-    const { error } = await client.auth.admin.listUsers({ perPage: 1 });
-    return !error;
-  } catch {
-    return false;
-  }
-}
-
-let hasSupabase = false;
-
-beforeAll(async () => {
-  hasSupabase = await isSupabaseReachable();
-});
-
 describe('AccountDeletionService Integration', () => {
+  let hasSupabase = false;
   let useCase: CleanupExpiredDeletionsUseCase;
   let adminClient: SupabaseClient<Database>;
   let testUserId: string;
@@ -46,9 +31,16 @@ describe('AccountDeletionService Integration', () => {
   let testTransactionId: string;
 
   beforeAll(async () => {
-    if (!hasSupabase) return;
+    const env = await ensureSupabaseAvailable().catch((error) => {
+      if (IS_DEDICATED_INTEGRATION_RUN) throw error;
+      return null;
+    });
+    if (!env) return;
 
-    adminClient = createClient<Database>(supabaseUrl!, serviceRoleKey!);
+    process.env.SUPABASE_URL = env.apiUrl;
+    process.env.SUPABASE_ANON_KEY = env.anonKey;
+    process.env.SUPABASE_SERVICE_ROLE_KEY = env.serviceRoleKey;
+    adminClient = createClient<Database>(env.apiUrl, env.serviceRoleKey);
 
     const moduleRef = await Test.createTestingModule({
       imports: [
@@ -83,7 +75,7 @@ describe('AccountDeletionService Integration', () => {
       email: `integration-test-${testUserId}@test.local`,
       password: 'test-password-123',
       email_confirm: true,
-      user_metadata: {
+      app_metadata: {
         scheduledDeletionAt,
       },
     });
@@ -147,6 +139,8 @@ describe('AccountDeletionService Integration', () => {
         `Failed to create test transaction: ${transactionError.message}`,
       );
     }
+
+    hasSupabase = true;
   });
 
   afterAll(async () => {

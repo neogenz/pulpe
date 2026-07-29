@@ -15,7 +15,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "Mes montants sont-ils protégés ?",
-    a: "Oui. Tes montants ne sont jamais stockés en clair. Pour les déchiffrer, il faut deux clés conservées séparément, dont une dérivée de ton code PIN. Une fuite de la base seule ne suffit donc pas à les lire. Le code source est public.",
+    a: "Oui. Tes montants ne sont jamais stockés en clair. Ils sont chiffrés en base avec AES-256-GCM. Ils sont déchiffrés côté serveur pendant tes requêtes authentifiées grâce à deux clés conservées séparément, dont une dérivée de ton code PIN. Une fuite de la base seule ne suffit donc pas à les lire. Tes montants et libellés financiers ne sont ni transmis à des fins publicitaires ni revendus. Le code source est public.",
   },
   {
     q: "Pourquoi pas de connexion à ma banque ?",

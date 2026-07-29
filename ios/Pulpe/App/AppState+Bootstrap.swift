@@ -9,6 +9,7 @@ extension AppState {
         guard !isBootstrapped else { return }
         isBootstrapped = true
         await clearKeychainIfReinstalled()
+        await authService.clearLegacyBiometricTokens()
         if !returningUserFlagLoaded {
             hasReturningUser = await keychainManager.getLastUsedEmail() != nil
             returningUserFlagLoaded = true
@@ -48,47 +49,14 @@ extension AppState {
 
         let startupContext = StartupCoordinator.StartupContext(
             biometricEnabled: biometric.isEnabled,
-            didExplicitLogout: flagsStore.didExplicitLogout,
             manualBiometricRetryRequired: flagsStore.manualBiometricRetryRequired
         )
         let bio = startupContext.biometricEnabled
-        let logout = startupContext.didExplicitLogout
         let retry = startupContext.manualBiometricRetryRequired
-        authDebug("AUTH_STARTUP_CONTEXT", "bio=\(bio) logout=\(logout) retry=\(retry)")
+        authDebug("AUTH_STARTUP_CONTEXT", "bio=\(bio) retry=\(retry)")
         let startupResult = await startupCoordinator.start(context: startupContext)
         authDebug("AUTH_STARTUP_DONE", "result=\(startupResult)")
         await applyStartupResult(startupResult)
-    }
-
-    func applyColdStartResult(_ result: SessionLifecycleCoordinator.ColdStartResult) async {
-        authDebug("AUTH_COLD_START_RESULT", "result=\(result)")
-        switch result {
-        case .biometricAuthenticated(let user, _):
-            currentUser = user
-            await resolvePostAuth(user: user)
-            AnalyticsService.shared.capture(.loginCompleted, properties: ["method": "biometric"])
-        case .regularSession(let user):
-            await resolvePostAuth(user: user)
-        case .unauthenticated:
-            // No tokens at all — biometric preference is stale, disable to hide the button
-            if biometricEnabled {
-                authDebug("AUTH_COLD_START_RESULT", "no session — clearing stale biometric preference")
-                await biometric.disable()
-            }
-            await ensureReturningUserFlagLoaded()
-            authState = .unauthenticated
-        case .networkError(let message):
-            biometricError = message
-            await ensureReturningUserFlagLoaded()
-            authState = .unauthenticated
-        case .biometricSessionExpired:
-            biometricError = "Ta session a expir\u{00E9}, connecte-toi avec ton mot de passe"
-            await ensureReturningUserFlagLoaded()
-            authState = .unauthenticated
-        case .cancelled:
-            // Face ID prompt dismissed/failed — stay on the login screen, keep credentials.
-            break
-        }
     }
 
     func clearKeychainIfReinstalled() async {
@@ -101,7 +69,6 @@ extension AppState {
         biometric.hydrate(false)
         hasReturningUser = false
         returningUserFlagLoaded = true
-        clearExplicitLogoutFlag()
         clearManualBiometricRetryRequiredFlag()
 
         flagsStore.setHasLaunchedBefore()
@@ -122,6 +89,7 @@ extension AppState {
             currentUser = user
             await applyPostAuthDestination(destination, user: user)
         case .unauthenticated:
+            AnalyticsService.captureAuthSessionDiagnostic(source: "startup_result", outcome: "unauthenticated")
             isNetworkUnavailable = false
             isInMaintenance = false
             await ensureReturningUserFlagLoaded()
@@ -131,11 +99,15 @@ extension AppState {
             isInMaintenance = true
             authState = .loading
         case .networkError(let message):
+            AnalyticsService.captureAuthSessionDiagnostic(source: "startup_result", outcome: "network_error")
             isNetworkUnavailable = true
             isInMaintenance = false
             biometricError = message
             authState = .loading
         case .biometricSessionExpired:
+            AnalyticsService.captureAuthSessionDiagnostic(
+                source: "startup_result", outcome: "biometric_session_expired"
+            )
             isNetworkUnavailable = false
             isInMaintenance = false
             biometricError = "Ta session a expiré, connecte-toi avec ton mot de passe"
@@ -145,6 +117,7 @@ extension AppState {
             // No-op: a superseding startup run is in progress.
             break
         case .timeout:
+            AnalyticsService.captureAuthSessionDiagnostic(source: "startup_result", outcome: "timeout")
             isNetworkUnavailable = true
             isInMaintenance = false
             biometricError = "Le chargement a pris trop de temps, réessaie"

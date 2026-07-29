@@ -1,7 +1,11 @@
-import { provideZonelessChangeDetection } from '@angular/core';
+import {
+  Directive,
+  Input,
+  provideZonelessChangeDetection,
+} from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { AmountsVisibilityService } from '@core/amounts-visibility/amounts-visibility.service';
-import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
+import { BaseChartDirective } from 'ng2-charts';
 import type { TagHistoryMonth } from 'pulpe-shared';
 import { describe, expect, it } from 'vitest';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
@@ -11,6 +15,16 @@ import {
   buildTagHistoryChartOptions,
   TagHistoryChart,
 } from './tag-history-chart';
+
+// Mirrors ng2-charts' third-party selector so the privacy markup can be
+// rendered without requiring a canvas implementation in jsdom.
+// eslint-disable-next-line @angular-eslint/directive-selector
+@Directive({ selector: 'canvas[baseChart]' })
+class StubBaseChartDirective {
+  @Input() data: unknown;
+  @Input() options: unknown;
+  @Input() type: unknown;
+}
 
 const periods: TagHistoryMonth[] = [
   { month: 5, year: 2026, plannedAmount: 100, actualAmount: 80 },
@@ -49,15 +63,19 @@ describe('TagHistoryChart', () => {
     expect(tick?.call({} as never, 120, 0, [])).toBe('•');
   });
 
-  it('removes monetary values from the accessible sentence when hidden', () => {
-    TestBed.configureTestingModule({
+  it('removes monetary values from the accessible sentence when hidden', async () => {
+    await TestBed.configureTestingModule({
       imports: [TagHistoryChart],
       providers: [
         provideZonelessChangeDetection(),
-        provideCharts(withDefaultRegisterables()),
         ...provideTranslocoForTest(),
       ],
-    });
+    })
+      .overrideComponent(TagHistoryChart, {
+        remove: { imports: [BaseChartDirective] },
+        add: { imports: [StubBaseChartDirective] },
+      })
+      .compileComponents();
     const fixture = TestBed.createComponent(TagHistoryChart);
     const component = fixture.componentInstance;
     setTestInput(component.periods, periods);
@@ -66,10 +84,15 @@ describe('TagHistoryChart', () => {
     setTestInput(component.totalActual, 200);
     setTestInput(component.monthlyAverageActual, 66.67);
     TestBed.inject(AmountsVisibilityService).toggle();
+    fixture.detectChanges();
 
     expect(component.ariaSentence()).toContain('Courses');
     expect(component.ariaSentence()).toContain('montants sont masqués');
     expect(component.ariaSentence()).not.toContain('200');
     expect(component.ariaSentence()).not.toContain('CHF');
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="tag-history-aria"]')
+        ?.classList,
+    ).toContain('ph-no-capture');
   });
 });

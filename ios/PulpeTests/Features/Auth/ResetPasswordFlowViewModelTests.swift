@@ -13,7 +13,7 @@ private let resetPasswordTestContext = PasswordRecoveryContext(
 struct ResetPasswordFlowViewModelTests {
     private let callbackURL = {
         guard let url = URL(
-            string: "pulpe://reset-password#access_token=test&refresh_token=test&type=recovery"
+            string: "https://app.pulpe.app/reset-password#access_token=test&refresh_token=test&type=recovery"
         ) else {
             fatalError("callbackURL is invalid")
         }

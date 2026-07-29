@@ -44,9 +44,12 @@ const faqs: FaqItem[] = [
     question: "Pourquoi confier mes chiffres à Pulpe ?",
     answer: (
       <>
-        Tes montants ne sont jamais stockés en clair. Pour les déchiffrer, il
-        faut deux clés conservées séparément, dont une dérivée de ton code PIN.
-        Une fuite de la base seule ne suffit donc pas à les lire. Le{" "}
+        Tes montants ne sont jamais stockés en clair. Ils sont chiffrés en base
+        avec AES-256-GCM. Ils sont déchiffrés côté serveur pendant tes requêtes
+        authentifiées grâce à deux clés conservées séparément, dont une dérivée
+        de ton code PIN. Une fuite de la base seule ne suffit donc pas à les
+        lire. Tes montants et libellés financiers ne sont ni transmis à des fins
+        publicitaires ni revendus. Le{" "}
         <a
           href={GITHUB_URL}
           target="_blank"
@@ -59,7 +62,7 @@ const faqs: FaqItem[] = [
       </>
     ),
     plainAnswer:
-      "Tes montants ne sont jamais stockés en clair. Pour les déchiffrer, il faut deux clés conservées séparément, dont une dérivée de ton code PIN. Une fuite de la base seule ne suffit donc pas à les lire. Le code source est public, tu peux vérifier son fonctionnement au lieu de me croire sur parole.",
+      "Tes montants ne sont jamais stockés en clair. Ils sont chiffrés en base avec AES-256-GCM. Ils sont déchiffrés côté serveur pendant tes requêtes authentifiées grâce à deux clés conservées séparément, dont une dérivée de ton code PIN. Une fuite de la base seule ne suffit donc pas à les lire. Tes montants et libellés financiers ne sont ni transmis à des fins publicitaires ni revendus. Le code source est public, tu peux vérifier son fonctionnement au lieu de me croire sur parole.",
   },
   {
     question: "Est-ce que je peux essayer sans créer de compte ?",
@@ -114,13 +117,16 @@ const faqs: FaqItem[] = [
         <a href={SETTINGS_URL} className={linkClass}>
           paramètres
         </a>
-        . Le compte est alors programmé pour être supprimé dans trois jours, ce
-        qui te laisse ce délai pour changer d&apos;avis. Après ça, la suppression
-        est définitive.
+        . Le compte et tes données sont alors programmés pour être supprimés
+        dans trois jours, ce qui te laisse ce délai pour changer d&apos;avis.
+        Passé ce délai, ils sont supprimés des systèmes actifs. Des copies
+        peuvent subsister temporairement dans les sauvegardes techniques, puis
+        expirent selon la politique de rétention du fournisseur
+        d&apos;hébergement.
       </>
     ),
     plainAnswer:
-      "Tu peux demander la suppression depuis les paramètres. Le compte est alors programmé pour être supprimé dans trois jours, ce qui te laisse ce délai pour changer d'avis. Après ça, la suppression est définitive.",
+      "Tu peux demander la suppression depuis les paramètres. Le compte et tes données sont alors programmés pour être supprimés dans trois jours, ce qui te laisse ce délai pour changer d'avis. Passé ce délai, ils sont supprimés des systèmes actifs. Des copies peuvent subsister temporairement dans les sauvegardes techniques, puis expirent selon la politique de rétention du fournisseur d'hébergement.",
   },
 ];
 

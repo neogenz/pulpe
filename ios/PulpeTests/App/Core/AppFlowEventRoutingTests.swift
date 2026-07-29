@@ -21,7 +21,6 @@ struct AppFlowEventRoutingTests {
         AppState(
             postAuthResolver: MockPostAuthResolver(destination: .authenticated(needsRecoveryKeyConsent: false)),
             biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
-            syncBiometricCredentials: { false },
             resolveBiometricKey: { nil }
         )
     }
@@ -31,7 +30,6 @@ struct AppFlowEventRoutingTests {
         let sut = AppState(
             postAuthResolver: MockPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false)),
             biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
-            syncBiometricCredentials: { false },
             resolveBiometricKey: { nil }
         )
         await sut.resolvePostAuth(user: testUser)
@@ -44,7 +42,6 @@ struct AppFlowEventRoutingTests {
         let sut = AppState(
             postAuthResolver: MockPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false)),
             biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
-            syncBiometricCredentials: { false },
             resolveBiometricKey: { nil }
         )
         await sut.resolvePostAuth(user: testUser)

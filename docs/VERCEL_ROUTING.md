@@ -13,6 +13,8 @@ pulpe.app/                    → Landing page (Next.js) — Projet Vercel "pulp
 └── /ph/*                     → Reverse proxy PostHog
 
 app.pulpe.app/                → Angular SPA — Projet Vercel "pulpe-frontend"
+├── /.well-known/apple-app-site-association → Association universal link iOS
+├── /reset-password           → Reset Angular ou app iOS
 ├── /welcome, /signup         → Auth flow
 ├── /dashboard                → Dashboard principal
 ├── /budget, /settings        → Features Angular
@@ -61,7 +63,7 @@ pnpm build:shared && turbo build --filter=pulpe-frontend && pnpm --filter=pulpe-
 ]
 ```
 
-Le routing des pages (`/`, `/support`, `/changelog`, `/legal/*`) est géré nativement par Next.js — pas besoin de rewrites.
+Le routing des pages (`/`, `/support`, `/changelog`, `/legal/*`) est géré nativement par Next.js.
 
 ### Headers de sécurité
 
@@ -111,7 +113,9 @@ Le routing des pages (`/`, `/support`, `/changelog`, `/legal/*`) est géré nati
 
 ### Headers de sécurité
 
-Identiques à ceux de la landing (voir ci-dessus).
+Les headers communs restent alignés avec la landing. Le frontend ajoute
+`Content-Type: application/json` sur
+`/.well-known/apple-app-site-association`.
 
 ## PostHog Reverse Proxy
 
@@ -126,9 +130,13 @@ Les deux projets proxifient les requêtes PostHog via Vercel pour contourner les
 
 Les deux SDKs ajoutent aussi `ui_host: 'https://eu.posthog.com'` pour la toolbar PostHog.
 
-### Cross-subdomain tracking
+### Isolation des identités
 
-Les deux apps utilisent `cross_subdomain_cookie: true` pour partager le cookie PostHog sur `*.pulpe.app`, permettant de suivre le parcours landing → app comme une seule session.
+Les deux apps utilisent `cross_subdomain_cookie: false` et des
+`persistence_name` distincts. La landing et l'app authentifiée ne partagent donc
+ni `distinct_id`, ni appareil, ni session. Les anciens cookies partagés sont
+expirés avant l'initialisation du SDK. Les CTA conservent uniquement leurs
+paramètres UTM dans l'URL.
 
 ## Ignored Build Step
 
@@ -145,6 +153,10 @@ GET pulpe.app/
 
 GET pulpe.app/support
   → Next.js → Page support
+
+GET app.pulpe.app/reset-password
+  → App iOS si l’association est active
+  → Sinon Angular affiche le parcours de reset
 
 GET app.pulpe.app/welcome
   → Catch-all → /index.html → Angular SPA

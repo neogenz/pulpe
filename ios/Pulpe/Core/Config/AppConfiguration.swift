@@ -40,7 +40,7 @@ enum AppConfiguration {
     // MARK: - Auth Redirects
 
     static var passwordResetRedirectURL: URL {
-        guard let url = URL(string: "pulpe://reset-password") else {
+        guard let url = URL(string: "https://app.pulpe.app/reset-password") else {
             fatalError("passwordResetRedirectURL is invalid")
         }
         return url
@@ -73,6 +73,10 @@ enum AppConfiguration {
 
     static var isPostHogEnabled: Bool {
         optionalValue(for: "POSTHOG_ENABLED") == "true"
+    }
+
+    static var isPostHogSessionReplayEnabled: Bool {
+        optionalValue(for: "POSTHOG_SESSION_REPLAY_ENABLED") == "true"
     }
 
     // MARK: - App Info
@@ -168,6 +172,8 @@ enum AppConfiguration {
         case "POSTHOG_HOST":
             return "https://eu.i.posthog.com"
         case "POSTHOG_ENABLED":
+            return "false"
+        case "POSTHOG_SESSION_REPLAY_ENABLED":
             return "false"
         case "GOOGLE_CLIENT_ID":
             return "test-google-client-id"

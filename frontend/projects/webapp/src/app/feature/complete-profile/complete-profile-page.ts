@@ -424,7 +424,11 @@ import {
                 <!-- Screen-reader-only live announcement: only the changing "Disponible"
                      value, so VoiceOver/NVDA polite-announce the delta when the user
                      toggles a chip or edits an amount. -->
-                <span class="sr-only" role="status" aria-live="polite">
+                <span
+                  class="ph-no-capture sr-only"
+                  role="status"
+                  aria-live="polite"
+                >
                   {{ liveBudgetAnnouncement() }}
                 </span>
 

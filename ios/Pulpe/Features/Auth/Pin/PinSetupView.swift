@@ -195,7 +195,7 @@ final class PinSetupViewModel {
     private var errorResetTask: Task<Void, Never>?
     private let cryptoService: any PinCryptoKeyDerivation
     private let encryptionAPI: any PinEncryptionSetup
-    private let clientKeyManager: any PinClientKeyStorage
+    private let clientKeyManager: any PinClientKeySetupStorage
 
     // MARK: - Init
 
@@ -203,7 +203,7 @@ final class PinSetupViewModel {
         mode: PinSetupMode = .chooseAndSetupRecovery,
         cryptoService: any PinCryptoKeyDerivation = CryptoService.shared,
         encryptionAPI: any PinEncryptionSetup = EncryptionAPI.shared,
-        clientKeyManager: any PinClientKeyStorage = ClientKeyManager.shared
+        clientKeyManager: any PinClientKeySetupStorage = ClientKeyManager.shared
     ) {
         self.mode = mode
         self.cryptoService = cryptoService
@@ -260,27 +260,31 @@ final class PinSetupViewModel {
         let pin = digits.map(String.init).joined()
 
         do {
-            let result = try await PinValidation.deriveValidateAndStore(
+            if mode == .enterExistingPin {
+                _ = try await PinValidation.deriveValidateAndStore(
+                    pin: pin,
+                    cryptoService: cryptoService,
+                    encryptionAPI: encryptionAPI,
+                    clientKeyManager: clientKeyManager
+                )
+                completeWithSuccess(showRecovery: false)
+                return
+            }
+
+            let result = try await PinValidation.derive(
                 pin: pin,
                 cryptoService: cryptoService,
-                encryptionAPI: encryptionAPI,
-                clientKeyManager: clientKeyManager
+                encryptionAPI: encryptionAPI
             )
+            await clientKeyManager.store(result.clientKeyHex, enableBiometric: false)
 
-            // For existing PIN mode, skip recovery key setup
-            if mode == .enterExistingPin {
-                completeWithSuccess(showRecovery: false)
-                return
+            let key: String
+            do {
+                key = try await encryptionAPI.setupRecoveryKey()
+            } catch {
+                await clientKeyManager.clearSession()
+                throw error
             }
-
-            // Skip recovery setup if user already has one (edge case: vault-status 404)
-            guard !result.saltResponse.hasRecoveryKey else {
-                Logger.encryption.info("Skipping recovery key setup — user already has one")
-                completeWithSuccess(showRecovery: false)
-                return
-            }
-
-            let key = try await encryptionAPI.setupRecoveryKey()
             recoveryKey = key
             completeWithSuccess(showRecovery: true)
         } catch let apiError as APIError {

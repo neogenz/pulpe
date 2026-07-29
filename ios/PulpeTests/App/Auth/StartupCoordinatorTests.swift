@@ -1,4 +1,4 @@
-// swiftlint:disable file_length type_body_length
+// swiftlint:disable file_length
 import Foundation
 @testable import Pulpe
 import Testing
@@ -11,23 +11,15 @@ struct StartupCoordinatorTests {
 
     private func makeCoordinator(
         checkMaintenance: (@Sendable () async throws -> Bool)? = nil,
-        validateBiometricSession: (@Sendable () async throws -> BiometricSessionResult?)? = nil,
         validateRegularSession: (@Sendable () async throws -> UserInfo?)? = nil,
         resolvePostAuth: (@Sendable () async -> PostAuthDestination)? = nil,
-        validateBiometricKey: (@Sendable (String) async -> Bool)? = nil,
-        storeSessionClientKey: (@Sendable (String) async -> Void)? = nil,
-        clearStaleBiometricState: (@Sendable () async -> Void)? = nil,
         clearExpiredBiometricState: (@Sendable () async -> Void)? = nil,
         timeout: Duration = StartupCoordinator.defaultTimeout
     ) -> StartupCoordinator {
         StartupCoordinator(
             checkMaintenance: checkMaintenance ?? { false },
-            validateBiometricSession: validateBiometricSession ?? { nil },
             validateRegularSession: validateRegularSession ?? { nil },
             resolvePostAuth: resolvePostAuth ?? { .authenticated(needsRecoveryKeyConsent: false) },
-            validateBiometricKey: validateBiometricKey ?? { _ in true },
-            storeSessionClientKey: storeSessionClientKey ?? { _ in },
-            clearStaleBiometricState: clearStaleBiometricState ?? {},
             clearExpiredBiometricState: clearExpiredBiometricState ?? {},
             timeout: timeout
         )
@@ -35,12 +27,10 @@ struct StartupCoordinatorTests {
 
     private func makeContext(
         biometricEnabled: Bool = false,
-        didExplicitLogout: Bool = false,
         manualBiometricRetryRequired: Bool = false
     ) -> StartupCoordinator.StartupContext {
         StartupCoordinator.StartupContext(
             biometricEnabled: biometricEnabled,
-            didExplicitLogout: didExplicitLogout,
             manualBiometricRetryRequired: manualBiometricRetryRequired
         )
     }
@@ -71,76 +61,17 @@ struct StartupCoordinatorTests {
         }
     }
 
-    @Test func start_withValidBiometricSession_returnsAuthenticated() async {
-        let biometricResult = BiometricSessionResult(user: testUser, clientKeyHex: "key123")
-        let sut = makeCoordinator(
-            validateBiometricSession: { biometricResult },
-            resolvePostAuth: { .needsPinEntry(needsRecoveryKeyConsent: false) }
-        )
-
-        // PUL-132: biometric path runs only on explicit-logout cold-start.
-        let result = await sut.start(context: makeContext(biometricEnabled: true, didExplicitLogout: true))
-
-        if case .authenticated(let user, let destination) = result {
-            #expect(user.id == testUser.id)
-            #expect(destination == .needsPinEntry(needsRecoveryKeyConsent: false))
-        } else {
-            Issue.record("Expected authenticated result")
-        }
-    }
-
-    @Test func start_biometricDisabled_skipsbiometricValidation() async {
-        let biometricCalled = AtomicFlag()
-        let sut = makeCoordinator(
-            validateBiometricSession: {
-                biometricCalled.set()
-                return nil
-            },
-            validateRegularSession: { [testUser] in testUser }
-        )
-
-        _ = await sut.start(context: makeContext(biometricEnabled: false))
-
-        #expect(biometricCalled.value == false)
-    }
-
-    /// PUL-132: gating semantics inverted — biometric-keychain validation now runs
-    /// ONLY on explicit-logout cold-start (re-entry path). Normal cold-start with
-    /// biometric enabled relies on the SDK-restored session via PulpeAuthStorage.
-    @Test func start_noExplicitLogout_missingSession_clearsStaleBiometricCredentials() async {
-        let biometricCalled = AtomicFlag()
+    @Test func start_missingSession_withBiometric_clearsStaleBiometricCredentials() async {
         let expiredHandled = AtomicFlag()
         let sut = makeCoordinator(
-            validateBiometricSession: {
-                biometricCalled.set()
-                return nil
-            },
             validateRegularSession: { nil },
             clearExpiredBiometricState: { expiredHandled.set() }
         )
 
-        let result = await sut.start(context: makeContext(biometricEnabled: true, didExplicitLogout: false))
+        let result = await sut.start(context: makeContext(biometricEnabled: true))
 
-        #expect(biometricCalled.value == false,
-                "PUL-132: biometric slot must not be read on non-logout cold-start")
         #expect(result == .biometricSessionExpired)
         #expect(expiredHandled.value == true)
-    }
-
-    @Test func start_explicitLogout_runsBiometricValidation() async {
-        let biometricCalled = AtomicFlag()
-        let sut = makeCoordinator(
-            validateBiometricSession: {
-                biometricCalled.set()
-                return nil
-            },
-            resolvePostAuth: { .unauthenticatedSessionExpired }
-        )
-
-        _ = await sut.start(context: makeContext(biometricEnabled: true, didExplicitLogout: true))
-
-        #expect(biometricCalled.value == true,
-                "PUL-132: explicit-logout cold-start triggers biometric re-entry path")
     }
 
     @Test func start_maintenance_returnsMaintenance() async {
@@ -181,11 +112,10 @@ struct StartupCoordinatorTests {
 
     @Test func start_networkError_returnsNetworkError() async {
         let sut = makeCoordinator(
-            validateBiometricSession: { throw URLError(.notConnectedToInternet) }
+            validateRegularSession: { throw URLError(.notConnectedToInternet) }
         )
 
-        // PUL-132: biometric path runs only on explicit-logout cold-start.
-        let result = await sut.start(context: makeContext(biometricEnabled: true, didExplicitLogout: true))
+        let result = await sut.start(context: makeContext())
 
         if case .networkError = result {
             // Success
@@ -194,34 +124,33 @@ struct StartupCoordinatorTests {
         }
     }
 
-    @Test func start_biometricSessionExpired_returnsExpiredResult() async {
+    @Test func start_missingSession_withBiometric_returnsExpiredResult() async {
         let expiredHandled = AtomicFlag()
         let sut = makeCoordinator(
-            validateBiometricSession: { throw AuthServiceError.biometricSessionExpired },
+            validateRegularSession: { nil },
             clearExpiredBiometricState: {
                 expiredHandled.set()
             }
         )
 
-        // PUL-132: biometric path requires didExplicitLogout=true.
-        let result = await sut.start(context: makeContext(biometricEnabled: true, didExplicitLogout: true))
+        let result = await sut.start(context: makeContext(biometricEnabled: true))
 
         #expect(result == .biometricSessionExpired)
         #expect(expiredHandled.value == true)
     }
 
-    @Test func start_unknownBiometricError_returnsNetworkErrorWithoutClearingCredentials() async {
+    @Test func start_unknownSessionError_returnsNetworkErrorWithoutClearingCredentials() async {
         struct UnknownStartupError: Error {}
 
         let expiredHandled = AtomicFlag()
         let sut = makeCoordinator(
-            validateBiometricSession: { throw UnknownStartupError() },
+            validateRegularSession: { throw UnknownStartupError() },
             clearExpiredBiometricState: {
                 expiredHandled.set()
             }
         )
 
-        let result = await sut.start(context: makeContext(biometricEnabled: true, didExplicitLogout: true))
+        let result = await sut.start(context: makeContext(biometricEnabled: true))
 
         if case .networkError = result {
             // Expected retry state.
@@ -229,48 +158,6 @@ struct StartupCoordinatorTests {
             Issue.record("Expected .networkError, got \(result)")
         }
         #expect(expiredHandled.value == false)
-    }
-
-    @Test func start_staleBiometricKey_clearsStaleState_andAuthenticates() async {
-        let staleHandled = AtomicFlag()
-        let storedKey = AtomicProperty<String?>(nil)
-        let biometricResult = BiometricSessionResult(user: testUser, clientKeyHex: "stale-key")
-        let sut = makeCoordinator(
-            validateBiometricSession: { biometricResult },
-            validateBiometricKey: { _ in false },
-            storeSessionClientKey: { key in
-                storedKey.set(key)
-            },
-            clearStaleBiometricState: {
-                staleHandled.set()
-            }
-        )
-
-        let result = await sut.start(context: makeContext(biometricEnabled: true, didExplicitLogout: true))
-
-        if case .authenticated(let user, _) = result {
-            #expect(user.id == testUser.id)
-        } else {
-            Issue.record("Expected authenticated result when biometric session is valid")
-        }
-        #expect(staleHandled.value == true)
-        #expect(storedKey.value == nil, "Stale biometric key must not be persisted in session keychain")
-    }
-
-    @Test func start_validBiometricKey_persistsSessionKey() async {
-        let storedKey = AtomicProperty<String?>(nil)
-        let biometricResult = BiometricSessionResult(user: testUser, clientKeyHex: "valid-key")
-        let sut = makeCoordinator(
-            validateBiometricSession: { biometricResult },
-            validateBiometricKey: { _ in true },
-            storeSessionClientKey: { key in
-                storedKey.set(key)
-            }
-        )
-
-        _ = await sut.start(context: makeContext(biometricEnabled: true, didExplicitLogout: true))
-
-        #expect(storedKey.value == "valid-key")
     }
 
     @Test func start_manualBiometricRetryRequired_returnsUnauthenticated() async {
@@ -493,14 +380,12 @@ struct StartupCoordinatorTimeoutTests {
 
     private func makeCoordinator(
         checkMaintenance: (@Sendable () async throws -> Bool)? = nil,
-        validateBiometricSession: (@Sendable () async throws -> BiometricSessionResult?)? = nil,
         validateRegularSession: (@Sendable () async throws -> UserInfo?)? = nil,
         resolvePostAuth: (@Sendable () async -> PostAuthDestination)? = nil,
         timeout: Duration
     ) -> StartupCoordinator {
         StartupCoordinator(
             checkMaintenance: checkMaintenance ?? { false },
-            validateBiometricSession: validateBiometricSession ?? { nil },
             validateRegularSession: validateRegularSession ?? { nil },
             resolvePostAuth: resolvePostAuth ?? { .authenticated(needsRecoveryKeyConsent: false) },
             timeout: timeout
@@ -509,12 +394,10 @@ struct StartupCoordinatorTimeoutTests {
 
     private func makeContext(
         biometricEnabled: Bool = false,
-        didExplicitLogout: Bool = false,
         manualBiometricRetryRequired: Bool = false
     ) -> StartupCoordinator.StartupContext {
         StartupCoordinator.StartupContext(
             biometricEnabled: biometricEnabled,
-            didExplicitLogout: didExplicitLogout,
             manualBiometricRetryRequired: manualBiometricRetryRequired
         )
     }
@@ -631,151 +514,17 @@ struct StartupCoordinatorTimeoutTests {
         }
     }
 
-    @Test func start_biometricEnabled_doesNotTimeout() async {
-        let testUser = UserInfo(id: "bio-timeout", email: "bio@pulpe.app", firstName: "Bio")
-        let biometricResult = BiometricSessionResult(user: testUser, clientKeyHex: "key123")
-
-        let sut = makeCoordinator(
-            validateBiometricSession: {
-                // Simulate slow FaceID (user not holding phone)
-                try await Task.sleep(for: .milliseconds(300))
-                return biometricResult
-            },
-            timeout: .milliseconds(100) // Timeout shorter than biometric
-        )
-
-        // PUL-132: biometric path requires didExplicitLogout=true.
-        let result = await sut.start(
-            context: makeContext(biometricEnabled: true, didExplicitLogout: true)
-        )
-
-        // Should NOT timeout — biometric path skips the startup timeout
-        if case .authenticated(let user, _) = result {
-            #expect(user.id == testUser.id)
-        } else {
-            Issue.record("Expected authenticated (biometric should bypass timeout), got \(result)")
-        }
-    }
-
-    /// PUL-132: with didExplicitLogout=false, biometric path is SKIPPED, regular
-    /// validation runs and is subject to the startup timeout.
-    @Test func start_biometricEnabled_noExplicitLogout_stillTimesOut() async {
+    @Test func start_biometricEnabled_stillTimesOut() async {
         let sut = makeCoordinator(
             validateRegularSession: {
-                // Hang longer than the timeout
                 try await Task.sleep(for: .seconds(10))
                 return nil
             },
             timeout: .milliseconds(100)
         )
 
-        // biometricEnabled but no explicit logout → biometric path skipped → regular
-        // validation runs → subject to timeout.
-        let result = await sut.start(
-            context: makeContext(biometricEnabled: true, didExplicitLogout: false)
-        )
+        let result = await sut.start(context: makeContext(biometricEnabled: true))
 
         #expect(result == .timeout)
-    }
-}
-
-// MARK: - Biometric Dismiss Tests
-
-@Suite(.serialized)
-struct StartupCoordinatorBiometricDismissTests {
-    private func makeCoordinator(
-        validateBiometricSession: @escaping @Sendable () async throws -> BiometricSessionResult?,
-        clearExpiredBiometricState: @escaping @Sendable () async -> Void
-    ) -> StartupCoordinator {
-        StartupCoordinator(
-            checkMaintenance: { false },
-            validateBiometricSession: validateBiometricSession,
-            validateRegularSession: { nil },
-            resolvePostAuth: { .authenticated(needsRecoveryKeyConsent: false) },
-            clearExpiredBiometricState: clearExpiredBiometricState
-        )
-    }
-
-    // PUL-132: biometric path runs ONLY on explicit-logout cold-start, so these
-    // dismiss-scenario tests must set didExplicitLogout=true to actually exercise
-    // the biometric error handling code paths.
-    @Test func start_biometricUserCanceled_noRegularSession_returnsUnauthenticated() async {
-        let expiredHandled = AtomicFlag()
-        let sut = makeCoordinator(
-            validateBiometricSession: { throw KeychainError.userCanceled },
-            clearExpiredBiometricState: { expiredHandled.set() }
-        )
-
-        let context = StartupCoordinator.StartupContext(
-            biometricEnabled: true, didExplicitLogout: true, manualBiometricRetryRequired: false
-        )
-        let result = await sut.start(context: context)
-
-        #expect(result == .unauthenticated, "No regular session → unauthenticated")
-        #expect(expiredHandled.value == false, "Biometric state must NOT be cleared on user cancel")
-    }
-
-    @Test func start_biometricAuthFailed_noRegularSession_returnsUnauthenticated() async {
-        let expiredHandled = AtomicFlag()
-        let sut = makeCoordinator(
-            validateBiometricSession: { throw KeychainError.authFailed },
-            clearExpiredBiometricState: { expiredHandled.set() }
-        )
-
-        let context = StartupCoordinator.StartupContext(
-            biometricEnabled: true, didExplicitLogout: true, manualBiometricRetryRequired: false
-        )
-        let result = await sut.start(context: context)
-
-        #expect(result == .unauthenticated, "No regular session → unauthenticated")
-        #expect(expiredHandled.value == false, "Biometric state must NOT be cleared on auth failure")
-    }
-
-    // MARK: - Biometric Failure + Regular Session Fallback
-
-    @Test func start_biometricUserCanceled_withRegularSession_fallsBackToAuthenticated() async {
-        let user = UserInfo(id: "test", email: "test@pulpe.app", firstName: "Test")
-        let sut = StartupCoordinator(
-            checkMaintenance: { false },
-            validateBiometricSession: { throw KeychainError.userCanceled },
-            validateRegularSession: { user },
-            resolvePostAuth: { .needsPinEntry(needsRecoveryKeyConsent: false) },
-            clearExpiredBiometricState: { }
-        )
-
-        let context = StartupCoordinator.StartupContext(
-            biometricEnabled: true, didExplicitLogout: true, manualBiometricRetryRequired: false
-        )
-        let result = await sut.start(context: context)
-
-        if case .authenticated(let resultUser, let destination) = result {
-            #expect(resultUser.id == "test")
-            #expect(destination == .needsPinEntry(needsRecoveryKeyConsent: false))
-        } else {
-            Issue.record("Expected .authenticated with regular session fallback, got \(result)")
-        }
-    }
-
-    @Test func start_biometricAuthFailed_withRegularSession_fallsBackToAuthenticated() async {
-        let user = UserInfo(id: "test", email: "test@pulpe.app", firstName: "Test")
-        let sut = StartupCoordinator(
-            checkMaintenance: { false },
-            validateBiometricSession: { throw KeychainError.authFailed },
-            validateRegularSession: { user },
-            resolvePostAuth: { .needsPinEntry(needsRecoveryKeyConsent: false) },
-            clearExpiredBiometricState: { }
-        )
-
-        let context = StartupCoordinator.StartupContext(
-            biometricEnabled: true, didExplicitLogout: true, manualBiometricRetryRequired: false
-        )
-        let result = await sut.start(context: context)
-
-        if case .authenticated(let resultUser, let destination) = result {
-            #expect(resultUser.id == "test")
-            #expect(destination == .needsPinEntry(needsRecoveryKeyConsent: false))
-        } else {
-            Issue.record("Expected .authenticated with regular session fallback, got \(result)")
-        }
     }
 }

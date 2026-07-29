@@ -214,7 +214,7 @@ describe('AuthSessionService', () => {
       ...mockSession,
       user: {
         ...mockSession.user,
-        user_metadata: { scheduledDeletionAt: deletionDate },
+        app_metadata: { scheduledDeletionAt: deletionDate },
       },
     };
 
@@ -243,6 +243,34 @@ describe('AuthSessionService', () => {
         [SCHEDULED_DELETION_PARAMS.DATE]: deletionDate,
       },
     });
+  });
+
+  it('should ignore user_metadata scheduledDeletionAt on SIGNED_IN', async () => {
+    const clientOwnedDeletion: Session = {
+      ...mockSession,
+      user: {
+        ...mockSession.user,
+        app_metadata: {},
+        user_metadata: {
+          scheduledDeletionAt: '2020-01-01T00:00:00.000Z',
+        },
+      },
+    };
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    });
+    const callback = captureAuthStateChangeCallback(mockSupabaseClient);
+
+    await service.initializeAuthState();
+    mockAuthStore.set.mockClear();
+    callback('SIGNED_IN', clientOwnedDeletion);
+
+    expect(mockAuthStore.set).toHaveBeenCalledWith({
+      phase: 'authenticated',
+      session: clientOwnedDeletion,
+    });
+    expect(mockRouter.navigate).not.toHaveBeenCalled();
   });
 
   it('should update auth state on SIGNED_IN event', async () => {

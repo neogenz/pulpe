@@ -76,7 +76,6 @@ struct AppStateFlowBridgeTests {
         let sut = AppState(
             postAuthResolver: MockPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false)),
             biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
-            syncBiometricCredentials: { false },
             resolveBiometricKey: { nil },
             nowProvider: { now }
         )

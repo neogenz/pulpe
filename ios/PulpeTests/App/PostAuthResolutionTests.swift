@@ -9,6 +9,18 @@ import Testing
 struct PostAuthResolutionRouterTests {
     private let user = UserInfo(id: "user-1", email: "test@pulpe.app", firstName: "Max")
 
+    @Test("post-auth diagnostics never serialize associated user state")
+    func postAuthDiagnosticOutcomes_areStableLabels() {
+        #expect(PostAuthDestination.needsPinSetup.diagnosticOutcome == "needs_pin_setup")
+        #expect(PostAuthDestination.needsPinEntry(needsRecoveryKeyConsent: true).diagnosticOutcome == "needs_pin_entry")
+        #expect(PostAuthDestination.authenticated(needsRecoveryKeyConsent: true).diagnosticOutcome == "authenticated")
+        #expect(
+            PostAuthDestination.unauthenticatedSessionExpired.diagnosticOutcome
+                == "unauthenticated_session_expired"
+        )
+        #expect(PostAuthDestination.vaultCheckFailed.diagnosticOutcome == "vault_check_failed")
+    }
+
     private func makeBiometricPreferenceStore(initial: Bool) -> BiometricPreferenceStore {
         BiometricPreferenceStore(
             keychain: StubBiometricPreferenceKeychain(initial: initial),
@@ -16,8 +28,8 @@ struct PostAuthResolutionRouterTests {
         )
     }
 
-    private func waitForSilentBiometricSync(
-        _ spy: SilentBiometricSyncSpy,
+    private func waitForBiometricClientKeyStore(
+        _ spy: BiometricClientKeyStoreSpy,
         expectedCalls: Int
     ) async {
         for _ in 0..<30 {
@@ -347,15 +359,15 @@ struct PostAuthResolutionRouterTests {
         #expect(await authSpy.callCount() == 0)
     }
 
-    @Test("existing biometric preference silently refreshes credentials after PIN entry")
-    func biometricPreferenceEnabled_silentRefreshAfterPinEntry() async {
+    @Test("existing biometric preference restores the protected client key after PIN entry")
+    func biometricPreferenceEnabled_restoresClientKeyAfterPinEntry() async {
         let resolver = StubPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false))
-        let syncSpy = SilentBiometricSyncSpy()
+        let keyStoreSpy = BiometricClientKeyStoreSpy()
         let sut = AppState(
             postAuthResolver: resolver,
             biometricPreferenceStore: makeBiometricPreferenceStore(initial: true),
-            syncBiometricCredentials: {
-                await syncSpy.recordCallAndReturnTrue()
+            storeBiometricKey: {
+                await keyStoreSpy.recordCallAndReturnTrue()
             }
         )
 
@@ -367,8 +379,8 @@ struct PostAuthResolutionRouterTests {
         await sut.completePinEntry()
         #expect(sut.authState == .authenticated)
 
-        await waitForSilentBiometricSync(syncSpy, expectedCalls: 1)
-        #expect(await syncSpy.callCount() == 1)
+        await waitForBiometricClientKeyStore(keyStoreSpy, expectedCalls: 1)
+        #expect(await keyStoreSpy.callCount() == 1)
     }
 
     @Test("inconsistent authenticated path prioritizes recovery consent over biometric enrollment")
@@ -794,7 +806,7 @@ private actor BiometricAuthenticateSpy {
     }
 }
 
-private actor SilentBiometricSyncSpy {
+private actor BiometricClientKeyStoreSpy {
     private var calls = 0
 
     func recordCallAndReturnTrue() -> Bool {

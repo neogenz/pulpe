@@ -29,6 +29,8 @@ struct PulpeApp: App {
     @State private var whatsNewStore = WhatsNewStore()
 
     init() {
+        AnalyticsService.shared.initialize()
+
         let appState = AppState()
         let currentMonthStore = CurrentMonthStore()
         let budgetListStore = BudgetListStore()
@@ -89,7 +91,6 @@ struct PulpeApp: App {
             .datastoreLocation(.applicationDefault)
         ])
         BackgroundTaskService.shared.registerTasks()
-        AnalyticsService.shared.initialize()
     }
 
     @Environment(\.scenePhase) private var scenePhase
@@ -184,36 +185,32 @@ struct PulpeApp: App {
     }
 
     private func handleDeepLink(_ url: URL) {
-        if url.scheme == "pulpe" {
-            let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-
-            switch url.host {
-            case "reset-password":
-                deepLinkDestination = .resetPassword(url: url)
-            case "add-expense":
-                let budgetId = components?.queryItems?.first { $0.name == "budgetId" }?.value
-                if let budgetId, UUID(uuidString: budgetId) == nil {
-                    Logger.app.warning("Deep link: invalid UUID for add-expense budgetId=\(budgetId)")
-                    break
-                }
-                deepLinkDestination = .addExpense(budgetId: budgetId)
-            case "budget":
-                if let budgetId = components?.queryItems?.first(where: { $0.name == "id" })?.value,
-                   UUID(uuidString: budgetId) != nil {
-                    deepLinkDestination = .viewBudget(budgetId: budgetId)
-                } else {
-                    Logger.app.warning("Deep link: invalid or missing UUID for budget path")
-                }
-            default:
-                Logger.app.warning("Deep link: unrecognized host=\(url.host ?? "nil")")
+        if let destination = DeepLinkDestination.resolve(url) {
+            switch destination {
+            case .addExpense:
+                AnalyticsService.captureAuthSessionDiagnostic(
+                    source: "deep_link",
+                    outcome: "widget_add_expense_received"
+                )
+            case .viewBudget:
+                AnalyticsService.captureAuthSessionDiagnostic(
+                    source: "deep_link",
+                    outcome: "widget_budget_received"
+                )
+            case .resetPassword:
+                break
             }
+            deepLinkDestination = destination
             return
         }
 
         // OAuth callbacks (Google Sign-In) — only forward matching scheme
         if url.scheme?.hasPrefix("com.googleusercontent.apps") == true {
             GIDSignIn.sharedInstance.handle(url)
+            return
         }
+
+        Logger.app.warning("Deep link rejected")
     }
 }
 
@@ -313,11 +310,7 @@ struct RootView: View {
 
         case .login:
             if appState.hasReturningUser {
-                LoginView(
-                    onBiometric: appState.biometricEnabled && appState.biometricCredentialsAvailable ? {
-                        Task { await appState.loginWithBiometric() }
-                    } : nil
-                )
+                LoginView()
             } else {
                 OnboardingFlow(pendingUser: appState.pendingOnboardingUser)
                     .id(appState.onboardingSessionID)

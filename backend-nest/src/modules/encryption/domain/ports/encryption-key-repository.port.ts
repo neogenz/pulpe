@@ -48,8 +48,18 @@ export interface EncryptionKeyRepositoryPort {
 
   /**
    * Conditional update: writes `key_check` only when the column is null.
-   * Used to lazily initialize the key-check canary on first successful
-   * client-key validation.
+   * Reserved for trusted demo bootstrap and rekey flows. General client-key
+   * validation is read-only.
    */
   updateKeyCheckIfNull(userId: string, keyCheck: string): Promise<void>;
+
+  /**
+   * Atomically initializes a brand-new vault. Both columns must still be null.
+   * Returns false when another request won the initialization race.
+   */
+  initializeVaultIfEmpty(
+    userId: string,
+    keyCheck: string,
+    wrappedDEK: string,
+  ): Promise<boolean>;
 }

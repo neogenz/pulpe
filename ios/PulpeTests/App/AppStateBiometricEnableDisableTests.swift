@@ -42,9 +42,8 @@ struct AppStateBiometricEnableDisableTests {
         #expect(sut.biometricEnabled == false, "biometricEnabled should remain false after user denial")
     }
 
-    @Test("enableBiometric when token save fails returns false")
-    func enableBiometric_tokenSaveFails_returnsFalse() async {
-        // Without a valid session, authService.saveBiometricTokens() will fail
+    @Test("enableBiometric without a resolved client key returns false")
+    func enableBiometric_missingClientKey_returnsFalse() async {
         let sut = AppState(
             biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
             biometricCapability: { true },
@@ -54,8 +53,8 @@ struct AppStateBiometricEnableDisableTests {
 
         let result = await sut.enableBiometric()
 
-        #expect(result == false, "enableBiometric should return false when token save fails")
-        #expect(sut.biometricEnabled == false, "biometricEnabled should remain false after token save failure")
+        #expect(result == false, "enableBiometric should return false when no client key can be protected")
+        #expect(sut.biometricEnabled == false, "biometricEnabled should remain false")
     }
 
     // MARK: - disableBiometric() Tests
@@ -103,11 +102,9 @@ struct AppStateBiometricEnableDisableTests {
 
         try #require(sut.biometricEnabled == false, "Setup: start with biometric disabled")
 
-        // Note: enableBiometric() requires valid session for token save,
-        // so we can't test the full happy path without mocking deeper.
-        // Instead, verify the disableBiometric path works after enable attempt.
+        // No resolved client key: activation fails without changing the preference.
         let enableResult = await sut.enableBiometric()
-        #expect(enableResult == false, "Enable should fail without valid session")
+        #expect(enableResult == false, "Enable should fail without a client key")
         #expect(sut.biometricEnabled == false, "biometricEnabled should still be false")
 
         await sut.disableBiometric()

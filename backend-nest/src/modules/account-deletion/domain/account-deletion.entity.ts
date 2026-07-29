@@ -8,7 +8,7 @@ export const GRACE_PERIOD_DAYS = 3;
 export interface ScheduledDeletionUser {
   id: string;
   email?: string;
-  user_metadata?: {
+  app_metadata?: {
     scheduledDeletionAt?: string;
   };
 }

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { type ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
@@ -6,6 +6,7 @@ import { ClsService } from 'nestjs-cls';
 import { AuthGuard } from './auth.guard';
 import { SupabaseService } from '@modules/supabase/supabase.service';
 import { BusinessException } from '@common/exceptions/business.exception';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { PAY_DAY_MAX } from 'pulpe-shared';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import {
@@ -15,12 +16,18 @@ import {
   MOCK_USER_ID,
   MockSupabaseClient,
 } from '../../test/test-mocks';
+import { ENCRYPTION_PORT } from '@modules/encryption/encryption.tokens';
+import { SKIP_CLIENT_KEY } from '@common/decorators/skip-client-key.decorator';
+import { ALLOW_VAULT_BOOTSTRAP } from '@common/decorators/allow-vault-bootstrap.decorator';
 
 describe('AuthGuard', () => {
   let authGuard: AuthGuard;
   let _supabaseService: SupabaseService;
   let _reflector: Reflector;
   let mockSupabaseClient: MockSupabaseClient;
+  let ensureUserDEK: ReturnType<typeof mock>;
+  let skipClientKey: boolean;
+  let allowVaultBootstrap: boolean;
 
   beforeEach(async () => {
     const { mockClient } = createMockSupabaseClient();
@@ -32,9 +39,15 @@ describe('AuthGuard', () => {
       getServiceRoleClient: () => mockSupabaseClient as any,
     };
 
+    skipClientKey = false;
+    allowVaultBootstrap = false;
     const mockReflector = {
       get: () => undefined,
-      getAllAndOverride: () => false,
+      getAllAndOverride: (key: string) => {
+        if (key === SKIP_CLIENT_KEY) return skipClientKey;
+        if (key === ALLOW_VAULT_BOOTSTRAP) return allowVaultBootstrap;
+        return false;
+      },
     };
 
     const mockPinoLogger = {
@@ -50,6 +63,7 @@ describe('AuthGuard', () => {
       get: () => false,
       set: () => {},
     };
+    ensureUserDEK = mock(() => Promise.resolve(Buffer.alloc(32)));
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -69,6 +83,10 @@ describe('AuthGuard', () => {
         {
           provide: ClsService,
           useValue: mockClsService,
+        },
+        {
+          provide: ENCRYPTION_PORT,
+          useValue: { ensureUserDEK },
         },
       ],
     }).compile();
@@ -412,6 +430,10 @@ describe('AuthGuard', () => {
             provide: ClsService,
             useValue: { get: () => false, set: () => {} },
           },
+          {
+            provide: ENCRYPTION_PORT,
+            useValue: { ensureUserDEK },
+          },
         ],
       }).compile();
 
@@ -439,15 +461,17 @@ describe('AuthGuard', () => {
         getClass: () => ({}),
       } as ExecutionContext;
 
-      // Set up the auth mock to return a user with scheduledDeletionAt
+      // Set up the auth mock to return a server-owned deletion claim.
       mockSupabaseClient
         .setMockData({
           id: 'user-scheduled-deletion',
           email: 'scheduled@example.com',
+          app_metadata: {
+            scheduledDeletionAt: '2025-01-20T12:00:00.000Z',
+          },
           user_metadata: {
             firstName: 'John',
             lastName: 'Doe',
-            scheduledDeletionAt: '2025-01-20T12:00:00.000Z',
           },
         })
         .setMockError(null);
@@ -459,11 +483,28 @@ describe('AuthGuard', () => {
         'Account is scheduled for deletion',
       );
     });
+
+    it('should ignore a client-owned scheduledDeletionAt claim', async () => {
+      const mockContext = createMockExecutionContext('Bearer valid-token');
+      mockSupabaseClient
+        .setMockData({
+          id: 'active-user',
+          email: 'active@example.com',
+          app_metadata: {},
+          user_metadata: {
+            scheduledDeletionAt: '2020-01-01T00:00:00.000Z',
+          },
+        })
+        .setMockError(null);
+
+      await expect(authGuard.canActivate(mockContext)).resolves.toBe(true);
+    });
   });
 
   describe('client key validation', () => {
     const createContextWithClientKey = (
       clientKeyHeader?: string,
+      method?: string,
     ): ExecutionContext => {
       const headers: Record<string, string> = {
         authorization: 'Bearer valid-token',
@@ -474,7 +515,7 @@ describe('AuthGuard', () => {
 
       return {
         switchToHttp: () => ({
-          getRequest: () => ({ headers, ip: '127.0.0.1' }),
+          getRequest: () => ({ headers, ip: '127.0.0.1', method }),
         }),
         getHandler: () => ({}),
         getClass: () => ({}),
@@ -528,6 +569,47 @@ describe('AuthGuard', () => {
 
       const result = await authGuard.canActivate(mockContext);
       expect(result).toBe(true);
+    });
+
+    it('should keep safe reads and explicit crypto exceptions tolerant', async () => {
+      const mockUser = createMockAuthenticatedUser();
+      mockSupabaseClient.setMockData(mockUser).setMockError(null);
+
+      await authGuard.canActivate(
+        createContextWithClientKey('ab'.repeat(32), 'GET'),
+      );
+      skipClientKey = true;
+      await authGuard.canActivate(
+        createContextWithClientKey(undefined, 'POST'),
+      );
+      skipClientKey = false;
+      allowVaultBootstrap = true;
+      await authGuard.canActivate(
+        createContextWithClientKey('ab'.repeat(32), 'POST'),
+      );
+
+      expect(ensureUserDEK).not.toHaveBeenCalled();
+    });
+
+    it('should reject an authenticated mutation when the vault key is stale', async () => {
+      const mockUser = createMockAuthenticatedUser();
+      mockSupabaseClient.setMockData(mockUser).setMockError(null);
+      ensureUserDEK.mockRejectedValue(
+        new BusinessException(ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED),
+      );
+
+      await expect(
+        authGuard.canActivate(
+          createContextWithClientKey('ab'.repeat(32), 'DELETE'),
+        ),
+      ).rejects.toMatchObject({
+        code: ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED.code,
+      });
+      expect(ensureUserDEK).toHaveBeenCalledWith(
+        mockUser.id,
+        expect.any(Buffer),
+      );
+      expect(ensureUserDEK.mock.calls[0]?.[1]).toEqual(Buffer.alloc(32));
     });
   });
 });

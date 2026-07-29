@@ -40,7 +40,7 @@ export interface RecoveryKeyDialogData {
       </p>
 
       <div
-        class="bg-surface-container rounded-lg p-4 mb-4 font-mono text-body-large text-center select-all break-all"
+        class="ph-no-capture bg-surface-container rounded-lg p-4 mb-4 font-mono text-body-large text-center select-all break-all"
         data-testid="recovery-key-display"
       >
         {{ data.recoveryKey }}
@@ -68,6 +68,7 @@ export interface RecoveryKeyDialogData {
         <mat-label>{{ 'recoveryKey.confirmLabel' | transloco }}</mat-label>
         <input
           matInput
+          class="ph-no-capture"
           data-testid="recovery-key-confirm-input"
           [value]="confirmValue()"
           (input)="confirmValue.set($any($event.target).value)"

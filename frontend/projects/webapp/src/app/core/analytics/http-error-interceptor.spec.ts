@@ -17,6 +17,8 @@ import { PostHogService } from './posthog';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { httpErrorInterceptor } from './http-error-interceptor';
+import { sanitizeEventPayload } from './posthog-sanitizer';
+import type { CaptureResult } from 'posthog-js';
 
 describe('httpErrorInterceptor', () => {
   let http: HttpClient;
@@ -123,5 +125,59 @@ describe('httpErrorInterceptor', () => {
     expect(context['request_id']).toBe(requestId);
     expect(context['backendErrorCode']).toBe('ERR_BUDGET_NOT_FOUND');
     expect(context['httpStatus']).toBe(404);
+  });
+
+  it('should send only stable HTTP diagnostics through the PostHog sanitizer', () => {
+    const sentinel = 'PRIVATE_SEARCH_SENTINEL';
+    const requestId = 'request-123';
+    const requestUrl = `${url}?q=${sentinel}&year=2026`;
+    const headers = new HttpHeaders({ [REQUEST_ID_HEADER]: requestId });
+
+    http.get(requestUrl, { headers }).subscribe({ error: () => undefined });
+    const req = httpTesting.expectOne(requestUrl);
+    req.flush(
+      {
+        code: 'ERR_SEARCH_FAILED',
+        error: 'BusinessException',
+        message: sentinel,
+        context: { cause: sentinel },
+        path: `/api/test?q=${sentinel}`,
+      },
+      { status: 500, statusText: sentinel },
+    );
+
+    const capturedError = captureException.mock.calls[0][0] as Error;
+    const context = captureException.mock.calls[0][1] as Record<
+      string,
+      unknown
+    >;
+    const sanitized = sanitizeEventPayload({
+      event: '$exception',
+      properties: {
+        ...context,
+        $exception_list: [
+          {
+            type: capturedError.name,
+            value: capturedError.message,
+          },
+        ],
+      },
+    } as unknown as CaptureResult);
+    const output = JSON.stringify(sanitized);
+
+    expect(output).not.toContain(sentinel);
+    expect(sanitized?.properties).toMatchObject({
+      httpStatus: 500,
+      backendErrorCode: 'ERR_SEARCH_FAILED',
+      request_id: requestId,
+      httpUrl: 'http://localhost:3000/api/test?year=2026',
+    });
+    const exception = (
+      sanitized?.properties?.['$exception_list'] as Record<string, unknown>[]
+    )[0];
+    expect(exception).not.toHaveProperty('value');
+    expect(exception).toMatchObject({
+      type: 'HTTP:500:ERR_SEARCH_FAILED:BusinessException',
+    });
   });
 });

@@ -20,9 +20,19 @@ describe('SetupRecoveryKeyUseCase', () => {
       createMockLogger() as any,
     );
 
-    const result = await useCase.execute('user-1', Buffer.alloc(32, 0xab));
+    const supabase = { from: mock(() => undefined) };
+    const result = await useCase.execute(
+      'user-1',
+      Buffer.alloc(32, 0xab),
+      supabase as any,
+    );
 
     expect(result).toEqual({ recoveryKey: 'XXXX-YYYY-ZZZZ-1234' });
+    expect(cryptoService.createRecoveryKey).toHaveBeenCalledWith(
+      'user-1',
+      expect.any(Buffer),
+      supabase,
+    );
   });
 
   it('logs an info event with recovery_key.create operation on success', async () => {
@@ -37,7 +47,7 @@ describe('SetupRecoveryKeyUseCase', () => {
       logger as any,
     );
 
-    await useCase.execute('user-99', Buffer.alloc(32, 0xab));
+    await useCase.execute('user-99', Buffer.alloc(32, 0xab), {} as any);
 
     expect(logger.info).toHaveBeenCalledTimes(1);
     expect(logger.info).toHaveBeenCalledWith(
@@ -57,7 +67,7 @@ describe('SetupRecoveryKeyUseCase', () => {
     );
 
     try {
-      await useCase.execute('user-1', Buffer.alloc(32, 0xab));
+      await useCase.execute('user-1', Buffer.alloc(32, 0xab), {} as any);
       expect.unreachable('Should have thrown');
     } catch (error: any) {
       expect(error.message).toBe('boom');

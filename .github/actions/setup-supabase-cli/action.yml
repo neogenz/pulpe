@@ -1,5 +1,5 @@
 name: "Setup Supabase CLI"
-description: "Install the Supabase CLI resiliently — cache the binary and download via curl with retries so transient GitHub release-CDN 504s self-heal instead of failing the job"
+description: "Install a checksum-verified Supabase CLI archive with a resilient download cache"
 
 inputs:
   version:
@@ -9,18 +9,8 @@ inputs:
 runs:
   using: "composite"
   steps:
-    # Cache the binary keyed on version+arch. On a hit, the runner never touches
-    # GitHub's release CDN — which is where the intermittent 504 Gateway Timeouts
-    # originate. Shared across jobs, so only the first run per version downloads.
-    - name: Cache Supabase CLI
-      id: cache
-      uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5 (was v4, aligned)
-      with:
-        path: ~/.local/share/supabase-cli
-        key: supabase-cli-${{ inputs.version }}-${{ runner.os }}-${{ runner.arch }}
-
-    - name: Download Supabase CLI
-      if: steps.cache.outputs.cache-hit != 'true'
+    - name: Resolve verified release
+      id: release
       shell: bash
       run: |
         set -euo pipefail
@@ -29,18 +19,67 @@ runs:
           aarch64 | arm64) arch="arm64" ;;
           *) echo "::error::Unsupported architecture: $(uname -m)"; exit 1 ;;
         esac
+
+        # Digests published by GitHub for the corresponding supabase/cli
+        # release assets. A version bump must add both Linux architectures.
+        case "${{ inputs.version }}:${arch}" in
+          2.84.2:amd64)
+            sha256="620a5f6ea7b60f9b4fe112a5d72464ea0e53d04022035641674a2e6d121e0eb5"
+            ;;
+          2.84.2:arm64)
+            sha256="c660f5c9f62489f7c777cbd10a71b7af0a30bced1230783ab56713bceeaa4313"
+            ;;
+          *)
+            echo "::error::No verified checksum for Supabase CLI ${{ inputs.version }} on ${arch}"
+            exit 1
+            ;;
+        esac
+
+        echo "arch=${arch}" >> "$GITHUB_OUTPUT"
+        echo "archive=supabase_linux_${arch}.tar.gz" >> "$GITHUB_OUTPUT"
+        echo "sha256=${sha256}" >> "$GITHUB_OUTPUT"
+
+    # Cache the pinned release archive, not the extracted binary. The checksum is
+    # verified again on every hit before anything is extracted or executed.
+    - name: Cache Supabase CLI archive
+      id: cache
+      uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5 (was v4, aligned)
+      with:
+        path: ~/.cache/supabase-cli
+        key: supabase-cli-${{ inputs.version }}-${{ runner.os }}-${{ steps.release.outputs.arch }}-${{ steps.release.outputs.sha256 }}
+
+    - name: Download Supabase CLI archive
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        archive="$HOME/.cache/supabase-cli/${{ steps.release.outputs.archive }}"
+        temporary_archive="$RUNNER_TEMP/${{ steps.release.outputs.archive }}"
+        url="https://github.com/supabase/cli/releases/download/v${{ inputs.version }}/${{ steps.release.outputs.archive }}"
+        echo "Downloading Supabase CLI ${{ inputs.version }} from $url"
+        curl -fSL --retry 6 --retry-all-errors --retry-delay 5 --connect-timeout 30 \
+          -o "$temporary_archive" "$url"
+        if ! printf '%s  %s\n' "${{ steps.release.outputs.sha256 }}" "$temporary_archive" \
+          | sha256sum --check --status; then
+          echo "::error::Supabase CLI archive checksum mismatch"
+          exit 1
+        fi
+        mkdir -p "$(dirname "$archive")"
+        install -m 0644 "$temporary_archive" "$archive"
+
+    - name: Verify and extract Supabase CLI
+      shell: bash
+      run: |
+        set -euo pipefail
+        archive="$HOME/.cache/supabase-cli/${{ steps.release.outputs.archive }}"
+        if ! printf '%s  %s\n' "${{ steps.release.outputs.sha256 }}" "$archive" \
+          | sha256sum --check --status; then
+          echo "::error::Supabase CLI cached archive checksum mismatch"
+          exit 1
+        fi
         dest="$HOME/.local/share/supabase-cli"
         mkdir -p "$dest"
-        url="https://github.com/supabase/cli/releases/download/v${{ inputs.version }}/supabase_linux_${arch}.tar.gz"
-        echo "Downloading Supabase CLI ${{ inputs.version }} from $url"
-        # --retry-all-errors makes curl retry on HTTP 5xx (e.g. the 504 the release
-        # CDN returns intermittently), not just on connection failures — the whole
-        # reason this action exists in place of supabase/setup-cli@v1.
-        curl -fSL --retry 6 --retry-all-errors --retry-delay 5 --connect-timeout 30 \
-          -o "$RUNNER_TEMP/supabase-cli.tar.gz" "$url"
-        # Tarball root is LICENSE, README.md, supabase — extract only the binary.
-        tar -xzf "$RUNNER_TEMP/supabase-cli.tar.gz" -C "$dest" supabase
-        rm -f "$RUNNER_TEMP/supabase-cli.tar.gz"
+        tar -xzf "$archive" -C "$dest" supabase
 
     - name: Add Supabase CLI to PATH
       shell: bash

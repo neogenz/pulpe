@@ -37,7 +37,6 @@ extension AppState {
     }
 
     private func clearPreLoginFlags() {
-        clearExplicitLogoutFlag()
         clearManualBiometricRetryRequiredFlag()
     }
 
@@ -72,18 +71,6 @@ extension AppState {
         hasReturningUser = true
         returningUserFlagLoaded = true
         try await resolvePostAuthOrThrow(user: user)
-    }
-
-    func loginWithBiometric() async {
-        authDebug("AUTH_LOGIN_BIO", "begin")
-        let result = await sessionLifecycleCoordinator.attemptBiometricSessionValidation()
-        switch result {
-        case .biometricAuthenticated, .regularSession:
-            clearPreLoginFlags()
-        case .unauthenticated, .networkError, .biometricSessionExpired, .cancelled:
-            break
-        }
-        await applyColdStartResult(result)
     }
 
     /// Resolves the post-auth destination, applies it, and returns it for caller inspection.
@@ -148,6 +135,10 @@ extension AppState {
             identifyUserForAnalytics(user, destination: destination)
         }
         authState = .loading
+        AnalyticsService.captureAuthSessionDiagnostic(
+            source: "post_auth_destination",
+            outcome: destination.diagnosticOutcome
+        )
 
         if shouldRedirectToOnboarding(for: destination), let user = currentUser {
             recoveryFlowCoordinator.reset()
@@ -177,9 +168,8 @@ extension AppState {
             await enterAuthenticated(context: .directAuthenticated)
         case .unauthenticatedSessionExpired:
             authDebug("AUTH_POST_AUTH_DEST", "unauthenticatedSessionExpired")
-            recoveryFlowCoordinator.reset()
+            await handleSessionExpired()
             biometricError = "Ta session a expiré, connecte-toi avec ton mot de passe"
-            authState = .unauthenticated
         case .vaultCheckFailed:
             recoveryFlowCoordinator.reset()
             authDebug("AUTH_POST_AUTH_DEST", "vaultCheckFailed")

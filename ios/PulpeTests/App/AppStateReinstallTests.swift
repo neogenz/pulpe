@@ -36,17 +36,13 @@ struct AppStateReinstallTests {
         #expect(appState.hasReturningUser == true)
     }
 
-    // MARK: - Biometric Token Expiration Scenarios
+    // MARK: - Session Expiration Scenarios
 
-    @Test("Expired biometric session shows error message")
-    func expiredBiometricSession_showsErrorMessage() async {
-        // This test verifies the biometricError message is set when session expires
-        // The actual biometric flow requires mocking AuthService
-
+    @Test("Expired session shows error message")
+    func expiredSession_showsErrorMessage() async {
         let appState = AppState(keychainManager: MockKeychainStore(), biometricPreferenceStore: .init())
 
-        // Simulate: biometric session validation failed with auth error
-        // In production this is set by checkAuthState() when AuthServiceError is caught
+        // In production this is set by cold-start session validation.
         appState.biometricError = "Ta session a expiré, connecte-toi avec ton mot de passe"
 
         #expect(appState.biometricError != nil)

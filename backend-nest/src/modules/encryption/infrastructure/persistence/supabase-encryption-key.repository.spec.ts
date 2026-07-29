@@ -477,6 +477,69 @@ describe('SupabaseEncryptionKeyRepository', () => {
     });
   });
 
+  describe('initializeVaultIfEmpty', () => {
+    it('writes key_check and wrapped_dek in one guarded update', async () => {
+      const { from, spies } = buildServiceRoleClient({
+        data: { user_id: USER_ID },
+        error: null,
+      });
+      (supabaseService.getServiceRoleClient as ReturnType<typeof mock>) = mock(
+        () => ({ from }),
+      );
+
+      const result = await repo.initializeVaultIfEmpty(
+        USER_ID,
+        'check',
+        'wrapped',
+      );
+
+      expect(result).toBe(true);
+      expect(spies.update).toHaveBeenCalledTimes(1);
+      expect(spies.update.mock.calls[0]?.[0]).toMatchObject({
+        key_check: 'check',
+        wrapped_dek: 'wrapped',
+      });
+      expect(spies.eq).toHaveBeenCalledWith('user_id', USER_ID);
+      expect(spies.is.mock.calls).toEqual([
+        ['key_check', null],
+        ['wrapped_dek', null],
+      ]);
+      expect(spies.select).toHaveBeenCalledWith('user_id');
+      expect(spies.maybeSingle).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns false when another request already initialized the vault', async () => {
+      const { from } = buildServiceRoleClient({ data: null, error: null });
+      (supabaseService.getServiceRoleClient as ReturnType<typeof mock>) = mock(
+        () => ({ from }),
+      );
+
+      const result = await repo.initializeVaultIfEmpty(
+        USER_ID,
+        'check',
+        'wrapped',
+      );
+
+      expect(result).toBe(false);
+    });
+
+    it('maps database failures without exposing key material', async () => {
+      const dbError = { code: '40001', message: 'serialization failure' };
+      const { from } = buildServiceRoleClient({ data: null, error: dbError });
+      (supabaseService.getServiceRoleClient as ReturnType<typeof mock>) = mock(
+        () => ({ from }),
+      );
+
+      const exception = await captureRejection(
+        repo.initializeVaultIfEmpty(USER_ID, 'SECRET_CHECK', 'SECRET_WRAPPED'),
+      );
+
+      expectRepositoryFailure(exception, 'initializeVaultIfEmpty', dbError);
+      expect(JSON.stringify(exception)).not.toContain('SECRET_CHECK');
+      expect(JSON.stringify(exception)).not.toContain('SECRET_WRAPPED');
+    });
+  });
+
   describe('updateWrappedDEKIfNull', () => {
     it('returns true when an update occurred', async () => {
       const { from } = buildServiceRoleClient({

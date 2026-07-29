@@ -304,7 +304,9 @@ struct ResetPasswordDependencies: Sendable {
 }
 
 #Preview {
-    let previewURL = URL(string: "pulpe://reset-password#access_token=token&refresh_token=refresh&type=recovery")
+    let previewURL = URL(
+        string: "https://app.pulpe.app/reset-password#access_token=token&refresh_token=refresh&type=recovery"
+    )
     guard let callbackURL = previewURL else {
         fatalError("Preview URL is invalid")
     }

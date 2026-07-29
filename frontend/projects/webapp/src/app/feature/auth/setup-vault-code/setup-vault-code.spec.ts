@@ -7,13 +7,18 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { of, throwError } from 'rxjs';
 
 import { AuthSessionService } from '@core/auth';
+import { ApiError } from '@core/api/api-error';
 import { PostHogService } from '@core/analytics/posthog';
 import { ClientKeyService, EncryptionApi } from '@core/encryption';
 import * as cryptoUtils from '@core/encryption/crypto.utils';
 import { Logger } from '@core/logging/logger';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
+import { API_ERROR_CODES } from 'pulpe-shared';
 
 import SetupVaultCode from './setup-vault-code';
+
+const apiError = (code: string, status = 400) =>
+  new ApiError(code, code, status, undefined);
 
 describe('SetupVaultCode', () => {
   let component: SetupVaultCode;
@@ -25,11 +30,13 @@ describe('SetupVaultCode', () => {
   };
   let mockClientKeyService: {
     setDirectKey: ReturnType<typeof vi.fn>;
+    clear: ReturnType<typeof vi.fn>;
   };
   let mockEncryptionApi: {
     getSalt$: ReturnType<typeof vi.fn>;
     validateKey$: ReturnType<typeof vi.fn>;
     setupRecoveryKey$: ReturnType<typeof vi.fn>;
+    regenerateRecoveryKey$: ReturnType<typeof vi.fn>;
   };
   let mockDialog: { open: ReturnType<typeof vi.fn> };
   let mockLogger: { error: ReturnType<typeof vi.fn> };
@@ -57,6 +64,7 @@ describe('SetupVaultCode', () => {
 
     mockClientKeyService = {
       setDirectKey: vi.fn(),
+      clear: vi.fn(),
     };
 
     mockEncryptionApi = {
@@ -67,6 +75,9 @@ describe('SetupVaultCode', () => {
       setupRecoveryKey$: vi
         .fn()
         .mockReturnValue(of({ recoveryKey: 'ABCD-EFGH-IJKL-MNOP' })),
+      regenerateRecoveryKey$: vi
+        .fn()
+        .mockReturnValue(of({ recoveryKey: 'WXYZ-1234-5678-90AB' })),
     };
 
     mockDialog = {
@@ -212,6 +223,17 @@ describe('SetupVaultCode', () => {
       );
     });
 
+    it('should leave vault initialization to setupRecoveryKey$', async () => {
+      await component['onSubmit']();
+      expect(mockEncryptionApi.validateKey$).not.toHaveBeenCalled();
+      expect(mockEncryptionApi.setupRecoveryKey$).toHaveBeenCalledOnce();
+      expect(
+        mockClientKeyService.setDirectKey.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        mockEncryptionApi.setupRecoveryKey$.mock.invocationCallOrder[0] ?? 0,
+      );
+    });
+
     it('should call updateUser to set vaultCodeConfigured', async () => {
       await component['onSubmit']();
       expect(mockUpdateUser).toHaveBeenCalledWith({
@@ -308,6 +330,7 @@ describe('SetupVaultCode', () => {
       await component['onSubmit']();
 
       expect(mockUpdateUser).not.toHaveBeenCalled();
+      expect(mockClientKeyService.clear).toHaveBeenCalledOnce();
     });
 
     it('should not navigate when updateUser fails', async () => {
@@ -316,9 +339,50 @@ describe('SetupVaultCode', () => {
       await component['onSubmit']();
 
       expect(navigateSpy).not.toHaveBeenCalled();
+      expect(mockClientKeyService.clear).not.toHaveBeenCalled();
       expect(component['errorMessage']()).toContain(
         "Quelque chose n'a pas fonctionné",
       );
+    });
+
+    it('should clear an existing candidate when its vault validation fails', async () => {
+      mockEncryptionApi.setupRecoveryKey$.mockReturnValue(
+        throwError(() =>
+          apiError(API_ERROR_CODES.RECOVERY_KEY_ALREADY_EXISTS, 409),
+        ),
+      );
+      mockEncryptionApi.validateKey$.mockReturnValue(
+        throwError(() => apiError(API_ERROR_CODES.ENCRYPTION_KEY_CHECK_FAILED)),
+      );
+
+      await component['onSubmit']();
+
+      expect(mockClientKeyService.clear).toHaveBeenCalledOnce();
+      expect(mockEncryptionApi.regenerateRecoveryKey$).not.toHaveBeenCalled();
+      expect(mockUpdateUser).not.toHaveBeenCalled();
+    });
+
+    it('should reconcile a retry after user metadata update failed', async () => {
+      mockEncryptionApi.setupRecoveryKey$
+        .mockReturnValueOnce(of({ recoveryKey: 'ABCD-EFGH-IJKL-MNOP' }))
+        .mockReturnValueOnce(
+          throwError(() =>
+            apiError(API_ERROR_CODES.RECOVERY_KEY_ALREADY_EXISTS, 409),
+          ),
+        );
+      mockUpdateUser
+        .mockRejectedValueOnce(new Error('Update failed'))
+        .mockResolvedValueOnce({ data: {}, error: null });
+
+      await component['onSubmit']();
+      await component['onSubmit']();
+
+      expect(mockEncryptionApi.validateKey$).toHaveBeenCalledWith(
+        'abcd'.repeat(16),
+      );
+      expect(mockEncryptionApi.regenerateRecoveryKey$).toHaveBeenCalledOnce();
+      expect(mockUpdateUser).toHaveBeenCalledTimes(2);
+      expect(navigateSpy).toHaveBeenCalledWith(['/', 'dashboard']);
     });
 
     it('should not call setupRecoveryKey when setDirectKey throws', async () => {

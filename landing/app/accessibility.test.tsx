@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import type { PostHog } from "posthog-js/dist/module.slim";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Testimonials } from "../components/sections/Testimonials";
@@ -581,24 +582,164 @@ describe("landing accessibility contracts", () => {
     );
   });
 
-  it("waits for analytics before decorating cross-domain links", () => {
-    assert.match(
-      componentSources.posthogProvider,
-      /const initialization = initPostHog\(\);[\s\S]*if \(!initialization\) return;[\s\S]*e\.preventDefault\(\);[\s\S]*await Promise\.race\(\[[\s\S]*initialization,[\s\S]*POSTHOG_NAVIGATION_TIMEOUT_MS[\s\S]*const distinctId = getDistinctId\(\);/,
-    );
-    assert.match(
-      componentSources.posthogProvider,
-      /const POSTHOG_NAVIGATION_TIMEOUT_MS = 300;/,
+  it("keeps landing analytics isolated from authenticated app identity", () => {
+    assert.doesNotMatch(componentSources.posthogProvider, /getDistinctId/);
+    assert.doesNotMatch(componentSources.posthogProvider, /ph_did/);
+    assert.doesNotMatch(componentSources.posthog, /get_distinct_id/);
+    assert.doesNotMatch(
+      componentSources.posthog,
+      /cross_subdomain_cookie:\s*true/,
     );
     assert.match(
       componentSources.posthog,
-      /export function initPostHog\(\): Promise<void> \| undefined/,
+      /persistence_name:\s*POSTHOG_PERSISTENCE_NAME/,
     );
-    assert.match(componentSources.posthog, /import type \{ PostHog \}/);
+    assert.match(componentSources.posthog, /cross_subdomain_cookie:\s*false/);
+    assert.match(componentSources.posthog, /Domain=\.pulpe\.app/);
+    assert.match(componentSources.posthogProvider, /e\.preventDefault\(\)/);
+    assert.match(componentSources.posthogProvider, /e\.button === 0/);
+    assert.match(componentSources.posthogProvider, /!e\.metaKey/);
+    assert.match(componentSources.posthogProvider, /!e\.ctrlKey/);
+    assert.match(componentSources.posthogProvider, /!anchor\.download/);
     assert.match(
-      componentSources.posthog,
-      /type PostHogClient = Pick<\s*PostHog,\s*"capture" \| "get_distinct_id"\s*>;/,
+      componentSources.posthogProvider,
+      /\(!anchor\.target \|\| anchor\.target === "_self"\)/,
     );
+    assert.match(
+      componentSources.posthogProvider,
+      /window\.location\.assign\(href\)/,
+    );
+  });
+
+  it("initializes isolated persistence before tracking and bounds slow CTA delivery", async () => {
+    const originalEnabled = process.env.NEXT_PUBLIC_POSTHOG_ENABLED;
+    const originalKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+    const originalWindow = Object.getOwnPropertyDescriptor(
+      globalThis,
+      "window",
+    );
+    const cookies = new Map([
+      ["ph_test-landing-key_posthog", "legacy-identity"],
+    ]);
+    const fakeDocument = {
+      get cookie() {
+        return [...cookies]
+          .map(([name, value]) => `${name}=${value}`)
+          .join("; ");
+      },
+      set cookie(value: string) {
+        const [pair, ...attributes] = value.split(";");
+        const separator = pair.indexOf("=");
+        const name = pair.slice(0, separator);
+        const cookieValue = pair.slice(separator + 1);
+        if (
+          attributes.some((attribute) =>
+            attribute.trim().toLowerCase().startsWith("max-age=0"),
+          )
+        ) {
+          cookies.delete(name);
+        } else {
+          cookies.set(name, cookieValue);
+        }
+      },
+    };
+
+    process.env.NEXT_PUBLIC_POSTHOG_ENABLED = "true";
+    process.env.NEXT_PUBLIC_POSTHOG_KEY = "test-landing-key";
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: {
+        document: fakeDocument,
+        location: {
+          hostname: "pulpe.app",
+        },
+        clearTimeout,
+        setTimeout,
+      },
+    });
+
+    try {
+      let nonce = 0;
+      const importFresh = () =>
+        import(
+          `${new URL("../lib/posthog.ts", import.meta.url).href}?test=${nonce++}`
+        ) as Promise<typeof import("../lib/posthog")>;
+
+      let initOptions: Parameters<PostHog["init"]>[1];
+      const captures: Parameters<PostHog["capture"]>[] = [];
+      const posthog = {
+        init: (_key: string, options: Parameters<PostHog["init"]>[1]) => {
+          assert.equal(
+            cookies.has("ph_test-landing-key_posthog"),
+            false,
+            "legacy identity must be removed before SDK init",
+          );
+          initOptions = options;
+        },
+        register: () => undefined,
+        capture: (...args: Parameters<PostHog["capture"]>) => {
+          captures.push(args);
+          return undefined;
+        },
+      } as unknown as PostHog;
+
+      const fast = await importFresh();
+      await fast.initPostHog(async () => ({ default: posthog }));
+      await fast.trackCTAClick("commencer", "hero", "/signup");
+
+      assert.equal(initOptions?.persistence_name, "pulpe_landing");
+      assert.equal(initOptions?.cross_subdomain_cookie, false);
+      assert.deepEqual(captures[0]?.[2], {
+        send_instantly: true,
+        transport: "sendBeacon",
+      });
+
+      const slow = await importFresh();
+      slow.initPostHog(() => new Promise(() => undefined));
+      let trackingFinished = false;
+      const tracking = slow
+        .trackCTAClick("commencer", "hero", "/signup")
+        .then(() => {
+          trackingFinished = true;
+        });
+      await Promise.resolve();
+      assert.equal(trackingFinished, false);
+      const startedAt = performance.now();
+      await tracking;
+      assert.ok(performance.now() - startedAt < 1_000);
+
+      const failed = await importFresh();
+      const consoleError = console.error;
+      console.error = () => undefined;
+      try {
+        const failedInit = failed.initPostHog(async () => {
+          throw new Error("module unavailable");
+        });
+        await Promise.all([
+          failedInit,
+          failed.trackCTAClick("commencer", "hero", "/signup"),
+        ]);
+        assert.equal(captures.length, 1);
+      } finally {
+        console.error = consoleError;
+      }
+    } finally {
+      if (originalEnabled === undefined) {
+        delete process.env.NEXT_PUBLIC_POSTHOG_ENABLED;
+      } else {
+        process.env.NEXT_PUBLIC_POSTHOG_ENABLED = originalEnabled;
+      }
+      if (originalKey === undefined) {
+        delete process.env.NEXT_PUBLIC_POSTHOG_KEY;
+      } else {
+        process.env.NEXT_PUBLIC_POSTHOG_KEY = originalKey;
+      }
+      if (originalWindow) {
+        Object.defineProperty(globalThis, "window", originalWindow);
+      } else {
+        Reflect.deleteProperty(globalThis, "window");
+      }
+    }
   });
 
   it("uses targeted reduced-motion states", () => {
@@ -978,6 +1119,12 @@ describe("landing accessibility contracts", () => {
       assert.match(source, /deux clés conservées séparément/);
       assert.match(source, /dérivée de (?:ton|votre) code PIN/);
       assert.match(source, /fuite de la base seule/);
+      assert.match(source, /AES-256-GCM/);
+      assert.match(source, /déchiffrés côté serveur/);
+      assert.match(
+        source,
+        /montants et libellés financiers ne sont ni transmis à des fins publicitaires ni revendus/,
+      );
       assert.doesNotMatch(
         source,
         /choix délibéré|banques et les armées|zero-knowledge|—|–/,
@@ -1052,8 +1199,10 @@ describe("landing accessibility contracts", () => {
         facts: [
           "demander la suppression",
           "paramètres",
-          "programmé pour être supprimé dans trois jours",
-          "suppression est définitive.",
+          "programmés pour être supprimés dans trois jours",
+          "supprimés des systèmes actifs",
+          "sauvegardes techniques",
+          "politique de rétention",
         ],
       },
     ]) {

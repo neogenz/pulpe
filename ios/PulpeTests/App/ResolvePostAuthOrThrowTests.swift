@@ -26,6 +26,7 @@ struct ResolvePostAuthOrThrowTests {
         }
 
         #expect(sut.authState == .unauthenticated)
+        #expect(sut.currentUser == nil)
         #expect(sut.biometricError == "Ta session a expiré, connecte-toi avec ton mot de passe")
     }
 

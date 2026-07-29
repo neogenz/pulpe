@@ -131,14 +131,17 @@ struct PinSetupFlowTests {
         mode: PinSetupMode,
         hasRecoveryKey: Bool = false
     ) -> PinSetupTestSUT {
+        let storage = StubClientKeyStorage()
         let encryptionAPI = StubEncryptionSetup(
             saltResponse: EncryptionSaltResponse(
                 salt: Self.validSalt,
                 kdfIterations: 1,
                 hasRecoveryKey: hasRecoveryKey
-            )
+            ),
+            beforeSetupRecovery: {
+                #expect(await storage.storeCallCount == 1)
+            }
         )
-        let storage = StubClientKeyStorage()
         let sut = PinSetupViewModel(
             mode: mode,
             cryptoService: StubCryptoKeyDerivation(derivedKey: Self.validKey),
@@ -161,6 +164,7 @@ struct PinSetupFlowTests {
 
         await result.sut.confirm()
 
+        #expect(await result.encryptionAPI.validateKeyCallCount == 1)
         #expect(await result.encryptionAPI.setupRecoveryCallCount == 0)
         #expect(await result.storage.storeCallCount == 1)
         #expect(result.sut.completedWithoutRecovery == true)
@@ -178,8 +182,10 @@ struct PinSetupFlowTests {
         enterPin(result.sut)
         await result.sut.confirm()
 
+        #expect(await result.encryptionAPI.validateKeyCallCount == 0)
         #expect(await result.encryptionAPI.setupRecoveryCallCount == 1)
         #expect(await result.storage.storeCallCount == 1)
+        #expect(await result.storage.clearSessionCallCount == 0)
         #expect(result.sut.recoveryKey == "ABCD-EFGH-IJKL-MNOP")
         #expect(result.sut.showRecoverySheet == true)
         #expect(result.sut.completedWithoutRecovery == false)
@@ -199,7 +205,7 @@ struct PinSetupFlowTests {
                 kdfIterations: 1,
                 hasRecoveryKey: false
             ),
-            validateKeyError: APIError.clientKeyInvalid
+            setupRecoveryError: APIError.clientKeyInvalid
         )
         let storage = StubClientKeyStorage()
         let sut = PinSetupViewModel(
@@ -212,13 +218,15 @@ struct PinSetupFlowTests {
         enterPin(sut)
         await sut.confirm()
 
-        // Step 2: confirm PIN (triggers server validation which fails)
+        // Step 2: confirm PIN (atomic server setup detects the legacy vault)
         enterPin(sut)
         await sut.confirm()
 
         #expect(sut.isError == true)
         #expect(sut.errorMessage == "Un code PIN existe déjà pour ce compte — saisis-le")
-        #expect(await storage.storeCallCount == 0)
+        #expect(await encryptionAPI.validateKeyCallCount == 0)
+        #expect(await storage.storeCallCount == 1)
+        #expect(await storage.clearSessionCallCount == 1)
     }
 
     @Test("generic API error shows generic error message")
@@ -229,7 +237,7 @@ struct PinSetupFlowTests {
                 kdfIterations: 1,
                 hasRecoveryKey: false
             ),
-            validateKeyError: APIError.serverError(message: "Internal Server Error")
+            setupRecoveryError: APIError.serverError(message: "Internal Server Error")
         )
         let storage = StubClientKeyStorage()
         let sut = PinSetupViewModel(
@@ -242,13 +250,15 @@ struct PinSetupFlowTests {
         enterPin(sut)
         await sut.confirm()
 
-        // Step 2: confirm PIN (triggers server validation which fails)
+        // Step 2: confirm PIN (atomic server setup fails)
         enterPin(sut)
         await sut.confirm()
 
         #expect(sut.isError == true)
         #expect(sut.errorMessage == "Une erreur est survenue, réessaie")
-        #expect(await storage.storeCallCount == 0)
+        #expect(await encryptionAPI.validateKeyCallCount == 0)
+        #expect(await storage.storeCallCount == 1)
+        #expect(await storage.clearSessionCallCount == 1)
     }
 }
 
@@ -269,11 +279,21 @@ private actor StubCryptoKeyDerivation: PinCryptoKeyDerivation {
 private actor StubEncryptionSetup: PinEncryptionSetup {
     private let saltResponse: EncryptionSaltResponse
     private let validateKeyError: (any Error)?
+    private let setupRecoveryError: (any Error)?
+    private let beforeSetupRecovery: @Sendable () async -> Void
+    private(set) var validateKeyCallCount = 0
     private(set) var setupRecoveryCallCount = 0
 
-    init(saltResponse: EncryptionSaltResponse, validateKeyError: (any Error)? = nil) {
+    init(
+        saltResponse: EncryptionSaltResponse,
+        validateKeyError: (any Error)? = nil,
+        setupRecoveryError: (any Error)? = nil,
+        beforeSetupRecovery: @escaping @Sendable () async -> Void = {}
+    ) {
         self.saltResponse = saltResponse
         self.validateKeyError = validateKeyError
+        self.setupRecoveryError = setupRecoveryError
+        self.beforeSetupRecovery = beforeSetupRecovery
     }
 
     func getSalt() async throws -> EncryptionSaltResponse {
@@ -281,20 +301,28 @@ private actor StubEncryptionSetup: PinEncryptionSetup {
     }
 
     func validateKey(_ clientKeyHex: String) async throws {
+        validateKeyCallCount += 1
         if let error = validateKeyError { throw error }
     }
 
     func setupRecoveryKey() async throws -> String {
         setupRecoveryCallCount += 1
+        await beforeSetupRecovery()
+        if let error = setupRecoveryError { throw error }
         return "ABCD-EFGH-IJKL-MNOP"
     }
 }
 
-private actor StubClientKeyStorage: PinClientKeyStorage {
+private actor StubClientKeyStorage: PinClientKeySetupStorage {
     private(set) var storeCallCount = 0
+    private(set) var clearSessionCallCount = 0
 
     func store(_ clientKeyHex: String, enableBiometric: Bool) async {
         storeCallCount += 1
+    }
+
+    func clearSession() async {
+        clearSessionCallCount += 1
     }
 }
 

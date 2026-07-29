@@ -78,7 +78,7 @@ import { GoalPlanSimulatorStore } from '../services/goal-plan-simulator-store';
         </div>
         @if (store.hasTarget() && !targetReached()) {
           <p
-            class="text-body-small text-on-surface-variant text-pretty"
+            class="ph-no-capture text-body-small text-on-surface-variant text-pretty"
             data-testid="goal-plan-target-hint"
           >
             {{
@@ -126,7 +126,9 @@ import { GoalPlanSimulatorStore } from '../services/goal-plan-simulator-store';
               {{ verdict() }}
             </p>
           </div>
-          <p class="sr-only" aria-live="polite">{{ ariaVerdict() }}</p>
+          <p class="ph-no-capture sr-only" aria-live="polite">
+            {{ ariaVerdict() }}
+          </p>
         }
       </div>
 
@@ -154,7 +156,7 @@ import { GoalPlanSimulatorStore } from '../services/goal-plan-simulator-store';
       </div>
 
       <p
-        class="sr-only"
+        class="ph-no-capture sr-only"
         aria-live="polite"
         data-testid="goal-plan-announcement"
       >

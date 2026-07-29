@@ -19,12 +19,18 @@ describe('SearchTransactionsUseCase', () => {
     fetchBudgetLinesByPattern: ReturnType<typeof jest.fn>;
     fetchBudgetIdsByYears: ReturnType<typeof jest.fn>;
   };
+  let mockLogger: {
+    info: ReturnType<typeof jest.fn>;
+  };
 
   beforeEach(async () => {
     mockRepo = {
       fetchTransactionsByPattern: jest.fn().mockResolvedValue([]),
       fetchBudgetLinesByPattern: jest.fn().mockResolvedValue([]),
       fetchBudgetIdsByYears: jest.fn().mockResolvedValue([]),
+    };
+    mockLogger = {
+      info: jest.fn(),
     };
 
     const module = await Test.createTestingModule({
@@ -36,7 +42,7 @@ describe('SearchTransactionsUseCase', () => {
           useValue: {
             error: () => {},
             warn: () => {},
-            info: () => {},
+            info: mockLogger.info,
             debug: () => {},
             trace: () => {},
           },
@@ -145,6 +151,45 @@ describe('SearchTransactionsUseCase', () => {
         budgetIds: ['budget-1', 'budget-2'],
         tagIds: ['tag-1'],
       });
+    });
+
+    it('logs only aggregate diagnostics, never search, tag, or user values', async () => {
+      const querySentinel = 'MARCHAND_ET_DETTE_SENTINEL';
+      const tagSentinel = 'TAG_SENTINEL';
+      const userSentinel = 'USER_SENTINEL';
+      const user = { ...mockUser, id: userSentinel };
+
+      mockRepo.fetchBudgetIdsByYears.mockResolvedValue(['budget-1']);
+      mockRepo.fetchTransactionsByPattern.mockResolvedValue([
+        {
+          id: 'transaction-1',
+          name: 'Result',
+          amount: 'encrypted',
+          kind: 'expense',
+          transactionDate: '2026-01-01',
+          budgetId: 'budget-1',
+          budget: { description: 'Janvier', year: 2026, month: 1 },
+        },
+      ]);
+
+      await useCase.execute(
+        { q: querySentinel, years: [2026], tagIds: [tagSentinel] },
+        user,
+      );
+
+      const serializedLog = JSON.stringify(mockLogger.info.mock.calls);
+      expect(serializedLog).not.toContain(querySentinel);
+      expect(serializedLog).not.toContain(tagSentinel);
+      expect(serializedLog).not.toContain(userSentinel);
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        expect.objectContaining({
+          operation: 'transaction.search',
+          resultCount: 1,
+          years: [2026],
+          durationMs: expect.any(Number),
+        }),
+        'Transactions searched',
+      );
     });
   });
 });

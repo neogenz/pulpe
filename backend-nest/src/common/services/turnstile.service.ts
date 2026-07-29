@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { isProductionLike } from '@config/environment';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
+import { sanitizeLogTechnicalValue } from '@common/utils/log-anonymization';
 
 interface TurnstileVerifyResponse {
   success: boolean;
@@ -28,9 +29,12 @@ export class TurnstileService {
   ) {
     this.secretKey = this.configService.get<string>('TURNSTILE_SECRET_KEY', '');
     const nodeEnv = this.configService.get('NODE_ENV');
+    const railwayEnvironmentName = this.configService.get(
+      'RAILWAY_ENVIRONMENT_NAME',
+    );
 
     // Skip verification in non-production environments (local, test, development)
-    this.skipVerification = !isProductionLike(nodeEnv);
+    this.skipVerification = !isProductionLike(nodeEnv, railwayEnvironmentName);
 
     if (this.skipVerification) {
       this.logger.debug({ nodeEnv }, 'Turnstile verification disabled');
@@ -91,6 +95,7 @@ export class TurnstileService {
             response: token,
             remoteip: ip,
           }),
+          signal: AbortSignal.timeout(5000),
         },
       );
 
@@ -110,7 +115,15 @@ export class TurnstileService {
       );
       return false;
     } catch (error) {
-      this.logger.warn({ err: error }, 'Turnstile verification error');
+      this.logger.warn(
+        {
+          errorType:
+            error instanceof Error
+              ? (sanitizeLogTechnicalValue(error.name) ?? 'Error')
+              : 'UnknownError',
+        },
+        'Turnstile verification error',
+      );
       return false;
     }
   }

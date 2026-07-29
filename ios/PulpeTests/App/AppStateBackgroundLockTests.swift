@@ -211,7 +211,6 @@ struct AppStateBackgroundLockTests {
         let sut = AppState(
             postAuthResolver: pinResolver,
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            syncBiometricCredentials: { true },
             resolveBiometricKey: { "restored-key" },
             validateBiometricKey: { _ in true },
             nowProvider: { now.value }
@@ -235,7 +234,6 @@ struct AppStateBackgroundLockTests {
         let sut = AppState(
             postAuthResolver: pinResolver,
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            syncBiometricCredentials: { true },
             resolveBiometricKey: { nil },
             nowProvider: { now.value }
         )
@@ -263,7 +261,6 @@ struct AppStateBackgroundLockTests {
         let sut = AppState(
             postAuthResolver: pinResolver,
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            syncBiometricCredentials: { true },
             resolveBiometricKey: {
                 // Simulate a Face ID prompt the user never answers — `resolveKey` never returns.
                 try? await Task.sleep(for: .seconds(60))
@@ -294,7 +291,6 @@ struct AppStateBackgroundLockTests {
         let sut = AppState(
             postAuthResolver: pinResolver,
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            syncBiometricCredentials: { true },
             resolveBiometricKey: { "restored-key" },
             validateBiometricKey: { _ in
                 // Key resolves, but validation never returns (e.g. a stalled crypto/keychain call).
@@ -359,7 +355,6 @@ struct AppStateBackgroundLockTests {
         let sut = AppState(
             postAuthResolver: pinResolver,
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            syncBiometricCredentials: { true },
             resolveBiometricKey: { "restored-key" },
             validateBiometricKey: { _ in true },
             validateRegularSession: {
@@ -389,13 +384,18 @@ struct AppStateBackgroundLockTests {
     }
 
     @Test func foregroundBiometricUnlock_sessionRefreshReturnsNil_logsOut() async {
+        #expect(
+            AppState.SessionResetScope.backgroundSessionMissing.diagnosticOutcome
+                == "background_session_missing"
+        )
+        #expect(!AppState.SessionResetScope.backgroundSessionMissing.isExpectedUserAction)
+
         let sessionRefreshAttempted = AtomicFlag()
         let now = AtomicProperty(Date(timeIntervalSince1970: 0))
 
         let sut = AppState(
             postAuthResolver: pinResolver,
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            syncBiometricCredentials: { true },
             resolveBiometricKey: { "restored-key" },
             validateBiometricKey: { _ in true },
             validateRegularSession: {
@@ -449,7 +449,6 @@ struct AppStateBackgroundLockTests {
         let sut = AppState(
             postAuthResolver: pinResolver,
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            syncBiometricCredentials: { true },
             resolveBiometricKey: { "restored-key" },
             validateBiometricKey: { _ in true },
             validateRegularSession: {
@@ -516,7 +515,6 @@ struct AppStateBackgroundLockTests {
         let sut = AppState(
             postAuthResolver: pinResolver,
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            syncBiometricCredentials: { true },
             resolveBiometricKey: { "restored-key" },
             validateBiometricKey: { _ in true },
             validateRegularSession: {
@@ -550,13 +548,7 @@ struct AppStateBackgroundLockTests {
         }
 
         #expect(sut.authState == .unauthenticated)
-
-        // The explicit logout flag must survive — if the background task's system logout
-        // clears it, FaceID would auto-trigger on next cold start instead of showing login.
-        let didExplicitLogout = UserDefaults.standard.bool(forKey: "pulpe-did-explicit-logout")
-        #expect(didExplicitLogout == true, "Background task must not clear explicit logout flag")
-
-        // Cleanup
-        UserDefaults.standard.removeObject(forKey: "pulpe-did-explicit-logout")
+        #expect(!sut.biometricEnabled)
+        #expect(!sut.biometricCredentialsAvailable)
     }
 }

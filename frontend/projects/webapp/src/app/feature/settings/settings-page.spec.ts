@@ -43,6 +43,8 @@ describe('SettingsPage', () => {
   let mockAnalytics: {
     captureEvent: ReturnType<typeof vi.fn>;
     setPersonProperties: ReturnType<typeof vi.fn>;
+    diagnosticSharingEnabled: ReturnType<typeof signal<boolean>>;
+    setDiagnosticSharingEnabled: ReturnType<typeof vi.fn>;
   };
   let mockDialog: { open: ReturnType<typeof vi.fn> };
   let mockDialogRef: { afterClosed: () => Observable<boolean> };
@@ -85,6 +87,8 @@ describe('SettingsPage', () => {
     mockAnalytics = {
       captureEvent: vi.fn(),
       setPersonProperties: vi.fn(),
+      diagnosticSharingEnabled: signal(true),
+      setDiagnosticSharingEnabled: vi.fn(),
     };
 
     mockRouter = {
@@ -234,6 +238,25 @@ describe('SettingsPage', () => {
       );
 
       expect(toggle).not.toBeNull();
+    });
+  });
+
+  describe('diagnostic sharing', () => {
+    it('shows the local opt-out toggle enabled by default', () => {
+      const toggle = fixture.nativeElement.querySelector(
+        '[data-testid="diagnostic-sharing-toggle"]',
+      ) as HTMLElement | null;
+
+      expect(toggle).not.toBeNull();
+      expect(fixture.componentInstance.diagnosticSharingEnabled()).toBe(true);
+    });
+
+    it('delegates changes to the analytics service', () => {
+      fixture.componentInstance.onDiagnosticSharingChange(false);
+
+      expect(mockAnalytics.setDiagnosticSharingEnabled).toHaveBeenCalledWith(
+        false,
+      );
     });
   });
 

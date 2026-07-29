@@ -6,9 +6,11 @@ import { vi } from 'vitest';
  * @returns Mock PostHogService with spy functions
  */
 export function createMockPostHogService() {
+  const diagnosticSharingEnabled = signal(true);
   return {
     isInitialized: signal(true),
     isEnabled: signal(true),
+    diagnosticSharingEnabled,
     flagsVersion: signal(0),
     enableTracking: vi.fn(),
     identify: vi.fn(),
@@ -22,6 +24,9 @@ export function createMockPostHogService() {
     clearPendingSignupMethod: vi.fn(),
     opt_in_capturing: vi.fn(),
     opt_out_capturing: vi.fn(),
+    setDiagnosticSharingEnabled: vi.fn((enabled: boolean) =>
+      diagnosticSharingEnabled.set(enabled),
+    ),
     register: vi.fn(),
     initialize: vi.fn().mockResolvedValue(undefined),
     isFeatureEnabled: vi.fn().mockReturnValue(false),

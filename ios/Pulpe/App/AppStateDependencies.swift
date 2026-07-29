@@ -18,7 +18,7 @@ struct AppStateDependencies {
     var biometricPreferenceStore: BiometricPreferenceStore
     var biometricCapability: (@Sendable () -> Bool)?
     var biometricAuthenticate: (@Sendable () async throws -> Void)?
-    var syncBiometricCredentials: (@Sendable () async -> Bool)?
+    var storeBiometricKey: (@Sendable () async -> Bool)?
     var resolveBiometricKey: (@Sendable () async -> String?)?
     var validateBiometricKey: (@Sendable (String) async -> Bool)?
     var biometricOptOutStore: (any BiometricOptOutStoring)?
@@ -30,7 +30,6 @@ struct AppStateDependencies {
     // MARK: - Session Validators
 
     var validateRegularSession: (@Sendable () async throws -> UserInfo?)?
-    var validateBiometricSession: (@Sendable () async throws -> BiometricSessionResult?)?
     var deleteAccountRequest: (@Sendable () async throws -> DeleteAccountResponse)?
 
     /// Override for the sign-out side-effect. Defaults to `authService.logout(scope:)`.
@@ -70,13 +69,12 @@ struct AppStateDependencies {
         biometricPreferenceStore: BiometricPreferenceStore,
         biometricCapability: (@Sendable () -> Bool)? = nil,
         biometricAuthenticate: (@Sendable () async throws -> Void)? = nil,
-        syncBiometricCredentials: (@Sendable () async -> Bool)? = nil,
+        storeBiometricKey: (@Sendable () async -> Bool)? = nil,
         resolveBiometricKey: (@Sendable () async -> String?)? = nil,
         validateBiometricKey: (@Sendable (String) async -> Bool)? = nil,
         biometricOptOutStore: (any BiometricOptOutStoring)? = nil,
         setupRecoveryKey: (@Sendable () async throws -> String)? = nil,
         validateRegularSession: (@Sendable () async throws -> UserInfo?)? = nil,
-        validateBiometricSession: (@Sendable () async throws -> BiometricSessionResult?)? = nil,
         deleteAccountRequest: (@Sendable () async throws -> DeleteAccountResponse)? = nil,
         performSignOut: (@Sendable (SignOutScope) async throws -> Void)? = nil,
         flagsStore: any AppAuthFlagsStoring = AppAuthFlagsStore(),
@@ -104,13 +102,12 @@ struct AppStateDependencies {
         self.biometricPreferenceStore = biometricPreferenceStore
         self.biometricCapability = biometricCapability
         self.biometricAuthenticate = biometricAuthenticate
-        self.syncBiometricCredentials = syncBiometricCredentials
+        self.storeBiometricKey = storeBiometricKey
         self.resolveBiometricKey = resolveBiometricKey
         self.validateBiometricKey = validateBiometricKey
         self.biometricOptOutStore = biometricOptOutStore
         self.setupRecoveryKey = setupRecoveryKey
         self.validateRegularSession = validateRegularSession
-        self.validateBiometricSession = validateBiometricSession
         self.deleteAccountRequest = deleteAccountRequest
         self.performSignOut = performSignOut
         self.flagsStore = flagsStore

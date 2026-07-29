@@ -716,10 +716,10 @@ Supabase admin can read all financial amounts cleartext (`NUMERIC(12,2)`) via Da
 
 ### Decision Drivers
 
-- Admin (project owner) must not be able to decrypt user data
+- A database dump alone must not expose user financial amounts
 - Backend must perform calculations (rollover, sums, balances)
 - Client-side crypto code must stay minimal (3 platforms: Angular, SwiftUI, Android)
-- 3 existing production users must lose no data
+- Existing encrypted user data must remain readable through migrations
 
 ### Options Considered
 

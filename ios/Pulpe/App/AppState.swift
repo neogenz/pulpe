@@ -208,12 +208,10 @@ final class AppState {
 
         self.biometric = BiometricManager(
             preferenceStore: deps.biometricPreferenceStore,
-            authService: deps.authService,
             clientKeyManager: deps.clientKeyManager,
             capability: biometricCapability,
             authenticate: biometricAuthenticate,
-            syncCredentials: deps.syncBiometricCredentials
-                ?? BiometricManager.defaultSyncCredentials(deps.authService),
+            storeKey: deps.storeBiometricKey,
             resolveKey: deps.resolveBiometricKey
                 ?? BiometricManager.defaultResolveKey(deps.clientKeyManager),
             validateKey: deps.validateBiometricKey
@@ -242,7 +240,6 @@ final class AppState {
         let startup: StartupCoordinator
     }
 
-    // swiftlint:disable:next function_body_length
     private static func makeCoordinators(
         deps: AppStateDependencies,
         biometric: BiometricManager,
@@ -270,27 +267,13 @@ final class AppState {
         let session = SessionLifecycleCoordinator(
             biometric: biometric,
             clientKeyManager: deps.clientKeyManager,
-            validateRegularSession: validateRegularSession,
-            validateBiometricSession: deps.validateBiometricSession
-                ?? defaultValidateBiometricSession(deps.authService),
             nowProvider: deps.nowProvider,
             foregroundUnlockTimeout: deps.foregroundUnlockTimeout
         )
         let startup = StartupCoordinator(
             checkMaintenance: deps.maintenanceChecking,
-            validateBiometricSession: deps.validateBiometricSession
-                ?? defaultValidateBiometricSession(deps.authService),
             validateRegularSession: validateRegularSession,
             resolvePostAuth: { await postAuthResolver.resolve() },
-            validateBiometricKey: { [biometric] clientKeyHex in
-                await biometric.validateKey(clientKeyHex)
-            },
-            storeSessionClientKey: { [clientKeyManager = deps.clientKeyManager] clientKeyHex in
-                await clientKeyManager.store(clientKeyHex, enableBiometric: false)
-            },
-            clearStaleBiometricState: { [biometric] in
-                await biometric.handleStaleKey()
-            },
             clearExpiredBiometricState: { [biometric] in
                 await biometric.handleSessionExpired()
             }
@@ -315,13 +298,12 @@ final class AppState {
         biometricPreferenceStore: BiometricPreferenceStore = BiometricPreferenceStore(),
         biometricCapability: (@Sendable () -> Bool)? = nil,
         biometricAuthenticate: (@Sendable () async throws -> Void)? = nil,
-        syncBiometricCredentials: (@Sendable () async -> Bool)? = nil,
+        storeBiometricKey: (@Sendable () async -> Bool)? = nil,
         resolveBiometricKey: (@Sendable () async -> String?)? = nil,
         validateBiometricKey: (@Sendable (String) async -> Bool)? = nil,
         biometricOptOutStore: (any BiometricOptOutStoring)? = nil,
         setupRecoveryKey: (@Sendable () async throws -> String)? = nil,
         validateRegularSession: (@Sendable () async throws -> UserInfo?)? = nil,
-        validateBiometricSession: (@Sendable () async throws -> BiometricSessionResult?)? = nil,
         deleteAccountRequest: (@Sendable () async throws -> DeleteAccountResponse)? = nil,
         performSignOut: (@Sendable (SignOutScope) async throws -> Void)? = nil,
         maintenanceChecking: @escaping @Sendable () async throws -> Bool = {
@@ -340,13 +322,12 @@ final class AppState {
             biometricPreferenceStore: biometricPreferenceStore,
             biometricCapability: biometricCapability,
             biometricAuthenticate: biometricAuthenticate,
-            syncBiometricCredentials: syncBiometricCredentials,
+            storeBiometricKey: storeBiometricKey,
             resolveBiometricKey: resolveBiometricKey,
             validateBiometricKey: validateBiometricKey,
             biometricOptOutStore: biometricOptOutStore,
             setupRecoveryKey: setupRecoveryKey,
             validateRegularSession: validateRegularSession,
-            validateBiometricSession: validateBiometricSession,
             deleteAccountRequest: deleteAccountRequest,
             performSignOut: performSignOut,
             maintenanceChecking: maintenanceChecking,
@@ -365,14 +346,6 @@ final class AppState {
             // offline refresh as "retry later", never as session loss. Swallowing these
             // failures would force a destructive logout after a flaky post-expiry refresh.
             try await authService.validateSession()
-        }
-    }
-
-    private static func defaultValidateBiometricSession(
-        _ authService: AuthService
-    ) -> @Sendable () async throws -> BiometricSessionResult? {
-        {
-            try await authService.validateBiometricSession()
         }
     }
 

@@ -1,13 +1,14 @@
-import type { PostHog } from "posthog-js";
+import type { PostHog } from "posthog-js/dist/module.slim";
 
-type PostHogClient = Pick<PostHog, "capture" | "get_distinct_id">;
+type PostHogClient = Pick<PostHog, "capture">;
+type PostHogLoader = () => Promise<{ default: PostHog }>;
 
 const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY ?? "";
 const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "/ph";
 const POSTHOG_UI_HOST = "https://eu.posthog.com";
 const POSTHOG_ENABLED = process.env.NEXT_PUBLIC_POSTHOG_ENABLED === "true";
-
-export const CROSS_DOMAIN_PARAM = "ph_did";
+const POSTHOG_PERSISTENCE_NAME = "pulpe_landing";
+const CTA_TRACKING_TIMEOUT_MS = 300;
 
 const VERCEL_ENV_MAP: Record<string, string> = {
   production: "production",
@@ -23,7 +24,20 @@ function resolveEnvironment(): string {
 let posthogClient: PostHogClient | undefined;
 let initialization: Promise<void> | undefined;
 
-export function initPostHog(): Promise<void> | undefined {
+function expireLegacySharedCookie(): void {
+  const expiredCookie = `ph_${POSTHOG_KEY}_posthog=; Max-Age=0; Path=/; SameSite=Lax`;
+  window.document.cookie = expiredCookie;
+  if (
+    window.location.hostname === "pulpe.app" ||
+    window.location.hostname.endsWith(".pulpe.app")
+  ) {
+    window.document.cookie = `${expiredCookie}; Domain=.pulpe.app`;
+  }
+}
+
+export function initPostHog(
+  loadPostHog: PostHogLoader = () => import("posthog-js/dist/module.slim"),
+): Promise<void> | undefined {
   if (posthogClient) {
     return Promise.resolve();
   }
@@ -31,7 +45,8 @@ export function initPostHog(): Promise<void> | undefined {
     return undefined;
   }
 
-  initialization ??= import("posthog-js/dist/module.slim")
+  expireLegacySharedCookie();
+  initialization ??= loadPostHog()
     .then(({ default: posthog }) => {
       posthog.init(POSTHOG_KEY, {
         api_host: POSTHOG_HOST,
@@ -40,7 +55,8 @@ export function initPostHog(): Promise<void> | undefined {
         capture_pageleave: true,
         person_profiles: "identified_only",
         persistence: "localStorage+cookie",
-        cross_subdomain_cookie: true,
+        persistence_name: POSTHOG_PERSISTENCE_NAME,
+        cross_subdomain_cookie: false,
       });
 
       posthog.register({
@@ -50,36 +66,45 @@ export function initPostHog(): Promise<void> | undefined {
 
       posthogClient = posthog;
     })
-    .catch((error: unknown) => {
+    .catch(() => {
       initialization = undefined;
-      console.error("[PostHog] Failed to initialize", error);
+      console.error("[PostHog] Failed to initialize");
     });
 
   return initialization;
 }
 
-export function trackCTAClick(
+export async function trackCTAClick(
   ctaName: string,
   ctaLocation: string,
   destination: string,
-): void {
+): Promise<void> {
   if (!POSTHOG_ENABLED) return;
   const initPromise = initPostHog();
   if (!initPromise) return;
-  void initPromise.then(() => {
-    posthogClient?.capture("cta_clicked", {
-      cta_name: ctaName,
-      cta_location: ctaLocation,
-      destination,
+
+  await new Promise<void>((resolve) => {
+    const timeout = window.setTimeout(resolve, CTA_TRACKING_TIMEOUT_MS);
+    void initPromise.finally(() => {
+      window.clearTimeout(timeout);
+      resolve();
     });
   });
-}
 
-export function getDistinctId(): string | undefined {
-  if (!POSTHOG_ENABLED || !posthogClient) return undefined;
   try {
-    return posthogClient.get_distinct_id();
+    posthogClient?.capture(
+      "cta_clicked",
+      {
+        cta_name: ctaName,
+        cta_location: ctaLocation,
+        destination,
+      },
+      {
+        send_instantly: true,
+        transport: "sendBeacon",
+      },
+    );
   } catch {
-    return undefined;
+    console.error("[PostHog] Failed to capture CTA");
   }
 }

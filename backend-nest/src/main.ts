@@ -7,17 +7,24 @@ import helmet from 'helmet';
 import compression from 'compression';
 import { AppModule } from './app.module';
 import { cleanupOpenApiDoc } from 'nestjs-zod';
-import { isProductionLike, type Environment } from '@config/environment';
+import {
+  isProductionLike,
+  resolveHttpLoggingDecision,
+  type Environment,
+} from '@config/environment';
 import { REQUEST_ID_HEADER } from 'pulpe-shared';
 
 // ValidationPipe removed - using ZodValidationPipe from app.module.ts instead
 
 function setupCors(app: import('@nestjs/common').INestApplication): void {
   const configService = app.get(ConfigService);
-  const nodeEnv = configService.get<string>('NODE_ENV', 'development');
+  const productionLike = isProductionLike(
+    configService.get<string>('NODE_ENV', 'development'),
+    configService.get<string>('RAILWAY_ENVIRONMENT_NAME'),
+  );
 
   app.enableCors({
-    origin: createOriginValidator(configService, nodeEnv),
+    origin: createOriginValidator(configService, productionLike),
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: [
       'Content-Type',
@@ -33,7 +40,7 @@ function setupCors(app: import('@nestjs/common').INestApplication): void {
 
 function createOriginValidator(
   configService: ConfigService,
-  nodeEnv: string,
+  productionLike: boolean,
 ): (
   origin: string | undefined,
   callback: (err: Error | null, allow?: boolean) => void,
@@ -44,7 +51,7 @@ function createOriginValidator(
       return callback(null, true);
     }
 
-    if (isProductionLike(nodeEnv)) {
+    if (productionLike) {
       if (isAllowedOriginProduction(origin, configService)) {
         return callback(null, true);
       }
@@ -231,13 +238,15 @@ function logApplicationInfo(
 
   logger.log('🔍 HTTP request/response logging is active');
 
-  const debugHttpFull = env.DEBUG_HTTP_FULL === 'true';
-  if (debugHttpFull) {
+  const loggingDecision = resolveHttpLoggingDecision(env);
+  if (loggingDecision.productionLocked) {
     logger.warn(
-      '⚠️  DEBUG_HTTP_FULL is enabled - sensitive data will be logged!',
+      'DEBUG_HTTP_FULL was ignored because production logging is locked to standard mode',
     );
+  } else if (loggingDecision.mode === 'detailed') {
+    logger.warn('Detailed sanitized HTTP logging is enabled');
   } else {
-    logger.log('🛡️ Security: Request data redaction enabled');
+    logger.log('Security: standard sanitized HTTP logging is enabled');
   }
 
   logger.log(`⚡ Environment: ${env.NODE_ENV}`);
@@ -260,6 +269,7 @@ async function bootstrap() {
     TURNSTILE_SECRET_KEY: configService.get('TURNSTILE_SECRET_KEY')!,
     ENCRYPTION_MASTER_KEY: configService.get('ENCRYPTION_MASTER_KEY')!,
     DEBUG_HTTP_FULL: configService.get('DEBUG_HTTP_FULL'),
+    RAILWAY_ENVIRONMENT_NAME: configService.get('RAILWAY_ENVIRONMENT_NAME'),
     MIN_IOS_VERSION: configService.get('MIN_IOS_VERSION')!,
     LATEST_IOS_VERSION: configService.get('LATEST_IOS_VERSION')!,
     IOS_STORE_URL: configService.get('IOS_STORE_URL')!,
@@ -268,7 +278,10 @@ async function bootstrap() {
   };
 
   app.useLogger(app.get(Logger));
-  const productionLike = isProductionLike(env.NODE_ENV);
+  const productionLike = isProductionLike(
+    env.NODE_ENV,
+    env.RAILWAY_ENVIRONMENT_NAME,
+  );
 
   // Setup security middleware
   setupSecurity(app, productionLike);

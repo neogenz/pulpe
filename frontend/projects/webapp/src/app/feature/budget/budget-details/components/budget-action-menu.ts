@@ -63,14 +63,15 @@ function getBalanceFormatter(
 
     <mat-menu #actionMenu="matMenu" xPosition="before">
       <div
-        class="px-4 py-2 text-label-medium text-on-surface-variant max-w-48 truncate"
+        class="ph-no-capture px-4 py-2 text-label-medium text-on-surface-variant max-w-48 truncate"
         [matTooltip]="item().data.name"
+        matTooltipClass="ph-no-capture"
         matTooltipShowDelay="500"
       >
         {{ item().data.name }}
       </div>
       @if (showBalance()) {
-        <div class="px-4 pb-2 text-label-medium">
+        <div class="ph-no-capture px-4 pb-2 text-label-medium">
           {{ 'budget.balance' | transloco }}:
           {{ formattedBalance() }}
         </div>

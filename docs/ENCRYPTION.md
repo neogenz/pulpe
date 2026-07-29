@@ -16,7 +16,7 @@ DEK = HKDF-SHA256(clientKey + masterKey, salt, "pulpe-dek-{userId}")
 | `masterKey` | Variable d'environnement `ENCRYPTION_MASTER_KEY` | Serveur uniquement. GitHub Secrets en prod, `.env` en local. |
 | `salt` | Généré aléatoirement par utilisateur | Table `user_encryption_key` (accessible uniquement au `service_role`). |
 
-La DEK n'est jamais stockée. Elle est recalculée à chaque requête (avec un cache en mémoire de 5 minutes).
+La DEK n'est jamais stockée. Un cache mémoire de 5 minutes évite de répéter la dérivation, mais chaque nouvelle requête de mutation revalide son entrée avec le `key_check` courant.
 
 ### Ce que ça implique en cas de fuite
 
@@ -71,10 +71,11 @@ Le mode démo utilise un `clientKey` déterministe (`DEMO_CLIENT_KEY_BUFFER`) po
    - Authorization: Bearer {jwt}
    - X-Client-Key: {clientKey en hex}
 3. AuthGuard extrait le clientKey du header
-4. Service métier appelle encryptionService.ensureUserDEK(userId, clientKey)
-5. DEK = HKDF(clientKey + masterKey, salt)
-6. Les montants sont chiffrés/déchiffrés avec cette DEK
-7. ClientKeyCleanupInterceptor efface le clientKey de la mémoire (buffer.fill(0))
+4. Pour une mutation, AuthGuard valide le `key_check` courant avant le contrôleur
+5. Le service métier réutilise cette preuve uniquement dans la requête courante
+6. DEK = HKDF(clientKey + masterKey, salt)
+7. Les montants sont chiffrés/déchiffrés avec cette DEK
+8. ClientKeyCleanupInterceptor efface le clientKey de la mémoire (buffer.fill(0))
 ```
 
 ## Changement / reset de mot de passe (auth uniquement)
@@ -104,6 +105,12 @@ Quand l'utilisateur avait une recovery key configurée, le changement de PIN gé
 
 Si le re-wrapping échoue après un re-chiffrement réussi, le `wrapped_dek` est nullifié par sécurité (pour éviter un wrapping stale pointant vers l'ancienne DEK).
 
+### Atomicité et pagination du rekey
+
+Le backend lit d'abord toutes les lignes chiffrées, page par page avec un ordre stable sur `id`. Les filtres contenant des identifiants parents sont découpés pour rester sous les limites d'URL PostgREST. Il construit puis valide ensuite la totalité des payloads avant d'appeler une seule fois `rekey_user_encrypted_data`.
+
+Ce RPC met à jour atomiquement les ciphertexts et le nouveau `key_check`. Une erreur de lecture, y compris sur une page après les 1 000 premières lignes, interrompt donc le flux avant toute mutation. Après succès, le canary est lisible avec la nouvelle DEK et rejeté avec l'ancienne.
+
 ### Rate limiting
 
 L'endpoint `change-pin` est limité à 5 appels par heure par utilisateur.
@@ -121,10 +128,18 @@ La recovery key permet de récupérer l'accès aux données chiffrées quand le 
 ### Architecture
 
 ```
-Setup (depuis les paramètres) :
-  1. recoveryKey = randomBytes(32)                      // affiché une fois
-  2. wrappedDEK = AES-256-GCM(DEK, recoveryKey)        // DEK chiffrée
-  3. Stocker wrappedDEK dans user_encryption_key.wrapped_dek
+Setup initial :
+  1. Le client dérive clientKey depuis le nouveau PIN
+  2. Le backend confirme que key_check et wrapped_dek sont absents
+     et qu'aucune donnée chiffrée n'existe
+  3. recoveryKey = randomBytes(32)                      // affiché une fois
+  4. wrappedDEK = AES-256-GCM(DEK, recoveryKey)        // DEK chiffrée
+  5. Stocker key_check + wrapped_dek dans une même mise à jour conditionnelle
+
+Ajout d'une recovery key à un coffre configuré :
+  1. Vérifier clientKey avec le key_check existant
+  2. Générer recoveryKey et wrappedDEK
+  3. Stocker wrapped_dek seulement s'il est encore absent
 
 Recovery (code PIN oublié) :
   1. User fournit recoveryKey + nouveau code PIN
@@ -178,10 +193,11 @@ La colonne `key_check` de `user_encryption_key` stocke un ciphertext canary : `A
 
 | Événement | Action |
 |-----------|--------|
-| Première validation (key_check absent) | Généré et stocké |
+| Setup initial (`/setup-recovery`) | `key_check` et `wrapped_dek` créés atomiquement si le coffre est vide |
+| Validation avec `key_check` absent | Refusée sans mutation |
 | Recovery (`/recover`) | Régénéré avec la nouvelle DEK |
 | Changement de PIN (`/change-pin`) | Régénéré avec la nouvelle DEK |
-| Setup recovery key | Généré si absent |
+| Mode démo | Initialisé avec la clé démo fixe, hors parcours utilisateur |
 
 ### Rate limiting
 

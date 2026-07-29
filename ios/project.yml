@@ -16,7 +16,7 @@ configs:
 packages:
   supabase-swift:
     url: https://github.com/supabase/supabase-swift
-    from: "2.0.0"
+    exactVersion: "2.54.0"
   lottie-spm:
     url: https://github.com/airbnb/lottie-spm
     from: "4.0.0"
@@ -88,6 +88,8 @@ targets:
           - group.app.pulpe.ios
         com.apple.developer.applesignin:
           - Default
+        com.apple.developer.associated-domains:
+          - applinks:app.pulpe.app
     configFiles:
       Local: Config/Local.xcconfig
       Preview: Config/Preview.xcconfig
@@ -139,6 +141,7 @@ targets:
         POSTHOG_API_KEY: $(POSTHOG_API_KEY)
         POSTHOG_HOST: $(POSTHOG_HOST)
         POSTHOG_ENABLED: $(POSTHOG_ENABLED)
+        POSTHOG_SESSION_REPLAY_ENABLED: $(POSTHOG_SESSION_REPLAY_ENABLED)
         GOOGLE_CLIENT_ID: 894420283180-534drgml29aruk8ceqr1gecc5mn66gmg.apps.googleusercontent.com
         GIDClientID: 894420283180-534drgml29aruk8ceqr1gecc5mn66gmg.apps.googleusercontent.com
 

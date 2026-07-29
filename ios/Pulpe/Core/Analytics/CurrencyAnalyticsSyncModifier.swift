@@ -5,10 +5,9 @@ import SwiftUI
 /// Applied once near the authenticated app root. The modifier observes the
 /// canonical sources of truth — `UserSettingsStore` for `currency` and
 /// `showCurrencySelector` — and pushes a `$set` whenever either changes.
-/// `AnalyticsService.setPersonProperties` already no-ops until the
-/// user has been identified, so the modifier is safe to mount before
-/// authentication completes; the SDK also dedupes identical payloads, so
-/// the redundant call on initial appearance is free.
+/// `AnalyticsService.setPersonProperties` caches the current values before
+/// identification and republishes them after a later opt-in, so the modifier
+/// is safe to mount before authentication completes.
 ///
 /// Centralizing the sync here keeps the responsibility off `RootView` and
 /// out of every store mutation site (settings page picker, onboarding
