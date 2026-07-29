@@ -1,6 +1,6 @@
 ---
 objective: "Corriger les régressions d’accessibilité et de visibilité des actions contextuelles iOS, puis les prouver sur petit écran et Dynamic Type."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Corriger les actions contextuelles iOS
