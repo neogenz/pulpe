@@ -1,6 +1,6 @@
 ---
 objective: "La récupération des prévisions manquantes et le rattachement d’une épargne lissée restent exacts, accessibles et localisés sur web et iOS dans tous les états validés par la revue."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Fermer les écarts de continuité du plan d’épargne
