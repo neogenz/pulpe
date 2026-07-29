@@ -26,22 +26,22 @@ interface FaqItem {
 
 const faqs: FaqItem[] = [
   {
-    question: "À quoi sert Pulpe, concrètement ?",
+    question: "À quoi sert Pulpe, concrètement ?",
     plainAnswer:
       "Tu poses ton année une fois, puis tu ajustes au fur et à mesure. Si tu déplaces une dépense, rediriges de l'épargne ou décales un projet, tu vois ce que ça change sur les mois suivants sans repartir de zéro.",
   },
   {
-    question: "Pourquoi Pulpe plutôt qu'Excel ?",
+    question: "Pourquoi Pulpe plutôt qu'Excel ?",
     plainAnswer:
       "Excel fait le job, mais les formules deviennent vite fragiles dès que tu bouges une ligne. Et sur mobile, c'est pénible. Pulpe garde la vue d'ensemble et recalcule la suite quand tu ajustes ton budget.",
   },
   {
-    question: "Pourquoi Pulpe ne se connecte pas à ma banque ?",
+    question: "Pourquoi Pulpe ne se connecte pas à ma banque ?",
     plainAnswer:
       "J'aurais aimé proposer une synchronisation bancaire. Pour le faire correctement en Suisse et en France, il faut passer par des prestataires externes et gérer des contraintes réglementaires. Pour un projet que je développe seul, le soir après le boulot, le coût est trop élevé. Donc, pour l'instant, la saisie reste manuelle.",
   },
   {
-    question: "Pourquoi confier mes chiffres à Pulpe ?",
+    question: "Pourquoi confier mes chiffres à Pulpe ?",
     answer: (
       <>
         Tes montants ne sont jamais stockés en clair. Pour les déchiffrer, il
@@ -62,7 +62,7 @@ const faqs: FaqItem[] = [
       "Tes montants ne sont jamais stockés en clair. Pour les déchiffrer, il faut deux clés conservées séparément, dont une dérivée de ton code PIN. Une fuite de la base seule ne suffit donc pas à les lire. Le code source est public, tu peux vérifier son fonctionnement au lieu de me croire sur parole.",
   },
   {
-    question: "Est-ce que je peux essayer sans créer de compte ?",
+    question: "Est-ce que je peux essayer sans créer de compte ?",
     answer: (
       <>
         Oui. Le{" "}
@@ -77,7 +77,7 @@ const faqs: FaqItem[] = [
       "Oui. Le mode démo te laisse utiliser Pulpe sans compte et sans saisir tes propres chiffres.",
   },
   {
-    question: "C'est vraiment gratuit ?",
+    question: "C'est vraiment gratuit ?",
     answer: (
       <>
         Oui. Pulpe est gratuit, sans publicité ni abonnement. C'est un projet
@@ -97,17 +97,17 @@ const faqs: FaqItem[] = [
       "Oui. Pulpe est gratuit, sans publicité ni abonnement. C'est un projet solo et son code source est public.",
   },
   {
-    question: "Pulpe fonctionne-t-il en Suisse et en France ?",
+    question: "Ça marche en Suisse et en France ?",
     plainAnswer:
       "Oui. Pulpe fonctionne avec les francs suisses et les euros, sur le web et sur iPhone.",
   },
   {
-    question: "Comment retrouver mes budgets entre le web et l'iPhone ?",
+    question: "Comment retrouver mes budgets entre le web et l'iPhone ?",
     plainAnswer:
       "Connecte-toi au même compte sur les deux. Tes budgets et tes modifications sont synchronisés automatiquement.",
   },
   {
-    question: "Comment supprimer mon compte et mes données ?",
+    question: "Comment supprimer mon compte et mes données ?",
     answer: (
       <>
         Tu peux demander la suppression depuis les{" "}
@@ -165,7 +165,7 @@ export default function SupportPage() {
               </h1>
               <p className="pretty mt-6 max-w-2xl text-lg leading-relaxed text-text-secondary sm:text-xl">
                 Les réponses aux questions qu&apos;on me pose avant de
-                commencer. Si la tienne manque, écris-moi directement.
+                commencer. Si la tienne manque, écris-moi.
               </p>
             </div>
           </Container>

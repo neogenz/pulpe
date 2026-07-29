@@ -925,6 +925,32 @@ describe("landing accessibility contracts", () => {
     assert.doesNotMatch(componentSources.support, /<details|<summary/);
   });
 
+  it("keeps audited support details polished on mobile and keyboard", () => {
+    assert.match(
+      componentSources.accordionItem,
+      /focus:outline-none[^"]*focus-visible:ring-2[^"]*focus-visible:ring-inset[^"]*focus-visible:ring-primary/,
+    );
+    assert.match(
+      componentSources.layout,
+      /<html[^>]*suppressHydrationWarning/,
+    );
+
+    const questions = [
+      ...componentSources.support.matchAll(/question: "([^"]+)"/g),
+    ].map((match) => match[1]);
+    assert.equal(questions.length, 9);
+    assert.ok(questions.every((question) => question.endsWith("\u202f?")));
+    assert.ok(questions.includes("Ça marche en Suisse et en France\u202f?"));
+    assert.match(
+      componentSources.support,
+      /Si la tienne manque, écris-moi\./,
+    );
+    assert.doesNotMatch(
+      componentSources.support,
+      /Si la tienne manque, écris-moi directement\./,
+    );
+  });
+
   it("keeps support answers factual and aligned with the landing FAQ", () => {
     assert.equal(componentSources.support.match(/\n {4}question:/g)?.length, 9);
 
@@ -957,7 +983,7 @@ describe("landing accessibility contracts", () => {
     );
     assert.match(
       componentSources.support,
-      /question: "Comment supprimer mon compte et mes données \?"[\s\S]*?href=\{SETTINGS_URL\}[\s\S]*?>\s*paramètres\s*<\/a>[\s\S]*?plainAnswer:/,
+      /question: "Comment supprimer mon compte et mes données\u202f\?"[\s\S]*?href=\{SETTINGS_URL\}[\s\S]*?>\s*paramètres\s*<\/a>[\s\S]*?plainAnswer:/,
     );
     assert.match(componentSources.support, /answer\?: ReactNode;/);
     assert.match(
@@ -978,7 +1004,7 @@ describe("landing accessibility contracts", () => {
 
     for (const linkedAnswer of [
       {
-        question: "Pourquoi confier mes chiffres à Pulpe ?",
+        question: "Pourquoi confier mes chiffres à Pulpe\u202f?",
         href: "href={GITHUB_URL}",
         facts: [
           "Tes montants ne sont jamais stockés en clair.",
@@ -987,7 +1013,7 @@ describe("landing accessibility contracts", () => {
         ],
       },
       {
-        question: "Est-ce que je peux essayer sans créer de compte ?",
+        question: "Est-ce que je peux essayer sans créer de compte\u202f?",
         href: "href={DEMO_URL}",
         facts: [
           "mode démo",
@@ -996,7 +1022,7 @@ describe("landing accessibility contracts", () => {
         ],
       },
       {
-        question: "C'est vraiment gratuit ?",
+        question: "C'est vraiment gratuit\u202f?",
         href: "href={GITHUB_URL}",
         facts: [
           "Pulpe est gratuit, sans publicité ni abonnement.",
@@ -1005,7 +1031,7 @@ describe("landing accessibility contracts", () => {
         ],
       },
       {
-        question: "Comment supprimer mon compte et mes données ?",
+        question: "Comment supprimer mon compte et mes données\u202f?",
         href: "href={SETTINGS_URL}",
         facts: [
           "demander la suppression",
