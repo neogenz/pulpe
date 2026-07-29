@@ -340,7 +340,7 @@ Le simulateur répond à « qu'est-ce que je fais maintenant ? » sans modifier 
 - `plannedProjection = initialAmount + Σ Prévisions liées` dans l'intervalle ;
 - `estimatedCompletion`, période d'atteinte estimée au rythme pointé, ou `null` si elle n'est pas calculable ;
 - `initialAmount`, le montant de départ déchiffré (0 si absent) — écho pour l'affichage et le seed des simulations client ;
-- `months[]`, une ligne par période avec état temporel, montants prévu/pointé/cumulés, lignes liées et capacité de provisioning. Le cumul confirmé est **seedé** à `initialAmount` dès la première ligne rendue, même si elle précède `startDate` ; au cycle courant, il est égal à `confirmed`.
+- `months[]`, une ligne par période avec état temporel, montants prévu/pointé/cumulés, lignes liées, présence du budget (`hasBudget`) et capacité de provisioning. Le cumul confirmé est **seedé** à `initialAmount` dès la première ligne rendue, même si elle précède `startDate` ; au cycle courant, il est égal à `confirmed`.
 
 La timeline est payDay-aware. Une timeline datée reste bornée à 120 périodes ;
 une timeline ouverte n'est pas plafonnée et finit au dernier mois lié ou au
@@ -348,7 +348,8 @@ cycle courant. Les lignes antérieures à l'ancrage explicite restent visibles
 mais n'alimentent ni cumul, ni contribution, ni redistribution. Un budget absent
 est ajustable dès lors qu'un **Mois Type par défaut** existe — il sert à
 matérialiser le budget du mois, plus à recopier une ligne (PUL-316). Un budget
-existant sans ligne liée reste un gap non provisionnable.
+existant sans ligne liée est ajustable sans dépendre du Mois Type : la
+Prévision liée manquante peut être créée directement dans ce budget.
 
 ### 10.3 Simulation locale
 
@@ -368,11 +369,11 @@ Le serveur reste autoritaire à l'écriture. Les clients ne recalculent jamais l
 `POST /v1/savings-goals/:id/plan` accepte deux collections strictes :
 
 - `monthAdjustments[]` : `{ budgetLineId, amount }` pour les Prévisions matérialisées ;
-- `missingMonthAdjustments[]` : `{ month, year, amount }` pour les périodes absentes mais provisionnables.
+- `missingMonthAdjustments[]` : `{ month, year, amount }` pour les périodes sans Prévision liée mais provisionnables, que le budget soit absent ou déjà matérialisé.
 
-Le flux valide toutes les préconditions avant mutation, provisionne les budgets absents de façon idempotente, puis applique les montants dans une RPC atomique sérialisée par objectif. La RPC refuse toute ligne étrangère, non liée, non-Épargne, passée ou pointée. Les ajustements appliqués deviennent manuels et sortent de RG-001 ; le Mois Type n'est jamais modifié.
+Le flux valide toutes les préconditions avant mutation, provisionne les budgets absents ou réutilise les budgets existants de façon idempotente, puis applique les montants dans une RPC atomique sérialisée par objectif. La RPC refuse toute ligne étrangère, non liée, non-Épargne, passée ou pointée. Les ajustements appliqués deviennent manuels et sortent de RG-001 ; le Mois Type n'est jamais modifié.
 
-Depuis PUL-316, un mois manquant reçoit sa Prévision liée **directement**, par le même lissage que la création (§3.5) : il matérialise le budget absent puis y insère la ligne — exactement le geste d'un ajout manuel dans le budget du mois. Exiger au préalable une ligne du Mois Type à recopier rendrait le comblement impossible pour un objectif daté, qui n'en pose plus.
+Depuis PUL-316, un mois manquant reçoit sa Prévision liée **directement**, par le même lissage que la création (§3.5) : le budget est matérialisé s'il manque, sinon il est réutilisé, puis la ligne y est insérée — exactement le geste d'un ajout manuel dans le budget du mois. Exiger au préalable une ligne du Mois Type à recopier rendrait le comblement impossible pour un objectif daté, qui n'en pose plus.
 
 Les montants sont chiffrés via `ENCRYPTION_PORT`. Une application dans la devise du compte remet les métadonnées FX source de la Prévision à `null`. Après succès ou provisioning partiel suivi d'un échec, les caches objectifs et budgets sont invalidés avant relecture.
 

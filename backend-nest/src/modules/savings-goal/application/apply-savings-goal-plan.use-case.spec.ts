@@ -190,23 +190,29 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
     expect(repo.applyPlan).not.toHaveBeenCalled();
   });
 
-  it('rejects a materialized budget without a linked saving line', async () => {
+  it('creates the missing linked forecast in an already-materialized budget', async () => {
     repo.findMaterializedPeriods.mockResolvedValue([
       ...periods.slice(0, 2),
       periods[2],
     ]);
 
-    await expect(
-      useCase.execute(
-        'goal-1',
-        {
-          monthAdjustments: [],
-          missingMonthAdjustments: [{ ...periods[2], amount: 1000 }],
-        },
-        user,
-      ),
-    ).rejects.toMatchObject({ code: 'ERR_SAVINGS_GOAL_PLAN_LINE_INVALID' });
-    expect(spread.fanOut).not.toHaveBeenCalled();
+    await useCase.execute(
+      'goal-1',
+      {
+        monthAdjustments: [],
+        missingMonthAdjustments: [{ ...periods[2], amount: 1000 }],
+      },
+      user,
+    );
+
+    expect(spread.fanOut).toHaveBeenCalledWith(
+      expect.objectContaining({
+        savingsGoalId: 'goal-1',
+        tranches: [{ ...periods[2], amount: 1000 }],
+      }),
+      user,
+    );
+    expect(repo.applyPlan).toHaveBeenCalledTimes(1);
   });
 
   it('rejects a missing period outside the goal horizon', async () => {

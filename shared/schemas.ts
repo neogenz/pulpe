@@ -489,6 +489,8 @@ export const savingsGoalPlanMonthSchema = z.object({
   isLocked: z.boolean(),
   /** False pour les rows conservées avant le début effectif de contribution. */
   isContributionEligible: z.boolean().optional(),
+  /** Distingue un budget matérialisé d'une période encore sans budget. */
+  hasBudget: z.boolean().optional(),
   isProvisionable: z.boolean().optional(),
   plannedAmount: z.number(),
   confirmedAmount: z.number(),

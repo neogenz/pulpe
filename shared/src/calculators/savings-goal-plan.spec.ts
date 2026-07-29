@@ -102,7 +102,7 @@ describe('buildSavingsGoalTimeline', () => {
   });
 
   it('should distinguish a missing budget from an existing budget without a linked line', () => {
-    const provisionable = buildSavingsGoalTimeline({
+    const missingBudget = buildSavingsGoalTimeline({
       ...input,
       materializedPeriods: [
         { month: 1, year: 2026 },
@@ -113,7 +113,7 @@ describe('buildSavingsGoalTimeline', () => {
       ],
       canProvisionMissingPeriods: true,
     });
-    const unavailable = buildSavingsGoalTimeline({
+    const existingBudget = buildSavingsGoalTimeline({
       ...input,
       materializedPeriods: [
         { month: 1, year: 2026 },
@@ -123,18 +123,20 @@ describe('buildSavingsGoalTimeline', () => {
         { month: 5, year: 2026 },
         { month: 6, year: 2026 },
       ],
-      canProvisionMissingPeriods: true,
+      canProvisionMissingPeriods: false,
     });
 
-    expect(provisionable[3]).toMatchObject({
+    expect(missingBudget[3]).toMatchObject({
       month: 4,
       state: 'gap',
+      hasBudget: false,
       isProvisionable: true,
     });
-    expect(unavailable[3]).toMatchObject({
+    expect(existingBudget[3]).toMatchObject({
       month: 4,
       state: 'gap',
-      isProvisionable: false,
+      hasBudget: true,
+      isProvisionable: true,
     });
   });
 
@@ -432,7 +434,7 @@ describe('redistributeRemainingEffort', () => {
     );
   });
 
-  it('should block redistribution when an existing budget has no linked line', () => {
+  it('should redistribute through an existing budget without a linked line', () => {
     const timeline = buildSavingsGoalTimeline({
       targetAmount: 3000,
       status: 'ACTIVE',
@@ -453,8 +455,12 @@ describe('redistributeRemainingEffort', () => {
       targetAmount: 3000,
     });
 
-    expect(result.isDistributable).toBe(false);
-    expect(result.adjustments).toEqual([]);
+    expect(result.isDistributable).toBe(true);
+    expect(result.adjustments).toEqual([
+      { month: 1, year: 2026, amount: 1000 },
+      { month: 2, year: 2026, amount: 1000 },
+      { month: 3, year: 2026, amount: 1000 },
+    ]);
   });
 
   it('should not be distributable when no open month remains', () => {

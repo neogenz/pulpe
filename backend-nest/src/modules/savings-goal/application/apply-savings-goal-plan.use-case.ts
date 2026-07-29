@@ -198,10 +198,8 @@ export class ApplySavingsGoalPlanUseCase {
     bounds: { minPeriodIndex: number; targetPeriodIndex: number | null },
     user: AuthenticatedUser,
   ): Promise<number> {
-    const materialized = await this.repo.findMaterializedPeriods();
     const periodsToProvision = this.findPeriodsToProvision(
       missing.map(({ month, year }) => ({ month, year })),
-      materialized,
       linkedLines,
       bounds,
       { goalId: goal.id, userId: user.id },
@@ -243,12 +241,10 @@ export class ApplySavingsGoalPlanUseCase {
 
   private findPeriodsToProvision(
     periods: BudgetPeriod[],
-    materialized: BudgetPeriod[],
     linkedLines: LinkedSavingLine[],
     bounds: { minPeriodIndex: number; targetPeriodIndex: number | null },
     owner: { goalId: string; userId: string },
   ): BudgetPeriod[] {
-    const materializedKeys = new Set(materialized.map(this.periodKey));
     const linkedPeriodKeys = new Set(linkedLines.map(this.periodKey));
     if (
       periods.some(
@@ -263,14 +259,9 @@ export class ApplySavingsGoalPlanUseCase {
       this.throwLineInvalid(owner.goalId, owner.userId);
     }
 
-    return periods.filter((period) => {
-      const key = this.periodKey(period);
-      if (!materializedKeys.has(key)) return true;
-      if (!linkedPeriodKeys.has(key)) {
-        this.throwLineInvalid(owner.goalId, owner.userId);
-      }
-      return false;
-    });
+    return periods.filter(
+      (period) => !linkedPeriodKeys.has(this.periodKey(period)),
+    );
   }
 
   private allocateMissingMonths(
