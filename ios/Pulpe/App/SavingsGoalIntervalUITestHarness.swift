@@ -329,7 +329,7 @@ struct SavingsGoalIntervalUITestHarness: View {
                 }
                 .navigationTitle("Mois Type")
             }
-        case .budgetLongPressWithTransactions, .budgetLongPressEmpty:
+        case .budgetLongPressWithTransactions, .budgetLongPressEmpty, .budgetGoalSpreadMetadata:
             EmptyView()
         }
     }
