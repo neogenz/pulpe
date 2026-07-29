@@ -1,4 +1,6 @@
 import { describe, expect, it, mock } from 'bun:test';
+import { spawnSync } from 'node:child_process';
+import { resolve } from 'node:path';
 import {
   migrateScheduledDeletionMetadata,
   type ScheduledDeletionAdminApi,
@@ -24,6 +26,27 @@ const current = (value: ReturnType<typeof user>) => ({
 });
 
 describe('migrateScheduledDeletionMetadata', () => {
+  it('executes the package CLI and fails closed without credentials', () => {
+    const result = spawnSync(
+      process.execPath,
+      ['run', 'migrate:scheduled-deletion'],
+      {
+        cwd: resolve(__dirname, '..'),
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          SUPABASE_URL: '',
+          SUPABASE_SERVICE_ROLE_KEY: '',
+        },
+      },
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      'SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required',
+    );
+  });
+
   it('reports eligible and invalid legacy claims without writing by default', async () => {
     const getUserById = mock(async () => current(user('unused')));
     const updateUserById = mock(async () => ({ error: null }));
