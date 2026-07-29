@@ -1,6 +1,6 @@
 ---
 objective: "Au cold start iOS, PostHog est initialisé avant qu’AuthService puisse démarrer son listener et photographier un diagnostic de session."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Garantir l’attribution des diagnostics au démarrage iOS
