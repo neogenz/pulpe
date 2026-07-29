@@ -78,7 +78,7 @@ describe('cross-DEK budget_line bug — create_budget_from_template', () => {
     );
 
     // UserA encrypts a template_line.amount = 100
-    const dekA = await serviceA.ensureUserDEK(USER_A_ID, USER_A_CLIENT_KEY);
+    const dekA = await serviceA.getUserDEK(USER_A_ID, USER_A_CLIENT_KEY);
     const ciphertextFromTemplateA = serviceA.encryptAmount(
       PLAINTEXT_AMOUNT,
       dekA,
@@ -86,7 +86,7 @@ describe('cross-DEK budget_line bug — create_budget_from_template', () => {
 
     // The RPC copies ciphertextFromTemplateA verbatim into budget_line.amount for UserB.
     // UserB then reads back via decryptRowAmountFields (calls tryDecryptAmount with fallback 0).
-    const dekB = await serviceB.ensureUserDEK(USER_B_ID, USER_B_CLIENT_KEY);
+    const dekB = await serviceB.getUserDEK(USER_B_ID, USER_B_CLIENT_KEY);
     const decryptedByB = serviceB.tryDecryptAmount(
       ciphertextFromTemplateA,
       dekB,
@@ -107,7 +107,7 @@ describe('cross-DEK budget_line bug — create_budget_from_template', () => {
       makeSaltRepo(USER_A_ID, userASalt) as any,
     );
 
-    const dek = await service.ensureUserDEK(USER_A_ID, USER_A_CLIENT_KEY);
+    const dek = await service.getUserDEK(USER_A_ID, USER_A_CLIENT_KEY);
     const ciphertext = service.encryptAmount(PLAINTEXT_AMOUNT, dek);
     const decrypted = service.tryDecryptAmount(ciphertext, dek, 0);
 

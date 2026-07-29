@@ -10,8 +10,12 @@ import type { Buffer } from 'node:buffer';
  * are reserved for the encryption controller (recovery flows, PIN change, key wrap/unwrap, etc.).
  */
 export interface EncryptionPort {
-  /** Derive (or retrieve from cache) the user's DEK. Validates keyCheck on cache miss. */
+  /** Validate the client key against an existing key-check canary. Never bootstraps it. */
+  verifyExistingKeyCheck(userId: string, clientKey: Buffer): Promise<boolean>;
+  /** Require a current key-check proof, once per HTTP request and on every non-HTTP call. */
   ensureUserDEK(userId: string, clientKey: Buffer): Promise<Buffer>;
+  /** Initialize or validate the disposable demo vault with its server-owned fixed key. */
+  ensureDemoUserDEK(userId: string): Promise<Buffer>;
   /** Retrieve cached DEK; skip keyCheck validation. Use after `ensureUserDEK` already ran. */
   getUserDEK(userId: string, clientKey: Buffer): Promise<Buffer>;
   /** Convenience wrapper around getUserDEK for an authenticated user. */

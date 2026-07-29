@@ -50,11 +50,10 @@ final class BiometricManager {
     // MARK: - Dependencies
 
     private let preferenceStore: BiometricPreferenceStore
-    private let authService: AuthService
     private let clientKeyManager: ClientKeyManager
     private let capability: @Sendable () -> Bool
     private let _authenticate: @Sendable () async throws -> Void
-    private let _syncCredentials: @Sendable () async -> Bool
+    private let _storeKey: @Sendable () async -> Bool
     private let _resolveKey: @Sendable () async -> String?
     private let _validateKey: @Sendable (String) async -> Bool
     private let _credentialsAvailability: @Sendable () async -> Bool
@@ -63,26 +62,25 @@ final class BiometricManager {
 
     init(
         preferenceStore: BiometricPreferenceStore,
-        authService: AuthService,
         clientKeyManager: ClientKeyManager,
         capability: @Sendable @escaping () -> Bool,
         authenticate: @Sendable @escaping () async throws -> Void,
-        syncCredentials: @Sendable @escaping () async -> Bool,
+        storeKey: (@Sendable () async -> Bool)? = nil,
         resolveKey: @Sendable @escaping () async -> String?,
         validateKey: @Sendable @escaping (String) async -> Bool,
         credentialsAvailability: (@Sendable () async -> Bool)? = nil
     ) {
         self.preferenceStore = preferenceStore
-        self.authService = authService
         self.clientKeyManager = clientKeyManager
         self.capability = capability
         _authenticate = authenticate
-        _syncCredentials = syncCredentials
+        _storeKey = storeKey ?? { [clientKeyManager] in
+            await clientKeyManager.enableBiometric()
+        }
         _resolveKey = resolveKey
         _validateKey = validateKey
-        _credentialsAvailability = credentialsAvailability ?? { [authService, clientKeyManager] in
-            guard await authService.hasBiometricTokens() else { return false }
-            return await clientKeyManager.hasBiometricKey()
+        _credentialsAvailability = credentialsAvailability ?? { [clientKeyManager] in
+            await clientKeyManager.hasBiometricKey()
         }
     }
 
@@ -154,15 +152,7 @@ final class BiometricManager {
             return false
         }
 
-        do {
-            try await authService.saveBiometricTokens()
-        } catch {
-            Logger.auth.error("enableBiometric: failed to save biometric tokens - \(error)")
-            enrollmentDebug("END", source: source, reason: reason, outcome: "token_save_failed")
-            return false
-        }
-
-        let clientKeyStored = await clientKeyManager.enableBiometric()
+        let clientKeyStored = await _storeKey()
         guard clientKeyStored else {
             enrollmentDebug("END", source: source, reason: reason, outcome: "client_key_save_failed")
             return false
@@ -175,7 +165,6 @@ final class BiometricManager {
     }
 
     func disable() async {
-        await authService.clearBiometricTokens()
         await clientKeyManager.disableBiometric()
         isEnabled = false
         credentialsAvailable = false
@@ -189,8 +178,7 @@ final class BiometricManager {
 
         guard await _validateKey(clientKeyHex) else {
             Logger.auth.warning("attemptBiometricUnlock: stale biometric key detected, clearing")
-            await clientKeyManager.clearAll()
-            isEnabled = false
+            await handleStaleKey()
             return false
         }
         return true
@@ -206,10 +194,6 @@ final class BiometricManager {
         await _validateKey(clientKeyHex)
     }
 
-    func syncCredentials() async -> Bool {
-        await _syncCredentials()
-    }
-
     // MARK: - Capability
 
     func canEnroll() -> Bool {
@@ -218,19 +202,14 @@ final class BiometricManager {
 
     // MARK: - Post-Auth Sync
 
-    /// Syncs biometric credentials and client key after authentication.
-    /// Returns `false` if biometric is enabled but sync failed.
+    /// Re-creates the biometric client-key slot after PIN authentication.
     func syncAfterAuth() async -> Bool {
         guard isEnabled else { return true }
-        let tokensReady = await _syncCredentials()
-        let keyReady = await clientKeyManager.enableBiometric()
-        if tokensReady && keyReady {
+        if await _storeKey() {
             credentialsAvailable = true
             return true
         }
-        Logger.auth.warning(
-            "biometric silent reactivation incomplete (tokens=\(tokensReady), key=\(keyReady))"
-        )
+        Logger.auth.warning("biometric client-key reactivation incomplete")
         credentialsAvailable = false
         return false
     }
@@ -239,7 +218,6 @@ final class BiometricManager {
 
     func handleSessionExpired() async {
         await clientKeyManager.clearAll()
-        await authService.clearBiometricTokens()
         credentialsAvailable = false
     }
 
@@ -252,26 +230,6 @@ final class BiometricManager {
     }
 
     // MARK: - Default Closure Factories
-
-    static func defaultSyncCredentials(
-        _ authService: AuthService
-    ) -> @Sendable () async -> Bool {
-        {
-            // PUL-132: SDK storage (PulpeAuthStorage) is the source of truth for the
-            // live session. saveBiometricTokens reads `supabase.auth.session` directly.
-            // No keychain fallback — if the SDK session is unavailable, there's
-            // nothing valid to snapshot into the biometric slot.
-            do {
-                try await authService.saveBiometricTokens()
-                return true
-            } catch {
-                Logger.auth.error(
-                    "transitionToAuthenticated: saveBiometricTokens failed - \(error)"
-                )
-                return false
-            }
-        }
-    }
 
     static func defaultResolveKey(
         _ clientKeyManager: ClientKeyManager

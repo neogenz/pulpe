@@ -218,10 +218,8 @@ describe('User consent and tracking behavior', () => {
       // Flush effects to trigger the auth state change handler
       TestBed.tick();
 
-      // Then: AnalyticsService must NOT call reset() on anonymous tick —
-      // reset() would wipe the cross-domain distinct_id bootstrapped from
-      // the landing and the registered super properties. reset() is owned
-      // by AuthCleanupService.performCleanup() on explicit signOut.
+      // Then: reset() remains owned by AuthCleanupService.performCleanup()
+      // on explicit signOut; a passive anonymous tick must not mutate SDK state.
       expect(mockPostHogService.reset).not.toHaveBeenCalled();
     });
 
@@ -295,6 +293,53 @@ describe('User consent and tracking behavior', () => {
       expect(initialCallCount).toBe(1);
       // Note: In real implementation, enableTracking is only called once due to session flag
     });
+
+    it('should restore tracking, identity, and loaded settings after opt-in', () => {
+      mockUserSettingsStore.setSettings({
+        payDayOfMonth: 25,
+        currency: 'EUR',
+        showCurrencySelector: true,
+      });
+      TestBed.runInInjectionContext(() => {
+        analyticsService.initializeAnalyticsTracking();
+      });
+      mockAuthState.set({
+        user: {
+          id: 'support-user',
+          email: 'support@example.com',
+          user_metadata: { firstName: 'Support' },
+        },
+        session: { access_token: 'token', refresh_token: 'refresh' },
+        isLoading: false,
+        isAuthenticated: true,
+      });
+      TestBed.tick();
+      mockPostHogService.enableTracking.mockClear();
+      mockPostHogService.identify.mockClear();
+      mockPostHogService.setPersonProperties.mockClear();
+
+      analyticsService.setDiagnosticSharingEnabled(false);
+      TestBed.tick();
+      expect(analyticsService.diagnosticSharingEnabled()).toBe(false);
+
+      analyticsService.setDiagnosticSharingEnabled(true);
+      TestBed.tick();
+
+      expect(mockPostHogService.enableTracking).toHaveBeenCalledTimes(1);
+      expect(mockPostHogService.identify).toHaveBeenCalledWith(
+        'support-user',
+        expectedIdentifyProperties(
+          'support-user',
+          'support@example.com',
+          'Support',
+        ),
+      );
+      expect(mockPostHogService.setPersonProperties).toHaveBeenCalledWith({
+        currency: 'EUR',
+        show_currency_selector: true,
+      });
+      expect(mockPostHogService.setPersonProperties).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('currency person properties', () => {
@@ -330,7 +375,6 @@ describe('User consent and tracking behavior', () => {
         show_currency_selector: true,
       });
     });
-
     it('should not push person properties while user settings are still null', () => {
       // GIVEN: Settings still null (resource not resolved)
       mockUserSettingsStore.setSettings(null);

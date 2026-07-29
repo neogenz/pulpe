@@ -11,6 +11,13 @@ import { ZodValidationException } from 'nestjs-zod';
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { BusinessException } from '@common/exceptions/business.exception';
+import { resolveHttpLoggingDecision } from '@config/environment';
+import {
+  sanitizeLogTechnicalValue,
+  sanitizeLogValue,
+  sanitizeStackFrames,
+  toLogPath,
+} from '@common/utils/log-anonymization';
 
 interface ErrorContext {
   readonly requestId?: string;
@@ -153,7 +160,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       success: false,
       statusCode: errorData.status,
       timestamp: new Date().toISOString(),
-      path: request.url,
+      path: toLogPath(request.url) ?? '',
       method: request.method,
       message: errorData.message,
       error: errorData.error,
@@ -202,19 +209,17 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       if (err instanceof Error) {
         return {
           depth: index + 1,
-          name: err.name || 'UnknownError',
-          message: err.message || 'No message',
-          ...(err.stack && { stack: err.stack }),
+          errorType: sanitizeLogTechnicalValue(err.name) ?? 'UnknownError',
+          stackFrames: sanitizeStackFrames(err.stack),
         };
       }
 
       // Handle non-Error objects (like Supabase errors)
-      const errObj = err as { name?: string; message?: string; stack?: string };
+      const errObj = err as { name?: string; stack?: string };
       return {
         depth: index + 1,
-        name: errObj.name || 'UnknownError',
-        message: errObj.message || JSON.stringify(err),
-        ...(errObj.stack && { stack: errObj.stack }),
+        errorType: sanitizeLogTechnicalValue(errObj.name) ?? 'UnknownError',
+        stackFrames: sanitizeStackFrames(errObj.stack),
       };
     });
   }
@@ -224,13 +229,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     if (rootCause instanceof Error) {
       return {
-        name: rootCause.name,
-        message: rootCause.message,
-        ...(rootCause.stack && { stack: rootCause.stack }),
+        errorType: sanitizeLogTechnicalValue(rootCause.name) ?? 'Error',
+        stackFrames: sanitizeStackFrames(rootCause.stack),
       };
     }
 
-    return { value: rootCause };
+    return { errorType: 'UnknownError' };
   }
 
   private handleHttpException(exception: HttpException): ErrorData {
@@ -293,110 +297,48 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     return process.env.NODE_ENV === 'development';
   }
 
-  /**
-   * Sanitizes request body for logging by removing sensitive fields
-   */
-  private sanitizeRequestBody(body: unknown): unknown {
-    if (!body || typeof body !== 'object') {
-      return body;
-    }
-
-    const sensitiveFields = [
-      'password',
-      'token',
-      'secret',
-      'authorization',
-      'auth',
-    ];
-    const sanitized = { ...body } as Record<string, unknown>;
-
-    for (const field of sensitiveFields) {
-      if (field in sanitized) {
-        sanitized[field] = '[REDACTED]';
-      }
-    }
-
-    return sanitized;
-  }
-
   private logException(
     errorData: ErrorData,
     request: Request,
     context: ErrorContext,
   ): void {
+    const detailedLogging = this.isDetailedHttpLogging();
     const logContext = {
       requestId: context.requestId,
       userId: context.userId,
       method: request.method,
-      url: request.url,
+      url: toLogPath(request.url),
       statusCode: errorData.status,
       errorCode: errorData.code,
+      errorType: sanitizeLogTechnicalValue(errorData.error) ?? 'Error',
+      stackFrames: sanitizeStackFrames(errorData.originalError?.stack),
       userAgent: this.isDevelopment() ? context.userAgent : undefined,
       ip: this.isDevelopment() ? context.ip : undefined,
-      // Dev-only: sanitizeRequestBody is a denylist and has drifted from the
-      // secrets it must cover (clientKey / oldClientKey / newClientKey /
-      // recoveryKey are vault key material, and amounts are encrypted at rest).
-      // The pino `redact` paths in app.module.ts target `req.body.*` and do not
-      // reach this hand-built object, so production must not carry a body here.
-      requestBody: this.isDevelopment()
-        ? this.sanitizeRequestBody(request.body)
+      requestBody: detailedLogging ? sanitizeLogValue(request.body) : undefined,
+      requestQuery: detailedLogging
+        ? sanitizeLogValue(request.query)
         : undefined,
-      ...errorData.loggingContext, // Merge context provided by the service
+      ...errorData.loggingContext,
     };
-
-    // Extract readable message from errorData.message
-    const errorMessage = this.extractReadableMessage(errorData.message);
+    const sanitizedLogContext = sanitizeLogValue(logContext) as Record<
+      string,
+      unknown
+    >;
 
     if (errorData.status >= 500) {
-      // Server errors: log with structured context including error object
-      this.logger.error(
-        {
-          ...logContext,
-          err: errorData.originalError || new Error(errorMessage),
-        },
-        `SERVER ERROR: ${errorMessage}`,
-      );
+      this.logger.error(sanitizedLogContext, 'SERVER ERROR');
     } else {
-      // Client errors: log as warning with structured context
-      this.logger.warn(logContext, `CLIENT ERROR: ${errorMessage}`);
+      this.logger.warn(sanitizedLogContext, 'CLIENT ERROR');
     }
   }
 
-  private extractReadableMessage(message: string | object): string {
-    if (typeof message === 'string') {
-      return message;
-    }
-
-    if (message && typeof message === 'object') {
-      const msgObj = message as unknown as {
-        message?: string;
-        error?: string;
-        detail?: string;
-        errors?: Array<{
-          code: string;
-          message: string;
-          path: (string | number)[];
-        }>;
-      };
-
-      // Handle Zod validation errors with detailed information
-      if (msgObj.errors && Array.isArray(msgObj.errors)) {
-        const validationDetails = msgObj.errors
-          .map((error) => `${error.path.join('.')}: ${error.message}`)
-          .join(', ');
-
-        const baseMessage = msgObj.message || 'Validation failed';
-        return `${baseMessage} - ${validationDetails}`;
-      }
-
-      return (
-        msgObj.message ||
-        msgObj.error ||
-        msgObj.detail ||
-        JSON.stringify(msgObj)
-      );
-    }
-
-    return 'Unknown error';
+  private isDetailedHttpLogging(): boolean {
+    return (
+      resolveHttpLoggingDecision({
+        NODE_ENV: process.env.NODE_ENV,
+        DEBUG_HTTP_FULL: process.env.DEBUG_HTTP_FULL,
+        RAILWAY_ENVIRONMENT_NAME: process.env.RAILWAY_ENVIRONMENT_NAME,
+      }).mode === 'detailed'
+    );
   }
 }

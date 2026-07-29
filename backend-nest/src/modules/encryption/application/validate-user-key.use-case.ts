@@ -13,7 +13,7 @@ export class ValidateUserKeyUseCase {
   ) {}
 
   async execute(userId: string, clientKey: Buffer): Promise<void> {
-    const isValid = await this.cryptoService.verifyAndEnsureKeyCheck(
+    const isValid = await this.cryptoService.verifyExistingKeyCheck(
       userId,
       clientKey,
     );

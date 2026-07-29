@@ -5,7 +5,43 @@ import Testing
 @Suite(.serialized)
 @MainActor
 struct ResetPasswordDeepLinkRoutingTests {
-    private let testURL = URL(string: "pulpe://reset-password?token=abc123") ?? URL(fileURLWithPath: "/")
+    private let testURL = URL(
+        string: "https://app.pulpe.app/reset-password#access_token=test&type=recovery"
+    ) ?? URL(fileURLWithPath: "/")
+
+    // MARK: - URL Routing Tests
+
+    @Test func routing_acceptsOnlyOwnedResetUniversalLink() throws {
+        let destination = DeepLinkDestination.resolve(testURL)
+
+        #expect(destination == .resetPassword(url: testURL))
+    }
+
+    @Test func routing_rejectsUnownedOrLegacyResetLinks() throws {
+        let rejectedURLs = try [
+            "http://app.pulpe.app/reset-password",
+            "https://example.com/reset-password",
+            "https://pulpe.app/reset-password",
+            "https://app.pulpe.app/app/reset-password",
+            "https://app.pulpe.app/reset-password/",
+            "pulpe://reset-password"
+        ].map { try #require(URL(string: $0)) }
+
+        for url in rejectedURLs {
+            #expect(DeepLinkDestination.resolve(url) == nil)
+        }
+    }
+
+    @Test func routing_preservesNonSensitivePrivateLinks() throws {
+        let budgetId = "11111111-1111-1111-8111-111111111111"
+        let addExpenseURL = try #require(
+            URL(string: "pulpe://add-expense?budgetId=\(budgetId)")
+        )
+        let budgetURL = try #require(URL(string: "pulpe://budget?id=\(budgetId)"))
+
+        #expect(DeepLinkDestination.resolve(addExpenseURL) == .addExpense(budgetId: budgetId))
+        #expect(DeepLinkDestination.resolve(budgetURL) == .viewBudget(budgetId: budgetId))
+    }
 
     // MARK: - Disposition Policy Tests
 

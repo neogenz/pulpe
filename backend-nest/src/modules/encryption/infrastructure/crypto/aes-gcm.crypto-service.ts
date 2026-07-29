@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   createCipheriv,
@@ -10,7 +10,9 @@ import {
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
+import { sanitizeLogTechnicalValue } from '@common/utils/log-anonymization';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
+import { DEMO_CLIENT_KEY_BUFFER } from '../../domain/encryption.constants';
 import { SupabaseEncryptionKeyRepository } from '../persistence/supabase-encryption-key.repository';
 import type { UserEncryptionKey } from '../../domain/encryption.entity';
 import {
@@ -20,6 +22,7 @@ import {
   rekeyTemplateLinesRpcPayloadSchema,
   rekeyTransactionsRpcPayloadSchema,
 } from '../persistence/schemas/rpc-payload.schemas';
+import { ClsService } from 'nestjs-cls';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
@@ -29,6 +32,9 @@ const SALT_LENGTH = 16;
 const KDF_ITERATIONS = 600_000;
 const HKDF_DIGEST = 'sha256';
 const DEK_CACHE_TTL_MS = 5 * 60 * 1000;
+const POSTGREST_PAGE_SIZE = 1_000;
+const POSTGREST_FILTER_CHUNK_SIZE = 100;
+const VAULT_VALIDATION_CONTEXT_KEY = 'encryption.validatedVaultCacheKey';
 
 // Base32 alphabet (RFC 4648, no padding) — avoids 0/O and 1/l ambiguity
 const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
@@ -37,6 +43,10 @@ interface CachedDEK {
   dek: Buffer;
   expiry: number;
 }
+
+const safeErrorType = (error: unknown): string =>
+  sanitizeLogTechnicalValue(error instanceof Error ? error.name : undefined) ??
+  'UnknownError';
 
 @Injectable()
 export class AesGcmCryptoService {
@@ -49,6 +59,7 @@ export class AesGcmCryptoService {
     private readonly logger: InfoLogger,
     configService: ConfigService,
     repository: SupabaseEncryptionKeyRepository,
+    @Optional() private readonly cls?: ClsService,
   ) {
     const masterKeyHex = configService.get<string>('ENCRYPTION_MASTER_KEY');
     if (!masterKeyHex) {
@@ -126,7 +137,7 @@ export class AesGcmCryptoService {
         {
           op: 'crypto.decrypt.fallback',
           severity: 'critical',
-          error: error instanceof Error ? error.message : String(error),
+          errorType: safeErrorType(error),
           ciphertextLength: ciphertext.length,
         },
         'Decryption failed, using fallback amount — possible cross-DEK ciphertext or tamper',
@@ -191,14 +202,30 @@ export class AesGcmCryptoService {
   async ensureUserDEK(userId: string, clientKey: Buffer): Promise<Buffer> {
     const cacheKey = this.#buildCacheKey(userId, clientKey);
     const cached = this.#dekCache.get(cacheKey);
-    if (cached && cached.expiry > Date.now()) {
+    if (
+      cached &&
+      cached.expiry > Date.now() &&
+      this.#isValidatedInCurrentRequest(cacheKey)
+    ) {
       return cached.dek;
     }
 
     const { salt, keyCheck } = await this.#ensureUserSalt(userId);
+    if (
+      cached &&
+      cached.expiry > Date.now() &&
+      keyCheck &&
+      this.validateKeyCheck(keyCheck, cached.dek)
+    ) {
+      this.#markValidatedInCurrentRequest(cacheKey);
+      return cached.dek;
+    }
+
+    this.#evictCachedDEK(cacheKey);
     const dek = this.#deriveDEK(clientKey, salt, userId);
 
-    if (keyCheck && !this.validateKeyCheck(keyCheck, dek)) {
+    if (!keyCheck || !this.validateKeyCheck(keyCheck, dek)) {
+      dek.fill(0);
       throw new BusinessException(
         ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
       );
@@ -208,6 +235,7 @@ export class AesGcmCryptoService {
       dek,
       expiry: Date.now() + DEK_CACHE_TTL_MS,
     });
+    this.#markValidatedInCurrentRequest(cacheKey);
 
     return dek;
   }
@@ -235,7 +263,7 @@ export class AesGcmCryptoService {
     // derived DEK is still returned (reads keep their fallback-0 UX) but never
     // cached, so a concurrent write re-derives and rejects the key instead of
     // encrypting under a wrong DEK.
-    if (row.key_check && !this.validateKeyCheck(row.key_check, dek)) {
+    if (!row.key_check || !this.validateKeyCheck(row.key_check, dek)) {
       return dek;
     }
 
@@ -244,6 +272,36 @@ export class AesGcmCryptoService {
       expiry: Date.now() + DEK_CACHE_TTL_MS,
     });
 
+    return dek;
+  }
+
+  async ensureDemoUserDEK(userId: string): Promise<Buffer> {
+    const cacheKey = this.#buildCacheKey(userId, DEMO_CLIENT_KEY_BUFFER);
+    const cached = this.#dekCache.get(cacheKey);
+    if (cached && cached.expiry > Date.now()) {
+      return cached.dek;
+    }
+
+    const { salt, keyCheck } = await this.#ensureUserSalt(userId);
+    const dek = this.#deriveDEK(DEMO_CLIENT_KEY_BUFFER, salt, userId);
+
+    if (keyCheck) {
+      if (!this.validateKeyCheck(keyCheck, dek)) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
+        );
+      }
+    } else {
+      await this.#repository.updateKeyCheckIfNull(
+        userId,
+        this.generateKeyCheck(dek),
+      );
+    }
+
+    this.#dekCache.set(cacheKey, {
+      dek,
+      expiry: Date.now() + DEK_CACHE_TTL_MS,
+    });
     return dek;
   }
 
@@ -318,38 +376,22 @@ export class AesGcmCryptoService {
     }
   }
 
-  async verifyAndEnsureKeyCheck(
+  async verifyExistingKeyCheck(
     userId: string,
     clientKey: Buffer,
   ): Promise<boolean> {
     const row = await this.#repository.findByUserId(userId);
 
-    if (!row) {
-      const dek = await this.ensureUserDEK(userId, clientKey);
-      const keyCheck = this.generateKeyCheck(dek);
-      await this.#repository.updateKeyCheckIfNull(userId, keyCheck);
-      return true;
-    }
+    if (!row?.key_check) return false;
 
     const salt = Buffer.from(row.salt, 'hex');
     const dek = this.#deriveDEK(clientKey, salt, userId);
 
     // Invariant: only a canary-validated DEK enters the cache — a wrong key
     // must never leave a poisoned entry behind for a later ensureUserDEK hit.
-    if (row.key_check) {
-      if (!this.validateKeyCheck(row.key_check, dek)) {
-        return false;
-      }
-      this.#dekCache.set(this.#buildCacheKey(userId, clientKey), {
-        dek,
-        expiry: Date.now() + DEK_CACHE_TTL_MS,
-      });
-      return true;
+    if (!this.validateKeyCheck(row.key_check, dek)) {
+      return false;
     }
-
-    // First use: this DEK bootstraps the canary, valid by definition.
-    const keyCheck = this.generateKeyCheck(dek);
-    await this.#repository.updateKeyCheckIfNull(userId, keyCheck);
     this.#dekCache.set(this.#buildCacheKey(userId, clientKey), {
       dek,
       expiry: Date.now() + DEK_CACHE_TTL_MS,
@@ -360,16 +402,40 @@ export class AesGcmCryptoService {
   async createRecoveryKey(
     userId: string,
     clientKey: Buffer,
+    supabase: AuthenticatedSupabaseClient,
   ): Promise<{ formatted: string }> {
-    const dek = await this.ensureUserDEK(userId, clientKey);
+    const existing = await this.#repository.findByUserId(userId);
+    if (!existing) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
+      );
+    }
+
+    const isInitialSetup = existing.key_check === null;
+    if (
+      isInitialSetup &&
+      (existing.wrapped_dek !== null ||
+        (await this.#hasEncryptedUserData(userId, supabase)))
+    ) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED,
+      );
+    }
+
+    const dek = isInitialSetup
+      ? this.#deriveDEK(clientKey, Buffer.from(existing.salt, 'hex'), userId)
+      : await this.ensureUserDEK(userId, clientKey);
     const { raw, formatted } = this.generateRecoveryKey();
 
     try {
       const wrappedDEK = this.wrapDEK(dek, raw);
-      const wasUpdated = await this.#repository.updateWrappedDEKIfNull(
-        userId,
-        wrappedDEK,
-      );
+      const wasUpdated = isInitialSetup
+        ? await this.#repository.initializeVaultIfEmpty(
+            userId,
+            this.generateKeyCheck(dek),
+            wrappedDEK,
+          )
+        : await this.#repository.updateWrappedDEKIfNull(userId, wrappedDEK);
 
       if (!wasUpdated) {
         throw new BusinessException(
@@ -377,13 +443,181 @@ export class AesGcmCryptoService {
         );
       }
 
-      const keyCheck = this.generateKeyCheck(dek);
-      await this.#repository.updateKeyCheckIfNull(userId, keyCheck);
+      if (isInitialSetup) {
+        this.#dekCache.set(this.#buildCacheKey(userId, clientKey), {
+          dek,
+          expiry: Date.now() + DEK_CACHE_TTL_MS,
+        });
+      }
     } finally {
       raw.fill(0);
     }
 
     return { formatted };
+  }
+
+  async #hasEncryptedUserData(
+    userId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<boolean> {
+    const [budgetIds, templateIds, hasOwnedData] = await Promise.all([
+      this.#fetchUserBudgetIds(userId, supabase),
+      this.#fetchUserTemplateIds(userId, supabase),
+      this.#hasEncryptedOwnedRows(userId, supabase),
+    ]);
+
+    if (hasOwnedData) return true;
+
+    const [hasBudgetLineData, hasTransactionData, hasTemplateLineData] =
+      await Promise.all([
+        this.#hasEncryptedRowsByParentIds(budgetIds, (ids) =>
+          supabase
+            .from('budget_line')
+            .select('id')
+            .in('budget_id', ids)
+            .or('amount.not.is.null,original_amount.not.is.null')
+            .limit(1),
+        ),
+        this.#hasEncryptedRowsByParentIds(budgetIds, (ids) =>
+          supabase
+            .from('transaction')
+            .select('id')
+            .in('budget_id', ids)
+            .or('amount.not.is.null,original_amount.not.is.null')
+            .limit(1),
+        ),
+        this.#hasEncryptedRowsByParentIds(templateIds, (ids) =>
+          supabase
+            .from('template_line')
+            .select('id')
+            .in('template_id', ids)
+            .or('amount.not.is.null,original_amount.not.is.null')
+            .limit(1),
+        ),
+      ]);
+
+    return hasBudgetLineData || hasTransactionData || hasTemplateLineData;
+  }
+
+  async #hasEncryptedOwnedRows(
+    userId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<boolean> {
+    const results = await Promise.all([
+      this.#queryHasRows(
+        supabase
+          .from('monthly_budget')
+          .select('id')
+          .eq('user_id', userId)
+          .not('ending_balance', 'is', null)
+          .limit(1),
+      ),
+      this.#queryHasRows(
+        supabase
+          .from('savings_goal')
+          .select('id')
+          .eq('user_id', userId)
+          .or(
+            'target_amount.not.is.null,original_target_amount.not.is.null,initial_amount.not.is.null',
+          )
+          .limit(1),
+      ),
+    ]);
+    return results.some(Boolean);
+  }
+
+  async #queryHasRows(
+    query: PromiseLike<{
+      data: Array<{ id: string }> | null;
+      error: unknown;
+    }>,
+  ): Promise<boolean> {
+    const { data, error } = await query;
+    if (error) throw error;
+    if (data === null) throw new Error('Ambiguous Supabase response');
+    return data.length > 0;
+  }
+
+  async #hasEncryptedRowsByParentIds(
+    parentIds: string[],
+    buildQuery: (ids: string[]) => PromiseLike<{
+      data: Array<{ id: string }> | null;
+      error: unknown;
+    }>,
+  ): Promise<boolean> {
+    for (
+      let offset = 0;
+      offset < parentIds.length;
+      offset += POSTGREST_FILTER_CHUNK_SIZE
+    ) {
+      if (
+        await this.#queryHasRows(
+          buildQuery(
+            parentIds.slice(offset, offset + POSTGREST_FILTER_CHUNK_SIZE),
+          ),
+        )
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  async #fetchUserBudgetIds(
+    userId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<string[]> {
+    const rows = await this.#fetchAllPages((from, to) =>
+      supabase
+        .from('monthly_budget')
+        .select('id')
+        .eq('user_id', userId)
+        .order('id', { ascending: true })
+        .range(from, to),
+    );
+    return rows.map((row) => row.id);
+  }
+
+  async #fetchAllPages<T>(
+    fetchPage: (
+      from: number,
+      to: number,
+    ) => PromiseLike<{ data: T[] | null; error: unknown }>,
+  ): Promise<T[]> {
+    const rows: T[] = [];
+    for (let from = 0; ; from += POSTGREST_PAGE_SIZE) {
+      const { data, error } = await fetchPage(
+        from,
+        from + POSTGREST_PAGE_SIZE - 1,
+      );
+      if (error) throw error;
+      if (data === null) throw new Error('Ambiguous Supabase response');
+
+      rows.push(...data);
+      if (data.length < POSTGREST_PAGE_SIZE) return rows;
+    }
+  }
+
+  async #fetchRowsByParentIds<T>(
+    parentIds: string[],
+    fetchPage: (
+      ids: string[],
+      from: number,
+      to: number,
+    ) => PromiseLike<{ data: T[] | null; error: unknown }>,
+  ): Promise<T[]> {
+    const rows: T[] = [];
+    for (
+      let offset = 0;
+      offset < parentIds.length;
+      offset += POSTGREST_FILTER_CHUNK_SIZE
+    ) {
+      const ids = parentIds.slice(offset, offset + POSTGREST_FILTER_CHUNK_SIZE);
+      rows.push(
+        ...(await this.#fetchAllPages((from, to) => fetchPage(ids, from, to))),
+      );
+    }
+    return rows;
   }
 
   async regenerateRecoveryKey(
@@ -494,10 +728,7 @@ export class AesGcmCryptoService {
             {
               userId,
               operation: 'recover.restore_wrapped_dek_failed',
-              error:
-                restoreError instanceof Error
-                  ? restoreError.message
-                  : String(restoreError),
+              errorType: safeErrorType(restoreError),
             },
             'Failed to restore wrapped_dek after rekey failure — stuck at null until recovery key regeneration',
           );
@@ -528,10 +759,7 @@ export class AesGcmCryptoService {
             {
               userId,
               operation: 'recover.nullify_wrapped_dek_failed',
-              error:
-                nullifyError instanceof Error
-                  ? nullifyError.message
-                  : String(nullifyError),
+              errorType: safeErrorType(nullifyError),
             },
             'Failed to nullify wrapped_dek after wrap failure — stale wrapped_dek may remain until recovery key regeneration',
           );
@@ -685,10 +913,7 @@ export class AesGcmCryptoService {
             {
               userId,
               operation: 'change_pin.restore_wrapped_dek_failed',
-              error:
-                restoreError instanceof Error
-                  ? restoreError.message
-                  : String(restoreError),
+              errorType: safeErrorType(restoreError),
             },
             'Failed to restore wrapped_dek after rekey failure — stuck at null until recovery key regeneration',
           );
@@ -718,10 +943,7 @@ export class AesGcmCryptoService {
             {
               userId,
               operation: 'change_pin.nullify_wrapped_dek_failed',
-              error:
-                nullifyError instanceof Error
-                  ? nullifyError.message
-                  : String(nullifyError),
+              errorType: safeErrorType(nullifyError),
             },
             'Failed to nullify wrapped_dek after wrap failure — stale wrapped_dek may remain until recovery key regeneration',
           );
@@ -945,13 +1167,15 @@ export class AesGcmCryptoService {
     userId: string,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<string[]> {
-    const { data, error } = await supabase
-      .from('template')
-      .select('id')
-      .eq('user_id', userId);
-
-    if (error) throw error;
-    return data?.map((t) => t.id) ?? [];
+    const rows = await this.#fetchAllPages((from, to) =>
+      supabase
+        .from('template')
+        .select('id')
+        .eq('user_id', userId)
+        .order('id', { ascending: true })
+        .range(from, to),
+    );
+    return rows.map((row) => row.id);
   }
 
   async #fetchBudgetLines(
@@ -960,13 +1184,14 @@ export class AesGcmCryptoService {
   ) {
     if (!budgetIds.length) return [];
 
-    const { data, error } = await supabase
-      .from('budget_line')
-      .select('id, amount, original_amount')
-      .in('budget_id', budgetIds);
-
-    if (error) throw error;
-    return data ?? [];
+    return this.#fetchRowsByParentIds(budgetIds, (ids, from, to) =>
+      supabase
+        .from('budget_line')
+        .select('id, amount, original_amount')
+        .in('budget_id', ids)
+        .order('id', { ascending: true })
+        .range(from, to),
+    );
   }
 
   async #fetchTransactions(
@@ -975,13 +1200,14 @@ export class AesGcmCryptoService {
   ) {
     if (!budgetIds.length) return [];
 
-    const { data, error } = await supabase
-      .from('transaction')
-      .select('id, amount, original_amount')
-      .in('budget_id', budgetIds);
-
-    if (error) throw error;
-    return data ?? [];
+    return this.#fetchRowsByParentIds(budgetIds, (ids, from, to) =>
+      supabase
+        .from('transaction')
+        .select('id, amount, original_amount')
+        .in('budget_id', ids)
+        .order('id', { ascending: true })
+        .range(from, to),
+    );
   }
 
   async #fetchTemplateLines(
@@ -990,39 +1216,42 @@ export class AesGcmCryptoService {
   ) {
     if (!templateIds.length) return [];
 
-    const { data, error } = await supabase
-      .from('template_line')
-      .select('id, amount, original_amount')
-      .in('template_id', templateIds);
-
-    if (error) throw error;
-    return data ?? [];
+    return this.#fetchRowsByParentIds(templateIds, (ids, from, to) =>
+      supabase
+        .from('template_line')
+        .select('id, amount, original_amount')
+        .in('template_id', ids)
+        .order('id', { ascending: true })
+        .range(from, to),
+    );
   }
 
   async #fetchSavingsGoals(
     userId: string,
     supabase: AuthenticatedSupabaseClient,
   ) {
-    const { data, error } = await supabase
-      .from('savings_goal')
-      .select('id, target_amount, original_target_amount, initial_amount')
-      .eq('user_id', userId);
-
-    if (error) throw error;
-    return data ?? [];
+    return this.#fetchAllPages((from, to) =>
+      supabase
+        .from('savings_goal')
+        .select('id, target_amount, original_target_amount, initial_amount')
+        .eq('user_id', userId)
+        .order('id', { ascending: true })
+        .range(from, to),
+    );
   }
 
   async #fetchMonthlyBudgets(
     userId: string,
     supabase: AuthenticatedSupabaseClient,
   ) {
-    const { data, error } = await supabase
-      .from('monthly_budget')
-      .select('id, ending_balance')
-      .eq('user_id', userId);
-
-    if (error) throw error;
-    return data ?? [];
+    return this.#fetchAllPages((from, to) =>
+      supabase
+        .from('monthly_budget')
+        .select('id, ending_balance')
+        .eq('user_id', userId)
+        .order('id', { ascending: true })
+        .range(from, to),
+    );
   }
 
   #invalidateUserDEKCache(userId: string): void {
@@ -1033,6 +1262,25 @@ export class AesGcmCryptoService {
         }
         this.#dekCache.delete(key);
       }
+    }
+  }
+
+  #evictCachedDEK(cacheKey: string): void {
+    const cached = this.#dekCache.get(cacheKey);
+    cached?.dek.fill(0);
+    this.#dekCache.delete(cacheKey);
+  }
+
+  #isValidatedInCurrentRequest(cacheKey: string): boolean {
+    return (
+      this.cls?.isActive() === true &&
+      this.cls.get<string>(VAULT_VALIDATION_CONTEXT_KEY) === cacheKey
+    );
+  }
+
+  #markValidatedInCurrentRequest(cacheKey: string): void {
+    if (this.cls?.isActive()) {
+      this.cls.set(VAULT_VALIDATION_CONTEXT_KEY, cacheKey);
     }
   }
 

@@ -57,14 +57,14 @@ export class SupabaseAccountDeletionRepository implements AccountDeletionReposit
   ): ScheduledDeletionUser[] {
     return users.filter((user) => {
       const scheduledAt = AccountDeletionInvariants.parseScheduledDate(
-        user.user_metadata?.scheduledDeletionAt,
+        user.app_metadata?.scheduledDeletionAt,
       );
       if (!scheduledAt) {
-        if (user.user_metadata?.scheduledDeletionAt !== undefined) {
+        if (user.app_metadata?.scheduledDeletionAt !== undefined) {
           this.logger.warn(
             {
               userId: user.id,
-              scheduledAt: user.user_metadata?.scheduledDeletionAt,
+              scheduledAt: user.app_metadata?.scheduledDeletionAt,
             },
             'Invalid scheduledDeletionAt date format',
           );

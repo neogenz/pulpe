@@ -149,7 +149,11 @@ export function buildTagHistoryChartOptions(
           [type]="chartType"
         ></canvas>
       </div>
-      <p class="sr-only" aria-live="polite" data-testid="tag-history-aria">
+      <p
+        class="ph-no-capture sr-only"
+        aria-live="polite"
+        data-testid="tag-history-aria"
+      >
         {{ ariaSentence() }}
       </p>
     </div>

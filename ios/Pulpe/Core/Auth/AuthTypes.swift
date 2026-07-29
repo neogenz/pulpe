@@ -5,8 +5,6 @@ import Foundation
 enum AuthServiceError: LocalizedError, Equatable {
     case signupFailed(String)
     case loginFailed(String)
-    case biometricSaveFailed
-    case biometricSessionExpired
     /// Post-auth resolution determined the user is no longer authenticated
     /// (vault-status returned 401 even after a refresh attempt).
     case sessionExpired
@@ -17,10 +15,6 @@ enum AuthServiceError: LocalizedError, Equatable {
             return "L'inscription n'a pas abouti — \(message)"
         case .loginFailed(let message):
             return "La connexion n'a pas abouti — \(message)"
-        case .biometricSaveFailed:
-            return "Les identifiants biométriques n'ont pas pu être enregistrés"
-        case .biometricSessionExpired:
-            return "La session biométrique a expiré — reconnecte-toi"
         case .sessionExpired:
             return "Ta session a expiré — reconnecte-toi"
         }
@@ -28,11 +22,6 @@ enum AuthServiceError: LocalizedError, Equatable {
 }
 
 // MARK: - Response Types
-
-struct BiometricSessionResult: Sendable {
-    let user: UserInfo
-    let clientKeyHex: String?
-}
 
 /// Auth provider that created the Supabase user.
 /// Used to disambiguate email signup from OAuth during post-auth routing.

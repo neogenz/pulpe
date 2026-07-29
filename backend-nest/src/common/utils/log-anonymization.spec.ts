@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'bun:test';
-import { anonymizeIp, parseDeviceType } from './log-anonymization';
+import {
+  anonymizeIp,
+  parseDeviceType,
+  sanitizeLogValue,
+  toLogPath,
+} from './log-anonymization';
 
 describe('anonymizeIp', () => {
   it('should return undefined for undefined input', () => {
@@ -98,5 +103,98 @@ describe('parseDeviceType', () => {
     expect(parseDeviceType('IPHONE')).toBe('mobile');
     expect(parseDeviceType('IPAD')).toBe('tablet');
     expect(parseDeviceType('ANDROID')).toBe('mobile');
+  });
+});
+
+describe('toLogPath', () => {
+  it('removes the query string without changing the route', () => {
+    expect(toLogPath('/api/v1/search?term=groceries&token=secret')).toBe(
+      '/api/v1/search',
+    );
+    expect(toLogPath('/api/v1/search')).toBe('/api/v1/search');
+    expect(toLogPath(undefined)).toBeUndefined();
+  });
+});
+
+describe('sanitizeLogValue', () => {
+  it('redacts case-insensitive secrets in nested objects and arrays', () => {
+    const sanitized = sanitizeLogValue({
+      Authorization: 'Bearer AUTH_SENTINEL',
+      headers: {
+        Cookie: 'COOKIE_SENTINEL',
+        'X-Client-Key': 'CLIENT_KEY_SENTINEL',
+      },
+      body: [
+        {
+          Password: 'PASSWORD_SENTINEL',
+          nested: {
+            recovery_key: 'RECOVERY_SENTINEL',
+            pin: 'PIN_SENTINEL',
+            accessToken: 'TOKEN_SENTINEL',
+          },
+        },
+      ],
+      safe: 'visible',
+    });
+    const serialized = JSON.stringify(sanitized);
+
+    for (const sentinel of [
+      'AUTH_SENTINEL',
+      'COOKIE_SENTINEL',
+      'CLIENT_KEY_SENTINEL',
+      'PASSWORD_SENTINEL',
+      'RECOVERY_SENTINEL',
+      'PIN_SENTINEL',
+      'TOKEN_SENTINEL',
+    ]) {
+      expect(serialized).not.toContain(sentinel);
+    }
+    expect(serialized).toContain('visible');
+  });
+
+  it('redacts nested financial values while preserving technical structure', () => {
+    const sentinel = 'FINANCIAL_VALUE_SENTINEL';
+    const sanitized = sanitizeLogValue({
+      requestId: 'req-123',
+      body: {
+        amount: sentinel,
+        original_amount: sentinel,
+        targetAmount: sentinel,
+        endingBalance: sentinel,
+        metrics: {
+          totalIncome: sentinel,
+          totalExpenses: sentinel,
+          totalSavings: sentinel,
+          remaining: sentinel,
+          available: sentinel,
+          rollover: sentinel,
+          consumed: sentinel,
+        },
+      },
+      statusCode: 200,
+    });
+    const serialized = JSON.stringify(sanitized);
+
+    expect(serialized).not.toContain(sentinel);
+    expect(sanitized).toMatchObject({
+      requestId: 'req-123',
+      statusCode: 200,
+      body: { amount: '[REDACTED]', metrics: { remaining: '[REDACTED]' } },
+    });
+  });
+
+  it('truncates large strings, arrays, objects, and excessive depth', () => {
+    const sanitized = sanitizeLogValue({
+      text: 'x'.repeat(10_000),
+      array: Array.from({ length: 100 }, (_, index) => index),
+      object: Object.fromEntries(
+        Array.from({ length: 100 }, (_, index) => [`field${index}`, index]),
+      ),
+      deep: { one: { two: { three: { four: { five: { six: true } } } } } },
+    });
+    const serialized = JSON.stringify(sanitized);
+
+    expect(serialized.length).toBeLessThan(10_000);
+    expect(serialized).toContain('[TRUNCATED]');
   });
 });

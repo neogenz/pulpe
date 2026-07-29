@@ -25,7 +25,7 @@ final class DeepLinkHandler {
     /// - Parameter destination: The deep link destination to queue.
     func setPending(_ destination: DeepLinkDestination) {
         pending = destination
-        Logger.app.debug("[DEEPLINK] Queued destination: \(String(describing: destination))")
+        Logger.app.debug("[DEEPLINK] Queued destination")
     }
 
     /// Clears all pending deep links.

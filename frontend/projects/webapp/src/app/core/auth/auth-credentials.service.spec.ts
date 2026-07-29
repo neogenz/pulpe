@@ -133,12 +133,12 @@ describe('AuthCredentialsService', () => {
         data: {
           user: {
             id: 'user-123',
-            user_metadata: { scheduledDeletionAt: deletionDate },
+            app_metadata: { scheduledDeletionAt: deletionDate },
           } as unknown as User,
           session: {
             user: {
               id: 'user-123',
-              user_metadata: { scheduledDeletionAt: deletionDate },
+              app_metadata: { scheduledDeletionAt: deletionDate },
             },
           } as unknown as Session,
         },
@@ -154,6 +154,28 @@ describe('AuthCredentialsService', () => {
       expect(result.error).toBe(
         "Ton compte est programmé pour suppression le 26.02.2026. Si c'est une erreur, contacte le support.",
       );
+    });
+
+    it('should ignore a client-owned scheduledDeletionAt value', async () => {
+      vi.mocked(mockSupabaseClient.auth.signInWithPassword).mockResolvedValue({
+        data: {
+          user: { id: 'user-123' } as User,
+          session: {
+            user: {
+              id: 'user-123',
+              app_metadata: {},
+              user_metadata: {
+                scheduledDeletionAt: '2020-01-01T00:00:00.000Z',
+              },
+            },
+          } as unknown as Session,
+        },
+        error: null,
+      } satisfies AuthSessionResult);
+
+      await expect(
+        service.signInWithEmail('test@example.com', 'password'),
+      ).resolves.toEqual({ success: true });
     });
 
     it('should bypass Supabase in E2E mode', async () => {

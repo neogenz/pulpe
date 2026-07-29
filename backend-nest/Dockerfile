@@ -2,16 +2,14 @@
 # node:24-slim (LTS) pinné par digest multi-arch — Node 20 est EOL depuis mars 2026.
 FROM node:24-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d AS base
 
-# Configuration pnpm + Git (requis pour lefthook)
+# Configuration pnpm
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable && corepack prepare pnpm@10.12.1 --activate
 
-# Installation Bun (version pinnée = BUN_VERSION de la CI) + Git pour le build
-RUN apt-get update && apt-get install -y curl unzip git && \
-    curl -fsSL https://bun.sh/install | bash -s "bun-v1.2.17" && \
+# Git est requis uniquement par le postinstall Lefthook du workspace.
+RUN apt-get update && apt-get install -y --no-install-recommends git && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
-ENV PATH="/root/.bun/bin:$PATH"
 
 WORKDIR /app
 

@@ -142,6 +142,11 @@ describe('GoalProjectionChart', () => {
     ).toMatch(
       /cible 300(?:\.00)? CHF.+épargné 180(?:\.00)? CHF.+projection à l'échéance 360(?:\.00)? CHF/i,
     );
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="goal-projection-aria"]',
+      )?.classList,
+    ).toContain('ph-no-capture');
   });
 
   it('uses the simulated endpoint in the summary', () => {

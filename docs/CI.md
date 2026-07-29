@@ -27,14 +27,30 @@ graph TD
 permissions:
   contents: read # Lecture seule du code
   checks: write # Écriture des status checks
-  pull-requests: read # Lecture des PR
+  pull-requests: write # Publication des résultats sur les PR
 ```
+
+### Frontière avec la production
+
+Les workflows de pull request n’utilisent aucun environnement ni secret de
+production. Une migration est reliée à Supabase uniquement après intégration:
+
+1. le push du commit sur `main` termine la CI standard;
+2. le job `migrate`, limité à `main`, attend l’approbation de l’environnement
+   GitHub `production`;
+3. la CLI Supabase 2.84.2 est téléchargée avec un SHA-256 officiel propre à
+   l’architecture, puis vérifiée avant extraction, y compris sur cache hit;
+4. `supabase db push --dry-run` réussit avant `supabase db push` dans le même
+   job et sur le même commit.
+
+Le Dockerfile backend construit et démarre avec Node. Bun reste disponible en
+CI pour les tests backend, mais n’est ni téléchargé ni installé dans l’image.
 
 ### 2. **Variables centralisées** 📝
 
 ```yaml
 env:
-  NODE_VERSION: "22"
+  NODE_VERSION: "24"
   PNPM_VERSION: "10.12.1"
   BUN_VERSION: "1.2.17"
 ```
@@ -332,9 +348,9 @@ run: |
 
 Conformément au [Security Hardening Guide](https://docs.github.com/en/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions) :
 
-✅ **Versions fixes** des actions (`@v4`)  
-✅ **Permissions minimales** (pas de `contents: write` inutile)  
-✅ **Artifacts avec retention** limitée  
+✅ **Versions fixes** des actions par SHA de commit
+✅ **Permissions minimales** (pas de `contents: write` inutile)
+✅ **Artifacts avec retention** limitée
 ✅ **Timeouts** pour éviter les blocages
 
 ## 🛠️ Maintenance

@@ -39,6 +39,8 @@ import {
 import { LogoutDialog } from '@ui/dialogs/logout-dialog';
 import { PostHogService } from '@core/analytics';
 import { setupVaultCodeFormSchema } from './setup-vault-code-form.schema';
+import { isApiError } from '@core/api/api-error';
+import { API_ERROR_CODES } from 'pulpe-shared';
 
 @Component({
   selector: 'pulpe-setup-vault-code',
@@ -282,23 +284,21 @@ export default class SetupVaultCode {
         kdfIterations,
       );
 
-      // 2. Validate key (generates key_check for new users)
-      await firstValueFrom(this.#encryptionApi.validateKey$(clientKeyHex));
-
-      // 3. Store new client key
+      // 2. Store the candidate key so setup-recovery can send it in the header
       this.#clientKeyService.setDirectKey(clientKeyHex, rememberDevice);
 
-      // 4. Setup recovery key (must succeed before marking configured)
-      await this.#showRecoveryKey();
+      // 3. Atomically initialize key_check + recovery key server-side
+      await this.#showRecoveryKey(clientKeyHex);
 
-      // 5. Mark user as configured only after recovery key is saved
-      await this.#authSession
+      // 4. Mark user as configured only after recovery key is saved
+      const { error } = await this.#authSession
         .getClient()
         .auth.updateUser({ data: { vaultCodeConfigured: true } });
+      if (error) throw error;
 
       this.#postHogService.captureEvent('vault_code_setup_completed');
 
-      // 6. Redirect to dashboard
+      // 5. Redirect to dashboard
       this.#router.navigate(['/', ROUTES.DASHBOARD]);
     } catch (error) {
       this.#logger.error('Setup vault code failed:', error);
@@ -311,10 +311,32 @@ export default class SetupVaultCode {
     }
   }
 
-  async #showRecoveryKey(): Promise<void> {
-    const { recoveryKey } = await firstValueFrom(
-      this.#encryptionApi.setupRecoveryKey$(),
-    );
+  async #showRecoveryKey(clientKeyHex: string): Promise<void> {
+    let recoveryKey: string;
+    try {
+      ({ recoveryKey } = await firstValueFrom(
+        this.#encryptionApi.setupRecoveryKey$(),
+      ));
+    } catch (error) {
+      if (
+        !isApiError(error) ||
+        error.code !== API_ERROR_CODES.RECOVERY_KEY_ALREADY_EXISTS
+      ) {
+        this.#clientKeyService.clear();
+        throw error;
+      }
+
+      try {
+        await firstValueFrom(this.#encryptionApi.validateKey$(clientKeyHex));
+      } catch (validationError) {
+        this.#clientKeyService.clear();
+        throw validationError;
+      }
+
+      ({ recoveryKey } = await firstValueFrom(
+        this.#encryptionApi.regenerateRecoveryKey$(),
+      ));
+    }
 
     const dialogData: RecoveryKeyDialogData = { recoveryKey };
     const dialogRef = this.#dialog.open(RecoveryKeyDialog, {

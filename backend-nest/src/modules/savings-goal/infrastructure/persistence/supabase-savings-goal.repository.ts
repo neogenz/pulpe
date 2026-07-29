@@ -1108,15 +1108,11 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     if (patch.status !== undefined) updateData.status = patch.status;
 
     if (patch.targetAmount !== undefined) {
-      if (patch.targetAmount == null) {
-        updateData.target_amount = null;
-      } else {
-        const dek = await this.encryption.getDekFor(user);
-        updateData.target_amount = this.encryption.encryptAmount(
-          patch.targetAmount,
-          dek,
-        );
-      }
+      const dek = await this.encryption.ensureUserDEK(user.id, user.clientKey);
+      updateData.target_amount =
+        patch.targetAmount == null
+          ? null
+          : this.encryption.encryptAmount(patch.targetAmount, dek);
     }
 
     if (

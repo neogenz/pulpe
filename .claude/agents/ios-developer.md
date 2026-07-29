@@ -14,7 +14,6 @@ description: |
 model: opus
 color: yellow
 tools: Read, Write, Edit, Glob, Grep, Bash, WebSearch, WebFetch, SendMessage, TaskCreate, TaskGet, TaskUpdate, TaskList
-permissionMode: bypassPermissions
 maxTurns: 50
 memory: project
 skills:

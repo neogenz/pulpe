@@ -57,7 +57,12 @@ supabase db push --db-url "postgresql://postgres.uzsgvcwchwqcuwejjtdb:[PASSWORD]
 supabase unlink
 ```
 
-- Migrations run automatically on push to `main` if files exist in `backend-nest/supabase/migrations/`.
+- Migrations run automatically on push to `main` if files changed in
+  `backend-nest/supabase/migrations/`. No pull-request job receives the
+  production environment or its secrets.
+- After the main CI succeeds and the protected `production` environment is
+  approved, the migration job verifies its pinned Supabase CLI archive, runs
+  `supabase db push --dry-run`, then applies the migration from the same commit.
 - To create a new migration: `supabase migration new [description]` then `supabase db push` after editing the generated SQL. Warning: this pushes to the linked (prod) project.
 
 ##### Apply migrations locally
@@ -66,6 +71,77 @@ supabase unlink
 supabase migration up
 ```
 Then `db push` will apply new migrations to the remote database.
+
+#### Pre-rollout data gates
+
+Run this aggregate-only query with read-only production access. It returns no
+identity or financial value:
+
+```sql
+WITH financial_users AS (
+  SELECT user_id FROM monthly_budget WHERE ending_balance IS NOT NULL
+  UNION SELECT mb.user_id FROM budget_line bl
+    JOIN monthly_budget mb ON mb.id = bl.budget_id
+    WHERE bl.amount IS NOT NULL OR bl.original_amount IS NOT NULL
+  UNION SELECT mb.user_id FROM transaction tx
+    JOIN monthly_budget mb ON mb.id = tx.budget_id
+    WHERE tx.amount IS NOT NULL OR tx.original_amount IS NOT NULL
+  UNION SELECT t.user_id FROM template_line tl
+    JOIN template t ON t.id = tl.template_id
+    WHERE tl.amount IS NOT NULL OR tl.original_amount IS NOT NULL
+  UNION SELECT user_id FROM savings_goal
+    WHERE target_amount IS NOT NULL OR initial_amount IS NOT NULL OR original_target_amount IS NOT NULL
+)
+SELECT
+  count(*) FILTER (WHERE k.user_id IS NULL OR k.key_check IS NULL) AS financial_users_without_key_check,
+  count(*) FILTER (WHERE k.user_id IS NOT NULL AND k.wrapped_dek IS NULL) AS vaults_without_wrapped_dek
+FROM financial_users f LEFT JOIN user_encryption_key k ON k.user_id = f.user_id;
+```
+
+`financial_users_without_key_check` must be zero before the strict backend rollout.
+Review `vaults_without_wrapped_dek` separately; never export the matching users.
+
+For legacy deletion claims, prepare the reviewed backend checkout and load the
+intended Supabase environment securely before starting the maintenance window.
+Production `--apply` requires explicit approval.
+
+1. Set Railway `MAINTENANCE_MODE=true`, wait for the deployment, then verify both
+   the public status and a protected route:
+
+```bash
+curl https://api.pulpe.app/api/v1/maintenance/status
+# {"maintenanceMode":true,...}
+curl -i https://api.pulpe.app/api/v1/budgets
+# HTTP 503 with code MAINTENANCE
+```
+
+2. From `backend-nest/`, run:
+
+```bash
+bun run migrate:scheduled-deletion         # dry-run, aggregate counters only
+bun run migrate:scheduled-deletion --apply # explicit write
+bun run migrate:scheduled-deletion         # eligible must now be zero
+```
+
+The apply mode re-reads every eligible user immediately before updating, skips a
+server-owned claim that appeared since listing, and merges only the fresh
+`app_metadata`. Provider failures are reduced to a stable operation and page; the
+tool never prints a user id, email, remote message, or business value.
+
+3. Keep maintenance enabled on any failure. Once the final dry-run reports
+   `eligible: 0`, set `MAINTENANCE_MODE=false`, wait for Railway, then verify
+   `maintenanceMode: false` and `/health`.
+
+All non-exempt API routes return `503 MAINTENANCE` during this window. `/health`,
+`/`, `/api/v1/maintenance/status`, and `/api/v1/app/version` remain available for
+control and rollback. The Admin API has no compare-and-swap for `app_metadata`, so
+the fresh read reduces stale writes but does not replace the maintenance window.
+The runtime has no fallback to client-writable `user_metadata`.
+
+For a strict vault rollout, publish the iOS client that creates a vault through
+`/encryption/setup-recovery` first and wait until it is downloadable from the App
+Store. Only then deploy an incompatible backend or raise `MIN_IOS_VERSION`; use the
+rollback procedure in [VERSIONING.md](./VERSIONING.md) if the gate was raised early.
 
 #### Export data (optional)
 
@@ -238,9 +314,21 @@ Domain purchased at **Infomaniak**.
 - **Site URL**: `https://app.pulpe.app`
 - **Redirect URLs**:
   - `https://app.pulpe.app/**`
-  - `https://pulpe.app/**`
+  - `https://app.pulpe.app/reset-password`
   - `https://www.pulpe.app/**`
-  - `https://*.vercel.app/**` (previews)
+
+Les previews Vercel ne doivent pas utiliser `https://*.vercel.app/**`. Si un
+callback de preview est nécessaire, ajouter manuellement uniquement le motif
+borné au slug réel de l’équipe propriétaire, puis le consigner ici.
+
+**Vérifications manuelles après déploiement du reset iOS**:
+
+- [ ] Les projets Supabase preview et production autorisent exactement `https://app.pulpe.app/reset-password`
+- [ ] `https://app.pulpe.app/.well-known/apple-app-site-association` répond en `application/json`
+- [ ] Le fichier AASA contient uniquement `AJ37X7C82G.app.pulpe.ios` et `/reset-password`
+- [ ] Le lien ouvre l’app signée sur appareil réel
+- [ ] Sans l’app, `/reset-password` ouvre le parcours Angular
+- [ ] Une app qui déclare seulement `pulpe://` ne reçoit pas le callback de récupération
 
 #### Google OAuth (Cloud Console)
 
@@ -325,7 +413,7 @@ git push origin "$SHA:refs/heads/main"
 
 Never promote `origin/preview` directly: that ref can advance after its validated CI run. Never use a force push.
 
-The `main` push starts Vercel and Railway production deployments immediately through their GitHub integrations. Those webhooks are not delayed by `ci-success`. In GitHub Actions, the main-only `migrate`, `posthog-annotate`, and `verify-prod-csp` jobs do depend on `ci-success`.
+The `main` push starts Vercel and Railway production deployments immediately through their GitHub integrations. Those webhooks are not delayed by `ci-success`. In GitHub Actions, the main-only `migrate`, `posthog-annotate`, and `verify-prod-csp` jobs do depend on `ci-success`. The migration job performs its production dry-run immediately before applying changes; pull requests never receive those credentials.
 
 Before creating the immutable tag or GitHub Release:
 

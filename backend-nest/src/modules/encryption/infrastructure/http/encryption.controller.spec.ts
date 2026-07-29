@@ -3,6 +3,7 @@ import { EncryptionController } from './encryption.controller';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
+import { ALLOW_VAULT_BOOTSTRAP } from '@common/decorators/allow-vault-bootstrap.decorator';
 
 const createMockUseCases = (overrides?: {
   getVaultStatus?: ReturnType<typeof mock>;
@@ -225,15 +226,25 @@ describe('EncryptionController', () => {
   });
 
   describe('setupRecovery', () => {
-    it('should delegate to SetupRecoveryKeyUseCase with userId and clientKey', async () => {
+    it('should explicitly allow the first vault bootstrap before a canary exists', () => {
+      expect(
+        Reflect.getMetadata(
+          ALLOW_VAULT_BOOTSTRAP,
+          EncryptionController.prototype.setupRecovery,
+        ),
+      ).toBe(true);
+    });
+
+    it('should delegate to SetupRecoveryKeyUseCase with userId, clientKey and authenticated client', async () => {
       const user = createMockUser();
+      const supabase = { from: mock(() => undefined) };
       const expected = { recoveryKey: 'AAAA-BBBB-CCCC-1234' };
 
       const { controller, useCases } = setupController({
         setupRecoveryKey: mock(() => Promise.resolve(expected)),
       });
 
-      const result = await controller.setupRecovery(user);
+      const result = await controller.setupRecovery(user, supabase as any);
 
       expect(result).toEqual(expected);
       expect(useCases.setupRecoveryKey.execute.mock.calls.length).toBe(1);
@@ -241,6 +252,7 @@ describe('EncryptionController', () => {
       expect(useCases.setupRecoveryKey.execute.mock.calls[0][1]).toBe(
         user.clientKey,
       );
+      expect(useCases.setupRecoveryKey.execute.mock.calls[0][2]).toBe(supabase);
     });
   });
 

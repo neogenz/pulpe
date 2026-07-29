@@ -28,6 +28,30 @@ describe('posthog-sanitizer', () => {
 
       expect(sanitized).toBe('/transaction/[id]');
     });
+
+    it.each([
+      [
+        'https://app.local/budgets/123?access_token=a&refresh_token=b&password=c&recovery_key=d&keep=1',
+        'https://app.local/budget/[id]?keep=1',
+      ],
+      [
+        '//cdn.example.com/assets?access_token=a&refresh_token=b&password=c&recovery_key=d&keep=1',
+        '//cdn.example.com/assets?keep=1',
+      ],
+      [
+        '/transactions/456?access_token=a&refresh_token=b&password=c&recovery_key=d&keep=1',
+        '/transaction/[id]?keep=1',
+      ],
+    ])(
+      'strips sensitive parameters while preserving the URL format',
+      (url, expected) => {
+        expect(sanitizeUrl(url)).toBe(expected);
+      },
+    );
+
+    it('fails closed when the URL cannot be parsed', () => {
+      expect(sanitizeUrl('http://[invalid')).toBe('');
+    });
   });
 
   describe('sanitizeRecord', () => {
@@ -93,13 +117,12 @@ describe('posthog-sanitizer', () => {
         transactionid: 'tx-456',
         templateid: 'tpl-789',
         token: 'auth-token',
-        description: 'Safe to keep',
+        description: 'Personal budget label',
       });
 
       expect(sanitized).toEqual({
         budgetid: 'bud-123',
         templateid: 'tpl-789',
-        description: 'Safe to keep',
       });
     });
 
@@ -135,7 +158,6 @@ describe('posthog-sanitizer', () => {
       expect(sanitized).toEqual({
         budget: {
           id: 'bud-123',
-          name: 'Monthly Budget',
         },
         metadata: {
           created: '2026-02-01',
@@ -153,10 +175,7 @@ describe('posthog-sanitizer', () => {
       });
 
       expect(sanitized).toEqual({
-        transactions: [
-          { id: 'tx-1', description: 'Grocery' },
-          { id: 'tx-2', description: 'Gas' },
-        ],
+        transactions: [{ id: 'tx-1' }, { id: 'tx-2' }],
       });
     });
 
@@ -192,7 +211,6 @@ describe('posthog-sanitizer', () => {
 
       expect(sanitized?.properties).toEqual({
         budget_id: 'bud-123',
-        description: 'Monthly',
       });
     });
 
@@ -278,6 +296,134 @@ describe('posthog-sanitizer', () => {
       expect(sanitized?.properties?.['planned_amount']).toBeUndefined();
       expect(sanitized?.properties?.['safe_property']).toBe('keep');
     });
+
+    it('removes exception values and source context while preserving grouping frames', () => {
+      const sentinel = 'PRIVATE_EXCEPTION_SENTINEL';
+      const event = {
+        event: '$exception',
+        properties: {
+          $exception_list: [
+            {
+              type: 'TypeError',
+              value: sentinel,
+              mechanism: {
+                type: 'generic',
+                handled: true,
+                source: sentinel,
+              },
+              stacktrace: {
+                type: 'raw',
+                frames: [
+                  {
+                    platform: 'web:javascript',
+                    filename: `/main.js?input=${sentinel}`,
+                    function: 'loadBudget',
+                    lineno: 12,
+                    colno: 4,
+                    context_line: sentinel,
+                    pre_context: [sentinel],
+                    vars: { payload: sentinel },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      } as unknown as CaptureResult;
+
+      const sanitized = sanitizeEventPayload(event);
+      const output = JSON.stringify(sanitized);
+      const exception = (
+        sanitized?.properties?.['$exception_list'] as Record<string, unknown>[]
+      )[0];
+
+      expect(output).not.toContain(sentinel);
+      expect(exception).not.toHaveProperty('value');
+      expect(exception).toMatchObject({
+        type: 'TypeError',
+        mechanism: { type: 'generic', handled: true },
+        stacktrace: {
+          frames: [
+            {
+              platform: 'web:javascript',
+              filename: '/main.js',
+              lineno: 12,
+              colno: 4,
+            },
+          ],
+        },
+      });
+    });
+
+    it('drops malformed exception payloads instead of sending them', () => {
+      const event = {
+        event: '$exception',
+        properties: {
+          $exception_list: [{ type: 'Error', stacktrace: 'raw stack' }],
+        },
+      } as unknown as CaptureResult;
+
+      expect(sanitizeEventPayload(event)).toBeNull();
+    });
+
+    it('does not copy arbitrary strings from exception grouping fields', () => {
+      const sentinel = 'PRIVATE_GROUPING_SENTINEL';
+      const event = {
+        event: '$exception',
+        properties: {
+          $exception_list: [
+            {
+              type: sentinel,
+              module: sentinel,
+              mechanism: {
+                type: sentinel,
+                handled: true,
+                synthetic: false,
+              },
+              stacktrace: {
+                frames: [
+                  {
+                    platform: sentinel,
+                    function: sentinel,
+                    module: sentinel,
+                    instruction_addr: sentinel,
+                    addr_mode: sentinel,
+                    chunk_id: sentinel,
+                    filename: `/main.js?q=${sentinel}`,
+                    lineno: 12,
+                    colno: 4,
+                    in_app: true,
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      } as unknown as CaptureResult;
+
+      const sanitized = sanitizeEventPayload(event);
+      const output = JSON.stringify(sanitized);
+      const exception = (
+        sanitized?.properties?.['$exception_list'] as Record<string, unknown>[]
+      )[0];
+
+      expect(output).not.toContain(sentinel);
+      expect(exception).toMatchObject({
+        type: 'Error',
+        mechanism: { type: 'generic', handled: true, synthetic: false },
+        stacktrace: {
+          frames: [
+            {
+              platform: 'web:javascript',
+              filename: '/main.js',
+              lineno: 12,
+              colno: 4,
+              in_app: true,
+            },
+          ],
+        },
+      });
+    });
   });
 
   describe('Real component data flow scenarios', () => {
@@ -322,7 +468,6 @@ describe('posthog-sanitizer', () => {
       const sanitized = sanitizeEventPayload(event);
 
       expect(sanitized?.properties).toEqual({
-        description: 'Grocery shopping',
         kind: 'expense',
         budget_id: 'bud-456',
       });
@@ -375,11 +520,7 @@ describe('posthog-sanitizer', () => {
       expect(sanitized?.properties).toEqual({
         budget: {
           id: 'bud-123',
-          name: 'Monthly',
-          lines: [
-            { id: 'line-1', name: 'Groceries' },
-            { id: 'line-2', name: 'Transport' },
-          ],
+          lines: [{ id: 'line-1' }, { id: 'line-2' }],
         },
         export_format: 'csv',
         user_id: 'usr-456',
@@ -407,7 +548,6 @@ describe('posthog-sanitizer', () => {
 
       expect(sanitized?.properties).toEqual({
         goal_id: 'sg-001',
-        name: 'Emergency Fund',
         status: 'ACTIVE',
       });
     });
@@ -433,12 +573,28 @@ describe('posthog-sanitizer', () => {
 
       expect(sanitized?.properties).toEqual({
         budget_id: 'bud-123',
-        transactions: [
-          { id: 'tx-1', label: 'food' },
-          { id: 'tx-2', label: 'transport' },
-        ],
+        transactions: [{ id: 'tx-1' }, { id: 'tx-2' }],
         view_duration_seconds: 45,
         has_savings: true,
+      });
+    });
+
+    it('strips recovery keys, tokens, and typed business text recursively', () => {
+      const sanitized = sanitizeRecord({
+        recovery_key: 'PULPE-SECRET-KEY',
+        accessToken: 'jwt',
+        label: 'Loyer',
+        nested: {
+          title: 'Vacances',
+          content: 'Texte saisi librement',
+          safe_state: 'completed',
+        },
+      });
+
+      expect(sanitized).toEqual({
+        nested: {
+          safe_state: 'completed',
+        },
       });
     });
   });

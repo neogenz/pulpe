@@ -2,7 +2,7 @@
 -- SEED DATA FOR LOCAL DEVELOPMENT
 -- =====================================================
 -- This file populates the database with test data for development
--- Test user credentials: maxime.desogus@gmail.com / 12345678
+-- Local-only demo credentials: demo@pulpe.test / local-demo-only
 --
 -- Use `pnpm supabase:reset` (chains reset + encryption automatically)
 -- Then login with PIN: 1234
@@ -48,13 +48,13 @@ INSERT INTO auth.users (
     '11111111-1111-1111-8111-111111111111',
     'authenticated',
     'authenticated',
-    'maxime.desogus@gmail.com',
-    extensions.crypt('12345678', extensions.gen_salt('bf')),
+    'demo@pulpe.test',
+    extensions.crypt('local-demo-only', extensions.gen_salt('bf')),
     current_timestamp,
     current_timestamp,
     current_timestamp,
     '{"provider":"email","providers":["email"]}',
-    '{"full_name":"Maxime Desogus","vaultCodeConfigured":true}',
+    '{"full_name":"Pulpe Demo","vaultCodeConfigured":true}',
     current_timestamp,
     current_timestamp,
     '',
@@ -77,7 +77,7 @@ INSERT INTO auth.identities (
     gen_random_uuid(),
     gen_random_uuid(),
     '11111111-1111-1111-8111-111111111111',
-    format('{"sub":"%s","email":"%s"}', '11111111-1111-1111-8111-111111111111', 'maxime.desogus@gmail.com')::jsonb,
+    format('{"sub":"%s","email":"%s"}', '11111111-1111-1111-8111-111111111111', 'demo@pulpe.test')::jsonb,
     'email',
     current_timestamp,
     current_timestamp,
@@ -590,7 +590,7 @@ WHERE sg.target_date IS NULL
 DO $$
 BEGIN
   RAISE NOTICE '=== SEED DATA CREATED SUCCESSFULLY ===';
-  RAISE NOTICE 'User: maxime.desogus@gmail.com / 12345678';
+  RAISE NOTICE 'User: demo@pulpe.test / local-demo-only';
   RAISE NOTICE 'Templates: 2 (Budget Mensuel Standard, Budget Étudiant)';
   RAISE NOTICE 'Savings Goals: 3 (échéances relatives, contributions liées sur 2026)';
   RAISE NOTICE 'Monthly Budgets: 24 (2025 complet + 2026 complet)';

@@ -1,4 +1,6 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
+import { registerLocaleData } from '@angular/common';
+import localeDeCh from '@angular/common/locales/de-CH';
 import {
   Component,
   EventEmitter,
@@ -23,6 +25,8 @@ import { SavingsGoalStore } from '../../services/savings-goals-store';
 import { GoalPlanSimulatorStore } from '../services/goal-plan-simulator-store';
 import { GoalPlanSimulatorToolbar } from './goal-plan-simulator-toolbar';
 
+registerLocaleData(localeDeCh, 'de-CH');
+
 @Component({
   selector: 'pulpe-currency-input',
   imports: [MatInputModule],
@@ -44,6 +48,7 @@ class StubCurrencyInput {
   @Input() value: number | null = null;
   @Input() currency = 'CHF';
   @Input() autoFocus = true;
+  @Input() showSuffix = true;
   @Input() testId = 'currency-input';
   @Input() placeholder = '0.00';
   @Output() readonly valueChange = new EventEmitter<number | null>();
@@ -209,6 +214,7 @@ describe('GoalPlanSimulatorToolbar', () => {
       '[data-testid="goal-plan-target-hint"]',
     );
     expect(hint).not.toBeNull();
+    expect(hint?.classList).toContain('ph-no-capture');
     // The suggested amount is the deadline rhythm — « pour tenir l'échéance » =
     // required = 200 — NOT the plan-horizon spread (target 800 / 2 months = 400).
     // Guards that the hint stays anchored on the deadline, not the plan length.

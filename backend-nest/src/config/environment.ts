@@ -48,6 +48,7 @@ const envSchema = z
       }),
     CORS_ORIGIN: z.string().optional(),
     DEBUG_HTTP_FULL: z.string().optional(),
+    RAILWAY_ENVIRONMENT_NAME: z.string().optional(),
     MAINTENANCE_MODE: z.string().optional(),
     IP_BLACKLIST: z.string().optional(),
 
@@ -124,7 +125,47 @@ const PRODUCTION_LIKE_ENVIRONMENTS = ['production', 'preview'] as const;
 
 type ProductionLike = (typeof PRODUCTION_LIKE_ENVIRONMENTS)[number];
 
-export const isProductionLike = (value?: string): boolean => {
-  const candidate = value ?? process.env.NODE_ENV ?? '';
-  return PRODUCTION_LIKE_ENVIRONMENTS.includes(candidate as ProductionLike);
-};
+export const isProductionLike = (
+  nodeEnv = process.env.NODE_ENV,
+  railwayEnvironmentName = process.env.RAILWAY_ENVIRONMENT_NAME,
+): boolean =>
+  [nodeEnv, railwayEnvironmentName].some((value) =>
+    PRODUCTION_LIKE_ENVIRONMENTS.includes(
+      value?.trim().toLowerCase() as ProductionLike,
+    ),
+  );
+
+interface HttpLoggingEnvironment {
+  readonly NODE_ENV?: string;
+  readonly DEBUG_HTTP_FULL?: string;
+  readonly RAILWAY_ENVIRONMENT_NAME?: string;
+}
+
+export interface HttpLoggingDecision {
+  readonly mode: 'standard' | 'detailed';
+  readonly debugRequested: boolean;
+  readonly productionLocked: boolean;
+}
+
+export function resolveHttpLoggingDecision(
+  environment: HttpLoggingEnvironment,
+): HttpLoggingDecision {
+  const debugRequested =
+    environment.DEBUG_HTTP_FULL?.trim().toLowerCase() === 'true';
+  const productionLocked = [
+    environment.NODE_ENV,
+    environment.RAILWAY_ENVIRONMENT_NAME,
+  ].some((value) => value?.trim().toLowerCase() === 'production');
+  const supportsDetailedLogs =
+    environment.NODE_ENV === 'development' ||
+    environment.NODE_ENV === 'preview';
+
+  return {
+    mode:
+      debugRequested && supportsDetailedLogs && !productionLocked
+        ? 'detailed'
+        : 'standard',
+    debugRequested,
+    productionLocked: debugRequested && productionLocked,
+  };
+}

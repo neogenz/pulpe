@@ -74,12 +74,6 @@ struct AuthErrorLocalizerTests {
         #expect(message == "Ta session a expiré — reconnecte-toi")
     }
 
-    @Test func classifyAuthServiceErrorBiometricSessionExpiredReturnsSessionExpired() {
-        // Existing AuthServiceError case — same classification path as the new sessionExpired.
-        let kind = AuthErrorLocalizer.classify(AuthServiceError.biometricSessionExpired)
-        #expect(kind == .sessionExpired)
-    }
-
     @Test func infoPlist_requiredRuntimeConfigKeysArePresent() throws {
         let info = try #require(loadAppInfoPlist())
 

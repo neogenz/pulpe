@@ -17,6 +17,7 @@ interface MockUserMetadata {
 function buildAuthenticatedClient(
   metadata: MockUserMetadata,
   userOverrides: Partial<{ id: string; email: string }> = {},
+  appMetadata: unknown = {},
 ) {
   const updateUser = mock(
     (payload: {
@@ -47,6 +48,7 @@ function buildAuthenticatedClient(
             user: {
               id: userOverrides.id ?? 'user-1',
               email: userOverrides.email ?? 'test@example.com',
+              app_metadata: appMetadata,
               user_metadata: metadata,
             },
           },
@@ -62,14 +64,27 @@ function buildServiceRoleClient() {
   const updateUserById = mock(
     (
       _userId: string,
-      payload: { user_metadata: MockUserMetadata },
+      payload: {
+        user_metadata?: MockUserMetadata;
+        app_metadata?: Record<string, unknown>;
+      },
     ): Promise<{
-      data: { user: { id: string; user_metadata: MockUserMetadata } };
+      data: {
+        user: {
+          id: string;
+          user_metadata: MockUserMetadata;
+          app_metadata: Record<string, unknown>;
+        };
+      };
       error: null;
     }> =>
       Promise.resolve({
         data: {
-          user: { id: _userId, user_metadata: payload.user_metadata },
+          user: {
+            id: _userId,
+            user_metadata: payload.user_metadata ?? {},
+            app_metadata: payload.app_metadata ?? {},
+          },
         },
         error: null,
       }),
@@ -285,9 +300,13 @@ describe('SupabaseUserRepository', () => {
   describe('scheduleDeletion', () => {
     it('returns existing scheduledDeletionAt without writing when already scheduled', async () => {
       const existing = '2026-05-08T10:00:00.000Z';
-      const authClient = buildAuthenticatedClient({
-        scheduledDeletionAt: existing,
-      });
+      const authClient = buildAuthenticatedClient(
+        {},
+        {},
+        {
+          scheduledDeletionAt: existing,
+        },
+      );
       Object.defineProperty(authenticatedProvider, 'client', {
         get: () => authClient,
       });
@@ -306,7 +325,13 @@ describe('SupabaseUserRepository', () => {
     });
 
     it('writes scheduledDeletionAt and returns alreadyScheduled=false otherwise', async () => {
-      const authClient = buildAuthenticatedClient({ firstName: 'Jane' });
+      const authClient = buildAuthenticatedClient(
+        {},
+        {},
+        {
+          provider: 'email',
+        },
+      );
       Object.defineProperty(authenticatedProvider, 'client', {
         get: () => authClient,
       });
@@ -321,11 +346,48 @@ describe('SupabaseUserRepository', () => {
       expect(typeof result.scheduledDeletionAt).toBe('string');
       expect(serviceRole.updateUserById).toHaveBeenCalledTimes(1);
       const sentMetadata =
-        serviceRole.updateUserById.mock.calls[0]?.[1]?.user_metadata;
-      expect(sentMetadata?.firstName).toBe('Jane');
+        serviceRole.updateUserById.mock.calls[0]?.[1]?.app_metadata;
+      expect(sentMetadata?.provider).toBe('email');
       expect(sentMetadata?.scheduledDeletionAt).toBe(
         result.scheduledDeletionAt,
       );
+    });
+
+    it('ignores a client-owned scheduledDeletionAt value', async () => {
+      const authClient = buildAuthenticatedClient({
+        scheduledDeletionAt: '2020-01-01T00:00:00.000Z',
+      });
+      Object.defineProperty(authenticatedProvider, 'client', {
+        get: () => authClient,
+      });
+      const serviceRole = buildServiceRoleClient();
+      (supabaseService.getServiceRoleClient as ReturnType<typeof mock>) = mock(
+        () => serviceRole,
+      );
+
+      const result = await repo.scheduleDeletion('user-1');
+
+      expect(result.alreadyScheduled).toBe(false);
+      expect(serviceRole.updateUserById).toHaveBeenCalledTimes(1);
+    });
+
+    it('replaces invalid app_metadata with the server-owned deletion claim', async () => {
+      const authClient = buildAuthenticatedClient({}, {}, 'invalid');
+      Object.defineProperty(authenticatedProvider, 'client', {
+        get: () => authClient,
+      });
+      const serviceRole = buildServiceRoleClient();
+      (supabaseService.getServiceRoleClient as ReturnType<typeof mock>) = mock(
+        () => serviceRole,
+      );
+
+      const result = await repo.scheduleDeletion('user-1');
+      const sentMetadata =
+        serviceRole.updateUserById.mock.calls[0]?.[1]?.app_metadata;
+
+      expect(sentMetadata).toEqual({
+        scheduledDeletionAt: result.scheduledDeletionAt,
+      });
     });
   });
 

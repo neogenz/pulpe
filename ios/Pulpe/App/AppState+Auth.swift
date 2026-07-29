@@ -37,7 +37,6 @@ extension AppState {
     }
 
     private func clearPreLoginFlags() {
-        clearExplicitLogoutFlag()
         clearManualBiometricRetryRequiredFlag()
     }
 
@@ -72,18 +71,6 @@ extension AppState {
         hasReturningUser = true
         returningUserFlagLoaded = true
         try await resolvePostAuthOrThrow(user: user)
-    }
-
-    func loginWithBiometric() async {
-        authDebug("AUTH_LOGIN_BIO", "begin")
-        let result = await sessionLifecycleCoordinator.attemptBiometricSessionValidation()
-        switch result {
-        case .biometricAuthenticated, .regularSession:
-            clearPreLoginFlags()
-        case .unauthenticated, .networkError, .biometricSessionExpired, .cancelled:
-            break
-        }
-        await applyColdStartResult(result)
     }
 
     /// Resolves the post-auth destination, applies it, and returns it for caller inspection.

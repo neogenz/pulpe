@@ -32,7 +32,6 @@ struct AppStateLockReasonTests {
             postAuthResolver: pinResolver,
             biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
             biometricCapability: { false },
-            syncBiometricCredentials: { false },
             resolveBiometricKey: { nil },
             nowProvider: { now }
         )
@@ -78,7 +77,6 @@ struct AppStateLockReasonTests {
             postAuthResolver: pinResolver,
             biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore(),
             biometricCapability: { false },
-            syncBiometricCredentials: { false },
             resolveBiometricKey: { nil },
             nowProvider: { now }
         )

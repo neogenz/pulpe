@@ -1,5 +1,4 @@
 import Foundation
-import LocalAuthentication
 import OSLog
 import Supabase
 
@@ -8,11 +7,10 @@ import Supabase
 actor AuthService {
     static let shared = AuthService()
 
-    private var supabase: SupabaseClient
+    private let supabase: SupabaseClient
     private let keychain: KeychainManager
     private let storage: any AuthLocalStorage
     private var authStateListenerTask: Task<Void, Never>?
-    private var pendingBiometricResync = false
 
     private init(keychain: KeychainManager = .shared) {
         self.keychain = keychain
@@ -21,22 +19,6 @@ actor AuthService {
         Task(name: "AuthService.startListener") { [weak self] in
             await self?.startAuthStateListener()
         }
-    }
-    #if DEBUG
-    init(testingSupabase: SupabaseClient, storage: any AuthLocalStorage, pendingBiometricResync: Bool) {
-        self.keychain = .shared
-        self.storage = storage
-        self.supabase = testingSupabase
-        self.pendingBiometricResync = pendingBiometricResync
-    }
-    var isBiometricResyncPendingForTesting: Bool { pendingBiometricResync }
-    #endif
-
-    private func resetClient() {
-        authStateListenerTask?.cancel()
-        authStateListenerTask = nil
-        supabase = Self.makeSupabaseClient(storage: storage)
-        startAuthStateListener()
     }
 
     private static func makeSupabaseClient(storage: any AuthLocalStorage) -> SupabaseClient {
@@ -57,7 +39,7 @@ actor AuthService {
     private func startAuthStateListener() {
         authStateListenerTask?.cancel()
         let stream = supabase.auth.authStateChanges
-        authStateListenerTask = Task(name: "AuthService.authStateListener") { [weak self] in
+        authStateListenerTask = Task(name: "AuthService.authStateListener") {
             for await (event, session) in stream {
                 switch event {
                 case .initialSession:
@@ -67,7 +49,6 @@ actor AuthService {
                         outcome: "initial_session",
                         session: session
                     )
-                    await self?.refreshBiometricSnapshotIfPresent(session)
                 case .tokenRefreshed:
                     Logger.auth.debug("[AUTH] session synchronized via PulpeAuthStorage")
                     AuthSessionDiagnostics.capture(
@@ -75,7 +56,6 @@ actor AuthService {
                         outcome: "token_refreshed",
                         session: session
                     )
-                    await self?.refreshBiometricSnapshotIfPresent(session)
                 case .signedOut:
                     Logger.auth.debug("[AUTH] signedOut — SDK cleared storage")
                     AnalyticsService.captureAuthSessionDiagnostic(
@@ -205,22 +185,6 @@ actor AuthService {
         await keychain.clearTokens()
     }
 
-    /// Logout without revoking the server-side refresh token.
-    /// Order matters: clear the SDK-owned storage slot BEFORE replacing the
-    /// SupabaseClient. The new client's `emitInitialSession` reads from
-    /// PulpeAuthStorage on subscribe and may trigger a silent refresh that
-    /// writes the slot back — see AuthClient.swift `emitInitialSession`.
-    /// Biometric tokens stay intact as cold-storage for re-entry.
-    func logoutKeepingBiometricSession() async {
-        do {
-            try storage.remove(key: PulpeAuthStorage.sessionStorageKey)
-        } catch {
-            Logger.auth.warning("logoutKeepingBiometricSession: storage.remove failed - \(error)")
-        }
-        resetClient()
-        await keychain.clearTokens()
-    }
-
     // MARK: - Account Deletion
 
     func deleteAccount() async throws -> DeleteAccountResponse {
@@ -264,124 +228,10 @@ actor AuthService {
         }
     }
 
-    // MARK: - Biometric Session
+    // MARK: - Legacy Biometric Token Cleanup
 
-    func saveBiometricTokens() async throws {
-        let session = try await supabase.auth.session
-
-        let saved = await keychain.saveBiometricTokens(
-            accessToken: session.accessToken,
-            refreshToken: session.refreshToken
-        )
-        if !saved {
-            throw AuthServiceError.biometricSaveFailed
-        }
-    }
-
-    /// Keeps an existing biometric snapshot aligned with Supabase refresh-token rotation.
-    /// The atomic keychain update cannot recreate a snapshot cleared concurrently.
-    private func refreshBiometricSnapshotIfPresent(_ session: Session?) async {
-        guard let session else { return }
-        guard !Task.isCancelled else { return }
-        let outcome = await keychain.resyncBiometricTokensIfPresent(
-            accessToken: session.accessToken,
-            refreshToken: session.refreshToken
-        )
-        switch outcome {
-        case .failed:
-            // The biometric slot is WhenUnlocked-protected: a rotation that lands while
-            // the device is locked (background widget refresh) cannot be snapshotted.
-            // Defer instead of dropping — the next foreground replays it (device unlocked).
-            pendingBiometricResync = true
-            Logger.auth.warning("[AUTH] biometric snapshot resync failed after token refresh — deferred")
-        case .resnapshotted, .noSlot:
-            pendingBiometricResync = false
-        }
-    }
-
-    /// Replays a biometric snapshot resync that failed while the device was locked.
-    /// Call on foreground entry — the device is unlocked, so the write can succeed.
-    func retryPendingBiometricResync() async {
-        guard pendingBiometricResync, !Task.isCancelled else { return }
-        do {
-            let session = try await supabase.auth.session
-            // The auth-state listener can complete the deferred resync while this
-            // session lookup is suspended; do not write a stale duplicate snapshot.
-            guard pendingBiometricResync, !Task.isCancelled else { return }
-            await refreshBiometricSnapshotIfPresent(session)
-        } catch {
-            // Keep retrying after transport and transient SDK failures. A confirmed
-            // terminal logout is the only case where pending work cannot succeed.
-            if checkAndHandleConfirmedTerminalSessionFailure(error, source: "biometric_resync") {
-                pendingBiometricResync = false
-            }
-        }
-    }
-
-    func validateBiometricSession() async throws -> BiometricSessionResult? {
-        let hasBiometricTokens = await keychain.hasBiometricTokens()
-        #if DEBUG
-        Logger.auth.debug("[AUTH_BIO_KEYCHAIN_TOKENS] present=\(hasBiometricTokens, privacy: .public)")
-        #endif
-        guard hasBiometricTokens else {
-            return nil
-        }
-
-        // Single biometric prompt via pre-authenticated LAContext
-        // SAFETY: LAContext is not Sendable but nonisolated(unsafe) is correct here because:
-        // 1. The context is created, evaluated, and consumed entirely within this function scope.
-        // 2. It is never shared with another task or stored beyond this call.
-        // 3. All subsequent uses (getBiometricRefreshToken, getBiometricClientKey) are sequential awaits.
-        nonisolated(unsafe) let context = LAContext()
-        do {
-            try await context.evaluatePolicy(
-                .deviceOwnerAuthenticationWithBiometrics,
-                localizedReason: "Se connecter avec \(BiometricService.shared.biometryDisplayName)"
-            )
-        } catch let error as LAError where error.code == .userCancel {
-            throw KeychainError.userCanceled
-        } catch is LAError {
-            throw KeychainError.authFailed
-        }
-
-        // Read both biometric keychain items with the pre-authenticated context (no extra prompts)
-        let refreshToken = try await keychain.getBiometricRefreshToken(context: context)
-
-        guard let refreshToken else {
-            #if DEBUG
-            Logger.auth.debug("[AUTH_BIO_KEYCHAIN_REFRESH] missing")
-            #endif
-            return nil
-        }
-
-        let clientKeyHex: String?
-        do {
-            clientKeyHex = try await keychain.getBiometricClientKey(context: context)
-        } catch {
-            Logger.auth.warning("validateBiometricSession: biometric client key retrieval failed - \(error)")
-            clientKeyHex = nil
-        }
-        #if DEBUG
-        Logger.auth.debug("[AUTH_BIO_KEYCHAIN_CLIENT_KEY] present=\((clientKeyHex != nil), privacy: .public)")
-        #endif
-
-        let session = try await refreshSessionFromBiometricSnapshot(refreshToken)
-
-        // SDK persisted the new session via PulpeAuthStorage. The biometric slot
-        // is single-use cold-storage — clear it so the next logout-keep-biometric
-        // re-snapshots a fresh refresh token (PUL-132: prevents drift / reuse-detection).
-        await keychain.clearBiometricTokens()
-
-        let user = Self.userInfo(from: session.user, fallbackEmail: "")
-        return BiometricSessionResult(user: user, clientKeyHex: clientKeyHex)
-    }
-
-    func clearBiometricTokens() async {
-        await keychain.clearBiometricTokens()
-    }
-
-    func hasBiometricTokens() async -> Bool {
-        await keychain.hasBiometricTokens()
+    func clearLegacyBiometricTokens() async {
+        await keychain.clearLegacyBiometricTokens()
     }
 }
 
@@ -462,29 +312,5 @@ extension AuthService {
     func updatePassword(_ newPassword: String) async throws {
         _ = try await supabase.auth.update(user: UserAttributes(password: newPassword))
         // SDK persists refreshed session via PulpeAuthStorage automatically.
-    }
-}
-
-// MARK: - Biometric Refresh Helper
-
-extension AuthService {
-    /// Redeems the single-use biometric refresh token against Supabase.
-    /// A terminal verdict (SDK already purged the stored session) maps to
-    /// `biometricSessionExpired`; anything else is rethrown as retryable.
-    private func refreshSessionFromBiometricSnapshot(_ refreshToken: String) async throws -> Session {
-        do {
-            return try await supabase.auth.refreshSession(refreshToken: refreshToken)
-        } catch {
-            Logger.auth.error("validateBiometricSession: session refresh failed - \(error, privacy: .public)")
-            await MainActor.run {
-                AnalyticsService.shared.captureAuthError(
-                    .sessionRestoreFailed, error: error, method: "biometric_refresh"
-                )
-            }
-            if Self.isTerminalSessionFailure(error) {
-                throw AuthServiceError.biometricSessionExpired
-            }
-            throw error
-        }
     }
 }

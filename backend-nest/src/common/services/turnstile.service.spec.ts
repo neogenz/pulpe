@@ -18,6 +18,7 @@ describe('TurnstileService', () => {
   const createTestingModule = async (
     nodeEnv: string = 'test',
     secretKey: string = 'test-secret',
+    railwayEnvironmentName?: string,
   ) => {
     mockLogger = createMockInfoLogger();
 
@@ -34,6 +35,9 @@ describe('TurnstileService', () => {
             get: jest.fn((key: string, defaultValue?: string) => {
               if (key === 'NODE_ENV') return nodeEnv;
               if (key === 'TURNSTILE_SECRET_KEY') return secretKey;
+              if (key === 'RAILWAY_ENVIRONMENT_NAME') {
+                return railwayEnvironmentName;
+              }
               return defaultValue;
             }),
           },
@@ -76,10 +80,20 @@ describe('TurnstileService', () => {
       expect(devService).toBeDefined();
     });
 
-    it('should enable verification in production environment', async () => {
-      const module = await createTestingModule('production');
-      const prodService = module.get<TurnstileService>(TurnstileService);
-      expect(prodService).toBeDefined();
+    it('should enable verification when Railway is production despite NODE_ENV development', async () => {
+      const module = await createTestingModule(
+        'development',
+        'prod-secret',
+        'production',
+      );
+      const railwayProdService = module.get<TurnstileService>(TurnstileService);
+      const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValueOnce({
+        json: async () => ({ success: false }),
+      } as Response);
+
+      expect(await railwayProdService.verify('invalid-token')).toBe(false);
+      expect(fetchMock).toHaveBeenCalled();
+      fetchMock.mockRestore();
     });
   });
 
@@ -156,6 +170,7 @@ describe('TurnstileService', () => {
               response: 'test-token',
               remoteip: '1.2.3.4',
             }),
+            signal: expect.any(AbortSignal),
           },
         );
       });
@@ -201,6 +216,19 @@ describe('TurnstileService', () => {
 
         const result = await prodService.verify('test-token');
         expect(result).toBe(false);
+      });
+
+      it('should treat the native five-second timeout as a controlled failure', async () => {
+        fetchMock.mockRejectedValueOnce(
+          new DOMException('The operation timed out', 'TimeoutError'),
+        );
+
+        const result = await prodService.verify('test-token');
+        const options = fetchMock.mock.calls[0]?.[1] as RequestInit;
+
+        expect(options.signal).toBeInstanceOf(AbortSignal);
+        expect(result).toBe(false);
+        expect(mockLogger.warn).toHaveBeenCalled();
       });
     });
   });

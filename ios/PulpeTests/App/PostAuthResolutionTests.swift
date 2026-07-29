@@ -28,8 +28,8 @@ struct PostAuthResolutionRouterTests {
         )
     }
 
-    private func waitForSilentBiometricSync(
-        _ spy: SilentBiometricSyncSpy,
+    private func waitForBiometricClientKeyStore(
+        _ spy: BiometricClientKeyStoreSpy,
         expectedCalls: Int
     ) async {
         for _ in 0..<30 {
@@ -359,15 +359,15 @@ struct PostAuthResolutionRouterTests {
         #expect(await authSpy.callCount() == 0)
     }
 
-    @Test("existing biometric preference silently refreshes credentials after PIN entry")
-    func biometricPreferenceEnabled_silentRefreshAfterPinEntry() async {
+    @Test("existing biometric preference restores the protected client key after PIN entry")
+    func biometricPreferenceEnabled_restoresClientKeyAfterPinEntry() async {
         let resolver = StubPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false))
-        let syncSpy = SilentBiometricSyncSpy()
+        let keyStoreSpy = BiometricClientKeyStoreSpy()
         let sut = AppState(
             postAuthResolver: resolver,
             biometricPreferenceStore: makeBiometricPreferenceStore(initial: true),
-            syncBiometricCredentials: {
-                await syncSpy.recordCallAndReturnTrue()
+            storeBiometricKey: {
+                await keyStoreSpy.recordCallAndReturnTrue()
             }
         )
 
@@ -379,8 +379,8 @@ struct PostAuthResolutionRouterTests {
         await sut.completePinEntry()
         #expect(sut.authState == .authenticated)
 
-        await waitForSilentBiometricSync(syncSpy, expectedCalls: 1)
-        #expect(await syncSpy.callCount() == 1)
+        await waitForBiometricClientKeyStore(keyStoreSpy, expectedCalls: 1)
+        #expect(await keyStoreSpy.callCount() == 1)
     }
 
     @Test("inconsistent authenticated path prioritizes recovery consent over biometric enrollment")
@@ -806,7 +806,7 @@ private actor BiometricAuthenticateSpy {
     }
 }
 
-private actor SilentBiometricSyncSpy {
+private actor BiometricClientKeyStoreSpy {
     private var calls = 0
 
     func recordCallAndReturnTrue() -> Bool {

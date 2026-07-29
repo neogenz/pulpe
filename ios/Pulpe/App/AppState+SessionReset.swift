@@ -21,13 +21,6 @@ extension AppState {
         defer { sessionLifecycleCoordinator.clearRestoringSession() }
         authDebug("AUTH_FG", "begin isRestoring=\(sessionLifecycleCoordinator.isRestoringSession)")
 
-        // Replay a biometric snapshot resync that failed while the device was locked
-        // (background token rotation) — the slot is WhenUnlocked-protected, and we are
-        // in the foreground now, so the device is unlocked.
-        Task(name: "AppState.biometricResyncRetry") { [authService] in
-            await authService.retryPendingBiometricResync()
-        }
-
         if sessionLifecycleCoordinator.isRestoringSession {
             lastLockReason = .backgroundTimeout
         }
@@ -118,7 +111,6 @@ extension AppState {
 
     func logout(
         source: LogoutSource = .userInitiated,
-        preserveBiometricSession: Bool? = nil,
         scope: SignOutScope = .local,
         resetScope: SessionResetScope? = nil
     ) async {
@@ -135,44 +127,13 @@ extension AppState {
         backgroundRefreshTask?.cancel()
         backgroundRefreshTask = nil
 
-        switch source {
-        case .userInitiated:
-            flagsStore.setDidExplicitLogout(true)
-        case .system:
-            clearExplicitLogoutFlag()
-        }
         clearManualBiometricRetryRequiredFlag()
 
-        let shouldPreserveBiometric = preserveBiometricSession ?? (source == .userInitiated)
-        authDebug("AUTH_LOGOUT", "preserveBiometric=\(shouldPreserveBiometric)")
-        if shouldPreserveBiometric && biometric.isEnabled {
-            // Snapshot the live session into the biometric slot for cold-start re-entry.
-            // PUL-132: removed `saveBiometricTokensFromKeychain` fallback — SDK storage
-            // (PulpeAuthStorage) IS the source of truth, so a missing SDK session means
-            // there's nothing valid to snapshot.
-            var biometricTokensSaved = false
-            do {
-                try await authService.saveBiometricTokens()
-                biometricTokensSaved = true
-            } catch {
-                Logger.auth.warning("logout: biometric snapshot failed - \(error)")
-            }
-
-            if biometricTokensSaved {
-                // Clear local SDK state WITHOUT calling /logout (would revoke the refresh token)
-                await authService.logoutKeepingBiometricSession()
-            } else {
-                // Both save attempts failed — biometric tokens are unusable.
-                // Do a full logout instead of silently losing Face ID.
-                Logger.auth.error("logout: biometric token preservation failed, doing full logout")
-                await runSignOutOrSurfaceFailure(scope: scope)
-                await biometric.handleSessionExpired()
-                biometric.isEnabled = false
-            }
+        await runSignOutOrSurfaceFailure(scope: scope)
+        if source == .userInitiated {
+            await biometric.disable()
         } else {
-            await runSignOutOrSurfaceFailure(scope: scope)
             await biometric.handleSessionExpired()
-            biometric.isEnabled = false
         }
 
         await clientKeyManager.clearSession()
@@ -201,12 +162,10 @@ extension AppState {
     /// and returning the app to the regular login screen.
     func completePasswordResetFlow() async {
         authDebug("AUTH_PASSWORD_RESET", "complete")
-        // Password reset → revoke JWT server-side so a snapped access_token
-        // cannot be replayed within its ~1h expiry window.
+        // Password reset invalidates the local Face ID enrollment.
         await runSignOutOrSurfaceFailure(scope: .global)
-        await authService.clearBiometricTokens()
-        await clientKeyManager.clearAll()
-        biometric.isEnabled = false
+        await biometric.disable()
+        await clientKeyManager.clearSession()
         resetSession(.passwordReset)
         toastManager.show("Mot de passe réinitialisé, reconnecte-toi", type: .success)
     }
@@ -215,12 +174,10 @@ extension AppState {
     /// and returning the app to the regular login screen without success feedback.
     func cancelPasswordResetFlow() async {
         authDebug("AUTH_PASSWORD_RESET", "cancel")
-        // Cancel mid-recovery → revoke JWT server-side. Recovery session is
-        // write-capable (can change password) so a snapped token must not survive.
+        // Cancel mid-recovery and invalidate the local Face ID enrollment.
         await runSignOutOrSurfaceFailure(scope: .global)
-        await authService.clearBiometricTokens()
-        await clientKeyManager.clearAll()
-        biometric.isEnabled = false
+        await biometric.disable()
+        await clientKeyManager.clearSession()
         resetSession(.passwordReset)
     }
 
@@ -237,7 +194,7 @@ extension AppState {
         do {
             try await performSignOut(scope)
         } catch {
-            Logger.auth.error("global revoke failed: \(error, privacy: .public)")
+            Logger.auth.error("server sign-out failed: \(error, privacy: .public)")
             toastManager.show(
                 "Déconnexion locale OK, mais serveur injoignable. "
                 + "Si tu suspectes un vol de session, change ton mot de passe à nouveau dans 5 min.",
@@ -288,11 +245,11 @@ extension AppState {
         PostOnboardingFlagsStore().reset()
         await NotificationScheduler.shared.cancelMonthlyReminder()
         clearManualBiometricRetryRequiredFlag()
+        await biometric.disable()
         // Account deletion / signup abandon → revoke JWT server-side so a
         // snapped access_token cannot be replayed within its ~1h expiry window.
         await logout(
             source: .system,
-            preserveBiometricSession: false,
             scope: .global,
             resetScope: resetScope
         )
@@ -394,10 +351,6 @@ extension AppState {
     }
 
     // MARK: - Auth Flags Helpers
-
-    func clearExplicitLogoutFlag() {
-        flagsStore.clearExplicitLogoutFlag()
-    }
 
     func setManualBiometricRetryRequiredFlag(_ required: Bool) {
         flagsStore.setManualBiometricRetryRequired(required)

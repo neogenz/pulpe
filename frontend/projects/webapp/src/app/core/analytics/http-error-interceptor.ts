@@ -67,7 +67,6 @@ function captureHttpError(
       httpMethod: requestMethod,
       httpStatus: error.status,
       errorName: posthogError.name,
-      errorMessage: posthogError.message,
       ...(requestId ? { request_id: requestId } : {}),
     };
 
@@ -77,16 +76,15 @@ function captureHttpError(
 
     const backendPayload = extractBackendPayload(error.error);
     if (backendPayload) {
-      context.backendErrorCode = readStringField(backendPayload, 'code');
-      context.backendErrorName = readStringField(backendPayload, 'error');
-      context.backendErrorMessage = readStringField(backendPayload, 'message');
+      context.backendErrorCode = readTechnicalField(backendPayload, 'code');
+      context.backendErrorName = readTechnicalField(backendPayload, 'error');
       context.backendStatusCode =
         readNumberField(backendPayload, 'statusCode') ??
         readNumberField(backendPayload, 'status');
       context.backendMethod = readStringField(backendPayload, 'method');
-      context.backendPath = readStringField(backendPayload, 'path');
+      const backendPath = readStringField(backendPayload, 'path');
+      if (backendPath) context.backendPath = sanitizeUrl(backendPath);
       context.backendSuccess = readBooleanField(backendPayload, 'success');
-      context.backendErrorContext = backendPayload['context'];
     }
 
     const sanitizedContext = sanitizeRecord(context);
@@ -104,28 +102,16 @@ function captureHttpError(
 }
 
 function normalizeHttpError(error: HttpErrorResponse): Error {
-  if (error instanceof Error) {
-    return error;
-  }
-
-  const backendPayload = error.error;
-
-  const payloadMessage =
-    typeof backendPayload === 'string'
-      ? backendPayload
-      : typeof backendPayload?.message === 'string'
-        ? backendPayload.message
-        : undefined;
-
-  const message =
-    payloadMessage ??
-    error.message ??
-    `HTTP error ${error.status}${error.statusText ? ` - ${error.statusText}` : ''}`;
-
-  const normalizedError = new Error(message, {
-    cause: backendPayload ?? error,
-  });
-  normalizedError.name = error.name ?? 'HttpErrorResponse';
+  const backendPayload = extractBackendPayload(error.error);
+  const code = backendPayload
+    ? readTechnicalField(backendPayload, 'code')
+    : undefined;
+  const type = backendPayload
+    ? readTechnicalField(backendPayload, 'error')
+    : undefined;
+  const label = ['HTTP', error.status, code, type].filter(Boolean).join(':');
+  const normalizedError = new Error(label);
+  normalizedError.name = label;
 
   const stack = (error as Partial<Error>).stack;
   if (stack) {
@@ -140,17 +126,14 @@ interface HttpErrorContext extends Record<string, unknown> {
   httpMethod: string;
   httpStatus: number;
   errorName: string;
-  errorMessage: string;
   request_id?: string;
   httpUrl?: string;
   backendErrorCode?: string;
   backendErrorName?: string;
-  backendErrorMessage?: string;
   backendStatusCode?: number;
   backendMethod?: string;
   backendPath?: string;
   backendSuccess?: boolean;
-  backendErrorContext?: unknown;
 }
 
 function extractBackendPayload(value: unknown): Record<string, unknown> | null {
@@ -166,6 +149,16 @@ function readStringField(
 ): string | undefined {
   const fieldValue = source[fieldName];
   return typeof fieldValue === 'string' ? fieldValue : undefined;
+}
+
+function readTechnicalField(
+  source: Record<string, unknown>,
+  fieldName: string,
+): string | undefined {
+  const value = readStringField(source, fieldName);
+  return value && /^[A-Za-z][A-Za-z0-9_.:-]{0,127}$/.test(value)
+    ? value
+    : undefined;
 }
 
 function readNumberField(

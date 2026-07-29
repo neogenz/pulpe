@@ -1,11 +1,9 @@
-// swiftlint:disable type_body_length
 import Foundation
 @testable import Pulpe
 import Testing
 
-/// Tests for biometric key validation feature in AppState.
-/// Ensures validateBiometricKey is called during unlock and session validation flows,
-/// and that stale/invalid keys are properly detected and cleared.
+/// Tests for biometric key validation during foreground unlock.
+/// Ensures stale or invalid keys are detected and cleared.
 @MainActor
 @Suite(.serialized)
 struct AppStateBiometricKeyValidationTests {
@@ -20,7 +18,6 @@ struct AppStateBiometricKeyValidationTests {
                 defaults: MockBiometricPreferenceStore(enabled: false)
             ),
             biometricCapability: { true },
-            syncBiometricCredentials: { true },
             resolveBiometricKey: { "valid-client-key-hex" },
             validateBiometricKey: { _ in true }
         )
@@ -40,7 +37,6 @@ struct AppStateBiometricKeyValidationTests {
                 defaults: MockBiometricPreferenceStore(enabled: false)
             ),
             biometricCapability: { true },
-            syncBiometricCredentials: { true },
             resolveBiometricKey: { "stale-client-key-hex" },
             validateBiometricKey: { _ in false }
         )
@@ -80,91 +76,6 @@ struct AppStateBiometricKeyValidationTests {
         #expect(sut.biometricEnabled == true)
     }
 
-    // MARK: - attemptBiometricSessionValidation Tests
-
-    @Test("attemptBiometricSessionValidation stores key when valid during cold start")
-    func attemptBiometricSessionValidation_validKey_storesKey() async {
-        let testUser = UserInfo(
-            id: "test-user-id",
-            email: "test@example.com",
-            firstName: "Test"
-        )
-        let sessionResult = BiometricSessionResult(
-            user: testUser,
-            clientKeyHex: "valid-client-key-hex"
-        )
-
-        // PUL-132: biometric-keychain validation runs only on explicit-logout cold-start.
-        defer {
-            UserDefaults.standard.removeObject(forKey: "pulpe-has-launched-before")
-            UserDefaults.standard.removeObject(forKey: "pulpe-did-explicit-logout")
-        }
-
-        let sut = AppState(
-            keychainManager: MockKeychainStore(),
-            postAuthResolver: MockPostAuthResolver(destination: .authenticated(needsRecoveryKeyConsent: false)),
-            biometricPreferenceStore: BiometricPreferenceStore(
-                keychain: MockBiometricPreferenceStore(enabled: true),
-                defaults: MockBiometricPreferenceStore(enabled: false)
-            ),
-            biometricCapability: { true },
-            biometricAuthenticate: { },
-            syncBiometricCredentials: { true },
-            validateBiometricKey: { _ in true },
-            validateBiometricSession: { sessionResult },
-            maintenanceChecking: { false }
-        )
-
-        UserDefaults.standard.set(true, forKey: "pulpe-has-launched-before")
-        UserDefaults.standard.set(true, forKey: "pulpe-did-explicit-logout")
-
-        await sut.checkAuthState()
-
-        #expect(sut.authState == .authenticated)
-        #expect(sut.currentUser != nil)
-        #expect(sut.currentUser?.id == testUser.id)
-    }
-
-    @Test("attemptBiometricSessionValidation clears biometric state when key is stale")
-    func attemptBiometricSessionValidation_staleKey_clearsState() async {
-        let testUser = UserInfo(
-            id: "test-user-id",
-            email: "test@example.com",
-            firstName: "Test"
-        )
-        let sessionResult = BiometricSessionResult(
-            user: testUser,
-            clientKeyHex: "stale-client-key-hex"
-        )
-
-        // PUL-132: biometric-keychain validation runs only on explicit-logout cold-start.
-        defer {
-            UserDefaults.standard.removeObject(forKey: "pulpe-has-launched-before")
-            UserDefaults.standard.removeObject(forKey: "pulpe-did-explicit-logout")
-        }
-
-        let sut = AppState(
-            keychainManager: MockKeychainStore(),
-            postAuthResolver: MockPostAuthResolver(destination: .authenticated(needsRecoveryKeyConsent: false)),
-            biometricPreferenceStore: BiometricPreferenceStore(
-                keychain: MockBiometricPreferenceStore(enabled: true),
-                defaults: MockBiometricPreferenceStore(enabled: false)
-            ),
-            biometricCapability: { true },
-            syncBiometricCredentials: { true },
-            validateBiometricKey: { _ in false },
-            validateBiometricSession: { sessionResult },
-            maintenanceChecking: { false }
-        )
-
-        UserDefaults.standard.set(true, forKey: "pulpe-has-launched-before")
-        UserDefaults.standard.set(true, forKey: "pulpe-did-explicit-logout")
-
-        await sut.checkAuthState()
-
-        #expect(sut.biometricEnabled == false)
-    }
-
     // MARK: - Key Validation Error Paths
 
     @Test("stale key in attemptBiometricUnlock clears clientKeyManager")
@@ -181,7 +92,6 @@ struct AppStateBiometricKeyValidationTests {
                 defaults: MockBiometricPreferenceStore(enabled: false)
             ),
             biometricCapability: { true },
-            syncBiometricCredentials: { true },
             resolveBiometricKey: { "stale-client-key" },
             validateBiometricKey: { _ in false }
         )
@@ -205,7 +115,6 @@ struct AppStateBiometricKeyValidationTests {
                 defaults: MockBiometricPreferenceStore(enabled: false)
             ),
             biometricCapability: { true },
-            syncBiometricCredentials: { true },
             resolveBiometricKey: { "valid-key-hex" },
             validateBiometricKey: { _ in true }
         )
@@ -334,7 +243,6 @@ struct AppStateBiometricKeyValidationTests {
                 keychain: MockBiometricPreferenceStore(enabled: true),
                 defaults: MockBiometricPreferenceStore(enabled: false)
             ),
-            syncBiometricCredentials: { true },
             resolveBiometricKey: { "valid-key" },
             validateBiometricKey: { _ in true },
             nowProvider: { now }
@@ -366,7 +274,6 @@ struct AppStateBiometricKeyValidationTests {
                 keychain: MockBiometricPreferenceStore(enabled: true),
                 defaults: MockBiometricPreferenceStore(enabled: false)
             ),
-            syncBiometricCredentials: { true },
             resolveBiometricKey: { "stale-key" },
             validateBiometricKey: { _ in false },
             nowProvider: { now }

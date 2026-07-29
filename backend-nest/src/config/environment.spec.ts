@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'bun:test';
-import { validateConfig } from './environment';
+import {
+  isProductionLike,
+  resolveHttpLoggingDecision,
+  validateConfig,
+} from './environment';
 
 describe('Environment Validation', () => {
   describe('NODE_ENV (fail-loud, no default)', () => {
@@ -352,6 +356,73 @@ describe('Environment Validation', () => {
       };
 
       expect(() => validateConfig(config)).not.toThrow();
+    });
+  });
+
+  describe('HTTP logging mode', () => {
+    it('lets either runtime signal enforce production-like safeguards', () => {
+      expect(isProductionLike('development', 'production')).toBe(true);
+      expect(isProductionLike('development', 'preview')).toBe(true);
+      expect(isProductionLike('development', 'development')).toBe(false);
+    });
+
+    it('allows detailed logs only when development or preview opts in', () => {
+      expect(
+        resolveHttpLoggingDecision({
+          NODE_ENV: 'development',
+          DEBUG_HTTP_FULL: 'true',
+        }),
+      ).toEqual({
+        mode: 'detailed',
+        debugRequested: true,
+        productionLocked: false,
+      });
+      expect(
+        resolveHttpLoggingDecision({
+          NODE_ENV: 'preview',
+          DEBUG_HTTP_FULL: 'true',
+        }),
+      ).toEqual({
+        mode: 'detailed',
+        debugRequested: true,
+        productionLocked: false,
+      });
+    });
+
+    it('forces standard logs when either production signal is present', () => {
+      for (const config of [
+        {
+          NODE_ENV: 'production',
+          RAILWAY_ENVIRONMENT_NAME: 'preview',
+          DEBUG_HTTP_FULL: 'true',
+        },
+        {
+          NODE_ENV: 'preview',
+          RAILWAY_ENVIRONMENT_NAME: 'production',
+          DEBUG_HTTP_FULL: 'true',
+        },
+      ]) {
+        expect(resolveHttpLoggingDecision(config)).toEqual({
+          mode: 'standard',
+          debugRequested: true,
+          productionLocked: true,
+        });
+      }
+    });
+
+    it('keeps standard logs by default and in tests', () => {
+      expect(
+        resolveHttpLoggingDecision({
+          NODE_ENV: 'preview',
+          DEBUG_HTTP_FULL: 'false',
+        }).mode,
+      ).toBe('standard');
+      expect(
+        resolveHttpLoggingDecision({
+          NODE_ENV: 'test',
+          DEBUG_HTTP_FULL: 'true',
+        }).mode,
+      ).toBe('standard');
     });
   });
 });

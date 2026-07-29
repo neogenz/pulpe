@@ -45,12 +45,17 @@ describe('SupabaseAccountDeletionRepository', () => {
       ).toISOString();
 
       const mockUsers = [
-        { id: 'expired', user_metadata: { scheduledDeletionAt: fourDaysAgo } },
+        { id: 'expired', app_metadata: { scheduledDeletionAt: fourDaysAgo } },
         {
           id: 'within-grace',
-          user_metadata: { scheduledDeletionAt: oneDayAgo },
+          app_metadata: { scheduledDeletionAt: oneDayAgo },
         },
-        { id: 'no-metadata', user_metadata: {} },
+        { id: 'no-metadata', app_metadata: {} },
+        {
+          id: 'client-owned-date',
+          user_metadata: { scheduledDeletionAt: fourDaysAgo },
+          app_metadata: {},
+        },
       ];
 
       const adminClient = {
@@ -83,7 +88,7 @@ describe('SupabaseAccountDeletionRepository', () => {
                   users: [
                     {
                       id: 'bad-date',
-                      user_metadata: { scheduledDeletionAt: 'not-a-date' },
+                      app_metadata: { scheduledDeletionAt: 'not-a-date' },
                     },
                   ],
                 },

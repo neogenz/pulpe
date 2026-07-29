@@ -9,9 +9,6 @@ enum AppAuthFlagsKey {
 protocol AppAuthFlagsStoring: Sendable {
     var hasLaunchedBefore: Bool { get }
     func setHasLaunchedBefore()
-    var didExplicitLogout: Bool { get }
-    func setDidExplicitLogout(_ value: Bool)
-    func clearExplicitLogoutFlag()
     var manualBiometricRetryRequired: Bool { get }
     func setManualBiometricRetryRequired(_ value: Bool)
     func clearManualBiometricRetryFlag()
@@ -22,7 +19,6 @@ protocol AppAuthFlagsStoring: Sendable {
 /// SAFETY: `UserDefaults` is thread-safe per Apple. This struct only reads/writes primitive flags; `@unchecked Sendable` implements `AppAuthFlagsStoring: Sendable` for DI without an actor wrapper.
 struct AppAuthFlagsStore: AppAuthFlagsStoring, @unchecked Sendable {
     private enum Key {
-        static let didExplicitLogout = "pulpe-did-explicit-logout"
         static let manualBiometricRetryRequired = "pulpe-manual-biometric-retry-required"
     }
 
@@ -38,18 +34,6 @@ struct AppAuthFlagsStore: AppAuthFlagsStoring, @unchecked Sendable {
 
     func setHasLaunchedBefore() {
         defaults.set(true, forKey: AppAuthFlagsKey.hasLaunchedBefore)
-    }
-
-    var didExplicitLogout: Bool {
-        defaults.bool(forKey: Key.didExplicitLogout)
-    }
-
-    func setDidExplicitLogout(_ value: Bool) {
-        defaults.set(value, forKey: Key.didExplicitLogout)
-    }
-
-    func clearExplicitLogoutFlag() {
-        defaults.removeObject(forKey: Key.didExplicitLogout)
     }
 
     var manualBiometricRetryRequired: Bool {

@@ -105,6 +105,22 @@ describe('Encryption integration (local Supabase)', () => {
   let adminClient: SupabaseClient<Database>;
   let encryptionService: AesGcmCryptoService;
 
+  async function initializeTestVault(
+    userId: string,
+    clientKey: Buffer,
+  ): Promise<{ dek: Buffer; recoveryKey: string }> {
+    await encryptionService.getUserSalt(userId);
+    const { formatted } = await encryptionService.createRecoveryKey(
+      userId,
+      clientKey,
+      adminClient,
+    );
+    return {
+      dek: await encryptionService.ensureUserDEK(userId, clientKey),
+      recoveryKey: formatted,
+    };
+  }
+
   beforeAll(async () => {
     const env = await ensureSupabaseAvailable().catch((error) => {
       if (IS_DEDICATED_INTEGRATION_RUN) throw error;
@@ -224,10 +240,7 @@ describe('Encryption integration (local Supabase)', () => {
 
       const oldClientKey = Buffer.from(OLD_CLIENT_KEY_HEX, 'hex');
       const newClientKey = Buffer.from(NEW_CLIENT_KEY_HEX, 'hex');
-      const oldDek = await encryptionService.ensureUserDEK(
-        userId,
-        oldClientKey,
-      );
+      const { dek: oldDek } = await initializeTestVault(userId, oldClientKey);
 
       const oldEncrypted = {
         budgetLine: encryptionService.encryptAmount(150, oldDek),
@@ -306,10 +319,7 @@ describe('Encryption integration (local Supabase)', () => {
         })
         .eq('id', budgetId);
 
-      const newDek = await encryptionService.ensureUserDEK(
-        userId,
-        newClientKey,
-      );
+      const newDek = await encryptionService.getUserDEK(userId, newClientKey);
       await encryptionService.reEncryptAllUserData(
         userId,
         oldDek,
@@ -410,10 +420,7 @@ describe('Encryption integration (local Supabase)', () => {
         wrongDek,
       );
 
-      const oldDek = await encryptionService.ensureUserDEK(
-        userId,
-        oldClientKey,
-      );
+      const { dek: oldDek } = await initializeTestVault(userId, oldClientKey);
       const validEncryptedTx = encryptionService.encryptAmount(222, oldDek);
 
       const { error: blError2 } = await adminClient.from('budget_line').insert({
@@ -448,10 +455,7 @@ describe('Encryption integration (local Supabase)', () => {
         .eq('id', transactionId)
         .single();
 
-      const newDek = await encryptionService.ensureUserDEK(
-        userId,
-        newClientKey,
-      );
+      const newDek = await encryptionService.getUserDEK(userId, newClientKey);
       await expect(
         encryptionService.reEncryptAllUserData(
           userId,
@@ -512,9 +516,13 @@ describe('Encryption integration (local Supabase)', () => {
 
       const oldClientKey = Buffer.from(OLD_CLIENT_KEY_HEX, 'hex');
       const recoveredClientKey = Buffer.from(RECOVERED_CLIENT_KEY_HEX, 'hex');
-      const oldDek = await encryptionService.ensureUserDEK(
+      const { dek: oldDek, recoveryKey } = await initializeTestVault(
         userId,
         oldClientKey,
+      );
+      const afterSetupState = await getUserEncryptionKeyState(
+        adminClient,
+        userId,
       );
       const encryptedBeforeRecover = encryptionService.encryptAmount(
         321.45,
@@ -532,18 +540,6 @@ describe('Encryption integration (local Supabase)', () => {
       });
       if (blError3) throw blError3;
 
-      const beforeRecoveryState = await getUserEncryptionKeyState(
-        adminClient,
-        userId,
-      );
-      const { formatted: recoveryKey } =
-        await encryptionService.createRecoveryKey(userId, oldClientKey);
-      const afterSetupState = await getUserEncryptionKeyState(
-        adminClient,
-        userId,
-      );
-
-      expect(afterSetupState.salt).toBe(beforeRecoveryState.salt);
       expect(afterSetupState.wrapped_dek).toBeTruthy();
 
       await encryptionService.recoverWithKey(
@@ -618,10 +614,7 @@ describe('Encryption integration (local Supabase)', () => {
 
       const oldClientKey = Buffer.from(OLD_CLIENT_KEY_HEX, 'hex');
       const newClientKey = Buffer.from(NEW_CLIENT_KEY_HEX, 'hex');
-      const oldDek = await encryptionService.ensureUserDEK(
-        userId,
-        oldClientKey,
-      );
+      const { dek: oldDek } = await initializeTestVault(userId, oldClientKey);
       const encryptedAmount = encryptionService.encryptAmount(89.5, oldDek);
 
       const { error: blError4 } = await adminClient.from('budget_line').insert({
@@ -634,8 +627,6 @@ describe('Encryption integration (local Supabase)', () => {
         is_manually_adjusted: false,
       });
       if (blError4) throw blError4;
-
-      await encryptionService.createRecoveryKey(userId, oldClientKey);
 
       const invalidRecoveryKey =
         encryptionService.generateRecoveryKey().formatted;
@@ -724,14 +715,11 @@ describe('Encryption integration (local Supabase)', () => {
 
       const oldClientKey = Buffer.from(OLD_CLIENT_KEY_HEX, 'hex');
       const newClientKey = Buffer.from(NEW_CLIENT_KEY_HEX, 'hex');
-      const oldDek = await encryptionService.ensureUserDEK(
-        userId,
-        oldClientKey,
-      );
+      const { dek: oldDek } = await initializeTestVault(userId, oldClientKey);
 
-      // Verify key_check is NULL before rekey
+      // Verify the source vault is configured before rekey
       const stateBefore = await getUserEncryptionKeyState(adminClient, userId);
-      expect(stateBefore.key_check).toBeNull();
+      expect(stateBefore.key_check).toBeTruthy();
 
       const encryptedBudgetLine = encryptionService.encryptAmount(42, oldDek);
       const { error: blError5 } = await adminClient.from('budget_line').insert({
@@ -759,10 +747,7 @@ describe('Encryption integration (local Supabase)', () => {
       }
 
       // Rekey via authenticated client (same path as production)
-      const newDek = await encryptionService.ensureUserDEK(
-        userId,
-        newClientKey,
-      );
+      const newDek = await encryptionService.getUserDEK(userId, newClientKey);
       await encryptionService.reEncryptAllUserData(
         userId,
         oldDek,
@@ -773,6 +758,7 @@ describe('Encryption integration (local Supabase)', () => {
       // Verify key_check was atomically set by the RPC
       const keyState = await getUserEncryptionKeyState(adminClient, userId);
       expect(keyState.key_check).toBeTruthy();
+      expect(keyState.key_check).not.toBe(stateBefore.key_check);
 
       // Verify key_check validates against new DEK (not old DEK)
       expect(
@@ -791,6 +777,111 @@ describe('Encryption integration (local Supabase)', () => {
       expect(encryptionService.decryptAmount(budgetLine!.amount!, newDek)).toBe(
         42,
       );
+    } finally {
+      await cleanupUserData(adminClient, { userId, budgetId, templateId });
+    }
+  });
+
+  it('rekeys every row when encrypted data exceeds the PostgREST response limit', async () => {
+    if (!hasSupabase) return;
+
+    const { id: userId, email } = await createTestUser(adminClient);
+    const templateId = randomUUID();
+    const budgetId = randomUUID();
+    const idPrefix = randomUUID().slice(0, 8);
+    const budgetLineIds = Array.from(
+      { length: 1_001 },
+      (_, index) =>
+        `${idPrefix}-0000-4000-8000-${index.toString(16).padStart(12, '0')}`,
+    );
+
+    try {
+      const { error: templateError } = await adminClient
+        .from('template')
+        .insert({
+          id: templateId,
+          user_id: userId,
+          name: 'Pagination rekey template',
+          is_default: false,
+        });
+      if (templateError) throw templateError;
+
+      const { error: budgetError } = await adminClient
+        .from('monthly_budget')
+        .insert({
+          id: budgetId,
+          user_id: userId,
+          template_id: templateId,
+          month: 9,
+          year: 2026,
+          description: 'Pagination rekey budget',
+        });
+      if (budgetError) throw budgetError;
+
+      const oldClientKey = Buffer.from(OLD_CLIENT_KEY_HEX, 'hex');
+      const newClientKey = Buffer.from(NEW_CLIENT_KEY_HEX, 'hex');
+      const { dek: oldDek } = await initializeTestVault(userId, oldClientKey);
+      const encryptedAmount = encryptionService.encryptAmount(42, oldDek);
+      const { error: linesError } = await adminClient
+        .from('budget_line')
+        .insert(
+          budgetLineIds.map((id) => ({
+            id,
+            budget_id: budgetId,
+            name: 'Pagination rekey line',
+            amount: encryptedAmount,
+            kind: 'expense' as const,
+            recurrence: 'fixed' as const,
+            is_manually_adjusted: false,
+          })),
+        );
+      if (linesError) throw linesError;
+
+      const authClient = createClient<Database>(
+        supabaseEnv.apiUrl,
+        supabaseEnv.anonKey,
+      );
+      const { error: signInError } = await authClient.auth.signInWithPassword({
+        email,
+        password: 'test-password-123',
+      });
+      if (signInError) throw signInError;
+
+      const newDek = await encryptionService.getUserDEK(userId, newClientKey);
+      await encryptionService.reEncryptAllUserData(
+        userId,
+        oldDek,
+        newDek,
+        authClient as unknown as SupabaseClient<Database>,
+      );
+
+      const { count, error: countError } = await adminClient
+        .from('budget_line')
+        .select('id', { count: 'exact', head: true })
+        .eq('budget_id', budgetId);
+      if (countError) throw countError;
+      expect(count).toBe(1_001);
+
+      const { data: sentinel, error: sentinelError } = await adminClient
+        .from('budget_line')
+        .select('amount')
+        .eq('id', budgetLineIds[1_000]!)
+        .single();
+      if (sentinelError) throw sentinelError;
+      expect(encryptionService.decryptAmount(sentinel.amount!, newDek)).toBe(
+        42,
+      );
+      expect(() =>
+        encryptionService.decryptAmount(sentinel.amount!, oldDek),
+      ).toThrow();
+
+      const keyState = await getUserEncryptionKeyState(adminClient, userId);
+      expect(
+        encryptionService.validateKeyCheck(keyState.key_check!, newDek),
+      ).toBe(true);
+      expect(
+        encryptionService.validateKeyCheck(keyState.key_check!, oldDek),
+      ).toBe(false);
     } finally {
       await cleanupUserData(adminClient, { userId, budgetId, templateId });
     }

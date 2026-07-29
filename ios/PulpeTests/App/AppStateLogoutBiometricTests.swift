@@ -1,319 +1,78 @@
 import Foundation
 @testable import Pulpe
+import Supabase
 import Testing
 
-// swiftlint:disable type_body_length
-/// Regression tests for Bug 2 (deleteAccount clears onboarding) and Bug 3 (explicit logout prevents auto Face ID).
-/// Verifies that:
-/// - deleteAccount() clears onboarding state and hasReturningUser
-/// - logout() sets didExplicitLogout flag in UserDefaults
-/// - checkAuthState() skips biometric auto-trigger when didExplicitLogout is true
-/// - login() and successful loginWithBiometric() clear the didExplicitLogout flag
 @MainActor
 @Suite(.serialized)
 struct AppStateLogoutBiometricTests {
-    // MARK: - UserDefaults Key (mirrors AppState.UserDefaultsKey)
-
-    private static let didExplicitLogoutKey = "pulpe-did-explicit-logout"
     private static let manualBiometricRetryRequiredKey = "pulpe-manual-biometric-retry-required"
     private static let hasLaunchedBeforeKey = "pulpe-has-launched-before"
     private static let onboardingStorageKey = "pulpe-onboarding-data"
 
-    // Clean up UserDefaults between tests
     init() {
-        UserDefaults.standard.removeObject(forKey: Self.didExplicitLogoutKey)
         UserDefaults.standard.removeObject(forKey: Self.manualBiometricRetryRequiredKey)
     }
 
-    // MARK: - Helpers
-
-    private static func makeAuthenticatedSUT(
-        biometricEnabled: Bool = false,
-        syncBiometricCredentials: (@Sendable () async -> Bool)? = nil
-    ) -> AppState {
-        AppState(
-            postAuthResolver: MockPostAuthResolver(destination: .authenticated(needsRecoveryKeyConsent: false)),
-            biometricPreferenceStore: biometricEnabled
-                ? AppStateTestFactory.biometricEnabledStore()
-                : AppStateTestFactory.biometricDisabledStore(),
-            biometricCapability: { false },
-            syncBiometricCredentials: syncBiometricCredentials
-        )
-    }
-
-    // MARK: - Bug 3: Explicit Logout Sets Flag
-
-    @Test("logout() sets didExplicitLogout flag in UserDefaults")
-    func logout_setsExplicitLogoutFlag() async throws {
+    @Test("Explicit logout signs out and clears biometric credentials")
+    func logout_biometricEnabled_signsOutAndDisablesBiometric() async throws {
+        let signOutCalled = AtomicFlag()
         let user = UserInfo(id: "user-1", email: "test@pulpe.app", firstName: "Max")
-        let sut = Self.makeAuthenticatedSUT()
-
-        await sut.resolvePostAuth(user: user)
-        try #require(sut.authState == .authenticated, "Setup: should be authenticated")
-
-        // Ensure flag is not set before logout
-        #expect(
-            UserDefaults.standard.bool(forKey: Self.didExplicitLogoutKey) == false,
-            "Setup: didExplicitLogout should be false before logout"
-        )
-
-        await sut.logout()
-
-        #expect(
-            UserDefaults.standard.bool(forKey: Self.didExplicitLogoutKey) == true,
-            "logout() must set didExplicitLogout = true in UserDefaults"
-        )
-    }
-
-    @Test("logout(source: .system) does NOT set didExplicitLogout flag")
-    func logout_systemSource_doesNotSetExplicitLogoutFlag() async throws {
-        let user = UserInfo(id: "user-system-logout", email: "system@pulpe.app", firstName: "System")
-        let sut = Self.makeAuthenticatedSUT()
-
-        await sut.resolvePostAuth(user: user)
-        try #require(sut.authState == .authenticated, "Setup: should be authenticated")
-
-        await sut.logout(source: .system)
-
-        #expect(
-            UserDefaults.standard.bool(forKey: Self.didExplicitLogoutKey) == false,
-            "System logout must NOT set didExplicitLogout"
-        )
-    }
-
-    @Test("logout(source: .system) with biometric enabled performs full cleanup")
-    func logout_systemSource_withBiometricEnabled_disablesBiometric() async throws {
-        let user = UserInfo(id: "user-system-bio", email: "sysbio@pulpe.app", firstName: "SysBio")
-        let sut = Self.makeAuthenticatedSUT(
-            biometricEnabled: true,
-            syncBiometricCredentials: { true }
+        let sut = AppState(
+            postAuthResolver: MockPostAuthResolver(
+                destination: .authenticated(needsRecoveryKeyConsent: false)
+            ),
+            biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
+            biometricCapability: { true },
+            performSignOut: { _ in signOutCalled.set() }
         )
 
         await sut.bootstrap()
         await sut.resolvePostAuth(user: user)
         await sut.completePinEntry()
-        try #require(sut.biometricEnabled == true, "Setup: biometric should start enabled")
+        try #require(sut.biometricEnabled)
 
-        await sut.logout(source: .system)
+        await sut.logout()
 
-        #expect(sut.biometricEnabled == false, "System logout must disable biometric preference")
-        #expect(sut.biometricCredentialsAvailable == false, "System logout must clear biometric credentials")
+        #expect(signOutCalled.value)
+        #expect(!sut.biometricEnabled)
+        #expect(!sut.biometricCredentialsAvailable)
         #expect(sut.authState == .unauthenticated)
     }
 
-    // MARK: - PUL-132: Biometric Gate Inverted (re-entry path on explicit logout only)
-
-    @Test("checkAuthState ATTEMPTS biometric when didExplicitLogout is true (PUL-132)")
-    func checkAuthState_attemptsBiometric_whenExplicitLogout() async {
-        let biometricAttempted = AtomicFlag()
-
-        // Set the explicit logout flag — biometric re-entry path
-        UserDefaults.standard.set(true, forKey: Self.didExplicitLogoutKey)
+    @Test("Cold-start expiration preserves the Face ID preference without usable credentials")
+    func checkAuthState_biometricEnabled_noSession_preservesPreference() async {
         UserDefaults.standard.set(true, forKey: Self.hasLaunchedBeforeKey)
-        defer {
-            UserDefaults.standard.removeObject(forKey: Self.hasLaunchedBeforeKey)
-        }
+        defer { UserDefaults.standard.removeObject(forKey: Self.hasLaunchedBeforeKey) }
 
         let sut = AppState(
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
             validateRegularSession: { nil },
-            validateBiometricSession: {
-                biometricAttempted.set()
-                return nil
-            },
             maintenanceChecking: { false }
         )
 
-        await sut.bootstrap()
-
         await sut.checkAuthState()
 
-        #expect(
-            biometricAttempted.value == true,
-            "PUL-132: biometric-keychain re-entry path MUST run on explicit-logout cold-start"
-        )
+        #expect(sut.biometricEnabled)
+        #expect(!sut.biometricCredentialsAvailable)
         #expect(sut.authState == .unauthenticated)
     }
 
-    @Test("checkAuthState SKIPS biometric when didExplicitLogout is false (PUL-132)")
-    func checkAuthState_skipsBiometric_whenNoExplicitLogout() async {
-        let biometricAttempted = AtomicFlag()
-
-        // Ensure the explicit logout flag is NOT set
-        UserDefaults.standard.removeObject(forKey: Self.didExplicitLogoutKey)
-        UserDefaults.standard.set(true, forKey: Self.hasLaunchedBeforeKey)
-        defer {
-            UserDefaults.standard.removeObject(forKey: Self.hasLaunchedBeforeKey)
-        }
-
+    @Test("System logout preserves the Face ID preference without usable credentials")
+    func systemLogout_preservesPreferenceAndClearsCredentials() async {
         let sut = AppState(
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            validateRegularSession: { nil },
-            validateBiometricSession: {
-                biometricAttempted.set()
-                return nil
-            },
-            maintenanceChecking: { false }
-        )
-
-        await sut.bootstrap()
-
-        await sut.checkAuthState()
-
-        #expect(
-            biometricAttempted.value == false,
-            "PUL-132: biometric slot must NOT be read on non-logout cold-start (drift prevention)"
-        )
-    }
-
-    @Test("checkAuthState skips biometric auto-trigger when manual retry is required")
-    func checkAuthState_skipsBiometric_whenManualRetryIsRequired() async {
-        let biometricAttempted = AtomicFlag()
-
-        UserDefaults.standard.removeObject(forKey: Self.didExplicitLogoutKey)
-        UserDefaults.standard.set(true, forKey: Self.manualBiometricRetryRequiredKey)
-        UserDefaults.standard.set(true, forKey: Self.hasLaunchedBeforeKey)
-        defer {
-            UserDefaults.standard.removeObject(forKey: Self.hasLaunchedBeforeKey)
-        }
-
-        let sut = AppState(
-            biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            validateRegularSession: { nil },
-            validateBiometricSession: {
-                biometricAttempted.set()
-                return nil
-            },
-            maintenanceChecking: { false }
-        )
-
-        await sut.bootstrap()
-
-        await sut.checkAuthState()
-
-        #expect(
-            biometricAttempted.value == false,
-            "Biometric session validation must NOT be attempted when manual retry is required"
-        )
-        #expect(sut.authState == .unauthenticated)
-    }
-
-    // MARK: - Successful Biometric Login Clears Flag
-
-    @Test("successful biometric login clears the didExplicitLogout flag")
-    func loginWithBiometric_clearsExplicitLogoutFlag() async {
-        // Set the explicit logout flag
-        UserDefaults.standard.set(true, forKey: Self.didExplicitLogoutKey)
-        UserDefaults.standard.set(true, forKey: Self.hasLaunchedBeforeKey)
-        defer {
-            UserDefaults.standard.removeObject(forKey: Self.hasLaunchedBeforeKey)
-        }
-
-        let user = UserInfo(id: "biometric-user", email: "bio@pulpe.app", firstName: "Bio")
-        let sut = AppState(
-            postAuthResolver: MockPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false)),
-            biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            validateBiometricSession: { [user] in
-                BiometricSessionResult(user: user, clientKeyHex: nil)
-            }
-        )
-
-        await sut.bootstrap()
-
-        #expect(
-            UserDefaults.standard.bool(forKey: Self.didExplicitLogoutKey) == true,
-            "Setup: flag should be true before loginWithBiometric"
-        )
-
-        await sut.loginWithBiometric()
-
-        #expect(
-            UserDefaults.standard.bool(forKey: Self.didExplicitLogoutKey) == false,
-            "loginWithBiometric() must clear the didExplicitLogout flag"
-        )
-    }
-
-    // MARK: - Face ID Cancel on Login Screen Must Not Destroy Credentials
-
-    @Test("biometric cancel preserves explicit logout for the next cold start")
-    func loginWithBiometric_userCancel_preservesExplicitLogoutAndCredentials() async {
-        UserDefaults.standard.set(true, forKey: Self.hasLaunchedBeforeKey)
-        UserDefaults.standard.set(true, forKey: Self.didExplicitLogoutKey)
-        defer {
-            UserDefaults.standard.removeObject(forKey: Self.hasLaunchedBeforeKey)
-            UserDefaults.standard.removeObject(forKey: Self.didExplicitLogoutKey)
-        }
-        let biometricCalls = AtomicProperty(0)
-
-        let sut = AppState(
-            postAuthResolver: MockPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false)),
-            biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            validateRegularSession: { nil },
-            validateBiometricSession: {
-                biometricCalls.increment()
-                throw KeychainError.userCanceled
-            },
-            maintenanceChecking: { false }
+            performSignOut: { _ in }
         )
         await sut.bootstrap()
         sut.biometricCredentialsAvailable = true
 
-        await sut.loginWithBiometric()
+        await sut.logout(source: .system)
 
-        #expect(
-            UserDefaults.standard.bool(forKey: Self.didExplicitLogoutKey),
-            "Cancelling Face ID must preserve the explicit-logout re-entry path"
-        )
-        #expect(sut.biometricEnabled == true, "Cancel must not disable the biometric preference")
-        #expect(sut.biometricCredentialsAvailable == true, "Cancel must not wipe the snapshot")
-        #expect(sut.biometricError == nil, "Cancel is not an error state")
-
-        await sut.checkAuthState()
-
-        #expect(biometricCalls.value == 2, "Next cold start must retry the biometric re-entry path")
-        #expect(
-            UserDefaults.standard.bool(forKey: Self.didExplicitLogoutKey),
-            "Cold start after cancellation must retain the explicit-logout re-entry path"
-        )
-        #expect(sut.biometricEnabled == true, "Cold start after cancellation must not disable biometric")
-        #expect(sut.biometricCredentialsAvailable == true, "Cold start after cancellation must preserve the snapshot")
+        #expect(sut.biometricEnabled)
+        #expect(!sut.biometricCredentialsAvailable)
+        #expect(sut.authState == .unauthenticated)
     }
-
-    // MARK: - Bug 3: Successful login() Clears Flag
-
-    @Test("resolvePostAuth after login clears the didExplicitLogout flag via login flow")
-    func login_clearsExplicitLogoutFlag() async {
-        // We can't call login() directly without real auth credentials,
-        // but we can verify that clearExplicitLogoutFlag() is called by testing
-        // the completeOnboarding path which also calls clearExplicitLogoutFlag()
-
-        UserDefaults.standard.set(true, forKey: Self.didExplicitLogoutKey)
-
-        let user = UserInfo(id: "user-login", email: "login@pulpe.app", firstName: "Max")
-        let sut = AppState(
-            postAuthResolver: MockPostAuthResolver(destination: .needsPinSetup),
-            biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore()
-        )
-
-        #expect(
-            UserDefaults.standard.bool(forKey: Self.didExplicitLogoutKey) == true,
-            "Setup: flag should be true"
-        )
-
-        // completeOnboarding calls clearExplicitLogoutFlag (same as login)
-        await sut.completeOnboarding(
-            user: user,
-            onboardingData: BudgetTemplateCreateFromOnboarding(),
-            signupMethod: "email"
-        )
-
-        #expect(
-            UserDefaults.standard.bool(forKey: Self.didExplicitLogoutKey) == false,
-            "completeOnboarding (like login) must clear the didExplicitLogout flag"
-        )
-    }
-
-    // MARK: - Recovery Manual Biometric Retry Flag
 
     @Test("startRecovery sets manual biometric retry flag")
     func startRecovery_setsManualRetryFlag() {
@@ -323,10 +82,7 @@ struct AppStateLogoutBiometricTests {
 
         sut.startRecovery()
 
-        #expect(
-            UserDefaults.standard.bool(forKey: Self.manualBiometricRetryRequiredKey) == true,
-            "startRecovery must set manual biometric retry flag"
-        )
+        #expect(UserDefaults.standard.bool(forKey: Self.manualBiometricRetryRequiredKey))
         #expect(sut.authState == .needsPinRecovery)
     }
 
@@ -339,10 +95,7 @@ struct AppStateLogoutBiometricTests {
         UserDefaults.standard.set(true, forKey: Self.manualBiometricRetryRequiredKey)
         sut.cancelRecovery()
 
-        #expect(
-            UserDefaults.standard.bool(forKey: Self.manualBiometricRetryRequiredKey) == false,
-            "cancelRecovery must clear manual biometric retry flag"
-        )
+        #expect(!UserDefaults.standard.bool(forKey: Self.manualBiometricRetryRequiredKey))
         #expect(sut.authState == .needsPinEntry)
     }
 
@@ -350,24 +103,22 @@ struct AppStateLogoutBiometricTests {
     func completeRecovery_clearsManualRetryFlag() async {
         let user = UserInfo(id: "recovery-user", email: "recovery@pulpe.app", firstName: "Recovery")
         let sut = AppState(
-            postAuthResolver: MockPostAuthResolver(destination: .needsPinEntry(needsRecoveryKeyConsent: false)),
+            postAuthResolver: MockPostAuthResolver(
+                destination: .needsPinEntry(needsRecoveryKeyConsent: false)
+            ),
             biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore()
         )
 
-        // Route through state machine: .loading → .needsPinEntry → .needsPinRecovery
         await sut.resolvePostAuth(user: user)
         sut.startRecovery()
-
         UserDefaults.standard.set(true, forKey: Self.manualBiometricRetryRequiredKey)
+
         await sut.completeRecovery()
 
-        #expect(
-            UserDefaults.standard.bool(forKey: Self.manualBiometricRetryRequiredKey) == false,
-            "completeRecovery must clear manual biometric retry flag"
-        )
+        #expect(!UserDefaults.standard.bool(forKey: Self.manualBiometricRetryRequiredKey))
     }
 
-    @Test("enterSignupFlow clears pendingOnboardingData")
+    @Test("enterSignupFlow clears pending onboarding data")
     func enterSignupFlow_clearsPendingOnboardingData() {
         let sut = AppState(
             biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore()
@@ -379,18 +130,18 @@ struct AppStateLogoutBiometricTests {
         #expect(sut.pendingOnboardingData == nil)
     }
 
-    // MARK: - Bug 2: deleteAccount Clears Onboarding State
-
-    @Test("deleteAccount() success clears returning-user markers and logs out fully")
+    @Test("deleteAccount success clears returning-user markers and logs out globally")
     func deleteAccount_success_resetsStateAndCredentials() async {
         let user = UserInfo(id: "user-del", email: "delete@pulpe.app", firstName: "Del")
         let deleteCalled = AtomicFlag()
+        let signOutScope = AtomicProperty<SignOutScope?>(nil)
         let keychain = AppStateTestFactory.keychainStore(lastUsedEmail: user.email)
         let sut = AppState(
             keychainManager: keychain,
-            postAuthResolver: MockPostAuthResolver(destination: .authenticated(needsRecoveryKeyConsent: false)),
+            postAuthResolver: MockPostAuthResolver(
+                destination: .authenticated(needsRecoveryKeyConsent: false)
+            ),
             biometricPreferenceStore: AppStateTestFactory.biometricEnabledStore(),
-            syncBiometricCredentials: { true },
             deleteAccountRequest: {
                 deleteCalled.set()
                 return DeleteAccountResponse(
@@ -398,67 +149,49 @@ struct AppStateLogoutBiometricTests {
                     message: "scheduled",
                     scheduledDeletionAt: "2026-03-01T00:00:00Z"
                 )
-            }
+            },
+            performSignOut: { scope in signOutScope.set(scope) }
         )
 
         await sut.bootstrap()
         await sut.resolvePostAuth(user: user)
         await sut.completePinEntry()
-        #expect(sut.authState == AppState.AuthStatus.authenticated, "Setup: should be authenticated")
-        #expect(sut.biometricEnabled == true, "Setup: biometric should be enabled")
 
         await sut.deleteAccount()
 
-        #expect(deleteCalled.value == true, "deleteAccount request must be executed")
+        #expect(deleteCalled.value)
+        #expect(signOutScope.value == .global)
         #expect(sut.authState == .unauthenticated)
-        #expect(sut.hasReturningUser == false)
-        #expect(sut.biometricEnabled == false)
-        #expect(await keychain.getLastUsedEmail() == nil, "last_used_email must be cleared")
+        #expect(!sut.hasReturningUser)
+        #expect(!sut.biometricEnabled)
+        #expect(await keychain.getLastUsedEmail() == nil)
     }
 
-    @Test("deleteAccount clears onboarding persisted data via OnboardingState.clearPersistedData()")
-    func deleteAccount_clearsOnboardingPersistedData() {
-        // Arrange: persist some onboarding data
+    @Test("OnboardingState clears persisted onboarding data")
+    func onboardingState_clearsPersistedData() {
         let onboardingState = OnboardingState()
         onboardingState.firstName = "TestUser"
         onboardingState.currentStep = .charges
         onboardingState.saveToStorage()
+        #expect(UserDefaults.standard.data(forKey: Self.onboardingStorageKey) != nil)
 
-        // Verify data was persisted
-        #expect(
-            UserDefaults.standard.data(forKey: Self.onboardingStorageKey) != nil,
-            "Setup: onboarding data should be persisted"
-        )
-
-        // Act: call the same static method that deleteAccount() calls
         OnboardingState.clearPersistedData()
 
-        // Assert
-        #expect(
-            UserDefaults.standard.data(forKey: Self.onboardingStorageKey) == nil,
-            "OnboardingState.clearPersistedData() must remove onboarding data from UserDefaults"
-        )
+        #expect(UserDefaults.standard.data(forKey: Self.onboardingStorageKey) == nil)
     }
 
-    @Test("enterSignupFlow() also clears onboarding persisted data")
+    @Test("enterSignupFlow clears persisted onboarding data")
     func enterSignupFlow_clearsOnboardingPersistedData() {
-        // Arrange: persist some onboarding data
         let onboardingState = OnboardingState()
         onboardingState.firstName = "TestUser"
         onboardingState.saveToStorage()
-
         let sut = AppState(
             biometricPreferenceStore: AppStateTestFactory.biometricDisabledStore()
         )
 
-        // Act
         sut.enterSignupFlow()
 
-        // Assert
-        #expect(
-            UserDefaults.standard.data(forKey: Self.onboardingStorageKey) == nil,
-            "enterSignupFlow() must clear onboarding persisted data"
-        )
-        #expect(sut.hasReturningUser == false)
+        #expect(UserDefaults.standard.data(forKey: Self.onboardingStorageKey) == nil)
+        #expect(!sut.hasReturningUser)
     }
 }
