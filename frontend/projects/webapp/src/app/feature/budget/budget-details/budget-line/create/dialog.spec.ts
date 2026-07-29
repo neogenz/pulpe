@@ -14,6 +14,7 @@ import type { SupportedCurrency } from 'pulpe-shared';
 import { AddBudgetLineDialog, type BudgetLineDialogData } from './dialog';
 
 const TAG_ID = '00000000-0000-4000-8000-0000000000f1';
+const SAVINGS_GOAL_ID = '00000000-0000-4000-8000-0000000000f2';
 
 interface SettingsMock {
   currency: ReturnType<typeof signal<SupportedCurrency>>;
@@ -288,6 +289,52 @@ describe('AddBudgetLineDialog', () => {
       expect(amounts).toEqual([1333.34, 1333.33, 1333.33]);
       const sumCents = amounts.reduce((acc, a) => acc + Math.round(a * 100), 0);
       expect(sumCents).toBe(400000);
+    });
+  });
+
+  describe('savings-goal link', () => {
+    it('should keep the goal picker visible for a spread saving', () => {
+      const { fixture, component } = configureDialog();
+      component['model'].update((m) => ({ ...m, kind: 'saving' }));
+      component['setMode']('spread');
+
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector('pulpe-savings-goal-picker-field'),
+      ).not.toBeNull();
+    });
+
+    it('should clear the selected goal when kind stops being saving', () => {
+      const { component } = configureDialog();
+      component['model'].update((m) => ({
+        ...m,
+        kind: 'saving',
+        savingsGoalId: SAVINGS_GOAL_ID,
+      }));
+
+      component['onKindChange']('expense');
+
+      expect(component['model']().savingsGoalId).toBeNull();
+    });
+
+    it('should submit the selected goal with a spread saving', async () => {
+      const { component, dialogRef } = configureDialog();
+      component['model'].update((m) => ({
+        ...m,
+        name: 'Maison',
+        kind: 'saving',
+        savingsGoalId: SAVINGS_GOAL_ID,
+        money: { amount: 600, inputCurrency: 'CHF' },
+      }));
+      component['setMode']('spread');
+
+      await component['handleSubmit']();
+
+      expect(dialogRef.close).toHaveBeenCalledWith({
+        mode: 'spread',
+        value: expect.objectContaining({ savingsGoalId: SAVINGS_GOAL_ID }),
+      });
     });
   });
 

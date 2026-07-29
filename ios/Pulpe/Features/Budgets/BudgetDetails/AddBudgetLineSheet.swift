@@ -64,6 +64,10 @@ struct AddBudgetLineSheet: View {
 
     static func showsTagPicker(spread: Bool, withdrawal: Bool) -> Bool { !spread && !withdrawal }
 
+    static func showsSavingsGoalPicker(kind: TransactionKind, spread _: Bool) -> Bool {
+        kind == .saving
+    }
+
     private var isSavingsWithdrawalMode: Bool { kind == .income && remitNextMonth }
 
     private var amountFieldHint: String? {
@@ -126,6 +130,10 @@ struct AddBudgetLineSheet: View {
 
             descriptionField
 
+            if Self.showsSavingsGoalPicker(kind: kind, spread: isSpreadMode) {
+                SavingsGoalPickerField(selection: $savingsGoalId)
+            }
+
             if isSpreadMode {
                 SpreadAmountModeToggle(mode: $amountMode, accentColor: kind.color)
                 SpreadFormSection(
@@ -136,9 +144,6 @@ struct AddBudgetLineSheet: View {
                     accentColor: kind.color
                 )
             } else {
-                if kind == .saving {
-                    SavingsGoalPickerField(selection: $savingsGoalId)
-                }
                 if Self.showsTagPicker(spread: isSpreadMode, withdrawal: isSavingsWithdrawalMode) {
                     TagPickerField(selection: $selectedTagIds)
                 }
@@ -312,7 +317,8 @@ struct AddBudgetLineSheet: View {
                     amount: amount,
                     mode: amountMode,
                     conversion: conversion,
-                    spreadGroupId: spreadGroupId
+                    spreadGroupId: spreadGroupId,
+                    savingsGoalId: savingsGoalId
                 )
             )
 

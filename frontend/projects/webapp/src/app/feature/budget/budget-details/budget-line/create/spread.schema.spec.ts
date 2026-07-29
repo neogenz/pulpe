@@ -10,6 +10,7 @@ const months = [
 ];
 
 const SPREAD_GROUP_ID = '11111111-1111-4111-8111-111111111111';
+const SAVINGS_GOAL_ID = '22222222-2222-4222-8222-222222222222';
 
 const totalFormValue: BudgetLineSpreadCreateFormValue = {
   name: 'Prime assurance',
@@ -77,6 +78,16 @@ describe('budgetLineSpreadCreateFromFormSchema', () => {
       expect('exchangeRate' in result).toBe(false);
       expect('totalOriginalAmount' in result).toBe(false);
     });
+
+    it('should carry the selected savings goal', () => {
+      const result = budgetLineSpreadCreateFromFormSchema.parse({
+        ...totalFormValue,
+        kind: 'saving',
+        savingsGoalId: SAVINGS_GOAL_ID,
+      });
+
+      expect(result.savingsGoalId).toBe(SAVINGS_GOAL_ID);
+    });
   });
 
   describe('transform — perMonth mode', () => {
@@ -115,6 +126,16 @@ describe('budgetLineSpreadCreateFromFormSchema', () => {
       expect(result.targetCurrency).toBe('CHF');
       expect(result.exchangeRate).toBe(0.95);
       expect('totalOriginalAmount' in result).toBe(false);
+    });
+
+    it('should carry the selected savings goal', () => {
+      const result = budgetLineSpreadCreateFromFormSchema.parse({
+        ...perMonthFormValue,
+        kind: 'saving',
+        savingsGoalId: SAVINGS_GOAL_ID,
+      });
+
+      expect(result.savingsGoalId).toBe(SAVINGS_GOAL_ID);
     });
   });
 

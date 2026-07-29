@@ -20,6 +20,25 @@ enum AddBudgetLineSpreadLogic {
         let mode: SpreadAmountMode
         let conversion: CurrencyConversion?
         let spreadGroupId: String
+        let savingsGoalId: String?
+
+        init(
+            name: String,
+            kind: TransactionKind,
+            amount: Decimal,
+            mode: SpreadAmountMode,
+            conversion: CurrencyConversion?,
+            spreadGroupId: String,
+            savingsGoalId: String? = nil
+        ) {
+            self.name = name
+            self.kind = kind
+            self.amount = amount
+            self.mode = mode
+            self.conversion = conversion
+            self.spreadGroupId = spreadGroupId
+            self.savingsGoalId = savingsGoalId
+        }
     }
 
     /// Builds the `POST /budget-lines/spread` intent: the converted amount, the
@@ -41,6 +60,7 @@ enum AddBudgetLineSpreadLogic {
         return BudgetLineSpreadCreate(
             name: input.name.trimmingCharacters(in: .whitespaces),
             kind: input.kind,
+            savingsGoalId: input.kind.savingsGoalLink(input.savingsGoalId),
             mode: isTotal ? .total : .perMonth,
             months: months,
             perMonthAmount: isTotal ? nil : convertedAmount,

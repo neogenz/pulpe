@@ -59,7 +59,7 @@ Le fan-out est tout-ou-rien, mais l'écriture lissée fait **plusieurs** mutatio
 
 Fix = la clé d'idempotence façon Stripe :
 
-- Le **client** minte un `spreadGroupId` (uuid) **une fois par intention de création** et le **réutilise** sur tout retry de cette intention (sans jamais le régénérer par tentative). Une nouvelle intention = une nouvelle clé. Web : le dialog minte la clé et la porte dans le DTO ; sur échec de la création, un toast **« Réessayer »** re-soumet le **MÊME** DTO (donc la même clé) → le serveur rejoue au lieu de dupliquer. iOS : cf. #484.
+- Le **client** minte un `spreadGroupId` (uuid) **une fois par intention de création** et le **réutilise** sur tout retry de cette intention (sans jamais le régénérer par tentative). Une nouvelle intention = une nouvelle clé. Web et iOS conservent cette clé dans leur état de création et rejouent le **même** DTO lors d'une nouvelle tentative.
 - Le **serveur** sérialise les appels qui rejouent la même clé (`pg_advisory_xact_lock`) puis **rejette** un groupe déjà présent (`RAISE 'Spread group already exists'`). Le repository traduit ce raise en `SpreadGroupAlreadyExistsError` typée, et le use case **REPLAY** : il renvoie les lignes du groupe d'origine (RLS-scopé : un groupe d'un autre user → 409, jamais une fabrication) et **re-joue le recalcul idempotent** pour soigner un solde laissé stale par le premier échec.
 
 Migration : `20260626120000_spread_group_idempotency_guard.sql` (garde en tête de RPC, avant tout provisioning/insert). Le seam SQL↔supabase-js↔repo est verrouillé par `budget-line-spread.integration.spec.ts` (vraie Supabase locale).
@@ -89,7 +89,7 @@ Distinct du fan-out de création additif ci-dessus. Ici la source **existe déj�
 
 ## Hors scope V1 (différé)
 
-Édition « en bloc » de la série (changer T ou N d'un groupe d'un coup), compteur `Lissé · X/N` **inline sur la pill** (le tracker vit dans le panneau d'occurrences, pas sur la ligne du mois), `remaining` par occurrence, suppression du groupe entier, lissage rétroactif sur mois **passés**, lissage de revenu, parité **iOS** (web-first ; iOS dans un ticket séparé).
+Édition « en bloc » de la série (changer T ou N d'un groupe d'un coup), compteur `Lissé · X/N` **inline sur la pill** (le tracker vit dans le panneau d'occurrences, pas sur la ligne du mois), `remaining` par occurrence, suppression du groupe entier, lissage rétroactif sur mois **passés** et lissage de revenu.
 
 ## Références
 

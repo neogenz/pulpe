@@ -139,7 +139,11 @@ interface AddBudgetLineModel {
             class="w-full"
           >
             <mat-label>{{ 'budget.forecastTypeLabel' | transloco }}</mat-label>
-            <mat-select [formField]="addForm.kind" data-testid="new-line-kind">
+            <mat-select
+              [formField]="addForm.kind"
+              (selectionChange)="onKindChange($event.value)"
+              data-testid="new-line-kind"
+            >
               <mat-option value="income">
                 <mat-icon class="text-financial-income">{{
                   'income' | transactionIcon
@@ -223,6 +227,15 @@ interface AddBudgetLineModel {
             [control]="addForm.money"
             [label]="amountLabel()"
           />
+
+          @if (model().kind === 'saving') {
+            <pulpe-savings-goal-picker-field
+              [value]="model().savingsGoalId"
+              (valueChanged)="
+                model.update((m) => ({ ...m, savingsGoalId: $event }))
+              "
+            />
+          }
 
           @if (mode() === 'spread') {
             <div class="flex flex-col gap-4" data-testid="spread-section">
@@ -342,12 +355,6 @@ interface AddBudgetLineModel {
           } @else {
             <pulpe-tag-picker [control]="addForm.tagIds" />
             @if (model().kind === 'saving') {
-              <pulpe-savings-goal-picker-field
-                [value]="model().savingsGoalId"
-                (valueChanged)="
-                  model.update((m) => ({ ...m, savingsGoalId: $event }))
-                "
-              />
               <button
                 matButton="tonal"
                 type="button"
@@ -616,6 +623,12 @@ export class AddBudgetLineDialog {
     this.#mode.set(mode);
   }
 
+  protected onKindChange(kind: TransactionKind): void {
+    if (kind !== 'saving') {
+      this.model.update((model) => ({ ...model, savingsGoalId: null }));
+    }
+  }
+
   protected setAmountMode(mode: AmountMode): void {
     this.#amountMode.set(mode);
   }
@@ -745,6 +758,8 @@ export class AddBudgetLineDialog {
               amount,
               months: this.selectedMonths(),
               conversion: metadata,
+              savingsGoalId:
+                lineDraft.kind === 'saving' ? lineDraft.savingsGoalId : null,
               spreadGroupId: this.#spreadGroupId,
             }),
         };
