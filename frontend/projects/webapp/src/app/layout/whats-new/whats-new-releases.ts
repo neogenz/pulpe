@@ -34,4 +34,9 @@ export const SKIPPED_RELEASES: readonly SkippedWhatsNewRelease[] = [
     reason:
       'Release technique : le jour de paie voyage avec l’utilisateur authentifié, supprimant un appel réseau par budget matérialisé — rien de visible pour la webapp',
   },
+  {
+    version: '0.41.0',
+    reason:
+      'Améliorations ciblées de l’inscription, de la projection initiale et des visites guidées, sans nouveauté assez importante pour interrompre les utilisateurs existants',
+  },
 ];

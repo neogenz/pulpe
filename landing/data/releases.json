@@ -1,5 +1,34 @@
 [
   {
+    "version": "0.41.0",
+    "date": "2026-07-29",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.41.0",
+    "platforms": ["web"],
+    "changes": {
+      "features": [
+        {
+          "title": "Des visites guidées progressives",
+          "description": "Les conseils apparaissent au bon moment et s’adaptent à la page consultée"
+        }
+      ],
+      "fixes": [
+        {
+          "title": "Douze mois d’avance dès le départ",
+          "description": "Après l’inscription, tous les budgets nécessaires à la projection des douze prochains mois sont créés"
+        },
+        {
+          "title": "Des visites guidées fiables et accessibles",
+          "description": "Elles restent correctement positionnées, fonctionnent au clavier et respectent la réduction des animations"
+        },
+        {
+          "title": "Une inscription plus lisible",
+          "description": "Les critères du mot de passe ne chevauchent plus le champ de confirmation sur les petits écrans"
+        }
+      ],
+      "technical": []
+    }
+  },
+  {
     "version": "0.40.0",
     "iosVersion": "1.3.0",
     "date": "2026-07-28",

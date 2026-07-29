@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.41.0
+
+### Minor Changes
+
+- Les visites guidées deviennent progressives et accessibles, l’inscription reste lisible sur petit écran et l’onboarding crée douze mois de projection complets.
+
+### Patch Changes
+
+- pulpe-shared@0.41.0
+
 ## 0.40.0
 
 ### Minor Changes
