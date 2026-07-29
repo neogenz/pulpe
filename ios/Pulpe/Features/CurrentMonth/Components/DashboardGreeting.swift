@@ -1,33 +1,27 @@
 import SwiftUI
 
-/// Tour 11 header — hour-based greeting + account avatar (photo → initials → glyph)
-/// opening the account sheet.
+/// Tour 11 header — current month first, account avatar second.
 struct DashboardGreeting: View {
+    let monthName: String
     var firstName: String?
     var email: String?
     var avatarUrl: String?
     var onAvatarTap: () -> Void
 
-    private var greeting: String {
-        let hour = Calendar.current.component(.hour, from: .now)
-        let timeGreeting: String
-        switch hour {
-        case 5..<12: timeGreeting = "Bonjour"
-        case 12..<18: timeGreeting = "Bon après-midi"
-        case 18..<22: timeGreeting = "Bonsoir"
-        default: timeGreeting = "Bonsoir"
-        }
-        if let name = firstName, !name.isEmpty {
-            return "\(timeGreeting), \(name)"
-        }
-        return timeGreeting
-    }
-
     var body: some View {
         HStack {
-            Text(greeting)
-                .font(PulpeTypography.cardTitle)
-                .foregroundStyle(Color.textPrimary)
+            Color.clear
+                .frame(
+                    width: DesignTokens.TapTarget.minimum,
+                    height: DesignTokens.TapTarget.minimum
+                )
+                .accessibilityHidden(true)
+
+            Spacer()
+
+            Text(monthName.capitalized)
+                .font(PulpeTypography.labelLarge)
+                .foregroundStyle(Color.homeHeroInk)
 
             Spacer()
 
@@ -43,10 +37,28 @@ struct DashboardGreeting: View {
 }
 
 #Preview {
-    VStack(spacing: 24) {
-        DashboardGreeting(firstName: "Maxime", email: "maxime@pulpe.app", avatarUrl: nil, onAvatarTap: {})
-        DashboardGreeting(firstName: nil, email: "sofia@pulpe.app", avatarUrl: nil, onAvatarTap: {})
-        DashboardGreeting(firstName: nil, email: nil, avatarUrl: nil, onAvatarTap: {})
+    VStack(spacing: DesignTokens.Spacing.xxl) {
+        DashboardGreeting(
+            monthName: "juillet",
+            firstName: "Maxime",
+            email: "maxime@pulpe.app",
+            avatarUrl: nil,
+            onAvatarTap: {}
+        )
+        DashboardGreeting(
+            monthName: "juillet",
+            firstName: nil,
+            email: "sofia@pulpe.app",
+            avatarUrl: nil,
+            onAvatarTap: {}
+        )
+        DashboardGreeting(
+            monthName: "juillet",
+            firstName: nil,
+            email: nil,
+            avatarUrl: nil,
+            onAvatarTap: {}
+        )
     }
     .padding()
     .background(Color.homeBackground)

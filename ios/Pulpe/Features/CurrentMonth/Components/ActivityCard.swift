@@ -26,12 +26,11 @@ struct ActivityCard: View {
         return sorted.filter { $0.transactionDate >= cutoff }
     }
 
-    private func headerSubtitle(for windowed: [Transaction]) -> String {
+    private func headerTotal(for windowed: [Transaction]) -> String {
         // Arithmetic net of the window: income positive, outflows negative.
-        let total = windowed
+        windowed
             .reduce(Decimal.zero) { $0 + ($1.kind == .income ? $1.amount : -$1.amount) }
             .asArithmeticSignedCompactCurrency(userSettingsStore.currency)
-        return "\(windowed.count) transaction\(windowed.count > 1 ? "s" : "") · \(total)"
     }
 
     var body: some View {
@@ -43,12 +42,10 @@ struct ActivityCard: View {
             header(for: windowed)
 
             Divider()
-                .padding(.horizontal, DesignTokens.Spacing.xl)
+                .padding(.horizontal, DesignTokens.Spacing.xxl)
 
             rows(for: windowed)
         }
-        .pulpeCardBackground()
-        .shadow(DesignTokens.Shadow.card)
         .animation(DesignTokens.Animation.smoothEaseOut, value: window)
     }
 
@@ -61,12 +58,11 @@ struct ActivityCard: View {
                     .font(PulpeTypography.cardTitle)
                     .foregroundStyle(Color.textPrimary)
 
-                Text(headerSubtitle(for: windowed))
+                Text(headerTotal(for: windowed))
                     .font(PulpeTypography.labelMedium)
-                    .foregroundStyle(Color.textTertiary)
+                    .foregroundStyle(Color.textSecondary)
                     .monospacedDigit()
                     .lineLimit(1)
-                    .minimumScaleFactor(DesignTokens.TextScale.compact)
                     .contentTransition(.numericText())
                     .sensitiveAmount()
             }
@@ -91,7 +87,7 @@ struct ActivityCard: View {
                 .accessibilityLabel("Voir toutes les transactions")
             }
         }
-        .padding(.horizontal, DesignTokens.Spacing.xl)
+        .padding(.horizontal, DesignTokens.Spacing.xxl)
         .padding(.top, DesignTokens.Spacing.lg)
         .padding(.bottom, DesignTokens.Spacing.md)
     }
@@ -110,7 +106,7 @@ struct ActivityCard: View {
                     // sizes and the capsule collapses over "7j".
                     Text(option.rawValue)
                         .font(PulpeTypography.metricMini)
-                        .foregroundStyle(window == option ? Color.textPrimary : Color.textTertiary)
+                        .foregroundStyle(window == option ? Color.textPrimary : Color.textSecondary)
                         .lineLimit(1)
                         .fixedSize(horizontal: true, vertical: false)
                         .padding(.horizontal, DesignTokens.Spacing.compactGap)
@@ -139,7 +135,7 @@ struct ActivityCard: View {
                 .font(PulpeTypography.labelMedium)
                 .foregroundStyle(Color.textTertiary)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, DesignTokens.Spacing.xl)
+                .padding(.horizontal, DesignTokens.Spacing.xxl)
                 .padding(.vertical, DesignTokens.Spacing.lg)
         } else {
             VStack(spacing: DesignTokens.Spacing.none) {
@@ -151,7 +147,7 @@ struct ActivityCard: View {
                     }
                 }
             }
-            .padding(.horizontal, DesignTokens.Spacing.xl)
+            .padding(.horizontal, DesignTokens.Spacing.xxl)
             .padding(.bottom, DesignTokens.Spacing.sm)
         }
     }
@@ -170,7 +166,7 @@ struct ActivityCard: View {
                 HStack(spacing: DesignTokens.Spacing.xs) {
                     Text(transaction.transactionDate.relativeFormatted.lowercased())
                         .font(PulpeTypography.labelMedium)
-                        .foregroundStyle(Color.textTertiary)
+                        .foregroundStyle(Color.textSecondary)
                         .lineLimit(1)
                         .minimumScaleFactor(DesignTokens.TextScale.compact)
 
@@ -194,11 +190,11 @@ struct ActivityCard: View {
     private func amountColumn(_ transaction: Transaction) -> some View {
         VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
             Text(transaction.amount.asSignedAmount(for: transaction.kind, in: userSettingsStore.currency))
-                .font(PulpeTypography.labelLarge)
+                .font(PulpeTypography.amountMedium)
                 .foregroundStyle(Color.textPrimary)
                 .monospacedDigit()
                 .lineLimit(1)
-                .minimumScaleFactor(DesignTokens.TextScale.floor)
+                .minimumScaleFactor(DesignTokens.TextScale.compact)
 
             if let secondary = TransactionAmountView.secondaryText(
                 for: transaction,

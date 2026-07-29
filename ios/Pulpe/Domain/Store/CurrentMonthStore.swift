@@ -610,6 +610,17 @@ extension CurrentMonthStore {
         )
     }
 
+    var balanceTrajectory: BudgetFormulas.BalanceTrajectory? {
+        guard let budget, let projection else { return nil }
+        return BudgetFormulas.calculateBalanceTrajectory(
+            budgetLines: budgetLines,
+            transactions: transactions,
+            metrics: metrics,
+            projection: projection,
+            budget: budget
+        )
+    }
+
     var displayBudgetLines: [BudgetLine] {
         BudgetFormulas.displayBudgetLines(base: budgetLines, budget: budget)
     }

@@ -1,117 +1,73 @@
+import Charts
 import SwiftUI
 
-/// Tour 11 hero — flat mint card, identical across emotion states.
-/// Only the state chip, the numbers and the contextual line change:
-/// the brand doesn't panic when the month drifts.
+/// Month-end projection hero. Financial formulas stay in `BudgetFormulas`; this view only
+/// translates their results into the signed, glanceable comparison shown on the dashboard.
 struct HomeHeroCard: View {
     let metrics: BudgetFormulas.Metrics
+    let projection: BudgetFormulas.Projection?
+    let trajectory: BudgetFormulas.BalanceTrajectory?
     let monthName: String
-    /// Outflows already pointed — expenses *and* savings transfers actually made. Pairs with
-    /// `metrics.totalExpenses` (which counts both), so the bar's segments reconcile.
-    /// The planned figure alone is `Σ max(line.amount, consumed)`, identical on day 1 and
-    /// day 31 of a month spent within plan — it can't drive a bar that sits under
-    /// "Jour 23/31" and reads as progress through the month.
-    let realizedOutflows: Decimal
-    let dayProgress: (day: Int, totalDays: Int)?
-    let dailyMargin: Decimal
-    /// Deficit-only contextual line ("Report auto en août · retour au vert en septembre").
-    let deficitContext: String?
+    let uncheckedCount: Int
     var onTapMetrics: () -> Void
     var onTapDetail: () -> Void
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.amountsHidden) private var amountsHidden
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .body) private var chartHeight = DesignTokens.Chart.dashboardHeight
     @State private var tapTrigger = false
 
     private var currency: SupportedCurrency { userSettingsStore.currency }
-
-    // MARK: - State Mapping
-
-    private var stateLabel: String {
-        switch metrics.emotionState {
-        case .comfortable: "Belle marge"
-        case .tight: "Serré"
-        case .deficit: "On gère"
-        }
+    private var presentation: PresentationState {
+        PresentationState(plannedBalance: metrics.remaining, projection: projection)
     }
 
-    private var stateDotColor: Color {
-        switch metrics.emotionState {
-        case .comfortable: .financialSavings
-        case .tight: .heroTintTight
+    // MARK: - Semantic Styling
+
+    private var accentColor: Color {
+        switch presentation.tone {
+        case .favorable: .financialSavings
+        case .caution: .homeHeroInk
         case .deficit: .driftAccent
+        case .neutral: .homeHeroInk
         }
     }
 
-    private var contextLine: String? {
-        switch metrics.emotionState {
-        case .deficit: deficitContext
-        case .tight, .comfortable: dailyAllowanceLine
+    private var varianceTitle: String {
+        switch presentation.verdict {
+        case .gain: "Gain"
+        case .overrun: "Dépassement"
+        case .onPlan: "Écart"
+        case .unavailable: "Écart"
         }
     }
 
-    /// Actionable daily allowance. The state chip already carries the mood, so the
-    /// line stays purely useful. Nil when there's no positive margin to spread.
-    private var dailyAllowanceLine: String? {
-        guard dailyMargin > 0 else { return nil }
-        return "Tu peux dépenser ≈\(dailyMargin.asCompactCurrency(currency))/jour"
+    private var varianceValue: String {
+        presentation.variance?.asArithmeticSignedCompactCurrency(currency) ?? "—"
     }
 
-    // MARK: - Progress Fractions
-
-    /// The bar divides the month's income into `pointé + engagé + restant`, which sum to
-    /// `available` — so the third segment *is* the hero figure above it, and the bar finally
-    /// explains where that number comes from instead of being unrelated to it.
-    ///
-    /// Over-committed months normalise against `totalExpenses` instead: the bar fills
-    /// completely and the legend carries the negative "restant".
-    private var barTotal: Decimal {
-        max(metrics.available, metrics.totalExpenses)
-    }
-
-    private func fraction(of amount: Decimal) -> Double {
-        guard barTotal > 0, amount > 0 else { return 0 }
-        return Double(truncating: (amount / barTotal) as NSDecimalNumber)
-    }
-
-    /// Committed but not yet gone — planned outflows still waiting to be pointed.
-    private var reservedAmount: Decimal {
-        max(metrics.totalExpenses - realizedOutflows, 0)
-    }
-
-    private var barSegments: [HomeSegmentedBar.Segment] {
-        [
-            .init(fraction: fraction(of: realizedOutflows), color: .homeHeroInk),
-            .init(fraction: fraction(of: reservedAmount), color: .homeHeroReserved)
-        ]
+    private var insight: String {
+        guard let projection else { return "Projection indisponible" }
+        let dailyRate = projection.dailySpendingRate.asCompactCurrency(currency)
+        let days = projection.daysRemaining
+        return "\(dailyRate)/jour · \(days) \(days == 1 ? "jour" : "jours")"
     }
 
     // MARK: - Accessibility
 
     private var accessibilityDescription: String {
-        if amountsHidden {
-            return "Reste ce mois — montant masqué"
-        }
-        var desc = """
-        Reste ce mois \(metrics.remaining.asCurrency(currency)). \
-        Sur \(metrics.available.asCurrency(currency)) : \
-        \(realizedOutflows.asCurrency(currency)) pointé, \
-        \(reservedAmount.asCurrency(currency)) engagé
-        """
-        if let dayProgress {
-            desc += ". Jour \(dayProgress.day) sur \(dayProgress.totalDays)"
-        }
-        if let contextLine {
-            desc += ". \(contextLine)"
-        }
-        return desc
+        presentation.accessibilityDescription(
+            monthName: monthName,
+            currency: currency,
+            amountsHidden: amountsHidden
+        )
     }
 
     // MARK: - Body
 
     var body: some View {
-        VStack(spacing: DesignTokens.Spacing.none) {
+        VStack(spacing: DesignTokens.Spacing.lg) {
             Button {
                 tapTrigger.toggle()
                 onTapMetrics()
@@ -122,310 +78,379 @@ struct HomeHeroCard: View {
             .plainPressedButtonStyle()
             .sensoryFeedback(.impact(flexibility: .soft), trigger: tapTrigger)
             .accessibilityLabel(accessibilityDescription)
-            .accessibilityHint("Voir le suivi du budget")
-
-            Rectangle()
-                .fill(Color.homeHeroInk.opacity(DesignTokens.Opacity.badgeBackground))
-                .frame(height: DesignTokens.BorderWidth.thin)
-                .padding(.horizontal, DesignTokens.Spacing.xl)
+            .accessibilityHint("Ouvrir le suivi du réalisé")
 
             Button(action: onTapDetail) {
-                detailRow
-            }
-            .frame(minHeight: DesignTokens.TapTarget.minimum)
-            .contentShape(Rectangle())
-            .plainPressedButtonStyle()
-            .accessibilityLabel("Détail du budget")
-        }
-        .background {
-            LinearGradient(
-                colors: [Color.homeHeroSurfaceTop, Color.homeHeroSurface],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        }
-        .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.lg))
-        .overlay {
-            // Rim light on the top lip — fades to clear by mid-card so it reads as
-            // light on a material, not a border.
-            RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [Color.homeHeroHighlight, .clear],
-                        startPoint: .top,
-                        endPoint: .center
-                    ),
-                    lineWidth: DesignTokens.BorderWidth.thin
-                )
-        }
-        .shadow(DesignTokens.Shadow.elevated)
-        .animation(DesignTokens.Animation.smoothEaseInOut, value: metrics)
-    }
+                if dynamicTypeSize >= .xxLarge {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                        HStack {
+                            Text("Budget")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                        }
+                        .font(PulpeTypography.labelLarge)
+                        .foregroundStyle(Color.homeHeroInk)
 
-    // MARK: - Metrics Zone
-
-    private var metricsContent: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            // Eyebrow + amount read as one unit — the label captions the number.
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                // Sharing one row, the eyebrow truncates to "Reste ce…" and the chip wraps to
-                // two lines. Stacked, each gets the card's full width and stays whole.
-                if dynamicTypeSize >= .xLarge {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                        eyebrow
-                        stateChip
+                        Text(insight)
+                            .font(PulpeTypography.labelMedium)
+                            .foregroundStyle(Color.homeHeroSupport)
+                            .monospacedDigit()
+                            .sensitiveAmount()
                     }
                 } else {
-                    HStack {
-                        eyebrow
-                        Spacer()
-                        stateChip
+                    HStack(spacing: DesignTokens.Spacing.sm) {
+                        Text("Budget")
+                            .font(PulpeTypography.labelLarge)
+                            .foregroundStyle(Color.homeHeroInk)
+
+                        Spacer(minLength: DesignTokens.Spacing.md)
+
+                        Text(insight)
+                            .font(PulpeTypography.labelMedium)
+                            .foregroundStyle(Color.homeHeroSupport)
+                            .monospacedDigit()
+                            .sensitiveAmount()
+
+                        Image(systemName: "chevron.right")
+                            .font(PulpeTypography.labelLarge)
+                            .foregroundStyle(Color.homeHeroInk)
                     }
                 }
-
-                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
-                    Text(metrics.remaining.asCompactAmount(for: currency))
-                        .font(PulpeTypography.heroIcon)
-                        .tracking(DesignTokens.Tracking.hero)
-                        .monospacedDigit()
-                        .minimumScaleFactor(DesignTokens.TextScale.floor)
-                        .lineLimit(1)
-                        .foregroundStyle(Color.homeHeroInk)
-                        .contentTransition(.numericText())
-                        .sensitiveAmount()
-
-                    // Scales with the figure beside it — without a matching floor the 20pt
-                    // suffix outgrows the shrinking 48pt amount at accessibility sizes.
-                    Text(currency.symbol)
-                        .font(PulpeTypography.amountCard)
-                        .foregroundStyle(Color.homeHeroInk.opacity(DesignTokens.Opacity.heroInkMuted))
-                        .lineLimit(1)
-                        .minimumScaleFactor(DesignTokens.TextScale.floor)
-                }
             }
-
-            if let contextLine {
-                Text(contextLine)
-                    .font(PulpeTypography.labelMedium)
-                    .foregroundStyle(Color.homeHeroSupport)
-            }
-
-            HomeSegmentedBar(
-                segments: barSegments,
-                trackColor: .homeHeroOverlay,
-                height: DesignTokens.ProgressBar.heroHeight,
-                // The track alone is 1.17:1 against the mint card, so the bar's full extent
-                // is invisible and a low fill reads as a floating stub with no scale. A
-                // hairline carries the extent at 3.50:1 without darkening the track itself,
-                // which would sink the fill/track contrast below 3:1 in the process.
-                borderColor: .homeHeroInk.opacity(DesignTokens.Opacity.heroInkMuted)
-            )
-            .padding(.top, DesignTokens.Spacing.xxs)
-
-            // The legend is inline and always visible rather than behind an info affordance:
-            // a bar whose key needs a tap has failed the glance this screen is built for.
-            legend
-
-            // Only below .xLarge — from .xLarge upward the legend stacks vertically and
-            // carries `dayLabel` itself; rendering it here too duplicated "Jour X/Y" at
-            // exactly .xLarge, where both gates used to be true.
-            if dynamicTypeSize < .xLarge {
-                dayLabel
-            }
-        }
-        .padding(DesignTokens.Spacing.xl)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var eyebrow: some View {
-        Text("Reste ce mois · \(monthName)")
-            .font(PulpeTypography.labelMedium)
-            .foregroundStyle(Color.homeHeroSupport)
-            .lineLimit(1)
-            .minimumScaleFactor(DesignTokens.TextScale.compact)
-    }
-
-    private var stateChip: some View {
-        PulpeChip(
-            dotColor: stateDotColor,
-            label: stateLabel,
-            style: .tinted(surface: .homeHeroOverlay, foreground: .homeHeroInk)
-        )
-    }
-
-    // MARK: - Legend
-
-    /// Names each band of the bar next to its value. Wraps instead of truncating, and drops
-    /// to one item per line at large text sizes.
-    private struct LegendEntry: Identifiable {
-        let swatch: Color
-        let label: String
-        let amount: Decimal
-
-        var id: String { label }
-    }
-
-    private var legendEntries: [LegendEntry] {
-        [
-            LegendEntry(swatch: .homeHeroInk, label: "Pointé", amount: realizedOutflows),
-            LegendEntry(swatch: .homeHeroReserved, label: "Engagé", amount: reservedAmount),
-            LegendEntry(swatch: .homeHeroOverlay, label: "Restant", amount: metrics.remaining)
-        ]
-    }
-
-    @ViewBuilder
-    private var legend: some View {
-        if dynamicTypeSize >= .xLarge {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                ForEach(legendEntries) { entry in
-                    legendItem(entry.swatch, entry.label, entry.amount)
-                }
-                dayLabel
-            }
-        } else {
-            HStack(spacing: DesignTokens.Spacing.md) {
-                ForEach(legendEntries) { entry in
-                    legendItem(entry.swatch, entry.label, entry.amount)
-                    if entry.id != legendEntries.last?.id { Spacer(minLength: 0) }
-                }
-            }
+            .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum, alignment: .leading)
+            .contentShape(Rectangle())
+            .textLinkButtonStyle()
+            .accessibilityLabel("Détail du budget, \(insight)")
         }
     }
 
-    private func legendItem(_ swatch: Color, _ label: String, _ amount: Decimal) -> some View {
-        HStack(spacing: DesignTokens.Spacing.tightGap) {
-            Circle()
-                .fill(swatch)
-                .frame(
-                    width: DesignTokens.ChipMetrics.stateDotSize,
-                    height: DesignTokens.ChipMetrics.stateDotSize
+    // MARK: - Summary
+
+    private var metricsContent: some View {
+        VStack(spacing: DesignTokens.Spacing.lg) {
+            VStack(spacing: DesignTokens.Spacing.xs) {
+                Text(presentation.displayedBalance.asArithmeticSignedCompactCurrency(currency))
+                    .font(PulpeTypography.heroIcon)
+                    .tracking(DesignTokens.Tracking.hero)
+                    .monospacedDigit()
+                    .minimumScaleFactor(DesignTokens.TextScale.floor)
+                    .lineLimit(1)
+                    .foregroundStyle(Color.homeHeroInk)
+                    .sensitiveAmount()
+
+                Text(
+                    presentation.projectedBalance == nil
+                        ? "solde planifié"
+                        : "solde final projeté"
                 )
-                // The "Restant" swatch is the track colour, near-invisible on the mint card
-                // without an edge — the same 1.17:1 problem the bar's hairline solves.
-                .overlay {
-                    Circle().strokeBorder(
-                        Color.homeHeroInk.opacity(DesignTokens.Opacity.heroInkMuted),
-                        lineWidth: DesignTokens.BorderWidth.thin
-                    )
-                }
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.homeHeroSupport)
+            }
 
-            (
-                Text("\(label) ")
-                + Text(amount.asCompactAmount(for: currency))
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Color.homeHeroInk)
-            )
-            .font(PulpeTypography.labelMedium)
-            .foregroundStyle(Color.homeHeroSupport)
-            .monospacedDigit()
-            .lineLimit(1)
-            .minimumScaleFactor(DesignTokens.TextScale.floor)
-            .sensitiveAmount()
+            summaryMetrics
+            balanceChart
         }
-        .accessibilityElement(children: .combine)
+        .frame(maxWidth: .infinity)
     }
+
+    // MARK: - Compact Summary
 
     @ViewBuilder
-    private var dayLabel: some View {
-        if let dayProgress {
-            (
-                Text("Jour ")
-                + Text("\(dayProgress.day)")
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Color.homeHeroInk)
-                + Text("/\(dayProgress.totalDays)")
-            )
-            .font(PulpeTypography.labelMedium)
-            .foregroundStyle(Color.homeHeroSupport)
-            .monospacedDigit()
+    private var summaryMetrics: some View {
+        if dynamicTypeSize >= .xxLarge {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                moneyMetric(
+                    title: "Plan",
+                    value: metrics.remaining.asArithmeticSignedCompactCurrency(currency)
+                )
+                moneyMetric(title: varianceTitle, value: varianceValue)
+                countMetric
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            HStack(spacing: DesignTokens.Spacing.none) {
+                moneyMetric(
+                    title: "Plan",
+                    value: metrics.remaining.asArithmeticSignedCompactCurrency(currency)
+                )
+                Divider()
+                    .frame(height: DesignTokens.TapTarget.minimum)
+                moneyMetric(title: varianceTitle, value: varianceValue)
+                Divider()
+                    .frame(height: DesignTokens.TapTarget.minimum)
+                countMetric
+            }
         }
     }
 
-    // MARK: - Detail Row
-
-    private var detailRow: some View {
-        HStack {
-            Text("Détail du budget")
-                .font(PulpeTypography.labelLarge)
+    private func moneyMetric(title: String, value: String) -> some View {
+        VStack(spacing: DesignTokens.Spacing.xxs) {
+            Text(value)
+                .font(PulpeTypography.progressValue)
                 .foregroundStyle(Color.homeHeroInk)
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(DesignTokens.TextScale.compact)
+                .sensitiveAmount()
 
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(PulpeTypography.metricLabel)
-                .foregroundStyle(Color.homeHeroInk.opacity(DesignTokens.Opacity.heroInkMuted))
+            Text(title)
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.homeHeroSupport)
         }
-        .padding(.horizontal, DesignTokens.Spacing.xl)
-        .padding(.vertical, DesignTokens.Spacing.md)
+        .frame(maxWidth: .infinity)
+    }
+
+    private var countMetric: some View {
+        VStack(spacing: DesignTokens.Spacing.xxs) {
+            Text("\(uncheckedCount)")
+                .font(PulpeTypography.progressValue)
+                .foregroundStyle(Color.homeHeroInk)
+                .monospacedDigit()
+
+            Text("À pointer")
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.homeHeroSupport)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Monthly Trajectory
+
+    @ViewBuilder
+    private var balanceChart: some View {
+        if let trajectory, trajectory.actual.count > 1 {
+            Chart {
+                RuleMark(y: .value("Solde prévu", Self.decimalValue(trajectory.plannedBalance)))
+                    .foregroundStyle(
+                        Color.homeHeroSupport.opacity(DesignTokens.Opacity.heavy)
+                    )
+                    .lineStyle(StrokeStyle(
+                        lineWidth: DesignTokens.BorderWidth.thin,
+                        dash: DesignTokens.Chart.markerDash
+                    ))
+                    .annotation(position: .top, alignment: .trailing) {
+                        Text("Solde prévu")
+                            .font(PulpeTypography.caption2)
+                            .foregroundStyle(Color.homeHeroSupport)
+                    }
+
+                ForEach(trajectory.actual) { point in
+                    LineMark(
+                        x: .value("Jour", point.day),
+                        y: .value("Solde réel", Self.decimalValue(point.balance)),
+                        series: .value("Série", "Réel")
+                    )
+                    .interpolationMethod(.monotone)
+                    .lineStyle(StrokeStyle(
+                        lineWidth: DesignTokens.BorderWidth.thick,
+                        lineCap: .round,
+                        lineJoin: .round
+                    ))
+                    .foregroundStyle(Color.homeHeroInk)
+                }
+
+                ForEach(trajectory.projected) { point in
+                    LineMark(
+                        x: .value("Jour", point.day),
+                        y: .value("Solde projeté", Self.decimalValue(point.balance)),
+                        series: .value("Série", "Projection")
+                    )
+                    .interpolationMethod(.linear)
+                    .lineStyle(StrokeStyle(
+                        lineWidth: DesignTokens.BorderWidth.thick,
+                        lineCap: .round,
+                        dash: DesignTokens.Chart.dash
+                    ))
+                    .foregroundStyle(accentColor)
+                }
+
+                RuleMark(x: .value("Aujourd'hui", trajectory.today))
+                    .foregroundStyle(Color.homeHeroSupport)
+                    .lineStyle(StrokeStyle(
+                        lineWidth: DesignTokens.BorderWidth.thin,
+                        dash: DesignTokens.Chart.markerDash
+                    ))
+                    .annotation(position: .bottom, alignment: .trailing) {
+                        Text("Aujourd’hui")
+                            .font(PulpeTypography.caption2)
+                            .foregroundStyle(Color.homeHeroSupport)
+                    }
+
+                if let current = trajectory.actual.last {
+                    PointMark(
+                        x: .value("Aujourd'hui", current.day),
+                        y: .value("Solde aujourd'hui", Self.decimalValue(current.balance))
+                    )
+                    .symbolSize(DesignTokens.Chart.pointSymbolArea)
+                    .foregroundStyle(Color.homeHeroOverlay)
+                    .annotation(position: .overlay) {
+                        Circle()
+                            .strokeBorder(Color.homeHeroInk, lineWidth: DesignTokens.BorderWidth.thick)
+                            .frame(width: DesignTokens.Spacing.md, height: DesignTokens.Spacing.md)
+                    }
+                }
+            }
+            .chartXScale(domain: 0 ... trajectory.totalDays)
+            .chartYScale(domain: Self.chartYDomain(for: trajectory))
+            .chartXAxis(.hidden)
+            .chartYAxis(.hidden)
+            .chartLegend(.hidden)
+            .frame(height: chartHeight)
+            .sensitiveAmount()
+            .accessibilityHidden(true)
+        }
+    }
+
+    static func chartYDomain(
+        for trajectory: BudgetFormulas.BalanceTrajectory
+    ) -> ClosedRange<Double> {
+        let balances = trajectory.actual.map(\.balance)
+            + trajectory.projected.map(\.balance)
+            + [trajectory.plannedBalance]
+        let values = balances.map(Self.decimalValue)
+        let lower = values.min() ?? 0
+        let upper = values.max() ?? 1
+        let padding = max(
+            (upper - lower) * DesignTokens.Chart.domainPaddingRatio,
+            DesignTokens.Chart.minimumDomainPadding
+        )
+        return (lower - padding) ... (upper + padding)
+    }
+
+    private static func decimalValue(_ value: Decimal) -> Double {
+        Double(truncating: value as NSDecimalNumber)
     }
 }
 
-// MARK: - Preview
+// MARK: - Presentation State
 
-#Preview("Home Hero — 3 states") {
-    ScrollView {
-        VStack(spacing: 24) {
-            // Deficit
-            HomeHeroCard(
-                metrics: .init(
-                    totalIncome: 8032,
-                    totalExpenses: 10700,
-                    totalSavings: 0,
-                    available: 8032,
-                    endingBalance: -2668,
-                    remaining: -2668,
-                    rollover: 0
-                ),
-                monthName: "juillet",
-                realizedOutflows: 9100,
-                dayProgress: (day: 17, totalDays: 31),
-                dailyMargin: 0,
-                deficitContext: "Report auto en août · retour au vert en septembre",
-                onTapMetrics: {},
-                onTapDetail: {}
-            )
+extension HomeHeroCard {
+    struct PresentationState: Equatable {
+        enum Verdict: Equatable {
+            case gain
+            case overrun
+            case onPlan
+            case unavailable
+        }
 
-            // Tight
-            HomeHeroCard(
-                metrics: .init(
-                    totalIncome: 8032,
-                    totalExpenses: 7400,
-                    totalSavings: 0,
-                    available: 8032,
-                    endingBalance: 632,
-                    remaining: 632,
-                    rollover: 0
-                ),
-                monthName: "juillet",
-                realizedOutflows: 4200,
-                dayProgress: (day: 17, totalDays: 31),
-                dailyMargin: 45,
-                deficitContext: nil,
-                onTapMetrics: {},
-                onTapDetail: {}
-            )
+        enum Tone: Equatable {
+            case favorable
+            case caution
+            case deficit
+            case neutral
+        }
 
-            // Comfortable
-            HomeHeroCard(
-                metrics: .init(
-                    totalIncome: 8032,
-                    totalExpenses: 4900,
-                    totalSavings: 500,
-                    available: 8032,
-                    endingBalance: 3132,
-                    remaining: 3132,
-                    rollover: 0
-                ),
-                monthName: "juillet",
-                realizedOutflows: 2600,
-                dayProgress: (day: 17, totalDays: 31),
-                dailyMargin: 224,
-                deficitContext: nil,
-                onTapMetrics: {},
-                onTapDetail: {}
+        let plannedBalance: Decimal
+        let projectedBalance: Decimal?
+        let variance: Decimal?
+        let verdict: Verdict
+        let tone: Tone
+
+        var displayedBalance: Decimal { projectedBalance ?? plannedBalance }
+
+        init(plannedBalance: Decimal, projection: BudgetFormulas.Projection?) {
+            self.init(
+                plannedBalance: plannedBalance,
+                projectedBalance: projection?.projectedEndOfMonthBalance
             )
         }
-        .padding()
+
+        init(plannedBalance: Decimal, projectedBalance: Decimal?) {
+            self.plannedBalance = plannedBalance
+            self.projectedBalance = projectedBalance
+
+            guard let projectedBalance else {
+                variance = nil
+                verdict = .unavailable
+                tone = .neutral
+                return
+            }
+
+            let difference = projectedBalance - plannedBalance
+            variance = difference
+            verdict = difference > 0 ? .gain : difference < 0 ? .overrun : .onPlan
+            tone = projectedBalance < 0 ? .deficit : difference < 0 ? .caution : .favorable
+        }
+
+        func accessibilityDescription(
+            monthName: String,
+            currency: SupportedCurrency,
+            amountsHidden: Bool
+        ) -> String {
+            let month = monthName.capitalized
+            guard !amountsHidden else {
+                return "\(month). Solde final projeté, montant masqué. Comparaison au plan masquée."
+            }
+            guard let projectedBalance, let variance else {
+                return """
+                \(month). Solde planifié \(plannedBalance.asArithmeticSignedCurrency(currency)). \
+                Projection indisponible.
+                """
+            }
+
+            let comparison: String
+            switch verdict {
+            case .gain:
+                comparison = "Gain sur le plan \(variance.asArithmeticSignedCurrency(currency))"
+            case .overrun:
+                comparison = "Dépassement du plan \(variance.asArithmeticSignedCurrency(currency))"
+            case .onPlan:
+                comparison = "Conforme au plan"
+            case .unavailable:
+                comparison = "Projection indisponible"
+            }
+
+            return """
+            \(month). Solde final projeté \(projectedBalance.asArithmeticSignedCurrency(currency)). \
+            Plan \(plannedBalance.asArithmeticSignedCurrency(currency)). \(comparison).
+            """
+        }
+    }
+}
+
+#Preview("Projection hero") {
+    let gain = BudgetFormulas.Projection(
+        projectedEndOfMonthBalance: 1260,
+        dailySpendingRate: 120,
+        daysElapsed: 17,
+        daysRemaining: 14,
+        isOnTrack: true
+    )
+    let gainTrajectory = BudgetFormulas.BalanceTrajectory(
+        actual: [
+            .init(day: 0, balance: 8032),
+            .init(day: 3, balance: 7580),
+            .init(day: 8, balance: 6810),
+            .init(day: 12, balance: 6430),
+            .init(day: 17, balance: 5992),
+        ],
+        projected: [
+            .init(day: 17, balance: 5992),
+            .init(day: 31, balance: 1260),
+        ],
+        plannedBalance: 632,
+        today: 17,
+        totalDays: 31
+    )
+    ScrollView {
+        HomeHeroCard(
+            metrics: .init(
+                totalIncome: 8032,
+                totalExpenses: 7400,
+                totalSavings: 0,
+                available: 8032,
+                endingBalance: 632,
+                remaining: 632,
+                rollover: 0
+            ),
+            projection: gain,
+            trajectory: gainTrajectory,
+            monthName: "juillet",
+            uncheckedCount: 5,
+            onTapMetrics: {},
+            onTapDetail: {}
+        )
+        .padding(DesignTokens.Spacing.lg)
     }
     .background(Color.homeBackground)
     .environment(UserSettingsStore())

@@ -79,16 +79,13 @@ struct UncheckedOperationsCard: View {
 
             if let item = currentItem {
                 Divider()
-                    .padding(.horizontal, DesignTokens.Spacing.xl)
+                    .padding(.horizontal, DesignTokens.Spacing.xxl)
 
                 inlinePane(item)
                     .id(item.id)
                     .transition(paneTransition(for: item))
             }
         }
-        .pulpeCardBackground()
-        .shadow(DesignTokens.Shadow.card)
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
         .animation(
             reduceMotion ? DesignTokens.Animation.smoothEaseOut : DesignTokens.Animation.gentleSpring,
             value: currentItem?.id
@@ -105,16 +102,10 @@ struct UncheckedOperationsCard: View {
 
     private var header: some View {
         HStack(spacing: DesignTokens.Spacing.lg) {
-            // Purely decorative (accessibilityHidden) — it squeezes the title into
-            // three cramped lines once text wraps at accessibility sizes.
-            if !dynamicTypeSize.isAccessibilitySize {
+            if dynamicTypeSize < .xxLarge {
                 avatarStack
             }
 
-            // Title only — the header used to sum unchecked amounts unsigned-then-signed,
-            // but any single figure here mixes pending salary with pending bills and sits
-            // irreconcilable next to the hero's "Engagé". The count is the actionable part;
-            // per-operation amounts live on the inline pane below.
             Text("\(totalCount) opération\(totalCount > 1 ? "s" : "") à pointer")
                 .font(PulpeTypography.cardTitle)
                 .foregroundStyle(Color.textPrimary)
@@ -125,7 +116,7 @@ struct UncheckedOperationsCard: View {
                 .font(PulpeTypography.metricLabel)
                 .foregroundStyle(Color.textTertiary)
         }
-        .padding(.horizontal, DesignTokens.Spacing.xl)
+        .padding(.horizontal, DesignTokens.Spacing.xxl)
         .padding(.vertical, DesignTokens.Spacing.lg)
     }
 
@@ -202,18 +193,18 @@ struct UncheckedOperationsCard: View {
                 // The name beside it is pinned to one line; without a matching constraint
                 // the amount wraps ("-400.0" / "0") and shoves the name into truncation.
                 Text(amountText(for: item))
-                    .font(PulpeTypography.labelLarge)
+                    .font(PulpeTypography.amountMedium)
                     .foregroundStyle(Color.textPrimary)
                     .monospacedDigit()
                     .lineLimit(1)
-                    .minimumScaleFactor(DesignTokens.TextScale.floor)
+                    .minimumScaleFactor(DesignTokens.TextScale.compact)
                     .sensitiveAmount()
             }
             .accessibilityElement(children: .combine)
 
             actionsRow(item)
         }
-        .padding(.horizontal, DesignTokens.Spacing.xl)
+        .padding(.horizontal, DesignTokens.Spacing.xxl)
         .padding(.top, DesignTokens.Spacing.md)
         .padding(.bottom, DesignTokens.Spacing.lg)
         .opacity(isSyncing(item) ? DesignTokens.Opacity.disabled : 1)
@@ -224,13 +215,14 @@ struct UncheckedOperationsCard: View {
         // Side by side, "C'est passé" and "Plus tard" squeeze each other once the labels
         // grow; stacked, each keeps its full width and its 44pt target.
         if dynamicTypeSize >= .xxLarge {
-            VStack(spacing: DesignTokens.Spacing.sm) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                 confirmButton(item)
                 skipButton(item)
             }
         } else {
             HStack(spacing: DesignTokens.Spacing.lg) {
                 confirmButton(item)
+                Spacer(minLength: DesignTokens.Spacing.sm)
                 skipButton(item)
             }
         }
@@ -262,8 +254,8 @@ struct UncheckedOperationsCard: View {
             // Height comes from padding, not from the tap-target floor — putting
             // `minHeight` in the label would make the capsule's size an artifact of
             // the 44pt rule rather than a deliberate visual.
+            .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.vertical, DesignTokens.Spacing.md)
-            .frame(maxWidth: .infinity)
             .background(
                 isConfirming
                     ? AnyShapeStyle(Color.pulpePrimary)

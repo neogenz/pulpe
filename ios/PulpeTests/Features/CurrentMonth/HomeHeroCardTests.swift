@@ -1,0 +1,161 @@
+import Foundation
+@testable import Pulpe
+import Testing
+
+struct HomeHeroCardTests {
+    @Test func gainAbovePlan_keepsSignedMeaning() {
+        let state = HomeHeroCard.PresentationState(
+            plannedBalance: 450,
+            projectedBalance: 800
+        )
+
+        #expect(state.displayedBalance == 800)
+        #expect(state.variance == 350)
+        #expect(state.verdict == .gain)
+        #expect(state.tone == .favorable)
+
+        let onPlan = HomeHeroCard.PresentationState(
+            plannedBalance: 450,
+            projectedBalance: 450
+        )
+        #expect(onPlan.variance == 0)
+        #expect(onPlan.verdict == .onPlan)
+    }
+
+    @Test func deficitAcrossZero_isOverrunAndUnavailableNeverFakesProjection() {
+        let state = HomeHeroCard.PresentationState(
+            plannedBalance: 450,
+            projectedBalance: -3000
+        )
+
+        #expect(state.displayedBalance == -3000)
+        #expect(state.variance == -3450)
+        #expect(state.verdict == .overrun)
+        #expect(state.tone == .deficit)
+
+        let unavailable = HomeHeroCard.PresentationState(
+            plannedBalance: 450,
+            projectedBalance: nil
+        )
+        #expect(unavailable.displayedBalance == 450)
+        #expect(unavailable.projectedBalance == nil)
+        #expect(unavailable.variance == nil)
+        #expect(unavailable.verdict == .unavailable)
+    }
+
+    @Test func trajectory_usesRealizedStepsAndConnectsProjection() throws {
+        let transactions = [
+            try checkedExpense(id: "day-2", amount: 100, day: 2),
+            try checkedExpense(id: "day-3", amount: 50, day: 3),
+        ]
+        let metrics = BudgetFormulas.Metrics(
+            totalIncome: 1000,
+            totalExpenses: 700,
+            totalSavings: 0,
+            available: 1000,
+            endingBalance: 300,
+            remaining: 300,
+            rollover: 0
+        )
+        let projection = BudgetFormulas.Projection(
+            projectedEndOfMonthBalance: -550,
+            dailySpendingRate: 50,
+            daysElapsed: 3,
+            daysRemaining: 28,
+            isOnTrack: false
+        )
+
+        let trajectory = try #require(BudgetFormulas.calculateBalanceTrajectory(
+            budgetLines: [],
+            transactions: transactions,
+            metrics: metrics,
+            projection: projection,
+            budget: TestDataFactory.createBudget(month: 7, year: 2026)
+        ))
+
+        #expect(trajectory.actual.map(\.balance) == [1000, 1000, 900, 850])
+        #expect(trajectory.projected == [
+            .init(day: 3, balance: 850),
+            .init(day: 31, balance: -550),
+        ])
+        #expect(trajectory.plannedBalance == 300)
+        #expect(trajectory.today == 3)
+        #expect(trajectory.totalDays == 31)
+    }
+
+    @MainActor
+    @Test func chartDomain_containsPlanAboveBelowAndEqualToTrajectory() {
+        let above = trajectory(actual: [100, 80], projected: [80, 60], plan: 200)
+        let aboveDomain = HomeHeroCard.chartYDomain(for: above)
+        #expect(aboveDomain.contains(60))
+        #expect(aboveDomain.contains(200))
+
+        let below = trajectory(actual: [100, 80], projected: [80, 60], plan: -100)
+        let belowDomain = HomeHeroCard.chartYDomain(for: below)
+        #expect(belowDomain.contains(-100))
+        #expect(belowDomain.contains(100))
+
+        let flat = trajectory(actual: [50, 50], projected: [50, 50], plan: 50)
+        let flatDomain = HomeHeroCard.chartYDomain(for: flat)
+        #expect(flatDomain.lowerBound < 50)
+        #expect(flatDomain.upperBound > 50)
+    }
+
+    @Test func hiddenAmounts_accessibilityDescriptionContainsNoFinancialValue() {
+        let state = HomeHeroCard.PresentationState(
+            plannedBalance: 450,
+            projectedBalance: -3000
+        )
+
+        let description = state.accessibilityDescription(
+            monthName: "juillet",
+            currency: .chf,
+            amountsHidden: true
+        )
+
+        #expect(description == "Juillet. Solde final projeté, montant masqué. Comparaison au plan masquée.")
+        #expect(!description.contains("CHF"))
+        #expect(!description.contains("450"))
+        #expect(!description.contains("3000"))
+    }
+
+    private func checkedExpense(
+        id: String,
+        amount: Decimal,
+        day: Int
+    ) throws -> Transaction {
+        let date = try #require(Calendar.current.date(from: DateComponents(
+            year: 2026,
+            month: 7,
+            day: day,
+            hour: 12
+        )))
+        return Transaction(
+            id: id,
+            budgetId: "july",
+            budgetLineId: nil,
+            name: id,
+            amount: amount,
+            kind: .expense,
+            transactionDate: date,
+            category: nil,
+            checkedAt: date,
+            createdAt: date,
+            updatedAt: date
+        )
+    }
+
+    private func trajectory(
+        actual: [Decimal],
+        projected: [Decimal],
+        plan: Decimal
+    ) -> BudgetFormulas.BalanceTrajectory {
+        BudgetFormulas.BalanceTrajectory(
+            actual: actual.enumerated().map { .init(day: $0.offset, balance: $0.element) },
+            projected: projected.enumerated().map { .init(day: $0.offset + 1, balance: $0.element) },
+            plannedBalance: plan,
+            today: 1,
+            totalDays: 2
+        )
+    }
+}
