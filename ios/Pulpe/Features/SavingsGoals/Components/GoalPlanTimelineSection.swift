@@ -35,6 +35,13 @@ struct GoalPlanTimelinePresentation {
     var repairableMonths: [SavingsGoalPlanMonth] {
         months.dropFirst(currentIndex).filter(\.isRepairable)
     }
+
+    var repairMessage: String {
+        let count = repairableMonths.count
+        return count == 1
+            ? "1 prévision Épargne peut maintenant être ajoutée à cet objectif."
+            : "\(count) prévisions Épargne peuvent maintenant être ajoutées à cet objectif."
+    }
 }
 
 /// « Ton plan, mois par mois » (PUL-12+, pilier B) — the read-mode timeline section
@@ -78,12 +85,11 @@ struct GoalPlanTimelineSection: View {
                 }
             }
 
-            if canRepair, !presentation.repairableMonths.isEmpty {
-                let count = presentation.repairableMonths.count
+            if canRepair {
                 GoalInfoCard(
                     icon: "calendar.badge.plus",
                     title: "Tes nouveaux budgets sont prêts",
-                    message: "\(count) prévision(s) Épargne peuvent maintenant être ajoutées à cet objectif."
+                    message: presentation.repairMessage
                 ) {
                     Button("Prévisualiser", action: onRepair)
                         .secondaryButtonStyle()

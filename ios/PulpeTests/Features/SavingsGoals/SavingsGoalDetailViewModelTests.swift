@@ -363,7 +363,16 @@ extension SavingsGoalDetailViewModelTests {
     func timeline_zeroLinkedRepairableMonth_isVisible() {
         let progress = makeProgress(
             linkedLineCount: 0,
-            months: [makePlanMonth(month: 8, state: .gap, isLocked: false, planned: 0)]
+            months: [
+                makePlanMonth(
+                    month: 8,
+                    state: .gap,
+                    isLocked: false,
+                    planned: 0,
+                    hasBudget: true,
+                    isProvisionable: true
+                ),
+            ]
         )
 
         #expect(SavingsGoalDetailViewModel.shouldShowPlanTimeline(progress))
@@ -421,6 +430,24 @@ extension SavingsGoalDetailViewModelTests {
             linkedLineCount: 0,
             required: 0,
             months: [makePlanMonth(month: 8, state: .gap, isLocked: false, planned: 0)]
+        )
+
+        #expect(SavingsGoalDetailViewModel.canRepairPlan(progress, status: .active) == false)
+    }
+
+    @Test("recovery action stays hidden without a repairable month")
+    func canRepairPlan_withoutRepairableMonth_isFalse() {
+        let progress = makeProgress(
+            linkedLineCount: 0,
+            months: [
+                makePlanMonth(
+                    month: 8,
+                    state: .gap,
+                    isLocked: false,
+                    hasBudget: false,
+                    isProvisionable: true
+                ),
+            ]
         )
 
         #expect(SavingsGoalDetailViewModel.canRepairPlan(progress, status: .active) == false)

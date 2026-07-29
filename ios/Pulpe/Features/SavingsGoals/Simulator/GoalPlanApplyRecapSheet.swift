@@ -32,15 +32,18 @@ struct GoalPlanApplyRecapSheet: View {
         mode == .creation ? changes : Array(changes.prefix(maxListedRows))
     }
 
+    private var summary: String {
+        guard mode == .creation else { return "\(changes.count) mois ajustés" }
+        return changes.count == 1
+            ? "1 prévision Épargne à ajouter"
+            : "\(changes.count) prévisions Épargne à ajouter"
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-                    Text(
-                        mode == .creation
-                            ? "\(changes.count) prévision(s) Épargne à ajouter"
-                            : "\(changes.count) mois ajustés"
-                    )
+                    Text(summary)
                         .font(PulpeTypography.listRowTitle)
                         .foregroundStyle(Color.textPrimary)
 

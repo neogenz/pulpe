@@ -56,6 +56,31 @@ struct GoalPlanTimelinePresentationTests {
         #expect(expanded.hiddenCount == 0)
     }
 
+    @Test("uses natural agreement for one or several repairable forecasts")
+    func repairMessage_usesNaturalAgreement() {
+        let current = makeMonth(month: 7, state: .current, hasLinkedForecast: true)
+        let august = makeMonth(month: 8, state: .gap, isProvisionable: true)
+        let september = makeMonth(month: 9, state: .gap, isProvisionable: true)
+
+        let singular = GoalPlanTimelinePresentation(
+            months: [current, august],
+            isExpanded: false
+        )
+        let plural = GoalPlanTimelinePresentation(
+            months: [current, august, september],
+            isExpanded: false
+        )
+
+        #expect(
+            singular.repairMessage
+                == "1 prévision Épargne peut maintenant être ajoutée à cet objectif."
+        )
+        #expect(
+            plural.repairMessage
+                == "2 prévisions Épargne peuvent maintenant être ajoutées à cet objectif."
+        )
+    }
+
     @Test("starts the collapsed window at the current month when the plan contains history")
     func excludesPastMonthsFromCollapsedWindow() {
         let months = [

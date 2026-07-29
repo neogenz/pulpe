@@ -547,7 +547,9 @@ final class SavingsGoalDetailViewModel {
     }
 
     static func canRepairPlan(_ progress: SavingsGoalProgress, status: SavingsGoalStatus) -> Bool {
-        status == .active && recoveryAmount(progress) != nil
+        status == .active
+            && recoveryAmount(progress) != nil
+            && progress.months.contains(where: \.isRepairable)
     }
 
     static func shouldShowPlanTimeline(_ progress: SavingsGoalProgress) -> Bool {
