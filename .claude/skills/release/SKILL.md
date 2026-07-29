@@ -98,27 +98,6 @@ git log $BASE_REF..HEAD --oneline
 git diff $BASE_REF..HEAD --stat
 ```
 
-Detect the one-time scheduled-deletion metadata gate from the same immutable
-release range:
-
-```bash
-REQUIRES_SCHEDULED_DELETION_GATE=false
-if git diff --name-only "$BASE_REF"..HEAD -- \
-  backend-nest/scripts/migrate-scheduled-deletion-metadata.ts \
-  backend-nest/src/common/guards/auth.guard.ts \
-  backend-nest/src/common/guards/user-throttler.guard.ts \
-  backend-nest/src/modules/account-deletion/infrastructure/persistence/supabase-account-deletion.repository.ts \
-  backend-nest/src/modules/user/infrastructure/persistence/supabase-user.repository.ts |
-  grep -q .
-then
-  REQUIRES_SCHEDULED_DELETION_GATE=true
-fi
-```
-
-The flag is derived only from `$BASE_REF..HEAD`: the release introducing the
-server-owned claim runs the gate, while later releases skip it without a marker
-file or persisted migration state.
-
 **Revert handling:** A `Revert "fix(...): ..."` cancels the original commit. Pair them up and exclude both from the changelog and bump calculation. Only count the net effect.
 
 **Stop immediately** if changes contain ONLY non-functional commits (`refactor:`, `test:`, `chore:`, `ci:`, `docs:`, `style:`, `build:`) or only reverted pairs. Output: "Aucun changeset nécessaire — modifications techniques uniquement."
@@ -451,47 +430,6 @@ pnpm quality
 ```
 
 Fix issues before proceeding.
-
-### Step 7b: Run the one-time scheduled-deletion pre-release gate
-
-Skip this step when `REQUIRES_SCHEDULED_DELETION_GATE=false`.
-
-When it is `true`, this gate must complete **before staging or committing the
-release**. Load the intended production Supabase environment securely from the
-existing operator environment; never copy credentials into the repository,
-release notes, or command output.
-
-1. From the reviewed checkout, run the aggregate-only dry-run and validate its
-   machine-readable output:
-
-   ```bash
-   SCHEDULED_DELETION_DRY_RUN=$(cd backend-nest && bun run migrate:scheduled-deletion)
-   printf '%s\n' "$SCHEDULED_DELETION_DRY_RUN"
-   SCHEDULED_DELETION_ELIGIBLE=$(printf '%s' "$SCHEDULED_DELETION_DRY_RUN" |
-     node -e 'const fs=require("node:fs");const value=JSON.parse(fs.readFileSync(0,"utf8"));if(value.mode!=="dry-run"||!Number.isSafeInteger(value.eligible)||value.eligible<0)process.exit(1);process.stdout.write(String(value.eligible));')
-   ```
-
-2. When `SCHEDULED_DELETION_ELIGIBLE=0`, continue to Step 8 without enabling
-   maintenance or asking for another approval.
-3. When it is greater than zero, stop and show only the aggregate summary. Ask:
-   "La migration doit déplacer `<count>` claims de suppression vers les
-   metadata serveur. Autoriser la maintenance production et l’apply ?"
-4. Only after an explicit "oui", confirm the Railway capability can update and
-   inspect the production service, then follow the exact scheduled-deletion
-   maintenance runbook in `docs/DEPLOYMENT.md`: enable maintenance, wait for its
-   deployment, prove the public status and protected `503`, run `--apply`, then
-   run a fresh dry-run.
-5. Require the final dry-run to parse successfully with `eligible: 0`. Then
-   disable maintenance, wait for the deployment, and prove both
-   `maintenanceMode: false` and `/health` before continuing.
-
-Missing production credentials, Railway capabilities, approval, a maintenance
-proof, a valid aggregate result, or a final zero blocks the release here. Never
-defer this gate until after Step 9. Keep maintenance enabled after an apply
-failure until the reviewed recovery path is complete.
-
-This is an Auth Admin metadata operation, not a PostgreSQL schema migration. The
-CI job that applies SQL migrations does not run it.
 
 ### Step 8: Stage release files
 
