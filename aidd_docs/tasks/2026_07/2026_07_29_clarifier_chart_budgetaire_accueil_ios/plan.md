@@ -1,6 +1,6 @@
 ---
 objective: "Le chart de l’accueil iOS conserve son esthétique organique tout en représentant clairement la consommation du budget, sa destination de fin de période et les périodes fondées sur le jour de paie sans fausse cadence quotidienne."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Clarifier le chart budgétaire de l’accueil iOS
