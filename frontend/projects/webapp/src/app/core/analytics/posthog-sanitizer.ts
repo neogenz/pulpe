@@ -332,24 +332,40 @@ function sanitizeUnknown(value: unknown): unknown {
   return value;
 }
 
+const ALLOWED_EXCEPTION_TYPES = new Set([
+  'AggregateError',
+  'Error',
+  'EvalError',
+  'RangeError',
+  'ReferenceError',
+  'SyntaxError',
+  'TypeError',
+  'URIError',
+]);
+
+const HTTP_EXCEPTION_TYPE_PATTERN =
+  /^HTTP:\d{1,3}(?::[A-Za-z][A-Za-z0-9_.:-]{0,127}){0,2}$/;
+
+const isAllowedExceptionType = (value: unknown): value is string =>
+  typeof value === 'string' &&
+  (ALLOWED_EXCEPTION_TYPES.has(value) ||
+    HTTP_EXCEPTION_TYPE_PATTERN.test(value));
+
 const sanitizeExceptionFrame = (
   value: unknown,
 ): Record<string, unknown> | null => {
   if (!isRecord(value)) return null;
 
-  const frame: Record<string, unknown> = {};
-  for (const key of [
-    'platform',
-    'function',
-    'module',
-    'lineno',
-    'colno',
-    'in_app',
-    'instruction_addr',
-    'addr_mode',
-    'chunk_id',
-  ]) {
-    if (value[key] !== undefined) frame[key] = value[key];
+  const frame: Record<string, unknown> = { platform: 'web:javascript' };
+  for (const key of ['lineno', 'colno']) {
+    if (value[key] !== undefined && typeof value[key] !== 'number') return null;
+    if (typeof value[key] === 'number') frame[key] = value[key];
+  }
+  if (value['in_app'] !== undefined && typeof value['in_app'] !== 'boolean') {
+    return null;
+  }
+  if (typeof value['in_app'] === 'boolean') {
+    frame['in_app'] = value['in_app'];
   }
   for (const key of ['filename', 'abs_path']) {
     if (typeof value[key] === 'string') {
@@ -367,18 +383,24 @@ const sanitizeExceptionList = (value: unknown): unknown[] | null => {
     if (!isRecord(item)) return null;
 
     const exception: Record<string, unknown> = {};
-    if (typeof item['type'] === 'string') exception['type'] = item['type'];
-    if (typeof item['module'] === 'string')
-      exception['module'] = item['module'];
+    exception['type'] = isAllowedExceptionType(item['type'])
+      ? item['type']
+      : 'Error';
     if (typeof item['thread_id'] === 'number') {
       exception['thread_id'] = item['thread_id'];
     }
 
     if (item['mechanism'] !== undefined) {
       if (!isRecord(item['mechanism'])) return null;
-      const mechanism: Record<string, unknown> = {};
-      for (const key of ['handled', 'type', 'synthetic']) {
-        if (item['mechanism'][key] !== undefined) {
+      const mechanism: Record<string, unknown> = { type: 'generic' };
+      for (const key of ['handled', 'synthetic']) {
+        if (
+          item['mechanism'][key] !== undefined &&
+          typeof item['mechanism'][key] !== 'boolean'
+        ) {
+          return null;
+        }
+        if (typeof item['mechanism'][key] === 'boolean') {
           mechanism[key] = item['mechanism'][key];
         }
       }

@@ -345,8 +345,8 @@ describe('posthog-sanitizer', () => {
         stacktrace: {
           frames: [
             {
+              platform: 'web:javascript',
               filename: '/main.js',
-              function: 'loadBudget',
               lineno: 12,
               colno: 4,
             },
@@ -364,6 +364,65 @@ describe('posthog-sanitizer', () => {
       } as unknown as CaptureResult;
 
       expect(sanitizeEventPayload(event)).toBeNull();
+    });
+
+    it('does not copy arbitrary strings from exception grouping fields', () => {
+      const sentinel = 'PRIVATE_GROUPING_SENTINEL';
+      const event = {
+        event: '$exception',
+        properties: {
+          $exception_list: [
+            {
+              type: sentinel,
+              module: sentinel,
+              mechanism: {
+                type: sentinel,
+                handled: true,
+                synthetic: false,
+              },
+              stacktrace: {
+                frames: [
+                  {
+                    platform: sentinel,
+                    function: sentinel,
+                    module: sentinel,
+                    instruction_addr: sentinel,
+                    addr_mode: sentinel,
+                    chunk_id: sentinel,
+                    filename: `/main.js?q=${sentinel}`,
+                    lineno: 12,
+                    colno: 4,
+                    in_app: true,
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      } as unknown as CaptureResult;
+
+      const sanitized = sanitizeEventPayload(event);
+      const output = JSON.stringify(sanitized);
+      const exception = (
+        sanitized?.properties?.['$exception_list'] as Record<string, unknown>[]
+      )[0];
+
+      expect(output).not.toContain(sentinel);
+      expect(exception).toMatchObject({
+        type: 'Error',
+        mechanism: { type: 'generic', handled: true, synthetic: false },
+        stacktrace: {
+          frames: [
+            {
+              platform: 'web:javascript',
+              filename: '/main.js',
+              lineno: 12,
+              colno: 4,
+              in_app: true,
+            },
+          ],
+        },
+      });
     });
   });
 

@@ -67,6 +67,24 @@ struct APIClientClientKeyHeaderTests {
         #expect(request?.value(forHTTPHeaderField: "X-Client-Key") == nil)
     }
 
+    @Test func networkErrorDiagnostic_omitsRawMessageAndKeepsStableContext() {
+        let sentinel = "PRIVATE_NETWORK_ERROR_SENTINEL"
+        let diagnostic = APIClient.networkErrorDiagnostic(
+            SentinelNetworkError(message: sentinel),
+            requestID: "request-123"
+        )
+        let urlDiagnostic = APIClient.networkErrorDiagnostic(
+            URLError(.timedOut),
+            requestID: "request-456"
+        )
+
+        #expect(!diagnostic.contains(sentinel))
+        #expect(diagnostic.contains("requestId=request-123"))
+        #expect(diagnostic.contains("SentinelNetworkError"))
+        #expect(urlDiagnostic.contains("requestId=request-456"))
+        #expect(urlDiagnostic.contains(String(URLError.Code.timedOut.rawValue)))
+    }
+
     @Test func request_unauthorized_forcesRefreshThenRetriesWithFreshToken() async throws {
         let recorder = RequestRecorder()
         let invalidationCalled = AtomicFlag()
@@ -179,6 +197,12 @@ struct APIClientClientKeyHeaderTests {
 
 private struct UserPayload: Decodable {
     let id: String
+}
+
+private struct SentinelNetworkError: LocalizedError {
+    let message: String
+
+    var errorDescription: String? { message }
 }
 
 private final class RequestRecorder: @unchecked Sendable {

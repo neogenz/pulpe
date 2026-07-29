@@ -347,12 +347,20 @@ actor APIClient {
             return false
         }
     }
+
+    static func networkErrorDiagnostic(_ error: Error, requestID: String) -> String {
+        var diagnostic = "requestId=\(requestID) errorType=\(String(reflecting: type(of: error)))"
+        if let urlError = error as? URLError {
+            diagnostic += " errorCode=\(urlError.code.rawValue)"
+        }
+        return diagnostic
+    }
 }
 
 private extension APIClient {
     func logRetry(_ error: Error, request: URLRequest) {
         let requestID = request.value(forHTTPHeaderField: "X-Request-Id") ?? "?"
-        let summary = "requestId=\(requestID): \(error.localizedDescription)"
+        let summary = Self.networkErrorDiagnostic(error, requestID: requestID)
         Logger.network.warning("Retrying network request \(summary, privacy: .public)")
     }
 
@@ -373,7 +381,7 @@ private extension APIClient {
 
     func logNetworkError(_ error: Error, request: URLRequest) {
         let requestID = request.value(forHTTPHeaderField: "X-Request-Id") ?? "?"
-        let summary = "requestId=\(requestID): \(error.localizedDescription)"
+        let summary = Self.networkErrorDiagnostic(error, requestID: requestID)
         Logger.network.error("Network request failed \(summary, privacy: .public)")
     }
 }

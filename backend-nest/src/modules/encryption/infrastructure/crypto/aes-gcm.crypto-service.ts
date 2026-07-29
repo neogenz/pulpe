@@ -534,7 +534,8 @@ export class AesGcmCryptoService {
   ): Promise<boolean> {
     const { data, error } = await query;
     if (error) throw error;
-    return (data?.length ?? 0) > 0;
+    if (data === null) throw new Error('Ambiguous Supabase response');
+    return data.length > 0;
   }
 
   async #hasEncryptedRowsByParentIds(
@@ -590,10 +591,10 @@ export class AesGcmCryptoService {
         from + POSTGREST_PAGE_SIZE - 1,
       );
       if (error) throw error;
+      if (data === null) throw new Error('Ambiguous Supabase response');
 
-      const page = data ?? [];
-      rows.push(...page);
-      if (page.length < POSTGREST_PAGE_SIZE) return rows;
+      rows.push(...data);
+      if (data.length < POSTGREST_PAGE_SIZE) return rows;
     }
   }
 

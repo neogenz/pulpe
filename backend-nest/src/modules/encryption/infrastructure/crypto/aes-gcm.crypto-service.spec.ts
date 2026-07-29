@@ -27,6 +27,7 @@ const createMockConfigService = () => ({
 const createEncryptedDataClient = (
   rowsByTable: Record<string, unknown[]> = {},
   pageErrors: Record<number, Error> = {},
+  nullPages: ReadonlySet<number> = new Set(),
 ) => {
   const buildQuery = (data: unknown[]) => {
     let rows = data;
@@ -93,10 +94,12 @@ const createEncryptedDataClient = (
         Promise.resolve(
           pageErrors[rangeStart]
             ? { data: null, error: pageErrors[rangeStart] }
-            : {
-                data: rows.slice(rangeStart, rangeEnd + 1),
-                error: null,
-              },
+            : nullPages.has(rangeStart)
+              ? { data: null, error: null }
+              : {
+                  data: rows.slice(rangeStart, rangeEnd + 1),
+                  error: null,
+                },
         ).then(onResolve, onReject),
     };
     return query;
@@ -2003,6 +2006,35 @@ describe('AesGcmCryptoService', () => {
       ).rejects.toThrow('query failed');
       expect(initializeVaultIfEmpty).not.toHaveBeenCalled();
     });
+
+    it('should fail closed when an existence query returns null data without an error', async () => {
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: randomBytes(16).toString('hex'),
+          kdf_iterations: 600000,
+          wrapped_dek: null,
+          key_check: null,
+        }),
+      );
+      const initializeVaultIfEmpty = mock(() => Promise.resolve(true));
+      service = new AesGcmCryptoService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        createMockRepository({
+          findByUserId,
+          initializeVaultIfEmpty,
+        }) as any,
+      );
+
+      await expect(
+        service.createRecoveryKey(
+          TEST_USER_ID,
+          TEST_CLIENT_KEY,
+          createEncryptedDataClient({}, {}, new Set([0])) as any,
+        ),
+      ).rejects.toThrow('Ambiguous Supabase response');
+      expect(initializeVaultIfEmpty).not.toHaveBeenCalled();
+    });
   });
 
   describe('reEncryptAllUserData', () => {
@@ -2091,6 +2123,43 @@ describe('AesGcmCryptoService', () => {
           client as any,
         ),
       ).rejects.toThrow('second page failed');
+      expect(rpc).not.toHaveBeenCalled();
+    });
+
+    it('should not call the atomic rekey RPC when a later page returns null data without an error', async () => {
+      const oldDek = randomBytes(32);
+      const newDek = randomBytes(32);
+      service = new AesGcmCryptoService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        createMockRepository() as any,
+      );
+      const ciphertext = service.encryptAmount(42, oldDek);
+      const monthlyBudgets = Array.from({ length: 1_001 }, (_, index) => ({
+        id: testUuid(index),
+        user_id: TEST_USER_ID,
+        ending_balance: ciphertext,
+      }));
+      const rpc = mock((_function: string, _payload: unknown) =>
+        Promise.resolve({ error: null }),
+      );
+      const client = {
+        ...createEncryptedDataClient(
+          { monthly_budget: monthlyBudgets },
+          {},
+          new Set([1_000]),
+        ),
+        rpc,
+      };
+
+      await expect(
+        service.reEncryptAllUserData(
+          TEST_USER_ID,
+          oldDek,
+          newDek,
+          client as any,
+        ),
+      ).rejects.toThrow('Ambiguous Supabase response');
       expect(rpc).not.toHaveBeenCalled();
     });
   });
