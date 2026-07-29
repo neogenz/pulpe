@@ -213,6 +213,34 @@ describe('Sensitive Data Redaction Test', () => {
       ).not.toContain('QUERY_SENTINEL');
     });
 
+    it('serializes errors without raw messages in production or detailed preview', () => {
+      const sentinel = 'PRIVATE_ERROR_SENTINEL';
+
+      for (const values of [
+        { NODE_ENV: 'production', DEBUG_HTTP_FULL: 'false' },
+        { NODE_ENV: 'preview', DEBUG_HTTP_FULL: 'true' },
+      ]) {
+        const config = buildConfig(values);
+        const error = new Error(sentinel);
+        error.name = 'DatabaseError';
+        error.stack = `DatabaseError: ${sentinel}\n    at query (file:///app/repository.ts?token=${sentinel}:42:7)`;
+
+        const serialized = {
+          error: config.pinoHttp.serializers.err(error as any),
+          message: config.pinoHttp.customErrorMessage(
+            { method: 'GET', url: `/api/test?q=${sentinel}` } as any,
+            { statusCode: 500 } as any,
+            error,
+          ),
+        };
+        const output = JSON.stringify(serialized);
+
+        expect(output).not.toContain(sentinel);
+        expect(output).toContain('DatabaseError');
+        expect(output).toContain('repository.ts:42:7');
+      }
+    });
+
     it('captures the real Express json-to-send chain once as a sanitized object', async () => {
       const responseLogs: Array<{
         response: { statusCode: number; body: unknown };
@@ -415,9 +443,9 @@ describe('Sensitive Data Redaction Test', () => {
 
       const logContext = capturedLogs[0].context;
 
-      // All fields should be preserved
+      // Typed identity fields are redacted; structural diagnostics remain.
       expect(logContext.requestBody.username).toBe('testuser');
-      expect(logContext.requestBody.email).toBe('test@example.com');
+      expect(logContext.requestBody.email).toBe('[REDACTED]');
       expect(logContext.requestBody.preferences.theme).toBe('dark');
     });
 

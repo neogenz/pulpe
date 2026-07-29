@@ -296,6 +296,75 @@ describe('posthog-sanitizer', () => {
       expect(sanitized?.properties?.['planned_amount']).toBeUndefined();
       expect(sanitized?.properties?.['safe_property']).toBe('keep');
     });
+
+    it('removes exception values and source context while preserving grouping frames', () => {
+      const sentinel = 'PRIVATE_EXCEPTION_SENTINEL';
+      const event = {
+        event: '$exception',
+        properties: {
+          $exception_list: [
+            {
+              type: 'TypeError',
+              value: sentinel,
+              mechanism: {
+                type: 'generic',
+                handled: true,
+                source: sentinel,
+              },
+              stacktrace: {
+                type: 'raw',
+                frames: [
+                  {
+                    platform: 'web:javascript',
+                    filename: `/main.js?input=${sentinel}`,
+                    function: 'loadBudget',
+                    lineno: 12,
+                    colno: 4,
+                    context_line: sentinel,
+                    pre_context: [sentinel],
+                    vars: { payload: sentinel },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      } as unknown as CaptureResult;
+
+      const sanitized = sanitizeEventPayload(event);
+      const output = JSON.stringify(sanitized);
+      const exception = (
+        sanitized?.properties?.['$exception_list'] as Record<string, unknown>[]
+      )[0];
+
+      expect(output).not.toContain(sentinel);
+      expect(exception).not.toHaveProperty('value');
+      expect(exception).toMatchObject({
+        type: 'TypeError',
+        mechanism: { type: 'generic', handled: true },
+        stacktrace: {
+          frames: [
+            {
+              filename: '/main.js',
+              function: 'loadBudget',
+              lineno: 12,
+              colno: 4,
+            },
+          ],
+        },
+      });
+    });
+
+    it('drops malformed exception payloads instead of sending them', () => {
+      const event = {
+        event: '$exception',
+        properties: {
+          $exception_list: [{ type: 'Error', stacktrace: 'raw stack' }],
+        },
+      } as unknown as CaptureResult;
+
+      expect(sanitizeEventPayload(event)).toBeNull();
+    });
   });
 
   describe('Real component data flow scenarios', () => {

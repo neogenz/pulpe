@@ -134,14 +134,14 @@ const ALLOWED_PERSON_PROPERTIES = new Set([
 ]);
 
 const PROTECTED_QUERY_PARAMETERS = new Set(
-  ['budgetId', 'transactionId', 'templateId', 'token'].map((param) =>
+  ['budgetId', 'transactionId', 'templateId', 'token', 'q'].map((param) =>
     param.toLowerCase(),
   ),
 );
 
 const DYNAMIC_SEGMENT_MASKS: readonly DynamicSegmentMask[] = [
   [/\/budgets?\/[a-zA-Z0-9-]+/gi, '/budget/[id]'],
-  [/\/transactions?\/[a-zA-Z0-9-]+/gi, '/transaction/[id]'],
+  [/\/transactions?\/(?!search(?:\/|$))[a-zA-Z0-9-]+/gi, '/transaction/[id]'],
   [/\/templates?\/[a-zA-Z0-9-]+/gi, '/template/[id]'],
 ];
 
@@ -332,6 +332,77 @@ function sanitizeUnknown(value: unknown): unknown {
   return value;
 }
 
+const sanitizeExceptionFrame = (
+  value: unknown,
+): Record<string, unknown> | null => {
+  if (!isRecord(value)) return null;
+
+  const frame: Record<string, unknown> = {};
+  for (const key of [
+    'platform',
+    'function',
+    'module',
+    'lineno',
+    'colno',
+    'in_app',
+    'instruction_addr',
+    'addr_mode',
+    'chunk_id',
+  ]) {
+    if (value[key] !== undefined) frame[key] = value[key];
+  }
+  for (const key of ['filename', 'abs_path']) {
+    if (typeof value[key] === 'string') {
+      frame[key] = sanitizeUrl(value[key]).split(/[?#]/)[0];
+    }
+  }
+  return frame;
+};
+
+const sanitizeExceptionList = (value: unknown): unknown[] | null => {
+  if (!Array.isArray(value)) return null;
+
+  const sanitized: unknown[] = [];
+  for (const item of value) {
+    if (!isRecord(item)) return null;
+
+    const exception: Record<string, unknown> = {};
+    if (typeof item['type'] === 'string') exception['type'] = item['type'];
+    if (typeof item['module'] === 'string')
+      exception['module'] = item['module'];
+    if (typeof item['thread_id'] === 'number') {
+      exception['thread_id'] = item['thread_id'];
+    }
+
+    if (item['mechanism'] !== undefined) {
+      if (!isRecord(item['mechanism'])) return null;
+      const mechanism: Record<string, unknown> = {};
+      for (const key of ['handled', 'type', 'synthetic']) {
+        if (item['mechanism'][key] !== undefined) {
+          mechanism[key] = item['mechanism'][key];
+        }
+      }
+      exception['mechanism'] = mechanism;
+    }
+
+    if (item['stacktrace'] !== undefined) {
+      if (!isRecord(item['stacktrace'])) return null;
+      const frames = item['stacktrace']['frames'];
+      if (!Array.isArray(frames)) return null;
+      const sanitizedFrames = frames.map(sanitizeExceptionFrame);
+      if (sanitizedFrames.some((frame) => frame === null)) return null;
+      exception['stacktrace'] = {
+        type: 'raw',
+        frames: sanitizedFrames,
+      };
+    }
+
+    sanitized.push(exception);
+  }
+
+  return sanitized;
+};
+
 /**
  * Nettoie un événement PostHog en retirant les données financières sensibles.
  * PostHog gère ses propres champs système, on ne touche qu'aux données métier.
@@ -342,6 +413,13 @@ export const sanitizeEventPayload = (
   if (!event) return null;
 
   if (event.properties) {
+    const exceptionList = event.properties['$exception_list'];
+    if (exceptionList !== undefined) {
+      const sanitizedExceptionList = sanitizeExceptionList(exceptionList);
+      if (!sanitizedExceptionList) return null;
+      event.properties['$exception_list'] = sanitizedExceptionList;
+    }
+
     // PostHog SDK injects 'token' into properties — preserve it through sanitization
     const sdkToken = event.properties['token'];
 

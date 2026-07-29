@@ -125,10 +125,15 @@ const PRODUCTION_LIKE_ENVIRONMENTS = ['production', 'preview'] as const;
 
 type ProductionLike = (typeof PRODUCTION_LIKE_ENVIRONMENTS)[number];
 
-export const isProductionLike = (value?: string): boolean => {
-  const candidate = value ?? process.env.NODE_ENV ?? '';
-  return PRODUCTION_LIKE_ENVIRONMENTS.includes(candidate as ProductionLike);
-};
+export const isProductionLike = (
+  nodeEnv = process.env.NODE_ENV,
+  railwayEnvironmentName = process.env.RAILWAY_ENVIRONMENT_NAME,
+): boolean =>
+  [nodeEnv, railwayEnvironmentName].some((value) =>
+    PRODUCTION_LIKE_ENVIRONMENTS.includes(
+      value?.trim().toLowerCase() as ProductionLike,
+    ),
+  );
 
 interface HttpLoggingEnvironment {
   readonly NODE_ENV?: string;

@@ -251,7 +251,7 @@ describe('GlobalExceptionFilter', () => {
         expect(result.stack).toBe('ZodValidationException stack trace');
       });
 
-      it('should extract detailed validation errors for logging', async () => {
+      it('should keep validation details in the response but not the log message', async () => {
         const validationErrors = {
           message: 'Validation failed',
           errors: [
@@ -285,8 +285,9 @@ describe('GlobalExceptionFilter', () => {
         testFilter.catch(zodException, mockHost);
 
         expect(loggerWarnSpy.calls).toHaveLength(1);
-        expect(loggerWarnSpy.calls[0].message).toBe(
-          'CLIENT ERROR: Validation failed - amount: Number must be greater than 0, name: Expected string, received number',
+        expect(loggerWarnSpy.calls[0].message).toBe('CLIENT ERROR');
+        expect(JSON.stringify(loggerWarnSpy.calls[0])).not.toContain(
+          'Number must be greater than 0',
         );
       });
     });
@@ -384,7 +385,7 @@ describe('GlobalExceptionFilter', () => {
     });
 
     describe('Internal message leak prevention (non-HttpException 500s)', () => {
-      it('should log the real message but never leak it in the response body', async () => {
+      it('should never leak the real message in the response or logs', async () => {
         const errorSpy = spyOn(mockLogger, 'error');
         const error = new Error(
           'ENCRYPTION_MASTER_KEY must be exactly 32 bytes',
@@ -402,8 +403,9 @@ describe('GlobalExceptionFilter', () => {
           'ENCRYPTION_MASTER_KEY',
         );
         expect(errorSpy).toHaveBeenCalledTimes(1);
-        const [logObject] = errorSpy.mock.calls[0] as [{ err: Error }];
-        expect(logObject.err.message).toContain('ENCRYPTION_MASTER_KEY');
+        expect(JSON.stringify(errorSpy.mock.calls[0])).not.toContain(
+          'ENCRYPTION_MASTER_KEY',
+        );
       });
 
       it('should keep the generic client message in production too', async () => {
@@ -680,7 +682,7 @@ describe('GlobalExceptionFilter', () => {
       // Assert
       const [logContext] = warn.mock.calls[0] as [Record<string, unknown>];
       expect(logContext.requestBody).toEqual({
-        name: 'Test User',
+        name: '[REDACTED]',
         password: '[REDACTED]',
       });
     });
@@ -900,23 +902,23 @@ describe('GlobalExceptionFilter', () => {
           causeChain: expect.arrayContaining([
             expect.objectContaining({
               depth: 1,
-              name: 'ServiceError',
-              message: 'Failed to create budget',
+              errorType: 'ServiceError',
+              stackFrames: expect.any(Array),
             }),
             expect.objectContaining({
               depth: 2,
-              name: 'DatabaseError',
-              message: 'Connection to database failed',
+              errorType: 'DatabaseError',
+              stackFrames: expect.any(Array),
             }),
             expect.objectContaining({
               depth: 3,
-              name: 'SocketError',
-              message: 'ECONNREFUSED 127.0.0.1:5432',
+              errorType: 'SocketError',
+              stackFrames: expect.any(Array),
             }),
           ]),
           rootCause: expect.objectContaining({
-            name: 'SocketError',
-            message: 'ECONNREFUSED 127.0.0.1:5432',
+            errorType: 'SocketError',
+            stackFrames: expect.any(Array),
           }),
         }),
       });
@@ -926,7 +928,7 @@ describe('GlobalExceptionFilter', () => {
       process.env.NODE_ENV = 'development';
 
       const rootError = new Error('Root cause');
-      rootError.stack = 'Root stack trace';
+      rootError.stack = 'Error: Root cause\n    at worker (/srv/root.ts:10:2)';
 
       const businessException = new BusinessException(
         ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
@@ -937,21 +939,19 @@ describe('GlobalExceptionFilter', () => {
 
       const result = (filter as any).processException(businessException);
 
-      expect(result.loggingContext.causeChain[0]).toHaveProperty(
-        'stack',
-        'Root stack trace',
-      );
-      expect(result.loggingContext.rootCause).toHaveProperty(
-        'stack',
-        'Root stack trace',
-      );
+      expect(result.loggingContext.causeChain[0].stackFrames).toEqual([
+        'at worker (/srv/root.ts:10:2)',
+      ]);
+      expect(result.loggingContext.rootCause.stackFrames).toEqual([
+        'at worker (/srv/root.ts:10:2)',
+      ]);
     });
 
     it('should include stack traces in cause chain in production for logging', async () => {
       process.env.NODE_ENV = 'production';
 
       const rootError = new Error('Root cause');
-      rootError.stack = 'Root stack trace';
+      rootError.stack = 'Error: Root cause\n    at worker (/srv/root.ts:10:2)';
 
       const businessException = new BusinessException(
         ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
@@ -962,8 +962,8 @@ describe('GlobalExceptionFilter', () => {
 
       const result = (filter as any).processException(businessException);
 
-      expect(result.loggingContext.causeChain[0]).toHaveProperty('stack');
-      expect(result.loggingContext.rootCause).toHaveProperty('stack');
+      expect(result.loggingContext.causeChain[0]).toHaveProperty('stackFrames');
+      expect(result.loggingContext.rootCause).toHaveProperty('stackFrames');
     });
 
     it('should handle BusinessException without cause', async () => {
@@ -992,7 +992,10 @@ describe('GlobalExceptionFilter', () => {
       const result = (filter as any).processException(businessException);
 
       expect(result.loggingContext.causeChain).toHaveLength(1);
-      expect(result.loggingContext.rootCause).toEqual({ value: stringCause });
+      expect(result.loggingContext.rootCause).toEqual({
+        errorType: 'UnknownError',
+      });
+      expect(JSON.stringify(result.loggingContext)).not.toContain(stringCause);
     });
 
     it('should handle Supabase-style error patterns', async () => {
@@ -1023,15 +1026,15 @@ describe('GlobalExceptionFilter', () => {
       expect(result.loggingContext.causeChain).toHaveLength(2);
       expect(result.loggingContext.causeChain[0]).toMatchObject({
         depth: 1,
-        name: 'UnknownError',
-        message:
-          'duplicate key value violates unique constraint "budgets_user_month_year_key"',
+        errorType: 'UnknownError',
       });
       expect(result.loggingContext.causeChain[1]).toMatchObject({
         depth: 2,
-        name: 'Error',
-        message: 'PostgreSQL Error',
+        errorType: 'Error',
       });
+      expect(JSON.stringify(result.loggingContext)).not.toContain(
+        'duplicate key value',
+      );
     });
 
     it('should log BusinessException with enriched context', async () => {
@@ -1063,19 +1066,20 @@ describe('GlobalExceptionFilter', () => {
       testFilter.catch(businessException, host);
 
       expect(loggerErrorSpy.calls).toHaveLength(1);
-      expect(loggerErrorSpy.calls[0].message).toBe(
-        'SERVER ERROR: Failed to create budget',
-      );
+      expect(loggerErrorSpy.calls[0].message).toBe('SERVER ERROR');
       expect(loggerErrorSpy.calls[0].context).toMatchObject({
         requestId: 'req-123-456',
         userId: 'user-456',
         operation: 'create',
         causeChain: expect.any(Array),
         rootCause: expect.objectContaining({
-          name: 'Error',
-          message: 'Database connection failed',
+          errorType: 'Error',
+          stackFrames: expect.any(Array),
         }),
       });
+      expect(JSON.stringify(loggerErrorSpy.calls[0])).not.toContain(
+        'Database connection failed',
+      );
     });
 
     it('should properly format BusinessException response with details', async () => {
@@ -1214,11 +1218,10 @@ describe('GlobalExceptionFilter', () => {
       expect(logContext.causeChain).toBeDefined();
       expect(Array.isArray(logContext.causeChain)).toBe(true);
       expect((logContext.causeChain as unknown[]).length).toBeGreaterThan(0);
-      expect((logContext.causeChain as { message: string }[])[0]).toMatchObject(
-        {
-          message: 'Connection refused',
-        },
-      );
+      expect(
+        (logContext.causeChain as { errorType: string }[])[0],
+      ).toMatchObject({ errorType: 'Error' });
+      expect(JSON.stringify(logCall)).not.toContain('Connection refused');
 
       // Verify message format
       const logMessage = logCall[1] as string;
@@ -1260,9 +1263,11 @@ describe('GlobalExceptionFilter', () => {
       const logContext = logCall[0] as Record<string, unknown>;
 
       // In development, stack trace should be included
-      const causeChain = logContext.causeChain as { stack?: string }[];
-      expect(causeChain[0].stack).toBeDefined();
-      expect(causeChain[0].stack).toContain('ECONNREFUSED');
+      const causeChain = logContext.causeChain as {
+        stackFrames?: string[];
+      }[];
+      expect(causeChain[0].stackFrames).toBeDefined();
+      expect(JSON.stringify(causeChain)).not.toContain('ECONNREFUSED');
     });
 
     it('should include stack trace in causeChain in production for logging', () => {
@@ -1300,8 +1305,10 @@ describe('GlobalExceptionFilter', () => {
       const logContext = logCall[0] as Record<string, unknown>;
 
       // In production, stack trace SHOULD be in causeChain for debugging
-      const causeChain = logContext.causeChain as { stack?: string }[];
-      expect(causeChain[0].stack).toBeDefined();
+      const causeChain = logContext.causeChain as {
+        stackFrames?: string[];
+      }[];
+      expect(causeChain[0].stackFrames).toBeDefined();
     });
 
     it('should preserve rootCause info in log context', () => {
@@ -1336,9 +1343,12 @@ describe('GlobalExceptionFilter', () => {
 
       expect(logContext.rootCause).toBeDefined();
       expect(logContext.rootCause).toMatchObject({
-        name: 'Error',
-        message: 'Database connection timeout',
+        errorType: 'Error',
+        stackFrames: expect.any(Array),
       });
+      expect(JSON.stringify(logContext)).not.toContain(
+        'Database connection timeout',
+      );
     });
 
     it('should use warn for 4xx errors and error for 5xx', () => {

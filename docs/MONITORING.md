@@ -203,9 +203,11 @@ supabase_user_id = "user-123"      # Compte support spécifique
    avec cet identifiant.
 4. Remettre `DEBUG_HTTP_FULL=false` et redéployer après le diagnostic.
 
-Le mode détaillé conserve des payloads assainis et tronqués, sans commande
-cURL. Authorization, cookies, tokens, mots de passe, PIN et clés restent
-masqués. Le flag est toujours ignoré en production.
+Le mode détaillé conserve la structure des payloads assainis et tronqués, sans
+commande cURL. Authorization, cookies, tokens, mots de passe, PIN, clés,
+recherches et textes saisis restent masqués. Les erreurs conservent statut,
+code, type, request ID et frames fichier/ligne, jamais leur message brut. Le
+flag est toujours ignoré en production.
 
 ### Identifier une Erreur
 1. **PostHog Dashboard** → Events → Errors

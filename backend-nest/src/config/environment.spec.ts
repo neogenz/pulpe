@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'bun:test';
-import { resolveHttpLoggingDecision, validateConfig } from './environment';
+import {
+  isProductionLike,
+  resolveHttpLoggingDecision,
+  validateConfig,
+} from './environment';
 
 describe('Environment Validation', () => {
   describe('NODE_ENV (fail-loud, no default)', () => {
@@ -356,6 +360,12 @@ describe('Environment Validation', () => {
   });
 
   describe('HTTP logging mode', () => {
+    it('lets either runtime signal enforce production-like safeguards', () => {
+      expect(isProductionLike('development', 'production')).toBe(true);
+      expect(isProductionLike('development', 'preview')).toBe(true);
+      expect(isProductionLike('development', 'development')).toBe(false);
+    });
+
     it('allows detailed logs only when development or preview opts in', () => {
       expect(
         resolveHttpLoggingDecision({

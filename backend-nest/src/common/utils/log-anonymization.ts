@@ -45,6 +45,7 @@ const TRUNCATED = '[TRUNCATED]';
 const MAX_LOG_DEPTH = 5;
 const MAX_LOG_STRING_LENGTH = 2048;
 const MAX_LOG_COLLECTION_SIZE = 25;
+const MAX_STACK_FRAMES = 20;
 
 function isSensitiveLogKey(key: string): boolean {
   const normalized = key.toLowerCase().replace(/[\s_-]/g, '');
@@ -56,6 +57,17 @@ function isSensitiveLogKey(key: string): boolean {
       'cookie',
       'setcookie',
       'pin',
+      'q',
+      'email',
+      'name',
+      'description',
+      'label',
+      'title',
+      'content',
+      'text',
+      'cause',
+      'err',
+      'value',
       'cfturnstileresponse',
     ].includes(normalized) ||
     [
@@ -66,11 +78,38 @@ function isSensitiveLogKey(key: string): boolean {
       'clientkey',
       'recoverykey',
       'turnstileresponse',
+      'message',
+      'detail',
     ].some(
       (suffix) =>
         normalized.endsWith(suffix) || normalized.endsWith(`${suffix}s`),
     )
   );
+}
+
+export const sanitizeLogTechnicalValue = (
+  value: unknown,
+): string | undefined =>
+  typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/.test(value)
+    ? value
+    : undefined;
+
+export function sanitizeStackFrames(stack?: string): string[] | undefined {
+  if (!stack) return undefined;
+
+  const frames = stack
+    .split('\n')
+    .slice(1)
+    .filter((line) => /^\s*at\s+/.test(line))
+    .slice(0, MAX_STACK_FRAMES)
+    .map((line) => {
+      const location = line.match(/^(.*?)(:\d+:\d+\)?)$/);
+      const prefix = location?.[1] ?? line;
+      const position = location?.[2] ?? '';
+      return `${prefix.split(/[?#]/)[0]}${position}`.trim();
+    });
+
+  return frames.length > 0 ? frames : undefined;
 }
 
 /**

@@ -69,7 +69,9 @@ import { ScheduleModule } from '@nestjs/schedule';
 import {
   anonymizeIp,
   parseDeviceType,
+  sanitizeLogTechnicalValue,
   sanitizeLogValue,
+  sanitizeStackFrames,
   toLogPath,
 } from '@common/utils/log-anonymization';
 import { createRequestIdGenerator } from '@common/utils/request-id';
@@ -123,6 +125,7 @@ function createDebugSerializers() {
       statusCode: res.statusCode,
       headers: sanitizeLogValue(res.headers),
     }),
+    err: serializeError,
   };
 }
 
@@ -147,6 +150,23 @@ function createProductionSerializers() {
     res: (res: ServerResponse & { statusCode?: number }) => ({
       statusCode: res.statusCode,
     }),
+    err: serializeError,
+  };
+}
+
+function serializeError(
+  error: Error & { code?: unknown; status?: unknown; statusCode?: unknown },
+) {
+  return {
+    type: sanitizeLogTechnicalValue(error.name) ?? 'Error',
+    code: sanitizeLogTechnicalValue(error.code),
+    statusCode:
+      typeof error.statusCode === 'number'
+        ? error.statusCode
+        : typeof error.status === 'number'
+          ? error.status
+          : undefined,
+    stackFrames: sanitizeStackFrames(error.stack),
   };
 }
 
@@ -155,9 +175,7 @@ export function createPinoLoggerConfig(configService: ConfigService) {
   const railwayEnvironmentName = configService.get<string>(
     'RAILWAY_ENVIRONMENT_NAME',
   );
-  const productionLike =
-    isProductionLike(nodeEnv) ||
-    railwayEnvironmentName?.trim().toLowerCase() === 'production';
+  const productionLike = isProductionLike(nodeEnv, railwayEnvironmentName);
   const loggingDecision = resolveHttpLoggingDecision({
     NODE_ENV: nodeEnv,
     DEBUG_HTTP_FULL: configService.get<string>('DEBUG_HTTP_FULL'),
@@ -199,9 +217,9 @@ export function createPinoLoggerConfig(configService: ConfigService) {
       customErrorMessage: (
         req: IncomingMessage & { method?: string; url?: string },
         res: ServerResponse & { statusCode?: number },
-        error: Error,
+        _error: Error,
       ) => {
-        return `${req.method} ${toLogPath(req.url)} ${res.statusCode} - ${error.message}`;
+        return `${req.method} ${toLogPath(req.url)} ${res.statusCode} - request failed`;
       },
       serializers:
         loggingDecision.mode === 'detailed'
@@ -239,7 +257,10 @@ export function createPinoLoggerConfig(configService: ConfigService) {
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
         const nodeEnv = config.get<string>('NODE_ENV');
-        const isDev = !isProductionLike(nodeEnv);
+        const isDev = !isProductionLike(
+          nodeEnv,
+          config.get<string>('RAILWAY_ENVIRONMENT_NAME'),
+        );
 
         return {
           throttlers: [
@@ -301,7 +322,7 @@ export function createPinoLoggerConfig(configService: ConfigService) {
     AppVersionModule,
     WhatsNewModule,
     // Only include DebugModule in non-production-like environments
-    ...(!isProductionLike(process.env.NODE_ENV) ? [DebugModule] : []),
+    ...(!isProductionLike() ? [DebugModule] : []),
     FiltersModule,
   ],
   providers: [

@@ -18,10 +18,13 @@ import { REQUEST_ID_HEADER } from 'pulpe-shared';
 
 function setupCors(app: import('@nestjs/common').INestApplication): void {
   const configService = app.get(ConfigService);
-  const nodeEnv = configService.get<string>('NODE_ENV', 'development');
+  const productionLike = isProductionLike(
+    configService.get<string>('NODE_ENV', 'development'),
+    configService.get<string>('RAILWAY_ENVIRONMENT_NAME'),
+  );
 
   app.enableCors({
-    origin: createOriginValidator(configService, nodeEnv),
+    origin: createOriginValidator(configService, productionLike),
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: [
       'Content-Type',
@@ -37,7 +40,7 @@ function setupCors(app: import('@nestjs/common').INestApplication): void {
 
 function createOriginValidator(
   configService: ConfigService,
-  nodeEnv: string,
+  productionLike: boolean,
 ): (
   origin: string | undefined,
   callback: (err: Error | null, allow?: boolean) => void,
@@ -48,7 +51,7 @@ function createOriginValidator(
       return callback(null, true);
     }
 
-    if (isProductionLike(nodeEnv)) {
+    if (productionLike) {
       if (isAllowedOriginProduction(origin, configService)) {
         return callback(null, true);
       }
@@ -275,7 +278,10 @@ async function bootstrap() {
   };
 
   app.useLogger(app.get(Logger));
-  const productionLike = isProductionLike(env.NODE_ENV);
+  const productionLike = isProductionLike(
+    env.NODE_ENV,
+    env.RAILWAY_ENVIRONMENT_NAME,
+  );
 
   // Setup security middleware
   setupSecurity(app, productionLike);
