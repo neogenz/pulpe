@@ -70,7 +70,7 @@ describe('PostHogService', () => {
       sampleRate: 1.0,
     },
     debug: false,
-  } as const;
+  };
   let postHogSignal: ReturnType<typeof signal<typeof defaultConfig>>;
   let environmentSignal: ReturnType<typeof signal<string>>;
 
@@ -176,7 +176,7 @@ describe('PostHogService', () => {
     expect(posthog.capture).toHaveBeenCalledWith('$pageview');
   });
 
-  it('forces session replay off in production', async () => {
+  it('keeps configured session replay enabled in production', async () => {
     const posthogModule = await import('posthog-js');
     const posthog = posthogModule.default;
     environmentSignal.set('production');
@@ -185,22 +185,29 @@ describe('PostHogService', () => {
 
     expect(posthog.init).toHaveBeenCalledWith(
       defaultConfig.apiKey,
-      expect.objectContaining({ disable_session_recording: true }),
+      expect.objectContaining({ disable_session_recording: false }),
     );
   });
 
-  it.each(['local', 'preview'])(
-    'keeps session replay configurable in %s',
+  it.each(['local', 'preview', 'production'])(
+    'keeps session replay disabled by configuration in %s',
     async (environment) => {
       const posthogModule = await import('posthog-js');
       const posthog = posthogModule.default;
       environmentSignal.set(environment);
+      postHogSignal.set({
+        ...defaultConfig,
+        sessionRecording: {
+          ...defaultConfig.sessionRecording,
+          enabled: false,
+        },
+      });
 
       await service.initialize();
 
       expect(posthog.init).toHaveBeenCalledWith(
         defaultConfig.apiKey,
-        expect.objectContaining({ disable_session_recording: false }),
+        expect.objectContaining({ disable_session_recording: true }),
       );
     },
   );
@@ -267,11 +274,18 @@ describe('PostHogService', () => {
     expect(service.diagnosticSharingEnabled()).toBe(true);
   });
 
-  it('never restarts session replay after production opt-in', async () => {
+  it('never restarts session replay when it is disabled by configuration', async () => {
     const posthogModule = await import('posthog-js');
     const posthog = posthogModule.default;
     optedOut = true;
     environmentSignal.set('production');
+    postHogSignal.set({
+      ...defaultConfig,
+      sessionRecording: {
+        ...defaultConfig.sessionRecording,
+        enabled: false,
+      },
+    });
     await service.initialize();
 
     service.setDiagnosticSharingEnabled(true);

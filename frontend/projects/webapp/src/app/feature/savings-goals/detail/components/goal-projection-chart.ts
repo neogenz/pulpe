@@ -115,7 +115,11 @@ import {
         </dl>
       </div>
 
-      <p class="sr-only" aria-live="polite" data-testid="goal-projection-aria">
+      <p
+        class="ph-no-capture sr-only"
+        aria-live="polite"
+        data-testid="goal-projection-aria"
+      >
         {{ ariaSentence() }}
       </p>
     </div>

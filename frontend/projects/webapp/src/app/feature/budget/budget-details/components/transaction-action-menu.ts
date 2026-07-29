@@ -34,7 +34,7 @@ import type { Transaction } from 'pulpe-shared';
       [matMenuTriggerFor]="actionMenu"
       (click)="$event.stopPropagation()"
       [attr.data-testid]="'tx-menu-' + transaction().id"
-      [attr.aria-label]="'Actions pour ' + transaction().name"
+      aria-label="Actions de la transaction"
       class="shrink-0"
       [class]="buttonClass()"
     >
@@ -43,8 +43,9 @@ import type { Transaction } from 'pulpe-shared';
 
     <mat-menu #actionMenu="matMenu" xPosition="before">
       <div
-        class="px-4 py-2 text-label-medium text-on-surface-variant max-w-48 truncate"
+        class="ph-no-capture px-4 py-2 text-label-medium text-on-surface-variant max-w-48 truncate"
         [matTooltip]="transaction().name"
+        matTooltipClass="ph-no-capture"
         matTooltipShowDelay="500"
       >
         {{ transaction().name }}

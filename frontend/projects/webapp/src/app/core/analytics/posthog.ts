@@ -84,9 +84,7 @@ export class PostHogService {
       expireLegacySharedCookie(config.apiKey);
       const posthog = (await import('posthog-js')).default;
       this.#posthog = posthog;
-      this.#sessionReplayEnabled =
-        this.#applicationConfiguration.environment() !== 'production' &&
-        config.sessionRecording?.enabled === true;
+      this.#sessionReplayEnabled = config.sessionRecording?.enabled === true;
 
       posthog.init(config.apiKey, {
         api_host: config.host,

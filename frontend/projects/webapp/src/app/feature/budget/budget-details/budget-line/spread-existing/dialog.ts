@@ -171,7 +171,7 @@ const MIN_SPREAD_MONTHS = 2;
                       }
               }}
             </p>
-            <p class="text-body-small text-on-surface-variant">
+            <p class="ph-no-capture text-body-small text-on-surface-variant">
               {{
                 'budgetLine.spread.perMonthEcho'
                   | transloco
