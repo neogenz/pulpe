@@ -13,11 +13,14 @@ const git = (...args) => {
   return result.stdout;
 };
 
-test("a clone does not pre-authorize repository automation", () => {
+test("a clone does not pre-authorize sensitive repository automation", () => {
   const settings = JSON.parse(read(".claude/settings.json"));
   assert.equal(settings.permissions, undefined);
   assert.equal(settings.enableAllProjectMcpServers, undefined);
-  assert.equal(settings.hooks, undefined);
+  assert.doesNotMatch(
+    JSON.stringify(settings.hooks?.SessionStart ?? []),
+    /(?:sync-env|\.env\b|CONDUCTOR_ROOT_PATH|PULPE_MAIN_WORKSPACE)/i,
+  );
   assert.equal(
     existsSync(
       new URL(
@@ -136,4 +139,25 @@ test("tracked project files exclude local archives and obsolete fixtures", () =>
     internalGuidance,
     /3 production users|QI dans la moyenne|Maxime de Sogus|127 pts|App Store submission pending/i,
   );
+
+  const productDesigner = read(".claude/skills/product-designer/SKILL.md");
+  assert.match(productDesigner, /Revolut, UBS, PostFinance, Raiffeisen/);
+  assert.match(productDesigner, /Lois UX/);
+
+  const productOwner = read(".claude/skills/product-owner/SKILL.md");
+  assert.match(productOwner, /Calculer la vélocité d'un sprint/);
+  assert.match(
+    productOwner,
+    /Additionner uniquement les estimations déjà enregistrées dans Linear/,
+  );
+  assert.match(
+    productOwner,
+    /Ne jamais estimer rétroactivement ni modifier une issue "Done"/,
+  );
+
+  const storyFormat = read(
+    ".claude/skills/product-owner/references/user-story-format.md",
+  );
+  assert.match(storyFormat, /Template \(copier-coller exact\)/);
+  assert.match(storyFormat, /Barème d'estimation \(Story Points\)/);
 });

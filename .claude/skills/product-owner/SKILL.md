@@ -173,14 +173,22 @@ Checklist before creating the issue:
 
 Then create the issue via `create_issue` with the story as `description`.
 
-### 6. Estimation
+### 6. Estimation & Vélocité
 
 #### Estimer une issue
 
 Lors de la création ou du triage d'une issue, toujours attribuer des **story points** selon le barème défini dans `references/user-story-format.md`. Passer le champ `estimate` à Linear via `save_issue`.
 
-Les métriques de cycle se consultent dans Linear au moment du besoin. Ne pas figer de
-vélocité personnelle ou de volume d'utilisateurs dans ce skill.
+#### Calculer la vélocité d'un sprint
+
+1. Fetch les issues "Done" du sprint : `list_issues` avec `cycle: "Sprint N"`, `state: "Done"`, `team: "Pulpe"`
+2. Additionner uniquement les estimations déjà enregistrées dans Linear
+3. Présenter un tableau récapitulatif avec l'estimation de chaque issue
+4. Lister séparément les issues "Done" sans estimation : elles sous-comptent la vélocité
+5. Ne jamais estimer rétroactivement ni modifier une issue "Done" pour calculer la vélocité
+6. Afficher le total : **Vélocité Sprint N = X points estimés**
+
+Les métriques de cycle se consultent dans Linear au moment du besoin. Ne pas figer de vélocité personnelle ou de volume d'utilisateurs dans ce skill.
 
 ### 7. Issue Triage
 
