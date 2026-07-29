@@ -106,13 +106,17 @@ const WINDOW_OPEN_ROWS = 3;
                   [attr.data-testid]="
                     row.isRepairable
                       ? 'goal-plan-repair-chip'
-                      : 'goal-plan-gap-chip'
+                      : row.hasBudget
+                        ? 'goal-plan-no-forecast-chip'
+                        : 'goal-plan-gap-chip'
                   "
                 >
                   {{
                     (row.isRepairable
                       ? 'savingsGoals.plan.repairChip'
-                      : 'savingsGoals.plan.gapChip'
+                      : row.hasBudget
+                        ? 'savingsGoals.plan.noForecastChip'
+                        : 'savingsGoals.plan.gapChip'
                     ) | transloco
                   }}
                 </span>

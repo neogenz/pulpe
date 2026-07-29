@@ -109,7 +109,7 @@ describe('GoalPlanTimeline', () => {
     ).toBeNull();
   });
 
-  it('distinguishes a missing budget, a repairable budget and a linked forecast', () => {
+  it('distinguishes missing, repairable, non-actionable and linked forecasts', () => {
     setTestInput(fixture.componentInstance.months, [
       makeMonth({ month: 3, state: 'current' }),
       makeMonth({
@@ -130,7 +130,16 @@ describe('GoalPlanTimeline', () => {
         plannedCumulative: 900,
         lines: [],
       }),
-      makeMonth({ month: 6, hasBudget: true }),
+      makeMonth({
+        month: 6,
+        state: 'gap',
+        hasBudget: true,
+        isProvisionable: false,
+        plannedAmount: 0,
+        plannedCumulative: 900,
+        lines: [],
+      }),
+      makeMonth({ month: 7, hasBudget: true }),
     ]);
     setTestInput(fixture.componentInstance.expanded, true);
     fixture.detectChanges();
@@ -142,6 +151,9 @@ describe('GoalPlanTimeline', () => {
       ),
     ).toHaveLength(1);
     expect(query('goal-plan-repair-chip')).toBeTruthy();
+    expect(
+      query('goal-plan-no-forecast-chip').nativeElement.textContent,
+    ).toContain('Aucune épargne prévue');
     expect(query('goal-plan-gap-hint')).toBeTruthy();
   });
 

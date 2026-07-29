@@ -355,6 +355,17 @@ struct SavingsGoalDetailViewModelTests {
 }
 
 extension SavingsGoalDetailViewModelTests {
+    @Test("timeline stays visible before the first forecast is linked")
+    func timeline_zeroLinkedRepairableMonth_isVisible() {
+        let progress = makeProgress(
+            linkedLineCount: 0,
+            months: [makePlanMonth(month: 8, state: .gap, isLocked: false, planned: 0)]
+        )
+
+        #expect(SavingsGoalDetailViewModel.shouldShowPlanTimeline(progress))
+        #expect(SavingsGoalDetailViewModel.canRepairPlan(progress, status: .active))
+    }
+
     @Test("recovery ignores a zero required amount")
     func applyMissingForecasts_rejectsZeroRequired() async {
         let service = MockSavingsGoalService()

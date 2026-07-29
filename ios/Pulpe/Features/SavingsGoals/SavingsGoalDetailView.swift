@@ -154,21 +154,20 @@ struct SavingsGoalDetailView: View {
                     onManageFutureLines: { Task { await proposeGenerationStop() } }
                 )
 
-                if progress.linkedLineCount > 0, !progress.months.isEmpty {
-                    // Construite une seule fois : la même série gate la section
-                    // et alimente le chart (jusqu'à ~96 mois mappés par lecture).
-                    let series = GoalProjectionSeries.read(from: progress)
-                    if series.hasConfirmedTrend {
-                        GoalTrajectorySection(progress: progress, series: series, currency: currency)
+                if SavingsGoalDetailViewModel.shouldShowPlanTimeline(progress) {
+                    if progress.linkedLineCount > 0 {
+                        // Construite une seule fois : la même série gate la section
+                        // et alimente le chart (jusqu'à ~96 mois mappés par lecture).
+                        let series = GoalProjectionSeries.read(from: progress)
+                        if series.hasConfirmedTrend {
+                            GoalTrajectorySection(progress: progress, series: series, currency: currency)
+                        }
                     }
                     GoalPlanTimelineSection(
                         months: progress.months,
                         currency: currency,
                         canAdjust: canAdjust(progress),
-                        canRepair: SavingsGoalDetailViewModel.canRepairPlan(
-                            progress,
-                            status: currentGoal.status
-                        ),
+                        canRepair: SavingsGoalDetailViewModel.canRepairPlan(progress, status: currentGoal.status),
                         onAdjust: { isSimulating = true },
                         onRepair: { showRecoveryRecap = true }
                     )
@@ -544,6 +543,10 @@ final class SavingsGoalDetailViewModel {
 
     static func canRepairPlan(_ progress: SavingsGoalProgress, status: SavingsGoalStatus) -> Bool {
         status == .active && (progress.required ?? 0) > 0
+    }
+
+    static func shouldShowPlanTimeline(_ progress: SavingsGoalProgress) -> Bool {
+        !progress.months.isEmpty
     }
 
     /// Initial / pull-to-refresh load. Shows the full-screen spinner while the

@@ -1100,6 +1100,7 @@
       "currentMonth": "Ce mois",
       "gapChip": "Pas de budget",
       "repairChip": "Épargne à ajouter",
+      "noForecastChip": "Aucune épargne prévue",
       "gapHint": "{{ count }} mois sans budget — ils s'ajouteront quand tu créeras ces budgets.",
       "repairTitle": "Tes nouveaux budgets sont prêts",
       "repairMessage": "{{ count }} prévision(s) Épargne peuvent maintenant être ajoutée(s) automatiquement.",
