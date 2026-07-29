@@ -1,6 +1,6 @@
 ---
 objective: "La récupération du plan d’épargne produit toujours un montant positif au centime, décrit exactement chaque état iOS et respecte la limite d’architecture BudgetDetails."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Fermer les derniers écarts de continuité du plan d’épargne
