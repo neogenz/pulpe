@@ -1,6 +1,6 @@
 ---
 objective: "La trajectoire de l’accueil ignore toute sortie pointée hors de sa période et ses annotations restent distinctes et lisibles aux tailles de texte standard comme accessibilité."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Corriger la trajectoire et les annotations du chart iOS
