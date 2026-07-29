@@ -149,14 +149,14 @@ export default function SupportPage() {
 
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-white"
+        className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:left-4 focus-visible:top-4 focus-visible:z-[60] focus-visible:rounded-lg focus-visible:bg-primary focus-visible:px-4 focus-visible:py-2 focus-visible:text-white"
       >
         Aller au contenu
       </a>
 
       <Header />
 
-      <main id="main-content">
+      <main id="main-content" tabIndex={-1}>
         <section className="hero-mesh relative overflow-hidden pb-10 pt-[calc(9rem+env(safe-area-inset-top))] md:pb-16 md:pt-[calc(10rem+env(safe-area-inset-top))]">
           <Container>
             <div className="mx-auto max-w-3xl">

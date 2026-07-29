@@ -925,6 +925,22 @@ describe("landing accessibility contracts", () => {
     assert.doesNotMatch(componentSources.support, /<details|<summary/);
   });
 
+  it("keeps skip links keyboard-only and moves focus to main content", () => {
+    for (const source of [componentSources.page, componentSources.support]) {
+      const skipLinkClass = source.match(
+        /href="#main-content"\s+className="([^"]+)"/,
+      )?.[1];
+
+      assert.ok(skipLinkClass, "Skip link classes are missing");
+      assert.match(skipLinkClass, /focus-visible:not-sr-only/);
+      assert.doesNotMatch(skipLinkClass, /(?:^|\s)focus:/);
+      assert.match(source, /<main id="main-content" tabIndex=\{-1\}>/);
+      assert.ok(
+        source.indexOf('href="#main-content"') < source.indexOf("<Header"),
+      );
+    }
+  });
+
   it("keeps audited support details polished on mobile and keyboard", () => {
     assert.match(
       componentSources.accordionItem,
