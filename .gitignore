@@ -115,6 +115,7 @@ docs/angular-architecture-for-enterprise.md
 .agents/*
 !.agents/skills/
 .agents/skills/*
+!.agents/skills/product-owner
 !.agents/skills/release
 .agent/skills/
 .gemini/skills/

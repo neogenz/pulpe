@@ -1,19 +1,6 @@
 ---
 name: product-owner
 description: "Product Owner assistant for Pulpe using Linear MCP. Manage issues, user stories, projects, backlog grooming, and sprint planning. Use when the user asks to create issues, plan sprints, groom backlog, check roadmap status, write user stories, manage projects, or any product management task for Pulpe."
-argument-hint: "[action or request]"
-allowed-tools:
-  - Bash(gh :*)
-  - Bash(cd :*)
-  - Read
-  - Glob
-  - Grep
-  - Task
-  - Skill
-  - AskUserQuestion
-metadata:
-  mcp-server: linear-server
-  version: 2.1.0
 ---
 
 # Product Owner — Pulpe
