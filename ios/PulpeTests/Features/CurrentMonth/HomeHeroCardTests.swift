@@ -228,6 +228,10 @@ struct HomeHeroCardTests {
 
         #expect(source.contains(".annotation(position: .top, alignment: .leading)"))
         #expect(source.contains(".annotation(position: .bottom, alignment: .trailing)"))
+        #expect(source.contains("Text(\"Prévu fin de période\")"))
+        #expect(source.contains("Text(\"Fin de période\")"))
+        #expect(source.contains("if let destination = trajectory.remainingPlan.last"))
+        #expect(!source.contains("Text(\"Solde prévu\")"))
     }
 
     @Test func heroCopyDropsPlanVarianceAndDailyRateKpis() throws {

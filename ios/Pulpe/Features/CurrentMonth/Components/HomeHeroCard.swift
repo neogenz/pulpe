@@ -159,7 +159,10 @@ struct HomeHeroCard: View {
     private var balanceChart: some View {
         if let trajectory, trajectory.tracked.count > 1 {
             Chart {
-                RuleMark(y: .value("Solde prévu", Self.decimalValue(trajectory.plannedBalance)))
+                RuleMark(y: .value(
+                    "Prévu fin de période",
+                    Self.decimalValue(trajectory.plannedBalance)
+                ))
                     .foregroundStyle(
                         Color.homeHeroSupport.opacity(DesignTokens.Opacity.heavy)
                     )
@@ -168,7 +171,7 @@ struct HomeHeroCard: View {
                         dash: DesignTokens.Chart.markerDash
                     ))
                     .annotation(position: .top, alignment: .leading) {
-                        Text("Solde prévu")
+                        Text("Prévu fin de période")
                             .font(PulpeTypography.caption2)
                             .foregroundStyle(Color.homeHeroSupport)
                     }
@@ -176,8 +179,8 @@ struct HomeHeroCard: View {
                 ForEach(trajectory.tracked) { point in
                     LineMark(
                         x: .value("Jour", point.day),
-                        y: .value("Solde réel", Self.decimalValue(point.balance)),
-                        series: .value("Série", "Réel")
+                        y: .value("Budget après pointage", Self.decimalValue(point.balance)),
+                        series: .value("Série", "Suivi pointé")
                     )
                     .interpolationMethod(.monotone)
                     .lineStyle(StrokeStyle(
@@ -191,8 +194,8 @@ struct HomeHeroCard: View {
                 ForEach(trajectory.remainingPlan) { point in
                     LineMark(
                         x: .value("Jour", point.day),
-                        y: .value("Solde estimé", Self.decimalValue(point.balance)),
-                        series: .value("Série", "Reste du plan")
+                        y: .value("Estimation finale", Self.decimalValue(point.balance)),
+                        series: .value("Série", "Raccord de fin")
                     )
                     .interpolationMethod(.linear)
                     .lineStyle(StrokeStyle(
@@ -226,6 +229,23 @@ struct HomeHeroCard: View {
                         Circle()
                             .strokeBorder(Color.homeHeroInk, lineWidth: DesignTokens.BorderWidth.thick)
                             .frame(width: DesignTokens.Spacing.md, height: DesignTokens.Spacing.md)
+                    }
+                }
+
+                if let destination = trajectory.remainingPlan.last {
+                    PointMark(
+                        x: .value("Fin de période", destination.day),
+                        y: .value(
+                            "Estimation finale",
+                            Self.decimalValue(destination.balance)
+                        )
+                    )
+                    .symbolSize(DesignTokens.Chart.pointSymbolArea)
+                    .foregroundStyle(accentColor)
+                    .annotation(position: .top, alignment: .trailing) {
+                        Text("Fin de période")
+                            .font(PulpeTypography.caption2)
+                            .foregroundStyle(Color.homeHeroSupport)
                     }
                 }
             }
