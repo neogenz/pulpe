@@ -39,6 +39,7 @@ enum APIError: LocalizedError {
     case savingsGoalReconciliationFailed
     case savingsGoalReconciliationRecalculationFailed
     case savingsGoalNotFound
+    case savingsGoalLineOutsideHorizon
     case savingsGoalDeletionImpactChanged
     case savingsGoalDeletionRecalculationFailed
     case tagAlreadyExists
@@ -121,6 +122,9 @@ enum APIError: LocalizedError {
                 + "recharge sans réessayer"
         case .savingsGoalNotFound:
             return "Cet objectif n'existe plus"
+        case .savingsGoalLineOutsideHorizon:
+            return "Certaines périodes dépassent l'échéance de cet objectif — "
+                + "raccourcis le lissage ou choisis un autre objectif"
         case .savingsGoalDeletionImpactChanged:
             return "Les éléments rattachés ont changé entre-temps — "
                 + "vérifie le nouvel impact avant de confirmer"
@@ -167,6 +171,7 @@ enum APIError: LocalizedError {
         "ERR_SAVINGS_GOAL_RECONCILIATION_FAILED": .savingsGoalReconciliationFailed,
         "ERR_SAVINGS_GOAL_RECONCILIATION_RECALCULATION_FAILED": .savingsGoalReconciliationRecalculationFailed,
         "ERR_SAVINGS_GOAL_NOT_FOUND": .savingsGoalNotFound,
+        "ERR_SAVINGS_GOAL_LINE_OUTSIDE_HORIZON": .savingsGoalLineOutsideHorizon,
         "ERR_SAVINGS_GOAL_DELETION_IMPACT_CHANGED": .savingsGoalDeletionImpactChanged,
         "ERR_SAVINGS_GOAL_DELETION_RECALCULATION_FAILED": .savingsGoalDeletionRecalculationFailed,
         "ERR_TAG_ALREADY_EXISTS": .tagAlreadyExists,

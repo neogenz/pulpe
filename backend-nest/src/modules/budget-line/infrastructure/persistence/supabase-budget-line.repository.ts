@@ -11,7 +11,10 @@ import {
 } from '@modules/encryption/encryption.tokens';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadata.mapper';
-import { isSavingsGoalLinkDenied } from '@common/utils/savings-goal-link';
+import {
+  isSavingsGoalLinkDenied,
+  isSavingsGoalLinkOutsideHorizon,
+} from '@common/utils/savings-goal-link';
 import * as tagLinks from '@common/utils/tag-links.util';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { BudgetLineRepositoryPort } from '../../domain/ports/budget-line-repository.port';
@@ -422,6 +425,14 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     error: PostgrestError | null,
     spreadGroupId: string,
   ): never {
+    if (isSavingsGoalLinkOutsideHorizon(error)) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_LINE_OUTSIDE_HORIZON,
+        undefined,
+        { operation: 'createSpreadBudgetLines', entityType: 'budget_line' },
+        { cause: error ?? undefined },
+      );
+    }
     if (isSavingsGoalLinkDenied(error)) {
       throw new BusinessException(
         ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,

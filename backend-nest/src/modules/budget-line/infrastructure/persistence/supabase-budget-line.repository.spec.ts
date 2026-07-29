@@ -893,6 +893,33 @@ describe('SupabaseBudgetLineRepository', () => {
       ).rejects.toMatchObject({ code: 'ERR_SAVINGS_GOAL_NOT_FOUND' });
     });
 
+    it('maps a spread past the goal deadline to a dedicated 422', async () => {
+      const mockRpc = jest.fn().mockResolvedValue({
+        data: null,
+        error: {
+          code: 'P0001',
+          message: 'Savings goal line outside target horizon',
+        },
+      });
+      const provider = createMockProvider(() => ({}), mockRpc);
+      repo = createRepository(
+        provider,
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+      try {
+        await repo.createSpread(spreadGroupId, [spreadInput]);
+        throw new Error('Expected createSpread to throw');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          'ERR_SAVINGS_GOAL_LINE_OUTSIDE_HORIZON',
+        );
+        expect((error as BusinessException).getStatus()).toBe(422);
+      }
+    });
+
     it('maps a consumed source (concurrent retry) to a 409 conflict', async () => {
       const mockRpc = jest.fn().mockResolvedValue({
         data: null,

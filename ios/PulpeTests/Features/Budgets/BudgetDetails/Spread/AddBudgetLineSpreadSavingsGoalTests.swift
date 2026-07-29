@@ -32,4 +32,30 @@ struct AddBudgetLineSpreadSavingsGoalTests {
         let json = try #require(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
         #expect(json["savingsGoalId"] as? String == goalId)
     }
+
+    @Test
+    func horizonError_isLocalized() {
+        let error = APIError.from(
+            code: "ERR_SAVINGS_GOAL_LINE_OUTSIDE_HORIZON",
+            message: nil
+        )
+
+        #expect(
+            error.errorDescription ==
+                "Certaines périodes dépassent l'échéance de cet objectif — "
+                + "raccourcis le lissage ou choisis un autre objectif"
+        )
+    }
+
+    @Test
+    func spreadCta_namesSavingAndExpense() {
+        #expect(
+            AddBudgetLineSpreadLogic.ctaTitle(for: .saving) ==
+                "Lisser l’épargne"
+        )
+        #expect(
+            AddBudgetLineSpreadLogic.ctaTitle(for: .expense) ==
+                "Lisser la dépense"
+        )
+    }
 }

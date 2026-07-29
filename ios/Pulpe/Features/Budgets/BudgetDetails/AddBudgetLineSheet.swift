@@ -202,7 +202,7 @@ struct AddBudgetLineSheet: View {
 
     private var ctaTitle: String {
         if isSavingsWithdrawalMode { return "Continuer" }
-        return isSpreadMode ? "Lisser la dépense" : "Ajouter"
+        return isSpreadMode ? AddBudgetLineSpreadLogic.ctaTitle(for: kind) : "Ajouter"
     }
 
     private var addButton: some View {

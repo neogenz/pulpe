@@ -47,6 +47,18 @@ describe('ApiErrorLocalizer', () => {
     );
   });
 
+  it('should explain when a spread exceeds its savings-goal deadline', () => {
+    const error = new ApiError(
+      'Savings goal line outside target horizon',
+      'ERR_SAVINGS_GOAL_LINE_OUTSIDE_HORIZON',
+      422,
+      null,
+    );
+    expect(service.localizeApiError(error)).toBe(
+      "Certaines périodes dépassent l'échéance de cet objectif — raccourcis le lissage ou choisis un autre objectif",
+    );
+  });
+
   it('should warn that a generation-stop decision committed when balance refresh fails', () => {
     const error = new ApiError(
       'Decision committed but recalculation failed',

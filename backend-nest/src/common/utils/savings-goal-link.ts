@@ -35,6 +35,8 @@ export function savingsGoalIdPatchForKind(
  * *_FAILED 500.
  */
 const SAVINGS_GOAL_LINK_DENIED_MESSAGE = 'Savings goal access denied';
+const SAVINGS_GOAL_OUTSIDE_HORIZON_MESSAGE =
+  'Savings goal line outside target horizon';
 
 export function isSavingsGoalLinkDenied(error: unknown): boolean {
   const { code, message } = (error ?? {}) as {
@@ -44,5 +46,16 @@ export function isSavingsGoalLinkDenied(error: unknown): boolean {
   return (
     code === 'P0001' &&
     Boolean(message?.includes(SAVINGS_GOAL_LINK_DENIED_MESSAGE))
+  );
+}
+
+export function isSavingsGoalLinkOutsideHorizon(error: unknown): boolean {
+  const { code, message } = (error ?? {}) as {
+    code?: string;
+    message?: string;
+  };
+  return (
+    code === 'P0001' &&
+    Boolean(message?.includes(SAVINGS_GOAL_OUTSIDE_HORIZON_MESSAGE))
   );
 }

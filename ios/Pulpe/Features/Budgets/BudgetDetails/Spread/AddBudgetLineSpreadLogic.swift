@@ -7,6 +7,10 @@ import Foundation
 /// the right per-month amount + months, single frozen FX, cross-budget
 /// invalidation fired, success-toast copy) without bootstrapping SwiftUI.
 enum AddBudgetLineSpreadLogic {
+    static func ctaTitle(for kind: TransactionKind) -> String {
+        kind == .saving ? "Lisser l’épargne" : "Lisser la dépense"
+    }
+
     /// Form inputs for one spread submit. FX is already resolved once upstream
     /// (`conversion`) so a single frozen `exchangeRate` covers every month. `mode`
     /// decides whether `amount` is read as a per-month figure or the TOTAL.

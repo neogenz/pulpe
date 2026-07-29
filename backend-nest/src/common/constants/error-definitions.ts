@@ -532,6 +532,11 @@ export const ERROR_DEFINITIONS = {
     message: () => 'Failed to fetch savings goals',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
+  SAVINGS_GOAL_LINE_OUTSIDE_HORIZON: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_LINE_OUTSIDE_HORIZON,
+    message: () => 'One or more savings periods fall after the goal deadline.',
+    httpStatus: HttpStatus.UNPROCESSABLE_ENTITY,
+  },
   SAVINGS_GOAL_DELETION_IMPACT_CHANGED: {
     code: API_ERROR_CODES.SAVINGS_GOAL_DELETION_IMPACT_CHANGED,
     message: () =>
