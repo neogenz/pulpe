@@ -17,7 +17,7 @@ status: in-progress
 | Phase | Objective | Status |
 |---|---|---|
 | [1. Corriger les contrats d’interaction](./phase-1.md) | Réparer la hitbox Accueil et restaurer la visibilité conditionnelle du plus Budget avec des tests structurels ciblés. | done |
-| [2. Prouver l’accessibilité sur les vues réelles](./phase-2.md) | Tester les actions de production, sans PIN ni backend, sur petit écran et Dynamic Type d’accessibilité. | pending |
+| [2. Prouver l’accessibilité sur les vues réelles](./phase-2.md) | Tester les actions de production, sans PIN ni backend, sur petit écran et Dynamic Type d’accessibilité. | done |
 
 ## Resources
 

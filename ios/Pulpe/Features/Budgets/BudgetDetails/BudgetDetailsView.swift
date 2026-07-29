@@ -124,12 +124,13 @@ struct BudgetDetailsView: View {
                 } label: {
                     Image(systemName: "chart.bar.fill")
                 }
+                .iconButtonStyle()
                 .accessibilityLabel("Suivi du budget")
-
                 if screenState.isBudgetPresent {
                     Button { router.present(.addBudgetLine) } label: {
                         Image(systemName: "plus")
                     }
+                    .iconButtonStyle()
                     .accessibilityLabel("Ajouter une prévision")
                 }
             }
