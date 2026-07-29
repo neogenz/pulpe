@@ -158,6 +158,7 @@ struct HomeHeroCard: View {
     @ViewBuilder
     private var balanceChart: some View {
         if let trajectory, trajectory.tracked.count > 1 {
+            let annotations = ChartAnnotationLayout(dynamicTypeSize: dynamicTypeSize)
             Chart {
                 RuleMark(y: .value(
                     "Prévu fin de période",
@@ -170,10 +171,14 @@ struct HomeHeroCard: View {
                         lineWidth: DesignTokens.BorderWidth.thin,
                         dash: DesignTokens.Chart.markerDash
                     ))
-                    .annotation(position: .top, alignment: .leading) {
-                        Text("Prévu fin de période")
+                    .annotation(
+                        position: annotations.plannedPosition,
+                        alignment: annotations.plannedAlignment
+                    ) {
+                        Text(annotations.plannedLabel)
                             .font(PulpeTypography.caption2)
                             .foregroundStyle(Color.homeHeroSupport)
+                            .lineLimit(1)
                     }
 
                 ForEach(trajectory.tracked) { point in
@@ -212,10 +217,14 @@ struct HomeHeroCard: View {
                         lineWidth: DesignTokens.BorderWidth.thin,
                         dash: DesignTokens.Chart.markerDash
                     ))
-                    .annotation(position: .bottom, alignment: .trailing) {
-                        Text("Aujourd’hui")
+                    .annotation(
+                        position: annotations.todayPosition,
+                        alignment: annotations.todayAlignment
+                    ) {
+                        Text(annotations.todayLabel)
                             .font(PulpeTypography.caption2)
                             .foregroundStyle(Color.homeHeroSupport)
+                            .lineLimit(1)
                     }
 
                 if let current = trajectory.tracked.last {
@@ -242,10 +251,14 @@ struct HomeHeroCard: View {
                     )
                     .symbolSize(DesignTokens.Chart.pointSymbolArea)
                     .foregroundStyle(accentColor)
-                    .annotation(position: .top, alignment: .trailing) {
-                        Text("Fin de période")
+                    .annotation(
+                        position: annotations.destinationPosition,
+                        alignment: annotations.destinationAlignment
+                    ) {
+                        Text(annotations.destinationLabel)
                             .font(PulpeTypography.caption2)
                             .foregroundStyle(Color.homeHeroSupport)
+                            .lineLimit(1)
                     }
                 }
             }
@@ -278,6 +291,40 @@ struct HomeHeroCard: View {
 
     private static func decimalValue(_ value: Decimal) -> Double {
         Double(truncating: value as NSDecimalNumber)
+    }
+}
+
+// MARK: - Chart Annotation Layout
+
+extension HomeHeroCard {
+    struct ChartAnnotationLayout: Equatable {
+        let plannedPosition: AnnotationPosition
+        let plannedAlignment: Alignment
+        let plannedLabel: String
+        let destinationPosition: AnnotationPosition
+        let destinationAlignment: Alignment
+        let destinationLabel: String
+        let todayPosition: AnnotationPosition
+        let todayAlignment: Alignment
+        let todayLabel: String
+
+        init(dynamicTypeSize: DynamicTypeSize) {
+            plannedPosition = .bottom
+            plannedAlignment = .leading
+            destinationPosition = .top
+            destinationAlignment = .trailing
+            todayPosition = .bottom
+            todayAlignment = .trailing
+            todayLabel = "Aujourd’hui"
+
+            if dynamicTypeSize.isAccessibilitySize {
+                plannedLabel = "Prévu"
+                destinationLabel = "Fin"
+            } else {
+                plannedLabel = "Prévu fin de période"
+                destinationLabel = "Fin de période"
+            }
+        }
     }
 }
 

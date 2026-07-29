@@ -256,21 +256,29 @@ struct HomeHeroCardTests {
         #expect(source.components(separatedBy: "LinearGradient(").count == 2)
     }
 
-    @Test func chartAnnotationsStayOnOppositeSides() throws {
-        let sourceFile = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appending(path: "Pulpe/Features/CurrentMonth/Components/HomeHeroCard.swift")
-        let source = try String(contentsOf: sourceFile, encoding: .utf8)
+    @MainActor
+    @Test func chartAnnotationLayoutSeparatesPlanAndDestinationAtEveryTextSize() {
+        let standard = HomeHeroCard.ChartAnnotationLayout(dynamicTypeSize: .large)
+        let accessibility = HomeHeroCard.ChartAnnotationLayout(
+            dynamicTypeSize: .accessibility3
+        )
 
-        #expect(source.contains(".annotation(position: .top, alignment: .leading)"))
-        #expect(source.contains(".annotation(position: .bottom, alignment: .trailing)"))
-        #expect(source.contains("Text(\"Prévu fin de période\")"))
-        #expect(source.contains("Text(\"Fin de période\")"))
-        #expect(source.contains("if let destination = trajectory.remainingPlan.last"))
-        #expect(!source.contains("Text(\"Solde prévu\")"))
+        #expect(standard.plannedPosition == .bottom)
+        #expect(standard.plannedAlignment == .leading)
+        #expect(standard.destinationPosition == .top)
+        #expect(standard.destinationAlignment == .trailing)
+        #expect(standard.plannedPosition != standard.destinationPosition)
+        #expect(standard.todayPosition == .bottom)
+        #expect(standard.todayAlignment == .trailing)
+        #expect(standard.plannedLabel == "Prévu fin de période")
+        #expect(standard.destinationLabel == "Fin de période")
+        #expect(standard.todayLabel == "Aujourd’hui")
+
+        #expect(accessibility.plannedPosition != accessibility.destinationPosition)
+        #expect(accessibility.plannedLabel == "Prévu")
+        #expect(accessibility.destinationLabel == "Fin")
+        #expect(!accessibility.plannedLabel.contains("\n"))
+        #expect(!accessibility.destinationLabel.contains("\n"))
     }
 
     @Test func heroCopyDropsPlanVarianceAndDailyRateKpis() throws {
