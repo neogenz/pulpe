@@ -1,6 +1,6 @@
 ---
 objective: "La récupération du plan d’épargne décrit honnêtement sa garantie séquentielle et n’affiche que des actions et libellés exacts sur web et iOS."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Clore la revue sans sur-traiter la concurrence marginale
