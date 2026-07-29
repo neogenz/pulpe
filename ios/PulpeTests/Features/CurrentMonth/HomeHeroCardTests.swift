@@ -61,17 +61,78 @@ struct HomeHeroCardTests {
             metrics: metrics,
             plannedBalance: 250,
             budget: TestDataFactory.createBudget(month: 7, year: 2026),
+            payDayOfMonth: nil,
             referenceDate: referenceDate
         ))
 
-        #expect(trajectory.actual.map(\.balance) == [1000, 1000, 900, 850])
-        #expect(trajectory.projected == [
+        #expect(trajectory.tracked.map(\.balance) == [1000, 1000, 900, 850])
+        #expect(trajectory.remainingPlan == [
             .init(day: 3, balance: 850),
             .init(day: 31, balance: 300),
         ])
         #expect(trajectory.plannedBalance == 250)
         #expect(trajectory.today == 3)
         #expect(trajectory.totalDays == 31)
+    }
+
+    @Test func trajectory_payDayPeriodIncludesOnlyItsCrossMonthTransactions() throws {
+        let trajectory = try #require(BudgetFormulas.calculateBalanceTrajectory(
+            budgetLines: [],
+            transactions: [
+                try checkedExpense(id: "before", amount: 25, year: 2026, month: 2, day: 26),
+                try checkedExpense(id: "start", amount: 100, year: 2026, month: 2, day: 27),
+                try checkedExpense(id: "today", amount: 50, year: 2026, month: 3, day: 1),
+            ],
+            metrics: metrics(available: 1_000, remaining: 300),
+            plannedBalance: 250,
+            budget: TestDataFactory.createBudget(month: 3, year: 2026),
+            payDayOfMonth: 27,
+            referenceDate: try date(year: 2026, month: 3, day: 1)
+        ))
+
+        #expect(trajectory.today == 3)
+        #expect(trajectory.totalDays == 28)
+        #expect(trajectory.tracked.map(\.balance) == [1_000, 900, 900, 850])
+        #expect(trajectory.remainingPlan == [
+            .init(day: 3, balance: 850),
+            .init(day: 28, balance: 300),
+        ])
+    }
+
+    @Test func trajectory_firstHalfPayDayUsesTheFollowingCalendarMonth() throws {
+        let trajectory = try #require(BudgetFormulas.calculateBalanceTrajectory(
+            budgetLines: [],
+            transactions: [],
+            metrics: metrics(available: 1_000, remaining: 300),
+            plannedBalance: 250,
+            budget: TestDataFactory.createBudget(month: 3, year: 2026),
+            payDayOfMonth: 5,
+            referenceDate: try date(year: 2026, month: 4, day: 2)
+        ))
+
+        #expect(trajectory.today == 29)
+        #expect(trajectory.totalDays == 31)
+    }
+
+    @Test func trajectory_yearBoundaryIncludesBothPeriodEndsExactlyOnce() throws {
+        let trajectory = try #require(BudgetFormulas.calculateBalanceTrajectory(
+            budgetLines: [],
+            transactions: [
+                try checkedExpense(id: "start", amount: 100, year: 2025, month: 12, day: 27),
+                try checkedExpense(id: "end", amount: 50, year: 2026, month: 1, day: 26),
+            ],
+            metrics: metrics(available: 1_000, remaining: 300),
+            plannedBalance: 250,
+            budget: TestDataFactory.createBudget(month: 1, year: 2026),
+            payDayOfMonth: 27,
+            referenceDate: try date(year: 2026, month: 1, day: 26)
+        ))
+
+        #expect(trajectory.today == 31)
+        #expect(trajectory.totalDays == 31)
+        #expect(trajectory.tracked.first?.balance == 1_000)
+        #expect(trajectory.tracked.last?.balance == 850)
+        #expect(trajectory.remainingPlan.isEmpty)
     }
 
     @MainActor
@@ -186,14 +247,11 @@ struct HomeHeroCardTests {
     private func checkedExpense(
         id: String,
         amount: Decimal,
+        year: Int = 2026,
+        month: Int = 7,
         day: Int
     ) throws -> Transaction {
-        let date = try #require(Calendar.current.date(from: DateComponents(
-            year: 2026,
-            month: 7,
-            day: day,
-            hour: 12
-        )))
+        let date = try date(year: year, month: month, day: day)
         return Transaction(
             id: id,
             budgetId: "july",
@@ -215,11 +273,35 @@ struct HomeHeroCardTests {
         plan: Decimal
     ) -> BudgetFormulas.BalanceTrajectory {
         BudgetFormulas.BalanceTrajectory(
-            actual: actual.enumerated().map { .init(day: $0.offset, balance: $0.element) },
-            projected: projected.enumerated().map { .init(day: $0.offset + 1, balance: $0.element) },
+            tracked: actual.enumerated().map { .init(day: $0.offset, balance: $0.element) },
+            remainingPlan: projected.enumerated().map { .init(day: $0.offset + 1, balance: $0.element) },
             plannedBalance: plan,
             today: 1,
             totalDays: 2
+        )
+    }
+
+    private func date(year: Int, month: Int, day: Int) throws -> Date {
+        try #require(Calendar.current.date(from: DateComponents(
+            year: year,
+            month: month,
+            day: day,
+            hour: 12
+        )))
+    }
+
+    private func metrics(
+        available: Decimal,
+        remaining: Decimal
+    ) -> BudgetFormulas.Metrics {
+        .init(
+            totalIncome: available,
+            totalExpenses: available - remaining,
+            totalSavings: 0,
+            available: available,
+            endingBalance: remaining,
+            remaining: remaining,
+            rollover: 0
         )
     }
 }

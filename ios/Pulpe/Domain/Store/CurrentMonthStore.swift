@@ -606,27 +606,6 @@ extension CurrentMonthStore {
         )
     }
 
-    /// Compatibility payload for the current hero. Its month-end balance comes from the
-    /// complete budget, while the pace fields remain available until the hero no longer
-    /// renders the legacy daily-rate insight.
-    var projection: BudgetFormulas.Projection? {
-        guard let budget else { return nil }
-        guard let pace = BudgetFormulas.calculateProjection(
-            realizedExpenses: realizedMetrics.realizedExpenses,
-            totalBudgetedExpenses: metrics.totalExpenses,
-            available: metrics.available,
-            month: budget.month,
-            year: budget.year
-        ) else { return nil }
-        return BudgetFormulas.Projection(
-            projectedEndOfMonthBalance: metrics.remaining,
-            dailySpendingRate: pace.dailySpendingRate,
-            daysElapsed: pace.daysElapsed,
-            daysRemaining: pace.daysRemaining,
-            isOnTrack: metrics.remaining >= plannedRemaining
-        )
-    }
-
     var balanceTrajectory: BudgetFormulas.BalanceTrajectory? {
         guard let budget else { return nil }
         return BudgetFormulas.calculateBalanceTrajectory(
@@ -634,7 +613,8 @@ extension CurrentMonthStore {
             transactions: transactions,
             metrics: metrics,
             plannedBalance: plannedRemaining,
-            budget: budget
+            budget: budget,
+            payDayOfMonth: payDayOfMonth
         )
     }
 

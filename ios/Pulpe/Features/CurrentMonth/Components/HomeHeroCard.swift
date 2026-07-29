@@ -157,7 +157,7 @@ struct HomeHeroCard: View {
 
     @ViewBuilder
     private var balanceChart: some View {
-        if let trajectory, trajectory.actual.count > 1 {
+        if let trajectory, trajectory.tracked.count > 1 {
             Chart {
                 RuleMark(y: .value("Solde prévu", Self.decimalValue(trajectory.plannedBalance)))
                     .foregroundStyle(
@@ -173,7 +173,7 @@ struct HomeHeroCard: View {
                             .foregroundStyle(Color.homeHeroSupport)
                     }
 
-                ForEach(trajectory.actual) { point in
+                ForEach(trajectory.tracked) { point in
                     LineMark(
                         x: .value("Jour", point.day),
                         y: .value("Solde réel", Self.decimalValue(point.balance)),
@@ -188,7 +188,7 @@ struct HomeHeroCard: View {
                     .foregroundStyle(Color.homeHeroInk)
                 }
 
-                ForEach(trajectory.projected) { point in
+                ForEach(trajectory.remainingPlan) { point in
                     LineMark(
                         x: .value("Jour", point.day),
                         y: .value("Solde estimé", Self.decimalValue(point.balance)),
@@ -215,7 +215,7 @@ struct HomeHeroCard: View {
                             .foregroundStyle(Color.homeHeroSupport)
                     }
 
-                if let current = trajectory.actual.last {
+                if let current = trajectory.tracked.last {
                     PointMark(
                         x: .value("Aujourd'hui", current.day),
                         y: .value("Solde aujourd'hui", Self.decimalValue(current.balance))
@@ -243,8 +243,8 @@ struct HomeHeroCard: View {
     static func chartYDomain(
         for trajectory: BudgetFormulas.BalanceTrajectory
     ) -> ClosedRange<Double> {
-        let balances = trajectory.actual.map(\.balance)
-            + trajectory.projected.map(\.balance)
+        let balances = trajectory.tracked.map(\.balance)
+            + trajectory.remainingPlan.map(\.balance)
             + [trajectory.plannedBalance]
         let values = balances.map(Self.decimalValue)
         let lower = values.min() ?? 0
@@ -332,14 +332,14 @@ extension HomeHeroCard {
 
 #Preview("Estimated balance hero") {
     let gainTrajectory = BudgetFormulas.BalanceTrajectory(
-        actual: [
+        tracked: [
             .init(day: 0, balance: 8032),
             .init(day: 3, balance: 7580),
             .init(day: 8, balance: 6810),
             .init(day: 12, balance: 6430),
             .init(day: 17, balance: 5992),
         ],
-        projected: [
+        remainingPlan: [
             .init(day: 17, balance: 5992),
             .init(day: 31, balance: 1260),
         ],

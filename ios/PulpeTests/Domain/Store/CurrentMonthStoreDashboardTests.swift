@@ -34,7 +34,6 @@ struct CurrentMonthStoreDashboardTests {
 
         #expect(store.plannedRemaining == 2_500)
         #expect(store.metrics.remaining == 2_500)
-        #expect(try #require(store.projection).projectedEndOfMonthBalance == 2_500)
     }
 
     @Test func endOfMonthEstimate_integratesKnownEnvelopeOverrun() {
