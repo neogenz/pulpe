@@ -1,6 +1,6 @@
 ---
 objective: "Le graphique de l’accueil iOS situe immédiatement la trajectoire projetée par rapport au solde final prévu, sans perdre sa lecture minimaliste."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Repère du plan dans le graphique d’accueil iOS
