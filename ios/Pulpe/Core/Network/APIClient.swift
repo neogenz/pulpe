@@ -28,7 +28,7 @@ actor APIClient {
             await ClientKeyManager.shared.resolveClientKey()
         }
         self.forceRefreshAccessToken = {
-            try await AuthService.shared.forceRefreshAccessToken()
+            try await AuthService.shared.forceRefreshAccessToken(source: "api_401")
         }
         self.invalidateSession = {
             try? await AuthService.shared.logout()
@@ -53,7 +53,7 @@ actor APIClient {
         self.authTokenProvider = authTokenProvider
         self.clientKeyProvider = clientKeyProvider
         self.forceRefreshAccessToken = forceRefreshAccessToken ?? {
-            try await AuthService.shared.forceRefreshAccessToken()
+            try await AuthService.shared.forceRefreshAccessToken(source: "api_401")
         }
         self.invalidateSession = invalidateSession ?? {
             try? await AuthService.shared.logout()
@@ -155,6 +155,7 @@ actor APIClient {
 
         // Handle 401 - try token refresh (once only to prevent infinite retry loop)
         if httpResponse.statusCode == 401 {
+            captureUnauthorized(response: httpResponse, endpoint: endpoint, isRetry: isRetry)
             let token = try await handleUnauthorized(isRetry: isRetry)
             try await requestVoid(endpoint, body: body, method: method, isRetry: true, retryAccessToken: token)
             return
@@ -231,6 +232,7 @@ actor APIClient {
 
         // Handle 401 - try token refresh (once only to prevent infinite retry loop)
         if httpResponse.statusCode == 401 {
+            captureUnauthorized(response: httpResponse, endpoint: endpoint, isRetry: isRetry)
             let token = try await handleUnauthorized(isRetry: isRetry)
             var retryRequest = request
             retryRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -360,6 +362,26 @@ actor APIClient {
                 "Request failed: [\(method, privacy: .public)] \(path, privacy: .public) -> \(status, privacy: .public)"
             )
         }
+    }
+}
+
+extension APIClient {
+    private func captureUnauthorized(response: HTTPURLResponse, endpoint: Endpoint, isRetry: Bool) {
+        AnalyticsService.captureAuthSessionDiagnostic(
+            source: "backend_api",
+            outcome: "unauthorized",
+            status: response.statusCode,
+            requestID: response.value(forHTTPHeaderField: "X-Request-Id"),
+            endpoint: Self.diagnosticPath(for: endpoint),
+            isRetry: isRetry
+        )
+    }
+
+    static func diagnosticPath(for endpoint: Endpoint) -> String {
+        "/" + endpoint.path
+            .split(separator: "/")
+            .map { UUID(uuidString: String($0)) == nil ? String($0) : ":id" }
+            .joined(separator: "/")
     }
 }
 

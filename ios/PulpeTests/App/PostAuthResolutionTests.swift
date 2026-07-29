@@ -9,6 +9,18 @@ import Testing
 struct PostAuthResolutionRouterTests {
     private let user = UserInfo(id: "user-1", email: "test@pulpe.app", firstName: "Max")
 
+    @Test("post-auth diagnostics never serialize associated user state")
+    func postAuthDiagnosticOutcomes_areStableLabels() {
+        #expect(PostAuthDestination.needsPinSetup.diagnosticOutcome == "needs_pin_setup")
+        #expect(PostAuthDestination.needsPinEntry(needsRecoveryKeyConsent: true).diagnosticOutcome == "needs_pin_entry")
+        #expect(PostAuthDestination.authenticated(needsRecoveryKeyConsent: true).diagnosticOutcome == "authenticated")
+        #expect(
+            PostAuthDestination.unauthenticatedSessionExpired.diagnosticOutcome
+                == "unauthenticated_session_expired"
+        )
+        #expect(PostAuthDestination.vaultCheckFailed.diagnosticOutcome == "vault_check_failed")
+    }
+
     private func makeBiometricPreferenceStore(initial: Bool) -> BiometricPreferenceStore {
         BiometricPreferenceStore(
             keychain: StubBiometricPreferenceKeychain(initial: initial),

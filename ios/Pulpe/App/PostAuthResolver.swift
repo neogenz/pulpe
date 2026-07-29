@@ -7,6 +7,16 @@ enum PostAuthDestination: Equatable, Sendable {
     case authenticated(needsRecoveryKeyConsent: Bool)
     case unauthenticatedSessionExpired
     case vaultCheckFailed
+
+    var diagnosticOutcome: String {
+        switch self {
+        case .needsPinSetup: "needs_pin_setup"
+        case .needsPinEntry: "needs_pin_entry"
+        case .authenticated: "authenticated"
+        case .unauthenticatedSessionExpired: "unauthenticated_session_expired"
+        case .vaultCheckFailed: "vault_check_failed"
+        }
+    }
 }
 
 protocol PostAuthResolving: Sendable {
@@ -30,7 +40,7 @@ extension ClientKeyManager: ClientKeyResolving {}
 
 extension AuthService: SessionRefreshing {
     func refreshSessionForVaultCheck() async throws -> Bool {
-        try await forceRefreshAccessToken() != nil
+        try await forceRefreshAccessToken(source: "vault_status_401") != nil
     }
 }
 

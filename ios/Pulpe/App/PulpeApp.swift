@@ -29,6 +29,8 @@ struct PulpeApp: App {
     @State private var whatsNewStore = WhatsNewStore()
 
     init() {
+        AnalyticsService.shared.initialize()
+
         let appState = AppState()
         let currentMonthStore = CurrentMonthStore()
         let budgetListStore = BudgetListStore()
@@ -89,7 +91,6 @@ struct PulpeApp: App {
             .datastoreLocation(.applicationDefault)
         ])
         BackgroundTaskService.shared.registerTasks()
-        AnalyticsService.shared.initialize()
     }
 
     @Environment(\.scenePhase) private var scenePhase
@@ -191,6 +192,10 @@ struct PulpeApp: App {
             case "reset-password":
                 deepLinkDestination = .resetPassword(url: url)
             case "add-expense":
+                AnalyticsService.captureAuthSessionDiagnostic(
+                    source: "deep_link",
+                    outcome: "widget_add_expense_received"
+                )
                 let budgetId = components?.queryItems?.first { $0.name == "budgetId" }?.value
                 if let budgetId, UUID(uuidString: budgetId) == nil {
                     Logger.app.warning("Deep link: invalid UUID for add-expense budgetId=\(budgetId)")
@@ -198,6 +203,10 @@ struct PulpeApp: App {
                 }
                 deepLinkDestination = .addExpense(budgetId: budgetId)
             case "budget":
+                AnalyticsService.captureAuthSessionDiagnostic(
+                    source: "deep_link",
+                    outcome: "widget_budget_received"
+                )
                 if let budgetId = components?.queryItems?.first(where: { $0.name == "id" })?.value,
                    UUID(uuidString: budgetId) != nil {
                     deepLinkDestination = .viewBudget(budgetId: budgetId)
