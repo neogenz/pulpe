@@ -7,6 +7,8 @@ import { AesGcmCryptoService } from './aes-gcm.crypto-service';
 const TEST_MASTER_KEY = randomBytes(32).toString('hex');
 const TEST_USER_ID = 'test-user-123';
 const TEST_CLIENT_KEY = randomBytes(32);
+const testUuid = (index: number) =>
+  `00000000-0000-4000-8000-${index.toString(16).padStart(12, '0')}`;
 
 const createMockLogger = () => ({
   info: () => {},
@@ -24,16 +26,78 @@ const createMockConfigService = () => ({
 
 const createEncryptedDataClient = (
   rowsByTable: Record<string, unknown[]> = {},
+  pageErrors: Record<number, Error> = {},
 ) => {
   const buildQuery = (data: unknown[]) => {
+    let rows = data;
+    let rangeStart = 0;
+    let rangeEnd = 999;
     const query = {
       select: () => query,
-      eq: () => query,
-      in: () => query,
+      eq: (column: string, value: unknown) => {
+        rows = rows.filter((row) => {
+          const record = row as Record<string, unknown>;
+          return !(column in record) || record[column] === value;
+        });
+        return query;
+      },
+      in: (column: string, values: unknown[]) => {
+        rows = rows.filter((row) => {
+          const record = row as Record<string, unknown>;
+          return !(column in record) || values.includes(record[column]);
+        });
+        return query;
+      },
+      not: (column: string, _operator: string, value: unknown) => {
+        rows = rows.filter(
+          (row) => (row as Record<string, unknown>)[column] !== value,
+        );
+        return query;
+      },
+      or: (filters: string) => {
+        const columns = filters
+          .split(',')
+          .map((filter) => filter.split('.')[0])
+          .filter(Boolean);
+        rows = rows.filter((row) =>
+          columns.some(
+            (column) => (row as Record<string, unknown>)[column!] !== null,
+          ),
+        );
+        return query;
+      },
+      order: (column: string) => {
+        rows = [...rows].sort((left, right) =>
+          String((left as Record<string, unknown>)[column]).localeCompare(
+            String((right as Record<string, unknown>)[column]),
+          ),
+        );
+        return query;
+      },
+      range: (from: number, to: number) => {
+        rangeStart = from;
+        rangeEnd = to;
+        return query;
+      },
+      limit: (count: number) => {
+        rangeEnd = rangeStart + count - 1;
+        return query;
+      },
       then: (
-        onResolve: (value: { data: unknown[]; error: null }) => unknown,
+        onResolve: (value: {
+          data: unknown[] | null;
+          error: Error | null;
+        }) => unknown,
         onReject?: (reason: unknown) => unknown,
-      ) => Promise.resolve({ data, error: null }).then(onResolve, onReject),
+      ) =>
+        Promise.resolve(
+          pageErrors[rangeStart]
+            ? { data: null, error: pageErrors[rangeStart] }
+            : {
+                data: rows.slice(rangeStart, rangeEnd + 1),
+                error: null,
+              },
+        ).then(onResolve, onReject),
     };
     return query;
   };
@@ -1816,6 +1880,166 @@ describe('AesGcmCryptoService', () => {
         code: ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED.code,
       });
       expect(initializeVaultIfEmpty).not.toHaveBeenCalled();
+    });
+
+    it('should refuse bootstrap when encrypted data exists after the first 1,000 rows', async () => {
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: randomBytes(16).toString('hex'),
+          kdf_iterations: 600000,
+          wrapped_dek: null,
+          key_check: null,
+        }),
+      );
+      const initializeVaultIfEmpty = mock(() => Promise.resolve(true));
+      service = new AesGcmCryptoService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        createMockRepository({
+          findByUserId,
+          initializeVaultIfEmpty,
+        }) as any,
+      );
+      const monthlyBudgets = Array.from({ length: 1_001 }, (_, index) => ({
+        id: testUuid(index),
+        user_id: TEST_USER_ID,
+        ending_balance: index === 1_000 ? 'existing-ciphertext' : null,
+      }));
+
+      await expect(
+        service.createRecoveryKey(
+          TEST_USER_ID,
+          TEST_CLIENT_KEY,
+          createEncryptedDataClient({
+            monthly_budget: monthlyBudgets,
+          }) as any,
+        ),
+      ).rejects.toMatchObject({
+        code: ERROR_DEFINITIONS.ENCRYPTION_KEY_CHECK_FAILED.code,
+      });
+      expect(initializeVaultIfEmpty).not.toHaveBeenCalled();
+    });
+
+    it('should fail closed when checking encrypted data fails', async () => {
+      const findByUserId = mock(() =>
+        Promise.resolve({
+          salt: randomBytes(16).toString('hex'),
+          kdf_iterations: 600000,
+          wrapped_dek: null,
+          key_check: null,
+        }),
+      );
+      const initializeVaultIfEmpty = mock(() => Promise.resolve(true));
+      service = new AesGcmCryptoService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        createMockRepository({
+          findByUserId,
+          initializeVaultIfEmpty,
+        }) as any,
+      );
+
+      await expect(
+        service.createRecoveryKey(
+          TEST_USER_ID,
+          TEST_CLIENT_KEY,
+          createEncryptedDataClient(
+            {},
+            { 0: new Error('query failed') },
+          ) as any,
+        ),
+      ).rejects.toThrow('query failed');
+      expect(initializeVaultIfEmpty).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('reEncryptAllUserData', () => {
+    it('should read and re-encrypt all rows beyond the PostgREST 1,000-row limit', async () => {
+      const oldDek = randomBytes(32);
+      const newDek = randomBytes(32);
+      const logger = {
+        ...createMockLogger(),
+        info: mock(() => {}),
+      };
+      service = new AesGcmCryptoService(
+        logger as any,
+        mockConfigService as any,
+        createMockRepository() as any,
+      );
+      const ciphertext = service.encryptAmount(42, oldDek);
+      const monthlyBudgets = Array.from({ length: 1_001 }, (_, index) => ({
+        id: testUuid(index),
+        user_id: TEST_USER_ID,
+        ending_balance: ciphertext,
+      }));
+      const rpc = mock((_function: string, _payload: unknown) =>
+        Promise.resolve({ error: null }),
+      );
+      const client = {
+        ...createEncryptedDataClient({ monthly_budget: monthlyBudgets }),
+        rpc,
+      };
+
+      await service.reEncryptAllUserData(
+        TEST_USER_ID,
+        oldDek,
+        newDek,
+        client as any,
+      );
+
+      expect(rpc).toHaveBeenCalledTimes(1);
+      const payload = rpc.mock.calls[0]?.[1] as {
+        p_monthly_budgets: Array<{ id: string; ending_balance: string }>;
+      };
+      expect(payload.p_monthly_budgets).toHaveLength(1_001);
+      expect(
+        service.decryptAmount(
+          payload.p_monthly_budgets[1_000]!.ending_balance,
+          newDek,
+        ),
+      ).toBe(42);
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.objectContaining({
+          counts: expect.objectContaining({ monthly_budget: 1_001 }),
+        }),
+        'All user data re-encrypted',
+      );
+    });
+
+    it('should not call the atomic rekey RPC when a later page fails', async () => {
+      const oldDek = randomBytes(32);
+      const newDek = randomBytes(32);
+      service = new AesGcmCryptoService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        createMockRepository() as any,
+      );
+      const ciphertext = service.encryptAmount(42, oldDek);
+      const monthlyBudgets = Array.from({ length: 1_001 }, (_, index) => ({
+        id: testUuid(index),
+        user_id: TEST_USER_ID,
+        ending_balance: ciphertext,
+      }));
+      const rpc = mock((_function: string, _payload: unknown) =>
+        Promise.resolve({ error: null }),
+      );
+      const client = {
+        ...createEncryptedDataClient(
+          { monthly_budget: monthlyBudgets },
+          { 1_000: new Error('second page failed') },
+        ),
+        rpc,
+      };
+
+      await expect(
+        service.reEncryptAllUserData(
+          TEST_USER_ID,
+          oldDek,
+          newDek,
+          client as any,
+        ),
+      ).rejects.toThrow('second page failed');
+      expect(rpc).not.toHaveBeenCalled();
     });
   });
 

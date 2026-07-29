@@ -30,6 +30,8 @@ const SALT_LENGTH = 16;
 const KDF_ITERATIONS = 600_000;
 const HKDF_DIGEST = 'sha256';
 const DEK_CACHE_TTL_MS = 5 * 60 * 1000;
+const POSTGREST_PAGE_SIZE = 1_000;
+const POSTGREST_FILTER_CHUNK_SIZE = 100;
 
 // Base32 alphabet (RFC 4648, no padding) — avoids 0/O and 1/l ambiguity
 const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
@@ -433,37 +435,163 @@ export class AesGcmCryptoService {
     userId: string,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<boolean> {
-    const [monthlyBudgets, templateIds] = await Promise.all([
-      this.#fetchMonthlyBudgets(userId, supabase),
+    const [budgetIds, templateIds, hasOwnedData] = await Promise.all([
+      this.#fetchUserBudgetIds(userId, supabase),
       this.#fetchUserTemplateIds(userId, supabase),
+      this.#hasEncryptedOwnedRows(userId, supabase),
     ]);
-    const budgetIds = monthlyBudgets.map((budget) => budget.id);
-    const [budgetLines, transactions, templateLines, savingsGoals] =
+
+    if (hasOwnedData) return true;
+
+    const [hasBudgetLineData, hasTransactionData, hasTemplateLineData] =
       await Promise.all([
-        this.#fetchBudgetLines(budgetIds, supabase),
-        this.#fetchTransactions(budgetIds, supabase),
-        this.#fetchTemplateLines(templateIds, supabase),
-        this.#fetchSavingsGoals(userId, supabase),
+        this.#hasEncryptedRowsByParentIds(budgetIds, (ids) =>
+          supabase
+            .from('budget_line')
+            .select('id')
+            .in('budget_id', ids)
+            .or('amount.not.is.null,original_amount.not.is.null')
+            .limit(1),
+        ),
+        this.#hasEncryptedRowsByParentIds(budgetIds, (ids) =>
+          supabase
+            .from('transaction')
+            .select('id')
+            .in('budget_id', ids)
+            .or('amount.not.is.null,original_amount.not.is.null')
+            .limit(1),
+        ),
+        this.#hasEncryptedRowsByParentIds(templateIds, (ids) =>
+          supabase
+            .from('template_line')
+            .select('id')
+            .in('template_id', ids)
+            .or('amount.not.is.null,original_amount.not.is.null')
+            .limit(1),
+        ),
       ]);
 
-    return (
-      monthlyBudgets.some((row) => row.ending_balance !== null) ||
-      budgetLines.some(
-        (row) => row.amount !== null || row.original_amount !== null,
-      ) ||
-      transactions.some(
-        (row) => row.amount !== null || row.original_amount !== null,
-      ) ||
-      templateLines.some(
-        (row) => row.amount !== null || row.original_amount !== null,
-      ) ||
-      savingsGoals.some(
-        (row) =>
-          row.target_amount !== null ||
-          row.original_target_amount !== null ||
-          row.initial_amount !== null,
-      )
+    return hasBudgetLineData || hasTransactionData || hasTemplateLineData;
+  }
+
+  async #hasEncryptedOwnedRows(
+    userId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<boolean> {
+    const results = await Promise.all([
+      this.#queryHasRows(
+        supabase
+          .from('monthly_budget')
+          .select('id')
+          .eq('user_id', userId)
+          .not('ending_balance', 'is', null)
+          .limit(1),
+      ),
+      this.#queryHasRows(
+        supabase
+          .from('savings_goal')
+          .select('id')
+          .eq('user_id', userId)
+          .or(
+            'target_amount.not.is.null,original_target_amount.not.is.null,initial_amount.not.is.null',
+          )
+          .limit(1),
+      ),
+    ]);
+    return results.some(Boolean);
+  }
+
+  async #queryHasRows(
+    query: PromiseLike<{
+      data: Array<{ id: string }> | null;
+      error: unknown;
+    }>,
+  ): Promise<boolean> {
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data?.length ?? 0) > 0;
+  }
+
+  async #hasEncryptedRowsByParentIds(
+    parentIds: string[],
+    buildQuery: (ids: string[]) => PromiseLike<{
+      data: Array<{ id: string }> | null;
+      error: unknown;
+    }>,
+  ): Promise<boolean> {
+    for (
+      let offset = 0;
+      offset < parentIds.length;
+      offset += POSTGREST_FILTER_CHUNK_SIZE
+    ) {
+      if (
+        await this.#queryHasRows(
+          buildQuery(
+            parentIds.slice(offset, offset + POSTGREST_FILTER_CHUNK_SIZE),
+          ),
+        )
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  async #fetchUserBudgetIds(
+    userId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<string[]> {
+    const rows = await this.#fetchAllPages((from, to) =>
+      supabase
+        .from('monthly_budget')
+        .select('id')
+        .eq('user_id', userId)
+        .order('id', { ascending: true })
+        .range(from, to),
     );
+    return rows.map((row) => row.id);
+  }
+
+  async #fetchAllPages<T>(
+    fetchPage: (
+      from: number,
+      to: number,
+    ) => PromiseLike<{ data: T[] | null; error: unknown }>,
+  ): Promise<T[]> {
+    const rows: T[] = [];
+    for (let from = 0; ; from += POSTGREST_PAGE_SIZE) {
+      const { data, error } = await fetchPage(
+        from,
+        from + POSTGREST_PAGE_SIZE - 1,
+      );
+      if (error) throw error;
+
+      const page = data ?? [];
+      rows.push(...page);
+      if (page.length < POSTGREST_PAGE_SIZE) return rows;
+    }
+  }
+
+  async #fetchRowsByParentIds<T>(
+    parentIds: string[],
+    fetchPage: (
+      ids: string[],
+      from: number,
+      to: number,
+    ) => PromiseLike<{ data: T[] | null; error: unknown }>,
+  ): Promise<T[]> {
+    const rows: T[] = [];
+    for (
+      let offset = 0;
+      offset < parentIds.length;
+      offset += POSTGREST_FILTER_CHUNK_SIZE
+    ) {
+      const ids = parentIds.slice(offset, offset + POSTGREST_FILTER_CHUNK_SIZE);
+      rows.push(
+        ...(await this.#fetchAllPages((from, to) => fetchPage(ids, from, to))),
+      );
+    }
+    return rows;
   }
 
   async regenerateRecoveryKey(
@@ -1025,13 +1153,15 @@ export class AesGcmCryptoService {
     userId: string,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<string[]> {
-    const { data, error } = await supabase
-      .from('template')
-      .select('id')
-      .eq('user_id', userId);
-
-    if (error) throw error;
-    return data?.map((t) => t.id) ?? [];
+    const rows = await this.#fetchAllPages((from, to) =>
+      supabase
+        .from('template')
+        .select('id')
+        .eq('user_id', userId)
+        .order('id', { ascending: true })
+        .range(from, to),
+    );
+    return rows.map((row) => row.id);
   }
 
   async #fetchBudgetLines(
@@ -1040,13 +1170,14 @@ export class AesGcmCryptoService {
   ) {
     if (!budgetIds.length) return [];
 
-    const { data, error } = await supabase
-      .from('budget_line')
-      .select('id, amount, original_amount')
-      .in('budget_id', budgetIds);
-
-    if (error) throw error;
-    return data ?? [];
+    return this.#fetchRowsByParentIds(budgetIds, (ids, from, to) =>
+      supabase
+        .from('budget_line')
+        .select('id, amount, original_amount')
+        .in('budget_id', ids)
+        .order('id', { ascending: true })
+        .range(from, to),
+    );
   }
 
   async #fetchTransactions(
@@ -1055,13 +1186,14 @@ export class AesGcmCryptoService {
   ) {
     if (!budgetIds.length) return [];
 
-    const { data, error } = await supabase
-      .from('transaction')
-      .select('id, amount, original_amount')
-      .in('budget_id', budgetIds);
-
-    if (error) throw error;
-    return data ?? [];
+    return this.#fetchRowsByParentIds(budgetIds, (ids, from, to) =>
+      supabase
+        .from('transaction')
+        .select('id, amount, original_amount')
+        .in('budget_id', ids)
+        .order('id', { ascending: true })
+        .range(from, to),
+    );
   }
 
   async #fetchTemplateLines(
@@ -1070,39 +1202,42 @@ export class AesGcmCryptoService {
   ) {
     if (!templateIds.length) return [];
 
-    const { data, error } = await supabase
-      .from('template_line')
-      .select('id, amount, original_amount')
-      .in('template_id', templateIds);
-
-    if (error) throw error;
-    return data ?? [];
+    return this.#fetchRowsByParentIds(templateIds, (ids, from, to) =>
+      supabase
+        .from('template_line')
+        .select('id, amount, original_amount')
+        .in('template_id', ids)
+        .order('id', { ascending: true })
+        .range(from, to),
+    );
   }
 
   async #fetchSavingsGoals(
     userId: string,
     supabase: AuthenticatedSupabaseClient,
   ) {
-    const { data, error } = await supabase
-      .from('savings_goal')
-      .select('id, target_amount, original_target_amount, initial_amount')
-      .eq('user_id', userId);
-
-    if (error) throw error;
-    return data ?? [];
+    return this.#fetchAllPages((from, to) =>
+      supabase
+        .from('savings_goal')
+        .select('id, target_amount, original_target_amount, initial_amount')
+        .eq('user_id', userId)
+        .order('id', { ascending: true })
+        .range(from, to),
+    );
   }
 
   async #fetchMonthlyBudgets(
     userId: string,
     supabase: AuthenticatedSupabaseClient,
   ) {
-    const { data, error } = await supabase
-      .from('monthly_budget')
-      .select('id, ending_balance')
-      .eq('user_id', userId);
-
-    if (error) throw error;
-    return data ?? [];
+    return this.#fetchAllPages((from, to) =>
+      supabase
+        .from('monthly_budget')
+        .select('id, ending_balance')
+        .eq('user_id', userId)
+        .order('id', { ascending: true })
+        .range(from, to),
+    );
   }
 
   #invalidateUserDEKCache(userId: string): void {

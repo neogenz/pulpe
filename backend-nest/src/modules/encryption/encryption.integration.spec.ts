@@ -781,4 +781,109 @@ describe('Encryption integration (local Supabase)', () => {
       await cleanupUserData(adminClient, { userId, budgetId, templateId });
     }
   });
+
+  it('rekeys every row when encrypted data exceeds the PostgREST response limit', async () => {
+    if (!hasSupabase) return;
+
+    const { id: userId, email } = await createTestUser(adminClient);
+    const templateId = randomUUID();
+    const budgetId = randomUUID();
+    const idPrefix = randomUUID().slice(0, 8);
+    const budgetLineIds = Array.from(
+      { length: 1_001 },
+      (_, index) =>
+        `${idPrefix}-0000-4000-8000-${index.toString(16).padStart(12, '0')}`,
+    );
+
+    try {
+      const { error: templateError } = await adminClient
+        .from('template')
+        .insert({
+          id: templateId,
+          user_id: userId,
+          name: 'Pagination rekey template',
+          is_default: false,
+        });
+      if (templateError) throw templateError;
+
+      const { error: budgetError } = await adminClient
+        .from('monthly_budget')
+        .insert({
+          id: budgetId,
+          user_id: userId,
+          template_id: templateId,
+          month: 9,
+          year: 2026,
+          description: 'Pagination rekey budget',
+        });
+      if (budgetError) throw budgetError;
+
+      const oldClientKey = Buffer.from(OLD_CLIENT_KEY_HEX, 'hex');
+      const newClientKey = Buffer.from(NEW_CLIENT_KEY_HEX, 'hex');
+      const { dek: oldDek } = await initializeTestVault(userId, oldClientKey);
+      const encryptedAmount = encryptionService.encryptAmount(42, oldDek);
+      const { error: linesError } = await adminClient
+        .from('budget_line')
+        .insert(
+          budgetLineIds.map((id) => ({
+            id,
+            budget_id: budgetId,
+            name: 'Pagination rekey line',
+            amount: encryptedAmount,
+            kind: 'expense' as const,
+            recurrence: 'fixed' as const,
+            is_manually_adjusted: false,
+          })),
+        );
+      if (linesError) throw linesError;
+
+      const authClient = createClient<Database>(
+        supabaseEnv.apiUrl,
+        supabaseEnv.anonKey,
+      );
+      const { error: signInError } = await authClient.auth.signInWithPassword({
+        email,
+        password: 'test-password-123',
+      });
+      if (signInError) throw signInError;
+
+      const newDek = await encryptionService.getUserDEK(userId, newClientKey);
+      await encryptionService.reEncryptAllUserData(
+        userId,
+        oldDek,
+        newDek,
+        authClient as unknown as SupabaseClient<Database>,
+      );
+
+      const { count, error: countError } = await adminClient
+        .from('budget_line')
+        .select('id', { count: 'exact', head: true })
+        .eq('budget_id', budgetId);
+      if (countError) throw countError;
+      expect(count).toBe(1_001);
+
+      const { data: sentinel, error: sentinelError } = await adminClient
+        .from('budget_line')
+        .select('amount')
+        .eq('id', budgetLineIds[1_000]!)
+        .single();
+      if (sentinelError) throw sentinelError;
+      expect(encryptionService.decryptAmount(sentinel.amount!, newDek)).toBe(
+        42,
+      );
+      expect(() =>
+        encryptionService.decryptAmount(sentinel.amount!, oldDek),
+      ).toThrow();
+
+      const keyState = await getUserEncryptionKeyState(adminClient, userId);
+      expect(
+        encryptionService.validateKeyCheck(keyState.key_check!, newDek),
+      ).toBe(true);
+      expect(
+        encryptionService.validateKeyCheck(keyState.key_check!, oldDek),
+      ).toBe(false);
+    } finally {
+      await cleanupUserData(adminClient, { userId, budgetId, templateId });
+    }
+  });
 });

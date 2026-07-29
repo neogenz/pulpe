@@ -104,6 +104,12 @@ Quand l'utilisateur avait une recovery key configurée, le changement de PIN gé
 
 Si le re-wrapping échoue après un re-chiffrement réussi, le `wrapped_dek` est nullifié par sécurité (pour éviter un wrapping stale pointant vers l'ancienne DEK).
 
+### Atomicité et pagination du rekey
+
+Le backend lit d'abord toutes les lignes chiffrées, page par page avec un ordre stable sur `id`. Les filtres contenant des identifiants parents sont découpés pour rester sous les limites d'URL PostgREST. Il construit puis valide ensuite la totalité des payloads avant d'appeler une seule fois `rekey_user_encrypted_data`.
+
+Ce RPC met à jour atomiquement les ciphertexts et le nouveau `key_check`. Une erreur de lecture, y compris sur une page après les 1 000 premières lignes, interrompt donc le flux avant toute mutation. Après succès, le canary est lisible avec la nouvelle DEK et rejeté avec l'ancienne.
+
 ### Rate limiting
 
 L'endpoint `change-pin` est limité à 5 appels par heure par utilisateur.
