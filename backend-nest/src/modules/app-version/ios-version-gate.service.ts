@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
@@ -26,18 +26,18 @@ export interface IosVersionGate {
  * `GET /api/v1/app/version`.
  *
  * `latestVersion` follows what Apple actually distributes: the App Store
- * lookup endpoint is polled lazily (first request after the TTL triggers a
- * background refresh, no request ever waits on Apple) and the result is
- * capped below by `LATEST_IOS_VERSION`, which stays as an offline fallback and
- * manual override. A release therefore needs no Railway variable update once
- * Apple approves the build.
+ * lookup runs once at bootstrap and then lazily (first request after the TTL
+ * triggers a background refresh, no request ever waits on Apple) and the
+ * result is capped below by `LATEST_IOS_VERSION`, which stays as an offline
+ * fallback and manual override. A release therefore needs no Railway variable
+ * update once Apple approves the build.
  *
  * `minVersion` is clamped to `latestVersion`: the gate can never force users
  * onto a binary the App Store does not serve yet, so `MIN_IOS_VERSION` can be
  * set ahead of the rollout and activates on its own once the version is live.
  */
 @Injectable()
-export class IosVersionGateService {
+export class IosVersionGateService implements OnApplicationBootstrap {
   #publishedVersion: string | null = null;
   #refreshAfter = 0;
   #isRefreshing = false;
@@ -48,6 +48,10 @@ export class IosVersionGateService {
     @InjectInfoLogger(IosVersionGateService.name)
     private readonly logger: InfoLogger,
   ) {}
+
+  onApplicationBootstrap(): void {
+    this.#refreshWhenStale();
+  }
 
   resolve(): IosVersionGate {
     this.#refreshWhenStale();
@@ -84,8 +88,18 @@ export class IosVersionGateService {
   }
 
   async #refreshPublishedVersion(): Promise<void> {
+    const appStoreId = this.#resolveAppStoreId();
+    if (!appStoreId) {
+      this.#refreshAfter = Number.POSITIVE_INFINITY;
+      this.logger.warn(
+        { operation: 'refreshPublishedVersion' },
+        'IOS_STORE_URL carries no App Store identifier, serving the configured LATEST_IOS_VERSION',
+      );
+      return;
+    }
+
     try {
-      const version = await this.#fetchPublishedVersion();
+      const version = await this.#fetchPublishedVersion(appStoreId);
       const hasChanged = version !== this.#publishedVersion;
       this.#publishedVersion = version;
       this.#refreshAfter = Date.now() + FRESH_TTL_MS;
@@ -111,13 +125,12 @@ export class IosVersionGateService {
     }
   }
 
-  async #fetchPublishedVersion(): Promise<string> {
+  #resolveAppStoreId(): string | undefined {
     const storeUrl = this.configService.get<string>('IOS_STORE_URL') ?? '';
-    const appStoreId = APP_STORE_ID_PATTERN.exec(storeUrl)?.[1];
-    if (!appStoreId) {
-      throw new Error('IOS_STORE_URL carries no App Store identifier');
-    }
+    return APP_STORE_ID_PATTERN.exec(storeUrl)?.[1];
+  }
 
+  async #fetchPublishedVersion(appStoreId: string): Promise<string> {
     const response = await fetch(`${APP_STORE_LOOKUP_URL}?id=${appStoreId}`, {
       signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS),
     });
