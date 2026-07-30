@@ -125,6 +125,7 @@ struct DriftCard: View {
     private func driftRow(_ line: BudgetLine, _ consumption: BudgetFormulas.Consumption) -> some View {
         let overBy = -consumption.available
         let fill = plannedFraction(line, consumption)
+        let tagNames = TagChips.names(for: line.tagIds, namesById: tagNamesById)
 
         return VStack(spacing: DesignTokens.Spacing.sm) {
             HStack(alignment: .firstTextBaseline) {
@@ -132,6 +133,10 @@ struct DriftCard: View {
                     .font(PulpeTypography.labelLarge)
                     .foregroundStyle(Color.textPrimary)
                     .lineLimit(1)
+
+                if !tagNames.isEmpty {
+                    TagChips(names: tagNames, presentation: .count, followsText: true)
+                }
 
                 Spacer()
 
@@ -144,11 +149,6 @@ struct DriftCard: View {
                     .lineLimit(1)
                     .minimumScaleFactor(DesignTokens.TextScale.floor)
                     .sensitiveAmount()
-            }
-
-            let tagNames = TagChips.names(for: line.tagIds, namesById: tagNamesById)
-            if !tagNames.isEmpty {
-                TagChips(names: tagNames, presentation: .count)
             }
 
             HomeSegmentedBar(

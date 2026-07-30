@@ -169,10 +169,11 @@ struct BudgetLineMixedRow: View {
                 }
 
                 if !tagNames.isEmpty {
-                    if metadata != nil {
-                        Text("·")
-                    }
-                    TagChips(names: tagNames, presentation: .count)
+                    TagChips(
+                        names: tagNames,
+                        presentation: .count,
+                        followsText: metadata != nil
+                    )
                 }
             }
             .font(PulpeTypography.labelMedium)

@@ -179,7 +179,9 @@ struct UncheckedOperationsCard: View {
     // MARK: - Inline Quick-Check
 
     private func inlinePane(_ item: CurrentMonthStore.CheckableItem) -> some View {
-        VStack(spacing: DesignTokens.Spacing.md) {
+        let tagNames = tagNames(for: item)
+
+        return VStack(spacing: DesignTokens.Spacing.md) {
             HStack(alignment: .firstTextBaseline) {
                 (
                     Text(item.name)
@@ -190,6 +192,10 @@ struct UncheckedOperationsCard: View {
                         .foregroundStyle(Color.textTertiary)
                 )
                 .lineLimit(1)
+
+                if !tagNames.isEmpty {
+                    TagChips(names: tagNames, presentation: .count, followsText: true)
+                }
 
                 Spacer()
 
@@ -204,11 +210,6 @@ struct UncheckedOperationsCard: View {
                     .sensitiveAmount()
             }
             .accessibilityElement(children: .combine)
-
-            let tagNames = tagNames(for: item)
-            if !tagNames.isEmpty {
-                TagChips(names: tagNames, presentation: .count)
-            }
 
             actionsRow(item)
         }

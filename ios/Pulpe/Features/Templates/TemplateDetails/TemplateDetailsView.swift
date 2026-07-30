@@ -242,11 +242,15 @@ struct TemplateLineRow: View {
                         .lineLimit(1)
                     }
 
-                    RecurrenceBadge(line.recurrence, style: .compact)
+                    HStack(spacing: DesignTokens.Spacing.sm) {
+                        RecurrenceBadge(line.recurrence, style: .compact)
 
-                    let tagNames = TagChips.names(for: line.tagIds, namesById: tagNamesById)
-                    if !tagNames.isEmpty {
-                        TagChips(names: tagNames, presentation: .count)
+                        // No `·` here: the count follows a capsule, not text, and a
+                        // separator between the two would read as broken punctuation.
+                        let tagNames = TagChips.names(for: line.tagIds, namesById: tagNamesById)
+                        if !tagNames.isEmpty {
+                            TagChips(names: tagNames, presentation: .count)
+                        }
                     }
                 }
 

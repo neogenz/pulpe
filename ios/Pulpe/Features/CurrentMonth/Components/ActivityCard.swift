@@ -167,16 +167,18 @@ struct ActivityCard: View {
                     .foregroundStyle(Color.textPrimary)
                     .lineLimit(1)
 
-                let tagNames = TagChips.names(for: transaction.tagIds, namesById: tagNamesById)
-                if !tagNames.isEmpty {
-                    TagChips(names: tagNames, presentation: .count)
-                }
+                HStack(spacing: DesignTokens.Spacing.xs) {
+                    Text(transaction.transactionDate.relativeFormatted.lowercased())
+                        .font(PulpeTypography.labelMedium)
+                        .foregroundStyle(Color.textTertiary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(DesignTokens.TextScale.compact)
 
-                Text(transaction.transactionDate.relativeFormatted.lowercased())
-                    .font(PulpeTypography.labelMedium)
-                    .foregroundStyle(Color.textTertiary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(DesignTokens.TextScale.compact)
+                    let tagNames = TagChips.names(for: transaction.tagIds, namesById: tagNamesById)
+                    if !tagNames.isEmpty {
+                        TagChips(names: tagNames, presentation: .count, followsText: true)
+                    }
+                }
             }
 
             Spacer()
