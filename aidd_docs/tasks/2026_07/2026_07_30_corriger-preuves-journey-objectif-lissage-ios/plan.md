@@ -1,6 +1,6 @@
 ---
 objective: "Le journey iOS prouve que la métadonnée Objectif/Lissé reste visible en Accessibility 3 et que les destinations Objectif et Lissage décrivent la même prévision d’août 2026."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Corriger les preuves du journey Objectif et Lissage sur iOS
