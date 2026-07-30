@@ -60,18 +60,20 @@ extension BudgetDetailsView {
                 metrics: coordinator.dataStore.metrics,
                 realizedMetrics: coordinator.dataStore.realizedMetrics
             )
-        case .spreadOccurrences(let spreadGroupId):
+        case .spreadOccurrences(let spreadGroupId, let kind):
             // The VIEWED budget's period anchors the display axis (past/current,
             // "Ce mois" vs "Ici"); the live period (today) drives realization.
             let openBudget = coordinator.dataStore.budget
             SpreadOccurrencesSheet(
                 spreadGroupId: spreadGroupId,
+                kind: kind,
                 referencePeriod: BudgetPeriod(
                     month: openBudget?.month ?? Calendar.current.component(.month, from: Date()),
                     year: openBudget?.year ?? Calendar.current.component(.year, from: Date())
                 ),
                 payDayOfMonth: userSettingsStore.payDayOfMonth,
-                currency: userSettingsStore.currency
+                currency: userSettingsStore.currency,
+                service: coordinator.budgetLineService
             )
         case .spreadExisting(let source):
             // The closure is awaited by the sheet (behind its blocking overlay),

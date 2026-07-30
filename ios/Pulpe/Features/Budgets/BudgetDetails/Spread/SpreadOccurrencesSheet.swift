@@ -67,21 +67,26 @@ final class SpreadOccurrencesSheetViewModel {
 /// scaffolding: NavigationStack + List + close button + standard presentation.
 struct SpreadOccurrencesSheet: View {
     @State private var viewModel: SpreadOccurrencesSheetViewModel
+    let kind: TransactionKind
     let currency: SupportedCurrency
 
     init(
         spreadGroupId: String,
+        kind: TransactionKind,
         referencePeriod: BudgetPeriod,
         payDayOfMonth: Int?,
-        currency: SupportedCurrency
+        currency: SupportedCurrency,
+        service: any BudgetLineServicing = BudgetLineService.shared
     ) {
         self._viewModel = State(
             initialValue: SpreadOccurrencesSheetViewModel(
                 spreadGroupId: spreadGroupId,
                 referencePeriod: referencePeriod,
-                payDayOfMonth: payDayOfMonth
+                payDayOfMonth: payDayOfMonth,
+                service: service
             )
         )
+        self.kind = kind
         self.currency = currency
     }
 
@@ -96,7 +101,7 @@ struct SpreadOccurrencesSheet: View {
                     content
                 }
             }
-            .navigationTitle("Dépense lissée")
+            .navigationTitle(SpreadAffordanceButton.title(for: kind))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -137,6 +142,7 @@ struct SpreadOccurrencesSheet: View {
 #Preview {
     SpreadOccurrencesSheet(
         spreadGroupId: "preview-group",
+        kind: .expense,
         referencePeriod: BudgetPeriod(month: 6, year: 2026),
         payDayOfMonth: nil,
         currency: .chf

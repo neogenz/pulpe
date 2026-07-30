@@ -12,7 +12,12 @@ extension BudgetLineDetailPage {
 
                 if let spreadGroupId = line.spreadGroupId {
                     SpreadAffordanceButton(kind: line.kind) {
-                        router.present(.spreadOccurrences(spreadGroupId: spreadGroupId.uuidString))
+                        router.present(
+                            .spreadOccurrences(
+                                spreadGroupId: spreadGroupId.uuidString,
+                                kind: line.kind
+                            )
+                        )
                     }
                     .listRowSeparator(.hidden)
                 }

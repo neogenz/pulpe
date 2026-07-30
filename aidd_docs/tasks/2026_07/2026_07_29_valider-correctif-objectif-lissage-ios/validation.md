@@ -4,15 +4,16 @@
 
 | Champ | Valeur |
 | --- | --- |
-| Date | 29 juillet 2026 |
+| Date | 30 juillet 2026 |
 | Branche | `codex/fix-ios-goal-spread-metadata` |
-| Commit de phase | `fae574dab` |
+| Phase | Stabilisation du journey Objectif/Lissage |
 | Simulateur | iPhone SE (3e génération), iOS 18.5 (22F77) |
 | UDID | `4BFB26E9-0BA2-442A-AAAE-0AF677407DD8` |
+| Preview | `PulpePreview`, iOS 26.5, `44C2CE50-B590-44A6-B315-23F8D5ACCABE` |
 | Scénario | `UITEST_BUDGET_GOAL_SPREAD_METADATA` |
 | Donnée | Épargne « Voyage au Japon », 413 CHF, objectif `ui-test-goal`, lissage `33333333-7777-4777-8777-333333333333` |
 
-Le harness est autonome : il alimente les caches et stores existants, entre par la vraie carte d’août de `BudgetsTab`, puis utilise les routes de production. Aucun backend ni aucune vue de production n’est modifié par cette phase.
+Le harness est autonome : un service local strict alimente budget, tags et occurrences ; le service d’objectif existant alimente sa progression. Le scénario entre par la vraie carte d’août de `BudgetsTab`, puis utilise les routes et vues de production. Les initialiseurs de production conservent leurs services partagés par défaut.
 
 ## Matrice observée
 
@@ -24,29 +25,29 @@ Le harness est autonome : il alimente les caches et stores existants, entre par 
 | Détail | Large | Sombre | Même hiérarchie, contraste conservé. |
 | Ligne budget | Accessibility 3 | Claire | Nom et métadonnée passent sur plusieurs lignes ; la carte reste ouvrable. |
 | Ligne budget | Accessibility 3 | Sombre | Même reflow, contraste conservé. |
-| Détail | Accessibility 3 | Claire | Objectif et lissage restent deux cibles scrollables, sans intersection. |
-| Détail | Accessibility 3 | Sombre | Même séparation et mêmes cibles tactiles. |
+| Détail | Accessibility 3 | Claire | Un geste contrôlé cadre simultanément les deux actions, hittables et sans intersection. |
+| Détail | Accessibility 3 | Sombre | Même cadrage, même séparation et mêmes cibles tactiles. |
 
-Le test conserve dix captures XCTest : une ligne et un détail en Large pour chaque apparence, puis une ligne et deux positions du détail en Accessibility 3 pour chaque apparence. Elles sont attachées à `testGoalAndSpreadMetadataRemainUsableAcrossAccessibilityMatrix` dans `/tmp/pulpe-goal-spread-class.xcresult`.
+Le bundle `/tmp/pulpe-goal-spread-final.xcresult` conserve dix captures XCTest : une ligne et un détail pour chacun des quatre modes, puis les deux destinations du journey.
 
 ## Interactions
 
 | Action | Preuve |
 | --- | --- |
 | Ouvrir la prévision depuis la carte combinée | `budgetLineDetailPageRoot` existe après le tap. |
-| Activer l’objectif | La barre de navigation affiche `Voyage au Japon`. |
-| Activer le lissage | La feuille affiche `Dépense lissée`. |
-| Cibles Objectif et Lissage | Hauteur mesurée ≥ 44 pt et cadres sans intersection dans les quatre modes. |
+| Activer l’objectif | `savingsGoalDetailRoot` affiche `Montant de départ` et la progression semée, sans `Connexion impossible`. |
+| Activer le lissage | La feuille `Épargne lissée` affiche `Juillet 2026`, 137 CHF, sans `Connexion impossible`. |
+| Cibles Objectif et Lissage | Existence, `isHittable`, hauteur ≥ 44 pt et cadres sans intersection dans les quatre modes. |
 
 ## Contrôles
 
 | Contrôle | Résultat |
 | --- | --- |
-| `BudgetLineLongPressTests` | 4/4 passés, dont la matrice et les deux destinations. |
-| `BudgetLinePresentationTests` + `BudgetDetailsArchitectureTests` | 15 tests / 16 exécutions paramétrées passés. |
-| `xcodebuild build -scheme PulpeLocal` | Passé sur le simulateur isolé. |
-| SwiftLint strict sur les 4 fichiers modifiés | 0 violation. |
+| Deux UI tests Objectif/Lissage | Passés : matrice 4 modes et destinations réelles. |
+| `BudgetLinePresentationTests` | Passé. |
+| `xcodebuild build -scheme PulpePreview` | Passé, installé et lancé sur le simulateur Preview iOS 26.5. |
+| SwiftLint strict sur les 9 fichiers Swift modifiés | 0 violation. |
 | `pnpm quality` | 11/11 tâches passées. |
 | `git diff --check` | Passé. |
 
-Le lint strict global reste rouge sur 19 violations préexistantes hors diff. Xcode conserve aussi les avertissements préexistants d’isolation d’acteur dans le setup UI, d’inférence dans `PulpeChip.swift:95` et de version LLDB du simulateur ; aucun nouveau warning n’est attribuable au correctif.
+Xcode conserve les avertissements préexistants d’isolation d’acteur dans le setup UI, d’inférence dans `PulpeChip.swift:95`, de configuration PostHog dépréciée et de version LLDB du simulateur ; aucun nouveau warning n’est attribuable au correctif.

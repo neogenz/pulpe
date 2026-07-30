@@ -355,11 +355,24 @@ struct SavingsGoalsTab: View {
 
 struct BudgetsTab: View {
     @Environment(AppState.self) private var appState
+    private let budgetService: any BudgetServicing
+    private let budgetLineService: any BudgetLineServicing
+    private let savingsGoalService: any SavingsGoalServicing
     /// Tab-scoped router instance. Owns sheet state and provides the typed
     /// push API used inside the BudgetDetails feature; `appState.budgetPath`
     /// remains the underlying NavigationPath surface for cross-feature
     /// entries (deep link, BudgetList CTA, CurrentMonth CTA).
     @State private var router = BudgetDetailsRouter()
+
+    init(
+        budgetService: any BudgetServicing = BudgetService.shared,
+        budgetLineService: any BudgetLineServicing = BudgetLineService.shared,
+        savingsGoalService: any SavingsGoalServicing = SavingsGoalService.shared
+    ) {
+        self.budgetService = budgetService
+        self.budgetLineService = budgetLineService
+        self.savingsGoalService = savingsGoalService
+    }
 
     var body: some View {
         @Bindable var state = appState
@@ -369,7 +382,11 @@ struct BudgetsTab: View {
                 .navigationDestination(for: BudgetDestination.self) { destination in
                     switch destination {
                     case .details(let budgetId):
-                        BudgetDetailsView(budgetId: budgetId)
+                        BudgetDetailsView(
+                            budgetId: budgetId,
+                            budgetService: budgetService,
+                            budgetLineService: budgetLineService
+                        )
                     }
                 }
                 // A saving prévision's detail can push its linked goal's
@@ -380,7 +397,7 @@ struct BudgetsTab: View {
                     case .list:
                         SavingsGoalsListView()
                     case .detail(let goal):
-                        SavingsGoalDetailView(goal: goal)
+                        SavingsGoalDetailView(goal: goal, service: savingsGoalService)
                     }
                 }
         }

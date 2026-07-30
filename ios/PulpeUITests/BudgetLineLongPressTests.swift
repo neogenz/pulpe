@@ -81,17 +81,23 @@ final class BudgetLineLongPressTests: XCTestCase {
             XCTAssertTrue(detailRoot.waitForExistence(timeout: 10))
             let goal = app.buttons["Objectif d'épargne : \(Self.goalName)"]
             let spread = app.buttons["Épargne lissée, voir les mois"]
-            scrollUntilHittable(goal)
-            scrollUntilHittable(spread)
-            XCTAssertGreaterThanOrEqual(goal.frame.height, 44)
-            XCTAssertGreaterThanOrEqual(spread.frame.height, 44)
-            XCTAssertFalse(goal.frame.intersects(spread.frame))
+            let navigationBar = app.navigationBars[Self.goalName]
+            let primaryAction = app.buttons["Ajouter une transaction"]
+            XCTAssertTrue(primaryAction.waitForExistence(timeout: 10))
             if mode.dynamicType {
-                dragUp(fromY: 0.60, toY: 0.40)
-                attachScreenshot("ios-goal-spread-detail-goal-\(mode.name)")
-                dragUp(fromY: 0.60, toY: 0.40)
-                attachScreenshot("ios-goal-spread-detail-spread-\(mode.name)")
+                dragUp(fromY: 0.65, toY: 0.22)
+                assertVisible(goal, below: navigationBar, above: primaryAction)
+                assertVisible(spread, below: navigationBar, above: primaryAction)
+                XCTAssertGreaterThanOrEqual(goal.frame.height, 44)
+                XCTAssertGreaterThanOrEqual(spread.frame.height, 44)
+                XCTAssertFalse(goal.frame.intersects(spread.frame))
+                attachScreenshot("ios-goal-spread-detail-actions-\(mode.name)")
             } else {
+                assertVisible(goal, below: navigationBar, above: primaryAction)
+                assertVisible(spread, below: navigationBar, above: primaryAction)
+                XCTAssertGreaterThanOrEqual(goal.frame.height, 44)
+                XCTAssertGreaterThanOrEqual(spread.frame.height, 44)
+                XCTAssertFalse(goal.frame.intersects(spread.frame))
                 attachScreenshot("ios-goal-spread-detail-\(mode.name)")
             }
 
@@ -111,12 +117,24 @@ final class BudgetLineLongPressTests: XCTestCase {
         scrollUntilHittable(goal)
         goal.tap()
         XCTAssertTrue(app.navigationBars[Self.goalName].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.scrollViews["savingsGoalDetailRoot"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Montant de départ"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts["Connexion impossible"].exists)
+        attachScreenshot("ios-goal-spread-goal-destination")
 
         app.navigationBars.buttons.firstMatch.tap()
         let spread = app.buttons["Épargne lissée, voir les mois"]
         scrollUntilHittable(spread)
         spread.tap()
-        XCTAssertTrue(app.navigationBars["Dépense lissée"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["Épargne lissée"].waitForExistence(timeout: 10))
+        let occurrence = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS %@", "Juillet 2026"))
+            .firstMatch
+        XCTAssertTrue(occurrence.waitForExistence(timeout: 10))
+        XCTAssertTrue(occurrence.label.contains("137"))
+        XCTAssertTrue(occurrence.label.contains("CHF"))
+        XCTAssertFalse(app.staticTexts["Connexion impossible"].exists)
+        attachScreenshot("ios-goal-spread-spread-destination")
     }
 
     private func launchScenario(_ scenario: String) {
@@ -130,11 +148,9 @@ final class BudgetLineLongPressTests: XCTestCase {
         app = XCUIApplication()
         app.launchArguments = ["-\(Self.goalSpreadScenario)"]
         app.launchEnvironment["UITEST_SCENARIO"] = Self.goalSpreadScenario
+        app.launchEnvironment["UITEST_COLOR_SCHEME"] = mode.darkMode ? "dark" : "light"
         if mode.dynamicType {
             app.launchEnvironment["UITEST_DYNAMIC_TYPE"] = "accessibility3"
-        }
-        if mode.darkMode {
-            app.launchEnvironment["UITEST_COLOR_SCHEME"] = "dark"
         }
         app.launch()
         let budget = app.buttons
@@ -151,20 +167,42 @@ final class BudgetLineLongPressTests: XCTestCase {
         XCTAssertTrue(element.isHittable)
     }
 
-    private func goalSpreadRowButton() -> XCUIElement {
-        app.buttons
-            .matching(NSPredicate(format: "label BEGINSWITH %@", "Épargne, \(Self.goalName)"))
-            .firstMatch
+    private func assertVisible(
+        _ element: XCUIElement,
+        below topElement: XCUIElement,
+        above bottomElement: XCUIElement
+    ) {
+        let frame = element.frame
+        XCTAssertTrue(element.exists)
+        XCTAssertTrue(element.isHittable)
+        XCTAssertGreaterThanOrEqual(
+            frame.minY,
+            topElement.frame.maxY,
+            "Element \(frame) starts above navigation \(topElement.frame)"
+        )
+        XCTAssertLessThanOrEqual(
+            frame.maxY,
+            bottomElement.frame.minY,
+            "Element \(frame) ends below primary action \(bottomElement.frame)"
+        )
     }
 
     private func dragUp(fromY: CGFloat, toY: CGFloat) {
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: fromY))
             .press(
-                forDuration: 0.05,
+                forDuration: 0.1,
                 thenDragTo: app.coordinate(
                     withNormalizedOffset: CGVector(dx: 0.5, dy: toY)
-                )
+                ),
+                withVelocity: .slow,
+                thenHoldForDuration: 0
             )
+    }
+
+    private func goalSpreadRowButton() -> XCUIElement {
+        app.buttons
+            .matching(NSPredicate(format: "label BEGINSWITH %@", "Épargne, \(Self.goalName)"))
+            .firstMatch
     }
 
     private func attachScreenshot(_ name: String) {

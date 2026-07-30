@@ -80,26 +80,102 @@ enum UITestLaunchScenario {
     }
 }
 
+@MainActor
+private final class BudgetGoalSpreadUITestService: BudgetServicing, BudgetLineServicing, TagServicing {
+    private let details: BudgetDetails
+    private let budgets: [BudgetSparse]
+    private let spreadGroupId: String
+    private let occurrences: [SpreadOccurrence]
+
+    init(details: BudgetDetails, budgets: [BudgetSparse], spreadGroupId: String, occurrences: [SpreadOccurrence]) {
+        self.details = details
+        self.budgets = budgets
+        self.spreadGroupId = spreadGroupId
+        self.occurrences = occurrences
+    }
+
+    func getBudgetWithDetails(id: String) async throws -> BudgetDetails {
+        guard id == details.budget.id else { throw URLError(.badServerResponse) }
+        return details
+    }
+
+    func getBudgetsSparse(fields _: String, limit _: Int?, year _: Int?) async throws -> [BudgetSparse] {
+        budgets
+    }
+
+    func getSpreadOccurrences(spreadGroupId: String) async throws -> [SpreadOccurrence] {
+        guard spreadGroupId == self.spreadGroupId else { throw URLError(.badServerResponse) }
+        return occurrences
+    }
+
+    func getAll() async throws -> [Tag] { [] }
+    func create(_: TagCreate) async throws -> Tag { throw URLError(.unsupportedURL) }
+    func deleteBudgetLine(id _: String) async throws { throw URLError(.unsupportedURL) }
+    func toggleCheck(id _: String) async throws -> BudgetLine { throw URLError(.unsupportedURL) }
+    func postpone(id _: String) async throws -> BudgetLine { throw URLError(.unsupportedURL) }
+    func createSpread(_: BudgetLineSpreadCreate) async throws -> BudgetLineSpreadResponse {
+        throw URLError(.unsupportedURL)
+    }
+
+    func createSavingsWithdrawal(_: SavingsWithdrawalCreate) async throws -> SavingsWithdrawalResponse {
+        throw URLError(.unsupportedURL)
+    }
+
+    func deleteSavingsWithdrawal(groupId _: String, scope _: SavingsWithdrawalDeleteScope) async throws {
+        throw URLError(.unsupportedURL)
+    }
+
+    func spreadExistingBudgetLine(
+        id _: String,
+        periods _: [SpreadFromExistingPeriod]
+    ) async throws -> BudgetLineSpreadResponse {
+        throw URLError(.unsupportedURL)
+    }
+}
+
 struct BudgetGoalSpreadUITestHarness: View {
     private static let budgetId = "goal-spread-budget"
     private static let lineId = "goal-spread-line"
     private static let goalId = "ui-test-goal"
-    private static let spreadGroupId = UUID(uuidString: "33333333-7777-4777-8777-333333333333")
+    private static let spreadGroupIdString = "33333333-7777-4777-8777-333333333333"
+    private static let spreadGroupId = UUID(uuidString: spreadGroupIdString)
 
+    private let routeService: BudgetGoalSpreadUITestService
+    private let savingsGoalService: SavingsGoalIntervalUITestService
     @State private var appState: AppState
     @State private var savingsGoalStore: SavingsGoalStore
     @State private var userSettingsStore = UserSettingsStore()
     @State private var currentMonthStore = CurrentMonthStore()
     @State private var budgetListStore: BudgetListStore
     @State private var dashboardStore = DashboardStore()
-    @State private var tagStore = TagStore()
+    @State private var tagStore: TagStore
 
     init() {
         let appState = AppState()
-        let service = SavingsGoalIntervalUITestService(scenario: .budgetGoalSpreadMetadata)
+        let savingsGoalService = SavingsGoalIntervalUITestService(scenario: .budgetGoalSpreadMetadata)
         let now = Date(timeIntervalSince1970: 1_700_000_000)
         let seed = Self.seed(now: now)
         let sparse = BudgetSparse(from: seed.budget)
+        let routeService = BudgetGoalSpreadUITestService(
+            details: BudgetDetails(budget: seed.budget, transactions: [], budgetLines: [seed.line]),
+            budgets: [sparse],
+            spreadGroupId: Self.spreadGroupIdString,
+            occurrences: [
+                SpreadOccurrence(
+                    budgetLineId: "goal-spread-july",
+                    budgetId: "goal-spread-july-budget",
+                    month: 7,
+                    year: 2026,
+                    name: "Voyage au Japon",
+                    amount: 137,
+                    kind: .saving,
+                    checkedAt: nil,
+                    originalAmount: nil,
+                    consumed: 0,
+                    transactionCount: 0
+                ),
+            ]
+        )
         ProductTips.tourDismissed = true
 
         BudgetDetailCache.shared.store(
@@ -110,9 +186,14 @@ struct BudgetGoalSpreadUITestHarness: View {
         )
         BudgetDetailCache.shared.storeAllBudgets([sparse])
 
+        self.routeService = routeService
+        self.savingsGoalService = savingsGoalService
         _appState = State(initialValue: appState)
-        _budgetListStore = State(initialValue: BudgetListStore(initialBudgets: [sparse]))
-        _savingsGoalStore = State(initialValue: SavingsGoalStore(service: service))
+        _budgetListStore = State(
+            initialValue: BudgetListStore(budgetService: routeService, initialBudgets: [sparse])
+        )
+        _savingsGoalStore = State(initialValue: SavingsGoalStore(service: savingsGoalService))
+        _tagStore = State(initialValue: TagStore(service: routeService))
     }
 
     private static func seed(now: Date) -> (budget: Budget, line: BudgetLine) {
@@ -149,7 +230,11 @@ struct BudgetGoalSpreadUITestHarness: View {
     }
 
     var body: some View {
-        BudgetsTab()
+        BudgetsTab(
+            budgetService: routeService,
+            budgetLineService: routeService,
+            savingsGoalService: savingsGoalService
+        )
         .environment(\.dynamicTypeSize, dynamicTypeSize)
         .environment(\.tabBarClearance, MainTabView.tabBarClearance(bottomSafeAreaInset: 0))
         .preferredColorScheme(preferredColorScheme)
@@ -172,10 +257,10 @@ struct BudgetGoalSpreadUITestHarness: View {
             : .large
     }
 
-    private var preferredColorScheme: ColorScheme? {
+    private var preferredColorScheme: ColorScheme {
         ProcessInfo.processInfo.environment["UITEST_COLOR_SCHEME"] == "dark"
             ? .dark
-            : nil
+            : .light
     }
 }
 
