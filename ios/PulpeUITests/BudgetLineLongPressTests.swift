@@ -55,56 +55,79 @@ final class BudgetLineLongPressTests: XCTestCase {
         )
     }
 
-    func testGoalAndSpreadMetadataRemainUsableAcrossAccessibilityMatrix() {
-        let displayModes = [
-            DisplayMode(name: "light-large", dynamicType: false, darkMode: false),
-            DisplayMode(name: "dark-large", dynamicType: false, darkMode: true),
-            DisplayMode(name: "light-accessibility3", dynamicType: true, darkMode: false),
-            DisplayMode(name: "dark-accessibility3", dynamicType: true, darkMode: true),
-        ]
+    // One method per display mode rather than a loop: `continueAfterFailure = false`
+    // aborts the whole method on the first assertion, so a loop would report the
+    // failing mode and silently never exercise the ones after it.
 
-        for mode in displayModes {
-            launchGoalSpreadScenario(mode)
+    func testGoalAndSpreadMetadataRemainUsableInLightLarge() {
+        assertGoalAndSpreadMetadataRemainUsable(
+            DisplayMode(name: "light-large", dynamicType: false, darkMode: false)
+        )
+    }
 
-            let row = app.otherElements["budgetLineMixedRow-\(Self.goalSpreadLineId)"]
-            XCTAssertTrue(row.waitForExistence(timeout: 10))
-            let rowButton = goalSpreadRowButton()
-            let metadata = app.staticTexts["Lissé · objectif \(Self.goalName)"]
-            XCTAssertTrue(metadata.waitForExistence(timeout: 10))
-            scrollUntilFullyVisible(
-                metadata,
-                below: app.navigationBars.firstMatch.frame.maxY,
-                above: app.windows.firstMatch.frame.maxY
-            )
-            XCTAssertTrue(rowButton.isHittable)
-            attachScreenshot("ios-goal-spread-row-\(mode.name)")
+    func testGoalAndSpreadMetadataRemainUsableInDarkLarge() {
+        assertGoalAndSpreadMetadataRemainUsable(
+            DisplayMode(name: "dark-large", dynamicType: false, darkMode: true)
+        )
+    }
 
-            rowButton.tap()
+    func testGoalAndSpreadMetadataRemainUsableInLightAccessibility3() {
+        assertGoalAndSpreadMetadataRemainUsable(
+            DisplayMode(name: "light-accessibility3", dynamicType: true, darkMode: false)
+        )
+    }
 
-            let detailRoot = app.descendants(matching: .any)
-                .matching(identifier: "budgetLineDetailPageRoot")
-                .firstMatch
-            XCTAssertTrue(detailRoot.waitForExistence(timeout: 10))
-            let goal = app.buttons["Objectif d'épargne : \(Self.goalName)"]
-            let spread = app.buttons["Épargne lissée, voir les mois"]
-            let navigationBar = app.navigationBars[Self.goalName]
-            let primaryAction = app.buttons["Ajouter une transaction"]
-            XCTAssertTrue(primaryAction.waitForExistence(timeout: 10))
-            scrollPairIntoView(
-                goal,
-                spread,
-                below: navigationBar.frame.maxY,
-                above: primaryAction.frame.minY
-            )
-            assertVisible(goal, below: navigationBar, above: primaryAction)
-            assertVisible(spread, below: navigationBar, above: primaryAction)
-            XCTAssertGreaterThanOrEqual(goal.frame.height, 44)
-            XCTAssertGreaterThanOrEqual(spread.frame.height, 44)
-            XCTAssertFalse(goal.frame.intersects(spread.frame))
-            attachScreenshot("ios-goal-spread-detail-\(mode.name)")
+    func testGoalAndSpreadMetadataRemainUsableInDarkAccessibility3() {
+        assertGoalAndSpreadMetadataRemainUsable(
+            DisplayMode(name: "dark-accessibility3", dynamicType: true, darkMode: true)
+        )
+    }
 
-            app.terminate()
-        }
+    private func assertGoalAndSpreadMetadataRemainUsable(
+        _ mode: DisplayMode,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        launchGoalSpreadScenario(mode)
+
+        let row = app.otherElements["budgetLineMixedRow-\(Self.goalSpreadLineId)"]
+        XCTAssertTrue(row.waitForExistence(timeout: 10), file: file, line: line)
+        let rowButton = goalSpreadRowButton()
+        let metadata = app.staticTexts["Lissé · objectif \(Self.goalName)"]
+        XCTAssertTrue(metadata.waitForExistence(timeout: 10), file: file, line: line)
+        scrollUntilFullyVisible(
+            metadata,
+            below: app.navigationBars.firstMatch.frame.maxY,
+            above: app.windows.firstMatch.frame.maxY
+        )
+        XCTAssertTrue(rowButton.isHittable, file: file, line: line)
+        attachScreenshot("ios-goal-spread-row-\(mode.name)")
+
+        rowButton.tap()
+
+        let detailRoot = app.descendants(matching: .any)
+            .matching(identifier: "budgetLineDetailPageRoot")
+            .firstMatch
+        XCTAssertTrue(detailRoot.waitForExistence(timeout: 10), file: file, line: line)
+        let goal = app.buttons["Objectif d'épargne : \(Self.goalName)"]
+        let spread = app.buttons["Épargne lissée, voir les mois"]
+        let navigationBar = app.navigationBars[Self.goalName]
+        let primaryAction = app.buttons["Ajouter une transaction"]
+        XCTAssertTrue(primaryAction.waitForExistence(timeout: 10), file: file, line: line)
+        scrollPairIntoView(
+            goal,
+            spread,
+            below: navigationBar.frame.maxY,
+            above: primaryAction.frame.minY
+        )
+        assertVisible(goal, below: navigationBar, above: primaryAction)
+        assertVisible(spread, below: navigationBar, above: primaryAction)
+        XCTAssertGreaterThanOrEqual(goal.frame.height, 44, file: file, line: line)
+        XCTAssertGreaterThanOrEqual(spread.frame.height, 44, file: file, line: line)
+        XCTAssertFalse(goal.frame.intersects(spread.frame), file: file, line: line)
+        attachScreenshot("ios-goal-spread-detail-\(mode.name)")
+
+        app.terminate()
     }
 
     func testGoalAndSpreadMetadataRoutesOpenExpectedDestinations() {

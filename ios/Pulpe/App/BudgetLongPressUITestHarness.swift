@@ -137,8 +137,13 @@ struct BudgetGoalSpreadUITestHarness: View {
     private static let budgetId = "goal-spread-budget"
     private static let lineId = "goal-spread-line"
     private static let goalId = "ui-test-goal"
-    private static let spreadGroupIdString = "33333333-7777-4777-8777-333333333333"
-    private static let spreadGroupId = UUID(uuidString: spreadGroupIdString)
+    // The UUID is the source of truth and the string derives from it. Going the
+    // other way needs the failable `UUID(uuidString:)`, whose `nil` on a
+    // mistyped literal silently strips the line's spread group — and it lets the
+    // literal's casing drift from the uppercase `uuidString` the route carries,
+    // which the service compares against.
+    private static let spreadGroupId = UUID()
+    private static var spreadGroupIdString: String { spreadGroupId.uuidString }
 
     private let routeService: BudgetGoalSpreadUITestService
     private let savingsGoalService: SavingsGoalIntervalUITestService
