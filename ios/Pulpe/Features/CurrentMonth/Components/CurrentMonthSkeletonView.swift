@@ -52,12 +52,6 @@ struct CurrentMonthSkeletonView: View {
     private var uncheckedCardSkeleton: some View {
         VStack(spacing: DesignTokens.Spacing.none) {
             HStack(spacing: DesignTokens.Spacing.lg) {
-                HStack(spacing: -DesignTokens.Spacing.compactGap) {
-                    ForEach(0..<3, id: \.self) { _ in
-                        SkeletonCircle(size: DesignTokens.IconSize.badge)
-                    }
-                }
-
                 SkeletonShape(
                     width: DesignTokens.Skeleton.greetingWidth,
                     height: DesignTokens.Skeleton.lineHeight
@@ -87,6 +81,9 @@ struct CurrentMonthSkeletonView: View {
                     )
                 }
 
+                // Two capsules, because the loaded card now offers two: the deferral is a
+                // chip like the confirmation, so a bare line here would promise a shape the
+                // arriving data does not deliver.
                 HStack(spacing: DesignTokens.Spacing.lg) {
                     SkeletonShape(
                         width: DesignTokens.Skeleton.greetingWidth,
@@ -96,7 +93,8 @@ struct CurrentMonthSkeletonView: View {
                     Spacer(minLength: DesignTokens.Spacing.sm)
                     SkeletonShape(
                         width: DesignTokens.Skeleton.greetingWidth / 2,
-                        height: DesignTokens.Skeleton.lineHeight
+                        height: DesignTokens.TapTarget.minimum,
+                        cornerRadius: .infinity
                     )
                 }
             }

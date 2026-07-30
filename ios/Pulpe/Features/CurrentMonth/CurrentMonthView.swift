@@ -236,7 +236,6 @@ struct CurrentMonthView: View {
             if !store.uncheckedItems.isEmpty {
                 UncheckedOperationsCard(
                     items: store.uncheckedItems,
-                    totalCount: store.uncheckedCount,
                     tagNamesById: tagStore.namesById,
                     syncingBudgetLineIds: store.syncingBudgetLineIds,
                     syncingTransactionIds: store.syncingTransactionIds,
