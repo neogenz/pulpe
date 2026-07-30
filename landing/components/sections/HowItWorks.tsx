@@ -1,5 +1,13 @@
 import { Screenshot } from "@/components/ui";
 
+// The desktop assets are tight crops of the app's own narrow layout, not whole
+// window captures. This section's column caps at 341px, so the 1440px-wide
+// window these used to show arrived at 0.24 scale and put its interface text
+// under 4px: the proof was unreadable without opening the lightbox. Cropping
+// the denser portrait source instead puts the smallest labels around 7px and
+// the figure each step is about between 20px and 40px. Exported at 684px, twice
+// the column, which is what a retina screen consumes and no more. Do not swap
+// these back to whole windows.
 const STEPS = [
   {
     number: "1",
@@ -16,9 +24,9 @@ const STEPS = [
           label="Le mois type qui sert de base au budget"
           mobileWidth={750}
           mobileHeight={1190}
-          desktopWidth={1440}
-          desktopHeight={1080}
-          desktopAspectRatio="4 / 3"
+          desktopWidth={684}
+          desktopHeight={720}
+          desktopAspectRatio="19 / 20"
           fit="contain"
         />
       ),
@@ -39,9 +47,9 @@ const STEPS = [
           label="Les mois projetés à partir du mois type"
           mobileWidth={750}
           mobileHeight={1190}
-          desktopWidth={1440}
-          desktopHeight={1080}
-          desktopAspectRatio="4 / 3"
+          desktopWidth={684}
+          desktopHeight={720}
+          desktopAspectRatio="19 / 20"
           fit="contain"
         />
       ),
@@ -62,9 +70,9 @@ const STEPS = [
           label="Le disponible prévu pour un mois à venir"
           mobileWidth={750}
           mobileHeight={1190}
-          desktopWidth={1440}
-          desktopHeight={1080}
-          desktopAspectRatio="4 / 3"
+          desktopWidth={684}
+          desktopHeight={720}
+          desktopAspectRatio="19 / 20"
           fit="contain"
         />
       ),
