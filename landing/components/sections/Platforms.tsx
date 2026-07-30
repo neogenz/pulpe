@@ -31,12 +31,14 @@ export function Platforms() {
       </div>
 
       <div className="mt-14 grid gap-6 lg:grid-cols-5 lg:gap-8">
-        <article className="relative overflow-hidden rounded-[var(--radius-large)] bg-primary p-7 text-white sm:p-10 lg:col-span-3 lg:p-12">
-          <div
-            aria-hidden="true"
-            className="absolute -right-20 -top-20 size-72 rounded-full bg-lime/15 blur-3xl"
-          />
-          <div className="relative flex h-full flex-col">
+        {/* A corner glow used to sit here on `bg-lime/15`, a class with no
+            token behind it, so it has rendered as nothing since it was
+            written. Reinstating it with a real tint lifted this card's
+            background under the paragraph below, dropping white/80 from
+            4.72:1 to 3.94:1. The card reads fine flat, so it stays flat, and
+            the positioning scaffolding it needed goes with it. */}
+        <article className="rounded-[var(--radius-large)] bg-primary p-7 text-white sm:p-10 lg:col-span-3 lg:p-12">
+          <div className="flex h-full flex-col">
             <div className="flex items-start justify-between gap-4">
               <span className="flex size-16 items-center justify-center rounded-2xl bg-white/12">
                 <AppleLogo className="size-8" />

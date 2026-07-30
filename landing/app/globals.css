@@ -207,7 +207,10 @@ h3,
 
 .arrow-note-label {
   display: block;
-  font-size: 0.9375rem;
+  /* 14px, not 15px: this was the page's only 0.9375rem, a step 1.07 away from
+     the 14px it sat next to. Two body sizes that close read as a mistake
+     rather than a hierarchy. */
+  font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.2;
   white-space: nowrap;

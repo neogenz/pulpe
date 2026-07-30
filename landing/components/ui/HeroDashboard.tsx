@@ -48,11 +48,14 @@ export const HeroDashboard = memo(function HeroDashboard({
     };
   }, []);
 
+  // A figure names itself through its caption. The aria-label this replaces sat
+  // on a bare div, where ARIA forbids it. role="img" was the other route, but it
+  // would hide the sr-only amount below, which is the one line worth reading.
   return (
-    <div
-      className="overflow-hidden rounded-[var(--radius-large)] bg-surface shadow-[var(--shadow-screenshot)] outline outline-1 -outline-offset-1 outline-black/10"
-      aria-label="Aperçu du tableau de bord Pulpe"
-    >
+    <figure className="overflow-hidden rounded-[var(--radius-large)] bg-surface shadow-[var(--shadow-screenshot)] outline outline-1 -outline-offset-1 outline-black/10">
+      <figcaption className="sr-only">
+        Aperçu du tableau de bord Pulpe
+      </figcaption>
       <div className="flex items-center gap-2 border-b border-text/[0.06] px-4 py-3 md:px-5">
         <Image
           src="/icon-64.webp"
@@ -70,8 +73,11 @@ export const HeroDashboard = memo(function HeroDashboard({
       </div>
 
       <div className="grid gap-3 bg-[#fbfdf9] p-3 md:grid-cols-[1.08fr_0.92fr] md:gap-4 md:p-5">
+        {/* Every muted label on this panel is /90, not /80: the gradient starts
+            at its lightest in the top-left corner, where /80 measured 4.72:1
+            and the labels sitting there are 12px. Do not soften them back. */}
         <div className="flex min-h-[19rem] flex-col rounded-[14px] bg-gradient-to-br from-primary to-[#004d1a] p-6 text-white md:min-h-[22rem] md:p-8">
-          <div className="mb-8 flex items-center gap-2 text-xs font-semibold text-white/80">
+          <div className="mb-8 flex items-center gap-2 text-xs font-semibold text-white/90">
             <span
               className="h-1.5 w-1.5 rounded-full bg-white/80"
               aria-hidden="true"
@@ -79,7 +85,7 @@ export const HeroDashboard = memo(function HeroDashboard({
             Mois en cours{monthLabel ? ` · ${monthLabel}` : ""}
           </div>
 
-          <p className="text-sm text-white/80">Disponible ce mois</p>
+          <p className="text-sm text-white/90">Disponible ce mois</p>
           <p className="mt-1 leading-none">
             <span className="sr-only">
               {amount} {unit}
@@ -92,14 +98,14 @@ export const HeroDashboard = memo(function HeroDashboard({
             </span>
             <span
               aria-hidden="true"
-              className="ml-2 text-lg font-semibold text-white/80"
+              className="ml-2 text-lg font-semibold text-white/90"
             >
               {unit}
             </span>
           </p>
 
           <div className="mt-auto pt-10">
-            <div className="mb-2 flex justify-between text-xs text-white/80 tabular-nums">
+            <div className="mb-2 flex justify-between text-xs text-white/90 tabular-nums">
               <span>Dépensé 3 374 {unit}</span>
               <span>sur 4 300 {unit}</span>
             </div>
@@ -110,7 +116,7 @@ export const HeroDashboard = memo(function HeroDashboard({
                 aria-hidden="true"
               />
             </div>
-            <p className="mt-4 text-sm leading-relaxed text-white/80">
+            <p className="mt-4 text-sm leading-relaxed text-white/90">
               Tes grosses dépenses sont déjà intégrées aux mois qui arrivent.
             </p>
           </div>
@@ -207,6 +213,6 @@ export const HeroDashboard = memo(function HeroDashboard({
           </div>
         </div>
       </div>
-    </div>
+    </figure>
   );
 });
