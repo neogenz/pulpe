@@ -410,6 +410,11 @@ final class CurrentMonthStore: StoreProtocol {
 
 #if DEBUG
 extension CurrentMonthStore {
+    /// Test-only: hold the dashboard on its production loading state.
+    func prepareLoadingForTesting() {
+        contentState = .loading
+    }
+
     /// Test-only: populate store with data for unit testing
     func populateForTesting(
         budget: Budget? = nil,

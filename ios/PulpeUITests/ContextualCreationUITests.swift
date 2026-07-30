@@ -58,11 +58,32 @@ final class ContextualCreationUITests: XCTestCase {
         }
     }
 
+    func testHomeSkeletonUsesProductionContainer() {
+        launch(
+            "UITEST_CONTEXTUAL_CREATION_HOME",
+            dynamicType: "large",
+            homeSkeleton: true
+        )
+
+        let skeleton = app.descendants(matching: .any)["Préparation de ton tableau de bord"]
+        XCTAssertTrue(skeleton.waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertTrue(app.buttons["Mon compte"].exists, app.debugDescription)
+
+        let tabBar = app.tabBars.firstMatch
+        XCTAssertTrue(tabBar.exists, app.debugDescription)
+        for title in ["Accueil", "Budgets", "Objectifs", "Modèles"] {
+            XCTAssertTrue(tabBar.buttons[title].exists, app.debugDescription)
+        }
+
+        attachScreenshot("home-skeleton-production-container")
+    }
+
     private func launch(
         _ scenario: String,
         dynamicType: String = "accessibility3",
         colorScheme: String? = nil,
-        chartPeriod: String? = nil
+        chartPeriod: String? = nil,
+        homeSkeleton: Bool = false
     ) {
         app = XCUIApplication()
         app.launchArguments = ["-\(scenario)"]
@@ -74,6 +95,9 @@ final class ContextualCreationUITests: XCTestCase {
         if let chartPeriod {
             app.launchEnvironment["UITEST_HOME_CHART_MATRIX"] = "1"
             app.launchEnvironment["UITEST_CHART_PERIOD"] = chartPeriod
+        }
+        if homeSkeleton {
+            app.launchEnvironment["UITEST_HOME_SKELETON"] = "1"
         }
         app.launch()
     }

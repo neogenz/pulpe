@@ -3,11 +3,11 @@ import SwiftUI
 /// Skeleton placeholder rendered while `BudgetDetailsView` waits for its first
 /// payload. Mirrors the loaded state's `ScrollView` / `LazyVStack` layout so the
 /// loading→loaded transition stays visually stable: hero (eyebrow + amount +
-/// progress + pills) → filter chips → section header → cards.
+/// progress + pills) → contextual card → filter chips → section header → cards.
 struct BudgetDetailsSkeletonView: View {
     var body: some View {
         ScrollView {
-            LazyVStack(spacing: 0) {
+            LazyVStack(spacing: DesignTokens.Spacing.none) {
                 heroSkeleton
                 contextualCardSkeleton
                 filterBarSkeleton
@@ -23,12 +23,20 @@ struct BudgetDetailsSkeletonView: View {
     // MARK: - Hero
 
     private var heroSkeleton: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.none) {
             // Eyebrow ("DISPONIBLE · €")
-            SkeletonShape(width: 120, height: 12, cornerRadius: DesignTokens.CornerRadius.xs)
+            SkeletonShape(
+                width: DesignTokens.Skeleton.mediumTextWidth,
+                height: DesignTokens.Skeleton.captionHeight,
+                cornerRadius: DesignTokens.CornerRadius.xs
+            )
 
             // Hero amount — mirrors `PulpeTypography.displayYear` block height
-            SkeletonShape(width: 240, height: 56, cornerRadius: DesignTokens.CornerRadius.sm)
+            SkeletonShape(
+                width: DesignTokens.Skeleton.extraLongTextWidth,
+                height: DesignTokens.Skeleton.displayHeight,
+                cornerRadius: DesignTokens.CornerRadius.sm
+            )
                 .padding(.top, DesignTokens.Spacing.tightGap)
 
             // Progress bar + percent
@@ -37,14 +45,22 @@ struct BudgetDetailsSkeletonView: View {
                     height: DesignTokens.ProgressBar.heroHeight,
                     cornerRadius: DesignTokens.CornerRadius.progressBar
                 )
-                SkeletonShape(width: 36, height: 14, cornerRadius: DesignTokens.CornerRadius.xs)
+                SkeletonShape(
+                    width: DesignTokens.Skeleton.numericWidth,
+                    height: DesignTokens.Skeleton.bodyHeight,
+                    cornerRadius: DesignTokens.CornerRadius.xs
+                )
             }
             .padding(.top, DesignTokens.Spacing.md)
 
             // Pills row (Revenus · Épargne · Dépenses)
             HStack(spacing: DesignTokens.Spacing.tightGap) {
                 ForEach(0..<3, id: \.self) { _ in
-                    SkeletonShape(width: 120, height: 30, cornerRadius: 15)
+                    SkeletonShape(
+                        width: DesignTokens.Skeleton.mediumTextWidth,
+                        height: DesignTokens.Skeleton.chipHeight,
+                        cornerRadius: .infinity
+                    )
                 }
             }
             .padding(.top, DesignTokens.Spacing.md)
@@ -60,10 +76,18 @@ struct BudgetDetailsSkeletonView: View {
     private var filterBarSkeleton: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: DesignTokens.Spacing.tightGap) {
-                SkeletonShape(width: 120, height: 36, cornerRadius: .infinity)
+                SkeletonShape(
+                    width: DesignTokens.Skeleton.mediumTextWidth,
+                    height: DesignTokens.Skeleton.controlHeight,
+                    cornerRadius: .infinity
+                )
 
                 ForEach(0..<4, id: \.self) { _ in
-                    SkeletonShape(width: 80, height: 36, cornerRadius: .infinity)
+                    SkeletonShape(
+                        width: DesignTokens.Skeleton.shortTextWidth,
+                        height: DesignTokens.Skeleton.controlHeight,
+                        cornerRadius: .infinity
+                    )
                 }
             }
         }
@@ -77,8 +101,14 @@ struct BudgetDetailsSkeletonView: View {
             SkeletonCircle(size: DesignTokens.IconSize.compact)
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                SkeletonShape(width: 180, height: 14)
-                SkeletonShape(width: 240, height: 12)
+                SkeletonShape(
+                    width: DesignTokens.Skeleton.longTextWidth,
+                    height: DesignTokens.Skeleton.bodyHeight
+                )
+                SkeletonShape(
+                    width: DesignTokens.Skeleton.extraLongTextWidth,
+                    height: DesignTokens.Skeleton.captionHeight
+                )
             }
 
             Spacer()
@@ -98,9 +128,13 @@ struct BudgetDetailsSkeletonView: View {
     // MARK: - Section + rows
 
     private var sectionSkeleton: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.none) {
             // Section header ("Dépenses · 8")
-            SkeletonShape(width: 110, height: 18, cornerRadius: DesignTokens.CornerRadius.xs)
+            SkeletonShape(
+                width: DesignTokens.Skeleton.mediumTextWidth,
+                height: DesignTokens.Skeleton.lineHeight,
+                cornerRadius: DesignTokens.CornerRadius.xs
+            )
                 .padding(.horizontal, DesignTokens.Spacing.lg)
                 .padding(.top, DesignTokens.Spacing.lg)
                 .padding(.bottom, DesignTokens.Spacing.sm)
@@ -119,18 +153,34 @@ struct BudgetDetailsSkeletonView: View {
             SkeletonCircle(size: DesignTokens.Checkbox.size)
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                SkeletonShape(width: 60, height: 10)
-                SkeletonShape(width: 130, height: 16)
+                SkeletonShape(
+                    width: DesignTokens.Skeleton.compactTextWidth,
+                    height: DesignTokens.Spacing.compactGap
+                )
+                SkeletonShape(
+                    width: DesignTokens.Skeleton.mediumTextWidth,
+                    height: DesignTokens.Spacing.lg
+                )
             }
 
             Spacer(minLength: DesignTokens.Spacing.sm)
 
             VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
-                SkeletonShape(width: 80, height: 18)
-                SkeletonShape(width: 50, height: 10)
+                SkeletonShape(
+                    width: DesignTokens.Skeleton.shortTextWidth,
+                    height: DesignTokens.Skeleton.lineHeight
+                )
+                SkeletonShape(
+                    width: DesignTokens.Skeleton.compactTextWidth,
+                    height: DesignTokens.Spacing.compactGap
+                )
             }
 
-            SkeletonShape(width: 6, height: 12, cornerRadius: DesignTokens.CornerRadius.xs)
+            SkeletonShape(
+                width: DesignTokens.Spacing.tightGap,
+                height: DesignTokens.Skeleton.captionHeight,
+                cornerRadius: DesignTokens.CornerRadius.xs
+            )
                 .padding(.leading, DesignTokens.Spacing.xs)
         }
         .padding(.vertical, DesignTokens.Spacing.md)

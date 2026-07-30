@@ -133,8 +133,14 @@ private struct TemplateListSkeletonView: View {
                     SkeletonCircle(size: DesignTokens.IconSize.compact)
 
                     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                        SkeletonShape(width: 180, height: 14)
-                        SkeletonShape(width: 240, height: 12)
+                        SkeletonShape(
+                            width: DesignTokens.Skeleton.longTextWidth,
+                            height: DesignTokens.Skeleton.bodyHeight
+                        )
+                        SkeletonShape(
+                            width: DesignTokens.Skeleton.extraLongTextWidth,
+                            height: DesignTokens.Skeleton.captionHeight
+                        )
                     }
 
                     Spacer()
@@ -161,19 +167,28 @@ private struct TemplateListSkeletonView: View {
                 ForEach(0..<3, id: \.self) { _ in
                     HStack {
                         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                            SkeletonShape(width: 120, height: 16)
-                            SkeletonShape(width: 180, height: 12)
+                            SkeletonShape(
+                                width: DesignTokens.Skeleton.mediumTextWidth,
+                                height: DesignTokens.Spacing.lg
+                            )
+                            SkeletonShape(
+                                width: DesignTokens.Skeleton.longTextWidth,
+                                height: DesignTokens.Skeleton.captionHeight
+                            )
                         }
                         Spacer()
                         SkeletonShape(
-                            width: 10,
-                            height: 14,
+                            width: DesignTokens.Spacing.compactGap,
+                            height: DesignTokens.Skeleton.bodyHeight,
                             cornerRadius: DesignTokens.CornerRadius.xs
                         )
                     }
                 }
             } footer: {
-                SkeletonShape(width: 100, height: 12)
+                SkeletonShape(
+                    width: DesignTokens.Skeleton.shortTextWidth,
+                    height: DesignTokens.Skeleton.captionHeight
+                )
             }
         }
         .listStyle(.insetGrouped)

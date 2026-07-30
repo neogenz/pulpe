@@ -334,15 +334,26 @@ private struct BudgetListSkeletonView: View {
             VStack(spacing: DesignTokens.Spacing.xxxl) {
                 VStack(spacing: DesignTokens.Spacing.none) {
                     HStack {
-                        SkeletonShape(width: 120, height: 40)
+                        SkeletonShape(
+                            width: DesignTokens.Skeleton.mediumTextWidth,
+                            height: DesignTokens.Spacing.sectionGap
+                        )
                         Spacer()
-                        SkeletonShape(width: 88, height: 28, cornerRadius: .infinity)
+                        SkeletonShape(
+                            width: DesignTokens.Skeleton.shortTextWidth,
+                            height: DesignTokens.IconSize.compact,
+                            cornerRadius: .infinity
+                        )
                     }
                     .padding(.horizontal, DesignTokens.Spacing.xl)
 
                     HStack(spacing: DesignTokens.Spacing.sm) {
                         ForEach(0..<3, id: \.self) { _ in
-                            SkeletonShape(width: 72, height: 36, cornerRadius: .infinity)
+                            SkeletonShape(
+                                width: DesignTokens.Skeleton.compactTextWidth,
+                                height: DesignTokens.Skeleton.controlHeight,
+                                cornerRadius: .infinity
+                            )
                         }
                     }
                     .padding(.horizontal, DesignTokens.Spacing.xl)
@@ -352,7 +363,10 @@ private struct BudgetListSkeletonView: View {
                     .padding(.horizontal, DesignTokens.Spacing.xl)
 
                 VStack(spacing: DesignTokens.Spacing.none) {
-                    SkeletonShape(width: 180, height: 20)
+                    SkeletonShape(
+                        width: DesignTokens.Skeleton.longTextWidth,
+                        height: DesignTokens.Skeleton.sectionHeight
+                    )
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, DesignTokens.Spacing.xl)
                         .padding(.bottom, DesignTokens.Spacing.md)
@@ -376,20 +390,36 @@ private struct BudgetListSkeletonView: View {
 
     private var yearRecapSkeleton: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            SkeletonShape(width: 180, height: 20)
-            SkeletonShape(width: 200, height: 44)
+            SkeletonShape(
+                width: DesignTokens.Skeleton.longTextWidth,
+                height: DesignTokens.Skeleton.sectionHeight
+            )
+            SkeletonShape(
+                width: DesignTokens.Skeleton.longTextWidth,
+                height: DesignTokens.Skeleton.amountHeight
+            )
             SkeletonShape(
                 height: DesignTokens.ProgressBar.heroHeight,
                 cornerRadius: DesignTokens.CornerRadius.progressBar
             )
-            SkeletonShape(width: 240, height: 12)
-            SkeletonShape(width: 180, height: 12)
+            SkeletonShape(
+                width: DesignTokens.Skeleton.extraLongTextWidth,
+                height: DesignTokens.Skeleton.captionHeight
+            )
+            SkeletonShape(
+                width: DesignTokens.Skeleton.longTextWidth,
+                height: DesignTokens.Skeleton.captionHeight
+            )
         }
     }
 
     private var currentMonthCardSkeleton: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            SkeletonShape(width: 80, height: 18, cornerRadius: .infinity)
+            SkeletonShape(
+                width: DesignTokens.Skeleton.shortTextWidth,
+                height: DesignTokens.Skeleton.lineHeight,
+                cornerRadius: .infinity
+            )
             skeletonMonthContent
         }
         .padding(DesignTokens.Spacing.xxl)
@@ -405,13 +435,25 @@ private struct BudgetListSkeletonView: View {
     private var skeletonMonthContent: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                SkeletonShape(width: 90, height: 18)
-                SkeletonShape(width: 120, height: 11)
+                SkeletonShape(
+                    width: DesignTokens.Skeleton.shortTextWidth,
+                    height: DesignTokens.Skeleton.lineHeight
+                )
+                SkeletonShape(
+                    width: DesignTokens.Skeleton.mediumTextWidth,
+                    height: DesignTokens.Skeleton.captionHeight
+                )
             }
             Spacer()
             VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
-                SkeletonShape(width: 80, height: 14)
-                SkeletonShape(width: 60, height: 8)
+                SkeletonShape(
+                    width: DesignTokens.Skeleton.shortTextWidth,
+                    height: DesignTokens.Skeleton.bodyHeight
+                )
+                SkeletonShape(
+                    width: DesignTokens.Skeleton.compactTextWidth,
+                    height: DesignTokens.Spacing.sm
+                )
             }
         }
     }

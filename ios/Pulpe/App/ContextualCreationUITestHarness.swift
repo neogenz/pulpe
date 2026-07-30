@@ -44,7 +44,11 @@ struct ContextualCreationUITestHarness: View {
 
         let currentMonthStore = CurrentMonthStore()
         #if DEBUG
-        currentMonthStore.populateForTesting(budget: budget, budgetLines: lines)
+        if ProcessInfo.processInfo.environment["UITEST_HOME_SKELETON"] == "1" {
+            currentMonthStore.prepareLoadingForTesting()
+        } else {
+            currentMonthStore.populateForTesting(budget: budget, budgetLines: lines)
+        }
         #endif
         _currentMonthStore = State(initialValue: currentMonthStore)
 
@@ -110,8 +114,7 @@ struct ContextualCreationUITestHarness: View {
         switch scenario {
         case .contextualCreationHome:
             if isHomeSkeletonEnabled {
-                CurrentMonthSkeletonView()
-                    .background(Color.homeHeroSurface.ignoresSafeArea())
+                MainTabView()
             } else if isChartMatrixEnabled {
                 chartMatrixContent
             } else {
