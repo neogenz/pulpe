@@ -5,7 +5,8 @@ import type { ReactNode } from "react";
 // composition once the year has been filled in. One arithmetic runs through all
 // three, on 3 500 of income: 1 600 of recurring expense and 500 set aside leave
 // 1 400 a month. July adds 900 of tax, which is why the chart dips there and why
-// the third visual keeps only 500.
+// the third visual keeps only 500. The chart dips three times, once per category
+// the step's copy announces: tax, holidays, a big purchase.
 const INCOME = 3500;
 const FULL_MONTH = 1400;
 
@@ -147,16 +148,17 @@ const MONTHS = [
   { key: "sep", initial: "S", available: FULL_MONTH },
   { key: "oct", initial: "O", available: FULL_MONTH },
   { key: "nov", initial: "N", available: FULL_MONTH },
-  { key: "dec", initial: "D", available: FULL_MONTH },
+  { key: "dec", initial: "D", available: 200 },
 ];
 
 export function YearSpreadVisual() {
   return (
     <StepFrame title="Ton année">
       {/* La ligne pointillée porte le mois plein, donc les barres n'ont pas
-          besoin d'être étiquetées une par une : seules les deux qui décrochent
-          affichent leur montant. Les hauteurs sont en pourcentage pour que le
-          graphe remplisse la rangée partagée par les trois visuels. */}
+          besoin d'être étiquetées une par une : seuls les mois qui décrochent
+          affichent leur montant, et ils sont exactement les trois catégories
+          que la copie de l'étape annonce. Les hauteurs sont en pourcentage pour
+          que le graphe remplisse la rangée partagée par les trois visuels. */}
       <div className="flex flex-1 flex-col gap-2">
         <Amount
           value={FULL_MONTH}
@@ -191,8 +193,11 @@ export function YearSpreadVisual() {
           ))}
         </p>
       </div>
+      {/* Trois évènements sur une ligne de 11px : la colonne descend à 192px
+          à 768px, donc la légende se passe des articles pour tenir sur deux
+          lignes. Le figcaption sr-only porte la phrase complète. */}
       <p className="text-[11px] leading-4 text-text-secondary">
-        Juillet, les impôts · Août, les vacances
+        Juillet, impôts · Août, vacances · Décembre, gros achat
       </p>
     </StepFrame>
   );

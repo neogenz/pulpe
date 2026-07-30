@@ -374,6 +374,16 @@ describe("landing accessibility contracts", () => {
     assert.match(body("MonthAvailableVisual"), /<Payoff value=\{500\}/);
     assert.match(visuals, /key: "jul", initial: "J", available: 500/);
     assert.match(visuals, /key: "aou", initial: "A", available: 700/);
+    assert.match(visuals, /key: "dec", initial: "D", available: 200/);
+    // Trois catégories annoncées par la copie, donc trois mois qui décrochent,
+    // et la légende sous le graphe les nomme toutes les trois.
+    const dips = [...visuals.matchAll(/available: (?!1400)(\d+)/g)];
+    assert.equal(dips.length, 3);
+    assert.equal(new Set(dips.map(([, amount]) => amount)).size, 3);
+    assert.match(
+      visuals,
+      /Juillet, impôts · Août, vacances · Décembre, gros achat/,
+    );
   });
 
   it("presents the three setup steps as one scannable ordered process", () => {

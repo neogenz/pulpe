@@ -29,7 +29,7 @@ const STEPS = [
       "Ajoute les impôts, les vacances et les gros achats dans les mois où ils auront lieu.",
     image: {
       caption:
-        "Ton année : douze mois à 1 400 CHF disponibles, sauf juillet à 500 pour les impôts et août à 700 pour les vacances",
+        "Ton année : douze mois à 1 400 CHF disponibles, sauf juillet à 500 pour les impôts, août à 700 pour les vacances et décembre à 200 pour un gros achat",
       content: <YearSpreadVisual />,
     },
   },
