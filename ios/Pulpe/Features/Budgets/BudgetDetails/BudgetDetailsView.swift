@@ -58,8 +58,7 @@ struct BudgetDetailsView: View {
     }
 
     /// Savings goal names keyed by goal id (PUL-12). Read from the app-level
-    /// `SavingsGoalStore` directly — like `timeElapsedPercentage` reads
-    /// `UserSettingsStore` — so the projection layer stays independent of the
+    /// `SavingsGoalStore` directly, keeping the projection layer independent of the
     /// goals cache. Re-evaluates via Observation when goals load, surfacing the
     /// "Objectif" chip on the saving rows once resolved.
     private var savingsGoalNamesById: [String: String] {
