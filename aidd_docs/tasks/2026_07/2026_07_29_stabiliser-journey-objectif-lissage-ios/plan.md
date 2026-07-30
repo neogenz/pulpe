@@ -1,6 +1,6 @@
 ---
 objective: "Le journey Objectif/Lissage s’exécute sans réseau, produit une matrice visuelle déterministe et prouve les deux bonnes destinations avec le vocabulaire Épargne/Dépense correct."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Stabiliser le journey Objectif et Lissage sur iOS
