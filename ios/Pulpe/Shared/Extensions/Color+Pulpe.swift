@@ -13,8 +13,10 @@ extension Color {
     /// Savings indicator color - Green (#157038 light, #50C882 dark)
     static let financialSavings = Color("FinancialSavings")
 
-    /// Over-budget indicator - Warm amber, not aggressive red (#A86800 light, #E5A33A dark)
-    static let financialOverBudget = Color(light: Color(hex: 0xA86800), dark: Color(hex: 0xE5A33A))
+    /// Over-budget indicator - Warm amber, not aggressive red (#905800 light, #E5A33A dark).
+    /// The light value is set by the hero's mint surface, the darkest background it lands on:
+    /// 4.5:1 there, and higher on every paler surface it also serves.
+    static let financialOverBudget = Color(light: Color(hex: 0x905800), dark: Color(hex: 0xE5A33A))
 
     /// Map a `TransactionKind` to its semantic financial color.
     static func financialColor(for kind: TransactionKind) -> Color {
@@ -384,26 +386,24 @@ extension Color {
 
     /// Home dashboard canvas — now the shared app background (`appBackground`).
     /// Kept as a semantic alias so home call sites read intentionally and the two never drift.
-    static let homeBackground = appBackground
+    /// Ground the mint hero surface sits on. Brighter than `appBackground`: the surface is
+    /// pale enough that its edge needs the extra step to read, and the flat ledger below has
+    /// no cards left to lift the rows off it.
+    static let homeBackground = Color(light: Color(hex: 0xFAFCF9), dark: Color(hex: 0x121611))
     /// Mint hero card surface — identical across emotion states.
     static let homeHeroSurface = Color(light: Color(hex: 0xCFE8D6), dark: Color(hex: 0x1D3A28))
     /// Top stop of the mint hero card's material gradient — a hair lighter than the base
     /// so the surface catches light from above. State-independent; the brand stays calm.
     static let homeHeroSurfaceTop = Color(light: Color(hex: 0xDCEFE2), dark: Color(hex: 0x244A34))
-    /// Rim light on the mint hero card's top lip — light catching the material edge.
-    static let homeHeroHighlight = Color(light: .white.opacity(0.55), dark: .white.opacity(0.07))
     /// Deep-green ink for primary text and progress fill on the mint hero card.
     static let homeHeroInk = Color(light: Color(hex: 0x0E3A1C), dark: Color(hex: 0xD5ECDC))
     /// Supporting text on the mint hero card.
     static let homeHeroSupport = Color(light: Color(hex: 0x2C5136), dark: Color(hex: 0x9FC3AA))
     /// Solid overlay surface on the mint hero card (state chip fill + progress track).
     static let homeHeroOverlay = Color(light: Color(hex: 0xF3F9F5), dark: Color(hex: 0x2C4A37))
-    /// Middle band of the hero bar — committed but not yet pointed. Sits between the solid
-    /// `homeHeroInk` (money gone) and the pale track (still free), so the three read as one
-    /// ramp rather than three unrelated hues.
-    static let homeHeroReserved = Color(light: Color(hex: 0x6E9E80), dark: Color(hex: 0x5B8B6D))
     /// Envelope drift accent — overrun amounts + overflow bar segments on the home dashboard only.
-    static let driftAccent = Color(light: Color(hex: 0xC45028), dark: Color(hex: 0xE8825A))
+    /// Light value set against the mint hero surface, where it must clear 4.5:1.
+    static let driftAccent = Color(light: Color(hex: 0xAA4522), dark: Color(hex: 0xE8825A))
 
     // MARK: - Skeleton
 

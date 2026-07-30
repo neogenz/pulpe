@@ -19,6 +19,9 @@ struct CurrentMonthView: View {
     @State private var activeSheet: SheetDestination?
     @State private var navigateToBudget = false
     @State private var hasAppeared = false
+    /// Screen-space bottom edge of the hero block, published by whichever state is on screen.
+    /// The mint stops here instead of at a fixed fraction of the screen height.
+    @State private var heroSurfaceBottom: CGFloat = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var animationPhase: Int {
@@ -32,25 +35,6 @@ struct CurrentMonthView: View {
 
     private var canCreateBudget: Bool {
         budgetListStore.nextAvailableMonth != nil
-    }
-
-    @ViewBuilder
-    private var dashboardBackground: some View {
-        switch store.contentState {
-        case .idle, .loading, .loaded:
-            LinearGradient(
-                stops: [
-                    .init(color: .homeHeroSurfaceTop, location: 0),
-                    .init(color: .homeHeroSurface, location: 0.32),
-                    .init(color: .homeBackground, location: 0.72),
-                    .init(color: .homeBackground, location: 1),
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        case .failed, .empty:
-            Color.homeBackground
-        }
     }
 
     private var referencedTagIds: Set<String> {
@@ -68,7 +52,7 @@ struct CurrentMonthView: View {
         ZStack {
             switch store.contentState {
             case .idle, .loading:
-                CurrentMonthSkeletonView()
+                CurrentMonthSkeletonView(onHeroSurfaceBottomChange: { heroSurfaceBottom = $0 })
                     .transition(.opacity)
             case .failed:
                 ErrorView(error: store.error ?? .networkError(URLError(.unknown))) {
@@ -230,6 +214,9 @@ struct CurrentMonthView: View {
                 .padding(.horizontal, DesignTokens.Spacing.xxl)
                 .padding(.top, DesignTokens.Spacing.lg)
                 .padding(.bottom, DesignTokens.Spacing.xxl)
+                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: {
+                    heroSurfaceBottom = $0
+                }
 
                 dashboardDetails
                 .frame(maxWidth: .infinity)
@@ -256,6 +243,8 @@ struct CurrentMonthView: View {
             }
             // Opérations à pointer — only while something needs checking
             if !store.uncheckedItems.isEmpty {
+                Divider()
+
                 UncheckedOperationsCard(
                     items: store.uncheckedItems,
                     totalCount: store.uncheckedCount,
@@ -289,13 +278,14 @@ struct CurrentMonthView: View {
                     },
                     onViewAll: { navigateToBudget = true }
                 )
-                .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.card)
                 .popoverTip(ProductTips.checking)
                 .staggeredEntrance(isVisible: hasAppeared, index: 2)
             }
 
             // Ça dérive when the month drifts — else épargne versée when complete
             if !store.driftLines.isEmpty {
+                Divider()
+
                 DriftCard(
                     drifts: store.driftLines,
                     totalOver: store.driftTotal,
@@ -306,6 +296,8 @@ struct CurrentMonthView: View {
                 )
                 .staggeredEntrance(isVisible: hasAppeared, index: 3)
             } else if store.savingsSummary.isComplete {
+                Divider()
+
                 SavingsDoneCard(
                     amount: store.savingsSummary.totalRealized,
                     goalName: completedSavingsGoalName
@@ -318,16 +310,19 @@ struct CurrentMonthView: View {
 
             // Activité — recent transactions with 7j/Mois window
             if !store.transactions.isEmpty {
+                Divider()
+
                 ActivityCard(
                     transactions: store.transactions,
                     tagNamesById: tagStore.namesById,
                     onViewAll: { navigateToBudget = true }
                 )
-                .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.card)
                 .staggeredEntrance(isVisible: hasAppeared, index: 4)
             }
         }
-        .padding(.horizontal, DesignTokens.Spacing.lg)
+        // Flat ledger: one content margin for the whole screen, aligned with the hero above,
+        // so every row hangs off a single vertical rail instead of each card's own inset.
+        .padding(.horizontal, DesignTokens.Spacing.xxl)
     }
 }
 
@@ -337,6 +332,33 @@ struct CurrentMonthView: View {
 // type-length budget while still reaching the view's `private` state (same-file
 // access), rather than loosening encapsulation to move it to another file.
 extension CurrentMonthView {
+    /// The mint is a surface, not a wash: it runs full-bleed from the top of the screen down
+    /// to the hero's own bottom edge, and stops there on a curve. A hard edge would read as
+    /// banding at this contrast — the curve is what lets a pale tint hold a boundary.
+    @ViewBuilder
+    fileprivate var dashboardBackground: some View {
+        switch store.contentState {
+        case .idle, .loading, .loaded:
+            ZStack(alignment: .top) {
+                Color.homeBackground
+                LinearGradient(
+                    colors: [.homeHeroSurfaceTop, .homeHeroSurface],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: max(0, heroSurfaceBottom))
+                .clipShape(
+                    .rect(
+                        bottomLeadingRadius: DesignTokens.CornerRadius.lg,
+                        bottomTrailingRadius: DesignTokens.CornerRadius.lg
+                    )
+                )
+            }
+        case .failed, .empty:
+            Color.homeBackground
+        }
+    }
+
     /// Drives insert/remove animations of the conditional blocks.
     private var conditionalBlocksState: [Bool] {
         [store.uncheckedItems.isEmpty, store.driftLines.isEmpty, store.savingsSummary.isComplete]

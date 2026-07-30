@@ -3,6 +3,10 @@ import SwiftUI
 /// Loading state for the dashboard. Its regions deliberately follow the loaded
 /// screen so the transition keeps the same visual anchors.
 struct CurrentMonthSkeletonView: View {
+    /// Reports the hero zone's bottom edge in screen space so the dashboard's mint surface
+    /// stops at the same place while loading as it does once loaded.
+    var onHeroSurfaceBottomChange: (CGFloat) -> Void = { _ in }
+
     var body: some View {
         ScrollView {
             VStack(spacing: DesignTokens.Spacing.none) {
@@ -10,10 +14,12 @@ struct CurrentMonthSkeletonView: View {
 
                 VStack(spacing: DesignTokens.Spacing.lg) {
                     contentActionSkeleton
+                    Divider()
                     uncheckedCardSkeleton
+                    Divider()
                     activityCardSkeleton
                 }
-                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.horizontal, DesignTokens.Spacing.xxl)
                 .padding(.top, DesignTokens.Spacing.lg)
                 .padding(.bottom, DesignTokens.Spacing.lg)
             }
@@ -38,6 +44,9 @@ struct CurrentMonthSkeletonView: View {
         .padding(.horizontal, DesignTokens.Spacing.xxl)
         .padding(.top, DesignTokens.Spacing.lg)
         .padding(.bottom, DesignTokens.Spacing.xxl)
+        .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: {
+            onHeroSurfaceBottomChange($0)
+        }
     }
 
     private var contentActionSkeleton: some View {
@@ -73,11 +82,9 @@ struct CurrentMonthSkeletonView: View {
                     cornerRadius: DesignTokens.CornerRadius.xs
                 )
             }
-            .padding(.horizontal, DesignTokens.Spacing.xxl)
             .padding(.vertical, DesignTokens.Spacing.lg)
 
             Divider()
-                .padding(.horizontal, DesignTokens.Spacing.xxl)
 
             VStack(spacing: DesignTokens.Spacing.md) {
                 HStack {
@@ -105,11 +112,9 @@ struct CurrentMonthSkeletonView: View {
                     )
                 }
             }
-            .padding(.horizontal, DesignTokens.Spacing.xxl)
             .padding(.top, DesignTokens.Spacing.md)
             .padding(.bottom, DesignTokens.Spacing.lg)
         }
-        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.card)
     }
 
     private var activityCardSkeleton: some View {
@@ -139,12 +144,10 @@ struct CurrentMonthSkeletonView: View {
                     cornerRadius: DesignTokens.CornerRadius.xs
                 )
             }
-            .padding(.horizontal, DesignTokens.Spacing.xxl)
             .padding(.top, DesignTokens.Spacing.lg)
             .padding(.bottom, DesignTokens.Spacing.md)
 
             Divider()
-                .padding(.horizontal, DesignTokens.Spacing.xxl)
 
             VStack(spacing: DesignTokens.Spacing.none) {
                 ForEach(0..<3, id: \.self) { index in
@@ -154,10 +157,8 @@ struct CurrentMonthSkeletonView: View {
                     }
                 }
             }
-            .padding(.horizontal, DesignTokens.Spacing.xxl)
             .padding(.bottom, DesignTokens.Spacing.sm)
         }
-        .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.card)
     }
 
     private var activityRowSkeleton: some View {

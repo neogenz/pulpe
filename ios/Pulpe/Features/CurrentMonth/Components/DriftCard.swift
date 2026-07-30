@@ -73,11 +73,9 @@ struct DriftCard: View {
                         .padding(.top, DesignTokens.Spacing.md)
                 }
             }
-            .padding(.horizontal, DesignTokens.Spacing.xl)
             .padding(.bottom, DesignTokens.Spacing.sm)
 
             Divider()
-                .padding(.horizontal, DesignTokens.Spacing.xl)
 
             Button(action: onCatchUp) {
                 catchUpRow
@@ -89,8 +87,6 @@ struct DriftCard: View {
             // Names the destination, not three levers the destination doesn't offer.
             .accessibilityHint("Ouvre le budget pour ajuster tes enveloppes")
         }
-        .pulpeCardBackground()
-        .shadow(DesignTokens.Shadow.card)
     }
 
     // MARK: - Header
@@ -115,7 +111,6 @@ struct DriftCard: View {
                 .font(PulpeTypography.metricLabel)
                 .foregroundStyle(Color.textTertiary)
         }
-        .padding(.horizontal, DesignTokens.Spacing.xl)
         .padding(.top, DesignTokens.Spacing.lg)
         .padding(.bottom, DesignTokens.Spacing.sm)
     }
@@ -195,7 +190,6 @@ struct DriftCard: View {
                 .font(PulpeTypography.metricLabel)
                 .foregroundStyle(Color.pulpePrimary.opacity(DesignTokens.Opacity.heavy))
         }
-        .padding(.horizontal, DesignTokens.Spacing.xl)
         .padding(.vertical, DesignTokens.Spacing.md)
     }
 }

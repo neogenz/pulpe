@@ -53,10 +53,7 @@ struct SavingsDoneCard: View {
                     .font(PulpeTypography.metricLabel)
                     .foregroundStyle(Color.textTertiary)
             }
-            .padding(.horizontal, DesignTokens.Spacing.xl)
             .padding(.vertical, DesignTokens.Spacing.lg)
-            .pulpeCardBackground()
-            .shadow(DesignTokens.Shadow.card)
         }
         .frame(minHeight: DesignTokens.TapTarget.minimum)
         .contentShape(Rectangle())

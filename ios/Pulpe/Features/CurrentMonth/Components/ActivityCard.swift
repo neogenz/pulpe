@@ -42,7 +42,6 @@ struct ActivityCard: View {
             header(for: windowed)
 
             Divider()
-                .padding(.horizontal, DesignTokens.Spacing.xxl)
 
             rows(for: windowed)
         }
@@ -87,7 +86,6 @@ struct ActivityCard: View {
                 .accessibilityLabel("Voir toutes les transactions")
             }
         }
-        .padding(.horizontal, DesignTokens.Spacing.xxl)
         .padding(.top, DesignTokens.Spacing.lg)
         .padding(.bottom, DesignTokens.Spacing.md)
     }
@@ -135,7 +133,6 @@ struct ActivityCard: View {
                 .font(PulpeTypography.labelMedium)
                 .foregroundStyle(Color.textTertiary)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, DesignTokens.Spacing.xxl)
                 .padding(.vertical, DesignTokens.Spacing.lg)
         } else {
             VStack(spacing: DesignTokens.Spacing.none) {
@@ -147,7 +144,6 @@ struct ActivityCard: View {
                     }
                 }
             }
-            .padding(.horizontal, DesignTokens.Spacing.xxl)
             .padding(.bottom, DesignTokens.Spacing.sm)
         }
     }

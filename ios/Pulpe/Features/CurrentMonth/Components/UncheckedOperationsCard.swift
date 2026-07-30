@@ -79,7 +79,6 @@ struct UncheckedOperationsCard: View {
 
             if let item = currentItem {
                 Divider()
-                    .padding(.horizontal, DesignTokens.Spacing.xxl)
 
                 inlinePane(item)
                     .id(item.id)
@@ -101,22 +100,23 @@ struct UncheckedOperationsCard: View {
     // MARK: - Header
 
     private var header: some View {
+        // Flat ledger: the title starts on the same rail as the rows beneath it, so the
+        // decorative avatars move to the trailing cluster rather than indenting the section.
         HStack(spacing: DesignTokens.Spacing.lg) {
-            if dynamicTypeSize < .xxLarge {
-                avatarStack
-            }
-
             Text("\(totalCount) opération\(totalCount > 1 ? "s" : "") à pointer")
                 .font(PulpeTypography.cardTitle)
                 .foregroundStyle(Color.textPrimary)
 
             Spacer()
 
+            if dynamicTypeSize < .xxLarge {
+                avatarStack
+            }
+
             Image(systemName: "chevron.right")
                 .font(PulpeTypography.metricLabel)
                 .foregroundStyle(Color.textTertiary)
         }
-        .padding(.horizontal, DesignTokens.Spacing.xxl)
         .padding(.vertical, DesignTokens.Spacing.lg)
     }
 
@@ -142,8 +142,10 @@ struct UncheckedOperationsCard: View {
                     .foregroundStyle(kind.color)
             }
             .overlay {
+                // The ring punches the badge out of the ground it actually sits on — the flat
+                // ledger, not the card surface that used to be behind it.
                 Circle().strokeBorder(
-                    Color.surfaceContainerLowest,
+                    Color.homeBackground,
                     lineWidth: DesignTokens.BorderWidth.thick
                 )
             }
@@ -160,8 +162,10 @@ struct UncheckedOperationsCard: View {
                     .monospacedDigit()
             }
             .overlay {
+                // The ring punches the badge out of the ground it actually sits on — the flat
+                // ledger, not the card surface that used to be behind it.
                 Circle().strokeBorder(
-                    Color.surfaceContainerLowest,
+                    Color.homeBackground,
                     lineWidth: DesignTokens.BorderWidth.thick
                 )
             }
@@ -204,7 +208,6 @@ struct UncheckedOperationsCard: View {
 
             actionsRow(item)
         }
-        .padding(.horizontal, DesignTokens.Spacing.xxl)
         .padding(.top, DesignTokens.Spacing.md)
         .padding(.bottom, DesignTokens.Spacing.lg)
         .opacity(isSyncing(item) ? DesignTokens.Opacity.disabled : 1)
