@@ -25,10 +25,12 @@ export function currencyUnit(currency: LandingCurrency): string {
 
 // La landing n'affiche que des agrégats — un disponible, un total, une part
 // mensuelle — jamais une ligne de budget au centime, donc pas de décimales.
-export function formatAmount(
-  value: number,
-  currency: LandingCurrency = "CHF",
-): string {
+//
+// La devise n'a pas de valeur par défaut : un défaut ne peut se tromper que dans
+// un sens, celui d'afficher des francs à un visiteur français, et c'est le bug
+// que ce module existe pour tuer. TypeScript est le seul garde-fou qui ne
+// s'oublie pas au moment d'ajouter un montant.
+export function formatAmount(value: number, currency: LandingCurrency): string {
   return String(Math.round(value)).replace(
     /\B(?=(\d{3})+(?!\d))/g,
     CURRENCIES[currency].group,
@@ -38,9 +40,6 @@ export function formatAmount(
 // L'espace insécable garde `1’200 CHF` d'un seul tenant : avec une espace
 // ordinaire, une fin de ligne peut laisser `1’200` seul et renvoyer `CHF` à la
 // ligne suivante.
-export function formatMoney(
-  value: number,
-  currency: LandingCurrency = "CHF",
-): string {
+export function formatMoney(value: number, currency: LandingCurrency): string {
   return `${formatAmount(value, currency)}${NON_BREAKING_SPACE}${CURRENCIES[currency].unit}`;
 }
