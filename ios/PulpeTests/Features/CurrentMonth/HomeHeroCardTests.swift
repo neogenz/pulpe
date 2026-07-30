@@ -286,31 +286,43 @@ struct HomeHeroCardTests {
         #expect(!source.contains("height: DesignTokens.Skeleton.heroHeight"))
     }
 
+    @Test func nothingTracked_isFlagOnlyWhileEveryTrackedDayHoldsTheOpeningBalance() {
+        let untouched = trajectory(tracked: [1_000, 1_000, 1_000], remainingPlan: [1_000, 300], plan: 250)
+        #expect(untouched.hasNothingTracked)
+
+        let started = trajectory(tracked: [1_000, 1_000, 900], remainingPlan: [900, 300], plan: 250)
+        #expect(!started.hasNothingTracked)
+    }
+
     @MainActor
-    @Test func chartAnnotationLayoutSeparatesPlanAndDestinationAtEveryTextSize() {
-        let standard = HomeHeroCard.ChartAnnotationLayout(dynamicTypeSize: .large)
-        let accessibility = HomeHeroCard.ChartAnnotationLayout(
-            dynamicTypeSize: .accessibility3
+    @Test func chartLabel_speaksTheTrajectoryAndHidesAmountsOnDemand() {
+        let tracked = trajectory(tracked: [1_000, 900], remainingPlan: [900, 300], plan: 250)
+
+        let spoken = HomeHeroCard.chartAccessibilityLabel(
+            for: tracked,
+            currency: .chf,
+            amountsHidden: false
         )
+        #expect(spoken.contains("Début de période"))
+        #expect(spoken.contains("Aujourd’hui"))
+        #expect(spoken.contains("Fin de période estimée"))
+        #expect(spoken.contains("Prévu"))
 
-        #expect(standard.plannedPosition == .bottom)
-        #expect(standard.plannedAlignment == .leading)
-        #expect(standard.destinationPosition == .top)
-        #expect(standard.destinationAlignment == .trailing)
-        #expect(standard.plannedPosition != standard.destinationPosition)
-        #expect(standard.todayPosition == .bottom)
-        #expect(standard.todayAlignment == .trailing)
-        #expect(standard.plannedLabel == "Prévu fin de période")
-        #expect(standard.destinationLabel == "Fin de période")
-        #expect(standard.todayLabel == "Aujourd’hui")
+        let waiting = HomeHeroCard.chartAccessibilityLabel(
+            for: trajectory(tracked: [1_000, 1_000], remainingPlan: [1_000, 300], plan: 250),
+            currency: .chf,
+            amountsHidden: false
+        )
+        #expect(waiting.contains("En attente d’un pointage"))
+        #expect(!waiting.contains("Fin de période estimée"))
 
-        #expect(accessibility.plannedPosition != accessibility.destinationPosition)
-        #expect(accessibility.todayPosition == .trailing)
-        #expect(accessibility.todayAlignment == .top)
-        #expect(accessibility.plannedLabel == "Prévu")
-        #expect(accessibility.destinationLabel == "Fin")
-        #expect(!accessibility.plannedLabel.contains("\n"))
-        #expect(!accessibility.destinationLabel.contains("\n"))
+        let masked = HomeHeroCard.chartAccessibilityLabel(
+            for: tracked,
+            currency: .chf,
+            amountsHidden: true
+        )
+        let leaksADigit = masked.contains(where: \.isNumber)
+        #expect(!leaksADigit)
     }
 
     @Test func heroCopyDropsPlanVarianceAndDailyRateKpis() throws {

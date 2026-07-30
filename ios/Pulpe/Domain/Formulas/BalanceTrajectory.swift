@@ -14,6 +14,14 @@ extension BudgetFormulas {
         let plannedBalance: Decimal
         let today: Int
         let totalDays: Int
+
+        /// Nothing has been pointed yet on this period: every tracked day still carries the
+        /// opening balance. The trajectory is a flat line, so the link to the estimated end
+        /// would be a cliff drawn from no evidence.
+        var hasNothingTracked: Bool {
+            guard let opening = tracked.first else { return true }
+            return tracked.allSatisfy { $0.balance == opening.balance }
+        }
     }
 
     // swiftlint:disable function_parameter_count
