@@ -80,14 +80,19 @@ export class IosVersionGateService {
   async #refreshPublishedVersion(): Promise<void> {
     try {
       const version = await this.#fetchPublishedVersion();
-      if (version !== this.#publishedVersion) {
+      const hasChanged = version !== this.#publishedVersion;
+      this.#publishedVersion = version;
+      this.#refreshAfter = Date.now() + FRESH_TTL_MS;
+      if (hasChanged) {
         this.logger.info(
-          { operation: 'refreshPublishedVersion', version },
+          {
+            operation: 'refreshPublishedVersion',
+            appStoreVersion: version,
+            servedVersion: this.#resolveLatestVersion(),
+          },
           'App Store version resolved',
         );
       }
-      this.#publishedVersion = version;
-      this.#refreshAfter = Date.now() + FRESH_TTL_MS;
     } catch (error) {
       this.#refreshAfter = Date.now() + RETRY_TTL_MS;
       this.logger.warn(
