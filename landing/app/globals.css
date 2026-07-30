@@ -40,9 +40,14 @@
 }
 
 :root {
-  --ambient-lime: oklch(93% 0.13 121);
-  --ambient-leaf: oklch(88% 0.15 145);
-  --ambient-mint: oklch(90% 0.12 164);
+  /* Desktop field: chroma only, at 60% of the original. The seven body
+     gradients span the whole 7000px page, so a saturation that reads as a
+     tint on one section reads as a drench over the document. Lightness and
+     hue carry the identity and stay put. The mobile tokens below are denser
+     on purpose: they feed halos at 0.07 opacity, not a full-page wash. */
+  --ambient-lime: oklch(93% 0.078 121);
+  --ambient-leaf: oklch(88% 0.09 145);
+  --ambient-mint: oklch(90% 0.072 164);
   --ambient-mobile-lime: oklch(82% 0.19 121);
   --ambient-mobile-leaf: oklch(70% 0.2 145);
   --ambient-mobile-mint: oklch(75% 0.18 164);
