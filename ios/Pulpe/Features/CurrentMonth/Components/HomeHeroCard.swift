@@ -36,18 +36,15 @@ struct HomeHeroCard: View {
         }
     }
 
-    private var comparisonText: String {
+    /// Qualitative half of the verdict. The number behind it lives in the `vs prévu`
+    /// metric, so the sentence never repeats it.
+    private var verdictText: String {
         switch presentation.verdict {
-        case .gain:
-            "\(abs(presentation.variance).asCompactCurrency(currency)) de mieux que prévu"
-        case .overrun:
-            "\(abs(presentation.variance).asCompactCurrency(currency)) de moins que prévu"
-        case .onPlan:
-            "Conforme à ton budget"
+        case .gain: "Il te reste plus que prévu."
+        case .overrun: "Il te reste moins que prévu."
+        case .onPlan: "Tu es conforme à ton budget."
         }
     }
-
-    private var uncheckedText: String { "\(uncheckedCount) à pointer" }
 
     // MARK: - Accessibility
 
@@ -76,19 +73,7 @@ struct HomeHeroCard: View {
             .accessibilityLabel(accessibilityDescription)
             .accessibilityHint("Ouvrir le suivi du réalisé")
 
-            Button(action: onTapDetail) {
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    Text("Voir le budget")
-                    Spacer(minLength: DesignTokens.Spacing.md)
-                    Image(systemName: "chevron.right")
-                }
-                .font(PulpeTypography.labelLarge)
-                .foregroundStyle(Color.homeHeroInk)
-            }
-            .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum, alignment: .leading)
-            .contentShape(Rectangle())
-            .textLinkButtonStyle()
-            .accessibilityLabel("Voir le détail du budget")
+            verdictSentence
         }
     }
 
@@ -97,9 +82,7 @@ struct HomeHeroCard: View {
     private var metricsContent: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
             VStack(spacing: DesignTokens.Spacing.xs) {
-                Text(presentation.estimatedBalance.asArithmeticSignedCompactCurrency(currency))
-                    .font(PulpeTypography.heroIcon)
-                    .tracking(DesignTokens.Tracking.hero)
+                heroAmount
                     .monospacedDigit()
                     .minimumScaleFactor(DesignTokens.TextScale.floor)
                     .lineLimit(1)
@@ -117,40 +100,94 @@ struct HomeHeroCard: View {
         .frame(maxWidth: .infinity)
     }
 
+    // MARK: - Split Amount
+
+    /// Dominant figure and its currency suffix on one baseline. Only a negative balance
+    /// carries a sign — a `+` on money you still have reads as a variation, not a sum.
+    private var heroAmount: Text {
+        Text(presentation.estimatedBalance.asCompactAmount(for: currency))
+            .font(PulpeTypography.dashboardHeroAmount)
+            .tracking(DesignTokens.Tracking.hero)
+            + Text(" \(currency.symbol)")
+            .font(PulpeTypography.dashboardHeroCurrency)
+    }
+
     // MARK: - Compact Summary
 
     @ViewBuilder
     private var summaryMetrics: some View {
         if dynamicTypeSize >= .xxLarge {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                comparisonLabel
-                uncheckedLabel
+                metric(value: uncheckedValue, label: "à pointer", tint: Color.homeHeroInk)
+                metric(value: varianceValue, label: "vs prévu", tint: accentColor)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         } else {
-            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
-                comparisonLabel
+            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                metric(value: uncheckedValue, label: "à pointer", tint: Color.homeHeroInk)
                 Spacer(minLength: DesignTokens.Spacing.sm)
-                uncheckedLabel
+                // Bookends of the hero: the right-hand pair hangs off the trailing margin
+                // so both metrics share the hero's own edges.
+                metric(
+                    value: varianceValue,
+                    label: "vs prévu",
+                    tint: accentColor,
+                    alignment: .trailing
+                )
             }
         }
     }
 
-    private var comparisonLabel: some View {
-        Text(comparisonText)
-            .font(PulpeTypography.labelLarge)
-            .foregroundStyle(accentColor)
-            .monospacedDigit()
-            .fixedSize(horizontal: false, vertical: true)
-            .sensitiveAmount()
+    private var uncheckedValue: String { "\(uncheckedCount)" }
+
+    private var varianceValue: String {
+        presentation.variance.asSignedCompactAmount(for: currency)
     }
 
-    private var uncheckedLabel: some View {
-        Text(uncheckedText)
-            .font(PulpeTypography.labelMedium)
-            .foregroundStyle(Color.homeHeroSupport)
-            .monospacedDigit()
-            .fixedSize(horizontal: false, vertical: true)
+    /// Value over its own label, so neither depends on the copy around it to be read.
+    private func metric(
+        value: String,
+        label: String,
+        tint: Color,
+        alignment: HorizontalAlignment = .leading
+    ) -> some View {
+        VStack(alignment: alignment, spacing: DesignTokens.Spacing.xxs) {
+            Text(value)
+                .font(PulpeTypography.amountCard)
+                .foregroundStyle(tint)
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(DesignTokens.TextScale.compact)
+                .sensitiveAmount()
+
+            Text(label)
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.homeHeroSupport)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    // MARK: - Verdict
+
+    /// One sentence that ends in its own action — the row that used to carry `Voir le budget`
+    /// is gone, so the creation action below is the strongest thing under the hero.
+    private var verdictSentence: some View {
+        Button(action: onTapDetail) {
+            Text(verdictText)
+                .foregroundStyle(accentColor)
+                + Text(" Voir le détail.")
+                .foregroundStyle(Color.homeHeroInk)
+                .underline()
+        }
+        .font(PulpeTypography.labelLarge)
+        .multilineTextAlignment(.leading)
+        .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum, alignment: .leading)
+        .contentShape(Rectangle())
+        .textLinkButtonStyle()
+        // The verdict is already spoken by the metrics element above; repeating it here
+        // would make VoiceOver say it twice in a row.
+        .accessibilityLabel("Voir le détail du budget")
     }
 
     // MARK: - Monthly Trajectory

@@ -234,7 +234,7 @@ struct CurrentMonthView: View {
         VStack(spacing: DesignTokens.Spacing.lg) {
             if store.budget != nil {
                 Button("Ajouter une opération", systemImage: "plus") { activeSheet = .addTransaction }
-                    .font(PulpeTypography.labelLarge)
+                    .font(PulpeTypography.cardTitle)
                     .foregroundStyle(Color.pulpePrimary)
                     .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum, alignment: .leading)
                     .contentShape(Rectangle())

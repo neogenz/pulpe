@@ -62,9 +62,9 @@ struct UncheckedOperationsCard: View {
         }
     }
 
-    private var headerAccessibilityLabel: String {
-        "\(totalCount) opération\(totalCount > 1 ? "s" : "") à pointer"
-    }
+    /// The count lives on the hero metric; this header names the section only, so the
+    /// number is announced once per screen.
+    private var headerAccessibilityLabel: String { "Opérations à pointer" }
 
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.none) {
@@ -103,7 +103,7 @@ struct UncheckedOperationsCard: View {
         // Flat ledger: the title starts on the same rail as the rows beneath it, so the
         // decorative avatars move to the trailing cluster rather than indenting the section.
         HStack(spacing: DesignTokens.Spacing.lg) {
-            Text("\(totalCount) opération\(totalCount > 1 ? "s" : "") à pointer")
+            Text("Opérations à pointer")
                 .font(PulpeTypography.cardTitle)
                 .foregroundStyle(Color.textPrimary)
 

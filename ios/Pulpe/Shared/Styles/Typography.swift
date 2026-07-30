@@ -26,6 +26,14 @@ enum PulpeTypography {
     /// Welcome/onboarding hero text (64pt)
     static let welcomeEmoji = Font.custom("Manrope", size: 64, relativeTo: .largeTitle).weight(.bold)
 
+    // MARK: - Dashboard Hero (Manrope — split amount)
+
+    /// Dominant figure of the dashboard hero amount (48pt).
+    static let dashboardHeroAmount = Font.custom("Manrope", size: 48, relativeTo: .largeTitle).weight(.heavy)
+    /// Currency suffix beside it — same baseline, deliberately secondary (24pt).
+    /// Scales against `.largeTitle` like the figure so the pair keeps its ratio.
+    static let dashboardHeroCurrency = Font.custom("Manrope", size: 24, relativeTo: .largeTitle).weight(.bold)
+
     // MARK: - Financial Amounts (Manrope ExtraBold — hero numbers)
 
     static let amountHero = Font.custom("Manrope", size: 34, relativeTo: .largeTitle).weight(.heavy)
