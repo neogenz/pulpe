@@ -1,5 +1,40 @@
 [
   {
+    "version": "0.42.0",
+    "iosVersion": "1.3.1",
+    "date": "2026-07-30",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.42.0",
+    "platforms": ["web", "ios"],
+    "changes": {
+      "features": [
+        {
+          "title": "Une page d’aide repensée",
+          "description": "La page support de pulpe.app est réorganisée pour trouver une réponse plus vite"
+        }
+      ],
+      "fixes": [
+        {
+          "title": "La réinitialisation du mot de passe ouvre l’app",
+          "description": "Sur iOS, le lien reçu par e-mail ouvre directement Pulpe au lieu du navigateur"
+        },
+        {
+          "title": "Une navigation au clavier fiable sur le site",
+          "description": "Le lien d’évitement place correctement le focus sur le contenu principal"
+        }
+      ],
+      "technical": [
+        {
+          "title": "Chiffrement et sessions durcis",
+          "description": "Les écritures exigent une preuve de coffre valide et les clés refusées sont effacées immédiatement"
+        },
+        {
+          "title": "Diagnostics assainis",
+          "description": "Plus aucune valeur financière dans les journaux, et les identités du site et de l’app sont séparées"
+        }
+      ]
+    }
+  },
+  {
     "version": "0.41.0",
     "date": "2026-07-29",
     "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.41.0",

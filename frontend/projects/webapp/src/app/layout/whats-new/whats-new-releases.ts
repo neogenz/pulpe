@@ -39,4 +39,9 @@ export const SKIPPED_RELEASES: readonly SkippedWhatsNewRelease[] = [
     reason:
       'Améliorations ciblées de l’inscription, de la projection initiale et des visites guidées, sans nouveauté assez importante pour interrompre les utilisateurs existants',
   },
+  {
+    version: '0.42.0',
+    reason:
+      'Durcissement du chiffrement, des sessions et des diagnostics sans changement visible dans la webapp : les seules corrections publiées concernent le site vitrine et iOS',
+  },
 ];

@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.42.0
+
+### Minor Changes
+
+- Page d'aide du site repensée, réinitialisation du mot de passe qui ouvre l'app sur iOS, et durcissement du chiffrement, des sessions et des diagnostics.
+
+### Patch Changes
+
+- pulpe-shared@0.42.0
+
 ## 0.41.0
 
 ### Minor Changes

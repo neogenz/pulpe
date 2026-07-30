@@ -404,4 +404,10 @@ export const RELEASES: WhatsNewReleaseEntry[] = [
  * dialog. Every entry must map to `landing/data/releases.json` and explain why
  * no approved note met the iOS curation threshold.
  */
-export const SILENT_IOS_RELEASES: readonly SilentIosReleaseEntry[] = [];
+export const SILENT_IOS_RELEASES: readonly SilentIosReleaseEntry[] = [
+  {
+    version: '0.42.0',
+    reason:
+      'Décision éditoriale : la seule correction iOS visible est le lien de réinitialisation du mot de passe qui ouvre désormais l’app, publiée sur le changelog public mais trop ponctuelle pour interrompre les utilisateurs au lancement ; le reste de la release est du durcissement invisible',
+  },
+];
