@@ -288,19 +288,6 @@ h3,
   }
 }
 
-/* Reserve the screenshot box per breakpoint (portrait mobile asset, landscape
-   desktop asset) so neither causes a decode-time layout shift. Vars are set
-   inline per instance from the real asset dimensions. */
-.screenshot-frame {
-  aspect-ratio: var(--m-ar);
-}
-
-@media (min-width: 768px) {
-  .screenshot-frame {
-    aspect-ratio: var(--d-ar);
-  }
-}
-
 /* Desktop shares one ambient field. Mobile scopes its halos to the opening sections. */
 .hero-mesh,
 .pain-points-mesh {

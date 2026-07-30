@@ -41,14 +41,6 @@ const componentSources = {
     new URL("../components/sections/Features.tsx", import.meta.url),
     "utf8",
   ),
-  imageLightbox: readFileSync(
-    new URL("../components/ui/ImageLightbox.tsx", import.meta.url),
-    "utf8",
-  ),
-  screenshot: readFileSync(
-    new URL("../components/ui/Screenshot.tsx", import.meta.url),
-    "utf8",
-  ),
   section: readFileSync(
     new URL("../components/ui/Section.tsx", import.meta.url),
     "utf8",
@@ -786,12 +778,14 @@ describe("landing accessibility contracts", () => {
       /(?:animation|transition)-duration:\s*0\.01ms/,
     );
     assert.match(componentSources.roadmap, /motion-safe:animate-pulse/);
-    assert.match(componentSources.screenshot, /motion-reduce:transition-none/);
   });
 
-  it("adds inset neutral outlines to product images", () => {
-    assert.match(componentSources.screenshot, /outline-black\/10/);
-    assert.match(componentSources.imageLightbox, /outline-white\/10/);
+  it("adds inset neutral outlines to the product surfaces", () => {
+    // Le contrat survit à la disparition des captures : la surface qui tient
+    // lieu de preuve produit ne flotte pas sans bord, qu'elle soit le tableau
+    // de bord du hero ou les visuels de la section « comment ça marche ».
+    assert.match(componentSources.heroDashboard, /outline-black\/10/);
+    assert.match(componentSources.howItWorksVisuals, /outline-black\/5/);
   });
 
   it("keeps the mobile navigation non-modal and the page scrollable", () => {

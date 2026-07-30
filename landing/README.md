@@ -68,13 +68,11 @@ landing/
 │   └── globals.css         # Tailwind + custom animations
 ├── components/
 │   ├── sections/           # Page sections (Hero, Features, etc.)
-│   ├── ui/                 # Reusable UI components
-│   └── contexts/           # React context (ImageLightbox)
+│   └── ui/                 # Reusable UI components
 ├── lib/
 │   ├── config.ts           # Environment config
 │   └── cn.ts               # Tailwind class utility
 └── public/
-    ├── screenshots/        # Product screenshots (mobile, webapp)
     └── *.png, *.webp       # Icons and assets
 ```
 
@@ -97,8 +95,7 @@ landing/
 
 ### Components
 
-- **Memo'd Components**: Button, Screenshot, TypeWriter, etc.
-- **Image Lightbox**: Click to zoom screenshots
+- **Memo'd Components**: Button, TypeWriter, etc.
 - **TypeWriter Effect**: Animated hero text with hydration fix
 - **Floating Cards**: Animated UI elements in hero
 
