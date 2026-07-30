@@ -37,7 +37,7 @@ struct SavingsDoneCard: View {
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                     Text("Épargne du mois versée")
-                        .font(PulpeTypography.cardTitle)
+                        .font(PulpeTypography.sectionTitle)
                         .foregroundStyle(Color.textPrimary)
 
                     Text(subtitle)

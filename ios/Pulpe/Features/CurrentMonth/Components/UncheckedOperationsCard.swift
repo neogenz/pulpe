@@ -78,8 +78,6 @@ struct UncheckedOperationsCard: View {
             .accessibilityHint("Voir tout dans le budget")
 
             if let item = currentItem {
-                Divider()
-
                 inlinePane(item)
                     .id(item.id)
                     .transition(paneTransition(for: item))
@@ -104,7 +102,7 @@ struct UncheckedOperationsCard: View {
         // decorative avatars move to the trailing cluster rather than indenting the section.
         HStack(spacing: DesignTokens.Spacing.lg) {
             Text("Opérations à pointer")
-                .font(PulpeTypography.cardTitle)
+                .font(PulpeTypography.sectionTitle)
                 .foregroundStyle(Color.textPrimary)
 
             Spacer()
@@ -117,7 +115,10 @@ struct UncheckedOperationsCard: View {
                 .font(PulpeTypography.metricLabel)
                 .foregroundStyle(Color.textTertiary)
         }
-        .padding(.vertical, DesignTokens.Spacing.lg)
+        // Asymmetric on purpose: the heading is pushed away from the section above it and
+        // held close to the operation it introduces, so proximity alone groups them.
+        .padding(.top, DesignTokens.Spacing.lg)
+        .padding(.bottom, DesignTokens.Spacing.sm)
     }
 
     private var avatarStack: some View {

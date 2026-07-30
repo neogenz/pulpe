@@ -14,9 +14,7 @@ struct CurrentMonthSkeletonView: View {
 
                 VStack(spacing: DesignTokens.Spacing.lg) {
                     contentActionSkeleton
-                    Divider()
                     uncheckedCardSkeleton
-                    Divider()
                     activityCardSkeleton
                 }
                 .padding(.horizontal, DesignTokens.Spacing.xxl)
@@ -73,9 +71,8 @@ struct CurrentMonthSkeletonView: View {
                     cornerRadius: DesignTokens.CornerRadius.xs
                 )
             }
-            .padding(.vertical, DesignTokens.Spacing.lg)
-
-            Divider()
+            .padding(.top, DesignTokens.Spacing.lg)
+            .padding(.bottom, DesignTokens.Spacing.sm)
 
             VStack(spacing: DesignTokens.Spacing.md) {
                 HStack {
@@ -136,16 +133,11 @@ struct CurrentMonthSkeletonView: View {
                 )
             }
             .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, DesignTokens.Spacing.md)
-
-            Divider()
+            .padding(.bottom, DesignTokens.Spacing.sm)
 
             VStack(spacing: DesignTokens.Spacing.none) {
-                ForEach(0..<3, id: \.self) { index in
+                ForEach(0..<3, id: \.self) { _ in
                     activityRowSkeleton
-                    if index < 2 {
-                        Divider()
-                    }
                 }
             }
             .padding(.bottom, DesignTokens.Spacing.sm)

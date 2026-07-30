@@ -41,8 +41,6 @@ struct ActivityCard: View {
         VStack(spacing: DesignTokens.Spacing.none) {
             header(for: windowed)
 
-            Divider()
-
             rows(for: windowed)
         }
         .animation(DesignTokens.Animation.smoothEaseOut, value: window)
@@ -54,7 +52,7 @@ struct ActivityCard: View {
         HStack(spacing: DesignTokens.Spacing.md) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                 Text("Activité")
-                    .font(PulpeTypography.cardTitle)
+                    .font(PulpeTypography.sectionTitle)
                     .foregroundStyle(Color.textPrimary)
 
                 Text(headerTotal(for: windowed))
@@ -86,21 +84,24 @@ struct ActivityCard: View {
                 .accessibilityLabel("Voir toutes les transactions")
             }
         }
+        // Asymmetric on purpose: the heading is pushed away from the section above it and
+        // held close to the rows it introduces, so proximity alone groups them.
         .padding(.top, DesignTokens.Spacing.lg)
-        .padding(.bottom, DesignTokens.Spacing.md)
+        .padding(.bottom, DesignTokens.Spacing.sm)
     }
 
     /// Two-segment window selector, each segment addressable on its own: tapping the
-    /// active one is a no-op rather than a flip. Follows `CapsulePicker`'s shape — the
-    /// pill is drawn inside the label so it stays compact while the button box is 44pt.
+    /// active one is a no-op rather than a flip. Speaks `CapsulePicker`'s selection
+    /// language — filled `pulpePrimary` for the active option, hairline outline for the
+    /// other — because that is what selection looks like everywhere else in the app.
+    /// The track it used to sit in was `surfaceContainerHigh`, a warm neutral that read
+    /// as a stain on the cool `homeBackground`; two pills carry the choice without it.
     private var windowToggle: some View {
-        HStack(spacing: DesignTokens.Spacing.xxs) {
+        HStack(spacing: DesignTokens.Spacing.sm) {
             ForEach(Window.allCases, id: \.self) { option in
                 windowSegment(option)
             }
         }
-        .padding(.horizontal, DesignTokens.Spacing.xxs)
-        .background(Color.surfaceContainerHigh, in: Capsule())
         .sensoryFeedback(.selection, trigger: window)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Période d'activité")
@@ -117,12 +118,23 @@ struct ActivityCard: View {
             // sizes and the capsule collapses over "7j".
             Text(option.rawValue)
                 .font(PulpeTypography.metricMini)
-                .foregroundStyle(isSelected ? Color.textPrimary : Color.textSecondary)
+                .foregroundStyle(isSelected ? Color.textOnPrimary : Color.textSecondary)
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
+                // Vertical padding stays under the horizontal one: at `sm` the short
+                // "7j" rounded into a circle next to a capsule "Mois", two shapes for
+                // one control.
                 .padding(.horizontal, DesignTokens.Spacing.compactGap)
                 .padding(.vertical, DesignTokens.Spacing.xs)
-                .background(isSelected ? Color.surface : .clear, in: Capsule())
+                .background(isSelected ? Color.pulpePrimary : .clear, in: Capsule())
+                .overlay {
+                    if !isSelected {
+                        Capsule().strokeBorder(
+                            Color.onSurfaceVariant.opacity(DesignTokens.Opacity.outlinePill),
+                            lineWidth: DesignTokens.BorderWidth.thin
+                        )
+                    }
+                }
         }
         .frame(minHeight: DesignTokens.TapTarget.minimum)
         .contentShape(Capsule())
@@ -142,13 +154,12 @@ struct ActivityCard: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, DesignTokens.Spacing.lg)
         } else {
+            // No rules between rows: each one is a name over a date with an amount opposite,
+            // and the 24pt between rows against the 2pt inside one already says where a row
+            // ends. A hairline on top of that only adds ledger-paper texture.
             VStack(spacing: DesignTokens.Spacing.none) {
-                let visible = Array(windowed.prefix(Self.maxRows))
-                ForEach(Array(visible.enumerated()), id: \.element.id) { index, transaction in
+                ForEach(windowed.prefix(Self.maxRows)) { transaction in
                     row(transaction)
-                    if index < visible.count - 1 {
-                        Divider()
-                    }
                 }
             }
             .padding(.bottom, DesignTokens.Spacing.sm)

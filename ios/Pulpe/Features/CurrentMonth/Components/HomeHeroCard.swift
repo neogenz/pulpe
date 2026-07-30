@@ -266,11 +266,13 @@ struct HomeHeroCard: View {
                             .frame(width: DesignTokens.Spacing.md, height: DesignTokens.Spacing.md)
                     }
                     // The anchor names itself instead of a vertical rule crossing the curve.
-                    // Late in a period the anchor sits against the trailing edge, so the label
-                    // is pushed back inside rather than clipped.
+                    // The label hangs back over the days already travelled: the projection
+                    // always leaves the anchor forward, and centred under it the text was
+                    // struck through by that line. Late in a period the anchor sits against
+                    // the trailing edge, so the label is pushed back inside rather than clipped.
                     .annotation(
                         position: .bottom,
-                        alignment: .center,
+                        alignment: .trailing,
                         spacing: DesignTokens.Spacing.xs,
                         overflowResolution: .init(x: .fit(to: .chart), y: .disabled)
                     ) {

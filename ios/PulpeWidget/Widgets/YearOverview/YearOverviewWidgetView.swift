@@ -14,7 +14,7 @@ struct YearOverviewWidgetView: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             // Year title — brand font for identity
             Text("\(String(entry.year))")
-                .font(PulpeTypography.tutorialTitle)
+                .font(PulpeTypography.sectionTitle)
                 .foregroundStyle(Color.textPrimary)
 
             LazyVGrid(columns: Self.columns, spacing: DesignTokens.Spacing.sm) {

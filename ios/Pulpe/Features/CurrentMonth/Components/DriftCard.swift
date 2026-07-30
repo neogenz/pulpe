@@ -56,13 +56,13 @@ struct DriftCard: View {
             .accessibilityLabel(headerAccessibilityLabel)
             .accessibilityHint("Voir le budget")
 
+            // No rules between rows: each drift already carries its own bar, and the gap
+            // between rows outweighs the gap inside one. The extra space below detaches the
+            // footer action from the list it acts on, which is the one boundary a rule here
+            // was actually carrying.
             VStack(spacing: DesignTokens.Spacing.none) {
-                let visible = Array(drifts.prefix(Self.maxRows))
-                ForEach(Array(visible.enumerated()), id: \.element.line.id) { index, drift in
+                ForEach(drifts.prefix(Self.maxRows), id: \.line.id) { drift in
                     driftRow(drift.line, drift.consumption)
-                    if index < visible.count - 1 {
-                        Divider()
-                    }
                 }
 
                 if drifts.count > Self.maxRows {
@@ -73,9 +73,7 @@ struct DriftCard: View {
                         .padding(.top, DesignTokens.Spacing.md)
                 }
             }
-            .padding(.bottom, DesignTokens.Spacing.sm)
-
-            Divider()
+            .padding(.bottom, DesignTokens.Spacing.lg)
 
             Button(action: onCatchUp) {
                 catchUpRow
@@ -95,7 +93,7 @@ struct DriftCard: View {
         HStack(spacing: DesignTokens.Spacing.md) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                 Text("Ça dérive")
-                    .font(PulpeTypography.cardTitle)
+                    .font(PulpeTypography.sectionTitle)
                     .foregroundStyle(Color.textPrimary)
 
                 Text("\(totalOver.asCompactCurrency(currency)) au-delà du plan")

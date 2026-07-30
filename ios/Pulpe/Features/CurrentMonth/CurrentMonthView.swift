@@ -225,7 +225,7 @@ struct CurrentMonthView: View {
         VStack(spacing: DesignTokens.Spacing.lg) {
             if store.budget != nil {
                 Button("Ajouter une opération", systemImage: "plus") { activeSheet = .addTransaction }
-                    .font(PulpeTypography.cardTitle)
+                    .font(PulpeTypography.buttonPrimary)
                     .foregroundStyle(Color.pulpePrimary)
                     .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum, alignment: .leading)
                     .contentShape(Rectangle())
@@ -234,8 +234,6 @@ struct CurrentMonthView: View {
             }
             // Opérations à pointer — only while something needs checking
             if !store.uncheckedItems.isEmpty {
-                Divider()
-
                 UncheckedOperationsCard(
                     items: store.uncheckedItems,
                     totalCount: store.uncheckedCount,
@@ -275,8 +273,6 @@ struct CurrentMonthView: View {
 
             // Ça dérive when the month drifts — else épargne versée when complete
             if !store.driftLines.isEmpty {
-                Divider()
-
                 DriftCard(
                     drifts: store.driftLines,
                     totalOver: store.driftTotal,
@@ -287,8 +283,6 @@ struct CurrentMonthView: View {
                 )
                 .staggeredEntrance(isVisible: hasAppeared, index: 2)
             } else if store.savingsSummary.isComplete {
-                Divider()
-
                 SavingsDoneCard(
                     amount: store.savingsSummary.totalRealized,
                     goalName: completedSavingsGoalName
@@ -301,8 +295,6 @@ struct CurrentMonthView: View {
 
             // Activité — recent transactions with 7j/Mois window
             if !store.transactions.isEmpty {
-                Divider()
-
                 ActivityCard(
                     transactions: store.transactions,
                     tagNamesById: tagStore.namesById,
@@ -313,6 +305,11 @@ struct CurrentMonthView: View {
         }
         // Flat ledger: one content margin for the whole screen, aligned with the hero above,
         // so every row hangs off a single vertical rail instead of each card's own inset.
+        //
+        // Sections are separated by space and by the weight of their heading — never by a
+        // rule. The rules that used to sit here ran at the same hairline as the ones between
+        // rows inside a section, so one stroke meant three different things and the eye had
+        // to count text to find a boundary. Space says it once, and says it unambiguously.
         .padding(.horizontal, DesignTokens.Spacing.xxl)
     }
 }
@@ -326,6 +323,8 @@ extension CurrentMonthView {
     /// The mint is a surface, not a wash: it runs full-bleed from the top of the screen down
     /// to the hero's own bottom edge, and stops there on a curve. A hard edge would read as
     /// banding at this contrast — the curve is what lets a pale tint hold a boundary.
+    /// The curve alone still read as a die-cut, two flat planes meeting; the shadow is what
+    /// puts the emotion zone *in front of* the ledger instead of beside it.
     @ViewBuilder
     fileprivate var dashboardBackground: some View {
         switch store.contentState {
@@ -344,6 +343,7 @@ extension CurrentMonthView {
                         bottomTrailingRadius: DesignTokens.CornerRadius.lg
                     )
                 )
+                .shadow(DesignTokens.Shadow.zoneBoundary)
             }
         case .failed, .empty:
             Color.homeBackground
