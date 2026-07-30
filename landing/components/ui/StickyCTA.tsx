@@ -10,6 +10,9 @@ import { angularUrl } from "@/lib/config";
  * Shown up to `lg` because the header's own CTA only appears at `lg` —
  * without it, tablets (768–1023px) would have no persistent way to sign up.
  * Hidden with visibility (not just opacity) so it never grabs focus or taps.
+ * The opaque shell is load-bearing, not decoration: the bar travels over
+ * `#platforms`, whose card is `bg-primary`, and a bare green button on green
+ * loses its boundary entirely.
  */
 export function StickyCTA() {
   const [visible, setVisible] = useState(false);
@@ -48,17 +51,19 @@ export function StickyCTA() {
       }`}
       style={{ bottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
     >
-      <Button
-        href={angularUrl("/signup", "sticky_cta_commencer")}
-        glow
-        className="w-full shadow-[0_8px_30px_rgba(0,110,37,0.35)]"
-        data-cta-name="commencer"
-        data-cta-location="sticky_cta"
-        data-cta-destination="/signup"
-        tabIndex={visible ? undefined : -1}
-      >
-        Créer mon budget gratuitement
-      </Button>
+      <div className="rounded-full bg-surface p-1.5 shadow-glass">
+        <Button
+          href={angularUrl("/signup", "sticky_cta_commencer")}
+          glow
+          className="w-full"
+          data-cta-name="commencer"
+          data-cta-location="sticky_cta"
+          data-cta-destination="/signup"
+          tabIndex={visible ? undefined : -1}
+        >
+          Créer mon budget gratuitement
+        </Button>
+      </div>
     </div>
   );
 }

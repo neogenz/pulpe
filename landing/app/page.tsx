@@ -26,7 +26,13 @@ export default function LandingPage() {
 
       <Header />
 
-      <main id="main-content" tabIndex={-1}>
+      {/* pb reserves the StickyCTA's own height so the bar never lands on the
+          last readable line; dropped at lg, where the bar does not render. */}
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="pb-[calc(3.75rem+max(0.75rem,env(safe-area-inset-bottom)))] lg:pb-0"
+      >
         <Hero />
         <PainPoints />
         <Solution />

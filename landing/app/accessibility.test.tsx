@@ -523,7 +523,10 @@ describe("landing accessibility contracts", () => {
       componentSources.header,
       /scale-\[0\.25\] opacity-0 blur-\[4px\]/,
     );
-    assert.match(componentSources.header, /transition-\[opacity,filter,scale\]/);
+    assert.match(
+      componentSources.header,
+      /transition-\[opacity,filter,scale\]/,
+    );
     assert.match(componentSources.header, /group-open:blur-\[4px\]/);
     assert.match(componentSources.header, /group-open:blur-none/);
     // `blur-0` est une classe Tailwind v3 : la v4 ne la génère pas et l'ignore
@@ -561,19 +564,13 @@ describe("landing accessibility contracts", () => {
     );
     assert.match(componentSources.header, /\binert\b/);
     assert.match(componentSources.header, /aria-hidden="true"/);
-    assert.match(
-      componentSources.header,
-      /\bfixed\b[^"]*\bh-screen\b/,
-    );
+    assert.match(componentSources.header, /\bfixed\b[^"]*\bh-screen\b/);
     assert.match(
       componentSources.header,
       /pointer-events-none[^"]*peer-open:pointer-events-auto[^"]*peer-open:opacity-100/,
     );
     assert.match(componentSources.header, /will-change-\[opacity\]/);
-    assert.equal(
-      componentSources.header.match(/tabIndex=\{-1\}/g)?.length,
-      2,
-    );
+    assert.equal(componentSources.header.match(/tabIndex=\{-1\}/g)?.length, 2);
     assert.doesNotMatch(componentSources.header, /\binvisible\b/);
     assert.doesNotMatch(componentSources.header, /\bbackdrop-blur-xl\b/);
     assert.match(
@@ -775,7 +772,10 @@ describe("landing accessibility contracts", () => {
     // même titre que l'ouverture : sinon elles ne répondraient qu'après les
     // 3,2 s d'attente du bundle.
     const script = componentSources.layout;
-    assert.match(script, /window\.addEventListener\('scroll',close,\{passive:true\}\)/);
+    assert.match(
+      script,
+      /window\.addEventListener\('scroll',close,\{passive:true\}\)/,
+    );
     assert.match(script, /e\.key!=='Escape'/);
     assert.match(script, /window\.innerWidth>=\$\{DESKTOP_BREAKPOINT_PX\}/);
     assert.match(script, /MOBILE_NAV_PANEL_ID\} a'\)\)close\(\)/);
@@ -1075,7 +1075,10 @@ describe("landing accessibility contracts", () => {
       assert.ok(skipLinkClass, "Skip link classes are missing");
       assert.match(skipLinkClass, /focus-visible:not-sr-only/);
       assert.doesNotMatch(skipLinkClass, /(?:^|\s)focus:/);
-      assert.match(source, /<main id="main-content" tabIndex=\{-1\}>/);
+      const mainOpenTag = source.match(/<main[^>]*>/)?.[0];
+      assert.ok(mainOpenTag, "Main landmark is missing");
+      assert.match(mainOpenTag, /id="main-content"/);
+      assert.match(mainOpenTag, /tabIndex=\{-1\}/);
       assert.ok(
         source.indexOf('href="#main-content"') < source.indexOf("<Header"),
       );
@@ -1087,10 +1090,7 @@ describe("landing accessibility contracts", () => {
       componentSources.accordionItem,
       /focus:outline-none[^"]*focus-visible:ring-2[^"]*focus-visible:ring-inset[^"]*focus-visible:ring-primary/,
     );
-    assert.match(
-      componentSources.layout,
-      /<html[^>]*suppressHydrationWarning/,
-    );
+    assert.match(componentSources.layout, /<html[^>]*suppressHydrationWarning/);
 
     const questions = [
       ...componentSources.support.matchAll(/question: "([^"]+)"/g),
@@ -1098,10 +1098,7 @@ describe("landing accessibility contracts", () => {
     assert.equal(questions.length, 9);
     assert.ok(questions.every((question) => question.endsWith("\u202f?")));
     assert.ok(questions.includes("Ça marche en Suisse et en France\u202f?"));
-    assert.match(
-      componentSources.support,
-      /Si la tienne manque, écris-moi\./,
-    );
+    assert.match(componentSources.support, /Si la tienne manque, écris-moi\./);
     assert.doesNotMatch(
       componentSources.support,
       /Si la tienne manque, écris-moi directement\./,
@@ -1154,9 +1151,8 @@ describe("landing accessibility contracts", () => {
       /answer=\{faq\.answer \?\? faq\.plainAnswer\}/,
     );
     assert.equal(
-      componentSources.support.match(
-        /inline-flex min-h-11 items-center/g,
-      )?.length,
+      componentSources.support.match(/inline-flex min-h-11 items-center/g)
+        ?.length,
       2,
     );
     assert.doesNotMatch(
@@ -1249,10 +1245,7 @@ describe("landing accessibility contracts", () => {
       componentSources.footer,
       /lg:flex-row lg:items-end lg:justify-between/,
     );
-    assert.match(
-      componentSources.footer,
-      /text-sm font-semibold text-text"/,
-    );
+    assert.match(componentSources.footer, /text-sm font-semibold text-text"/);
     assert.match(
       componentSources.footer,
       /min-h-11 min-w-11 items-center[^"\n]*lg:items-end/,
