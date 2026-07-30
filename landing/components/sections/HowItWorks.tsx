@@ -1,13 +1,15 @@
-import { Screenshot } from "@/components/ui";
+import {
+  MonthAvailableVisual,
+  MonthTemplateVisual,
+  YearSpreadVisual,
+} from "./HowItWorksVisuals";
 
-// The desktop assets are tight crops of the app's own narrow layout, not whole
-// window captures. This section's column caps at 341px, so the 1440px-wide
-// window these used to show arrived at 0.24 scale and put its interface text
-// under 4px: the proof was unreadable without opening the lightbox. Cropping
-// the denser portrait source instead puts the smallest labels around 7px and
-// the figure each step is about between 20px and 40px. Exported at 684px, twice
-// the column, which is what a retina screen consumes and no more. Do not swap
-// these back to whole windows.
+// These three visuals are built in code, like the hero dashboard, rather than
+// captured from the app. This section's column caps at 341px, and a screenshot
+// of an app screen arrives there at a quarter scale with its interface text
+// under 4px. Cropping only traded that for amputated cards and dimmed past
+// months, because the captures were framed for a different purpose. Drawn
+// instead, they stay sharp at any density and carry one consistent arithmetic.
 const STEPS = [
   {
     number: "1",
@@ -15,21 +17,9 @@ const STEPS = [
     description:
       "Ajoute tes revenus, tes dépenses récurrentes et ce que tu veux mettre de côté.",
     image: {
-      caption: "Ton mois type",
-      content: (
-        <Screenshot
-          src="/screenshots/responsive/ecran-des-modeles.webp"
-          iosSrc="/screenshots/ios/ecran-des-modeles.webp"
-          desktopSrc="/screenshots/webapp/ecran-des-modeles.webp"
-          label="Le mois type qui sert de base au budget"
-          mobileWidth={750}
-          mobileHeight={1190}
-          desktopWidth={684}
-          desktopHeight={720}
-          desktopAspectRatio="19 / 20"
-          fit="contain"
-        />
-      ),
+      caption:
+        "Ton mois type : sur 3 500 CHF de revenu, 1 600 de dépenses récurrentes et 500 d’épargne laissent 1 400 disponibles chaque mois",
+      content: <MonthTemplateVisual />,
     },
   },
   {
@@ -38,21 +28,9 @@ const STEPS = [
     description:
       "Ajoute les impôts, les vacances et les gros achats dans les mois où ils auront lieu.",
     image: {
-      caption: "Ton année",
-      content: (
-        <Screenshot
-          src="/screenshots/responsive/vue-calendrier-annuel.webp"
-          iosSrc="/screenshots/ios/vue-annuelle-des-budgets.webp"
-          desktopSrc="/screenshots/webapp/vue-calendrier-annuel.webp"
-          label="Les mois projetés à partir du mois type"
-          mobileWidth={750}
-          mobileHeight={1190}
-          desktopWidth={684}
-          desktopHeight={720}
-          desktopAspectRatio="19 / 20"
-          fit="contain"
-        />
-      ),
+      caption:
+        "Ton année : douze mois à 1 400 CHF disponibles, sauf juillet à 500 pour les impôts et août à 700 pour les vacances",
+      content: <YearSpreadVisual />,
     },
   },
   {
@@ -61,21 +39,9 @@ const STEPS = [
     description:
       "Ouvre un mois à venir pour voir ton disponible, puis ajuste ton budget si besoin.",
     image: {
-      caption: "Ton disponible mensuel",
-      content: (
-        <Screenshot
-          src="/screenshots/responsive/liste-des-previsions.webp"
-          iosSrc="/screenshots/ios/detail-du-budget.webp"
-          desktopSrc="/screenshots/webapp/liste-des-previsions.webp"
-          label="Le disponible prévu pour un mois à venir"
-          mobileWidth={750}
-          mobileHeight={1190}
-          desktopWidth={684}
-          desktopHeight={720}
-          desktopAspectRatio="19 / 20"
-          fit="contain"
-        />
-      ),
+      caption:
+        "Juillet : sur 3 500 CHF de revenu, 1 600 de récurrent, 500 d’épargne et 900 d’impôts laissent 500 disponibles",
+      content: <MonthAvailableVisual />,
     },
   },
 ];
@@ -91,15 +57,15 @@ export function HowItWorks() {
           key={step.number}
           className="flex min-w-0 flex-col md:row-span-3 md:grid md:grid-rows-subgrid"
         >
-          {/* Mobile reads label-then-proof: the copy sits above its screenshot
-              so the next step's image never bleeds into the previous step's
-              text. Desktop keeps the image-first row, where the three columns
+          {/* Mobile reads label-then-proof: the copy sits above its visual
+              so the next step's card never bleeds into the previous step's
+              text. Desktop keeps the visual-first row, where the three columns
               align on their own. */}
           <StepCopy
             step={step}
             className="mb-5 md:order-2 md:mb-0 md:mt-5 md:row-span-2 md:grid md:grid-rows-subgrid md:text-center"
           />
-          <figure className="mx-auto w-full max-w-sm md:order-1 md:max-w-none">
+          <figure className="mx-auto w-full max-w-sm md:order-1 md:h-full md:max-w-none">
             <figcaption className="sr-only">{step.image.caption}</figcaption>
             {step.image.content}
           </figure>

@@ -61,6 +61,10 @@ const componentSources = {
     new URL("../components/sections/HowItWorks.tsx", import.meta.url),
     "utf8",
   ),
+  howItWorksVisuals: readFileSync(
+    new URL("../components/sections/HowItWorksVisuals.tsx", import.meta.url),
+    "utf8",
+  ),
   accordionItem: readFileSync(
     new URL("../components/ui/AccordionItem.tsx", import.meta.url),
     "utf8",
@@ -337,25 +341,47 @@ describe("landing accessibility contracts", () => {
   it("shows how one typical month becomes a projected year", () => {
     assert.match(
       componentSources.howItWorks,
-      /Ton mois type[\s\S]*ecran-des-modeles\.webp[\s\S]*Ton année[\s\S]*vue-calendrier-annuel\.webp/,
+      /Ton mois type[\s\S]*<MonthTemplateVisual \/>[\s\S]*Ton année[\s\S]*<YearSpreadVisual \/>/,
     );
     assert.match(componentSources.solution, /<HowItWorks \/>/);
   });
 
-  it("gives all three planning screenshots the same desktop frame without cropping", () => {
+  it("gives the three planning visuals one shared frame", () => {
     assert.equal(
-      componentSources.howItWorks.match(/desktopAspectRatio=/g)?.length,
+      componentSources.howItWorksVisuals.match(/<StepFrame /g)?.length,
       3,
     );
     assert.equal(
-      componentSources.howItWorks.match(/fit="contain"/g)?.length,
-      3,
+      componentSources.howItWorksVisuals.match(/function StepFrame\(/g)?.length,
+      1,
     );
-    assert.match(componentSources.screenshot, /desktopAspectRatio\?: string;/);
-    assert.match(
-      componentSources.screenshot,
-      /fit === "contain" \? "object-contain" : "object-cover"/,
+    assert.doesNotMatch(componentSources.howItWorks, /<Screenshot/);
+  });
+
+  it("keeps one arithmetic across the three planning visuals", () => {
+    // Les trois visuels racontent le même mois : les parts de chaque barre
+    // doivent redonner le revenu, et le juillet du graphe doit valoir le
+    // disponible de l'étape 3. Éditer un nombre sans l'autre rendrait la démo
+    // fausse pour un visiteur qui additionne.
+    const visuals = componentSources.howItWorksVisuals.replace(
+      /FULL_MONTH/g,
+      "1400",
     );
+    const body = (name: string) =>
+      visuals.match(new RegExp(`export function ${name}[\\s\\S]*?\\n}`))?.[0] ??
+      "";
+    const segmentTotal = (source: string) =>
+      [...source.matchAll(/amount: (\d+)/g)].reduce(
+        (total, [, amount]) => total + Number(amount),
+        0,
+      );
+    assert.match(visuals, /const INCOME = 3500/);
+    assert.equal(segmentTotal(body("MonthTemplateVisual")), 3500);
+    assert.equal(segmentTotal(body("MonthAvailableVisual")), 3500);
+    assert.match(body("MonthTemplateVisual"), /<Payoff value=\{1400\}/);
+    assert.match(body("MonthAvailableVisual"), /<Payoff value=\{500\}/);
+    assert.match(visuals, /key: "jul", initial: "J", available: 500/);
+    assert.match(visuals, /key: "aou", initial: "A", available: 700/);
   });
 
   it("presents the three setup steps as one scannable ordered process", () => {
@@ -375,7 +401,7 @@ describe("landing accessibility contracts", () => {
     assert.doesNotMatch(componentSources.howItWorks, /lg:space-y-20/);
   });
 
-  it("labels each step above its screenshot on mobile, below it on desktop", () => {
+  it("labels each step above its visual on mobile, below it on desktop", () => {
     // Le contrat est la bascule d'ordre, pas la liste de classes complète :
     // figer le littéral faisait échouer ce test sur l'ajout de `md:row-span-2`,
     // qui ne touche pas l'ordre de lecture.
@@ -830,18 +856,30 @@ describe("landing accessibility contracts", () => {
     assert.match(globalsCss, /@media \(prefers-reduced-motion: reduce\)/);
   });
 
-  it("pairs each of the three static setup steps with its own screenshot", () => {
+  it("pairs each of the three static setup steps with its own visual", () => {
     assert.match(componentSources.howItWorks, /number: "1"/);
     assert.match(componentSources.howItWorks, /number: "2"/);
     assert.match(componentSources.howItWorks, /number: "3"/);
     assert.doesNotMatch(componentSources.howItWorks, /number: "4"/);
     assert.doesNotMatch(componentSources.howItWorks, /IntersectionObserver/);
-    assert.equal(componentSources.howItWorks.match(/<Screenshot/g)?.length, 3);
-    assert.match(componentSources.howItWorks, /liste-des-previsions\.webp/);
-    assert.equal(componentSources.howItWorks.match(/iosSrc=/g)?.length, 3);
-    assert.match(componentSources.screenshot, /\/iPhone\|iPod\//);
-    assert.match(componentSources.screenshot, /!isDesktop && isIPhone/);
-    assert.match(componentSources.screenshot, /IOS_IMAGE_HEIGHT = 1630/);
+    for (const visual of [
+      /<MonthTemplateVisual \/>/,
+      /<YearSpreadVisual \/>/,
+      /<MonthAvailableVisual \/>/,
+    ]) {
+      assert.equal(componentSources.howItWorks.match(visual)?.length, 1);
+    }
+    // Les visuels illustrent la phrase imprimée à côté d'eux : le figcaption
+    // sr-only porte le contenu pour les lecteurs d'écran, le mock est masqué.
+    assert.equal(
+      componentSources.howItWorksVisuals.match(/aria-hidden="true"/g)?.length,
+      1,
+    );
+    assert.equal(
+      componentSources.howItWorks.match(/figcaption className="sr-only"/g)
+        ?.length,
+      1,
+    );
     assert.match(componentSources.solution, /id="how-it-works"/);
   });
 
