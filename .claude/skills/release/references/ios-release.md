@@ -60,7 +60,7 @@ cd ios && ./scripts/bump-version.sh patch   # or minor
 cd ios && xcodegen generate --use-cache
 ```
 
-This bumps `MARKETING_VERSION` and resets/advances the build number. Schedule the Railway `LATEST_IOS_VERSION` sync described below, but do not apply it before that version is publicly available on the App Store.
+This bumps `MARKETING_VERSION` and resets/advances the build number. No Railway follow-up is owed — see the force-update gate section below.
 
 ## Files modified
 
@@ -71,30 +71,21 @@ After running the script, these files change:
 
 Stage only `ios/project.yml`. Never stage the generated `.xcodeproj`.
 
-## Sync Railway `LATEST_IOS_VERSION` (force-update gate)
+## Force-update gate — nothing to sync
 
-When `MARKETING_VERSION` bumps (i.e. you used `set`, `major`, `minor`, or `patch` — NOT `build`), record a pending `LATEST_IOS_VERSION` update for Railway in **both** `preview` and `production`. Apply it only after App Store Connect confirms that this marketing version is publicly available. Git publication and TestFlight availability are not sufficient.
+`LATEST_IOS_VERSION` is **not** a release chore. `IosVersionGateService`
+(`backend-nest/src/modules/app-version/`) reads the version the App Store
+actually serves and publishes it on `GET /api/v1/app/version`; the Railway
+variable is only an offline fallback and a manual override. Never schedule,
+apply, or report a pending `LATEST_IOS_VERSION` update, and never wait on App
+Store availability before finishing the release.
 
-If the App Store release is still pending when Step 9 finishes, leave both values unchanged and report one deferred post-App-Store operation. The force-update endpoint (`GET /api/v1/app/version`) serves this value to clients; changing it early would advertise a binary users cannot download.
-
-Before updating Railway, apply the branch that matches the curated result:
+Still verify the curated result matches the release:
 
 - If an iOS projection exists, verify the same `iosVersion` is present in `landing/data/releases.json` and `backend-nest/src/modules/whats-new/domain/releases-data.ts`. A mismatch means the release is not ready.
-- If no item qualified, verify `landing/data/releases.json` carries the new `iosVersion`, `SILENT_IOS_RELEASES` contains exactly one motivated entry for the product version, and no backend projection overlaps it. This intentional silence does not block the Railway update or the release.
+- If no item qualified, verify `landing/data/releases.json` carries the new `iosVersion`, `SILENT_IOS_RELEASES` contains exactly one motivated entry for the product version, and no backend projection overlaps it. This intentional silence does not block the release.
 
-Use the Railway integration available to the current agent — one operation per environment with these semantics:
-
-```
-workspace: <repo root>
-environment: preview, then production
-service: backend
-skip deploy: false
-variable: LATEST_IOS_VERSION=<new MARKETING_VERSION>
-```
-
-Before applying the deferred update, verify App Store availability again. The variable change must redeploy the backend so the running `ConfigService` reads the new value; wait for the resulting deployment to succeed in each environment. If no Railway integration is available, report the missing capability and leave the gate unchanged. Never omit the update silently or guess an unsupported CLI/MCP command. After both environment updates, verify the public version endpoint reports the new iOS marketing version.
-
-> **Never** touch `MIN_IOS_VERSION` from this skill. That value is a deliberate kill switch — only bumped when a release contains a breaking change or critical fix that must force users off old binaries. Always require explicit user confirmation before changing it.
+> **Never** touch `MIN_IOS_VERSION` from this skill. That value is a deliberate kill switch — only bumped when a release contains a breaking change or critical fix that must force users off old binaries. Always require explicit user confirmation before changing it. The served floor is clamped to the version available on the App Store, so an early bump waits for Apple instead of blocking users on a binary they cannot download — that safety net is not a licence to set it without confirmation.
 
 ## No separate tag
 

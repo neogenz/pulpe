@@ -83,20 +83,27 @@ Automatisé via le skill `/release`.
 Le backend expose `GET /api/v1/app/version` qui renvoie, par plateforme, la version minimale supportée et la dernière version publiée. Les clients (webapp + iOS) comparent leur version courante :
 
 - **< `minVersion`** → blocage dur, CTA vers le store
-- **`minVersion` ≤ version < `latestVersion`** → toast "mise à jour disponible"
-- **≥ `latestVersion`** → aucune incitation
+- **≥ `minVersion`** → aucune incitation
+
+`latestVersion` est publié mais **aucun client ne le lit** aujourd'hui : `AppVersionStore` (iOS) et `AppVersionStore` (webapp) ne comparent que `minVersion`. Le champ reste réservé à un futur toast "mise à jour disponible".
 
 Cinq variables d'env pilotent ce gate côté backend, validées par Zod (`backend-nest/src/config/environment.ts`) :
 
 | Variable | Rôle | Format |
 |----------|------|--------|
 | `MIN_IOS_VERSION` | Plancher iOS — en dessous = blocage dur | SemVer `X.Y.Z` |
-| `LATEST_IOS_VERSION` | Dernière version iOS publiée | SemVer `X.Y.Z` |
-| `IOS_STORE_URL` | Deep link App Store (CTA "Mettre à jour") | URL absolue |
+| `LATEST_IOS_VERSION` | Repli hors-ligne / override manuel — la valeur servie vient de l'App Store | SemVer `X.Y.Z` |
+| `IOS_STORE_URL` | Deep link App Store (CTA "Mettre à jour") — porte aussi l'ID interrogé par le lookup | URL absolue |
 | `MIN_WEB_VERSION` | Plancher webapp | SemVer `X.Y.Z` |
 | `LATEST_WEB_VERSION` | Dernière version webapp publiée | SemVer `X.Y.Z` |
 
 Source de vérité : Railway (env Production). Les valeurs locales restent celles de `backend-nest/.env.example`.
+
+### iOS : la version publiée se résout toute seule
+
+`IosVersionGateService` (`backend-nest/src/modules/app-version/`) interroge le lookup public Apple (`https://itunes.apple.com/lookup?id=<app id>`, ID extrait de `IOS_STORE_URL`) et sert cette version comme `ios.latestVersion`. Rafraîchissement paresseux : la première requête passé le TTL (6 h) déclenche un appel en tâche de fond — aucune requête client n'attend Apple. Échec, timeout (3 s) ou version non SemVer → on garde la valeur précédente, on réessaie dans 15 min, et `LATEST_IOS_VERSION` sert de plancher : la valeur servie est `max(env, App Store)`, jamais une régression.
+
+Conséquence : **aucun bump Railway à faire après une approbation App Store**. `MIN_IOS_VERSION` peut aussi être armé avant la fin du rollout Apple — le plancher servi est borné par la version réellement téléchargeable (`minVersion = min(MIN_IOS_VERSION, latestVersion)`), donc le blocage s'active de lui-même quand Apple publie, sans jamais bloquer sur un binaire indisponible.
 
 ### Quand bumper `MIN_*`
 
@@ -110,13 +117,12 @@ Hors ces cas, `MIN_*` reste figé. Une release "classique" ne bouge que `LATEST_
 
 ### Procédure de rollout
 
-1. **Publier la release client AVANT le bump.** La version cible (App Store ou webapp Vercel) doit déjà être **publique et disponible**. Sinon on bloque les users sur une version qui n'existe pas encore.
-2. **Bump `LATEST_*` sur Railway** dès la release publiée :
+1. **Publier la release webapp AVANT le bump `MIN_WEB_VERSION`.** La version cible doit déjà être **publique et disponible** sur Vercel. Côté iOS, aucune précaution : le plancher servi est borné par la version App Store.
+2. **Bump `LATEST_WEB_VERSION` sur Railway** dès la release publiée :
    ```bash
-   railway variables --set "LATEST_IOS_VERSION=1.2.0" --service backend
    railway variables --set "LATEST_WEB_VERSION=0.36.0" --service backend
    ```
-   Railway redémarre le service à chaque mise à jour de variable — `ConfigService` relit l'env au boot.
+   Railway redémarre le service à chaque mise à jour de variable — `ConfigService` relit l'env au boot. `LATEST_IOS_VERSION` ne se bump pas : le backend suit l'App Store.
 3. **Bump `MIN_*` (force-update)** uniquement quand l'éjection est nécessaire :
    ```bash
    railway variables --set "MIN_IOS_VERSION=1.2.0" --service backend

@@ -9,6 +9,7 @@ import {
 import { ErrorResponseDto } from '@common/dto/response.dto';
 import type { AppVersionResponse } from 'pulpe-shared';
 import { buildAppVersionResponse } from './app-version-payload';
+import { IosVersionGateService } from './ios-version-gate.service';
 import { AppVersionResponseDto } from './dto/app-version-swagger.dto';
 
 /**
@@ -19,7 +20,8 @@ import { AppVersionResponseDto } from './dto/app-version-swagger.dto';
  * update wall when below the floor. **No `AuthGuard`** — must work pre-login.
  * Rate-limited by the global `UserThrottlerGuard` via the `public` throttler
  * (20 req/min/IP in prod). Response is cacheable for 5 minutes — version
- * values change rarely (env-driven) and an old cached payload is harmless.
+ * values change rarely and an old cached payload is harmless. iOS values come
+ * from `IosVersionGateService` (App Store-tracked), web values from env.
  */
 @ApiTags('App')
 @Controller({ path: 'app', version: '1' })
@@ -28,7 +30,10 @@ import { AppVersionResponseDto } from './dto/app-version-swagger.dto';
   type: ErrorResponseDto,
 })
 export class AppVersionController {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly iosVersionGate: IosVersionGateService,
+  ) {}
 
   @Get('version')
   @Header('Cache-Control', 'public, max-age=300')
@@ -46,6 +51,9 @@ export class AppVersionController {
     type: AppVersionResponseDto,
   })
   getVersion(): AppVersionResponse {
-    return buildAppVersionResponse(this.configService);
+    return buildAppVersionResponse(
+      this.configService,
+      this.iosVersionGate.resolve(),
+    );
   }
 }

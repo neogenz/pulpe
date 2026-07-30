@@ -668,9 +668,7 @@ EOF
 ```
 
 11. Apply the pending `LATEST_WEB_VERSION` update from [references/jsts-release.md](references/jsts-release.md) in `preview` and `production`, then verify `GET /api/v1/app/version`.
-12. If the iOS marketing version changed, follow [references/ios-release.md](references/ios-release.md):
-    - App Store version publicly available: apply and verify `LATEST_IOS_VERSION`;
-    - not yet available: leave both environments unchanged and report the deferred post-App-Store operation.
+12. Never schedule a Railway `LATEST_IOS_VERSION` operation: the backend reads the published iOS version from the App Store itself (see [references/ios-release.md](references/ios-release.md)). No post-App-Store follow-up is owed for this gate, so do not report one.
 
 Release rules:
 

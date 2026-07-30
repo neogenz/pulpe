@@ -1,23 +1,5 @@
 import { z } from 'zod';
-
-const SEMVER_SEGMENT_COUNT = 3;
-
-/**
- * Returns true when `version <= ceiling`, comparing the three numeric
- * `MAJOR.MINOR.PATCH` segments. Inputs are shape-validated by the
- * `/^\d+\.\d+\.\d+$/` regex before this runs, so each split yields exactly
- * three numbers.
- */
-function isVersionAtMost(version: string, ceiling: string): boolean {
-  const parts = version.split('.').map(Number);
-  const ceilingParts = ceiling.split('.').map(Number);
-  for (let i = 0; i < SEMVER_SEGMENT_COUNT; i++) {
-    if (parts[i] !== ceilingParts[i]) {
-      return parts[i] < ceilingParts[i];
-    }
-  }
-  return true;
-}
+import { isVersionAtMost } from '@common/utils/semver-compare';
 
 const envSchema = z
   .object({
@@ -75,6 +57,11 @@ const envSchema = z
       .string()
       .regex(/^\d+\.\d+\.\d+$/)
       .default('1.0.0'),
+    // Fallback only: `IosVersionGateService` publishes the version the App
+    // Store actually serves and never goes below this value. No `MIN <= LATEST`
+    // refine on purpose — the floor is clamped at request time against the
+    // downloadable version, so `MIN_IOS_VERSION` can be raised before Apple
+    // finishes the rollout instead of crashing the boot.
     LATEST_IOS_VERSION: z
       .string()
       .regex(/^\d+\.\d+\.\d+$/)
@@ -89,13 +76,6 @@ const envSchema = z
       .regex(/^\d+\.\d+\.\d+$/)
       .default('0.0.1'),
   })
-  .refine(
-    (env) => isVersionAtMost(env.MIN_IOS_VERSION, env.LATEST_IOS_VERSION),
-    {
-      message: 'LATEST_IOS_VERSION must be >= MIN_IOS_VERSION',
-      path: ['LATEST_IOS_VERSION'],
-    },
-  )
   .refine(
     (env) => isVersionAtMost(env.MIN_WEB_VERSION, env.LATEST_WEB_VERSION),
     {
