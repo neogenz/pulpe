@@ -171,13 +171,17 @@ struct HomeHeroCard: View {
 
     /// One sentence that ends in its own action — the row that used to carry `Voir le budget`
     /// is gone, so the creation action below is the strongest thing under the hero.
+    /// The action reads as one by its ink and its chevron, the way the rest of the app
+    /// marks a drill-in; an underline here would be a web idiom on an iOS surface.
     private var verdictSentence: some View {
         Button(action: onTapDetail) {
-            Text(verdictText)
+            Text("\(verdictText) ")
                 .foregroundStyle(accentColor)
-                + Text(" Voir le détail.")
+                + Text("Voir le détail ")
                 .foregroundStyle(Color.homeHeroInk)
-                .underline()
+                + Text(Image(systemName: "chevron.right"))
+                .foregroundStyle(Color.homeHeroSupport)
+                .font(PulpeTypography.metricLabel)
         }
         .font(PulpeTypography.labelLarge)
         .multilineTextAlignment(.leading)

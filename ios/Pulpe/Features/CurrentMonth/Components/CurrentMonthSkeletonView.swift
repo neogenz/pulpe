@@ -28,19 +28,10 @@ struct CurrentMonthSkeletonView: View {
         .accessibilityLabel("Préparation de ton tableau de bord")
     }
 
+    /// No month or avatar placeholder: both live in the navigation bar now, which is
+    /// already on screen while this loads.
     private var heroZone: some View {
-        VStack(spacing: DesignTokens.Spacing.md) {
-            HStack {
-                SkeletonShape(
-                    width: DesignTokens.Skeleton.greetingWidth,
-                    height: DesignTokens.Skeleton.lineHeight
-                )
-                Spacer()
-                SkeletonCircle(size: DesignTokens.IconSize.listRow)
-            }
-
-            CurrentMonthHeroSkeleton()
-        }
+        CurrentMonthHeroSkeleton()
         .padding(.horizontal, DesignTokens.Spacing.xxl)
         .padding(.top, DesignTokens.Spacing.lg)
         .padding(.bottom, DesignTokens.Spacing.xxl)
@@ -261,9 +252,11 @@ private struct CurrentMonthHeroSkeleton: View {
                     )
                 )
 
+                // The projection keeps falling toward the plan line, as the real one does —
+                // it never turns back up.
                 Path { path in
                     path.move(to: CGPoint(x: width * 2 / 3, y: height / 2))
-                    path.addLine(to: CGPoint(x: width, y: height / 3))
+                    path.addLine(to: CGPoint(x: width, y: height * 2 / 3))
                 }
                 .stroke(
                     Color.skeletonPlaceholder,
@@ -273,6 +266,10 @@ private struct CurrentMonthHeroSkeleton: View {
                         dash: DesignTokens.Chart.dash
                     )
                 )
+
+                // Anchor point where the tracked series hands over to the projection.
+                SkeletonCircle(size: DesignTokens.Spacing.md)
+                    .position(x: width * 2 / 3, y: height / 2)
             }
         }
         .frame(height: DesignTokens.Chart.dashboardHeight)

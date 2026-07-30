@@ -2,6 +2,13 @@ import Foundation
 @testable import Pulpe
 import Testing
 
+/// Pairs an over-consumed line with its consumption. No production surface renders
+/// these any more, so it lives with the only code that still builds them.
+private struct BudgetAlert: Sendable {
+    let line: BudgetLine
+    let consumption: BudgetFormulas.Consumption
+}
+
 struct CurrentMonthStoreAlertAndFilterTests {
     // MARK: - Alert Budget Lines Logic (80% Threshold)
 

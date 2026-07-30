@@ -90,38 +90,45 @@ struct ActivityCard: View {
         .padding(.bottom, DesignTokens.Spacing.md)
     }
 
-    /// Two-segment window toggle — a single button flipping 7j ↔ Mois keeps the
-    /// visual compact while honouring the 44pt tap target.
+    /// Two-segment window selector, each segment addressable on its own: tapping the
+    /// active one is a no-op rather than a flip. Follows `CapsulePicker`'s shape — the
+    /// pill is drawn inside the label so it stays compact while the button box is 44pt.
     private var windowToggle: some View {
-        Button {
-            withAnimation(DesignTokens.Animation.smoothEaseOut) {
-                window = window == .week ? .month : .week
+        HStack(spacing: DesignTokens.Spacing.xxs) {
+            ForEach(Window.allCases, id: \.self) { option in
+                windowSegment(option)
             }
+        }
+        .padding(.horizontal, DesignTokens.Spacing.xxs)
+        .background(Color.surfaceContainerHigh, in: Capsule())
+        .sensoryFeedback(.selection, trigger: window)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Période d'activité")
+        .accessibilityValue(window == .week ? "7 derniers jours" : "Mois complet")
+        .accessibilityHint("Bascule entre 7 jours et le mois")
+    }
+
+    private func windowSegment(_ option: Window) -> some View {
+        let isSelected = window == option
+        return Button {
+            withAnimation(DesignTokens.Animation.smoothEaseOut) { window = option }
         } label: {
-            HStack(spacing: DesignTokens.Spacing.xxs) {
-                ForEach(Window.allCases, id: \.self) { option in
-                    // Unconstrained, "Mois" breaks to one letter per line at accessibility
-                    // sizes and the capsule collapses over "7j".
-                    Text(option.rawValue)
-                        .font(PulpeTypography.metricMini)
-                        .foregroundStyle(window == option ? Color.textPrimary : Color.textSecondary)
-                        .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
-                        .padding(.horizontal, DesignTokens.Spacing.compactGap)
-                        .padding(.vertical, DesignTokens.Spacing.xs)
-                        .background(window == option ? Color.surface : .clear, in: Capsule())
-                }
-            }
-            .padding(DesignTokens.Spacing.xxs)
-            .background(Color.surfaceContainerHigh, in: Capsule())
+            // Unconstrained, "Mois" breaks to one letter per line at accessibility
+            // sizes and the capsule collapses over "7j".
+            Text(option.rawValue)
+                .font(PulpeTypography.metricMini)
+                .foregroundStyle(isSelected ? Color.textPrimary : Color.textSecondary)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .padding(.horizontal, DesignTokens.Spacing.compactGap)
+                .padding(.vertical, DesignTokens.Spacing.xs)
+                .background(isSelected ? Color.surface : .clear, in: Capsule())
         }
         .frame(minHeight: DesignTokens.TapTarget.minimum)
         .contentShape(Capsule())
         .plainPressedButtonStyle()
-        .sensoryFeedback(.selection, trigger: window)
-        .accessibilityLabel("Période d'activité")
-        .accessibilityValue(window == .week ? "7 derniers jours" : "Mois complet")
-        .accessibilityHint("Bascule entre 7 jours et le mois")
+        .accessibilityLabel(option == .week ? "7 derniers jours" : "Mois complet")
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 
     // MARK: - Rows

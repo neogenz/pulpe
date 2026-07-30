@@ -78,20 +78,23 @@ struct CurrentMonthView: View {
         .background { dashboardBackground.ignoresSafeArea() }
         .trackScreen("Dashboard")
         .animation(DesignTokens.Animation.smoothEaseOut, value: animationPhase)
-        .navigationTitle("")
+        .navigationTitle(currentMonthName.capitalized)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            // Loaded state exposes Account via the greeting avatar; keep a
-            // toolbar entry for the other states so Account is always reachable.
-            if store.contentState != .loaded {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        activeSheet = .account
-                    } label: {
-                        Image(systemName: "person.circle")
-                    }
-                    .accessibilityLabel("Mon compte")
+            // One account affordance for every content state, in the bar that already
+            // exists — the dashboard no longer rebuilds a header inside its own scroll.
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    activeSheet = .account
+                } label: {
+                    ProfileAvatar(
+                        firstName: appState.currentUser?.firstName,
+                        email: appState.currentUser?.email,
+                        avatarUrl: appState.currentUser?.avatarUrl,
+                        diameter: DesignTokens.IconSize.compact
+                    )
                 }
+                .accessibilityLabel("Mon compte")
             }
         }
         .sheet(item: $activeSheet) { sheet in
@@ -189,28 +192,16 @@ struct CurrentMonthView: View {
     private var dashboardContent: some View {
         ScrollView {
             VStack(spacing: DesignTokens.Spacing.none) {
-                VStack(spacing: DesignTokens.Spacing.md) {
-                    DashboardGreeting(
-                        monthName: currentMonthName,
-                        firstName: appState.currentUser?.firstName,
-                        email: appState.currentUser?.email,
-                        avatarUrl: appState.currentUser?.avatarUrl
-                    ) {
-                        activeSheet = .account
-                    }
-                    .staggeredEntrance(isVisible: hasAppeared, index: 0)
-
-                    HomeHeroCard(
-                        metrics: store.metrics,
-                        plannedBalance: store.plannedRemaining,
-                        trajectory: store.balanceTrajectory,
-                        monthName: currentMonthName,
-                        uncheckedCount: store.uncheckedCount,
-                        onTapMetrics: { activeSheet = .realizedBalance },
-                        onTapDetail: { navigateToBudget = true }
-                    )
-                    .staggeredEntrance(isVisible: hasAppeared, index: 1)
-                }
+                HomeHeroCard(
+                    metrics: store.metrics,
+                    plannedBalance: store.plannedRemaining,
+                    trajectory: store.balanceTrajectory,
+                    monthName: currentMonthName,
+                    uncheckedCount: store.uncheckedCount,
+                    onTapMetrics: { activeSheet = .realizedBalance },
+                    onTapDetail: { navigateToBudget = true }
+                )
+                .staggeredEntrance(isVisible: hasAppeared, index: 0)
                 .padding(.horizontal, DesignTokens.Spacing.xxl)
                 .padding(.top, DesignTokens.Spacing.lg)
                 .padding(.bottom, DesignTokens.Spacing.xxl)
@@ -279,7 +270,7 @@ struct CurrentMonthView: View {
                     onViewAll: { navigateToBudget = true }
                 )
                 .popoverTip(ProductTips.checking)
-                .staggeredEntrance(isVisible: hasAppeared, index: 2)
+                .staggeredEntrance(isVisible: hasAppeared, index: 1)
             }
 
             // Ça dérive when the month drifts — else épargne versée when complete
@@ -294,7 +285,7 @@ struct CurrentMonthView: View {
                     onViewBudget: { navigateToBudget = true },
                     onCatchUp: { navigateToBudget = true }
                 )
-                .staggeredEntrance(isVisible: hasAppeared, index: 3)
+                .staggeredEntrance(isVisible: hasAppeared, index: 2)
             } else if store.savingsSummary.isComplete {
                 Divider()
 
@@ -305,7 +296,7 @@ struct CurrentMonthView: View {
                     appState.savingsGoalsPath = NavigationPath()
                     appState.selectedTab = .savingsGoals
                 }
-                .staggeredEntrance(isVisible: hasAppeared, index: 3)
+                .staggeredEntrance(isVisible: hasAppeared, index: 2)
             }
 
             // Activité — recent transactions with 7j/Mois window
@@ -317,7 +308,7 @@ struct CurrentMonthView: View {
                     tagNamesById: tagStore.namesById,
                     onViewAll: { navigateToBudget = true }
                 )
-                .staggeredEntrance(isVisible: hasAppeared, index: 4)
+                .staggeredEntrance(isVisible: hasAppeared, index: 3)
             }
         }
         // Flat ledger: one content margin for the whole screen, aligned with the hero above,
