@@ -27,7 +27,7 @@ typography:
     fontFamily: "DM Sans"
     fontWeight: 400
   body-landing:
-    fontFamily: "Poppins"
+    fontFamily: "-apple-system, system-ui, SF Pro"
     fontWeight: 400
 ---
 
@@ -39,7 +39,7 @@ typography:
 > - **Visual common (this file):** the cross-platform DA — color seeds, typography lineage, voice rules, named rules that apply everywhere
 > - **iOS extensions:** [ios/DESIGN.md](./ios/DESIGN.md) — tokens, components, Liquid Glass, sheets, SwiftUI patterns
 > - **Web extensions:** [frontend/DESIGN.md](./frontend/DESIGN.md) — Material 3, Tailwind v4, responsive grid, Angular components
-> - **Landing extensions:** [landing/DESIGN.md](./landing/DESIGN.md) — Poppins-only, hero compositions, marketing CTAs
+> - **Landing extensions:** [landing/DESIGN.md](./landing/DESIGN.md) — native system typography, hero compositions, marketing CTAs
 >
 > This file owns what is **shared**. Each platform doc owns its **specifics** and inherits everything below. When a rule applies everywhere, it lives here. When it depends on the rendering surface (SwiftUI vs Angular vs Next.js), it lives in the platform doc.
 
@@ -55,7 +55,7 @@ This system explicitly rejects: cold corporate banking apps with navy and aggres
 - Warm neutral canvas (`#F7F6F3` family), never cold gray, never green-tinted
 - Color carries meaning: green = savings/positive, amber = expense, blue = income, red = global deficit only
 - Soft springs (response 0.4–0.6s, damping 0.65–0.85), zero bounce except on the landing page
-- Manrope (display + amounts) + body font per platform (SF Pro on iOS, DM Sans on web, Poppins on landing). Two families per platform, max
+- Manrope (display + amounts) + body font per platform (SF Pro on iOS, DM Sans on web). The landing uses a single native system stack. Two families per platform, max
 - WCAG AA contrast, accessibility primary citizen on every surface
 - Tutoiement always; microcopy disarms anxiety
 
@@ -103,7 +103,7 @@ A neutral warm canvas with three semantic accents, one cautionary amber, and one
 **Body / UI:** platform-specific.
 - **iOS:** SF Pro (system) — Dynamic Type respected.
 - **Web (Angular):** DM Sans — `--plain-family`.
-- **Landing (Next.js):** Poppins (only Poppins, no display/body split — landing is poster-flat).
+- **Landing (Next.js):** native Apple/system stack, with SF Pro when available (no display/body split).
 
 **Numbers:** tabular figures everywhere amounts appear. `monospacedDigit()` on iOS, `font-feature-settings: "tnum"` (or `tabular-nums`) on web.
 
@@ -117,7 +117,7 @@ A neutral warm canvas with three semantic accents, one cautionary amber, and one
 
 **The Tabular Digits Rule.** Every numeric amount uses tabular figures. Digits don't wobble between updates. Non-negotiable on hero amounts, row amounts, pill counts.
 
-**The Two-Family Rule.** Two font families per platform, max. Display + body. No third family. No mono in chrome. The landing page uses one family (Poppins) — single-family is allowed when the surface is simple enough.
+**The Two-Family Rule.** Two font families per platform, max. Display + body. No third family. No mono in chrome. The landing page uses one native system stack — single-family is allowed when the surface is simple enough.
 
 ## 4. Elevation
 
@@ -150,7 +150,7 @@ What's universal is the **vocabulary**: every platform has a Primary Button, Sec
 ### Do:
 - **Do** map every color to a financial concept or state — savings green, income blue, expense amber, deficit red.
 - **Do** address every user with "tu", everywhere, on every platform.
-- **Do** use Manrope for display and amounts on every platform; pair with the platform body font (SF Pro / DM Sans / Poppins).
+- **Do** use Manrope for display and amounts in the products; pair it with the platform body font (SF Pro / DM Sans). The marketing landing deliberately uses its native system stack for every role.
 - **Do** keep the emotion zone at the top (gradient, financial-state-keyed) and the content zone below (neutral warm) wherever a screen has a hero.
 - **Do** use tabular digits (`monospacedDigit()` / `tabular-nums`) on every numeric amount.
 - **Do** route every chip / pill through the platform's chip atom — never reinvent the capsule + padding + count badge in feature code.
@@ -161,9 +161,9 @@ What's universal is the **vocabulary**: every platform has a Primary Button, Sec
 - **Don't** ship cold banking apps with navy + aggressive charts — that's the explicit anti-reference.
 - **Don't** use anxiety red anywhere except the dashboard hero deficit (>100% spent). Lines, rows, transactions, pills, kind tags for expenses use **amber**, never red.
 - **Don't** use dense accounting jargon-heavy chrome — Pulpe is for tired humans, not finance nerds.
-- **Don't** use display fonts (Manrope, Poppins) in UI labels, captions, or buttons on platforms with a body/display split — body fonts only for chrome.
+- **Don't** use display fonts in UI labels, captions, or buttons on platforms with a body/display split — body fonts only for chrome.
 - **Don't** use raw `#000` or `#FFFFFF` in any chrome — every neutral is tinted toward the warm canvas.
 - **Don't** ship side-stripe borders (a >1px colored accent on the left or right edge of a card). Pulpe uses **full borders** + tints, never decorative side stripes.
-- **Don't** mix three font families on any single platform. Two max — display + body. Landing uses one (Poppins).
+- **Don't** mix three font families on any single platform. Two max — display + body. Landing uses one native stack.
 - **Don't** invent a new chip name for an existing affordance, and don't reuse an existing chip name for a new affordance.
 - **Don't** edit this file when the rule is platform-specific — push it down to `ios/DESIGN.md`, `frontend/DESIGN.md`, or `landing/DESIGN.md` instead. This file is for what is **shared**.

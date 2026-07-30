@@ -1,13 +1,7 @@
 export { Button } from "./Button";
 export { Container } from "./Container";
 export { Section } from "./Section";
-export { Badge } from "./Badge";
-export { Screenshot } from "./Screenshot";
 export { FadeIn } from "./FadeIn";
-export { HeroDashboard } from "./HeroDashboard";
-export { ImageLightbox } from "./ImageLightbox";
+export { PhoneMockup } from "./PhoneMockup";
 export { AccordionItem } from "./AccordionItem";
 export { GrainOverlay } from "./GrainOverlay";
-export { MarkerDraw } from "./MarkerDraw";
-export { ArrowNote } from "./ArrowNote";
-export { StickyCTA } from "./StickyCTA";
