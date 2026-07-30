@@ -26,8 +26,9 @@ const STEPS = [
     image: {
       caption: (
         <>
-          Ton mois type : sur 3 500 <CurrencyUnit /> de revenu, 1 600 de dépenses
-          récurrentes et 500 d’épargne laissent 1 400 disponibles chaque mois
+          Ton mois type : sur 3 500 <CurrencyUnit /> de revenu, 1 600 de
+          dépenses récurrentes et 500 d’épargne laissent 1 400 disponibles
+          chaque mois
         </>
       ),
       content: <MonthTemplateVisual />,
@@ -41,9 +42,9 @@ const STEPS = [
     image: {
       caption: (
         <>
-          Ton année : douze mois à 1 400 <CurrencyUnit /> disponibles, sauf juillet
-          à 500 pour les impôts, août à 700 pour les vacances et décembre à 200
-          pour un gros achat
+          Ton année : douze mois à 1 400 <CurrencyUnit /> disponibles, sauf
+          juillet à 500 pour les impôts, août à 700 pour les vacances et
+          décembre à 200 pour un gros achat
         </>
       ),
       content: <YearSpreadVisual />,
@@ -57,8 +58,8 @@ const STEPS = [
     image: {
       caption: (
         <>
-          Juillet : sur 3 500 <CurrencyUnit /> de revenu, 1 600 de récurrent, 500
-          d’épargne et 900 d’impôts laissent 500 disponibles
+          Juillet : sur 3 500 <CurrencyUnit /> de revenu, 1 600 de récurrent,
+          500 d’épargne et 900 d’impôts laissent 500 disponibles
         </>
       ),
       content: <MonthAvailableVisual />,

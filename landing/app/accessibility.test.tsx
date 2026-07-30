@@ -390,6 +390,55 @@ describe("landing accessibility contracts", () => {
     );
   });
 
+  it("makes the sr-only captions announce the amounts the visuals draw", () => {
+    // Les figcaption énoncent en chiffres nus ce que les barres dessinent, et
+    // rien ne les reliait : changer `INCOME` laissait la légende annoncer aux
+    // lecteurs d'écran un montant que l'écran n'affiche plus. Les deux sources
+    // sont comparées en ensembles, parce qu'une légende répète un montant que
+    // le visuel ne porte qu'une fois.
+    const visuals = componentSources.howItWorksVisuals.replace(
+      /FULL_MONTH/g,
+      "1400",
+    );
+    const amounts = (source: string, pattern: RegExp) =>
+      [...source.matchAll(pattern)].map(([, amount]) => Number(amount));
+    const body = (name: string) =>
+      visuals.match(new RegExp(`export function ${name}[\\s\\S]*?\\n}`))?.[0] ??
+      "";
+    const income = amounts(visuals, /const INCOME = (\d+)/g);
+    const composition = (name: string) => [
+      ...income,
+      ...amounts(body(name), /amount: (\d+)/g),
+      ...amounts(body(name), /<Payoff value=\{(\d+)\}/g),
+    ];
+    const drawn = [
+      composition("MonthTemplateVisual"),
+      [1400, ...amounts(visuals, /available: (?!1400)(\d+)/g)],
+      composition("MonthAvailableVisual"),
+    ];
+
+    // Les montants des légendes sont écrits à la française, `3 500`, et le
+    // rewrapping de Prettier peut poser le séparateur sur une fin de ligne.
+    const announced = [
+      ...componentSources.howItWorks.matchAll(
+        /caption: \(([\s\S]*?)\),\s*content:/g,
+      ),
+    ].map(([, caption]) =>
+      amounts(caption.replace(/(\d)\s+(?=\d)/g, "$1"), /(\d+)/g),
+    );
+
+    const sorted = (values: number[]) =>
+      [...new Set(values)].sort((left, right) => left - right);
+    assert.equal(announced.length, 3);
+    announced.forEach((caption, step) => {
+      assert.deepEqual(
+        sorted(caption),
+        sorted(drawn[step]),
+        `étape ${step + 1} : la légende annonce ${sorted(caption).join(", ")}, le visuel dessine ${sorted(drawn[step]).join(", ")}`,
+      );
+    });
+  });
+
   it("presents the three setup steps as one scannable ordered process", () => {
     assert.match(
       componentSources.howItWorks,

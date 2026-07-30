@@ -1,12 +1,12 @@
-import { ChevronDown } from 'lucide-react'
-import { type ReactNode } from 'react'
+import { ChevronDown } from "lucide-react";
+import { type ReactNode } from "react";
 
 interface AccordionItemProps {
-  question: string
-  answer: ReactNode
+  question: string;
+  answer: ReactNode;
   // `open` en dur dans le HTML prérendu, donc la réponse est lisible avant tout
   // JS. Le visiteur peut la replier ensuite, le `<details>` s'en charge seul.
-  defaultOpen?: boolean
+  defaultOpen?: boolean;
 }
 
 // `<details>` porte nativement l'état ouvert, la commande clavier et l'annonce
@@ -38,9 +38,11 @@ export function AccordionItem({
           replié, ce que faisait l'ancien `aria-hidden`. */}
       <div className="invisible grid grid-rows-[0fr] transition-[grid-template-rows,visibility] duration-200 ease-out group-open:visible group-open:grid-rows-[1fr] motion-reduce:transition-none">
         <div className="overflow-hidden">
-          <div className="px-5 pb-5 text-text-secondary leading-relaxed">{answer}</div>
+          <div className="px-5 pb-5 text-text-secondary leading-relaxed">
+            {answer}
+          </div>
         </div>
       </div>
     </details>
-  )
+  );
 }
