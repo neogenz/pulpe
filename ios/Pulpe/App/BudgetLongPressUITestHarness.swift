@@ -164,15 +164,24 @@ struct BudgetGoalSpreadUITestHarness: View {
                 SpreadOccurrence(
                     budgetLineId: "goal-spread-july",
                     budgetId: "goal-spread-july-budget",
-                    month: 7,
-                    year: 2026,
+                    month: 7, year: 2026,
                     name: "Voyage au Japon",
                     amount: 137,
                     kind: .saving,
                     checkedAt: nil,
                     originalAmount: nil,
-                    consumed: 0,
-                    transactionCount: 0
+                    consumed: 0, transactionCount: 0
+                ),
+                SpreadOccurrence(
+                    budgetLineId: Self.lineId,
+                    budgetId: Self.budgetId,
+                    month: 8, year: 2026,
+                    name: "Voyage au Japon",
+                    amount: 413,
+                    kind: .saving,
+                    checkedAt: nil,
+                    originalAmount: nil,
+                    consumed: 0, transactionCount: 0
                 ),
             ]
         )

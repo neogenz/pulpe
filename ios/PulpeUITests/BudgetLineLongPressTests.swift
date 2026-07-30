@@ -69,8 +69,14 @@ final class BudgetLineLongPressTests: XCTestCase {
             let row = app.otherElements["budgetLineMixedRow-\(Self.goalSpreadLineId)"]
             XCTAssertTrue(row.waitForExistence(timeout: 10))
             let rowButton = goalSpreadRowButton()
-            scrollUntilHittable(rowButton)
-            XCTAssertTrue(row.label.contains("Lissé · objectif \(Self.goalName)"))
+            let metadata = app.staticTexts["Lissé · objectif \(Self.goalName)"]
+            XCTAssertTrue(metadata.waitForExistence(timeout: 10))
+            scrollUntilFullyVisible(
+                metadata,
+                below: app.navigationBars.firstMatch.frame.maxY,
+                above: app.windows.firstMatch.frame.maxY
+            )
+            XCTAssertTrue(rowButton.isHittable)
             attachScreenshot("ios-goal-spread-row-\(mode.name)")
 
             rowButton.tap()
@@ -119,6 +125,18 @@ final class BudgetLineLongPressTests: XCTestCase {
         XCTAssertTrue(app.navigationBars[Self.goalName].waitForExistence(timeout: 10))
         XCTAssertTrue(app.scrollViews["savingsGoalDetailRoot"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Montant de départ"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts["Aucune prévision rattachée"].exists)
+        let linkedPlanMonth = app.descendants(matching: .any)
+            .matching(NSPredicate(
+                format: "label CONTAINS %@ AND label CONTAINS %@", "Août 2026", "413"
+            ))
+            .firstMatch
+        XCTAssertTrue(linkedPlanMonth.waitForExistence(timeout: 10))
+        scrollUntilFullyVisible(
+            linkedPlanMonth,
+            below: app.navigationBars[Self.goalName].frame.maxY,
+            above: app.windows.firstMatch.frame.maxY
+        )
         XCTAssertFalse(app.staticTexts["Connexion impossible"].exists)
         attachScreenshot("ios-goal-spread-goal-destination")
 
@@ -128,10 +146,16 @@ final class BudgetLineLongPressTests: XCTestCase {
         spread.tap()
         XCTAssertTrue(app.navigationBars["Épargne lissée"].waitForExistence(timeout: 10))
         let occurrence = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "label CONTAINS %@", "Juillet 2026"))
+            .matching(NSPredicate(
+                format: "label CONTAINS %@ AND label CONTAINS %@", "Août 2026", "413"
+            ))
             .firstMatch
         XCTAssertTrue(occurrence.waitForExistence(timeout: 10))
-        XCTAssertTrue(occurrence.label.contains("137"))
+        scrollUntilFullyVisible(
+            occurrence,
+            below: app.navigationBars["Épargne lissée"].frame.maxY,
+            above: app.windows.firstMatch.frame.maxY
+        )
         XCTAssertTrue(occurrence.label.contains("CHF"))
         XCTAssertFalse(app.staticTexts["Connexion impossible"].exists)
         attachScreenshot("ios-goal-spread-spread-destination")
@@ -185,6 +209,39 @@ final class BudgetLineLongPressTests: XCTestCase {
             bottomElement.frame.minY,
             "Element \(frame) ends below primary action \(bottomElement.frame)"
         )
+    }
+
+    private func assertFullyVisible(
+        _ element: XCUIElement,
+        below topY: CGFloat,
+        above bottomY: CGFloat
+    ) {
+        let frame = element.frame
+        XCTAssertTrue(element.exists)
+        XCTAssertGreaterThanOrEqual(frame.minY, topY)
+        XCTAssertLessThanOrEqual(frame.maxY, bottomY)
+    }
+
+    private func scrollUntilFullyVisible(
+        _ element: XCUIElement,
+        below topY: CGFloat,
+        above bottomY: CGFloat
+    ) {
+        for _ in 0..<8 {
+            guard element.exists else {
+                app.swipeUp()
+                continue
+            }
+            if element.frame.minY >= topY, element.frame.maxY <= bottomY {
+                break
+            }
+            if element.frame.maxY > bottomY {
+                app.swipeUp()
+            } else {
+                app.swipeDown()
+            }
+        }
+        assertFullyVisible(element, below: topY, above: bottomY)
     }
 
     private func dragUp(fromY: CGFloat, toY: CGFloat) {

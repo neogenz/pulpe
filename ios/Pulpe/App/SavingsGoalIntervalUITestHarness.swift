@@ -26,6 +26,9 @@ final class SavingsGoalIntervalUITestService: SavingsGoalServicing {
 
     func getProgress(id: String) async throws -> SavingsGoalProgress {
         let goal = try goal(id)
+        if scenario == .budgetGoalSpreadMetadata {
+            return Self.budgetGoalSpreadProgress(goal: goal)
+        }
         let hasTarget = goal.targetAmount != nil
         let hasDeadline = goal.targetDate != nil
         let hasPlan = hasTarget
@@ -168,6 +171,56 @@ final class SavingsGoalIntervalUITestService: SavingsGoalServicing {
     }
 
     private static let now = Date(timeIntervalSince1970: 1_700_000_000)
+
+    private static func budgetGoalSpreadProgress(goal: SavingsGoal) -> SavingsGoalProgress {
+        let planMonth = SavingsGoalPlanMonth(
+            month: 8,
+            year: 2026,
+            state: .current,
+            isLocked: false,
+            plannedAmount: 413,
+            confirmedAmount: 0,
+            plannedCumulative: 413,
+            confirmedCumulative: 300,
+            lines: [
+                SavingsGoalPlanLine(
+                    budgetLineId: "goal-spread-line",
+                    amount: 413,
+                    checkedAt: nil,
+                    isManuallyAdjusted: false
+                ),
+            ]
+        )
+        return SavingsGoalProgress(
+            goalId: goal.id,
+            status: goal.status,
+            startDate: goal.startDate,
+            targetAmount: goal.targetAmount,
+            targetDate: goal.targetDate,
+            plannedCumulative: 413,
+            plannedProjection: 713,
+            confirmed: 300,
+            initialAmount: goal.initialAmount ?? 0,
+            achievementPercent: nil,
+            monthsElapsed: 1,
+            monthsRemaining: nil,
+            isOverdue: false,
+            pace: 413,
+            confirmedPace: 300,
+            required: nil,
+            projected: nil,
+            paceStatus: nil,
+            suggestCompletion: nil,
+            linkedLineCount: 1,
+            originalTargetAmount: nil,
+            originalCurrency: nil,
+            targetCurrency: nil,
+            exchangeRate: nil,
+            months: [planMonth],
+            cumulativeGap: 113,
+            estimatedCompletion: nil
+        )
+    }
 
     private static let planMonths = [
         planMonth(month: 5, state: .past, isLocked: true, isChecked: true),
