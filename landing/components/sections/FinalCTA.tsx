@@ -14,7 +14,10 @@ export function FinalCTA() {
             montants sont chiffrés.
           </p>
           <div className="relative mt-32 inline-block md:mt-28">
-            <ArrowNote className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 md:-mb-10 md:left-auto md:right-0 md:translate-x-38" />
+            {/* The chevron's vertex sits 10px above its own box, so a positive
+                gap here left it pointing at empty canvas: the negative margin
+                is what lands it on the button's top edge. */}
+            <ArrowNote className="absolute bottom-full left-1/2 -mb-2.5 -translate-x-1/2 md:-mb-10 md:left-auto md:right-0 md:translate-x-38" />
             <Button
               href={angularUrl("/signup", "final_cta_commencer")}
               data-cta-name="commencer_gratuitement"

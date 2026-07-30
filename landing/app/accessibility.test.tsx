@@ -865,6 +865,14 @@ describe("landing accessibility contracts", () => {
       globalsCss,
       /\.marker-highlight\s*\{[\s\S]*?margin-inline:\s*-0\.1em;[\s\S]*?padding-inline:\s*0\.1em;[\s\S]*?border-radius:\s*0\.12em 0\.08em 0\.1em 0\.06em;[\s\S]*?176\.5deg[\s\S]*?background-size:\s*0% 0\.92em;[\s\S]*?background-position:\s*0 56%;/,
     );
+    // Le biais de 3,5deg fait dériver la bande d'environ 19px sur une marque
+    // de 300px, alors qu'une marque à 16px ne fait que 15px de haut. Des
+    // arrêts trop rentrés laissaient 3px du coin bas-droit sans encre, donc
+    // un trait qui décollait du dernier mot. Ne pas les resserrer.
+    assert.match(
+      globalsCss,
+      /\.marker-highlight\s*\{[\s\S]*?transparent 4%,\s*var\(--marker-color\) 5%,\s*var\(--marker-color\) 95%,\s*transparent 96%/,
+    );
     assert.match(
       globalsCss,
       /\.marker-highlight-strong\s*\{[\s\S]*?--marker-color:\s*var\(--color-marker-highlight-strong\);/,
