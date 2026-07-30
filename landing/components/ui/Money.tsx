@@ -11,21 +11,29 @@ import { useVisitorCurrency } from "@/lib/visitorCurrency";
 interface AmountProps {
   value: number;
   className?: string;
-  // Sans `unitClassName`, le montant sort nu : dans une légende ou sous une
-  // barre, la devise est déjà portée par la ligne au-dessus et ne se répète pas.
+  // Le montant sort nu par défaut : dans une légende ou sous une barre, la
+  // devise est déjà portée par la ligne au-dessus et ne se répète pas.
+  showUnit?: boolean;
+  // Le style de la seule unité, quand elle mérite une taille propre — un payoff
+  // la veut plus petite que son montant. Sans effet si l'unité reste masquée.
   unitClassName?: string;
 }
 
-export function Amount({ value, className = "", unitClassName }: AmountProps) {
+export function Amount({
+  value,
+  className = "",
+  showUnit = false,
+  unitClassName,
+}: AmountProps) {
   const currency = useVisitorCurrency();
   return (
     <span className={`tabular-nums ${className}`}>
       {formatAmount(value, currency)}
-      {unitClassName === undefined ? null : (
-        <span className={`ml-1 ${unitClassName}`}>
+      {showUnit ? (
+        <span className={unitClassName ? `ml-1 ${unitClassName}` : "ml-1"}>
           {currencyUnit(currency)}
         </span>
-      )}
+      ) : null}
     </span>
   );
 }

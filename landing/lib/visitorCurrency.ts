@@ -33,7 +33,7 @@ function subscribeToNothing(): () => void {
 // rechargement, donc il est calculé une fois.
 let detectedCurrency: LandingCurrency | undefined;
 
-function getVisitorCurrency(): LandingCurrency {
+function visitorCurrency(): LandingCurrency {
   detectedCurrency ??= currencyFor(
     Intl.DateTimeFormat().resolvedOptions().timeZone,
     (navigator.languages ?? [navigator.language]).join(","),
@@ -41,14 +41,14 @@ function getVisitorCurrency(): LandingCurrency {
   return detectedCurrency;
 }
 
-function getPrerenderedCurrency(): LandingCurrency {
+function prerenderedCurrency(): LandingCurrency {
   return "CHF";
 }
 
 export function useVisitorCurrency(): LandingCurrency {
   return useSyncExternalStore(
     subscribeToNothing,
-    getVisitorCurrency,
-    getPrerenderedCurrency,
+    visitorCurrency,
+    prerenderedCurrency,
   );
 }

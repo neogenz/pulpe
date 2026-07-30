@@ -59,11 +59,7 @@ function CompositionBar({ segments }: { segments: Segment[] }) {
     <div className="flex flex-col gap-2.5">
       <p className="flex items-baseline justify-between text-xs text-text-secondary">
         <span>Revenu</span>
-        <Amount
-          value={INCOME}
-          className="font-medium text-text"
-          unitClassName=""
-        />
+        <Amount value={INCOME} className="font-medium text-text" showUnit />
       </p>
       <span className="flex h-3 gap-px overflow-hidden rounded-full">
         {segments.map((segment) => (
@@ -95,6 +91,7 @@ function Payoff({ value, label }: { value: number; label: string }) {
       <Amount
         value={value}
         className="block text-3xl font-semibold leading-none text-primary"
+        showUnit
         unitClassName="text-sm font-medium"
       />
       <span className="mt-1.5 block text-xs text-text-secondary">{label}</span>
@@ -144,7 +141,7 @@ export function YearSpreadVisual() {
         <Amount
           value={FULL_MONTH}
           className="text-[11px] leading-4 text-text-secondary"
-          unitClassName=""
+          showUnit
         />
         <div className="relative flex min-h-28 flex-1 items-end gap-1.5">
           <span className="absolute inset-x-0 top-0 border-t border-dashed border-text/25" />
