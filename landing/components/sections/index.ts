@@ -1,12 +1,9 @@
 export { Header } from "./Header";
 export { Hero } from "./Hero";
-export { PainPoints } from "./PainPoints";
 export { Solution } from "./Solution";
-export { Testimonials } from "./Testimonials";
 export { Features } from "./Features";
 export { Platforms } from "./Platforms";
 export { Roadmap } from "./Roadmap";
 export { WhyFree } from "./WhyFree";
-export { FAQ } from "./FAQ";
 export { FinalCTA } from "./FinalCTA";
 export { Footer } from "./Footer";

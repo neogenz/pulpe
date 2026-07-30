@@ -1,127 +1,117 @@
-import { Flag, WalletCards } from "lucide-react";
-import { Section } from "@/components/ui";
-
-const MONTHS = ["Mai", "Juin", "Juil.", "Août"] as const;
+import { PhoneMockup } from "@/components/ui";
 
 export function Features() {
   return (
-    <Section id="features">
-      <header className="max-w-4xl">
-        <h2 className="text-[clamp(2rem,9vw,3rem)] font-bold leading-[1.08] tracking-[-0.035em] text-text sm:text-5xl lg:text-6xl">
-          Quand tes plans changent,{" "}
-          <mark className="marker-highlight marker-highlight-strong">
-            Pulpe recalcule la suite.
-          </mark>
-        </h2>
-      </header>
-
-      <div className="mt-12 grid gap-5 md:grid-cols-[1.08fr_0.92fr] lg:mt-14 lg:gap-6">
-        <article className="flex h-full flex-col overflow-hidden rounded-[var(--radius-large)] bg-surface-alt outline outline-1 -outline-offset-1 outline-black/5">
-          <div className="p-6 sm:p-9 lg:p-10">
-            <WalletCards
-              className="size-6 text-primary"
-              strokeWidth={1.7}
-              aria-hidden="true"
-            />
-            <h3 className="mt-5 max-w-xl text-2xl font-semibold leading-tight tracking-[-0.025em] sm:text-3xl">
-              Répartis une grosse dépense sur plusieurs mois.
-            </h3>
-            <p className="pretty mt-4 max-w-xl leading-relaxed text-text-secondary">
-              <strong className="font-semibold text-text">
-                Le total ne change pas.
-              </strong>{" "}
-              Tu choisis les mois, Pulpe calcule la part de chacun et te montre
-              ce qu’il reste à mettre de côté.
+    <section
+      id="features"
+      className="scroll-mt-24 pb-24 min-[620px]:pb-32 min-[940px]:scroll-mt-28 min-[940px]:pb-40"
+    >
+      <div className="mx-auto flex w-full max-w-[var(--content-max)] flex-col gap-8 px-[var(--page-gutter)] min-[620px]:gap-12">
+        <article className="product-panel product-panel--expense receipt-panel grid items-center gap-12 p-7 min-[620px]:p-12 min-[941px]:grid-cols-2 min-[941px]:gap-16 min-[941px]:p-16">
+          <div
+            className="product-copy reveal-right reveal-delay-1 relative z-10 min-[941px]:col-start-2 min-[941px]:row-start-1"
+            data-reveal
+          >
+            <p className="text-sm font-bold uppercase tracking-[0.14em] text-expense">
+              Ce qui change
             </p>
+            <h3 className="mt-4 max-w-xl text-[clamp(2.4rem,5vw,4.75rem)] font-[760] leading-[0.98] tracking-[-0.055em] text-text">
+              Ajuste l&apos;exception. Ne repars jamais de zéro.
+            </h3>
+            <p className="pretty mt-6 max-w-lg text-lg leading-relaxed text-text-secondary">
+              Pars de ton modèle, ajoute la dépense au mois concerné ou
+              répartis-la sur plusieurs mois. Pulpe garde le même total et
+              recalcule les soldes à venir.
+            </p>
+            <div
+              className="mt-7 max-w-sm rounded-2xl border border-expense/15 bg-surface/75 p-4"
+              aria-hidden="true"
+            >
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="text-sm font-semibold text-text">
+                  Assurance annuelle
+                </span>
+                <strong className="tabular-nums text-expense">
+                  1’200 CHF
+                </strong>
+              </div>
+              <div className="mt-4 grid grid-cols-4 gap-2">
+                {["Mai", "Juin", "Juil.", "Août"].map((month) => (
+                  <div key={month}>
+                    <div className="h-1.5 rounded-full bg-expense/65" />
+                    <p className="tabular-nums mt-2 text-xs font-bold text-text">
+                      300
+                    </p>
+                    <p className="text-[0.6875rem] text-text-secondary">
+                      {month}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div
-            className="mt-auto border-t border-text/10 bg-surface p-5 sm:p-6"
-            aria-hidden="true"
+            className="phone-stage receipt-stage reveal-left relative z-10 mx-auto flex w-full justify-center min-[941px]:col-start-1 min-[941px]:row-start-1"
+            data-reveal
           >
-            <div className="flex items-baseline justify-between gap-4">
-              <span className="text-sm font-medium text-text-secondary">
-                Assurance annuelle
-              </span>
-              <strong className="tabular-nums text-lg font-semibold text-text">
-                1&apos;200 CHF
-              </strong>
-            </div>
-            <div className="mt-5 grid grid-cols-2 gap-4 min-[360px]:grid-cols-4 min-[360px]:gap-2 sm:gap-3">
-              {MONTHS.map((month) => (
-                <div key={month} className="min-w-0">
-                  <div className="h-2 rounded-full bg-primary/75" />
-                  <p className="tabular-nums mt-2 truncate text-xs font-semibold text-text sm:text-sm">
-                    300 CHF
-                  </p>
-                  <p className="mt-0.5 text-xs text-text-secondary">{month}</p>
-                </div>
-              ))}
-            </div>
+            <PhoneMockup
+              src="/screenshots/ios/ecran-des-modeles.webp"
+              alt="Écran des modèles de budget dans Pulpe sur iPhone"
+              className="feature-phone w-[min(76vw,300px)] min-[621px]:w-[300px]"
+            />
           </div>
         </article>
 
-        <article className="flex h-full flex-col overflow-hidden rounded-[var(--radius-large)] bg-surface outline outline-1 -outline-offset-1 outline-black/5">
-          <div className="p-6 sm:p-9 lg:p-10">
-            <Flag
-              className="size-6 text-primary"
-              strokeWidth={1.7}
-              aria-hidden="true"
-            />
-            <h3 className="mt-5 max-w-md text-2xl font-semibold leading-tight tracking-[-0.025em] sm:text-3xl">
-              Avance vers ton objectif, même si un mois change.
-            </h3>
-            <p className="pretty mt-4 max-w-md leading-relaxed text-text-secondary">
-              Fixe une cible et une date. Tu vois les épargnes qui y contribuent
-              et peux répartir le reste sur les mois suivants.
+        <article className="product-panel product-panel--clarity insight-panel grid items-center gap-12 p-7 min-[620px]:p-12 min-[941px]:grid-cols-2 min-[941px]:gap-16 min-[941px]:p-16">
+          <div
+            className="product-copy reveal-left relative z-10 min-[941px]:col-start-1 min-[941px]:row-start-1"
+            data-reveal
+          >
+            <p className="text-sm font-bold uppercase tracking-[0.14em] text-primary">
+              Tes repères
             </p>
+            <h3 className="mt-4 max-w-xl text-[clamp(2.4rem,5vw,4.75rem)] font-[760] leading-[0.98] tracking-[-0.055em] text-text">
+              Vois ton disponible. Suis tes objectifs.
+            </h3>
+            <p className="pretty mt-6 max-w-lg text-lg leading-relaxed text-text-secondary">
+              Compare prévu et réel, puis vois quelles épargnes font avancer
+              chaque objectif. Un changement dans un mois reste visible dans
+              les suivants.
+            </p>
+            <div
+              className="mt-7 max-w-sm rounded-2xl bg-surface/78 p-4 ring-1 ring-primary/10"
+              aria-hidden="true"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="font-bold text-text">Vacances</p>
+                  <p className="mt-1 text-xs text-text-secondary">
+                    Objectif septembre
+                  </p>
+                </div>
+                <strong className="tabular-nums text-sm text-primary">
+                  65 %
+                </strong>
+              </div>
+              <div className="mt-4 h-2 overflow-hidden rounded-full bg-primary/12">
+                <div className="h-full w-[65%] rounded-full bg-primary" />
+              </div>
+            </div>
           </div>
 
           <div
-            className="mt-auto border-t border-text/10 bg-surface-alt p-5 sm:p-6"
-            aria-hidden="true"
+            className="phone-stage insight-stage reveal-right reveal-delay-1 relative z-10 mx-auto flex w-full justify-center min-[941px]:col-start-2 min-[941px]:row-start-1"
+            data-reveal
           >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="font-semibold text-text">Vacances</p>
-                <p className="mt-1 text-sm text-text-secondary">
-                  Pour septembre
-                </p>
-              </div>
-              <p className="tabular-nums shrink-0 text-right text-sm font-semibold text-text">
-                1&apos;560 / 2&apos;400 CHF
-              </p>
-            </div>
-            <div className="mt-4 flex items-center gap-3">
-              <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-primary/12">
-                <div className="h-full w-[65%] rounded-full bg-primary" />
-              </div>
-              <span className="tabular-nums shrink-0 text-xs font-medium text-primary">
-                65 %
-              </span>
-            </div>
-            <div className="mt-4 border-t border-primary/15 pt-3">
-              <div className="text-xs">
-                <span className="font-medium text-primary">Reste réparti</span>
-              </div>
-              <div className="mt-2 grid grid-cols-2 divide-x divide-primary/15">
-                <div className="flex items-baseline justify-between gap-2 pr-3">
-                  <span className="text-xs text-text-secondary">Août</span>
-                  <strong className="tabular-nums text-xs font-semibold text-text">
-                    420 CHF
-                  </strong>
-                </div>
-                <div className="flex items-baseline justify-between gap-2 pl-3">
-                  <span className="text-xs text-text-secondary">Sept.</span>
-                  <strong className="tabular-nums text-xs font-semibold text-text">
-                    420 CHF
-                  </strong>
-                </div>
-              </div>
-            </div>
+            <PhoneMockup
+              src="/screenshots/ios/detail-du-budget.webp"
+              alt="Détail d’un budget mensuel dans Pulpe sur iPhone"
+              className="feature-phone w-[min(76vw,300px)] min-[621px]:w-[300px]"
+            />
           </div>
         </article>
       </div>
-    </Section>
+    </section>
   );
 }

@@ -28,23 +28,23 @@ type ButtonAsAnchor = ButtonBaseProps &
 type ButtonProps = ButtonAsButton | ButtonAsAnchor;
 
 const BASE_STYLES =
-  "inline-flex items-center justify-center font-semibold transition-[background-color,color,box-shadow,scale,translate] duration-200 rounded-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 disabled:pointer-events-none [transition-timing-function:var(--ease-smooth)] motion-reduce:transition-none motion-reduce:scale-100 motion-reduce:translate-y-0";
+  "inline-flex items-center justify-center rounded-full font-bold tracking-[-0.02em] transition-[background-color,color,box-shadow,scale,translate] duration-200 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 disabled:pointer-events-none [transition-timing-function:var(--ease-smooth)] motion-reduce:transition-none motion-reduce:scale-100 motion-reduce:translate-y-0";
 
 const SIZE_STYLES = {
   sm: "min-h-[44px] px-4 text-sm",
   default:
-    "max-w-full min-h-[48px] px-5 py-3 text-center text-base leading-snug whitespace-normal sm:whitespace-nowrap lg:min-h-[56px] lg:px-8 lg:text-lg",
+    "max-w-full min-h-[52px] px-6 py-3 text-center text-base leading-snug whitespace-normal min-[620px]:whitespace-nowrap min-[940px]:min-h-[56px] min-[940px]:px-8 min-[940px]:text-lg",
 } as const;
 
 const VARIANT_STYLES: Record<ButtonVariant, string> = {
   primary:
-    "bg-primary text-white shadow-[0_4px_14px_rgba(0,110,37,0.28)] active:shadow-[0_2px_8px_rgba(0,110,37,0.24)] active:scale-[0.96] md:hover:-translate-y-0.5 md:hover:bg-primary-hover",
+    "bg-primary text-on-primary shadow-[0_5px_18px_rgba(0,110,37,0.24)] active:scale-[0.96] active:shadow-[0_2px_8px_rgba(0,110,37,0.20)] md:hover:-translate-y-0.5 md:hover:bg-primary-hover",
   secondary:
     "bg-surface text-text border border-text/10 hover:bg-surface-alt active:scale-[0.96]",
   ghost:
     "bg-transparent text-primary hover:bg-primary/5 underline-offset-4 hover:underline",
   inverse:
-    "bg-white text-primary shadow-[0_4px_18px_rgba(0,60,20,0.16)] active:scale-[0.96] md:hover:-translate-y-0.5 md:hover:bg-white/90",
+    "bg-white text-primary-strong shadow-[0_4px_18px_rgba(0,60,20,0.16)] active:scale-[0.96] md:hover:-translate-y-0.5 md:hover:bg-white/90",
 };
 
 export const Button = memo(function Button({

@@ -1,94 +1,66 @@
-"use client";
-
-import { useSyncExternalStore } from "react";
-import { Button, HeroDashboard } from "@/components/ui";
+import Image from "next/image";
+import { Button, PhoneMockup } from "@/components/ui";
 import { angularUrl } from "@/lib/config";
 
-function subscribeToNothing() {
-  return () => undefined;
-}
-
-function getVisitorCurrency(): "CHF" | "EUR" {
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const languages = (
-    typeof navigator !== "undefined"
-      ? (navigator.languages ?? [navigator.language])
-      : ["fr-CH"]
-  ).join(",");
-  const isSwiss = timezone === "Europe/Zurich" || /-CH\b/i.test(languages);
-  const isFrench =
-    timezone === "Europe/Paris" || /\bfr(-FR)?\b/i.test(languages);
-  return !isSwiss && isFrench ? "EUR" : "CHF";
-}
-
-function useVisitorCurrency(): "CHF" | "EUR" {
-  return useSyncExternalStore(
-    subscribeToNothing,
-    getVisitorCurrency,
-    () => "CHF" as const,
-  );
-}
-
 export function Hero() {
-  const currency = useVisitorCurrency();
-  const unit = currency === "CHF" ? "CHF" : "€";
-
   return (
     <section
       id="hero"
-      className="hero-mesh relative overflow-hidden pb-12 pt-[calc(9rem+env(safe-area-inset-top))] md:pb-28 md:pt-[calc(10rem+env(safe-area-inset-top))] lg:pb-20 lg:pt-[calc(11rem+env(safe-area-inset-top))]"
+      aria-labelledby="hero-title"
+      className="hero hero-aurora relative pb-20 pt-[calc(8.5rem+env(safe-area-inset-top))] min-[621px]:pb-28 min-[621px]:pt-[calc(10rem+env(safe-area-inset-top))] min-[941px]:min-h-[940px] min-[941px]:pb-24 min-[941px]:pt-[calc(9.5rem+env(safe-area-inset-top))]"
     >
-      <div className="relative z-10 mx-auto w-full max-w-6xl px-4 md:px-6 lg:px-8">
-        <div className="mx-auto max-w-5xl text-center">
-          <h1 className="mx-auto max-w-5xl text-[clamp(2.75rem,5.6vw,5rem)] font-extrabold leading-[0.98] tracking-[-0.04em] text-text">
-            Tu sais des mois à l&apos;avance{" "}
-            <mark className="marker-highlight marker-highlight-strong">
-              combien il te restera.
-            </mark>
+      <div className="hero-inner relative z-10 mx-auto grid w-full max-w-[var(--content-max)] items-center gap-16 px-[var(--page-gutter)] min-[941px]:grid-cols-[minmax(0,1.03fr)_minmax(18rem,0.97fr)]">
+        <div className="hero-copy text-center min-[941px]:text-left">
+          <div className="hero-eyebrow hidden items-center min-[621px]:flex">
+            <span className="hero-eyebrow-icon" aria-hidden="true">
+              <Image
+                src="/app-icon.webp"
+                alt=""
+                width={44}
+                height={44}
+                className="size-11"
+              />
+            </span>
+            <span>Le budget tourné vers les mois qui viennent</span>
+          </div>
+          <h1 id="hero-title" className="text-text">
+            <span className="block">Ton année.</span>
+            <span className="block">Déjà</span>
+            <span className="hero-title-last block">visible.</span>
           </h1>
-          <p className="pretty mx-auto mt-7 max-w-3xl text-lg leading-relaxed text-text-secondary md:text-xl">
-            Planifie ton budget{" "}
-            <strong className="font-semibold text-text">
-              sur l&apos;année
-            </strong>
-            . Tu vois combien il te restera chaque mois pour préparer tes
-            projets plus sereinement.
+          <p className="hero-description pretty mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-text-secondary min-[621px]:text-xl min-[941px]:mx-0 min-[941px]:max-w-xl">
+            Prépare ton budget mois par mois et sais combien il te restera.
+            Sans connexion bancaire ni tableur.
           </p>
-          <div className="mt-9 flex justify-center">
+
+          <div className="hero-actions mt-9 flex flex-col items-stretch justify-center gap-3 min-[621px]:flex-row min-[621px]:items-center min-[941px]:justify-start">
             <Button
               href={angularUrl("/signup", "hero_commencer")}
-              glow
+              className="hero-primary-status"
               data-cta-name="commencer"
               data-cta-location="hero"
               data-cta-destination="/signup"
             >
               Créer mon budget gratuitement
             </Button>
+            <a className="hero-secondary-link" href="#features">
+              Explorer Pulpe <span aria-hidden="true">↓</span>
+            </a>
           </div>
-          <p className="mt-4 text-center text-sm text-text-secondary">
-            Gratuit · Montants chiffrés · Aucune connexion bancaire
+
+          <p className="hero-privacy-note">
+            <span aria-hidden="true" /> Gratuit, chiffré, sans connexion
+            bancaire.
           </p>
-          {/* Desktop has room for the proof quote; mobile keeps the hero lean
-              and meets the same words in Testimonials. */}
-          <blockquote className="mx-auto mt-6 hidden max-w-2xl text-center md:block">
-            <p className="pretty text-base font-medium leading-relaxed text-text">
-              « Je peux{" "}
-              <mark className="marker-highlight marker-highlight-proof">
-                <strong className="font-semibold">
-                  prévoir nos vacances sur l&apos;année
-                </strong>
-              </mark>{" "}
-              et voir tout de suite si ça rentre dans notre budget. Ça me
-              rassure. »
-            </p>
-            <footer className="mt-1 text-sm text-text-secondary">
-              Julie D., utilisatrice de Pulpe
-            </footer>
-          </blockquote>
         </div>
 
-        <div className="mx-auto mt-14 max-w-5xl md:mt-18 lg:mt-20">
-          <HeroDashboard amount={926} unit={unit} />
+        <div className="hero-phone-stage relative mx-auto flex w-full justify-center min-[941px]:justify-end">
+          <PhoneMockup
+            src="/screenshots/ios/vue-annuelle-des-budgets.webp"
+            alt="Vue annuelle des budgets dans Pulpe sur iPhone"
+            priority
+            className="hero-phone w-[min(78vw,360px)] min-[621px]:w-[350px] min-[941px]:w-[360px]"
+          />
         </div>
       </div>
     </section>

@@ -35,7 +35,7 @@ Four emotional pillars drive every decision:
 |----------|---------------|---------|---------|
 | iOS | Manrope (Bold) | SF Pro (system) | SF Pro tabular |
 | Web | Manrope (`brand-family`) | DM Sans (`plain-family`) | DM Sans tabular |
-| Landing | Poppins | Poppins | Poppins |
+| Landing | SF Pro / system | SF Pro / system | System tabular |
 
 Max 2 families per platform. No geometric/tech fonts (Inter, Roboto). No serifs. Friendly, modern, lisible.
 
@@ -90,4 +90,4 @@ Soft springs (response 0.4-0.6s, damping 0.65-0.85). Transitions 200-300ms. No b
 
 **Web (Angular)**: Three token layers — `--pulpe-*` (semantic), Tailwind utilities, `--mat-sys-*` (Material foundation, theme only). Material overrides via `mat.*-overrides()`, never `::ng-deep`. Neutral seed `#8A8A82` for warm surface generation.
 
-**Landing**: Poppins only. White/very light background. Maximum breathing room. Emotional benefit copy. Flat soft illustrations, no 3D.
+**Landing**: Native Apple/system stack only. White/very light background. Maximum breathing room. Emotional benefit copy. Product screenshots in restrained iPhone frames, no 3D.

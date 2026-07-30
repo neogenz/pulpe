@@ -10,7 +10,7 @@ interface SectionProps extends HTMLAttributes<HTMLElement> {
 const BACKGROUND_STYLES = {
   default: "bg-transparent",
   surface: "bg-surface",
-  primary: "bg-primary text-white",
+  primary: "bg-primary text-on-primary",
 } as const;
 
 export const Section = memo(function Section({
