@@ -73,17 +73,23 @@ const STEPS = [
 ];
 
 export function HowItWorks() {
+  // Desktop runs on three shared rows: visual, title, paragraph. Each li is a
+  // subgrid of those rows, so a title that wraps to two lines at 834px pushes
+  // all three paragraphs down together instead of only its own column's.
   return (
-    <ol className="mx-auto mt-12 grid max-w-6xl gap-y-12 sm:mt-16 md:grid-cols-3 md:gap-x-6 md:gap-y-0 lg:gap-x-8">
+    <ol className="mx-auto mt-12 grid max-w-6xl gap-y-12 sm:mt-16 md:grid-cols-3 md:grid-rows-[auto_auto_auto] md:gap-x-6 md:gap-y-0 lg:gap-x-8">
       {STEPS.map((step) => (
-        <li key={step.number} className="flex min-w-0 flex-col">
+        <li
+          key={step.number}
+          className="flex min-w-0 flex-col md:row-span-3 md:grid md:grid-rows-subgrid"
+        >
           {/* Mobile reads label-then-proof: the copy sits above its screenshot
               so the next step's image never bleeds into the previous step's
               text. Desktop keeps the image-first row, where the three columns
               align on their own. */}
           <StepCopy
             step={step}
-            className="mb-5 md:order-2 md:mb-0 md:mt-5 md:text-center"
+            className="mb-5 md:order-2 md:mb-0 md:mt-5 md:row-span-2 md:grid md:grid-rows-subgrid md:text-center"
           />
           <figure className="mx-auto w-full max-w-sm md:order-1 md:max-w-none">
             <figcaption className="sr-only">{step.image.caption}</figcaption>

@@ -376,10 +376,24 @@ describe("landing accessibility contracts", () => {
   });
 
   it("labels each step above its screenshot on mobile, below it on desktop", () => {
-    assert.match(
-      componentSources.howItWorks,
-      /<StepCopy[\s\S]*className="mb-5 md:order-2 md:mb-0 md:mt-5 md:text-center"/,
-    );
+    // Le contrat est la bascule d'ordre, pas la liste de classes complète :
+    // figer le littéral faisait échouer ce test sur l'ajout de `md:row-span-2`,
+    // qui ne touche pas l'ordre de lecture.
+    const stepCopyTag =
+      componentSources.howItWorks.match(/<StepCopy[\s\S]*?\/>/)?.[0];
+    assert.ok(stepCopyTag, "StepCopy is missing from HowItWorks");
+    for (const token of [
+      /md:order-2/,
+      /\bmb-5\b/,
+      /md:mb-0/,
+      /md:mt-5/,
+      /md:text-center/,
+    ]) {
+      assert.match(stepCopyTag, token);
+    }
+    const figureTag = componentSources.howItWorks.match(/<figure[^>]*>/)?.[0];
+    assert.ok(figureTag, "The step figure is missing from HowItWorks");
+    assert.match(figureTag, /md:order-1/);
     assert.match(
       componentSources.howItWorks,
       /flex items-center gap-3 md:flex-col/,
