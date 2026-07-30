@@ -54,7 +54,7 @@ export function Hero() {
           </p>
         </div>
 
-        <div className="hero-phone-stage relative mx-auto flex w-full justify-center min-[941px]:justify-end">
+        <div className="hero-phone-stage relative mx-auto w-full">
           <PhoneMockup
             src="/screenshots/ios/vue-annuelle-des-budgets.webp"
             alt="Vue annuelle des budgets dans Pulpe sur iPhone"

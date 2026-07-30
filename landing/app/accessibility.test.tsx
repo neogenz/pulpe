@@ -95,6 +95,17 @@ describe("landing contracts", () => {
     );
   });
 
+  it("keeps the hero phone centered inside its rings", () => {
+    assert.match(
+      declarations(globalsCss, ".hero-phone-stage"),
+      /place-items:\s*center/,
+    );
+    assert.doesNotMatch(
+      sources.hero,
+      /hero-phone-stage[^"]*(?:\bflex\b|justify-end)/,
+    );
+  });
+
   it("lets the hero atmosphere blend into the next section", () => {
     assert.doesNotMatch(sources.hero, /overflow-hidden/);
     assert.match(
