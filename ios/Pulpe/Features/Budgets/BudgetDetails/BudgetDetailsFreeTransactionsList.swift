@@ -210,14 +210,16 @@ private struct BudgetDetailsFreeTransactionRow: View {
                 .lineLimit(1)
                 .truncationMode(.tail)
 
-            if !tagNames.isEmpty {
-                TagChips(names: tagNames, presentation: .count)
-            }
+            HStack(spacing: DesignTokens.Spacing.xs) {
+                Text(transaction.transactionDate.dayInMonthFormatted)
+                    .font(PulpeTypography.metricLabelBold)
+                    .foregroundStyle(Color.textTertiary)
+                    .lineLimit(1)
 
-            Text(transaction.transactionDate.dayInMonthFormatted)
-                .font(PulpeTypography.metricLabelBold)
-                .foregroundStyle(Color.textTertiary)
-                .lineLimit(1)
+                if !tagNames.isEmpty {
+                    TagChips(names: tagNames, presentation: .count, followsText: true)
+                }
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

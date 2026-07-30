@@ -19,13 +19,15 @@ struct BudgetLineDetailTransactionRow: View {
                         .strikethrough(transaction.isChecked, color: .secondary)
                         .lineLimit(1)
 
-                    if !tagNames.isEmpty {
-                        TagChips(names: tagNames, presentation: .count)
-                    }
+                    HStack(spacing: DesignTokens.Spacing.xs) {
+                        Text(transaction.transactionDate.relativeFormatted)
+                            .font(PulpeTypography.metricMini)
+                            .foregroundStyle(Color.textTertiary)
 
-                    Text(transaction.transactionDate.relativeFormatted)
-                        .font(PulpeTypography.metricMini)
-                        .foregroundStyle(Color.textTertiary)
+                        if !tagNames.isEmpty {
+                            TagChips(names: tagNames, presentation: .count, followsText: true)
+                        }
+                    }
                 }
 
                 Spacer(minLength: DesignTokens.Spacing.sm)

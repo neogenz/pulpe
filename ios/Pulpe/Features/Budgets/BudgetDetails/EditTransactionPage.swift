@@ -155,8 +155,13 @@ struct EditTransactionPage: View {
     private func formContent(for tx: Transaction) -> some View {
         VStack(spacing: DesignTokens.Spacing.xxl) {
             if let spreadGroupId = parentSpreadGroupId(for: tx) {
-                SpreadAffordanceButton {
-                    router.present(.spreadOccurrences(spreadGroupId: spreadGroupId.uuidString))
+                SpreadAffordanceButton(kind: tx.kind) {
+                    router.present(
+                        .spreadOccurrences(
+                            spreadGroupId: spreadGroupId.uuidString,
+                            kind: tx.kind
+                        )
+                    )
                 }
             }
 

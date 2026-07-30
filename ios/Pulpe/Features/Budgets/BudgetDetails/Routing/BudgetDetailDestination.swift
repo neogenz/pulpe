@@ -57,8 +57,8 @@ enum BudgetDetailDestination: Identifiable {
     case editBudgetLine(BudgetLine)
     case previousBudget(PreviousBudgetItem)
     case realizedBalance
-    /// Read-only timeline of every month a "Lisser" expense touches (PUL-17 Lot C).
-    case spreadOccurrences(spreadGroupId: String)
+    /// Read-only timeline of every month a "Lisser" outflow touches (PUL-17 Lot C).
+    case spreadOccurrences(spreadGroupId: String, kind: TransactionKind)
     /// Total-preserving "lisser un existant" config sheet (PUL-17 v1.1).
     case spreadExisting(SpreadExistingSource)
     /// "Piocher dans son épargne" sheet (PUL-292) — amount → 2-month preview.
@@ -70,7 +70,7 @@ enum BudgetDetailDestination: Identifiable {
         case .editBudgetLine(let line): "editBudgetLine-\(line.id)"
         case .previousBudget(let item): "previousBudget-\(item.id)"
         case .realizedBalance: "realizedBalance"
-        case .spreadOccurrences(let groupId): "spreadOccurrences-\(groupId)"
+        case .spreadOccurrences(let groupId, _): "spreadOccurrences-\(groupId)"
         case .spreadExisting(let source): "spreadExisting-\(source.id)"
         case .savingsWithdrawal(let prefill): "savingsWithdrawal-\(prefill.id)"
         }

@@ -4,10 +4,7 @@ import TipKit
 struct BudgetDetailsView: View {
     let budgetId: String
     @Environment(AppState.self) private var appState
-    // `router`, `coordinator` and `userSettingsStore` stay `internal` (no
-    // modifier) so the routing helpers in `BudgetDetailsView+Routing.swift`
-    // — a same-type extension in a separate file — can read them. Swift's
-    // `private` is file-scoped; `fileprivate` would not cross files either.
+    // Internal so the same-type routing extension can read these dependencies.
     @Environment(BudgetDetailsRouter.self) var router
     @Environment(UserSettingsStore.self) var userSettingsStore
     @Environment(BudgetListStore.self) private var budgetListStore
@@ -19,20 +16,24 @@ struct BudgetDetailsView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.tabBarClearance) private var tabBarClearance
     @State var coordinator: BudgetDetailsCoordinator
-    // `projector` stays non-private (like `coordinator`/`router`) so the
-    // savings-withdrawal card helpers in `BudgetDetailsView+SavingsWithdrawalCard.swift`
-    // — a same-type extension in a separate file — can read its screen state.
+    // Internal so the savings-withdrawal extension can read its screen state.
     @State var projector: BudgetDetailsProjector
-
     @State private var searchText = ""
     @State private var scrollTracker = BudgetDetailsScrollTracker()
     /// Budget ids for which the "mois un peu juste" card was dismissed via
     /// "Plus tard" (PUL-292), comma-joined. Non-private for the card extension.
     @AppStorage(SavingsWithdrawalCardGate.storageKey) var dismissedWithdrawalBudgetIds = ""
-
-    init(budgetId: String) {
+    init(
+        budgetId: String,
+        budgetService: any BudgetServicing = BudgetService.shared,
+        budgetLineService: any BudgetLineServicing = BudgetLineService.shared
+    ) {
         self.budgetId = budgetId
-        let initialCoordinator = BudgetDetailsCoordinator(budgetId: budgetId)
+        let initialCoordinator = BudgetDetailsCoordinator(
+            budgetId: budgetId,
+            budgetService: budgetService,
+            budgetLineService: budgetLineService
+        )
         self._coordinator = State(initialValue: initialCoordinator)
         self._projector = State(
             initialValue: BudgetDetailsProjector(
@@ -57,8 +58,7 @@ struct BudgetDetailsView: View {
     }
 
     /// Savings goal names keyed by goal id (PUL-12). Read from the app-level
-    /// `SavingsGoalStore` directly — like `timeElapsedPercentage` reads
-    /// `UserSettingsStore` — so the projection layer stays independent of the
+    /// `SavingsGoalStore` directly, keeping the projection layer independent of the
     /// goals cache. Re-evaluates via Observation when goals load, surfacing the
     /// "Objectif" chip on the saving rows once resolved.
     private var savingsGoalNamesById: [String: String] {

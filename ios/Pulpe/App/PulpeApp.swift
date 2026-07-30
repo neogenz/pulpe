@@ -172,6 +172,8 @@ struct PulpeApp: App {
         switch scenario {
         case .budgetLongPressWithTransactions, .budgetLongPressEmpty:
             BudgetLongPressUITestHarness(scenario: scenario)
+        case .budgetGoalSpreadMetadata:
+            BudgetGoalSpreadUITestHarness()
         case .savingsGoalForm,
              .savingsGoalFormInvalidInterval,
              .savingsGoalDetailNameOnly,

@@ -3,6 +3,7 @@ import SwiftUI
 enum UITestLaunchScenario {
     case budgetLongPressWithTransactions
     case budgetLongPressEmpty
+    case budgetGoalSpreadMetadata
     case savingsGoalForm
     case savingsGoalFormInvalidInterval
     case savingsGoalDetailNameOnly
@@ -14,6 +15,7 @@ enum UITestLaunchScenario {
 
     private static let longPressWithTransactionsKey = "UITEST_BUDGET_LONG_PRESS_WITH_TRANSACTIONS"
     private static let longPressEmptyKey = "UITEST_BUDGET_LONG_PRESS_EMPTY"
+    private static let budgetGoalSpreadMetadataKey = "UITEST_BUDGET_GOAL_SPREAD_METADATA"
     private static let savingsGoalFormKey = "UITEST_SAVINGS_GOAL_FORM"
     private static let savingsGoalFormInvalidIntervalKey = "UITEST_SAVINGS_GOAL_FORM_INVALID_INTERVAL"
     private static let savingsGoalDetailNameOnlyKey = "UITEST_SAVINGS_GOAL_DETAIL_NAME_ONLY"
@@ -48,6 +50,7 @@ enum UITestLaunchScenario {
         [
             longPressWithTransactionsKey: .budgetLongPressWithTransactions,
             longPressEmptyKey: .budgetLongPressEmpty,
+            budgetGoalSpreadMetadataKey: .budgetGoalSpreadMetadata,
             savingsGoalFormKey: .savingsGoalForm,
             savingsGoalFormInvalidIntervalKey: .savingsGoalFormInvalidInterval,
             savingsGoalDetailNameOnlyKey: .savingsGoalDetailNameOnly,
@@ -64,6 +67,7 @@ enum UITestLaunchScenario {
         switch self {
         case .budgetLongPressWithTransactions: "long-press-with-transactions"
         case .budgetLongPressEmpty: "long-press-empty"
+        case .budgetGoalSpreadMetadata: "budget-goal-spread-metadata"
         case .savingsGoalForm: "savings-goal-form"
         case .savingsGoalFormInvalidInterval: "savings-goal-form-invalid-interval"
         case .savingsGoalDetailNameOnly: "savings-goal-detail-name-only"
@@ -73,6 +77,204 @@ enum UITestLaunchScenario {
         case .savingsGoalDeadlineReconciliation: "savings-goal-deadline-reconciliation"
         case .savingsGoalTemplateLines: "savings-goal-template-lines"
         }
+    }
+}
+
+@MainActor
+private final class BudgetGoalSpreadUITestService: BudgetServicing, BudgetLineServicing, TagServicing {
+    private let details: BudgetDetails
+    private let budgets: [BudgetSparse]
+    private let spreadGroupId: String
+    private let occurrences: [SpreadOccurrence]
+
+    init(details: BudgetDetails, budgets: [BudgetSparse], spreadGroupId: String, occurrences: [SpreadOccurrence]) {
+        self.details = details
+        self.budgets = budgets
+        self.spreadGroupId = spreadGroupId
+        self.occurrences = occurrences
+    }
+
+    func getBudgetWithDetails(id: String) async throws -> BudgetDetails {
+        guard id == details.budget.id else { throw URLError(.badServerResponse) }
+        return details
+    }
+
+    func getBudgetsSparse(fields _: String, limit _: Int?, year _: Int?) async throws -> [BudgetSparse] {
+        budgets
+    }
+
+    func getSpreadOccurrences(spreadGroupId: String) async throws -> [SpreadOccurrence] {
+        guard spreadGroupId == self.spreadGroupId else { throw URLError(.badServerResponse) }
+        return occurrences
+    }
+
+    func getAll() async throws -> [Tag] { [] }
+    func create(_: TagCreate) async throws -> Tag { throw URLError(.unsupportedURL) }
+    func deleteBudgetLine(id _: String) async throws { throw URLError(.unsupportedURL) }
+    func toggleCheck(id _: String) async throws -> BudgetLine { throw URLError(.unsupportedURL) }
+    func postpone(id _: String) async throws -> BudgetLine { throw URLError(.unsupportedURL) }
+    func createSpread(_: BudgetLineSpreadCreate) async throws -> BudgetLineSpreadResponse {
+        throw URLError(.unsupportedURL)
+    }
+
+    func createSavingsWithdrawal(_: SavingsWithdrawalCreate) async throws -> SavingsWithdrawalResponse {
+        throw URLError(.unsupportedURL)
+    }
+
+    func deleteSavingsWithdrawal(groupId _: String, scope _: SavingsWithdrawalDeleteScope) async throws {
+        throw URLError(.unsupportedURL)
+    }
+
+    func spreadExistingBudgetLine(
+        id _: String,
+        periods _: [SpreadFromExistingPeriod]
+    ) async throws -> BudgetLineSpreadResponse {
+        throw URLError(.unsupportedURL)
+    }
+}
+
+struct BudgetGoalSpreadUITestHarness: View {
+    private static let budgetId = "goal-spread-budget"
+    private static let lineId = "goal-spread-line"
+    private static let goalId = "ui-test-goal"
+    // The UUID is the source of truth and the string derives from it. Going the
+    // other way needs the failable `UUID(uuidString:)`, whose `nil` on a
+    // mistyped literal silently strips the line's spread group — and it lets the
+    // literal's casing drift from the uppercase `uuidString` the route carries,
+    // which the service compares against.
+    private static let spreadGroupId = UUID()
+    private static var spreadGroupIdString: String { spreadGroupId.uuidString }
+
+    private let routeService: BudgetGoalSpreadUITestService
+    private let savingsGoalService: SavingsGoalIntervalUITestService
+    @State private var appState: AppState
+    @State private var savingsGoalStore: SavingsGoalStore
+    @State private var userSettingsStore = UserSettingsStore()
+    @State private var currentMonthStore = CurrentMonthStore()
+    @State private var budgetListStore: BudgetListStore
+    @State private var dashboardStore = DashboardStore()
+    @State private var tagStore: TagStore
+
+    init() {
+        let appState = AppState()
+        let savingsGoalService = SavingsGoalIntervalUITestService(scenario: .budgetGoalSpreadMetadata)
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let seed = Self.seed(now: now)
+        let sparse = BudgetSparse(from: seed.budget)
+        let routeService = BudgetGoalSpreadUITestService(
+            details: BudgetDetails(budget: seed.budget, transactions: [], budgetLines: [seed.line]),
+            budgets: [sparse],
+            spreadGroupId: Self.spreadGroupIdString,
+            occurrences: [
+                SpreadOccurrence(
+                    budgetLineId: "goal-spread-july",
+                    budgetId: "goal-spread-july-budget",
+                    month: 7, year: 2026,
+                    name: "Voyage au Japon",
+                    amount: 137,
+                    kind: .saving,
+                    checkedAt: nil,
+                    originalAmount: nil,
+                    consumed: 0, transactionCount: 0
+                ),
+                SpreadOccurrence(
+                    budgetLineId: Self.lineId,
+                    budgetId: Self.budgetId,
+                    month: 8, year: 2026,
+                    name: "Voyage au Japon",
+                    amount: 413,
+                    kind: .saving,
+                    checkedAt: nil,
+                    originalAmount: nil,
+                    consumed: 0, transactionCount: 0
+                ),
+            ]
+        )
+        ProductTips.tourDismissed = true
+
+        BudgetDetailCache.shared.store(
+            budgetId: Self.budgetId,
+            budget: seed.budget,
+            budgetLines: [seed.line],
+            transactions: []
+        )
+        BudgetDetailCache.shared.storeAllBudgets([sparse])
+
+        self.routeService = routeService
+        self.savingsGoalService = savingsGoalService
+        _appState = State(initialValue: appState)
+        _budgetListStore = State(
+            initialValue: BudgetListStore(budgetService: routeService, initialBudgets: [sparse])
+        )
+        _savingsGoalStore = State(initialValue: SavingsGoalStore(service: savingsGoalService))
+        _tagStore = State(initialValue: TagStore(service: routeService))
+    }
+
+    private static func seed(now: Date) -> (budget: Budget, line: BudgetLine) {
+        var line = BudgetLine(
+            id: Self.lineId,
+            budgetId: Self.budgetId,
+            templateLineId: nil,
+            savingsGoalId: Self.goalId,
+            name: "Voyage au Japon",
+            amount: 413,
+            kind: .saving,
+            recurrence: .oneOff,
+            isManuallyAdjusted: false,
+            checkedAt: nil,
+            createdAt: now,
+            updatedAt: now
+        )
+        line.spreadGroupId = Self.spreadGroupId
+        let budget = Budget(
+            id: Self.budgetId,
+            month: 8,
+            year: 2026,
+            description: "Août 2026",
+            userId: "ui-test",
+            templateId: "ui-test-template",
+            endingBalance: nil,
+            rollover: nil,
+            remaining: 413,
+            previousBudgetId: nil,
+            createdAt: now,
+            updatedAt: now
+        )
+        return (budget, line)
+    }
+
+    var body: some View {
+        BudgetsTab(
+            budgetService: routeService,
+            budgetLineService: routeService,
+            savingsGoalService: savingsGoalService
+        )
+        .environment(\.dynamicTypeSize, dynamicTypeSize)
+        .environment(\.tabBarClearance, MainTabView.tabBarClearance(bottomSafeAreaInset: 0))
+        .preferredColorScheme(preferredColorScheme)
+        .environment(appState)
+        .environment(userSettingsStore)
+        .environment(currentMonthStore)
+        .environment(budgetListStore)
+        .environment(dashboardStore)
+        .environment(savingsGoalStore)
+        .environment(tagStore)
+        .environment(appState.toastManager)
+        .task {
+            await savingsGoalStore.forceRefresh()
+        }
+    }
+
+    private var dynamicTypeSize: DynamicTypeSize {
+        ProcessInfo.processInfo.environment["UITEST_DYNAMIC_TYPE"] == "accessibility3"
+            ? .accessibility3
+            : .large
+    }
+
+    private var preferredColorScheme: ColorScheme {
+        ProcessInfo.processInfo.environment["UITEST_COLOR_SCHEME"] == "dark"
+            ? .dark
+            : .light
     }
 }
 

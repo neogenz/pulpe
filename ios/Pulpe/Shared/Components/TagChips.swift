@@ -9,6 +9,10 @@ struct TagChips: View {
 
     let names: [String]
     var presentation: Presentation = .names
+    /// `.count` only. Prepends the `·` separator when the count shares its line with
+    /// preceding text. The separator lives here rather than at the call site so it can
+    /// never drift in size or ink from the count it separates.
+    var followsText = false
 
     var accessibilityLabel: String {
         "Tags : \(names.joined(separator: ", "))"
@@ -35,9 +39,23 @@ struct TagChips: View {
                 .accessibilityLabel(accessibilityLabel)
 
             case .count:
-                PulpeChip(icon: "tag", label: countLabel, style: .outlined)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(accessibilityLabel)
+                // A count is a metadata reading, not an actionable filter, so it
+                // reads as tertiary ink rather than borrowing the chip shape —
+                // on a dense row a capsule claims more attention than the amount.
+                // Callers must place it on an existing line: without the capsule
+                // there is no shape to justify a line of its own, and alone in a
+                // stack it reads as an orphan glyph floating in the row's air.
+                HStack(spacing: DesignTokens.Spacing.xs) {
+                    if followsText {
+                        Text("·")
+                    }
+                    Image(systemName: "tag")
+                    Text(countLabel)
+                }
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.textTertiary)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(accessibilityLabel)
             }
         }
     }

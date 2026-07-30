@@ -9,13 +9,16 @@ private extension BudgetLine {
         amount: Decimal,
         kind: TransactionKind,
         recurrence: TransactionRecurrence = .fixed,
-        isChecked: Bool = false
+        isChecked: Bool = false,
+        savingsGoalId: String? = nil,
+        spreadGroupId: UUID? = nil,
+        savingsWithdrawalGroupId: UUID? = nil
     ) -> BudgetLine {
-        BudgetLine(
+        var line = BudgetLine(
             id: id,
             budgetId: "preview-budget",
             templateLineId: nil,
-            savingsGoalId: nil,
+            savingsGoalId: savingsGoalId,
             name: name,
             amount: amount,
             kind: kind,
@@ -25,11 +28,16 @@ private extension BudgetLine {
             createdAt: Date(),
             updatedAt: Date()
         )
+        line.spreadGroupId = spreadGroupId
+        line.savingsWithdrawalGroupId = savingsWithdrawalGroupId
+        return line
     }
 }
 
 private struct BudgetLineMixedRowPreviewHost: View {
     let cases: [(line: BudgetLine, consumption: BudgetFormulas.Consumption)]
+    var savingsGoalName: String?
+    var tagNames: [String] = []
 
     var body: some View {
         ScrollView {
@@ -40,8 +48,8 @@ private struct BudgetLineMixedRowPreviewHost: View {
                         consumption: item.consumption,
                         isSyncing: false,
                         currency: .chf,
-                        savingsGoalName: nil,
-                        tagNames: [],
+                        savingsGoalName: savingsGoalName,
+                        tagNames: tagNames,
                         onTap: {},
                         onTogglePointed: {}
                     )
@@ -51,6 +59,61 @@ private struct BudgetLineMixedRowPreviewHost: View {
         }
         .background(Color.appBackground)
     }
+}
+
+#Preview("Saving — spread with goal") {
+    let line = BudgetLine.preview(
+        name: "Maison",
+        amount: 413,
+        kind: .saving,
+        savingsGoalId: "goal-maison",
+        spreadGroupId: UUID()
+    )
+    let consumption = BudgetFormulas.Consumption(allocated: 0, available: line.amount, percentage: 0)
+    return BudgetLineMixedRowPreviewHost(cases: [(line, consumption)], savingsGoalName: "Maison")
+        .preferredColorScheme(.light)
+}
+
+#Preview("Saving — spread with goal · AX3 dark") {
+    let line = BudgetLine.preview(
+        name: "Maison",
+        amount: 413,
+        kind: .saving,
+        savingsGoalId: "goal-maison",
+        spreadGroupId: UUID()
+    )
+    let consumption = BudgetFormulas.Consumption(allocated: 0, available: line.amount, percentage: 0)
+    return BudgetLineMixedRowPreviewHost(cases: [(line, consumption)], savingsGoalName: "Maison")
+        .dynamicTypeSize(.accessibility3)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Income — taken from savings, with tags") {
+    let line = BudgetLine.preview(
+        name: "compte maison",
+        amount: 197,
+        kind: .income,
+        savingsWithdrawalGroupId: UUID()
+    )
+    let consumption = BudgetFormulas.Consumption(allocated: 0, available: line.amount, percentage: 0)
+    return BudgetLineMixedRowPreviewHost(
+        cases: [(line, consumption)],
+        tagNames: ["Maison", "Travaux", "Urgent"]
+    )
+}
+
+#Preview("Expense — spread, with tags") {
+    let line = BudgetLine.preview(
+        name: "Test",
+        amount: 5,
+        kind: .expense,
+        spreadGroupId: UUID()
+    )
+    let consumption = BudgetFormulas.Consumption(allocated: 0, available: line.amount, percentage: 0)
+    return BudgetLineMixedRowPreviewHost(
+        cases: [(line, consumption)],
+        tagNames: ["Assurance", "Abonnements", "Alimentation"]
+    )
 }
 
 #Preview("Expense — empty (no real)") {

@@ -1,121 +1,68 @@
 import SwiftUI
 
-/// Per-row mixed-list card for the budget detail screen (DM2.1.b.c5).
-///
-/// Surface card displaying one budget line in the mixed (income / saving / expense)
-/// flow. Replaces the `BudgetLineRow` Revolut-style row inside `BudgetDetailsView`.
-///
-/// Layout:
-///
-///     [PointCircle]  KIND TAG
-///                    Label                        Amount CHF   [chev]
-///                    Subtitle                     / X prévu
-///
-/// Tap on the circle toggles `isChecked` (`onTogglePointed`); tap on the row
-/// surface opens the `BudgetLineDetailSheet` (`onTap`). No swipe actions —
-/// edit / delete live in the sheet's header `Menu`.
-///
-/// Spec: `Pulpe v2 / components/screen-envd-mobile-bc5.jsx` (lines 245–345).
-/// Subtitle rules (§08) and amount color rules (§07) are encoded inline.
+/// Mixed-list budget card. Standard sizes keep the compact amount column;
+/// Accessibility sizes move amount and chevron below the descriptive content.
+/// The point circle remains independently actionable from the card surface.
 struct BudgetLineMixedRow: View {
     let line: BudgetLine
     let consumption: BudgetFormulas.Consumption
     let isSyncing: Bool
-    /// Display currency. Passed as a primitive `let` instead of read from
-    /// the user-settings environment so the row does not observe the whole
-    /// store and re-render on unrelated changes (broad observation fan-out).
+    /// Primitive value avoids observing the full user-settings store.
     let currency: SupportedCurrency
-    /// Name of the savings goal this saving prévision is linked to (PUL-12), or
-    /// `nil` when unlinked / not a saving line / the goal cache is still loading.
-    /// Passed as a primitive so the row never reads `SavingsGoalStore` directly.
+    /// Pre-resolved goal name; the row never reads `SavingsGoalStore`.
     let savingsGoalName: String?
     let tagNames: [String]
-    /// Origin month name (M) of a savings-withdrawal repayment (PUL-292), shown as
-    /// a subtitle complement on the M+1 "Remettre sur ton épargne" saving line.
-    /// Passed pre-resolved (budget month − 1) so the row never does date math.
+    /// Pre-resolved origin month for a savings-withdrawal repayment.
     var savingsWithdrawalOriginMonthName: String?
     let onTap: () -> Void
     let onTogglePointed: () -> Void
 
     @Environment(\.amountsHidden) private var amountsHidden
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     @State private var triggerToggleFeedback = false
 
     // MARK: - Derived values
 
+    // Internal rather than private: `BudgetLineMixedRow+Amount.swift` reads the
+    // same vocabulary, and Swift scopes `private` to the file.
+
     /// `consumption.allocated` — sum of linked transactions on this line.
-    private var realAmount: Decimal { consumption.allocated }
+    var realAmount: Decimal { consumption.allocated }
     /// `line.amount` — what the user planned for this envelope.
-    private var plannedAmount: Decimal { line.amount }
-    private var hasReal: Bool { realAmount > 0 }
+    var plannedAmount: Decimal { line.amount }
+    var hasReal: Bool { realAmount > 0 }
     /// Equivalent of `e.real > e.planned` in the spec; matches `consumption.isOverBudget`.
-    private var isOverBudget: Bool { consumption.isOverBudget }
+    var isOverBudget: Bool { consumption.isOverBudget }
 
     private var isPointed: Bool { line.isChecked }
-    private var isIncome: Bool { line.kind == .income }
-    private var isSaving: Bool { line.kind == .saving }
-    private var isExpense: Bool { line.kind == .expense }
+    var isIncome: Bool { line.kind == .income }
+    var isSaving: Bool { line.kind == .saving }
+    var isExpense: Bool { line.kind == .expense }
 
-    /// Hero amount shown on the right — kind-aware semantics (spec §2.6):
-    /// expenses surface the *remaining* envelope (the actionable info), while
-    /// income/saving surface the *real* received/transferred amount (mental
-    /// model: "did it land?" vs "did I transfer?"). Overflow surfaces the
-    /// excess (real − planned) so the red number reads as the overshoot.
-    private var displayAmount: Decimal {
-        if isExpense {
-            if isOverBudget { return realAmount - plannedAmount }
-            if hasReal { return consumption.available }
-            return plannedAmount
-        }
-        return hasReal ? realAmount : plannedAmount
+    /// Every contextual fact about the line on one line. A withdrawal income can
+    /// never also be spread or carry a goal (both are saving-only), so the three
+    /// share a single slot instead of stacking one badge per fact.
+    static func metadataText(
+        isSpread: Bool,
+        savingsGoalName: String?,
+        isSavingsWithdrawalIncome: Bool
+    ) -> String? {
+        var parts: [String] = []
+        if isSpread { parts.append("Lissé") }
+        if let savingsGoalName { parts.append("objectif \(savingsGoalName)") }
+        if isSavingsWithdrawalIncome { parts.append("Pris sur ton épargne") }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
-    /// Small grey caption under the hero amount. Kind-aware:
-    /// - expense empty → `prévu`
-    /// - expense partial → `restant sur {planned}`
-    /// - expense overflow → `de dépassement`
-    /// - income/saving partial → `/ {planned} prévu`
-    /// - everything else (full, equal, no-progress income/saving) → none.
-    private var amountSuffix: String? {
-        if isExpense {
-            if isOverBudget { return "de dépassement" }
-            if !hasReal { return "prévu" }
-            if realAmount == plannedAmount { return nil }
-            return "restant sur \(plannedAmount.asAmount(for: currency))"
-        }
-        if hasReal, realAmount < plannedAmount {
-            return "/ \(plannedAmount.asAmount(for: currency)) prévu"
-        }
-        return nil
-    }
-
-    /// Spec §07 — amount color cascade.
-    /// Income / saving keep their category color even when `real > planned`
-    /// (an over-received salary is good news, not a deficit). The overflow
-    /// red is reserved for expenses that have actually blown the envelope.
-    private var amountColor: Color {
-        if isIncome { return .financialIncome }
-        if isSaving { return .financialSavings }
-        if isOverBudget { return .financialOverBudget }
-        if consumption.percentage >= 50 { return .warningPrimary }
-        return .textSecondary
-    }
-
-    /// Spec — color of the small "CHF" suffix. Tracks the amount color for
-    /// income / saving / overflowing rows (with a slight tint reduction), falls
-    /// back to neutral inks otherwise so the suffix never out-shouts the digits.
-    private var currencyCodeColor: Color {
-        if isIncome || isSaving || (isExpense && isOverBudget) {
-            return amountColor
-        }
-        return hasReal ? .textTertiary : .textSecondary
-    }
-
-    /// Spec — opacity of the small "CHF" suffix. 0.8 only when it inherits the
-    /// amount color (income / saving / over-budget expense), full strength otherwise.
-    private var currencyCodeOpacity: Double {
-        (isIncome || isSaving || (isExpense && isOverBudget)) ? DesignTokens.Opacity.pressed : 1
+    /// Resolved once so the row body and the VoiceOver label can never drift apart.
+    private var metadata: String? {
+        Self.metadataText(
+            isSpread: line.isSpread,
+            savingsGoalName: savingsGoalName,
+            isSavingsWithdrawalIncome: line.isSavingsWithdrawalIncome
+        )
     }
 
     /// PointCircle dot color — kind-based. The overflow override only applies to
@@ -140,13 +87,21 @@ struct BudgetLineMixedRow: View {
                     onToggle: handleTogglePointed
                 )
 
-                centerColumn
-
-                Spacer(minLength: DesignTokens.Spacing.sm)
-
-                amountColumn
-
-                chevron
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                        centerColumn
+                        HStack {
+                            Spacer(minLength: DesignTokens.Spacing.none)
+                            amountColumn
+                            chevron
+                        }
+                    }
+                } else {
+                    centerColumn
+                    Spacer(minLength: DesignTokens.Spacing.sm)
+                    amountColumn
+                    chevron
+                }
             }
             .padding(.vertical, DesignTokens.Spacing.md)
             .padding(.leading, DesignTokens.Spacing.xs)
@@ -179,32 +134,14 @@ struct BudgetLineMixedRow: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
             KindTagInline(kind: line.kind)
 
-            if line.isSpread {
-                PulpeChip(icon: "calendar", label: "Lissé", style: .semantic(.financialSavings))
-                    .accessibilityLabel("Dépense lissée")
-            }
-
-            if line.isSavingsWithdrawalIncome {
-                PulpeChip(icon: TransactionKind.savingsIcon, label: "pris sur ton épargne", style: .muted)
-                    .accessibilityLabel("Revenu pris sur ton épargne")
-            }
-
-            if let savingsGoalName {
-                PulpeChip(icon: "target", label: savingsGoalName, style: .semantic(.financialSavings))
-                    .lineLimit(1)
-                    .accessibilityLabel("Objectif : \(savingsGoalName)")
-            }
-
             Text(line.name)
                 .font(PulpeTypography.listRowTitle)
                 .foregroundStyle(Color.textPrimary)
                 .strikethrough(isPointed, color: Color.textTertiary)
-                .lineLimit(1)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                 .truncationMode(.tail)
 
-            if !tagNames.isEmpty {
-                TagChips(names: tagNames, presentation: .count)
-            }
+            metadataRow
 
             subtitleView
                 .font(PulpeTypography.metricLabelBold)
@@ -212,6 +149,40 @@ struct BudgetLineMixedRow: View {
                 .sensitiveAmount()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Every secondary fact about the line — provenance, lissage, objectif, tag
+    /// count — on one tertiary line. Stacking one badge per fact pushed the row
+    /// to five lines and knocked the amount column out of vertical alignment.
+    @ViewBuilder
+    private var metadataRow: some View {
+        if metadata != nil || !tagNames.isEmpty {
+            HStack(spacing: DesignTokens.Spacing.xs) {
+                if line.isSavingsWithdrawalIncome {
+                    // Decorative: `metadata` already carries "Pris sur ton épargne",
+                    // and the row is an accessibility container, so an unhidden symbol
+                    // would offer its SF name as a second reading of the same fact.
+                    Image(systemName: TransactionKind.savingsIcon)
+                        .accessibilityHidden(true)
+                }
+
+                if let metadata {
+                    Text(metadata)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                        .truncationMode(.tail)
+                }
+
+                if !tagNames.isEmpty {
+                    TagChips(
+                        names: tagNames,
+                        presentation: .count,
+                        followsText: metadata != nil
+                    )
+                }
+            }
+            .font(PulpeTypography.labelMedium)
+            .foregroundStyle(Color.textTertiary)
+        }
     }
 
     /// Spec §08 — subtitle rules. Empty when pointed, or for partial/empty
@@ -280,38 +251,6 @@ struct BudgetLineMixedRow: View {
             .foregroundStyle(Color.financialOverBudget)
     }
 
-    // MARK: - Amount column (digits + suffix + planned hint)
-
-    @ViewBuilder
-    private var amountColumn: some View {
-        VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
-            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.xxs) {
-                Text(displayAmount.asAmount(for: currency))
-                    .font(PulpeTypography.amountCard)
-                    .foregroundStyle(amountColor)
-                    .monospacedDigit()
-                    .lineLimit(1)
-
-                Text(currency.symbol)
-                    .font(PulpeTypography.metricMini)
-                    .foregroundStyle(currencyCodeColor)
-                    .opacity(currencyCodeOpacity)
-                    .tracking(DesignTokens.Tracking.uppercaseNarrow)
-            }
-            .sensitiveAmount()
-
-            if let suffix = amountSuffix {
-                Text(suffix)
-                    .font(PulpeTypography.metricMini)
-                    .foregroundStyle(Color.textTertiary)
-                    .monospacedDigit()
-                    .sensitiveAmount()
-            }
-        }
-        .lineLimit(1)
-        .layoutPriority(1)
-    }
-
     private var chevron: some View {
         Image(systemName: "chevron.right")
             .font(.footnote.weight(.semibold))
@@ -340,6 +279,7 @@ struct BudgetLineMixedRow: View {
         let pointed = isPointed ? "Pointé" : "À pointer"
         let amount = displayAmount.asCurrency(currency)
         let tags = tagNames.isEmpty ? "" : " · Tags : \(tagNames.joined(separator: ", "))"
-        return "\(kindWord) · \(line.name) · \(amount) · \(pointed)\(tags)"
+        let context = metadata.map { " · \($0)" } ?? ""
+        return "\(kindWord) · \(line.name)\(context) · \(amount) · \(pointed)\(tags)"
     }
 }
