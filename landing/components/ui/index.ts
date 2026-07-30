@@ -9,3 +9,4 @@ export { GrainOverlay } from "./GrainOverlay";
 export { MarkerDraw } from "./MarkerDraw";
 export { ArrowNote } from "./ArrowNote";
 export { StickyCTA } from "./StickyCTA";
+export { Amount, CurrencyUnit, Money } from "./Money";

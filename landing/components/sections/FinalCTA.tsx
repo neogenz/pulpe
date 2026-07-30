@@ -9,9 +9,15 @@ export function FinalCTA() {
           <h2 className="text-[clamp(2.75rem,7vw,6rem)] font-bold leading-[1.12] tracking-[-0.04em] text-text">
             Prépare ton année. Vois combien il te restera chaque mois.
           </h2>
+          {/* La promesse de sécurité était la seule des trois à rester une
+              affirmation nue, et sa version détaillée dormait repliée dans la
+              FAQ, une section plus haut. Ici elle nomme ce qu'elle protège et
+              ce qu'elle interdit : c'est le moment où on décide de confier son
+              salaire au projet du soir de quelqu'un d'autre. */}
           <p className="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-text/80 sm:text-xl">
             Commence gratuitement, sans connecter tes comptes bancaires. Tes
-            montants sont chiffrés.
+            montants sont chiffrés en base de données, et ne sont jamais
+            revendus.
           </p>
           <div className="relative mt-32 inline-block md:mt-28">
             {/* The chevron's vertex sits 10px above its own box, so a positive

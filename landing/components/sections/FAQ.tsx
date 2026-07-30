@@ -1,6 +1,10 @@
 import { AccordionItem, Section } from "@/components/ui";
 
-const FAQ_ITEMS = [
+// Le prix est la question qui décide, donc sa réponse est ouverte : six lignes
+// repliées juste avant le CTA final se lisent comme un mur, pas comme une
+// réassurance. La question sécurité n'est pas ouverte ici parce que le CTA final
+// porte désormais l'essentiel de sa réponse, à l'endroit où on hésite.
+const FAQ_ITEMS: { q: string; a: string; open?: boolean }[] = [
   {
     q: "Pourquoi Pulpe plutôt qu’Excel ?",
     a: "Excel fait le job, mais les formules deviennent vite fragiles dès que tu bouges une ligne. Et sur mobile, c’est pénible. Pulpe garde la vue d’ensemble et recalcule la suite quand tu ajustes ton budget.",
@@ -8,6 +12,7 @@ const FAQ_ITEMS = [
   {
     q: "C’est vraiment gratuit ?",
     a: "Oui. Pulpe est aujourd’hui gratuit, sans publicité ni abonnement. Le projet est personnel et son code source est public.",
+    open: true,
   },
   {
     q: "Je récupère mes données si j’arrête ?",
@@ -38,7 +43,12 @@ export function FAQ() {
         </div>
         <div className="mt-10 space-y-3">
           {FAQ_ITEMS.map((item) => (
-            <AccordionItem key={item.q} question={item.q} answer={item.a} />
+            <AccordionItem
+              key={item.q}
+              question={item.q}
+              answer={item.a}
+              defaultOpen={item.open}
+            />
           ))}
         </div>
       </div>

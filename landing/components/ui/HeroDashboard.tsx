@@ -3,24 +3,29 @@
 import Image from "next/image";
 import { Check } from "lucide-react";
 import { memo, useEffect, useId, useState } from "react";
+import { currencyUnit, formatAmount, formatMoney } from "@/lib/amount";
+import { useVisitorCurrency } from "@/lib/visitorCurrency";
 
 interface HeroDashboardProps {
   amount: number;
-  unit: string;
 }
 
 const PREVISIONS = [
-  { label: "Loyer", amount: "1 200", state: "checked" as const },
-  { label: "Assurance", amount: "25", state: "ticks" as const },
-  { label: "Électricité", amount: "85", state: "unchecked" as const },
+  { label: "Loyer", amount: 1200, state: "checked" as const },
+  { label: "Assurance", amount: 25, state: "ticks" as const },
+  { label: "Électricité", amount: 85, state: "unchecked" as const },
 ];
+
+const SPENT = 3374;
+const BUDGET = 4300;
 
 const CURVE = "M0,27 C14,25 22,29 34,25 C46,21 54,16 66,17 C78,18 86,9 100,8";
 
 export const HeroDashboard = memo(function HeroDashboard({
   amount,
-  unit,
 }: HeroDashboardProps) {
+  const currency = useVisitorCurrency();
+  const unit = currencyUnit(currency);
   const gradientId = useId();
   const [monthLabel, setMonthLabel] = useState("");
   const [live, setLive] = useState(false);
@@ -94,7 +99,7 @@ export const HeroDashboard = memo(function HeroDashboard({
               aria-hidden="true"
               className="text-[clamp(3.5rem,8vw,5.5rem)] font-extrabold tracking-[-0.04em] tabular-nums"
             >
-              {amount}
+              {formatAmount(amount, currency)}
             </span>
             <span
               aria-hidden="true"
@@ -106,8 +111,8 @@ export const HeroDashboard = memo(function HeroDashboard({
 
           <div className="mt-auto pt-10">
             <div className="mb-2 flex justify-between text-xs text-white/90 tabular-nums">
-              <span>Dépensé 3 374 {unit}</span>
-              <span>sur 4 300 {unit}</span>
+              <span>Dépensé {formatMoney(SPENT, currency)}</span>
+              <span>sur {formatMoney(BUDGET, currency)}</span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-white/20">
               <div
@@ -156,7 +161,7 @@ export const HeroDashboard = memo(function HeroDashboard({
                       {prevision.label}
                     </span>
                     <span className="text-text-secondary tabular-nums">
-                      {prevision.amount} {unit}
+                      {formatMoney(prevision.amount, currency)}
                     </span>
                   </li>
                 );
@@ -169,12 +174,24 @@ export const HeroDashboard = memo(function HeroDashboard({
               <p className="text-xs font-semibold text-text-secondary">
                 Projection du solde
               </p>
-              <p className="text-sm font-semibold text-primary">
+              {/* Même graisse et même ton que le libellé de gauche : en
+                  primary/semibold, aligné à droite d'un panneau, cette phrase
+                  occupait la place d'un « Voir plus » et se lisait comme un
+                  lien. C'est une légende, pas une action. */}
+              <p className="text-xs font-semibold text-text-secondary">
                 Tu vois venir
               </p>
             </div>
+            {/* La viewBox déborde la courbe de 3 unités de chaque côté : tracée
+                de x=0 à x=100 dans une boîte de même largeur, la série butait
+                contre les deux bords et ses bouts arrondis étaient coupés net.
+                La ligne de base est en non-scaling-stroke pour rester un filet
+                d'1px malgré l'étirement vertical ; la courbe, elle, ne peut pas
+                l'être : son animation de tracé repose sur `pathLength={1}` et
+                `stroke-dasharray: 1`, et non-scaling-stroke change l'unité dans
+                laquelle ce tiret est mesuré — le trait se casse en morceaux. */}
             <svg
-              viewBox="0 0 100 36"
+              viewBox="-3 0 106 37"
               className="mt-auto h-24 w-full pt-5"
               preserveAspectRatio="none"
               role="img"
@@ -194,6 +211,16 @@ export const HeroDashboard = memo(function HeroDashboard({
                   />
                 </linearGradient>
               </defs>
+              <line
+                x1="-3"
+                y1="36"
+                x2="103"
+                y2="36"
+                stroke="var(--color-text)"
+                strokeOpacity="0.12"
+                strokeWidth="1"
+                vectorEffect="non-scaling-stroke"
+              />
               <path
                 d={`${CURVE} L100,36 L0,36 Z`}
                 fill={`url(#${gradientId})`}

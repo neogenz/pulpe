@@ -21,7 +21,7 @@ export function Platforms() {
   return (
     <Section id="platforms">
       <div className="mx-auto max-w-3xl text-center">
-        <h2 className="text-4xl font-bold leading-[1.05] tracking-[-0.035em] sm:text-5xl lg:text-6xl">
+        <h2 className="text-4xl font-bold leading-[1.05] tracking-[-0.035em] sm:text-5xl">
           Ton budget te suit. Pas l&apos;inverse.
         </h2>
         <p className="mx-auto mt-5 max-w-xl text-lg text-text-secondary">
@@ -47,7 +47,11 @@ export function Platforms() {
                 Disponible
               </span>
             </div>
-            <h3 className="mt-10 text-4xl font-semibold tracking-[-0.03em]">
+            {/* Même taille que « Dans ton navigateur » : les deux cartes sont
+                des pairs dans la même rangée, et 36 contre 30px sur des titres
+                de même niveau se lit comme un raté, pas comme une hiérarchie.
+                La carte iPhone garde son poids par sa largeur et son fond. */}
+            <h3 className="mt-10 text-3xl font-semibold tracking-[-0.03em]">
               Pulpe pour iPhone
             </h3>
             <p className="mt-4 max-w-md text-lg leading-relaxed text-white/80">
@@ -101,7 +105,11 @@ export function Platforms() {
                 className="size-5 text-text-secondary"
                 strokeWidth={1.7}
               />
-              <h3 className="font-semibold">Android</h3>
+              {/* h4 : ce bloc est une note à l'intérieur de la carte web, pas un
+                  pair de « Dans ton navigateur ». En h3 il annonçait au plan du
+                  document une troisième plateforme au même rang que les deux
+                  autres, et il apportait au rôle h3 une troisième taille. */}
+              <h4 className="font-semibold">Android</h4>
               <Badge>Bientôt</Badge>
             </div>
             <p className="mt-3 text-sm leading-relaxed text-text-secondary">

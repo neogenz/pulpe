@@ -1,38 +1,7 @@
-"use client";
-
-import { useSyncExternalStore } from "react";
 import { Button, HeroDashboard } from "@/components/ui";
 import { angularUrl } from "@/lib/config";
 
-function subscribeToNothing() {
-  return () => undefined;
-}
-
-function getVisitorCurrency(): "CHF" | "EUR" {
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const languages = (
-    typeof navigator !== "undefined"
-      ? (navigator.languages ?? [navigator.language])
-      : ["fr-CH"]
-  ).join(",");
-  const isSwiss = timezone === "Europe/Zurich" || /-CH\b/i.test(languages);
-  const isFrench =
-    timezone === "Europe/Paris" || /\bfr(-FR)?\b/i.test(languages);
-  return !isSwiss && isFrench ? "EUR" : "CHF";
-}
-
-function useVisitorCurrency(): "CHF" | "EUR" {
-  return useSyncExternalStore(
-    subscribeToNothing,
-    getVisitorCurrency,
-    () => "CHF" as const,
-  );
-}
-
 export function Hero() {
-  const currency = useVisitorCurrency();
-  const unit = currency === "CHF" ? "CHF" : "€";
-
   return (
     <section
       id="hero"
@@ -74,7 +43,7 @@ export function Hero() {
             available-this-month figure have to clear the fold, so lg trades
             hero air for that. The h1 alone runs three 80px lines there. */}
         <div className="mx-auto mt-14 max-w-5xl md:mt-18 lg:mt-8">
-          <HeroDashboard amount={926} unit={unit} />
+          <HeroDashboard amount={926} />
         </div>
       </div>
     </section>

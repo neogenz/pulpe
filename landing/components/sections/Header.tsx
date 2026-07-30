@@ -80,7 +80,6 @@ export function Header() {
                 Créer mon budget
               </Button>
             </div>
-
           </div>
         </nav>
 
@@ -114,9 +113,12 @@ export function Header() {
           aria-label="Navigation mobile"
           aria-hidden="true"
           inert
-          className="pointer-events-none fixed inset-x-0 top-0 z-10 flex h-screen items-center overflow-y-auto bg-surface pt-24 pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] opacity-0 transition-opacity duration-300 will-change-[opacity] peer-open:pointer-events-auto peer-open:opacity-100 lg:hidden motion-reduce:transition-none"
+          className="pointer-events-none fixed inset-x-0 top-0 z-10 flex h-screen overflow-y-auto bg-surface pt-24 pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] opacity-0 transition-opacity duration-300 will-change-[opacity] peer-open:pointer-events-auto peer-open:opacity-100 lg:hidden motion-reduce:transition-none"
         >
-          <div className="flex w-full flex-col gap-2">
+          {/* Les liens s'ancrent sous la barre, le CTA au bas de l'écran, à
+              portée de pouce. Centré, le bloc flottait au milieu d'un plein
+              écran opaque avec ~300px de vide au-dessus et ~200px en dessous. */}
+          <div className="flex h-full w-full flex-col gap-2">
             {navLinks.map((link) => (
               <a
                 key={link.href}
@@ -130,7 +132,7 @@ export function Header() {
             <Button
               href={angularUrl("/signup", "mobile_menu_commencer")}
               tabIndex={-1}
-              className="mt-4 w-full"
+              className="mt-auto w-full"
               data-cta-name="commencer"
               data-cta-location="mobile_menu"
               data-cta-destination="/signup"

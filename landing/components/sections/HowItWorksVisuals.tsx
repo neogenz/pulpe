@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Amount } from "@/components/ui";
 
 // Three different reads for three different steps, instead of three tables of
 // numbers a visitor has to add up: a composition, a time series, then the same
@@ -10,14 +11,15 @@ import type { ReactNode } from "react";
 const INCOME = 3500;
 const FULL_MONTH = 1400;
 
-// Espace simple comme séparateur de milliers, comme le tableau de bord du hero.
-const groupDigits = (value: number) =>
-  String(value).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-
+// Une rampe de neutres pour ce qui est déjà engagé, le vert pour ce qui reste.
+// Les impôts appartiennent à la première famille : c'est de l'argent pris, pas
+// une catégorie à part. Le jaune du surligneur qui tenait ce rôle sortait à
+// 1,3:1 sur la carte, invisible sur une pastille de 6px, et faisait porter deux
+// sens au même token que la preuve des témoignages.
 const SEGMENT_TONE = {
   recurring: "bg-text/25",
   saving: "bg-text/45",
-  tax: "bg-[var(--color-marker-highlight-proof)]",
+  tax: "bg-text/65",
   available: "bg-primary",
 } as const;
 
@@ -47,27 +49,6 @@ function StepFrame({
       </p>
       <div className="flex flex-1 flex-col gap-4 px-4 py-5">{children}</div>
     </div>
-  );
-}
-
-// Sans `unitClassName`, le montant sort nu : dans une légende ou sous une barre,
-// la devise est déjà portée par la ligne au-dessus et ne se répète pas.
-function Amount({
-  value,
-  className = "",
-  unitClassName,
-}: {
-  value: number;
-  className?: string;
-  unitClassName?: string;
-}) {
-  return (
-    <span className={`tabular-nums ${className}`}>
-      {groupDigits(value)}
-      {unitClassName === undefined ? null : (
-        <span className={`ml-1 ${unitClassName}`}>CHF</span>
-      )}
-    </span>
   );
 }
 

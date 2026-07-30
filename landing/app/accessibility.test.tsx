@@ -69,6 +69,10 @@ const componentSources = {
     new URL("../components/ui/HeroDashboard.tsx", import.meta.url),
     "utf8",
   ),
+  money: readFileSync(
+    new URL("../components/ui/Money.tsx", import.meta.url),
+    "utf8",
+  ),
   whyFree: readFileSync(
     new URL("../components/sections/WhyFree.tsx", import.meta.url),
     "utf8",
@@ -522,15 +526,24 @@ describe("landing accessibility contracts", () => {
   });
 
   it("keeps sections that only tracked clicks out of the client bundle", () => {
+    // La devise dépend du visiteur, mais elle ne concerne que les nœuds de
+    // montant : la frontière client est descendue jusqu'à eux, donc les sections
+    // qui les contiennent restent rendues côté serveur.
     for (const source of [
       componentSources.header,
       componentSources.finalCta,
       componentSources.platforms,
+      componentSources.hero,
+      componentSources.features,
+      componentSources.howItWorks,
+      componentSources.howItWorksVisuals,
     ]) {
       assert.doesNotMatch(source, /use client/);
     }
-    // Ceux-là gardent React : devise du visiteur et observateur de défilement.
-    assert.match(componentSources.hero, /use client/);
+    // Ceux-là gardent React : maquette animée, montants du visiteur, observateur
+    // de défilement.
+    assert.match(componentSources.heroDashboard, /use client/);
+    assert.match(componentSources.money, /use client/);
     assert.match(componentSources.stickyCta, /use client/);
   });
 
@@ -1029,9 +1042,15 @@ describe("landing accessibility contracts", () => {
     assert.doesNotMatch(componentSources.features, /Prévision liée/);
     assert.doesNotMatch(componentSources.features, /Juil\. · 0 CHF/);
     assert.match(componentSources.features, /Reste réparti/);
+    // Les deux parts viennent du même reste divisé en deux, donc la maquette ne
+    // peut plus afficher deux montants qui ne s'accordent pas.
     assert.match(
       componentSources.features,
-      /Août[\s\S]*420 CHF[\s\S]*Sept\.[\s\S]*420 CHF/,
+      /GOAL_REMAINING_SHARE = \(GOAL_TARGET - GOAL_SAVED\) \/ 2/,
+    );
+    assert.match(
+      componentSources.features,
+      /Août[\s\S]*<Money value=\{GOAL_REMAINING_SHARE\} \/>[\s\S]*Sept\.[\s\S]*<Money value=\{GOAL_REMAINING_SHARE\} \/>/,
     );
     assert.match(
       componentSources.features,
