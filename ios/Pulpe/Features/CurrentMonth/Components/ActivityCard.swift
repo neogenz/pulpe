@@ -8,6 +8,7 @@ struct ActivityCard: View {
     var onViewAll: () -> Void
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var window: Window = .week
 
     private static let maxRows = 5
@@ -49,45 +50,75 @@ struct ActivityCard: View {
     // MARK: - Header
 
     private func header(for windowed: [Transaction]) -> some View {
-        HStack(spacing: DesignTokens.Spacing.md) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                Text("Activité")
-                    .font(PulpeTypography.sectionTitle)
-                    .foregroundStyle(Color.textPrimary)
+        // The title, the total and the two controls share one line's width, and past
+        // `xxLarge` the total is what gives: `+4 871 CHF` becomes `+4 871 C…`, and an
+        // amount cut off its currency is not an amount. Stacked, it owns the full width.
+        let isStacked = dynamicTypeSize >= .xxLarge
 
-                Text(headerTotal(for: windowed))
-                    .font(PulpeTypography.labelMedium)
-                    .foregroundStyle(Color.textSecondary)
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .contentTransition(.numericText())
-                    .sensitiveAmount()
-            }
+        return Group {
+            if isStacked {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                    titleBlock(for: windowed, isStacked: true)
 
-            Spacer()
-
-            // Tight trailing cluster: the chevron's 44pt tap box carries ~36pt of dead
-            // space to the left of its glyph, so the usual `md` gap would read as a void.
-            HStack(spacing: DesignTokens.Spacing.xs) {
-                windowToggle
-
-                Button(action: onViewAll) {
-                    // Centring the glyph in that box would leave it ~18pt left of the
-                    // chevrons on the hero and à-pointer cards (bare Images flush to the
-                    // same padding). Pin it trailing; the hit area is unchanged.
-                    Image(systemName: "chevron.right")
-                        .font(PulpeTypography.metricLabel)
-                        .foregroundStyle(Color.textTertiary)
-                        .frame(minWidth: DesignTokens.TapTarget.minimum, alignment: .trailing)
+                    HStack(spacing: DesignTokens.Spacing.md) {
+                        windowToggle
+                        Spacer()
+                        viewAllButton
+                    }
                 }
-                .iconButtonStyle()
-                .accessibilityLabel("Voir toutes les transactions")
+            } else {
+                HStack(spacing: DesignTokens.Spacing.md) {
+                    titleBlock(for: windowed, isStacked: false)
+
+                    Spacer()
+
+                    // Tight trailing cluster: the chevron's 44pt tap box carries ~36pt of
+                    // dead space to the left of its glyph, so the usual `md` gap would read
+                    // as a void. Stacked, the row is wide enough that the gap is a Spacer.
+                    HStack(spacing: DesignTokens.Spacing.xs) {
+                        windowToggle
+                        viewAllButton
+                    }
+                }
             }
         }
         // Asymmetric on purpose: the heading is pushed away from the section above it and
         // held close to the rows it introduces, so proximity alone groups them.
         .padding(.top, DesignTokens.Spacing.lg)
         .padding(.bottom, DesignTokens.Spacing.sm)
+    }
+
+    private func titleBlock(for windowed: [Transaction], isStacked: Bool) -> some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+            Text("Activité")
+                .font(PulpeTypography.sectionTitle)
+                .foregroundStyle(Color.textPrimary)
+
+            Text(headerTotal(for: windowed))
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.textSecondary)
+                .monospacedDigit()
+                // One line while the controls sit beside it — otherwise the total pushes
+                // them off the row. Once it has the row to itself, wrapping is what keeps
+                // the currency attached to its digits.
+                .lineLimit(isStacked ? nil : 1)
+                .contentTransition(.numericText())
+                .sensitiveAmount()
+        }
+    }
+
+    private var viewAllButton: some View {
+        Button(action: onViewAll) {
+            // Centring the glyph in that box would leave it ~18pt left of the chevrons on
+            // the hero and à-pointer cards (bare Images flush to the same padding). Pin it
+            // trailing; the hit area is unchanged.
+            Image(systemName: "chevron.right")
+                .font(PulpeTypography.metricLabel)
+                .foregroundStyle(Color.textTertiary)
+                .frame(minWidth: DesignTokens.TapTarget.minimum, alignment: .trailing)
+        }
+        .iconButtonStyle()
+        .accessibilityLabel("Voir toutes les transactions")
     }
 
     /// Two-segment window selector, each segment addressable on its own: tapping the

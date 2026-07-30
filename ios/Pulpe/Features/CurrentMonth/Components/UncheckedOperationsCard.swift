@@ -121,43 +121,82 @@ struct UncheckedOperationsCard: View {
     // MARK: - Inline Quick-Check
 
     private func inlinePane(_ item: CurrentMonthStore.CheckableItem) -> some View {
-        let tagNames = tagNames(for: item)
-
-        return VStack(spacing: DesignTokens.Spacing.md) {
-            HStack(alignment: .firstTextBaseline) {
-                (
-                    Text(item.name)
-                        .font(PulpeTypography.labelLarge)
-                        .foregroundStyle(Color.textPrimary)
-                    + Text(metadataText(for: item))
-                        .font(PulpeTypography.labelMedium)
-                        .foregroundStyle(Color.textTertiary)
-                )
-                .lineLimit(1)
-
-                if !tagNames.isEmpty {
-                    TagChips(names: tagNames, presentation: .count, followsText: true)
-                }
-
-                Spacer()
-
-                // The name beside it is pinned to one line; without a matching constraint
-                // the amount wraps ("-400.0" / "0") and shoves the name into truncation.
-                Text(amountText(for: item))
-                    .font(PulpeTypography.amountMedium)
-                    .foregroundStyle(Color.textPrimary)
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .minimumScaleFactor(DesignTokens.TextScale.compact)
-                    .sensitiveAmount()
-            }
-            .accessibilityElement(children: .combine)
+        // Leading, not the default centre: side by side both rows carry a `Spacer` and fill
+        // the width, so the alignment never showed. Stacked, the two chips are narrower
+        // than the pane and drift to the middle, off the rail the whole ledger hangs from.
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            operationRow(item)
 
             actionsRow(item)
         }
         .padding(.top, DesignTokens.Spacing.md)
         .padding(.bottom, DesignTokens.Spacing.lg)
         .opacity(isSyncing(item) ? DesignTokens.Opacity.disabled : 1)
+    }
+
+    @ViewBuilder
+    private func operationRow(_ item: CurrentMonthStore.CheckableItem) -> some View {
+        // Opposite ends while the row can hold both. Past `xxLarge` it cannot, and the
+        // one-line rule that keeps the amount from wrapping is what cuts the label down
+        // to "Logement ·…". Stacked, each owns the width and the rule protects nothing.
+        if dynamicTypeSize >= .xxLarge {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                operationLabel(item, isStacked: true)
+                tagChips(item)
+                operationAmount(item)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+        } else {
+            HStack(alignment: .firstTextBaseline) {
+                operationLabel(item, isStacked: false)
+
+                tagChips(item)
+
+                Spacer()
+
+                operationAmount(item)
+            }
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    /// Trails the label while the row holds both; stacked it takes the line under it,
+    /// where a chip that followed a wrapped label would sit alone at the end of a
+    /// half-empty line.
+    @ViewBuilder
+    private func tagChips(_ item: CurrentMonthStore.CheckableItem) -> some View {
+        let names = tagNames(for: item)
+        if !names.isEmpty {
+            TagChips(names: names, presentation: .count, followsText: true)
+        }
+    }
+
+    private func operationLabel(
+        _ item: CurrentMonthStore.CheckableItem,
+        isStacked: Bool
+    ) -> some View {
+        (
+            Text(item.name)
+                .font(PulpeTypography.labelLarge)
+                .foregroundStyle(Color.textPrimary)
+            + Text(metadataText(for: item))
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.textTertiary)
+        )
+        // Held to one line only while the amount sits opposite: let it wrap there and the
+        // amount wraps with it ("-400.0" / "0"). Alone on its line, it can run on.
+        .lineLimit(isStacked ? nil : 1)
+    }
+
+    private func operationAmount(_ item: CurrentMonthStore.CheckableItem) -> some View {
+        Text(amountText(for: item))
+            .font(PulpeTypography.amountMedium)
+            .foregroundStyle(Color.textPrimary)
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(DesignTokens.TextScale.compact)
+            .sensitiveAmount()
     }
 
     @ViewBuilder
