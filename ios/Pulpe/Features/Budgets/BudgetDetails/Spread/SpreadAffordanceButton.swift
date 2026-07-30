@@ -9,28 +9,13 @@ struct SpreadAffordanceButton: View {
     let onTap: () -> Void
 
     var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: DesignTokens.Spacing.md) {
-                Image(systemName: "calendar")
-                    .font(PulpeTypography.actionIcon)
-                    .foregroundStyle(kind.color)
-
-                Text(Self.title(for: kind))
-                    .font(PulpeTypography.listRowTitle)
-                    .foregroundStyle(Color.textPrimary)
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.textTertiary)
-                    .accessibilityHidden(true)
-            }
-        }
-        .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum, alignment: .leading)
-        .contentShape(Rectangle())
-        .plainPressedButtonStyle()
-        .accessibilityLabel("\(Self.title(for: kind)), voir les mois")
+        ContextLinkRow(
+            icon: "calendar",
+            iconTint: kind.color,
+            title: Self.title(for: kind),
+            accessibilityLabel: "\(Self.title(for: kind)), voir les mois",
+            action: onTap
+        )
     }
 
     static func title(for kind: TransactionKind) -> String {

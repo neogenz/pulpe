@@ -90,22 +90,18 @@ final class BudgetLineLongPressTests: XCTestCase {
             let navigationBar = app.navigationBars[Self.goalName]
             let primaryAction = app.buttons["Ajouter une transaction"]
             XCTAssertTrue(primaryAction.waitForExistence(timeout: 10))
-            if mode.dynamicType {
-                dragUp(fromY: 0.65, toY: 0.22)
-                assertVisible(goal, below: navigationBar, above: primaryAction)
-                assertVisible(spread, below: navigationBar, above: primaryAction)
-                XCTAssertGreaterThanOrEqual(goal.frame.height, 44)
-                XCTAssertGreaterThanOrEqual(spread.frame.height, 44)
-                XCTAssertFalse(goal.frame.intersects(spread.frame))
-                attachScreenshot("ios-goal-spread-detail-actions-\(mode.name)")
-            } else {
-                assertVisible(goal, below: navigationBar, above: primaryAction)
-                assertVisible(spread, below: navigationBar, above: primaryAction)
-                XCTAssertGreaterThanOrEqual(goal.frame.height, 44)
-                XCTAssertGreaterThanOrEqual(spread.frame.height, 44)
-                XCTAssertFalse(goal.frame.intersects(spread.frame))
-                attachScreenshot("ios-goal-spread-detail-\(mode.name)")
-            }
+            scrollPairIntoView(
+                goal,
+                spread,
+                below: navigationBar.frame.maxY,
+                above: primaryAction.frame.minY
+            )
+            assertVisible(goal, below: navigationBar, above: primaryAction)
+            assertVisible(spread, below: navigationBar, above: primaryAction)
+            XCTAssertGreaterThanOrEqual(goal.frame.height, 44)
+            XCTAssertGreaterThanOrEqual(spread.frame.height, 44)
+            XCTAssertFalse(goal.frame.intersects(spread.frame))
+            attachScreenshot("ios-goal-spread-detail-\(mode.name)")
 
             app.terminate()
         }
@@ -242,6 +238,42 @@ final class BudgetLineLongPressTests: XCTestCase {
             }
         }
         assertFullyVisible(element, below: topY, above: bottomY)
+    }
+
+    /// Brings both elements inside the `topY ..< bottomY` window by dragging the
+    /// distance that is actually missing, re-measuring after every drag.
+    ///
+    /// A fixed-distance drag is calibrated against one layout and goes stale the
+    /// moment a row changes height — which is precisely what a design change is
+    /// allowed to do. Measuring instead of guessing keeps the assertions about
+    /// reachability rather than about pixel budgets.
+    private func scrollPairIntoView(
+        _ first: XCUIElement,
+        _ second: XCUIElement,
+        below topY: CGFloat,
+        above bottomY: CGFloat
+    ) {
+        let screenHeight = app.windows.firstMatch.frame.height
+        guard screenHeight > 0 else { return }
+
+        for _ in 0..<6 {
+            let union = first.frame.union(second.frame)
+            // Taller than the window: no scroll position satisfies both bounds.
+            // Stop and let the assertions report the real problem.
+            guard union.height <= bottomY - topY else { return }
+            guard union.minY < topY || union.maxY > bottomY else { return }
+
+            // Aim for the middle of the window rather than the offending edge: a
+            // drag of the few points that are missing sits under the scroll
+            // view's pan threshold and moves nothing at all. Centering is a fixed
+            // point, so repeating it converges instead of oscillating.
+            let shift = union.midY - (topY + bottomY) / 2
+            let fromY: CGFloat = shift > 0 ? 0.75 : 0.25
+            dragUp(
+                fromY: fromY,
+                toY: min(max(fromY - shift / screenHeight, 0.05), 0.95)
+            )
+        }
     }
 
     private func dragUp(fromY: CGFloat, toY: CGFloat) {

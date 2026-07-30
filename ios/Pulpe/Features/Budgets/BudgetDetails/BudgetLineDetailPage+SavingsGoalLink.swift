@@ -7,21 +7,26 @@ extension BudgetLineDetailPage {
     func contextualLinksSection(for line: BudgetLine) -> some View {
         if hasSavingsGoalLink(for: line) || line.isSpread {
             Section {
-                savingsGoalLink(for: line)
-                    .listRowSeparator(line.isSpread ? .visible : .hidden)
+                // Both links live in one row: each `ContextLinkRow` carries its
+                // own card, so the List only has to stay out of the way — a
+                // default row background would paint the system band back in.
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                    savingsGoalLink(for: line)
 
-                if let spreadGroupId = line.spreadGroupId {
-                    SpreadAffordanceButton(kind: line.kind) {
-                        router.present(
-                            .spreadOccurrences(
-                                spreadGroupId: spreadGroupId.uuidString,
-                                kind: line.kind
+                    if let spreadGroupId = line.spreadGroupId {
+                        SpreadAffordanceButton(kind: line.kind) {
+                            router.present(
+                                .spreadOccurrences(
+                                    spreadGroupId: spreadGroupId.uuidString,
+                                    kind: line.kind
+                                )
                             )
-                        )
+                        }
                     }
-                    .listRowSeparator(.hidden)
                 }
+                .listRowCustomStyled()
             }
+            .listSectionSeparator(.hidden)
         }
     }
 
@@ -47,32 +52,14 @@ extension BudgetLineDetailPage {
         if line.kind == .saving,
            let goalId = line.savingsGoalId,
            let goal = linkedGoal(id: goalId) {
-            Button {
-                router.pushSavingsGoal(goal)
-            } label: {
-                HStack(spacing: DesignTokens.Spacing.md) {
-                    Image(systemName: "target")
-                        .font(PulpeTypography.actionIcon)
-                        .foregroundStyle(Color.financialSavings)
-
-                    Text("Objectif : \(goal.name)")
-                        .font(PulpeTypography.listRowTitle)
-                        .foregroundStyle(Color.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(PulpeTypography.caption)
-                        .foregroundStyle(Color.textTertiary)
-                        .accessibilityHidden(true)
-                }
-            }
-            .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum, alignment: .leading)
-            .contentShape(Rectangle())
-            .plainPressedButtonStyle()
-            .accessibilityLabel("Objectif d'épargne : \(goal.name)")
-            .accessibilityHint("Touche pour ouvrir l'objectif")
+            ContextLinkRow(
+                icon: "target",
+                iconTint: .financialSavings,
+                title: "Objectif : \(goal.name)",
+                accessibilityLabel: "Objectif d'épargne : \(goal.name)",
+                accessibilityHint: "Touche pour ouvrir l'objectif",
+                action: { router.pushSavingsGoal(goal) }
+            )
         }
     }
 
