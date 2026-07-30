@@ -159,7 +159,11 @@ struct BudgetLineMixedRow: View {
         if metadata != nil || !tagNames.isEmpty {
             HStack(spacing: DesignTokens.Spacing.xs) {
                 if line.isSavingsWithdrawalIncome {
+                    // Decorative: `metadata` already carries "Pris sur ton épargne",
+                    // and the row is an accessibility container, so an unhidden symbol
+                    // would offer its SF name as a second reading of the same fact.
                     Image(systemName: TransactionKind.savingsIcon)
+                        .accessibilityHidden(true)
                 }
 
                 if let metadata {
