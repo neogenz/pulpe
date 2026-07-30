@@ -1,11 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { z } from 'zod';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { isVersionAtMost } from '@common/utils/semver-compare';
 
 const APP_STORE_LOOKUP_URL = 'https://itunes.apple.com/lookup';
 const APP_STORE_ID_PATTERN = /id(\d+)/;
 const SEMVER_PATTERN = /^\d+\.\d+\.\d+$/;
+const APP_STORE_LOOKUP_SCHEMA = z.object({
+  results: z
+    .array(z.object({ version: z.string().regex(SEMVER_PATTERN) }))
+    .nonempty(),
+});
 const LOOKUP_TIMEOUT_MS = 3_000;
 const FRESH_TTL_MS = 6 * 60 * 60 * 1000;
 const RETRY_TTL_MS = 15 * 60 * 1000;
@@ -119,16 +125,8 @@ export class IosVersionGateService {
       throw new Error(`App Store lookup returned HTTP ${response.status}`);
     }
 
-    const payload = (await response.json()) as {
-      results?: { version?: string }[];
-    };
-    const version = payload.results?.[0]?.version;
-    if (!version || !SEMVER_PATTERN.test(version)) {
-      throw new Error(
-        `App Store lookup returned an unusable version: ${version ?? 'none'}`,
-      );
-    }
-    return version;
+    const payload = APP_STORE_LOOKUP_SCHEMA.parse(await response.json());
+    return payload.results[0].version;
   }
 
   #warnUnreachableFloor(minVersion: string, latestVersion: string): void {

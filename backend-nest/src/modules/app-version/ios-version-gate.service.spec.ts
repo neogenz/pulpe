@@ -104,6 +104,19 @@ describe('IosVersionGateService', () => {
     expect(service.resolve().latestVersion).toBe('1.3.0');
   });
 
+  it('should skip the lookup when IOS_STORE_URL carries no App Store identifier', async () => {
+    service = await createService({
+      ...BASE_ENV,
+      IOS_STORE_URL: 'https://apps.apple.com/app/pulpe',
+    });
+
+    service.resolve();
+    await flushPendingRefresh();
+
+    expect(service.resolve().latestVersion).toBe('1.3.0');
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
   it('should ignore an App Store version that is not semver-shaped', async () => {
     mockFetch.mockResolvedValue(lookupResponse('1.3'));
     service = await createService();
