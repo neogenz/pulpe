@@ -11,7 +11,8 @@ private extension BudgetLine {
         recurrence: TransactionRecurrence = .fixed,
         isChecked: Bool = false,
         savingsGoalId: String? = nil,
-        spreadGroupId: UUID? = nil
+        spreadGroupId: UUID? = nil,
+        savingsWithdrawalGroupId: UUID? = nil
     ) -> BudgetLine {
         var line = BudgetLine(
             id: id,
@@ -28,6 +29,7 @@ private extension BudgetLine {
             updatedAt: Date()
         )
         line.spreadGroupId = spreadGroupId
+        line.savingsWithdrawalGroupId = savingsWithdrawalGroupId
         return line
     }
 }
@@ -35,6 +37,7 @@ private extension BudgetLine {
 private struct BudgetLineMixedRowPreviewHost: View {
     let cases: [(line: BudgetLine, consumption: BudgetFormulas.Consumption)]
     var savingsGoalName: String?
+    var tagNames: [String] = []
 
     var body: some View {
         ScrollView {
@@ -46,7 +49,7 @@ private struct BudgetLineMixedRowPreviewHost: View {
                         isSyncing: false,
                         currency: .chf,
                         savingsGoalName: savingsGoalName,
-                        tagNames: [],
+                        tagNames: tagNames,
                         onTap: {},
                         onTogglePointed: {}
                     )
@@ -83,6 +86,34 @@ private struct BudgetLineMixedRowPreviewHost: View {
     return BudgetLineMixedRowPreviewHost(cases: [(line, consumption)], savingsGoalName: "Maison")
         .dynamicTypeSize(.accessibility3)
         .preferredColorScheme(.dark)
+}
+
+#Preview("Income — taken from savings, with tags") {
+    let line = BudgetLine.preview(
+        name: "compte maison",
+        amount: 197,
+        kind: .income,
+        savingsWithdrawalGroupId: UUID()
+    )
+    let consumption = BudgetFormulas.Consumption(allocated: 0, available: line.amount, percentage: 0)
+    return BudgetLineMixedRowPreviewHost(
+        cases: [(line, consumption)],
+        tagNames: ["Maison", "Travaux", "Urgent"]
+    )
+}
+
+#Preview("Expense — spread, with tags") {
+    let line = BudgetLine.preview(
+        name: "Test",
+        amount: 5,
+        kind: .expense,
+        spreadGroupId: UUID()
+    )
+    let consumption = BudgetFormulas.Consumption(allocated: 0, available: line.amount, percentage: 0)
+    return BudgetLineMixedRowPreviewHost(
+        cases: [(line, consumption)],
+        tagNames: ["Assurance", "Abonnements", "Alimentation"]
+    )
 }
 
 #Preview("Expense — empty (no real)") {

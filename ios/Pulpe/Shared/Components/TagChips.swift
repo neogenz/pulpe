@@ -35,9 +35,17 @@ struct TagChips: View {
                 .accessibilityLabel(accessibilityLabel)
 
             case .count:
-                PulpeChip(icon: "tag", label: countLabel, style: .outlined)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(accessibilityLabel)
+                // A count is a metadata reading, not an actionable filter, so it
+                // reads as tertiary ink rather than borrowing the chip shape —
+                // on a dense row a capsule claims more attention than the amount.
+                HStack(spacing: DesignTokens.Spacing.xs) {
+                    Image(systemName: "tag")
+                    Text(countLabel)
+                }
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.textTertiary)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(accessibilityLabel)
             }
         }
     }

@@ -6,14 +6,34 @@ struct BudgetLinePresentationTests {
     @Test("spread and goal collapse into one metadata line")
     func metadataText_whenSpreadAndGoal_combinesIntoOneLine() {
         #expect(
-            BudgetLineMixedRow.metadataText(isSpread: true, savingsGoalName: "Maison")
-                == "Lissé · objectif Maison"
+            BudgetLineMixedRow.metadataText(
+                isSpread: true,
+                savingsGoalName: "Maison",
+                isSavingsWithdrawalIncome: false
+            ) == "Lissé · objectif Maison"
+        )
+    }
+
+    @Test("a withdrawal income states its provenance in the metadata line")
+    func metadataText_whenSavingsWithdrawalIncome_statesProvenance() {
+        #expect(
+            BudgetLineMixedRow.metadataText(
+                isSpread: false,
+                savingsGoalName: nil,
+                isSavingsWithdrawalIncome: true
+            ) == "Pris sur ton épargne"
         )
     }
 
     @Test("a plain line has no contextual metadata")
     func metadataText_whenPlainLine_returnsNil() {
-        #expect(BudgetLineMixedRow.metadataText(isSpread: false, savingsGoalName: nil) == nil)
+        #expect(
+            BudgetLineMixedRow.metadataText(
+                isSpread: false,
+                savingsGoalName: nil,
+                isSavingsWithdrawalIncome: false
+            ) == nil
+        )
     }
 
     @Test(
