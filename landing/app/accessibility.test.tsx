@@ -225,13 +225,14 @@ describe("landing accessibility contracts", () => {
   it("keeps the hero focused on one CTA without competing proof", () => {
     assert.match(componentSources.hero, /\bpb-12\b/);
     assert.match(componentSources.hero, /\bmd:pb-28\b/);
+    // La citation de Julie vit dans Testimonials. La re-servir ici mettait les
+    // mêmes mots deux fois sur la page, et poussait la preuve produit sous la
+    // ligne de flottaison d'un portable en 900px de haut.
+    assert.doesNotMatch(componentSources.hero, /<blockquote/);
+    assert.doesNotMatch(componentSources.hero, /Julie D\./);
     assert.match(
-      componentSources.hero,
-      /<blockquote className="mx-auto mt-6 hidden max-w-2xl text-center md:block">/,
-    );
-    assert.match(
-      componentSources.hero,
-      /prévoir nos vacances sur l&apos;année[\s\S]*Julie D\., utilisatrice de Pulpe/,
+      componentSources.testimonials,
+      /prévoir nos vacances sur l’année/,
     );
     assert.match(
       componentSources.hero,
