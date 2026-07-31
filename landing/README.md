@@ -95,9 +95,9 @@ landing/
 
 ### Components
 
-- **Memo'd Components**: Button, TypeWriter, etc.
-- **TypeWriter Effect**: Animated hero text with hydration fix
-- **Floating Cards**: Animated UI elements in hero
+- **Memo'd Components**: Button, Section, Container, Badge, FadeIn, GrainOverlay, HeroDashboard
+- **HeroDashboard**: The dashboard mockup in the hero, animated after mount
+- **Money / Amount / CurrencyUnit**: The only client islands inside server-rendered mockups, so the visitor's currency reaches the amounts without shipping the markup around them
 
 ## Deployment
 

@@ -41,11 +41,13 @@ export function Amount({
 // Le montant et sa devise dans un seul filet de texte, reliés par une espace
 // insécable. Rendu sans balise propre pour ne rien ajouter au DOM des maquettes.
 export function Money({ value }: { value: number }) {
-  return <>{formatMoney(value, useVisitorCurrency())}</>;
+  const currency = useVisitorCurrency();
+  return <>{formatMoney(value, currency)}</>;
 }
 
 // Pour les phrases où seule la devise varie — les figcaption sr-only gardent
 // leurs chiffres nus, plus sûrs à la synthèse vocale que `1’400`.
 export function CurrencyUnit() {
-  return <>{currencyUnit(useVisitorCurrency())}</>;
+  const currency = useVisitorCurrency();
+  return <>{currencyUnit(currency)}</>;
 }
