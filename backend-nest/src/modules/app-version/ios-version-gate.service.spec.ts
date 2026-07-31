@@ -71,6 +71,7 @@ describe('IosVersionGateService', () => {
     const gate = service.resolve();
 
     expect(gate).toEqual({ minVersion: '1.0.0', latestVersion: '1.3.0' });
+    await flushPendingRefresh();
   });
 
   it('should prime the App Store version at bootstrap, before any request', async () => {
