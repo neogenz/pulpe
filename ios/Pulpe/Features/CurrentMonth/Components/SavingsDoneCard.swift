@@ -29,8 +29,11 @@ struct SavingsDoneCard: View {
                 RowIcon(systemName: "checkmark", tint: .financialSavings)
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                    // `cardTitle`, not `sectionTitle`: on the page, that weight now belongs
+                    // to a section's name. Wearing it inside a card, this row claimed to be
+                    // heading a list that doesn't exist.
                     Text("Épargne du mois versée")
-                        .font(PulpeTypography.sectionTitle)
+                        .font(PulpeTypography.cardTitle)
                         .foregroundStyle(Color.textPrimary)
 
                     Text(subtitle)
@@ -46,10 +49,14 @@ struct SavingsDoneCard: View {
                     .font(PulpeTypography.metricLabel)
                     .foregroundStyle(Color.textTertiary)
             }
-            .padding(.vertical, DesignTokens.Spacing.lg)
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.vertical, DesignTokens.Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            // No heading of its own: "tout va bien" is the whole message, and a section
+            // title above a single row would announce a list that isn't there.
+            .pulpeRowCard()
         }
-        .frame(minHeight: DesignTokens.TapTarget.minimum)
-        .contentShape(Rectangle())
+        .contentShape(.rect(cornerRadius: DesignTokens.CornerRadius.card))
         .plainPressedButtonStyle()
         .accessibilityLabel(accessibilityDescription)
         .accessibilityHint("Voir mes objectifs d'épargne")

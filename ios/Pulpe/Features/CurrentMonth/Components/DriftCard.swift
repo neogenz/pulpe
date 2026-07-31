@@ -9,7 +9,6 @@ struct DriftCard: View {
     var tagNamesById: [String: String] = [:]
     /// Next-month name for the "ajuster {mois}" lever in the footer subtitle.
     let adjustMonthName: String
-    var onViewBudget: () -> Void
     var onCatchUp: () -> Void
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
@@ -28,11 +27,6 @@ struct DriftCard: View {
         return "+\(hidden) autre\(hidden > 1 ? "s" : "") enveloppe\(hidden > 1 ? "s" : "")"
     }
 
-    private var headerAccessibilityLabel: String {
-        guard !amountsHidden else { return "Ça dérive — montant masqué" }
-        return "Ça dérive, \(totalOver.asCompactCurrency(currency)) au-delà du plan"
-    }
-
     private var catchUpAccessibilityLabel: String {
         guard !amountsHidden else { return "Rattraper le dépassement" }
         return "Rattraper ces \(totalOver.asCompactCurrency(currency)) en trop"
@@ -46,71 +40,49 @@ struct DriftCard: View {
     }
 
     var body: some View {
-        VStack(spacing: DesignTokens.Spacing.none) {
-            Button(action: onViewBudget) {
-                header
-            }
-            .frame(minHeight: DesignTokens.TapTarget.minimum)
-            .contentShape(Rectangle())
-            .plainPressedButtonStyle()
-            .accessibilityLabel(headerAccessibilityLabel)
-            .accessibilityHint("Voir le budget")
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            // No link on this heading: the card ends on "Rattraper", which goes to the
+            // same place and names the remedy. Two ways into the budget, one of them
+            // unnamed, is the arrangement this screen is getting rid of.
+            HomeSectionHeader(
+                title: "Ça dérive",
+                amountSubtitle: "\(totalOver.asCompactCurrency(currency)) au-delà du plan"
+            )
 
-            // No rules between rows: each drift already carries its own bar, and the gap
-            // between rows outweighs the gap inside one. The extra space below detaches the
-            // footer action from the list it acts on, which is the one boundary a rule here
-            // was actually carrying.
             VStack(spacing: DesignTokens.Spacing.none) {
-                ForEach(drifts.prefix(Self.maxRows), id: \.line.id) { drift in
+                ForEach(
+                    Array(drifts.prefix(Self.maxRows).enumerated()),
+                    id: \.element.line.id
+                ) { index, drift in
+                    if index > 0 { Divider() }
                     driftRow(drift.line, drift.consumption)
                 }
 
                 if drifts.count > Self.maxRows {
+                    Divider()
                     Text(overflowLabel)
                         .font(PulpeTypography.labelMedium)
                         .foregroundStyle(Color.textTertiary)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.top, DesignTokens.Spacing.md)
+                        .padding(.vertical, DesignTokens.Spacing.md)
                 }
-            }
-            .padding(.bottom, DesignTokens.Spacing.lg)
 
-            Button(action: onCatchUp) {
-                catchUpRow
+                Divider()
+
+                Button(action: onCatchUp) {
+                    catchUpRow
+                }
+                .frame(minHeight: DesignTokens.TapTarget.minimum)
+                .contentShape(Rectangle())
+                .plainPressedButtonStyle()
+                .accessibilityLabel(catchUpAccessibilityLabel)
+                // Names the destination, not three levers the destination doesn't offer.
+                .accessibilityHint("Ouvre le budget pour ajuster tes enveloppes")
             }
-            .frame(minHeight: DesignTokens.TapTarget.minimum)
-            .contentShape(Rectangle())
-            .plainPressedButtonStyle()
-            .accessibilityLabel(catchUpAccessibilityLabel)
-            // Names the destination, not three levers the destination doesn't offer.
-            .accessibilityHint("Ouvre le budget pour ajuster tes enveloppes")
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.vertical, DesignTokens.Spacing.xs)
+            .pulpeRowCard()
         }
-    }
-
-    // MARK: - Header
-
-    private var header: some View {
-        HStack(spacing: DesignTokens.Spacing.md) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                Text("Ça dérive")
-                    .font(PulpeTypography.sectionTitle)
-                    .foregroundStyle(Color.textPrimary)
-
-                Text("\(totalOver.asCompactCurrency(currency)) au-delà du plan")
-                    .font(PulpeTypography.labelMedium)
-                    .foregroundStyle(Color.textTertiary)
-                    .monospacedDigit()
-                    .sensitiveAmount()
-            }
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(PulpeTypography.metricLabel)
-                .foregroundStyle(Color.textTertiary)
-        }
-        .padding(.top, DesignTokens.Spacing.lg)
-        .padding(.bottom, DesignTokens.Spacing.sm)
     }
 
     // MARK: - Drift Row

@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Tour 11 "opérations à pointer" — header summary (stacked kind avatars + totals)
-/// plus an inline quick-check of one operation: "C'est passé" / "Plus tard".
+/// Tour 11 "opérations à pointer" — the section heading on the page, and under it a
+/// card holding an inline quick-check of one operation: "C'est passé" / "Plus tard".
 struct UncheckedOperationsCard: View {
     let items: [CurrentMonthStore.CheckableItem]
     var tagNamesById: [String: String] = [:]
@@ -61,26 +61,27 @@ struct UncheckedOperationsCard: View {
         }
     }
 
-    /// The count lives on the hero metric; this header names the section only, so the
-    /// number is announced once per screen.
-    private var headerAccessibilityLabel: String { "Opérations à pointer" }
-
     var body: some View {
-        VStack(spacing: DesignTokens.Spacing.none) {
-            Button(action: onViewAll) {
-                header
-            }
-            .frame(minHeight: DesignTokens.TapTarget.minimum)
-            .contentShape(Rectangle())
-            .plainPressedButtonStyle()
-            .accessibilityLabel(headerAccessibilityLabel)
-            .accessibilityHint("Voir tout dans le budget")
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            // The count lives on the hero metric; this heading names the section only,
+            // so the number is announced once per screen.
+            HomeSectionHeader(
+                title: "Opérations à pointer",
+                linkLabel: "Tout voir",
+                onLink: onViewAll
+            )
 
-            if let item = currentItem {
-                inlinePane(item)
-                    .id(item.id)
-                    .transition(paneTransition(for: item))
+            // The card is the stable frame and the operations swap inside it: it clips
+            // the pane, so one slides out and the next slides in without either of them
+            // travelling over the page.
+            VStack(spacing: DesignTokens.Spacing.none) {
+                if let item = currentItem {
+                    inlinePane(item)
+                        .id(item.id)
+                        .transition(paneTransition(for: item))
+                }
             }
+            .pulpeRowCard()
         }
         .animation(
             reduceMotion ? DesignTokens.Animation.smoothEaseOut : DesignTokens.Animation.gentleSpring,
@@ -94,30 +95,6 @@ struct UncheckedOperationsCard: View {
         }
     }
 
-    // MARK: - Header
-
-    private var header: some View {
-        // Flat ledger: the title starts on the same rail as the rows beneath it. The stack of
-        // kind avatars that used to sit before the chevron is gone: it restated a count the
-        // hero already carries, and two glyphs competing for the trailing slot made neither
-        // of them read as the way into the budget.
-        HStack(spacing: DesignTokens.Spacing.lg) {
-            Text("Opérations à pointer")
-                .font(PulpeTypography.sectionTitle)
-                .foregroundStyle(Color.textPrimary)
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(PulpeTypography.metricLabel)
-                .foregroundStyle(Color.textTertiary)
-        }
-        // Asymmetric on purpose: the heading is pushed away from the section above it and
-        // held close to the operation it introduces, so proximity alone groups them.
-        .padding(.top, DesignTokens.Spacing.lg)
-        .padding(.bottom, DesignTokens.Spacing.sm)
-    }
-
     // MARK: - Inline Quick-Check
 
     private func inlinePane(_ item: CurrentMonthStore.CheckableItem) -> some View {
@@ -127,38 +104,44 @@ struct UncheckedOperationsCard: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             operationRow(item)
 
+            // Bounded by the card, a rule says one thing only: above it is what the two
+            // actions act on, below it are the actions. The rules this screen dropped
+            // were drawn on the bare page, where nothing declared what they divided.
+            Divider()
+
             actionsRow(item)
         }
-        .padding(.top, DesignTokens.Spacing.md)
-        .padding(.bottom, DesignTokens.Spacing.lg)
+        .padding(DesignTokens.Spacing.lg)
         .opacity(isSyncing(item) ? DesignTokens.Opacity.disabled : 1)
     }
 
-    @ViewBuilder
     private func operationRow(_ item: CurrentMonthStore.CheckableItem) -> some View {
         // Opposite ends while the row can hold both. Past `xxLarge` it cannot, and the
         // one-line rule that keeps the amount from wrapping is what cuts the label down
-        // to "Logement ·…". Stacked, each owns the width and the rule protects nothing.
-        if dynamicTypeSize >= .xxLarge {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                operationLabel(item, isStacked: true)
-                tagChips(item)
-                operationAmount(item)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityElement(children: .combine)
-        } else {
-            HStack(alignment: .firstTextBaseline) {
+        // to "Logement…". Stacked, each owns the width and the rule protects nothing.
+        let isStacked = dynamicTypeSize >= .xxLarge
+
+        return HStack(spacing: DesignTokens.Spacing.lg) {
+            RowIcon(systemName: item.kind.icon, tint: item.kind.color)
+
+            if isStacked {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                    operationLabel(item, isStacked: true)
+                    tagChips(item)
+                    operationAmount(item)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
                 operationLabel(item, isStacked: false)
 
                 tagChips(item)
 
-                Spacer()
+                Spacer(minLength: DesignTokens.Spacing.sm)
 
                 operationAmount(item)
             }
-            .accessibilityElement(children: .combine)
         }
+        .accessibilityElement(children: .combine)
     }
 
     /// Trails the label while the row holds both; stacked it takes the line under it,
@@ -176,17 +159,20 @@ struct UncheckedOperationsCard: View {
         _ item: CurrentMonthStore.CheckableItem,
         isStacked: Bool
     ) -> some View {
-        (
+        // Two Texts, not one concatenation: with a disc opening the row, the name owns
+        // the first line and its metadata sits under it, the way every other row on the
+        // screen is built. Concatenated, the metadata was also the first thing truncated.
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
             Text(item.name)
                 .font(PulpeTypography.labelLarge)
                 .foregroundStyle(Color.textPrimary)
-            + Text(metadataText(for: item))
+                .lineLimit(isStacked ? nil : 1)
+
+            Text(metadataText(for: item))
                 .font(PulpeTypography.labelMedium)
                 .foregroundStyle(Color.textTertiary)
-        )
-        // Held to one line only while the amount sits opposite: let it wrap there and the
-        // amount wraps with it ("-400.0" / "0"). Alone on its line, it can run on.
-        .lineLimit(isStacked ? nil : 1)
+                .lineLimit(isStacked ? nil : 1)
+        }
     }
 
     private func operationAmount(_ item: CurrentMonthStore.CheckableItem) -> some View {
@@ -209,10 +195,13 @@ struct UncheckedOperationsCard: View {
                 skipButton(item)
             }
         } else {
-            HStack(spacing: DesignTokens.Spacing.lg) {
+            // Adjacent, both on the leading rail. Pushed to opposite ends of the card they
+            // read as two unrelated controls that happen to share a row; side by side they
+            // read as one question with two answers, the affirmative first.
+            HStack(spacing: DesignTokens.Spacing.md) {
                 confirmButton(item)
-                Spacer(minLength: DesignTokens.Spacing.sm)
                 skipButton(item)
+                Spacer(minLength: DesignTokens.Spacing.none)
             }
         }
     }
@@ -298,8 +287,8 @@ struct UncheckedOperationsCard: View {
 
     private func metadataText(for item: CurrentMonthStore.CheckableItem) -> String {
         let tagCount = tagNames(for: item).count
-        guard tagCount > 0 else { return " · \(subtitle(for: item))" }
-        return " · \(subtitle(for: item)) · \(tagCount) tag\(tagCount > 1 ? "s" : "")"
+        guard tagCount > 0 else { return subtitle(for: item) }
+        return "\(subtitle(for: item)) · \(tagCount) tag\(tagCount > 1 ? "s" : "")"
     }
 
     private func amountText(for item: CurrentMonthStore.CheckableItem) -> String {

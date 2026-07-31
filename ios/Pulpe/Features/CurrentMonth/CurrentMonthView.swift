@@ -274,7 +274,6 @@ struct CurrentMonthView: View {
                     totalOver: store.driftTotal,
                     tagNamesById: tagStore.namesById,
                     adjustMonthName: nextMonthName,
-                    onViewBudget: { navigateToBudget = true },
                     onCatchUp: { navigateToBudget = true }
                 )
                 .staggeredEntrance(isVisible: hasAppeared, index: 2)
