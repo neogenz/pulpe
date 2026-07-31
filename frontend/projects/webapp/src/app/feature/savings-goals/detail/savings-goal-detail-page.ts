@@ -58,6 +58,7 @@ import { GoalProjectionChart } from './components/goal-projection-chart';
 import { GoalPlanTimeline } from './components/goal-plan-timeline';
 import { GoalPlanSimulatorToolbar } from './components/goal-plan-simulator-toolbar';
 import { GoalContributionsList } from './components/goal-contributions-list';
+import { GoalPlanRepairCallout } from './components/goal-plan-repair-callout';
 
 type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
 
@@ -77,6 +78,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
     GoalPlanTimeline,
     GoalPlanSimulatorToolbar,
     GoalContributionsList,
+    GoalPlanRepairCallout,
   ],
   providers: [GoalPlanSimulatorStore, AppCurrencyPipe],
   template: `
@@ -607,43 +609,12 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                   </button>
                 }
               </div>
-              @if (!simulator.isSimulating() && repairableMonths().length > 0) {
-                <div
-                  class="flex flex-col gap-3 rounded-xl bg-surface-container-low p-4
-                         sm:flex-row sm:items-center sm:justify-between"
-                  data-testid="goal-plan-repair-callout"
-                >
-                  <div class="flex items-start gap-3">
-                    <mat-icon
-                      class="mt-0.5 shrink-0 text-financial-savings"
-                      aria-hidden="true"
-                      >savings</mat-icon
-                    >
-                    <div class="flex flex-col gap-1">
-                      <h3 class="text-title-medium font-semibold">
-                        {{ 'savingsGoals.plan.repairTitle' | transloco }}
-                      </h3>
-                      <p class="text-body-medium text-on-surface-variant">
-                        {{
-                          (repairableMonths().length === 1
-                            ? 'savingsGoals.plan.repairMessageOne'
-                            : 'savingsGoals.plan.repairMessageMany'
-                          ) | transloco: { count: repairableMonths().length }
-                        }}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    matButton="outlined"
-                    class="shrink-0 self-end sm:self-auto"
-                    (click)="onPreviewPlanRepair()"
-                    [disabled]="isApplying()"
-                    data-testid="goal-plan-repair-preview"
-                  >
-                    <mat-icon>preview</mat-icon>
-                    {{ 'savingsGoals.plan.repairPreview' | transloco }}
-                  </button>
-                </div>
+              @if (!simulator.isSimulating()) {
+                <pulpe-goal-plan-repair-callout
+                  [count]="repairableMonths().length"
+                  [isApplying]="isApplying()"
+                  (previewRequested)="onPreviewPlanRepair()"
+                />
               }
               <pulpe-goal-plan-timeline
                 [months]="chartMonths()"

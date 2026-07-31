@@ -36,6 +36,7 @@ import { GoalProjectionChart } from './components/goal-projection-chart';
 import { GoalPlanTimeline } from './components/goal-plan-timeline';
 import { GoalPlanSimulatorToolbar } from './components/goal-plan-simulator-toolbar';
 import { GoalContributionsList } from './components/goal-contributions-list';
+import { GoalPlanRepairCallout } from './components/goal-plan-repair-callout';
 import { GoalDeletionDialog } from './components/goal-deletion-dialog';
 import { setTestInput } from '../../../testing/signal-test-utils';
 import { provideTranslocoForTest } from '../../../testing/transloco-testing';
@@ -124,6 +125,17 @@ class StubGoalPlanSimulatorToolbar {
 class StubGoalContributionsList {
   readonly contributions = input<unknown>([]);
   readonly currency = input<string>('CHF');
+}
+
+@Component({
+  selector: 'pulpe-goal-plan-repair-callout',
+  template: '<div data-testid="stub-repair-callout"></div>',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+class StubGoalPlanRepairCallout {
+  readonly count = input(0);
+  readonly isApplying = input(false);
+  readonly previewRequested = output<void>();
 }
 
 function makeGoal(overrides: Partial<SavingsGoal> = {}): SavingsGoal {
@@ -326,6 +338,7 @@ describe('SavingsGoalDetailPage', () => {
             GoalPlanTimeline,
             GoalPlanSimulatorToolbar,
             GoalContributionsList,
+            GoalPlanRepairCallout,
           ],
         },
         add: {
@@ -336,6 +349,7 @@ describe('SavingsGoalDetailPage', () => {
             StubGoalPlanTimeline,
             StubGoalPlanSimulatorToolbar,
             StubGoalContributionsList,
+            StubGoalPlanRepairCallout,
           ],
         },
       })
@@ -348,6 +362,15 @@ describe('SavingsGoalDetailPage', () => {
 
   function query(testId: string) {
     return fixture.debugElement.query(By.css(`[data-testid="${testId}"]`));
+  }
+
+  // The callout is stubbed (Angular #54039 — see StubGoalPlanRepairCallout),
+  // so the preview button no longer exists in the page's own DOM: simulate
+  // the child emitting its output instead of clicking through to it.
+  function triggerRepairPreview() {
+    fixture.debugElement
+      .query(By.directive(StubGoalPlanRepairCallout))
+      .triggerEventHandler('previewRequested');
   }
 
   it('renders the projected balance and confirmed layers from the progress response', () => {
@@ -983,30 +1006,14 @@ describe('SavingsGoalDetailPage', () => {
 
     fixture.detectChanges();
 
-    const callout = query('goal-plan-repair-callout');
-    expect(callout).toBeTruthy();
-    expect(callout.nativeElement.textContent).toContain(
-      '1 prévision Épargne peut maintenant être ajoutée automatiquement.',
-    );
-    expect(
-      query('goal-plan-repair-preview').nativeElement.textContent,
-    ).toContain('Prévisualiser');
-  });
-
-  it('uses natural plural agreement for several repairable budgets', () => {
-    progressSig.set(
-      makeProgress({
-        months: [makePlanMonth({ month: 8 }), makePlanMonth({ month: 9 })],
-      }),
-    );
-
-    fixture.detectChanges();
-
-    expect(
-      query('goal-plan-repair-callout').nativeElement.textContent,
-    ).toContain(
-      '2 prévisions Épargne peuvent maintenant être ajoutées automatiquement.',
-    );
+    // Singular/plural/absence wording now lives in GoalPlanRepairCallout's own
+    // spec (which sets inputs directly on the component, not through a parent
+    // template binding). Signal inputs on a JIT-compiled child aren't reliably
+    // exercised through a *parent's* template binding in this test environment
+    // (see the "JIT compilation issues with signal inputs" note in
+    // test-setup.ts), so the page-owned repairableMonths() filtering
+    // (hasBudget / isProvisionable / existing line) is asserted directly here.
+    expect(component['repairableMonths']()).toHaveLength(1);
   });
 
   it('does not offer recovery when every gap still lacks a budget', () => {
@@ -1018,7 +1025,7 @@ describe('SavingsGoalDetailPage', () => {
 
     fixture.detectChanges();
 
-    expect(query('goal-plan-repair-callout')).toBeFalsy();
+    expect(component['repairableMonths']()).toHaveLength(0);
   });
 
   it('does not offer recovery when the goal is already covered', () => {
@@ -1026,7 +1033,7 @@ describe('SavingsGoalDetailPage', () => {
 
     fixture.detectChanges();
 
-    expect(query('goal-plan-repair-callout')).toBeFalsy();
+    expect(component['repairableMonths']()).toHaveLength(0);
   });
 
   it('previews and sends a positive sub-cent recovery as one cent', async () => {
@@ -1036,7 +1043,7 @@ describe('SavingsGoalDetailPage', () => {
     mockDialogs.openApplyPlan.mockResolvedValueOnce(true);
     fixture.detectChanges();
 
-    query('goal-plan-repair-preview').nativeElement.click();
+    triggerRepairPreview();
     await fixture.whenStable();
 
     expect(mockDialogs.openApplyPlan).toHaveBeenCalledWith(
@@ -1064,7 +1071,7 @@ describe('SavingsGoalDetailPage', () => {
     mockDialogs.openApplyPlan.mockResolvedValueOnce(false);
     fixture.detectChanges();
 
-    query('goal-plan-repair-preview').nativeElement.click();
+    triggerRepairPreview();
     await fixture.whenStable();
 
     expect(mockDialogs.openApplyPlan).toHaveBeenCalledWith(
@@ -1090,7 +1097,7 @@ describe('SavingsGoalDetailPage', () => {
     mockDialogs.openApplyPlan.mockResolvedValueOnce(false);
     fixture.detectChanges();
 
-    query('goal-plan-repair-preview').nativeElement.click();
+    triggerRepairPreview();
     await fixture.whenStable();
 
     expect(mockDialogs.openApplyPlan).toHaveBeenCalledWith(
@@ -1109,7 +1116,7 @@ describe('SavingsGoalDetailPage', () => {
     mockDialogs.openApplyPlan.mockResolvedValueOnce(false);
     fixture.detectChanges();
 
-    query('goal-plan-repair-preview').nativeElement.click();
+    triggerRepairPreview();
     await fixture.whenStable();
 
     expect(mockDialogs.openApplyPlan).toHaveBeenCalledWith(
@@ -1150,7 +1157,7 @@ describe('SavingsGoalDetailPage', () => {
     });
     fixture.detectChanges();
 
-    query('goal-plan-repair-preview').nativeElement.click();
+    triggerRepairPreview();
     await fixture.whenStable();
     fixture.detectChanges();
 
@@ -1158,7 +1165,7 @@ describe('SavingsGoalDetailPage', () => {
       monthAdjustments: [],
       missingMonthAdjustments: [{ month: 8, year: 2026, amount: 175.35 }],
     });
-    expect(query('goal-plan-repair-callout')).toBeFalsy();
+    expect(component['repairableMonths']()).toHaveLength(0);
   });
 
   it('deletes the goal with the preview revision then navigates back', async () => {
