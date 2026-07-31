@@ -120,8 +120,9 @@ const componentSources = {
 // La source des trois visuels de planification, son `FULL_MONTH` résolu. Deux
 // tests ont besoin de cette valeur pour additionner ; ils la lisent de la
 // source plutôt que d'en garder une copie, qui ne suivrait pas la constante.
-const fullMonthDeclaration =
-  componentSources.howItWorksVisuals.match(/const FULL_MONTH = (\d+)/);
+const fullMonthDeclaration = componentSources.howItWorksVisuals.match(
+  /const FULL_MONTH = (\d+)/,
+);
 assert.ok(fullMonthDeclaration, "HowItWorksVisuals ne déclare plus FULL_MONTH");
 const fullMonth = fullMonthDeclaration[1];
 const planningVisuals = componentSources.howItWorksVisuals.replace(
@@ -372,8 +373,9 @@ describe("landing accessibility contracts", () => {
     // disponible de l'étape 3. Éditer un nombre sans l'autre rendrait la démo
     // fausse pour un visiteur qui additionne.
     const body = (name: string) =>
-      planningVisuals.match(new RegExp(`export function ${name}[\\s\\S]*?\\n}`))?.[0] ??
-      "";
+      planningVisuals.match(
+        new RegExp(`export function ${name}[\\s\\S]*?\\n}`),
+      )?.[0] ?? "";
     const segmentTotal = (source: string) =>
       [...source.matchAll(/amount: (\d+)/g)].reduce(
         (total, [, amount]) => total + Number(amount),
@@ -393,7 +395,9 @@ describe("landing accessibility contracts", () => {
     // Trois catégories annoncées par la copie, donc trois mois qui décrochent,
     // et la légende sous le graphe les nomme toutes les trois.
     const dips = [
-      ...planningVisuals.matchAll(new RegExp(`available: (?!${fullMonth})(\\d+)`, "g")),
+      ...planningVisuals.matchAll(
+        new RegExp(`available: (?!${fullMonth})(\\d+)`, "g"),
+      ),
     ];
     assert.equal(dips.length, 3);
     assert.equal(new Set(dips.map(([, amount]) => amount)).size, 3);
@@ -412,8 +416,9 @@ describe("landing accessibility contracts", () => {
     const amounts = (source: string, pattern: RegExp) =>
       [...source.matchAll(pattern)].map(([, amount]) => Number(amount));
     const body = (name: string) =>
-      planningVisuals.match(new RegExp(`export function ${name}[\\s\\S]*?\\n}`))?.[0] ??
-      "";
+      planningVisuals.match(
+        new RegExp(`export function ${name}[\\s\\S]*?\\n}`),
+      )?.[0] ?? "";
     const income = amounts(planningVisuals, /const INCOME = (\d+)/g);
     const composition = (name: string) => [
       ...income,
@@ -424,7 +429,10 @@ describe("landing accessibility contracts", () => {
       composition("MonthTemplateVisual"),
       [
         Number(fullMonth),
-        ...amounts(planningVisuals, new RegExp(`available: (?!${fullMonth})(\\d+)`, "g")),
+        ...amounts(
+          planningVisuals,
+          new RegExp(`available: (?!${fullMonth})(\\d+)`, "g"),
+        ),
       ],
       composition("MonthAvailableVisual"),
     ];
