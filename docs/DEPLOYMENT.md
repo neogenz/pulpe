@@ -402,7 +402,7 @@ Before creating the immutable tag or GitHub Release:
 3. Run the three public health checks below.
 4. Refetch and confirm `origin/main` still equals `SHA`.
 
-Only then create the tag and GitHub Release. Update Railway `LATEST_WEB_VERSION` after the web release is public and verify `/api/v1/app/version`. Update `LATEST_IOS_VERSION` only after the corresponding marketing version is publicly available on the App Store; otherwise leave it unchanged and complete that operation later.
+Only then create the tag and GitHub Release. Update Railway `LATEST_WEB_VERSION` after the web release is public and verify `/api/v1/app/version`. Leave `LATEST_IOS_VERSION` alone: the backend resolves the published iOS version from the App Store (see [VERSIONING.md](VERSIONING.md)), so no post-App-Store operation is pending.
 
 ## Post-Deployment Monitoring
 

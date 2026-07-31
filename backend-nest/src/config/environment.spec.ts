@@ -297,7 +297,7 @@ describe('Environment Validation', () => {
     });
   });
 
-  describe('Force-update version invariants (MIN <= LATEST)', () => {
+  describe('Force-update version invariants (web MIN <= LATEST)', () => {
     const baseConfig = {
       NODE_ENV: 'production',
       SUPABASE_URL: 'https://example.supabase.co',
@@ -308,11 +308,11 @@ describe('Environment Validation', () => {
         '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
     };
 
-    it('should accept iOS versions when MIN is below LATEST', () => {
+    it('should accept web versions when MIN is below LATEST', () => {
       const config = {
         ...baseConfig,
-        MIN_IOS_VERSION: '1.0.0',
-        LATEST_IOS_VERSION: '1.0.2',
+        MIN_WEB_VERSION: '1.0.0',
+        LATEST_WEB_VERSION: '1.0.2',
       };
 
       expect(() => validateConfig(config)).not.toThrow();
@@ -321,21 +321,21 @@ describe('Environment Validation', () => {
     it('should accept versions when MIN equals LATEST', () => {
       const config = {
         ...baseConfig,
-        MIN_IOS_VERSION: '2.1.0',
-        LATEST_IOS_VERSION: '2.1.0',
+        MIN_WEB_VERSION: '2.1.0',
+        LATEST_WEB_VERSION: '2.1.0',
       };
 
       expect(() => validateConfig(config)).not.toThrow();
     });
 
-    it('should reject when MIN_IOS_VERSION is above LATEST_IOS_VERSION', () => {
+    it('should accept MIN_IOS_VERSION above LATEST_IOS_VERSION so the floor can be armed before the App Store rollout', () => {
       const config = {
         ...baseConfig,
         MIN_IOS_VERSION: '2.0.0',
         LATEST_IOS_VERSION: '0.1.0',
       };
 
-      expect(() => validateConfig(config)).toThrow(/LATEST_IOS_VERSION/);
+      expect(() => validateConfig(config)).not.toThrow();
     });
 
     it('should reject when MIN_WEB_VERSION is above LATEST_WEB_VERSION', () => {
@@ -351,8 +351,8 @@ describe('Environment Validation', () => {
     it('should compare segments numerically (1.0.10 is above 1.0.2)', () => {
       const config = {
         ...baseConfig,
-        MIN_IOS_VERSION: '1.0.2',
-        LATEST_IOS_VERSION: '1.0.10',
+        MIN_WEB_VERSION: '1.0.2',
+        LATEST_WEB_VERSION: '1.0.10',
       };
 
       expect(() => validateConfig(config)).not.toThrow();

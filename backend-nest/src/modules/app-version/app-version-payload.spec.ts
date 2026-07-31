@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'bun:test';
 import type { ConfigService } from '@nestjs/config';
 import { buildAppVersionResponse } from './app-version-payload';
+import type { IosVersionGate } from './ios-version-gate.service';
+
+const IOS_VERSIONS: IosVersionGate = {
+  minVersion: '1.0.0',
+  latestVersion: '1.0.2',
+};
 
 function createMockConfig(values: Record<string, string>): ConfigService {
   return {
@@ -9,16 +15,14 @@ function createMockConfig(values: Record<string, string>): ConfigService {
 }
 
 describe('buildAppVersionResponse', () => {
-  it('should produce a valid AppVersionResponse from well-formed env values', () => {
+  it('should produce a valid AppVersionResponse from well-formed values', () => {
     const config = createMockConfig({
-      MIN_IOS_VERSION: '1.0.0',
-      LATEST_IOS_VERSION: '1.0.2',
       IOS_STORE_URL: 'https://apps.apple.com/app/pulpe',
       MIN_WEB_VERSION: '0.0.1',
       LATEST_WEB_VERSION: '0.34.1',
     });
 
-    const result = buildAppVersionResponse(config);
+    const result = buildAppVersionResponse(config, IOS_VERSIONS);
 
     expect(result.success).toBe(true);
     expect(result.data.ios.minVersion).toBe('1.0.0');
@@ -30,25 +34,26 @@ describe('buildAppVersionResponse', () => {
 
   it('should throw when a version is not semver-shaped', () => {
     const config = createMockConfig({
-      MIN_IOS_VERSION: 'latest',
-      LATEST_IOS_VERSION: '1.0.0',
       IOS_STORE_URL: 'https://apps.apple.com/app/pulpe',
       MIN_WEB_VERSION: '0.0.1',
       LATEST_WEB_VERSION: '0.0.1',
     });
 
-    expect(() => buildAppVersionResponse(config)).toThrow();
+    expect(() =>
+      buildAppVersionResponse(config, {
+        minVersion: 'latest',
+        latestVersion: '1.0.0',
+      }),
+    ).toThrow();
   });
 
   it('should throw when IOS_STORE_URL is not a URL', () => {
     const config = createMockConfig({
-      MIN_IOS_VERSION: '1.0.0',
-      LATEST_IOS_VERSION: '1.0.0',
       IOS_STORE_URL: 'not-a-url',
       MIN_WEB_VERSION: '0.0.1',
       LATEST_WEB_VERSION: '0.0.1',
     });
 
-    expect(() => buildAppVersionResponse(config)).toThrow();
+    expect(() => buildAppVersionResponse(config, IOS_VERSIONS)).toThrow();
   });
 });

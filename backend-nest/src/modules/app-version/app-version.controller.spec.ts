@@ -5,13 +5,17 @@ import { ConfigService } from '@nestjs/config';
 import { appVersionResponseSchema } from 'pulpe-shared';
 import request from 'supertest';
 import { AppVersionController } from './app-version.controller';
+import { IosVersionGateService } from './ios-version-gate.service';
 
 const STUB_ENV = {
-  MIN_IOS_VERSION: '1.0.0',
-  LATEST_IOS_VERSION: '1.0.2',
   IOS_STORE_URL: 'https://apps.apple.com/app/pulpe',
   MIN_WEB_VERSION: '0.0.1',
   LATEST_WEB_VERSION: '0.34.1',
+};
+
+const STUB_IOS_GATE = {
+  minVersion: '1.0.0',
+  latestVersion: '1.0.2',
 };
 
 let app: INestApplication;
@@ -25,6 +29,10 @@ beforeAll(async () => {
         useValue: {
           get: (key: string) => STUB_ENV[key as keyof typeof STUB_ENV],
         },
+      },
+      {
+        provide: IosVersionGateService,
+        useValue: { resolve: () => STUB_IOS_GATE },
       },
     ],
   }).compile();
@@ -65,12 +73,15 @@ describe('GET /api/v1/app/version', () => {
     expect(response.headers['cache-control']).toBe('public, max-age=300');
   });
 
-  it('serves the configured iOS minimum version', async () => {
+  it('serves the resolved iOS versions and the configured store URL', async () => {
     const response = await request(app.getHttpServer()).get(
       '/api/v1/app/version',
     );
 
-    expect(response.body.data.ios.minVersion).toBe(STUB_ENV.MIN_IOS_VERSION);
+    expect(response.body.data.ios.minVersion).toBe(STUB_IOS_GATE.minVersion);
+    expect(response.body.data.ios.latestVersion).toBe(
+      STUB_IOS_GATE.latestVersion,
+    );
     expect(response.body.data.ios.storeUrl).toBe(STUB_ENV.IOS_STORE_URL);
   });
 });
