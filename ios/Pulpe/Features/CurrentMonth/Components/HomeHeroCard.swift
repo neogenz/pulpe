@@ -481,6 +481,6 @@ extension HomeHeroCard {
         )
         .padding(DesignTokens.Spacing.lg)
     }
-    .background(Color.homeBackground)
+    .background(Color.appBackground)
     .environment(UserSettingsStore())
 }

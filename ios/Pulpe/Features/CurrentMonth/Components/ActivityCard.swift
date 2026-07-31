@@ -126,7 +126,7 @@ struct ActivityCard: View {
     /// language — filled `pulpePrimary` for the active option, hairline outline for the
     /// other — because that is what selection looks like everywhere else in the app.
     /// The track it used to sit in was `surfaceContainerHigh`, a warm neutral that read
-    /// as a stain on the cool `homeBackground`; two pills carry the choice without it.
+    /// as a stain on the cool home canvas; two pills carry the choice without it.
     private var windowToggle: some View {
         HStack(spacing: DesignTokens.Spacing.sm) {
             ForEach(Window.allCases, id: \.self) { option in

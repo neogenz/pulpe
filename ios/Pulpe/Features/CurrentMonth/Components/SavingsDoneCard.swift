@@ -26,14 +26,7 @@ struct SavingsDoneCard: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: DesignTokens.Spacing.lg) {
-                Circle()
-                    .fill(Color.financialSavings.opacity(DesignTokens.Opacity.accent))
-                    .frame(width: DesignTokens.IconSize.badge, height: DesignTokens.IconSize.badge)
-                    .overlay {
-                        Image(systemName: "checkmark")
-                            .font(PulpeTypography.metricLabelBold)
-                            .foregroundStyle(Color.financialSavings)
-                    }
+                RowIcon(systemName: "checkmark", tint: .financialSavings)
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                     Text("Épargne du mois versée")

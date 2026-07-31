@@ -384,12 +384,9 @@ extension Color {
 
     // MARK: - Home Dashboard (Tour 11 — sage canvas + mint hero card)
 
-    /// Home dashboard canvas — now the shared app background (`appBackground`).
-    /// Kept as a semantic alias so home call sites read intentionally and the two never drift.
-    /// Ground the mint hero surface sits on. Brighter than `appBackground`: the surface is
-    /// pale enough that its edge needs the extra step to read, and the flat ledger below has
-    /// no cards left to lift the rows off it.
-    static let homeBackground = Color(light: Color(hex: 0xFAFCF9), dark: Color(hex: 0x121611))
+    // The home canvas is `appBackground`, like every other screen. It had its own
+    // near-white tone while the ledger was flat and had nothing to lift off the page;
+    // with the rows back on cards, a canvas a hair off white is a canvas with no cards.
     /// Mint hero card surface — identical across emotion states.
     static let homeHeroSurface = Color(light: Color(hex: 0xCFE8D6), dark: Color(hex: 0x1D3A28))
     /// Top stop of the mint hero card's material gradient — a hair lighter than the base

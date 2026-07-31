@@ -1,0 +1,96 @@
+import SwiftUI
+
+/// A section's name on the page, with the way out of it — drawn outside the card that
+/// holds the section's content, so the boundary of the card is the boundary of the data.
+///
+/// It replaces the bare chevrons the home used to carry: each sat half a screen from
+/// the title it belonged to and never said where it went. A named link says both, and
+/// reads as a link because that is what it is.
+struct HomeSectionHeader: View {
+    let title: String
+    /// Optional figure under the title — a window total, an overrun. Always an amount,
+    /// so the header can treat every one of them the same way.
+    var amountSubtitle: String?
+    var linkLabel: String?
+    var onLink: (() -> Void)?
+
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    var body: some View {
+        Group {
+            // Past `xxLarge` the title and the link stop fitting on one line and the link
+            // is what gives. Stacked, both keep their words. This is the one place the
+            // home branches on text size — the sections below inherit it.
+            if dynamicTypeSize >= .xxLarge {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    titleBlock
+                    link
+                }
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
+                    titleBlock
+                    Spacer(minLength: DesignTokens.Spacing.sm)
+                    link
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var titleBlock: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+            Text(title)
+                .font(PulpeTypography.sectionTitle)
+                .foregroundStyle(Color.textPrimary)
+
+            if let amountSubtitle {
+                Text(amountSubtitle)
+                    .font(PulpeTypography.labelMedium)
+                    .foregroundStyle(Color.textSecondary)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .sensitiveAmount()
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
+    }
+
+    @ViewBuilder
+    private var link: some View {
+        if let linkLabel, let onLink {
+            Button(action: onLink) {
+                HStack(spacing: DesignTokens.Spacing.xxs) {
+                    Text(linkLabel)
+                    Image(systemName: "chevron.right")
+                        .font(PulpeTypography.metricLabel)
+                }
+                .font(PulpeTypography.labelLarge)
+                .foregroundStyle(Color.pulpePrimary)
+                .lineLimit(1)
+            }
+            .textLinkButtonStyle()
+            // Out of its visual context "Tout voir" names nothing; paired with the
+            // section it does, and that saves every call site a hint of its own.
+            .accessibilityLabel("\(linkLabel), \(title)")
+        }
+    }
+}
+
+#Preview {
+    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
+        HomeSectionHeader(title: "Opérations à pointer", linkLabel: "Tout voir", onLink: {})
+
+        HomeSectionHeader(
+            title: "Activité",
+            amountSubtitle: "+4 871 CHF",
+            linkLabel: "Tout voir",
+            onLink: {}
+        )
+
+        HomeSectionHeader(title: "Sans lien", amountSubtitle: "142 CHF au-delà du plan")
+    }
+    .padding()
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(Color.appBackground)
+}

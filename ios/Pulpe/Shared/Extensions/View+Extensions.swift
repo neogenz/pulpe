@@ -310,6 +310,14 @@ extension View {
         modifier(CardBackgroundModifier(cornerRadius: cornerRadius))
     }
 
+    /// The surface a ledger row sits on: the flat card, plus the lift that detaches it
+    /// from the page. Paired here because a card with no lift and a lift with no card
+    /// are each half a boundary, and the call sites shouldn't have to remember both.
+    func pulpeRowCard() -> some View {
+        pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.card)
+            .shadow(DesignTokens.Shadow.subtle)
+    }
+
     /// Glass effect for floating navigation elements (toasts, overlays)
     func pulpeFloatingGlass(cornerRadius: CGFloat = DesignTokens.CornerRadius.md) -> some View {
         modifier(GlassEffectModifier(cornerRadius: cornerRadius))

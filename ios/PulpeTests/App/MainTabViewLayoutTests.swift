@@ -52,7 +52,7 @@ struct MainTabViewNavigationOwnershipTests {
             "CurrentMonth",
             "CurrentMonthView.swift"
         )
-        guard let start = source.range(of: #"Button("Ajouter une opération""#),
+        guard let start = source.range(of: "private var addOperationRow: some View {"),
               let end = source.range(
                   of: #".accessibilityLabel("Ajouter une opération")"#,
                   range: start.upperBound..<source.endIndex
@@ -62,16 +62,22 @@ struct MainTabViewNavigationOwnershipTests {
             return
         }
 
+        // The row no longer declares a minimum height: a `RowIcon` plus its vertical
+        // padding stands taller than the 44pt floor on its own. What still has to be
+        // declared is the reach — the whole card width — and the shape that carries it.
         let action = source[start.lowerBound..<end.upperBound]
-        guard let frame = action.range(of: "minHeight: DesignTokens.TapTarget.minimum"),
-              let contentShape = action.range(of: ".contentShape(Rectangle())"),
+        guard let width = action.range(of: "maxWidth: .infinity"),
+              let contentShape = action.range(
+                  of: ".contentShape(.rect(cornerRadius: DesignTokens.CornerRadius.card))"
+              ),
               let pressedStyle = action.range(of: ".plainPressedButtonStyle()")
         else {
-            Issue.record("Transaction action must declare its frame, content shape and pressed style")
+            Issue.record("Transaction action must declare its width, content shape and pressed style")
             return
         }
 
-        #expect(frame.lowerBound < contentShape.lowerBound)
+        #expect(action.contains("RowIcon("))
+        #expect(width.lowerBound < contentShape.lowerBound)
         #expect(contentShape.lowerBound < pressedStyle.lowerBound)
     }
 }

@@ -222,15 +222,12 @@ struct CurrentMonthView: View {
     }
 
     private var dashboardDetails: some View {
-        VStack(spacing: DesignTokens.Spacing.lg) {
+        // Wider than the gap inside a section: a section is now a heading on the page
+        // plus a card, so the space between two of them has to beat the space between a
+        // heading and the card it introduces, or the pairing reads the wrong way round.
+        VStack(spacing: DesignTokens.Spacing.xxl) {
             if store.budget != nil {
-                Button("Ajouter une opération", systemImage: "plus") { activeSheet = .addTransaction }
-                    .font(PulpeTypography.buttonPrimary)
-                    .foregroundStyle(Color.pulpePrimary)
-                    .frame(maxWidth: .infinity, minHeight: DesignTokens.TapTarget.minimum, alignment: .leading)
-                    .contentShape(Rectangle())
-                    .plainPressedButtonStyle()
-                    .accessibilityLabel("Ajouter une opération")
+                addOperationRow
             }
             // Opérations à pointer — only while something needs checking
             if !store.uncheckedItems.isEmpty {
@@ -302,14 +299,37 @@ struct CurrentMonthView: View {
                 .staggeredEntrance(isVisible: hasAppeared, index: 3)
             }
         }
-        // Flat ledger: one content margin for the whole screen, aligned with the hero above,
-        // so every row hangs off a single vertical rail instead of each card's own inset.
-        //
-        // Sections are separated by space and by the weight of their heading — never by a
-        // rule. The rules that used to sit here ran at the same hairline as the ones between
-        // rows inside a section, so one stroke meant three different things and the eye had
-        // to count text to find a boundary. Space says it once, and says it unambiguously.
+        // One content margin for the whole screen, aligned with the hero above, so the
+        // section headings and the cards they introduce hang off a single vertical rail.
         .padding(.horizontal, DesignTokens.Spacing.xxl)
+    }
+
+    /// The screen's first action, shaped like everything under it: a disc that says what
+    /// it does, a label, a chevron. It used to be bare green text with no bounds, which
+    /// gave the primary action of the home less presence than the secondary chip below it.
+    private var addOperationRow: some View {
+        Button { activeSheet = .addTransaction } label: {
+            HStack(spacing: DesignTokens.Spacing.lg) {
+                RowIcon(systemName: "plus", tint: .pulpePrimary)
+
+                Text("Ajouter une opération")
+                    .font(PulpeTypography.labelLarge)
+                    .foregroundStyle(Color.textPrimary)
+
+                Spacer(minLength: DesignTokens.Spacing.sm)
+
+                Image(systemName: "chevron.right")
+                    .font(PulpeTypography.metricLabel)
+                    .foregroundStyle(Color.textTertiary)
+            }
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.vertical, DesignTokens.Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .pulpeRowCard()
+        }
+        .contentShape(.rect(cornerRadius: DesignTokens.CornerRadius.card))
+        .plainPressedButtonStyle()
+        .accessibilityLabel("Ajouter une opération")
     }
 }
 
@@ -329,7 +349,7 @@ extension CurrentMonthView {
         switch store.contentState {
         case .idle, .loading, .loaded:
             ZStack(alignment: .top) {
-                Color.homeBackground
+                Color.appBackground
                 LinearGradient(
                     colors: [.homeHeroSurfaceTop, .homeHeroSurface],
                     startPoint: .top,
@@ -345,7 +365,7 @@ extension CurrentMonthView {
                 .shadow(DesignTokens.Shadow.zoneBoundary)
             }
         case .failed, .empty:
-            Color.homeBackground
+            Color.appBackground
         }
     }
 
