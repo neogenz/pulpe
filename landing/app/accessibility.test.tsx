@@ -117,6 +117,18 @@ const componentSources = {
   ),
 };
 
+// Les visuels nomment le plein mois au lieu de l'écrire, et deux tests ont
+// besoin de sa valeur pour additionner. Ils la lisent de la source plutôt que
+// d'en garder une copie : une copie ne suit pas la constante qu'elle double.
+const fullMonthDeclaration =
+  componentSources.howItWorksVisuals.match(/const FULL_MONTH = (\d+)/);
+assert.ok(fullMonthDeclaration, "HowItWorksVisuals ne déclare plus FULL_MONTH");
+const fullMonth = fullMonthDeclaration[1];
+const visualsWithFullMonth = componentSources.howItWorksVisuals.replace(
+  /FULL_MONTH/g,
+  fullMonth,
+);
+
 function getDeclarations(selector: string): string {
   const ruleStart = globalsCss.indexOf(`${selector} {`);
   assert.notEqual(ruleStart, -1, `Missing CSS rule: ${selector}`);
@@ -359,10 +371,7 @@ describe("landing accessibility contracts", () => {
     // doivent redonner le revenu, et le juillet du graphe doit valoir le
     // disponible de l'étape 3. Éditer un nombre sans l'autre rendrait la démo
     // fausse pour un visiteur qui additionne.
-    const visuals = componentSources.howItWorksVisuals.replace(
-      /FULL_MONTH/g,
-      "1400",
-    );
+    const visuals = visualsWithFullMonth;
     const body = (name: string) =>
       visuals.match(new RegExp(`export function ${name}[\\s\\S]*?\\n}`))?.[0] ??
       "";
@@ -374,14 +383,19 @@ describe("landing accessibility contracts", () => {
     assert.match(visuals, /const INCOME = 3500/);
     assert.equal(segmentTotal(body("MonthTemplateVisual")), 3500);
     assert.equal(segmentTotal(body("MonthAvailableVisual")), 3500);
-    assert.match(body("MonthTemplateVisual"), /<Payoff value=\{1400\}/);
+    assert.match(
+      body("MonthTemplateVisual"),
+      new RegExp(`<Payoff value=\\{${fullMonth}\\}`),
+    );
     assert.match(body("MonthAvailableVisual"), /<Payoff value=\{500\}/);
     assert.match(visuals, /key: "jul", initial: "J", available: 500/);
     assert.match(visuals, /key: "aou", initial: "A", available: 700/);
     assert.match(visuals, /key: "dec", initial: "D", available: 200/);
     // Trois catégories annoncées par la copie, donc trois mois qui décrochent,
     // et la légende sous le graphe les nomme toutes les trois.
-    const dips = [...visuals.matchAll(/available: (?!1400)(\d+)/g)];
+    const dips = [
+      ...visuals.matchAll(new RegExp(`available: (?!${fullMonth})(\\d+)`, "g")),
+    ];
     assert.equal(dips.length, 3);
     assert.equal(new Set(dips.map(([, amount]) => amount)).size, 3);
     assert.match(
@@ -396,10 +410,7 @@ describe("landing accessibility contracts", () => {
     // lecteurs d'écran un montant que l'écran n'affiche plus. Les deux sources
     // sont comparées en ensembles, parce qu'une légende répète un montant que
     // le visuel ne porte qu'une fois.
-    const visuals = componentSources.howItWorksVisuals.replace(
-      /FULL_MONTH/g,
-      "1400",
-    );
+    const visuals = visualsWithFullMonth;
     const amounts = (source: string, pattern: RegExp) =>
       [...source.matchAll(pattern)].map(([, amount]) => Number(amount));
     const body = (name: string) =>
@@ -413,7 +424,10 @@ describe("landing accessibility contracts", () => {
     ];
     const drawn = [
       composition("MonthTemplateVisual"),
-      [1400, ...amounts(visuals, /available: (?!1400)(\d+)/g)],
+      [
+        Number(fullMonth),
+        ...amounts(visuals, new RegExp(`available: (?!${fullMonth})(\\d+)`, "g")),
+      ],
       composition("MonthAvailableVisual"),
     ];
 
@@ -1094,16 +1108,32 @@ describe("landing accessibility contracts", () => {
     assert.doesNotMatch(componentSources.features, /Prévision liée/);
     assert.doesNotMatch(componentSources.features, /Juil\. · 0 CHF/);
     assert.match(componentSources.features, /Reste réparti/);
-    // Les deux parts viennent du même reste divisé en deux, donc la maquette ne
-    // peut plus afficher deux montants qui ne s'accordent pas.
+    // Les parts viennent du même reste divisé par le nombre de mois listés, et
+    // les mois sont la liste elle-même : la maquette ne peut plus afficher deux
+    // montants qui ne s'accordent pas, ni un mois de plus que ce qu'elle divise.
     assert.match(
       componentSources.features,
-      /GOAL_REMAINING_SHARE = \(GOAL_TARGET - GOAL_SAVED\) \/ 2/,
+      /GOAL_MONTHS = \["Août", "Sept\."\] as const/,
     );
     assert.match(
       componentSources.features,
-      /Août[\s\S]*<Money value=\{GOAL_REMAINING_SHARE\} \/>[\s\S]*Sept\.[\s\S]*<Money value=\{GOAL_REMAINING_SHARE\} \/>/,
+      /GOAL_REMAINING_SHARE = \(GOAL_TARGET - GOAL_SAVED\) \/ GOAL_MONTHS\.length/,
     );
+    assert.match(
+      componentSources.features,
+      /GOAL_MONTHS\.map\([\s\S]*\{month\}[\s\S]*<Money value=\{GOAL_REMAINING_SHARE\} \/>/,
+    );
+    // La barre et son libellé disaient 65 % de leur côté, sans lien avec les
+    // deux montants au-dessus d'eux.
+    assert.match(
+      componentSources.features,
+      /GOAL_PROGRESS = Math\.round\(\(GOAL_SAVED \/ GOAL_TARGET\) \* 100\)/,
+    );
+    assert.match(
+      componentSources.features,
+      /width: `\$\{GOAL_PROGRESS\}%`[\s\S]*\{GOAL_PROGRESS\} %/,
+    );
+    assert.doesNotMatch(componentSources.features, /w-\[65%\]|>\s*65 %/);
     assert.match(
       componentSources.features,
       /<div className="mt-4 border-t border-primary\/15 pt-3">/,

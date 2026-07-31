@@ -26,7 +26,10 @@ export default function LandingPage() {
       <Header />
 
       {/* pb reserves the StickyCTA's own height so the bar never lands on the
-          last readable line; dropped at lg, where the bar does not render. */}
+          last readable line; dropped at lg, where the bar does not render.
+          3.75rem is that height measured, not chosen: the Button's base
+          min-h-[48px] plus the 6px of p-1.5 the StickyCTA wraps it in, top and
+          bottom. Change either and this reserve is the thing that goes stale. */}
       <main
         id="main-content"
         tabIndex={-1}

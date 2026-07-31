@@ -9,9 +9,14 @@ const MONTHS = ["Mai", "Juin", "Juil.", "Août"] as const;
 const INSURANCE_TOTAL = 1200;
 const INSURANCE_SHARE = INSURANCE_TOTAL / MONTHS.length;
 
+// Même règle que l'assurance au-dessus : la carte objectif ne porte que sa
+// cible, ce qui est déjà épargné et les mois où le reste tombe. La part
+// mensuelle, la barre et son libellé se déduisent de ces trois-là.
 const GOAL_TARGET = 2400;
 const GOAL_SAVED = 1560;
-const GOAL_REMAINING_SHARE = (GOAL_TARGET - GOAL_SAVED) / 2;
+const GOAL_MONTHS = ["Août", "Sept."] as const;
+const GOAL_REMAINING_SHARE = (GOAL_TARGET - GOAL_SAVED) / GOAL_MONTHS.length;
+const GOAL_PROGRESS = Math.round((GOAL_SAVED / GOAL_TARGET) * 100);
 
 export function Features() {
   return (
@@ -108,10 +113,13 @@ export function Features() {
             </div>
             <div className="mt-4 flex items-center gap-3">
               <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-primary/12">
-                <div className="h-full w-[65%] rounded-full bg-primary" />
+                <div
+                  className="h-full rounded-full bg-primary"
+                  style={{ width: `${GOAL_PROGRESS}%` }}
+                />
               </div>
               <span className="tabular-nums shrink-0 text-xs font-medium text-primary">
-                65 %
+                {GOAL_PROGRESS} %
               </span>
             </div>
             <div className="mt-4 border-t border-primary/15 pt-3">
@@ -119,18 +127,17 @@ export function Features() {
                 <span className="font-medium text-primary">Reste réparti</span>
               </div>
               <div className="mt-2 grid grid-cols-2 divide-x divide-primary/15">
-                <div className="flex items-baseline justify-between gap-2 pr-3">
-                  <span className="text-xs text-text-secondary">Août</span>
-                  <strong className="tabular-nums text-xs font-semibold text-text">
-                    <Money value={GOAL_REMAINING_SHARE} />
-                  </strong>
-                </div>
-                <div className="flex items-baseline justify-between gap-2 pl-3">
-                  <span className="text-xs text-text-secondary">Sept.</span>
-                  <strong className="tabular-nums text-xs font-semibold text-text">
-                    <Money value={GOAL_REMAINING_SHARE} />
-                  </strong>
-                </div>
+                {GOAL_MONTHS.map((month) => (
+                  <div
+                    key={month}
+                    className="flex items-baseline justify-between gap-2 first:pr-3 last:pl-3"
+                  >
+                    <span className="text-xs text-text-secondary">{month}</span>
+                    <strong className="tabular-nums text-xs font-semibold text-text">
+                      <Money value={GOAL_REMAINING_SHARE} />
+                    </strong>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
