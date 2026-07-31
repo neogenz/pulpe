@@ -1,21 +1,27 @@
 import SwiftUI
 
-/// Tour 11 "Activité" — recent transactions with a 7j/Mois window toggle,
-/// the only variateur that maps to real usage.
+/// Tour 11 "Activité" — recent transactions grouped by day, under a 7 jours / Ce mois
+/// window selector, the only variateur that maps to real usage.
 struct ActivityCard: View {
     let transactions: [Transaction]
     var tagNamesById: [String: String] = [:]
     var onViewAll: () -> Void
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var window: Window = .week
 
     private static let maxRows = 5
 
     enum Window: String, CaseIterable {
-        case week = "7j"
-        case month = "Mois"
+        case week = "7 jours"
+        case month = "Ce mois"
+    }
+
+    /// One day's transactions, in the order the window already sorted them.
+    private struct DayGroup: Identifiable {
+        let id: Date
+        let label: String
+        let transactions: [Transaction]
     }
 
     private var filtered: [Transaction] {
@@ -27,6 +33,29 @@ struct ActivityCard: View {
         return sorted.filter { $0.transactionDate >= cutoff }
     }
 
+    /// Buckets the visible rows by calendar day, newest day first. The cap is applied
+    /// before grouping, so the screen still shows at most `maxRows` transactions however
+    /// many days they fall across.
+    private func dayGroups(for windowed: [Transaction]) -> [DayGroup] {
+        let calendar = Calendar.current
+        var order: [Date] = []
+        var byDay: [Date: [Transaction]] = [:]
+
+        for transaction in windowed.prefix(Self.maxRows) {
+            let day = calendar.startOfDay(for: transaction.transactionDate)
+            if byDay[day] == nil { order.append(day) }
+            byDay[day, default: []].append(transaction)
+        }
+
+        return order.map { day in
+            DayGroup(
+                id: day,
+                label: day.relativeFormatted,
+                transactions: byDay[day] ?? []
+            )
+        }
+    }
+
     private func headerTotal(for windowed: [Transaction]) -> String {
         // Arithmetic net of the window: income positive, outflows negative.
         windowed
@@ -35,194 +64,85 @@ struct ActivityCard: View {
     }
 
     var body: some View {
-        // Sort + filter once per render — as computed vars, header count, window total and
+        // Sort, filter and group once per render — as computed vars, the header total and
         // the rows each re-traversed all transactions.
         let windowed = filtered
+        let groups = dayGroups(for: windowed)
 
-        VStack(spacing: DesignTokens.Spacing.none) {
-            header(for: windowed)
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            HomeSectionHeader(
+                title: "Activité",
+                amountSubtitle: headerTotal(for: windowed),
+                linkLabel: "Tout voir",
+                onLink: onViewAll
+            )
 
-            rows(for: windowed)
+            // Its own row, full width. Squeezed into the heading it fought the title for
+            // the line and had to be re-stacked by hand past `xxLarge`; on a row of its
+            // own it fits at every text size, and the labels get their whole word back.
+            CapsulePicker(selection: $window, title: nil) { option, _ in
+                Text(option.rawValue)
+                    .lineLimit(1)
+            }
+            .accessibilityLabel("Période d'activité")
+
+            if groups.isEmpty {
+                emptyState
+            } else {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.lg) {
+                    ForEach(groups) { group in
+                        dayGroup(group)
+                    }
+                }
+            }
         }
         .animation(DesignTokens.Animation.smoothEaseOut, value: window)
     }
 
-    // MARK: - Header
+    // MARK: - Day group
 
-    private func header(for windowed: [Transaction]) -> some View {
-        // The title, the total and the two controls share one line's width, and past
-        // `xxLarge` the total is what gives: `+4 871 CHF` becomes `+4 871 C…`, and an
-        // amount cut off its currency is not an amount. Stacked, it owns the full width.
-        let isStacked = dynamicTypeSize >= .xxLarge
-
-        return Group {
-            if isStacked {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-                    titleBlock(for: windowed, isStacked: true)
-
-                    HStack(spacing: DesignTokens.Spacing.md) {
-                        windowToggle
-                        Spacer()
-                        viewAllButton
-                    }
-                }
-            } else {
-                HStack(spacing: DesignTokens.Spacing.md) {
-                    titleBlock(for: windowed, isStacked: false)
-
-                    Spacer()
-
-                    // Tight trailing cluster: the chevron's 44pt tap box carries ~36pt of
-                    // dead space to the left of its glyph, so the usual `md` gap would read
-                    // as a void. Stacked, the row is wide enough that the gap is a Spacer.
-                    HStack(spacing: DesignTokens.Spacing.xs) {
-                        windowToggle
-                        viewAllButton
-                    }
-                }
-            }
-        }
-        // Asymmetric on purpose: the heading is pushed away from the section above it and
-        // held close to the rows it introduces, so proximity alone groups them.
-        .padding(.top, DesignTokens.Spacing.lg)
-        .padding(.bottom, DesignTokens.Spacing.sm)
-    }
-
-    private func titleBlock(for windowed: [Transaction], isStacked: Bool) -> some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-            Text("Activité")
-                .font(PulpeTypography.sectionTitle)
-                .foregroundStyle(Color.textPrimary)
-
-            Text(headerTotal(for: windowed))
-                .font(PulpeTypography.labelMedium)
-                .foregroundStyle(Color.textSecondary)
-                .monospacedDigit()
-                // One line while the controls sit beside it — otherwise the total pushes
-                // them off the row. Once it has the row to itself, wrapping is what keeps
-                // the currency attached to its digits.
-                .lineLimit(isStacked ? nil : 1)
-                .contentTransition(.numericText())
-                .sensitiveAmount()
-        }
-    }
-
-    private var viewAllButton: some View {
-        Button(action: onViewAll) {
-            // Centring the glyph in that box would leave it ~18pt left of the chevrons on
-            // the hero and à-pointer cards (bare Images flush to the same padding). Pin it
-            // trailing; the hit area is unchanged.
-            Image(systemName: "chevron.right")
-                .font(PulpeTypography.metricLabel)
-                .foregroundStyle(Color.textTertiary)
-                .frame(minWidth: DesignTokens.TapTarget.minimum, alignment: .trailing)
-        }
-        .iconButtonStyle()
-        .accessibilityLabel("Voir toutes les transactions")
-    }
-
-    /// Two-segment window selector, each segment addressable on its own: tapping the
-    /// active one is a no-op rather than a flip. Speaks `CapsulePicker`'s selection
-    /// language — filled `pulpePrimary` for the active option, hairline outline for the
-    /// other — because that is what selection looks like everywhere else in the app.
-    /// The track it used to sit in was `surfaceContainerHigh`, a warm neutral that read
-    /// as a stain on the cool home canvas; two pills carry the choice without it.
-    private var windowToggle: some View {
-        HStack(spacing: DesignTokens.Spacing.sm) {
-            ForEach(Window.allCases, id: \.self) { option in
-                windowSegment(option)
-            }
-        }
-        .sensoryFeedback(.selection, trigger: window)
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Période d'activité")
-        .accessibilityValue(window == .week ? "7 derniers jours" : "Mois complet")
-        .accessibilityHint("Bascule entre 7 jours et le mois")
-    }
-
-    private func windowSegment(_ option: Window) -> some View {
-        let isSelected = window == option
-        return Button {
-            withAnimation(DesignTokens.Animation.smoothEaseOut) { window = option }
-        } label: {
-            // Unconstrained, "Mois" breaks to one letter per line at accessibility
-            // sizes and the capsule collapses over "7j".
-            Text(option.rawValue)
-                .font(PulpeTypography.metricMini)
-                .foregroundStyle(isSelected ? Color.textOnPrimary : Color.textSecondary)
-                .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
-                // Vertical padding stays under the horizontal one: at `sm` the short
-                // "7j" rounded into a circle next to a capsule "Mois", two shapes for
-                // one control.
-                .padding(.horizontal, DesignTokens.Spacing.compactGap)
-                .padding(.vertical, DesignTokens.Spacing.xs)
-                .background(isSelected ? Color.pulpePrimary : .clear, in: Capsule())
-                .overlay {
-                    if !isSelected {
-                        Capsule().strokeBorder(
-                            Color.onSurfaceVariant.opacity(DesignTokens.Opacity.outlinePill),
-                            lineWidth: DesignTokens.BorderWidth.thin
-                        )
-                    }
-                }
-        }
-        .frame(minHeight: DesignTokens.TapTarget.minimum)
-        .contentShape(Capsule())
-        .plainPressedButtonStyle()
-        .accessibilityLabel(option == .week ? "7 derniers jours" : "Mois complet")
-        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
-    }
-
-    // MARK: - Rows
-
-    @ViewBuilder
-    private func rows(for windowed: [Transaction]) -> some View {
-        if windowed.isEmpty {
-            Text("Aucune transaction sur cette période")
+    private func dayGroup(_ group: DayGroup) -> some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            // The day sits outside the card, said once, instead of repeating under every
+            // name inside it. It carries the header trait so VoiceOver can jump by day —
+            // which is the navigation the rows lost when they gave up their date.
+            Text(group.label)
                 .font(PulpeTypography.labelMedium)
                 .foregroundStyle(Color.textTertiary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, DesignTokens.Spacing.lg)
-        } else {
-            // No rules between rows: each one is a name over a date with an amount opposite,
-            // and the 24pt between rows against the 2pt inside one already says where a row
-            // ends. A hairline on top of that only adds ledger-paper texture.
+                .accessibilityAddTraits(.isHeader)
+
             VStack(spacing: DesignTokens.Spacing.none) {
-                ForEach(windowed.prefix(Self.maxRows)) { transaction in
+                ForEach(Array(group.transactions.enumerated()), id: \.element.id) { index, transaction in
+                    if index > 0 { Divider() }
                     row(transaction)
                 }
             }
-            .padding(.bottom, DesignTokens.Spacing.sm)
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.vertical, DesignTokens.Spacing.xs)
+            .pulpeRowCard()
         }
     }
 
     private func row(_ transaction: Transaction) -> some View {
-        HStack(alignment: .firstTextBaseline) {
-            // Name and date are separate Texts, not one concatenation: a single
-            // `lineLimit(1)` over "name · date" truncates the date away first, and the date
-            // is what tells two same-named transactions apart ("test" vs "test 2").
+        HStack(spacing: DesignTokens.Spacing.lg) {
+            RowIcon(systemName: transaction.kind.icon, tint: transaction.kind.color)
+
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                 Text(transaction.name)
                     .font(PulpeTypography.labelLarge)
                     .foregroundStyle(Color.textPrimary)
                     .lineLimit(1)
 
-                HStack(spacing: DesignTokens.Spacing.xs) {
-                    Text(transaction.transactionDate.relativeFormatted.lowercased())
-                        .font(PulpeTypography.labelMedium)
-                        .foregroundStyle(Color.textSecondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(DesignTokens.TextScale.compact)
-
-                    let tagNames = TagChips.names(for: transaction.tagIds, namesById: tagNamesById)
-                    if !tagNames.isEmpty {
-                        TagChips(names: tagNames, presentation: .count, followsText: true)
-                    }
+                // No date under the name any more: the day is named once, above the card
+                // these rows sit in. `followsText` goes with it — nothing precedes the
+                // chips on this line for them to trail.
+                let tagNames = TagChips.names(for: transaction.tagIds, namesById: tagNamesById)
+                if !tagNames.isEmpty {
+                    TagChips(names: tagNames, presentation: .count)
                 }
             }
 
-            Spacer()
+            Spacer(minLength: DesignTokens.Spacing.sm)
 
             amountColumn(transaction)
         }
@@ -252,5 +172,32 @@ struct ActivityCard: View {
             }
         }
         .sensitiveAmount()
+    }
+
+    // MARK: - Empty window
+
+    /// A bounded row, not a grey sentence on the page: "0 CHF" followed by a floating
+    /// line of small print reads like a screen that failed to finish loading.
+    private var emptyState: some View {
+        HStack(spacing: DesignTokens.Spacing.lg) {
+            RowIcon(systemName: "tray", tint: .textTertiary)
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                Text(window == .week ? "Rien sur ces 7 jours" : "Rien ce mois-ci")
+                    .font(PulpeTypography.labelLarge)
+                    .foregroundStyle(Color.textPrimary)
+
+                Text("Tes opérations s'afficheront ici")
+                    .font(PulpeTypography.labelMedium)
+                    .foregroundStyle(Color.textTertiary)
+            }
+
+            Spacer(minLength: DesignTokens.Spacing.none)
+        }
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .padding(.vertical, DesignTokens.Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .pulpeRowCard()
+        .accessibilityElement(children: .combine)
     }
 }

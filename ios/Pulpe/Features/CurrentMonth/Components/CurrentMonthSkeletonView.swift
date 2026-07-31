@@ -12,7 +12,7 @@ struct CurrentMonthSkeletonView: View {
             VStack(spacing: DesignTokens.Spacing.none) {
                 heroZone
 
-                VStack(spacing: DesignTokens.Spacing.lg) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
                     contentActionSkeleton
                     uncheckedCardSkeleton
                     activityCardSkeleton
@@ -39,111 +39,102 @@ struct CurrentMonthSkeletonView: View {
     }
 
     private var contentActionSkeleton: some View {
-        HStack {
+        HStack(spacing: DesignTokens.Spacing.lg) {
+            SkeletonCircle(size: DesignTokens.IconSize.badge)
             SkeletonShape(
                 width: DesignTokens.Skeleton.greetingWidth,
                 height: DesignTokens.Skeleton.lineHeight
             )
             Spacer()
         }
-        .frame(minHeight: DesignTokens.TapTarget.minimum)
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .padding(.vertical, DesignTokens.Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .pulpeRowCard()
     }
 
     private var uncheckedCardSkeleton: some View {
-        VStack(spacing: DesignTokens.Spacing.none) {
-            HStack(spacing: DesignTokens.Spacing.lg) {
-                SkeletonShape(
-                    width: DesignTokens.Skeleton.greetingWidth,
-                    height: DesignTokens.Skeleton.lineHeight
-                )
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            sectionHeaderSkeleton
 
-                Spacer()
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                rowSkeleton
 
-                SkeletonShape(
-                    width: DesignTokens.Spacing.xs,
-                    height: DesignTokens.Spacing.md,
-                    cornerRadius: DesignTokens.CornerRadius.xs
-                )
-            }
-            .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, DesignTokens.Spacing.sm)
+                Divider()
 
-            VStack(spacing: DesignTokens.Spacing.md) {
-                HStack {
-                    SkeletonShape(
-                        width: DesignTokens.Skeleton.greetingWidth,
-                        height: DesignTokens.Skeleton.lineHeight
-                    )
-                    Spacer()
-                    SkeletonShape(
-                        width: DesignTokens.Skeleton.greetingWidth / 2,
-                        height: DesignTokens.Skeleton.lineHeight
-                    )
-                }
-
-                // Two capsules, because the loaded card now offers two: the deferral is a
-                // chip like the confirmation, so a bare line here would promise a shape the
+                // Two capsules, because the loaded card offers two: the deferral is a chip
+                // like the confirmation, so a bare line here would promise a shape the
                 // arriving data does not deliver.
-                HStack(spacing: DesignTokens.Spacing.lg) {
+                HStack(spacing: DesignTokens.Spacing.md) {
                     SkeletonShape(
                         width: DesignTokens.Skeleton.greetingWidth,
                         height: DesignTokens.TapTarget.minimum,
                         cornerRadius: .infinity
                     )
-                    Spacer(minLength: DesignTokens.Spacing.sm)
                     SkeletonShape(
                         width: DesignTokens.Skeleton.greetingWidth / 2,
                         height: DesignTokens.TapTarget.minimum,
                         cornerRadius: .infinity
                     )
+                    Spacer(minLength: DesignTokens.Spacing.none)
                 }
             }
-            .padding(.top, DesignTokens.Spacing.md)
-            .padding(.bottom, DesignTokens.Spacing.lg)
+            .padding(DesignTokens.Spacing.lg)
+            .pulpeRowCard()
         }
     }
 
     private var activityCardSkeleton: some View {
-        VStack(spacing: DesignTokens.Spacing.none) {
-            HStack(spacing: DesignTokens.Spacing.md) {
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                    SkeletonShape(
-                        width: DesignTokens.Skeleton.greetingWidth / 2,
-                        height: DesignTokens.Skeleton.lineHeight
-                    )
-                    SkeletonShape(
-                        width: DesignTokens.Skeleton.greetingWidth,
-                        height: DesignTokens.Spacing.md
-                    )
-                }
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            sectionHeaderSkeleton
 
-                Spacer()
+            // The window selector runs the full width once loaded, so it does here too —
+            // a narrow placeholder would shift the whole list when the data lands.
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                SkeletonShape(height: DesignTokens.TapTarget.minimum, cornerRadius: .infinity)
+                SkeletonShape(height: DesignTokens.TapTarget.minimum, cornerRadius: .infinity)
+            }
 
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                 SkeletonShape(
                     width: DesignTokens.Skeleton.greetingWidth / 2,
-                    height: DesignTokens.TapTarget.minimum,
-                    cornerRadius: .infinity
+                    height: DesignTokens.Spacing.md
                 )
-                SkeletonShape(
-                    width: DesignTokens.Spacing.xs,
-                    height: DesignTokens.Spacing.md,
-                    cornerRadius: DesignTokens.CornerRadius.xs
-                )
-            }
-            .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, DesignTokens.Spacing.sm)
 
-            VStack(spacing: DesignTokens.Spacing.none) {
-                ForEach(0..<3, id: \.self) { _ in
-                    activityRowSkeleton
+                VStack(spacing: DesignTokens.Spacing.none) {
+                    ForEach(0..<2, id: \.self) { index in
+                        if index > 0 { Divider() }
+                        rowSkeleton
+                            .padding(.vertical, DesignTokens.Spacing.md)
+                    }
                 }
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.vertical, DesignTokens.Spacing.xs)
+                .pulpeRowCard()
             }
-            .padding(.bottom, DesignTokens.Spacing.sm)
         }
     }
 
-    private var activityRowSkeleton: some View {
-        HStack {
+    /// A section's name and its named link, on the page rather than inside the card.
+    private var sectionHeaderSkeleton: some View {
+        HStack(spacing: DesignTokens.Spacing.md) {
+            SkeletonShape(
+                width: DesignTokens.Skeleton.greetingWidth,
+                height: DesignTokens.Skeleton.lineHeight
+            )
+            Spacer()
+            SkeletonShape(
+                width: DesignTokens.Skeleton.greetingWidth / 2,
+                height: DesignTokens.Spacing.md
+            )
+        }
+    }
+
+    /// Disc, name over metadata, amount opposite — the shape every ledger row now has.
+    private var rowSkeleton: some View {
+        HStack(spacing: DesignTokens.Spacing.lg) {
+            SkeletonCircle(size: DesignTokens.IconSize.badge)
+
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                 SkeletonShape(
                     width: DesignTokens.Skeleton.greetingWidth,
@@ -154,13 +145,14 @@ struct CurrentMonthSkeletonView: View {
                     height: DesignTokens.Spacing.md
                 )
             }
+
             Spacer()
+
             SkeletonShape(
                 width: DesignTokens.Skeleton.greetingWidth / 2,
                 height: DesignTokens.Skeleton.lineHeight
             )
         }
-        .padding(.vertical, DesignTokens.Spacing.md)
     }
 }
 
