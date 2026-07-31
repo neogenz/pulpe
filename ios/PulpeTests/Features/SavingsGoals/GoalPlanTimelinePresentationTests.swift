@@ -56,6 +56,22 @@ struct GoalPlanTimelinePresentationTests {
         #expect(expanded.hiddenCount == 0)
     }
 
+    @Test("counts only isRepairable months regardless of position, matching the recap and create set")
+    func repairableMonths_ignoresPositionAndMatchesTheUnwindowedRepairableSet() {
+        let months = [
+            makeMonth(month: 4, state: .past, isLocked: true, hasLinkedForecast: true),
+            makeMonth(month: 5, state: .past, isLocked: true),
+            makeMonth(month: 6, state: .current, isProvisionable: true),
+            makeMonth(month: 7, state: .future, isProvisionable: true),
+            makeMonth(month: 8, state: .future, hasLinkedForecast: true),
+        ]
+
+        let presentation = GoalPlanTimelinePresentation(months: months, isExpanded: false)
+
+        #expect(presentation.repairableMonths.map(\.month) == [6, 7])
+        #expect(presentation.repairableMonths.count == months.filter(\.isRepairable).count)
+    }
+
     @Test("uses natural agreement for one or several repairable forecasts")
     func repairMessage_usesNaturalAgreement() {
         let current = makeMonth(month: 7, state: .current, hasLinkedForecast: true)

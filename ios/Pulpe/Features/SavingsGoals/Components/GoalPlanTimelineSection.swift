@@ -33,7 +33,7 @@ struct GoalPlanTimelinePresentation {
     }
 
     var repairableMonths: [SavingsGoalPlanMonth] {
-        months.dropFirst(currentIndex).filter(\.isRepairable)
+        months.filter(\.isRepairable)
     }
 
     var repairMessage: String {

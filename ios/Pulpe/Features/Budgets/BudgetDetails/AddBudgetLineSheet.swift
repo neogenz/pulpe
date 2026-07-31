@@ -7,34 +7,37 @@ struct AddBudgetLineSheet: View {
     /// PUL-292: routes the CTA to a prefilled withdrawal instead of creating plain income.
     let onRequestSavingsWithdrawal: ((SavingsWithdrawalPrefill) -> Void)?
 
-    @Environment(\.dismiss) private var dismiss
-    @Environment(ToastManager.self) private var toastManager
-    @Environment(UserSettingsStore.self) private var userSettingsStore
-    @Environment(BudgetListStore.self) private var budgetListStore
-    @State private var name = ""
-    @State private var amount: Decimal?
-    @State private var kind: TransactionKind = .expense
-    @State private var savingsGoalId: String?
-    @State private var selectedTagIds: Set<String> = []
-    @State private var isChecked = false
-    @State private var isLoading = false
-    @State private var error: Error?
+    @Environment(\.dismiss) var dismiss
+    @Environment(ToastManager.self) var toastManager
+    @Environment(UserSettingsStore.self) var userSettingsStore
+    @Environment(BudgetListStore.self) var budgetListStore
+    @State var name = ""
+    @State var amount: Decimal?
+    @State var kind: TransactionKind = .expense
+    @State var savingsGoalId: String?
+    @State var selectedTagIds: Set<String> = []
+    @State var isChecked = false
+    @State var isLoading = false
+    @State var error: Error?
     @FocusState private var focusedField: AmountDescriptionField?
     @State private var amountText = ""
-    @State private var submitSuccessTrigger = false
-    @State private var inputCurrency: SupportedCurrency = .chf
+    @State var submitSuccessTrigger = false
+    @State var inputCurrency: SupportedCurrency = .chf
     @State private var mode: BudgetLineCreationMode = .once
-    @State private var amountMode: SpreadAmountMode = .total
-    /// PUL-292: income-only; reroutes the CTA to a prefilled withdrawal.
+    @State var amountMode: SpreadAmountMode = .total
+    /// PUL-292 — income-only, OFF by default. ON reroutes the CTA to the
+    /// "piocher dans son épargne" preview, prefilled.
     @State private var remitNextMonth = false
-    @State private var spreadCalculator: SpreadCalculator
-    /// One idempotency key per sheet, replayed on retries (PUL-17).
-    @State private var spreadGroupId = UUID().uuidString.lowercased()
+    @State var spreadCalculator: SpreadCalculator
+    /// Idempotency key for the spread create (PUL-17), minted ONCE per sheet
+    /// presentation and replayed on every submit retry so a double-tap replays
+    /// the group instead of duplicating it. Lowercased to mirror `crypto.randomUUID()`.
+    @State var spreadGroupId = UUID().uuidString.lowercased()
 
-    private let anchorMonth: Int
-    private let anchorYear: Int
-    private let dependencies: AddBudgetLineDependencies
-    private let conversionService = CurrencyConversionService.shared
+    let anchorMonth: Int
+    let anchorYear: Int
+    let dependencies: AddBudgetLineDependencies
+    let conversionService = CurrencyConversionService.shared
     init(
         budgetId: String,
         anchorMonth: Int,
@@ -56,13 +59,13 @@ struct AddBudgetLineSheet: View {
         ))
     }
 
-    private var isSpreadMode: Bool { mode == .spread }
+    var isSpreadMode: Bool { mode == .spread }
 
     static func showsTagPicker(spread: Bool, withdrawal: Bool) -> Bool { !spread && !withdrawal }
 
     static func showsSavingsGoalPicker(kind: TransactionKind) -> Bool { kind == .saving }
 
-    private var isSavingsWithdrawalMode: Bool { kind == .income && remitNextMonth }
+    var isSavingsWithdrawalMode: Bool { kind == .income && remitNextMonth }
 
     private var amountFieldHint: String? {
         guard isSpreadMode else { return nil }
@@ -215,125 +218,6 @@ struct AddBudgetLineSheet: View {
             }
         }
         .animation(.easeInOut(duration: DesignTokens.Animation.fast), value: validationHint)
-    }
-
-    // MARK: - Logic
-
-    /// Routes to the withdrawal, spread, or single-line flow.
-    private func submit() async {
-        if isSavingsWithdrawalMode {
-            routeToSavingsWithdrawal()
-        } else if isSpreadMode {
-            await addSpread()
-        } else {
-            await addBudgetLine()
-        }
-    }
-
-    /// Hands a prefilled withdrawal intent to the router (PUL-292).
-    private func routeToSavingsWithdrawal() {
-        guard let amount, amount > 0 else { return }
-        let trimmed = name.trimmingCharacters(in: .whitespaces)
-        onRequestSavingsWithdrawal?(
-            SavingsWithdrawalPrefill(
-                budgetId: budgetId,
-                anchorMonth: anchorMonth,
-                anchorYear: anchorYear,
-                amount: amount,
-                inputCurrency: inputCurrency,
-                source: trimmed.isEmpty ? nil : trimmed,
-                startsAtPreview: true
-            )
-        )
-    }
-
-    private func addBudgetLine() async {
-        guard let amount else { return }
-
-        isLoading = true
-        defer { isLoading = false }
-        error = nil
-
-        do {
-            let conversion = try await conversionService.convert(
-                amount: amount,
-                from: inputCurrency,
-                to: userSettingsStore.currency
-            )
-
-            let data = BudgetLineCreate(
-                budgetId: budgetId,
-                name: name.trimmingCharacters(in: .whitespaces),
-                amount: conversion?.convertedAmount ?? amount,
-                kind: kind,
-                recurrence: .oneOff,
-                savingsGoalId: kind.savingsGoalLink(savingsGoalId),
-                checkedAt: isChecked ? Date() : nil,
-                originalAmount: conversion?.originalAmount,
-                originalCurrency: conversion?.originalCurrency,
-                targetCurrency: conversion?.targetCurrency,
-                exchangeRate: conversion?.exchangeRate,
-                tagIds: TagPickerField.createdTagIds(from: selectedTagIds)
-            )
-
-            let budgetLine = try await dependencies.createBudgetLine(data)
-            submitSuccessTrigger.toggle()
-            onAdd(budgetLine)
-            toastManager.show("Prévision ajoutée")
-            dismiss()
-        } catch {
-            self.error = error
-        }
-    }
-
-    /// Fans the per-month amount over every SELECTED month (PUL-17, interp. B).
-    /// FX frozen once (one shared `exchangeRate`). Cross-budget caches are
-    /// invalidated OUTSIDE any coordinator (a spread touches N months it doesn't
-    /// own); the occurrence in the open budget is fed back via `onAdd`.
-    private func addSpread() async {
-        guard let amount, spreadCalculator.isValid else { return }
-
-        isLoading = true
-        defer { isLoading = false }
-        error = nil
-
-        do {
-            let conversion = try await conversionService.convert(
-                amount: amount,
-                from: inputCurrency,
-                to: userSettingsStore.currency
-            )
-            let data = AddBudgetLineSpreadLogic.buildCreate(
-                calculator: spreadCalculator,
-                input: AddBudgetLineSpreadLogic.SubmitInput(
-                    name: name,
-                    kind: kind,
-                    amount: amount,
-                    mode: amountMode,
-                    conversion: conversion,
-                    spreadGroupId: spreadGroupId,
-                    savingsGoalId: savingsGoalId
-                )
-            )
-
-            let response = try await dependencies.createSpread(data)
-
-            // Refresh the active screen via the single-line `onAdd` seam when an
-            // occurrence landed in the open budget (PUL-270).
-            if let openLine = response.lines.first(where: { $0.budgetId == budgetId }) {
-                onAdd(openLine)
-            }
-
-            // Cross-budget invalidation OUTSIDE the coordinator, for the OTHER
-            // months it doesn't own (PUL-17).
-            dependencies.invalidateCrossBudgetCaches(budgetListStore)
-
-            submitSuccessTrigger.toggle()
-            toastManager.show(AddBudgetLineSpreadLogic.successMessage(for: response))
-            dismiss()
-        } catch {
-            self.error = error
-        }
     }
 }
 
