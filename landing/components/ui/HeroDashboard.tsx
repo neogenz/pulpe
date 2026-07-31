@@ -5,6 +5,7 @@ import { Check } from "lucide-react";
 import { memo, useEffect, useId, useState } from "react";
 import { currencyUnit, formatAmount, formatMoney } from "@/lib/amount";
 import {
+  HERO_AVAILABLE,
   HERO_BUDGET,
   HERO_PREVISIONS,
   HERO_SPENT,
@@ -12,15 +13,9 @@ import {
 } from "@/lib/heroMock";
 import { useVisitorCurrency } from "@/lib/visitorCurrency";
 
-interface HeroDashboardProps {
-  amount: number;
-}
-
 const CURVE = "M0,27 C14,25 22,29 34,25 C46,21 54,16 66,17 C78,18 86,9 100,8";
 
-export const HeroDashboard = memo(function HeroDashboard({
-  amount,
-}: HeroDashboardProps) {
+export const HeroDashboard = memo(function HeroDashboard() {
   const currency = useVisitorCurrency();
   const unit = currencyUnit(currency);
   const gradientId = useId();
@@ -90,13 +85,13 @@ export const HeroDashboard = memo(function HeroDashboard({
           <p className="text-sm text-white/90">Disponible ce mois</p>
           <p className="mt-1 leading-none">
             <span className="sr-only">
-              {amount} {unit}
+              {HERO_AVAILABLE} {unit}
             </span>
             <span
               aria-hidden="true"
               className="text-[clamp(3.5rem,8vw,5.5rem)] font-extrabold tracking-[-0.04em] tabular-nums"
             >
-              {formatAmount(amount, currency)}
+              {formatAmount(HERO_AVAILABLE, currency)}
             </span>
             <span
               aria-hidden="true"

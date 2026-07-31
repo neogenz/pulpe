@@ -117,14 +117,14 @@ const componentSources = {
   ),
 };
 
-// Les visuels nomment le plein mois au lieu de l'écrire, et deux tests ont
-// besoin de sa valeur pour additionner. Ils la lisent de la source plutôt que
-// d'en garder une copie : une copie ne suit pas la constante qu'elle double.
+// La source des trois visuels de planification, son `FULL_MONTH` résolu. Deux
+// tests ont besoin de cette valeur pour additionner ; ils la lisent de la
+// source plutôt que d'en garder une copie, qui ne suivrait pas la constante.
 const fullMonthDeclaration =
   componentSources.howItWorksVisuals.match(/const FULL_MONTH = (\d+)/);
 assert.ok(fullMonthDeclaration, "HowItWorksVisuals ne déclare plus FULL_MONTH");
 const fullMonth = fullMonthDeclaration[1];
-const visualsWithFullMonth = componentSources.howItWorksVisuals.replace(
+const planningVisuals = componentSources.howItWorksVisuals.replace(
   /FULL_MONTH/g,
   fullMonth,
 );
@@ -371,16 +371,15 @@ describe("landing accessibility contracts", () => {
     // doivent redonner le revenu, et le juillet du graphe doit valoir le
     // disponible de l'étape 3. Éditer un nombre sans l'autre rendrait la démo
     // fausse pour un visiteur qui additionne.
-    const visuals = visualsWithFullMonth;
     const body = (name: string) =>
-      visuals.match(new RegExp(`export function ${name}[\\s\\S]*?\\n}`))?.[0] ??
+      planningVisuals.match(new RegExp(`export function ${name}[\\s\\S]*?\\n}`))?.[0] ??
       "";
     const segmentTotal = (source: string) =>
       [...source.matchAll(/amount: (\d+)/g)].reduce(
         (total, [, amount]) => total + Number(amount),
         0,
       );
-    assert.match(visuals, /const INCOME = 3500/);
+    assert.match(planningVisuals, /const INCOME = 3500/);
     assert.equal(segmentTotal(body("MonthTemplateVisual")), 3500);
     assert.equal(segmentTotal(body("MonthAvailableVisual")), 3500);
     assert.match(
@@ -388,18 +387,18 @@ describe("landing accessibility contracts", () => {
       new RegExp(`<Payoff value=\\{${fullMonth}\\}`),
     );
     assert.match(body("MonthAvailableVisual"), /<Payoff value=\{500\}/);
-    assert.match(visuals, /key: "jul", initial: "J", available: 500/);
-    assert.match(visuals, /key: "aou", initial: "A", available: 700/);
-    assert.match(visuals, /key: "dec", initial: "D", available: 200/);
+    assert.match(planningVisuals, /key: "jul", initial: "J", available: 500/);
+    assert.match(planningVisuals, /key: "aou", initial: "A", available: 700/);
+    assert.match(planningVisuals, /key: "dec", initial: "D", available: 200/);
     // Trois catégories annoncées par la copie, donc trois mois qui décrochent,
     // et la légende sous le graphe les nomme toutes les trois.
     const dips = [
-      ...visuals.matchAll(new RegExp(`available: (?!${fullMonth})(\\d+)`, "g")),
+      ...planningVisuals.matchAll(new RegExp(`available: (?!${fullMonth})(\\d+)`, "g")),
     ];
     assert.equal(dips.length, 3);
     assert.equal(new Set(dips.map(([, amount]) => amount)).size, 3);
     assert.match(
-      visuals,
+      planningVisuals,
       /Juillet, impôts · Août, vacances · Décembre, gros achat/,
     );
   });
@@ -410,13 +409,12 @@ describe("landing accessibility contracts", () => {
     // lecteurs d'écran un montant que l'écran n'affiche plus. Les deux sources
     // sont comparées en ensembles, parce qu'une légende répète un montant que
     // le visuel ne porte qu'une fois.
-    const visuals = visualsWithFullMonth;
     const amounts = (source: string, pattern: RegExp) =>
       [...source.matchAll(pattern)].map(([, amount]) => Number(amount));
     const body = (name: string) =>
-      visuals.match(new RegExp(`export function ${name}[\\s\\S]*?\\n}`))?.[0] ??
+      planningVisuals.match(new RegExp(`export function ${name}[\\s\\S]*?\\n}`))?.[0] ??
       "";
-    const income = amounts(visuals, /const INCOME = (\d+)/g);
+    const income = amounts(planningVisuals, /const INCOME = (\d+)/g);
     const composition = (name: string) => [
       ...income,
       ...amounts(body(name), /amount: (\d+)/g),
@@ -426,7 +424,7 @@ describe("landing accessibility contracts", () => {
       composition("MonthTemplateVisual"),
       [
         Number(fullMonth),
-        ...amounts(visuals, new RegExp(`available: (?!${fullMonth})(\\d+)`, "g")),
+        ...amounts(planningVisuals, new RegExp(`available: (?!${fullMonth})(\\d+)`, "g")),
       ],
       composition("MonthAvailableVisual"),
     ];
@@ -1113,7 +1111,7 @@ describe("landing accessibility contracts", () => {
     // montants qui ne s'accordent pas, ni un mois de plus que ce qu'elle divise.
     assert.match(
       componentSources.features,
-      /GOAL_MONTHS = \["Août", "Sept\."\] as const/,
+      /GOAL_MONTHS: readonly \[string, string\] = \["Août", "Sept\."\]/,
     );
     assert.match(
       componentSources.features,

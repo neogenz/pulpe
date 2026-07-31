@@ -14,7 +14,11 @@ const INSURANCE_SHARE = INSURANCE_TOTAL / MONTHS.length;
 // mensuelle, la barre et son libellé se déduisent de ces trois-là.
 const GOAL_TARGET = 2400;
 const GOAL_SAVED = 1560;
-const GOAL_MONTHS = ["Août", "Sept."] as const;
+// Deux, et pas « au moins deux » : la grille sous la barre est en deux colonnes
+// et ses gouttières sont portées par `first:`/`last:`. Un troisième mois se
+// diviserait juste et s'afficherait faux, donc le type refuse de le laisser
+// passer.
+const GOAL_MONTHS: readonly [string, string] = ["Août", "Sept."];
 const GOAL_REMAINING_SHARE = (GOAL_TARGET - GOAL_SAVED) / GOAL_MONTHS.length;
 const GOAL_PROGRESS = Math.round((GOAL_SAVED / GOAL_TARGET) * 100);
 

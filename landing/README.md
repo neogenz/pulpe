@@ -97,7 +97,7 @@ landing/
 
 - **Memo'd Components**: Button, Section, Container, Badge, FadeIn, GrainOverlay, HeroDashboard
 - **HeroDashboard**: The dashboard mockup in the hero, animated after mount
-- **Money / Amount / CurrencyUnit**: The only client islands inside server-rendered mockups, so the visitor's currency reaches the amounts without shipping the markup around them
+- **Money / Amount / CurrencyUnit**: The client islands inside the HowItWorks and Features mockups, so the visitor's currency reaches the amounts while the markup around them stays server-rendered
 
 ## Deployment
 
