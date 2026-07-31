@@ -40,9 +40,14 @@
 }
 
 :root {
-  --ambient-lime: oklch(93% 0.13 121);
-  --ambient-leaf: oklch(88% 0.15 145);
-  --ambient-mint: oklch(90% 0.12 164);
+  /* Desktop field: chroma only, at 60% of the original. The seven body
+     gradients span the whole 7000px page, so a saturation that reads as a
+     tint on one section reads as a drench over the document. Lightness and
+     hue carry the identity and stay put. The mobile tokens below are denser
+     on purpose: they feed halos at 0.07 opacity, not a full-page wash. */
+  --ambient-lime: oklch(93% 0.078 121);
+  --ambient-leaf: oklch(88% 0.09 145);
+  --ambient-mint: oklch(90% 0.072 164);
   --ambient-mobile-lime: oklch(82% 0.19 121);
   --ambient-mobile-leaf: oklch(70% 0.2 145);
   --ambient-mobile-mint: oklch(75% 0.18 164);
@@ -133,12 +138,17 @@ h3,
   border-radius: 0.12em 0.08em 0.1em 0.06em;
   color: inherit;
   background-color: transparent;
+  /* The 3.5deg lean is what makes the stroke read as hand-drawn, but it also
+     walks the band off the box: over a 300px mark it drifts ~19px, while a
+     16px mark is only 15px tall, so the last glyphs came out unmarked. The
+     stops sit near the ends of the gradient line to keep the band wider than
+     that drift at every font size, while the 1% ramp keeps a soft edge. */
   background-image: linear-gradient(
     176.5deg,
-    transparent 7%,
-    var(--marker-color) 8%,
-    var(--marker-color) 91%,
-    transparent 92%
+    transparent 4%,
+    var(--marker-color) 5%,
+    var(--marker-color) 95%,
+    transparent 96%
   );
   background-repeat: no-repeat;
   /* Starts undrawn: MarkerDraw paints the stroke in when the mark scrolls
@@ -197,7 +207,10 @@ h3,
 
 .arrow-note-label {
   display: block;
-  font-size: 0.9375rem;
+  /* 14px, not 15px: this was the page's only 0.9375rem, a step 1.07 away from
+     the 14px it sat next to. Two body sizes that close read as a mistake
+     rather than a hierarchy. */
+  font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.2;
   white-space: nowrap;
@@ -272,19 +285,6 @@ h3,
   .arrow-note-ready .arrow-note-path {
     stroke-dashoffset: 0;
     animation: none;
-  }
-}
-
-/* Reserve the screenshot box per breakpoint (portrait mobile asset, landscape
-   desktop asset) so neither causes a decode-time layout shift. Vars are set
-   inline per instance from the real asset dimensions. */
-.screenshot-frame {
-  aspect-ratio: var(--m-ar);
-}
-
-@media (min-width: 768px) {
-  .screenshot-frame {
-    aspect-ratio: var(--d-ar);
   }
 }
 

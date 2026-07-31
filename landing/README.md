@@ -68,13 +68,11 @@ landing/
 │   └── globals.css         # Tailwind + custom animations
 ├── components/
 │   ├── sections/           # Page sections (Hero, Features, etc.)
-│   ├── ui/                 # Reusable UI components
-│   └── contexts/           # React context (ImageLightbox)
+│   └── ui/                 # Reusable UI components
 ├── lib/
 │   ├── config.ts           # Environment config
 │   └── cn.ts               # Tailwind class utility
 └── public/
-    ├── screenshots/        # Product screenshots (mobile, webapp)
     └── *.png, *.webp       # Icons and assets
 ```
 
@@ -97,10 +95,9 @@ landing/
 
 ### Components
 
-- **Memo'd Components**: Button, Screenshot, TypeWriter, etc.
-- **Image Lightbox**: Click to zoom screenshots
-- **TypeWriter Effect**: Animated hero text with hydration fix
-- **Floating Cards**: Animated UI elements in hero
+- **Memo'd Components**: Button, Section, Container, Badge, FadeIn, GrainOverlay, HeroDashboard
+- **HeroDashboard**: The dashboard mockup in the hero, animated after mount
+- **Money / Amount / CurrencyUnit**: The client islands inside the HowItWorks and Features mockups, so the visitor's currency reaches the amounts while the markup around them stays server-rendered
 
 ## Deployment
 

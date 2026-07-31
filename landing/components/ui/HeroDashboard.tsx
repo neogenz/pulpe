@@ -3,24 +3,21 @@
 import Image from "next/image";
 import { Check } from "lucide-react";
 import { memo, useEffect, useId, useState } from "react";
-
-interface HeroDashboardProps {
-  amount: number;
-  unit: string;
-}
-
-const PREVISIONS = [
-  { label: "Loyer", amount: "1 200", state: "checked" as const },
-  { label: "Assurance", amount: "25", state: "ticks" as const },
-  { label: "Électricité", amount: "85", state: "unchecked" as const },
-];
+import { currencyUnit, formatAmount, formatMoney } from "@/lib/amount";
+import {
+  HERO_AVAILABLE,
+  HERO_BUDGET,
+  HERO_PREVISIONS,
+  HERO_SPENT,
+  HERO_SPENT_PERCENT,
+} from "@/lib/heroMock";
+import { useVisitorCurrency } from "@/lib/visitorCurrency";
 
 const CURVE = "M0,27 C14,25 22,29 34,25 C46,21 54,16 66,17 C78,18 86,9 100,8";
 
-export const HeroDashboard = memo(function HeroDashboard({
-  amount,
-  unit,
-}: HeroDashboardProps) {
+export const HeroDashboard = memo(function HeroDashboard() {
+  const currency = useVisitorCurrency();
+  const unit = currencyUnit(currency);
   const gradientId = useId();
   const [monthLabel, setMonthLabel] = useState("");
   const [live, setLive] = useState(false);
@@ -48,11 +45,14 @@ export const HeroDashboard = memo(function HeroDashboard({
     };
   }, []);
 
+  // A figure names itself through its caption. The aria-label this replaces sat
+  // on a bare div, where ARIA forbids it. role="img" was the other route, but it
+  // would hide the sr-only amount below, which is the one line worth reading.
   return (
-    <div
-      className="overflow-hidden rounded-[var(--radius-large)] bg-surface shadow-[var(--shadow-screenshot)] outline outline-1 -outline-offset-1 outline-black/10"
-      aria-label="Aperçu du tableau de bord Pulpe"
-    >
+    <figure className="overflow-hidden rounded-[var(--radius-large)] bg-surface shadow-[var(--shadow-screenshot)] outline outline-1 -outline-offset-1 outline-black/10">
+      <figcaption className="sr-only">
+        Aperçu du tableau de bord Pulpe
+      </figcaption>
       <div className="flex items-center gap-2 border-b border-text/[0.06] px-4 py-3 md:px-5">
         <Image
           src="/icon-64.webp"
@@ -70,8 +70,11 @@ export const HeroDashboard = memo(function HeroDashboard({
       </div>
 
       <div className="grid gap-3 bg-[#fbfdf9] p-3 md:grid-cols-[1.08fr_0.92fr] md:gap-4 md:p-5">
+        {/* Every muted label on this panel is /90, not /80: the gradient starts
+            at its lightest in the top-left corner, where /80 measured 4.72:1
+            and the labels sitting there are 12px. Do not soften them back. */}
         <div className="flex min-h-[19rem] flex-col rounded-[14px] bg-gradient-to-br from-primary to-[#004d1a] p-6 text-white md:min-h-[22rem] md:p-8">
-          <div className="mb-8 flex items-center gap-2 text-xs font-semibold text-white/80">
+          <div className="mb-8 flex items-center gap-2 text-xs font-semibold text-white/90">
             <span
               className="h-1.5 w-1.5 rounded-full bg-white/80"
               aria-hidden="true"
@@ -79,38 +82,38 @@ export const HeroDashboard = memo(function HeroDashboard({
             Mois en cours{monthLabel ? ` · ${monthLabel}` : ""}
           </div>
 
-          <p className="text-sm text-white/80">Disponible ce mois</p>
+          <p className="text-sm text-white/90">Disponible ce mois</p>
           <p className="mt-1 leading-none">
             <span className="sr-only">
-              {amount} {unit}
+              {HERO_AVAILABLE} {unit}
             </span>
             <span
               aria-hidden="true"
               className="text-[clamp(3.5rem,8vw,5.5rem)] font-extrabold tracking-[-0.04em] tabular-nums"
             >
-              {amount}
+              {formatAmount(HERO_AVAILABLE, currency)}
             </span>
             <span
               aria-hidden="true"
-              className="ml-2 text-lg font-semibold text-white/80"
+              className="ml-2 text-lg font-semibold text-white/90"
             >
               {unit}
             </span>
           </p>
 
           <div className="mt-auto pt-10">
-            <div className="mb-2 flex justify-between text-xs text-white/80 tabular-nums">
-              <span>Dépensé 3 374 {unit}</span>
-              <span>sur 4 300 {unit}</span>
+            <div className="mb-2 flex justify-between text-xs text-white/90 tabular-nums">
+              <span>Dépensé {formatMoney(HERO_SPENT, currency)}</span>
+              <span>sur {formatMoney(HERO_BUDGET, currency)}</span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-white/20">
               <div
                 className="h-full rounded-full bg-white/90 transition-[width] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
-                style={{ width: live ? "78%" : "0%" }}
+                style={{ width: live ? `${HERO_SPENT_PERCENT}%` : "0%" }}
                 aria-hidden="true"
               />
             </div>
-            <p className="mt-4 text-sm leading-relaxed text-white/80">
+            <p className="mt-4 text-sm leading-relaxed text-white/90">
               Tes grosses dépenses sont déjà intégrées aux mois qui arrivent.
             </p>
           </div>
@@ -122,7 +125,7 @@ export const HeroDashboard = memo(function HeroDashboard({
               Prévisions du mois
             </p>
             <ul className="space-y-3">
-              {PREVISIONS.map((prevision) => {
+              {HERO_PREVISIONS.map((prevision) => {
                 const isChecked =
                   prevision.state === "checked" ||
                   (prevision.state === "ticks" && ticked);
@@ -150,7 +153,7 @@ export const HeroDashboard = memo(function HeroDashboard({
                       {prevision.label}
                     </span>
                     <span className="text-text-secondary tabular-nums">
-                      {prevision.amount} {unit}
+                      {formatMoney(prevision.amount, currency)}
                     </span>
                   </li>
                 );
@@ -163,12 +166,24 @@ export const HeroDashboard = memo(function HeroDashboard({
               <p className="text-xs font-semibold text-text-secondary">
                 Projection du solde
               </p>
-              <p className="text-sm font-semibold text-primary">
+              {/* Même graisse et même ton que le libellé de gauche : en
+                  primary/semibold, aligné à droite d'un panneau, cette phrase
+                  occupait la place d'un « Voir plus » et se lisait comme un
+                  lien. C'est une légende, pas une action. */}
+              <p className="text-xs font-semibold text-text-secondary">
                 Tu vois venir
               </p>
             </div>
+            {/* La viewBox déborde la courbe de 3 unités de chaque côté : tracée
+                de x=0 à x=100 dans une boîte de même largeur, la série butait
+                contre les deux bords et ses bouts arrondis étaient coupés net.
+                La ligne de base est en non-scaling-stroke pour rester un filet
+                d'1px malgré l'étirement vertical ; la courbe, elle, ne peut pas
+                l'être : son animation de tracé repose sur `pathLength={1}` et
+                `stroke-dasharray: 1`, et non-scaling-stroke change l'unité dans
+                laquelle ce tiret est mesuré — le trait se casse en morceaux. */}
             <svg
-              viewBox="0 0 100 36"
+              viewBox="-3 0 106 37"
               className="mt-auto h-24 w-full pt-5"
               preserveAspectRatio="none"
               role="img"
@@ -188,6 +203,16 @@ export const HeroDashboard = memo(function HeroDashboard({
                   />
                 </linearGradient>
               </defs>
+              <line
+                x1="-3"
+                y1="36"
+                x2="103"
+                y2="36"
+                stroke="var(--color-text)"
+                strokeOpacity="0.12"
+                strokeWidth="1"
+                vectorEffect="non-scaling-stroke"
+              />
               <path
                 d={`${CURVE} L100,36 L0,36 Z`}
                 fill={`url(#${gradientId})`}
@@ -207,6 +232,6 @@ export const HeroDashboard = memo(function HeroDashboard({
           </div>
         </div>
       </div>
-    </div>
+    </figure>
   );
 });

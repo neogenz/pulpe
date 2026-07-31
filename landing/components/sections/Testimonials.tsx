@@ -28,7 +28,7 @@ const TESTIMONIALS: {
     highlight: "prévoir nos vacances sur l’année",
     tail: " et voir tout de suite si ça rentre dans notre budget. Ça me rassure.",
     name: "Julie D.",
-    role: "Employée de communication",
+    role: "Employée de commerce",
     since: "Utilisatrice depuis décembre 2025",
   },
 ];

@@ -18,6 +18,12 @@
         "cd frontend && pnpm run generate:config && pnpm run generate:build-info && pnpm exec ng serve --host 0.0.0.0 --port 4200"
       ],
       "port": 4200
+    },
+    {
+      "name": "landing",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd landing && pnpm exec next dev --port 3005"],
+      "port": 3005
     }
   ]
 }

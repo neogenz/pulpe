@@ -1,5 +1,22 @@
-import { Screenshot } from "@/components/ui";
+import { CurrencyUnit } from "@/components/ui";
+import {
+  MonthAvailableVisual,
+  MonthTemplateVisual,
+  YearSpreadVisual,
+} from "./HowItWorksVisuals";
 
+// Les montants des `caption` ne passent pas par `formatMoney` : ce sont les
+// figcaption sr-only, et une synthèse vocale lit `1’400` de façon imprévisible
+// selon le lecteur. Le chiffre nu reste le plus sûr à l'oreille. Seule la devise
+// suit le visiteur, pour qu'un lecteur d'écran n'annonce pas des francs pendant
+// que l'écran affiche des euros.
+//
+// These three visuals are built in code, like the hero dashboard, rather than
+// captured from the app. This section's column caps at 341px, and a screenshot
+// of an app screen arrives there at a quarter scale with its interface text
+// under 4px. Cropping only traded that for amputated cards and dimmed past
+// months, because the captures were framed for a different purpose. Drawn
+// instead, they stay sharp at any density and carry one consistent arithmetic.
 const STEPS = [
   {
     number: "1",
@@ -7,21 +24,14 @@ const STEPS = [
     description:
       "Ajoute tes revenus, tes dépenses récurrentes et ce que tu veux mettre de côté.",
     image: {
-      caption: "Ton mois type",
-      content: (
-        <Screenshot
-          src="/screenshots/responsive/ecran-des-modeles.webp"
-          iosSrc="/screenshots/ios/ecran-des-modeles.webp"
-          desktopSrc="/screenshots/webapp/ecran-des-modeles.webp"
-          label="Le mois type qui sert de base au budget"
-          mobileWidth={750}
-          mobileHeight={1190}
-          desktopWidth={1440}
-          desktopHeight={1080}
-          desktopAspectRatio="4 / 3"
-          fit="contain"
-        />
+      caption: (
+        <>
+          Ton mois type : sur 3 500 <CurrencyUnit /> de revenu, 1 600 de
+          dépenses récurrentes et 500 d’épargne laissent 1 400 disponibles
+          chaque mois
+        </>
       ),
+      content: <MonthTemplateVisual />,
     },
   },
   {
@@ -30,21 +40,14 @@ const STEPS = [
     description:
       "Ajoute les impôts, les vacances et les gros achats dans les mois où ils auront lieu.",
     image: {
-      caption: "Ton année",
-      content: (
-        <Screenshot
-          src="/screenshots/responsive/vue-calendrier-annuel.webp"
-          iosSrc="/screenshots/ios/vue-annuelle-des-budgets.webp"
-          desktopSrc="/screenshots/webapp/vue-calendrier-annuel.webp"
-          label="Les mois projetés à partir du mois type"
-          mobileWidth={750}
-          mobileHeight={1190}
-          desktopWidth={1440}
-          desktopHeight={1080}
-          desktopAspectRatio="4 / 3"
-          fit="contain"
-        />
+      caption: (
+        <>
+          Ton année : douze mois à 1 400 <CurrencyUnit /> disponibles, sauf
+          juillet à 500 pour les impôts, août à 700 pour les vacances et
+          décembre à 200 pour un gros achat
+        </>
       ),
+      content: <YearSpreadVisual />,
     },
   },
   {
@@ -53,39 +56,37 @@ const STEPS = [
     description:
       "Ouvre un mois à venir pour voir ton disponible, puis ajuste ton budget si besoin.",
     image: {
-      caption: "Ton disponible mensuel",
-      content: (
-        <Screenshot
-          src="/screenshots/responsive/liste-des-previsions.webp"
-          iosSrc="/screenshots/ios/detail-du-budget.webp"
-          desktopSrc="/screenshots/webapp/liste-des-previsions.webp"
-          label="Le disponible prévu pour un mois à venir"
-          mobileWidth={750}
-          mobileHeight={1190}
-          desktopWidth={1440}
-          desktopHeight={1080}
-          desktopAspectRatio="4 / 3"
-          fit="contain"
-        />
+      caption: (
+        <>
+          Juillet : sur 3 500 <CurrencyUnit /> de revenu, 1 600 de récurrent,
+          500 d’épargne et 900 d’impôts laissent 500 disponibles
+        </>
       ),
+      content: <MonthAvailableVisual />,
     },
   },
 ];
 
 export function HowItWorks() {
+  // Desktop runs on three shared rows: visual, title, paragraph. Each li is a
+  // subgrid of those rows, so a title that wraps to two lines at 834px pushes
+  // all three paragraphs down together instead of only its own column's.
   return (
-    <ol className="mx-auto mt-12 grid max-w-6xl gap-y-12 sm:mt-16 md:grid-cols-3 md:gap-x-6 md:gap-y-0 lg:gap-x-8">
+    <ol className="mx-auto mt-12 grid max-w-6xl gap-y-12 sm:mt-16 md:grid-cols-3 md:grid-rows-[auto_auto_auto] md:gap-x-6 md:gap-y-0 lg:gap-x-8">
       {STEPS.map((step) => (
-        <li key={step.number} className="flex min-w-0 flex-col">
-          {/* Mobile reads label-then-proof: the copy sits above its screenshot
-              so the next step's image never bleeds into the previous step's
-              text. Desktop keeps the image-first row, where the three columns
+        <li
+          key={step.number}
+          className="flex min-w-0 flex-col md:row-span-3 md:grid md:grid-rows-subgrid"
+        >
+          {/* Mobile reads label-then-proof: the copy sits above its visual
+              so the next step's card never bleeds into the previous step's
+              text. Desktop keeps the visual-first row, where the three columns
               align on their own. */}
           <StepCopy
             step={step}
-            className="mb-5 md:order-2 md:mb-0 md:mt-5 md:text-center"
+            className="mb-5 md:order-2 md:mb-0 md:mt-5 md:row-span-2 md:grid md:grid-rows-subgrid md:text-center"
           />
-          <figure className="mx-auto w-full max-w-sm md:order-1 md:max-w-none">
+          <figure className="mx-auto w-full max-w-sm md:order-1 md:h-full md:max-w-none">
             <figcaption className="sr-only">{step.image.caption}</figcaption>
             {step.image.content}
           </figure>
@@ -108,7 +109,7 @@ function StepCopy({
         <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white">
           {step.number}
         </span>
-        <h3 className="text-xl font-semibold tracking-[-0.02em] text-text lg:text-2xl">
+        <h3 className="text-xl font-semibold tracking-[-0.02em] text-text">
           {step.title}
         </h3>
       </div>

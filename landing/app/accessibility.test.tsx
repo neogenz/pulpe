@@ -41,14 +41,6 @@ const componentSources = {
     new URL("../components/sections/Features.tsx", import.meta.url),
     "utf8",
   ),
-  imageLightbox: readFileSync(
-    new URL("../components/ui/ImageLightbox.tsx", import.meta.url),
-    "utf8",
-  ),
-  screenshot: readFileSync(
-    new URL("../components/ui/Screenshot.tsx", import.meta.url),
-    "utf8",
-  ),
   section: readFileSync(
     new URL("../components/ui/Section.tsx", import.meta.url),
     "utf8",
@@ -61,6 +53,10 @@ const componentSources = {
     new URL("../components/sections/HowItWorks.tsx", import.meta.url),
     "utf8",
   ),
+  howItWorksVisuals: readFileSync(
+    new URL("../components/sections/HowItWorksVisuals.tsx", import.meta.url),
+    "utf8",
+  ),
   accordionItem: readFileSync(
     new URL("../components/ui/AccordionItem.tsx", import.meta.url),
     "utf8",
@@ -71,6 +67,10 @@ const componentSources = {
   ),
   heroDashboard: readFileSync(
     new URL("../components/ui/HeroDashboard.tsx", import.meta.url),
+    "utf8",
+  ),
+  money: readFileSync(
+    new URL("../components/ui/Money.tsx", import.meta.url),
     "utf8",
   ),
   whyFree: readFileSync(
@@ -116,6 +116,19 @@ const componentSources = {
     "utf8",
   ),
 };
+
+// La source des trois visuels de planification, son `FULL_MONTH` résolu. Deux
+// tests ont besoin de cette valeur pour additionner ; ils la lisent de la
+// source plutôt que d'en garder une copie, qui ne suivrait pas la constante.
+const fullMonthDeclaration = componentSources.howItWorksVisuals.match(
+  /const FULL_MONTH = (\d+)/,
+);
+assert.ok(fullMonthDeclaration, "HowItWorksVisuals ne déclare plus FULL_MONTH");
+const fullMonth = fullMonthDeclaration[1];
+const planningVisuals = componentSources.howItWorksVisuals.replace(
+  /FULL_MONTH/g,
+  fullMonth,
+);
 
 function getDeclarations(selector: string): string {
   const ruleStart = globalsCss.indexOf(`${selector} {`);
@@ -225,13 +238,14 @@ describe("landing accessibility contracts", () => {
   it("keeps the hero focused on one CTA without competing proof", () => {
     assert.match(componentSources.hero, /\bpb-12\b/);
     assert.match(componentSources.hero, /\bmd:pb-28\b/);
+    // La citation de Julie vit dans Testimonials. La re-servir ici mettait les
+    // mêmes mots deux fois sur la page, et poussait la preuve produit sous la
+    // ligne de flottaison d'un portable en 900px de haut.
+    assert.doesNotMatch(componentSources.hero, /<blockquote/);
+    assert.doesNotMatch(componentSources.hero, /Julie D\./);
     assert.match(
-      componentSources.hero,
-      /<blockquote className="mx-auto mt-6 hidden max-w-2xl text-center md:block">/,
-    );
-    assert.match(
-      componentSources.hero,
-      /prévoir nos vacances sur l&apos;année[\s\S]*Julie D\., utilisatrice de Pulpe/,
+      componentSources.testimonials,
+      /prévoir nos vacances sur l’année/,
     );
     assert.match(
       componentSources.hero,
@@ -336,25 +350,113 @@ describe("landing accessibility contracts", () => {
   it("shows how one typical month becomes a projected year", () => {
     assert.match(
       componentSources.howItWorks,
-      /Ton mois type[\s\S]*ecran-des-modeles\.webp[\s\S]*Ton année[\s\S]*vue-calendrier-annuel\.webp/,
+      /Ton mois type[\s\S]*<MonthTemplateVisual \/>[\s\S]*Ton année[\s\S]*<YearSpreadVisual \/>/,
     );
     assert.match(componentSources.solution, /<HowItWorks \/>/);
   });
 
-  it("gives all three planning screenshots the same desktop frame without cropping", () => {
+  it("gives the three planning visuals one shared frame", () => {
     assert.equal(
-      componentSources.howItWorks.match(/desktopAspectRatio=/g)?.length,
+      componentSources.howItWorksVisuals.match(/<StepFrame /g)?.length,
       3,
     );
     assert.equal(
-      componentSources.howItWorks.match(/fit="contain"/g)?.length,
-      3,
+      componentSources.howItWorksVisuals.match(/function StepFrame\(/g)?.length,
+      1,
     );
-    assert.match(componentSources.screenshot, /desktopAspectRatio\?: string;/);
+    assert.doesNotMatch(componentSources.howItWorks, /<Screenshot/);
+  });
+
+  it("keeps one arithmetic across the three planning visuals", () => {
+    // Les trois visuels racontent le même mois : les parts de chaque barre
+    // doivent redonner le revenu, et le juillet du graphe doit valoir le
+    // disponible de l'étape 3. Éditer un nombre sans l'autre rendrait la démo
+    // fausse pour un visiteur qui additionne.
+    const body = (name: string) =>
+      planningVisuals.match(
+        new RegExp(`export function ${name}[\\s\\S]*?\\n}`),
+      )?.[0] ?? "";
+    const segmentTotal = (source: string) =>
+      [...source.matchAll(/amount: (\d+)/g)].reduce(
+        (total, [, amount]) => total + Number(amount),
+        0,
+      );
+    assert.match(planningVisuals, /const INCOME = 3500/);
+    assert.equal(segmentTotal(body("MonthTemplateVisual")), 3500);
+    assert.equal(segmentTotal(body("MonthAvailableVisual")), 3500);
     assert.match(
-      componentSources.screenshot,
-      /fit === "contain" \? "object-contain" : "object-cover"/,
+      body("MonthTemplateVisual"),
+      new RegExp(`<Payoff value=\\{${fullMonth}\\}`),
     );
+    assert.match(body("MonthAvailableVisual"), /<Payoff value=\{500\}/);
+    assert.match(planningVisuals, /key: "jul", initial: "J", available: 500/);
+    assert.match(planningVisuals, /key: "aou", initial: "A", available: 700/);
+    assert.match(planningVisuals, /key: "dec", initial: "D", available: 200/);
+    // Trois catégories annoncées par la copie, donc trois mois qui décrochent,
+    // et la légende sous le graphe les nomme toutes les trois.
+    const dips = [
+      ...planningVisuals.matchAll(
+        new RegExp(`available: (?!${fullMonth})(\\d+)`, "g"),
+      ),
+    ];
+    assert.equal(dips.length, 3);
+    assert.equal(new Set(dips.map(([, amount]) => amount)).size, 3);
+    assert.match(
+      planningVisuals,
+      /Juillet, impôts · Août, vacances · Décembre, gros achat/,
+    );
+  });
+
+  it("makes the sr-only captions announce the amounts the visuals draw", () => {
+    // Les figcaption énoncent en chiffres nus ce que les barres dessinent, et
+    // rien ne les reliait : changer `INCOME` laissait la légende annoncer aux
+    // lecteurs d'écran un montant que l'écran n'affiche plus. Les deux sources
+    // sont comparées en ensembles, parce qu'une légende répète un montant que
+    // le visuel ne porte qu'une fois.
+    const amounts = (source: string, pattern: RegExp) =>
+      [...source.matchAll(pattern)].map(([, amount]) => Number(amount));
+    const body = (name: string) =>
+      planningVisuals.match(
+        new RegExp(`export function ${name}[\\s\\S]*?\\n}`),
+      )?.[0] ?? "";
+    const income = amounts(planningVisuals, /const INCOME = (\d+)/g);
+    const composition = (name: string) => [
+      ...income,
+      ...amounts(body(name), /amount: (\d+)/g),
+      ...amounts(body(name), /<Payoff value=\{(\d+)\}/g),
+    ];
+    const drawn = [
+      composition("MonthTemplateVisual"),
+      [
+        Number(fullMonth),
+        ...amounts(
+          planningVisuals,
+          new RegExp(`available: (?!${fullMonth})(\\d+)`, "g"),
+        ),
+      ],
+      composition("MonthAvailableVisual"),
+    ];
+
+    // Les montants des légendes sont écrits à la française, `3 500`, et le
+    // rewrapping de Prettier peut poser le séparateur sur une fin de ligne.
+    const announced = [
+      ...componentSources.howItWorks.matchAll(
+        /caption: \(([\s\S]*?)\),\s*content:/g,
+      ),
+    ].map(([, caption]) =>
+      amounts(caption.replace(/(\d)\s+(?=\d)/g, "$1"), /(\d+)/g),
+    );
+
+    const sorted = (values: number[]) =>
+      [...new Set(values)].sort((left, right) => left - right);
+    assert.equal(announced.length, 3);
+    announced.forEach((caption, step) => {
+      assert.deepEqual(
+        sorted(caption),
+        sorted(drawn[step]),
+        `étape ${step + 1} : la légende annonce ${sorted(caption).join(", ")}, le visuel dessine ${sorted(drawn[step]).join(", ")}`,
+      );
+    });
   });
 
   it("presents the three setup steps as one scannable ordered process", () => {
@@ -374,11 +476,25 @@ describe("landing accessibility contracts", () => {
     assert.doesNotMatch(componentSources.howItWorks, /lg:space-y-20/);
   });
 
-  it("labels each step above its screenshot on mobile, below it on desktop", () => {
-    assert.match(
-      componentSources.howItWorks,
-      /<StepCopy[\s\S]*className="mb-5 md:order-2 md:mb-0 md:mt-5 md:text-center"/,
-    );
+  it("labels each step above its visual on mobile, below it on desktop", () => {
+    // Le contrat est la bascule d'ordre, pas la liste de classes complète :
+    // figer le littéral faisait échouer ce test sur l'ajout de `md:row-span-2`,
+    // qui ne touche pas l'ordre de lecture.
+    const stepCopyTag =
+      componentSources.howItWorks.match(/<StepCopy[\s\S]*?\/>/)?.[0];
+    assert.ok(stepCopyTag, "StepCopy is missing from HowItWorks");
+    for (const token of [
+      /md:order-2/,
+      /\bmb-5\b/,
+      /md:mb-0/,
+      /md:mt-5/,
+      /md:text-center/,
+    ]) {
+      assert.match(stepCopyTag, token);
+    }
+    const figureTag = componentSources.howItWorks.match(/<figure[^>]*>/)?.[0];
+    assert.ok(figureTag, "The step figure is missing from HowItWorks");
+    assert.match(figureTag, /md:order-1/);
     assert.match(
       componentSources.howItWorks,
       /flex items-center gap-3 md:flex-col/,
@@ -479,15 +595,24 @@ describe("landing accessibility contracts", () => {
   });
 
   it("keeps sections that only tracked clicks out of the client bundle", () => {
+    // La devise dépend du visiteur, mais elle ne concerne que les nœuds de
+    // montant : la frontière client est descendue jusqu'à eux, donc les sections
+    // qui les contiennent restent rendues côté serveur.
     for (const source of [
       componentSources.header,
       componentSources.finalCta,
       componentSources.platforms,
+      componentSources.hero,
+      componentSources.features,
+      componentSources.howItWorks,
+      componentSources.howItWorksVisuals,
     ]) {
       assert.doesNotMatch(source, /use client/);
     }
-    // Ceux-là gardent React : devise du visiteur et observateur de défilement.
-    assert.match(componentSources.hero, /use client/);
+    // Ceux-là gardent React : maquette animée, montants du visiteur, observateur
+    // de défilement.
+    assert.match(componentSources.heroDashboard, /use client/);
+    assert.match(componentSources.money, /use client/);
     assert.match(componentSources.stickyCta, /use client/);
   });
 
@@ -523,7 +648,10 @@ describe("landing accessibility contracts", () => {
       componentSources.header,
       /scale-\[0\.25\] opacity-0 blur-\[4px\]/,
     );
-    assert.match(componentSources.header, /transition-\[opacity,filter,scale\]/);
+    assert.match(
+      componentSources.header,
+      /transition-\[opacity,filter,scale\]/,
+    );
     assert.match(componentSources.header, /group-open:blur-\[4px\]/);
     assert.match(componentSources.header, /group-open:blur-none/);
     // `blur-0` est une classe Tailwind v3 : la v4 ne la génère pas et l'ignore
@@ -561,19 +689,13 @@ describe("landing accessibility contracts", () => {
     );
     assert.match(componentSources.header, /\binert\b/);
     assert.match(componentSources.header, /aria-hidden="true"/);
-    assert.match(
-      componentSources.header,
-      /\bfixed\b[^"]*\bh-screen\b/,
-    );
+    assert.match(componentSources.header, /\bfixed\b[^"]*\bh-screen\b/);
     assert.match(
       componentSources.header,
       /pointer-events-none[^"]*peer-open:pointer-events-auto[^"]*peer-open:opacity-100/,
     );
     assert.match(componentSources.header, /will-change-\[opacity\]/);
-    assert.equal(
-      componentSources.header.match(/tabIndex=\{-1\}/g)?.length,
-      2,
-    );
+    assert.equal(componentSources.header.match(/tabIndex=\{-1\}/g)?.length, 2);
     assert.doesNotMatch(componentSources.header, /\binvisible\b/);
     assert.doesNotMatch(componentSources.header, /\bbackdrop-blur-xl\b/);
     assert.match(
@@ -748,12 +870,14 @@ describe("landing accessibility contracts", () => {
       /(?:animation|transition)-duration:\s*0\.01ms/,
     );
     assert.match(componentSources.roadmap, /motion-safe:animate-pulse/);
-    assert.match(componentSources.screenshot, /motion-reduce:transition-none/);
   });
 
-  it("adds inset neutral outlines to product images", () => {
-    assert.match(componentSources.screenshot, /outline-black\/10/);
-    assert.match(componentSources.imageLightbox, /outline-white\/10/);
+  it("adds inset neutral outlines to the product surfaces", () => {
+    // Le contrat survit à la disparition des captures : la surface qui tient
+    // lieu de preuve produit ne flotte pas sans bord, qu'elle soit le tableau
+    // de bord du hero ou les visuels de la section « comment ça marche ».
+    assert.match(componentSources.heroDashboard, /outline-black\/10/);
+    assert.match(componentSources.howItWorksVisuals, /outline-black\/5/);
   });
 
   it("keeps the mobile navigation non-modal and the page scrollable", () => {
@@ -775,7 +899,10 @@ describe("landing accessibility contracts", () => {
     // même titre que l'ouverture : sinon elles ne répondraient qu'après les
     // 3,2 s d'attente du bundle.
     const script = componentSources.layout;
-    assert.match(script, /window\.addEventListener\('scroll',close,\{passive:true\}\)/);
+    assert.match(
+      script,
+      /window\.addEventListener\('scroll',close,\{passive:true\}\)/,
+    );
     assert.match(script, /e\.key!=='Escape'/);
     assert.match(script, /window\.innerWidth>=\$\{DESKTOP_BREAKPOINT_PX\}/);
     assert.match(script, /MOBILE_NAV_PANEL_ID\} a'\)\)close\(\)/);
@@ -815,18 +942,30 @@ describe("landing accessibility contracts", () => {
     assert.match(globalsCss, /@media \(prefers-reduced-motion: reduce\)/);
   });
 
-  it("pairs each of the three static setup steps with its own screenshot", () => {
+  it("pairs each of the three static setup steps with its own visual", () => {
     assert.match(componentSources.howItWorks, /number: "1"/);
     assert.match(componentSources.howItWorks, /number: "2"/);
     assert.match(componentSources.howItWorks, /number: "3"/);
     assert.doesNotMatch(componentSources.howItWorks, /number: "4"/);
     assert.doesNotMatch(componentSources.howItWorks, /IntersectionObserver/);
-    assert.equal(componentSources.howItWorks.match(/<Screenshot/g)?.length, 3);
-    assert.match(componentSources.howItWorks, /liste-des-previsions\.webp/);
-    assert.equal(componentSources.howItWorks.match(/iosSrc=/g)?.length, 3);
-    assert.match(componentSources.screenshot, /\/iPhone\|iPod\//);
-    assert.match(componentSources.screenshot, /!isDesktop && isIPhone/);
-    assert.match(componentSources.screenshot, /IOS_IMAGE_HEIGHT = 1630/);
+    for (const visual of [
+      /<MonthTemplateVisual \/>/,
+      /<YearSpreadVisual \/>/,
+      /<MonthAvailableVisual \/>/,
+    ]) {
+      assert.equal(componentSources.howItWorks.match(visual)?.length, 1);
+    }
+    // Les visuels illustrent la phrase imprimée à côté d'eux : le figcaption
+    // sr-only porte le contenu pour les lecteurs d'écran, le mock est masqué.
+    assert.equal(
+      componentSources.howItWorksVisuals.match(/aria-hidden="true"/g)?.length,
+      1,
+    );
+    assert.equal(
+      componentSources.howItWorks.match(/figcaption className="sr-only"/g)
+        ?.length,
+      1,
+    );
     assert.match(componentSources.solution, /id="how-it-works"/);
   });
 
@@ -863,6 +1002,14 @@ describe("landing accessibility contracts", () => {
     assert.match(
       globalsCss,
       /\.marker-highlight\s*\{[\s\S]*?margin-inline:\s*-0\.1em;[\s\S]*?padding-inline:\s*0\.1em;[\s\S]*?border-radius:\s*0\.12em 0\.08em 0\.1em 0\.06em;[\s\S]*?176\.5deg[\s\S]*?background-size:\s*0% 0\.92em;[\s\S]*?background-position:\s*0 56%;/,
+    );
+    // Le biais de 3,5deg fait dériver la bande d'environ 19px sur une marque
+    // de 300px, alors qu'une marque à 16px ne fait que 15px de haut. Des
+    // arrêts trop rentrés laissaient 3px du coin bas-droit sans encre, donc
+    // un trait qui décollait du dernier mot. Ne pas les resserrer.
+    assert.match(
+      globalsCss,
+      /\.marker-highlight\s*\{[\s\S]*?transparent 4%,\s*var\(--marker-color\) 5%,\s*var\(--marker-color\) 95%,\s*transparent 96%/,
     );
     assert.match(
       globalsCss,
@@ -926,7 +1073,10 @@ describe("landing accessibility contracts", () => {
     assert.match(componentSources.ogGenerator, /Tableau de bord/);
     assert.match(componentSources.ogGenerator, /Disponible ce mois/);
     assert.match(componentSources.ogGenerator, /Vue annuelle/);
-    assert.match(componentSources.ogGenerator, /children: "926"/);
+    assert.match(
+      componentSources.ogGenerator,
+      /children: formatAmount\(\s*HERO_AVAILABLE,\s*OG_CURRENCY,?\s*\)/,
+    );
     assert.doesNotMatch(
       componentSources.ogGenerator,
       /PRODUCT_SCREENSHOT|social-preview-screenshot/,
@@ -964,10 +1114,32 @@ describe("landing accessibility contracts", () => {
     assert.doesNotMatch(componentSources.features, /Prévision liée/);
     assert.doesNotMatch(componentSources.features, /Juil\. · 0 CHF/);
     assert.match(componentSources.features, /Reste réparti/);
+    // Les parts viennent du même reste divisé par le nombre de mois listés, et
+    // les mois sont la liste elle-même : la maquette ne peut plus afficher deux
+    // montants qui ne s'accordent pas, ni un mois de plus que ce qu'elle divise.
     assert.match(
       componentSources.features,
-      /Août[\s\S]*420 CHF[\s\S]*Sept\.[\s\S]*420 CHF/,
+      /GOAL_MONTHS: readonly \[string, string\] = \["Août", "Sept\."\]/,
     );
+    assert.match(
+      componentSources.features,
+      /GOAL_REMAINING_SHARE = \(GOAL_TARGET - GOAL_SAVED\) \/ GOAL_MONTHS\.length/,
+    );
+    assert.match(
+      componentSources.features,
+      /GOAL_MONTHS\.map\([\s\S]*\{month\}[\s\S]*<Money value=\{GOAL_REMAINING_SHARE\} \/>/,
+    );
+    // La barre et son libellé disaient 65 % de leur côté, sans lien avec les
+    // deux montants au-dessus d'eux.
+    assert.match(
+      componentSources.features,
+      /GOAL_PROGRESS = Math\.round\(\(GOAL_SAVED \/ GOAL_TARGET\) \* 100\)/,
+    );
+    assert.match(
+      componentSources.features,
+      /width: `\$\{GOAL_PROGRESS\}%`[\s\S]*\{GOAL_PROGRESS\} %/,
+    );
+    assert.doesNotMatch(componentSources.features, /w-\[65%\]|>\s*65 %/);
     assert.match(
       componentSources.features,
       /<div className="mt-4 border-t border-primary\/15 pt-3">/,
@@ -1075,7 +1247,10 @@ describe("landing accessibility contracts", () => {
       assert.ok(skipLinkClass, "Skip link classes are missing");
       assert.match(skipLinkClass, /focus-visible:not-sr-only/);
       assert.doesNotMatch(skipLinkClass, /(?:^|\s)focus:/);
-      assert.match(source, /<main id="main-content" tabIndex=\{-1\}>/);
+      const mainOpenTag = source.match(/<main[^>]*>/)?.[0];
+      assert.ok(mainOpenTag, "Main landmark is missing");
+      assert.match(mainOpenTag, /id="main-content"/);
+      assert.match(mainOpenTag, /tabIndex=\{-1\}/);
       assert.ok(
         source.indexOf('href="#main-content"') < source.indexOf("<Header"),
       );
@@ -1087,10 +1262,7 @@ describe("landing accessibility contracts", () => {
       componentSources.accordionItem,
       /focus:outline-none[^"]*focus-visible:ring-2[^"]*focus-visible:ring-inset[^"]*focus-visible:ring-primary/,
     );
-    assert.match(
-      componentSources.layout,
-      /<html[^>]*suppressHydrationWarning/,
-    );
+    assert.match(componentSources.layout, /<html[^>]*suppressHydrationWarning/);
 
     const questions = [
       ...componentSources.support.matchAll(/question: "([^"]+)"/g),
@@ -1098,10 +1270,7 @@ describe("landing accessibility contracts", () => {
     assert.equal(questions.length, 9);
     assert.ok(questions.every((question) => question.endsWith("\u202f?")));
     assert.ok(questions.includes("Ça marche en Suisse et en France\u202f?"));
-    assert.match(
-      componentSources.support,
-      /Si la tienne manque, écris-moi\./,
-    );
+    assert.match(componentSources.support, /Si la tienne manque, écris-moi\./);
     assert.doesNotMatch(
       componentSources.support,
       /Si la tienne manque, écris-moi directement\./,
@@ -1154,9 +1323,8 @@ describe("landing accessibility contracts", () => {
       /answer=\{faq\.answer \?\? faq\.plainAnswer\}/,
     );
     assert.equal(
-      componentSources.support.match(
-        /inline-flex min-h-11 items-center/g,
-      )?.length,
+      componentSources.support.match(/inline-flex min-h-11 items-center/g)
+        ?.length,
       2,
     );
     assert.doesNotMatch(
@@ -1249,10 +1417,7 @@ describe("landing accessibility contracts", () => {
       componentSources.footer,
       /lg:flex-row lg:items-end lg:justify-between/,
     );
-    assert.match(
-      componentSources.footer,
-      /text-sm font-semibold text-text"/,
-    );
+    assert.match(componentSources.footer, /text-sm font-semibold text-text"/);
     assert.match(
       componentSources.footer,
       /min-h-11 min-w-11 items-center[^"\n]*lg:items-end/,

@@ -33,7 +33,10 @@ export function PainPoints() {
           </p>
         </header>
 
-        <div className="border-y border-text/10 lg:col-span-7">
+        {/* Un filet d'ouverture, un filet entre les deux limites. Le troisième,
+            sous la dernière, ne fermait rien : la colonne de gauche s'arrête
+            bien plus haut, donc il traversait la moitié droite tout seul. */}
+        <div className="border-t border-text/10 lg:col-span-7">
           {LIMITS.map((point, index) => (
             <article
               key={point.title}

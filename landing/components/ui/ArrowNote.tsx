@@ -14,12 +14,16 @@ export function ArrowNote({ className = "" }: { className?: string }) {
       return;
     }
 
-    element.classList.add("arrow-note-ready");
-
+    // `arrow-note-ready` masque le libellé et efface la flèche : il ne peut donc
+    // être posé qu'une fois la note confirmée à l'écran, jamais au montage.
+    // Sinon un IntersectionObserver qui ne se déclenche pas — onglet en arrière-
+    // plan, rendu sans peinture — laisse « Prêt à respirer ? » invisible pour de
+    // bon. L'état par défaut reste la note visible, l'animation l'enrichit.
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry?.isIntersecting) return;
-        element.classList.add("arrow-note-drawn");
+        element.classList.add("arrow-note-ready");
+        requestAnimationFrame(() => element.classList.add("arrow-note-drawn"));
         observer.disconnect();
       },
       { rootMargin: "0px 0px -10% 0px" },
@@ -30,11 +34,7 @@ export function ArrowNote({ className = "" }: { className?: string }) {
   }, []);
 
   return (
-    <div
-      ref={ref}
-      aria-hidden="true"
-      className={`arrow-note ${className}`}
-    >
+    <div ref={ref} aria-hidden="true" className={`arrow-note ${className}`}>
       <span className="arrow-note-label">Prêt à respirer&nbsp;?</span>
       <svg
         className="arrow-note-svg"

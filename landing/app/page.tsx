@@ -1,4 +1,3 @@
-import { ImageLightboxProvider } from "@/contexts/ImageLightboxProvider";
 import { MarkerDraw, StickyCTA } from "@/components/ui";
 import {
   Header,
@@ -16,7 +15,7 @@ import {
 
 export default function LandingPage() {
   return (
-    <ImageLightboxProvider>
+    <>
       <a
         href="#main-content"
         className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-4 focus-visible:left-4 focus-visible:z-[60] focus-visible:bg-primary focus-visible:text-white focus-visible:px-4 focus-visible:py-2 focus-visible:rounded-lg"
@@ -26,7 +25,16 @@ export default function LandingPage() {
 
       <Header />
 
-      <main id="main-content" tabIndex={-1}>
+      {/* pb reserves the StickyCTA's own height so the bar never lands on the
+          last readable line; dropped at lg, where the bar does not render.
+          3.75rem is that height measured, not chosen: the Button's base
+          min-h-[48px] plus the 6px of p-1.5 the StickyCTA wraps it in, top and
+          bottom. Change either and this reserve is the thing that goes stale. */}
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="pb-[calc(3.75rem+max(0.75rem,env(safe-area-inset-bottom)))] lg:pb-0"
+      >
         <Hero />
         <PainPoints />
         <Solution />
@@ -41,6 +49,6 @@ export default function LandingPage() {
       <Footer />
       <MarkerDraw />
       <StickyCTA />
-    </ImageLightboxProvider>
+    </>
   );
 }
