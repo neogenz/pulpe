@@ -4,20 +4,17 @@ import Image from "next/image";
 import { Check } from "lucide-react";
 import { memo, useEffect, useId, useState } from "react";
 import { currencyUnit, formatAmount, formatMoney } from "@/lib/amount";
+import {
+  HERO_BUDGET,
+  HERO_PREVISIONS,
+  HERO_SPENT,
+  HERO_SPENT_PERCENT,
+} from "@/lib/heroMock";
 import { useVisitorCurrency } from "@/lib/visitorCurrency";
 
 interface HeroDashboardProps {
   amount: number;
 }
-
-const PREVISIONS = [
-  { label: "Loyer", amount: 1200, state: "checked" as const },
-  { label: "Assurance", amount: 25, state: "ticks" as const },
-  { label: "Électricité", amount: 85, state: "unchecked" as const },
-];
-
-const SPENT = 3374;
-const BUDGET = 4300;
 
 const CURVE = "M0,27 C14,25 22,29 34,25 C46,21 54,16 66,17 C78,18 86,9 100,8";
 
@@ -111,13 +108,13 @@ export const HeroDashboard = memo(function HeroDashboard({
 
           <div className="mt-auto pt-10">
             <div className="mb-2 flex justify-between text-xs text-white/90 tabular-nums">
-              <span>Dépensé {formatMoney(SPENT, currency)}</span>
-              <span>sur {formatMoney(BUDGET, currency)}</span>
+              <span>Dépensé {formatMoney(HERO_SPENT, currency)}</span>
+              <span>sur {formatMoney(HERO_BUDGET, currency)}</span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-white/20">
               <div
                 className="h-full rounded-full bg-white/90 transition-[width] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
-                style={{ width: live ? "78%" : "0%" }}
+                style={{ width: live ? `${HERO_SPENT_PERCENT}%` : "0%" }}
                 aria-hidden="true"
               />
             </div>
@@ -133,7 +130,7 @@ export const HeroDashboard = memo(function HeroDashboard({
               Prévisions du mois
             </p>
             <ul className="space-y-3">
-              {PREVISIONS.map((prevision) => {
+              {HERO_PREVISIONS.map((prevision) => {
                 const isChecked =
                   prevision.state === "checked" ||
                   (prevision.state === "ticks" && ticked);

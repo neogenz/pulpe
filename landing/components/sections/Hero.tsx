@@ -1,5 +1,6 @@
 import { Button, HeroDashboard } from "@/components/ui";
 import { angularUrl } from "@/lib/config";
+import { HERO_AVAILABLE } from "@/lib/heroMock";
 
 export function Hero() {
   return (
@@ -43,7 +44,7 @@ export function Hero() {
             available-this-month figure have to clear the fold, so lg trades
             hero air for that. The h1 alone runs three 80px lines there. */}
         <div className="mx-auto mt-14 max-w-5xl md:mt-18 lg:mt-8">
-          <HeroDashboard amount={926} />
+          <HeroDashboard amount={HERO_AVAILABLE} />
         </div>
       </div>
     </section>

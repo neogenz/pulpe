@@ -10,6 +10,25 @@ import { Resvg } from "@resvg/resvg-js";
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
+import {
+  currencyUnit,
+  formatAmount,
+  formatMoney,
+  type LandingCurrency,
+} from "@/lib/amount";
+import {
+  HERO_AVAILABLE,
+  HERO_BUDGET,
+  HERO_PREVISIONS,
+  HERO_SPENT,
+  HERO_SPENT_PERCENT,
+} from "@/lib/heroMock";
+
+// L'aperçu social est un PNG figé, servi identique à tous les visiteurs : il ne
+// peut pas suivre la devise du navigateur comme la page, donc il assume le
+// franc. Ce qu'il ne peut pas faire, en revanche, c'est écrire ses montants
+// autrement qu'elle — d'où le passage par les mêmes formateurs.
+const OG_CURRENCY: LandingCurrency = "CHF";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -520,7 +539,10 @@ async function generateOgImage() {
                                       letterSpacing: "-0.05em",
                                       lineHeight: 1,
                                     },
-                                    children: "926",
+                                    children: formatAmount(
+                                      HERO_AVAILABLE,
+                                      OG_CURRENCY,
+                                    ),
                                   },
                                 },
                                 {
@@ -533,7 +555,7 @@ async function generateOgImage() {
                                       fontSize: 15,
                                       fontWeight: 600,
                                     },
-                                    children: "CHF",
+                                    children: currencyUnit(OG_CURRENCY),
                                   },
                                 },
                               ],
@@ -549,7 +571,24 @@ async function generateOgImage() {
                                 color: "rgba(255,255,255,0.72)",
                                 fontSize: 9,
                               },
-                              children: ["Dépensé 3 374 CHF", "sur 4 300 CHF"],
+                              // Chaque montant dans sa propre boîte : satori
+                              // fond un tableau de chaînes en un seul run de
+                              // texte, où le `space-between` du parent n'a rien
+                              // à écarter. Les deux se touchaient — `CHFsur`.
+                              children: [
+                                {
+                                  type: "div",
+                                  props: {
+                                    children: `Dépensé ${formatMoney(HERO_SPENT, OG_CURRENCY)}`,
+                                  },
+                                },
+                                {
+                                  type: "div",
+                                  props: {
+                                    children: `sur ${formatMoney(HERO_BUDGET, OG_CURRENCY)}`,
+                                  },
+                                },
+                              ],
                             },
                           },
                           {
@@ -567,7 +606,7 @@ async function generateOgImage() {
                                 type: "div",
                                 props: {
                                   style: {
-                                    width: "78%",
+                                    width: `${HERO_SPENT_PERCENT}%`,
                                     height: 7,
                                     borderRadius: 8,
                                     background: "rgba(255,255,255,0.9)",
@@ -625,9 +664,13 @@ async function generateOgImage() {
                                     children: "Prévisions du mois",
                                   },
                                 },
-                                forecastRow("Loyer", "1 200 CHF", true),
-                                forecastRow("Assurance", "25 CHF", true),
-                                forecastRow("Électricité", "85 CHF", false),
+                                ...HERO_PREVISIONS.map((prevision) =>
+                                  forecastRow(
+                                    prevision.label,
+                                    formatMoney(prevision.amount, OG_CURRENCY),
+                                    prevision.state !== "unchecked",
+                                  ),
+                                ),
                               ],
                             },
                           },

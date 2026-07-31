@@ -1053,7 +1053,10 @@ describe("landing accessibility contracts", () => {
     assert.match(componentSources.ogGenerator, /Tableau de bord/);
     assert.match(componentSources.ogGenerator, /Disponible ce mois/);
     assert.match(componentSources.ogGenerator, /Vue annuelle/);
-    assert.match(componentSources.ogGenerator, /children: "926"/);
+    assert.match(
+      componentSources.ogGenerator,
+      /children: formatAmount\(\s*HERO_AVAILABLE,\s*OG_CURRENCY,?\s*\)/,
+    );
     assert.doesNotMatch(
       componentSources.ogGenerator,
       /PRODUCT_SCREENSHOT|social-preview-screenshot/,
