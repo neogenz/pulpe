@@ -41,6 +41,15 @@ struct CurrentMonthView: View {
         Set(store.budgetLines.flatMap { $0.tagIds ?? [] } + store.transactions.flatMap { $0.tagIds ?? [] })
     }
 
+    /// Same verdict the hero renders — `DriftCard`'s subtitle reads off this instead of
+    /// re-deriving the planned/estimated subtraction on its own.
+    private var monthIsFavourable: Bool {
+        HomeHeroCard.PresentationState(
+            plannedBalance: store.plannedRemaining,
+            estimatedBalance: store.metrics.remaining
+        ).verdict == .gain
+    }
+
     /// One-time post-onboarding handoff (teaches the pointer ritual + Lock Screen
     /// widget). Stateless UserDefaults wrapper — cheap to hold per render.
     private let postOnboardingFlags = PostOnboardingFlagsStore()
@@ -274,7 +283,7 @@ struct CurrentMonthView: View {
                     drifts: store.driftLines,
                     totalOver: store.driftTotal,
                     tagNamesById: tagStore.namesById,
-                    adjustMonthName: nextMonthName,
+                    monthIsFavourable: monthIsFavourable,
                     onCatchUp: { navigateToBudget = true }
                 )
                 .staggeredEntrance(isVisible: hasAppeared, index: 2)
@@ -379,12 +388,6 @@ extension CurrentMonthView {
     private var currentMonthName: String {
         guard let budget = store.budget else { return "" }
         return Formatters.monthName(for: budget.month).lowercased()
-    }
-
-    private var nextMonthName: String {
-        guard let budget = store.budget else { return "le mois prochain" }
-        let next = budget.month == 12 ? 1 : budget.month + 1
-        return Formatters.monthName(for: next).lowercased()
     }
 
     /// Goal name shown on the savings card — only when every saving line maps to the same goal.

@@ -1,14 +1,16 @@
 import SwiftUI
 
 /// Tour 11 "Ça dérive" — envelopes consumed beyond plan this month, with mini
-/// planned/overflow bars, and a "Rattraper" footer action listing the real levers.
-/// Only rendered when the current month actually drifts.
+/// magnitude bars sized against the worst overrun on the card, and a "Rattraper"
+/// footer action that opens the budget. Only rendered when the current month
+/// actually drifts.
 struct DriftCard: View {
     let drifts: [(line: BudgetLine, consumption: BudgetFormulas.Consumption)]
     let totalOver: Decimal
     var tagNamesById: [String: String] = [:]
-    /// Next-month name for the "ajuster {mois}" lever in the footer subtitle.
-    let adjustMonthName: String
+    /// Same verdict `HomeHeroCard` renders — reconciles this card's subtitle with the
+    /// hero instead of asserting the opposite when the month is favourable overall.
+    let monthIsFavourable: Bool
     var onCatchUp: () -> Void
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
@@ -20,6 +22,14 @@ struct DriftCard: View {
     private static let maxRows = 3
 
     private var currency: SupportedCurrency { userSettingsStore.currency }
+
+    /// Local overrun read against the hero's own verdict: a favourable month says the
+    /// excess is absorbed elsewhere instead of asserting the hero's opposite.
+    private var subtitle: String {
+        let base = "\(totalOver.asCompactCurrency(currency)) au-delà du plan"
+        guard monthIsFavourable else { return base }
+        return "\(base), compensé ailleurs ce mois"
+    }
 
     /// Residual count when more envelopes drift than the card shows.
     private var overflowLabel: String {
@@ -46,7 +56,7 @@ struct DriftCard: View {
             // unnamed, is the arrangement this screen is getting rid of.
             HomeSectionHeader(
                 title: "Ça dérive",
-                amountSubtitle: "\(totalOver.asCompactCurrency(currency)) au-delà du plan"
+                amountSubtitle: subtitle
             )
 
             VStack(spacing: DesignTokens.Spacing.none) {
@@ -87,9 +97,18 @@ struct DriftCard: View {
 
     // MARK: - Drift Row
 
+    /// Largest overrun among the rows this card actually renders — the bar's denominator,
+    /// so a row's length compares its francs to the worst one on the card instead of
+    /// shrinking against its own envelope size.
+    private var maxOver: Decimal {
+        drifts.prefix(Self.maxRows).map { -$0.consumption.available }.max() ?? 0
+    }
+
     private func driftRow(_ line: BudgetLine, _ consumption: BudgetFormulas.Consumption) -> some View {
         let overBy = -consumption.available
-        let fill = plannedFraction(line, consumption)
+        let fraction = maxOver > 0
+            ? min(Double(truncating: (overBy / maxOver) as NSDecimalNumber), 1)
+            : 0
         let tagNames = TagChips.names(for: line.tagIds, namesById: tagNamesById)
 
         return VStack(spacing: DesignTokens.Spacing.sm) {
@@ -116,14 +135,12 @@ struct DriftCard: View {
                     .sensitiveAmount()
             }
 
-            // The plan is grey, the excess is the only colored thing on the bar: what
-            // the row reports is the overrun, and full-strength ink on the planned
-            // share made two heavy segments compete to say it.
+            // Length encodes the overrun itself, against the worst row on the card — not
+            // the envelope's own size, which shrank the biggest loss into the smallest bar.
+            // The row already spells out "+100 en trop" in full, so a second grey segment
+            // for the planned share only competed with the number for attention.
             HomeSegmentedBar(
-                fillFraction: fill,
-                overflowFraction: 1 - fill,
-                fillColor: .textSecondary,
-                overflowColor: .driftAccent,
+                segments: [.init(fraction: fraction, color: .driftAccent)],
                 trackColor: .progressTrack,
                 height: DesignTokens.ProgressBar.thickHeight
             )
@@ -133,24 +150,19 @@ struct DriftCard: View {
         .accessibilityLabel(rowAccessibilityLabel(line, overBy: overBy))
     }
 
-    /// Planned share of the consumed bar: `amount / allocated`.
-    private func plannedFraction(_ line: BudgetLine, _ consumption: BudgetFormulas.Consumption) -> Double {
-        guard consumption.allocated > 0, line.amount > 0 else { return 0 }
-        return min(Double(truncating: (line.amount / consumption.allocated) as NSDecimalNumber), 1)
-    }
-
     // MARK: - Catch-Up Footer
 
     private var catchUpRow: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                Text("Rattraper ces \(totalOver.asCompactAmount(for: currency)) en trop")
+                Text("Rattraper ces \(totalOver.asCompactCurrency(currency)) en trop")
                     .font(PulpeTypography.labelLarge)
                     .foregroundStyle(Color.pulpePrimary)
                     .monospacedDigit()
                     .sensitiveAmount()
 
-                Text("Alléger le prévu du mois · piocher dans l'épargne · ajuster \(adjustMonthName)")
+                // Names the one thing the tap actually opens — matches `accessibilityHint`.
+                Text("Ouvre le budget pour ajuster tes enveloppes")
                     .font(PulpeTypography.labelMedium)
                     .foregroundStyle(Color.textTertiary)
                     .lineLimit(2)
