@@ -302,16 +302,19 @@ describe('Spread horizon guard — outside-target-date rejection (local Supabase
     }
     userId = created.user.id;
 
-    await adminClient.from('template').insert({
+    const { error: templateErr } = await adminClient.from('template').insert({
       id: templateId,
       user_id: userId,
       name: 'Horizon Template',
       is_default: true,
     });
+    if (templateErr) {
+      throw new Error(`Failed to seed template: ${templateErr.message}`);
+    }
 
     // No payDayOfMonth set on this user → the trigger's pay-day-aware horizon
     // collapses to the calendar month of target_date: June 2026.
-    await adminClient.from('savings_goal').insert({
+    const { error: goalErr } = await adminClient.from('savings_goal').insert({
       id: goalId,
       user_id: userId,
       name: 'Voyage',
@@ -319,25 +322,33 @@ describe('Spread horizon guard — outside-target-date rejection (local Supabase
       target_date: '2026-06-15',
       status: 'ACTIVE',
     });
+    if (goalErr) {
+      throw new Error(`Failed to seed savings goal: ${goalErr.message}`);
+    }
 
-    await adminClient.from('monthly_budget').insert([
-      {
-        id: withinHorizonBudgetId,
-        user_id: userId,
-        template_id: templateId,
-        month: 5,
-        year: 2026,
-        description: 'Within horizon',
-      },
-      {
-        id: beyondHorizonBudgetId,
-        user_id: userId,
-        template_id: templateId,
-        month: 7,
-        year: 2026,
-        description: 'Beyond horizon',
-      },
-    ]);
+    const { error: budgetErr } = await adminClient
+      .from('monthly_budget')
+      .insert([
+        {
+          id: withinHorizonBudgetId,
+          user_id: userId,
+          template_id: templateId,
+          month: 5,
+          year: 2026,
+          description: 'Within horizon',
+        },
+        {
+          id: beyondHorizonBudgetId,
+          user_id: userId,
+          template_id: templateId,
+          month: 7,
+          year: 2026,
+          description: 'Beyond horizon',
+        },
+      ]);
+    if (budgetErr) {
+      throw new Error(`Failed to seed monthly budgets: ${budgetErr.message}`);
+    }
 
     authClient = createClient<Database>(env.apiUrl, env.anonKey);
     const { error: signInErr } = await authClient.auth.signInWithPassword({
@@ -404,22 +415,27 @@ describe('Spread horizon guard — outside-target-date rejection (local Supabase
       exchangeRate: null,
     });
 
+    let caughtError: unknown;
     try {
       await repository.createSpread(spreadGroupId, [
         buildInput(withinHorizonBudgetId),
         buildInput(beyondHorizonBudgetId),
       ]);
-      throw new Error('expected createSpread to reject');
     } catch (error) {
-      expect(error).toBeInstanceOf(BusinessException);
-      const businessError = error as BusinessException;
-      expect(businessError.code).toBe(
-        ERROR_DEFINITIONS.SAVINGS_GOAL_LINE_OUTSIDE_HORIZON.code,
-      );
-      expect(businessError.getStatus()).toBe(
-        ERROR_DEFINITIONS.SAVINGS_GOAL_LINE_OUTSIDE_HORIZON.httpStatus,
-      );
+      caughtError = error;
     }
+
+    // No sentinel throw-inside-try: an unexpected success leaves caughtError
+    // undefined, which fails this assertion loudly instead of being caught
+    // and masked by the surrounding catch block.
+    expect(caughtError).toBeInstanceOf(BusinessException);
+    const businessError = caughtError as BusinessException;
+    expect(businessError.code).toBe(
+      ERROR_DEFINITIONS.SAVINGS_GOAL_LINE_OUTSIDE_HORIZON.code,
+    );
+    expect(businessError.getStatus()).toBe(
+      ERROR_DEFINITIONS.SAVINGS_GOAL_LINE_OUTSIDE_HORIZON.httpStatus,
+    );
 
     const { data: persisted, error: readErr } = await adminClient
       .from('budget_line')
