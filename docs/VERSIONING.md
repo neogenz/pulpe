@@ -101,7 +101,13 @@ Source de vérité : Railway (env Production). Les valeurs locales restent celle
 
 ### iOS : la version publiée se résout toute seule
 
-`IosVersionGateService` (`backend-nest/src/modules/app-version/`) interroge le lookup public Apple (`https://itunes.apple.com/lookup?id=<app id>`, ID extrait de `IOS_STORE_URL`) et sert cette version comme `ios.latestVersion`. Rafraîchissement paresseux : la première requête passé le TTL (6 h) déclenche un appel en tâche de fond — aucune requête client n'attend Apple. Échec, timeout (3 s) ou version non SemVer → on garde la valeur précédente, on réessaie dans 15 min, et `LATEST_IOS_VERSION` sert de plancher : la valeur servie est `max(env, App Store)`, jamais une régression.
+`IosVersionGateService` (`backend-nest/src/modules/app-version/`) interroge le lookup public Apple (`https://itunes.apple.com/lookup?id=<app id>`, ID extrait de `IOS_STORE_URL`) et sert cette version comme `ios.latestVersion`.
+
+Le lookup part une première fois au démarrage du conteneur, puis paresseusement : la première requête passé le TTL (6 h) déclenche un appel en tâche de fond. Aucune requête client n'attend Apple, et le redémarrage qui suit un changement de variable Railway sert la bonne version sans attendre le premier appel client.
+
+Échec, timeout (3 s) ou version non SemVer → on garde la valeur précédente et on réessaie dans 15 min. Cas distinct : une `IOS_STORE_URL` sans identifiant App Store est une erreur de config, pas un incident réseau — un seul `warn` est émis, sans réessai, et la valeur d'env est servie tant que le conteneur vit.
+
+Dans tous les cas de repli, `LATEST_IOS_VERSION` sert de plancher : la valeur servie est `max(env, App Store)`, jamais une régression.
 
 Conséquence : **aucun bump Railway à faire après une approbation App Store**. `MIN_IOS_VERSION` peut aussi être armé avant la fin du rollout Apple — le plancher servi est borné par la version réellement téléchargeable (`minVersion = min(MIN_IOS_VERSION, latestVersion)`), donc le blocage s'active de lui-même quand Apple publie, sans jamais bloquer sur un binaire indisponible.
 
