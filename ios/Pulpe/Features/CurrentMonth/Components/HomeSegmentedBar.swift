@@ -56,7 +56,7 @@ struct HomeSegmentedBar: View {
                         .frame(width: width)
                         .clipShape(.capsule)
                 }
-                Spacer(minLength: 0)
+                Spacer(minLength: DesignTokens.Spacing.none)
             }
         }
         .background(trackColor)

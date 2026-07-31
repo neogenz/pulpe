@@ -252,11 +252,12 @@ struct UncheckedOperationsCard: View {
         } label: {
             // A bounded shape, not bare grey text. Two boxes of one size read as the two
             // terms of a choice; text alone at the far end of a row read as a caption that
-            // happened to be right-aligned. The outline against the filled affirmative is
-            // the language the period selector further down already speaks.
+            // happened to be right-aligned. `.muted` gives it a fill of its own — `.outlined`
+            // draws a hairline meant for `appBackground`, which a card of the same
+            // `surfaceContainerLowest` tone swallows at 1,00:1.
             PulpeChip(
                 label: "Plus tard",
-                style: .outlined,
+                style: .muted,
                 // During the "Pointé" beat the guard already ignores taps; without the
                 // visual disable the button looks live and silently does nothing.
                 isDisabled: confirmingId != nil

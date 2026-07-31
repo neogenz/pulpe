@@ -69,6 +69,12 @@ struct HomeSectionHeader: View {
                 .foregroundStyle(Color.pulpePrimary)
                 .lineLimit(1)
             }
+            // `alignment: .top` (not the default `.center`) keeps the label pinned where
+            // it already sits: centering would grow this child's ascent past the title's,
+            // which shares this row's `.firstTextBaseline` — shifting both texts downward
+            // instead of only extending the tap target below the label.
+            .frame(minHeight: DesignTokens.TapTarget.minimum, alignment: .top)
+            .contentShape(Rectangle())
             .textLinkButtonStyle()
             // Out of its visual context "Tout voir" names nothing; paired with the
             // section it does, and that saves every call site a hint of its own.

@@ -312,10 +312,16 @@ extension Color {
     static let stepTransport = Color(light: Color(hex: 0xEF6C00), dark: Color(hex: 0xFFA726))
     static let stepCredit = Color(light: Color(hex: 0x37474F), dark: Color(hex: 0x78909C))
 
-    /// Onboarding accent gradient — brighter dark mode for visibility on deep backgrounds
+    /// Onboarding accent gradient — brighter dark mode for visibility on deep backgrounds.
+    /// Both stops sit under `Color.textOnPrimary` at the CTA's two call sites
+    /// (`PrimaryButtonStyle`, `OnboardingStepView`'s `ctaBackground`), white in light mode
+    /// and near-black in dark mode — each bound below is the one closer to its ink, so it's
+    /// the one that gates the pair's contrast against WCAG's 4.5:1 floor:
+    /// - Light trailing (`0x00842C`) vs white ink: 4.84:1.
+    /// - Dark leading (`0x409B43`) vs dark ink: 4.93:1.
     static let onboardingGradient = LinearGradient(
-        colors: [Color(light: Color(hex: 0x006E25), dark: Color(hex: 0x338A36)),
-                 Color(light: Color(hex: 0x00A838), dark: Color(hex: 0x56C45A))],
+        colors: [Color(light: Color(hex: 0x006E25), dark: Color(hex: 0x409B43)),
+                 Color(light: Color(hex: 0x00842C), dark: Color(hex: 0x56C45A))],
         startPoint: .leading,
         endPoint: .trailing
     )

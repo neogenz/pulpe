@@ -60,24 +60,17 @@ struct HomeHeroCard: View {
 
     var body: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
-            Button {
-                tapTrigger.toggle()
-                onTapMetrics()
-            } label: {
-                metricsContent
-            }
-            .contentShape(Rectangle())
-            .plainPressedButtonStyle()
-            .sensoryFeedback(.impact(flexibility: .soft), trigger: tapTrigger)
-            .accessibilityLabel(accessibilityDescription)
-            .accessibilityHint("Ouvrir le suivi du réalisé")
-
+            metricsContent
             verdictSentence
         }
     }
 
     // MARK: - Summary
 
+    /// Same `VStack(spacing: .lg)` structure as before — only `summaryMetrics` sits behind
+    /// the Button now. The amount and the chart never opened anything; wrapping all three
+    /// made the 120pt chart tappable by accident and buried the one thing that does
+    /// (the two metrics) inside a control with no chevron or ink to say so.
     private var metricsContent: some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
             VStack(spacing: DesignTokens.Spacing.xs) {
@@ -93,7 +86,18 @@ struct HomeHeroCard: View {
                     .foregroundStyle(Color.homeHeroSupport)
             }
 
-            summaryMetrics
+            Button {
+                tapTrigger.toggle()
+                onTapMetrics()
+            } label: {
+                summaryMetrics
+            }
+            .contentShape(Rectangle())
+            .plainPressedButtonStyle()
+            .sensoryFeedback(.impact(flexibility: .soft), trigger: tapTrigger)
+            .accessibilityLabel(accessibilityDescription)
+            .accessibilityHint("Ouvrir le suivi du réalisé")
+
             balanceChart
         }
         .frame(maxWidth: .infinity)
