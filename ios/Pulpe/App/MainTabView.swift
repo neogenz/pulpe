@@ -50,10 +50,34 @@ struct MainTabView: View {
 // MARK: - Current Month Tab
 
 struct CurrentMonthTab: View {
+    @Environment(AppState.self) private var appState
+    @State private var router = BudgetDetailsRouter()
+
     var body: some View {
-        NavigationStack {
+        @Bindable var state = appState
+
+        // The accueil is a set of shortcuts into budgets and objectifs, so it registers
+        // their destinations too: a shortcut that switched tabs instead of pushing left
+        // the back button pointing at the other section's root.
+        NavigationStack(path: $state.currentMonthPath) {
             CurrentMonthView()
+                .navigationDestination(for: BudgetDestination.self) { destination in
+                    switch destination {
+                    case .details(let budgetId):
+                        BudgetDetailsView(budgetId: budgetId)
+                    }
+                }
+                .navigationDestination(for: SavingsGoalDestination.self) { destination in
+                    switch destination {
+                    case .list:
+                        SavingsGoalsListView()
+                    case .detail(let goal):
+                        SavingsGoalDetailView(goal: goal)
+                    }
+                }
         }
+        .environment(router)
+        .task { router.bind(to: appState) }
     }
 }
 

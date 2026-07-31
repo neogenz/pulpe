@@ -335,6 +335,7 @@ extension AppState {
         }
         if scope.clearsPostAuthError { showPostAuthError = false }
         if scope.clearsNavigation {
+            currentMonthPath = NavigationPath()
             budgetPath = NavigationPath()
             savingsGoalsPath = NavigationPath()
             templatePath = NavigationPath()

@@ -71,9 +71,11 @@ final class AppState {
     // MARK: - Navigation
 
     var selectedTab: Tab = .currentMonth
+    var currentMonthPath = NavigationPath()
     var budgetPath = NavigationPath()
     var savingsGoalsPath = NavigationPath()
     var templatePath = NavigationPath()
+    // Pushing and popping these live in `AppState+Navigation.swift`.
 
     // MARK: - Returning User
 
@@ -430,17 +432,6 @@ enum Tab: String, CaseIterable, Identifiable {
         }
     }
 }
-
-// MARK: - Navigation Destinations
-
-enum BudgetDestination: Hashable { case details(budgetId: String) }
-
-enum SavingsGoalDestination: Hashable {
-    case list
-    case detail(SavingsGoal)
-}
-
-enum TemplateDestination: Hashable { case details(templateId: String) }
 
 // MARK: - Pending Onboarding User
 

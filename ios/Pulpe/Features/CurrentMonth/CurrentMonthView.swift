@@ -165,25 +165,26 @@ struct CurrentMonthView: View {
         .onChange(of: navigateToBudget) { _, shouldNavigate in
             if shouldNavigate, let budgetId = store.budget?.id {
                 navigateToBudget = false
-                // Clear path without animation while Budgets tab is offscreen
-                var transaction = SwiftUI.Transaction()
-                transaction.disablesAnimations = true
-                withTransaction(transaction) {
-                    appState.budgetPath = NavigationPath()
-                }
-                // Next run loop: old view is destroyed, push fresh + switch tab
-                Task { @MainActor in
-                    appState.budgetPath.append(BudgetDestination.details(budgetId: budgetId))
-                    appState.selectedTab = .budgets
-                }
+                appState.pushOnActiveStack(BudgetDestination.details(budgetId: budgetId))
             }
         }
         .onChange(of: appState.selectedTab) { oldTab, newTab in
             guard newTab == .currentMonth, oldTab != .currentMonth else { return }
-            store.invalidateCache()
-            Task {
-                await store.loadDetailsIfNeeded()
-            }
+            refreshDetails()
+        }
+        // Coming back from the budget no longer crosses a tab boundary, so the tab change
+        // above never fires for it: the accueil refreshes when its own stack unwinds.
+        .onChange(of: appState.currentMonthPath.count) { oldCount, newCount in
+            guard newCount == 0, oldCount > 0 else { return }
+            refreshDetails()
+        }
+    }
+
+    /// Re-reads the month after the user has been somewhere that can change it.
+    private func refreshDetails() {
+        store.invalidateCache()
+        Task {
+            await store.loadDetailsIfNeeded()
         }
     }
 
@@ -282,8 +283,7 @@ struct CurrentMonthView: View {
                     amount: store.savingsSummary.totalRealized,
                     goalName: completedSavingsGoalName
                 ) {
-                    appState.savingsGoalsPath = NavigationPath()
-                    appState.selectedTab = .savingsGoals
+                    appState.pushOnActiveStack(SavingsGoalDestination.list)
                 }
                 .staggeredEntrance(isVisible: hasAppeared, index: 2)
             }

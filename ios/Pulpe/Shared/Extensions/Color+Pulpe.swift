@@ -401,6 +401,14 @@ extension Color {
     /// Envelope drift accent — overrun amounts + overflow bar segments on the home dashboard only.
     /// Light value set against the mint hero surface, where it must clear 4.5:1.
     static let driftAccent = Color(light: Color(hex: 0xAA4522), dark: Color(hex: 0xE8825A))
+    /// Cast by the mint hero surface onto the content zone below it. In light mode the two
+    /// zones are close in value and would otherwise read as one flat plane, so the drop is
+    /// the whole depth cue; in dark mode the tonal jump already carries it and a black
+    /// shadow on a near-black canvas only muddies the edge.
+    static let homeZoneBoundaryShadow = Color(
+        light: .black.opacity(DesignTokens.Opacity.badgeBackground),
+        dark: .clear
+    )
 
     // MARK: - Skeleton
 

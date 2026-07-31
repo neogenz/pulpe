@@ -116,13 +116,14 @@ enum DesignTokens {
             y: 4
         )
         /// Full-bleed zone boundary — the dashboard's emotion surface over the ledger.
-        /// A card-sized shadow on a plane this wide reads as an edge artifact, so this
-        /// one is broad and soft: it is the only cue that the two zones sit at different
-        /// depths rather than being die-cut from the same sheet.
+        /// It is the only cue that the two zones sit at different depths rather than being
+        /// die-cut from the same sheet, so it stays close to the edge that casts it:
+        /// spread over a wide blur it dissolved into the canvas and read as nothing.
+        /// Scheme-aware colour, because dark mode gets its depth from tone instead.
         static let zoneBoundary = ShadowStyle(
-            color: .black.opacity(0.10),
-            radius: 18,
-            y: 6
+            color: .homeZoneBoundaryShadow,
+            radius: 10,
+            y: 4
         )
         /// Input fields (auth, currency)
         static let input = ShadowStyle(
