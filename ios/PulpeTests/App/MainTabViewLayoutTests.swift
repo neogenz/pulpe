@@ -62,22 +62,15 @@ struct MainTabViewNavigationOwnershipTests {
             return
         }
 
-        // The row no longer declares a minimum height: a `RowIcon` plus its vertical
-        // padding stands taller than the 44pt floor on its own. What still has to be
-        // declared is the reach — the whole card width — and the shape that carries it.
+        // The action declares no geometry of its own any more — it is the house primary
+        // button. So the hit area is checked where it is actually defined, one file over:
+        // naming the style here would pass even if the style stopped filling its width.
         let action = source[start.lowerBound..<end.upperBound]
-        guard let width = action.range(of: "maxWidth: .infinity"),
-              let contentShape = action.range(
-                  of: ".contentShape(.rect(cornerRadius: DesignTokens.CornerRadius.card))"
-              ),
-              let pressedStyle = action.range(of: ".plainPressedButtonStyle()")
-        else {
-            Issue.record("Transaction action must declare its width, content shape and pressed style")
-            return
-        }
+        #expect(action.contains(".primaryButtonStyle()"))
 
-        #expect(action.contains("RowIcon("))
-        #expect(width.lowerBound < contentShape.lowerBound)
-        #expect(contentShape.lowerBound < pressedStyle.lowerBound)
+        let style = try Self.read("Pulpe", "Shared", "Design", "PrimaryButtonStyle.swift")
+        #expect(style.contains("frame(maxWidth: .infinity)"))
+        #expect(style.contains("frame(height: DesignTokens.FrameHeight.button)"))
+        #expect(style.contains(".contentShape(Capsule())"))
     }
 }

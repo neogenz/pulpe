@@ -303,31 +303,14 @@ struct CurrentMonthView: View {
         .padding(.horizontal, DesignTokens.Spacing.xxl)
     }
 
-    /// The screen's first action, shaped like everything under it: a disc that says what
-    /// it does, a label, a chevron. It used to be bare green text with no bounds, which
-    /// gave the primary action of the home less presence than the secondary chip below it.
+    /// The one filled element in the content zone. Recording an operation is the act the
+    /// whole app depends on, and dressed as a white card with a chevron it had the same
+    /// weight as the records below it — and promised a list it doesn't open.
     private var addOperationRow: some View {
         Button { activeSheet = .addTransaction } label: {
-            HStack(spacing: DesignTokens.Spacing.lg) {
-                RowIcon(systemName: "plus", tint: .pulpePrimary)
-
-                Text("Ajouter une opération")
-                    .font(PulpeTypography.labelLarge)
-                    .foregroundStyle(Color.textPrimary)
-
-                Spacer(minLength: DesignTokens.Spacing.sm)
-
-                Image(systemName: "chevron.right")
-                    .font(PulpeTypography.metricLabel)
-                    .foregroundStyle(Color.textTertiary)
-            }
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.vertical, DesignTokens.Spacing.md)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .pulpeRowCard()
+            Label("Ajouter une opération", systemImage: "plus")
         }
-        .contentShape(.rect(cornerRadius: DesignTokens.CornerRadius.card))
-        .plainPressedButtonStyle()
+        .primaryButtonStyle()
         .accessibilityLabel("Ajouter une opération")
     }
 }

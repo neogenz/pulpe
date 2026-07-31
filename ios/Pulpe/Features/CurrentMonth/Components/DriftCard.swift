@@ -116,13 +116,16 @@ struct DriftCard: View {
                     .sensitiveAmount()
             }
 
+            // The plan is grey, the excess is the only colored thing on the bar: what
+            // the row reports is the overrun, and full-strength ink on the planned
+            // share made two heavy segments compete to say it.
             HomeSegmentedBar(
                 fillFraction: fill,
                 overflowFraction: 1 - fill,
-                fillColor: .textPrimary,
+                fillColor: .textSecondary,
                 overflowColor: .driftAccent,
                 trackColor: .progressTrack,
-                height: DesignTokens.ProgressBar.height
+                height: DesignTokens.ProgressBar.thickHeight
             )
         }
         .padding(.vertical, DesignTokens.Spacing.md)

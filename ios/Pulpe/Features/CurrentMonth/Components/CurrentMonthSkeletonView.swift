@@ -38,19 +38,13 @@ struct CurrentMonthSkeletonView: View {
         }
     }
 
+    /// The filled CTA, at its own height: a card-shaped placeholder would hand the slot
+    /// over to a pill and shift everything under it.
     private var contentActionSkeleton: some View {
-        HStack(spacing: DesignTokens.Spacing.lg) {
-            SkeletonCircle(size: DesignTokens.IconSize.badge)
-            SkeletonShape(
-                width: DesignTokens.Skeleton.greetingWidth,
-                height: DesignTokens.Skeleton.lineHeight
-            )
-            Spacer()
-        }
-        .padding(.horizontal, DesignTokens.Spacing.lg)
-        .padding(.vertical, DesignTokens.Spacing.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .pulpeRowCard()
+        SkeletonShape(
+            height: DesignTokens.FrameHeight.button,
+            cornerRadius: .infinity
+        )
     }
 
     private var uncheckedCardSkeleton: some View {
