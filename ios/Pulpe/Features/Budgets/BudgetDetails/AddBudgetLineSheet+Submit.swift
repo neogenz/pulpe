@@ -2,6 +2,11 @@ import SwiftUI
 
 // MARK: - Logic
 
+/// Submit-flow methods for `AddBudgetLineSheet`, split out to keep the sheet
+/// file under the feature's 350-LOC budget (same precedent as
+/// `BudgetDetailsView+Routing`). The state (`amount`, `name`, `kind`, …) and
+/// dependencies read here are declared non-private on the sheet for this
+/// reason.
 extension AddBudgetLineSheet {
     /// Routes to the withdrawal, spread, or single-line flow.
     func submit() async {

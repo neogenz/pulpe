@@ -58,9 +58,14 @@ struct GoalPlanTimelinePresentationTests {
 
     @Test("counts only isRepairable months regardless of position, matching the recap and create set")
     func repairableMonths_ignoresPositionAndMatchesTheUnwindowedRepairableSet() {
+        // month 5 sits BEFORE currentIndex (month 6) yet is genuinely
+        // repairable (unlocked, provisionable, no lines) — the old
+        // `months.dropFirst(currentIndex)` windowing would have dropped it.
+        // `isLocked` is decoded straight off the DTO, not recomputed, so a
+        // past-but-unlocked month is a real, constructible server state.
         let months = [
             makeMonth(month: 4, state: .past, isLocked: true, hasLinkedForecast: true),
-            makeMonth(month: 5, state: .past, isLocked: true),
+            makeMonth(month: 5, state: .past, isLocked: false, isProvisionable: true),
             makeMonth(month: 6, state: .current, isProvisionable: true),
             makeMonth(month: 7, state: .future, isProvisionable: true),
             makeMonth(month: 8, state: .future, hasLinkedForecast: true),
@@ -68,8 +73,8 @@ struct GoalPlanTimelinePresentationTests {
 
         let presentation = GoalPlanTimelinePresentation(months: months, isExpanded: false)
 
-        #expect(presentation.repairableMonths.map(\.month) == [6, 7])
-        #expect(presentation.repairableMonths.count == months.filter(\.isRepairable).count)
+        #expect(presentation.repairableMonths.map(\.month) == [5, 6, 7])
+        #expect(presentation.repairableMonths.count == 3)
     }
 
     @Test("uses natural agreement for one or several repairable forecasts")
