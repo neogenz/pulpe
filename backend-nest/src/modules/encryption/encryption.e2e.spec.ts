@@ -47,6 +47,9 @@ describe('Encryption E2E (local Supabase)', () => {
       process.env.ENCRYPTION_MASTER_KEY ?? '11'.repeat(32);
     process.env.TURNSTILE_SECRET_KEY =
       process.env.TURNSTILE_SECRET_KEY ?? 'test-turnstile-key';
+    // No App Store identifier: IosVersionGateService short-circuits its
+    // bootstrap lookup, so booting AppModule here reaches no external host.
+    process.env.IOS_STORE_URL = 'https://apps.apple.com/app/pulpe';
     process.env.NODE_ENV = 'test';
 
     adminClient = createClient<Database>(env.apiUrl, env.serviceRoleKey);

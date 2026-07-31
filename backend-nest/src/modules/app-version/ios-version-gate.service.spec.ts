@@ -73,6 +73,17 @@ describe('IosVersionGateService', () => {
     expect(gate).toEqual({ minVersion: '1.0.0', latestVersion: '1.3.0' });
   });
 
+  it('should prime the App Store version at bootstrap, before any request', async () => {
+    mockFetch.mockResolvedValue(lookupResponse('1.3.1'));
+    service = await createService();
+
+    service.onApplicationBootstrap();
+    await flushPendingRefresh();
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(service.resolve().latestVersion).toBe('1.3.1');
+  });
+
   it('should adopt the App Store version once the lookup resolves', async () => {
     mockFetch.mockResolvedValue(lookupResponse('1.3.1'));
     service = await createService();

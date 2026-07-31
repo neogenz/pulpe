@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { isVersionAtMost } from '@common/utils/semver-compare';
+import { SEMVER_PATTERN, isVersionAtMost } from '@common/utils/semver-compare';
 
 const envSchema = z
   .object({
@@ -53,28 +53,16 @@ const envSchema = z
       .optional(),
 
     // Force-update gate (consumed by GET /api/v1/app/version)
-    MIN_IOS_VERSION: z
-      .string()
-      .regex(/^\d+\.\d+\.\d+$/)
-      .default('1.0.0'),
+    MIN_IOS_VERSION: z.string().regex(SEMVER_PATTERN).default('1.0.0'),
     // Fallback only: `IosVersionGateService` publishes the version the App
     // Store actually serves and never goes below this value. No `MIN <= LATEST`
     // refine on purpose — the floor is clamped at request time against the
     // downloadable version, so `MIN_IOS_VERSION` can be raised before Apple
     // finishes the rollout instead of crashing the boot.
-    LATEST_IOS_VERSION: z
-      .string()
-      .regex(/^\d+\.\d+\.\d+$/)
-      .default('1.0.0'),
+    LATEST_IOS_VERSION: z.string().regex(SEMVER_PATTERN).default('1.0.0'),
     IOS_STORE_URL: z.url().default('https://apps.apple.com/app/id6758464920'),
-    MIN_WEB_VERSION: z
-      .string()
-      .regex(/^\d+\.\d+\.\d+$/)
-      .default('0.0.1'),
-    LATEST_WEB_VERSION: z
-      .string()
-      .regex(/^\d+\.\d+\.\d+$/)
-      .default('0.0.1'),
+    MIN_WEB_VERSION: z.string().regex(SEMVER_PATTERN).default('0.0.1'),
+    LATEST_WEB_VERSION: z.string().regex(SEMVER_PATTERN).default('0.0.1'),
   })
   .refine(
     (env) => isVersionAtMost(env.MIN_WEB_VERSION, env.LATEST_WEB_VERSION),

@@ -2,11 +2,10 @@ import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
-import { isVersionAtMost } from '@common/utils/semver-compare';
+import { SEMVER_PATTERN, isVersionAtMost } from '@common/utils/semver-compare';
 
 const APP_STORE_LOOKUP_URL = 'https://itunes.apple.com/lookup';
 const APP_STORE_ID_PATTERN = /id(\d+)/;
-const SEMVER_PATTERN = /^\d+\.\d+\.\d+$/;
 const APP_STORE_LOOKUP_SCHEMA = z.object({
   results: z
     .array(z.object({ version: z.string().regex(SEMVER_PATTERN) }))
@@ -15,6 +14,7 @@ const APP_STORE_LOOKUP_SCHEMA = z.object({
 const LOOKUP_TIMEOUT_MS = 3_000;
 const FRESH_TTL_MS = 6 * 60 * 60 * 1000;
 const RETRY_TTL_MS = 15 * 60 * 1000;
+const NEVER_REFRESH_AGAIN = Number.POSITIVE_INFINITY;
 
 export interface IosVersionGate {
   minVersion: string;
@@ -90,7 +90,7 @@ export class IosVersionGateService implements OnApplicationBootstrap {
   async #refreshPublishedVersion(): Promise<void> {
     const appStoreId = this.#resolveAppStoreId();
     if (!appStoreId) {
-      this.#refreshAfter = Number.POSITIVE_INFINITY;
+      this.#refreshAfter = NEVER_REFRESH_AGAIN;
       this.logger.warn(
         { operation: 'refreshPublishedVersion' },
         'IOS_STORE_URL carries no App Store identifier, serving the configured LATEST_IOS_VERSION',
