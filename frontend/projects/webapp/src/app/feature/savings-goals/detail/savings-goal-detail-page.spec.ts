@@ -23,6 +23,7 @@ import {
   type SavingsGoalFutureLine,
   type SavingsGoalPlanMonth,
   type SavingsGoalProgress,
+  type SupportedCurrency,
 } from 'pulpe-shared';
 import { ApiError } from '@core/api/api-error';
 import SavingsGoalDetailPage from './savings-goal-detail-page';
@@ -231,6 +232,7 @@ describe('SavingsGoalDetailPage', () => {
   const navigate = vi.fn();
   const snackBarOpen = vi.fn();
   const payDayOfMonthSig = signal<number | null>(25);
+  const currencySig = signal<SupportedCurrency>('CHF');
 
   const futureLinesSig = signal<SavingsGoalFutureLine[]>([]);
   let deletionDialogResult: SavingsGoalDeletionCommand | undefined;
@@ -282,6 +284,7 @@ describe('SavingsGoalDetailPage', () => {
     listErrorSig.set(null);
     futureLinesSig.set([]);
     payDayOfMonthSig.set(25);
+    currencySig.set('CHF');
     deletionDialogResult = undefined;
     vi.clearAllMocks();
     mockStore.editGoal.mockReset().mockResolvedValue(makeGoal());
@@ -306,7 +309,7 @@ describe('SavingsGoalDetailPage', () => {
         {
           provide: UserSettingsStore,
           useValue: {
-            currency: signal('CHF'),
+            currency: currencySig,
             payDayOfMonth: payDayOfMonthSig,
           },
         },
@@ -1078,6 +1081,43 @@ describe('SavingsGoalDetailPage', () => {
       }),
     );
     expect(mockStore.applyPlan).not.toHaveBeenCalled();
+  });
+
+  it('formats the recovery projection in CHF with the same apostrophe grouping as the dialog lines, no decimals', async () => {
+    progressSig.set(
+      makeProgress({ required: 175.345, months: [makePlanMonth()] }),
+    );
+    mockDialogs.openApplyPlan.mockResolvedValueOnce(false);
+    fixture.detectChanges();
+
+    query('goal-plan-repair-preview').nativeElement.click();
+    await fixture.whenStable();
+
+    expect(mockDialogs.openApplyPlan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        verdict: 'Projection après création : 1’375 CHF',
+        verdictHasAmount: true,
+      }),
+    );
+  });
+
+  it('formats the recovery projection in EUR with the symbol in suffix position, no decimals', async () => {
+    currencySig.set('EUR');
+    progressSig.set(
+      makeProgress({ required: 175.345, months: [makePlanMonth()] }),
+    );
+    mockDialogs.openApplyPlan.mockResolvedValueOnce(false);
+    fixture.detectChanges();
+
+    query('goal-plan-repair-preview').nativeElement.click();
+    await fixture.whenStable();
+
+    expect(mockDialogs.openApplyPlan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        verdict: 'Projection après création : 1 375 €',
+        verdictHasAmount: true,
+      }),
+    );
   });
 
   it('creates all previewed forecasts then hides recovery after authoritative reload', async () => {

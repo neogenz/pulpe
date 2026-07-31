@@ -78,7 +78,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
     GoalPlanSimulatorToolbar,
     GoalContributionsList,
   ],
-  providers: [GoalPlanSimulatorStore],
+  providers: [GoalPlanSimulatorStore, AppCurrencyPipe],
   template: `
     <div
       class="flex flex-col gap-4 h-full min-w-0"
@@ -749,6 +749,7 @@ export default class SavingsGoalDetailPage {
   readonly #router = inject(Router);
   readonly #snackBar = inject(MatSnackBar);
   readonly #transloco = inject(TranslocoService);
+  readonly #currencyPipe = inject(AppCurrencyPipe);
   readonly #errorLocalizer = inject(ApiErrorLocalizer);
   protected readonly locale = inject(LOCALE_ID);
   readonly #pageActionBar = inject(PageActionBar);
@@ -1228,11 +1229,13 @@ export default class SavingsGoalDetailPage {
       locale: this.locale,
       payDayOfMonth: this.payDayOfMonth(),
       verdict: this.#transloco.translate('savingsGoals.plan.repairProjection', {
-        amount: new Intl.NumberFormat(this.locale, {
-          style: 'currency',
-          currency: this.currency(),
-        }).format(projected),
+        amount: this.#currencyPipe.transform(
+          projected,
+          this.currency(),
+          '1.0-0',
+        ),
       }),
+      verdictHasAmount: true,
     });
     if (!confirmed) return;
 
