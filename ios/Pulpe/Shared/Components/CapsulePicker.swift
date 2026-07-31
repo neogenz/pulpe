@@ -35,7 +35,7 @@ struct CapsulePicker<T: CaseIterable & Hashable, ItemLabel: View>: View where T.
                                 if !isSelected {
                                     Capsule()
                                         .strokeBorder(
-                                            Color.onSurfaceVariant.opacity(0.22),
+                                            Color.onSurfaceVariant.opacity(DesignTokens.Opacity.outlinePill),
                                             lineWidth: DesignTokens.BorderWidth.thin
                                         )
                                 }

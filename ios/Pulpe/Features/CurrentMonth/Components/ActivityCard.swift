@@ -10,11 +10,18 @@ struct ActivityCard: View {
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @State private var window: Window = .week
 
-    private static let maxRows = 5
-
     enum Window: String, CaseIterable {
         case week = "7 jours"
         case month = "Ce mois"
+    }
+
+    /// Per-window cap: the week is a chronological prefix of the month, so an equal cap
+    /// made both windows render identical rows as soon as 5 operations fell in 7 days.
+    private var maxRows: Int {
+        switch window {
+        case .week: 5
+        case .month: 10
+        }
     }
 
     /// One day's transactions, in the order the window already sorted them.
@@ -41,7 +48,7 @@ struct ActivityCard: View {
         var order: [Date] = []
         var byDay: [Date: [Transaction]] = [:]
 
-        for transaction in windowed.prefix(Self.maxRows) {
+        for transaction in windowed.prefix(maxRows) {
             let day = calendar.startOfDay(for: transaction.transactionDate)
             if byDay[day] == nil { order.append(day) }
             byDay[day, default: []].append(transaction)
@@ -80,11 +87,7 @@ struct ActivityCard: View {
             // Its own row, full width. Squeezed into the heading it fought the title for
             // the line and had to be re-stacked by hand past `xxLarge`; on a row of its
             // own it fits at every text size, and the labels get their whole word back.
-            CapsulePicker(selection: $window, title: nil) { option, _ in
-                Text(option.rawValue)
-                    .lineLimit(1)
-            }
-            .accessibilityLabel("Période d'activité")
+            windowPicker
 
             if groups.isEmpty {
                 emptyState
@@ -97,6 +100,38 @@ struct ActivityCard: View {
             }
         }
         .animation(DesignTokens.Animation.smoothEaseOut, value: window)
+    }
+
+    // MARK: - Window Picker
+
+    /// Two `PulpeChip`s, on the model of `BudgetTypeFilter.typePill`: this is a selector,
+    /// not the filter pastille `CapsulePicker` renders, and it sat as the biggest solid
+    /// green below the fold — the same ink as the CTA, for a state instead of the action
+    /// the product depends on.
+    private var windowPicker: some View {
+        HStack(spacing: DesignTokens.Spacing.sm) {
+            ForEach(Window.allCases, id: \.self) { option in
+                windowChip(option)
+            }
+        }
+        .sensoryFeedback(.selection, trigger: window)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Période d'activité")
+    }
+
+    @ViewBuilder
+    private func windowChip(_ option: Window) -> some View {
+        let isSelected = window == option
+
+        Button {
+            withAnimation(.snappy(duration: DesignTokens.Animation.fast)) {
+                window = option
+            }
+        } label: {
+            PulpeChip(label: option.rawValue, style: isSelected ? .solid : .outlined)
+        }
+        .plainPressedButtonStyle()
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 
     // MARK: - Day group
