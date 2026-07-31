@@ -42,7 +42,6 @@ describe('GoalPlanApplyDialog', () => {
       locale: 'fr-CH',
       payDayOfMonth: 25,
       verdict: 'Projection après création : 1’375 CHF',
-      verdictHasAmount: true,
     });
 
     const verdict = query(fixture, 'goal-plan-apply-verdict').query(
@@ -76,7 +75,6 @@ describe('GoalPlanApplyDialog', () => {
       locale: 'fr-CH',
       payDayOfMonth: 25,
       verdict: 'Projection après création : 1’375 CHF',
-      verdictHasAmount: true,
     });
 
     query(fixture, 'goal-plan-apply-confirm').nativeElement.click();

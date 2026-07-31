@@ -1006,14 +1006,21 @@ describe('SavingsGoalDetailPage', () => {
 
     fixture.detectChanges();
 
-    // Singular/plural/absence wording now lives in GoalPlanRepairCallout's own
-    // spec (which sets inputs directly on the component, not through a parent
-    // template binding). Signal inputs on a JIT-compiled child aren't reliably
-    // exercised through a *parent's* template binding in this test environment
-    // (see the "JIT compilation issues with signal inputs" note in
-    // test-setup.ts), so the page-owned repairableMonths() filtering
-    // (hasBudget / isProvisionable / existing line) is asserted directly here.
+    // The stub's bound `count` input can't be read here: signal inputs set
+    // via [prop]="expr" on a JIT-compiled child aren't reliably exercised
+    // through a *parent's* template binding in this test environment (see
+    // the "JIT compilation issues with signal inputs" note in
+    // test-setup.ts) — verified directly: callout.componentInstance.count()
+    // reads back 0 regardless of detectChanges()/whenStable(). So the
+    // page-owned repairableMonths() filtering (hasBudget / isProvisionable /
+    // existing line) is asserted directly; singular/plural wording is
+    // covered by GoalPlanRepairCallout's own spec.
     expect(component['repairableMonths']()).toHaveLength(1);
+    // The host itself still renders — the DOM-observable half of the
+    // guard (the page's `@if` lets the callout through when count > 0).
+    expect(
+      fixture.debugElement.query(By.directive(StubGoalPlanRepairCallout)),
+    ).toBeTruthy();
   });
 
   it('does not offer recovery when every gap still lacks a budget', () => {
@@ -1025,7 +1032,9 @@ describe('SavingsGoalDetailPage', () => {
 
     fixture.detectChanges();
 
-    expect(component['repairableMonths']()).toHaveLength(0);
+    expect(
+      fixture.debugElement.query(By.directive(StubGoalPlanRepairCallout)),
+    ).toBeFalsy();
   });
 
   it('does not offer recovery when the goal is already covered', () => {
@@ -1033,7 +1042,9 @@ describe('SavingsGoalDetailPage', () => {
 
     fixture.detectChanges();
 
-    expect(component['repairableMonths']()).toHaveLength(0);
+    expect(
+      fixture.debugElement.query(By.directive(StubGoalPlanRepairCallout)),
+    ).toBeFalsy();
   });
 
   it('previews and sends a positive sub-cent recovery as one cent', async () => {
@@ -1102,8 +1113,8 @@ describe('SavingsGoalDetailPage', () => {
 
     expect(mockDialogs.openApplyPlan).toHaveBeenCalledWith(
       expect.objectContaining({
+        mode: 'creation',
         verdict: 'Projection après création : 1’375 CHF',
-        verdictHasAmount: true,
       }),
     );
   });
@@ -1121,8 +1132,8 @@ describe('SavingsGoalDetailPage', () => {
 
     expect(mockDialogs.openApplyPlan).toHaveBeenCalledWith(
       expect.objectContaining({
+        mode: 'creation',
         verdict: 'Projection après création : 1 375 €',
-        verdictHasAmount: true,
       }),
     );
   });
@@ -1165,7 +1176,9 @@ describe('SavingsGoalDetailPage', () => {
       monthAdjustments: [],
       missingMonthAdjustments: [{ month: 8, year: 2026, amount: 175.35 }],
     });
-    expect(component['repairableMonths']()).toHaveLength(0);
+    expect(
+      fixture.debugElement.query(By.directive(StubGoalPlanRepairCallout)),
+    ).toBeFalsy();
   });
 
   it('deletes the goal with the preview revision then navigates back', async () => {

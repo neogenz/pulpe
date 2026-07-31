@@ -29,7 +29,6 @@ export interface GoalPlanApplyDialogData {
   locale: string;
   payDayOfMonth: number | null;
   verdict: string;
-  verdictHasAmount?: boolean;
 }
 
 const MAX_DIFF_ROWS = 5;
@@ -123,7 +122,7 @@ const MAX_DIFF_ROWS = 5;
           >
           <p
             class="text-body-medium font-medium text-financial-savings"
-            [class.ph-no-capture]="data.verdictHasAmount"
+            [class.ph-no-capture]="isCreation()"
           >
             {{ data.verdict }}
           </p>

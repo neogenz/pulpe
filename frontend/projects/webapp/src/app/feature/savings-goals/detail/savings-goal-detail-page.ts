@@ -609,7 +609,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                   </button>
                 }
               </div>
-              @if (!simulator.isSimulating()) {
+              @if (!simulator.isSimulating() && repairableMonths().length > 0) {
                 <pulpe-goal-plan-repair-callout
                   [count]="repairableMonths().length"
                   [isApplying]="isApplying()"
@@ -1206,7 +1206,6 @@ export default class SavingsGoalDetailPage {
           '1.0-0',
         ),
       }),
-      verdictHasAmount: true,
     });
     if (!confirmed) return;
 
