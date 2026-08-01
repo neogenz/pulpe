@@ -156,10 +156,13 @@ struct CurrentMonthStoreDashboardTests {
         #expect(store.driftLines.isEmpty)
         #expect(!store.savingsSummary.isComplete)
 
-        // The chart has a period to draw, and knows nothing has moved in it yet.
+        // The chart has a period to draw, opens on the plan the rest of the card quotes,
+        // and knows the month has not left it yet.
         let trajectory = try #require(store.balanceTrajectory)
-        #expect(trajectory.tracked.count > 1)
-        #expect(trajectory.hasNothingTracked)
+        #expect(trajectory.landing.count > 1)
+        #expect(trajectory.plannedBalance == store.plannedRemaining)
+        #expect(trajectory.drift == 0)
+        #expect(trajectory.driftDate == nil)
     }
 
     // MARK: - Savings Summary Logic

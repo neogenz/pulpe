@@ -253,8 +253,6 @@ struct ContextualCreationUITestHarness: View {
         guard let trajectory = BudgetFormulas.calculateBalanceTrajectory(
             budgetLines: [],
             transactions: pointed,
-            metrics: metrics,
-            plannedBalance: planned,
             budget: budget,
             payDayOfMonth: payDay,
             referenceDate: referenceDate

@@ -107,18 +107,14 @@ struct HomeHeroCardTests {
     }
 
     @MainActor
-    @Test func chartDomain_containsPlanAboveBelowAndEqualToTrajectory() {
-        let above = trajectory(tracked: [100, 80], remainingPlan: [80, 60], plan: 200)
-        let aboveDomain = HomeHeroCard.chartYDomain(for: above)
-        #expect(aboveDomain.contains(60))
-        #expect(aboveDomain.contains(200))
+    @Test func chartDomain_holdsEveryReadingIncludingAMonthThatNeverMoved() {
+        let drifted = trajectory(landing: [100, 80, -40])
+        let driftedDomain = HomeHeroCard.chartYDomain(for: drifted)
+        #expect(driftedDomain.contains(100))
+        #expect(driftedDomain.contains(-40))
 
-        let below = trajectory(tracked: [100, 80], remainingPlan: [80, 60], plan: -100)
-        let belowDomain = HomeHeroCard.chartYDomain(for: below)
-        #expect(belowDomain.contains(-100))
-        #expect(belowDomain.contains(100))
-
-        let flat = trajectory(tracked: [50, 50], remainingPlan: [50, 50], plan: 50)
+        // A month held exactly on plan is a single value, and still needs a frame to sit in.
+        let flat = trajectory(landing: [50, 50, 50])
         let flatDomain = HomeHeroCard.chartYDomain(for: flat)
         #expect(flatDomain.lowerBound < 50)
         #expect(flatDomain.upperBound > 50)
@@ -223,20 +219,22 @@ struct HomeHeroCardTests {
         #expect(!source.contains("height: DesignTokens.Skeleton.heroHeight"))
     }
 
-    @Test func nothingTracked_isFlagOnlyWhileEveryTrackedDayHoldsTheOpeningBalance() {
-        let untouched = trajectory(tracked: [1_000, 1_000, 1_000], remainingPlan: [1_000, 300], plan: 250)
-        #expect(untouched.hasNothingTracked)
+    @Test func drift_isTheDistanceFromThePlanTheLineOpenedOn() {
+        let held = trajectory(landing: [1_000, 1_000, 1_000])
+        #expect(held.plannedBalance == 1_000)
+        #expect(held.estimatedBalance == 1_000)
+        #expect(held.drift == 0)
 
-        let started = trajectory(tracked: [1_000, 1_000, 900], remainingPlan: [900, 300], plan: 250)
-        #expect(!started.hasNothingTracked)
+        let slipped = trajectory(landing: [1_000, 1_000, 900])
+        #expect(slipped.drift == -100)
     }
 
     @MainActor
     @Test func chartLabel_speaksTheTrajectoryAndHidesAmountsOnDemand() {
-        let tracked = trajectory(tracked: [1_000, 900], remainingPlan: [900, 300], plan: 250)
+        let drifted = trajectory(landing: [1_000, 900])
 
         let spoken = HomeHeroCard.chartAccessibilityLabel(
-            for: tracked,
+            for: drifted,
             currency: .chf,
             amountsHidden: false
         )
@@ -248,7 +246,7 @@ struct HomeHeroCardTests {
         // The plot draws its projection before anything is pointed, so the label owes the
         // same account of it — a new account gets told where the month is heading.
         let untouched = HomeHeroCard.chartAccessibilityLabel(
-            for: trajectory(tracked: [1_000, 1_000], remainingPlan: [1_000, 300], plan: 250),
+            for: trajectory(landing: [1_000, 1_000]),
             currency: .chf,
             amountsHidden: false
         )
@@ -256,7 +254,7 @@ struct HomeHeroCardTests {
         #expect(untouched.contains("Prévu"))
 
         let masked = HomeHeroCard.chartAccessibilityLabel(
-            for: tracked,
+            for: drifted,
             currency: .chf,
             amountsHidden: true
         )
@@ -266,9 +264,9 @@ struct HomeHeroCardTests {
 
     @MainActor
     @Test func chartLabel_onTheLastDay_saysWhyThereIsNoProjectionLeft() {
-        // The only day with no `remainingPlan` to speak. Every other label ends on where
-        // the month is heading, so this one has to say why it cannot.
-        let lastDay = trajectory(tracked: [1_000, 900], remainingPlan: [], plan: 250)
+        // The only day with no projection to speak. Every other label ends on where the
+        // month is heading, so this one has to say why it cannot.
+        let lastDay = trajectory(landing: [1_000, 900], totalDays: 1)
 
         let spoken = HomeHeroCard.chartAccessibilityLabel(
             for: lastDay,
@@ -295,19 +293,22 @@ struct HomeHeroCardTests {
         #expect(!source.contains("/jour"))
     }
 
+    /// One reading per day, so the origin is the plan and the last point is the estimate —
+    /// the shape `calculateBalanceTrajectory` always returns. `totalDays` defaults to one
+    /// day past today; pass `today + 1`'s value to sit on the last day of the period.
     private func trajectory(
-        tracked: [Decimal],
-        remainingPlan: [Decimal],
-        plan: Decimal
+        landing: [Decimal],
+        driftDate: Date? = nil,
+        plannedOutflows: Decimal = 0,
+        totalDays: Int? = nil
     ) -> BudgetFormulas.BalanceTrajectory {
-        BudgetFormulas.BalanceTrajectory(
-            tracked: tracked.enumerated().map { .init(day: $0.offset, balance: $0.element) },
-            remainingPlan: remainingPlan.enumerated().map {
-                .init(day: $0.offset + 1, balance: $0.element)
-            },
-            plannedBalance: plan,
-            today: 1,
-            totalDays: 2
+        let today = max(landing.count - 1, 1)
+        return BudgetFormulas.BalanceTrajectory(
+            landing: landing.enumerated().map { .init(day: $0.offset, balance: $0.element) },
+            driftDate: driftDate,
+            plannedOutflows: plannedOutflows,
+            today: today,
+            totalDays: totalDays ?? today + 1
         )
     }
 }

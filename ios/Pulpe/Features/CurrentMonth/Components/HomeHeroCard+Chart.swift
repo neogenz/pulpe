@@ -6,7 +6,7 @@ import SwiftUI
 extension HomeHeroCard {
     @ViewBuilder
     var balanceChart: some View {
-        if let trajectory, trajectory.tracked.count > 1 {
+        if let trajectory, trajectory.landing.count > 1 {
             Chart {
                 RuleMark(y: .value(
                     "Prévu",
@@ -25,11 +25,11 @@ extension HomeHeroCard {
                             .lineLimit(1)
                     }
 
-                ForEach(trajectory.tracked) { point in
+                ForEach(trajectory.landing) { point in
                     LineMark(
                         x: .value("Jour", point.day),
-                        y: .value("Budget après pointage", Self.decimalValue(point.balance)),
-                        series: .value("Série", "Suivi pointé")
+                        y: .value("Atterrissage prévu", Self.decimalValue(point.balance)),
+                        series: .value("Série", "Atterrissage")
                     )
                     .interpolationMethod(.monotone)
                     .lineStyle(StrokeStyle(
@@ -40,15 +40,11 @@ extension HomeHeroCard {
                     .foregroundStyle(Color.homeHeroInk)
                 }
 
-                // Drawn from the first day, before anything is pointed: this is the plan,
-                // not a reading of it. Withholding it left a new account looking at an
-                // empty frame on the one screen that has to teach the model — while the
-                // slope down to `Prévu` is exactly what the month is asking of them.
-                ForEach(trajectory.remainingPlan) { point in
+                ForEach(Self.projection(for: trajectory)) { point in
                     LineMark(
                         x: .value("Jour", point.day),
                         y: .value("Estimation finale", Self.decimalValue(point.balance)),
-                        series: .value("Série", "Raccord de fin")
+                        series: .value("Série", "Projection")
                     )
                     .interpolationMethod(.linear)
                     .lineStyle(StrokeStyle(
@@ -63,7 +59,7 @@ extension HomeHeroCard {
                     )
                 }
 
-                if let current = trajectory.tracked.last {
+                if let current = trajectory.landing.last {
                     PointMark(
                         x: .value("Aujourd'hui", current.day),
                         y: .value("Solde aujourd'hui", Self.decimalValue(current.balance))
@@ -93,7 +89,7 @@ extension HomeHeroCard {
                     }
                 }
 
-                if let destination = trajectory.remainingPlan.last {
+                if let destination = Self.projection(for: trajectory).last {
                     PointMark(
                         x: .value("Fin de période", destination.day),
                         y: .value(
@@ -128,6 +124,16 @@ extension HomeHeroCard {
         }
     }
 
+    /// What the forecast says about the days not yet lived: nothing new, so it holds its
+    /// level. Empty on the last day of the period, where there is nothing left to project.
+    static func projection(
+        for trajectory: BudgetFormulas.BalanceTrajectory
+    ) -> [BudgetFormulas.BalanceTrajectory.Point] {
+        guard trajectory.today < trajectory.totalDays,
+              let current = trajectory.landing.last else { return [] }
+        return [current, .init(day: trajectory.totalDays, balance: current.balance)]
+    }
+
     /// Speaks the trajectory VoiceOver cannot see: where the period opened, where it stands
     /// today, where it is heading, and the plan it is measured against.
     static func chartAccessibilityLabel(
@@ -139,17 +145,16 @@ extension HomeHeroCard {
             return "Évolution du solde sur la période, montants masqués."
         }
         let planned = trajectory.plannedBalance.asCompactCurrency(currency)
-        guard let opening = trajectory.tracked.first,
-              let current = trajectory.tracked.last else {
+        guard let opening = trajectory.landing.first,
+              let current = trajectory.landing.last else {
             return "Évolution du solde sur la période. Prévu \(planned)."
         }
         let start = "Début de période \(opening.balance.asCompactCurrency(currency))."
         let today = "Aujourd’hui \(current.balance.asCompactCurrency(currency))."
         // The plot draws its projection from the first day on, so the label describes it
-        // from the first day on too. One case has none to describe: `remainingPlan` is
-        // empty on the last day of the period (`BalanceTrajectory:76`), where saying why
-        // beats falling silent mid-sentence.
-        guard let destination = trajectory.remainingPlan.last else {
+        // from the first day on too. One case has none to describe: the last day of the
+        // period, where saying why beats falling silent mid-sentence.
+        guard let destination = Self.projection(for: trajectory).last else {
             return "\(start) \(today) Dernier jour de la période. Prévu \(planned)."
         }
         let estimate = "Fin de période estimée à \(destination.balance.asCompactCurrency(currency))."
@@ -159,10 +164,7 @@ extension HomeHeroCard {
     static func chartYDomain(
         for trajectory: BudgetFormulas.BalanceTrajectory
     ) -> ClosedRange<Double> {
-        let balances = trajectory.tracked.map(\.balance)
-            + trajectory.remainingPlan.map(\.balance)
-            + [trajectory.plannedBalance]
-        let values = balances.map(Self.decimalValue)
+        let values = trajectory.landing.map { Self.decimalValue($0.balance) }
         let lower = values.min() ?? 0
         let upper = values.max() ?? 1
         let padding = max(

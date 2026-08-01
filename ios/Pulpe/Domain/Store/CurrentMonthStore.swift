@@ -616,8 +616,6 @@ extension CurrentMonthStore {
         return BudgetFormulas.calculateBalanceTrajectory(
             budgetLines: budgetLines,
             transactions: transactions,
-            metrics: metrics,
-            plannedBalance: plannedRemaining,
             budget: budget,
             payDayOfMonth: payDayOfMonth
         )

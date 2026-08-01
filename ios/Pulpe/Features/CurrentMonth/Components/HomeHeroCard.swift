@@ -25,7 +25,7 @@ struct HomeHeroCard: View {
             // Same signal the chart reads, so the sentence under the plot can never claim a
             // verdict the plot says it is still waiting for. No trajectory means no such
             // claim on screen, so nothing to contradict.
-            hasBalanceMoved: trajectory.map { !$0.hasNothingTracked } ?? true
+            hasBalanceMoved: trajectory.map { $0.drift != 0 } ?? true
         )
     }
 
@@ -339,18 +339,15 @@ extension HomeHeroCard {
 
 #Preview("Estimated balance hero") {
     let gainTrajectory = BudgetFormulas.BalanceTrajectory(
-        tracked: [
-            .init(day: 0, balance: 8032),
-            .init(day: 3, balance: 7580),
-            .init(day: 8, balance: 6810),
-            .init(day: 12, balance: 6430),
-            .init(day: 17, balance: 5992),
+        landing: [
+            .init(day: 0, balance: 632),
+            .init(day: 3, balance: 632),
+            .init(day: 8, balance: 1_020),
+            .init(day: 12, balance: 1_020),
+            .init(day: 17, balance: 1_260),
         ],
-        remainingPlan: [
-            .init(day: 17, balance: 5992),
-            .init(day: 31, balance: 1260),
-        ],
-        plannedBalance: 632,
+        driftDate: Calendar.current.date(from: DateComponents(year: 2026, month: 7, day: 8)),
+        plannedOutflows: 6_772,
         today: 17,
         totalDays: 31
     )
