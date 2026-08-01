@@ -195,64 +195,18 @@ struct ContextualCreationUITestHarness: View {
             endingBalance: 2_500, rollover: nil, remaining: 2_500, previousBudgetId: nil,
             createdAt: referenceDate, updatedAt: referenceDate
         )
-        let transactions = isShiftedPeriod
-            ? [
-                transaction(
-                    id: "first",
-                    amount: 500,
-                    date: Self.date(year: 2026, month: 2, day: 28)
-                ),
-                transaction(
-                    id: "second",
-                    amount: 600,
-                    date: Self.date(year: 2026, month: 3, day: 4)
-                ),
-                transaction(
-                    id: "third",
-                    amount: 400,
-                    date: Self.date(year: 2026, month: 3, day: 9)
-                ),
-            ]
-            : [
-                transaction(
-                    id: "first",
-                    amount: 500,
-                    date: Self.date(year: 2026, month: 7, day: 2)
-                ),
-                transaction(
-                    id: "second",
-                    amount: 600,
-                    date: Self.date(year: 2026, month: 7, day: 8)
-                ),
-                transaction(
-                    id: "third",
-                    amount: 400,
-                    date: Self.date(year: 2026, month: 7, day: 14)
-                ),
-            ]
-        // `available` fixes where the curve starts and is the same in every state — it is
-        // the month's whole planned income. The pair below fixes where it lands and what
-        // the verdict makes of that; pointing nothing leaves the curve at its opening.
-        let pointed = state == "untouched" ? [] : transactions
-        let remaining: Decimal = state == "deficit" ? -300 : 2_500
-        let planned: Decimal = switch state {
-        case "gain": 2_100
-        case "overrun": 2_900
-        case "deficit": 400
-        default: 2_500
-        }
-        let metrics = BudgetFormulas.Metrics(
-            totalIncome: 5_000,
-            totalExpenses: 5_000 - remaining,
-            totalSavings: 0,
-            available: 5_000,
-            endingBalance: remaining,
-            remaining: remaining,
-            rollover: 0
+        // The fixture states its data and lets the formulas say what the card shows. Hand-set
+        // metrics beside a computed trajectory would let the screenshots show a hero that
+        // its own plot cannot reach — the one thing this matrix exists to catch.
+        let budgetLines = chartBudgetLines
+        let transactions = chartTransactions(for: state)
+        let metrics = BudgetFormulas.calculateAllMetrics(
+            budgetLines: budgetLines,
+            transactions: transactions
         )
         guard let trajectory = BudgetFormulas.calculateBalanceTrajectory(
-            budgetLines: [],
-            transactions: pointed,
+            budgetLines: budgetLines,
+            transactions: transactions,
             budget: budget,
             payDayOfMonth: payDay,
             referenceDate: referenceDate
@@ -261,20 +215,94 @@ struct ContextualCreationUITestHarness: View {
         }
         return ChartFixture(
             metrics: metrics,
-            plannedBalance: planned,
+            plannedBalance: trajectory.plannedBalance,
             trajectory: trajectory,
             monthName: monthName
         )
     }
 
-    private func transaction(id: String, amount: Decimal, date: Date) -> Transaction {
+    /// 5 000 in, 3 500 out: the plan lands on 1 500, and every state below moves away from
+    /// that one figure — or deliberately fails to.
+    private var chartBudgetLines: [BudgetLine] {
+        [
+            line(id: "salary", name: "Salaire", amount: 5_000, kind: .income),
+            line(id: "rent", name: "Loyer", amount: 2_000, kind: .expense),
+            line(id: "food", name: "Courses", amount: 800, kind: .expense),
+            line(id: "savings", name: "Épargne", amount: 700, kind: .saving),
+        ]
+    }
+
+    private func chartTransactions(for state: String) -> [Transaction] {
+        let days = isShiftedPeriod
+            ? [
+                Self.date(year: 2026, month: 2, day: 28),
+                Self.date(year: 2026, month: 3, day: 4),
+                Self.date(year: 2026, month: 3, day: 9),
+            ]
+            : [
+                Self.date(year: 2026, month: 7, day: 2),
+                Self.date(year: 2026, month: 7, day: 8),
+                Self.date(year: 2026, month: 7, day: 14),
+            ]
+        switch state {
+        case "untouched":
+            return []
+        case "onPlan":
+            // Spent inside the envelopes, so the forecast is confirmed rather than changed.
+            // The line has to stay on its rule here, which is the state the old curve got
+            // wrong: it fell by the rent the day the rent was ticked.
+            return [
+                transaction(id: "rent", amount: 2_000, budgetLineId: "rent", date: days[0]),
+                transaction(id: "groceries", amount: 500, budgetLineId: "food", date: days[1]),
+            ]
+        case "gain":
+            return [transaction(id: "bonus", amount: 400, kind: .income, date: days[1])]
+        case "deficit":
+            return [transaction(id: "repair", amount: 2_600, date: days[1])]
+        default:
+            return [
+                transaction(id: "rent", amount: 2_000, budgetLineId: "rent", date: days[0]),
+                transaction(id: "impulse", amount: 700, date: days[2]),
+            ]
+        }
+    }
+
+    private func line(
+        id: String,
+        name: String,
+        amount: Decimal,
+        kind: TransactionKind
+    ) -> BudgetLine {
+        BudgetLine(
+            id: "chart-\(id)",
+            budgetId: budgetId,
+            templateLineId: nil,
+            savingsGoalId: nil,
+            name: name,
+            amount: amount,
+            kind: kind,
+            recurrence: .fixed,
+            isManuallyAdjusted: false,
+            checkedAt: nil,
+            createdAt: Self.date(year: 2026, month: 1, day: 1),
+            updatedAt: Self.date(year: 2026, month: 1, day: 1)
+        )
+    }
+
+    private func transaction(
+        id: String,
+        amount: Decimal,
+        kind: TransactionKind = .expense,
+        budgetLineId: String? = nil,
+        date: Date
+    ) -> Transaction {
         Transaction(
             id: "chart-\(id)",
             budgetId: budgetId,
-            budgetLineId: nil,
+            budgetLineId: budgetLineId.map { "chart-\($0)" },
             name: id,
             amount: amount,
-            kind: .expense,
+            kind: kind,
             transactionDate: date,
             category: nil,
             checkedAt: date,

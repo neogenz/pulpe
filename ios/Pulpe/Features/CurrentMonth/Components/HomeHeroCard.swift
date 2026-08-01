@@ -20,7 +20,9 @@ struct HomeHeroCard: View {
     var currency: SupportedCurrency { userSettingsStore.currency }
     private var presentation: PresentationState {
         PresentationState(
-            plannedBalance: plannedBalance,
+            // The plot's own origin whenever there is a plot, so the rule under the hero and
+            // the `vs prévu` beside it quote one number rather than two calculations of it.
+            plannedBalance: trajectory?.plannedBalance ?? plannedBalance,
             estimatedBalance: metrics.remaining,
             // Same signal the chart reads, so the sentence under the plot can never claim a
             // verdict the plot says it is still waiting for. No trajectory means no such
@@ -31,10 +33,12 @@ struct HomeHeroCard: View {
 
     // MARK: - Semantic Styling
 
-    /// Tints the gap, so it takes the ink of its neighbour while there is no gap to tint —
-    /// a green `—` would read as a verdict on a month nobody has measured yet.
-    private var accentColor: Color {
-        guard presentation.hasBalanceMoved else { return Color.homeHeroInk }
+    /// One ink for the whole card — gap, sentence and plotted line. A month sitting exactly
+    /// on its plan takes the neutral ink: green is how this card says "better than planned",
+    /// so spending it on "as planned" would leave nothing to say the difference with.
+    /// Read by `HomeHeroCard+Chart`.
+    var accentColor: Color {
+        guard presentation.verdict != .onPlan else { return Color.homeHeroInk }
         return switch presentation.tone {
         case .favorable: .financialSavings
         case .caution: .financialOverBudget

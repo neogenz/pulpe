@@ -83,17 +83,6 @@ enum DesignTokens {
         static let thick: CGFloat = 2
     }
 
-    // MARK: - Charts
-
-    enum Chart {
-        static let dash: [CGFloat] = [5, 4]
-        static let markerDash: [CGFloat] = [3, 3]
-        static let pointSymbolArea: CGFloat = 100
-        static let dashboardHeight: CGFloat = 120
-        static let domainPaddingRatio = 0.12
-        static let minimumDomainPadding = 1.0
-    }
-
     // MARK: - Shadows
 
     enum Shadow {

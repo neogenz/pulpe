@@ -1,3 +1,4 @@
+import Charts
 import Foundation
 @testable import Pulpe
 import Testing
@@ -104,6 +105,54 @@ struct HomeHeroCardTests {
         #expect(state.variance == -3450)
         #expect(state.verdict == .overrun)
         #expect(state.tone == .deficit)
+    }
+
+    @MainActor
+    @Test func chartDomain_floorsAQuietMonthOnWhatThePeriodPlannedToSpend() {
+        // Two real months of the production export, both on ~9 000 of planned outflows.
+        // Scaled to itself, May's 201 of drift plunges from one edge of the frame to the
+        // other and reads as an accident; floored on the plan it is the near-flat line it is.
+        let quiet = trajectory(landing: [2_500, 2_400, 2_299], plannedOutflows: 9_000)
+        let quietDomain = HomeHeroCard.chartYDomain(for: quiet)
+        let quietShare = 201.0 / (quietDomain.upperBound - quietDomain.lowerBound)
+        #expect(quietShare < 0.35)
+
+        // April's 1 767 still fills its frame: the floor must not flatten everything.
+        let loud = trajectory(landing: [2_500, 1_500, 733], plannedOutflows: 9_000)
+        let loudDomain = HomeHeroCard.chartYDomain(for: loud)
+        let loudShare = 1_767.0 / (loudDomain.upperBound - loudDomain.lowerBound)
+        #expect(loudShare > 0.5)
+    }
+
+    @MainActor
+    @Test func chartLabels_sitOnOppositeSidesOfThePlanRule() {
+        // The mockups overlapped on an early day, with both labels in the same band. Placing
+        // them across the rule makes that arrangement unreachable rather than unlikely.
+        let below = trajectory(landing: [2_500, 1_800])
+        #expect(HomeHeroCard.ruleLabelPosition(for: below) == .top)
+        #expect(HomeHeroCard.gapLabelPosition(for: below) == .bottom)
+
+        let above = trajectory(landing: [2_500, 2_900])
+        #expect(HomeHeroCard.ruleLabelPosition(for: above) == .bottom)
+        #expect(HomeHeroCard.gapLabelPosition(for: above) == .top)
+
+        let held = trajectory(landing: [2_500, 2_500])
+        #expect(HomeHeroCard.ruleLabelPosition(for: held) == .top)
+        #expect(HomeHeroCard.gapLabelPosition(for: held) == .bottom)
+    }
+
+    @MainActor
+    @Test func anchorLabel_namesTheGapOnlyWhenThePlotHasRoomForIt() {
+        let wide = trajectory(landing: [2_500, 1_800], plannedOutflows: 9_000)
+        #expect(HomeHeroCard.anchorLabel(for: wide, currency: .chf) == "-700 CHF")
+
+        // 30 CHF on a plot floored at 450: closer to the plan's own label than a line height.
+        // The `vs prévu` metric above still prints it, so nothing is hidden by staying quiet.
+        let narrow = trajectory(landing: [2_500, 2_470], plannedOutflows: 9_000)
+        #expect(HomeHeroCard.anchorLabel(for: narrow, currency: .chf) == "Aujourd’hui")
+
+        let held = trajectory(landing: [2_500, 2_500], plannedOutflows: 9_000)
+        #expect(HomeHeroCard.anchorLabel(for: held, currency: .chf) == "Aujourd’hui")
     }
 
     @MainActor
