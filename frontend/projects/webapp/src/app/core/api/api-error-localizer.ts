@@ -62,6 +62,8 @@ const CODE_KEY_MAP = {
     'apiError.savingsGoalPlanConflict',
   [API_ERROR_CODES.SAVINGS_GOAL_PLAN_LINE_INVALID]:
     'apiError.savingsGoalPlanLineInvalid',
+  [API_ERROR_CODES.SAVINGS_GOAL_PLAN_MONTH_UNPROVISIONABLE]:
+    'apiError.savingsGoalPlanMonthUnprovisionable',
   [API_ERROR_CODES.SAVINGS_GOAL_PLAN_APPLY_FAILED]:
     'apiError.savingsGoalPlanApplyFailed',
   [API_ERROR_CODES.SAVINGS_GOAL_GENERATION_STOP_CONFLICT]:
