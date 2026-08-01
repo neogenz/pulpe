@@ -140,6 +140,10 @@ struct ContextualCreationUITestHarness: View {
                 CurrentMonthTab()
             }
         case .contextualCreationBudget:
+            // Bare stack on purpose: this scenario only exercises the toolbar. It is the
+            // trap the branch above documents, though — the router is bound, so any push
+            // from a line lands on `currentMonthPath` while this unbound stack shows
+            // nothing. A test that needs push navigation renders the production tab.
             NavigationStack {
                 BudgetDetailsView(budgetId: budgetId)
             }
