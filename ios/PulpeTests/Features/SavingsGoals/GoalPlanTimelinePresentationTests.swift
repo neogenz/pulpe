@@ -99,11 +99,11 @@ struct GoalPlanTimelinePresentationTests {
 
         #expect(
             singular.repairMessage
-                == "1 prévision Épargne peut maintenant être ajoutée à cet objectif."
+                == "1 prévision Épargne peut maintenant être ajoutée automatiquement."
         )
         #expect(
             plural.repairMessage
-                == "2 prévisions Épargne peuvent maintenant être ajoutées à cet objectif."
+                == "2 prévisions Épargne peuvent maintenant être ajoutées automatiquement."
         )
     }
 

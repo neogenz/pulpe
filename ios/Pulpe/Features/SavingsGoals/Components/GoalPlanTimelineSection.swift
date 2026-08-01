@@ -39,8 +39,8 @@ struct GoalPlanTimelinePresentation {
     var repairMessage: String {
         let count = repairableMonths.count
         return count == 1
-            ? "1 prévision Épargne peut maintenant être ajoutée à cet objectif."
-            : "\(count) prévisions Épargne peuvent maintenant être ajoutées à cet objectif."
+            ? "1 prévision Épargne peut maintenant être ajoutée automatiquement."
+            : "\(count) prévisions Épargne peuvent maintenant être ajoutées automatiquement."
     }
 }
 

@@ -102,7 +102,7 @@ struct SavingsGoalDetailView: View {
                             }
                             return false
                         }
-                        await handlePlanApplied(message: "Tes épargnes ont été ajoutées")
+                        await handlePlanApplied()
                         return true
                     }
                 )
@@ -235,8 +235,8 @@ struct SavingsGoalDetailView: View {
     private func recoveryVerdict(_ progress: SavingsGoalProgress) -> String {
         let changes = recoveryChanges(progress)
         let added = changes.reduce(Decimal.zero) { $0 + $1.simulatedAmount }
-        return "Après création, ta projection sera de "
-            + (progress.plannedProjection + added).asCompactCurrency(currency) + "."
+        return "Projection après création : "
+            + (progress.plannedProjection + added).asCompactCurrency(currency)
     }
 
     // MARK: - Header
@@ -275,14 +275,14 @@ private extension SavingsGoalDetailView {
     /// so every store projecting those aggregates goes stale. Invalidate them, drop
     /// the shared budget-detail cache and the goal list, then refetch this goal's
     /// progression and confirm.
-    private func handlePlanApplied(message: String = "Ton plan est à jour") async {
+    private func handlePlanApplied() async {
         currentMonthStore.invalidateCache()
         budgetListStore.invalidateCache()
         dashboardStore.invalidateCache()
         BudgetDetailCache.shared.invalidateAll()
         store.invalidateCache()
         await viewModel.load()
-        toastManager.show(message)
+        toastManager.show("Ton plan est à jour")
     }
 
     private func setStatus(_ status: SavingsGoalStatus) async {
