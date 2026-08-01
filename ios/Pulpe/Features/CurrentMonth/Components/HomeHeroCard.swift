@@ -21,7 +21,11 @@ struct HomeHeroCard: View {
     private var presentation: PresentationState {
         PresentationState(
             plannedBalance: plannedBalance,
-            estimatedBalance: metrics.remaining
+            estimatedBalance: metrics.remaining,
+            // Same signal the chart reads to draw "En attente d'un premier pointage", so the
+            // sentence under it can never claim a verdict the plot says it is still waiting
+            // for. No trajectory means no such claim on screen, so nothing to contradict.
+            hasTrackedActivity: trajectory.map { !$0.hasNothingTracked } ?? true
         )
     }
 
@@ -32,16 +36,6 @@ struct HomeHeroCard: View {
         case .favorable: .financialSavings
         case .caution: .financialOverBudget
         case .deficit: .driftAccent
-        }
-    }
-
-    /// Qualitative half of the verdict. The number behind it lives in the `vs prévu`
-    /// metric, so the sentence never repeats it.
-    private var verdictText: String {
-        switch presentation.verdict {
-        case .gain: "Il te reste plus que prévu."
-        case .overrun: "Il te reste moins que prévu."
-        case .onPlan: "Tu es conforme à ton budget."
         }
     }
 
@@ -152,9 +146,7 @@ struct HomeHeroCard: View {
 
     private var uncheckedValue: String { "\(uncheckedCount)" }
 
-    private var varianceValue: String {
-        presentation.variance.asSignedCompactAmount(for: currency)
-    }
+    private var varianceValue: String { presentation.varianceText(for: currency) }
 
     /// Value over its own label, so neither depends on the copy around it to be read.
     private func metric(
@@ -202,7 +194,7 @@ struct HomeHeroCard: View {
     /// grow the whole row — see `swiftui-hit-areas.md`. Two shapes, one rule, on purpose.
     private var verdictSentence: some View {
         Button(action: onTapDetail) {
-            Text("\(verdictText) ")
+            Text("\(presentation.verdictText) ")
                 .foregroundStyle(accentColor)
                 + Text("Voir le détail ")
                 .foregroundStyle(Color.homeHeroInk)
@@ -243,9 +235,19 @@ extension HomeHeroCard {
         let verdict: Verdict
         let tone: Tone
 
-        init(plannedBalance: Decimal, estimatedBalance: Decimal) {
+        /// Whether the period has any pointed movement behind it. `verdict` compares two
+        /// numbers and always has an answer; this says whether that answer means anything
+        /// yet. Defaults to `true` so a caller that has no trajectory keeps the comparison.
+        let hasTrackedActivity: Bool
+
+        init(
+            plannedBalance: Decimal,
+            estimatedBalance: Decimal,
+            hasTrackedActivity: Bool = true
+        ) {
             self.plannedBalance = plannedBalance
             self.estimatedBalance = estimatedBalance
+            self.hasTrackedActivity = hasTrackedActivity
 
             let difference = estimatedBalance - plannedBalance
             variance = difference
@@ -259,6 +261,27 @@ extension HomeHeroCard {
         /// rather than in the view so the card that says "compensé ailleurs" and the hero
         /// that says "conforme à ton budget" can never claim opposite things.
         var absorbsEnvelopeOverrun: Bool { verdict != .overrun }
+
+        /// Qualitative half of the verdict. The number behind it lives in the `vs prévu`
+        /// metric, so the sentence never repeats it. Until something is pointed the estimate
+        /// equals the plan by construction, not by observation: "conforme à ton budget"
+        /// would congratulate a brand-new account for a comparison nobody has made yet —
+        /// under a chart that is still saying it waits for a first pointing.
+        var verdictText: String {
+            guard hasTrackedActivity else { return "Rien de pointé pour l'instant." }
+            return switch verdict {
+            case .gain: "Il te reste plus que prévu."
+            case .overrun: "Il te reste moins que prévu."
+            case .onPlan: "Tu es conforme à ton budget."
+            }
+        }
+
+        /// Carries its unit even though the hero above already shows one: its neighbour in
+        /// the pair is a count of operations, and two figures set in the same type on the
+        /// same row have nothing else to say which of them is money.
+        func varianceText(for currency: SupportedCurrency) -> String {
+            variance.asArithmeticSignedCompactCurrency(currency)
+        }
 
         func accessibilityDescription(
             monthName: String,
@@ -279,14 +302,16 @@ extension HomeHeroCard {
                 """
             }
 
-            let comparison: String
-            switch verdict {
-            case .gain:
-                comparison = "\(abs(variance).asCurrency(currency)) de mieux que prévu"
-            case .overrun:
-                comparison = "\(abs(variance).asCurrency(currency)) de moins que prévu"
-            case .onPlan:
-                comparison = "Conforme à ton budget"
+            // Mirrors `verdictText`: VoiceOver and the sentence on screen say the same thing
+            // about the same month, including the case where there is nothing to compare yet.
+            let comparison = if !hasTrackedActivity {
+                "Rien de pointé pour l'instant"
+            } else {
+                switch verdict {
+                case .gain: "\(abs(variance).asCurrency(currency)) de mieux que prévu"
+                case .overrun: "\(abs(variance).asCurrency(currency)) de moins que prévu"
+                case .onPlan: "Conforme à ton budget"
+                }
             }
 
             return """
