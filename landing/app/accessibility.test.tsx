@@ -681,7 +681,7 @@ describe("landing accessibility contracts", () => {
     );
   });
 
-  it("keeps the closed mobile panel viewport-sized for instant compositing", () => {
+  it("keeps the closed mobile panel out of the render tree", () => {
     assert.match(componentSources.header, /className="group peer"/);
     assert.match(
       componentSources.header,
@@ -689,12 +689,42 @@ describe("landing accessibility contracts", () => {
     );
     assert.match(componentSources.header, /\binert\b/);
     assert.match(componentSources.header, /aria-hidden="true"/);
-    assert.match(componentSources.header, /\bfixed\b[^"]*\bh-screen\b/);
-    assert.match(
-      componentSources.header,
-      /pointer-events-none[^"]*peer-open:pointer-events-auto[^"]*peer-open:opacity-100/,
+    // Toutes les classes qui suivent se lisent sur le panneau lui-même. Portées
+    // par n'importe quel `className` du fichier, elles passaient en le laissant
+    // peint au repos — l'état même qui a causé le défaut.
+    const panelClasses = componentSources.header.match(
+      /<nav\s+id=\{MOBILE_NAV_PANEL_ID\}[^>]*?\sclassName="([^"]*)"/,
+    )?.[1];
+    assert.ok(panelClasses, "le panneau mobile doit porter un className");
+    const panelHas = (token: string) =>
+      panelClasses.split(/\s+/).includes(token);
+
+    assert.ok(panelHas("fixed") && panelHas("h-screen"));
+    // Replié, le panneau vaut `display: none`. `opacity: 0` le laisserait dans
+    // l'arbre de rendu, où Safari 26 lit le fond des éléments fixes pour teinter
+    // sa barre du bas : le bouton vert du menu, ancré en bas d'un panneau plein
+    // écran, lui donnait son aplat sur toute la landing.
+    assert.ok(panelHas("hidden"), "replié, le panneau doit quitter le rendu");
+    // `max-lg:` et non `peer-open:` seul : `:is(:where(.peer):is([open])~*)` pèse
+    // (0,2,0) contre (0,1,0) pour `lg:hidden`, qui perdrait donc sur un écran
+    // large — le panneau resterait ouvert par-dessus la barre de bureau.
+    assert.ok(
+      panelHas("max-lg:peer-open:flex") && !panelHas("peer-open:flex"),
+      "l'ouverture doit être bornée sous le point de rupture desktop",
     );
-    assert.match(componentSources.header, /will-change-\[opacity\]/);
+    assert.ok(panelHas("lg:hidden"));
+    // Le fondu, que la bascule de `display` casserait sinon.
+    assert.ok(
+      panelHas("transition-[opacity,display]") &&
+        panelHas("transition-discrete") &&
+        panelHas("peer-open:starting:opacity-0"),
+      "le fondu doit survivre à la bascule de display",
+    );
+    assert.ok(
+      panelHas("pointer-events-none") &&
+        panelHas("peer-open:pointer-events-auto") &&
+        panelHas("peer-open:opacity-100"),
+    );
     assert.equal(componentSources.header.match(/tabIndex=\{-1\}/g)?.length, 2);
     assert.doesNotMatch(componentSources.header, /\binvisible\b/);
     assert.doesNotMatch(componentSources.header, /\bbackdrop-blur-xl\b/);

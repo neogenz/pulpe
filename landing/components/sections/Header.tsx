@@ -105,15 +105,24 @@ export function Header() {
           </summary>
         </details>
 
-        {/* Hors du `<details>` et toujours peint pour que Safari compose la
-            couche fixe avant l'ouverture. `inert` retire ses liens du clavier
-            et de l'arbre d'accessibilité ; le script couvre aussi Safari 15. */}
+        {/* Hors du `<details>` parce que le `<nav>` de la barre porte un
+            `backdrop-filter` en état scrollé. Replié, le panneau sort de l'arbre
+            de rendu (`display: none`) : Safari 26 teinte sa barre du bas avec le
+            fond d'un élément fixe qui l'atteint, et `opacity: 0` ne suffit pas à
+            l'en soustraire — le bouton vert du menu, ancré en bas, lui donnait
+            son aplat sur toute la landing. La bascule de `display` s'anime
+            comme le reste : `allow-discrete` la retient le temps du fondu, et
+            `@starting-style` donne à l'ouverture son opacité de départ.
+            L'ouverture est bornée à `max-lg` : son sélecteur pèse plus lourd
+            que `lg:hidden`, qui ne la rattraperait pas sur un écran large.
+            `inert` retire ses liens du clavier et de l'arbre d'accessibilité ;
+            le script couvre les navigateurs qui l'ignorent encore. */}
         <nav
           id={MOBILE_NAV_PANEL_ID}
           aria-label="Navigation mobile"
           aria-hidden="true"
           inert
-          className="pointer-events-none fixed inset-x-0 top-0 z-10 flex h-screen overflow-y-auto bg-surface pt-24 pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] opacity-0 transition-opacity duration-300 will-change-[opacity] peer-open:pointer-events-auto peer-open:opacity-100 lg:hidden motion-reduce:transition-none"
+          className="pointer-events-none fixed inset-x-0 top-0 z-10 hidden h-screen overflow-y-auto bg-surface pt-24 pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] opacity-0 transition-[opacity,display] transition-discrete duration-300 will-change-[opacity] peer-open:pointer-events-auto peer-open:opacity-100 peer-open:starting:opacity-0 max-lg:peer-open:flex lg:hidden motion-reduce:transition-none"
         >
           {/* Les liens s'ancrent sous la barre, le CTA au bas de l'écran, à
               portée de pouce. Centré, le bloc flottait au milieu d'un plein
