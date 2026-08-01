@@ -80,8 +80,7 @@ struct ActivityCard: View {
             HomeSectionHeader(
                 title: "Activité",
                 amountSubtitle: headerTotal(for: windowed),
-                linkLabel: "Tout voir",
-                onLink: onViewAll
+                link: (label: "Tout voir", action: onViewAll)
             )
 
             // Its own row, full width. Squeezed into the heading it fought the title for

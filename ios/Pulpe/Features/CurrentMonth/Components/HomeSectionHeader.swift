@@ -11,8 +11,11 @@ struct HomeSectionHeader: View {
     /// Optional figure under the title — a window total, an overrun. Always an amount,
     /// so the header can treat every one of them the same way.
     var amountSubtitle: String?
-    var linkLabel: String?
-    var onLink: (() -> Void)?
+    /// The way out, named and wired together: a header with a label and no action would
+    /// draw nothing, and one with an action and no label would have nothing to draw. One
+    /// value means the compiler refuses both halves of that rather than the header
+    /// silently dropping the link.
+    var link: (label: String, action: () -> Void)?
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -24,13 +27,13 @@ struct HomeSectionHeader: View {
             if dynamicTypeSize >= .xxLarge {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                     titleBlock
-                    link
+                    linkButton
                 }
             } else {
                 HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
                     titleBlock
                     Spacer(minLength: DesignTokens.Spacing.sm)
-                    link
+                    linkButton
                 }
             }
         }
@@ -57,11 +60,11 @@ struct HomeSectionHeader: View {
     }
 
     @ViewBuilder
-    private var link: some View {
-        if let linkLabel, let onLink {
-            Button(action: onLink) {
+    private var linkButton: some View {
+        if let link {
+            Button(action: link.action) {
                 HStack(spacing: DesignTokens.Spacing.xxs) {
-                    Text(linkLabel)
+                    Text(link.label)
                     Image(systemName: "chevron.right")
                         .font(PulpeTypography.metricLabel)
                 }
@@ -84,20 +87,19 @@ struct HomeSectionHeader: View {
             .textLinkButtonStyle()
             // Out of its visual context "Tout voir" names nothing; paired with the
             // section it does, and that saves every call site a hint of its own.
-            .accessibilityLabel("\(linkLabel), \(title)")
+            .accessibilityLabel("\(link.label), \(title)")
         }
     }
 }
 
 #Preview {
     VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxl) {
-        HomeSectionHeader(title: "Opérations à pointer", linkLabel: "Tout voir", onLink: {})
+        HomeSectionHeader(title: "Opérations à pointer", link: (label: "Tout voir", action: {}))
 
         HomeSectionHeader(
             title: "Activité",
             amountSubtitle: "+4 871 CHF",
-            linkLabel: "Tout voir",
-            onLink: {}
+            link: (label: "Tout voir", action: {})
         )
 
         HomeSectionHeader(title: "Sans lien", amountSubtitle: "142 CHF au-delà du plan")

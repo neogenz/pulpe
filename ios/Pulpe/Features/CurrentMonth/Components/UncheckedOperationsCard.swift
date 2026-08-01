@@ -67,8 +67,7 @@ struct UncheckedOperationsCard: View {
             // so the number is announced once per screen.
             HomeSectionHeader(
                 title: "Opérations à pointer",
-                linkLabel: "Tout voir",
-                onLink: onViewAll
+                link: (label: "Tout voir", action: onViewAll)
             )
 
             // The card is the stable frame and the operations swap inside it: it clips

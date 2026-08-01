@@ -177,8 +177,13 @@ struct CurrentMonthView: View {
                 appState.pushOnActiveStack(BudgetDestination.details(budgetId: budgetId))
             }
         }
+        // Returning to the tab on top of a pushed page is a return to that page, not to the
+        // accueil: refreshing here would fetch a month nobody is looking at, and the unwind
+        // below would fetch it again a tap later.
         .onChange(of: appState.selectedTab) { oldTab, newTab in
-            guard newTab == .currentMonth, oldTab != .currentMonth else { return }
+            guard newTab == .currentMonth,
+                  oldTab != .currentMonth,
+                  appState.currentMonthPath.isEmpty else { return }
             refreshDetails()
         }
         // Coming back from the budget no longer crosses a tab boundary, so the tab change
