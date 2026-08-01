@@ -306,8 +306,14 @@ export class GoalPlanTimeline {
     () => this.rows().length - this.visibleRows().length,
   );
 
+  // Counts the same rows as the "Pas de budget" chip (the final branch of
+  // the !hasLinkedForecast ternary above), not a period-based `isGap` test —
+  // a current month with no budget shows that chip too and must be counted.
   protected readonly gapCount = computed(
-    () => this.rows().filter((row) => row.isGap && !row.hasBudget).length,
+    () =>
+      this.rows().filter(
+        (row) => !row.hasLinkedForecast && !row.isRepairable && !row.hasBudget,
+      ).length,
   );
 
   protected formatPeriod(month: number, year: number): string {

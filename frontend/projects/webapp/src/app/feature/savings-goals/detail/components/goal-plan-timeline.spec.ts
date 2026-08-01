@@ -202,6 +202,41 @@ describe('GoalPlanTimeline', () => {
     expect(query('goal-plan-gap-chip')).toBeTruthy();
   });
 
+  it('counts a current month with no budget in the gap hint, same as the pastille it shows', () => {
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({
+        month: 3,
+        state: 'current',
+        hasBudget: false,
+        isProvisionable: false,
+        plannedAmount: 0,
+        plannedCumulative: 0,
+        lines: [],
+      }),
+      makeMonth({
+        month: 4,
+        state: 'gap',
+        hasBudget: false,
+        isProvisionable: false,
+        plannedAmount: 0,
+        plannedCumulative: 0,
+        lines: [],
+      }),
+    ]);
+    setTestInput(fixture.componentInstance.expanded, true);
+    fixture.detectChanges();
+
+    expect(query('goal-plan-current-badge')).toBeTruthy();
+    expect(
+      fixture.debugElement.queryAll(
+        By.css('[data-testid="goal-plan-gap-chip"]'),
+      ),
+    ).toHaveLength(2);
+    expect(query('goal-plan-gap-hint').nativeElement.textContent).toContain(
+      '2 mois sans budget',
+    );
+  });
+
   it('never shows an availability chip on a row with a linked forecast', () => {
     setTestInput(fixture.componentInstance.months, [
       makeMonth({ month: 3, state: 'current' }),

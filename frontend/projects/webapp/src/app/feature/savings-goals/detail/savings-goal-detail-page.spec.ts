@@ -364,9 +364,14 @@ describe('SavingsGoalDetailPage', () => {
     return fixture.debugElement.query(By.css(`[data-testid="${testId}"]`));
   }
 
-  // The callout is stubbed (Angular #54039 — see StubGoalPlanRepairCallout),
-  // so the preview button no longer exists in the page's own DOM: simulate
-  // the child emitting its output instead of clicking through to it.
+  // The callout is stubbed — same isolation pattern as every other child
+  // above — so the preview button doesn't exist in the page's own DOM:
+  // simulate the child emitting its output instead of clicking through to
+  // it. (Not Angular #54039: probed and ruled out, see the notes on
+  // "offers a preview only for budgets that exist without a linked
+  // forecast" below — the actual cause is a signal input on a
+  // JIT-compiled child staying at its default under a parent template
+  // binding, unrelated to a classic `@Input()`.)
   function triggerRepairPreview() {
     fixture.debugElement
       .query(By.directive(StubGoalPlanRepairCallout))
