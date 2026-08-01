@@ -25,12 +25,16 @@ struct ContextualCreationUITestHarness: View {
             endingBalance: 2_500, rollover: nil, remaining: 2_500, previousBudgetId: nil,
             createdAt: now, updatedAt: now
         )
+        // Right after onboarding nothing has been pointed at all — not even the income the
+        // template opened the budget with. That one difference is what makes the Accueil's
+        // first-run state reachable from a test.
+        let isFreshSignup = ProcessInfo.processInfo.environment["UITEST_HOME_FRESH_SIGNUP"] == "1"
         let lines = [
             BudgetLine(
                 id: "ui-test-income", budgetId: budgetId,
                 templateLineId: nil, savingsGoalId: nil, name: "Revenu",
                 amount: 5_000, kind: .income, recurrence: .fixed,
-                isManuallyAdjusted: false, checkedAt: now,
+                isManuallyAdjusted: false, checkedAt: isFreshSignup ? nil : now,
                 createdAt: now, updatedAt: now
             ),
             BudgetLine(
@@ -70,6 +74,7 @@ struct ContextualCreationUITestHarness: View {
     var body: some View {
         content
             .suppressesTips()
+            .environment(\.amountsHidden, areAmountsHidden)
             .environment(\.dynamicTypeSize, dynamicTypeSize)
             .preferredColorScheme(preferredColorScheme)
             .environment(appState)
@@ -103,6 +108,10 @@ struct ContextualCreationUITestHarness: View {
         }
     }
 
+    private var areAmountsHidden: Bool {
+        ProcessInfo.processInfo.environment["UITEST_AMOUNTS_HIDDEN"] == "1"
+    }
+
     private var isChartMatrixEnabled: Bool {
         ProcessInfo.processInfo.environment["UITEST_HOME_CHART_MATRIX"] == "1"
     }
@@ -124,9 +133,11 @@ struct ContextualCreationUITestHarness: View {
             } else if isChartMatrixEnabled {
                 chartMatrixContent
             } else {
-                NavigationStack {
-                    CurrentMonthView()
-                }
+                // The production tab, not a bare stack around the same view: every shortcut
+                // on the accueil pushes through `appState.currentMonthPath`, so an unbound
+                // stack turns all five of them into silent no-ops here — and a stack that
+                // redeclares its own destinations drifts from the real one instead.
+                CurrentMonthTab()
             }
         case .contextualCreationBudget:
             NavigationStack {

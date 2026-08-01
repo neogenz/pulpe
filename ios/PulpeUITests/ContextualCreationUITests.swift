@@ -78,12 +78,94 @@ final class ContextualCreationUITests: XCTestCase {
         attachScreenshot("home-skeleton-production-container")
     }
 
+    /// The screen a new account sees the moment onboarding hands it over: a budget whose
+    /// lines are still nothing but plans, and not one transaction. It has to read as a month
+    /// under way with a first move to make, not as a broken or half-loaded page.
+    func testFreshSignupHomeIsFilledAndSaysWhatIsMissing() {
+        launch("UITEST_CONTEXTUAL_CREATION_HOME", dynamicType: "large", freshSignup: true)
+
+        // The estimate and its plot: the page has a subject, not an empty frame.
+        XCTAssertTrue(
+            app.descendants(matching: .any)["home-balance-chart"].waitForExistence(timeout: 10),
+            app.debugDescription
+        )
+        XCTAssertTrue(app.staticTexts["En attente d’un premier pointage"].exists, app.debugDescription)
+
+        // The verdict sentence's own copy is asserted in `HomeHeroCardTests`: it lives in a
+        // Button whose accessibility label is its action, so its text reaches no query here.
+
+        // The one thing to do, and the card listing what is waiting to be pointed.
+        XCTAssertTrue(app.buttons["Ajouter une opération"].exists, app.debugDescription)
+        XCTAssertTrue(app.staticTexts["Opérations à pointer"].exists, app.debugDescription)
+        XCTAssertTrue(app.staticTexts["Revenu"].exists, app.debugDescription)
+
+        // Nothing has happened yet, so no card may report activity or drift.
+        XCTAssertFalse(app.staticTexts["Activité"].exists, app.debugDescription)
+        XCTAssertFalse(app.staticTexts["Ça dérive"].exists, app.debugDescription)
+
+        attachScreenshot("home-fresh-signup")
+    }
+
+    /// Every shortcut on the accueil pushes through `appState.currentMonthPath`, and only a
+    /// stack bound to it moves. A harness that wraps `CurrentMonthView` in its own stack
+    /// swallows all five of them, and a tap that does nothing looks exactly like a tap that
+    /// missed its target — this is the test that tells the two apart.
+    func testHomeShortcutPushesTheBudgetDetail() {
+        launch("UITEST_CONTEXTUAL_CREATION_HOME", dynamicType: "large")
+
+        let seeDetail = app.buttons["Voir le détail du budget"]
+        XCTAssertTrue(seeDetail.waitForExistence(timeout: 10), app.debugDescription)
+        seeDetail.tap()
+
+        XCTAssertTrue(
+            app.buttons["Ajouter une prévision"].waitForExistence(timeout: 10),
+            "Le tap n'a rien poussé — écran après le tap : "
+                + "\(app.descendants(matching: .any).allElementsBoundByIndex.map(\.label))"
+        )
+    }
+
+    /// Masking is a promise about the whole screen, and the screen speaks before it draws:
+    /// a card that keeps its amount in its accessibility label hands back, out loud, exactly
+    /// what the toggle was pressed to hide. (The drawn figures are blurred rather than
+    /// removed, so the pixels are the screenshot's job, not an assertion's.)
+    func testHiddenAmountsAreSpokenAsMaskedAcrossTheHome() {
+        launch("UITEST_CONTEXTUAL_CREATION_HOME", dynamicType: "large", amountsHidden: true)
+
+        XCTAssertTrue(
+            app.descendants(matching: .any)["home-balance-chart"].waitForExistence(timeout: 10),
+            app.debugDescription
+        )
+
+        let labels = app.descendants(matching: .any).allElementsBoundByIndex.map(\.label)
+
+        // The hero speaks neither its estimate nor its comparison.
+        XCTAssertTrue(
+            labels.contains { $0.contains("montant masqué") && $0.contains("Comparaison au budget masquée") },
+            "Le héros annonce encore un montant : \(labels)"
+        )
+        // The plot too — it is one accessibility element with its whole trajectory inside.
+        XCTAssertTrue(
+            labels.contains { $0.contains("Évolution du solde sur la période, montants masqués") },
+            "Le graphe annonce encore sa trajectoire : \(labels)"
+        )
+        // And the card below, whose rows each carry an amount of their own.
+        XCTAssertEqual(
+            labels.first { $0.hasPrefix("Logement,") },
+            "Logement, récurrent",
+            "La ligne à pointer annonce son montant : \(labels)"
+        )
+
+        attachScreenshot("home-amounts-hidden")
+    }
+
     private func launch(
         _ scenario: String,
         dynamicType: String = "accessibility3",
         colorScheme: String? = nil,
         chartPeriod: String? = nil,
-        homeSkeleton: Bool = false
+        homeSkeleton: Bool = false,
+        freshSignup: Bool = false,
+        amountsHidden: Bool = false
     ) {
         app = XCUIApplication()
         app.launchArguments = ["-\(scenario)"]
@@ -98,6 +180,12 @@ final class ContextualCreationUITests: XCTestCase {
         }
         if homeSkeleton {
             app.launchEnvironment["UITEST_HOME_SKELETON"] = "1"
+        }
+        if freshSignup {
+            app.launchEnvironment["UITEST_HOME_FRESH_SIGNUP"] = "1"
+        }
+        if amountsHidden {
+            app.launchEnvironment["UITEST_AMOUNTS_HIDDEN"] = "1"
         }
         app.launch()
     }

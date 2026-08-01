@@ -123,6 +123,45 @@ struct CurrentMonthStoreDashboardTests {
         #expect(store.uncheckedItems.isEmpty)
     }
 
+    // MARK: - Post-Onboarding Home
+
+    @Test func freshBudgetFromOnboarding_fillsTheHomeWithSomethingToDo() throws {
+        // The state a brand-new account lands in: a budget created from a template, its
+        // lines nothing but plans, not one transaction recorded. Every block of the Accueil
+        // reads one of these, so this is what "the home is filled, not empty" means.
+        let now = Date()
+        let period = Calendar.current.dateComponents([.month, .year], from: now)
+        let store = CurrentMonthStore()
+        store.populateForTesting(
+            budget: TestDataFactory.createBudget(
+                month: try #require(period.month),
+                year: try #require(period.year)
+            ),
+            budgetLines: [
+                TestDataFactory.createBudgetLine(id: "income", amount: 5_000, kind: .income),
+                TestDataFactory.createBudgetLine(id: "rent", amount: 2_000, kind: .expense),
+                TestDataFactory.createBudgetLine(id: "food", amount: 500, kind: .expense),
+            ]
+        )
+
+        // Not the empty state, and the creation action has a budget to write into.
+        #expect(store.contentState == .loaded)
+        #expect(store.budget != nil)
+
+        // The one card with content: three plans waiting to be pointed.
+        #expect(store.uncheckedItems.count == 3)
+
+        // Nothing has happened yet, so no card may claim otherwise.
+        #expect(store.transactions.isEmpty)
+        #expect(store.driftLines.isEmpty)
+        #expect(!store.savingsSummary.isComplete)
+
+        // The chart draws, and says it is waiting rather than projecting a flat line.
+        let trajectory = try #require(store.balanceTrajectory)
+        #expect(trajectory.tracked.count > 1)
+        #expect(trajectory.hasNothingTracked)
+    }
+
     // MARK: - Savings Summary Logic
 
     @Test func savingsSummary_computesFromSavingLines() {
