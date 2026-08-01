@@ -79,6 +79,11 @@ struct HomeHeroCard: View {
                     .minimumScaleFactor(DesignTokens.TextScale.floor)
                     .lineLimit(1)
                     .foregroundStyle(Color.homeHeroInk)
+                    // Every other hero amount in the app morphs its digits rather than
+                    // swapping the figure whole; the split-typography rewrite dropped it
+                    // here. Applied to the concatenated run, the currency suffix simply
+                    // has no digits to animate.
+                    .contentTransition(.numericText())
                     .sensitiveAmount()
 
                 Text("estimé fin \(monthName)")
