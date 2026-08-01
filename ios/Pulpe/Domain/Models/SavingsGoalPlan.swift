@@ -111,13 +111,18 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
 
     var period: BudgetPeriod { BudgetPeriod(month: month, year: year) }
 
-    /// Mirrors the web timeline's `isRepairable` (2 terms, not 5). The
-    /// producer (`buildSavingsGoalTimeline`, in the shared calculators, mirrored
-    /// here) sets `isProvisionable` only when lines are empty, the month isn't
-    /// locked, AND it's contribution-eligible — re-testing those here would
-    /// duplicate a guarantee the server already gives every client. `hasBudget`
-    /// is NOT implied (`isProvisionable`'s `||` lets `canProvisionMissingPeriods`
-    /// substitute for it), so it stays explicit.
+    /// Whether the MONTH itself can take a recovered forecast — mirrors the
+    /// month-level half of the web timeline's row predicate (2 terms, not 5).
+    /// The producer (`buildSavingsGoalTimeline`, in the shared calculators,
+    /// mirrored here) sets `isProvisionable` only when lines are empty, the
+    /// month isn't locked, AND it's contribution-eligible — re-testing those
+    /// here would duplicate a guarantee the server already gives every client.
+    /// `hasBudget` is NOT implied (`isProvisionable`'s `||` lets
+    /// `canProvisionMissingPeriods` substitute for it), so it stays explicit.
+    ///
+    /// Whether the PLAN offers the repair at all is a separate question this
+    /// month cannot answer (`SavingsGoalDetailViewModel.canRepairPlan`), so any
+    /// surface that shows the user an actionable repair must test both.
     var isRepairable: Bool {
         hasBudget && isProvisionable
     }
