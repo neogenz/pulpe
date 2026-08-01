@@ -265,6 +265,97 @@ describe('buildSavingsGoalTimeline', () => {
     const zero = buildSavingsGoalTimeline({ ...input, initialAmount: 0 });
     expect(zero).toEqual(absent);
   });
+
+  it('should guarantee that a provisionable month is never locked, is contribution-eligible, and carries no linked line', () => {
+    // Arrange — four real calculator runs. Each is chosen so that dropping
+    // one of the three implied conjuncts from isProvisionable's definition
+    // (savings-goal-plan.ts:184-195) would make a wrong month provisionable:
+    // missingBudget/existingBudget guard `!hasLines` (month 4 has no line,
+    // month 3 does and must stay excluded), afterTarget guards
+    // `isContributionEligible` (month 4 sits past the target), and lockedGap
+    // guards `!isLocked` (March is a strictly-past gap). Asserting over
+    // buildSavingsGoalTimeline's own output — not hand-built fixtures — is
+    // what makes this catch a regression in the producer itself.
+    const missingBudgetGap = buildSavingsGoalTimeline({
+      ...input,
+      materializedPeriods: [
+        { month: 1, year: 2026 },
+        { month: 2, year: 2026 },
+        { month: 3, year: 2026 },
+        { month: 5, year: 2026 },
+        { month: 6, year: 2026 },
+      ],
+      canProvisionMissingPeriods: true,
+    });
+    const existingBudgetGap = buildSavingsGoalTimeline({
+      ...input,
+      materializedPeriods: [
+        { month: 1, year: 2026 },
+        { month: 2, year: 2026 },
+        { month: 3, year: 2026 },
+        { month: 4, year: 2026 },
+        { month: 5, year: 2026 },
+        { month: 6, year: 2026 },
+      ],
+      canProvisionMissingPeriods: false,
+    });
+    const afterTargetGap = buildSavingsGoalTimeline({
+      ...input,
+      targetDate: '2026-03-31',
+      now: new Date(2026, 0, 15),
+      lines: [savingLine({ month: 5, year: 2026 })],
+      materializedPeriods: [{ month: 5, year: 2026 }],
+      canProvisionMissingPeriods: true,
+    });
+    const lockedGap = buildSavingsGoalTimeline({
+      ...input,
+      now: new Date(2026, 3, 15),
+      lines: [
+        savingLine({
+          month: 1,
+          year: 2026,
+          checkedAt: '2026-01-20T00:00:00.000Z',
+        }),
+        savingLine({
+          month: 2,
+          year: 2026,
+          checkedAt: '2026-02-20T00:00:00.000Z',
+        }),
+        savingLine({ month: 4, year: 2026 }),
+        savingLine({ month: 5, year: 2026 }),
+        savingLine({ month: 6, year: 2026 }),
+      ],
+      materializedPeriods: [
+        { month: 1, year: 2026 },
+        { month: 2, year: 2026 },
+        { month: 3, year: 2026 },
+        { month: 4, year: 2026 },
+        { month: 5, year: 2026 },
+        { month: 6, year: 2026 },
+      ],
+      canProvisionMissingPeriods: true,
+    });
+
+    // Act
+    const months = [
+      ...missingBudgetGap,
+      ...existingBudgetGap,
+      ...afterTargetGap,
+      ...lockedGap,
+    ];
+    const provisionable = months.filter(
+      (month) => month.isProvisionable === true,
+    );
+
+    // Assert — the calculator did produce provisionable months to check,
+    // and every one of them upholds all three implied guarantees.
+    expect(provisionable.length).toBeGreaterThan(0);
+    provisionable.forEach((month) => {
+      expect(month.isLocked).toBe(false);
+      expect(month.isContributionEligible).toBe(true);
+      expect(month.lines).toHaveLength(0);
+    });
+  });
 });
 
 describe('simulateSavingsPlan', () => {

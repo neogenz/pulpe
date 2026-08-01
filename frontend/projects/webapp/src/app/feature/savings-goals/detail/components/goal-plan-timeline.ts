@@ -261,13 +261,15 @@ export class GoalPlanTimeline {
         hasLinkedForecast: month.lines.length > 0,
         hasBudget: month.hasBudget === true,
         // Mirrors the page's repairableMonths() banner count and iOS's
-        // SavingsGoalPlanMonth.isRepairable — no `state` test, so a
-        // materialized current month with no linked line qualifies too.
+        // SavingsGoalPlanMonth.isRepairable exactly: 2 terms, not 4. The
+        // calculator (shared/src/calculators/savings-goal-plan.ts:184-195)
+        // sets isProvisionable only when !hasLines, !isLocked AND
+        // isContributionEligible already hold — re-testing them here would
+        // duplicate a guarantee the producer already gives every consumer.
+        // hasBudget is NOT implied (isProvisionable's `||` alternative lets
+        // canProvisionMissingPeriods substitute for it), so it stays explicit.
         isRepairable:
-          month.hasBudget === true &&
-          month.isProvisionable === true &&
-          !month.isLocked &&
-          month.isContributionEligible !== false,
+          month.hasBudget === true && month.isProvisionable === true,
         isOpen,
         isAdjusted: simulated ? (sim.isAdjusted ?? false) : false,
         amount: simulated ? sim.simulatedAmount : month.plannedAmount,

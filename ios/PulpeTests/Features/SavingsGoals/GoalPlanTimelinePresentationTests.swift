@@ -19,11 +19,16 @@ struct GoalPlanTimelinePresentationTests {
 
     @Test("keeps locked and non-provisionable budgets neutral")
     func distinguishesNeutralUnlinkedForecasts() {
+        // `locked` models a reachable state: a past, materialized month with
+        // no linked line. `isProvisionable` stays at its default (false) —
+        // isLocked implies !isProvisionable (shared/src/calculators/
+        // savings-goal-plan.spec.ts's invariant test), so a real locked month
+        // is already non-provisionable; `isLocked: true` alone is enough to
+        // exercise the neutral path.
         let locked = makeMonth(
             month: 9,
             state: .past,
-            isLocked: true,
-            isProvisionable: true
+            isLocked: true
         )
         let nonProvisionable = makeMonth(month: 10, state: .future)
 
