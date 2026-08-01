@@ -164,7 +164,7 @@ struct ContextualCreationUITestHarness: View {
         return ScrollView {
             HomeHeroCard(
                 metrics: fixture.metrics,
-                plannedBalance: fixture.plannedBalance,
+                fallbackPlannedBalance: fixture.plannedBalance,
                 trajectory: fixture.trajectory,
                 monthName: fixture.monthName,
                 uncheckedCount: 1,

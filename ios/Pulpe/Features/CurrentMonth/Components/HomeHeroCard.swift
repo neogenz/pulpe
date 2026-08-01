@@ -5,7 +5,10 @@ import SwiftUI
 /// The trajectory plot and its spoken description live in `HomeHeroCard+Chart.swift`.
 struct HomeHeroCard: View {
     let metrics: BudgetFormulas.Metrics
-    let plannedBalance: Decimal
+    /// Used only when there is no trajectory to read the plan's own origin from — a period
+    /// the plot cannot draw because today falls outside it. Named for that precedence, so a
+    /// caller can see at the call site that this value does not always reach the screen.
+    let fallbackPlannedBalance: Decimal
     let trajectory: BudgetFormulas.BalanceTrajectory?
     let monthName: String
     let uncheckedCount: Int
@@ -22,7 +25,7 @@ struct HomeHeroCard: View {
         PresentationState(
             // The plot's own origin whenever there is a plot, so the rule under the hero and
             // the `vs prévu` beside it quote one number rather than two calculations of it.
-            plannedBalance: trajectory?.plannedBalance ?? plannedBalance,
+            plannedBalance: trajectory?.plannedBalance ?? fallbackPlannedBalance,
             estimatedBalance: metrics.remaining,
             // The plot's own drift date, so the sentence dates the same departure the line
             // draws. No plot, no date — and the sentence drops to its undated form.
@@ -351,7 +354,7 @@ extension HomeHeroCard {
                 remaining: 1260,
                 rollover: 0
             ),
-            plannedBalance: 632,
+            fallbackPlannedBalance: 632,
             trajectory: gainTrajectory,
             monthName: "juillet",
             uncheckedCount: 5,

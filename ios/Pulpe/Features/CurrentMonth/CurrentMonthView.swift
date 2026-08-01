@@ -209,7 +209,7 @@ struct CurrentMonthView: View {
             VStack(spacing: DesignTokens.Spacing.none) {
                 HomeHeroCard(
                     metrics: store.metrics,
-                    plannedBalance: store.plannedRemaining,
+                    fallbackPlannedBalance: store.plannedRemaining,
                     trajectory: store.balanceTrajectory,
                     monthName: currentMonthName,
                     uncheckedCount: store.uncheckedCount,

@@ -200,15 +200,15 @@ extension HomeHeroCard {
             return "Trajectoire d’atterrissage de la période, montants masqués."
         }
         let plan = "Prévu \(trajectory.plannedBalance.asCompactCurrency(currency))."
-        let landing = "Atterrissage estimé \(trajectory.estimatedBalance.asCompactCurrency(currency))."
+        let estimate = "Atterrissage estimé \(trajectory.estimatedBalance.asCompactCurrency(currency))."
         guard trajectory.drift != 0 else {
-            return "\(plan) \(landing) Aucun écart au plan."
+            return "\(plan) \(estimate) Aucun écart au plan."
         }
         let gap = "Écart \(trajectory.drift.asArithmeticSignedCompactCurrency(currency))"
         // A gap with no date is a period whose drift predates its own first reading — the
         // figure still holds, so the sentence drops the clause rather than the fact.
-        guard let since = trajectory.driftDate else { return "\(plan) \(landing) \(gap)." }
-        return "\(plan) \(landing) \(gap) depuis le \(Formatters.dayMonthLabel(for: since))."
+        guard let since = trajectory.driftDate else { return "\(plan) \(estimate) \(gap)." }
+        return "\(plan) \(estimate) \(gap) depuis le \(Formatters.dayMonthLabel(for: since))."
     }
 
     /// How much vertical room the drawing claims. A month that held its plan moves by a few
