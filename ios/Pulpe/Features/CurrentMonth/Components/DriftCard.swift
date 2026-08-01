@@ -9,8 +9,8 @@ struct DriftCard: View {
     let totalOver: Decimal
     var tagNamesById: [String: String] = [:]
     /// Same verdict `HomeHeroCard` renders — reconciles this card's subtitle with the
-    /// hero instead of asserting the opposite when the month is favourable overall.
-    let monthIsFavourable: Bool
+    /// hero instead of asserting the opposite when the month covered the excess overall.
+    let overrunIsAbsorbed: Bool
     var onCatchUp: () -> Void
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
@@ -23,11 +23,12 @@ struct DriftCard: View {
 
     private var currency: SupportedCurrency { userSettingsStore.currency }
 
-    /// Local overrun read against the hero's own verdict: a favourable month says the
-    /// excess is absorbed elsewhere instead of asserting the hero's opposite.
+    /// Local overrun read against the hero's own verdict: a month that stayed at or above
+    /// its plan says the excess is absorbed elsewhere instead of asserting the hero's
+    /// opposite — a month exactly on plan covered it as surely as one that came out ahead.
     private var subtitle: String {
         let base = "\(totalOver.asCompactCurrency(currency)) au-delà du plan"
-        guard monthIsFavourable else { return base }
+        guard overrunIsAbsorbed else { return base }
         return "\(base), compensé ailleurs ce mois"
     }
 

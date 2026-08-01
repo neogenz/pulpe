@@ -246,6 +246,13 @@ extension HomeHeroCard {
             tone = estimatedBalance < 0 ? .deficit : difference < 0 ? .caution : .favorable
         }
 
+        /// Whether an envelope that ran past its plan was paid for elsewhere in the month.
+        /// A month that lands exactly on plan absorbed it just as surely as one that landed
+        /// above: only a month behind its own plan leaves the excess uncovered. Lives here
+        /// rather than in the view so the card that says "compensé ailleurs" and the hero
+        /// that says "conforme à ton budget" can never claim opposite things.
+        var absorbsEnvelopeOverrun: Bool { verdict != .overrun }
+
         func accessibilityDescription(
             monthName: String,
             currency: SupportedCurrency,

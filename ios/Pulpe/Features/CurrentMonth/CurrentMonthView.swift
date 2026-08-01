@@ -43,11 +43,11 @@ struct CurrentMonthView: View {
 
     /// Same verdict the hero renders — `DriftCard`'s subtitle reads off this instead of
     /// re-deriving the planned/estimated subtraction on its own.
-    private var monthIsFavourable: Bool {
+    private var overrunIsAbsorbed: Bool {
         HomeHeroCard.PresentationState(
             plannedBalance: store.plannedRemaining,
             estimatedBalance: store.metrics.remaining
-        ).verdict == .gain
+        ).absorbsEnvelopeOverrun
     }
 
     /// One-time post-onboarding handoff (teaches the pointer ritual + Lock Screen
@@ -283,7 +283,7 @@ struct CurrentMonthView: View {
                     drifts: store.driftLines,
                     totalOver: store.driftTotal,
                     tagNamesById: tagStore.namesById,
-                    monthIsFavourable: monthIsFavourable,
+                    overrunIsAbsorbed: overrunIsAbsorbed,
                     onCatchUp: { navigateToBudget = true }
                 )
                 .staggeredEntrance(isVisible: hasAppeared, index: 2)

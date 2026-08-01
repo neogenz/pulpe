@@ -23,6 +23,23 @@ struct HomeHeroCardTests {
         #expect(onPlan.verdict == .onPlan)
     }
 
+    @Test func envelopeOverrun_countsAsAbsorbedWhenTheMonthLandsExactlyOnPlan() {
+        // A 200 overrun cancelled by 200 of free income lands the month exactly on plan.
+        // `DriftCard` gates its "compensé ailleurs ce mois" clause on this: without the
+        // on-plan case it says "200 CHF au-delà du plan" flat while the hero says
+        // "Tu es conforme à ton budget" — two claims that contradict each other.
+        let onPlan = HomeHeroCard.PresentationState(plannedBalance: 450, estimatedBalance: 450)
+        #expect(onPlan.verdict == .onPlan)
+        #expect(onPlan.absorbsEnvelopeOverrun)
+
+        let gain = HomeHeroCard.PresentationState(plannedBalance: 450, estimatedBalance: 800)
+        #expect(gain.absorbsEnvelopeOverrun)
+
+        // The one month that genuinely leaves the excess uncovered.
+        let overrun = HomeHeroCard.PresentationState(plannedBalance: 450, estimatedBalance: 300)
+        #expect(!overrun.absorbsEnvelopeOverrun)
+    }
+
     @Test func deficitAcrossZero_isOverrunAndDeficit() {
         let state = HomeHeroCard.PresentationState(
             plannedBalance: 450,
