@@ -112,7 +112,7 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
     var period: BudgetPeriod { BudgetPeriod(month: month, year: year) }
 
     /// Mirrors the web timeline's `isRepairable` (2 terms, not 5). The
-    /// producer (`shared/src/calculators/savings-goal-plan.ts:184-195`, mirrored
+    /// producer (`buildSavingsGoalTimeline`, in the shared calculators, mirrored
     /// here) sets `isProvisionable` only when lines are empty, the month isn't
     /// locked, AND it's contribution-eligible — re-testing those here would
     /// duplicate a guarantee the server already gives every client. `hasBudget`

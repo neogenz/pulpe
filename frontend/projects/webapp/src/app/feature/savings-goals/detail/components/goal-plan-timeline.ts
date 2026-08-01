@@ -262,7 +262,7 @@ export class GoalPlanTimeline {
         hasBudget: month.hasBudget === true,
         // Mirrors the page's repairableMonths() banner count and iOS's
         // SavingsGoalPlanMonth.isRepairable exactly: 2 terms, not 4. The
-        // calculator (shared/src/calculators/savings-goal-plan.ts:184-195)
+        // calculator (buildSavingsGoalTimeline, in pulpe-shared)
         // sets isProvisionable only when !hasLines, !isLocked AND
         // isContributionEligible already hold — re-testing them here would
         // duplicate a guarantee the producer already gives every consumer.

@@ -269,7 +269,7 @@ describe('buildSavingsGoalTimeline', () => {
   it('should guarantee that a provisionable month is never locked, is contribution-eligible, and carries no linked line', () => {
     // Arrange — four real calculator runs. Each is chosen so that dropping
     // one of the three implied conjuncts from isProvisionable's definition
-    // (savings-goal-plan.ts:184-195) would make a wrong month provisionable:
+    // in buildSavingsGoalTimeline would make a wrong month provisionable:
     // missingBudget/existingBudget guard `!hasLines` (month 4 has no line,
     // month 3 does and must stay excluded), afterTarget guards
     // `isContributionEligible` (month 4 sits past the target), and lockedGap

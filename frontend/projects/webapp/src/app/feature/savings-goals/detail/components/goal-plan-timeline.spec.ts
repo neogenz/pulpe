@@ -344,20 +344,15 @@ describe('GoalPlanTimeline', () => {
     setTestInput(fixture.componentInstance.expanded, true);
     fixture.detectChanges();
 
-    // Same predicate as the page's repairableMonths() recovery banner.
-    const expectedRepairableCount = months.filter(
-      (month) =>
-        month.hasBudget === true &&
-        month.isProvisionable === true &&
-        !month.isLocked &&
-        month.isContributionEligible !== false,
-    ).length;
-
+    // Months 3 and 4 carry a budget and are provisionable; month 5 has no
+    // budget, month 6 already has a linked line. Stated as a literal count
+    // on purpose — recomputing the component's own predicate here would
+    // pass whatever that predicate happened to become.
     expect(
       fixture.debugElement.queryAll(
         By.css('[data-testid="goal-plan-repair-chip"]'),
       ),
-    ).toHaveLength(expectedRepairableCount);
+    ).toHaveLength(2);
   });
 
   it('starts the monthly plan at the first contribution-eligible month', () => {
