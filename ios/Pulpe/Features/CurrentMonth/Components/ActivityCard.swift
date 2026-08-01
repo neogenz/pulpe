@@ -131,7 +131,7 @@ struct ActivityCard: View {
             PulpeChip(label: option.rawValue, style: isSelected ? .solid : .outlined)
         }
         .plainPressedButtonStyle()
-        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     // MARK: - Day group
