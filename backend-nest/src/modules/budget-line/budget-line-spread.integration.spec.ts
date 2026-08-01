@@ -433,9 +433,7 @@ describe('Spread horizon guard — outside-target-date rejection (local Supabase
     expect(businessError.code).toBe(
       ERROR_DEFINITIONS.SAVINGS_GOAL_LINE_OUTSIDE_HORIZON.code,
     );
-    expect(businessError.getStatus()).toBe(
-      ERROR_DEFINITIONS.SAVINGS_GOAL_LINE_OUTSIDE_HORIZON.httpStatus,
-    );
+    expect(businessError.getStatus()).toBe(422);
 
     const { data: persisted, error: readErr } = await adminClient
       .from('budget_line')

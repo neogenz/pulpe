@@ -1006,15 +1006,23 @@ describe('SavingsGoalDetailPage', () => {
 
     fixture.detectChanges();
 
-    // The stub's bound `count` input can't be read here: signal inputs set
-    // via [prop]="expr" on a JIT-compiled child aren't reliably exercised
-    // through a *parent's* template binding in this test environment (see
-    // the "JIT compilation issues with signal inputs" note in
-    // test-setup.ts) — verified directly: callout.componentInstance.count()
-    // reads back 0 regardless of detectChanges()/whenStable(). So the
-    // page-owned repairableMonths() filtering (hasBudget / isProvisionable /
-    // existing line) is asserted directly; singular/plural wording is
-    // covered by GoalPlanRepairCallout's own spec.
+    // The stub's bound `count` input can't be read here. Verified on a
+    // throwaway probe: a plain input(0) signal on a JIT-compiled child
+    // stays at its default when set via a parent's [prop]="expr", with or
+    // without .overrideComponent() on the host and with both a literal and
+    // a property-reference binding — so it is NOT .overrideComponent()
+    // recompiling the parent (both reproduce identically without it), and
+    // NOT Angular #54039 (that's about a *required* input + computed()
+    // evaluated before bindings apply; this child has neither). The same
+    // probe with a classic @Input() decorator in place of input() DOES
+    // receive the bound value, so the failure is specific to signal inputs
+    // under JIT compilation; the deeper Angular-internals cause is not
+    // identified beyond that. So the page-owned repairableMonths()
+    // filtering (hasBudget / isProvisionable / existing line) is asserted
+    // directly here, while the singular/plural wording driven by that count
+    // is covered separately by GoalPlanRepairCallout's own spec
+    // (goal-plan-repair-callout.spec.ts), which sets `count` directly via
+    // setTestInput instead of a parent template binding.
     expect(component['repairableMonths']()).toHaveLength(1);
     // The host itself still renders — the DOM-observable half of the
     // guard (the page's `@if` lets the callout through when count > 0).
