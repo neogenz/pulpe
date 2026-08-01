@@ -7,7 +7,6 @@ extension HomeHeroCard {
     @ViewBuilder
     var balanceChart: some View {
         if let trajectory, trajectory.tracked.count > 1 {
-            let isWaiting = trajectory.hasNothingTracked
             Chart {
                 RuleMark(y: .value(
                     "Prévu",
@@ -41,25 +40,27 @@ extension HomeHeroCard {
                     .foregroundStyle(Color.homeHeroInk)
                 }
 
-                if !isWaiting {
-                    ForEach(trajectory.remainingPlan) { point in
-                        LineMark(
-                            x: .value("Jour", point.day),
-                            y: .value("Estimation finale", Self.decimalValue(point.balance)),
-                            series: .value("Série", "Raccord de fin")
-                        )
-                        .interpolationMethod(.linear)
-                        .lineStyle(StrokeStyle(
-                            lineWidth: DesignTokens.BorderWidth.thick,
-                            lineCap: .round,
-                            dash: DesignTokens.Chart.dash
-                        ))
-                        // Same ink as the tracked series, faded: the projection is the same
-                        // story seen further out, not a different quantity.
-                        .foregroundStyle(
-                            Color.homeHeroInk.opacity(DesignTokens.Opacity.heroInkMuted)
-                        )
-                    }
+                // Drawn from the first day, before anything is pointed: this is the plan,
+                // not a reading of it. Withholding it left a new account looking at an
+                // empty frame on the one screen that has to teach the model — while the
+                // slope down to `Prévu` is exactly what the month is asking of them.
+                ForEach(trajectory.remainingPlan) { point in
+                    LineMark(
+                        x: .value("Jour", point.day),
+                        y: .value("Estimation finale", Self.decimalValue(point.balance)),
+                        series: .value("Série", "Raccord de fin")
+                    )
+                    .interpolationMethod(.linear)
+                    .lineStyle(StrokeStyle(
+                        lineWidth: DesignTokens.BorderWidth.thick,
+                        lineCap: .round,
+                        dash: DesignTokens.Chart.dash
+                    ))
+                    // Same ink as the tracked series, faded: the projection is the same
+                    // story seen further out, not a different quantity.
+                    .foregroundStyle(
+                        Color.homeHeroInk.opacity(DesignTokens.Opacity.heroInkMuted)
+                    )
                 }
 
                 if let current = trajectory.tracked.last {
@@ -92,7 +93,7 @@ extension HomeHeroCard {
                     }
                 }
 
-                if !isWaiting, let destination = trajectory.remainingPlan.last {
+                if let destination = trajectory.remainingPlan.last {
                     PointMark(
                         x: .value("Fin de période", destination.day),
                         y: .value(
@@ -111,20 +112,6 @@ extension HomeHeroCard {
             .chartXAxis(.hidden)
             .chartYAxis(.hidden)
             .chartLegend(.hidden)
-            // Sits in the band the projection would have occupied, and unlike an annotation
-            // on the anchor it never drifts against an edge as the period advances.
-            .overlay {
-                if isWaiting {
-                    // Names what the plot is short of, not what the user is: `available`
-                    // already holds the month's whole income, so someone who has just
-                    // pointed their salary has done a pointing and still sees a flat line.
-                    Text("Ton solde n’a pas encore bougé")
-                        .font(PulpeTypography.caption2)
-                        .foregroundStyle(Color.homeHeroSupport)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.center)
-                }
-            }
             // The plot is a fixed-size graphic, so its two labels are part of the drawing and
             // are capped rather than left to grow across it. VoiceOver reads the whole
             // trajectory from the label below, which is the accessible route into a graph.
@@ -158,13 +145,10 @@ extension HomeHeroCard {
         }
         let start = "Début de période \(opening.balance.asCompactCurrency(currency))."
         let today = "Aujourd’hui \(current.balance.asCompactCurrency(currency))."
-        if trajectory.hasNothingTracked {
-            return "\(start) \(today) Ton solde n’a pas encore bougé. Prévu \(planned)."
-        }
-        // Two independent reasons to have no projection, and they must not share a
-        // sentence: `remainingPlan` is empty on the last day of the period as well
-        // (`BalanceTrajectory:76`), and folding that case into the waiting message
-        // would deny the pointing the user has actually done all month.
+        // The plot draws its projection from the first day on, so the label describes it
+        // from the first day on too. One case has none to describe: `remainingPlan` is
+        // empty on the last day of the period (`BalanceTrajectory:76`), where saying why
+        // beats falling silent mid-sentence.
         guard let destination = trajectory.remainingPlan.last else {
             return "\(start) \(today) Dernier jour de la période. Prévu \(planned)."
         }

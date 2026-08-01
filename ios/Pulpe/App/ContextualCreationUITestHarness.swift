@@ -124,6 +124,12 @@ struct ContextualCreationUITestHarness: View {
         ProcessInfo.processInfo.environment["UITEST_CHART_PERIOD"] == "shifted"
     }
 
+    /// Which data state the chart fixture stands in. The card reads one plot across all of
+    /// them, so they are worth seeing side by side rather than one at a time.
+    private var chartState: String {
+        ProcessInfo.processInfo.environment["UITEST_CHART_STATE"] ?? "onPlan"
+    }
+
     @ViewBuilder
     private var content: some View {
         switch scenario {
@@ -172,9 +178,14 @@ struct ContextualCreationUITestHarness: View {
     }
 
     private var chartFixture: ChartFixture {
-        let referenceDate = isShiftedPeriod
-            ? Self.date(year: 2026, month: 3, day: 10)
-            : Self.date(year: 2026, month: 7, day: 15)
+        let state = chartState
+        let referenceDate = if isShiftedPeriod {
+            Self.date(year: 2026, month: 3, day: 10)
+        } else if state == "lastDay" {
+            Self.date(year: 2026, month: 7, day: 31)
+        } else {
+            Self.date(year: 2026, month: 7, day: 15)
+        }
         let payDay = isShiftedPeriod ? 27 : nil
         let budgetMonth = isShiftedPeriod ? 3 : 7
         let monthName = isShiftedPeriod ? "mars" : "juillet"
@@ -219,20 +230,31 @@ struct ContextualCreationUITestHarness: View {
                     date: Self.date(year: 2026, month: 7, day: 14)
                 ),
             ]
+        // `available` fixes where the curve starts and is the same in every state — it is
+        // the month's whole planned income. The pair below fixes where it lands and what
+        // the verdict makes of that; pointing nothing leaves the curve at its opening.
+        let pointed = state == "untouched" ? [] : transactions
+        let remaining: Decimal = state == "deficit" ? -300 : 2_500
+        let planned: Decimal = switch state {
+        case "gain": 2_100
+        case "overrun": 2_900
+        case "deficit": 400
+        default: 2_500
+        }
         let metrics = BudgetFormulas.Metrics(
             totalIncome: 5_000,
-            totalExpenses: 2_500,
+            totalExpenses: 5_000 - remaining,
             totalSavings: 0,
             available: 5_000,
-            endingBalance: 2_500,
-            remaining: 2_500,
+            endingBalance: remaining,
+            remaining: remaining,
             rollover: 0
         )
         guard let trajectory = BudgetFormulas.calculateBalanceTrajectory(
             budgetLines: [],
-            transactions: transactions,
+            transactions: pointed,
             metrics: metrics,
-            plannedBalance: 2_500,
+            plannedBalance: planned,
             budget: budget,
             payDayOfMonth: payDay,
             referenceDate: referenceDate
@@ -241,7 +263,7 @@ struct ContextualCreationUITestHarness: View {
         }
         return ChartFixture(
             metrics: metrics,
-            plannedBalance: 2_500,
+            plannedBalance: planned,
             trajectory: trajectory,
             monthName: monthName
         )

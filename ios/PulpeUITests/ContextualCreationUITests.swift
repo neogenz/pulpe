@@ -38,6 +38,25 @@ final class ContextualCreationUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Ajouter"].firstMatch.waitForExistence(timeout: 5))
     }
 
+    /// One plot has to carry every shape a month can take. Each state gets a screenshot so
+    /// the set can be read side by side — a chart that is clear alone can still be
+    /// unreadable next to its neighbours.
+    func testHomeChartStaysLegibleAcrossDataStates() {
+        for state in ["untouched", "onPlan", "gain", "overrun", "deficit", "lastDay"] {
+            launch(
+                "UITEST_CONTEXTUAL_CREATION_HOME",
+                dynamicType: "large",
+                colorScheme: "light",
+                chartState: state
+            )
+
+            let chart = app.descendants(matching: .any)["home-balance-chart"]
+            XCTAssertTrue(chart.waitForExistence(timeout: 10), "\(state): \(app.debugDescription)")
+            attachScreenshot("home-chart-state-\(state)")
+            app.terminate()
+        }
+    }
+
     func testHomeChartAnnotationsAcrossVisualMatrix() {
         for colorScheme in ["light", "dark"] {
             for dynamicType in ["large", "accessibility3"] {
@@ -84,12 +103,18 @@ final class ContextualCreationUITests: XCTestCase {
     func testFreshSignupHomeIsFilledAndSaysWhatIsMissing() {
         launch("UITEST_CONTEXTUAL_CREATION_HOME", dynamicType: "large", freshSignup: true)
 
-        // The estimate and its plot: the page has a subject, not an empty frame.
+        // The estimate and its plot: the page has a subject, not an empty frame. The plot
+        // draws the month's whole slope before anything is pointed, and its label is the
+        // assertable proof of it — the marks themselves are a graphic.
+        let chart = app.descendants(matching: .any)["home-balance-chart"]
+        XCTAssertTrue(chart.waitForExistence(timeout: 10), app.debugDescription)
+        // The identifier lands on the view element, whose label is empty; the spoken one is
+        // a sibling node — so scrape the tree, as the masking test does.
+        let labels = app.descendants(matching: .any).allElementsBoundByIndex.map(\.label)
         XCTAssertTrue(
-            app.descendants(matching: .any)["home-balance-chart"].waitForExistence(timeout: 10),
-            app.debugDescription
+            labels.contains { $0.contains("Fin de période estimée") },
+            labels.joined(separator: " | ")
         )
-        XCTAssertTrue(app.staticTexts["Ton solde n’a pas encore bougé"].exists, app.debugDescription)
 
         // The verdict sentence's own copy is asserted in `HomeHeroCardTests`: it lives in a
         // Button whose accessibility label is its action, so its text reaches no query here.
@@ -163,6 +188,7 @@ final class ContextualCreationUITests: XCTestCase {
         dynamicType: String = "accessibility3",
         colorScheme: String? = nil,
         chartPeriod: String? = nil,
+        chartState: String? = nil,
         homeSkeleton: Bool = false,
         freshSignup: Bool = false,
         amountsHidden: Bool = false
@@ -177,6 +203,10 @@ final class ContextualCreationUITests: XCTestCase {
         if let chartPeriod {
             app.launchEnvironment["UITEST_HOME_CHART_MATRIX"] = "1"
             app.launchEnvironment["UITEST_CHART_PERIOD"] = chartPeriod
+        }
+        if let chartState {
+            app.launchEnvironment["UITEST_HOME_CHART_MATRIX"] = "1"
+            app.launchEnvironment["UITEST_CHART_STATE"] = chartState
         }
         if homeSkeleton {
             app.launchEnvironment["UITEST_HOME_SKELETON"] = "1"

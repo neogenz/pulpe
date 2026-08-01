@@ -83,6 +83,15 @@ struct HomeHeroCardTests {
 
         let overrun = HomeHeroCard.PresentationState(plannedBalance: 450, estimatedBalance: 300)
         #expect(overrun.varianceText(for: .eur) == "-150 €")
+
+        // Same card, four lines apart: a hard `0 CHF` under a sentence saying the
+        // comparison cannot be made yet was the card contradicting itself.
+        let untouched = HomeHeroCard.PresentationState(
+            plannedBalance: 2_500,
+            estimatedBalance: 2_500,
+            hasBalanceMoved: false
+        )
+        #expect(untouched.varianceText(for: .chf) == "—")
     }
 
     @Test func deficitAcrossZero_isOverrunAndDeficit() {
@@ -231,13 +240,15 @@ struct HomeHeroCardTests {
         #expect(spoken.contains("Fin de période estimée"))
         #expect(spoken.contains("Prévu"))
 
-        let waiting = HomeHeroCard.chartAccessibilityLabel(
+        // The plot draws its projection before anything is pointed, so the label owes the
+        // same account of it — a new account gets told where the month is heading.
+        let untouched = HomeHeroCard.chartAccessibilityLabel(
             for: trajectory(tracked: [1_000, 1_000], remainingPlan: [1_000, 300], plan: 250),
             currency: .chf,
             amountsHidden: false
         )
-        #expect(waiting.contains("Ton solde n’a pas encore bougé"))
-        #expect(!waiting.contains("Fin de période estimée"))
+        #expect(untouched.contains("Fin de période estimée"))
+        #expect(untouched.contains("Prévu"))
 
         let masked = HomeHeroCard.chartAccessibilityLabel(
             for: tracked,
@@ -249,11 +260,10 @@ struct HomeHeroCardTests {
     }
 
     @MainActor
-    @Test func chartLabel_onTheLastDay_reportsTheTrajectoryInsteadOfWaiting() {
-        // `remainingPlan` is empty on the last day of the period, exactly as it is
-        // while the balance has not moved — the label must tell the two apart.
+    @Test func chartLabel_onTheLastDay_saysWhyThereIsNoProjectionLeft() {
+        // The only day with no `remainingPlan` to speak. Every other label ends on where
+        // the month is heading, so this one has to say why it cannot.
         let lastDay = trajectory(tracked: [1_000, 900], remainingPlan: [], plan: 250)
-        #expect(!lastDay.hasNothingTracked)
 
         let spoken = HomeHeroCard.chartAccessibilityLabel(
             for: lastDay,
@@ -261,8 +271,8 @@ struct HomeHeroCardTests {
             amountsHidden: false
         )
 
-        #expect(!spoken.contains("Ton solde n’a pas encore bougé"))
         #expect(spoken.contains("Dernier jour de la période"))
+        #expect(!spoken.contains("Fin de période estimée"))
         #expect(spoken.contains("Aujourd’hui"))
     }
 

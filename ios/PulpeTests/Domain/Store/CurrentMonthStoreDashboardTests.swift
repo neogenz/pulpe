@@ -156,7 +156,7 @@ struct CurrentMonthStoreDashboardTests {
         #expect(store.driftLines.isEmpty)
         #expect(!store.savingsSummary.isComplete)
 
-        // The chart draws, and says it is waiting rather than projecting a flat line.
+        // The chart has a period to draw, and knows nothing has moved in it yet.
         let trajectory = try #require(store.balanceTrajectory)
         #expect(trajectory.tracked.count > 1)
         #expect(trajectory.hasNothingTracked)

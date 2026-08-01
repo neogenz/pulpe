@@ -31,8 +31,11 @@ struct HomeHeroCard: View {
 
     // MARK: - Semantic Styling
 
+    /// Tints the gap, so it takes the ink of its neighbour while there is no gap to tint —
+    /// a green `—` would read as a verdict on a month nobody has measured yet.
     private var accentColor: Color {
-        switch presentation.tone {
+        guard presentation.hasBalanceMoved else { return Color.homeHeroInk }
+        return switch presentation.tone {
         case .favorable: .financialSavings
         case .caution: .financialOverBudget
         case .deficit: .driftAccent
@@ -285,8 +288,14 @@ extension HomeHeroCard {
         /// Carries its unit even though the hero above already shows one: its neighbour in
         /// the pair is a count of operations, and two figures set in the same type on the
         /// same row have nothing else to say which of them is money.
+        ///
+        /// A balance that has not moved has no gap to report — the `0` it would print is
+        /// arithmetic, not an observation, and sat four lines above a sentence saying the
+        /// comparison could not be made yet. The app's usual mark for a value it does not
+        /// have says the same thing without contradicting it.
         func varianceText(for currency: SupportedCurrency) -> String {
-            variance.asArithmeticSignedCompactCurrency(currency)
+            guard hasBalanceMoved else { return "—" }
+            return variance.asArithmeticSignedCompactCurrency(currency)
         }
 
         func accessibilityDescription(
