@@ -89,7 +89,7 @@ final class ContextualCreationUITests: XCTestCase {
             app.descendants(matching: .any)["home-balance-chart"].waitForExistence(timeout: 10),
             app.debugDescription
         )
-        XCTAssertTrue(app.staticTexts["En attente d’un premier pointage"].exists, app.debugDescription)
+        XCTAssertTrue(app.staticTexts["Ton solde n’a pas encore bougé"].exists, app.debugDescription)
 
         // The verdict sentence's own copy is asserted in `HomeHeroCardTests`: it lives in a
         // Button whose accessibility label is its action, so its text reaches no query here.

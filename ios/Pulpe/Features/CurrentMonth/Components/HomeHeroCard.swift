@@ -22,10 +22,10 @@ struct HomeHeroCard: View {
         PresentationState(
             plannedBalance: plannedBalance,
             estimatedBalance: metrics.remaining,
-            // Same signal the chart reads to draw "En attente d'un premier pointage", so the
-            // sentence under it can never claim a verdict the plot says it is still waiting
-            // for. No trajectory means no such claim on screen, so nothing to contradict.
-            hasTrackedActivity: trajectory.map { !$0.hasNothingTracked } ?? true
+            // Same signal the chart reads, so the sentence under the plot can never claim a
+            // verdict the plot says it is still waiting for. No trajectory means no such
+            // claim on screen, so nothing to contradict.
+            hasBalanceMoved: trajectory.map { !$0.hasNothingTracked } ?? true
         )
     }
 
@@ -235,19 +235,24 @@ extension HomeHeroCard {
         let verdict: Verdict
         let tone: Tone
 
-        /// Whether the period has any pointed movement behind it. `verdict` compares two
+        /// Whether the balance has actually moved this period. `verdict` compares two
         /// numbers and always has an answer; this says whether that answer means anything
         /// yet. Defaults to `true` so a caller that has no trajectory keeps the comparison.
-        let hasTrackedActivity: Bool
+        ///
+        /// Only a pointed *outflow* moves it: `available` already counts the month's whole
+        /// income (`BudgetFormulas.calculateMetrics`), so pointing a salary confirms money
+        /// the estimate had assumed rather than adding any. The copy below has to be true
+        /// of that user too — they pointed something, and the balance still did not move.
+        let hasBalanceMoved: Bool
 
         init(
             plannedBalance: Decimal,
             estimatedBalance: Decimal,
-            hasTrackedActivity: Bool = true
+            hasBalanceMoved: Bool = true
         ) {
             self.plannedBalance = plannedBalance
             self.estimatedBalance = estimatedBalance
-            self.hasTrackedActivity = hasTrackedActivity
+            self.hasBalanceMoved = hasBalanceMoved
 
             let difference = estimatedBalance - plannedBalance
             variance = difference
@@ -263,12 +268,13 @@ extension HomeHeroCard {
         var absorbsEnvelopeOverrun: Bool { verdict != .overrun }
 
         /// Qualitative half of the verdict. The number behind it lives in the `vs prévu`
-        /// metric, so the sentence never repeats it. Until something is pointed the estimate
-        /// equals the plan by construction, not by observation: "conforme à ton budget"
-        /// would congratulate a brand-new account for a comparison nobody has made yet —
-        /// under a chart that is still saying it waits for a first pointing.
+        /// metric, so the sentence never repeats it. While the balance has not moved the
+        /// estimate equals the plan by construction, not by observation: "conforme à ton
+        /// budget" would congratulate the user for a comparison nobody has made yet. Saying
+        /// it is too early states the plot's own reason rather than blaming the reader,
+        /// who may well have pointed their salary already.
         var verdictText: String {
-            guard hasTrackedActivity else { return "Rien de pointé pour l'instant." }
+            guard hasBalanceMoved else { return "Trop tôt pour comparer." }
             return switch verdict {
             case .gain: "Il te reste plus que prévu."
             case .overrun: "Il te reste moins que prévu."
@@ -304,8 +310,8 @@ extension HomeHeroCard {
 
             // Mirrors `verdictText`: VoiceOver and the sentence on screen say the same thing
             // about the same month, including the case where there is nothing to compare yet.
-            let comparison = if !hasTrackedActivity {
-                "Rien de pointé pour l'instant"
+            let comparison = if !hasBalanceMoved {
+                "Trop tôt pour comparer"
             } else {
                 switch verdict {
                 case .gain: "\(abs(variance).asCurrency(currency)) de mieux que prévu"

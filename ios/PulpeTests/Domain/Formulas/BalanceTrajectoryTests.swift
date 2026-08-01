@@ -7,8 +7,8 @@ import Testing
 struct BalanceTrajectoryTests {
     @Test func trajectory_usesRealizedStepsAndConnectsRemainingPlan() throws {
         let transactions = [
-            try checkedExpense(id: "day-2", amount: 100, day: 2),
-            try checkedExpense(id: "day-3", amount: 50, day: 3),
+            try checkedTransaction(id: "day-2", amount: 100, day: 2),
+            try checkedTransaction(id: "day-3", amount: 50, day: 3),
         ]
         let metrics = BudgetFormulas.Metrics(
             totalIncome: 1000,
@@ -46,13 +46,34 @@ struct BalanceTrajectoryTests {
         #expect(trajectory.totalDays == 31)
     }
 
+    @Test func trajectory_pointingAnIncomeLeavesTheCurveFlat() throws {
+        // The curve burns down from `available`, which already holds the month's whole
+        // planned income — so pointing a salary confirms money the estimate had assumed
+        // rather than adding any, and the line cannot move. The home copy is written
+        // around this: it says the balance has not moved, never that nothing was pointed.
+        let trajectory = try #require(BudgetFormulas.calculateBalanceTrajectory(
+            budgetLines: [],
+            transactions: [
+                try checkedTransaction(id: "salary", amount: 5_000, kind: .income, day: 2),
+            ],
+            metrics: metrics(available: 5_000, remaining: 1_500),
+            plannedBalance: 1_500,
+            budget: TestDataFactory.createBudget(month: 7, year: 2026),
+            payDayOfMonth: nil,
+            referenceDate: try date(year: 2026, month: 7, day: 3)
+        ))
+
+        #expect(Set(trajectory.tracked.map(\.balance)) == [5_000])
+        #expect(trajectory.hasNothingTracked)
+    }
+
     @Test func trajectory_payDayPeriodIncludesOnlyItsCrossMonthTransactions() throws {
         let trajectory = try #require(BudgetFormulas.calculateBalanceTrajectory(
             budgetLines: [],
             transactions: [
-                try checkedExpense(id: "before", amount: 25, year: 2026, month: 2, day: 26),
-                try checkedExpense(id: "start", amount: 100, year: 2026, month: 2, day: 27),
-                try checkedExpense(id: "today", amount: 50, year: 2026, month: 3, day: 1),
+                try checkedTransaction(id: "before", amount: 25, year: 2026, month: 2, day: 26),
+                try checkedTransaction(id: "start", amount: 100, year: 2026, month: 2, day: 27),
+                try checkedTransaction(id: "today", amount: 50, year: 2026, month: 3, day: 1),
             ],
             metrics: metrics(available: 1_000, remaining: 300),
             plannedBalance: 250,
@@ -89,7 +110,7 @@ struct BalanceTrajectoryTests {
                 ),
             ],
             transactions: [
-                try checkedExpense(
+                try checkedTransaction(
                     id: "allocated",
                     amount: 150,
                     budgetLineId: "start",
@@ -127,8 +148,8 @@ struct BalanceTrajectoryTests {
         let trajectory = try #require(BudgetFormulas.calculateBalanceTrajectory(
             budgetLines: [],
             transactions: [
-                try checkedExpense(id: "start", amount: 100, year: 2025, month: 12, day: 27),
-                try checkedExpense(id: "end", amount: 50, year: 2026, month: 1, day: 26),
+                try checkedTransaction(id: "start", amount: 100, year: 2025, month: 12, day: 27),
+                try checkedTransaction(id: "end", amount: 50, year: 2026, month: 1, day: 26),
             ],
             metrics: metrics(available: 1_000, remaining: 300),
             plannedBalance: 250,
@@ -144,9 +165,10 @@ struct BalanceTrajectoryTests {
         #expect(trajectory.remainingPlan.isEmpty)
     }
 
-    private func checkedExpense(
+    private func checkedTransaction(
         id: String,
         amount: Decimal,
+        kind: TransactionKind = .expense,
         budgetLineId: String? = nil,
         year: Int = 2026,
         month: Int = 7,
@@ -159,7 +181,7 @@ struct BalanceTrajectoryTests {
             budgetLineId: budgetLineId,
             name: id,
             amount: amount,
-            kind: .expense,
+            kind: kind,
             transactionDate: date,
             category: nil,
             checkedAt: date,

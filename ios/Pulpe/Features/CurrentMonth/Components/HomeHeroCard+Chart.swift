@@ -115,7 +115,10 @@ extension HomeHeroCard {
             // on the anchor it never drifts against an edge as the period advances.
             .overlay {
                 if isWaiting {
-                    Text("En attente d’un premier pointage")
+                    // Names what the plot is short of, not what the user is: `available`
+                    // already holds the month's whole income, so someone who has just
+                    // pointed their salary has done a pointing and still sees a flat line.
+                    Text("Ton solde n’a pas encore bougé")
                         .font(PulpeTypography.caption2)
                         .foregroundStyle(Color.homeHeroSupport)
                         .lineLimit(2)
@@ -156,7 +159,7 @@ extension HomeHeroCard {
         let start = "Début de période \(opening.balance.asCompactCurrency(currency))."
         let today = "Aujourd’hui \(current.balance.asCompactCurrency(currency))."
         if trajectory.hasNothingTracked {
-            return "\(start) \(today) En attente d’un pointage. Prévu \(planned)."
+            return "\(start) \(today) Ton solde n’a pas encore bougé. Prévu \(planned)."
         }
         // Two independent reasons to have no projection, and they must not share a
         // sentence: `remainingPlan` is empty on the last day of the period as well

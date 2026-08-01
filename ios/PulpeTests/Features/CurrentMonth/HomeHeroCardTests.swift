@@ -41,23 +41,24 @@ struct HomeHeroCardTests {
         #expect(!overrun.absorbsEnvelopeOverrun)
     }
 
-    @Test func freshBudget_doesNotClaimComplianceBeforeAnythingIsPointed() {
+    @Test func freshBudget_doesNotClaimComplianceBeforeTheBalanceMoves() {
         // Where a new account lands right after onboarding: lines exist, nothing pointed,
-        // so the estimate equals the plan by construction. The chart right above the
-        // sentence says "En attente d'un premier pointage" — "Tu es conforme à ton budget"
-        // under it congratulates the user for a comparison nobody has made.
+        // so the estimate equals the plan by construction. "Tu es conforme à ton budget"
+        // congratulates the user for a comparison nobody has made. The replacement says why
+        // there is no verdict rather than what the user has failed to do — someone who just
+        // pointed their salary is in this state too, and has done nothing wrong.
         let fresh = HomeHeroCard.PresentationState(
             plannedBalance: 2_500,
             estimatedBalance: 2_500,
-            hasTrackedActivity: false
+            hasBalanceMoved: false
         )
         #expect(fresh.verdict == .onPlan)
-        #expect(fresh.verdictText == "Rien de pointé pour l'instant.")
+        #expect(fresh.verdictText == "Trop tôt pour comparer.")
 
         let started = HomeHeroCard.PresentationState(
             plannedBalance: 2_500,
             estimatedBalance: 2_500,
-            hasTrackedActivity: true
+            hasBalanceMoved: true
         )
         #expect(started.verdictText == "Tu es conforme à ton budget.")
 
@@ -67,7 +68,7 @@ struct HomeHeroCardTests {
             currency: .chf,
             amountsHidden: false,
             uncheckedCount: 1
-        ).contains("Rien de pointé pour l'instant"))
+        ).contains("Trop tôt pour comparer"))
     }
 
     @Test func varianceMetric_carriesItsCurrencyBesideTheOperationCount() {
@@ -235,7 +236,7 @@ struct HomeHeroCardTests {
             currency: .chf,
             amountsHidden: false
         )
-        #expect(waiting.contains("En attente d’un pointage"))
+        #expect(waiting.contains("Ton solde n’a pas encore bougé"))
         #expect(!waiting.contains("Fin de période estimée"))
 
         let masked = HomeHeroCard.chartAccessibilityLabel(
@@ -250,7 +251,7 @@ struct HomeHeroCardTests {
     @MainActor
     @Test func chartLabel_onTheLastDay_reportsTheTrajectoryInsteadOfWaiting() {
         // `remainingPlan` is empty on the last day of the period, exactly as it is
-        // before the first pointing — the label must tell the two apart.
+        // while the balance has not moved — the label must tell the two apart.
         let lastDay = trajectory(tracked: [1_000, 900], remainingPlan: [], plan: 250)
         #expect(!lastDay.hasNothingTracked)
 
@@ -260,7 +261,7 @@ struct HomeHeroCardTests {
             amountsHidden: false
         )
 
-        #expect(!spoken.contains("En attente d’un pointage"))
+        #expect(!spoken.contains("Ton solde n’a pas encore bougé"))
         #expect(spoken.contains("Dernier jour de la période"))
         #expect(spoken.contains("Aujourd’hui"))
     }
