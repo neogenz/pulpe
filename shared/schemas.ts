@@ -571,7 +571,14 @@ export const savingsGoalPlanApplySchema = z
         z.strictObject({
           month: z.number().int().min(1).max(12),
           year: z.number().int(),
-          amount: z.number().positive(),
+          /**
+           * Zéro toléré, jamais provisionné. Les clients publiés avant PUL-316
+           * envoient 0 sur un mois trou (« Réajuster la suite » quand la cible
+           * est déjà atteinte), et le backend se déploie avant qu'ils soient
+           * mis à jour : refuser ici rejetterait tout le plan, y compris ses
+           * ajustements valides. Le use case laisse tomber ces entrées.
+           */
+          amount: z.number().nonnegative(),
         }),
       )
       .max(MAX_PLAN_ADJUSTMENTS)

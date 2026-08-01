@@ -210,6 +210,40 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
     expect(repo.applyPlan).toHaveBeenCalledTimes(1);
   });
 
+  it('drops a zero-amount gap without taking the valid adjustment down with it', async () => {
+    await useCase.execute(
+      'goal-1',
+      {
+        monthAdjustments: [
+          { budgetLineId: existingLines[0].id as string, amount: 500 },
+        ],
+        missingMonthAdjustments: [{ ...periods[2], amount: 0 }],
+      },
+      user,
+    );
+
+    expect(spread.fanOut).not.toHaveBeenCalled();
+    expect(repo.applyPlan.mock.calls[0][1]).toEqual([
+      { budgetLineId: existingLines[0].id, amount: 500 },
+    ]);
+  });
+
+  it('provisions nothing when every gap an older client sent is zero', async () => {
+    await useCase.execute(
+      'goal-1',
+      {
+        monthAdjustments: [],
+        missingMonthAdjustments: periods
+          .slice(2, 5)
+          .map((item) => ({ ...item, amount: 0 })),
+      },
+      user,
+    );
+
+    expect(spread.fanOut).not.toHaveBeenCalled();
+    expect(repo.applyPlan.mock.calls[0][1]).toEqual([]);
+  });
+
   it('rejects a missing period outside the goal horizon', async () => {
     const afterTarget = periodFromIndex(
       periods[23].year * 12 + periods[23].month + 1,

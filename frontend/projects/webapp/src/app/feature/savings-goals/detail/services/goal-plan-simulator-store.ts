@@ -216,9 +216,9 @@ export class GoalPlanSimulatorStore {
       for (const month of draft.months) {
         if (!month.isAdjusted) continue;
         if (month.isProvisionable) {
-          // A zero-valued creation describes nothing to create — the wire
-          // schema requires `.positive()`, so sending it would reject the
-          // WHOLE payload, including the valid adjustments alongside it.
+          // A zero-valued creation describes nothing to create. The server
+          // drops it too (older clients still send it), but there is no point
+          // spending a round-trip carrying an instruction that means nothing.
           if (month.simulatedAmount <= 0) continue;
           missingMonthAdjustments.push({
             month: month.month,

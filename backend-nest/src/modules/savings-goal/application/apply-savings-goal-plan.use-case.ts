@@ -100,7 +100,13 @@ export class ApplySavingsGoalPlanUseCase {
               payDayOfMonth,
             ),
           );
-    const missing = dto.missingMonthAdjustments ?? [];
+    // A zero-amount gap describes nothing to create, so it is dropped before
+    // any check rather than rejected: a client published before PUL-316 emits
+    // one whenever the target is already met, and failing here would discard
+    // the valid adjustments travelling in the same payload.
+    const missing = (dto.missingMonthAdjustments ?? []).filter(
+      (adjustment) => adjustment.amount > 0,
+    );
     const linkedBefore = await this.repo.findLinkedContributions(id);
     this.validateDirectAdjustments(
       dto.monthAdjustments,
