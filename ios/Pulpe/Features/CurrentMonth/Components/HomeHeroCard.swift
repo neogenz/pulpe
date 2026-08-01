@@ -143,7 +143,8 @@ struct HomeHeroCard: View {
                     value: varianceValue,
                     label: "vs prévu",
                     tint: accentColor,
-                    alignment: .trailing, showsChevron: true
+                    alignment: .trailing,
+                    showsChevron: true
                 )
             }
         }
@@ -160,7 +161,8 @@ struct HomeHeroCard: View {
         value: String,
         label: String,
         tint: Color,
-        alignment: HorizontalAlignment = .leading, showsChevron: Bool = false
+        alignment: HorizontalAlignment = .leading,
+        showsChevron: Bool = false
     ) -> some View {
         VStack(alignment: alignment, spacing: DesignTokens.Spacing.xxs) {
             Text(value)
@@ -193,6 +195,11 @@ struct HomeHeroCard: View {
     /// is gone, so the creation action below is the strongest thing under the hero.
     /// The action reads as one by its ink and its chevron, the way the rest of the app
     /// marks a drill-in; an underline here would be a web idiom on an iOS surface.
+    ///
+    /// Standalone-row variant of the 44pt text link: this Button owns its row, so a frame
+    /// can carry the tap target outright. `HomeSectionHeader` reaches the same 44pt through
+    /// a padding sandwich instead, because there the link shares an HStack and a frame would
+    /// grow the whole row — see `swiftui-hit-areas.md`. Two shapes, one rule, on purpose.
     private var verdictSentence: some View {
         Button(action: onTapDetail) {
             Text("\(verdictText) ")
