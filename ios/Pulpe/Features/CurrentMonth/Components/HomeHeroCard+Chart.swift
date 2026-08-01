@@ -155,9 +155,15 @@ extension HomeHeroCard {
         }
         let start = "Début de période \(opening.balance.asCompactCurrency(currency))."
         let today = "Aujourd’hui \(current.balance.asCompactCurrency(currency))."
-        guard !trajectory.hasNothingTracked,
-              let destination = trajectory.remainingPlan.last else {
+        if trajectory.hasNothingTracked {
             return "\(start) \(today) En attente d’un pointage. Prévu \(planned)."
+        }
+        // Two independent reasons to have no projection, and they must not share a
+        // sentence: `remainingPlan` is empty on the last day of the period as well
+        // (`BalanceTrajectory:76`), and folding that case into the waiting message
+        // would deny the pointing the user has actually done all month.
+        guard let destination = trajectory.remainingPlan.last else {
+            return "\(start) \(today) Dernier jour de la période. Prévu \(planned)."
         }
         let estimate = "Fin de période estimée à \(destination.balance.asCompactCurrency(currency))."
         return "\(start) \(today) \(estimate) Prévu \(planned)."

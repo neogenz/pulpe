@@ -325,6 +325,24 @@ struct HomeHeroCardTests {
         #expect(!leaksADigit)
     }
 
+    @MainActor
+    @Test func chartLabel_onTheLastDay_reportsTheTrajectoryInsteadOfWaiting() {
+        // `remainingPlan` is empty on the last day of the period, exactly as it is
+        // before the first pointing — the label must tell the two apart.
+        let lastDay = trajectory(tracked: [1_000, 900], remainingPlan: [], plan: 250)
+        #expect(!lastDay.hasNothingTracked)
+
+        let spoken = HomeHeroCard.chartAccessibilityLabel(
+            for: lastDay,
+            currency: .chf,
+            amountsHidden: false
+        )
+
+        #expect(!spoken.contains("En attente d’un pointage"))
+        #expect(spoken.contains("Dernier jour de la période"))
+        #expect(spoken.contains("Aujourd’hui"))
+    }
+
     @Test func heroCopyDropsPlanVarianceAndDailyRateKpis() throws {
         let sourceFile = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
