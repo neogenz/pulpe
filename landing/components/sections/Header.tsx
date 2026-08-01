@@ -122,7 +122,7 @@ export function Header() {
           aria-label="Navigation mobile"
           aria-hidden="true"
           inert
-          className="pointer-events-none fixed inset-x-0 top-0 z-10 hidden h-screen overflow-y-auto bg-surface pt-24 pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] opacity-0 transition-[opacity,display] transition-discrete duration-300 will-change-[opacity] peer-open:pointer-events-auto peer-open:opacity-100 peer-open:starting:opacity-0 max-lg:peer-open:flex lg:hidden motion-reduce:transition-none"
+          className="pointer-events-none fixed inset-x-0 top-0 z-10 hidden h-screen overflow-y-auto bg-surface pt-24 pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] opacity-0 transition-[opacity,display] transition-discrete duration-300 peer-open:pointer-events-auto peer-open:opacity-100 peer-open:starting:opacity-0 max-lg:peer-open:flex lg:hidden motion-reduce:transition-none"
         >
           {/* Les liens s'ancrent sous la barre, le CTA au bas de l'écran, à
               portée de pouce. Centré, le bloc flottait au milieu d'un plein
