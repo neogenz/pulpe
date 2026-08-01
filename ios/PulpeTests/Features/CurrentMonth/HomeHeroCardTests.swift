@@ -188,7 +188,11 @@ struct HomeHeroCardTests {
         #expect(source.components(separatedBy: "LinearGradient(").count == 2)
     }
 
-    @Test func uncheckedOperationTagsStayInSecondaryMetadata() throws {
+    /// The row used to state the tag count twice, in the same ink and the same size: once
+    /// spelled out in the subtitle ("récurrent · 2 tags") and once by the component beside
+    /// it ("· 🏷 2"). `TagChips` owns the icon, the separator and the ink, so it is the one
+    /// that speaks — and the subtitle went back to being a subtitle.
+    @Test func uncheckedOperationStatesItsTagCountOnce() throws {
         let sourceFile = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -197,8 +201,9 @@ struct HomeHeroCardTests {
             .appending(path: "Pulpe/Features/CurrentMonth/Components/UncheckedOperationsCard.swift")
         let source = try String(contentsOf: sourceFile, encoding: .utf8)
 
-        #expect(source.contains("Text(metadataText(for: item))"))
-        #expect(!source.contains("TagChips(names: tagNames, presentation: .count)"))
+        #expect(source.contains("Text(subtitle(for: item))"))
+        #expect(!source.contains("tag\\("))
+        #expect(source.components(separatedBy: "presentation: .count").count == 2)
     }
 
     @Test func loadingDashboardSkeletonMirrorsTheChartHero() throws {

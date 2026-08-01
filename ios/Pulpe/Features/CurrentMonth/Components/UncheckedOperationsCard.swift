@@ -126,14 +126,14 @@ struct UncheckedOperationsCard: View {
             if isStacked {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                     operationLabel(item, isStacked: true)
-                    tagChips(item)
+                    tagChips(item, isStacked: true)
                     operationAmount(item)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 operationLabel(item, isStacked: false)
 
-                tagChips(item)
+                tagChips(item, isStacked: false)
 
                 Spacer(minLength: DesignTokens.Spacing.sm)
 
@@ -145,12 +145,14 @@ struct UncheckedOperationsCard: View {
 
     /// Trails the label while the row holds both; stacked it takes the line under it,
     /// where a chip that followed a wrapped label would sit alone at the end of a
-    /// half-empty line.
+    /// half-empty line. The separator goes with that move: it exists to join the count
+    /// to text already on its line, and there is none to join once the count has a line
+    /// of its own.
     @ViewBuilder
-    private func tagChips(_ item: CurrentMonthStore.CheckableItem) -> some View {
+    private func tagChips(_ item: CurrentMonthStore.CheckableItem, isStacked: Bool) -> some View {
         let names = tagNames(for: item)
         if !names.isEmpty {
-            TagChips(names: names, presentation: .count, followsText: true)
+            TagChips(names: names, presentation: .count, followsText: !isStacked)
         }
     }
 
@@ -167,7 +169,7 @@ struct UncheckedOperationsCard: View {
                 .foregroundStyle(Color.textPrimary)
                 .lineLimit(isStacked ? nil : 1)
 
-            Text(metadataText(for: item))
+            Text(subtitle(for: item))
                 .font(PulpeTypography.labelMedium)
                 .foregroundStyle(Color.textTertiary)
                 .lineLimit(isStacked ? nil : 1)
@@ -283,12 +285,6 @@ struct UncheckedOperationsCard: View {
         case .budgetLine(let line, _):
             TagChips.names(for: line.tagIds, namesById: tagNamesById)
         }
-    }
-
-    private func metadataText(for item: CurrentMonthStore.CheckableItem) -> String {
-        let tagCount = tagNames(for: item).count
-        guard tagCount > 0 else { return subtitle(for: item) }
-        return "\(subtitle(for: item)) · \(tagCount) tag\(tagCount > 1 ? "s" : "")"
     }
 
     private func amountText(for item: CurrentMonthStore.CheckableItem) -> String {
