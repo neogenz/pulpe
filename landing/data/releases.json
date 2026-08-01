@@ -1,5 +1,50 @@
 [
   {
+    "version": "0.43.0",
+    "date": "2026-08-01",
+    "githubUrl": "https://github.com/neogenz/pulpe/releases/tag/v0.43.0",
+    "platforms": ["web", "ios"],
+    "changes": {
+      "features": [],
+      "fixes": [
+        {
+          "title": "La devise du visiteur s’affiche",
+          "description": "Le site affiche les montants en euros ou en francs selon le visiteur au lieu de supposer le franc"
+        },
+        {
+          "title": "Les captures produit ne montrent plus d’adresse e-mail",
+          "description": "Une adresse de compte apparaissait sur les visuels du site"
+        },
+        {
+          "title": "Une page d’accueil plus lisible",
+          "description": "La preuve produit remonte au-dessus de la ligne de flottaison et les visuels du parcours sont redessinés et alignés"
+        },
+        {
+          "title": "La barre de Safari ne se teinte plus",
+          "description": "Sur iPhone, le bas de l’écran ne prend plus la couleur du menu replié"
+        },
+        {
+          "title": "Des lignes de budget plus compactes",
+          "description": "Les informations d’une prévision tiennent sur une seule ligne, compteur d’étiquettes inclus"
+        },
+        {
+          "title": "Les liens contextuels ressortent",
+          "description": "Un lien vers un objectif d’épargne ou une dépense lissée a désormais sa propre carte"
+        },
+        {
+          "title": "VoiceOver ignore les symboles décoratifs",
+          "description": "Le symbole de retrait n’est plus annoncé"
+        }
+      ],
+      "technical": [
+        {
+          "title": "La version iOS publiée suit l’App Store",
+          "description": "Le serveur résout la dernière version iOS depuis l’App Store, supprimant un réglage manuel à chaque release"
+        }
+      ]
+    }
+  },
+  {
     "version": "0.42.0",
     "iosVersion": "1.3.1",
     "date": "2026-07-30",

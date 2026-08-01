@@ -44,4 +44,9 @@ export const SKIPPED_RELEASES: readonly SkippedWhatsNewRelease[] = [
     reason:
       'Durcissement du chiffrement, des sessions et des diagnostics sans changement visible dans la webapp : les seules corrections publiées concernent le site vitrine et iOS',
   },
+  {
+    version: '0.43.0',
+    reason:
+      'Aucun changement dans la webapp : la release ne touche que le site vitrine, l’app iOS et la résolution serveur de la version iOS publiée',
+  },
 ];
