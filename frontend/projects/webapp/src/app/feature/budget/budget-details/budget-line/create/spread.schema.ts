@@ -65,9 +65,7 @@ export const budgetLineSpreadCreateFromFormSchema = z
         totalAmount: input.amount,
         months: input.months,
         spreadGroupId: input.spreadGroupId,
-        ...(input.savingsGoalId !== undefined
-          ? { savingsGoalId: input.savingsGoalId }
-          : {}),
+        savingsGoalId: input.savingsGoalId,
         ...fxFields,
         ...(conversion
           ? { totalOriginalAmount: conversion.originalAmount }
@@ -82,9 +80,7 @@ export const budgetLineSpreadCreateFromFormSchema = z
       perMonthAmount: input.amount,
       months: input.months,
       spreadGroupId: input.spreadGroupId,
-      ...(input.savingsGoalId !== undefined
-        ? { savingsGoalId: input.savingsGoalId }
-        : {}),
+      savingsGoalId: input.savingsGoalId,
       ...fxFields,
       ...(conversion
         ? { perMonthOriginalAmount: conversion.originalAmount }
