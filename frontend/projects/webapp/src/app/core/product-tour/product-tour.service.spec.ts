@@ -66,6 +66,7 @@ function callDriverHook(
     config,
     state: {},
     driver: driverMocks.instance as unknown as Driver,
+    index: undefined,
   });
 }
 
