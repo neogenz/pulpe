@@ -30,6 +30,7 @@ interface GoalPlanTimelineRow {
   isCurrent: boolean;
   isChecked: boolean;
   isGap: boolean;
+  hasLinkedForecast: boolean;
   hasBudget: boolean;
   isRepairable: boolean;
   isOpen: boolean;
@@ -99,7 +100,7 @@ const WINDOW_OPEN_ROWS = 3;
                   {{ 'savingsGoals.plan.currentMonth' | transloco }}
                 </span>
               }
-              @if (row.isGap) {
+              @if (!row.hasLinkedForecast) {
                 <span
                   class="text-label-small font-medium rounded-full px-2 py-0.5
                          bg-surface-container-high text-on-surface-variant shrink-0"
@@ -257,11 +258,16 @@ export class GoalPlanTimeline {
         isCurrent: month.state === 'current',
         isChecked,
         isGap: month.state === 'gap',
+        hasLinkedForecast: month.lines.length > 0,
         hasBudget: month.hasBudget === true,
+        // Mirrors the page's repairableMonths() banner count and iOS's
+        // SavingsGoalPlanMonth.isRepairable — no `state` test, so a
+        // materialized current month with no linked line qualifies too.
         isRepairable:
-          month.state === 'gap' &&
           month.hasBudget === true &&
-          month.isProvisionable === true,
+          month.isProvisionable === true &&
+          !month.isLocked &&
+          month.isContributionEligible !== false,
         isOpen,
         isAdjusted: simulated ? (sim.isAdjusted ?? false) : false,
         amount: simulated ? sim.simulatedAmount : month.plannedAmount,

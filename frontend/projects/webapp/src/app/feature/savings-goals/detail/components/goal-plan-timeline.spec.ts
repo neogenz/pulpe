@@ -157,6 +157,113 @@ describe('GoalPlanTimeline', () => {
     expect(query('goal-plan-gap-hint')).toBeTruthy();
   });
 
+  it('shows the repair chip for a current month with a budget and no linked forecast', () => {
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({
+        month: 3,
+        state: 'current',
+        hasBudget: true,
+        isProvisionable: true,
+        plannedAmount: 0,
+        plannedCumulative: 0,
+        lines: [],
+      }),
+    ]);
+    fixture.detectChanges();
+
+    expect(query('goal-plan-repair-chip')).toBeTruthy();
+  });
+
+  it('shows the no-forecast and gap chips for a current month, same as for a gap month', () => {
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({
+        month: 3,
+        state: 'current',
+        hasBudget: true,
+        isProvisionable: false,
+        plannedAmount: 0,
+        plannedCumulative: 0,
+        lines: [],
+      }),
+      makeMonth({
+        month: 4,
+        state: 'current',
+        hasBudget: false,
+        isProvisionable: false,
+        plannedAmount: 0,
+        plannedCumulative: 0,
+        lines: [],
+      }),
+    ]);
+    setTestInput(fixture.componentInstance.expanded, true);
+    fixture.detectChanges();
+
+    expect(query('goal-plan-no-forecast-chip')).toBeTruthy();
+    expect(query('goal-plan-gap-chip')).toBeTruthy();
+  });
+
+  it('never shows an availability chip on a row with a linked forecast', () => {
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({ month: 3, state: 'current' }),
+    ]);
+    fixture.detectChanges();
+
+    expect(query('goal-plan-repair-chip')).toBeFalsy();
+    expect(query('goal-plan-no-forecast-chip')).toBeFalsy();
+    expect(query('goal-plan-gap-chip')).toBeFalsy();
+  });
+
+  it('renders exactly one repair chip per month the recovery banner would repair', () => {
+    const months: SavingsGoalPlanMonth[] = [
+      makeMonth({
+        month: 3,
+        state: 'current',
+        hasBudget: true,
+        isProvisionable: true,
+        plannedAmount: 0,
+        plannedCumulative: 0,
+        lines: [],
+      }),
+      makeMonth({
+        month: 4,
+        state: 'gap',
+        hasBudget: true,
+        isProvisionable: true,
+        plannedAmount: 0,
+        plannedCumulative: 0,
+        lines: [],
+      }),
+      makeMonth({
+        month: 5,
+        state: 'gap',
+        hasBudget: false,
+        isProvisionable: false,
+        plannedAmount: 0,
+        plannedCumulative: 0,
+        lines: [],
+      }),
+      makeMonth({ month: 6 }),
+    ];
+    setTestInput(fixture.componentInstance.months, months);
+    setTestInput(fixture.componentInstance.expanded, true);
+    fixture.detectChanges();
+
+    // Same predicate as the page's repairableMonths() recovery banner.
+    const expectedRepairableCount = months.filter(
+      (month) =>
+        month.hasBudget === true &&
+        month.isProvisionable === true &&
+        !month.isLocked &&
+        month.isContributionEligible !== false,
+    ).length;
+
+    expect(
+      fixture.debugElement.queryAll(
+        By.css('[data-testid="goal-plan-repair-chip"]'),
+      ),
+    ).toHaveLength(expectedRepairableCount);
+  });
+
   it('starts the monthly plan at the first contribution-eligible month', () => {
     setTestInput(fixture.componentInstance.months, [
       makeMonth({
