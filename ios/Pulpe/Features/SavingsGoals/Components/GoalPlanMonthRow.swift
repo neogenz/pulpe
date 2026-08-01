@@ -6,10 +6,18 @@ enum GoalPlanMonthAvailability: Equatable {
     case noLinkedForecast
     case missingBudget
 
-    init(month: SavingsGoalPlanMonth) {
+    /// `canRepair` carries the half a month cannot know: repair is a
+    /// plan-level offer, gated on an ACTIVE goal with a required amount above
+    /// zero (`SavingsGoalDetailViewModel.canRepairPlan`). A goal whose initial
+    /// amount already covers its target floors `required` at 0 while its empty
+    /// future months stay provisionable — without this term the row would
+    /// promise « Épargne à ajouter » with no recap to act on. Surfaces that do
+    /// not offer the repair (intro, simulator) keep the default and fall back
+    /// to the honest « Aucune épargne prévue ».
+    init(month: SavingsGoalPlanMonth, canRepair: Bool = false) {
         if !month.lines.isEmpty {
             self = .linkedForecast
-        } else if month.isRepairable {
+        } else if canRepair, month.isRepairable {
             self = .repairableForecast
         } else if month.hasBudget {
             self = .noLinkedForecast
@@ -66,9 +74,12 @@ struct GoalPlanMonthRow: View {
     let currency: SupportedCurrency
     var isAdjusted: Bool = false
     var showsCumulative: Bool = false
+    var canRepair: Bool = false
 
     private var isCurrentPeriod: Bool { month.state == .current }
-    private var availability: GoalPlanMonthAvailability { GoalPlanMonthAvailability(month: month) }
+    private var availability: GoalPlanMonthAvailability {
+        GoalPlanMonthAvailability(month: month, canRepair: canRepair)
+    }
     private var hasLinkedForecast: Bool { availability == .linkedForecast }
 
     private var allChecked: Bool {

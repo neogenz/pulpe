@@ -219,6 +219,7 @@ export class GoalPlanTimeline {
   readonly payDayOfMonth = input<number | null>(null);
   readonly editable = input<boolean>(false);
   readonly expanded = input<boolean>(false);
+  readonly canRepair = input<boolean>(false);
 
   readonly amountChange = output<{
     month: number;
@@ -239,6 +240,7 @@ export class GoalPlanTimeline {
   }
 
   protected readonly rows = computed<GoalPlanTimelineRow[]>(() => {
+    const canRepair = this.canRepair();
     const simulated = this.simulatedMonths();
     const source = (simulated ?? this.months()).filter(
       (month) => month.isContributionEligible !== false,
@@ -260,16 +262,24 @@ export class GoalPlanTimeline {
         isGap: month.state === 'gap',
         hasLinkedForecast: month.lines.length > 0,
         hasBudget: month.hasBudget === true,
-        // Mirrors the page's repairableMonths() banner count and iOS's
-        // SavingsGoalPlanMonth.isRepairable exactly: 2 terms, not 4. The
-        // calculator (buildSavingsGoalTimeline, in pulpe-shared)
+        // The month-level half mirrors the page's repairableMonths() and
+        // iOS's SavingsGoalPlanMonth.isRepairable exactly: 2 terms, not 4.
+        // The calculator (buildSavingsGoalTimeline, in pulpe-shared)
         // sets isProvisionable only when !hasLines, !isLocked AND
         // isContributionEligible already hold — re-testing them here would
         // duplicate a guarantee the producer already gives every consumer.
         // hasBudget is NOT implied (isProvisionable's `||` alternative lets
         // canProvisionMissingPeriods substitute for it), so it stays explicit.
+        // canRepair carries the half a month cannot know: repair is a
+        // plan-level offer, gated on an ACTIVE goal with a required amount
+        // above zero. A goal whose initial amount already covers its target
+        // floors required at 0 (savings-goal-progress.ts:301) while its empty
+        // future months stay provisionable — without this term the chip would
+        // promise « Épargne à ajouter » with no callout to act on.
         isRepairable:
-          month.hasBudget === true && month.isProvisionable === true,
+          canRepair &&
+          month.hasBudget === true &&
+          month.isProvisionable === true,
         isOpen,
         isAdjusted: simulated ? (sim.isAdjusted ?? false) : false,
         amount: simulated ? sim.simulatedAmount : month.plannedAmount,

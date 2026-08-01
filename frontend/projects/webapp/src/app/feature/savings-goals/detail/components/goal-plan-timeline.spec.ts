@@ -50,6 +50,7 @@ describe('GoalPlanTimeline', () => {
     fixture = TestBed.createComponent(GoalPlanTimeline);
     setTestInput(fixture.componentInstance.currency, 'CHF');
     setTestInput(fixture.componentInstance.locale, 'de-CH');
+    setTestInput(fixture.componentInstance.canRepair, true);
   });
 
   function query(testId: string) {
@@ -172,6 +173,25 @@ describe('GoalPlanTimeline', () => {
     fixture.detectChanges();
 
     expect(query('goal-plan-repair-chip')).toBeTruthy();
+  });
+
+  it('falls back to the no-forecast chip when the plan offers no repair', () => {
+    setTestInput(fixture.componentInstance.canRepair, false);
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({
+        month: 3,
+        state: 'current',
+        hasBudget: true,
+        isProvisionable: true,
+        plannedAmount: 0,
+        plannedCumulative: 0,
+        lines: [],
+      }),
+    ]);
+    fixture.detectChanges();
+
+    expect(query('goal-plan-repair-chip')).toBeFalsy();
+    expect(query('goal-plan-no-forecast-chip')).toBeTruthy();
   });
 
   it('shows the no-forecast and gap chips for a current month, same as for a gap month', () => {

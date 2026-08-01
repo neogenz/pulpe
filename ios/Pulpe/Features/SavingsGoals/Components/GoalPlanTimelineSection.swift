@@ -139,7 +139,8 @@ struct GoalPlanTimelineSection: View {
                     month: month,
                     amount: month.plannedAmount,
                     cumulative: month.plannedCumulative,
-                    currency: currency
+                    currency: currency,
+                    canRepair: canRepair
                 )
             }
         }

@@ -10,11 +10,22 @@ struct GoalPlanTimelinePresentationTests {
         let september = makeMonth(month: 9, state: .gap, hasBudget: true, isProvisionable: true)
         let november = makeMonth(month: 11, state: .gap, hasBudget: false, isProvisionable: true)
 
-        #expect(GoalPlanMonthAvailability(month: august).icon == nil)
-        #expect(GoalPlanMonthAvailability(month: september) == .repairableForecast)
-        #expect(GoalPlanMonthAvailability(month: september).label == "Épargne à ajouter")
-        #expect(GoalPlanMonthAvailability(month: november) == .missingBudget)
-        #expect(GoalPlanMonthAvailability(month: november).label == "Pas de budget")
+        #expect(GoalPlanMonthAvailability(month: august, canRepair: true).icon == nil)
+        #expect(GoalPlanMonthAvailability(month: september, canRepair: true) == .repairableForecast)
+        #expect(GoalPlanMonthAvailability(month: september, canRepair: true).label == "Épargne à ajouter")
+        #expect(GoalPlanMonthAvailability(month: november, canRepair: true) == .missingBudget)
+        #expect(GoalPlanMonthAvailability(month: november, canRepair: true).label == "Pas de budget")
+    }
+
+    @Test("drops the repairable chip when the plan offers no repair")
+    func repairableChipRequiresAPlanLevelRepairOffer() {
+        // `canRepairPlan` is false whenever the goal is inactive or its
+        // required amount floors at 0 (an initial amount already covering the
+        // target), while its empty future months stay provisionable. The row
+        // must not promise « Épargne à ajouter » with no recap behind it.
+        let september = makeMonth(month: 9, state: .gap, hasBudget: true, isProvisionable: true)
+
+        #expect(GoalPlanMonthAvailability(month: september, canRepair: false) == .noLinkedForecast)
     }
 
     @Test("keeps locked and non-provisionable budgets neutral")
@@ -33,7 +44,9 @@ struct GoalPlanTimelinePresentationTests {
         let nonProvisionable = makeMonth(month: 10, state: .future)
 
         for month in [locked, nonProvisionable] {
-            let availability = GoalPlanMonthAvailability(month: month)
+            // canRepair: true so the neutral verdict comes from the month
+            // itself, not from a plan that offers no repair at all.
+            let availability = GoalPlanMonthAvailability(month: month, canRepair: true)
             #expect(availability == .noLinkedForecast)
             #expect(availability.label == "Aucune épargne prévue")
             #expect(availability.icon != nil)

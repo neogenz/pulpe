@@ -628,6 +628,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                 [payDayOfMonth]="payDayOfMonth()"
                 [editable]="simulator.isSimulating()"
                 [expanded]="timelineExpanded()"
+                [canRepair]="repairableMonths().length > 0"
                 (amountChange)="onTimelineAmountChange($event)"
                 (toggleExpanded)="toggleTimeline()"
               />
