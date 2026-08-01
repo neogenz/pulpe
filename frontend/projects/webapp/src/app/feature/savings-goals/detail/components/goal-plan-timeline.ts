@@ -313,9 +313,8 @@ export class GoalPlanTimeline {
   // a current month with no budget shows that chip too and must be counted.
   protected readonly gapCount = computed(
     () =>
-      this.rows().filter(
-        (row) => !row.hasLinkedForecast && !row.isRepairable && !row.hasBudget,
-      ).length,
+      this.rows().filter((row) => !row.hasLinkedForecast && !row.hasBudget)
+        .length,
   );
 
   protected formatPeriod(month: number, year: number): string {

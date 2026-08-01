@@ -237,6 +237,67 @@ describe('GoalPlanTimeline', () => {
     );
   });
 
+  it('counts gap rows across the whole plan even when the window hides some of their chips', () => {
+    const months: SavingsGoalPlanMonth[] = [
+      makeMonth({ month: 1, state: 'past', isLocked: true }),
+      makeMonth({ month: 2, state: 'current' }),
+      makeMonth({
+        month: 3,
+        state: 'gap',
+        hasBudget: false,
+        isProvisionable: false,
+        plannedAmount: 0,
+        plannedCumulative: 0,
+        lines: [],
+      }),
+      makeMonth({
+        month: 4,
+        state: 'gap',
+        hasBudget: false,
+        isProvisionable: false,
+        plannedAmount: 0,
+        plannedCumulative: 0,
+        lines: [],
+      }),
+      makeMonth({
+        month: 5,
+        state: 'gap',
+        hasBudget: false,
+        isProvisionable: false,
+        plannedAmount: 0,
+        plannedCumulative: 0,
+        lines: [],
+      }),
+      makeMonth({
+        month: 6,
+        state: 'gap',
+        hasBudget: false,
+        isProvisionable: false,
+        plannedAmount: 0,
+        plannedCumulative: 0,
+        lines: [],
+      }),
+    ];
+    setTestInput(fixture.componentInstance.months, months);
+    setTestInput(fixture.componentInstance.expanded, false);
+    fixture.detectChanges();
+
+    // Collapsed window = last locked (month 1) + 3 open rows → months 1-4,
+    // leaving months 5 and 6's chips unrendered.
+    expect(rowsQuery().length).toBe(4);
+    expect(
+      fixture.debugElement.queryAll(
+        By.css('[data-testid="goal-plan-gap-chip"]'),
+      ),
+    ).toHaveLength(2);
+    // gapCount reads rows() (the whole plan), not visibleRows() — the
+    // announced count stays plan-wide even though only 2 of the 4 gap
+    // chips are actually on screen.
+    expect(query('goal-plan-gap-hint').nativeElement.textContent).toContain(
+      '4 mois sans budget',
+    );
+  });
+
   it('never shows an availability chip on a row with a linked forecast', () => {
     setTestInput(fixture.componentInstance.months, [
       makeMonth({ month: 3, state: 'current' }),

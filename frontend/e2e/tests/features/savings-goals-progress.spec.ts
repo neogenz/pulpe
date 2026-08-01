@@ -428,7 +428,10 @@ test.describe('Savings goal progression (PUL-8)', () => {
     await expect(
       page.getByTestId(`goal-plan-row-${2026 * 12 + 9}`),
     ).toContainText(/1\D?385/);
-    await expect(page.getByTestId('goal-plan-gap-chip')).toHaveCount(1);
+    // The chip answers "has this month a budget?", not "is this month
+    // labelled gap" — neither visible row (month 9, month 10) sets
+    // hasBudget, so both legitimately show "Pas de budget".
+    await expect(page.getByTestId('goal-plan-gap-chip')).toHaveCount(2);
     await expect(page.getByTestId('goal-plan-gap-hint')).toBeVisible();
   });
 });

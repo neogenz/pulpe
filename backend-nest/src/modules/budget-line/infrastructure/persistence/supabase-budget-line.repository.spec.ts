@@ -908,16 +908,15 @@ describe('SupabaseBudgetLineRepository', () => {
         createMockLogger(),
       );
 
-      try {
-        await repo.createSpread(spreadGroupId, [spreadInput]);
-        throw new Error('Expected createSpread to throw');
-      } catch (error) {
-        expect(error).toBeInstanceOf(BusinessException);
-        expect((error as BusinessException).code).toBe(
-          'ERR_SAVINGS_GOAL_LINE_OUTSIDE_HORIZON',
-        );
-        expect((error as BusinessException).getStatus()).toBe(422);
-      }
+      const rejection = repo.createSpread(spreadGroupId, [spreadInput]);
+
+      await expect(rejection).rejects.toThrow(BusinessException);
+      await expect(rejection).rejects.toMatchObject({
+        code: 'ERR_SAVINGS_GOAL_LINE_OUTSIDE_HORIZON',
+      });
+      await rejection.catch((error: BusinessException) => {
+        expect(error.getStatus()).toBe(422);
+      });
     });
 
     it('maps a consumed source (concurrent retry) to a 409 conflict', async () => {

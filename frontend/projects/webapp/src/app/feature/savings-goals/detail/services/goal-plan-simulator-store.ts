@@ -247,6 +247,10 @@ export class GoalPlanSimulatorStore {
     const payload = this.buildApplyPayload();
     // A zero-valued gap creation can be the only "adjusted" month left after
     // omission (see buildApplyPayload) — nothing left to persist then.
+    // `apply()` is a public store entry point: the current caller (this
+    // store's own UI) already guarantees a non-empty payload upstream, but
+    // this guard is what keeps a future caller from ever sending an empty
+    // apply request — it protects the boundary, not a producer guarantee.
     const hasPayload =
       payload.monthAdjustments.length > 0 ||
       (payload.missingMonthAdjustments?.length ?? 0) > 0;
