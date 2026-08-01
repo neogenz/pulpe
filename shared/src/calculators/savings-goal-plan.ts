@@ -186,6 +186,12 @@ export function buildSavingsGoalTimeline(
       !isLocked &&
       isContributionEligible &&
       materializedPeriodIndices != null &&
+      // Un horizon cible est exigé dans TOUS les cas — le serveur refuse toute
+      // création de prévision manquante sans lui (apply-savings-goal-plan
+      // rejette dès que targetDate == null). `canProvisionMissingPeriods` ne
+      // couvre que l'autre question, indépendante : un budget absent peut-il
+      // être matérialisé (modèle par défaut) ?
+      indexTarget != null &&
       (hasBudget || input.canProvisionMissingPeriods === true);
 
     let state: SavingsPlanMonthState;

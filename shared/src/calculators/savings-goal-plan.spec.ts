@@ -140,6 +140,47 @@ describe('buildSavingsGoalTimeline', () => {
     });
   });
 
+  it('should never provision a gap for an objective without a target date, whether or not its budget already exists', () => {
+    const withBudget = buildSavingsGoalTimeline({
+      ...input,
+      targetDate: null,
+      materializedPeriods: [
+        { month: 1, year: 2026 },
+        { month: 2, year: 2026 },
+        { month: 3, year: 2026 },
+        { month: 4, year: 2026 },
+        { month: 5, year: 2026 },
+        { month: 6, year: 2026 },
+      ],
+      canProvisionMissingPeriods: true,
+    });
+    const withoutBudget = buildSavingsGoalTimeline({
+      ...input,
+      targetDate: null,
+      materializedPeriods: [
+        { month: 1, year: 2026 },
+        { month: 2, year: 2026 },
+        { month: 3, year: 2026 },
+        { month: 5, year: 2026 },
+        { month: 6, year: 2026 },
+      ],
+      canProvisionMissingPeriods: true,
+    });
+
+    expect(withBudget[3]).toMatchObject({
+      month: 4,
+      state: 'gap',
+      hasBudget: true,
+      isProvisionable: false,
+    });
+    expect(withoutBudget[3]).toMatchObject({
+      month: 4,
+      state: 'gap',
+      hasBudget: false,
+      isProvisionable: false,
+    });
+  });
+
   it('should not provision a gap after the target when a later linked line extends the timeline', () => {
     const timeline = buildSavingsGoalTimeline({
       ...input,
