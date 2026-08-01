@@ -81,6 +81,12 @@ struct ContextualCreationUITestHarness: View {
             .environment(tagStore)
             .environment(router)
             .environment(appState.toastManager)
+            // Injecting the router is only half its wiring: `push` and `popToRoot` go
+            // through a weak `AppState` the router only gets from `bind`, so an unbound
+            // router turns every push in `BudgetDetailsView` into a silent no-op. The
+            // harness renders that view, so without this a test that taps a line would
+            // fail with nothing on screen and no reason why. Mirrors `MainTabView:80`.
+            .task { router.bind(to: appState) }
     }
 
     private var dynamicTypeSize: DynamicTypeSize {
