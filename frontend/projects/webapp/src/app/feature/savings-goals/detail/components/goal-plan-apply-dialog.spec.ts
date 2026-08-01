@@ -51,7 +51,11 @@ describe('GoalPlanApplyDialog', () => {
     expect(verdict.nativeElement.classList).toContain('ph-no-capture');
   });
 
-  it('keeps the simulation verdict readable when it carries no amount', () => {
+  // Adjustment is the mode-less case (savings-goal-detail-page.ts opens the
+  // dialog without `mode`), and it is safe to leave readable because its two
+  // possible verdicts — `simulate.verdict` and `simulate.verdictUnreached` —
+  // interpolate a period, never an amount.
+  it('keeps the verdict readable in adjustment mode', () => {
     const { fixture } = configureDialog({
       changes: [{ month: 8, year: 2026, before: 600, after: 450 }],
       currency: 'CHF',
