@@ -179,13 +179,7 @@ struct ContextualCreationUITestHarness: View {
 
     private var chartFixture: ChartFixture {
         let state = chartState
-        let referenceDate = if isShiftedPeriod {
-            Self.date(year: 2026, month: 3, day: 10)
-        } else if state == "lastDay" {
-            Self.date(year: 2026, month: 7, day: 31)
-        } else {
-            Self.date(year: 2026, month: 7, day: 15)
-        }
+        let referenceDate = chartReferenceDate(for: state)
         let payDay = isShiftedPeriod ? 27 : nil
         let budgetMonth = isShiftedPeriod ? 3 : 7
         let monthName = isShiftedPeriod ? "mars" : "juillet"
@@ -221,6 +215,18 @@ struct ContextualCreationUITestHarness: View {
         )
     }
 
+    /// Where the period stands when the fixture is read. Two states move it: the last day,
+    /// which has nothing left to project, and the first, where a new account meets this card
+    /// with a single reading to draw.
+    private func chartReferenceDate(for state: String) -> Date {
+        guard !isShiftedPeriod else { return Self.date(year: 2026, month: 3, day: 10) }
+        return switch state {
+        case "lastDay": Self.date(year: 2026, month: 7, day: 31)
+        case "firstDay": Self.date(year: 2026, month: 7, day: 1)
+        default: Self.date(year: 2026, month: 7, day: 15)
+        }
+    }
+
     /// 5 000 in, 3 500 out: the plan lands on 1 500, and every state below moves away from
     /// that one figure — or deliberately fails to.
     private var chartBudgetLines: [BudgetLine] {
@@ -245,8 +251,13 @@ struct ContextualCreationUITestHarness: View {
                 Self.date(year: 2026, month: 7, day: 14),
             ]
         switch state {
-        case "untouched":
+        case "untouched", "firstDay":
             return []
+        case "quiet":
+            // 60 over the food envelope: a real gap, and far under the plot's own scale
+            // floor. The frame has to size itself on what the period planned to spend, or
+            // this month reads as the collapse it is not.
+            return [transaction(id: "groceries", amount: 860, budgetLineId: "food", date: days[1])]
         case "onPlan":
             // Spent inside the envelopes, so the forecast is confirmed rather than changed.
             // The line has to stay on its rule here, which is the state the old curve got

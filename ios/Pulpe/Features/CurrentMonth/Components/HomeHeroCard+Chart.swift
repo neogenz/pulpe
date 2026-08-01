@@ -26,10 +26,14 @@ extension HomeHeroCard {
                     // and landed on the metrics row. The side it sits on is empty by
                     // construction — the line never crosses its own rule — so sliding it in
                     // costs nothing.
+                    //
+                    // Clears the rule by more than the today marker's own radius. On the
+                    // first day of a period the marker sits at the left edge, right under
+                    // this label, and a tighter gap put the circle through the figure.
                     .annotation(
                         position: Self.ruleLabelPosition(for: trajectory),
                         alignment: .leading,
-                        spacing: DesignTokens.Spacing.xxs,
+                        spacing: DesignTokens.Spacing.md,
                         overflowResolution: .init(x: .fit(to: .chart), y: .fit(to: .chart))
                     ) {
                         VStack(alignment: .leading, spacing: DesignTokens.Spacing.none) {
@@ -184,31 +188,27 @@ extension HomeHeroCard {
         return trajectory.drift.asArithmeticSignedCompactCurrency(currency)
     }
 
-    /// Speaks the trajectory VoiceOver cannot see: where the period opened, where it stands
-    /// today, where it is heading, and the plan it is measured against.
+    /// Speaks the subtraction VoiceOver cannot see, in the drawing's own order: the plan the
+    /// line opened on, where it now lands, and the day it left the plan. Not a reading of
+    /// every point — the plot itself only ever shows those three things.
     static func chartAccessibilityLabel(
         for trajectory: BudgetFormulas.BalanceTrajectory,
         currency: SupportedCurrency,
         amountsHidden: Bool
     ) -> String {
         guard !amountsHidden else {
-            return "Évolution du solde sur la période, montants masqués."
+            return "Trajectoire d’atterrissage de la période, montants masqués."
         }
-        let planned = trajectory.plannedBalance.asCompactCurrency(currency)
-        guard let opening = trajectory.landing.first,
-              let current = trajectory.landing.last else {
-            return "Évolution du solde sur la période. Prévu \(planned)."
+        let plan = "Prévu \(trajectory.plannedBalance.asCompactCurrency(currency))."
+        let landing = "Atterrissage estimé \(trajectory.estimatedBalance.asCompactCurrency(currency))."
+        guard trajectory.drift != 0 else {
+            return "\(plan) \(landing) Aucun écart au plan."
         }
-        let start = "Début de période \(opening.balance.asCompactCurrency(currency))."
-        let today = "Aujourd’hui \(current.balance.asCompactCurrency(currency))."
-        // The plot draws its projection from the first day on, so the label describes it
-        // from the first day on too. One case has none to describe: the last day of the
-        // period, where saying why beats falling silent mid-sentence.
-        guard let destination = Self.projection(for: trajectory).last else {
-            return "\(start) \(today) Dernier jour de la période. Prévu \(planned)."
-        }
-        let estimate = "Fin de période estimée à \(destination.balance.asCompactCurrency(currency))."
-        return "\(start) \(today) \(estimate) Prévu \(planned)."
+        let gap = "Écart \(trajectory.drift.asArithmeticSignedCompactCurrency(currency))"
+        // A gap with no date is a period whose drift predates its own first reading — the
+        // figure still holds, so the sentence drops the clause rather than the fact.
+        guard let since = trajectory.driftDate else { return "\(plan) \(landing) \(gap)." }
+        return "\(plan) \(landing) \(gap) depuis le \(Formatters.dayMonthLabel(for: since))."
     }
 
     /// How much vertical room the drawing claims. A month that held its plan moves by a few

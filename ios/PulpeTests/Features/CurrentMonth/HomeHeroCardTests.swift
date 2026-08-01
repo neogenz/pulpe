@@ -29,7 +29,7 @@ struct HomeHeroCardTests {
         // A 200 overrun cancelled by 200 of free income lands the month exactly on plan.
         // `DriftCard` gates its "compensé ailleurs ce mois" clause on this: without the
         // on-plan case it says "200 CHF au-delà du plan" flat while the hero says
-        // "Tu es conforme à ton budget" — two claims that contradict each other.
+        // "Tu es pile sur ton plan" — two claims that contradict each other.
         let onPlan = HomeHeroCard.PresentationState(plannedBalance: 450, estimatedBalance: 450)
         #expect(onPlan.verdict == .onPlan)
         #expect(onPlan.absorbsEnvelopeOverrun)
@@ -42,34 +42,41 @@ struct HomeHeroCardTests {
         #expect(!overrun.absorbsEnvelopeOverrun)
     }
 
-    @Test func freshBudget_doesNotClaimComplianceBeforeTheBalanceMoves() {
-        // Where a new account lands right after onboarding: lines exist, nothing pointed,
-        // so the estimate equals the plan by construction. "Tu es conforme à ton budget"
-        // congratulates the user for a comparison nobody has made. The replacement says why
-        // there is no verdict rather than what the user has failed to do — someone who just
-        // pointed their salary is in this state too, and has done nothing wrong.
-        let fresh = HomeHeroCard.PresentationState(
+    @Test func verdictSentence_datesTheDayTheMonthLeftItsPlan() throws {
+        // The plot draws the gap and the metric beside it prints the figure. The one thing
+        // neither can say is *when* it opened, so that is all the sentence is for.
+        let below = HomeHeroCard.PresentationState(
             plannedBalance: 2_500,
-            estimatedBalance: 2_500,
-            hasBalanceMoved: false
+            estimatedBalance: 1_800,
+            driftDate: try date(year: 2026, month: 7, day: 6)
         )
+        #expect(below.verdictText == "Sous ton plan depuis le 6 juillet.")
+
+        let above = HomeHeroCard.PresentationState(
+            plannedBalance: 2_500,
+            estimatedBalance: 2_900,
+            driftDate: try date(year: 2026, month: 7, day: 6)
+        )
+        #expect(above.verdictText == "Au-dessus de ton plan depuis le 6 juillet.")
+
+        // "le 1 août" reads as a typo in a sentence; French declines this one day.
+        let firstOfMonth = HomeHeroCard.PresentationState(
+            plannedBalance: 2_500,
+            estimatedBalance: 1_800,
+            driftDate: try date(year: 2026, month: 8, day: 1)
+        )
+        #expect(firstOfMonth.verdictText == "Sous ton plan depuis le 1er août.")
+
+        // Where a new account lands right after onboarding: lines exist, nothing spent, so
+        // the forecast still sits on the plan it opened on. That is a fact about the month,
+        // not a compliment paid for a comparison nobody has made.
+        let fresh = HomeHeroCard.PresentationState(plannedBalance: 2_500, estimatedBalance: 2_500)
         #expect(fresh.verdict == .onPlan)
-        #expect(fresh.verdictText == "Trop tôt pour comparer.")
+        #expect(fresh.verdictText == "Tu es pile sur ton plan.")
 
-        let started = HomeHeroCard.PresentationState(
-            plannedBalance: 2_500,
-            estimatedBalance: 2_500,
-            hasBalanceMoved: true
-        )
-        #expect(started.verdictText == "Tu es conforme à ton budget.")
-
-        // VoiceOver reads its own sentence — it has to reach the same conclusion.
-        #expect(fresh.accessibilityDescription(
-            monthName: "juillet",
-            currency: .chf,
-            amountsHidden: false,
-            uncheckedCount: 1
-        ).contains("Trop tôt pour comparer"))
+        // No plot to date the departure from: the sentence drops the clause, not the verdict.
+        let undated = HomeHeroCard.PresentationState(plannedBalance: 2_500, estimatedBalance: 1_800)
+        #expect(undated.verdictText == "Il te reste moins que prévu.")
     }
 
     @Test func varianceMetric_carriesItsCurrencyBesideTheOperationCount() {
@@ -84,15 +91,6 @@ struct HomeHeroCardTests {
 
         let overrun = HomeHeroCard.PresentationState(plannedBalance: 450, estimatedBalance: 300)
         #expect(overrun.varianceText(for: .eur) == "-150 €")
-
-        // Same card, four lines apart: a hard `0 CHF` under a sentence saying the
-        // comparison cannot be made yet was the card contradicting itself.
-        let untouched = HomeHeroCard.PresentationState(
-            plannedBalance: 2_500,
-            estimatedBalance: 2_500,
-            hasBalanceMoved: false
-        )
-        #expect(untouched.varianceText(for: .chf) == "—")
     }
 
     @Test func deficitAcrossZero_isOverrunAndDeficit() {
@@ -194,9 +192,13 @@ struct HomeHeroCardTests {
         #expect(!description.contains("3000"))
     }
 
-    @Test func accessibilityDescription_explainsComparisonInEverydayFrench() {
+    @Test func accessibilityDescription_explainsComparisonInEverydayFrench() throws {
         let gain = HomeHeroCard.PresentationState(plannedBalance: 450, estimatedBalance: 800)
-        let overrun = HomeHeroCard.PresentationState(plannedBalance: 450, estimatedBalance: 300)
+        let overrun = HomeHeroCard.PresentationState(
+            plannedBalance: 450,
+            estimatedBalance: 300,
+            driftDate: try date(year: 2026, month: 7, day: 6)
+        )
         let onPlan = HomeHeroCard.PresentationState(plannedBalance: 450, estimatedBalance: 450)
 
         #expect(gain.accessibilityDescription(
@@ -205,18 +207,20 @@ struct HomeHeroCardTests {
             amountsHidden: false,
             uncheckedCount: 2
         ).contains("350.00 CHF de mieux que prévu"))
+        // Mirrors the sentence on screen, date included: the two must not describe the same
+        // month differently depending on who is reading it.
         #expect(overrun.accessibilityDescription(
             monthName: "juillet",
             currency: .chf,
             amountsHidden: false,
             uncheckedCount: 0
-        ).contains("150.00 CHF de moins que prévu"))
+        ).contains("150.00 CHF de moins que prévu depuis le 6 juillet"))
         #expect(onPlan.accessibilityDescription(
             monthName: "juillet",
             currency: .chf,
             amountsHidden: false,
             uncheckedCount: 1
-        ).contains("Conforme à ton budget"))
+        ).contains("Pile sur ton plan"))
     }
 
     @Test func loadedDashboardUsesOneFullScreenGradientBackground() throws {
@@ -279,28 +283,31 @@ struct HomeHeroCardTests {
     }
 
     @MainActor
-    @Test func chartLabel_speaksTheTrajectoryAndHidesAmountsOnDemand() {
-        let drifted = trajectory(landing: [1_000, 900])
+    @Test func chartLabel_speaksTheSubtractionAndHidesAmountsOnDemand() throws {
+        let drifted = trajectory(
+            landing: [1_000, 900],
+            driftDate: try date(year: 2026, month: 7, day: 6)
+        )
 
+        // The three things the drawing shows, in the order it shows them. Not a reading of
+        // every point: VoiceOver would get a list where the plot gives one subtraction.
         let spoken = HomeHeroCard.chartAccessibilityLabel(
             for: drifted,
             currency: .chf,
             amountsHidden: false
         )
-        #expect(spoken.contains("Début de période"))
-        #expect(spoken.contains("Aujourd’hui"))
-        #expect(spoken.contains("Fin de période estimée"))
-        #expect(spoken.contains("Prévu"))
+        #expect(spoken.hasPrefix("Prévu "))
+        #expect(spoken.contains("Atterrissage estimé"))
+        #expect(spoken.contains("Écart -100 CHF depuis le 6 juillet."))
 
-        // The plot draws its projection before anything is pointed, so the label owes the
-        // same account of it — a new account gets told where the month is heading.
+        // A month still on its plan has no gap to speak of, and says so rather than
+        // reciting a zero — the plot draws nothing there either.
         let untouched = HomeHeroCard.chartAccessibilityLabel(
             for: trajectory(landing: [1_000, 1_000]),
             currency: .chf,
             amountsHidden: false
         )
-        #expect(untouched.contains("Fin de période estimée"))
-        #expect(untouched.contains("Prévu"))
+        #expect(untouched.contains("Aucun écart au plan."))
 
         let masked = HomeHeroCard.chartAccessibilityLabel(
             for: drifted,
@@ -309,23 +316,6 @@ struct HomeHeroCardTests {
         )
         let leaksADigit = masked.contains(where: \.isNumber)
         #expect(!leaksADigit)
-    }
-
-    @MainActor
-    @Test func chartLabel_onTheLastDay_saysWhyThereIsNoProjectionLeft() {
-        // The only day with no projection to speak. Every other label ends on where the
-        // month is heading, so this one has to say why it cannot.
-        let lastDay = trajectory(landing: [1_000, 900], totalDays: 1)
-
-        let spoken = HomeHeroCard.chartAccessibilityLabel(
-            for: lastDay,
-            currency: .chf,
-            amountsHidden: false
-        )
-
-        #expect(spoken.contains("Dernier jour de la période"))
-        #expect(!spoken.contains("Fin de période estimée"))
-        #expect(spoken.contains("Aujourd’hui"))
     }
 
     @Test func heroCopyDropsPlanVarianceAndDailyRateKpis() throws {
@@ -359,5 +349,11 @@ struct HomeHeroCardTests {
             today: today,
             totalDays: totalDays ?? today + 1
         )
+    }
+
+    private func date(year: Int, month: Int, day: Int) throws -> Date {
+        try #require(Calendar.current.date(
+            from: DateComponents(year: year, month: month, day: day)
+        ))
     }
 }

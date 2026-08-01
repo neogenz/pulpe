@@ -40,20 +40,27 @@ final class ContextualCreationUITests: XCTestCase {
 
     /// One plot has to carry every shape a month can take. Each state gets a screenshot so
     /// the set can be read side by side — a chart that is clear alone can still be
-    /// unreadable next to its neighbours.
+    /// unreadable next to its neighbours. Both schemes, because the two labels and the line
+    /// carry the card's ink and only dark says whether it still separates from its surface.
     func testHomeChartStaysLegibleAcrossDataStates() {
-        for state in ["untouched", "onPlan", "gain", "overrun", "deficit", "lastDay"] {
-            launch(
-                "UITEST_CONTEXTUAL_CREATION_HOME",
-                dynamicType: "large",
-                colorScheme: "light",
-                chartState: state
-            )
+        let states = ["firstDay", "untouched", "onPlan", "quiet", "gain", "overrun", "deficit", "lastDay"]
+        for colorScheme in ["light", "dark"] {
+            for state in states {
+                launch(
+                    "UITEST_CONTEXTUAL_CREATION_HOME",
+                    dynamicType: "large",
+                    colorScheme: colorScheme,
+                    chartState: state
+                )
 
-            let chart = app.descendants(matching: .any)["home-balance-chart"]
-            XCTAssertTrue(chart.waitForExistence(timeout: 10), "\(state): \(app.debugDescription)")
-            attachScreenshot("home-chart-state-\(state)")
-            app.terminate()
+                let chart = app.descendants(matching: .any)["home-balance-chart"]
+                XCTAssertTrue(
+                    chart.waitForExistence(timeout: 10),
+                    "\(colorScheme)/\(state): \(app.debugDescription)"
+                )
+                attachScreenshot("home-chart-state-\(colorScheme)-\(state)")
+                app.terminate()
+            }
         }
     }
 
@@ -112,7 +119,7 @@ final class ContextualCreationUITests: XCTestCase {
         // a sibling node — so scrape the tree, as the masking test does.
         let labels = app.descendants(matching: .any).allElementsBoundByIndex.map(\.label)
         XCTAssertTrue(
-            labels.contains { $0.contains("Fin de période estimée") },
+            labels.contains { $0.contains("Atterrissage estimé") },
             labels.joined(separator: " | ")
         )
 
@@ -170,7 +177,7 @@ final class ContextualCreationUITests: XCTestCase {
         )
         // The plot too — it is one accessibility element with its whole trajectory inside.
         XCTAssertTrue(
-            labels.contains { $0.contains("Évolution du solde sur la période, montants masqués") },
+            labels.contains { $0.contains("Trajectoire d’atterrissage de la période, montants masqués") },
             "Le graphe annonce encore sa trajectoire : \(labels)"
         )
         // And the card below, whose rows each carry an amount of their own.

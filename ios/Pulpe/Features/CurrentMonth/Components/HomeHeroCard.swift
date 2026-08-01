@@ -24,10 +24,9 @@ struct HomeHeroCard: View {
             // the `vs prévu` beside it quote one number rather than two calculations of it.
             plannedBalance: trajectory?.plannedBalance ?? plannedBalance,
             estimatedBalance: metrics.remaining,
-            // Same signal the chart reads, so the sentence under the plot can never claim a
-            // verdict the plot says it is still waiting for. No trajectory means no such
-            // claim on screen, so nothing to contradict.
-            hasBalanceMoved: trajectory.map { $0.drift != 0 } ?? true
+            // The plot's own drift date, so the sentence dates the same departure the line
+            // draws. No plot, no date — and the sentence drops to its undated form.
+            driftDate: trajectory?.driftDate
         )
     }
 
@@ -242,24 +241,19 @@ extension HomeHeroCard {
         let verdict: Verdict
         let tone: Tone
 
-        /// Whether the balance has actually moved this period. `verdict` compares two
-        /// numbers and always has an answer; this says whether that answer means anything
-        /// yet. Defaults to `true` so a caller that has no trajectory keeps the comparison.
-        ///
-        /// Only a pointed *outflow* moves it: `available` already counts the month's whole
-        /// income (`BudgetFormulas.calculateMetrics`), so pointing a salary confirms money
-        /// the estimate had assumed rather than adding any. The copy below has to be true
-        /// of that user too — they pointed something, and the balance still did not move.
-        let hasBalanceMoved: Bool
+        /// The day the month left its plan, straight from the plot below. `nil` when it never
+        /// did — and also when there is no plot to date it from, where the sentence simply
+        /// drops the date rather than inventing one.
+        let driftDate: Date?
 
         init(
             plannedBalance: Decimal,
             estimatedBalance: Decimal,
-            hasBalanceMoved: Bool = true
+            driftDate: Date? = nil
         ) {
             self.plannedBalance = plannedBalance
             self.estimatedBalance = estimatedBalance
-            self.hasBalanceMoved = hasBalanceMoved
+            self.driftDate = driftDate
 
             let difference = estimatedBalance - plannedBalance
             variance = difference
@@ -271,35 +265,29 @@ extension HomeHeroCard {
         /// A month that lands exactly on plan absorbed it just as surely as one that landed
         /// above: only a month behind its own plan leaves the excess uncovered. Lives here
         /// rather than in the view so the card that says "compensé ailleurs" and the hero
-        /// that says "conforme à ton budget" can never claim opposite things.
+        /// that says "pile sur ton plan" can never claim opposite things.
         var absorbsEnvelopeOverrun: Bool { verdict != .overrun }
 
-        /// Qualitative half of the verdict. The number behind it lives in the `vs prévu`
-        /// metric, so the sentence never repeats it. While the balance has not moved the
-        /// estimate equals the plan by construction, not by observation: "conforme à ton
-        /// budget" would congratulate the user for a comparison nobody has made yet. Saying
-        /// it is too early states the plot's own reason rather than blaming the reader,
-        /// who may well have pointed their salary already.
+        /// The one thing on the card the plot cannot draw and the metrics cannot show: *when*
+        /// the month left its plan. The size of the gap is in `vs prévu`, its shape is in the
+        /// line, so repeating either here would spend the sentence on something already said.
         var verdictText: String {
-            guard hasBalanceMoved else { return "Trop tôt pour comparer." }
-            return switch verdict {
-            case .gain: "Il te reste plus que prévu."
-            case .overrun: "Il te reste moins que prévu."
-            case .onPlan: "Tu es conforme à ton budget."
+            switch verdict {
+            case .onPlan: "Tu es pile sur ton plan."
+            case .overrun: dated("Sous ton plan") ?? "Il te reste moins que prévu."
+            case .gain: dated("Au-dessus de ton plan") ?? "Il te reste plus que prévu."
             }
+        }
+
+        private func dated(_ lead: String) -> String? {
+            driftDate.map { "\(lead) depuis le \(Formatters.dayMonthLabel(for: $0))." }
         }
 
         /// Carries its unit even though the hero above already shows one: its neighbour in
         /// the pair is a count of operations, and two figures set in the same type on the
         /// same row have nothing else to say which of them is money.
-        ///
-        /// A balance that has not moved has no gap to report — the `0` it would print is
-        /// arithmetic, not an observation, and sat four lines above a sentence saying the
-        /// comparison could not be made yet. The app's usual mark for a value it does not
-        /// have says the same thing without contradicting it.
         func varianceText(for currency: SupportedCurrency) -> String {
-            guard hasBalanceMoved else { return "—" }
-            return variance.asArithmeticSignedCompactCurrency(currency)
+            variance.asArithmeticSignedCompactCurrency(currency)
         }
 
         func accessibilityDescription(
@@ -322,15 +310,12 @@ extension HomeHeroCard {
             }
 
             // Mirrors `verdictText`: VoiceOver and the sentence on screen say the same thing
-            // about the same month, including the case where there is nothing to compare yet.
-            let comparison = if !hasBalanceMoved {
-                "Trop tôt pour comparer"
-            } else {
-                switch verdict {
-                case .gain: "\(abs(variance).asCurrency(currency)) de mieux que prévu"
-                case .overrun: "\(abs(variance).asCurrency(currency)) de moins que prévu"
-                case .onPlan: "Conforme à ton budget"
-                }
+            // about the same month, down to the day it left its plan.
+            let since = driftDate.map { " depuis le \(Formatters.dayMonthLabel(for: $0))" } ?? ""
+            let comparison = switch verdict {
+            case .gain: "\(abs(variance).asCurrency(currency)) de mieux que prévu\(since)"
+            case .overrun: "\(abs(variance).asCurrency(currency)) de moins que prévu\(since)"
+            case .onPlan: "Pile sur ton plan"
             }
 
             return """
