@@ -188,6 +188,10 @@ function makeProgress(
   };
 }
 
+/**
+ * Defaults to a *repairable* month (`hasBudget` and `isProvisionable` both true,
+ * no linked line). Override them explicitly to exercise any other state.
+ */
 function makePlanMonth(
   overrides: Partial<SavingsGoalPlanMonth> = {},
 ): SavingsGoalPlanMonth {

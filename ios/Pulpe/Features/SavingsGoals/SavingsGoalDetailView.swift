@@ -216,11 +216,17 @@ struct SavingsGoalDetailView: View {
         _ progress: SavingsGoalProgress
     ) -> [SavingsPlanCalculator.SimulatedMonth] {
         guard let amount = SavingsGoalDetailViewModel.recoveryAmount(progress) else { return [] }
+        // Each repaired month adds `amount` on top of every repair before it, so
+        // the running total accumulates — `plannedCumulative + amount` alone would
+        // report the same figure for all N months. Mirrors the accumulation
+        // `SavingsPlanCalculator.simulate` performs on the adjustment path.
+        var repaired = Decimal.zero
         return progress.months.filter(\.isRepairable).map {
-            SavingsPlanCalculator.SimulatedMonth(
+            repaired += amount
+            return SavingsPlanCalculator.SimulatedMonth(
                 month: $0,
                 simulatedAmount: amount,
-                simulatedCumulative: $0.plannedCumulative + amount,
+                simulatedCumulative: $0.plannedCumulative + repaired,
                 isAdjusted: true
             )
         }
