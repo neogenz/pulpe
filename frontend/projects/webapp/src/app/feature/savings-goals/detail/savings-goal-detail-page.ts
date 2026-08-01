@@ -540,9 +540,11 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
             }
           </div>
 
-          @if (!isEmpty()) {
+          <!-- Le plan tient à ses mois, pas aux lignes liées : sans aucune
+               prévision, c'est exactement l'état que la réparation répare. -->
+          @if (chartMonths().length > 0) {
             <!-- Pilier A — « Ta trajectoire » (absent quand aucune ligne liée) -->
-            @if (chartMonths().length > 0) {
+            @if (!isEmpty()) {
               <section
                 class="mt-4 flex flex-col gap-3"
                 aria-labelledby="goal-trajectory-heading"
@@ -630,26 +632,26 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                 (toggleExpanded)="toggleTimeline()"
               />
             </section>
+          }
 
-            <!-- « Ton suivi » — masqué en simulation (loi de Hick) -->
-            @if (!simulator.isSimulating()) {
-              <section
-                class="mt-4 flex flex-col gap-3"
-                aria-labelledby="goal-contributions-heading"
-                data-testid="savings-goal-contributions"
+          <!-- « Ton suivi » — masqué en simulation (loi de Hick) -->
+          @if (!isEmpty() && !simulator.isSimulating()) {
+            <section
+              class="mt-4 flex flex-col gap-3"
+              aria-labelledby="goal-contributions-heading"
+              data-testid="savings-goal-contributions"
+            >
+              <h2
+                id="goal-contributions-heading"
+                class="text-title-large font-semibold"
               >
-                <h2
-                  id="goal-contributions-heading"
-                  class="text-title-large font-semibold"
-                >
-                  {{ 'savingsGoals.detail.contributionsTitle' | transloco }}
-                </h2>
-                <pulpe-goal-contributions-list
-                  [contributions]="store.contributions()"
-                  [currency]="currency()"
-                />
-              </section>
-            }
+                {{ 'savingsGoals.detail.contributionsTitle' | transloco }}
+              </h2>
+              <pulpe-goal-contributions-list
+                [contributions]="store.contributions()"
+                [currency]="currency()"
+              />
+            </section>
           }
         }
       }

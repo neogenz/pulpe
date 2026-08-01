@@ -1064,6 +1064,21 @@ describe('SavingsGoalDetailPage', () => {
     ).toBeFalsy();
   });
 
+  it('still offers recovery when not a single forecast is linked', () => {
+    progressSig.set(
+      makeProgress({ linkedLineCount: 0, months: [makePlanMonth()] }),
+    );
+
+    fixture.detectChanges();
+
+    // The total-gap case is precisely what recovery exists for, so the plan
+    // and its callout must survive the "no linked forecast" empty state.
+    expect(query('savings-goal-plan')).toBeTruthy();
+    expect(
+      fixture.debugElement.query(By.directive(StubGoalPlanRepairCallout)),
+    ).toBeTruthy();
+  });
+
   it('previews and sends a positive sub-cent recovery as one cent', async () => {
     progressSig.set(
       makeProgress({ required: 0.004, months: [makePlanMonth()] }),
