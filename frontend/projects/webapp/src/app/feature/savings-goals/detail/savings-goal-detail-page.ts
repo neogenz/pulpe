@@ -1148,6 +1148,9 @@ export default class SavingsGoalDetailPage {
     if (!draft) return;
     const changes = draft.months
       .filter((month) => month.isAdjusted)
+      // Same zero-gap filter as GoalPlanSimulatorStore#buildApplyPayload — a
+      // confirmation must only list changes that will actually be sent.
+      .filter((month) => !(month.isProvisionable && month.simulatedAmount <= 0))
       .map((month) => ({
         month: month.month,
         year: month.year,

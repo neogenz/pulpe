@@ -520,4 +520,51 @@ describe('GoalPlanSimulatorStore', () => {
     expect(applyPlan).not.toHaveBeenCalled();
     expect(store.isSimulating()).toBe(false);
   });
+
+  it('keeps the preview and payload in parity: both drop the zero-valued gap, both keep the valid adjustment', () => {
+    progressSig.set(
+      makeProgress({
+        targetAmount: 500,
+        initialAmount: 0,
+        months: [
+          openMonth(6, LINE_CURRENT, 200, { plannedCumulative: 200 }),
+          {
+            month: 7,
+            year: 2026,
+            state: 'gap',
+            isLocked: false,
+            isProvisionable: true,
+            plannedAmount: 0,
+            confirmedAmount: 0,
+            plannedCumulative: 200,
+            confirmedCumulative: 0,
+            lines: [],
+          },
+        ],
+      }),
+    );
+    store.enter();
+    store.setMonth(6, 2026, 500);
+    store.redistribute();
+
+    // Same filter savings-goal-detail-page.ts#onApplyPlan applies to build the
+    // confirmation preview — mirrored here so a drift between preview and
+    // payload fails this test before it ever reaches the UI.
+    const previewedMonths = store
+      .draft()!
+      .months.filter(
+        (month) =>
+          month.isAdjusted &&
+          !(month.isProvisionable && month.simulatedAmount <= 0),
+      );
+
+    expect(previewedMonths).toHaveLength(1);
+    expect(previewedMonths[0].month).toBe(6);
+
+    const payload = store.buildApplyPayload();
+    expect(payload.monthAdjustments).toEqual([
+      { budgetLineId: LINE_CURRENT, amount: 500 },
+    ]);
+    expect(payload.missingMonthAdjustments).toEqual([]);
+  });
 });

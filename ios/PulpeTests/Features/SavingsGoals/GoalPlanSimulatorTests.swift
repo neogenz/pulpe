@@ -171,4 +171,58 @@ struct GoalPlanSimulatorTests {
         #expect(!succeeded)
         #expect(service.applyPlanCallCount == 0)
     }
+
+    @Test("excludes a zero-valued gap creation from the recap preview, disabling apply")
+    func planChanges_excludesZeroGapCreation_disablesApply() {
+        let service = MockSavingsGoalService()
+        let progress = makeProgress(
+            targetAmount: 500,
+            initialAmount: 500,
+            months: [gapMonth()]
+        )
+        let viewModel = GoalPlanSimulatorViewModel(
+            goal: makeGoal(),
+            progress: progress,
+            currency: .chf,
+            payDay: nil,
+            service: service
+        )
+
+        viewModel.redistribute()
+
+        #expect(viewModel.planChanges.isEmpty)
+        #expect(!viewModel.canApply)
+    }
+
+    @Test("keeps only the valid adjustment in the recap preview, matching the payload")
+    func planChanges_mixedZeroGapAndValidAdjustment_matchesPayload() async throws {
+        let service = MockSavingsGoalService()
+        let progress = makeProgress(
+            targetAmount: 500,
+            initialAmount: 0,
+            months: [openMonth(amount: 200), gapMonth()]
+        )
+        let viewModel = GoalPlanSimulatorViewModel(
+            goal: makeGoal(),
+            progress: progress,
+            currency: .chf,
+            payDay: nil,
+            service: service
+        )
+
+        viewModel.setMonth(key: 2026 * 12 + 6, amount: 500)
+        viewModel.redistribute()
+
+        #expect(viewModel.planChanges.count == 1)
+        #expect(viewModel.planChanges.first?.month.month == 6)
+        #expect(viewModel.planChanges.first?.simulatedAmount == 500)
+
+        let succeeded = await viewModel.apply()
+        let payload = try #require(service.lastApplyPayload)
+
+        #expect(succeeded)
+        #expect(payload.monthAdjustments.count == 1)
+        #expect(payload.monthAdjustments.first?.amount == 500)
+        #expect(payload.missingMonthAdjustments.isEmpty)
+    }
 }

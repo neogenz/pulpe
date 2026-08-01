@@ -338,9 +338,14 @@ final class GoalPlanSimulatorViewModel {
     }
 
     /// The adjusted, contributive months — the write footprint and recap rows.
+    /// Excludes a zero-valued gap creation (mirrors `apply()`'s wire filter
+    /// below): the wire schema requires a positive amount, so a preview that
+    /// included one would open a recap for a change that can never be sent.
     var planChanges: [SavingsPlanCalculator.SimulatedMonth] {
         draft.months.filter {
-            SavingsPlanCalculator.isContributivePlanMonth($0.month) && $0.isAdjusted
+            SavingsPlanCalculator.isContributivePlanMonth($0.month)
+                && $0.isAdjusted
+                && !($0.month.isProvisionable && $0.simulatedAmount <= 0)
         }
     }
 

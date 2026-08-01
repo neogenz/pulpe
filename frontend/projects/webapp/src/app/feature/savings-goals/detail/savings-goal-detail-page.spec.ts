@@ -1189,6 +1189,71 @@ describe('SavingsGoalDetailPage', () => {
     ).toBeFalsy();
   });
 
+  it('does not open a confirmation or announce success when the only simulated change is a zero-valued gap creation', async () => {
+    progressSig.set(
+      makeProgress({
+        targetAmount: 500,
+        initialAmount: 500,
+        months: [makePlanMonth({ month: 7, plannedCumulative: 0 })],
+      }),
+    );
+    fixture.detectChanges();
+
+    component['simulator'].enter();
+    component['simulator'].redistribute();
+    await component['onApplyPlan']();
+
+    expect(mockDialogs.openApplyPlan).not.toHaveBeenCalled();
+    expect(mockStore.applyPlan).not.toHaveBeenCalled();
+    expect(snackBarOpen).not.toHaveBeenCalled();
+  });
+
+  it('previews and applies only the valid adjustment when a zero-valued gap creation is mixed in', async () => {
+    const lineId = '11111111-1111-4111-8111-111111111111';
+    progressSig.set(
+      makeProgress({
+        targetAmount: 500,
+        initialAmount: 0,
+        months: [
+          makePlanMonth({
+            month: 6,
+            state: 'current',
+            isProvisionable: false,
+            plannedAmount: 200,
+            plannedCumulative: 200,
+            lines: [
+              {
+                budgetLineId: lineId,
+                amount: 200,
+                checkedAt: null,
+                isManuallyAdjusted: false,
+              },
+            ],
+          }),
+          makePlanMonth({ month: 7, plannedCumulative: 200 }),
+        ],
+      }),
+    );
+    mockDialogs.openApplyPlan.mockResolvedValueOnce(true);
+    fixture.detectChanges();
+
+    component['simulator'].enter();
+    component['simulator'].setMonth(6, 2026, 500);
+    component['simulator'].redistribute();
+    await component['onApplyPlan']();
+
+    expect(mockDialogs.openApplyPlan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        changes: [{ month: 6, year: 2026, before: 200, after: 500 }],
+      }),
+    );
+    expect(mockStore.applyPlan).toHaveBeenCalledWith('goal-1', {
+      monthAdjustments: [{ budgetLineId: lineId, amount: 500 }],
+      missingMonthAdjustments: [],
+    });
+    expect(snackBarOpen).toHaveBeenCalled();
+  });
+
   it('deletes the goal with the preview revision then navigates back', async () => {
     deletionDialogResult = deletionCommand;
     fixture.detectChanges();
