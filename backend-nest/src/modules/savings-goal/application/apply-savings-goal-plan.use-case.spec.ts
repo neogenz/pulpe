@@ -57,7 +57,7 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
         status: 'ACTIVE',
         createdAt: now.toISOString(),
       }),
-      findMaterializedPeriods: jest.fn().mockResolvedValue(periods.slice(0, 2)),
+      findMaterializedPeriods: jest.fn(),
       findLinkedContributions: jest
         .fn()
         .mockResolvedValueOnce({ lines: existingLines, transactions: [] })
@@ -191,11 +191,6 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
   });
 
   it('creates the missing linked forecast in an already-materialized budget', async () => {
-    repo.findMaterializedPeriods.mockResolvedValue([
-      ...periods.slice(0, 2),
-      periods[2],
-    ]);
-
     await useCase.execute(
       'goal-1',
       {
@@ -295,7 +290,6 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
     await expect(useCase.execute('goal-1', dto, user)).rejects.toThrow(
       'rpc failed',
     );
-    repo.findMaterializedPeriods.mockResolvedValue(periods);
 
     await expect(useCase.execute('goal-1', dto, user)).resolves.toBeDefined();
 

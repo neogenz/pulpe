@@ -753,11 +753,7 @@ export default class SavingsGoalDetailPage {
       return [];
     }
     return progress.months.filter(
-      (month) =>
-        month.hasBudget === true &&
-        month.isProvisionable === true &&
-        !month.isLocked &&
-        month.isContributionEligible !== false,
+      (month) => month.hasBudget === true && month.isProvisionable === true,
     );
   });
   protected readonly estimatedCompletionLabel = computed(() => {
