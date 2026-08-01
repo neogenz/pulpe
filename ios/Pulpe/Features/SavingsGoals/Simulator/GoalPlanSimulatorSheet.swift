@@ -443,8 +443,11 @@ final class GoalPlanSimulatorViewModel {
                 )
                 .map { .init(budgetLineId: $0.budgetLineId, amount: $0.amount) }
             }
+        // A zero-valued creation describes nothing to create — the wire schema
+        // requires a positive amount, so sending it would reject the WHOLE
+        // payload, including the valid adjustments alongside it.
         let missingMonthAdjustments: [SavingsGoalPlanApply.MissingMonthAdjustment] = planChanges
-            .filter { $0.month.isProvisionable }
+            .filter { $0.month.isProvisionable && $0.simulatedAmount > 0 }
             .map { .init(month: $0.month.month, year: $0.month.year, amount: $0.simulatedAmount) }
 
         guard !monthAdjustments.isEmpty || !missingMonthAdjustments.isEmpty else { return false }
