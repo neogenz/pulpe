@@ -63,6 +63,9 @@ struct HomeHeroCard: View {
             metricsContent
             verdictSentence
         }
+        // Drives the digit morph above: `contentTransition` is inert unless the value
+        // change happens inside an animation, so the two ship together or neither works.
+        .animation(DesignTokens.Animation.smoothEaseInOut, value: metrics)
     }
 
     // MARK: - Summary
