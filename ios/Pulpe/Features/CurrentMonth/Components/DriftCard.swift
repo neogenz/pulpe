@@ -16,9 +16,9 @@ struct DriftCard: View {
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.amountsHidden) private var amountsHidden
 
-    /// Matches `ActivityCard.maxRows` and the store's dashboard cap — a month that drifts on
-    /// ten envelopes shouldn't render a card ten mini-bars tall, which is precisely the month
-    /// the screen most needs to stay calm.
+    /// Fixed rather than derived: this card is a dashboard summary, not a full list, and a
+    /// month that drifts on ten envelopes shouldn't render ten mini-bars tall — precisely
+    /// the month the dashboard most needs to stay calm.
     private static let maxRows = 3
 
     private var currency: SupportedCurrency { userSettingsStore.currency }

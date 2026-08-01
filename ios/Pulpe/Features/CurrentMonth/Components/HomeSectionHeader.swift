@@ -69,12 +69,18 @@ struct HomeSectionHeader: View {
                 .foregroundStyle(Color.pulpePrimary)
                 .lineLimit(1)
             }
-            // `alignment: .top` (not the default `.center`) keeps the label pinned where
-            // it already sits: centering would grow this child's ascent past the title's,
-            // which shares this row's `.firstTextBaseline` — shifting both texts downward
-            // instead of only extending the tap target below the label.
-            .frame(minHeight: DesignTokens.TapTarget.minimum, alignment: .top)
+            // A `minHeight` frame here grows the Button's own reported size, and this row
+            // sits beside `titleBlock` in an `HStack` — the row takes its tallest child, so
+            // the header grows with it (worst for a title-only header, with no
+            // `amountSubtitle`, whose `titleBlock` is shortest). Padding out, shaping the
+            // hit area at that larger size, then padding back in nets to zero for layout —
+            // the row, and the `.firstTextBaseline` guide it shares with `titleBlock`, see
+            // the label's original, un-padded size; only the contentShape keeps the wider
+            // bounds. Symmetric and half the tap target on each edge, so it clears 44pt
+            // regardless of the label's own line height at any text size.
+            .padding(.vertical, DesignTokens.TapTarget.minimum / 2)
             .contentShape(Rectangle())
+            .padding(.vertical, -DesignTokens.TapTarget.minimum / 2)
             .textLinkButtonStyle()
             // Out of its visual context "Tout voir" names nothing; paired with the
             // section it does, and that saves every call site a hint of its own.

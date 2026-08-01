@@ -122,7 +122,7 @@ struct HomeHeroCard: View {
         if dynamicTypeSize >= .xxLarge {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                 metric(value: uncheckedValue, label: "à pointer", tint: Color.homeHeroInk)
-                metric(value: varianceValue, label: "vs prévu", tint: accentColor)
+                metric(value: varianceValue, label: "vs prévu", tint: accentColor, showsChevron: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         } else {
@@ -135,7 +135,7 @@ struct HomeHeroCard: View {
                     value: varianceValue,
                     label: "vs prévu",
                     tint: accentColor,
-                    alignment: .trailing
+                    alignment: .trailing, showsChevron: true
                 )
             }
         }
@@ -152,7 +152,7 @@ struct HomeHeroCard: View {
         value: String,
         label: String,
         tint: Color,
-        alignment: HorizontalAlignment = .leading
+        alignment: HorizontalAlignment = .leading, showsChevron: Bool = false
     ) -> some View {
         VStack(alignment: alignment, spacing: DesignTokens.Spacing.xxs) {
             Text(value)
@@ -163,7 +163,7 @@ struct HomeHeroCard: View {
                 .minimumScaleFactor(DesignTokens.TextScale.compact)
                 .sensitiveAmount()
 
-            Text(label)
+            Self.metricLabelText(label, showsChevron: showsChevron)
                 .font(PulpeTypography.labelMedium)
                 .foregroundStyle(Color.homeHeroSupport)
                 .fixedSize(horizontal: false, vertical: true)
@@ -445,6 +445,14 @@ extension HomeHeroCard {
             \(estimatedBalance.asArithmeticSignedCurrency(currency)). \(comparison). \(unchecked)
             """
         }
+    }
+
+    /// `Text(Image(...))` is a run inside one `Text`, not its own accessibility element —
+    /// folds `verdictSentence`'s drill-in chevron into a metric's label line only, never
+    /// the value's, so the mark never competes with the figure it points away from.
+    static func metricLabelText(_ label: String, showsChevron: Bool) -> Text {
+        guard showsChevron else { return Text(label) }
+        return Text("\(label) ") + Text(Image(systemName: "chevron.right")).font(PulpeTypography.metricLabel)
     }
 }
 

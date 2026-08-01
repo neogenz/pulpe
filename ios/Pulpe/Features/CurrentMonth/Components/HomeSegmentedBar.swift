@@ -21,27 +21,6 @@ struct HomeSegmentedBar: View {
         self.borderColor = borderColor
     }
 
-    /// Two-segment convenience for the drift mini-bars: planned share, then overflow.
-    init(
-        fillFraction: Double,
-        overflowFraction: Double,
-        fillColor: Color,
-        overflowColor: Color,
-        trackColor: Color,
-        height: CGFloat,
-        borderColor: Color? = nil
-    ) {
-        self.init(
-            segments: [
-                Segment(fraction: fillFraction, color: fillColor),
-                Segment(fraction: overflowFraction, color: overflowColor)
-            ],
-            trackColor: trackColor,
-            height: height,
-            borderColor: borderColor
-        )
-    }
-
     var body: some View {
         GeometryReader { geo in
             HStack(spacing: DesignTokens.Spacing.xxs) {
