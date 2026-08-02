@@ -37,10 +37,15 @@ const DATE_COLUMN_FORMAT = 'yyyy-MM-dd';
  * The month's actuals. `envelopeName` names the prévision each one consumes —
  * a budget built from another template may not carry it, and the actual then
  * stays unattached, which is a legitimate state to show.
+ *
+ * The month in progress only keeps the actuals whose day has already elapsed,
+ * so the first one falls on the 1st: a prospect opening the demo on the 2nd
+ * must still see a consumed envelope, not the empty month the seed used to show
+ * until the 5th.
  */
 const MONTH_TRANSACTION_SPECS = [
   {
-    day: 5,
+    day: 1,
     name: 'Migros - Courses',
     amount: 127.85,
     tagName: 'Alimentation',

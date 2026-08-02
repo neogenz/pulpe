@@ -243,6 +243,26 @@ describe('GenerateDemoDataUseCase', () => {
       }
     });
 
+    it('should give the month in progress its actuals whatever the day of the month', async () => {
+      const now = new Date();
+
+      await useCase.execute('user-1', {} as never);
+
+      const currentMonthIndex = seededBudgets(mockRepo).findIndex(
+        (budget) =>
+          budget.month === now.getMonth() + 1 &&
+          budget.year === now.getFullYear(),
+      );
+      const currentMonthActuals = seededTransactions(mockRepo).filter(
+        (tx) => tx.budgetId === `budget-${currentMonthIndex}`,
+      );
+
+      expect(currentMonthActuals.length).toBeGreaterThan(0);
+      for (const actual of currentMonthActuals) {
+        expect(new Date(actual.transactionDate) <= now).toBe(true);
+      }
+    });
+
     it('should leave an actual unattached when no envelope matches it', async () => {
       await useCase.execute('user-1', {} as never);
 
