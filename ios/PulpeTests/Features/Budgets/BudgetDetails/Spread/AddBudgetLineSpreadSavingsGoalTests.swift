@@ -40,10 +40,12 @@ struct AddBudgetLineSpreadSavingsGoalTests {
             message: nil
         )
 
+        // The same code now reaches a single line as well as a spread, so the
+        // copy must read correctly for both — no "raccourcis le lissage".
         #expect(
             error.errorDescription ==
-                "Certaines périodes dépassent l'échéance de cet objectif — "
-                + "raccourcis le lissage ou choisis un autre objectif"
+                "Cette épargne tombe après l'échéance de ton objectif — "
+                + "repousse l'échéance ou choisis un autre objectif"
         )
     }
 

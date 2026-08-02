@@ -128,7 +128,10 @@ struct AddBudgetLineSheet: View {
             descriptionField
 
             if Self.showsSavingsGoalPicker(kind: kind) {
-                SavingsGoalPickerField(selection: $savingsGoalId)
+                SavingsGoalPickerField(
+                    selection: $savingsGoalId,
+                    budgetPeriod: BudgetPeriod(month: anchorMonth, year: anchorYear)
+                )
             }
 
             if isSpreadMode {
