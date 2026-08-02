@@ -384,6 +384,40 @@ describe('GenerateDemoDataUseCase', () => {
       }
     });
 
+    it('should never link a prévision past the deadline the database enforces', async () => {
+      await useCase.execute('user-1', {} as never);
+
+      const budgetsById = new Map(
+        seededBudgets(mockRepo).map((budget, index) => [
+          `budget-${index}`,
+          budget,
+        ]),
+      );
+      const lineById = new Map(
+        identifiedBudgetLines(mockRepo).map(({ line, id }) => [id, line]),
+      );
+      const goals = seededSavingsGoals(mockRepo);
+      let checkedPairs = 0;
+
+      for (const [lineIds, goalId] of savingsGoalLinkCalls(mockRepo)) {
+        const goal = goals[Number(goalId.replace('goal-', ''))];
+        if (!goal?.targetDate) continue;
+        const deadline = new Date(goal.targetDate);
+
+        for (const lineId of lineIds) {
+          const budget = budgetsById.get(lineById.get(lineId)?.budgetId ?? '');
+          if (!budget) throw new Error(`unknown budget for line ${lineId}`);
+
+          expect(new Date(budget.year, budget.month - 1) <= deadline).toBe(
+            true,
+          );
+          checkedPairs++;
+        }
+      }
+
+      expect(checkedPairs).toBeGreaterThan(0);
+    });
+
     it('should link checked prévisions so a goal shows progress', async () => {
       await useCase.execute('user-1', {} as never);
 

@@ -9,6 +9,10 @@ export const DEMO_RETENTION_HOURS = 24;
  * negative for a deadline already behind us. `priority` is deliberately absent:
  * the savings-goal module never writes it, so seeding it would show the
  * prospect a state the app itself cannot produce.
+ *
+ * A funded goal's deadline must reach past the last seeded month: the
+ * `enforce_savings_goal_line_link` trigger rejects a prévision linked beyond it,
+ * and a failed demo seed is swallowed into an empty demo rather than an error.
  */
 export const DEMO_SAVINGS_GOAL_SPECS = [
   {
