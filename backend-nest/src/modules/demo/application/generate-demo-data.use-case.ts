@@ -1,7 +1,9 @@
+import { randomUUID } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { addMonths, format, startOfMonth } from 'date-fns';
+import { splitTotalPreserving } from 'pulpe-shared';
 import {
   BUDGET_RECALCULATION_PORT,
   type BudgetRecalculationPort,
@@ -23,6 +25,7 @@ import type {
 } from '../domain/demo.entity';
 import {
   DEMO_SAVINGS_GOAL_SPECS,
+  DEMO_SPREAD_SPEC,
   DEMO_TEMPLATE_SPECS,
 } from '../domain/demo.constants';
 
@@ -345,11 +348,55 @@ export class GenerateDemoDataUseCase {
           kind: templateLine.kind,
           recurrence: templateLine.recurrence,
           checkedAt,
+          spreadGroupId: null,
         });
       }
     }
 
-    return lines;
+    return [...lines, ...this.buildSpreadTrancheSeeds(budgets, currentDate)];
+  }
+
+  /**
+   * The tranches of the demo's lissage: sibling one_off lines sharing one group
+   * id, never issued from the Mois Type, whose amounts sum back to the total.
+   */
+  private buildSpreadTrancheSeeds(
+    budgets: DemoSeededBudget[],
+    currentDate: Date,
+  ): DemoBudgetLineSeed[] {
+    const spreadGroupId = randomUUID();
+    const budgetsByPeriod = new Map(
+      budgets.map((budget) => [`${budget.year}-${budget.month}`, budget]),
+    );
+
+    return splitTotalPreserving(
+      DEMO_SPREAD_SPEC.totalAmount,
+      DEMO_SPREAD_SPEC.monthCount,
+    ).flatMap((amount, index) => {
+      const monthDate = addMonths(
+        startOfMonth(currentDate),
+        DEMO_SPREAD_SPEC.firstMonthOffset + index,
+      );
+      const budget = budgetsByPeriod.get(
+        `${monthDate.getFullYear()}-${monthDate.getMonth() + 1}`,
+      );
+      if (!budget) return [];
+
+      return [
+        {
+          budgetId: budget.id,
+          templateLineId: null,
+          name: DEMO_SPREAD_SPEC.name,
+          amount,
+          kind: 'expense' as const,
+          recurrence: 'one_off' as const,
+          checkedAt: this.isClosedMonth(budget, currentDate)
+            ? this.endOfMonth(budget)
+            : null,
+          spreadGroupId,
+        },
+      ];
+    });
   }
 
   /** A month strictly before the current one is closed: its ledger is settled. */

@@ -9,7 +9,10 @@ import type {
   DemoSeededBudget,
   DemoTransactionSeed,
 } from '../domain/demo.entity';
-import { DEMO_SAVINGS_GOAL_SPECS } from '../domain/demo.constants';
+import {
+  DEMO_SAVINGS_GOAL_SPECS,
+  DEMO_SPREAD_SPEC,
+} from '../domain/demo.constants';
 import { GenerateDemoDataUseCase } from './generate-demo-data.use-case';
 
 const GROCERIES_ENVELOPE = 'Courses alimentaires';
@@ -101,9 +104,18 @@ function identifiedBudgetLines(repo: ReturnType<typeof buildMockRepo>) {
   }));
 }
 
+function spreadTranches(lines: DemoBudgetLineSeed[]) {
+  return lines.filter((line) => line.spreadGroupId !== null);
+}
+
 function isClosedMonth(budget: DemoSeededBudget, now: Date): boolean {
   if (budget.year !== now.getFullYear()) return budget.year < now.getFullYear();
   return budget.month < now.getMonth() + 1;
+}
+
+function isFutureMonth(budget: DemoSeededBudget, now: Date): boolean {
+  if (budget.year !== now.getFullYear()) return budget.year > now.getFullYear();
+  return budget.month > now.getMonth() + 1;
 }
 
 describe('GenerateDemoDataUseCase', () => {
@@ -383,6 +395,74 @@ describe('GenerateDemoDataUseCase', () => {
       );
 
       expect(checkedLinked.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('execute - lissage', () => {
+    it('should split the spread total into tranches summing back to it', async () => {
+      await useCase.execute('user-1', {} as never);
+
+      const tranches = spreadTranches(seededBudgetLines(mockRepo));
+      const totalCents = tranches.reduce(
+        (sum, line) => sum + Math.round(line.amount * 100),
+        0,
+      );
+
+      expect(tranches.length).toBe(DEMO_SPREAD_SPEC.monthCount);
+      expect(totalCents).toBe(Math.round(DEMO_SPREAD_SPEC.totalAmount * 100));
+    });
+
+    it('should make the tranches siblings of one group, none issued from the Mois Type', async () => {
+      await useCase.execute('user-1', {} as never);
+
+      const tranches = spreadTranches(seededBudgetLines(mockRepo));
+
+      expect(new Set(tranches.map((line) => line.spreadGroupId)).size).toBe(1);
+      expect(tranches.every((line) => line.templateLineId === null)).toBe(true);
+      expect(tranches.every((line) => line.recurrence === 'one_off')).toBe(
+        true,
+      );
+    });
+
+    it('should mint a distinct group id for each demo session', async () => {
+      await useCase.execute('user-1', {} as never);
+      await useCase.execute('user-2', {} as never);
+
+      const [firstCall, secondCall] = (
+        mockRepo.insertBudgetLines as ReturnType<typeof mock>
+      ).mock.calls;
+      const firstGroupId = spreadTranches(
+        firstCall[0] as DemoBudgetLineSeed[],
+      )[0]?.spreadGroupId;
+      const secondGroupId = spreadTranches(
+        secondCall[0] as DemoBudgetLineSeed[],
+      )[0]?.spreadGroupId;
+
+      expect(firstGroupId).toBeTruthy();
+      expect(secondGroupId).not.toBe(firstGroupId);
+    });
+
+    it('should straddle the current month so months remain to provision', async () => {
+      const now = new Date();
+
+      await useCase.execute('user-1', {} as never);
+
+      const budgetsById = new Map(
+        seededBudgets(mockRepo).map((budget, index) => [
+          `budget-${index}`,
+          budget,
+        ]),
+      );
+      const trancheBudgets = spreadTranches(seededBudgetLines(mockRepo)).map(
+        (line) => budgetsById.get(line.budgetId),
+      );
+
+      expect(
+        trancheBudgets.some((budget) => budget && isClosedMonth(budget, now)),
+      ).toBe(true);
+      expect(
+        trancheBudgets.some((budget) => budget && isFutureMonth(budget, now)),
+      ).toBe(true);
     });
   });
 });

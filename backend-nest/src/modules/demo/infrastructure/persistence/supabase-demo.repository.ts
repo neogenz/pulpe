@@ -193,6 +193,7 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
       recurrence: line.recurrence,
       is_manually_adjusted: false,
       checked_at: line.checkedAt,
+      spread_group_id: line.spreadGroupId,
       original_amount: null,
       original_currency: null,
       target_currency: null,

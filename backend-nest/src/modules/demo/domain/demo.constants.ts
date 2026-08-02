@@ -37,6 +37,22 @@ export const DEMO_SAVINGS_GOAL_SPECS = [
   },
 ] as const;
 
+/**
+ * The one lissage the demo shows. The window straddles the current month so the
+ * occurrence tracker has both a cumulated part and a non-zero rest to provision
+ * — a window entirely in the past or the future would show neither.
+ *
+ * The total divides into 6 tranches with two remainder cents, which is exactly
+ * what makes the cent-preserving split visible instead of a suspiciously round
+ * division.
+ */
+export const DEMO_SPREAD_SPEC = {
+  name: 'Prime assurance auto',
+  totalAmount: 1085,
+  monthCount: 6,
+  firstMonthOffset: -2,
+} as const;
+
 export const DEMO_TEMPLATE_SPECS = {
   STANDARD: {
     name: '💰 Mois Standard',

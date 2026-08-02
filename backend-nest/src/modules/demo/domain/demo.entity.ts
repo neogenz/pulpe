@@ -90,6 +90,10 @@ export interface DemoSeededBudget {
  * `checkedAt` carries the pointage: months already closed are seeded checked so
  * the demo shows the "Pointé / À pointer" contrast instead of a flat unchecked
  * ledger. It also gates savings goal progress, which only counts checked lines.
+ *
+ * `spreadGroupId` is the shared identity of a lissage: the tranches of one
+ * spread expense are sibling `one_off` lines carrying the same uuid. It is not
+ * a financial value, so it is never encrypted.
  */
 export interface DemoBudgetLineSeed {
   budgetId: string;
@@ -99,6 +103,7 @@ export interface DemoBudgetLineSeed {
   kind: TransactionKindEnum;
   recurrence: TransactionRecurrenceEnum;
   checkedAt: string | null;
+  spreadGroupId: string | null;
 }
 
 /**

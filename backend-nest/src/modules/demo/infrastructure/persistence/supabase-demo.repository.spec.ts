@@ -231,6 +231,7 @@ describe('SupabaseDemoRepository', () => {
             kind: 'expense',
             recurrence: 'fixed',
             checkedAt: null,
+            spreadGroupId: null,
           },
         ],
         'user-1',
@@ -243,6 +244,31 @@ describe('SupabaseDemoRepository', () => {
       }>;
       expect(inserted[0].amount).toBe('enc-100');
       expect(inserted[0].budget_id).toBe('b-1');
+    });
+
+    it('should write the spread group id in clear, never encrypted', async () => {
+      const captured: unknown[] = [];
+      const supabase = createBudgetLineSupabase(captured);
+
+      await repo.insertBudgetLines(
+        [
+          {
+            budgetId: 'b-1',
+            templateLineId: null,
+            name: 'Prime assurance auto',
+            amount: 180.84,
+            kind: 'expense',
+            recurrence: 'one_off',
+            checkedAt: null,
+            spreadGroupId: 'group-uuid',
+          },
+        ],
+        'user-1',
+        supabase,
+      );
+
+      const inserted = captured[0] as Array<{ spread_group_id: string | null }>;
+      expect(inserted[0].spread_group_id).toBe('group-uuid');
     });
 
     it('should persist the seeded pointage instead of forcing it unchecked', async () => {
@@ -259,6 +285,7 @@ describe('SupabaseDemoRepository', () => {
             kind: 'expense',
             recurrence: 'fixed',
             checkedAt: '2026-05-31T00:00:00.000Z',
+            spreadGroupId: null,
           },
           {
             budgetId: 'b-2',
@@ -268,6 +295,7 @@ describe('SupabaseDemoRepository', () => {
             kind: 'expense',
             recurrence: 'fixed',
             checkedAt: null,
+            spreadGroupId: null,
           },
         ],
         'user-1',
@@ -292,6 +320,7 @@ describe('SupabaseDemoRepository', () => {
             kind: 'expense',
             recurrence: 'one_off',
             checkedAt: null,
+            spreadGroupId: null,
           },
         ],
         'user-1',
@@ -330,6 +359,7 @@ describe('SupabaseDemoRepository', () => {
               kind: 'expense',
               recurrence: 'fixed',
               checkedAt: null,
+              spreadGroupId: null,
             },
           ],
           'user-1',
