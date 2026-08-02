@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Les tests citent des classes en clair pour garder un composant sur sa forme.
+   Sans cette exclusion, le détecteur de Tailwind les lit comme du balisage et
+   émet leurs règles dans le bundle, où rien ne les porte. */
+@source not "../**/*.test.*";
+
 /* Posée par le script inline du layout dès la fin du parsing, bien avant
    l'hydratation : la navbar réagit au scroll sans dépendre du bundle. */
 @custom-variant scrolled (html[data-scrolled] &);

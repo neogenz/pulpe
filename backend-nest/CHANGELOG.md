@@ -1,5 +1,15 @@
 # backend-nest
 
+## 0.43.0
+
+### Minor Changes
+
+- Le serveur résout la dernière version iOS publiée depuis l’App Store, et le site vitrine affiche la devise du visiteur.
+
+### Patch Changes
+
+- pulpe-shared@0.43.0
+
 ## 0.42.0
 
 ### Patch Changes
