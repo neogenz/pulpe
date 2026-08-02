@@ -26,9 +26,12 @@ const impact = {
     budgetLineTotal: 0,
     transactionCount: 0,
     transactionTotal: 0,
+    withdrawalCount: 0,
+    withdrawalTotal: 0,
   },
   templateLines: [],
   budgets: [],
+  withdrawals: [],
   revision: { templateLines: [], budgetLines: [], transactions: [] },
 } satisfies SavingsGoalDeletionImpactResult;
 

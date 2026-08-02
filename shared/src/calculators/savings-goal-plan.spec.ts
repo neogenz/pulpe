@@ -837,3 +837,66 @@ describe('PUL-314 — timeline and simulation over an optional interval', () => 
     });
   });
 });
+
+describe('buildSavingsGoalTimeline withdrawals (PUL-329)', () => {
+  const input: SavingsGoalProgressInput = {
+    targetAmount: 3000,
+    status: 'ACTIVE',
+    createdAt: '2026-01-15T00:00:00.000Z',
+    targetDate: '2026-06-30',
+    payDayOfMonth: null,
+    now: new Date(2026, 2, 15),
+    lines: [
+      savingLine({
+        month: 1,
+        year: 2026,
+        checkedAt: '2026-01-20T00:00:00.000Z',
+      }),
+      savingLine({
+        month: 2,
+        year: 2026,
+        checkedAt: '2026-02-20T00:00:00.000Z',
+      }),
+      savingLine({ month: 3, year: 2026 }),
+    ],
+    transactions: [],
+    withdrawals: [{ amount: 400, month: 2, year: 2026 }],
+  };
+
+  it('should dip the confirmed cumulative on the withdrawal month', () => {
+    const timeline = buildSavingsGoalTimeline(input);
+
+    expect(timeline[0]).toMatchObject({ confirmedCumulative: 500 });
+    expect(timeline[1]).toMatchObject({ confirmedCumulative: 600 });
+  });
+
+  it('should keep the withdrawal out of the month contribution amount', () => {
+    const timeline = buildSavingsGoalTimeline(input);
+
+    expect(timeline[1]).toMatchObject({
+      confirmedAmount: 500,
+      plannedAmount: 500,
+      plannedCumulative: 1000,
+    });
+  });
+
+  it('should match the confirmed stock of computeSavingsGoalProgress', () => {
+    const timeline = buildSavingsGoalTimeline(input);
+    const progress = computeSavingsGoalProgress(input);
+    const currentMonth = timeline.find(
+      (month) => month.month === 3 && month.year === 2026,
+    );
+
+    expect(currentMonth?.confirmedCumulative).toBe(progress.confirmed);
+  });
+
+  it('should give a withdrawal-only month its own row', () => {
+    const timeline = buildSavingsGoalTimeline({
+      ...input,
+      targetDate: null,
+      withdrawals: [{ amount: 400, month: 9, year: 2026 }],
+    });
+
+    expect(timeline.at(-1)).toMatchObject({ month: 9, year: 2026 });
+  });
+});

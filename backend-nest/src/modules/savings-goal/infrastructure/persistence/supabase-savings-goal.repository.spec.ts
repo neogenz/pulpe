@@ -1265,6 +1265,8 @@ describe('SupabaseSavingsGoalRepository', () => {
         budgetLineTotal: 500,
         transactionCount: 1,
         transactionTotal: 200,
+        withdrawalCount: 0,
+        withdrawalTotal: 0,
       });
       expect(impact.budgets[0].lines[0].transactions[0].amount).toBe(200);
       expect(impact.revision).toEqual(revision);

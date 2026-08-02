@@ -3,6 +3,8 @@ import {
   budgetLineUpdateSchema,
   templateLineUpdateWithIdSchema,
   savingsGoalUpdateSchema,
+  transactionCreateSchema,
+  transactionUpdateSchema,
 } from '../schemas.js';
 
 const UUID = '00000000-0000-0000-0000-000000000000';
@@ -73,5 +75,34 @@ describe('derived write schemas preserve strict inheritance', () => {
     });
 
     expect(result.success).toBe(true);
+  });
+
+  test('transactionCreateSchema keeps rejecting unknown fields after the source refinement', () => {
+    const result = transactionCreateSchema.safeParse({
+      budgetId: UUID,
+      name: 'x',
+      amount: 1,
+      kind: 'income',
+      unknownField: 'z',
+    });
+
+    expectUnrecognizedKeys(result);
+  });
+
+  test('transactionCreateSchema still exposes its field shape', () => {
+    const result = transactionCreateSchema.shape.transactionDate.safeParse(
+      '2026-08-02T10:00:00+02:00',
+    );
+
+    expect(result.success).toBe(true);
+  });
+
+  test('transactionUpdateSchema rejects the immutable source link', () => {
+    const result = transactionUpdateSchema.safeParse({
+      name: 'x',
+      sourceSavingsGoalId: UUID,
+    });
+
+    expectUnrecognizedKeys(result);
   });
 });

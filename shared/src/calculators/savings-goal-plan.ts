@@ -28,6 +28,7 @@ import type {
   SavingsGoalProgressInput,
   LinkedSavingLine,
   LinkedSavingTransaction,
+  LinkedSavingWithdrawal,
 } from './savings-goal-progress.js';
 import { splitTotalPreserving } from './spread-split.js';
 import { MAX_SAVINGS_GOAL_PLAN_PERIODS } from '../../schemas.js';
@@ -130,12 +131,24 @@ export function buildSavingsGoalTimeline(
   );
 
   const lineIndices = savingLines.map((line) => periodIndex(line));
+  const withdrawals = input.withdrawals ?? [];
+  // Un mois qui ne porte qu'un retrait mérite sa row : sans elle, la sortie
+  // d'argent disparaîtrait de la courbe et `confirmedCumulative` cesserait
+  // d'égaler le confirmé de `computeSavingsGoalProgress`.
+  const withdrawalIndices = withdrawals.map((withdrawal) =>
+    periodIndex(withdrawal),
+  );
   const rawStartIndex = Math.min(
     historicalAnchorIndex,
     indexCurrent,
     ...lineIndices,
+    ...withdrawalIndices,
   );
-  const rawEndIndex = Math.max(indexTarget ?? indexCurrent, ...lineIndices);
+  const rawEndIndex = Math.max(
+    indexTarget ?? indexCurrent,
+    ...lineIndices,
+    ...withdrawalIndices,
+  );
   const endIndex =
     indexTarget == null
       ? rawEndIndex
@@ -170,9 +183,16 @@ export function buildSavingsGoalTimeline(
     const isContributionEligible =
       isInHistoricalInterval && (indexTarget == null || index <= indexTarget);
 
+    // Le retrait creuse le CUMUL confirmé sans jamais entrer dans
+    // `confirmedAmount` : la ligne « contributions du mois » reste une somme
+    // d'entrées, pas une contribution négative.
+    const withdrawnAmount = withdrawals
+      .filter((withdrawal) => periodIndex(withdrawal) === index)
+      .reduce((sum, withdrawal) => sum + withdrawal.amount, 0);
+
     if (isInHistoricalInterval) {
       plannedCumulative += plannedAmount;
-      confirmedCumulative += confirmedAmount;
+      confirmedCumulative += confirmedAmount - withdrawnAmount;
     }
 
     const hasLines = monthLines.length > 0;
@@ -498,4 +518,8 @@ export function allocateMonthAmountToLines(
   }));
 }
 
-export type { LinkedSavingLine, LinkedSavingTransaction };
+export type {
+  LinkedSavingLine,
+  LinkedSavingTransaction,
+  LinkedSavingWithdrawal,
+};

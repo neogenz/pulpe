@@ -82,9 +82,12 @@ function makeImpact(budgetCount = 1): SavingsGoalDeletionImpact {
       budgetLineTotal: budgetCount * 200,
       transactionCount: budgetCount,
       transactionTotal: budgetCount * 180,
+      withdrawalCount: 0,
+      withdrawalTotal: 0,
     },
     templateLines: [templateLine],
     budgets,
+    withdrawals: [],
     revision: {
       templateLines: [{ id: templateLine.lineId, updatedAt: UPDATED_AT }],
       budgetLines: budgets.map(({ lines }) => ({

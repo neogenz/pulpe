@@ -19,6 +19,7 @@ export {
   suggestedMonthlyContribution,
   type LinkedSavingLine,
   type LinkedSavingTransaction,
+  type LinkedSavingWithdrawal,
   type SavingsGoalProgressInput,
   type SavingsGoalProgressResult,
   type SuggestedMonthlyContributionInput,

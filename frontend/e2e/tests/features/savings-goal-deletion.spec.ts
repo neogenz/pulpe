@@ -40,6 +40,7 @@ test('deletes a savings goal from its impact preview', async ({
     plannedProjection: 930,
     confirmed: 930,
     initialAmount: 930,
+    withdrawn: 0,
     achievementPercent: 25,
     monthsElapsed: 7,
     monthsRemaining: 18,
@@ -69,6 +70,8 @@ test('deletes a savings goal from its impact preview', async ({
       budgetLineTotal: 200,
       transactionCount: 1,
       transactionTotal: 180,
+      withdrawalCount: 0,
+      withdrawalTotal: 0,
     },
     templateLines: [
       {
@@ -112,6 +115,7 @@ test('deletes a savings goal from its impact preview', async ({
         ],
       },
     ],
+    withdrawals: [],
     revision: {
       templateLines: [{ id: TEMPLATE_LINE_ID, updatedAt: UPDATED_AT }],
       budgetLines: [{ id: BUDGET_LINE_ID, updatedAt: UPDATED_AT }],
