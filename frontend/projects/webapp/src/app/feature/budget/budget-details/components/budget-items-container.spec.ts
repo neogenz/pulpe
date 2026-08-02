@@ -70,7 +70,6 @@ interface MockStore {
   savingsWithdrawalOriginLabel: ReturnType<typeof signal<string>>;
   savingsWithdrawalDeficit: ReturnType<typeof signal<number>>;
   savingsGoalNameById: ReturnType<typeof signal<ReadonlyMap<string, string>>>;
-  error: ReturnType<typeof signal<string | null>>;
   setSearchText: ReturnType<typeof vi.fn>;
   setIsShowingOnlyUnchecked: ReturnType<typeof vi.fn>;
   createBudgetLine: ReturnType<typeof vi.fn>;
@@ -107,7 +106,6 @@ function createMockStore(): MockStore {
     savingsWithdrawalOriginLabel: signal(''),
     savingsWithdrawalDeficit: signal(0),
     savingsGoalNameById: signal<ReadonlyMap<string, string>>(new Map()),
-    error: signal<string | null>(null),
     setSearchText: vi.fn(),
     setIsShowingOnlyUnchecked: vi.fn(),
     createBudgetLine: vi.fn(),
@@ -116,9 +114,10 @@ function createMockStore(): MockStore {
     deleteBudgetLine: vi.fn(),
     deleteTransaction: vi.fn(),
     resetBudgetLineFromTemplate: vi.fn(),
-    postponeBudgetLine: vi.fn().mockResolvedValue(true),
-    postponeTransaction: vi.fn().mockResolvedValue(true),
-    toggleCheck: vi.fn().mockResolvedValue(true),
+    // A mutation now answers with its refusal motive, so `null` is its success.
+    postponeBudgetLine: vi.fn().mockResolvedValue(null),
+    postponeTransaction: vi.fn().mockResolvedValue(null),
+    toggleCheck: vi.fn().mockResolvedValue(null),
     toggleTransactionCheck: vi.fn(),
     checkAllAllocatedTransactions: vi.fn(),
     createAllocatedTransaction: vi.fn(),
@@ -376,15 +375,42 @@ describe('BudgetItemsContainer — orchestration', () => {
       value: spread,
     });
     mockStore.createBudgetLineSpread.mockResolvedValue({
-      lines: [],
-      createdBudgets: [],
-      skippedMonths: [],
+      data: { lines: [], createdBudgets: [], skippedMonths: [] },
     });
 
     await component.openAddBudgetLineDialog();
 
     expect(mockStore.createBudgetLineSpread).toHaveBeenCalledWith(spread);
     expect(mockStore.createBudgetLine).not.toHaveBeenCalled();
+  });
+
+  it('shows the server motive when a postpone is refused', async () => {
+    mockDialogService.confirmPostpone.mockResolvedValue(true);
+    mockStore.nextMonthLabel.set('septembre 2026');
+    mockStore.postponeBudgetLine.mockResolvedValue(
+      'Le mois suivant est déjà clôturé',
+    );
+
+    await component['handlePostponeBudgetLine']('line-1');
+
+    expect(mockSnackBar.open).toHaveBeenCalledWith(
+      'Le mois suivant est déjà clôturé',
+      expect.anything(),
+      expect.objectContaining({ panelClass: expect.anything() }),
+    );
+  });
+
+  it('confirms the move when a postpone goes through', async () => {
+    mockDialogService.confirmPostpone.mockResolvedValue(true);
+    mockStore.nextMonthLabel.set('septembre 2026');
+
+    await component['handlePostponeBudgetLine']('line-1');
+
+    expect(mockSnackBar.open).toHaveBeenCalledWith(
+      expect.stringContaining('septembre 2026'),
+      expect.anything(),
+      expect.objectContaining({ duration: 5000 }),
+    );
   });
 });
 

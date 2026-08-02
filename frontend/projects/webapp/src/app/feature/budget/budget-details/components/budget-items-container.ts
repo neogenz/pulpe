@@ -53,7 +53,10 @@ import { BudgetViewToggle } from './budget-view-toggle';
 import { BudgetTableCheckedFilter } from './budget-table/budget-table-checked-filter';
 import { BudgetTagFilter } from './budget-table/budget-tag-filter';
 import { BudgetDetailsDialogService } from '../budget-details-dialog.service';
-import { BudgetDetailsStore } from '../store/budget-details-store';
+import {
+  BudgetDetailsStore,
+  type MutationOutcome,
+} from '../store/budget-details-store';
 import { determineCheckBehavior } from '../store/budget-details-check.utils';
 import {
   computeEnvelopeSnackbarMessage,
@@ -523,10 +526,13 @@ export class BudgetItemsContainer {
     this.#notifySpread(outcome);
   }
 
-  #notifySpread(outcome: BudgetLineSpreadResponse['data'] | undefined): void {
-    if (!outcome) return;
+  #notifySpread(
+    outcome: MutationOutcome<BudgetLineSpreadResponse['data']>,
+  ): void {
+    const spread = outcome.data;
+    if (!spread) return;
     const snackbarRef = this.#snackBar.open(
-      computeSpreadSnackbarMessage(outcome, this.#transloco),
+      computeSpreadSnackbarMessage(spread, this.#transloco),
       this.#transloco.translate('budgetLine.spread.successAction'),
       { duration: 6000 },
     );
@@ -534,7 +540,7 @@ export class BudgetItemsContainer {
       .onAction()
       .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe(() => {
-        this.store.setSpreadGroupId(outcome.spreadGroupId);
+        this.store.setSpreadGroupId(spread.spreadGroupId);
         this.#dialogService.openSpreadOccurrences(this.isMobile());
       });
   }
@@ -659,8 +665,11 @@ export class BudgetItemsContainer {
       behavior === 'ask-cascade' &&
       (await this.#dialogService.confirmCheckAllocatedTransactions());
 
-    const succeeded = await this.store.toggleCheck(budgetLineId);
-    if (!succeeded) return;
+    const error = await this.store.toggleCheck(budgetLineId);
+    if (error) {
+      openMutationErrorSnackbar(error, this.#snackBar, this.#transloco);
+      return;
+    }
 
     if (shouldCascade) {
       await this.store.checkAllAllocatedTransactions(budgetLineId);
@@ -756,25 +765,15 @@ export class BudgetItemsContainer {
     }
   }
 
-  async #postpone(mutate: () => Promise<boolean>): Promise<void> {
+  async #postpone(mutate: () => Promise<string | null>): Promise<void> {
     const nextMonthLabel = this.store.nextMonthLabel();
     const confirmed = await this.#dialogService.confirmPostpone(nextMonthLabel);
     if (!confirmed) return;
 
-    const succeeded = await mutate();
+    const error = await mutate();
 
-    if (!succeeded) {
-      const error = this.store.error();
-      this.#snackBar.open(
-        typeof error === 'string'
-          ? error
-          : this.#transloco.translate('budget.postponeError'),
-        this.#transloco.translate('common.close'),
-        {
-          duration: 5000,
-          panelClass: ['bg-error-container', 'text-on-error-container'],
-        },
-      );
+    if (error) {
+      openMutationErrorSnackbar(error, this.#snackBar, this.#transloco);
       return;
     }
 

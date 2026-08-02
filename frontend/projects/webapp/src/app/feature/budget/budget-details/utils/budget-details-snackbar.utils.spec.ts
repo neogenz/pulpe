@@ -259,9 +259,7 @@ describe('submitSpreadWithRetry', () => {
       .mockReturnValue({ onAction: () => new Subject<void>() });
     const snackBar = { open } as unknown as MatSnackBar;
     const create = vi.fn().mockResolvedValue({
-      lines: [{}],
-      createdBudgets: [],
-      skippedMonths: [],
+      data: { lines: [{}], createdBudgets: [], skippedMonths: [] },
     });
 
     await submitSpreadWithRetry(spreadValue, create, snackBar, transloco);
@@ -276,7 +274,7 @@ describe('submitSpreadWithRetry', () => {
     const action$ = new Subject<void>();
     const open = vi.fn().mockReturnValue({ onAction: () => action$ });
     const snackBar = { open } as unknown as MatSnackBar;
-    const create = vi.fn().mockResolvedValue(undefined);
+    const create = vi.fn().mockResolvedValue({});
 
     await submitSpreadWithRetry(spreadValue, create, snackBar, transloco);
 

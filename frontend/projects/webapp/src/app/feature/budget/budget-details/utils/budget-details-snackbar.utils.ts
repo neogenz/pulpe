@@ -11,6 +11,7 @@ import type {
 } from 'pulpe-shared';
 
 import { AppCurrencyPipe } from '@core/currency';
+import type { MutationOutcome } from '../store/budget-details-store';
 
 const currencyPipe = new AppCurrencyPipe();
 
@@ -76,14 +77,14 @@ export async function submitSpreadWithRetry(
   value: BudgetLineSpreadCreate,
   create: (
     value: BudgetLineSpreadCreate,
-  ) => Promise<BudgetLineSpreadResponse['data'] | undefined>,
+  ) => Promise<MutationOutcome<BudgetLineSpreadResponse['data']>>,
   snackBar: MatSnackBar,
   transloco: TranslocoService,
 ): Promise<void> {
   const outcome = await create(value);
-  if (outcome) {
+  if (outcome.data) {
     snackBar.open(
-      computeSpreadSnackbarMessage(outcome, transloco),
+      computeSpreadSnackbarMessage(outcome.data, transloco),
       transloco.translate('common.close'),
       { duration: 5000 },
     );
@@ -130,12 +131,12 @@ export async function submitSavingsWithdrawalWithRetry(
   value: BudgetLineSavingsWithdrawalCreate,
   create: (
     value: BudgetLineSavingsWithdrawalCreate,
-  ) => Promise<BudgetLineSavingsWithdrawalResponse['data'] | undefined>,
+  ) => Promise<MutationOutcome<BudgetLineSavingsWithdrawalResponse['data']>>,
   snackBar: MatSnackBar,
   transloco: TranslocoService,
 ): Promise<void> {
   const outcome = await create(value);
-  if (outcome) {
+  if (outcome.data) {
     snackBar.open(
       transloco.translate('budget.savingsWithdrawal.success'),
       transloco.translate('common.close'),

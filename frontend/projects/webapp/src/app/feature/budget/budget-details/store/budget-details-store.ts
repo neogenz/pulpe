@@ -62,6 +62,16 @@ import {
   buildSpreadTracker,
 } from '../spread-occurrences/spread-occurrence.view-model';
 
+/**
+ * What a mutation that carries a payload gives back: the payload on success, the
+ * localized reason on refusal. Mutations with nothing to return say the same
+ * thing with a plain `string | null` — `null` meaning it went through.
+ */
+export interface MutationOutcome<T> {
+  data?: T;
+  error?: string;
+}
+
 const BUDGET_DETAIL_INVALIDATION_KEYS: string[][] = [
   ['budget', 'details'],
   ['budget', 'list'],
@@ -253,9 +263,10 @@ export class BudgetDetailsStore {
   );
   readonly isInitialLoading = this.#budgetDetailsResource.isInitialLoading;
   readonly hasValue = computed(() => this.budgetDetails() !== null);
-  readonly error = computed(
-    () => this.#budgetDetailsResource.error() || this.#state.errorMessage(),
-  );
+  // The page renders this as a card that REPLACES the whole budget, so it means
+  // one thing only: the budget could not be loaded. A refused mutation is not an
+  // unloadable budget — it travels back through its own return value instead.
+  readonly error = this.#budgetDetailsResource.error;
   readonly isStale = this.#budgetDetailsResource.isStale;
 
   // Goal id → name, for the linked-goal affordance on saving envelopes. Empty
@@ -548,12 +559,17 @@ export class BudgetDetailsStore {
 
   // ── 5. Mutations (async/await) ──
 
-  // Same contract as #lastSavingsWithdrawalDeleteError: a create/update failure
-  // surfaces via the caller's snackbar (return value) and NEVER the page-level
-  // errorMessage, which the page renders as the generic load-error card — a
-  // refused line must not make the whole budget look unloadable. Single-flight
-  // (one dialog at a time), so a plain field is enough.
-  #lastBudgetLineWriteError: string | null = null;
+  // Every mutation's onError writes its localized message here; every public
+  // method clears it before calling mutate and reads it after. That read is the
+  // ONLY valid failure test: `mutate()` resolves `undefined` on error, but two
+  // of these mutations are typed `void`, so `undefined` is also their success
+  // value — `response !== undefined` would report failure on every success.
+  //
+  // One field for all of them: everything but the three checks is single-flight
+  // (driven by a dialog), and the three checks — guarded per id by #mutatingIds,
+  // so two ids CAN fail at once — carry a constant message, so concurrent
+  // failures produce the same string and there is nothing to clobber.
+  #lastMutationError: string | null = null;
 
   readonly #createBudgetLineMutation = cachedMutation<
     BudgetLineCreate & { id: string },
@@ -590,7 +606,7 @@ export class BudgetDetailsStore {
     },
     onError: (error, _args, previous) => {
       if (previous) this.#budgetDetailsResource.set(previous);
-      this.#lastBudgetLineWriteError = this.#localizeError(
+      this.#lastMutationError = this.#localizeError(
         error,
         'budget.forecastCreateError',
       );
@@ -601,16 +617,9 @@ export class BudgetDetailsStore {
   /** Returns the localized error message on failure, or `null` on success. */
   async createBudgetLine(input: BudgetLineCreate): Promise<string | null> {
     const id = input.id ?? uuidv4();
-    this.#lastBudgetLineWriteError = null;
-    const response = await this.#createBudgetLineMutation.mutate({
-      ...input,
-      id,
-    });
-    if (response !== undefined) return null;
-    return (
-      this.#lastBudgetLineWriteError ??
-      this.#transloco.translate('budget.forecastCreateError')
-    );
+    this.#lastMutationError = null;
+    await this.#createBudgetLineMutation.mutate({ ...input, id });
+    return this.#lastMutationError;
   }
 
   // PUL-17 — a spread fans out across N months (possibly auto-creating budgets),
@@ -630,9 +639,13 @@ export class BudgetDetailsStore {
 
   async createBudgetLineSpread(
     input: BudgetLineSpreadCreate,
-  ): Promise<BudgetLineSpreadResponse['data'] | undefined> {
+  ): Promise<MutationOutcome<BudgetLineSpreadResponse['data']>> {
+    this.#lastMutationError = null;
     const response = await this.#createBudgetLineSpreadMutation.mutate(input);
-    return response?.data;
+    if (this.#lastMutationError !== null) {
+      return { error: this.#lastMutationError };
+    }
+    return { data: response?.data };
   }
 
   // PUL-292 — creating the pioche couple fans out across M and M+1 (possibly
@@ -653,18 +666,14 @@ export class BudgetDetailsStore {
 
   async createSavingsWithdrawal(
     input: BudgetLineSavingsWithdrawalCreate,
-  ): Promise<BudgetLineSavingsWithdrawalResponse['data'] | undefined> {
+  ): Promise<MutationOutcome<BudgetLineSavingsWithdrawalResponse['data']>> {
+    this.#lastMutationError = null;
     const response = await this.#createSavingsWithdrawalMutation.mutate(input);
-    return response?.data;
+    if (this.#lastMutationError !== null) {
+      return { error: this.#lastMutationError };
+    }
+    return { data: response?.data };
   }
-
-  // Set by the delete mutation's onError, read by the public method — so a delete
-  // failure surfaces via the caller's snackbar (return value) and NEVER the
-  // page-level errorMessage: a grouped delete that fails (e.g. the group was
-  // already removed in another tab) must not flip the whole page to the generic
-  // load-error card. Single-flight (one delete dialog at a time), so a plain
-  // field is enough.
-  #lastSavingsWithdrawalDeleteError: string | null = null;
 
   readonly #deleteSavingsWithdrawalMutation = cachedMutation<
     { groupId: string; scope: BudgetLineSavingsWithdrawalDeleteQuery['scope'] },
@@ -677,7 +686,7 @@ export class BudgetDetailsStore {
       this.#budgetApi.deleteSavingsWithdrawal$(groupId, scope),
     onSuccess: () => this.#onFinancialMutationSuccess(),
     onError: (error) => {
-      this.#lastSavingsWithdrawalDeleteError = this.#localizeError(
+      this.#lastMutationError = this.#localizeError(
         error,
         'budget.savingsWithdrawal.error',
       );
@@ -690,16 +699,9 @@ export class BudgetDetailsStore {
     groupId: string,
     scope: BudgetLineSavingsWithdrawalDeleteQuery['scope'],
   ): Promise<string | null> {
-    this.#lastSavingsWithdrawalDeleteError = null;
-    const response = await this.#deleteSavingsWithdrawalMutation.mutate({
-      groupId,
-      scope,
-    });
-    if (response !== undefined) return null;
-    return (
-      this.#lastSavingsWithdrawalDeleteError ??
-      this.#transloco.translate('budget.savingsWithdrawal.error')
-    );
+    this.#lastMutationError = null;
+    await this.#deleteSavingsWithdrawalMutation.mutate({ groupId, scope });
+    return this.#lastMutationError;
   }
 
   // PUL-17 v1.1 — total-preserving spread of an EXISTING source (prévision OR
@@ -727,12 +729,16 @@ export class BudgetDetailsStore {
   async spreadExistingBudgetLine(
     id: string,
     periods: SpreadFromExistingPeriod[],
-  ): Promise<BudgetLineSpreadResponse['data'] | undefined> {
+  ): Promise<MutationOutcome<BudgetLineSpreadResponse['data']>> {
+    this.#lastMutationError = null;
     const response = await this.#spreadExistingBudgetLineMutation.mutate({
       id,
       periods,
     });
-    return response?.data;
+    if (this.#lastMutationError !== null) {
+      return { error: this.#lastMutationError };
+    }
+    return { data: response?.data };
   }
 
   readonly #spreadExistingTransactionMutation = cachedMutation<
@@ -754,12 +760,16 @@ export class BudgetDetailsStore {
   async spreadExistingTransaction(
     id: string,
     periods: SpreadFromExistingPeriod[],
-  ): Promise<BudgetLineSpreadResponse['data'] | undefined> {
+  ): Promise<MutationOutcome<BudgetLineSpreadResponse['data']>> {
+    this.#lastMutationError = null;
     const response = await this.#spreadExistingTransactionMutation.mutate({
       id,
       periods,
     });
-    return response?.data;
+    if (this.#lastMutationError !== null) {
+      return { error: this.#lastMutationError };
+    }
+    return { data: response?.data };
   }
 
   readonly #updateBudgetLineMutation = cachedMutation<
@@ -785,7 +795,7 @@ export class BudgetDetailsStore {
     onSuccess: () => this.#onFinancialMutationSuccess(),
     onError: (error, _args, previous) => {
       if (previous) this.#budgetDetailsResource.set(previous);
-      this.#lastBudgetLineWriteError = this.#localizeError(
+      this.#lastMutationError = this.#localizeError(
         error,
         'budget.forecastUpdateError',
       );
@@ -795,13 +805,9 @@ export class BudgetDetailsStore {
 
   /** Returns the localized error message on failure, or `null` on success. */
   async updateBudgetLine(data: BudgetLineUpdate): Promise<string | null> {
-    this.#lastBudgetLineWriteError = null;
-    const response = await this.#updateBudgetLineMutation.mutate(data);
-    if (response !== undefined) return null;
-    return (
-      this.#lastBudgetLineWriteError ??
-      this.#transloco.translate('budget.forecastUpdateError')
-    );
+    this.#lastMutationError = null;
+    await this.#updateBudgetLineMutation.mutate(data);
+    return this.#lastMutationError;
   }
 
   readonly #updateTransactionMutation = cachedMutation<
@@ -827,14 +833,20 @@ export class BudgetDetailsStore {
     onSuccess: () => this.#onFinancialMutationSuccess(),
     onError: (_err, _args, previous) => {
       if (previous) this.#budgetDetailsResource.set(previous);
-      this.#setError(
+      this.#failMutation(
         this.#transloco.translate('budget.transactionUpdateError'),
       );
     },
   });
 
-  async updateTransaction(id: string, data: TransactionUpdate): Promise<void> {
+  /** Returns the localized error message on failure, or `null` on success. */
+  async updateTransaction(
+    id: string,
+    data: TransactionUpdate,
+  ): Promise<string | null> {
+    this.#lastMutationError = null;
     await this.#updateTransactionMutation.mutate({ id, data });
+    return this.#lastMutationError;
   }
 
   readonly #deleteBudgetLineMutation = cachedMutation<
@@ -860,12 +872,17 @@ export class BudgetDetailsStore {
     onSuccess: () => this.#onFinancialMutationSuccess(),
     onError: (_err, _args, previous) => {
       if (previous) this.#budgetDetailsResource.set(previous);
-      this.#setError(this.#transloco.translate('budget.forecastDeleteError'));
+      this.#failMutation(
+        this.#transloco.translate('budget.forecastDeleteError'),
+      );
     },
   });
 
-  async deleteBudgetLine(id: string): Promise<void> {
+  /** Returns the localized error message on failure, or `null` on success. */
+  async deleteBudgetLine(id: string): Promise<string | null> {
+    this.#lastMutationError = null;
     await this.#deleteBudgetLineMutation.mutate(id);
+    return this.#lastMutationError;
   }
 
   readonly #deleteTransactionMutation = cachedMutation<
@@ -888,14 +905,17 @@ export class BudgetDetailsStore {
     onSuccess: () => this.#onFinancialMutationSuccess(),
     onError: (_err, _args, previous) => {
       if (previous) this.#budgetDetailsResource.set(previous);
-      this.#setError(
+      this.#failMutation(
         this.#transloco.translate('budget.transactionDeleteError'),
       );
     },
   });
 
-  async deleteTransaction(id: string): Promise<void> {
+  /** Returns the localized error message on failure, or `null` on success. */
+  async deleteTransaction(id: string): Promise<string | null> {
+    this.#lastMutationError = null;
     await this.#deleteTransactionMutation.mutate(id);
+    return this.#lastMutationError;
   }
 
   readonly #createAllocatedTransactionMutation = cachedMutation<
@@ -939,20 +959,23 @@ export class BudgetDetailsStore {
     },
     onError: (_err, _args, previous) => {
       if (previous) this.#budgetDetailsResource.set(previous);
-      this.#setError(
+      this.#failMutation(
         this.#transloco.translate('budget.transactionCreateError'),
       );
     },
   });
 
+  /** Returns the localized error message on failure, or `null` on success. */
   async createAllocatedTransaction(
     transactionData: TransactionCreate,
-  ): Promise<void> {
+  ): Promise<string | null> {
     const id = transactionData.id ?? uuidv4();
+    this.#lastMutationError = null;
     await this.#createAllocatedTransactionMutation.mutate({
       ...transactionData,
       id,
     });
+    return this.#lastMutationError;
   }
 
   readonly #resetBudgetLineMutation = cachedMutation<
@@ -973,16 +996,25 @@ export class BudgetDetailsStore {
       this.#onFinancialMutationSuccess();
     },
     onError: (error) => {
-      this.#setError(this.#localizeError(error, 'budget.forecastResetError'));
+      this.#failMutation(
+        this.#localizeError(error, 'budget.forecastResetError'),
+      );
       this.#logger.error('Error resetting budget line from template', error);
     },
   });
 
-  async resetBudgetLineFromTemplate(id: string): Promise<void> {
-    if (this.#mutatingIds.has(id)) return;
+  /**
+   * Returns the localized error message on failure, or `null` on success.
+   * A guard that skips the call also returns `null`: the gesture was a duplicate
+   * of one already in flight, so there is nothing to tell the user about.
+   */
+  async resetBudgetLineFromTemplate(id: string): Promise<string | null> {
+    if (this.#mutatingIds.has(id)) return null;
     this.#mutatingIds.add(id);
+    this.#lastMutationError = null;
     try {
       await this.#resetBudgetLineMutation.mutate(id);
+      return this.#lastMutationError;
     } finally {
       this.#mutatingIds.delete(id);
     }
@@ -1012,12 +1044,14 @@ export class BudgetDetailsStore {
     },
   });
 
-  async postponeBudgetLine(id: string): Promise<boolean> {
-    if (this.#mutatingIds.has(id)) return false;
+  /** Returns the localized error message on failure, or `null` on success. */
+  async postponeBudgetLine(id: string): Promise<string | null> {
+    if (this.#mutatingIds.has(id)) return null;
     this.#mutatingIds.add(id);
+    this.#lastMutationError = null;
     try {
-      const result = await this.#postponeBudgetLineMutation.mutate(id);
-      return result !== undefined;
+      await this.#postponeBudgetLineMutation.mutate(id);
+      return this.#lastMutationError;
     } finally {
       this.#mutatingIds.delete(id);
     }
@@ -1047,12 +1081,14 @@ export class BudgetDetailsStore {
     },
   });
 
-  async postponeTransaction(id: string): Promise<boolean> {
-    if (this.#mutatingIds.has(id)) return false;
+  /** Returns the localized error message on failure, or `null` on success. */
+  async postponeTransaction(id: string): Promise<string | null> {
+    if (this.#mutatingIds.has(id)) return null;
     this.#mutatingIds.add(id);
+    this.#lastMutationError = null;
     try {
-      const result = await this.#postponeTransactionMutation.mutate(id);
-      return result !== undefined;
+      await this.#postponeTransactionMutation.mutate(id);
+      return this.#lastMutationError;
     } finally {
       this.#mutatingIds.delete(id);
     }
@@ -1093,23 +1129,27 @@ export class BudgetDetailsStore {
     },
     onError: (_err, _id, previous) => {
       if (previous) this.#budgetDetailsResource.set(previous);
-      this.#setError(this.#transloco.translate('budget.forecastToggleError'));
+      this.#failMutation(
+        this.#transloco.translate('budget.forecastToggleError'),
+      );
     },
   });
 
-  async toggleCheck(id: string): Promise<boolean> {
-    if (this.#mutatingIds.has(id)) return false;
+  /** Returns the localized error message on failure, or `null` on success. */
+  async toggleCheck(id: string): Promise<string | null> {
+    if (this.#mutatingIds.has(id)) return null;
 
     const details = this.budgetDetails();
-    if (!details) return false;
+    if (!details) return null;
 
     const lineExists = details.budgetLines.some((l) => l.id === id);
-    if (!lineExists) return false;
+    if (!lineExists) return null;
 
     this.#mutatingIds.add(id);
+    this.#lastMutationError = null;
     try {
-      const result = await this.#toggleCheckMutation.mutate(id);
-      return result !== undefined;
+      await this.#toggleCheckMutation.mutate(id);
+      return this.#lastMutationError;
     } finally {
       this.#mutatingIds.delete(id);
     }
@@ -1149,17 +1189,20 @@ export class BudgetDetailsStore {
     },
     onError: (_err, _id, previous) => {
       if (previous) this.#budgetDetailsResource.set(previous);
-      this.#setError(
+      this.#failMutation(
         this.#transloco.translate('budget.transactionToggleError'),
       );
     },
   });
 
-  async toggleTransactionCheck(id: string): Promise<void> {
-    if (this.#mutatingIds.has(id)) return;
+  /** Returns the localized error message on failure, or `null` on success. */
+  async toggleTransactionCheck(id: string): Promise<string | null> {
+    if (this.#mutatingIds.has(id)) return null;
     this.#mutatingIds.add(id);
+    this.#lastMutationError = null;
     try {
       await this.#toggleTransactionCheckMutation.mutate(id);
+      return this.#lastMutationError;
     } finally {
       this.#mutatingIds.delete(id);
     }
@@ -1213,21 +1256,26 @@ export class BudgetDetailsStore {
     },
     onError: (_err, _id, previous) => {
       if (previous) this.#budgetDetailsResource.set(previous);
-      this.#setError(this.#transloco.translate('budget.checkAllError'));
+      this.#failMutation(this.#transloco.translate('budget.checkAllError'));
     },
   });
 
-  async checkAllAllocatedTransactions(budgetLineId: string): Promise<void> {
-    if (this.#mutatingIds.has(budgetLineId)) return;
+  /** Returns the localized error message on failure, or `null` on success. */
+  async checkAllAllocatedTransactions(
+    budgetLineId: string,
+  ): Promise<string | null> {
+    if (this.#mutatingIds.has(budgetLineId)) return null;
     const details = this.budgetDetails();
-    if (!details) return;
+    if (!details) return null;
     const hasUnchecked = details.transactions.some(
       (tx) => tx.budgetLineId === budgetLineId && tx.checkedAt === null,
     );
-    if (!hasUnchecked) return;
+    if (!hasUnchecked) return null;
     this.#mutatingIds.add(budgetLineId);
+    this.#lastMutationError = null;
     try {
       await this.#checkAllAllocatedMutation.mutate(budgetLineId);
+      return this.#lastMutationError;
     } finally {
       this.#mutatingIds.delete(budgetLineId);
     }
@@ -1235,7 +1283,6 @@ export class BudgetDetailsStore {
 
   reloadBudgetDetails(): void {
     this.#budgetDetailsResource.reload();
-    this.#clearError();
   }
 
   // ── 6. Private utility methods ──
@@ -1250,8 +1297,8 @@ export class BudgetDetailsStore {
     });
   }
 
-  #setError(error: string): void {
-    this.#state.errorMessage.set(error);
+  #failMutation(message: string): void {
+    this.#lastMutationError = message;
   }
 
   // Shared failure path for the 2 postpone mutations (mirrors #handleSpreadError):
@@ -1259,7 +1306,7 @@ export class BudgetDetailsStore {
   // expected business errors (already-checked, concurrent-mod) are surfaced to
   // the user, not logged as noise.
   #handlePostponeError(error: unknown): void {
-    this.#setError(this.#localizeError(error, 'budget.postponeError'));
+    this.#failMutation(this.#localizeError(error, 'budget.postponeError'));
     if (!isApiError(error)) {
       this.#logger.error('Error postponing item to next month', error);
     }
@@ -1275,25 +1322,20 @@ export class BudgetDetailsStore {
 
   // Shared failure path for the 3 spread mutations (identical key + log).
   #handleSpreadError(error: unknown): void {
-    this.#setError(this.#localizeError(error, 'budgetLine.spread.error'));
+    this.#failMutation(this.#localizeError(error, 'budgetLine.spread.error'));
     this.#logger.error('Spread mutation failed', error);
   }
 
   // Shared failure path for the 2 savings-withdrawal mutations (PUL-292):
   // localize a typed ApiError via its code, else fall back to the generic key.
   #handleSavingsWithdrawalError(error: unknown): void {
-    this.#setError(
+    this.#failMutation(
       this.#localizeError(error, 'budget.savingsWithdrawal.error'),
     );
     this.#logger.error('Savings withdrawal mutation failed', error);
   }
 
-  #clearError(): void {
-    this.#state.errorMessage.set(null);
-  }
-
   #onFinancialMutationSuccess(): void {
-    this.#clearError();
     this.#prefetchAdjacentBudgets(null, this.nextBudgetId());
   }
 

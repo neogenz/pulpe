@@ -51,7 +51,10 @@ function configureDialog(
       { provide: MatDialogRef, useValue: dialogRef },
       {
         provide: MAT_DIALOG_DATA,
-        useValue: { budgetLine } satisfies EditBudgetLineDialogData,
+        useValue: {
+          budgetLine,
+          budgetPeriod: { month: 1, year: 2026 },
+        } satisfies EditBudgetLineDialogData,
       },
       { provide: UserSettingsStore, useValue: settings },
       { provide: CurrencyConverterService, useValue: converter },

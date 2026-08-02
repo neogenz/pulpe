@@ -291,7 +291,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       // error() drives the full-page load-error card, which a refused line
       // must never trigger.
       expect(error).toBeTruthy();
-      expect(service.error()).toBeNull();
+      expect(service.error()).toBeUndefined();
     });
 
     it('surfaces the goal-horizon refusal instead of the generic add-failure copy', async () => {
@@ -316,7 +316,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
 
       const localizer = TestBed.inject(ApiErrorLocalizer);
       expect(error).toBe(localizer.localizeApiError(horizonError));
-      expect(service.error()).toBeNull();
+      expect(service.error()).toBeUndefined();
     });
   });
 
@@ -369,7 +369,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       // Same contract as create: the message goes back to the caller's toast,
       // never onto the page-level error signal.
       expect(error).toBeTruthy();
-      expect(service.error()).toBeNull();
+      expect(service.error()).toBeUndefined();
 
       // Original values are preserved (via reload)
       // User doesn't see the failed update stuck in UI
@@ -389,7 +389,11 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       const initialCount = service.budgetDetails()?.budgetLines.length || 0;
 
       // User deletes the rent expense
-      await service.deleteBudgetLine('line-2');
+      const error = await service.deleteBudgetLine('line-2');
+
+      // The delete mutation resolves `undefined` on SUCCESS too (its response is
+      // void), so a null message is the only thing that tells the two apart.
+      expect(error).toBeNull();
 
       // The line is no longer visible
       const remainingLines = service.budgetDetails()?.budgetLines;
@@ -403,10 +407,11 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         .mockReturnValue(throwError(() => new Error('Cannot delete')));
 
       // User tries to delete but server refuses
-      await service.deleteBudgetLine('line-2');
+      const error = await service.deleteBudgetLine('line-2');
 
-      // Error is shown
-      expect(service.error()).toBeTruthy();
+      // The caller gets the message to toast, and the page stays loaded.
+      expect(error).toBeTruthy();
+      expect(service.error()).toBeUndefined();
 
       // The line remains in the list (data reloaded from server)
       // User sees that deletion didn't go through
@@ -680,7 +685,11 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       mockBudgetApi.deleteTransaction$ = vi.fn().mockReturnValue(of({}));
 
       // User deletes the transaction
-      await service.deleteTransaction(transactionToDelete.id);
+      const error = await service.deleteTransaction(transactionToDelete.id);
+
+      // Same void-response trap as deleteBudgetLine: a null motive is the only
+      // thing that separates this success from a failure.
+      expect(error).toBeNull();
 
       // The transaction is no longer in the list
       const remainingTransactions = service.budgetDetails()?.transactions || [];
@@ -695,6 +704,18 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       service.setBudgetId(mockBudgetId);
       TestBed.tick();
       await waitForResourceStable();
+    });
+
+    it('surfaces the load-error card when the budget itself cannot be fetched', async () => {
+      mockBudgetApi.getBudgetWithDetails$ = vi
+        .fn()
+        .mockReturnValue(throwError(() => new Error('Backend down')));
+
+      service.setBudgetId('budget-unreachable');
+      TestBed.tick();
+      await vi.waitFor(() => {
+        expect(service.error()).toBeTruthy();
+      });
     });
 
     it('user sees error message when network fails', async () => {
@@ -714,7 +735,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
 
       // User sees that something went wrong, in a toast over a live budget
       expect(error).toBeTruthy();
-      expect(service.error()).toBeNull();
+      expect(service.error()).toBeUndefined();
     });
 
     it('user cannot add expenses with negative amounts', async () => {
@@ -743,7 +764,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
 
       // User sees an error occurred
       expect(error).toBeTruthy();
-      expect(service.error()).toBeNull();
+      expect(service.error()).toBeUndefined();
     });
   });
 
@@ -1025,9 +1046,9 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         }),
       );
 
-      const succeeded = await service.toggleCheck('line-to-check');
+      const error = await service.toggleCheck('line-to-check');
 
-      expect(succeeded).toBe(true);
+      expect(error).toBeNull();
       const updatedLine = service
         .budgetDetails()
         ?.budgetLines.find((line) => line.id === 'line-to-check');
@@ -1039,7 +1060,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       expect(unchangedTransaction?.checkedAt).toBeNull();
     });
 
-    it('returns false and sets an error when envelope toggle fails', async () => {
+    it('returns the message and leaves the page loaded when envelope toggle fails', async () => {
       const targetLine = createMockBudgetLine({
         id: 'line-toggle-fail',
         budgetId: mockBudgetId,
@@ -1068,20 +1089,20 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         .fn()
         .mockReturnValue(throwError(() => new Error('Toggle failed')));
 
-      const succeeded = await service.toggleCheck('line-toggle-fail');
+      const error = await service.toggleCheck('line-toggle-fail');
 
-      expect(succeeded).toBe(false);
-      expect(service.error()).toBeTruthy();
+      expect(error).toBeTruthy();
+      expect(service.error()).toBeUndefined();
     });
 
-    it('returns false and skips API call when envelope does not exist', async () => {
+    it('reports nothing and skips API call when envelope does not exist', async () => {
       service.setBudgetId(mockBudgetId);
       TestBed.tick();
       await waitForResourceStable();
 
-      const succeeded = await service.toggleCheck('line-does-not-exist');
+      const error = await service.toggleCheck('line-does-not-exist');
 
-      expect(succeeded).toBe(false);
+      expect(error).toBeNull();
       expect(mockBudgetApi.toggleBudgetLineCheck$).not.toHaveBeenCalled();
     });
 
@@ -1583,9 +1604,9 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
 
       const initialCount = service.budgetDetails()?.budgetLines.length ?? 0;
 
-      const succeeded = await service.postponeBudgetLine('line-2');
+      const error = await service.postponeBudgetLine('line-2');
 
-      expect(succeeded).toBe(true);
+      expect(error).toBeNull();
       const remaining = service.budgetDetails()?.budgetLines;
       expect(remaining?.length).toBe(initialCount - 1);
       expect(remaining?.find((l) => l.id === 'line-2')).toBeUndefined();
@@ -1597,10 +1618,10 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         .fn()
         .mockReturnValue(throwError(() => new Error('Cannot postpone')));
 
-      const succeeded = await service.postponeBudgetLine('line-2');
+      const error = await service.postponeBudgetLine('line-2');
 
-      expect(succeeded).toBe(false);
-      expect(service.error()).toBeTruthy();
+      expect(error).toBeTruthy();
+      expect(service.error()).toBeUndefined();
       expect(
         service.budgetDetails()?.budgetLines.find((l) => l.id === 'line-2'),
       ).toBeDefined();
@@ -1620,9 +1641,9 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
 
       const initialCount = service.budgetDetails()?.transactions.length ?? 0;
 
-      const succeeded = await service.postponeTransaction('tx-1');
+      const error = await service.postponeTransaction('tx-1');
 
-      expect(succeeded).toBe(true);
+      expect(error).toBeNull();
       const remaining = service.budgetDetails()?.transactions;
       expect(remaining?.length).toBe(initialCount - 1);
       expect(remaining?.find((t) => t.id === 'tx-1')).toBeUndefined();
