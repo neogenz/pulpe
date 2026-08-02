@@ -191,7 +191,7 @@ paceStatus = behind | on_track | ahead          // via paceStatus(projected, tar
 | **PAUSED**                            | `paceStatus = null` (pas de jugement de rythme sur un objectif en pause).                                                            |
 | **Ancrage**                           | `createdAt` ramené à son **cycle** via `getBudgetPeriodForDate` (un objectif créé le 28 d'un payDay=25 appartient au cycle suivant). |
 | **Pointage anticipé d'un mois futur** | Le pointage est accepté ; il entre dans `confirmed` et est retiré du reliquat planifié pour ne pas être compté deux fois.             |
-| **Montant de départ (stock vs flux)** | `initialAmount` entre dans `confirmed` (barre, %, `required`, `projected`, D2) mais **jamais** dans `confirmedPace` ni `cumulativeGap` (`= plannedCumulative − linesConfirmed`). |
+| **Montant de départ (stock vs flux)** | `initialAmount` entre dans `confirmed` (barre, %, `required`, `projected`, D2) mais **jamais** dans `confirmedPace` ni `cumulativeGap` (`= plannedCumulative − (linesConfirmed − retraits déjà survenus)`). |
 | **Retrait (stock vs flux)**           | Se retranche de `confirmed` (donc de la barre, du %, de `required`, de `projected`, de `estimatedCompletion`) et de `cumulativeGap` pour les retraits déjà survenus, mais **jamais** de `confirmedPace`, `plannedCumulative` ni `plannedProjection` (§11). |
 | **Montant de départ ≥ cible**         | `suggestCompletion = true` dès la création (D2) — jamais d'auto-flip, l'utilisateur confirme.                                                                                    |
 | **Cible absente**                     | `achievementPercent` et `suggestCompletion` sont `null`. La simulation garde son cumul final mais ses verdicts cible et la redistribution sont désactivés.                       |
@@ -340,7 +340,7 @@ Le simulateur répond à « qu'est-ce que je fais maintenant ? » sans modifier 
 
 `GET /v1/savings-goals/:id/progress` reste l'unique lecture. En plus des métriques de progression, il expose :
 
-- `cumulativeGap = plannedCumulative - linesConfirmed`, signé et jamais borné (flux : le montant de départ en est exclu, cf. §4.3) ;
+- `cumulativeGap = plannedCumulative - (linesConfirmed - retraits déjà survenus)`, signé et jamais borné (flux : le montant de départ en est exclu, cf. §4.3 ; l'argent repris creuse le retard, cf. §11) ;
 - `plannedProjection = initialAmount + Σ Prévisions liées` dans l'intervalle ;
 - `estimatedCompletion`, période d'atteinte estimée au rythme pointé, ou `null` si elle n'est pas calculable ;
 - `initialAmount`, le montant de départ déchiffré (0 si absent) — écho pour l'affichage et le seed des simulations client ;
