@@ -85,6 +85,10 @@ export interface DemoSeededBudget {
 
 /**
  * Budget line seed input (entity-shaped). Repo encrypts `amount` internally.
+ *
+ * `checkedAt` carries the pointage: months already closed are seeded checked so
+ * the demo shows the "Pointé / À pointer" contrast instead of a flat unchecked
+ * ledger. It also gates savings goal progress, which only counts checked lines.
  */
 export interface DemoBudgetLineSeed {
   budgetId: string;
@@ -93,18 +97,36 @@ export interface DemoBudgetLineSeed {
   amount: number;
   kind: TransactionKindEnum;
   recurrence: TransactionRecurrenceEnum;
+  checkedAt: string | null;
+}
+
+/**
+ * Identifier and shape returned by the repo after inserting a budget line.
+ * The repo decrypts `amount` so callers receive plain numbers.
+ */
+export interface DemoSeededBudgetLine {
+  id: string;
+  budgetId: string;
+  name: string;
+  amount: number;
+  kind: TransactionKindEnum;
 }
 
 /**
  * Transaction seed input (entity-shaped). Repo encrypts `amount` internally.
+ *
+ * `budgetLineId` is the envelope this actual consumes; `null` is legitimate when
+ * the month's budget carries no matching prévision.
  */
 export interface DemoTransactionSeed {
   budgetId: string;
+  budgetLineId: string | null;
   name: string;
   amount: number;
   kind: TransactionKindEnum;
   tagName: string;
   transactionDate: string;
+  checkedAt: string | null;
 }
 
 export type TemplateRow = Tables<'template'>;

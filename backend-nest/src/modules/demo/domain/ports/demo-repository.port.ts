@@ -3,6 +3,7 @@ import type {
   DemoBudgetLineSeed,
   DemoBudgetSeed,
   DemoSeededBudget,
+  DemoSeededBudgetLine,
   DemoSeededTemplate,
   DemoSeededTemplateLine,
   DemoTemplateSeed,
@@ -51,11 +52,15 @@ export interface DemoRepositoryPort {
     budgets: DemoBudgetSeed[],
     supabase: AuthenticatedSupabaseClient,
   ): Promise<DemoSeededBudget[]>;
+  /**
+   * Returns the inserted lines: their generated ids are what lets a seeded
+   * transaction point at the envelope it consumes.
+   */
   insertBudgetLines(
     lines: DemoBudgetLineSeed[],
     userId: string,
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<void>;
+  ): Promise<DemoSeededBudgetLine[]>;
   insertTransactions(
     transactions: DemoTransactionSeed[],
     userId: string,

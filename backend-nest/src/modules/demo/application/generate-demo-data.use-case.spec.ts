@@ -3,7 +3,14 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
 import { BUDGET_RECALCULATION_PORT } from '../../budget/domain/ports/budget-recalculation.port';
 import { DEMO_REPOSITORY } from '../domain/ports/demo-repository.port';
+import type {
+  DemoBudgetLineSeed,
+  DemoSeededBudget,
+  DemoTransactionSeed,
+} from '../domain/demo.entity';
 import { GenerateDemoDataUseCase } from './generate-demo-data.use-case';
+
+const GROCERIES_ENVELOPE = 'Courses alimentaires';
 
 function buildMockRepo() {
   return {
@@ -14,10 +21,10 @@ function buildMockRepo() {
       {
         id: 'tl-0',
         templateId: 'template-0',
-        name: 'Salaire',
-        amount: 6500,
-        kind: 'income' as const,
-        recurrence: 'fixed' as const,
+        name: GROCERIES_ENVELOPE,
+        amount: 600,
+        kind: 'expense' as const,
+        recurrence: 'one_off' as const,
       },
     ]),
     insertBudgets: mock(async (rows: unknown[]) =>
@@ -30,9 +37,40 @@ function buildMockRepo() {
           }) as unknown,
       ),
     ),
-    insertBudgetLines: mock(async () => {}),
+    insertBudgetLines: mock(async (lines: DemoBudgetLineSeed[]) =>
+      lines.map((line, i) => ({
+        id: `budget-line-${i}`,
+        budgetId: line.budgetId,
+        name: line.name,
+        amount: line.amount,
+        kind: line.kind,
+      })),
+    ),
     insertTransactions: mock(async () => {}),
   };
+}
+
+function seededBudgets(repo: ReturnType<typeof buildMockRepo>) {
+  const [[budgets]] = (repo.insertBudgets as ReturnType<typeof mock>).mock
+    .calls;
+  return budgets as DemoSeededBudget[];
+}
+
+function seededBudgetLines(repo: ReturnType<typeof buildMockRepo>) {
+  const [[lines]] = (repo.insertBudgetLines as ReturnType<typeof mock>).mock
+    .calls;
+  return lines as DemoBudgetLineSeed[];
+}
+
+function seededTransactions(repo: ReturnType<typeof buildMockRepo>) {
+  const [[transactions]] = (repo.insertTransactions as ReturnType<typeof mock>)
+    .mock.calls;
+  return transactions as DemoTransactionSeed[];
+}
+
+function isClosedMonth(budget: DemoSeededBudget, now: Date): boolean {
+  if (budget.year !== now.getFullYear()) return budget.year < now.getFullYear();
+  return budget.month < now.getMonth() + 1;
 }
 
 describe('GenerateDemoDataUseCase', () => {
@@ -132,6 +170,104 @@ describe('GenerateDemoDataUseCase', () => {
       await expect(useCase.execute('user-1', {} as never)).rejects.toThrow(
         'DB error',
       );
+    });
+  });
+
+  describe('execute - envelope consumption', () => {
+    it('should attach a grocery actual to the grocery envelope of its own budget', async () => {
+      await useCase.execute('user-1', {} as never);
+
+      const linesByBudget = new Map(
+        seededBudgetLines(mockRepo).map((line, index) => [
+          line.budgetId,
+          `budget-line-${index}`,
+        ]),
+      );
+      const groceryActuals = seededTransactions(mockRepo).filter(
+        (tx) => tx.name === 'Migros - Courses',
+      );
+      const attached = groceryActuals.filter(
+        (tx) => tx.budgetLineId !== null && linesByBudget.has(tx.budgetId),
+      );
+
+      expect(attached.length).toBeGreaterThan(0);
+      for (const actual of attached) {
+        expect(actual.budgetLineId).toBe(
+          linesByBudget.get(actual.budgetId) ?? null,
+        );
+      }
+    });
+
+    it('should leave an actual unattached when no envelope matches it', async () => {
+      await useCase.execute('user-1', {} as never);
+
+      const seededNames = new Set(
+        seededBudgetLines(mockRepo).map((line) => line.name),
+      );
+      expect(seededNames.has('Restaurants/Sorties')).toBe(false);
+
+      const restaurantActuals = seededTransactions(mockRepo).filter(
+        (tx) => tx.name === 'Restaurant Molino',
+      );
+
+      expect(restaurantActuals.length).toBeGreaterThan(0);
+      for (const actual of restaurantActuals) {
+        expect(actual.budgetLineId).toBeNull();
+      }
+    });
+  });
+
+  describe('execute - pointage', () => {
+    it('should check every budget line of a closed month and none of the current month', async () => {
+      const now = new Date();
+
+      await useCase.execute('user-1', {} as never);
+
+      const budgetsById = new Map(
+        seededBudgets(mockRepo).map((budget, index) => [
+          `budget-${index}`,
+          budget,
+        ]),
+      );
+      const lines = seededBudgetLines(mockRepo);
+      expect(lines.length).toBeGreaterThan(0);
+
+      for (const line of lines) {
+        const budget = budgetsById.get(line.budgetId);
+        if (!budget) throw new Error(`unknown budget ${line.budgetId}`);
+
+        if (isClosedMonth(budget, now)) {
+          expect(line.checkedAt).not.toBeNull();
+        } else {
+          expect(line.checkedAt).toBeNull();
+        }
+      }
+    });
+
+    it('should check the actuals of closed months and leave the current month open', async () => {
+      const now = new Date();
+
+      await useCase.execute('user-1', {} as never);
+
+      const budgetsById = new Map(
+        seededBudgets(mockRepo).map((budget, index) => [
+          `budget-${index}`,
+          budget,
+        ]),
+      );
+      const transactions = seededTransactions(mockRepo);
+      expect(transactions.length).toBeGreaterThan(0);
+
+      for (const transaction of transactions) {
+        const budget = budgetsById.get(transaction.budgetId);
+        if (!budget) throw new Error(`unknown budget ${transaction.budgetId}`);
+
+        if (isClosedMonth(budget, now)) {
+          expect(transaction.checkedAt).toBe(transaction.transactionDate);
+        } else {
+          expect(transaction.checkedAt).toBeNull();
+        }
+      }
     });
   });
 });

@@ -14,12 +14,42 @@ import type {
   DemoBudgetLineSeed,
   DemoBudgetSeed,
   DemoSeededBudget,
+  DemoSeededBudgetLine,
   DemoSeededTemplate,
   DemoSeededTemplateLine,
   DemoTemplateSeed,
   DemoTransactionSeed,
 } from '../domain/demo.entity';
 import { DEMO_TEMPLATE_SPECS } from '../domain/demo.constants';
+
+/**
+ * The month's actuals. `envelopeName` names the prévision each one consumes —
+ * a budget built from another template may not carry it, and the actual then
+ * stays unattached, which is a legitimate state to show.
+ */
+const MONTH_TRANSACTION_SPECS = [
+  {
+    day: 5,
+    name: 'Migros - Courses',
+    amount: 127.85,
+    tagName: 'Alimentation',
+    envelopeName: 'Courses alimentaires',
+  },
+  {
+    day: 10,
+    name: 'Restaurant Molino',
+    amount: 78.5,
+    tagName: 'Restaurants',
+    envelopeName: 'Restaurants/Sorties',
+  },
+  {
+    day: 15,
+    name: 'Coop - Courses',
+    amount: 94.2,
+    tagName: 'Alimentation',
+    envelopeName: 'Courses alimentaires',
+  },
+] as const;
 
 @Injectable()
 export class GenerateDemoDataUseCase {
@@ -44,8 +74,13 @@ export class GenerateDemoDataUseCase {
       supabase,
     );
     const budgets = await this.seedBudgets(userId, templates, supabase);
-    await this.seedBudgetLines(userId, budgets, templateLines, supabase);
-    await this.seedTransactions(userId, budgets, supabase);
+    const budgetLines = await this.seedBudgetLines(
+      userId,
+      budgets,
+      templateLines,
+      supabase,
+    );
+    await this.seedTransactions(userId, budgets, budgetLines, supabase);
 
     await this.recalculateAllBudgetBalances(budgets);
     this.logger.info(
@@ -109,21 +144,27 @@ export class GenerateDemoDataUseCase {
     budgets: DemoSeededBudget[],
     templateLines: DemoSeededTemplateLine[],
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<void> {
+  ): Promise<DemoSeededBudgetLine[]> {
     const budgetLineSeeds = this.buildBudgetLineSeeds(budgets, templateLines);
-    await this.repo.insertBudgetLines(budgetLineSeeds, userId, supabase);
+    const seededLines = await this.repo.insertBudgetLines(
+      budgetLineSeeds,
+      userId,
+      supabase,
+    );
     this.logger.info(
       { userId, count: budgetLineSeeds.length },
       'Budget lines created',
     );
+    return seededLines;
   }
 
   private async seedTransactions(
     userId: string,
     budgets: DemoSeededBudget[],
+    budgetLines: DemoSeededBudgetLine[],
     supabase: AuthenticatedSupabaseClient,
   ): Promise<void> {
-    const transactionSeeds = this.buildTransactionSeeds(budgets);
+    const transactionSeeds = this.buildTransactionSeeds(budgets, budgetLines);
     await this.repo.insertTransactions(transactionSeeds, userId, supabase);
     this.logger.info(
       { userId, count: transactionSeeds.length },
@@ -213,12 +254,16 @@ export class GenerateDemoDataUseCase {
     budgets: DemoSeededBudget[],
     templateLines: DemoSeededTemplateLine[],
   ): DemoBudgetLineSeed[] {
+    const currentDate = new Date();
     const lines: DemoBudgetLineSeed[] = [];
 
     for (const budget of budgets) {
       const relevantLines = templateLines.filter(
         (tl) => tl.templateId === budget.templateId,
       );
+      const checkedAt = this.isClosedMonth(budget, currentDate)
+        ? this.endOfMonth(budget)
+        : null;
 
       for (const templateLine of relevantLines) {
         lines.push({
@@ -228,6 +273,7 @@ export class GenerateDemoDataUseCase {
           amount: templateLine.amount,
           kind: templateLine.kind,
           recurrence: templateLine.recurrence,
+          checkedAt,
         });
       }
     }
@@ -235,14 +281,38 @@ export class GenerateDemoDataUseCase {
     return lines;
   }
 
+  /** A month strictly before the current one is closed: its ledger is settled. */
+  private isClosedMonth(
+    budget: { month: number; year: number },
+    currentDate: Date,
+  ): boolean {
+    if (budget.year !== currentDate.getFullYear()) {
+      return budget.year < currentDate.getFullYear();
+    }
+    return budget.month < currentDate.getMonth() + 1;
+  }
+
+  private endOfMonth(budget: { month: number; year: number }): string {
+    const lastDay = new Date(budget.year, budget.month, 0).getDate();
+    return new Date(budget.year, budget.month - 1, lastDay).toISOString();
+  }
+
   private buildTransactionSeeds(
     budgets: DemoSeededBudget[],
+    budgetLines: DemoSeededBudgetLine[],
   ): DemoTransactionSeed[] {
     const currentDate = new Date();
     const pastBudgets = budgets.filter((b) => {
       const budgetDate = new Date(b.year, b.month - 1);
       return budgetDate <= currentDate;
     });
+
+    const envelopesByBudget = new Map<string, DemoSeededBudgetLine[]>();
+    for (const line of budgetLines) {
+      const existing = envelopesByBudget.get(line.budgetId);
+      if (existing) existing.push(line);
+      else envelopesByBudget.set(line.budgetId, [line]);
+    }
 
     const transactions: DemoTransactionSeed[] = [];
 
@@ -253,7 +323,14 @@ export class GenerateDemoDataUseCase {
       const daysInMonth = new Date(budget.year, budget.month, 0).getDate();
       const maxDay = isCurrentMonth ? currentDate.getDate() : daysInMonth;
 
-      transactions.push(...this.buildMonthTransactions(budget, maxDay));
+      transactions.push(
+        ...this.buildMonthTransactions(
+          budget,
+          maxDay,
+          envelopesByBudget.get(budget.id) ?? [],
+          currentDate,
+        ),
+      );
     }
 
     return transactions;
@@ -262,65 +339,33 @@ export class GenerateDemoDataUseCase {
   private buildMonthTransactions(
     budget: DemoSeededBudget,
     maxDay: number,
+    envelopes: DemoSeededBudgetLine[],
+    currentDate: Date,
   ): DemoTransactionSeed[] {
-    const transactions: DemoTransactionSeed[] = [];
+    const isClosed = this.isClosedMonth(budget, currentDate);
 
-    if (maxDay >= 5) {
-      transactions.push(
-        this.buildTransaction(
-          budget,
-          5,
-          'Migros - Courses',
-          127.85,
-          'Alimentation',
-        ),
-      );
-    }
-    if (maxDay >= 10) {
-      transactions.push(
-        this.buildTransaction(
-          budget,
-          10,
-          'Restaurant Molino',
-          78.5,
-          'Restaurants',
-        ),
-      );
-    }
-    if (maxDay >= 15) {
-      transactions.push(
-        this.buildTransaction(
-          budget,
-          15,
-          'Coop - Courses',
-          94.2,
-          'Alimentation',
-        ),
-      );
-    }
+    return MONTH_TRANSACTION_SPECS.filter((spec) => maxDay >= spec.day).map(
+      (spec) => {
+        const transactionDate = new Date(
+          budget.year,
+          budget.month - 1,
+          spec.day,
+        ).toISOString();
 
-    return transactions;
-  }
-
-  private buildTransaction(
-    budget: DemoSeededBudget,
-    day: number,
-    name: string,
-    amount: number,
-    tagName: string,
-  ): DemoTransactionSeed {
-    return {
-      budgetId: budget.id,
-      name,
-      amount,
-      kind: 'expense',
-      tagName,
-      transactionDate: new Date(
-        budget.year,
-        budget.month - 1,
-        day,
-      ).toISOString(),
-    };
+        return {
+          budgetId: budget.id,
+          budgetLineId:
+            envelopes.find((line) => line.name === spec.envelopeName)?.id ??
+            null,
+          name: spec.name,
+          amount: spec.amount,
+          kind: 'expense',
+          tagName: spec.tagName,
+          transactionDate,
+          checkedAt: isClosed ? transactionDate : null,
+        };
+      },
+    );
   }
 
   private async recalculateAllBudgetBalances(

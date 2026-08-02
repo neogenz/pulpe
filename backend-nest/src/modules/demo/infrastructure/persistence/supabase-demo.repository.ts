@@ -10,6 +10,7 @@ import type {
   DemoBudgetLineSeed,
   DemoBudgetSeed,
   DemoSeededBudget,
+  DemoSeededBudgetLine,
   DemoSeededTemplate,
   DemoSeededTemplateLine,
   DemoTemplateLineSeed,
@@ -50,6 +51,7 @@ type TransactionInsert = Omit<
 >;
 
 type TemplateLineRow = Tables<'template_line'>;
+type BudgetLineRow = Tables<'budget_line'>;
 
 @Injectable()
 export class SupabaseDemoRepository implements DemoRepositoryPort {
@@ -170,8 +172,8 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
     lines: DemoBudgetLineSeed[],
     userId: string,
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<void> {
-    if (lines.length === 0) return;
+  ): Promise<DemoSeededBudgetLine[]> {
+    if (lines.length === 0) return [];
 
     const dek = await this.getDemoDek(userId);
 
@@ -184,14 +186,17 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
       kind: line.kind,
       recurrence: line.recurrence,
       is_manually_adjusted: false,
-      checked_at: null,
+      checked_at: line.checkedAt,
       original_amount: null,
       original_currency: null,
       target_currency: null,
       exchange_rate: null,
     }));
 
-    const { error } = await supabase.from('budget_line').insert(rows);
+    const { data, error } = await supabase
+      .from('budget_line')
+      .insert(rows)
+      .select();
 
     if (error) {
       throw new BusinessException(
@@ -201,6 +206,8 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
         { cause: error },
       );
     }
+
+    return (data ?? []).map((row) => this.toSeededBudgetLine(row, dek));
   }
 
   async insertTransactions(
@@ -214,12 +221,12 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
 
     const rows: TransactionInsert[] = transactions.map((tx) => ({
       budget_id: tx.budgetId,
-      budget_line_id: null,
+      budget_line_id: tx.budgetLineId,
       name: tx.name,
       amount: this.encryption.encryptAmount(tx.amount, dek),
       kind: tx.kind,
       transaction_date: tx.transactionDate,
-      checked_at: null,
+      checked_at: tx.checkedAt,
       original_amount: null,
       original_currency: null,
       target_currency: null,
@@ -326,6 +333,21 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
 
   private async getDemoDek(userId: string): Promise<Buffer> {
     return this.encryption.ensureDemoUserDEK(userId);
+  }
+
+  private toSeededBudgetLine(
+    row: BudgetLineRow,
+    dek: Buffer,
+  ): DemoSeededBudgetLine {
+    return {
+      id: row.id,
+      budgetId: row.budget_id,
+      name: row.name,
+      amount: row.amount
+        ? this.encryption.tryDecryptAmount(row.amount, dek, 0)
+        : 0,
+      kind: row.kind,
+    };
   }
 
   private toSeededTemplateLine(

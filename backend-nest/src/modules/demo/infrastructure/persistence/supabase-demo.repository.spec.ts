@@ -192,24 +192,34 @@ describe('SupabaseDemoRepository', () => {
   });
 
   describe('insertBudgetLines', () => {
-    it('should resolve without calling supabase when seeds are empty', async () => {
+    function createBudgetLineSupabase(captured: unknown[]) {
+      return createMockSupabase(() => ({
+        insert: (rows: unknown) => {
+          captured.push(rows);
+          const insertedRows = rows as Array<Record<string, unknown>>;
+          return {
+            select: jest.fn().mockResolvedValue({
+              data: insertedRows.map((r, i) => ({ ...r, id: `bl-${i}` })),
+              error: null,
+            }),
+          };
+        },
+      }));
+    }
+
+    it('should resolve to an empty list without calling supabase when seeds are empty', async () => {
       const fromFn = jest.fn();
       const supabase = createMockSupabase(fromFn);
 
       await expect(
         repo.insertBudgetLines([], 'user-1', supabase),
-      ).resolves.toBeUndefined();
+      ).resolves.toEqual([]);
       expect(fromFn).not.toHaveBeenCalled();
     });
 
     it('should encrypt amount before insert', async () => {
       const captured: unknown[] = [];
-      const supabase = createMockSupabase(() => ({
-        insert: (rows: unknown) => {
-          captured.push(rows);
-          return Promise.resolve({ error: null });
-        },
-      }));
+      const supabase = createBudgetLineSupabase(captured);
 
       await repo.insertBudgetLines(
         [
@@ -220,6 +230,7 @@ describe('SupabaseDemoRepository', () => {
             amount: 100,
             kind: 'expense',
             recurrence: 'fixed',
+            checkedAt: null,
           },
         ],
         'user-1',
@@ -234,11 +245,78 @@ describe('SupabaseDemoRepository', () => {
       expect(inserted[0].budget_id).toBe('b-1');
     });
 
+    it('should persist the seeded pointage instead of forcing it unchecked', async () => {
+      const captured: unknown[] = [];
+      const supabase = createBudgetLineSupabase(captured);
+
+      await repo.insertBudgetLines(
+        [
+          {
+            budgetId: 'b-1',
+            templateLineId: 'tl-1',
+            name: 'Closed month',
+            amount: 100,
+            kind: 'expense',
+            recurrence: 'fixed',
+            checkedAt: '2026-05-31T00:00:00.000Z',
+          },
+          {
+            budgetId: 'b-2',
+            templateLineId: 'tl-2',
+            name: 'Open month',
+            amount: 50,
+            kind: 'expense',
+            recurrence: 'fixed',
+            checkedAt: null,
+          },
+        ],
+        'user-1',
+        supabase,
+      );
+
+      const inserted = captured[0] as Array<{ checked_at: string | null }>;
+      expect(inserted[0].checked_at).toBe('2026-05-31T00:00:00.000Z');
+      expect(inserted[1].checked_at).toBeNull();
+    });
+
+    it('should return the inserted lines with their generated id and decrypted amount', async () => {
+      const supabase = createBudgetLineSupabase([]);
+
+      const result = await repo.insertBudgetLines(
+        [
+          {
+            budgetId: 'b-1',
+            templateLineId: 'tl-1',
+            name: 'Courses alimentaires',
+            amount: 600,
+            kind: 'expense',
+            recurrence: 'one_off',
+            checkedAt: null,
+          },
+        ],
+        'user-1',
+        supabase,
+      );
+
+      expect(result).toEqual([
+        {
+          id: 'bl-0',
+          budgetId: 'b-1',
+          name: 'Courses alimentaires',
+          amount: 600,
+          kind: 'expense',
+        },
+      ]);
+    });
+
     it('should throw BusinessException on supabase error', async () => {
       const supabase = createMockSupabase(() => ({
-        insert: jest
-          .fn()
-          .mockResolvedValue({ error: { message: 'Insert failed' } }),
+        insert: () => ({
+          select: jest.fn().mockResolvedValue({
+            data: null,
+            error: { message: 'Insert failed' },
+          }),
+        }),
       }));
 
       await expect(
@@ -251,6 +329,7 @@ describe('SupabaseDemoRepository', () => {
               amount: 50,
               kind: 'expense',
               recurrence: 'fixed',
+              checkedAt: null,
             },
           ],
           'user-1',
@@ -316,11 +395,13 @@ describe('SupabaseDemoRepository', () => {
         [
           {
             budgetId: 'b-1',
+            budgetLineId: 'bl-9',
             name: 'Coffee',
             amount: 4.5,
             kind: 'expense',
             tagName: 'Food',
             transactionDate: '2026-05-08T12:00:00Z',
+            checkedAt: '2026-05-08T12:00:00Z',
           },
         ],
         'user-1',
@@ -330,9 +411,13 @@ describe('SupabaseDemoRepository', () => {
       const inserted = capturedTransactions[0] as Array<{
         amount: string;
         name: string;
+        budget_line_id: string | null;
+        checked_at: string | null;
       }>;
       expect(inserted[0].amount).toBe('enc-4.5');
       expect(inserted[0].name).toBe('Coffee');
+      expect(inserted[0].budget_line_id).toBe('bl-9');
+      expect(inserted[0].checked_at).toBe('2026-05-08T12:00:00Z');
       expect(capturedTags[0]).toEqual([{ user_id: 'user-1', name: 'Food' }]);
       expect(capturedLinks[0]).toEqual([
         { transaction_id: 'tx-1', tag_id: 'tag-1' },
@@ -384,11 +469,13 @@ describe('SupabaseDemoRepository', () => {
         [
           {
             budgetId: 'b-1',
+            budgetLineId: null,
             name: 'Supermarket',
             amount: 42,
             kind: 'expense',
             tagName: 'Courses',
             transactionDate: '2026-05-08T12:00:00Z',
+            checkedAt: null,
           },
         ],
         'user-1',
