@@ -7,11 +7,17 @@ import {
 } from '@angular/common/http/testing';
 import { of, throwError, Subject, ReplaySubject } from 'rxjs';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import type { BudgetLineCreate, BudgetLineUpdate } from 'pulpe-shared';
+import {
+  API_ERROR_CODES,
+  type BudgetLineCreate,
+  type BudgetLineUpdate,
+} from 'pulpe-shared';
 
 import { BudgetDetailsStore } from './budget-details-store';
 import { BudgetApi } from '@core/budget/budget-api';
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
+import { ApiError } from '@core/api/api-error';
+import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { Logger } from '@core/logging/logger';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { PostHogService } from '@core/analytics/posthog';
@@ -272,7 +278,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         .mockReturnValue(throwError(() => new Error('Network error')));
 
       // User tries to add an expense but server is down
-      await service.createBudgetLine({
+      const error = await service.createBudgetLine({
         budgetId: mockBudgetId,
         name: 'Failed expense',
         amount: 100,
@@ -281,11 +287,36 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         isManuallyAdjusted: false,
       });
 
-      // User sees an error occurred
-      expect(service.error()).toBeTruthy();
+      // The caller gets the message to toast, and the page stays loaded:
+      // error() drives the full-page load-error card, which a refused line
+      // must never trigger.
+      expect(error).toBeTruthy();
+      expect(service.error()).toBeNull();
+    });
 
-      // Budget lines remain unchanged (data is reloaded from server)
-      // This ensures user doesn't see incorrect optimistic data
+    it('surfaces the goal-horizon refusal instead of the generic add-failure copy', async () => {
+      const horizonError = new ApiError(
+        'unprocessable',
+        API_ERROR_CODES.SAVINGS_GOAL_LINE_OUTSIDE_HORIZON,
+        422,
+        undefined,
+      );
+      mockBudgetApi.createBudgetLine$ = vi
+        .fn()
+        .mockReturnValue(throwError(() => horizonError));
+
+      const error = await service.createBudgetLine({
+        budgetId: mockBudgetId,
+        name: 'Épargne hors horizon',
+        amount: 100,
+        kind: 'saving',
+        recurrence: 'fixed',
+        isManuallyAdjusted: false,
+      });
+
+      const localizer = TestBed.inject(ApiErrorLocalizer);
+      expect(error).toBe(localizer.localizeApiError(horizonError));
+      expect(service.error()).toBeNull();
     });
   });
 
@@ -329,14 +360,16 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         .mockReturnValue(throwError(() => new Error('Server error')));
 
       // User tries to update but server fails
-      await service.updateBudgetLine({
+      const error = await service.updateBudgetLine({
         id: 'line-2',
         name: 'Failed Update',
         amount: 9999,
       });
 
-      // Error is shown to user
-      expect(service.error()).toBeTruthy();
+      // Same contract as create: the message goes back to the caller's toast,
+      // never onto the page-level error signal.
+      expect(error).toBeTruthy();
+      expect(service.error()).toBeNull();
 
       // Original values are preserved (via reload)
       // User doesn't see the failed update stuck in UI
@@ -670,7 +703,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         .mockReturnValue(throwError(() => new Error('Network error')));
 
       // User tries to add an expense but network is down
-      await service.createBudgetLine({
+      const error = await service.createBudgetLine({
         budgetId: mockBudgetId,
         name: 'New expense',
         amount: 100,
@@ -679,8 +712,9 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         isManuallyAdjusted: false,
       });
 
-      // User sees that something went wrong
-      expect(service.error()).toBeTruthy();
+      // User sees that something went wrong, in a toast over a live budget
+      expect(error).toBeTruthy();
+      expect(service.error()).toBeNull();
     });
 
     it('user cannot add expenses with negative amounts', async () => {
@@ -705,10 +739,11 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
           ),
         );
 
-      await service.createBudgetLine(invalidExpense);
+      const error = await service.createBudgetLine(invalidExpense);
 
       // User sees an error occurred
-      expect(service.error()).toBeTruthy();
+      expect(error).toBeTruthy();
+      expect(service.error()).toBeNull();
     });
   });
 

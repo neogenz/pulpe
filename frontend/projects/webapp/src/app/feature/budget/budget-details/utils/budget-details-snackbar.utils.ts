@@ -204,3 +204,18 @@ export function computeTransactionSnackbarMessage(
     ),
   });
 }
+
+/**
+ * A refused mutation surfaces here, never on the page-level error signal: the
+ * budget stays on screen and the server's own reason is what the user reads.
+ */
+export function openMutationErrorSnackbar(
+  message: string,
+  snackBar: MatSnackBar,
+  transloco: TranslocoService,
+): void {
+  snackBar.open(message, transloco.translate('common.close'), {
+    duration: 5000,
+    panelClass: ['bg-error-container', 'text-on-error-container'],
+  });
+}

@@ -58,6 +58,7 @@ import {
   computeEnvelopeSnackbarMessage,
   computeSpreadSnackbarMessage,
   computeTransactionSnackbarMessage,
+  openMutationErrorSnackbar,
   spreadCreateEcho,
   submitSavingsWithdrawalWithRetry,
   submitSpreadWithRetry,
@@ -436,7 +437,11 @@ export class BudgetItemsContainer {
   protected async handleUpdateBudgetLine(
     data: BudgetLineUpdate,
   ): Promise<void> {
-    await this.store.updateBudgetLine(data);
+    const error = await this.store.updateBudgetLine(data);
+    if (error) {
+      openMutationErrorSnackbar(error, this.#snackBar, this.#transloco);
+      return;
+    }
     this.#snackBar.open(
       this.#transloco.translate('budget.modificationSaved'),
       this.#transloco.translate('common.close'),
@@ -854,7 +859,10 @@ export class BudgetItemsContainer {
       await this.#openSavingsWithdrawalFlow(budget, result.prefill);
       return;
     }
-    await this.store.createBudgetLine(result.value);
+    const error = await this.store.createBudgetLine(result.value);
+    if (error) {
+      openMutationErrorSnackbar(error, this.#snackBar, this.#transloco);
+    }
   }
 
   async #openSavingsWithdrawalFlow(
@@ -923,10 +931,7 @@ export class BudgetItemsContainer {
 
     const error = await this.store.deleteSavingsWithdrawal(groupId, scope);
     if (error) {
-      this.#snackBar.open(error, this.#transloco.translate('common.close'), {
-        duration: 5000,
-        panelClass: ['bg-error-container', 'text-on-error-container'],
-      });
+      openMutationErrorSnackbar(error, this.#snackBar, this.#transloco);
       return;
     }
     this.#snackBar.open(

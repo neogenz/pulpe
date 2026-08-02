@@ -548,6 +548,13 @@ export class BudgetDetailsStore {
 
   // ── 5. Mutations (async/await) ──
 
+  // Same contract as #lastSavingsWithdrawalDeleteError: a create/update failure
+  // surfaces via the caller's snackbar (return value) and NEVER the page-level
+  // errorMessage, which the page renders as the generic load-error card — a
+  // refused line must not make the whole budget look unloadable. Single-flight
+  // (one dialog at a time), so a plain field is enough.
+  #lastBudgetLineWriteError: string | null = null;
+
   readonly #createBudgetLineMutation = cachedMutation<
     BudgetLineCreate & { id: string },
     { data: BudgetLine },
@@ -581,15 +588,29 @@ export class BudgetDetailsStore {
       }));
       this.#onFinancialMutationSuccess();
     },
-    onError: (_err, _args, previous) => {
+    onError: (error, _args, previous) => {
       if (previous) this.#budgetDetailsResource.set(previous);
-      this.#setError(this.#transloco.translate('budget.forecastCreateError'));
+      this.#lastBudgetLineWriteError = this.#localizeError(
+        error,
+        'budget.forecastCreateError',
+      );
+      this.#logger.error('Budget line create failed', error);
     },
   });
 
-  async createBudgetLine(input: BudgetLineCreate): Promise<void> {
+  /** Returns the localized error message on failure, or `null` on success. */
+  async createBudgetLine(input: BudgetLineCreate): Promise<string | null> {
     const id = input.id ?? uuidv4();
-    await this.#createBudgetLineMutation.mutate({ ...input, id });
+    this.#lastBudgetLineWriteError = null;
+    const response = await this.#createBudgetLineMutation.mutate({
+      ...input,
+      id,
+    });
+    if (response !== undefined) return null;
+    return (
+      this.#lastBudgetLineWriteError ??
+      this.#transloco.translate('budget.forecastCreateError')
+    );
   }
 
   // PUL-17 — a spread fans out across N months (possibly auto-creating budgets),
@@ -762,14 +783,25 @@ export class BudgetDetailsStore {
       return previous;
     },
     onSuccess: () => this.#onFinancialMutationSuccess(),
-    onError: (_err, _args, previous) => {
+    onError: (error, _args, previous) => {
       if (previous) this.#budgetDetailsResource.set(previous);
-      this.#setError(this.#transloco.translate('budget.forecastUpdateError'));
+      this.#lastBudgetLineWriteError = this.#localizeError(
+        error,
+        'budget.forecastUpdateError',
+      );
+      this.#logger.error('Budget line update failed', error);
     },
   });
 
-  async updateBudgetLine(data: BudgetLineUpdate): Promise<void> {
-    await this.#updateBudgetLineMutation.mutate(data);
+  /** Returns the localized error message on failure, or `null` on success. */
+  async updateBudgetLine(data: BudgetLineUpdate): Promise<string | null> {
+    this.#lastBudgetLineWriteError = null;
+    const response = await this.#updateBudgetLineMutation.mutate(data);
+    if (response !== undefined) return null;
+    return (
+      this.#lastBudgetLineWriteError ??
+      this.#transloco.translate('budget.forecastUpdateError')
+    );
   }
 
   readonly #updateTransactionMutation = cachedMutation<
