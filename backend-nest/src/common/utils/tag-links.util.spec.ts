@@ -151,6 +151,18 @@ describe('updateTaggedEntity', () => {
     });
   });
 
+  it('should map an arbitrated deadlock to a conflict the client replays', async () => {
+    const error = { code: '40P01', message: 'deadlock detected' };
+    const supabase = {
+      rpc: jest.fn().mockResolvedValue({ data: null, error }),
+    } as unknown as AuthenticatedSupabaseClient;
+
+    await expect(updateTaggedEntity(supabase, params)).rejects.toMatchObject({
+      code: 'ERR_CONCURRENT_MODIFICATION',
+      cause: error,
+    });
+  });
+
   it('should map unexpected errors to the repository fallback', async () => {
     const error = { code: '08006', message: 'connection lost' };
     const supabase = {

@@ -3,6 +3,7 @@ import {
   type ErrorDefinition,
 } from '@common/constants/error-definitions';
 import { BusinessException } from '@common/exceptions/business.exception';
+import { isRetryableTransactionConflict } from '@common/utils/postgres-conflict';
 import { isSavingsGoalLinkDenied } from '@common/utils/savings-goal-link';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import type { Json } from '../../types/database.types';
@@ -190,6 +191,17 @@ function throwAtomicTaggedUpdateError(
     throwTaggedBusinessError(
       ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
       undefined,
+      params,
+      error,
+    );
+  }
+  // The RPC locks its row before updating it, and the savings-goal revision
+  // triggers then take the goal row — the opposite order from the goal RPCs,
+  // which lock the goal first. The loser is rolled back whole, so it replays.
+  if (isRetryableTransactionConflict(error)) {
+    throwTaggedBusinessError(
+      ERROR_DEFINITIONS.CONCURRENT_MODIFICATION,
+      { resource: params.entityType },
       params,
       error,
     );

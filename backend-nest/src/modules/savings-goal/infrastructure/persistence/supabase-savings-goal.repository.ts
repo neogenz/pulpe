@@ -12,6 +12,7 @@ import {
 } from 'pulpe-shared';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { isRetryableTransactionConflict } from '@common/utils/postgres-conflict';
 import { isSavingsGoalLinkDenied } from '@common/utils/savings-goal-link';
 import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
 import {
@@ -570,9 +571,34 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     }
   }
 
+  /**
+   * These RPCs take the goal lock first and the linked lines second, while any
+   * ordinary line or transaction write takes its own row first and reaches the
+   * goal through the balance-revision triggers. The two orders can meet, and
+   * PostgreSQL then rolls one side back whole (PUL-329 review). Nothing was
+   * written on the victim's side, so the caller reissues the same request.
+   */
+  private throwIfConcurrentWriteAborted(
+    error: PostgrestError | null,
+    operation: string,
+  ): void {
+    if (!isRetryableTransactionConflict(error)) return;
+    throw new BusinessException(
+      ERROR_DEFINITIONS.CONCURRENT_MODIFICATION,
+      { resource: 'savings_goal' },
+      {
+        operation,
+        entityType: 'savings_goal',
+        userId: this.supabaseProvider.user.id,
+      },
+      { cause: error ?? undefined },
+    );
+  }
+
   private throwTargetDateReconciliationRpcError(
     error: PostgrestError | null,
   ): never {
+    this.throwIfConcurrentWriteAborted(error, 'reconcileSavingsGoalTargetDate');
     if (isSavingsGoalLinkDenied(error)) {
       throw new BusinessException(
         ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
@@ -618,15 +644,18 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
    *   use-case, pas ici.)
    */
   private throwGenerationStopRpcError(error: PostgrestError | null): never {
+    this.throwIfConcurrentWriteAborted(error, 'applySavingsGoalGenerationStop');
+    const context = {
+      operation: 'applySavingsGoalGenerationStop',
+      entityType: 'savings_goal',
+    };
+    const options = { cause: error ?? undefined };
     if (isSavingsGoalLinkDenied(error)) {
       throw new BusinessException(
         ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
         undefined,
-        {
-          operation: 'applySavingsGoalGenerationStop',
-          entityType: 'savings_goal',
-        },
-        { cause: error ?? undefined },
+        context,
+        options,
       );
     }
     const message = error?.message ?? '';
@@ -638,37 +667,28 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       throw new BusinessException(
         ERROR_DEFINITIONS.SAVINGS_GOAL_GENERATION_STOP_CONFLICT,
         undefined,
-        {
-          operation: 'applySavingsGoalGenerationStop',
-          entityType: 'savings_goal',
-        },
-        { cause: error ?? undefined },
+        context,
+        options,
       );
     }
     if (message.includes(GENERATION_STOP_NOT_LINKED_RPC_MESSAGE)) {
       throw new BusinessException(
         ERROR_DEFINITIONS.SAVINGS_GOAL_GENERATION_STOP_LINE_INVALID,
         undefined,
-        {
-          operation: 'applySavingsGoalGenerationStop',
-          entityType: 'savings_goal',
-        },
-        { cause: error ?? undefined },
+        context,
+        options,
       );
     }
     throw new BusinessException(
       ERROR_DEFINITIONS.SAVINGS_GOAL_GENERATION_STOP_FAILED,
       undefined,
-      {
-        operation: 'applySavingsGoalGenerationStop',
-        entityType: 'savings_goal',
-        supabaseError: error,
-      },
-      { cause: error ?? undefined },
+      { ...context, supabaseError: error },
+      options,
     );
   }
 
   private throwDeletionRpcError(error: PostgrestError | null): never {
+    this.throwIfConcurrentWriteAborted(error, 'applySavingsGoalDeletion');
     if (isSavingsGoalLinkDenied(error)) {
       throw new BusinessException(
         ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
@@ -773,6 +793,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
    * - anything else → generic apply failure (500, safe to retry — idempotent).
    */
   private throwPlanRpcError(error: PostgrestError | null): never {
+    this.throwIfConcurrentWriteAborted(error, 'applySavingsGoalPlan');
     if (isSavingsGoalLinkDenied(error)) {
       throw new BusinessException(
         ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,

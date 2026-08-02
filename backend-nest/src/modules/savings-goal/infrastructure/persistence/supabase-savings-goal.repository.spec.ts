@@ -1483,4 +1483,98 @@ describe('SupabaseSavingsGoalRepository', () => {
       });
     });
   });
+
+  // The goal RPCs lock the goal first, ordinary line and transaction writes
+  // reach it last through the balance-revision triggers: the two orders can
+  // meet and PostgreSQL rolls one side back whole (PUL-329 review). Nothing
+  // was written, so the client must be told to replay, not that we failed.
+  describe('PUL-329 lock arbitration', () => {
+    const goalId = '123e4567-e89b-42d3-a456-426614174001';
+    const lineId = '123e4567-e89b-42d3-a456-426614174002';
+
+    const buildRepo = (dbError: { code: string; message: string }) => {
+      const rpc = jest.fn().mockResolvedValue({ data: null, error: dbError });
+      const provider = {
+        get client() {
+          return { rpc } as unknown as AuthenticatedSupabaseClient;
+        },
+        get user() {
+          return mockUser;
+        },
+      } as AuthenticatedSupabaseProvider;
+      const encryption = createMockEncryption();
+      encryption.prepareAmountData = jest
+        .fn()
+        .mockResolvedValue({ amount: 'enc:123' });
+      return new SupabaseSavingsGoalRepository(provider, encryption);
+    };
+
+    const callers: [
+      string,
+      string,
+      (repo: SupabaseSavingsGoalRepository) => Promise<unknown>,
+    ][] = [
+      [
+        'applyDeletion',
+        'applySavingsGoalDeletion',
+        (repo) =>
+          repo.applyDeletion(goalId, {
+            mode: 'goal_only',
+            revision: {
+              templateLines: [],
+              budgetLines: [],
+              transactions: [],
+            },
+          }),
+      ],
+      [
+        'applyPlan',
+        'applySavingsGoalPlan',
+        (repo) =>
+          repo.applyPlan(goalId, [{ budgetLineId: lineId, amount: 123 }], 0),
+      ],
+      [
+        'applyGenerationStop',
+        'applySavingsGoalGenerationStop',
+        (repo) => repo.applyGenerationStop(goalId, 'freeze', [lineId], 0),
+      ],
+      [
+        'reconcileTargetDate',
+        'reconcileSavingsGoalTargetDate',
+        (repo) =>
+          repo.reconcileTargetDate(goalId, {
+            patch: { targetDate: '2030-03-15' },
+            reconciliation: { mode: 'freeze', budgetLineIds: [lineId] },
+            expectedTargetDate: '2030-05-15',
+          }),
+      ],
+    ];
+
+    it.each(callers)(
+      '%s maps an arbitrated deadlock to a 409 the client replays',
+      async (_name, operation, call) => {
+        const dbError = { code: '40P01', message: 'deadlock detected' };
+
+        await expect(call(buildRepo(dbError))).rejects.toMatchObject({
+          code: ERROR_DEFINITIONS.CONCURRENT_MODIFICATION.code,
+          status: 409,
+          cause: dbError,
+          loggingContext: { operation, entityType: 'savings_goal' },
+        });
+      },
+    );
+
+    it('leaves an ownership rejection on its own error', async () => {
+      const dbError = {
+        code: 'P0001',
+        message: 'Savings goal access denied',
+      };
+
+      await expect(
+        buildRepo(dbError).applyGenerationStop(goalId, 'freeze', [lineId], 0),
+      ).rejects.toMatchObject({
+        code: ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND.code,
+      });
+    });
+  });
 });
