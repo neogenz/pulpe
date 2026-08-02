@@ -890,6 +890,94 @@ describe('buildSavingsGoalTimeline withdrawals (PUL-329)', () => {
     expect(currentMonth?.confirmedCumulative).toBe(progress.confirmed);
   });
 
+  it('should not count a withdrawn month twice when simulating', () => {
+    const timeline = buildSavingsGoalTimeline(input);
+    const progress = computeSavingsGoalProgress(input);
+
+    const result = simulateSavingsPlan({ timeline, targetAmount: 3000 });
+    const lastLocked = result.months.find(
+      (month) => month.month === 2 && month.year === 2026,
+    );
+
+    expect(lastLocked?.simulatedCumulative).toBe(progress.confirmed);
+  });
+
+  it('should ask for the effort the withdrawal actually reopened', () => {
+    const timeline = buildSavingsGoalTimeline(input);
+    const progress = computeSavingsGoalProgress(input);
+
+    const result = redistributeRemainingEffort({
+      timeline,
+      targetAmount: 3000,
+    });
+
+    expect(result.remainingEffort).toBe(3000 - progress.confirmed);
+  });
+
+  // Les deux tests ci-dessus portent leur retrait sur un mois VERROUILLÉ : une
+  // somme des retraits filtrée sur `isLocked` y donnerait le même chiffre et
+  // passerait au vert. Ici le retrait est sur un mois ouvert, et l'assertion est
+  // la propriété de fermeture — redistribuer puis simuler doit retomber sur la
+  // cible. Seule la somme sur tous les mois éligibles y arrive.
+  it('should close on the target when the withdrawal sits on an open month', () => {
+    const timeline = buildSavingsGoalTimeline({
+      ...input,
+      withdrawals: [{ amount: 400, month: 3, year: 2026 }],
+      materializedPeriods: [
+        { month: 4, year: 2026 },
+        { month: 5, year: 2026 },
+        { month: 6, year: 2026 },
+      ],
+    });
+
+    const redistribution = redistributeRemainingEffort({
+      timeline,
+      targetAmount: 3000,
+    });
+    const result = simulateSavingsPlan({
+      timeline,
+      targetAmount: 3000,
+      adjustments: redistribution.adjustments,
+    });
+
+    expect(redistribution.isDistributable).toBe(true);
+    expect(redistribution.remainingEffort).toBe(2400);
+    expect(result.simulatedFinal).toBe(3000);
+  });
+
+  // Soustraire en cours de boucle est la première chose qui puisse faire
+  // DESCENDRE le cumul simulé : la cible peut être franchie puis reperdue.
+  it('should drop the attained period when a later withdrawal reopens the gap', () => {
+    const result = simulateSavingsPlan({
+      timeline: [
+        planMonth({
+          month: 1,
+          year: 2026,
+          isLocked: true,
+          confirmedAmount: 600,
+        }),
+        planMonth({
+          month: 2,
+          year: 2026,
+          isLocked: true,
+          confirmedAmount: 600,
+        }),
+        planMonth({
+          month: 3,
+          year: 2026,
+          isLocked: true,
+          confirmedAmount: 0,
+          withdrawnAmount: 400,
+        }),
+      ],
+      targetAmount: 1000,
+    });
+
+    expect(result.simulatedFinal).toBe(800);
+    expect(result.isTargetMet).toBe(false);
+    expect(result.attainedPeriod).toBeNull();
+  });
+
   it('should give a withdrawal-only month its own row', () => {
     const timeline = buildSavingsGoalTimeline({
       ...input,

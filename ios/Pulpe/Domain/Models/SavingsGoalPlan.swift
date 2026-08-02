@@ -50,6 +50,9 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
     let plannedAmount: Decimal
     /// Checked-only realised envelope for this month.
     let confirmedAmount: Decimal
+    /// Σ of this month's retraits (§11), always positive. A stock withdrawal:
+    /// it digs into the cumulatives, never into `confirmedAmount`.
+    let withdrawnAmount: Decimal
     let plannedCumulative: Decimal
     let confirmedCumulative: Decimal
     let lines: [SavingsGoalPlanLine]
@@ -64,6 +67,7 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
         isProvisionable: Bool = false,
         plannedAmount: Decimal,
         confirmedAmount: Decimal,
+        withdrawnAmount: Decimal = 0,
         plannedCumulative: Decimal,
         confirmedCumulative: Decimal,
         lines: [SavingsGoalPlanLine]
@@ -77,6 +81,7 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
         self.isProvisionable = isProvisionable
         self.plannedAmount = plannedAmount
         self.confirmedAmount = confirmedAmount
+        self.withdrawnAmount = withdrawnAmount
         self.plannedCumulative = plannedCumulative
         self.confirmedCumulative = confirmedCumulative
         self.lines = lines
@@ -96,6 +101,10 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
         isProvisionable = try container.decodeIfPresent(Bool.self, forKey: .isProvisionable) ?? false
         plannedAmount = try container.decode(Decimal.self, forKey: .plannedAmount)
         confirmedAmount = try container.decode(Decimal.self, forKey: .confirmedAmount)
+        withdrawnAmount = try container.decodeIfPresent(
+            Decimal.self,
+            forKey: .withdrawnAmount
+        ) ?? 0
         plannedCumulative = try container.decode(Decimal.self, forKey: .plannedCumulative)
         confirmedCumulative = try container.decode(Decimal.self, forKey: .confirmedCumulative)
         lines = try container.decode([SavingsGoalPlanLine].self, forKey: .lines)
@@ -103,7 +112,8 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
 
     private enum CodingKeys: String, CodingKey {
         case month, year, state, isLocked, isContributionEligible, hasBudget, isProvisionable
-        case plannedAmount, confirmedAmount, plannedCumulative, confirmedCumulative, lines
+        case plannedAmount, confirmedAmount, withdrawnAmount
+        case plannedCumulative, confirmedCumulative, lines
     }
 
     /// Stable period key (`year * 12 + month`) — also the `ForEach` identity.

@@ -364,7 +364,7 @@ Les calculateurs shared, avec miroir testé sur iOS, portent quatre opérations 
 3. redistribuer le montant restant au centime près en respectant les mois épinglés ;
 4. répartir le montant d'un mois entre ses lignes ouvertes, proportionnellement puis par plus grand reste.
 
-La simulation (2) et la redistribution (3) reçoivent `initialAmount` en **seed** : le cumul simulé démarre au montant de départ et le restant à redistribuer le soustrait (`max(0, cible − initialAmount − pointé verrouillé − épinglé)`). Le seed vit dans le calculateur (qui re-cumule from scratch), jamais en plus des cumuls serveur déjà seedés — pas de double comptage.
+La simulation (2) et la redistribution (3) reçoivent `initialAmount` en **seed** : le cumul simulé démarre au montant de départ et le restant à redistribuer le soustrait (`max(0, cible − initialAmount − pointé verrouillé + retraits éligibles − épinglé)`, le retrait entrant en plus puisque l'argent repris est de l'effort à refaire). Le seed vit dans le calculateur (qui re-cumule from scratch), jamais en plus des cumuls serveur déjà seedés — pas de double comptage.
 
 Le serveur reste autoritaire à l'écriture. Les clients ne recalculent jamais le contrat de progression serveur.
 
@@ -421,7 +421,7 @@ garantie.
 
 - Il **ne réécrit pas le plan** : montants, mois et calendrier des Prévisions futures sont inchangés. L'utilisateur ajuste son plan séparément (§10).
 - Il **ne change pas le statut** : un objectif `COMPLETED` repassé sous sa cible le reste. Le statut décrit une décision de l'utilisateur (§6), pas un seuil franchi.
-- Il **n'est pas une contribution négative** : il n'apparaît jamais dans `confirmedAmount` d'un mois de la timeline, seulement dans son `confirmedCumulative`.
+- Il **n'est pas une contribution négative** : il n'apparaît jamais dans `confirmedAmount` d'un mois de la timeline. Il porte son propre champ `withdrawnAmount`, et c'est par lui que les cumuls — confirmé comme simulé — sont creusés.
 - Il **ne programme aucun remboursement**. Le mécanisme Revenu M + Épargne M+1 est un autre parcours, « Couvrir ce mois avec mon épargne » (PUL-292) : une avance à remettre, pas un retrait définitif.
 
 ### 11.3 Éligibilité et devise

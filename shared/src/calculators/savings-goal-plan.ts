@@ -59,6 +59,12 @@ export interface SavingsPlanTimelineMonth {
   plannedAmount: number;
   /** Enveloppe checked-only (`calculateRealizedSavings`) pour ce mois. */
   confirmedAmount: number;
+  /**
+   * Σ des retraits (§11) portés par ce mois, toujours positive. Sortie de stock :
+   * elle creuse les cumuls, jamais `confirmedAmount`. Optionnelle — les payloads
+   * antérieurs à PUL-329 ne la portent pas.
+   */
+  withdrawnAmount?: number;
   plannedCumulative: number;
   confirmedCumulative: number;
   lines: SavingsPlanLine[];
@@ -230,6 +236,7 @@ export function buildSavingsGoalTimeline(
       isProvisionable,
       plannedAmount,
       confirmedAmount,
+      withdrawnAmount,
       plannedCumulative,
       confirmedCumulative,
       lines: monthLines.map((line) => ({
@@ -329,7 +336,11 @@ export function simulateSavingsPlan(input: {
     }
 
     if (month.isContributionEligible !== false) {
-      simulatedCumulative += Math.max(simulatedAmount, month.confirmedAmount);
+      // Le retrait est une sortie de stock : il se retranche du cumul APRÈS le
+      // max, jamais en concurrence avec la contribution du mois.
+      simulatedCumulative +=
+        Math.max(simulatedAmount, month.confirmedAmount) -
+        (month.withdrawnAmount ?? 0);
     }
     if (
       attainedPeriod == null &&
@@ -350,16 +361,20 @@ export function simulateSavingsPlan(input: {
   }
 
   const simulatedFinal = simulatedCumulative;
+  const isTargetMet =
+    input.targetAmount == null
+      ? null
+      : input.targetAmount > 0 && simulatedFinal >= input.targetAmount;
   return {
     months,
     simulatedFinal,
     gapToTarget:
       input.targetAmount == null ? null : input.targetAmount - simulatedFinal,
-    isTargetMet:
-      input.targetAmount == null
-        ? null
-        : input.targetAmount > 0 && simulatedFinal >= input.targetAmount,
-    attainedPeriod,
+    isTargetMet,
+    // Un retrait rend la courbe non monotone : un cumul peut franchir la cible
+    // puis repasser dessous. Annoncer « atteint en mars » sous un final
+    // inférieur à la cible ferait mentir le verdict des deux clients.
+    attainedPeriod: isTargetMet === false ? null : attainedPeriod,
   };
 }
 
@@ -375,7 +390,11 @@ export interface RedistributeRemainingEffortResult {
  * épinglés, cents-exact via `splitTotalPreserving`. Généralisation de PUL-290
  * (`remainingToProvision`/`perRemainingMonth`).
  *
- * `remaining = max(0, target − initialAmount − Σ confirmé(mois verrouillés) − Σ épinglés ouverts)`.
+ * `remaining = max(0, target − initialAmount − Σ confirmé(mois verrouillés) + Σ retraits(mois éligibles) − Σ épinglés ouverts)`.
+ * Le retrait entre en plus : l'argent repris est de l'effort à refaire. Il est
+ * sommé sur TOUS les mois éligibles, pas seulement verrouillés — c'est
+ * exactement l'ensemble que `simulateSavingsPlan` soustrait, et cette égalité
+ * est ce qui fait retomber la simulation sur la cible après redistribution.
  * `isDistributable = false` quand aucun mois ouvert non épinglé (ex. overdue).
  */
 export function redistributeRemainingEffort(input: {
@@ -410,6 +429,10 @@ export function redistributeRemainingEffort(input: {
     .filter((month) => month.isContributionEligible !== false && month.isLocked)
     .reduce((sum, month) => sum + month.confirmedAmount, 0);
 
+  const withdrawnSum = input.timeline
+    .filter((month) => month.isContributionEligible !== false)
+    .reduce((sum, month) => sum + (month.withdrawnAmount ?? 0), 0);
+
   const pinnedSum = openMonths
     .filter((month) => pinnedByKey.has(adjustmentKey(month)))
     .reduce((sum, month) => sum + pinnedByKey.get(adjustmentKey(month))!, 0);
@@ -418,7 +441,8 @@ export function redistributeRemainingEffort(input: {
     0,
     input.targetAmount -
       (input.initialAmount ?? 0) -
-      lockedConfirmedSum -
+      lockedConfirmedSum +
+      withdrawnSum -
       pinnedSum,
   );
 

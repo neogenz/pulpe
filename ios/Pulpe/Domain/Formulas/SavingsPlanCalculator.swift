@@ -130,7 +130,10 @@ enum SavingsPlanCalculator {
             }
 
             if month.isContributionEligible {
+                // A retrait is a stock outflow: it comes off the cumulative AFTER
+                // the max, never as a contribution that lost the comparison.
                 simulatedCumulative += max(simulatedAmount, month.confirmedAmount)
+                    - month.withdrawnAmount
             }
             if let targetAmount,
                attainedPeriod == nil,
@@ -147,10 +150,15 @@ enum SavingsPlanCalculator {
         }
 
         let simulatedFinal = simulatedCumulative
+        let isTargetMet = targetAmount.map { $0 > 0 && simulatedFinal >= $0 }
         return SimulationResult(
             months: months, simulatedFinal: simulatedFinal,
             gapToTarget: targetAmount.map { $0 - simulatedFinal },
-            isTargetMet: targetAmount.map { $0 > 0 && simulatedFinal >= $0 }, attainedPeriod: attainedPeriod
+            isTargetMet: isTargetMet,
+            // A retrait makes the curve non-monotonic: a cumulative can cross the
+            // target and then fall back under it. Announcing « atteint en mars »
+            // under a final below the target would make the verdict lie.
+            attainedPeriod: isTargetMet == false ? nil : attainedPeriod
         )
     }
 
@@ -177,7 +185,11 @@ enum SavingsPlanCalculator {
     /// non-pinned months cents-exact via `SpreadSplit`. Generalisation of PUL-290
     /// (`remainingToProvision` / `perRemainingMonth`).
     ///
-    /// `remaining = max(0, target − initialAmount − Σ confirmed(locked months) − Σ pinned open)`.
+    /// `remaining = max(0, target − initialAmount − Σ confirmed(locked months)
+    /// + Σ withdrawn(eligible months) − Σ pinned open)`. A retrait enters with a
+    /// plus — money taken back is effort to redo. It is summed over EVERY eligible
+    /// month, not just locked ones: that is exactly the set `simulate` subtracts,
+    /// and the equality is what makes the simulation land back on the target.
     /// `isDistributable = false` when no open, non-pinned month remains (overdue).
     /// `initialAmount` (PUL-293 stock de départ) is deducted before distributing.
     static func redistributeRemainingEffort(
@@ -207,11 +219,18 @@ enum SavingsPlanCalculator {
             .filter { $0.isContributionEligible && $0.isLocked }
             .reduce(Decimal(0)) { $0 + $1.confirmedAmount }
 
+        let withdrawnSum = timeline
+            .filter(\.isContributionEligible)
+            .reduce(Decimal(0)) { $0 + $1.withdrawnAmount }
+
         let pinnedSum = openMonths
             .compactMap { pinnedByKey[periodKey(month: $0.month, year: $0.year)] }
             .reduce(Decimal(0), +)
 
-        let remaining = max(0, targetAmount - initialAmount - lockedConfirmedSum - pinnedSum)
+        let remaining = max(
+            0,
+            targetAmount - initialAmount - lockedConfirmedSum + withdrawnSum - pinnedSum
+        )
 
         let hasUnavailablePeriod = timeline.contains {
             $0.isContributionEligible && !$0.isLocked && !isContributivePlanMonth($0)

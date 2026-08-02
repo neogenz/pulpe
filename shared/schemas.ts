@@ -494,6 +494,8 @@ export const savingsGoalPlanMonthSchema = z.object({
   isProvisionable: z.boolean().optional(),
   plannedAmount: z.number(),
   confirmedAmount: z.number(),
+  /** Σ des retraits du mois (§11) — creuse les cumuls, jamais la contribution. */
+  withdrawnAmount: z.number().optional(),
   plannedCumulative: z.number(),
   confirmedCumulative: z.number(),
   lines: z.array(
