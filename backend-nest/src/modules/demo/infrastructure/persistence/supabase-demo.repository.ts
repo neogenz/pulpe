@@ -347,8 +347,13 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
 
     const dek = await this.getDemoDek(userId);
 
+    // `created_at` is backdated onto the plan's start. Progress anchors its
+    // history on `max(createdAt, startDate)`, so a goal created now would
+    // discard every backfilled contribution and show the initial amount alone
+    // next to a list of contributions it claims not to count.
     const rows: SavingsGoalInsert[] = goals.map((goal) => ({
       user_id: goal.userId,
+      created_at: goal.startDate ?? undefined,
       name: goal.name,
       target_amount: this.encryption.encryptAmount(goal.targetAmount, dek),
       initial_amount: this.encryption.encryptAmount(goal.initialAmount, dek),
@@ -395,6 +400,31 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
         ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
         undefined,
         { operation: 'linkDemoBudgetLinesToSavingsGoal', supabaseError: error },
+        { cause: error },
+      );
+    }
+  }
+
+  async linkTemplateLinesToSavingsGoal(
+    templateLineIds: string[],
+    savingsGoalId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    if (templateLineIds.length === 0) return;
+
+    const { error } = await supabase
+      .from('template_line')
+      .update({ savings_goal_id: savingsGoalId })
+      .in('id', templateLineIds);
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        {
+          operation: 'linkDemoTemplateLinesToSavingsGoal',
+          supabaseError: error,
+        },
         { cause: error },
       );
     }

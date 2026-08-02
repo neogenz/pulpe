@@ -13,7 +13,9 @@ import type {
 import {
   DEMO_SAVINGS_GOAL_SPECS,
   DEMO_SPREAD_SPEC,
+  DEMO_TEMPLATE_ORDER,
   DEMO_TEMPLATE_SPECS,
+  type DemoTemplateKey,
 } from './demo.constants';
 
 /** The demo spans six closed months before the current one. */
@@ -32,8 +34,12 @@ export function isClosedMonth(
   return budget.month < currentDate.getMonth() + 1;
 }
 
-/** The instant a closed month is settled at, stamped on its pointage. */
-export function lastInstantOfMonth(budget: {
+/**
+ * The instant a closed month is settled at, stamped on its pointage: midnight
+ * on the month's last day, not the last instant of it. Anything later would
+ * render as the next month's first day for a reader east of UTC.
+ */
+export function settlementStampForMonth(budget: {
   month: number;
   year: number;
 }): string {
@@ -42,32 +48,12 @@ export function lastInstantOfMonth(budget: {
 }
 
 export function buildTemplateSeeds(userId: string): DemoTemplateSeed[] {
-  return [
-    {
-      userId,
-      name: DEMO_TEMPLATE_SPECS.STANDARD.name,
-      description: DEMO_TEMPLATE_SPECS.STANDARD.description,
-      isDefault: DEMO_TEMPLATE_SPECS.STANDARD.isDefault,
-    },
-    {
-      userId,
-      name: DEMO_TEMPLATE_SPECS.VACATIONS.name,
-      description: DEMO_TEMPLATE_SPECS.VACATIONS.description,
-      isDefault: DEMO_TEMPLATE_SPECS.VACATIONS.isDefault,
-    },
-    {
-      userId,
-      name: DEMO_TEMPLATE_SPECS.SAVINGS.name,
-      description: DEMO_TEMPLATE_SPECS.SAVINGS.description,
-      isDefault: DEMO_TEMPLATE_SPECS.SAVINGS.isDefault,
-    },
-    {
-      userId,
-      name: DEMO_TEMPLATE_SPECS.HOLIDAYS.name,
-      description: DEMO_TEMPLATE_SPECS.HOLIDAYS.description,
-      isDefault: DEMO_TEMPLATE_SPECS.HOLIDAYS.isDefault,
-    },
-  ];
+  return DEMO_TEMPLATE_ORDER.map((key) => ({
+    userId,
+    name: DEMO_TEMPLATE_SPECS[key].name,
+    description: DEMO_TEMPLATE_SPECS[key].description,
+    isDefault: DEMO_TEMPLATE_SPECS[key].isDefault,
+  }));
 }
 
 export function buildBudgetSeeds(
@@ -95,31 +81,33 @@ export function buildBudgetSeeds(
   return budgets;
 }
 
+/**
+ * Which template a month runs on. The themed months are fixed by the calendar,
+ * so anything else keyed on the month — the actuals it can consume, above all —
+ * asks this rather than re-deriving the same calendar.
+ */
+export function templateKeyForMonth(month: number): DemoTemplateKey {
+  if (month === 12) return 'HOLIDAYS';
+  if (month === 7 || month === 8) return 'VACATIONS';
+  if (month === 3 || month === 9) return 'SAVINGS';
+  return 'STANDARD';
+}
+
+const MONTH_DESCRIPTIONS: Record<DemoTemplateKey, string> = {
+  STANDARD: 'Budget mensuel standard',
+  VACATIONS: "Budget vacances d'été ☀️",
+  SAVINGS: "Focus sur l'épargne ce mois-ci 💪",
+  HOLIDAYS: "Budget des fêtes de fin d'année 🎄",
+};
+
 function selectTemplateForMonth(
   month: number,
   templates: DemoSeededTemplate[],
 ): { templateId: string; description: string } {
-  if (month === 12) {
-    return {
-      templateId: templates[3].id,
-      description: "Budget des fêtes de fin d'année 🎄",
-    };
-  }
-  if (month === 7 || month === 8) {
-    return {
-      templateId: templates[1].id,
-      description: "Budget vacances d'été ☀️",
-    };
-  }
-  if (month === 3 || month === 9) {
-    return {
-      templateId: templates[2].id,
-      description: "Focus sur l'épargne ce mois-ci 💪",
-    };
-  }
+  const key = templateKeyForMonth(month);
   return {
-    templateId: templates[0].id,
-    description: 'Budget mensuel standard',
+    templateId: templates[DEMO_TEMPLATE_ORDER.indexOf(key)].id,
+    description: MONTH_DESCRIPTIONS[key],
   };
 }
 
@@ -135,7 +123,7 @@ export function buildBudgetLineSeeds(
       (tl) => tl.templateId === budget.templateId,
     );
     const checkedAt = isClosedMonth(budget, currentDate)
-      ? lastInstantOfMonth(budget)
+      ? settlementStampForMonth(budget)
       : null;
 
     for (const templateLine of relevantLines) {
@@ -190,7 +178,7 @@ function buildSpreadTrancheSeeds(
         kind: 'expense' as const,
         recurrence: 'one_off' as const,
         checkedAt: isClosedMonth(budget, currentDate)
-          ? lastInstantOfMonth(budget)
+          ? settlementStampForMonth(budget)
           : null,
         spreadGroupId,
       },

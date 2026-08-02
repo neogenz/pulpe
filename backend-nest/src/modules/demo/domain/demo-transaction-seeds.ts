@@ -3,41 +3,125 @@ import type {
   DemoSeededBudgetLine,
   DemoTransactionSeed,
 } from './demo.entity';
-import { isClosedMonth } from './demo-seed.builders';
+import { isClosedMonth, templateKeyForMonth } from './demo-seed.builders';
+import type { DemoTemplateKey } from './demo.constants';
+
+interface MonthTransactionSpec {
+  day: number;
+  name: string;
+  amount: number;
+  tagName: string;
+  envelopeName: string;
+}
 
 /**
- * The month's actuals. `envelopeName` names the prévision each one consumes —
- * a budget built from another template may not carry it, and the actual then
- * stays unattached, which is a legitimate state to show.
+ * The month's actuals, one set per template. `envelopeName` names the prévision
+ * each one consumes, and it must exist in the template it is filed under: a
+ * themed month whose actuals named standard envelopes showed a budget with
+ * nothing consumed at all — the very emptiness the demo exists to disprove.
+ * `demo-template-specs.spec.ts` holds the two sides together.
  *
  * The month in progress only keeps the actuals whose day has already elapsed,
- * so the first one falls on the 1st: a prospect opening the demo on the 2nd
- * must still see a consumed envelope, not the empty month the seed used to show
- * until the 5th.
+ * so every set opens on the 1st: a prospect landing on the 2nd must still see a
+ * consumed envelope.
  */
-const MONTH_TRANSACTION_SPECS = [
-  {
-    day: 1,
-    name: 'Migros - Courses',
-    amount: 127.85,
-    tagName: 'Alimentation',
-    envelopeName: 'Courses alimentaires',
-  },
-  {
-    day: 10,
-    name: 'Restaurant Molino',
-    amount: 78.5,
-    tagName: 'Restaurants',
-    envelopeName: 'Restaurants/Sorties',
-  },
-  {
-    day: 15,
-    name: 'Coop - Courses',
-    amount: 94.2,
-    tagName: 'Alimentation',
-    envelopeName: 'Courses alimentaires',
-  },
-] as const;
+export const MONTH_TRANSACTION_SPECS: Record<
+  DemoTemplateKey,
+  readonly MonthTransactionSpec[]
+> = {
+  STANDARD: [
+    {
+      day: 1,
+      name: 'Migros - Courses',
+      amount: 127.85,
+      tagName: 'Alimentation',
+      envelopeName: 'Courses alimentaires',
+    },
+    {
+      day: 10,
+      name: 'Restaurant Molino',
+      amount: 78.5,
+      tagName: 'Restaurants',
+      envelopeName: 'Restaurants/Sorties',
+    },
+    {
+      day: 15,
+      name: 'Coop - Courses',
+      amount: 94.2,
+      tagName: 'Alimentation',
+      envelopeName: 'Courses alimentaires',
+    },
+  ],
+  VACATIONS: [
+    {
+      day: 1,
+      name: 'Swiss - Billets',
+      amount: 742,
+      tagName: 'Voyage',
+      envelopeName: "Billets d'avion",
+    },
+    {
+      day: 10,
+      name: 'Hôtel Bellavista',
+      amount: 1180,
+      tagName: 'Voyage',
+      envelopeName: 'Hôtel (7 nuits)',
+    },
+    {
+      day: 15,
+      name: 'Excursions & restaurants',
+      amount: 486.3,
+      tagName: 'Loisirs',
+      envelopeName: 'Budget vacances',
+    },
+  ],
+  SAVINGS: [
+    {
+      day: 1,
+      name: 'Aldi - Courses',
+      amount: 68.3,
+      tagName: 'Alimentation',
+      envelopeName: 'Courses (budget serré)',
+    },
+    {
+      day: 10,
+      name: 'Denner - Courses',
+      amount: 74.15,
+      tagName: 'Alimentation',
+      envelopeName: 'Courses (budget serré)',
+    },
+    {
+      day: 15,
+      name: 'Pharmacie - dépannage',
+      amount: 42.9,
+      tagName: 'Santé',
+      envelopeName: 'Minimum vital',
+    },
+  ],
+  HOLIDAYS: [
+    {
+      day: 1,
+      name: 'Manor - Cadeaux',
+      amount: 245,
+      tagName: 'Cadeaux',
+      envelopeName: 'Cadeaux famille',
+    },
+    {
+      day: 10,
+      name: 'Traiteur - Repas de fêtes',
+      amount: 318.5,
+      tagName: 'Alimentation',
+      envelopeName: 'Repas de fêtes',
+    },
+    {
+      day: 15,
+      name: 'Jumbo - Décorations',
+      amount: 87.9,
+      tagName: 'Maison',
+      envelopeName: 'Décorations',
+    },
+  ],
+};
 
 export function buildTransactionSeeds(
   budgets: DemoSeededBudget[],
@@ -85,9 +169,11 @@ function buildMonthTransactions(
   currentDate: Date,
 ): DemoTransactionSeed[] {
   const isClosed = isClosedMonth(budget, currentDate);
+  const specs = MONTH_TRANSACTION_SPECS[templateKeyForMonth(budget.month)];
 
-  return MONTH_TRANSACTION_SPECS.filter((spec) => maxDay >= spec.day).map(
-    (spec) => {
+  return specs
+    .filter((spec) => maxDay >= spec.day)
+    .map((spec) => {
       const transactionDate = new Date(
         budget.year,
         budget.month - 1,
@@ -105,6 +191,5 @@ function buildMonthTransactions(
         transactionDate,
         checkedAt: isClosed ? transactionDate : null,
       };
-    },
-  );
+    });
 }

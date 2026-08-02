@@ -12,6 +12,7 @@ import {
 import type {
   DemoSeededBudget,
   DemoSeededBudgetLine,
+  DemoSeededSavingsGoal,
   DemoSeededTemplate,
   DemoSeededTemplateLine,
 } from '../domain/demo.entity';
@@ -73,7 +74,13 @@ export class GenerateDemoDataUseCase {
       currentDate,
       supabase,
     );
-    await this.seedSavingsGoals(userId, budgetLines, currentDate, supabase);
+    await this.seedSavingsGoals(
+      userId,
+      budgetLines,
+      templateLines,
+      currentDate,
+      supabase,
+    );
 
     await this.recalculateAllBudgetBalances(budgets);
     this.logger.info(
@@ -179,6 +186,7 @@ export class GenerateDemoDataUseCase {
   private async seedSavingsGoals(
     userId: string,
     budgetLines: DemoSeededBudgetLine[],
+    templateLines: DemoSeededTemplateLine[],
     currentDate: Date,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<void> {
@@ -190,20 +198,48 @@ export class GenerateDemoDataUseCase {
     this.logger.info({ userId, count: goals.length }, 'Savings goals created');
 
     for (const goal of goals) {
-      const spec = DEMO_SAVINGS_GOAL_SPECS.find((s) => s.name === goal.name);
-      if (!spec?.envelopeName) continue;
-
-      const envelopeIds = budgetLines
-        .filter(
-          (line) => line.kind === 'saving' && line.name === spec.envelopeName,
-        )
-        .map((line) => line.id);
-      await this.repo.linkBudgetLinesToSavingsGoal(
-        envelopeIds,
-        goal.id,
+      await this.linkEnvelopesFeeding(
+        goal,
+        budgetLines,
+        templateLines,
         supabase,
       );
     }
+  }
+
+  private async linkEnvelopesFeeding(
+    goal: DemoSeededSavingsGoal,
+    budgetLines: DemoSeededBudgetLine[],
+    templateLines: DemoSeededTemplateLine[],
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const spec = DEMO_SAVINGS_GOAL_SPECS.find((s) => s.name === goal.name);
+    const envelopeName = spec?.envelopeName;
+    if (!envelopeName) return;
+
+    const feedsGoal = (line: { kind: string; name: string }) =>
+      line.kind === 'saving' && line.name === envelopeName;
+
+    await this.repo.linkBudgetLinesToSavingsGoal(
+      budgetLines.filter(feedsGoal).map((line) => line.id),
+      goal.id,
+      supabase,
+    );
+
+    /**
+     * Only an open-ended goal reaches the Mois Type. A dated one materialises
+     * bounded `one_off` prévisions and poses nothing there (`SAVINGS.md` §3.5):
+     * a recurrence would carry it for life and falsify the model's net balance
+     * past the deadline. Tagging the Mois Type is what makes the link survive
+     * the months the seed does not cover (§3.2).
+     */
+    if (spec.monthsUntilTarget !== null) return;
+
+    await this.repo.linkTemplateLinesToSavingsGoal(
+      templateLines.filter(feedsGoal).map((line) => line.id),
+      goal.id,
+      supabase,
+    );
   }
 
   private async recalculateAllBudgetBalances(

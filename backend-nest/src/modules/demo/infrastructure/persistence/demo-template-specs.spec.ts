@@ -1,10 +1,26 @@
 import { describe, it, expect } from 'bun:test';
 import {
+  DEMO_SAVINGS_GOAL_SPECS,
+  DEMO_TEMPLATE_ORDER,
+  type DemoTemplateKey,
+} from '../../domain/demo.constants';
+import { MONTH_TRANSACTION_SPECS } from '../../domain/demo-transaction-seeds';
+import {
   getHolidayMonthLines,
   getSavingsMonthLines,
   getStandardMonthLines,
   getVacationMonthLines,
 } from './demo-template-specs';
+
+const LINES_BY_TEMPLATE_KEY: Record<
+  DemoTemplateKey,
+  (templateId: string) => { name: string; kind: string }[]
+> = {
+  STANDARD: getStandardMonthLines,
+  VACATIONS: getVacationMonthLines,
+  SAVINGS: getSavingsMonthLines,
+  HOLIDAYS: getHolidayMonthLines,
+};
 
 describe('demo-template-specs pure data functions', () => {
   describe('getStandardMonthLines', () => {
@@ -60,5 +76,50 @@ describe('demo-template-specs pure data functions', () => {
         expect(line.templateId).toBe('tpl-4');
       }
     });
+  });
+
+  /**
+   * The actuals name their envelope by string, across the domain/infrastructure
+   * boundary the seed cannot cross by import. Without this pairing, a themed
+   * month kept naming standard envelopes and showed nothing consumed at all.
+   */
+  describe('envelopes the month actuals consume', () => {
+    for (const key of DEMO_TEMPLATE_ORDER) {
+      it(`should carry every envelope the ${key} actuals name`, () => {
+        const names = new Set(
+          LINES_BY_TEMPLATE_KEY[key]('tpl-1').map((line) => line.name),
+        );
+        const specs = MONTH_TRANSACTION_SPECS[key];
+
+        expect(specs.length).toBeGreaterThan(0);
+        for (const spec of specs) {
+          expect(names.has(spec.envelopeName)).toBe(true);
+        }
+      });
+    }
+  });
+
+  /**
+   * Same string-across-the-boundary problem for the goals: a goal names its
+   * prévision Épargne by name, and a rename on either side would silently leave
+   * the goal fed by nothing.
+   */
+  it('should carry a saving line for every envelope a goal is fed by', () => {
+    const savingNames = new Set(
+      DEMO_TEMPLATE_ORDER.flatMap((key) =>
+        LINES_BY_TEMPLATE_KEY[key]('tpl-1')
+          .filter((line) => line.kind === 'saving')
+          .map((line) => line.name),
+      ),
+    );
+
+    expect(
+      DEMO_SAVINGS_GOAL_SPECS.filter((spec) => spec.envelopeName !== null)
+        .length,
+    ).toBeGreaterThan(0);
+    for (const goal of DEMO_SAVINGS_GOAL_SPECS) {
+      if (goal.envelopeName === null) continue;
+      expect(savingNames.has(goal.envelopeName)).toBe(true);
+    }
   });
 });

@@ -564,6 +564,7 @@ describe('SupabaseDemoRepository', () => {
       const inserted = captured[0] as Array<{
         target_amount: string;
         initial_amount: string;
+        created_at: string | undefined;
         start_date: string | null;
         target_date: string | null;
       }>;
@@ -571,6 +572,7 @@ describe('SupabaseDemoRepository', () => {
       expect(inserted[0].initial_amount).toBe('enc-15000');
       expect(inserted[0].start_date).toBe('2026-02-01');
       expect(inserted[0].target_date).toBe('2027-08-01');
+      expect(inserted[0].created_at).toBe('2026-02-01');
       expect(result).toEqual([{ id: 'goal-0', name: 'Apport logement' }]);
     });
 
@@ -630,6 +632,55 @@ describe('SupabaseDemoRepository', () => {
 
       await expect(
         repo.linkBudgetLinesToSavingsGoal(['bl-1'], 'goal-1', supabase),
+      ).rejects.toThrow(BusinessException);
+    });
+  });
+
+  describe('linkTemplateLinesToSavingsGoal', () => {
+    it('should resolve without calling supabase when no recurring line feeds the goal', async () => {
+      const fromFn = jest.fn();
+      const supabase = createMockSupabase(fromFn);
+
+      await expect(
+        repo.linkTemplateLinesToSavingsGoal([], 'goal-1', supabase),
+      ).resolves.toBeUndefined();
+      expect(fromFn).not.toHaveBeenCalled();
+    });
+
+    it('should point the given Mois Type lines at the goal', async () => {
+      const captured: unknown[] = [];
+      const tables: unknown[] = [];
+      const filterByIds = jest.fn().mockResolvedValue({ error: null });
+      const supabase = createMockSupabase((table: unknown) => {
+        tables.push(table);
+        return {
+          update: (values: unknown) => {
+            captured.push(values);
+            return { in: filterByIds };
+          },
+        };
+      });
+
+      await repo.linkTemplateLinesToSavingsGoal(
+        ['tl-1', 'tl-2'],
+        'goal-1',
+        supabase,
+      );
+
+      expect(tables[0]).toBe('template_line');
+      expect(captured[0]).toEqual({ savings_goal_id: 'goal-1' });
+      expect(filterByIds).toHaveBeenCalledWith('id', ['tl-1', 'tl-2']);
+    });
+
+    it('should throw BusinessException on supabase error', async () => {
+      const supabase = createMockSupabase(() => ({
+        update: () => ({
+          in: jest.fn().mockResolvedValue({ error: { message: 'nope' } }),
+        }),
+      }));
+
+      await expect(
+        repo.linkTemplateLinesToSavingsGoal(['tl-1'], 'goal-1', supabase),
       ).rejects.toThrow(BusinessException);
     });
   });

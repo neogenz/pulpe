@@ -57,6 +57,20 @@ export const DEMO_SPREAD_SPEC = {
   firstMonthOffset: -2,
 } as const;
 
+/**
+ * The order the four templates are seeded in. Both the template-line seed and
+ * the budget seed address them positionally, so the order is part of the
+ * contract rather than a detail of `buildTemplateSeeds`.
+ */
+export const DEMO_TEMPLATE_ORDER = [
+  'STANDARD',
+  'VACATIONS',
+  'SAVINGS',
+  'HOLIDAYS',
+] as const;
+
+export type DemoTemplateKey = (typeof DEMO_TEMPLATE_ORDER)[number];
+
 export const DEMO_TEMPLATE_SPECS = {
   STANDARD: {
     name: '💰 Mois Standard',

@@ -80,4 +80,14 @@ export interface DemoRepositoryPort {
     savingsGoalId: string,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<void>;
+  /**
+   * Points the Mois Type's recurring lines at the goal they feed, so a budget
+   * generated later keeps the link (`SAVINGS.md` §3.2). Reserved for open-ended
+   * goals: §3.5 forbids a dated one from posing a recurrence there.
+   */
+  linkTemplateLinesToSavingsGoal(
+    templateLineIds: string[],
+    savingsGoalId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void>;
 }

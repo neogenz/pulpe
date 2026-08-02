@@ -12,11 +12,62 @@ import type {
 import {
   DEMO_SAVINGS_GOAL_SPECS,
   DEMO_SPREAD_SPEC,
+  DEMO_TEMPLATE_ORDER,
+  type DemoTemplateKey,
 } from '../domain/demo.constants';
+import { templateKeyForMonth } from '../domain/demo-seed.builders';
+import { MONTH_TRANSACTION_SPECS } from '../domain/demo-transaction-seeds';
 import { GenerateDemoDataUseCase } from './generate-demo-data.use-case';
 
 const GROCERIES_ENVELOPE = 'Courses alimentaires';
 const HOUSING_SAVINGS_ENVELOPE = 'Épargne logement';
+const EMERGENCY_SAVINGS_ENVELOPE = "Fonds d'urgence";
+
+/**
+ * The saving envelopes each template really carries, mirroring
+ * `demo-template-specs.ts`: the vacation month funds no goal, and the holiday
+ * month funds only the housing one. Giving every template the same savings
+ * block would let a Mois Type be tagged for a goal it does not fund.
+ */
+const SAVING_ENVELOPES_BY_TEMPLATE: Record<DemoTemplateKey, string[]> = {
+  STANDARD: [HOUSING_SAVINGS_ENVELOPE, EMERGENCY_SAVINGS_ENVELOPE],
+  VACATIONS: [],
+  SAVINGS: [HOUSING_SAVINGS_ENVELOPE, EMERGENCY_SAVINGS_ENVELOPE],
+  HOLIDAYS: [HOUSING_SAVINGS_ENVELOPE],
+};
+
+/**
+ * Every template carries the envelopes its own month's actuals name, mirroring
+ * the real specs: a mock giving lines to the standard template alone would hide
+ * exactly the gap that left themed months showing nothing consumed.
+ */
+function mockCanonicalTemplateLines() {
+  return DEMO_TEMPLATE_ORDER.flatMap((key, templateIndex) => {
+    const templateId = `template-${templateIndex}`;
+    const envelopeLines = [
+      ...new Set(MONTH_TRANSACTION_SPECS[key].map((spec) => spec.envelopeName)),
+    ].map((name, i) => ({
+      id: `tl-${templateIndex}-${i}`,
+      templateId,
+      name,
+      amount: 600,
+      kind: 'expense' as const,
+      recurrence: 'one_off' as const,
+    }));
+
+    return [
+      ...envelopeLines,
+      ...SAVING_ENVELOPES_BY_TEMPLATE[key].map((name, i) => ({
+        id: `tl-${templateIndex}-saving-${i}`,
+        templateId,
+        name,
+        amount: 1000,
+        kind: 'saving' as const,
+        recurrence: 'fixed' as const,
+      })),
+    ];
+  });
+}
 
 /**
  * Budgets are seeded chronologically, so a budget's index tells its month apart:
@@ -31,24 +82,9 @@ function buildMockRepo() {
     insertTemplates: mock(async (rows: unknown[]) =>
       rows.map((_, i) => ({ id: `template-${i}` })),
     ),
-    insertCanonicalTemplateLines: mock(async () => [
-      {
-        id: 'tl-0',
-        templateId: 'template-0',
-        name: GROCERIES_ENVELOPE,
-        amount: 600,
-        kind: 'expense' as const,
-        recurrence: 'one_off' as const,
-      },
-      {
-        id: 'tl-1',
-        templateId: 'template-0',
-        name: HOUSING_SAVINGS_ENVELOPE,
-        amount: 1000,
-        kind: 'saving' as const,
-        recurrence: 'fixed' as const,
-      },
-    ]),
+    insertCanonicalTemplateLines: mock(async () =>
+      mockCanonicalTemplateLines(),
+    ),
     insertBudgets: mock(async (rows: unknown[]) =>
       rows.map(
         (r, i) =>
@@ -72,6 +108,7 @@ function buildMockRepo() {
       goals.map((goal, i) => ({ id: `goal-${i}`, name: goal.name })),
     ),
     linkBudgetLinesToSavingsGoal: mock(async () => {}),
+    linkTemplateLinesToSavingsGoal: mock(async () => {}),
   };
 }
 
@@ -102,6 +139,15 @@ function seededSavingsGoals(repo: ReturnType<typeof buildMockRepo>) {
 function savingsGoalLinkCalls(repo: ReturnType<typeof buildMockRepo>) {
   return (repo.linkBudgetLinesToSavingsGoal as ReturnType<typeof mock>).mock
     .calls as [string[], string, unknown][];
+}
+
+function templateLineLinkCalls(repo: ReturnType<typeof buildMockRepo>) {
+  return (repo.linkTemplateLinesToSavingsGoal as ReturnType<typeof mock>).mock
+    .calls as [string[], string, unknown][];
+}
+
+function goalIdByName(repo: ReturnType<typeof buildMockRepo>, name: string) {
+  return `goal-${seededSavingsGoals(repo).findIndex((goal) => goal.name === name)}`;
 }
 
 function identifiedBudgetLines(repo: ReturnType<typeof buildMockRepo>) {
@@ -275,21 +321,36 @@ describe('GenerateDemoDataUseCase', () => {
       }
     });
 
-    it('should leave an actual unattached when no envelope matches it', async () => {
+    it('should attach every actual to an envelope of its own budget, themed months included', async () => {
       await useCase.execute('user-1', {} as never);
 
-      const seededNames = new Set(
-        seededBudgetLines(mockRepo).map((line) => line.name),
+      const lineById = new Map(
+        identifiedBudgetLines(mockRepo).map(({ line, id }) => [id, line]),
       );
-      expect(seededNames.has('Restaurants/Sorties')).toBe(false);
-
-      const restaurantActuals = seededTransactions(mockRepo).filter(
-        (tx) => tx.name === 'Restaurant Molino',
+      const themedBudgetIds = new Set(
+        seededBudgets(mockRepo).flatMap((budget, index) =>
+          templateKeyForMonth(budget.month) === 'STANDARD'
+            ? []
+            : [`budget-${index}`],
+        ),
       );
+      const actuals = seededTransactions(mockRepo);
 
-      expect(restaurantActuals.length).toBeGreaterThan(0);
-      for (const actual of restaurantActuals) {
-        expect(actual.budgetLineId).toBeNull();
+      expect(actuals.length).toBeGreaterThan(0);
+      expect(actuals.some((tx) => themedBudgetIds.has(tx.budgetId))).toBe(true);
+      for (const actual of actuals) {
+        expect(lineById.get(actual.budgetLineId ?? '')?.budgetId).toBe(
+          actual.budgetId,
+        );
+      }
+    });
+
+    it('should open every template set on the 1st so a month in progress is never empty', () => {
+      for (const key of DEMO_TEMPLATE_ORDER) {
+        const days = MONTH_TRANSACTION_SPECS[key].map((spec) => spec.day);
+
+        expect(days.length).toBeGreaterThan(0);
+        expect(Math.min(...days)).toBe(1);
       }
     });
   });
@@ -430,6 +491,46 @@ describe('GenerateDemoDataUseCase', () => {
         ([, goalId]) => goalId === `goal-${housingGoalIndex}`,
       );
       expect(linkCall?.[0]).toEqual(housingLineIds);
+    });
+
+    it('should tag the Mois Type for the open-ended goal so a later budget keeps the link', async () => {
+      await useCase.execute('user-1', {} as never);
+
+      const openEnded = DEMO_SAVINGS_GOAL_SPECS.find(
+        (spec) => spec.monthsUntilTarget === null && spec.envelopeName !== null,
+      );
+      const envelopeName = openEnded?.envelopeName;
+      if (!openEnded || !envelopeName) {
+        throw new Error('no open-ended goal fed by an envelope');
+      }
+      const recurringLineIds = mockCanonicalTemplateLines()
+        .filter((line) => line.kind === 'saving' && line.name === envelopeName)
+        .map((line) => line.id);
+
+      expect(recurringLineIds.length).toBeGreaterThan(0);
+      const linkCall = templateLineLinkCalls(mockRepo).find(
+        ([, goalId]) => goalId === goalIdByName(mockRepo, openEnded.name),
+      );
+      expect(linkCall?.[0]).toEqual(recurringLineIds);
+    });
+
+    it('should never tag the Mois Type for a dated goal', async () => {
+      await useCase.execute('user-1', {} as never);
+
+      const datedGoalIds = new Set(
+        DEMO_SAVINGS_GOAL_SPECS.filter(
+          (spec) => spec.monthsUntilTarget !== null,
+        ).map((spec) => goalIdByName(mockRepo, spec.name)),
+      );
+      const taggedGoalIds = templateLineLinkCalls(mockRepo).map(
+        ([, goalId]) => goalId,
+      );
+
+      expect(datedGoalIds.size).toBeGreaterThan(0);
+      expect(taggedGoalIds.length).toBeGreaterThan(0);
+      for (const goalId of taggedGoalIds) {
+        expect(datedGoalIds.has(goalId)).toBe(false);
+      }
     });
 
     it('should never link a prévision to a goal that no envelope funds', async () => {
