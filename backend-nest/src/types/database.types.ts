@@ -198,6 +198,7 @@ export type Database = {
       };
       savings_goal: {
         Row: {
+          balance_revision: number;
           created_at: string;
           exchange_rate: number | null;
           id: string;
@@ -215,6 +216,7 @@ export type Database = {
           user_id: string;
         };
         Insert: {
+          balance_revision?: number;
           created_at?: string;
           exchange_rate?: number | null;
           id?: string;
@@ -232,6 +234,7 @@ export type Database = {
           user_id: string;
         };
         Update: {
+          balance_revision?: number;
           created_at?: string;
           exchange_rate?: number | null;
           id?: string;
@@ -416,6 +419,8 @@ export type Database = {
           name: string;
           original_amount: string | null;
           original_currency: string | null;
+          source_savings_goal_id: string | null;
+          source_savings_goal_name: string | null;
           target_currency: string | null;
           transaction_date: string;
           updated_at: string;
@@ -432,6 +437,8 @@ export type Database = {
           name: string;
           original_amount?: string | null;
           original_currency?: string | null;
+          source_savings_goal_id?: string | null;
+          source_savings_goal_name?: string | null;
           target_currency?: string | null;
           transaction_date?: string;
           updated_at?: string;
@@ -448,6 +455,8 @@ export type Database = {
           name?: string;
           original_amount?: string | null;
           original_currency?: string | null;
+          source_savings_goal_id?: string | null;
+          source_savings_goal_name?: string | null;
           target_currency?: string | null;
           transaction_date?: string;
           updated_at?: string;
@@ -465,6 +474,13 @@ export type Database = {
             columns: ['budget_line_id'];
             isOneToOne: false;
             referencedRelation: 'budget_line';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'transaction_source_savings_goal_id_fkey';
+            columns: ['source_savings_goal_id'];
+            isOneToOne: false;
+            referencedRelation: 'savings_goal';
             referencedColumns: ['id'];
           },
         ];
@@ -609,6 +625,10 @@ export type Database = {
         };
         Returns: string[];
       };
+      assert_savings_goal_withdrawal_tags: {
+        Args: { p_tag_ids: string[] };
+        Returns: undefined;
+      };
       bulk_replace_template_line_tags_and_sync: {
         Args: { p_budget_ids: string[]; p_line_tag_pairs: Json };
         Returns: undefined;
@@ -627,6 +647,10 @@ export type Database = {
           updated_at: string;
         }[];
       };
+      bump_savings_goal_balance_revision: {
+        Args: { p_goal_ids: string[] };
+        Returns: undefined;
+      };
       check_unchecked_transactions: {
         Args: { p_budget_line_id: string };
         Returns: {
@@ -641,6 +665,8 @@ export type Database = {
           name: string;
           original_amount: string | null;
           original_currency: string | null;
+          source_savings_goal_id: string | null;
+          source_savings_goal_name: string | null;
           target_currency: string | null;
           transaction_date: string;
           updated_at: string;
@@ -697,6 +723,38 @@ export type Database = {
           isSetofReturn: true;
         };
       };
+      create_savings_goal_withdrawal: {
+        Args: {
+          p_expected_revision: number;
+          p_goal_id: string;
+          p_tag_ids?: string[];
+          p_transaction: Json;
+        };
+        Returns: {
+          amount: string | null;
+          budget_id: string;
+          budget_line_id: string | null;
+          checked_at: string | null;
+          created_at: string;
+          exchange_rate: number | null;
+          id: string;
+          kind: Database['public']['Enums']['transaction_kind'];
+          name: string;
+          original_amount: string | null;
+          original_currency: string | null;
+          source_savings_goal_id: string | null;
+          source_savings_goal_name: string | null;
+          target_currency: string | null;
+          transaction_date: string;
+          updated_at: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'transaction';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       create_template_with_lines: {
         Args: {
           p_description?: string;
@@ -707,9 +765,17 @@ export type Database = {
         };
         Returns: Json;
       };
+      delete_savings_goal_withdrawal: {
+        Args: { p_expected_revision: number; p_transaction_id: string };
+        Returns: undefined;
+      };
       get_savings_goal_deletion_impact: {
         Args: { p_goal_id: string };
         Returns: Json;
+      };
+      lock_savings_goal_for_withdrawal: {
+        Args: { p_expected_revision: number; p_goal_id: string };
+        Returns: string;
       };
       reconcile_savings_goal_target_date: {
         Args: {
@@ -787,6 +853,8 @@ export type Database = {
           name: string;
           original_amount: string | null;
           original_currency: string | null;
+          source_savings_goal_id: string | null;
+          source_savings_goal_name: string | null;
           target_currency: string | null;
           transaction_date: string;
           updated_at: string;
@@ -823,6 +891,38 @@ export type Database = {
         SetofOptions: {
           from: '*';
           to: 'budget_line';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      update_savings_goal_withdrawal: {
+        Args: {
+          p_expected_revision: number;
+          p_patch: Json;
+          p_tag_ids?: string[];
+          p_transaction_id: string;
+        };
+        Returns: {
+          amount: string | null;
+          budget_id: string;
+          budget_line_id: string | null;
+          checked_at: string | null;
+          created_at: string;
+          exchange_rate: number | null;
+          id: string;
+          kind: Database['public']['Enums']['transaction_kind'];
+          name: string;
+          original_amount: string | null;
+          original_currency: string | null;
+          source_savings_goal_id: string | null;
+          source_savings_goal_name: string | null;
+          target_currency: string | null;
+          transaction_date: string;
+          updated_at: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'transaction';
           isOneToOne: true;
           isSetofReturn: false;
         };
@@ -870,6 +970,8 @@ export type Database = {
           name: string;
           original_amount: string | null;
           original_currency: string | null;
+          source_savings_goal_id: string | null;
+          source_savings_goal_name: string | null;
           target_currency: string | null;
           transaction_date: string;
           updated_at: string;

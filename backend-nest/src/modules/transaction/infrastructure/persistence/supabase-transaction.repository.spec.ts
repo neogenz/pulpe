@@ -31,6 +31,8 @@ const mockRow: TransactionRow = {
   original_currency: null,
   target_currency: null,
   exchange_rate: null,
+  source_savings_goal_id: null,
+  source_savings_goal_name: null,
 };
 
 function createMockEncryption(): EncryptionPort {

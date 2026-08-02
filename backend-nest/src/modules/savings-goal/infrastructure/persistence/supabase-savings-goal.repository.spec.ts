@@ -32,6 +32,7 @@ const mockRow: SavingsGoalRow = {
   target_currency: null,
   exchange_rate: null,
   initial_amount: null,
+  balance_revision: 0,
 };
 
 function createMockProvider(
