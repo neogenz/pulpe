@@ -3,7 +3,10 @@ import {
   type ErrorDefinition,
 } from '@common/constants/error-definitions';
 import { BusinessException } from '@common/exceptions/business.exception';
-import { isSavingsGoalLinkDenied } from '@common/utils/savings-goal-link';
+import {
+  isSavingsGoalLinkDenied,
+  isSavingsGoalLinkOutsideHorizon,
+} from '@common/utils/savings-goal-link';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import type { Json } from '../../types/database.types';
 
@@ -189,6 +192,16 @@ function throwAtomicTaggedUpdateError(
   if (isSavingsGoalLinkDenied(error)) {
     throwTaggedBusinessError(
       ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
+      undefined,
+      params,
+      error,
+    );
+  }
+  // Same trigger, horizon branch. Only budget_line carries the deadline bound,
+  // so template-line callers simply never raise it.
+  if (isSavingsGoalLinkOutsideHorizon(error)) {
+    throwTaggedBusinessError(
+      ERROR_DEFINITIONS.SAVINGS_GOAL_LINE_OUTSIDE_HORIZON,
       undefined,
       params,
       error,
