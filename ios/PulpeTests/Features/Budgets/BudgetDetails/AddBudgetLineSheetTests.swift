@@ -8,4 +8,11 @@ struct AddBudgetLineSheetTests {
         #expect(!AddBudgetLineSheet.showsTagPicker(spread: true, withdrawal: false))
         #expect(!AddBudgetLineSheet.showsTagPicker(spread: false, withdrawal: true))
     }
+
+    @Test("Savings goal picker is visible for saving in both creation modes")
+    func savingsGoalPickerVisibility() {
+        #expect(AddBudgetLineSheet.showsSavingsGoalPicker(kind: .saving))
+        #expect(!AddBudgetLineSheet.showsSavingsGoalPicker(kind: .expense))
+        #expect(!AddBudgetLineSheet.showsSavingsGoalPicker(kind: .income))
+    }
 }

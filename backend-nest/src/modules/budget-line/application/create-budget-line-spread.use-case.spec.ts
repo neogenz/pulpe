@@ -249,12 +249,24 @@ describe('CreateBudgetLineSpreadUseCase', () => {
     expect(inputs.every((i) => i.targetCurrency === 'CHF')).toBe(true);
   });
 
-  it('should support kind=saving while forcing recurrence one_off', async () => {
-    await useCase.execute(makeDto({ kind: 'saving' }), mockUser);
+  it('should keep the savings-goal link on every per-month saving tranche', async () => {
+    await useCase.execute(
+      makeDto({ kind: 'saving', savingsGoalId: 'goal-1' }),
+      mockUser,
+    );
 
     const { inputs } = captured[0];
     expect(inputs.every((i) => i.kind === 'saving')).toBe(true);
     expect(inputs.every((i) => i.recurrence === 'one_off')).toBe(true);
+    expect(inputs.every((i) => i.savingsGoalId === 'goal-1')).toBe(true);
+  });
+
+  it('should discard a forged savings-goal link on expense tranches', async () => {
+    await useCase.execute(makeDto({ savingsGoalId: 'goal-1' }), mockUser);
+
+    expect(captured[0].inputs.every((i) => i.savingsGoalId === null)).toBe(
+      true,
+    );
   });
 
   it('should invalidate cache and rethrow when the fan-out fails', async () => {
@@ -314,6 +326,21 @@ describe('CreateBudgetLineSpreadUseCase', () => {
       expect(inputs.map((i) => i.amount)).toEqual([33.34, 33.33, 33.33]);
       const sum = inputs.reduce((acc, i) => acc + i.amount, 0);
       expect(Math.round(sum * 100) / 100).toBe(100);
+    });
+
+    it('should keep the savings-goal link on every total-mode saving tranche', async () => {
+      await useCase.execute(
+        makeTotalDto({
+          kind: 'saving',
+          savingsGoalId: 'goal-1',
+          totalAmount: 100,
+        }),
+        mockUser,
+      );
+
+      expect(
+        captured[0].inputs.every((i) => i.savingsGoalId === 'goal-1'),
+      ).toBe(true);
     });
 
     it('should split the FX original total and freeze the same rate quadruplet on every row', async () => {

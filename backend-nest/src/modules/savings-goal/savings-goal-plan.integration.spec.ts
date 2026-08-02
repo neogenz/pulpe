@@ -43,6 +43,11 @@ import { SupabaseSavingsGoalRepository } from './infrastructure/persistence/supa
 import { GetSavingsGoalProgressUseCase } from './application/get-savings-goal-progress.use-case';
 import { ApplySavingsGoalPlanUseCase } from './application/apply-savings-goal-plan.use-case';
 import { SupabaseBudgetTemplateRepository } from '@modules/budget-template/infrastructure/persistence/supabase-budget-template.repository';
+import { SupabaseBudgetRepository } from '@modules/budget/infrastructure/persistence/supabase-budget.repository';
+import { EnsureBudgetsForPeriodsUseCase } from '@modules/budget/application/ensure-budgets-for-periods.use-case';
+import { CreateBudgetLineSpreadUseCase } from '@modules/budget-line/application/create-budget-line-spread.use-case';
+import { SupabaseBudgetLineRepository } from '@modules/budget-line/infrastructure/persistence/supabase-budget-line.repository';
+import { SupabaseBudgetLineSpreadReader } from '@modules/budget-line/infrastructure/persistence/supabase-budget-line-spread.reader';
 
 const PASSWORD = 'test-password-123';
 
@@ -57,6 +62,8 @@ const encryptionStub = {
   tryDecryptAmount: (cipher: string | null, _dek: Buffer, fallback: number) =>
     decodeEnc(cipher, fallback),
   prepareAmountData: async (amount: number) => ({ amount: `enc:${amount}` }),
+  encryptOptionalAmount: async (amount: number | null | undefined) =>
+    amount == null ? null : `enc:${amount}`,
   decryptRowAmountFields: (
     row: { amount: string | null; original_amount: string | null },
     _dek: Buffer,
@@ -144,7 +151,10 @@ function progressUseCaseFor(user: TestUser): {
   };
 }
 
-function applyPlanUseCaseFor(user: TestUser): {
+function applyPlanUseCaseFor(
+  user: TestUser,
+  useRealSpread = false,
+): {
   useCase: ApplySavingsGoalPlanUseCase;
   authUser: AuthenticatedUser;
   recalcCalls: string[];
@@ -154,6 +164,7 @@ function applyPlanUseCaseFor(user: TestUser): {
     providerFor(user, authUser),
     encryptionStub,
   );
+  const provider = providerFor(user, authUser);
   const recalcCalls: string[] = [];
   const recalcPort = {
     recalculate: async (budgetId: string) => {
@@ -163,19 +174,40 @@ function applyPlanUseCaseFor(user: TestUser): {
   const cacheStub = {
     invalidateForUser: async () => {},
   } as unknown as CacheService;
-  const spreadStub = {
-    fanOut: async () => ({
-      spreadGroupId: 'spread-group',
-      lines: [],
-      createdBudgets: [],
-      skippedMonths: [],
-    }),
-  } as unknown as BudgetLineSpreadPort;
+  const spread = useRealSpread
+    ? new CreateBudgetLineSpreadUseCase(
+        new SupabaseBudgetLineRepository(
+          provider,
+          encryptionStub,
+          noopLogger,
+          new SupabaseBudgetLineSpreadReader(provider, encryptionStub),
+        ),
+        new EnsureBudgetsForPeriodsUseCase(
+          new SupabaseBudgetRepository(provider, encryptionStub),
+          noopLogger,
+        ),
+        new SupabaseBudgetTemplateRepository(
+          provider,
+          encryptionStub,
+          noopLogger,
+        ),
+        recalcPort,
+        cacheStub,
+        noopLogger,
+      )
+    : ({
+        fanOut: async () => ({
+          spreadGroupId: 'spread-group',
+          lines: [],
+          createdBudgets: [],
+          skippedMonths: [],
+        }),
+      } as unknown as BudgetLineSpreadPort);
   return {
     useCase: new ApplySavingsGoalPlanUseCase(
       repo,
       recalcPort,
-      spreadStub,
+      spread,
       cacheStub,
       noopLogger,
     ),
@@ -202,7 +234,8 @@ function shiftPeriod(period: Period, delta: number): Period {
 
 const pastPeriod = shiftPeriod(nowPeriod, -1);
 const future1Period = shiftPeriod(nowPeriod, 1);
-const targetPeriod = shiftPeriod(nowPeriod, 3); // leaves nowPeriod+2 and +3 as gaps
+const repairPeriod = shiftPeriod(nowPeriod, 2);
+const targetPeriod = shiftPeriod(nowPeriod, 3);
 
 const goalAId = crypto.randomUUID();
 const templateAId = crypto.randomUUID();
@@ -211,6 +244,7 @@ const templateLineAId = crypto.randomUUID();
 const pastBudgetId = crypto.randomUUID();
 const currentBudgetId = crypto.randomUUID();
 const futureBudgetId = crypto.randomUUID();
+const repairBudgetId = crypto.randomUUID();
 
 const currentLineId = crypto.randomUUID(); // current, unchecked, linked
 const futureLineId = crypto.randomUUID(); // future, unchecked, linked
@@ -302,6 +336,14 @@ beforeAll(async () => {
       template_id: templateAId,
       month: future1Period.month,
       year: future1Period.year,
+      description: '',
+    },
+    {
+      id: repairBudgetId,
+      user_id: userA.id,
+      template_id: templateAId,
+      month: repairPeriod.month,
+      year: repairPeriod.year,
       description: '',
     },
   ]);
@@ -396,13 +438,25 @@ describe('PUL-12 — plan timeline (read) on local Supabase', () => {
     const target = months.find(
       (m) => m.month === targetPeriod.month && m.year === targetPeriod.year,
     );
+    const repair = months.find(
+      (m) => m.month === repairPeriod.month && m.year === repairPeriod.year,
+    );
 
     expect(past?.isLocked).toBe(true); // strictly-past cycle
     expect(past?.state).toBe('past');
     expect(current?.state).toBe('current');
-    // nowPeriod+2 and +3 have no budget/line → gap rows keep the curve continuous.
+    // Both missing forecasts keep the curve continuous, but only one has a budget.
     expect(months.some((m) => m.state === 'gap')).toBe(true);
+    expect(repair).toMatchObject({
+      state: 'gap',
+      hasBudget: true,
+      isProvisionable: true,
+    });
     expect(target?.state).toBe('gap');
+    expect(target).toMatchObject({
+      hasBudget: false,
+      isProvisionable: false,
+    });
 
     // Cumulatives never decrease across the timeline.
     for (let i = 1; i < months.length; i++) {
@@ -425,6 +479,52 @@ describe('PUL-12 — plan timeline (read) on local Supabase', () => {
 });
 
 describe('PUL-12 — plan apply (write) on local Supabase', () => {
+  it('creates one linked forecast in an existing budget and stays idempotent on retry', async () => {
+    if (!env) return;
+
+    const run = async () => {
+      const { useCase, authUser } = applyPlanUseCaseFor(userA, true);
+      await useCase.execute(
+        goalAId,
+        {
+          monthAdjustments: [],
+          missingMonthAdjustments: [
+            {
+              month: repairPeriod.month,
+              year: repairPeriod.year,
+              amount: 700,
+            },
+          ],
+        },
+        authUser,
+      );
+    };
+
+    await run();
+    await run();
+
+    const { data: budgets } = await admin
+      .from('monthly_budget')
+      .select('id')
+      .eq('user_id', userA.id)
+      .eq('month', repairPeriod.month)
+      .eq('year', repairPeriod.year);
+    const { data: lines } = await admin
+      .from('budget_line')
+      .select('amount, kind, recurrence, is_manually_adjusted')
+      .eq('budget_id', repairBudgetId)
+      .eq('savings_goal_id', goalAId);
+
+    expect(budgets).toEqual([{ id: repairBudgetId }]);
+    expect(lines).toHaveLength(1);
+    expect(decodeEnc(lines?.[0]?.amount ?? null, Number.NaN)).toBe(700);
+    expect(lines?.[0]).toMatchObject({
+      kind: 'saving',
+      recurrence: 'one_off',
+      is_manually_adjusted: true,
+    });
+  });
+
   it('updates linked current+future lines, flags them, recalculates touched budgets', async () => {
     if (!env) return;
 

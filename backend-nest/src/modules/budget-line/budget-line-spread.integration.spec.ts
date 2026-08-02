@@ -18,6 +18,8 @@ import { SpreadGroupAlreadyExistsError } from './domain/spread-group-conflict.er
 import { SPREAD_GROUP_EXISTS_RPC_MESSAGE } from './infrastructure/persistence/schemas/rpc-payload.schemas';
 import type { BudgetLineCreateInput } from './domain/budget-line.entity';
 import type { InfoLogger } from '@common/logger';
+import { BusinessException } from '@common/exceptions/business.exception';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 
 /**
  * PUL-17 — the ERROR-DETECTION SEAM of the spread idempotency guard, end-to-end
@@ -250,5 +252,194 @@ describe('Spread idempotency guard — error-detection seam (local Supabase)', (
       row.name.startsWith(winnerPrefix),
     );
     expect(allFromWinner).toBe(true);
+  });
+});
+
+/**
+ * PUL-287 review finding — the horizon guard on the SPREAD path was only proven
+ * by reading `enforce_savings_goal_link_horizon.sql` and the repository's error
+ * mapping in isolation. This closes the gap end-to-end against the real
+ * `create_budget_lines_spread` RPC: seeds a dated goal whose horizon falls
+ * between two budget months, spreads a linked Épargne across both via the real
+ * additive-create repository path, and asserts the typed business error code
+ * (422), not the raw Postgres message — plus that the trigger's per-row raise
+ * aborts the whole multi-row INSERT (no line from the rejected group persists).
+ */
+describe('Spread horizon guard — outside-target-date rejection (local Supabase)', () => {
+  let hasSupabase = false;
+  let env: SupabaseEnv;
+  let adminClient: SupabaseClient<Database>;
+  let authClient: SupabaseClient<Database>;
+
+  const userEmail = `spread-horizon-${Date.now()}@test.local`;
+  const userPassword = 'test-password-123';
+  let userId = '';
+  const templateId = randomUUID();
+  const goalId = randomUUID();
+  const withinHorizonBudgetId = randomUUID();
+  const beyondHorizonBudgetId = randomUUID();
+  const spreadGroupId = randomUUID();
+
+  beforeAll(async () => {
+    const resolved = await ensureSupabaseAvailable().catch((error) => {
+      if (IS_DEDICATED_INTEGRATION_RUN) throw error;
+      return null;
+    });
+    if (!resolved) return;
+    env = resolved;
+    adminClient = createClient<Database>(env.apiUrl, env.serviceRoleKey);
+
+    const { data: created, error: createErr } =
+      await adminClient.auth.admin.createUser({
+        email: userEmail,
+        password: userPassword,
+        email_confirm: true,
+      });
+    if (createErr || !created?.user) {
+      throw new Error(
+        `Failed to create test user: ${createErr?.message ?? 'unknown'}`,
+      );
+    }
+    userId = created.user.id;
+
+    const { error: templateErr } = await adminClient.from('template').insert({
+      id: templateId,
+      user_id: userId,
+      name: 'Horizon Template',
+      is_default: true,
+    });
+    if (templateErr) {
+      throw new Error(`Failed to seed template: ${templateErr.message}`);
+    }
+
+    // No payDayOfMonth set on this user → the trigger's pay-day-aware horizon
+    // collapses to the calendar month of target_date: June 2026.
+    const { error: goalErr } = await adminClient.from('savings_goal').insert({
+      id: goalId,
+      user_id: userId,
+      name: 'Voyage',
+      target_amount: 'enc',
+      target_date: '2026-06-15',
+      status: 'ACTIVE',
+    });
+    if (goalErr) {
+      throw new Error(`Failed to seed savings goal: ${goalErr.message}`);
+    }
+
+    const { error: budgetErr } = await adminClient
+      .from('monthly_budget')
+      .insert([
+        {
+          id: withinHorizonBudgetId,
+          user_id: userId,
+          template_id: templateId,
+          month: 5,
+          year: 2026,
+          description: 'Within horizon',
+        },
+        {
+          id: beyondHorizonBudgetId,
+          user_id: userId,
+          template_id: templateId,
+          month: 7,
+          year: 2026,
+          description: 'Beyond horizon',
+        },
+      ]);
+    if (budgetErr) {
+      throw new Error(`Failed to seed monthly budgets: ${budgetErr.message}`);
+    }
+
+    authClient = createClient<Database>(env.apiUrl, env.anonKey);
+    const { error: signInErr } = await authClient.auth.signInWithPassword({
+      email: userEmail,
+      password: userPassword,
+    });
+    if (signInErr) throw new Error(`Failed to sign in: ${signInErr.message}`);
+
+    hasSupabase = true;
+  });
+
+  afterAll(async () => {
+    if (!userId) return;
+    await adminClient
+      .from('budget_line')
+      .delete()
+      .in('budget_id', [withinHorizonBudgetId, beyondHorizonBudgetId]);
+    await adminClient
+      .from('monthly_budget')
+      .delete()
+      .in('id', [withinHorizonBudgetId, beyondHorizonBudgetId]);
+    await adminClient.from('savings_goal').delete().eq('id', goalId);
+    await adminClient.from('template').delete().eq('id', templateId);
+    await adminClient.auth.admin.deleteUser(userId);
+  });
+
+  it('rejects a spread with a tranche beyond the goal horizon with the dedicated business code, and persists no line from that group', async () => {
+    if (!hasSupabase) return;
+
+    const providerStub = {
+      client: authClient as unknown as AuthenticatedSupabaseClient,
+      user: {
+        id: userId,
+        clientKey: Buffer.alloc(32),
+      } as unknown as AuthenticatedUser,
+    } as unknown as AuthenticatedSupabaseProvider;
+
+    // The guard fires before any amount is read, so encryption is irrelevant here.
+    const encryptionStub = {
+      prepareAmountData: async (amount: number) => ({
+        amount: `enc-${amount}`,
+      }),
+      encryptOptionalAmount: async (amount: number | null | undefined) =>
+        amount == null ? null : `enc-${amount}`,
+    } as unknown as EncryptionPort;
+
+    const repository = new SupabaseBudgetLineRepository(
+      providerStub,
+      encryptionStub,
+      {} as InfoLogger,
+      new SupabaseBudgetLineSpreadReader(providerStub, encryptionStub),
+    );
+
+    const buildInput = (budgetId: string): BudgetLineCreateInput => ({
+      budgetId,
+      name: 'Épargne voyage',
+      amount: 100,
+      kind: 'saving',
+      recurrence: 'one_off',
+      savingsGoalId: goalId,
+      originalAmount: null,
+      originalCurrency: null,
+      targetCurrency: null,
+      exchangeRate: null,
+    });
+
+    let caughtError: unknown;
+    try {
+      await repository.createSpread(spreadGroupId, [
+        buildInput(withinHorizonBudgetId),
+        buildInput(beyondHorizonBudgetId),
+      ]);
+    } catch (error) {
+      caughtError = error;
+    }
+
+    // No sentinel throw-inside-try: an unexpected success leaves caughtError
+    // undefined, which fails this assertion loudly instead of being caught
+    // and masked by the surrounding catch block.
+    expect(caughtError).toBeInstanceOf(BusinessException);
+    const businessError = caughtError as BusinessException;
+    expect(businessError.code).toBe(
+      ERROR_DEFINITIONS.SAVINGS_GOAL_LINE_OUTSIDE_HORIZON.code,
+    );
+    expect(businessError.getStatus()).toBe(422);
+
+    const { data: persisted, error: readErr } = await adminClient
+      .from('budget_line')
+      .select('id')
+      .eq('spread_group_id', spreadGroupId);
+    expect(readErr).toBeNull();
+    expect(persisted ?? []).toHaveLength(0);
   });
 });

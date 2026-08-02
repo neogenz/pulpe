@@ -75,7 +75,14 @@ export interface SavingsGoalProgressInput {
   now?: Date;
   /** Périodes portant déjà un budget, même sans ligne liée à cet objectif. */
   materializedPeriods?: BudgetPeriod[];
-  /** Le Mois Type actif peut créer une ligne Épargne liée à cet objectif. */
+  /**
+   * Le Mois Type actif rend une période sans budget matérialisé éligible à
+   * une création automatique — un facteur parmi ceux d'`isProvisionable`
+   * (voir `buildSavingsGoalTimeline`), qui exige aussi un horizon cible
+   * (`targetDate`) dans tous les cas. La ligne n'est pas créée ici : ce
+   * calculateur expose seulement l'éligibilité, la création a lieu
+   * côté serveur à l'application du plan.
+   */
   canProvisionMissingPeriods?: boolean;
   lines: LinkedSavingLine[];
   transactions: LinkedSavingTransaction[];

@@ -31,6 +31,7 @@ struct SavingsGoalDetailView: View {
     @State private var viewModel: SavingsGoalDetailViewModel
     @State private var editTarget: SavingsGoal?
     @State private var isSimulating = false
+    @State private var showRecoveryRecap = false
     @State private var showGenerationStop = false
     @State private var generationStopCandidates: [SavingsGoalFutureLine] = []
     @State private var generationStopContext: GoalGenerationStopContext?
@@ -86,6 +87,27 @@ struct SavingsGoalDetailView: View {
                 onUpdate: { pendingEditUpdate = $0 }
             )
         }
+        .sheet(isPresented: $showRecoveryRecap) {
+            if let progress = viewModel.progress {
+                GoalPlanApplyRecapSheet(
+                    mode: .creation,
+                    changes: recoveryChanges(progress),
+                    verdict: recoveryVerdict(progress),
+                    currency: currency,
+                    onConfirm: {
+                        let succeeded = await viewModel.applyMissingForecasts(from: progress)
+                        guard succeeded else {
+                            if let error = viewModel.error {
+                                toastManager.show(DomainErrorLocalizer.localize(error), type: .error)
+                            }
+                            return false
+                        }
+                        await handlePlanApplied()
+                        return true
+                    }
+                )
+            }
+        }
         .sheet(isPresented: $showGenerationStop, onDismiss: handleGenerationStopDismiss) {
             GoalGenerationStopSheet(
                 lines: generationStopCandidates,
@@ -132,18 +154,22 @@ struct SavingsGoalDetailView: View {
                     onManageFutureLines: { Task { await proposeGenerationStop() } }
                 )
 
-                if progress.linkedLineCount > 0, !progress.months.isEmpty {
-                    // Construite une seule fois : la même série gate la section
-                    // et alimente le chart (jusqu'à ~96 mois mappés par lecture).
-                    let series = GoalProjectionSeries.read(from: progress)
-                    if series.hasConfirmedTrend {
-                        GoalTrajectorySection(progress: progress, series: series, currency: currency)
+                if SavingsGoalDetailViewModel.shouldShowPlanTimeline(progress) {
+                    if progress.linkedLineCount > 0 {
+                        // Construite une seule fois : la même série gate la section
+                        // et alimente le chart (jusqu'à ~96 mois mappés par lecture).
+                        let series = GoalProjectionSeries.read(from: progress)
+                        if series.hasConfirmedTrend {
+                            GoalTrajectorySection(progress: progress, series: series, currency: currency)
+                        }
                     }
                     GoalPlanTimelineSection(
                         months: progress.months,
                         currency: currency,
                         canAdjust: canAdjust(progress),
-                        onAdjust: { isSimulating = true }
+                        canRepair: SavingsGoalDetailViewModel.canRepairPlan(progress, status: currentGoal.status),
+                        onAdjust: { isSimulating = true },
+                        onRepair: { showRecoveryRecap = true }
                     )
                 }
 
@@ -184,6 +210,33 @@ struct SavingsGoalDetailView: View {
     private func canAdjust(_ progress: SavingsGoalProgress) -> Bool {
         guard currentGoal.status == .active, progress.linkedLineCount > 0 else { return false }
         return progress.months.contains { SavingsPlanCalculator.isContributivePlanMonth($0) }
+    }
+
+    private func recoveryChanges(
+        _ progress: SavingsGoalProgress
+    ) -> [SavingsPlanCalculator.SimulatedMonth] {
+        guard let amount = SavingsGoalDetailViewModel.recoveryAmount(progress) else { return [] }
+        // Each repaired month adds `amount` on top of every repair before it, so
+        // the running total accumulates — `plannedCumulative + amount` alone would
+        // report the same figure for all N months. Mirrors the accumulation
+        // `SavingsPlanCalculator.simulate` performs on the adjustment path.
+        var repaired = Decimal.zero
+        return progress.months.filter(\.isRepairable).map {
+            repaired += amount
+            return SavingsPlanCalculator.SimulatedMonth(
+                month: $0,
+                simulatedAmount: amount,
+                simulatedCumulative: $0.plannedCumulative + repaired,
+                isAdjusted: true
+            )
+        }
+    }
+
+    private func recoveryVerdict(_ progress: SavingsGoalProgress) -> String {
+        let changes = recoveryChanges(progress)
+        let added = changes.reduce(Decimal.zero) { $0 + $1.simulatedAmount }
+        return "Projection après création : "
+            + (progress.plannedProjection + added).asCompactCurrency(currency)
     }
 
     // MARK: - Header
@@ -494,6 +547,21 @@ final class SavingsGoalDetailViewModel {
         return abs(required - planned) <= planned * SavingsGoalProgress.paceTolerancePercent / 100
     }
 
+    static func recoveryAmount(_ progress: SavingsGoalProgress) -> Decimal? {
+        guard let amount = progress.required?.rounded(2, .up), amount > 0 else { return nil }
+        return amount
+    }
+
+    static func canRepairPlan(_ progress: SavingsGoalProgress, status: SavingsGoalStatus) -> Bool {
+        status == .active
+            && recoveryAmount(progress) != nil
+            && progress.months.contains(where: \.isRepairable)
+    }
+
+    static func shouldShowPlanTimeline(_ progress: SavingsGoalProgress) -> Bool {
+        !progress.months.isEmpty
+    }
+
     /// Initial / pull-to-refresh load. Shows the full-screen spinner while the
     /// first fetch is in flight (progress still nil).
     func load() async {
@@ -528,6 +596,35 @@ final class SavingsGoalDetailViewModel {
             await fetchProgress(reportError: false)
         } catch {
             self.error = error
+        }
+    }
+
+    func applyMissingForecasts(from progress: SavingsGoalProgress) async -> Bool {
+        error = nil
+        guard let amount = Self.recoveryAmount(progress) else { return false }
+        let adjustments = progress.months
+            .filter(\.isRepairable)
+            .map {
+                SavingsGoalPlanApply.MissingMonthAdjustment(
+                    month: $0.month,
+                    year: $0.year,
+                    amount: amount
+                )
+            }
+        guard !adjustments.isEmpty else { return false }
+
+        do {
+            _ = try await service.applyPlan(
+                id: goalId,
+                SavingsGoalPlanApply(
+                    monthAdjustments: [],
+                    missingMonthAdjustments: adjustments
+                )
+            )
+            return true
+        } catch {
+            self.error = error
+            return false
         }
     }
 

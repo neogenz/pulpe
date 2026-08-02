@@ -50,6 +50,7 @@ describe('GoalPlanTimeline', () => {
     fixture = TestBed.createComponent(GoalPlanTimeline);
     setTestInput(fixture.componentInstance.currency, 'CHF');
     setTestInput(fixture.componentInstance.locale, 'de-CH');
+    setTestInput(fixture.componentInstance.canRepair, true);
   });
 
   function query(testId: string) {
@@ -109,14 +110,136 @@ describe('GoalPlanTimeline', () => {
     ).toBeNull();
   });
 
-  it('badges the current month and shows the « Pas de budget » chip for gaps', () => {
+  it('distinguishes missing, repairable, non-actionable and linked forecasts', () => {
     setTestInput(fixture.componentInstance.months, [
       makeMonth({ month: 3, state: 'current' }),
       makeMonth({
         month: 4,
         state: 'gap',
+        hasBudget: false,
+        isProvisionable: true,
         plannedAmount: 0,
         plannedCumulative: 900,
+        lines: [],
+      }),
+      makeMonth({
+        month: 5,
+        state: 'gap',
+        hasBudget: true,
+        isProvisionable: true,
+        plannedAmount: 0,
+        plannedCumulative: 900,
+        lines: [],
+      }),
+      makeMonth({
+        month: 6,
+        state: 'gap',
+        hasBudget: true,
+        isProvisionable: false,
+        plannedAmount: 0,
+        plannedCumulative: 900,
+        lines: [],
+      }),
+      makeMonth({ month: 7, hasBudget: true }),
+    ]);
+    setTestInput(fixture.componentInstance.expanded, true);
+    fixture.detectChanges();
+
+    expect(query('goal-plan-current-badge')).toBeTruthy();
+    expect(
+      fixture.debugElement.queryAll(
+        By.css('[data-testid="goal-plan-gap-chip"]'),
+      ),
+    ).toHaveLength(1);
+    expect(query('goal-plan-repair-chip')).toBeTruthy();
+    expect(
+      query('goal-plan-no-forecast-chip').nativeElement.textContent,
+    ).toContain('Aucune épargne prévue');
+    expect(query('goal-plan-gap-hint')).toBeTruthy();
+  });
+
+  it('shows the repair chip for a current month with a budget and no linked forecast', () => {
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({
+        month: 3,
+        state: 'current',
+        hasBudget: true,
+        isProvisionable: true,
+        plannedAmount: 0,
+        plannedCumulative: 0,
+        lines: [],
+      }),
+    ]);
+    fixture.detectChanges();
+
+    expect(query('goal-plan-repair-chip')).toBeTruthy();
+  });
+
+  it('falls back to the no-forecast chip when the plan offers no repair', () => {
+    setTestInput(fixture.componentInstance.canRepair, false);
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({
+        month: 3,
+        state: 'current',
+        hasBudget: true,
+        isProvisionable: true,
+        plannedAmount: 0,
+        plannedCumulative: 0,
+        lines: [],
+      }),
+    ]);
+    fixture.detectChanges();
+
+    expect(query('goal-plan-repair-chip')).toBeFalsy();
+    expect(query('goal-plan-no-forecast-chip')).toBeTruthy();
+  });
+
+  it('shows the no-forecast and gap chips for a current month, same as for a gap month', () => {
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({
+        month: 3,
+        state: 'current',
+        hasBudget: true,
+        isProvisionable: false,
+        plannedAmount: 0,
+        plannedCumulative: 0,
+        lines: [],
+      }),
+      makeMonth({
+        month: 4,
+        state: 'current',
+        hasBudget: false,
+        isProvisionable: false,
+        plannedAmount: 0,
+        plannedCumulative: 0,
+        lines: [],
+      }),
+    ]);
+    setTestInput(fixture.componentInstance.expanded, true);
+    fixture.detectChanges();
+
+    expect(query('goal-plan-no-forecast-chip')).toBeTruthy();
+    expect(query('goal-plan-gap-chip')).toBeTruthy();
+  });
+
+  it('counts a current month with no budget in the gap hint, same as the pastille it shows', () => {
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({
+        month: 3,
+        state: 'current',
+        hasBudget: false,
+        isProvisionable: false,
+        plannedAmount: 0,
+        plannedCumulative: 0,
+        lines: [],
+      }),
+      makeMonth({
+        month: 4,
+        state: 'gap',
+        hasBudget: false,
+        isProvisionable: false,
+        plannedAmount: 0,
+        plannedCumulative: 0,
         lines: [],
       }),
     ]);
@@ -124,8 +247,132 @@ describe('GoalPlanTimeline', () => {
     fixture.detectChanges();
 
     expect(query('goal-plan-current-badge')).toBeTruthy();
-    expect(query('goal-plan-gap-chip')).toBeTruthy();
-    expect(query('goal-plan-gap-hint')).toBeTruthy();
+    expect(
+      fixture.debugElement.queryAll(
+        By.css('[data-testid="goal-plan-gap-chip"]'),
+      ),
+    ).toHaveLength(2);
+    expect(query('goal-plan-gap-hint').nativeElement.textContent).toContain(
+      '2 mois sans budget',
+    );
+  });
+
+  it('counts gap rows across the whole plan even when the window hides some of their chips', () => {
+    const months: SavingsGoalPlanMonth[] = [
+      makeMonth({ month: 1, state: 'past', isLocked: true }),
+      makeMonth({ month: 2, state: 'current' }),
+      makeMonth({
+        month: 3,
+        state: 'gap',
+        hasBudget: false,
+        isProvisionable: false,
+        plannedAmount: 0,
+        plannedCumulative: 0,
+        lines: [],
+      }),
+      makeMonth({
+        month: 4,
+        state: 'gap',
+        hasBudget: false,
+        isProvisionable: false,
+        plannedAmount: 0,
+        plannedCumulative: 0,
+        lines: [],
+      }),
+      makeMonth({
+        month: 5,
+        state: 'gap',
+        hasBudget: false,
+        isProvisionable: false,
+        plannedAmount: 0,
+        plannedCumulative: 0,
+        lines: [],
+      }),
+      makeMonth({
+        month: 6,
+        state: 'gap',
+        hasBudget: false,
+        isProvisionable: false,
+        plannedAmount: 0,
+        plannedCumulative: 0,
+        lines: [],
+      }),
+    ];
+    setTestInput(fixture.componentInstance.months, months);
+    setTestInput(fixture.componentInstance.expanded, false);
+    fixture.detectChanges();
+
+    // Collapsed window = last locked (month 1) + 3 open rows → months 1-4,
+    // leaving months 5 and 6's chips unrendered.
+    expect(rowsQuery().length).toBe(4);
+    expect(
+      fixture.debugElement.queryAll(
+        By.css('[data-testid="goal-plan-gap-chip"]'),
+      ),
+    ).toHaveLength(2);
+    // gapCount reads rows() (the whole plan), not visibleRows() — the
+    // announced count stays plan-wide even though only 2 of the 4 gap
+    // chips are actually on screen.
+    expect(query('goal-plan-gap-hint').nativeElement.textContent).toContain(
+      '4 mois sans budget',
+    );
+  });
+
+  it('never shows an availability chip on a row with a linked forecast', () => {
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({ month: 3, state: 'current' }),
+    ]);
+    fixture.detectChanges();
+
+    expect(query('goal-plan-repair-chip')).toBeFalsy();
+    expect(query('goal-plan-no-forecast-chip')).toBeFalsy();
+    expect(query('goal-plan-gap-chip')).toBeFalsy();
+  });
+
+  it('renders exactly one repair chip per month the recovery banner would repair', () => {
+    const months: SavingsGoalPlanMonth[] = [
+      makeMonth({
+        month: 3,
+        state: 'current',
+        hasBudget: true,
+        isProvisionable: true,
+        plannedAmount: 0,
+        plannedCumulative: 0,
+        lines: [],
+      }),
+      makeMonth({
+        month: 4,
+        state: 'gap',
+        hasBudget: true,
+        isProvisionable: true,
+        plannedAmount: 0,
+        plannedCumulative: 0,
+        lines: [],
+      }),
+      makeMonth({
+        month: 5,
+        state: 'gap',
+        hasBudget: false,
+        isProvisionable: false,
+        plannedAmount: 0,
+        plannedCumulative: 0,
+        lines: [],
+      }),
+      makeMonth({ month: 6 }),
+    ];
+    setTestInput(fixture.componentInstance.months, months);
+    setTestInput(fixture.componentInstance.expanded, true);
+    fixture.detectChanges();
+
+    // Months 3 and 4 carry a budget and are provisionable; month 5 has no
+    // budget, month 6 already has a linked line. Stated as a literal count
+    // on purpose — recomputing the component's own predicate here would
+    // pass whatever that predicate happened to become.
+    expect(
+      fixture.debugElement.queryAll(
+        By.css('[data-testid="goal-plan-repair-chip"]'),
+      ),
+    ).toHaveLength(2);
   });
 
   it('starts the monthly plan at the first contribution-eligible month', () => {

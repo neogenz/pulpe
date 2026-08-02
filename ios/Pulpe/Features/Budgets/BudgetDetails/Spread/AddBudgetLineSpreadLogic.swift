@@ -7,6 +7,10 @@ import Foundation
 /// the right per-month amount + months, single frozen FX, cross-budget
 /// invalidation fired, success-toast copy) without bootstrapping SwiftUI.
 enum AddBudgetLineSpreadLogic {
+    static func ctaTitle(for kind: TransactionKind) -> String {
+        kind == .saving ? "Lisser l’épargne" : "Lisser la dépense"
+    }
+
     /// Form inputs for one spread submit. FX is already resolved once upstream
     /// (`conversion`) so a single frozen `exchangeRate` covers every month. `mode`
     /// decides whether `amount` is read as a per-month figure or the TOTAL.
@@ -20,6 +24,25 @@ enum AddBudgetLineSpreadLogic {
         let mode: SpreadAmountMode
         let conversion: CurrencyConversion?
         let spreadGroupId: String
+        let savingsGoalId: String?
+
+        init(
+            name: String,
+            kind: TransactionKind,
+            amount: Decimal,
+            mode: SpreadAmountMode,
+            conversion: CurrencyConversion?,
+            spreadGroupId: String,
+            savingsGoalId: String? = nil
+        ) {
+            self.name = name
+            self.kind = kind
+            self.amount = amount
+            self.mode = mode
+            self.conversion = conversion
+            self.spreadGroupId = spreadGroupId
+            self.savingsGoalId = savingsGoalId
+        }
     }
 
     /// Builds the `POST /budget-lines/spread` intent: the converted amount, the
@@ -41,6 +64,7 @@ enum AddBudgetLineSpreadLogic {
         return BudgetLineSpreadCreate(
             name: input.name.trimmingCharacters(in: .whitespaces),
             kind: input.kind,
+            savingsGoalId: input.kind.savingsGoalLink(input.savingsGoalId),
             mode: isTotal ? .total : .perMonth,
             months: months,
             perMonthAmount: isTotal ? nil : convertedAmount,

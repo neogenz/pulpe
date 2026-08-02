@@ -258,7 +258,7 @@ describe('GetSavingsGoalProgressUseCase', () => {
     ).toBe(false);
   });
 
-  it('marks only truly missing periods as provisionable', async () => {
+  it('marks missing linked savings as provisionable in existing or creatable budgets', async () => {
     const now = new Date();
     const currentIndex = now.getFullYear() * 12 + now.getMonth() + 1;
     const period = (offset: number) => {
@@ -301,7 +301,7 @@ describe('GetSavingsGoalProgressUseCase', () => {
           month.month === materializedGap.month &&
           month.year === materializedGap.year,
       )?.isProvisionable,
-    ).toBe(false);
+    ).toBe(true);
     expect(
       months.find(
         (month) => month.month === missing.month && month.year === missing.year,

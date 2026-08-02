@@ -21,7 +21,9 @@ import {
   type SavingsGoalContribution,
   type SavingsGoalDeletionCommand,
   type SavingsGoalFutureLine,
+  type SavingsGoalPlanMonth,
   type SavingsGoalProgress,
+  type SupportedCurrency,
 } from 'pulpe-shared';
 import { ApiError } from '@core/api/api-error';
 import SavingsGoalDetailPage from './savings-goal-detail-page';
@@ -34,6 +36,7 @@ import { GoalProjectionChart } from './components/goal-projection-chart';
 import { GoalPlanTimeline } from './components/goal-plan-timeline';
 import { GoalPlanSimulatorToolbar } from './components/goal-plan-simulator-toolbar';
 import { GoalContributionsList } from './components/goal-contributions-list';
+import { GoalPlanRepairCallout } from './components/goal-plan-repair-callout';
 import { GoalDeletionDialog } from './components/goal-deletion-dialog';
 import { setTestInput } from '../../../testing/signal-test-utils';
 import { provideTranslocoForTest } from '../../../testing/transloco-testing';
@@ -124,6 +127,17 @@ class StubGoalContributionsList {
   readonly currency = input<string>('CHF');
 }
 
+@Component({
+  selector: 'pulpe-goal-plan-repair-callout',
+  template: '<div data-testid="stub-repair-callout"></div>',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+class StubGoalPlanRepairCallout {
+  readonly count = input(0);
+  readonly isApplying = input(false);
+  readonly previewRequested = output<void>();
+}
+
 function makeGoal(overrides: Partial<SavingsGoal> = {}): SavingsGoal {
   return {
     id: 'goal-1',
@@ -174,6 +188,30 @@ function makeProgress(
   };
 }
 
+/**
+ * Defaults to a *repairable* month (`hasBudget` and `isProvisionable` both true,
+ * no linked line). Override them explicitly to exercise any other state.
+ */
+function makePlanMonth(
+  overrides: Partial<SavingsGoalPlanMonth> = {},
+): SavingsGoalPlanMonth {
+  return {
+    month: 8,
+    year: 2026,
+    state: 'gap',
+    isLocked: false,
+    isContributionEligible: true,
+    hasBudget: true,
+    isProvisionable: true,
+    plannedAmount: 0,
+    confirmedAmount: 0,
+    plannedCumulative: 1200,
+    confirmedCumulative: 900,
+    lines: [],
+    ...overrides,
+  };
+}
+
 const futureLine: SavingsGoalFutureLine = {
   budgetLineId: 'line-1',
   amount: 250,
@@ -210,6 +248,7 @@ describe('SavingsGoalDetailPage', () => {
   const navigate = vi.fn();
   const snackBarOpen = vi.fn();
   const payDayOfMonthSig = signal<number | null>(25);
+  const currencySig = signal<SupportedCurrency>('CHF');
 
   const futureLinesSig = signal<SavingsGoalFutureLine[]>([]);
   let deletionDialogResult: SavingsGoalDeletionCommand | undefined;
@@ -240,11 +279,14 @@ describe('SavingsGoalDetailPage', () => {
     deleteGoal: vi.fn().mockResolvedValue(undefined),
     fetchFutureLines: vi.fn().mockResolvedValue([]),
     applyGenerationStop: vi.fn().mockResolvedValue({ affectedCount: 0 }),
+    applyPlan: vi.fn().mockResolvedValue({}),
   };
 
   const mockDialogs = {
     openEdit: vi.fn(),
     openGenerationStop: vi.fn(),
+    openApplyPlan: vi.fn(),
+    confirmDiscardChanges: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -258,6 +300,7 @@ describe('SavingsGoalDetailPage', () => {
     listErrorSig.set(null);
     futureLinesSig.set([]);
     payDayOfMonthSig.set(25);
+    currencySig.set('CHF');
     deletionDialogResult = undefined;
     vi.clearAllMocks();
     mockStore.editGoal.mockReset().mockResolvedValue(makeGoal());
@@ -265,8 +308,11 @@ describe('SavingsGoalDetailPage', () => {
     mockStore.applyGenerationStop
       .mockReset()
       .mockResolvedValue({ affectedCount: 0 });
+    mockStore.applyPlan.mockReset().mockResolvedValue({});
     mockDialogs.openEdit.mockReset();
     mockDialogs.openGenerationStop.mockReset();
+    mockDialogs.openApplyPlan.mockReset();
+    mockDialogs.confirmDiscardChanges.mockReset();
 
     await TestBed.configureTestingModule({
       imports: [SavingsGoalDetailPage],
@@ -279,7 +325,7 @@ describe('SavingsGoalDetailPage', () => {
         {
           provide: UserSettingsStore,
           useValue: {
-            currency: signal('CHF'),
+            currency: currencySig,
             payDayOfMonth: payDayOfMonthSig,
           },
         },
@@ -296,6 +342,7 @@ describe('SavingsGoalDetailPage', () => {
             GoalPlanTimeline,
             GoalPlanSimulatorToolbar,
             GoalContributionsList,
+            GoalPlanRepairCallout,
           ],
         },
         add: {
@@ -306,6 +353,7 @@ describe('SavingsGoalDetailPage', () => {
             StubGoalPlanTimeline,
             StubGoalPlanSimulatorToolbar,
             StubGoalContributionsList,
+            StubGoalPlanRepairCallout,
           ],
         },
       })
@@ -318,6 +366,20 @@ describe('SavingsGoalDetailPage', () => {
 
   function query(testId: string) {
     return fixture.debugElement.query(By.css(`[data-testid="${testId}"]`));
+  }
+
+  // The callout is stubbed — same isolation pattern as every other child
+  // above — so the preview button doesn't exist in the page's own DOM:
+  // simulate the child emitting its output instead of clicking through to
+  // it. (Not Angular #54039: probed and ruled out, see the notes on
+  // "offers a preview only for budgets that exist without a linked
+  // forecast" below — the actual cause is a signal input on a
+  // JIT-compiled child staying at its default under a parent template
+  // binding, unrelated to a classic `@Input()`.)
+  function triggerRepairPreview() {
+    fixture.debugElement
+      .query(By.directive(StubGoalPlanRepairCallout))
+      .triggerEventHandler('previewRequested');
   }
 
   it('renders the projected balance and confirmed layers from the progress response', () => {
@@ -920,6 +982,300 @@ describe('SavingsGoalDetailPage', () => {
     expect(query('savings-goal-progress-bar')).toBeTruthy();
     expect(query('stat-confirmed')).toBeTruthy();
     expect(query('edit-savings-goal-button')).toBeTruthy();
+  });
+
+  it('offers a preview only for budgets that exist without a linked forecast', () => {
+    progressSig.set(
+      makeProgress({
+        required: 175.345,
+        months: [
+          makePlanMonth({
+            month: 7,
+            hasBudget: false,
+          }),
+          makePlanMonth({ month: 8 }),
+          makePlanMonth({
+            month: 9,
+            state: 'future',
+            hasBudget: true,
+            isProvisionable: false,
+            plannedAmount: 250,
+            lines: [
+              {
+                budgetLineId: '11111111-1111-4111-8111-111111111111',
+                amount: 250,
+                checkedAt: null,
+                isManuallyAdjusted: false,
+              },
+            ],
+          }),
+        ],
+      }),
+    );
+
+    fixture.detectChanges();
+
+    // The stub's bound `count` input can't be read here. Verified on a
+    // throwaway probe: a plain input(0) signal on a JIT-compiled child
+    // stays at its default when set via a parent's [prop]="expr", with or
+    // without .overrideComponent() on the host and with both a literal and
+    // a property-reference binding — so it is NOT .overrideComponent()
+    // recompiling the parent (both reproduce identically without it), and
+    // NOT Angular #54039 (that's about a *required* input + computed()
+    // evaluated before bindings apply; this child has neither). The same
+    // probe with a classic @Input() decorator in place of input() DOES
+    // receive the bound value, so the failure is specific to signal inputs
+    // under JIT compilation; the deeper Angular-internals cause is not
+    // identified beyond that. So the page-owned repairableMonths()
+    // filtering (hasBudget / isProvisionable / existing line) is asserted
+    // directly here, while the singular/plural wording driven by that count
+    // is covered separately by GoalPlanRepairCallout's own spec
+    // (goal-plan-repair-callout.spec.ts), which sets `count` directly via
+    // setTestInput instead of a parent template binding.
+    expect(component['repairableMonths']()).toHaveLength(1);
+    // The host itself still renders — the DOM-observable half of the
+    // guard (the page's `@if` lets the callout through when count > 0).
+    expect(
+      fixture.debugElement.query(By.directive(StubGoalPlanRepairCallout)),
+    ).toBeTruthy();
+  });
+
+  it('does not offer recovery when every gap still lacks a budget', () => {
+    progressSig.set(
+      makeProgress({
+        months: [makePlanMonth({ hasBudget: false })],
+      }),
+    );
+
+    fixture.detectChanges();
+
+    expect(
+      fixture.debugElement.query(By.directive(StubGoalPlanRepairCallout)),
+    ).toBeFalsy();
+  });
+
+  it('does not offer recovery when the goal is already covered', () => {
+    progressSig.set(makeProgress({ required: 0, months: [makePlanMonth()] }));
+
+    fixture.detectChanges();
+
+    expect(
+      fixture.debugElement.query(By.directive(StubGoalPlanRepairCallout)),
+    ).toBeFalsy();
+  });
+
+  it('still offers recovery when not a single forecast is linked', () => {
+    progressSig.set(
+      makeProgress({ linkedLineCount: 0, months: [makePlanMonth()] }),
+    );
+
+    fixture.detectChanges();
+
+    // The total-gap case is precisely what recovery exists for, so the plan
+    // and its callout must survive the "no linked forecast" empty state.
+    expect(query('savings-goal-plan')).toBeTruthy();
+    expect(
+      fixture.debugElement.query(By.directive(StubGoalPlanRepairCallout)),
+    ).toBeTruthy();
+  });
+
+  it('previews and sends a positive sub-cent recovery as one cent', async () => {
+    progressSig.set(
+      makeProgress({ required: 0.004, months: [makePlanMonth()] }),
+    );
+    mockDialogs.openApplyPlan.mockResolvedValueOnce(true);
+    fixture.detectChanges();
+
+    triggerRepairPreview();
+    await fixture.whenStable();
+
+    expect(mockDialogs.openApplyPlan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        changes: [
+          {
+            month: 8,
+            year: 2026,
+            before: 0,
+            after: 0.01,
+          },
+        ],
+      }),
+    );
+    expect(mockStore.applyPlan).toHaveBeenCalledWith('goal-1', {
+      monthAdjustments: [],
+      missingMonthAdjustments: [{ month: 8, year: 2026, amount: 0.01 }],
+    });
+  });
+
+  it('previews the rounded required amount and cancels without writing', async () => {
+    progressSig.set(
+      makeProgress({ required: 175.345, months: [makePlanMonth()] }),
+    );
+    mockDialogs.openApplyPlan.mockResolvedValueOnce(false);
+    fixture.detectChanges();
+
+    triggerRepairPreview();
+    await fixture.whenStable();
+
+    expect(mockDialogs.openApplyPlan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'creation',
+        changes: [
+          {
+            month: 8,
+            year: 2026,
+            before: 0,
+            after: 175.35,
+          },
+        ],
+      }),
+    );
+    expect(mockStore.applyPlan).not.toHaveBeenCalled();
+  });
+
+  it('formats the recovery projection in CHF with the same apostrophe grouping as the dialog lines, no decimals', async () => {
+    progressSig.set(
+      makeProgress({ required: 175.345, months: [makePlanMonth()] }),
+    );
+    mockDialogs.openApplyPlan.mockResolvedValueOnce(false);
+    fixture.detectChanges();
+
+    triggerRepairPreview();
+    await fixture.whenStable();
+
+    expect(mockDialogs.openApplyPlan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'creation',
+        verdict: 'Projection après création : 1’375 CHF',
+      }),
+    );
+  });
+
+  it('formats the recovery projection in EUR with the symbol in suffix position, no decimals', async () => {
+    currencySig.set('EUR');
+    progressSig.set(
+      makeProgress({ required: 175.345, months: [makePlanMonth()] }),
+    );
+    mockDialogs.openApplyPlan.mockResolvedValueOnce(false);
+    fixture.detectChanges();
+
+    triggerRepairPreview();
+    await fixture.whenStable();
+
+    expect(mockDialogs.openApplyPlan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'creation',
+        verdict: 'Projection après création : 1 375 €',
+      }),
+    );
+  });
+
+  it('creates all previewed forecasts then hides recovery after authoritative reload', async () => {
+    progressSig.set(
+      makeProgress({ required: 175.345, months: [makePlanMonth()] }),
+    );
+    mockDialogs.openApplyPlan.mockResolvedValueOnce(true);
+    mockStore.applyPlan.mockImplementationOnce(async () => {
+      progressSig.set(
+        makeProgress({
+          required: 175.345,
+          months: [
+            makePlanMonth({
+              state: 'future',
+              isProvisionable: false,
+              plannedAmount: 175.35,
+              lines: [
+                {
+                  budgetLineId: '22222222-2222-4222-8222-222222222222',
+                  amount: 175.35,
+                  checkedAt: null,
+                  isManuallyAdjusted: true,
+                },
+              ],
+            }),
+          ],
+        }),
+      );
+      return {};
+    });
+    fixture.detectChanges();
+
+    triggerRepairPreview();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(mockStore.applyPlan).toHaveBeenCalledWith('goal-1', {
+      monthAdjustments: [],
+      missingMonthAdjustments: [{ month: 8, year: 2026, amount: 175.35 }],
+    });
+    expect(
+      fixture.debugElement.query(By.directive(StubGoalPlanRepairCallout)),
+    ).toBeFalsy();
+  });
+
+  it('does not open a confirmation or announce success when the only simulated change is a zero-valued gap creation', async () => {
+    progressSig.set(
+      makeProgress({
+        targetAmount: 500,
+        initialAmount: 500,
+        months: [makePlanMonth({ month: 7, plannedCumulative: 0 })],
+      }),
+    );
+    fixture.detectChanges();
+
+    component['simulator'].enter();
+    component['simulator'].redistribute();
+    await component['onApplyPlan']();
+
+    expect(mockDialogs.openApplyPlan).not.toHaveBeenCalled();
+    expect(mockStore.applyPlan).not.toHaveBeenCalled();
+    expect(snackBarOpen).not.toHaveBeenCalled();
+  });
+
+  it('previews and applies only the valid adjustment when a zero-valued gap creation is mixed in', async () => {
+    const lineId = '11111111-1111-4111-8111-111111111111';
+    progressSig.set(
+      makeProgress({
+        targetAmount: 500,
+        initialAmount: 0,
+        months: [
+          makePlanMonth({
+            month: 6,
+            state: 'current',
+            isProvisionable: false,
+            plannedAmount: 200,
+            plannedCumulative: 200,
+            lines: [
+              {
+                budgetLineId: lineId,
+                amount: 200,
+                checkedAt: null,
+                isManuallyAdjusted: false,
+              },
+            ],
+          }),
+          makePlanMonth({ month: 7, plannedCumulative: 200 }),
+        ],
+      }),
+    );
+    mockDialogs.openApplyPlan.mockResolvedValueOnce(true);
+    fixture.detectChanges();
+
+    component['simulator'].enter();
+    component['simulator'].setMonth(6, 2026, 500);
+    component['simulator'].redistribute();
+    await component['onApplyPlan']();
+
+    expect(mockDialogs.openApplyPlan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        changes: [{ month: 6, year: 2026, before: 200, after: 500 }],
+      }),
+    );
+    expect(mockStore.applyPlan).toHaveBeenCalledWith('goal-1', {
+      monthAdjustments: [{ budgetLineId: lineId, amount: 500 }],
+      missingMonthAdjustments: [],
+    });
+    expect(snackBarOpen).toHaveBeenCalled();
   });
 
   it('deletes the goal with the preview revision then navigates back', async () => {

@@ -57,7 +57,7 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
         status: 'ACTIVE',
         createdAt: now.toISOString(),
       }),
-      findMaterializedPeriods: jest.fn().mockResolvedValue(periods.slice(0, 2)),
+      findMaterializedPeriods: jest.fn(),
       findLinkedContributions: jest
         .fn()
         .mockResolvedValueOnce({ lines: existingLines, transactions: [] })
@@ -190,23 +190,58 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
     expect(repo.applyPlan).not.toHaveBeenCalled();
   });
 
-  it('rejects a materialized budget without a linked saving line', async () => {
-    repo.findMaterializedPeriods.mockResolvedValue([
-      ...periods.slice(0, 2),
-      periods[2],
-    ]);
+  it('creates the missing linked forecast in an already-materialized budget', async () => {
+    await useCase.execute(
+      'goal-1',
+      {
+        monthAdjustments: [],
+        missingMonthAdjustments: [{ ...periods[2], amount: 1000 }],
+      },
+      user,
+    );
 
-    await expect(
-      useCase.execute(
-        'goal-1',
-        {
-          monthAdjustments: [],
-          missingMonthAdjustments: [{ ...periods[2], amount: 1000 }],
-        },
-        user,
-      ),
-    ).rejects.toMatchObject({ code: 'ERR_SAVINGS_GOAL_PLAN_LINE_INVALID' });
+    expect(spread.fanOut).toHaveBeenCalledWith(
+      expect.objectContaining({
+        savingsGoalId: 'goal-1',
+        tranches: [{ ...periods[2], amount: 1000 }],
+      }),
+      user,
+    );
+    expect(repo.applyPlan).toHaveBeenCalledTimes(1);
+  });
+
+  it('drops a zero-amount gap without taking the valid adjustment down with it', async () => {
+    await useCase.execute(
+      'goal-1',
+      {
+        monthAdjustments: [
+          { budgetLineId: existingLines[0].id as string, amount: 500 },
+        ],
+        missingMonthAdjustments: [{ ...periods[2], amount: 0 }],
+      },
+      user,
+    );
+
     expect(spread.fanOut).not.toHaveBeenCalled();
+    expect(repo.applyPlan.mock.calls[0][1]).toEqual([
+      { budgetLineId: existingLines[0].id, amount: 500 },
+    ]);
+  });
+
+  it('provisions nothing when every gap an older client sent is zero', async () => {
+    await useCase.execute(
+      'goal-1',
+      {
+        monthAdjustments: [],
+        missingMonthAdjustments: periods
+          .slice(2, 5)
+          .map((item) => ({ ...item, amount: 0 })),
+      },
+      user,
+    );
+
+    expect(spread.fanOut).not.toHaveBeenCalled();
+    expect(repo.applyPlan.mock.calls[0][1]).toEqual([]);
   });
 
   it('rejects a missing period outside the goal horizon', async () => {
@@ -289,7 +324,6 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
     await expect(useCase.execute('goal-1', dto, user)).rejects.toThrow(
       'rpc failed',
     );
-    repo.findMaterializedPeriods.mockResolvedValue(periods);
 
     await expect(useCase.execute('goal-1', dto, user)).resolves.toBeDefined();
 

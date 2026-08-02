@@ -867,6 +867,58 @@ describe('SupabaseBudgetLineRepository', () => {
       ).rejects.toThrow(BusinessException);
     });
 
+    it('maps a rejected savings-goal link to SAVINGS_GOAL_NOT_FOUND', async () => {
+      const mockRpc = jest.fn().mockResolvedValue({
+        data: null,
+        error: {
+          code: 'P0001',
+          message: 'Savings goal access denied',
+        },
+      });
+      const provider = createMockProvider(() => ({}), mockRpc);
+      repo = createRepository(
+        provider,
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+      await expect(
+        repo.createSpread(spreadGroupId, [
+          {
+            ...spreadInput,
+            kind: 'saving',
+            savingsGoalId: '550e8400-e29b-41d4-a716-446655440000',
+          },
+        ]),
+      ).rejects.toMatchObject({ code: 'ERR_SAVINGS_GOAL_NOT_FOUND' });
+    });
+
+    it('maps a spread past the goal deadline to a dedicated 422', async () => {
+      const mockRpc = jest.fn().mockResolvedValue({
+        data: null,
+        error: {
+          code: 'P0001',
+          message: 'Savings goal line outside target horizon',
+        },
+      });
+      const provider = createMockProvider(() => ({}), mockRpc);
+      repo = createRepository(
+        provider,
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+      const rejection = repo.createSpread(spreadGroupId, [spreadInput]);
+
+      await expect(rejection).rejects.toThrow(BusinessException);
+      await expect(rejection).rejects.toMatchObject({
+        code: 'ERR_SAVINGS_GOAL_LINE_OUTSIDE_HORIZON',
+      });
+      await rejection.catch((error: BusinessException) => {
+        expect(error.getStatus()).toBe(422);
+      });
+    });
+
     it('maps a consumed source (concurrent retry) to a 409 conflict', async () => {
       const mockRpc = jest.fn().mockResolvedValue({
         data: null,
@@ -879,19 +931,18 @@ describe('SupabaseBudgetLineRepository', () => {
         createMockLogger(),
       );
 
-      try {
-        await repo.createSpread(spreadGroupId, [spreadInput], {
-          type: 'budget_line',
-          id: 'source-line-1',
-        });
-        throw new Error('Expected createSpread to throw');
-      } catch (error) {
-        expect(error).toBeInstanceOf(BusinessException);
-        expect((error as BusinessException).code).toBe(
-          'ERR_BUDGET_LINE_ALREADY_SPREAD',
-        );
-        expect((error as BusinessException).getStatus()).toBe(409);
-      }
+      const rejection = repo.createSpread(spreadGroupId, [spreadInput], {
+        type: 'budget_line',
+        id: 'source-line-1',
+      });
+
+      await expect(rejection).rejects.toThrow(BusinessException);
+      await expect(rejection).rejects.toMatchObject({
+        code: 'ERR_BUDGET_LINE_ALREADY_SPREAD',
+      });
+      await rejection.catch((error: BusinessException) => {
+        expect(error.getStatus()).toBe(409);
+      });
     });
 
     it('maps the dup-group guard to a typed SpreadGroupAlreadyExistsError (idempotent replay signal)', async () => {
@@ -906,15 +957,10 @@ describe('SupabaseBudgetLineRepository', () => {
         createMockLogger(),
       );
 
-      try {
-        await repo.createSpread(spreadGroupId, [spreadInput]);
-        throw new Error('Expected createSpread to throw');
-      } catch (error) {
-        expect(error).toBeInstanceOf(SpreadGroupAlreadyExistsError);
-        expect((error as SpreadGroupAlreadyExistsError).spreadGroupId).toBe(
-          spreadGroupId,
-        );
-      }
+      const rejection = repo.createSpread(spreadGroupId, [spreadInput]);
+
+      await expect(rejection).rejects.toThrow(SpreadGroupAlreadyExistsError);
+      await expect(rejection).rejects.toMatchObject({ spreadGroupId });
     });
   });
 

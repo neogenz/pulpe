@@ -1,5 +1,10 @@
 import SwiftUI
 
+enum GoalPlanApplyRecapMode: Equatable {
+    case adjustment
+    case creation
+}
+
 /// « On met ton plan à jour ? » (PUL-12+, pilier C) — the apply-on-confirm recap.
 ///
 /// A medium-detent sheet summarising the edited months (uniform → one line, mixed →
@@ -7,6 +12,7 @@ import SwiftUI
 /// confirm button doing the pessimistic write (`docs/SAVINGS.md` §10.1).
 /// Épargne accents only — never amber/red (RG-002).
 struct GoalPlanApplyRecapSheet: View {
+    var mode: GoalPlanApplyRecapMode = .adjustment
     let changes: [SavingsPlanCalculator.SimulatedMonth]
     let verdict: String
     let currency: SupportedCurrency
@@ -19,14 +25,25 @@ struct GoalPlanApplyRecapSheet: View {
     private let maxListedRows = 5
 
     private var isUniform: Bool {
-        Set(changes.map(\.simulatedAmount)).count <= 1
+        mode == .adjustment && Set(changes.map(\.simulatedAmount)).count <= 1
+    }
+
+    private var listedChanges: [SavingsPlanCalculator.SimulatedMonth] {
+        mode == .creation ? changes : Array(changes.prefix(maxListedRows))
+    }
+
+    private var summary: String {
+        guard mode == .creation else { return "\(changes.count) mois ajustés" }
+        return changes.count == 1
+            ? "1 prévision Épargne à ajouter"
+            : "\(changes.count) prévisions Épargne à ajouter"
     }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-                    Text("\(changes.count) mois ajustés")
+                    Text(summary)
                         .font(PulpeTypography.listRowTitle)
                         .foregroundStyle(Color.textPrimary)
 
@@ -41,7 +58,9 @@ struct GoalPlanApplyRecapSheet: View {
             }
             .scrollContentBackground(.hidden)
             .background(Color.sheetBackground)
-            .navigationTitle("On met ton plan à jour ?")
+            .navigationTitle(
+                mode == .creation ? "Ajouter les épargnes manquantes ?" : "On met ton plan à jour ?"
+            )
             .navigationBarTitleDisplayMode(.inline)
             .safeAreaInset(edge: .bottom) { confirmFooter }
             .toolbar {
@@ -64,10 +83,10 @@ struct GoalPlanApplyRecapSheet: View {
                     .foregroundStyle(Color.financialSavings)
                     .sensitiveAmount()
             } else {
-                ForEach(changes.prefix(maxListedRows)) { simMonth in
+                ForEach(listedChanges) { simMonth in
                     diffRow(simMonth)
                 }
-                if changes.count > maxListedRows {
+                if mode == .adjustment, changes.count > maxListedRows {
                     Text("et \(changes.count - maxListedRows) autres")
                         .font(PulpeTypography.metricLabel)
                         .foregroundStyle(Color.textTertiary)
@@ -85,12 +104,14 @@ struct GoalPlanApplyRecapSheet: View {
                 .font(PulpeTypography.metricLabel)
                 .foregroundStyle(Color.textSecondary)
             Spacer()
-            Text(simMonth.month.plannedAmount.asCompactCurrency(currency))
-                .foregroundStyle(Color.textTertiary)
-                .strikethrough(true, color: Color.textTertiary)
-            Image(systemName: "arrow.right")
-                .font(PulpeTypography.caption2)
-                .foregroundStyle(Color.textTertiary)
+            if mode == .adjustment {
+                Text(simMonth.month.plannedAmount.asCompactCurrency(currency))
+                    .foregroundStyle(Color.textTertiary)
+                    .strikethrough(true, color: Color.textTertiary)
+                Image(systemName: "arrow.right")
+                    .font(PulpeTypography.caption2)
+                    .foregroundStyle(Color.textTertiary)
+            }
             Text(simMonth.simulatedAmount.asCompactCurrency(currency))
                 .foregroundStyle(Color.financialSavings)
         }
@@ -105,7 +126,7 @@ struct GoalPlanApplyRecapSheet: View {
         } label: {
             HStack(spacing: DesignTokens.Spacing.sm) {
                 if isConfirming { ProgressView().tint(Color.textOnPrimary) }
-                Text("Mettre à jour")
+                Text(mode == .creation ? "Créer les épargnes" : "Mettre à jour")
             }
         }
         .primaryButtonStyle(isEnabled: !isConfirming)

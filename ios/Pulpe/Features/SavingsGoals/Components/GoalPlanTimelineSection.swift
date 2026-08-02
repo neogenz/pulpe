@@ -31,6 +31,17 @@ struct GoalPlanTimelinePresentation {
     var remainingUnlinkedMonthCount: Int {
         months.dropFirst(currentIndex).count(where: { $0.lines.isEmpty })
     }
+
+    var repairableMonths: [SavingsGoalPlanMonth] {
+        months.filter(\.isRepairable)
+    }
+
+    var repairMessage: String {
+        let count = repairableMonths.count
+        return count == 1
+            ? "1 prévision Épargne peut maintenant être ajoutée automatiquement."
+            : "\(count) prévisions Épargne peuvent maintenant être ajoutées automatiquement."
+    }
 }
 
 /// « Ton plan, mois par mois » (PUL-12+, pilier B) — the read-mode timeline section
@@ -44,7 +55,9 @@ struct GoalPlanTimelineSection: View {
     let months: [SavingsGoalPlanMonth]
     let currency: SupportedCurrency
     let canAdjust: Bool
+    let canRepair: Bool
     let onAdjust: () -> Void
+    let onRepair: () -> Void
 
     @State private var isExpanded = false
 
@@ -69,6 +82,18 @@ struct GoalPlanTimelineSection: View {
                     .frame(minHeight: DesignTokens.TapTarget.minimum)
                     .textLinkButtonStyle()
                     .accessibilityLabel("Ajuster le plan")
+                }
+            }
+
+            if canRepair {
+                GoalInfoCard(
+                    icon: "calendar.badge.plus",
+                    title: "Tes nouveaux budgets sont prêts",
+                    message: presentation.repairMessage
+                ) {
+                    Button("Prévisualiser", action: onRepair)
+                        .secondaryButtonStyle()
+                        .accessibilityLabel("Prévisualiser les épargnes à ajouter")
                 }
             }
 
@@ -114,7 +139,8 @@ struct GoalPlanTimelineSection: View {
                     month: month,
                     amount: month.plannedAmount,
                     cumulative: month.plannedCumulative,
-                    currency: currency
+                    currency: currency,
+                    canRepair: canRepair
                 )
             }
         }

@@ -489,6 +489,8 @@ export const savingsGoalPlanMonthSchema = z.object({
   isLocked: z.boolean(),
   /** False pour les rows conservées avant le début effectif de contribution. */
   isContributionEligible: z.boolean().optional(),
+  /** Distingue un budget matérialisé d'une période encore sans budget. */
+  hasBudget: z.boolean().optional(),
   isProvisionable: z.boolean().optional(),
   plannedAmount: z.number(),
   confirmedAmount: z.number(),
@@ -550,7 +552,8 @@ export const MAX_PLAN_ADJUSTMENTS = MAX_SAVINGS_GOAL_PLAN_PERIODS;
 /**
  * Requête d'application d'un plan simulé (`POST /savings-goals/:id/plan`,
  * docs/SAVINGS.md §10.4). `monthAdjustments` = budgets matérialisés ;
- * `missingMonthAdjustments` = budgets absents à provisionner par période.
+ * `missingMonthAdjustments` = périodes sans Prévision liée, budget absent ou
+ * déjà matérialisé.
  */
 export const savingsGoalPlanApplySchema = z
   .strictObject({
@@ -568,6 +571,13 @@ export const savingsGoalPlanApplySchema = z
         z.strictObject({
           month: z.number().int().min(1).max(12),
           year: z.number().int(),
+          /**
+           * Zéro toléré, jamais provisionné. Les clients publiés avant PUL-316
+           * envoient 0 sur un mois trou (« Réajuster la suite » quand la cible
+           * est déjà atteinte), et le backend se déploie avant qu'ils soient
+           * mis à jour : refuser ici rejetterait tout le plan, y compris ses
+           * ajustements valides. Le use case laisse tomber ces entrées.
+           */
           amount: z.number().nonnegative(),
         }),
       )
@@ -885,6 +895,7 @@ export const budgetLineSpreadCreateSchema = z
   .strictObject({
     name: z.string().min(1).max(100).trim(),
     kind: transactionKindSchema.exclude(['income']),
+    savingsGoalId: z.uuid().nullable().optional(),
     mode: z.enum(['perMonth', 'total']),
     months: z
       .array(spreadFromExistingPeriodSchema)

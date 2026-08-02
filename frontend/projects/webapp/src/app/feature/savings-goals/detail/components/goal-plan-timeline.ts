@@ -30,6 +30,9 @@ interface GoalPlanTimelineRow {
   isCurrent: boolean;
   isChecked: boolean;
   isGap: boolean;
+  hasLinkedForecast: boolean;
+  hasBudget: boolean;
+  isRepairable: boolean;
   isOpen: boolean;
   isAdjusted: boolean;
   amount: number;
@@ -97,13 +100,26 @@ const WINDOW_OPEN_ROWS = 3;
                   {{ 'savingsGoals.plan.currentMonth' | transloco }}
                 </span>
               }
-              @if (row.isGap) {
+              @if (!row.hasLinkedForecast) {
                 <span
                   class="text-label-small font-medium rounded-full px-2 py-0.5
                          bg-surface-container-high text-on-surface-variant shrink-0"
-                  data-testid="goal-plan-gap-chip"
+                  [attr.data-testid]="
+                    row.isRepairable
+                      ? 'goal-plan-repair-chip'
+                      : row.hasBudget
+                        ? 'goal-plan-no-forecast-chip'
+                        : 'goal-plan-gap-chip'
+                  "
                 >
-                  {{ 'savingsGoals.plan.gapChip' | transloco }}
+                  {{
+                    (row.isRepairable
+                      ? 'savingsGoals.plan.repairChip'
+                      : row.hasBudget
+                        ? 'savingsGoals.plan.noForecastChip'
+                        : 'savingsGoals.plan.gapChip'
+                    ) | transloco
+                  }}
                 </span>
               }
             </span>
@@ -203,6 +219,7 @@ export class GoalPlanTimeline {
   readonly payDayOfMonth = input<number | null>(null);
   readonly editable = input<boolean>(false);
   readonly expanded = input<boolean>(false);
+  readonly canRepair = input<boolean>(false);
 
   readonly amountChange = output<{
     month: number;
@@ -223,6 +240,7 @@ export class GoalPlanTimeline {
   }
 
   protected readonly rows = computed<GoalPlanTimelineRow[]>(() => {
+    const canRepair = this.canRepair();
     const simulated = this.simulatedMonths();
     const source = (simulated ?? this.months()).filter(
       (month) => month.isContributionEligible !== false,
@@ -242,6 +260,26 @@ export class GoalPlanTimeline {
         isCurrent: month.state === 'current',
         isChecked,
         isGap: month.state === 'gap',
+        hasLinkedForecast: month.lines.length > 0,
+        hasBudget: month.hasBudget === true,
+        // The month-level half mirrors the page's repairableMonths() and
+        // iOS's SavingsGoalPlanMonth.isRepairable exactly: 2 terms, not 4.
+        // The calculator (buildSavingsGoalTimeline, in pulpe-shared)
+        // sets isProvisionable only when !hasLines, !isLocked AND
+        // isContributionEligible already hold — re-testing them here would
+        // duplicate a guarantee the producer already gives every consumer.
+        // hasBudget is NOT implied (isProvisionable's `||` alternative lets
+        // canProvisionMissingPeriods substitute for it), so it stays explicit.
+        // canRepair carries the half a month cannot know: repair is a
+        // plan-level offer, gated on an ACTIVE goal with a required amount
+        // above zero. A goal whose initial amount already covers its target
+        // floors required at 0 (savings-goal-progress.ts:301) while its empty
+        // future months stay provisionable — without this term the chip would
+        // promise « Épargne à ajouter » with no callout to act on.
+        isRepairable:
+          canRepair &&
+          month.hasBudget === true &&
+          month.isProvisionable === true,
         isOpen,
         isAdjusted: simulated ? (sim.isAdjusted ?? false) : false,
         amount: simulated ? sim.simulatedAmount : month.plannedAmount,
@@ -280,8 +318,13 @@ export class GoalPlanTimeline {
     () => this.rows().length - this.visibleRows().length,
   );
 
+  // Counts the same rows as the "Pas de budget" chip (the final branch of
+  // the !hasLinkedForecast ternary above), not a period-based `isGap` test —
+  // a current month with no budget shows that chip too and must be counted.
   protected readonly gapCount = computed(
-    () => this.rows().filter((row) => row.isGap).length,
+    () =>
+      this.rows().filter((row) => !row.hasLinkedForecast && !row.hasBudget)
+        .length,
   );
 
   protected formatPeriod(month: number, year: number): string {

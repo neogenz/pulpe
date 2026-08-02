@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import {
   isSavingsGoalLinkDenied,
+  isSavingsGoalLinkOutsideHorizon,
   savingsGoalIdForKind,
   savingsGoalIdPatchForKind,
 } from './savings-goal-link';
@@ -67,5 +68,28 @@ describe('isSavingsGoalLinkDenied (trigger rejection detection)', () => {
     ).toBe(false);
     expect(isSavingsGoalLinkDenied(null)).toBe(false);
     expect(isSavingsGoalLinkDenied(undefined)).toBe(false);
+  });
+});
+
+describe('isSavingsGoalLinkOutsideHorizon (trigger rejection detection)', () => {
+  it('matches only the exact horizon trigger raise', () => {
+    expect(
+      isSavingsGoalLinkOutsideHorizon({
+        code: 'P0001',
+        message: 'Savings goal line outside target horizon',
+      }),
+    ).toBe(true);
+    expect(
+      isSavingsGoalLinkOutsideHorizon({
+        code: 'P0001',
+        message: 'Savings goal access denied',
+      }),
+    ).toBe(false);
+    expect(
+      isSavingsGoalLinkOutsideHorizon({
+        code: '23514',
+        message: 'Savings goal line outside target horizon',
+      }),
+    ).toBe(false);
   });
 });

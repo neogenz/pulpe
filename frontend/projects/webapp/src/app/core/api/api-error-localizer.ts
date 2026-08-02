@@ -56,10 +56,14 @@ const CODE_KEY_MAP = {
   [API_ERROR_CODES.TEMPLATE_DELETE_FAILED]: 'apiError.templateDeleteFailed',
   [API_ERROR_CODES.SAVINGS_GOAL_BASELINE_RECALCULATION_FAILED]:
     'apiError.savingsGoalBaselineRecalculationFailed',
+  [API_ERROR_CODES.SAVINGS_GOAL_LINE_OUTSIDE_HORIZON]:
+    'apiError.savingsGoalLineOutsideHorizon',
   [API_ERROR_CODES.SAVINGS_GOAL_PLAN_CONFLICT]:
     'apiError.savingsGoalPlanConflict',
   [API_ERROR_CODES.SAVINGS_GOAL_PLAN_LINE_INVALID]:
     'apiError.savingsGoalPlanLineInvalid',
+  [API_ERROR_CODES.SAVINGS_GOAL_PLAN_MONTH_UNPROVISIONABLE]:
+    'apiError.savingsGoalPlanMonthUnprovisionable',
   [API_ERROR_CODES.SAVINGS_GOAL_PLAN_APPLY_FAILED]:
     'apiError.savingsGoalPlanApplyFailed',
   [API_ERROR_CODES.SAVINGS_GOAL_GENERATION_STOP_CONFLICT]:

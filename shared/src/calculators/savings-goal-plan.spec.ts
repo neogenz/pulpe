@@ -102,7 +102,7 @@ describe('buildSavingsGoalTimeline', () => {
   });
 
   it('should distinguish a missing budget from an existing budget without a linked line', () => {
-    const provisionable = buildSavingsGoalTimeline({
+    const missingBudget = buildSavingsGoalTimeline({
       ...input,
       materializedPeriods: [
         { month: 1, year: 2026 },
@@ -113,8 +113,37 @@ describe('buildSavingsGoalTimeline', () => {
       ],
       canProvisionMissingPeriods: true,
     });
-    const unavailable = buildSavingsGoalTimeline({
+    const existingBudget = buildSavingsGoalTimeline({
       ...input,
+      materializedPeriods: [
+        { month: 1, year: 2026 },
+        { month: 2, year: 2026 },
+        { month: 3, year: 2026 },
+        { month: 4, year: 2026 },
+        { month: 5, year: 2026 },
+        { month: 6, year: 2026 },
+      ],
+      canProvisionMissingPeriods: false,
+    });
+
+    expect(missingBudget[3]).toMatchObject({
+      month: 4,
+      state: 'gap',
+      hasBudget: false,
+      isProvisionable: true,
+    });
+    expect(existingBudget[3]).toMatchObject({
+      month: 4,
+      state: 'gap',
+      hasBudget: true,
+      isProvisionable: true,
+    });
+  });
+
+  it('should never provision a gap for an objective without a target date, whether or not its budget already exists', () => {
+    const withBudget = buildSavingsGoalTimeline({
+      ...input,
+      targetDate: null,
       materializedPeriods: [
         { month: 1, year: 2026 },
         { month: 2, year: 2026 },
@@ -125,15 +154,29 @@ describe('buildSavingsGoalTimeline', () => {
       ],
       canProvisionMissingPeriods: true,
     });
-
-    expect(provisionable[3]).toMatchObject({
-      month: 4,
-      state: 'gap',
-      isProvisionable: true,
+    const withoutBudget = buildSavingsGoalTimeline({
+      ...input,
+      targetDate: null,
+      materializedPeriods: [
+        { month: 1, year: 2026 },
+        { month: 2, year: 2026 },
+        { month: 3, year: 2026 },
+        { month: 5, year: 2026 },
+        { month: 6, year: 2026 },
+      ],
+      canProvisionMissingPeriods: true,
     });
-    expect(unavailable[3]).toMatchObject({
+
+    expect(withBudget[3]).toMatchObject({
       month: 4,
       state: 'gap',
+      hasBudget: true,
+      isProvisionable: false,
+    });
+    expect(withoutBudget[3]).toMatchObject({
+      month: 4,
+      state: 'gap',
+      hasBudget: false,
       isProvisionable: false,
     });
   });
@@ -221,6 +264,97 @@ describe('buildSavingsGoalTimeline', () => {
     const absent = buildSavingsGoalTimeline(input);
     const zero = buildSavingsGoalTimeline({ ...input, initialAmount: 0 });
     expect(zero).toEqual(absent);
+  });
+
+  it('should guarantee that a provisionable month is never locked, is contribution-eligible, and carries no linked line', () => {
+    // Arrange — four real calculator runs. Each is chosen so that dropping
+    // one of the three implied conjuncts from isProvisionable's definition
+    // in buildSavingsGoalTimeline would make a wrong month provisionable:
+    // missingBudget/existingBudget guard `!hasLines` (month 4 has no line,
+    // month 3 does and must stay excluded), afterTarget guards
+    // `isContributionEligible` (month 4 sits past the target), and lockedGap
+    // guards `!isLocked` (March is a strictly-past gap). Asserting over
+    // buildSavingsGoalTimeline's own output — not hand-built fixtures — is
+    // what makes this catch a regression in the producer itself.
+    const missingBudgetGap = buildSavingsGoalTimeline({
+      ...input,
+      materializedPeriods: [
+        { month: 1, year: 2026 },
+        { month: 2, year: 2026 },
+        { month: 3, year: 2026 },
+        { month: 5, year: 2026 },
+        { month: 6, year: 2026 },
+      ],
+      canProvisionMissingPeriods: true,
+    });
+    const existingBudgetGap = buildSavingsGoalTimeline({
+      ...input,
+      materializedPeriods: [
+        { month: 1, year: 2026 },
+        { month: 2, year: 2026 },
+        { month: 3, year: 2026 },
+        { month: 4, year: 2026 },
+        { month: 5, year: 2026 },
+        { month: 6, year: 2026 },
+      ],
+      canProvisionMissingPeriods: false,
+    });
+    const afterTargetGap = buildSavingsGoalTimeline({
+      ...input,
+      targetDate: '2026-03-31',
+      now: new Date(2026, 0, 15),
+      lines: [savingLine({ month: 5, year: 2026 })],
+      materializedPeriods: [{ month: 5, year: 2026 }],
+      canProvisionMissingPeriods: true,
+    });
+    const lockedGap = buildSavingsGoalTimeline({
+      ...input,
+      now: new Date(2026, 3, 15),
+      lines: [
+        savingLine({
+          month: 1,
+          year: 2026,
+          checkedAt: '2026-01-20T00:00:00.000Z',
+        }),
+        savingLine({
+          month: 2,
+          year: 2026,
+          checkedAt: '2026-02-20T00:00:00.000Z',
+        }),
+        savingLine({ month: 4, year: 2026 }),
+        savingLine({ month: 5, year: 2026 }),
+        savingLine({ month: 6, year: 2026 }),
+      ],
+      materializedPeriods: [
+        { month: 1, year: 2026 },
+        { month: 2, year: 2026 },
+        { month: 3, year: 2026 },
+        { month: 4, year: 2026 },
+        { month: 5, year: 2026 },
+        { month: 6, year: 2026 },
+      ],
+      canProvisionMissingPeriods: true,
+    });
+
+    // Act
+    const months = [
+      ...missingBudgetGap,
+      ...existingBudgetGap,
+      ...afterTargetGap,
+      ...lockedGap,
+    ];
+    const provisionable = months.filter(
+      (month) => month.isProvisionable === true,
+    );
+
+    // Assert — the calculator did produce provisionable months to check,
+    // and every one of them upholds all three implied guarantees.
+    expect(provisionable.length).toBeGreaterThan(0);
+    provisionable.forEach((month) => {
+      expect(month.isLocked).toBe(false);
+      expect(month.isContributionEligible).toBe(true);
+      expect(month.lines).toHaveLength(0);
+    });
   });
 });
 
@@ -432,7 +566,7 @@ describe('redistributeRemainingEffort', () => {
     );
   });
 
-  it('should block redistribution when an existing budget has no linked line', () => {
+  it('should redistribute through an existing budget without a linked line', () => {
     const timeline = buildSavingsGoalTimeline({
       targetAmount: 3000,
       status: 'ACTIVE',
@@ -453,8 +587,12 @@ describe('redistributeRemainingEffort', () => {
       targetAmount: 3000,
     });
 
-    expect(result.isDistributable).toBe(false);
-    expect(result.adjustments).toEqual([]);
+    expect(result.isDistributable).toBe(true);
+    expect(result.adjustments).toEqual([
+      { month: 1, year: 2026, amount: 1000 },
+      { month: 2, year: 2026, amount: 1000 },
+      { month: 3, year: 2026, amount: 1000 },
+    ]);
   });
 
   it('should not be distributable when no open month remains', () => {

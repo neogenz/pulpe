@@ -338,9 +338,14 @@ final class GoalPlanSimulatorViewModel {
     }
 
     /// The adjusted, contributive months — the write footprint and recap rows.
+    /// Excludes a zero-valued gap creation (mirrors `apply()`'s wire filter
+    /// below): the wire schema requires a positive amount, so a preview that
+    /// included one would open a recap for a change that can never be sent.
     var planChanges: [SavingsPlanCalculator.SimulatedMonth] {
         draft.months.filter {
-            SavingsPlanCalculator.isContributivePlanMonth($0.month) && $0.isAdjusted
+            SavingsPlanCalculator.isContributivePlanMonth($0.month)
+                && $0.isAdjusted
+                && !($0.month.isProvisionable && $0.simulatedAmount <= 0)
         }
     }
 
@@ -443,8 +448,11 @@ final class GoalPlanSimulatorViewModel {
                 )
                 .map { .init(budgetLineId: $0.budgetLineId, amount: $0.amount) }
             }
+        // A zero-valued creation describes nothing to create. The server drops
+        // it too (older clients still send it), but there is no point spending
+        // a round-trip carrying an instruction that means nothing.
         let missingMonthAdjustments: [SavingsGoalPlanApply.MissingMonthAdjustment] = planChanges
-            .filter { $0.month.isProvisionable }
+            .filter { $0.month.isProvisionable && $0.simulatedAmount > 0 }
             .map { .init(month: $0.month.month, year: $0.month.year, amount: $0.simulatedAmount) }
 
         guard !monthAdjustments.isEmpty || !missingMonthAdjustments.isEmpty else { return false }

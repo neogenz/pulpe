@@ -50,7 +50,9 @@ export interface SavingsPlanTimelineMonth {
   isLocked: boolean;
   /** La période appartient à la fenêtre début → échéance de contribution. */
   isContributionEligible?: boolean;
-  /** Budget absent pouvant être créé depuis une ligne liée du Mois Type. */
+  /** Le budget de la période est déjà matérialisé. */
+  hasBudget?: boolean;
+  /** Prévision absente pouvant être créée dans un budget nouveau ou existant. */
   isProvisionable?: boolean;
   /** Σ line.amount des lignes épargne liées, ce mois. */
   plannedAmount: number;
@@ -177,13 +179,20 @@ export function buildSavingsGoalTimeline(
     const allChecked =
       hasLines && monthLines.every((line) => line.checkedAt != null);
     const isLocked = index < indexCurrent || allChecked;
+    const hasBudget =
+      hasLines || materializedPeriodIndices?.has(index) === true;
     const isProvisionable =
       !hasLines &&
       !isLocked &&
       isContributionEligible &&
       materializedPeriodIndices != null &&
-      !materializedPeriodIndices.has(index) &&
-      input.canProvisionMissingPeriods === true;
+      // Un horizon cible est exigé dans TOUS les cas — le serveur refuse toute
+      // création de prévision manquante sans lui (apply-savings-goal-plan
+      // rejette dès que targetDate == null). `canProvisionMissingPeriods` ne
+      // couvre que l'autre question, indépendante : un budget absent peut-il
+      // être matérialisé (modèle par défaut) ?
+      indexTarget != null &&
+      (hasBudget || input.canProvisionMissingPeriods === true);
 
     let state: SavingsPlanMonthState;
     if (index === indexCurrent) state = 'current';
@@ -197,6 +206,7 @@ export function buildSavingsGoalTimeline(
       state,
       isLocked,
       isContributionEligible,
+      hasBudget,
       isProvisionable,
       plannedAmount,
       confirmedAmount,

@@ -216,6 +216,10 @@ export class GoalPlanSimulatorStore {
       for (const month of draft.months) {
         if (!month.isAdjusted) continue;
         if (month.isProvisionable) {
+          // A zero-valued creation describes nothing to create. The server
+          // drops it too (older clients still send it), but there is no point
+          // spending a round-trip carrying an instruction that means nothing.
+          if (month.simulatedAmount <= 0) continue;
           missingMonthAdjustments.push({
             month: month.month,
             year: month.year,
@@ -240,7 +244,19 @@ export class GoalPlanSimulatorStore {
   async apply(): Promise<void> {
     const goal = this.#store.selectedGoal();
     if (!goal) throw new Error('No goal selected');
-    await this.#store.applyPlan(goal.id, this.buildApplyPayload());
+    const payload = this.buildApplyPayload();
+    // A zero-valued gap creation can be the only "adjusted" month left after
+    // omission (see buildApplyPayload) — nothing left to persist then.
+    // `apply()` is a public store entry point: the current caller (this
+    // store's own UI) already guarantees a non-empty payload upstream, but
+    // this guard is what keeps a future caller from ever sending an empty
+    // apply request — it protects the boundary, not a producer guarantee.
+    const hasPayload =
+      payload.monthAdjustments.length > 0 ||
+      (payload.missingMonthAdjustments?.length ?? 0) > 0;
+    if (hasPayload) {
+      await this.#store.applyPlan(goal.id, payload);
+    }
     this.exit();
   }
 

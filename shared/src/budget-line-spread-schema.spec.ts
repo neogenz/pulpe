@@ -207,6 +207,26 @@ describe('budgetLineSpreadCreateSchema', () => {
   });
 
   describe('shared invariants', () => {
+    it('accepts an optional savings-goal link', () => {
+      const savingsGoalId = '550e8400-e29b-41d4-a716-446655440000';
+      const linked = budgetLineSpreadCreateSchema.safeParse({
+        ...base,
+        kind: 'saving',
+        savingsGoalId,
+        months: [{ year: 2026, month: 1 }],
+      });
+      const unlinked = budgetLineSpreadCreateSchema.safeParse({
+        ...base,
+        kind: 'saving',
+        savingsGoalId: null,
+        months: [{ year: 2026, month: 1 }],
+      });
+
+      expect(linked.success).toBe(true);
+      expect(linked.success && linked.data.savingsGoalId).toBe(savingsGoalId);
+      expect(unlinked.success).toBe(true);
+    });
+
     it('rejects kind=income', () => {
       const result = budgetLineSpreadCreateSchema.safeParse({
         name: 'Salaire',

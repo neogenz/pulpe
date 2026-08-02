@@ -7,14 +7,50 @@ struct GoalPlanTimelinePresentationTests {
     @Test("distinguishes a materialized month without a linked forecast from a missing budget")
     func distinguishesUnlinkedForecastFromMissingBudget() {
         let august = makeMonth(month: 8, state: .future, hasLinkedForecast: true)
-        let september = makeMonth(month: 9, state: .gap)
-        let november = makeMonth(month: 11, state: .gap, isProvisionable: true)
+        let september = makeMonth(month: 9, state: .gap, hasBudget: true, isProvisionable: true)
+        let november = makeMonth(month: 11, state: .gap, hasBudget: false, isProvisionable: true)
 
-        #expect(GoalPlanMonthAvailability(month: august).icon == nil)
-        #expect(GoalPlanMonthAvailability(month: september) == .noLinkedForecast)
-        #expect(GoalPlanMonthAvailability(month: september).label == "Rien de prévu ce mois")
-        #expect(GoalPlanMonthAvailability(month: november) == .missingBudget)
-        #expect(GoalPlanMonthAvailability(month: november).label == "Pas de budget")
+        #expect(GoalPlanMonthAvailability(month: august, canRepair: true).icon == nil)
+        #expect(GoalPlanMonthAvailability(month: september, canRepair: true) == .repairableForecast)
+        #expect(GoalPlanMonthAvailability(month: september, canRepair: true).label == "Épargne à ajouter")
+        #expect(GoalPlanMonthAvailability(month: november, canRepair: true) == .missingBudget)
+        #expect(GoalPlanMonthAvailability(month: november, canRepair: true).label == "Pas de budget")
+    }
+
+    @Test("drops the repairable chip when the plan offers no repair")
+    func repairableChipRequiresAPlanLevelRepairOffer() {
+        // `canRepairPlan` is false whenever the goal is inactive or its
+        // required amount floors at 0 (an initial amount already covering the
+        // target), while its empty future months stay provisionable. The row
+        // must not promise « Épargne à ajouter » with no recap behind it.
+        let september = makeMonth(month: 9, state: .gap, hasBudget: true, isProvisionable: true)
+
+        #expect(GoalPlanMonthAvailability(month: september, canRepair: false) == .noLinkedForecast)
+    }
+
+    @Test("keeps locked and non-provisionable budgets neutral")
+    func distinguishesNeutralUnlinkedForecasts() {
+        // `locked` models a reachable state: a past, materialized month with
+        // no linked line. `isProvisionable` stays at its default (false) —
+        // isLocked implies !isProvisionable (shared/src/calculators/
+        // savings-goal-plan.spec.ts's invariant test), so a real locked month
+        // is already non-provisionable; `isLocked: true` alone is enough to
+        // exercise the neutral path.
+        let locked = makeMonth(
+            month: 9,
+            state: .past,
+            isLocked: true
+        )
+        let nonProvisionable = makeMonth(month: 10, state: .future)
+
+        for month in [locked, nonProvisionable] {
+            // canRepair: true so the neutral verdict comes from the month
+            // itself, not from a plan that offers no repair at all.
+            let availability = GoalPlanMonthAvailability(month: month, canRepair: true)
+            #expect(availability == .noLinkedForecast)
+            #expect(availability.label == "Aucune épargne prévue")
+            #expect(availability.icon != nil)
+        }
     }
 
     @Test("keeps the current month plus three future months collapsed and exposes the full plan expanded")
@@ -33,8 +69,55 @@ struct GoalPlanTimelinePresentationTests {
         #expect(collapsed.visibleMonths.map(\.month) == [7, 8, 9, 10])
         #expect(collapsed.hiddenCount == 1)
         #expect(collapsed.remainingUnlinkedMonthCount == 3)
+        #expect(collapsed.repairableMonths.map(\.month) == [11])
         #expect(expanded.visibleMonths.map(\.month) == [7, 8, 9, 10, 11])
         #expect(expanded.hiddenCount == 0)
+    }
+
+    @Test("counts only isRepairable months regardless of position, matching the recap and create set")
+    func repairableMonths_ignoresPositionAndMatchesTheUnwindowedRepairableSet() {
+        // month 5 sits BEFORE currentIndex (month 6) yet is genuinely
+        // repairable (unlocked, provisionable, no lines) — the old
+        // `months.dropFirst(currentIndex)` windowing would have dropped it.
+        // `isLocked` is decoded straight off the DTO, not recomputed, so a
+        // past-but-unlocked month is a real, constructible server state.
+        let months = [
+            makeMonth(month: 4, state: .past, isLocked: true, hasLinkedForecast: true),
+            makeMonth(month: 5, state: .past, isLocked: false, isProvisionable: true),
+            makeMonth(month: 6, state: .current, isProvisionable: true),
+            makeMonth(month: 7, state: .future, isProvisionable: true),
+            makeMonth(month: 8, state: .future, hasLinkedForecast: true),
+        ]
+
+        let presentation = GoalPlanTimelinePresentation(months: months, isExpanded: false)
+
+        #expect(presentation.repairableMonths.map(\.month) == [5, 6, 7])
+        #expect(presentation.repairableMonths.count == 3)
+    }
+
+    @Test("uses natural agreement for one or several repairable forecasts")
+    func repairMessage_usesNaturalAgreement() {
+        let current = makeMonth(month: 7, state: .current, hasLinkedForecast: true)
+        let august = makeMonth(month: 8, state: .gap, isProvisionable: true)
+        let september = makeMonth(month: 9, state: .gap, isProvisionable: true)
+
+        let singular = GoalPlanTimelinePresentation(
+            months: [current, august],
+            isExpanded: false
+        )
+        let plural = GoalPlanTimelinePresentation(
+            months: [current, august, september],
+            isExpanded: false
+        )
+
+        #expect(
+            singular.repairMessage
+                == "1 prévision Épargne peut maintenant être ajoutée automatiquement."
+        )
+        #expect(
+            plural.repairMessage
+                == "2 prévisions Épargne peuvent maintenant être ajoutées automatiquement."
+        )
     }
 
     @Test("starts the collapsed window at the current month when the plan contains history")
@@ -80,6 +163,7 @@ struct GoalPlanTimelinePresentationTests {
         month: Int,
         state: SavingsPlanMonthState,
         isLocked: Bool = false,
+        hasBudget: Bool = true,
         isProvisionable: Bool = false,
         hasLinkedForecast: Bool = false
     ) -> SavingsGoalPlanMonth {
@@ -99,6 +183,7 @@ struct GoalPlanTimelinePresentationTests {
             year: 2026,
             state: state,
             isLocked: isLocked,
+            hasBudget: hasBudget,
             isProvisionable: isProvisionable,
             plannedAmount: hasLinkedForecast ? 500 : 0,
             confirmedAmount: 0,
