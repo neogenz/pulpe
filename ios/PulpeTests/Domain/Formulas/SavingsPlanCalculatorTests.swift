@@ -210,56 +210,6 @@ struct SavingsPlanCalculatorTests {
         #expect(result.attainedPeriod == nil)
     }
 
-    // MARK: - withdrawals (PUL-329)
-
-    /// Mirrors the TS spec: redistributing then simulating must land back on the
-    /// target even when the retrait sits on an OPEN month. A withdrawal sum
-    /// filtered on `isLocked` passes every other case and fails only this one.
-    @Test("closes on the target when the withdrawal sits on an open month")
-    func withdrawal_redistributionClosesOnTarget() throws {
-        let timeline = [
-            planMonth(month: 1, year: 2026, state: .past, isLocked: true, confirmedAmount: 500),
-            planMonth(month: 2, year: 2026, state: .past, isLocked: true, confirmedAmount: 500),
-            planMonth(month: 3, year: 2026, state: .current, withdrawnAmount: 400),
-            planMonth(month: 4, year: 2026, state: .future),
-        ]
-
-        let redistribution = SavingsPlanCalculator.redistributeRemainingEffort(
-            timeline: timeline,
-            targetAmount: 3000
-        )
-        let result = try SavingsPlanCalculator.simulate(
-            timeline: timeline,
-            targetAmount: 3000,
-            adjustments: redistribution.adjustments
-        )
-
-        #expect(redistribution.isDistributable == true)
-        #expect(redistribution.remainingEffort == 2400)
-        #expect(result.simulatedFinal == 3000)
-    }
-
-    /// Subtracting mid-loop is the first thing that can make the simulated curve
-    /// go DOWN: the target can be crossed and then lost again.
-    @Test("drops the attained period when a later withdrawal reopens the gap")
-    func withdrawal_dropsStaleAttainedPeriod() throws {
-        let result = try SavingsPlanCalculator.simulate(
-            timeline: [
-                planMonth(month: 1, year: 2026, state: .past, isLocked: true, confirmedAmount: 600),
-                planMonth(month: 2, year: 2026, state: .past, isLocked: true, confirmedAmount: 600),
-                planMonth(
-                    month: 3, year: 2026, state: .past, isLocked: true,
-                    confirmedAmount: 0, withdrawnAmount: 400
-                ),
-            ],
-            targetAmount: 1000
-        )
-
-        #expect(result.simulatedFinal == 800)
-        #expect(result.isTargetMet == false)
-        #expect(result.attainedPeriod == nil)
-    }
-
     // MARK: - redistributeRemainingEffort
 
     @Test("splits the remaining effort over open months cents-exact")

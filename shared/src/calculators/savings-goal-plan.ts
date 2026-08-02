@@ -198,8 +198,15 @@ export function buildSavingsGoalTimeline(
 
     if (isInHistoricalInterval) {
       plannedCumulative += plannedAmount;
-      confirmedCumulative += confirmedAmount - withdrawnAmount;
+      confirmedCumulative += confirmedAmount;
     }
+
+    // Hors du bloc : une sortie de stock compte quel que soit le mois où elle
+    // tombe. `computeSavingsGoalProgress` somme TOUS les retraits ; la borner à
+    // la fenêtre de contribution ferait diverger le cumul du solde affiché dès
+    // qu'un retrait précède le début des contributions — un objectif ouvert
+    // avec un montant de départ peut être ponctionné avant sa première prévision.
+    confirmedCumulative -= withdrawnAmount;
 
     const hasLines = monthLines.length > 0;
     const allChecked =
@@ -336,12 +343,13 @@ export function simulateSavingsPlan(input: {
     }
 
     if (month.isContributionEligible !== false) {
-      // Le retrait est une sortie de stock : il se retranche du cumul APRÈS le
-      // max, jamais en concurrence avec la contribution du mois.
-      simulatedCumulative +=
-        Math.max(simulatedAmount, month.confirmedAmount) -
-        (month.withdrawnAmount ?? 0);
+      simulatedCumulative += Math.max(simulatedAmount, month.confirmedAmount);
     }
+
+    // Hors du garde, et APRÈS le max : le retrait est une sortie de stock, il
+    // ne concourt jamais avec la contribution du mois et ne dépend pas de la
+    // fenêtre de contribution — même règle que dans la timeline.
+    simulatedCumulative -= month.withdrawnAmount ?? 0;
     if (
       attainedPeriod == null &&
       month.isContributionEligible !== false &&
@@ -390,11 +398,11 @@ export interface RedistributeRemainingEffortResult {
  * épinglés, cents-exact via `splitTotalPreserving`. Généralisation de PUL-290
  * (`remainingToProvision`/`perRemainingMonth`).
  *
- * `remaining = max(0, target − initialAmount − Σ confirmé(mois verrouillés) + Σ retraits(mois éligibles) − Σ épinglés ouverts)`.
+ * `remaining = max(0, target − initialAmount − Σ confirmé(mois verrouillés) + Σ retraits(tous les mois) − Σ épinglés ouverts)`.
  * Le retrait entre en plus : l'argent repris est de l'effort à refaire. Il est
- * sommé sur TOUS les mois éligibles, pas seulement verrouillés — c'est
- * exactement l'ensemble que `simulateSavingsPlan` soustrait, et cette égalité
- * est ce qui fait retomber la simulation sur la cible après redistribution.
+ * sommé sur TOUS les mois de la timeline, sans condition — c'est exactement
+ * l'ensemble que `simulateSavingsPlan` soustrait, et cette égalité est ce qui
+ * fait retomber la simulation sur la cible après redistribution.
  * `isDistributable = false` quand aucun mois ouvert non épinglé (ex. overdue).
  */
 export function redistributeRemainingEffort(input: {
@@ -429,9 +437,10 @@ export function redistributeRemainingEffort(input: {
     .filter((month) => month.isContributionEligible !== false && month.isLocked)
     .reduce((sum, month) => sum + month.confirmedAmount, 0);
 
-  const withdrawnSum = input.timeline
-    .filter((month) => month.isContributionEligible !== false)
-    .reduce((sum, month) => sum + (month.withdrawnAmount ?? 0), 0);
+  const withdrawnSum = input.timeline.reduce(
+    (sum, month) => sum + (month.withdrawnAmount ?? 0),
+    0,
+  );
 
   const pinnedSum = openMonths
     .filter((month) => pinnedByKey.has(adjustmentKey(month)))

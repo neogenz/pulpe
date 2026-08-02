@@ -978,6 +978,92 @@ describe('buildSavingsGoalTimeline withdrawals (PUL-329)', () => {
     expect(result.attainedPeriod).toBeNull();
   });
 
+  // Un objectif ouvert avec un stock de départ mais dont les contributions ne
+  // démarrent que plus tard peut être ponctionné AVANT son ancre. Le retrait
+  // tombe alors hors de l'intervalle historique, là où le cumul l'ignorait
+  // tandis que `computeSavingsGoalProgress` le comptait : 5000 contre 4000.
+  it('should count a withdrawal that lands before the contribution anchor', () => {
+    const earlyWithdrawal: SavingsGoalProgressInput = {
+      targetAmount: 8000,
+      status: 'ACTIVE',
+      createdAt: '2026-01-15T00:00:00.000Z',
+      startDate: '2026-06-01',
+      targetDate: '2026-12-31',
+      payDayOfMonth: null,
+      now: new Date(2026, 2, 15),
+      initialAmount: 5000,
+      lines: [],
+      transactions: [],
+      withdrawals: [{ amount: 1000, month: 2, year: 2026 }],
+    };
+
+    const timeline = buildSavingsGoalTimeline(earlyWithdrawal);
+    const progress = computeSavingsGoalProgress(earlyWithdrawal);
+
+    expect(progress.confirmed).toBe(4000);
+    expect(timeline[timeline.length - 1]?.confirmedCumulative).toBe(
+      progress.confirmed,
+    );
+  });
+
+  // Le simulateur filtrait sur `isContributionEligible`, plus étroit que
+  // l'intervalle historique de la timeline : un retrait postérieur à l'échéance
+  // était compté par l'une et ignoré par l'autre.
+  it('should count a withdrawal on a month closed to contributions', () => {
+    const result = simulateSavingsPlan({
+      timeline: [
+        planMonth({
+          month: 1,
+          year: 2026,
+          isLocked: true,
+          confirmedAmount: 1000,
+        }),
+        planMonth({
+          month: 2,
+          year: 2026,
+          isContributionEligible: false,
+          plannedAmount: 0,
+          withdrawnAmount: 300,
+        }),
+      ],
+      targetAmount: 1000,
+    });
+
+    expect(result.simulatedFinal).toBe(700);
+    expect(result.isTargetMet).toBe(false);
+  });
+
+  // La fermeture doit tenir même quand le retrait sort de la fenêtre : les deux
+  // sommes de retraits, celle que soustrait la simulation et celle que rajoute
+  // la redistribution, doivent porter sur le même ensemble.
+  it('should still close on the target when the withdrawal sits outside the window', () => {
+    const timeline = [
+      planMonth({ month: 1, year: 2026, isLocked: true, confirmedAmount: 600 }),
+      planMonth({
+        month: 2,
+        year: 2026,
+        isContributionEligible: false,
+        plannedAmount: 0,
+        withdrawnAmount: 400,
+      }),
+      planMonth({ month: 3, year: 2026 }),
+      planMonth({ month: 4, year: 2026 }),
+    ];
+
+    const redistribution = redistributeRemainingEffort({
+      timeline,
+      targetAmount: 3000,
+    });
+    const result = simulateSavingsPlan({
+      timeline,
+      targetAmount: 3000,
+      adjustments: redistribution.adjustments,
+    });
+
+    expect(redistribution.remainingEffort).toBe(2800);
+    expect(result.simulatedFinal).toBe(3000);
+  });
+
   it('should give a withdrawal-only month its own row', () => {
     const timeline = buildSavingsGoalTimeline({
       ...input,

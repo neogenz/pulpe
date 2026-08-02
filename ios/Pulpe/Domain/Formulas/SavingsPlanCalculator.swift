@@ -130,11 +130,14 @@ enum SavingsPlanCalculator {
             }
 
             if month.isContributionEligible {
-                // A retrait is a stock outflow: it comes off the cumulative AFTER
-                // the max, never as a contribution that lost the comparison.
                 simulatedCumulative += max(simulatedAmount, month.confirmedAmount)
-                    - month.withdrawnAmount
             }
+
+            // Outside the guard, and AFTER the max: a retrait is a stock outflow.
+            // It never competes with the month's contribution, and it does not
+            // depend on the contribution window — a goal opened with a starting
+            // stock can be drawn on before its first planned line.
+            simulatedCumulative -= month.withdrawnAmount
             if let targetAmount,
                attainedPeriod == nil,
                month.isContributionEligible,
@@ -186,10 +189,11 @@ enum SavingsPlanCalculator {
     /// (`remainingToProvision` / `perRemainingMonth`).
     ///
     /// `remaining = max(0, target − initialAmount − Σ confirmed(locked months)
-    /// + Σ withdrawn(eligible months) − Σ pinned open)`. A retrait enters with a
-    /// plus — money taken back is effort to redo. It is summed over EVERY eligible
-    /// month, not just locked ones: that is exactly the set `simulate` subtracts,
-    /// and the equality is what makes the simulation land back on the target.
+    /// + Σ withdrawn(every month) − Σ pinned open)`. A retrait enters with a
+    /// plus — money taken back is effort to redo. It is summed over EVERY month
+    /// of the timeline, unconditionally: that is exactly the set `simulate`
+    /// subtracts, and the equality is what makes the simulation land back on
+    /// the target.
     /// `isDistributable = false` when no open, non-pinned month remains (overdue).
     /// `initialAmount` (PUL-293 stock de départ) is deducted before distributing.
     static func redistributeRemainingEffort(
@@ -220,7 +224,6 @@ enum SavingsPlanCalculator {
             .reduce(Decimal(0)) { $0 + $1.confirmedAmount }
 
         let withdrawnSum = timeline
-            .filter(\.isContributionEligible)
             .reduce(Decimal(0)) { $0 + $1.withdrawnAmount }
 
         let pinnedSum = openMonths
