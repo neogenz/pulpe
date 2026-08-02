@@ -4,6 +4,60 @@ import Testing
 
 @MainActor
 struct CurrentMonthStoreDashboardTests {
+    // MARK: - End-of-Month Estimate
+
+    @Test func endOfMonthEstimate_keepsSecondHalfForecastsReserved() throws {
+        let store = CurrentMonthStore()
+        store.populateForTesting(
+            budget: TestDataFactory.createBudget(month: 7, year: 2026),
+            budgetLines: [
+                TestDataFactory.createBudgetLine(
+                    id: "income",
+                    amount: 8_000,
+                    kind: .income,
+                    isChecked: true
+                ),
+                TestDataFactory.createBudgetLine(
+                    id: "first-half",
+                    amount: 1_500,
+                    kind: .expense,
+                    isChecked: true
+                ),
+                TestDataFactory.createBudgetLine(
+                    id: "second-half",
+                    amount: 4_000,
+                    kind: .expense,
+                    isChecked: false
+                ),
+            ]
+        )
+
+        #expect(store.plannedRemaining == 2_500)
+        #expect(store.metrics.remaining == 2_500)
+    }
+
+    @Test func endOfMonthEstimate_integratesKnownEnvelopeOverrun() {
+        let store = CurrentMonthStore()
+        store.populateForTesting(
+            budgetLines: [
+                TestDataFactory.createBudgetLine(id: "income", amount: 8_000, kind: .income),
+                TestDataFactory.createBudgetLine(id: "expense", amount: 5_500, kind: .expense),
+            ],
+            transactions: [
+                TestDataFactory.createTransaction(
+                    id: "known-overrun",
+                    budgetLineId: "expense",
+                    amount: 6_000,
+                    kind: .expense,
+                    isChecked: false
+                ),
+            ]
+        )
+
+        #expect(store.plannedRemaining == 2_500)
+        #expect(store.metrics.remaining == 2_000)
+    }
+
     // MARK: - Unchecked Items (Combined) Logic
 
     @Test func uncheckedItems_freeTransactionsFirst_thenAllocated_thenBudgetLines() {
@@ -67,6 +121,48 @@ struct CurrentMonthStoreDashboardTests {
         )
 
         #expect(store.uncheckedItems.isEmpty)
+    }
+
+    // MARK: - Post-Onboarding Home
+
+    @Test func freshBudgetFromOnboarding_fillsTheHomeWithSomethingToDo() throws {
+        // The state a brand-new account lands in: a budget created from a template, its
+        // lines nothing but plans, not one transaction recorded. Every block of the Accueil
+        // reads one of these, so this is what "the home is filled, not empty" means.
+        let now = Date()
+        let period = Calendar.current.dateComponents([.month, .year], from: now)
+        let store = CurrentMonthStore()
+        store.populateForTesting(
+            budget: TestDataFactory.createBudget(
+                month: try #require(period.month),
+                year: try #require(period.year)
+            ),
+            budgetLines: [
+                TestDataFactory.createBudgetLine(id: "income", amount: 5_000, kind: .income),
+                TestDataFactory.createBudgetLine(id: "rent", amount: 2_000, kind: .expense),
+                TestDataFactory.createBudgetLine(id: "food", amount: 500, kind: .expense),
+            ]
+        )
+
+        // Not the empty state, and the creation action has a budget to write into.
+        #expect(store.contentState == .loaded)
+        #expect(store.budget != nil)
+
+        // The one card with content: three plans waiting to be pointed.
+        #expect(store.uncheckedItems.count == 3)
+
+        // Nothing has happened yet, so no card may claim otherwise.
+        #expect(store.transactions.isEmpty)
+        #expect(store.driftLines.isEmpty)
+        #expect(!store.savingsSummary.isComplete)
+
+        // The chart has a period to draw, opens on the plan the rest of the card quotes,
+        // and knows the month has not left it yet.
+        let trajectory = try #require(store.balanceTrajectory)
+        #expect(trajectory.landing.count > 1)
+        #expect(trajectory.plannedBalance == store.plannedRemaining)
+        #expect(trajectory.drift == 0)
+        #expect(trajectory.driftDate == nil)
     }
 
     // MARK: - Savings Summary Logic

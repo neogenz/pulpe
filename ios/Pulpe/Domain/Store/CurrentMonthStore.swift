@@ -358,6 +358,14 @@ final class CurrentMonthStore: StoreProtocol {
         )
     }
 
+    /// End-of-month balance from the budget alone, before known transactions adjust envelopes.
+    var plannedRemaining: Decimal {
+        BudgetFormulas.calculateAllMetrics(
+            budgetLines: budgetLines,
+            rollover: budget?.rollover.orZero ?? 0
+        ).remaining
+    }
+
     var realizedMetrics: BudgetFormulas.RealizedMetrics {
         cachedRealizedMetrics ?? BudgetFormulas.calculateRealizedMetrics(
             budgetLines: displayBudgetLines,
@@ -402,6 +410,11 @@ final class CurrentMonthStore: StoreProtocol {
 
 #if DEBUG
 extension CurrentMonthStore {
+    /// Test-only: hold the dashboard on its production loading state.
+    func prepareLoadingForTesting() {
+        contentState = .loading
+    }
+
     /// Test-only: populate store with data for unit testing
     func populateForTesting(
         budget: Budget? = nil,
@@ -598,15 +611,13 @@ extension CurrentMonthStore {
         )
     }
 
-    /// Forward-looking projection based on current spending rate
-    var projection: BudgetFormulas.Projection? {
+    var balanceTrajectory: BudgetFormulas.BalanceTrajectory? {
         guard let budget else { return nil }
-        return BudgetFormulas.calculateProjection(
-            realizedExpenses: realizedMetrics.realizedExpenses,
-            totalBudgetedExpenses: metrics.totalExpenses,
-            available: metrics.available,
-            month: budget.month,
-            year: budget.year
+        return BudgetFormulas.calculateBalanceTrajectory(
+            budgetLines: budgetLines,
+            transactions: transactions,
+            budget: budget,
+            payDayOfMonth: payDayOfMonth
         )
     }
 

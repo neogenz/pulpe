@@ -36,7 +36,7 @@ struct TypographyTests {
         _ = PulpeTypography.onboardingSubtitle
         _ = PulpeTypography.stepTitle
         _ = PulpeTypography.stepSubtitle
-        _ = PulpeTypography.tutorialTitle
+        _ = PulpeTypography.sectionTitle
         _ = PulpeTypography.tutorialBody
         _ = PulpeTypography.tutorialStep
         _ = PulpeTypography.bodyLarge

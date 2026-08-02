@@ -5,7 +5,6 @@ struct BudgetListView: View {
     @Environment(BudgetListStore.self) private var store
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.tabBarClearance) private var tabBarClearance
     @State private var createBudgetTarget: (month: Int, year: Int)?
     @State private var hasAppeared = false
     @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
@@ -278,7 +277,7 @@ struct BudgetListView: View {
                     .padding(.horizontal, DesignTokens.Spacing.xl)
                 }
             }
-            .padding(.bottom, tabBarClearance + DesignTokens.Spacing.lg)
+            .padding(.bottom, DesignTokens.Spacing.lg)
             .opacity(hasAppeared ? 1 : 0)
             .animation(.easeOut(duration: DesignTokens.Animation.fast), value: hasAppeared)
         }
@@ -332,51 +331,130 @@ private extension BudgetListView {
 private struct BudgetListSkeletonView: View {
     var body: some View {
         ScrollView {
-            VStack(spacing: DesignTokens.Spacing.xxl) {
-                // Year header placeholder
-                SkeletonShape(width: 120, height: 40)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(spacing: DesignTokens.Spacing.xxxl) {
+                VStack(spacing: DesignTokens.Spacing.none) {
+                    HStack {
+                        SkeletonShape(
+                            width: DesignTokens.Skeleton.mediumTextWidth,
+                            height: DesignTokens.Spacing.sectionGap
+                        )
+                        Spacer()
+                        SkeletonShape(
+                            width: DesignTokens.Skeleton.shortTextWidth,
+                            height: DesignTokens.IconSize.compact,
+                            cornerRadius: .infinity
+                        )
+                    }
                     .padding(.horizontal, DesignTokens.Spacing.xl)
 
-                // Year picker placeholder
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    ForEach(0..<3, id: \.self) { _ in
-                        SkeletonShape(width: 64, height: 32, cornerRadius: .infinity)
+                    HStack(spacing: DesignTokens.Spacing.sm) {
+                        ForEach(0..<3, id: \.self) { _ in
+                            SkeletonShape(
+                                width: DesignTokens.Skeleton.compactTextWidth,
+                                height: DesignTokens.Skeleton.controlHeight,
+                                cornerRadius: .infinity
+                            )
+                        }
                     }
+                    .padding(.horizontal, DesignTokens.Spacing.xl)
                 }
 
-                VStack(spacing: DesignTokens.Spacing.md) {
-                    // Hero card placeholder
-                    SkeletonShape(height: 170, cornerRadius: DesignTokens.CornerRadius.xl)
+                yearRecapSkeleton
+                    .padding(.horizontal, DesignTokens.Spacing.xl)
 
-                    // Month card placeholders
-                    ForEach(0..<2, id: \.self) { _ in
-                        skeletonMonthCard
+                VStack(spacing: DesignTokens.Spacing.none) {
+                    SkeletonShape(
+                        width: DesignTokens.Skeleton.longTextWidth,
+                        height: DesignTokens.Skeleton.sectionHeight
+                    )
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, DesignTokens.Spacing.xl)
+                        .padding(.bottom, DesignTokens.Spacing.md)
+
+                    VStack(spacing: DesignTokens.Spacing.md) {
+                        currentMonthCardSkeleton
+
+                        ForEach(0..<2, id: \.self) { _ in
+                            skeletonMonthCard
+                        }
                     }
+                    .padding(.horizontal, DesignTokens.Spacing.xl)
                 }
-                .padding(.horizontal, DesignTokens.Spacing.xl)
             }
-            .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, DesignTokens.Spacing.xxxl)
+            .padding(.bottom, DesignTokens.Spacing.lg)
         }
         .shimmering()
         .pulpeBackground()
         .accessibilityLabel("Chargement des budgets")
     }
 
-    private var skeletonMonthCard: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                SkeletonShape(width: 90, height: 18)
-                SkeletonShape(width: 120, height: 11)
-            }
-            Spacer()
-            VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
-                SkeletonShape(width: 80, height: 14)
-                SkeletonShape(width: 60, height: 8)
-            }
+    private var yearRecapSkeleton: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            SkeletonShape(
+                width: DesignTokens.Skeleton.longTextWidth,
+                height: DesignTokens.Skeleton.sectionHeight
+            )
+            SkeletonShape(
+                width: DesignTokens.Skeleton.longTextWidth,
+                height: DesignTokens.Skeleton.amountHeight
+            )
+            SkeletonShape(
+                height: DesignTokens.ProgressBar.heroHeight,
+                cornerRadius: DesignTokens.CornerRadius.progressBar
+            )
+            SkeletonShape(
+                width: DesignTokens.Skeleton.extraLongTextWidth,
+                height: DesignTokens.Skeleton.captionHeight
+            )
+            SkeletonShape(
+                width: DesignTokens.Skeleton.longTextWidth,
+                height: DesignTokens.Skeleton.captionHeight
+            )
+        }
+    }
+
+    private var currentMonthCardSkeleton: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            SkeletonShape(
+                width: DesignTokens.Skeleton.shortTextWidth,
+                height: DesignTokens.Skeleton.lineHeight,
+                cornerRadius: .infinity
+            )
+            skeletonMonthContent
         }
         .padding(DesignTokens.Spacing.xxl)
         .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.xl)
+    }
+
+    private var skeletonMonthCard: some View {
+        skeletonMonthContent
+            .padding(DesignTokens.Spacing.xxl)
+            .pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.xl)
+    }
+
+    private var skeletonMonthContent: some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                SkeletonShape(
+                    width: DesignTokens.Skeleton.shortTextWidth,
+                    height: DesignTokens.Skeleton.lineHeight
+                )
+                SkeletonShape(
+                    width: DesignTokens.Skeleton.mediumTextWidth,
+                    height: DesignTokens.Skeleton.captionHeight
+                )
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
+                SkeletonShape(
+                    width: DesignTokens.Skeleton.shortTextWidth,
+                    height: DesignTokens.Skeleton.bodyHeight
+                )
+                SkeletonShape(
+                    width: DesignTokens.Skeleton.compactTextWidth,
+                    height: DesignTokens.Spacing.sm
+                )
+            }
+        }
     }
 }

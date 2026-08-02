@@ -172,6 +172,15 @@ enum Formatters {
         return formatter
     }()
 
+    /// "5 juillet", and "1er août" on the one day of the month French declines. `dayMonth`
+    /// alone would print "1 août", which reads as a typo in a sentence.
+    static func dayMonthLabel(for date: Date) -> String {
+        guard Calendar.current.component(.day, from: date) == 1 else {
+            return dayMonth.string(from: date)
+        }
+        return "1er \(month.string(from: date))"
+    }
+
     static let shortMonth: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "fr_FR")

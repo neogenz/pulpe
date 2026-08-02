@@ -28,18 +28,22 @@ final class BudgetDetailsRouter {
     // MARK: - Push
 
     func push(_ route: BudgetLinePushRoute) {
-        appState?.budgetPath.append(route)
+        // The budget detail is reachable from two sections, so the push goes to whichever
+        // stack is on screen — hardcoding the budgets path made a detail opened from the
+        // accueil push its lines onto a stack nobody was looking at.
+        appState?.pushOnActiveStack(route)
     }
 
-    /// Pushes a savings goal's progression detail onto the budget stack (PUL-12).
+    /// Pushes a savings goal's progression detail onto the on-screen stack (PUL-12).
     /// Cross-feature push from a saving prévision's detail — resolved by the
-    /// `SavingsGoalDestination` navigation destination registered on `BudgetsTab`.
+    /// `SavingsGoalDestination` destination, registered on every tab that can reach a
+    /// budget detail.
     func pushSavingsGoal(_ goal: SavingsGoal) {
-        appState?.budgetPath.append(SavingsGoalDestination.detail(goal))
+        appState?.pushOnActiveStack(SavingsGoalDestination.detail(goal))
     }
 
     func popToRoot() {
-        appState?.budgetPath = NavigationPath()
+        appState?.popActiveStackToRoot()
     }
 
     // MARK: - Sheet

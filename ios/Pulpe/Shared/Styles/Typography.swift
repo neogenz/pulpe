@@ -15,7 +15,10 @@ enum PulpeTypography {
     static let brandTitle = Font.custom("Manrope", size: 34, relativeTo: .largeTitle).weight(.bold)
     static let onboardingTitle = Font.custom("Manrope", size: 28, relativeTo: .title).weight(.bold)
     static let stepTitle = Font.custom("Manrope", size: 22, relativeTo: .title2).weight(.bold)
-    static let tutorialTitle = Font.custom("Manrope", size: 20, relativeTo: .title3).weight(.bold)
+    /// Heading that opens a section of content. The brand face at 20pt is what tells a
+    /// section from the rows under it — without it the two sit 2pt apart in the same
+    /// family and weight, and only a rule between them can say which is which.
+    static let sectionTitle = Font.custom("Manrope", size: 20, relativeTo: .title3).weight(.bold)
 
     // MARK: - Display (Manrope ExtraBold — large decorative/hero)
 
@@ -25,6 +28,14 @@ enum PulpeTypography {
     static let heroIcon = Font.custom("Manrope", size: 48, relativeTo: .largeTitle).weight(.heavy)
     /// Welcome/onboarding hero text (64pt)
     static let welcomeEmoji = Font.custom("Manrope", size: 64, relativeTo: .largeTitle).weight(.bold)
+
+    // MARK: - Dashboard Hero (Manrope — split amount)
+
+    /// Dominant figure of the dashboard hero amount (48pt).
+    static let dashboardHeroAmount = Font.custom("Manrope", size: 48, relativeTo: .largeTitle).weight(.heavy)
+    /// Currency suffix beside it — same baseline, deliberately secondary (24pt).
+    /// Scales against `.largeTitle` like the figure so the pair keeps its ratio.
+    static let dashboardHeroCurrency = Font.custom("Manrope", size: 24, relativeTo: .largeTitle).weight(.bold)
 
     // MARK: - Financial Amounts (Manrope ExtraBold — hero numbers)
 

@@ -247,10 +247,8 @@ struct EditTransactionPage: View {
                 nextMonthLabel: projector.screenState.nextMonthLabel,
                 onPostpone: { pendingPostpone = .transaction(tx) }
             )
-            Button(role: .destructive) {
+            Button("Supprimer", systemImage: "trash", role: .destructive) {
                 showDeleteConfirmation = true
-            } label: {
-                Label("Supprimer", systemImage: "trash")
             }
         } label: {
             Image(systemName: "ellipsis.circle")

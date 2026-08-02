@@ -14,7 +14,6 @@ struct BudgetDetailsView: View {
     @Environment(TagStore.self) var tagStore
     @Environment(\.amountsHidden) private var amountsHidden
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.tabBarClearance) private var tabBarClearance
     @State var coordinator: BudgetDetailsCoordinator
     // Internal so the savings-withdrawal extension can read its screen state.
     @State var projector: BudgetDetailsProjector
@@ -118,13 +117,21 @@ struct BudgetDetailsView: View {
         .toolbarBackground(Color.appBackground, for: .navigationBar)
         .toolbarBackgroundVisibility(.visible, for: .navigationBar)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
                 Button {
                     router.present(.realizedBalance)
                 } label: {
                     Image(systemName: "chart.bar.fill")
                 }
+                .iconButtonStyle()
                 .accessibilityLabel("Suivi du budget")
+                if screenState.isBudgetPresent {
+                    Button { router.present(.addBudgetLine) } label: {
+                        Image(systemName: "plus")
+                    }
+                    .iconButtonStyle()
+                    .accessibilityLabel("Ajouter une prévision")
+                }
             }
         }
         // Scroll-independent month navigation (system title chevron). The sticky
@@ -302,7 +309,7 @@ struct BudgetDetailsView: View {
                     )
                 }
 
-                Color.clear.frame(height: tabBarClearance + DesignTokens.Spacing.lg)
+                Color.clear.frame(height: DesignTokens.Spacing.lg)
             }
         }
         .scrollContentBackground(.hidden)
@@ -320,9 +327,6 @@ struct BudgetDetailsView: View {
                 tracker: scrollTracker
             )
         }
-        .overlay(alignment: .bottomTrailing) {
-            BudgetDetailsAddFAB { router.present(.addBudgetLine) }
-        }
         .animation(
             reduceMotion ? nil : DesignTokens.Animation.gentleSpring,
             value: screenState.checkedTickHash
@@ -334,15 +338,10 @@ struct BudgetDetailsView: View {
             prompt: "Rechercher..."
         )
         .searchPresentationToolbarBehavior(.avoidHidingContent)
-        // Reset the keyboard safe-area inset for this whole subtree — both
-        // overlays (sticky pager + FAB) inherit the reset. This screen has no
-        // bottom text input (the only field is the `.searchable` bar, which
-        // lives in the top nav-bar drawer), so ignoring the bottom keyboard
-        // inset hides nothing. Without this, a stale ~keyboard-height bottom
-        // inset inherited from a pushed, auto-focused child (EditTransactionPage)
-        // strands on pop — phantom over-scroll + FAB floating mid-page. Mirrors
-        // the existing guards on the tab bar (MainTabView) and sticky CTA
-        // (pulpeStickyBottomCTA). Must stay LAST so both overlays inherit it; if
+        // The only field lives in the top search drawer, so resetting the bottom
+        // keyboard inset hides nothing. It prevents a stale inset inherited from
+        // EditTransactionPage from creating phantom over-scroll after pop.
+        // Keep LAST so the sticky pager inherits it; if
         // a bottom text field is ever added here, remove or scope this.
         .ignoresSafeArea(.keyboard, edges: .bottom)
     }

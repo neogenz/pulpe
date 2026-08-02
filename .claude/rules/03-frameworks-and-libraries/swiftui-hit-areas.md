@@ -37,6 +37,38 @@ Button { action() } label: {
 }
 ```
 
+## Second Critical Rule: a Button inside a stack
+
+The rule above holds only when the Button owns its row. `frame(minHeight:)` grows the
+Button's **own reported size**, and a stack takes the height of its tallest child — so on a
+Button that shares an `HStack` (or `VStack`) with siblings, the frame silently grows the
+whole row and pushes everything below it down. This is invisible in a single screenshot and
+only shows in a pixel diff; it shipped once as a 24pt regression on `HomeSectionHeader`.
+
+Expand the hit area **without** growing the layout: pad out, shape the hit area at that
+larger size, then pad back in. It nets to zero for layout, and any baseline guide the row
+shares still sees the label's original size.
+
+```swift
+// GOOD — text link sharing an HStack with a title block
+Button { action() } label: {
+    Text("Tout voir")
+}
+.padding(.vertical, DesignTokens.TapTarget.minimum / 2)
+.contentShape(Rectangle())
+.padding(.vertical, -DesignTokens.TapTarget.minimum / 2)
+
+// BAD — the whole HStack row becomes 44pt tall
+HStack(alignment: .firstTextBaseline) {
+    titleBlock
+    Button("Tout voir") { action() }
+        .frame(minHeight: DesignTokens.TapTarget.minimum)   // ← grows the row
+}
+```
+
+Half the tap target on each edge, so it clears 44pt regardless of the label's own line
+height at any text size. Verify by pixel-diffing before/after builds, never by eye.
+
 ## Shared ButtonStyles
 
 All shared styles live in `ios/Pulpe/Shared/Design/PrimaryButtonStyle.swift`.
@@ -94,6 +126,7 @@ SwiftUI TextFields only respond to taps on the text line, not the full container
 | Don't | Do |
 |-------|-----|
 | `frame(minHeight: 44)` inside button label (before background) | `frame(minHeight: 44)` on the Button itself |
+| `frame(minHeight: 44)` on a Button that shares a stack with siblings | Pad → `contentShape` → negative pad (nets to zero for layout) |
 | `Button` with `.plainPressedButtonStyle()` and no `contentShape` | Add `.contentShape()` on the Button |
 | Icon-only button without minimum frame | Use `.iconButtonStyle()` |
 | `frame(width: 32, height: 32)` for icon buttons | `frame(width: 44, height: 44)` minimum |

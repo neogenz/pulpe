@@ -137,6 +137,10 @@ struct PulpeChip<Trailing: View>: View {
             }
             Text(label)
                 .font(PulpeTypography.metricLabelBold)
+                // Matches the icon above: a chip whose label swaps mid-animation should
+                // cross-fade with its symbol, not snap while the symbol morphs. Inert for
+                // the static labels most chips carry.
+                .contentTransition(.opacity)
             if let count {
                 countBadge(count)
             }

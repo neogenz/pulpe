@@ -115,7 +115,7 @@ struct CreateBudgetView: View {
                     .foregroundStyle(Color.textSecondary)
 
                 Text(viewModel.monthYearFormatted)
-                    .font(PulpeTypography.tutorialTitle)
+                    .font(PulpeTypography.sectionTitle)
                     .foregroundStyle(.primary)
             }
 

@@ -13,8 +13,10 @@ extension Color {
     /// Savings indicator color - Green (#157038 light, #50C882 dark)
     static let financialSavings = Color("FinancialSavings")
 
-    /// Over-budget indicator - Warm amber, not aggressive red (#A86800 light, #E5A33A dark)
-    static let financialOverBudget = Color(light: Color(hex: 0xA86800), dark: Color(hex: 0xE5A33A))
+    /// Over-budget indicator - Warm amber, not aggressive red (#905800 light, #E5A33A dark).
+    /// The light value is set by the hero's mint surface, the darkest background it lands on:
+    /// 4.5:1 there, and higher on every paler surface it also serves.
+    static let financialOverBudget = Color(light: Color(hex: 0x905800), dark: Color(hex: 0xE5A33A))
 
     /// Map a `TransactionKind` to its semantic financial color.
     static func financialColor(for kind: TransactionKind) -> Color {
@@ -310,10 +312,16 @@ extension Color {
     static let stepTransport = Color(light: Color(hex: 0xEF6C00), dark: Color(hex: 0xFFA726))
     static let stepCredit = Color(light: Color(hex: 0x37474F), dark: Color(hex: 0x78909C))
 
-    /// Onboarding accent gradient — brighter dark mode for visibility on deep backgrounds
+    /// Onboarding accent gradient — brighter dark mode for visibility on deep backgrounds.
+    /// Both stops sit under `Color.textOnPrimary` at the CTA's two call sites
+    /// (`PrimaryButtonStyle`, `OnboardingStepView`'s `ctaBackground`), white in light mode
+    /// and near-black in dark mode — each bound below is the one closer to its ink, so it's
+    /// the one that gates the pair's contrast against WCAG's 4.5:1 floor:
+    /// - Light trailing (`0x00842C`) vs white ink: 4.84:1.
+    /// - Dark leading (`0x409B43`) vs dark ink: 4.93:1.
     static let onboardingGradient = LinearGradient(
-        colors: [Color(light: Color(hex: 0x006E25), dark: Color(hex: 0x338A36)),
-                 Color(light: Color(hex: 0x00A838), dark: Color(hex: 0x56C45A))],
+        colors: [Color(light: Color(hex: 0x006E25), dark: Color(hex: 0x409B43)),
+                 Color(light: Color(hex: 0x00842C), dark: Color(hex: 0x56C45A))],
         startPoint: .leading,
         endPoint: .trailing
     )
@@ -382,28 +390,31 @@ extension Color {
 
     // MARK: - Home Dashboard (Tour 11 — sage canvas + mint hero card)
 
-    /// Home dashboard canvas — now the shared app background (`appBackground`).
-    /// Kept as a semantic alias so home call sites read intentionally and the two never drift.
-    static let homeBackground = appBackground
+    // The home canvas is `appBackground`, like every other screen. It had its own
+    // near-white tone while the ledger was flat and had nothing to lift off the page;
+    // with the rows back on cards, a canvas a hair off white is a canvas with no cards.
     /// Mint hero card surface — identical across emotion states.
     static let homeHeroSurface = Color(light: Color(hex: 0xCFE8D6), dark: Color(hex: 0x1D3A28))
     /// Top stop of the mint hero card's material gradient — a hair lighter than the base
     /// so the surface catches light from above. State-independent; the brand stays calm.
     static let homeHeroSurfaceTop = Color(light: Color(hex: 0xDCEFE2), dark: Color(hex: 0x244A34))
-    /// Rim light on the mint hero card's top lip — light catching the material edge.
-    static let homeHeroHighlight = Color(light: .white.opacity(0.55), dark: .white.opacity(0.07))
     /// Deep-green ink for primary text and progress fill on the mint hero card.
     static let homeHeroInk = Color(light: Color(hex: 0x0E3A1C), dark: Color(hex: 0xD5ECDC))
     /// Supporting text on the mint hero card.
     static let homeHeroSupport = Color(light: Color(hex: 0x2C5136), dark: Color(hex: 0x9FC3AA))
     /// Solid overlay surface on the mint hero card (state chip fill + progress track).
     static let homeHeroOverlay = Color(light: Color(hex: 0xF3F9F5), dark: Color(hex: 0x2C4A37))
-    /// Middle band of the hero bar — committed but not yet pointed. Sits between the solid
-    /// `homeHeroInk` (money gone) and the pale track (still free), so the three read as one
-    /// ramp rather than three unrelated hues.
-    static let homeHeroReserved = Color(light: Color(hex: 0x6E9E80), dark: Color(hex: 0x5B8B6D))
     /// Envelope drift accent — overrun amounts + overflow bar segments on the home dashboard only.
-    static let driftAccent = Color(light: Color(hex: 0xC45028), dark: Color(hex: 0xE8825A))
+    /// Light value set against the mint hero surface, where it must clear 4.5:1.
+    static let driftAccent = Color(light: Color(hex: 0xAA4522), dark: Color(hex: 0xE8825A))
+    /// Cast by the mint hero surface onto the content zone below it. In light mode the two
+    /// zones are close in value and would otherwise read as one flat plane, so the drop is
+    /// the whole depth cue; in dark mode the tonal jump already carries it and a black
+    /// shadow on a near-black canvas only muddies the edge.
+    static let homeZoneBoundaryShadow = Color(
+        light: .black.opacity(DesignTokens.Opacity.badgeBackground),
+        dark: .clear
+    )
 
     // MARK: - Skeleton
 

@@ -182,15 +182,13 @@ private extension BudgetLineDetailPage {
                 onPostpone: { pendingPostpone = .budgetLine(line) }
             )
 
-            Button(role: .destructive) {
+            Button("Supprimer", systemImage: "trash", role: .destructive) {
                 // Linked line → explicit choice alert, not single-line delete (CA9).
                 if line.savingsWithdrawalGroupId == nil {
                     showDeleteConfirmation = true
                 } else {
                     deleteBudgetLine(line)
                 }
-            } label: {
-                Label("Supprimer", systemImage: "trash")
             }
         } label: {
             Image(systemName: "ellipsis.circle")

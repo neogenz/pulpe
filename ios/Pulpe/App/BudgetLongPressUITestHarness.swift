@@ -12,6 +12,8 @@ enum UITestLaunchScenario {
     case savingsGoalDetailFull
     case savingsGoalDeadlineReconciliation
     case savingsGoalTemplateLines
+    case contextualCreationHome
+    case contextualCreationBudget
 
     private static let longPressWithTransactionsKey = "UITEST_BUDGET_LONG_PRESS_WITH_TRANSACTIONS"
     private static let longPressEmptyKey = "UITEST_BUDGET_LONG_PRESS_EMPTY"
@@ -24,6 +26,8 @@ enum UITestLaunchScenario {
     private static let savingsGoalDetailFullKey = "UITEST_SAVINGS_GOAL_DETAIL_FULL"
     private static let savingsGoalDeadlineReconciliationKey = "UITEST_SAVINGS_GOAL_DEADLINE_RECONCILIATION"
     private static let savingsGoalTemplateLinesKey = "UITEST_SAVINGS_GOAL_TEMPLATE_LINES"
+    private static let contextualCreationHomeKey = "UITEST_CONTEXTUAL_CREATION_HOME"
+    private static let contextualCreationBudgetKey = "UITEST_CONTEXTUAL_CREATION_BUDGET"
     private static let scenarioEnvironmentKey = "UITEST_SCENARIO"
 
     static var current: Self? {
@@ -59,6 +63,8 @@ enum UITestLaunchScenario {
             savingsGoalDetailFullKey: .savingsGoalDetailFull,
             savingsGoalDeadlineReconciliationKey: .savingsGoalDeadlineReconciliation,
             savingsGoalTemplateLinesKey: .savingsGoalTemplateLines,
+            contextualCreationHomeKey: .contextualCreationHome,
+            contextualCreationBudgetKey: .contextualCreationBudget,
         ][key]
     }
 
@@ -76,6 +82,8 @@ enum UITestLaunchScenario {
         case .savingsGoalDetailFull: "savings-goal-detail-full"
         case .savingsGoalDeadlineReconciliation: "savings-goal-deadline-reconciliation"
         case .savingsGoalTemplateLines: "savings-goal-template-lines"
+        case .contextualCreationHome: "contextual-creation-home"
+        case .contextualCreationBudget: "contextual-creation-budget"
         }
     }
 }
@@ -250,7 +258,6 @@ struct BudgetGoalSpreadUITestHarness: View {
             savingsGoalService: savingsGoalService
         )
         .environment(\.dynamicTypeSize, dynamicTypeSize)
-        .environment(\.tabBarClearance, MainTabView.tabBarClearance(bottomSafeAreaInset: 0))
         .preferredColorScheme(preferredColorScheme)
         .environment(appState)
         .environment(userSettingsStore)

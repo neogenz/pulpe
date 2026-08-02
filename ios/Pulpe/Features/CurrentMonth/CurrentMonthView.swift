@@ -3,11 +3,8 @@ import TipKit
 import WidgetKit
 
 private enum SheetDestination: Identifiable {
-    case realizedBalance
-    case account
-    case createBudget
-    case notificationPrime
-
+    case realizedBalance, account, createBudget, notificationPrime
+    case addTransaction
     var id: Self { self }
 }
 
@@ -22,8 +19,10 @@ struct CurrentMonthView: View {
     @State private var activeSheet: SheetDestination?
     @State private var navigateToBudget = false
     @State private var hasAppeared = false
+    /// Screen-space bottom edge of the hero block, published by whichever state is on screen.
+    /// The mint stops here instead of at a fixed fraction of the screen height.
+    @State private var heroSurfaceBottom: CGFloat = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.tabBarClearance) private var tabBarClearance
 
     private var animationPhase: Int {
         switch store.contentState {
@@ -42,6 +41,15 @@ struct CurrentMonthView: View {
         Set(store.budgetLines.flatMap { $0.tagIds ?? [] } + store.transactions.flatMap { $0.tagIds ?? [] })
     }
 
+    /// Same verdict the hero renders — `DriftCard`'s subtitle reads off this instead of
+    /// re-deriving the planned/estimated subtraction on its own.
+    private var overrunIsAbsorbed: Bool {
+        HomeHeroCard.PresentationState(
+            plannedBalance: store.plannedRemaining,
+            estimatedBalance: store.metrics.remaining
+        ).absorbsEnvelopeOverrun
+    }
+
     /// One-time post-onboarding handoff (teaches the pointer ritual + Lock Screen
     /// widget). Stateless UserDefaults wrapper — cheap to hold per render.
     private let postOnboardingFlags = PostOnboardingFlagsStore()
@@ -53,7 +61,7 @@ struct CurrentMonthView: View {
         ZStack {
             switch store.contentState {
             case .idle, .loading:
-                CurrentMonthSkeletonView()
+                CurrentMonthSkeletonView(onHeroSurfaceBottomChange: { heroSurfaceBottom = $0 })
                     .transition(.opacity)
             case .failed:
                 ErrorView(error: store.error ?? .networkError(URLError(.unknown))) {
@@ -76,23 +84,26 @@ struct CurrentMonthView: View {
                     .transition(.opacity)
             }
         }
-        .background { Color.homeBackground.ignoresSafeArea() }
+        .background { dashboardBackground.ignoresSafeArea() }
         .trackScreen("Dashboard")
         .animation(DesignTokens.Animation.smoothEaseOut, value: animationPhase)
-        .navigationTitle("")
+        .navigationTitle(currentMonthName.capitalized)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            // Loaded state exposes Account via the greeting avatar; keep a
-            // toolbar entry for the other states so Account is always reachable.
-            if store.contentState != .loaded {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        activeSheet = .account
-                    } label: {
-                        Image(systemName: "person.circle")
-                    }
-                    .accessibilityLabel("Mon compte")
+            // One account affordance for every content state, in the bar that already
+            // exists — the dashboard no longer rebuilds a header inside its own scroll.
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    activeSheet = .account
+                } label: {
+                    ProfileAvatar(
+                        firstName: appState.currentUser?.firstName,
+                        email: appState.currentUser?.email,
+                        avatarUrl: appState.currentUser?.avatarUrl,
+                        diameter: DesignTokens.IconSize.compact
+                    )
                 }
+                .accessibilityLabel("Mon compte")
             }
         }
         .sheet(item: $activeSheet) { sheet in
@@ -108,6 +119,10 @@ struct CurrentMonthView: View {
                 case .notificationPrime:
                     NotificationPrimeSheet {
                         Task { await enableReminders() }
+                    }
+                case .addTransaction:
+                    if let budgetId = store.budget?.id {
+                        AddTransactionSheet(budgetId: budgetId, onAdd: store.addTransaction)
                     }
                 case .createBudget:
                     if let nextMonth = budgetListStore.nextAvailableMonth {
@@ -159,25 +174,31 @@ struct CurrentMonthView: View {
         .onChange(of: navigateToBudget) { _, shouldNavigate in
             if shouldNavigate, let budgetId = store.budget?.id {
                 navigateToBudget = false
-                // Clear path without animation while Budgets tab is offscreen
-                var transaction = SwiftUI.Transaction()
-                transaction.disablesAnimations = true
-                withTransaction(transaction) {
-                    appState.budgetPath = NavigationPath()
-                }
-                // Next run loop: old view is destroyed, push fresh + switch tab
-                Task { @MainActor in
-                    appState.budgetPath.append(BudgetDestination.details(budgetId: budgetId))
-                    appState.selectedTab = .budgets
-                }
+                appState.pushOnActiveStack(BudgetDestination.details(budgetId: budgetId))
             }
         }
+        // Returning to the tab on top of a pushed page is a return to that page, not to the
+        // accueil: refreshing here would fetch a month nobody is looking at, and the unwind
+        // below would fetch it again a tap later.
         .onChange(of: appState.selectedTab) { oldTab, newTab in
-            guard newTab == .currentMonth, oldTab != .currentMonth else { return }
-            store.invalidateCache()
-            Task {
-                await store.loadDetailsIfNeeded()
-            }
+            guard newTab == .currentMonth,
+                  oldTab != .currentMonth,
+                  appState.currentMonthPath.isEmpty else { return }
+            refreshDetails()
+        }
+        // Coming back from the budget no longer crosses a tab boundary, so the tab change
+        // above never fires for it: the accueil refreshes when its own stack unwinds.
+        .onChange(of: appState.currentMonthPath.count) { oldCount, newCount in
+            guard newCount == 0, oldCount > 0 else { return }
+            refreshDetails()
+        }
+    }
+
+    /// Re-reads the month after the user has been somewhere that can change it.
+    private func refreshDetails() {
+        store.invalidateCache()
+        Task {
+            await store.loadDetailsIfNeeded()
         }
     }
 
@@ -185,117 +206,162 @@ struct CurrentMonthView: View {
 
     private var dashboardContent: some View {
         ScrollView {
-            VStack(spacing: DesignTokens.Spacing.lg) {
-                // 1. Greeting + account avatar
-                DashboardGreeting(
-                    firstName: appState.currentUser?.firstName,
-                    email: appState.currentUser?.email,
-                    avatarUrl: appState.currentUser?.avatarUrl
-                ) {
-                    activeSheet = .account
-                }
-                .staggeredEntrance(isVisible: hasAppeared, index: 0)
-
-                // 2. Mint hero — remaining, state chip, progress, budget detail entry
+            VStack(spacing: DesignTokens.Spacing.none) {
                 HomeHeroCard(
                     metrics: store.metrics,
+                    fallbackPlannedBalance: store.plannedRemaining,
+                    trajectory: store.balanceTrajectory,
                     monthName: currentMonthName,
-                    realizedOutflows: store.realizedMetrics.realizedExpenses,
-                    dayProgress: store.periodDayProgress(),
-                    dailyMargin: store.dailyBudget(),
-                    deficitContext: deficitContext,
+                    uncheckedCount: store.uncheckedCount,
                     onTapMetrics: { activeSheet = .realizedBalance },
                     onTapDetail: { navigateToBudget = true }
                 )
-                .staggeredEntrance(isVisible: hasAppeared, index: 1)
-
-                // 3. Opérations à pointer — only while something needs checking
-                if !store.uncheckedItems.isEmpty {
-                    UncheckedOperationsCard(
-                        items: store.uncheckedItems,
-                        totalCount: store.uncheckedCount,
-                        tagNamesById: tagStore.namesById,
-                        syncingBudgetLineIds: store.syncingBudgetLineIds,
-                        syncingTransactionIds: store.syncingTransactionIds,
-                        onToggle: { item in
-                            ProductTips.checking.invalidate(reason: .actionPerformed)
-                            Task {
-                                let didSucceed: Bool
-                                switch item {
-                                case .transaction(let transaction, _):
-                                    didSucceed = await store.toggleTransaction(transaction)
-                                case .budgetLine(let line, _):
-                                    didSucceed = await store.toggleBudgetLine(line)
-                                }
-                                if didSucceed {
-                                    // The item leaves the screen on success — without an exit
-                                    // ramp, recovering from an accidental check means hunting
-                                    // it down in the budget detail.
-                                    toastManager.showWithUndo(
-                                        "\(item.name) pointé",
-                                        undo: { await undoToggle(item) },
-                                        onFinishedWithoutUndo: {}
-                                    )
-                                    // The pointer just happened — the one moment worth asking
-                                    // for notifications (offered once, behind a value screen).
-                                    await maybePrimeReminders()
-                                } else {
-                                    // The optimistic row silently reverts otherwise, right
-                                    // after the success haptic already told the user it worked.
-                                    // Error copy names what happened AND the next step
-                                    // (PRODUCT.md tone rule) — the row is back, retry works.
-                                    toastManager.show(
-                                        "\(item.name) n'a pas pu être pointé — réessaie",
-                                        type: .error
-                                    )
-                                }
-                            }
-                        },
-                        onViewAll: { navigateToBudget = true }
-                    )
-                    .popoverTip(ProductTips.checking)
-                    .staggeredEntrance(isVisible: hasAppeared, index: 2)
+                .staggeredEntrance(isVisible: hasAppeared, index: 0)
+                .padding(.horizontal, DesignTokens.Spacing.xxl)
+                .padding(.top, DesignTokens.Spacing.lg)
+                .padding(.bottom, DesignTokens.Spacing.xxl)
+                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: {
+                    heroSurfaceBottom = $0
                 }
 
-                // 4. Ça dérive when the month drifts — else épargne versée when complete
-                if !store.driftLines.isEmpty {
-                    DriftCard(
-                        drifts: store.driftLines,
-                        totalOver: store.driftTotal,
-                        tagNamesById: tagStore.namesById,
-                        adjustMonthName: nextMonthName,
-                        onViewBudget: { navigateToBudget = true },
-                        onCatchUp: { navigateToBudget = true }
-                    )
-                    .staggeredEntrance(isVisible: hasAppeared, index: 3)
-                } else if store.savingsSummary.isComplete {
-                    SavingsDoneCard(
-                        amount: store.savingsSummary.totalRealized,
-                        goalName: completedSavingsGoalName
-                    ) {
-                        appState.savingsGoalsPath = NavigationPath()
-                        appState.selectedTab = .savingsGoals
-                    }
-                    .staggeredEntrance(isVisible: hasAppeared, index: 3)
-                }
-
-                // 5. Activité — recent transactions with 7j/Mois window
-                if !store.transactions.isEmpty {
-                    ActivityCard(
-                        transactions: store.transactions,
-                        tagNamesById: tagStore.namesById,
-                        onViewAll: { navigateToBudget = true }
-                    )
-                    .staggeredEntrance(isVisible: hasAppeared, index: 4)
-                }
+                dashboardDetails
+                .frame(maxWidth: .infinity)
+                .padding(.top, DesignTokens.Spacing.lg)
+                .padding(.bottom, DesignTokens.Spacing.lg)
+                .animation(DesignTokens.Animation.smoothEaseOut, value: conditionalBlocksState)
             }
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, tabBarClearance + DesignTokens.Spacing.lg)
-            .animation(DesignTokens.Animation.smoothEaseOut, value: conditionalBlocksState)
         }
         .refreshable {
             await store.forceRefresh()
+        }
+    }
+
+    private var dashboardDetails: some View {
+        // Wider than the gap inside a section: a section is now a heading on the page
+        // plus a card, so the space between two of them has to beat the space between a
+        // heading and the card it introduces, or the pairing reads the wrong way round.
+        VStack(spacing: DesignTokens.Spacing.xxl) {
+            if store.budget != nil {
+                addOperationRow
+            }
+            // Opérations à pointer — only while something needs checking
+            if !store.uncheckedItems.isEmpty {
+                UncheckedOperationsCard(
+                    items: store.uncheckedItems,
+                    tagNamesById: tagStore.namesById,
+                    syncingBudgetLineIds: store.syncingBudgetLineIds,
+                    syncingTransactionIds: store.syncingTransactionIds,
+                    onToggle: { item in
+                        ProductTips.checking.invalidate(reason: .actionPerformed)
+                        Task {
+                            let didSucceed: Bool
+                            switch item {
+                            case .transaction(let transaction, _):
+                                didSucceed = await store.toggleTransaction(transaction)
+                            case .budgetLine(let line, _):
+                                didSucceed = await store.toggleBudgetLine(line)
+                            }
+                            if didSucceed {
+                                toastManager.showWithUndo(
+                                    "\(item.name) pointé",
+                                    undo: { await undoToggle(item) },
+                                    onFinishedWithoutUndo: {}
+                                )
+                                await maybePrimeReminders()
+                            } else {
+                                toastManager.show(
+                                    "\(item.name) n'a pas pu être pointé — réessaie",
+                                    type: .error
+                                )
+                            }
+                        }
+                    },
+                    onViewAll: { navigateToBudget = true }
+                )
+                .popoverTip(ProductTips.checking)
+                .staggeredEntrance(isVisible: hasAppeared, index: 1)
+            }
+
+            // Ça dérive when the month drifts — else épargne versée when complete
+            if !store.driftLines.isEmpty {
+                DriftCard(
+                    drifts: store.driftLines,
+                    totalOver: store.driftTotal,
+                    tagNamesById: tagStore.namesById,
+                    overrunIsAbsorbed: overrunIsAbsorbed,
+                    onCatchUp: { navigateToBudget = true }
+                )
+                .staggeredEntrance(isVisible: hasAppeared, index: 2)
+            } else if store.savingsSummary.isComplete {
+                SavingsDoneCard(
+                    amount: store.savingsSummary.totalRealized,
+                    goalName: completedSavingsGoalName
+                ) {
+                    appState.pushOnActiveStack(SavingsGoalDestination.list)
+                }
+                .staggeredEntrance(isVisible: hasAppeared, index: 2)
+            }
+
+            // Activité — recent transactions with 7j/Mois window
+            if !store.transactions.isEmpty {
+                ActivityCard(
+                    transactions: store.transactions,
+                    tagNamesById: tagStore.namesById,
+                    onViewAll: { navigateToBudget = true }
+                )
+                .staggeredEntrance(isVisible: hasAppeared, index: 3)
+            }
+        }
+        // One content margin for the whole screen, aligned with the hero above, so the
+        // section headings and the cards they introduce hang off a single vertical rail.
+        .padding(.horizontal, DesignTokens.Spacing.xxl)
+    }
+
+    /// The one filled element in the content zone. Recording an operation is the act the
+    /// whole app depends on, and dressed as a white card with a chevron it had the same
+    /// weight as the records below it — and promised a list it doesn't open.
+    private var addOperationRow: some View {
+        Button { activeSheet = .addTransaction } label: {
+            Label("Ajouter une opération", systemImage: "plus")
+        }
+        .primaryButtonStyle()
+        .accessibilityLabel("Ajouter une opération")
+    }
+}
+
+// MARK: - Retention hooks (post-onboarding handoff + notification priming)
+//
+// Kept in a same-file extension so the main `CurrentMonthView` body stays within its
+// type-length budget while still reaching the view's `private` state (same-file
+// access), rather than loosening encapsulation to move it to another file.
+extension CurrentMonthView {
+    /// The mint is a surface, not a wash: it runs full-bleed from the top of the screen down
+    /// to the hero's own bottom edge, and stops there on a curve. A hard edge would read as
+    /// banding at this contrast — the curve is what lets a pale tint hold a boundary.
+    /// The curve alone still read as a die-cut, two flat planes meeting; the shadow is what
+    /// puts the emotion zone *in front of* the ledger instead of beside it.
+    @ViewBuilder
+    fileprivate var dashboardBackground: some View {
+        switch store.contentState {
+        case .idle, .loading, .loaded:
+            ZStack(alignment: .top) {
+                Color.appBackground
+                LinearGradient(
+                    colors: [.homeHeroSurfaceTop, .homeHeroSurface],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: max(0, heroSurfaceBottom))
+                .clipShape(
+                    .rect(
+                        bottomLeadingRadius: DesignTokens.CornerRadius.lg,
+                        bottomTrailingRadius: DesignTokens.CornerRadius.lg
+                    )
+                )
+                .shadow(DesignTokens.Shadow.zoneBoundary)
+            }
+        case .failed, .empty:
+            Color.appBackground
         }
     }
 
@@ -306,7 +372,6 @@ struct CurrentMonthView: View {
 
     /// Reverse a successful check from the undo toast. The store toggles based on the
     /// passed value's state, so the undone item must be handed over as already-checked.
-    /// A failed undo surfaces like a failed check — the rollback is invisible otherwise.
     private func undoToggle(_ item: CurrentMonthStore.CheckableItem) async {
         let didSucceed: Bool
         switch item {
@@ -330,52 +395,13 @@ struct CurrentMonthView: View {
         return Formatters.monthName(for: budget.month).lowercased()
     }
 
-    private var nextMonthName: String {
-        guard let budget = store.budget else { return "le mois prochain" }
-        let next = budget.month == 12 ? 1 : budget.month + 1
-        return Formatters.monthName(for: next).lowercased()
-    }
-
-    /// Deficit hero line: "Report auto en août · retour au vert en septembre".
-    /// The second part appears only when a future budget already balances out.
-    private var deficitContext: String {
-        var line = "Report auto en \(nextMonthName)"
-        if let month = firstBackInGreenMonth {
-            line += " · retour au vert en \(month)"
-        }
-        return line
-    }
-
-    private var firstBackInGreenMonth: String? {
-        guard let budget = store.budget else { return nil }
-        return budgetListStore.budgets
-            .filter { sparse in
-                guard let month = sparse.month, let year = sparse.year,
-                      sparse.remaining != nil else { return false }
-                return year > budget.year || (year == budget.year && month > budget.month)
-            }
-            .sorted { (($0.year ?? 0), ($0.month ?? 0)) < (($1.year ?? 0), ($1.month ?? 0)) }
-            .first { ($0.remaining ?? -1) >= 0 }
-            .flatMap(\.month)
-            .map { Formatters.monthName(for: $0).lowercased() }
-    }
-
-    /// Goal name shown on the savings card — only when EVERY saving line maps to the same
-    /// goal. `compactMap` would drop unlinked lines and attribute their amounts to whatever
-    /// goal the linked line carries; keeping the nils makes a mixed month bail to no name.
+    /// Goal name shown on the savings card — only when every saving line maps to the same goal.
     private var completedSavingsGoalName: String? {
         let goalIds = Set(store.budgetLines.filter { $0.kind == .saving }.map(\.savingsGoalId))
         guard goalIds.count == 1, let goalId = goalIds.first ?? nil else { return nil }
         return savingsGoalStore.goals.first { $0.id == goalId }?.name
     }
-}
 
-// MARK: - Retention hooks (post-onboarding handoff + notification priming)
-//
-// Kept in a same-file extension so the main `CurrentMonthView` body stays within its
-// type-length budget while still reaching the view's `private` state (same-file
-// access), rather than loosening encapsulation to move it to another file.
-extension CurrentMonthView {
     /// Presents the handoff exactly once, only for a user who JUST finished onboarding
     /// (`appState.justCompletedOnboarding`) and hasn't seen it before.
     private var showPostOnboardingHandoff: Binding<Bool> {
@@ -434,50 +460,6 @@ extension CurrentMonthView {
         // so the next foreground reschedule heals with the real pay-day.
         guard let payDay = userSettingsStore.payDayOfMonth else { return }
         await NotificationScheduler.shared.scheduleMonthlyReminder(payDay: payDay)
-    }
-}
-
-// MARK: - Skeleton
-
-private struct CurrentMonthSkeletonView: View {
-    @Environment(\.tabBarClearance) private var tabBarClearance
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: DesignTokens.Spacing.lg) {
-                // Greeting placeholder
-                HStack {
-                    SkeletonShape(
-                        width: DesignTokens.Skeleton.greetingWidth,
-                        height: DesignTokens.Skeleton.lineHeight
-                    )
-                    Spacer()
-                    SkeletonCircle(size: DesignTokens.IconSize.listRow)
-                }
-
-                // Hero card placeholder
-                SkeletonShape(
-                    height: DesignTokens.Skeleton.heroHeight,
-                    cornerRadius: DesignTokens.CornerRadius.lg
-                )
-
-                // Cards placeholders
-                ForEach(0..<2, id: \.self) { _ in
-                    VStack(spacing: DesignTokens.Spacing.sm) {
-                        ForEach(0..<2, id: \.self) { _ in
-                            SkeletonRow()
-                        }
-                    }
-                    .padding(DesignTokens.Spacing.lg)
-                    .pulpeCardBackground()
-                }
-            }
-            .padding(.horizontal, DesignTokens.Spacing.lg)
-            .padding(.top, DesignTokens.Spacing.lg)
-            .padding(.bottom, tabBarClearance + DesignTokens.Spacing.lg)
-        }
-        .shimmering()
-        .accessibilityLabel("Préparation de ton tableau de bord")
     }
 }
 

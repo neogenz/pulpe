@@ -104,6 +104,16 @@ enum DesignTokens {
             radius: 8,
             y: 4
         )
+        /// Full-bleed zone boundary — the dashboard's emotion surface over the ledger.
+        /// It is the only cue that the two zones sit at different depths rather than being
+        /// die-cut from the same sheet, so it stays close to the edge that casts it:
+        /// spread over a wide blur it dissolved into the canvas and read as nothing.
+        /// Scheme-aware colour, because dark mode gets its depth from tone instead.
+        static let zoneBoundary = ShadowStyle(
+            color: .homeZoneBoundaryShadow,
+            radius: 10,
+            y: 4
+        )
         /// Input fields (auth, currency)
         static let input = ShadowStyle(
             color: .black.opacity(0.04),
@@ -328,8 +338,6 @@ enum DesignTokens {
     enum FrameHeight {
         /// Primary action buttons
         static let button: CGFloat = 54
-        /// Custom floating tab bar
-        static let tabBar: CGFloat = 62
         /// Progress bar track
         static let progressBar: CGFloat = 8
         /// Thin separator lines
@@ -410,11 +418,25 @@ enum DesignTokens {
     /// Placeholder dimensions for loading states — sized to the real content they stand in for,
     /// so the skeleton doesn't reflow when data lands.
     enum Skeleton {
+        static let compactTextWidth: CGFloat = 72
+        static let shortTextWidth: CGFloat = 96
+        static let mediumTextWidth: CGFloat = 120
+        static let longTextWidth: CGFloat = 180
+        static let extraLongTextWidth: CGFloat = 240
+        static let numericWidth: CGFloat = 36
+        static let captionHeight: CGFloat = 12
+        static let bodyHeight: CGFloat = 14
         /// Greeting line ("Bonjour, Maxime").
-        static let greetingWidth: CGFloat = 180
+        static let greetingWidth = longTextWidth
         /// A single line of placeholder text.
         static let lineHeight: CGFloat = 18
-        /// Home hero card placeholder.
+        static let sectionHeight: CGFloat = 20
+        static let tagHeight: CGFloat = 20
+        static let chipHeight: CGFloat = 30
+        static let controlHeight: CGFloat = 36
+        static let amountHeight: CGFloat = 44
+        static let displayHeight: CGFloat = 56
+        /// Projected month-end home summary.
         static let heroHeight: CGFloat = 240
     }
 

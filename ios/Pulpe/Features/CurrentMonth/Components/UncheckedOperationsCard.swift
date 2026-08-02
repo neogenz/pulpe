@@ -1,10 +1,9 @@
 import SwiftUI
 
-/// Tour 11 "opérations à pointer" — header summary (stacked kind avatars + totals)
-/// plus an inline quick-check of one operation: "C'est passé" / "Plus tard".
+/// Tour 11 "opérations à pointer" — the section heading on the page, and under it a
+/// card holding an inline quick-check of one operation: "C'est passé" / "Plus tard".
 struct UncheckedOperationsCard: View {
     let items: [CurrentMonthStore.CheckableItem]
-    let totalCount: Int
     var tagNamesById: [String: String] = [:]
     let syncingBudgetLineIds: Set<String>
     let syncingTransactionIds: Set<String>
@@ -62,33 +61,27 @@ struct UncheckedOperationsCard: View {
         }
     }
 
-    private var headerAccessibilityLabel: String {
-        "\(totalCount) opération\(totalCount > 1 ? "s" : "") à pointer"
-    }
-
     var body: some View {
-        VStack(spacing: DesignTokens.Spacing.none) {
-            Button(action: onViewAll) {
-                header
-            }
-            .frame(minHeight: DesignTokens.TapTarget.minimum)
-            .contentShape(Rectangle())
-            .plainPressedButtonStyle()
-            .accessibilityLabel(headerAccessibilityLabel)
-            .accessibilityHint("Voir tout dans le budget")
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            // The count lives on the hero metric; this heading names the section only,
+            // so the number is announced once per screen.
+            HomeSectionHeader(
+                title: "Opérations à pointer",
+                link: (label: "Tout voir", action: onViewAll)
+            )
 
-            if let item = currentItem {
-                Divider()
-                    .padding(.horizontal, DesignTokens.Spacing.xl)
-
-                inlinePane(item)
-                    .id(item.id)
-                    .transition(paneTransition(for: item))
+            // The card is the stable frame and the operations swap inside it: it clips
+            // the pane, so one slides out and the next slides in without either of them
+            // travelling over the page.
+            VStack(spacing: DesignTokens.Spacing.none) {
+                if let item = currentItem {
+                    inlinePane(item)
+                        .id(item.id)
+                        .transition(paneTransition(for: item))
+                }
             }
+            .pulpeRowCard()
         }
-        .pulpeCardBackground()
-        .shadow(DesignTokens.Shadow.card)
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
         .animation(
             reduceMotion ? DesignTokens.Animation.smoothEaseOut : DesignTokens.Animation.gentleSpring,
             value: currentItem?.id
@@ -101,122 +94,96 @@ struct UncheckedOperationsCard: View {
         }
     }
 
-    // MARK: - Header
-
-    private var header: some View {
-        HStack(spacing: DesignTokens.Spacing.lg) {
-            // Purely decorative (accessibilityHidden) — it squeezes the title into
-            // three cramped lines once text wraps at accessibility sizes.
-            if !dynamicTypeSize.isAccessibilitySize {
-                avatarStack
-            }
-
-            // Title only — the header used to sum unchecked amounts unsigned-then-signed,
-            // but any single figure here mixes pending salary with pending bills and sits
-            // irreconcilable next to the hero's "Engagé". The count is the actionable part;
-            // per-operation amounts live on the inline pane below.
-            Text("\(totalCount) opération\(totalCount > 1 ? "s" : "") à pointer")
-                .font(PulpeTypography.cardTitle)
-                .foregroundStyle(Color.textPrimary)
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(PulpeTypography.metricLabel)
-                .foregroundStyle(Color.textTertiary)
-        }
-        .padding(.horizontal, DesignTokens.Spacing.xl)
-        .padding(.vertical, DesignTokens.Spacing.lg)
-    }
-
-    private var avatarStack: some View {
-        HStack(spacing: -DesignTokens.Spacing.compactGap) {
-            ForEach(Array(items.prefix(2).enumerated()), id: \.offset) { _, item in
-                kindCircle(item.kind)
-            }
-            if totalCount > 2 {
-                overflowCircle(totalCount - 2)
-            }
-        }
-        .accessibilityHidden(true)
-    }
-
-    private func kindCircle(_ kind: TransactionKind) -> some View {
-        Circle()
-            .fill(kind.color.opacity(DesignTokens.Opacity.accent))
-            .frame(width: DesignTokens.IconSize.badge, height: DesignTokens.IconSize.badge)
-            .overlay {
-                Image(systemName: kind.icon)
-                    .font(PulpeTypography.metricMini)
-                    .foregroundStyle(kind.color)
-            }
-            .overlay {
-                Circle().strokeBorder(
-                    Color.surfaceContainerLowest,
-                    lineWidth: DesignTokens.BorderWidth.thick
-                )
-            }
-    }
-
-    private func overflowCircle(_ count: Int) -> some View {
-        Circle()
-            .fill(Color.surfaceContainerHigh)
-            .frame(width: DesignTokens.IconSize.badge, height: DesignTokens.IconSize.badge)
-            .overlay {
-                Text("+\(count)")
-                    .font(PulpeTypography.metricMini)
-                    .foregroundStyle(Color.textSecondary)
-                    .monospacedDigit()
-            }
-            .overlay {
-                Circle().strokeBorder(
-                    Color.surfaceContainerLowest,
-                    lineWidth: DesignTokens.BorderWidth.thick
-                )
-            }
-    }
-
     // MARK: - Inline Quick-Check
 
     private func inlinePane(_ item: CurrentMonthStore.CheckableItem) -> some View {
-        let tagNames = tagNames(for: item)
+        // Leading, not the default centre: side by side both rows carry a `Spacer` and fill
+        // the width, so the alignment never showed. Stacked, the two chips are narrower
+        // than the pane and drift to the middle, off the rail the whole ledger hangs from.
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            operationRow(item)
 
-        return VStack(spacing: DesignTokens.Spacing.md) {
-            HStack(alignment: .firstTextBaseline) {
-                (
-                    Text(item.name)
-                        .font(PulpeTypography.labelLarge)
-                        .foregroundStyle(Color.textPrimary)
-                    + Text(" · \(subtitle(for: item))")
-                        .font(PulpeTypography.labelMedium)
-                        .foregroundStyle(Color.textTertiary)
-                )
-                .lineLimit(1)
-
-                if !tagNames.isEmpty {
-                    TagChips(names: tagNames, presentation: .count, followsText: true)
-                }
-
-                Spacer()
-
-                // The name beside it is pinned to one line; without a matching constraint
-                // the amount wraps ("-400.0" / "0") and shoves the name into truncation.
-                Text(amountText(for: item))
-                    .font(PulpeTypography.labelLarge)
-                    .foregroundStyle(Color.textPrimary)
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .minimumScaleFactor(DesignTokens.TextScale.floor)
-                    .sensitiveAmount()
-            }
-            .accessibilityElement(children: .combine)
+            // Bounded by the card, a rule says one thing only: above it is what the two
+            // actions act on, below it are the actions. The rules this screen dropped
+            // were drawn on the bare page, where nothing declared what they divided.
+            Divider()
 
             actionsRow(item)
         }
-        .padding(.horizontal, DesignTokens.Spacing.xl)
-        .padding(.top, DesignTokens.Spacing.md)
-        .padding(.bottom, DesignTokens.Spacing.lg)
+        .padding(DesignTokens.Spacing.lg)
         .opacity(isSyncing(item) ? DesignTokens.Opacity.disabled : 1)
+    }
+
+    private func operationRow(_ item: CurrentMonthStore.CheckableItem) -> some View {
+        // Opposite ends while the row can hold both. Past `xxLarge` it cannot, and the
+        // one-line rule that keeps the amount from wrapping is what cuts the label down
+        // to "Logement…". Stacked, each owns the width and the rule protects nothing.
+        let isStacked = dynamicTypeSize >= .xxLarge
+
+        return HStack(spacing: DesignTokens.Spacing.lg) {
+            RowIcon(systemName: item.kind.icon, tint: item.kind.color)
+
+            if isStacked {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                    operationLabel(item, isStacked: true)
+                    tagChips(item, isStacked: true)
+                    operationAmount(item)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                operationLabel(item, isStacked: false)
+
+                tagChips(item, isStacked: false)
+
+                Spacer(minLength: DesignTokens.Spacing.sm)
+
+                operationAmount(item)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    /// Trails the label while the row holds both; stacked it takes the line under it,
+    /// where a chip that followed a wrapped label would sit alone at the end of a
+    /// half-empty line. The separator goes with that move: it exists to join the count
+    /// to text already on its line, and there is none to join once the count has a line
+    /// of its own.
+    @ViewBuilder
+    private func tagChips(_ item: CurrentMonthStore.CheckableItem, isStacked: Bool) -> some View {
+        let names = tagNames(for: item)
+        if !names.isEmpty {
+            TagChips(names: names, presentation: .count, followsText: !isStacked)
+        }
+    }
+
+    private func operationLabel(
+        _ item: CurrentMonthStore.CheckableItem,
+        isStacked: Bool
+    ) -> some View {
+        // Two Texts, not one concatenation: with a disc opening the row, the name owns
+        // the first line and its metadata sits under it, the way every other row on the
+        // screen is built. Concatenated, the metadata was also the first thing truncated.
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+            Text(item.name)
+                .font(PulpeTypography.labelLarge)
+                .foregroundStyle(Color.textPrimary)
+                .lineLimit(isStacked ? nil : 1)
+
+            Text(subtitle(for: item))
+                .font(PulpeTypography.labelMedium)
+                .foregroundStyle(Color.textTertiary)
+                .lineLimit(isStacked ? nil : 1)
+        }
+    }
+
+    private func operationAmount(_ item: CurrentMonthStore.CheckableItem) -> some View {
+        Text(amountText(for: item))
+            .font(PulpeTypography.amountMedium)
+            .foregroundStyle(Color.textPrimary)
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(DesignTokens.TextScale.compact)
+            .sensitiveAmount()
     }
 
     @ViewBuilder
@@ -224,14 +191,18 @@ struct UncheckedOperationsCard: View {
         // Side by side, "C'est passé" and "Plus tard" squeeze each other once the labels
         // grow; stacked, each keeps its full width and its 44pt target.
         if dynamicTypeSize >= .xxLarge {
-            VStack(spacing: DesignTokens.Spacing.sm) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                 confirmButton(item)
                 skipButton(item)
             }
         } else {
-            HStack(spacing: DesignTokens.Spacing.lg) {
+            // Adjacent, both on the leading rail. Pushed to opposite ends of the card they
+            // read as two unrelated controls that happen to share a row; side by side they
+            // read as one question with two answers, the affirmative first.
+            HStack(spacing: DesignTokens.Spacing.md) {
                 confirmButton(item)
                 skipButton(item)
+                Spacer(minLength: DesignTokens.Spacing.none)
             }
         }
     }
@@ -250,29 +221,17 @@ struct UncheckedOperationsCard: View {
             // Beat two: the store drops the item and the pane resolves upward.
             onToggle(item)
         } label: {
-            HStack(spacing: DesignTokens.Spacing.tightGap) {
-                Image(systemName: isConfirming ? "checkmark.circle.fill" : "checkmark")
-                    .font(PulpeTypography.metricLabelBold)
-                    .contentTransition(.symbolEffect(.replace))
-                Text(isConfirming ? "Pointé" : "C'est passé")
-                    .font(PulpeTypography.labelLarge)
-                    .contentTransition(.opacity)
-            }
-            .foregroundStyle(isConfirming ? Color.textOnPrimary : Color.pulpePrimary)
-            // Height comes from padding, not from the tap-target floor — putting
-            // `minHeight` in the label would make the capsule's size an artifact of
-            // the 44pt rule rather than a deliberate visual.
-            .padding(.vertical, DesignTokens.Spacing.md)
-            .frame(maxWidth: .infinity)
-            .background(
-                isConfirming
-                    ? AnyShapeStyle(Color.pulpePrimary)
-                    : AnyShapeStyle(Color.pulpePrimary.opacity(DesignTokens.Opacity.highlightBackground)),
-                in: Capsule()
+            // The capsule this used to hand-roll was `ChipMetrics.Standard` rewritten by
+            // hand, padding for padding. Going through the shared chip is what lets the
+            // two actions below be measured by one ruler instead of two.
+            PulpeChip(
+                icon: isConfirming ? "checkmark.circle.fill" : "checkmark",
+                label: isConfirming ? "Pointé" : "C'est passé",
+                style: isConfirming
+                    ? .tinted(surface: .pulpePrimary, foreground: .textOnPrimary)
+                    : .semantic(.pulpePrimary)
             )
         }
-        .frame(minHeight: DesignTokens.TapTarget.minimum)
-        .contentShape(Capsule())
         .plainPressedButtonStyle()
         .disabled(isSyncing(item) || confirmingId != nil)
         .accessibilityLabel("Pointer \(item.name)")
@@ -292,19 +251,21 @@ struct UncheckedOperationsCard: View {
                 }
             }
         } label: {
-            Text("Plus tard")
-                .font(PulpeTypography.labelLarge)
-                .foregroundStyle(Color.textSecondary)
+            // A bounded shape, not bare grey text. Two boxes of one size read as the two
+            // terms of a choice; text alone at the far end of a row read as a caption that
+            // happened to be right-aligned. `.muted` gives it a fill of its own — `.outlined`
+            // draws a hairline meant for `appBackground`, which a card of the same
+            // `surfaceContainerLowest` tone swallows at 1,00:1.
+            PulpeChip(
+                label: "Plus tard",
+                style: .muted,
+                // During the "Pointé" beat the guard already ignores taps; without the
+                // visual disable the button looks live and silently does nothing.
+                isDisabled: confirmingId != nil
+            )
         }
-        // `textLinkButtonStyle` deliberately forces no height, and this button's row
-        // provides no padding of its own — without an explicit floor the target is ~20pt.
-        .frame(minHeight: DesignTokens.TapTarget.minimum)
-        .contentShape(Rectangle())
-        .textLinkButtonStyle()
-        // During the "Pointé" beat the guard already ignores taps; without the visual
-        // disable the button looks live and silently does nothing.
+        .plainPressedButtonStyle()
         .disabled(confirmingId != nil)
-        .opacity(confirmingId != nil ? DesignTokens.Opacity.disabled : 1)
         .accessibilityLabel("Plus tard pour \(item.name)")
     }
 

@@ -72,7 +72,7 @@ struct YearRecapCard: View {
                 .foregroundStyle(emotionColor)
                 .sensitiveAmount()
             Text(userSettingsStore.currency.symbol)
-                .font(PulpeTypography.tutorialTitle)
+                .font(PulpeTypography.sectionTitle)
                 .foregroundStyle(emotionColor)
         }
     }

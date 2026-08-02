@@ -354,8 +354,15 @@ private struct TemplateDetailsSkeletonView: View {
             // Info section
             Section {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    SkeletonShape(width: 200, height: 14)
-                    SkeletonShape(width: 80, height: 22, cornerRadius: DesignTokens.CornerRadius.sm)
+                    SkeletonShape(
+                        width: DesignTokens.Skeleton.longTextWidth,
+                        height: DesignTokens.Skeleton.bodyHeight
+                    )
+                    SkeletonShape(
+                        width: DesignTokens.Skeleton.shortTextWidth,
+                        height: DesignTokens.Skeleton.tagHeight,
+                        cornerRadius: DesignTokens.CornerRadius.sm
+                    )
                 }
                 .padding(.vertical, DesignTokens.Spacing.xs)
             }
@@ -369,14 +376,23 @@ private struct TemplateDetailsSkeletonView: View {
                             height: DesignTokens.IconSize.compact,
                             cornerRadius: DesignTokens.IconSize.compact / 2
                         )
-                        SkeletonShape(width: 80, height: 14)
+                        SkeletonShape(
+                            width: DesignTokens.Skeleton.shortTextWidth,
+                            height: DesignTokens.Skeleton.bodyHeight
+                        )
                         Spacer()
-                        SkeletonShape(width: 80, height: 14)
+                        SkeletonShape(
+                            width: DesignTokens.Skeleton.shortTextWidth,
+                            height: DesignTokens.Skeleton.bodyHeight
+                        )
                     }
                     .padding(.vertical, DesignTokens.ListRow.verticalPadding)
                 }
             } header: {
-                SkeletonShape(width: 90, height: 12)
+                SkeletonShape(
+                    width: DesignTokens.Skeleton.shortTextWidth,
+                    height: DesignTokens.Skeleton.captionHeight
+                )
             }
 
             // Budget line sections (2 sections)
@@ -390,19 +406,40 @@ private struct TemplateDetailsSkeletonView: View {
                                 cornerRadius: DesignTokens.IconSize.listRow / 2
                             )
                             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                                SkeletonShape(width: 120, height: 14)
-                                SkeletonShape(width: 55, height: 20, cornerRadius: DesignTokens.CornerRadius.sm)
+                                SkeletonShape(
+                                    width: DesignTokens.Skeleton.mediumTextWidth,
+                                    height: DesignTokens.Skeleton.bodyHeight
+                                )
+                                SkeletonShape(
+                                    width: DesignTokens.Skeleton.compactTextWidth,
+                                    height: DesignTokens.Skeleton.tagHeight,
+                                    cornerRadius: DesignTokens.CornerRadius.sm
+                                )
+                                SkeletonShape(
+                                    width: DesignTokens.Skeleton.compactTextWidth,
+                                    height: DesignTokens.Skeleton.tagHeight,
+                                    cornerRadius: DesignTokens.CornerRadius.sm
+                                )
                             }
                             Spacer()
-                            SkeletonShape(width: 70, height: 14)
+                            SkeletonShape(
+                                width: DesignTokens.Skeleton.compactTextWidth,
+                                height: DesignTokens.Skeleton.bodyHeight
+                            )
                         }
                         .padding(.vertical, DesignTokens.ListRow.verticalPadding)
                     }
                 } header: {
                     HStack {
-                        SkeletonShape(width: 70, height: 12)
+                        SkeletonShape(
+                            width: DesignTokens.Skeleton.compactTextWidth,
+                            height: DesignTokens.Skeleton.captionHeight
+                        )
                         Spacer()
-                        SkeletonShape(width: 80, height: 12)
+                        SkeletonShape(
+                            width: DesignTokens.Skeleton.shortTextWidth,
+                            height: DesignTokens.Skeleton.captionHeight
+                        )
                     }
                 }
             }

@@ -26,16 +26,12 @@ struct SavingsDoneCard: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: DesignTokens.Spacing.lg) {
-                Circle()
-                    .fill(Color.financialSavings.opacity(DesignTokens.Opacity.accent))
-                    .frame(width: DesignTokens.IconSize.badge, height: DesignTokens.IconSize.badge)
-                    .overlay {
-                        Image(systemName: "checkmark")
-                            .font(PulpeTypography.metricLabelBold)
-                            .foregroundStyle(Color.financialSavings)
-                    }
+                RowIcon(systemName: "checkmark", tint: .financialSavings)
 
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                    // `cardTitle`, not `sectionTitle`: on the page, that weight now belongs
+                    // to a section's name. Wearing it inside a card, this row claimed to be
+                    // heading a list that doesn't exist.
                     Text("Épargne du mois versée")
                         .font(PulpeTypography.cardTitle)
                         .foregroundStyle(Color.textPrimary)
@@ -53,13 +49,14 @@ struct SavingsDoneCard: View {
                     .font(PulpeTypography.metricLabel)
                     .foregroundStyle(Color.textTertiary)
             }
-            .padding(.horizontal, DesignTokens.Spacing.xl)
-            .padding(.vertical, DesignTokens.Spacing.lg)
-            .pulpeCardBackground()
-            .shadow(DesignTokens.Shadow.card)
+            .padding(.horizontal, DesignTokens.Spacing.lg)
+            .padding(.vertical, DesignTokens.Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            // No heading of its own: "tout va bien" is the whole message, and a section
+            // title above a single row would announce a list that isn't there.
+            .pulpeRowCard()
         }
-        .frame(minHeight: DesignTokens.TapTarget.minimum)
-        .contentShape(Rectangle())
+        .contentShape(.rect(cornerRadius: DesignTokens.CornerRadius.card))
         .plainPressedButtonStyle()
         .accessibilityLabel(accessibilityDescription)
         .accessibilityHint("Voir mes objectifs d'épargne")
