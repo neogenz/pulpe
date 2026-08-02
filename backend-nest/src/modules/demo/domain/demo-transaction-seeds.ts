@@ -174,10 +174,10 @@ function buildMonthTransactions(
   return specs
     .filter((spec) => maxDay >= spec.day)
     .map((spec) => {
+      // UTC midnight, like the settlement stamp: a local midnight would land on
+      // the day before whenever the seeding server sits east of UTC.
       const transactionDate = new Date(
-        budget.year,
-        budget.month - 1,
-        spec.day,
+        Date.UTC(budget.year, budget.month - 1, spec.day),
       ).toISOString();
 
       return {

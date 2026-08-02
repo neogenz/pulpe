@@ -389,6 +389,40 @@ describe('GenerateDemoDataUseCase', () => {
         }
       }
     });
+
+    it('should stamp every seeded date at UTC midnight of its own month', async () => {
+      await useCase.execute('user-1', {} as never);
+
+      const budgetsById = new Map(
+        seededBudgets(mockRepo).map((budget, index) => [
+          `budget-${index}`,
+          budget,
+        ]),
+      );
+      const stamps: { iso: string; budgetId: string }[] = [];
+      for (const line of seededBudgetLines(mockRepo)) {
+        if (line.checkedAt !== null) {
+          stamps.push({ iso: line.checkedAt, budgetId: line.budgetId });
+        }
+      }
+      for (const transaction of seededTransactions(mockRepo)) {
+        stamps.push({
+          iso: transaction.transactionDate,
+          budgetId: transaction.budgetId,
+        });
+      }
+
+      expect(stamps.length).toBeGreaterThan(0);
+      for (const { iso, budgetId } of stamps) {
+        const budget = budgetsById.get(budgetId);
+        if (!budget) throw new Error(`unknown budget ${budgetId}`);
+        const stamped = new Date(iso);
+
+        expect(iso.endsWith('T00:00:00.000Z')).toBe(true);
+        expect(stamped.getUTCFullYear()).toBe(budget.year);
+        expect(stamped.getUTCMonth() + 1).toBe(budget.month);
+      }
+    });
   });
 
   describe('execute - one clock per session', () => {

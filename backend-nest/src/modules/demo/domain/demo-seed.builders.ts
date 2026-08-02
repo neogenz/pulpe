@@ -35,16 +35,19 @@ export function isClosedMonth(
 }
 
 /**
- * The instant a closed month is settled at, stamped on its pointage: midnight
- * on the month's last day, not the last instant of it. Anything later would
- * render as the next month's first day for a reader east of UTC.
+ * The instant a closed month is settled at, stamped on its pointage: UTC
+ * midnight on the month's last day, not the last instant of it. Anything later
+ * would render as the next month's first day for a reader east of UTC, and a
+ * local midnight would stamp the day before for one west of the seeding server.
  */
 export function settlementStampForMonth(budget: {
   month: number;
   year: number;
 }): string {
   const lastDay = new Date(budget.year, budget.month, 0).getDate();
-  return new Date(budget.year, budget.month - 1, lastDay).toISOString();
+  return new Date(
+    Date.UTC(budget.year, budget.month - 1, lastDay),
+  ).toISOString();
 }
 
 export function buildTemplateSeeds(userId: string): DemoTemplateSeed[] {
