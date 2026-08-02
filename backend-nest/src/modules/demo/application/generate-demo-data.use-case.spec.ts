@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, jest, mock } from 'bun:test';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
 import { BUDGET_RECALCULATION_PORT } from '../../budget/domain/ports/budget-recalculation.port';
@@ -332,6 +332,58 @@ describe('GenerateDemoDataUseCase', () => {
         } else {
           expect(transaction.checkedAt).toBeNull();
         }
+      }
+    });
+  });
+
+  describe('execute - one clock per session', () => {
+    const SEED_INSTANT = new Date(2026, 0, 15, 12);
+    const SEED_MONTH = { month: 1, year: 2026 };
+    const FIRST_SEEDED_MONTH = '2025-07-01';
+
+    function advanceClockFrom(
+      repoMethod: keyof ReturnType<typeof buildMockRepo>,
+      to: Date,
+    ) {
+      const original = mockRepo[repoMethod] as (
+        ...args: unknown[]
+      ) => Promise<unknown>;
+      mockRepo[repoMethod] = mock(async (...args: unknown[]) => {
+        jest.setSystemTime(to);
+        return original(...args);
+      }) as never;
+    }
+
+    it('should derive every seed from one instant even when the clock crosses months mid-run', async () => {
+      jest.setSystemTime(SEED_INSTANT);
+      advanceClockFrom('insertBudgets', new Date(2026, 3, 15, 12));
+      advanceClockFrom('insertBudgetLines', new Date(2026, 4, 15, 12));
+      advanceClockFrom('insertTransactions', new Date(2026, 5, 15, 12));
+
+      try {
+        await useCase.execute('user-1', {} as never);
+      } finally {
+        jest.setSystemTime();
+      }
+
+      const seedMonthIndex = seededBudgets(mockRepo).findIndex(
+        (budget) =>
+          budget.month === SEED_MONTH.month && budget.year === SEED_MONTH.year,
+      );
+      const seedMonthId = `budget-${seedMonthIndex}`;
+      const lines = seededBudgetLines(mockRepo);
+
+      expect(spreadTranches(lines).length).toBe(DEMO_SPREAD_SPEC.monthCount);
+      for (const line of lines.filter((l) => l.budgetId === seedMonthId)) {
+        expect(line.checkedAt).toBeNull();
+      }
+      for (const actual of seededTransactions(mockRepo).filter(
+        (tx) => tx.budgetId === seedMonthId,
+      )) {
+        expect(actual.checkedAt).toBeNull();
+      }
+      for (const goal of seededSavingsGoals(mockRepo)) {
+        expect(goal.startDate).toBe(FIRST_SEEDED_MONTH);
       }
     });
   });
