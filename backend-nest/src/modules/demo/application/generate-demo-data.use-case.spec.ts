@@ -5,12 +5,15 @@ import { BUDGET_RECALCULATION_PORT } from '../../budget/domain/ports/budget-reca
 import { DEMO_REPOSITORY } from '../domain/ports/demo-repository.port';
 import type {
   DemoBudgetLineSeed,
+  DemoSavingsGoalSeed,
   DemoSeededBudget,
   DemoTransactionSeed,
 } from '../domain/demo.entity';
+import { DEMO_SAVINGS_GOAL_SPECS } from '../domain/demo.constants';
 import { GenerateDemoDataUseCase } from './generate-demo-data.use-case';
 
 const GROCERIES_ENVELOPE = 'Courses alimentaires';
+const HOUSING_SAVINGS_ENVELOPE = 'Épargne logement';
 
 function buildMockRepo() {
   return {
@@ -25,6 +28,14 @@ function buildMockRepo() {
         amount: 600,
         kind: 'expense' as const,
         recurrence: 'one_off' as const,
+      },
+      {
+        id: 'tl-1',
+        templateId: 'template-0',
+        name: HOUSING_SAVINGS_ENVELOPE,
+        amount: 1000,
+        kind: 'saving' as const,
+        recurrence: 'fixed' as const,
       },
     ]),
     insertBudgets: mock(async (rows: unknown[]) =>
@@ -47,6 +58,10 @@ function buildMockRepo() {
       })),
     ),
     insertTransactions: mock(async () => {}),
+    insertSavingsGoals: mock(async (goals: DemoSavingsGoalSeed[]) =>
+      goals.map((goal, i) => ({ id: `goal-${i}`, name: goal.name })),
+    ),
+    linkBudgetLinesToSavingsGoal: mock(async () => {}),
   };
 }
 
@@ -66,6 +81,24 @@ function seededTransactions(repo: ReturnType<typeof buildMockRepo>) {
   const [[transactions]] = (repo.insertTransactions as ReturnType<typeof mock>)
     .mock.calls;
   return transactions as DemoTransactionSeed[];
+}
+
+function seededSavingsGoals(repo: ReturnType<typeof buildMockRepo>) {
+  const [[goals]] = (repo.insertSavingsGoals as ReturnType<typeof mock>).mock
+    .calls;
+  return goals as DemoSavingsGoalSeed[];
+}
+
+function savingsGoalLinkCalls(repo: ReturnType<typeof buildMockRepo>) {
+  return (repo.linkBudgetLinesToSavingsGoal as ReturnType<typeof mock>).mock
+    .calls as [string[], string, unknown][];
+}
+
+function identifiedBudgetLines(repo: ReturnType<typeof buildMockRepo>) {
+  return seededBudgetLines(repo).map((line, index) => ({
+    line,
+    id: `budget-line-${index}`,
+  }));
 }
 
 function isClosedMonth(budget: DemoSeededBudget, now: Date): boolean {
@@ -177,23 +210,23 @@ describe('GenerateDemoDataUseCase', () => {
     it('should attach a grocery actual to the grocery envelope of its own budget', async () => {
       await useCase.execute('user-1', {} as never);
 
-      const linesByBudget = new Map(
-        seededBudgetLines(mockRepo).map((line, index) => [
-          line.budgetId,
-          `budget-line-${index}`,
-        ]),
+      const groceryLineByBudget = new Map(
+        identifiedBudgetLines(mockRepo)
+          .filter(({ line }) => line.name === GROCERIES_ENVELOPE)
+          .map(({ line, id }) => [line.budgetId, id]),
       );
       const groceryActuals = seededTransactions(mockRepo).filter(
         (tx) => tx.name === 'Migros - Courses',
       );
       const attached = groceryActuals.filter(
-        (tx) => tx.budgetLineId !== null && linesByBudget.has(tx.budgetId),
+        (tx) =>
+          tx.budgetLineId !== null && groceryLineByBudget.has(tx.budgetId),
       );
 
       expect(attached.length).toBeGreaterThan(0);
       for (const actual of attached) {
         expect(actual.budgetLineId).toBe(
-          linesByBudget.get(actual.budgetId) ?? null,
+          groceryLineByBudget.get(actual.budgetId) ?? null,
         );
       }
     });
@@ -268,6 +301,88 @@ describe('GenerateDemoDataUseCase', () => {
           expect(transaction.checkedAt).toBeNull();
         }
       }
+    });
+  });
+
+  describe('execute - savings goals', () => {
+    it('should seed one dated goal, one open-ended goal and one already reached', async () => {
+      await useCase.execute('user-1', {} as never);
+
+      const goals = seededSavingsGoals(mockRepo);
+
+      expect(
+        goals.filter((g) => g.status === 'ACTIVE' && g.targetDate !== null)
+          .length,
+      ).toBe(1);
+      expect(
+        goals.filter((g) => g.status === 'ACTIVE' && g.targetDate === null)
+          .length,
+      ).toBe(1);
+      expect(goals.filter((g) => g.status === 'COMPLETED').length).toBe(1);
+    });
+
+    it('should seed the completed goal at its target amount', async () => {
+      await useCase.execute('user-1', {} as never);
+
+      const completed = seededSavingsGoals(mockRepo).find(
+        (g) => g.status === 'COMPLETED',
+      );
+      if (!completed) throw new Error('no completed goal seeded');
+
+      expect(completed.initialAmount).toBe(completed.targetAmount);
+    });
+
+    it('should link every saving prévision bearing the goal envelope name', async () => {
+      await useCase.execute('user-1', {} as never);
+
+      const housingLineIds = identifiedBudgetLines(mockRepo)
+        .filter(({ line }) => line.name === HOUSING_SAVINGS_ENVELOPE)
+        .map(({ id }) => id);
+      const housingSpec = DEMO_SAVINGS_GOAL_SPECS.find(
+        (spec) => spec.envelopeName === HOUSING_SAVINGS_ENVELOPE,
+      );
+      if (!housingSpec)
+        throw new Error('no goal funded by the housing envelope');
+      const housingGoalIndex = seededSavingsGoals(mockRepo).findIndex(
+        (goal) => goal.name === housingSpec.name,
+      );
+
+      expect(housingLineIds.length).toBeGreaterThan(0);
+      const linkCall = savingsGoalLinkCalls(mockRepo).find(
+        ([, goalId]) => goalId === `goal-${housingGoalIndex}`,
+      );
+      expect(linkCall?.[0]).toEqual(housingLineIds);
+    });
+
+    it('should never link a prévision to a goal that no envelope funds', async () => {
+      await useCase.execute('user-1', {} as never);
+
+      const goals = seededSavingsGoals(mockRepo);
+      const unfundedSpecs = DEMO_SAVINGS_GOAL_SPECS.filter(
+        (spec) => spec.envelopeName === null,
+      );
+      expect(unfundedSpecs.length).toBeGreaterThan(0);
+
+      const linkedGoalIds = new Set(
+        savingsGoalLinkCalls(mockRepo).map(([, goalId]) => goalId),
+      );
+      for (const spec of unfundedSpecs) {
+        const index = goals.findIndex((goal) => goal.name === spec.name);
+        expect(linkedGoalIds.has(`goal-${index}`)).toBe(false);
+      }
+    });
+
+    it('should link checked prévisions so a goal shows progress', async () => {
+      await useCase.execute('user-1', {} as never);
+
+      const linkedIds = new Set(
+        savingsGoalLinkCalls(mockRepo).flatMap(([ids]) => ids),
+      );
+      const checkedLinked = identifiedBudgetLines(mockRepo).filter(
+        ({ line, id }) => linkedIds.has(id) && line.checkedAt !== null,
+      );
+
+      expect(checkedLinked.length).toBeGreaterThan(0);
     });
   });
 });

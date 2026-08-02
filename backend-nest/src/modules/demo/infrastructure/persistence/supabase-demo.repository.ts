@@ -9,8 +9,10 @@ import {
 import type {
   DemoBudgetLineSeed,
   DemoBudgetSeed,
+  DemoSavingsGoalSeed,
   DemoSeededBudget,
   DemoSeededBudgetLine,
+  DemoSeededSavingsGoal,
   DemoSeededTemplate,
   DemoSeededTemplateLine,
   DemoTemplateLineSeed,
@@ -47,6 +49,10 @@ type BudgetLineInsert = Omit<
 >;
 type TransactionInsert = Omit<
   TablesInsert<'transaction'>,
+  'id' | 'created_at' | 'updated_at'
+>;
+type SavingsGoalInsert = Omit<
+  TablesInsert<'savings_goal'>,
   'id' | 'created_at' | 'updated_at'
 >;
 
@@ -327,6 +333,68 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
         undefined,
         { operation: 'linkDemoTransactionTags', supabaseError: linkError },
         { cause: linkError },
+      );
+    }
+  }
+
+  async insertSavingsGoals(
+    goals: DemoSavingsGoalSeed[],
+    userId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<DemoSeededSavingsGoal[]> {
+    if (goals.length === 0) return [];
+
+    const dek = await this.getDemoDek(userId);
+
+    const rows: SavingsGoalInsert[] = goals.map((goal) => ({
+      user_id: goal.userId,
+      name: goal.name,
+      target_amount: this.encryption.encryptAmount(goal.targetAmount, dek),
+      initial_amount: this.encryption.encryptAmount(goal.initialAmount, dek),
+      original_target_amount: null,
+      status: goal.status,
+      start_date: goal.startDate,
+      target_date: goal.targetDate,
+      original_currency: null,
+      target_currency: null,
+      exchange_rate: null,
+    }));
+
+    const { data, error } = await supabase
+      .from('savings_goal')
+      .insert(rows)
+      .select();
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        { operation: 'insertDemoSavingsGoals', supabaseError: error },
+        { cause: error },
+      );
+    }
+
+    return (data ?? []).map((row) => ({ id: row.id, name: row.name }));
+  }
+
+  async linkBudgetLinesToSavingsGoal(
+    budgetLineIds: string[],
+    savingsGoalId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    if (budgetLineIds.length === 0) return;
+
+    const { error } = await supabase
+      .from('budget_line')
+      .update({ savings_goal_id: savingsGoalId })
+      .in('id', budgetLineIds);
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        { operation: 'linkDemoBudgetLinesToSavingsGoal', supabaseError: error },
+        { cause: error },
       );
     }
   }

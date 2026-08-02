@@ -2,8 +2,10 @@ import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.ser
 import type {
   DemoBudgetLineSeed,
   DemoBudgetSeed,
+  DemoSavingsGoalSeed,
   DemoSeededBudget,
   DemoSeededBudgetLine,
+  DemoSeededSavingsGoal,
   DemoSeededTemplate,
   DemoSeededTemplateLine,
   DemoTemplateSeed,
@@ -64,6 +66,18 @@ export interface DemoRepositoryPort {
   insertTransactions(
     transactions: DemoTransactionSeed[],
     userId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void>;
+  /** The repo encrypts `targetAmount` and `initialAmount` internally. */
+  insertSavingsGoals(
+    goals: DemoSavingsGoalSeed[],
+    userId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<DemoSeededSavingsGoal[]>;
+  /** Points existing prévisions Épargne at the goal they feed. */
+  linkBudgetLinesToSavingsGoal(
+    budgetLineIds: string[],
+    savingsGoalId: string,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<void>;
 }

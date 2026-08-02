@@ -489,4 +489,119 @@ describe('SupabaseDemoRepository', () => {
       ]);
     });
   });
+
+  describe('insertSavingsGoals', () => {
+    const housingGoal = {
+      userId: 'user-1',
+      name: 'Apport logement',
+      targetAmount: 80000,
+      initialAmount: 15000,
+      status: 'ACTIVE' as const,
+      startDate: '2026-02-01',
+      targetDate: '2027-08-01',
+    };
+
+    it('should resolve to an empty list without calling supabase when seeds are empty', async () => {
+      const fromFn = jest.fn();
+      const supabase = createMockSupabase(fromFn);
+
+      await expect(
+        repo.insertSavingsGoals([], 'user-1', supabase),
+      ).resolves.toEqual([]);
+      expect(fromFn).not.toHaveBeenCalled();
+    });
+
+    it('should encrypt both amounts before insert and return the seeded goals', async () => {
+      const captured: unknown[] = [];
+      const supabase = createMockSupabase(() => ({
+        insert: (rows: unknown) => {
+          captured.push(rows);
+          const insertedRows = rows as Array<Record<string, unknown>>;
+          return {
+            select: jest.fn().mockResolvedValue({
+              data: insertedRows.map((r, i) => ({ ...r, id: `goal-${i}` })),
+              error: null,
+            }),
+          };
+        },
+      }));
+
+      const result = await repo.insertSavingsGoals(
+        [housingGoal],
+        'user-1',
+        supabase,
+      );
+
+      const inserted = captured[0] as Array<{
+        target_amount: string;
+        initial_amount: string;
+        start_date: string | null;
+        target_date: string | null;
+      }>;
+      expect(inserted[0].target_amount).toBe('enc-80000');
+      expect(inserted[0].initial_amount).toBe('enc-15000');
+      expect(inserted[0].start_date).toBe('2026-02-01');
+      expect(inserted[0].target_date).toBe('2027-08-01');
+      expect(result).toEqual([{ id: 'goal-0', name: 'Apport logement' }]);
+    });
+
+    it('should throw BusinessException on supabase error', async () => {
+      const supabase = createMockSupabase(() => ({
+        insert: () => ({
+          select: jest.fn().mockResolvedValue({
+            data: null,
+            error: { message: 'Insert failed' },
+          }),
+        }),
+      }));
+
+      await expect(
+        repo.insertSavingsGoals([housingGoal], 'user-1', supabase),
+      ).rejects.toThrow(BusinessException);
+    });
+  });
+
+  describe('linkBudgetLinesToSavingsGoal', () => {
+    it('should resolve without calling supabase when no line feeds the goal', async () => {
+      const fromFn = jest.fn();
+      const supabase = createMockSupabase(fromFn);
+
+      await expect(
+        repo.linkBudgetLinesToSavingsGoal([], 'goal-1', supabase),
+      ).resolves.toBeUndefined();
+      expect(fromFn).not.toHaveBeenCalled();
+    });
+
+    it('should point the given lines at the goal', async () => {
+      const captured: unknown[] = [];
+      const filterByIds = jest.fn().mockResolvedValue({ error: null });
+      const supabase = createMockSupabase(() => ({
+        update: (values: unknown) => {
+          captured.push(values);
+          return { in: filterByIds };
+        },
+      }));
+
+      await repo.linkBudgetLinesToSavingsGoal(
+        ['bl-1', 'bl-2'],
+        'goal-1',
+        supabase,
+      );
+
+      expect(captured[0]).toEqual({ savings_goal_id: 'goal-1' });
+      expect(filterByIds).toHaveBeenCalledWith('id', ['bl-1', 'bl-2']);
+    });
+
+    it('should throw BusinessException on supabase error', async () => {
+      const supabase = createMockSupabase(() => ({
+        update: () => ({
+          in: jest.fn().mockResolvedValue({ error: { message: 'nope' } }),
+        }),
+      }));
+
+      await expect(
+        repo.linkBudgetLinesToSavingsGoal(['bl-1'], 'goal-1', supabase),
+      ).rejects.toThrow(BusinessException);
+    });
+  });
 });

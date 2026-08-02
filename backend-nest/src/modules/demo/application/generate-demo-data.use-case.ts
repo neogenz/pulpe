@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import { addMonths, startOfMonth } from 'date-fns';
+import { addMonths, format, startOfMonth } from 'date-fns';
 import {
   BUDGET_RECALCULATION_PORT,
   type BudgetRecalculationPort,
@@ -13,6 +13,7 @@ import {
 import type {
   DemoBudgetLineSeed,
   DemoBudgetSeed,
+  DemoSavingsGoalSeed,
   DemoSeededBudget,
   DemoSeededBudgetLine,
   DemoSeededTemplate,
@@ -20,7 +21,14 @@ import type {
   DemoTemplateSeed,
   DemoTransactionSeed,
 } from '../domain/demo.entity';
-import { DEMO_TEMPLATE_SPECS } from '../domain/demo.constants';
+import {
+  DEMO_SAVINGS_GOAL_SPECS,
+  DEMO_TEMPLATE_SPECS,
+} from '../domain/demo.constants';
+
+/** The demo spans six closed months before the current one. */
+const FIRST_SEEDED_MONTH_OFFSET = -6;
+const DATE_COLUMN_FORMAT = 'yyyy-MM-dd';
 
 /**
  * The month's actuals. `envelopeName` names the prévision each one consumes —
@@ -81,6 +89,7 @@ export class GenerateDemoDataUseCase {
       supabase,
     );
     await this.seedTransactions(userId, budgets, budgetLines, supabase);
+    await this.seedSavingsGoals(userId, budgetLines, supabase);
 
     await this.recalculateAllBudgetBalances(budgets);
     this.logger.info(
@@ -172,6 +181,68 @@ export class GenerateDemoDataUseCase {
     );
   }
 
+  private async seedSavingsGoals(
+    userId: string,
+    budgetLines: DemoSeededBudgetLine[],
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const goals = await this.repo.insertSavingsGoals(
+      this.buildSavingsGoalSeeds(userId, new Date()),
+      userId,
+      supabase,
+    );
+    this.logger.info({ userId, count: goals.length }, 'Savings goals created');
+
+    for (const goal of goals) {
+      const spec = DEMO_SAVINGS_GOAL_SPECS.find((s) => s.name === goal.name);
+      if (!spec?.envelopeName) continue;
+
+      const envelopeIds = budgetLines
+        .filter(
+          (line) => line.kind === 'saving' && line.name === spec.envelopeName,
+        )
+        .map((line) => line.id);
+      await this.repo.linkBudgetLinesToSavingsGoal(
+        envelopeIds,
+        goal.id,
+        supabase,
+      );
+    }
+  }
+
+  private buildSavingsGoalSeeds(
+    userId: string,
+    currentDate: Date,
+  ): DemoSavingsGoalSeed[] {
+    const firstSeededMonth = addMonths(
+      startOfMonth(currentDate),
+      FIRST_SEEDED_MONTH_OFFSET,
+    );
+
+    return DEMO_SAVINGS_GOAL_SPECS.map((spec) => {
+      const horizon = this.goalHorizon(spec.monthsUntilTarget, currentDate);
+
+      return {
+        userId,
+        name: spec.name,
+        targetAmount: spec.targetAmount,
+        initialAmount: spec.initialAmount,
+        status: spec.status,
+        startDate: format(firstSeededMonth, DATE_COLUMN_FORMAT),
+        targetDate: horizon ? format(horizon, DATE_COLUMN_FORMAT) : null,
+      };
+    });
+  }
+
+  /** A null `monthsUntilTarget` means an open-ended plan: no deadline. */
+  private goalHorizon(
+    monthsUntilTarget: number | null,
+    currentDate: Date,
+  ): Date | null {
+    if (monthsUntilTarget === null) return null;
+    return addMonths(startOfMonth(currentDate), monthsUntilTarget);
+  }
+
   private buildTemplateSeeds(userId: string): DemoTemplateSeed[] {
     return [
       {
@@ -208,7 +279,7 @@ export class GenerateDemoDataUseCase {
     const currentDate = new Date();
     const budgets: DemoBudgetSeed[] = [];
 
-    for (let i = -6; i <= 5; i++) {
+    for (let i = FIRST_SEEDED_MONTH_OFFSET; i <= 5; i++) {
       const budgetDate = addMonths(startOfMonth(currentDate), i);
       const month = budgetDate.getMonth() + 1;
       const year = budgetDate.getFullYear();

@@ -1,5 +1,42 @@
 export const DEMO_RETENTION_HOURS = 24;
 
+/**
+ * The savings goals the demo shows, one per state the UI can render: a dated
+ * plan, an open-ended plan, and a goal already reached.
+ *
+ * `envelopeName` is the prévision Épargne feeding the goal — a reached goal is
+ * fed by nothing. `monthsUntilTarget` is null for an open-ended plan and
+ * negative for a deadline already behind us. `priority` is deliberately absent:
+ * the savings-goal module never writes it, so seeding it would show the
+ * prospect a state the app itself cannot produce.
+ */
+export const DEMO_SAVINGS_GOAL_SPECS = [
+  {
+    name: 'Apport logement',
+    targetAmount: 80000,
+    initialAmount: 15000,
+    status: 'ACTIVE',
+    monthsUntilTarget: 18,
+    envelopeName: 'Épargne logement',
+  },
+  {
+    name: "Fonds d'urgence",
+    targetAmount: 15000,
+    initialAmount: 2000,
+    status: 'ACTIVE',
+    monthsUntilTarget: null,
+    envelopeName: "Fonds d'urgence",
+  },
+  {
+    name: 'Nouveau vélo',
+    targetAmount: 1200,
+    initialAmount: 1200,
+    status: 'COMPLETED',
+    monthsUntilTarget: -2,
+    envelopeName: null,
+  },
+] as const;
+
 export const DEMO_TEMPLATE_SPECS = {
   STANDARD: {
     name: '💰 Mois Standard',
