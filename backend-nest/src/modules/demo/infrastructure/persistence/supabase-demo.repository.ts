@@ -51,9 +51,10 @@ type TransactionInsert = Omit<
   TablesInsert<'transaction'>,
   'id' | 'created_at' | 'updated_at'
 >;
+/** `created_at` stays writable here: the seed backdates it onto the plan. */
 type SavingsGoalInsert = Omit<
   TablesInsert<'savings_goal'>,
-  'id' | 'created_at' | 'updated_at'
+  'id' | 'updated_at'
 >;
 
 type TemplateLineRow = Tables<'template_line'>;
