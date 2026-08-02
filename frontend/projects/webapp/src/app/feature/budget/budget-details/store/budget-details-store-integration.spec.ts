@@ -92,6 +92,11 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     deleteTransaction$: ReturnType<typeof vi.fn>;
     toggleTransactionCheck$: ReturnType<typeof vi.fn>;
     postponeTransaction$: ReturnType<typeof vi.fn>;
+    createBudgetLineSpread$: ReturnType<typeof vi.fn>;
+    spreadExistingBudgetLine$: ReturnType<typeof vi.fn>;
+    spreadExistingTransaction$: ReturnType<typeof vi.fn>;
+    createSavingsWithdrawal$: ReturnType<typeof vi.fn>;
+    deleteSavingsWithdrawal$: ReturnType<typeof vi.fn>;
     cache: MockDataCache;
   };
   let mockLogger: {
@@ -138,6 +143,11 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       deleteTransaction$: vi.fn(),
       toggleTransactionCheck$: vi.fn(),
       postponeTransaction$: vi.fn(),
+      createBudgetLineSpread$: vi.fn(),
+      spreadExistingBudgetLine$: vi.fn(),
+      spreadExistingTransaction$: vi.fn(),
+      createSavingsWithdrawal$: vi.fn(),
+      deleteSavingsWithdrawal$: vi.fn(),
       cache: createMockDataCache(),
     };
 
@@ -1743,6 +1753,220 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       await waitForResourceStable();
 
       expect(service.hasNextMonthBudget()).toBe(false);
+    });
+  });
+
+  // The page renders error() as a card that REPLACES the budget, so a refused
+  // mutation must never write there. Most mutations went uncovered, which is how
+  // the defect survived its first fix — this guard drives every one of them, and
+  // the enumeration test at the end fails when a new one is added without a case.
+  describe('No mutation reports its refusal on the page error signal', () => {
+    const PERIODS = [
+      { year: 2024, month: 2, amount: 750 },
+      { year: 2024, month: 3, amount: 750 },
+    ];
+
+    const mutations: {
+      name: string;
+      api: Exclude<keyof typeof mockBudgetApi, 'cache'>;
+      run: () => Promise<string | null>;
+    }[] = [
+      {
+        name: 'createBudgetLine',
+        api: 'createBudgetLine$',
+        run: () =>
+          service.createBudgetLine({
+            budgetId: mockBudgetId,
+            name: 'Courses',
+            amount: 100,
+            kind: 'expense',
+            recurrence: 'one_off',
+            isManuallyAdjusted: false,
+          }),
+      },
+      {
+        name: 'updateBudgetLine',
+        api: 'updateBudgetLine$',
+        run: () => service.updateBudgetLine({ id: 'line-2', amount: 1600 }),
+      },
+      {
+        name: 'deleteBudgetLine',
+        api: 'deleteBudgetLine$',
+        run: () => service.deleteBudgetLine('line-2'),
+      },
+      {
+        name: 'resetBudgetLineFromTemplate',
+        api: 'resetBudgetLineFromTemplate$',
+        run: () => service.resetBudgetLineFromTemplate('line-2'),
+      },
+      {
+        name: 'postponeBudgetLine',
+        api: 'postponeBudgetLine$',
+        run: () => service.postponeBudgetLine('line-2'),
+      },
+      {
+        name: 'toggleCheck',
+        api: 'toggleBudgetLineCheck$',
+        run: () => service.toggleCheck('line-2'),
+      },
+      {
+        name: 'checkAllAllocatedTransactions',
+        api: 'checkBudgetLineTransactions$',
+        run: () => service.checkAllAllocatedTransactions('line-2'),
+      },
+      {
+        name: 'createAllocatedTransaction',
+        api: 'createTransaction$',
+        run: () =>
+          service.createAllocatedTransaction({
+            budgetId: mockBudgetId,
+            budgetLineId: 'line-2',
+            name: 'Courses',
+            amount: 30,
+            kind: 'expense',
+            transactionDate: '2024-01-10',
+          }),
+      },
+      {
+        name: 'updateTransaction',
+        api: 'updateTransaction$',
+        run: () => service.updateTransaction('tx-1', { amount: 60 }),
+      },
+      {
+        name: 'deleteTransaction',
+        api: 'deleteTransaction$',
+        run: () => service.deleteTransaction('tx-1'),
+      },
+      {
+        name: 'toggleTransactionCheck',
+        api: 'toggleTransactionCheck$',
+        run: () => service.toggleTransactionCheck('tx-1'),
+      },
+      {
+        name: 'postponeTransaction',
+        api: 'postponeTransaction$',
+        run: () => service.postponeTransaction('tx-1'),
+      },
+      // The four below answer with a payload wrapper; `.error` is the same motive.
+      {
+        name: 'createBudgetLineSpread',
+        api: 'createBudgetLineSpread$',
+        run: async () =>
+          (
+            await service.createBudgetLineSpread({
+              name: 'Prime',
+              kind: 'expense',
+              mode: 'perMonth',
+              perMonthAmount: 100,
+              months: [{ year: 2024, month: 2 }],
+              spreadGroupId: '11111111-1111-4111-8111-111111111111',
+            })
+          ).error ?? null,
+      },
+      {
+        name: 'spreadExistingBudgetLine',
+        api: 'spreadExistingBudgetLine$',
+        run: async () =>
+          (await service.spreadExistingBudgetLine('line-2', PERIODS)).error ??
+          null,
+      },
+      {
+        name: 'spreadExistingTransaction',
+        api: 'spreadExistingTransaction$',
+        run: async () =>
+          (await service.spreadExistingTransaction('tx-1', PERIODS)).error ??
+          null,
+      },
+      {
+        name: 'createSavingsWithdrawal',
+        api: 'createSavingsWithdrawal$',
+        run: async () =>
+          (
+            await service.createSavingsWithdrawal({
+              budgetId: mockBudgetId,
+              groupId: '22222222-2222-4222-8222-222222222222',
+              amount: 200,
+              incomeName: 'Pioche épargne',
+              savingName: 'Retrait épargne',
+            })
+          ).error ?? null,
+      },
+      {
+        name: 'deleteSavingsWithdrawal',
+        api: 'deleteSavingsWithdrawal$',
+        run: () =>
+          service.deleteSavingsWithdrawal(
+            '22222222-2222-4222-8222-222222222222',
+            'pair',
+          ),
+      },
+    ];
+
+    beforeEach(async () => {
+      // The transaction is allocated and unchecked so that no mutation guard
+      // short-circuits before its API call.
+      mockBudgetApi.getBudgetWithDetails$ = vi.fn().mockReturnValue(
+        of(
+          createMockBudgetDetailsResponse({
+            budget: {
+              id: mockBudgetId,
+              month: 1,
+              year: 2024,
+              templateId: 'template-1',
+            },
+            budgetLines: [
+              createMockBudgetLine({
+                id: 'line-2',
+                budgetId: mockBudgetId,
+                templateLineId: 'tpl-2',
+                amount: 1500,
+                kind: 'expense',
+              }),
+            ],
+            transactions: [
+              createMockTransaction({
+                id: 'tx-1',
+                budgetId: mockBudgetId,
+                budgetLineId: 'line-2',
+                amount: 50,
+                kind: 'expense',
+                checkedAt: null,
+              }),
+            ],
+          }),
+        ),
+      );
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+    });
+
+    it.each(mutations)(
+      '$name hands its motive back and leaves the budget on screen',
+      async ({ api, run }) => {
+        mockBudgetApi[api] = vi
+          .fn()
+          .mockReturnValue(throwError(() => new Error('Server down')));
+
+        const error = await run();
+
+        expect(error).toBeTruthy();
+        expect(service.error()).toBeUndefined();
+      },
+    );
+
+    it('covers every mutation the store exposes', () => {
+      const asyncMethods = Object.getOwnPropertyNames(
+        BudgetDetailsStore.prototype,
+      ).filter(
+        (name) =>
+          Object.getOwnPropertyDescriptor(BudgetDetailsStore.prototype, name)
+            ?.value?.constructor?.name === 'AsyncFunction',
+      );
+
+      expect(asyncMethods.sort()).toEqual(
+        mutations.map((mutation) => mutation.name).sort(),
+      );
     });
   });
 });
