@@ -1038,6 +1038,7 @@
     "pickerLabel": "Objectif",
     "pickerNone": "Aucun objectif",
     "pickerEmpty": "Aucun objectif disponible",
+    "pickerOutsideHorizon": "Échéance dépassée · {{month}}",
     "loadError": "Impossible de charger tes objectifs.",
     "nameRequired": "Le nom est requis",
     "targetAmountRequired": "Le montant cible doit être positif",

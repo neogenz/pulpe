@@ -22,6 +22,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { TranslocoPipe } from '@jsverse/transloco';
 import {
   splitTotalPreserving,
+  type BudgetPeriod,
   type TransactionKind,
   type TransactionRecurrence,
 } from 'pulpe-shared';
@@ -231,6 +232,7 @@ interface AddBudgetLineModel {
           @if (model().kind === 'saving') {
             <pulpe-savings-goal-picker-field
               [value]="model().savingsGoalId"
+              [budgetPeriod]="budgetPeriod"
               (valueChanged)="
                 model.update((m) => ({ ...m, savingsGoalId: $event }))
               "
@@ -464,6 +466,12 @@ export class AddBudgetLineDialog {
   readonly #staleRateNotifier = inject(StaleRateNotifier);
 
   protected readonly currency = this.#settings.currency;
+
+  // The period a created line lands in — bounds which savings goals it can link.
+  protected readonly budgetPeriod: BudgetPeriod = {
+    month: this.#data.budgetMonth,
+    year: this.#data.budgetYear,
+  };
 
   protected readonly model = signal<AddBudgetLineModel>({
     name: '',

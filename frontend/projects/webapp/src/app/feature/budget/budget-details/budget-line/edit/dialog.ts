@@ -19,6 +19,7 @@ import { FormField, form, minLength, required } from '@angular/forms/signals';
 import {
   type BudgetLine,
   type BudgetLineUpdate,
+  type BudgetPeriod,
   type TransactionKind,
   type TransactionRecurrence,
 } from 'pulpe-shared';
@@ -44,6 +45,8 @@ import { budgetLineUpdateFromFormSchema } from './dialog.schema';
 
 export interface EditBudgetLineDialogData {
   budgetLine: BudgetLine;
+  /** Period of the budget the line belongs to — bounds its savings-goal links. */
+  budgetPeriod: BudgetPeriod;
 }
 
 interface EditBudgetLineModel {
@@ -150,6 +153,7 @@ interface EditBudgetLineModel {
           @if (model().kind === 'saving') {
             <pulpe-savings-goal-picker-field
               [value]="model().savingsGoalId"
+              [budgetPeriod]="budgetPeriod"
               (valueChanged)="
                 model.update((m) => ({ ...m, savingsGoalId: $event }))
               "
@@ -192,6 +196,8 @@ export class EditBudgetLineDialog {
 
   protected readonly originalCurrency =
     this.#data.budgetLine.originalCurrency ?? null;
+
+  protected readonly budgetPeriod = this.#data.budgetPeriod;
 
   protected readonly showCurrencySelector = computed(() =>
     isCurrencyPickerVisible({

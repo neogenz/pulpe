@@ -26,6 +26,7 @@ import {
   type BudgetLine,
   type BudgetLineSpreadResponse,
   type BudgetLineUpdate,
+  type BudgetPeriod,
   type SupportedCurrency,
   type Transaction,
   type TransactionUpdate,
@@ -244,6 +245,7 @@ import {
         <pulpe-budget-table
           [tableData]="budgetTableData()"
           [savingsGoalNameById]="store.savingsGoalNameById()"
+          [budgetPeriod]="budgetPeriod()"
           (update)="handleUpdateBudgetLine($event)"
           (delete)="handleDeleteItem($event)"
           (add)="openAddBudgetLineDialog()"
@@ -379,6 +381,17 @@ export class BudgetItemsContainer {
     }),
   );
 
+  // Period of the displayed budget. Before it loads there is no table to edit
+  // from, so the current period is a harmless stand-in rather than a null case
+  // every consumer would have to carry.
+  readonly budgetPeriod = computed<BudgetPeriod>(() => {
+    const budget = this.store.budgetDetails();
+    const now = new Date();
+    return budget
+      ? { month: budget.month, year: budget.year }
+      : { month: now.getMonth() + 1, year: now.getFullYear() };
+  });
+
   readonly budgetTableData = computed(() =>
     filterTableRowsByTags(
       this.#tableRows(),
@@ -428,6 +441,7 @@ export class BudgetItemsContainer {
   ): Promise<void> {
     const result = await this.#dialogService.openEditBudgetLineDialog(
       item.data,
+      this.budgetPeriod(),
     );
     if (result) {
       await this.handleUpdateBudgetLine(result);

@@ -14,8 +14,17 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { combineLatest, map } from 'rxjs';
 import { cachedResource } from 'ngx-ziflux';
+import { formatDate } from 'date-fns';
+import {
+  getBudgetPeriodForDate,
+  parseIsoDateLocal,
+  periodIndex,
+  type BudgetPeriod,
+} from 'pulpe-shared';
 
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
+import { UserSettingsStore } from '@core/user-settings';
+import { dateFnsLocaleFor } from '@core/locale';
 
 /**
  * Reusable "Objectif" picker for the 3 CA26 saving-line surfaces.
@@ -23,6 +32,12 @@ import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
  * Value-based (not a Signal-Forms field): the caller passes the current
  * `savingsGoalId` via `[value]` and reacts to `(valueChanged)`. A first
  * option maps to `null` ("Aucun objectif").
+ *
+ * PUL-313 — when the caller supplies the budget's period, goals whose deadline
+ * falls before it are listed but disabled: the `enforce_savings_goal_line_link`
+ * trigger would reject the link. Listed, not hidden — a goal that silently
+ * disappears is unexplainable. Template lines carry no period and stay
+ * unfiltered; the trigger only bounds `budget_line`.
  */
 @Component({
   selector: 'pulpe-savings-goal-picker-field',
@@ -76,8 +91,22 @@ import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
           <mat-option [value]="null">{{
             'savingsGoals.pickerNone' | transloco
           }}</mat-option>
-          @for (g of goals(); track g.id) {
-            <mat-option [value]="g.id">{{ g.name }}</mat-option>
+          @for (option of goalOptions(); track option.id) {
+            <mat-option
+              [value]="option.id"
+              [disabled]="option.deadlineLabel !== null"
+              [attr.data-testid]="'savings-goal-picker-option-' + option.id"
+            >
+              {{ option.name }}
+              @if (option.deadlineLabel; as deadline) {
+                <span class="block text-body-small text-on-surface-variant">
+                  {{
+                    'savingsGoals.pickerOutsideHorizon'
+                      | transloco: { month: deadline }
+                  }}
+                </span>
+              }
+            </mat-option>
           }
         </mat-select>
       </mat-form-field>
@@ -94,9 +123,12 @@ import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 })
 export class SavingsGoalPickerField {
   readonly value = input<string | null>(null);
+  /** Budget period the line will live in. Omitted on template lines. */
+  readonly budgetPeriod = input<BudgetPeriod | null>(null);
   readonly valueChanged = output<string | null>();
 
   readonly #api = inject(SavingsGoalApi);
+  readonly #settings = inject(UserSettingsStore);
 
   // Shares the SavingsGoalApi DataCache (key ['savings-goals','list']) with
   // SavingsGoalStore: dedups the fetch across pickers/list and picks up store
@@ -110,6 +142,40 @@ export class SavingsGoalPickerField {
   protected readonly goals = computed(() => this.#goalsResource.value() ?? []);
   protected readonly isLoading = this.#goalsResource.isInitialLoading;
   protected readonly error = this.#goalsResource.error;
+
+  /**
+   * `deadlineLabel` is non-null exactly when the goal is out of horizon: it
+   * both disables the option and names the month that puts it out of reach.
+   * Mirrors the trigger's own arithmetic via the shared period calculator —
+   * an undated goal has no horizon, so it is never out of it.
+   */
+  protected readonly goalOptions = computed(() => {
+    const period = this.budgetPeriod();
+    const payDay = this.#settings.payDayOfMonth();
+    const locale = dateFnsLocaleFor(this.#settings.currency());
+
+    return this.goals().map((goal) => {
+      if (!period || !goal.targetDate) {
+        return { id: goal.id, name: goal.name, deadlineLabel: null };
+      }
+      const deadline = getBudgetPeriodForDate(
+        parseIsoDateLocal(goal.targetDate),
+        payDay,
+      );
+      const isOutsideHorizon = periodIndex(period) > periodIndex(deadline);
+      return {
+        id: goal.id,
+        name: goal.name,
+        deadlineLabel: isOutsideHorizon
+          ? formatDate(
+              new Date(deadline.year, deadline.month - 1, 1),
+              'MMMM yyyy',
+              { locale },
+            )
+          : null,
+      };
+    });
+  });
 
   constructor() {
     combineLatest([
