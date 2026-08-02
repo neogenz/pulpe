@@ -292,6 +292,25 @@ describe('submitSpreadWithRetry', () => {
     expect(create).toHaveBeenCalledTimes(2);
     expect(create).toHaveBeenNthCalledWith(2, spreadValue);
   });
+
+  it('carries the server motive instead of the generic spread key', async () => {
+    const transloco = createMockTransloco();
+    const open = vi
+      .fn()
+      .mockReturnValue({ onAction: () => new Subject<void>() });
+    const snackBar = { open } as unknown as MatSnackBar;
+    const create = vi.fn().mockResolvedValue({
+      error: "Cette épargne dépasse l'horizon de ton objectif",
+    });
+
+    await submitSpreadWithRetry(spreadValue, create, snackBar, transloco);
+
+    expect(open).toHaveBeenLastCalledWith(
+      "Cette épargne dépasse l'horizon de ton objectif",
+      'common.retry',
+      expect.objectContaining({ duration: 8000 }),
+    );
+  });
 });
 
 describe('computeTransactionSnackbarMessage', () => {

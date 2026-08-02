@@ -529,6 +529,10 @@ export class BudgetItemsContainer {
   #notifySpread(
     outcome: MutationOutcome<BudgetLineSpreadResponse['data']>,
   ): void {
+    if (outcome.error) {
+      openMutationErrorSnackbar(outcome.error, this.#snackBar, this.#transloco);
+      return;
+    }
     const spread = outcome.data;
     if (!spread) return;
     const snackbarRef = this.#snackBar.open(
@@ -590,14 +594,18 @@ export class BudgetItemsContainer {
         },
       );
 
-    if (transaction) {
-      await this.store.createAllocatedTransaction(transaction);
-      this.#snackBar.open(
-        this.#transloco.translate('budget.transactionAdded'),
-        this.#transloco.translate('common.close'),
-        { duration: 3000 },
-      );
+    if (!transaction) return;
+
+    const error = await this.store.createAllocatedTransaction(transaction);
+    if (error) {
+      openMutationErrorSnackbar(error, this.#snackBar, this.#transloco);
+      return;
     }
+    this.#snackBar.open(
+      this.#transloco.translate('budget.transactionAdded'),
+      this.#transloco.translate('common.close'),
+      { duration: 3000 },
+    );
   }
 
   protected async handleEditAllocatedTransaction(
@@ -623,7 +631,11 @@ export class BudgetItemsContainer {
     id: string,
     update: TransactionUpdate,
   ): Promise<void> {
-    await this.store.updateTransaction(id, update);
+    const error = await this.store.updateTransaction(id, update);
+    if (error) {
+      openMutationErrorSnackbar(error, this.#snackBar, this.#transloco);
+      return;
+    }
     this.#snackBar.open(
       this.#transloco.translate('budget.modificationSaved'),
       this.#transloco.translate('common.close'),
@@ -641,14 +653,18 @@ export class BudgetItemsContainer {
       }),
     });
 
-    if (confirmed) {
-      await this.store.deleteTransaction(transaction.id);
-      this.#snackBar.open(
-        this.#transloco.translate('transaction.deleted'),
-        this.#transloco.translate('common.close'),
-        { duration: 3000 },
-      );
+    if (!confirmed) return;
+
+    const error = await this.store.deleteTransaction(transaction.id);
+    if (error) {
+      openMutationErrorSnackbar(error, this.#snackBar, this.#transloco);
+      return;
     }
+    this.#snackBar.open(
+      this.#transloco.translate('transaction.deleted'),
+      this.#transloco.translate('common.close'),
+      { duration: 3000 },
+    );
   }
 
   protected async handleToggleCheck(budgetLineId: string): Promise<void> {
@@ -672,7 +688,16 @@ export class BudgetItemsContainer {
     }
 
     if (shouldCascade) {
-      await this.store.checkAllAllocatedTransactions(budgetLineId);
+      const cascadeError =
+        await this.store.checkAllAllocatedTransactions(budgetLineId);
+      if (cascadeError) {
+        openMutationErrorSnackbar(
+          cascadeError,
+          this.#snackBar,
+          this.#transloco,
+        );
+        return;
+      }
     }
 
     this.#showEnvelopeSnackbar(budgetLineId);
@@ -681,7 +706,11 @@ export class BudgetItemsContainer {
   protected async handleToggleTransactionCheck(
     transactionId: string,
   ): Promise<void> {
-    await this.store.toggleTransactionCheck(transactionId);
+    const error = await this.store.toggleTransactionCheck(transactionId);
+    if (error) {
+      openMutationErrorSnackbar(error, this.#snackBar, this.#transloco);
+      return;
+    }
     this.#showTransactionSnackbar(transactionId);
   }
 
@@ -715,27 +744,16 @@ export class BudgetItemsContainer {
   }
 
   protected async handleResetFromTemplate(budgetLineId: string): Promise<void> {
-    try {
-      await this.store.resetBudgetLineFromTemplate(budgetLineId);
-      this.#snackBar.open(
-        this.#transloco.translate('budget.forecastReset'),
-        this.#transloco.translate('common.close'),
-        { duration: 5000 },
-      );
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : this.#transloco.translate('common.error');
-      this.#snackBar.open(
-        errorMessage,
-        this.#transloco.translate('common.close'),
-        {
-          duration: 5000,
-          panelClass: ['bg-error-container', 'text-on-error-container'],
-        },
-      );
+    const error = await this.store.resetBudgetLineFromTemplate(budgetLineId);
+    if (error) {
+      openMutationErrorSnackbar(error, this.#snackBar, this.#transloco);
+      return;
     }
+    this.#snackBar.open(
+      this.#transloco.translate('budget.forecastReset'),
+      this.#transloco.translate('common.close'),
+      { duration: 5000 },
+    );
   }
 
   protected async handlePostponeBudgetLine(
@@ -817,15 +835,25 @@ export class BudgetItemsContainer {
     if (!confirmed) return;
 
     if (isBudgetLine) {
-      await this.store.deleteBudgetLine(id);
-    } else {
-      await this.store.deleteTransaction(id);
-      this.#snackBar.open(
-        this.#transloco.translate('transaction.deleted'),
-        this.#transloco.translate('common.close'),
-        { duration: 5000 },
-      );
+      // A removed forecast is its own confirmation: the row is gone. Only its
+      // refusal needs saying.
+      const error = await this.store.deleteBudgetLine(id);
+      if (error) {
+        openMutationErrorSnackbar(error, this.#snackBar, this.#transloco);
+      }
+      return;
     }
+
+    const error = await this.store.deleteTransaction(id);
+    if (error) {
+      openMutationErrorSnackbar(error, this.#snackBar, this.#transloco);
+      return;
+    }
+    this.#snackBar.open(
+      this.#transloco.translate('transaction.deleted'),
+      this.#transloco.translate('common.close'),
+      { duration: 5000 },
+    );
   }
 
   protected openTagHistoryDialog(): void {

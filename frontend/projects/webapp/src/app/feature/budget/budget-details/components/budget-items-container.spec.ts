@@ -78,6 +78,7 @@ interface MockStore {
   deleteBudgetLine: ReturnType<typeof vi.fn>;
   deleteTransaction: ReturnType<typeof vi.fn>;
   resetBudgetLineFromTemplate: ReturnType<typeof vi.fn>;
+  spreadExistingBudgetLine: ReturnType<typeof vi.fn>;
   postponeBudgetLine: ReturnType<typeof vi.fn>;
   postponeTransaction: ReturnType<typeof vi.fn>;
   toggleCheck: ReturnType<typeof vi.fn>;
@@ -114,6 +115,7 @@ function createMockStore(): MockStore {
     deleteBudgetLine: vi.fn(),
     deleteTransaction: vi.fn(),
     resetBudgetLineFromTemplate: vi.fn(),
+    spreadExistingBudgetLine: vi.fn().mockResolvedValue({}),
     // A mutation now answers with its refusal motive, so `null` is its success.
     postponeBudgetLine: vi.fn().mockResolvedValue(null),
     postponeTransaction: vi.fn().mockResolvedValue(null),
@@ -412,6 +414,171 @@ describe('BudgetItemsContainer — orchestration', () => {
       expect.objectContaining({ duration: 5000 }),
     );
   });
+});
+
+describe('BudgetItemsContainer — a refused gesture speaks for itself', () => {
+  const LINE_ID = '55555555-5555-4555-8555-555555555555';
+  const TX_ID = '66666666-6666-4666-8666-666666666666';
+  const MOTIVE = 'Le mois est clôturé';
+
+  let mockStore: MockStore;
+  let mockDialogService: MockDialogService;
+  let mockSnackBar: { open: ReturnType<typeof vi.fn> };
+  let component: BudgetItemsContainer;
+
+  // Every gesture reworked in this phase: the mutation it drives, how the user
+  // reaches it, and the confirmation it opens once the mutation goes through.
+  const gestures: {
+    name: string;
+    mutation: () => ReturnType<typeof vi.fn>;
+    arrange: () => void;
+    act: () => Promise<void>;
+    confirmation?: string;
+  }[] = [
+    {
+      name: 'editing a transaction',
+      mutation: () => mockStore.updateTransaction,
+      arrange: () => undefined,
+      act: () => component['handleUpdateTransaction'](TX_ID, { amount: 42 }),
+      confirmation: 'Modification enregistrée',
+    },
+    {
+      name: 'deleting a transaction',
+      mutation: () => mockStore.deleteTransaction,
+      arrange: () => mockDialogService.confirmDelete.mockResolvedValue(true),
+      act: () =>
+        component['handleDeleteTransaction'](
+          createMockTransaction({ id: TX_ID }),
+        ),
+      confirmation: 'Transaction supprimée',
+    },
+    {
+      name: 'adding an allocated transaction',
+      mutation: () => mockStore.createAllocatedTransaction,
+      arrange: () => {
+        mockStore.budgetDetails.set({ id: 'budget-1', month: 1, year: 2026 });
+        mockDialogService.openCreateAllocatedTransactionDialog.mockResolvedValue(
+          { name: 'Courses', amount: 42 },
+        );
+      },
+      act: () =>
+        component['openCreateAllocatedTransactionDialog'](
+          createMockBudgetLine({ id: LINE_ID }),
+        ),
+      confirmation: 'Transaction ajoutée',
+    },
+    {
+      name: 'resetting a forecast from the template',
+      mutation: () => mockStore.resetBudgetLineFromTemplate,
+      arrange: () => undefined,
+      act: () => component['handleResetFromTemplate'](LINE_ID),
+      confirmation: 'Prévision réinitialisée depuis le modèle',
+    },
+    {
+      name: 'deleting a forecast from the table',
+      mutation: () => mockStore.deleteBudgetLine,
+      arrange: () => {
+        mockStore.budgetDetails.set({
+          budgetLines: [createMockBudgetLine({ id: LINE_ID })],
+          transactions: [],
+        });
+        mockDialogService.confirmDelete.mockResolvedValue(true);
+      },
+      act: () => component['handleDeleteItem'](LINE_ID),
+    },
+    {
+      name: 'checking a transaction',
+      mutation: () => mockStore.toggleTransactionCheck,
+      arrange: () => undefined,
+      act: () => component['handleToggleTransactionCheck'](TX_ID),
+    },
+    {
+      name: 'cascading the check to allocated transactions',
+      mutation: () => mockStore.checkAllAllocatedTransactions,
+      arrange: () => {
+        mockStore.budgetDetails.set({
+          budgetLines: [createMockBudgetLine({ id: LINE_ID, checkedAt: null })],
+          transactions: [
+            createMockTransaction({
+              id: TX_ID,
+              budgetLineId: LINE_ID,
+              checkedAt: null,
+            }),
+          ],
+        });
+        mockDialogService.confirmCheckAllocatedTransactions.mockResolvedValue(
+          true,
+        );
+      },
+      act: () => component['handleToggleCheck'](LINE_ID),
+    },
+  ];
+
+  beforeEach(() => {
+    mockStore = createMockStore();
+    mockDialogService = createMockDialogService();
+    mockSnackBar = { open: vi.fn() };
+    component = setupComponent(
+      mockStore,
+      mockDialogService,
+      mockSnackBar,
+    ).componentInstance;
+  });
+
+  it.each(gestures)(
+    'reports the server motive and nothing else when $name is refused',
+    async ({ mutation, arrange, act }) => {
+      arrange();
+      mutation().mockResolvedValue(MOTIVE);
+
+      await act();
+
+      expect(mockSnackBar.open).toHaveBeenCalledTimes(1);
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        MOTIVE,
+        'Fermer',
+        expect.objectContaining({
+          panelClass: ['bg-error-container', 'text-on-error-container'],
+        }),
+      );
+    },
+  );
+
+  it('announces a refused spread of an existing forecast', async () => {
+    const line = createMockBudgetLine({ id: LINE_ID, amount: 600 });
+    mockStore.budgetDetails.set({ id: 'budget-1', month: 1, year: 2026 });
+    mockStore.filteredBudgetLines.set([line]);
+    mockDialogService.openSpreadExisting.mockResolvedValue({
+      periods: [{ year: 2026, month: 2 }],
+    });
+    mockStore.spreadExistingBudgetLine.mockResolvedValue({ error: MOTIVE });
+
+    await component['handleSpreadBudgetLine'](component.budgetLineItems()[0]);
+
+    expect(mockSnackBar.open).toHaveBeenCalledWith(
+      MOTIVE,
+      'Fermer',
+      expect.objectContaining({
+        panelClass: ['bg-error-container', 'text-on-error-container'],
+      }),
+    );
+  });
+
+  it.each(gestures.filter((gesture) => gesture.confirmation))(
+    'keeps the confirmation of $name when it goes through',
+    async ({ mutation, arrange, act, confirmation }) => {
+      arrange();
+      mutation().mockResolvedValue(null);
+
+      await act();
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        confirmation,
+        'Fermer',
+        expect.anything(),
+      );
+    },
+  );
 });
 
 describe('BudgetItemsContainer — tag history', () => {

@@ -92,7 +92,7 @@ export async function submitSpreadWithRetry(
   }
 
   const ref = snackBar.open(
-    transloco.translate('budgetLine.spread.error'),
+    outcome.error ?? transloco.translate('budgetLine.spread.error'),
     transloco.translate('common.retry'),
     { duration: 8000 },
   );
@@ -146,7 +146,7 @@ export async function submitSavingsWithdrawalWithRetry(
   }
 
   const ref = snackBar.open(
-    transloco.translate('budget.savingsWithdrawal.error'),
+    outcome.error ?? transloco.translate('budget.savingsWithdrawal.error'),
     transloco.translate('common.retry'),
     { duration: 8000 },
   );
