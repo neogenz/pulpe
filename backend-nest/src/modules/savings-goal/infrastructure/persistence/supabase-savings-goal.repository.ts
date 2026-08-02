@@ -68,6 +68,9 @@ type TransactionRowWithTags = TransactionRow & {
 };
 type BudgetLineRow = Database['public']['Tables']['budget_line']['Row'];
 
+const sumAmounts = (rows: readonly { amount: number }[]): number =>
+  rows.reduce((total, row) => total + row.amount, 0);
+
 interface LinkedLineRow {
   id: string;
   amount: string | null;
@@ -978,6 +981,10 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
         ),
       })),
     }));
+    const withdrawals = raw.withdrawals.map((withdrawal) => ({
+      ...withdrawal,
+      amount: this.encryption.tryDecryptAmount(withdrawal.amount, dek, 0),
+    }));
     const budgetLines = budgets.flatMap((budget) => budget.lines);
     const transactions = budgetLines.flatMap((line) => line.transactions);
 
@@ -985,24 +992,18 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       goalId: raw.goalId,
       summary: {
         templateLineCount: templateLines.length,
-        templateLineTotal: templateLines.reduce(
-          (total, line) => total + line.amount,
-          0,
-        ),
+        templateLineTotal: sumAmounts(templateLines),
         budgetCount: budgets.length,
         budgetLineCount: budgetLines.length,
-        budgetLineTotal: budgetLines.reduce(
-          (total, line) => total + line.amount,
-          0,
-        ),
+        budgetLineTotal: sumAmounts(budgetLines),
         transactionCount: transactions.length,
-        transactionTotal: transactions.reduce(
-          (total, transaction) => total + transaction.amount,
-          0,
-        ),
+        transactionTotal: sumAmounts(transactions),
+        withdrawalCount: withdrawals.length,
+        withdrawalTotal: sumAmounts(withdrawals),
       },
       templateLines,
       budgets,
+      withdrawals,
       revision: raw.revision,
     });
   }

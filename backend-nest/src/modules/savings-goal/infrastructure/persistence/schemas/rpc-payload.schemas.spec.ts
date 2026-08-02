@@ -130,6 +130,15 @@ describe('PUL-319 deletion RPC payloads', () => {
           ],
         },
       ],
+      withdrawals: [
+        {
+          transactionId: UUID,
+          budgetId: UUID,
+          name: 'Retrait Voyage',
+          transactionDate: now,
+          amount: 'ciphertext',
+        },
+      ],
       revision: {
         templateLines: [],
         budgetLines: [{ id: UUID, updatedAt: now }],

@@ -232,4 +232,12 @@ describe('savingsGoalWithdrawalSchema', () => {
 
     expect(result.success).toBe(false);
   });
+
+  it('should accept a zero amount so an undecryptable row degrades instead of failing the payload', () => {
+    const result = savingsGoalWithdrawalSchema.safeParse(
+      buildWithdrawal({ amount: 0 }),
+    );
+
+    expect(result.success).toBe(true);
+  });
 });

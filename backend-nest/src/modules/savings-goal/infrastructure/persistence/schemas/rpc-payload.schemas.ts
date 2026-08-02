@@ -159,6 +159,18 @@ const deletionBudgetLineSchema = z
   })
   .strict();
 
+// PUL-329 — revenus provenant de l'objectif. Conservés par tous les modes de
+// suppression, donc absents de la révision : ils n'ont rien à concourir.
+const deletionWithdrawalSchema = z
+  .object({
+    transactionId: z.uuid(),
+    budgetId: z.uuid(),
+    name: z.string(),
+    transactionDate: z.iso.datetime({ offset: true }),
+    amount: z.string().nullable(),
+  })
+  .strict();
+
 export const savingsGoalDeletionImpactRpcSchema = z
   .object({
     goalId: z.uuid(),
@@ -185,6 +197,7 @@ export const savingsGoalDeletionImpactRpcSchema = z
         })
         .strict(),
     ),
+    withdrawals: z.array(deletionWithdrawalSchema),
     revision: deletionRevisionSchema,
   })
   .strict();

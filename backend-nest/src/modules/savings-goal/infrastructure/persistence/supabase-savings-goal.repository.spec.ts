@@ -1192,6 +1192,8 @@ describe('SupabaseSavingsGoalRepository', () => {
     const budgetId = '123e4567-e89b-42d3-a456-426614174002';
     const lineId = '123e4567-e89b-42d3-a456-426614174003';
     const transactionId = '123e4567-e89b-42d3-a456-426614174004';
+    const withdrawalId = '123e4567-e89b-42d3-a456-426614174005';
+    const unreadableWithdrawalId = '123e4567-e89b-42d3-a456-426614174006';
     const now = '2026-07-27T10:00:00+00:00';
     const revision = {
       templateLines: [],
@@ -1239,6 +1241,15 @@ describe('SupabaseSavingsGoalRepository', () => {
               ],
             },
           ],
+          withdrawals: [
+            {
+              transactionId: withdrawalId,
+              budgetId,
+              name: 'Retrait Voyage',
+              transactionDate: now,
+              amount: 'enc:300',
+            },
+          ],
           revision,
         },
         error: null,
@@ -1266,11 +1277,66 @@ describe('SupabaseSavingsGoalRepository', () => {
         budgetLineTotal: 500,
         transactionCount: 1,
         transactionTotal: 200,
-        withdrawalCount: 0,
-        withdrawalTotal: 0,
+        withdrawalCount: 1,
+        withdrawalTotal: 300,
       });
       expect(impact.budgets[0].lines[0].transactions[0].amount).toBe(200);
+      expect(impact.withdrawals).toEqual([
+        {
+          transactionId: withdrawalId,
+          budgetId,
+          name: 'Retrait Voyage',
+          transactionDate: now,
+          amount: 300,
+        },
+      ]);
       expect(impact.revision).toEqual(revision);
+    });
+
+    it('keeps the preview readable when one withdrawal amount cannot be decrypted', async () => {
+      const rpc = jest.fn().mockResolvedValue({
+        data: {
+          goalId,
+          templateLines: [],
+          budgets: [],
+          withdrawals: [
+            {
+              transactionId: withdrawalId,
+              budgetId,
+              name: 'Retrait Voyage',
+              transactionDate: now,
+              amount: 'enc:300',
+            },
+            {
+              transactionId: unreadableWithdrawalId,
+              budgetId,
+              name: 'Retrait illisible',
+              transactionDate: now,
+              amount: null,
+            },
+          ],
+          revision,
+        },
+        error: null,
+      });
+      const provider = {
+        get client() {
+          return { rpc } as unknown as AuthenticatedSupabaseClient;
+        },
+        get user() {
+          return mockUser;
+        },
+      } as AuthenticatedSupabaseProvider;
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      const impact = await repo.getDeletionImpact(goalId);
+
+      expect(impact.withdrawals).toHaveLength(2);
+      expect(impact.withdrawals[1].amount).toBe(0);
+      expect(impact.summary.withdrawalTotal).toBe(300);
     });
 
     it('maps a foreign preview to SAVINGS_GOAL_NOT_FOUND', async () => {

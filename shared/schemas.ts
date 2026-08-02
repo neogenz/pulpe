@@ -686,13 +686,18 @@ export type SavingsGoalWithdrawalOptionsResponse = z.infer<
 /**
  * Une sortie d'argent, transportée POSITIVE : le signe négatif est une décision
  * de présentation, les clients l'ajoutent seuls.
+ *
+ * `nonnegative` plutôt que `positive` : ce schéma ne sert que des chemins de
+ * lecture, où un montant indéchiffrable dégrade à zéro comme partout ailleurs.
+ * Un seul ciphertext illisible ne doit pas emporter l'aperçu de suppression
+ * entier, au moment précis où l'utilisateur a besoin de le voir complet.
  */
 export const savingsGoalWithdrawalSchema = z.object({
   transactionId: z.uuid(),
   budgetId: z.uuid(),
   name: z.string().min(1),
   transactionDate: z.iso.datetime({ offset: true }),
-  amount: z.coerce.number().positive(),
+  amount: z.coerce.number().nonnegative(),
 });
 export type SavingsGoalWithdrawal = z.infer<typeof savingsGoalWithdrawalSchema>;
 
