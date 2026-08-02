@@ -31,6 +31,7 @@ DECLARE
   v_other_budget_id uuid := gen_random_uuid();
   v_other_withdrawal_id uuid := gen_random_uuid();
   v_probe_id uuid;
+  v_guard_txn_id uuid := gen_random_uuid();
 BEGIN
   PERFORM set_config(
     'request.jwt.claims',
@@ -671,6 +672,79 @@ BEGIN
       COALESCE(v_caught, 'no error');
   END IF;
   RAISE NOTICE 'PASS [19] the starting stock moves the revision only when it changes';
+
+  ----------------------------------------------------------------------
+  -- ASSERTION 20: a direct write cannot link a foreign goal
+  ----------------------------------------------------------------------
+  -- Assertion 1 proves the RPC refuses it. This one bypasses the RPC entirely,
+  -- the way a client holding the publishable key reaches PostgREST: RLS only
+  -- judges the budget, so without the tenancy trigger both writes below land.
+  SELECT balance_revision INTO v_revision
+  FROM public.savings_goal WHERE id = v_other_goal_id;
+
+  v_caught := NULL;
+  BEGIN
+    INSERT INTO public.transaction
+      (id, budget_id, budget_line_id, name, amount, kind, transaction_date,
+       source_savings_goal_id, source_savings_goal_name)
+    VALUES (v_guard_txn_id, v_budget_id, NULL, 'Forged link',
+            'CIPHERTEXT_100', 'income'::public.transaction_kind, '2026-01-20',
+            v_other_goal_id, 'whatever');
+  EXCEPTION WHEN OTHERS THEN
+    v_caught := SQLERRM;
+  END;
+
+  IF v_caught IS DISTINCT FROM 'Savings goal access denied' THEN
+    RAISE EXCEPTION 'FAIL [20]: a direct INSERT linked a foreign goal (%)',
+      COALESCE(v_caught, 'no error');
+  END IF;
+
+  -- The failed INSERT rolled its subtransaction back, so the id is free again.
+  INSERT INTO public.transaction
+    (id, budget_id, budget_line_id, name, amount, kind, transaction_date)
+  VALUES (v_guard_txn_id, v_budget_id, NULL, 'Prime',
+          'CIPHERTEXT_100', 'income'::public.transaction_kind, '2026-01-21');
+
+  v_caught := NULL;
+  BEGIN
+    UPDATE public.transaction
+    SET source_savings_goal_id = v_other_goal_id,
+        source_savings_goal_name = 'whatever'
+    WHERE id = v_guard_txn_id;
+  EXCEPTION WHEN OTHERS THEN
+    v_caught := SQLERRM;
+  END;
+
+  IF v_caught IS DISTINCT FROM 'Savings goal access denied' THEN
+    RAISE EXCEPTION 'FAIL [20]: a direct UPDATE linked a foreign goal (%)',
+      COALESCE(v_caught, 'no error');
+  END IF;
+
+  -- The refused writes must leave the target goal exactly as it was.
+  SELECT balance_revision INTO v_next_revision
+  FROM public.savings_goal WHERE id = v_other_goal_id;
+  IF v_next_revision <> v_revision THEN
+    RAISE EXCEPTION 'FAIL [20]: a refused link still moved the foreign revision (% -> %)',
+      v_revision, v_next_revision;
+  END IF;
+  RAISE NOTICE 'PASS [20] a direct write cannot link another user''s goal';
+
+  ----------------------------------------------------------------------
+  -- ASSERTION 21: the guard refuses foreign goals, not every goal
+  ----------------------------------------------------------------------
+  -- A guard that rejected its own tenant too would pass assertion 20 while
+  -- breaking the feature.
+  UPDATE public.transaction
+  SET source_savings_goal_id = v_goal_id,
+      source_savings_goal_name = 'Vacances'
+  WHERE id = v_guard_txn_id;
+
+  SELECT source_savings_goal_id INTO v_source_id
+  FROM public.transaction WHERE id = v_guard_txn_id;
+  IF v_source_id IS DISTINCT FROM v_goal_id THEN
+    RAISE EXCEPTION 'FAIL [21]: linking an own goal was refused';
+  END IF;
+  RAISE NOTICE 'PASS [21] linking an own goal still works';
 
   RAISE NOTICE 'ALL ASSERTIONS PASSED';
 END;

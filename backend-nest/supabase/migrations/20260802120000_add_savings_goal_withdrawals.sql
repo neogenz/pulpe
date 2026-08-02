@@ -38,6 +38,62 @@ CREATE INDEX transaction_source_savings_goal_idx
   ON public.transaction (source_savings_goal_id, transaction_date DESC, id)
   WHERE source_savings_goal_id IS NOT NULL;
 
+-- RLS on transaction only proves the BUDGET belongs to the caller, and a plain
+-- FK only proves the goal exists. Nothing proved the two hang off the same
+-- tenant, so a forged link reached another user's goal: the name-sync trigger
+-- below would copy their goal name into the forger's row, and the revision
+-- trigger would advance their balance_revision. BEFORE, so raising here aborts
+-- the statement before either AFTER trigger runs. Same shape as
+-- enforce_savings_goal_line_link (20260701083300) and
+-- enforce_transaction_budget_line_link (20260723120000), which closed this
+-- class twice already, the second one on this very table. The free-income
+-- shape is already carried by the CHECK constraints above; this guard stays
+-- about tenancy alone.
+CREATE OR REPLACE FUNCTION public.enforce_transaction_savings_goal_source()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO ''
+AS $$
+DECLARE
+  v_owner_id uuid;
+BEGIN
+  -- Covers the ON DELETE SET NULL write too: unlinking is always free.
+  IF NEW.source_savings_goal_id IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  SELECT mb.user_id
+  INTO v_owner_id
+  FROM public.monthly_budget mb
+  WHERE mb.id = NEW.budget_id;
+
+  IF v_owner_id IS NULL OR NOT EXISTS (
+    SELECT 1
+    FROM public.savings_goal sg
+    WHERE sg.id = NEW.source_savings_goal_id
+      AND sg.user_id = v_owner_id
+  ) THEN
+    RAISE EXCEPTION 'Savings goal access denied'
+      USING ERRCODE = 'P0001';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+ALTER FUNCTION public.enforce_transaction_savings_goal_source() OWNER TO postgres;
+REVOKE ALL ON FUNCTION public.enforce_transaction_savings_goal_source()
+  FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS enforce_transaction_savings_goal_source
+  ON public.transaction;
+CREATE TRIGGER enforce_transaction_savings_goal_source
+  BEFORE INSERT OR UPDATE OF source_savings_goal_id, budget_id
+  ON public.transaction
+  FOR EACH ROW
+  EXECUTE FUNCTION public.enforce_transaction_savings_goal_source();
+
 -- ---------------------------------------------------------------------------
 -- 2. A revision that any balance-affecting change invalidates
 -- ---------------------------------------------------------------------------
@@ -515,14 +571,9 @@ BEGIN
     p_expected_revision
   );
 
-  PERFORM 1
-  FROM public.transaction tx
-  WHERE tx.id = p_transaction_id
-  FOR UPDATE;
-
-  DELETE FROM public.transaction_tag AS link
-  WHERE link.transaction_id = p_transaction_id;
-
+  -- The DELETE takes the row lock itself, and transaction_tag cascades from it
+  -- (transaction_tag_transaction_id_fkey ON DELETE CASCADE). Deleting the links
+  -- first would also invert the lock order the update RPC uses.
   DELETE FROM public.transaction AS tx
   WHERE tx.id = p_transaction_id;
 END;
