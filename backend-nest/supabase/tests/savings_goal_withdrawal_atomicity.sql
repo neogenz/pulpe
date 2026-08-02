@@ -351,6 +351,14 @@ BEGIN
   ----------------------------------------------------------------------
   -- ASSERTION 10: deleting a withdrawal advances the revision
   ----------------------------------------------------------------------
+  -- The RPC no longer deletes transaction_tag itself; ON DELETE CASCADE does.
+  -- Assert the links really were there first, or the check below is vacuous.
+  SELECT count(*) INTO v_count
+  FROM public.transaction_tag WHERE transaction_id = v_withdrawal_id;
+  IF v_count = 0 THEN
+    RAISE EXCEPTION 'FAIL [10]: the withdrawal carried no tag link, the cascade check would prove nothing';
+  END IF;
+
   v_revision := v_next_revision;
   PERFORM public.delete_savings_goal_withdrawal(v_withdrawal_id, v_revision);
 
@@ -358,6 +366,12 @@ BEGIN
   FROM public.transaction WHERE id = v_withdrawal_id;
   IF v_count <> 0 THEN
     RAISE EXCEPTION 'FAIL [10]: withdrawal survived its deletion';
+  END IF;
+
+  SELECT count(*) INTO v_count
+  FROM public.transaction_tag WHERE transaction_id = v_withdrawal_id;
+  IF v_count <> 0 THEN
+    RAISE EXCEPTION 'FAIL [10]: tag links survived the withdrawal, the cascade did not fire';
   END IF;
 
   SELECT balance_revision INTO v_next_revision
