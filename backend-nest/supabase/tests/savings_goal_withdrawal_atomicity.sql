@@ -27,6 +27,10 @@ DECLARE
   v_count int;
   v_caught text;
   v_impact_keys text[];
+  v_other_template_id uuid := gen_random_uuid();
+  v_other_budget_id uuid := gen_random_uuid();
+  v_other_withdrawal_id uuid := gen_random_uuid();
+  v_probe_id uuid;
 BEGIN
   PERFORM set_config(
     'request.jwt.claims',
@@ -59,6 +63,20 @@ BEGIN
 
   INSERT INTO public.tag (id, user_id, name)
   VALUES (v_tag_id, v_user_id, 'Loisirs');
+
+  -- The other user needs a budget of their own, and a withdrawal inside it, so
+  -- the cross-tenant guards have a real target to refuse rather than a
+  -- nonexistent identifier.
+  INSERT INTO public.template (id, user_id, name, description, is_default)
+  VALUES (v_other_template_id, v_other_user_id, 'Autre Template', 'other user', false);
+
+  INSERT INTO public.monthly_budget (id, user_id, template_id, month, year, description)
+  VALUES (v_other_budget_id, v_other_user_id, v_other_template_id, 1, 2026, 'Janvier');
+
+  INSERT INTO public.transaction (id, budget_id, name, amount, kind, transaction_date,
+                                  source_savings_goal_id, source_savings_goal_name)
+  VALUES (v_other_withdrawal_id, v_other_budget_id, 'Retrait autrui', 'CIPHERTEXT_700',
+          'income'::public.transaction_kind, '2026-01-12', v_other_goal_id, 'Autre');
 
   SELECT balance_revision INTO v_revision
   FROM public.savings_goal WHERE id = v_goal_id;
@@ -465,6 +483,194 @@ BEGIN
       v_revision, v_next_revision;
   END IF;
   RAISE NOTICE 'PASS [14] an unlinked transaction leaves every goal untouched';
+
+  ----------------------------------------------------------------------
+  -- ASSERTION 15: a withdrawal cannot be written into someone else's budget
+  ----------------------------------------------------------------------
+  -- These RPCs are SECURITY DEFINER, so they run past RLS. The budget-ownership
+  -- check is the only thing between a crafted budget_id and a write into
+  -- another tenant's month.
+  SELECT balance_revision INTO v_revision
+  FROM public.savings_goal WHERE id = v_goal_id;
+
+  v_caught := NULL;
+  BEGIN
+    PERFORM public.create_savings_goal_withdrawal(
+      v_goal_id,
+      v_revision,
+      jsonb_build_object(
+        'budget_id', v_other_budget_id,
+        'name', 'Retrait chez le voisin',
+        'amount', 'CIPHERTEXT_100',
+        'kind', 'income',
+        'transaction_date', '2026-01-15'
+      )
+    );
+  EXCEPTION WHEN OTHERS THEN
+    v_caught := SQLERRM;
+  END;
+
+  IF v_caught IS DISTINCT FROM 'Budget access denied' THEN
+    RAISE EXCEPTION 'FAIL [15]: a foreign budget was accepted (%)',
+      COALESCE(v_caught, 'no error');
+  END IF;
+
+  SELECT count(*) INTO v_count
+  FROM public.transaction WHERE budget_id = v_other_budget_id;
+  IF v_count <> 1 THEN
+    RAISE EXCEPTION 'FAIL [15]: the refused write still reached the foreign budget (% rows)', v_count;
+  END IF;
+  RAISE NOTICE 'PASS [15] a foreign budget refuses the write and keeps its own rows';
+
+  ----------------------------------------------------------------------
+  -- ASSERTION 16: only your own withdrawal can be edited
+  ----------------------------------------------------------------------
+  -- One branch answers three distinct threats: an identifier that does not
+  -- exist, a transaction of yours that is not a withdrawal, and a withdrawal
+  -- belonging to someone else.
+  FOR v_probe_id IN
+    SELECT unnest(ARRAY[gen_random_uuid(), v_withdrawal_id, v_other_withdrawal_id])
+  LOOP
+    v_caught := NULL;
+    BEGIN
+      PERFORM public.update_savings_goal_withdrawal(
+        v_probe_id,
+        v_revision,
+        jsonb_build_object('name', 'Détourné')
+      );
+    EXCEPTION WHEN OTHERS THEN
+      v_caught := SQLERRM;
+    END;
+
+    IF v_caught IS DISTINCT FROM 'Savings goal withdrawal not found' THEN
+      RAISE EXCEPTION 'FAIL [16]: edit accepted on % (%)',
+        v_probe_id, COALESCE(v_caught, 'no error');
+    END IF;
+  END LOOP;
+
+  SELECT name INTO v_name
+  FROM public.transaction WHERE id = v_other_withdrawal_id;
+  IF v_name <> 'Retrait autrui' THEN
+    RAISE EXCEPTION 'FAIL [16]: another user''s withdrawal was renamed (%)', v_name;
+  END IF;
+  RAISE NOTICE 'PASS [16] edit refuses an unknown, an ordinary and a foreign row';
+
+  ----------------------------------------------------------------------
+  -- ASSERTION 17: only your own withdrawal can be deleted
+  ----------------------------------------------------------------------
+  -- Same three threats as the edit, but a bypass here destroys the row for good.
+  FOR v_probe_id IN
+    SELECT unnest(ARRAY[gen_random_uuid(), v_withdrawal_id, v_other_withdrawal_id])
+  LOOP
+    v_caught := NULL;
+    BEGIN
+      PERFORM public.delete_savings_goal_withdrawal(v_probe_id, v_revision);
+    EXCEPTION WHEN OTHERS THEN
+      v_caught := SQLERRM;
+    END;
+
+    IF v_caught IS DISTINCT FROM 'Savings goal withdrawal not found' THEN
+      RAISE EXCEPTION 'FAIL [17]: deletion accepted on % (%)',
+        v_probe_id, COALESCE(v_caught, 'no error');
+    END IF;
+  END LOOP;
+
+  SELECT count(*) INTO v_count
+  FROM public.transaction
+  WHERE id IN (v_withdrawal_id, v_other_withdrawal_id);
+  IF v_count <> 2 THEN
+    RAISE EXCEPTION 'FAIL [17]: a refused deletion still removed a row (% left)', v_count;
+  END IF;
+  RAISE NOTICE 'PASS [17] deletion refuses an unknown, an ordinary and a foreign row';
+
+  ----------------------------------------------------------------------
+  -- ASSERTION 18: an edit cannot move a withdrawal into a foreign budget
+  ----------------------------------------------------------------------
+  SELECT balance_revision INTO v_revision
+  FROM public.savings_goal WHERE id = v_goal_id;
+
+  SELECT (public.create_savings_goal_withdrawal(
+    v_goal_id,
+    v_revision,
+    jsonb_build_object(
+      'budget_id', v_budget_id,
+      'name', 'Retrait déplaçable',
+      'amount', 'CIPHERTEXT_300',
+      'kind', 'income',
+      'transaction_date', '2026-01-22'
+    )
+  )).id INTO v_probe_id;
+
+  SELECT balance_revision INTO v_revision
+  FROM public.savings_goal WHERE id = v_goal_id;
+
+  v_caught := NULL;
+  BEGIN
+    PERFORM public.update_savings_goal_withdrawal(
+      v_probe_id,
+      v_revision,
+      jsonb_build_object('budget_id', v_other_budget_id)
+    );
+  EXCEPTION WHEN OTHERS THEN
+    v_caught := SQLERRM;
+  END;
+
+  IF v_caught IS DISTINCT FROM 'Budget access denied' THEN
+    RAISE EXCEPTION 'FAIL [18]: a withdrawal was moved into a foreign budget (%)',
+      COALESCE(v_caught, 'no error');
+  END IF;
+
+  SELECT budget_id INTO v_source_id
+  FROM public.transaction WHERE id = v_probe_id;
+  IF v_source_id <> v_budget_id THEN
+    RAISE EXCEPTION 'FAIL [18]: the refused move still relocated the row';
+  END IF;
+  RAISE NOTICE 'PASS [18] a refused relocation leaves the withdrawal where it was';
+
+  ----------------------------------------------------------------------
+  -- ASSERTION 19: editing the starting stock invalidates a read balance
+  ----------------------------------------------------------------------
+  -- The starting stock is part of the balance, so changing it must make every
+  -- withdrawal computed against the old one stale — and an edit that changes
+  -- nothing must not burn a revision.
+  SELECT balance_revision INTO v_revision
+  FROM public.savings_goal WHERE id = v_goal_id;
+
+  UPDATE public.savings_goal
+  SET initial_amount = 'CIPHERTEXT_5000'
+  WHERE id = v_goal_id;
+
+  SELECT balance_revision INTO v_next_revision
+  FROM public.savings_goal WHERE id = v_goal_id;
+  IF v_next_revision <= v_revision THEN
+    RAISE EXCEPTION 'FAIL [19]: a new starting stock did not advance the revision (% -> %)',
+      v_revision, v_next_revision;
+  END IF;
+
+  v_revision := v_next_revision;
+  UPDATE public.savings_goal
+  SET initial_amount = 'CIPHERTEXT_5000'
+  WHERE id = v_goal_id;
+
+  SELECT balance_revision INTO v_next_revision
+  FROM public.savings_goal WHERE id = v_goal_id;
+  IF v_next_revision <> v_revision THEN
+    RAISE EXCEPTION 'FAIL [19]: an unchanged starting stock burned a revision (% -> %)',
+      v_revision, v_next_revision;
+  END IF;
+
+  v_caught := NULL;
+  BEGIN
+    PERFORM public.delete_savings_goal_withdrawal(v_probe_id, v_revision - 1);
+  EXCEPTION WHEN OTHERS THEN
+    v_caught := SQLERRM;
+  END;
+
+  IF v_caught IS DISTINCT FROM 'Savings goal balance changed' THEN
+    RAISE EXCEPTION 'FAIL [19]: a balance read before the edit was still accepted (%)',
+      COALESCE(v_caught, 'no error');
+  END IF;
+  RAISE NOTICE 'PASS [19] the starting stock moves the revision only when it changes';
 
   RAISE NOTICE 'ALL ASSERTIONS PASSED';
 END;

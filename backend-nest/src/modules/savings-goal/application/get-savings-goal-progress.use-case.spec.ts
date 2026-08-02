@@ -104,6 +104,35 @@ describe('GetSavingsGoalProgressUseCase', () => {
     expect(mockRepo.findLinkedContributions).toHaveBeenCalledWith('goal-1');
   });
 
+  // PUL-329 tripwire. `SavingsGoalProgressInput.withdrawals` is optional, so
+  // omitting it compiles and silently reports zero withdrawn. Nothing feeds it
+  // today — no endpoint can create a withdrawal yet — so zero is the honest
+  // answer. The day the write path ships, this test must be rewritten to seed
+  // withdrawals and assert they come off `confirmed`; if it still passes
+  // untouched, the endpoint is reporting a balance that ignores every retrait.
+  it('reports withdrawn 0 while no repository call feeds linked withdrawals', async () => {
+    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = new Date().getFullYear();
+    mockRepo.findLinkedContributions.mockResolvedValue({
+      lines: [
+        {
+          id: 'line-1',
+          amount: 500,
+          kind: 'saving',
+          checkedAt: '2026-06-01T00:00:00Z',
+          month: currentMonth,
+          year: currentYear,
+        },
+      ],
+      transactions: [],
+    });
+
+    const { computed } = await useCase.execute('goal-1', mockUser);
+
+    expect(computed.withdrawn).toBe(0);
+    expect(computed.confirmed).toBe(500);
+  });
+
   it('lifts confirmed by initialAmount (stock) without moving confirmedPace (flux) — PUL-293', async () => {
     const currentMonth = new Date().getMonth() + 1;
     const currentYear = new Date().getFullYear();
