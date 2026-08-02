@@ -26,6 +26,7 @@ DECLARE
   v_source_id uuid;
   v_count int;
   v_caught text;
+  v_impact_keys text[];
 BEGIN
   PERFORM set_config(
     'request.jwt.claims',
@@ -428,6 +429,42 @@ BEGIN
     RAISE EXCEPTION 'FAIL [12]: an allocated linked income was accepted';
   END IF;
   RAISE NOTICE 'PASS [12] schema rejects every malformed source link';
+
+  ----------------------------------------------------------------------
+  -- ASSERTION 13: the deletion preview announces exactly the expected keys
+  ----------------------------------------------------------------------
+  -- The repository parses this payload through a strict schema, so a key the
+  -- function grows or loses breaks the endpoint outright. Pinning the contract
+  -- here makes that drift fail against the real function instead of in prod.
+  SELECT array_agg(key ORDER BY key)
+  INTO v_impact_keys
+  FROM jsonb_object_keys(public.get_savings_goal_deletion_impact(v_goal_id)) AS key;
+
+  IF v_impact_keys IS DISTINCT FROM
+     ARRAY['budgets', 'goalId', 'revision', 'templateLines', 'withdrawals']
+  THEN
+    RAISE EXCEPTION 'FAIL [13]: deletion impact keys drifted (%)', v_impact_keys;
+  END IF;
+  RAISE NOTICE 'PASS [13] deletion impact exposes the awaited key set';
+
+  ----------------------------------------------------------------------
+  -- ASSERTION 14: a transaction reaching no goal leaves the revision alone
+  ----------------------------------------------------------------------
+  SELECT balance_revision INTO v_revision
+  FROM public.savings_goal WHERE id = v_goal_id;
+
+  INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date)
+  VALUES (v_budget_id, 'Courses', 'CIPHERTEXT_50',
+          'expense'::public.transaction_kind, '2026-01-20');
+
+  SELECT balance_revision INTO v_next_revision
+  FROM public.savings_goal WHERE id = v_goal_id;
+
+  IF v_next_revision <> v_revision THEN
+    RAISE EXCEPTION 'FAIL [14]: an unlinked transaction moved the revision (% -> %)',
+      v_revision, v_next_revision;
+  END IF;
+  RAISE NOTICE 'PASS [14] an unlinked transaction leaves every goal untouched';
 
   RAISE NOTICE 'ALL ASSERTIONS PASSED';
 END;

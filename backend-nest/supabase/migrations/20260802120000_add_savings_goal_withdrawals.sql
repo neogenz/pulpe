@@ -88,6 +88,16 @@ AS $$
 DECLARE
   v_goal_ids uuid[] := '{}'::uuid[];
 BEGIN
+  -- The trigger sits on one of the most written tables of the app and almost
+  -- no row reaches a goal. In a row-level trigger the absent record reads as
+  -- NULL, so this one test covers insert, update and delete alike.
+  IF OLD.savings_goal_id IS NULL AND NEW.savings_goal_id IS NULL THEN
+    IF TG_OP = 'DELETE' THEN
+      RETURN OLD;
+    END IF;
+    RETURN NEW;
+  END IF;
+
   IF TG_OP <> 'INSERT' THEN
     v_goal_ids := v_goal_ids || OLD.savings_goal_id;
   END IF;
@@ -118,6 +128,20 @@ AS $$
 DECLARE
   v_goal_ids uuid[] := '{}'::uuid[];
 BEGIN
+  -- Same reasoning as the forecast trigger, and it matters more here: without
+  -- this test every ordinary transaction write would read a forecast row and
+  -- then take the goal row, in the opposite lock order from the goal RPCs.
+  IF OLD.source_savings_goal_id IS NULL
+    AND NEW.source_savings_goal_id IS NULL
+    AND OLD.budget_line_id IS NULL
+    AND NEW.budget_line_id IS NULL
+  THEN
+    IF TG_OP = 'DELETE' THEN
+      RETURN OLD;
+    END IF;
+    RETURN NEW;
+  END IF;
+
   IF TG_OP <> 'INSERT' THEN
     v_goal_ids := v_goal_ids || OLD.source_savings_goal_id || (
       SELECT bl.savings_goal_id
