@@ -107,14 +107,13 @@ export interface DemoBudgetLineSeed {
 }
 
 /**
- * Identifier and shape returned by the repo after inserting a budget line.
- * The repo decrypts `amount` so callers receive plain numbers.
+ * What the seed needs back after inserting a budget line: the generated id, and
+ * enough to pair the line with the actual it consumes or the goal it feeds.
  */
 export interface DemoSeededBudgetLine {
   id: string;
   budgetId: string;
   name: string;
-  amount: number;
   kind: TransactionKindEnum;
 }
 

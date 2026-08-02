@@ -307,7 +307,7 @@ describe('SupabaseDemoRepository', () => {
       expect(inserted[1].checked_at).toBeNull();
     });
 
-    it('should return the inserted lines with their generated id and decrypted amount', async () => {
+    it('should return the inserted lines with their generated id', async () => {
       const supabase = createBudgetLineSupabase([]);
 
       const result = await repo.insertBudgetLines(
@@ -332,7 +332,6 @@ describe('SupabaseDemoRepository', () => {
           id: 'bl-0',
           budgetId: 'b-1',
           name: 'Courses alimentaires',
-          amount: 600,
           kind: 'expense',
         },
       ]);

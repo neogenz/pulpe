@@ -18,6 +18,14 @@ import { GenerateDemoDataUseCase } from './generate-demo-data.use-case';
 const GROCERIES_ENVELOPE = 'Courses alimentaires';
 const HOUSING_SAVINGS_ENVELOPE = 'Épargne logement';
 
+/**
+ * Budgets are seeded chronologically, so a budget's index tells its month apart:
+ * the first six are closed, index 6 is the month in progress, the rest are ahead.
+ * The count is pinned by "should create 12 monthly budgets (6 past + 6 future)".
+ */
+const CLOSED_MONTH_COUNT = 6;
+const CURRENT_MONTH_INDEX = CLOSED_MONTH_COUNT;
+
 function buildMockRepo() {
   return {
     insertTemplates: mock(async (rows: unknown[]) =>
@@ -56,7 +64,6 @@ function buildMockRepo() {
         id: `budget-line-${i}`,
         budgetId: line.budgetId,
         name: line.name,
-        amount: line.amount,
         kind: line.kind,
       })),
     ),
@@ -108,14 +115,19 @@ function spreadTranches(lines: DemoBudgetLineSeed[]) {
   return lines.filter((line) => line.spreadGroupId !== null);
 }
 
-function isClosedMonth(budget: DemoSeededBudget, now: Date): boolean {
-  if (budget.year !== now.getFullYear()) return budget.year < now.getFullYear();
-  return budget.month < now.getMonth() + 1;
+function budgetIndexById(repo: ReturnType<typeof buildMockRepo>) {
+  return new Map(
+    seededBudgets(repo).map((_, index) => [`budget-${index}`, index]),
+  );
 }
 
-function isFutureMonth(budget: DemoSeededBudget, now: Date): boolean {
-  if (budget.year !== now.getFullYear()) return budget.year > now.getFullYear();
-  return budget.month > now.getMonth() + 1;
+function monthIndexOf(
+  indexById: Map<string, number>,
+  budgetId: string,
+): number {
+  const index = indexById.get(budgetId);
+  if (index === undefined) throw new Error(`unknown budget ${budgetId}`);
+  return index;
 }
 
 describe('GenerateDemoDataUseCase', () => {
@@ -284,24 +296,14 @@ describe('GenerateDemoDataUseCase', () => {
 
   describe('execute - pointage', () => {
     it('should check every budget line of a closed month and none of the current month', async () => {
-      const now = new Date();
-
       await useCase.execute('user-1', {} as never);
 
-      const budgetsById = new Map(
-        seededBudgets(mockRepo).map((budget, index) => [
-          `budget-${index}`,
-          budget,
-        ]),
-      );
+      const indexById = budgetIndexById(mockRepo);
       const lines = seededBudgetLines(mockRepo);
       expect(lines.length).toBeGreaterThan(0);
 
       for (const line of lines) {
-        const budget = budgetsById.get(line.budgetId);
-        if (!budget) throw new Error(`unknown budget ${line.budgetId}`);
-
-        if (isClosedMonth(budget, now)) {
+        if (monthIndexOf(indexById, line.budgetId) < CLOSED_MONTH_COUNT) {
           expect(line.checkedAt).not.toBeNull();
         } else {
           expect(line.checkedAt).toBeNull();
@@ -310,24 +312,16 @@ describe('GenerateDemoDataUseCase', () => {
     });
 
     it('should check the actuals of closed months and leave the current month open', async () => {
-      const now = new Date();
-
       await useCase.execute('user-1', {} as never);
 
-      const budgetsById = new Map(
-        seededBudgets(mockRepo).map((budget, index) => [
-          `budget-${index}`,
-          budget,
-        ]),
-      );
+      const indexById = budgetIndexById(mockRepo);
       const transactions = seededTransactions(mockRepo);
       expect(transactions.length).toBeGreaterThan(0);
 
       for (const transaction of transactions) {
-        const budget = budgetsById.get(transaction.budgetId);
-        if (!budget) throw new Error(`unknown budget ${transaction.budgetId}`);
-
-        if (isClosedMonth(budget, now)) {
+        if (
+          monthIndexOf(indexById, transaction.budgetId) < CLOSED_MONTH_COUNT
+        ) {
           expect(transaction.checkedAt).toBe(transaction.transactionDate);
         } else {
           expect(transaction.checkedAt).toBeNull();
@@ -549,26 +543,19 @@ describe('GenerateDemoDataUseCase', () => {
     });
 
     it('should straddle the current month so months remain to provision', async () => {
-      const now = new Date();
-
       await useCase.execute('user-1', {} as never);
 
-      const budgetsById = new Map(
-        seededBudgets(mockRepo).map((budget, index) => [
-          `budget-${index}`,
-          budget,
-        ]),
-      );
-      const trancheBudgets = spreadTranches(seededBudgetLines(mockRepo)).map(
-        (line) => budgetsById.get(line.budgetId),
+      const indexById = budgetIndexById(mockRepo);
+      const trancheMonths = spreadTranches(seededBudgetLines(mockRepo)).map(
+        (line) => monthIndexOf(indexById, line.budgetId),
       );
 
-      expect(
-        trancheBudgets.some((budget) => budget && isClosedMonth(budget, now)),
-      ).toBe(true);
-      expect(
-        trancheBudgets.some((budget) => budget && isFutureMonth(budget, now)),
-      ).toBe(true);
+      expect(trancheMonths.some((index) => index < CURRENT_MONTH_INDEX)).toBe(
+        true,
+      );
+      expect(trancheMonths.some((index) => index > CURRENT_MONTH_INDEX)).toBe(
+        true,
+      );
     });
   });
 });

@@ -214,7 +214,7 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
       );
     }
 
-    return (data ?? []).map((row) => this.toSeededBudgetLine(row, dek));
+    return (data ?? []).map((row) => this.toSeededBudgetLine(row));
   }
 
   async insertTransactions(
@@ -404,17 +404,11 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
     return this.encryption.ensureDemoUserDEK(userId);
   }
 
-  private toSeededBudgetLine(
-    row: BudgetLineRow,
-    dek: Buffer,
-  ): DemoSeededBudgetLine {
+  private toSeededBudgetLine(row: BudgetLineRow): DemoSeededBudgetLine {
     return {
       id: row.id,
       budgetId: row.budget_id,
       name: row.name,
-      amount: row.amount
-        ? this.encryption.tryDecryptAmount(row.amount, dek, 0)
-        : 0,
       kind: row.kind,
     };
   }
