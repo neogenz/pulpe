@@ -1378,6 +1378,48 @@ describe('SupabaseSavingsGoalRepository', () => {
       });
     });
 
+    // PUL-329 — the SQL function grew a key the strict schema did not know and
+    // the endpoint answered 500 to every caller. The missing key is added now;
+    // what this pins is the landing: the NEXT drift must arrive as a named
+    // business failure carrying the offending path, not as an opaque crash.
+    it('lands a drifted RPC payload on a diagnosable failure', async () => {
+      const rpc = jest.fn().mockResolvedValue({
+        data: {
+          goalId,
+          templateLines: [],
+          budgets: [],
+          withdrawals: [],
+          revision,
+          unexpectedKey: 'a field the SQL function grew',
+        },
+        error: null,
+      });
+      const provider = {
+        get client() {
+          return { rpc } as unknown as AuthenticatedSupabaseClient;
+        },
+        get user() {
+          return mockUser;
+        },
+      } as AuthenticatedSupabaseProvider;
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      const caught = await repo
+        .getDeletionImpact(goalId)
+        .catch((error) => error);
+
+      expect(caught).toBeInstanceOf(BusinessException);
+      expect(caught.code).toBe(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_FETCH_FAILED.code,
+      );
+      expect(JSON.stringify(caught.loggingContext.validationErrors)).toContain(
+        'unexpectedKey',
+      );
+    });
+
     it('sends the exact mode and revision and deduplicates touched budgets', async () => {
       const rpc = jest.fn().mockResolvedValue({
         data: [{ budget_id: budgetId }, { budget_id: budgetId }],
