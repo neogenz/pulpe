@@ -918,7 +918,7 @@ describe('buildSavingsGoalTimeline withdrawals (PUL-329)', () => {
   // somme des retraits filtrée sur `isLocked` y donnerait le même chiffre et
   // passerait au vert. Ici le retrait est sur un mois ouvert, et l'assertion est
   // la propriété de fermeture — redistribuer puis simuler doit retomber sur la
-  // cible. Seule la somme sur tous les mois éligibles y arrive.
+  // cible. Seule la somme sur tous les mois de la timeline y arrive.
   it('should close on the target when the withdrawal sits on an open month', () => {
     const timeline = buildSavingsGoalTimeline({
       ...input,

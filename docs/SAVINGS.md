@@ -364,7 +364,7 @@ Les calculateurs shared, avec miroir testé sur iOS, portent quatre opérations 
 3. redistribuer le montant restant au centime près en respectant les mois épinglés ;
 4. répartir le montant d'un mois entre ses lignes ouvertes, proportionnellement puis par plus grand reste.
 
-La simulation (2) et la redistribution (3) reçoivent `initialAmount` en **seed** : le cumul simulé démarre au montant de départ et le restant à redistribuer le soustrait (`max(0, cible − initialAmount − pointé verrouillé + retraits éligibles − épinglé)`, le retrait entrant en plus puisque l'argent repris est de l'effort à refaire). Le seed vit dans le calculateur (qui re-cumule from scratch), jamais en plus des cumuls serveur déjà seedés — pas de double comptage.
+La simulation (2) et la redistribution (3) reçoivent `initialAmount` en **seed** : le cumul simulé démarre au montant de départ et le restant à redistribuer le soustrait (`max(0, cible − initialAmount − pointé verrouillé + tous les retraits − épinglé)`, le retrait entrant en plus puisque l'argent repris est de l'effort à refaire ; il est sommé sans condition, exactement comme la simulation le soustrait — c'est cette égalité qui fait retomber la simulation sur la cible). Le seed vit dans le calculateur (qui re-cumule from scratch), jamais en plus des cumuls serveur déjà seedés — pas de double comptage.
 
 Le serveur reste autoritaire à l'écriture. Les clients ne recalculent jamais le contrat de progression serveur.
 
