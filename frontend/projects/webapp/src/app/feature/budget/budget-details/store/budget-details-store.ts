@@ -96,7 +96,15 @@ export type CheckOutcome =
  */
 function isRetryableFailure(error: unknown): boolean {
   if (!isApiError(error)) return true;
-  return error.status >= 500 || error.status === 408 || error.status === 429;
+  // `status === 0` is the request that never got a response at all — offline,
+  // DNS, a cancelled connection. `normalizeApiError` also lands a non-HTTP
+  // throw there, which is a client-side fault, equally undecided by the server.
+  return (
+    error.status === 0 ||
+    error.status >= 500 ||
+    error.status === 408 ||
+    error.status === 429
+  );
 }
 
 /**
@@ -942,7 +950,7 @@ export class BudgetDetailsStore {
       onSuccess: () => this.#onFinancialMutationSuccess(),
       onError: (error, _args, rewind) => {
         this.#rollback(rewind);
-        fail(this.#transloco.translate('budget.transactionUpdateError'));
+        fail(this.#localizeError(error, 'budget.transactionUpdateError'));
         this.#logUnexpectedFailure('Transaction update failed', error);
       },
     });
@@ -1010,7 +1018,7 @@ export class BudgetDetailsStore {
       onSuccess: () => this.#onFinancialMutationSuccess(),
       onError: (error, _args, rewind) => {
         this.#rollback(rewind);
-        fail(this.#transloco.translate('budget.transactionDeleteError'));
+        fail(this.#localizeError(error, 'budget.transactionDeleteError'));
         this.#logUnexpectedFailure('Transaction delete failed', error);
       },
     });

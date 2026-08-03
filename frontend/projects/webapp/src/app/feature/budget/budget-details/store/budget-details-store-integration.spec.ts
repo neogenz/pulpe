@@ -437,6 +437,35 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       expect(broken.error).toBeTruthy();
       expect(broken.retryable).toBe(true);
     });
+
+    // A request that never left the device carries `status: 0`. Nothing was
+    // decided, so replaying it is exactly what the idempotency key is for —
+    // offering "Fermer" instead of "Réessayer" strands the user offline.
+    it('marks a spread that never reached the server worth replaying', async () => {
+      const spreadInput = {
+        budgetId: mockBudgetId,
+        name: 'Épargne lissée',
+        amount: 100,
+        kind: 'saving' as const,
+        mode: 'perMonth' as const,
+        perMonthAmount: 100,
+        months: [{ month: 6, year: 2026 }],
+        spreadGroupId: 'group-offline',
+      };
+
+      mockBudgetApi.createBudgetLineSpread$ = vi
+        .fn()
+        .mockReturnValue(
+          throwError(
+            () =>
+              new ApiError('Http failure response', undefined, 0, undefined),
+          ),
+        );
+      const offline = await service.createBudgetLineSpread(spreadInput);
+
+      expect(offline.error).toBeTruthy();
+      expect(offline.retryable).toBe(true);
+    });
   });
 
   describe('User edits a budget line', () => {
@@ -2099,6 +2128,34 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
 
         expect(error).toBeTruthy();
         expect(service.error()).toBeUndefined();
+      },
+    );
+
+    // PUL-329 — editing or deleting a withdrawal-funded income runs through the
+    // goal's balance policy, so the server answers with a code that names the
+    // real cause: the pot is short, the goal moved, the kind cannot change. A
+    // blanket "la mise à jour a échoué" tells the user none of it. (Creating one
+    // is not here: budget-details only creates ALLOCATED transactions, and a
+    // withdrawal can never be allocated.)
+    it.each(
+      mutations.filter(({ name }) =>
+        ['updateTransaction', 'deleteTransaction'].includes(name),
+      ),
+    )(
+      '$name surfaces the code the server refused with',
+      async ({ api, run }) => {
+        const refusal = new ApiError(
+          'refused',
+          API_ERROR_CODES.SAVINGS_GOAL_WITHDRAWAL_INSUFFICIENT_BALANCE,
+          422,
+          undefined,
+        );
+        mockBudgetApi[api] = vi.fn().mockReturnValue(throwError(() => refusal));
+        const localizer = TestBed.inject(ApiErrorLocalizer);
+
+        const error = await run();
+
+        expect(error).toBe(localizer.localizeApiError(refusal));
       },
     );
 

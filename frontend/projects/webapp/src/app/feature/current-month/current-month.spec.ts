@@ -6,6 +6,7 @@ import {
 } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { type BudgetLine, type Transaction, type Budget } from 'pulpe-shared';
@@ -496,6 +497,7 @@ describe('Dashboard (TestBed)', () => {
       open: vi.fn().mockResolvedValue(dialogResult),
     };
     const mockRouter = { navigate: vi.fn() };
+    const mockSnackBar = { open: vi.fn() };
 
     await TestBed.resetTestingModule()
       .configureTestingModule({
@@ -510,6 +512,7 @@ describe('Dashboard (TestBed)', () => {
             useValue: mockDialogService,
           },
           { provide: Router, useValue: mockRouter },
+          { provide: MatSnackBar, useValue: mockSnackBar },
         ],
       })
       .compileComponents();
@@ -519,6 +522,7 @@ describe('Dashboard (TestBed)', () => {
       component: fixture.componentInstance,
       mockStore,
       mockDialogService,
+      mockSnackBar,
     };
   }
 
@@ -596,6 +600,46 @@ describe('Dashboard (TestBed)', () => {
       await component['openAddTransaction']();
 
       expect(mockStore.addTransaction).not.toHaveBeenCalled();
+    });
+  });
+
+  // The quick-add surface closes as soon as it is submitted, so a refusal has
+  // nowhere left to appear: without this the user walks away believing the
+  // income exists.
+  describe('#addTransaction surfaces a refusal', () => {
+    const quickIncome: TransactionFormData = {
+      name: 'Retrait Maison',
+      amount: 100,
+      kind: 'income',
+      tagIds: [],
+      isChecked: false,
+      conversion: null,
+    };
+
+    it('should show the reason the store hands back', async () => {
+      const { component, mockStore, mockSnackBar } = await setup(
+        budgetId,
+        quickIncome,
+      );
+      mockStore.addTransaction.mockResolvedValue(
+        "Cet objectif n'a pas assez d'argent pour ce montant",
+      );
+
+      await component['openAddTransaction']();
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        "Cet objectif n'a pas assez d'argent pour ce montant",
+        expect.any(String),
+        expect.objectContaining({ duration: 5000 }),
+      );
+    });
+
+    it('should stay silent when the transaction went through', async () => {
+      const { component, mockSnackBar } = await setup(budgetId, quickIncome);
+
+      await component['openAddTransaction']();
+
+      expect(mockSnackBar.open).not.toHaveBeenCalled();
     });
   });
 });

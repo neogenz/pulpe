@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
@@ -47,7 +47,6 @@ import { CURRENCY_CONFIG } from '@core/currency';
   imports: [
     MatButtonModule,
     MatIconModule,
-    MatSnackBarModule,
     MatTooltipModule,
     DashboardError,
     BaseLoading,
@@ -376,12 +375,16 @@ export default class Dashboard {
   protected async checkBudgetLine(budgetLineId: string): Promise<void> {
     const isSuccess = await this.store.checkBudgetLine(budgetLineId);
     if (!isSuccess) {
-      this.#snackBar.open(
-        this.#transloco.translate('currentMonth.updateError'),
-        this.#transloco.translate('currentMonth.close'),
-        { duration: 5000 },
-      );
+      this.#notify(this.#transloco.translate('currentMonth.updateError'));
     }
+  }
+
+  #notify(message: string): void {
+    this.#snackBar.open(
+      message,
+      this.#transloco.translate('currentMonth.close'),
+      { duration: 5000 },
+    );
   }
 
   protected async openAddTransaction(): Promise<void> {
@@ -401,6 +404,9 @@ export default class Dashboard {
       budgetId,
       transactionDate: formatLocalDate(new Date()),
     });
-    await this.store.addTransaction(transactionCreate);
+    const reason = await this.store.addTransaction(transactionCreate);
+    if (reason) {
+      this.#notify(reason);
+    }
   }
 }

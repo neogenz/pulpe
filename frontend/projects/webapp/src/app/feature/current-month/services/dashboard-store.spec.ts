@@ -4,12 +4,16 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { of, throwError, NEVER, Subject } from 'rxjs';
 import { DashboardStore, DASHBOARD_NOW } from './dashboard-store';
 import { BudgetApi } from '@core/budget';
+import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 import { UserSettingsStore } from '@core/user-settings';
 import { Logger } from '@core/logging/logger';
 import { PostHogService } from '@core/analytics/posthog';
+import { ApiError } from '@core/api/api-error';
+import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { createMockDataCache } from '@core/testing';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import type { Budget, BudgetLine, Transaction } from 'pulpe-shared';
-import { BudgetFormulas } from 'pulpe-shared';
+import { API_ERROR_CODES, BudgetFormulas } from 'pulpe-shared';
 
 // ── Fixed date: June 15, 2025 ──
 const FIXED_DATE = new Date(2025, 5, 15);
@@ -99,6 +103,9 @@ function createMocks() {
       toggleBudgetLineCheck$: vi.fn(),
       cache,
     },
+    savingsGoalApi: {
+      cache: createMockDataCache(),
+    },
     logger: {
       error: vi.fn(),
       warn: vi.fn(),
@@ -115,17 +122,19 @@ function createMocks() {
   };
 }
 
-function setup(mocks = createMocks()) {
+function setup(mocks = createMocks(), now: Date = FIXED_DATE) {
   TestBed.resetTestingModule();
   TestBed.configureTestingModule({
     providers: [
       DashboardStore,
       provideZonelessChangeDetection(),
+      ...provideTranslocoForTest(),
       { provide: BudgetApi, useValue: mocks.budgetApi },
+      { provide: SavingsGoalApi, useValue: mocks.savingsGoalApi },
       { provide: UserSettingsStore, useValue: mocks.userSettingsStore },
       { provide: Logger, useValue: mocks.logger },
       { provide: PostHogService, useValue: mocks.postHogService },
-      { provide: DASHBOARD_NOW, useValue: FIXED_DATE },
+      { provide: DASHBOARD_NOW, useValue: now },
     ],
   });
 
@@ -318,8 +327,8 @@ describe('DashboardStore - Business Scenarios', () => {
         expect(store.transactions().length).toBe(1);
       });
 
-      // cachedMutation.mutate() never rejects — errors go to error signal
-      await store.addTransaction({
+      // cachedMutation.mutate() never rejects — the reason comes back returned.
+      const reason = await store.addTransaction({
         budgetId: 'budget-1',
         name: 'Fail',
         amount: 100,
@@ -329,8 +338,47 @@ describe('DashboardStore - Business Scenarios', () => {
       // Should rollback to original data (via onError)
       expect(store.transactions().length).toBe(1);
       expect(store.transactions()[0].id).toBe('tx-existing');
-      expect(store.error()).toBe('transaction-add-failed');
+      expect(reason).toBeTruthy();
       expect(mocks.postHogService.captureEvent).not.toHaveBeenCalled();
+    });
+
+    // A refused withdrawal has a precise reason the user must read: it says the
+    // income was NOT created. Kept in the store's return value, not in `error`,
+    // which the dashboard renders as a full-screen "could not load" card.
+    it('hands back the localized reason when the server refuses a withdrawal', async () => {
+      const budget = createMockBudget();
+      const refusal = new ApiError(
+        'insufficient',
+        API_ERROR_CODES.SAVINGS_GOAL_WITHDRAWAL_INSUFFICIENT_BALANCE,
+        422,
+        undefined,
+      );
+
+      const mocks = createMocks();
+      mocks.budgetApi.getDashboardData$.mockReturnValue(
+        of({ budget, transactions: [], budgetLines: [] }),
+      );
+      mocks.budgetApi.createTransaction$.mockReturnValue(
+        throwError(() => refusal),
+      );
+      const { store } = setup(mocks);
+
+      TestBed.tick();
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).not.toBeNull();
+      });
+
+      const reason = await store.addTransaction({
+        budgetId: 'budget-1',
+        name: 'Retrait Maison',
+        amount: 100,
+        kind: 'income',
+        sourceSavingsGoalId: '11111111-1111-4111-8111-111111111111',
+      });
+
+      const localizer = TestBed.inject(ApiErrorLocalizer);
+      expect(reason).toBe(localizer.localizeApiError(refusal));
+      expect(store.error()).toBeUndefined();
     });
   });
 
@@ -473,10 +521,12 @@ describe('DashboardStore - Business Scenarios', () => {
         expect(store.budgetLines().length).toBe(1);
       });
 
-      await store.checkBudgetLine('line-fail');
+      const isSuccess = await store.checkBudgetLine('line-fail');
 
-      // Should set error signal
-      expect(store.error()).toBe('check-failed');
+      // Says so to the caller, which is what raises the snackbar — the `error`
+      // signal would collapse the whole page into a "could not load" card.
+      expect(isSuccess).toBe(false);
+      expect(store.error()).toBeUndefined();
       // Should rollback checkedAt to null
       expect(store.budgetLines()[0].checkedAt).toBeNull();
       // Should be removed from pendingChecks → reappear in uncheckedForecasts
@@ -1141,19 +1191,7 @@ describe('DashboardStore - Upcoming Budgets Data', () => {
     const decemberDate = new Date(2025, 11, 15); // December 15, 2025
     mocks.budgetApi.getHistoryData$.mockReturnValue(of([]));
 
-    TestBed.resetTestingModule();
-    TestBed.configureTestingModule({
-      providers: [
-        DashboardStore,
-        provideZonelessChangeDetection(),
-        { provide: BudgetApi, useValue: mocks.budgetApi },
-        { provide: UserSettingsStore, useValue: mocks.userSettingsStore },
-        { provide: PostHogService, useValue: mocks.postHogService },
-        { provide: DASHBOARD_NOW, useValue: decemberDate },
-      ],
-    });
-
-    const store = TestBed.inject(DashboardStore);
+    const { store } = setup(mocks, decemberDate);
 
     TestBed.tick();
     await vi.waitFor(() => {
