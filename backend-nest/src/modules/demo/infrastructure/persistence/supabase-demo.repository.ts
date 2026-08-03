@@ -82,16 +82,9 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
       .insert(rows)
       .select();
 
-    if (error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
-        undefined,
-        { operation: 'insertDemoTemplates', supabaseError: error },
-        { cause: error },
-      );
-    }
-
-    return (data ?? []).map((row) => ({ id: row.id }));
+    return this.insertedRowsOrThrow(data, error, 'insertDemoTemplates').map(
+      (row) => ({ id: row.id }),
+    );
   }
 
   async insertCanonicalTemplateLines(
@@ -128,16 +121,9 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
       .insert(rows)
       .select();
 
-    if (error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
-        undefined,
-        { operation: 'insertDemoTemplateLines', supabaseError: error },
-        { cause: error },
-      );
-    }
-
-    return (data ?? []).map((row) => this.toSeededTemplateLine(row, dek));
+    return this.insertedRowsOrThrow(data, error, 'insertDemoTemplateLines').map(
+      (row) => this.toSeededTemplateLine(row, dek),
+    );
   }
 
   async insertBudgets(
@@ -158,21 +144,14 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
       .insert(rows)
       .select();
 
-    if (error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
-        undefined,
-        { operation: 'insertDemoBudgets', supabaseError: error },
-        { cause: error },
-      );
-    }
-
-    return (data ?? []).map((row) => ({
-      id: row.id,
-      month: row.month,
-      year: row.year,
-      templateId: row.template_id,
-    }));
+    return this.insertedRowsOrThrow(data, error, 'insertDemoBudgets').map(
+      (row) => ({
+        id: row.id,
+        month: row.month,
+        year: row.year,
+        templateId: row.template_id,
+      }),
+    );
   }
 
   async insertBudgetLines(
@@ -206,20 +185,9 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
       .insert(rows)
       .select();
 
-    // A null `data` without an error is reachable — postgrest-js turns a
-    // bodyless 404 into a 204 and leaves both null — and every later step keys
-    // off these rows, so falling back to an empty list would seed a demo whose
-    // envelopes all read zero: the exact emptiness this module exists to avoid.
-    if (error || !data) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
-        undefined,
-        { operation: 'insertDemoBudgetLines', supabaseError: error },
-        { cause: error ?? undefined },
-      );
-    }
-
-    return data.map((row) => this.toSeededBudgetLine(row));
+    return this.insertedRowsOrThrow(data, error, 'insertDemoBudgetLines').map(
+      (row) => this.toSeededBudgetLine(row),
+    );
   }
 
   async insertTransactions(
@@ -250,18 +218,13 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
       .insert(rows)
       .select('id');
 
-    if (error || !insertedRows) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
-        undefined,
-        { operation: 'insertDemoTransactions', supabaseError: error },
-        { cause: error ?? undefined },
-      );
-    }
-
     await this.linkTransactionTags(
       transactions,
-      insertedRows.map((row) => row.id),
+      this.insertedRowsOrThrow(
+        insertedRows,
+        error,
+        'insertDemoTransactions',
+      ).map((row) => row.id),
       userId,
       supabase,
     );
@@ -307,16 +270,11 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
         .insert(missingNames.map((name) => ({ user_id: userId, name })))
         .select('id, name');
 
-      if (tagError || !createdTags) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
-          undefined,
-          { operation: 'insertDemoTags', supabaseError: tagError },
-          { cause: tagError ?? undefined },
-        );
-      }
-
-      for (const tag of createdTags) {
+      for (const tag of this.insertedRowsOrThrow(
+        createdTags,
+        tagError,
+        'insertDemoTags',
+      )) {
         tagIdByName.set(tagKey(tag.name), tag.id);
       }
     }
@@ -376,16 +334,9 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
       .insert(rows)
       .select();
 
-    if (error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
-        undefined,
-        { operation: 'insertDemoSavingsGoals', supabaseError: error },
-        { cause: error },
-      );
-    }
-
-    return (data ?? []).map((row) => ({ id: row.id, name: row.name }));
+    return this.insertedRowsOrThrow(data, error, 'insertDemoSavingsGoals').map(
+      (row) => ({ id: row.id, name: row.name }),
+    );
   }
 
   async linkBudgetLinesToSavingsGoal(
@@ -433,6 +384,32 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
         { cause: error },
       );
     }
+  }
+
+  /**
+   * The rows an insert claims to have written, or nothing at all.
+   *
+   * An errorless null is a real answer, not a typing artefact: postgrest-js
+   * turns a bodyless 404 into a 204 and leaves both fields null. Every seed
+   * step keys off the rows the one before it returned, so reading that as an
+   * empty list would carry on and build the blank demo this module exists to
+   * prevent — the failure has to stop here, where it can still name itself.
+   */
+  private insertedRowsOrThrow<T>(
+    data: T[] | null,
+    error: unknown,
+    operation: string,
+  ): T[] {
+    if (error || !data) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        { operation, supabaseError: error },
+        { cause: error ?? undefined },
+      );
+    }
+
+    return data;
   }
 
   private async getDemoDek(userId: string): Promise<Buffer> {

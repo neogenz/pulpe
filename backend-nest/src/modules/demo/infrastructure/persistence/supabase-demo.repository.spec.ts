@@ -623,6 +623,23 @@ describe('SupabaseDemoRepository', () => {
         repo.insertSavingsGoals([housingGoal], 'user-1', supabase),
       ).rejects.toThrow(BusinessException);
     });
+
+    /**
+     * The goals are what the linking step iterates over, so swallowing an
+     * errorless null here would leave the prospect on the empty state of
+     * Objectifs with nothing in the logs to say why.
+     */
+    it('should throw when supabase returns no rows and no error', async () => {
+      const supabase = createMockSupabase(() => ({
+        insert: () => ({
+          select: jest.fn().mockResolvedValue({ data: null, error: null }),
+        }),
+      }));
+
+      await expect(
+        repo.insertSavingsGoals([housingGoal], 'user-1', supabase),
+      ).rejects.toThrow(BusinessException);
+    });
   });
 
   describe('linkBudgetLinesToSavingsGoal', () => {
