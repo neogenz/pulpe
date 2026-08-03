@@ -1405,11 +1405,12 @@ export class BudgetDetailsStore {
   #updateDetails(
     fn: (details: BudgetDetailsViewModel) => BudgetDetailsViewModel,
   ): void {
-    this.#budgetDetailsResource.update((details) => {
-      // Early return when resource has no value — cast required by cachedResource.update() signature
-      if (!details) return details as unknown as BudgetDetailsViewModel;
-      return fn(details);
-    });
+    // Read before updating rather than guarding inside the updater: `update()`
+    // must be handed a view model, and returning the absent value instead would
+    // write `undefined` through to the DataCache under this budget's key.
+    const current = this.#budgetDetailsResource.value();
+    if (!current) return;
+    this.#budgetDetailsResource.update(() => fn(current));
   }
 
   // Shared failure path for the 2 postpone mutations (mirrors #handleSpreadError):

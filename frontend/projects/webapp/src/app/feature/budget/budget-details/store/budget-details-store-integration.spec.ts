@@ -796,6 +796,37 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       });
     });
 
+    it('a mutation on a budget that never loaded leaves the cache untouched', async () => {
+      // The budget is selected but unreachable: params resolve to a cache key
+      // while the resource holds no value.
+      mockBudgetApi.getBudgetWithDetails$ = vi
+        .fn()
+        .mockReturnValue(throwError(() => new Error('Backend down')));
+      service.setBudgetId('budget-unreachable');
+      TestBed.tick();
+      await vi.waitFor(() => expect(service.error()).toBeTruthy());
+      mockBudgetApi.cache.set.mockClear();
+
+      // User acts anyway
+      mockBudgetApi.createBudgetLine$ = vi
+        .fn()
+        .mockReturnValue(of({ success: true, data: createMockBudgetLine() }));
+      await service.createBudgetLine({
+        budgetId: 'budget-unreachable',
+        name: 'Courses',
+        amount: 400,
+        kind: 'expense',
+        recurrence: 'one_off',
+        isManuallyAdjusted: false,
+      });
+
+      // No hole was written under the budget's key
+      expect(service.budgetDetails()).toBeNull();
+      for (const [, value] of mockBudgetApi.cache.set.mock.calls) {
+        expect(value).toBeDefined();
+      }
+    });
+
     it('user sees error message when network fails', async () => {
       mockBudgetApi.createBudgetLine$ = vi
         .fn()
