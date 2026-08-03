@@ -571,7 +571,24 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       );
     }
 
-    return this.encryption.decryptAmount(row.amount, dek);
+    try {
+      return this.encryption.decryptAmount(row.amount, dek);
+    } catch (cause) {
+      // Même refus que la branche au-dessus, autre cause : la couche crypto ne
+      // sait rien de la transaction. Sans cette enveloppe, l'incident sort en
+      // 500 nu, avec pour seule trace la pile du déchiffrement.
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'findTransactionMutationContext',
+          entityId: id,
+          entityType: 'transaction',
+          violation: 'savings-goal withdrawal: amount ciphertext unreadable',
+        },
+        { cause },
+      );
+    }
   }
 
   async insertWithdrawal(

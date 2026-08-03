@@ -632,6 +632,55 @@ describe('SupabaseTransactionRepository', () => {
         );
       }
     });
+
+    it('should name the transaction when a withdrawal ciphertext is unreadable', async () => {
+      // A withdrawal refuses the lenient fallback, so the crypto layer throws —
+      // and it knows nothing about the row. Unwrapped, the incident reaches the
+      // client as a bare 500 and the logs hold only a decryption stack.
+      const provider = createMockProvider(() => ({
+        select: () => ({
+          eq: () => ({
+            single: jest.fn().mockResolvedValue({
+              data: {
+                budget_id: 'budget-1',
+                budget_line_id: null,
+                kind: 'income',
+                amount: 'corrupted',
+                source_savings_goal_id: 'goal-1',
+                source_savings_goal_name: 'Maison',
+              },
+              error: null,
+            }),
+          }),
+        }),
+      }));
+      const encryption = createMockEncryption();
+      const cause = new Error('Decrypted amount is not a valid number');
+      (encryption.decryptAmount as unknown as jest.Mock).mockImplementation(
+        () => {
+          throw cause;
+        },
+      );
+      repo = new SupabaseTransactionRepository(
+        provider,
+        encryption,
+        createMockLogger(),
+      );
+
+      try {
+        await repo.findMutationContext('txn-1');
+        throw new Error('expected to throw');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          'ERR_TRANSACTION_FETCH_FAILED',
+        );
+        expect((error as BusinessException).loggingContext.entityId).toBe(
+          'txn-1',
+        );
+        expect((error as BusinessException).cause).toBe(cause);
+      }
+    });
   });
 
   describe('fetchTransactionsByPattern', () => {
