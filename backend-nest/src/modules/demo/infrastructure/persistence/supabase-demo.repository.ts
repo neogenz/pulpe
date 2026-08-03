@@ -206,16 +206,20 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
       .insert(rows)
       .select();
 
-    if (error) {
+    // A null `data` without an error is reachable — postgrest-js turns a
+    // bodyless 404 into a 204 and leaves both null — and every later step keys
+    // off these rows, so falling back to an empty list would seed a demo whose
+    // envelopes all read zero: the exact emptiness this module exists to avoid.
+    if (error || !data) {
       throw new BusinessException(
         ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
         undefined,
         { operation: 'insertDemoBudgetLines', supabaseError: error },
-        { cause: error },
+        { cause: error ?? undefined },
       );
     }
 
-    return (data ?? []).map((row) => this.toSeededBudgetLine(row));
+    return data.map((row) => this.toSeededBudgetLine(row));
   }
 
   async insertTransactions(

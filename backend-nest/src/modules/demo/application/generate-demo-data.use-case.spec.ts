@@ -5,8 +5,8 @@ import { BUDGET_RECALCULATION_PORT } from '../../budget/domain/ports/budget-reca
 import { DEMO_REPOSITORY } from '../domain/ports/demo-repository.port';
 import type {
   DemoBudgetLineSeed,
+  DemoBudgetSeed,
   DemoSavingsGoalSeed,
-  DemoSeededBudget,
   DemoTransactionSeed,
 } from '../domain/demo.entity';
 import {
@@ -115,7 +115,7 @@ function buildMockRepo() {
 function seededBudgets(repo: ReturnType<typeof buildMockRepo>) {
   const [[budgets]] = (repo.insertBudgets as ReturnType<typeof mock>).mock
     .calls;
-  return budgets as DemoSeededBudget[];
+  return budgets as DemoBudgetSeed[];
 }
 
 function seededBudgetLines(repo: ReturnType<typeof buildMockRepo>) {
@@ -301,10 +301,15 @@ describe('GenerateDemoDataUseCase', () => {
       }
     });
 
-    it('should give the month in progress its actuals whatever the day of the month', async () => {
-      const now = new Date();
+    it('should give the month in progress its actuals from its second day on', async () => {
+      const now = new Date('2026-08-02T12:00:00.000Z');
+      jest.setSystemTime(now);
 
-      await useCase.execute('user-1', {} as never);
+      try {
+        await useCase.execute('user-1', {} as never);
+      } finally {
+        jest.setSystemTime();
+      }
 
       const currentMonthIndex = seededBudgets(mockRepo).findIndex(
         (budget) =>
@@ -317,6 +322,30 @@ describe('GenerateDemoDataUseCase', () => {
 
       expect(currentMonthActuals.length).toBeGreaterThan(0);
       for (const actual of currentMonthActuals) {
+        expect(new Date(actual.transactionDate) <= now).toBe(true);
+      }
+    });
+
+    /**
+     * The seeding instant here is the last half-hour of a UTC month, which a
+     * server east of UTC already calls the 1st of the next one. Admitting an
+     * actual on that local day while stamping it at UTC midnight dated it ahead
+     * of the very run that wrote it.
+     */
+    it('should never date an actual ahead of the instant that seeded it', async () => {
+      const now = new Date('2026-07-31T22:30:00.000Z');
+      jest.setSystemTime(now);
+
+      try {
+        await useCase.execute('user-1', {} as never);
+      } finally {
+        jest.setSystemTime();
+      }
+
+      const actuals = seededTransactions(mockRepo);
+
+      expect(actuals.length).toBeGreaterThan(0);
+      for (const actual of actuals) {
         expect(new Date(actual.transactionDate) <= now).toBe(true);
       }
     });

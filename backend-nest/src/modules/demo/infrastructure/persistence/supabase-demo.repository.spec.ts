@@ -366,6 +366,39 @@ describe('SupabaseDemoRepository', () => {
         ),
       ).rejects.toThrow(BusinessException);
     });
+
+    /**
+     * postgrest-js turns a bodyless 404 into a 204 and leaves both fields null,
+     * so an errorless null is a real answer, not a typing artefact. Returning
+     * the empty list would hand every later step zero envelopes and seed the
+     * blank demo this module exists to prevent.
+     */
+    it('should throw when supabase returns no rows and no error', async () => {
+      const supabase = createMockSupabase(() => ({
+        insert: () => ({
+          select: jest.fn().mockResolvedValue({ data: null, error: null }),
+        }),
+      }));
+
+      await expect(
+        repo.insertBudgetLines(
+          [
+            {
+              budgetId: 'b-1',
+              templateLineId: null,
+              name: 'Test',
+              amount: 50,
+              kind: 'expense',
+              recurrence: 'fixed',
+              checkedAt: null,
+              spreadGroupId: null,
+            },
+          ],
+          'user-1',
+          supabase,
+        ),
+      ).rejects.toThrow(BusinessException);
+    });
   });
 
   describe('insertTransactions', () => {

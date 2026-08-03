@@ -3,7 +3,11 @@ import type {
   DemoSeededBudgetLine,
   DemoTransactionSeed,
 } from './demo.entity';
-import { isClosedMonth, templateKeyForMonth } from './demo-seed.builders';
+import {
+  isClosedMonth,
+  templateKeyForMonth,
+  utcMidnight,
+} from './demo-seed.builders';
 import type { DemoTemplateKey } from './demo.constants';
 
 interface MonthTransactionSpec {
@@ -128,11 +132,6 @@ export function buildTransactionSeeds(
   budgetLines: DemoSeededBudgetLine[],
   currentDate: Date,
 ): DemoTransactionSeed[] {
-  const pastBudgets = budgets.filter((budget) => {
-    const budgetDate = new Date(budget.year, budget.month - 1);
-    return budgetDate <= currentDate;
-  });
-
   const envelopesByBudget = new Map<string, DemoSeededBudgetLine[]>();
   for (const line of budgetLines) {
     const existing = envelopesByBudget.get(line.budgetId);
@@ -140,45 +139,37 @@ export function buildTransactionSeeds(
     else envelopesByBudget.set(line.budgetId, [line]);
   }
 
-  const transactions: DemoTransactionSeed[] = [];
-
-  for (const budget of pastBudgets) {
-    const isCurrentMonth =
-      budget.month === currentDate.getMonth() + 1 &&
-      budget.year === currentDate.getFullYear();
-    const daysInMonth = new Date(budget.year, budget.month, 0).getDate();
-    const maxDay = isCurrentMonth ? currentDate.getDate() : daysInMonth;
-
-    transactions.push(
-      ...buildMonthTransactions(
-        budget,
-        maxDay,
-        envelopesByBudget.get(budget.id) ?? [],
-        currentDate,
-      ),
-    );
-  }
-
-  return transactions;
+  return budgets.flatMap((budget) =>
+    buildMonthTransactions(
+      budget,
+      envelopesByBudget.get(budget.id) ?? [],
+      currentDate,
+    ),
+  );
 }
 
 function buildMonthTransactions(
   budget: DemoSeededBudget,
-  maxDay: number,
   envelopes: DemoSeededBudgetLine[],
   currentDate: Date,
 ): DemoTransactionSeed[] {
   const isClosed = isClosedMonth(budget, currentDate);
   const specs = MONTH_TRANSACTION_SPECS[templateKeyForMonth(budget.month)];
 
+  /**
+   * A day is admitted by the very instant it will be stamped with, so a réel is
+   * never dated ahead of the clock that seeded it. Gating on the local calendar
+   * instead would let the seeding server's own midnight through hours before
+   * the stamped one, and months still ahead never clear the test at all.
+   */
   return specs
-    .filter((spec) => maxDay >= spec.day)
-    .map((spec) => {
-      // UTC midnight, like the settlement stamp: a local midnight would land on
-      // the day before whenever the seeding server sits east of UTC.
-      const transactionDate = new Date(
-        Date.UTC(budget.year, budget.month - 1, spec.day),
-      ).toISOString();
+    .map((spec) => ({
+      spec,
+      stamp: utcMidnight(budget.year, budget.month, spec.day),
+    }))
+    .filter(({ stamp }) => stamp <= currentDate)
+    .map(({ spec, stamp }) => {
+      const transactionDate = stamp.toISOString();
 
       return {
         budgetId: budget.id,
