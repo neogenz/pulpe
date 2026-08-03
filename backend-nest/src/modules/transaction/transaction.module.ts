@@ -3,6 +3,7 @@ import { BudgetModule } from '@modules/budget/budget.module';
 import { BudgetLineModule } from '@modules/budget-line/budget-line.module';
 import { CurrencyModule } from '@modules/currency/currency.module';
 import { EncryptionModule } from '@modules/encryption/encryption.module';
+import { SavingsGoalModule } from '@modules/savings-goal/savings-goal.module';
 import { createInfoLoggerProvider } from '@common/logger';
 import { TransactionController } from './infrastructure/http/transaction.controller';
 import { SupabaseTransactionRepository } from './infrastructure/persistence/supabase-transaction.repository';
@@ -22,7 +23,15 @@ import { PostponeTransactionUseCase } from './application/postpone-transaction.u
 import { SpreadTransactionFromTxnUseCase } from './application/spread-transaction-from-txn.use-case';
 
 @Module({
-  imports: [BudgetModule, BudgetLineModule, CurrencyModule, EncryptionModule],
+  // SavingsGoalModule fournit SAVINGS_GOAL_WITHDRAWAL_POLICY : un revenu venu
+  // d'un objectif ne s'écrit que sous la règle de solde de cet objectif.
+  imports: [
+    BudgetModule,
+    BudgetLineModule,
+    CurrencyModule,
+    EncryptionModule,
+    SavingsGoalModule,
+  ],
   controllers: [TransactionController],
   providers: [
     FindAllTransactionsUseCase,

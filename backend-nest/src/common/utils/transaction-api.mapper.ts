@@ -18,6 +18,13 @@ export interface TransactionApiSource {
   originalCurrency: string | null;
   targetCurrency: string | null;
   exchangeRate: number | null;
+  /**
+   * Origine d'épargne (PUL-329). Optionnels comme `tagIds` : les projections
+   * RPC (budget, budget-line) ne sélectionnent pas ces colonnes, et un revenu
+   * ordinaire n'en a de toute façon aucune.
+   */
+  sourceSavingsGoalId?: string | null;
+  sourceSavingsGoalName?: string | null;
 }
 
 export function mapTransactionToApi(
@@ -35,6 +42,8 @@ export function mapTransactionToApi(
     transactionDate: entity.transactionDate,
     tagIds: entity.tagIds,
     checkedAt: entity.checkedAt,
+    sourceSavingsGoalId: entity.sourceSavingsGoalId ?? null,
+    sourceSavingsGoalName: entity.sourceSavingsGoalName ?? null,
     ...mapCurrencyMetadataToApi({
       original_amount: entity.originalAmount,
       original_currency: entity.originalCurrency,

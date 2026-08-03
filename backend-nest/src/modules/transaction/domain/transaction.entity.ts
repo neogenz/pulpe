@@ -31,6 +31,14 @@ export interface Transaction {
   checkedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /**
+   * Origine d'épargne (PUL-329). Trois états, jamais un quatrième : les deux
+   * nuls = revenu ordinaire ; les deux présents = lien ACTIF ; identifiant nul
+   * et nom présent = lien CASSÉ (l'objectif a été supprimé, la provenance
+   * reste lisible). Aucune écriture ne peut les changer après la création.
+   */
+  sourceSavingsGoalId: string | null;
+  sourceSavingsGoalName: string | null;
 }
 
 /**
@@ -73,6 +81,13 @@ export interface TransactionCreateInput {
   tagIds?: string[];
   transactionDate: string;
   checkedAt?: string | null;
+  /**
+   * Objectif d'épargne d'origine (PUL-329). Présent = l'insertion passe par la
+   * RPC atomique qui prélève le stock, pas par l'INSERT ordinaire. Le nom
+   * snapshot n'est PAS ici : le serveur le fige lui-même sous le verrou, un
+   * nom fourni par l'appelant serait déjà périmé.
+   */
+  sourceSavingsGoalId?: string | null;
 }
 
 /**
@@ -92,6 +107,25 @@ export interface TransactionUpdatePatch {
   tagIds?: string[];
   transactionDate?: string;
   checkedAt?: string | null;
+}
+
+/**
+ * L'état d'une transaction juste avant qu'on l'édite ou la supprime (PUL-329).
+ *
+ * `amount` est déchiffré : c'est lui qui fait le disponible d'une édition
+ * (`confirmé + ancien montant`) et le montant restitué par une suppression.
+ * `sourceSavingsGoalId` non nul = lien ACTIF, l'écriture passe par la RPC ;
+ * nul avec un `sourceSavingsGoalName` = lien CASSÉ, l'écriture reprend le
+ * chemin ordinaire sans aucun contrôle de solde — l'objectif n'existe plus,
+ * il n'y a plus de stock à protéger.
+ */
+export interface TransactionMutationContext {
+  budgetId: string;
+  budgetLineId: string | null;
+  kind: TransactionKind;
+  amount: number;
+  sourceSavingsGoalId: string | null;
+  sourceSavingsGoalName: string | null;
 }
 
 /**

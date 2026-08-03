@@ -24,6 +24,8 @@ const eligibleTransaction: Transaction = {
   originalCurrency: null,
   targetCurrency: null,
   exchangeRate: null,
+  sourceSavingsGoalId: null,
+  sourceSavingsGoalName: null,
   kind: 'expense',
   tagIds: [],
   transactionDate: '2026-06-20T10:00:00.000Z',

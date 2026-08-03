@@ -5,6 +5,7 @@ import { TRANSACTION_REPOSITORY } from '../domain/ports/transaction-repository.p
 import { CacheService } from '@modules/cache/cache.service';
 import { CurrencyService } from '@modules/currency/currency.service';
 import { BUDGET_RECALCULATION_PORT } from '@modules/budget/domain/ports/budget-recalculation.port';
+import { SAVINGS_GOAL_WITHDRAWAL_POLICY } from '@modules/savings-goal/domain/ports/savings-goal-withdrawal-policy.port';
 import { BusinessException } from '@common/exceptions/business.exception';
 import type { TransactionCreate } from 'pulpe-shared';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
@@ -26,6 +27,8 @@ const mockTransactionEntity: Transaction = {
   originalCurrency: null,
   targetCurrency: null,
   exchangeRate: null,
+  sourceSavingsGoalId: null,
+  sourceSavingsGoalName: null,
 };
 
 const mockUser: AuthenticatedUser = {
@@ -39,8 +42,10 @@ describe('CreateTransactionUseCase', () => {
   let useCase: CreateTransactionUseCase;
   let mockRepo: {
     insert: ReturnType<typeof jest.fn>;
+    insertWithdrawal: ReturnType<typeof jest.fn>;
     fetchBudgetLineForAllocation: ReturnType<typeof jest.fn>;
   };
+  let mockWithdrawalPolicy: { runAgainstBalance: ReturnType<typeof jest.fn> };
   let mockCache: { invalidateForUser: ReturnType<typeof jest.fn> };
   let mockCurrency: { overrideExchangeRate: ReturnType<typeof jest.fn> };
   let mockBudget: { recalculate: ReturnType<typeof jest.fn> };
@@ -48,7 +53,13 @@ describe('CreateTransactionUseCase', () => {
   beforeEach(async () => {
     mockRepo = {
       insert: jest.fn().mockResolvedValue(mockTransactionEntity),
+      insertWithdrawal: jest.fn().mockResolvedValue(mockTransactionEntity),
       fetchBudgetLineForAllocation: jest.fn().mockResolvedValue(null),
+    };
+    mockWithdrawalPolicy = {
+      runAgainstBalance: jest
+        .fn()
+        .mockImplementation((input) => input.write(5)),
     };
     mockCache = { invalidateForUser: jest.fn().mockResolvedValue(undefined) };
     mockCurrency = {
@@ -65,6 +76,10 @@ describe('CreateTransactionUseCase', () => {
         { provide: CacheService, useValue: mockCache },
         { provide: CurrencyService, useValue: mockCurrency },
         { provide: BUDGET_RECALCULATION_PORT, useValue: mockBudget },
+        {
+          provide: SAVINGS_GOAL_WITHDRAWAL_POLICY,
+          useValue: mockWithdrawalPolicy,
+        },
         {
           provide: `INFO_LOGGER:${CreateTransactionUseCase.name}`,
           useValue: {
@@ -191,6 +206,95 @@ describe('CreateTransactionUseCase', () => {
     await expect(useCase.execute(dto, mockUser)).rejects.toThrow(
       BusinessException,
     );
+  });
+
+  describe('savings-goal withdrawal (PUL-329)', () => {
+    const goalId = '123e4567-e89b-12d3-a456-426614174009';
+
+    it('should write an ordinary transaction without consulting the balance', async () => {
+      const dto: TransactionCreate = {
+        budgetId: '123e4567-e89b-12d3-a456-426614174001',
+        name: 'Salaire',
+        amount: 5000,
+        kind: 'income',
+        transactionDate: '2024-01-15T12:00:00Z',
+      };
+
+      await useCase.execute(dto, mockUser);
+
+      expect(mockWithdrawalPolicy.runAgainstBalance).not.toHaveBeenCalled();
+      expect(mockRepo.insertWithdrawal).not.toHaveBeenCalled();
+    });
+
+    it('should write a linked income under the policy, carrying its revision', async () => {
+      const dto: TransactionCreate = {
+        budgetId: '123e4567-e89b-12d3-a456-426614174001',
+        name: 'Apport travaux',
+        amount: 4500,
+        kind: 'income',
+        transactionDate: '2024-01-15T12:00:00Z',
+        sourceSavingsGoalId: goalId,
+      };
+
+      await useCase.execute(dto, mockUser);
+
+      expect(mockWithdrawalPolicy.runAgainstBalance).toHaveBeenCalledTimes(1);
+      expect(mockRepo.insert).not.toHaveBeenCalled();
+      const [input] = mockWithdrawalPolicy.runAgainstBalance.mock.calls[0];
+      expect(input.goalId).toBe(goalId);
+      expect(input.debit).toBe(4500);
+      expect(mockRepo.insertWithdrawal).toHaveBeenCalledWith(
+        expect.objectContaining({ sourceSavingsGoalId: goalId }),
+        5,
+      );
+    });
+
+    it('should debit the converted amount, not the original one (RG-009)', async () => {
+      const dto: TransactionCreate = {
+        budgetId: '123e4567-e89b-12d3-a456-426614174001',
+        name: 'Apport travaux',
+        amount: 4200,
+        originalAmount: 4500,
+        originalCurrency: 'EUR',
+        targetCurrency: 'CHF',
+        exchangeRate: 0.9333,
+        kind: 'income',
+        transactionDate: '2024-01-15T12:00:00Z',
+        sourceSavingsGoalId: goalId,
+      };
+
+      await useCase.execute(dto, mockUser);
+
+      const [input] = mockWithdrawalPolicy.runAgainstBalance.mock.calls[0];
+      expect(input.debit).toBe(4200);
+    });
+
+    it('should not touch the budget when the balance refuses the withdrawal', async () => {
+      const dto: TransactionCreate = {
+        budgetId: '123e4567-e89b-12d3-a456-426614174001',
+        name: 'Apport travaux',
+        amount: 99_999,
+        kind: 'income',
+        transactionDate: '2024-01-15T12:00:00Z',
+        sourceSavingsGoalId: goalId,
+      };
+      mockWithdrawalPolicy.runAgainstBalance.mockRejectedValueOnce(
+        new BusinessException(
+          {
+            code: 'ERR_SAVINGS_GOAL_WITHDRAWAL_INSUFFICIENT_BALANCE',
+            message: () => 'not enough',
+            httpStatus: 422,
+          },
+          {},
+        ),
+      );
+
+      await expect(useCase.execute(dto, mockUser)).rejects.toThrow(
+        BusinessException,
+      );
+      expect(mockRepo.insertWithdrawal).not.toHaveBeenCalled();
+      expect(mockBudget.recalculate).not.toHaveBeenCalled();
+    });
   });
 
   describe('cache invalidation ordering (R1)', () => {

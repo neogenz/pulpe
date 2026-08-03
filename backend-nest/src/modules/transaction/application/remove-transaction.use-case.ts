@@ -9,6 +9,10 @@ import {
   type BudgetRecalculationPort,
 } from '@modules/budget/domain/ports/budget-recalculation.port';
 import {
+  SAVINGS_GOAL_WITHDRAWAL_POLICY,
+  type SavingsGoalWithdrawalPolicyPort,
+} from '@modules/savings-goal/domain/ports/savings-goal-withdrawal-policy.port';
+import {
   TRANSACTION_REPOSITORY,
   type TransactionRepositoryPort,
 } from '../domain/ports/transaction-repository.port';
@@ -21,13 +25,32 @@ export class RemoveTransactionUseCase {
     private readonly cacheService: CacheService,
     @Inject(BUDGET_RECALCULATION_PORT)
     private readonly budgetRecalculation: BudgetRecalculationPort,
+    @Inject(SAVINGS_GOAL_WITHDRAWAL_POLICY)
+    private readonly withdrawalPolicy: SavingsGoalWithdrawalPolicyPort,
     @InjectInfoLogger(RemoveTransactionUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
 
   async execute(id: string, user: AuthenticatedUser): Promise<void> {
-    const budgetId = await this.repo.fetchBudgetIdForTransaction(id);
-    await this.repo.delete(id);
+    const context = await this.repo.findMutationContext(id);
+    const budgetId = context?.budgetId ?? null;
+
+    // Supprimer un retrait rend son montant au pot : la suppression passe donc
+    // par le même verrou que la création. `debit: 0` — rien n'est prélevé, mais
+    // la révision reste vérifiée, sinon deux suppressions concurrentes du même
+    // retrait le rendraient deux fois. Un lien CASSÉ (objectif supprimé) n'a
+    // plus de solde à défendre et repart par le chemin ordinaire.
+    if (context?.sourceSavingsGoalId) {
+      await this.withdrawalPolicy.runAgainstBalance({
+        goalId: context.sourceSavingsGoalId,
+        debit: 0,
+        user,
+        write: (expectedRevision) =>
+          this.repo.deleteWithdrawal(id, expectedRevision),
+      });
+    } else {
+      await this.repo.delete(id);
+    }
 
     // Cache invalidation BEFORE recalc — if recalc fails, the about-to-be-stale
     // ending_balance won't be locked in as the new cached authoritative read.

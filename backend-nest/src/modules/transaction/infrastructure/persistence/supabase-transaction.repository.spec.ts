@@ -530,13 +530,20 @@ describe('SupabaseTransactionRepository', () => {
     });
   });
 
-  describe('fetchBudgetIdForTransaction', () => {
-    it('should return the budget id on success', async () => {
+  describe('findMutationContext', () => {
+    it('should return the mutation context on success', async () => {
       const provider = createMockProvider(() => ({
         select: () => ({
           eq: () => ({
             single: jest.fn().mockResolvedValue({
-              data: { budget_id: 'budget-1' },
+              data: {
+                budget_id: 'budget-1',
+                budget_line_id: null,
+                kind: 'expense',
+                amount: 'cipher',
+                source_savings_goal_id: null,
+                source_savings_goal_name: null,
+              },
               error: null,
             }),
           }),
@@ -548,9 +555,9 @@ describe('SupabaseTransactionRepository', () => {
         createMockLogger(),
       );
 
-      const result = await repo.fetchBudgetIdForTransaction('txn-1');
+      const result = await repo.findMutationContext('txn-1');
 
-      expect(result).toBe('budget-1');
+      expect(result?.budgetId).toBe('budget-1');
     });
 
     it('should return null when row not found (PGRST116)', async () => {
@@ -570,7 +577,7 @@ describe('SupabaseTransactionRepository', () => {
         createMockLogger(),
       );
 
-      const result = await repo.fetchBudgetIdForTransaction('missing');
+      const result = await repo.findMutationContext('missing');
 
       expect(result).toBeNull();
     });
@@ -593,7 +600,7 @@ describe('SupabaseTransactionRepository', () => {
       );
 
       try {
-        await repo.fetchBudgetIdForTransaction('txn-1');
+        await repo.findMutationContext('txn-1');
         throw new Error('expected to throw');
       } catch (error) {
         expect(error).toBeInstanceOf(BusinessException);

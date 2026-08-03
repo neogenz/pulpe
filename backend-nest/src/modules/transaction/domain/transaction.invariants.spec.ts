@@ -186,4 +186,35 @@ describe('TransactionInvariants', () => {
       ).not.toThrow();
     });
   });
+
+  describe('validateWithdrawalUpdate', () => {
+    it('rejects turning a goal-sourced income into an expense', () => {
+      const dto = { kind: 'expense' } as TransactionUpdate;
+
+      expect(() => TransactionInvariants.validateWithdrawalUpdate(dto)).toThrow(
+        BusinessException,
+      );
+    });
+
+    it('rejects turning it into a saving — that would double the contributions', () => {
+      const dto = { kind: 'saving' } as TransactionUpdate;
+
+      expect(() => TransactionInvariants.validateWithdrawalUpdate(dto)).toThrow(
+        BusinessException,
+      );
+    });
+
+    it('accepts editing name, amount, date and tags', () => {
+      const dto = {
+        name: 'Apport cuisine',
+        amount: 3500,
+        transactionDate: '2026-08-01T10:00:00Z',
+        tagIds: [],
+      } as TransactionUpdate;
+
+      expect(() =>
+        TransactionInvariants.validateWithdrawalUpdate(dto),
+      ).not.toThrow();
+    });
+  });
 });

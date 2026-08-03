@@ -11,10 +11,13 @@ import type {
   SavingsGoalTargetDateReconciliationCommand,
   SavingsGoalTargetDateReconciliationResult,
   SavingsGoalUpdatePatch,
+  SavingsGoalBalanceInputs,
+  SavingsGoalWithdrawalRecord,
 } from '../savings-goal.entity';
 import type {
   BudgetPeriod,
   LinkedSavingLine,
+  LinkedSavingWithdrawal,
   SavingsGoalDeletionCommand,
   SavingsGoalGenerationStop,
 } from 'pulpe-shared';
@@ -83,4 +86,39 @@ export interface SavingsGoalRepositoryPort {
     goalId: string,
     command: SavingsGoalTargetDateReconciliationCommand,
   ): Promise<SavingsGoalTargetDateReconciliationResult>;
+  /**
+   * Retraits liés à un objectif (PUL-329), déchiffrés, situés sur la PÉRIODE de
+   * leur budget porteur — pas sur leur date de saisie. C'est cette période qui
+   * place la sortie dans la chronologie du plan, comme pour les contributions.
+   */
+  findLinkedWithdrawals(goalId: string): Promise<LinkedSavingWithdrawal[]>;
+  /**
+   * Historique présentable d'un objectif, trié du plus récent au plus ancien.
+   * Sépare de `findLinkedWithdrawals` : la chronologie du plan a besoin de la
+   * période budgétaire, la liste affichée a besoin du libellé et de la date.
+   */
+  findWithdrawals(goalId: string): Promise<SavingsGoalWithdrawalRecord[]>;
+  /**
+   * De quoi calculer le solde de TOUS les objectifs de l'utilisateur, en une
+   * lecture groupée : le sélecteur d'origine ouvre la liste entière d'un coup,
+   * et un aller-retour par objectif serait un N+1 sur le chemin le plus
+   * interactif de la feature.
+   *
+   * Le repository rend la matière brute déchiffrée ; c'est l'appelant qui
+   * applique `computeSavingsGoalProgress`. Un solde n'est pas une donnée
+   * stockée mais le résultat d'une formule, et il n'en existe qu'une.
+   */
+  findAllBalanceInputs(): Promise<SavingsGoalBalanceInputs[]>;
+  /**
+   * Révision de solde d'UN objectif. `null` = objectif inexistant ou étranger :
+   * l'appelant décide s'il refuse en 404 ou en 422, le repository ne présume
+   * pas du parcours.
+   *
+   * À lire AVANT les lignes, transactions et retraits dont elle certifie la
+   * fraîcheur, jamais en parallèle : toute écriture concurrente incrémente la
+   * révision, donc une révision lue en premier ne peut que devenir périmée —
+   * la RPC refuse alors l'écriture. Lue en dernier, elle pourrait au contraire
+   * certifier un solde déjà dépassé, et l'écriture passerait.
+   */
+  findBalanceRevision(goalId: string): Promise<number | null>;
 }

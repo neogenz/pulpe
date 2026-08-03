@@ -122,14 +122,19 @@ function createContributionsProvider(config: {
   provider: AuthenticatedSupabaseProvider;
   transactionQueried: () => boolean;
   transactionLineIds: () => string[] | undefined;
+  lineGoalIds: () => string[] | undefined;
 } {
   let queried = false;
   let capturedIds: string[] | undefined;
+  let capturedGoalIds: string[] | undefined;
   const provider = createMockProvider((table: string) => {
     if (table === 'budget_line') {
       return {
         select: () => ({
-          eq: () => ({ eq: () => Promise.resolve(config.lineResult) }),
+          in: (_column: string, goalIds: string[]) => {
+            capturedGoalIds = goalIds;
+            return { eq: () => Promise.resolve(config.lineResult) };
+          },
         }),
       };
     }
@@ -152,6 +157,7 @@ function createContributionsProvider(config: {
     provider,
     transactionQueried: () => queried,
     transactionLineIds: () => capturedIds,
+    lineGoalIds: () => capturedGoalIds,
   };
 }
 
@@ -206,6 +212,7 @@ function createGoalContributionsProvider(config: {
 
 const linkedLineRow = {
   id: 'line-1',
+  savings_goal_id: 'goal-1',
   amount: 'enc:500',
   kind: 'saving' as const,
   checked_at: '2026-06-01T00:00:00Z',
@@ -642,7 +649,7 @@ describe('SupabaseSavingsGoalRepository', () => {
 
   describe('findLinkedContributions', () => {
     it('decrypts amounts, renames checked_at→checkedAt, flattens monthly_budget month/year', async () => {
-      const { provider } = createContributionsProvider({
+      const { provider, lineGoalIds } = createContributionsProvider({
         lineResult: { data: [linkedLineRow], error: null },
         txResult: {
           data: [
@@ -664,6 +671,9 @@ describe('SupabaseSavingsGoalRepository', () => {
       const { lines, transactions } =
         await repo.findLinkedContributions('goal-1');
 
+      // Le lot partagé avec la lecture groupée ne doit pas élargir la portée :
+      // un seul objectif reste un seul objectif.
+      expect(lineGoalIds()).toEqual(['goal-1']);
       expect(lines).toEqual([
         {
           id: 'line-1',

@@ -613,6 +613,30 @@ export const ERROR_DEFINITIONS = {
     message: () => 'Failed to reconcile the savings goal deadline',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
+  // Savings goal withdrawals (PUL-329 — an income sourced from a goal)
+  SAVINGS_GOAL_WITHDRAWAL_INSUFFICIENT_BALANCE: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_WITHDRAWAL_INSUFFICIENT_BALANCE,
+    // No amount in the message: it would leak a financial figure into logs and
+    // error trackers. The client already knows what it asked for and reads the
+    // available balance from the options endpoint.
+    message: () =>
+      'This savings goal does not hold enough to cover that amount.',
+    httpStatus: HttpStatus.UNPROCESSABLE_ENTITY,
+  },
+  SAVINGS_GOAL_WITHDRAWAL_CONFLICT: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_WITHDRAWAL_CONFLICT,
+    message: () =>
+      'The savings goal balance changed while saving. Reload and retry.',
+    httpStatus: HttpStatus.CONFLICT,
+  },
+  SAVINGS_GOAL_WITHDRAWAL_TRANSACTION_INVALID: {
+    code: API_ERROR_CODES.SAVINGS_GOAL_WITHDRAWAL_TRANSACTION_INVALID,
+    message: (details?: Record<string, unknown>) =>
+      details?.reason
+        ? `Invalid savings goal withdrawal: ${details.reason}`
+        : 'Invalid savings goal withdrawal',
+    httpStatus: HttpStatus.UNPROCESSABLE_ENTITY,
+  },
   SAVINGS_GOAL_RECONCILIATION_RECALCULATION_FAILED: {
     code: API_ERROR_CODES.SAVINGS_GOAL_RECONCILIATION_RECALCULATION_FAILED,
     message: () =>
