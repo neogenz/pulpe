@@ -65,6 +65,22 @@ struct AddBudgetLineSheet: View {
 
     static func showsSavingsGoalPicker(kind: TransactionKind) -> Bool { kind == .saving }
 
+    /// The period the goal link has to survive. A spread submits one line per selected
+    /// month and `enforce_savings_goal_line_link` rejects the WHOLE fan-out as soon as
+    /// a single one lands past the goal's deadline — so the LAST month binds, not the
+    /// anchor the sheet was opened on. `selectedMonths` is ascending, hence `.last`.
+    /// Pass an empty array outside spread mode: only the anchor is written then.
+    static func savingsGoalPeriod(
+        spreadMonths: [SpreadMonth],
+        anchorMonth: Int,
+        anchorYear: Int
+    ) -> BudgetPeriod {
+        guard let last = spreadMonths.last else {
+            return BudgetPeriod(month: anchorMonth, year: anchorYear)
+        }
+        return BudgetPeriod(month: last.month, year: last.year)
+    }
+
     var isSavingsWithdrawalMode: Bool { kind == .income && remitNextMonth }
 
     private var amountFieldHint: String? {
@@ -130,7 +146,11 @@ struct AddBudgetLineSheet: View {
             if Self.showsSavingsGoalPicker(kind: kind) {
                 SavingsGoalPickerField(
                     selection: $savingsGoalId,
-                    budgetPeriod: BudgetPeriod(month: anchorMonth, year: anchorYear)
+                    budgetPeriod: Self.savingsGoalPeriod(
+                        spreadMonths: isSpreadMode ? spreadCalculator.selectedMonths : [],
+                        anchorMonth: anchorMonth,
+                        anchorYear: anchorYear
+                    )
                 )
             }
 

@@ -232,7 +232,7 @@ interface AddBudgetLineModel {
           @if (model().kind === 'saving') {
             <pulpe-savings-goal-picker-field
               [value]="model().savingsGoalId"
-              [budgetPeriod]="budgetPeriod"
+              [budgetPeriod]="budgetPeriod()"
               (valueChanged)="
                 model.update((m) => ({ ...m, savingsGoalId: $event }))
               "
@@ -467,12 +467,6 @@ export class AddBudgetLineDialog {
 
   protected readonly currency = this.#settings.currency;
 
-  // The period a created line lands in — bounds which savings goals it can link.
-  protected readonly budgetPeriod: BudgetPeriod = {
-    month: this.#data.budgetMonth,
-    year: this.#data.budgetYear,
-  };
-
   protected readonly model = signal<AddBudgetLineModel>({
     name: '',
     kind: 'expense',
@@ -588,6 +582,20 @@ export class AddBudgetLineDialog {
   protected readonly selectedCount = computed(
     () => this.selectedMonths().length,
   );
+
+  // The period a created line lands in — bounds which savings goals it can link.
+  // A spread fans the line out over `selectedMonths()`, and the server refuses
+  // the WHOLE batch as soon as one month falls past a goal's deadline. The last
+  // selected month is the one that decides, so it is the period the picker must
+  // validate against — the anchor alone would green-light a goal that expires
+  // mid-range. Falls back to the anchor when there is nothing to spread over.
+  protected readonly budgetPeriod = computed<BudgetPeriod>(() => {
+    const months = this.selectedMonths();
+    if (this.#mode() !== 'spread' || months.length === 0) {
+      return { month: this.#data.budgetMonth, year: this.#data.budgetYear };
+    }
+    return months[months.length - 1];
+  });
 
   // The aggregated total of the plan. In `total` mode the entered amount IS the
   // total; in `perMonth` mode it is the per-month amount × the selected count.
