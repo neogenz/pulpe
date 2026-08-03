@@ -5,6 +5,7 @@ import {
   inject,
   input,
   output,
+  signal,
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -12,7 +13,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { combineLatest, map } from 'rxjs';
+import { filter, map } from 'rxjs';
 import { cachedResource } from 'ngx-ziflux';
 import { formatDate } from 'date-fns';
 import {
@@ -85,7 +86,7 @@ import { dateFnsLocaleFor } from '@core/locale';
         <mat-label>{{ 'savingsGoals.pickerLabel' | transloco }}</mat-label>
         <mat-select
           [value]="value()"
-          (selectionChange)="valueChanged.emit($event.value)"
+          (selectionChange)="onSelectionChange($event.value)"
           data-testid="savings-goal-picker-select"
         >
           <mat-option [value]="null">{{
@@ -177,22 +178,52 @@ export class SavingsGoalPickerField {
     });
   });
 
+  /**
+   * Set once the user picks in THIS picker, as opposed to the link the caller
+   * handed us. The distinction decides who may be auto-unlinked below.
+   */
+  readonly #pickedHere = signal(false);
+
+  protected onSelectionChange(goalId: string | null): void {
+    this.#pickedHere.set(true);
+    this.valueChanged.emit(goalId);
+  }
+
+  /**
+   * True when the selection must be withdrawn. Disabling the option is not
+   * enough on its own: the caller can widen the period AFTER a goal was picked
+   * (a spread range extended past the deadline), leaving a stale id that would
+   * still submit. Reuses `goalOptions` — the very list the template disables
+   * from — so nothing shown as unselectable can survive as a selection.
+   *
+   * The two reasons are NOT symmetric. A goal that vanished can never be saved
+   * again, so it goes whoever chose it. A goal that is merely out of horizon
+   * was legitimately linkable when the line was saved, and an edit surface
+   * opens carrying it — dropping that on open would edit the user's data for
+   * them, so only a pick made here is taken back.
+   *
+   * The raw resource value gates the whole thing: the option list collapses to
+   * `[]` while loading or errored, and clearing on that would wipe a valid pick.
+   */
+  readonly #hasStaleSelection = computed(() => {
+    if (
+      this.#goalsResource.error() ||
+      this.#goalsResource.value() === undefined
+    )
+      return false;
+    const selectedId = this.value();
+    if (selectedId === null) return false;
+    const selected = this.goalOptions().find(
+      (option) => option.id === selectedId,
+    );
+    if (!selected) return true;
+    return selected.deadlineLabel !== null && this.#pickedHere();
+  });
+
   constructor() {
-    combineLatest([
-      toObservable(this.#goalsResource.value),
-      toObservable(this.#goalsResource.error),
-      toObservable(this.value),
-    ])
-      .pipe(takeUntilDestroyed())
-      .subscribe(([goals, error, selectedId]) => {
-        if (error || goals === undefined) return;
-        if (
-          selectedId !== null &&
-          !goals.some((goal) => goal.id === selectedId)
-        ) {
-          this.valueChanged.emit(null);
-        }
-      });
+    toObservable(this.#hasStaleSelection)
+      .pipe(filter(Boolean), takeUntilDestroyed())
+      .subscribe(() => this.valueChanged.emit(null));
   }
 
   protected reloadGoals(): void {

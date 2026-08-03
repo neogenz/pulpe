@@ -12,23 +12,40 @@ import SwiftUI
 /// reject the link with a 422. Listed, not hidden — a goal that silently
 /// disappears is unexplainable. Template lines pass no period and stay
 /// unfiltered; the trigger's horizon branch only bounds `budget_line`.
+/// `budgetPeriod` can move under a live selection (a spread window extended past
+/// a goal's deadline), so the selection is reconciled against it, not just the
+/// goal list.
 struct SavingsGoalPickerField: View {
     struct SelectionState: Equatable {
         let hasLoadedOnce: Bool
         let isLoading: Bool
         let hasError: Bool
-        let goalIDs: Set<String>
+        let knownGoalIDs: Set<String>
+        /// Goals the caller's period can still link to — NOT every known goal. The
+        /// period moves under a live selection when a spread window is extended.
+        let linkableGoalIDs: Set<String>
+        /// Whether the live selection was made in this picker rather than handed in.
+        let pickedHere: Bool
 
+        /// The two reasons a selection can go stale are NOT symmetric. A goal that
+        /// vanished can never be saved again, so it drops whoever chose it. A goal
+        /// that is merely out of horizon was legitimately linkable when the line was
+        /// saved, and an edit sheet opens carrying it — withdrawing that on open
+        /// would edit the user's data for them, so only a pick made here is taken back.
         func reconciled(_ selection: String?) -> String? {
             guard hasLoadedOnce, !isLoading, !hasError, let selection else {
                 return selection
             }
-            return goalIDs.contains(selection) ? selection : nil
+            guard knownGoalIDs.contains(selection) else { return nil }
+            if linkableGoalIDs.contains(selection) { return selection }
+            return pickedHere ? nil : selection
         }
     }
 
     @Binding var selection: String?
     var budgetPeriod: BudgetPeriod?
+
+    @State private var pickedHere = false
 
     @Environment(SavingsGoalStore.self) private var store
     @Environment(UserSettingsStore.self) private var userSettingsStore
@@ -65,7 +82,9 @@ struct SavingsGoalPickerField: View {
             hasLoadedOnce: store.hasLoadedOnce,
             isLoading: store.isLoading,
             hasError: store.error != nil,
-            goalIDs: Set(store.goals.map(\.id))
+            knownGoalIDs: Set(store.goals.map(\.id)),
+            linkableGoalIDs: Set(store.goals.filter { exceededDeadline(for: $0) == nil }.map(\.id)),
+            pickedHere: pickedHere
         )
     }
 
@@ -134,6 +153,7 @@ struct SavingsGoalPickerField: View {
     private var menuContent: some View {
         Menu {
             pickerButton(title: "Aucun objectif", isSelected: selection == nil) {
+                pickedHere = true
                 selection = nil
             }
             Divider()
@@ -147,6 +167,7 @@ struct SavingsGoalPickerField: View {
                     .disabled(true)
                 } else {
                     pickerButton(title: goal.name, isSelected: goal.id == selection) {
+                        pickedHere = true
                         selection = goal.id
                     }
                 }

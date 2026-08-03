@@ -15,21 +15,29 @@ private func goal(targetDate: String?) -> SavingsGoal {
     )
 }
 
+private func selectionState(
+    hasLoadedOnce: Bool = true,
+    isLoading: Bool = false,
+    hasError: Bool = false,
+    knownGoalIDs: Set<String> = [],
+    linkableGoalIDs: Set<String> = [],
+    pickedHere: Bool = false
+) -> SavingsGoalPickerField.SelectionState {
+    SavingsGoalPickerField.SelectionState(
+        hasLoadedOnce: hasLoadedOnce,
+        isLoading: isLoading,
+        hasError: hasError,
+        knownGoalIDs: knownGoalIDs,
+        linkableGoalIDs: linkableGoalIDs,
+        pickedHere: pickedHere
+    )
+}
+
 struct SavingsGoalPickerFieldTests {
     @Test("a missing selection is preserved while goals are loading or failed")
     func missingSelection_preservedUntilSuccessfulLoad() {
-        let loading = SavingsGoalPickerField.SelectionState(
-            hasLoadedOnce: false,
-            isLoading: true,
-            hasError: false,
-            goalIDs: []
-        )
-        let failed = SavingsGoalPickerField.SelectionState(
-            hasLoadedOnce: false,
-            isLoading: false,
-            hasError: true,
-            goalIDs: []
-        )
+        let loading = selectionState(hasLoadedOnce: false, isLoading: true)
+        let failed = selectionState(hasLoadedOnce: false, hasError: true)
 
         #expect(loading.reconciled("missing") == "missing")
         #expect(failed.reconciled("missing") == "missing")
@@ -37,16 +45,33 @@ struct SavingsGoalPickerFieldTests {
 
     @Test("a successful load clears only selections absent from the response")
     func successfulLoad_reconcilesSelection() {
-        let loaded = SavingsGoalPickerField.SelectionState(
-            hasLoadedOnce: true,
-            isLoading: false,
-            hasError: false,
-            goalIDs: ["available"]
+        let loaded = selectionState(
+            knownGoalIDs: ["available"],
+            linkableGoalIDs: ["available"]
         )
 
         #expect(loaded.reconciled("missing") == nil)
         #expect(loaded.reconciled("available") == "available")
         #expect(loaded.reconciled(nil) == nil)
+    }
+
+    // The two staleness reasons are not symmetric: a vanished goal can never be
+    // saved again, but a goal merely out of horizon was legitimately linkable
+    // when the line was saved — an edit sheet opens carrying it.
+    @Test("an out-of-horizon goal is withdrawn only when it was picked here")
+    func outOfHorizonGoal_withdrawnOnlyWhenPickedHere() {
+        let pickedHere = selectionState(
+            knownGoalIDs: ["expired"],
+            linkableGoalIDs: [],
+            pickedHere: true
+        )
+        let openedWith = selectionState(
+            knownGoalIDs: ["expired"],
+            linkableGoalIDs: []
+        )
+
+        #expect(pickedHere.reconciled("expired") == nil)
+        #expect(openedWith.reconciled("expired") == "expired")
     }
 
     // PUL-313 — the picker must not offer a link `enforce_savings_goal_line_link`

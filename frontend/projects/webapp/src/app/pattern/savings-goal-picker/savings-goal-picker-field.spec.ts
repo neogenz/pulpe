@@ -1,6 +1,7 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
+import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
+import { MatSelect, type MatSelectChange } from '@angular/material/select';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { of, Subject, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -29,6 +30,17 @@ const goalWithDeadline = (targetDate: string | null): SavingsGoal =>
   ({ ...goal, targetDate }) as SavingsGoal;
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 50));
+
+/** Drives the very output the template listens to, so the pick counts as the user's. */
+const pickInSelect = (
+  fixture: ComponentFixture<SavingsGoalPickerField>,
+  goalId: string | null,
+): void =>
+  fixture.debugElement
+    .query(By.directive(MatSelect))
+    .componentInstance.selectionChange.emit({
+      value: goalId,
+    } as MatSelectChange);
 
 describe('SavingsGoalPickerField', () => {
   const getAll$ = vi.fn();
@@ -211,6 +223,61 @@ describe('SavingsGoalPickerField', () => {
       );
 
       expect(option.getAttribute('aria-disabled')).toBe('true');
+    });
+
+    // Disabling the option only guards a goal picked AFTER the period is known.
+    // A spread range widened later moves the period past an already-linked goal.
+    it('clears a goal picked here once the period widens past its deadline', async () => {
+      getAll$.mockReturnValue(
+        of({ data: [goalWithDeadline('2026-06-15')], success: true }),
+      );
+      const fixture = TestBed.createComponent(SavingsGoalPickerField);
+      setTestInput(fixture.componentInstance.budgetPeriod, {
+        month: 6,
+        year: 2026,
+      });
+      const emitted = vi.spyOn(fixture.componentInstance.valueChanged, 'emit');
+
+      fixture.detectChanges();
+      await settle();
+      fixture.detectChanges();
+
+      pickInSelect(fixture, goal.id);
+      setTestInput(fixture.componentInstance.value, goal.id);
+      fixture.detectChanges();
+      TestBed.flushEffects();
+      expect(emitted).toHaveBeenCalledExactlyOnceWith(goal.id);
+
+      setTestInput(fixture.componentInstance.budgetPeriod, {
+        month: 11,
+        year: 2026,
+      });
+      fixture.detectChanges();
+      TestBed.flushEffects();
+
+      expect(emitted).toHaveBeenLastCalledWith(null);
+    });
+
+    // An edit surface opens carrying a link saved while it was still valid.
+    // Withdrawing it on open would edit the user's data without them asking.
+    it('keeps a link it was opened with even when out of horizon', async () => {
+      getAll$.mockReturnValue(
+        of({ data: [goalWithDeadline('2026-06-15')], success: true }),
+      );
+      const fixture = TestBed.createComponent(SavingsGoalPickerField);
+      setTestInput(fixture.componentInstance.value, goal.id);
+      setTestInput(fixture.componentInstance.budgetPeriod, {
+        month: 11,
+        year: 2026,
+      });
+      const emitted = vi.spyOn(fixture.componentInstance.valueChanged, 'emit');
+
+      fixture.detectChanges();
+      await settle();
+      fixture.detectChanges();
+      TestBed.flushEffects();
+
+      expect(emitted).not.toHaveBeenCalled();
     });
 
     it('keeps that same deadline in horizon once the pay day moves it forward', async () => {
