@@ -28,6 +28,63 @@ export class CurrentMonthPage {
     await expect(this.page.getByTestId('transaction-form')).toBeHidden();
   }
 
+  /**
+   * PUL-329 — an income funded by a savings goal. The origin toggle only exists
+   * for an income, so the kind is picked before it is looked for; the goal is
+   * chosen by its visible name, never by option index.
+   */
+  async openTransactionForm(amount: string, description: string) {
+    await this.page.getByTestId('add-transaction-fab').click();
+    await expect(this.page.getByTestId('transaction-form')).toBeVisible();
+
+    const amountInput = this.page.locator(
+      '[data-testid="transaction-form"] [data-testid="amount-input-value"]',
+    );
+    await expect(amountInput).toBeFocused();
+    await amountInput.fill(amount);
+    await this.page
+      .getByTestId('transaction-description-input')
+      .fill(description);
+  }
+
+  async selectTransactionKind(kind: 'Revenu' | 'Dépense' | 'Épargne') {
+    await this.page.getByTestId('transaction-type-select').click();
+    await this.page.getByRole('option').filter({ hasText: kind }).click();
+  }
+
+  async enableSavingsGoalSource() {
+    await this.page.getByTestId('transaction-savings-source-toggle').click();
+    await expect(
+      this.page.getByTestId('savings-goal-withdrawal-select'),
+    ).toBeVisible();
+  }
+
+  async selectSavingsGoalSource(goalName: string) {
+    await this.page.getByTestId('savings-goal-withdrawal-select').click();
+    await this.page
+      .getByRole('option')
+      .filter({ hasText: goalName })
+      .first()
+      .click();
+  }
+
+  withdrawalPreview() {
+    return this.page.getByTestId('savings-goal-withdrawal-preview');
+  }
+
+  withdrawalInsufficientWarning() {
+    return this.page.getByTestId('savings-goal-withdrawal-insufficient');
+  }
+
+  submitButton() {
+    return this.page.getByTestId('transaction-submit-button');
+  }
+
+  async submitTransactionForm() {
+    await this.submitButton().click();
+    await expect(this.page.getByTestId('transaction-form')).toBeHidden();
+  }
+
   async expectPageLoaded() {
     await expect(this.page.getByTestId('dashboard-page')).toBeVisible();
   }
