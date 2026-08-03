@@ -820,11 +820,9 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         isManuallyAdjusted: false,
       });
 
-      // No hole was written under the budget's key
+      // Nothing was written under the budget's key — not even a hole
       expect(service.budgetDetails()).toBeNull();
-      for (const [, value] of mockBudgetApi.cache.set.mock.calls) {
-        expect(value).toBeDefined();
-      }
+      expect(mockBudgetApi.cache.set).not.toHaveBeenCalled();
     });
 
     it('user sees error message when network fails', async () => {
