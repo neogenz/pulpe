@@ -430,6 +430,61 @@ describe('GoalPlanTimeline', () => {
     expect(query('goal-plan-gap-hint')).toBeTruthy();
   });
 
+  // A withdrawal lands wherever the user spent from the pot — including after
+  // the target date, where the month is closed to contributions. Dropping that
+  // row leaves the cumulative falling between two lines with nothing on screen
+  // to account for it.
+  it('keeps a month closed to contributions when it carries a withdrawal', () => {
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({ month: 6, plannedAmount: 300, plannedCumulative: 3000 }),
+      makeMonth({
+        month: 8,
+        state: 'gap',
+        isContributionEligible: false,
+        plannedAmount: 0,
+        plannedCumulative: 3000,
+        withdrawnAmount: 4500,
+        lines: [],
+      }),
+    ]);
+    setTestInput(fixture.componentInstance.expanded, true);
+    fixture.detectChanges();
+
+    const withdrawalRow = fixture.debugElement.query(
+      By.css(`[data-testid="goal-plan-row-${2026 * 12 + 8}"]`),
+    );
+    expect(withdrawalRow).toBeTruthy();
+    // Aggregation, so no centimes, and signed as the stock exit it is.
+    expect(withdrawalRow.nativeElement.textContent).toContain('4’500');
+    expect(withdrawalRow.nativeElement.textContent).toContain('Retiré');
+  });
+
+  // Its lines are empty by construction, so the contribution chips would read
+  // it as a month whose forecast is missing. Nothing is missing: this month
+  // was never meant to contribute.
+  it('does not accuse a withdrawal-only month of a missing forecast', () => {
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({
+        month: 8,
+        state: 'gap',
+        isContributionEligible: false,
+        plannedAmount: 0,
+        plannedCumulative: 3000,
+        withdrawnAmount: 4500,
+        lines: [],
+      }),
+    ]);
+    setTestInput(fixture.componentInstance.expanded, true);
+    fixture.detectChanges();
+
+    expect(
+      fixture.debugElement.queryAll(
+        By.css('[data-testid="goal-plan-gap-chip"]'),
+      ),
+    ).toHaveLength(0);
+    expect(query('goal-plan-gap-hint')).toBeFalsy();
+  });
+
   it('exposes an inline edit affordance only for open months when editable', () => {
     setTestInput(fixture.componentInstance.months, [
       makeMonth({ month: 3, state: 'current' }),

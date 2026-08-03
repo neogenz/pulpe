@@ -99,6 +99,7 @@ import { dateFnsLocaleFor } from '@core/locale';
           'savingsGoals.withdrawalSourceLabel' | transloco
         }}</mat-label>
         <mat-select
+          required
           [value]="value()"
           (selectionChange)="valueChanged.emit($event.value)"
           data-testid="savings-goal-withdrawal-select"
@@ -150,6 +151,18 @@ import { dateFnsLocaleFor } from '@core/locale';
             {{ 'savingsGoals.withdrawalCompletedNote' | transloco }}
           </p>
         }
+      } @else {
+        <!--
+          Des objectifs sont proposés, aucun n'est retenu : le bouton d'envoi
+          est grisé et c'était le seul état bloqué qui n'en disait pas la
+          raison. Couvre aussi l'identifiant absent de la liste rechargée.
+        -->
+        <p
+          class="mt-1 text-body-small text-on-surface-variant"
+          data-testid="savings-goal-withdrawal-required"
+        >
+          {{ 'savingsGoals.withdrawalPickRequired' | transloco }}
+        </p>
       }
     } @else {
       <mat-form-field

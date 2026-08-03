@@ -56,6 +56,26 @@ describe('SavingsGoalSourceLine', () => {
     expect(line.className).not.toContain('error');
   });
 
+  // A generic <span> cannot be named by `aria-label` — ARIA in HTML forbids it,
+  // so browsers drop it. Hiding the only text behind `aria-hidden` on top of
+  // that left the line, and the link wrapping it in the edit form, with no
+  // accessible name at all. The visible text IS the name; only the icon
+  // ligature ("savings") has to stay out of it.
+  it('exposes the origin as text rather than behind a label ARIA ignores', () => {
+    setTestInput(component.goalId, 'goal-1');
+    setTestInput(component.goalName, 'Maison');
+    fixture.detectChanges();
+
+    const line = render()!;
+    expect(line.getAttribute('aria-label')).toBeNull();
+    expect(
+      line.querySelector('[aria-hidden="true"]')?.textContent,
+    ).not.toContain('Maison');
+    expect(line.querySelector('mat-icon')?.getAttribute('aria-hidden')).toBe(
+      'true',
+    );
+  });
+
   it('ellipses a long name in a compact list but keeps it whole for assistive tech', () => {
     setTestInput(component.goalId, 'goal-1');
     setTestInput(component.goalName, LONG_NAME);
@@ -63,7 +83,7 @@ describe('SavingsGoalSourceLine', () => {
 
     const line = render()!;
     expect(line.classList).toContain('truncate');
-    expect(line.getAttribute('aria-label')).toContain(LONG_NAME);
+    expect(line.textContent).toContain(LONG_NAME);
   });
 
   it('shows the whole name in the detail variant', () => {

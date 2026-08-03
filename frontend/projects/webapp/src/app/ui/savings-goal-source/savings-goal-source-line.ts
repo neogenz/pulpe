@@ -19,6 +19,11 @@ import { TranslocoPipe } from '@jsverse/transloco';
  *
  * Ne pas confondre avec `SavingsWithdrawalBadge` (PUL-292), qui marque une
  * pioche remboursée le mois suivant.
+ *
+ * Le texte visible EST le nom accessible : un `<span>` générique ne peut pas
+ * être nommé par `aria-label` (ARIA in HTML l'interdit, les navigateurs le
+ * jettent), et le tronquage n'est que du CSS — le nom entier reste dans l'arbre
+ * d'accessibilité. Seule la ligature de l'icône en sort.
  */
 @Component({
   selector: 'pulpe-savings-goal-source-line',
@@ -33,18 +38,14 @@ import { TranslocoPipe } from '@jsverse/transloco';
             ? ('budget.savingsGoalSource.brokenTooltip' | transloco)
             : ''
         "
-        [attr.aria-label]="
-          (isBroken()
-            ? 'budget.savingsGoalSource.brokenAria'
-            : 'budget.savingsGoalSource.activeAria'
-          ) | transloco: { name: name }
-        "
         data-testid="savings-goal-source-line"
       >
-        <mat-icon class="text-sm! shrink-0 h-auto! w-auto!">{{
-          isBroken() ? 'link_off' : 'savings'
-        }}</mat-icon>
-        <span aria-hidden="true" [class.truncate]="variant() === 'compact'">
+        <mat-icon
+          class="text-sm! shrink-0 h-auto! w-auto!"
+          aria-hidden="true"
+          >{{ isBroken() ? 'link_off' : 'savings' }}</mat-icon
+        >
+        <span [class.truncate]="variant() === 'compact'">
           {{
             (isBroken()
               ? 'budget.savingsGoalSource.brokenLabel'
