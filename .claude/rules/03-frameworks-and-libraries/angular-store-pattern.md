@@ -50,7 +50,7 @@ export class FeatureApi {
 
 Zod validation enforced by design — no schema, no call.
 
-## Store Anatomy (6 sections)
+## Store Anatomy (5 sections)
 
 ```typescript
 @Service({ autoProvided: false })
@@ -61,7 +61,6 @@ export class FeatureStore {
 
   // ── 2. State ──
   readonly #budgetId = signal<string | null>(null);
-  readonly #errorMessage = signal<string | null>(null);
 
   // ── 3. Resource (data loading) ──
   readonly #resource = resource({
@@ -75,17 +74,22 @@ export class FeatureStore {
   // ── 4. Selectors (computed) ──
   readonly data = computed(() => this.#resource.value() ?? null);
   readonly isLoading = computed(() => this.#resource.isLoading());
-  readonly error = computed(() => this.#resource.error() || this.#errorMessage());
+  readonly error = this.#resource.error;
 
   // ── 5. Mutations (public methods) ──
-  async createItem(data: ItemCreate): Promise<void> { /* ... */ }
-  async deleteItem(id: string): Promise<void> { /* ... */ }
-
-  // ── 6. Private utils ──
-  #setError(msg: string): void { this.#errorMessage.set(msg); }
-  #clearError(): void { this.#errorMessage.set(null); }
+  // `null` = it went through; a string = the reason the caller must surface.
+  async createItem(data: ItemCreate): Promise<string | null> { /* ... */ }
+  async deleteItem(id: string): Promise<string | null> { /* ... */ }
 }
 ```
+
+### Where a failure lands
+
+A store's `error` signal says **one thing: the resource could not be loaded**.
+Pages render it as a card that replaces the whole screen, so anything else
+written there blanks the page. A refused mutation is not an unloadable
+resource — it travels back through the mutation's own return value, and the
+caller decides how to surface it (a toast, an inline message).
 
 ## Store Variants
 
@@ -137,7 +141,7 @@ readonly #dashboardResource = rxResource({
 ## Mutations: async/await
 
 ```typescript
-async createItem(data: ItemCreate): Promise<void> {
+async createItem(data: ItemCreate): Promise<string | null> {
   const tempId = `temp-${uuidv4()}`;
 
   // 1. Optimistic update
@@ -160,10 +164,11 @@ async createItem(data: ItemCreate): Promise<void> {
         ),
       };
     });
+    return null;
   } catch {
-    // 4. Rollback
+    // 4. Rollback, then hand the reason back to the caller
     this.#resource.reload();
-    this.#setError("Erreur lors de l'ajout");
+    return "Erreur lors de l'ajout";
   }
 }
 ```
@@ -338,12 +343,10 @@ All `ApiClient` errors are `ApiError` instances:
 import { isApiError } from '@core/api/api-error';
 
 catch (error) {
-  if (isApiError(error) && error.code === 'ERR_NOT_FOUND') {
-    this.#setError('Élément introuvable');
-  } else {
-    this.#setError('Erreur inattendue');
-  }
   this.#logger.error('Operation failed', error);
+  return isApiError(error) && error.code === 'ERR_NOT_FOUND'
+    ? 'Élément introuvable'
+    : 'Erreur inattendue';
 }
 ```
 
@@ -359,11 +362,13 @@ catch (error) {
 | `effect()` for derived state | `computed()` or `linkedSignal()` |
 | Mutate signal arrays in place | Spread: `[...items, newItem]` |
 | `#staleData` signal in store | Cache fallback via `api.cache.get()` in selector |
+| `error` mixing resource and mutation failures | `error = this.#resource.error`; mutations return their reason |
+| Reading success from `response !== undefined` | A `void` mutation resolves `undefined` on success too — read the returned reason |
 
 ## Reference Implementations
 
 | Store | File | Pattern |
 |-------|------|---------|
-| `BudgetDetailsStore` | `feature/budget/budget-details/store/` | `resource()`, optimistic updates, temp IDs, cache-first loader, prefetch |
+| `BudgetDetailsStore` | `feature/budget/budget-details/store/` | `resource()`, optimistic updates, temp IDs, cache-first loader, prefetch, mutation reasons returned to the caller |
 | `CurrentMonthStore` | `feature/current-month/services/` | `resource()`, SWR, cache-first loader, invalidation version |
 | `BudgetListStore` | `feature/budget/budget-list/` | `resource()`, cache-first loader, linkedSignal |

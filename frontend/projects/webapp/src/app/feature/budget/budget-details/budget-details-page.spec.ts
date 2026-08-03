@@ -224,4 +224,27 @@ describe('BudgetDetailsPage — savings-goal deep link', () => {
       amount: 42,
     });
   });
+
+  it('surfaces the reason when the server refuses the edit', async () => {
+    openEditAllocatedTransactionDialog.mockResolvedValue({
+      id: TRANSACTION_ID,
+      update: { amount: 42 },
+    });
+    updateTransaction.mockResolvedValue('Solde de l’objectif dépassé');
+
+    const page = createPage();
+    setTestInput(page.transactionId, TRANSACTION_ID);
+    loadBudget();
+    TestBed.flushEffects();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(TestBed.inject(MatSnackBar).open).toHaveBeenCalledWith(
+      'Solde de l’objectif dépassé',
+      expect.anything(),
+      expect.objectContaining({
+        panelClass: ['bg-error-container', 'text-on-error-container'],
+      }),
+    );
+  });
 });

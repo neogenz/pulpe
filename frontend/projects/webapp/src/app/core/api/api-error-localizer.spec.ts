@@ -47,7 +47,9 @@ describe('ApiErrorLocalizer', () => {
     );
   });
 
-  it('should explain when a spread exceeds its savings-goal deadline', () => {
+  // Same code now reaches a single line as well as a spread, so the copy must
+  // read correctly for both — no "raccourcis le lissage".
+  it('should explain when a saving falls past its savings-goal deadline', () => {
     const error = new ApiError(
       'Savings goal line outside target horizon',
       'ERR_SAVINGS_GOAL_LINE_OUTSIDE_HORIZON',
@@ -55,7 +57,7 @@ describe('ApiErrorLocalizer', () => {
       null,
     );
     expect(service.localizeApiError(error)).toBe(
-      "Certaines périodes dépassent l'échéance de cet objectif — raccourcis le lissage ou choisis un autre objectif",
+      "Cette épargne tombe après l'échéance de ton objectif — repousse l'échéance ou choisis un autre objectif",
     );
   });
 

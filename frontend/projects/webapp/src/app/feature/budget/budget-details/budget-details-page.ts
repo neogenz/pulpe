@@ -28,6 +28,7 @@ import { BudgetDetailsStore } from './store/budget-details-store';
 import { BudgetItemsContainer } from './components/budget-items-container';
 import { BudgetDetailsDialogService } from './budget-details-dialog.service';
 import {
+  openMutationErrorSnackbar,
   spreadCreateEcho,
   submitSavingsWithdrawalWithRetry,
   submitSpreadWithRetry,
@@ -279,7 +280,10 @@ export default class BudgetDetailsPage {
     } else if (result.mode === 'savingsWithdrawal') {
       await this.#openSavingsWithdrawalFlow(budget, result.prefill);
     } else {
-      await this.store.createBudgetLine(result.value);
+      const error = await this.store.createBudgetLine(result.value);
+      if (error) {
+        openMutationErrorSnackbar(error, this.#snackBar, this.#transloco);
+      }
     }
   }
 
@@ -304,7 +308,18 @@ export default class BudgetDetailsPage {
         payDayOfMonth: this.userSettingsStore.payDayOfMonth(),
       },
     );
-    if (result) await this.store.updateTransaction(result.id, result.update);
+    if (!result) return;
+
+    const error = await this.store.updateTransaction(result.id, result.update);
+    if (error) {
+      openMutationErrorSnackbar(error, this.#snackBar, this.#transloco);
+      return;
+    }
+    this.#snackBar.open(
+      this.#transloco.translate('budget.modificationSaved'),
+      this.#transloco.translate('common.close'),
+      { duration: 5000 },
+    );
   }
 
   protected async openSavingsWithdrawalFromCard(): Promise<void> {

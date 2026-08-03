@@ -327,6 +327,17 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
         );
       }
 
+      // Same trigger, horizon branch: the budget's period is past the goal's
+      // pay-day-aware deadline. Business rejection, not a server fault.
+      if (isSavingsGoalLinkOutsideHorizon(error)) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.SAVINGS_GOAL_LINE_OUTSIDE_HORIZON,
+          undefined,
+          loggingContext,
+          { cause: error },
+        );
+      }
+
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_LINE_CREATE_FAILED,
         undefined,
@@ -701,6 +712,17 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       if (isSavingsGoalLinkDenied(error)) {
         throw new BusinessException(
           ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
+          undefined,
+          loggingContext,
+          { cause: error },
+        );
+      }
+
+      // Same trigger, horizon branch: re-tagging a line onto a goal whose
+      // deadline precedes its budget's period.
+      if (isSavingsGoalLinkOutsideHorizon(error)) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.SAVINGS_GOAL_LINE_OUTSIDE_HORIZON,
           undefined,
           loggingContext,
           { cause: error },

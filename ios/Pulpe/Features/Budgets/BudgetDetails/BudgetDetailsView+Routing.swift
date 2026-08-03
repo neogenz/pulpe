@@ -99,15 +99,28 @@ extension BudgetDetailsView {
         )
     }
 
+    /// The OPENED budget's period bounds which savings goals the line may be
+    /// tagged to (PUL-313) — a goal whose deadline precedes it is refused
+    /// server-side, so the picker disables it instead of offering the 422.
+    @ViewBuilder
+    private func editBudgetLineSheet(for line: BudgetLine) -> some View {
+        let openBudget = coordinator.dataStore.budget
+        EditBudgetLineSheet(
+            budgetLine: line,
+            userCurrency: userSettingsStore.currency,
+            budgetPeriod: openBudget.map { BudgetPeriod(month: $0.month, year: $0.year) }
+        ) { updatedLine in
+            Task { await coordinator.dispatch(.updateBudgetLine(updatedLine)) }
+        }
+    }
+
     @ViewBuilder
     func sheetContent(for destination: BudgetDetailDestination) -> some View {
         switch destination {
         case .addBudgetLine:
             addBudgetLineSheet
         case .editBudgetLine(let line):
-            EditBudgetLineSheet(budgetLine: line, userCurrency: userSettingsStore.currency) { updatedLine in
-                Task { await coordinator.dispatch(.updateBudgetLine(updatedLine)) }
-            }
+            editBudgetLineSheet(for: line)
         case .previousBudget(let item):
             PreviousBudgetSheet(budgetId: item.id)
         case .realizedBalance:

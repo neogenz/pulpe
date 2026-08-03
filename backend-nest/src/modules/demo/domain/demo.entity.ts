@@ -19,6 +19,7 @@ export interface DemoSession {
 type TransactionKindEnum = Database['public']['Enums']['transaction_kind'];
 type TransactionRecurrenceEnum =
   Database['public']['Enums']['transaction_recurrence'];
+type SavingsGoalStatusEnum = Database['public']['Enums']['savings_goal_status'];
 
 /**
  * Template seed input (entity-shaped). Repo writes directly — no amounts to encrypt here.
@@ -85,6 +86,14 @@ export interface DemoSeededBudget {
 
 /**
  * Budget line seed input (entity-shaped). Repo encrypts `amount` internally.
+ *
+ * `checkedAt` carries the pointage: months already closed are seeded checked so
+ * the demo shows the "Pointé / À pointer" contrast instead of a flat unchecked
+ * ledger. It also gates savings goal progress, which only counts checked lines.
+ *
+ * `spreadGroupId` is the shared identity of a lissage: the tranches of one
+ * spread expense are sibling `one_off` lines carrying the same uuid. It is not
+ * a financial value, so it is never encrypted.
  */
 export interface DemoBudgetLineSeed {
   budgetId: string;
@@ -93,18 +102,59 @@ export interface DemoBudgetLineSeed {
   amount: number;
   kind: TransactionKindEnum;
   recurrence: TransactionRecurrenceEnum;
+  checkedAt: string | null;
+  spreadGroupId: string | null;
+}
+
+/**
+ * What the seed needs back after inserting a budget line: the generated id, and
+ * enough to pair the line with the actual it consumes or the goal it feeds.
+ */
+export interface DemoSeededBudgetLine {
+  id: string;
+  budgetId: string;
+  name: string;
+  kind: TransactionKindEnum;
 }
 
 /**
  * Transaction seed input (entity-shaped). Repo encrypts `amount` internally.
+ *
+ * `budgetLineId` is the envelope this actual consumes; `null` is legitimate when
+ * the month's budget carries no matching prévision.
  */
 export interface DemoTransactionSeed {
   budgetId: string;
+  budgetLineId: string | null;
   name: string;
   amount: number;
   kind: TransactionKindEnum;
   tagName: string;
   transactionDate: string;
+  checkedAt: string | null;
+}
+
+/**
+ * Savings goal seed input (entity-shaped). Repo encrypts `targetAmount` and
+ * `initialAmount` internally. Dates are bare `YYYY-MM-DD`, matching the column.
+ */
+export interface DemoSavingsGoalSeed {
+  userId: string;
+  name: string;
+  targetAmount: number;
+  initialAmount: number;
+  status: SavingsGoalStatusEnum;
+  startDate: string | null;
+  targetDate: string | null;
+}
+
+/**
+ * Identifier returned by the repo after inserting a savings goal. `name` is
+ * what pairs the goal back with the prévisions Épargne that feed it.
+ */
+export interface DemoSeededSavingsGoal {
+  id: string;
+  name: string;
 }
 
 export type TemplateRow = Tables<'template'>;

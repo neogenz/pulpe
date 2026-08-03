@@ -2,7 +2,10 @@ import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.ser
 import type {
   DemoBudgetLineSeed,
   DemoBudgetSeed,
+  DemoSavingsGoalSeed,
   DemoSeededBudget,
+  DemoSeededBudgetLine,
+  DemoSeededSavingsGoal,
   DemoSeededTemplate,
   DemoSeededTemplateLine,
   DemoTemplateSeed,
@@ -51,14 +54,40 @@ export interface DemoRepositoryPort {
     budgets: DemoBudgetSeed[],
     supabase: AuthenticatedSupabaseClient,
   ): Promise<DemoSeededBudget[]>;
+  /**
+   * Returns the inserted lines: their generated ids are what lets a seeded
+   * transaction point at the envelope it consumes.
+   */
   insertBudgetLines(
     lines: DemoBudgetLineSeed[],
     userId: string,
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<void>;
+  ): Promise<DemoSeededBudgetLine[]>;
   insertTransactions(
     transactions: DemoTransactionSeed[],
     userId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void>;
+  /** The repo encrypts `targetAmount` and `initialAmount` internally. */
+  insertSavingsGoals(
+    goals: DemoSavingsGoalSeed[],
+    userId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<DemoSeededSavingsGoal[]>;
+  /** Points existing prévisions Épargne at the goal they feed. */
+  linkBudgetLinesToSavingsGoal(
+    budgetLineIds: string[],
+    savingsGoalId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void>;
+  /**
+   * Points the Mois Type's recurring lines at the goal they feed, so a budget
+   * generated later keeps the link (`SAVINGS.md` §3.2). Reserved for open-ended
+   * goals: §3.5 forbids a dated one from posing a recurrence there.
+   */
+  linkTemplateLinesToSavingsGoal(
+    templateLineIds: string[],
+    savingsGoalId: string,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<void>;
 }

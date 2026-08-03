@@ -126,8 +126,8 @@ enum APIError: LocalizedError {
         case .savingsGoalNotFound:
             return "Cet objectif n'existe plus"
         case .savingsGoalLineOutsideHorizon:
-            return "Certaines périodes dépassent l'échéance de cet objectif — "
-                + "raccourcis le lissage ou choisis un autre objectif"
+            return "Cette épargne tombe après l'échéance de ton objectif — "
+                + "repousse l'échéance ou choisis un autre objectif"
         case .savingsGoalDeletionImpactChanged:
             return "Les éléments rattachés ont changé entre-temps — "
                 + "vérifie le nouvel impact avant de confirmer"

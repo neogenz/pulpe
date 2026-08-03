@@ -5,6 +5,7 @@ import {
   inject,
   input,
   output,
+  signal,
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -12,11 +13,20 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { combineLatest, map } from 'rxjs';
+import { filter, map } from 'rxjs';
 import { cachedResource } from 'ngx-ziflux';
+import { formatDate } from 'date-fns';
+import {
+  getBudgetPeriodForDate,
+  parseIsoDateLocal,
+  periodIndex,
+  type BudgetPeriod,
+} from 'pulpe-shared';
 
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 import { AppCurrencyPipe } from '@core/currency';
+import { UserSettingsStore } from '@core/user-settings';
+import { dateFnsLocaleFor } from '@core/locale';
 
 /**
  * Reusable "Objectif" picker.
@@ -32,6 +42,13 @@ import { AppCurrencyPipe } from '@core/currency';
  * `savingsGoalId` via `[value]` and reacts to `(valueChanged)`. In `link` mode a
  * first option maps to `null` ("Aucun objectif"); in `withdrawal` mode the
  * choice is required, so there is no such option.
+ *
+ * PUL-313 — when the caller supplies the budget's period, goals whose deadline
+ * falls before it are listed but disabled: the `enforce_savings_goal_line_link`
+ * trigger would reject the link. Listed, not hidden — a goal that silently
+ * disappears is unexplainable. Template lines carry no period and stay
+ * unfiltered; the trigger only bounds `budget_line`. Withdrawal callers supply
+ * no period either: taking money out of a goal is not bound by its deadline.
  */
 @Component({
   selector: 'pulpe-savings-goal-picker-field',
@@ -142,14 +159,28 @@ import { AppCurrencyPipe } from '@core/currency';
         <mat-label>{{ 'savingsGoals.pickerLabel' | transloco }}</mat-label>
         <mat-select
           [value]="value()"
-          (selectionChange)="valueChanged.emit($event.value)"
+          (selectionChange)="onSelectionChange($event.value)"
           data-testid="savings-goal-picker-select"
         >
           <mat-option [value]="null">{{
             'savingsGoals.pickerNone' | transloco
           }}</mat-option>
-          @for (g of goals(); track g.id) {
-            <mat-option [value]="g.id">{{ g.name }}</mat-option>
+          @for (option of goalOptions(); track option.id) {
+            <mat-option
+              [value]="option.id"
+              [disabled]="option.deadlineLabel !== null"
+              [attr.data-testid]="'savings-goal-picker-option-' + option.id"
+            >
+              {{ option.name }}
+              @if (option.deadlineLabel; as deadline) {
+                <span class="block text-body-small text-on-surface-variant">
+                  {{
+                    'savingsGoals.pickerOutsideHorizon'
+                      | transloco: { month: deadline }
+                  }}
+                </span>
+              }
+            </mat-option>
           }
         </mat-select>
       </mat-form-field>
@@ -166,6 +197,8 @@ import { AppCurrencyPipe } from '@core/currency';
 })
 export class SavingsGoalPickerField {
   readonly value = input<string | null>(null);
+  /** Budget period the line will live in. Omitted on template lines. */
+  readonly budgetPeriod = input<BudgetPeriod | null>(null);
   readonly valueChanged = output<string | null>();
   readonly mode = input<'link' | 'withdrawal'>('link');
   /**
@@ -176,6 +209,7 @@ export class SavingsGoalPickerField {
   readonly withdrawalAmount = input<number | null>(null);
 
   readonly #api = inject(SavingsGoalApi);
+  readonly #settings = inject(UserSettingsStore);
 
   // Shares the SavingsGoalApi DataCache (key ['savings-goals','list']) with
   // SavingsGoalStore: dedups the fetch across pickers/list and picks up store
@@ -241,24 +275,86 @@ export class SavingsGoalPickerField {
       : this.#goalsResource.error(),
   );
 
+  /**
+   * `deadlineLabel` is non-null exactly when the goal is out of horizon: it
+   * both disables the option and names the month that puts it out of reach.
+   * Mirrors the trigger's own arithmetic via the shared period calculator —
+   * an undated goal has no horizon, so it is never out of it.
+   */
+  protected readonly goalOptions = computed(() => {
+    const period = this.budgetPeriod();
+    const payDay = this.#settings.payDayOfMonth();
+    const locale = dateFnsLocaleFor(this.#settings.currency());
+
+    return this.goals().map((goal) => {
+      if (!period || !goal.targetDate) {
+        return { id: goal.id, name: goal.name, deadlineLabel: null };
+      }
+      const deadline = getBudgetPeriodForDate(
+        parseIsoDateLocal(goal.targetDate),
+        payDay,
+      );
+      const isOutsideHorizon = periodIndex(period) > periodIndex(deadline);
+      return {
+        id: goal.id,
+        name: goal.name,
+        deadlineLabel: isOutsideHorizon
+          ? formatDate(
+              new Date(deadline.year, deadline.month - 1, 1),
+              'MMMM yyyy',
+              { locale },
+            )
+          : null,
+      };
+    });
+  });
+
+  /**
+   * Set once the user picks in THIS picker, as opposed to the link the caller
+   * handed us. The distinction decides who may be auto-unlinked below.
+   */
+  readonly #pickedHere = signal(false);
+
+  protected onSelectionChange(goalId: string | null): void {
+    this.#pickedHere.set(true);
+    this.valueChanged.emit(goalId);
+  }
+
+  /**
+   * True when the selection must be withdrawn. Disabling the option is not
+   * enough on its own: the caller can widen the period AFTER a goal was picked
+   * (a spread range extended past the deadline), leaving a stale id that would
+   * still submit. Reuses `goalOptions` — the very list the template disables
+   * from — so nothing shown as unselectable can survive as a selection.
+   *
+   * The two reasons are NOT symmetric. A goal that vanished can never be saved
+   * again, so it goes whoever chose it. A goal that is merely out of horizon
+   * was legitimately linkable when the line was saved, and an edit surface
+   * opens carrying it — dropping that on open would edit the user's data for
+   * them, so only a pick made here is taken back.
+   *
+   * The raw resource value gates the whole thing: the option list collapses to
+   * `[]` while loading or errored, and clearing on that would wipe a valid pick.
+   */
+  readonly #hasStaleSelection = computed(() => {
+    if (
+      this.#goalsResource.error() ||
+      this.#goalsResource.value() === undefined
+    )
+      return false;
+    const selectedId = this.value();
+    if (selectedId === null) return false;
+    const selected = this.goalOptions().find(
+      (option) => option.id === selectedId,
+    );
+    if (!selected) return true;
+    return selected.deadlineLabel !== null && this.#pickedHere();
+  });
+
   constructor() {
-    combineLatest([
-      toObservable(this.#goalsResource.value),
-      toObservable(this.#goalsResource.error),
-      toObservable(this.value),
-      toObservable(this.mode),
-    ])
-      .pipe(takeUntilDestroyed())
-      .subscribe(([goals, error, selectedId, mode]) => {
-        if (mode !== 'link') return;
-        if (error || goals === undefined) return;
-        if (
-          selectedId !== null &&
-          !goals.some((goal) => goal.id === selectedId)
-        ) {
-          this.valueChanged.emit(null);
-        }
-      });
+    toObservable(this.#hasStaleSelection)
+      .pipe(filter(Boolean), takeUntilDestroyed())
+      .subscribe(() => this.valueChanged.emit(null));
   }
 
   protected reloadGoals(): void {

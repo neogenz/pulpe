@@ -5,13 +5,19 @@ import {
   provideHttpClientTesting,
   HttpTestingController,
 } from '@angular/common/http/testing';
-import { of, throwError, Subject, ReplaySubject } from 'rxjs';
+import { of, throwError, Observable, Subject, ReplaySubject } from 'rxjs';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import type { BudgetLineCreate, BudgetLineUpdate } from 'pulpe-shared';
+import {
+  API_ERROR_CODES,
+  type BudgetLineCreate,
+  type BudgetLineUpdate,
+} from 'pulpe-shared';
 
-import { BudgetDetailsStore } from './budget-details-store';
+import { BudgetDetailsStore, type CheckOutcome } from './budget-details-store';
 import { BudgetApi } from '@core/budget/budget-api';
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
+import { ApiError } from '@core/api/api-error';
+import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { Logger } from '@core/logging/logger';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { PostHogService } from '@core/analytics/posthog';
@@ -21,6 +27,7 @@ import {
   createMockBudgetDetailsResponse,
   createMockTransaction,
 } from '../../../../testing/mock-factories';
+import { TranslocoService } from '@jsverse/transloco';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { createMockDataCache, type MockDataCache } from '@core/testing';
 
@@ -86,6 +93,11 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     deleteTransaction$: ReturnType<typeof vi.fn>;
     toggleTransactionCheck$: ReturnType<typeof vi.fn>;
     postponeTransaction$: ReturnType<typeof vi.fn>;
+    createBudgetLineSpread$: ReturnType<typeof vi.fn>;
+    spreadExistingBudgetLine$: ReturnType<typeof vi.fn>;
+    spreadExistingTransaction$: ReturnType<typeof vi.fn>;
+    createSavingsWithdrawal$: ReturnType<typeof vi.fn>;
+    deleteSavingsWithdrawal$: ReturnType<typeof vi.fn>;
     cache: MockDataCache;
   };
   let mockLogger: {
@@ -132,6 +144,11 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       deleteTransaction$: vi.fn(),
       toggleTransactionCheck$: vi.fn(),
       postponeTransaction$: vi.fn(),
+      createBudgetLineSpread$: vi.fn(),
+      spreadExistingBudgetLine$: vi.fn(),
+      spreadExistingTransaction$: vi.fn(),
+      createSavingsWithdrawal$: vi.fn(),
+      deleteSavingsWithdrawal$: vi.fn(),
       cache: createMockDataCache(),
     };
 
@@ -215,6 +232,31 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       expect(rentLine?.amount).toBe(1500);
       expect(rentLine?.kind).toBe('expense');
     });
+
+    it('stops fetching the budget the user just left when they switch mid-load', async () => {
+      // Every budget answers with a request that never completes, so the first
+      // one is still in flight when the user moves on.
+      const isCancelled = new Map<string, boolean>();
+      mockBudgetApi.getBudgetWithDetails$ = vi.fn(
+        (budgetId: string) =>
+          new Observable(() => {
+            isCancelled.set(budgetId, false);
+            return () => isCancelled.set(budgetId, true);
+          }),
+      );
+
+      // User opens January, then navigates to February before it answers
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await vi.waitFor(() => expect(isCancelled.has(mockBudgetId)).toBe(true));
+
+      service.setBudgetId('budget-next');
+      TestBed.tick();
+      await vi.waitFor(() => expect(isCancelled.has('budget-next')).toBe(true));
+
+      // January's request was dropped instead of running to completion
+      expect(isCancelled.get(mockBudgetId)).toBe(true);
+    });
   });
 
   describe('User adds a budget line', () => {
@@ -272,7 +314,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         .mockReturnValue(throwError(() => new Error('Network error')));
 
       // User tries to add an expense but server is down
-      await service.createBudgetLine({
+      const error = await service.createBudgetLine({
         budgetId: mockBudgetId,
         name: 'Failed expense',
         amount: 100,
@@ -281,11 +323,119 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         isManuallyAdjusted: false,
       });
 
-      // User sees an error occurred
-      expect(service.error()).toBeTruthy();
+      // The caller gets the message to toast, and the page stays loaded:
+      // error() drives the full-page load-error card, which a refused line
+      // must never trigger.
+      expect(error).toBeTruthy();
+      expect(service.error()).toBeUndefined();
+    });
 
-      // Budget lines remain unchanged (data is reloaded from server)
-      // This ensures user doesn't see incorrect optimistic data
+    it('surfaces the goal-horizon refusal instead of the generic add-failure copy', async () => {
+      const horizonError = new ApiError(
+        'unprocessable',
+        API_ERROR_CODES.SAVINGS_GOAL_LINE_OUTSIDE_HORIZON,
+        422,
+        undefined,
+      );
+      mockBudgetApi.createBudgetLine$ = vi
+        .fn()
+        .mockReturnValue(throwError(() => horizonError));
+
+      const error = await service.createBudgetLine({
+        budgetId: mockBudgetId,
+        name: 'Épargne hors horizon',
+        amount: 100,
+        kind: 'saving',
+        recurrence: 'fixed',
+        isManuallyAdjusted: false,
+      });
+
+      const localizer = TestBed.inject(ApiErrorLocalizer);
+      expect(error).toBe(localizer.localizeApiError(horizonError));
+      expect(service.error()).toBeUndefined();
+    });
+
+    // A 422 is a verdict the user already reads in a toast, so paging the
+    // on-call for it is noise. A 503 never reached a verdict — that one is a
+    // real fault and has to stay in the logs.
+    it('logs a create that broke but stays quiet on one the server refused', async () => {
+      const lineInput = {
+        budgetId: mockBudgetId,
+        name: 'Épargne hors horizon',
+        amount: 100,
+        kind: 'saving' as const,
+        recurrence: 'fixed' as const,
+        isManuallyAdjusted: false,
+      };
+      mockLogger.error.mockClear();
+
+      mockBudgetApi.createBudgetLine$ = vi
+        .fn()
+        .mockReturnValue(
+          throwError(
+            () =>
+              new ApiError(
+                'unprocessable',
+                API_ERROR_CODES.SAVINGS_GOAL_LINE_OUTSIDE_HORIZON,
+                422,
+                undefined,
+              ),
+          ),
+        );
+      await service.createBudgetLine(lineInput);
+
+      expect(mockLogger.error).not.toHaveBeenCalled();
+
+      mockBudgetApi.createBudgetLine$ = vi
+        .fn()
+        .mockReturnValue(
+          throwError(() => new ApiError('boom', undefined, 503, undefined)),
+        );
+      await service.createBudgetLine(lineInput);
+
+      expect(mockLogger.error).toHaveBeenCalledOnce();
+    });
+
+    // The spread submitter turns `retryable` into a "Réessayer" action. A 422 is
+    // a verdict on this exact body, so replaying it can only earn the same 422.
+    it('marks a refused spread final and a broken one worth replaying', async () => {
+      const spreadInput = {
+        budgetId: mockBudgetId,
+        name: 'Épargne lissée',
+        amount: 100,
+        kind: 'saving' as const,
+        mode: 'perMonth' as const,
+        perMonthAmount: 100,
+        months: [{ month: 6, year: 2026 }],
+        spreadGroupId: 'group-1',
+      };
+
+      mockBudgetApi.createBudgetLineSpread$ = vi
+        .fn()
+        .mockReturnValue(
+          throwError(
+            () =>
+              new ApiError(
+                'unprocessable',
+                API_ERROR_CODES.SAVINGS_GOAL_LINE_OUTSIDE_HORIZON,
+                422,
+                undefined,
+              ),
+          ),
+        );
+      const refused = await service.createBudgetLineSpread(spreadInput);
+
+      mockBudgetApi.createBudgetLineSpread$ = vi
+        .fn()
+        .mockReturnValue(
+          throwError(() => new ApiError('boom', undefined, 503, undefined)),
+        );
+      const broken = await service.createBudgetLineSpread(spreadInput);
+
+      expect(refused.error).toBeTruthy();
+      expect(refused.retryable).toBe(false);
+      expect(broken.error).toBeTruthy();
+      expect(broken.retryable).toBe(true);
     });
   });
 
@@ -329,14 +479,16 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         .mockReturnValue(throwError(() => new Error('Server error')));
 
       // User tries to update but server fails
-      await service.updateBudgetLine({
+      const error = await service.updateBudgetLine({
         id: 'line-2',
         name: 'Failed Update',
         amount: 9999,
       });
 
-      // Error is shown to user
-      expect(service.error()).toBeTruthy();
+      // Same contract as create: the message goes back to the caller's toast,
+      // never onto the page-level error signal.
+      expect(error).toBeTruthy();
+      expect(service.error()).toBeUndefined();
 
       // Original values are preserved (via reload)
       // User doesn't see the failed update stuck in UI
@@ -356,7 +508,11 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       const initialCount = service.budgetDetails()?.budgetLines.length || 0;
 
       // User deletes the rent expense
-      await service.deleteBudgetLine('line-2');
+      const error = await service.deleteBudgetLine('line-2');
+
+      // The delete mutation resolves `undefined` on SUCCESS too (its response is
+      // void), so a null message is the only thing that tells the two apart.
+      expect(error).toBeNull();
 
       // The line is no longer visible
       const remainingLines = service.budgetDetails()?.budgetLines;
@@ -370,10 +526,11 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         .mockReturnValue(throwError(() => new Error('Cannot delete')));
 
       // User tries to delete but server refuses
-      await service.deleteBudgetLine('line-2');
+      const error = await service.deleteBudgetLine('line-2');
 
-      // Error is shown
-      expect(service.error()).toBeTruthy();
+      // The caller gets the message to toast, and the page stays loaded.
+      expect(error).toBeTruthy();
+      expect(service.error()).toBeUndefined();
 
       // The line remains in the list (data reloaded from server)
       // User sees that deletion didn't go through
@@ -647,7 +804,11 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       mockBudgetApi.deleteTransaction$ = vi.fn().mockReturnValue(of({}));
 
       // User deletes the transaction
-      await service.deleteTransaction(transactionToDelete.id);
+      const error = await service.deleteTransaction(transactionToDelete.id);
+
+      // Same void-response trap as deleteBudgetLine: a null motive is the only
+      // thing that separates this success from a failure.
+      expect(error).toBeNull();
 
       // The transaction is no longer in the list
       const remainingTransactions = service.budgetDetails()?.transactions || [];
@@ -664,13 +825,54 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       await waitForResourceStable();
     });
 
+    it('surfaces the load-error card when the budget itself cannot be fetched', async () => {
+      mockBudgetApi.getBudgetWithDetails$ = vi
+        .fn()
+        .mockReturnValue(throwError(() => new Error('Backend down')));
+
+      service.setBudgetId('budget-unreachable');
+      TestBed.tick();
+      await vi.waitFor(() => {
+        expect(service.error()).toBeTruthy();
+      });
+    });
+
+    it('a mutation on a budget that never loaded leaves the cache untouched', async () => {
+      // The budget is selected but unreachable: params resolve to a cache key
+      // while the resource holds no value.
+      mockBudgetApi.getBudgetWithDetails$ = vi
+        .fn()
+        .mockReturnValue(throwError(() => new Error('Backend down')));
+      service.setBudgetId('budget-unreachable');
+      TestBed.tick();
+      await vi.waitFor(() => expect(service.error()).toBeTruthy());
+      mockBudgetApi.cache.set.mockClear();
+
+      // User acts anyway
+      mockBudgetApi.createBudgetLine$ = vi
+        .fn()
+        .mockReturnValue(of({ success: true, data: createMockBudgetLine() }));
+      await service.createBudgetLine({
+        budgetId: 'budget-unreachable',
+        name: 'Courses',
+        amount: 400,
+        kind: 'expense',
+        recurrence: 'one_off',
+        isManuallyAdjusted: false,
+      });
+
+      // Nothing was written under the budget's key — not even a hole
+      expect(service.budgetDetails()).toBeNull();
+      expect(mockBudgetApi.cache.set).not.toHaveBeenCalled();
+    });
+
     it('user sees error message when network fails', async () => {
       mockBudgetApi.createBudgetLine$ = vi
         .fn()
         .mockReturnValue(throwError(() => new Error('Network error')));
 
       // User tries to add an expense but network is down
-      await service.createBudgetLine({
+      const error = await service.createBudgetLine({
         budgetId: mockBudgetId,
         name: 'New expense',
         amount: 100,
@@ -679,8 +881,9 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         isManuallyAdjusted: false,
       });
 
-      // User sees that something went wrong
-      expect(service.error()).toBeTruthy();
+      // User sees that something went wrong, in a toast over a live budget
+      expect(error).toBeTruthy();
+      expect(service.error()).toBeUndefined();
     });
 
     it('user cannot add expenses with negative amounts', async () => {
@@ -705,10 +908,11 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
           ),
         );
 
-      await service.createBudgetLine(invalidExpense);
+      const error = await service.createBudgetLine(invalidExpense);
 
       // User sees an error occurred
-      expect(service.error()).toBeTruthy();
+      expect(error).toBeTruthy();
+      expect(service.error()).toBeUndefined();
     });
   });
 
@@ -990,9 +1194,9 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         }),
       );
 
-      const succeeded = await service.toggleCheck('line-to-check');
+      const outcome = await service.toggleCheck('line-to-check');
 
-      expect(succeeded).toBe(true);
+      expect(outcome).toEqual({ status: 'applied' });
       const updatedLine = service
         .budgetDetails()
         ?.budgetLines.find((line) => line.id === 'line-to-check');
@@ -1004,7 +1208,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       expect(unchangedTransaction?.checkedAt).toBeNull();
     });
 
-    it('returns false and sets an error when envelope toggle fails', async () => {
+    it('returns the message and leaves the page loaded when envelope toggle fails', async () => {
       const targetLine = createMockBudgetLine({
         id: 'line-toggle-fail',
         budgetId: mockBudgetId,
@@ -1033,20 +1237,20 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         .fn()
         .mockReturnValue(throwError(() => new Error('Toggle failed')));
 
-      const succeeded = await service.toggleCheck('line-toggle-fail');
+      const outcome = await service.toggleCheck('line-toggle-fail');
 
-      expect(succeeded).toBe(false);
-      expect(service.error()).toBeTruthy();
+      expect(outcome).toEqual({ status: 'failed', reason: expect.any(String) });
+      expect(service.error()).toBeUndefined();
     });
 
-    it('returns false and skips API call when envelope does not exist', async () => {
+    it('reports nothing and skips API call when envelope does not exist', async () => {
       service.setBudgetId(mockBudgetId);
       TestBed.tick();
       await waitForResourceStable();
 
-      const succeeded = await service.toggleCheck('line-does-not-exist');
+      const outcome = await service.toggleCheck('line-does-not-exist');
 
-      expect(succeeded).toBe(false);
+      expect(outcome).toEqual({ status: 'skipped' });
       expect(mockBudgetApi.toggleBudgetLineCheck$).not.toHaveBeenCalled();
     });
 
@@ -1548,9 +1752,9 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
 
       const initialCount = service.budgetDetails()?.budgetLines.length ?? 0;
 
-      const succeeded = await service.postponeBudgetLine('line-2');
+      const error = await service.postponeBudgetLine('line-2');
 
-      expect(succeeded).toBe(true);
+      expect(error).toBeNull();
       const remaining = service.budgetDetails()?.budgetLines;
       expect(remaining?.length).toBe(initialCount - 1);
       expect(remaining?.find((l) => l.id === 'line-2')).toBeUndefined();
@@ -1562,10 +1766,10 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         .fn()
         .mockReturnValue(throwError(() => new Error('Cannot postpone')));
 
-      const succeeded = await service.postponeBudgetLine('line-2');
+      const error = await service.postponeBudgetLine('line-2');
 
-      expect(succeeded).toBe(false);
-      expect(service.error()).toBeTruthy();
+      expect(error).toBeTruthy();
+      expect(service.error()).toBeUndefined();
       expect(
         service.budgetDetails()?.budgetLines.find((l) => l.id === 'line-2'),
       ).toBeDefined();
@@ -1585,9 +1789,9 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
 
       const initialCount = service.budgetDetails()?.transactions.length ?? 0;
 
-      const succeeded = await service.postponeTransaction('tx-1');
+      const error = await service.postponeTransaction('tx-1');
 
-      expect(succeeded).toBe(true);
+      expect(error).toBeNull();
       const remaining = service.budgetDetails()?.transactions;
       expect(remaining?.length).toBe(initialCount - 1);
       expect(remaining?.find((t) => t.id === 'tx-1')).toBeUndefined();
@@ -1687,6 +1891,303 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       await waitForResourceStable();
 
       expect(service.hasNextMonthBudget()).toBe(false);
+    });
+  });
+
+  // The page renders error() as a card that REPLACES the budget, so a refused
+  // mutation must never write there. Most mutations went uncovered, which is how
+  // the defect survived its first fix — this guard drives every one of them, and
+  // the enumeration test at the end fails when a new one is added without a case.
+  describe('No mutation reports its refusal on the page error signal', () => {
+    const PERIODS = [
+      { year: 2024, month: 2, amount: 750 },
+      { year: 2024, month: 3, amount: 750 },
+    ];
+
+    // The 3 check mutations answer with a 3-way outcome; only `failed` carries a motive.
+    const checkOutcomeReason = (outcome: CheckOutcome): string | null =>
+      outcome.status === 'failed' ? outcome.reason : null;
+
+    const mutations: {
+      name: string;
+      api: Exclude<keyof typeof mockBudgetApi, 'cache'>;
+      run: () => Promise<string | null>;
+    }[] = [
+      {
+        name: 'createBudgetLine',
+        api: 'createBudgetLine$',
+        run: () =>
+          service.createBudgetLine({
+            budgetId: mockBudgetId,
+            name: 'Courses',
+            amount: 100,
+            kind: 'expense',
+            recurrence: 'one_off',
+            isManuallyAdjusted: false,
+          }),
+      },
+      {
+        name: 'updateBudgetLine',
+        api: 'updateBudgetLine$',
+        run: () => service.updateBudgetLine({ id: 'line-2', amount: 1600 }),
+      },
+      {
+        name: 'deleteBudgetLine',
+        api: 'deleteBudgetLine$',
+        run: () => service.deleteBudgetLine('line-2'),
+      },
+      {
+        name: 'resetBudgetLineFromTemplate',
+        api: 'resetBudgetLineFromTemplate$',
+        run: () => service.resetBudgetLineFromTemplate('line-2'),
+      },
+      {
+        name: 'postponeBudgetLine',
+        api: 'postponeBudgetLine$',
+        run: () => service.postponeBudgetLine('line-2'),
+      },
+      {
+        name: 'toggleCheck',
+        api: 'toggleBudgetLineCheck$',
+        run: async () =>
+          checkOutcomeReason(await service.toggleCheck('line-2')),
+      },
+      {
+        name: 'checkAllAllocatedTransactions',
+        api: 'checkBudgetLineTransactions$',
+        run: async () =>
+          checkOutcomeReason(
+            await service.checkAllAllocatedTransactions('line-2'),
+          ),
+      },
+      {
+        name: 'createAllocatedTransaction',
+        api: 'createTransaction$',
+        run: () =>
+          service.createAllocatedTransaction({
+            budgetId: mockBudgetId,
+            budgetLineId: 'line-2',
+            name: 'Courses',
+            amount: 30,
+            kind: 'expense',
+            transactionDate: '2024-01-10',
+          }),
+      },
+      {
+        name: 'updateTransaction',
+        api: 'updateTransaction$',
+        run: () => service.updateTransaction('tx-1', { amount: 60 }),
+      },
+      {
+        name: 'deleteTransaction',
+        api: 'deleteTransaction$',
+        run: () => service.deleteTransaction('tx-1'),
+      },
+      {
+        name: 'toggleTransactionCheck',
+        api: 'toggleTransactionCheck$',
+        run: async () =>
+          checkOutcomeReason(await service.toggleTransactionCheck('tx-1')),
+      },
+      {
+        name: 'postponeTransaction',
+        api: 'postponeTransaction$',
+        run: () => service.postponeTransaction('tx-1'),
+      },
+      // The four below answer with a payload wrapper; `.error` is the same motive.
+      {
+        name: 'createBudgetLineSpread',
+        api: 'createBudgetLineSpread$',
+        run: async () =>
+          (
+            await service.createBudgetLineSpread({
+              name: 'Prime',
+              kind: 'expense',
+              mode: 'perMonth',
+              perMonthAmount: 100,
+              months: [{ year: 2024, month: 2 }],
+              spreadGroupId: '11111111-1111-4111-8111-111111111111',
+            })
+          ).error ?? null,
+      },
+      {
+        name: 'spreadExistingBudgetLine',
+        api: 'spreadExistingBudgetLine$',
+        run: async () =>
+          (await service.spreadExistingBudgetLine('line-2', PERIODS)).error ??
+          null,
+      },
+      {
+        name: 'spreadExistingTransaction',
+        api: 'spreadExistingTransaction$',
+        run: async () =>
+          (await service.spreadExistingTransaction('tx-1', PERIODS)).error ??
+          null,
+      },
+      {
+        name: 'createSavingsWithdrawal',
+        api: 'createSavingsWithdrawal$',
+        run: async () =>
+          (
+            await service.createSavingsWithdrawal({
+              budgetId: mockBudgetId,
+              groupId: '22222222-2222-4222-8222-222222222222',
+              amount: 200,
+              incomeName: 'Pioche épargne',
+              savingName: 'Retrait épargne',
+            })
+          ).error ?? null,
+      },
+      {
+        name: 'deleteSavingsWithdrawal',
+        api: 'deleteSavingsWithdrawal$',
+        run: () =>
+          service.deleteSavingsWithdrawal(
+            '22222222-2222-4222-8222-222222222222',
+            'pair',
+          ),
+      },
+    ];
+
+    beforeEach(async () => {
+      // The transaction is allocated and unchecked so that no mutation guard
+      // short-circuits before its API call.
+      mockBudgetApi.getBudgetWithDetails$ = vi.fn().mockReturnValue(
+        of(
+          createMockBudgetDetailsResponse({
+            budget: {
+              id: mockBudgetId,
+              month: 1,
+              year: 2024,
+              templateId: 'template-1',
+            },
+            budgetLines: [
+              createMockBudgetLine({
+                id: 'line-2',
+                budgetId: mockBudgetId,
+                templateLineId: 'tpl-2',
+                amount: 1500,
+                kind: 'expense',
+              }),
+            ],
+            transactions: [
+              createMockTransaction({
+                id: 'tx-1',
+                budgetId: mockBudgetId,
+                budgetLineId: 'line-2',
+                amount: 50,
+                kind: 'expense',
+                checkedAt: null,
+              }),
+            ],
+          }),
+        ),
+      );
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+    });
+
+    it.each(mutations)(
+      '$name hands its motive back and leaves the budget on screen',
+      async ({ api, run }) => {
+        mockBudgetApi[api] = vi
+          .fn()
+          .mockReturnValue(throwError(() => new Error('Server down')));
+
+        const error = await run();
+
+        expect(error).toBeTruthy();
+        expect(service.error()).toBeUndefined();
+      },
+    );
+
+    it('covers every mutation the store exposes', () => {
+      const asyncMethods = Object.getOwnPropertyNames(
+        BudgetDetailsStore.prototype,
+      ).filter(
+        (name) =>
+          Object.getOwnPropertyDescriptor(BudgetDetailsStore.prototype, name)
+            ?.value?.constructor?.name === 'AsyncFunction',
+      );
+
+      expect(asyncMethods.sort()).toEqual(
+        mutations.map((mutation) => mutation.name).sort(),
+      );
+    });
+  });
+
+  // Two different ids both pass the #mutatingIds guard, so their toggles can be
+  // in flight at once. Each call must get its own outcome and its own rollback.
+  describe('concurrent mutations', () => {
+    it('gives each overlapping toggle its own outcome and rolls back the failed one', async () => {
+      const lineA = createMockBudgetLine({
+        id: 'line-a',
+        budgetId: mockBudgetId,
+        name: 'Loyer',
+        amount: 1500,
+        kind: 'expense',
+        recurrence: 'fixed',
+        checkedAt: null,
+      });
+      const lineB = createMockBudgetLine({
+        id: 'line-b',
+        budgetId: mockBudgetId,
+        name: 'Assurance',
+        amount: 300,
+        kind: 'expense',
+        recurrence: 'fixed',
+        checkedAt: null,
+      });
+
+      mockBudgetApi.getBudgetWithDetails$ = vi.fn().mockReturnValue(
+        of(
+          createMockBudgetDetailsResponse({
+            budget: { id: mockBudgetId },
+            budgetLines: [lineA, lineB],
+            transactions: [],
+          }),
+        ),
+      );
+
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+
+      const firstCall$ = new Subject<{ data: typeof lineA }>();
+      const secondCall$ = new Subject<{ data: typeof lineB }>();
+      mockBudgetApi.toggleBudgetLineCheck$ = vi
+        .fn()
+        .mockReturnValueOnce(firstCall$)
+        .mockReturnValueOnce(secondCall$);
+
+      const first = service.toggleCheck('line-a');
+      const second = service.toggleCheck('line-b');
+      await vi.waitFor(() => {
+        expect(mockBudgetApi.toggleBudgetLineCheck$).toHaveBeenCalledTimes(2);
+      });
+
+      secondCall$.next({
+        data: { ...lineB, checkedAt: '2024-01-20T12:00:00Z' },
+      });
+      secondCall$.complete();
+      firstCall$.error(new Error('Server down'));
+
+      const transloco = TestBed.inject(TranslocoService);
+      expect(await first).toEqual({
+        status: 'failed',
+        reason: transloco.translate('budget.forecastToggleError'),
+      });
+      expect(await second).toEqual({ status: 'applied' });
+      expect(
+        service.budgetDetails()?.budgetLines.find((l) => l.id === 'line-a')
+          ?.checkedAt,
+      ).toBeNull();
+      // PROBE: does A's rollback clobber B's confirmed success?
+      expect(
+        service.budgetDetails()?.budgetLines.find((l) => l.id === 'line-b')
+          ?.checkedAt,
+      ).toBe('2024-01-20T12:00:00Z');
     });
   });
 });

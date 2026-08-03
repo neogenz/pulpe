@@ -9,7 +9,10 @@ import {
 import type {
   DemoBudgetLineSeed,
   DemoBudgetSeed,
+  DemoSavingsGoalSeed,
   DemoSeededBudget,
+  DemoSeededBudgetLine,
+  DemoSeededSavingsGoal,
   DemoSeededTemplate,
   DemoSeededTemplateLine,
   DemoTemplateLineSeed,
@@ -48,8 +51,14 @@ type TransactionInsert = Omit<
   TablesInsert<'transaction'>,
   'id' | 'created_at' | 'updated_at'
 >;
+/** `created_at` stays writable here: the seed backdates it onto the plan. */
+type SavingsGoalInsert = Omit<
+  TablesInsert<'savings_goal'>,
+  'id' | 'updated_at'
+>;
 
 type TemplateLineRow = Tables<'template_line'>;
+type BudgetLineRow = Tables<'budget_line'>;
 
 @Injectable()
 export class SupabaseDemoRepository implements DemoRepositoryPort {
@@ -73,16 +82,9 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
       .insert(rows)
       .select();
 
-    if (error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
-        undefined,
-        { operation: 'insertDemoTemplates', supabaseError: error },
-        { cause: error },
-      );
-    }
-
-    return (data ?? []).map((row) => ({ id: row.id }));
+    return this.insertedRowsOrThrow(data, error, 'insertDemoTemplates').map(
+      (row) => ({ id: row.id }),
+    );
   }
 
   async insertCanonicalTemplateLines(
@@ -119,16 +121,9 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
       .insert(rows)
       .select();
 
-    if (error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
-        undefined,
-        { operation: 'insertDemoTemplateLines', supabaseError: error },
-        { cause: error },
-      );
-    }
-
-    return (data ?? []).map((row) => this.toSeededTemplateLine(row, dek));
+    return this.insertedRowsOrThrow(data, error, 'insertDemoTemplateLines').map(
+      (row) => this.toSeededTemplateLine(row, dek),
+    );
   }
 
   async insertBudgets(
@@ -149,29 +144,22 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
       .insert(rows)
       .select();
 
-    if (error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
-        undefined,
-        { operation: 'insertDemoBudgets', supabaseError: error },
-        { cause: error },
-      );
-    }
-
-    return (data ?? []).map((row) => ({
-      id: row.id,
-      month: row.month,
-      year: row.year,
-      templateId: row.template_id,
-    }));
+    return this.insertedRowsOrThrow(data, error, 'insertDemoBudgets').map(
+      (row) => ({
+        id: row.id,
+        month: row.month,
+        year: row.year,
+        templateId: row.template_id,
+      }),
+    );
   }
 
   async insertBudgetLines(
     lines: DemoBudgetLineSeed[],
     userId: string,
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<void> {
-    if (lines.length === 0) return;
+  ): Promise<DemoSeededBudgetLine[]> {
+    if (lines.length === 0) return [];
 
     const dek = await this.getDemoDek(userId);
 
@@ -184,23 +172,22 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
       kind: line.kind,
       recurrence: line.recurrence,
       is_manually_adjusted: false,
-      checked_at: null,
+      checked_at: line.checkedAt,
+      spread_group_id: line.spreadGroupId,
       original_amount: null,
       original_currency: null,
       target_currency: null,
       exchange_rate: null,
     }));
 
-    const { error } = await supabase.from('budget_line').insert(rows);
+    const { data, error } = await supabase
+      .from('budget_line')
+      .insert(rows)
+      .select();
 
-    if (error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
-        undefined,
-        { operation: 'insertDemoBudgetLines', supabaseError: error },
-        { cause: error },
-      );
-    }
+    return this.insertedRowsOrThrow(data, error, 'insertDemoBudgetLines').map(
+      (row) => this.toSeededBudgetLine(row),
+    );
   }
 
   async insertTransactions(
@@ -214,12 +201,12 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
 
     const rows: TransactionInsert[] = transactions.map((tx) => ({
       budget_id: tx.budgetId,
-      budget_line_id: null,
+      budget_line_id: tx.budgetLineId,
       name: tx.name,
       amount: this.encryption.encryptAmount(tx.amount, dek),
       kind: tx.kind,
       transaction_date: tx.transactionDate,
-      checked_at: null,
+      checked_at: tx.checkedAt,
       original_amount: null,
       original_currency: null,
       target_currency: null,
@@ -231,18 +218,13 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
       .insert(rows)
       .select('id');
 
-    if (error || !insertedRows) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
-        undefined,
-        { operation: 'insertDemoTransactions', supabaseError: error },
-        { cause: error ?? undefined },
-      );
-    }
-
     await this.linkTransactionTags(
       transactions,
-      insertedRows.map((row) => row.id),
+      this.insertedRowsOrThrow(
+        insertedRows,
+        error,
+        'insertDemoTransactions',
+      ).map((row) => row.id),
       userId,
       supabase,
     );
@@ -288,16 +270,11 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
         .insert(missingNames.map((name) => ({ user_id: userId, name })))
         .select('id, name');
 
-      if (tagError || !createdTags) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
-          undefined,
-          { operation: 'insertDemoTags', supabaseError: tagError },
-          { cause: tagError ?? undefined },
-        );
-      }
-
-      for (const tag of createdTags) {
+      for (const tag of this.insertedRowsOrThrow(
+        createdTags,
+        tagError,
+        'insertDemoTags',
+      )) {
         tagIdByName.set(tagKey(tag.name), tag.id);
       }
     }
@@ -324,8 +301,128 @@ export class SupabaseDemoRepository implements DemoRepositoryPort {
     }
   }
 
+  async insertSavingsGoals(
+    goals: DemoSavingsGoalSeed[],
+    userId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<DemoSeededSavingsGoal[]> {
+    if (goals.length === 0) return [];
+
+    const dek = await this.getDemoDek(userId);
+
+    // `created_at` is backdated onto the plan's start. Progress anchors its
+    // history on `max(createdAt, startDate)`, so a goal created now would
+    // discard every backfilled contribution and show the initial amount alone
+    // next to a list of contributions it claims not to count.
+    const rows: SavingsGoalInsert[] = goals.map((goal) => ({
+      user_id: goal.userId,
+      created_at: goal.startDate ?? undefined,
+      name: goal.name,
+      target_amount: this.encryption.encryptAmount(goal.targetAmount, dek),
+      initial_amount: this.encryption.encryptAmount(goal.initialAmount, dek),
+      original_target_amount: null,
+      status: goal.status,
+      start_date: goal.startDate,
+      target_date: goal.targetDate,
+      original_currency: null,
+      target_currency: null,
+      exchange_rate: null,
+    }));
+
+    const { data, error } = await supabase
+      .from('savings_goal')
+      .insert(rows)
+      .select();
+
+    return this.insertedRowsOrThrow(data, error, 'insertDemoSavingsGoals').map(
+      (row) => ({ id: row.id, name: row.name }),
+    );
+  }
+
+  async linkBudgetLinesToSavingsGoal(
+    budgetLineIds: string[],
+    savingsGoalId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    if (budgetLineIds.length === 0) return;
+
+    const { error } = await supabase
+      .from('budget_line')
+      .update({ savings_goal_id: savingsGoalId })
+      .in('id', budgetLineIds);
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        { operation: 'linkDemoBudgetLinesToSavingsGoal', supabaseError: error },
+        { cause: error },
+      );
+    }
+  }
+
+  async linkTemplateLinesToSavingsGoal(
+    templateLineIds: string[],
+    savingsGoalId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    if (templateLineIds.length === 0) return;
+
+    const { error } = await supabase
+      .from('template_line')
+      .update({ savings_goal_id: savingsGoalId })
+      .in('id', templateLineIds);
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        {
+          operation: 'linkDemoTemplateLinesToSavingsGoal',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+  }
+
+  /**
+   * The rows an insert claims to have written, or nothing at all.
+   *
+   * An errorless null is a real answer, not a typing artefact: postgrest-js
+   * turns a bodyless 404 into a 204 and leaves both fields null. Every seed
+   * step keys off the rows the one before it returned, so reading that as an
+   * empty list would carry on and build the blank demo this module exists to
+   * prevent — the failure has to stop here, where it can still name itself.
+   */
+  private insertedRowsOrThrow<T>(
+    data: T[] | null,
+    error: unknown,
+    operation: string,
+  ): T[] {
+    if (error || !data) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        { operation, supabaseError: error },
+        { cause: error ?? undefined },
+      );
+    }
+
+    return data;
+  }
+
   private async getDemoDek(userId: string): Promise<Buffer> {
     return this.encryption.ensureDemoUserDEK(userId);
+  }
+
+  private toSeededBudgetLine(row: BudgetLineRow): DemoSeededBudgetLine {
+    return {
+      id: row.id,
+      budgetId: row.budget_id,
+      name: row.name,
+      kind: row.kind,
+    };
   }
 
   private toSeededTemplateLine(

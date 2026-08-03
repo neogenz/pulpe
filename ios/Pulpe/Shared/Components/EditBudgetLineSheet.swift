@@ -3,6 +3,8 @@ import SwiftUI
 /// Sheet for editing an existing budget line (prévision) — hero amount layout
 struct EditBudgetLineSheet: View {
     let budgetLine: BudgetLine
+    /// Period of the budget holding the line — bounds its savings-goal links.
+    let budgetPeriod: BudgetPeriod?
     let onUpdate: (BudgetLine) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -28,10 +30,12 @@ struct EditBudgetLineSheet: View {
     init(
         budgetLine: BudgetLine,
         userCurrency: SupportedCurrency,
+        budgetPeriod: BudgetPeriod? = nil,
         dependencies: EditBudgetLineDependencies = .live,
         onUpdate: @escaping (BudgetLine) -> Void
     ) {
         self.budgetLine = budgetLine
+        self.budgetPeriod = budgetPeriod
         self.dependencies = dependencies
         self.onUpdate = onUpdate
         _name = State(initialValue: budgetLine.name)
@@ -86,7 +90,7 @@ struct EditBudgetLineSheet: View {
             )
             descriptionField
             if kind == .saving {
-                SavingsGoalPickerField(selection: $savingsGoalId)
+                SavingsGoalPickerField(selection: $savingsGoalId, budgetPeriod: budgetPeriod)
             }
             TagPickerField(selection: $selectedTagIds)
 

@@ -70,7 +70,6 @@ interface MockStore {
   savingsWithdrawalOriginLabel: ReturnType<typeof signal<string>>;
   savingsWithdrawalDeficit: ReturnType<typeof signal<number>>;
   savingsGoalNameById: ReturnType<typeof signal<ReadonlyMap<string, string>>>;
-  error: ReturnType<typeof signal<string | null>>;
   setSearchText: ReturnType<typeof vi.fn>;
   setIsShowingOnlyUnchecked: ReturnType<typeof vi.fn>;
   createBudgetLine: ReturnType<typeof vi.fn>;
@@ -79,6 +78,7 @@ interface MockStore {
   deleteBudgetLine: ReturnType<typeof vi.fn>;
   deleteTransaction: ReturnType<typeof vi.fn>;
   resetBudgetLineFromTemplate: ReturnType<typeof vi.fn>;
+  spreadExistingBudgetLine: ReturnType<typeof vi.fn>;
   postponeBudgetLine: ReturnType<typeof vi.fn>;
   postponeTransaction: ReturnType<typeof vi.fn>;
   toggleCheck: ReturnType<typeof vi.fn>;
@@ -107,7 +107,6 @@ function createMockStore(): MockStore {
     savingsWithdrawalOriginLabel: signal(''),
     savingsWithdrawalDeficit: signal(0),
     savingsGoalNameById: signal<ReadonlyMap<string, string>>(new Map()),
-    error: signal<string | null>(null),
     setSearchText: vi.fn(),
     setIsShowingOnlyUnchecked: vi.fn(),
     createBudgetLine: vi.fn(),
@@ -116,11 +115,16 @@ function createMockStore(): MockStore {
     deleteBudgetLine: vi.fn(),
     deleteTransaction: vi.fn(),
     resetBudgetLineFromTemplate: vi.fn(),
-    postponeBudgetLine: vi.fn().mockResolvedValue(true),
-    postponeTransaction: vi.fn().mockResolvedValue(true),
-    toggleCheck: vi.fn().mockResolvedValue(true),
-    toggleTransactionCheck: vi.fn(),
-    checkAllAllocatedTransactions: vi.fn(),
+    spreadExistingBudgetLine: vi.fn().mockResolvedValue({}),
+    // A mutation now answers with its refusal motive, so `null` is its success.
+    postponeBudgetLine: vi.fn().mockResolvedValue(null),
+    postponeTransaction: vi.fn().mockResolvedValue(null),
+    // The 3 check mutations answer with a 3-way outcome; `applied` is their default success.
+    toggleCheck: vi.fn().mockResolvedValue({ status: 'applied' }),
+    toggleTransactionCheck: vi.fn().mockResolvedValue({ status: 'applied' }),
+    checkAllAllocatedTransactions: vi
+      .fn()
+      .mockResolvedValue({ status: 'applied' }),
     createAllocatedTransaction: vi.fn(),
     updateTransaction: vi.fn(),
     createSavingsWithdrawal: vi.fn(),
@@ -376,15 +380,242 @@ describe('BudgetItemsContainer — orchestration', () => {
       value: spread,
     });
     mockStore.createBudgetLineSpread.mockResolvedValue({
-      lines: [],
-      createdBudgets: [],
-      skippedMonths: [],
+      data: { lines: [], createdBudgets: [], skippedMonths: [] },
     });
 
     await component.openAddBudgetLineDialog();
 
     expect(mockStore.createBudgetLineSpread).toHaveBeenCalledWith(spread);
     expect(mockStore.createBudgetLine).not.toHaveBeenCalled();
+  });
+
+  it('shows the server motive when a postpone is refused', async () => {
+    mockDialogService.confirmPostpone.mockResolvedValue(true);
+    mockStore.nextMonthLabel.set('septembre 2026');
+    mockStore.postponeBudgetLine.mockResolvedValue(
+      'Le mois suivant est déjà clôturé',
+    );
+
+    await component['handlePostponeBudgetLine']('line-1');
+
+    expect(mockSnackBar.open).toHaveBeenCalledWith(
+      'Le mois suivant est déjà clôturé',
+      expect.anything(),
+      expect.objectContaining({ panelClass: expect.anything() }),
+    );
+  });
+
+  it('confirms the move when a postpone goes through', async () => {
+    mockDialogService.confirmPostpone.mockResolvedValue(true);
+    mockStore.nextMonthLabel.set('septembre 2026');
+
+    await component['handlePostponeBudgetLine']('line-1');
+
+    expect(mockSnackBar.open).toHaveBeenCalledWith(
+      expect.stringContaining('septembre 2026'),
+      expect.anything(),
+      expect.objectContaining({ duration: 5000 }),
+    );
+  });
+});
+
+describe('BudgetItemsContainer — a refused gesture speaks for itself', () => {
+  const LINE_ID = '55555555-5555-4555-8555-555555555555';
+  const TX_ID = '66666666-6666-4666-8666-666666666666';
+  const MOTIVE = 'Le mois est clôturé';
+
+  let mockStore: MockStore;
+  let mockDialogService: MockDialogService;
+  let mockSnackBar: { open: ReturnType<typeof vi.fn> };
+  let component: BudgetItemsContainer;
+
+  // Every gesture reworked in this phase: the mutation it drives, how the user
+  // reaches it, and the confirmation it opens once the mutation goes through.
+  const gestures: {
+    name: string;
+    mutation: () => ReturnType<typeof vi.fn>;
+    arrange: () => void;
+    act: () => Promise<void>;
+    confirmation?: string;
+    // The 3 check mutations answer with a 3-way CheckOutcome, not `string | null`.
+    isCheckOutcome?: boolean;
+  }[] = [
+    {
+      name: 'editing a transaction',
+      mutation: () => mockStore.updateTransaction,
+      arrange: () => undefined,
+      act: () => component['handleUpdateTransaction'](TX_ID, { amount: 42 }),
+      confirmation: 'Modification enregistrée',
+    },
+    {
+      name: 'deleting a transaction',
+      mutation: () => mockStore.deleteTransaction,
+      arrange: () => mockDialogService.confirmDelete.mockResolvedValue(true),
+      act: () =>
+        component['handleDeleteTransaction'](
+          createMockTransaction({ id: TX_ID }),
+        ),
+      confirmation: 'Transaction supprimée',
+    },
+    {
+      name: 'adding an allocated transaction',
+      mutation: () => mockStore.createAllocatedTransaction,
+      arrange: () => {
+        mockStore.budgetDetails.set({ id: 'budget-1', month: 1, year: 2026 });
+        mockDialogService.openCreateAllocatedTransactionDialog.mockResolvedValue(
+          { name: 'Courses', amount: 42 },
+        );
+      },
+      act: () =>
+        component['openCreateAllocatedTransactionDialog'](
+          createMockBudgetLine({ id: LINE_ID }),
+        ),
+      confirmation: 'Transaction ajoutée',
+    },
+    {
+      name: 'resetting a forecast from the template',
+      mutation: () => mockStore.resetBudgetLineFromTemplate,
+      arrange: () => undefined,
+      act: () => component['handleResetFromTemplate'](LINE_ID),
+      confirmation: 'Prévision réinitialisée depuis le modèle',
+    },
+    {
+      name: 'deleting a forecast from the table',
+      mutation: () => mockStore.deleteBudgetLine,
+      arrange: () => {
+        mockStore.budgetDetails.set({
+          budgetLines: [createMockBudgetLine({ id: LINE_ID })],
+          transactions: [],
+        });
+        mockDialogService.confirmDelete.mockResolvedValue(true);
+      },
+      act: () => component['handleDeleteItem'](LINE_ID),
+    },
+    {
+      name: 'checking a transaction',
+      mutation: () => mockStore.toggleTransactionCheck,
+      arrange: () => undefined,
+      act: () => component['handleToggleTransactionCheck'](TX_ID),
+      isCheckOutcome: true,
+    },
+    {
+      name: 'cascading the check to allocated transactions',
+      mutation: () => mockStore.checkAllAllocatedTransactions,
+      isCheckOutcome: true,
+      arrange: () => {
+        mockStore.budgetDetails.set({
+          budgetLines: [createMockBudgetLine({ id: LINE_ID, checkedAt: null })],
+          transactions: [
+            createMockTransaction({
+              id: TX_ID,
+              budgetLineId: LINE_ID,
+              checkedAt: null,
+            }),
+          ],
+        });
+        mockDialogService.confirmCheckAllocatedTransactions.mockResolvedValue(
+          true,
+        );
+      },
+      act: () => component['handleToggleCheck'](LINE_ID),
+    },
+  ];
+
+  beforeEach(() => {
+    mockStore = createMockStore();
+    mockDialogService = createMockDialogService();
+    mockSnackBar = { open: vi.fn() };
+    component = setupComponent(
+      mockStore,
+      mockDialogService,
+      mockSnackBar,
+    ).componentInstance;
+  });
+
+  it.each(gestures)(
+    'reports the server motive and nothing else when $name is refused',
+    async ({ mutation, arrange, act, isCheckOutcome }) => {
+      arrange();
+      mutation().mockResolvedValue(
+        isCheckOutcome ? { status: 'failed', reason: MOTIVE } : MOTIVE,
+      );
+
+      await act();
+
+      expect(mockSnackBar.open).toHaveBeenCalledTimes(1);
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        MOTIVE,
+        'Fermer',
+        expect.objectContaining({
+          panelClass: ['bg-error-container', 'text-on-error-container'],
+        }),
+      );
+    },
+  );
+
+  it('announces a refused spread of an existing forecast', async () => {
+    const line = createMockBudgetLine({ id: LINE_ID, amount: 600 });
+    mockStore.budgetDetails.set({ id: 'budget-1', month: 1, year: 2026 });
+    mockStore.filteredBudgetLines.set([line]);
+    mockDialogService.openSpreadExisting.mockResolvedValue({
+      periods: [{ year: 2026, month: 2 }],
+    });
+    mockStore.spreadExistingBudgetLine.mockResolvedValue({ error: MOTIVE });
+
+    await component['handleSpreadBudgetLine'](component.budgetLineItems()[0]);
+
+    expect(mockSnackBar.open).toHaveBeenCalledWith(
+      MOTIVE,
+      'Fermer',
+      expect.objectContaining({
+        panelClass: ['bg-error-container', 'text-on-error-container'],
+      }),
+    );
+  });
+
+  it.each(gestures.filter((gesture) => gesture.confirmation))(
+    'keeps the confirmation of $name when it goes through',
+    async ({ mutation, arrange, act, confirmation }) => {
+      arrange();
+      mutation().mockResolvedValue(null);
+
+      await act();
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        confirmation,
+        'Fermer',
+        expect.anything(),
+      );
+    },
+  );
+});
+
+describe('BudgetItemsContainer — a skipped check stays silent', () => {
+  it('opens no toast when the store reports the toggle as skipped', async () => {
+    const lineId = '77777777-7777-4777-8777-777777777777';
+    const mockStore = createMockStore();
+    // checkedAt is set so the confirmation snackbar WOULD have a message to show
+    // if the container mistakenly fell through past the `skipped` outcome.
+    mockStore.budgetDetails.set({
+      budgetLines: [
+        createMockBudgetLine({
+          id: lineId,
+          checkedAt: '2024-01-01T00:00:00Z',
+        }),
+      ],
+      transactions: [],
+    });
+    mockStore.toggleCheck.mockResolvedValue({ status: 'skipped' });
+    const mockSnackBar = { open: vi.fn() };
+    const component = setupComponent(
+      mockStore,
+      createMockDialogService(),
+      mockSnackBar,
+    ).componentInstance;
+
+    await component['handleToggleCheck'](lineId);
+
+    expect(mockSnackBar.open).not.toHaveBeenCalled();
   });
 });
 

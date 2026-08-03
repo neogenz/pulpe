@@ -214,11 +214,12 @@ describe('BudgetDetailsStore — spread réalisé tracker', () => {
       const localizeSpy = vi.spyOn(localizer, 'localizeApiError');
 
       // Act
-      await store.createBudgetLineSpread(SPREAD_INPUT);
+      const outcome = await store.createBudgetLineSpread(SPREAD_INPUT);
 
       // Assert
       expect(localizeSpy).toHaveBeenCalledWith(recalcError);
-      expect(store.error()).toBe(localizer.localizeApiError(recalcError));
+      expect(outcome.error).toBe(localizer.localizeApiError(recalcError));
+      expect(store.error()).toBeUndefined();
     });
   });
 });

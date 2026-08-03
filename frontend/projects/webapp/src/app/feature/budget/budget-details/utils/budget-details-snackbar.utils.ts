@@ -11,6 +11,7 @@ import type {
 } from 'pulpe-shared';
 
 import { AppCurrencyPipe } from '@core/currency';
+import type { MutationOutcome } from '../store/budget-details-store';
 
 const currencyPipe = new AppCurrencyPipe();
 
@@ -63,11 +64,15 @@ export function computeSpreadSnackbarMessage(
 /**
  * PUL-17 — submit a smoothed expense (additive create) and surface the outcome.
  *
- * On success: the occurrences toast. On failure: a "Réessayer" toast whose action
- * re-submits the SAME DTO — crucially the SAME `spreadGroupId`. That is what makes
- * the idempotency key actually do its job: the retry replays the original group
- * server-side (or heals a balance left stale by a post-commit failure) instead of
- * creating a duplicate. Recurses so each failed retry can be retried again.
+ * On success: the occurrences toast. On a failure that could land differently, a
+ * "Réessayer" toast whose action re-submits the SAME DTO — crucially the SAME
+ * `spreadGroupId`. That is what makes the idempotency key actually do its job:
+ * the retry replays the original group server-side (or heals a balance left
+ * stale by a post-commit failure) instead of creating a duplicate. Recurses so
+ * each failed retry can be retried again.
+ *
+ * A refusal the server already decided on gets "Fermer" instead: replaying the
+ * same body earns the same verdict, and the message already says what to change.
  *
  * The mutation is injected as `create` so this stays decoupled from the store; the
  * caller passes `(v) => store.createBudgetLineSpread(v)`.
@@ -76,14 +81,14 @@ export async function submitSpreadWithRetry(
   value: BudgetLineSpreadCreate,
   create: (
     value: BudgetLineSpreadCreate,
-  ) => Promise<BudgetLineSpreadResponse['data'] | undefined>,
+  ) => Promise<MutationOutcome<BudgetLineSpreadResponse['data']>>,
   snackBar: MatSnackBar,
   transloco: TranslocoService,
 ): Promise<void> {
   const outcome = await create(value);
-  if (outcome) {
+  if (outcome.data) {
     snackBar.open(
-      computeSpreadSnackbarMessage(outcome, transloco),
+      computeSpreadSnackbarMessage(outcome.data, transloco),
       transloco.translate('common.close'),
       { duration: 5000 },
     );
@@ -91,10 +96,11 @@ export async function submitSpreadWithRetry(
   }
 
   const ref = snackBar.open(
-    transloco.translate('budgetLine.spread.error'),
-    transloco.translate('common.retry'),
+    outcome.error ?? transloco.translate('budgetLine.spread.error'),
+    transloco.translate(outcome.retryable ? 'common.retry' : 'common.close'),
     { duration: 8000 },
   );
+  if (!outcome.retryable) return;
   ref.onAction().subscribe(() => {
     void submitSpreadWithRetry(value, create, snackBar, transloco);
   });
@@ -120,22 +126,23 @@ export function spreadCreateEcho(value: BudgetLineSpreadCreate): {
 
 /**
  * PUL-292 — submit a savings withdrawal (create the linked couple) and surface
- * the outcome. On success: a confirmation toast. On failure: a "Réessayer" toast
- * that re-submits the SAME DTO — the SAME `groupId` — so the retry replays the
- * original couple server-side (or heals a balance left stale by a post-commit
- * failure) instead of creating a duplicate. Recurses so each failed retry can be
- * retried again. Mirrors `submitSpreadWithRetry`.
+ * the outcome. On success: a confirmation toast. On a failure that could land
+ * differently, a "Réessayer" toast that re-submits the SAME DTO — the SAME
+ * `groupId` — so the retry replays the original couple server-side (or heals a
+ * balance left stale by a post-commit failure) instead of creating a duplicate.
+ * Recurses so each failed retry can be retried again. A refusal the server
+ * already decided on gets "Fermer". Mirrors `submitSpreadWithRetry`.
  */
 export async function submitSavingsWithdrawalWithRetry(
   value: BudgetLineSavingsWithdrawalCreate,
   create: (
     value: BudgetLineSavingsWithdrawalCreate,
-  ) => Promise<BudgetLineSavingsWithdrawalResponse['data'] | undefined>,
+  ) => Promise<MutationOutcome<BudgetLineSavingsWithdrawalResponse['data']>>,
   snackBar: MatSnackBar,
   transloco: TranslocoService,
 ): Promise<void> {
   const outcome = await create(value);
-  if (outcome) {
+  if (outcome.data) {
     snackBar.open(
       transloco.translate('budget.savingsWithdrawal.success'),
       transloco.translate('common.close'),
@@ -145,10 +152,11 @@ export async function submitSavingsWithdrawalWithRetry(
   }
 
   const ref = snackBar.open(
-    transloco.translate('budget.savingsWithdrawal.error'),
-    transloco.translate('common.retry'),
+    outcome.error ?? transloco.translate('budget.savingsWithdrawal.error'),
+    transloco.translate(outcome.retryable ? 'common.retry' : 'common.close'),
     { duration: 8000 },
   );
+  if (!outcome.retryable) return;
   ref.onAction().subscribe(() => {
     void submitSavingsWithdrawalWithRetry(value, create, snackBar, transloco);
   });
@@ -202,5 +210,20 @@ export function computeTransactionSnackbarMessage(
       Math.round(Math.abs(transaction.amount)),
       currency,
     ),
+  });
+}
+
+/**
+ * A refused mutation surfaces here, never on the page-level error signal: the
+ * budget stays on screen and the server's own reason is what the user reads.
+ */
+export function openMutationErrorSnackbar(
+  message: string,
+  snackBar: MatSnackBar,
+  transloco: TranslocoService,
+): void {
+  snackBar.open(message, transloco.translate('common.close'), {
+    duration: 5000,
+    panelClass: ['bg-error-container', 'text-on-error-container'],
   });
 }
