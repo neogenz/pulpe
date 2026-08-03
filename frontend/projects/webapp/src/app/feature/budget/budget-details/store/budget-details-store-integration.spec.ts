@@ -329,6 +329,48 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       expect(error).toBe(localizer.localizeApiError(horizonError));
       expect(service.error()).toBeUndefined();
     });
+
+    // The spread submitter turns `retryable` into a "Réessayer" action. A 422 is
+    // a verdict on this exact body, so replaying it can only earn the same 422.
+    it('marks a refused spread final and a broken one worth replaying', async () => {
+      const spreadInput = {
+        budgetId: mockBudgetId,
+        name: 'Épargne lissée',
+        amount: 100,
+        kind: 'saving' as const,
+        mode: 'perMonth' as const,
+        perMonthAmount: 100,
+        months: [{ month: 6, year: 2026 }],
+        spreadGroupId: 'group-1',
+      };
+
+      mockBudgetApi.createBudgetLineSpread$ = vi
+        .fn()
+        .mockReturnValue(
+          throwError(
+            () =>
+              new ApiError(
+                'unprocessable',
+                API_ERROR_CODES.SAVINGS_GOAL_LINE_OUTSIDE_HORIZON,
+                422,
+                undefined,
+              ),
+          ),
+        );
+      const refused = await service.createBudgetLineSpread(spreadInput);
+
+      mockBudgetApi.createBudgetLineSpread$ = vi
+        .fn()
+        .mockReturnValue(
+          throwError(() => new ApiError('boom', undefined, 503, undefined)),
+        );
+      const broken = await service.createBudgetLineSpread(spreadInput);
+
+      expect(refused.error).toBeTruthy();
+      expect(refused.retryable).toBe(false);
+      expect(broken.error).toBeTruthy();
+      expect(broken.retryable).toBe(true);
+    });
   });
 
   describe('User edits a budget line', () => {

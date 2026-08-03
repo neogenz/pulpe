@@ -274,7 +274,7 @@ describe('submitSpreadWithRetry', () => {
     const action$ = new Subject<void>();
     const open = vi.fn().mockReturnValue({ onAction: () => action$ });
     const snackBar = { open } as unknown as MatSnackBar;
-    const create = vi.fn().mockResolvedValue({});
+    const create = vi.fn().mockResolvedValue({ retryable: true });
 
     await submitSpreadWithRetry(spreadValue, create, snackBar, transloco);
 
@@ -293,23 +293,28 @@ describe('submitSpreadWithRetry', () => {
     expect(create).toHaveBeenNthCalledWith(2, spreadValue);
   });
 
-  it('carries the server motive instead of the generic spread key', async () => {
+  // A horizon refusal is a verdict on this exact body: replaying it earns the
+  // same 422, so the action must not invite the user into that loop.
+  it('carries the server motive and closes instead of retrying a refusal', async () => {
     const transloco = createMockTransloco();
-    const open = vi
-      .fn()
-      .mockReturnValue({ onAction: () => new Subject<void>() });
+    const action$ = new Subject<void>();
+    const open = vi.fn().mockReturnValue({ onAction: () => action$ });
     const snackBar = { open } as unknown as MatSnackBar;
     const create = vi.fn().mockResolvedValue({
       error: "Cette épargne dépasse l'horizon de ton objectif",
+      retryable: false,
     });
 
     await submitSpreadWithRetry(spreadValue, create, snackBar, transloco);
 
     expect(open).toHaveBeenLastCalledWith(
       "Cette épargne dépasse l'horizon de ton objectif",
-      'common.retry',
+      'common.close',
       expect.objectContaining({ duration: 8000 }),
     );
+
+    action$.next();
+    expect(create).toHaveBeenCalledTimes(1);
   });
 });
 

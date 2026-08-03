@@ -66,14 +66,34 @@ import {
  * What a mutation that carries a payload gives back: the payload on success, the
  * localized reason on refusal. Mutations with nothing to return say the same
  * thing with a plain `string | null` — `null` meaning it went through.
+ *
+ * `retryable` says whether replaying the SAME request could land differently.
+ * Only the submitters that offer a "Réessayer" action read it; a refusal the
+ * server will repeat verbatim must not be offered a button that cannot work.
  */
 export interface MutationOutcome<T> {
   data?: T;
   error?: string;
+  retryable?: boolean;
 }
 
-/** Where a mutation's `onError` hands its localized reason back to the one call that made it. */
-type FailSink = (message: string) => void;
+/**
+ * A refusal the server decided on (any 4xx it will reach again from the same
+ * body) is final. A timeout, a rate limit, a 5xx or a transport failure is the
+ * request not getting a verdict — that is what replaying is for, and for the
+ * idempotent creates it is also what heals a lost post-commit response.
+ */
+function isRetryableFailure(error: unknown): boolean {
+  if (!isApiError(error)) return true;
+  return error.status >= 500 || error.status === 408 || error.status === 429;
+}
+
+/**
+ * Where a mutation's `onError` hands its localized reason back to the one call
+ * that made it. `retryable` is omitted by the mutations nobody offers a retry
+ * on, which is why it is optional rather than threaded through all of them.
+ */
+type FailSink = (message: string, retryable?: boolean) => void;
 
 /**
  * A `cachedMutation` built for ONE call, around that call's sink. Structural
@@ -721,11 +741,11 @@ export class BudgetDetailsStore {
   async createBudgetLineSpread(
     input: BudgetLineSpreadCreate,
   ): Promise<MutationOutcome<BudgetLineSpreadResponse['data']>> {
-    const { data, error } = await this.#runMutation(
+    const { data, error, retryable } = await this.#runMutation(
       this.#createBudgetLineSpreadMutation,
       input,
     );
-    return error !== null ? { error } : { data: data?.data };
+    return error !== null ? { error, retryable } : { data: data?.data };
   }
 
   // PUL-292 — creating the pioche couple fans out across M and M+1 (possibly
@@ -748,11 +768,11 @@ export class BudgetDetailsStore {
   async createSavingsWithdrawal(
     input: BudgetLineSavingsWithdrawalCreate,
   ): Promise<MutationOutcome<BudgetLineSavingsWithdrawalResponse['data']>> {
-    const { data, error } = await this.#runMutation(
+    const { data, error, retryable } = await this.#runMutation(
       this.#createSavingsWithdrawalMutation,
       input,
     );
-    return error !== null ? { error } : { data: data?.data };
+    return error !== null ? { error, retryable } : { data: data?.data };
   }
 
   readonly #deleteSavingsWithdrawalMutation = (fail: FailSink) =>
@@ -906,9 +926,10 @@ export class BudgetDetailsStore {
         return this.#rewindPoint(previous);
       },
       onSuccess: () => this.#onFinancialMutationSuccess(),
-      onError: (_err, _args, rewind) => {
+      onError: (error, _args, rewind) => {
         this.#rollback(rewind);
         fail(this.#transloco.translate('budget.transactionUpdateError'));
+        this.#logger.error('Transaction update failed', error);
       },
     });
 
@@ -942,9 +963,10 @@ export class BudgetDetailsStore {
         return this.#rewindPoint(previous);
       },
       onSuccess: () => this.#onFinancialMutationSuccess(),
-      onError: (_err, _args, rewind) => {
+      onError: (error, _args, rewind) => {
         this.#rollback(rewind);
         fail(this.#transloco.translate('budget.forecastDeleteError'));
+        this.#logger.error('Budget line delete failed', error);
       },
     });
 
@@ -972,9 +994,10 @@ export class BudgetDetailsStore {
         return this.#rewindPoint(previous);
       },
       onSuccess: () => this.#onFinancialMutationSuccess(),
-      onError: (_err, _args, rewind) => {
+      onError: (error, _args, rewind) => {
         this.#rollback(rewind);
         fail(this.#transloco.translate('budget.transactionDeleteError'));
+        this.#logger.error('Transaction delete failed', error);
       },
     });
 
@@ -1027,9 +1050,10 @@ export class BudgetDetailsStore {
         }));
         this.#onFinancialMutationSuccess();
       },
-      onError: (_err, _args, rewind) => {
+      onError: (error, _args, rewind) => {
         this.#rollback(rewind);
         fail(this.#transloco.translate('budget.transactionCreateError'));
+        this.#logger.error('Allocated transaction create failed', error);
       },
     });
 
@@ -1176,9 +1200,10 @@ export class BudgetDetailsStore {
         }));
         this.#onFinancialMutationSuccess();
       },
-      onError: (_err, _id, rewind) => {
+      onError: (error, _id, rewind) => {
         this.#rollback(rewind);
         fail(this.#transloco.translate('budget.forecastToggleError'));
+        this.#logger.error('Budget line check toggle failed', error);
       },
     });
 
@@ -1229,9 +1254,10 @@ export class BudgetDetailsStore {
         }));
         this.#onFinancialMutationSuccess();
       },
-      onError: (_err, _id, rewind) => {
+      onError: (error, _id, rewind) => {
         this.#rollback(rewind);
         fail(this.#transloco.translate('budget.transactionToggleError'));
+        this.#logger.error('Transaction check toggle failed', error);
       },
     });
 
@@ -1290,9 +1316,10 @@ export class BudgetDetailsStore {
         }));
         this.#onFinancialMutationSuccess();
       },
-      onError: (_err, _id, rewind) => {
+      onError: (error, _id, rewind) => {
         this.#rollback(rewind);
         fail(this.#transloco.translate('budget.checkAllError'));
+        this.#logger.error('Bulk check-all failed', error);
       },
     });
 
@@ -1333,13 +1360,19 @@ export class BudgetDetailsStore {
   async #runMutation<TArgs, TResponse>(
     factory: MutationFactory<TArgs, TResponse>,
     args: TArgs,
-  ): Promise<{ data: TResponse | undefined; error: string | null }> {
+  ): Promise<{
+    data: TResponse | undefined;
+    error: string | null;
+    retryable: boolean;
+  }> {
     let error: string | null = null;
-    const mutation = factory((message) => {
+    let retryable = false;
+    const mutation = factory((message, isRetryable = false) => {
       error = message;
+      retryable = isRetryable;
     });
     const data = await mutation.mutate(args);
-    return { data, error };
+    return { data, error, retryable };
   }
 
   /** The pair `#rollback` needs, or `null` when there is nothing to undo. */
@@ -1397,14 +1430,20 @@ export class BudgetDetailsStore {
 
   // Shared failure path for the 3 spread mutations (identical key + log).
   #handleSpreadError(fail: FailSink, error: unknown): void {
-    fail(this.#localizeError(error, 'budgetLine.spread.error'));
+    fail(
+      this.#localizeError(error, 'budgetLine.spread.error'),
+      isRetryableFailure(error),
+    );
     this.#logger.error('Spread mutation failed', error);
   }
 
   // Shared failure path for the 2 savings-withdrawal mutations (PUL-292):
   // localize a typed ApiError via its code, else fall back to the generic key.
   #handleSavingsWithdrawalError(fail: FailSink, error: unknown): void {
-    fail(this.#localizeError(error, 'budget.savingsWithdrawal.error'));
+    fail(
+      this.#localizeError(error, 'budget.savingsWithdrawal.error'),
+      isRetryableFailure(error),
+    );
     this.#logger.error('Savings withdrawal mutation failed', error);
   }
 

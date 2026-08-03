@@ -64,11 +64,15 @@ export function computeSpreadSnackbarMessage(
 /**
  * PUL-17 — submit a smoothed expense (additive create) and surface the outcome.
  *
- * On success: the occurrences toast. On failure: a "Réessayer" toast whose action
- * re-submits the SAME DTO — crucially the SAME `spreadGroupId`. That is what makes
- * the idempotency key actually do its job: the retry replays the original group
- * server-side (or heals a balance left stale by a post-commit failure) instead of
- * creating a duplicate. Recurses so each failed retry can be retried again.
+ * On success: the occurrences toast. On a failure that could land differently, a
+ * "Réessayer" toast whose action re-submits the SAME DTO — crucially the SAME
+ * `spreadGroupId`. That is what makes the idempotency key actually do its job:
+ * the retry replays the original group server-side (or heals a balance left
+ * stale by a post-commit failure) instead of creating a duplicate. Recurses so
+ * each failed retry can be retried again.
+ *
+ * A refusal the server already decided on gets "Fermer" instead: replaying the
+ * same body earns the same verdict, and the message already says what to change.
  *
  * The mutation is injected as `create` so this stays decoupled from the store; the
  * caller passes `(v) => store.createBudgetLineSpread(v)`.
@@ -93,9 +97,10 @@ export async function submitSpreadWithRetry(
 
   const ref = snackBar.open(
     outcome.error ?? transloco.translate('budgetLine.spread.error'),
-    transloco.translate('common.retry'),
+    transloco.translate(outcome.retryable ? 'common.retry' : 'common.close'),
     { duration: 8000 },
   );
+  if (!outcome.retryable) return;
   ref.onAction().subscribe(() => {
     void submitSpreadWithRetry(value, create, snackBar, transloco);
   });
@@ -121,11 +126,12 @@ export function spreadCreateEcho(value: BudgetLineSpreadCreate): {
 
 /**
  * PUL-292 — submit a savings withdrawal (create the linked couple) and surface
- * the outcome. On success: a confirmation toast. On failure: a "Réessayer" toast
- * that re-submits the SAME DTO — the SAME `groupId` — so the retry replays the
- * original couple server-side (or heals a balance left stale by a post-commit
- * failure) instead of creating a duplicate. Recurses so each failed retry can be
- * retried again. Mirrors `submitSpreadWithRetry`.
+ * the outcome. On success: a confirmation toast. On a failure that could land
+ * differently, a "Réessayer" toast that re-submits the SAME DTO — the SAME
+ * `groupId` — so the retry replays the original couple server-side (or heals a
+ * balance left stale by a post-commit failure) instead of creating a duplicate.
+ * Recurses so each failed retry can be retried again. A refusal the server
+ * already decided on gets "Fermer". Mirrors `submitSpreadWithRetry`.
  */
 export async function submitSavingsWithdrawalWithRetry(
   value: BudgetLineSavingsWithdrawalCreate,
@@ -147,9 +153,10 @@ export async function submitSavingsWithdrawalWithRetry(
 
   const ref = snackBar.open(
     outcome.error ?? transloco.translate('budget.savingsWithdrawal.error'),
-    transloco.translate('common.retry'),
+    transloco.translate(outcome.retryable ? 'common.retry' : 'common.close'),
     { duration: 8000 },
   );
+  if (!outcome.retryable) return;
   ref.onAction().subscribe(() => {
     void submitSavingsWithdrawalWithRetry(value, create, snackBar, transloco);
   });
