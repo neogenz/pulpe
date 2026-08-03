@@ -240,24 +240,27 @@ export class BudgetDetailsStore {
       const id = this.#state.budgetId();
       return id ? { budgetId: id } : undefined;
     },
-    loader: async ({ params }) => {
-      const response = await firstValueFrom(
-        this.#budgetApi.getBudgetWithDetails$(params.budgetId),
-      );
+    // The Observable is handed straight to the loader rather than awaited: only
+    // that form lets the resource unsubscribe on `abortSignal`, so switching
+    // budgets cancels the request for the one being left instead of letting it
+    // run to completion.
+    loader: ({ params }) =>
+      this.#budgetApi.getBudgetWithDetails$(params.budgetId).pipe(
+        map((response) => {
+          if (!response.success || !response.data) {
+            this.#logger.error('Failed to fetch budget details', {
+              budgetId: params.budgetId,
+            });
+            throw new Error('Failed to fetch budget details');
+          }
 
-      if (!response.success || !response.data) {
-        this.#logger.error('Failed to fetch budget details', {
-          budgetId: params.budgetId,
-        });
-        throw new Error('Failed to fetch budget details');
-      }
-
-      return {
-        ...response.data.budget,
-        budgetLines: response.data.budgetLines,
-        transactions: response.data.transactions,
-      };
-    },
+          return {
+            ...response.data.budget,
+            budgetLines: response.data.budgetLines,
+            transactions: response.data.transactions,
+          };
+        }),
+      ),
   });
 
   readonly #allBudgetsResource = cachedResource({

@@ -5,7 +5,7 @@ import {
   provideHttpClientTesting,
   HttpTestingController,
 } from '@angular/common/http/testing';
-import { of, throwError, Subject, ReplaySubject } from 'rxjs';
+import { of, throwError, Observable, Subject, ReplaySubject } from 'rxjs';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   API_ERROR_CODES,
@@ -231,6 +231,31 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       );
       expect(rentLine?.amount).toBe(1500);
       expect(rentLine?.kind).toBe('expense');
+    });
+
+    it('stops fetching the budget the user just left when they switch mid-load', async () => {
+      // Every budget answers with a request that never completes, so the first
+      // one is still in flight when the user moves on.
+      const isCancelled = new Map<string, boolean>();
+      mockBudgetApi.getBudgetWithDetails$ = vi.fn(
+        (budgetId: string) =>
+          new Observable(() => {
+            isCancelled.set(budgetId, false);
+            return () => isCancelled.set(budgetId, true);
+          }),
+      );
+
+      // User opens January, then navigates to February before it answers
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await vi.waitFor(() => expect(isCancelled.has(mockBudgetId)).toBe(true));
+
+      service.setBudgetId('budget-next');
+      TestBed.tick();
+      await vi.waitFor(() => expect(isCancelled.has('budget-next')).toBe(true));
+
+      // January's request was dropped instead of running to completion
+      expect(isCancelled.get(mockBudgetId)).toBe(true);
     });
   });
 
