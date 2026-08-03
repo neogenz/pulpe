@@ -884,6 +884,23 @@ describe('computeSavingsGoalProgress withdrawals (PUL-329)', () => {
     );
   });
 
+  it('should floor the achievement percent at zero when the stock went negative', () => {
+    // Un retrait puis le dépointage de la ligne qui le finançait : l'écriture
+    // interdit le découvert, mais rien n'interdit de défaire la contribution
+    // après coup. `confirmed` doit rester signé pour le diagnostic, alors que
+    // `achievementPercent` est contraint à [0, 100] par le contrat partagé —
+    // un pourcentage négatif ferait échouer le parse de TOUTE la progression
+    // côté client web.
+    const result = computeSavingsGoalProgress(
+      baseInput({
+        withdrawals: [{ amount: WITHDRAWAL_AMOUNT, month: 6, year: 2026 }],
+      }),
+    );
+
+    expect(result.confirmed).toBe(-WITHDRAWAL_AMOUNT);
+    expect(result.achievementPercent).toBe(0);
+  });
+
   it('should not count a withdrawal as a negative contribution in the cumulative gap', () => {
     const withWithdrawal = computeSavingsGoalProgress(
       inputWithConfirmedStock({

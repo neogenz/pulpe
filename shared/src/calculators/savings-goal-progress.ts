@@ -317,11 +317,17 @@ export function computeSavingsGoalProgress(
   const confirmed = initialAmount + linesConfirmed - withdrawn;
 
   // 3. % d'atteinte — sur le CONFIRMÉ ; cible nulle/non déchiffrée ⇒ 0.
+  // Borné des deux côtés : `confirmed` reste signé pour le diagnostic, mais un
+  // stock négatif — dépointer une ligne déjà retirée y suffit — ne peut pas
+  // sortir en pourcentage négatif. Le contrat le refuse (`min(0)`) et le client
+  // web parse la réponse : un retrait ferait tomber TOUT l'écran de progression.
   const achievementPercent =
     input.targetAmount == null
       ? null
       : input.targetAmount > 0
-        ? Math.round(Math.min(confirmed / input.targetAmount, 1) * 100)
+        ? Math.round(
+            Math.max(0, Math.min(confirmed / input.targetAmount, 1)) * 100,
+          )
         : 0;
 
   // 4. Deux rythmes — mesures de FLUX, indépendantes de la projection du plan.

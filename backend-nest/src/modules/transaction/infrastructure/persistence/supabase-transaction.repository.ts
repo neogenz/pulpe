@@ -11,6 +11,7 @@ import {
 } from '@modules/encryption/encryption.tokens';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadata.mapper';
+import { throwIfRetryableConflict } from '@common/utils/postgres-conflict';
 import {
   fetchTagIds,
   replaceTagLinks as replaceTagLinksWithRpc,
@@ -336,15 +337,19 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     const { data: row, error } = await query;
 
     if (error || !row) {
+      const loggingContext = {
+        operation: 'updateTransaction',
+        entityId: id,
+        entityType: 'transaction',
+        supabaseError: error,
+      };
+
+      throwIfRetryableConflict(error, 'transaction', loggingContext);
+
       throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND,
         { id },
-        {
-          operation: 'updateTransaction',
-          entityId: id,
-          entityType: 'transaction',
-          supabaseError: error,
-        },
+        loggingContext,
         { cause: error ?? undefined },
       );
     }
@@ -420,15 +425,19 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     const { error } = await supabase.from('transaction').delete().eq('id', id);
 
     if (error) {
+      const loggingContext = {
+        operation: 'deleteTransaction',
+        entityId: id,
+        entityType: 'transaction',
+        supabaseError: error,
+      };
+
+      throwIfRetryableConflict(error, 'transaction', loggingContext);
+
       throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND,
         { id },
-        {
-          operation: 'deleteTransaction',
-          entityId: id,
-          entityType: 'transaction',
-          supabaseError: error,
-        },
+        loggingContext,
       );
     }
   }

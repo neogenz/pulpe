@@ -13,7 +13,7 @@ import {
 } from 'pulpe-shared';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
-import { isRetryableTransactionConflict } from '@common/utils/postgres-conflict';
+import { throwIfRetryableConflict } from '@common/utils/postgres-conflict';
 import { isSavingsGoalLinkDenied } from '@common/utils/savings-goal-link';
 import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
 import {
@@ -687,17 +687,11 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     error: PostgrestError | null,
     operation: string,
   ): void {
-    if (!isRetryableTransactionConflict(error)) return;
-    throw new BusinessException(
-      ERROR_DEFINITIONS.CONCURRENT_MODIFICATION,
-      { resource: 'savings_goal' },
-      {
-        operation,
-        entityType: 'savings_goal',
-        userId: this.supabaseProvider.user.id,
-      },
-      { cause: error ?? undefined },
-    );
+    throwIfRetryableConflict(error, 'savings_goal', {
+      operation,
+      entityType: 'savings_goal',
+      userId: this.supabaseProvider.user.id,
+    });
   }
 
   private throwTargetDateReconciliationRpcError(

@@ -425,6 +425,29 @@ describe('SupabaseTransactionRepository', () => {
       await expect(repo.delete('txn-1')).resolves.toBeUndefined();
     });
 
+    it('should report a deadlock as a replayable conflict, never as a missing row', async () => {
+      // A transaction linked to a savings goal locks its own row, then the
+      // goal's, through the revision trigger — the reverse of the goal RPCs.
+      // The arbitrated victim wrote nothing: reporting "not found" would tell
+      // the client its row vanished instead of "retry".
+      const provider = createMockProvider(() => ({
+        delete: () => ({
+          eq: jest.fn().mockResolvedValue({
+            error: { code: '40P01', message: 'deadlock detected' },
+          }),
+        }),
+      }));
+      repo = new SupabaseTransactionRepository(
+        provider,
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+      await expect(repo.delete('txn-1')).rejects.toMatchObject({
+        code: 'ERR_CONCURRENT_MODIFICATION',
+      });
+    });
+
     it('should throw BusinessException when delete fails', async () => {
       const provider = createMockProvider(() => ({
         delete: () => ({
