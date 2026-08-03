@@ -53,7 +53,9 @@ enum TestDataFactory {
         name: String = "Test Transaction",
         amount: Decimal = 100,
         kind: TransactionKind = .expense,
-        isChecked: Bool = false
+        isChecked: Bool = false,
+        sourceSavingsGoalId: String? = nil,
+        sourceSavingsGoalName: String? = nil
     ) -> Transaction {
         Transaction(
             id: id,
@@ -66,7 +68,9 @@ enum TestDataFactory {
             category: nil,
             checkedAt: isChecked ? fixedCheckedDate : nil,
             createdAt: fixedDate,
-            updatedAt: fixedDate
+            updatedAt: fixedDate,
+            sourceSavingsGoalId: sourceSavingsGoalId,
+            sourceSavingsGoalName: sourceSavingsGoalName
         )
     }
 
@@ -145,6 +149,50 @@ enum TestDataFactory {
             previousBudgetId: previousBudgetId,
             createdAt: fixedDate,
             updatedAt: fixedDate
+        )
+    }
+
+    // MARK: - Savings Goal Deletion Factory
+
+    /// The deletion preview, with everything at zero. Three suites build one to
+    /// exercise a different facet (budget ordering, mode selection, kept
+    /// incomes), so each overrides only the counts its own case is about.
+    static func createDeletionSummary(
+        budgetCount: Int = 0,
+        transactionCount: Int = 0,
+        transactionTotal: Decimal = 0,
+        withdrawals: [SavingsGoalWithdrawal] = []
+    ) -> SavingsGoalDeletionSummary {
+        SavingsGoalDeletionSummary(
+            templateLineCount: 0,
+            templateLineTotal: 0,
+            budgetCount: budgetCount,
+            budgetLineCount: 0,
+            budgetLineTotal: 0,
+            transactionCount: transactionCount,
+            transactionTotal: transactionTotal,
+            withdrawalCount: withdrawals.count,
+            withdrawalTotal: withdrawals.reduce(Decimal.zero) { $0 + $1.amount }
+        )
+    }
+
+    static func createDeletionImpact(
+        goalId: String = "goal-1",
+        summary: SavingsGoalDeletionSummary = createDeletionSummary(),
+        budgets: [SavingsGoalDeletionBudget] = [],
+        withdrawals: [SavingsGoalWithdrawal] = []
+    ) -> SavingsGoalDeletionImpact {
+        SavingsGoalDeletionImpact(
+            goalId: goalId,
+            summary: summary,
+            templateLines: [],
+            budgets: budgets,
+            withdrawals: withdrawals,
+            revision: SavingsGoalDeletionRevision(
+                templateLines: [],
+                budgetLines: [],
+                transactions: []
+            )
         )
     }
 }

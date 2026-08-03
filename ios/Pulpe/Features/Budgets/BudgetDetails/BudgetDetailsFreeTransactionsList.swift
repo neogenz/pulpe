@@ -150,7 +150,8 @@ private struct BudgetDetailsFreeTransactionRow: View {
         let pointed = isPointed ? "Pointé" : "À pointer"
         let date = transaction.transactionDate.dayMonthFormatted
         let tags = tagNames.isEmpty ? "" : " · Tags : \(tagNames.joined(separator: ", "))"
-        return "\(kind.label) · \(transaction.name) · \(amount) · \(date) · \(pointed)\(tags)"
+        let origin = transaction.savingsGoalSource.map { " · \($0.accessibilityLabel)" } ?? ""
+        return "\(kind.label) · \(transaction.name) · \(amount) · \(date) · \(pointed)\(tags)\(origin)"
     }
 
     private func handleTogglePointed() {
@@ -215,6 +216,12 @@ private struct BudgetDetailsFreeTransactionRow: View {
                     .font(PulpeTypography.metricLabelBold)
                     .foregroundStyle(Color.textTertiary)
                     .lineLimit(1)
+
+                // Where an income drawn from a savings goal came from (PUL-329) —
+                // the same metadata line as the date and the tag count.
+                if let source = transaction.savingsGoalSource {
+                    SavingsGoalSourceLabel(source: source, followsText: true)
+                }
 
                 if !tagNames.isEmpty {
                     TagChips(names: tagNames, presentation: .count, followsText: true)

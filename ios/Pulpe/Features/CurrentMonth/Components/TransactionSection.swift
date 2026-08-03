@@ -173,10 +173,18 @@ struct TransactionRow: View {
                     .strikethrough(transaction.isChecked, color: .secondary)
                     .lineLimit(1)
 
-                // Date (relative formatting)
-                Text(transaction.transactionDate.relativeFormatted)
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.textTertiary)
+                // Date (relative formatting) and, for an income drawn from a
+                // savings goal, where the money came from (PUL-329) — one shared
+                // metadata line, never a second row of its own.
+                HStack(spacing: DesignTokens.Spacing.xs) {
+                    Text(transaction.transactionDate.relativeFormatted)
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(Color.textTertiary)
+
+                    if let source = transaction.savingsGoalSource {
+                        SavingsGoalSourceLabel(source: source, followsText: true)
+                    }
+                }
             }
 
             Spacer(minLength: 8)

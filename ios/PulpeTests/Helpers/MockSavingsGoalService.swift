@@ -12,6 +12,8 @@ final class MockSavingsGoalService: SavingsGoalServicing {
     var stubbedApplyResult: SavingsGoalPlanApplyResult?
     var stubbedFutureLines: [SavingsGoalFutureLine] = []
     var stubbedDeletionImpact: SavingsGoalDeletionImpact?
+    var stubbedWithdrawalOptions: [SavingsGoalWithdrawalOption] = []
+    var stubbedWithdrawals: [SavingsGoalWithdrawal] = []
     /// When set, every call throws this instead of returning.
     var error: Error?
     var getProgressError: Error?
@@ -19,6 +21,8 @@ final class MockSavingsGoalService: SavingsGoalServicing {
     var updateError: Error?
     var createError: Error?
     var deletionError: Error?
+    var withdrawalOptionsError: Error?
+    var withdrawalsError: Error?
 
     private(set) var getAllCallCount = 0
     private(set) var getProgressCallCount = 0
@@ -28,6 +32,8 @@ final class MockSavingsGoalService: SavingsGoalServicing {
     private(set) var updateCallCount = 0
     private(set) var deleteCallCount = 0
     private(set) var getDeletionImpactCallCount = 0
+    private(set) var getWithdrawalOptionsCallCount = 0
+    private(set) var getWithdrawalsCallCount = 0
     private(set) var lastCreate: SavingsGoalCreate?
     private(set) var lastUpdateId: String?
     private(set) var lastUpdate: SavingsGoalUpdate?
@@ -173,6 +179,20 @@ final class MockSavingsGoalService: SavingsGoalServicing {
             throw URLError(.badServerResponse)
         }
         return stubbedDeletionImpact
+    }
+
+    func getWithdrawalOptions() async throws -> [SavingsGoalWithdrawalOption] {
+        getWithdrawalOptionsCallCount += 1
+        if let withdrawalOptionsError { throw withdrawalOptionsError }
+        if let error { throw error }
+        return stubbedWithdrawalOptions
+    }
+
+    func getWithdrawals(id _: String) async throws -> [SavingsGoalWithdrawal] {
+        getWithdrawalsCallCount += 1
+        if let withdrawalsError { throw withdrawalsError }
+        if let error { throw error }
+        return stubbedWithdrawals
     }
 
     func delete(id: String, command: SavingsGoalDeletionCommand) async throws {

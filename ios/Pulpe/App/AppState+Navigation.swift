@@ -2,7 +2,13 @@ import SwiftUI
 
 // MARK: - Navigation Destinations
 
-enum BudgetDestination: Hashable { case details(budgetId: String) }
+enum BudgetDestination: Hashable {
+    case details(budgetId: String)
+    /// A budget opened *for* one of its transactions (PUL-329): the detail loads
+    /// as usual, then pushes that transaction's editor once. Back goes to the
+    /// budget, then to wherever the user came from — the stack stays honest.
+    case transaction(budgetId: String, transactionId: String)
+}
 
 enum SavingsGoalDestination: Hashable {
     case list

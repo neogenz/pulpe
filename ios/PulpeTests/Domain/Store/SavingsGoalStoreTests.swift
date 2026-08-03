@@ -23,25 +23,7 @@ struct SavingsGoalStoreTests {
     }
 
     private func makeDeletionImpact(goalId: String = "g1") -> SavingsGoalDeletionImpact {
-        SavingsGoalDeletionImpact(
-            goalId: goalId,
-            summary: SavingsGoalDeletionSummary(
-                templateLineCount: 0,
-                templateLineTotal: 0,
-                budgetCount: 0,
-                budgetLineCount: 0,
-                budgetLineTotal: 0,
-                transactionCount: 0,
-                transactionTotal: 0
-            ),
-            templateLines: [],
-            budgets: [],
-            revision: SavingsGoalDeletionRevision(
-                templateLines: [],
-                budgetLines: [],
-                transactions: []
-            )
-        )
+        TestDataFactory.createDeletionImpact(goalId: goalId)
     }
 
     private func deletionCommand(

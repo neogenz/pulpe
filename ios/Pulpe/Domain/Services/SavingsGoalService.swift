@@ -15,6 +15,8 @@ protocol SavingsGoalServicing: Sendable {
     ) async throws -> SavingsGoalGenerationStopResult
     func getDeletionImpact(id: String) async throws -> SavingsGoalDeletionImpact
     func delete(id: String, command: SavingsGoalDeletionCommand) async throws
+    func getWithdrawalOptions() async throws -> [SavingsGoalWithdrawalOption]
+    func getWithdrawals(id: String) async throws -> [SavingsGoalWithdrawal]
     func create(_ data: SavingsGoalCreate) async throws -> SavingsGoal
     func update(id: String, data: SavingsGoalUpdate) async throws -> SavingsGoal
 }
@@ -84,6 +86,16 @@ actor SavingsGoalService: SavingsGoalServicing {
 
     func delete(id: String, command: SavingsGoalDeletionCommand) async throws {
         try await apiClient.requestVoid(.savingsGoalDeletion(id: id), body: command, method: .post)
+    }
+
+    /// Goals that can fund an income right now (PUL-329). The server filters on the
+    /// confirmed balance, so an empty array means "nothing available", not "no goal".
+    func getWithdrawalOptions() async throws -> [SavingsGoalWithdrawalOption] {
+        try await apiClient.request(.savingsGoalWithdrawalOptions, method: .get)
+    }
+
+    func getWithdrawals(id: String) async throws -> [SavingsGoalWithdrawal] {
+        try await apiClient.request(.savingsGoalWithdrawals(id: id), method: .get)
     }
 
     func create(_ data: SavingsGoalCreate) async throws -> SavingsGoal {

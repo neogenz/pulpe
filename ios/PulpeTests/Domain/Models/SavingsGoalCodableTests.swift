@@ -12,7 +12,9 @@ private let deletionImpactJSON = Data("""
     "budgetLineCount": 1,
     "budgetLineTotal": 200,
     "transactionCount": 1,
-    "transactionTotal": 180
+    "transactionTotal": 180,
+    "withdrawalCount": 1,
+    "withdrawalTotal": 320.55
   },
   "templateLines": [{
     "lineId": "22222222-2222-4222-8222-222222222222",
@@ -48,6 +50,13 @@ private let deletionImpactJSON = Data("""
         "updatedAt": "2026-07-27T10:00:00Z"
       }]
     }]
+  }],
+  "withdrawals": [{
+    "transactionId": "77777777-7777-4777-8777-777777777777",
+    "budgetId": "44444444-4444-4444-8444-444444444444",
+    "name": "Apport cuisine",
+    "transactionDate": "2026-07-20T10:00:00Z",
+    "amount": 320.55
   }],
   "revision": {
     "templateLines": [{
@@ -285,6 +294,9 @@ struct SavingsGoalCodableTests {
         #expect(impact.summary.budgetCount == 1)
         #expect(impact.templateLines.first?.amount == 200)
         #expect(impact.budgets.first?.lines.first?.transactions.first?.amount == 180)
+        #expect(impact.withdrawals.first?.name == "Apport cuisine")
+        #expect(impact.withdrawals.first?.amount == Decimal(string: "320.55"))
+        #expect(impact.summary.withdrawalTotal == Decimal(string: "320.55"))
         #expect(
             impact.revision.transactions.first?.updatedAt
                 == "2026-07-27T10:00:00.123456+00:00"

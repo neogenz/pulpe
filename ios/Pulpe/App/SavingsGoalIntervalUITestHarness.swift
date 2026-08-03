@@ -147,10 +147,13 @@ final class SavingsGoalIntervalUITestService: SavingsGoalServicing {
                 budgetLineCount: 0,
                 budgetLineTotal: 0,
                 transactionCount: 0,
-                transactionTotal: 0
+                transactionTotal: 0,
+                withdrawalCount: 0,
+                withdrawalTotal: 0
             ),
             templateLines: [],
             budgets: [],
+            withdrawals: [],
             revision: SavingsGoalDeletionRevision(
                 templateLines: [],
                 budgetLines: [],
@@ -161,6 +164,14 @@ final class SavingsGoalIntervalUITestService: SavingsGoalServicing {
 
     func delete(id: String, command _: SavingsGoalDeletionCommand) async throws {
         goals.removeAll { $0.id == id }
+    }
+
+    func getWithdrawalOptions() async throws -> [SavingsGoalWithdrawalOption] {
+        []
+    }
+
+    func getWithdrawals(id _: String) async throws -> [SavingsGoalWithdrawal] {
+        []
     }
 
     private func goal(_ id: String) throws -> SavingsGoal {

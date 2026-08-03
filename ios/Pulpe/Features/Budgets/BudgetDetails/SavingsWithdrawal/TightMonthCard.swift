@@ -42,15 +42,15 @@ struct TightMonthCard: View {
                 .foregroundStyle(Color.textPrimary)
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                Text("Tu peux piocher dans ton épargne pour tenir ce mois.")
-                Text("Je te rappellerai de la remettre le mois prochain.")
+                Text("Tu peux couvrir ce mois avec ton épargne.")
+                Text("À remettre le mois prochain : je te le rappellerai.")
             }
             .font(PulpeTypography.subheadline)
             .foregroundStyle(Color.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
 
             Button(action: onWithdraw) {
-                Text("Piocher dans mon épargne")
+                Text("Couvrir ce mois avec mon épargne")
             }
             .primaryButtonStyle()
 

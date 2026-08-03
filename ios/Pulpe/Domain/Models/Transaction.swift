@@ -22,10 +22,22 @@ struct Transaction: Codable, Identifiable, Hashable, Sendable {
     var targetCurrency: SupportedCurrency?
     var exchangeRate: Decimal?
 
+    /// Savings-goal origin (PUL-329). Both stay optional so a response served
+    /// before the feature is deployed still decodes. The name is a snapshot: it
+    /// survives the goal, and outlives the id when the goal is deleted.
+    var sourceSavingsGoalId: String?
+    var sourceSavingsGoalName: String?
+
     // MARK: - Computed Properties
 
     var isChecked: Bool {
         checkedAt != nil
+    }
+
+    /// The savings goal this income was drawn from, active or broken (PUL-329),
+    /// or `nil` when the money came from anywhere else.
+    var savingsGoalSource: SavingsGoalSource? {
+        SavingsGoalSource(goalId: sourceSavingsGoalId, name: sourceSavingsGoalName)
     }
 
     var isAllocated: Bool {
@@ -54,7 +66,9 @@ struct Transaction: Codable, Identifiable, Hashable, Sendable {
             originalAmount: originalAmount,
             originalCurrency: originalCurrency,
             targetCurrency: targetCurrency,
-            exchangeRate: exchangeRate
+            exchangeRate: exchangeRate,
+            sourceSavingsGoalId: sourceSavingsGoalId,
+            sourceSavingsGoalName: sourceSavingsGoalName
         )
     }
 }
@@ -75,6 +89,9 @@ struct TransactionCreate: Encodable {
     let targetCurrency: SupportedCurrency?
     let exchangeRate: Decimal?
     let tagIds: [String]?
+    /// Only ever set at creation (PUL-329). The origin is immutable afterwards,
+    /// so `TransactionUpdate` deliberately has no counterpart.
+    let sourceSavingsGoalId: String?
 
     init(
         budgetId: String,
@@ -89,7 +106,8 @@ struct TransactionCreate: Encodable {
         originalCurrency: SupportedCurrency? = nil,
         targetCurrency: SupportedCurrency? = nil,
         exchangeRate: Decimal? = nil,
-        tagIds: [String]? = nil
+        tagIds: [String]? = nil,
+        sourceSavingsGoalId: String? = nil
     ) {
         self.budgetId = budgetId
         self.budgetLineId = budgetLineId
@@ -104,6 +122,7 @@ struct TransactionCreate: Encodable {
         self.targetCurrency = targetCurrency
         self.exchangeRate = exchangeRate
         self.tagIds = tagIds
+        self.sourceSavingsGoalId = sourceSavingsGoalId
     }
 }
 
