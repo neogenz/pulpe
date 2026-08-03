@@ -78,6 +78,17 @@ export interface MutationOutcome<T> {
 }
 
 /**
+ * What `toggleCheck`, `toggleTransactionCheck` and `checkAllAllocatedTransactions`
+ * hand back: the gesture ran, a guard short-circuited it (nothing to point to,
+ * already in flight), or it ran and the server refused it. Kept a union rather
+ * than two booleans so `{ applied: true, error: 'x' }` is not representable.
+ */
+export type CheckOutcome =
+  | { readonly status: 'applied' }
+  | { readonly status: 'skipped' }
+  | { readonly status: 'failed'; readonly reason: string };
+
+/**
  * A refusal the server decided on (any 4xx it will reach again from the same
  * body) is final. A timeout, a rate limit, a 5xx or a transport failure is the
  * request not getting a verdict — that is what replaying is for, and for the
@@ -715,7 +726,7 @@ export class BudgetDetailsStore {
       onError: (error, _args, rewind) => {
         this.#rollback(rewind);
         fail(this.#localizeError(error, 'budget.forecastCreateError'));
-        this.#logger.error('Budget line create failed', error);
+        this.#logUnexpectedFailure('Budget line create failed', error);
       },
     });
 
@@ -794,7 +805,7 @@ export class BudgetDetailsStore {
       onSuccess: () => this.#onFinancialMutationSuccess(),
       onError: (error) => {
         fail(this.#localizeError(error, 'budget.savingsWithdrawal.error'));
-        this.#logger.error('Savings withdrawal delete failed', error);
+        this.#logUnexpectedFailure('Savings withdrawal delete failed', error);
       },
     });
 
@@ -893,7 +904,7 @@ export class BudgetDetailsStore {
       onError: (error, _args, rewind) => {
         this.#rollback(rewind);
         fail(this.#localizeError(error, 'budget.forecastUpdateError'));
-        this.#logger.error('Budget line update failed', error);
+        this.#logUnexpectedFailure('Budget line update failed', error);
       },
     });
 
@@ -932,7 +943,7 @@ export class BudgetDetailsStore {
       onError: (error, _args, rewind) => {
         this.#rollback(rewind);
         fail(this.#transloco.translate('budget.transactionUpdateError'));
-        this.#logger.error('Transaction update failed', error);
+        this.#logUnexpectedFailure('Transaction update failed', error);
       },
     });
 
@@ -969,7 +980,7 @@ export class BudgetDetailsStore {
       onError: (error, _args, rewind) => {
         this.#rollback(rewind);
         fail(this.#transloco.translate('budget.forecastDeleteError'));
-        this.#logger.error('Budget line delete failed', error);
+        this.#logUnexpectedFailure('Budget line delete failed', error);
       },
     });
 
@@ -1000,7 +1011,7 @@ export class BudgetDetailsStore {
       onError: (error, _args, rewind) => {
         this.#rollback(rewind);
         fail(this.#transloco.translate('budget.transactionDeleteError'));
-        this.#logger.error('Transaction delete failed', error);
+        this.#logUnexpectedFailure('Transaction delete failed', error);
       },
     });
 
@@ -1056,7 +1067,10 @@ export class BudgetDetailsStore {
       onError: (error, _args, rewind) => {
         this.#rollback(rewind);
         fail(this.#transloco.translate('budget.transactionCreateError'));
-        this.#logger.error('Allocated transaction create failed', error);
+        this.#logUnexpectedFailure(
+          'Allocated transaction create failed',
+          error,
+        );
       },
     });
 
@@ -1088,7 +1102,10 @@ export class BudgetDetailsStore {
       },
       onError: (error) => {
         fail(this.#localizeError(error, 'budget.forecastResetError'));
-        this.#logger.error('Error resetting budget line from template', error);
+        this.#logUnexpectedFailure(
+          'Error resetting budget line from template',
+          error,
+        );
       },
     });
 
@@ -1206,23 +1223,26 @@ export class BudgetDetailsStore {
       onError: (error, _id, rewind) => {
         this.#rollback(rewind);
         fail(this.#transloco.translate('budget.forecastToggleError'));
-        this.#logger.error('Budget line check toggle failed', error);
+        this.#logUnexpectedFailure('Budget line check toggle failed', error);
       },
     });
 
-  /** Returns the localized error message on failure, or `null` on success. */
-  async toggleCheck(id: string): Promise<string | null> {
-    if (this.#mutatingIds.has(id)) return null;
+  /** Applied, skipped by a guard, or failed with the localized reason — see `CheckOutcome`. */
+  async toggleCheck(id: string): Promise<CheckOutcome> {
+    if (this.#mutatingIds.has(id)) return { status: 'skipped' };
 
     const details = this.budgetDetails();
-    if (!details) return null;
+    if (!details) return { status: 'skipped' };
 
     const lineExists = details.budgetLines.some((l) => l.id === id);
-    if (!lineExists) return null;
+    if (!lineExists) return { status: 'skipped' };
 
     this.#mutatingIds.add(id);
     try {
-      return (await this.#runMutation(this.#toggleCheckMutation, id)).error;
+      const { error } = await this.#runMutation(this.#toggleCheckMutation, id);
+      return error
+        ? { status: 'failed', reason: error }
+        : { status: 'applied' };
     } finally {
       this.#mutatingIds.delete(id);
     }
@@ -1260,17 +1280,22 @@ export class BudgetDetailsStore {
       onError: (error, _id, rewind) => {
         this.#rollback(rewind);
         fail(this.#transloco.translate('budget.transactionToggleError'));
-        this.#logger.error('Transaction check toggle failed', error);
+        this.#logUnexpectedFailure('Transaction check toggle failed', error);
       },
     });
 
-  /** Returns the localized error message on failure, or `null` on success. */
-  async toggleTransactionCheck(id: string): Promise<string | null> {
-    if (this.#mutatingIds.has(id)) return null;
+  /** Applied, skipped by a guard, or failed with the localized reason — see `CheckOutcome`. */
+  async toggleTransactionCheck(id: string): Promise<CheckOutcome> {
+    if (this.#mutatingIds.has(id)) return { status: 'skipped' };
     this.#mutatingIds.add(id);
     try {
-      return (await this.#runMutation(this.#toggleTransactionCheckMutation, id))
-        .error;
+      const { error } = await this.#runMutation(
+        this.#toggleTransactionCheckMutation,
+        id,
+      );
+      return error
+        ? { status: 'failed', reason: error }
+        : { status: 'applied' };
     } finally {
       this.#mutatingIds.delete(id);
     }
@@ -1322,26 +1347,30 @@ export class BudgetDetailsStore {
       onError: (error, _id, rewind) => {
         this.#rollback(rewind);
         fail(this.#transloco.translate('budget.checkAllError'));
-        this.#logger.error('Bulk check-all failed', error);
+        this.#logUnexpectedFailure('Bulk check-all failed', error);
       },
     });
 
-  /** Returns the localized error message on failure, or `null` on success. */
+  /** Applied, skipped by a guard, or failed with the localized reason — see `CheckOutcome`. */
   async checkAllAllocatedTransactions(
     budgetLineId: string,
-  ): Promise<string | null> {
-    if (this.#mutatingIds.has(budgetLineId)) return null;
+  ): Promise<CheckOutcome> {
+    if (this.#mutatingIds.has(budgetLineId)) return { status: 'skipped' };
     const details = this.budgetDetails();
-    if (!details) return null;
+    if (!details) return { status: 'skipped' };
     const hasUnchecked = details.transactions.some(
       (tx) => tx.budgetLineId === budgetLineId && tx.checkedAt === null,
     );
-    if (!hasUnchecked) return null;
+    if (!hasUnchecked) return { status: 'skipped' };
     this.#mutatingIds.add(budgetLineId);
     try {
-      return (
-        await this.#runMutation(this.#checkAllAllocatedMutation, budgetLineId)
-      ).error;
+      const { error } = await this.#runMutation(
+        this.#checkAllAllocatedMutation,
+        budgetLineId,
+      );
+      return error
+        ? { status: 'failed', reason: error }
+        : { status: 'applied' };
     } finally {
       this.#mutatingIds.delete(budgetLineId);
     }
@@ -1432,13 +1461,21 @@ export class BudgetDetailsStore {
       : this.#transloco.translate(fallbackKey);
   }
 
+  // A 4xx is the server's verdict on this exact body — a business refusal the
+  // user already reads in a toast, and an ERROR log the on-call would page on
+  // for nothing. Only a failure that never reached a verdict is worth logging,
+  // which is the same partition `isRetryableFailure` already draws.
+  #logUnexpectedFailure(message: string, error: unknown): void {
+    if (isRetryableFailure(error)) this.#logger.error(message, error);
+  }
+
   // Shared failure path for the 3 spread mutations (identical key + log).
   #handleSpreadError(fail: FailSink, error: unknown): void {
     fail(
       this.#localizeError(error, 'budgetLine.spread.error'),
       isRetryableFailure(error),
     );
-    this.#logger.error('Spread mutation failed', error);
+    this.#logUnexpectedFailure('Spread mutation failed', error);
   }
 
   // Shared failure path for the 2 savings-withdrawal mutations (PUL-292):
@@ -1448,7 +1485,7 @@ export class BudgetDetailsStore {
       this.#localizeError(error, 'budget.savingsWithdrawal.error'),
       isRetryableFailure(error),
     );
-    this.#logger.error('Savings withdrawal mutation failed', error);
+    this.#logUnexpectedFailure('Savings withdrawal mutation failed', error);
   }
 
   #onFinancialMutationSuccess(): void {

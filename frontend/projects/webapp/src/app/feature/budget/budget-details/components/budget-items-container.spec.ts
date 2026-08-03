@@ -119,9 +119,12 @@ function createMockStore(): MockStore {
     // A mutation now answers with its refusal motive, so `null` is its success.
     postponeBudgetLine: vi.fn().mockResolvedValue(null),
     postponeTransaction: vi.fn().mockResolvedValue(null),
-    toggleCheck: vi.fn().mockResolvedValue(null),
-    toggleTransactionCheck: vi.fn(),
-    checkAllAllocatedTransactions: vi.fn(),
+    // The 3 check mutations answer with a 3-way outcome; `applied` is their default success.
+    toggleCheck: vi.fn().mockResolvedValue({ status: 'applied' }),
+    toggleTransactionCheck: vi.fn().mockResolvedValue({ status: 'applied' }),
+    checkAllAllocatedTransactions: vi
+      .fn()
+      .mockResolvedValue({ status: 'applied' }),
     createAllocatedTransaction: vi.fn(),
     updateTransaction: vi.fn(),
     createSavingsWithdrawal: vi.fn(),
@@ -434,6 +437,8 @@ describe('BudgetItemsContainer — a refused gesture speaks for itself', () => {
     arrange: () => void;
     act: () => Promise<void>;
     confirmation?: string;
+    // The 3 check mutations answer with a 3-way CheckOutcome, not `string | null`.
+    isCheckOutcome?: boolean;
   }[] = [
     {
       name: 'editing a transaction',
@@ -491,10 +496,12 @@ describe('BudgetItemsContainer — a refused gesture speaks for itself', () => {
       mutation: () => mockStore.toggleTransactionCheck,
       arrange: () => undefined,
       act: () => component['handleToggleTransactionCheck'](TX_ID),
+      isCheckOutcome: true,
     },
     {
       name: 'cascading the check to allocated transactions',
       mutation: () => mockStore.checkAllAllocatedTransactions,
+      isCheckOutcome: true,
       arrange: () => {
         mockStore.budgetDetails.set({
           budgetLines: [createMockBudgetLine({ id: LINE_ID, checkedAt: null })],
@@ -527,9 +534,11 @@ describe('BudgetItemsContainer — a refused gesture speaks for itself', () => {
 
   it.each(gestures)(
     'reports the server motive and nothing else when $name is refused',
-    async ({ mutation, arrange, act }) => {
+    async ({ mutation, arrange, act, isCheckOutcome }) => {
       arrange();
-      mutation().mockResolvedValue(MOTIVE);
+      mutation().mockResolvedValue(
+        isCheckOutcome ? { status: 'failed', reason: MOTIVE } : MOTIVE,
+      );
 
       await act();
 
@@ -579,6 +588,35 @@ describe('BudgetItemsContainer — a refused gesture speaks for itself', () => {
       );
     },
   );
+});
+
+describe('BudgetItemsContainer — a skipped check stays silent', () => {
+  it('opens no toast when the store reports the toggle as skipped', async () => {
+    const lineId = '77777777-7777-4777-8777-777777777777';
+    const mockStore = createMockStore();
+    // checkedAt is set so the confirmation snackbar WOULD have a message to show
+    // if the container mistakenly fell through past the `skipped` outcome.
+    mockStore.budgetDetails.set({
+      budgetLines: [
+        createMockBudgetLine({
+          id: lineId,
+          checkedAt: '2024-01-01T00:00:00Z',
+        }),
+      ],
+      transactions: [],
+    });
+    mockStore.toggleCheck.mockResolvedValue({ status: 'skipped' });
+    const mockSnackBar = { open: vi.fn() };
+    const component = setupComponent(
+      mockStore,
+      createMockDialogService(),
+      mockSnackBar,
+    ).componentInstance;
+
+    await component['handleToggleCheck'](lineId);
+
+    expect(mockSnackBar.open).not.toHaveBeenCalled();
+  });
 });
 
 describe('BudgetItemsContainer — tag history', () => {

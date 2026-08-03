@@ -13,7 +13,7 @@ import {
   type BudgetLineUpdate,
 } from 'pulpe-shared';
 
-import { BudgetDetailsStore } from './budget-details-store';
+import { BudgetDetailsStore, type CheckOutcome } from './budget-details-store';
 import { BudgetApi } from '@core/budget/budget-api';
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 import { ApiError } from '@core/api/api-error';
@@ -353,6 +353,47 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       const localizer = TestBed.inject(ApiErrorLocalizer);
       expect(error).toBe(localizer.localizeApiError(horizonError));
       expect(service.error()).toBeUndefined();
+    });
+
+    // A 422 is a verdict the user already reads in a toast, so paging the
+    // on-call for it is noise. A 503 never reached a verdict — that one is a
+    // real fault and has to stay in the logs.
+    it('logs a create that broke but stays quiet on one the server refused', async () => {
+      const lineInput = {
+        budgetId: mockBudgetId,
+        name: 'Épargne hors horizon',
+        amount: 100,
+        kind: 'saving' as const,
+        recurrence: 'fixed' as const,
+        isManuallyAdjusted: false,
+      };
+      mockLogger.error.mockClear();
+
+      mockBudgetApi.createBudgetLine$ = vi
+        .fn()
+        .mockReturnValue(
+          throwError(
+            () =>
+              new ApiError(
+                'unprocessable',
+                API_ERROR_CODES.SAVINGS_GOAL_LINE_OUTSIDE_HORIZON,
+                422,
+                undefined,
+              ),
+          ),
+        );
+      await service.createBudgetLine(lineInput);
+
+      expect(mockLogger.error).not.toHaveBeenCalled();
+
+      mockBudgetApi.createBudgetLine$ = vi
+        .fn()
+        .mockReturnValue(
+          throwError(() => new ApiError('boom', undefined, 503, undefined)),
+        );
+      await service.createBudgetLine(lineInput);
+
+      expect(mockLogger.error).toHaveBeenCalledOnce();
     });
 
     // The spread submitter turns `retryable` into a "Réessayer" action. A 422 is
@@ -1153,9 +1194,9 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         }),
       );
 
-      const error = await service.toggleCheck('line-to-check');
+      const outcome = await service.toggleCheck('line-to-check');
 
-      expect(error).toBeNull();
+      expect(outcome).toEqual({ status: 'applied' });
       const updatedLine = service
         .budgetDetails()
         ?.budgetLines.find((line) => line.id === 'line-to-check');
@@ -1196,9 +1237,9 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
         .fn()
         .mockReturnValue(throwError(() => new Error('Toggle failed')));
 
-      const error = await service.toggleCheck('line-toggle-fail');
+      const outcome = await service.toggleCheck('line-toggle-fail');
 
-      expect(error).toBeTruthy();
+      expect(outcome).toEqual({ status: 'failed', reason: expect.any(String) });
       expect(service.error()).toBeUndefined();
     });
 
@@ -1207,9 +1248,9 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       TestBed.tick();
       await waitForResourceStable();
 
-      const error = await service.toggleCheck('line-does-not-exist');
+      const outcome = await service.toggleCheck('line-does-not-exist');
 
-      expect(error).toBeNull();
+      expect(outcome).toEqual({ status: 'skipped' });
       expect(mockBudgetApi.toggleBudgetLineCheck$).not.toHaveBeenCalled();
     });
 
@@ -1863,6 +1904,10 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       { year: 2024, month: 3, amount: 750 },
     ];
 
+    // The 3 check mutations answer with a 3-way outcome; only `failed` carries a motive.
+    const checkOutcomeReason = (outcome: CheckOutcome): string | null =>
+      outcome.status === 'failed' ? outcome.reason : null;
+
     const mutations: {
       name: string;
       api: Exclude<keyof typeof mockBudgetApi, 'cache'>;
@@ -1904,12 +1949,16 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       {
         name: 'toggleCheck',
         api: 'toggleBudgetLineCheck$',
-        run: () => service.toggleCheck('line-2'),
+        run: async () =>
+          checkOutcomeReason(await service.toggleCheck('line-2')),
       },
       {
         name: 'checkAllAllocatedTransactions',
         api: 'checkBudgetLineTransactions$',
-        run: () => service.checkAllAllocatedTransactions('line-2'),
+        run: async () =>
+          checkOutcomeReason(
+            await service.checkAllAllocatedTransactions('line-2'),
+          ),
       },
       {
         name: 'createAllocatedTransaction',
@@ -1937,7 +1986,8 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       {
         name: 'toggleTransactionCheck',
         api: 'toggleTransactionCheck$',
-        run: () => service.toggleTransactionCheck('tx-1'),
+        run: async () =>
+          checkOutcomeReason(await service.toggleTransactionCheck('tx-1')),
       },
       {
         name: 'postponeTransaction',
@@ -2124,10 +2174,11 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       firstCall$.error(new Error('Server down'));
 
       const transloco = TestBed.inject(TranslocoService);
-      expect(await first).toBe(
-        transloco.translate('budget.forecastToggleError'),
-      );
-      expect(await second).toBeNull();
+      expect(await first).toEqual({
+        status: 'failed',
+        reason: transloco.translate('budget.forecastToggleError'),
+      });
+      expect(await second).toEqual({ status: 'applied' });
       expect(
         service.budgetDetails()?.budgetLines.find((l) => l.id === 'line-a')
           ?.checkedAt,

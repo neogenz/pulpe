@@ -681,18 +681,23 @@ export class BudgetItemsContainer {
       behavior === 'ask-cascade' &&
       (await this.#dialogService.confirmCheckAllocatedTransactions());
 
-    const error = await this.store.toggleCheck(budgetLineId);
-    if (error) {
-      openMutationErrorSnackbar(error, this.#snackBar, this.#transloco);
+    const outcome = await this.store.toggleCheck(budgetLineId);
+    if (outcome.status === 'failed') {
+      openMutationErrorSnackbar(
+        outcome.reason,
+        this.#snackBar,
+        this.#transloco,
+      );
       return;
     }
+    if (outcome.status === 'skipped') return;
 
     if (shouldCascade) {
-      const cascadeError =
+      const cascadeOutcome =
         await this.store.checkAllAllocatedTransactions(budgetLineId);
-      if (cascadeError) {
+      if (cascadeOutcome.status === 'failed') {
         openMutationErrorSnackbar(
-          cascadeError,
+          cascadeOutcome.reason,
           this.#snackBar,
           this.#transloco,
         );
@@ -706,11 +711,16 @@ export class BudgetItemsContainer {
   protected async handleToggleTransactionCheck(
     transactionId: string,
   ): Promise<void> {
-    const error = await this.store.toggleTransactionCheck(transactionId);
-    if (error) {
-      openMutationErrorSnackbar(error, this.#snackBar, this.#transloco);
+    const outcome = await this.store.toggleTransactionCheck(transactionId);
+    if (outcome.status === 'failed') {
+      openMutationErrorSnackbar(
+        outcome.reason,
+        this.#snackBar,
+        this.#transloco,
+      );
       return;
     }
+    if (outcome.status === 'skipped') return;
     this.#showTransactionSnackbar(transactionId);
   }
 

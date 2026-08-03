@@ -333,7 +333,7 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
           ERROR_DEFINITIONS.SAVINGS_GOAL_LINE_OUTSIDE_HORIZON,
           undefined,
           loggingContext,
-          { cause: error ?? undefined },
+          { cause: error },
         );
       }
 
