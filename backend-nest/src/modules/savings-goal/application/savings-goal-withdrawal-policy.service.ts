@@ -82,8 +82,11 @@ export class SavingsGoalWithdrawalPolicyService implements SavingsGoalWithdrawal
       );
     }
 
-    const goal = await this.repo.findById(goalId);
-    const [{ lines, transactions }, withdrawals] = await Promise.all([
+    // La révision est déjà lue et validée ; le reste ne se contraint plus entre
+    // soi, y compris la ligne de l'objectif — ses champs nourrissent le calcul,
+    // ils n'arbitrent rien. Les laisser en séquence coûtait un aller-retour.
+    const [goal, { lines, transactions }, withdrawals] = await Promise.all([
+      this.repo.findById(goalId),
       this.repo.findLinkedContributions(goalId),
       this.repo.findLinkedWithdrawals(goalId),
     ]);
