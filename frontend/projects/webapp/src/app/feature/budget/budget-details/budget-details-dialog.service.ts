@@ -7,6 +7,7 @@ import type {
   BudgetLine,
   BudgetLineSavingsWithdrawalCreate,
   BudgetLineUpdate,
+  BudgetPeriod,
   SupportedCurrency,
   Transaction,
   TransactionCreate,
@@ -216,9 +217,10 @@ export class BudgetDetailsDialogService {
 
   async openEditBudgetLineDialog(
     budgetLine: BudgetLine,
+    budgetPeriod: BudgetPeriod,
   ): Promise<BudgetLineUpdate | undefined> {
     const dialogRef = this.#dialog.open(EditBudgetLineDialog, {
-      data: { budgetLine },
+      data: { budgetLine, budgetPeriod },
       width: '400px',
       maxWidth: '90vw',
     });

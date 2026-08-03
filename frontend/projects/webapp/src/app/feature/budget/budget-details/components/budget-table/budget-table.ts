@@ -24,6 +24,7 @@ import { RecurrenceLabelPipe } from '@ui/transaction-display';
 import {
   type BudgetLine,
   type BudgetLineUpdate,
+  type BudgetPeriod,
   type Transaction,
 } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
@@ -304,6 +305,7 @@ export class BudgetTable {
   // Inputs
   readonly tableData = input.required<TableRowItem[]>();
   readonly savingsGoalNameById = input<ReadonlyMap<string, string>>(new Map());
+  readonly budgetPeriod = input.required<BudgetPeriod>();
 
   // Outputs
   readonly update = output<BudgetLineUpdate>();
@@ -367,6 +369,7 @@ export class BudgetTable {
       const result =
         await this.#budgetDetailsDialogService.openEditBudgetLineDialog(
           item.data,
+          this.budgetPeriod(),
         );
       if (result) this.update.emit(result);
     } catch (error) {

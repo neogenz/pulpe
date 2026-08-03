@@ -190,7 +190,7 @@ describe('BudgetDetailsStore — savings withdrawal (PUL-292)', () => {
       const result = await store.createSavingsWithdrawal(WITHDRAWAL_INPUT);
 
       expect(createSavingsWithdrawal$).toHaveBeenCalledWith(WITHDRAWAL_INPUT);
-      expect(result?.groupId).toBe(WITHDRAWAL_INPUT.groupId);
+      expect(result.data?.groupId).toBe(WITHDRAWAL_INPUT.groupId);
     });
 
     it('routes a typed ApiError through the localizer instead of a blanket message', async () => {
@@ -200,9 +200,10 @@ describe('BudgetDetailsStore — savings withdrawal (PUL-292)', () => {
 
       const result = await store.createSavingsWithdrawal(WITHDRAWAL_INPUT);
 
-      expect(result).toBeUndefined();
+      expect(result.data).toBeUndefined();
       expect(localizeSpy).toHaveBeenCalledWith(conflictError);
-      expect(store.error()).toBe(localizer.localizeApiError(conflictError));
+      expect(result.error).toBe(localizer.localizeApiError(conflictError));
+      expect(store.error()).toBeUndefined();
     });
   });
 
@@ -230,7 +231,7 @@ describe('BudgetDetailsStore — savings withdrawal (PUL-292)', () => {
       );
 
       expect(error).toBe(localizer.localizeApiError(conflictError));
-      expect(store.error()).toBeNull();
+      expect(store.error()).toBeUndefined();
     });
   });
 

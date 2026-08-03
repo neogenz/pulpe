@@ -6,24 +6,71 @@ import SwiftUI
 /// budget-line Add/Edit sheets. Callers show it only for `kind == .saving`;
 /// `selection` is the goal id (`nil` = "Aucun objectif"). Reads goals from the
 /// app-level `SavingsGoalStore` and refreshes them when it appears.
+///
+/// PUL-313 — when the caller passes `budgetPeriod`, goals whose deadline falls
+/// before it are listed but disabled: `enforce_savings_goal_line_link` would
+/// reject the link with a 422. Listed, not hidden — a goal that silently
+/// disappears is unexplainable. Template lines pass no period and stay
+/// unfiltered; the trigger's horizon branch only bounds `budget_line`.
+/// `budgetPeriod` can move under a live selection (a spread window extended past
+/// a goal's deadline), so the selection is reconciled against it, not just the
+/// goal list.
 struct SavingsGoalPickerField: View {
     struct SelectionState: Equatable {
         let hasLoadedOnce: Bool
         let isLoading: Bool
         let hasError: Bool
-        let goalIDs: Set<String>
+        let knownGoalIDs: Set<String>
+        /// Goals the caller's period can still link to — NOT every known goal. The
+        /// period moves under a live selection when a spread window is extended.
+        let linkableGoalIDs: Set<String>
+        /// Whether the live selection was made in this picker rather than handed in.
+        let pickedHere: Bool
 
+        /// The two reasons a selection can go stale are NOT symmetric. A goal that
+        /// vanished can never be saved again, so it drops whoever chose it. A goal
+        /// that is merely out of horizon was legitimately linkable when the line was
+        /// saved, and an edit sheet opens carrying it — withdrawing that on open
+        /// would edit the user's data for them, so only a pick made here is taken back.
         func reconciled(_ selection: String?) -> String? {
             guard hasLoadedOnce, !isLoading, !hasError, let selection else {
                 return selection
             }
-            return goalIDs.contains(selection) ? selection : nil
+            guard knownGoalIDs.contains(selection) else { return nil }
+            if linkableGoalIDs.contains(selection) { return selection }
+            return pickedHere ? nil : selection
         }
     }
 
     @Binding var selection: String?
+    var budgetPeriod: BudgetPeriod?
+
+    @State private var pickedHere = false
 
     @Environment(SavingsGoalStore.self) private var store
+    @Environment(UserSettingsStore.self) private var userSettingsStore
+
+    /// The deadline period a goal puts a saving out of reach past, or `nil` when
+    /// the link is allowed. Mirrors the trigger's own arithmetic through the
+    /// shared period port — an undated goal has no horizon to fall outside of,
+    /// and neither does a template line, which carries no period at all.
+    static func exceededDeadline(
+        for goal: SavingsGoal,
+        budgetPeriod: BudgetPeriod?,
+        payDayOfMonth: Int?
+    ) -> BudgetPeriod? {
+        guard let budgetPeriod, let targetDate = goal.targetDateValue else { return nil }
+        let deadline = BudgetPeriodCalculator.periodForDate(targetDate, payDayOfMonth: payDayOfMonth)
+        return BudgetPeriodCalculator.comparePeriods(budgetPeriod, deadline) > 0 ? deadline : nil
+    }
+
+    private func exceededDeadline(for goal: SavingsGoal) -> BudgetPeriod? {
+        Self.exceededDeadline(
+            for: goal,
+            budgetPeriod: budgetPeriod,
+            payDayOfMonth: userSettingsStore.payDayOfMonth
+        )
+    }
 
     private var selectedGoal: SavingsGoal? {
         guard let selection else { return nil }
@@ -35,7 +82,9 @@ struct SavingsGoalPickerField: View {
             hasLoadedOnce: store.hasLoadedOnce,
             isLoading: store.isLoading,
             hasError: store.error != nil,
-            goalIDs: Set(store.goals.map(\.id))
+            knownGoalIDs: Set(store.goals.map(\.id)),
+            linkableGoalIDs: Set(store.goals.filter { exceededDeadline(for: $0) == nil }.map(\.id)),
+            pickedHere: pickedHere
         )
     }
 
@@ -104,12 +153,23 @@ struct SavingsGoalPickerField: View {
     private var menuContent: some View {
         Menu {
             pickerButton(title: "Aucun objectif", isSelected: selection == nil) {
+                pickedHere = true
                 selection = nil
             }
             Divider()
             ForEach(store.goals) { goal in
-                pickerButton(title: goal.name, isSelected: goal.id == selection) {
-                    selection = goal.id
+                if let deadline = exceededDeadline(for: goal) {
+                    pickerButton(
+                        title: goal.name,
+                        subtitle: "Échéance dépassée · \(Formatters.monthName(for: deadline.month)) \(deadline.year)",
+                        isSelected: goal.id == selection
+                    ) {}
+                    .disabled(true)
+                } else {
+                    pickerButton(title: goal.name, isSelected: goal.id == selection) {
+                        pickedHere = true
+                        selection = goal.id
+                    }
                 }
             }
         } label: {
@@ -140,13 +200,23 @@ struct SavingsGoalPickerField: View {
         )
     }
 
+    /// `subtitle` rides in the same button so the reason travels with the goal
+    /// it disables — a menu entry cannot carry a separate explanatory row.
     @ViewBuilder
-    private func pickerButton(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+    private func pickerButton(
+        title: String,
+        subtitle: String? = nil,
+        isSelected: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
             if isSelected {
                 Label(title, systemImage: "checkmark")
             } else {
                 Text(title)
+            }
+            if let subtitle {
+                Text(subtitle)
             }
         }
     }

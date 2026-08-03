@@ -376,6 +376,45 @@ describe('SupabaseBudgetLineRepository', () => {
         'Failed to delete budget line after tag linking failure',
       );
     });
+
+    it('maps a line past the goal deadline to a dedicated 422', async () => {
+      const provider = createMockProvider(() => ({
+        insert: () => ({
+          select: () => ({
+            single: jest.fn().mockResolvedValue({
+              data: null,
+              error: {
+                code: 'P0001',
+                message: 'Savings goal line outside target horizon',
+              },
+            }),
+          }),
+        }),
+      }));
+      repo = createRepository(
+        provider,
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+      const rejection = repo.insert({
+        budgetId: 'budget-1',
+        name: 'Épargne',
+        amount: 300,
+        kind: 'saving',
+        recurrence: 'fixed',
+        isManuallyAdjusted: false,
+        savingsGoalId: '550e8400-e29b-41d4-a716-446655440000',
+      });
+
+      await expect(rejection).rejects.toThrow(BusinessException);
+      await expect(rejection).rejects.toMatchObject({
+        code: 'ERR_SAVINGS_GOAL_LINE_OUTSIDE_HORIZON',
+      });
+      await rejection.catch((error: BusinessException) => {
+        expect(error.getStatus()).toBe(422);
+      });
+    });
   });
 
   describe('delete', () => {
@@ -714,6 +753,74 @@ describe('SupabaseBudgetLineRepository', () => {
           'ERR_SAVINGS_GOAL_NOT_FOUND',
         );
       }
+    });
+
+    it('maps a re-tagged line past the goal deadline to a dedicated 422', async () => {
+      const provider = createMockProvider(() => ({
+        update: () => ({
+          eq: () => ({
+            select: () => ({
+              single: jest.fn().mockResolvedValue({
+                data: null,
+                error: {
+                  code: 'P0001',
+                  message: 'Savings goal line outside target horizon',
+                },
+              }),
+            }),
+          }),
+        }),
+      }));
+      repo = createRepository(
+        provider,
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+      const rejection = repo.update('line-1', {
+        savingsGoalId: '550e8400-e29b-41d4-a716-446655440000',
+      });
+
+      await expect(rejection).rejects.toThrow(BusinessException);
+      await expect(rejection).rejects.toMatchObject({
+        code: 'ERR_SAVINGS_GOAL_LINE_OUTSIDE_HORIZON',
+      });
+      await rejection.catch((error: BusinessException) => {
+        expect(error.getStatus()).toBe(422);
+      });
+    });
+
+    // The webapp edit dialog always sends tagIds, so the real-world re-tagging
+    // path is the atomic RPC one, not the plain UPDATE above.
+    it('maps a re-tagged line past the goal deadline to a 422 on the tagged RPC path', async () => {
+      const provider = createMockProvider(
+        () => ({}),
+        jest.fn().mockResolvedValue({
+          data: null,
+          error: {
+            code: 'P0001',
+            message: 'Savings goal line outside target horizon',
+          },
+        }),
+      );
+      repo = createRepository(
+        provider,
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+      const rejection = repo.update('line-1', {
+        savingsGoalId: '550e8400-e29b-41d4-a716-446655440000',
+        tagIds: ['tag-1'],
+      });
+
+      await expect(rejection).rejects.toThrow(BusinessException);
+      await expect(rejection).rejects.toMatchObject({
+        code: 'ERR_SAVINGS_GOAL_LINE_OUTSIDE_HORIZON',
+      });
+      await rejection.catch((error: BusinessException) => {
+        expect(error.getStatus()).toBe(422);
+      });
     });
   });
 

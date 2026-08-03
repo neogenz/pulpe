@@ -336,6 +336,21 @@ describe('AddBudgetLineDialog', () => {
         value: expect.objectContaining({ savingsGoalId: SAVINGS_GOAL_ID }),
       });
     });
+
+    // The server refuses the WHOLE fan-out as soon as one month falls past the
+    // goal's deadline, and the fan-out reaches the LAST selected month. Handing
+    // the picker the anchor (juin 2026) would green-light a goal that expires
+    // before novembre 2026, the default end of the spread range.
+    it('validates a savings goal against the last spread month, not the anchor', () => {
+      const { component } = configureDialog();
+      component['model'].update((m) => ({ ...m, kind: 'saving' }));
+
+      expect(component['budgetPeriod']()).toEqual({ year: 2026, month: 6 });
+
+      component['setMode']('spread');
+
+      expect(component['budgetPeriod']()).toEqual({ year: 2026, month: 11 });
+    });
   });
 
   describe('currency create rules', () => {
