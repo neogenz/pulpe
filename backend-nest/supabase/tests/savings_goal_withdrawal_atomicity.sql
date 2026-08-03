@@ -19,6 +19,7 @@ DECLARE
   v_other_goal_id uuid := gen_random_uuid();
   v_line_id uuid := gen_random_uuid();
   v_tag_id uuid := gen_random_uuid();
+  v_other_tag_id uuid := gen_random_uuid();
   v_withdrawal_id uuid;
   v_revision bigint;
   v_next_revision bigint;
@@ -63,7 +64,9 @@ BEGIN
           'saving'::public.transaction_kind, 'one_off'::public.transaction_recurrence);
 
   INSERT INTO public.tag (id, user_id, name)
-  VALUES (v_tag_id, v_user_id, 'Loisirs');
+  VALUES
+    (v_tag_id, v_user_id, 'Loisirs'),
+    (v_other_tag_id, v_other_user_id, 'Loisirs autrui');
 
   -- The other user needs a budget of their own, and a withdrawal inside it, so
   -- the cross-tenant guards have a real target to refuse rather than a
@@ -759,6 +762,57 @@ BEGIN
     RAISE EXCEPTION 'FAIL [21]: linking an own goal was refused';
   END IF;
   RAISE NOTICE 'PASS [21] linking an own goal still works';
+
+  ----------------------------------------------------------------------
+  -- ASSERTION 22: a withdrawal cannot borrow someone else's tag
+  ----------------------------------------------------------------------
+  -- assert_savings_goal_withdrawal_tags is the only thing standing between a
+  -- caller and another tenant's tag: transaction_tag carries no RLS of its own
+  -- and the FK only proves the tag exists. Assertion 7 exercises the same
+  -- function through a duplicate identifier, which trips the primary key long
+  -- before ownership is ever consulted — so the tenancy branch itself has no
+  -- coverage without this one.
+  -- Re-read rather than reuse v_next_revision: assertion 21 relinked a
+  -- transaction to this goal, and that write moved the revision.
+  SELECT balance_revision INTO v_revision
+  FROM public.savings_goal WHERE id = v_goal_id;
+  v_caught := NULL;
+  BEGIN
+    PERFORM public.create_savings_goal_withdrawal(
+      v_goal_id,
+      v_revision,
+      jsonb_build_object(
+        'budget_id', v_budget_id,
+        'name', 'Retrait avec tag emprunté',
+        'amount', 'CIPHERTEXT_120',
+        'kind', 'income',
+        'transaction_date', '2026-01-27'
+      ),
+      ARRAY[v_other_tag_id]
+    );
+  EXCEPTION WHEN OTHERS THEN
+    v_caught := SQLERRM;
+  END;
+
+  IF v_caught IS DISTINCT FROM 'Tag access denied' THEN
+    RAISE EXCEPTION 'FAIL [22]: expected the tag guard, got %',
+      COALESCE(v_caught, 'no error at all');
+  END IF;
+
+  -- The refusal must leave nothing behind: no link to the borrowed tag, and no
+  -- revision moved by a write that never happened.
+  SELECT count(*) INTO v_count
+  FROM public.transaction_tag WHERE tag_id = v_other_tag_id;
+  IF v_count <> 0 THEN
+    RAISE EXCEPTION 'FAIL [22]: the refused write still linked a foreign tag';
+  END IF;
+
+  SELECT balance_revision INTO v_next_revision
+  FROM public.savings_goal WHERE id = v_goal_id;
+  IF v_next_revision <> v_revision THEN
+    RAISE EXCEPTION 'FAIL [22]: a refused write still advanced the revision';
+  END IF;
+  RAISE NOTICE 'PASS [22] a foreign tag is refused and writes nothing';
 
   RAISE NOTICE 'ALL ASSERTIONS PASSED';
 END;

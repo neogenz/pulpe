@@ -349,7 +349,14 @@ Le simulateur répond à « qu'est-ce que je fais maintenant ? » sans modifier 
 La timeline est payDay-aware. Une timeline datée reste bornée à 120 périodes ;
 une timeline ouverte n'est pas plafonnée et finit au dernier mois lié ou au
 cycle courant. Les lignes antérieures à l'ancrage explicite restent visibles
-mais n'alimentent ni cumul, ni contribution, ni redistribution. Un budget absent
+mais n'alimentent ni cumul, ni contribution, ni redistribution. Une échéance
+posée à l'horizon maximal sature cette borne et fait démarrer la fenêtre au
+cycle courant : les retraits antérieurs n'ont alors plus de ligne à eux et sont
+reportés sur la **première** ligne rendue, qui totalise ainsi ce qui a quitté le
+stock jusqu'à elle. C'est le pendant du seed `initialAmount`, et c'est ce qui
+tient l'égalité avec `confirmed` — le simulateur et la redistribution ne
+connaissent du stock que ce que portent les lignes, donc un retrait qu'elles
+oublieraient gonflerait la simulation et minorerait l'effort restant d'autant. Un budget absent
 est ajustable dès lors qu'un **Mois Type par défaut** existe — il sert à
 matérialiser le budget du mois, plus à recopier une ligne (PUL-316). Un budget
 existant sans ligne liée est ajustable sans dépendre du Mois Type : la

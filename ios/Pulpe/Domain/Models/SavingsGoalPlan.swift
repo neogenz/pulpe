@@ -52,6 +52,12 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
     let confirmedAmount: Decimal
     /// Σ of this month's retraits (§11), always positive. A stock withdrawal:
     /// it digs into the cumulatives, never into `confirmedAmount`.
+    ///
+    /// On the FIRST month the server also folds in the retraits that fell
+    /// before the plan window, which a max-horizon target can push out. The
+    /// opening month therefore totals what has left the stock up to it — label
+    /// it "retiré jusqu'ici", never "retiré ce mois-ci", if a view ever shows
+    /// it row by row.
     let withdrawnAmount: Decimal
     let plannedCumulative: Decimal
     let confirmedCumulative: Decimal

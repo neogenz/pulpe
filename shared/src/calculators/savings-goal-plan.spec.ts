@@ -11,6 +11,7 @@ import {
   type LinkedSavingLine,
   type SavingsGoalProgressInput,
 } from './savings-goal-progress.js';
+import { MAX_SAVINGS_GOAL_PLAN_PERIODS } from '../../schemas.js';
 
 const savingLine = (
   overrides: Partial<LinkedSavingLine> & {
@@ -1072,5 +1073,65 @@ describe('buildSavingsGoalTimeline withdrawals (PUL-329)', () => {
     });
 
     expect(timeline.at(-1)).toMatchObject({ month: 9, year: 2026 });
+  });
+
+  // Une échéance à l'horizon maximal sature la fenêtre : `startIndex` remonte
+  // jusqu'au mois courant et le retrait de janvier n'a plus de row où creuser
+  // le cumul. `computeSavingsGoalProgress` le retranche quand même, donc les
+  // deux surfaces affichent deux soldes différents pour le même objectif.
+  // L'échéance ci-dessous est acceptée par `savingsGoalCreateSchema`, qui
+  // borne l'horizon à `MAX_SAVINGS_GOAL_PLAN_PERIODS` — c'est exactement la
+  // borne qui rend le cas atteignable, pas une entrée que le serveur refuse.
+  it('should keep a withdrawal pushed out of the plan window in the stock', () => {
+    const farTargetInput: SavingsGoalProgressInput = {
+      ...input,
+      targetAmount: 100000,
+      createdAt: '2026-01-15T00:00:00.000Z',
+      targetDate: '2036-02-28',
+      lines: [],
+      initialAmount: 5000,
+      withdrawals: [{ amount: 1000, month: 1, year: 2026 }],
+    };
+
+    const timeline = buildSavingsGoalTimeline(farTargetInput);
+    const progress = computeSavingsGoalProgress(farTargetInput);
+
+    expect(timeline).toHaveLength(MAX_SAVINGS_GOAL_PLAN_PERIODS);
+    expect(timeline[0]).toMatchObject({ month: 3, year: 2026 });
+    expect(progress.confirmed).toBe(4000);
+    expect(timeline.at(-1)?.confirmedCumulative).toBe(progress.confirmed);
+  });
+
+  // Le simulateur et la redistribution tournent chez le client sur `months[]` :
+  // ils ne voient du stock que `initialAmount` et les retraits portés par les
+  // rows. Corriger le seul cumul de la timeline les aurait laissés surestimer
+  // le stock du montant éjecté — ils annonceraient une cible atteinte et un
+  // effort restant trop faible, tous les deux de 1000 exactement.
+  it('should not let a withdrawal outside the window inflate the simulation', () => {
+    const farTargetInput: SavingsGoalProgressInput = {
+      ...input,
+      targetAmount: 100000,
+      createdAt: '2026-01-15T00:00:00.000Z',
+      targetDate: '2036-02-28',
+      lines: [],
+      initialAmount: 5000,
+      withdrawals: [{ amount: 1000, month: 1, year: 2026 }],
+    };
+
+    const timeline = buildSavingsGoalTimeline(farTargetInput);
+    const progress = computeSavingsGoalProgress(farTargetInput);
+    const simulation = simulateSavingsPlan({
+      timeline,
+      targetAmount: 100000,
+      initialAmount: 5000,
+    });
+    const redistribution = redistributeRemainingEffort({
+      timeline,
+      targetAmount: 100000,
+      initialAmount: 5000,
+    });
+
+    expect(simulation.simulatedFinal).toBe(progress.confirmed);
+    expect(redistribution.remainingEffort).toBe(100000 - progress.confirmed);
   });
 });

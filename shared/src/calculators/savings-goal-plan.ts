@@ -63,6 +63,12 @@ export interface SavingsPlanTimelineMonth {
    * Σ des retraits (§11) portés par ce mois, toujours positive. Sortie de stock :
    * elle creuse les cumuls, jamais `confirmedAmount`. Optionnelle — les payloads
    * antérieurs à PUL-329 ne la portent pas.
+   *
+   * Sur la PREMIÈRE row, elle porte en plus les retraits antérieurs à la
+   * fenêtre, que l'horizon de 120 périodes a écartés : le mois d'ouverture
+   * cumule ce qui a quitté le stock jusqu'à lui, comme `initialAmount` cumule
+   * ce qui y est entré. À libeller « retiré jusqu'ici » et non « retiré ce
+   * mois-ci » si une UI vient un jour l'afficher ligne à ligne.
    */
   withdrawnAmount?: number;
   plannedCumulative: number;
@@ -167,6 +173,22 @@ export function buildSavingsGoalTimeline(
     ? new Set(input.materializedPeriods.map(periodIndex))
     : null;
 
+  // Une échéance à l'horizon maximal sature la fenêtre et fait remonter
+  // `startIndex` jusqu'au mois courant : un retrait antérieur perd alors la row
+  // où il creusait le cumul. Il a pourtant bien quitté le stock, et
+  // `computeSavingsGoalProgress` le retranche sans condition.
+  //
+  // Il est reporté sur la PREMIÈRE row plutôt que dans un seed local, parce que
+  // le seul consommateur de cette fonction est le serveur : le simulateur et la
+  // redistribution tournent chez le client, sur `months[]`, et ne connaissent
+  // de `initialAmount` que le stock brut de l'objectif. Un seed ici n'aurait
+  // corrigé que `confirmedCumulative` en laissant `simulatedFinal` et
+  // `remainingEffort` surestimer le stock du montant éjecté. Passer par la row
+  // les corrige tous les trois d'un coup, et iOS en hérite sans changer le fil.
+  const withdrawnBeforeWindow = withdrawals
+    .filter((withdrawal) => periodIndex(withdrawal) < startIndex)
+    .reduce((sum, withdrawal) => sum + withdrawal.amount, 0);
+
   const months: SavingsPlanTimelineMonth[] = [];
   let plannedCumulative = 0;
   let confirmedCumulative = input.initialAmount ?? 0;
@@ -192,9 +214,11 @@ export function buildSavingsGoalTimeline(
     // Le retrait creuse le CUMUL confirmé sans jamais entrer dans
     // `confirmedAmount` : la ligne « contributions du mois » reste une somme
     // d'entrées, pas une contribution négative.
-    const withdrawnAmount = withdrawals
-      .filter((withdrawal) => periodIndex(withdrawal) === index)
-      .reduce((sum, withdrawal) => sum + withdrawal.amount, 0);
+    const withdrawnAmount =
+      withdrawals
+        .filter((withdrawal) => periodIndex(withdrawal) === index)
+        .reduce((sum, withdrawal) => sum + withdrawal.amount, 0) +
+      (index === startIndex ? withdrawnBeforeWindow : 0);
 
     if (isInHistoricalInterval) {
       plannedCumulative += plannedAmount;
