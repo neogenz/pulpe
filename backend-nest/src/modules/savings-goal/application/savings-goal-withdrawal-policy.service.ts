@@ -113,6 +113,13 @@ export class SavingsGoalWithdrawalPolicyService implements SavingsGoalWithdrawal
     confirmed: number,
     input: SavingsGoalWithdrawalWrite<unknown>,
   ): void {
+    // Rien n'est prélevé : le solde n'a rien à défendre, et la révision porte
+    // seule la garantie de concurrence sur ce chemin. Une suppression arrive
+    // ici avec `debit: 0` — c'est le geste qui REND l'argent au pot, refuser
+    // parce que le stock est déjà négatif laisserait la transaction en
+    // cul-de-sac, sans aucun chemin pour la réparer.
+    if (input.debit <= 0) return;
+
     const available = confirmed + (input.creditBack ?? 0);
     if (input.debit <= available + WITHDRAWAL_BALANCE_TOLERANCE) return;
 

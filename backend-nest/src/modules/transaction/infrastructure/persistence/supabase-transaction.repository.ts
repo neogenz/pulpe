@@ -648,6 +648,10 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     // it through the patch would let a client-side clock decide the ordering
     // the revision guard depends on.
     delete updateRow.updated_at;
+    // `kind` non plus : l'invariant a déjà refusé toute valeur autre qu'`income`
+    // et la RPC n'écrit pas cette colonne, mais le client l'envoie à chaque
+    // édition — le laisser passer ferait échouer le patch strict.
+    delete updateRow.kind;
     const payload = this.parseWithdrawalPayload(
       updateSavingsGoalWithdrawalPayloadSchema,
       updateRow,

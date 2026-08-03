@@ -553,6 +553,53 @@ describe('SupabaseTransactionRepository', () => {
     });
   });
 
+  describe('updateWithdrawal (PUL-329)', () => {
+    it('should reach the RPC when the patch carries the kind the client always sends', async () => {
+      // Le formulaire d'édition émet `kind` sans condition. La row d'update le
+      // porte donc, alors que le patch strict de la RPC n'a pas cette clé — un
+      // retrait ne change jamais de nature, la RPC ne l'écrit pas.
+      const withdrawalRow: TransactionRow = {
+        ...mockRow,
+        kind: 'income' as const,
+        source_savings_goal_id: 'goal-1',
+        source_savings_goal_name: 'Maison',
+      };
+      const mockRpc = jest.fn().mockReturnValue({
+        single: jest
+          .fn()
+          .mockResolvedValue({ data: withdrawalRow, error: null }),
+      });
+      const provider = createMockProvider(
+        () => ({
+          select: () => ({
+            eq: jest
+              .fn()
+              .mockResolvedValue({ data: [{ tag_id: 'tag-1' }], error: null }),
+          }),
+        }),
+        mockRpc,
+      );
+      repo = new SupabaseTransactionRepository(
+        provider,
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+      const result = await repo.updateWithdrawal(
+        'txn-1',
+        { name: 'Retrait Maison', kind: 'income' },
+        7,
+      );
+
+      expect(result.id).toBe('txn-1');
+      expect(mockRpc).toHaveBeenCalledWith('update_savings_goal_withdrawal', {
+        p_transaction_id: 'txn-1',
+        p_expected_revision: 7,
+        p_patch: { name: 'Retrait Maison' },
+      });
+    });
+  });
+
   describe('findMutationContext', () => {
     it('should return the mutation context on success', async () => {
       const provider = createMockProvider(() => ({
