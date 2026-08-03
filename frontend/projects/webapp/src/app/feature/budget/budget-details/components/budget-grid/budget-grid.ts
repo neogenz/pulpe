@@ -19,6 +19,7 @@ import { getDateDisplayFormats } from '@core/date/date-display-formats';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { FinancialKindIndicator } from '@ui/financial-kind-indicator';
 import { OriginalAmountLine } from '@ui/original-amount-line';
+import { SavingsGoalSourceLine } from '@ui/savings-goal-source/savings-goal-source-line';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import type { BudgetLine, Transaction, SupportedCurrency } from 'pulpe-shared';
 import type { TransactionViewModel } from '../../view-models/transaction.view-model';
@@ -83,6 +84,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
     FinancialKindIndicator,
     FinancialKindDirective,
     OriginalAmountLine,
+    SavingsGoalSourceLine,
     FormatConversionPipe,
     TransactionActionMenu,
     TransactionLabelPipe,
@@ -245,6 +247,15 @@ export function groupByKind<T extends { data: { kind: string } }>(
             />
           </div>
 
+          @if (item.data.sourceSavingsGoalName) {
+            <pulpe-savings-goal-source-line
+              class="text-label-small mb-3 max-w-full"
+              [goalId]="item.data.sourceSavingsGoalId"
+              [goalName]="item.data.sourceSavingsGoalName"
+              [attr.data-testid]="'transaction-source-' + item.data.id"
+            />
+          }
+
           <!-- Row 2: Amount + date chip -->
           <div class="flex items-center justify-between mb-3">
             <div class="flex flex-col">
@@ -322,6 +333,15 @@ export function groupByKind<T extends { data: { kind: string } }>(
             (spread)="spreadTransaction.emit($event)"
           />
         </div>
+
+        @if (item.data.sourceSavingsGoalName) {
+          <pulpe-savings-goal-source-line
+            class="text-label-small mb-2 max-w-full"
+            [goalId]="item.data.sourceSavingsGoalId"
+            [goalName]="item.data.sourceSavingsGoalName"
+            [attr.data-testid]="'transaction-source-' + item.data.id"
+          />
+        }
 
         <div class="mb-2">
           <div

@@ -12,6 +12,7 @@ import {
   type SavingsGoalPlanApplyResponse,
   type SavingsGoalProgress,
   type SavingsGoalUpdate,
+  type SavingsGoalWithdrawal,
 } from 'pulpe-shared';
 import { firstValueFrom, map } from 'rxjs';
 import { cachedResource, cachedMutation } from 'ngx-ziflux';
@@ -90,6 +91,33 @@ export class SavingsGoalStore {
   );
   readonly isContributionsLoading =
     this.#contributionsResource.isInitialLoading;
+
+  // Sorties d'argent (PUL-329) — chargées en parallèle de la progression et des
+  // contributions, avec leurs propres états pour qu'une erreur ici n'emporte pas
+  // le reste du détail.
+  readonly #withdrawalsResource = cachedResource<
+    SavingsGoalWithdrawal[],
+    { goalId: string }
+  >({
+    cache: this.#api.cache,
+    cacheKey: (params) => ['savings-goals', 'withdrawals', params.goalId],
+    params: () => {
+      const id = this.#selectedGoalId();
+      return id ? { goalId: id } : undefined;
+    },
+    loader: ({ params }) =>
+      this.#api.getWithdrawals$(params.goalId).pipe(map((res) => res.data)),
+  });
+
+  readonly withdrawals = computed<SavingsGoalWithdrawal[]>(
+    () => this.#withdrawalsResource.value() ?? [],
+  );
+  readonly isWithdrawalsLoading = this.#withdrawalsResource.isInitialLoading;
+  readonly withdrawalsError = this.#withdrawalsResource.error;
+
+  reloadWithdrawals(): void {
+    this.#withdrawalsResource.reload();
+  }
 
   setSelectedGoalId(id: string | null): void {
     this.#selectedGoalId.set(id);

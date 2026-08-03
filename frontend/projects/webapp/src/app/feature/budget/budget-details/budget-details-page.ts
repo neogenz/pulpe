@@ -7,8 +7,10 @@ import {
   computed,
   effect,
   isDevMode,
+  signal,
+  untracked,
 } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -30,7 +32,11 @@ import {
   submitSavingsWithdrawalWithRetry,
   submitSpreadWithRetry,
 } from './utils/budget-details-snackbar.utils';
-import { formatBudgetPeriod, type SupportedCurrency } from 'pulpe-shared';
+import {
+  formatBudgetPeriod,
+  type SupportedCurrency,
+  type Transaction,
+} from 'pulpe-shared';
 import { UserSettingsStore } from '@core/user-settings';
 import { CURRENCY_CONFIG } from '@core/currency';
 
@@ -138,6 +144,7 @@ export default class BudgetDetailsPage {
   protected readonly store = inject(BudgetDetailsStore);
   protected readonly userSettingsStore = inject(UserSettingsStore);
   readonly #router = inject(Router);
+  readonly #route = inject(ActivatedRoute);
   readonly #breadcrumbState = inject(BreadcrumbState);
   readonly #loadingIndicator = inject(LoadingIndicator);
   readonly #destroyRef = inject(DestroyRef);
@@ -157,6 +164,15 @@ export default class BudgetDetailsPage {
   protected readonly financialTotals = this.store.financialTotals;
 
   readonly id = input.required<string>();
+
+  /**
+   * PUL-329 — deep link depuis la section « Retraits » d'un objectif. Le query
+   * param désigne la transaction à ouvrir ; il est consommé une seule fois puis
+   * effacé par `replaceUrl`, pour qu'un retour arrière ou un rechargement ne
+   * rouvre pas le détail dans le dos de l'utilisateur.
+   */
+  readonly transactionId = input<string>();
+  readonly #consumedTransactionId = signal<string | null>(null);
 
   protected readonly displayName = computed(() => {
     const budget = this.store.budgetDetails();
@@ -184,6 +200,25 @@ export default class BudgetDetailsPage {
 
     this.#destroyRef.onDestroy(() => {
       this.#loadingIndicator.setLoading(false);
+    });
+
+    effect(() => {
+      const targetId = this.transactionId();
+      if (!targetId) {
+        this.#consumedTransactionId.set(null);
+        return;
+      }
+      const details = this.store.budgetDetails();
+      if (!details || details.id !== this.id()) return;
+      if (untracked(this.#consumedTransactionId) === targetId) return;
+      this.#consumedTransactionId.set(targetId);
+      untracked(() =>
+        this.#openDeepLinkedTransaction(
+          details.transactions.find((t) => t.id === targetId),
+          details.month,
+          details.year,
+        ),
+      );
     });
 
     effect((onCleanup) => {
@@ -246,6 +281,30 @@ export default class BudgetDetailsPage {
     } else {
       await this.store.createBudgetLine(result.value);
     }
+  }
+
+  async #openDeepLinkedTransaction(
+    transaction: Transaction | undefined,
+    budgetMonth: number,
+    budgetYear: number,
+  ): Promise<void> {
+    this.#router.navigate([], {
+      relativeTo: this.#route,
+      queryParams: { transactionId: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+    if (!transaction) return;
+
+    const result = await this.#dialogService.openEditAllocatedTransactionDialog(
+      transaction,
+      {
+        budgetMonth,
+        budgetYear,
+        payDayOfMonth: this.userSettingsStore.payDayOfMonth(),
+      },
+    );
+    if (result) await this.store.updateTransaction(result.id, result.update);
   }
 
   protected async openSavingsWithdrawalFromCard(): Promise<void> {

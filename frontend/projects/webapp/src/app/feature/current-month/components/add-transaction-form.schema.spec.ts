@@ -20,9 +20,14 @@ const context = {
   transactionDate: '2026-07-16T12:00:00+02:00',
 };
 
+const GOAL_ID = '00000000-0000-4000-8000-0000000000a1';
+
 describe('transactionFormDataSchema', () => {
   it('should validate the shared surface result', () => {
-    expect(transactionFormDataSchema.parse(formData)).toEqual(formData);
+    expect(transactionFormDataSchema.parse(formData)).toEqual({
+      ...formData,
+      sourceSavingsGoalId: null,
+    });
   });
 
   it('should reject a one-character name', () => {
@@ -121,6 +126,26 @@ describe('transactionCreateFromQuickFormSchema', () => {
         exchangeRate: 0.9,
       }),
     );
+  });
+
+  it('should forward the savings-goal source of a linked income', () => {
+    const result = transactionCreateFromQuickFormSchema.parse({
+      ...formData,
+      ...context,
+      kind: 'income',
+      sourceSavingsGoalId: GOAL_ID,
+    });
+
+    expect(result.sourceSavingsGoalId).toBe(GOAL_ID);
+  });
+
+  it('should omit the source rather than send it null on an ordinary transaction', () => {
+    const result = transactionCreateFromQuickFormSchema.parse({
+      ...formData,
+      ...context,
+    });
+
+    expect(result).not.toHaveProperty('sourceSavingsGoalId');
   });
 
   it('should reject invalid dashboard context', () => {

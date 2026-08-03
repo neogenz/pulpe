@@ -278,6 +278,58 @@ describe('SavingsGoalApi', () => {
     });
   });
 
+  it('getWithdrawalOptions$ GETs the collection route before any :id route', async () => {
+    const responsePromise = firstValueFrom(service.getWithdrawalOptions$());
+
+    const req = httpTesting.expectOne(
+      'http://localhost:3000/api/v1/savings-goals/withdrawal-options',
+    );
+    expect(req.request.method).toBe('GET');
+    req.flush({
+      success: true,
+      data: [
+        {
+          goalId: GOAL_ID,
+          name: 'Maison',
+          status: 'ACTIVE',
+          availableAmount: 10000,
+          currency: 'CHF',
+        },
+      ],
+    });
+
+    const response = await responsePromise;
+    expect(response.data[0].availableAmount).toBe(10000);
+    expect(response.data[0].currency).toBe('CHF');
+  });
+
+  it('getWithdrawals$ GETs the goal history and parses positive amounts', async () => {
+    const responsePromise = firstValueFrom(service.getWithdrawals$(GOAL_ID));
+
+    const req = httpTesting.expectOne(
+      `http://localhost:3000/api/v1/savings-goals/${GOAL_ID}/withdrawals`,
+    );
+    expect(req.request.method).toBe('GET');
+    req.flush({
+      success: true,
+      data: [
+        {
+          transactionId: '4f8f011f-3312-4676-9b18-3b237db2d40c',
+          budgetId: 'c2c15b83-9975-4534-a6be-30a19f2f1389',
+          name: 'Apport cuisine',
+          transactionDate: '2026-08-01T10:00:00.000Z',
+          amount: 4500,
+        },
+      ],
+    });
+
+    const response = await responsePromise;
+    expect(response.data[0].amount).toBe(4500);
+    expect(response.data[0].budgetId).toBe(
+      'c2c15b83-9975-4534-a6be-30a19f2f1389',
+    );
+  });
+
   // Bug repro: a transaction pointée on a goal-linked line invalidates the
   // budget cache, but the goal progress cache stayed FRESH — the detail page
   // kept serving the pre-mutation confirmed amount for up to staleTime.
@@ -286,9 +338,13 @@ describe('SavingsGoalApi', () => {
     const listKey = ['savings-goals', 'list'];
     const progressKey = ['savings-goals', 'progress', GOAL_ID];
     const contributionsKey = ['savings-goals', 'contributions', GOAL_ID];
+    const withdrawalsKey = ['savings-goals', 'withdrawals', GOAL_ID];
+    const optionsKey = ['savings-goals', 'withdrawal-options'];
     service.cache.set(listKey, []);
     service.cache.set(progressKey, makeProgress());
     service.cache.set(contributionsKey, []);
+    service.cache.set(withdrawalsKey, []);
+    service.cache.set(optionsKey, []);
 
     budgetApi.cache.invalidate(['budget', 'details']);
     TestBed.flushEffects();
@@ -298,5 +354,7 @@ describe('SavingsGoalApi', () => {
       false,
     );
     expect(service.cache.get(contributionsKey)?.fresh).toBe(false);
+    expect(service.cache.get(withdrawalsKey)?.fresh).toBe(false);
+    expect(service.cache.get(optionsKey)?.fresh).toBe(false);
   });
 });

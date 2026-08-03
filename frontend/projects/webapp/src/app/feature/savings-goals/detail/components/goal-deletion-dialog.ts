@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -24,6 +25,7 @@ import {
   type SupportedCurrency,
 } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
+import { getDateDisplayFormats } from '@core/date/date-display-formats';
 import { SavingsGoalStore } from '../../services/savings-goals-store';
 
 export interface GoalDeletionDialogData {
@@ -39,6 +41,7 @@ type ForecastScope = 'goal_only' | 'goal_and_forecasts';
 @Component({
   selector: 'pulpe-goal-deletion-dialog',
   imports: [
+    DatePipe,
     MatButtonModule,
     MatCheckboxModule,
     MatDialogModule,
@@ -59,6 +62,8 @@ export class GoalDeletionDialog {
       MatDialogRef,
     );
   protected readonly data = inject<GoalDeletionDialogData>(MAT_DIALOG_DATA);
+  protected readonly shortDateFormat = getDateDisplayFormats(this.data.currency)
+    .shortDate;
 
   readonly #impact = signal<SavingsGoalDeletionImpact | null>(null);
   protected readonly impact = this.#impact.asReadonly();

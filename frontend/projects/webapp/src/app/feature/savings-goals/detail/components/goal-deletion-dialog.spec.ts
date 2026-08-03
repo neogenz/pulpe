@@ -237,6 +237,81 @@ describe('GoalDeletionDialog', () => {
     expect(list.nativeElement.className).toContain('overflow-y-auto');
   });
 
+  describe('withdrawals kept by every mode (PUL-329)', () => {
+    const LONG_NAME =
+      'Apport pour la rénovation complète de la cuisine et de la salle de bain';
+
+    beforeEach(() => {
+      impact = {
+        ...makeImpact(),
+        summary: {
+          ...makeImpact().summary,
+          withdrawalCount: 2,
+          withdrawalTotal: 1300,
+        },
+        withdrawals: [
+          {
+            transactionId: uuid(3_001),
+            budgetId: uuid(100),
+            name: LONG_NAME,
+            transactionDate: '2026-07-20T10:00:00.000Z',
+            amount: 800,
+          },
+          {
+            transactionId: uuid(3_002),
+            budgetId: uuid(100),
+            name: 'Apport imprévu',
+            transactionDate: '2026-06-02T10:00:00.000Z',
+            amount: 500,
+          },
+        ],
+      };
+      fetchDeletionImpact.mockResolvedValue(impact);
+    });
+
+    it('lists the preserved incomes as negative amounts with their total', async () => {
+      await createDialog();
+
+      const rows = fixture.debugElement.queryAll(
+        By.css('[data-testid="goal-deletion-withdrawal-row"]'),
+      );
+      expect(rows).toHaveLength(2);
+      expect(rows[0].nativeElement.textContent).toContain('-800.00 CHF');
+      expect(
+        query('goal-deletion-withdrawals-total').nativeElement.textContent,
+      ).toContain('-1’300.00 CHF');
+      expect(
+        query('goal-deletion-withdrawals').nativeElement.textContent,
+      ).toContain('restent dans leurs budgets');
+    });
+
+    it('keeps the group visible in the fully destructive mode without an opt-in', async () => {
+      await createDialog();
+      const controls = component as unknown as DialogControls;
+
+      controls.selectScope('goal_and_forecasts');
+      controls.deleteTransactions.set(true);
+      fixture.detectChanges();
+
+      expect(query('goal-deletion-withdrawals')).toBeTruthy();
+      expect(
+        fixture.debugElement.queryAll(
+          By.css('[data-testid="goal-deletion-withdrawals"] mat-checkbox'),
+        ),
+      ).toHaveLength(0);
+    });
+
+    it('wraps a very long income name instead of truncating it', async () => {
+      await createDialog();
+
+      const name = fixture.debugElement.query(
+        By.css('[data-testid="goal-deletion-withdrawal-row"] .break-words'),
+      );
+      expect(name.nativeElement.textContent).toContain(LONG_NAME);
+      expect(name.nativeElement.className).not.toContain('truncate');
+    });
+  });
+
   it('shows a retry state without enabling deletion when preview loading fails', async () => {
     fetchDeletionImpact
       .mockRejectedValueOnce(new Error('offline'))

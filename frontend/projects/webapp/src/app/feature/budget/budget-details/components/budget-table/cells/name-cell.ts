@@ -15,6 +15,7 @@ import { TagStore } from '@core/tag';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { SpreadBadge } from '@ui/spread-badge';
 import { SavingsWithdrawalBadge } from '@ui/savings-withdrawal-badge';
+import { SavingsGoalSourceLine } from '@ui/savings-goal-source/savings-goal-source-line';
 import { TagIndicator } from '@ui/tag-indicator';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import { formatMatchAnnotation } from '../../../view-models/budget-item-constants';
@@ -33,6 +34,7 @@ import type {
     FinancialKindDirective,
     SpreadBadge,
     SavingsWithdrawalBadge,
+    SavingsGoalSourceLine,
     TagIndicator,
     TransactionLabelPipe,
   ],
@@ -105,6 +107,14 @@ import type {
               <span class="truncate ph-no-capture">{{ goalName }}</span>
             </span>
           }
+          @if (source(); as goalSource) {
+            <pulpe-savings-goal-source-line
+              class="text-label-small"
+              [goalId]="goalSource.id"
+              [goalName]="goalSource.name"
+              [attr.data-testid]="'budget-table-source-goal-' + line().data.id"
+            />
+          }
           @if (matchAnnotation()) {
             <span
               class="inline-flex items-center gap-1 text-label-small
@@ -144,6 +154,19 @@ export class NameCell {
     const data = this.line().data;
     if (!('savingsGoalId' in data) || !data.savingsGoalId) return undefined;
     return this.savingsGoalNameById().get(data.savingsGoalId);
+  });
+
+  // Le lien actif porte les deux champs, le lien cassé garde le nom seul : le
+  // nom suffit donc à décider si la ligne d'origine s'affiche (PUL-329).
+  readonly source = computed(() => {
+    const data = this.line().data;
+    if (!('sourceSavingsGoalName' in data) || !data.sourceSavingsGoalName) {
+      return null;
+    }
+    return {
+      id: data.sourceSavingsGoalId ?? null,
+      name: data.sourceSavingsGoalName,
+    };
   });
 
   readonly matchAnnotation = computed(() =>

@@ -1,12 +1,22 @@
 import { TestBed } from '@angular/core/testing';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   DestroyRef,
   effect,
   signal,
   provideZonelessChangeDetection,
 } from '@angular/core';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { ActivatedRoute, Router } from '@angular/router';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
+import { BreadcrumbState } from '@core/shell/breadcrumb-state';
+import { UserSettingsStore } from '@core/user-settings';
+import { createMockTransaction } from '@app/testing/mock-factories';
+import { setTestInput } from '@app/testing/signal-test-utils';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
+import BudgetDetailsPage from './budget-details-page';
+import { BudgetDetailsDialogService } from './budget-details-dialog.service';
+import { BudgetDetailsStore } from './store/budget-details-store';
 
 /**
  * Tests the loading indicator ↔ isStale contract used by BudgetDetailsPage.
@@ -65,5 +75,153 @@ describe('BudgetDetailsPage — loading indicator contract', () => {
     TestBed.flushEffects();
 
     expect(loadingIndicator.isLoading()).toBe(false);
+  });
+});
+
+/**
+ * PUL-329 — arriving from a savings goal's "Retraits" section carries the
+ * targeted transaction in a query param. The template stays empty here: the
+ * behaviour under test lives entirely in the page's constructor effect.
+ */
+describe('BudgetDetailsPage — savings-goal deep link', () => {
+  const BUDGET_ID = '00000000-0000-4000-8000-000000000100';
+  const TRANSACTION_ID = '00000000-0000-4000-8000-000000000200';
+
+  const openEditAllocatedTransactionDialog = vi.fn();
+  const updateTransaction = vi.fn();
+  const navigate = vi.fn();
+  let budgetDetails: ReturnType<typeof signal<unknown>>;
+
+  function createPage(): BudgetDetailsPage {
+    TestBed.overrideComponent(BudgetDetailsPage, {
+      set: {
+        template: '',
+        templateUrl: undefined,
+        providers: [
+          {
+            provide: BudgetDetailsStore,
+            useValue: {
+              setBudgetId: vi.fn(),
+              isStale: signal(false),
+              budgetDetails,
+              financialTotals: signal(null),
+              savingsWithdrawalDeficit: signal(0),
+              previousBudgetId: signal(null),
+              nextBudgetId: signal(null),
+              updateTransaction,
+            },
+          },
+          {
+            provide: BudgetDetailsDialogService,
+            useValue: { openEditAllocatedTransactionDialog },
+          },
+        ],
+      },
+    });
+
+    const fixture = TestBed.createComponent(BudgetDetailsPage);
+    setTestInput(fixture.componentInstance.id, BUDGET_ID);
+    return fixture.componentInstance;
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    openEditAllocatedTransactionDialog.mockResolvedValue(undefined);
+    budgetDetails = signal<unknown>(null);
+
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
+        { provide: Router, useValue: { navigate } },
+        { provide: ActivatedRoute, useValue: {} },
+        { provide: MatSnackBar, useValue: { open: vi.fn() } },
+        {
+          provide: BreadcrumbState,
+          useValue: {
+            setDynamicBreadcrumb: vi.fn(),
+            clearDynamicBreadcrumb: vi.fn(),
+          },
+        },
+        {
+          provide: UserSettingsStore,
+          useValue: { currency: signal('CHF'), payDayOfMonth: signal(25) },
+        },
+      ],
+    });
+  });
+
+  function loadBudget(): void {
+    budgetDetails.set({
+      id: BUDGET_ID,
+      month: 7,
+      year: 2026,
+      transactions: [
+        createMockTransaction({ id: TRANSACTION_ID, name: 'Apport cuisine' }),
+      ],
+    });
+  }
+
+  it('waits for the budget then opens the targeted transaction exactly once', () => {
+    const page = createPage();
+    setTestInput(page.transactionId, TRANSACTION_ID);
+    TestBed.flushEffects();
+
+    expect(openEditAllocatedTransactionDialog).not.toHaveBeenCalled();
+
+    loadBudget();
+    TestBed.flushEffects();
+
+    expect(openEditAllocatedTransactionDialog).toHaveBeenCalledTimes(1);
+    expect(openEditAllocatedTransactionDialog.mock.calls[0][0].id).toBe(
+      TRANSACTION_ID,
+    );
+
+    budgetDetails.update((details) => ({ ...(details as object) }));
+    TestBed.flushEffects();
+
+    expect(openEditAllocatedTransactionDialog).toHaveBeenCalledTimes(1);
+  });
+
+  it('consumes the query param through a replaced history entry', () => {
+    const page = createPage();
+    setTestInput(page.transactionId, TRANSACTION_ID);
+    loadBudget();
+    TestBed.flushEffects();
+
+    expect(navigate).toHaveBeenCalledWith([], {
+      relativeTo: TestBed.inject(ActivatedRoute),
+      queryParams: { transactionId: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  });
+
+  it('clears the query param without a dialog when the transaction is gone', () => {
+    const page = createPage();
+    setTestInput(page.transactionId, '00000000-0000-4000-8000-000000000999');
+    loadBudget();
+    TestBed.flushEffects();
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(openEditAllocatedTransactionDialog).not.toHaveBeenCalled();
+  });
+
+  it('persists the edit returned by the dialog', async () => {
+    openEditAllocatedTransactionDialog.mockResolvedValue({
+      id: TRANSACTION_ID,
+      update: { amount: 42 },
+    });
+
+    const page = createPage();
+    setTestInput(page.transactionId, TRANSACTION_ID);
+    loadBudget();
+    TestBed.flushEffects();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(updateTransaction).toHaveBeenCalledWith(TRANSACTION_ID, {
+      amount: 42,
+    });
   });
 });

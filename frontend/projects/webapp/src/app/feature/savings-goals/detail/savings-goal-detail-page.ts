@@ -58,6 +58,7 @@ import { GoalProjectionChart } from './components/goal-projection-chart';
 import { GoalPlanTimeline } from './components/goal-plan-timeline';
 import { GoalPlanSimulatorToolbar } from './components/goal-plan-simulator-toolbar';
 import { GoalContributionsList } from './components/goal-contributions-list';
+import { GoalWithdrawalsList } from './components/goal-withdrawals-list';
 import { GoalPlanRepairCallout } from './components/goal-plan-repair-callout';
 
 type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
@@ -78,6 +79,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
     GoalPlanTimeline,
     GoalPlanSimulatorToolbar,
     GoalContributionsList,
+    GoalWithdrawalsList,
     GoalPlanRepairCallout,
   ],
   providers: [GoalPlanSimulatorStore, AppCurrencyPipe],
@@ -654,6 +656,32 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
               />
             </section>
           }
+
+          <!-- « Retraits » — l'argent sorti de l'objectif. Section propre, jamais
+               fondue dans « Ton suivi » : contributions et retraits vont dans des
+               sens opposés. Elle survit au cas vide (un objectif peut n'avoir
+               plus aucune prévision et garder son historique de retraits), mais
+               disparaît en simulation comme les autres surfaces de lecture. -->
+          @if (!simulator.isSimulating() && hasWithdrawalsSection()) {
+            <section
+              class="mt-4 flex flex-col gap-3"
+              aria-labelledby="goal-withdrawals-heading"
+              data-testid="savings-goal-withdrawals"
+            >
+              <h2
+                id="goal-withdrawals-heading"
+                class="text-title-large font-semibold"
+              >
+                {{ 'savingsGoals.detail.withdrawalsTitle' | transloco }}
+              </h2>
+              <pulpe-goal-withdrawals-list
+                [withdrawals]="store.withdrawals()"
+                [currency]="currency()"
+                [isLoading]="store.isWithdrawalsLoading()"
+                [hasError]="!!store.withdrawalsError()"
+              />
+            </section>
+          }
         }
       }
 
@@ -814,6 +842,15 @@ export default class SavingsGoalDetailPage {
 
   protected readonly isEmpty = computed(
     () => this.progress()?.linkedLineCount === 0,
+  );
+
+  // Une section vide n'apprend rien : on ne la montre que si elle a quelque chose
+  // à dire — des retraits, un chargement en cours ou un échec à signaler.
+  protected readonly hasWithdrawalsSection = computed(
+    () =>
+      this.store.withdrawals().length > 0 ||
+      this.store.isWithdrawalsLoading() ||
+      !!this.store.withdrawalsError(),
   );
 
   protected readonly displayedProjection = computed(
@@ -982,6 +1019,39 @@ export default class SavingsGoalDetailPage {
   protected async onDelete(): Promise<void> {
     const goal = this.goal();
     if (!goal) return;
+    // Un aperçu périmé ne se rejoue jamais tel quel : on rouvre la popup, qui
+    // recalcule l'impact, et on redemande le choix. Renvoyer l'ancienne
+    // révision supprimerait des lignes que l'utilisateur n'a pas vues.
+    for (;;) {
+      const command = await this.#askDeletionCommand(goal);
+      if (!command) return;
+      try {
+        await this.store.deleteGoal(goal.id, command);
+        this.goBack();
+        return;
+      } catch (error) {
+        this.#showLocalizedApiError(error);
+        if (!isApiError(error)) return;
+        if (
+          error.code ===
+          API_ERROR_CODES.SAVINGS_GOAL_DELETION_RECALCULATION_FAILED
+        ) {
+          this.goBack();
+          return;
+        }
+        if (
+          error.code !== API_ERROR_CODES.SAVINGS_GOAL_DELETION_IMPACT_CHANGED
+        ) {
+          return;
+        }
+      }
+    }
+  }
+
+  async #askDeletionCommand(goal: {
+    id: string;
+    name: string;
+  }): Promise<SavingsGoalDeletionCommand | undefined> {
     const dialogRef = this.#dialog.open<
       GoalDeletionDialog,
       GoalDeletionDialogData,
@@ -999,21 +1069,7 @@ export default class SavingsGoalDetailPage {
       maxHeight: '90dvh',
       injector: this.#injector,
     });
-    const command = await firstValueFrom(dialogRef.afterClosed());
-    if (!command) return;
-    try {
-      await this.store.deleteGoal(goal.id, command);
-      this.goBack();
-    } catch (error) {
-      this.#showLocalizedApiError(error);
-      if (
-        isApiError(error) &&
-        error.code ===
-          API_ERROR_CODES.SAVINGS_GOAL_DELETION_RECALCULATION_FAILED
-      ) {
-        this.goBack();
-      }
-    }
+    return firstValueFrom(dialogRef.afterClosed());
   }
 
   protected async onComplete(): Promise<void> {

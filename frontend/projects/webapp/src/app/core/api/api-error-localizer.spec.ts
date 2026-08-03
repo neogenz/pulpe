@@ -103,7 +103,7 @@ describe('ApiErrorLocalizer', () => {
       null,
     );
     expect(service.localizeApiError(error)).toBe(
-      'Les éléments rattachés ont changé entre-temps — ouvre à nouveau la suppression pour vérifier le nouvel impact',
+      'Les éléments rattachés ont changé entre-temps — vérifie le nouvel impact avant de confirmer',
     );
   });
 

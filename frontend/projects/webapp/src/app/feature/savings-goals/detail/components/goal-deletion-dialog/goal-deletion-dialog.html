@@ -193,7 +193,53 @@
     </section>
     }
   </div>
-  }
+
+  @if (currentImpact.withdrawals.length > 0) {
+  <section
+    class="shrink-0 rounded-xl bg-surface-container-low p-3"
+    data-testid="goal-deletion-withdrawals"
+  >
+    <h3 class="text-title-medium">
+      {{ 'savingsGoals.deletion.withdrawalsSection' | transloco }}
+    </h3>
+    <p class="mt-1 text-body-small text-on-surface-variant">
+      {{ 'savingsGoals.deletion.withdrawalsKept' | transloco }}
+    </p>
+    <ul class="mt-3 flex max-h-40 flex-col gap-2 overflow-y-auto">
+      @for ( withdrawal of currentImpact.withdrawals; track
+      withdrawal.transactionId ) {
+      <li
+        class="flex items-start justify-between gap-4"
+        data-testid="goal-deletion-withdrawal-row"
+      >
+        <span class="min-w-0">
+          <span class="ph-no-capture block break-words text-body-medium">
+            {{ withdrawal.name }}
+          </span>
+          <span class="block text-body-small text-on-surface-variant">
+            {{ withdrawal.transactionDate | date: shortDateFormat }}
+          </span>
+        </span>
+        <span class="ph-no-capture shrink-0 text-body-medium tabular-nums">
+          {{ -withdrawal.amount | appCurrency: data.currency : '1.2-2' }}
+        </span>
+      </li>
+      }
+    </ul>
+    <p
+      class="mt-3 flex items-center justify-between gap-4 border-t border-outline-variant pt-2 text-body-medium"
+    >
+      <span>{{ 'savingsGoals.deletion.withdrawalsTotal' | transloco }}</span>
+      <span
+        class="ph-no-capture shrink-0 font-medium tabular-nums"
+        data-testid="goal-deletion-withdrawals-total"
+      >
+        {{ -currentImpact.summary.withdrawalTotal | appCurrency: data.currency :
+        '1.2-2' }}
+      </span>
+    </p>
+  </section>
+  } }
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">

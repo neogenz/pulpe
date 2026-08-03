@@ -19,10 +19,13 @@ import {
   type BudgetLine,
   type Transaction,
   type TransactionCreate,
+  API_ERROR_CODES,
   BudgetFormulas,
   getBudgetPeriodDates,
   getBudgetPeriodForDate,
 } from 'pulpe-shared';
+import { isApiError } from '@core/api/api-error';
+import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 import {
   type DashboardData,
   type HistoryDataPoint,
@@ -46,6 +49,11 @@ const CHECK_INVALIDATION_KEYS: string[][] = [
   ['budget', 'details'],
 ];
 
+const WITHDRAWAL_ERROR_CODES = new Set<string>([
+  API_ERROR_CODES.SAVINGS_GOAL_WITHDRAWAL_INSUFFICIENT_BALANCE,
+  API_ERROR_CODES.SAVINGS_GOAL_WITHDRAWAL_CONFLICT,
+]);
+
 export const DASHBOARD_NOW = new InjectionToken<Date>('DASHBOARD_NOW', {
   factory: () => new Date(),
 });
@@ -54,6 +62,7 @@ export const DASHBOARD_NOW = new InjectionToken<Date>('DASHBOARD_NOW', {
 export class DashboardStore {
   // ── 1. Dependencies ──
   readonly #budgetApi = inject(BudgetApi);
+  readonly #savingsGoalApi = inject(SavingsGoalApi);
   readonly #userSettingsStore = inject(UserSettingsStore);
   readonly #logger = inject(Logger);
   readonly #postHogService = inject(PostHogService);
@@ -298,8 +307,14 @@ export class DashboardStore {
         type: response.data.kind,
       });
     },
-    onError: () => {
+    onError: (error) => {
       this.#setError('transaction-add-failed');
+      // Un refus de retrait (PUL-329) veut dire que le solde affiché au moment
+      // du choix ne vaut plus rien : la prochaine ouverture du formulaire doit
+      // relire les options, jamais réafficher le disponible périmé.
+      if (isApiError(error) && WITHDRAWAL_ERROR_CODES.has(error.code ?? '')) {
+        this.#savingsGoalApi.cache.invalidate(['savings-goals']);
+      }
     },
   });
 

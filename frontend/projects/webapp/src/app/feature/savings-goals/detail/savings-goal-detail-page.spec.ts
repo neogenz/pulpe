@@ -23,6 +23,7 @@ import {
   type SavingsGoalFutureLine,
   type SavingsGoalPlanMonth,
   type SavingsGoalProgress,
+  type SavingsGoalWithdrawal,
   type SupportedCurrency,
 } from 'pulpe-shared';
 import { ApiError } from '@core/api/api-error';
@@ -36,6 +37,7 @@ import { GoalProjectionChart } from './components/goal-projection-chart';
 import { GoalPlanTimeline } from './components/goal-plan-timeline';
 import { GoalPlanSimulatorToolbar } from './components/goal-plan-simulator-toolbar';
 import { GoalContributionsList } from './components/goal-contributions-list';
+import { GoalWithdrawalsList } from './components/goal-withdrawals-list';
 import { GoalPlanRepairCallout } from './components/goal-plan-repair-callout';
 import { GoalDeletionDialog } from './components/goal-deletion-dialog';
 import { setTestInput } from '../../../testing/signal-test-utils';
@@ -125,6 +127,18 @@ class StubGoalPlanSimulatorToolbar {
 class StubGoalContributionsList {
   readonly contributions = input<unknown>([]);
   readonly currency = input<string>('CHF');
+}
+
+@Component({
+  selector: 'pulpe-goal-withdrawals-list',
+  template: '<div data-testid="stub-withdrawals"></div>',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+class StubGoalWithdrawalsList {
+  readonly withdrawals = input<unknown>([]);
+  readonly currency = input<string>('CHF');
+  readonly isLoading = input(false);
+  readonly hasError = input(false);
 }
 
 @Component({
@@ -241,6 +255,9 @@ describe('SavingsGoalDetailPage', () => {
   const isContributionsLoadingSig = signal(false);
   const listInitialLoadingSig = signal(false);
   const listErrorSig = signal<unknown>(null);
+  const withdrawalsSig = signal<SavingsGoalWithdrawal[]>([]);
+  const isWithdrawalsLoadingSig = signal(false);
+  const withdrawalsErrorSig = signal<unknown>(null);
 
   const completeGoal = vi.fn().mockResolvedValue(makeGoal());
   const reopenGoal = vi.fn().mockResolvedValue(makeGoal());
@@ -266,6 +283,9 @@ describe('SavingsGoalDetailPage', () => {
     isProgressLoading: isProgressLoadingSig,
     contributions: contributionsSig,
     isContributionsLoading: isContributionsLoadingSig,
+    withdrawals: withdrawalsSig,
+    isWithdrawalsLoading: isWithdrawalsLoadingSig,
+    withdrawalsError: withdrawalsErrorSig,
     futureLines: futureLinesSig,
     savingsGoals: {
       isInitialLoading: listInitialLoadingSig,
@@ -299,6 +319,9 @@ describe('SavingsGoalDetailPage', () => {
     isContributionsLoadingSig.set(false);
     listInitialLoadingSig.set(false);
     listErrorSig.set(null);
+    withdrawalsSig.set([]);
+    isWithdrawalsLoadingSig.set(false);
+    withdrawalsErrorSig.set(null);
     futureLinesSig.set([]);
     payDayOfMonthSig.set(25);
     currencySig.set('CHF');
@@ -343,11 +366,13 @@ describe('SavingsGoalDetailPage', () => {
             GoalPlanTimeline,
             GoalPlanSimulatorToolbar,
             GoalContributionsList,
+            GoalWithdrawalsList,
             GoalPlanRepairCallout,
           ],
         },
         add: {
           imports: [
+            StubGoalWithdrawalsList,
             StubStateCard,
             StubBaseLoading,
             StubGoalProjectionChart,
@@ -1316,7 +1341,7 @@ describe('SavingsGoalDetailPage', () => {
     expect(mockStore.deleteGoal).not.toHaveBeenCalled();
   });
 
-  it('stays on the goal when the displayed deletion impact changed', async () => {
+  it('asks again on a fresh preview when the displayed impact changed', async () => {
     deletionDialogResult = deletionCommand;
     mockStore.deleteGoal.mockRejectedValueOnce(
       new ApiError(
@@ -1331,12 +1356,36 @@ describe('SavingsGoalDetailPage', () => {
     query('delete-savings-goal-button').nativeElement.click();
     await fixture.whenStable();
 
-    expect(navigate).not.toHaveBeenCalled();
+    expect(mockDialog.open).toHaveBeenCalledTimes(2);
     expect(snackBarOpen).toHaveBeenCalledWith(
-      'Les éléments rattachés ont changé entre-temps — ouvre à nouveau la suppression pour vérifier le nouvel impact',
+      'Les éléments rattachés ont changé entre-temps — vérifie le nouvel impact avant de confirmer',
       'Fermer',
       expect.objectContaining({ duration: 5000 }),
     );
+  });
+
+  it('stays on the goal when the user backs out of the re-asked preview', async () => {
+    deletionDialogResult = deletionCommand;
+    mockDialog.open
+      .mockImplementationOnce(() => ({
+        afterClosed: () => of(deletionCommand),
+      }))
+      .mockImplementationOnce(() => ({ afterClosed: () => of(undefined) }));
+    mockStore.deleteGoal.mockRejectedValueOnce(
+      new ApiError(
+        'Impact changed',
+        API_ERROR_CODES.SAVINGS_GOAL_DELETION_IMPACT_CHANGED,
+        409,
+        null,
+      ),
+    );
+    fixture.detectChanges();
+
+    query('delete-savings-goal-button').nativeElement.click();
+    await fixture.whenStable();
+
+    expect(mockStore.deleteGoal).toHaveBeenCalledTimes(1);
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it('navigates after a committed deletion with recalculation failure', async () => {
@@ -1423,5 +1472,41 @@ describe('SavingsGoalDetailPage', () => {
     fixture.detectChanges();
     query('savings-goal-back-button').nativeElement.click();
     expect(navigate).toHaveBeenCalledWith(['/', 'savings-goals']);
+  });
+
+  describe('withdrawals section (PUL-329)', () => {
+    const withdrawal: SavingsGoalWithdrawal = {
+      transactionId: '00000000-0000-4000-8000-000000000200',
+      budgetId: '00000000-0000-4000-8000-000000000100',
+      name: 'Apport cuisine',
+      transactionDate: '2026-07-20T10:00:00.000Z',
+      amount: 800,
+    };
+
+    it('stays hidden while the goal has never been drawn from', () => {
+      fixture.detectChanges();
+      expect(query('savings-goal-withdrawals')).toBeFalsy();
+    });
+
+    it('shows up beside the contributions once money went out', () => {
+      withdrawalsSig.set([withdrawal]);
+      fixture.detectChanges();
+
+      const section = query('savings-goal-withdrawals');
+      expect(section).toBeTruthy();
+      expect(section.nativeElement.textContent).toContain('Retraits');
+      expect(query('savings-goal-contributions')).toBeTruthy();
+    });
+
+    it('survives an empty history to carry its own loading and error states', () => {
+      isWithdrawalsLoadingSig.set(true);
+      fixture.detectChanges();
+      expect(query('savings-goal-withdrawals')).toBeTruthy();
+
+      isWithdrawalsLoadingSig.set(false);
+      withdrawalsErrorSig.set(new Error('offline'));
+      fixture.detectChanges();
+      expect(query('savings-goal-withdrawals')).toBeTruthy();
+    });
   });
 });

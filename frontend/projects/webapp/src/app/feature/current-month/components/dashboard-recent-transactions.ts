@@ -12,6 +12,7 @@ import type { Transaction, TransactionKind } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { FinancialKindDirective } from '@ui/financial-kind';
+import { SavingsGoalSourceLine } from '@ui/savings-goal-source/savings-goal-source-line';
 import { TranslocoPipe } from '@jsverse/transloco';
 
 const KIND_ICONS: Record<TransactionKind, string> = {
@@ -28,6 +29,7 @@ const KIND_ICONS: Record<TransactionKind, string> = {
     MatButtonModule,
     MatIconModule,
     FinancialKindDirective,
+    SavingsGoalSourceLine,
     TranslocoPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -83,9 +85,21 @@ const KIND_ICONS: Record<TransactionKind, string> = {
                     {{ tx.name }}
                   </p>
                   <p
-                    class="text-body-small text-on-surface-variant font-medium"
+                    class="text-body-small text-on-surface-variant font-medium flex items-center gap-1.5 min-w-0"
                   >
-                    {{ tx.transactionDate | date: 'dd MMM' }}
+                    <span class="shrink-0">{{
+                      tx.transactionDate | date: 'dd MMM'
+                    }}</span>
+                    @if (tx.sourceSavingsGoalName) {
+                      <span aria-hidden="true" class="opacity-50">·</span>
+                      <pulpe-savings-goal-source-line
+                        [goalId]="tx.sourceSavingsGoalId"
+                        [goalName]="tx.sourceSavingsGoalName"
+                        [attr.data-testid]="
+                          'dashboard-transaction-source-' + tx.id
+                        "
+                      />
+                    }
                   </p>
                 </div>
                 <span

@@ -4,15 +4,21 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SupportedCurrency } from 'pulpe-shared';
 
+import { of } from 'rxjs';
+
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { createMockTagStore } from '@app/testing/tag-store.mock';
 import { CurrencyConverterService } from '@core/currency';
+import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 import { TagStore } from '@core/tag';
+import { createMockDataCache } from '@core/testing';
 import { UserSettingsStore } from '@core/user-settings';
 import {
   AddTransactionForm,
   type TransactionFormData,
 } from './add-transaction-form';
+
+const GOAL_ID = '00000000-0000-4000-8000-0000000000a1';
 
 interface SettingsMock {
   currency: ReturnType<typeof signal<SupportedCurrency>>;
@@ -41,6 +47,21 @@ function configureForm({
     })),
   };
 
+  const getWithdrawalOptions$ = vi.fn().mockReturnValue(
+    of({
+      success: true,
+      data: [
+        {
+          goalId: GOAL_ID,
+          name: 'Maison',
+          status: 'ACTIVE',
+          availableAmount: 10_000,
+          currency: userCurrency,
+        },
+      ],
+    }),
+  );
+
   TestBed.configureTestingModule({
     imports: [AddTransactionForm],
     providers: [
@@ -50,6 +71,10 @@ function configureForm({
       { provide: UserSettingsStore, useValue: settings },
       { provide: CurrencyConverterService, useValue: converter },
       { provide: TagStore, useValue: createMockTagStore() },
+      {
+        provide: SavingsGoalApi,
+        useValue: { cache: createMockDataCache(), getWithdrawalOptions$ },
+      },
     ],
   });
 
@@ -58,7 +83,7 @@ function configureForm({
   const createdSpy = vi.fn<(tx: TransactionFormData) => void>();
   component.created.subscribe(createdSpy);
 
-  return { fixture, component, createdSpy, converter };
+  return { fixture, component, createdSpy, converter, getWithdrawalOptions$ };
 }
 
 describe('AddTransactionForm', () => {
@@ -155,6 +180,93 @@ describe('AddTransactionForm', () => {
 
       expect(createdSpy).not.toHaveBeenCalled();
       expect(component['conversionError']()).toBe(true);
+    });
+  });
+
+  describe('savings-goal source (PUL-329)', () => {
+    const enableIncomeFromGoal = async (
+      component: AddTransactionForm,
+      fixture: {
+        detectChanges: () => void;
+        whenStable: () => Promise<unknown>;
+      },
+      amount: number,
+    ) => {
+      component['model'].update((model) => ({
+        ...model,
+        name: 'Apport cuisine',
+        money: { ...model.money, amount },
+        kind: 'income',
+      }));
+      component['toggleSavingsGoalSource'](true);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      component['sourceSavingsGoalId'].set(GOAL_ID);
+      fixture.detectChanges();
+      await fixture.whenStable();
+    };
+
+    it('should offer the option only for an income', async () => {
+      const { component, fixture } = configureForm();
+      await fixture.whenStable();
+
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="transaction-savings-source-toggle"]',
+        ),
+      ).toBeNull();
+
+      component['model'].update((model) => ({ ...model, kind: 'income' }));
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="transaction-savings-source-toggle"]',
+        ),
+      ).not.toBeNull();
+    });
+
+    it('should emit the chosen goal with the income', async () => {
+      const { component, fixture, createdSpy } = configureForm();
+      await enableIncomeFromGoal(component, fixture, 4500);
+
+      await component.submit();
+
+      expect(createdSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          kind: 'income',
+          sourceSavingsGoalId: GOAL_ID,
+        }),
+      );
+    });
+
+    it('should block the submission when the amount exceeds the balance', async () => {
+      const { component, fixture } = configureForm();
+      await enableIncomeFromGoal(component, fixture, 10_000.01);
+
+      expect(component.canSubmit()).toBe(false);
+    });
+
+    it('should drop the origin without residue when the type leaves income', async () => {
+      const { component, fixture, createdSpy } = configureForm();
+      await enableIncomeFromGoal(component, fixture, 4500);
+
+      component['model'].update((model) => ({ ...model, kind: 'expense' }));
+      component['onKindChange']();
+      fixture.detectChanges();
+      component['model'].update((model) => ({ ...model, kind: 'income' }));
+      component['onKindChange']();
+      fixture.detectChanges();
+
+      expect(component['sourceSavingsGoalId']()).toBeNull();
+      expect(component['isFromSavingsGoal']()).toBe(false);
+
+      await component.submit();
+
+      expect(createdSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ sourceSavingsGoalId: null }),
+      );
     });
   });
 
