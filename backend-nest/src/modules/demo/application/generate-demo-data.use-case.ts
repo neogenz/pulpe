@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import { addMonths, startOfMonth } from 'date-fns';
 import {
   BUDGET_RECALCULATION_PORT,
   type BudgetRecalculationPort,
@@ -11,15 +10,20 @@ import {
   type DemoRepositoryPort,
 } from '../domain/ports/demo-repository.port';
 import type {
-  DemoBudgetLineSeed,
-  DemoBudgetSeed,
   DemoSeededBudget,
+  DemoSeededBudgetLine,
+  DemoSeededSavingsGoal,
   DemoSeededTemplate,
   DemoSeededTemplateLine,
-  DemoTemplateSeed,
-  DemoTransactionSeed,
 } from '../domain/demo.entity';
-import { DEMO_TEMPLATE_SPECS } from '../domain/demo.constants';
+import { DEMO_SAVINGS_GOAL_SPECS } from '../domain/demo.constants';
+import {
+  buildBudgetLineSeeds,
+  buildBudgetSeeds,
+  buildSavingsGoalSeeds,
+  buildTemplateSeeds,
+} from '../domain/demo-seed.builders';
+import { buildTransactionSeeds } from '../domain/demo-transaction-seeds';
 
 @Injectable()
 export class GenerateDemoDataUseCase {
@@ -31,11 +35,18 @@ export class GenerateDemoDataUseCase {
     private readonly logger: InfoLogger,
   ) {}
 
+  /**
+   * The clock is read once, here: the budget window, the pointage boundary, the
+   * lissage window and the goal horizons must all agree on which month is the
+   * current one, and a seed straddling midnight would otherwise disagree with
+   * itself.
+   */
   async execute(
     userId: string,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<void> {
     this.logger.info({ userId }, 'Starting demo data generation');
+    const currentDate = new Date();
 
     const templates = await this.seedTemplates(userId, supabase);
     const templateLines = await this.seedTemplateLines(
@@ -43,9 +54,33 @@ export class GenerateDemoDataUseCase {
       templates,
       supabase,
     );
-    const budgets = await this.seedBudgets(userId, templates, supabase);
-    await this.seedBudgetLines(userId, budgets, templateLines, supabase);
-    await this.seedTransactions(userId, budgets, supabase);
+    const budgets = await this.seedBudgets(
+      userId,
+      templates,
+      currentDate,
+      supabase,
+    );
+    const budgetLines = await this.seedBudgetLines(
+      userId,
+      budgets,
+      templateLines,
+      currentDate,
+      supabase,
+    );
+    await this.seedTransactions(
+      userId,
+      budgets,
+      budgetLines,
+      currentDate,
+      supabase,
+    );
+    await this.seedSavingsGoals(
+      userId,
+      budgetLines,
+      templateLines,
+      currentDate,
+      supabase,
+    );
 
     await this.recalculateAllBudgetBalances(budgets);
     this.logger.info(
@@ -61,7 +96,7 @@ export class GenerateDemoDataUseCase {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<DemoSeededTemplate[]> {
     const templates = await this.repo.insertTemplates(
-      this.buildTemplateSeeds(userId),
+      buildTemplateSeeds(userId),
       supabase,
     );
     this.logger.info({ userId, count: templates.length }, 'Templates created');
@@ -94,10 +129,11 @@ export class GenerateDemoDataUseCase {
   private async seedBudgets(
     userId: string,
     templates: DemoSeededTemplate[],
+    currentDate: Date,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<DemoSeededBudget[]> {
     const budgets = await this.repo.insertBudgets(
-      this.buildBudgetSeeds(userId, templates),
+      buildBudgetSeeds(userId, templates, currentDate),
       supabase,
     );
     this.logger.info({ userId, count: budgets.length }, 'Budgets created');
@@ -108,22 +144,38 @@ export class GenerateDemoDataUseCase {
     userId: string,
     budgets: DemoSeededBudget[],
     templateLines: DemoSeededTemplateLine[],
+    currentDate: Date,
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<void> {
-    const budgetLineSeeds = this.buildBudgetLineSeeds(budgets, templateLines);
-    await this.repo.insertBudgetLines(budgetLineSeeds, userId, supabase);
+  ): Promise<DemoSeededBudgetLine[]> {
+    const budgetLineSeeds = buildBudgetLineSeeds(
+      budgets,
+      templateLines,
+      currentDate,
+    );
+    const seededLines = await this.repo.insertBudgetLines(
+      budgetLineSeeds,
+      userId,
+      supabase,
+    );
     this.logger.info(
       { userId, count: budgetLineSeeds.length },
       'Budget lines created',
     );
+    return seededLines;
   }
 
   private async seedTransactions(
     userId: string,
     budgets: DemoSeededBudget[],
+    budgetLines: DemoSeededBudgetLine[],
+    currentDate: Date,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<void> {
-    const transactionSeeds = this.buildTransactionSeeds(budgets);
+    const transactionSeeds = buildTransactionSeeds(
+      budgets,
+      budgetLines,
+      currentDate,
+    );
     await this.repo.insertTransactions(transactionSeeds, userId, supabase);
     this.logger.info(
       { userId, count: transactionSeeds.length },
@@ -131,196 +183,63 @@ export class GenerateDemoDataUseCase {
     );
   }
 
-  private buildTemplateSeeds(userId: string): DemoTemplateSeed[] {
-    return [
-      {
-        userId,
-        name: DEMO_TEMPLATE_SPECS.STANDARD.name,
-        description: DEMO_TEMPLATE_SPECS.STANDARD.description,
-        isDefault: DEMO_TEMPLATE_SPECS.STANDARD.isDefault,
-      },
-      {
-        userId,
-        name: DEMO_TEMPLATE_SPECS.VACATIONS.name,
-        description: DEMO_TEMPLATE_SPECS.VACATIONS.description,
-        isDefault: DEMO_TEMPLATE_SPECS.VACATIONS.isDefault,
-      },
-      {
-        userId,
-        name: DEMO_TEMPLATE_SPECS.SAVINGS.name,
-        description: DEMO_TEMPLATE_SPECS.SAVINGS.description,
-        isDefault: DEMO_TEMPLATE_SPECS.SAVINGS.isDefault,
-      },
-      {
-        userId,
-        name: DEMO_TEMPLATE_SPECS.HOLIDAYS.name,
-        description: DEMO_TEMPLATE_SPECS.HOLIDAYS.description,
-        isDefault: DEMO_TEMPLATE_SPECS.HOLIDAYS.isDefault,
-      },
-    ];
-  }
-
-  private buildBudgetSeeds(
+  private async seedSavingsGoals(
     userId: string,
-    templates: DemoSeededTemplate[],
-  ): DemoBudgetSeed[] {
-    const currentDate = new Date();
-    const budgets: DemoBudgetSeed[] = [];
-
-    for (let i = -6; i <= 5; i++) {
-      const budgetDate = addMonths(startOfMonth(currentDate), i);
-      const month = budgetDate.getMonth() + 1;
-      const year = budgetDate.getFullYear();
-      const { templateId, description } = this.selectTemplateForMonth(
-        month,
-        templates,
-      );
-      budgets.push({ userId, month, year, description, templateId });
-    }
-
-    return budgets;
-  }
-
-  private selectTemplateForMonth(
-    month: number,
-    templates: DemoSeededTemplate[],
-  ): { templateId: string; description: string } {
-    if (month === 12) {
-      return {
-        templateId: templates[3].id,
-        description: "Budget des fêtes de fin d'année 🎄",
-      };
-    }
-    if (month === 7 || month === 8) {
-      return {
-        templateId: templates[1].id,
-        description: "Budget vacances d'été ☀️",
-      };
-    }
-    if (month === 3 || month === 9) {
-      return {
-        templateId: templates[2].id,
-        description: "Focus sur l'épargne ce mois-ci 💪",
-      };
-    }
-    return {
-      templateId: templates[0].id,
-      description: 'Budget mensuel standard',
-    };
-  }
-
-  private buildBudgetLineSeeds(
-    budgets: DemoSeededBudget[],
+    budgetLines: DemoSeededBudgetLine[],
     templateLines: DemoSeededTemplateLine[],
-  ): DemoBudgetLineSeed[] {
-    const lines: DemoBudgetLineSeed[] = [];
+    currentDate: Date,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const goals = await this.repo.insertSavingsGoals(
+      buildSavingsGoalSeeds(userId, currentDate),
+      userId,
+      supabase,
+    );
+    this.logger.info({ userId, count: goals.length }, 'Savings goals created');
 
-    for (const budget of budgets) {
-      const relevantLines = templateLines.filter(
-        (tl) => tl.templateId === budget.templateId,
+    for (const goal of goals) {
+      await this.linkEnvelopesFeeding(
+        goal,
+        budgetLines,
+        templateLines,
+        supabase,
       );
-
-      for (const templateLine of relevantLines) {
-        lines.push({
-          budgetId: budget.id,
-          templateLineId: templateLine.id,
-          name: templateLine.name,
-          amount: templateLine.amount,
-          kind: templateLine.kind,
-          recurrence: templateLine.recurrence,
-        });
-      }
     }
-
-    return lines;
   }
 
-  private buildTransactionSeeds(
-    budgets: DemoSeededBudget[],
-  ): DemoTransactionSeed[] {
-    const currentDate = new Date();
-    const pastBudgets = budgets.filter((b) => {
-      const budgetDate = new Date(b.year, b.month - 1);
-      return budgetDate <= currentDate;
-    });
+  private async linkEnvelopesFeeding(
+    goal: DemoSeededSavingsGoal,
+    budgetLines: DemoSeededBudgetLine[],
+    templateLines: DemoSeededTemplateLine[],
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const spec = DEMO_SAVINGS_GOAL_SPECS.find((s) => s.name === goal.name);
+    const envelopeName = spec?.envelopeName;
+    if (!envelopeName) return;
 
-    const transactions: DemoTransactionSeed[] = [];
+    const feedsGoal = (line: { kind: string; name: string }) =>
+      line.kind === 'saving' && line.name === envelopeName;
 
-    for (const budget of pastBudgets) {
-      const isCurrentMonth =
-        budget.month === currentDate.getMonth() + 1 &&
-        budget.year === currentDate.getFullYear();
-      const daysInMonth = new Date(budget.year, budget.month, 0).getDate();
-      const maxDay = isCurrentMonth ? currentDate.getDate() : daysInMonth;
+    await this.repo.linkBudgetLinesToSavingsGoal(
+      budgetLines.filter(feedsGoal).map((line) => line.id),
+      goal.id,
+      supabase,
+    );
 
-      transactions.push(...this.buildMonthTransactions(budget, maxDay));
-    }
+    /**
+     * Only an open-ended goal reaches the Mois Type. A dated one materialises
+     * bounded `one_off` prévisions and poses nothing there (`SAVINGS.md` §3.5):
+     * a recurrence would carry it for life and falsify the model's net balance
+     * past the deadline. Tagging the Mois Type is what makes the link survive
+     * the months the seed does not cover (§3.2).
+     */
+    if (spec.monthsUntilTarget !== null) return;
 
-    return transactions;
-  }
-
-  private buildMonthTransactions(
-    budget: DemoSeededBudget,
-    maxDay: number,
-  ): DemoTransactionSeed[] {
-    const transactions: DemoTransactionSeed[] = [];
-
-    if (maxDay >= 5) {
-      transactions.push(
-        this.buildTransaction(
-          budget,
-          5,
-          'Migros - Courses',
-          127.85,
-          'Alimentation',
-        ),
-      );
-    }
-    if (maxDay >= 10) {
-      transactions.push(
-        this.buildTransaction(
-          budget,
-          10,
-          'Restaurant Molino',
-          78.5,
-          'Restaurants',
-        ),
-      );
-    }
-    if (maxDay >= 15) {
-      transactions.push(
-        this.buildTransaction(
-          budget,
-          15,
-          'Coop - Courses',
-          94.2,
-          'Alimentation',
-        ),
-      );
-    }
-
-    return transactions;
-  }
-
-  private buildTransaction(
-    budget: DemoSeededBudget,
-    day: number,
-    name: string,
-    amount: number,
-    tagName: string,
-  ): DemoTransactionSeed {
-    return {
-      budgetId: budget.id,
-      name,
-      amount,
-      kind: 'expense',
-      tagName,
-      transactionDate: new Date(
-        budget.year,
-        budget.month - 1,
-        day,
-      ).toISOString(),
-    };
+    await this.repo.linkTemplateLinesToSavingsGoal(
+      templateLines.filter(feedsGoal).map((line) => line.id),
+      goal.id,
+      supabase,
+    );
   }
 
   private async recalculateAllBudgetBalances(
