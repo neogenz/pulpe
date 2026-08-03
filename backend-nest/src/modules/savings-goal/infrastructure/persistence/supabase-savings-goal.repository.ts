@@ -455,6 +455,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       .from('savings_goal')
       .select('balance_revision')
       .eq('id', goalId)
+      .eq('user_id', this.supabaseProvider.user.id)
       .maybeSingle();
 
     if (error) {
