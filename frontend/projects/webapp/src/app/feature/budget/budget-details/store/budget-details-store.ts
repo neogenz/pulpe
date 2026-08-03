@@ -72,6 +72,74 @@ export interface MutationOutcome<T> {
   error?: string;
 }
 
+/** Where a mutation's `onError` hands its localized reason back to the one call that made it. */
+type FailSink = (message: string) => void;
+
+/**
+ * A `cachedMutation` built for ONE call, around that call's sink. Structural
+ * rather than `CachedMutationRef`, whose `mutate(...args)` rest tuple is a
+ * conditional type that cannot resolve against an unbound `TArgs`.
+ */
+type MutationFactory<TArgs, TResponse> = (fail: FailSink) => {
+  mutate: (args: TArgs) => Promise<TResponse | undefined>;
+};
+
+/**
+ * What one call needs to undo its own optimistic write and nothing else: the
+ * state it found (`previous`) and the state it left behind (`optimistic`).
+ * `onMutate` captures both, so the pair is always a snapshot of THIS call.
+ */
+interface RewindPoint {
+  previous: BudgetDetailsViewModel;
+  optimistic: BudgetDetailsViewModel;
+}
+
+/**
+ * Takes this call's optimistic edits back out of `current`, row by row, leaving
+ * every row a concurrent call has since written. Reference identity is the
+ * discriminator: every optimistic writer in this store maps over the arrays and
+ * hands back the SAME object for the rows it does not touch, so `now === mine`
+ * means "still exactly what I wrote, safe to rewind" and anything else means
+ * "someone wrote this after me, it is theirs". With nothing else in flight
+ * `current` IS `optimistic`, so the result is `previous` — the whole-snapshot
+ * rewind, reached row by row.
+ */
+function rewindRows<T extends { id: string }>(
+  current: readonly T[],
+  previous: readonly T[],
+  optimistic: readonly T[],
+): T[] {
+  const currentById = new Map(current.map((row) => [row.id, row]));
+  const optimisticById = new Map(optimistic.map((row) => [row.id, row]));
+  const rewound: T[] = [];
+
+  // Rows older than this call, kept in their original order.
+  for (const was of previous) {
+    const now = currentById.get(was.id);
+    const mine = optimisticById.get(was.id);
+    if (was === mine) {
+      // Never mine to rewind — including when a sibling has since deleted it.
+      if (now !== undefined) rewound.push(now);
+    } else if (now === mine) {
+      // Mine and untouched since. `undefined === undefined` lands here too: the
+      // row this call optimistically removed comes back, in place.
+      rewound.push(was);
+    } else if (now !== undefined) {
+      rewound.push(now);
+    }
+  }
+
+  // Rows born after this call: drop the ones it added, keep a sibling's.
+  const previousIds = new Set(previous.map((row) => row.id));
+  for (const row of current) {
+    if (!previousIds.has(row.id) && row !== optimisticById.get(row.id)) {
+      rewound.push(row);
+    }
+  }
+
+  return rewound;
+}
+
 const BUDGET_DETAIL_INVALIDATION_KEYS: string[][] = [
   ['budget', 'details'],
   ['budget', 'list'],
@@ -559,149 +627,164 @@ export class BudgetDetailsStore {
 
   // ── 5. Mutations (async/await) ──
 
-  // Every mutation's onError writes its localized message here; every public
-  // method clears it before calling mutate and reads it after. That read is the
-  // ONLY valid failure test: `mutate()` resolves `undefined` on error, but two
-  // of these mutations are typed `void`, so `undefined` is also their success
-  // value — `response !== undefined` would report failure on every success.
+  // Nothing about a call's outcome lives on `this`. Every mutation is a factory
+  // taking the sink its one call reads back from, because a `cachedMutation`
+  // object holds ONE `callCounter` shared by every `mutate()` on it: a call that
+  // is no longer the latest runs NEITHER onSuccess NOR onError, so its rollback
+  // never fires and it writes no message anywhere. Two ids toggled inside one
+  // network window, or a dialog-driven create overlapping a row toggle, are
+  // enough to hit that. A fresh object per call starts its own counter at 0, so
+  // `thisCallId === callCounter` always holds and the callbacks always run.
   //
-  // One field for all of them: everything but the three checks is single-flight
-  // (driven by a dialog), and the three checks — guarded per id by #mutatingIds,
-  // so two ids CAN fail at once — carry a constant message, so concurrent
-  // failures produce the same string and there is nothing to clobber.
-  #lastMutationError: string | null = null;
+  // Reading the sink is also the ONLY valid failure test: `mutate()` resolves
+  // `undefined` on error, but two of these mutations are typed `void`, so
+  // `undefined` is their success value too.
+  //
+  // Because the callbacks now always run, so does every rollback — which is why
+  // none of them restores a whole snapshot any more. `previous` is captured in
+  // `onMutate`, so it predates every write a concurrent call has made since:
+  // replaying it wholesale erases a sibling's ALREADY CONFIRMED row while that
+  // sibling's own `mutate()` has returned success, leaving the user no signal at
+  // all. Nothing heals that on its own — `invalidateKeys` runs on ziflux's
+  // success path, so a failure invalidates nothing. `#rollback` therefore rewinds
+  // per row (see `rewindRows`) and yields any row someone else has written.
+  //
+  // Bounded, deliberate limit: when a sibling has overwritten the very row this
+  // call wrote, the rewind leaves the sibling's value in place rather than
+  // arbitrating between them. That one case does heal — a sibling can only have
+  // written a confirmed row by succeeding, and its success invalidated the
+  // budget keys, so a refetch is already on its way.
 
-  readonly #createBudgetLineMutation = cachedMutation<
-    BudgetLineCreate & { id: string },
-    { data: BudgetLine },
-    BudgetDetailsViewModel | null
-  >({
-    cache: this.#budgetApi.cache,
-    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
-    mutationFn: (budgetLine) => this.#budgetApi.createBudgetLine$(budgetLine),
-    onMutate: (budgetLine) => {
-      const previous = this.budgetDetails();
-      const optimisticLine: BudgetLine = {
-        ...budgetLine,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        templateLineId: null,
-        savingsGoalId: budgetLine.savingsGoalId ?? null,
-        checkedAt: budgetLine.checkedAt ?? null,
-      };
-      this.#updateDetails((details) => ({
-        ...details,
-        budgetLines: [...details.budgetLines, optimisticLine],
-      }));
-      return previous;
-    },
-    onSuccess: (response, budgetLine) => {
-      this.#updateDetails((details) => ({
-        ...details,
-        budgetLines: details.budgetLines.map((line) =>
-          line.id === budgetLine.id ? response.data : line,
-        ),
-      }));
-      this.#onFinancialMutationSuccess();
-    },
-    onError: (error, _args, previous) => {
-      if (previous) this.#budgetDetailsResource.set(previous);
-      this.#lastMutationError = this.#localizeError(
-        error,
-        'budget.forecastCreateError',
-      );
-      this.#logger.error('Budget line create failed', error);
-    },
-  });
+  readonly #createBudgetLineMutation = (fail: FailSink) =>
+    cachedMutation<
+      BudgetLineCreate & { id: string },
+      { data: BudgetLine },
+      RewindPoint | null
+    >({
+      cache: this.#budgetApi.cache,
+      invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
+      mutationFn: (budgetLine) => this.#budgetApi.createBudgetLine$(budgetLine),
+      onMutate: (budgetLine) => {
+        const previous = this.budgetDetails();
+        const optimisticLine: BudgetLine = {
+          ...budgetLine,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          templateLineId: null,
+          savingsGoalId: budgetLine.savingsGoalId ?? null,
+          checkedAt: budgetLine.checkedAt ?? null,
+        };
+        this.#updateDetails((details) => ({
+          ...details,
+          budgetLines: [...details.budgetLines, optimisticLine],
+        }));
+        return this.#rewindPoint(previous);
+      },
+      onSuccess: (response, budgetLine) => {
+        this.#updateDetails((details) => ({
+          ...details,
+          budgetLines: details.budgetLines.map((line) =>
+            line.id === budgetLine.id ? response.data : line,
+          ),
+        }));
+        this.#onFinancialMutationSuccess();
+      },
+      onError: (error, _args, rewind) => {
+        this.#rollback(rewind);
+        fail(this.#localizeError(error, 'budget.forecastCreateError'));
+        this.#logger.error('Budget line create failed', error);
+      },
+    });
 
   /** Returns the localized error message on failure, or `null` on success. */
   async createBudgetLine(input: BudgetLineCreate): Promise<string | null> {
     const id = input.id ?? uuidv4();
-    this.#lastMutationError = null;
-    await this.#createBudgetLineMutation.mutate({ ...input, id });
-    return this.#lastMutationError;
+    const { error } = await this.#runMutation(this.#createBudgetLineMutation, {
+      ...input,
+      id,
+    });
+    return error;
   }
 
   // PUL-17 — a spread fans out across N months (possibly auto-creating budgets),
   // so there is no single-budget optimistic shape to apply. We rely on the
   // cross-budget invalidation to refetch every touched month.
-  readonly #createBudgetLineSpreadMutation = cachedMutation<
-    BudgetLineSpreadCreate,
-    BudgetLineSpreadResponse,
-    void
-  >({
-    cache: this.#budgetApi.cache,
-    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
-    mutationFn: (data) => this.#budgetApi.createBudgetLineSpread$(data),
-    onSuccess: () => this.#onFinancialMutationSuccess(),
-    onError: (error) => this.#handleSpreadError(error),
-  });
+  readonly #createBudgetLineSpreadMutation = (fail: FailSink) =>
+    cachedMutation<BudgetLineSpreadCreate, BudgetLineSpreadResponse, void>({
+      cache: this.#budgetApi.cache,
+      invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
+      mutationFn: (data) => this.#budgetApi.createBudgetLineSpread$(data),
+      onSuccess: () => this.#onFinancialMutationSuccess(),
+      onError: (error) => this.#handleSpreadError(fail, error),
+    });
 
   async createBudgetLineSpread(
     input: BudgetLineSpreadCreate,
   ): Promise<MutationOutcome<BudgetLineSpreadResponse['data']>> {
-    this.#lastMutationError = null;
-    const response = await this.#createBudgetLineSpreadMutation.mutate(input);
-    if (this.#lastMutationError !== null) {
-      return { error: this.#lastMutationError };
-    }
-    return { data: response?.data };
+    const { data, error } = await this.#runMutation(
+      this.#createBudgetLineSpreadMutation,
+      input,
+    );
+    return error !== null ? { error } : { data: data?.data };
   }
 
   // PUL-292 — creating the pioche couple fans out across M and M+1 (possibly
   // auto-creating M+1), so there is no single-budget optimistic shape. Like the
   // spread create, we rely on the cross-budget prefix invalidation to refetch
   // every touched month (M's disponible + M+1's new Épargne).
-  readonly #createSavingsWithdrawalMutation = cachedMutation<
-    BudgetLineSavingsWithdrawalCreate,
-    BudgetLineSavingsWithdrawalResponse,
-    void
-  >({
-    cache: this.#budgetApi.cache,
-    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
-    mutationFn: (data) => this.#budgetApi.createSavingsWithdrawal$(data),
-    onSuccess: () => this.#onFinancialMutationSuccess(),
-    onError: (error) => this.#handleSavingsWithdrawalError(error),
-  });
+  readonly #createSavingsWithdrawalMutation = (fail: FailSink) =>
+    cachedMutation<
+      BudgetLineSavingsWithdrawalCreate,
+      BudgetLineSavingsWithdrawalResponse,
+      void
+    >({
+      cache: this.#budgetApi.cache,
+      invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
+      mutationFn: (data) => this.#budgetApi.createSavingsWithdrawal$(data),
+      onSuccess: () => this.#onFinancialMutationSuccess(),
+      onError: (error) => this.#handleSavingsWithdrawalError(fail, error),
+    });
 
   async createSavingsWithdrawal(
     input: BudgetLineSavingsWithdrawalCreate,
   ): Promise<MutationOutcome<BudgetLineSavingsWithdrawalResponse['data']>> {
-    this.#lastMutationError = null;
-    const response = await this.#createSavingsWithdrawalMutation.mutate(input);
-    if (this.#lastMutationError !== null) {
-      return { error: this.#lastMutationError };
-    }
-    return { data: response?.data };
+    const { data, error } = await this.#runMutation(
+      this.#createSavingsWithdrawalMutation,
+      input,
+    );
+    return error !== null ? { error } : { data: data?.data };
   }
 
-  readonly #deleteSavingsWithdrawalMutation = cachedMutation<
-    { groupId: string; scope: BudgetLineSavingsWithdrawalDeleteQuery['scope'] },
-    BudgetLineDeleteResponse,
-    void
-  >({
-    cache: this.#budgetApi.cache,
-    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
-    mutationFn: ({ groupId, scope }) =>
-      this.#budgetApi.deleteSavingsWithdrawal$(groupId, scope),
-    onSuccess: () => this.#onFinancialMutationSuccess(),
-    onError: (error) => {
-      this.#lastMutationError = this.#localizeError(
-        error,
-        'budget.savingsWithdrawal.error',
-      );
-      this.#logger.error('Savings withdrawal delete failed', error);
-    },
-  });
+  readonly #deleteSavingsWithdrawalMutation = (fail: FailSink) =>
+    cachedMutation<
+      {
+        groupId: string;
+        scope: BudgetLineSavingsWithdrawalDeleteQuery['scope'];
+      },
+      BudgetLineDeleteResponse,
+      void
+    >({
+      cache: this.#budgetApi.cache,
+      invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
+      mutationFn: ({ groupId, scope }) =>
+        this.#budgetApi.deleteSavingsWithdrawal$(groupId, scope),
+      onSuccess: () => this.#onFinancialMutationSuccess(),
+      onError: (error) => {
+        fail(this.#localizeError(error, 'budget.savingsWithdrawal.error'));
+        this.#logger.error('Savings withdrawal delete failed', error);
+      },
+    });
 
   /** Returns the localized error message on failure, or `null` on success. */
   async deleteSavingsWithdrawal(
     groupId: string,
     scope: BudgetLineSavingsWithdrawalDeleteQuery['scope'],
   ): Promise<string | null> {
-    this.#lastMutationError = null;
-    await this.#deleteSavingsWithdrawalMutation.mutate({ groupId, scope });
-    return this.#lastMutationError;
+    const { error } = await this.#runMutation(
+      this.#deleteSavingsWithdrawalMutation,
+      { groupId, scope },
+    );
+    return error;
   }
 
   // PUL-17 v1.1 — total-preserving spread of an EXISTING source (prévision OR
@@ -710,298 +793,277 @@ export class BudgetDetailsStore {
   // source — so no single-budget optimistic shape applies. Cross-budget
   // invalidation refetches every touched month; on success we wire the new
   // spreadGroupId so the occurrences panel can reload.
-  readonly #spreadExistingBudgetLineMutation = cachedMutation<
-    { id: string; periods: SpreadFromExistingPeriod[] },
-    BudgetLineSpreadResponse,
-    void
-  >({
-    cache: this.#budgetApi.cache,
-    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
-    mutationFn: ({ id, periods }) =>
-      this.#budgetApi.spreadExistingBudgetLine$(id, periods),
-    onSuccess: (response) => {
-      this.setSpreadGroupId(response.data.spreadGroupId);
-      this.#onFinancialMutationSuccess();
-    },
-    onError: (error) => this.#handleSpreadError(error),
-  });
+  readonly #spreadExistingBudgetLineMutation = (fail: FailSink) =>
+    cachedMutation<
+      { id: string; periods: SpreadFromExistingPeriod[] },
+      BudgetLineSpreadResponse,
+      void
+    >({
+      cache: this.#budgetApi.cache,
+      invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
+      mutationFn: ({ id, periods }) =>
+        this.#budgetApi.spreadExistingBudgetLine$(id, periods),
+      onSuccess: (response) => {
+        this.setSpreadGroupId(response.data.spreadGroupId);
+        this.#onFinancialMutationSuccess();
+      },
+      onError: (error) => this.#handleSpreadError(fail, error),
+    });
 
   async spreadExistingBudgetLine(
     id: string,
     periods: SpreadFromExistingPeriod[],
   ): Promise<MutationOutcome<BudgetLineSpreadResponse['data']>> {
-    this.#lastMutationError = null;
-    const response = await this.#spreadExistingBudgetLineMutation.mutate({
-      id,
-      periods,
-    });
-    if (this.#lastMutationError !== null) {
-      return { error: this.#lastMutationError };
-    }
-    return { data: response?.data };
+    const { data, error } = await this.#runMutation(
+      this.#spreadExistingBudgetLineMutation,
+      { id, periods },
+    );
+    return error !== null ? { error } : { data: data?.data };
   }
 
-  readonly #spreadExistingTransactionMutation = cachedMutation<
-    { id: string; periods: SpreadFromExistingPeriod[] },
-    BudgetLineSpreadResponse,
-    void
-  >({
-    cache: this.#budgetApi.cache,
-    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
-    mutationFn: ({ id, periods }) =>
-      this.#budgetApi.spreadExistingTransaction$(id, periods),
-    onSuccess: (response) => {
-      this.setSpreadGroupId(response.data.spreadGroupId);
-      this.#onFinancialMutationSuccess();
-    },
-    onError: (error) => this.#handleSpreadError(error),
-  });
+  readonly #spreadExistingTransactionMutation = (fail: FailSink) =>
+    cachedMutation<
+      { id: string; periods: SpreadFromExistingPeriod[] },
+      BudgetLineSpreadResponse,
+      void
+    >({
+      cache: this.#budgetApi.cache,
+      invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
+      mutationFn: ({ id, periods }) =>
+        this.#budgetApi.spreadExistingTransaction$(id, periods),
+      onSuccess: (response) => {
+        this.setSpreadGroupId(response.data.spreadGroupId);
+        this.#onFinancialMutationSuccess();
+      },
+      onError: (error) => this.#handleSpreadError(fail, error),
+    });
 
   async spreadExistingTransaction(
     id: string,
     periods: SpreadFromExistingPeriod[],
   ): Promise<MutationOutcome<BudgetLineSpreadResponse['data']>> {
-    this.#lastMutationError = null;
-    const response = await this.#spreadExistingTransactionMutation.mutate({
-      id,
-      periods,
-    });
-    if (this.#lastMutationError !== null) {
-      return { error: this.#lastMutationError };
-    }
-    return { data: response?.data };
+    const { data, error } = await this.#runMutation(
+      this.#spreadExistingTransactionMutation,
+      { id, periods },
+    );
+    return error !== null ? { error } : { data: data?.data };
   }
 
-  readonly #updateBudgetLineMutation = cachedMutation<
-    BudgetLineUpdate,
-    { data: BudgetLine },
-    BudgetDetailsViewModel | null
-  >({
-    cache: this.#budgetApi.cache,
-    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
-    mutationFn: (data) => this.#budgetApi.updateBudgetLine$(data.id, data),
-    onMutate: (data) => {
-      const previous = this.budgetDetails();
-      this.#updateDetails((details) => ({
-        ...details,
-        budgetLines: details.budgetLines.map((line) =>
-          line.id === data.id
-            ? { ...line, ...data, updatedAt: new Date().toISOString() }
-            : line,
-        ),
-      }));
-      return previous;
-    },
-    onSuccess: () => this.#onFinancialMutationSuccess(),
-    onError: (error, _args, previous) => {
-      if (previous) this.#budgetDetailsResource.set(previous);
-      this.#lastMutationError = this.#localizeError(
-        error,
-        'budget.forecastUpdateError',
-      );
-      this.#logger.error('Budget line update failed', error);
-    },
-  });
+  readonly #updateBudgetLineMutation = (fail: FailSink) =>
+    cachedMutation<BudgetLineUpdate, { data: BudgetLine }, RewindPoint | null>({
+      cache: this.#budgetApi.cache,
+      invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
+      mutationFn: (data) => this.#budgetApi.updateBudgetLine$(data.id, data),
+      onMutate: (data) => {
+        const previous = this.budgetDetails();
+        this.#updateDetails((details) => ({
+          ...details,
+          budgetLines: details.budgetLines.map((line) =>
+            line.id === data.id
+              ? { ...line, ...data, updatedAt: new Date().toISOString() }
+              : line,
+          ),
+        }));
+        return this.#rewindPoint(previous);
+      },
+      onSuccess: () => this.#onFinancialMutationSuccess(),
+      onError: (error, _args, rewind) => {
+        this.#rollback(rewind);
+        fail(this.#localizeError(error, 'budget.forecastUpdateError'));
+        this.#logger.error('Budget line update failed', error);
+      },
+    });
 
   /** Returns the localized error message on failure, or `null` on success. */
   async updateBudgetLine(data: BudgetLineUpdate): Promise<string | null> {
-    this.#lastMutationError = null;
-    await this.#updateBudgetLineMutation.mutate(data);
-    return this.#lastMutationError;
+    const { error } = await this.#runMutation(
+      this.#updateBudgetLineMutation,
+      data,
+    );
+    return error;
   }
 
-  readonly #updateTransactionMutation = cachedMutation<
-    { id: string; data: TransactionUpdate },
-    { data: Transaction },
-    BudgetDetailsViewModel | null
-  >({
-    cache: this.#budgetApi.cache,
-    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
-    mutationFn: ({ id, data }) => this.#budgetApi.updateTransaction$(id, data),
-    onMutate: ({ id, data }) => {
-      const previous = this.budgetDetails();
-      this.#updateDetails((details) => ({
-        ...details,
-        transactions: details.transactions.map((tx) =>
-          tx.id === id
-            ? { ...tx, ...data, updatedAt: new Date().toISOString() }
-            : tx,
-        ),
-      }));
-      return previous;
-    },
-    onSuccess: () => this.#onFinancialMutationSuccess(),
-    onError: (_err, _args, previous) => {
-      if (previous) this.#budgetDetailsResource.set(previous);
-      this.#failMutation(
-        this.#transloco.translate('budget.transactionUpdateError'),
-      );
-    },
-  });
+  readonly #updateTransactionMutation = (fail: FailSink) =>
+    cachedMutation<
+      { id: string; data: TransactionUpdate },
+      { data: Transaction },
+      RewindPoint | null
+    >({
+      cache: this.#budgetApi.cache,
+      invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
+      mutationFn: ({ id, data }) =>
+        this.#budgetApi.updateTransaction$(id, data),
+      onMutate: ({ id, data }) => {
+        const previous = this.budgetDetails();
+        this.#updateDetails((details) => ({
+          ...details,
+          transactions: details.transactions.map((tx) =>
+            tx.id === id
+              ? { ...tx, ...data, updatedAt: new Date().toISOString() }
+              : tx,
+          ),
+        }));
+        return this.#rewindPoint(previous);
+      },
+      onSuccess: () => this.#onFinancialMutationSuccess(),
+      onError: (_err, _args, rewind) => {
+        this.#rollback(rewind);
+        fail(this.#transloco.translate('budget.transactionUpdateError'));
+      },
+    });
 
   /** Returns the localized error message on failure, or `null` on success. */
   async updateTransaction(
     id: string,
     data: TransactionUpdate,
   ): Promise<string | null> {
-    this.#lastMutationError = null;
-    await this.#updateTransactionMutation.mutate({ id, data });
-    return this.#lastMutationError;
+    const { error } = await this.#runMutation(this.#updateTransactionMutation, {
+      id,
+      data,
+    });
+    return error;
   }
 
-  readonly #deleteBudgetLineMutation = cachedMutation<
-    string,
-    void,
-    BudgetDetailsViewModel | null
-  >({
-    cache: this.#budgetApi.cache,
-    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
-    mutationFn: (id) =>
-      this.#budgetApi.deleteBudgetLine$(id).pipe(map(() => void 0 as void)),
-    onMutate: (id) => {
-      const previous = this.budgetDetails();
-      this.#updateDetails((details) => ({
-        ...details,
-        budgetLines: details.budgetLines.filter((line) => line.id !== id),
-        transactions: details.transactions.map((tx) =>
-          tx.budgetLineId === id ? { ...tx, budgetLineId: null } : tx,
-        ),
-      }));
-      return previous;
-    },
-    onSuccess: () => this.#onFinancialMutationSuccess(),
-    onError: (_err, _args, previous) => {
-      if (previous) this.#budgetDetailsResource.set(previous);
-      this.#failMutation(
-        this.#transloco.translate('budget.forecastDeleteError'),
-      );
-    },
-  });
+  readonly #deleteBudgetLineMutation = (fail: FailSink) =>
+    cachedMutation<string, void, RewindPoint | null>({
+      cache: this.#budgetApi.cache,
+      invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
+      mutationFn: (id) =>
+        this.#budgetApi.deleteBudgetLine$(id).pipe(map(() => void 0 as void)),
+      onMutate: (id) => {
+        const previous = this.budgetDetails();
+        this.#updateDetails((details) => ({
+          ...details,
+          budgetLines: details.budgetLines.filter((line) => line.id !== id),
+          transactions: details.transactions.map((tx) =>
+            tx.budgetLineId === id ? { ...tx, budgetLineId: null } : tx,
+          ),
+        }));
+        return this.#rewindPoint(previous);
+      },
+      onSuccess: () => this.#onFinancialMutationSuccess(),
+      onError: (_err, _args, rewind) => {
+        this.#rollback(rewind);
+        fail(this.#transloco.translate('budget.forecastDeleteError'));
+      },
+    });
 
   /** Returns the localized error message on failure, or `null` on success. */
   async deleteBudgetLine(id: string): Promise<string | null> {
-    this.#lastMutationError = null;
-    await this.#deleteBudgetLineMutation.mutate(id);
-    return this.#lastMutationError;
+    const { error } = await this.#runMutation(
+      this.#deleteBudgetLineMutation,
+      id,
+    );
+    return error;
   }
 
-  readonly #deleteTransactionMutation = cachedMutation<
-    string,
-    void,
-    BudgetDetailsViewModel | null
-  >({
-    cache: this.#budgetApi.cache,
-    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
-    mutationFn: (id) =>
-      this.#budgetApi.deleteTransaction$(id).pipe(map(() => void 0 as void)),
-    onMutate: (id) => {
-      const previous = this.budgetDetails();
-      this.#updateDetails((details) => ({
-        ...details,
-        transactions: details.transactions.filter((tx) => tx.id !== id),
-      }));
-      return previous;
-    },
-    onSuccess: () => this.#onFinancialMutationSuccess(),
-    onError: (_err, _args, previous) => {
-      if (previous) this.#budgetDetailsResource.set(previous);
-      this.#failMutation(
-        this.#transloco.translate('budget.transactionDeleteError'),
-      );
-    },
-  });
+  readonly #deleteTransactionMutation = (fail: FailSink) =>
+    cachedMutation<string, void, RewindPoint | null>({
+      cache: this.#budgetApi.cache,
+      invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
+      mutationFn: (id) =>
+        this.#budgetApi.deleteTransaction$(id).pipe(map(() => void 0 as void)),
+      onMutate: (id) => {
+        const previous = this.budgetDetails();
+        this.#updateDetails((details) => ({
+          ...details,
+          transactions: details.transactions.filter((tx) => tx.id !== id),
+        }));
+        return this.#rewindPoint(previous);
+      },
+      onSuccess: () => this.#onFinancialMutationSuccess(),
+      onError: (_err, _args, rewind) => {
+        this.#rollback(rewind);
+        fail(this.#transloco.translate('budget.transactionDeleteError'));
+      },
+    });
 
   /** Returns the localized error message on failure, or `null` on success. */
   async deleteTransaction(id: string): Promise<string | null> {
-    this.#lastMutationError = null;
-    await this.#deleteTransactionMutation.mutate(id);
-    return this.#lastMutationError;
+    const { error } = await this.#runMutation(
+      this.#deleteTransactionMutation,
+      id,
+    );
+    return error;
   }
 
-  readonly #createAllocatedTransactionMutation = cachedMutation<
-    TransactionCreate & { id: string },
-    { data: Transaction },
-    BudgetDetailsViewModel | null
-  >({
-    cache: this.#budgetApi.cache,
-    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
-    mutationFn: (data) => this.#budgetApi.createTransaction$(data),
-    onMutate: (data) => {
-      const previous = this.budgetDetails();
-      const optimisticTransaction: Transaction = {
-        ...data,
-        budgetLineId: data.budgetLineId ?? null,
-        transactionDate: data.transactionDate ?? formatLocalDate(new Date()),
-        tagIds: data.tagIds,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        checkedAt: data.checkedAt ?? null,
-      };
-      this.#updateDetails((details) => ({
-        ...details,
-        transactions: [...details.transactions, optimisticTransaction],
-      }));
-      return previous;
-    },
-    onSuccess: (response, data) => {
-      this.#updateDetails((details) => ({
-        ...details,
-        transactions: details.transactions.map((tx) =>
-          tx.id === data.id
-            ? {
-                ...response.data,
-                checkedAt: tx.checkedAt ?? response.data.checkedAt,
-              }
-            : tx,
-        ),
-      }));
-      this.#onFinancialMutationSuccess();
-    },
-    onError: (_err, _args, previous) => {
-      if (previous) this.#budgetDetailsResource.set(previous);
-      this.#failMutation(
-        this.#transloco.translate('budget.transactionCreateError'),
-      );
-    },
-  });
+  readonly #createAllocatedTransactionMutation = (fail: FailSink) =>
+    cachedMutation<
+      TransactionCreate & { id: string },
+      { data: Transaction },
+      RewindPoint | null
+    >({
+      cache: this.#budgetApi.cache,
+      invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
+      mutationFn: (data) => this.#budgetApi.createTransaction$(data),
+      onMutate: (data) => {
+        const previous = this.budgetDetails();
+        const optimisticTransaction: Transaction = {
+          ...data,
+          budgetLineId: data.budgetLineId ?? null,
+          transactionDate: data.transactionDate ?? formatLocalDate(new Date()),
+          tagIds: data.tagIds,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          checkedAt: data.checkedAt ?? null,
+        };
+        this.#updateDetails((details) => ({
+          ...details,
+          transactions: [...details.transactions, optimisticTransaction],
+        }));
+        return this.#rewindPoint(previous);
+      },
+      onSuccess: (response, data) => {
+        this.#updateDetails((details) => ({
+          ...details,
+          transactions: details.transactions.map((tx) =>
+            tx.id === data.id
+              ? {
+                  ...response.data,
+                  checkedAt: tx.checkedAt ?? response.data.checkedAt,
+                }
+              : tx,
+          ),
+        }));
+        this.#onFinancialMutationSuccess();
+      },
+      onError: (_err, _args, rewind) => {
+        this.#rollback(rewind);
+        fail(this.#transloco.translate('budget.transactionCreateError'));
+      },
+    });
 
   /** Returns the localized error message on failure, or `null` on success. */
   async createAllocatedTransaction(
     transactionData: TransactionCreate,
   ): Promise<string | null> {
     const id = transactionData.id ?? uuidv4();
-    this.#lastMutationError = null;
-    await this.#createAllocatedTransactionMutation.mutate({
-      ...transactionData,
-      id,
-    });
-    return this.#lastMutationError;
+    const { error } = await this.#runMutation(
+      this.#createAllocatedTransactionMutation,
+      { ...transactionData, id },
+    );
+    return error;
   }
 
-  readonly #resetBudgetLineMutation = cachedMutation<
-    string,
-    { data: BudgetLine },
-    void
-  >({
-    cache: this.#budgetApi.cache,
-    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
-    mutationFn: (id) => this.#budgetApi.resetBudgetLineFromTemplate$(id),
-    onSuccess: (response, id) => {
-      this.#updateDetails((details) => ({
-        ...details,
-        budgetLines: details.budgetLines.map((line) =>
-          line.id === id ? response.data : line,
-        ),
-      }));
-      this.#onFinancialMutationSuccess();
-    },
-    onError: (error) => {
-      this.#failMutation(
-        this.#localizeError(error, 'budget.forecastResetError'),
-      );
-      this.#logger.error('Error resetting budget line from template', error);
-    },
-  });
+  readonly #resetBudgetLineMutation = (fail: FailSink) =>
+    cachedMutation<string, { data: BudgetLine }, void>({
+      cache: this.#budgetApi.cache,
+      invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
+      mutationFn: (id) => this.#budgetApi.resetBudgetLineFromTemplate$(id),
+      onSuccess: (response, id) => {
+        this.#updateDetails((details) => ({
+          ...details,
+          budgetLines: details.budgetLines.map((line) =>
+            line.id === id ? response.data : line,
+          ),
+        }));
+        this.#onFinancialMutationSuccess();
+      },
+      onError: (error) => {
+        fail(this.#localizeError(error, 'budget.forecastResetError'));
+        this.#logger.error('Error resetting budget line from template', error);
+      },
+    });
 
   /**
    * Returns the localized error message on failure, or `null` on success.
@@ -1011,129 +1073,114 @@ export class BudgetDetailsStore {
   async resetBudgetLineFromTemplate(id: string): Promise<string | null> {
     if (this.#mutatingIds.has(id)) return null;
     this.#mutatingIds.add(id);
-    this.#lastMutationError = null;
     try {
-      await this.#resetBudgetLineMutation.mutate(id);
-      return this.#lastMutationError;
+      return (await this.#runMutation(this.#resetBudgetLineMutation, id)).error;
     } finally {
       this.#mutatingIds.delete(id);
     }
   }
 
-  readonly #postponeBudgetLineMutation = cachedMutation<
-    string,
-    BudgetLinePostponeResponse,
-    BudgetDetailsViewModel | null
-  >({
-    cache: this.#budgetApi.cache,
-    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
-    mutationFn: (id) => this.#budgetApi.postponeBudgetLine$(id),
-    // Optimistically remove the line — it moved to next month's budget.
-    onMutate: (id) => {
-      const previous = this.budgetDetails();
-      this.#updateDetails((details) => ({
-        ...details,
-        budgetLines: details.budgetLines.filter((line) => line.id !== id),
-      }));
-      return previous;
-    },
-    onSuccess: () => this.#onFinancialMutationSuccess(),
-    onError: (error, _id, previous) => {
-      if (previous) this.#budgetDetailsResource.set(previous);
-      this.#handlePostponeError(error);
-    },
-  });
+  readonly #postponeBudgetLineMutation = (fail: FailSink) =>
+    cachedMutation<string, BudgetLinePostponeResponse, RewindPoint | null>({
+      cache: this.#budgetApi.cache,
+      invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
+      mutationFn: (id) => this.#budgetApi.postponeBudgetLine$(id),
+      // Optimistically remove the line — it moved to next month's budget.
+      onMutate: (id) => {
+        const previous = this.budgetDetails();
+        this.#updateDetails((details) => ({
+          ...details,
+          budgetLines: details.budgetLines.filter((line) => line.id !== id),
+        }));
+        return this.#rewindPoint(previous);
+      },
+      onSuccess: () => this.#onFinancialMutationSuccess(),
+      onError: (error, _id, rewind) => {
+        this.#rollback(rewind);
+        this.#handlePostponeError(fail, error);
+      },
+    });
 
   /** Returns the localized error message on failure, or `null` on success. */
   async postponeBudgetLine(id: string): Promise<string | null> {
     if (this.#mutatingIds.has(id)) return null;
     this.#mutatingIds.add(id);
-    this.#lastMutationError = null;
     try {
-      await this.#postponeBudgetLineMutation.mutate(id);
-      return this.#lastMutationError;
+      return (await this.#runMutation(this.#postponeBudgetLineMutation, id))
+        .error;
     } finally {
       this.#mutatingIds.delete(id);
     }
   }
 
-  readonly #postponeTransactionMutation = cachedMutation<
-    string,
-    TransactionPostponeResponse,
-    BudgetDetailsViewModel | null
-  >({
-    cache: this.#budgetApi.cache,
-    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
-    mutationFn: (id) => this.#budgetApi.postponeTransaction$(id),
-    // Optimistically remove the transaction — it moved to next month's budget.
-    onMutate: (id) => {
-      const previous = this.budgetDetails();
-      this.#updateDetails((details) => ({
-        ...details,
-        transactions: details.transactions.filter((tx) => tx.id !== id),
-      }));
-      return previous;
-    },
-    onSuccess: () => this.#onFinancialMutationSuccess(),
-    onError: (error, _id, previous) => {
-      if (previous) this.#budgetDetailsResource.set(previous);
-      this.#handlePostponeError(error);
-    },
-  });
+  readonly #postponeTransactionMutation = (fail: FailSink) =>
+    cachedMutation<string, TransactionPostponeResponse, RewindPoint | null>({
+      cache: this.#budgetApi.cache,
+      invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
+      mutationFn: (id) => this.#budgetApi.postponeTransaction$(id),
+      // Optimistically remove the transaction — it moved to next month's budget.
+      onMutate: (id) => {
+        const previous = this.budgetDetails();
+        this.#updateDetails((details) => ({
+          ...details,
+          transactions: details.transactions.filter((tx) => tx.id !== id),
+        }));
+        return this.#rewindPoint(previous);
+      },
+      onSuccess: () => this.#onFinancialMutationSuccess(),
+      onError: (error, _id, rewind) => {
+        this.#rollback(rewind);
+        this.#handlePostponeError(fail, error);
+      },
+    });
 
   /** Returns the localized error message on failure, or `null` on success. */
   async postponeTransaction(id: string): Promise<string | null> {
     if (this.#mutatingIds.has(id)) return null;
     this.#mutatingIds.add(id);
-    this.#lastMutationError = null;
     try {
-      await this.#postponeTransactionMutation.mutate(id);
-      return this.#lastMutationError;
+      return (await this.#runMutation(this.#postponeTransactionMutation, id))
+        .error;
     } finally {
       this.#mutatingIds.delete(id);
     }
   }
 
-  readonly #toggleCheckMutation = cachedMutation<
-    string,
-    { data: BudgetLine },
-    BudgetDetailsViewModel | null
-  >({
-    cache: this.#budgetApi.cache,
-    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
-    mutationFn: (id) => this.#budgetApi.toggleBudgetLineCheck$(id),
-    onMutate: (id) => {
-      const details = this.budgetDetails();
-      if (!details) return null;
-      const result = calculateBudgetLineToggle(id, {
-        budgetLines: details.budgetLines,
-        transactions: details.transactions,
-      });
-      if (!result) return null;
-      const previous = details;
-      this.#updateDetails((d) => ({
-        ...d,
-        budgetLines: result.updatedBudgetLines,
-        transactions: result.updatedTransactions,
-      }));
-      return previous;
-    },
-    onSuccess: (response, id) => {
-      this.#updateDetails((d) => ({
-        ...d,
-        budgetLines: d.budgetLines.map((line) =>
-          line.id === id ? response.data : line,
-        ),
-      }));
-      this.#onFinancialMutationSuccess();
-    },
-    onError: (_err, _id, previous) => {
-      if (previous) this.#budgetDetailsResource.set(previous);
-      this.#failMutation(
-        this.#transloco.translate('budget.forecastToggleError'),
-      );
-    },
-  });
+  readonly #toggleCheckMutation = (fail: FailSink) =>
+    cachedMutation<string, { data: BudgetLine }, RewindPoint | null>({
+      cache: this.#budgetApi.cache,
+      invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
+      mutationFn: (id) => this.#budgetApi.toggleBudgetLineCheck$(id),
+      onMutate: (id) => {
+        const details = this.budgetDetails();
+        if (!details) return null;
+        const result = calculateBudgetLineToggle(id, {
+          budgetLines: details.budgetLines,
+          transactions: details.transactions,
+        });
+        if (!result) return null;
+        const previous = details;
+        this.#updateDetails((d) => ({
+          ...d,
+          budgetLines: result.updatedBudgetLines,
+          transactions: result.updatedTransactions,
+        }));
+        return this.#rewindPoint(previous);
+      },
+      onSuccess: (response, id) => {
+        this.#updateDetails((d) => ({
+          ...d,
+          budgetLines: d.budgetLines.map((line) =>
+            line.id === id ? response.data : line,
+          ),
+        }));
+        this.#onFinancialMutationSuccess();
+      },
+      onError: (_err, _id, rewind) => {
+        this.#rollback(rewind);
+        fail(this.#transloco.translate('budget.forecastToggleError'));
+      },
+    });
 
   /** Returns the localized error message on failure, or `null` on success. */
   async toggleCheck(id: string): Promise<string | null> {
@@ -1146,119 +1193,108 @@ export class BudgetDetailsStore {
     if (!lineExists) return null;
 
     this.#mutatingIds.add(id);
-    this.#lastMutationError = null;
     try {
-      await this.#toggleCheckMutation.mutate(id);
-      return this.#lastMutationError;
+      return (await this.#runMutation(this.#toggleCheckMutation, id)).error;
     } finally {
       this.#mutatingIds.delete(id);
     }
   }
 
-  readonly #toggleTransactionCheckMutation = cachedMutation<
-    string,
-    { data: Transaction },
-    BudgetDetailsViewModel | null
-  >({
-    cache: this.#budgetApi.cache,
-    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
-    mutationFn: (id) => this.#budgetApi.toggleTransactionCheck$(id),
-    onMutate: (id) => {
-      const details = this.budgetDetails();
-      if (!details) return null;
-      const result = calculateTransactionToggle(id, {
-        budgetLines: details.budgetLines,
-        transactions: details.transactions,
-      });
-      if (!result) return null;
-      const previous = details;
-      this.#updateDetails((d) => ({
-        ...d,
-        transactions: result.updatedTransactions,
-      }));
-      return previous;
-    },
-    onSuccess: (response, id) => {
-      this.#updateDetails((d) => ({
-        ...d,
-        transactions: d.transactions.map((tx) =>
-          tx.id === id ? response.data : tx,
-        ),
-      }));
-      this.#onFinancialMutationSuccess();
-    },
-    onError: (_err, _id, previous) => {
-      if (previous) this.#budgetDetailsResource.set(previous);
-      this.#failMutation(
-        this.#transloco.translate('budget.transactionToggleError'),
-      );
-    },
-  });
+  readonly #toggleTransactionCheckMutation = (fail: FailSink) =>
+    cachedMutation<string, { data: Transaction }, RewindPoint | null>({
+      cache: this.#budgetApi.cache,
+      invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
+      mutationFn: (id) => this.#budgetApi.toggleTransactionCheck$(id),
+      onMutate: (id) => {
+        const details = this.budgetDetails();
+        if (!details) return null;
+        const result = calculateTransactionToggle(id, {
+          budgetLines: details.budgetLines,
+          transactions: details.transactions,
+        });
+        if (!result) return null;
+        const previous = details;
+        this.#updateDetails((d) => ({
+          ...d,
+          transactions: result.updatedTransactions,
+        }));
+        return this.#rewindPoint(previous);
+      },
+      onSuccess: (response, id) => {
+        this.#updateDetails((d) => ({
+          ...d,
+          transactions: d.transactions.map((tx) =>
+            tx.id === id ? response.data : tx,
+          ),
+        }));
+        this.#onFinancialMutationSuccess();
+      },
+      onError: (_err, _id, rewind) => {
+        this.#rollback(rewind);
+        fail(this.#transloco.translate('budget.transactionToggleError'));
+      },
+    });
 
   /** Returns the localized error message on failure, or `null` on success. */
   async toggleTransactionCheck(id: string): Promise<string | null> {
     if (this.#mutatingIds.has(id)) return null;
     this.#mutatingIds.add(id);
-    this.#lastMutationError = null;
     try {
-      await this.#toggleTransactionCheckMutation.mutate(id);
-      return this.#lastMutationError;
+      return (await this.#runMutation(this.#toggleTransactionCheckMutation, id))
+        .error;
     } finally {
       this.#mutatingIds.delete(id);
     }
   }
 
-  readonly #checkAllAllocatedMutation = cachedMutation<
-    string,
-    TransactionListResponse,
-    BudgetDetailsViewModel | null
-  >({
-    cache: this.#budgetApi.cache,
-    invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
-    mutationFn: (budgetLineId) =>
-      this.#budgetApi.checkBudgetLineTransactions$(budgetLineId),
-    onMutate: (budgetLineId) => {
-      const details = this.budgetDetails();
-      if (!details) return null;
-      const previous = details;
-      const now = new Date().toISOString();
-      const uncheckedIds = new Set(
-        details.transactions
-          .filter(
-            (tx) => tx.budgetLineId === budgetLineId && tx.checkedAt === null,
-          )
-          .map((tx) => tx.id),
-      );
-      if (uncheckedIds.size === 0) return null;
-      this.#updateDetails((d) => ({
-        ...d,
-        budgetLines: d.budgetLines.map((line) =>
-          line.id === budgetLineId
-            ? { ...line, checkedAt: line.checkedAt ?? now, updatedAt: now }
-            : line,
-        ),
-        transactions: d.transactions.map((tx) =>
-          uncheckedIds.has(tx.id) ? { ...tx, checkedAt: now } : tx,
-        ),
-      }));
-      return previous;
-    },
-    onSuccess: (response) => {
-      const responseMap = new Map(response.data.map((tx) => [tx.id, tx]));
-      this.#updateDetails((d) => ({
-        ...d,
-        transactions: d.transactions.map((tx) => {
-          const serverTx = responseMap.get(tx.id);
-          return serverTx ? { ...tx, checkedAt: serverTx.checkedAt } : tx;
-        }),
-      }));
-      this.#onFinancialMutationSuccess();
-    },
-    onError: (_err, _id, previous) => {
-      if (previous) this.#budgetDetailsResource.set(previous);
-      this.#failMutation(this.#transloco.translate('budget.checkAllError'));
-    },
-  });
+  readonly #checkAllAllocatedMutation = (fail: FailSink) =>
+    cachedMutation<string, TransactionListResponse, RewindPoint | null>({
+      cache: this.#budgetApi.cache,
+      invalidateKeys: () => BUDGET_DETAIL_INVALIDATION_KEYS,
+      mutationFn: (budgetLineId) =>
+        this.#budgetApi.checkBudgetLineTransactions$(budgetLineId),
+      onMutate: (budgetLineId) => {
+        const details = this.budgetDetails();
+        if (!details) return null;
+        const previous = details;
+        const now = new Date().toISOString();
+        const uncheckedIds = new Set(
+          details.transactions
+            .filter(
+              (tx) => tx.budgetLineId === budgetLineId && tx.checkedAt === null,
+            )
+            .map((tx) => tx.id),
+        );
+        if (uncheckedIds.size === 0) return null;
+        this.#updateDetails((d) => ({
+          ...d,
+          budgetLines: d.budgetLines.map((line) =>
+            line.id === budgetLineId
+              ? { ...line, checkedAt: line.checkedAt ?? now, updatedAt: now }
+              : line,
+          ),
+          transactions: d.transactions.map((tx) =>
+            uncheckedIds.has(tx.id) ? { ...tx, checkedAt: now } : tx,
+          ),
+        }));
+        return this.#rewindPoint(previous);
+      },
+      onSuccess: (response) => {
+        const responseMap = new Map(response.data.map((tx) => [tx.id, tx]));
+        this.#updateDetails((d) => ({
+          ...d,
+          transactions: d.transactions.map((tx) => {
+            const serverTx = responseMap.get(tx.id);
+            return serverTx ? { ...tx, checkedAt: serverTx.checkedAt } : tx;
+          }),
+        }));
+        this.#onFinancialMutationSuccess();
+      },
+      onError: (_err, _id, rewind) => {
+        this.#rollback(rewind);
+        fail(this.#transloco.translate('budget.checkAllError'));
+      },
+    });
 
   /** Returns the localized error message on failure, or `null` on success. */
   async checkAllAllocatedTransactions(
@@ -1272,10 +1308,10 @@ export class BudgetDetailsStore {
     );
     if (!hasUnchecked) return null;
     this.#mutatingIds.add(budgetLineId);
-    this.#lastMutationError = null;
     try {
-      await this.#checkAllAllocatedMutation.mutate(budgetLineId);
-      return this.#lastMutationError;
+      return (
+        await this.#runMutation(this.#checkAllAllocatedMutation, budgetLineId)
+      ).error;
     } finally {
       this.#mutatingIds.delete(budgetLineId);
     }
@@ -1287,6 +1323,49 @@ export class BudgetDetailsStore {
 
   // ── 6. Private utility methods ──
 
+  /**
+   * Runs ONE call of `factory` and hands back both halves of its outcome: the
+   * response it resolved and the localized reason it refused. The sink lives
+   * here, in the call frame, which is what keeps a call's outcome off `this` —
+   * overlapping calls each read their own cell. Public methods project this into
+   * whichever shape they promise: `.error` alone, or the pair.
+   */
+  async #runMutation<TArgs, TResponse>(
+    factory: MutationFactory<TArgs, TResponse>,
+    args: TArgs,
+  ): Promise<{ data: TResponse | undefined; error: string | null }> {
+    let error: string | null = null;
+    const mutation = factory((message) => {
+      error = message;
+    });
+    const data = await mutation.mutate(args);
+    return { data, error };
+  }
+
+  /** The pair `#rollback` needs, or `null` when there is nothing to undo. */
+  #rewindPoint(previous: BudgetDetailsViewModel | null): RewindPoint | null {
+    const optimistic = this.budgetDetails();
+    return previous && optimistic ? { previous, optimistic } : null;
+  }
+
+  #rollback(rewind: RewindPoint | null | undefined): void {
+    if (!rewind) return;
+    const { previous, optimistic } = rewind;
+    this.#updateDetails((current) => ({
+      ...current,
+      budgetLines: rewindRows(
+        current.budgetLines,
+        previous.budgetLines,
+        optimistic.budgetLines,
+      ),
+      transactions: rewindRows(
+        current.transactions,
+        previous.transactions,
+        optimistic.transactions,
+      ),
+    }));
+  }
+
   #updateDetails(
     fn: (details: BudgetDetailsViewModel) => BudgetDetailsViewModel,
   ): void {
@@ -1297,16 +1376,12 @@ export class BudgetDetailsStore {
     });
   }
 
-  #failMutation(message: string): void {
-    this.#lastMutationError = message;
-  }
-
   // Shared failure path for the 2 postpone mutations (mirrors #handleSpreadError):
   // localize via the common helper, then log only UNEXPECTED (non-API) errors —
   // expected business errors (already-checked, concurrent-mod) are surfaced to
   // the user, not logged as noise.
-  #handlePostponeError(error: unknown): void {
-    this.#failMutation(this.#localizeError(error, 'budget.postponeError'));
+  #handlePostponeError(fail: FailSink, error: unknown): void {
+    fail(this.#localizeError(error, 'budget.postponeError'));
     if (!isApiError(error)) {
       this.#logger.error('Error postponing item to next month', error);
     }
@@ -1321,17 +1396,15 @@ export class BudgetDetailsStore {
   }
 
   // Shared failure path for the 3 spread mutations (identical key + log).
-  #handleSpreadError(error: unknown): void {
-    this.#failMutation(this.#localizeError(error, 'budgetLine.spread.error'));
+  #handleSpreadError(fail: FailSink, error: unknown): void {
+    fail(this.#localizeError(error, 'budgetLine.spread.error'));
     this.#logger.error('Spread mutation failed', error);
   }
 
   // Shared failure path for the 2 savings-withdrawal mutations (PUL-292):
   // localize a typed ApiError via its code, else fall back to the generic key.
-  #handleSavingsWithdrawalError(error: unknown): void {
-    this.#failMutation(
-      this.#localizeError(error, 'budget.savingsWithdrawal.error'),
-    );
+  #handleSavingsWithdrawalError(fail: FailSink, error: unknown): void {
+    fail(this.#localizeError(error, 'budget.savingsWithdrawal.error'));
     this.#logger.error('Savings withdrawal mutation failed', error);
   }
 

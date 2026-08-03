@@ -27,6 +27,7 @@ import {
   createMockBudgetDetailsResponse,
   createMockTransaction,
 } from '../../../../testing/mock-factories';
+import { TranslocoService } from '@jsverse/transloco';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { createMockDataCache, type MockDataCache } from '@core/testing';
 
@@ -1967,6 +1968,79 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       expect(asyncMethods.sort()).toEqual(
         mutations.map((mutation) => mutation.name).sort(),
       );
+    });
+  });
+
+  // Two different ids both pass the #mutatingIds guard, so their toggles can be
+  // in flight at once. Each call must get its own outcome and its own rollback.
+  describe('concurrent mutations', () => {
+    it('gives each overlapping toggle its own outcome and rolls back the failed one', async () => {
+      const lineA = createMockBudgetLine({
+        id: 'line-a',
+        budgetId: mockBudgetId,
+        name: 'Loyer',
+        amount: 1500,
+        kind: 'expense',
+        recurrence: 'fixed',
+        checkedAt: null,
+      });
+      const lineB = createMockBudgetLine({
+        id: 'line-b',
+        budgetId: mockBudgetId,
+        name: 'Assurance',
+        amount: 300,
+        kind: 'expense',
+        recurrence: 'fixed',
+        checkedAt: null,
+      });
+
+      mockBudgetApi.getBudgetWithDetails$ = vi.fn().mockReturnValue(
+        of(
+          createMockBudgetDetailsResponse({
+            budget: { id: mockBudgetId },
+            budgetLines: [lineA, lineB],
+            transactions: [],
+          }),
+        ),
+      );
+
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+
+      const firstCall$ = new Subject<{ data: typeof lineA }>();
+      const secondCall$ = new Subject<{ data: typeof lineB }>();
+      mockBudgetApi.toggleBudgetLineCheck$ = vi
+        .fn()
+        .mockReturnValueOnce(firstCall$)
+        .mockReturnValueOnce(secondCall$);
+
+      const first = service.toggleCheck('line-a');
+      const second = service.toggleCheck('line-b');
+      await vi.waitFor(() => {
+        expect(mockBudgetApi.toggleBudgetLineCheck$).toHaveBeenCalledTimes(2);
+      });
+
+      secondCall$.next({
+        data: { ...lineB, checkedAt: '2024-01-20T12:00:00Z' },
+      });
+      secondCall$.complete();
+      firstCall$.error(new Error('Server down'));
+
+      const transloco = TestBed.inject(TranslocoService);
+      expect(await first).toBe(
+        transloco.translate('budget.forecastToggleError'),
+      );
+      expect(await second).toBeNull();
+      expect(
+        service.budgetDetails()?.budgetLines.find((l) => l.id === 'line-a')
+          ?.checkedAt,
+      ).toBeNull();
+      // PROBE: does A's rollback clobber B's confirmed success?
+      expect(
+        service.budgetDetails()?.budgetLines.find((l) => l.id === 'line-b')
+          ?.checkedAt,
+      ).toBe('2024-01-20T12:00:00Z');
     });
   });
 });
