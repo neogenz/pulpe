@@ -255,18 +255,20 @@ test.describe('Savings goal progression (PUL-8)', () => {
           ),
         )
         .toBeLessThanOrEqual(0);
-      const [stackedCanvas, stackedSummary] = await Promise.all([
-        projectionCanvas.boundingBox(),
-        projectionSummary.boundingBox(),
-      ]);
-      expect(stackedCanvas).not.toBeNull();
-      expect(stackedSummary).not.toBeNull();
-      if (!stackedCanvas || !stackedSummary) {
-        throw new Error('Stacked projection geometry is unavailable');
-      }
-      expect(stackedSummary.y).toBeGreaterThan(
-        stackedCanvas.y + stackedCanvas.height,
-      );
+      // Le canvas se remesure en asynchrone après le resize (ResizeObserver +
+      // rAF) : lire la géométrie une seule fois l'échantillonne parfois en
+      // plein relayout, le résumé encore de quelques pixels trop haut.
+      await expect
+        .poll(async () => {
+          const [canvas, summary] = await Promise.all([
+            projectionCanvas.boundingBox(),
+            projectionSummary.boundingBox(),
+          ]);
+          return canvas && summary
+            ? summary.y - (canvas.y + canvas.height)
+            : null;
+        })
+        .toBeGreaterThan(0);
     }
   });
 
