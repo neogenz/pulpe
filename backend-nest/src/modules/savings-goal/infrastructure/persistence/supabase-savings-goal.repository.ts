@@ -7,11 +7,13 @@ import {
   type BudgetLine,
   type BudgetPeriod,
   type LinkedSavingLine,
+  type LinkedSavingWithdrawal,
   type SavingsGoalDeletionCommand,
   type SavingsGoalGenerationStop,
 } from 'pulpe-shared';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { throwIfRetryableConflict } from '@common/utils/postgres-conflict';
 import { isSavingsGoalLinkDenied } from '@common/utils/savings-goal-link';
 import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
 import {
@@ -28,6 +30,7 @@ import type { Database } from '../../../../types/database.types';
 import type { SavingsGoalRepositoryPort } from '../../domain/ports/savings-goal-repository.port';
 import type {
   SavingsGoal,
+  SavingsGoalBalanceInputs,
   SavingsGoalContribution,
   SavingsGoalCreateInput,
   SavingsGoalDeletionImpactResult,
@@ -41,6 +44,7 @@ import type {
   SavingsGoalTargetDateReconciliationCommand,
   SavingsGoalTargetDateReconciliationResult,
   SavingsGoalUpdatePatch,
+  SavingsGoalWithdrawalRecord,
 } from '../../domain/savings-goal.entity';
 import {
   applySavingsGoalPlanLineListSchema,
@@ -68,12 +72,42 @@ type TransactionRowWithTags = TransactionRow & {
 };
 type BudgetLineRow = Database['public']['Tables']['budget_line']['Row'];
 
+const sumAmounts = (rows: readonly { amount: number }[]): number =>
+  rows.reduce((total, row) => total + row.amount, 0);
+
+/** Regroupe des lignes par clé, en ignorant celles dont la clé est absente. */
+function groupBy<T>(
+  rows: readonly T[],
+  keyOf: (row: T) => string | null,
+): Map<string, T[]> {
+  const grouped = new Map<string, T[]>();
+  for (const row of rows) {
+    const key = keyOf(row);
+    if (key === null) continue;
+    const bucket = grouped.get(key);
+    if (bucket) bucket.push(row);
+    else grouped.set(key, [row]);
+  }
+  return grouped;
+}
+
 interface LinkedLineRow {
   id: string;
+  savings_goal_id: string | null;
   amount: string | null;
   kind: TransactionKindEnum;
   checked_at: string | null;
   is_manually_adjusted: boolean;
+  monthly_budget: { month: number; year: number };
+}
+
+interface WithdrawalRow {
+  id: string;
+  budget_id: string;
+  source_savings_goal_id: string | null;
+  name: string;
+  amount: string | null;
+  transaction_date: string;
   monthly_budget: { month: number; year: number };
 }
 
@@ -356,44 +390,11 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
   }
 
   async findLinkedSavingLines(goalId: string): Promise<LinkedSavingLine[]> {
-    const supabase = this.supabaseProvider.client;
-    // Double garde kind=saving (le lien est déjà kind-guardé à l'écriture par
-    // trigger + use-cases). RLS scope les lignes au user courant.
-    const { data, error } = await supabase
-      .from('budget_line')
-      .select(
-        'id, amount, kind, checked_at, is_manually_adjusted, monthly_budget!inner(month, year)',
-      )
-      .eq('savings_goal_id', goalId)
-      .eq('kind', 'saving');
-
-    if (error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.SAVINGS_GOAL_FETCH_FAILED,
-        undefined,
-        {
-          operation: 'findSavingsGoalLinkedContributions',
-          entityId: goalId,
-          entityType: 'savings_goal',
-          supabaseError: error,
-        },
-        { cause: error },
-      );
-    }
-
-    const rows = (data ?? []) as unknown as LinkedLineRow[];
+    const rows = await this.fetchLinkedLineRows([goalId]);
     if (!rows.length) return [];
 
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
-    return rows.map((row) => ({
-      id: row.id,
-      amount: this.encryption.tryDecryptAmount(row.amount, dek, 0),
-      kind: row.kind,
-      checkedAt: row.checked_at,
-      isManuallyAdjusted: row.is_manually_adjusted,
-      month: row.monthly_budget.month,
-      year: row.monthly_budget.year,
-    }));
+    return rows.map((row) => this.toLinkedLine(row, dek));
   }
 
   async findContributions(goalId: string): Promise<SavingsGoalContribution[]> {
@@ -419,6 +420,115 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       .sort(
         (a, b) => a.budgetYear - b.budgetYear || a.budgetMonth - b.budgetMonth,
       );
+  }
+
+  async findLinkedWithdrawals(
+    goalId: string,
+  ): Promise<LinkedSavingWithdrawal[]> {
+    const rows = await this.fetchWithdrawalRows([goalId]);
+    if (!rows.length) return [];
+
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    return rows.map((row) => this.toLinkedWithdrawal(row, dek));
+  }
+
+  async findWithdrawals(
+    goalId: string,
+  ): Promise<SavingsGoalWithdrawalRecord[]> {
+    const rows = await this.fetchWithdrawalRows([goalId]);
+    if (!rows.length) return [];
+
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    return rows
+      .map((row) => ({
+        transactionId: row.id,
+        budgetId: row.budget_id,
+        name: row.name,
+        transactionDate: row.transaction_date,
+        amount: this.encryption.tryDecryptAmount(row.amount, dek, 0),
+      }))
+      .sort((a, b) => b.transactionDate.localeCompare(a.transactionDate));
+  }
+
+  async findBalanceRevision(goalId: string): Promise<number | null> {
+    const { data, error } = await this.supabaseProvider.client
+      .from('savings_goal')
+      .select('balance_revision')
+      .eq('id', goalId)
+      .eq('user_id', this.supabaseProvider.user.id)
+      .maybeSingle();
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'findSavingsGoalBalanceRevision',
+          entityId: goalId,
+          entityType: 'savings_goal',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    return data?.balance_revision ?? null;
+  }
+
+  /**
+   * Quatre requêtes, quel que soit le nombre d'objectifs : les objectifs, leurs
+   * prévisions Épargne, les transactions allouées à ces prévisions, et les
+   * retraits. Le regroupement se fait en mémoire.
+   */
+  async findAllBalanceInputs(): Promise<SavingsGoalBalanceInputs[]> {
+    const goals = await this.findAll();
+    if (!goals.length) return [];
+
+    const goalIds = goals.map((goal) => goal.id);
+    const [lineRows, withdrawalRows] = await Promise.all([
+      this.fetchLinkedLineRows(goalIds),
+      this.fetchWithdrawalRows(goalIds),
+    ]);
+    const transactionRows = await this.fetchTransactionRowsForLines(
+      lineRows.map((row) => row.id),
+    );
+
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    const linesByGoal = groupBy(lineRows, (row) => row.savings_goal_id);
+    const withdrawalsByGoal = groupBy(
+      withdrawalRows,
+      (row) => row.source_savings_goal_id,
+    );
+    const lineIdsByGoal = new Map(
+      goals.map((goal) => [
+        goal.id,
+        new Set((linesByGoal.get(goal.id) ?? []).map((row) => row.id)),
+      ]),
+    );
+
+    return goals.map((goal) => {
+      const ownLineIds = lineIdsByGoal.get(goal.id) ?? new Set<string>();
+      return {
+        goal,
+        lines: (linesByGoal.get(goal.id) ?? []).map((row) =>
+          this.toLinkedLine(row, dek),
+        ),
+        transactions: transactionRows
+          .filter(
+            (row) =>
+              row.budget_line_id !== null && ownLineIds.has(row.budget_line_id),
+          )
+          .map((row) => ({
+            budgetLineId: row.budget_line_id,
+            amount: this.encryption.tryDecryptAmount(row.amount, dek, 0),
+            kind: row.kind,
+            checkedAt: row.checked_at,
+          })),
+        withdrawals: (withdrawalsByGoal.get(goal.id) ?? []).map((row) =>
+          this.toLinkedWithdrawal(row, dek),
+        ),
+      };
+    });
   }
 
   async findMaterializedPeriods(): Promise<BudgetPeriod[]> {
@@ -567,9 +677,28 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     }
   }
 
+  /**
+   * These RPCs take the goal lock first and the linked lines second, while any
+   * ordinary line or transaction write takes its own row first and reaches the
+   * goal through the balance-revision triggers. The two orders can meet, and
+   * PostgreSQL then rolls one side back whole (PUL-329 review). Nothing was
+   * written on the victim's side, so the caller reissues the same request.
+   */
+  private throwIfConcurrentWriteAborted(
+    error: PostgrestError | null,
+    operation: string,
+  ): void {
+    throwIfRetryableConflict(error, 'savings_goal', {
+      operation,
+      entityType: 'savings_goal',
+      userId: this.supabaseProvider.user.id,
+    });
+  }
+
   private throwTargetDateReconciliationRpcError(
     error: PostgrestError | null,
   ): never {
+    this.throwIfConcurrentWriteAborted(error, 'reconcileSavingsGoalTargetDate');
     if (isSavingsGoalLinkDenied(error)) {
       throw new BusinessException(
         ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
@@ -615,15 +744,18 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
    *   use-case, pas ici.)
    */
   private throwGenerationStopRpcError(error: PostgrestError | null): never {
+    this.throwIfConcurrentWriteAborted(error, 'applySavingsGoalGenerationStop');
+    const context = {
+      operation: 'applySavingsGoalGenerationStop',
+      entityType: 'savings_goal',
+    };
+    const options = { cause: error ?? undefined };
     if (isSavingsGoalLinkDenied(error)) {
       throw new BusinessException(
         ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
         undefined,
-        {
-          operation: 'applySavingsGoalGenerationStop',
-          entityType: 'savings_goal',
-        },
-        { cause: error ?? undefined },
+        context,
+        options,
       );
     }
     const message = error?.message ?? '';
@@ -635,37 +767,28 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       throw new BusinessException(
         ERROR_DEFINITIONS.SAVINGS_GOAL_GENERATION_STOP_CONFLICT,
         undefined,
-        {
-          operation: 'applySavingsGoalGenerationStop',
-          entityType: 'savings_goal',
-        },
-        { cause: error ?? undefined },
+        context,
+        options,
       );
     }
     if (message.includes(GENERATION_STOP_NOT_LINKED_RPC_MESSAGE)) {
       throw new BusinessException(
         ERROR_DEFINITIONS.SAVINGS_GOAL_GENERATION_STOP_LINE_INVALID,
         undefined,
-        {
-          operation: 'applySavingsGoalGenerationStop',
-          entityType: 'savings_goal',
-        },
-        { cause: error ?? undefined },
+        context,
+        options,
       );
     }
     throw new BusinessException(
       ERROR_DEFINITIONS.SAVINGS_GOAL_GENERATION_STOP_FAILED,
       undefined,
-      {
-        operation: 'applySavingsGoalGenerationStop',
-        entityType: 'savings_goal',
-        supabaseError: error,
-      },
-      { cause: error ?? undefined },
+      { ...context, supabaseError: error },
+      options,
     );
   }
 
   private throwDeletionRpcError(error: PostgrestError | null): never {
+    this.throwIfConcurrentWriteAborted(error, 'applySavingsGoalDeletion');
     if (isSavingsGoalLinkDenied(error)) {
       throw new BusinessException(
         ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
@@ -770,6 +893,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
    * - anything else → generic apply failure (500, safe to retry — idempotent).
    */
   private throwPlanRpcError(error: PostgrestError | null): never {
+    this.throwIfConcurrentWriteAborted(error, 'applySavingsGoalPlan');
     if (isSavingsGoalLinkDenied(error)) {
       throw new BusinessException(
         ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
@@ -843,6 +967,20 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     lineIds: string[],
     dek: Buffer,
   ): Promise<SavingsGoalLinkedContributions['transactions']> {
+    const rows = await this.fetchTransactionRowsForLines(lineIds);
+    return rows.map((row) => ({
+      budgetLineId: row.budget_line_id,
+      amount: this.encryption.tryDecryptAmount(row.amount, dek, 0),
+      kind: row.kind,
+      checkedAt: row.checked_at,
+    }));
+  }
+
+  private async fetchTransactionRowsForLines(
+    lineIds: string[],
+  ): Promise<LinkedTransactionRow[]> {
+    if (!lineIds.length) return [];
+
     const { data, error } = await this.supabaseProvider.client
       .from('transaction')
       .select('budget_line_id, amount, kind, checked_at')
@@ -861,12 +999,99 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       );
     }
 
-    return ((data ?? []) as LinkedTransactionRow[]).map((row) => ({
-      budgetLineId: row.budget_line_id,
+    return (data ?? []) as LinkedTransactionRow[];
+  }
+
+  /**
+   * Prévisions Épargne liées, pour un objectif ou pour toute une liste. Le
+   * `savings_goal_id` reste sélectionné pour que l'appelant groupé puisse
+   * rattacher chaque ligne sans requête supplémentaire.
+   */
+  private async fetchLinkedLineRows(
+    goalIds: string[],
+  ): Promise<LinkedLineRow[]> {
+    if (!goalIds.length) return [];
+
+    // Double garde kind=saving (le lien est déjà kind-guardé à l'écriture par
+    // trigger + use-cases). RLS scope les lignes au user courant.
+    const { data, error } = await this.supabaseProvider.client
+      .from('budget_line')
+      .select(
+        'id, savings_goal_id, amount, kind, checked_at, is_manually_adjusted, monthly_budget!inner(month, year)',
+      )
+      .in('savings_goal_id', goalIds)
+      .eq('kind', 'saving');
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'findSavingsGoalLinkedLines',
+          entityType: 'budget_line',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    return (data ?? []) as unknown as LinkedLineRow[];
+  }
+
+  /**
+   * Retraits d'un ou plusieurs objectifs. La jointure sur `monthly_budget` est
+   * `!inner` : un retrait sans budget porteur n'existe pas, et la période qu'il
+   * en tire est ce qui le situe dans la chronologie du plan.
+   */
+  private async fetchWithdrawalRows(
+    goalIds: string[],
+  ): Promise<WithdrawalRow[]> {
+    if (!goalIds.length) return [];
+
+    const { data, error } = await this.supabaseProvider.client
+      .from('transaction')
+      .select(
+        'id, budget_id, source_savings_goal_id, name, amount, transaction_date, monthly_budget!inner(month, year)',
+      )
+      .in('source_savings_goal_id', goalIds);
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'findSavingsGoalWithdrawals',
+          entityType: 'transaction',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    return (data ?? []) as unknown as WithdrawalRow[];
+  }
+
+  private toLinkedLine(row: LinkedLineRow, dek: Buffer): LinkedSavingLine {
+    return {
+      id: row.id,
       amount: this.encryption.tryDecryptAmount(row.amount, dek, 0),
       kind: row.kind,
       checkedAt: row.checked_at,
-    }));
+      isManuallyAdjusted: row.is_manually_adjusted,
+      month: row.monthly_budget.month,
+      year: row.monthly_budget.year,
+    };
+  }
+
+  private toLinkedWithdrawal(
+    row: WithdrawalRow,
+    dek: Buffer,
+  ): LinkedSavingWithdrawal {
+    return {
+      amount: this.encryption.tryDecryptAmount(row.amount, dek, 0),
+      month: row.monthly_budget.month,
+      year: row.monthly_budget.year,
+    };
   }
 
   /**
@@ -952,6 +1177,8 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       targetCurrency: decrypted.target_currency,
       exchangeRate: decrypted.exchange_rate,
       kind: decrypted.kind,
+      sourceSavingsGoalId: decrypted.source_savings_goal_id,
+      sourceSavingsGoalName: decrypted.source_savings_goal_name,
       tagIds: (row.transaction_tag ?? []).map((link) => link.tag_id),
       transactionDate: decrypted.transaction_date,
       checkedAt: decrypted.checked_at,
@@ -978,6 +1205,10 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
         ),
       })),
     }));
+    const withdrawals = raw.withdrawals.map((withdrawal) => ({
+      ...withdrawal,
+      amount: this.encryption.tryDecryptAmount(withdrawal.amount, dek, 0),
+    }));
     const budgetLines = budgets.flatMap((budget) => budget.lines);
     const transactions = budgetLines.flatMap((line) => line.transactions);
 
@@ -985,24 +1216,18 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       goalId: raw.goalId,
       summary: {
         templateLineCount: templateLines.length,
-        templateLineTotal: templateLines.reduce(
-          (total, line) => total + line.amount,
-          0,
-        ),
+        templateLineTotal: sumAmounts(templateLines),
         budgetCount: budgets.length,
         budgetLineCount: budgetLines.length,
-        budgetLineTotal: budgetLines.reduce(
-          (total, line) => total + line.amount,
-          0,
-        ),
+        budgetLineTotal: sumAmounts(budgetLines),
         transactionCount: transactions.length,
-        transactionTotal: transactions.reduce(
-          (total, transaction) => total + transaction.amount,
-          0,
-        ),
+        transactionTotal: sumAmounts(transactions),
+        withdrawalCount: withdrawals.length,
+        withdrawalTotal: sumAmounts(withdrawals),
       },
       templateLines,
       budgets,
+      withdrawals,
       revision: raw.revision,
     });
   }
@@ -1023,6 +1248,11 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
         : null,
       originalCurrency: parseCurrency(transaction.originalCurrency) ?? null,
       targetCurrency: parseCurrency(transaction.targetCurrency) ?? null,
+      // L'aperçu de suppression ne projette que les transactions ALLOUÉES aux
+      // prévisions liées ; les retraits voyagent dans leur propre tableau, avec
+      // leur propre forme. Aucune de ces lignes ne porte donc d'origine.
+      sourceSavingsGoalId: null,
+      sourceSavingsGoalName: null,
       tagIds: [],
     };
   }

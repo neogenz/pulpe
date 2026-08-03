@@ -1,5 +1,51 @@
 import SwiftUI
 
+// MARK: - Initial transaction (PUL-329)
+
+/// Opens the transaction a `BudgetDestination.transaction` push came for, once
+/// the budget's data actually contains it.
+///
+/// Waiting on the transaction rather than on the budget matters: the editor
+/// resolves its model from the loaded set and auto-pops when it finds nothing, so
+/// pushing too early would open the page and immediately close it. Fires once —
+/// after that the user owns the stack, including a deliberate back.
+private struct InitialTransactionPush: ViewModifier {
+    let transactionId: String?
+    let transactions: [Transaction]
+    let router: BudgetDetailsRouter
+
+    @State private var didPush = false
+
+    private var isLoaded: Bool {
+        guard let transactionId else { return false }
+        return transactions.contains { $0.id == transactionId }
+    }
+
+    func body(content: Content) -> some View {
+        content.onChange(of: isLoaded, initial: true) { _, loaded in
+            guard loaded, !didPush, let transactionId else { return }
+            didPush = true
+            router.push(.editTx(transactionId: transactionId))
+        }
+    }
+}
+
+extension View {
+    func openingInitialTransaction(
+        _ transactionId: String?,
+        in transactions: [Transaction],
+        router: BudgetDetailsRouter
+    ) -> some View {
+        modifier(
+            InitialTransactionPush(
+                transactionId: transactionId,
+                transactions: transactions,
+                router: router
+            )
+        )
+    }
+}
+
 // MARK: - Routing
 
 /// Push + sheet destination builders for `BudgetDetailsView`, split out to keep
@@ -8,6 +54,15 @@ import SwiftUI
 /// (`coordinator`, `router`, `userSettingsStore`, `toastContext`) are declared
 /// non-private on the view for this reason.
 extension BudgetDetailsView {
+    /// Lives here rather than on the view so the page stays under its LOC budget;
+    /// every consumer is a routing or mutation call site anyway.
+    var toastContext: ToastContext {
+        ToastContext(
+            toastManager: appState.toastManager,
+            presentationCurrency: userSettingsStore.currency
+        )
+    }
+
     @ViewBuilder
     func pushDestination(for route: BudgetLinePushRoute) -> some View {
         switch route {

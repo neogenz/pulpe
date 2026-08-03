@@ -29,6 +29,8 @@ import {
   type SavingsGoalFutureLinesResponse,
   type SavingsGoalGenerationStopResponse,
   type SavingsGoalDeletionImpactResponse,
+  type SavingsGoalWithdrawalOptionsResponse,
+  type SavingsGoalWithdrawalsResponse,
 } from 'pulpe-shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
@@ -52,6 +54,8 @@ import {
   SavingsGoalGenerationStopResponseDto,
   SavingsGoalDeletionCommandDto,
   SavingsGoalDeletionImpactResponseDto,
+  SavingsGoalWithdrawalOptionsResponseDto,
+  SavingsGoalWithdrawalsResponseDto,
 } from './dto/savings-goal-swagger.dto';
 import { FindAllSavingsGoalsUseCase } from '../../application/find-all-savings-goals.use-case';
 import { FindSavingsGoalUseCase } from '../../application/find-savings-goal.use-case';
@@ -64,6 +68,8 @@ import { ApplySavingsGoalPlanUseCase } from '../../application/apply-savings-goa
 import { GetSavingsGoalFutureLinesUseCase } from '../../application/get-savings-goal-future-lines.use-case';
 import { ApplySavingsGoalGenerationStopUseCase } from '../../application/apply-savings-goal-generation-stop.use-case';
 import { GetSavingsGoalDeletionImpactUseCase } from '../../application/get-savings-goal-deletion-impact.use-case';
+import { GetSavingsGoalWithdrawalOptionsUseCase } from '../../application/get-savings-goal-withdrawal-options.use-case';
+import { GetSavingsGoalWithdrawalsUseCase } from '../../application/get-savings-goal-withdrawals.use-case';
 import { SavingsGoalMapper } from '../mappers/savings-goal.mapper';
 
 @ApiTags('Savings Goals')
@@ -91,6 +97,8 @@ export class SavingsGoalController {
     private readonly futureLinesUseCase: GetSavingsGoalFutureLinesUseCase,
     private readonly generationStopUseCase: ApplySavingsGoalGenerationStopUseCase,
     private readonly deletionImpactUseCase: GetSavingsGoalDeletionImpactUseCase,
+    private readonly withdrawalOptionsUseCase: GetSavingsGoalWithdrawalOptionsUseCase,
+    private readonly withdrawalsUseCase: GetSavingsGoalWithdrawalsUseCase,
     private readonly mapper: SavingsGoalMapper,
   ) {}
 
@@ -121,6 +129,43 @@ export class SavingsGoalController {
   ): Promise<SavingsGoalResponse> {
     const entity = await this.createUseCase.execute(createDto, user);
     return { success: true, data: this.mapper.toApi(entity) };
+  }
+
+  // DÉCLARÉE AVANT toute route paramétrée : `:id` avalerait
+  // `withdrawal-options` et chercherait un objectif portant ce nom.
+  @Get('withdrawal-options')
+  @ApiOperation({
+    summary:
+      "Objectifs proposables comme origine d'un revenu — solde disponible strictement positif (PUL-329)",
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Origines de retrait récupérées avec succès',
+    type: SavingsGoalWithdrawalOptionsResponseDto,
+  })
+  async withdrawalOptions(
+    @User() user: AuthenticatedUser,
+  ): Promise<SavingsGoalWithdrawalOptionsResponse> {
+    const options = await this.withdrawalOptionsUseCase.execute(user);
+    return { success: true, data: options };
+  }
+
+  @Get(':id/withdrawals')
+  @ApiOperation({
+    summary:
+      "Retraits d'un objectif — revenus dont l'argent est sorti du pot, du plus récent au plus ancien (PUL-329)",
+  })
+  @ApiParam({ name: 'id', description: "Identifiant unique de l'objectif" })
+  @ApiResponse({
+    status: 200,
+    description: 'Retraits récupérés avec succès',
+    type: SavingsGoalWithdrawalsResponseDto,
+  })
+  async withdrawals(
+    @Param('id') id: string,
+  ): Promise<SavingsGoalWithdrawalsResponse> {
+    const records = await this.withdrawalsUseCase.execute(id);
+    return { success: true, data: records };
   }
 
   @Get(':id/progress')

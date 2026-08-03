@@ -28,6 +28,8 @@ import { ScheduleAccountDeletionUseCase } from './application/schedule-account-d
     createInfoLoggerProvider(UpdateUserSettingsUseCase.name),
     createInfoLoggerProvider(ScheduleAccountDeletionUseCase.name),
   ],
-  exports: [],
+  // Le module objectif lit la devise du compte pour proposer une origine de
+  // retrait dans la bonne unité (PUL-329).
+  exports: [USER_REPOSITORY],
 })
 export class UserModule {}

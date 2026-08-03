@@ -802,3 +802,180 @@ describe('PUL-314 — open savings interval', () => {
     expect(result.plannedProjection).toBe(500);
   });
 });
+
+describe('computeSavingsGoalProgress withdrawals (PUL-329)', () => {
+  const CONFIRMED_LINE_AMOUNT = 10_000;
+  const WITHDRAWAL_AMOUNT = 4_500;
+
+  /** 10'000 CHF confirmés en juin, plus 2'000 CHF encore planifiés en juillet. */
+  function inputWithConfirmedStock(
+    overrides: Partial<SavingsGoalProgressInput> = {},
+  ): SavingsGoalProgressInput {
+    const confirmedLine = savingLine(
+      CONFIRMED_LINE_AMOUNT,
+      { month: 6, year: 2026 },
+      { checkedAt: '2026-06-15T10:00:00Z' },
+    );
+    const futureLine = savingLine(2_000, { month: 7, year: 2026 });
+
+    return baseInput({
+      lines: [confirmedLine, futureLine],
+      ...overrides,
+    });
+  }
+
+  it('should subtract withdrawals from the confirmed stock', () => {
+    const result = computeSavingsGoalProgress(
+      inputWithConfirmedStock({
+        withdrawals: [{ amount: WITHDRAWAL_AMOUNT, month: 6, year: 2026 }],
+      }),
+    );
+
+    expect(result.confirmed).toBe(5_500);
+    expect(result.withdrawn).toBe(WITHDRAWAL_AMOUNT);
+  });
+
+  it('should lower the projection by exactly the withdrawn amount', () => {
+    const withoutWithdrawal = computeSavingsGoalProgress(
+      inputWithConfirmedStock(),
+    );
+    const withWithdrawal = computeSavingsGoalProgress(
+      inputWithConfirmedStock({
+        withdrawals: [{ amount: WITHDRAWAL_AMOUNT, month: 6, year: 2026 }],
+      }),
+    );
+
+    expect(withoutWithdrawal.projected).toBe(12_000);
+    expect(withWithdrawal.projected).toBe(12_000 - WITHDRAWAL_AMOUNT);
+  });
+
+  it('should keep the confirmed pace identical before and after a withdrawal', () => {
+    const withoutWithdrawal = computeSavingsGoalProgress(
+      inputWithConfirmedStock(),
+    );
+    const withWithdrawal = computeSavingsGoalProgress(
+      inputWithConfirmedStock({
+        withdrawals: [{ amount: WITHDRAWAL_AMOUNT, month: 6, year: 2026 }],
+      }),
+    );
+
+    expect(withWithdrawal.confirmedPace).toBe(withoutWithdrawal.confirmedPace);
+    expect(withWithdrawal.pace).toBe(withoutWithdrawal.pace);
+  });
+
+  it('should leave the future plan untouched by a withdrawal', () => {
+    const withoutWithdrawal = computeSavingsGoalProgress(
+      inputWithConfirmedStock(),
+    );
+    const withWithdrawal = computeSavingsGoalProgress(
+      inputWithConfirmedStock({
+        withdrawals: [{ amount: WITHDRAWAL_AMOUNT, month: 6, year: 2026 }],
+      }),
+    );
+
+    expect(withWithdrawal.plannedCumulative).toBe(
+      withoutWithdrawal.plannedCumulative,
+    );
+    expect(withWithdrawal.plannedProjection).toBe(
+      withoutWithdrawal.plannedProjection,
+    );
+    expect(withWithdrawal.linkedLineCount).toBe(
+      withoutWithdrawal.linkedLineCount,
+    );
+  });
+
+  it('should floor the achievement percent at zero when the stock went negative', () => {
+    // Un retrait puis le dépointage de la ligne qui le finançait : l'écriture
+    // interdit le découvert, mais rien n'interdit de défaire la contribution
+    // après coup. `confirmed` doit rester signé pour le diagnostic, alors que
+    // `achievementPercent` est contraint à [0, 100] par le contrat partagé —
+    // un pourcentage négatif ferait échouer le parse de TOUTE la progression
+    // côté client web.
+    const result = computeSavingsGoalProgress(
+      baseInput({
+        withdrawals: [{ amount: WITHDRAWAL_AMOUNT, month: 6, year: 2026 }],
+      }),
+    );
+
+    expect(result.confirmed).toBe(-WITHDRAWAL_AMOUNT);
+    expect(result.achievementPercent).toBe(0);
+  });
+
+  it('should not count a withdrawal as a negative contribution in the cumulative gap', () => {
+    const withWithdrawal = computeSavingsGoalProgress(
+      inputWithConfirmedStock({
+        withdrawals: [{ amount: WITHDRAWAL_AMOUNT, month: 6, year: 2026 }],
+      }),
+    );
+
+    expect(withWithdrawal.cumulativeGap).toBe(
+      CONFIRMED_LINE_AMOUNT - (CONFIRMED_LINE_AMOUNT - WITHDRAWAL_AMOUNT),
+    );
+  });
+
+  it('should ignore a future-dated withdrawal in the cumulative gap while still subtracting it from the stock', () => {
+    const result = computeSavingsGoalProgress(
+      inputWithConfirmedStock({
+        withdrawals: [{ amount: WITHDRAWAL_AMOUNT, month: 8, year: 2026 }],
+      }),
+    );
+
+    expect(result.confirmed).toBe(5_500);
+    expect(result.cumulativeGap).toBe(0);
+  });
+
+  it('should place a withdrawal in the pay-day cycle rather than the calendar month', () => {
+    const julyWithdrawal = baseInput({
+      initialAmount: CONFIRMED_LINE_AMOUNT,
+      withdrawals: [{ amount: WITHDRAWAL_AMOUNT, month: 7, year: 2026 }],
+    });
+
+    const afterPayDay = computeSavingsGoalProgress({
+      ...julyWithdrawal,
+      payDayOfMonth: 25,
+      now: new Date(2026, 5, 26),
+    });
+    const beforePayDay = computeSavingsGoalProgress({
+      ...julyWithdrawal,
+      payDayOfMonth: 25,
+      now: new Date(2026, 5, 24),
+    });
+    const calendarMonth = computeSavingsGoalProgress({
+      ...julyWithdrawal,
+      payDayOfMonth: null,
+      now: new Date(2026, 5, 26),
+    });
+
+    expect(afterPayDay.cumulativeGap).toBe(WITHDRAWAL_AMOUNT);
+    expect(beforePayDay.cumulativeGap).toBe(0);
+    expect(calendarMonth.cumulativeGap).toBe(0);
+    expect(afterPayDay.confirmed).toBe(5_500);
+    expect(beforePayDay.confirmed).toBe(5_500);
+  });
+
+  it('should keep a negative stock visible instead of clamping it to zero', () => {
+    const result = computeSavingsGoalProgress(
+      inputWithConfirmedStock({
+        withdrawals: [
+          { amount: CONFIRMED_LINE_AMOUNT + 1, month: 6, year: 2026 },
+        ],
+      }),
+    );
+
+    expect(result.confirmed).toBe(-1);
+  });
+
+  it('should keep the goal reachable again once the withdrawal is removed', () => {
+    const withWithdrawal = computeSavingsGoalProgress(
+      inputWithConfirmedStock({
+        withdrawals: [{ amount: WITHDRAWAL_AMOUNT, month: 6, year: 2026 }],
+      }),
+    );
+    const afterDeletion = computeSavingsGoalProgress(
+      inputWithConfirmedStock({ withdrawals: [] }),
+    );
+
+    expect(withWithdrawal.achievementPercent).toBe(46);
+    expect(afterDeletion.achievementPercent).toBe(83);
+  });
+});

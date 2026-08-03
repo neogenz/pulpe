@@ -84,6 +84,12 @@ const CODE_KEY_MAP = {
     'apiError.savingsGoalDeletionImpactChanged',
   [API_ERROR_CODES.SAVINGS_GOAL_DELETION_RECALCULATION_FAILED]:
     'apiError.savingsGoalDeletionRecalculationFailed',
+  [API_ERROR_CODES.SAVINGS_GOAL_WITHDRAWAL_INSUFFICIENT_BALANCE]:
+    'apiError.savingsGoalWithdrawalInsufficientBalance',
+  [API_ERROR_CODES.SAVINGS_GOAL_WITHDRAWAL_CONFLICT]:
+    'apiError.savingsGoalWithdrawalConflict',
+  [API_ERROR_CODES.SAVINGS_GOAL_WITHDRAWAL_TRANSACTION_INVALID]:
+    'apiError.savingsGoalWithdrawalTransactionInvalid',
   [API_ERROR_CODES.USER_NOT_FOUND]: 'apiError.profileNotFound',
   [API_ERROR_CODES.USER_PROFILE_UPDATE_FAILED]: 'apiError.profileUpdateFailed',
   [API_ERROR_CODES.VALIDATION_FAILED]: 'apiError.validationFailed',

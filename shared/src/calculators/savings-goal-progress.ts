@@ -33,6 +33,15 @@ export const PACE_TOLERANCE_PERCENT = 5;
 export const MAX_ESTIMATED_HORIZON_MONTHS = 600;
 
 /**
+ * Un centime : sous ce seuil, deux soldes sont le même solde. Le solde confirmé
+ * est une SOMME de flottants, donc vider un pot de 150 peut se comparer à
+ * 149.99999999999997 — sans cette marge, le geste le plus légitime de la
+ * feature serait refusé. L'arbitre est le serveur, mais tout pré-contrôle
+ * client doit ouvrir la même bande, sinon il bloque ce que le serveur accepte.
+ */
+export const WITHDRAWAL_BALANCE_TOLERANCE = 0.005;
+
+/**
  * Prévision Épargne liée à l'objectif, avec la période budgétaire (month/year)
  * du budget qui la porte. `isRollover` est une garde défensive pour les
  * consommateurs client qui injectent des lignes de report virtuelles — côté
@@ -59,6 +68,20 @@ export interface LinkedSavingTransaction {
   amount: number;
   kind: TransactionKind;
   checkedAt?: string | null;
+}
+
+/**
+ * Retrait (PUL-329) : Revenu LIBRE dont l'origine est cet objectif. Sortie de
+ * STOCK, jamais une contribution négative — d'où un type distinct de
+ * `LinkedSavingTransaction`, qui décrit l'entrée d'argent allouée à une
+ * prévision. `month`/`year` sont la période du budget porteur (payDay-aware),
+ * pas la date de saisie : c'est elle qui situe le retrait dans la chronologie.
+ * Le montant est POSITIF ; c'est le calcul qui le soustrait.
+ */
+export interface LinkedSavingWithdrawal {
+  amount: number;
+  month: number;
+  year: number;
 }
 
 export interface SavingsGoalProgressInput {
@@ -92,6 +115,12 @@ export interface SavingsGoalProgressInput {
    * et de l'écart cumulé (`cumulativeGap`), qui restent des mesures de FLUX.
    */
   initialAmount?: number;
+  /**
+   * Retraits liés (PUL-329). Se soustraient du CONFIRMÉ dès leur création,
+   * indépendamment du pointage. Ils n'entrent jamais dans `confirmedPace` : ce
+   * qu'on retire du pot ne change pas la capacité mensuelle à le remplir.
+   */
+  withdrawals?: LinkedSavingWithdrawal[];
 }
 
 export interface SavingsGoalProgressResult {
@@ -116,6 +145,8 @@ export interface SavingsGoalProgressResult {
   estimatedCompletion: BudgetPeriod | null;
   /** Écho de `input.initialAmount` (stock de départ), défaut 0. */
   initialAmount: number;
+  /** Σ des retraits liés (positive), déjà soustraite de `confirmed`. */
+  withdrawn: number;
 }
 
 /**
@@ -276,20 +307,36 @@ export function computeSavingsGoalProgress(
       .reduce((sum, line) => sum + line.amount, 0);
 
   // 2. Confirmé — enveloppe checked-only, TOUS mois (pointage anticipé compte).
-  // `confirmed` (STOCK) additionne le montant de départ ; `linesConfirmed`
-  // (FLUX) en reste exclu pour le rythme et l'écart cumulé.
+  // `confirmed` (STOCK) additionne le montant de départ et retranche les
+  // retraits ; `linesConfirmed` (FLUX) reste la seule base du rythme.
+  // Aucun clamp à zéro : l'écriture interdit le découvert, mais une
+  // incohérence historique doit rester visible aux diagnostics.
   const linesConfirmed = BudgetFormulas.calculateRealizedSavings(
     savingLines,
     input.transactions,
   );
-  const confirmed = initialAmount + linesConfirmed;
+  const withdrawals = input.withdrawals ?? [];
+  const withdrawn = withdrawals.reduce(
+    (sum, withdrawal) => sum + withdrawal.amount,
+    0,
+  );
+  const withdrawnUntilNow = withdrawals
+    .filter((withdrawal) => periodIndex(withdrawal) <= indexCurrent)
+    .reduce((sum, withdrawal) => sum + withdrawal.amount, 0);
+  const confirmed = initialAmount + linesConfirmed - withdrawn;
 
   // 3. % d'atteinte — sur le CONFIRMÉ ; cible nulle/non déchiffrée ⇒ 0.
+  // Borné des deux côtés : `confirmed` reste signé pour le diagnostic, mais un
+  // stock négatif — dépointer une ligne déjà retirée y suffit — ne peut pas
+  // sortir en pourcentage négatif. Le contrat le refuse (`min(0)`) et le client
+  // web parse la réponse : un retrait ferait tomber TOUT l'écran de progression.
   const achievementPercent =
     input.targetAmount == null
       ? null
       : input.targetAmount > 0
-        ? Math.round(Math.min(confirmed / input.targetAmount, 1) * 100)
+        ? Math.round(
+            Math.max(0, Math.min(confirmed / input.targetAmount, 1)) * 100,
+          )
         : 0;
 
   // 4. Deux rythmes — mesures de FLUX, indépendantes de la projection du plan.
@@ -352,8 +399,11 @@ export function computeSavingsGoalProgress(
         confirmed >= input.targetAmount;
 
   // 10. Écart cumulé — signé, jamais clampé (négatif = pointage anticipé/avance).
-  // Adhérence au plan de pointage (FLUX) ⇒ exclut le montant de départ.
-  const cumulativeGap = plannedCumulative - linesConfirmed;
+  // Adhérence au plan de pointage (FLUX) ⇒ exclut le montant de départ, mais
+  // retranche les retraits DÉJÀ survenus : l'argent repris creuse le retard sur
+  // le cumul prévu. Un retrait daté d'un mois futur n'y compte pas encore.
+  const cumulativeGap =
+    plannedCumulative - (linesConfirmed - withdrawnUntilNow);
 
   // 11. Date d'atteinte estimée au rythme confirmé (payDay-aware).
   const estimatedCompletion = computeEstimatedCompletion({
@@ -382,5 +432,6 @@ export function computeSavingsGoalProgress(
     cumulativeGap,
     estimatedCompletion,
     initialAmount,
+    withdrawn,
   };
 }

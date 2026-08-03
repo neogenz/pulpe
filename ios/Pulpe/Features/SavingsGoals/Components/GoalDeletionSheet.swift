@@ -26,6 +26,17 @@ struct GoalDeletionPresentation {
         }
     }
 
+    /// Read straight off the impact, never off the selection: an income drawn
+    /// from the goal survives every mode (PUL-329), so the toggles must not be
+    /// able to take it out of the list the sheet announces.
+    var withdrawals: [SavingsGoalWithdrawal] {
+        impact?.withdrawals ?? []
+    }
+
+    var withdrawalTotal: Decimal {
+        impact?.summary.withdrawalTotal ?? 0
+    }
+
     mutating func show(_ impact: SavingsGoalDeletionImpact?) {
         self.impact = impact
         if impact?.summary.transactionCount == 0 {
@@ -183,6 +194,10 @@ private extension GoalDeletionSheet {
                 ForEach(presentation.budgets) { budget in
                     budgetSection(budget)
                 }
+
+                if !presentation.withdrawals.isEmpty {
+                    withdrawalsSection
+                }
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.bottom, DesignTokens.Spacing.xxl)
@@ -328,6 +343,51 @@ private extension GoalDeletionSheet {
                     }
                 }
             }
+        }
+        .padding(DesignTokens.Spacing.lg)
+        .pulpeCardBackground()
+    }
+
+    /// Shown for every deletion mode, with no per-row action: an income drawn
+    /// from this goal already landed in a budget the user has lived through, so
+    /// it is never a candidate for deletion (PUL-329). The block states what
+    /// survives instead of offering a choice that does not exist.
+    private var withdrawalsSection: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            Text("Retraits vers tes budgets")
+                .font(PulpeTypography.cardTitle)
+                .foregroundStyle(Color.textPrimary)
+
+            Text(
+                "Ces revenus restent dans leurs budgets, quel que soit ton choix."
+                    + " Ils garderont le nom de l'objectif, mais leur lien ne mènera plus nulle part."
+            )
+            .font(PulpeTypography.listRowSubtitle)
+            .foregroundStyle(Color.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
+
+            ForEach(presentation.withdrawals) { withdrawal in
+                impactRow(
+                    title: withdrawal.name,
+                    subtitle: withdrawal.transactionDate.formatted(date: .abbreviated, time: .omitted),
+                    amount: -withdrawal.amount
+                )
+            }
+
+            Divider()
+
+            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.md) {
+                Text("Total retiré")
+                    .font(PulpeTypography.listRowTitle)
+                    .foregroundStyle(Color.textPrimary)
+                Spacer(minLength: DesignTokens.Spacing.sm)
+                Text((-presentation.withdrawalTotal).asCurrency(currency))
+                    .font(PulpeTypography.metricLabelBold)
+                    .foregroundStyle(Color.textPrimary)
+                    .monospacedDigit()
+                    .sensitiveAmount()
+            }
+            .accessibilityElement(children: .combine)
         }
         .padding(DesignTokens.Spacing.lg)
         .pulpeCardBackground()

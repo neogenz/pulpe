@@ -104,6 +104,10 @@ export {
   savingsGoalDeletionBudgetSchema,
   savingsGoalDeletionImpactSchema,
   savingsGoalDeletionImpactResponseSchema,
+  savingsGoalWithdrawalOptionSchema,
+  savingsGoalWithdrawalOptionsResponseSchema,
+  savingsGoalWithdrawalSchema,
+  savingsGoalWithdrawalsResponseSchema,
   MAX_SAVINGS_GOAL_PLAN_PERIODS,
   MAX_PLAN_ADJUSTMENTS,
 
@@ -221,11 +225,13 @@ export { splitTotalPreserving } from './src/calculators/index.js';
 export {
   PACE_TOLERANCE_PERCENT,
   MAX_ESTIMATED_HORIZON_MONTHS,
+  WITHDRAWAL_BALANCE_TOLERANCE,
   calculatePaceStatus,
   computeSavingsGoalProgress,
   suggestedMonthlyContribution,
   type LinkedSavingLine,
   type LinkedSavingTransaction,
+  type LinkedSavingWithdrawal,
   type SavingsGoalProgressInput,
   type SavingsGoalProgressResult,
   type SuggestedMonthlyContributionInput,
@@ -372,6 +378,10 @@ export type {
   SavingsGoalDeletionBudget,
   SavingsGoalDeletionImpact,
   SavingsGoalDeletionImpactResponse,
+  SavingsGoalWithdrawalOption,
+  SavingsGoalWithdrawalOptionsResponse,
+  SavingsGoalWithdrawal,
+  SavingsGoalWithdrawalsResponse,
 
   // Tag types (PUL-18)
   Tag,

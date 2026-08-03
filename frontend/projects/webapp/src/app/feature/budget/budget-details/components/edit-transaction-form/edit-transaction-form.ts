@@ -23,6 +23,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
+import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import {
   type Transaction,
@@ -45,6 +46,7 @@ import { UserSettingsStore } from '@core/user-settings';
 import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
 import { TagPicker } from '@app/pattern/tag-picker/tag-picker';
+import { SavingsGoalSourceLine } from '@ui/savings-goal-source/savings-goal-source-line';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import { getDateDisplayFormats } from '@core/date/date-display-formats';
 import { formatLocalDate } from '@core/date/format-local-date';
@@ -78,7 +80,9 @@ interface DateOutOfRangeError {
     TransactionLabelPipe,
     TranslocoPipe,
     FormField,
+    RouterLink,
     AmountInput,
+    SavingsGoalSourceLine,
     TagPicker,
   ],
 
@@ -89,6 +93,34 @@ interface DateOutOfRangeError {
       novalidate
       [attr.aria-label]="'transactionForm.formAriaLabel' | transloco"
     >
+      <!--
+        PUL-329 — l'origine est un contexte, pas un champ : elle se lit, ne se
+        modifie jamais. Le lien actif ouvre l'objectif (le dialog se ferme seul,
+        MatDialog navigue avec closeOnNavigation) ; le lien cassé reste du texte.
+      -->
+      @if (sourceGoalName(); as goalName) {
+        @if (transaction().sourceSavingsGoalId; as goalId) {
+          <a
+            [routerLink]="['/savings-goals', goalId]"
+            class="text-label-large w-fit no-underline hover:underline"
+            data-testid="edit-transaction-source-link"
+          >
+            <pulpe-savings-goal-source-line
+              variant="detail"
+              [goalId]="goalId"
+              [goalName]="goalName"
+            />
+          </a>
+        } @else {
+          <pulpe-savings-goal-source-line
+            class="text-label-large"
+            variant="detail"
+            [goalName]="goalName"
+            data-testid="edit-transaction-source-broken"
+          />
+        }
+      }
+
       <!-- Transaction Name Field -->
       <mat-form-field subscriptSizing="dynamic" class="w-full">
         <mat-label>{{ 'transactionForm.nameLabel' | transloco }}</mat-label>
@@ -251,6 +283,10 @@ export class EditTransactionForm {
 
   protected readonly originalCurrency = computed(
     () => this.transaction().originalCurrency ?? null,
+  );
+
+  protected readonly sourceGoalName = computed(
+    () => this.transaction().sourceSavingsGoalName ?? null,
   );
 
   protected readonly showCurrencySelector = computed(() =>

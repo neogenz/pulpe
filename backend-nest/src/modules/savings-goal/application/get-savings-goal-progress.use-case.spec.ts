@@ -37,6 +37,7 @@ describe('GetSavingsGoalProgressUseCase', () => {
   let mockRepo: {
     findById: ReturnType<typeof jest.fn>;
     findLinkedContributions: ReturnType<typeof jest.fn>;
+    findLinkedWithdrawals: ReturnType<typeof jest.fn>;
     findMaterializedPeriods: ReturnType<typeof jest.fn>;
   };
   let mockTemplateRepo: {
@@ -49,6 +50,7 @@ describe('GetSavingsGoalProgressUseCase', () => {
       findLinkedContributions: jest
         .fn()
         .mockResolvedValue({ lines: [], transactions: [] }),
+      findLinkedWithdrawals: jest.fn().mockResolvedValue([]),
       findMaterializedPeriods: jest.fn().mockResolvedValue([]),
     };
     mockTemplateRepo = {
@@ -102,6 +104,46 @@ describe('GetSavingsGoalProgressUseCase', () => {
     expect(computed.confirmed).toBe(500); // ligne pointée → enveloppe
     expect(computed.linkedLineCount).toBe(1);
     expect(mockRepo.findLinkedContributions).toHaveBeenCalledWith('goal-1');
+  });
+
+  // PUL-329 — `SavingsGoalProgressInput.withdrawals` est optionnel : omettre le
+  // branchement compile et rapporte silencieusement zéro retrait. Ce test tient
+  // le fil entre la lecture du repository et la formule.
+  it('subtracts linked withdrawals from confirmed without moving confirmedPace', async () => {
+    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = new Date().getFullYear();
+    mockRepo.findLinkedContributions.mockResolvedValue({
+      lines: [
+        {
+          id: 'line-1',
+          amount: 500,
+          kind: 'saving',
+          checkedAt: '2026-06-01T00:00:00Z',
+          month: currentMonth,
+          year: currentYear,
+        },
+      ],
+      transactions: [],
+    });
+
+    const { computed: withoutWithdrawal } = await useCase.execute(
+      'goal-1',
+      mockUser,
+    );
+
+    mockRepo.findLinkedWithdrawals.mockResolvedValue([
+      { amount: 200, month: currentMonth, year: currentYear },
+    ]);
+    const { computed: withWithdrawal } = await useCase.execute(
+      'goal-1',
+      mockUser,
+    );
+
+    expect(mockRepo.findLinkedWithdrawals).toHaveBeenCalledWith('goal-1');
+    expect(withoutWithdrawal.withdrawn).toBe(0);
+    expect(withWithdrawal.withdrawn).toBe(200);
+    expect(withWithdrawal.confirmed).toBe(withoutWithdrawal.confirmed - 200);
+    expect(withWithdrawal.confirmedPace).toBe(withoutWithdrawal.confirmedPace);
   });
 
   it('lifts confirmed by initialAmount (stock) without moving confirmedPace (flux) — PUL-293', async () => {

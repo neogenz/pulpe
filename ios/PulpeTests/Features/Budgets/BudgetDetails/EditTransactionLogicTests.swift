@@ -95,6 +95,32 @@ struct EditTransactionLogicTests {
         #expect(result == true)
     }
 
+    // MARK: - Savings-goal origin invariants (PUL-329)
+
+    /// The origin is set once, at creation, and the server rejects a kind change
+    /// on a linked income — including after the goal was deleted, where the link
+    /// is broken but the money still came from savings.
+    @Test("a goal-funded income cannot change type, active link or broken")
+    func isKindEditable_frozenForALinkedIncome() {
+        let active = TestDataFactory.createTransaction(
+            kind: .income,
+            sourceSavingsGoalId: "goal-1",
+            sourceSavingsGoalName: "Maison"
+        )
+        let broken = TestDataFactory.createTransaction(
+            kind: .income,
+            sourceSavingsGoalName: "Maison"
+        )
+
+        #expect(!EditTransactionLogic.isKindEditable(for: active))
+        #expect(!EditTransactionLogic.isKindEditable(for: broken))
+    }
+
+    @Test("an ordinary transaction keeps its type editable")
+    func isKindEditable_openForAnUnlinkedTransaction() {
+        #expect(EditTransactionLogic.isKindEditable(for: TestDataFactory.createTransaction()))
+    }
+
     // MARK: - Currency Edit Mode (PUL-99 v1)
 
     private static func makeTransaction(

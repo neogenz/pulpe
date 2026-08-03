@@ -28,6 +28,7 @@ import type {
   SavingsGoalProgressInput,
   LinkedSavingLine,
   LinkedSavingTransaction,
+  LinkedSavingWithdrawal,
 } from './savings-goal-progress.js';
 import { splitTotalPreserving } from './spread-split.js';
 import { MAX_SAVINGS_GOAL_PLAN_PERIODS } from '../../schemas.js';
@@ -58,6 +59,18 @@ export interface SavingsPlanTimelineMonth {
   plannedAmount: number;
   /** Enveloppe checked-only (`calculateRealizedSavings`) pour ce mois. */
   confirmedAmount: number;
+  /**
+   * Σ des retraits (§11) portés par ce mois, toujours positive. Sortie de stock :
+   * elle creuse les cumuls, jamais `confirmedAmount`. Optionnelle — les payloads
+   * antérieurs à PUL-329 ne la portent pas.
+   *
+   * Sur la PREMIÈRE row, elle porte en plus les retraits antérieurs à la
+   * fenêtre, que l'horizon de 120 périodes a écartés : le mois d'ouverture
+   * cumule ce qui a quitté le stock jusqu'à lui, comme `initialAmount` cumule
+   * ce qui y est entré. À libeller « retiré jusqu'ici » et non « retiré ce
+   * mois-ci » si une UI vient un jour l'afficher ligne à ligne.
+   */
+  withdrawnAmount?: number;
   plannedCumulative: number;
   confirmedCumulative: number;
   lines: SavingsPlanLine[];
@@ -130,12 +143,24 @@ export function buildSavingsGoalTimeline(
   );
 
   const lineIndices = savingLines.map((line) => periodIndex(line));
+  const withdrawals = input.withdrawals ?? [];
+  // Un mois qui ne porte qu'un retrait mérite sa row : sans elle, la sortie
+  // d'argent disparaîtrait de la courbe et `confirmedCumulative` cesserait
+  // d'égaler le confirmé de `computeSavingsGoalProgress`.
+  const withdrawalIndices = withdrawals.map((withdrawal) =>
+    periodIndex(withdrawal),
+  );
   const rawStartIndex = Math.min(
     historicalAnchorIndex,
     indexCurrent,
     ...lineIndices,
+    ...withdrawalIndices,
   );
-  const rawEndIndex = Math.max(indexTarget ?? indexCurrent, ...lineIndices);
+  const rawEndIndex = Math.max(
+    indexTarget ?? indexCurrent,
+    ...lineIndices,
+    ...withdrawalIndices,
+  );
   const endIndex =
     indexTarget == null
       ? rawEndIndex
@@ -147,6 +172,22 @@ export function buildSavingsGoalTimeline(
   const materializedPeriodIndices = input.materializedPeriods
     ? new Set(input.materializedPeriods.map(periodIndex))
     : null;
+
+  // Une échéance à l'horizon maximal sature la fenêtre et fait remonter
+  // `startIndex` jusqu'au mois courant : un retrait antérieur perd alors la row
+  // où il creusait le cumul. Il a pourtant bien quitté le stock, et
+  // `computeSavingsGoalProgress` le retranche sans condition.
+  //
+  // Il est reporté sur la PREMIÈRE row plutôt que dans un seed local, parce que
+  // le seul consommateur de cette fonction est le serveur : le simulateur et la
+  // redistribution tournent chez le client, sur `months[]`, et ne connaissent
+  // de `initialAmount` que le stock brut de l'objectif. Un seed ici n'aurait
+  // corrigé que `confirmedCumulative` en laissant `simulatedFinal` et
+  // `remainingEffort` surestimer le stock du montant éjecté. Passer par la row
+  // les corrige tous les trois d'un coup, et iOS en hérite sans changer le fil.
+  const withdrawnBeforeWindow = withdrawals
+    .filter((withdrawal) => periodIndex(withdrawal) < startIndex)
+    .reduce((sum, withdrawal) => sum + withdrawal.amount, 0);
 
   const months: SavingsPlanTimelineMonth[] = [];
   let plannedCumulative = 0;
@@ -170,10 +211,26 @@ export function buildSavingsGoalTimeline(
     const isContributionEligible =
       isInHistoricalInterval && (indexTarget == null || index <= indexTarget);
 
+    // Le retrait creuse le CUMUL confirmé sans jamais entrer dans
+    // `confirmedAmount` : la ligne « contributions du mois » reste une somme
+    // d'entrées, pas une contribution négative.
+    const withdrawnAmount =
+      withdrawals
+        .filter((withdrawal) => periodIndex(withdrawal) === index)
+        .reduce((sum, withdrawal) => sum + withdrawal.amount, 0) +
+      (index === startIndex ? withdrawnBeforeWindow : 0);
+
     if (isInHistoricalInterval) {
       plannedCumulative += plannedAmount;
       confirmedCumulative += confirmedAmount;
     }
+
+    // Hors du bloc : une sortie de stock compte quel que soit le mois où elle
+    // tombe. `computeSavingsGoalProgress` somme TOUS les retraits ; la borner à
+    // la fenêtre de contribution ferait diverger le cumul du solde affiché dès
+    // qu'un retrait précède le début des contributions — un objectif ouvert
+    // avec un montant de départ peut être ponctionné avant sa première prévision.
+    confirmedCumulative -= withdrawnAmount;
 
     const hasLines = monthLines.length > 0;
     const allChecked =
@@ -210,6 +267,7 @@ export function buildSavingsGoalTimeline(
       isProvisionable,
       plannedAmount,
       confirmedAmount,
+      withdrawnAmount,
       plannedCumulative,
       confirmedCumulative,
       lines: monthLines.map((line) => ({
@@ -311,6 +369,11 @@ export function simulateSavingsPlan(input: {
     if (month.isContributionEligible !== false) {
       simulatedCumulative += Math.max(simulatedAmount, month.confirmedAmount);
     }
+
+    // Hors du garde, et APRÈS le max : le retrait est une sortie de stock, il
+    // ne concourt jamais avec la contribution du mois et ne dépend pas de la
+    // fenêtre de contribution — même règle que dans la timeline.
+    simulatedCumulative -= month.withdrawnAmount ?? 0;
     if (
       attainedPeriod == null &&
       month.isContributionEligible !== false &&
@@ -330,16 +393,20 @@ export function simulateSavingsPlan(input: {
   }
 
   const simulatedFinal = simulatedCumulative;
+  const isTargetMet =
+    input.targetAmount == null
+      ? null
+      : input.targetAmount > 0 && simulatedFinal >= input.targetAmount;
   return {
     months,
     simulatedFinal,
     gapToTarget:
       input.targetAmount == null ? null : input.targetAmount - simulatedFinal,
-    isTargetMet:
-      input.targetAmount == null
-        ? null
-        : input.targetAmount > 0 && simulatedFinal >= input.targetAmount,
-    attainedPeriod,
+    isTargetMet,
+    // Un retrait rend la courbe non monotone : un cumul peut franchir la cible
+    // puis repasser dessous. Annoncer « atteint en mars » sous un final
+    // inférieur à la cible ferait mentir le verdict des deux clients.
+    attainedPeriod: isTargetMet === false ? null : attainedPeriod,
   };
 }
 
@@ -355,7 +422,11 @@ export interface RedistributeRemainingEffortResult {
  * épinglés, cents-exact via `splitTotalPreserving`. Généralisation de PUL-290
  * (`remainingToProvision`/`perRemainingMonth`).
  *
- * `remaining = max(0, target − initialAmount − Σ confirmé(mois verrouillés) − Σ épinglés ouverts)`.
+ * `remaining = max(0, target − initialAmount − Σ confirmé(mois verrouillés) + Σ retraits(tous les mois) − Σ épinglés ouverts)`.
+ * Le retrait entre en plus : l'argent repris est de l'effort à refaire. Il est
+ * sommé sur TOUS les mois de la timeline, sans condition — c'est exactement
+ * l'ensemble que `simulateSavingsPlan` soustrait, et cette égalité est ce qui
+ * fait retomber la simulation sur la cible après redistribution.
  * `isDistributable = false` quand aucun mois ouvert non épinglé (ex. overdue).
  */
 export function redistributeRemainingEffort(input: {
@@ -390,6 +461,11 @@ export function redistributeRemainingEffort(input: {
     .filter((month) => month.isContributionEligible !== false && month.isLocked)
     .reduce((sum, month) => sum + month.confirmedAmount, 0);
 
+  const withdrawnSum = input.timeline.reduce(
+    (sum, month) => sum + (month.withdrawnAmount ?? 0),
+    0,
+  );
+
   const pinnedSum = openMonths
     .filter((month) => pinnedByKey.has(adjustmentKey(month)))
     .reduce((sum, month) => sum + pinnedByKey.get(adjustmentKey(month))!, 0);
@@ -398,7 +474,8 @@ export function redistributeRemainingEffort(input: {
     0,
     input.targetAmount -
       (input.initialAmount ?? 0) -
-      lockedConfirmedSum -
+      lockedConfirmedSum +
+      withdrawnSum -
       pinnedSum,
   );
 
@@ -498,4 +575,8 @@ export function allocateMonthAmountToLines(
   }));
 }
 
-export type { LinkedSavingLine, LinkedSavingTransaction };
+export type {
+  LinkedSavingLine,
+  LinkedSavingTransaction,
+  LinkedSavingWithdrawal,
+};

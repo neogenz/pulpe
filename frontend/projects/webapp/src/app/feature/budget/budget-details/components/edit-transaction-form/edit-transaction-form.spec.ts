@@ -1,6 +1,7 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { provideRouter } from '@angular/router';
 import { EditTransactionForm } from './edit-transaction-form';
 import { type TransactionUpdate } from 'pulpe-shared';
 import { setTestInput } from '@app/testing/signal-test-utils';
@@ -50,6 +51,7 @@ describe('EditTransactionForm', () => {
         provideZonelessChangeDetection(),
         ...provideTranslocoForTest(),
         provideAnimationsAsync(),
+        provideRouter([]),
         ...provideLocale(),
         { provide: StorageService, useValue: mockStorageService },
         { provide: Logger, useValue: mockLogger },
@@ -164,6 +166,54 @@ describe('EditTransactionForm', () => {
       expect(component['model']().money.amount).toBe(1200);
       expect(component['model']().kind).toBe('expense');
       expect(component['model']().tagIds).toEqual([TAG_ID]);
+    });
+  });
+
+  describe('savings-goal source (PUL-329)', () => {
+    const GOAL_ID = '00000000-0000-4000-8000-0000000000a1';
+
+    it('should link an active source to its goal without offering to change it', () => {
+      setTestInput(
+        component.transaction,
+        makeTransaction({
+          kind: 'income',
+          sourceSavingsGoalId: GOAL_ID,
+          sourceSavingsGoalName: 'Maison',
+        }),
+      );
+      fixture.detectChanges();
+
+      const link = fixture.nativeElement.querySelector(
+        '[data-testid="edit-transaction-source-link"]',
+      );
+      expect(link.getAttribute('href')).toBe(`/savings-goals/${GOAL_ID}`);
+      expect(
+        link.querySelector('pulpe-savings-goal-source-line'),
+      ).not.toBeNull();
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="savings-goal-withdrawal-select"]',
+        ),
+      ).toBeNull();
+    });
+
+    it('should keep a broken source static and free of any link', () => {
+      setTestInput(
+        component.transaction,
+        makeTransaction({
+          kind: 'income',
+          sourceSavingsGoalId: null,
+          sourceSavingsGoalName: 'Maison',
+        }),
+      );
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="edit-transaction-source-broken"]',
+        ),
+      ).not.toBeNull();
+      expect(fixture.nativeElement.querySelector('a[href]')).toBeNull();
     });
   });
 

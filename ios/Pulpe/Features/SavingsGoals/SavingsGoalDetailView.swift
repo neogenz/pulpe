@@ -19,6 +19,7 @@ struct SavingsGoalDeadlineDecision {
 struct SavingsGoalDetailView: View {
     let goal: SavingsGoal
 
+    @Environment(AppState.self) private var appState
     @Environment(SavingsGoalStore.self) private var store
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(ToastManager.self) private var toastManager
@@ -174,6 +175,7 @@ struct SavingsGoalDetailView: View {
                 }
 
                 contributionsSection(progress)
+                withdrawalsSection
             }
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.vertical, DesignTokens.Spacing.lg)
@@ -203,6 +205,37 @@ struct SavingsGoalDetailView: View {
             )
             .accessibilityIdentifier("savingsGoalContributionsSection")
         }
+    }
+
+    /// Survives an empty plan on purpose: a goal can lose every linked prévision
+    /// and still owe its withdrawal history (PUL-329).
+    @ViewBuilder
+    private var withdrawalsSection: some View {
+        if GoalWithdrawalsSection.isRelevant(
+            withdrawals: viewModel.withdrawals,
+            isLoading: viewModel.isLoadingWithdrawals,
+            error: viewModel.withdrawalsError
+        ) {
+            GoalWithdrawalsSection(
+                withdrawals: viewModel.withdrawals,
+                currency: currency,
+                isLoading: viewModel.isLoadingWithdrawals,
+                error: viewModel.withdrawalsError,
+                onOpen: openWithdrawal
+            )
+            .accessibilityIdentifier("savingsGoalWithdrawalsSection")
+        }
+    }
+
+    /// Pushes the income onto the stack the user is actually looking at, so Back
+    /// returns to this goal instead of dropping them into another tab.
+    private func openWithdrawal(_ withdrawal: SavingsGoalWithdrawal) {
+        appState.pushOnActiveStack(
+            BudgetDestination.transaction(
+                budgetId: withdrawal.budgetId,
+                transactionId: withdrawal.transactionId
+            )
+        )
     }
 
     /// Simulator entry (pilier C): active goal, at least one linked line, at least
@@ -506,12 +539,15 @@ final class SavingsGoalDetailViewModel {
 
     private(set) var progress: SavingsGoalProgress?
     private(set) var contributions: [SavingsGoalContribution] = []
+    private(set) var withdrawals: [SavingsGoalWithdrawal] = []
     private(set) var futureLines: [SavingsGoalFutureLine] = []
     private(set) var isLoading = true
     private(set) var isLoadingContributions = false
+    private(set) var isLoadingWithdrawals = false
     private(set) var isMutatingStatus = false
     private(set) var error: Error?
     private(set) var contributionsError: Error?
+    private(set) var withdrawalsError: Error?
 
     private let service: any SavingsGoalServicing
 
@@ -563,14 +599,18 @@ final class SavingsGoalDetailViewModel {
     }
 
     /// Initial / pull-to-refresh load. Shows the full-screen spinner while the
-    /// first fetch is in flight (progress still nil).
+    /// first fetch is in flight (progress still nil). The three reads carry
+    /// their own state: a history that fails must not blank out a progression
+    /// that loaded, so none of them can speak for the others.
     func load() async {
         isLoading = true
         defer { isLoading = false }
         async let progressLoad: Void = fetchProgress()
         async let contributionsLoad: Void = loadContributions()
+        async let withdrawalsLoad: Void = loadWithdrawals()
         await progressLoad
         await contributionsLoad
+        await withdrawalsLoad
     }
 
     func loadContributions() async {
@@ -581,6 +621,19 @@ final class SavingsGoalDetailViewModel {
             contributions = try await service.getContributions(id: goalId)
         } catch {
             contributionsError = error
+        }
+    }
+
+    /// Incomes drawn from this goal (PUL-329), newest first — the server's order
+    /// is the displayed order.
+    func loadWithdrawals() async {
+        isLoadingWithdrawals = true
+        withdrawalsError = nil
+        defer { isLoadingWithdrawals = false }
+        do {
+            withdrawals = try await service.getWithdrawals(id: goalId)
+        } catch {
+            withdrawalsError = error
         }
     }
 

@@ -452,6 +452,72 @@ extension SavingsGoalDetailViewModelTests {
 
         #expect(SavingsGoalDetailViewModel.canRepairPlan(progress, status: .active) == false)
     }
+
+    // MARK: - Withdrawals (PUL-329)
+
+    private func makeWithdrawal(id: String, amount: Decimal = 4500) -> SavingsGoalWithdrawal {
+        SavingsGoalWithdrawal(
+            transactionId: id,
+            budgetId: "budget-1",
+            name: "Apport cuisine",
+            transactionDate: Date(timeIntervalSince1970: 1_753_000_000),
+            amount: amount
+        )
+    }
+
+    /// The server sorts newest first; re-sorting here would silently disagree
+    /// with the same list rendered by the webapp.
+    @Test("load fetches the withdrawals and keeps the server's order")
+    func load_fetchesWithdrawalsInServerOrder() async {
+        let service = MockSavingsGoalService()
+        service.stubbedProgress = makeProgress(goalId: "g1")
+        service.stubbedWithdrawals = [
+            makeWithdrawal(id: "tx-recent"),
+            makeWithdrawal(id: "tx-older"),
+        ]
+        let viewModel = SavingsGoalDetailViewModel(goalId: "g1", service: service)
+
+        await viewModel.load()
+
+        #expect(viewModel.withdrawals.map(\.transactionId) == ["tx-recent", "tx-older"])
+        #expect(viewModel.withdrawalsError == nil)
+        #expect(service.getWithdrawalsCallCount == 1)
+    }
+
+    @Test("a withdrawals failure keeps the goal progress and the contributions usable")
+    func load_withdrawalsFailureIsInline() async {
+        let service = MockSavingsGoalService()
+        service.stubbedProgress = makeProgress(goalId: "g1")
+        service.stubbedContributions = [makeContribution()]
+        service.withdrawalsError = APIError.networkError(URLError(.timedOut))
+        let viewModel = SavingsGoalDetailViewModel(goalId: "g1", service: service)
+
+        await viewModel.load()
+
+        #expect(viewModel.progress != nil)
+        #expect(viewModel.contributions.count == 1)
+        #expect(viewModel.error == nil)
+        #expect(viewModel.contributionsError == nil)
+        #expect(viewModel.withdrawalsError != nil)
+    }
+
+    /// A goal nobody ever drew from says nothing by staying silent — the section
+    /// disappears instead of announcing an emptiness the user never asked about.
+    @Test("the section shows only when there is history, a load or a failure")
+    func withdrawalsSection_isRelevantOnlyWhenItHasSomethingToSay() {
+        #expect(!GoalWithdrawalsSection.isRelevant(withdrawals: [], isLoading: false, error: nil))
+        #expect(GoalWithdrawalsSection.isRelevant(
+            withdrawals: [makeWithdrawal(id: "tx-1")],
+            isLoading: false,
+            error: nil
+        ))
+        #expect(GoalWithdrawalsSection.isRelevant(withdrawals: [], isLoading: true, error: nil))
+        #expect(GoalWithdrawalsSection.isRelevant(
+            withdrawals: [],
+            isLoading: false,
+            error: APIError.networkError(URLError(.timedOut))
+        ))
+    }
 }
 
 @MainActor

@@ -31,6 +31,8 @@ const mockRow: TransactionRow = {
   original_currency: null,
   target_currency: null,
   exchange_rate: null,
+  source_savings_goal_id: null,
+  source_savings_goal_name: null,
 };
 
 function createMockEncryption(): EncryptionPort {
@@ -423,6 +425,29 @@ describe('SupabaseTransactionRepository', () => {
       await expect(repo.delete('txn-1')).resolves.toBeUndefined();
     });
 
+    it('should report a deadlock as a replayable conflict, never as a missing row', async () => {
+      // A transaction linked to a savings goal locks its own row, then the
+      // goal's, through the revision trigger — the reverse of the goal RPCs.
+      // The arbitrated victim wrote nothing: reporting "not found" would tell
+      // the client its row vanished instead of "retry".
+      const provider = createMockProvider(() => ({
+        delete: () => ({
+          eq: jest.fn().mockResolvedValue({
+            error: { code: '40P01', message: 'deadlock detected' },
+          }),
+        }),
+      }));
+      repo = new SupabaseTransactionRepository(
+        provider,
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+      await expect(repo.delete('txn-1')).rejects.toMatchObject({
+        code: 'ERR_CONCURRENT_MODIFICATION',
+      });
+    });
+
     it('should throw BusinessException when delete fails', async () => {
       const provider = createMockProvider(() => ({
         delete: () => ({
@@ -528,13 +553,20 @@ describe('SupabaseTransactionRepository', () => {
     });
   });
 
-  describe('fetchBudgetIdForTransaction', () => {
-    it('should return the budget id on success', async () => {
+  describe('findMutationContext', () => {
+    it('should return the mutation context on success', async () => {
       const provider = createMockProvider(() => ({
         select: () => ({
           eq: () => ({
             single: jest.fn().mockResolvedValue({
-              data: { budget_id: 'budget-1' },
+              data: {
+                budget_id: 'budget-1',
+                budget_line_id: null,
+                kind: 'expense',
+                amount: 'cipher',
+                source_savings_goal_id: null,
+                source_savings_goal_name: null,
+              },
               error: null,
             }),
           }),
@@ -546,9 +578,9 @@ describe('SupabaseTransactionRepository', () => {
         createMockLogger(),
       );
 
-      const result = await repo.fetchBudgetIdForTransaction('txn-1');
+      const result = await repo.findMutationContext('txn-1');
 
-      expect(result).toBe('budget-1');
+      expect(result?.budgetId).toBe('budget-1');
     });
 
     it('should return null when row not found (PGRST116)', async () => {
@@ -568,7 +600,7 @@ describe('SupabaseTransactionRepository', () => {
         createMockLogger(),
       );
 
-      const result = await repo.fetchBudgetIdForTransaction('missing');
+      const result = await repo.findMutationContext('missing');
 
       expect(result).toBeNull();
     });
@@ -591,13 +623,62 @@ describe('SupabaseTransactionRepository', () => {
       );
 
       try {
-        await repo.fetchBudgetIdForTransaction('txn-1');
+        await repo.findMutationContext('txn-1');
         throw new Error('expected to throw');
       } catch (error) {
         expect(error).toBeInstanceOf(BusinessException);
         expect((error as BusinessException).code).toBe(
           'ERR_TRANSACTION_FETCH_FAILED',
         );
+      }
+    });
+
+    it('should name the transaction when a withdrawal ciphertext is unreadable', async () => {
+      // A withdrawal refuses the lenient fallback, so the crypto layer throws —
+      // and it knows nothing about the row. Unwrapped, the incident reaches the
+      // client as a bare 500 and the logs hold only a decryption stack.
+      const provider = createMockProvider(() => ({
+        select: () => ({
+          eq: () => ({
+            single: jest.fn().mockResolvedValue({
+              data: {
+                budget_id: 'budget-1',
+                budget_line_id: null,
+                kind: 'income',
+                amount: 'corrupted',
+                source_savings_goal_id: 'goal-1',
+                source_savings_goal_name: 'Maison',
+              },
+              error: null,
+            }),
+          }),
+        }),
+      }));
+      const encryption = createMockEncryption();
+      const cause = new Error('Decrypted amount is not a valid number');
+      (encryption.decryptAmount as unknown as jest.Mock).mockImplementation(
+        () => {
+          throw cause;
+        },
+      );
+      repo = new SupabaseTransactionRepository(
+        provider,
+        encryption,
+        createMockLogger(),
+      );
+
+      try {
+        await repo.findMutationContext('txn-1');
+        throw new Error('expected to throw');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          'ERR_TRANSACTION_FETCH_FAILED',
+        );
+        expect((error as BusinessException).loggingContext.entityId).toBe(
+          'txn-1',
+        );
+        expect((error as BusinessException).cause).toBe(cause);
       }
     });
   });

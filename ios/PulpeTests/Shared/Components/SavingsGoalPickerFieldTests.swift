@@ -147,4 +147,94 @@ struct SavingsGoalPickerFieldTests {
         #expect(onCalendarPayDay == BudgetPeriod(month: 8, year: 2027))
         #expect(onLatePayDay == nil)
     }
+
+    // MARK: - Withdrawal mode (PUL-329)
+
+    private func option(
+        available: Decimal,
+        status: SavingsGoalStatus = .active
+    ) -> SavingsGoalWithdrawalOption {
+        SavingsGoalWithdrawalOption(
+            goalId: "goal-1",
+            name: "Maison",
+            status: status,
+            availableAmount: available,
+            currency: .chf
+        )
+    }
+
+    private func state(
+        option: SavingsGoalWithdrawalOption?,
+        amount: Decimal?,
+        isLoading: Bool = false,
+        hasError: Bool = false
+    ) -> SavingsGoalPickerField.WithdrawalState {
+        SavingsGoalPickerField.WithdrawalState(
+            selectedOption: option,
+            withdrawalAmount: amount,
+            isLoading: isLoading,
+            hasError: hasError
+        )
+    }
+
+    @Test("the preview subtracts the withdrawal from the confirmed balance")
+    func withdrawalState_showsWhatIsLeft() {
+        let ready = state(option: option(available: 10000), amount: 4500)
+
+        #expect(ready.remainingAmount == 5500)
+        #expect(!ready.hasInsufficientBalance)
+        #expect(ready.isReady)
+    }
+
+    @Test("an overshoot blocks the submission before the network")
+    func withdrawalState_blocksOnOvershoot() {
+        let overshoot = state(option: option(available: 10000), amount: 10000.01)
+
+        #expect(overshoot.hasInsufficientBalance)
+        #expect(!overshoot.isReady)
+    }
+
+    @Test("spending the whole balance stays allowed")
+    func withdrawalState_allowsEmptyingTheGoal() {
+        let exact = state(option: option(available: 10000), amount: 10000)
+
+        #expect(exact.remainingAmount == 0)
+        #expect(exact.isReady)
+    }
+
+    @Test("no selection, no resolved amount, loading or failure all block")
+    func withdrawalState_blocksWhileIncomplete() {
+        #expect(!state(option: nil, amount: 4500).isReady)
+        #expect(!state(option: option(available: 10000), amount: nil).isReady)
+        #expect(!state(option: option(available: 10000), amount: 10, isLoading: true).isReady)
+        #expect(!state(option: option(available: 10000), amount: 10, hasError: true).isReady)
+    }
+
+    // Same fixture as the webapp suite (savings-goal-picker-field.spec.ts): the
+    // pre-check must open the same band as the server, which accepts
+    // `debit <= available + WITHDRAWAL_BALANCE_TOLERANCE`. The balance arrives
+    // as a server-side sum, so emptying a goal lands a hair under zero.
+    @Test("a balance a hair under the amount still empties the goal")
+    func withdrawalState_absorbsRoundingUnderTheTolerance() {
+        let inBand = state(option: option(available: 149.999), amount: 150)
+
+        #expect(!inBand.hasInsufficientBalance)
+        #expect(inBand.isReady)
+    }
+
+    @Test("an overshoot past the tolerance still blocks")
+    func withdrawalState_blocksPastTheTolerance() {
+        let outOfBand = state(option: option(available: 150), amount: 150.01)
+
+        #expect(outOfBand.hasInsufficientBalance)
+        #expect(!outOfBand.isReady)
+    }
+
+    @Test("a completed goal can still fund an income")
+    func withdrawalState_acceptsACompletedGoal() {
+        let completed = state(option: option(available: 800, status: .completed), amount: 300)
+
+        #expect(completed.isReady)
+        #expect(completed.remainingAmount == 500)
+    }
 }

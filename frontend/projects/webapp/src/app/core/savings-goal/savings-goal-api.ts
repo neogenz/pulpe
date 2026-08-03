@@ -29,6 +29,10 @@ import {
   savingsGoalGenerationStopSchema,
   type SavingsGoalGenerationStopResponse,
   savingsGoalGenerationStopResponseSchema,
+  type SavingsGoalWithdrawalOptionsResponse,
+  savingsGoalWithdrawalOptionsResponseSchema,
+  type SavingsGoalWithdrawalsResponse,
+  savingsGoalWithdrawalsResponseSchema,
 } from 'pulpe-shared';
 import { ApiClient } from '@core/api/api-client';
 import { BudgetApi } from '@core/budget/budget-api';
@@ -48,12 +52,16 @@ export class SavingsGoalApi {
     // Goal progress is computed server-side from budget lines + transactions.
     // Any budget-domain mutation (transaction pointée, ligne modifiée…) must
     // mark progress stale, otherwise the goal detail serves the pre-mutation
-    // confirmed amount for up to staleTime.
+    // confirmed amount for up to staleTime. Withdrawals (PUL-329) ride the same
+    // signal: a linked income is a transaction, so creating, editing or
+    // deleting one already bumps the budget cache version.
     effect(() => {
       if (this.#budgetApi.cache.version() === 0) return;
       untracked(() => {
         this.cache.invalidate(['savings-goals', 'progress']);
         this.cache.invalidate(['savings-goals', 'contributions']);
+        this.cache.invalidate(['savings-goals', 'withdrawals']);
+        this.cache.invalidate(['savings-goals', 'withdrawal-options']);
       });
     });
   }
@@ -77,6 +85,26 @@ export class SavingsGoalApi {
     return this.#api.get$(
       `/savings-goals/${id}/contributions`,
       savingsGoalContributionsResponseSchema,
+    );
+  }
+
+  /**
+   * Objectifs pouvant financer un revenu (PUL-329). Le serveur filtre les
+   * soldes nuls et renvoie le disponible dans la devise du compte : le client
+   * n'invente aucun calcul de sélection.
+   */
+  getWithdrawalOptions$(): Observable<SavingsGoalWithdrawalOptionsResponse> {
+    return this.#api.get$(
+      '/savings-goals/withdrawal-options',
+      savingsGoalWithdrawalOptionsResponseSchema,
+    );
+  }
+
+  /** Historique des retraits d'un objectif, du plus récent au plus ancien. */
+  getWithdrawals$(id: string): Observable<SavingsGoalWithdrawalsResponse> {
+    return this.#api.get$(
+      `/savings-goals/${id}/withdrawals`,
+      savingsGoalWithdrawalsResponseSchema,
     );
   }
 

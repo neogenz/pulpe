@@ -80,9 +80,12 @@ describe('SavingsGoalMapper', () => {
         budgetLineTotal: 0,
         transactionCount: 0,
         transactionTotal: 0,
+        withdrawalCount: 0,
+        withdrawalTotal: 0,
       },
       templateLines: [],
       budgets: [],
+      withdrawals: [],
       revision: { templateLines: [], budgetLines: [], transactions: [] },
     } satisfies SavingsGoalDeletionImpactResult;
 
@@ -108,6 +111,7 @@ describe('SavingsGoalMapper', () => {
       cumulativeGap: 150,
       estimatedCompletion: { month: 6, year: 2027 },
       initialAmount: 0,
+      withdrawn: 0,
     };
 
     const months: SavingsGoalPlanMonth[] = [];
@@ -183,6 +187,8 @@ describe('SavingsGoalMapper', () => {
           originalCurrency: null,
           targetCurrency: null,
           exchangeRate: null,
+          sourceSavingsGoalId: null,
+          sourceSavingsGoalName: null,
           kind: 'saving',
           tagIds: [],
           transactionDate: '2026-06-15',

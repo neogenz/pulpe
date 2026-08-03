@@ -2,13 +2,19 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createMockBudgetLine } from '@app/testing/mock-factories';
+import {
+  createMockBudgetLine,
+  createMockTransaction,
+} from '@app/testing/mock-factories';
 import { setTestInput } from '@app/testing/signal-test-utils';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { TagStore } from '@core/tag';
 import { UserSettingsStore } from '@core/user-settings';
 import { FinancialKindDirective } from '@ui/financial-kind';
-import type { BudgetLineTableItem } from '../../../view-models/table-items.view-model';
+import type {
+  BudgetLineTableItem,
+  TransactionTableItem,
+} from '../../../view-models/table-items.view-model';
 import { NameCell } from './name-cell';
 
 const linkedLine: BudgetLineTableItem = {
@@ -81,5 +87,74 @@ describe('NameCell', () => {
         '[data-testid="budget-table-linked-goal-line-1"]',
       ),
     ).toBeNull();
+  });
+
+  describe('savings-goal source (PUL-329)', () => {
+    const LONG_NAME =
+      'Objectif de rénovation complète de la cuisine et de la salle de bain';
+
+    const sourcedIncome = (
+      overrides: Partial<{
+        sourceSavingsGoalId: string | null;
+        sourceSavingsGoalName: string | null;
+      }>,
+    ): TransactionTableItem => ({
+      data: createMockTransaction({
+        id: 'tx-1',
+        name: 'Apport cuisine',
+        kind: 'income',
+        ...overrides,
+      }),
+      metadata: {
+        itemType: 'transaction',
+        cumulativeBalance: 0,
+        kindIcon: 'trending_up',
+        allocationLabel: '',
+        displayName: 'Apport cuisine',
+      },
+    });
+
+    it('hands the whole active source down to the shared line', () => {
+      setTestInput(
+        component.line,
+        sourcedIncome({
+          sourceSavingsGoalId: 'goal-1',
+          sourceSavingsGoalName: LONG_NAME,
+        }),
+      );
+      fixture.detectChanges();
+
+      expect(component.source()).toEqual({ id: 'goal-1', name: LONG_NAME });
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="budget-table-source-goal-tx-1"]',
+        ),
+      ).not.toBeNull();
+    });
+
+    it('reports a deleted goal as broken while keeping its last known name', () => {
+      setTestInput(
+        component.line,
+        sourcedIncome({
+          sourceSavingsGoalId: null,
+          sourceSavingsGoalName: 'Maison',
+        }),
+      );
+      fixture.detectChanges();
+
+      expect(component.source()).toEqual({ id: null, name: 'Maison' });
+    });
+
+    it('renders nothing for an ordinary transaction', () => {
+      setTestInput(component.line, sourcedIncome({}));
+      fixture.detectChanges();
+
+      expect(component.source()).toBeNull();
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="budget-table-source-goal-tx-1"]',
+        ),
+      ).toBeNull();
+    });
   });
 });

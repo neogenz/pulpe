@@ -24,6 +24,8 @@ const checkedEntity: Transaction = {
   originalCurrency: null,
   targetCurrency: null,
   exchangeRate: null,
+  sourceSavingsGoalId: null,
+  sourceSavingsGoalName: null,
   kind: 'expense',
   tagIds: [],
   transactionDate: '2024-01-15T12:00:00Z',

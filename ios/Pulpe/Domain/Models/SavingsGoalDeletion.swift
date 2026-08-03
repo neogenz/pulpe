@@ -66,6 +66,10 @@ struct SavingsGoalDeletionSummary: Codable, Hashable, Sendable {
     let budgetLineTotal: Decimal
     let transactionCount: Int
     let transactionTotal: Decimal
+    /// Incomes drawn from this goal (PUL-329). They are never deleted, whatever
+    /// the mode: the money already landed in a budget the user has lived through.
+    let withdrawalCount: Int
+    let withdrawalTotal: Decimal
 }
 
 struct SavingsGoalDeletionImpact: Codable, Hashable, Sendable {
@@ -73,5 +77,6 @@ struct SavingsGoalDeletionImpact: Codable, Hashable, Sendable {
     let summary: SavingsGoalDeletionSummary
     let templateLines: [SavingsGoalDeletionTemplateLine]
     let budgets: [SavingsGoalDeletionBudget]
+    let withdrawals: [SavingsGoalWithdrawal]
     let revision: SavingsGoalDeletionRevision
 }

@@ -7,7 +7,10 @@
  *    budgets déjà matérialisés — jamais de récurrence sur le Mois Type ;
  *  - la progression à 2 couches et l'application explicite du simulateur sont livrées.
  *
- * Tags : #foundation · #progression · #simulator · #automation.
+ * Le retrait (PUL-329) est la seule sortie de stock : un Revenu libre déclare son
+ * objectif d'origine, le solde baisse, le plan futur reste intact.
+ *
+ * Tags : #foundation · #progression · #simulator · #automation · #withdrawal.
  */
 
 specification {
@@ -53,6 +56,7 @@ specification {
   tag progression
   tag simulator
   tag automation
+  tag withdrawal
 }
 
 model {
@@ -78,7 +82,15 @@ model {
     }
     goalDetail = screen "Détail objectif + progression" {
       #progression
-      description "Barre prévu/confirmé, rythme, avance/retard — ton non-anxiogène."
+      description "Barre prévu/confirmé, rythme, avance/retard — ton non-anxiogène. Section Retraits séparée des contributions."
+    }
+    addTransaction = screen "Ajouter une transaction" {
+      #withdrawal
+      description "Un Revenu peut déclarer son origine : « Ce revenu vient d'un objectif d'épargne », avec aperçu disponible → restant."
+    }
+    transactionDetail = screen "Détail / édition transaction" {
+      #withdrawal
+      description "Contexte source complet : lien actif navigable, ou état cassé nommé sans navigation. Aucun sélecteur de source."
     }
   }
 
@@ -111,6 +123,18 @@ model {
       #simulator
       description "Valide et applique atomiquement les montants confirmés. Ne modifie jamais le Mois Type."
     }
+    withdrawalOptions = usecase "Objectifs éligibles au retrait" {
+      #withdrawal
+      description "GET /savings-goals/withdrawal-options. Lecture groupée, soldes déchiffrés, filtre confirmed > 0 quel que soit le statut."
+    }
+    withdrawalWrite = usecase "Écrire un revenu lié" {
+      #withdrawal
+      description "Le module transaction reste propriétaire de l'écriture. Il compare le montant converti au solde, chiffre, puis appelle la RPC atomique avec la révision lue."
+    }
+    withdrawalHistory = usecase "Historique des retraits" {
+      #withdrawal
+      description "GET /savings-goals/:id/withdrawals. Trié du plus récent au plus ancien, montants déchiffrés."
+    }
     encryption = service "Encryption AES-256-GCM" {
       description "Chiffre target_amount, initial_amount et original_target_amount à l'écriture, puis déchiffre avant calcul et sérialisation."
     }
@@ -118,13 +142,13 @@ model {
 
   db = datastore "Supabase (Postgres + RLS)" {
     goalTable = store "savings_goal" {
-      description "name, target_amount et initial_amount chiffrés, target_date, status. Colonnes FX nulles dans la devise du compte. Priorité absente du produit."
+      description "name, target_amount et initial_amount chiffrés, target_date, status. balance_revision versionne tout changement susceptible de périmer le solde. Colonnes FX nulles dans la devise du compte."
     }
     lineTable = store "budget_line" {
       description "savings_goal_id (nullable) = le lien. amount chiffré, checked_at = pointage."
     }
     txTable = store "transaction" {
-      description "Opérations réelles d'épargne, rattachées à une ligne."
+      description "Opérations réelles d'épargne, rattachées à une ligne. source_savings_goal_id (FK ON DELETE SET NULL) + source_savings_goal_name portent l'origine d'un Revenu libre."
     }
   }
 
@@ -136,6 +160,8 @@ model {
   backend -> db "lit / écrit — chiffré, RLS par user_id"
   backend.goalCrud -> backend.encryption "chiffre target_amount"
   backend.goalProgress -> backend.encryption "déchiffre montants"
+  backend.withdrawalWrite -> backend.encryption "chiffre le montant retiré"
+  backend.withdrawalOptions -> backend.encryption "déchiffre les soldes"
 }
 
 views {
@@ -154,6 +180,9 @@ views {
     }
     style element.tag = #simulator {
       color green
+    }
+    style element.tag = #withdrawal {
+      color red
     }
   }
 
@@ -204,6 +233,29 @@ views {
     backend.goalCrud -> backend.goalDecompose "pose la baseline choisie (2083.34 / mois)"
     backend.goalDecompose -> db.lineTable "crée une budget_line one_off liée dans chaque budget existant, du mois courant à l'échéance"
     backend.goalDecompose -> ios.goalDetail "objectif + prévisions bornées ; les mois non budgétés restent des trous du plan"
+  }
+
+  dynamic view withdrawFromGoal {
+    title "Workflow 7 — Utiliser un objectif comme source d'un revenu"
+    user -> ios.addTransaction "ajoute un Revenu et active « Ce revenu vient d'un objectif d'épargne »"
+    ios.addTransaction -> backend.withdrawalOptions "GET withdrawal-options (soldes disponibles)"
+    backend.withdrawalOptions -> ios.addTransaction "objectifs éligibles, solde et devise du compte"
+    user -> ios.addTransaction "saisit le montant — aperçu disponible → restant"
+    ios.addTransaction -> backend.withdrawalWrite "POST /transactions avec sourceSavingsGoalId"
+    backend.withdrawalWrite -> db.goalTable "verrouille l'objectif et compare la révision lue"
+    backend.withdrawalWrite -> db.txTable "INSERT revenu chiffré + tags, atomiquement"
+    backend.withdrawalWrite -> ios.goalDetail "solde recalculé, retrait visible dans l'historique"
+  }
+
+  dynamic view browseWithdrawals {
+    title "Workflow 8 — Naviguer entre un retrait et sa transaction"
+    user -> ios.goalDetail "ouvre la section Retraits"
+    ios.goalDetail -> backend.withdrawalHistory "GET /:id/withdrawals"
+    backend.withdrawalHistory -> db.txTable "revenus liés, triés du plus récent au plus ancien"
+    backend.withdrawalHistory -> ios.goalDetail "date, libellé, montant, budget et transaction"
+    user -> ios.goalDetail "touche un retrait"
+    ios.goalDetail -> ios.transactionDetail "ouvre la transaction dans son budget"
+    ios.transactionDetail -> ios.goalDetail "lien actif : retour vers l'objectif. Objectif supprimé : contexte cassé nommé, sans navigation"
   }
 
   dynamic view redistribution {

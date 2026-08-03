@@ -2,12 +2,32 @@ import SwiftUI
 
 /// Sheet for adding a new transaction — fintech-inspired hero amount layout
 struct AddTransactionSheet: View {
+    /// Whether an income is funded by a savings goal (PUL-329), and what that
+    /// implies for the form. A value type so the rule can be tested on its own.
+    struct SavingsGoalOrigin: Equatable {
+        let kind: TransactionKind
+        let isEnabled: Bool
+        let goalId: String?
+        let isWithdrawalReady: Bool
+
+        /// Only an income can come out of a goal.
+        var isOffered: Bool { kind == .income }
+
+        var isActive: Bool { isOffered && isEnabled }
+
+        /// The id sent on creation — never sent for a kind that cannot carry one.
+        var sourceSavingsGoalId: String? { isActive ? goalId : nil }
+
+        var blocksSubmission: Bool { isActive && !isWithdrawalReady }
+    }
+
     let budgetId: String
     let onAdd: (Transaction) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(SavingsGoalStore.self) private var savingsGoalStore
     @State private var name = ""
     @State private var amount: Decimal?
     @State private var kind: TransactionKind = .expense
@@ -20,6 +40,14 @@ struct AddTransactionSheet: View {
     @State private var submitSuccessTrigger = false
     @State private var inputCurrency: SupportedCurrency = .chf
     @State private var selectedTagIds: Set<String> = []
+    /// PUL-329 — an income can be funded by a savings goal. Off by default; the
+    /// whole block disappears (and the choice is dropped) for any other kind.
+    @State private var isFromSavingsGoal = false
+    @State private var savingsGoalId: String?
+    @State private var isWithdrawalReady = false
+    @State private var withdrawalRefreshToken = 0
+    /// The amount in the account currency — what the backend actually withdraws.
+    @State private var convertedAmount: Decimal?
 
     private let dependencies: AddTransactionDependencies
     private let conversionService = CurrencyConversionService.shared
@@ -34,10 +62,20 @@ struct AddTransactionSheet: View {
         self.onAdd = onAdd
     }
 
+    private var savingsGoalOrigin: SavingsGoalOrigin {
+        SavingsGoalOrigin(
+            kind: kind,
+            isEnabled: isFromSavingsGoal,
+            goalId: savingsGoalId,
+            isWithdrawalReady: isWithdrawalReady
+        )
+    }
+
     private var canSubmit: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
         (amount ?? 0) > 0 &&
-        !isLoading
+        !isLoading &&
+        !savingsGoalOrigin.blocksSubmission
     }
 
     private var hasStartedFilling: Bool {
@@ -48,6 +86,9 @@ struct AddTransactionSheet: View {
         guard !canSubmit, !isLoading, hasStartedFilling else { return nil }
         if (amount ?? 0) <= 0 { return "Ajoute un montant" }
         if name.trimmingCharacters(in: .whitespaces).isEmpty { return "Ajoute une description" }
+        // The picker states why a chosen goal is refused; only its absence needs
+        // to be said here.
+        if isFromSavingsGoal, savingsGoalId == nil { return "Choisis l'objectif utilisé" }
         return nil
     }
 
@@ -89,6 +130,7 @@ struct AddTransactionSheet: View {
             dateSelector
             CheckedToggle(isOn: $isChecked, tintColor: kind.color)
             TagPickerField(selection: $selectedTagIds)
+            savingsGoalOriginSection
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
@@ -100,6 +142,14 @@ struct AddTransactionSheet: View {
         }
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
         .onAppear { inputCurrency = userSettingsStore.currency }
+        .onChange(of: kind) { _, newKind in
+            guard newKind != .income else { return }
+            isFromSavingsGoal = false
+            savingsGoalId = nil
+        }
+        .task(id: ConversionKey(amount: amount, inputCurrency: inputCurrency)) {
+            await refreshConvertedAmount()
+        }
         // Covers every presenter (FAB "+", widget deep link) in one place —
         // tips must not render on top of this sheet.
         .suppressesTips()
@@ -116,6 +166,34 @@ struct AddTransactionSheet: View {
             focusBinding: $focusedField,
             field: .description
         )
+    }
+
+    // MARK: - Savings-goal origin (PUL-329)
+
+    @ViewBuilder
+    private var savingsGoalOriginSection: some View {
+        if savingsGoalOrigin.isOffered {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                Toggle("Ce revenu vient d'un objectif d'épargne", isOn: $isFromSavingsGoal)
+                    .font(PulpeTypography.body)
+                    .tint(kind.color)
+
+                if isFromSavingsGoal {
+                    Text("Le montant sera retiré de l'objectif choisi.")
+                        .font(PulpeTypography.caption)
+                        .foregroundStyle(Color.textSecondary)
+
+                    SavingsGoalPickerField(
+                        selection: $savingsGoalId,
+                        mode: .withdrawal,
+                        withdrawalAmount: convertedAmount,
+                        withdrawalRefreshToken: withdrawalRefreshToken,
+                        onWithdrawalReadinessChange: { isWithdrawalReady = $0 }
+                    )
+                }
+            }
+            .animation(DesignTokens.Animation.smoothEaseInOut, value: isFromSavingsGoal)
+        }
     }
 
     // MARK: - Date Selector
@@ -146,6 +224,26 @@ struct AddTransactionSheet: View {
 
     // MARK: - Logic
 
+    /// Keeps the withdrawal preview on the amount the backend will actually take
+    /// out. The rate is cached for a day, so retyping does not hit the network.
+    private func refreshConvertedAmount() async {
+        guard let amount, amount > 0 else {
+            convertedAmount = nil
+            return
+        }
+        do {
+            let conversion = try await conversionService.convert(
+                amount: amount,
+                from: inputCurrency,
+                to: userSettingsStore.currency
+            )
+            convertedAmount = conversion?.convertedAmount ?? amount
+        } catch {
+            // No rate, no trustworthy comparison — the picker stays blocked.
+            convertedAmount = nil
+        }
+    }
+
     private func addTransaction() async {
         guard let amount else { return }
 
@@ -171,10 +269,12 @@ struct AddTransactionSheet: View {
                 originalCurrency: conversion?.originalCurrency,
                 targetCurrency: conversion?.targetCurrency,
                 exchangeRate: conversion?.exchangeRate,
-                tagIds: TagPickerField.createdTagIds(from: selectedTagIds)
+                tagIds: TagPickerField.createdTagIds(from: selectedTagIds),
+                sourceSavingsGoalId: savingsGoalOrigin.sourceSavingsGoalId
             )
 
             let transaction = try await dependencies.createTransaction(data)
+            if data.sourceSavingsGoalId != nil { savingsGoalStore.invalidateCache() }
             AnalyticsService.shared.capture(.transactionCreated, properties: ["type": kind.rawValue])
             submitSuccessTrigger.toggle()
             onAdd(transaction)
@@ -182,8 +282,19 @@ struct AddTransactionSheet: View {
             dismiss()
         } catch {
             self.error = error
+            // A refused balance is provably stale: re-read the options in place,
+            // keeping every input so the user only re-confirms.
+            if let apiError = error as? APIError, apiError.requiresWithdrawalOptionsRefresh {
+                withdrawalRefreshToken += 1
+            }
         }
     }
+}
+
+/// Identity of a conversion request — a new value restarts the preview task.
+private struct ConversionKey: Equatable {
+    let amount: Decimal?
+    let inputCurrency: SupportedCurrency
 }
 
 struct AddTransactionDependencies: Sendable {
@@ -202,6 +313,7 @@ struct AddTransactionDependencies: Sendable {
     }
     .environment(ToastManager())
     .environment(TagStore())
+    .environment(SavingsGoalStore())
 }
 
 // MARK: - Deep Link Wrapper

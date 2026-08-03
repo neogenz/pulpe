@@ -2,10 +2,13 @@ import type {
   BudgetLine,
   LinkedSavingLine,
   LinkedSavingTransaction,
+  LinkedSavingWithdrawal,
   SavingsGoalDeletionImpact,
   SavingsGoalPlanApply,
   SavingsGoalProgressResult,
   SavingsGoalReconciliation,
+  SavingsGoalWithdrawal,
+  SavingsGoalWithdrawalOption,
   SavingsPlanTimelineMonth,
   SupportedCurrency,
 } from 'pulpe-shared';
@@ -159,6 +162,29 @@ export interface SavingsGoalTargetDateReconciliationResult {
 
 /** Impact déchiffré présenté avant suppression (PUL-319). */
 export type SavingsGoalDeletionImpactResult = SavingsGoalDeletionImpact;
+
+/**
+ * Un objectif proposable comme origine d'un revenu (PUL-329). Le serveur ne
+ * renvoie que ceux dont le solde est strictement positif : le client choisit
+ * dans une liste déjà filtrée et n'a aucun calcul d'éligibilité à refaire.
+ */
+export type SavingsGoalWithdrawalOptionResult = SavingsGoalWithdrawalOption;
+
+/** Une sortie de stock déchiffrée, montant POSITIF (PUL-329). */
+export type SavingsGoalWithdrawalRecord = SavingsGoalWithdrawal;
+
+/**
+ * Matière brute du solde d'un objectif (PUL-329) : tout ce que
+ * `computeSavingsGoalProgress` réclame, et rien de plus. Le repository la lit
+ * et la déchiffre, l'appelant applique la formule — un solde reste un calcul,
+ * pas une colonne.
+ */
+export interface SavingsGoalBalanceInputs {
+  goal: SavingsGoal;
+  lines: LinkedSavingLine[];
+  transactions: LinkedSavingTransaction[];
+  withdrawals: LinkedSavingWithdrawal[];
+}
 
 /** Résultat DB de la suppression ; les budgets sont recalculés post-commit. */
 export interface SavingsGoalDeletionResult {

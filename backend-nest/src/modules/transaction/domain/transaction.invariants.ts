@@ -84,6 +84,33 @@ export class TransactionInvariants {
     }
   }
 
+  /**
+   * PUL-329 — un revenu issu d'un objectif garde son origine et son type pour
+   * toujours. Le nom, le montant, la date et les tags restent librement
+   * éditables ; le type ne l'est plus, parce qu'une dépense « provenant » d'un
+   * objectif n'a pas de sens comptable et qu'une épargne ferait double emploi
+   * avec les contributions.
+   *
+   * Le lien lui-même n'est pas défendu ici : `transactionUpdateSchema` ne porte
+   * simplement pas `sourceSavingsGoalId`, donc aucun contrat d'édition ne peut
+   * l'exprimer. Cette garde couvre le seul champ que le contrat autorise et
+   * que la règle refuse.
+   *
+   * Vaut pour un lien CASSÉ autant qu'actif : l'objectif a disparu, mais la
+   * transaction reste l'historique d'un revenu venu de l'épargne.
+   */
+  static validateWithdrawalUpdate(dto: TransactionUpdate): void {
+    if (dto.kind !== undefined && dto.kind !== 'income') {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_WITHDRAWAL_TRANSACTION_INVALID,
+        {
+          reason:
+            'a savings-goal-sourced income cannot change kind, only a new transaction can',
+        },
+      );
+    }
+  }
+
   static validateUpdate(dto: TransactionUpdate): void {
     if (dto.amount !== undefined) {
       if (dto.amount <= 0) {

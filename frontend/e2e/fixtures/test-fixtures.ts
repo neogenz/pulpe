@@ -4,6 +4,7 @@ import { VaultCodePage } from '../pages/auth/vault-code.page';
 import { CurrentMonthPage } from '../pages/current-month.page';
 import { BudgetTemplatesPage } from '../pages/budget-templates.page';
 import { BudgetDetailsPage } from '../pages/budget-details.page';
+import { SavingsGoalsPage } from '../pages/savings-goals.page';
 import { MainLayoutPage } from '../pages/main-layout.page';
 import { SettingsPage } from '../pages/settings.page';
 import { setupAuthBypass, setupMaintenanceMock } from '../utils/auth-bypass';
@@ -15,6 +16,7 @@ interface AppFixtures {
   currentMonthPage: CurrentMonthPage;
   budgetTemplatesPage: BudgetTemplatesPage;
   budgetDetailsPage: BudgetDetailsPage;
+  savingsGoalsPage: SavingsGoalsPage;
   mainLayoutPage: MainLayoutPage;
   settingsPage: SettingsPage;
   authenticatedPage: Page;
@@ -48,6 +50,10 @@ export const test = base.extend<AppFixtures>({
 
   budgetDetailsPage: async ({ page }, use) => {
     await use(new BudgetDetailsPage(page));
+  },
+
+  savingsGoalsPage: async ({ page }, use) => {
+    await use(new SavingsGoalsPage(page));
   },
 
   mainLayoutPage: async ({ page }, use) => {

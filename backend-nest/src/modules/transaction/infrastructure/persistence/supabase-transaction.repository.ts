@@ -1,5 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Buffer } from 'node:buffer';
+import type { PostgrestError } from '@supabase/supabase-js';
+import { z, ZodError } from 'zod';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
@@ -9,6 +11,7 @@ import {
 } from '@modules/encryption/encryption.tokens';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadata.mapper';
+import { throwIfRetryableConflict } from '@common/utils/postgres-conflict';
 import {
   fetchTagIds,
   replaceTagLinks as replaceTagLinksWithRpc,
@@ -30,8 +33,14 @@ import type {
   SpreadSourceTransaction,
   TransactionSearchTransactionRow,
   TransactionSearchBudgetLineRow,
+  TransactionMutationContext,
 } from '../../domain/transaction.entity';
 import type { Database } from '../../../../types/database.types';
+import {
+  createSavingsGoalWithdrawalPayloadSchema,
+  updateSavingsGoalWithdrawalPayloadSchema,
+} from './schemas/rpc-payload.schemas';
+import { mapWithdrawalRpcError } from './savings-goal-withdrawal-rpc.errors';
 
 type TransactionKind = Database['public']['Enums']['transaction_kind'];
 
@@ -328,15 +337,19 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     const { data: row, error } = await query;
 
     if (error || !row) {
+      const loggingContext = {
+        operation: 'updateTransaction',
+        entityId: id,
+        entityType: 'transaction',
+        supabaseError: error,
+      };
+
+      throwIfRetryableConflict(error, 'transaction', loggingContext);
+
       throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND,
         { id },
-        {
-          operation: 'updateTransaction',
-          entityId: id,
-          entityType: 'transaction',
-          supabaseError: error,
-        },
+        loggingContext,
         { cause: error ?? undefined },
       );
     }
@@ -412,15 +425,19 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     const { error } = await supabase.from('transaction').delete().eq('id', id);
 
     if (error) {
+      const loggingContext = {
+        operation: 'deleteTransaction',
+        entityId: id,
+        entityType: 'transaction',
+        supabaseError: error,
+      };
+
+      throwIfRetryableConflict(error, 'transaction', loggingContext);
+
       throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND,
         { id },
-        {
-          operation: 'deleteTransaction',
-          entityId: id,
-          entityType: 'transaction',
-          supabaseError: error,
-        },
+        loggingContext,
       );
     }
   }
@@ -484,11 +501,15 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     };
   }
 
-  async fetchBudgetIdForTransaction(id: string): Promise<string | null> {
+  async findMutationContext(
+    id: string,
+  ): Promise<TransactionMutationContext | null> {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('transaction')
-      .select('budget_id')
+      .select(
+        'budget_id, budget_line_id, kind, amount, source_savings_goal_id, source_savings_goal_name',
+      )
       .eq('id', id)
       .single();
 
@@ -499,7 +520,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
         ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
         undefined,
         {
-          operation: 'fetchBudgetIdForTransaction',
+          operation: 'findTransactionMutationContext',
           entityId: id,
           entityType: 'transaction',
           supabaseError: error,
@@ -508,7 +529,225 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       );
     }
 
-    return data?.budget_id ?? null;
+    if (!data) return null;
+
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    return {
+      budgetId: data.budget_id,
+      budgetLineId: data.budget_line_id,
+      kind: data.kind,
+      amount: this.decryptMutationAmount(data, dek, id),
+      sourceSavingsGoalId: data.source_savings_goal_id,
+      sourceSavingsGoalName: data.source_savings_goal_name,
+    };
+  }
+
+  /**
+   * Un ciphertext illisible dégrade à zéro partout ailleurs en lecture. Sur un
+   * RETRAIT, ce zéro arbitrerait une écriture : il rendrait au pot un montant
+   * nul et laisserait passer le plus grand retrait possible. L'origine de la
+   * transaction décide donc de la tolérance — bruyante quand de l'argent en
+   * dépend, indulgente quand la valeur ne sert à personne.
+   */
+  private decryptMutationAmount(
+    row: { amount: string | null; source_savings_goal_id: string | null },
+    dek: Buffer,
+    id: string,
+  ): number {
+    if (row.source_savings_goal_id === null) {
+      return this.encryption.tryDecryptAmount(row.amount, dek, 0);
+    }
+
+    if (row.amount === null) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'findTransactionMutationContext',
+          entityId: id,
+          entityType: 'transaction',
+          violation: 'savings-goal withdrawal without an amount',
+        },
+      );
+    }
+
+    try {
+      return this.encryption.decryptAmount(row.amount, dek);
+    } catch (cause) {
+      // Même refus que la branche au-dessus, autre cause : la couche crypto ne
+      // sait rien de la transaction. Sans cette enveloppe, l'incident sort en
+      // 500 nu, avec pour seule trace la pile du déchiffrement.
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'findTransactionMutationContext',
+          entityId: id,
+          entityType: 'transaction',
+          violation: 'savings-goal withdrawal: amount ciphertext unreadable',
+        },
+        { cause },
+      );
+    }
+  }
+
+  async insertWithdrawal(
+    input: TransactionCreateInput & { sourceSavingsGoalId: string },
+    expectedRevision: number,
+  ): Promise<Transaction> {
+    const user = this.supabaseProvider.user;
+    const insertRow = await this.toInsertRow(input, user);
+    const payload = this.parseWithdrawalPayload(
+      createSavingsGoalWithdrawalPayloadSchema,
+      {
+        ...(insertRow.id ? { id: insertRow.id } : {}),
+        budget_id: insertRow.budget_id,
+        name: insertRow.name,
+        amount: insertRow.amount,
+        original_amount: insertRow.original_amount ?? null,
+        original_currency: insertRow.original_currency ?? null,
+        target_currency: insertRow.target_currency ?? null,
+        exchange_rate: insertRow.exchange_rate ?? null,
+        kind: insertRow.kind,
+        transaction_date: insertRow.transaction_date,
+        checked_at: insertRow.checked_at ?? null,
+      },
+      'createSavingsGoalWithdrawal',
+      ERROR_DEFINITIONS.TRANSACTION_CREATE_FAILED,
+    );
+
+    const { data: row, error } = await this.supabaseProvider.client
+      .rpc('create_savings_goal_withdrawal', {
+        p_goal_id: input.sourceSavingsGoalId,
+        p_expected_revision: expectedRevision,
+        p_transaction: payload,
+        ...(input.tagIds?.length ? { p_tag_ids: input.tagIds } : {}),
+      })
+      .single();
+
+    if (error || !row) {
+      throw this.withdrawalRpcError(
+        error,
+        'createSavingsGoalWithdrawal',
+        ERROR_DEFINITIONS.TRANSACTION_CREATE_FAILED,
+      );
+    }
+
+    const dek = await this.encryption.getDekFor(user);
+    return { ...this.toEntity(row, dek), tagIds: input.tagIds ?? [] };
+  }
+
+  async updateWithdrawal(
+    id: string,
+    patch: TransactionUpdatePatch,
+    expectedRevision: number,
+  ): Promise<Transaction> {
+    const user = this.supabaseProvider.user;
+    const updateRow = await this.toUpdateRow(patch, user);
+    // `updated_at` belongs to the RPC, which stamps it under the lock. Feeding
+    // it through the patch would let a client-side clock decide the ordering
+    // the revision guard depends on.
+    delete updateRow.updated_at;
+    const payload = this.parseWithdrawalPayload(
+      updateSavingsGoalWithdrawalPayloadSchema,
+      updateRow,
+      'updateSavingsGoalWithdrawal',
+      ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,
+    );
+
+    const { data: row, error } = await this.supabaseProvider.client
+      .rpc('update_savings_goal_withdrawal', {
+        p_transaction_id: id,
+        p_expected_revision: expectedRevision,
+        p_patch: payload,
+        ...(patch.tagIds !== undefined ? { p_tag_ids: patch.tagIds } : {}),
+      })
+      .single();
+
+    if (error || !row) {
+      throw this.withdrawalRpcError(
+        error,
+        'updateSavingsGoalWithdrawal',
+        ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,
+        id,
+      );
+    }
+
+    const dek = await this.encryption.getDekFor(user);
+    const entity = this.toEntity(row, dek);
+    return patch.tagIds !== undefined
+      ? { ...entity, tagIds: patch.tagIds }
+      : {
+          ...entity,
+          tagIds: await fetchTagIds(
+            this.supabaseProvider.client,
+            { junctionTable: 'transaction_tag', fkColumn: 'transaction_id' },
+            id,
+            'updateSavingsGoalWithdrawal',
+            ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,
+          ),
+        };
+  }
+
+  async deleteWithdrawal(id: string, expectedRevision: number): Promise<void> {
+    const { error } = await this.supabaseProvider.client.rpc(
+      'delete_savings_goal_withdrawal',
+      { p_transaction_id: id, p_expected_revision: expectedRevision },
+    );
+
+    if (error) {
+      throw this.withdrawalRpcError(
+        error,
+        'deleteSavingsGoalWithdrawal',
+        ERROR_DEFINITIONS.TRANSACTION_DELETE_FAILED,
+        id,
+      );
+    }
+  }
+
+  /**
+   * Validates the JSONB the RPC will feed to `jsonb_populate_record`. A schema
+   * miss is a programming error, never client input, so it surfaces as the
+   * caller's generic failure with the Zod issues in the log context — the
+   * ciphertexts themselves never reach the message.
+   */
+  private parseWithdrawalPayload<T extends z.ZodType>(
+    schema: T,
+    candidate: unknown,
+    operation: string,
+    fallbackErrorDef: (typeof ERROR_DEFINITIONS)[keyof typeof ERROR_DEFINITIONS],
+  ): z.infer<T> {
+    try {
+      return schema.parse(candidate) as z.infer<T>;
+    } catch (error) {
+      throw new BusinessException(
+        fallbackErrorDef,
+        undefined,
+        {
+          operation,
+          entityType: 'transaction',
+          userId: this.supabaseProvider.user.id,
+          validationErrors:
+            error instanceof ZodError ? error.issues : undefined,
+        },
+        { cause: error },
+      );
+    }
+  }
+
+  private withdrawalRpcError(
+    error: PostgrestError | null,
+    operation: string,
+    fallbackErrorDef: (typeof ERROR_DEFINITIONS)[keyof typeof ERROR_DEFINITIONS],
+    transactionId?: string,
+  ): BusinessException {
+    return mapWithdrawalRpcError({
+      error,
+      operation,
+      fallbackErrorDef,
+      transactionId,
+      userId: this.supabaseProvider.user.id,
+    });
   }
 
   async fetchBudgetLineForAllocation(
@@ -915,6 +1154,8 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       targetCurrency: decrypted.target_currency,
       exchangeRate: decrypted.exchange_rate,
       kind: decrypted.kind,
+      sourceSavingsGoalId: decrypted.source_savings_goal_id,
+      sourceSavingsGoalName: decrypted.source_savings_goal_name,
       tagIds: (row.transaction_tag ?? []).map((link) => link.tag_id),
       transactionDate: decrypted.transaction_date,
       checkedAt: decrypted.checked_at,

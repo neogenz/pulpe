@@ -11,11 +11,19 @@ import {
   type BudgetRecalculationPort,
 } from '@modules/budget/domain/ports/budget-recalculation.port';
 import {
+  SAVINGS_GOAL_WITHDRAWAL_POLICY,
+  type SavingsGoalWithdrawalPolicyPort,
+} from '@modules/savings-goal/domain/ports/savings-goal-withdrawal-policy.port';
+import {
   TRANSACTION_REPOSITORY,
   type TransactionRepositoryPort,
 } from '../domain/ports/transaction-repository.port';
 import { TransactionInvariants } from '../domain/transaction.invariants';
-import type { Transaction } from '../domain/transaction.entity';
+import type {
+  Transaction,
+  TransactionMutationContext,
+  TransactionUpdatePatch,
+} from '../domain/transaction.entity';
 
 @Injectable()
 export class UpdateTransactionUseCase {
@@ -26,6 +34,8 @@ export class UpdateTransactionUseCase {
     private readonly currencyService: CurrencyService,
     @Inject(BUDGET_RECALCULATION_PORT)
     private readonly budgetRecalculation: BudgetRecalculationPort,
+    @Inject(SAVINGS_GOAL_WITHDRAWAL_POLICY)
+    private readonly withdrawalPolicy: SavingsGoalWithdrawalPolicyPort,
     @InjectInfoLogger(UpdateTransactionUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -37,9 +47,14 @@ export class UpdateTransactionUseCase {
   ): Promise<Transaction> {
     TransactionInvariants.validateUpdate(dto);
 
+    const context = await this.repo.findMutationContext(id);
+    if (context?.sourceSavingsGoalId || context?.sourceSavingsGoalName) {
+      TransactionInvariants.validateWithdrawalUpdate(dto);
+    }
+
     const withRate = await this.currencyService.overrideExchangeRate(dto);
 
-    const entity = await this.repo.update(id, {
+    const patch: TransactionUpdatePatch = {
       ...(withRate.amount !== undefined && { amount: withRate.amount }),
       ...(withRate.name !== undefined && { name: withRate.name }),
       ...(withRate.kind !== undefined && { kind: withRate.kind }),
@@ -59,7 +74,9 @@ export class UpdateTransactionUseCase {
       ...(withRate.exchangeRate !== undefined && {
         exchangeRate: withRate.exchangeRate,
       }),
-    });
+    };
+
+    const entity = await this.updateUnderPolicy(id, patch, context, user);
 
     // Cache invalidation BEFORE recalc — if recalc fails, the stale cached
     // list won't be locked in as authoritative against the just-mutated row.
@@ -89,5 +106,34 @@ export class UpdateTransactionUseCase {
     );
 
     return entity;
+  }
+
+  /**
+   * Éditer un retrait le remplace : l'ancien montant revient au pot
+   * (`creditBack`) avant que le nouveau n'en sorte. Sans cela, passer un
+   * retrait de 500 à 510 exigerait 510 de disponible en plus des 500 déjà
+   * sortis, et l'ajustement le plus banal serait refusé.
+   *
+   * Une édition qui ne touche pas au montant garde `debit = creditBack` : rien
+   * ne bouge, mais l'écriture reste sous la révision — la date d'un retrait
+   * change sa place dans la chronologie du plan.
+   */
+  private async updateUnderPolicy(
+    id: string,
+    patch: TransactionUpdatePatch,
+    context: TransactionMutationContext | null,
+    user: AuthenticatedUser,
+  ): Promise<Transaction> {
+    const goalId = context?.sourceSavingsGoalId;
+    if (!context || !goalId) return this.repo.update(id, patch);
+
+    return this.withdrawalPolicy.runAgainstBalance({
+      goalId,
+      debit: patch.amount ?? context.amount,
+      creditBack: context.amount,
+      user,
+      write: (expectedRevision) =>
+        this.repo.updateWithdrawal(id, patch, expectedRevision),
+    });
   }
 }

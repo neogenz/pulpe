@@ -32,6 +32,7 @@ const mockRow: SavingsGoalRow = {
   target_currency: null,
   exchange_rate: null,
   initial_amount: null,
+  balance_revision: 0,
 };
 
 function createMockProvider(
@@ -121,14 +122,19 @@ function createContributionsProvider(config: {
   provider: AuthenticatedSupabaseProvider;
   transactionQueried: () => boolean;
   transactionLineIds: () => string[] | undefined;
+  lineGoalIds: () => string[] | undefined;
 } {
   let queried = false;
   let capturedIds: string[] | undefined;
+  let capturedGoalIds: string[] | undefined;
   const provider = createMockProvider((table: string) => {
     if (table === 'budget_line') {
       return {
         select: () => ({
-          eq: () => ({ eq: () => Promise.resolve(config.lineResult) }),
+          in: (_column: string, goalIds: string[]) => {
+            capturedGoalIds = goalIds;
+            return { eq: () => Promise.resolve(config.lineResult) };
+          },
         }),
       };
     }
@@ -151,6 +157,7 @@ function createContributionsProvider(config: {
     provider,
     transactionQueried: () => queried,
     transactionLineIds: () => capturedIds,
+    lineGoalIds: () => capturedGoalIds,
   };
 }
 
@@ -205,6 +212,7 @@ function createGoalContributionsProvider(config: {
 
 const linkedLineRow = {
   id: 'line-1',
+  savings_goal_id: 'goal-1',
   amount: 'enc:500',
   kind: 'saving' as const,
   checked_at: '2026-06-01T00:00:00Z',
@@ -641,7 +649,7 @@ describe('SupabaseSavingsGoalRepository', () => {
 
   describe('findLinkedContributions', () => {
     it('decrypts amounts, renames checked_at→checkedAt, flattens monthly_budget month/year', async () => {
-      const { provider } = createContributionsProvider({
+      const { provider, lineGoalIds } = createContributionsProvider({
         lineResult: { data: [linkedLineRow], error: null },
         txResult: {
           data: [
@@ -663,6 +671,9 @@ describe('SupabaseSavingsGoalRepository', () => {
       const { lines, transactions } =
         await repo.findLinkedContributions('goal-1');
 
+      // Le lot partagé avec la lecture groupée ne doit pas élargir la portée :
+      // un seul objectif reste un seul objectif.
+      expect(lineGoalIds()).toEqual(['goal-1']);
       expect(lines).toEqual([
         {
           id: 'line-1',
@@ -1191,6 +1202,8 @@ describe('SupabaseSavingsGoalRepository', () => {
     const budgetId = '123e4567-e89b-42d3-a456-426614174002';
     const lineId = '123e4567-e89b-42d3-a456-426614174003';
     const transactionId = '123e4567-e89b-42d3-a456-426614174004';
+    const withdrawalId = '123e4567-e89b-42d3-a456-426614174005';
+    const unreadableWithdrawalId = '123e4567-e89b-42d3-a456-426614174006';
     const now = '2026-07-27T10:00:00+00:00';
     const revision = {
       templateLines: [],
@@ -1238,6 +1251,15 @@ describe('SupabaseSavingsGoalRepository', () => {
               ],
             },
           ],
+          withdrawals: [
+            {
+              transactionId: withdrawalId,
+              budgetId,
+              name: 'Retrait Voyage',
+              transactionDate: now,
+              amount: 'enc:300',
+            },
+          ],
           revision,
         },
         error: null,
@@ -1265,9 +1287,66 @@ describe('SupabaseSavingsGoalRepository', () => {
         budgetLineTotal: 500,
         transactionCount: 1,
         transactionTotal: 200,
+        withdrawalCount: 1,
+        withdrawalTotal: 300,
       });
       expect(impact.budgets[0].lines[0].transactions[0].amount).toBe(200);
+      expect(impact.withdrawals).toEqual([
+        {
+          transactionId: withdrawalId,
+          budgetId,
+          name: 'Retrait Voyage',
+          transactionDate: now,
+          amount: 300,
+        },
+      ]);
       expect(impact.revision).toEqual(revision);
+    });
+
+    it('keeps the preview readable when one withdrawal amount cannot be decrypted', async () => {
+      const rpc = jest.fn().mockResolvedValue({
+        data: {
+          goalId,
+          templateLines: [],
+          budgets: [],
+          withdrawals: [
+            {
+              transactionId: withdrawalId,
+              budgetId,
+              name: 'Retrait Voyage',
+              transactionDate: now,
+              amount: 'enc:300',
+            },
+            {
+              transactionId: unreadableWithdrawalId,
+              budgetId,
+              name: 'Retrait illisible',
+              transactionDate: now,
+              amount: null,
+            },
+          ],
+          revision,
+        },
+        error: null,
+      });
+      const provider = {
+        get client() {
+          return { rpc } as unknown as AuthenticatedSupabaseClient;
+        },
+        get user() {
+          return mockUser;
+        },
+      } as AuthenticatedSupabaseProvider;
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      const impact = await repo.getDeletionImpact(goalId);
+
+      expect(impact.withdrawals).toHaveLength(2);
+      expect(impact.withdrawals[1].amount).toBe(0);
+      expect(impact.summary.withdrawalTotal).toBe(300);
     });
 
     it('maps a foreign preview to SAVINGS_GOAL_NOT_FOUND', async () => {
@@ -1307,6 +1386,48 @@ describe('SupabaseSavingsGoalRepository', () => {
           userId: mockUser.id,
         },
       });
+    });
+
+    // PUL-329 — the SQL function grew a key the strict schema did not know and
+    // the endpoint answered 500 to every caller. The missing key is added now;
+    // what this pins is the landing: the NEXT drift must arrive as a named
+    // business failure carrying the offending path, not as an opaque crash.
+    it('lands a drifted RPC payload on a diagnosable failure', async () => {
+      const rpc = jest.fn().mockResolvedValue({
+        data: {
+          goalId,
+          templateLines: [],
+          budgets: [],
+          withdrawals: [],
+          revision,
+          unexpectedKey: 'a field the SQL function grew',
+        },
+        error: null,
+      });
+      const provider = {
+        get client() {
+          return { rpc } as unknown as AuthenticatedSupabaseClient;
+        },
+        get user() {
+          return mockUser;
+        },
+      } as AuthenticatedSupabaseProvider;
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      const caught = await repo
+        .getDeletionImpact(goalId)
+        .catch((error) => error);
+
+      expect(caught).toBeInstanceOf(BusinessException);
+      expect(caught.code).toBe(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_FETCH_FAILED.code,
+      );
+      expect(JSON.stringify(caught.loggingContext.validationErrors)).toContain(
+        'unexpectedKey',
+      );
     });
 
     it('sends the exact mode and revision and deduplicates touched budgets', async () => {
@@ -1411,6 +1532,100 @@ describe('SupabaseSavingsGoalRepository', () => {
           entityType: 'savings_goal',
           userId: mockUser.id,
         },
+      });
+    });
+  });
+
+  // The goal RPCs lock the goal first, ordinary line and transaction writes
+  // reach it last through the balance-revision triggers: the two orders can
+  // meet and PostgreSQL rolls one side back whole (PUL-329 review). Nothing
+  // was written, so the client must be told to replay, not that we failed.
+  describe('PUL-329 lock arbitration', () => {
+    const goalId = '123e4567-e89b-42d3-a456-426614174001';
+    const lineId = '123e4567-e89b-42d3-a456-426614174002';
+
+    const buildRepo = (dbError: { code: string; message: string }) => {
+      const rpc = jest.fn().mockResolvedValue({ data: null, error: dbError });
+      const provider = {
+        get client() {
+          return { rpc } as unknown as AuthenticatedSupabaseClient;
+        },
+        get user() {
+          return mockUser;
+        },
+      } as AuthenticatedSupabaseProvider;
+      const encryption = createMockEncryption();
+      encryption.prepareAmountData = jest
+        .fn()
+        .mockResolvedValue({ amount: 'enc:123' });
+      return new SupabaseSavingsGoalRepository(provider, encryption);
+    };
+
+    const callers: [
+      string,
+      string,
+      (repo: SupabaseSavingsGoalRepository) => Promise<unknown>,
+    ][] = [
+      [
+        'applyDeletion',
+        'applySavingsGoalDeletion',
+        (repo) =>
+          repo.applyDeletion(goalId, {
+            mode: 'goal_only',
+            revision: {
+              templateLines: [],
+              budgetLines: [],
+              transactions: [],
+            },
+          }),
+      ],
+      [
+        'applyPlan',
+        'applySavingsGoalPlan',
+        (repo) =>
+          repo.applyPlan(goalId, [{ budgetLineId: lineId, amount: 123 }], 0),
+      ],
+      [
+        'applyGenerationStop',
+        'applySavingsGoalGenerationStop',
+        (repo) => repo.applyGenerationStop(goalId, 'freeze', [lineId], 0),
+      ],
+      [
+        'reconcileTargetDate',
+        'reconcileSavingsGoalTargetDate',
+        (repo) =>
+          repo.reconcileTargetDate(goalId, {
+            patch: { targetDate: '2030-03-15' },
+            reconciliation: { mode: 'freeze', budgetLineIds: [lineId] },
+            expectedTargetDate: '2030-05-15',
+          }),
+      ],
+    ];
+
+    it.each(callers)(
+      '%s maps an arbitrated deadlock to a 409 the client replays',
+      async (_name, operation, call) => {
+        const dbError = { code: '40P01', message: 'deadlock detected' };
+
+        await expect(call(buildRepo(dbError))).rejects.toMatchObject({
+          code: ERROR_DEFINITIONS.CONCURRENT_MODIFICATION.code,
+          status: 409,
+          cause: dbError,
+          loggingContext: { operation, entityType: 'savings_goal' },
+        });
+      },
+    );
+
+    it('leaves an ownership rejection on its own error', async () => {
+      const dbError = {
+        code: 'P0001',
+        message: 'Savings goal access denied',
+      };
+
+      await expect(
+        buildRepo(dbError).applyGenerationStop(goalId, 'freeze', [lineId], 0),
+      ).rejects.toMatchObject({
+        code: ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND.code,
       });
     });
   });

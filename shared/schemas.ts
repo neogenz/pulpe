@@ -494,6 +494,8 @@ export const savingsGoalPlanMonthSchema = z.object({
   isProvisionable: z.boolean().optional(),
   plannedAmount: z.number(),
   confirmedAmount: z.number(),
+  /** Σ des retraits du mois (§11) — creuse les cumuls, jamais la contribution. */
+  withdrawnAmount: z.number().optional(),
   plannedCumulative: z.number(),
   confirmedCumulative: z.number(),
   lines: z.array(
@@ -536,6 +538,9 @@ export const savingsGoalProgressSchema = z.object({
   // Montant de départ (stock, inclus dans confirmed) — default 0 pour les
   // payloads/mocks existants qui ne portent pas encore le champ.
   initialAmount: z.number().nonnegative().default(0),
+  // Σ des retraits (PUL-329), déjà DÉDUITE de `confirmed`. Transportée positive
+  // et à part, pour expliquer un solde qui baisse sans contribution annulée.
+  withdrawn: z.number().nonnegative().default(0),
   // Timeline ancrage → cible (chart A + calendrier B + rebase simulateur C).
   months: z.array(savingsGoalPlanMonthSchema),
   // FX door-keepers (CA6) — devise du compte uniquement en v1, toujours null.
@@ -652,6 +657,60 @@ export type SavingsGoalGenerationStop = z.infer<
 >;
 
 /**
+ * RETRAIT D'UN OBJECTIF (PUL-329) — un Revenu libre dont l'argent SORT du pot.
+ *
+ * Mouvement de STOCK : `confirmé = initialAmount + contributions confirmées −
+ * retraits`. Il ne réécrit ni les prévisions futures, ni `confirmedPace`, ni le
+ * statut de l'objectif. À ne pas confondre avec PUL-292
+ * (`budgetLineSavingsWithdrawalCreateSchema`), qui programme un remboursement
+ * en M+1 — ici l'argent est retiré définitivement.
+ */
+export const savingsGoalWithdrawalOptionSchema = z.object({
+  goalId: z.uuid(),
+  name: z.string().min(1),
+  status: savingsGoalStatusSchema,
+  /** Solde confirmé, strictement positif — le serveur filtre les objectifs vides. */
+  availableAmount: z.coerce.number().positive(),
+  /** Devise du compte : le contrôle de solde porte sur le montant converti (RG-009). */
+  currency: supportedCurrencySchema,
+});
+export type SavingsGoalWithdrawalOption = z.infer<
+  typeof savingsGoalWithdrawalOptionSchema
+>;
+
+export const savingsGoalWithdrawalOptionsResponseSchema = createListResponse(
+  savingsGoalWithdrawalOptionSchema,
+);
+export type SavingsGoalWithdrawalOptionsResponse = z.infer<
+  typeof savingsGoalWithdrawalOptionsResponseSchema
+>;
+
+/**
+ * Une sortie d'argent, transportée POSITIVE : le signe négatif est une décision
+ * de présentation, les clients l'ajoutent seuls.
+ *
+ * `nonnegative` plutôt que `positive` : ce schéma ne sert que des chemins de
+ * lecture, où un montant indéchiffrable dégrade à zéro comme partout ailleurs.
+ * Un seul ciphertext illisible ne doit pas emporter l'aperçu de suppression
+ * entier, au moment précis où l'utilisateur a besoin de le voir complet.
+ */
+export const savingsGoalWithdrawalSchema = z.object({
+  transactionId: z.uuid(),
+  budgetId: z.uuid(),
+  name: z.string().min(1),
+  transactionDate: z.iso.datetime({ offset: true }),
+  amount: z.coerce.number().nonnegative(),
+});
+export type SavingsGoalWithdrawal = z.infer<typeof savingsGoalWithdrawalSchema>;
+
+export const savingsGoalWithdrawalsResponseSchema = createListResponse(
+  savingsGoalWithdrawalSchema,
+);
+export type SavingsGoalWithdrawalsResponse = z.infer<
+  typeof savingsGoalWithdrawalsResponseSchema
+>;
+
+/**
  * Suppression d'un objectif (PUL-319).
  *
  * La révision reprend l'identité et la date de modification de chaque entité
@@ -747,9 +806,18 @@ export const savingsGoalDeletionImpactSchema = z.object({
     budgetLineTotal: z.number().nonnegative(),
     transactionCount: z.number().int().nonnegative(),
     transactionTotal: z.number().nonnegative(),
+    // `default` — additif : un payload antérieur à PUL-329 reste lisible.
+    withdrawalCount: z.number().int().nonnegative().default(0),
+    withdrawalTotal: z.number().nonnegative().default(0),
   }),
   templateLines: z.array(savingsGoalDeletionTemplateLineSchema),
   budgets: z.array(savingsGoalDeletionBudgetSchema),
+  /**
+   * Revenus provenant de cet objectif (PUL-329). TOUJOURS conservés, quel que
+   * soit le mode : la transaction reste une réalité comptable du budget. Leur
+   * lien devient cassé (identifiant null, dernier nom figé).
+   */
+  withdrawals: z.array(savingsGoalWithdrawalSchema).default([]),
   revision: savingsGoalDeletionRevisionSchema,
 });
 export type SavingsGoalDeletionImpact = z.infer<
@@ -1273,34 +1341,76 @@ export const transactionSchema = z.object({
   originalCurrency: supportedCurrencySchema.nullable().optional(),
   targetCurrency: supportedCurrencySchema.nullable().optional(),
   exchangeRate: exchangeRateWire.nullable().optional(),
+  /**
+   * Origine d'épargne (PUL-329) — LECTURE SEULE, jamais éditable après coup.
+   * Trois états : les deux nuls = revenu ordinaire ; les deux présents = lien
+   * ACTIF navigable ; identifiant nul + nom présent = lien CASSÉ (l'objectif a
+   * été supprimé, la provenance reste lisible). `optional()` couvre le
+   * déploiement : un ancien backend omet encore les deux champs.
+   */
+  sourceSavingsGoalId: z.uuid().nullable().optional(),
+  sourceSavingsGoalName: z.string().min(1).nullable().optional(),
 });
 export type Transaction = z.infer<typeof transactionSchema>;
 
-export const transactionCreateSchema = z.strictObject({
+export const transactionCreateSchema = z
+  .strictObject({
+    /**
+     * Client-generated UUIDv4. Optional — server falls back to gen_random_uuid() if absent.
+     * Enables idempotent retries and removes temp-id/real-id duality on the client.
+     */
+    id: z.uuid().optional(),
+    budgetId: z.uuid(),
+    budgetLineId: z.uuid().nullable().optional(),
+    name: z.string().min(1).max(100).trim(),
+    amount: z.number().positive(),
+    kind: transactionKindSchema,
+    transactionDate: z.iso.datetime({ offset: true }).optional(),
+    tagIds: z
+      .array(z.uuid())
+      .max(MAX_TAGS_PER_TRANSACTION)
+      .refine(hasUniqueTagIds, {
+        message: 'Chaque tag ne peut être associé qu’une fois.',
+      })
+      .optional(),
+    checkedAt: z.iso.datetime({ offset: true }).nullable().optional(),
+    originalAmount: z.number().positive().optional(),
+    originalCurrency: supportedCurrencySchema.optional(),
+    targetCurrency: supportedCurrencySchema.optional(),
+    exchangeRate: exchangeRateWirePositive.optional(),
+    /**
+     * Origine d'épargne (PUL-329) — acceptée UNIQUEMENT ici. Le lien est
+     * immuable : ni le PATCH ni aucun autre contrat ne peut l'ajouter, le
+     * remplacer ou l'effacer. Le nom snapshot appartient au serveur, jamais au
+     * client. Un seul objectif par revenu, par cardinalité du champ.
+     */
+    sourceSavingsGoalId: z.uuid().optional(),
+  })
   /**
-   * Client-generated UUIDv4. Optional — server falls back to gen_random_uuid() if absent.
-   * Enables idempotent retries and removes temp-id/real-id duality on the client.
+   * Un retrait ne peut sortir que d'un Revenu LIBRE : allouer la transaction à
+   * une prévision ferait double emploi avec les contributions de l'objectif, et
+   * une dépense/épargne « provenant » d'un objectif n'a pas de sens comptable.
    */
-  id: z.uuid().optional(),
-  budgetId: z.uuid(),
-  budgetLineId: z.uuid().nullable().optional(),
-  name: z.string().min(1).max(100).trim(),
-  amount: z.number().positive(),
-  kind: transactionKindSchema,
-  transactionDate: z.iso.datetime({ offset: true }).optional(),
-  tagIds: z
-    .array(z.uuid())
-    .max(MAX_TAGS_PER_TRANSACTION)
-    .refine(hasUniqueTagIds, {
-      message: 'Chaque tag ne peut être associé qu’une fois.',
-    })
-    .optional(),
-  checkedAt: z.iso.datetime({ offset: true }).nullable().optional(),
-  originalAmount: z.number().positive().optional(),
-  originalCurrency: supportedCurrencySchema.optional(),
-  targetCurrency: supportedCurrencySchema.optional(),
-  exchangeRate: exchangeRateWirePositive.optional(),
-});
+  .superRefine((value, ctx) => {
+    if (value.sourceSavingsGoalId == null) return;
+
+    if (value.kind !== 'income') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['sourceSavingsGoalId'],
+        message: 'Seul un revenu peut provenir d’un objectif d’épargne.',
+      });
+    }
+
+    if (value.budgetLineId != null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['sourceSavingsGoalId'],
+        message:
+          'Un revenu provenant d’un objectif d’épargne ne peut pas être alloué à une prévision.',
+      });
+    }
+  });
 export type TransactionCreate = z.infer<typeof transactionCreateSchema>;
 
 export const transactionUpdateSchema = z.strictObject({

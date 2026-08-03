@@ -128,7 +128,7 @@ struct SavingsWithdrawalSheet: View {
         .scrollDismissesKeyboard(.interactively)
         .pulpeBackground()
         .pulpeStickyBottomCTA { continueButton }
-        .navigationTitle("Piocher dans mon épargne")
+        .navigationTitle("Couvrir ce mois avec mon épargne")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {

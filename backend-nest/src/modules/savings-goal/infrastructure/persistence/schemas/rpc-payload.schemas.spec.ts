@@ -130,6 +130,15 @@ describe('PUL-319 deletion RPC payloads', () => {
           ],
         },
       ],
+      withdrawals: [
+        {
+          transactionId: UUID,
+          budgetId: UUID,
+          name: 'Retrait Voyage',
+          transactionDate: now,
+          amount: 'ciphertext',
+        },
+      ],
       revision: {
         templateLines: [],
         budgetLines: [{ id: UUID, updatedAt: now }],
@@ -142,6 +151,36 @@ describe('PUL-319 deletion RPC payloads', () => {
     ).not.toThrow();
     expect(() =>
       savingsGoalDeletionImpactRpcSchema.parse({ ...impact, plaintext: 100 }),
+    ).toThrow();
+  });
+
+  // PUL-329 — the incident was a key the SQL function grew at the top level.
+  // A column added to the withdrawal row reproduces it one level down, where
+  // the top-level strictness test would not see it coming.
+  it('rejects an unknown key inside a withdrawal row', () => {
+    const withdrawal = {
+      transactionId: UUID,
+      budgetId: UUID,
+      name: 'Retrait Voyage',
+      transactionDate: now,
+      amount: 'ciphertext',
+    };
+    const impact = {
+      goalId: UUID,
+      templateLines: [],
+      budgets: [],
+      withdrawals: [withdrawal],
+      revision: { templateLines: [], budgetLines: [], transactions: [] },
+    };
+
+    expect(() =>
+      savingsGoalDeletionImpactRpcSchema.parse(impact),
+    ).not.toThrow();
+    expect(() =>
+      savingsGoalDeletionImpactRpcSchema.parse({
+        ...impact,
+        withdrawals: [{ ...withdrawal, budgetLineId: UUID }],
+      }),
     ).toThrow();
   });
 

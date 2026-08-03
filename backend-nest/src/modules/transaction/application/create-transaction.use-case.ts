@@ -11,11 +11,18 @@ import {
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import {
+  SAVINGS_GOAL_WITHDRAWAL_POLICY,
+  type SavingsGoalWithdrawalPolicyPort,
+} from '@modules/savings-goal/domain/ports/savings-goal-withdrawal-policy.port';
+import {
   TRANSACTION_REPOSITORY,
   type TransactionRepositoryPort,
 } from '../domain/ports/transaction-repository.port';
 import { TransactionInvariants } from '../domain/transaction.invariants';
-import type { Transaction } from '../domain/transaction.entity';
+import type {
+  Transaction,
+  TransactionCreateInput,
+} from '../domain/transaction.entity';
 
 @Injectable()
 export class CreateTransactionUseCase {
@@ -26,6 +33,8 @@ export class CreateTransactionUseCase {
     private readonly currencyService: CurrencyService,
     @Inject(BUDGET_RECALCULATION_PORT)
     private readonly budgetRecalculation: BudgetRecalculationPort,
+    @Inject(SAVINGS_GOAL_WITHDRAWAL_POLICY)
+    private readonly withdrawalPolicy: SavingsGoalWithdrawalPolicyPort,
     @InjectInfoLogger(CreateTransactionUseCase.name)
     private readonly logger: InfoLogger,
   ) {}
@@ -46,7 +55,7 @@ export class CreateTransactionUseCase {
       );
     }
 
-    const entity = await this.repo.insert({
+    const input: TransactionCreateInput = {
       id: withRate.id,
       budgetId: withRate.budgetId,
       budgetLineId: withRate.budgetLineId ?? null,
@@ -60,7 +69,10 @@ export class CreateTransactionUseCase {
       tagIds: withRate.tagIds,
       transactionDate: withRate.transactionDate || new Date().toISOString(),
       checkedAt: withRate.checkedAt ?? null,
-    });
+      sourceSavingsGoalId: withRate.sourceSavingsGoalId ?? null,
+    };
+
+    const entity = await this.insertUnderPolicy(input, user);
 
     // Cache invalidation BEFORE recalc — if recalc fails, the stale list
     // cache (missing the new transaction) won't survive the failed write.
@@ -94,6 +106,32 @@ export class CreateTransactionUseCase {
     );
 
     return entity;
+  }
+
+  /**
+   * Un revenu venu d'un objectif est d'abord une sortie de stock : il ne
+   * s'écrit qu'après vérification du solde, et sous la révision qui certifie
+   * cette vérification. Le montant contrôlé est celui qui touche le compte
+   * (`amount`, déjà converti), pas `originalAmount` — c'est bien celui-là qui
+   * quitte le pot (RG-009).
+   */
+  private async insertUnderPolicy(
+    input: TransactionCreateInput,
+    user: AuthenticatedUser,
+  ): Promise<Transaction> {
+    const goalId = input.sourceSavingsGoalId;
+    if (!goalId) return this.repo.insert(input);
+
+    return this.withdrawalPolicy.runAgainstBalance({
+      goalId,
+      debit: input.amount,
+      user,
+      write: (expectedRevision) =>
+        this.repo.insertWithdrawal(
+          { ...input, sourceSavingsGoalId: goalId },
+          expectedRevision,
+        ),
+    });
   }
 
   private async validateBudgetLineAllocation(

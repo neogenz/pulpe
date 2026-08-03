@@ -31,6 +31,7 @@ struct SavingsPlanCalculatorTests {
         isProvisionable: Bool = false,
         plannedAmount: Decimal = 500,
         confirmedAmount: Decimal = 0,
+        withdrawnAmount: Decimal = 0,
         lines: [SavingsGoalPlanLine]? = nil
     ) -> SavingsGoalPlanMonth {
         let resolvedLines = lines ?? [
@@ -50,6 +51,7 @@ struct SavingsPlanCalculatorTests {
             isProvisionable: isProvisionable,
             plannedAmount: plannedAmount,
             confirmedAmount: confirmedAmount,
+            withdrawnAmount: withdrawnAmount,
             plannedCumulative: 0,
             confirmedCumulative: 0,
             lines: resolvedLines

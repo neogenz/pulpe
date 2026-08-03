@@ -42,6 +42,9 @@ enum APIError: LocalizedError {
     case savingsGoalLineOutsideHorizon
     case savingsGoalDeletionImpactChanged
     case savingsGoalDeletionRecalculationFailed
+    case savingsGoalWithdrawalInsufficientBalance
+    case savingsGoalWithdrawalConflict
+    case savingsGoalWithdrawalTransactionInvalid
     case tagAlreadyExists
 
     var errorDescription: String? {
@@ -131,6 +134,14 @@ enum APIError: LocalizedError {
         case .savingsGoalDeletionRecalculationFailed:
             return "L'objectif et les éléments choisis ont bien été supprimés, mais les soldes "
                 + "n'ont pas pu être actualisés — recharge les budgets sans relancer la suppression"
+
+        // Savings-goal withdrawals (PUL-329) — copy aligned with the webapp fr.json.
+        case .savingsGoalWithdrawalInsufficientBalance:
+            return "Cet objectif n'a pas assez d'argent pour ce montant — vérifie le disponible affiché"
+        case .savingsGoalWithdrawalConflict:
+            return "Cet objectif vient de bouger — recharge le disponible et réessaie"
+        case .savingsGoalWithdrawalTransactionInvalid:
+            return "Un revenu venant d'un objectif reste un revenu : son type et son origine ne peuvent pas changer"
         case .tagAlreadyExists:
             return "Un tag porte déjà ce nom — choisis-en un autre"
         }
@@ -174,6 +185,9 @@ enum APIError: LocalizedError {
         "ERR_SAVINGS_GOAL_LINE_OUTSIDE_HORIZON": .savingsGoalLineOutsideHorizon,
         "ERR_SAVINGS_GOAL_DELETION_IMPACT_CHANGED": .savingsGoalDeletionImpactChanged,
         "ERR_SAVINGS_GOAL_DELETION_RECALCULATION_FAILED": .savingsGoalDeletionRecalculationFailed,
+        "ERR_SAVINGS_GOAL_WITHDRAWAL_INSUFFICIENT_BALANCE": .savingsGoalWithdrawalInsufficientBalance,
+        "ERR_SAVINGS_GOAL_WITHDRAWAL_CONFLICT": .savingsGoalWithdrawalConflict,
+        "ERR_SAVINGS_GOAL_WITHDRAWAL_TRANSACTION_INVALID": .savingsGoalWithdrawalTransactionInvalid,
         "ERR_TAG_ALREADY_EXISTS": .tagAlreadyExists,
     ]
 
@@ -195,6 +209,16 @@ extension APIError {
     var requiresSavingsGoalReconciliationRefresh: Bool {
         switch self {
         case .savingsGoalReconciliationRequired, .savingsGoalReconciliationConflict:
+            true
+        default:
+            false
+        }
+    }
+
+    /// The refusal proves the balances on screen are stale (PUL-329).
+    var requiresWithdrawalOptionsRefresh: Bool {
+        switch self {
+        case .savingsGoalWithdrawalInsufficientBalance, .savingsGoalWithdrawalConflict:
             true
         default:
             false

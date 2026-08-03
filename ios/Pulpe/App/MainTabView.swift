@@ -47,6 +47,21 @@ struct MainTabView: View {
     }
 }
 
+// MARK: - Budget destinations
+
+/// Resolves a budget destination for the stacks that use the default services.
+/// `BudgetsTab` keeps its own switch — it is the one entry point that injects
+/// test doubles.
+@ViewBuilder
+private func budgetDestination(_ destination: BudgetDestination) -> some View {
+    switch destination {
+    case .details(let budgetId):
+        BudgetDetailsView(budgetId: budgetId)
+    case .transaction(let budgetId, let transactionId):
+        BudgetDetailsView(budgetId: budgetId, initialTransactionId: transactionId)
+    }
+}
+
 // MARK: - Current Month Tab
 
 struct CurrentMonthTab: View {
@@ -62,10 +77,7 @@ struct CurrentMonthTab: View {
         NavigationStack(path: $state.currentMonthPath) {
             CurrentMonthView()
                 .navigationDestination(for: BudgetDestination.self) { destination in
-                    switch destination {
-                    case .details(let budgetId):
-                        BudgetDetailsView(budgetId: budgetId)
-                    }
+                    budgetDestination(destination)
                 }
                 .navigationDestination(for: SavingsGoalDestination.self) { destination in
                     switch destination {
@@ -85,6 +97,10 @@ struct CurrentMonthTab: View {
 
 struct SavingsGoalsTab: View {
     @Environment(AppState.self) private var appState
+    /// A goal's withdrawal history leads into the budgets it funded (PUL-329), so
+    /// this stack hosts budget screens too — and they need the same router the
+    /// other two tabs provide.
+    @State private var router = BudgetDetailsRouter()
 
     var body: some View {
         @Bindable var state = appState
@@ -99,7 +115,12 @@ struct SavingsGoalsTab: View {
                         SavingsGoalDetailView(goal: goal)
                     }
                 }
+                .navigationDestination(for: BudgetDestination.self) { destination in
+                    budgetDestination(destination)
+                }
         }
+        .environment(router)
+        .task { router.bind(to: appState) }
     }
 }
 
@@ -136,6 +157,13 @@ struct BudgetsTab: View {
                     case .details(let budgetId):
                         BudgetDetailsView(
                             budgetId: budgetId,
+                            budgetService: budgetService,
+                            budgetLineService: budgetLineService
+                        )
+                    case .transaction(let budgetId, let transactionId):
+                        BudgetDetailsView(
+                            budgetId: budgetId,
+                            initialTransactionId: transactionId,
                             budgetService: budgetService,
                             budgetLineService: budgetLineService
                         )

@@ -14,7 +14,9 @@ struct EditTransactionPage: View {
 
     @Environment(BudgetDetailsCoordinator.self) private var coordinator
     @Environment(BudgetDetailsProjector.self) private var projector
-    @Environment(BudgetDetailsRouter.self) private var router
+    // Internal so the savings-goal origin extension can push and resolve a goal.
+    @Environment(BudgetDetailsRouter.self) var router
+    @Environment(SavingsGoalStore.self) var savingsGoalStore
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
     @Environment(UserSettingsStore.self) private var userSettingsStore
@@ -165,7 +167,10 @@ struct EditTransactionPage: View {
                 }
             }
 
+            savingsGoalSourceSection(for: tx)
+
             KindToggle(selection: $kind)
+                .disabled(!EditTransactionLogic.isKindEditable(for: tx))
 
             if userSettingsStore.showCurrencySelector && isAlternateCurrency {
                 CurrencyAmountPicker(

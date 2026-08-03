@@ -90,6 +90,7 @@ function makeProgress(
     plannedProjection: 400,
     confirmed: 0,
     initialAmount: 0,
+    withdrawn: 0,
     achievementPercent: 0,
     monthsElapsed: 1,
     monthsRemaining: 2,

@@ -4,11 +4,13 @@ import { EncryptionModule } from '@modules/encryption/encryption.module';
 import { BudgetModule } from '@modules/budget/budget.module';
 import { BudgetLineModule } from '@modules/budget-line/budget-line.module';
 import { BudgetTemplateModule } from '@modules/budget-template/budget-template.module';
+import { UserModule } from '@modules/user/user.module';
 import { createInfoLoggerProvider } from '@common/logger';
 import { SavingsGoalController } from './infrastructure/http/savings-goal.controller';
 import { SupabaseSavingsGoalRepository } from './infrastructure/persistence/supabase-savings-goal.repository';
 import { SavingsGoalMapper } from './infrastructure/mappers/savings-goal.mapper';
 import { SAVINGS_GOAL_REPOSITORY } from './domain/ports/savings-goal-repository.port';
+import { SAVINGS_GOAL_WITHDRAWAL_POLICY } from './domain/ports/savings-goal-withdrawal-policy.port';
 import { FindAllSavingsGoalsUseCase } from './application/find-all-savings-goals.use-case';
 import { FindSavingsGoalUseCase } from './application/find-savings-goal.use-case';
 import { CreateSavingsGoalUseCase } from './application/create-savings-goal.use-case';
@@ -20,6 +22,9 @@ import { ApplySavingsGoalPlanUseCase } from './application/apply-savings-goal-pl
 import { GetSavingsGoalFutureLinesUseCase } from './application/get-savings-goal-future-lines.use-case';
 import { ApplySavingsGoalGenerationStopUseCase } from './application/apply-savings-goal-generation-stop.use-case';
 import { GetSavingsGoalDeletionImpactUseCase } from './application/get-savings-goal-deletion-impact.use-case';
+import { GetSavingsGoalWithdrawalOptionsUseCase } from './application/get-savings-goal-withdrawal-options.use-case';
+import { GetSavingsGoalWithdrawalsUseCase } from './application/get-savings-goal-withdrawals.use-case';
+import { SavingsGoalWithdrawalPolicyService } from './application/savings-goal-withdrawal-policy.service';
 
 @Module({
   // BudgetModule provides BUDGET_RECALCULATION_PORT (plan apply recalculates the
@@ -32,6 +37,7 @@ import { GetSavingsGoalDeletionImpactUseCase } from './application/get-savings-g
     BudgetModule,
     BudgetLineModule,
     BudgetTemplateModule,
+    UserModule,
   ],
   controllers: [SavingsGoalController],
   providers: [
@@ -46,9 +52,16 @@ import { GetSavingsGoalDeletionImpactUseCase } from './application/get-savings-g
     GetSavingsGoalFutureLinesUseCase,
     ApplySavingsGoalGenerationStopUseCase,
     GetSavingsGoalDeletionImpactUseCase,
+    GetSavingsGoalWithdrawalOptionsUseCase,
+    GetSavingsGoalWithdrawalsUseCase,
+    SavingsGoalWithdrawalPolicyService,
     {
       provide: SAVINGS_GOAL_REPOSITORY,
       useClass: SupabaseSavingsGoalRepository,
+    },
+    {
+      provide: SAVINGS_GOAL_WITHDRAWAL_POLICY,
+      useExisting: SavingsGoalWithdrawalPolicyService,
     },
     SavingsGoalMapper,
     createInfoLoggerProvider(FindAllSavingsGoalsUseCase.name),
@@ -62,6 +75,8 @@ import { GetSavingsGoalDeletionImpactUseCase } from './application/get-savings-g
     createInfoLoggerProvider(ApplySavingsGoalGenerationStopUseCase.name),
     createInfoLoggerProvider(GetSavingsGoalDeletionImpactUseCase.name),
   ],
-  exports: [],
+  // La règle de solde des retraits reste la propriété de l'objectif ; le
+  // module transaction l'appelle par ce seul port (PUL-329).
+  exports: [SAVINGS_GOAL_WITHDRAWAL_POLICY],
 })
 export class SavingsGoalModule {}

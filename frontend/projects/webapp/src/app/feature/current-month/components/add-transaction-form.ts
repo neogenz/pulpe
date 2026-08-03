@@ -5,6 +5,7 @@ import {
   inject,
   output,
   signal,
+  viewChild,
 } from '@angular/core';
 import { FormField, form, required, validate } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
@@ -23,9 +24,11 @@ import {
   type AmountFormSlice,
   createAmountSlice,
   CurrencyConverterService,
+  injectLiveConversionPreview,
   runFormSubmit,
   StaleRateNotifier,
 } from '@core/currency';
+import { SavingsGoalPickerField } from '@app/pattern/savings-goal-picker/savings-goal-picker-field';
 import { Logger } from '@core/logging/logger';
 import { UserSettingsStore } from '@core/user-settings';
 import { TransactionLabelPipe } from '@ui/transaction-display';
@@ -59,6 +62,7 @@ interface AddTransactionModel {
     FormField,
     AmountInput,
     TagPicker,
+    SavingsGoalPickerField,
   ],
   template: `
     <form
@@ -120,6 +124,7 @@ interface AddTransactionModel {
           }}</mat-label>
           <mat-select
             [formField]="transactionForm.kind"
+            (selectionChange)="onKindChange()"
             [attr.aria-label]="'currentMonth.addTransactionType' | transloco"
             data-testid="transaction-type-select"
           >
@@ -138,6 +143,35 @@ interface AddTransactionModel {
           </mat-select>
         </mat-form-field>
         <pulpe-tag-picker [control]="transactionForm.tagIds" />
+        @if (model().kind === 'income') {
+          <div class="flex flex-col gap-1">
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-body-medium text-on-surface">{{
+                'currentMonth.addTransactionFromSavingsGoal' | transloco
+              }}</span>
+              <mat-slide-toggle
+                [checked]="isFromSavingsGoal()"
+                (change)="toggleSavingsGoalSource($event.checked)"
+                [attr.aria-label]="
+                  'currentMonth.addTransactionFromSavingsGoal' | transloco
+                "
+                data-testid="transaction-savings-source-toggle"
+              />
+            </div>
+            <p class="text-body-small text-on-surface-variant m-0">
+              {{ 'currentMonth.addTransactionFromSavingsGoalHint' | transloco }}
+            </p>
+            @if (isFromSavingsGoal()) {
+              <pulpe-savings-goal-picker-field
+                mode="withdrawal"
+                class="mt-2"
+                [value]="sourceSavingsGoalId()"
+                [withdrawalAmount]="withdrawalAmount()"
+                (valueChanged)="sourceSavingsGoalId.set($event)"
+              />
+            }
+          </div>
+        }
       </div>
       <div class="add-transaction-form-meta grid grid-cols-1 gap-3">
         <div
@@ -201,6 +235,42 @@ export class AddTransactionForm {
     isChecked: true,
   });
 
+  // L'origine n'est pas un champ signal-forms : le picker est value-based. Elle
+  // est effacée au changement de type (`onKindChange`) plutôt que dérivée du
+  // type : une dérivation paresseuse ne verrait pas le passage par « Dépense »
+  // et ferait réapparaître l'ancienne sélection au retour sur « Revenu ».
+  protected readonly isFromSavingsGoal = signal(false);
+  protected readonly sourceSavingsGoalId = signal<string | null>(null);
+
+  protected readonly sourcePicker = viewChild(SavingsGoalPickerField);
+
+  // Le contrôle de solde porte sur le montant réellement retiré, donc converti
+  // dans la devise du compte (RG-009) — jamais sur le montant saisi.
+  readonly #conversionPreview = injectLiveConversionPreview(
+    computed(() => this.model().money.amount),
+    computed(() => this.model().money.inputCurrency),
+    this.currency,
+  );
+
+  protected readonly withdrawalAmount = computed<number | null>(() => {
+    const { amount, inputCurrency } = this.model().money;
+    if (amount === null || amount <= 0) return null;
+    if (inputCurrency === this.currency()) return amount;
+    const preview = this.#conversionPreview();
+    if (preview.status !== 'ready' && preview.status !== 'fallback')
+      return null;
+    return preview.convertedAmount ?? null;
+  });
+
+  protected toggleSavingsGoalSource(isEnabled: boolean): void {
+    this.isFromSavingsGoal.set(isEnabled);
+    if (!isEnabled) this.sourceSavingsGoalId.set(null);
+  }
+
+  protected onKindChange(): void {
+    this.toggleSavingsGoalSource(false);
+  }
+
   protected readonly transactionForm = form(this.model, (path) => {
     required(path.name, {
       message: 'currentMonth.addTransactionDescriptionRequired',
@@ -228,9 +298,11 @@ export class AddTransactionForm {
     required(path.kind);
   });
 
-  readonly canSubmit = computed(
-    () => this.transactionForm().valid() && !this.isSubmitting(),
-  );
+  readonly canSubmit = computed(() => {
+    if (!this.transactionForm().valid() || this.isSubmitting()) return false;
+    if (!this.isFromSavingsGoal()) return true;
+    return this.sourcePicker()?.isWithdrawalBlocked() === false;
+  });
 
   protected nameError(kind: 'required' | 'minLength'): boolean {
     const field = this.transactionForm.name();
@@ -265,6 +337,9 @@ export class AddTransactionForm {
               tagIds: m.tagIds,
               isChecked: m.isChecked,
               conversion: metadata,
+              sourceSavingsGoalId: this.isFromSavingsGoal()
+                ? this.sourceSavingsGoalId()
+                : null,
             }),
         };
       },

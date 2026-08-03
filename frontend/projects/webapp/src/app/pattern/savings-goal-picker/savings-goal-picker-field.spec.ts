@@ -44,10 +44,12 @@ const pickInSelect = (
 
 describe('SavingsGoalPickerField', () => {
   const getAll$ = vi.fn();
+  const getWithdrawalOptions$ = vi.fn();
   const payDayOfMonth = signal<number | null>(1);
 
   beforeEach(async () => {
     getAll$.mockReset();
+    getWithdrawalOptions$.mockReset();
     payDayOfMonth.set(1);
     mockCache.get.mockReturnValue(null);
     mockCache.set.mockClear();
@@ -67,6 +69,7 @@ describe('SavingsGoalPickerField', () => {
           useValue: {
             cache: mockCache,
             getAll$,
+            getWithdrawalOptions$,
           },
         },
         {
@@ -289,6 +292,56 @@ describe('SavingsGoalPickerField', () => {
       );
 
       expect(option.getAttribute('aria-disabled')).toBe('false');
+    });
+  });
+
+  // PUL-329 — the pre-check must open the same band as the server, which accepts
+  // `debit <= available + WITHDRAWAL_BALANCE_TOLERANCE`. The balance arrives as a
+  // server-side SUM of floats, so emptying a goal lands a hair under zero.
+  describe('withdrawal balance', () => {
+    const withdrawalPicker = async (
+      availableAmount: number,
+      withdrawalAmount: number,
+    ): Promise<ComponentFixture<SavingsGoalPickerField>> => {
+      getWithdrawalOptions$.mockReturnValue(
+        of({
+          success: true,
+          data: [
+            {
+              goalId: goal.id,
+              name: goal.name,
+              status: 'ACTIVE',
+              availableAmount,
+              currency: 'CHF',
+            },
+          ],
+        }),
+      );
+      const fixture = TestBed.createComponent(SavingsGoalPickerField);
+      setTestInput(fixture.componentInstance.mode, 'withdrawal');
+      setTestInput(fixture.componentInstance.value, goal.id);
+      setTestInput(
+        fixture.componentInstance.withdrawalAmount,
+        withdrawalAmount,
+      );
+
+      fixture.detectChanges();
+      await settle();
+      fixture.detectChanges();
+      return fixture;
+    };
+
+    it('still allows emptying a goal whose balance rounds a hair under the amount', async () => {
+      const fixture = await withdrawalPicker(149.999, 150);
+
+      expect(fixture.componentInstance.hasInsufficientBalance()).toBe(false);
+      expect(fixture.componentInstance.isWithdrawalBlocked()).toBe(false);
+    });
+
+    it('blocks an overshoot the server would refuse', async () => {
+      const fixture = await withdrawalPicker(150, 150.01);
+      expect(fixture.componentInstance.hasInsufficientBalance()).toBe(true);
+      expect(fixture.componentInstance.isWithdrawalBlocked()).toBe(true);
     });
   });
 });

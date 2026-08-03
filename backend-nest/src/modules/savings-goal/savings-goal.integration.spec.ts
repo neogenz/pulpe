@@ -29,6 +29,10 @@ import type { EncryptionPort } from '@modules/encryption/domain/ports/encryption
 import { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { CreateSavingsGoalUseCase } from './application/create-savings-goal.use-case';
+import {
+  savingsGoalDeletionImpactRpcSchema,
+  type SavingsGoalDeletionImpactRpc,
+} from './infrastructure/persistence/schemas/rpc-payload.schemas';
 import { SupabaseSavingsGoalRepository } from './infrastructure/persistence/supabase-savings-goal.repository';
 
 const PASSWORD = 'test-password-123';
@@ -185,11 +189,6 @@ interface DeletionSeed {
   transactionId: string;
 }
 
-interface DeletionImpactPayload {
-  budgets: unknown[];
-  revision: Database['public']['Functions']['apply_savings_goal_deletion']['Args']['p_revision'];
-}
-
 async function seedDeletionImpact(budgetCount = 1): Promise<DeletionSeed> {
   const user = await makeUser(`sg-impact-${crypto.randomUUID()}@test.local`);
   createdUserIds.push(user.id);
@@ -281,16 +280,19 @@ async function seedDeletionImpact(budgetCount = 1): Promise<DeletionSeed> {
   };
 }
 
+// La vraie fonction SQL rencontre ici son vrai schéma de frontière : toute
+// dérive entre ce que la base émet et ce que le dépôt accepte casse ce test
+// plutôt que la production.
 async function getDeletionImpact(
   seed: DeletionSeed,
-): Promise<DeletionImpactPayload> {
+): Promise<SavingsGoalDeletionImpactRpc> {
   const { data, error } = await seed.user.client.rpc(
     'get_savings_goal_deletion_impact',
     { p_goal_id: seed.goalId },
   );
   expect(error).toBeNull();
   if (!data) throw new Error('Deletion impact missing');
-  return data as unknown as DeletionImpactPayload;
+  return savingsGoalDeletionImpactRpcSchema.parse(data);
 }
 
 beforeAll(async () => {

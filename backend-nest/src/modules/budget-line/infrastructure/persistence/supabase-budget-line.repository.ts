@@ -11,6 +11,7 @@ import {
 } from '@modules/encryption/encryption.tokens';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { mapCurrencyNonAmountMetadataToDb } from '@common/utils/currency-metadata.mapper';
+import { throwIfRetryableConflict } from '@common/utils/postgres-conflict';
 import {
   isSavingsGoalLinkDenied,
   isSavingsGoalLinkOutsideHorizon,
@@ -686,6 +687,8 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
         supabaseError: error,
       };
 
+      throwIfRetryableConflict(error, 'budget_line', loggingContext);
+
       // PGRST116 = "Searched for a single row but found 0 rows"
       if (!error || error.code === 'PGRST116') {
         throw new BusinessException(
@@ -808,15 +811,19 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     const { error } = await supabase.from('budget_line').delete().eq('id', id);
 
     if (error) {
+      const loggingContext = {
+        operation: 'deleteBudgetLine',
+        entityId: id,
+        entityType: 'budget_line',
+        supabaseError: error,
+      };
+
+      throwIfRetryableConflict(error, 'budget_line', loggingContext);
+
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_LINE_DELETE_FAILED,
         { id },
-        {
-          operation: 'deleteBudgetLine',
-          entityId: id,
-          entityType: 'budget_line',
-          supabaseError: error,
-        },
+        loggingContext,
         { cause: error },
       );
     }
@@ -851,15 +858,19 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       .single();
 
     if (error || !data) {
+      const loggingContext = {
+        operation: 'toggleCheck',
+        entityId: id,
+        entityType: 'budget_line',
+        supabaseError: error,
+      };
+
+      throwIfRetryableConflict(error, 'budget_line', loggingContext);
+
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
         undefined,
-        {
-          operation: 'toggleCheck',
-          entityId: id,
-          entityType: 'budget_line',
-          supabaseError: error,
-        },
+        loggingContext,
         { cause: error ?? undefined },
       );
     }

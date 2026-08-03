@@ -6,6 +6,7 @@ import { TRANSACTION_REPOSITORY } from '../domain/ports/transaction-repository.p
 import { CacheService } from '@modules/cache/cache.service';
 import { CurrencyService } from '@modules/currency/currency.service';
 import { BUDGET_RECALCULATION_PORT } from '@modules/budget/domain/ports/budget-recalculation.port';
+import { SAVINGS_GOAL_WITHDRAWAL_POLICY } from '@modules/savings-goal/domain/ports/savings-goal-withdrawal-policy.port';
 import { BusinessException } from '@common/exceptions/business.exception';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { Transaction } from '../domain/transaction.entity';
@@ -34,17 +35,40 @@ const mockEntity: Transaction = {
   originalCurrency: null,
   targetCurrency: null,
   exchangeRate: null,
+  sourceSavingsGoalId: null,
+  sourceSavingsGoalName: null,
 };
 
 describe('UpdateTransactionUseCase — cache invalidation ordering (R1)', () => {
   let useCase: UpdateTransactionUseCase;
-  let mockRepo: { update: ReturnType<typeof jest.fn> };
+  let mockRepo: {
+    update: ReturnType<typeof jest.fn>;
+    updateWithdrawal: ReturnType<typeof jest.fn>;
+    findMutationContext: ReturnType<typeof jest.fn>;
+  };
+  let mockWithdrawalPolicy: { runAgainstBalance: ReturnType<typeof jest.fn> };
   let mockCache: { invalidateForUser: ReturnType<typeof jest.fn> };
   let mockCurrency: { overrideExchangeRate: ReturnType<typeof jest.fn> };
   let mockBudget: { recalculate: ReturnType<typeof jest.fn> };
 
   beforeEach(async () => {
-    mockRepo = { update: jest.fn().mockResolvedValue(mockEntity) };
+    mockRepo = {
+      update: jest.fn().mockResolvedValue(mockEntity),
+      updateWithdrawal: jest.fn().mockResolvedValue(mockEntity),
+      findMutationContext: jest.fn().mockResolvedValue({
+        budgetId: 'budget-1',
+        budgetLineId: null,
+        kind: 'expense',
+        amount: 50,
+        sourceSavingsGoalId: null,
+        sourceSavingsGoalName: null,
+      }),
+    };
+    mockWithdrawalPolicy = {
+      runAgainstBalance: jest
+        .fn()
+        .mockImplementation((input) => input.write(7)),
+    };
     mockCache = { invalidateForUser: jest.fn().mockResolvedValue(undefined) };
     mockCurrency = {
       overrideExchangeRate: jest.fn().mockImplementation((dto) => dto),
@@ -58,6 +82,10 @@ describe('UpdateTransactionUseCase — cache invalidation ordering (R1)', () => 
         { provide: CacheService, useValue: mockCache },
         { provide: CurrencyService, useValue: mockCurrency },
         { provide: BUDGET_RECALCULATION_PORT, useValue: mockBudget },
+        {
+          provide: SAVINGS_GOAL_WITHDRAWAL_POLICY,
+          useValue: mockWithdrawalPolicy,
+        },
         {
           provide: `INFO_LOGGER:${UpdateTransactionUseCase.name}`,
           useValue: {
@@ -157,5 +185,93 @@ describe('UpdateTransactionUseCase — cache invalidation ordering (R1)', () => 
     expect(result).toEqual(mockEntity);
     expect(mockRepo.update).toHaveBeenCalledTimes(1);
     expect(mockBudget.recalculate).toHaveBeenCalledWith(mockEntity.budgetId);
+  });
+
+  describe('savings-goal withdrawal (PUL-329)', () => {
+    const goalId = 'goal-1';
+
+    const asActiveWithdrawal = (amount: number): void => {
+      mockRepo.findMutationContext.mockResolvedValue({
+        budgetId: 'budget-1',
+        budgetLineId: null,
+        kind: 'income',
+        amount,
+        sourceSavingsGoalId: goalId,
+        sourceSavingsGoalName: 'Maison',
+      });
+    };
+
+    it('should give the previous amount back before arbitrating the new one', async () => {
+      asActiveWithdrawal(4500);
+
+      await useCase.execute('txn-1', { amount: 3500 }, mockUser);
+
+      const [input] = mockWithdrawalPolicy.runAgainstBalance.mock.calls[0];
+      expect(input.goalId).toBe(goalId);
+      expect(input.debit).toBe(3500);
+      expect(input.creditBack).toBe(4500);
+      expect(mockRepo.updateWithdrawal).toHaveBeenCalledWith(
+        'txn-1',
+        { amount: 3500 },
+        7,
+      );
+      expect(mockRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('should keep an amount-less edit under the revision, stock unchanged', async () => {
+      asActiveWithdrawal(4500);
+
+      await useCase.execute('txn-1', { name: 'Apport cuisine' }, mockUser);
+
+      const [input] = mockWithdrawalPolicy.runAgainstBalance.mock.calls[0];
+      expect(input.debit).toBe(4500);
+      expect(input.creditBack).toBe(4500);
+    });
+
+    it('should refuse to change the kind of a goal-sourced income', async () => {
+      asActiveWithdrawal(4500);
+
+      const caught = await useCase
+        .execute('txn-1', { kind: 'expense' }, mockUser)
+        .catch((error: unknown) => error);
+
+      expect((caught as BusinessException).code).toBe(
+        'ERR_SAVINGS_GOAL_WITHDRAWAL_TRANSACTION_INVALID',
+      );
+      expect(mockWithdrawalPolicy.runAgainstBalance).not.toHaveBeenCalled();
+      expect(mockRepo.updateWithdrawal).not.toHaveBeenCalled();
+    });
+
+    it('should edit a broken link freely, with no balance to check', async () => {
+      mockRepo.findMutationContext.mockResolvedValue({
+        budgetId: 'budget-1',
+        budgetLineId: null,
+        kind: 'income',
+        amount: 4500,
+        sourceSavingsGoalId: null,
+        sourceSavingsGoalName: 'Maison',
+      });
+
+      await useCase.execute('txn-1', { amount: 3500 }, mockUser);
+
+      expect(mockWithdrawalPolicy.runAgainstBalance).not.toHaveBeenCalled();
+      expect(mockRepo.update).toHaveBeenCalledTimes(1);
+    });
+
+    it('should still forbid a kind change on a broken link', async () => {
+      mockRepo.findMutationContext.mockResolvedValue({
+        budgetId: 'budget-1',
+        budgetLineId: null,
+        kind: 'income',
+        amount: 4500,
+        sourceSavingsGoalId: null,
+        sourceSavingsGoalName: 'Maison',
+      });
+
+      await expect(
+        useCase.execute('txn-1', { kind: 'saving' }, mockUser),
+      ).rejects.toThrow(BusinessException);
+      expect(mockRepo.update).not.toHaveBeenCalled();
+    });
   });
 });

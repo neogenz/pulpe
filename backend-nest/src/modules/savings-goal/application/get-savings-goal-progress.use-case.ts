@@ -7,6 +7,7 @@ import {
   type BudgetPeriod,
   type LinkedSavingLine,
   type LinkedSavingTransaction,
+  type LinkedSavingWithdrawal,
   type SavingsGoalProgressInput,
 } from 'pulpe-shared';
 import {
@@ -49,18 +50,24 @@ export class GetSavingsGoalProgressUseCase {
   ): Promise<SavingsGoalProgressComputation> {
     // findById throws SAVINGS_GOAL_NOT_FOUND for a missing/foreign goal (RLS).
     const goal = await this.repo.findById(id);
-    const [{ lines, transactions }, materializedPeriods, defaultTemplateId] =
-      await Promise.all([
-        this.repo.findLinkedContributions(id),
-        this.repo.findMaterializedPeriods(),
-        this.templateRepo.findDefaultTemplateId(user.id),
-      ]);
+    const [
+      { lines, transactions },
+      withdrawals,
+      materializedPeriods,
+      defaultTemplateId,
+    ] = await Promise.all([
+      this.repo.findLinkedContributions(id),
+      this.repo.findLinkedWithdrawals(id),
+      this.repo.findMaterializedPeriods(),
+      this.templateRepo.findDefaultTemplateId(user.id),
+    ]);
     const input = this.buildInput(goal, {
       payDayOfMonth: user.payDayOfMonth ?? null,
       materializedPeriods,
       hasDefaultTemplate: defaultTemplateId != null,
       lines,
       transactions,
+      withdrawals,
     });
 
     const computed = computeSavingsGoalProgress(input);
@@ -87,6 +94,7 @@ export class GetSavingsGoalProgressUseCase {
       hasDefaultTemplate: boolean;
       lines: LinkedSavingLine[];
       transactions: LinkedSavingTransaction[];
+      withdrawals: LinkedSavingWithdrawal[];
     },
   ): SavingsGoalProgressInput {
     return {
@@ -107,6 +115,7 @@ export class GetSavingsGoalProgressUseCase {
       initialAmount: goal.initialAmount ?? 0,
       lines: data.lines,
       transactions: data.transactions,
+      withdrawals: data.withdrawals,
     };
   }
 }

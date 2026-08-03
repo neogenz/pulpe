@@ -152,14 +152,16 @@ plannedProjection = initialAmount + Σ line.amount
 //    calculateRealizedSavings : filtre kind==='saving' STRICT (PAS isOutflowKind)
 //    ET retire le bloc free-transaction (budgetLineId='') — un objectif n'a que des lignes liées
 linesConfirmed = Σ calculateRealizedSavings(linkedSavingLines, linkedTransactions)
-confirmed      = initialAmount + linesConfirmed     // initialAmount (§2.1) : stock one-shot, null ≡ 0
+withdrawn      = Σ retrait.amount                   // retraits liés (§11), toujours positifs
+confirmed      = initialAmount + linesConfirmed − withdrawn   // initialAmount (§2.1) : stock one-shot, null ≡ 0
+//   jamais clampé à 0 : l'écriture interdit le découvert, un négatif signale une incohérence à diagnostiquer
 
 // 3. % d'atteinte — sur le CONFIRMÉ, jamais le prévu
 achievementPercent = round( min(confirmed / targetAmount, 1) * 100 )
 //   garde : targetAmount = 0 → 0   (ne JAMAIS diviser par une cible non déchiffrée / nulle)
 //   cible absente → null
 
-// 4. Rythme — DEUX rythmes, tous deux en FLUX (le montant de départ, stock one-shot, en est EXCLU)
+// 4. Rythme — DEUX rythmes, tous deux en FLUX (le montant de départ ET les retraits, stocks, en sont EXCLUS)
 pace          = plannedCumulative / max(1, monthsElapsed)   // engagement (indicatif secondaire)
 confirmedPace = linesConfirmed    / max(1, monthsElapsed)   // réel pointé — base de la date d'atteinte estimée
 
@@ -189,7 +191,8 @@ paceStatus = behind | on_track | ahead          // via paceStatus(projected, tar
 | **PAUSED**                            | `paceStatus = null` (pas de jugement de rythme sur un objectif en pause).                                                            |
 | **Ancrage**                           | `createdAt` ramené à son **cycle** via `getBudgetPeriodForDate` (un objectif créé le 28 d'un payDay=25 appartient au cycle suivant). |
 | **Pointage anticipé d'un mois futur** | Le pointage est accepté ; il entre dans `confirmed` et est retiré du reliquat planifié pour ne pas être compté deux fois.             |
-| **Montant de départ (stock vs flux)** | `initialAmount` entre dans `confirmed` (barre, %, `required`, `projected`, D2) mais **jamais** dans `confirmedPace` ni `cumulativeGap` (`= plannedCumulative − linesConfirmed`). |
+| **Montant de départ (stock vs flux)** | `initialAmount` entre dans `confirmed` (barre, %, `required`, `projected`, D2) mais **jamais** dans `confirmedPace` ni `cumulativeGap` (`= plannedCumulative − (linesConfirmed − retraits déjà survenus)`). |
+| **Retrait (stock vs flux)**           | Se retranche de `confirmed` (donc de la barre, du %, de `required`, de `projected`, de `estimatedCompletion`) et de `cumulativeGap` pour les retraits déjà survenus, mais **jamais** de `confirmedPace`, `plannedCumulative` ni `plannedProjection` (§11). |
 | **Montant de départ ≥ cible**         | `suggestCompletion = true` dès la création (D2) — jamais d'auto-flip, l'utilisateur confirme.                                                                                    |
 | **Cible absente**                     | `achievementPercent` et `suggestCompletion` sont `null`. La simulation garde son cumul final mais ses verdicts cible et la redistribution sont désactivés.                       |
 | **Échéance absente**                  | `monthsRemaining`, `required`, `projected` et `paceStatus` sont `null`, `isOverdue = false`. Une cible présente conserve `estimatedCompletion` si le rythme confirmé suffit.     |
@@ -337,7 +340,7 @@ Le simulateur répond à « qu'est-ce que je fais maintenant ? » sans modifier 
 
 `GET /v1/savings-goals/:id/progress` reste l'unique lecture. En plus des métriques de progression, il expose :
 
-- `cumulativeGap = plannedCumulative - linesConfirmed`, signé et jamais borné (flux : le montant de départ en est exclu, cf. §4.3) ;
+- `cumulativeGap = plannedCumulative - (linesConfirmed - retraits déjà survenus)`, signé et jamais borné (flux : le montant de départ en est exclu, cf. §4.3 ; l'argent repris creuse le retard, cf. §11) ;
 - `plannedProjection = initialAmount + Σ Prévisions liées` dans l'intervalle ;
 - `estimatedCompletion`, période d'atteinte estimée au rythme pointé, ou `null` si elle n'est pas calculable ;
 - `initialAmount`, le montant de départ déchiffré (0 si absent) — écho pour l'affichage et le seed des simulations client ;
@@ -346,7 +349,14 @@ Le simulateur répond à « qu'est-ce que je fais maintenant ? » sans modifier 
 La timeline est payDay-aware. Une timeline datée reste bornée à 120 périodes ;
 une timeline ouverte n'est pas plafonnée et finit au dernier mois lié ou au
 cycle courant. Les lignes antérieures à l'ancrage explicite restent visibles
-mais n'alimentent ni cumul, ni contribution, ni redistribution. Un budget absent
+mais n'alimentent ni cumul, ni contribution, ni redistribution. Une échéance
+posée à l'horizon maximal sature cette borne et fait démarrer la fenêtre au
+cycle courant : les retraits antérieurs n'ont alors plus de ligne à eux et sont
+reportés sur la **première** ligne rendue, qui totalise ainsi ce qui a quitté le
+stock jusqu'à elle. C'est le pendant du seed `initialAmount`, et c'est ce qui
+tient l'égalité avec `confirmed` — le simulateur et la redistribution ne
+connaissent du stock que ce que portent les lignes, donc un retrait qu'elles
+oublieraient gonflerait la simulation et minorerait l'effort restant d'autant. Un budget absent
 est ajustable dès lors qu'un **Mois Type par défaut** existe — il sert à
 matérialiser le budget du mois, plus à recopier une ligne (PUL-316). Un budget
 existant sans ligne liée est ajustable sans dépendre du Mois Type : la
@@ -361,7 +371,7 @@ Les calculateurs shared, avec miroir testé sur iOS, portent quatre opérations 
 3. redistribuer le montant restant au centime près en respectant les mois épinglés ;
 4. répartir le montant d'un mois entre ses lignes ouvertes, proportionnellement puis par plus grand reste.
 
-La simulation (2) et la redistribution (3) reçoivent `initialAmount` en **seed** : le cumul simulé démarre au montant de départ et le restant à redistribuer le soustrait (`max(0, cible − initialAmount − pointé verrouillé − épinglé)`). Le seed vit dans le calculateur (qui re-cumule from scratch), jamais en plus des cumuls serveur déjà seedés — pas de double comptage.
+La simulation (2) et la redistribution (3) reçoivent `initialAmount` en **seed** : le cumul simulé démarre au montant de départ et le restant à redistribuer le soustrait (`max(0, cible − initialAmount − pointé verrouillé + tous les retraits − épinglé)`, le retrait entrant en plus puisque l'argent repris est de l'effort à refaire ; il est sommé sans condition, exactement comme la simulation le soustrait — c'est cette égalité qui fait retomber la simulation sur la cible). Le seed vit dans le calculateur (qui re-cumule from scratch), jamais en plus des cumuls serveur déjà seedés — pas de double comptage.
 
 Le serveur reste autoritaire à l'écriture. Les clients ne recalculent jamais le contrat de progression serveur.
 
@@ -399,6 +409,50 @@ l'écriture finale met une valeur à jour sous verrou.
 Le provisioning n'est pas sérialisé entre deux demandes indépendantes. Deux
 appareils ou onglets qui confirment au même instant sortent donc de cette
 garantie.
+
+---
+
+## 11. Retraits — sortir de l'argent d'un objectif (PUL-329)
+
+### 11.1 Vocabulaire
+
+| Terme                 | Définition                                                                                                                                                          |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Contribution**      | Entrée d'argent : Prévision Épargne liée, pointée ou non (§3). Elle nourrit `plannedCumulative`, `linesConfirmed` et `confirmedPace`.                                |
+| **Retrait**           | Sortie d'argent : Revenu **libre** d'un budget dont l'origine est cet objectif. Il diminue le stock, jamais le rythme.                                                |
+| **Solde disponible**  | `confirmed` (§4.2). C'est la seule limite d'un retrait — le prévu et la cible n'entrent pas dans ce contrôle.                                                        |
+| **Lien actif**        | `source_savings_goal_id` + `source_savings_goal_name` renseignés : la transaction ouvre son objectif.                                                                |
+| **Lien cassé**        | Identifiant `null`, nom conservé : l'objectif a été supprimé. La provenance reste lisible, la navigation disparaît.                                                  |
+
+### 11.2 Ce qu'un retrait ne fait pas
+
+- Il **ne réécrit pas le plan** : montants, mois et calendrier des Prévisions futures sont inchangés. L'utilisateur ajuste son plan séparément (§10).
+- Il **ne change pas le statut** : un objectif `COMPLETED` repassé sous sa cible le reste. Le statut décrit une décision de l'utilisateur (§6), pas un seuil franchi.
+- Il **n'est pas une contribution négative** : il n'apparaît jamais dans `confirmedAmount` d'un mois de la timeline. Il porte son propre champ `withdrawnAmount`, et c'est par lui que les cumuls — confirmé comme simulé — sont creusés.
+- Il **ne programme aucun remboursement**. Le mécanisme Revenu M + Épargne M+1 est un autre parcours, « Couvrir ce mois avec mon épargne » (PUL-292) : une avance à remettre, pas un retrait définitif.
+
+### 11.3 Éligibilité et devise
+
+Un objectif est proposé au retrait dès que `confirmed > 0`, quel que soit son statut (`ACTIVE`, `PAUSED`, `COMPLETED`).
+
+Le montant retiré est le montant **cible normalisé dans la devise du compte**, après conversion éventuelle (RG-009) — jamais `originalAmount`. Comparer une saisie en EUR au solde d'un objectif en CHF rendrait le contrôle de solde incohérent.
+
+### 11.4 Effet immédiat, indépendant du pointage
+
+Le stock baisse **dès la création** du revenu lié. Pointer ou dépointer ce revenu ne change rien au solde de l'objectif : le pointage décrit le rapprochement bancaire du budget, pas la sortie du pot.
+
+### 11.5 Cycle de vie
+
+| Événement                     | Effet                                                                                                                        |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Édition du montant            | Le retrait suit : `4'500 → 3'500` restitue `1'000`. La limite d'édition est `confirmed + ancienMontant`.                      |
+| Édition nom / date / tags     | Autorisée. Le lien, lui, est immuable : aucune API ne le retire, ne le remplace ni ne change le type de la transaction.       |
+| Report vers une autre période | Conserve lien, montant et nom ; seule la chronologie change.                                                                  |
+| Suppression du revenu         | Annule le retrait : le solde remonte du montant exact.                                                                        |
+| Renommage de l'objectif       | Le nom snapshot suit tant que le lien est actif.                                                                              |
+| Suppression de l'objectif     | Les revenus liés sont **toujours conservés**, dans tous les modes (§9.1). Identifiant `null`, dernier nom figé : lien cassé.  |
+
+Changer l'objectif source d'un revenu existant n'est pas prévu : il faut supprimer puis recréer.
 
 ---
 

@@ -155,10 +155,10 @@ struct GoalTrajectorySection: View {
     let series: GoalProjectionSeries
     let currency: SupportedCurrency
 
-    /// `cumulativeGap` = prévu cumulé − pointé (never clamped): positive is a
-    /// pointing LAG, negative an advance. The accounting signed value
-    /// (`+300 CHF`) read as good news on a lag — the copy spells the direction
-    /// out instead; zero gap carries no amount.
+    /// `cumulativeGap` = prévu cumulé − (pointé − retraits déjà survenus),
+    /// never clamped: positive is a pointing LAG, negative an advance. The
+    /// accounting signed value (`+300 CHF`) read as good news on a lag — the
+    /// copy spells the direction out instead; zero gap carries no amount.
     static func gapCopy(for gap: Decimal, currency: SupportedCurrency) -> (lead: String, amount: String?) {
         if gap > 0 { return ("Il te manque", gap.asCompactCurrency(currency)) }
         if gap < 0 { return ("Tu es en avance de", gap.absoluteValue.asCompactCurrency(currency)) }

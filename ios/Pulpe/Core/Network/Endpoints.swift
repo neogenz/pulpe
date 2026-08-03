@@ -77,6 +77,8 @@ enum Endpoint {
     case savingsGoalGenerationStop(id: String)
     case savingsGoalDeletionImpact(id: String)
     case savingsGoalDeletion(id: String)
+    case savingsGoalWithdrawalOptions
+    case savingsGoalWithdrawals(id: String)
 
     // MARK: - Currency
 
@@ -165,6 +167,8 @@ enum Endpoint {
         case .savingsGoalGenerationStop(let id): return "/savings-goals/\(id)/generation-stop"
         case .savingsGoalDeletionImpact(let id): return "/savings-goals/\(id)/deletion-impact"
         case .savingsGoalDeletion(let id): return "/savings-goals/\(id)/deletion"
+        case .savingsGoalWithdrawalOptions: return "/savings-goals/withdrawal-options"
+        case .savingsGoalWithdrawals(let id): return "/savings-goals/\(id)/withdrawals"
 
         // Currency
         case .currencyRate: return "/currency/rate"
@@ -203,6 +207,7 @@ enum Endpoint {
              .transactionsByBudget, .budgetsSparse,
              .savingsGoals, .savingsGoal, .savingsGoalProgress, .savingsGoalContributions,
              .savingsGoalFutureLines, .savingsGoalDeletionImpact,
+             .savingsGoalWithdrawalOptions, .savingsGoalWithdrawals,
              .encryptionVaultStatus, .encryptionSalt,
              .userSettings, .tags, .currencyRate, .whatsNewIos:
             return .get

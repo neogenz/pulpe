@@ -1,7 +1,47 @@
-import { type Page, expect } from '@playwright/test';
+import { type Locator, type Page, expect } from '@playwright/test';
 
 export class BudgetDetailsPage {
   constructor(private readonly page: Page) {}
+
+  /**
+   * PUL-329 — the deep link a goal's « Retraits » row points at. The query param
+   * is consumed once and wiped by `replaceUrl`, so the opened dialog is the
+   * proof, never the URL.
+   */
+  async gotoTargetedTransaction(
+    budgetId: string,
+    transactionId: string,
+  ): Promise<void> {
+    await Promise.all([
+      this.page.waitForResponse(
+        (resp) =>
+          resp.url().includes('/api/v1/budgets/') &&
+          resp.url().includes('/details'),
+      ),
+      this.page.goto(`/budget/${budgetId}?transactionId=${transactionId}`, {
+        waitUntil: 'domcontentloaded',
+      }),
+    ]);
+    await this.expectPageLoaded();
+  }
+
+  /**
+   * The « Pris sur · nom » / « Objectif supprimé · nom » metadata of a row.
+   * Scoped to the labelled span, since that is what carries the accessible name.
+   */
+  transactionSource(transactionId: string): Locator {
+    return this.page
+      .getByTestId(`transaction-source-${transactionId}`)
+      .getByTestId('savings-goal-source-line');
+  }
+
+  transactionDialogSourceLink(): Locator {
+    return this.page.getByTestId('edit-transaction-source-link');
+  }
+
+  transactionDialogSourceBroken(): Locator {
+    return this.page.getByTestId('edit-transaction-source-broken');
+  }
 
   async goto(budgetId = 'test-budget-123'): Promise<void> {
     // Navigate and wait for the API response to ensure data is loaded

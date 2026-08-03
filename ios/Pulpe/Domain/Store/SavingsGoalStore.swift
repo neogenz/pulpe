@@ -30,6 +30,12 @@ final class SavingsGoalStore: StoreProtocol {
     private(set) var templateDataVersion = 0
     @ObservationIgnored var onBudgetDataMutation: (@MainActor () -> Void)?
 
+    /// Withdrawal options (PUL-329) carry a balance, so they go stale faster than
+    /// the goals themselves. Same short TTL, separate timestamp — opening the add
+    /// sheet twice in a row must not re-hit the network, but any mutation must.
+    private var cachedWithdrawalOptions: [SavingsGoalWithdrawalOption] = []
+    private var lastWithdrawalOptionsLoadTime: Date?
+
     // MARK: - Services
 
     private let service: any SavingsGoalServicing
@@ -94,11 +100,11 @@ final class SavingsGoalStore: StoreProtocol {
         do {
             let created = try await service.create(data)
             goals = (goals + [created]).sortedForDisplay()
-            if data.monthlyContribution != nil { onBudgetDataMutation?() }
+            if data.monthlyContribution != nil { notifyBudgetDataMutation() }
             return created
         } catch let error as APIError {
             if case .savingsGoalBaselineRecalculationFailed = error {
-                onBudgetDataMutation?()
+                notifyBudgetDataMutation()
                 await forceRefresh()
             }
             throw error
@@ -116,14 +122,14 @@ final class SavingsGoalStore: StoreProtocol {
             goals = goals.sortedForDisplay()
             if data.reconciliation != nil {
                 invalidateCache()
-                onBudgetDataMutation?()
+                notifyBudgetDataMutation()
             }
             return updated
         } catch let error as APIError {
             if data.reconciliation != nil,
                case .savingsGoalReconciliationRecalculationFailed = error {
                 invalidateCache()
-                onBudgetDataMutation?()
+                notifyBudgetDataMutation()
                 await forceRefresh()
             }
             throw error
@@ -166,7 +172,7 @@ final class SavingsGoalStore: StoreProtocol {
     private func settleCommittedDeletion(id: String) {
         goals.removeAll { $0.id == id }
         templateDataVersion += 1
-        onBudgetDataMutation?()
+        notifyBudgetDataMutation()
     }
 
     /// Applies the advisory freeze/remove decision (PUL-285 CA8). Budget lines
@@ -178,19 +184,46 @@ final class SavingsGoalStore: StoreProtocol {
     ) async throws -> SavingsGoalGenerationStopResult {
         do {
             let result = try await service.applyGenerationStop(id: id, payload)
-            onBudgetDataMutation?()
+            notifyBudgetDataMutation()
             return result
         } catch {
             if let apiError = error as? APIError,
                case .savingsGoalGenerationStopRecalculationFailed = apiError {
-                onBudgetDataMutation?()
+                notifyBudgetDataMutation()
             }
             throw error
         }
     }
 
+    /// Goals that can fund an income right now. `forceRefresh` is what the sheet
+    /// uses after a server refusal: the balance it displayed is provably stale.
+    func fetchWithdrawalOptions(forceRefresh: Bool = false) async throws -> [SavingsGoalWithdrawalOption] {
+        if !forceRefresh,
+           let lastLoad = lastWithdrawalOptionsLoadTime,
+           Date().timeIntervalSince(lastLoad) < AppConfiguration.shortCacheValidity {
+            return cachedWithdrawalOptions
+        }
+        let options = try await service.getWithdrawalOptions()
+        cachedWithdrawalOptions = options
+        lastWithdrawalOptionsLoadTime = Date()
+        return options
+    }
+
+    func getWithdrawals(id: String) async throws -> [SavingsGoalWithdrawal] {
+        try await service.getWithdrawals(id: id)
+    }
+
+    /// The single place budget-data mutations are announced. Anything that moves
+    /// money moves a goal balance too, so the withdrawal options die here rather
+    /// than at each call site.
+    private func notifyBudgetDataMutation() {
+        lastWithdrawalOptionsLoadTime = nil
+        onBudgetDataMutation?()
+    }
+
     func invalidateCache() {
         lastLoadTime = nil
+        lastWithdrawalOptionsLoadTime = nil
     }
 
     func reset() {
@@ -203,6 +236,8 @@ final class SavingsGoalStore: StoreProtocol {
         lastLoadTime = nil
         error = nil
         templateDataVersion = 0
+        cachedWithdrawalOptions = []
+        lastWithdrawalOptionsLoadTime = nil
     }
 }
 
