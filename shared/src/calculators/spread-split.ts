@@ -11,6 +11,11 @@
  * Fonction pure, source de vérité UNIQUE utilisée côté backend (écriture
  * autoritaire) ET côté frontend (aperçu live) → l'aperçu égale toujours ce qui
  * est persisté.
+ *
+ * MIROIR SWIFT : `ios/Pulpe/Domain/Formulas/SpreadSplit.swift`. Toute modif ici
+ * se fait aussi là-bas, tests inclus, même commit — rien ne casse le build quand
+ * les deux divergent (voir
+ * `.claude/rules/00-architecture/formula-mirrors-ts-swift.md`).
  */
 
 const CENTS_PER_UNIT = 100;

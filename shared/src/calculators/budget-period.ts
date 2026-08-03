@@ -4,6 +4,11 @@
  * Permet de déterminer à quel mois budgétaire une date appartient,
  * en tenant compte d'un jour de paie personnalisé et de la règle "quinzaine".
  *
+ * MIROIR SWIFT : `ios/Pulpe/Domain/Formulas/BudgetPeriodCalculator.swift`. Toute
+ * modif ici se fait aussi là-bas, tests inclus, même commit — rien ne casse le
+ * build quand les deux divergent (voir
+ * `.claude/rules/00-architecture/formula-mirrors-ts-swift.md`).
+ *
  * RÈGLE QUINZAINE (détermine comment nommer le budget):
  * - payDay <= 15 (1ère quinzaine): Le budget est nommé d'après le mois où COMMENCE la période
  *   → Budget "Mars" couvre: 5 mars - 4 avril (majorité en mars)

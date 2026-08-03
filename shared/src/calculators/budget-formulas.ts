@@ -4,6 +4,10 @@
  * Implémentation des formules SPECS.md section 3 "Modèle de Calcul"
  * Fonctions pures, testables, réutilisables côté frontend ET backend
  *
+ * MIROIR SWIFT : `ios/Pulpe/Domain/Formulas/BudgetFormulas.swift`. Toute modif
+ * ici se fait aussi là-bas, tests inclus, même commit — rien ne casse le build
+ * quand les deux divergent (voir `.claude/rules/00-architecture/formula-mirrors-ts-swift.md`).
+ *
  * Formules SPECS (avec logique d'enveloppe):
  * - Pour chaque ligne: effective = max(line.amount, consumed_matching_txs)
  * - available_M = income_M + rollover_M
