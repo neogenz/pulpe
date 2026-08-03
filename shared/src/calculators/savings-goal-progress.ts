@@ -33,6 +33,15 @@ export const PACE_TOLERANCE_PERCENT = 5;
 export const MAX_ESTIMATED_HORIZON_MONTHS = 600;
 
 /**
+ * Un centime : sous ce seuil, deux soldes sont le même solde. Le solde confirmé
+ * est une SOMME de flottants, donc vider un pot de 150 peut se comparer à
+ * 149.99999999999997 — sans cette marge, le geste le plus légitime de la
+ * feature serait refusé. L'arbitre est le serveur, mais tout pré-contrôle
+ * client doit ouvrir la même bande, sinon il bloque ce que le serveur accepte.
+ */
+export const WITHDRAWAL_BALANCE_TOLERANCE = 0.005;
+
+/**
  * Prévision Épargne liée à l'objectif, avec la période budgétaire (month/year)
  * du budget qui la porte. `isRollover` est une garde défensive pour les
  * consommateurs client qui injectent des lignes de report virtuelles — côté

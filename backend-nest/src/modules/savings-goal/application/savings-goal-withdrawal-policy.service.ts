@@ -1,5 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { computeSavingsGoalProgress } from 'pulpe-shared';
+import {
+  computeSavingsGoalProgress,
+  WITHDRAWAL_BALANCE_TOLERANCE,
+} from 'pulpe-shared';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
@@ -11,13 +14,6 @@ import type {
   SavingsGoalWithdrawalPolicyPort,
   SavingsGoalWithdrawalWrite,
 } from '../domain/ports/savings-goal-withdrawal-policy.port';
-
-/**
- * Un centime : sous ce seuil, deux soldes sont le même solde. Sans cette marge,
- * l'accumulation de flottants ferait échouer le retrait de l'intégralité d'un
- * pot — le geste le plus légitime de la feature.
- */
-const BALANCE_TOLERANCE = 0.005;
 
 /** Un seul nouvel essai : au-delà, l'objectif est disputé, pas ralenti. */
 const MAX_ATTEMPTS = 2;
@@ -118,7 +114,7 @@ export class SavingsGoalWithdrawalPolicyService implements SavingsGoalWithdrawal
     input: SavingsGoalWithdrawalWrite<unknown>,
   ): void {
     const available = confirmed + (input.creditBack ?? 0);
-    if (input.debit <= available + BALANCE_TOLERANCE) return;
+    if (input.debit <= available + WITHDRAWAL_BALANCE_TOLERANCE) return;
 
     // Le message ne porte AUCUN chiffre : le solde d'un objectif est une donnée
     // financière, et une réponse d'erreur voyage jusque dans les logs.

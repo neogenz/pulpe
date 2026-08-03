@@ -20,6 +20,7 @@ import {
   getBudgetPeriodForDate,
   parseIsoDateLocal,
   periodIndex,
+  WITHDRAWAL_BALANCE_TOLERANCE,
   type BudgetPeriod,
 } from 'pulpe-shared';
 
@@ -248,7 +249,12 @@ export class SavingsGoalPickerField {
     return option.availableAmount - (this.withdrawalAmount() ?? 0);
   });
 
-  readonly hasInsufficientBalance = computed(() => this.remainingAmount() < 0);
+  // Même bande que le serveur : il accepte `debit <= disponible + tolérance`.
+  // Plus serré ici, le pré-contrôle refuserait des retraits que la requête
+  // aurait acceptés — vider un pot exactement, d'abord.
+  readonly hasInsufficientBalance = computed(
+    () => this.remainingAmount() < -WITHDRAWAL_BALANCE_TOLERANCE,
+  );
 
   /**
    * Withdrawal mode: the selection cannot be committed yet — options are still

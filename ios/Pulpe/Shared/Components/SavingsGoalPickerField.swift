@@ -47,9 +47,12 @@ struct SavingsGoalPickerField: View {
             return selectedOption.availableAmount - withdrawalAmount
         }
 
+        /// Même bande que le serveur, qui accepte `debit <= disponible +
+        /// tolérance`. Plus serré ici, le pré-contrôle refuserait des retraits
+        /// que la requête aurait acceptés — vider un pot exactement, d'abord.
         var hasInsufficientBalance: Bool {
             guard let remainingAmount else { return false }
-            return remainingAmount < 0
+            return remainingAmount < -SavingsGoalProgress.withdrawalBalanceTolerance
         }
 
         var isReady: Bool {
