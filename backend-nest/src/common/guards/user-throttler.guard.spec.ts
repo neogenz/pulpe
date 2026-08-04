@@ -5,6 +5,7 @@ import {
   createMockSupabaseClient,
 } from '../../test/test-mocks';
 import type { SupabaseService } from '@modules/supabase/supabase.service';
+import { PUBLIC_THROTTLER_NAME } from '@config/throttler.config';
 
 describe('UserThrottlerGuard', () => {
   let guard: UserThrottlerGuard;
@@ -560,7 +561,7 @@ describe('UserThrottlerGuard', () => {
   describe('handleRequest - public bucket', () => {
     const createThrottlerRequest = (request: unknown) =>
       ({
-        throttler: { name: 'public' },
+        throttler: { name: PUBLIC_THROTTLER_NAME },
         context: { switchToHttp: () => ({ getRequest: () => request }) },
       }) as any;
 
