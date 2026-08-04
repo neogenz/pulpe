@@ -766,7 +766,16 @@ jobs:
     name: ✅ CI Success
     runs-on: ubuntu-latest
     timeout-minutes: 1
-    needs: [build, test-unit, test-backend-integration, test-e2e, quality, test-performance, test-ios]
+    needs:
+      [
+        build,
+        test-unit,
+        test-backend-integration,
+        test-e2e,
+        quality,
+        test-performance,
+        test-ios,
+      ]
     if: always()
     steps:
       - name: ✅ Check all jobs

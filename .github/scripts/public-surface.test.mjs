@@ -64,10 +64,7 @@ test("public security and deletion claims describe the implemented model", () =>
   assert.doesNotMatch(support, /rien n['’]est conservé|zéro trace/i);
   assert.match(support, /systèmes actifs/i);
   assert.match(support, /sauvegardes/i);
-  assert.doesNotMatch(
-    support,
-    /tes données ne sortent jamais de ton compte/i,
-  );
+  assert.doesNotMatch(support, /tes données ne sortent jamais de ton compte/i);
   assert.match(
     support,
     /tes montants et libellés financiers ne sont ni transmis\s+à des fins publicitaires ni revendus/i,

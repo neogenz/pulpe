@@ -4,14 +4,14 @@ on:
   pull_request:
     types: [opened, synchronize]
     paths:
-      - 'frontend/**'
-      - 'backend-nest/**'
-      - 'shared/**'
-      - 'supabase/**'
-      - 'landing/**'
-      - 'ios/**'
-      - 'CLAUDE.md'
-      - '.claude/**'
+      - "frontend/**"
+      - "backend-nest/**"
+      - "shared/**"
+      - "supabase/**"
+      - "landing/**"
+      - "ios/**"
+      - "CLAUDE.md"
+      - ".claude/**"
 
 jobs:
   claude-review:
