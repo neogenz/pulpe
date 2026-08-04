@@ -84,7 +84,7 @@ cat >> "$OUTPUT_FILE" << 'EOF'
 - `shared/` - Shared TypeScript types and Zod schemas
 
 #### ⚙️ Configuration & Tooling
-- `.cursor/` - Cursor AI editor rules and configurations
+- `.claude/` - Claude Code rules, agents, commands and skills
 - `.github/` - GitHub Actions workflows and templates
 - `memory-bank/` - AI assistant context and architectural documentation
 

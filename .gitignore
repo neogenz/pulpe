@@ -68,7 +68,6 @@ frontend/deps/
 .turbo/
 **/.turbo/
 
-.cursor/rules/angular-architecture.md
 backend-nest/supabase/.temp/*
 backend-nest/schema.sql
 

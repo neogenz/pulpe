@@ -97,7 +97,7 @@ fixed code...
 - Dependency direction: `core ← layout, feature, pattern`
 - UI components stateless (no `inject()` of business services)
 
-**Sources**: `.cursor/rules/00-architecture/`, `memory-bank/ARCHITECTURE.md`
+**Sources**: `.claude/rules/00-architecture/`, `memory-bank/systemPatterns.md`
 
 ### 2. Angular Anti-Patterns
 
@@ -106,7 +106,7 @@ fixed code...
 | `@Input()`                        | `input()`      | angular.dev/guide/components/inputs                                          |
 | `@Output()`                       | `output()`     | angular.dev/guide/components/outputs                                         |
 | `*ngIf`, `*ngFor`                 | `@if`, `@for`  | angular.dev/guide/templates/control-flow                                     |
-| `[ngClass]`                       | `[class.name]` | `.cursor/rules/03-frameworks-and-libraries/3-angular-all-best-practices.mdc` |
+| `[ngClass]`                       | `[class.name]` | `.claude/rules/06-templates-and-models/design-system.md`                     |
 | `constructor(private x)`          | `inject()`     | angular.dev/guide/di/dependency-injection                                    |
 | `ChangeDetectionStrategy.Default` | `OnPush`       | Same                                                                         |
 | `@Input` + `@Output` (2-way)      | `model()`      | angular.dev/guide/signals/inputs#model-inputs                                |
@@ -115,7 +115,7 @@ fixed code...
 
 | Anti-Pattern                 | Correct                | Source                                  |
 | ---------------------------- | ---------------------- | --------------------------------------- |
-| `effect()` for derived state | `computed()`           | `.claude/rules/frontend/signals.md`     |
+| `effect()` for derived state | `computed()`           | `.claude/rules/03-frameworks-and-libraries/angular-signals.md` |
 | Mutation in `update()`       | `[...arr, item]`       | angular.dev/guide/signals               |
 | Missing cleanup              | `takeUntilDestroyed()` | angular.dev/ecosystem/rxjs-interop      |
 | `effect()` to sync signals   | `linkedSignal()`       | angular.dev/guide/signals/linked-signal |
@@ -124,22 +124,22 @@ fixed code...
 
 | Anti-Pattern    | Correct           | Source                                                                   |
 | --------------- | ----------------- | ------------------------------------------------------------------------ |
-| `private field` | `#field`          | `.cursor/rules/02-programming-languages/2-typescript-private-fields.mdc` |
-| `any` type      | `unknown` + guard | `.claude/rules/shared/typescript.md`                                     |
+| `private field` | `#field`          | `.claude/rules/03-frameworks-and-libraries/angular-signals.md`           |
+| `any` type      | `unknown` + guard | `.claude/rules/02-programming-languages/typescript.md`                   |
 | `as Type`       | Type guard        | Same                                                                     |
 
 ### 5. Naming
 
 | Anti-Pattern     | Correct     | Source                                |
 | ---------------- | ----------- | ------------------------------------- |
-| `loading` (bool) | `isLoading` | `.claude/rules/naming-conventions.md` |
-| `item` (array)   | `items`     | Same                                  |
+| `loading` (bool) | `isLoading` | `.claude/rules/01-standards/naming-conventions.md` |
+| `item` (array)   | `items`     | Same                                               |
 
 ### 6. Code Quality
 
 | Issue          | Limit | Source                        |
 | -------------- | ----- | ----------------------------- |
-| Function lines | ≤ 30  | `.claude/rules/clean-code.md` |
+| Function lines | ≤ 30  | `.claude/rules/01-standards/clean-code.md` |
 | Params         | ≤ 5   | Same                          |
 | File lines     | ≤ 300 | Same                          |
 
@@ -162,7 +162,7 @@ fixed code...
 
 | Anti-Pattern     | Correct                 | Source                            |
 | ---------------- | ----------------------- | --------------------------------- |
-| No AAA structure | Arrange/Act/Assert      | `.claude/rules/testing/vitest.md` |
+| No AAA structure | Arrange/Act/Assert      | `.claude/rules/07-quality-assurance/testing-vitest.md` |
 | `it('test 1')`   | `it('should X when Y')` | Same                              |
 | `id="btn"`       | `data-testid="..."`     | Same                              |
 
@@ -172,7 +172,7 @@ fixed code...
 | -------------------------- | -------------------------- | -------------------------- |
 | No validation at boundary  | `schema.parse(data)`       | zod.dev                    |
 | Manual type definition     | `z.infer<typeof schema>`   | Same                       |
-| Import types from backend  | Import from `pulpe-shared` | `memory-bank/ARCHITECTURE.md` |
+| Import types from backend  | Import from `pulpe-shared` | `.claude/rules/03-frameworks-and-libraries/shared-schemas.md` |
 
 </checklist>
 
@@ -240,7 +240,7 @@ fixed code...
 
 ❌ **Problem**: Using `effect()` to synchronize `filteredItems` from `items`. This creates unnecessary reactivity and can cause glitches.
 
-📚 **Source**: `.claude/rules/frontend/signals.md`
+📚 **Source**: `.claude/rules/03-frameworks-and-libraries/angular-signals.md`
 
 ✅ **Fix**:
 
@@ -267,7 +267,7 @@ readonly filteredItems = computed(() => this.items().filter(i => i.active));
 
 ❌ **Problem**: Boolean property `loading` should use `is` prefix for clarity.
 
-📚 **Source**: `.claude/rules/naming-conventions.md`
+📚 **Source**: `.claude/rules/01-standards/naming-conventions.md`
 
 ✅ **Fix**:
 
