@@ -54,7 +54,7 @@ core/
 │   └── auth.guard.ts
 ├── user/           # User domain
 │   └── user.service.ts
-├── error-handling/ # Error infrastructure
+├── analytics/      # PostHog + error capture
 │   └── global-error-handler.ts
 └── core.ts         # provideCore() export
 ```

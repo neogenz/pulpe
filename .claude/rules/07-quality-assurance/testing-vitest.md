@@ -42,7 +42,7 @@ describe('UserService', () => {
 
   describe('fetchUsers', () => {
     it('should return users on success', () => {});
-    it('should throw OperationalError on network failure', () => {});
+    it('should throw ApiError on network failure', () => {});
   });
 
   describe('deleteUser', () => {
@@ -168,13 +168,13 @@ describe('CounterService', () => {
 
 ```typescript
 beforeEach(() => {
-  const mockLoggingService: Partial<LoggingService> = {
+  const mockLogger: Partial<Logger> = {
     error: vi.fn(),
-    addBreadcrumb: vi.fn(),
+    warn: vi.fn(),
   };
 
   TestBed.configureTestingModule({
-    providers: [{ provide: LoggingService, useValue: mockLoggingService }],
+    providers: [{ provide: Logger, useValue: mockLogger }],
   });
 });
 ```

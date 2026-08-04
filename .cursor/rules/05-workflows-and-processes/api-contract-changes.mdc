@@ -70,7 +70,7 @@ Pour chaque client: champ par champ, le DTO/struct doit matcher le nouveau schem
 ### 4. Post-merge monitoring
 
 Pour `Risque` ou `OUI` shippé:
-- Watch backend logs / Sentry pendant ≥7 jours pour `ZodValidationException`, `unrecognized_keys`, status 400 anormaux
+- Watch backend logs / PostHog error tracking pendant ≥7 jours pour `ZodValidationException`, `unrecognized_keys`, status 400 anormaux
 - Set up un agent `/schedule` pour audit dans 7 jours si pas couvert par alerting
 
 ## Exemple : PUL-287 — `POST /v1/budget-lines/spread` (intent-based body)

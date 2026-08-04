@@ -1,213 +1,57 @@
 ---
-description: "Error classification, logging, and Sentry integration"
-globs: "frontend/**/core/error-handling/**/*.ts"
+description: "Webapp error reporting — what reaches PostHog and what is filtered as expected noise"
+globs: "frontend/**/core/{analytics,api}/**/*.ts"
 alwaysApply: false
 ---
 
-# Error Handling
+# Webapp Error Reporting
 
-## Choosing the Right Type
+## Principle
 
-```
-Can the app continue?
-├── NO → FatalError (missing config, critical service down)
-└── YES → Technical or business?
-          ├── TECHNICAL → OperationalError (network, timeout, parse, 500)
-          └── BUSINESS → BusinessError (permission, quota, invalid state)
-```
+Report **unexpected** errors, filter **expected** ones. An error the app already handles — a
+refused token, a rate limit, a stale chunk, an offline request — is not a bug, and capturing it
+drowns the real ones. Every filter below exists because something legitimate was producing noise.
 
-| Situation | Type | Why |
-|-----------|------|-----|
-| Missing config at boot | `FatalError` | App no start |
-| API returns 500 | `OperationalError` | Technical, retry possible |
-| User without permission | `BusinessError` | Business rule, user message |
-| Zod fails on API response | `OperationalError` | Technical parse |
-| Zod fails on user input | `BusinessError` | Business validation |
-| External timeout | `OperationalError` | Technical, retry |
-| Quota exceeded | `BusinessError` | Business rule |
+The vendor is **PostHog** (`captureException`). There is no Sentry in this project.
 
-## Error Classes
+## The two capture points
 
-| Class | Severity | Use Case | Sentry Level |
-|-------|----------|----------|--------------|
-| `FatalError` | `fatal` | App crash, non-recoverable | `fatal` |
-| `OperationalError` | `operational` | Technical (API, network, timeout) | `error` |
-| `BusinessError` | `business` | Business rule violations | `warning` |
+| Where | File | Captures |
+| --- | --- | --- |
+| HTTP errors | `core/analytics/http-error-interceptor.ts` | every `HttpErrorResponse` not filtered below |
+| JS runtime errors | `core/analytics/global-error-handler.ts` | uncaught exceptions, null refs, type errors |
 
-## Error Creation
+They are **mutually exclusive by design**: `GlobalErrorHandler` returns early on
+`HttpErrorResponse` and on `ApiError` with `status > 0`, because the interceptor already captured
+those. Adding a capture on one side without checking the other double-reports.
 
-Always use typed errors with `ErrorCodes`:
+## What is filtered, and why
 
-```typescript
-import { ErrorCodes, FatalError, OperationalError, BusinessError } from '@core/error-handling';
+Interceptor (`http-error-interceptor.ts`):
 
-// FatalError - App cannot continue
-throw new FatalError(
-  ErrorCodes.Fatal.InitializationFailed,
-  'Auth endpoint not configured',
-  { context: { metadata: { service: 'AuthService' } } }
-);
+- **401, 403** — `authInterceptor` handles them (token refresh, redirect). Not bugs.
+- Everything `isExpectedBusinessHttpError()` matches, in `core/api/http-expected-business-noise.ts`:
+  - **status 0** — no HTTP response at all: offline, aborted request, backgrounded mobile tab,
+    CORS preflight failure. Not actionable from our side.
+  - **429** — rate limit, an expected server answer.
+  - **400** carrying `RECOVERY_KEY_INVALID`, `RECOVERY_KEY_NOT_CONFIGURED` or
+    `ENCRYPTION_KEY_CHECK_FAILED` — a user typing a wrong recovery key is a normal flow.
 
-// OperationalError - Technical failure, recoverable
-throw new OperationalError(
-  ErrorCodes.Operational.ParseError,
-  'Invalid response format',
-  {
-    context: { metadata: { endpoint: '/api/users' } },
-    cause: originalError,  // ES2022 cause chaining
-  }
-);
+`GlobalErrorHandler` (`global-error-handler.ts`):
 
-// BusinessError - Domain rule violation
-throw new BusinessError(
-  ErrorCodes.Business.QuotaExceeded,
-  `Team limit reached (${team.maxMembers})`,
-  { context: { metadata: { teamId: team.id } } }
-);
-```
+- **`HttpErrorResponse`**, and **`ApiError` with `status > 0`** — already captured by the interceptor.
+- **`isChunkLoadError(error)`** — stale-chunk errors are handled by `withNavigationErrorHandler`
+  in the router config. One reaching here means the reload was already attempted.
 
-### Cause Chaining
+## The asymmetry to preserve
 
-Preserve original error via `cause`:
+`ApiError` with **`status === 0`** is **NOT** filtered, unlike `HttpErrorResponse` with status 0.
+A zero-status `ApiError` means a Zod parse failure or a generic JS failure — a real bug worth
+reporting. The comment at `http-expected-business-noise.ts:33-37` says so; do not "simplify" the
+two paths into one.
 
-```typescript
-// Good
-throw new OperationalError(code, 'Request failed', { cause: originalError });
+## Always
 
-// Bad - loses original error context
-throw new OperationalError(code, 'Request failed');
-```
-
-Access cause chain:
-
-```typescript
-error.cause;                             // Error | undefined
-getRootCause(error);                     // deepest cause
-composeErrorMessageWithAllCauses(error); // "Msg - Caused by: Root"
-```
-
-## HTTP Interceptor
-
-`errorHttpInterceptor` transform `HttpErrorResponse` auto:
-
-| Status | Error Type | Code |
-|--------|------------|------|
-| 0 | `OperationalError` | `operational.network_error` |
-| 403 | `BusinessError` | `business.insufficient_permissions` |
-| 404 | `OperationalError` | `operational.resource_not_found` |
-| 408, 504 | `OperationalError` | `operational.timeout_error` |
-| 409 | `BusinessError` | `business.resource_conflict` |
-| 422 | `BusinessError` | `business.business_rule_violation` |
-| 4xx | `OperationalError` | `operational.validation_error` |
-| 5xx | `OperationalError` | `operational.http_error` |
-
-Handle typed errors in subscriptions:
-
-```typescript
-this.#http.get('/api/users').subscribe({
-  error: (err) => {
-    // Already typed by interceptor
-    this.#log.error(err); // Sends to Sentry with handled: true
-    if (err instanceof BusinessError) {
-      this.#showPermissionDenied();
-    } else {
-      this.#showRetryOption();
-    }
-  }
-});
-```
-
-## Handled vs Unhandled (Crash-Free Sessions)
-
-Sentry split errors via `mechanism.handled`:
-
-| Path | `handled` | KPI Impact |
-|------|-----------|------------|
-| `throw` → ErrorHandler | `false` | Session "crashed" |
-| `catch` → `LoggingService.error()` | `true` | Session "healthy" |
-
-**Rule:**
-
-- **ErrorHandler** = **unexpected** errors (bugs, broken invariants)
-- **LoggingService.error()** = **expected/recoverable** errors (API, timeout)
-
-```typescript
-// ❌ Impacts Crash-Free for an expected error
-throw new OperationalError(code, 'API timeout');
-
-// ✅ Does not impact Crash-Free
-try {
-  await this.#api.fetchData();
-} catch (error) {
-  this.#log.error(error); // handled: true
-  this.#showRetryOption();
-}
-```
-
-## Logging Service
-
-```typescript
-readonly #log = inject(LoggingService);
-
-this.#log.debug('msg', { extra: {} });  // Dev only
-this.#log.info('msg');                   // Console + breadcrumb
-this.#log.warn('msg');                   // Console + breadcrumb
-this.#log.error(error, { tags: {} });    // Console + Sentry (prod)
-this.#log.setUser({ id, email });
-this.#log.addBreadcrumb('action', 'category', data);
-```
-
-## Sentry Integration
-
-### Filtered Errors (not sent)
-
-| Pattern | Reason |
-|---------|--------|
-| `ResizeObserver loop` | Browser noise |
-| `ChunkLoadError` | User refresh handle it |
-| `Failed to fetch`, `NetworkError` | Client connectivity |
-| `401 Unauthorized` | Normal auth flow |
-| `chrome://`, `moz-extension://` | Browser extensions |
-
-### Fingerprinting (error grouping)
-
-URLs sanitized for grouping:
-
-- `/users/123` → `/users/[id]`
-- `/orders/550e8400-...` → `/orders/[uuid]`
-- `/reports/2024-01-15` → `/reports/[date]`
-
-### Sanitized Data
-
-Keys filtered from Sentry: `password`, `token`, `secret`, `authorization`, `cookie`, `apikey`
-
-Headers excluded: `authorization`, `cookie`, `x-api-key`, `x-auth-token`, `x-csrf-token`
-
-## Extending ErrorCodes
-
-Add domain codes to `error-codes.ts`:
-
-```typescript
-export const ErrorCodes = {
-  // existing...
-  Order: {
-    NotFound: 'order.not_found',
-    AlreadyProcessed: 'order.already_processed',
-  },
-} as const;
-
-export type OrderErrorCode = (typeof ErrorCodes.Order)[keyof typeof ErrorCodes.Order];
-```
-
-## Anti-Patterns
-
-| Don't | Do |
-|-------|-----|
-| `throw new Error('msg')` | `throw new OperationalError(code, 'msg')` |
-| `catch (e) { throw new Error(e.message) }` | `catch (e) { throw new OperationalError(code, 'msg', { cause: e }) }` |
-| Log passwords/tokens | Use context.metadata for safe data only |
-| Catch and swallow errors silently | Log via `LoggingService.error()` |
-
-## Reference
-
-See project error-handling module docs for implementation details.
+- Log **or** throw, never both — the error reaches a capture point on its own.
+- A new filter needs a named reason, in the same shape as the ones above.
+- Widening a filter (a whole status class, a bare `catch`) hides bugs. Narrow it to a code.
