@@ -381,7 +381,9 @@ test.describe('Savings goal as the source of an income', () => {
     await expect(savingsGoalsPage.deletionWithdrawalRows()).toContainText(
       INCOME_NAME,
     );
-    await savingsGoalsPage.expectDeletionWithdrawalTotal('4 500.00');
+    // An aggregate, so no decimals — and signed, because the block reads as what
+    // the goal gave away. The rows above keep their two decimals.
+    await savingsGoalsPage.expectDeletionWithdrawalTotal('-4 500');
 
     await savingsGoalsPage.confirmDeletion();
     await expect(
