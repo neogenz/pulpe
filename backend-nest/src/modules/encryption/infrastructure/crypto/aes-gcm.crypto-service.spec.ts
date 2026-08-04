@@ -121,7 +121,9 @@ const createMockRepository = (overrides?: {
   updateKeyCheckIfNull?: ReturnType<typeof mock>;
   initializeVaultIfEmpty?: ReturnType<typeof mock>;
   getVaultStatus?: ReturnType<typeof mock>;
+  rekeyUserData?: ReturnType<typeof mock>;
 }) => ({
+  rekeyUserData: overrides?.rekeyUserData ?? mock(() => Promise.resolve()),
   findSaltByUserId:
     overrides?.findSaltByUserId ?? mock(() => Promise.resolve(null)),
   findByUserId:
@@ -2045,10 +2047,11 @@ describe('AesGcmCryptoService', () => {
         ...createMockLogger(),
         info: mock(() => {}),
       };
+      const rekeyUserData = mock(() => Promise.resolve());
       service = new AesGcmCryptoService(
         logger as any,
         mockConfigService as any,
-        createMockRepository() as any,
+        createMockRepository({ rekeyUserData }) as any,
       );
       const ciphertext = service.encryptAmount(42, oldDek);
       const monthlyBudgets = Array.from({ length: 1_001 }, (_, index) => ({
@@ -2056,13 +2059,9 @@ describe('AesGcmCryptoService', () => {
         user_id: TEST_USER_ID,
         ending_balance: ciphertext,
       }));
-      const rpc = mock((_function: string, _payload: unknown) =>
-        Promise.resolve({ error: null }),
-      );
-      const client = {
-        ...createEncryptedDataClient({ monthly_budget: monthlyBudgets }),
-        rpc,
-      };
+      const client = createEncryptedDataClient({
+        monthly_budget: monthlyBudgets,
+      });
 
       await service.reEncryptAllUserData(
         TEST_USER_ID,
@@ -2071,14 +2070,17 @@ describe('AesGcmCryptoService', () => {
         client as any,
       );
 
-      expect(rpc).toHaveBeenCalledTimes(1);
-      const payload = rpc.mock.calls[0]?.[1] as {
-        p_monthly_budgets: Array<{ id: string; ending_balance: string }>;
-      };
-      expect(payload.p_monthly_budgets).toHaveLength(1_001);
+      expect(rekeyUserData).toHaveBeenCalledTimes(1);
+      const [calledUserId, payloads] = rekeyUserData.mock
+        .calls[0] as unknown as [
+        string,
+        { monthlyBudgets: Array<{ id: string; ending_balance: string }> },
+      ];
+      expect(calledUserId).toBe(TEST_USER_ID);
+      expect(payloads.monthlyBudgets).toHaveLength(1_001);
       expect(
         service.decryptAmount(
-          payload.p_monthly_budgets[1_000]!.ending_balance,
+          payloads.monthlyBudgets[1_000]!.ending_balance,
           newDek,
         ),
       ).toBe(42);
@@ -2093,10 +2095,11 @@ describe('AesGcmCryptoService', () => {
     it('should not call the atomic rekey RPC when a later page fails', async () => {
       const oldDek = randomBytes(32);
       const newDek = randomBytes(32);
+      const rekeyUserData = mock(() => Promise.resolve());
       service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
-        createMockRepository() as any,
+        createMockRepository({ rekeyUserData }) as any,
       );
       const ciphertext = service.encryptAmount(42, oldDek);
       const monthlyBudgets = Array.from({ length: 1_001 }, (_, index) => ({
@@ -2104,16 +2107,10 @@ describe('AesGcmCryptoService', () => {
         user_id: TEST_USER_ID,
         ending_balance: ciphertext,
       }));
-      const rpc = mock((_function: string, _payload: unknown) =>
-        Promise.resolve({ error: null }),
+      const client = createEncryptedDataClient(
+        { monthly_budget: monthlyBudgets },
+        { 1_000: new Error('second page failed') },
       );
-      const client = {
-        ...createEncryptedDataClient(
-          { monthly_budget: monthlyBudgets },
-          { 1_000: new Error('second page failed') },
-        ),
-        rpc,
-      };
 
       await expect(
         service.reEncryptAllUserData(
@@ -2123,16 +2120,17 @@ describe('AesGcmCryptoService', () => {
           client as any,
         ),
       ).rejects.toThrow('second page failed');
-      expect(rpc).not.toHaveBeenCalled();
+      expect(rekeyUserData).not.toHaveBeenCalled();
     });
 
     it('should not call the atomic rekey RPC when a later page returns null data without an error', async () => {
       const oldDek = randomBytes(32);
       const newDek = randomBytes(32);
+      const rekeyUserData = mock(() => Promise.resolve());
       service = new AesGcmCryptoService(
         createMockLogger() as any,
         mockConfigService as any,
-        createMockRepository() as any,
+        createMockRepository({ rekeyUserData }) as any,
       );
       const ciphertext = service.encryptAmount(42, oldDek);
       const monthlyBudgets = Array.from({ length: 1_001 }, (_, index) => ({
@@ -2140,17 +2138,11 @@ describe('AesGcmCryptoService', () => {
         user_id: TEST_USER_ID,
         ending_balance: ciphertext,
       }));
-      const rpc = mock((_function: string, _payload: unknown) =>
-        Promise.resolve({ error: null }),
+      const client = createEncryptedDataClient(
+        { monthly_budget: monthlyBudgets },
+        {},
+        new Set([1_000]),
       );
-      const client = {
-        ...createEncryptedDataClient(
-          { monthly_budget: monthlyBudgets },
-          {},
-          new Set([1_000]),
-        ),
-        rpc,
-      };
 
       await expect(
         service.reEncryptAllUserData(
@@ -2160,7 +2152,7 @@ describe('AesGcmCryptoService', () => {
           client as any,
         ),
       ).rejects.toThrow('Ambiguous Supabase response');
-      expect(rpc).not.toHaveBeenCalled();
+      expect(rekeyUserData).not.toHaveBeenCalled();
     });
   });
 

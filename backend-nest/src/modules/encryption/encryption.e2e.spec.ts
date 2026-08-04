@@ -25,6 +25,7 @@ class NoopThrottlerGuard {
 describe('Encryption E2E (local Supabase)', () => {
   let hasSupabase = false;
   let adminClient: SupabaseClient<Database>;
+  let userScopedClient: SupabaseClient<Database>;
   let app: INestApplication;
   let testUserId: string;
   let testUserEmail: string;
@@ -81,6 +82,12 @@ describe('Encryption E2E (local Supabase)', () => {
       );
     }
     accessToken = signInData.session.access_token;
+
+    // Same client a stolen JWT would give an attacker: anon key + user token,
+    // straight to PostgREST, bypassing the API entirely.
+    userScopedClient = createClient<Database>(env.apiUrl, env.anonKey, {
+      global: { headers: { Authorization: `Bearer ${accessToken}` } },
+    });
 
     // Build the full app with throttler bypassed.
     // Override ConfigService to use CLI values, since Bun auto-loads
@@ -272,5 +279,35 @@ describe('Encryption E2E (local Supabase)', () => {
       .expect(400);
 
     expect(res.body.code).toBe('ERR_ZOD_VALIDATION_FAILED');
+  });
+
+  it('denies a user JWT any direct write to its own key_check', async () => {
+    if (!hasSupabase) return;
+
+    const { error } = await userScopedClient
+      .from('user_encryption_key')
+      .update({ key_check: 'bricked-by-attacker' })
+      .eq('user_id', testUserId);
+
+    expect(error?.code).toBe('42501');
+
+    const { data } = await adminClient
+      .from('user_encryption_key')
+      .select('key_check')
+      .eq('user_id', testUserId)
+      .single();
+
+    expect(data?.key_check).not.toBe('bricked-by-attacker');
+  });
+
+  it('denies a user JWT execution of the rekey RPC', async () => {
+    if (!hasSupabase) return;
+
+    const { error } = await userScopedClient.rpc('rekey_user_encrypted_data', {
+      p_user_id: testUserId,
+      p_key_check: 'bricked-by-attacker',
+    });
+
+    expect(error?.code).toBe('42501');
   });
 });

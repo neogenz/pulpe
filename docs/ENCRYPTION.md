@@ -236,6 +236,16 @@ Atténuations :
 - `REVOKE ALL` sur les rôles `authenticated` et `anon`
 - Pas de politique DELETE (suppression uniquement via `ON DELETE CASCADE` depuis `auth.users`)
 
+### Pourquoi le rekey passe par le `service_role`
+
+Entre `20260212100000` et `20260804130000`, `authenticated` disposait de `GRANT SELECT (user_id)` et `GRANT UPDATE (key_check, updated_at)` : le RPC `rekey_user_encrypted_data`, `SECURITY INVOKER`, était appelé avec le JWT de l'utilisateur et avait besoin de ces privilèges pour écrire le canary. Conséquence : un jeton volé pouvait écrire `key_check` directement via PostgREST et rendre le coffre de son propriétaire indéchiffrable.
+
+Depuis `20260804130000`, le rekey est appelé par `SupabaseEncryptionKeyRepository.rekeyUserData()` sur le client `service_role`, comme tous les autres accès à la table. `EXECUTE` sur le RPC est révoqué pour `authenticated` et `anon` : ni l'écriture directe ni l'appel forgé du RPC ne sont possibles avec un JWT utilisateur.
+
+Le RPC reste `SECURITY INVOKER`. Appelé par le `service_role` il n'est plus soumis au RLS, donc l'appartenance des lignes n'est plus garantie par les politiques : chaque `UPDATE` est explicitement borné à `p_user_id` (directement pour `savings_goal` et `monthly_budget`, via `monthly_budget` pour `budget_line` et `transaction`, via `template` pour `template_line`), et les assertions de nombre de lignes font échouer toute la transaction si un identifiant du payload n'appartient pas à l'utilisateur.
+
+**Ne pas rétablir de `GRANT` sur cette table pour débloquer un flux** : le flux doit passer par le repository `service_role`.
+
 ## Stockage du clientKey
 
 ### Web (Angular)
