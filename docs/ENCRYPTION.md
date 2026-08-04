@@ -220,6 +220,24 @@ De plus :
 - Le brute-force en ligne est bloqué par le rate limiting (5 tentatives/min sur `validate-key`)
 - La constante `pinLength` dans `CryptoService` est fixée à 4 chiffres (peut être augmentée si la réglementation l'exige)
 
+## Absence d'AAD sur les ciphertexts de montants (risque accepté)
+
+Les montants sont chiffrés en AES-256-GCM sans *additional authenticated data*. Un attaquant disposant d'un **accès en écriture à la base** peut donc déplacer un ciphertext d'une colonne à une autre : le tag GCM reste valide et l'application affiche le montant déplacé.
+
+Portée réelle de l'attaque, avant d'envisager une correction :
+
+| Variante de relocation | Déjà bloquée ? |
+|------------------------|----------------|
+| Vers un **autre utilisateur** | Oui. `DEK = HKDF(clientKey + masterKey, salt, "pulpe-dek-{userId}")` : le sel et l'`info` diffèrent par utilisateur, le tag GCM échoue (couvert par `cross-dek-budget-line.spec.ts`) |
+| **Ligne → ligne, même colonne** (`budget_line.amount` de A vers `budget_line.amount` de B, même utilisateur) | Non, et une AAD ne peut pas la bloquer ici : les RPC SQL propagent légitimement les ciphertexts `template_line.amount → budget_line.amount`, donc lier l'AAD à la table ou à l'identifiant de ligne casserait la provision d'un budget depuis un modèle |
+| **Champ → champ, même utilisateur** (`amount` vers `target_amount`) | Non. C'est la seule variante qu'une AAD `{userId}:{champ}` fermerait |
+
+Une AAD par champ ne fermerait donc que la variante la moins probable, et son coût de mise en œuvre est disproportionné : le contexte `champ` devrait être passé aux **65 sites d'appel** de `encryptAmount`/`decryptAmount`/`tryDecryptAmount` répartis sur 9 fichiers, et le déchiffrement devrait porter en permanence une branche v1/v2 pour rester compatible avec l'existant.
+
+Le facteur décisif est le mode de défaillance. Tous les chemins de lecture passent par `tryDecryptAmount`, qui **ne lève jamais** : un échec de déchiffrement retourne le repli (`0` ou `null`) et n'émet qu'un `warn`. Une seule étiquette de champ erronée parmi les 65 afficherait donc silencieusement `0 €` à la place du montant réel de vrais utilisateurs — exactement le préjudice que la mesure prétend empêcher, mais infligé à tout le monde plutôt qu'à la cible d'un attaquant qui possède déjà la base.
+
+Décision : pas d'AAD pour l'instant. Si elle est implémentée un jour, la conception retenue est fixée — préfixe `v2:`, AAD `{userId}:{champ sémantique}`, jamais la table ni l'identifiant de ligne (à cause de la propagation `template_line → budget_line`), déchiffrement rétrocompatible v1 et migration paresseuse à la prochaine écriture. Prérequis à traiter d'abord : faire échouer bruyamment les chemins de lecture au lieu du repli silencieux à 0.
+
 ## Transport du client key via header HTTP (risque accepté)
 
 Le header `X-Client-Key` est envoyé sur tous les endpoints de données (budgets, transactions, templates) car le serveur a besoin de la clé client au moment de la requête pour dériver la DEK. Seuls 4 endpoints utilisent `@SkipClientKey()` (vault-status, salt, validate-key, recover).
