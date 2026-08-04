@@ -172,6 +172,15 @@ DROP POLICY IF EXISTS "authenticated_update_own_key_check" ON public.user_encryp
 DROP POLICY IF EXISTS "select_policy" ON public.user_encryption_key;
 DROP POLICY IF EXISTS "update_policy" ON public.user_encryption_key;
 
+-- Ces deux policies ne sont la barrière de personne, et il faut le savoir avant
+-- de s'appuyer dessus. `service_role` porte BYPASSRLS : elles ne sont jamais
+-- évaluées pour lui. Et pour tout autre rôle, le `REVOKE ALL` ci-dessus retire
+-- le privilège de table, donc l'accès échoue avant même que RLS soit consulté.
+-- Vérifié : en rejouant le GRANT de 20260212100000 à `authenticated`, la table
+-- renvoie 0 ligne avec ces policies comme sans elles — RLS activé sans aucune
+-- policy refuse déjà tout. Ce qui protège la table, c'est le REVOKE, pas ceci.
+-- On les garde parce qu'elles écrivent l'intention (service_role uniquement) ;
+-- ne pas les compter comme une seconde couche, elles n'en sont pas une.
 CREATE POLICY "select_policy" ON public.user_encryption_key
   FOR SELECT
   USING ((select auth.role()) = 'service_role');
