@@ -24,7 +24,6 @@ paths: "frontend/**/layout/**/*"
 layout/ ──✅──> core/    (inject services for auth, user state)
 layout/ ──✅──> ui/      (use generic UI components)
 layout/ ──✅──> pattern/ (use reusable business components)
-layout/ ──✅──> styles/
 layout/ ──❌──> feature/ (NEVER - layout is shared across features)
 ```
 

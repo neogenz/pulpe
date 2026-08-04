@@ -355,6 +355,10 @@ export class GreetingComponent {
 }
 ```
 
+Write the template **inline** unless the component is large enough that the file becomes hard to
+read. The webapp is near-unanimous on this: 171 components use inline `template:` against 4
+`templateUrl`, and only 3 component `.html` files exist in the whole app.
+
 ---
 
 ## Anti-Patterns

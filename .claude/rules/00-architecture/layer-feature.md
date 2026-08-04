@@ -23,7 +23,6 @@ paths: "frontend/**/feature/**/*"
 feature/ ──✅──> pattern/ (use reusable business components)
 feature/ ──✅──> ui/      (use generic UI components)
 feature/ ──✅──> core/    (inject services)
-feature/ ──✅──> styles/
 feature/ ──❌──> feature/ (FORBIDDEN - complete isolation)
 feature/ ──❌──> layout/  (layout is eager, features are lazy)
 ```

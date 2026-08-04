@@ -24,7 +24,6 @@ ui/ ──❌──> core/      (FORBIDDEN - no service injection)
 ui/ ──❌──> pattern/   (FORBIDDEN - no cross-dependencies)
 ui/ ──❌──> feature/   (FORBIDDEN - no feature coupling)
 ui/ ──❌──> layout/    (FORBIDDEN - self-contained)
-ui/ ──❌──> styles/    (Self-styled, inline or component styles)
 ```
 
 **UI deps on NOTHING external** - Fully isolated, reusable. Internal composition between UI components OK.

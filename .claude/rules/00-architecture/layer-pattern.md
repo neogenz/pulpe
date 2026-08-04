@@ -20,7 +20,6 @@ paths: "frontend/**/pattern/**/*"
 ```
 pattern/ ──✅──> core/
 pattern/ ──✅──> ui/
-pattern/ ──✅──> styles/
 pattern/ ──❌──> feature/
 pattern/ ──❌──> layout/
 pattern/ ──❌──> pattern/  (no pattern-to-pattern imports)
@@ -44,7 +43,7 @@ Keep in `feature/` when:
 | Aspect | UI Layer | Pattern Layer |
 |--------|----------|---------------|
 | **Services** | ❌ NEVER inject | ✅ Can inject from `core/` |
-| **Dependencies** | ❌ NONE (self-contained) | ✅ `core/`, `ui/`, `styles/` |
+| **Dependencies** | ❌ NONE (self-contained) | ✅ `core/`, `ui/` |
 | **Domain knowledge** | ❌ Generic widgets | ✅ Business concepts |
 | **State** | ❌ Stateless (inputs only) | ✅ Can have local state, signals |
 | **Reusability** | ✅ ANY application | ✅ THIS application only |
