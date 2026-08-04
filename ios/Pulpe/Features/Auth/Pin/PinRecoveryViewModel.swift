@@ -136,9 +136,10 @@ final class PinRecoveryViewModel {
 
     // MARK: - Recovery Execution
 
+    /// The numpad lock belongs to `autoSubmit()`, which holds it from the last
+    /// digit until this returns — nothing here touches `isProcessing`.
     private func executeRecovery() async {
         step = .processing
-        isProcessing = true
         requiresReauthentication = false
 
         guard let pin = firstPin else { return }
@@ -165,12 +166,9 @@ final class PinRecoveryViewModel {
 
             firstPin = nil
             hapticSuccess.toggle()
-            isProcessing = false
         } catch let error as APIError {
-            isProcessing = false
             handleRecoveryError(error)
         } catch {
-            isProcessing = false
             retryFromCurrentStep()
             showError("Une erreur est survenue, réessaie")
         }
