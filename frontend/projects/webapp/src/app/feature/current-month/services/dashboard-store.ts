@@ -25,6 +25,8 @@ import {
   getBudgetPeriodForDate,
 } from 'pulpe-shared';
 import { isApiError } from '@core/api/api-error';
+import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
+import { TranslocoService } from '@jsverse/transloco';
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 import {
   type DashboardData,
@@ -66,11 +68,12 @@ export class DashboardStore {
   readonly #userSettingsStore = inject(UserSettingsStore);
   readonly #logger = inject(Logger);
   readonly #postHogService = inject(PostHogService);
+  readonly #apiErrorLocalizer = inject(ApiErrorLocalizer);
+  readonly #transloco = inject(TranslocoService);
 
   // ── 2. State ──
   readonly #pendingChecks = signal(new Set<string>());
   readonly pendingChecks = this.#pendingChecks.asReadonly();
-  readonly #errorMessage = signal<string | null>(null);
 
   readonly #currentDate = inject(DASHBOARD_NOW);
 
@@ -140,9 +143,10 @@ export class DashboardStore {
       this.#historyResource.isLoading(),
   );
   readonly hasValue = computed(() => this.#dashboardResource.hasValue());
-  readonly error = computed(
-    () => this.#dashboardResource.error() ?? this.#errorMessage(),
-  );
+  // The page renders this as a full-screen "could not load" card, so it says one
+  // thing only: the dashboard could not be fetched. A refused mutation travels
+  // back through its own return value — see `addTransaction`.
+  readonly error = computed(() => this.#dashboardResource.error());
   readonly status = computed(() => {
     const resourceStatus = this.#dashboardResource.status();
     if (resourceStatus === 'loading' && this.dashboardData()) {
@@ -290,42 +294,57 @@ export class DashboardStore {
   );
 
   // ── 5. Mutations ──
-  readonly #addTransactionMutation = cachedMutation<
-    TransactionCreate,
-    { data: Transaction },
-    DashboardData | null
-  >({
-    cache: this.#budgetApi.cache,
-    invalidateKeys: () => DASHBOARD_INVALIDATION_KEYS,
-    mutationFn: (data) => this.#budgetApi.createTransaction$(data),
-    onSuccess: (response) => {
-      this.#updateDashboard((current) => ({
-        ...current,
-        transactions: [...current.transactions, response.data],
-      }));
-      this.#postHogService.captureEvent('transaction_created', {
-        type: response.data.kind,
-      });
-    },
-    onError: (error) => {
-      this.#setError('transaction-add-failed');
-      // Un refus de retrait (PUL-329) veut dire que le solde affiché au moment
-      // du choix ne vaut plus rien : la prochaine ouverture du formulaire doit
-      // relire les options, jamais réafficher le disponible périmé.
-      if (isApiError(error) && WITHDRAWAL_ERROR_CODES.has(error.code ?? '')) {
-        this.#savingsGoalApi.cache.invalidate(['savings-goals']);
-      }
-    },
-  });
+  // Built around THIS call's sink rather than shared: `cachedMutation` gates
+  // onSuccess/onError latest-wins, so a signal on `this` would hand one call the
+  // other's verdict. The cell lives in the call frame — see `addTransaction`.
+  readonly #addTransactionMutation = (fail: (message: string) => void) =>
+    cachedMutation<
+      TransactionCreate,
+      { data: Transaction },
+      DashboardData | null
+    >({
+      cache: this.#budgetApi.cache,
+      invalidateKeys: () => DASHBOARD_INVALIDATION_KEYS,
+      mutationFn: (data) => this.#budgetApi.createTransaction$(data),
+      onSuccess: (response) => {
+        this.#updateDashboard((current) => ({
+          ...current,
+          transactions: [...current.transactions, response.data],
+        }));
+        this.#postHogService.captureEvent('transaction_created', {
+          type: response.data.kind,
+        });
+      },
+      onError: (error) => {
+        fail(
+          isApiError(error)
+            ? this.#apiErrorLocalizer.localizeApiError(error)
+            : this.#transloco.translate('currentMonth.addError'),
+        );
+        // Un refus de retrait (PUL-329) veut dire que le solde affiché au moment
+        // du choix ne vaut plus rien : la prochaine ouverture du formulaire doit
+        // relire les options, jamais réafficher le disponible périmé.
+        if (isApiError(error) && WITHDRAWAL_ERROR_CODES.has(error.code ?? '')) {
+          this.#savingsGoalApi.cache.invalidate(['savings-goals']);
+        }
+      },
+    });
 
   refreshData(): void {
-    this.#clearError();
     this.#dashboardResource.reload();
     this.#historyResource.reload();
   }
 
-  async addTransaction(transactionData: TransactionCreate): Promise<void> {
-    await this.#addTransactionMutation.mutate(transactionData);
+  /** Returns the localized reason on refusal, or `null` when it went through. */
+  async addTransaction(
+    transactionData: TransactionCreate,
+  ): Promise<string | null> {
+    let reason: string | null = null;
+    const mutation = this.#addTransactionMutation((message) => {
+      reason = message;
+    });
+    await mutation.mutate(transactionData);
+    return reason;
   }
 
   // Plain async mutation — `cachedMutation` uses latest-wins for
@@ -337,7 +356,6 @@ export class DashboardStore {
     const budgetLine = this.budgetLines().find((l) => l.id === budgetLineId);
     if (!budgetLine || budgetLine.checkedAt !== null) return true;
 
-    this.#clearError();
     this.#pendingChecks.update((s) => new Set([...s, budgetLineId]));
     this.#patchBudgetLineCheckedAt(budgetLineId, new Date().toISOString());
 
@@ -351,7 +369,6 @@ export class DashboardStore {
       return true;
     } catch (error: unknown) {
       this.#patchBudgetLineCheckedAt(budgetLineId, null);
-      this.#setError('check-failed');
       this.#logger.error('Toggle budget line check failed', {
         budgetLineId,
         error,
@@ -372,14 +389,6 @@ export class DashboardStore {
     const current = this.#dashboardResource.value();
     if (!current) return;
     this.#dashboardResource.update(() => fn(current));
-  }
-
-  #setError(message: string): void {
-    this.#errorMessage.set(message);
-  }
-
-  #clearError(): void {
-    this.#errorMessage.set(null);
   }
 
   #patchBudgetLineCheckedAt(

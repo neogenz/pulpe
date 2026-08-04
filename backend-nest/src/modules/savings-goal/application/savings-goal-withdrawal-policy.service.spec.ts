@@ -199,6 +199,25 @@ describe('SavingsGoalWithdrawalPolicyService', () => {
       expect(write).not.toHaveBeenCalled();
     });
 
+    it('lets a write through when nothing is drawn, even under a negative stock', async () => {
+      // Dépointer une prévision déjà retirée creuse le stock sous zéro — état
+      // légitime, non clampé côté calcul. Supprimer le retrait est le geste qui
+      // le répare : le refuser laisse la transaction en cul-de-sac.
+      mockRepo.findLinkedWithdrawals.mockResolvedValue([
+        { amount: 12_000, month: 1, year: 2026 },
+      ]);
+      const write = jest.fn().mockResolvedValue(undefined);
+
+      await service.runAgainstBalance({
+        goalId: GOAL_ID,
+        debit: 0,
+        user: mockUser,
+        write,
+      });
+
+      expect(write).toHaveBeenCalledWith(REVISION);
+    });
+
     it('gives an edited withdrawal its own amount back before arbitrating', async () => {
       mockRepo.findLinkedWithdrawals.mockResolvedValue([
         { amount: 10_000, month: 1, year: 2026 },

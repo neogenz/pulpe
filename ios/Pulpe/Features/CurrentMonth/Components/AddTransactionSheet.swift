@@ -9,6 +9,9 @@ struct AddTransactionSheet: View {
         let isEnabled: Bool
         let goalId: String?
         let isWithdrawalReady: Bool
+        /// The typed amount could not be converted into the account currency, so
+        /// there is nothing to weigh the goal's balance against (RG-009).
+        let hasConversionFailed: Bool
 
         /// Only an income can come out of a goal.
         var isOffered: Bool { kind == .income }
@@ -19,6 +22,18 @@ struct AddTransactionSheet: View {
         var sourceSavingsGoalId: String? { isActive ? goalId : nil }
 
         var blocksSubmission: Bool { isActive && !isWithdrawalReady }
+
+        /// Why this block holds the submission back, when the reason is its own.
+        /// A chosen goal that the picker refuses states itself down there; what
+        /// the picker cannot see is that it was never handed an amount to judge.
+        var blockingReason: String? {
+            guard isActive else { return nil }
+            if goalId == nil { return "Choisis l'objectif utilisé" }
+            if hasConversionFailed {
+                return "Le taux de change est indisponible, réessaie dans un instant."
+            }
+            return nil
+        }
     }
 
     let budgetId: String
@@ -48,6 +63,9 @@ struct AddTransactionSheet: View {
     @State private var withdrawalRefreshToken = 0
     /// The amount in the account currency — what the backend actually withdraws.
     @State private var convertedAmount: Decimal?
+    /// Set only once a conversion has been attempted and refused. `convertedAmount`
+    /// alone cannot say it: it is equally nil while the rate is still in flight.
+    @State private var hasConversionFailed = false
 
     private let dependencies: AddTransactionDependencies
     private let conversionService = CurrencyConversionService.shared
@@ -67,7 +85,8 @@ struct AddTransactionSheet: View {
             kind: kind,
             isEnabled: isFromSavingsGoal,
             goalId: savingsGoalId,
-            isWithdrawalReady: isWithdrawalReady
+            isWithdrawalReady: isWithdrawalReady,
+            hasConversionFailed: hasConversionFailed
         )
     }
 
@@ -86,10 +105,7 @@ struct AddTransactionSheet: View {
         guard !canSubmit, !isLoading, hasStartedFilling else { return nil }
         if (amount ?? 0) <= 0 { return "Ajoute un montant" }
         if name.trimmingCharacters(in: .whitespaces).isEmpty { return "Ajoute une description" }
-        // The picker states why a chosen goal is refused; only its absence needs
-        // to be said here.
-        if isFromSavingsGoal, savingsGoalId == nil { return "Choisis l'objectif utilisé" }
-        return nil
+        return savingsGoalOrigin.blockingReason
     }
 
     var body: some View {
@@ -229,6 +245,7 @@ struct AddTransactionSheet: View {
     private func refreshConvertedAmount() async {
         guard let amount, amount > 0 else {
             convertedAmount = nil
+            hasConversionFailed = false
             return
         }
         do {
@@ -238,9 +255,12 @@ struct AddTransactionSheet: View {
                 to: userSettingsStore.currency
             )
             convertedAmount = conversion?.convertedAmount ?? amount
+            hasConversionFailed = false
         } catch {
-            // No rate, no trustworthy comparison — the picker stays blocked.
+            // No rate, no trustworthy comparison — the picker stays blocked, and
+            // now says so instead of leaving a dead button.
             convertedAmount = nil
+            hasConversionFailed = true
         }
     }
 

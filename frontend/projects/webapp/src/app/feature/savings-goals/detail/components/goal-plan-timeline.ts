@@ -37,6 +37,13 @@ interface GoalPlanTimelineRow {
   isAdjusted: boolean;
   amount: number;
   cumulative: number;
+  /**
+   * Ce mois n'est là QUE pour son retrait : fermé aux contributions, il ne
+   * porterait aucune ligne à afficher, mais c'est lui qui explique la chute du
+   * cumul. Montant toujours positif — la sortie de stock est signée à l'écran.
+   */
+  isWithdrawalOnly: boolean;
+  withdrawn: number;
 }
 
 interface GoalPlanTimelineVisibleRow extends GoalPlanTimelineRow {
@@ -100,7 +107,15 @@ const WINDOW_OPEN_ROWS = 3;
                   {{ 'savingsGoals.plan.currentMonth' | transloco }}
                 </span>
               }
-              @if (!row.hasLinkedForecast) {
+              @if (row.isWithdrawalOnly) {
+                <span
+                  class="text-label-small font-medium rounded-full px-2 py-0.5
+                         bg-surface-container-high text-on-surface-variant shrink-0"
+                  data-testid="goal-plan-withdrawal-chip"
+                >
+                  {{ 'savingsGoals.plan.withdrawnSoFar' | transloco }}
+                </span>
+              } @else if (!row.hasLinkedForecast) {
                 <span
                   class="text-label-small font-medium rounded-full px-2 py-0.5
                          bg-surface-container-high text-on-surface-variant shrink-0"
@@ -130,7 +145,17 @@ const WINDOW_OPEN_ROWS = 3;
             </span>
           </div>
 
-          @if (editable() && row.isOpen && editingKey() === row.periodKey) {
+          @if (row.isWithdrawalOnly) {
+            <span
+              class="ph-no-capture shrink-0 text-body-medium font-semibold
+                     tabular-nums text-on-surface-variant"
+              data-testid="goal-plan-row-withdrawn"
+            >
+              {{ -row.withdrawn | appCurrency: currency() : '1.0-0' }}
+            </span>
+          } @else if (
+            editable() && row.isOpen && editingKey() === row.periodKey
+          ) {
             <input
               type="number"
               inputmode="decimal"
@@ -242,8 +267,14 @@ export class GoalPlanTimeline {
   protected readonly rows = computed<GoalPlanTimelineRow[]>(() => {
     const canRepair = this.canRepair();
     const simulated = this.simulatedMonths();
+    // Un retrait tombe où l'utilisateur a pioché, y compris après l'échéance,
+    // là où le mois est fermé aux contributions. Le calculateur creuse le cumul
+    // de ce retrait quel que soit le mois (savings-goal-plan.ts) : écarter la
+    // ligne laisserait le cumul chuter entre deux lignes sans rien pour le dire.
     const source = (simulated ?? this.months()).filter(
-      (month) => month.isContributionEligible !== false,
+      (month) =>
+        month.isContributionEligible !== false ||
+        (month.withdrawnAmount ?? 0) > 0,
     );
     return source.map((month) => {
       const isChecked =
@@ -286,6 +317,8 @@ export class GoalPlanTimeline {
         cumulative: simulated
           ? sim.simulatedCumulative
           : month.plannedCumulative,
+        isWithdrawalOnly: month.isContributionEligible === false,
+        withdrawn: month.withdrawnAmount ?? 0,
       };
     });
   });
@@ -321,10 +354,14 @@ export class GoalPlanTimeline {
   // Counts the same rows as the "Pas de budget" chip (the final branch of
   // the !hasLinkedForecast ternary above), not a period-based `isGap` test —
   // a current month with no budget shows that chip too and must be counted.
+  // A withdrawal-only month shows no chip at all: nothing is missing from it,
+  // it was never open to contributions.
   protected readonly gapCount = computed(
     () =>
-      this.rows().filter((row) => !row.hasLinkedForecast && !row.hasBudget)
-        .length,
+      this.rows().filter(
+        (row) =>
+          !row.isWithdrawalOnly && !row.hasLinkedForecast && !row.hasBudget,
+      ).length,
   );
 
   protected formatPeriod(month: number, year: number): string {

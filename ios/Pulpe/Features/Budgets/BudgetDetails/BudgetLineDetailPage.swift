@@ -127,8 +127,7 @@ struct BudgetLineDetailPage: View {
                         transactionRow(for: transaction)
                     }
                 } header: {
-                    transactionsHeader(transactions: transactions)
-                        .textCase(nil)
+                    BudgetLineDetailTransactionsHeader(count: transactions.count)
                 }
             }
         }
@@ -246,28 +245,6 @@ private extension BudgetLineDetailPage {
 // MARK: - Transactions section
 
 private extension BudgetLineDetailPage {
-    func transactionsHeader(transactions: [Transaction]) -> some View {
-        HStack {
-            Text("Transactions")
-                .font(PulpeTypography.metricLabelBold)
-                .foregroundStyle(.primary)
-
-            Spacer()
-
-            Text(transactionCountLabel(count: transactions.count))
-                .font(PulpeTypography.metricMini)
-                .foregroundStyle(Color.textTertiary)
-        }
-    }
-
-    func transactionCountLabel(count: Int) -> String {
-        switch count {
-        case 0: "Aucune"
-        case 1: "1 ce mois"
-        default: "\(count) ce mois"
-        }
-    }
-
     func emptyStateView(for kind: TransactionKind) -> some View {
         VStack(spacing: DesignTokens.Spacing.lg) {
             Image(systemName: "tray")

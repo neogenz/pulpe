@@ -138,7 +138,6 @@ test.describe('Savings goal initial amount (PUL-293)', () => {
       plannedProjection: 5200,
       confirmed: 5200,
       initialAmount: 5000,
-      withdrawn: 0,
       achievementPercent: 52,
       monthsElapsed: 3,
       monthsRemaining: 12,

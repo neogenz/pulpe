@@ -46,6 +46,10 @@ enum DesignTokens {
         static let sm: CGFloat = 8
         /// Compact horizontal gap (10pt) — tab bar segment gap
         static let compactGap: CGFloat = 10
+        /// Vertical inset a plain-list section header carries by default (10pt).
+        /// Reproduce it whenever `listRowInsets` is cleared to paint the header
+        /// row itself, or the header shifts against the rows it introduces.
+        static let listHeaderVertical: CGFloat = 10
         static let md: CGFloat = 12
         static let lg: CGFloat = 16
         static let xl: CGFloat = 20

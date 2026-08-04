@@ -272,4 +272,57 @@ struct CurrentMonthStoreDashboardTests {
 
         #expect(!summary.isComplete)
     }
+
+    // MARK: - Memoised Aggregates
+
+    // Both are read by the dashboard hero, so a scroll hits them on every frame.
+    // Caching them is only safe if nothing can serve a value the state has left
+    // behind — these cover the two ways the state moves under them.
+
+    /// The trajectory only exists for the period being lived through, so its
+    /// budget has to be the running one whenever the suite happens to run.
+    private func runningPeriodBudget() -> Budget {
+        let now = Calendar.current.dateComponents([.month, .year], from: Date())
+        return TestDataFactory.createBudget(month: now.month ?? 1, year: now.year ?? 2025)
+    }
+
+    @Test func balanceTrajectory_servesTheStateItWasLastGiven() throws {
+        let store = CurrentMonthStore()
+        store.populateForTesting(
+            budget: runningPeriodBudget(),
+            budgetLines: [
+                TestDataFactory.createBudgetLine(id: "income", amount: 8_000, kind: .income),
+                TestDataFactory.createBudgetLine(id: "rent", amount: 2_000, kind: .expense),
+            ]
+        )
+        let opening = try #require(store.balanceTrajectory).plannedBalance
+
+        store.populateForTesting(
+            budget: runningPeriodBudget(),
+            budgetLines: [
+                TestDataFactory.createBudgetLine(id: "income", amount: 8_000, kind: .income),
+                TestDataFactory.createBudgetLine(id: "rent", amount: 3_000, kind: .expense),
+            ]
+        )
+
+        #expect(opening == 6_000)
+        #expect(try #require(store.balanceTrajectory).plannedBalance == 5_000)
+        #expect(store.plannedRemaining == 5_000)
+    }
+
+    @Test func balanceTrajectory_doesNotSurviveAReset() {
+        let store = CurrentMonthStore()
+        store.populateForTesting(
+            budget: runningPeriodBudget(),
+            budgetLines: [
+                TestDataFactory.createBudgetLine(id: "income", amount: 8_000, kind: .income),
+            ]
+        )
+        #expect(store.balanceTrajectory != nil)
+
+        store.reset()
+
+        #expect(store.balanceTrajectory == nil)
+        #expect(store.plannedRemaining == 0)
+    }
 }

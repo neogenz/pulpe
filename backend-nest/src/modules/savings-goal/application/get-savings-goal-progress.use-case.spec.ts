@@ -140,8 +140,6 @@ describe('GetSavingsGoalProgressUseCase', () => {
     );
 
     expect(mockRepo.findLinkedWithdrawals).toHaveBeenCalledWith('goal-1');
-    expect(withoutWithdrawal.withdrawn).toBe(0);
-    expect(withWithdrawal.withdrawn).toBe(200);
     expect(withWithdrawal.confirmed).toBe(withoutWithdrawal.confirmed - 200);
     expect(withWithdrawal.confirmedPace).toBe(withoutWithdrawal.confirmedPace);
   });

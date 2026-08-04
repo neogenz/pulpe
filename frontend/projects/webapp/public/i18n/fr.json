@@ -638,8 +638,6 @@
     "savingsGoalSource": {
       "activeLabel": "Pris sur",
       "brokenLabel": "Objectif supprimé",
-      "activeAria": "Revenu pris sur l'objectif {{ name }}",
-      "brokenAria": "Revenu pris sur l'objectif supprimé {{ name }}",
       "brokenTooltip": "Cet objectif a été supprimé. Le revenu reste dans ton budget.",
       "openGoal": "Voir l'objectif"
     },
@@ -1055,6 +1053,7 @@
     "loadError": "Impossible de charger tes objectifs.",
     "withdrawalSourceLabel": "Objectif utilisé",
     "withdrawalNoFundedGoal": "Aucun objectif n'a d'argent disponible pour l'instant.",
+    "withdrawalPickRequired": "Choisis l'objectif d'où vient cet argent.",
     "withdrawalInsufficient": "Ce montant dépasse ce que contient l'objectif.",
     "withdrawalCompletedNote": "Cet objectif reste atteint. Tu pourras le rouvrir depuis son détail.",
     "nameRequired": "Le nom est requis",
@@ -1124,6 +1123,7 @@
       "gapChip": "Pas de budget",
       "repairChip": "Épargne à ajouter",
       "noForecastChip": "Aucune épargne prévue",
+      "withdrawnSoFar": "Retiré jusqu'ici",
       "gapHint": "{{ count }} mois sans budget — ils s'ajouteront quand tu créeras ces budgets.",
       "repairTitle": "Tes nouveaux budgets sont prêts",
       "repairMessageOne": "{{ count }} prévision Épargne peut maintenant être ajoutée automatiquement.",

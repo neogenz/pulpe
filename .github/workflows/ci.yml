@@ -104,6 +104,40 @@ jobs:
           done
           echo "✅ Supabase ready!"
 
+      # Couvre la couche SQL, que les tests Bun mockent par construction :
+      # RPC SECURITY DEFINER, RLS, triggers, casts d'enum. Chaque suite
+      # s'ouvre sur BEGIN et finit sur ROLLBACK, donc l'ordre n'importe pas
+      # et rien ne fuit d'une suite à l'autre.
+      #
+      # ON_ERROR_STOP n'est PAS décoratif : sans lui psql imprime l'erreur et
+      # sort quand même en 0, l'étape passe au vert avec des assertions
+      # cassées. Le glob évite la liste en dur du README, qui a déjà dérivé.
+      - name: 🧪 SQL Integration Tests
+        working-directory: backend-nest
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: "54322"
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: postgres
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          suites=(supabase/tests/*.sql)
+          # `nullglob` seul transformerait un dossier vide en étape verte n'ayant
+          # rien exécuté — le faux vert exact que cette étape existe pour éviter.
+          # D'où le compte, annoncé aussi au succès : une suite qui disparaît du
+          # dossier se lit dans le journal au lieu de passer inaperçue.
+          if [ ${#suites[@]} -eq 0 ]; then
+            echo "::error::no SQL suite found in backend-nest/supabase/tests/"
+            exit 1
+          fi
+          for f in "${suites[@]}"; do
+            echo "▶ $f"
+            psql -v ON_ERROR_STOP=1 -q -f "$f"
+          done
+          echo "✅ ${#suites[@]} SQL suites passed"
+
       - name: 🔧 Generate TypeScript Types
         working-directory: backend-nest
         run: |
@@ -322,17 +356,17 @@ jobs:
             echo 'SUPABASE_URL<<EOF'
             read_status_env API_URL
             echo 'EOF'
-          } >> $GITHUB_OUTPUT
+          } >> "$GITHUB_OUTPUT"
           {
             echo 'SUPABASE_ANON_KEY<<EOF'
             echo "$anon_key"
             echo 'EOF'
-          } >> $GITHUB_OUTPUT
+          } >> "$GITHUB_OUTPUT"
           {
             echo 'SUPABASE_SERVICE_ROLE_KEY<<EOF'
             echo "$service_key"
             echo 'EOF'
-          } >> $GITHUB_OUTPUT
+          } >> "$GITHUB_OUTPUT"
 
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
@@ -463,6 +497,48 @@ jobs:
       - name: 🔍 Run ${{ matrix.check }}
         run: pnpm ${{ matrix.check }}
 
+  # 🕵️ LINT DES WORKFLOWS — Prettier aligne la forme, actionlint relit le fond :
+  # expressions ${{ }}, références de job, labels de runner, entrées d'action, et
+  # shellcheck sur chaque bloc `run:`. Ne dépend ni de pnpm ni du build, donc il
+  # rend son verdict en parallèle du reste au lieu d'attendre la chaîne complète.
+  actionlint:
+    name: 🕵️ Lint Workflows
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Même convention que setup-supabase-cli : archive épinglée, somme vérifiée
+      # avant extraction. Un changement de version doit remplacer les deux valeurs.
+      - name: 🕵️ Run actionlint
+        env:
+          ACTIONLINT_VERSION: "1.7.12"
+          ACTIONLINT_SHA256: "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8"
+          # Plancher de sévérité plutôt qu'une liste de règles tues : shellcheck
+          # n'est pas épinglé, il vient de l'image du runner, et une version plus
+          # récente ajoute des remarques `info` sans que rien n'ait bougé ici —
+          # exclure les règles une à une revient à courir après l'image. `warning`
+          # et au-dessus, là où vivent les vrais défauts de shell, reste actif.
+          SHELLCHECK_OPTS: -S warning
+        run: |
+          set -euo pipefail
+          if [ "$(uname -m)" != "x86_64" ]; then
+            echo "::error::actionlint checksum is pinned for linux amd64 only"
+            exit 1
+          fi
+          archive="$RUNNER_TEMP/actionlint.tar.gz"
+          url="https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl -fSL --retry 6 --retry-all-errors --retry-delay 5 --connect-timeout 30 \
+            -o "$archive" "$url"
+          if ! printf '%s  %s\n' "$ACTIONLINT_SHA256" "$archive" \
+            | sha256sum --check --status; then
+            echo "::error::actionlint archive checksum mismatch"
+            exit 1
+          fi
+          tar -xzf "$archive" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -color
+
   # 🧪 TESTS PERFORMANCE (backend uniquement)
   test-performance:
     name: 🚀 Performance Tests
@@ -539,17 +615,17 @@ jobs:
             echo 'SUPABASE_URL<<EOF'
             read_status_env API_URL
             echo 'EOF'
-          } >> $GITHUB_OUTPUT
+          } >> "$GITHUB_OUTPUT"
           {
             echo 'SUPABASE_ANON_KEY<<EOF'
             echo "$anon_key"
             echo 'EOF'
-          } >> $GITHUB_OUTPUT
+          } >> "$GITHUB_OUTPUT"
           {
             echo 'SUPABASE_SERVICE_ROLE_KEY<<EOF'
             echo "$service_key"
             echo 'EOF'
-          } >> $GITHUB_OUTPUT
+          } >> "$GITHUB_OUTPUT"
 
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
@@ -743,7 +819,17 @@ jobs:
     name: ✅ CI Success
     runs-on: ubuntu-latest
     timeout-minutes: 1
-    needs: [build, test-unit, test-backend-integration, test-e2e, quality, test-performance, test-ios]
+    needs:
+      [
+        build,
+        test-unit,
+        test-backend-integration,
+        test-e2e,
+        quality,
+        actionlint,
+        test-performance,
+        test-ios,
+      ]
     if: always()
     steps:
       - name: ✅ Check all jobs
@@ -753,6 +839,7 @@ jobs:
           needs.test-backend-integration.result == 'success' &&
           needs.test-e2e.result == 'success' &&
           needs.quality.result == 'success' &&
+          needs.actionlint.result == 'success' &&
           needs.test-performance.result == 'success' &&
           needs.test-ios.result == 'success'
         run: echo "🎉 All CI checks passed!"
@@ -764,6 +851,7 @@ jobs:
           needs.test-backend-integration.result != 'success' ||
           needs.test-e2e.result != 'success' ||
           needs.quality.result != 'success' ||
+          needs.actionlint.result != 'success' ||
           needs.test-performance.result != 'success' ||
           needs.test-ios.result != 'success'
         run: |
@@ -773,6 +861,7 @@ jobs:
           echo "Backend Integration: ${{ needs.test-backend-integration.result }}"
           echo "E2E Tests: ${{ needs.test-e2e.result }}"
           echo "Quality: ${{ needs.quality.result }}"
+          echo "Workflow Lint: ${{ needs.actionlint.result }}"
           echo "Performance: ${{ needs.test-performance.result }}"
           echo "iOS Tests: ${{ needs.test-ios.result }}"
           exit 1

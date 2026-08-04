@@ -6,12 +6,6 @@ import OSLog
 final class CurrentMonthStore: StoreProtocol {
     // MARK: - Types
 
-    struct TopSpending: Sendable {
-        let name: String
-        let amount: Decimal
-        let totalExpenses: Decimal
-    }
-
     /// A checkable item in the "À pointer" dashboard card.
     /// Priority: free transactions → allocated transactions → budget lines.
     enum CheckableItem: Identifiable, Sendable {
@@ -114,6 +108,8 @@ final class CurrentMonthStore: StoreProtocol {
     private var cachedUncheckedItems: [CheckableItem]?
     private var cachedSavingsSummary: SavingsSummary?
     private var cachedDriftLines: [(line: BudgetLine, consumption: BudgetFormulas.Consumption)]?
+    private var cachedBalanceTrajectory: BudgetFormulas.BalanceTrajectory?
+    private var cachedPlannedRemaining: Decimal?
 
     // Widget sync debouncing
     private var widgetSyncTask: Task<Void, Never>?
@@ -242,6 +238,10 @@ final class CurrentMonthStore: StoreProtocol {
     /// Update the stored payDayOfMonth so subsequent forceRefresh() calls use the correct period
     func setPayDay(_ payDay: Int?) {
         payDayOfMonth = payDay
+        // The trajectory is cut along the period boundaries, so it is only as
+        // fresh as this value. Callers do follow with a refresh, but the cache
+        // must not depend on them remembering to.
+        recomputeMetrics()
     }
 
     /// Invalidates the cache so the next `loadDetailsIfNeeded()` / `loadIfNeeded()` will re-fetch.
@@ -274,6 +274,8 @@ final class CurrentMonthStore: StoreProtocol {
         cachedUncheckedItems = nil
         cachedSavingsSummary = nil
         cachedDriftLines = nil
+        cachedBalanceTrajectory = nil
+        cachedPlannedRemaining = nil
         error = nil
         BudgetDetailCache.shared.invalidateAll()
     }
@@ -360,10 +362,7 @@ final class CurrentMonthStore: StoreProtocol {
 
     /// End-of-month balance from the budget alone, before known transactions adjust envelopes.
     var plannedRemaining: Decimal {
-        BudgetFormulas.calculateAllMetrics(
-            budgetLines: budgetLines,
-            rollover: budget?.rollover.orZero ?? 0
-        ).remaining
+        cachedPlannedRemaining ?? computePlannedRemaining()
     }
 
     var realizedMetrics: BudgetFormulas.RealizedMetrics {
@@ -405,6 +404,8 @@ final class CurrentMonthStore: StoreProtocol {
         cachedUncheckedItems = computeUncheckedItems()
         cachedSavingsSummary = computeSavingsSummary()
         cachedDriftLines = computeDriftLines()
+        cachedBalanceTrajectory = computeBalanceTrajectory()
+        cachedPlannedRemaining = computePlannedRemaining()
     }
 }
 
@@ -471,18 +472,6 @@ extension CurrentMonthStore {
         return metrics.remaining / Decimal(days)
     }
 
-    /// Budget lines that are at or above 80% consumption (alerts)
-    var alertBudgetLines: [(line: BudgetLine, consumption: BudgetFormulas.Consumption)] {
-        budgetLines
-            .filter { $0.kind == .expense && !($0.isRollover ?? false) }
-            .compactMap { line -> (BudgetLine, BudgetFormulas.Consumption)? in
-                let consumption = BudgetFormulas.calculateConsumption(for: line, transactions: transactions)
-                guard consumption.percentage >= 80 else { return nil }
-                return (line, consumption)
-            }
-            .sorted { $0.1.percentage > $1.1.percentage }
-    }
-
     /// Expense envelopes consumed beyond their plan ("Ça dérive"), biggest overrun first.
     /// Cached like the sibling aggregates: a render reads this 4× (guard, card input,
     /// `driftTotal`, `conditionalBlocksState`) and each recompute walks lines × transactions.
@@ -530,23 +519,6 @@ extension CurrentMonthStore {
         let totalDays = (calendar.dateComponents([.day], from: start, to: end).day ?? 0) + 1
         let day = (calendar.dateComponents([.day], from: start, to: calendar.startOfDay(for: now)).day ?? 0) + 1
         return (min(max(day, 1), max(totalDays, 1)), max(totalDays, 1))
-    }
-
-    /// Top expense transaction by amount (linked or free)
-    var topSpending: TopSpending? {
-        guard let top = transactions.filter({ $0.kind == .expense }).max(by: { $0.amount < $1.amount }) else {
-            return nil
-        }
-        return TopSpending(name: top.name, amount: top.amount, totalExpenses: metrics.totalExpenses)
-    }
-
-    /// 5 most recent transactions (all types)
-    var recentTransactions: [Transaction] {
-        Array(
-            transactions
-                .sorted { $0.transactionDate > $1.transactionDate }
-                .prefix(5)
-        )
     }
 
     private static let maxDashboardItems = 5
@@ -611,7 +583,14 @@ extension CurrentMonthStore {
         )
     }
 
+    /// Read by the dashboard hero, so it is hit on every frame of a scroll.
+    /// Both halves of the fallback are cheap when there is no budget: the cache
+    /// holds `nil` and the recompute returns on its own guard.
     var balanceTrajectory: BudgetFormulas.BalanceTrajectory? {
+        cachedBalanceTrajectory ?? computeBalanceTrajectory()
+    }
+
+    private func computeBalanceTrajectory() -> BudgetFormulas.BalanceTrajectory? {
         guard let budget else { return nil }
         return BudgetFormulas.calculateBalanceTrajectory(
             budgetLines: budgetLines,
@@ -621,23 +600,16 @@ extension CurrentMonthStore {
         )
     }
 
+    private func computePlannedRemaining() -> Decimal {
+        BudgetFormulas.calculateAllMetrics(
+            budgetLines: budgetLines,
+            rollover: budget?.rollover.orZero ?? 0
+        ).remaining
+    }
+
     var displayBudgetLines: [BudgetLine] {
         BudgetFormulas.displayBudgetLines(base: budgetLines, budget: budget)
     }
-
-    var recurringBudgetLines: [BudgetLine] {
-        displayBudgetLines
-            .filter { $0.recurrence == .fixed }
-            .sorted { $0.createdAt > $1.createdAt }
-    }
-
-    var oneOffBudgetLines: [BudgetLine] {
-        displayBudgetLines
-            .filter { $0.recurrence == .oneOff && !($0.isRollover ?? false) }
-            .sorted { $0.createdAt > $1.createdAt }
-    }
-
-    var freeTransactions: [Transaction] { transactions.unallocated }
 }
 
 // MARK: - Mutations

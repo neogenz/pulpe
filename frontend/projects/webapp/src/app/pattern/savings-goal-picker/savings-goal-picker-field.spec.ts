@@ -343,5 +343,25 @@ describe('SavingsGoalPickerField', () => {
       expect(fixture.componentInstance.hasInsufficientBalance()).toBe(true);
       expect(fixture.componentInstance.isWithdrawalBlocked()).toBe(true);
     });
+
+    // Funded goals exist, none is picked, and the submit button is greyed out.
+    // Every other blocked state here names its reason; this one left the user
+    // staring at a dead button.
+    it('says why the submit is blocked while no goal is picked', async () => {
+      const fixture = await withdrawalPicker(150, 100);
+      setTestInput(fixture.componentInstance.value, null);
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.isWithdrawalBlocked()).toBe(true);
+      const hint = fixture.debugElement.query(
+        By.css('[data-testid="savings-goal-withdrawal-required"]'),
+      );
+      expect(hint).toBeTruthy();
+      expect(
+        fixture.debugElement.query(
+          By.css('[data-testid="savings-goal-withdrawal-select"]'),
+        ).attributes['required'],
+      ).toBeDefined();
+    });
   });
 });
