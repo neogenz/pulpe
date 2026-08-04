@@ -390,11 +390,14 @@ test.describe('Savings goal as the source of an income', () => {
 
     await budgetDetailsPage.goto(CURRENT_BUDGET.id);
     const source = budgetDetailsPage.transactionSource(INCOME_ID);
-    await expect(source).toContainText(`Objectif supprimé · ${GOAL_NAME}`);
     // History, not an anomaly: the full name is spoken, and nothing is clickable.
-    await expect(source).toHaveAttribute(
-      'aria-label',
-      `Revenu pris sur l'objectif supprimé ${GOAL_NAME}`,
+    // The visible text IS the accessible name — a generic <span> cannot be named
+    // by aria-label, ARIA in HTML forbids it and browsers drop it. So the name is
+    // asserted on the text, and the icon is what must stay out of the reading.
+    await expect(source).toContainText(`Objectif supprimé · ${GOAL_NAME}`);
+    await expect(source.locator('mat-icon')).toHaveAttribute(
+      'aria-hidden',
+      'true',
     );
     await expect(source.locator('a')).toHaveCount(0);
 
