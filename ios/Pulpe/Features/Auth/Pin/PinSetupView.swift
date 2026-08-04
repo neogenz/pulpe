@@ -57,6 +57,9 @@ struct PinSetupView: View {
             .background { Color.loginGradientBackground }
             .sensoryFeedback(.error, trigger: viewModel.hapticError)
             .sensoryFeedback(.success, trigger: viewModel.hapticSuccess)
+            // Firmer than the soft key tap, and not the notification triad that
+            // ends the flow — the code is noted, type it again.
+            .sensoryFeedback(.impact(flexibility: .rigid), trigger: viewModel.hapticStepAdvance)
             .sheet(item: recoveryKeySheetItemBinding) { item in
                 RecoveryKeySheet(recoveryKey: item.recoveryKey) {
                     Task { await onComplete() }
@@ -84,9 +87,6 @@ struct PinSetupView: View {
             NumpadView(
                 onDigit: { viewModel.appendDigit($0) },
                 onDelete: { viewModel.deleteLastDigit() },
-                onConfirm: viewModel.canConfirm ? {
-                    Task { await viewModel.confirm() }
-                } : nil,
                 isDisabled: viewModel.isValidating || viewModel.isError
             )
             Spacer().frame(height: DesignTokens.Spacing.xxxl + DesignTokens.Spacing.xxl)
@@ -168,12 +168,9 @@ final class PinSetupViewModel {
     private var savedDigits: [Int]?
     private(set) var hapticSuccess = false
     private(set) var hapticError = false
+    private(set) var hapticStepAdvance = false
 
     let pinLength = PinConstants.length
-
-    var canConfirm: Bool {
-        digits.count == pinLength && !isValidating
-    }
 
     var title: String {
         if mode == .enterExistingPin { return mode.title }
@@ -216,10 +213,18 @@ final class PinSetupViewModel {
     func appendDigit(_ digit: Int) {
         guard digits.count < pinLength, !isValidating, !isError else { return }
         digits.append(digit)
+
+        guard digits.count == pinLength else { return }
+        // Locks the numpad for the whole auto-submission, settle beat included.
+        isValidating = true
+        Task { await autoSubmit() }
     }
 
-    func confirm() async {
-        guard canConfirm else { return }
+    /// Lets the last dot land on screen before the step swaps or the error
+    /// fires — the beat the validate button used to provide.
+    private func autoSubmit() async {
+        defer { isValidating = false }
+        try? await Task.sleep(for: DesignTokens.Animation.pinAutoSubmitSettle)
         await handlePinComplete()
     }
 
@@ -242,6 +247,7 @@ final class PinSetupViewModel {
             savedDigits = digits
             digits = []
             currentStep = .confirmPin
+            hapticStepAdvance.toggle()
         case .confirmPin:
             guard digits == savedDigits else {
                 showError("Les codes ne correspondent pas")
@@ -254,9 +260,7 @@ final class PinSetupViewModel {
     }
 
     private func completeSetup() async {
-        isValidating = true
-        defer { isValidating = false }
-
+        // `isValidating` is owned by `autoSubmit()`, which spans this call.
         let pin = digits.map(String.init).joined()
 
         do {

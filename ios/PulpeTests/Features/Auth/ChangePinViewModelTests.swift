@@ -24,7 +24,6 @@ struct ChangePinViewModelTests {
         #expect(sut.errorMessage == nil)
         #expect(sut.isProcessing == false)
         #expect(sut.recoveryKey == nil)
-        #expect(sut.canConfirm == false)
         #expect(sut.pinLength == 4)
     }
 
@@ -59,18 +58,15 @@ struct ChangePinViewModelTests {
         #expect(sut.digits.isEmpty)
     }
 
-    // MARK: - canConfirm
+    // MARK: - auto-submission
 
-    @Test func canConfirm_falseWithLessThanPinLength() {
+    @Test func appendDigit_atPinLength_locksAndSubmits() {
         let sut = makeSUT()
         for _ in 0..<(sut.pinLength - 1) { sut.appendDigit(1) }
-        #expect(sut.canConfirm == false)
-    }
+        #expect(sut.isProcessing == false)
 
-    @Test func canConfirm_trueAtPinLength() {
-        let sut = makeSUT()
-        for _ in 0..<sut.pinLength { sut.appendDigit(1) }
-        #expect(sut.canConfirm == true)
+        sut.appendDigit(1)
+        #expect(sut.isProcessing == true)
     }
 
     // MARK: - stepLabel
@@ -295,7 +291,8 @@ private func makeFlowSUT(
 @MainActor
 private func enterPinAndConfirm(_ sut: ChangePinViewModel, digits: [Int]) async {
     for digit in digits { sut.appendDigit(digit) }
-    await sut.confirm()
+    // The last digit auto-fires the submission; wait for it to settle.
+    await waitForCondition("auto-submission never settled") { !sut.isProcessing }
 }
 
 @MainActor

@@ -18,7 +18,7 @@ struct PinSetupViewModelTests {
         #expect(sut.errorMessage == nil)
         #expect(sut.recoveryKey == nil)
         #expect(sut.showRecoverySheet == false)
-        #expect(sut.canConfirm == false)
+        #expect(sut.currentStep == .enterPin)
     }
 
     // MARK: - appendDigit
@@ -46,18 +46,34 @@ struct PinSetupViewModelTests {
         #expect(sut.digits.count == sut.pinLength)
     }
 
-    @Test func appendDigit_noAutoSubmitAtMaxDigits() async {
+    @Test func appendDigit_autoSubmitsAtMaxDigits() async {
         let sut = makeSUT()
+        let stepHapticBefore = sut.hapticStepAdvance
         for i in 0..<sut.pinLength {
             sut.appendDigit(i)
         }
 
-        // Give time for any erroneous async task to fire
-        try? await Task.sleep(for: .milliseconds(100))
+        // The last digit locks the numpad and schedules the submission.
+        #expect(sut.isValidating == true)
 
-        // Should still be on enterPin step — no auto-submit
+        await waitForCondition("auto-submission never advanced the step") {
+            sut.currentStep == .confirmPin
+        }
+        #expect(sut.digits.isEmpty)
+        #expect(sut.hapticStepAdvance != stepHapticBefore)
+    }
+
+    @Test func appendDigit_belowMaxDigits_doesNotSubmit() async {
+        let sut = makeSUT()
+        for _ in 0..<(sut.pinLength - 1) {
+            sut.appendDigit(1)
+        }
+
+        try? await Task.sleep(for: .milliseconds(300))
+
         #expect(sut.currentStep == .enterPin)
-        #expect(sut.digits.count == sut.pinLength)
+        #expect(sut.isValidating == false)
+        #expect(sut.errorMessage == nil)
     }
 
     // MARK: - deleteLastDigit
@@ -81,36 +97,6 @@ struct PinSetupViewModelTests {
         sut.appendDigit(1)
         sut.deleteLastDigit()
         #expect(sut.isError == false)
-        #expect(sut.errorMessage == nil)
-    }
-
-    // MARK: - canConfirm
-
-    @Test func canConfirm_falseWithLessThanPinLength() {
-        let sut = makeSUT()
-        for _ in 0..<(sut.pinLength - 1) {
-            sut.appendDigit(1)
-        }
-        #expect(sut.canConfirm == false)
-    }
-
-    @Test func canConfirm_trueAtPinLength() {
-        let sut = makeSUT()
-        for _ in 0..<sut.pinLength {
-            sut.appendDigit(1)
-        }
-        #expect(sut.canConfirm == true)
-    }
-
-    @Test func confirm_withLessThanPinLength_doesNothing() async {
-        let sut = makeSUT()
-        sut.appendDigit(1)
-        sut.appendDigit(2)
-
-        await sut.confirm()
-
-        #expect(sut.isValidating == false)
-        #expect(sut.showRecoverySheet == false)
         #expect(sut.errorMessage == nil)
     }
 
@@ -151,18 +137,18 @@ struct PinSetupFlowTests {
         return PinSetupTestSUT(sut: sut, encryptionAPI: encryptionAPI, storage: storage)
     }
 
-    private func enterPin(_ sut: PinSetupViewModel, digits: [Int] = [1, 2, 3, 4]) {
+    /// Types the digits and waits for the submission the last one auto-fires.
+    private func submitPin(_ sut: PinSetupViewModel, digits: [Int] = [1, 2, 3, 4]) async {
         for digit in digits {
             sut.appendDigit(digit)
         }
+        await waitForCondition("auto-submission never settled") { !sut.isValidating }
     }
 
     @Test("entry mode validates and never calls setup-recovery")
     func entryMode_doesNotCallSetupRecovery() async {
         let result = makeSUT(mode: .enterExistingPin)
-        enterPin(result.sut)
-
-        await result.sut.confirm()
+        await submitPin(result.sut)
 
         #expect(await result.encryptionAPI.validateKeyCallCount == 1)
         #expect(await result.encryptionAPI.setupRecoveryCallCount == 0)
@@ -175,12 +161,10 @@ struct PinSetupFlowTests {
     func setupMode_callsSetupRecovery() async {
         let result = makeSUT(mode: .chooseAndSetupRecovery)
         // Step 1: enter PIN
-        enterPin(result.sut)
-        await result.sut.confirm()
+        await submitPin(result.sut)
 
         // Step 2: confirm PIN (same digits)
-        enterPin(result.sut)
-        await result.sut.confirm()
+        await submitPin(result.sut)
 
         #expect(await result.encryptionAPI.validateKeyCallCount == 0)
         #expect(await result.encryptionAPI.setupRecoveryCallCount == 1)
@@ -189,6 +173,23 @@ struct PinSetupFlowTests {
         #expect(result.sut.recoveryKey == "ABCD-EFGH-IJKL-MNOP")
         #expect(result.sut.showRecoverySheet == true)
         #expect(result.sut.completedWithoutRecovery == false)
+    }
+
+    @Test("a mismatched confirmation buzzes and returns to the first step")
+    func mismatchedConfirmation_returnsToFirstStep() async {
+        let result = makeSUT(mode: .chooseAndSetupRecovery)
+        let errorHapticBefore = result.sut.hapticError
+
+        await submitPin(result.sut, digits: [1, 2, 3, 4])
+        #expect(result.sut.currentStep == .confirmPin)
+
+        await submitPin(result.sut, digits: [4, 3, 2, 1])
+
+        #expect(result.sut.currentStep == .enterPin)
+        #expect(result.sut.isError == true)
+        #expect(result.sut.errorMessage == "Les codes ne correspondent pas")
+        #expect(result.sut.hapticError != errorHapticBefore)
+        #expect(await result.encryptionAPI.setupRecoveryCallCount == 0)
     }
 
     @Test("mode titles are contextual")
@@ -215,12 +216,10 @@ struct PinSetupFlowTests {
             clientKeyManager: storage
         )
         // Step 1: enter PIN
-        enterPin(sut)
-        await sut.confirm()
+        await submitPin(sut)
 
         // Step 2: confirm PIN (atomic server setup detects the legacy vault)
-        enterPin(sut)
-        await sut.confirm()
+        await submitPin(sut)
 
         #expect(sut.isError == true)
         #expect(sut.errorMessage == "Un code PIN existe déjà pour ce compte — saisis-le")
@@ -247,12 +246,10 @@ struct PinSetupFlowTests {
             clientKeyManager: storage
         )
         // Step 1: enter PIN
-        enterPin(sut)
-        await sut.confirm()
+        await submitPin(sut)
 
         // Step 2: confirm PIN (atomic server setup fails)
-        enterPin(sut)
-        await sut.confirm()
+        await submitPin(sut)
 
         #expect(sut.isError == true)
         #expect(sut.errorMessage == "Une erreur est survenue, réessaie")
