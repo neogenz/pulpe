@@ -572,9 +572,26 @@ describe('UserThrottlerGuard', () => {
     let consumeBucket: ReturnType<typeof mock>;
 
     beforeEach(() => {
-      throttlerPrototype = Object.getPrototypeOf(
-        Object.getPrototypeOf(guard) as object,
-      );
+      // `super.handleRequest` resolves to the first prototype ABOVE
+      // UserThrottlerGuard.prototype that owns the method. Walk to that one
+      // instead of assuming the chain is exactly two levels deep: an
+      // intermediate mixin would otherwise silently move the stub off target,
+      // and the assertions below would pass or fail for the wrong reason.
+      throttlerPrototype = Object.getPrototypeOf(UserThrottlerGuard.prototype);
+      while (
+        throttlerPrototype &&
+        !Object.prototype.hasOwnProperty.call(
+          throttlerPrototype,
+          'handleRequest',
+        )
+      ) {
+        throttlerPrototype = Object.getPrototypeOf(throttlerPrototype);
+      }
+      if (!throttlerPrototype) {
+        throw new Error(
+          'No parent prototype owns handleRequest — the throttler inheritance chain changed.',
+        );
+      }
       originalHandleRequest = throttlerPrototype.handleRequest;
       consumeBucket = mock(() => Promise.resolve(true));
       throttlerPrototype.handleRequest = consumeBucket;
