@@ -382,8 +382,10 @@ test.describe('Savings goal as the source of an income', () => {
       INCOME_NAME,
     );
     // An aggregate, so no decimals — and signed, because the block reads as what
-    // the goal gave away. The rows above keep their two decimals.
-    await savingsGoalsPage.expectDeletionWithdrawalTotal('-4 500');
+    // the goal gave away. The rows above keep their two decimals. The symbol is
+    // part of the assertion: without it the substring would still match a total
+    // that grew decimals back, which is precisely what this pins down.
+    await savingsGoalsPage.expectDeletionWithdrawalTotal('-4 500 CHF');
 
     await savingsGoalsPage.confirmDeletion();
     await expect(
