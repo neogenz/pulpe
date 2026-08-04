@@ -122,7 +122,7 @@ describe('EnterVaultCode', () => {
       );
 
       expect(hint?.textContent?.trim()).toBe(
-        'Ta clé de déchiffrement reste stockée sur cet appareil. À éviter sur un ordinateur partagé.',
+        'Si tu coches cette case, ta clé de déchiffrement sera stockée sur cet appareil. À éviter sur un ordinateur partagé.',
       );
     });
   });

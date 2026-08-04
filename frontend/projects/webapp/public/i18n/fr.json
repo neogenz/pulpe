@@ -192,7 +192,7 @@
       "confirmPinRequired": "Confirme ton code",
       "pinsMismatch": "Les deux codes ne sont pas identiques — réessaie",
       "rememberDevice": "Ne plus me demander sur cet appareil",
-      "rememberDeviceHint": "Ta clé de déchiffrement reste stockée sur cet appareil. À éviter sur un ordinateur partagé.",
+      "rememberDeviceHint": "Si tu coches cette case, ta clé de déchiffrement sera stockée sur cet appareil. À éviter sur un ordinateur partagé.",
       "submitting": "Vérification...",
       "continue": "Continuer",
       "lostCode": "Code perdu ?",
