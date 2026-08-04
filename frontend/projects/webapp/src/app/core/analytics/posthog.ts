@@ -97,9 +97,16 @@ export class PostHogService {
         capture_pageleave: false,
         autocapture: false,
 
-        // Session recording with built-in privacy
+        // Session recording privacy relies on two mechanisms:
+        //  - `maskAllInputs` redacts every form field value;
+        //  - rendered amounts are plain text, so they are excluded through
+        //    `ph-no-capture`, which posthog-js hardcodes as rrweb's
+        //    `blockClass` — such elements are never serialized into a replay.
+        // That class is therefore load-bearing for privacy, not only for the
+        // "hide amounts" blur. See `.claude/rules/05-workflows-and-processes/
+        // posthog-privacy.md` before renaming it.
         session_recording: {
-          maskAllInputs: true, // PostHog handles financial data masking
+          maskAllInputs: true,
           recordCrossOriginIframes: false,
         },
         disable_session_recording: !this.#sessionReplayEnabled,

@@ -284,6 +284,24 @@ Le `clientKey` est stocké côté client via `StorageService` :
 
 **Alternative rejetée :** stocker le `clientKey` uniquement en mémoire (signal Angular) imposerait une re-saisie du code PIN à chaque rechargement de page, dégradant fortement l'expérience utilisateur.
 
+#### « Se souvenir de cet appareil » : persistance en localStorage (risque accepté)
+
+Cocher l'option bascule le `clientKey` de `sessionStorage` vers `localStorage`. Ça ne crée pas une nouvelle classe de vulnérabilité — c'est le même vecteur XSS que ci-dessus — mais ça **élargit la fenêtre d'exploitation** sur deux axes :
+
+| | Sans « se souvenir » | Avec « se souvenir » |
+|---|---|---|
+| Durée de vie de la clé | L'onglet | Jusqu'à effacement explicite par l'utilisateur |
+| Survie au logout | Non | Oui (`clearPreservingDeviceTrust()` préserve délibérément l'entrée `localStorage`) |
+
+Le scénario complet est le vol **combiné** : une XSS doit exfiltrer à la fois la session Supabase et le `clientKey` pour que l'attaquant déchiffre des montants. L'un sans l'autre ne suffit pas — le backend refuse une requête sans header `X-Client-Key` valide, et le `clientKey` seul ne dérive rien sans la `masterKey` serveur.
+
+**Mitigations en place :**
+1. CSP stricte (`vercel.json`) : `script-src 'self'` + deux origines tierces explicites, ni `unsafe-inline` ni `unsafe-eval`. Seul `script-src-attr` porte un `'unsafe-hashes'` limité à un hash `sha256` précis. `frontend/scripts/check-no-inline-scripts.ts` échoue le build si un script inline non prévu apparaît
+2. Sanitizer Angular par défaut sur toute interpolation ; aucun `bypassSecurityTrust*` sur du contenu d'origine utilisateur
+3. La session Supabase reste soumise à son expiration et à la révocation côté serveur
+
+**Décision produit :** l'option est **conservée**. Un utilisateur sur sa propre machine échange une fenêtre d'exposition plus large contre l'absence de re-saisie du PIN — c'est son arbitrage, pas le nôtre. La contrepartie est de le rendre explicite : les trois écrans vault (`enter-vault-code`, `setup-vault-code`, `recover-vault-code`) affichent sous la case à cocher un avertissement (`auth.vaultCode.rememberDeviceHint`) qui nomme le stockage local de la clé et déconseille l'option sur un ordinateur partagé.
+
 ### iOS (SwiftUI)
 
 Le `clientKey` est géré par `ClientKeyManager` (actor) avec trois niveaux de stockage :

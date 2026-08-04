@@ -122,7 +122,7 @@ import { PostHogService } from '@core/analytics';
           <mat-hint>{{ 'auth.vaultCode.pinHint' | transloco }}</mat-hint>
         </mat-form-field>
 
-        <div class="flex items-center">
+        <div class="flex flex-col">
           <mat-checkbox
             formControlName="rememberDevice"
             data-testid="remember-device-checkbox"
@@ -131,6 +131,12 @@ import { PostHogService } from '@core/analytics';
               {{ 'auth.vaultCode.rememberDevice' | transloco }}
             </span>
           </mat-checkbox>
+          <p
+            class="pl-10 text-body-small text-on-surface-variant"
+            data-testid="remember-device-hint"
+          >
+            {{ 'auth.vaultCode.rememberDeviceHint' | transloco }}
+          </p>
         </div>
 
         <pulpe-error-alert [message]="errorMessage()" />
