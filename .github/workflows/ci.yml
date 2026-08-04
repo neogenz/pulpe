@@ -104,6 +104,29 @@ jobs:
           done
           echo "✅ Supabase ready!"
 
+      # Couvre la couche SQL, que les tests Bun mockent par construction :
+      # RPC SECURITY DEFINER, RLS, triggers, casts d'enum. Chaque suite
+      # s'ouvre sur BEGIN et finit sur ROLLBACK, donc l'ordre n'importe pas
+      # et rien ne fuit d'une suite à l'autre.
+      #
+      # ON_ERROR_STOP n'est PAS décoratif : sans lui psql imprime l'erreur et
+      # sort quand même en 0, l'étape passe au vert avec des assertions
+      # cassées. Le glob évite la liste en dur du README, qui a déjà dérivé.
+      - name: 🧪 SQL Integration Tests
+        working-directory: backend-nest
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: "54322"
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: postgres
+        run: |
+          for f in supabase/tests/*.sql; do
+            echo "▶ $f"
+            psql -v ON_ERROR_STOP=1 -q -f "$f"
+          done
+          echo "✅ SQL suites passed"
+
       - name: 🔧 Generate TypeScript Types
         working-directory: backend-nest
         run: |

@@ -8,20 +8,17 @@ These complement the Bun unit tests (which mock Supabase). The unit tests cover 
 
 ```bash
 # from backend-nest/
-DB="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+export PGHOST=127.0.0.1 PGPORT=54322 PGUSER=postgres PGPASSWORD=postgres PGDATABASE=postgres
 
-psql "$DB" -f supabase/tests/apply_template_line_operations_atomicity.sql
-psql "$DB" -f supabase/tests/apply_template_line_operations_failure_rollback.sql
-psql "$DB" -f supabase/tests/apply_template_line_operations_cross_user.sql
-psql "$DB" -f supabase/tests/create_budget_from_template_owner_only.sql
-psql "$DB" -f supabase/tests/toggle_transaction_check.sql
-psql "$DB" -f supabase/tests/enforce_template_limit_per_user.sql
-psql "$DB" -f supabase/tests/create_budget_lines_spread_source_consumption.sql
-psql "$DB" -f supabase/tests/transaction_budget_line_coherence.sql
-psql "$DB" -f supabase/tests/savings_goal_withdrawal_atomicity.sql
+for f in supabase/tests/*.sql; do
+  echo "▶ $f"
+  psql -v ON_ERROR_STOP=1 -q -f "$f"
+done
 ```
 
-Each script prints `NOTICE:  ALL ASSERTIONS PASSED` on success, or raises an exception on failure.
+Each script prints a `NOTICE: ... ASSERTIONS PASSED` line on success, or raises an exception on failure. `ON_ERROR_STOP` is what turns that exception into a non-zero exit — without it `psql` prints the error and still exits `0`.
+
+The same loop runs in CI, in the `supabase-setup` job of `.github/workflows/ci.yml`, against the ephemeral local instance. Both sides glob the directory, so a new suite is picked up by simply existing.
 
 ## What each test covers
 
