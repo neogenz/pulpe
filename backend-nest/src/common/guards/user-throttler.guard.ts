@@ -130,33 +130,6 @@ export class UserThrottlerGuard extends ThrottlerGuard {
   }
 
   /**
-   * Overrides the tracker generation to use user ID for authenticated requests.
-   *
-   * This is the proper NestJS throttler extension point for async operations.
-   * getTracker() is called before rate limit checks and supports async resolution.
-   *
-   * Performance Note:
-   * NestJS ThrottlerGuard calls getTracker() once per configured throttler context.
-   * With 2 contexts (default + demo), this method is called twice per request.
-   * Request-scoped caching ensures user resolution happens only once.
-   *
-   * Logic:
-   * 1. Check request cache for previously resolved user
-   * 2. If cache miss: resolve user from token and cache result
-   * 3. If user exists (authenticated) → return `user:{userId}` as tracker
-   * 4. Otherwise → call parent's getTracker() for IP-based tracking
-   *
-   * Tracker format:
-   * - Authenticated: `user:{userId}`
-   * - Unauthenticated: IP address from parent (e.g., `192.168.1.1`)
-   *
-   * This allows:
-   * - Authenticated users to have consistent rate limits across IPs
-   * - Public endpoints to remain protected by IP-based throttling
-   * - Demo endpoint to maintain its IP-based 30 req/hour limit
-   * - AuthGuard can reuse cached user (eliminates 3rd Supabase call)
-   */
-  /**
    * Leaves the `public` bucket only for requests whose token actually resolves
    * to a user.
    *
@@ -191,6 +164,33 @@ export class UserThrottlerGuard extends ThrottlerGuard {
     return req.__throttlerUserCache;
   }
 
+  /**
+   * Overrides the tracker generation to use user ID for authenticated requests.
+   *
+   * This is the proper NestJS throttler extension point for async operations.
+   * getTracker() is called before rate limit checks and supports async resolution.
+   *
+   * Performance Note:
+   * NestJS ThrottlerGuard calls getTracker() once per non-skipped throttler
+   * context. A regular request goes through `default` + `public`, so this method
+   * is called twice. Request-scoped caching keeps user resolution to one call.
+   *
+   * Logic:
+   * 1. Check request cache for previously resolved user
+   * 2. If cache miss: resolve user from token and cache result
+   * 3. If user exists (authenticated) → return `user:{userId}` as tracker
+   * 4. Otherwise → call parent's getTracker() for IP-based tracking
+   *
+   * Tracker format:
+   * - Authenticated: `user:{userId}`
+   * - Unauthenticated: IP address from parent (e.g., `192.168.1.1`)
+   *
+   * This allows:
+   * - Authenticated users to have consistent rate limits across IPs
+   * - Public endpoints to remain protected by IP-based throttling
+   * - Demo endpoint to maintain its IP-based 30 req/hour limit
+   * - AuthGuard can reuse cached user (eliminates 3rd Supabase call)
+   */
   protected override async getTracker(
     req: RequestWithThrottlerCache,
   ): Promise<string> {
