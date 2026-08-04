@@ -181,7 +181,7 @@ private extension BudgetLineDetailPage {
                 onPostpone: { pendingPostpone = .budgetLine(line) }
             )
 
-            Button("Supprimer", systemImage: "trash", role: .destructive) {
+            DeleteMenuButton {
                 // Linked line → explicit choice alert, not single-line delete (CA9).
                 if line.savingsWithdrawalGroupId == nil {
                     showDeleteConfirmation = true
@@ -189,11 +189,10 @@ private extension BudgetLineDetailPage {
                     deleteBudgetLine(line)
                 }
             }
-            // Global .tint(pulpePrimary) greens the SF Symbol; role: .destructive only reds the title.
-            .tint(Color.destructivePrimary)
         } label: {
             Image(systemName: "ellipsis.circle")
         }
+        .pulpeMenuContent()
         .accessibilityLabel("Plus d'options")
     }
 

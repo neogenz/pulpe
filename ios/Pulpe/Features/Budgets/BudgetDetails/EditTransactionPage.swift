@@ -252,14 +252,11 @@ struct EditTransactionPage: View {
                 nextMonthLabel: projector.screenState.nextMonthLabel,
                 onPostpone: { pendingPostpone = .transaction(tx) }
             )
-            Button("Supprimer", systemImage: "trash", role: .destructive) {
-                showDeleteConfirmation = true
-            }
-            // Global .tint(pulpePrimary) greens the SF Symbol; role: .destructive only reds the title.
-            .tint(Color.destructivePrimary)
+            DeleteMenuButton { showDeleteConfirmation = true }
         } label: {
             Image(systemName: "ellipsis.circle")
         }
+        .pulpeMenuContent()
         .accessibilityLabel("Plus d'options")
     }
 

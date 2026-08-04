@@ -167,6 +167,7 @@ struct BudgetTypeFilter: View {
                 }
             )
         }
+        .pulpeMenuContent()
         .menuStyle(.button)
         .plainPressedButtonStyle()
         .accessibilityLabel("Filtre d'état")
