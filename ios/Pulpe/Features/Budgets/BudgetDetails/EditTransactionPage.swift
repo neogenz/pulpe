@@ -255,6 +255,8 @@ struct EditTransactionPage: View {
             Button("Supprimer", systemImage: "trash", role: .destructive) {
                 showDeleteConfirmation = true
             }
+            // Global .tint(pulpePrimary) greens the SF Symbol; role: .destructive only reds the title.
+            .tint(Color.destructivePrimary)
         } label: {
             Image(systemName: "ellipsis.circle")
         }

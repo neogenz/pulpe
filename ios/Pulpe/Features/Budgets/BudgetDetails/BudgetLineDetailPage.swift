@@ -189,6 +189,8 @@ private extension BudgetLineDetailPage {
                     deleteBudgetLine(line)
                 }
             }
+            // Global .tint(pulpePrimary) greens the SF Symbol; role: .destructive only reds the title.
+            .tint(Color.destructivePrimary)
         } label: {
             Image(systemName: "ellipsis.circle")
         }
