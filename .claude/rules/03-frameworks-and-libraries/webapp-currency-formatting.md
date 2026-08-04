@@ -1,6 +1,6 @@
 ---
 description: Angular webapp currency display - dual policy aggregation (entiers '1.0-0') vs ligne ('1.2-2') via AppCurrencyPipe / CURRENCY_METADATA. Symbole `€`/`CHF` toujours, jamais raw code text. Load when editing components that render monetary amounts.
-alwaysApply: false
+paths: "frontend/**/*.{ts,html}"
 ---
 
 # Webapp Currency Formatting
@@ -112,7 +112,11 @@ For aggregations in the `ui/` layer, use `'1.0-0'`. For lines in the `ui/` layer
 
 Aggregations sont scannées rapidement (hero, pills, listes). Les centimes ajoutent du bruit visuel sans valeur d'information sur des sommes mensuelles à 4-5 chiffres. Les lignes individuelles (transactions, prévisions unitaires) gardent les centimes parce que c'est l'unité comptable de base — la valeur exacte saisie par l'utilisateur.
 
-`CURRENCY_METADATA.symbol` est `€` pour EUR, `CHF` pour CHF — le canonical display. Angular's `CurrencyPipe` with `style: 'symbol'` and the locale from `CURRENCY_METADATA` already outputs `€ / CHF` correctement. Hand-rolling `{{ value | number }} + {{ currency }}` bypass cela et leak le raw ISO code dans l'UI.
+`CURRENCY_METADATA.symbol` est `€` pour EUR, `CHF` pour CHF — le canonical display.
+
+**Pourquoi un helper plutôt que le `CurrencyPipe` natif** : le pattern de devise natif de `de-CH` place le symbole en **préfixe** (`CHF 1’234.56`). Ni `AppCurrencyPipe` ni `getCurrencyFormatter` n'utilisent `style: 'currency'` — les deux formatent le nombre seul puis concatènent le symbole à la main (`${formatNumber(...)} ${symbol}`), et c'est précisément ce qui le garde en **suffixe**, aligné sur le hero split-typography et sur iOS. Passer par le `CurrencyPipe` natif rendrait donc le symbole du mauvais côté en CHF. Et hand-roller `{{ value | number }} + {{ currency }}` leak le raw ISO code dans l'UI.
+
+`AppCurrencyPipe` formate via `formatNumber` d'`@angular/common` (données CLDR bundlées) plutôt que l'`Intl` natif : l'apostrophe `de-CH` (U+2019) reste ainsi stable d'un environnement à l'autre.
 
 ## Reference
 

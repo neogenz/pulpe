@@ -95,7 +95,7 @@
     },
     "type-check": {
       "dependsOn": ["^build"],
-      "outputs": ["*.tsbuildinfo"],
+      "outputs": ["*.tsbuildinfo", "out-tsc/**"],
       "inputs": ["**/*.{ts,tsx}", "tsconfig*.json"]
     },
     "type-check:full": {
