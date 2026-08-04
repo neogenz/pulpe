@@ -9,13 +9,15 @@ struct AddTransactionSheetTests {
         kind: TransactionKind,
         isEnabled: Bool = true,
         goalId: String? = "goal-1",
-        isWithdrawalReady: Bool = true
+        isWithdrawalReady: Bool = true,
+        hasConversionFailed: Bool = false
     ) -> AddTransactionSheet.SavingsGoalOrigin {
         AddTransactionSheet.SavingsGoalOrigin(
             kind: kind,
             isEnabled: isEnabled,
             goalId: goalId,
-            isWithdrawalReady: isWithdrawalReady
+            isWithdrawalReady: isWithdrawalReady,
+            hasConversionFailed: hasConversionFailed
         )
     }
 
@@ -49,5 +51,34 @@ struct AddTransactionSheetTests {
     func origin_blocksWhenTheWithdrawalIsNotReady() {
         #expect(origin(kind: .income, isWithdrawalReady: false).blocksSubmission)
         #expect(origin(kind: .income, goalId: nil, isWithdrawalReady: false).blocksSubmission)
+    }
+
+    // A refused conversion leaves nothing to weigh the goal's balance against,
+    // so the button greys out. The picker cannot say why — it was never handed
+    // an amount — and the sheet used to stay silent too.
+    @Test("a refused conversion says why the button is greyed out")
+    func origin_namesTheRefusedConversion() {
+        let blocked = origin(kind: .income, isWithdrawalReady: false, hasConversionFailed: true)
+
+        #expect(blocked.blocksSubmission)
+        #expect(blocked.blockingReason == "Le taux de change est indisponible, réessaie dans un instant.")
+    }
+
+    @Test("a goal still to be chosen keeps priority over the conversion")
+    func origin_namesTheMissingGoalFirst() {
+        let noGoal = origin(
+            kind: .income,
+            goalId: nil,
+            isWithdrawalReady: false,
+            hasConversionFailed: true
+        )
+
+        #expect(noGoal.blockingReason == "Choisis l'objectif utilisé")
+    }
+
+    @Test("a withdrawal the picker accepts states no reason of its own")
+    func origin_staysSilentWhenReady() {
+        #expect(origin(kind: .income).blockingReason == nil)
+        #expect(origin(kind: .expense, hasConversionFailed: true).blockingReason == nil)
     }
 }

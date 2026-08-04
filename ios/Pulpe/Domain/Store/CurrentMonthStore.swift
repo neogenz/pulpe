@@ -114,6 +114,8 @@ final class CurrentMonthStore: StoreProtocol {
     private var cachedUncheckedItems: [CheckableItem]?
     private var cachedSavingsSummary: SavingsSummary?
     private var cachedDriftLines: [(line: BudgetLine, consumption: BudgetFormulas.Consumption)]?
+    private var cachedBalanceTrajectory: BudgetFormulas.BalanceTrajectory?
+    private var cachedPlannedRemaining: Decimal?
 
     // Widget sync debouncing
     private var widgetSyncTask: Task<Void, Never>?
@@ -242,6 +244,10 @@ final class CurrentMonthStore: StoreProtocol {
     /// Update the stored payDayOfMonth so subsequent forceRefresh() calls use the correct period
     func setPayDay(_ payDay: Int?) {
         payDayOfMonth = payDay
+        // The trajectory is cut along the period boundaries, so it is only as
+        // fresh as this value. Callers do follow with a refresh, but the cache
+        // must not depend on them remembering to.
+        recomputeMetrics()
     }
 
     /// Invalidates the cache so the next `loadDetailsIfNeeded()` / `loadIfNeeded()` will re-fetch.
@@ -274,6 +280,8 @@ final class CurrentMonthStore: StoreProtocol {
         cachedUncheckedItems = nil
         cachedSavingsSummary = nil
         cachedDriftLines = nil
+        cachedBalanceTrajectory = nil
+        cachedPlannedRemaining = nil
         error = nil
         BudgetDetailCache.shared.invalidateAll()
     }
@@ -360,10 +368,7 @@ final class CurrentMonthStore: StoreProtocol {
 
     /// End-of-month balance from the budget alone, before known transactions adjust envelopes.
     var plannedRemaining: Decimal {
-        BudgetFormulas.calculateAllMetrics(
-            budgetLines: budgetLines,
-            rollover: budget?.rollover.orZero ?? 0
-        ).remaining
+        cachedPlannedRemaining ?? computePlannedRemaining()
     }
 
     var realizedMetrics: BudgetFormulas.RealizedMetrics {
@@ -405,6 +410,8 @@ final class CurrentMonthStore: StoreProtocol {
         cachedUncheckedItems = computeUncheckedItems()
         cachedSavingsSummary = computeSavingsSummary()
         cachedDriftLines = computeDriftLines()
+        cachedBalanceTrajectory = computeBalanceTrajectory()
+        cachedPlannedRemaining = computePlannedRemaining()
     }
 }
 
@@ -611,7 +618,14 @@ extension CurrentMonthStore {
         )
     }
 
+    /// Read by the dashboard hero, so it is hit on every frame of a scroll.
+    /// Both halves of the fallback are cheap when there is no budget: the cache
+    /// holds `nil` and the recompute returns on its own guard.
     var balanceTrajectory: BudgetFormulas.BalanceTrajectory? {
+        cachedBalanceTrajectory ?? computeBalanceTrajectory()
+    }
+
+    private func computeBalanceTrajectory() -> BudgetFormulas.BalanceTrajectory? {
         guard let budget else { return nil }
         return BudgetFormulas.calculateBalanceTrajectory(
             budgetLines: budgetLines,
@@ -619,6 +633,13 @@ extension CurrentMonthStore {
             budget: budget,
             payDayOfMonth: payDayOfMonth
         )
+    }
+
+    private func computePlannedRemaining() -> Decimal {
+        BudgetFormulas.calculateAllMetrics(
+            budgetLines: budgetLines,
+            rollover: budget?.rollover.orZero ?? 0
+        ).remaining
     }
 
     var displayBudgetLines: [BudgetLine] {
