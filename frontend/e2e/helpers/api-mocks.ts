@@ -166,9 +166,9 @@ export function createSavingsGoalMock(
 }
 
 /**
- * A progression whose only moving parts are `confirmed` and `withdrawn` — the
- * two numbers a withdrawal is supposed to move. Everything else stays put so a
- * failing assertion can only mean the client read the wrong field.
+ * A progression whose only moving part is `confirmed` — the number a withdrawal
+ * is supposed to move, the sum already deducted from it. Everything else stays
+ * put so a failing assertion can only mean the client read the wrong field.
  */
 export function createSavingsGoalProgressMock(
   goalId: string,
@@ -197,7 +197,6 @@ export function createSavingsGoalProgressMock(
     cumulativeGap: 0,
     estimatedCompletion: null,
     initialAmount: 0,
-    withdrawn: 0,
     months: [],
     originalTargetAmount: null,
     originalCurrency: null,

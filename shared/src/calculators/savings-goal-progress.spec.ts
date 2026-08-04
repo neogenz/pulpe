@@ -832,7 +832,6 @@ describe('computeSavingsGoalProgress withdrawals (PUL-329)', () => {
     );
 
     expect(result.confirmed).toBe(5_500);
-    expect(result.withdrawn).toBe(WITHDRAWAL_AMOUNT);
   });
 
   it('should lower the projection by exactly the withdrawn amount', () => {

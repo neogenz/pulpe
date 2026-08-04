@@ -277,7 +277,6 @@ describe('PUL-329 — savings-goal withdrawals (local Supabase)', () => {
     expect(income.sourceSavingsGoalName).toBe('Maison');
     const { computed } = await suite.progress.execute(goalId, suite.authUser);
     expect(computed.confirmed).toBe(5_500);
-    expect(computed.withdrawn).toBe(4_500);
     // Une sortie de stock ne dit rien de la capacité mensuelle à remplir le pot.
     expect(computed.confirmedPace).toBe(0);
 

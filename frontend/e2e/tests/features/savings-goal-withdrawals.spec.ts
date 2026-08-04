@@ -138,7 +138,6 @@ async function installGoalWorld(
         success: true,
         data: createSavingsGoalProgressMock(GOAL_ID, {
           confirmed: world.balance,
-          withdrawn: INITIAL_BALANCE - world.balance,
           achievementPercent: Math.round((world.balance / 12000) * 100),
         }),
       });

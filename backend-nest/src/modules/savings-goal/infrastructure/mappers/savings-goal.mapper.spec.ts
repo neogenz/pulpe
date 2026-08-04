@@ -111,7 +111,6 @@ describe('SavingsGoalMapper', () => {
       cumulativeGap: 150,
       estimatedCompletion: { month: 6, year: 2027 },
       initialAmount: 0,
-      withdrawn: 0,
     };
 
     const months: SavingsGoalPlanMonth[] = [];

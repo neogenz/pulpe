@@ -40,7 +40,6 @@ test('deletes a savings goal from its impact preview', async ({
     plannedProjection: 930,
     confirmed: 930,
     initialAmount: 930,
-    withdrawn: 0,
     achievementPercent: 25,
     monthsElapsed: 7,
     monthsRemaining: 18,

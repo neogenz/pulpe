@@ -814,6 +814,52 @@ BEGIN
   END IF;
   RAISE NOTICE 'PASS [22] a foreign tag is refused and writes nothing';
 
+  ----------------------------------------------------------------------
+  -- ASSERTION 23: moving the start date invalidates a read balance
+  ----------------------------------------------------------------------
+  -- The start date anchors the contribution window, so pushing it forward
+  -- drops earlier forecasts out of the confirmed stock without touching an
+  -- amount. Same contract as the starting stock: it burns a revision when it
+  -- changes, and only then.
+  SELECT balance_revision INTO v_revision
+  FROM public.savings_goal WHERE id = v_goal_id;
+
+  UPDATE public.savings_goal
+  SET start_date = DATE '2026-03-01'
+  WHERE id = v_goal_id;
+
+  SELECT balance_revision INTO v_next_revision
+  FROM public.savings_goal WHERE id = v_goal_id;
+  IF v_next_revision <= v_revision THEN
+    RAISE EXCEPTION 'FAIL [23]: a new start date did not advance the revision (% -> %)',
+      v_revision, v_next_revision;
+  END IF;
+
+  v_revision := v_next_revision;
+  UPDATE public.savings_goal
+  SET start_date = DATE '2026-03-01'
+  WHERE id = v_goal_id;
+
+  SELECT balance_revision INTO v_next_revision
+  FROM public.savings_goal WHERE id = v_goal_id;
+  IF v_next_revision <> v_revision THEN
+    RAISE EXCEPTION 'FAIL [23]: an unchanged start date burned a revision (% -> %)',
+      v_revision, v_next_revision;
+  END IF;
+
+  v_caught := NULL;
+  BEGIN
+    PERFORM public.delete_savings_goal_withdrawal(v_probe_id, v_revision - 1);
+  EXCEPTION WHEN OTHERS THEN
+    v_caught := SQLERRM;
+  END;
+
+  IF v_caught IS DISTINCT FROM 'Savings goal balance changed' THEN
+    RAISE EXCEPTION 'FAIL [23]: a balance read before the move was still accepted (%)',
+      COALESCE(v_caught, 'no error');
+  END IF;
+  RAISE NOTICE 'PASS [23] the start date moves the revision only when it changes';
+
   RAISE NOTICE 'ALL ASSERTIONS PASSED';
 END;
 $$;

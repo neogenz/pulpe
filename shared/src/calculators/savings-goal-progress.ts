@@ -145,8 +145,6 @@ export interface SavingsGoalProgressResult {
   estimatedCompletion: BudgetPeriod | null;
   /** Écho de `input.initialAmount` (stock de départ), défaut 0. */
   initialAmount: number;
-  /** Σ des retraits liés (positive), déjà soustraite de `confirmed`. */
-  withdrawn: number;
 }
 
 /**
@@ -432,6 +430,5 @@ export function computeSavingsGoalProgress(
     cumulativeGap,
     estimatedCompletion,
     initialAmount,
-    withdrawn,
   };
 }

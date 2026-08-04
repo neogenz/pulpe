@@ -6,12 +6,6 @@ import OSLog
 final class CurrentMonthStore: StoreProtocol {
     // MARK: - Types
 
-    struct TopSpending: Sendable {
-        let name: String
-        let amount: Decimal
-        let totalExpenses: Decimal
-    }
-
     /// A checkable item in the "À pointer" dashboard card.
     /// Priority: free transactions → allocated transactions → budget lines.
     enum CheckableItem: Identifiable, Sendable {
@@ -478,18 +472,6 @@ extension CurrentMonthStore {
         return metrics.remaining / Decimal(days)
     }
 
-    /// Budget lines that are at or above 80% consumption (alerts)
-    var alertBudgetLines: [(line: BudgetLine, consumption: BudgetFormulas.Consumption)] {
-        budgetLines
-            .filter { $0.kind == .expense && !($0.isRollover ?? false) }
-            .compactMap { line -> (BudgetLine, BudgetFormulas.Consumption)? in
-                let consumption = BudgetFormulas.calculateConsumption(for: line, transactions: transactions)
-                guard consumption.percentage >= 80 else { return nil }
-                return (line, consumption)
-            }
-            .sorted { $0.1.percentage > $1.1.percentage }
-    }
-
     /// Expense envelopes consumed beyond their plan ("Ça dérive"), biggest overrun first.
     /// Cached like the sibling aggregates: a render reads this 4× (guard, card input,
     /// `driftTotal`, `conditionalBlocksState`) and each recompute walks lines × transactions.
@@ -537,23 +519,6 @@ extension CurrentMonthStore {
         let totalDays = (calendar.dateComponents([.day], from: start, to: end).day ?? 0) + 1
         let day = (calendar.dateComponents([.day], from: start, to: calendar.startOfDay(for: now)).day ?? 0) + 1
         return (min(max(day, 1), max(totalDays, 1)), max(totalDays, 1))
-    }
-
-    /// Top expense transaction by amount (linked or free)
-    var topSpending: TopSpending? {
-        guard let top = transactions.filter({ $0.kind == .expense }).max(by: { $0.amount < $1.amount }) else {
-            return nil
-        }
-        return TopSpending(name: top.name, amount: top.amount, totalExpenses: metrics.totalExpenses)
-    }
-
-    /// 5 most recent transactions (all types)
-    var recentTransactions: [Transaction] {
-        Array(
-            transactions
-                .sorted { $0.transactionDate > $1.transactionDate }
-                .prefix(5)
-        )
     }
 
     private static let maxDashboardItems = 5
@@ -645,20 +610,6 @@ extension CurrentMonthStore {
     var displayBudgetLines: [BudgetLine] {
         BudgetFormulas.displayBudgetLines(base: budgetLines, budget: budget)
     }
-
-    var recurringBudgetLines: [BudgetLine] {
-        displayBudgetLines
-            .filter { $0.recurrence == .fixed }
-            .sorted { $0.createdAt > $1.createdAt }
-    }
-
-    var oneOffBudgetLines: [BudgetLine] {
-        displayBudgetLines
-            .filter { $0.recurrence == .oneOff && !($0.isRollover ?? false) }
-            .sorted { $0.createdAt > $1.createdAt }
-    }
-
-    var freeTransactions: [Transaction] { transactions.unallocated }
 }
 
 // MARK: - Mutations

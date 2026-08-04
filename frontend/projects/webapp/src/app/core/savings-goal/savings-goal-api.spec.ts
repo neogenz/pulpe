@@ -34,7 +34,6 @@ function makeProgress(
     plannedProjection: 1200,
     confirmed: 900,
     initialAmount: 0,
-    withdrawn: 0,
     achievementPercent: 30,
     monthsElapsed: 3,
     monthsRemaining: 12,

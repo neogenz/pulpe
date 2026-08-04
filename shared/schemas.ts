@@ -538,9 +538,6 @@ export const savingsGoalProgressSchema = z.object({
   // Montant de départ (stock, inclus dans confirmed) — default 0 pour les
   // payloads/mocks existants qui ne portent pas encore le champ.
   initialAmount: z.number().nonnegative().default(0),
-  // Σ des retraits (PUL-329), déjà DÉDUITE de `confirmed`. Transportée positive
-  // et à part, pour expliquer un solde qui baisse sans contribution annulée.
-  withdrawn: z.number().nonnegative().default(0),
   // Timeline ancrage → cible (chart A + calendrier B + rebase simulateur C).
   months: z.array(savingsGoalPlanMonthSchema),
   // FX door-keepers (CA6) — devise du compte uniquement en v1, toujours null.
