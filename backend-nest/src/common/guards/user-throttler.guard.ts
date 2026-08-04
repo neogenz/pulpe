@@ -5,12 +5,14 @@ import {
   InjectThrottlerOptions,
   InjectThrottlerStorage,
   type ThrottlerModuleOptions,
+  type ThrottlerRequest,
   type ThrottlerStorage,
 } from '@nestjs/throttler';
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import { Request } from 'express';
+import { isIP } from 'node:net';
 import { SupabaseService } from '@modules/supabase/supabase.service';
-import { isDemoPath } from '@config/throttler.config';
+import { isDemoPath, PUBLIC_THROTTLER_NAME } from '@config/throttler.config';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { resolvePayDayOfMonth } from '@common/utils/pay-day';
 
@@ -154,6 +156,41 @@ export class UserThrottlerGuard extends ThrottlerGuard {
    * - Demo endpoint to maintain its IP-based 30 req/hour limit
    * - AuthGuard can reuse cached user (eliminates 3rd Supabase call)
    */
+  /**
+   * Leaves the `public` bucket only for requests whose token actually resolves
+   * to a user.
+   *
+   * The bucket used to be skipped from the module config on the mere presence
+   * of an `Authorization: Bearer ` header, which no one validated — any forged
+   * value lifted the caller from 20 req/min to the 200 req/min authenticated
+   * bucket. Resolution happens here rather than in a `skipIf`, which the
+   * library calls synchronously and which would therefore depend on the
+   * `default` throttler having populated the request cache first.
+   */
+  protected override async handleRequest(
+    requestProps: ThrottlerRequest,
+  ): Promise<boolean> {
+    if (requestProps.throttler.name === PUBLIC_THROTTLER_NAME) {
+      const req = requestProps.context
+        .switchToHttp()
+        .getRequest<RequestWithThrottlerCache>();
+      const user = await this.#resolveCachedUser(req);
+      if (user?.id) return true;
+    }
+
+    return super.handleRequest(requestProps);
+  }
+
+  /** Resolves the request's user once, then serves it from the request cache. */
+  async #resolveCachedUser(
+    req: RequestWithThrottlerCache,
+  ): Promise<AuthenticatedUser | null> {
+    if (req.__throttlerUserCache === undefined) {
+      req.__throttlerUserCache = (await this.resolveUser(req)) ?? null;
+    }
+    return req.__throttlerUserCache;
+  }
+
   protected override async getTracker(
     req: RequestWithThrottlerCache,
   ): Promise<string> {
@@ -166,19 +203,7 @@ export class UserThrottlerGuard extends ThrottlerGuard {
       return this.#getClientIpTracker(req);
     }
 
-    // Check cache first (undefined means not yet resolved, null means resolution failed)
-    if (req.__throttlerUserCache !== undefined) {
-      const cachedUser = req.__throttlerUserCache;
-      if (cachedUser?.id) {
-        return `user:${cachedUser.id}`;
-      }
-      // Cached null = auth failed, use IP-based tracking
-      return this.#getClientIpTracker(req);
-    }
-
-    // Cache miss: resolve user and cache result
-    const user = await this.resolveUser(req);
-    req.__throttlerUserCache = user || null; // Cache even if undefined (null = failed auth)
+    const user = await this.#resolveCachedUser(req);
 
     // Use user ID for authenticated requests
     if (user?.id) {
@@ -202,11 +227,16 @@ export class UserThrottlerGuard extends ThrottlerGuard {
    * client-supplied, which would let an attacker rotate the throttle key and
    * defeat per-IP limits. When `X-Real-IP` is absent (local/dev, no proxy) we
    * fall back to the base IP behaviour (`req.ip`).
+   *
+   * The value is validated as a real IPv4/IPv6 address before use. Deployments
+   * where the header is not proxy-controlled would otherwise hand the caller a
+   * free throttle key: any arbitrary string becomes a brand-new empty bucket,
+   * so per-IP caps could be rotated away one request at a time.
    */
   async #getClientIpTracker(req: RequestWithThrottlerCache): Promise<string> {
     const realIp = req.headers?.['x-real-ip'];
     const clientIp = Array.isArray(realIp) ? realIp[0] : realIp;
-    if (clientIp) {
+    if (clientIp && isIP(clientIp) !== 0) {
       return clientIp;
     }
     return super.getTracker(req);

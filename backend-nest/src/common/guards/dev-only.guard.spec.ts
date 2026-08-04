@@ -101,6 +101,22 @@ describe('DevOnlyGuard', () => {
       expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
     });
 
+    it('should throw ForbiddenException on a Railway preview left on NODE_ENV=development', () => {
+      mockConfigService.get = (key: string) =>
+        key === 'RAILWAY_ENVIRONMENT_NAME' ? 'preview' : 'development';
+      const context = createMockContext();
+
+      expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
+    });
+
+    it('should allow access when neither NODE_ENV nor the Railway environment is production-like', () => {
+      mockConfigService.get = (key: string) =>
+        key === 'RAILWAY_ENVIRONMENT_NAME' ? 'local' : 'development';
+      const context = createMockContext();
+
+      expect(guard.canActivate(context)).toBe(true);
+    });
+
     it('should log warning when production access is attempted', () => {
       mockConfigService.get = () => 'production';
       const context = createMockContext('/api/v1/demo/cleanup', 'POST');

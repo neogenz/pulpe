@@ -1,5 +1,5 @@
 import { UserThrottlerGuard } from './user-throttler.guard';
-import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { describe, it, expect, afterEach, beforeEach, mock } from 'bun:test';
 import {
   createMockAuthenticatedUser,
   createMockSupabaseClient,
@@ -523,6 +523,102 @@ describe('UserThrottlerGuard', () => {
 
       // Assert
       expect(tracker).toBe('127.0.0.1');
+    });
+
+    it('should ignore a malformed X-Real-IP and fall back to req.ip', async () => {
+      // Arrange - an unvalidated header value would be a free throttle key:
+      // any arbitrary string opens a brand-new empty bucket
+      const mockRequest = {
+        headers: { 'x-real-ip': 'not-an-ip' },
+        ip: '100.64.0.1',
+        ips: [],
+      };
+
+      // Act
+      const tracker = await (guard as any).getTracker(mockRequest);
+
+      // Assert
+      expect(tracker).toBe('100.64.0.1');
+    });
+
+    it('should accept an IPv6 X-Real-IP', async () => {
+      // Arrange
+      const mockRequest = {
+        headers: { 'x-real-ip': '2001:db8::1' },
+        ip: '100.64.0.1',
+        ips: [],
+      };
+
+      // Act
+      const tracker = await (guard as any).getTracker(mockRequest);
+
+      // Assert
+      expect(tracker).toBe('2001:db8::1');
+    });
+  });
+
+  describe('handleRequest - public bucket', () => {
+    const createThrottlerRequest = (request: unknown) =>
+      ({
+        throttler: { name: 'public' },
+        context: { switchToHttp: () => ({ getRequest: () => request }) },
+      }) as any;
+
+    // The base implementation needs a storage backend we do not wire here, so
+    // it is stubbed to observe whether the bucket is consumed at all.
+    let throttlerPrototype: any;
+    let originalHandleRequest: unknown;
+    let consumeBucket: ReturnType<typeof mock>;
+
+    beforeEach(() => {
+      throttlerPrototype = Object.getPrototypeOf(
+        Object.getPrototypeOf(guard) as object,
+      );
+      originalHandleRequest = throttlerPrototype.handleRequest;
+      consumeBucket = mock(() => Promise.resolve(true));
+      throttlerPrototype.handleRequest = consumeBucket;
+    });
+
+    afterEach(() => {
+      throttlerPrototype.handleRequest = originalHandleRequest;
+    });
+
+    it('should apply the public bucket when the Bearer token does not resolve', async () => {
+      // Arrange - a forged header must not lift the caller out of the bucket
+      mockSupabaseClient.setMockData(null).setMockError(new Error('invalid'));
+
+      // Act
+      await (guard as any).handleRequest(
+        createThrottlerRequest({
+          headers: { authorization: 'Bearer garbage' },
+          ip: '203.0.113.7',
+          ips: [],
+        }),
+      );
+
+      // Assert - the bucket was consumed, not skipped
+      expect(consumeBucket).toHaveBeenCalledTimes(1);
+    });
+
+    it('should skip the public bucket for a token that resolves to a user', async () => {
+      // Arrange
+      const mockUser = createMockAuthenticatedUser();
+      mockSupabaseClient
+        .setMockData({ id: mockUser.id, email: mockUser.email })
+        .setMockError(null);
+
+      // Act
+      const result = await (guard as any).handleRequest(
+        createThrottlerRequest({
+          headers: { authorization: 'Bearer valid-token' },
+          ip: '203.0.113.7',
+          ips: [],
+        }),
+      );
+
+      // Assert
+      expect(result).toBe(true);
+      expect(consumeBucket).not.toHaveBeenCalled();
     });
   });
 });

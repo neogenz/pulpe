@@ -16,6 +16,7 @@ import {
   DEMO_UNVERIFIED_HOURLY_LIMIT,
   isDemoPath,
   isUnverifiedDemoSessionRequest,
+  PUBLIC_THROTTLER_NAME,
 } from '@config/throttler.config';
 
 // Modules
@@ -270,16 +271,12 @@ export function createPinoLoggerConfig(configService: ConfigService) {
               limit: config.get<number>('THROTTLE_LIMIT', 200), // 200 req/min for authenticated users
             },
             {
-              name: 'public',
+              // Unauthenticated traffic only. UserThrottlerGuard skips this
+              // bucket once the request's token resolves to a real user — a
+              // forged `Bearer` header must NOT be enough to leave it.
+              name: PUBLIC_THROTTLER_NAME,
               ttl: 60000,
               limit: isDev ? 1000 : 20, // 20 req/min for unauthenticated requests in prod
-              skipIf: (context: ExecutionContext) => {
-                const request = context
-                  .switchToHttp()
-                  .getRequest<{ headers?: Record<string, string> }>();
-                const auth = request?.headers?.authorization;
-                return !!auth && auth.startsWith('Bearer ');
-              },
             },
             {
               name: 'demo',
