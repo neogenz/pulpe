@@ -300,21 +300,21 @@ export default class BudgetDetailsPage {
     });
     if (!transaction) return;
 
-    const result = await this.#dialogService.openEditAllocatedTransactionDialog(
-      transaction,
-      {
-        budgetMonth,
-        budgetYear,
-        payDayOfMonth: this.userSettingsStore.payDayOfMonth(),
-      },
-    );
-    if (!result) return;
+    // PUL-329 QA fix — same wiring as budget-items-container: the dialog
+    // owns submission and closes only on success, this caller just supplies
+    // the mutation and shows the toast after closure.
+    const updated =
+      await this.#dialogService.openEditAllocatedTransactionDialog(
+        transaction,
+        {
+          budgetMonth,
+          budgetYear,
+          payDayOfMonth: this.userSettingsStore.payDayOfMonth(),
+        },
+        (update) => this.store.updateTransaction(transaction.id, update),
+      );
+    if (!updated) return;
 
-    const error = await this.store.updateTransaction(result.id, result.update);
-    if (error) {
-      openMutationErrorSnackbar(error, this.#snackBar, this.#transloco);
-      return;
-    }
     this.#snackBar.open(
       this.#transloco.translate('budget.modificationSaved'),
       this.#transloco.translate('common.close'),

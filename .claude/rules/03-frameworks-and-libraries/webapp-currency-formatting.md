@@ -19,7 +19,12 @@ NEVER hand-roll currency display in templates. Always route through a shared hel
 
 > **Heuristique**: si le montant est une **somme**, un **total** ou un **solde dérivé** (`amount - consumed`, `consumption.consumed`, `consumption.remaining`, etc.) → aggregation `'1.0-0'`. Si c'est la valeur **directement portée par une seule entité** (un `budget_line.amount`, un `transaction.amount`) → ligne `'1.2-2'`.
 
-> **Exception — bloc résumé de saisie adaptatif `'1.0-2'`**: le **bloc résumé live de l'onboarding `complete-profile`** — le revenu saisi _et_ ses dérivés immédiats `engagé`/`disponible` affichés dans la même rangée — utilise `'1.0-2'` : pas de décimales sur saisie ronde (`15 872 €`), décimales seulement si l'utilisateur en a saisi (`15 872,15 €`). C'est un **écho live de la saisie en cours**, pas un agrégat de dashboard : forcer `engagé`/`disponible` à `'1.0-0'` à côté d'un revenu à 2 décimales casserait la cohérence de la rangée et arrondirait un solde que l'utilisateur voit non-rond. Ne pas les "corriger" en `'1.0-0'`. La même logique couvre les **montants de suggestions de l'onboarding** (chips/boutons `suggestion.amount` de `complete-profile`) : ce sont des montants ronds suggérés, donc `'1.0-2'` (pas de `1 500,00 €` bruité), pas la catégorie ligne `'1.2-2'`. **Hors de l'onboarding** (bloc résumé + suggestions), tout total/solde scanné (hero dashboard `disponible`, soldes, pills…) reste en aggregation `'1.0-0'`, et toute ligne `budget_line`/`transaction` reste en `'1.2-2'`.
+> **Exception — montants adaptatifs `'1.0-2'`**: deux cas partagent la même logique — pas de décimales sur une valeur ronde, décimales seulement si elles portent une information que l'utilisateur doit voir exactement.
+>
+> 1. **Bloc résumé live de l'onboarding `complete-profile`** — le revenu saisi _et_ ses dérivés immédiats `engagé`/`disponible` affichés dans la même rangée — utilise `'1.0-2'` : pas de décimales sur saisie ronde (`15 872 €`), décimales seulement si l'utilisateur en a saisi (`15 872,15 €`). C'est un **écho live de la saisie en cours**, pas un agrégat de dashboard : forcer `engagé`/`disponible` à `'1.0-0'` à côté d'un revenu à 2 décimales casserait la cohérence de la rangée et arrondirait un solde que l'utilisateur voit non-rond. Ne pas les "corriger" en `'1.0-0'`. La même logique couvre les **montants de suggestions de l'onboarding** (chips/boutons `suggestion.amount` de `complete-profile`) : ce sont des montants ronds suggérés, donc `'1.0-2'` (pas de `1 500,00 €` bruité), pas la catégorie ligne `'1.2-2'`.
+> 2. **Sélecteur d'objectif en mode retrait** (`savings-goal-picker-field.ts` — `availableAmount` et l'aperçu du solde restant après retrait) utilise aussi `'1.0-2'`, bien que ce soit un solde hors onboarding. Ce n'est pas un solde scanné : c'est un **plafond actionnable que l'utilisateur doit pouvoir ressaisir à l'identique** — arrondir `112.23 CHF` en `112 CHF` inviterait à taper un montant que le serveur refuserait. Web (`AppCurrencyPipe` + `'1.0-2'`) et iOS (`asAdaptiveCurrency`/`asAdaptiveAmount`) rendent la même chaîne.
+>
+> **Hors de ces deux cas** (bloc résumé onboarding + suggestions, sélecteur de retrait), tout total/solde scanné (hero dashboard `disponible`, soldes, pills…) reste en aggregation `'1.0-0'`, et toute ligne `budget_line`/`transaction` reste en `'1.2-2'`.
 
 ## In `feature/`, `pattern/`, `core/` layers
 
@@ -97,7 +102,7 @@ For aggregations in the `ui/` layer, use `'1.0-0'`. For lines in the `ui/` layer
 
 ## Always
 
-- **Aggregation `'1.0-0'`** : hero, pills, totaux, soldes, balances, `consumed/remaining/exceededBy` enveloppe, cumulativeBalance, cartes mois liste, hero dashboard, year overview cards, savings summary, widgets, template totals.
+- **Aggregation `'1.0-0'`** : hero, pills, totaux, soldes, balances, `consumed/remaining/exceededBy` enveloppe, cumulativeBalance, cartes mois liste, hero dashboard, year overview cards, savings summary, widgets, template totals — **sauf les deux cas adaptatifs `'1.0-2'`** listés dans l'exception ci-dessus (bloc résumé de l'onboarding, sélecteur d'objectif retirable).
 - **Ligne `'1.2-2'`** : `budget_line.amount`, `transaction.amount`, table cell `Prévu`, dialogs ligne individuelle.
 - **Symbole** dans le display (`€`, `CHF`) — JAMAIS raw code `EUR/CHF` text suffix dans une card / hero / pill.
 - **Raw code** uniquement dans aria-label, VoiceOver, et phrases de taux (`1 EUR = 0.94 CHF`).
@@ -113,4 +118,4 @@ Aggregations sont scannées rapidement (hero, pills, listes). Les centimes ajout
 
 - Shared helpers: `shared/src/currency.ts` (`CURRENCY_METADATA`), `shared/src/currency-format.ts` (`getCurrencyFormatter`)
 - Core pipe: `frontend/projects/webapp/src/app/core/currency/app-currency.pipe.ts`
-- iOS analog: `ios/Pulpe/Shared/Extensions/Decimal+Extensions.swift` (`asCurrency` ↔ `asCompactCurrency`, `asAmount` ↔ `asCompactAmount`)
+- iOS analog: `ios/Pulpe/Shared/Extensions/Decimal+Extensions.swift` (`asCurrency` ↔ `asCompactCurrency`, `asAmount` ↔ `asCompactAmount`, `asAdaptiveCurrency` ↔ `asAdaptiveAmount` for the `'1.0-2'` exception cases above)

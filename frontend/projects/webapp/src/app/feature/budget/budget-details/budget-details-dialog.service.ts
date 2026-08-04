@@ -228,6 +228,14 @@ export class BudgetDetailsDialogService {
     return firstValueFrom(dialogRef.afterClosed());
   }
 
+  /**
+   * PUL-329 QA fix — `submit` is the actual mutation (already the exact shape
+   * `BudgetDetailsStore.updateTransaction` returns: the localized error, or
+   * `null` on success). The dialog awaits it and closes only once it resolves
+   * `null`; a refusal keeps the dialog open with the typed values and shows the
+   * reason inline. This service only wires the plumbing — navigation and
+   * success toasts stay with the caller.
+   */
   async openEditAllocatedTransactionDialog(
     transaction: Transaction,
     budgetPeriod: {
@@ -235,7 +243,8 @@ export class BudgetDetailsDialogService {
       budgetYear: number;
       payDayOfMonth: number | null;
     },
-  ): Promise<{ id: string; update: TransactionUpdate } | undefined> {
+    submit: (update: TransactionUpdate) => Promise<string | null>,
+  ): Promise<TransactionUpdate | undefined> {
     const { minDate, maxDate } = computeBudgetPeriodDateConstraints(
       budgetPeriod.budgetMonth,
       budgetPeriod.budgetYear,
@@ -248,15 +257,15 @@ export class BudgetDetailsDialogService {
         hiddenFields: ['kind'],
         minDate,
         maxDate,
+        submit,
       } satisfies EditTransactionDialogData,
       width: '500px',
       maxWidth: '90vw',
     });
 
-    const result = await firstValueFrom<TransactionUpdate | undefined>(
+    return firstValueFrom<TransactionUpdate | undefined>(
       dialogRef.afterClosed(),
     );
-    return result ? { id: transaction.id, update: result } : undefined;
   }
 
   async openSpreadExisting(

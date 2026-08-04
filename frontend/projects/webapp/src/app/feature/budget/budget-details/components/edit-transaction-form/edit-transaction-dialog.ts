@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   inject,
+  signal,
   viewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -24,6 +25,13 @@ export interface EditTransactionDialogData {
   hiddenFields?: HideableField[];
   minDate?: Date;
   maxDate?: Date;
+  /**
+   * PUL-329 QA fix — the dialog submits itself and awaits the verdict; it
+   * closes only on `null` (success). A refusal (e.g. 422 insufficient
+   * balance) returns the localized reason and the dialog stays open with the
+   * typed values intact.
+   */
+  submit: (update: TransactionUpdate) => Promise<string | null>;
 }
 
 @Component({
@@ -63,12 +71,18 @@ export interface EditTransactionDialogData {
       />
     </mat-dialog-content>
 
+    @if (submitError(); as error) {
+      <p role="alert" class="text-error text-body-small px-6 pb-2">
+        {{ error }}
+      </p>
+    }
+
     <mat-dialog-actions align="end" class="gap-2">
       <button
         matButton="outlined"
         type="button"
         (click)="closeDialog()"
-        [disabled]="editForm.isUpdating()"
+        [disabled]="editForm.isUpdating() || isSubmitting()"
         [attr.aria-label]="'transactionForm.cancelAriaLabel' | transloco"
       >
         {{ 'common.cancel' | transloco }}
@@ -76,12 +90,14 @@ export interface EditTransactionDialogData {
       <button
         matButton="filled"
         type="button"
-        [disabled]="!editForm.canSubmit()"
+        [disabled]="!editForm.canSubmit() || isSubmitting()"
         (click)="submitForm()"
         [attr.aria-label]="'transactionForm.saveAriaLabel' | transloco"
       >
         <mat-icon aria-hidden="true">
-          {{ editForm.isUpdating() ? 'hourglass_empty' : 'save' }}
+          {{
+            editForm.isUpdating() || isSubmitting() ? 'hourglass_empty' : 'save'
+          }}
         </mat-icon>
         {{ 'common.save' | transloco }}
       </button>
@@ -97,6 +113,9 @@ export class EditTransactionDialog {
   protected readonly editForm =
     viewChild.required<EditTransactionForm>('editForm');
 
+  protected readonly isSubmitting = signal(false);
+  protected readonly submitError = signal<string | null>(null);
+
   protected closeDialog(): void {
     this.#dialogRef.close();
   }
@@ -108,7 +127,23 @@ export class EditTransactionDialog {
     }
   }
 
-  protected onUpdateTransaction(transactionData: TransactionUpdate): void {
-    this.#dialogRef.close(transactionData);
+  protected async onUpdateTransaction(
+    transactionData: TransactionUpdate,
+  ): Promise<void> {
+    // Re-entry guard mirrors runFormSubmit: a second submit arriving before
+    // the disabled button re-renders is dropped.
+    if (this.isSubmitting()) return;
+    this.isSubmitting.set(true);
+    this.submitError.set(null);
+    try {
+      const error = await this.data.submit(transactionData);
+      if (error) {
+        this.submitError.set(error);
+        return;
+      }
+      this.#dialogRef.close(transactionData);
+    } finally {
+      this.isSubmitting.set(false);
+    }
   }
 }

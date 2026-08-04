@@ -870,6 +870,8 @@ export class SupabaseBudgetRepository
       checkedAt: decrypted.checked_at,
       createdAt: decrypted.created_at,
       updatedAt: decrypted.updated_at,
+      sourceSavingsGoalId: decrypted.source_savings_goal_id,
+      sourceSavingsGoalName: decrypted.source_savings_goal_name,
     };
   }
 

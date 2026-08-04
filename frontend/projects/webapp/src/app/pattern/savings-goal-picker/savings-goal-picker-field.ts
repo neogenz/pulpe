@@ -111,7 +111,7 @@ import { dateFnsLocaleFor } from '@core/locale';
                 ·
                 {{
                   option.availableAmount
-                    | appCurrency: option.currency : '1.0-0'
+                    | appCurrency: option.currency : '1.0-2'
                 }}
               </span>
             </mat-option>
@@ -131,9 +131,9 @@ import { dateFnsLocaleFor } from '@core/locale';
           data-testid="savings-goal-withdrawal-preview"
         >
           {{ option.name }} ·
-          {{ option.availableAmount | appCurrency: option.currency : '1.0-0' }}
+          {{ option.availableAmount | appCurrency: option.currency : '1.0-2' }}
           →
-          {{ remainingAmount() | appCurrency: option.currency : '1.0-0' }}
+          {{ remainingAmount() | appCurrency: option.currency : '1.0-2' }}
         </p>
         @if (hasInsufficientBalance()) {
           <p
@@ -235,8 +235,9 @@ export class SavingsGoalPickerField {
     loader: () => this.#api.getAll$().pipe(map((r) => r.data ?? [])),
   });
 
-  // Server-filtered: only goals whose confirmed balance is positive, whatever
-  // their status. The client never rebuilds that eligibility.
+  // Server-filtered: only goals whose confirmed balance is above the shared
+  // withdrawal tolerance (WITHDRAWAL_BALANCE_TOLERANCE), whatever their
+  // status. The client never rebuilds that eligibility.
   readonly #withdrawalOptionsResource = cachedResource({
     cache: this.#api.cache,
     cacheKey: ['savings-goals', 'withdrawal-options'],
