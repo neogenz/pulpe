@@ -121,11 +121,22 @@ jobs:
           PGPASSWORD: postgres
           PGDATABASE: postgres
         run: |
-          for f in supabase/tests/*.sql; do
+          set -euo pipefail
+          shopt -s nullglob
+          suites=(supabase/tests/*.sql)
+          # `nullglob` seul transformerait un dossier vide en étape verte n'ayant
+          # rien exécuté — le faux vert exact que cette étape existe pour éviter.
+          # D'où le compte, annoncé aussi au succès : une suite qui disparaît du
+          # dossier se lit dans le journal au lieu de passer inaperçue.
+          if [ ${#suites[@]} -eq 0 ]; then
+            echo "::error::no SQL suite found in backend-nest/supabase/tests/"
+            exit 1
+          fi
+          for f in "${suites[@]}"; do
             echo "▶ $f"
             psql -v ON_ERROR_STOP=1 -q -f "$f"
           done
-          echo "✅ SQL suites passed"
+          echo "✅ ${#suites[@]} SQL suites passed"
 
       - name: 🔧 Generate TypeScript Types
         working-directory: backend-nest
