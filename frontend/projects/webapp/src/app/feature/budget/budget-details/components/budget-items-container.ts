@@ -29,7 +29,6 @@ import {
   type BudgetPeriod,
   type SupportedCurrency,
   type Transaction,
-  type TransactionUpdate,
 } from 'pulpe-shared';
 import { UserSettingsStore } from '@core/user-settings';
 import { AppCurrencyPipe, CURRENCY_CONFIG } from '@core/currency';
@@ -608,12 +607,15 @@ export class BudgetItemsContainer {
     );
   }
 
+  // PUL-329 QA fix — the dialog now owns submission (it awaits the store
+  // mutation itself and only closes on success). This caller just supplies
+  // that mutation and keeps the success toast for after closure.
   protected async handleEditAllocatedTransaction(
     transaction: Transaction,
   ): Promise<void> {
     const budget = this.store.budgetDetails();
     if (!budget) return;
-    const editResult =
+    const updated =
       await this.#dialogService.openEditAllocatedTransactionDialog(
         transaction,
         {
@@ -621,21 +623,9 @@ export class BudgetItemsContainer {
           budgetYear: budget.year,
           payDayOfMonth: this.#userSettings.payDayOfMonth(),
         },
+        (update) => this.store.updateTransaction(transaction.id, update),
       );
-    if (editResult) {
-      await this.handleUpdateTransaction(editResult.id, editResult.update);
-    }
-  }
-
-  protected async handleUpdateTransaction(
-    id: string,
-    update: TransactionUpdate,
-  ): Promise<void> {
-    const error = await this.store.updateTransaction(id, update);
-    if (error) {
-      openMutationErrorSnackbar(error, this.#snackBar, this.#transloco);
-      return;
-    }
+    if (!updated) return;
     this.#snackBar.open(
       this.#transloco.translate('budget.modificationSaved'),
       this.#transloco.translate('common.close'),

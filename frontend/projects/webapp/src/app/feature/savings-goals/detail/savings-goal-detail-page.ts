@@ -237,7 +237,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                   <span class="text-body-small text-on-surface-variant">
                     {{ 'savingsGoals.detail.target' | transloco }} :
                     <span class="ph-no-capture tabular-nums">{{
-                      g.targetAmount | appCurrency: currency() : '1.2-2'
+                      g.targetAmount | appCurrency: currency() : '1.0-0'
                     }}</span>
                   </span>
                 </div>

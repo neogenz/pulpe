@@ -279,7 +279,7 @@ describe('GoalDeletionDialog', () => {
       expect(rows[0].nativeElement.textContent).toContain('-800.00 CHF');
       expect(
         query('goal-deletion-withdrawals-total').nativeElement.textContent,
-      ).toContain('-1’300.00 CHF');
+      ).toContain('-1’300 CHF');
       expect(
         query('goal-deletion-withdrawals').nativeElement.textContent,
       ).toContain('restent dans leurs budgets');
@@ -310,6 +310,52 @@ describe('GoalDeletionDialog', () => {
       expect(name.nativeElement.textContent).toContain(LONG_NAME);
       expect(name.nativeElement.className).not.toContain('truncate');
     });
+
+    it('hides the empty-state sentence when only withdrawals are linked', async () => {
+      impact = {
+        ...impact,
+        templateLines: [],
+        budgets: [],
+        summary: {
+          ...impact.summary,
+          templateLineCount: 0,
+          templateLineTotal: 0,
+          budgetCount: 0,
+          budgetLineCount: 0,
+          budgetLineTotal: 0,
+          transactionCount: 0,
+          transactionTotal: 0,
+        },
+      };
+      fetchDeletionImpact.mockResolvedValue(impact);
+
+      await createDialog();
+
+      expect(
+        query('goal-deletion-impact-list').nativeElement.textContent,
+      ).not.toContain("Aucune prévision ni transaction n'est rattachée");
+      expect(query('goal-deletion-withdrawals')).toBeTruthy();
+    });
+
+    it('surfaces withdrawals as their own summary tile, never folded into transactions', async () => {
+      await createDialog();
+
+      const tile = query('goal-deletion-summary-withdrawals');
+      expect(tile.nativeElement.textContent).toContain('2');
+      expect(tile.nativeElement.textContent).toContain('-1’300 CHF');
+      expect(query('goal-deletion-summary').nativeElement.classList).toContain(
+        'grid-cols-2',
+      );
+    });
+  });
+
+  it('omits the withdrawals summary tile when the goal has none', async () => {
+    await createDialog();
+
+    expect(query('goal-deletion-summary-withdrawals')).toBeFalsy();
+    expect(query('goal-deletion-summary').nativeElement.classList).toContain(
+      'grid-cols-3',
+    );
   });
 
   it('shows a retry state without enabling deletion when preview loading fails', async () => {

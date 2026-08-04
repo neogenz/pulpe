@@ -151,4 +151,7 @@ export interface TransactionDecrypted {
   checkedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Origine d'épargne (PUL-329) — lecture seule, jamais éditable. */
+  sourceSavingsGoalId: string | null;
+  sourceSavingsGoalName: string | null;
 }

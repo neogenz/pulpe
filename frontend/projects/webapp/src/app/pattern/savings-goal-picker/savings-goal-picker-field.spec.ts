@@ -338,6 +338,21 @@ describe('SavingsGoalPickerField', () => {
       expect(fixture.componentInstance.isWithdrawalBlocked()).toBe(false);
     });
 
+    // QA repro (2026-08-04): the server reports availableAmount: 112.22999999999999
+    // and withdrawing 112 leaves a 0.22999999999998977 residue. Rounded to '1.0-0'
+    // the preview used to promise "→ 0 CHF", hiding a leftover the user could
+    // never withdraw. '1.0-2' must show the real residue.
+    it('shows the exact leftover instead of rounding it away to 0', async () => {
+      const fixture = await withdrawalPicker(112.22999999999999, 112);
+
+      const preview = fixture.debugElement.query(
+        By.css('[data-testid="savings-goal-withdrawal-preview"]'),
+      );
+
+      expect(preview.nativeElement.textContent).toContain('0.23');
+      expect(preview.nativeElement.textContent).toContain('112.23');
+    });
+
     it('blocks an overshoot the server would refuse', async () => {
       const fixture = await withdrawalPicker(150, 150.01);
       expect(fixture.componentInstance.hasInsufficientBalance()).toBe(true);

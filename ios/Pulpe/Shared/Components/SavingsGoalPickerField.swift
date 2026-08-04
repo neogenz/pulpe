@@ -334,7 +334,7 @@ private struct SavingsGoalWithdrawalPicker: View {
         Menu {
             ForEach(options) { option in
                 savingsGoalPickerButton(
-                    title: "\(option.name) · \(option.availableAmount.asCompactCurrency(option.currency))",
+                    title: "\(option.name) · \(option.availableAmount.asAdaptiveCurrency(option.currency))",
                     isSelected: option.goalId == selection
                 ) {
                     selection = option.goalId
@@ -360,8 +360,8 @@ private struct SavingsGoalWithdrawalPicker: View {
             if let remainingAmount = state.remainingAmount {
                 Text(
                     "\(selectedOption.name) · "
-                        + "\(selectedOption.availableAmount.asCompactCurrency(selectedOption.currency)) → "
-                        + remainingAmount.asCompactCurrency(selectedOption.currency)
+                        + "\(selectedOption.availableAmount.asAdaptiveCurrency(selectedOption.currency)) → "
+                        + remainingAmount.asAdaptiveCurrency(selectedOption.currency)
                 )
                 .font(PulpeTypography.footnote)
                 .foregroundStyle(Color.onSurfaceVariant)

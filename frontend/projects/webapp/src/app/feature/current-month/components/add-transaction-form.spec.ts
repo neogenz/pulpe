@@ -89,6 +89,14 @@ function configureForm({
 describe('AddTransactionForm', () => {
   beforeEach(() => TestBed.resetTestingModule());
 
+  describe('default name (PUL-329 QA fix)', () => {
+    it('should start the name field empty instead of pre-filled with "Dépense"', () => {
+      const { component } = configureForm();
+
+      expect(component['model']().name).toBe('');
+    });
+  });
+
   describe('predefined amounts', () => {
     it('should render the four quick amounts as single-line 44px targets', async () => {
       const { fixture } = configureForm();

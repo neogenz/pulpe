@@ -207,11 +207,25 @@ describe('BudgetDetailsPage — savings-goal deep link', () => {
     expect(openEditAllocatedTransactionDialog).not.toHaveBeenCalled();
   });
 
-  it('persists the edit returned by the dialog', async () => {
-    openEditAllocatedTransactionDialog.mockResolvedValue({
-      id: TRANSACTION_ID,
-      update: { amount: 42 },
-    });
+  // PUL-329 QA fix — the dialog now owns submission (it awaits the store
+  // mutation itself and closes only on success; see
+  // edit-transaction-dialog.spec.ts for that proof). The deep-link caller's
+  // own contract is narrower: hand the dialog a submit closure that reaches
+  // this transaction, and toast success only once the dialog resolves with a
+  // value (i.e. it actually closed).
+  it('persists the edit through the submit closure handed to the dialog', async () => {
+    const update = { amount: 42 };
+    updateTransaction.mockResolvedValue(null);
+    openEditAllocatedTransactionDialog.mockImplementation(
+      async (
+        _tx: unknown,
+        _period: unknown,
+        submit: (u: unknown) => Promise<string | null>,
+      ) => {
+        await submit(update);
+        return update;
+      },
+    );
 
     const page = createPage();
     setTestInput(page.transactionId, TRANSACTION_ID);
@@ -220,17 +234,28 @@ describe('BudgetDetailsPage — savings-goal deep link', () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(updateTransaction).toHaveBeenCalledWith(TRANSACTION_ID, {
-      amount: 42,
-    });
+    expect(updateTransaction).toHaveBeenCalledWith(TRANSACTION_ID, update);
+    expect(TestBed.inject(MatSnackBar).open).toHaveBeenCalledWith(
+      'Modification enregistrée',
+      expect.anything(),
+      expect.objectContaining({ duration: 5000 }),
+    );
   });
 
-  it('surfaces the reason when the server refuses the edit', async () => {
-    openEditAllocatedTransactionDialog.mockResolvedValue({
-      id: TRANSACTION_ID,
-      update: { amount: 42 },
-    });
-    updateTransaction.mockResolvedValue('Solde de l’objectif dépassé');
+  it('shows no toast when the dialog stays open (a refusal never resolves as a close)', async () => {
+    const update = { amount: 42 };
+    updateTransaction.mockResolvedValue('Solde insuffisant');
+    openEditAllocatedTransactionDialog.mockImplementation(
+      async (
+        _tx: unknown,
+        _period: unknown,
+        submit: (u: unknown) => Promise<string | null>,
+      ) => {
+        await submit(update);
+        // A refused mutation keeps the dialog open — it never resolves as a close.
+        return undefined;
+      },
+    );
 
     const page = createPage();
     setTestInput(page.transactionId, TRANSACTION_ID);
@@ -239,12 +264,7 @@ describe('BudgetDetailsPage — savings-goal deep link', () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(TestBed.inject(MatSnackBar).open).toHaveBeenCalledWith(
-      'Solde de l’objectif dépassé',
-      expect.anything(),
-      expect.objectContaining({
-        panelClass: ['bg-error-container', 'text-on-error-container'],
-      }),
-    );
+    expect(updateTransaction).toHaveBeenCalledWith(TRANSACTION_ID, update);
+    expect(TestBed.inject(MatSnackBar).open).not.toHaveBeenCalled();
   });
 });

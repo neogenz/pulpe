@@ -441,13 +441,6 @@ describe('BudgetItemsContainer — a refused gesture speaks for itself', () => {
     isCheckOutcome?: boolean;
   }[] = [
     {
-      name: 'editing a transaction',
-      mutation: () => mockStore.updateTransaction,
-      arrange: () => undefined,
-      act: () => component['handleUpdateTransaction'](TX_ID, { amount: 42 }),
-      confirmation: 'Modification enregistrée',
-    },
-    {
       name: 'deleting a transaction',
       mutation: () => mockStore.deleteTransaction,
       arrange: () => mockDialogService.confirmDelete.mockResolvedValue(true),
@@ -588,6 +581,87 @@ describe('BudgetItemsContainer — a refused gesture speaks for itself', () => {
       );
     },
   );
+});
+
+// PUL-329 QA fix — editing a transaction no longer drives a toast off a
+// direct store call: the dialog itself owns submission (see
+// edit-transaction-dialog.spec.ts for the "stays open on refusal" proof).
+// The container's own contract is narrower: hand the dialog a submit closure
+// that reaches the right transaction, and toast success only once the dialog
+// service call actually resolves with a value (i.e. the dialog closed).
+describe('BudgetItemsContainer — editing a transaction (PUL-329)', () => {
+  const TX_ID = '88888888-8888-4888-8888-888888888888';
+
+  let mockStore: MockStore;
+  let mockDialogService: MockDialogService;
+  let mockSnackBar: { open: ReturnType<typeof vi.fn> };
+  let component: BudgetItemsContainer;
+
+  beforeEach(() => {
+    mockStore = createMockStore();
+    mockDialogService = createMockDialogService();
+    mockSnackBar = { open: vi.fn() };
+    mockStore.budgetDetails.set({ id: 'budget-1', month: 1, year: 2026 });
+    component = setupComponent(
+      mockStore,
+      mockDialogService,
+      mockSnackBar,
+    ).componentInstance;
+  });
+
+  it('supplies a submit closure that routes straight to this transaction’s mutation', async () => {
+    const transaction = createMockTransaction({ id: TX_ID });
+    const update = { amount: 42 } as TransactionUpdate;
+    mockStore.updateTransaction.mockResolvedValue(null);
+    mockDialogService.openEditAllocatedTransactionDialog.mockImplementation(
+      async (
+        _tx: unknown,
+        _period: unknown,
+        submit: (u: TransactionUpdate) => Promise<string | null>,
+      ) => submit(update).then(() => update),
+    );
+
+    await component['handleEditAllocatedTransaction'](transaction);
+
+    expect(mockStore.updateTransaction).toHaveBeenCalledWith(TX_ID, update);
+  });
+
+  it('toasts success only once the dialog actually closes', async () => {
+    const transaction = createMockTransaction({ id: TX_ID });
+    mockDialogService.openEditAllocatedTransactionDialog.mockResolvedValue({
+      amount: 42,
+    });
+
+    await component['handleEditAllocatedTransaction'](transaction);
+
+    expect(mockSnackBar.open).toHaveBeenCalledWith(
+      'Modification enregistrée',
+      'Fermer',
+      expect.objectContaining({ duration: 5000 }),
+    );
+  });
+
+  it('shows no toast when the dialog stays open (a 422 refusal never resolves as a close)', async () => {
+    const transaction = createMockTransaction({ id: TX_ID });
+    const update = { amount: 42 } as TransactionUpdate;
+    mockStore.updateTransaction.mockResolvedValue('Solde insuffisant');
+    mockDialogService.openEditAllocatedTransactionDialog.mockImplementation(
+      async (
+        _tx: unknown,
+        _period: unknown,
+        submit: (u: TransactionUpdate) => Promise<string | null>,
+      ) => {
+        await submit(update);
+        // A refused mutation keeps the dialog open — it never resolves as a close.
+        return undefined;
+      },
+    );
+
+    await component['handleEditAllocatedTransaction'](transaction);
+
+    expect(mockStore.updateTransaction).toHaveBeenCalledWith(TX_ID, update);
+    expect(mockSnackBar.open).not.toHaveBeenCalled();
+  });
 });
 
 describe('BudgetItemsContainer — a skipped check stays silent', () => {
@@ -828,10 +902,18 @@ describe('BudgetItemsContainer — PATCH transaction body contract', () => {
       transactionDate: '2026-05-06T00:00:00.000Z',
       tagIds: [],
     };
-    mockDialogService.openEditAllocatedTransactionDialog.mockResolvedValue({
-      id: transaction.id,
-      update,
-    });
+    // Simulates the real dialog: it calls the submit closure the container
+    // handed it (3rd arg) and only "closes" (resolves) once that succeeds.
+    mockDialogService.openEditAllocatedTransactionDialog.mockImplementation(
+      async (
+        _tx: unknown,
+        _period: unknown,
+        submit: (u: TransactionUpdate) => Promise<string | null>,
+      ) => {
+        const error = await submit(update);
+        return error ? undefined : update;
+      },
+    );
 
     const editPromise =
       component['handleEditAllocatedTransaction'](transaction);

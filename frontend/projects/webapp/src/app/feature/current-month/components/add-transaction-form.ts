@@ -14,7 +14,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { TranslocoPipe } from '@jsverse/transloco';
 
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
 import { TagPicker } from '@app/pattern/tag-picker/tag-picker';
@@ -211,7 +211,6 @@ interface AddTransactionModel {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AddTransactionForm {
-  readonly #transloco = inject(TranslocoService);
   readonly #userSettings = inject(UserSettingsStore);
   readonly #converter = inject(CurrencyConverterService);
   readonly #logger = inject(Logger);
@@ -226,7 +225,7 @@ export class AddTransactionForm {
   protected readonly conversionError = signal(false);
 
   protected readonly model = signal<AddTransactionModel>({
-    name: this.#transloco.translate('currentMonth.addTransactionDefaultName'),
+    name: '',
     money: createAmountSlice({
       initialCurrency: this.#userSettings.currency(),
     }),

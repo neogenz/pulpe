@@ -112,6 +112,32 @@ struct DecimalCurrencyFormattingTests {
         #expect(!formatted.contains("CHF"), "asAmount should not include currency, got: \(formatted)")
     }
 
+    // MARK: - asAdaptiveCurrency — flexible 0–2 decimals (PUL-329)
+    //
+    // The withdrawal picker's balance must match the webapp's '1.0-2': no forced
+    // decimals on a round value, up to 2 when the value carries a residue.
+
+    @Test func asAdaptiveCurrency_roundBalanceOmitsDecimals() {
+        let formatted = Decimal(5500).asAdaptiveCurrency(.chf)
+        #expect(
+            !formatted.contains(".") && !formatted.contains(","),
+            "Expected no decimals on a round balance, got: \(formatted)"
+        )
+        #expect(containsSwissGroupingSeparator(formatted), "Expected Swiss apostrophe grouping, got: \(formatted)")
+        #expect(formatted.hasSuffix("CHF"), "Expected CHF after amount, got: \(formatted)")
+    }
+
+    @Test func asAdaptiveCurrency_residueKeepsTwoDecimals() {
+        guard let value = Decimal(string: "112.22999999999999") else {
+            Issue.record("Failed to create Decimal from valid string")
+            return
+        }
+        let formatted = value.asAdaptiveCurrency(.chf)
+        #expect(formatted.contains("112.23") || formatted.contains("112,23"),
+                "Expected the residue rounded to 2 decimals, got: \(formatted)")
+        #expect(formatted.hasSuffix("CHF"), "Expected CHF after amount, got: \(formatted)")
+    }
+
     // MARK: - asSignedAmount (no currency code)
 
     @Test func asSignedAmount_doesNotContainCHF() {

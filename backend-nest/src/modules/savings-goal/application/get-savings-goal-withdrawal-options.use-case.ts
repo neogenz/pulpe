@@ -1,5 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { computeSavingsGoalProgress } from 'pulpe-shared';
+import {
+  computeSavingsGoalProgress,
+  WITHDRAWAL_BALANCE_TOLERANCE,
+} from 'pulpe-shared';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import {
   USER_REPOSITORY,
@@ -48,7 +51,7 @@ export class GetSavingsGoalWithdrawalOptionsUseCase {
         availableAmount: this.confirmedBalance(entry, user),
         currency: settings.currency,
       }))
-      .filter((option) => option.availableAmount > 0)
+      .filter((option) => option.availableAmount > WITHDRAWAL_BALANCE_TOLERANCE)
       .sort((a, b) => b.availableAmount - a.availableAmount);
   }
 

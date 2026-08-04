@@ -3,7 +3,7 @@ import { Buffer } from 'node:buffer';
 import { SupabaseBudgetRepository } from './supabase-budget.repository';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
-import type { BudgetLineRow } from '../../domain/budget.entity';
+import type { BudgetLineRow, TransactionRow } from '../../domain/budget.entity';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import type { AuthenticatedSupabaseProvider } from '@modules/supabase/authenticated-supabase.provider';
 import type { EncryptionPort } from '@modules/encryption/encryption.tokens';
@@ -686,5 +686,85 @@ describe('SupabaseBudgetRepository toBudgetLineDecrypted', () => {
     const result = await repo.fetchBudgetData('budget-1');
 
     expect(result.budgetLines[0].spreadGroupId).toBeNull();
+  });
+});
+
+describe('SupabaseBudgetRepository toTransactionDecrypted (PUL-329)', () => {
+  const transactionRow: TransactionRow = {
+    id: 'tx-1',
+    budget_id: 'budget-1',
+    budget_line_id: null,
+    name: 'Salaire',
+    amount: 'encrypted-3000',
+    kind: 'income',
+    transaction_date: '2026-01-05',
+    checked_at: null,
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
+    original_amount: null,
+    original_currency: null,
+    target_currency: null,
+    exchange_rate: null,
+    source_savings_goal_id: 'goal-1',
+    source_savings_goal_name: 'Vacances',
+  };
+
+  function fetchBudgetDataTransactionProvider(
+    txRow: TransactionRow,
+  ): AuthenticatedSupabaseProvider {
+    return createMockProvider((table: string) => {
+      if (table === 'monthly_budget') {
+        return {
+          select: () => ({
+            eq: () => ({
+              single: jest
+                .fn()
+                .mockResolvedValue({ data: budgetRow, error: null }),
+            }),
+          }),
+        };
+      }
+      if (table === 'budget_line') {
+        return {
+          select: () => ({
+            eq: () => ({
+              order: jest.fn().mockResolvedValue({ data: [], error: null }),
+            }),
+          }),
+        };
+      }
+      // transaction
+      return {
+        select: () => ({
+          eq: () => ({
+            order: jest.fn().mockResolvedValue({ data: [txRow], error: null }),
+          }),
+        }),
+      };
+    });
+  }
+
+  it('carries source_savings_goal_id/name from a select(*) row into the decrypted entity, not null', async () => {
+    const provider = fetchBudgetDataTransactionProvider(transactionRow);
+    const repo = new SupabaseBudgetRepository(provider, createMockEncryption());
+
+    const result = await repo.fetchBudgetData('budget-1');
+
+    expect(result.transactions[0].sourceSavingsGoalId).toBe('goal-1');
+    expect(result.transactions[0].sourceSavingsGoalName).toBe('Vacances');
+  });
+
+  it('maps null source_savings_goal_id/name to null for an ordinary transaction', async () => {
+    const provider = fetchBudgetDataTransactionProvider({
+      ...transactionRow,
+      source_savings_goal_id: null,
+      source_savings_goal_name: null,
+    });
+    const repo = new SupabaseBudgetRepository(provider, createMockEncryption());
+
+    const result = await repo.fetchBudgetData('budget-1');
+
+    expect(result.transactions[0].sourceSavingsGoalId).toBeNull();
+    expect(result.transactions[0].sourceSavingsGoalName).toBeNull();
   });
 });

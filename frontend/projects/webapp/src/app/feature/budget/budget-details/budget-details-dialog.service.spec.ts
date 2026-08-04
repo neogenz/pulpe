@@ -23,6 +23,7 @@ describe('BudgetDetailsDialogService', () => {
       tagIds: ['33333333-3333-4333-8333-333333333333'],
     };
     const open = vi.fn().mockReturnValue({ afterClosed: () => of(update) });
+    const submit = vi.fn().mockResolvedValue(null);
 
     TestBed.configureTestingModule({
       providers: [
@@ -35,11 +36,15 @@ describe('BudgetDetailsDialogService', () => {
 
     const result = await TestBed.inject(
       BudgetDetailsDialogService,
-    ).openEditAllocatedTransactionDialog(transaction, {
-      budgetMonth: 7,
-      budgetYear: 2026,
-      payDayOfMonth: 1,
-    });
+    ).openEditAllocatedTransactionDialog(
+      transaction,
+      {
+        budgetMonth: 7,
+        budgetYear: 2026,
+        payDayOfMonth: 1,
+      },
+      submit,
+    );
 
     expect(open).toHaveBeenCalledWith(
       EditTransactionDialog,
@@ -47,9 +52,10 @@ describe('BudgetDetailsDialogService', () => {
         data: expect.objectContaining({
           transaction,
           hiddenFields: ['kind'],
+          submit,
         }),
       }),
     );
-    expect(result).toEqual({ id: transaction.id, update });
+    expect(result).toEqual(update);
   });
 });

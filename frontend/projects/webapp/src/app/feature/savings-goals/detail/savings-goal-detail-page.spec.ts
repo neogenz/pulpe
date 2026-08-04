@@ -540,6 +540,22 @@ describe('SavingsGoalDetailPage', () => {
     expect(stat.nativeElement.textContent).toContain('5');
   });
 
+  it('formats the target and the initial amount without decimals, apostrophe-grouped (PUL-329)', () => {
+    goalSig.set(makeGoal({ targetAmount: 12_345.6 }));
+    progressSig.set(
+      makeProgress({
+        targetAmount: 12_345.6,
+        initialAmount: 5000.6,
+        achievementPercent: 30,
+      }),
+    );
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('12’346 CHF');
+    const stat = query('stat-initial-amount');
+    expect(stat.nativeElement.textContent).toContain('5’001 CHF');
+  });
+
   it('shows the D1 overdue block + postpone CTA when isOverdue', () => {
     progressSig.set(
       makeProgress({ isOverdue: true, monthsRemaining: -1, required: null }),
