@@ -171,9 +171,13 @@ export class UserThrottlerGuard extends ThrottlerGuard {
    * getTracker() is called before rate limit checks and supports async resolution.
    *
    * Performance Note:
-   * NestJS ThrottlerGuard calls getTracker() once per non-skipped throttler
-   * context. A regular request goes through `default` + `public`, so this method
-   * is called twice. Request-scoped caching keeps user resolution to one call.
+   * getTracker() runs once per throttler bucket that actually reaches
+   * `super.handleRequest` — a bucket dropped by `skipIf` never gets there.
+   * An authenticated request therefore only reaches it through `default`,
+   * since handleRequest above answers `public` without delegating; an
+   * unauthenticated one reaches it through both, and demo routes add their
+   * own buckets on top. Request-scoped caching keeps user resolution to a
+   * single Supabase call whatever that count turns out to be.
    *
    * Logic:
    * 1. Check request cache for previously resolved user
