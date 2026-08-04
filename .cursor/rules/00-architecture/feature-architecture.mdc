@@ -8,17 +8,17 @@ alwaysApply: false
 
 ## Services in Features
 
-### NEVER use `providedIn: 'root'`
+### NEVER auto-provide a feature service
 
-Feature services must be scoped to the feature, not the root injector.
+Feature services must be scoped to the feature, not the root injector. `@Service()` provisions at the root injector by default, so a feature service has to opt out.
 
 ```typescript
 // WRONG - Leaks to root, breaks isolation
-@Injectable({ providedIn: 'root' })
+@Service()
 export class MyFeatureStore { }
 
-// CORRECT - Scoped to feature
-@Injectable()
+// CORRECT - Scoped to feature, provided by its route
+@Service({ autoProvided: false })
 export class MyFeatureStore { }
 ```
 
@@ -42,7 +42,7 @@ export const featureRoutes: Routes = [
 
 ### Why This Matters
 
-| `providedIn: 'root'` | Route-level providers |
+| `@Service()` (auto-provided) | Route-level providers |
 |----------------------|----------------------|
 | Service in initial bundle | Service in lazy bundle |
 | Available globally | Scoped to feature |
@@ -57,6 +57,6 @@ export const featureRoutes: Routes = [
 
 ## Checklist Before Creating Feature Service
 
-- [ ] Is it used ONLY in this feature? Keep in feature with `@Injectable()`
+- [ ] Is it used ONLY in this feature? Keep in feature with `@Service({ autoProvided: false })`
 - [ ] Is it used by 2+ features? Move to `core/<domain>/`
 - [ ] Is it needed at app start? Move to `core/`

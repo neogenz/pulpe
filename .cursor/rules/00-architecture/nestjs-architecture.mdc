@@ -1,5 +1,5 @@
 ---
-description: "NestJS backend module architecture, layered patterns, and dependency flow"
+description: "NestJS backend module architecture, 3-layer Clean Architecture, dependency rule, and port patterns"
 globs: "backend-nest/src/**/*.ts"
 alwaysApply: false
 ---
