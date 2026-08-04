@@ -504,10 +504,12 @@ jobs:
         env:
           ACTIONLINT_VERSION: "1.7.12"
           ACTIONLINT_SHA256: "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8"
-          # SC2129 propose de fusionner des redirections déjà écrites en blocs
-          # `{ ... } >> "$GITHUB_OUTPUT"` distincts — les regrouper nuirait à la
-          # lecture. Tout le reste de shellcheck reste actif.
-          SHELLCHECK_OPTS: --exclude=SC2129
+          # Plancher de sévérité plutôt qu'une liste de règles tues : shellcheck
+          # n'est pas épinglé, il vient de l'image du runner, et une version plus
+          # récente ajoute des remarques `info` sans que rien n'ait bougé ici —
+          # exclure les règles une à une revient à courir après l'image. `warning`
+          # et au-dessus, là où vivent les vrais défauts de shell, reste actif.
+          SHELLCHECK_OPTS: -S warning
         run: |
           set -euo pipefail
           if [ "$(uname -m)" != "x86_64" ]; then
