@@ -7,271 +7,49 @@ paths:
 
 # Testing with Swift Testing
 
-## Framework
+`PulpeTests/` is Swift Testing end to end — `struct` suites with `@Suite`/`@Test`,
+`#expect()`/`#require()`, inline setup, `@MainActor` on suites testing `@Observable` stores.
+**NEVER** `import XCTest` there.
+
+**Exception — `PulpeUITests/` requires XCTest.** XCUITest (`XCUIApplication`, `XCTestCase`)
+has no Swift Testing equivalent, so every file there is `import XCTest` +
+`final class … : XCTestCase`. Everything below targets `PulpeTests/` only.
+
+Tests mirror the source structure. Shared helpers live in `Helpers/`:
+`TestDataFactory` for model builders, `waitForCondition()` in `AsyncTestHelpers.swift` for
+polling. Test names read `descriptiveName_condition_expectedBehavior`, no `test` prefix.
+
+## `#expect` breaks on `rethrows` higher-order calls
+
+`#expect(...)` emits `error: call can throw, but it is not marked with 'try' and the error is
+not handled` when the asserted expression contains a `rethrows` higher-order call —
+`allSatisfy(\.x)`, `allSatisfy { … }`, `contains(where:)`, `contains { … }`. The macro's
+expansion cannot prove the rethrows is non-throwing, and adding `try` then warns "no throwing
+calls". Extract to a `let` first:
 
 ```swift
-import Foundation
-@testable import Pulpe
-import Testing
+let allPast = items.allSatisfy(\.isPast)
+#expect(allPast)            // NOT #expect(items.allSatisfy(\.isPast))
 ```
 
-**NEVER** use `import XCTest` in `PulpeTests/` — the unit test suite is Swift Testing end to end.
+## `-only-testing:` can select zero tests and still pass
 
-**Exception — `PulpeUITests/` requires XCTest.** XCUITest (`XCUIApplication`, `XCTestCase`) has no Swift Testing equivalent, so every file there is `import XCTest` + `final class … : XCTestCase` (`PulpeUITests/LoginFlowTests.swift`, `ContextualCreationUITests.swift`, `BudgetLineLongPressTests.swift`, …). Everything below in this rule targets `PulpeTests/` only.
+On a Swift Testing suite, a `-only-testing:` filter that matches nothing prints
+`** TEST SUCCEEDED **`. Read the executed count before believing a green run.
 
-## Organization
-
-### File Placement
-
-Tests mirror source structure:
-
-```
-PulpeTests/
-├── Domain/
-│   ├── Store/          # Store logic tests
-│   ├── Models/         # Model tests
-│   ├── Services/       # Service tests
-│   └── Formulas/       # Formula tests
-├── Features/           # ViewModel tests
-├── Shared/             # Extension tests
-└── Helpers/
-    ├── TestDataFactory.swift
-    └── AsyncTestHelpers.swift
-```
-
-### Test Structure
-
-```swift
-@Suite("CurrentMonthStore Tests")
-@MainActor
-struct CurrentMonthStoreTests {
-    @Test func loadBudget_setsDataOnSuccess() async {
-        let mockService = MockBudgetService()
-        mockService.stubbedBudget = TestDataFactory.createBudget()
-        let store = CurrentMonthStore(service: mockService)
-
-        await store.forceRefresh()
-
-        #expect(store.budget != nil)
-        #expect(store.budget?.name == "Janvier 2025")
-    }
-}
-```
-
-Diffs vs XCTest:
-- `struct` (not `final class ... XCTestCase`)
-- `@Suite` + `@Test` decorators
-- `#expect()` + `#require()` (not `XCTAssert*`)
-- No `setUp()` / `tearDown()` — inline setup per test
-- `@MainActor` on suites testing `@Observable` stores
-
-## Core Principles
-
-### Language
-
-Write all test code + descriptions in **English**.
-
-### Arrange-Act-Assert
-
-Split test in three phases (comments optional for short tests):
-
-```swift
-@Test func toggleTransaction_updatesState() async {
-    // Arrange
-    let transaction = TestDataFactory.createTransaction(isChecked: false)
-    let store = makeStore(transactions: [transaction])
-
-    // Act
-    await store.toggleTransaction(transaction)
-
-    // Assert
-    #expect(store.transactions.first?.isChecked == true)
-}
-```
-
-### Naming Convention
-
-Use `descriptiveName_condition_expectedBehavior` format (no `test` prefix — `@Test` handle discovery):
-
-```swift
-// Good
-@Test func defaultFilter_showsOnlyUncheckedItems() { }
-@Test func getNextAvailableMonth_withNoBudgets_returnsCurrentMonth() { }
-@Test func daysRemainingLogic_calculatesCorrectly() { }
-
-// Bad
-@Test func stuff() { }
-@Test func test1() { }
-@Test func budget() { }
-```
-
-### Parameterized Tests
-
-Use `arguments:` for many inputs:
-
-```swift
-@Test("Valid emails are recognized", arguments: [
-    "user@example.com",
-    "user.name+tag@domain.co",
-    "a@b.cd",
-])
-func isEmailValid_validEmails(email: String) {
-    let sut = LoginViewModel()
-    sut.email = email
-    #expect(sut.isEmailValid, "Expected \(email) to be valid")
-}
-```
-
-## Assertions
-
-| Swift Testing | XCTest equivalent |
-|---|---|
-| `#expect(condition)` | `XCTAssertTrue(condition)` |
-| `#expect(!condition)` | `XCTAssertFalse(condition)` |
-| `#expect(a == b)` | `XCTAssertEqual(a, b)` |
-| `#expect(a != nil)` | `XCTAssertNotNil(a)` |
-| `let val = try #require(optional)` | `let val = try XCTUnwrap(optional)` |
-| `#expect(throws: SomeError.self) { try foo() }` | `XCTAssertThrowsError(try foo())` |
-
-## Test Data Factory
-
-Use shared factory for mock data:
-
-```swift
-enum TestDataFactory {
-    static func createBudget(
-        id: String = UUID().uuidString,
-        name: String = "Test Budget",
-        lines: [BudgetLine] = []
-    ) -> Budget {
-        Budget(id: id, name: name, startDate: .now, endDate: .now, budgetLines: lines)
-    }
-
-    static func createTransaction(
-        id: String = UUID().uuidString,
-        amount: Decimal = 42.0,
-        isChecked: Bool = false
-    ) -> Transaction {
-        Transaction(id: id, amount: amount, isChecked: isChecked, date: .now)
-    }
-}
-```
-
-- Default params for flexibility
-- Mirror real model structure
-- Keep in `Helpers/TestDataFactory.swift`
-
-## Mocking Services
-
-```swift
-// Mock actor for testing
-actor MockBudgetService: BudgetServiceProtocol {
-    var stubbedBudget: Budget?
-    var stubbedError: Error?
-    var fetchCallCount = 0
-
-    func getCurrentMonthBudget() async throws -> Budget? {
-        fetchCallCount += 1
-        if let error = stubbedError { throw error }
-        return stubbedBudget
-    }
-}
-```
-
-- Protocol-based mocking (define protocols for services)
-- Track call counts for verification
-- Stub return values + errors
-
-## Async Testing
-
-```swift
-@Test func loadData_setsLoadingState() async {
-    let mockService = MockBudgetService()
-    mockService.stubbedBudget = TestDataFactory.createBudget()
-    let store = CurrentMonthStore(service: mockService)
-
-    await store.forceRefresh()
-
-    #expect(!store.isLoading)
-    #expect(store.budget != nil)
-}
-```
-
-- Use `async` test methods direct
-- Use `waitForCondition()` helper from `AsyncTestHelpers.swift` for polling
-- Test loading states, success, error paths
-
-## Formula Testing (Pure Functions)
-
-```swift
-struct BudgetFormulasTests {
-    @Test func calculateAvailable_subtractsExpenses() {
-        let income: Decimal = 3000
-        let expenses: Decimal = 1500
-        let savings: Decimal = 500
-
-        let available = BudgetFormulas.calculateAvailable(
-            income: income,
-            expenses: expenses,
-            savings: savings
-        )
-
-        #expect(available == 1000)
-    }
-}
-```
-
-- Pure function tests: no setup
-- Test edge cases: zero, negative, overflow
-- Test boundary conditions
-
-## Swift 6 Concurrency in Tests
-
-### Captured Variables in Closures
-
-Swift 6 forbid mutating captured `var` in `@Sendable` closures. In tests where closures run sequential on `@MainActor`, use `nonisolated(unsafe)`:
-
-```swift
-@Test func submit_callsService() async {
-    nonisolated(unsafe) var callCount = 0
-    let vm = ViewModel(dependencies: .init(
-        fetch: { callCount += 1 }
-    ))
-
-    await vm.submit()
-    #expect(callCount == 1)
-}
-```
-
-### Concurrent Task Testing
-
-`TaskGroup.addTask` need `sending` closures — incompatible with `@MainActor` state. Use `Task.init` (inherit caller isolation):
-
-```swift
-// Good — Task.init inherits @MainActor from the test struct
-let tasks = (0..<5).map { _ in Task { await store.forceRefresh() } }
-for task in tasks { await task.value }
-
-// Bad — Swift 6 error with TaskGroup
-await withTaskGroup(of: Void.self) { group in
-    group.addTask { @MainActor in await store.forceRefresh() }  // ❌ sending constraint
-}
-```
+Swift 6 concurrency in tests — `nonisolated(unsafe)` for captured `var`, `Task.init` instead
+of `TaskGroup.addTask` — is in `swift.md`, which loads on the same files.
 
 ## Anti-Patterns
 
 | Don't | Do |
 |-------|-----|
 | `import XCTest` in `PulpeTests/` | `import Testing` (`PulpeUITests/` stays on XCTest) |
-| `final class ... XCTestCase` in `PulpeTests/` | `struct` with `@Suite` |
-| `XCTAssert*` | `#expect()` / `#require()` |
+| `final class … XCTestCase` in `PulpeTests/` | `struct` with `@Suite` |
 | `setUp()` / `tearDown()` | Inline setup per test |
-| `func testName()` | `@Test func name()` |
-| Test implementation details | Test behavior + outcomes |
-| Share mutable state between tests | Fresh instance per test |
-| Force unwrap in tests | Use `try #require()` |
-| Inline magic values | Use `TestDataFactory` |
-| Test private methods direct | Test via public API |
-| `XCTestExpectation` for async | Use `async` test methods |
-| `var x = 0` captured in closure | `nonisolated(unsafe) var x = 0` |
-| `TaskGroup.addTask { @MainActor in }` | `Task { await ... }` (inherits isolation) |
+| `#expect(items.allSatisfy(...))` | Extract to a `let`, assert the plain bool |
+| Force unwrap in tests | `try #require()` |
+| Inline magic values | `TestDataFactory` |
+| Testing private methods directly | Test via the public API |
+| `XCTestExpectation` for async | `async` test methods |
+| Sharing mutable state between tests | Fresh instance per test |
