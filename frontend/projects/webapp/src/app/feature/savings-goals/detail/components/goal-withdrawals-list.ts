@@ -74,7 +74,6 @@ import { getDateDisplayFormats } from '@core/date/date-display-formats';
               <a
                 class="flex items-center gap-3 rounded-xl bg-surface-container-low p-4 no-underline text-on-surface hover:bg-surface-container"
                 [routerLink]="['/budget', w.budgetId]"
-                [queryParams]="{ transactionId: w.transactionId }"
                 [attr.aria-label]="
                   'savingsGoals.detail.withdrawalOpenAria'
                     | transloco: { name: w.name }

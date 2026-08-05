@@ -282,13 +282,20 @@ test.describe('Savings goal as the source of an income', () => {
     await savingsGoalsPage.expectWithdrawalCount(1);
     await expect(savingsGoalsPage.withdrawalRows()).toContainText(/4.500\.00/);
 
+    // Une seule transition : le retrait ouvre son budget, jamais un éditeur
+    // poussé après attente. L'URL ne porte donc plus de transaction ciblée.
     await savingsGoalsPage.openWithdrawal(INCOME_NAME);
-    await expect(budgetDetailsPage.transactionDialogSourceLink()).toBeVisible();
+    await budgetDetailsPage.expectPageLoaded();
+    await expect(authenticatedPage).toHaveURL(
+      new RegExp(`/budget/${CURRENT_BUDGET.id}$`),
+    );
+    await expect(budgetDetailsPage.transactionDialogSourceLink()).toBeHidden();
+    await expect(budgetDetailsPage.transactionSource(INCOME_ID)).toContainText(
+      `Pris sur · ${GOAL_NAME}`,
+    );
 
     await authenticatedPage.goBack();
     await savingsGoalsPage.expectDetailLoaded();
-    // The consumed query param must not reopen the transaction on the way back.
-    await expect(budgetDetailsPage.transactionDialogSourceLink()).toBeHidden();
   });
 
   test('editing and deleting the income keep the balance equation', async ({
@@ -298,10 +305,7 @@ test.describe('Savings goal as the source of an income', () => {
   }) => {
     await installGoalWorld(authenticatedPage, withdrawnWorld());
 
-    await budgetDetailsPage.gotoTargetedTransaction(
-      CURRENT_BUDGET.id,
-      INCOME_ID,
-    );
+    await budgetDetailsPage.openTransactionEditor(CURRENT_BUDGET.id, INCOME_ID);
     const amountInput = authenticatedPage.getByTestId('amount-input-value');
     await amountInput.fill('3500');
     const patched = waitForTransactionWrite(authenticatedPage, 'PATCH');
@@ -405,10 +409,7 @@ test.describe('Savings goal as the source of an income', () => {
     );
     await expect(source.locator('a')).toHaveCount(0);
 
-    await budgetDetailsPage.gotoTargetedTransaction(
-      CURRENT_BUDGET.id,
-      INCOME_ID,
-    );
+    await budgetDetailsPage.openTransactionEditor(CURRENT_BUDGET.id, INCOME_ID);
     await expect(
       budgetDetailsPage.transactionDialogSourceBroken(),
     ).toBeVisible();

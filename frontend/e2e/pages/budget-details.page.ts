@@ -3,26 +3,14 @@ import { type Locator, type Page, expect } from '@playwright/test';
 export class BudgetDetailsPage {
   constructor(private readonly page: Page) {}
 
-  /**
-   * PUL-329 — the deep link a goal's « Retraits » row points at. The query param
-   * is consumed once and wiped by `replaceUrl`, so the opened dialog is the
-   * proof, never the URL.
-   */
-  async gotoTargetedTransaction(
+  /** Opens a transaction's editor the way a user does: its row menu, then Modifier. */
+  async openTransactionEditor(
     budgetId: string,
     transactionId: string,
   ): Promise<void> {
-    await Promise.all([
-      this.page.waitForResponse(
-        (resp) =>
-          resp.url().includes('/api/v1/budgets/') &&
-          resp.url().includes('/details'),
-      ),
-      this.page.goto(`/budget/${budgetId}?transactionId=${transactionId}`, {
-        waitUntil: 'domcontentloaded',
-      }),
-    ]);
-    await this.expectPageLoaded();
+    await this.goto(budgetId);
+    await this.page.getByTestId(`tx-menu-${transactionId}`).click();
+    await this.page.getByTestId(`edit-tx-${transactionId}`).click();
   }
 
   /**

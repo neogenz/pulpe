@@ -59,7 +59,7 @@ describe('GoalWithdrawalsList', () => {
     expect(row.nativeElement.className).not.toContain('error');
   });
 
-  it('keeps the server order and opens the targeted transaction in its budget', () => {
+  it('keeps the server order and links to the budget, never to a targeted transaction', () => {
     setTestInput(component.withdrawals, [
       withdrawal({ name: 'Le plus récent' }),
       withdrawal({
@@ -75,7 +75,7 @@ describe('GoalWithdrawalsList', () => {
     );
     expect(rows[0].nativeElement.textContent).toContain('Le plus récent');
     expect(rows[0].nativeElement.getAttribute('href')).toBe(
-      `/budget/${BUDGET_ID}?transactionId=${TRANSACTION_ID}`,
+      `/budget/${BUDGET_ID}`,
     );
     expect(rows[0].attributes['aria-label']).toContain('Le plus récent');
   });
