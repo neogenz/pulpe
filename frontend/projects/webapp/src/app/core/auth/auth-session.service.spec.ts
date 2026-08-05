@@ -681,7 +681,7 @@ describe('AuthSessionService', () => {
     await service.signOut('user_initiated');
 
     expect(mockLogger.error).toHaveBeenCalledWith(
-      'Erreur inattendue lors de la déconnexion:',
+      'Erreur inattendue lors du tracking de déconnexion:',
       error,
     );
     expect(mockSupabaseClient.auth.signOut).toHaveBeenCalledWith({
@@ -690,6 +690,13 @@ describe('AuthSessionService', () => {
     expect(mockAuthStore.set).toHaveBeenCalledWith({
       phase: 'unauthenticated',
     });
+    expect(mockCleanup.performCleanup).toHaveBeenCalled();
+  });
+
+  it('should not track logout without an initialized Supabase client', async () => {
+    await service.signOut('user_initiated');
+
+    expect(mockPostHog.captureEvent).not.toHaveBeenCalled();
     expect(mockCleanup.performCleanup).toHaveBeenCalled();
   });
 
@@ -724,6 +731,7 @@ describe('AuthSessionService', () => {
       phase: 'unauthenticated',
     });
     expect(mockSupabaseClient.auth.signOut).not.toHaveBeenCalled();
+    expect(mockPostHog.captureEvent).not.toHaveBeenCalled();
     expect(mockCleanup.performCleanup).toHaveBeenCalled();
   });
 

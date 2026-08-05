@@ -204,17 +204,6 @@ export class AuthSessionService {
 
   async #performSignOut(source: SignOutSource): Promise<void> {
     try {
-      try {
-        this.#postHog.captureEvent(ANALYTICS_EVENTS.LOGOUT_COMPLETED, {
-          source,
-        });
-      } catch (trackingError) {
-        this.#logger.error(
-          'Erreur inattendue lors de la déconnexion:',
-          trackingError,
-        );
-      }
-
       if (isE2EMode()) {
         this.#logger.debug('🎭 Mode test E2E: Simulation du logout');
         return;
@@ -222,6 +211,17 @@ export class AuthSessionService {
 
       if (!this.#supabaseClient) {
         return;
+      }
+
+      try {
+        this.#postHog.captureEvent(ANALYTICS_EVENTS.LOGOUT_COMPLETED, {
+          source,
+        });
+      } catch (trackingError) {
+        this.#logger.error(
+          'Erreur inattendue lors du tracking de déconnexion:',
+          trackingError,
+        );
       }
 
       // Global scope revokes iOS sessions; device-wide revocation is handled server-side by signOutGlobally.
