@@ -1,0 +1,433 @@
+name: iOS Distribution
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Distribution target
+        required: true
+        type: choice
+        options:
+          - internal
+          - release
+      source_sha:
+        description: Exact 40-character commit SHA to archive
+        required: true
+        type: string
+      marketing_version:
+        description: Expected MARKETING_VERSION from ios/project.yml
+        required: true
+        type: string
+      build_number:
+        description: Unused App Store Connect build number
+        required: true
+        type: string
+
+concurrency:
+  group: ios-distribution-${{ inputs.channel }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  checks: read
+
+jobs:
+  distribute:
+    name: Archive & Upload iOS
+    runs-on: macos-26
+    timeout-minutes: 45
+    environment: ios-distribution
+    defaults:
+      run:
+        working-directory: ios
+    env:
+      ASC_KEY_ID: ${{ vars.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ vars.ASC_ISSUER_ID }}
+      APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+      SOURCE_SHA: ${{ inputs.source_sha }}
+      EXPECTED_MARKETING_VERSION: ${{ inputs.marketing_version }}
+      BUILD_NUMBER: ${{ inputs.build_number }}
+      CHANNEL: ${{ inputs.channel }}
+
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 1
+
+      - name: Validate source and distribution inputs
+        id: release
+        run: |
+          set -euo pipefail
+
+          case "$CHANNEL" in
+            internal)
+              expected_branch="preview"
+              scheme="PulpePreview"
+              configuration="Preview"
+              ;;
+            release)
+              expected_branch="main"
+              scheme="PulpeProd"
+              configuration="Prod"
+              ;;
+            *)
+              echo "::error::Unsupported distribution channel: $CHANNEL"
+              exit 1
+              ;;
+          esac
+
+          if [ "$GITHUB_REF_NAME" != "$expected_branch" ]; then
+            echo "::error::Channel '$CHANNEL' must be dispatched from '$expected_branch', not '$GITHUB_REF_NAME'"
+            exit 1
+          fi
+          if ! printf '%s' "$SOURCE_SHA" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "::error::source_sha must be a full lowercase 40-character SHA"
+            exit 1
+          fi
+          if ! printf '%s' "$EXPECTED_MARKETING_VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::marketing_version must use X.Y.Z"
+            exit 1
+          fi
+          if ! printf '%s' "$BUILD_NUMBER" | grep -Eq '^[1-9][0-9]*$'; then
+            echo "::error::build_number must be a positive integer"
+            exit 1
+          fi
+          if ! printf '%s' "$ASC_KEY_ID" | grep -Eq '^[A-Z0-9]{10}$'; then
+            echo "::error::ASC_KEY_ID is missing or invalid"
+            exit 1
+          fi
+          if ! printf '%s' "$ASC_ISSUER_ID" | grep -Eq '^[0-9a-f-]{36}$'; then
+            echo "::error::ASC_ISSUER_ID is missing or invalid"
+            exit 1
+          fi
+          if ! printf '%s' "$APPLE_TEAM_ID" | grep -Eq '^[A-Z0-9]{10}$'; then
+            echo "::error::APPLE_TEAM_ID is missing or invalid"
+            exit 1
+          fi
+
+          checked_out_sha=$(git rev-parse HEAD)
+          remote_sha=$(git ls-remote origin "refs/heads/$expected_branch" | cut -f1)
+          if [ "$checked_out_sha" != "$SOURCE_SHA" ]; then
+            echo "::error::Checked out $checked_out_sha instead of approved $SOURCE_SHA"
+            exit 1
+          fi
+          if [ "$remote_sha" != "$SOURCE_SHA" ]; then
+            echo "::error::$expected_branch moved: expected $SOURCE_SHA, current $remote_sha"
+            exit 1
+          fi
+
+          actual_marketing_version=$(python3 -c 'import re; text=open("project.yml", encoding="utf-8").read(); match=re.search(r"^\s+MARKETING_VERSION:\s*\"?([^\"\s]+)", text, re.M); print(match.group(1) if match else "")')
+          project_build=$(python3 -c 'import re; text=open("project.yml", encoding="utf-8").read(); match=re.search(r"^\s+CURRENT_PROJECT_VERSION:\s*\"?([^\"\s]+)", text, re.M); print(match.group(1) if match else "")')
+          if [ "$actual_marketing_version" != "$EXPECTED_MARKETING_VERSION" ]; then
+            echo "::error::Marketing version mismatch: expected $EXPECTED_MARKETING_VERSION, source has $actual_marketing_version"
+            exit 1
+          fi
+          if ! printf '%s' "$project_build" | grep -Eq '^[1-9][0-9]*$'; then
+            echo "::error::CURRENT_PROJECT_VERSION is not a positive integer: $project_build"
+            exit 1
+          fi
+          if [ "$CHANNEL" = "release" ] && [ "$project_build" != "$BUILD_NUMBER" ]; then
+            echo "::error::Release build $BUILD_NUMBER is not recorded in project.yml (found $project_build)"
+            exit 1
+          fi
+          if [ "$CHANNEL" = "internal" ] && [ "$BUILD_NUMBER" -le "$project_build" ]; then
+            echo "::error::Internal build $BUILD_NUMBER must be higher than project.yml build $project_build"
+            exit 1
+          fi
+
+          echo "branch=$expected_branch" >> "$GITHUB_OUTPUT"
+          echo "scheme=$scheme" >> "$GITHUB_OUTPUT"
+          echo "configuration=$configuration" >> "$GITHUB_OUTPUT"
+          echo "marketing_version=$actual_marketing_version" >> "$GITHUB_OUTPUT"
+
+      - name: Require successful CI for source SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          checks_file="$RUNNER_TEMP/check-runs.json"
+          gh api --paginate \
+            "repos/$GITHUB_REPOSITORY/commits/$SOURCE_SHA/check-runs?per_page=100" \
+            --jq '.check_runs[]' \
+            > "$checks_file"
+          python3 - "$checks_file" <<'PY'
+          import json
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8") as handle:
+              checks = [json.loads(line) for line in handle if line.strip()]
+
+          required = [
+              check
+              for check in checks
+              if check.get("name") == "✅ CI Success"
+              and check.get("app", {}).get("slug") == "github-actions"
+          ]
+          if not required:
+              raise SystemExit(
+                  "Required GitHub Actions check '✅ CI Success' is missing for the selected SHA"
+              )
+
+          latest = max(required, key=lambda check: int(check.get("id", 0)))
+          if latest.get("status") != "completed" or latest.get("conclusion") != "success":
+              raise SystemExit(
+                  "Latest required check '✅ CI Success' is not green: "
+                  f"{latest.get('status')}/{latest.get('conclusion')}"
+              )
+          print("Required CI check is green for the selected SHA")
+          PY
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
+        with:
+          xcode-version: "26.2"
+
+      - name: Install XcodeGen
+        run: |
+          if command -v xcodegen >/dev/null 2>&1; then
+            xcodegen --version
+          else
+            brew install xcodegen
+          fi
+
+      - name: Cache SPM packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
+            ~/Library/Caches/org.swift.swiftpm
+          key: ios-distribution-spm-${{ hashFiles('ios/project.yml') }}
+          restore-keys: |
+            ios-distribution-spm-
+
+      - name: Import signing credentials
+        env:
+          ASC_PRIVATE_KEY_P8_BASE64: ${{ secrets.ASC_PRIVATE_KEY_P8_BASE64 }}
+          IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
+          IOS_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          umask 077
+          : "${ASC_PRIVATE_KEY_P8_BASE64:?Missing ASC_PRIVATE_KEY_P8_BASE64}"
+          : "${IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64:?Missing IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64}"
+          : "${IOS_DISTRIBUTION_CERTIFICATE_PASSWORD:?Missing IOS_DISTRIBUTION_CERTIFICATE_PASSWORD}"
+
+          keychain_path="$RUNNER_TEMP/ios-distribution.keychain-db"
+          certificate_path="$RUNNER_TEMP/distribution-certificate.p12"
+          asc_key_path="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
+          keychain_password=$(openssl rand -base64 32)
+          echo "KEYCHAIN_PATH=$keychain_path" >> "$GITHUB_ENV"
+          echo "CERTIFICATE_PATH=$certificate_path" >> "$GITHUB_ENV"
+          echo "ASC_KEY_PATH=$asc_key_path" >> "$GITHUB_ENV"
+
+          security list-keychains -d user \
+            | sed -E 's/^[[:space:]]*"(.*)"$/\1/' \
+            > "$RUNNER_TEMP/original-keychains.txt"
+          security create-keychain -p "$keychain_password" "$keychain_path"
+          security set-keychain-settings -lut 21600 "$keychain_path"
+          security unlock-keychain -p "$keychain_password" "$keychain_path"
+
+          set --
+          while IFS= read -r keychain; do
+            set -- "$@" "$keychain"
+          done < "$RUNNER_TEMP/original-keychains.txt"
+          security list-keychains -d user -s "$keychain_path" "$@"
+
+          printf '%s' "$IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64" | base64 -D > "$certificate_path"
+          security import "$certificate_path" \
+            -k "$keychain_path" \
+            -P "$IOS_DISTRIBUTION_CERTIFICATE_PASSWORD" \
+            -A \
+            -t cert \
+            -f pkcs12
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s \
+            -k "$keychain_password" \
+            "$keychain_path"
+          if ! security find-identity -v -p codesigning "$keychain_path" \
+            | grep -q 'Apple Distribution'; then
+            echo "::error::The PKCS#12 does not contain a usable Apple Distribution identity and private key"
+            exit 1
+          fi
+
+          printf '%s' "$ASC_PRIVATE_KEY_P8_BASE64" | base64 -D > "$asc_key_path"
+          chmod 600 "$asc_key_path" "$certificate_path"
+          openssl pkey -in "$asc_key_path" -check -noout
+
+      - name: Generate Xcode project
+        run: xcodegen generate --use-cache
+
+      - name: Archive signed application
+        run: |
+          set -euo pipefail
+          archive_path="$RUNNER_TEMP/Pulpe.xcarchive"
+          xcodebuild archive \
+            -project Pulpe.xcodeproj \
+            -scheme "${{ steps.release.outputs.scheme }}" \
+            -configuration "${{ steps.release.outputs.configuration }}" \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$archive_path" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            ONLY_ACTIVE_ARCH=NO
+          echo "ARCHIVE_PATH=$archive_path" >> "$GITHUB_ENV"
+
+      - name: Export signed IPA
+        run: |
+          set -euo pipefail
+          export_options="$RUNNER_TEMP/ExportOptions.plist"
+          export_path="$RUNNER_TEMP/export"
+          cat > "$export_options" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>destination</key>
+            <string>export</string>
+            <key>manageAppVersionAndBuildNumber</key>
+            <false/>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>signingStyle</key>
+            <string>automatic</string>
+            <key>teamID</key>
+            <string>${APPLE_TEAM_ID}</string>
+            <key>uploadSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          PLIST
+
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportPath "$export_path" \
+            -exportOptionsPlist "$export_options" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+
+          ipa_path=$(find "$export_path" -maxdepth 1 -name '*.ipa' -print -quit)
+          if [ -z "$ipa_path" ]; then
+            echo "::error::No IPA was exported"
+            exit 1
+          fi
+          echo "IPA_PATH=$ipa_path" >> "$GITHUB_ENV"
+
+      - name: Verify exported application identity
+        run: |
+          set -euo pipefail
+          app_plist=$(unzip -Z1 "$IPA_PATH" | grep -E '^Payload/[^/]+\.app/Info\.plist$' | head -1)
+          if [ -z "$app_plist" ]; then
+            echo "::error::Main application Info.plist is missing from the IPA"
+            exit 1
+          fi
+          unzip -p "$IPA_PATH" "$app_plist" > "$RUNNER_TEMP/App-Info.plist"
+          bundle_id=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$RUNNER_TEMP/App-Info.plist")
+          marketing_version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$RUNNER_TEMP/App-Info.plist")
+          exported_build=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$RUNNER_TEMP/App-Info.plist")
+
+          if [ "$bundle_id" != "app.pulpe.ios" ]; then
+            echo "::error::Unexpected bundle identifier: $bundle_id"
+            exit 1
+          fi
+          if [ "$marketing_version" != "$EXPECTED_MARKETING_VERSION" ]; then
+            echo "::error::Exported marketing version is $marketing_version, expected $EXPECTED_MARKETING_VERSION"
+            exit 1
+          fi
+          if [ "$exported_build" != "$BUILD_NUMBER" ]; then
+            echo "::error::Exported build is $exported_build, expected $BUILD_NUMBER"
+            exit 1
+          fi
+
+      - name: Upload to App Store Connect
+        run: |
+          set -euo pipefail
+          upload_options="$RUNNER_TEMP/UploadOptions.plist"
+          upload_path="$RUNNER_TEMP/upload"
+          cat > "$upload_options" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>destination</key>
+            <string>upload</string>
+            <key>manageAppVersionAndBuildNumber</key>
+            <false/>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>signingStyle</key>
+            <string>automatic</string>
+            <key>teamID</key>
+            <string>${APPLE_TEAM_ID}</string>
+            <key>uploadSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          PLIST
+
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportPath "$upload_path" \
+            -exportOptionsPlist "$upload_options" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+
+      - name: Distribution summary
+        env:
+          DISTRIBUTION_BRANCH: ${{ steps.release.outputs.branch }}
+          DISTRIBUTION_MARKETING_VERSION: ${{ steps.release.outputs.marketing_version }}
+          DISTRIBUTION_SCHEME: ${{ steps.release.outputs.scheme }}
+        run: |
+          {
+            echo "### iOS upload accepted"
+            echo ""
+            echo "- Channel: \`$CHANNEL\`"
+            echo "- Source: \`$SOURCE_SHA\`"
+            echo "- Branch: \`$DISTRIBUTION_BRANCH\`"
+            echo "- Marketing version: \`$DISTRIBUTION_MARKETING_VERSION\`"
+            echo "- Build: \`$BUILD_NUMBER\`"
+            echo "- Scheme: \`$DISTRIBUTION_SCHEME\`"
+            echo ""
+            echo "App Store Connect processing and TestFlight/App Store distribution are verified separately by Alfred."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Cleanup signing credentials
+        if: always()
+        run: |
+          set +e
+          keychain_path="${KEYCHAIN_PATH:-$RUNNER_TEMP/ios-distribution.keychain-db}"
+          certificate_path="${CERTIFICATE_PATH:-$RUNNER_TEMP/distribution-certificate.p12}"
+          asc_key_path="${ASC_KEY_PATH:-$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8}"
+          if [ -f "$RUNNER_TEMP/original-keychains.txt" ]; then
+            set --
+            while IFS= read -r keychain; do
+              set -- "$@" "$keychain"
+            done < "$RUNNER_TEMP/original-keychains.txt"
+            if [ "$#" -gt 0 ]; then
+              security list-keychains -d user -s "$@"
+            fi
+          fi
+          security delete-keychain "$keychain_path" 2>/dev/null || true
+          rm -f \
+            "$certificate_path" \
+            "$asc_key_path" \
+            "$RUNNER_TEMP/App-Info.plist" \
+            "$RUNNER_TEMP/check-runs.json" \
+            "$RUNNER_TEMP/original-keychains.txt"
+          rm -rf \
+            "$RUNNER_TEMP/Pulpe.xcarchive" \
+            "$RUNNER_TEMP/export" \
+            "$RUNNER_TEMP/upload" \
+            "$RUNNER_TEMP/ExportOptions.plist" \
+            "$RUNNER_TEMP/UploadOptions.plist"

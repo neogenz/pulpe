@@ -4,7 +4,7 @@
 
 The app is **live on the App Store**. Read the current `MARKETING_VERSION` from `ios/project.yml`; it tracks the iOS app's own SemVer, **independent** from the unified npm product version (`vX.Y.Z`). Do NOT map one onto the other.
 
-- **Build number** (`CURRENT_PROJECT_VERSION`) — increments on **every** release that ships iOS changes. Always.
+- **Build number** (`CURRENT_PROJECT_VERSION`) — must be higher than every build already uploaded for that marketing version. Internal TestFlight builds can advance the App Store Connect counter without modifying `project.yml`, so the repository value is not authoritative.
 - **`MARKETING_VERSION`** — bump only when the release ships **user-facing iOS changes worth a new store version** (patch for fixes, minor for features). Releases that only touch web/backend leave it untouched.
 
 The releaser decides build-only vs. marketing-bump per release. Propose `build` when the iOS changes are not user-facing, and include that decision in the release proposal for approval. When unsure for a fix-only iOS release, a `build` bump is the safe default.
@@ -44,14 +44,16 @@ Bump iOS only when files under `ios/` are modified in the release. If only web o
 
 ## Apply version
 
+Before any iOS upload, query App Store Connect for the highest build number under the selected marketing version and choose the next unused integer. Never infer it only from `project.yml`.
+
 **Build number only** (default for iOS fix-only releases, or web/backend releases that happened to touch `ios/`):
 
 ```bash
-cd ios && ./scripts/bump-version.sh build
+# Set CURRENT_PROJECT_VERSION in ios/project.yml to the ASC maximum + 1.
 cd ios && xcodegen generate --use-cache
 ```
 
-This increments `CURRENT_PROJECT_VERSION` (e.g. 1 -> 2) without touching `MARKETING_VERSION`.
+This sets `CURRENT_PROJECT_VERSION` to the exact build approved in the release proposal without touching `MARKETING_VERSION`. `./scripts/bump-version.sh build` is safe only when the repository value is already equal to the highest ASC build.
 
 **Marketing version** (new user-facing iOS store version) — confirm with the releaser first, then:
 
@@ -70,6 +72,16 @@ After running the script, these files change:
 - `ios/Pulpe.xcodeproj/project.pbxproj` — regenerated locally by XcodeGen and gitignored
 
 Stage only `ios/project.yml`. Never stage the generated `.xcodeproj`.
+
+## GitHub Actions distribution
+
+`.github/workflows/ios-distribute.yml` is the only automated archive/sign/upload path. It is manually dispatched and never submits a build for App Review.
+
+- `internal`: dispatch from `preview`, archive `PulpePreview` / `Preview`, and use an unused ASC build number supplied by Alfred. The source file is not changed for these temporary builds.
+- `release`: dispatch from `main`, archive `PulpeProd` / `Prod`, and use the exact build number recorded in the approved release changes.
+- Both modes require the exact branch-head SHA and a successful `✅ CI Success` check for that SHA.
+- Signing credentials live only in the `ios-distribution` GitHub Environment. The workflow uses an ephemeral keychain and removes certificates, API keys, archives, and exported IPA files in an `always()` cleanup step.
+- GitHub Actions only uploads the IPA. Alfred verifies ASC processing and performs the separately approved TestFlight or App Store operation.
 
 ## Force-update gate — nothing to sync
 
