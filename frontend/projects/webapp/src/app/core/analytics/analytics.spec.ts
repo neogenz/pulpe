@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import type { WritableSignal } from '@angular/core';
-import type { UserSettings } from 'pulpe-shared';
+import { ANALYTICS_EVENTS, type UserSettings } from 'pulpe-shared';
 import { AnalyticsService } from './analytics';
 import { PostHogService } from './posthog';
 import { AuthStore } from '../auth/auth-store';
@@ -608,10 +608,13 @@ describe('captureEvent', () => {
   it('delegates captures to PostHogService', () => {
     const properties = { feature: 'onboarding', step: 'welcome' };
 
-    analyticsService.captureEvent('user_action', properties);
+    analyticsService.captureEvent(
+      ANALYTICS_EVENTS.ONBOARDING_STEP_COMPLETED,
+      properties,
+    );
 
     expect(mockPostHogService.captureEvent).toHaveBeenCalledWith(
-      'user_action',
+      ANALYTICS_EVENTS.ONBOARDING_STEP_COMPLETED,
       properties,
     );
   });
@@ -622,7 +625,9 @@ describe('captureEvent', () => {
       throw error;
     });
 
-    expect(() => analyticsService.captureEvent('failing_event')).toThrow(error);
+    expect(() =>
+      analyticsService.captureEvent(ANALYTICS_EVENTS.SIGNUP_FAILED),
+    ).toThrow(error);
   });
 
   it('delegates setPersonProperties to PostHogService once identified', () => {

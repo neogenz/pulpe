@@ -1,6 +1,7 @@
 import { Service, PLATFORM_ID, inject, signal, computed } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import type { PostHog, Properties, CaptureResult } from 'posthog-js';
+import { ANALYTICS_EVENTS, type AnalyticsEventName } from 'pulpe-shared';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { StorageService } from '../storage/storage.service';
@@ -246,7 +247,7 @@ export class PostHogService {
   /**
    * Capture event - PostHog handles data sanitization automatically
    */
-  captureEvent(event: string, properties?: Properties): void {
+  captureEvent(event: AnalyticsEventName, properties?: Properties): void {
     if (!this.#canCapture()) return;
 
     try {
@@ -340,7 +341,7 @@ export class PostHogService {
     if (!method) return;
 
     this.clearPendingSignupMethod();
-    this.captureEvent('signup_completed', { method });
+    this.captureEvent(ANALYTICS_EVENTS.SIGNUP_COMPLETED, { method });
     this.#logger.debug('Pending signup_completed captured', { method });
   }
 

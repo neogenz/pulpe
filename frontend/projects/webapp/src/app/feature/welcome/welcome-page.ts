@@ -21,6 +21,7 @@ import { TurnstileService } from '@core/turnstile';
 import { ErrorAlert } from '@ui/error-alert';
 import { LoadingButton } from '@ui/loading-button';
 import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
+import { ANALYTICS_EVENTS } from 'pulpe-shared';
 
 @Component({
   selector: 'pulpe-welcome-page',
@@ -221,7 +222,7 @@ export default class WelcomePage {
 
   constructor() {
     afterNextRender(() => {
-      this.#postHogService.captureEvent('welcome_page_viewed');
+      this.#postHogService.captureEvent(ANALYTICS_EVENTS.WELCOME_VIEWED);
     });
   }
 
@@ -245,7 +246,9 @@ export default class WelcomePage {
     this.isOAuthLoading.set(isLoading);
     if (isLoading) {
       this.#postHogService.setPendingSignupMethod(method);
-      this.#postHogService.captureEvent('signup_started', { method });
+      this.#postHogService.captureEvent(ANALYTICS_EVENTS.SIGNUP_STARTED, {
+        method,
+      });
     }
     // Pas de clear sur `false` : le succès OAuth émet loadingChange(false)
     // avant que le redirect n'emporte la page — effacer ici tue le
@@ -259,7 +262,9 @@ export default class WelcomePage {
   }
 
   onEmailSignupClick(): void {
-    this.#postHogService.captureEvent('signup_started', { method: 'email' });
+    this.#postHogService.captureEvent(ANALYTICS_EVENTS.SIGNUP_STARTED, {
+      method: 'email',
+    });
   }
 
   startDemoMode(): void {
@@ -275,7 +280,7 @@ export default class WelcomePage {
   async #startDemoWithToken(token: string): Promise<void> {
     try {
       await this.#demoInitializer.startDemoSession(token);
-      this.#postHogService.captureEvent('demo_started');
+      this.#postHogService.captureEvent(ANALYTICS_EVENTS.DEMO_STARTED);
     } catch (error) {
       this.#logger.error('Failed to start demo mode', { error });
       this.errorMessage.set(

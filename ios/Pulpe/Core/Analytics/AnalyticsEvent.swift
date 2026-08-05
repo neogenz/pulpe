@@ -6,7 +6,7 @@ enum AnalyticsEvent: String, CaseIterable {
     case appOpened = "app_opened"
 
     // MARK: - Onboarding Funnel
-    case welcomeScreenViewed = "welcome_screen_viewed"
+    case welcomeViewed = "welcome_viewed"
     /// Fires once per session when the user enters the multi-step onboarding
     /// flow — either by tapping "S'inscrire avec email" on welcome, or via a
     /// fresh social OAuth that routes them straight into the questionnaire.

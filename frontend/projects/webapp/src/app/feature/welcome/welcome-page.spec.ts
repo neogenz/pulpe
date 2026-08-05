@@ -9,6 +9,7 @@ import { DemoInitializerService } from '@core/demo/demo-initializer.service';
 import { Logger } from '@core/logging/logger';
 import { TurnstileService } from '@core/turnstile';
 import { PostHogService } from '@core/analytics/posthog';
+import { ANALYTICS_EVENTS } from 'pulpe-shared';
 
 describe('WelcomePage', () => {
   let fixture: ComponentFixture<WelcomePage>;
@@ -233,7 +234,7 @@ describe('WelcomePage', () => {
       component['onOAuthLoadingChange']('google', true);
 
       expect(mockPostHogService.captureEvent).toHaveBeenCalledWith(
-        'signup_started',
+        ANALYTICS_EVENTS.SIGNUP_STARTED,
         { method: 'google' },
       );
     });
@@ -247,9 +248,9 @@ describe('WelcomePage', () => {
       );
     });
 
-    it('should track welcome_page_viewed on render', () => {
+    it('should track welcome_viewed on render', () => {
       expect(mockPostHogService.captureEvent).toHaveBeenCalledWith(
-        'welcome_page_viewed',
+        ANALYTICS_EVENTS.WELCOME_VIEWED,
       );
     });
 

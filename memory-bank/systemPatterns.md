@@ -254,7 +254,7 @@ Frontend (Angular) + iOS (SwiftUI) share PostHog project (EU region).
 
 **Onboarding funnel (iOS)**:
 ```
-app_opened → welcome_screen_viewed → signup_started
+app_opened → welcome_viewed → signup_started
 → onboarding_step_completed (×3) → signup_completed
 → pin_setup_completed → budget_created → transaction_created
 ```

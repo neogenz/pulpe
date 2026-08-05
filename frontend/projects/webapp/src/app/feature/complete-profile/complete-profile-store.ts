@@ -11,7 +11,7 @@ import { UserSettingsStore } from '@core/user-settings';
 import { AuthOAuthService } from '@core/auth/auth-oauth.service';
 import { firstValueFrom } from 'rxjs';
 import { TranslocoService } from '@jsverse/transloco';
-import { type SupportedCurrency } from 'pulpe-shared';
+import { ANALYTICS_EVENTS, type SupportedCurrency } from 'pulpe-shared';
 
 /**
  * An onboarding suggestion chip. Carries a stable `id` independent of the
@@ -265,7 +265,11 @@ export class CompleteProfileStore {
     this.#patchState({
       customTransactions: [...this.#state().customTransactions, { ...tx }],
     });
-    this.#trackCustomTransactionEvent('custom_transaction_added', tx, 'manual');
+    this.#trackCustomTransactionEvent(
+      ANALYTICS_EVENTS.CUSTOM_TRANSACTION_ADDED,
+      tx,
+      'manual',
+    );
   }
 
   removeCustomTransaction(index: number): void {
@@ -276,7 +280,7 @@ export class CompleteProfileStore {
       customTransactions: current.filter((_, i) => i !== index),
     });
     this.#trackCustomTransactionEvent(
-      'custom_transaction_removed',
+      ANALYTICS_EVENTS.CUSTOM_TRANSACTION_REMOVED,
       removed,
       removed.__suggestionId ? 'suggestion' : 'manual',
     );
@@ -324,15 +328,20 @@ export class CompleteProfileStore {
     suggestion: OnboardingTransaction,
     selected: boolean,
   ): void {
-    this.#postHogService.captureEvent('onboarding_suggestion_toggled', {
-      step: this.#analyticsStepFor(suggestion.type),
-      suggestion_name: suggestion.name,
-      selected,
-    });
+    this.#postHogService.captureEvent(
+      ANALYTICS_EVENTS.ONBOARDING_SUGGESTION_TOGGLED,
+      {
+        step: this.#analyticsStepFor(suggestion.type),
+        suggestion_name: suggestion.name,
+        selected,
+      },
+    );
   }
 
   #trackCustomTransactionEvent(
-    event: 'custom_transaction_added' | 'custom_transaction_removed',
+    event:
+      | typeof ANALYTICS_EVENTS.CUSTOM_TRANSACTION_ADDED
+      | typeof ANALYTICS_EVENTS.CUSTOM_TRANSACTION_REMOVED,
     tx: OnboardingTransaction,
     source: 'manual' | 'suggestion',
   ): void {
@@ -456,7 +465,7 @@ export class CompleteProfileStore {
         }
       }
 
-      this.#postHogService.captureEvent('first_budget_created', {
+      this.#postHogService.captureEvent(ANALYTICS_EVENTS.FIRST_BUDGET_CREATED, {
         signup_method: this.#determineSignupMethod(),
         has_pay_day: state.payDayOfMonth !== null,
         charges_count: this.#countOptionalCharges(state),

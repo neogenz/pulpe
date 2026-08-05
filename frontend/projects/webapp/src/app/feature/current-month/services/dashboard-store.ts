@@ -16,6 +16,7 @@ import { cachedMutation, cachedResource } from 'ngx-ziflux';
 import { firstValueFrom } from 'rxjs';
 import { UserSettingsStore } from '@core/user-settings';
 import {
+  ANALYTICS_EVENTS,
   type BudgetLine,
   type Transaction,
   type TransactionCreate,
@@ -311,9 +312,12 @@ export class DashboardStore {
           ...current,
           transactions: [...current.transactions, response.data],
         }));
-        this.#postHogService.captureEvent('transaction_created', {
-          type: response.data.kind,
-        });
+        this.#postHogService.captureEvent(
+          ANALYTICS_EVENTS.TRANSACTION_CREATED,
+          {
+            type: response.data.kind,
+          },
+        );
       },
       onError: (error) => {
         fail(

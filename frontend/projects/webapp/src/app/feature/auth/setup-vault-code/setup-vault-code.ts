@@ -40,7 +40,7 @@ import { LogoutDialog } from '@ui/dialogs/logout-dialog';
 import { PostHogService } from '@core/analytics';
 import { setupVaultCodeFormSchema } from './setup-vault-code-form.schema';
 import { isApiError } from '@core/api/api-error';
-import { API_ERROR_CODES } from 'pulpe-shared';
+import { ANALYTICS_EVENTS, API_ERROR_CODES } from 'pulpe-shared';
 
 @Component({
   selector: 'pulpe-setup-vault-code',
@@ -302,7 +302,7 @@ export default class SetupVaultCode {
         .auth.updateUser({ data: { vaultCodeConfigured: true } });
       if (error) throw error;
 
-      this.#postHogService.captureEvent('vault_code_setup_completed');
+      this.#postHogService.captureEvent(ANALYTICS_EVENTS.PIN_SETUP_COMPLETED);
 
       // 5. Redirect to dashboard
       this.#router.navigate(['/', ROUTES.DASHBOARD]);

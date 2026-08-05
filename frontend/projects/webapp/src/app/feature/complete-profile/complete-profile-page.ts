@@ -33,6 +33,7 @@ import {
 } from './complete-profile-store';
 import { OnboardingLivePreview } from './components/onboarding-live-preview';
 import {
+  ANALYTICS_EVENTS,
   CURRENCY_METADATA,
   PAY_DAY_MAX,
   SUPPORTED_CURRENCIES,
@@ -961,7 +962,7 @@ export default class CompleteProfilePage {
     // Previously this ran in the constructor, which mutated a now-orphan store
     // for users redirected away by `hasExisting`.
     this.store.prefillFromOAuthMetadata();
-    this.#postHogService.captureEvent('onboarding_started');
+    this.#postHogService.captureEvent(ANALYTICS_EVENTS.ONBOARDING_STARTED);
   }
 
   protected onCurrencyChange(value: SupportedCurrency): void {
@@ -975,7 +976,10 @@ export default class CompleteProfilePage {
 
   protected nextStep(): void {
     if (this.store.isStep1Valid()) {
-      this.#postHogService.captureEvent('profile_step1_completed');
+      this.#postHogService.captureEvent(
+        ANALYTICS_EVENTS.ONBOARDING_STEP_COMPLETED,
+        { step: 'profile' },
+      );
       this.currentStep.set(2);
     }
   }
@@ -1045,9 +1049,9 @@ export default class CompleteProfilePage {
       this.store.transportCosts() !== null ||
       this.store.leasingCredit() !== null;
 
-    const event = hasAnyCharge
-      ? 'profile_step2_completed'
-      : 'profile_step2_skipped';
-    this.#postHogService.captureEvent(event);
+    this.#postHogService.captureEvent(
+      ANALYTICS_EVENTS.ONBOARDING_STEP_COMPLETED,
+      { step: 'charges', skipped: !hasAnyCharge },
+    );
   }
 }

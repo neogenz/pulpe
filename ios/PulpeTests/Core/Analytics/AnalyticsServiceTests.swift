@@ -21,18 +21,45 @@ struct AnalyticsServiceTests {
     }
 
     @Test func eventRawValues_matchWebConvention() {
-        #expect(AnalyticsEvent.appOpened.rawValue == "app_opened")
-        #expect(AnalyticsEvent.welcomeScreenViewed.rawValue == "welcome_screen_viewed")
-        #expect(AnalyticsEvent.signupStarted.rawValue == "signup_started")
-        #expect(AnalyticsEvent.signupCompleted.rawValue == "signup_completed")
-        #expect(AnalyticsEvent.onboardingStepCompleted.rawValue == "onboarding_step_completed")
-        #expect(AnalyticsEvent.loginCompleted.rawValue == "login_completed")
-        #expect(AnalyticsEvent.authSessionObserved.rawValue == "auth_session_observed")
-        #expect(AnalyticsEvent.pinSetupCompleted.rawValue == "pin_setup_completed")
-        #expect(AnalyticsEvent.budgetCreated.rawValue == "budget_created")
-        #expect(AnalyticsEvent.transactionCreated.rawValue == "transaction_created")
-        #expect(AnalyticsEvent.tabSwitched.rawValue == "tab_switched")
-        #expect(AnalyticsEvent.currencyPersistFailed.rawValue == "currency_persist_failed")
+        let expected: Set<String> = [
+            "app_opened",
+            "welcome_viewed",
+            "onboarding_started",
+            "signup_started",
+            "signup_completed",
+            "onboarding_step_completed",
+            "onboarding_abandoned",
+            "onboarding_resumed",
+            "onboarding_suggestion_toggled",
+            "custom_transaction_added",
+            "custom_transaction_removed",
+            "login_completed",
+            "login_failed",
+            "signup_failed",
+            "session_restore_failed",
+            "auth_session_observed",
+            "logout_completed",
+            "pin_setup_completed",
+            "pin_entered",
+            "pin_changed",
+            "budget_created",
+            "first_budget_created",
+            "transaction_created",
+            "tab_switched",
+            "notification_prime_shown",
+            "notification_permission_granted",
+            "notification_permission_denied",
+            "reminder_toggled",
+            "ios_whats_new_shown",
+            "currency_changed",
+            "currency_selector_toggled",
+            "currency_persist_failed",
+            "savings_goals_intro_viewed",
+            "savings_goals_intro_completed",
+            "savings_goals_intro_skipped"
+        ]
+
+        #expect(Set(AnalyticsEvent.allCases.map(\.rawValue)) == expected)
     }
 
     @Test func authSessionSnapshot_identityChangesBeforeCapture_keepsSignalValues() {
