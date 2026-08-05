@@ -227,15 +227,10 @@ struct SavingsGoalDetailView: View {
         }
     }
 
-    /// Pushes the income onto the stack the user is actually looking at, so Back
+    /// Pushes the budget onto the stack the user is actually looking at, so Back
     /// returns to this goal instead of dropping them into another tab.
     private func openWithdrawal(_ withdrawal: SavingsGoalWithdrawal) {
-        appState.pushOnActiveStack(
-            BudgetDestination.transaction(
-                budgetId: withdrawal.budgetId,
-                transactionId: withdrawal.transactionId
-            )
-        )
+        appState.pushOnActiveStack(BudgetDestination.details(budgetId: withdrawal.budgetId))
     }
 
     /// Simulator entry (pilier C): active goal, at least one linked line, at least

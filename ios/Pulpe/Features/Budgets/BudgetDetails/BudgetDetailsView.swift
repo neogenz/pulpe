@@ -3,9 +3,6 @@ import TipKit
 
 struct BudgetDetailsView: View {
     let budgetId: String
-    /// Transaction the user actually came for (PUL-329) — opened once the budget
-    /// has landed, so Back returns here instead of to an empty screen.
-    let initialTransactionId: String?
     @Environment(AppState.self) var appState
     // Internal so the same-type routing extension can read these dependencies.
     @Environment(BudgetDetailsRouter.self) var router
@@ -27,12 +24,10 @@ struct BudgetDetailsView: View {
     @AppStorage(SavingsWithdrawalCardGate.storageKey) var dismissedWithdrawalBudgetIds = ""
     init(
         budgetId: String,
-        initialTransactionId: String? = nil,
         budgetService: any BudgetServicing = BudgetService.shared,
         budgetLineService: any BudgetLineServicing = BudgetLineService.shared
     ) {
         self.budgetId = budgetId
-        self.initialTransactionId = initialTransactionId
         let initialCoordinator = BudgetDetailsCoordinator(
             budgetId: budgetId,
             budgetService: budgetService,
@@ -169,7 +164,6 @@ struct BudgetDetailsView: View {
         .sheet(item: $router.sheet) { dest in
             sheetContent(for: dest)
         }
-        .openingInitialTransaction(initialTransactionId, in: coordinator.dataStore.transactions, router: router)
         .navigationDestination(for: BudgetLinePushRoute.self) { route in
             pushDestination(for: route)
                 .environment(coordinator)

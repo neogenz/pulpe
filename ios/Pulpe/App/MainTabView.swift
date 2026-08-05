@@ -57,8 +57,6 @@ private func budgetDestination(_ destination: BudgetDestination) -> some View {
     switch destination {
     case .details(let budgetId):
         BudgetDetailsView(budgetId: budgetId)
-    case .transaction(let budgetId, let transactionId):
-        BudgetDetailsView(budgetId: budgetId, initialTransactionId: transactionId)
     }
 }
 
@@ -157,13 +155,6 @@ struct BudgetsTab: View {
                     case .details(let budgetId):
                         BudgetDetailsView(
                             budgetId: budgetId,
-                            budgetService: budgetService,
-                            budgetLineService: budgetLineService
-                        )
-                    case .transaction(let budgetId, let transactionId):
-                        BudgetDetailsView(
-                            budgetId: budgetId,
-                            initialTransactionId: transactionId,
                             budgetService: budgetService,
                             budgetLineService: budgetLineService
                         )

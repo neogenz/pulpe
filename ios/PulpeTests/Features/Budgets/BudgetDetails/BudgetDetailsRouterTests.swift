@@ -47,33 +47,22 @@ struct BudgetDetailsRouterTests {
         #expect(appState.budgetPath.isEmpty)
     }
 
-    // MARK: - Targeted transaction (PUL-329)
+    // MARK: - Withdrawal → its budget (PUL-329)
 
-    /// A withdrawal listed on a goal leads to the income it funded. It pushes onto
-    /// the stack the user is looking at — switching tabs would drop them into the
-    /// budgets section with a back button pointing at a list they never opened.
-    @Test func transactionDestination_pushesOntoTheStackInView() {
+    /// A withdrawal listed on a goal leads to the budget that received it, and
+    /// pushes onto the stack the user is looking at — switching tabs would drop
+    /// them into the budgets section with a back button pointing at a list they
+    /// never opened. One entry, so one Back returns to the goal: the destination
+    /// used to carry the funded transaction's id as well, and landing on the
+    /// budget then pushed that transaction's editor on top of it.
+    @Test func withdrawalDestination_pushesTheBudgetAloneOntoTheStackInView() {
         let appState = AppState()
         appState.selectedTab = .savingsGoals
 
-        appState.pushOnActiveStack(
-            BudgetDestination.transaction(budgetId: "budget-1", transactionId: "tx-1")
-        )
+        appState.pushOnActiveStack(BudgetDestination.details(budgetId: "budget-1"))
 
         #expect(appState.savingsGoalsPath.count == 1)
         #expect(appState.budgetPath.isEmpty)
-    }
-
-    /// Same budget, two different screens: opening a budget and opening one of its
-    /// transactions must not collapse into one entry.
-    @Test func transactionDestination_isDistinctFromTheBudgetItself() {
-        let budget = BudgetDestination.details(budgetId: "budget-1")
-        let transaction = BudgetDestination.transaction(budgetId: "budget-1", transactionId: "tx-1")
-
-        #expect(budget != transaction)
-        #expect(
-            transaction == BudgetDestination.transaction(budgetId: "budget-1", transactionId: "tx-1")
-        )
     }
 
     @Test func popToRoot_unwindsTheStackTheDetailWasOpenedFrom() {

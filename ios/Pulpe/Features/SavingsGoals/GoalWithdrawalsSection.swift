@@ -99,7 +99,7 @@ struct GoalWithdrawalsSection: View {
         // Combined so VoiceOver reads the whole name, its date and its amount;
         // the hint carries the destination the chevron only hints at visually.
         .accessibilityElement(children: .combine)
-        .accessibilityHint("Ouvre ce revenu dans son budget")
+        .accessibilityHint("Ouvre le budget de ce revenu")
     }
 }
 
