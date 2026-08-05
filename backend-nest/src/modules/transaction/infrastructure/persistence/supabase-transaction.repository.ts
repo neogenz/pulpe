@@ -602,6 +602,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       {
         ...(insertRow.id ? { id: insertRow.id } : {}),
         budget_id: insertRow.budget_id,
+        budget_line_id: insertRow.budget_line_id ?? null,
         name: insertRow.name,
         amount: insertRow.amount,
         original_amount: insertRow.original_amount ?? null,

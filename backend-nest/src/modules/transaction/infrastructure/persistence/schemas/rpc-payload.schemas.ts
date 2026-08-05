@@ -24,11 +24,17 @@ import {
  * le nom relu sous le verrou. Les laisser passer par le payload laisserait un
  * appelant figer un nom déjà périmé, ou pire, réclamer un autre objectif que
  * celui dont il a fait vérifier le solde.
+ *
+ * `budget_line_id` en revanche traverse (PUL-329 v2) : réaliser un retrait
+ * ANNONCÉ, c'est allouer le réel à sa prévision. Sans lui, la sortie est
+ * comptée deux fois — une fois dans le stock confirmé, une fois dans un
+ * reliquat annoncé que plus rien ne vient éteindre.
  */
 export const createSavingsGoalWithdrawalPayloadSchema = z
   .object({
     id: z.uuid().optional(),
     budget_id: z.uuid(),
+    budget_line_id: z.uuid().nullable(),
     name: z.string().min(1),
     amount: z.string().min(1),
     original_amount: z.string().min(1).nullable(),
@@ -47,8 +53,10 @@ export type CreateSavingsGoalWithdrawalPayload = z.infer<
 
 /**
  * Patch partiel : `jsonb_populate_record` part de la ligne existante, donc une
- * clé absente laisse la valeur en place. `budget_line_id` reste hors du patch —
- * un retrait ne s'alloue jamais, et la RPC refuserait de toute façon.
+ * clé absente laisse la valeur en place. `budget_line_id` reste hors du patch :
+ * l'allocation se décide à la création et ne se déplace plus, et la RPC
+ * n'écrit pas cette colonne — l'y glisser ferait croire à un déplacement qui
+ * n'aurait pas lieu.
  */
 export const updateSavingsGoalWithdrawalPayloadSchema = z
   .object({
