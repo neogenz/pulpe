@@ -203,9 +203,9 @@ export class AuthSessionService {
   }
 
   async #performSignOut(source: SignOutSource): Promise<void> {
-    this.#postHog.captureEvent(ANALYTICS_EVENTS.LOGOUT_COMPLETED, { source });
-
     try {
+      this.#postHog.captureEvent(ANALYTICS_EVENTS.LOGOUT_COMPLETED, { source });
+
       if (isE2EMode()) {
         this.#logger.debug('🎭 Mode test E2E: Simulation du logout');
         return;
