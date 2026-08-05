@@ -1010,23 +1010,7 @@ export class AesGcmCryptoService {
 
     const validated = this.#validateRekeyPayloads(payloads, userId);
 
-    const { error } = await supabase.rpc('rekey_user_encrypted_data', {
-      p_budget_lines: validated.budgetLines,
-      p_transactions: validated.transactions,
-      p_template_lines: validated.templateLines,
-      p_savings_goals: validated.savingsGoals,
-      p_monthly_budgets: validated.monthlyBudgets,
-      p_key_check: keyCheck,
-    });
-
-    if (error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.ENCRYPTION_REKEY_FAILED,
-        undefined,
-        { userId, operation: 'rekey.rpc_failure' },
-        { cause: error },
-      );
-    }
+    await this.#repository.rekeyUserData(userId, validated, keyCheck);
 
     this.logger.info(
       {

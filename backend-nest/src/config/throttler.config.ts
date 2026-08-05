@@ -16,6 +16,13 @@ import type { ExecutionContext } from '@nestjs/common';
  */
 export const DEMO_UNVERIFIED_HOURLY_LIMIT = 10;
 
+/**
+ * Name of the throttler that caps unauthenticated traffic. Shared between the
+ * module registration and `UserThrottlerGuard`, which skips this bucket for
+ * requests whose token actually resolves to a user.
+ */
+export const PUBLIC_THROTTLER_NAME = 'public';
+
 // Trailing slash is load-bearing: without it the prefix would also match a
 // sibling like `/api/v1/demography`. Every real demo route is nested under
 // `/api/v1/demo/` (session, cleanup), so the slash narrows to exactly them.

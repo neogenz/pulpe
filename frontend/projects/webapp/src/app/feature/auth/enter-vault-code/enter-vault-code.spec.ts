@@ -115,6 +115,16 @@ describe('EnterVaultCode', () => {
       expect(codeInput).toBeTruthy();
       expect(checkbox).toBeTruthy();
     });
+
+    it('should warn that remembering the device keeps the key on it', () => {
+      const hint = fixture.nativeElement.querySelector(
+        '[data-testid="remember-device-hint"]',
+      );
+
+      expect(hint?.textContent?.trim()).toBe(
+        'Si tu coches cette case, ta clé de déchiffrement sera stockée sur cet appareil. À éviter sur un ordinateur partagé.',
+      );
+    });
   });
 
   describe('Form Validation', () => {

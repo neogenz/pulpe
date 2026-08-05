@@ -795,6 +795,7 @@ export type Database = {
           p_savings_goals?: Json;
           p_template_lines?: Json;
           p_transactions?: Json;
+          p_user_id: string;
         };
         Returns: undefined;
       };

@@ -8,6 +8,21 @@ import type {
   UserEncryptionSalt,
   VaultStatus,
 } from '../../domain/encryption.entity';
+import type {
+  RekeyBudgetLineRpcPayload,
+  RekeyMonthlyBudgetRpcPayload,
+  RekeySavingsGoalRpcPayload,
+  RekeyTemplateLineRpcPayload,
+  RekeyTransactionRpcPayload,
+} from './schemas/rpc-payload.schemas';
+
+export interface RekeyRpcPayloads {
+  budgetLines: RekeyBudgetLineRpcPayload[];
+  transactions: RekeyTransactionRpcPayload[];
+  templateLines: RekeyTemplateLineRpcPayload[];
+  savingsGoals: RekeySavingsGoalRpcPayload[];
+  monthlyBudgets: RekeyMonthlyBudgetRpcPayload[];
+}
 
 @Injectable()
 export class SupabaseEncryptionKeyRepository implements EncryptionKeyRepositoryPort {
@@ -244,6 +259,38 @@ export class SupabaseEncryptionKeyRepository implements EncryptionKeyRepositoryP
       );
     }
     return data !== null;
+  }
+
+  /**
+   * Re-encryption of every amount owned by the user, atomic with the new
+   * `key_check`. Runs on the service-role client: the RPC is not executable by
+   * `authenticated`, so a stolen JWT can neither call it nor write `key_check`
+   * directly. Ownership is enforced inside the function by `p_user_id`.
+   */
+  async rekeyUserData(
+    userId: string,
+    payloads: RekeyRpcPayloads,
+    keyCheck: string,
+  ): Promise<void> {
+    const supabase = this.#supabaseService.getServiceRoleClient();
+    const { error } = await supabase.rpc('rekey_user_encrypted_data', {
+      p_user_id: userId,
+      p_budget_lines: payloads.budgetLines,
+      p_transactions: payloads.transactions,
+      p_template_lines: payloads.templateLines,
+      p_savings_goals: payloads.savingsGoals,
+      p_monthly_budgets: payloads.monthlyBudgets,
+      p_key_check: keyCheck,
+    });
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.ENCRYPTION_REKEY_FAILED,
+        undefined,
+        { userId, operation: 'rekey.rpc_failure' },
+        { cause: error },
+      );
+    }
   }
 
   async updateWrappedDEKIfNull(

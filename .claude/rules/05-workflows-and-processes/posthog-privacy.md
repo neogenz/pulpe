@@ -9,7 +9,15 @@ paths: "frontend/**/*.ts"
 
 **ALWAYS** add `ph-no-capture` CSS class to elements displaying sensitive financial amounts.
 
-This class is used by the `AmountsVisibilityService` to blur values when the user toggles "hide amounts" (screen-sharing mode). The global CSS rule in `styles.scss` applies `filter: blur()` + `pointer-events: none` to `.ph-no-capture` elements when `body.amounts-hidden` is active.
+The class does **two** jobs, and the second one is the reason it must never be renamed.
+
+1. **Blur on demand.** `AmountsVisibilityService` toggles "hide amounts" (screen-sharing mode); the global rule in `styles.scss` applies `filter: blur()` + `pointer-events: none` to `.ph-no-capture` elements when `body.amounts-hidden` is active.
+2. **Exclusion from session replay.** posthog-js hardcodes `ph-no-capture` as rrweb's `blockClass`. Blocked elements are never serialized into a recording — they are replaced by an empty placeholder of the same size. This is stronger than text masking, and it applies **unconditionally**, whatever the blur toggle is set to.
+
+Consequences:
+
+- Never bind the class conditionally (`[class.ph-no-capture]="…"`) on an element that renders an amount: the replay stops being blocked whenever the expression is false.
+- Never rename the class to match the blur feature. `session_recording` in `core/analytics/posthog.ts` carries no `maskTextSelector`, so this class is the only thing keeping rendered amounts out of replays. Form field values are covered separately by `maskAllInputs: true`.
 
 ## What to mark
 

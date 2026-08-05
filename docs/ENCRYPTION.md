@@ -220,6 +220,24 @@ De plus :
 - Le brute-force en ligne est bloqué par le rate limiting (5 tentatives/min sur `validate-key`)
 - La constante `pinLength` dans `CryptoService` est fixée à 4 chiffres (peut être augmentée si la réglementation l'exige)
 
+## Absence d'AAD sur les ciphertexts de montants (risque accepté)
+
+Les montants sont chiffrés en AES-256-GCM sans *additional authenticated data*. Un attaquant disposant d'un **accès en écriture à la base** peut donc déplacer un ciphertext d'une colonne à une autre : le tag GCM reste valide et l'application affiche le montant déplacé.
+
+Portée réelle de l'attaque, avant d'envisager une correction :
+
+| Variante de relocation | Déjà bloquée ? |
+|------------------------|----------------|
+| Vers un **autre utilisateur** | Oui. `DEK = HKDF(clientKey + masterKey, salt, "pulpe-dek-{userId}")` : le sel et l'`info` diffèrent par utilisateur, le tag GCM échoue (couvert par `cross-dek-budget-line.spec.ts`) |
+| **Ligne → ligne, même colonne** (`budget_line.amount` de A vers `budget_line.amount` de B, même utilisateur) | Non, et une AAD ne peut pas la bloquer ici : les RPC SQL propagent légitimement les ciphertexts `template_line.amount → budget_line.amount`, donc lier l'AAD à la table ou à l'identifiant de ligne casserait la provision d'un budget depuis un modèle |
+| **Champ → champ, même utilisateur** (`amount` vers `target_amount`) | Non. C'est la seule variante qu'une AAD `{userId}:{champ}` fermerait |
+
+Une AAD par champ ne fermerait donc que la variante la moins probable, et son coût de mise en œuvre est disproportionné : le contexte `champ` devrait être passé aux **65 sites d'appel** de `encryptAmount`/`decryptAmount`/`tryDecryptAmount` répartis sur 9 fichiers, et le déchiffrement devrait porter en permanence une branche v1/v2 pour rester compatible avec l'existant.
+
+Le facteur décisif est le mode de défaillance. Tous les chemins de lecture passent par `tryDecryptAmount`, qui **ne lève jamais** : un échec de déchiffrement retourne le repli (`0` ou `null`) et n'émet qu'un `warn`. Une seule étiquette de champ erronée parmi les 65 afficherait donc silencieusement `0 €` à la place du montant réel de vrais utilisateurs — exactement le préjudice que la mesure prétend empêcher, mais infligé à tout le monde plutôt qu'à la cible d'un attaquant qui possède déjà la base.
+
+Décision : pas d'AAD pour l'instant. Si elle est implémentée un jour, la conception retenue est fixée — préfixe `v2:`, AAD `{userId}:{champ sémantique}`, jamais la table ni l'identifiant de ligne (à cause de la propagation `template_line → budget_line`), déchiffrement rétrocompatible v1 et migration paresseuse à la prochaine écriture. Prérequis à traiter d'abord : faire échouer bruyamment les chemins de lecture au lieu du repli silencieux à 0.
+
 ## Transport du client key via header HTTP (risque accepté)
 
 Le header `X-Client-Key` est envoyé sur tous les endpoints de données (budgets, transactions, templates) car le serveur a besoin de la clé client au moment de la requête pour dériver la DEK. Seuls 4 endpoints utilisent `@SkipClientKey()` (vault-status, salt, validate-key, recover).
@@ -235,6 +253,16 @@ Atténuations :
 - RLS activé : seul `service_role` peut lire/écrire
 - `REVOKE ALL` sur les rôles `authenticated` et `anon`
 - Pas de politique DELETE (suppression uniquement via `ON DELETE CASCADE` depuis `auth.users`)
+
+### Pourquoi le rekey passe par le `service_role`
+
+Entre `20260212100000` et `20260804130000`, `authenticated` disposait de `GRANT SELECT (user_id)` et `GRANT UPDATE (key_check, updated_at)` : le RPC `rekey_user_encrypted_data`, `SECURITY INVOKER`, était appelé avec le JWT de l'utilisateur et avait besoin de ces privilèges pour écrire le canary. Conséquence : un jeton volé pouvait écrire `key_check` directement via PostgREST et rendre le coffre de son propriétaire indéchiffrable.
+
+Depuis `20260804130000`, le rekey est appelé par `SupabaseEncryptionKeyRepository.rekeyUserData()` sur le client `service_role`, comme tous les autres accès à la table. `EXECUTE` sur le RPC est révoqué pour `authenticated` et `anon` : ni l'écriture directe ni l'appel forgé du RPC ne sont possibles avec un JWT utilisateur.
+
+Le RPC reste `SECURITY INVOKER`. Appelé par le `service_role` il n'est plus soumis au RLS, donc l'appartenance des lignes n'est plus garantie par les politiques : chaque `UPDATE` est explicitement borné à `p_user_id` (directement pour `savings_goal` et `monthly_budget`, via `monthly_budget` pour `budget_line` et `transaction`, via `template` pour `template_line`), et les assertions de nombre de lignes font échouer toute la transaction si un identifiant du payload n'appartient pas à l'utilisateur.
+
+**Ne pas rétablir de `GRANT` sur cette table pour débloquer un flux** : le flux doit passer par le repository `service_role`.
 
 ## Stockage du clientKey
 
@@ -255,6 +283,24 @@ Le `clientKey` est stocké côté client via `StorageService` :
 3. Le `clientKey` seul est insuffisant pour déchiffrer (il faut aussi la `masterKey` serveur)
 
 **Alternative rejetée :** stocker le `clientKey` uniquement en mémoire (signal Angular) imposerait une re-saisie du code PIN à chaque rechargement de page, dégradant fortement l'expérience utilisateur.
+
+#### « Se souvenir de cet appareil » : persistance en localStorage (risque accepté)
+
+Cocher l'option bascule le `clientKey` de `sessionStorage` vers `localStorage`. Ça ne crée pas une nouvelle classe de vulnérabilité — c'est le même vecteur XSS que ci-dessus — mais ça **élargit la fenêtre d'exploitation** sur deux axes :
+
+| | Sans « se souvenir » | Avec « se souvenir » |
+|---|---|---|
+| Durée de vie de la clé | L'onglet | Jusqu'à effacement explicite par l'utilisateur |
+| Survie au logout | Non | Oui (`clearPreservingDeviceTrust()` préserve délibérément l'entrée `localStorage`) |
+
+Le scénario complet est le vol **combiné** : une XSS doit exfiltrer à la fois la session Supabase et le `clientKey` pour que l'attaquant déchiffre des montants. L'un sans l'autre ne suffit pas — le backend refuse une requête sans header `X-Client-Key` valide, et le `clientKey` seul ne dérive rien sans la `masterKey` serveur.
+
+**Mitigations en place :**
+1. CSP stricte (`vercel.json`) : `script-src 'self'` + deux origines tierces explicites, ni `unsafe-inline` ni `unsafe-eval`. Seul `script-src-attr` porte un `'unsafe-hashes'` limité à un hash `sha256` précis. `frontend/scripts/check-no-inline-scripts.ts` échoue le build si un script inline non prévu apparaît
+2. Sanitizer Angular par défaut sur toute interpolation ; aucun `bypassSecurityTrust*` sur du contenu d'origine utilisateur
+3. La session Supabase reste soumise à son expiration et à la révocation côté serveur
+
+**Décision produit :** l'option est **conservée**. Un utilisateur sur sa propre machine échange une fenêtre d'exposition plus large contre l'absence de re-saisie du PIN — c'est son arbitrage, pas le nôtre. La contrepartie est de le rendre explicite : les trois écrans vault (`enter-vault-code`, `setup-vault-code`, `recover-vault-code`) affichent sous la case à cocher un avertissement (`auth.vaultCode.rememberDeviceHint`) qui nomme le stockage local de la clé et déconseille l'option sur un ordinateur partagé.
 
 ### iOS (SwiftUI)
 

@@ -164,14 +164,35 @@ web3 = 30
 # secret = ""
 
 [auth.email]
+#
+# PORTÉE DE CE BLOC : environnement LOCAL uniquement.
+#
+# La posture de production vit dans le dashboard Supabase, pas ici. Ce fichier
+# ne l'atteint que si quelqu'un lance `supabase config push` — ce que le projet
+# ne fait pas. Un audit qui lit `enable_confirmations = false` ci-dessous comme
+# la valeur de production se trompe de source ; vérifier le dashboard.
+#
+# AVANT d'activer `enable_confirmations` en production : il faut d'abord un
+# fournisseur SMTP dédié (bloc [auth.email.smtp] plus bas, aujourd'hui commenté).
+# Le SMTP par défaut de Supabase refuse la livraison vers toute adresse
+# extérieure à l'équipe du projet, quel que soit le palier de facturation — les
+# confirmations partiraient donc dans le vide pour les vrais utilisateurs, et
+# l'inscription serait cassée en silence. En local, Mailpit intercepte tout, ce
+# qui masque complètement ce mode de défaillance.
+#
 # Allow/disallow new user signups via email to your project.
 enable_signup = true
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
+# Laissé à `false` en local à dessein : le passer à `true` impose une étape de
+# confirmation aux fixtures E2E et au seed, sans rien prouver de la prod (cf. le
+# bloc en tête de section). À aligner dans le dashboard, pas ici.
 enable_confirmations = false
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
+# Même raisonnement : posture cible `true`, à activer dans le dashboard après
+# vérification du flux « changement de mot de passe » web + iOS.
 secure_password_change = false
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
 max_frequency = "1m0s"

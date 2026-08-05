@@ -63,7 +63,7 @@ describe('BudgetListPage', () => {
         { provide: LoadingIndicator, useValue: { setLoading: vi.fn() } },
         {
           provide: ExcelExportService,
-          useValue: { buildWorkbook: vi.fn().mockReturnValue({}) },
+          useValue: { buildSheets: vi.fn().mockResolvedValue([]) },
         },
         { provide: UserSettingsStore, useValue: { currency: signal('CHF') } },
       ],

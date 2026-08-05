@@ -1,5 +1,5 @@
 import { provideZonelessChangeDetection } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter, Router } from '@angular/router';
@@ -22,6 +22,7 @@ const apiError = (code: string, status = 400) =>
 
 describe('SetupVaultCode', () => {
   let component: SetupVaultCode;
+  let fixture: ComponentFixture<SetupVaultCode>;
   let mockUpdateUser: ReturnType<typeof vi.fn>;
   let mockSignOut: ReturnType<typeof vi.fn>;
   let mockAuthSessionService: {
@@ -108,7 +109,8 @@ describe('SetupVaultCode', () => {
       ],
     }).compileComponents();
 
-    component = TestBed.createComponent(SetupVaultCode).componentInstance;
+    fixture = TestBed.createComponent(SetupVaultCode);
+    component = fixture.componentInstance;
 
     const router = TestBed.inject(Router);
     navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
@@ -132,6 +134,18 @@ describe('SetupVaultCode', () => {
       expect(component['form'].get('vaultCode')).toBeDefined();
       expect(component['form'].get('confirmCode')).toBeDefined();
       expect(component['form'].get('rememberDevice')).toBeDefined();
+    });
+
+    it('should warn that remembering the device keeps the key on it', () => {
+      fixture.detectChanges();
+
+      const hint = fixture.nativeElement.querySelector(
+        '[data-testid="remember-device-hint"]',
+      );
+
+      expect(hint?.textContent?.trim()).toBe(
+        'Si tu coches cette case, ta clé de déchiffrement sera stockée sur cet appareil. À éviter sur un ordinateur partagé.',
+      );
     });
   });
 
