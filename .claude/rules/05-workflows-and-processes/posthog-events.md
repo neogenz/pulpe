@@ -81,15 +81,15 @@ app_opened → welcome_viewed → signup_started → signup_completed
 
 ### Welcome & Auth Flow Events
 
-| Event                 | When                                     | Properties                                                                                                                        |
-| --------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `welcome_viewed`      | User lands on /welcome                   | —                                                                                                                                 |
-| `signup_started`      | User click signup button                 | `method` (`email` \| `google`)                                                                                                    |
-| `signup_completed`    | Signup succeed                           | `method` (`email` \| `google`)                                                                                                    |
-| `pin_setup_completed` | New user creates a PIN                   | —                                                                                                                                 |
-| `pin_entered`         | Returning user enters their PIN          | —                                                                                                                                 |
-| `demo_started`        | Demo session created                     | —                                                                                                                                 |
-| `logout_completed`    | Web session ends after local sign-out    | `source` (`user_initiated` \| `vault_code` \| `demo_exit` \| `scheduled_deletion` \| `account_blocked`)                          |
+| Event                 | When                                  | Properties                                                                                                                                                               |
+| --------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `welcome_viewed`      | User lands on /welcome                | —                                                                                                                                                                        |
+| `signup_started`      | User click signup button              | `method` (`email` \| `google`)                                                                                                                                           |
+| `signup_completed`    | Signup succeed                        | `method` (`email` \| `google`)                                                                                                                                           |
+| `pin_setup_completed` | New user creates a PIN                | —                                                                                                                                                                        |
+| `pin_entered`         | Returning user enters their PIN       | —                                                                                                                                                                        |
+| `demo_started`        | Demo session created                  | —                                                                                                                                                                        |
+| `logout_completed`    | Web session ends after local sign-out | `source` (`user_initiated` \| `vault_code` \| `demo_exit` \| `scheduled_deletion` \| `account_blocked` \| `session_expired` \| `refresh_failed`)                       |
 
 ### Onboarding Events
 

@@ -2,6 +2,7 @@ import { Service, inject, DestroyRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { TranslocoService } from '@jsverse/transloco';
 import type { Session, SupabaseClient } from '@supabase/supabase-js';
+import { ANALYTICS_EVENTS } from 'pulpe-shared';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { AuthStore, type AuthSessionState } from './auth-store';
@@ -17,7 +18,9 @@ export type SignOutSource =
   | 'vault_code'
   | 'demo_exit'
   | 'scheduled_deletion'
-  | 'account_blocked';
+  | 'account_blocked'
+  | 'session_expired'
+  | 'refresh_failed';
 
 interface DecodedJwt {
   readonly sub: string;
@@ -196,7 +199,7 @@ export class AuthSessionService {
   }
 
   async #performSignOut(source: SignOutSource): Promise<void> {
-    this.#postHog.captureEvent('logout_completed', { source });
+    this.#postHog.captureEvent(ANALYTICS_EVENTS.LOGOUT_COMPLETED, { source });
 
     try {
       if (isE2EMode()) {

@@ -227,9 +227,31 @@ describe('authInterceptor', () => {
 
       const result = await promise1;
 
-      expect(mockAuthSession.signOut).toHaveBeenCalled();
+      expect(mockAuthSession.signOut).toHaveBeenCalledTimes(1);
+      expect(mockAuthSession.signOut).toHaveBeenCalledWith('session_expired');
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/', 'login']);
       expect(result).toBeInstanceOf(Error);
+    });
+
+    it('should use refresh_failed when refresh rejects', async () => {
+      mockAuthSession.refreshSession.mockRejectedValue(
+        new Error('Refresh failed'),
+      );
+      const result = firstValueFrom(http.get(`${BACKEND_URL}/endpoint1`)).catch(
+        (err) => err,
+      );
+
+      await flushMicrotasks();
+
+      httpTesting
+        .expectOne(`${BACKEND_URL}/endpoint1`)
+        .flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+
+      const error = await result;
+
+      expect(mockAuthSession.signOut).toHaveBeenCalledTimes(1);
+      expect(mockAuthSession.signOut).toHaveBeenCalledWith('refresh_failed');
+      expect(error).toBeInstanceOf(Error);
     });
   });
 
@@ -320,7 +342,7 @@ describe('authInterceptor', () => {
 
       const error = await result;
 
-      expect(mockAuthSession.signOut).toHaveBeenCalled();
+      expect(mockAuthSession.signOut).toHaveBeenCalledWith('account_blocked');
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/', 'login']);
       expect(error).toBeInstanceOf(Error);
     });
@@ -341,7 +363,7 @@ describe('authInterceptor', () => {
 
       const error = await result;
 
-      expect(mockAuthSession.signOut).toHaveBeenCalled();
+      expect(mockAuthSession.signOut).toHaveBeenCalledWith('account_blocked');
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/', 'login']);
       expect(error).toBeInstanceOf(Error);
     });
