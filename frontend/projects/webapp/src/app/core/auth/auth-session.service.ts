@@ -1,7 +1,11 @@
 import { Service, inject, DestroyRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { TranslocoService } from '@jsverse/transloco';
-import type { Session, SupabaseClient } from '@supabase/supabase-js';
+import {
+  isAuthRetryableFetchError,
+  type Session,
+  type SupabaseClient,
+} from '@supabase/supabase-js';
 import { ANALYTICS_EVENTS } from 'pulpe-shared';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
@@ -322,6 +326,9 @@ export class AuthSessionService {
       const { data, error } = await this.getClient().auth.refreshSession();
 
       if (error) {
+        if (isAuthRetryableFetchError(error)) {
+          throw error;
+        }
         this.#logger.error(
           'Erreur lors du rafraîchissement de la session:',
           error,
@@ -332,11 +339,8 @@ export class AuthSessionService {
       this.#updateAuthStateFromSession(data.session ?? null);
       return !!data.session;
     } catch (error) {
-      this.#logger.error(
-        'Erreur inattendue lors du rafraîchissement de la session:',
-        error,
-      );
-      return false;
+      this.#logger.error('Échec du rafraîchissement de la session:', error);
+      throw error;
     }
   }
 
