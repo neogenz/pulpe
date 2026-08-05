@@ -27,6 +27,7 @@ import { type E2EWindow } from './e2e-window';
 import { AuthCleanupService } from './auth-cleanup.service';
 import { PostHogService } from '../analytics/posthog';
 import { ROUTES } from '@core/routing/routes-constants';
+import { DemoModeService } from '../demo/demo-mode.service';
 import {
   createMockSupabaseClient,
   type MockSupabaseClient,
@@ -69,6 +70,11 @@ describe('AuthSessionService', () => {
   let mockSupabaseClient: MockSupabaseClient;
   let mockCleanup: { performCleanup: Mock };
   let mockPostHog: { captureEvent: Mock };
+  let mockDemoMode: {
+    isDemoMode: Mock;
+    demoUserEmail: Mock;
+    deactivateDemoMode: Mock;
+  };
   let mockRouter: { navigate: Mock };
   let mockUserSignal: ReturnType<typeof signal<User | null>>;
 
@@ -127,6 +133,11 @@ describe('AuthSessionService', () => {
 
     mockCleanup = { performCleanup: vi.fn() };
     mockPostHog = { captureEvent: vi.fn() };
+    mockDemoMode = {
+      isDemoMode: vi.fn().mockReturnValue(false),
+      demoUserEmail: vi.fn().mockReturnValue(null),
+      deactivateDemoMode: vi.fn(),
+    };
     mockRouter = { navigate: vi.fn() };
     mockSupabaseClient = createMockSupabaseClient();
     createClientMock.mockReturnValue(mockSupabaseClient);
@@ -142,6 +153,7 @@ describe('AuthSessionService', () => {
         { provide: AuthErrorLocalizer, useValue: mockErrorLocalizer },
         { provide: AuthCleanupService, useValue: mockCleanup },
         { provide: PostHogService, useValue: mockPostHog },
+        { provide: DemoModeService, useValue: mockDemoMode },
         { provide: Router, useValue: mockRouter },
       ],
     });
@@ -193,6 +205,38 @@ describe('AuthSessionService', () => {
       session: mockSession,
     });
     expect(mockSupabaseClient.auth.onAuthStateChange).toHaveBeenCalled();
+  });
+
+  it('should clear stale demo mode when restoring a real session', async () => {
+    mockDemoMode.isDemoMode.mockReturnValue(true);
+    mockDemoMode.demoUserEmail.mockReturnValue('demo@pulpe.app');
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    });
+    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
+      data: { subscription: { unsubscribe: vi.fn() } },
+    });
+
+    await service.initializeAuthState();
+
+    expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalledOnce();
+  });
+
+  it('should keep demo mode when restoring its matching session', async () => {
+    mockDemoMode.isDemoMode.mockReturnValue(true);
+    mockDemoMode.demoUserEmail.mockReturnValue(mockSession.user.email);
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    });
+    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
+      data: { subscription: { unsubscribe: vi.fn() } },
+    });
+
+    await service.initializeAuthState();
+
+    expect(mockDemoMode.deactivateDemoMode).not.toHaveBeenCalled();
   });
 
   it('should not reinitialize if already initialized', async () => {
