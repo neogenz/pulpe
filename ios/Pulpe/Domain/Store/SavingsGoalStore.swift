@@ -213,6 +213,14 @@ final class SavingsGoalStore: StoreProtocol {
         try await service.getWithdrawals(id: id)
     }
 
+    /// Server-computed progression, incl. the monthly plan a planned withdrawal
+    /// reads its projection from (PUL-329 v2). Passthrough on purpose: the
+    /// figures move with every budget write, and caching them here would hand
+    /// the picker a balance the user just changed.
+    func getProgress(id: String) async throws -> SavingsGoalProgress {
+        try await service.getProgress(id: id)
+    }
+
     /// The single place budget-data mutations are announced. Anything that moves
     /// money moves a goal balance too, so the withdrawal options die here rather
     /// than at each call site.

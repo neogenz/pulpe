@@ -57,7 +57,12 @@ extension AddBudgetLineSheet {
                 kind: kind,
                 recurrence: .oneOff,
                 savingsGoalId: kind.savingsGoalLink(savingsGoalId),
-                checkedAt: isChecked ? Date() : nil,
+                // An announced withdrawal never leaves pointed: it is realized by
+                // creating the real income, which is what debits the goal.
+                sourceSavingsGoalId: isPlannedWithdrawalMode ? sourceSavingsGoalId : nil,
+                checkedAt: isChecked && !Self.forbidsChecked(kind: kind, origin: incomeOrigin)
+                    ? Date()
+                    : nil,
                 originalAmount: conversion?.originalAmount,
                 originalCurrency: conversion?.originalCurrency,
                 targetCurrency: conversion?.targetCurrency,

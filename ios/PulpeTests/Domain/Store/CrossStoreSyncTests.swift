@@ -87,11 +87,18 @@ struct BudgetListStoreCacheInvalidationTests {
         // CurrentMonth tab; bind() must wire it into the same onMutation closure
         // whose execution the list + dashboard assertions below already prove.
         let currentMonthStore = CurrentMonthStore()
-        // mirrors BudgetDetailsView's .task — wires all three app-scoped stores
+        // Goals read the same budget lines: a linked saving moves the plan, and
+        // realizing an announced withdrawal (PUL-329 v2) moves the balance itself.
+        let goalService = MockSavingsGoalService()
+        let savingsGoalStore = SavingsGoalStore(service: goalService)
+        await savingsGoalStore.forceRefresh()
+        let goalBaseline = goalService.getAllCallCount
+        // mirrors BudgetDetailsView's .task — wires every app-scoped store
         coordinator.bind(
             budgetListStore: listStore,
             dashboardStore: dashboardStore,
-            currentMonthStore: currentMonthStore
+            currentMonthStore: currentMonthStore,
+            savingsGoalStore: savingsGoalStore
         )
         let tx = TestDataFactory.createTransaction(id: "new-tx", budgetId: "budget-current")
         await coordinator.dispatch(.addTransaction(tx))
@@ -108,6 +115,13 @@ struct BudgetListStoreCacheInvalidationTests {
         #expect(
             dashboardMock.getBudgetsSparseCallCount > dashboardBaseline,
             "A detail mutation must invalidate the dashboard TTL too (PUL-270)"
+        )
+
+        // …and the goals, whose balances the same lines feed (PUL-329 v2)
+        await savingsGoalStore.loadIfNeeded()
+        #expect(
+            goalService.getAllCallCount > goalBaseline,
+            "A detail mutation must invalidate the savings-goal TTL too (PUL-270)"
         )
     }
 

@@ -17,6 +17,23 @@ extension BudgetDetailsView {
         )
     }
 
+    /// The circle on a line means two different things (PUL-329 v2). An announced
+    /// withdrawal is not pointed: it is realized by creating the real income, the
+    /// only movement that debits the goal — so the gesture opens that entry
+    /// instead. A broken source (goal deleted) can no longer be realized and falls
+    /// back to the ordinary toggle, exactly as the server would.
+    func handlePointGesture(on line: BudgetLine) {
+        guard !line.isPlannedSavingsWithdrawal else {
+            router.push(.addAllocatedTx(lineId: line.id))
+            return
+        }
+        Task {
+            await coordinator.dispatch(
+                .toggleLine(line, toastContext, amountsHidden: amountsHidden)
+            )
+        }
+    }
+
     @ViewBuilder
     func pushDestination(for route: BudgetLinePushRoute) -> some View {
         switch route {

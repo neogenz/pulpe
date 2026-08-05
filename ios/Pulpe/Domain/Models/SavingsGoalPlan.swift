@@ -69,6 +69,12 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
     let remainingPlannedWithdrawalAmount: Decimal
     let plannedCumulative: Decimal
     let confirmedCumulative: Decimal
+    /// Solde attendu à la fin de ce mois si le plan se déroule tel quel : confirmé
+    /// acquis, reliquat prévu ajouté, sorties réelles et annoncées retranchées.
+    /// C'est ce que lit un aperçu « combien restera-t-il en mars ? » —
+    /// `confirmedCumulative` ne connaît que le passé pointé. `nil` sur un payload
+    /// servi avant que le serveur ne l'expose.
+    let projectedCumulative: Decimal?
     let lines: [SavingsGoalPlanLine]
 
     init(
@@ -86,6 +92,7 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
         remainingPlannedWithdrawalAmount: Decimal = 0,
         plannedCumulative: Decimal,
         confirmedCumulative: Decimal,
+        projectedCumulative: Decimal? = nil,
         lines: [SavingsGoalPlanLine]
     ) {
         self.month = month
@@ -102,6 +109,7 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
         self.remainingPlannedWithdrawalAmount = remainingPlannedWithdrawalAmount
         self.plannedCumulative = plannedCumulative
         self.confirmedCumulative = confirmedCumulative
+        self.projectedCumulative = projectedCumulative
         self.lines = lines
     }
 
@@ -133,6 +141,10 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
         ) ?? 0
         plannedCumulative = try container.decode(Decimal.self, forKey: .plannedCumulative)
         confirmedCumulative = try container.decode(Decimal.self, forKey: .confirmedCumulative)
+        projectedCumulative = try container.decodeIfPresent(
+            Decimal.self,
+            forKey: .projectedCumulative
+        )
         lines = try container.decode([SavingsGoalPlanLine].self, forKey: .lines)
     }
 
@@ -140,7 +152,7 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
         case month, year, state, isLocked, isContributionEligible, hasBudget, isProvisionable
         case plannedAmount, confirmedAmount, withdrawnAmount
         case plannedWithdrawalAmount, remainingPlannedWithdrawalAmount
-        case plannedCumulative, confirmedCumulative, lines
+        case plannedCumulative, confirmedCumulative, projectedCumulative, lines
     }
 
     /// Stable period key (`year * 12 + month`) — also the `ForEach` identity.

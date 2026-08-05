@@ -5,13 +5,14 @@ import SwiftUI
 extension BudgetLineDetailPage {
     @ViewBuilder
     func contextualLinksSection(for line: BudgetLine) -> some View {
-        if hasSavingsGoalLink(for: line) || line.isSpread {
+        if hasSavingsGoalLink(for: line) || line.isSpread || line.savingsGoalSource != nil {
             Section {
                 // Both links live in one row: each `ContextLinkRow` carries its
                 // own card, so the List only has to stay out of the way — a
                 // default row background would paint the system band back in.
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
                     savingsGoalLink(for: line)
+                    savingsGoalSourceLink(for: line)
 
                     if let spreadGroupId = line.spreadGroupId {
                         SpreadAffordanceButton(kind: line.kind) {
@@ -60,6 +61,40 @@ extension BudgetLineDetailPage {
                 accessibilityHint: "Touche pour ouvrir l'objectif",
                 action: { router.pushSavingsGoal(goal) }
             )
+        }
+    }
+
+    /// PUL-329 v2 — the goal an income forecast announces a withdrawal FROM, the
+    /// opposite direction of the link above. Same read-only treatment as the
+    /// transaction editor's origin row: fixed at creation, and neutral once the
+    /// goal is gone.
+    @ViewBuilder
+    func savingsGoalSourceLink(for line: BudgetLine) -> some View {
+        if let source = line.savingsGoalSource {
+            switch source {
+            case .active(let goalId, _):
+                ContextLinkRow(
+                    icon: source.icon,
+                    iconTint: .financialSavings,
+                    title: source.label,
+                    accessibilityLabel: source.accessibilityLabel,
+                    accessibilityHint: "Touche pour ouvrir l'objectif",
+                    action: {
+                        guard let goal = linkedGoal(id: goalId) else { return }
+                        router.pushSavingsGoal(goal)
+                    }
+                )
+            case .broken:
+                // No action, no chevron: a row that looked navigable would promise
+                // a screen that cannot open.
+                ContextLinkRow(
+                    icon: source.icon,
+                    iconTint: .textTertiary,
+                    title: source.label,
+                    detail: SavingsGoalSource.brokenExplanation,
+                    accessibilityLabel: source.accessibilityLabel
+                )
+            }
         }
     }
 

@@ -14,7 +14,8 @@ extension BudgetDetailsCoordinator {
     func bind(
         budgetListStore: BudgetListStore,
         dashboardStore: DashboardStore,
-        currentMonthStore: CurrentMonthStore
+        currentMonthStore: CurrentMonthStore,
+        savingsGoalStore: SavingsGoalStore
     ) {
         dataStore.onMutation = {
             budgetListStore.invalidateCache()
@@ -23,6 +24,11 @@ extension BudgetDetailsCoordinator {
             // (a cross-month spread especially) — invalidate it too so the
             // CurrentMonth tab refetches instead of serving a stale 30s-TTL copy.
             currentMonthStore.invalidateCache()
+            // Goals read the same budget lines: a linked saving moves the plan,
+            // and realizing an announced withdrawal (PUL-329 v2) moves the
+            // balance itself. Stating it here rather than at each mutation site
+            // keeps the one-fact seam intact.
+            savingsGoalStore.invalidateCache()
         }
     }
 

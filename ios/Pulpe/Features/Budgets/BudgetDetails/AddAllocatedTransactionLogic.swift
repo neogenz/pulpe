@@ -17,6 +17,38 @@ enum AddAllocatedTransactionLogic {
         let tagIds: [String]?
     }
 
+    /// Realizing an announced withdrawal (PUL-329 v2) is copying the forecast:
+    /// its name and what is left to take out are prefilled, the real amount stays
+    /// free to diverge. `nil` on any other line, which starts empty as before.
+    struct RealizationPrefill: Equatable {
+        let goalSource: SavingsGoalSource
+        let name: String
+        /// `max(0, annoncé − Σ réels alloués)`, `nil` once the forecast is fully
+        /// covered — a further real income is legitimate, but nothing suggests
+        /// an amount for it.
+        let remainingAmount: Decimal?
+    }
+
+    /// `consumption` comes from the projector's per-line index, like every other
+    /// derived figure this feature shows — the sum is computed once per source
+    /// change, never re-scanned per screen.
+    static func realizationPrefill(
+        for line: BudgetLine,
+        consumption: BudgetFormulas.Consumption
+    ) -> RealizationPrefill? {
+        // A broken source (goal deleted) can no longer be realized: the server
+        // has nothing left to debit, so the line is an ordinary forecast again.
+        guard line.isPlannedSavingsWithdrawal, let goalSource = line.savingsGoalSource else {
+            return nil
+        }
+        let remaining = line.amount - consumption.allocated
+        return RealizationPrefill(
+            goalSource: goalSource,
+            name: line.name,
+            remainingAmount: remaining > 0 ? remaining : nil
+        )
+    }
+
     static func isFormValid(name: String, amount: Decimal?, isLoading: Bool) -> Bool {
         guard let amount, amount > 0 else { return false }
         return !name.trimmingCharacters(in: .whitespaces).isEmpty && !isLoading
