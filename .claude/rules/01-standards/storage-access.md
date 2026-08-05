@@ -1,6 +1,9 @@
 ---
 description: Storage access must go through StorageService
-paths: "frontend/**/feature/**/*.ts, frontend/**/pattern/**/*.ts, frontend/**/core/storage/**"
+paths:
+  - "frontend/**/feature/**/*.ts"
+  - "frontend/**/pattern/**/*.ts"
+  - "frontend/**/core/storage/**"
 ---
 
 # Storage Access
