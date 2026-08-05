@@ -9,7 +9,13 @@ import {
 } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
+import {
+  AuthRetryableFetchError,
+  type AuthChangeEvent,
+  type Session,
+  type User,
+} from '@supabase/supabase-js';
+import type * as SupabaseJsModule from '@supabase/supabase-js';
 import { Router } from '@angular/router';
 import { AuthSessionService } from './auth-session.service';
 import { AuthStore } from './auth-store';
@@ -31,7 +37,8 @@ const { createClientMock } = vi.hoisted(() => ({
   createClientMock: vi.fn(),
 }));
 
-vi.mock('@supabase/supabase-js', () => ({
+vi.mock('@supabase/supabase-js', async (importOriginal) => ({
+  ...(await importOriginal<typeof SupabaseJsModule>()),
   createClient: createClientMock,
 }));
 
@@ -467,6 +474,25 @@ describe('AuthSessionService', () => {
 
     expect(result).toBe(false);
     expect(mockLogger.error).toHaveBeenCalled();
+  });
+
+  it('should reject when refreshSession fails transiently', async () => {
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    });
+    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
+      data: { subscription: { unsubscribe: vi.fn() } },
+    });
+    await service.initializeAuthState();
+
+    const error = new AuthRetryableFetchError('Network unavailable', 0);
+    mockSupabaseClient.auth.refreshSession.mockResolvedValue({
+      data: { session: null, user: null },
+      error,
+    });
+
+    await expect(service.refreshSession()).rejects.toBe(error);
   });
 
   describe('setSession', () => {
