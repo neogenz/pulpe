@@ -1138,6 +1138,7 @@
       "repairChip": "Épargne à ajouter",
       "noForecastChip": "Aucune épargne prévue",
       "withdrawnSoFar": "Retiré jusqu'ici",
+      "plannedWithdrawal": "Retrait prévu",
       "gapHint": "{{ count }} mois sans budget — ils s'ajouteront quand tu créeras ces budgets.",
       "repairTitle": "Tes nouveaux budgets sont prêts",
       "repairMessageOne": "{{ count }} prévision Épargne peut maintenant être ajoutée automatiquement.",

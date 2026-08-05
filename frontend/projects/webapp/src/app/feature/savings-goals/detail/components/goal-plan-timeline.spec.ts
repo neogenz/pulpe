@@ -459,6 +459,53 @@ describe('GoalPlanTimeline', () => {
     expect(withdrawalRow.nativeElement.textContent).toContain('Retiré');
   });
 
+  // An announcement takes nothing out yet, so it moves no contribution and no
+  // cumulative here — without a sub-line the month says nothing about the 500
+  // it plans to release, and the simulator's editable field would look like the
+  // place to type it.
+  it('states the announced withdrawal of a contributing month without offering to edit it', () => {
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({
+        month: 8,
+        plannedAmount: 450,
+        plannedCumulative: 3600,
+        plannedWithdrawalAmount: 500,
+        remainingPlannedWithdrawalAmount: 500,
+        projectedCumulative: 3100,
+      }),
+    ]);
+    setTestInput(fixture.componentInstance.editable, true);
+    setTestInput(fixture.componentInstance.expanded, true);
+    fixture.detectChanges();
+
+    const announced = query('goal-plan-row-planned-withdrawal');
+    expect(announced).toBeTruthy();
+    expect(announced.nativeElement.textContent).toContain('Retrait prévu');
+    // Signed and aggregated, like every other stock exit on this screen.
+    expect(announced.nativeElement.textContent).toContain('-500');
+    expect(announced.nativeElement.querySelector('input')).toBeNull();
+  });
+
+  // The gross announcement is what the month declares; the part already taken
+  // out lives in the confirmed stock. Keeping it gross is what stops the screen
+  // from telling the same 500 twice.
+  it('keeps announcing the gross amount once the withdrawal is realized', () => {
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({
+        month: 8,
+        plannedWithdrawalAmount: 500,
+        remainingPlannedWithdrawalAmount: 0,
+        withdrawnAmount: 500,
+      }),
+    ]);
+    setTestInput(fixture.componentInstance.expanded, true);
+    fixture.detectChanges();
+
+    expect(
+      query('goal-plan-row-planned-withdrawal').nativeElement.textContent,
+    ).toContain('-500');
+  });
+
   // Its lines are empty by construction, so the contribution chips would read
   // it as a month whose forecast is missing. Nothing is missing: this month
   // was never meant to contribute.

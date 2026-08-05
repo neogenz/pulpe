@@ -44,6 +44,13 @@ interface GoalPlanTimelineRow {
    */
   isWithdrawalOnly: boolean;
   withdrawn: number;
+  /**
+   * Ce que le mois ANNONCE sortir (PUL-329 v2). Somme brute, affichage seul :
+   * la part déjà réalisée vit dans le confirmé et le reliquat est ce que la
+   * projection retranche — la sous-ligne, elle, dit seulement « ce mois prévoit
+   * de sortir 500 ». Non éditable : le simulateur n'ajuste que les contributions.
+   */
+  plannedWithdrawal: number;
 }
 
 interface GoalPlanTimelineVisibleRow extends GoalPlanTimelineRow {
@@ -143,6 +150,15 @@ const WINDOW_OPEN_ROWS = 3;
             >
               &rarr; {{ row.cumulative | appCurrency: currency() : '1.0-0' }}
             </span>
+            @if (row.plannedWithdrawal > 0) {
+              <span
+                class="ph-no-capture text-body-small text-on-surface-variant tabular-nums"
+                data-testid="goal-plan-row-planned-withdrawal"
+              >
+                {{ 'savingsGoals.plan.plannedWithdrawal' | transloco }} ·
+                {{ -row.plannedWithdrawal | appCurrency: currency() : '1.0-0' }}
+              </span>
+            }
           </div>
 
           @if (row.isWithdrawalOnly) {
@@ -341,6 +357,7 @@ export class GoalPlanTimeline {
           : month.plannedCumulative,
         isWithdrawalOnly: month.isContributionEligible === false,
         withdrawn: month.withdrawnAmount ?? 0,
+        plannedWithdrawal: month.plannedWithdrawalAmount ?? 0,
       };
     });
   });
