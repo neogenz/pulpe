@@ -1,5 +1,5 @@
 import { inject, Service } from '@angular/core';
-import { utils, type WorkBook } from 'xlsx';
+import type { Cell, Row } from 'write-excel-file/browser';
 import type {
   SupportedCurrency,
   BudgetExportResponse,
@@ -11,6 +11,7 @@ import type {
 } from 'pulpe-shared';
 import { UserSettingsStore } from '@core/user-settings';
 import { TagStore } from '@core/tag';
+import { type ExcelSheet } from '@core/file-download';
 
 const KIND_LABELS: Record<TransactionKind, string> = {
   income: 'Revenu',
@@ -43,19 +44,13 @@ const CURRENCY_EXCEL_FORMATS: Record<SupportedCurrency, string> = {
   EUR: '"€" #,##0.00',
 };
 
-interface CurrencyCell {
-  t: 'n';
-  v: number;
-  z: string;
-}
-
-interface FormulaCell {
-  t: 'n';
-  f: string;
-  z: string;
-}
-
-type CellValue = string | number | CurrencyCell | FormulaCell;
+const COLUMN_WIDTHS = [
+  { width: 25 },
+  { width: 15 },
+  { width: 12 },
+  { width: 12 },
+  { width: 15 },
+];
 
 @Service()
 export class ExcelExportService {
@@ -66,28 +61,15 @@ export class ExcelExportService {
     return CURRENCY_EXCEL_FORMATS[this.#userSettings.currency()];
   }
 
-  async buildWorkbook(response: BudgetExportResponse): Promise<WorkBook> {
+  async buildSheets(response: BudgetExportResponse): Promise<ExcelSheet[]> {
     await this.#tagStore.ensureLoaded();
-    const workbook = utils.book_new();
     const budgets = response.data?.budgets ?? [];
 
-    for (const budget of budgets) {
-      const sheetName = this.#formatSheetName(budget.month, budget.year);
-      const sheetData = this.#buildSheetData(budget);
-      const worksheet = utils.aoa_to_sheet(sheetData);
-
-      worksheet['!cols'] = [
-        { wch: 25 },
-        { wch: 15 },
-        { wch: 12 },
-        { wch: 12 },
-        { wch: 15 },
-      ];
-
-      utils.book_append_sheet(workbook, worksheet, sheetName);
-    }
-
-    return workbook;
+    return budgets.map((budget) => ({
+      sheet: this.#formatSheetName(budget.month, budget.year),
+      columns: COLUMN_WIDTHS,
+      data: this.#buildSheetData(budget),
+    }));
   }
 
   #formatSheetName(month: number, year: number): string {
@@ -95,8 +77,8 @@ export class ExcelExportService {
     return `${paddedMonth}-${year}`;
   }
 
-  #buildSheetData(budget: BudgetWithDetails): CellValue[][] {
-    const rows: CellValue[][] = [];
+  #buildSheetData(budget: BudgetWithDetails): Row[] {
+    const rows: Row[] = [];
 
     const monthName = MONTH_NAMES[budget.month - 1] ?? `Mois ${budget.month}`;
     rows.push([`BUDGET ${monthName.toUpperCase()} ${budget.year}`]);
@@ -147,7 +129,7 @@ export class ExcelExportService {
     return rows;
   }
 
-  #formatBudgetLine(line: BudgetLine): CellValue[] {
+  #formatBudgetLine(line: BudgetLine): Row {
     return [
       this.#escapeFormulaInjection(line.name ?? ''),
       this.#currencyCell(line.amount),
@@ -156,7 +138,7 @@ export class ExcelExportService {
     ];
   }
 
-  #formatTransaction(transaction: Transaction): CellValue[] {
+  #formatTransaction(transaction: Transaction): Row {
     return [
       this.#formatDate(transaction.transactionDate),
       this.#escapeFormulaInjection(transaction.name ?? ''),
@@ -175,12 +157,13 @@ export class ExcelExportService {
       .join(', ');
   }
 
-  #currencyCell(amount: number): CurrencyCell {
-    return { t: 'n', v: amount, z: this.#currencyFormat };
+  #currencyCell(amount: number): Cell {
+    return { type: Number, value: amount, format: this.#currencyFormat };
   }
 
-  #formulaCell(formula: string): FormulaCell {
-    return { t: 'n', f: formula, z: this.#currencyFormat };
+  // No leading `=`: the library writes the string straight into the `<f>` tag.
+  #formulaCell(formula: string): Cell {
+    return { type: 'Formula', value: formula, format: this.#currencyFormat };
   }
 
   #formatDate(isoDate: string): string {

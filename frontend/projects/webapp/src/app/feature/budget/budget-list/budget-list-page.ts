@@ -289,8 +289,8 @@ export default class BudgetListPage {
     return this.#executeExport({
       isLoadingSignal: this.isExportingExcel,
       download: async (data) => {
-        const workbook = await this.#excelExportService.buildWorkbook(data);
-        downloadAsExcelFile(workbook, `pulpe-export-${today}`);
+        const sheets = await this.#excelExportService.buildSheets(data);
+        await downloadAsExcelFile(sheets, `pulpe-export-${today}`);
       },
       successKey: 'budget.exportExcelDone',
       errorKey: 'budget.exportExcelError',

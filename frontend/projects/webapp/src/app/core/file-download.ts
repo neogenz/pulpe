@@ -1,4 +1,12 @@
-import { writeFileXLSX, type WorkBook } from 'xlsx';
+import writeXlsxFile, { type Sheet } from 'write-excel-file/browser';
+
+/**
+ * A sheet as `write-excel-file` consumes it. The library parameterises `Sheet`
+ * by the type its `images` option accepts, which differs between its node and
+ * browser builds; we never attach images, so the parameter only has to satisfy
+ * the browser signature.
+ */
+export type ExcelSheet = Sheet<Blob>;
 
 /**
  * Downloads data as a JSON file
@@ -23,13 +31,13 @@ export function downloadAsJsonFile(data: unknown, filename: string): void {
 }
 
 /**
- * Downloads a workbook as an Excel file
- * @param workbook - The xlsx WorkBook to export
+ * Downloads sheets as an Excel file
+ * @param sheets - The sheets to write, one per workbook tab
  * @param filename - The filename (without extension)
  */
-export function downloadAsExcelFile(
-  workbook: WorkBook,
+export async function downloadAsExcelFile(
+  sheets: ExcelSheet[],
   filename: string,
-): void {
-  writeFileXLSX(workbook, `${filename}.xlsx`);
+): Promise<void> {
+  await writeXlsxFile(sheets).toFile(`${filename}.xlsx`);
 }
