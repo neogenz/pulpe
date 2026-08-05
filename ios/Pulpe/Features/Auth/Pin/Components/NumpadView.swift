@@ -5,7 +5,6 @@ struct NumpadView: View {
     let onDigit: (Int) -> Void
     let onDelete: () -> Void
     var onBiometric: (() -> Void)?
-    var onConfirm: (() -> Void)?
     var isDisabled: Bool = false
 
     var body: some View {
@@ -33,10 +32,10 @@ struct NumpadView: View {
         ]
     }
 
+    // No confirm key: every PIN screen submits on its own once the last digit
+    // lands, so this slot only ever carries biometrics or nothing.
     private var bottomLeftItem: NumpadItem {
-        if onConfirm != nil { return .confirm }
-        if onBiometric != nil { return .biometric }
-        return .empty
+        onBiometric != nil ? .biometric : .empty
     }
 
     // MARK: - Button Rendering
@@ -63,16 +62,6 @@ struct NumpadView: View {
                     .foregroundStyle(Color.pinText)
             }
             .accessibilityLabel(BiometricService.shared.biometryDisplayName)
-
-        case .confirm:
-            NumpadButton(isDisabled: isDisabled) {
-                onConfirm?()
-            } label: {
-                Image(systemName: "checkmark")
-                    .font(PulpeTypography.title2)
-                    .foregroundStyle(Color.pinText)
-            }
-            .accessibilityLabel("Confirmer")
 
         case .delete:
             NumpadButton(isDisabled: isDisabled) {
@@ -105,7 +94,6 @@ struct NumpadView: View {
 private enum NumpadItem: Hashable, Identifiable {
     case digit(Int)
     case biometric
-    case confirm
     case delete
     case empty
 
@@ -113,7 +101,6 @@ private enum NumpadItem: Hashable, Identifiable {
         switch self {
         case .digit(let number): "digit-\(number)"
         case .biometric: "biometric"
-        case .confirm: "confirm"
         case .delete: "delete"
         case .empty: "empty"
         }

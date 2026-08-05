@@ -85,9 +85,6 @@ struct ChangePinView: View {
             NumpadView(
                 onDigit: { viewModel.appendDigit($0) },
                 onDelete: { viewModel.deleteLastDigit() },
-                onConfirm: viewModel.canConfirm ? {
-                    Task { await viewModel.confirm() }
-                } : nil,
                 isDisabled: viewModel.isProcessing || viewModel.isError
             )
 
@@ -149,10 +146,6 @@ final class ChangePinViewModel {
 
     let pinLength = PinConstants.length
 
-    var canConfirm: Bool {
-        digits.count == pinLength && !isProcessing
-    }
-
     var stepLabel: String {
         switch step {
         case .enterOldPin: "Étape 1 sur 2"
@@ -194,6 +187,11 @@ final class ChangePinViewModel {
     func appendDigit(_ digit: Int) {
         guard digits.count < pinLength, !isProcessing, !isError else { return }
         digits.append(digit)
+
+        guard digits.count == pinLength else { return }
+        // Locks the numpad for the whole auto-submission, settle beat included.
+        isProcessing = true
+        Task { await autoSubmit() }
     }
 
     func deleteLastDigit() {
@@ -202,9 +200,11 @@ final class ChangePinViewModel {
         clearError()
     }
 
-    func confirm() async {
-        guard canConfirm else { return }
-        isProcessing = true
+    /// Lets the last dot land on screen before the step swaps or the error
+    /// fires — the beat the validate button used to provide.
+    private func autoSubmit() async {
+        defer { isProcessing = false }
+        try? await Task.sleep(for: DesignTokens.Animation.pinAutoSubmitSettle)
         await handlePinComplete()
     }
 

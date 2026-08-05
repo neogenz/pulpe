@@ -158,6 +158,18 @@ extension View {
     func pulpeBackground() -> some View {
         modifier(PulpeBackgroundModifier())
     }
+
+    /// Applied to an action menu's content so each row's SF Symbol matches its
+    /// own title colour. `MainTabView` tints the whole app `Color.pulpePrimary`,
+    /// and SwiftUI paints menu icons with that tint while leaving titles at the
+    /// label colour — green pictos next to black text. A row that carries its
+    /// own colour (`DeleteMenuButton`) overrides this with a nearer `.tint`.
+    ///
+    /// Not for selection menus: a tinted `checkmark` is the system convention
+    /// there, and neutralising it would read as "nothing selected".
+    func pulpeMenuContent() -> some View {
+        tint(Color.textPrimary)
+    }
 }
 
 // MARK: - Background Modifiers

@@ -284,6 +284,11 @@ enum DesignTokens {
             .easeOut(duration: fast)
         }
 
+        /// Beat between the last PIN digit landing and the auto-submission that
+        /// follows it. Without it the final dot fills and clears in the same
+        /// frame, and the user never sees the code they just typed.
+        static let pinAutoSubmitSettle: Duration = .milliseconds(180)
+
         static let pulseDuration: Double = 0.6
 
         static var pulse: SwiftUI.Animation {
