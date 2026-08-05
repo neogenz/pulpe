@@ -23,6 +23,76 @@ export class BudgetDetailsPage {
       .getByTestId('savings-goal-source-line');
   }
 
+  /**
+   * PUL-329 v2 — annoncer un retrait, c'est créer une prévision `income` dont
+   * l'origine est un objectif. L'objectif se choisit après le montant : c'est
+   * lui que l'aperçu de projection retranche.
+   */
+  async openPlannedWithdrawalForm(name: string, amount: string): Promise<void> {
+    await this.page.getByTestId('add-budget-line-fab').click();
+    await expect(this.page.getByTestId('add-budget-line-dialog')).toBeVisible();
+    await this.page.getByTestId('new-line-name').fill(name);
+    await this.page.getByTestId('new-line-kind').click();
+    await this.page.getByRole('option').filter({ hasText: 'Revenu' }).click();
+    await this.page
+      .locator(
+        '[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]',
+      )
+      .fill(amount);
+    await this.page.getByTestId('new-line-income-origin').click();
+    await this.page
+      .getByRole('option')
+      .filter({ hasText: "Retrait d'un objectif" })
+      .click();
+  }
+
+  async selectPlannedWithdrawalGoal(goalName: string): Promise<void> {
+    await this.page
+      .getByTestId('savings-goal-planned-withdrawal-select')
+      .click();
+    await this.page
+      .getByRole('option')
+      .filter({ hasText: goalName })
+      .first()
+      .click();
+  }
+
+  async submitNewBudgetLine(): Promise<void> {
+    await this.page.getByTestId('add-new-line').click();
+    await expect(this.page.getByTestId('add-budget-line-dialog')).toBeHidden();
+  }
+
+  /**
+   * Ouvre le panneau d'une enveloppe en cliquant dessus — c'est là que vivent
+   * ses transactions allouées, invisibles depuis la grille.
+   */
+  async openEnvelopePanel(lineName: string): Promise<void> {
+    await this.page.getByText(lineName, { exact: true }).first().click();
+  }
+
+  /** L'aperçu « avant → après » du picker, à la période du budget. */
+  plannedWithdrawalPreview(): Locator {
+    return this.page.getByTestId('savings-goal-planned-withdrawal-preview');
+  }
+
+  /** La provenance affichée sur la prévision elle-même. */
+  budgetLineSource(lineId: string): Locator {
+    return this.page
+      .getByTestId(`envelope-source-goal-${lineId}`)
+      .getByTestId('savings-goal-source-line');
+  }
+
+  /**
+   * Le geste qui remplace le pointage sur un retrait annoncé : il ouvre la
+   * saisie du revenu réel, seul mouvement qui débite l'objectif.
+   */
+  async realizeWithdrawal(lineId: string): Promise<void> {
+    await this.page.getByTestId(`realize-withdrawal-${lineId}`).click();
+    await expect(
+      this.page.getByTestId('realize-withdrawal-context'),
+    ).toBeVisible();
+  }
+
   transactionDialogSourceLink(): Locator {
     return this.page.getByTestId('edit-transaction-source-link');
   }
