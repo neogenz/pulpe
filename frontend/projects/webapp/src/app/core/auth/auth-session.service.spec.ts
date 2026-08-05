@@ -661,6 +661,24 @@ describe('AuthSessionService', () => {
     expect(mockCleanup.performCleanup).toHaveBeenCalled();
   });
 
+  it('should clear local auth state when logout tracking throws', async () => {
+    const error = new Error('PostHog unavailable');
+    mockPostHog.captureEvent.mockImplementationOnce(() => {
+      throw error;
+    });
+
+    await service.signOut('user_initiated');
+
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'Erreur inattendue lors de la déconnexion:',
+      error,
+    );
+    expect(mockAuthStore.set).toHaveBeenCalledWith({
+      phase: 'unauthenticated',
+    });
+    expect(mockCleanup.performCleanup).toHaveBeenCalled();
+  });
+
   it('should sign out in E2E mode and apply unauthenticated state', async () => {
     const mockE2EState = {
       user: mockSession.user,
