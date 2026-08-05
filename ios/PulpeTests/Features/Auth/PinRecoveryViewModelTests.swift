@@ -31,7 +31,7 @@ struct PinRecoveryViewModelTests {
         #expect(sut.showRecoveryKeyWarning == false)
         #expect(sut.recoveryKeyInput.isEmpty)
         #expect(sut.isRecoveryKeyValid == false)
-        #expect(sut.canConfirm == false)
+        #expect(sut.digits.isEmpty)
     }
 
     // MARK: - updateRecoveryKey
@@ -183,24 +183,24 @@ struct PinRecoveryViewModelTests {
         #expect(sut.errorMessage == nil)
     }
 
-    // MARK: - canConfirm
+    // MARK: - auto-submission
 
-    @Test func canConfirm_falseWithLessThanPinLength() {
+    @Test func appendDigit_atPinLength_locksAndAdvancesStep() async {
         let sut = makeSUT()
         advanceToCreatePin(sut)
+        let stepHapticBefore = sut.hapticStepAdvance
         for _ in 0..<(sut.pinLength - 1) {
             sut.appendDigit(1)
         }
-        #expect(sut.canConfirm == false)
-    }
+        #expect(sut.isProcessing == false)
 
-    @Test func canConfirm_trueAtPinLength() {
-        let sut = makeSUT()
-        advanceToCreatePin(sut)
-        for _ in 0..<sut.pinLength {
-            sut.appendDigit(1)
+        sut.appendDigit(1)
+        #expect(sut.isProcessing == true)
+
+        await waitForCondition("auto-submission never advanced the step") {
+            sut.step == .confirmPin
         }
-        #expect(sut.canConfirm == true)
+        #expect(sut.hapticStepAdvance != stepHapticBefore)
     }
 
     // MARK: - goBack
@@ -236,11 +236,11 @@ struct PinRecoveryViewModelTests {
         let sut = makeSUT()
         advanceToCreatePin(sut)
         for digit in [1, 2, 3, 4] { sut.appendDigit(digit) }
-        await sut.confirmPin()
+        await waitForCondition("auto-submission never settled") { !sut.isProcessing }
         #expect(sut.step == .confirmPin)
 
         for digit in [5, 6, 7, 8] { sut.appendDigit(digit) }
-        await sut.confirmPin()
+        await waitForCondition("auto-submission never settled") { !sut.isProcessing }
         #expect(sut.errorMessage == "Les codes ne correspondent pas")
         #expect(sut.step == .confirmPin)
     }
@@ -251,7 +251,7 @@ struct PinRecoveryViewModelTests {
         let sut = makeSUT()
         advanceToCreatePin(sut)
         for digit in [1, 2, 3, 4] { sut.appendDigit(digit) }
-        await sut.confirmPin()
+        await waitForCondition("auto-submission never settled") { !sut.isProcessing }
         #expect(sut.step == .confirmPin)
 
         sut.goBack()
@@ -306,10 +306,10 @@ struct PinRecoveryFlowTests {
         sut.submitRecoveryKey()
         // createPin step
         for digit in [1, 2, 3, 4] { sut.appendDigit(digit) }
-        await sut.confirmPin()
+        await waitForCondition("auto-submission never settled") { !sut.isProcessing }
         // confirmPin step (matching)
         for digit in [1, 2, 3, 4] { sut.appendDigit(digit) }
-        await sut.confirmPin()
+        await waitForCondition("auto-submission never settled") { !sut.isProcessing }
     }
 
     @Test("successful recovery stores key and shows recovery sheet")
@@ -414,9 +414,9 @@ struct PinRecoveryErrorHandlingTests {
         sut.updateRecoveryKey(Self.validRecoveryKey)
         sut.submitRecoveryKey()
         for digit in [1, 2, 3, 4] { sut.appendDigit(digit) }
-        await sut.confirmPin()
+        await waitForCondition("auto-submission never settled") { !sut.isProcessing }
         for digit in [1, 2, 3, 4] { sut.appendDigit(digit) }
-        await sut.confirmPin()
+        await waitForCondition("auto-submission never settled") { !sut.isProcessing }
     }
 
     @Test("validationError resets to recovery key step (key is invalid)")
@@ -527,12 +527,12 @@ struct PinRecoveryErrorHandlingTests {
         result.sut.updateRecoveryKey(Self.validRecoveryKey)
         result.sut.submitRecoveryKey()
         for digit in [1, 2, 3, 4] { result.sut.appendDigit(digit) }
-        await result.sut.confirmPin()
+        await waitForCondition("auto-submission never settled") { !result.sut.isProcessing }
         #expect(result.sut.step == .confirmPin, "Setup: should be on confirmPin after createPin")
 
         // Trigger recovery which fails with rateLimited
         for digit in [1, 2, 3, 4] { result.sut.appendDigit(digit) }
-        await result.sut.confirmPin()
+        await waitForCondition("auto-submission never settled") { !result.sut.isProcessing }
 
         // rateLimited: retryFromCurrentStep keeps firstPin and recoveryKey
         #expect(result.sut.step == .confirmPin, "Should stay on confirmPin for retry")
