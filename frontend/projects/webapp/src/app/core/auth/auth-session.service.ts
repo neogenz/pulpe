@@ -195,9 +195,12 @@ export class AuthSessionService {
         return;
       }
 
-      const { error } = await this.#supabaseClient.auth.signOut();
+      // Global scope revokes iOS sessions; device-wide revocation is handled server-side by signOutGlobally.
+      const { error } = await this.#supabaseClient.auth.signOut({
+        scope: 'local',
+      });
       if (error) {
-        this.#logger.error('Erreur lors de la déconnexion globale:', error);
+        this.#logger.error('Erreur lors de la déconnexion locale:', error);
       }
     } catch (error) {
       this.#logger.error('Erreur inattendue lors de la déconnexion:', error);

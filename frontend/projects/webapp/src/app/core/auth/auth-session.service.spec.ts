@@ -613,7 +613,9 @@ describe('AuthSessionService', () => {
 
     await service.signOut();
 
-    expect(mockSupabaseClient.auth.signOut).toHaveBeenCalled();
+    expect(mockSupabaseClient.auth.signOut).toHaveBeenCalledWith({
+      scope: 'local',
+    });
     expect(mockAuthStore.set).toHaveBeenCalledWith({
       phase: 'unauthenticated',
     });
