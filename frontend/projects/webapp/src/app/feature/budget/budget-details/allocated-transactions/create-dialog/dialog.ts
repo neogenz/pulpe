@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   inject,
+  signal,
   viewChild,
 } from '@angular/core';
 import {
@@ -19,8 +20,14 @@ import {
   type CreateAllocatedTransactionFormData,
 } from './form';
 
-export type CreateAllocatedTransactionDialogData =
-  CreateAllocatedTransactionFormData;
+export interface CreateAllocatedTransactionDialogData extends CreateAllocatedTransactionFormData {
+  /**
+   * PUL-329 v2 — la boîte soumet elle-même et attend le verdict ; elle ne se
+   * ferme que sur `null` (succès). Un refus (solde d'objectif insuffisant)
+   * renvoie sa raison localisée et la saisie reste à l'écran, intacte.
+   */
+  submit: (transaction: TransactionCreate) => Promise<string | null>;
+}
 
 @Component({
   selector: 'pulpe-create-allocated-transaction-dialog',
@@ -47,14 +54,29 @@ export type CreateAllocatedTransactionDialogData =
       />
     </mat-dialog-content>
 
+    @if (submitError(); as error) {
+      <p
+        role="alert"
+        class="text-error text-body-small px-6 pb-2"
+        data-testid="transaction-submit-error"
+      >
+        {{ error }}
+      </p>
+    }
+
     <mat-dialog-actions align="end">
-      <button matButton (click)="cancel()" data-testid="cancel-transaction">
+      <button
+        matButton
+        (click)="cancel()"
+        [disabled]="isSubmitting()"
+        data-testid="cancel-transaction"
+      >
         {{ 'common.cancel' | transloco }}
       </button>
       <button
         matButton="filled"
         (click)="submit()"
-        [disabled]="!form.canSubmit()"
+        [disabled]="!form.canSubmit() || isSubmitting()"
         data-testid="save-transaction"
       >
         <mat-icon>add</mat-icon>
@@ -72,6 +94,9 @@ export class CreateAllocatedTransactionDialog {
   protected readonly form =
     viewChild.required<CreateAllocatedTransactionForm>('form');
 
+  protected readonly isSubmitting = signal(false);
+  protected readonly submitError = signal<string | null>(null);
+
   cancel(): void {
     this.#dialogRef.close();
   }
@@ -80,7 +105,21 @@ export class CreateAllocatedTransactionDialog {
     void this.form().submit();
   }
 
-  onCreated(tx: TransactionCreate): void {
-    this.#dialogRef.close(tx);
+  async onCreated(tx: TransactionCreate): Promise<void> {
+    // Re-entry guard mirrors runFormSubmit: a second submit arriving before
+    // the disabled button re-renders is dropped.
+    if (this.isSubmitting()) return;
+    this.isSubmitting.set(true);
+    this.submitError.set(null);
+    try {
+      const error = await this.data.submit(tx);
+      if (error) {
+        this.submitError.set(error);
+        return;
+      }
+      this.#dialogRef.close(tx);
+    } finally {
+      this.isSubmitting.set(false);
+    }
   }
 }

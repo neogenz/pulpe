@@ -17,6 +17,7 @@ import { AppCurrencyPipe, FormatConversionPipe } from '@core/currency';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { SpreadBadge } from '@ui/spread-badge';
 import { SavingsWithdrawalBadge } from '@ui/savings-withdrawal-badge';
+import { SavingsGoalSourceLine } from '@ui/savings-goal-source/savings-goal-source-line';
 import { TagIndicator } from '@ui/tag-indicator';
 import { FinancialLineCard } from '@pattern/financial-line-card';
 import { OriginalAmountLine } from '@ui/original-amount-line';
@@ -44,6 +45,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
     BudgetActionMenu,
     SpreadBadge,
     SavingsWithdrawalBadge,
+    SavingsGoalSourceLine,
     TagIndicator,
   ],
   template: `
@@ -174,6 +176,15 @@ import { BudgetActionMenu } from '../budget-action-menu';
           </div>
         }
 
+        @if (item().data.sourceSavingsGoalName; as sourceName) {
+          <pulpe-savings-goal-source-line
+            class="text-label-small mb-3 max-w-full"
+            [goalId]="item().data.sourceSavingsGoalId"
+            [goalName]="sourceName"
+            [attr.data-testid]="'envelope-source-goal-' + item().data.id"
+          />
+        }
+
         @if (item().metadata.savingsWithdrawalOriginLabel; as originLabel) {
           <div
             class="flex items-center gap-1 min-w-0 mb-3 text-on-surface-variant"
@@ -274,19 +285,36 @@ import { BudgetActionMenu } from '../budget-action-menu';
           <mat-icon>add</mat-icon>
         </button>
 
-        <mat-slide-toggle
-          [checked]="!!item().data.checkedAt"
-          (change)="toggleCheck.emit(item().data.id)"
-          (click)="$event.stopPropagation()"
-          [attr.data-testid]="'toggle-check-' + item().data.id"
-          [attr.aria-label]="
-            item().data.checkedAt
-              ? ('budgetLine.uncheckLabel'
-                | transloco: { name: item().data.name })
-              : ('budgetLine.checkLabel'
-                | transloco: { name: item().data.name })
-          "
-        />
+        <!--
+          Un retrait annoncé ne se pointe pas : il se réalise en saisissant le
+          revenu réel. Même sortie que la bascule — le conteneur tranche.
+        -->
+        @if (item().metadata.sourceWithdrawalCtaKey; as ctaKey) {
+          <button
+            matIconButton
+            class="text-primary"
+            (click)="toggleCheck.emit(item().data.id); $event.stopPropagation()"
+            [matTooltip]="ctaKey | transloco: { name: item().data.name }"
+            [attr.aria-label]="ctaKey | transloco: { name: item().data.name }"
+            [attr.data-testid]="'realize-withdrawal-' + item().data.id"
+          >
+            <mat-icon>price_check</mat-icon>
+          </button>
+        } @else {
+          <mat-slide-toggle
+            [checked]="!!item().data.checkedAt"
+            (change)="toggleCheck.emit(item().data.id)"
+            (click)="$event.stopPropagation()"
+            [attr.data-testid]="'toggle-check-' + item().data.id"
+            [attr.aria-label]="
+              item().data.checkedAt
+                ? ('budgetLine.uncheckLabel'
+                  | transloco: { name: item().data.name })
+                : ('budgetLine.checkLabel'
+                  | transloco: { name: item().data.name })
+            "
+          />
+        }
       </ng-container>
     </pulpe-financial-line-card>
   `,

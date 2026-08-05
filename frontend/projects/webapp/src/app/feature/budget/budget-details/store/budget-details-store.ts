@@ -38,6 +38,7 @@ import {
   type TransactionListResponse,
   type TransactionPostponeResponse,
   type TransactionUpdate,
+  API_ERROR_CODES,
   BudgetFormulas,
   compareBudgetPeriods,
   getBudgetPeriodForDate,
@@ -178,6 +179,13 @@ function rewindRows<T extends { id: string }>(
 
   return rewound;
 }
+
+// PUL-329 — refus qui rendent périmé le solde d'objectif affiché au moment de
+// la saisie ; la prochaine lecture doit repartir du serveur.
+const WITHDRAWAL_ERROR_CODES = new Set<string>([
+  API_ERROR_CODES.SAVINGS_GOAL_WITHDRAWAL_INSUFFICIENT_BALANCE,
+  API_ERROR_CODES.SAVINGS_GOAL_WITHDRAWAL_CONFLICT,
+]);
 
 const BUDGET_DETAIL_INVALIDATION_KEYS: string[][] = [
   ['budget', 'details'],
@@ -1074,7 +1082,13 @@ export class BudgetDetailsStore {
       },
       onError: (error, _args, rewind) => {
         this.#rollback(rewind);
-        fail(this.#transloco.translate('budget.transactionCreateError'));
+        // PUL-329 v2 — réaliser un retrait annoncé débite l'objectif : le refus
+        // du serveur porte la vraie raison (solde insuffisant, conflit) et
+        // périme le solde affiché, qu'il faut relire avant la prochaine saisie.
+        fail(this.#localizeError(error, 'budget.transactionCreateError'));
+        if (isApiError(error) && WITHDRAWAL_ERROR_CODES.has(error.code ?? '')) {
+          this.#savingsGoalApi.cache.invalidate(['savings-goals']);
+        }
         this.#logUnexpectedFailure(
           'Allocated transaction create failed',
           error,

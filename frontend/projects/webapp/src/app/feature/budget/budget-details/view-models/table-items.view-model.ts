@@ -82,6 +82,13 @@ export interface TableItem {
      * `null` sinon. Rend le sous-titre « pris en {mois} ».
      */
     savingsWithdrawalOriginLabel?: string | null;
+    /**
+     * PUL-329 v2 — clé transloco du geste attendu sur un retrait ANNONCÉ, qui
+     * remplace le pointage : « réaliser » tant qu'il reste du prévu à sortir,
+     * « ajouter un autre revenu réel » une fois le prévu couvert. `null` pour
+     * toute autre ligne, qui garde sa bascule.
+     */
+    sourceWithdrawalCtaKey?: string | null;
   } & TableItemDisplayMetadata;
 }
 

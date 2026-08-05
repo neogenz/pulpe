@@ -33,6 +33,7 @@ import {
   type AmountFormSlice,
   createAmountSlice,
   CurrencyConverterService,
+  injectLiveConversionPreview,
   runFormSubmit,
   StaleRateNotifier,
 } from '@core/currency';
@@ -72,6 +73,14 @@ export interface BudgetLineDialogData {
 type EntryMode = 'single' | 'spread';
 type AmountMode = 'total' | 'perMonth';
 
+/**
+ * PUL-329 v2 — d'où vient un revenu, en un seul contrôle exclusif. Les deux
+ * bascules qui coexistaient (PUL-292 « je rembourse le mois prochain » et le
+ * retrait d'objectif) pouvaient être armées ensemble alors qu'elles décrivent
+ * deux provenances incompatibles.
+ */
+type IncomeOrigin = 'regular' | 'savingsGoal' | 'repayNextMonth';
+
 interface AddBudgetLineModel {
   name: string;
   kind: TransactionKind;
@@ -79,6 +88,7 @@ interface AddBudgetLineModel {
   isChecked: boolean;
   tagIds: string[];
   savingsGoalId: string | null;
+  sourceSavingsGoalId: string | null;
   money: AmountFormSlice;
 }
 
@@ -239,6 +249,45 @@ interface AddBudgetLineModel {
             />
           }
 
+          @if (model().kind === 'income') {
+            <mat-form-field
+              appearance="outline"
+              subscriptSizing="dynamic"
+              class="w-full"
+            >
+              <mat-label>{{
+                'budget.incomeOrigin.label' | transloco
+              }}</mat-label>
+              <mat-select
+                [value]="incomeOrigin()"
+                (selectionChange)="setIncomeOrigin($event.value)"
+                data-testid="new-line-income-origin"
+              >
+                <mat-option value="regular">{{
+                  'budget.incomeOrigin.regular' | transloco
+                }}</mat-option>
+                <mat-option value="savingsGoal">{{
+                  'budget.incomeOrigin.savingsGoal' | transloco
+                }}</mat-option>
+                <mat-option value="repayNextMonth">{{
+                  'budget.incomeOrigin.repayNextMonth' | transloco
+                }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            @if (incomeOrigin() === 'savingsGoal') {
+              <pulpe-savings-goal-picker-field
+                mode="plannedWithdrawal"
+                [value]="model().sourceSavingsGoalId"
+                [budgetPeriod]="budgetPeriod()"
+                [withdrawalAmount]="plannedWithdrawalAmount()"
+                (valueChanged)="
+                  model.update((m) => ({ ...m, sourceSavingsGoalId: $event }))
+                "
+              />
+            }
+          }
+
           @if (mode() === 'spread') {
             <div class="flex flex-col gap-4" data-testid="spread-section">
               <div class="flex gap-3">
@@ -367,30 +416,22 @@ interface AddBudgetLineModel {
                 {{ 'budget.savingsWithdrawal.cta' | transloco }}
               </button>
             }
-            @if (model().kind === 'income') {
+            <!--
+              Un retrait planifié naît non pointé : il se réalise en créant le
+              revenu réel, pas en cochant une case. Offrir la bascule ferait
+              croire l'inverse.
+            -->
+            @if (incomeOrigin() !== 'savingsGoal') {
               <div class="flex items-center justify-between py-2 px-1">
                 <span class="text-body-medium text-on-surface">{{
-                  'budget.savingsWithdrawal.repayToggle' | transloco
+                  'budget.forecastCheckedToggle' | transloco
                 }}</span>
                 <mat-slide-toggle
-                  [checked]="repayNextMonth()"
-                  (change)="repayNextMonth.set($event.checked)"
-                  [attr.aria-label]="
-                    'budget.savingsWithdrawal.repayToggle' | transloco
-                  "
-                  data-testid="repay-next-month-toggle"
+                  [formField]="addForm.isChecked"
+                  [attr.aria-label]="'budget.forecastCheckedToggle' | transloco"
                 />
               </div>
             }
-            <div class="flex items-center justify-between py-2 px-1">
-              <span class="text-body-medium text-on-surface">{{
-                'budget.forecastCheckedToggle' | transloco
-              }}</span>
-              <mat-slide-toggle
-                [formField]="addForm.isChecked"
-                [attr.aria-label]="'budget.forecastCheckedToggle' | transloco"
-              />
-            </div>
           }
         </div>
       </div>
@@ -474,6 +515,7 @@ export class AddBudgetLineDialog {
     isChecked: false,
     tagIds: [],
     savingsGoalId: null,
+    sourceSavingsGoalId: null,
     money: createAmountSlice({ initialCurrency: this.#settings.currency() }),
   });
 
@@ -517,10 +559,30 @@ export class AddBudgetLineDialog {
   // creating a duplicate. A new dialog = a new intent = a new key.
   readonly #spreadGroupId = crypto.randomUUID();
 
-  // PUL-292 — income-only toggle: when ON, submitting a Revenu doesn't create a
-  // plain line but hands a `savingsWithdrawal` prefill back so the caller opens
-  // the two-month withdrawal flow. Ignored for non-income kinds.
-  protected readonly repayNextMonth = signal(false);
+  // Income-only, exclusive. `repayNextMonth` (PUL-292) hands a
+  // `savingsWithdrawal` prefill back so the caller opens the two-month flow;
+  // `savingsGoal` (PUL-329 v2) creates a plain forecast carrying its source.
+  // Ignored for non-income kinds.
+  readonly #incomeOrigin = signal<IncomeOrigin>('regular');
+  protected readonly incomeOrigin = this.#incomeOrigin.asReadonly();
+
+  // Le contrôle porte sur le montant converti dans la devise du compte
+  // (RG-009), jamais sur la saisie étrangère — même règle que le retrait réel.
+  readonly #conversionPreview = injectLiveConversionPreview(
+    computed(() => this.model().money.amount),
+    computed(() => this.model().money.inputCurrency),
+    this.#settings.currency,
+  );
+
+  protected readonly plannedWithdrawalAmount = computed<number | null>(() => {
+    const { amount, inputCurrency } = this.model().money;
+    if (amount === null || amount <= 0) return null;
+    if (inputCurrency === this.#settings.currency()) return amount;
+    const preview = this.#conversionPreview();
+    if (preview.status !== 'ready' && preview.status !== 'fallback')
+      return null;
+    return preview.convertedAmount ?? null;
+  });
 
   readonly #start = signal<SpreadMonth>({
     year: this.#data.budgetYear,
@@ -643,6 +705,17 @@ export class AddBudgetLineDialog {
     if (kind !== 'saving') {
       this.model.update((model) => ({ ...model, savingsGoalId: null }));
     }
+    if (kind !== 'income') this.setIncomeOrigin('regular');
+  }
+
+  /** Une origine efface l'état des deux autres : elles s'excluent. */
+  protected setIncomeOrigin(origin: IncomeOrigin): void {
+    this.#incomeOrigin.set(origin);
+    this.model.update((model) => ({
+      ...model,
+      sourceSavingsGoalId: null,
+      isChecked: origin === 'savingsGoal' ? false : model.isChecked,
+    }));
   }
 
   protected setAmountMode(mode: AmountMode): void {
@@ -676,8 +749,16 @@ export class AddBudgetLineDialog {
     if (this.#mode() === 'spread') {
       return this.addForm().valid() && this.spreadError() === null;
     }
+    if (this.#isPlannedWithdrawal() && !this.model().sourceSavingsGoalId) {
+      return false;
+    }
     return this.addForm().valid();
   });
+
+  readonly #isPlannedWithdrawal = computed(
+    () =>
+      this.model().kind === 'income' && this.#incomeOrigin() === 'savingsGoal',
+  );
 
   protected async handleSubmit(): Promise<void> {
     if (this.#mode() === 'spread') {
@@ -685,7 +766,10 @@ export class AddBudgetLineDialog {
       return;
     }
     const lineDraft = this.model();
-    if (lineDraft.kind === 'income' && this.repayNextMonth()) {
+    if (
+      lineDraft.kind === 'income' &&
+      this.#incomeOrigin() === 'repayNextMonth'
+    ) {
       this.#dialogRef.close({
         mode: 'savingsWithdrawal',
         prefill: {
@@ -739,10 +823,15 @@ export class AddBudgetLineDialog {
               amount,
               kind: lineDraft.kind,
               recurrence: lineDraft.recurrence,
-              isChecked: lineDraft.isChecked,
+              isChecked: this.#isPlannedWithdrawal()
+                ? false
+                : lineDraft.isChecked,
               tagIds: lineDraft.tagIds,
               savingsGoalId:
                 lineDraft.kind === 'saving' ? lineDraft.savingsGoalId : null,
+              sourceSavingsGoalId: this.#isPlannedWithdrawal()
+                ? lineDraft.sourceSavingsGoalId
+                : null,
               conversion: metadata,
             }),
         };

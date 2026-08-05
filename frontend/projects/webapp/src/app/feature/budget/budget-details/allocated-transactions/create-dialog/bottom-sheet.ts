@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   inject,
+  signal,
   viewChild,
 } from '@angular/core';
 import {
@@ -14,10 +15,8 @@ import { TranslocoPipe } from '@jsverse/transloco';
 import { type TransactionCreate } from 'pulpe-shared';
 
 import { BlurOnVisibilityResumeDirective } from '@ui/blur-on-visibility-resume/blur-on-visibility-resume.directive';
-import {
-  CreateAllocatedTransactionForm,
-  type CreateAllocatedTransactionFormData,
-} from './form';
+import { CreateAllocatedTransactionForm } from './form';
+import { type CreateAllocatedTransactionDialogData } from './dialog';
 
 @Component({
   selector: 'pulpe-create-allocated-transaction-bottom-sheet',
@@ -56,14 +55,29 @@ import {
         (created)="onCreated($event)"
       />
 
+      @if (submitError(); as error) {
+        <p
+          role="alert"
+          class="text-error text-body-small"
+          data-testid="transaction-submit-error"
+        >
+          {{ error }}
+        </p>
+      }
+
       <div class="flex gap-3 pt-2">
-        <button matButton (click)="close()" class="flex-1">
+        <button
+          matButton
+          (click)="close()"
+          [disabled]="isSubmitting()"
+          class="flex-1"
+        >
           {{ 'common.cancel' | transloco }}
         </button>
         <button
           matButton="filled"
           (click)="submit()"
-          [disabled]="!form.canSubmit()"
+          [disabled]="!form.canSubmit() || isSubmitting()"
           class="flex-2"
         >
           <mat-icon>add</mat-icon>
@@ -83,11 +97,14 @@ export class CreateAllocatedTransactionBottomSheet {
   readonly #bottomSheetRef = inject(
     MatBottomSheetRef<CreateAllocatedTransactionBottomSheet, TransactionCreate>,
   );
-  readonly data = inject<CreateAllocatedTransactionFormData>(
+  readonly data = inject<CreateAllocatedTransactionDialogData>(
     MAT_BOTTOM_SHEET_DATA,
   );
   protected readonly form =
     viewChild.required<CreateAllocatedTransactionForm>('form');
+
+  protected readonly isSubmitting = signal(false);
+  protected readonly submitError = signal<string | null>(null);
 
   close(): void {
     this.#bottomSheetRef.dismiss();
@@ -97,7 +114,21 @@ export class CreateAllocatedTransactionBottomSheet {
     void this.form().submit();
   }
 
-  onCreated(tx: TransactionCreate): void {
-    this.#bottomSheetRef.dismiss(tx);
+  async onCreated(tx: TransactionCreate): Promise<void> {
+    // Re-entry guard mirrors runFormSubmit: a second submit arriving before
+    // the disabled button re-renders is dropped.
+    if (this.isSubmitting()) return;
+    this.isSubmitting.set(true);
+    this.submitError.set(null);
+    try {
+      const error = await this.data.submit(tx);
+      if (error) {
+        this.submitError.set(error);
+        return;
+      }
+      this.#bottomSheetRef.dismiss(tx);
+    } finally {
+      this.isSubmitting.set(false);
+    }
   }
 }

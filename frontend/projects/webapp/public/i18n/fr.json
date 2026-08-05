@@ -636,6 +636,12 @@
       "justBalanced": "Pile à l'équilibre",
       "tightMonth": "Ce mois sera serré — mais tu le sais"
     },
+    "incomeOrigin": {
+      "label": "Origine du revenu",
+      "regular": "Revenu habituel",
+      "savingsGoal": "Retrait d'un objectif",
+      "repayNextMonth": "Pris sur mon épargne, à remettre le mois prochain"
+    },
     "savingsGoalSource": {
       "activeLabel": "Pris sur",
       "brokenLabel": "Objectif supprimé",
@@ -683,6 +689,9 @@
   "budgetLine": {
     "checkLabel": "Pointer {{ name }}",
     "uncheckLabel": "Dépointer {{ name }}",
+    "realizeWithdrawal": "Réaliser le retrait de {{ name }}",
+    "addMoreWithdrawal": "Ajouter un autre revenu réel pour {{ name }}",
+    "remainingPlannedWithdrawal": "Montant restant prévu",
     "checked": "Déjà pointé",
     "savings": "Épargne",
     "expenses": "Dépenses",
@@ -1057,6 +1066,10 @@
     "withdrawalPickRequired": "Choisis l'objectif d'où vient cet argent.",
     "withdrawalInsufficient": "Ce montant dépasse ce que contient l'objectif.",
     "withdrawalCompletedNote": "Cet objectif reste atteint. Tu pourras le rouvrir depuis son détail.",
+    "plannedWithdrawalProjection": "Projection du mois",
+    "plannedWithdrawalOverProjection": "Ce montant dépasse ce que l'objectif devrait contenir ce mois-là. Tu peux quand même le planifier.",
+    "plannedWithdrawalNote": "Le retrait reste prévu. Le solde baisse quand le revenu réel est créé.",
+    "currentBalance": "Solde actuel",
     "nameRequired": "Le nom est requis",
     "targetAmountRequired": "Le montant cible doit être positif",
     "initialAmountNegative": "Le montant de départ ne peut pas être négatif",

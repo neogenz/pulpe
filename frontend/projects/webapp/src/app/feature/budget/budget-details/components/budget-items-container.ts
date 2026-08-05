@@ -19,6 +19,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { SearchBar } from '@ui/index';
 import {
   calculateAllEnrichedConsumptions,
+  calculateBudgetLineConsumption,
   type BudgetLineConsumption,
 } from '@core/budget';
 import { STORAGE_KEYS, StorageService } from '@core/storage';
@@ -52,6 +53,7 @@ import { BudgetViewToggle } from './budget-view-toggle';
 import { BudgetTableCheckedFilter } from './budget-table/budget-table-checked-filter';
 import { BudgetTagFilter } from './budget-table/budget-tag-filter';
 import { BudgetDetailsDialogService } from '../budget-details-dialog.service';
+import { type WithdrawalRealizationContext } from '../allocated-transactions/create-dialog/form';
 import {
   BudgetDetailsStore,
   type MutationOutcome,
@@ -582,6 +584,8 @@ export class BudgetItemsContainer {
       return;
     }
 
+    // PUL-329 v2 — la boîte soumet elle-même : un refus de solde y reste
+    // affiché avec la saisie intacte, et seule une création acceptée la ferme.
     const transaction =
       await this.#dialogService.openCreateAllocatedTransactionDialog(
         budgetLine,
@@ -591,15 +595,12 @@ export class BudgetItemsContainer {
           budgetYear: budget.year,
           payDayOfMonth: this.#userSettings.payDayOfMonth(),
         },
+        (tx) => this.store.createAllocatedTransaction(tx),
+        this.#withdrawalRealizationContext(budgetLine),
       );
 
     if (!transaction) return;
 
-    const error = await this.store.createAllocatedTransaction(transaction);
-    if (error) {
-      openMutationErrorSnackbar(error, this.#snackBar, this.#transloco);
-      return;
-    }
     this.#snackBar.open(
       this.#transloco.translate('budget.transactionAdded'),
       this.#transloco.translate('common.close'),
@@ -657,9 +658,41 @@ export class BudgetItemsContainer {
     );
   }
 
+  /**
+   * PUL-329 v2 — reste à sortir d'un retrait annoncé, `null` pour toute autre
+   * ligne. Une source orpheline garde son nom snapshot : le formulaire l'affiche
+   * sans pouvoir la rattacher.
+   */
+  #withdrawalRealizationContext(
+    budgetLine: BudgetLine,
+  ): WithdrawalRealizationContext | null {
+    if (!budgetLine.sourceSavingsGoalName) return null;
+    const details = this.store.budgetDetails();
+    const { remaining } = calculateBudgetLineConsumption(
+      budgetLine,
+      details?.transactions ?? [],
+    );
+    return {
+      goalId: budgetLine.sourceSavingsGoalId ?? null,
+      goalName: budgetLine.sourceSavingsGoalName,
+      remainingAmount: Math.max(0, remaining),
+    };
+  }
+
   protected async handleToggleCheck(budgetLineId: string): Promise<void> {
     const details = this.store.budgetDetails();
     if (!details) return;
+
+    // PUL-329 v2 — sur un retrait annoncé, le geste ne pointe pas la prévision :
+    // il ouvre la saisie du revenu réel, seul mouvement qui débite l'objectif.
+    // Une source orpheline retombe sur la bascule ordinaire, comme le backend.
+    const sourceLine = details.budgetLines.find(
+      (line) => line.id === budgetLineId && line.sourceSavingsGoalId,
+    );
+    if (sourceLine) {
+      await this.openCreateAllocatedTransactionDialog(sourceLine);
+      return;
+    }
 
     const behavior = determineCheckBehavior(
       budgetLineId,

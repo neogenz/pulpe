@@ -33,12 +33,29 @@ import type {
   template: `
     <div class="flex gap-1 justify-end items-center">
       @if (line().metadata.itemType === 'budget_line') {
-        <mat-slide-toggle
-          [checked]="!!line().data.checkedAt"
-          (change)="toggleCheck.emit(line().data.id)"
-          (click)="$event.stopPropagation()"
-          [attr.data-testid]="'toggle-check-' + line().data.id"
-        />
+        <!--
+          Un retrait annoncé ne se pointe pas : il se réalise en saisissant le
+          revenu réel. Même sortie que la bascule — le conteneur tranche.
+        -->
+        @if (line().metadata.sourceWithdrawalCtaKey; as ctaKey) {
+          <button
+            matIconButton
+            class="text-primary"
+            (click)="toggleCheck.emit(line().data.id); $event.stopPropagation()"
+            [matTooltip]="ctaKey | transloco: { name: line().data.name }"
+            [attr.aria-label]="ctaKey | transloco: { name: line().data.name }"
+            [attr.data-testid]="'realize-withdrawal-' + line().data.id"
+          >
+            <mat-icon>price_check</mat-icon>
+          </button>
+        } @else {
+          <mat-slide-toggle
+            [checked]="!!line().data.checkedAt"
+            (change)="toggleCheck.emit(line().data.id)"
+            (click)="$event.stopPropagation()"
+            [attr.data-testid]="'toggle-check-' + line().data.id"
+          />
+        }
       } @else if (line().metadata.itemType === 'transaction') {
         <mat-slide-toggle
           [checked]="!!line().data.checkedAt"

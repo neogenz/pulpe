@@ -45,11 +45,13 @@ const pickInSelect = (
 describe('SavingsGoalPickerField', () => {
   const getAll$ = vi.fn();
   const getWithdrawalOptions$ = vi.fn();
+  const getProgress$ = vi.fn();
   const payDayOfMonth = signal<number | null>(1);
 
   beforeEach(async () => {
     getAll$.mockReset();
     getWithdrawalOptions$.mockReset();
+    getProgress$.mockReset();
     payDayOfMonth.set(1);
     mockCache.get.mockReturnValue(null);
     mockCache.set.mockClear();
@@ -70,6 +72,7 @@ describe('SavingsGoalPickerField', () => {
             cache: mockCache,
             getAll$,
             getWithdrawalOptions$,
+            getProgress$,
           },
         },
         {
@@ -377,6 +380,111 @@ describe('SavingsGoalPickerField', () => {
           By.css('[data-testid="savings-goal-withdrawal-select"]'),
         ).attributes['required'],
       ).toBeDefined();
+    });
+  });
+
+  // PUL-329 v2 — announcing a withdrawal takes nothing out yet. The pot is
+  // judged on the projection of the budget's own period, and a shortfall only
+  // warns: money still has months to arrive.
+  describe('planned withdrawal', () => {
+    const AUGUST: BudgetPeriod = { year: 2026, month: 8 };
+
+    const progressWith = (
+      months: { year: number; month: number; projectedCumulative: number }[],
+      confirmed: number,
+    ) => ({
+      success: true,
+      data: { goalId: goal.id, confirmed, months },
+    });
+
+    const plannedPicker = async (
+      progress: unknown,
+      withdrawalAmount: number,
+    ): Promise<ComponentFixture<SavingsGoalPickerField>> => {
+      getAll$.mockReturnValue(of({ data: [goal], success: true }));
+      getProgress$.mockReturnValue(of(progress));
+      const fixture = TestBed.createComponent(SavingsGoalPickerField);
+      setTestInput(fixture.componentInstance.mode, 'plannedWithdrawal');
+      setTestInput(fixture.componentInstance.value, goal.id);
+      setTestInput(fixture.componentInstance.budgetPeriod, AUGUST);
+      setTestInput(
+        fixture.componentInstance.withdrawalAmount,
+        withdrawalAmount,
+      );
+
+      fixture.detectChanges();
+      await settle();
+      fixture.detectChanges();
+      return fixture;
+    };
+
+    it('previews the projection of the budget month, not the balance of the day', async () => {
+      const fixture = await plannedPicker(
+        progressWith(
+          [
+            { year: 2026, month: 7, projectedCumulative: 3_100 },
+            { year: 2026, month: 8, projectedCumulative: 3_600 },
+            { year: 2026, month: 9, projectedCumulative: 4_100 },
+          ],
+          1_000,
+        ),
+        500,
+      );
+
+      const preview = fixture.debugElement.query(
+        By.css('[data-testid="savings-goal-planned-withdrawal-preview"]'),
+      );
+      // de-CH groups with the typographic apostrophe U+2019, not the ASCII one.
+      expect(preview.nativeElement.textContent).toContain('3’600');
+      expect(preview.nativeElement.textContent).toContain('3’100');
+    });
+
+    // A goal with no plan row up to the period (undated, or a budget before the
+    // plan window) still has a pot: fall back on what it confirmedly holds.
+    it('falls back on the confirmed balance when the plan says nothing yet', async () => {
+      const fixture = await plannedPicker(progressWith([], 800), 300);
+
+      expect(fixture.componentInstance['plannedPreview']()).toEqual({
+        before: 800,
+        after: 500,
+      });
+    });
+
+    it('warns on an over-projection without ever blocking the plan', async () => {
+      const fixture = await plannedPicker(
+        progressWith([{ year: 2026, month: 8, projectedCumulative: 200 }], 200),
+        500,
+      );
+
+      expect(fixture.componentInstance['hasInsufficientProjection']()).toBe(
+        true,
+      );
+      expect(fixture.componentInstance.isWithdrawalBlocked()).toBe(false);
+      expect(
+        fixture.debugElement.query(
+          By.css('[data-testid="savings-goal-planned-withdrawal-warning"]'),
+        ),
+      ).toBeTruthy();
+    });
+
+    it('lists a goal the real withdrawal would hide for lack of funds today', async () => {
+      const fixture = await plannedPicker(progressWith([], 0), 500);
+
+      expect(getWithdrawalOptions$).not.toHaveBeenCalled();
+      expect(
+        fixture.debugElement.query(
+          By.css('[data-testid="savings-goal-planned-withdrawal-select"]'),
+        ),
+      ).toBeTruthy();
+      expect(fixture.componentInstance.isWithdrawalBlocked()).toBe(false);
+    });
+
+    it('blocks only while no goal is picked', async () => {
+      const fixture = await plannedPicker(progressWith([], 800), 300);
+      setTestInput(fixture.componentInstance.value, null);
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.isWithdrawalBlocked()).toBe(true);
     });
   });
 });

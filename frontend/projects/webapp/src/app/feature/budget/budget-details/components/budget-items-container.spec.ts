@@ -451,21 +451,6 @@ describe('BudgetItemsContainer — a refused gesture speaks for itself', () => {
       confirmation: 'Transaction supprimée',
     },
     {
-      name: 'adding an allocated transaction',
-      mutation: () => mockStore.createAllocatedTransaction,
-      arrange: () => {
-        mockStore.budgetDetails.set({ id: 'budget-1', month: 1, year: 2026 });
-        mockDialogService.openCreateAllocatedTransactionDialog.mockResolvedValue(
-          { name: 'Courses', amount: 42 },
-        );
-      },
-      act: () =>
-        component['openCreateAllocatedTransactionDialog'](
-          createMockBudgetLine({ id: LINE_ID }),
-        ),
-      confirmation: 'Transaction ajoutée',
-    },
-    {
       name: 'resetting a forecast from the template',
       mutation: () => mockStore.resetBudgetLineFromTemplate,
       arrange: () => undefined,
@@ -660,6 +645,160 @@ describe('BudgetItemsContainer — editing a transaction (PUL-329)', () => {
     await component['handleEditAllocatedTransaction'](transaction);
 
     expect(mockStore.updateTransaction).toHaveBeenCalledWith(TX_ID, update);
+    expect(mockSnackBar.open).not.toHaveBeenCalled();
+  });
+});
+
+// PUL-329 v2 — a forecast income carrying `sourceSavingsGoalId` is an ANNOUNCED
+// withdrawal: nothing leaves the pot until a real income is allocated to it, so
+// the check gesture opens that entry instead of pointing the forecast. Creation
+// follows the same dialog-owns-submission contract as the edit flow above.
+describe('BudgetItemsContainer — realizing an announced withdrawal (PUL-329 v2)', () => {
+  const LINE_ID = '99999999-9999-4999-8999-999999999999';
+  const GOAL_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+
+  let mockStore: MockStore;
+  let mockDialogService: MockDialogService;
+  let mockSnackBar: { open: ReturnType<typeof vi.fn> };
+  let component: BudgetItemsContainer;
+
+  const sourceLine = (overrides = {}) =>
+    createMockBudgetLine({
+      id: LINE_ID,
+      kind: 'income',
+      amount: 500,
+      sourceSavingsGoalId: GOAL_ID,
+      sourceSavingsGoalName: "Fonds d'urgence",
+      ...overrides,
+    });
+
+  beforeEach(() => {
+    mockStore = createMockStore();
+    mockDialogService = createMockDialogService();
+    mockSnackBar = { open: vi.fn() };
+    mockStore.budgetDetails.set({
+      id: 'budget-1',
+      month: 1,
+      year: 2026,
+      budgetLines: [sourceLine()],
+      transactions: [],
+    });
+    component = setupComponent(
+      mockStore,
+      mockDialogService,
+      mockSnackBar,
+    ).componentInstance;
+  });
+
+  it('opens the real-income entry instead of pointing the forecast', async () => {
+    await component['handleToggleCheck'](LINE_ID);
+
+    expect(mockStore.toggleCheck).not.toHaveBeenCalled();
+    expect(
+      mockDialogService.openCreateAllocatedTransactionDialog,
+    ).toHaveBeenCalled();
+  });
+
+  it('prefills what is left to take out, allocated reals deducted', async () => {
+    mockStore.budgetDetails.set({
+      id: 'budget-1',
+      month: 1,
+      year: 2026,
+      budgetLines: [sourceLine()],
+      transactions: [
+        createMockTransaction({ budgetLineId: LINE_ID, amount: 300 }),
+      ],
+    });
+
+    await component['handleToggleCheck'](LINE_ID);
+
+    const realization =
+      mockDialogService.openCreateAllocatedTransactionDialog.mock.calls[0][4];
+    expect(realization).toEqual({
+      goalId: GOAL_ID,
+      goalName: "Fonds d'urgence",
+      remainingAmount: 200,
+    });
+  });
+
+  it('floors the remainder at zero once the forecast is over-realized', async () => {
+    mockStore.budgetDetails.set({
+      id: 'budget-1',
+      month: 1,
+      year: 2026,
+      budgetLines: [sourceLine()],
+      transactions: [
+        createMockTransaction({ budgetLineId: LINE_ID, amount: 600 }),
+      ],
+    });
+
+    await component['handleToggleCheck'](LINE_ID);
+
+    expect(
+      mockDialogService.openCreateAllocatedTransactionDialog.mock.calls[0][4],
+    ).toMatchObject({ remainingAmount: 0 });
+  });
+
+  it('leaves an orphan source on the ordinary toggle, like the backend does', async () => {
+    mockStore.budgetDetails.set({
+      id: 'budget-1',
+      month: 1,
+      year: 2026,
+      budgetLines: [sourceLine({ sourceSavingsGoalId: null, checkedAt: null })],
+      transactions: [],
+    });
+    mockStore.toggleCheck.mockResolvedValue({ status: 'succeeded' });
+
+    await component['handleToggleCheck'](LINE_ID);
+
+    expect(mockStore.toggleCheck).toHaveBeenCalledWith(LINE_ID);
+    expect(
+      mockDialogService.openCreateAllocatedTransactionDialog,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('supplies a submit closure that routes straight to the create mutation', async () => {
+    const created = { name: 'Apport cuisine', amount: 500 };
+    mockStore.createAllocatedTransaction.mockResolvedValue(null);
+    mockDialogService.openCreateAllocatedTransactionDialog.mockImplementation(
+      async (
+        _line: unknown,
+        _isMobile: unknown,
+        _period: unknown,
+        submit: (tx: unknown) => Promise<string | null>,
+      ) => submit(created).then(() => created),
+    );
+
+    await component['handleToggleCheck'](LINE_ID);
+
+    expect(mockStore.createAllocatedTransaction).toHaveBeenCalledWith(created);
+    expect(mockSnackBar.open).toHaveBeenCalledWith(
+      'Transaction ajoutée',
+      'Fermer',
+      expect.objectContaining({ duration: 3000 }),
+    );
+  });
+
+  it('shows no toast when a refusal keeps the dialog open', async () => {
+    mockStore.createAllocatedTransaction.mockResolvedValue(
+      'Ce montant dépasse ce que contient l’objectif.',
+    );
+    mockDialogService.openCreateAllocatedTransactionDialog.mockImplementation(
+      async (
+        _line: unknown,
+        _isMobile: unknown,
+        _period: unknown,
+        submit: (tx: unknown) => Promise<string | null>,
+      ) => {
+        await submit({ name: 'Apport cuisine', amount: 500 });
+        // A refused mutation keeps the dialog open — it never resolves as a close.
+        return undefined;
+      },
+    );
+
+    await component['handleToggleCheck'](LINE_ID);
+
+    expect(mockStore.createAllocatedTransaction).toHaveBeenCalled();
     expect(mockSnackBar.open).not.toHaveBeenCalled();
   });
 });

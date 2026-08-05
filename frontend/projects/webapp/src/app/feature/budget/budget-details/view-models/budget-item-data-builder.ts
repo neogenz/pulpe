@@ -278,6 +278,15 @@ function createBudgetLineViewModel(
         budgetLine.kind === 'saving' && budgetLine.savingsWithdrawalGroupId
           ? savingsWithdrawalOriginLabel
           : null,
+      // PUL-329 v2 — un retrait ANNONCÉ ne se réalise pas en cochant une case
+      // mais en créant le revenu réel : la bascule de pointage cède la place à
+      // ce geste. Une source orpheline (objectif supprimé) n'en porte pas : elle
+      // ne peut plus être réalisée et redevient une prévision ordinaire.
+      sourceWithdrawalCtaKey: budgetLine.sourceSavingsGoalId
+        ? budgetLine.amount - consumed > 0
+          ? 'budgetLine.realizeWithdrawal'
+          : 'budgetLine.addMoreWithdrawal'
+        : null,
     },
     consumption: {
       consumed,

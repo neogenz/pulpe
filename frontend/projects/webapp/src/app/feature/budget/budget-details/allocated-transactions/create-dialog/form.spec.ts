@@ -5,7 +5,10 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { provideNativeDateAdapter } from '@angular/material/core';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { setTestInput } from '@app/testing/signal-test-utils';
+import { of } from 'rxjs';
 import { CurrencyConverterService } from '@core/currency';
+import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
+import { createMockDataCache } from '@core/testing';
 import { UserSettingsStore } from '@core/user-settings';
 import { TagStore } from '@core/tag';
 import { createMockTagStore } from '@app/testing/tag-store.mock';
@@ -516,5 +519,130 @@ describe('CreateAllocatedTransactionForm — currency create rules', () => {
     expect(dto).not.toHaveProperty('originalCurrency');
     expect(dto).not.toHaveProperty('targetCurrency');
     expect(dto).not.toHaveProperty('exchangeRate');
+  });
+});
+
+// PUL-329 v2 — realizing an announced withdrawal is copying the forecast over:
+// the entry opens prefilled with what is left to take out, next to the goal it
+// will debit. The source is shown, never chosen — the backend inherits it from
+// the line, so this form must not carry it.
+describe('CreateAllocatedTransactionForm — realizing an announced withdrawal', () => {
+  const GOAL_ID = '44444444-4444-4444-8444-444444444444';
+
+  const setupRealization = (
+    realization: CreateAllocatedTransactionFormData['withdrawalRealization'],
+    confirmed = 3_600,
+  ) => {
+    const getProgress$ = vi
+      .fn()
+      .mockReturnValue(of({ success: true, data: { confirmed } }));
+
+    TestBed.configureTestingModule({
+      imports: [CreateAllocatedTransactionForm],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideAnimationsAsync(),
+        provideNativeDateAdapter(),
+        ...provideTranslocoForTest(),
+        {
+          provide: CurrencyConverterService,
+          useValue: {
+            convertWithMetadata: vi
+              .fn()
+              .mockImplementation(async (amount: number) => ({
+                convertedAmount: amount,
+                metadata: null,
+              })),
+          },
+        },
+        { provide: TagStore, useValue: createMockTagStore() },
+        {
+          provide: SavingsGoalApi,
+          useValue: { cache: createMockDataCache(), getProgress$ },
+        },
+      ],
+    });
+
+    const fixture = TestBed.createComponent(CreateAllocatedTransactionForm);
+    setTestInput(fixture.componentInstance.data, {
+      ...createFormData({ kind: 'income', amount: 500 }),
+      withdrawalRealization: realization,
+    });
+    fixture.detectChanges();
+
+    const createdSpy = vi.fn<(tx: TransactionCreate) => void>();
+    fixture.componentInstance.created.subscribe(createdSpy);
+
+    return { fixture, component: fixture.componentInstance, createdSpy };
+  };
+
+  beforeEach(() => TestBed.resetTestingModule());
+
+  it('prefills the forecast name and what is left to take out', () => {
+    const { component } = setupRealization({
+      goalId: GOAL_ID,
+      goalName: "Fonds d'urgence",
+      remainingAmount: 200,
+    });
+
+    expect(component['model']().name).toBe('Assurance maladie');
+    expect(component['model']().money.amount).toBe(200);
+  });
+
+  // Reliquat zéro: the CTA becomes "add another real income", and an empty
+  // amount is the honest start — prefilling 0 would submit an invalid line.
+  it('leaves the amount empty once the forecast is fully realized', () => {
+    const { component } = setupRealization({
+      goalId: GOAL_ID,
+      goalName: "Fonds d'urgence",
+      remainingAmount: 0,
+    });
+
+    expect(component['model']().money.amount).toBeNull();
+  });
+
+  it('shows the goal it debits, its balance and what is left to take', async () => {
+    const { fixture } = setupRealization({
+      goalId: GOAL_ID,
+      goalName: "Fonds d'urgence",
+      remainingAmount: 500,
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const context = fixture.nativeElement.querySelector(
+      '[data-testid="realize-withdrawal-context"]',
+    );
+    expect(
+      context.querySelector('pulpe-savings-goal-source-line'),
+    ).not.toBeNull();
+    // de-CH groups with the typographic apostrophe U+2019, not the ASCII one.
+    expect(context.textContent).toContain('3’600');
+    expect(context.textContent).toContain('500');
+  });
+
+  it('never sends the source: the backend inherits it from the line', async () => {
+    const { component, createdSpy } = setupRealization({
+      goalId: GOAL_ID,
+      goalName: "Fonds d'urgence",
+      remainingAmount: 500,
+    });
+
+    await component.submit();
+
+    expect(createdSpy).toHaveBeenCalledTimes(1);
+    expect(createdSpy.mock.calls[0][0]).not.toHaveProperty(
+      'sourceSavingsGoalId',
+    );
+  });
+
+  it('renders no source block on an ordinary allocated entry', () => {
+    const { fixture } = setupRealization(null);
+
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="realize-withdrawal-context"]',
+      ),
+    ).toBeNull();
   });
 });
