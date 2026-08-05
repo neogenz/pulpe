@@ -7,8 +7,10 @@ pnpm run dev                        # ng serve (http://localhost:4200)
 pnpm run test                       # Vitest unit tests
 pnpm run test -- path/to/spec.ts   # Single test file
 pnpm run test:watch                 # Watch mode
-pnpm run lint                       # BEFORE commit
 ```
+
+Quality runs from the repo root (`pnpm quality`) — `pnpm run lint` alone is weaker than
+what lefthook applies. Only `ng build` typechecks the templates.
 
 **Angular CLI MCP**: Use when available for Angular artifacts.
 
@@ -19,6 +21,7 @@ pnpm run lint                       # BEFORE commit
 | Angular | 22+, standalone, OnPush |
 | Styling | Tailwind v4 + Material 22 |
 | State | Signals |
+| Data | `ngx-ziflux` — `cachedResource()` / `cachedMutation()` over `ApiClient` |
 | Testing | Vitest + Playwright |
 
 ## Styling Quick Reference
@@ -30,15 +33,14 @@ pnpm run lint                       # BEFORE commit
 
 ## Testing
 
-See `.claude/rules/testing/vitest.md`
+See `.claude/rules/07-quality-assurance/testing-vitest.md`
 
-- `data-testid` naming: `feature-component-element` (e.g., `budget-form-submit-button`)
-- Use `createMockResourceRef<T>()` for Resource mocks
+- `data-testid`: kebab-case ending in the element's role — `-button`, `-input`, `-page`,
+  `-dialog`. Prefix with the feature or component only where the role alone would collide;
+  a fifth of the 447 ids in the app are two segments (`close-button`, `email-input`).
+- Use `createMockDataCache()` for cache mocks — never hand-roll a `DataCache` double.
 
 ## Critical Rules
 
-- **NEVER** `::ng-deep`
-- **NEVER** import between sibling features
-- **ALWAYS** OnPush + signals
 - **ALWAYS** `#fieldName` for private — **EXCEPT** `viewChild`/`viewChildren`/`contentChild`/`contentChildren`/`input`/`output`/`model` (NG1053: use `private`/`protected` instead, never `#`)
 - **BEFORE** creating: check `ui/` or `pattern/` first

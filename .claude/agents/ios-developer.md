@@ -72,7 +72,7 @@ Dependency flow: `Features/ → Domain/ → Core/` (strict, no reverse or cross-
 - **SWR stores** conforming to `StoreProtocol`: `loadIfNeeded()` (30s/300s TTL), `forceRefresh()`, `reset()`
 - **Task coalescing** in stores: cancel previous load before starting new one
 - **Optimistic updates** with rollback on error for toggle operations
-- **ViewModels co-located** in the same file as their view (exception: `BudgetDetailsViewModel` — 600+ lines, separation justified)
+- **ViewModels co-located** in the same file as their view. `Features/Budgets/BudgetDetails` is the one feature that outgrew that and split into Stores + Projector + Coordinator + Router; see `budget-details-feature-architecture.md` for the five criteria that justify it.
 - **NavigationStack(path:)** with typed `Hashable` destination enums stored in `AppState`
 - **NotificationCenter** for cross-layer communication (Core → App) to avoid circular deps
 - **Deep links** via `pulpe://` URL scheme handled in `PulpeApp`
@@ -101,7 +101,7 @@ Read `docs/ENCRYPTION.md` before ANY work involving financial amounts.
 
 - **XcodeGen**: `project.yml` is the single source of truth — `.xcodeproj` is gitignored
 - **SwiftLint**: `.swiftlint.yml` — line limit 120/150, force_unwrapping enabled, sorted imports
-- **SPM only**: Supabase Swift + Lottie (no other external dependencies allowed)
+- **SPM only**, declared in `ios/project.yml`: supabase-swift, lottie-spm, posthog-ios, google-sign-in-ios, VariableBlur. Adding a sixth is a decision, not a reflex.
 - **Deployment target**: iOS 18.0
 - **Swift 6** language mode (`SWIFT_VERSION: "6"`) with `SWIFT_STRICT_CONCURRENCY: complete`
 - **Environments**: Local / Preview / Prod via xcconfig files
@@ -135,22 +135,26 @@ Test patterns:
 - `TestDataFactory` for test data builders
 
 ```bash
-# Run single unit test
+# Run single unit test — on the dedicated 'Pulpe Tests' device, never the booted one.
+# No ,OS= pin: it must resolve against whatever runtime is installed.
 xcodebuild test -scheme PulpeLocal \
-  -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max,OS=26.2' \
+  -destination 'platform=iOS Simulator,name=Pulpe Tests' \
   -only-testing:PulpeTests/SomeTest CODE_SIGNING_ALLOWED=NO
 
 # NEVER use PulpeLocal for UI tests
 xcodebuild test -scheme PulpeUITests \
-  -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max,OS=26.2' \
+  -destination 'platform=iOS Simulator,name=Pulpe Tests' \
   -only-testing:PulpeUITests/SomeTest CODE_SIGNING_ALLOWED=NO
 ```
+
+`-only-testing:` on a Swift Testing suite can select zero tests and still print
+TEST SUCCEEDED. Read the executed count before believing a green run.
 
 ## Forbidden
 
 | Action | Reason |
 |--------|--------|
-| Add external dependencies | SPM only (Supabase + Lottie already present) |
+| Add external dependencies | SPM only, and reuse one of the five already declared in `project.yml` first |
 | Use `ObservableObject` | iOS 18+ — use `@Observable` only |
 | Store data locally | Keychain for tokens only, API is source of truth |
 | Edit `.xcodeproj` in Xcode | Edit `project.yml` then `xcodegen generate --use-cache` |
@@ -158,16 +162,18 @@ xcodebuild test -scheme PulpeUITests \
 
 ## Vocabulary
 
-- `budget_lines` → "prévisions" | `fixed` → "Récurrent" | `one_off` → "Prévu" | `transaction` → "Réel"
-- `income` → "Revenu" | `expense` → "Dépense" | `saving` → "Épargne"
-- Currency: `amount.asCHF` → "CHF 1'234.56" | `amount.asCompactCHF` → "CHF 1'235"
+See `CLAUDE.md § Vocabulary` — accents included, it is the only list.
+
+Currency: `amount.asCurrency(currency)` → `1'234.56 CHF`, `1 234,56 €`. The symbol is a
+suffix and the currency comes from the budget, never hardcoded — the `asCHF` shims exist
+but pin CHF on a multi-currency app.
 
 ## Quality
 
 Run build + SwiftLint before marking any task complete:
 
 ```bash
-cd ios && xcodebuild build -scheme PulpeLocal -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' CODE_SIGNING_ALLOWED=NO
+cd ios && xcodebuild build -scheme PulpeLocal -destination 'platform=iOS Simulator,name=Pulpe Tests' CODE_SIGNING_ALLOWED=NO
 ```
 
 ## Deliverables

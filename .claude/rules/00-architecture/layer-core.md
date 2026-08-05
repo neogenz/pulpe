@@ -14,18 +14,20 @@ paths: "frontend/**/core/**/*"
 - **Headless ONLY** - services, guards, interceptors, functions (NO components)
 - All services MUST use `@Service()` — auto-provided at the root injector
 - NEVER import from `feature/`, `layout/`, `pattern/`, or `ui/`
-- Can ONLY import from `styles/`
 - All code here is shared across the entire application
 
 ## Dependency Rules
 
 ```
-core/ ──✅──> styles/
 core/ ──❌──> feature/  (NEVER - core is lower level)
 core/ ──❌──> layout/   (NEVER - core is lower level)
 core/ ──❌──> pattern/  (NEVER - core is lower level)
 core/ ──❌──> ui/       (NEVER - core has no templates)
 ```
+
+The authority is `frontend/eslint.config.js` (`boundaries/elements`, `default: "disallow"`): an
+illegal import fails lint, so the graph is enforced rather than merely documented. `app/styles/`
+holds only SCSS assets — it is not an element type and never appears in an import.
 
 ## What Belongs in Core
 
@@ -52,7 +54,7 @@ core/
 │   └── auth.guard.ts
 ├── user/           # User domain
 │   └── user.service.ts
-├── error-handling/ # Error infrastructure
+├── analytics/      # PostHog + error capture
 │   └── global-error-handler.ts
 └── core.ts         # provideCore() export
 ```

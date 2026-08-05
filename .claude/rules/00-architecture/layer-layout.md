@@ -24,9 +24,12 @@ paths: "frontend/**/layout/**/*"
 layout/ ──✅──> core/    (inject services for auth, user state)
 layout/ ──✅──> ui/      (use generic UI components)
 layout/ ──✅──> pattern/ (use reusable business components)
-layout/ ──✅──> styles/
 layout/ ──❌──> feature/ (NEVER - layout is shared across features)
 ```
+
+Enforced by `eslint-plugin-boundaries` in `frontend/eslint.config.js` (`default: "disallow"`,
+18 element types) — an illegal import fails lint. Read that config, not this block, when the
+two disagree.
 
 ## Typical Components
 

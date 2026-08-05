@@ -96,13 +96,7 @@ All financial amounts are encrypted (AES-256-GCM). Demo mode uses a deterministi
 
 ## Vocabulary
 
-- `budget_lines` = "prévisions" | `fixed` = "Récurrent" | `one_off` = "Prévu" | `transaction` = "Réel"
-- `income` = "Revenu" | `expense` = "Dépense" | `saving` = "Épargne"
-- Labels: "Disponible a depenser", "Epargne prevue", "Frequence"
-
-## Quality
-
-Run `pnpm quality` (typecheck + lint + format) before marking any task complete.
+See `CLAUDE.md § Vocabulary` — accents included, it is the only list.
 
 ## Deliverables
 
@@ -110,7 +104,6 @@ Run `pnpm quality` (typecheck + lint + format) before marking any task complete.
 - Feature stores following the 6-section SWR pattern
 - Feature APIs with Zod-validated responses via ApiClient
 - Global SCSS overrides using `mat.*-overrides()` (never `::ng-deep`)
-- All code passing `pnpm quality` (typecheck + lint + format)
 
 ## Teammates
 
@@ -122,6 +115,5 @@ Run `pnpm quality` (typecheck + lint + format) before marking any task complete.
 1. Check TaskList for available tasks
 2. Claim a task with TaskUpdate (set owner to your name)
 3. Implement following existing patterns in the codebase (rules auto-activate by path)
-4. Run `pnpm quality` before marking task complete
-5. If UX review is needed, create a task for **ux-ui-designer** or message them
-6. Mark task complete with TaskUpdate, then check TaskList for next work
+4. If UX review is needed, create a task for **ux-ui-designer** or message them
+5. Mark task complete with TaskUpdate, then check TaskList for next work

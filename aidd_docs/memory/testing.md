@@ -2,7 +2,6 @@
 
 ## Strategy
 - Co-located unit tests cover pure logic/components; backend integration tests use local Supabase; Playwright and XCUITest cover user flows.
-- A bug fix starts with a failing reproduction, then the happy path; avoid exhaustive coverage unless requested.
 
 ## Tools
 - Vitest for Angular/shared, Bun Test for backend, `tsx --test` for landing, Swift Testing for iOS units, Playwright/XCUITest for UI.

@@ -23,10 +23,13 @@ paths: "frontend/**/feature/**/*"
 feature/ ──✅──> pattern/ (use reusable business components)
 feature/ ──✅──> ui/      (use generic UI components)
 feature/ ──✅──> core/    (inject services)
-feature/ ──✅──> styles/
 feature/ ──❌──> feature/ (FORBIDDEN - complete isolation)
 feature/ ──❌──> layout/  (layout is eager, features are lazy)
 ```
+
+Enforced by `eslint-plugin-boundaries` in `frontend/eslint.config.js` (`default: "disallow"`,
+18 element types) — an illegal import fails lint. Read that config, not this block, when the
+two disagree.
 
 ## Key Concepts
 

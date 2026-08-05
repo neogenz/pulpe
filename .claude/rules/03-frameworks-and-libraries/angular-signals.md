@@ -6,356 +6,94 @@ paths:
 
 # Angular Signal API Guidelines (v22+)
 
-## Core Primitives
+The signal primitives behave as documented — `signal`, `computed`, `input`, `output`,
+`model`, `viewChild`, `toSignal`, `takeUntilDestroyed`. What follows is what the docs do not
+tell you about this codebase.
 
-### signal() - Writable State
+## NG1053 — the one exception to `#private`
 
-```typescript
-readonly #count = signal(0);
-readonly count = this.#count.asReadonly();
-
-this.#count.set(5);
-this.#count.update(v => v + 1);
-```
-
-### computed() - Derived State
+**NEVER use ES private (`#field`) for `viewChild`/`viewChildren`/`contentChild`/`contentChildren`/`input`/`output`/`model`.** The Angular compiler forbids ES private on these. Allowed modifiers: `public`, `public readonly`, `protected`, `private`.
 
 ```typescript
-readonly doubled = computed(() => this.count() * 2);
-readonly label = computed(() => `Count: ${this.count()}`);
+// ❌ Build fails — NG1053
+readonly #inputRef = viewChild<ElementRef>('inputRef');
+
+// ✅ TS private when the field is internal
+private readonly inputRef = viewChild<ElementRef>('inputRef');
+
+// ✅ protected when accessed from the template
+protected readonly inputRef = viewChild<ElementRef>('inputRef');
 ```
 
-- Lazy eval, memoized
-- Auto-tracks deps
-- Read-only (no `set()`)
+The cascade is brutal: a single ES-private `viewChild` breaks the component's standalone
+compilation, and every consumer importing it then fails with `NG2012: Component imports must
+be standalone`. Note this covers `input`/`output`/`model` too, which are not queries.
 
-### linkedSignal() - Dependent Writable State
+## linkedSignal with the previous value
 
-```typescript
-readonly options = signal(['A', 'B', 'C']);
-readonly selected = linkedSignal(() => this.options()[0]);
-
-// Can be manually set
-this.selected.set('B');
-
-// Resets when options change
-this.options.set(['X', 'Y']); // selected becomes 'X'
-```
-
-**With previous value:**
+The bare form resets on every source change. To carry a selection across, use the object
+form — easy to miss, and the reason a filter "randomly" resets:
 
 ```typescript
 readonly selected = linkedSignal({
   source: this.options,
-  computation: (newOpts, prev) =>
-    newOpts.find(o => o === prev?.value) ?? newOpts[0]
+  computation: (newOpts, prev) => newOpts.find(o => o === prev?.value) ?? newOpts[0],
 });
 ```
 
----
+## Choosing the Right Resource API
 
-## Component Communication
-
-### input() - Signal Inputs
-
-```typescript
-readonly name = input<string>();           // optional, undefined initially
-readonly name = input('default');          // optional with default
-readonly name = input.required<string>();  // required
-```
-
-### output() - Signal Outputs
-
-```typescript
-readonly clicked = output<void>();
-readonly selected = output<Item>();
-
-onClick() {
-  this.clicked.emit();
-  this.selected.emit(item);
-}
-```
-
-### model() - Two-Way Binding
-
-```typescript
-// Child component
-readonly value = model(0);
-
-increment() {
-  this.value.update(v => v + 1); // propagates to parent
-}
-
-// Parent template
-<child [(value)]="parentSignal" />
-```
-
-- Creates implicit `valueChange` output
-- Parent bind signal instance, not value
-
----
-
-## Template Queries
-
-### viewChild() / viewChildren()
-
-```typescript
-readonly input = viewChild<ElementRef>('inputRef');
-readonly input = viewChild.required<ElementRef>('inputRef');
-readonly items = viewChildren<ItemComponent>(ItemComponent);
-```
-
-> ⚠️ **NG1053 — NEVER use ES private (`#field`) for `viewChild`/`viewChildren`/`contentChild`/`contentChildren`/`input`/`output`/`model`.** Angular compiler forbids ES private on these signal-based queries. Allowed modifiers: `public`, `public readonly`, `protected`, `private`.
->
-> ```typescript
-> // ❌ Build fails — NG1053
-> readonly #inputRef = viewChild<ElementRef>('inputRef');
->
-> // ✅ Use TS private when the field is internal
-> private readonly inputRef = viewChild<ElementRef>('inputRef');
->
-> // ✅ Use protected when accessed from template
-> protected readonly inputRef = viewChild<ElementRef>('inputRef');
-> ```
->
-> This is the **single exception** to the project rule "use `#field` for private". The cascade is brutal: a single ES-private `viewChild` breaks the component's standalone compilation, and every consumer importing it then fails with `NG2012: Component imports must be standalone`.
-
-### contentChild() / contentChildren()
-
-```typescript
-readonly header = contentChild<TemplateRef<unknown>>('header');
-readonly tabs = contentChildren<TabComponent>(TabComponent);
-```
-
-- Return signals (call to get value)
-- Available after view init
-
----
-
-## Async Data (Experimental)
-
-### resource() - Generic Async Loading
-
-```typescript
-readonly userId = input.required<string>();
-
-readonly user = resource({
-  params: () => ({ id: this.userId() }),
-  loader: ({ params, abortSignal }) =>
-    fetch(`/api/users/${params.id}`, { signal: abortSignal })
-      .then(r => r.json())
-});
-
-// Access
-this.user.value();      // data or undefined
-this.user.hasValue();   // boolean guard
-this.user.error();      // error or undefined
-this.user.isLoading();  // boolean
-this.user.status();     // 'idle'|'loading'|'reloading'|'resolved'|'error'|'local'
-this.user.reload();     // trigger refresh
-```
-
-### httpResource() - HTTP with Signals
-
-```typescript
-readonly user = httpResource(() => `/api/users/${this.userId()}`);
-
-// Advanced request
-readonly user = httpResource(() => ({
-  url: `/api/users/${this.userId()}`,
-  method: 'GET',
-  headers: { 'X-Custom': 'value' }
-}));
-
-// With validation (Zod)
-readonly user = httpResource(() => `/api/users/${this.userId()}`, {
-  parse: userSchema.parse
-});
-
-// Response types
-httpResource.text(() => url);
-httpResource.blob(() => url);
-httpResource.arrayBuffer(() => url);
-```
-
-### rxResource() - RxJS Integration
-
-```typescript
-readonly user = rxResource({
-  params: () => this.userId(),
-  stream: ({ params }) => this.http.get<User>(`/api/users/${params}`)
-});
-```
-
-### Choosing the Right Resource API
+`httpResource()` is **not used in this project**: every call to the Pulpe API goes through
+`ApiClient` (`core/api/api-client.ts`), which owns the base URL, Zod parsing, transient-GET
+retries and error normalization — `httpResource()` bypasses all four.
 
 | Use Case | API | Reason |
 |----------|-----|--------|
-| Simple GET requests | `httpResource()` | Min boilerplate, auto JSON parse |
-| GET with Zod validation | `httpResource()` + `parse` | Type-safe responses |
-| Complex HTTP (interceptors, retries) | `rxResource()` | Full RxJS power |
+| Pulpe API data held by a store | `cachedResource()` over `api.<verb>$()` | `ApiClient` owns Zod, retries, error normalization; cache is shared |
+| Pulpe API data local to one component | `rxResource()` / `resource()` over `api.<verb>$()` | Nothing else reads it, so caching it buys nothing |
 | Non-HTTP async (localStorage, IndexedDB) | `resource()` | Generic async loader |
-| WebSocket/SSE streams | `rxResource()` | Observable-based |
-| Existing Observable services | `rxResource()` | Seamless integration |
+| WebSocket/SSE streams, existing Observables | `rxResource()` | Observable-based |
 
 **Decision Flow:**
 
 ```
-Is it an HTTP GET?
-  ├─ Yes → httpResource()
+Will more than this one component read the data?
+  ├─ Yes → cachedResource() in a store  (see angular-store-pattern.md)
   └─ No → Is it Observable-based?
-            ├─ Yes → rxResource()
-            └─ No → resource()
+            ├─ Yes → rxResource()   (tag-history-dialog.ts)
+            └─ No → resource()      (search-transactions-dialog.ts)
 ```
 
-**Project Convention:** Prefer `httpResource()` for API calls. Use `resource()` only for non-HTTP async.
+**Project Convention:** API calls never bypass `ApiClient` — no Zod schema, no call. That
+holds whichever resource wraps them. What varies is only the wrapper: shared data lives in a
+store behind `cachedResource()`, data a single dialog reads and drops does not.
 
----
+## effect() is a last resort
 
-## Side Effects
-
-### effect() - Last Resort API
-
-```typescript
-constructor() {
-  effect(() => {
-    console.log(`User: ${this.user()}`);
-  });
-}
-```
-
-**Valid uses:**
-
-- Logging/analytics
-- Sync to localStorage/sessionStorage
-- Custom DOM behavior
-- Third-party lib integration
-
-**NEVER use for:**
-
-- State propagation between signals
-- Deriving values (use `computed()`)
-- Setting other signals (use `linkedSignal()`)
-
-### afterRenderEffect() - DOM Manipulation
-
-```typescript
-constructor() {
-  afterRenderEffect({
-    write: () => this.chart.updateData(this.chartData())
-  });
-}
-```
-
-**Phases:** `earlyRead` → `write` → `mixedReadWrite` → `read`
-
-### effect() Cleanup
-
-```typescript
-effect((onCleanup) => {
-  const timer = setTimeout(() => {}, 1000);
-  onCleanup(() => clearTimeout(timer));
-});
-```
-
----
-
-## RxJS Interop
-
-```typescript
-import { toSignal, toObservable } from '@angular/core/rxjs-interop';
-
-// Observable → Signal
-readonly user = toSignal(this.user$);
-readonly user = toSignal(this.user$, { initialValue: null });
-
-// Signal → Observable
-readonly user$ = toObservable(this.userSignal);
-```
-
-### takeUntilDestroyed()
-
-```typescript
-constructor() {
-  this.data$.pipe(
-    takeUntilDestroyed()
-  ).subscribe(d => this.process(d));
-}
-```
-
----
+Valid: logging and analytics, syncing to storage, custom DOM behaviour, third-party library
+integration. Never for propagating state between signals or deriving values — that is
+`computed()` when read-only, `linkedSignal()` when writable.
 
 ## Signal Forms (Experimental — Angular 21.1+)
 
-> **Migration 21.1:** `Field` directive renamed → `FormField`. Selector `[field]` → `[formField]`. Type `Field<T>` still exported as a **type only** (signature for field signals). `customError({ kind })` removed → return plain `{ kind }` from `validate()`.
+**Migration 21.1:** `Field` directive renamed → `FormField`. Selector `[field]` →
+`[formField]`. Type `Field<T>` still exported as a **type only** (signature for field
+signals). `customError({ kind })` removed → return plain `{ kind }` from `validate()`.
 
 ```typescript
-import { signal } from '@angular/core';
 import { form, FormField } from '@angular/forms/signals';
 
-@Component({
-  imports: [FormField],
-  template: `
-    <input [formField]="loginForm.email" />
-    <input type="password" [formField]="loginForm.password" />
-  `
-})
-export class LoginComponent {
-  readonly model = signal({ email: '', password: '' });
-  readonly loginForm = form(this.model);
-
-  onSubmit() {
-    const data = this.model();
-    // submit data
-  }
-}
+readonly model = signal({ email: '', password: '' });
+readonly loginForm = form(this.model);
+// template: <input [formField]="loginForm.email" />
+// state:    loginForm.email().value() / .valid() / .touched()
 ```
 
-**Field state access:**
+## Inline templates
 
-```typescript
-this.loginForm.email().value();     // current value
-this.loginForm.email().valid();     // validation state
-this.loginForm.email().touched();   // interaction state
-this.loginForm.email().value.set(''); // programmatic update
-```
-
----
-
-## Patterns
-
-### Service State Pattern
-
-```typescript
-@Service()
-export class CounterService {
-  readonly #count = signal(0);
-
-  readonly count = this.#count.asReadonly();
-  readonly doubled = computed(() => this.#count() * 2);
-
-  increment() { this.#count.update(c => c + 1); }
-  reset() { this.#count.set(0); }
-}
-```
-
-### Component Pattern
-
-```typescript
-@Component({
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `{{ greeting() }}`
-})
-export class GreetingComponent {
-  readonly name = input.required<string>();
-  readonly prefix = input('Hello');
-  readonly greeted = output<string>();
-
-  readonly greeting = computed(() => `${this.prefix()}, ${this.name()}!`);
-}
-```
-
----
+Write the template **inline** unless the component is large enough that the file becomes hard
+to read. The webapp is near-unanimous: 171 components use inline `template:` against 4
+`templateUrl`, and only 3 component `.html` files exist in the whole app.
 
 ## Anti-Patterns
 
@@ -363,30 +101,6 @@ export class GreetingComponent {
 |-------|-----|
 | `effect(() => this.b.set(this.a()))` | `b = computed(() => this.a())` or `b = linkedSignal(() => this.a())` |
 | `signal.mutate(arr => arr.push(x))` | `signal.update(arr => [...arr, x])` |
-| Read signal in constructor before init | Use `afterNextRender()` or `effect()` |
+| Read signal in constructor before init | `afterNextRender()` or `effect()` |
 | `toSignal()` without `initialValue` when sync needed | Provide `initialValue` or handle `undefined` |
-| `effect()` for derived state | `computed()` for read-only, `linkedSignal()` for writable |
-| Subscribe in component without cleanup | `takeUntilDestroyed()` or `toSignal()` |
-
----
-
-## Quick Reference
-
-| API | Import | Purpose |
-|-----|--------|---------|
-| `signal()` | `@angular/core` | Writable state |
-| `computed()` | `@angular/core` | Derived read-only state |
-| `linkedSignal()` | `@angular/core` | Derived writable state |
-| `effect()` | `@angular/core` | Side effects (use sparingly) |
-| `input()` | `@angular/core` | Component input |
-| `output()` | `@angular/core` | Component output |
-| `model()` | `@angular/core` | Two-way binding |
-| `viewChild()` | `@angular/core` | Template query |
-| `contentChild()` | `@angular/core` | Projected content query |
-| `resource()` | `@angular/core` | Async data (experimental) |
-| `httpResource()` | `@angular/common/http` | HTTP requests (experimental) |
-| `rxResource()` | `@angular/core/rxjs-interop` | RxJS async data |
-| `toSignal()` | `@angular/core/rxjs-interop` | Observable → Signal |
-| `toObservable()` | `@angular/core/rxjs-interop` | Signal → Observable |
-| `untracked()` | `@angular/core` | Read without tracking |
-| `form()` | `@angular/forms/signals` | Signal forms (experimental) |
+| Subscribe in a component without cleanup | `takeUntilDestroyed()` or `toSignal()` |

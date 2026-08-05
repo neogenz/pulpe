@@ -91,17 +91,12 @@ Read `docs/ENCRYPTION.md` before ANY work involving financial amounts.
 - Production: JSON structured logs
 - Levels: `error` (5xx), `warn` (4xx), `info` (business ops), `debug` (dev only)
 
-## Quality
-
-Run `pnpm quality` (typecheck + lint + format) before marking any task complete.
-
 ## Deliverables
 
 - NestJS modules following the controller/service/repository pattern
 - DTOs via `createZodDto()` from shared Zod schemas
 - Supabase migrations (new files only, never modify existing migrations)
 - Encrypted amount handling per `docs/ENCRYPTION.md`
-- All code passing `pnpm quality` (typecheck + lint + format)
 
 ## Teammates
 
@@ -115,5 +110,4 @@ Run `pnpm quality` (typecheck + lint + format) before marking any task complete.
 3. Read relevant source files and `docs/ENCRYPTION.md` if dealing with amounts
 4. Implement following existing module patterns in the codebase
 5. If shared schemas changed, run `pnpm build:shared` and message **frontend-developer**
-6. Run `pnpm quality` before marking task complete
-7. Mark task complete with TaskUpdate, then check TaskList for next work
+6. Mark task complete with TaskUpdate, then check TaskList for next work

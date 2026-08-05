@@ -82,10 +82,8 @@ For each review, check these categories. Rate each finding: **PASS** / **WARN** 
 
 ### 4. Vocabulary Compliance
 
-- "previsions" (not budget_lines)
-- "Recurrent" (fixed frequency), "Prevu" (one-off planned), "Reel" (actual transaction)
-- "Revenu" (income), "Depense" (expense), "Epargne" (saving)
-- "Disponible a depenser", "Epargne prevue", "Frequence"
+Audit against `CLAUDE.md § Vocabulary`. The accents are part of the copy — a missing one
+is a finding, not a typo.
 
 ## Output Format
 

@@ -21,6 +21,8 @@ private readonly _count = signal(0);
 private readonly http = inject(HttpClient);
 ```
 
+> ⚠️ **Exception NG1053** — the Angular compiler rejects `#` on `viewChild` / `viewChildren` / `contentChild` / `contentChildren` / `input` / `output` / `model`. Use TS `private` (or `protected` when the template reads it) on those members. See `.claude/rules/03-frameworks-and-libraries/angular-signals.md`.
+
 ### Readonly Properties
 
 Mark properties as `readonly` when they should not be reassigned after initialization:
@@ -58,7 +60,7 @@ export class ButtonComponent {
 
 | Context | Modifier |
 |---------|----------|
-| Private members | `#member` |
+| Private members | `#member` — except `viewChild`/`viewChildren`/`contentChild`/`contentChildren`/`input`/`output`/`model`, see NG1053 above |
 | Template bindings | `protected` |
 | Public API (inputs/outputs for parent components) | `readonly` (implicit public) |
 | Immutable after init | `readonly` |

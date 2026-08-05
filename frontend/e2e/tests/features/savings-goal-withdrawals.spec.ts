@@ -381,8 +381,11 @@ test.describe('Savings goal as the source of an income', () => {
     await expect(savingsGoalsPage.deletionWithdrawalRows()).toContainText(
       INCOME_NAME,
     );
-    // A total is an aggregate: no decimals, and negative because it leaves.
-    await savingsGoalsPage.expectDeletionWithdrawalTotal('-4 500');
+    // An aggregate, so no decimals — and signed, because the block reads as what
+    // the goal gave away. The rows above keep their two decimals. The symbol is
+    // part of the assertion: without it the substring would still match a total
+    // that grew decimals back, which is precisely what this pins down.
+    await savingsGoalsPage.expectDeletionWithdrawalTotal('-4 500 CHF');
 
     await savingsGoalsPage.confirmDeletion();
     await expect(

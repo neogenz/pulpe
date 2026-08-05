@@ -1,9 +1,5 @@
 # CLAUDE.md - Pulpe iOS
 
-## Design Docs
-
-Before any visual work, read in order: `../PRODUCT.md` (strategic) → `../DESIGN.md` (cross-platform DA) → `DESIGN.md` (this directory; iOS-specific tokens, components, Liquid Glass, sheets). No Stitch sidecar here — `/impeccable live` is browser-only and unsupported on SwiftUI. Never duplicate cross-platform rules here — push them up to `../DESIGN.md`.
-
 ## XcodeGen
 
 **`project.yml` single source of truth.** `.xcodeproj` generated, gitignored.
@@ -19,12 +15,17 @@ xcodegen generate --use-cache
 xcode-build-server config -scheme PulpeLocal -project Pulpe.xcodeproj  # SourceKit LSP (once)
 
 # Build (replace scheme: PulpeLocal | PulpePreview | PulpeProd)
-xcodebuild build -scheme PulpeLocal -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' CODE_SIGNING_ALLOWED=NO
+xcodebuild build -scheme PulpeLocal -destination 'platform=iOS Simulator,name=Pulpe Tests' CODE_SIGNING_ALLOWED=NO
 
+# Tests run on the dedicated 'Pulpe Tests' simulator, never on the booted one — a test
+# run steals that device from whoever is using it. No ,OS= pin: the destination then
+# resolves against whatever runtime is installed.
 # Unit tests → PulpeLocal scheme, target PulpeTests
-xcodebuild test -scheme PulpeLocal -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max,OS=26.2' -only-testing:PulpeTests/SomeTest CODE_SIGNING_ALLOWED=NO
+xcodebuild test -scheme PulpeLocal -destination 'platform=iOS Simulator,name=Pulpe Tests' -only-testing:PulpeTests/SomeTest CODE_SIGNING_ALLOWED=NO
 # UI tests → PulpeUITests scheme (NEVER use PulpeLocal for UI tests)
-xcodebuild test -scheme PulpeUITests -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max,OS=26.2' -only-testing:PulpeUITests/SomeTest CODE_SIGNING_ALLOWED=NO
+xcodebuild test -scheme PulpeUITests -destination 'platform=iOS Simulator,name=Pulpe Tests' -only-testing:PulpeUITests/SomeTest CODE_SIGNING_ALLOWED=NO
+# `-only-testing:` on a Swift Testing suite can select zero tests and still print
+# TEST SUCCEEDED. Read the executed count before believing a green run.
 
 # Versioning
 ./scripts/bump-version.sh patch   # 1.0.0 → 1.0.1 (resets build to 1)
@@ -33,7 +34,7 @@ xcodebuild test -scheme PulpeUITests -destination 'platform=iOS Simulator,name=i
 
 ## Shared Components — Check Before Building
 
-**BEFORE creating/editing any sheet/form/view, MUST check `Shared/Components/` and `Shared/Extensions/`.** Never hand-roll UI shared component provide. Pattern repeat 2+ places → enrich shared component, never copy-paste.
+**BEFORE creating/editing any sheet/form/view, MUST check `Shared/Components/` and `Shared/Extensions/`.** Never hand-roll what a shared component already provides. Third identical use → enrich the shared component, never copy-paste.
 
 | Need | Use this | NOT this |
 |------|----------|----------|
@@ -41,27 +42,20 @@ xcodebuild test -scheme PulpeUITests -destination 'platform=iOS Simulator,name=i
 | Amount input | `HeroAmountField` | Custom TextField + display amount logic |
 | Preset amounts | `QuickAmountChips` | Custom chip buttons |
 | Kind picker | `KindToggle` | Custom HStack of buttons for expense/income/saving |
-| Description field | `FormTextField(hint:text:label:accessibilityLabel:)` | Manual VStack + Text + FormTextField + overlay |
+| Description field | `FormTextField(hint:text:label:accessibilityLabel:focusBinding:field:)` — the last two are required | Manual VStack + Text + FormTextField + overlay |
 | Checked toggle | `CheckedToggle` | Custom Toggle |
 | Error display | `ErrorBanner` | Custom error HStack |
-| Currency formatting | `Decimal.asCHF` / `.asCompactCHF` | Manual string concatenation |
+| Currency formatting | `Decimal.asCurrency(_:)` / `.asCompactCurrency(_:)` | Manual string concatenation, or the `asCHF` shims — the app is multi-currency |
 | Sheet presentation | `.standardSheetPresentation()` | Manual `.presentationDetents` + `.presentationBackground` |
 | List row styling | `.listRowCustomStyled()` | `.listRowBackground` + `.listRowInsets` + `.listRowSeparator` |
 | Background | `.pulpeBackground()` / `.pulpeCardBackground()` | Manual `.background(Color.surface)` |
-| État chip enveloppe (Bonne voie / À surveiller / Dépassé) | `BudgetLineStateChip` *[à implémenter — bottom sheet detail, voir RG-010]* | Manual HStack + Capsule + Text |
 
 **Form sheet checklist:**
-- [ ] Use `SheetFormContainer`
-- [ ] Description field use `FormTextField(label:accessibilityLabel:)` — never manual VStack wrapper
 - [ ] Submit button use `.primaryButtonStyle(isEnabled:)`
 - [ ] Success path: `submitSuccessTrigger.toggle()` + `toastManager.show(...)` + `dismiss()`
 - [ ] `.sensoryFeedback(.success, trigger: submitSuccessTrigger)` on form
 
-## iOS-Specific Vocabulary
+## Vocabulary
 
-| Code | French UI |
-|---|---|
-| `BudgetLine` | Catégorie / Ligne budgétaire |
-| `Transaction` (allocated) | Transaction liée à une catégorie |
-
-*(General vocab — expense/income/saving — in root CLAUDE.md)*
+Root `CLAUDE.md § Vocabulary` is the only list. `BudgetLine` reads "prévision" in the UI,
+never "catégorie" — that word appears nowhere in the Swift sources.

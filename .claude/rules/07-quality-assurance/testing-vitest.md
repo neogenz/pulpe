@@ -7,250 +7,47 @@ paths:
 
 # Testing
 
-Path pattern: `**/*.spec.ts`
+Vitest + Angular TestBed, spec files next to the code they test. Standard TestBed usage
+applies as written — `configureTestingModule`, `componentRef.setInput()` for signal inputs,
+`vi.fn()` spies, Arrange-Act-Assert. Test code and descriptions in **English**, named
+`should + expected behaviour`.
 
-## Framework
+## Resolve from the component injector, not TestBed root
 
-Project use **Vitest** + Angular TestBed.
-
-```typescript
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { TestBed, ComponentFixture } from '@angular/core/testing';
-```
-
-## Organization
-
-### File Placement
-
-Test files next to code tested:
-
-```
-feature/
-├── user.service.ts
-├── user.service.spec.ts
-├── user-list.ts
-└── user-list.spec.ts
-```
-
-### Describe Blocks
-
-Nest `describe` blocks:
+A component with its own `providers` (a locale adapter, a scoped store, a dialog service)
+resolves them from *its* injector. `TestBed.inject()` reads the root injector and hands back
+the wrong instance — silently, with a plausible value:
 
 ```typescript
-describe('UserService', () => {
-  // Setup
+// Right — the same injector the component's own datepicker uses
+const adapter = fixture.debugElement.injector.get(DateAdapter);
+const formats = fixture.debugElement.injector.get(MAT_DATE_FORMATS);
 
-  describe('fetchUsers', () => {
-    it('should return users on success', () => {});
-    it('should throw OperationalError on network failure', () => {});
-  });
-
-  describe('deleteUser', () => {
-    it('should remove user from list', () => {});
-  });
-});
+// Wrong — root injector, not what the component sees
+const adapter = TestBed.inject(DateAdapter);
 ```
 
-## Core Principles
+## Never hand-roll a DataCache double
 
-### Language
+`createMockDataCache()` in `core/testing/test-utils.ts` tracks the `ngx-ziflux` `DataCache`
+surface. A hand-rolled object compiles today and drifts on the next upgrade, so the spec goes
+green while the real cache has moved. `pnpm typecheck:spec` is the only gate that compiles
+spec files — plain `pnpm typecheck` will not see the break.
 
-All test code + descriptions in **English**.
+## Stale specs after a shared rebuild
 
-### Arrange-Act-Assert (AAA)
-
-Split test into three phases, blank lines between:
-
-```typescript
-it('should increment the count', () => {
-  // Arrange
-  const service = TestBed.inject(CounterService);
-
-  // Act
-  service.increment();
-
-  // Assert
-  expect(service.count()).toBe(1);
-});
-```
-
-### Descriptive Names
-
-Format `should + expected behavior`:
-
-```typescript
-// Good
-it('should return empty array when no users exist', () => {});
-it('should throw BusinessError when user lacks permission', () => {});
-
-// Bad
-it('works', () => {});
-it('test user', () => {});
-```
-
-### Use Existing Types
-
-Use project types for test data:
-
-```typescript
-// Good - uses existing User type
-const user: User = { id: '1', name: 'John', role: 'admin' };
-
-// Bad - inline object without type
-const user = { id: '1', name: 'John', role: 'admin' };
-```
-
-## Component Testing
-
-### Setup Pattern
-
-```typescript
-describe('GreetingComponent', () => {
-  let component: GreetingComponent;
-  let fixture: ComponentFixture<GreetingComponent>;
-
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [GreetingComponent],
-    }).compileComponents();
-
-    fixture = TestBed.createComponent(GreetingComponent);
-    component = fixture.componentInstance;
-  });
-});
-```
-
-### Setting Inputs
-
-Use `setInput` for signal inputs:
-
-```typescript
-beforeEach(() => {
-  fixture.componentRef.setInput('name', 'World');
-  fixture.detectChanges();
-});
-```
-
-### Testing Outputs
-
-```typescript
-it('should emit event on button click', () => {
-  const spy = vi.fn();
-  component.clicked.subscribe(spy);
-
-  const button = fixture.nativeElement.querySelector('button');
-  button.click();
-
-  expect(spy).toHaveBeenCalledOnce();
-});
-```
-
-## Service Testing
-
-```typescript
-describe('CounterService', () => {
-  let service: CounterService;
-
-  beforeEach(() => {
-    TestBed.configureTestingModule({});
-    service = TestBed.inject(CounterService);
-  });
-
-  it('should start at 0', () => {
-    expect(service.count()).toBe(0);
-  });
-});
-```
-
-## Mocking
-
-### Dependencies
-
-```typescript
-beforeEach(() => {
-  const mockLoggingService: Partial<LoggingService> = {
-    error: vi.fn(),
-    addBreadcrumb: vi.fn(),
-  };
-
-  TestBed.configureTestingModule({
-    providers: [{ provide: LoggingService, useValue: mockLoggingService }],
-  });
-});
-```
-
-### Factory Functions
-
-Reusable test data factories:
-
-```typescript
-const createMockUser = (overrides: Partial<User> = {}): User => ({
-  id: '1',
-  name: 'John Doe',
-  email: 'john@example.com',
-  ...overrides,
-});
-
-const createHttpError = (status: number, statusText = 'Error'): HttpErrorResponse => {
-  return new HttpErrorResponse({ status, statusText, url: '/api/test' });
-};
-```
-
-## Async Testing
-
-### With async/await
-
-```typescript
-it('should fetch users', async () => {
-  const users = await service.fetchUsers();
-
-  expect(users).toHaveLength(3);
-});
-```
-
-### With Injection Context
-
-```typescript
-const runInterceptor = (request: HttpRequest<unknown>): Promise<Error> => {
-  return new Promise((resolve) => {
-    TestBed.runInInjectionContext(() => {
-      interceptor(request, next).subscribe({
-        error: (err) => resolve(err),
-      });
-    });
-  });
-};
-```
-
-## User Interaction Tests
-
-Test via user interactions:
-
-```typescript
-// Good - simulates user action
-it('should submit form on button click', () => {
-  const button = fixture.nativeElement.querySelector('button[type="submit"]');
-  button.click();
-
-  expect(component.submitted()).toBe(true);
-});
-
-// Acceptable - direct method call when UI not relevant
-it('should validate email format', () => {
-  const result = service.validateEmail('invalid');
-
-  expect(result.valid).toBe(false);
-});
-```
+Vitest caches transformed modules in `node_modules/.vite`. After rebuilding `shared/`, a spec
+can run against the previous build with no warning. Clear that directory when a test result
+contradicts the source you just changed.
 
 ## Anti-Patterns
 
 | Don't | Do |
 |-------|-----|
-| Test implementation details | Test behavior and outcomes |
-| Share mutable state between tests | Reset state in `beforeEach` |
-| Use magic strings/numbers | Use constants or factory functions |
-| Write comments in tests | Make test names self-explanatory |
-| Combine multiple assertions without reason | One logical assertion per test |
-| Skip AAA structure | Always separate Arrange, Act, Assert |
-| Use `any` in test code | Use proper types |
+| Test implementation details | Test behaviour and outcomes |
+| Share mutable state between tests | Reset in `beforeEach` |
+| `TestBed.inject()` for a component-scoped provider | `fixture.debugElement.injector.get()` |
+| A hand-written `DataCache` mock | `createMockDataCache()` |
+| Magic strings/numbers | Constants or factory functions |
+| Comments explaining a test | A self-explanatory test name |
+| `any` in test code | Proper types |

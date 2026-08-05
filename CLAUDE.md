@@ -17,8 +17,10 @@
 # Full stack (recommended)
 pnpm dev                      # Starts all packages via Turbo
 
-# Quality (BEFORE every commit)
-pnpm quality                  # type-check + lint + format (all packages)
+# Quality — racine uniquement (aucun package ne définit `quality` sauf backend-nest)
+pnpm quality                  # turbo quality + format:check:automation + test:ci-security + test:public-surface
+                              # lefthook le lance déjà en pre-commit, mais scopé `--filter="...[HEAD^]"` et SKIPPÉ sur merge/rebase
+                              # les templates Angular (strictTemplates) ne sont vérifiés que par `ng build` → job CI dédié
 
 # Testing
 pnpm test                     # All unit tests
@@ -27,11 +29,11 @@ pnpm test:e2e                 # E2E tests (Playwright)
 # Single package commands
 cd frontend && pnpm test -- path/to/file.spec.ts   # Frontend single test
 cd frontend && pnpm test:watch                      # Watch mode
-cd backend-nest && bun test path/to/file.test.ts   # Backend single test
+cd backend-nest && bun test path/to/file.spec.ts   # Backend single test
 
-# Supabase local
-supabase start                # Start local Supabase (DB + Auth)
-supabase stop                 # Stop local services
+# Supabase local (le projet vit dans backend-nest/, pas à la racine)
+cd backend-nest && supabase start   # Start local Supabase (DB + Auth)
+cd backend-nest && supabase stop    # Stop local services
 ```
 
 ### Turbo-Specific Commands
@@ -54,28 +56,16 @@ pnpm dev:backend              # Backend + shared
 | Shared        | TypeScript strict, Zod schemas                 |
 | Orchestration | pnpm workspaces + Turborepo                    |
 
-## Rules Files
-
-Rules `.claude/rules/` use frontmatter for path activation:
-
-```yaml
----
-description: Brief description
-paths: "**/*.ts"
----
-```
-
 ## Critical Rules
 
 - **NEVER** destructive Supabase cmds (`db reset`, `db push --force`)
-- **ALWAYS** run `pnpm quality` before commit
 - **AFTER** DB schema change: `bun run generate-types:local` in backend
 - **ALWAYS** encrypt financial amounts (`amount`, `target_amount`, `ending_balance`) via `ENCRYPTION_PORT` before DB write. Columns `text` holding AES-256-GCM ciphertexts. (see `docs/ENCRYPTION.md`)
 - **ALWAYS** mirror a formula change across both sides: `shared/src/calculators/` ↔ `ios/Pulpe/Domain/Formulas/`, tests included, same commit. Nothing fails the build when they diverge — web and iOS just show two different amounts. (see `.claude/rules/00-architecture/formula-mirrors-ts-swift.md`)
 
 ## Vocabulary
 
-- `budget_lines` → "prévisions" | `fixed` → "Récurrent" | `one_off` → "Prévu" | `transaction` → "Réel"
+- `budget_line` (table ; `budgetLines` sur le wire) → "prévisions" | `fixed` → "Récurrent" | `one_off` → "Prévu" | `transaction` → "Réel"
 - `income` → "Revenu" | `expense` → "Dépense" | `saving` → "Épargne"
 - `checked` → "Pointé" | `unchecked` → "À pointer"
 - Labels: "Disponible à dépenser", "Épargne prévue", "Fréquence"
@@ -109,12 +99,13 @@ paths: "**/*.ts"
 Solo project, AI-assisted. The cost of cleanup after over-shipped features is the #1 productivity tax. Every AI turn must respect:
 
 1. **Smallest diff that solves the asked task.** Period. No speculative features, no "while I'm here" refactors, no abstractions invented for hypothetical reuse.
-2. **Reuse over create.** Read 3+ existing files first (per Workflow Rule below). Existing component / token / helper > new file every time.
+2. **Reuse over create.** Read 3+ existing files first — un fichier similaire, et la définition de tout import dont l'API n'est pas certaine. Existing component / token / helper > new file every time.
 3. **Extract at 3+ identical uses, not 1-2.** A premature helper costs more than three similar lines.
-4. **Tests = bug repro + happy path.** No exhaustive coverage unless asked.
-5. **Out-of-scope work goes in one block at the end of the response, under the heading `### Follow-up suggestions`.** Do NOT do it. Do NOT re-mention it after that section. The user will scan and decide.
-6. **No "follow-up" lists in commits, PR descriptions, or documentation.** They belong in the response only. Code-tree must be self-explanatory.
-7. **If your solution exceeds ~300 net LOC, pause and report 2-3 alternatives** before continuing. Do not silently expand.
+4. **Tests = bug repro + happy path.** No exhaustive coverage unless asked. Un bug rapporté commence par un test qui le reproduit, avant tout correctif.
+5. **Déléguer à un subagent seulement pour un travail large et réellement parallélisable.** Jamais pour vérifier son propre travail. Un agent plutôt que plusieurs quand un seul suffit.
+6. **Out-of-scope work goes in one block at the end of the response, under the heading `### Follow-up suggestions`.** Do NOT do it. Do NOT re-mention it after that section. The user will scan and decide.
+7. **No "follow-up" lists in commits, PR descriptions, or documentation.** They belong in the response only. Code-tree must be self-explanatory.
+8. **If your solution exceeds ~300 net LOC, pause and report 2-3 alternatives** before continuing. Do not silently expand.
 
 **Anti-patterns that bypass these rules:**
 - Spawning a subagent with a prompt that re-opens scope ("add tests for everything", "consider follow-ups", "extend if needed").
@@ -122,35 +113,6 @@ Solo project, AI-assisted. The cost of cleanup after over-shipped features is th
 - Creating speculative abstractions ("this might be reused later"). It won't.
 
 These rules apply to the main agent and every spawned subagent. CLAUDE.md is **advisory, not enforced** — the responsibility to honor it sits with whoever is generating the response, every turn.
-
-## Bug Reporting
-
-Bug reported → don't fix first. Write test reproducing bug. Then subagents fix, prove with passing test.
-
-## Workflow modification
-
-**CRITICAL RULE•- ALWAYS • FOLLOW• THIS**
-
-**BEFORE editing any files, you MUST Read at least 3 files** to understand coherence + consistency.
-
-**NON-NEGOTIABLE**. Never skip.
-
-Reading existing files ensures:
-
-- Code consistency with project patterns
-- Proper convention understanding
-- Following established architecture
-- Avoiding breaking changes
-
-**File types you MUST read:**
-
-**Similar files**: Files with similar functionality → patterns + conventions
-**Imported dependencies**: Definition/implementation of imports you not 100% sure how to use — understand API, types, usage
-**Steps:**
-
-1. Read 3+ relevant existing files (similar functionality + imported deps)
-2. Understand patterns, conventions, API usage
-3. Only then create/edit files
 
 ## Memory Management
 

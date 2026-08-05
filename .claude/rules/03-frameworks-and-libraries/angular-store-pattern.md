@@ -27,28 +27,9 @@ Component → Store → Feature API → ApiClient
 
 ## ApiClient Usage
 
-All HTTP calls via `ApiClient`. Never inject `HttpClient` direct.
-
-```typescript
-@Service()
-export class FeatureApi {
-  readonly #api = inject(ApiClient);
-
-  getItems$(): Observable<ItemListResponse> {
-    return this.#api.get$('/items', itemListResponseSchema);
-  }
-
-  createItem$(data: ItemCreate): Observable<ItemResponse> {
-    return this.#api.post$('/items', data, itemResponseSchema);
-  }
-
-  deleteItem$(id: string): Observable<void> {
-    return this.#api.deleteVoid$(`/items/${id}`);
-  }
-}
-```
-
-Zod validation enforced by design — no schema, no call.
+Every HTTP call goes through `ApiClient`, never `HttpClient` directly. A `@Service()` feature
+API exposes one method per endpoint over `api.get$(path, schema)` / `post$` / `deleteVoid$`.
+Zod validation is enforced by the signature — no schema, no call.
 
 ## Store Anatomy (5 sections)
 
@@ -63,12 +44,16 @@ export class FeatureStore {
   readonly #budgetId = signal<string | null>(null);
 
   // ── 3. Resource (data loading) ──
-  readonly #resource = resource({
-    params: () => this.#budgetId(),
-    loader: async ({ params }) => {
-      if (!params) throw new Error('ID required');
-      return firstValueFrom(this.#api.getById$(params));
+  readonly #resource = cachedResource<Feature, { id: string }>({
+    cache: this.#api.cache,
+    cacheKey: (params) => ['feature', params.id],
+    params: () => {
+      const id = this.#budgetId();
+      return id ? { id } : undefined;
     },
+    // Hand the Observable over rather than awaiting it — only that form lets
+    // the resource unsubscribe on `abortSignal` and cancel the request it left.
+    loader: ({ params }) => this.#api.getById$(params.id),
   });
 
   // ── 4. Selectors (computed) ──
@@ -93,50 +78,22 @@ caller decides how to surface it (a toast, an inline message).
 
 ## Store Variants
 
-### Variant A: Signals-Only Store
-Local UI state or synced state, no async data loading.
+**Signals-only** — local or synced UI state, no async loading: `signal()` + `computed()` +
+synchronous methods. Example: `CompleteProfileStore` (form steps and validation state).
 
-| Element | Usage |
-|---------|-------|
-| `signal()` | Writable state |
-| `computed()` | Derived selectors |
-| Methods | Synchronous set/update |
-
-Example: `CompleteProfileStore` — manages form steps + validation state.
-
-### Variant B: Resource-Backed Store
-API-fetched data, async loading, mutations, cache mgmt.
-
-| Element | Usage |
-|---------|-------|
-| `resource()` / `rxResource()` | Async data loading |
-| `signal()` | Internal state (filters, IDs) |
-| `computed()` | Derived selectors, loading states |
-| `async` methods | Mutations with optimistic updates |
-
-Example: `BudgetDetailsStore` — loads budget details, optimistic CRUD.
+**Resource-backed** — API data, async loading, mutations, cache. Example:
+`BudgetDetailsStore`.
 
 ## Data Loading
 
-`resource()` for fetch-on-signal-change. `rxResource()` when Observable chains needed.
+A store loads through `cachedResource()` — twelve files do, and it is what makes a
+second visit render instantly instead of re-fetching. `params` returning `undefined`
+is how you say "not ready yet"; the loader then never runs.
 
-```typescript
-// resource() — simple async loader
-readonly #detailsResource = resource({
-  params: () => this.#itemId(),
-  loader: async ({ params }) =>
-    firstValueFrom(this.#api.getDetails$(params)),
-});
-
-// rxResource() — Observable streams, auto-cancellation
-readonly #dashboardResource = rxResource({
-  params: () => ({
-    month: this.period().month,
-    version: this.#invalidation.version(), // cache bust
-  }),
-  stream: ({ params }) => this.#loadDashboard$(params),
-});
-```
+Bare `resource()` and `rxResource()` stay available for the cases the cache does not
+serve: a one-shot lookup inside a component (`search-transactions-dialog.ts`,
+`live-conversion-preview.ts`) or an Observable chain that must re-subscribe
+(`tag-history-dialog.ts`). Neither belongs in a store.
 
 ## Mutations: async/await
 
@@ -173,64 +130,30 @@ async createItem(data: ItemCreate): Promise<string | null> {
 }
 ```
 
-## Temp ID Rule (DR-005)
+### Temp ID Rule (DR-005)
 
-Creating item with temp ID: **always replace temp ID with real server ID BEFORE** cascade actions (invalidation, dependent API calls).
-
-### Correct order:
-```typescript
-// 1. Optimistic update with temp ID
-this.#resource.update(current => ({
-  ...current,
-  items: [...current.items, { ...data, id: tempId }],
-}));
-
-// 2. API call
-const response = await firstValueFrom(this.#api.create$(data));
-
-// 3. Replace temp → real (BEFORE cascade)
-this.#resource.update(current => ({
-  ...current,
-  items: current.items.map(i => i.id === tempId ? response.data : i),
-}));
-
-// 4. NOW safe to cascade
-this.#invalidation.invalidate();
-```
-
-### Bug if wrong order:
-```typescript
-// WRONG — cascade uses temp ID
-const response = await firstValueFrom(this.#api.create$(data));
-this.#invalidation.invalidate(); // Other stores reload, see "temp-xxx"
-this.#resource.update(...); // Too late, temp ID already leaked
-
-// WRONG — using temp ID in follow-up call
-await this.#api.toggleCheck$(tempId); // 404 — server doesn't know "temp-xxx"
-```
+Step 3 is not optional and cannot move. **Replace the temp id with the real one BEFORE any
+cascade** — invalidation, or any dependent API call. Cascade first and other stores reload
+and read `temp-xxx`; call `toggleCheck$(tempId)` and the server 404s on an id it never knew.
 
 ## Cache Invalidation
 
-Version signal triggers cross-store reloads:
+Cross-store reloads go through the cache, by key prefix — `invalidate(['budget'])`
+drops every entry under it, so the next `cachedResource()` reading `['budget', …]`
+refetches. There is no version signal and no invalidation service.
 
 ```typescript
-// Shared invalidation service
-@Service()
-export class FeatureInvalidationService {
-  readonly #version = signal(0);
-  readonly version = this.#version.asReadonly();
-  invalidate(): void { this.#version.update((v) => v + 1); }
-}
-
-// In store — include version in resource params
-readonly #resource = rxResource({
-  params: () => ({
-    id: this.#itemId(),
-    version: this.#invalidation.version(),
-  }),
-  stream: ({ params }) => this.#api.getById$(params.id),
-});
+// Inside a cachedMutation — the write touched budget data, so say so
+onSuccess: (_result, input) => {
+  if (input.monthlyContribution != null) {
+    this.#budgetApi.cache.invalidate(['budget']);
+    this.#budgetTemplatesApi.cache.invalidate(['templates']);
+  }
+},
 ```
+
+A mutation whose own keys are enough declares them as `invalidateKeys` instead of
+calling `invalidate()` by hand. See `angular-cache-swr.md`.
 
 ## SWR (Stale-While-Revalidate)
 
@@ -243,78 +166,34 @@ readonly isInitialLoading = computed(
 
 ## DataCache (Shared SWR Cache)
 
-Cache lives in **Feature API layer** (singleton), not stores (route-scoped).
+See `angular-cache-swr.md` — cache placement, `staleTime` / `expireTime`, freshness
+states, cache keys, `cachedResource()` and `cachedMutation()` are documented there.
+
+A store never instantiates `DataCache`; it reads `this.#api.cache`.
+
+### Cache-First Read in an Imperative Store Method
+
+Store resources go through `cachedResource()`, which does the cache wiring itself.
+Only a one-shot read triggered by a user action still touches the cache by hand —
+`deduplicate()` keeps concurrent callers on a single request:
 
 ```typescript
-// core/cache/data-cache.ts
-const cache = new DataCache({ freshTime: 30_000, gcTime: 600_000 });
+async checkUsage(templateId: string): Promise<TemplateUsageResponse['data']> {
+  const cacheKey: string[] = ['templates', 'usage', templateId];
+  const cached = this.#api.cache.get<TemplateUsageResponse['data']>(cacheKey);
+
+  if (cached?.fresh) return cached.data;
+
+  const freshPromise = this.#api.cache.deduplicate(cacheKey, async () => {
+    const response = await firstValueFrom(this.#api.checkUsage$(templateId));
+    this.#api.cache.set(cacheKey, response.data);
+    return response.data;
+  });
+
+  if (cached) return cached.data;  // stale — return while refetch runs
+  return freshPromise;             // miss — await fresh data
+}
 ```
-
-### Freshness Semantics
-
-| State | Condition | Behavior |
-|-------|-----------|----------|
-| FRESH | `age <= freshTime` | Return immediately, no refetch |
-| STALE | `freshTime < age <= gcTime` | Return immediately + background refetch |
-| EXPIRED | `age > gcTime` | Evict, treat as cache miss |
-
-### Cache Keys (Hierarchical)
-
-```typescript
-['budget', 'list']                           // budget list
-['budget', 'details', budgetId]              // specific budget
-['budget', 'dashboard', month, year]         // dashboard data
-```
-
-Prefix invalidation: `cache.invalidate(['budget'])` marks ALL budget entries stale.
-
-### Cache-First Resource Loader Pattern
-
-```typescript
-readonly #resource = resource({
-  params: () => this.#itemId(),
-  loader: async ({ params: id }) => {
-    const cacheKey: string[] = ['domain', 'details', id];
-    const cached = this.#api.cache.get<T>(cacheKey);
-
-    if (cached?.fresh) return cached.data;
-
-    const freshPromise = this.#api.cache.deduplicate(cacheKey, async () => {
-      const data = await firstValueFrom(this.#api.getById$(id));
-      this.#api.cache.set(cacheKey, data);
-      return data;
-    });
-
-    if (cached) return cached.data;  // stale — return while refetch runs
-    return freshPromise;             // miss — await fresh data
-  },
-});
-```
-
-### Cache Fallback in Selectors
-
-```typescript
-readonly data = computed(() => {
-  const resourceValue = this.#resource.value();
-  if (resourceValue) return resourceValue;
-
-  const id = this.#itemId();
-  if (!id) return null;
-  return this.#api.cache.get<T>(['domain', 'details', id])?.data ?? null;
-});
-
-readonly isInitialLoading = computed(
-  () => this.#resource.status() === 'loading' && !this.data(),
-);
-```
-
-### Adding Cache to a New Domain (Checklist)
-
-1. Add `readonly cache = new DataCache({ freshTime, gcTime })` to Feature API
-2. Add `cache.set()` in API read methods (via `tap()`)
-3. Add `cache.invalidate()` in API mutation methods
-4. Update store loaders with cache-first pattern
-5. Add cache fallback in store selectors
 
 ## Scoping
 
@@ -323,17 +202,9 @@ readonly isInitialLoading = computed(
 | `@Service({ autoProvided: false })` | Feature stores (route-scoped) | `BudgetDetailsStore` |
 | `@Service()` | Shared services, APIs, caches | `BudgetApi`, `HasBudgetCache` |
 
-Feature stores registered in route providers:
-
-```typescript
-export default [
-  {
-    path: '',
-    providers: [FeatureApi, FeatureStore],
-    children: [{ path: ':id', loadComponent: () => import('./page') }],
-  },
-] satisfies Routes;
-```
+Feature stores go in the route's `providers: [FeatureApi, FeatureStore]`, so their lifetime
+is the route's — leaving the feature disposes the store rather than leaking its state into
+the next visit.
 
 ## Error Handling
 
@@ -361,7 +232,7 @@ catch (error) {
 | `subscribe()` in mutations | `async/await` + `firstValueFrom()` |
 | `effect()` for derived state | `computed()` or `linkedSignal()` |
 | Mutate signal arrays in place | Spread: `[...items, newItem]` |
-| `#staleData` signal in store | Cache fallback via `api.cache.get()` in selector |
+| `#staleData` signal in store | `cachedResource()` already serves the stale value while it refetches |
 | `error` mixing resource and mutation failures | `error = this.#resource.error`; mutations return their reason |
 | Reading success from `response !== undefined` | A `void` mutation resolves `undefined` on success too — read the returned reason |
 
@@ -369,6 +240,7 @@ catch (error) {
 
 | Store | File | Pattern |
 |-------|------|---------|
-| `BudgetDetailsStore` | `feature/budget/budget-details/store/` | `resource()`, optimistic updates, temp IDs, cache-first loader, prefetch, mutation reasons returned to the caller |
-| `CurrentMonthStore` | `feature/current-month/services/` | `resource()`, SWR, cache-first loader, invalidation version |
-| `BudgetListStore` | `feature/budget/budget-list/` | `resource()`, cache-first loader, linkedSignal |
+| `BudgetDetailsStore` | `feature/budget/budget-details/store/budget-details-store.ts` | `cachedResource()`, optimistic updates with per-call rollback, prefetch of adjacent budgets, mutation reasons returned to the caller |
+| `DashboardStore` | `feature/current-month/services/dashboard-store.ts` | `cachedResource()`, SWR, `cachedMutation()` with `invalidateKeys` |
+| `TemplateLineStore` | `feature/budget-templates/details/services/template-line-store.ts` | Optimistic creates with temp IDs (`TEMP_ID_PREFIX`) |
+| `BudgetListStore` | `feature/budget/budget-list/budget-list-store.ts` | `cachedResource()`, `linkedSignal` |

@@ -84,7 +84,7 @@ pnpm run build               # ng build
 # Tests unitaires (Vitest)
 pnpm run test                # Tous les tests unitaires
 pnpm run test:watch          # Mode watch
-pnpm run typecheck           # Vérification des types
+pnpm run type-check          # Vérification des types (tsc, hors templates)
 
 # Tests E2E (Playwright)
 pnpm run test:e2e            # Tests E2E

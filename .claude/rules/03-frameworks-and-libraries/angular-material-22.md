@@ -32,18 +32,24 @@ Training data may have stale Material 19/20/21 patterns. This rule = source of t
 <button matMiniFab><mat-icon>edit</mat-icon></button>
 ```
 
-### Removed Selectors (DO NOT USE)
+### Legacy Selectors (still supported — prefer `matButton`)
+
+These were **not** removed. Material 22 still declares them, and `MatButton`'s constructor
+calls `_inferAppearance()` to map the attribute onto an appearance:
 
 ```html
-<!-- NEVER: removed in v21 -->
-mat-button
-mat-raised-button
-mat-flat-button
-mat-stroked-button
-mat-icon-button
-mat-fab
-mat-mini-fab
+<!-- Still compiles and renders — but not the project convention -->
+mat-button          <!-- → appearance "text" -->
+mat-raised-button   <!-- → appearance "elevated" -->
+mat-stroked-button  <!-- → appearance "outlined" -->
+mat-flat-button     <!-- → appearance "filled" -->
+mat-icon-button     <!-- → same component as matIconButton -->
+mat-fab             <!-- → same component as matFab -->
+mat-mini-fab        <!-- → same component as matMiniFab -->
 ```
+
+Write new code with the `matButton` / `matIconButton` / `matFab` / `matMiniFab` form.
+Legacy usages already in the codebase are not broken and need no urgent migration.
 
 ## Form Fields
 
@@ -217,14 +223,18 @@ Material 22 uses `--mat-sys-*` CSS custom properties:
 
 ### Project Convention
 
-Use Pulpe tokens (`--p-*`, `--pulpe-*`) over raw `--mat-sys-*` in components.
-`--mat-sys-*` tokens for theme definition + Material component overrides only.
+The Pulpe namespace is `--pulpe-*` (financial, layout rhythm, surfaces, motion). Use it
+whenever a token exists for the concept; there is no Pulpe token for the base M3 palette,
+so component SCSS reads `--mat-sys-*` directly for colors and typography. Shape is the
+exception: a card or a panel takes `--pulpe-surface-radius-card` / `-panel`
+(`design-system.md`), and only the shapes those two do not name fall back to
+`--mat-sys-corner-*`.
 
 ## Anti-Patterns
 
 | Don't | Do |
 |-------|-----|
-| `mat-raised-button` | `matButton="filled"` |
+| `mat-raised-button` | `matButton="elevated"` |
 | `mat-flat-button` | `matButton="filled"` |
 | `mat-stroked-button` | `matButton="outlined"` |
 | `mat-icon-button` | `matIconButton` |
@@ -232,5 +242,5 @@ Use Pulpe tokens (`--p-*`, `--pulpe-*`) over raw `--mat-sys-*` in components.
 | `appearance="standard"` | `appearance="outline"` |
 | `matDialogAnimations` | Remove — now CSS-based |
 | `FlatTreeControl` | `levelAccessor` / `childrenAccessor` |
-| `color: #hex` in component | `color: var(--p-primary)` |
-| `background: var(--mat-sys-primary)` in component | `background: var(--p-primary)` (use Pulpe tokens) |
+| `color: #hex` in component | `color: var(--mat-sys-primary)` |
+| `color: #b35800` for an expense amount | `color: var(--pulpe-financial-expense)` |

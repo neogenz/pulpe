@@ -42,7 +42,7 @@ throw new BusinessException(
 
 ## ERROR_DEFINITIONS
 
-Defined in `src/common/exceptions/` or `src/config/error-definitions.ts`:
+Defined in `src/common/constants/error-definitions.ts`:
 
 ```typescript
 BUDGET_NOT_FOUND: {
@@ -135,7 +135,7 @@ private handleCreationError(error: unknown, userId: string): never {
   const message = (error as { message?: string })?.message;
   if (message?.includes('23505')) {
     throw new BusinessException(
-      ERROR_DEFINITIONS.BUDGET_ALREADY_EXISTS,
+      ERROR_DEFINITIONS.BUDGET_ALREADY_EXISTS_FOR_MONTH,
       { month, year },
     );
   }

@@ -1,11 +1,5 @@
 # Coding Assertions
 
-## Before commit
-| Order | Command | Checks |
-| --- | --- | --- |
-| 1 | `pnpm quality` | Required repo gate; typecheck, lint, architecture lint, and formatting where wired. |
-| 2 | Lefthook | Filters the gate to changed workspaces and runs strict SwiftLint for staged Swift. |
-
 ## Before push
 | Order | Command | Checks |
 | --- | --- | --- |
