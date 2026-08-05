@@ -25,12 +25,14 @@ if (retryCount >= 3) { /* ... */ }
 
 ## Length Limits
 
-| Element | Max |
-|---------|-----|
-| Function lines | 30 |
-| Function parameters | 5 |
-| File lines | 300 |
-| Files per folder | 10 |
+| Element | `backend-nest/src/**` | `frontend/`, `landing/`, `shared/` |
+|---------|-----|-----|
+| Function lines | 50 (warn) | not enforced |
+| Function parameters | 7 (warn) | not enforced |
+| File lines | not enforced | not enforced |
+| Files per folder | not enforced | not enforced |
+
+Only `backend-nest/eslint.config.js` enforces any of these, and its own `*.spec.ts` / `*.test.ts` / `src/test/**` override turns them off. "Files per folder" is enforced by no tool anywhere — treat it as a habit, not a gate.
 
 ## Single Responsibility
 

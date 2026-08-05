@@ -28,13 +28,16 @@ DEK is never stored — recalculated per request (with 5-min memory cache).
 
 ## Encrypted Columns
 
-| Table | Column (type `text`) |
-|-------|---------------------|
-| `budget_line` | `amount` |
-| `transaction` | `amount` |
-| `template_line` | `amount` |
-| `savings_goal` | `target_amount` |
+| Table | Columns (type `text`) |
+|-------|----------------------|
+| `budget_line` | `amount`, `original_amount` |
+| `transaction` | `amount`, `original_amount` |
+| `template_line` | `amount`, `original_amount` |
+| `savings_goal` | `target_amount`, `initial_amount`, `original_target_amount` |
 | `monthly_budget` | `ending_balance` |
+
+`original_amount` / `original_target_amount` hold the multi-currency source amount; `exchange_rate`
+sits next to them as plaintext `NUMERIC(18,8)`, so the two ciphertexts are mathematically linked.
 
 Each column stores AES-256-GCM ciphertext encoded in base64, or `null`.
 
@@ -117,5 +120,5 @@ async execute(input: BudgetLineCreate, user: AuthenticatedUser): Promise<BudgetL
 - **Never** store DEK — always derive from clientKey + masterKey + salt
 - **Always** use `{ cause: error }` when catching encryption errors
 - **Always** wipe clientKey from memory after use (`buffer.fill(0)`)
-- `user_encryption_key` table: service_role only — RLS blocks authenticated/anon
+- `user_encryption_key` table: `anon` fully revoked. Since migration `20260212100000`, RLS lets an owner SELECT/UPDATE their **own row** — what keeps `salt` and `wrapped_dek` service_role-only is the column-level GRANT: `authenticated` holds SELECT on `user_id` and UPDATE on `key_check`/`updated_at`, nothing else. INSERT is service_role only, and no DELETE policy exists
 - Rate limiting: `/validate-key` (5/min), `/recover` (5/hour)

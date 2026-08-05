@@ -157,6 +157,11 @@ this.user.reload();     // trigger refresh
 
 ### httpResource() - HTTP with Signals
 
+> **Not used in this project.** Every call to the Pulpe API goes through `ApiClient`
+> (`core/api/api-client.ts`), which owns the base URL, Zod parsing, transient-GET
+> retries and error normalization — `httpResource()` bypasses all four. Documented
+> here for reading Angular code outside this repo.
+
 ```typescript
 readonly user = httpResource(() => `/api/users/${this.userId()}`);
 
@@ -191,8 +196,8 @@ readonly user = rxResource({
 
 | Use Case | API | Reason |
 |----------|-----|--------|
-| Simple GET requests | `httpResource()` | Min boilerplate, auto JSON parse |
-| GET with Zod validation | `httpResource()` + `parse` | Type-safe responses |
+| Pulpe API data held by a store | `cachedResource()` over `api.<verb>$()` | `ApiClient` owns Zod, retries, error normalization; cache is shared |
+| Pulpe API data local to one component | `rxResource()` / `resource()` over `api.<verb>$()` | Nothing else reads it, so caching it buys nothing |
 | Complex HTTP (interceptors, retries) | `rxResource()` | Full RxJS power |
 | Non-HTTP async (localStorage, IndexedDB) | `resource()` | Generic async loader |
 | WebSocket/SSE streams | `rxResource()` | Observable-based |
@@ -201,14 +206,16 @@ readonly user = rxResource({
 **Decision Flow:**
 
 ```
-Is it an HTTP GET?
-  ├─ Yes → httpResource()
+Will more than this one component read the data?
+  ├─ Yes → cachedResource() in a store  (see angular-store-pattern.md)
   └─ No → Is it Observable-based?
-            ├─ Yes → rxResource()
-            └─ No → resource()
+            ├─ Yes → rxResource()   (tag-history-dialog.ts)
+            └─ No → resource()      (search-transactions-dialog.ts)
 ```
 
-**Project Convention:** Prefer `httpResource()` for API calls. Use `resource()` only for non-HTTP async.
+**Project Convention:** API calls never bypass `ApiClient` — no Zod schema, no call. That
+holds whichever resource wraps them. What varies is only the wrapper: shared data lives in a
+store behind `cachedResource()`, data a single dialog reads and drops does not.
 
 ---
 

@@ -207,12 +207,16 @@ enum Endpoint {
 ## Protocol-Oriented Patterns
 
 ```swift
-// Good - protocol for shared behavior
+// Good - protocol for shared behavior (Domain/Store/StoreProtocol.swift)
+@MainActor
 protocol StoreProtocol: Observable {
     var isLoading: Bool { get }
-    var error: Error? { get }
+    var error: APIError? { get }
+    var hasError: Bool { get }
     func loadIfNeeded() async
     func forceRefresh() async
+    func invalidateCache()
+    func reset()
 }
 ```
 

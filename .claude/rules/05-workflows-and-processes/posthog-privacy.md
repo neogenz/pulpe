@@ -28,12 +28,12 @@ Wrap **only the amount text** in a `<span class="ph-no-capture">`, or add the cl
 ```html
 <!-- CORRECT — class on a display-only span -->
 <span class="ph-no-capture">
-  {{ amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
+  {{ line.amount | appCurrency: currency() : '1.2-2' }}
 </span>
 
 <!-- CORRECT — class on a display-only div -->
 <div class="ph-no-capture text-headline-medium font-bold">
-  {{ amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
+  {{ totalAmount | appCurrency: currency() : '1.0-0' }}
 </div>
 ```
 
@@ -44,13 +44,15 @@ Wrap **only the amount text** in a `<span class="ph-no-capture">`, or add the cl
 ```html
 <!-- WRONG — button becomes unclickable when amounts are hidden -->
 <button class="ph-no-capture" (click)="doSomething()">
-  {{ amount | currency }}
+  {{ tx.amount | appCurrency: currency() : '1.2-2' }}
 </button>
 
 <!-- CORRECT — only the amount text is wrapped -->
 <button (click)="doSomething()">
   <mat-icon>receipt_long</mat-icon>
-  <span class="ph-no-capture">{{ amount | currency }}</span>
+  <span class="ph-no-capture">
+    {{ tx.amount | appCurrency: currency() : '1.2-2' }}
+  </span>
 </button>
 ```
 
@@ -58,6 +60,7 @@ For `mat-form-field` (amount inputs), the `ph-no-capture` class blurs the value 
 
 ## Reference
 
+- Currency formatting (`appCurrency`, dual decimal policy): `.claude/rules/03-frameworks-and-libraries/webapp-currency-formatting.md`
 - Global CSS: `frontend/projects/webapp/src/styles.scss` (search `amounts-hidden`)
 - Service: `AmountsVisibilityService` in `core/amounts-visibility/`
 - Toggle: settings page amount visibility toggle

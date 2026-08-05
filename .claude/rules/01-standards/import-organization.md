@@ -29,4 +29,4 @@ import { BudgetFormComponent } from './budget-form.component';
 
 - Use path aliases (`@core/`, `@ui/`) over deep relative paths
 - Group imports with blank line between sections
-- No barrel exports within features (avoid circular deps)
+- Barrels (`index.ts`) are the norm in `core/`, `ui/`, `pattern/`, and in component folders under `feature/` — keep them pure re-exports, and never import your own folder's barrel from inside that folder (circular deps)

@@ -15,7 +15,9 @@ import Foundation
 import Testing
 ```
 
-**NEVER** use `import XCTest` — whole test suite use Swift Testing.
+**NEVER** use `import XCTest` in `PulpeTests/` — the unit test suite is Swift Testing end to end.
+
+**Exception — `PulpeUITests/` requires XCTest.** XCUITest (`XCUIApplication`, `XCTestCase`) has no Swift Testing equivalent, so every file there is `import XCTest` + `final class … : XCTestCase` (`PulpeUITests/LoginFlowTests.swift`, `ContextualCreationUITests.swift`, `BudgetLineLongPressTests.swift`, …). Everything below in this rule targets `PulpeTests/` only.
 
 ## Organization
 
@@ -260,8 +262,8 @@ await withTaskGroup(of: Void.self) { group in
 
 | Don't | Do |
 |-------|-----|
-| `import XCTest` | `import Testing` |
-| `final class ... XCTestCase` | `struct` with `@Suite` |
+| `import XCTest` in `PulpeTests/` | `import Testing` (`PulpeUITests/` stays on XCTest) |
+| `final class ... XCTestCase` in `PulpeTests/` | `struct` with `@Suite` |
 | `XCTAssert*` | `#expect()` / `#require()` |
 | `setUp()` / `tearDown()` | Inline setup per test |
 | `func testName()` | `@Test func name()` |

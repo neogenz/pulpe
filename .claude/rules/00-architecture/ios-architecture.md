@@ -67,10 +67,14 @@ Global stores in `Domain/Store/`, implement `StoreProtocol`:
 ```swift
 @Observable @MainActor
 final class CurrentMonthStore: StoreProtocol {
+    private(set) var contentState: ContentState = .idle
     private(set) var budget: Budget?
     private(set) var transactions: [Transaction] = []
-    private(set) var isLoading = false
-    private(set) var error: Error?
+    private(set) var error: APIError?
+
+    // StoreProtocol requirements, derived rather than stored
+    var isLoading: Bool { contentState == .loading }
+    var hasError: Bool { contentState == .failed }
 
     private let budgetService: BudgetService
 
@@ -97,22 +101,22 @@ final class CurrentMonthStore: StoreProtocol {
 Feature ViewModels **co-located in view file**:
 
 ```swift
-// BudgetDetailsView.swift
+// TemplateDetailsView.swift
 
-struct BudgetDetailsView: View {
-    @State private var viewModel: BudgetDetailsViewModel
+struct TemplateDetailsView: View {
+    @State private var viewModel: TemplateDetailsViewModel
 
     var body: some View { /* ... */ }
 }
 
 // ViewModel defined in same file
 @Observable @MainActor
-final class BudgetDetailsViewModel {
-    private(set) var budget: Budget?
+final class TemplateDetailsViewModel {
+    private(set) var template: BudgetTemplate?
     private(set) var isLoading = false
-    private let budgetService = BudgetService.shared
+    private let templateService = TemplateService.shared
 
-    init(budgetId: String) { /* ... */ }
+    init(templateId: String) { /* ... */ }
 }
 ```
 
@@ -121,6 +125,7 @@ final class BudgetDetailsViewModel {
 - Same `@Observable @MainActor final class` pattern as stores
 - Owned by view via `@State private var viewModel`
 - Use when feature needs local state beyond global store
+- **Ceiling**: a single ViewModel stops holding once **all five** criteria in `budget-details-feature-architecture.md` are met at once — then split into Stores + Projector + Coordinator + Router. Meeting one or two is not enough; that rule says so and warns against over-engineering. `Features/Budgets/BudgetDetails` went through that split, and `PulpeTests/Architecture/BudgetDetailsArchitectureTests.swift` keeps the monolithic `BudgetDetailsViewModel.swift` from coming back — leaf-sheet ViewModels still live in the folder.
 
 ## Service Pattern (Data Access)
 
@@ -213,6 +218,6 @@ struct BudgetListView: View {
 | `@StateObject` / `@ObservedObject` | `@State` / `@Environment` |
 | Public mutable state in stores | `private(set)` for all state |
 | Models as classes | Models as `Sendable` structs |
-| ViewModel in separate file | Co-locate ViewModel in view file (exception: 500+ lines) |
+| ViewModel in separate file | Co-locate ViewModel in view file (split out past SwiftLint's `file_length` warning at 500 lines; inside `Features/Budgets/BudgetDetails` the cap is 350 lines per file, asserted by `PulpeTests/Architecture/BudgetDetailsArchitectureTests.swift`) |
 | Deeply nested NavigationLink | `NavigationStack(path:)` + typed destinations |
 | `providedIn: root` equivalent | `.shared` singleton for actors |

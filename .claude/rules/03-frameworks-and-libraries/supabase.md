@@ -108,8 +108,9 @@ CREATE POLICY "users_select_template_line" ON "public"."template_line"
 ## Migrations
 
 ```bash
+# Both from backend-nest/ — the Supabase project and the scripts live there, not at the root.
 supabase migration new add_feature_table   # Create migration file
-supabase db reset                          # LOCAL ONLY — applies all migrations + seed
+pnpm supabase:reset                        # LOCAL ONLY — db reset + re-encrypts the seed amounts
 ```
 
 ### Migration Checklist
@@ -120,7 +121,7 @@ supabase db reset                          # LOCAL ONLY — applies all migratio
 3. Create policies for SELECT, INSERT, UPDATE, DELETE
 4. Add indexes on policy columns (`user_id`, foreign keys)
 5. Add foreign keys with `ON DELETE CASCADE` where appropriate
-6. Test locally with `supabase db reset`
+6. Test locally with `pnpm supabase:reset` (never bare `supabase db reset` — it leaves a plaintext seed, every amount reads 0)
 7. Regenerate types: `bun run generate-types:local`
 
 ## Database Tables

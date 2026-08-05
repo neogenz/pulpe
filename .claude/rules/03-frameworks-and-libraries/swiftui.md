@@ -217,20 +217,27 @@ List(budgets) { budget in
 
 ### Liquid Glass (Navigation Layer Only)
 
+Deployment target is **iOS 18.0** (`ios/project.yml`), so `glassEffect` is never called bare — it is always gated, with a `.ultraThinMaterial` fallback, inside a shared modifier:
+
 ```swift
-// System handles glass automatically for:
-// - Toolbars, tab bars, navigation bars
-// - Sheet presentations with partial detents
-
-// Custom glass effect
-Button("Action") { }
-    .glassEffect()
-
-// Glass with tinting
-.glassEffect(.regular.tint(.purple.opacity(0.8)))
+// Shared/Styles/GlassBackgroundModifier.swift — the real shape
+func body(content: Content) -> some View {
+    #if compiler(>=6.2)
+    if #available(iOS 26.0, *) {
+        let glass: Glass = if let tint { .regular.tint(tint) } else { .regular }
+        content.glassEffect(glass, in: .capsule)
+    } else {
+        content.background(.ultraThinMaterial, in: Capsule())
+    }
+    #else
+    content.background(.ultraThinMaterial, in: Capsule())
+    #endif
+}
 ```
 
 **Rules:**
+- Never call `.glassEffect()` from a view `body` — only from inside a `ViewModifier` that carries the gate and the fallback. `.glassCapsuleBackground(tint:)` and `.pulpeFloatingGlass(cornerRadius:)` cover the common cases; a feature-local modifier is fine when the rendering differs, as `HeroBalanceCard` does
+- New glass site: gate with `#if compiler(>=6.2)` + `if #available(iOS 26.0, *)` and always ship a pre-26 fallback
 - Apply glass ONLY to navigation elements (toolbars, tabs, floating buttons)
 - NEVER apply glass to content (lists, cards, text)
 - Remove explicit backgrounds that block glass transparency

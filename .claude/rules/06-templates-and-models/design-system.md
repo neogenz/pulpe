@@ -15,7 +15,7 @@ paths:
 │  Angular Templates          SCSS Classes (.text-*, .bg-*)       │
 ├─────────────────────────────────────────────────────────────────┤
 │                       EXPOSITION                                │
-│  CSS Variables: --p-primary, --p-fontsize-*, --p-spacing-*      │
+│  CSS Variables: --mat-sys-*, --pulpe-*, Tailwind @theme         │
 ├─────────────────────────────────────────────────────────────────┤
 │                       DEFINITION                                │
 │  Design tokens (primitive → semantic → components)              │
@@ -27,21 +27,27 @@ paths:
 
 ## SCSS Utility Classes
 
-Custom classes reference design token vars (no hardcoded values):
+Custom classes are declared with the Tailwind v4 `@utility` directive and reference design
+token vars (no hardcoded values):
 
-```scss
-@layer utilities {
-  .text-success { color: var(--p-success); }
-  .bg-warning { background-color: var(--p-warning); }
+```css
+@utility text-financial-expense {
+  color: var(--pulpe-financial-expense) !important;
 }
 ```
 
-| File | Classes |
-|------|---------|
-| `_tailwind-colors.scss` | `.text-success`, `.bg-info`, `.border-danger` |
-| `_tailwind-typography.scss` | `.text-heading-lg`, `.text-body-md` |
-| `_tailwind-radius.scss` | `.rounded-sm`, `.rounded-md` |
-| `_tailwind-shadow.scss` | `.shadow-sm`, `.shadow-lg` |
+All of them live in a single file, `app/styles/vendors/_tailwind.css`:
+
+| Group | Classes |
+|-------|---------|
+| Typography (M3 typescale) | `.text-display-large` … `.text-label-small` |
+| Financial colors | `.text-financial-income`, `.text-financial-expense`, `.text-financial-savings`, `.text-financial-critical`, `.text-financial-over-budget` |
+| Icons | `.icon-filled`, `.mat-icon-sm`, `.form-field-error-icon` |
+| Misc | `.scrollbar-hide` |
+
+Colors, radius and type otherwise come from stock Tailwind utilities, wired to Material
+through the `@theme inline` block in the same file (`--color-*`, `--radius-corner-*`,
+`--text-*`). Shadows are not in that block — Tailwind's own `shadow-*` scale applies.
 
 ## CSS Layers (Specificity)
 
@@ -62,11 +68,11 @@ Utilities win via `@layer utilities`.
   styles: `
     :host {
       display: block;
-      padding: var(--p-spacing-4);
+      padding: var(--pulpe-page-gutter-mobile);
     }
     .card {
-      background: var(--p-surface-0);
-      border-radius: var(--p-border-radius-sm);
+      background: var(--mat-sys-surface-container);
+      border-radius: var(--pulpe-surface-radius-card);
     }
   `
 })
@@ -75,8 +81,8 @@ Utilities win via `@layer utilities`.
 ### Utility classes in templates
 
 ```html
-<div class="bg-success-subtle text-success-dark p-4 rounded-sm">
-  Success message
+<div class="bg-surface-container text-on-surface-variant p-4 rounded-corner-medium">
+  Message
 </div>
 ```
 
@@ -84,25 +90,37 @@ Utilities win via `@layer utilities`.
 
 ### Semantic Colors
 
-| Token | CSS Variable | Usage |
-|-------|--------------|-------|
-| `primary` | `--p-primary` | Main color |
-| `success` | `--p-success` | Validation, success |
-| `info` | `--p-info` | Information |
-| `warning` | `--p-warning` | Warning |
-| `danger` | `--p-danger` | Error, destructive |
+The base palette is the M3 system palette — there is no `success` / `info` / `danger` layer.
+
+| Role | CSS Variable | Tailwind class |
+|------|--------------|----------------|
+| Main color | `--mat-sys-primary` | `text-primary`, `bg-primary` |
+| Accent | `--mat-sys-tertiary` | `text-tertiary` |
+| Error, destructive | `--mat-sys-error` | `text-error`, `bg-error` |
+| Surfaces | `--mat-sys-surface`, `--mat-sys-surface-container` | `bg-surface-container` |
+| Text on surface | `--mat-sys-on-surface`, `--mat-sys-on-surface-variant` | `text-on-surface-variant` |
+
+Domain colors (income, expense, savings, budget states) live in the `--pulpe-financial-*`
+namespace — see **Financial Semantics** below.
 
 ### Typography
 
-`--p-fontsize-display-lg` (62px) · `--p-fontsize-heading-xl` (38px) · `--p-fontsize-heading-lg` (26px) · `--p-fontsize-body-md` (16px)
+M3 typescale, exposed as `--mat-sys-<role>-<size>` and consumed through the Tailwind
+utilities defined in `_tailwind.css`:
+
+`.text-display-large` · `.text-headline-large` · `.text-title-medium` · `.text-body-medium` · `.text-label-small`
 
 ### Spacing
 
-`--p-spacing-1` (4px) · `--p-spacing-4` (16px) · `--p-spacing-6` (24px)
+Stock Tailwind spacing scale (`p-4`, `gap-6`, …) — the project defines no custom spacing
+variables. Page rhythm uses the `--pulpe-page-gutter-*` / `--pulpe-section-gap-*` tokens
+below.
 
 ### Border Radius
 
-`--p-border-radius-xs` (4px) · `--p-border-radius-sm` (8px) · `--p-border-radius-md` (12px)
+`--mat-sys-corner-extra-small` (4px) · `--mat-sys-corner-small` (8px) · `--mat-sys-corner-medium` (12px) · `--mat-sys-corner-large` (16px) · `--mat-sys-corner-extra-large` (28px) · `--mat-sys-corner-full` (9999px)
+
+Tailwind equivalents: `rounded-corner-small`, `rounded-corner-medium`, …
 
 ## Pulpe Semantic Tokens
 
@@ -200,9 +218,9 @@ Screen split in two zones (see DA.md §3.1):
 
 | Don't | Do |
 |-------|-----|
-| `color: #6366F1` | `color: var(--p-primary)` |
-| `font-size: 26px` | `font-size: var(--p-fontsize-heading-lg)` |
-| `padding: 16px` | `padding: var(--p-spacing-4)` |
+| `color: #6366F1` | `color: var(--mat-sys-primary)` |
+| `font-size: 26px` | the nearest typescale class — `text-headline-small` (24px) or `text-headline-medium` (28px), never a px in between |
+| `padding: 16px` | `class="p-4"` or `var(--pulpe-page-gutter-mobile)` |
 | `ngClass` / `ngStyle` | `[class]` / `[style]` bindings |
 
 ## Reference

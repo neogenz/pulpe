@@ -111,7 +111,7 @@ async confirmDelete(options: ConfirmDeleteOptions): Promise<boolean> {
 
 ## Cross-feature reuse
 
-If 2+ features need the same confirmation flow (e.g., delete confirmation), extract to `core/dialogs/` as a generic service. Don't reimplement per feature.
+If 2+ features need the same confirmation flow (e.g., delete confirmation), share the **dialog component** via `ui/dialogs/` (`@ui/dialogs/confirmation-dialog`) and keep the dialog service in each feature. Don't reimplement the dialog per feature. Never put it in `core/` — `boundaries/element-types` forbids `core` → `ui` imports, so a dialog service there could not open the shared component.
 
 ## Where DTO parsing lives
 
