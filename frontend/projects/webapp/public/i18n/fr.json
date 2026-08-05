@@ -1134,6 +1134,7 @@
       "seeAll": "Voir tout le plan ({{ count }} mois)",
       "seeLess": "Réduire",
       "editAmount": "Montant de ce mois",
+      "editAmountInvalid": "Le montant doit être positif ou nul. Un retrait se crée depuis le budget, pas ici.",
       "chartTarget": "Cible",
       "chartConfirmed": "Épargné",
       "chartProjection": "Projection planifiée",

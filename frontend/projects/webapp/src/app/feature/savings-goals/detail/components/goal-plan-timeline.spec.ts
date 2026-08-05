@@ -499,31 +499,88 @@ describe('GoalPlanTimeline', () => {
     expect(editButton).toBeTruthy();
   });
 
-  it('emits amountChange when an inline edit is committed', () => {
+  function openInlineEdit(plannedAmount = 450): {
+    input: HTMLInputElement;
+    amounts: { month: number; year: number; amount: number }[];
+    invalid: boolean[];
+  } {
     setTestInput(fixture.componentInstance.months, [
-      makeMonth({ month: 3, year: 2026, state: 'current', plannedAmount: 450 }),
+      makeMonth({ month: 3, year: 2026, state: 'current', plannedAmount }),
     ]);
     setTestInput(fixture.componentInstance.editable, true);
     setTestInput(fixture.componentInstance.expanded, true);
     fixture.detectChanges();
 
-    const emitted: { month: number; year: number; amount: number }[] = [];
+    const amounts: { month: number; year: number; amount: number }[] = [];
+    const invalid: boolean[] = [];
     fixture.componentInstance.amountChange.subscribe((event) =>
-      emitted.push(event),
+      amounts.push(event),
+    );
+    fixture.componentInstance.invalidChange.subscribe((event) =>
+      invalid.push(event),
     );
 
-    const editButton = fixture.debugElement.query(
-      By.css('[data-testid^="goal-plan-row-edit-"]'),
-    );
-    editButton.nativeElement.click();
+    fixture.debugElement
+      .query(By.css('[data-testid^="goal-plan-row-edit-"]'))
+      .nativeElement.click();
     fixture.detectChanges();
 
-    const input = query('goal-plan-row-input')
-      .nativeElement as HTMLInputElement;
-    input.value = '600';
-    input.dispatchEvent(new Event('blur'));
+    return {
+      input: query('goal-plan-row-input').nativeElement as HTMLInputElement,
+      amounts,
+      invalid,
+    };
+  }
 
-    expect(emitted).toEqual([{ month: 3, year: 2026, amount: 600 }]);
+  it('emits amountChange while typing, without waiting for blur', () => {
+    const { input, amounts } = openInlineEdit();
+
+    input.value = '600';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(amounts).toEqual([{ month: 3, year: 2026, amount: 600 }]);
+    expect(query('goal-plan-row-error')).toBeNull();
+  });
+
+  it('refuses a negative amount with a visible error instead of clamping it', () => {
+    const { input, amounts, invalid } = openInlineEdit();
+
+    input.value = '-500';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(amounts).toEqual([]);
+    expect(invalid.at(-1)).toBe(true);
+    expect(query('goal-plan-row-error')).toBeTruthy();
+    expect(input.getAttribute('aria-invalid')).toBe('true');
+    expect(input.value).toBe('-500');
+  });
+
+  it('treats an incomplete entry as pending rather than as an error', () => {
+    const { input, amounts, invalid } = openInlineEdit();
+
+    input.value = '';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(amounts).toEqual([]);
+    expect(invalid.at(-1)).toBe(true);
+    expect(query('goal-plan-row-error')).toBeNull();
+  });
+
+  it('drops a refused entry when the field is left, writing nothing', () => {
+    const { input, amounts, invalid } = openInlineEdit();
+
+    input.value = '-500';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    input.dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
+
+    expect(amounts).toEqual([]);
+    expect(invalid.at(-1)).toBe(false);
+    expect(query('goal-plan-row-input')).toBeNull();
   });
 
   it('windows to the last locked row + 3 open rows when collapsed', () => {

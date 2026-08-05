@@ -632,6 +632,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                 [expanded]="timelineExpanded()"
                 [canRepair]="repairableMonths().length > 0"
                 (amountChange)="onTimelineAmountChange($event)"
+                (invalidChange)="simulator.setAmountInvalid($event)"
                 (toggleExpanded)="toggleTimeline()"
               />
             </section>
@@ -705,7 +706,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
           <button
             matButton="filled"
             (click)="onApplyPlan()"
-            [disabled]="!simulator.hasChanges() || isApplying()"
+            [disabled]="!simulator.canApply() || isApplying()"
             data-testid="goal-plan-apply"
           >
             <span class="flex items-center justify-center">

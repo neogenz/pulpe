@@ -190,6 +190,52 @@ describe('GoalPlanSimulatorStore', () => {
     expect(store.dirtyCount()).toBe(1);
   });
 
+  it('ignores a negative or non-finite amount instead of clamping it to zero', () => {
+    store.enter();
+    store.setMonth(6, 2026, 500);
+
+    store.setMonth(6, 2026, -500);
+    store.setMonth(6, 2026, Number.NaN);
+
+    const june = store.draft()!.months.find((m) => m.month === 6)!;
+    expect(june.simulatedAmount).toBe(500);
+  });
+
+  it('ignores a negative global amount instead of clamping it to zero', () => {
+    store.enter();
+    store.setGlobalAmount(300);
+
+    store.setGlobalAmount(-500);
+
+    expect(store.globalAmount()).toBe(300);
+    expect(store.draft()!.months.every((m) => m.simulatedAmount === 300)).toBe(
+      true,
+    );
+  });
+
+  it('closes canApply while an entry is refused, then reopens it', () => {
+    store.enter();
+    store.setMonth(6, 2026, 500);
+    expect(store.canApply()).toBe(true);
+
+    store.setAmountInvalid(true);
+    expect(store.hasChanges()).toBe(true);
+    expect(store.canApply()).toBe(false);
+
+    store.setAmountInvalid(false);
+    expect(store.canApply()).toBe(true);
+  });
+
+  it('clears the refused entry when the simulation is reset', () => {
+    store.enter();
+    store.setMonth(6, 2026, 500);
+    store.setAmountInvalid(true);
+
+    store.revert();
+
+    expect(store.hasInvalidAmount()).toBe(false);
+  });
+
   it('overwrites per-month overrides when a global amount is set', () => {
     store.enter();
     store.setMonth(6, 2026, 500);
