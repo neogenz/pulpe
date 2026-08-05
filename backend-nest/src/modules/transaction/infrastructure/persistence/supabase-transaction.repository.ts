@@ -760,7 +760,9 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('budget_line')
-      .select('id, budget_id, kind')
+      .select(
+        'id, budget_id, kind, source_savings_goal_id, source_savings_goal_name',
+      )
       .eq('id', budgetLineId)
       .single();
 
@@ -772,6 +774,8 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       id: data.id,
       budgetId: data.budget_id,
       kind: data.kind,
+      sourceSavingsGoalId: data.source_savings_goal_id,
+      sourceSavingsGoalName: data.source_savings_goal_name,
     };
   }
 

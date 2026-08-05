@@ -154,6 +154,8 @@ describe('CreateTransactionUseCase', () => {
       id: 'line-1',
       budgetId: '123e4567-e89b-12d3-a456-426614174001',
       kind: 'expense',
+      sourceSavingsGoalId: null,
+      sourceSavingsGoalName: null,
     });
 
     const result = await useCase.execute(dto, mockUser);
@@ -177,6 +179,8 @@ describe('CreateTransactionUseCase', () => {
       id: 'line-1',
       budgetId: 'different-budget',
       kind: 'expense',
+      sourceSavingsGoalId: null,
+      sourceSavingsGoalName: null,
     });
 
     await expect(useCase.execute(dto, mockUser)).rejects.toThrow(
@@ -290,6 +294,98 @@ describe('CreateTransactionUseCase', () => {
       );
 
       await expect(useCase.execute(dto, mockUser)).rejects.toThrow(
+        BusinessException,
+      );
+      expect(mockRepo.insertWithdrawal).not.toHaveBeenCalled();
+      expect(mockBudget.recalculate).not.toHaveBeenCalled();
+    });
+  });
+
+  // Réaliser un retrait planifié : le client n'envoie jamais l'objectif — son
+  // contrat le lui interdit dès qu'il alloue — et le serveur le lit sur la
+  // prévision. C'est ce qui empêche d'inventer une origine sur une prévision
+  // qui n'en porte pas, et de compter le prévu et le réel deux fois.
+  describe('realizing a planned withdrawal (PUL-329 v2)', () => {
+    const goalId = '123e4567-e89b-12d3-a456-426614174009';
+    const budgetId = '123e4567-e89b-12d3-a456-426614174001';
+
+    const realization: TransactionCreate = {
+      budgetId,
+      budgetLineId: 'line-1',
+      name: 'Retrait vacances',
+      amount: 500,
+      kind: 'income',
+      transactionDate: '2024-01-15T12:00:00Z',
+    };
+
+    const sourceLine = (overrides: Record<string, unknown> = {}) => ({
+      id: 'line-1',
+      budgetId,
+      kind: 'income',
+      sourceSavingsGoalId: goalId,
+      sourceSavingsGoalName: 'Vacances',
+      ...overrides,
+    });
+
+    it('should inherit the goal from the forecast and debit it atomically', async () => {
+      mockRepo.fetchBudgetLineForAllocation.mockResolvedValueOnce(sourceLine());
+
+      await useCase.execute(realization, mockUser);
+
+      const [input] = mockWithdrawalPolicy.runAgainstBalance.mock.calls[0];
+      expect(input.goalId).toBe(goalId);
+      expect(input.debit).toBe(500);
+      expect(mockRepo.insert).not.toHaveBeenCalled();
+      expect(mockRepo.insertWithdrawal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          budgetLineId: 'line-1',
+          sourceSavingsGoalId: goalId,
+        }),
+        5,
+      );
+    });
+
+    it('should leave an ordinary allocated income out of the balance path', async () => {
+      mockRepo.fetchBudgetLineForAllocation.mockResolvedValueOnce(
+        sourceLine({ sourceSavingsGoalId: null, sourceSavingsGoalName: null }),
+      );
+
+      await useCase.execute(realization, mockUser);
+
+      expect(mockWithdrawalPolicy.runAgainstBalance).not.toHaveBeenCalled();
+      expect(mockRepo.insert).toHaveBeenCalledTimes(1);
+    });
+
+    // Le nom survit à la suppression de l'objectif, l'identifiant non : sans
+    // cette garde, réaliser une prévision orpheline la transformerait en revenu
+    // ordinaire — l'argent apparaîtrait sans sortir d'aucun pot.
+    it('should refuse to realize a forecast whose goal was deleted', async () => {
+      mockRepo.fetchBudgetLineForAllocation.mockResolvedValueOnce(
+        sourceLine({ sourceSavingsGoalId: null }),
+      );
+
+      await expect(useCase.execute(realization, mockUser)).rejects.toThrow(
+        /no longer exists/,
+      );
+      expect(mockRepo.insert).not.toHaveBeenCalled();
+      expect(mockRepo.insertWithdrawal).not.toHaveBeenCalled();
+      expect(mockBudget.recalculate).not.toHaveBeenCalled();
+    });
+
+    it('should write nothing when the confirmed balance is insufficient', async () => {
+      mockRepo.fetchBudgetLineForAllocation.mockResolvedValueOnce(sourceLine());
+      mockWithdrawalPolicy.runAgainstBalance.mockRejectedValueOnce(
+        new BusinessException(
+          {
+            code: 'ERR_SAVINGS_GOAL_WITHDRAWAL_INSUFFICIENT_BALANCE',
+            message: () => 'not enough',
+            httpStatus: 422,
+          },
+          {},
+        ),
+      );
+
+      await expect(useCase.execute(realization, mockUser)).rejects.toThrow(
         BusinessException,
       );
       expect(mockRepo.insertWithdrawal).not.toHaveBeenCalled();

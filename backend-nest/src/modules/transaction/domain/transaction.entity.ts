@@ -135,6 +135,14 @@ export interface BudgetLineForAllocation {
   id: string;
   budgetId: string;
   kind: TransactionKind;
+  /**
+   * Retrait planifié : l'objectif que la transaction allouée doit débiter. Le
+   * client ne l'envoie jamais — le serveur le lit ici et l'hérite. Identifiant
+   * nul avec un nom présent = objectif supprimé, la prévision n'est plus
+   * réalisable.
+   */
+  sourceSavingsGoalId: string | null;
+  sourceSavingsGoalName: string | null;
 }
 
 /**

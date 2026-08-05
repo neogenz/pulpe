@@ -38,6 +38,8 @@ const makeLine = (
   savingsGoalId: null,
   spreadGroupId: null,
   savingsWithdrawalGroupId: groupId,
+  sourceSavingsGoalId: null,
+  sourceSavingsGoalName: null,
   name: input.name,
   amount: input.amount,
   originalAmount: input.originalAmount ?? null,

@@ -21,6 +21,8 @@ const mockRow: BudgetLineRow = {
   savings_goal_id: null,
   spread_group_id: 'group-1',
   savings_withdrawal_group_id: null,
+  source_savings_goal_id: null,
+  source_savings_goal_name: null,
   name: 'Loyer',
   amount: '100',
   kind: 'expense',

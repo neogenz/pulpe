@@ -928,6 +928,8 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       savingsGoalId: decrypted.savings_goal_id,
       spreadGroupId: decrypted.spread_group_id,
       savingsWithdrawalGroupId: decrypted.savings_withdrawal_group_id,
+      sourceSavingsGoalId: decrypted.source_savings_goal_id,
+      sourceSavingsGoalName: decrypted.source_savings_goal_name,
       name: decrypted.name,
       amount: decrypted.amount,
       originalAmount: decrypted.original_amount,
@@ -1012,6 +1014,9 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
       budget_id: input.budgetId,
       template_line_id: input.templateLineId ?? null,
       savings_goal_id: input.savingsGoalId ?? null,
+      // Le nom instantané est absent volontairement : `enforce_budget_line_savings_goal_source`
+      // le pose depuis la ligne d'objectif qu'il lit déjà pour valider le tenant.
+      source_savings_goal_id: input.sourceSavingsGoalId ?? null,
       name: input.name,
       amount: encryptedAmount,
       original_amount: encryptedOriginalAmount,

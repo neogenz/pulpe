@@ -36,6 +36,8 @@ const budgetLineRow: BudgetLineRow = {
   savings_goal_id: null,
   spread_group_id: null,
   savings_withdrawal_group_id: null,
+  source_savings_goal_id: null,
+  source_savings_goal_name: null,
   name: 'Prime assurance',
   amount: 'encrypted-100',
   kind: 'expense',

@@ -871,10 +871,24 @@ export const budgetLineSchema = z.object({
    * `POST /budget-lines/savings-withdrawal`. Champ additif, non-breaking.
    */
   savingsWithdrawalGroupId: z.uuid().nullable().optional(),
+  /**
+   * Retrait PLANIFIÉ depuis un objectif — l'origine d'un revenu prévu qui sera
+   * puisé dans un objectif d'épargne. Mêmes noms et même sémantique à trois
+   * états que sur `transaction` (PUL-329) : les deux nuls = revenu ordinaire ;
+   * les deux présents = lien ACTIF ; identifiant nul + nom présent = lien CASSÉ
+   * (objectif supprimé, provenance encore lisible).
+   *
+   * Distinct de `savingsGoalId`, qui signifie « contribution VERS l'objectif »
+   * et n'est valide que pour `kind=saving` : l'un remplit le pot, l'autre le
+   * vide. Réutiliser le même champ avec un signe rendrait les invariants
+   * ambigus. `optional()` couvre le déploiement décalé des clients.
+   */
+  sourceSavingsGoalId: z.uuid().nullable().optional(),
+  sourceSavingsGoalName: z.string().min(1).nullable().optional(),
 });
 export type BudgetLine = z.infer<typeof budgetLineSchema>;
 
-export const budgetLineCreateSchema = z.strictObject({
+const budgetLineCreateBaseSchema = z.strictObject({
   /**
    * Client-generated UUIDv4. Optional — server falls back to gen_random_uuid() if absent.
    * Enables idempotent retries and removes temp-id/real-id duality on the client.
@@ -900,11 +914,66 @@ export const budgetLineCreateSchema = z.strictObject({
   originalCurrency: supportedCurrencySchema.optional(),
   targetCurrency: supportedCurrencySchema.optional(),
   exchangeRate: exchangeRateWirePositive.optional(),
+  /**
+   * Objectif dans lequel ce revenu prévu sera puisé. Le client n'envoie que
+   * l'identifiant : le nom snapshot est lu et écrit par le serveur, qui seul
+   * peut garantir qu'il correspond à un objectif du même utilisateur.
+   */
+  sourceSavingsGoalId: z.uuid().optional(),
 });
+
+/**
+ * Un retrait planifié est un revenu ponctuel encore à venir. Chacune de ces
+ * gardes ferme un état dans lequel le montant serait compté deux fois ou
+ * n'aurait pas de sens comptable — le domaine les rejoue côté serveur, où les
+ * appels directs à l'API arrivent aussi.
+ *
+ * Le lissage (PUL-17) et « remettre le mois prochain » (PUL-292) n'ont pas
+ * besoin de garde ici : leurs clés de groupe appartiennent à leurs endpoints
+ * dédiés et n'existent pas sur ce contrat de création.
+ */
+export const budgetLineCreateSchema = budgetLineCreateBaseSchema.superRefine(
+  (value, ctx) => {
+    if (value.sourceSavingsGoalId == null) return;
+
+    const reject = (message: string): void => {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['sourceSavingsGoalId'],
+        message,
+      });
+    };
+
+    if (value.kind !== 'income') {
+      reject('Seul un revenu peut provenir d’un objectif d’épargne.');
+    }
+
+    if (value.recurrence !== 'one_off') {
+      reject('Un retrait planifié est ponctuel, jamais récurrent.');
+    }
+
+    if (value.checkedAt != null) {
+      reject(
+        'Un retrait planifié commence non pointé : il se réalise en créant le revenu réel.',
+      );
+    }
+
+    if (value.savingsGoalId != null) {
+      reject(
+        'Une prévision ne peut pas à la fois alimenter un objectif et y puiser.',
+      );
+    }
+  },
+);
 export type BudgetLineCreate = z.infer<typeof budgetLineCreateSchema>;
 
-export const budgetLineUpdateSchema = budgetLineCreateSchema
-  .omit({ budgetId: true })
+/**
+ * La source est immuable : la corriger, c'est supprimer puis recréer la
+ * prévision avant sa réalisation. `sourceSavingsGoalName` n'a jamais été
+ * accepté du client, il n'y a donc rien à en retirer ici.
+ */
+export const budgetLineUpdateSchema = budgetLineCreateBaseSchema
+  .omit({ budgetId: true, sourceSavingsGoalId: true })
   .partial()
   .extend({
     id: z.uuid(),
@@ -1384,9 +1453,20 @@ export const transactionCreateSchema = z
     sourceSavingsGoalId: z.uuid().optional(),
   })
   /**
-   * Un retrait ne peut sortir que d'un Revenu LIBRE : allouer la transaction à
-   * une prévision ferait double emploi avec les contributions de l'objectif, et
-   * une dépense/épargne « provenant » d'un objectif n'a pas de sens comptable.
+   * Une source ENVOYÉE par le client ne peut viser qu'un Revenu LIBRE. Une
+   * dépense ou une épargne « provenant » d'un objectif n'a pas de sens
+   * comptable, et une source explicite posée sur une transaction allouée
+   * ferait double emploi avec les contributions de l'objectif : la prévision
+   * visée serait alors une prévision de CONTRIBUTION (`savingsGoalId`,
+   * `kind=saving`), qui remplit le pot.
+   *
+   * Le retrait PLANIFIÉ ne contredit pas cette garde, il en sort par le haut :
+   * sa prévision porte `sourceSavingsGoalId` et `kind=income`, elle VIDE le
+   * pot. Réaliser un tel plan alloue donc bien une transaction à une prévision,
+   * mais la source n'est jamais envoyée — le serveur la lit sur la prévision
+   * référencée par `budgetLineId` et l'hérite lui-même. Le contrat client reste
+   * donc strict tel quel : envoyer les deux ensemble resterait, aujourd'hui
+   * comme avant, une double déclaration d'origine.
    */
   .superRefine((value, ctx) => {
     if (value.sourceSavingsGoalId == null) return;

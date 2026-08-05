@@ -50,6 +50,8 @@ export type Database = {
           recurrence: Database['public']['Enums']['transaction_recurrence'];
           savings_goal_id: string | null;
           savings_withdrawal_group_id: string | null;
+          source_savings_goal_id: string | null;
+          source_savings_goal_name: string | null;
           spread_group_id: string | null;
           target_currency: string | null;
           template_line_id: string | null;
@@ -70,6 +72,8 @@ export type Database = {
           recurrence: Database['public']['Enums']['transaction_recurrence'];
           savings_goal_id?: string | null;
           savings_withdrawal_group_id?: string | null;
+          source_savings_goal_id?: string | null;
+          source_savings_goal_name?: string | null;
           spread_group_id?: string | null;
           target_currency?: string | null;
           template_line_id?: string | null;
@@ -90,6 +94,8 @@ export type Database = {
           recurrence?: Database['public']['Enums']['transaction_recurrence'];
           savings_goal_id?: string | null;
           savings_withdrawal_group_id?: string | null;
+          source_savings_goal_id?: string | null;
+          source_savings_goal_name?: string | null;
           spread_group_id?: string | null;
           target_currency?: string | null;
           template_line_id?: string | null;
@@ -106,6 +112,13 @@ export type Database = {
           {
             foreignKeyName: 'budget_line_savings_goal_id_fkey';
             columns: ['savings_goal_id'];
+            isOneToOne: false;
+            referencedRelation: 'savings_goal';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'budget_line_source_savings_goal_id_fkey';
+            columns: ['source_savings_goal_id'];
             isOneToOne: false;
             referencedRelation: 'savings_goal';
             referencedColumns: ['id'];
@@ -592,6 +605,8 @@ export type Database = {
           recurrence: Database['public']['Enums']['transaction_recurrence'];
           savings_goal_id: string | null;
           savings_withdrawal_group_id: string | null;
+          source_savings_goal_id: string | null;
+          source_savings_goal_name: string | null;
           spread_group_id: string | null;
           target_currency: string | null;
           template_line_id: string | null;
@@ -711,6 +726,8 @@ export type Database = {
           recurrence: Database['public']['Enums']['transaction_recurrence'];
           savings_goal_id: string | null;
           savings_withdrawal_group_id: string | null;
+          source_savings_goal_id: string | null;
+          source_savings_goal_name: string | null;
           spread_group_id: string | null;
           target_currency: string | null;
           template_line_id: string | null;
@@ -828,6 +845,8 @@ export type Database = {
           recurrence: Database['public']['Enums']['transaction_recurrence'];
           savings_goal_id: string | null;
           savings_withdrawal_group_id: string | null;
+          source_savings_goal_id: string | null;
+          source_savings_goal_name: string | null;
           spread_group_id: string | null;
           target_currency: string | null;
           template_line_id: string | null;
@@ -884,6 +903,8 @@ export type Database = {
           recurrence: Database['public']['Enums']['transaction_recurrence'];
           savings_goal_id: string | null;
           savings_withdrawal_group_id: string | null;
+          source_savings_goal_id: string | null;
+          source_savings_goal_name: string | null;
           spread_group_id: string | null;
           target_currency: string | null;
           template_line_id: string | null;
