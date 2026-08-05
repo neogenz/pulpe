@@ -45,6 +45,12 @@ Button that shares an `HStack` (or `VStack`) with siblings, the frame silently g
 whole row and pushes everything below it down. This is invisible in a single screenshot and
 only shows in a pixel diff; it shipped once as a 24pt regression on `HomeSectionHeader`.
 
+Those 24pt are not cosmetic. They took the header→card gap from 13.7pt to 37.7pt while the
+section gap above stayed at `Spacing.xxl` = 24pt — so the header read as belonging to the
+block *above* it. The whole bare-page section architecture rests on that 2:1 proximity
+ratio, and the frame inverts it. Worst on headers with no `amountSubtitle`, where the title
+block is short; only ~+4pt where a subtitle already makes it tall.
+
 Expand the hit area **without** growing the layout: pad out, shape the hit area at that
 larger size, then pad back in. It nets to zero for layout, and any baseline guide the row
 shares still sees the label's original size.
