@@ -68,7 +68,7 @@ pnpm dev:backend              # Backend + shared
 - `budget_line` (table ; `budgetLines` sur le wire) → "prévisions" | `fixed` → "Récurrent" | `one_off` → "Prévu" | `transaction` → "Réel"
 - `income` → "Revenu" | `expense` → "Dépense" | `saving` → "Épargne"
 - `checked` → "Pointé" | `unchecked` → "À pointer"
-- Labels: "Disponible à dépenser", "Fréquence"
+- Labels: "Disponible à dépenser", "Épargne prévue", "Fréquence"
 
 ## Further Reading
 
