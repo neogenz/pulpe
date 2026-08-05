@@ -16,6 +16,7 @@ import { AuthCleanupService } from './auth-cleanup.service';
 import { isE2EMode, type E2EWindow } from './e2e-window';
 import { ROUTES } from '@core/routing/routes-constants';
 import { PostHogService } from '../analytics/posthog';
+import { DemoModeService } from '../demo/demo-mode.service';
 
 export type SignOutSource =
   | 'user_initiated'
@@ -40,6 +41,7 @@ export class AuthSessionService {
   readonly #logger = inject(Logger);
   readonly #cleanup = inject(AuthCleanupService);
   readonly #postHog = inject(PostHogService);
+  readonly #demoMode = inject(DemoModeService);
   readonly #transloco = inject(TranslocoService);
   readonly #destroyRef = inject(DestroyRef);
 
@@ -394,6 +396,13 @@ export class AuthSessionService {
   }
 
   #updateAuthStateFromSession(session: Session | null): void {
+    if (
+      this.#demoMode.isDemoMode() &&
+      session?.user.email !== this.#demoMode.demoUserEmail()
+    ) {
+      this.#demoMode.deactivateDemoMode();
+    }
+
     this.#authStore.set(
       session
         ? { phase: 'authenticated', session }
