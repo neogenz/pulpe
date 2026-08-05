@@ -224,7 +224,8 @@ export class AuthSessionService {
         );
       }
 
-      // Global scope revokes iOS sessions; device-wide revocation is handled server-side by signOutGlobally.
+      // Local scope preserves other devices, including iOS. Global revocation
+      // is reserved for server-side account deletion.
       const { error } = await this.#supabaseClient.auth.signOut({
         scope: 'local',
       });
