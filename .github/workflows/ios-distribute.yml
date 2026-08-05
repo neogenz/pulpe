@@ -118,8 +118,8 @@ jobs:
             exit 1
           fi
 
-          actual_marketing_version=$(grep -E '^ +MARKETING_VERSION:' project.yml | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
-          project_build=$(grep -E '^ +CURRENT_PROJECT_VERSION:' project.yml | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
+          actual_marketing_version=$(python3 -c 'import re; text=open("project.yml", encoding="utf-8").read(); match=re.search(r"^\s+MARKETING_VERSION:\s*[\"'\"'\"']?([^\"'\"'\"'\s]+)", text, re.M); print(match.group(1) if match else "")')
+          project_build=$(python3 -c 'import re; text=open("project.yml", encoding="utf-8").read(); match=re.search(r"^\s+CURRENT_PROJECT_VERSION:\s*[\"'\"'\"']?([^\"'\"'\"'\s]+)", text, re.M); print(match.group(1) if match else "")')
           if [ "$actual_marketing_version" != "$EXPECTED_MARKETING_VERSION" ]; then
             echo "::error::Marketing version mismatch: expected $EXPECTED_MARKETING_VERSION, source has $actual_marketing_version"
             exit 1
@@ -346,19 +346,37 @@ jobs:
       - name: Upload to App Store Connect
         run: |
           set -euo pipefail
-          private_keys_dir="$HOME/.appstoreconnect/private_keys"
-          mkdir -p "$private_keys_dir"
-          chmod 700 "$HOME/.appstoreconnect" "$private_keys_dir"
-          upload_key="$private_keys_dir/AuthKey_${ASC_KEY_ID}.p8"
-          cp "$ASC_KEY_PATH" "$upload_key"
-          chmod 600 "$upload_key"
+          upload_options="$RUNNER_TEMP/UploadOptions.plist"
+          upload_path="$RUNNER_TEMP/upload"
+          cat > "$upload_options" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>destination</key>
+            <string>upload</string>
+            <key>manageAppVersionAndBuildNumber</key>
+            <false/>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>signingStyle</key>
+            <string>automatic</string>
+            <key>teamID</key>
+            <string>${APPLE_TEAM_ID}</string>
+            <key>uploadSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          PLIST
 
-          xcrun --find altool >/dev/null
-          xcrun altool --upload-app \
-            --type ios \
-            --file "$IPA_PATH" \
-            --apiKey "$ASC_KEY_ID" \
-            --apiIssuer "$ASC_ISSUER_ID"
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportPath "$upload_path" \
+            -exportOptionsPlist "$upload_options" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
 
       - name: Distribution summary
         env:
@@ -400,8 +418,11 @@ jobs:
             "$certificate_path" \
             "$asc_key_path" \
             "$RUNNER_TEMP/App-Info.plist" \
-            "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+            "$RUNNER_TEMP/check-runs.json" \
+            "$RUNNER_TEMP/original-keychains.txt"
           rm -rf \
             "$RUNNER_TEMP/Pulpe.xcarchive" \
             "$RUNNER_TEMP/export" \
-            "$RUNNER_TEMP/ExportOptions.plist"
+            "$RUNNER_TEMP/upload" \
+            "$RUNNER_TEMP/ExportOptions.plist" \
+            "$RUNNER_TEMP/UploadOptions.plist"
