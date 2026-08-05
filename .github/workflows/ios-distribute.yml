@@ -185,7 +185,12 @@ jobs:
           xcode-version: "26.2"
 
       - name: Install XcodeGen
-        run: brew install xcodegen
+        run: |
+          if command -v xcodegen >/dev/null 2>&1; then
+            xcodegen --version
+          else
+            brew install xcodegen
+          fi
 
       - name: Cache SPM packages
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
