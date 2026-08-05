@@ -29,7 +29,7 @@ concurrency:
 
 permissions:
   contents: read
-  checks: read
+  actions: read
 
 jobs:
   distribute:
@@ -55,6 +55,7 @@ jobs:
         with:
           ref: ${{ inputs.source_sha }}
           fetch-depth: 1
+          persist-credentials: false
 
       - name: Validate source and distribution inputs
         id: release
@@ -90,15 +91,15 @@ jobs:
             echo "::error::marketing_version must use X.Y.Z"
             exit 1
           fi
-          if ! printf '%s' "$BUILD_NUMBER" | grep -Eq '^[1-9][0-9]*$'; then
-            echo "::error::build_number must be a positive integer"
+          if ! printf '%s' "$BUILD_NUMBER" | grep -Eq '^[1-9][0-9]{0,17}$'; then
+            echo "::error::build_number must be a positive integer of at most 18 digits"
             exit 1
           fi
           if ! printf '%s' "$ASC_KEY_ID" | grep -Eq '^[A-Z0-9]{10}$'; then
             echo "::error::ASC_KEY_ID is missing or invalid"
             exit 1
           fi
-          if ! printf '%s' "$ASC_ISSUER_ID" | grep -Eq '^[0-9a-f-]{36}$'; then
+          if ! printf '%s' "$ASC_ISSUER_ID" | grep -Eq '^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$'; then
             echo "::error::ASC_ISSUER_ID is missing or invalid"
             exit 1
           fi
@@ -142,41 +143,72 @@ jobs:
           echo "configuration=$configuration" >> "$GITHUB_OUTPUT"
           echo "marketing_version=$actual_marketing_version" >> "$GITHUB_OUTPUT"
 
-      - name: Require successful CI for source SHA
+      - name: Require successful canonical CI for source SHA
         env:
           GH_TOKEN: ${{ github.token }}
+          EXPECTED_BRANCH: ${{ steps.release.outputs.branch }}
         run: |
           set -euo pipefail
-          checks_file="$RUNNER_TEMP/check-runs.json"
+          runs_file="$RUNNER_TEMP/ci-workflow-runs.json"
           gh api --paginate \
-            "repos/$GITHUB_REPOSITORY/commits/$SOURCE_SHA/check-runs?per_page=100" \
-            --jq '.check_runs[]' \
-            > "$checks_file"
-          python3 - "$checks_file" <<'PY'
+            "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=$EXPECTED_BRANCH&event=push&head_sha=$SOURCE_SHA&per_page=100" \
+            --jq '.workflow_runs[]' \
+            > "$runs_file"
+          run_id=$(python3 - "$runs_file" "$GITHUB_REPOSITORY" "$EXPECTED_BRANCH" "$SOURCE_SHA" <<'PY'
           import json
           import sys
 
           with open(sys.argv[1], encoding="utf-8") as handle:
-              checks = [json.loads(line) for line in handle if line.strip()]
+              runs = [json.loads(line) for line in handle if line.strip()]
 
-          required = [
-              check
-              for check in checks
-              if check.get("name") == "✅ CI Success"
-              and check.get("app", {}).get("slug") == "github-actions"
+          repository, branch, source_sha = sys.argv[2:]
+          canonical = [
+              run
+              for run in runs
+              if run.get("path") == ".github/workflows/ci.yml"
+              and run.get("event") == "push"
+              and run.get("head_branch") == branch
+              and run.get("head_sha") == source_sha
+              and run.get("repository", {}).get("full_name") == repository
           ]
-          if not required:
+          if not canonical:
               raise SystemExit(
-                  "Required GitHub Actions check '✅ CI Success' is missing for the selected SHA"
+                  "Canonical ci.yml push run is missing for the selected SHA and branch"
               )
 
-          latest = max(required, key=lambda check: int(check.get("id", 0)))
+          latest = max(canonical, key=lambda run: int(run.get("id", 0)))
           if latest.get("status") != "completed" or latest.get("conclusion") != "success":
               raise SystemExit(
-                  "Latest required check '✅ CI Success' is not green: "
+                  "Latest canonical ci.yml push run is not green: "
                   f"{latest.get('status')}/{latest.get('conclusion')}"
               )
-          print("Required CI check is green for the selected SHA")
+          print(latest["id"])
+          PY
+          )
+
+          jobs_file="$RUNNER_TEMP/ci-workflow-jobs.json"
+          gh api --paginate \
+            "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/jobs?per_page=100" \
+            --jq '.jobs[]' \
+            > "$jobs_file"
+          python3 - "$jobs_file" <<'PY'
+          import json
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8") as handle:
+              jobs = [json.loads(line) for line in handle if line.strip()]
+
+          required = [job for job in jobs if job.get("name") == "✅ CI Success"]
+          if not required:
+              raise SystemExit("Required '✅ CI Success' job is missing from canonical ci.yml run")
+
+          latest = max(required, key=lambda job: int(job.get("id", 0)))
+          if latest.get("status") != "completed" or latest.get("conclusion") != "success":
+              raise SystemExit(
+                  "Required '✅ CI Success' job is not green: "
+                  f"{latest.get('status')}/{latest.get('conclusion')}"
+              )
+          print("Canonical ci.yml push run and required CI gate are green")
           PY
 
       - name: Setup Xcode
@@ -404,6 +436,7 @@ jobs:
 
       - name: Cleanup signing credentials
         if: always()
+        working-directory: ${{ runner.temp }}
         run: |
           set +e
           keychain_path="${KEYCHAIN_PATH:-$RUNNER_TEMP/ios-distribution.keychain-db}"
@@ -423,7 +456,8 @@ jobs:
             "$certificate_path" \
             "$asc_key_path" \
             "$RUNNER_TEMP/App-Info.plist" \
-            "$RUNNER_TEMP/check-runs.json" \
+            "$RUNNER_TEMP/ci-workflow-runs.json" \
+            "$RUNNER_TEMP/ci-workflow-jobs.json" \
             "$RUNNER_TEMP/original-keychains.txt"
           rm -rf \
             "$RUNNER_TEMP/Pulpe.xcarchive" \
