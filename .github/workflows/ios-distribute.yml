@@ -118,8 +118,8 @@ jobs:
             exit 1
           fi
 
-          actual_marketing_version=$(python3 -c 'import re; text=open("project.yml", encoding="utf-8").read(); match=re.search(r"^\s+MARKETING_VERSION:\s*[\"'\"'\"']?([^\"'\"'\"'\s]+)", text, re.M); print(match.group(1) if match else "")')
-          project_build=$(python3 -c 'import re; text=open("project.yml", encoding="utf-8").read(); match=re.search(r"^\s+CURRENT_PROJECT_VERSION:\s*[\"'\"'\"']?([^\"'\"'\"'\s]+)", text, re.M); print(match.group(1) if match else "")')
+          actual_marketing_version=$(python3 -c 'import re; text=open("project.yml", encoding="utf-8").read(); match=re.search(r"^\s+MARKETING_VERSION:\s*\"?([^\"\s]+)", text, re.M); print(match.group(1) if match else "")')
+          project_build=$(python3 -c 'import re; text=open("project.yml", encoding="utf-8").read(); match=re.search(r"^\s+CURRENT_PROJECT_VERSION:\s*\"?([^\"\s]+)", text, re.M); print(match.group(1) if match else "")')
           if [ "$actual_marketing_version" != "$EXPECTED_MARKETING_VERSION" ]; then
             echo "::error::Marketing version mismatch: expected $EXPECTED_MARKETING_VERSION, source has $actual_marketing_version"
             exit 1
