@@ -74,6 +74,15 @@ import { GoalPlanSimulatorStore } from '../services/goal-plan-simulator-store';
               [showSuffix]="true"
               testId="goal-plan-amount-input"
             />
+            @if (hasInputError()) {
+              <p
+                role="alert"
+                class="text-body-small text-error text-pretty"
+                data-testid="goal-plan-amount-error"
+              >
+                {{ 'savingsGoals.plan.editAmountInvalid' | transloco }}
+              </p>
+            }
           </div>
         </div>
         @if (store.hasTarget() && !targetReached()) {
@@ -204,6 +213,7 @@ export class GoalPlanSimulatorToolbar {
   );
 
   protected readonly announcement = signal('');
+  protected readonly hasInputError = signal(false);
 
   readonly #meta = computed(() => CURRENCY_METADATA[this.currency()]);
 
@@ -212,14 +222,37 @@ export class GoalPlanSimulatorToolbar {
   // enough — no manual `sliderValue.set` is needed to keep the twin controls
   // in sync.
   protected onSliderChange(value: number): void {
+    this.#clearInputRefusal();
     this.store.setGlobalAmount(value);
     this.announcement.set(
       this.#transloco.translate('savingsGoals.simulate.sliderOverwrite'),
     );
   }
 
+  /**
+   * Toute action qui réécrit le montant affiché lève le refus : le champ ne
+   * montre plus la saisie fautive, il n'a plus de raison de la reprocher.
+   */
+  #clearInputRefusal(): void {
+    this.hasInputError.set(false);
+    this.store.setAmountInvalid(false);
+  }
+
+  /**
+   * Le jumeau du slider suit la même règle que le champ inline du plan : une
+   * saisie refusée laisse le plan tel quel et referme « Appliquer », au lieu
+   * d'écrire `0` en silence. Un champ vidé est incomplet, pas fautif — il
+   * verrouille sans accuser ; seul un montant négatif reçoit le message, celui
+   * qui oriente vers le budget puisque c'est là qu'un retrait se crée.
+   */
   protected onInputChange(value: number | null): void {
-    this.store.setGlobalAmount(value ?? 0);
+    const isIncomplete = value === null || !Number.isFinite(value);
+    const isRefused = !isIncomplete && value < 0;
+    this.hasInputError.set(isRefused);
+    this.store.setAmountInvalid(isIncomplete || isRefused);
+    if (isIncomplete || isRefused) return;
+
+    this.store.setGlobalAmount(value);
     this.announcement.set(
       this.#transloco.translate('savingsGoals.simulate.sliderOverwrite'),
     );
@@ -233,6 +266,7 @@ export class GoalPlanSimulatorToolbar {
       );
       return;
     }
+    this.#clearInputRefusal();
     if (this.store.hasVariableAmounts()) {
       this.announcement.set(
         this.#transloco.translate(
@@ -253,6 +287,7 @@ export class GoalPlanSimulatorToolbar {
   }
 
   protected onRevert(): void {
+    this.#clearInputRefusal();
     this.store.revert();
     this.announcement.set(
       this.#transloco.translate('savingsGoals.simulate.reverted'),

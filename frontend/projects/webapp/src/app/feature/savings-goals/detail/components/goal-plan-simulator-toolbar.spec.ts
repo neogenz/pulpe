@@ -324,4 +324,62 @@ describe('GoalPlanSimulatorToolbar', () => {
       ),
     ).toBeNull();
   });
+
+  it('refuses a negative amount out loud instead of writing zero behind the user', async () => {
+    const loader = TestbedHarnessEnvironment.loader(fixture);
+    const amountInput = await loader.getHarness(
+      MatInputHarness.with({
+        selector: '[data-testid="goal-plan-amount-input"]',
+      }),
+    );
+
+    await amountInput.setValue('-500');
+    await fixture.whenStable();
+
+    expect(simulator.draftRows().map((month) => month.simulatedAmount)).toEqual(
+      [200, 200],
+    );
+    expect(simulator.canApply()).toBe(false);
+    const error = fixture.nativeElement.querySelector(
+      '[data-testid="goal-plan-amount-error"]',
+    );
+    expect(error?.textContent).toContain('positif ou nul');
+
+    await amountInput.setValue('300');
+    await fixture.whenStable();
+
+    expect(simulator.draftRows().map((month) => month.simulatedAmount)).toEqual(
+      [300, 300],
+    );
+    expect(simulator.canApply()).toBe(true);
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="goal-plan-amount-error"]',
+      ),
+    ).toBeNull();
+  });
+
+  it('treats a cleared field as unfinished typing, neither applied nor blamed', async () => {
+    const loader = TestbedHarnessEnvironment.loader(fixture);
+    const amountInput = await loader.getHarness(
+      MatInputHarness.with({
+        selector: '[data-testid="goal-plan-amount-input"]',
+      }),
+    );
+
+    await amountInput.setValue('300');
+    await fixture.whenStable();
+    await amountInput.setValue('');
+    await fixture.whenStable();
+
+    expect(simulator.draftRows().map((month) => month.simulatedAmount)).toEqual(
+      [300, 300],
+    );
+    expect(simulator.canApply()).toBe(false);
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="goal-plan-amount-error"]',
+      ),
+    ).toBeNull();
+  });
 });
