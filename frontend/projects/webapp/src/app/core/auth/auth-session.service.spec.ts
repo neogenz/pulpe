@@ -493,6 +493,7 @@ describe('AuthSessionService', () => {
     });
 
     await expect(service.refreshSession()).rejects.toBe(error);
+    expect(mockLogger.error).not.toHaveBeenCalled();
   });
 
   describe('setSession', () => {
@@ -661,7 +662,17 @@ describe('AuthSessionService', () => {
     expect(mockCleanup.performCleanup).toHaveBeenCalled();
   });
 
-  it('should clear local auth state when logout tracking throws', async () => {
+  it('should sign out and clear local auth state when logout tracking throws', async () => {
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    });
+    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
+      data: { subscription: { unsubscribe: vi.fn() } },
+    });
+    mockSupabaseClient.auth.signOut.mockResolvedValue({ error: null });
+    await service.initializeAuthState();
+
     const error = new Error('PostHog unavailable');
     mockPostHog.captureEvent.mockImplementationOnce(() => {
       throw error;
@@ -673,6 +684,9 @@ describe('AuthSessionService', () => {
       'Erreur inattendue lors de la déconnexion:',
       error,
     );
+    expect(mockSupabaseClient.auth.signOut).toHaveBeenCalledWith({
+      scope: 'local',
+    });
     expect(mockAuthStore.set).toHaveBeenCalledWith({
       phase: 'unauthenticated',
     });
