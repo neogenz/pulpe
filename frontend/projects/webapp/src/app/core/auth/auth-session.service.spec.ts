@@ -239,6 +239,25 @@ describe('AuthSessionService', () => {
     expect(mockDemoMode.deactivateDemoMode).not.toHaveBeenCalled();
   });
 
+  it('should clear demo mode when no session is restored', async () => {
+    mockDemoMode.isDemoMode.mockReturnValue(true);
+    mockDemoMode.demoUserEmail.mockReturnValue('demo@pulpe.app');
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
+      data: { session: null },
+      error: null,
+    });
+    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
+      data: { subscription: { unsubscribe: vi.fn() } },
+    });
+
+    await service.initializeAuthState();
+
+    expect(mockDemoMode.deactivateDemoMode).toHaveBeenCalledOnce();
+    expect(mockAuthStore.set).toHaveBeenCalledWith({
+      phase: 'unauthenticated',
+    });
+  });
+
   it('should not reinitialize if already initialized', async () => {
     mockSupabaseClient.auth.getSession.mockResolvedValue({
       data: { session: mockSession },
