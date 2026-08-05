@@ -73,87 +73,10 @@ two disagree.
 | **State** | ❌ Stateless (inputs) | ✅ Can have local state |
 | **Reusability** | ✅ ANY app | ✅ Within this app |
 
-**Example Decision**:
-```typescript
-// ❌ WRONG - UI component with app/business service
-@Component({ /* ... */ })
-export class UserCard {
-  readonly #userService = inject(UserService); // FORBIDDEN - app service
-}
-
-// ✅ CORRECT - UI component with Angular/Material framework service
-@Component({ /* ... */ })
-export class ConfirmationDialog {
-  readonly #dialogRef = inject(MatDialogRef); // OK - framework service
-  readonly #data = inject(MAT_DIALOG_DATA);   // OK - framework token
-}
-
-// ✅ CORRECT - UI component with inputs only
-@Component({ /* ... */ })
-export class Card {
-  readonly title = input.required<string>();
-  readonly subtitle = input<string>();
-  readonly clicked = output<void>();
-}
-
-// ✅ CORRECT - Pattern component with app service
-@Component({ /* ... */ })
-export class UserCard {
-  readonly userId = input.required<string>();
-  readonly #userService = inject(UserService); // OK in pattern
-}
-```
-
-## Implementation Pattern
-
-```typescript
-// Good - Pure UI component
-@Component({
-  selector: 'app-button',
-  template: `
-    <button
-      [class]="variant()"
-      [disabled]="disabled()"
-      (click)="clicked.emit()"
-    >
-      <ng-content />
-    </button>
-  `,
-  styles: `
-    :host { display: inline-block; }
-    button { /* inline styles */ }
-  `,
-  changeDetection: ChangeDetectionStrategy.OnPush
-})
-export class ButtonComponent {
-  readonly variant = input<'primary' | 'secondary'>('primary');
-  readonly disabled = input(false);
-  readonly clicked = output<void>();
-}
-```
-
-**Usage**:
-```typescript
-// Parent manages state, UI just presents
-@Component({
-  template: `
-    <app-button
-      [variant]="'primary'"
-      [disabled]="isLoading()"
-      (clicked)="handleSave()"
-    >
-      Save
-    </app-button>
-  `
-})
-export class MyFeature {
-  readonly isLoading = signal(false);
-
-  handleSave() {
-    // Business logic here
-  }
-}
-```
+The line is which injector the component reaches into. `inject(MatDialogRef)` or
+`inject(MAT_DIALOG_DATA)` is a framework token and stays in `ui/`; `inject(UserService)` is
+an app service and moves the component to `pattern/`. A `ui/` component that takes only
+`input()`s and emits `output()`s never has to make that call.
 
 ## Key Takeaway
 

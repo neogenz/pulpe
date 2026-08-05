@@ -27,28 +27,9 @@ Component → Store → Feature API → ApiClient
 
 ## ApiClient Usage
 
-All HTTP calls via `ApiClient`. Never inject `HttpClient` direct.
-
-```typescript
-@Service()
-export class FeatureApi {
-  readonly #api = inject(ApiClient);
-
-  getItems$(): Observable<ItemListResponse> {
-    return this.#api.get$('/items', itemListResponseSchema);
-  }
-
-  createItem$(data: ItemCreate): Observable<ItemResponse> {
-    return this.#api.post$('/items', data, itemResponseSchema);
-  }
-
-  deleteItem$(id: string): Observable<void> {
-    return this.#api.deleteVoid$(`/items/${id}`);
-  }
-}
-```
-
-Zod validation enforced by design — no schema, no call.
+Every HTTP call goes through `ApiClient`, never `HttpClient` directly. A `@Service()` feature
+API exposes one method per endpoint over `api.get$(path, schema)` / `post$` / `deleteVoid$`.
+Zod validation is enforced by the signature — no schema, no call.
 
 ## Store Anatomy (5 sections)
 
@@ -97,28 +78,11 @@ caller decides how to surface it (a toast, an inline message).
 
 ## Store Variants
 
-### Variant A: Signals-Only Store
-Local UI state or synced state, no async data loading.
+**Signals-only** — local or synced UI state, no async loading: `signal()` + `computed()` +
+synchronous methods. Example: `CompleteProfileStore` (form steps and validation state).
 
-| Element | Usage |
-|---------|-------|
-| `signal()` | Writable state |
-| `computed()` | Derived selectors |
-| Methods | Synchronous set/update |
-
-Example: `CompleteProfileStore` — manages form steps + validation state.
-
-### Variant B: Resource-Backed Store
-API-fetched data, async loading, mutations, cache mgmt.
-
-| Element | Usage |
-|---------|-------|
-| `resource()` / `rxResource()` | Async data loading |
-| `signal()` | Internal state (filters, IDs) |
-| `computed()` | Derived selectors, loading states |
-| `async` methods | Mutations with optimistic updates |
-
-Example: `BudgetDetailsStore` — loads budget details, optimistic CRUD.
+**Resource-backed** — API data, async loading, mutations, cache. Example:
+`BudgetDetailsStore`.
 
 ## Data Loading
 
@@ -166,41 +130,11 @@ async createItem(data: ItemCreate): Promise<string | null> {
 }
 ```
 
-## Temp ID Rule (DR-005)
+### Temp ID Rule (DR-005)
 
-Creating item with temp ID: **always replace temp ID with real server ID BEFORE** cascade actions (invalidation, dependent API calls).
-
-### Correct order:
-```typescript
-// 1. Optimistic update with temp ID
-this.#resource.update(current => ({
-  ...current,
-  items: [...current.items, { ...data, id: tempId }],
-}));
-
-// 2. API call
-const response = await firstValueFrom(this.#api.create$(data));
-
-// 3. Replace temp → real (BEFORE cascade)
-this.#resource.update(current => ({
-  ...current,
-  items: current.items.map(i => i.id === tempId ? response.data : i),
-}));
-
-// 4. NOW safe to cascade
-this.#api.cache.invalidate(['items']);
-```
-
-### Bug if wrong order:
-```typescript
-// WRONG — cascade uses temp ID
-const response = await firstValueFrom(this.#api.create$(data));
-this.#api.cache.invalidate(['items']); // Other stores reload, see "temp-xxx"
-this.#resource.update(...); // Too late, temp ID already leaked
-
-// WRONG — using temp ID in follow-up call
-await this.#api.toggleCheck$(tempId); // 404 — server doesn't know "temp-xxx"
-```
+Step 3 is not optional and cannot move. **Replace the temp id with the real one BEFORE any
+cascade** — invalidation, or any dependent API call. Cascade first and other stores reload
+and read `temp-xxx`; call `toggleCheck$(tempId)` and the server 404s on an id it never knew.
 
 ## Cache Invalidation
 
@@ -268,17 +202,9 @@ async checkUsage(templateId: string): Promise<TemplateUsageResponse['data']> {
 | `@Service({ autoProvided: false })` | Feature stores (route-scoped) | `BudgetDetailsStore` |
 | `@Service()` | Shared services, APIs, caches | `BudgetApi`, `HasBudgetCache` |
 
-Feature stores registered in route providers:
-
-```typescript
-export default [
-  {
-    path: '',
-    providers: [FeatureApi, FeatureStore],
-    children: [{ path: ':id', loadComponent: () => import('./page') }],
-  },
-] satisfies Routes;
-```
+Feature stores go in the route's `providers: [FeatureApi, FeatureStore]`, so their lifetime
+is the route's — leaving the feature disposes the store rather than leaking its state into
+the next visit.
 
 ## Error Handling
 
