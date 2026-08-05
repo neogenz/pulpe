@@ -14,6 +14,8 @@ const baseLine: BudgetLineDecrypted = {
   savingsGoalId: null,
   spreadGroupId: null,
   savingsWithdrawalGroupId: null,
+  sourceSavingsGoalId: null,
+  sourceSavingsGoalName: null,
   name: 'Prime assurance',
   amount: 100,
   originalAmount: null,
@@ -181,6 +183,76 @@ describe('BudgetMapper sourceSavingsGoal (PUL-329)', () => {
       expect(originTx?.sourceSavingsGoalName).toBe('Vacances');
       expect(plainTx?.sourceSavingsGoalId).toBeNull();
       expect(plainTx?.sourceSavingsGoalName).toBeNull();
+    });
+  });
+
+  // Le retrait ANNONCÉ vit sur la prévision (PUL-329 v2), pas seulement sur le
+  // réel : sans ces deux champs dans la réponse, la ligne revient anonyme et
+  // l'écran ne peut ni afficher « Pris sur · … » ni proposer de la réaliser.
+  describe('toBudgetLineApi', () => {
+    it('carries sourceSavingsGoalId and sourceSavingsGoalName through to the API DTO', () => {
+      const dto = mapper.toBudgetLineApi({
+        ...baseLine,
+        kind: 'income',
+        sourceSavingsGoalId: 'goal-1',
+        sourceSavingsGoalName: 'Vacances',
+      });
+
+      expect(dto.sourceSavingsGoalId).toBe('goal-1');
+      expect(dto.sourceSavingsGoalName).toBe('Vacances');
+    });
+
+    it('keeps a readable name when the goal behind it was deleted', () => {
+      const dto = mapper.toBudgetLineApi({
+        ...baseLine,
+        kind: 'income',
+        sourceSavingsGoalId: null,
+        sourceSavingsGoalName: 'Vacances',
+      });
+
+      expect(dto.sourceSavingsGoalId).toBeNull();
+      expect(dto.sourceSavingsGoalName).toBe('Vacances');
+    });
+
+    it('keeps the origin null for an ordinary forecast', () => {
+      const dto = mapper.toBudgetLineApi(baseLine);
+
+      expect(dto.sourceSavingsGoalId).toBeNull();
+      expect(dto.sourceSavingsGoalName).toBeNull();
+    });
+  });
+
+  describe('toBudgetDetailsResponse budget lines', () => {
+    it('carries the savings-goal origin through the details-response budget lines', () => {
+      const composite: BudgetWithDetails = {
+        budget: baseBudget,
+        budgetLines: [
+          {
+            ...baseLine,
+            id: 'withdrawal-line',
+            kind: 'income',
+            sourceSavingsGoalId: 'goal-1',
+            sourceSavingsGoalName: 'Vacances',
+          },
+          { ...baseLine, id: 'plain-line' },
+        ],
+        transactions: [],
+        rollover: 0,
+        previousBudgetId: null,
+      };
+
+      const response = mapper.toBudgetDetailsResponse(composite);
+
+      const withdrawalLine = response.data.budgetLines.find(
+        (line) => line.id === 'withdrawal-line',
+      );
+      const plainLine = response.data.budgetLines.find(
+        (line) => line.id === 'plain-line',
+      );
+      expect(withdrawalLine?.sourceSavingsGoalId).toBe('goal-1');
+      expect(withdrawalLine?.sourceSavingsGoalName).toBe('Vacances');
+      expect(plainLine?.sourceSavingsGoalId).toBeNull();
+      expect(plainLine?.sourceSavingsGoalName).toBeNull();
     });
   });
 });

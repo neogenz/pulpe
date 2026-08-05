@@ -116,6 +116,8 @@ export interface BudgetLineDecrypted {
   savingsGoalId: string | null;
   spreadGroupId: string | null;
   savingsWithdrawalGroupId: string | null;
+  sourceSavingsGoalId: string | null;
+  sourceSavingsGoalName: string | null;
   name: string;
   amount: number;
   originalAmount: number | null;

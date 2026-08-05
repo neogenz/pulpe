@@ -11,6 +11,15 @@ export interface BudgetLineApiSource {
   savingsGoalId: string | null;
   spreadGroupId: string | null;
   savingsWithdrawalGroupId: string | null;
+  /**
+   * Le lien à trois états d'un retrait annoncé (PUL-329 v2) : les deux nuls
+   * pour une prévision ordinaire, tous deux renseignés pour un retrait actif,
+   * l'id seul à null quand l'objectif a été supprimé — la ligne reste alors
+   * lisible sans pouvoir être réalisée. Optionnels : les projections RPC ne
+   * joignent pas l'objectif source, comme elles ne joignent pas les tags.
+   */
+  sourceSavingsGoalId?: string | null;
+  sourceSavingsGoalName?: string | null;
   name: string;
   amount: number;
   kind: BudgetLineApi['kind'];
@@ -52,6 +61,8 @@ export function mapBudgetLineToApi(entity: BudgetLineApiSource): BudgetLineApi {
     savingsGoalId: entity.savingsGoalId,
     spreadGroupId: entity.spreadGroupId,
     savingsWithdrawalGroupId: entity.savingsWithdrawalGroupId,
+    sourceSavingsGoalId: entity.sourceSavingsGoalId ?? null,
+    sourceSavingsGoalName: entity.sourceSavingsGoalName ?? null,
     name: entity.name,
     amount: entity.amount,
     kind: entity.kind,

@@ -833,6 +833,8 @@ export class SupabaseBudgetRepository
       savingsGoalId: decrypted.savings_goal_id,
       spreadGroupId: decrypted.spread_group_id ?? null,
       savingsWithdrawalGroupId: decrypted.savings_withdrawal_group_id ?? null,
+      sourceSavingsGoalId: decrypted.source_savings_goal_id,
+      sourceSavingsGoalName: decrypted.source_savings_goal_name,
       name: decrypted.name,
       amount: decrypted.amount,
       originalAmount: decrypted.original_amount,

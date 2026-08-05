@@ -689,6 +689,34 @@ describe('SupabaseBudgetRepository toBudgetLineDecrypted', () => {
 
     expect(result.budgetLines[0].spreadGroupId).toBeNull();
   });
+
+  // Même exigence que sur le réel (PUL-329) : la prévision qui annonce un
+  // retrait doit ressortir de la lecture avec son objectif source, sinon le
+  // détail du budget la sert anonyme et rien en aval ne peut la reconnaître.
+  it('carries source_savings_goal_id/name from a select(*) row into the decrypted line', async () => {
+    const provider = fetchBudgetDataProvider({
+      ...budgetLineRow,
+      kind: 'income',
+      source_savings_goal_id: 'goal-1',
+      source_savings_goal_name: 'Vacances',
+    });
+    const repo = new SupabaseBudgetRepository(provider, createMockEncryption());
+
+    const result = await repo.fetchBudgetData('budget-1');
+
+    expect(result.budgetLines[0].sourceSavingsGoalId).toBe('goal-1');
+    expect(result.budgetLines[0].sourceSavingsGoalName).toBe('Vacances');
+  });
+
+  it('maps a null source_savings_goal_id/name to null for an ordinary line', async () => {
+    const provider = fetchBudgetDataProvider(budgetLineRow);
+    const repo = new SupabaseBudgetRepository(provider, createMockEncryption());
+
+    const result = await repo.fetchBudgetData('budget-1');
+
+    expect(result.budgetLines[0].sourceSavingsGoalId).toBeNull();
+    expect(result.budgetLines[0].sourceSavingsGoalName).toBeNull();
+  });
 });
 
 describe('SupabaseBudgetRepository toTransactionDecrypted (PUL-329)', () => {
