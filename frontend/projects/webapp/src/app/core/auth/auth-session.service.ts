@@ -204,7 +204,16 @@ export class AuthSessionService {
 
   async #performSignOut(source: SignOutSource): Promise<void> {
     try {
-      this.#postHog.captureEvent(ANALYTICS_EVENTS.LOGOUT_COMPLETED, { source });
+      try {
+        this.#postHog.captureEvent(ANALYTICS_EVENTS.LOGOUT_COMPLETED, {
+          source,
+        });
+      } catch (trackingError) {
+        this.#logger.error(
+          'Erreur inattendue lors de la déconnexion:',
+          trackingError,
+        );
+      }
 
       if (isE2EMode()) {
         this.#logger.debug('🎭 Mode test E2E: Simulation du logout');
@@ -322,26 +331,21 @@ export class AuthSessionService {
   }
 
   async #refreshSessionAndUpdateState(): Promise<boolean> {
-    try {
-      const { data, error } = await this.getClient().auth.refreshSession();
+    const { data, error } = await this.getClient().auth.refreshSession();
 
-      if (error) {
-        if (isAuthRetryableFetchError(error)) {
-          throw error;
-        }
-        this.#logger.error(
-          'Erreur lors du rafraîchissement de la session:',
-          error,
-        );
-        return false;
+    if (error) {
+      if (isAuthRetryableFetchError(error)) {
+        throw error;
       }
-
-      this.#updateAuthStateFromSession(data.session ?? null);
-      return !!data.session;
-    } catch (error) {
-      this.#logger.error('Échec du rafraîchissement de la session:', error);
-      throw error;
+      this.#logger.error(
+        'Erreur lors du rafraîchissement de la session:',
+        error,
+      );
+      return false;
     }
+
+    this.#updateAuthStateFromSession(data.session ?? null);
+    return !!data.session;
   }
 
   #handleAuthEvent(event: string, session: Session | null): void {
