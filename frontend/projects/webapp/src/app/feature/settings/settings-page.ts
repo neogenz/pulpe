@@ -714,7 +714,7 @@ export default class SettingsPage {
     this.#clientKeyService.clear();
 
     try {
-      await this.#authSession.signOut();
+      await this.#authSession.signOut('scheduled_deletion');
     } catch (error) {
       this.#logger.warn(
         'Sign out failed after account deletion scheduling',

@@ -133,7 +133,7 @@ export class DemoInitializerService {
    */
   async exitDemoMode(): Promise<void> {
     this.#demoModeService.deactivateDemoMode();
-    await this.#authSession.signOut();
+    await this.#authSession.signOut('demo_exit');
     this.#logger.info('Demo mode exited and user signed out');
   }
 

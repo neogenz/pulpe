@@ -9,7 +9,7 @@ import {
 import { Router } from '@angular/router';
 import { TranslocoService } from '@jsverse/transloco';
 import { type Observable, throwError, from, switchMap, catchError } from 'rxjs';
-import { AuthSessionService } from './auth-session.service';
+import { AuthSessionService, type SignOutSource } from './auth-session.service';
 import { AuthStore } from './auth-store';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { ROUTES } from '../routing/routes-constants';
@@ -72,12 +72,22 @@ function handleAuthError(
 ): Observable<HttpEvent<unknown>> {
   if (error.status === 401 && ctx.authStore.isAuthenticated()) {
     return from(ctx.session.refreshSession()).pipe(
+      catchError(() =>
+        signOutAndRedirect(
+          ctx,
+          AUTH_ERROR_KEYS.REFRESH_FAILED,
+          'refresh_failed',
+        ),
+      ),
       switchMap((refreshed) =>
         refreshed
           ? ctx.next(addAuthToken(ctx.req, ctx.authStore))
-          : signOutAndRedirect(ctx, AUTH_ERROR_KEYS.SESSION_EXPIRED),
+          : signOutAndRedirect(
+              ctx,
+              AUTH_ERROR_KEYS.SESSION_EXPIRED,
+              'session_expired',
+            ),
       ),
-      catchError(() => signOutAndRedirect(ctx, AUTH_ERROR_KEYS.REFRESH_FAILED)),
     );
   }
 
@@ -103,7 +113,11 @@ function handleAuthError(
     (error.error?.code === 'ERR_USER_ACCOUNT_BLOCKED' ||
       error.error?.error === 'ERR_USER_ACCOUNT_BLOCKED')
   ) {
-    return signOutAndRedirect(ctx, AUTH_ERROR_KEYS.ACCOUNT_BLOCKED);
+    return signOutAndRedirect(
+      ctx,
+      AUTH_ERROR_KEYS.ACCOUNT_BLOCKED,
+      'account_blocked',
+    );
   }
 
   return throwError(() => error);
@@ -112,8 +126,9 @@ function handleAuthError(
 function signOutAndRedirect(
   ctx: InterceptorContext,
   errorKey: string,
+  source: SignOutSource,
 ): Observable<never> {
-  return from(ctx.session.signOut()).pipe(
+  return from(ctx.session.signOut(source)).pipe(
     switchMap(() => from(ctx.router.navigate(['/', ROUTES.LOGIN]))),
     switchMap(() =>
       throwError(() => new Error(ctx.transloco.translate(errorKey))),

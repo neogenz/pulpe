@@ -9,7 +9,13 @@ import {
 } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
+import {
+  AuthRetryableFetchError,
+  type AuthChangeEvent,
+  type Session,
+  type User,
+} from '@supabase/supabase-js';
+import type * as SupabaseJsModule from '@supabase/supabase-js';
 import { Router } from '@angular/router';
 import { AuthSessionService } from './auth-session.service';
 import { AuthStore } from './auth-store';
@@ -19,6 +25,7 @@ import { AuthErrorLocalizer } from './auth-error-localizer';
 import { SCHEDULED_DELETION_PARAMS } from './auth-constants';
 import { type E2EWindow } from './e2e-window';
 import { AuthCleanupService } from './auth-cleanup.service';
+import { PostHogService } from '../analytics/posthog';
 import { ROUTES } from '@core/routing/routes-constants';
 import {
   createMockSupabaseClient,
@@ -30,7 +37,8 @@ const { createClientMock } = vi.hoisted(() => ({
   createClientMock: vi.fn(),
 }));
 
-vi.mock('@supabase/supabase-js', () => ({
+vi.mock('@supabase/supabase-js', async (importOriginal) => ({
+  ...(await importOriginal<typeof SupabaseJsModule>()),
   createClient: createClientMock,
 }));
 
@@ -60,6 +68,7 @@ describe('AuthSessionService', () => {
   };
   let mockSupabaseClient: MockSupabaseClient;
   let mockCleanup: { performCleanup: Mock };
+  let mockPostHog: { captureEvent: Mock };
   let mockRouter: { navigate: Mock };
   let mockUserSignal: ReturnType<typeof signal<User | null>>;
 
@@ -117,6 +126,7 @@ describe('AuthSessionService', () => {
     };
 
     mockCleanup = { performCleanup: vi.fn() };
+    mockPostHog = { captureEvent: vi.fn() };
     mockRouter = { navigate: vi.fn() };
     mockSupabaseClient = createMockSupabaseClient();
     createClientMock.mockReturnValue(mockSupabaseClient);
@@ -131,6 +141,7 @@ describe('AuthSessionService', () => {
         { provide: Logger, useValue: mockLogger },
         { provide: AuthErrorLocalizer, useValue: mockErrorLocalizer },
         { provide: AuthCleanupService, useValue: mockCleanup },
+        { provide: PostHogService, useValue: mockPostHog },
         { provide: Router, useValue: mockRouter },
       ],
     });
@@ -465,6 +476,26 @@ describe('AuthSessionService', () => {
     expect(mockLogger.error).toHaveBeenCalled();
   });
 
+  it('should reject when refreshSession fails transiently', async () => {
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    });
+    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
+      data: { subscription: { unsubscribe: vi.fn() } },
+    });
+    await service.initializeAuthState();
+
+    const error = new AuthRetryableFetchError('Network unavailable', 0);
+    mockSupabaseClient.auth.refreshSession.mockResolvedValue({
+      data: { session: null, user: null },
+      error,
+    });
+
+    await expect(service.refreshSession()).rejects.toBe(error);
+    expect(mockLogger.error).not.toHaveBeenCalled();
+  });
+
   describe('setSession', () => {
     const validJwt = buildJwt({
       sub: 'user-123',
@@ -611,12 +642,61 @@ describe('AuthSessionService', () => {
     mockAuthStore.set.mockClear();
     mockCleanup.performCleanup.mockClear();
 
-    await service.signOut();
+    await service.signOut('user_initiated');
 
-    expect(mockSupabaseClient.auth.signOut).toHaveBeenCalled();
+    expect(mockSupabaseClient.auth.signOut).toHaveBeenCalledWith({
+      scope: 'local',
+    });
+    expect(mockPostHog.captureEvent).toHaveBeenCalledWith('logout_completed', {
+      source: 'user_initiated',
+    });
+    expect(mockPostHog.captureEvent.mock.invocationCallOrder[0]).toBeLessThan(
+      mockSupabaseClient.auth.signOut.mock.invocationCallOrder[0],
+    );
+    expect(mockPostHog.captureEvent.mock.invocationCallOrder[0]).toBeLessThan(
+      mockCleanup.performCleanup.mock.invocationCallOrder[0],
+    );
     expect(mockAuthStore.set).toHaveBeenCalledWith({
       phase: 'unauthenticated',
     });
+    expect(mockCleanup.performCleanup).toHaveBeenCalled();
+  });
+
+  it('should sign out and clear local auth state when logout tracking throws', async () => {
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    });
+    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
+      data: { subscription: { unsubscribe: vi.fn() } },
+    });
+    mockSupabaseClient.auth.signOut.mockResolvedValue({ error: null });
+    await service.initializeAuthState();
+
+    const error = new Error('PostHog unavailable');
+    mockPostHog.captureEvent.mockImplementationOnce(() => {
+      throw error;
+    });
+
+    await service.signOut('user_initiated');
+
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'Erreur inattendue lors du tracking de déconnexion:',
+      error,
+    );
+    expect(mockSupabaseClient.auth.signOut).toHaveBeenCalledWith({
+      scope: 'local',
+    });
+    expect(mockAuthStore.set).toHaveBeenCalledWith({
+      phase: 'unauthenticated',
+    });
+    expect(mockCleanup.performCleanup).toHaveBeenCalled();
+  });
+
+  it('should not track logout without an initialized Supabase client', async () => {
+    await service.signOut('user_initiated');
+
+    expect(mockPostHog.captureEvent).not.toHaveBeenCalled();
     expect(mockCleanup.performCleanup).toHaveBeenCalled();
   });
 
@@ -642,7 +722,7 @@ describe('AuthSessionService', () => {
     mockCleanup.performCleanup.mockClear();
     mockLogger.info.mockClear();
 
-    await service.signOut();
+    await service.signOut('user_initiated');
 
     expect(mockLogger.debug).toHaveBeenCalledWith(
       '🎭 Mode test E2E: Simulation du logout',
@@ -651,6 +731,7 @@ describe('AuthSessionService', () => {
       phase: 'unauthenticated',
     });
     expect(mockSupabaseClient.auth.signOut).not.toHaveBeenCalled();
+    expect(mockPostHog.captureEvent).not.toHaveBeenCalled();
     expect(mockCleanup.performCleanup).toHaveBeenCalled();
   });
 
@@ -734,9 +815,9 @@ describe('AuthSessionService', () => {
       );
 
       const pendingSignOuts = Promise.all([
-        service.signOut(),
-        service.signOut(),
-        service.signOut(),
+        service.signOut('user_initiated'),
+        service.signOut('user_initiated'),
+        service.signOut('user_initiated'),
       ]);
       resolveSignOut({ error: null });
       await pendingSignOuts;
@@ -748,8 +829,8 @@ describe('AuthSessionService', () => {
     it('should allow a new signOut after the previous one completed', async () => {
       mockSupabaseClient.auth.signOut.mockResolvedValue({ error: null });
 
-      await service.signOut();
-      await service.signOut();
+      await service.signOut('user_initiated');
+      await service.signOut('user_initiated');
 
       expect(mockSupabaseClient.auth.signOut).toHaveBeenCalledTimes(2);
     });

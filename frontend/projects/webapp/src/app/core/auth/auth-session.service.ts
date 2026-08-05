@@ -1,7 +1,12 @@
 import { Service, inject, DestroyRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { TranslocoService } from '@jsverse/transloco';
-import type { Session, SupabaseClient } from '@supabase/supabase-js';
+import {
+  isAuthRetryableFetchError,
+  type Session,
+  type SupabaseClient,
+} from '@supabase/supabase-js';
+import { ANALYTICS_EVENTS } from 'pulpe-shared';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { AuthStore, type AuthSessionState } from './auth-store';
@@ -10,6 +15,16 @@ import { AUTH_ERROR_KEYS, SCHEDULED_DELETION_PARAMS } from './auth-constants';
 import { AuthCleanupService } from './auth-cleanup.service';
 import { isE2EMode, type E2EWindow } from './e2e-window';
 import { ROUTES } from '@core/routing/routes-constants';
+import { PostHogService } from '../analytics/posthog';
+
+export type SignOutSource =
+  | 'user_initiated'
+  | 'vault_code'
+  | 'demo_exit'
+  | 'scheduled_deletion'
+  | 'account_blocked'
+  | 'session_expired'
+  | 'refresh_failed';
 
 interface DecodedJwt {
   readonly sub: string;
@@ -24,6 +39,7 @@ export class AuthSessionService {
   readonly #errorLocalizer = inject(AuthErrorLocalizer);
   readonly #logger = inject(Logger);
   readonly #cleanup = inject(AuthCleanupService);
+  readonly #postHog = inject(PostHogService);
   readonly #transloco = inject(TranslocoService);
   readonly #destroyRef = inject(DestroyRef);
 
@@ -178,13 +194,15 @@ export class AuthSessionService {
     }
   }
 
-  signOut(): Promise<void> {
-    return (this.#signOutPromise ??= this.#performSignOut().finally(() => {
-      this.#signOutPromise = null;
-    }));
+  signOut(source: SignOutSource): Promise<void> {
+    return (this.#signOutPromise ??= this.#performSignOut(source).finally(
+      () => {
+        this.#signOutPromise = null;
+      },
+    ));
   }
 
-  async #performSignOut(): Promise<void> {
+  async #performSignOut(source: SignOutSource): Promise<void> {
     try {
       if (isE2EMode()) {
         this.#logger.debug('🎭 Mode test E2E: Simulation du logout');
@@ -195,9 +213,24 @@ export class AuthSessionService {
         return;
       }
 
-      const { error } = await this.#supabaseClient.auth.signOut();
+      try {
+        this.#postHog.captureEvent(ANALYTICS_EVENTS.LOGOUT_COMPLETED, {
+          source,
+        });
+      } catch (trackingError) {
+        this.#logger.error(
+          'Erreur inattendue lors du tracking de déconnexion:',
+          trackingError,
+        );
+      }
+
+      // Local scope preserves other devices, including iOS. Global revocation
+      // is reserved for server-side account deletion.
+      const { error } = await this.#supabaseClient.auth.signOut({
+        scope: 'local',
+      });
       if (error) {
-        this.#logger.error('Erreur lors de la déconnexion globale:', error);
+        this.#logger.error('Erreur lors de la déconnexion locale:', error);
       }
     } catch (error) {
       this.#logger.error('Erreur inattendue lors de la déconnexion:', error);
@@ -299,26 +332,21 @@ export class AuthSessionService {
   }
 
   async #refreshSessionAndUpdateState(): Promise<boolean> {
-    try {
-      const { data, error } = await this.getClient().auth.refreshSession();
+    const { data, error } = await this.getClient().auth.refreshSession();
 
-      if (error) {
-        this.#logger.error(
-          'Erreur lors du rafraîchissement de la session:',
-          error,
-        );
-        return false;
+    if (error) {
+      if (isAuthRetryableFetchError(error)) {
+        throw error;
       }
-
-      this.#updateAuthStateFromSession(data.session ?? null);
-      return !!data.session;
-    } catch (error) {
       this.#logger.error(
-        'Erreur inattendue lors du rafraîchissement de la session:',
+        'Erreur lors du rafraîchissement de la session:',
         error,
       );
       return false;
     }
+
+    this.#updateAuthStateFromSession(data.session ?? null);
+    return !!data.session;
   }
 
   #handleAuthEvent(event: string, session: Session | null): void {
@@ -335,7 +363,7 @@ export class AuthSessionService {
         'User account scheduled for deletion detected, signing out',
         { userId: session.user.id },
       );
-      this.signOut().finally(() => {
+      this.signOut('scheduled_deletion').finally(() => {
         this.#router.navigate(['/', ROUTES.LOGIN], {
           queryParams: {
             [SCHEDULED_DELETION_PARAMS.REASON]:
