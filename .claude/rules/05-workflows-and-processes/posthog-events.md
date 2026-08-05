@@ -38,16 +38,27 @@ $pageview (landing) → cta_clicked → welcome_viewed → signup_started
 welcome_viewed → demo_started → signup_started → signup_completed → ...
 ```
 
-**iOS:**
+**iOS (email):**
 
 ```
 app_opened → welcome_viewed → onboarding_started
 → onboarding_step_completed (first_name) → signup_started → signup_completed
-→ onboarding_step_completed (income, charges, savings, budget_preview)
-→ pin_setup_completed → first_budget_created
+→ onboarding_step_completed (registration → income → charges → savings)
+→ pin_setup_completed → onboarding_step_completed (budget_preview)
+→ first_budget_created
 ```
 
-`onboarding_started` fires once per session on first transition out of welcome (email tap) or on fresh social OAuth entry into flow. `signup_started` fires when user reach registration form (post reorder — step 3, not step 1).
+**iOS (social):**
+
+```
+app_opened → welcome_viewed → signup_started → signup_completed
+→ onboarding_started → onboarding_step_completed (first_name, if missing)
+→ onboarding_step_completed (income → charges → savings)
+→ pin_setup_completed → onboarding_step_completed (budget_preview)
+→ first_budget_created
+```
+
+`onboarding_started` fires once per session on first transition out of welcome (email tap) or on fresh social OAuth entry into flow. `signup_started` fires on email registration form entry or on a social provider signup attempt from welcome.
 
 **Tracking approach:**
 
@@ -186,7 +197,7 @@ present when the SDK exposes a matching response and are never inferred from an 
 - `onboarding_abandoned` fire at most once per `OnboardingState` (state.hasAbandoned flag).
 - `onboarding_resumed` fire once per instance, mutually exclusive with `onboarding_started` for same session.
 - `welcome_viewed` fire once per **session** via `state.hasEmittedWelcomeViewed` on `OnboardingState`. Critical: guard live on state (not on `WelcomeStep` view) because `OnboardingFlow` tear down and re-create step views on every step change via `.id(state.currentStep)` — local `@State` guard would double-fire on back-nav.
-- `signup_started` fire once per **session** via `state.hasEmittedSignupStarted` on `OnboardingState`. Same re-instantiation trap as `welcome_viewed`.
+- Email `signup_started` fire once per **session** via `state.hasEmittedSignupStarted` on `OnboardingState`. Social `signup_started` fire on each provider signup attempt from `SocialLoginSection`.
 - `onboarding_step_completed` for `budget_preview` fire once per session via `state.hasEmittedBudgetPreviewCompleted`. Prevent rapid-double-tap and retry-after-error from double-firing funnel event; CTA also disable once `state.readyToComplete` or `state.isSubmitting` true.
 
 ## Properties

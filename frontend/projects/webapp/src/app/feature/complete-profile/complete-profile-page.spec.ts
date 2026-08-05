@@ -16,7 +16,7 @@ import { PostHogService } from '@core/analytics/posthog';
 import { UserSettingsStore } from '@core/user-settings';
 import { provideTranslocoForTest } from '../../testing/transloco-testing';
 
-describe('CompleteProfilePage — health-insurance currency gating', () => {
+describe('CompleteProfilePage', () => {
   let updateHealthInsurance: ReturnType<typeof vi.fn>;
   let captureEvent: ReturnType<typeof vi.fn>;
 

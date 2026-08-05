@@ -254,9 +254,11 @@ Frontend (Angular) + iOS (SwiftUI) share PostHog project (EU region).
 
 **Onboarding funnel (iOS)**:
 ```
-app_opened → welcome_viewed → signup_started
-→ onboarding_step_completed (×3) → signup_completed
-→ pin_setup_completed → budget_created → transaction_created
+app_opened → welcome_viewed
+├─ email: onboarding_started → onboarding_step_completed (first_name) → signup_started → signup_completed → onboarding_step_completed (registration)
+└─ social: signup_started → signup_completed → onboarding_started → onboarding_step_completed (first_name, if missing)
+→ onboarding_step_completed (income → charges → savings) → pin_setup_completed
+→ onboarding_step_completed (budget_preview) → first_budget_created → transaction_created
 ```
 
 **Financial data sanitization**: properties split by `_`, each component checked vs word set (`amount`, `balance`, `income`, `savings`, `total`, `projection`, `rollover`, `expenses`, `available`). Catches compound keys like `total_amount`, `current_balance`.
