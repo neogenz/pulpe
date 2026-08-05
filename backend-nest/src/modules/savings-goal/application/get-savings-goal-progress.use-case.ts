@@ -5,6 +5,7 @@ import {
   buildSavingsGoalTimeline,
   computeSavingsGoalProgress,
   type BudgetPeriod,
+  type LinkedPlannedWithdrawal,
   type LinkedSavingLine,
   type LinkedSavingTransaction,
   type LinkedSavingWithdrawal,
@@ -53,11 +54,13 @@ export class GetSavingsGoalProgressUseCase {
     const [
       { lines, transactions },
       withdrawals,
+      plannedWithdrawals,
       materializedPeriods,
       defaultTemplateId,
     ] = await Promise.all([
       this.repo.findLinkedContributions(id),
       this.repo.findLinkedWithdrawals(id),
+      this.repo.findPlannedWithdrawals(id),
       this.repo.findMaterializedPeriods(),
       this.templateRepo.findDefaultTemplateId(user.id),
     ]);
@@ -68,6 +71,7 @@ export class GetSavingsGoalProgressUseCase {
       lines,
       transactions,
       withdrawals,
+      plannedWithdrawals,
     });
 
     const computed = computeSavingsGoalProgress(input);
@@ -95,6 +99,7 @@ export class GetSavingsGoalProgressUseCase {
       lines: LinkedSavingLine[];
       transactions: LinkedSavingTransaction[];
       withdrawals: LinkedSavingWithdrawal[];
+      plannedWithdrawals: LinkedPlannedWithdrawal[];
     },
   ): SavingsGoalProgressInput {
     return {
@@ -116,6 +121,7 @@ export class GetSavingsGoalProgressUseCase {
       lines: data.lines,
       transactions: data.transactions,
       withdrawals: data.withdrawals,
+      plannedWithdrawals: data.plannedWithdrawals,
     };
   }
 }

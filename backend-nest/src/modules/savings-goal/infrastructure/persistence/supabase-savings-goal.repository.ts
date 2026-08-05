@@ -7,6 +7,7 @@ import {
   type BudgetLine,
   type BudgetPeriod,
   type LinkedSavingLine,
+  type LinkedPlannedWithdrawal,
   type LinkedSavingWithdrawal,
   type SavingsGoalDeletionCommand,
   type SavingsGoalGenerationStop,
@@ -104,10 +105,19 @@ interface LinkedLineRow {
 interface WithdrawalRow {
   id: string;
   budget_id: string;
+  budget_line_id: string | null;
   source_savings_goal_id: string | null;
   name: string;
   amount: string | null;
   transaction_date: string;
+  monthly_budget: { month: number; year: number };
+}
+
+/** Prévision `income` annonçant une sortie future de l'objectif (PUL-329 v2). */
+interface PlannedWithdrawalRow {
+  id: string;
+  source_savings_goal_id: string | null;
+  amount: string | null;
   monthly_budget: { month: number; year: number };
 }
 
@@ -430,6 +440,16 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
 
     const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
     return rows.map((row) => this.toLinkedWithdrawal(row, dek));
+  }
+
+  async findPlannedWithdrawals(
+    goalId: string,
+  ): Promise<LinkedPlannedWithdrawal[]> {
+    const rows = await this.fetchPlannedWithdrawalRows([goalId]);
+    if (!rows.length) return [];
+
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    return rows.map((row) => this.toPlannedWithdrawal(row, dek));
   }
 
   async findWithdrawals(
@@ -1051,7 +1071,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     const { data, error } = await this.supabaseProvider.client
       .from('transaction')
       .select(
-        'id, budget_id, source_savings_goal_id, name, amount, transaction_date, monthly_budget!inner(month, year)',
+        'id, budget_id, budget_line_id, source_savings_goal_id, name, amount, transaction_date, monthly_budget!inner(month, year)',
       )
       .in('source_savings_goal_id', goalIds);
 
@@ -1088,6 +1108,55 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     dek: Buffer,
   ): LinkedSavingWithdrawal {
     return {
+      amount: this.encryption.tryDecryptAmount(row.amount, dek, 0),
+      month: row.monthly_budget.month,
+      year: row.monthly_budget.year,
+      budgetLineId: row.budget_line_id,
+    };
+  }
+
+  /**
+   * Prévisions annonçant une sortie. Le miroir exact de `fetchLinkedLineRows`,
+   * de l'autre côté du pot : là `savings_goal_id` + `kind=saving` (ce qui le
+   * remplit), ici `source_savings_goal_id` + `kind=income` (ce qui le vide).
+   * La garde de kind est une double sécurité — CHECK et trigger la tiennent
+   * déjà à l'écriture.
+   */
+  private async fetchPlannedWithdrawalRows(
+    goalIds: string[],
+  ): Promise<PlannedWithdrawalRow[]> {
+    if (!goalIds.length) return [];
+
+    const { data, error } = await this.supabaseProvider.client
+      .from('budget_line')
+      .select(
+        'id, source_savings_goal_id, amount, monthly_budget!inner(month, year)',
+      )
+      .in('source_savings_goal_id', goalIds)
+      .eq('kind', 'income');
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'findSavingsGoalPlannedWithdrawals',
+          entityType: 'budget_line',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    return (data ?? []) as unknown as PlannedWithdrawalRow[];
+  }
+
+  private toPlannedWithdrawal(
+    row: PlannedWithdrawalRow,
+    dek: Buffer,
+  ): LinkedPlannedWithdrawal {
+    return {
+      id: row.id,
       amount: this.encryption.tryDecryptAmount(row.amount, dek, 0),
       month: row.monthly_budget.month,
       year: row.monthly_budget.year,

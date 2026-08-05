@@ -978,3 +978,134 @@ describe('computeSavingsGoalProgress withdrawals (PUL-329)', () => {
     expect(afterDeletion.achievementPercent).toBe(83);
   });
 });
+
+describe('computeSavingsGoalProgress planned withdrawals (PUL-329 v2)', () => {
+  const PLAN_ID = 'plan-1';
+  const PLANNED_AMOUNT = 500;
+
+  /** 10'000 confirmés en juin, 2'000 encore prévus en juillet ⇒ projeté 12'000. */
+  function inputWithPlan(
+    overrides: Partial<SavingsGoalProgressInput> = {},
+  ): SavingsGoalProgressInput {
+    return baseInput({
+      lines: [
+        savingLine(
+          10_000,
+          { month: 6, year: 2026 },
+          {
+            checkedAt: '2026-06-15T10:00:00Z',
+          },
+        ),
+        savingLine(2_000, { month: 7, year: 2026 }),
+      ],
+      plannedWithdrawals: [
+        { id: PLAN_ID, amount: PLANNED_AMOUNT, month: 8, year: 2026 },
+      ],
+      ...overrides,
+    });
+  }
+
+  it('should lower only the projection while nothing has been withdrawn', () => {
+    const result = computeSavingsGoalProgress(inputWithPlan());
+
+    expect(result.confirmed).toBe(10_000);
+    expect(result.projected).toBe(12_000 - PLANNED_AMOUNT);
+  });
+
+  it('should split a partial realization between the stock and the remainder', () => {
+    const result = computeSavingsGoalProgress(
+      inputWithPlan({
+        withdrawals: [
+          { amount: 300, month: 8, year: 2026, budgetLineId: PLAN_ID },
+        ],
+      }),
+    );
+
+    expect(result.confirmed).toBe(10_000 - 300);
+    expect(result.projected).toBe(12_000 - 300 - 200);
+  });
+
+  it('should stop subtracting once the plan is fully realized', () => {
+    const result = computeSavingsGoalProgress(
+      inputWithPlan({
+        withdrawals: [
+          {
+            amount: PLANNED_AMOUNT,
+            month: 8,
+            year: 2026,
+            budgetLineId: PLAN_ID,
+          },
+        ],
+      }),
+    );
+
+    expect(result.projected).toBe(12_000 - PLANNED_AMOUNT);
+  });
+
+  // L'excédent est déjà sorti du stock. Le remonter en reliquat négatif
+  // gonflerait la projection au-dessus de ce que l'objectif contiendra.
+  it('should never turn an over-realized plan into a negative remainder', () => {
+    const result = computeSavingsGoalProgress(
+      inputWithPlan({
+        withdrawals: [
+          { amount: 600, month: 8, year: 2026, budgetLineId: PLAN_ID },
+        ],
+      }),
+    );
+
+    expect(result.confirmed).toBe(10_000 - 600);
+    expect(result.projected).toBe(12_000 - 600);
+  });
+
+  it('should not let a free withdrawal absorb a plan it never realized', () => {
+    const result = computeSavingsGoalProgress(
+      inputWithPlan({
+        withdrawals: [{ amount: 300, month: 8, year: 2026 }],
+      }),
+    );
+
+    expect(result.confirmed).toBe(10_000 - 300);
+    expect(result.projected).toBe(12_000 - 300 - PLANNED_AMOUNT);
+  });
+
+  // Une prévision de retrait qu'on a laissée passer est échue, comme une
+  // contribution passée non pointée : elle ne se réalise pas fictivement plus tard.
+  it('should treat a past unrealized plan as lapsed', () => {
+    const result = computeSavingsGoalProgress(
+      inputWithPlan({
+        plannedWithdrawals: [
+          { id: PLAN_ID, amount: PLANNED_AMOUNT, month: 3, year: 2026 },
+        ],
+      }),
+    );
+
+    expect(result.projected).toBe(12_000);
+  });
+
+  it('should ignore a plan falling beyond the deadline', () => {
+    const result = computeSavingsGoalProgress(
+      inputWithPlan({
+        plannedWithdrawals: [
+          { id: PLAN_ID, amount: PLANNED_AMOUNT, month: 3, year: 2027 },
+        ],
+      }),
+    );
+
+    expect(result.projected).toBe(12_000);
+  });
+
+  // `plannedCumulative`, `confirmedPace` et `cumulativeGap` mesurent la
+  // contribution. Une sortie annoncée n'est pas une contribution négative.
+  it('should leave every contribution measure untouched', () => {
+    const withoutPlan = computeSavingsGoalProgress(
+      inputWithPlan({ plannedWithdrawals: [] }),
+    );
+    const withPlan = computeSavingsGoalProgress(inputWithPlan());
+
+    expect(withPlan.plannedCumulative).toBe(withoutPlan.plannedCumulative);
+    expect(withPlan.plannedProjection).toBe(withoutPlan.plannedProjection);
+    expect(withPlan.confirmedPace).toBe(withoutPlan.confirmedPace);
+    expect(withPlan.cumulativeGap).toBe(withoutPlan.cumulativeGap);
+    expect(withPlan.achievementPercent).toBe(withoutPlan.achievementPercent);
+  });
+});

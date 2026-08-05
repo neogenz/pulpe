@@ -496,8 +496,14 @@ export const savingsGoalPlanMonthSchema = z.object({
   confirmedAmount: z.number(),
   /** Σ des retraits du mois (§11) — creuse les cumuls, jamais la contribution. */
   withdrawnAmount: z.number().optional(),
+  /** Σ BRUTE des retraits ANNONCÉS du mois (§12) — affichage seul. */
+  plannedWithdrawalAmount: z.number().optional(),
+  /** Part de ces annonces encore à sortir — c'est elle que les cumuls retranchent. */
+  remainingPlannedWithdrawalAmount: z.number().optional(),
   plannedCumulative: z.number(),
   confirmedCumulative: z.number(),
+  /** Solde attendu fin de mois si le plan se déroule tel quel (§12). */
+  projectedCumulative: z.number().optional(),
   lines: z.array(
     z.object({
       budgetLineId: z.uuid(),

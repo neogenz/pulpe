@@ -38,6 +38,7 @@ describe('GetSavingsGoalProgressUseCase', () => {
     findById: ReturnType<typeof jest.fn>;
     findLinkedContributions: ReturnType<typeof jest.fn>;
     findLinkedWithdrawals: ReturnType<typeof jest.fn>;
+    findPlannedWithdrawals: ReturnType<typeof jest.fn>;
     findMaterializedPeriods: ReturnType<typeof jest.fn>;
   };
   let mockTemplateRepo: {
@@ -51,6 +52,7 @@ describe('GetSavingsGoalProgressUseCase', () => {
         .fn()
         .mockResolvedValue({ lines: [], transactions: [] }),
       findLinkedWithdrawals: jest.fn().mockResolvedValue([]),
+      findPlannedWithdrawals: jest.fn().mockResolvedValue([]),
       findMaterializedPeriods: jest.fn().mockResolvedValue([]),
     };
     mockTemplateRepo = {
@@ -142,6 +144,49 @@ describe('GetSavingsGoalProgressUseCase', () => {
     expect(mockRepo.findLinkedWithdrawals).toHaveBeenCalledWith('goal-1');
     expect(withWithdrawal.confirmed).toBe(withoutWithdrawal.confirmed - 200);
     expect(withWithdrawal.confirmedPace).toBe(withoutWithdrawal.confirmedPace);
+  });
+
+  // Une sortie ANNONCÉE n'a encore rien retiré : elle abaisse la projection et
+  // laisse le stock intact. C'est la distinction que la timeline doit porter
+  // jusqu'aux deux clients.
+  it('lowers only the projection for an announced withdrawal — PUL-329 v2', async () => {
+    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = new Date().getFullYear();
+    mockRepo.findLinkedContributions.mockResolvedValue({
+      lines: [
+        {
+          id: 'line-1',
+          amount: 500,
+          kind: 'saving' as const,
+          checkedAt: '2026-06-01T00:00:00Z',
+          month: currentMonth,
+          year: currentYear,
+        },
+      ],
+      transactions: [],
+    });
+
+    const { computed: withoutPlan } = await useCase.execute('goal-1', mockUser);
+
+    mockRepo.findPlannedWithdrawals.mockResolvedValue([
+      { id: 'plan-1', amount: 200, month: currentMonth, year: currentYear },
+    ]);
+    const { computed: withPlan, months } = await useCase.execute(
+      'goal-1',
+      mockUser,
+    );
+
+    expect(mockRepo.findPlannedWithdrawals).toHaveBeenCalledWith('goal-1');
+    expect(withPlan.confirmed).toBe(withoutPlan.confirmed);
+    expect(withPlan.projected).toBe(withoutPlan.projected! - 200);
+    expect(
+      months.find(
+        (month) => month.month === currentMonth && month.year === currentYear,
+      ),
+    ).toMatchObject({
+      plannedWithdrawalAmount: 200,
+      remainingPlannedWithdrawalAmount: 200,
+    });
   });
 
   it('lifts confirmed by initialAmount (stock) without moving confirmedPace (flux) — PUL-293', async () => {

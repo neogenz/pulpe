@@ -26,10 +26,12 @@ import {
 } from './budget-period.js';
 import type {
   SavingsGoalProgressInput,
+  LinkedPlannedWithdrawal,
   LinkedSavingLine,
   LinkedSavingTransaction,
   LinkedSavingWithdrawal,
 } from './savings-goal-progress.js';
+import { remainingPlannedWithdrawal } from './savings-goal-progress.js';
 import { splitTotalPreserving } from './spread-split.js';
 import { MAX_SAVINGS_GOAL_PLAN_PERIODS } from '../../schemas.js';
 
@@ -71,8 +73,28 @@ export interface SavingsPlanTimelineMonth {
    * mois-ci » si une UI vient un jour l'afficher ligne à ligne.
    */
   withdrawnAmount?: number;
+  /**
+   * Σ BRUTE des retraits ANNONCÉS pour ce mois — ce que la prévision affiche,
+   * réalisé ou non. Sert à l'écrire dans le calendrier ; jamais aux cumuls, qui
+   * doubleraient la part déjà sortie.
+   */
+  plannedWithdrawalAmount?: number;
+  /**
+   * Part encore à sortir de ces mêmes prévisions. Zéro sur un mois passé (la
+   * prévision est échue) et hors de la fenêtre de contribution (au-delà de
+   * l'échéance, l'objectif n'est plus jugé). C'est CE montant que les cumuls
+   * retranchent, en plus des retraits réels.
+   */
+  remainingPlannedWithdrawalAmount?: number;
   plannedCumulative: number;
   confirmedCumulative: number;
+  /**
+   * Solde attendu à la fin de ce mois si le plan se déroule tel quel : confirmé
+   * acquis, reliquat prévu ajouté, sorties réelles et annoncées retranchées.
+   * C'est le nombre qu'un aperçu « combien restera-t-il en mars ? » doit lire —
+   * `confirmedCumulative` ne connaît que le passé pointé.
+   */
+  projectedCumulative?: number;
   lines: SavingsPlanLine[];
 }
 
@@ -150,16 +172,25 @@ export function buildSavingsGoalTimeline(
   const withdrawalIndices = withdrawals.map((withdrawal) =>
     periodIndex(withdrawal),
   );
+  // Une prévision de retrait mérite sa row pour la même raison qu'un retrait
+  // réel : sans elle, la sortie annoncée n'apparaîtrait nulle part dans le
+  // calendrier, et l'utilisateur verrait un plan qui ignore ce qu'il a planifié.
+  const plannedWithdrawals = input.plannedWithdrawals ?? [];
+  const plannedWithdrawalIndices = plannedWithdrawals.map((planned) =>
+    periodIndex(planned),
+  );
   const rawStartIndex = Math.min(
     historicalAnchorIndex,
     indexCurrent,
     ...lineIndices,
     ...withdrawalIndices,
+    ...plannedWithdrawalIndices,
   );
   const rawEndIndex = Math.max(
     indexTarget ?? indexCurrent,
     ...lineIndices,
     ...withdrawalIndices,
+    ...plannedWithdrawalIndices,
   );
   const endIndex =
     indexTarget == null
@@ -192,6 +223,7 @@ export function buildSavingsGoalTimeline(
   const months: SavingsPlanTimelineMonth[] = [];
   let plannedCumulative = 0;
   let confirmedCumulative = input.initialAmount ?? 0;
+  let projectedCumulative = input.initialAmount ?? 0;
 
   for (let index = startIndex; index <= endIndex; index++) {
     const period = periodFromIndex(index);
@@ -220,6 +252,26 @@ export function buildSavingsGoalTimeline(
         .reduce((sum, withdrawal) => sum + withdrawal.amount, 0) +
       (index === startIndex ? withdrawnBeforeWindow : 0);
 
+    // Le retrait ANNONCÉ, lui, reste borné : passé, il est échu ; au-delà de
+    // l'échéance, l'objectif n'est plus jugé. Même fenêtre que le reliquat de
+    // `computeSavingsGoalProgress`, sans quoi la projection et la simulation
+    // raconteraient deux histoires du même plan.
+    const monthPlannedWithdrawals = plannedWithdrawals.filter(
+      (planned) => periodIndex(planned) === index,
+    );
+    const plannedWithdrawalAmount = monthPlannedWithdrawals.reduce(
+      (sum, planned) => sum + planned.amount,
+      0,
+    );
+    const remainingPlannedWithdrawalAmount =
+      isContributionEligible && index >= indexCurrent
+        ? monthPlannedWithdrawals.reduce(
+            (sum, planned) =>
+              sum + remainingPlannedWithdrawal(planned, withdrawals),
+            0,
+          )
+        : 0;
+
     if (isInHistoricalInterval) {
       plannedCumulative += plannedAmount;
       confirmedCumulative += confirmedAmount;
@@ -231,6 +283,17 @@ export function buildSavingsGoalTimeline(
     // qu'un retrait précède le début des contributions — un objectif ouvert
     // avec un montant de départ peut être ponctionné avant sa première prévision.
     confirmedCumulative -= withdrawnAmount;
+
+    // Le projeté suit le même fil, mais compte le plan là où le confirmé compte
+    // le pointé : `max` plutôt que somme, pour ne pas recompter une prévision
+    // déjà réalisée ni écraser un dépassement réel.
+    if (isContributionEligible) {
+      projectedCumulative +=
+        index >= indexCurrent
+          ? Math.max(plannedAmount, confirmedAmount)
+          : confirmedAmount;
+    }
+    projectedCumulative -= withdrawnAmount + remainingPlannedWithdrawalAmount;
 
     const hasLines = monthLines.length > 0;
     const allChecked =
@@ -268,8 +331,11 @@ export function buildSavingsGoalTimeline(
       plannedAmount,
       confirmedAmount,
       withdrawnAmount,
+      plannedWithdrawalAmount,
+      remainingPlannedWithdrawalAmount,
       plannedCumulative,
       confirmedCumulative,
+      projectedCumulative,
       lines: monthLines.map((line) => ({
         budgetLineId: line.id,
         amount: line.amount,
@@ -372,8 +438,11 @@ export function simulateSavingsPlan(input: {
 
     // Hors du garde, et APRÈS le max : le retrait est une sortie de stock, il
     // ne concourt jamais avec la contribution du mois et ne dépend pas de la
-    // fenêtre de contribution — même règle que dans la timeline.
-    simulatedCumulative -= month.withdrawnAmount ?? 0;
+    // fenêtre de contribution — même règle que dans la timeline. Le reliquat
+    // annoncé le suit : il porte déjà sa propre fenêtre, posée à la construction.
+    simulatedCumulative -=
+      (month.withdrawnAmount ?? 0) +
+      (month.remainingPlannedWithdrawalAmount ?? 0);
     if (
       attainedPeriod == null &&
       month.isContributionEligible !== false &&
@@ -422,9 +491,10 @@ export interface RedistributeRemainingEffortResult {
  * épinglés, cents-exact via `splitTotalPreserving`. Généralisation de PUL-290
  * (`remainingToProvision`/`perRemainingMonth`).
  *
- * `remaining = max(0, target − initialAmount − Σ confirmé(mois verrouillés) + Σ retraits(tous les mois) − Σ épinglés ouverts)`.
- * Le retrait entre en plus : l'argent repris est de l'effort à refaire. Il est
- * sommé sur TOUS les mois de la timeline, sans condition — c'est exactement
+ * `remaining = max(0, target − initialAmount − Σ confirmé(mois verrouillés) + Σ sorties(tous les mois) − Σ épinglés ouverts)`.
+ * La sortie entre en plus : l'argent repris — ou annoncé comme devant l'être —
+ * est de l'effort à refaire. Elle somme retraits réels ET reliquats annoncés
+ * sur TOUS les mois de la timeline, sans condition : c'est exactement
  * l'ensemble que `simulateSavingsPlan` soustrait, et cette égalité est ce qui
  * fait retomber la simulation sur la cible après redistribution.
  * `isDistributable = false` quand aucun mois ouvert non épinglé (ex. overdue).
@@ -462,7 +532,10 @@ export function redistributeRemainingEffort(input: {
     .reduce((sum, month) => sum + month.confirmedAmount, 0);
 
   const withdrawnSum = input.timeline.reduce(
-    (sum, month) => sum + (month.withdrawnAmount ?? 0),
+    (sum, month) =>
+      sum +
+      (month.withdrawnAmount ?? 0) +
+      (month.remainingPlannedWithdrawalAmount ?? 0),
     0,
   );
 
@@ -576,6 +649,7 @@ export function allocateMonthAmountToLines(
 }
 
 export type {
+  LinkedPlannedWithdrawal,
   LinkedSavingLine,
   LinkedSavingTransaction,
   LinkedSavingWithdrawal,

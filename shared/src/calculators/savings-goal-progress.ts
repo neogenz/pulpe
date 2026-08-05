@@ -82,6 +82,43 @@ export interface LinkedSavingWithdrawal {
   amount: number;
   month: number;
   year: number;
+  /**
+   * Prévision de retrait que ce réel réalise, quand il en réalise une. `null` =
+   * retrait libre. C'est par lui que le reliquat cesse de compter une sortie
+   * déjà survenue — sans quoi le prévu et le réel se retrancheraient tous deux.
+   */
+  budgetLineId?: string | null;
+}
+
+/**
+ * Retrait PLANIFIÉ : une prévision `income` qui annonce « ce montant sortira de
+ * l'objectif à cette période ». Elle ne touche pas le stock confirmé — rien
+ * n'est encore sorti — mais elle abaisse la projection, exactement comme une
+ * contribution prévue la relève. Montant POSITIF ; c'est le calcul qui soustrait.
+ */
+export interface LinkedPlannedWithdrawal {
+  /** Id de la prévision — celui que porte `LinkedSavingWithdrawal.budgetLineId`. */
+  id: string;
+  amount: number;
+  month: number;
+  year: number;
+}
+
+/**
+ * Ce qu'une prévision de retrait annonce ENCORE. La part déjà prélevée est
+ * sortie du stock et vit dans `confirmed` ; ne garder que le reste est ce qui
+ * empêche de compter deux fois la même sortie. Un réel supérieur au prévu ne
+ * crée jamais de reliquat négatif — l'excédent est déjà dans `confirmed`, le
+ * remonter ici gonflerait artificiellement la projection.
+ */
+export function remainingPlannedWithdrawal(
+  planned: LinkedPlannedWithdrawal,
+  withdrawals: LinkedSavingWithdrawal[],
+): number {
+  const realized = withdrawals
+    .filter((withdrawal) => withdrawal.budgetLineId === planned.id)
+    .reduce((sum, withdrawal) => sum + withdrawal.amount, 0);
+  return Math.max(0, planned.amount - realized);
 }
 
 export interface SavingsGoalProgressInput {
@@ -121,6 +158,13 @@ export interface SavingsGoalProgressInput {
    * qu'on retire du pot ne change pas la capacité mensuelle à le remplir.
    */
   withdrawals?: LinkedSavingWithdrawal[];
+  /**
+   * Retraits ANNONCÉS. Ils ne touchent ni `confirmed` ni les rythmes — rien
+   * n'est sorti — mais leur reliquat courant/futur se retranche de `projected`,
+   * jusqu'à l'échéance seulement : une prévision passée non réalisée est échue,
+   * elle ne se réalise pas fictivement plus tard.
+   */
+  plannedWithdrawals?: LinkedPlannedWithdrawal[];
 }
 
 export interface SavingsGoalProgressResult {
@@ -372,10 +416,27 @@ export function computeSavingsGoalProgress(
     },
     0,
   );
+  // Le reliquat annoncé se retranche de la même fenêtre que le reliquat prévu :
+  // courant → échéance. Une prévision de retrait échue n'a pas eu lieu et
+  // n'aura pas lieu — la reporter plus tard ferait porter à la projection une
+  // sortie que personne n'a demandée.
+  const plannedWithdrawalRemaining =
+    indexTarget == null
+      ? 0
+      : (input.plannedWithdrawals ?? [])
+          .filter((planned) => {
+            const index = periodIndex(planned);
+            return index >= remainingStartIndex && index <= indexTarget;
+          })
+          .reduce(
+            (total, planned) =>
+              total + remainingPlannedWithdrawal(planned, withdrawals),
+            0,
+          );
   const projected =
     input.targetAmount == null || indexTarget == null
       ? null
-      : confirmed + plannedRemaining;
+      : confirmed + plannedRemaining - plannedWithdrawalRemaining;
 
   // 7. Statut du plan — PAUSED et échéance dépassée n'ont PAS de jugement.
   const paceStatus =

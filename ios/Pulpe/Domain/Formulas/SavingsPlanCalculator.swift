@@ -137,7 +137,11 @@ enum SavingsPlanCalculator {
             // It never competes with the month's contribution, and it does not
             // depend on the contribution window — a goal opened with a starting
             // stock can be drawn on before its first planned line.
-            simulatedCumulative -= month.withdrawnAmount
+            //
+            // A retrait ANNONCÉ weighs only for the part not yet taken, which the
+            // server already deducted per month: adding the full announced amount
+            // would count the realized part twice.
+            simulatedCumulative -= month.withdrawnAmount + month.remainingPlannedWithdrawalAmount
             if let targetAmount,
                attainedPeriod == nil,
                month.isContributionEligible,
@@ -189,11 +193,11 @@ enum SavingsPlanCalculator {
     /// (`remainingToProvision` / `perRemainingMonth`).
     ///
     /// `remaining = max(0, target − initialAmount − Σ confirmed(locked months)
-    /// + Σ withdrawn(every month) − Σ pinned open)`. A retrait enters with a
-    /// plus — money taken back is effort to redo. It is summed over EVERY month
-    /// of the timeline, unconditionally: that is exactly the set `simulate`
-    /// subtracts, and the equality is what makes the simulation land back on
-    /// the target.
+    /// + Σ (withdrawn + remainingPlannedWithdrawal)(every month) − Σ pinned
+    /// open)`. A retrait enters with a plus — money taken back is effort to
+    /// redo, announced or already gone. It is summed over EVERY month of the
+    /// timeline, unconditionally: that is exactly the set `simulate` subtracts,
+    /// and the equality is what makes the simulation land back on the target.
     /// `isDistributable = false` when no open, non-pinned month remains (overdue).
     /// `initialAmount` (PUL-293 stock de départ) is deducted before distributing.
     static func redistributeRemainingEffort(
@@ -224,7 +228,7 @@ enum SavingsPlanCalculator {
             .reduce(Decimal(0)) { $0 + $1.confirmedAmount }
 
         let withdrawnSum = timeline
-            .reduce(Decimal(0)) { $0 + $1.withdrawnAmount }
+            .reduce(Decimal(0)) { $0 + $1.withdrawnAmount + $1.remainingPlannedWithdrawalAmount }
 
         let pinnedSum = openMonths
             .compactMap { pinnedByKey[periodKey(month: $0.month, year: $0.year)] }
