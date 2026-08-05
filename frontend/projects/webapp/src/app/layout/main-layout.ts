@@ -974,7 +974,7 @@ export default class MainLayout {
     this.#dialog.open(LogoutDialog, { disableClose: true });
 
     try {
-      await this.#authSession.signOut();
+      await this.#authSession.signOut('user_initiated');
     } catch (error) {
       if (!this.#applicationConfig.isProduction()) {
         this.#logger.error('Erreur lors de la déconnexion:', error);

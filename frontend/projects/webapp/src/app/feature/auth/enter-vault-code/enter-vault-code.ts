@@ -293,7 +293,7 @@ export default class EnterVaultCode {
     this.#dialog.open(LogoutDialog, { disableClose: true });
 
     try {
-      await this.#authSession.signOut();
+      await this.#authSession.signOut('vault_code');
     } catch (error) {
       this.#logger.error('Erreur lors de la déconnexion:', error);
     } finally {

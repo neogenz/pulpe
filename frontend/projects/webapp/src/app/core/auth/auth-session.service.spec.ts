@@ -19,6 +19,7 @@ import { AuthErrorLocalizer } from './auth-error-localizer';
 import { SCHEDULED_DELETION_PARAMS } from './auth-constants';
 import { type E2EWindow } from './e2e-window';
 import { AuthCleanupService } from './auth-cleanup.service';
+import { PostHogService } from '../analytics/posthog';
 import { ROUTES } from '@core/routing/routes-constants';
 import {
   createMockSupabaseClient,
@@ -60,6 +61,7 @@ describe('AuthSessionService', () => {
   };
   let mockSupabaseClient: MockSupabaseClient;
   let mockCleanup: { performCleanup: Mock };
+  let mockPostHog: { captureEvent: Mock };
   let mockRouter: { navigate: Mock };
   let mockUserSignal: ReturnType<typeof signal<User | null>>;
 
@@ -117,6 +119,7 @@ describe('AuthSessionService', () => {
     };
 
     mockCleanup = { performCleanup: vi.fn() };
+    mockPostHog = { captureEvent: vi.fn() };
     mockRouter = { navigate: vi.fn() };
     mockSupabaseClient = createMockSupabaseClient();
     createClientMock.mockReturnValue(mockSupabaseClient);
@@ -131,6 +134,7 @@ describe('AuthSessionService', () => {
         { provide: Logger, useValue: mockLogger },
         { provide: AuthErrorLocalizer, useValue: mockErrorLocalizer },
         { provide: AuthCleanupService, useValue: mockCleanup },
+        { provide: PostHogService, useValue: mockPostHog },
         { provide: Router, useValue: mockRouter },
       ],
     });
@@ -611,11 +615,20 @@ describe('AuthSessionService', () => {
     mockAuthStore.set.mockClear();
     mockCleanup.performCleanup.mockClear();
 
-    await service.signOut();
+    await service.signOut('user_initiated');
 
     expect(mockSupabaseClient.auth.signOut).toHaveBeenCalledWith({
       scope: 'local',
     });
+    expect(mockPostHog.captureEvent).toHaveBeenCalledWith('logout_completed', {
+      source: 'user_initiated',
+    });
+    expect(mockPostHog.captureEvent.mock.invocationCallOrder[0]).toBeLessThan(
+      mockSupabaseClient.auth.signOut.mock.invocationCallOrder[0],
+    );
+    expect(mockPostHog.captureEvent.mock.invocationCallOrder[0]).toBeLessThan(
+      mockCleanup.performCleanup.mock.invocationCallOrder[0],
+    );
     expect(mockAuthStore.set).toHaveBeenCalledWith({
       phase: 'unauthenticated',
     });
@@ -644,7 +657,7 @@ describe('AuthSessionService', () => {
     mockCleanup.performCleanup.mockClear();
     mockLogger.info.mockClear();
 
-    await service.signOut();
+    await service.signOut('user_initiated');
 
     expect(mockLogger.debug).toHaveBeenCalledWith(
       '🎭 Mode test E2E: Simulation du logout',
@@ -736,9 +749,9 @@ describe('AuthSessionService', () => {
       );
 
       const pendingSignOuts = Promise.all([
-        service.signOut(),
-        service.signOut(),
-        service.signOut(),
+        service.signOut('user_initiated'),
+        service.signOut('user_initiated'),
+        service.signOut('user_initiated'),
       ]);
       resolveSignOut({ error: null });
       await pendingSignOuts;
@@ -750,8 +763,8 @@ describe('AuthSessionService', () => {
     it('should allow a new signOut after the previous one completed', async () => {
       mockSupabaseClient.auth.signOut.mockResolvedValue({ error: null });
 
-      await service.signOut();
-      await service.signOut();
+      await service.signOut('user_initiated');
+      await service.signOut('user_initiated');
 
       expect(mockSupabaseClient.auth.signOut).toHaveBeenCalledTimes(2);
     });

@@ -74,7 +74,7 @@ export class AuthCredentialsService {
           userId: data.session?.user.id,
         });
         try {
-          await this.#session.signOut();
+          await this.#session.signOut('scheduled_deletion');
         } catch (signOutError) {
           this.#logger.error(
             'signOut failed during scheduled-deletion handling',

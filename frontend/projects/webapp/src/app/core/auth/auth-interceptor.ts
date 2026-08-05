@@ -113,7 +113,7 @@ function signOutAndRedirect(
   ctx: InterceptorContext,
   errorKey: string,
 ): Observable<never> {
-  return from(ctx.session.signOut()).pipe(
+  return from(ctx.session.signOut('account_blocked')).pipe(
     switchMap(() => from(ctx.router.navigate(['/', ROUTES.LOGIN]))),
     switchMap(() =>
       throwError(() => new Error(ctx.transloco.translate(errorKey))),

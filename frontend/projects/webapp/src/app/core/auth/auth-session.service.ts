@@ -10,6 +10,14 @@ import { AUTH_ERROR_KEYS, SCHEDULED_DELETION_PARAMS } from './auth-constants';
 import { AuthCleanupService } from './auth-cleanup.service';
 import { isE2EMode, type E2EWindow } from './e2e-window';
 import { ROUTES } from '@core/routing/routes-constants';
+import { PostHogService } from '../analytics/posthog';
+
+export type SignOutSource =
+  | 'user_initiated'
+  | 'vault_code'
+  | 'demo_exit'
+  | 'scheduled_deletion'
+  | 'account_blocked';
 
 interface DecodedJwt {
   readonly sub: string;
@@ -24,6 +32,7 @@ export class AuthSessionService {
   readonly #errorLocalizer = inject(AuthErrorLocalizer);
   readonly #logger = inject(Logger);
   readonly #cleanup = inject(AuthCleanupService);
+  readonly #postHog = inject(PostHogService);
   readonly #transloco = inject(TranslocoService);
   readonly #destroyRef = inject(DestroyRef);
 
@@ -178,13 +187,17 @@ export class AuthSessionService {
     }
   }
 
-  signOut(): Promise<void> {
-    return (this.#signOutPromise ??= this.#performSignOut().finally(() => {
-      this.#signOutPromise = null;
-    }));
+  signOut(source: SignOutSource): Promise<void> {
+    return (this.#signOutPromise ??= this.#performSignOut(source).finally(
+      () => {
+        this.#signOutPromise = null;
+      },
+    ));
   }
 
-  async #performSignOut(): Promise<void> {
+  async #performSignOut(source: SignOutSource): Promise<void> {
+    this.#postHog.captureEvent('logout_completed', { source });
+
     try {
       if (isE2EMode()) {
         this.#logger.debug('🎭 Mode test E2E: Simulation du logout');
@@ -338,7 +351,7 @@ export class AuthSessionService {
         'User account scheduled for deletion detected, signing out',
         { userId: session.user.id },
       );
-      this.signOut().finally(() => {
+      this.signOut('scheduled_deletion').finally(() => {
         this.#router.navigate(['/', ROUTES.LOGIN], {
           queryParams: {
             [SCHEDULED_DELETION_PARAMS.REASON]:
