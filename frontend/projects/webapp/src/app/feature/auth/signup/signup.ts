@@ -23,6 +23,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { Router, RouterLink } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { ANALYTICS_EVENTS } from 'pulpe-shared';
 
 import {
   AuthCredentialsService,
@@ -362,7 +363,9 @@ export default class Signup {
     this.isOAuthLoading.set(isLoading);
     if (isLoading) {
       this.#postHogService.setPendingSignupMethod(method);
-      this.#postHogService.captureEvent('signup_started', { method });
+      this.#postHogService.captureEvent(ANALYTICS_EVENTS.SIGNUP_STARTED, {
+        method,
+      });
     }
     // Pas de clear sur `false` : le succès OAuth émet loadingChange(false)
     // avant que le redirect n'emporte la page — effacer ici tue le
@@ -415,7 +418,7 @@ export default class Signup {
       if (result.success) {
         this.#postHogService.clearPendingSignupMethod();
         this.#postHogService.enableTracking();
-        this.#postHogService.captureEvent('signup_completed', {
+        this.#postHogService.captureEvent(ANALYTICS_EVENTS.SIGNUP_COMPLETED, {
           method: 'email',
         });
         // Guard redirects to setup-vault-code where recovery key is set up

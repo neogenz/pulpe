@@ -7,6 +7,7 @@ import {
 } from '@angular/core';
 import { PLATFORM_ID } from '@angular/core';
 import type { CaptureResult } from 'posthog-js';
+import { ANALYTICS_EVENTS } from 'pulpe-shared';
 import { PostHogService } from './posthog';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
@@ -227,7 +228,7 @@ describe('PostHogService', () => {
     const posthogModule = await import('posthog-js');
     const posthog = posthogModule.default;
 
-    service.captureEvent('pre_init_event');
+    service.captureEvent(ANALYTICS_EVENTS.APP_OPENED);
 
     expect(posthog.capture).not.toHaveBeenCalled();
   });
@@ -237,11 +238,16 @@ describe('PostHogService', () => {
     const posthog = posthogModule.default;
 
     await service.initialize();
-    service.captureEvent('user_action', { feature: 'budget' });
-
-    expect(posthog.capture).toHaveBeenCalledWith('user_action', {
+    service.captureEvent(ANALYTICS_EVENTS.BUDGET_CREATED, {
       feature: 'budget',
     });
+
+    expect(posthog.capture).toHaveBeenCalledWith(
+      ANALYTICS_EVENTS.BUDGET_CREATED,
+      {
+        feature: 'budget',
+      },
+    );
   });
 
   it('opts out immediately, clears identity, and preserves the local choice', async () => {
@@ -250,13 +256,15 @@ describe('PostHogService', () => {
     await service.initialize();
 
     service.setDiagnosticSharingEnabled(false);
-    service.captureEvent('blocked_event');
+    service.captureEvent(ANALYTICS_EVENTS.TAB_SWITCHED);
 
     expect(posthog.stopSessionRecording).toHaveBeenCalledTimes(1);
     expect(posthog.reset).toHaveBeenCalledWith(true);
     expect(posthog.opt_out_capturing).toHaveBeenCalledTimes(1);
     expect(service.diagnosticSharingEnabled()).toBe(false);
-    expect(posthog.capture).not.toHaveBeenCalledWith('blocked_event');
+    expect(posthog.capture).not.toHaveBeenCalledWith(
+      ANALYTICS_EVENTS.TAB_SWITCHED,
+    );
   });
 
   it('opts back in without emitting a consent event', async () => {

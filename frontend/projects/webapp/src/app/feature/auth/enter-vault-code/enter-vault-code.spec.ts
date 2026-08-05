@@ -5,7 +5,7 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { provideRouter, Router } from '@angular/router';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { of, throwError } from 'rxjs';
-import { API_ERROR_CODES } from 'pulpe-shared';
+import { ANALYTICS_EVENTS, API_ERROR_CODES } from 'pulpe-shared';
 
 import { ClientKeyService, EncryptionApi } from '@core/encryption';
 import * as cryptoUtils from '@core/encryption/crypto.utils';
@@ -246,11 +246,11 @@ describe('EnterVaultCode', () => {
       );
     });
 
-    it('should call captureEvent with vault_code_entered on successful submission', async () => {
+    it('should capture pin_entered on successful submission', async () => {
       await triggerAutoSubmit();
       await vi.waitFor(() =>
         expect(mockPostHogService.captureEvent).toHaveBeenCalledWith(
-          'vault_code_entered',
+          ANALYTICS_EVENTS.PIN_ENTERED,
         ),
       );
     });

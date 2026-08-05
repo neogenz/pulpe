@@ -9,21 +9,33 @@ import {
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
-import { type SupportedCurrency } from 'pulpe-shared';
+import { ANALYTICS_EVENTS, type SupportedCurrency } from 'pulpe-shared';
 import CompleteProfilePage from './complete-profile-page';
 import { CompleteProfileStore } from './complete-profile-store';
 import { PostHogService } from '@core/analytics/posthog';
 import { UserSettingsStore } from '@core/user-settings';
 import { provideTranslocoForTest } from '../../testing/transloco-testing';
 
-describe('CompleteProfilePage — health-insurance currency gating', () => {
+describe('CompleteProfilePage', () => {
   let updateHealthInsurance: ReturnType<typeof vi.fn>;
+  let captureEvent: ReturnType<typeof vi.fn>;
 
-  function createPage(initialCurrency: SupportedCurrency): CompleteProfilePage {
+  function createPage(
+    initialCurrency: SupportedCurrency,
+    hasAnyCharge = false,
+  ): CompleteProfilePage {
     updateHealthInsurance = vi.fn();
+    captureEvent = vi.fn();
     const mockStore = {
+      housingCosts: signal<number | null>(hasAnyCharge ? 100 : null),
       healthInsurance: signal<number | null>(null),
+      phonePlan: signal<number | null>(null),
+      internetPlan: signal<number | null>(null),
+      transportCosts: signal<number | null>(null),
+      leasingCredit: signal<number | null>(null),
       updateHealthInsurance,
+      isStep1Valid: vi.fn().mockReturnValue(true),
+      submitProfile: vi.fn().mockResolvedValue(false),
       // Awaited by the constructor's #initPage — resolve so it never rejects.
       checkExistingBudgets: vi.fn().mockResolvedValue(false),
       prefillFromOAuthMetadata: vi.fn(),
@@ -36,7 +48,7 @@ describe('CompleteProfilePage — health-insurance currency gating', () => {
         { provide: CompleteProfileStore, useValue: mockStore },
         { provide: Router, useValue: {} },
         { provide: MatDialog, useValue: {} },
-        { provide: PostHogService, useValue: { captureEvent: vi.fn() } },
+        { provide: PostHogService, useValue: { captureEvent } },
         {
           provide: UserSettingsStore,
           useValue: {
@@ -91,4 +103,46 @@ describe('CompleteProfilePage — health-insurance currency gating', () => {
 
     expect(updateHealthInsurance).not.toHaveBeenCalled();
   });
+
+  it('maps the profile step to onboarding_step_completed', async () => {
+    const page = createPage('CHF') as unknown as { nextStep: () => void };
+    await vi.waitFor(() =>
+      expect(captureEvent).toHaveBeenCalledWith(
+        ANALYTICS_EVENTS.ONBOARDING_STARTED,
+      ),
+    );
+    captureEvent.mockClear();
+
+    page.nextStep();
+
+    expect(captureEvent).toHaveBeenCalledWith(
+      ANALYTICS_EVENTS.ONBOARDING_STEP_COMPLETED,
+      { step: 'profile' },
+    );
+  });
+
+  it.each([
+    [true, false],
+    [false, true],
+  ])(
+    'maps charges presence %s to skipped %s',
+    async (hasAnyCharge, skipped) => {
+      const page = createPage('CHF', hasAnyCharge) as unknown as {
+        onSubmit: () => Promise<void>;
+      };
+      await vi.waitFor(() =>
+        expect(captureEvent).toHaveBeenCalledWith(
+          ANALYTICS_EVENTS.ONBOARDING_STARTED,
+        ),
+      );
+      captureEvent.mockClear();
+
+      await page.onSubmit();
+
+      expect(captureEvent).toHaveBeenCalledWith(
+        ANALYTICS_EVENTS.ONBOARDING_STEP_COMPLETED,
+        { step: 'charges', skipped },
+      );
+    },
+  );
 });

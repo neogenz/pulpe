@@ -7,7 +7,7 @@ import {
   type EffectRef,
   type OnDestroy,
 } from '@angular/core';
-import { ANALYTICS_PROPERTIES } from 'pulpe-shared';
+import { ANALYTICS_PROPERTIES, type AnalyticsEventName } from 'pulpe-shared';
 import { AuthStore } from '../auth/auth-store';
 import { PostHogService } from './posthog';
 import { Logger } from '../logging/logger';
@@ -152,7 +152,7 @@ export class AnalyticsService implements OnDestroy {
   /**
    * Capture event - PostHog handles data sanitization automatically
    */
-  captureEvent(event: string, properties?: Properties): void {
+  captureEvent(event: AnalyticsEventName, properties?: Properties): void {
     this.#postHogService.captureEvent(event, properties);
   }
 

@@ -134,7 +134,7 @@ struct WelcomeStep: View {
             // reset between firstName → Retour → Welcome and re-fire the funnel event.
             guard !state.hasEmittedWelcomeViewed else { return }
             state.hasEmittedWelcomeViewed = true
-            AnalyticsService.shared.capture(.welcomeScreenViewed)
+            AnalyticsService.shared.capture(.welcomeViewed)
         }
         .sheet(isPresented: $showLogin) {
             LoginView(isPresented: $showLogin)

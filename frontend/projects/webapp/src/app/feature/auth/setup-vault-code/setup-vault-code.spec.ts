@@ -13,7 +13,7 @@ import { ClientKeyService, EncryptionApi } from '@core/encryption';
 import * as cryptoUtils from '@core/encryption/crypto.utils';
 import { Logger } from '@core/logging/logger';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
-import { API_ERROR_CODES } from 'pulpe-shared';
+import { ANALYTICS_EVENTS, API_ERROR_CODES } from 'pulpe-shared';
 
 import SetupVaultCode from './setup-vault-code';
 
@@ -285,10 +285,10 @@ describe('SetupVaultCode', () => {
       );
     });
 
-    it('should call captureEvent with vault_code_setup_completed on success', async () => {
+    it('should capture pin_setup_completed on success', async () => {
       await component['onSubmit']();
       expect(mockPostHogService.captureEvent).toHaveBeenCalledWith(
-        'vault_code_setup_completed',
+        ANALYTICS_EVENTS.PIN_SETUP_COMPLETED,
       );
     });
   });
