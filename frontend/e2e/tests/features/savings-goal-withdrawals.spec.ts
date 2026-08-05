@@ -381,7 +381,8 @@ test.describe('Savings goal as the source of an income', () => {
     await expect(savingsGoalsPage.deletionWithdrawalRows()).toContainText(
       INCOME_NAME,
     );
-    await savingsGoalsPage.expectDeletionWithdrawalTotal('4 500.00');
+    // A total is an aggregate: no decimals, and negative because it leaves.
+    await savingsGoalsPage.expectDeletionWithdrawalTotal('-4 500');
 
     await savingsGoalsPage.confirmDeletion();
     await expect(
