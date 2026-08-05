@@ -25,6 +25,10 @@ pattern/ ──❌──> layout/
 pattern/ ──❌──> pattern/  (no pattern-to-pattern imports)
 ```
 
+Enforced by `eslint-plugin-boundaries` in `frontend/eslint.config.js` (`default: "disallow"`,
+18 element types) — an illegal import fails lint. Read that config, not this block, when the
+two disagree.
+
 ## When to Extract to Pattern
 
 Extract a component to `pattern/` when:

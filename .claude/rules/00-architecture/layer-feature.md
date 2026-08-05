@@ -27,6 +27,10 @@ feature/ ──❌──> feature/ (FORBIDDEN - complete isolation)
 feature/ ──❌──> layout/  (layout is eager, features are lazy)
 ```
 
+Enforced by `eslint-plugin-boundaries` in `frontend/eslint.config.js` (`default: "disallow"`,
+18 element types) — an illegal import fails lint. Read that config, not this block, when the
+two disagree.
+
 ## Key Concepts
 
 ### Black Box

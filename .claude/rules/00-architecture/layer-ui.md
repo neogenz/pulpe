@@ -26,6 +26,10 @@ ui/ ──❌──> feature/   (FORBIDDEN - no feature coupling)
 ui/ ──❌──> layout/    (FORBIDDEN - self-contained)
 ```
 
+Enforced by `eslint-plugin-boundaries` in `frontend/eslint.config.js` (`default: "disallow"`,
+18 element types) — an illegal import fails lint. Read that config, not this block, when the
+two disagree.
+
 **UI deps on NOTHING external** - Fully isolated, reusable. Internal composition between UI components OK.
 
 ## What Belongs in UI
