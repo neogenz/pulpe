@@ -39,6 +39,16 @@ function createScrollableMain(maxScrollTop = Number.POSITIVE_INFINITY): {
   return { main, growTo: (height) => (cap = height) };
 }
 
+/**
+ * jsdom exposes `scrollX`/`scrollY` as plain data properties, so a test that
+ * moves them keeps them moved for every case after it. Both the read-side test
+ * and the teardown go through here.
+ */
+function setWindowScroll(x: number, y: number): void {
+  Object.defineProperty(window, 'scrollX', { value: x, configurable: true });
+  Object.defineProperty(window, 'scrollY', { value: y, configurable: true });
+}
+
 describe('PageViewportScroller', () => {
   let scroller: PageViewportScroller;
 
@@ -53,6 +63,7 @@ describe('PageViewportScroller', () => {
   afterEach(() => {
     vi.useRealTimers();
     document.body.replaceChildren();
+    setWindowScroll(0, 0);
   });
 
   it('should read back the exact position it wrote when <main> scrolls', () => {
@@ -95,14 +106,7 @@ describe('PageViewportScroller', () => {
   });
 
   it('should read the position from window.scrollX/scrollY when no scrolling <main> exists', () => {
-    Object.defineProperty(window, 'scrollX', {
-      value: 12,
-      configurable: true,
-    });
-    Object.defineProperty(window, 'scrollY', {
-      value: 340,
-      configurable: true,
-    });
+    setWindowScroll(12, 340);
 
     expect(scroller.getScrollPosition()).toEqual([12, 340]);
   });
