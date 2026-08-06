@@ -41,7 +41,11 @@ const GESTURE_EVENTS = [
  *
  * See `aidd_docs/tasks/2026_08/2026_08_06_scroll-position-restoration/plan.md`.
  */
-@Service()
+// Fourni à la main, sous le token `ViewportScroller` (voir `core.ts`) : c'est
+// Angular qui doit résoudre ce token, jamais cette classe par son propre nom.
+// Auto-provisionner en plus laisserait un second enregistrement, jamais
+// instancié, qui laisserait croire que la classe se suffit à elle-même.
+@Service({ autoProvided: false })
 export class PageViewportScroller extends ViewportScroller {
   readonly #document = inject(DOCUMENT);
 

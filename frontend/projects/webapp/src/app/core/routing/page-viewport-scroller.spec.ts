@@ -55,7 +55,9 @@ describe('PageViewportScroller', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     TestBed.configureTestingModule({
-      providers: [provideZonelessChangeDetection()],
+      // Fourni explicitement, comme `core.ts` le fait : la classe n'est pas
+      // auto-provisionnée, et le spec doit passer par le même chemin que l'app.
+      providers: [provideZonelessChangeDetection(), PageViewportScroller],
     });
     scroller = TestBed.inject(PageViewportScroller);
   });

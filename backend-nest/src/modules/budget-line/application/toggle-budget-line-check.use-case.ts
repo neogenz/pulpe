@@ -25,7 +25,7 @@ export class ToggleBudgetLineCheckUseCase {
 
   async execute(id: string, user: AuthenticatedUser): Promise<BudgetLine> {
     const access = await this.repo.validateAccess(id, user.id);
-    this.assertNotAFakeRealization(access);
+    this.assertNotAFakeRealization(access, id, user.id);
     const entity = await this.repo.toggleCheckRpc(id);
 
     await this.cacheService.invalidateForUser(user.id);
@@ -62,7 +62,11 @@ export class ToggleBudgetLineCheckUseCase {
    *
    * Les deux états viennent du contrôle d'accès, qui a déjà lu cette ligne.
    */
-  private assertNotAFakeRealization(line: BudgetLineAccess): void {
+  private assertNotAFakeRealization(
+    line: BudgetLineAccess,
+    budgetLineId: string,
+    userId: string,
+  ): void {
     if (!line.sourceSavingsGoalId || line.checkedAt) return;
 
     throw new BusinessException(
@@ -70,6 +74,12 @@ export class ToggleBudgetLineCheckUseCase {
       {
         reason:
           'a planned withdrawal is realized by creating its real income, not by checking it',
+      },
+      {
+        operation: 'budgetLine.toggleCheck',
+        userId,
+        entityId: budgetLineId,
+        entityType: 'budget_line',
       },
     );
   }
