@@ -133,8 +133,8 @@ jobs:
             echo "::error::Release build $BUILD_NUMBER is not recorded in project.yml (found $project_build)"
             exit 1
           fi
-          if [ "$CHANNEL" = "internal" ] && [ "$BUILD_NUMBER" -le "$project_build" ]; then
-            echo "::error::Internal build $BUILD_NUMBER must be higher than project.yml build $project_build"
+          if [ "$CHANNEL" = "internal" ] && [ "$BUILD_NUMBER" -lt "$project_build" ]; then
+            echo "::error::Internal build $BUILD_NUMBER must be at least project.yml build $project_build"
             exit 1
           fi
 
