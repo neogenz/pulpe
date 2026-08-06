@@ -47,12 +47,23 @@ export class GoalPlanSimulatorStore {
   readonly #isSimulating = signal(false);
   readonly #overrides = signal<Map<number, number>>(new Map());
   readonly #globalAmount = signal<number | null>(null);
-  readonly #hasInvalidAmount = signal(false);
+  readonly #isGlobalAmountInvalid = signal(false);
+  readonly #isMonthAmountInvalid = signal(false);
 
   // ── Computed ──
   readonly isSimulating = this.#isSimulating.asReadonly();
   readonly globalAmount = this.#globalAmount.asReadonly();
-  readonly hasInvalidAmount = this.#hasInvalidAmount.asReadonly();
+
+  /**
+   * Deux champs indépendants refusent une saisie : le montant global de la
+   * barre et le champ inline d'un mois. Un drapeau unique les faisait se
+   * recouvrir — ouvrir l'éditeur d'un mois effaçait le refus que la barre
+   * affichait encore, et « Appliquer » rouvrait sous une erreur toujours à
+   * l'écran. Chacun garde donc le sien ; le verrou est leur réunion.
+   */
+  readonly hasInvalidAmount = computed(
+    () => this.#isGlobalAmountInvalid() || this.#isMonthAmountInvalid(),
+  );
 
   readonly baseline = computed<SavingsGoalPlanMonth[]>(
     () => this.#store.progress()?.months ?? [],
@@ -164,7 +175,7 @@ export class GoalPlanSimulatorStore {
    * l'écran en affiche un autre.
    */
   readonly canApply = computed(
-    () => this.hasChanges() && !this.#hasInvalidAmount(),
+    () => this.hasChanges() && !this.hasInvalidAmount(),
   );
 
   // ── Actions ──
@@ -207,9 +218,14 @@ export class GoalPlanSimulatorStore {
     this.#globalAmount.set(amount);
   }
 
-  /** Le champ inline signale sa saisie refusée : « Appliquer » se referme. */
-  setAmountInvalid(isInvalid: boolean): void {
-    this.#hasInvalidAmount.set(isInvalid);
+  /** Le montant global de la barre signale sa saisie refusée. */
+  setGlobalAmountInvalid(isInvalid: boolean): void {
+    this.#isGlobalAmountInvalid.set(isInvalid);
+  }
+
+  /** Le champ inline d'un mois signale la sienne. */
+  setMonthAmountInvalid(isInvalid: boolean): void {
+    this.#isMonthAmountInvalid.set(isInvalid);
   }
 
   /** « Réajuster la suite » — répartit l'effort restant sur les mois ouverts. */
@@ -294,6 +310,7 @@ export class GoalPlanSimulatorStore {
   #reset(): void {
     this.#overrides.set(new Map());
     this.#globalAmount.set(null);
-    this.#hasInvalidAmount.set(false);
+    this.#isGlobalAmountInvalid.set(false);
+    this.#isMonthAmountInvalid.set(false);
   }
 }

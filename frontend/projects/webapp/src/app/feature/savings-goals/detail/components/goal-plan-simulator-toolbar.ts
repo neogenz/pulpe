@@ -238,7 +238,7 @@ export class GoalPlanSimulatorToolbar {
    */
   #clearInputRefusal(): void {
     this.hasInputError.set(false);
-    this.store.setAmountInvalid(false);
+    this.store.setGlobalAmountInvalid(false);
   }
 
   /**
@@ -252,7 +252,7 @@ export class GoalPlanSimulatorToolbar {
     const isIncomplete = value === null || !Number.isFinite(value);
     const isRefused = !isIncomplete && value < 0;
     this.hasInputError.set(isRefused);
-    this.store.setAmountInvalid(isIncomplete || isRefused);
+    this.store.setGlobalAmountInvalid(isIncomplete || isRefused);
     if (isIncomplete || isRefused) return;
 
     this.store.setGlobalAmount(value);

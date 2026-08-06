@@ -218,18 +218,54 @@ describe('GoalPlanSimulatorStore', () => {
     store.setMonth(6, 2026, 500);
     expect(store.canApply()).toBe(true);
 
-    store.setAmountInvalid(true);
+    store.setMonthAmountInvalid(true);
     expect(store.hasChanges()).toBe(true);
     expect(store.canApply()).toBe(false);
 
-    store.setAmountInvalid(false);
+    store.setMonthAmountInvalid(false);
     expect(store.canApply()).toBe(true);
   });
 
-  it('clears the refused entry when the simulation is reset', () => {
+  // Le montant global et le champ inline d'un mois refusent chacun pour soi :
+  // ouvrir l'un ne lève pas le refus que l'autre affiche encore.
+  it('keeps a refused global amount closed when a month reports itself valid', () => {
     store.enter();
     store.setMonth(6, 2026, 500);
-    store.setAmountInvalid(true);
+    store.setGlobalAmountInvalid(true);
+
+    store.setMonthAmountInvalid(false);
+
+    expect(store.canApply()).toBe(false);
+  });
+
+  it('keeps a refused month closed when the global amount reports itself valid', () => {
+    store.enter();
+    store.setMonth(6, 2026, 500);
+    store.setMonthAmountInvalid(true);
+
+    store.setGlobalAmountInvalid(false);
+
+    expect(store.canApply()).toBe(false);
+  });
+
+  it('reopens canApply once both fields are lifted', () => {
+    store.enter();
+    store.setMonth(6, 2026, 500);
+    store.setGlobalAmountInvalid(true);
+    store.setMonthAmountInvalid(true);
+
+    store.setGlobalAmountInvalid(false);
+    store.setMonthAmountInvalid(false);
+
+    expect(store.canApply()).toBe(store.hasChanges());
+    expect(store.canApply()).toBe(true);
+  });
+
+  it('clears both refused entries when the simulation is reset', () => {
+    store.enter();
+    store.setMonth(6, 2026, 500);
+    store.setGlobalAmountInvalid(true);
+    store.setMonthAmountInvalid(true);
 
     store.revert();
 

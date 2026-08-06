@@ -632,7 +632,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                 [expanded]="timelineExpanded()"
                 [canRepair]="repairableMonths().length > 0"
                 (amountChange)="onTimelineAmountChange($event)"
-                (invalidChange)="simulator.setAmountInvalid($event)"
+                (invalidChange)="simulator.setMonthAmountInvalid($event)"
                 (toggleExpanded)="toggleTimeline()"
               />
             </section>
