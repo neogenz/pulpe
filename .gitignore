@@ -75,8 +75,11 @@ coverage/
 claude-rules/
 coverage-report.json
 
-# Claude Code generated outputs
-.codex/
+# Codex local environment (ignore every other generated output)
+.codex/*
+!.codex/environments/
+.codex/environments/*
+!.codex/environments/environment.toml
 .claude/output/
 .claude/analysis/
 .claude/ralph/

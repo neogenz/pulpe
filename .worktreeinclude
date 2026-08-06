@@ -1,0 +1,4 @@
+.env
+frontend/.env
+backend-nest/.env.local
+backend-nest/.env.development
