@@ -289,6 +289,66 @@ jobs:
           chmod 600 "$asc_key_path" "$certificate_path"
           openssl pkey -in "$asc_key_path" -check -noout
 
+      - name: Install App Store provisioning profiles
+        env:
+          IOS_APP_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_APP_PROVISIONING_PROFILE_BASE64 }}
+          IOS_WIDGET_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_WIDGET_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          : "${IOS_APP_PROVISIONING_PROFILE_BASE64:?Missing IOS_APP_PROVISIONING_PROFILE_BASE64}"
+          : "${IOS_WIDGET_PROVISIONING_PROFILE_BASE64:?Missing IOS_WIDGET_PROVISIONING_PROFILE_BASE64}"
+
+          profiles_dir="$HOME/Library/MobileDevice/Provisioning Profiles"
+          app_profile="$RUNNER_TEMP/pulpe-app-store.mobileprovision"
+          widget_profile="$RUNNER_TEMP/pulpe-widget-app-store.mobileprovision"
+          app_plist="$RUNNER_TEMP/pulpe-app-store.plist"
+          widget_plist="$RUNNER_TEMP/pulpe-widget-app-store.plist"
+          mkdir -p "$profiles_dir"
+          chmod 700 "$profiles_dir"
+
+          printf '%s' "$IOS_APP_PROVISIONING_PROFILE_BASE64" | base64 -D > "$app_profile"
+          printf '%s' "$IOS_WIDGET_PROVISIONING_PROFILE_BASE64" | base64 -D > "$widget_profile"
+
+          install_profile() {
+            source_profile="$1"
+            decoded_plist="$2"
+            expected_name="$3"
+            expected_identifier="$4"
+            output_name="$5"
+
+            security cms -D -i "$source_profile" > "$decoded_plist"
+            profile_name=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$decoded_plist")
+            profile_uuid=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$decoded_plist")
+            app_identifier=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$decoded_plist")
+            if [ "$profile_name" != "$expected_name" ]; then
+              echo "::error::Unexpected provisioning profile name: $profile_name"
+              exit 1
+            fi
+            if [ "$app_identifier" != "$expected_identifier" ]; then
+              echo "::error::Unexpected provisioning profile application identifier: $app_identifier"
+              exit 1
+            fi
+
+            installed_profile="$profiles_dir/$profile_uuid.mobileprovision"
+            echo "$output_name=$installed_profile" >> "$GITHUB_ENV"
+            cp "$source_profile" "$installed_profile"
+            chmod 600 "$installed_profile"
+          }
+
+          install_profile \
+            "$app_profile" \
+            "$app_plist" \
+            "Pulpe App Store CI" \
+            "$APPLE_TEAM_ID.app.pulpe.ios" \
+            APP_INSTALLED_PROFILE
+          install_profile \
+            "$widget_profile" \
+            "$widget_plist" \
+            "Pulpe Widget App Store CI" \
+            "$APPLE_TEAM_ID.app.pulpe.ios.widget" \
+            WIDGET_INSTALLED_PROFILE
+
       - name: Generate Xcode project
         run: xcodegen generate --use-cache
 
@@ -328,8 +388,17 @@ jobs:
             <false/>
             <key>method</key>
             <string>app-store-connect</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>app.pulpe.ios</key>
+              <string>Pulpe App Store CI</string>
+              <key>app.pulpe.ios.widget</key>
+              <string>Pulpe Widget App Store CI</string>
+            </dict>
+            <key>signingCertificate</key>
+            <string>Apple Distribution</string>
             <key>signingStyle</key>
-            <string>automatic</string>
+            <string>manual</string>
             <key>teamID</key>
             <string>${APPLE_TEAM_ID}</string>
             <key>uploadSymbols</key>
@@ -341,11 +410,7 @@ jobs:
           xcodebuild -exportArchive \
             -archivePath "$ARCHIVE_PATH" \
             -exportPath "$export_path" \
-            -exportOptionsPlist "$export_options" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$ASC_KEY_PATH" \
-            -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+            -exportOptionsPlist "$export_options"
 
           ipa_path=$(find "$export_path" -maxdepth 1 -name '*.ipa' -print -quit)
           if [ -z "$ipa_path" ]; then
@@ -396,8 +461,17 @@ jobs:
             <false/>
             <key>method</key>
             <string>app-store-connect</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>app.pulpe.ios</key>
+              <string>Pulpe App Store CI</string>
+              <key>app.pulpe.ios.widget</key>
+              <string>Pulpe Widget App Store CI</string>
+            </dict>
+            <key>signingCertificate</key>
+            <string>Apple Distribution</string>
             <key>signingStyle</key>
-            <string>automatic</string>
+            <string>manual</string>
             <key>teamID</key>
             <string>${APPLE_TEAM_ID}</string>
             <key>uploadSymbols</key>
@@ -410,7 +484,6 @@ jobs:
             -archivePath "$ARCHIVE_PATH" \
             -exportPath "$upload_path" \
             -exportOptionsPlist "$upload_options" \
-            -allowProvisioningUpdates \
             -authenticationKeyPath "$ASC_KEY_PATH" \
             -authenticationKeyID "$ASC_KEY_ID" \
             -authenticationKeyIssuerID "$ASC_ISSUER_ID"
@@ -455,7 +528,13 @@ jobs:
           rm -f \
             "$certificate_path" \
             "$asc_key_path" \
+            "${APP_INSTALLED_PROFILE:-}" \
+            "${WIDGET_INSTALLED_PROFILE:-}" \
             "$RUNNER_TEMP/App-Info.plist" \
+            "$RUNNER_TEMP/pulpe-app-store.mobileprovision" \
+            "$RUNNER_TEMP/pulpe-widget-app-store.mobileprovision" \
+            "$RUNNER_TEMP/pulpe-app-store.plist" \
+            "$RUNNER_TEMP/pulpe-widget-app-store.plist" \
             "$RUNNER_TEMP/ci-workflow-runs.json" \
             "$RUNNER_TEMP/ci-workflow-jobs.json" \
             "$RUNNER_TEMP/original-keychains.txt"
