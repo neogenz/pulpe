@@ -45,7 +45,7 @@ test("a clone does not pre-authorize sensitive repository automation", () => {
 test("public security and deletion claims describe the implemented model", () => {
   const claims = [
     "docs/BUSINESS_WORKFLOW.md",
-    "memory-bank/productContext.md",
+    "docs/ENCRYPTION.md",
     "ios/Pulpe/Core/Encryption/ClientKeyManager.swift",
     "landing/app/support/page.tsx",
     "landing/data/releases.json",

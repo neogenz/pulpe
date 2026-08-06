@@ -15,4 +15,4 @@ The code-to-French mapping lives in `CLAUDE.md § Vocabulary`. Three terms it do
 ## Key features
 - Monthly templates, annual generation, planned-versus-actual tracking, and rollover.
 - Expense spreading/postponement and frozen CHF/EUR conversion metadata.
-- Full demo without signup. Business rules live in `memory-bank/productContext.md`.
+- Full demo without signup. Cross-feature business rules live in `docs/BUSINESS_RULES.md`.
