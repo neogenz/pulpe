@@ -3,8 +3,8 @@
 # Idempotent skills sync. Canonical set = skills-lock.json.
 #
 # Steps:
-#   1. Wipe .agents/skills/* and .claude/skills/* symlinks (preserve git-tracked dirs)
-#   2. Run `pnpx skills experimental_install -y` to hydrate from lockfile
+#   1. Wipe ignored .agents/skills/* and .claude/skills/* symlinks (preserve git-tracked dirs)
+#   2. Run the pinned skills CLI to hydrate from lockfile without modifying it
 #   3. In worktrees, symlink Pulpe-custom skills from main repo's .claude/skills/
 #
 # Usage:
@@ -22,7 +22,7 @@ if [[ "${1:-}" == "add" ]]; then
     echo "Usage: $0 add <source> [extra-skills-flags...]"
     exit 1
   fi
-  exec pnpx skills add "$@" --agent '*' -y
+  exec pnpx skills@1.5.22 add "$@" --agent '*' -y
 fi
 
 WORKTREE="${1:-$(pwd)}"
@@ -34,11 +34,11 @@ if [[ ! -f "$LOCKFILE" ]]; then
   exit 1
 fi
 
-# 1. Nuke: wipe ALL .agents/skills/* and .claude/skills/* symlinks
-#    (keep git-tracked real dirs in .claude/skills/ — Pulpe-custom skills)
+# 1. Wipe ignored .agents/skills/* and .claude/skills/* symlinks.
+#    Keep git-tracked Pulpe skills and symlinks.
 echo "→ Cleaning existing skills..."
 if [[ -d "$WORKTREE/.agents/skills" ]]; then
-  rm -rf "$WORKTREE"/.agents/skills/*
+  git clean -fdX -- .agents/skills
 fi
 if [[ -d "$WORKTREE/.claude/skills" ]]; then
   for entry in "$WORKTREE"/.claude/skills/*; do
@@ -46,9 +46,19 @@ if [[ -d "$WORKTREE/.claude/skills" ]]; then
   done
 fi
 
-# 3. Hydrate from lockfile
+# 3. Hydrate from lockfile. The CLI refreshes computed hashes during restore,
+#    so preserve the canonical input byte-for-byte, including pending changes.
 echo "→ Installing skills from skills-lock.json..."
-pnpx skills experimental_install -y
+LOCKFILE_BACKUP="$(mktemp)"
+cp "$LOCKFILE" "$LOCKFILE_BACKUP"
+restore_lockfile() {
+  cp "$LOCKFILE_BACKUP" "$LOCKFILE"
+  rm -f "$LOCKFILE_BACKUP"
+}
+trap restore_lockfile EXIT
+pnpx skills@1.5.22 experimental_install -y
+restore_lockfile
+trap - EXIT
 
 # 4. Symlink .agents/skills/* into .claude/skills/ so Claude Code can see them
 #    (Claude Code reads .claude/skills/, not .agents/skills/)
