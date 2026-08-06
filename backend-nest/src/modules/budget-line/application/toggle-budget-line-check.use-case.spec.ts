@@ -5,7 +5,10 @@ import { ToggleBudgetLineCheckUseCase } from './toggle-budget-line-check.use-cas
 import { BUDGET_LINE_REPOSITORY } from '../domain/ports/budget-line-repository.port';
 import { CacheService } from '@modules/cache/cache.service';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { BudgetLine } from '../domain/budget-line.entity';
+import type {
+  BudgetLine,
+  BudgetLineAccess,
+} from '../domain/budget-line.entity';
 
 const mockEntity: BudgetLine = {
   id: 'line-1',
@@ -31,6 +34,11 @@ const mockEntity: BudgetLine = {
   updatedAt: '2026-01-01T00:00:00.000Z',
 };
 
+const ORDINARY_LINE_ACCESS: BudgetLineAccess = {
+  sourceSavingsGoalId: null,
+  checkedAt: mockEntity.checkedAt,
+};
+
 const mockUser: AuthenticatedUser = {
   id: 'user-1',
   email: 'test@example.com',
@@ -42,7 +50,6 @@ describe('ToggleBudgetLineCheckUseCase', () => {
   let useCase: ToggleBudgetLineCheckUseCase;
   let mockRepo: {
     validateAccess: ReturnType<typeof jest.fn>;
-    findById: ReturnType<typeof jest.fn>;
     toggleCheckRpc: ReturnType<typeof jest.fn>;
   };
   let mockCache: { invalidateForUser: ReturnType<typeof jest.fn> };
@@ -53,10 +60,7 @@ describe('ToggleBudgetLineCheckUseCase', () => {
     mockRepo = {
       validateAccess: jest.fn().mockImplementation(async () => {
         callOrder.push('validateAccess');
-      }),
-      findById: jest.fn().mockImplementation(async () => {
-        callOrder.push('findById');
-        return mockEntity;
+        return ORDINARY_LINE_ACCESS;
       }),
       toggleCheckRpc: jest.fn().mockImplementation(async () => {
         callOrder.push('toggleCheckRpc');
@@ -90,7 +94,7 @@ describe('ToggleBudgetLineCheckUseCase', () => {
 
     expect(result).toEqual(mockEntity);
     expect(mockRepo.validateAccess).toHaveBeenCalledWith('line-1', mockUser.id);
-    expect(callOrder).toEqual(['validateAccess', 'findById', 'toggleCheckRpc']);
+    expect(callOrder).toEqual(['validateAccess', 'toggleCheckRpc']);
     expect(mockCache.invalidateForUser).toHaveBeenCalledWith(mockUser.id);
   });
 
@@ -109,13 +113,9 @@ describe('ToggleBudgetLineCheckUseCase', () => {
   // écriture ne l'ait retiré du pot : le solde confirmé resterait entier et le
   // revenu serait compté alors qu'aucun réel n'existe.
   it('should refuse to check a planned withdrawal, which is realized by its transaction', async () => {
-    mockRepo.findById.mockResolvedValueOnce({
-      ...mockEntity,
-      kind: 'income',
-      recurrence: 'one_off',
-      checkedAt: null,
+    mockRepo.validateAccess.mockResolvedValueOnce({
       sourceSavingsGoalId: 'goal-1',
-      sourceSavingsGoalName: 'Voyage',
+      checkedAt: null,
     });
 
     await expect(useCase.execute('line-1', mockUser)).rejects.toThrow(
@@ -129,13 +129,9 @@ describe('ToggleBudgetLineCheckUseCase', () => {
   // Seul le passage à pointé est fermé : dépointer une donnée historique
   // incohérente est le geste qui la répare.
   it('should still allow unchecking a planned withdrawal left checked', async () => {
-    mockRepo.findById.mockResolvedValueOnce({
-      ...mockEntity,
-      kind: 'income',
-      recurrence: 'one_off',
-      checkedAt: '2026-08-01T00:00:00.000Z',
+    mockRepo.validateAccess.mockResolvedValueOnce({
       sourceSavingsGoalId: 'goal-1',
-      sourceSavingsGoalName: 'Voyage',
+      checkedAt: '2026-08-01T00:00:00.000Z',
     });
 
     await useCase.execute('line-1', mockUser);

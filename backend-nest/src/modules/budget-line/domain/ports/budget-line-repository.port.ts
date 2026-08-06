@@ -1,5 +1,6 @@
 import type {
   BudgetLine,
+  BudgetLineAccess,
   BudgetLineCheckedTransaction,
   BudgetLineCreateInput,
   BudgetLineUpdatePatch,
@@ -16,7 +17,7 @@ export const BUDGET_LINE_REPOSITORY = Symbol('BUDGET_LINE_REPOSITORY');
 export interface BudgetLineRepositoryPort {
   findAll(): Promise<BudgetLine[]>;
   findById(id: string): Promise<BudgetLine>;
-  validateAccess(id: string, userId: string): Promise<void>;
+  validateAccess(id: string, userId: string): Promise<BudgetLineAccess>;
   findByBudgetId(budgetId: string): Promise<BudgetLine[]>;
   fetchBudgetIdForLine(id: string): Promise<string | null>;
   insert(input: BudgetLineCreateInput): Promise<BudgetLine>;

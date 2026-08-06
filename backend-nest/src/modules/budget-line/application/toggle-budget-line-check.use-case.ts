@@ -8,7 +8,10 @@ import {
   BUDGET_LINE_REPOSITORY,
   type BudgetLineRepositoryPort,
 } from '../domain/ports/budget-line-repository.port';
-import type { BudgetLine } from '../domain/budget-line.entity';
+import type {
+  BudgetLine,
+  BudgetLineAccess,
+} from '../domain/budget-line.entity';
 
 @Injectable()
 export class ToggleBudgetLineCheckUseCase {
@@ -21,8 +24,8 @@ export class ToggleBudgetLineCheckUseCase {
   ) {}
 
   async execute(id: string, user: AuthenticatedUser): Promise<BudgetLine> {
-    await this.repo.validateAccess(id, user.id);
-    await this.assertNotAFakeRealization(id);
+    const access = await this.repo.validateAccess(id, user.id);
+    this.assertNotAFakeRealization(access);
     const entity = await this.repo.toggleCheckRpc(id);
 
     await this.cacheService.invalidateForUser(user.id);
@@ -48,9 +51,10 @@ export class ToggleBudgetLineCheckUseCase {
    *
    * Seul le passage à pointé est fermé. Dépointer une donnée historique
    * incohérente reste possible — c'est le geste qui la répare.
+   *
+   * Les deux états viennent du contrôle d'accès, qui a déjà lu cette ligne.
    */
-  private async assertNotAFakeRealization(id: string): Promise<void> {
-    const line = await this.repo.findById(id);
+  private assertNotAFakeRealization(line: BudgetLineAccess): void {
     if (!line.sourceSavingsGoalId || line.checkedAt) return;
 
     throw new BusinessException(

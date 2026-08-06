@@ -189,12 +189,17 @@ describe('SupabaseBudgetLineRepository', () => {
   });
 
   describe('validateAccess', () => {
-    it('should resolve when budget line belongs to user', async () => {
+    it('should return the check state when budget line belongs to user', async () => {
       const provider = createMockProvider(() => ({
         select: () => ({
           eq: () => ({
             single: jest.fn().mockResolvedValue({
-              data: { ...mockRow, monthly_budget: { user_id: mockUser.id } },
+              data: {
+                ...mockRow,
+                source_savings_goal_id: 'goal-1',
+                checked_at: null,
+                monthly_budget: { user_id: mockUser.id },
+              },
               error: null,
             }),
           }),
@@ -206,8 +211,8 @@ describe('SupabaseBudgetLineRepository', () => {
         createMockLogger(),
       );
 
-      await expect(repo.validateAccess('line-1', mockUser.id)).resolves.toBe(
-        undefined,
+      await expect(repo.validateAccess('line-1', mockUser.id)).resolves.toEqual(
+        { sourceSavingsGoalId: 'goal-1', checkedAt: null },
       );
     });
 

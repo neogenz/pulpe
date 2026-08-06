@@ -21,6 +21,7 @@ import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { BudgetLineRepositoryPort } from '../../domain/ports/budget-line-repository.port';
 import type {
   BudgetLine,
+  BudgetLineAccess,
   BudgetLineCheckedTransaction,
   BudgetLineCreateInput,
   BudgetLineUpdatePatch,
@@ -113,11 +114,13 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
     return this.toEntity(data, dek);
   }
 
-  async validateAccess(id: string, userId: string): Promise<void> {
+  async validateAccess(id: string, userId: string): Promise<BudgetLineAccess> {
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('budget_line')
-      .select('id, monthly_budget!inner(user_id)')
+      .select(
+        'id, checked_at, source_savings_goal_id, monthly_budget!inner(user_id)',
+      )
       .eq('id', id)
       .single();
 
@@ -150,6 +153,11 @@ export class SupabaseBudgetLineRepository implements BudgetLineRepositoryPort {
         { cause: undefined },
       );
     }
+
+    return {
+      sourceSavingsGoalId: row.source_savings_goal_id,
+      checkedAt: row.checked_at,
+    };
   }
 
   async findByBudgetId(budgetId: string): Promise<BudgetLine[]> {

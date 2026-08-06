@@ -51,6 +51,17 @@ export interface BudgetLine {
 }
 
 /**
+ * Ce que le contrôle d'accès rapporte de la ligne au passage. Les deux colonnes
+ * ne sont pas chiffrées, donc la requête qui prouve la propriété les rapporte
+ * sans coût : un appelant qui a besoin de ces deux états n'a pas à relire la
+ * ligne entière derrière.
+ */
+export interface BudgetLineAccess {
+  sourceSavingsGoalId: string | null;
+  checkedAt: string | null;
+}
+
+/**
  * Decrypted spread SOURCE: a budget_line plus its budget's month/year (M0),
  * the fields the total-preserving spread-from flow needs to validate eligibility
  * and redistribute the total (PUL-17 v1.1). Fetched in one join so the use case
