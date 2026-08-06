@@ -83,10 +83,9 @@ pnpm dev:backend              # Backend + shared
 | Landing visual extensions     | `landing/DESIGN.md` *(seed)*               |
 | DB types                      | `backend-nest/src/types/database.types.ts` |
 | Shared schemas                | `shared/schemas.ts`                        |
-| Project overview              | `memory-bank/projectbrief.md`              |
-| Business rules                | `memory-bank/productContext.md`            |
-| Tech decisions                | `memory-bank/techContext.md`               |
-| Architecture                  | `memory-bank/systemPatterns.md`            |
+| Project overview              | `aidd_docs/memory/project-brief.md`        |
+| Business rules                | `docs/BUSINESS_RULES.md`                   |
+| Architecture                  | `aidd_docs/memory/architecture.md`         |
 | Backend Clean Architecture    | `backend-nest/docs/ARCHITECTURE.md`        |
 | Encryption (AES-256-GCM)      | `docs/ENCRYPTION.md`                       |
 | Lissage d'une dépense (PUL-17)| `docs/SPREAD.md`                           |
