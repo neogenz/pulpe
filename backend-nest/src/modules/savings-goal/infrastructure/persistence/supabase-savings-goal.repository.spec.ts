@@ -210,6 +210,65 @@ function createGoalContributionsProvider(config: {
   };
 }
 
+/**
+ * Provider for the two withdrawal readers — both walk `from → select → in`, the
+ * planned one adding an `.eq(...)`. Records the table, the `.in(...)` filter and
+ * the optional `.eq(...)` so a drift on any of the three surfaces as a unit
+ * failure instead of waiting for integration.
+ */
+function createWithdrawalProvider(result: DbResult): {
+  provider: AuthenticatedSupabaseProvider;
+  table: () => string | undefined;
+  inArgs: () => [string, string[]] | undefined;
+  eqArgs: () => [string, string] | undefined;
+} {
+  let capturedTable: string | undefined;
+  let capturedIn: [string, string[]] | undefined;
+  let capturedEq: [string, string] | undefined;
+  const provider = createMockProvider((table: string) => {
+    capturedTable = table;
+    return {
+      select: () => ({
+        in: (column: string, goalIds: string[]) => {
+          capturedIn = [column, goalIds];
+          // Awaitable on its own for the transaction reader, still chainable
+          // for the planned one — the kind guard is optional, not the data.
+          return Object.assign(Promise.resolve(result), {
+            eq: (eqColumn: string, value: string) => {
+              capturedEq = [eqColumn, value];
+              return Promise.resolve(result);
+            },
+          });
+        },
+      }),
+    };
+  });
+  return {
+    provider,
+    table: () => capturedTable,
+    inArgs: () => capturedIn,
+    eqArgs: () => capturedEq,
+  };
+}
+
+const withdrawalRow = {
+  id: 'tx-1',
+  budget_id: 'budget-1',
+  budget_line_id: 'line-9',
+  source_savings_goal_id: 'goal-1',
+  name: 'Retrait acompte',
+  amount: 'enc:800',
+  transaction_date: '2026-06-15',
+  monthly_budget: { month: 6, year: 2026 },
+};
+
+const plannedWithdrawalRow = {
+  id: 'line-7',
+  source_savings_goal_id: 'goal-1',
+  amount: 'enc:1200',
+  monthly_budget: { month: 9, year: 2026 },
+};
+
 const linkedLineRow = {
   id: 'line-1',
   savings_goal_id: 'goal-1',
@@ -955,6 +1014,179 @@ describe('SupabaseSavingsGoalRepository', () => {
         ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED.code,
       );
       expect((caught as BusinessException).cause).toBe(dbError);
+    });
+  });
+
+  describe('findPlannedWithdrawals', () => {
+    it('reads budget_line filtered on the goal AND on kind=income, flattening the budget period', async () => {
+      const { provider, table, inArgs, eqArgs } = createWithdrawalProvider({
+        data: [plannedWithdrawalRow],
+        error: null,
+      });
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      const result = await repo.findPlannedWithdrawals('goal-1');
+
+      // Le jumeau de `fetchLinkedLineRows`, de l'autre côté du pot : même forme
+      // de requête, autre colonne source et le kind inverse.
+      expect(table()).toBe('budget_line');
+      expect(inArgs()).toEqual(['source_savings_goal_id', ['goal-1']]);
+      expect(eqArgs()).toEqual(['kind', 'income']);
+      expect(result).toEqual([
+        { id: 'line-7', amount: 1200, month: 9, year: 2026 },
+      ]);
+    });
+
+    it('returns empty WITHOUT asking for the DEK when no forecast announces a withdrawal', async () => {
+      const { provider } = createWithdrawalProvider({ data: [], error: null });
+      const encryption = createMockEncryption();
+      const repo = new SupabaseSavingsGoalRepository(provider, encryption);
+
+      const result = await repo.findPlannedWithdrawals('goal-1');
+
+      expect(result).toEqual([]);
+      expect(encryption.getDekFor).not.toHaveBeenCalled();
+    });
+
+    it('wraps a database error in SAVINGS_GOAL_FETCH_FAILED, original kept in the cause chain', async () => {
+      const dbError = { message: 'permission denied' };
+      const { provider } = createWithdrawalProvider({
+        data: null,
+        error: dbError,
+      });
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      let caught: unknown;
+      try {
+        await repo.findPlannedWithdrawals('goal-1');
+      } catch (error) {
+        caught = error;
+      }
+
+      expect(caught).toBeInstanceOf(BusinessException);
+      expect((caught as BusinessException).code).toBe(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_FETCH_FAILED.code,
+      );
+      expect((caught as BusinessException).cause).toBe(dbError);
+    });
+  });
+
+  describe('findLinkedWithdrawals', () => {
+    it('reads transaction, not budget_line, and renames budget_line_id→budgetLineId', async () => {
+      const { provider, table, inArgs } = createWithdrawalProvider({
+        data: [withdrawalRow],
+        error: null,
+      });
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      const result = await repo.findLinkedWithdrawals('goal-1');
+
+      expect(table()).toBe('transaction');
+      expect(inArgs()).toEqual(['source_savings_goal_id', ['goal-1']]);
+      expect(result).toEqual([
+        { amount: 800, month: 6, year: 2026, budgetLineId: 'line-9' },
+      ]);
+    });
+
+    it('wraps a database error in TRANSACTION_FETCH_FAILED, not in its planned twin definition', async () => {
+      const dbError = { message: 'statement timeout' };
+      const { provider } = createWithdrawalProvider({
+        data: null,
+        error: dbError,
+      });
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      let caught: unknown;
+      try {
+        await repo.findLinkedWithdrawals('goal-1');
+      } catch (error) {
+        caught = error;
+      }
+
+      expect(caught).toBeInstanceOf(BusinessException);
+      expect((caught as BusinessException).code).toBe(
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED.code,
+      );
+      expect((caught as BusinessException).cause).toBe(dbError);
+    });
+  });
+
+  describe('findWithdrawals', () => {
+    it('maps the record shape and orders by transaction date, most recent first', async () => {
+      const { provider } = createWithdrawalProvider({
+        // Délibérément en désordre : le tri appartient au repository, pas à la base.
+        data: [
+          { ...withdrawalRow, id: 'tx-old', transaction_date: '2026-06-02' },
+          { ...withdrawalRow, id: 'tx-new', transaction_date: '2026-06-28' },
+          { ...withdrawalRow, id: 'tx-mid', transaction_date: '2026-06-15' },
+        ],
+        error: null,
+      });
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      const result = await repo.findWithdrawals('goal-1');
+
+      expect(result).toEqual([
+        {
+          transactionId: 'tx-new',
+          budgetId: 'budget-1',
+          name: 'Retrait acompte',
+          transactionDate: '2026-06-28',
+          amount: 800,
+        },
+        {
+          transactionId: 'tx-mid',
+          budgetId: 'budget-1',
+          name: 'Retrait acompte',
+          transactionDate: '2026-06-15',
+          amount: 800,
+        },
+        {
+          transactionId: 'tx-old',
+          budgetId: 'budget-1',
+          name: 'Retrait acompte',
+          transactionDate: '2026-06-02',
+          amount: 800,
+        },
+      ]);
+    });
+
+    it('falls back to 0 on an undecryptable amount instead of failing the whole read', async () => {
+      const { provider } = createWithdrawalProvider({
+        data: [{ ...withdrawalRow, amount: 'unreadable-ciphertext' }],
+        error: null,
+      });
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      const result = await repo.findWithdrawals('goal-1');
+
+      expect(result).toEqual([
+        {
+          transactionId: 'tx-1',
+          budgetId: 'budget-1',
+          name: 'Retrait acompte',
+          transactionDate: '2026-06-15',
+          amount: 0,
+        },
+      ]);
     });
   });
 
