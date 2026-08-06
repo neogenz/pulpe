@@ -211,10 +211,13 @@ function createGoalContributionsProvider(config: {
 }
 
 /**
- * Provider for the two withdrawal readers — both walk `from → select → in`, the
- * planned one adding an `.eq(...)`. Records the table, the `.in(...)` filter and
- * the optional `.eq(...)` so a drift on any of the three surfaces as a unit
- * failure instead of waiting for integration.
+ * Provider for the two withdrawal readers. Each table gets exactly the chain it
+ * owns and nothing more: `budget_line` continues into the `.eq(...)` kind guard,
+ * `transaction` ends at `.in(...)`. A kind guard drifting from the planned reader
+ * onto the realized one therefore throws, where a value that was both awaitable
+ * and chainable would have let it through unseen. Records the table and both
+ * filters so a drift on any of the three surfaces is a unit failure instead of
+ * an integration surprise.
  */
 function createWithdrawalProvider(result: DbResult): {
   provider: AuthenticatedSupabaseProvider;
@@ -231,14 +234,13 @@ function createWithdrawalProvider(result: DbResult): {
       select: () => ({
         in: (column: string, goalIds: string[]) => {
           capturedIn = [column, goalIds];
-          // Awaitable on its own for the transaction reader, still chainable
-          // for the planned one — the kind guard is optional, not the data.
-          return Object.assign(Promise.resolve(result), {
+          if (table !== 'budget_line') return Promise.resolve(result);
+          return {
             eq: (eqColumn: string, value: string) => {
               capturedEq = [eqColumn, value];
               return Promise.resolve(result);
             },
-          });
+          };
         },
       }),
     };
@@ -1166,7 +1168,7 @@ describe('SupabaseSavingsGoalRepository', () => {
       ]);
     });
 
-    it('falls back to 0 on an undecryptable amount instead of failing the whole read', async () => {
+    it('passes 0 as the decryption fallback for an unreadable amount', async () => {
       const { provider } = createWithdrawalProvider({
         data: [{ ...withdrawalRow, amount: 'unreadable-ciphertext' }],
         error: null,
