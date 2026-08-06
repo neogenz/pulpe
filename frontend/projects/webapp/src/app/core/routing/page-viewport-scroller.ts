@@ -3,6 +3,17 @@ import { ViewportScroller } from '@angular/common';
 
 type ScrollPosition = [number, number];
 
+/** How long a missed target keeps retrying before giving up. */
+export const SETTLE_TIMEOUT_MS = 1000;
+
+/** Events that count as "the user started reading" — never `scroll`, which our own writes emit. */
+const GESTURE_EVENTS = [
+  'wheel',
+  'touchstart',
+  'pointerdown',
+  'keydown',
+] as const;
+
 /**
  * `ViewportScroller` replacement that targets whichever element actually
  * scrolls, instead of always assuming the window.
@@ -22,6 +33,8 @@ export class PageViewportScroller extends ViewportScroller {
   readonly #document = inject(DOCUMENT);
 
   #offsetConfig: ScrollPosition | (() => ScrollPosition) = [0, 0];
+  #settleFrame: number | null = null;
+  #stopListeningForGesture: (() => void) | null = null;
 
   get #offset(): ScrollPosition {
     return Array.isArray(this.#offsetConfig)
@@ -57,8 +70,18 @@ export class PageViewportScroller extends ViewportScroller {
     position: ScrollPosition,
     options?: ScrollOptions,
   ): void {
+    this.#cancelSettle();
+
     const [offsetX, offsetY] = this.#offset;
-    this.#writePosition(position[0] - offsetX, position[1] - offsetY, options);
+    const target: ScrollPosition = [
+      position[0] - offsetX,
+      position[1] - offsetY,
+    ];
+    this.#writePosition(target[0], target[1], options);
+
+    if (!this.#isOrigin(target) && !this.#reachedTarget(target)) {
+      this.#armSettle(target, options);
+    }
   }
 
   override scrollToAnchor(anchor: string, options?: ScrollOptions): void {
@@ -113,5 +136,69 @@ export class PageViewportScroller extends ViewportScroller {
       this.#document.getElementsByName(anchor)[0] ??
       null
     );
+  }
+
+  #isOrigin(target: ScrollPosition): boolean {
+    return target[0] === 0 && target[1] === 0;
+  }
+
+  /** Compares against `target`, the already offset-adjusted DOM position — never the raw request. */
+  #reachedTarget(target: ScrollPosition): boolean {
+    const [left, top] = this.getScrollPosition();
+    return left === target[0] && top === target[1];
+  }
+
+  /**
+   * A cold-loaded page may not have its final height yet when the router
+   * first restores, so the browser clamps the write short. Retry each frame
+   * until the target is reachable, the deadline passes, or the user starts
+   * reading — whichever comes first.
+   */
+  #armSettle(target: ScrollPosition, options?: ScrollOptions): void {
+    const win = this.#document.defaultView;
+    if (!win) return;
+
+    const deadline = Date.now() + SETTLE_TIMEOUT_MS;
+    this.#stopListeningForGesture = this.#listenForUserGesture(() =>
+      this.#cancelSettle(),
+    );
+
+    const retry = (): void => {
+      this.#writePosition(target[0], target[1], options);
+
+      if (this.#reachedTarget(target) || Date.now() >= deadline) {
+        this.#cancelSettle();
+        return;
+      }
+
+      this.#settleFrame = win.requestAnimationFrame(retry);
+    };
+
+    this.#settleFrame = win.requestAnimationFrame(retry);
+  }
+
+  #cancelSettle(): void {
+    if (this.#settleFrame !== null) {
+      this.#document.defaultView?.cancelAnimationFrame(this.#settleFrame);
+      this.#settleFrame = null;
+    }
+    this.#stopListeningForGesture?.();
+    this.#stopListeningForGesture = null;
+  }
+
+  /** Never listens for `scroll`: our own retries emit it, which would self-abort. */
+  #listenForUserGesture(onGesture: () => void): () => void {
+    const win = this.#document.defaultView;
+    if (!win) return () => undefined;
+
+    for (const type of GESTURE_EVENTS) {
+      win.addEventListener(type, onGesture, { passive: true });
+    }
+
+    return () => {
+      for (const type of GESTURE_EVENTS) {
+        win.removeEventListener(type, onGesture);
+      }
+    };
   }
 }

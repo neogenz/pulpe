@@ -1,7 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
-import { PageViewportScroller } from './page-viewport-scroller';
+import {
+  PageViewportScroller,
+  SETTLE_TIMEOUT_MS,
+} from './page-viewport-scroller';
 
 /**
  * jsdom implements neither `Element.prototype.scrollTo` nor a real scroll
@@ -27,6 +30,9 @@ function createScrollableMain(maxScrollTop = Number.POSITIVE_INFINITY): {
     if (typeof options.top === 'number') {
       main.scrollTop = Math.max(0, Math.min(options.top, cap));
     }
+    // A real scroll write emits a `scroll` event — the settle loop must
+    // keep retrying through it instead of mistaking it for a user gesture.
+    window.dispatchEvent(new Event('scroll'));
   };
 
   document.body.appendChild(main);
@@ -37,6 +43,7 @@ describe('PageViewportScroller', () => {
   let scroller: PageViewportScroller;
 
   beforeEach(() => {
+    vi.useFakeTimers();
     TestBed.configureTestingModule({
       providers: [provideZonelessChangeDetection()],
     });
@@ -44,6 +51,7 @@ describe('PageViewportScroller', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     document.body.replaceChildren();
   });
 
@@ -77,5 +85,68 @@ describe('PageViewportScroller', () => {
     scroller.scrollToPosition([0, 500]);
 
     expect(main.scrollTop).toBe(436);
+  });
+
+  it('should keep retrying past its own scroll events until a late-growing container reaches the target', () => {
+    const { main, growTo } = createScrollableMain(100);
+
+    scroller.scrollToPosition([0, 1528]);
+    expect(main.scrollTop).toBe(100); // clamped short — the page has not grown yet
+
+    growTo(2000); // the page's data has now rendered
+    vi.advanceTimersByTime(SETTLE_TIMEOUT_MS);
+
+    expect(main.scrollTop).toBe(1528);
+  });
+
+  it('should stop retrying once the user starts a scroll gesture', () => {
+    const { main } = createScrollableMain(100);
+
+    scroller.scrollToPosition([0, 1528]);
+    expect(main.scrollTop).toBe(100);
+
+    main.scrollTop = 40; // the user scrolled by hand
+    window.dispatchEvent(new Event('wheel'));
+
+    vi.advanceTimersByTime(SETTLE_TIMEOUT_MS);
+
+    expect(main.scrollTop).toBe(40); // no retry moved it back
+  });
+
+  it('should give up once the timeout elapses without the container growing', () => {
+    const { main } = createScrollableMain(100);
+    scroller.scrollToPosition([0, 1528]);
+
+    const scrollToSpy = vi.spyOn(main, 'scrollTo');
+    vi.advanceTimersByTime(SETTLE_TIMEOUT_MS + 100);
+    const callsWithinDeadline = scrollToSpy.mock.calls.length;
+
+    vi.advanceTimersByTime(1000);
+
+    expect(scrollToSpy.mock.calls.length).toBe(callsWithinDeadline);
+  });
+
+  it('should let a newer scrollToPosition call supersede a pending retry', () => {
+    const { main, growTo } = createScrollableMain(100);
+
+    scroller.scrollToPosition([0, 1528]); // first back-navigation
+    scroller.scrollToPosition([0, 900]); // a second one, right behind it
+
+    growTo(2000);
+    vi.advanceTimersByTime(SETTLE_TIMEOUT_MS);
+
+    expect(main.scrollTop).toBe(900);
+  });
+
+  it('should not arm a retry when an ordinary navigation resets to the origin', () => {
+    const { main } = createScrollableMain();
+    const scrollToSpy = vi.spyOn(main, 'scrollTo');
+
+    scroller.scrollToPosition([0, 0]);
+    expect(scrollToSpy).toHaveBeenCalledTimes(1);
+
+    vi.advanceTimersByTime(SETTLE_TIMEOUT_MS + 100);
+
+    expect(scrollToSpy).toHaveBeenCalledTimes(1);
   });
 });
