@@ -27,7 +27,7 @@ pnpm test                     # All unit tests
 pnpm test:e2e                 # E2E tests (Playwright)
 
 # Single package commands
-cd frontend && pnpm test -- path/to/file.spec.ts   # Frontend single test
+cd frontend && pnpm exec vitest run path/or/dir    # Frontend scoped run — `pnpm test -- <path>` ne filtre PAS
 cd frontend && pnpm test:watch                      # Watch mode
 cd backend-nest && bun test path/to/file.spec.ts   # Backend single test
 

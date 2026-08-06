@@ -5,7 +5,7 @@
 ```bash
 pnpm run dev                        # ng serve (http://localhost:4200)
 pnpm run test                       # Vitest unit tests
-pnpm run test -- path/to/spec.ts   # Single test file
+pnpm exec vitest run path/or/dir    # Scoped run — `pnpm run test -- <path>` does NOT filter
 pnpm run test:watch                 # Watch mode
 ```
 

@@ -125,10 +125,7 @@ export function provideCore({ routes }: CoreOptions) {
       withChunkReloadRecovery(),
     ),
 
-    // Angular's ViewportScroller only ever targets the window. Desktop
-    // scrolls <main> instead (main-layout.ts), so back/forward restoration
-    // landed on 0 there — this replacement resolves whichever element
-    // actually scrolls (see core/routing/page-viewport-scroller.ts).
+    // Scroll restoration targets the element that actually scrolls — APRÈS le router
     { provide: ViewportScroller, useClass: PageViewportScroller },
 
     // Custom title strategy - APRÈS le router
