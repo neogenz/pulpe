@@ -51,6 +51,7 @@ class StubCurrencyInput {
   @Input() showSuffix = true;
   @Input() testId = 'currency-input';
   @Input() placeholder = '0.00';
+  @Input() errorId?: string;
   @Output() readonly valueChange = new EventEmitter<number | null>();
 }
 

@@ -72,10 +72,12 @@ import { GoalPlanSimulatorStore } from '../services/goal-plan-simulator-store';
               [autoFocus]="false"
               placeholder="0.00"
               [showSuffix]="true"
+              [errorId]="hasInputError() ? amountErrorId : undefined"
               testId="goal-plan-amount-input"
             />
             @if (hasInputError()) {
               <p
+                [id]="amountErrorId"
                 role="alert"
                 class="text-body-small text-error text-pretty"
                 data-testid="goal-plan-amount-error"
@@ -202,6 +204,7 @@ export class GoalPlanSimulatorToolbar {
   readonly targetReached = input(false);
 
   protected readonly STEP = 10;
+  protected readonly amountErrorId = 'goal-plan-amount-error';
 
   // Twin value shared by the slider and the numeric input. Seeds the user's
   // *current* plan amount (`currentMonthlyAmount`) — not the deadline anchor —
