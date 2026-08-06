@@ -139,12 +139,12 @@ Tailwind equivalents: `rounded-corner-small`, `rounded-corner-medium`, …
 
 | Token | CSS Variable | Value |
 |-------|--------------|-------|
-| `neutral-warm` | `--pulpe-neutral-warm` | `#F7F6F3` (DA §3.1 reference) |
+| `neutral-warm` | `--pulpe-neutral-warm` | `#F7F6F3` (`DESIGN.md` §2 reference) |
 | `surface-radius-card` | `--pulpe-surface-radius-card` | `24px` |
 | `surface-radius-panel` | `--pulpe-surface-radius-panel` | `16px` |
 | `surface-border-subtle` | `--pulpe-surface-border-subtle` | `1px solid var(--mat-sys-outline-variant)` |
 
-Content zone background = neutral warm, never green-tinted. Generate Material neutral palette with desaturated seed (see DA.md §8.2).
+Content zone background = neutral warm, never green-tinted. Generate the Material neutral palette from the desaturated seed documented in `frontend/DESIGN.md` §2.
 
 ### Motion
 
@@ -182,7 +182,7 @@ Content zone background = neutral warm, never green-tinted. Generate Material ne
 
 ### Visual Zones
 
-Screen split in two zones (see DA.md §3.1):
+Screen split in two zones (see `DESIGN.md` §2, **The Two-Zone Rule**):
 
 - **Emotion zone** (hero, header ~30-35% top): colored background matching financial state
 - **Content zone** (lists, cards, forms): neutral warm background, never green-tinted

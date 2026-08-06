@@ -673,7 +673,7 @@ Le mot porte l'identité catégorie sans ambiguïté → la couleur peut renforc
 
 ### Application Pulpe
 
-`BudgetLineMixedRow` (iOS) applique cette règle. Voir `productContext.md` RG-010 pour le détail du tableau montant + couleur. Côté webapp, principe à reconfirmer s'il n'y a pas d'étiquette uppercase équivalente — la V1 du principe peut rester valide tant que ce double-codage n'existe pas.
+`BudgetLineMixedRow` (iOS) est la source exécutable pour la logique montant + sous-titre ; `ios/DESIGN.md` §5 définit l'étiquette et la carte. Côté webapp, principe à reconfirmer s'il n'y a pas d'étiquette uppercase équivalente — la V1 du principe peut rester valide tant que ce double-codage n'existe pas.
 
 ### Règle à retenir
 

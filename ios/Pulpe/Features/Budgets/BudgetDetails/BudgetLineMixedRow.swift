@@ -220,7 +220,7 @@ struct BudgetLineMixedRow: View {
     // partial. When nothing has been transferred yet the hero already shows the
     // planned amount; repeating it as a subtitle would be redundant. A savings
     // withdrawal repayment (PUL-292) adds "pris en {mois}" as a COMPLEMENT — the
-    // RG-010 "à transférer / Transféré" line always remains.
+    // The "à transférer / Transféré" status line always remains.
     @ViewBuilder
     private var savingSubtitle: some View {
         let showTransferred = hasReal && realAmount >= plannedAmount

@@ -23,7 +23,7 @@ Ce fichier définit le template **exact** à utiliser pour toute user story. Cha
 
 - [Règle 1]
 - [Règle 2]
-[Référencer les RG-XXX de productContext.md quand applicable]
+[Référencer la section de `docs/BUSINESS_RULES.md` ou le document métier ciblé quand applicable]
 
 ### Notes techniques
 

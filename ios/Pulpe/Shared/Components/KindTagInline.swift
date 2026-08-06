@@ -4,11 +4,11 @@ import SwiftUI
 /// (e.g. `REVENU`, `ÉPARGNE`, `DÉPENSE`). The word carries the meaning;
 /// the color reinforces it without being load-bearing.
 ///
-/// Spec: Pulpe v2 `KindTag` — 10pt Manrope ExtraBold, tracking 0.7, uppercase.
-/// DA.md §3.7 overrides the v2 mock palette:
+/// Spec: `ios/DESIGN.md` §5, Kind Tag — 10pt Manrope ExtraBold,
+/// tracking 0.7, uppercase. The canonical palette is:
 /// - `.income` → `Color.financialIncome`
 /// - `.saving` → `Color.financialSavings`
-/// - `.expense` → `Color.textSecondary` (neutral, not red — DA "le rouge n'est pas punitif")
+/// - `.expense` → `Color.textSecondary` (neutral, not red)
 struct KindTagInline: View {
     let kind: TransactionKind
 

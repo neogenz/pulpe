@@ -89,6 +89,34 @@ test("public CI guide mirrors the enforced workflow contracts", () => {
   assert.match(guide, /NODE_VERSION:\s*["']24["']/);
 });
 
+test("tracked context does not reference the retired memory bank", () => {
+  const retiredContextPattern = [
+    "memory-bank/",
+    "DA\\.md",
+    "productContext\\.md",
+    "systemPatterns\\.md",
+    "techContext\\.md",
+    "projectbrief\\.md",
+    "INFRASTRUCTURE\\.md",
+    "roadmap\\.md",
+    "RG-010",
+  ].join("|");
+
+  assert.equal(
+    git(
+      "grep",
+      "-n",
+      "-I",
+      "-E",
+      retiredContextPattern,
+      "--",
+      ".",
+      ":(exclude).github/scripts/public-surface.test.mjs",
+    ),
+    "",
+  );
+});
+
 test("tracked project files exclude local archives and preserve skill contracts", () => {
   const ignore = read(".gitignore");
   const seed = read("backend-nest/supabase/seed.sql");

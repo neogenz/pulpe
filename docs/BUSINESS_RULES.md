@@ -16,9 +16,9 @@ Ce fichier contient uniquement les invariants qui traversent plusieurs fonctionn
 
 ## Propagation du Mois Type
 
-- Une propagation explicite ne cible que les budgets du cycle courant et des cycles futurs.
+- Une propagation explicite sélectionne les budgets du cycle courant et des cycles futurs dans [`BulkTemplateLineOperationsUseCase.fetchPropagationBudgets`](../backend-nest/src/modules/budget-template/application/bulk-template-line-operations.use-case.ts), avant l'appel SQL.
 - Une Prévision modifiée manuellement porte `is_manually_adjusted = true` et n'est plus écrasée ni supprimée par la propagation du Mois Type.
-- L'application de ces gardes est atomique dans [`backend-nest/supabase/migrations/20260610120000_secure_apply_template_line_operations.sql`](../backend-nest/supabase/migrations/20260610120000_secure_apply_template_line_operations.sql).
+- Le repository appelle la RPC courante [`apply_template_line_operations_with_tags`](../backend-nest/src/modules/budget-template/infrastructure/persistence/supabase-budget-template.repository.ts). Les mutations du Mois Type, des Prévisions sélectionnées et de leurs tags sont atomiques dans son [wrapper SQL](../backend-nest/supabase/migrations/20260715150000_atomic_template_line_operations_with_tags.sql) ; le filtre `is_manually_adjusted` vit dans la [définition courante de la RPC de base](../backend-nest/supabase/migrations/20260727122000_bound_updated_template_goal_links.sql). L'invalidation du cache et les recalculs ont lieu après cette transaction.
 
 ## Lissage
 
