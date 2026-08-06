@@ -9,6 +9,7 @@ import {
   withViewTransitions,
   TitleStrategy,
 } from '@angular/router';
+import { ViewportScroller } from '@angular/common';
 import { withChunkReloadRecovery } from './routing/navigation-error-handler';
 
 import {
@@ -28,6 +29,7 @@ import { provideLocale } from './locale';
 import { provideAngularMaterial } from './angular-material';
 import { provideAuth } from './auth/auth-providers';
 import { AuthSessionService } from './auth/auth-session.service';
+import { PageViewportScroller } from './routing/page-viewport-scroller';
 import { PulpeTitleStrategy } from './routing/title-strategy';
 import { AppVersionStore } from './app-version/app-version-store';
 import { ApplicationConfiguration } from './config/application-configuration';
@@ -122,6 +124,12 @@ export function provideCore({ routes }: CoreOptions) {
       withViewTransitions({ skipInitialTransition: true }),
       withChunkReloadRecovery(),
     ),
+
+    // Angular's ViewportScroller only ever targets the window. Desktop
+    // scrolls <main> instead (main-layout.ts), so back/forward restoration
+    // landed on 0 there — this replacement resolves whichever element
+    // actually scrolls (see core/routing/page-viewport-scroller.ts).
+    { provide: ViewportScroller, useClass: PageViewportScroller },
 
     // Custom title strategy - APRÈS le router
     { provide: TitleStrategy, useClass: PulpeTitleStrategy },
