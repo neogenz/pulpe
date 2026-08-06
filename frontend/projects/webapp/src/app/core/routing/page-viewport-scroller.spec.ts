@@ -78,13 +78,61 @@ describe('PageViewportScroller', () => {
     expect(() => scroller.getScrollPosition()).not.toThrow();
   });
 
-  it('should subtract the configured offset when writing a position', () => {
+  it('should write through window.scrollTo when no scrolling <main> exists', () => {
+    const scrollToSpy = vi
+      .spyOn(window, 'scrollTo')
+      .mockImplementation(() => undefined);
+
+    scroller.scrollToPosition([10, 250]);
+
+    expect(scrollToSpy).toHaveBeenCalledWith({ left: 10, top: 250 });
+
+    // The target is never reached (the stub above is a no-op), so the settle
+    // loop stays armed until its deadline — let it get there so it cleans up
+    // its own gesture listeners before the next test runs.
+    vi.advanceTimersByTime(SETTLE_TIMEOUT_MS);
+    scrollToSpy.mockRestore();
+  });
+
+  it('should read the position from window.scrollX/scrollY when no scrolling <main> exists', () => {
+    Object.defineProperty(window, 'scrollX', {
+      value: 12,
+      configurable: true,
+    });
+    Object.defineProperty(window, 'scrollY', {
+      value: 340,
+      configurable: true,
+    });
+
+    expect(scroller.getScrollPosition()).toEqual([12, 340]);
+  });
+
+  it('should write the position verbatim regardless of the configured offset', () => {
     const { main } = createScrollableMain();
 
     scroller.setOffset([0, 64]);
     scroller.scrollToPosition([0, 500]);
 
-    expect(main.scrollTop).toBe(436);
+    expect(main.scrollTop).toBe(500);
+  });
+
+  it('should subtract the configured offset when scrolling to an anchor', () => {
+    Object.defineProperty(window, 'scrollX', { value: 0, configurable: true });
+    Object.defineProperty(window, 'scrollY', { value: 0, configurable: true });
+
+    const target = document.createElement('div');
+    target.id = 'section';
+    document.body.appendChild(target);
+    const scrollToSpy = vi
+      .spyOn(window, 'scrollTo')
+      .mockImplementation(() => undefined);
+
+    scroller.setOffset([0, 64]);
+    scroller.scrollToAnchor('section');
+
+    expect(scrollToSpy).toHaveBeenCalledWith({ left: 0, top: -64 });
+
+    scrollToSpy.mockRestore();
   });
 
   it('should keep retrying past its own scroll events until a late-growing container reaches the target', () => {

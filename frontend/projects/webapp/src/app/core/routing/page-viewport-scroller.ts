@@ -6,7 +6,20 @@ type ScrollPosition = [number, number];
 /** How long a missed target keeps retrying before giving up. */
 export const SETTLE_TIMEOUT_MS = 1000;
 
-/** Events that count as "the user started reading" — never `scroll`, which our own writes emit. */
+/**
+ * Events that count as "the user started reading" — never `scroll`, which
+ * our own writes emit.
+ *
+ * What this list still lets through: programmatic scrolling that fires no
+ * input event — a screen reader's virtual cursor in browse mode (arrow keys
+ * are swallowed by the reader, so no `keydown` reaches the page) and the
+ * browser's own find-next once focus has moved into the browser chrome. That
+ * gap stays bounded by `SETTLE_TIMEOUT_MS` instead of being closed with a
+ * tighter guard, deliberately: the obvious fix — abandon the retry once the
+ * position has moved since our last write — collides with Chrome's scroll
+ * anchoring, which adjusts `scrollTop` on its own exactly when content grows
+ * above the viewport, which is the exact window this loop exists to cover.
+ */
 const GESTURE_EVENTS = [
   'wheel',
   'touchstart',
@@ -72,15 +85,10 @@ export class PageViewportScroller extends ViewportScroller {
   ): void {
     this.#cancelSettle();
 
-    const [offsetX, offsetY] = this.#offset;
-    const target: ScrollPosition = [
-      position[0] - offsetX,
-      position[1] - offsetY,
-    ];
-    this.#writePosition(target[0], target[1], options);
+    this.#writePosition(position[0], position[1], options);
 
-    if (!this.#isOrigin(target) && !this.#reachedTarget(target)) {
-      this.#armSettle(target, options);
+    if (!this.#isOrigin(position) && !this.#reachedTarget(position)) {
+      this.#armSettle(position, options);
     }
   }
 
@@ -117,7 +125,13 @@ export class PageViewportScroller extends ViewportScroller {
   override setHistoryScrollRestoration(mode: 'auto' | 'manual'): void {
     const win = this.#document.defaultView;
     if (win) {
-      win.history.scrollRestoration = mode;
+      try {
+        win.history.scrollRestoration = mode;
+      } catch {
+        // Throws in a sandboxed iframe or a partially-navigated window
+        // (Angular's BrowserViewportScroller guards the same assignment).
+        // This runs at router init, so left uncaught it would break bootstrap.
+      }
     }
   }
 
@@ -142,7 +156,6 @@ export class PageViewportScroller extends ViewportScroller {
     return target[0] === 0 && target[1] === 0;
   }
 
-  /** Compares against `target`, the already offset-adjusted DOM position — never the raw request. */
   #reachedTarget(target: ScrollPosition): boolean {
     const [left, top] = this.getScrollPosition();
     return left === target[0] && top === target[1];
