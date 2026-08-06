@@ -977,9 +977,16 @@ export type BudgetLineCreate = z.infer<typeof budgetLineCreateSchema>;
  * La source est immuable : la corriger, c'est supprimer puis recréer la
  * prévision avant sa réalisation. `sourceSavingsGoalName` n'a jamais été
  * accepté du client, il n'y a donc rien à en retirer ici.
+ *
+ * `checkedAt` non plus n'est pas acceptable ici. Pointer se demande à
+ * `PATCH /budget-lines/:id/toggle-check`, seule route qui refuse de pointer un
+ * retrait planifié — sortir l'argent d'un objectif se prouve en créant le
+ * revenu réel, pas en cochant. Ce schéma dérive de la base *non raffinée* :
+ * laisser passer `checkedAt` par ici contournerait ce refus en silence, et
+ * `calculateRealizedIncome` compterait un revenu que rien n'a versé.
  */
 export const budgetLineUpdateSchema = budgetLineCreateBaseSchema
-  .omit({ budgetId: true, sourceSavingsGoalId: true })
+  .omit({ budgetId: true, sourceSavingsGoalId: true, checkedAt: true })
   .partial()
   .extend({
     id: z.uuid(),

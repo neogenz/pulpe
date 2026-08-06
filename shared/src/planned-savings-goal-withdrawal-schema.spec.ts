@@ -77,6 +77,19 @@ describe('budgetLineUpdateSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  // Ce schéma dérive de la base non raffinée, donc le refus de pointer un
+  // retrait planifié ne s'y applique pas. Sans retirer le champ, un PATCH
+  // ordinaire pointait la prévision sans qu'aucune transaction n'ait vidé
+  // l'objectif — un revenu réalisé de plus, un solde d'objectif intact.
+  it('should refuse to check a forecast through the ordinary update route', () => {
+    const result = budgetLineUpdateSchema.safeParse({
+      id: LINE_ID,
+      checkedAt: NOW,
+    });
+
+    expect(result.success).toBe(false);
+  });
+
   it('should still accept an ordinary partial update', () => {
     const result = budgetLineUpdateSchema.safeParse({
       id: LINE_ID,
