@@ -660,21 +660,24 @@ export class BudgetItemsContainer {
 
   /**
    * PUL-329 v2 — reste à sortir d'un retrait annoncé, `null` pour toute autre
-   * ligne. Une source orpheline garde son nom snapshot : le formulaire l'affiche
-   * sans pouvoir la rattacher.
+   * ligne. Le nom survit à l'objectif, l'identifiant non : lui seul dit qu'un
+   * débit est encore possible. Une source orpheline retombe donc sur le
+   * formulaire de transaction allouée ordinaire, comme le geste de pointage et
+   * le CTA de la carte le font déjà.
    */
   #withdrawalRealizationContext(
     budgetLine: BudgetLine,
   ): WithdrawalRealizationContext | null {
-    if (!budgetLine.sourceSavingsGoalName) return null;
+    const { sourceSavingsGoalId, sourceSavingsGoalName } = budgetLine;
+    if (!sourceSavingsGoalId || !sourceSavingsGoalName) return null;
     const details = this.store.budgetDetails();
     const { remaining } = calculateBudgetLineConsumption(
       budgetLine,
       details?.transactions ?? [],
     );
     return {
-      goalId: budgetLine.sourceSavingsGoalId ?? null,
-      goalName: budgetLine.sourceSavingsGoalName,
+      goalId: sourceSavingsGoalId,
+      goalName: sourceSavingsGoalName,
       remainingAmount: Math.max(0, remaining),
     };
   }

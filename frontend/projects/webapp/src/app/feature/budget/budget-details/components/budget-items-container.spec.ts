@@ -757,6 +757,23 @@ describe('BudgetItemsContainer — realizing an announced withdrawal (PUL-329 v2
     ).not.toHaveBeenCalled();
   });
 
+  it('offers no realization context on an orphan source, only the ordinary form', async () => {
+    const orphan = sourceLine({ sourceSavingsGoalId: null });
+    mockStore.budgetDetails.set({
+      id: 'budget-1',
+      month: 1,
+      year: 2026,
+      budgetLines: [orphan],
+      transactions: [],
+    });
+
+    await component['openCreateAllocatedTransactionDialog'](orphan);
+
+    expect(
+      mockDialogService.openCreateAllocatedTransactionDialog.mock.calls[0][4],
+    ).toBeNull();
+  });
+
   it('supplies a submit closure that routes straight to the create mutation', async () => {
     const created = { name: 'Apport cuisine', amount: 500 };
     mockStore.createAllocatedTransaction.mockResolvedValue(null);

@@ -51,12 +51,12 @@ import { computeBudgetPeriodDateConstraints } from './budget-period-date-constra
 
 /**
  * PUL-329 v2 — contexte de réalisation d'un retrait annoncé. Présent seulement
- * quand la ligne porte une source : le formulaire préremplit alors le reste à
- * sortir et rappelle l'objectif débité, qu'on ne peut pas changer ici.
+ * quand la ligne porte une source encore rattachable : le formulaire préremplit
+ * alors le reste à sortir et rappelle l'objectif débité, qu'on ne peut pas
+ * changer ici.
  */
 export interface WithdrawalRealizationContext {
-  /** `null` quand l'objectif a été supprimé — le nom snapshot subsiste. */
-  goalId: string | null;
+  goalId: string;
   goalName: string;
   /** `max(0, prévu − réels alloués)` */
   remainingAmount: number;
