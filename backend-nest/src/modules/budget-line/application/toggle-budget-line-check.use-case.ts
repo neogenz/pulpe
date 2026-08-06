@@ -52,6 +52,14 @@ export class ToggleBudgetLineCheckUseCase {
    * Seul le passage à pointé est fermé. Dépointer une donnée historique
    * incohérente reste possible — c'est le geste qui la répare.
    *
+   * Objectif supprimé : la clé étrangère est `ON DELETE SET NULL`, donc
+   * `sourceSavingsGoalId` retombe à null et la ligne ressort par le retour
+   * anticipé — pointable de nouveau, délibérément. Il n'y a plus de solde à
+   * contredire, et une prévision orpheline qu'on ne pourrait plus jamais
+   * pointer serait un piège. Ne pas « réparer » en regardant aussi le nom
+   * conservé : lui survit à la suppression, et c'est ce qui distingue les
+   * trois états — jamais liée, liée, liée à un objectif disparu.
+   *
    * Les deux états viennent du contrôle d'accès, qui a déjà lu cette ligne.
    */
   private assertNotAFakeRealization(line: BudgetLineAccess): void {
