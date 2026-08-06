@@ -49,7 +49,7 @@ export class CreateTransactionUseCase {
     const withRate = await this.currencyService.overrideExchangeRate(dto);
 
     const allocatedLine = withRate.budgetLineId
-      ? await this.validateBudgetLineAllocation(
+      ? await this.resolveBudgetLineForAllocation(
           withRate.budgetLineId,
           withRate.budgetId,
           withRate.kind,
@@ -135,7 +135,7 @@ export class CreateTransactionUseCase {
     });
   }
 
-  private async validateBudgetLineAllocation(
+  private async resolveBudgetLineForAllocation(
     budgetLineId: string,
     budgetId: string,
     transactionKind: TransactionKind,
@@ -148,7 +148,7 @@ export class CreateTransactionUseCase {
         ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
         { id: budgetLineId },
         {
-          operation: 'validateBudgetLineAllocation',
+          operation: 'resolveBudgetLineForAllocation',
           entityId: budgetLineId,
           entityType: 'budget_line',
         },
