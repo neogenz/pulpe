@@ -83,6 +83,18 @@ export class BudgetDetailsPage {
   }
 
   /**
+   * La même provenance, mais dans le panneau de détail — la seule surface où
+   * elle n'est pas rendue par la grille. Le test lit son texte, pas sa seule
+   * présence : c'est ce qui distingue le nom de l'objectif de celui de la
+   * prévision, que les specs unitaires ne peuvent pas départager ici.
+   */
+  envelopePanelSource(lineId: string): Locator {
+    return this.page
+      .getByTestId(`detail-panel-source-goal-${lineId}`)
+      .getByTestId('savings-goal-source-line');
+  }
+
+  /**
    * Le geste qui remplace le pointage sur un retrait annoncé : il ouvre la
    * saisie du revenu réel, seul mouvement qui débite l'objectif.
    */

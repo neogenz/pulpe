@@ -712,6 +712,13 @@ test.describe('Announcing a withdrawal, then realizing it', () => {
     const lastRealizedId = world.realized[world.realized.length - 1].id;
     await budgetDetailsPage.goto(CURRENT_BUDGET.id);
     await budgetDetailsPage.openEnvelopePanel(PLANNED_LINE_NAME);
+    // Le panneau est la surface de détail du desktop : il nomme l'objectif
+    // source, jamais la prévision. Aucun spec unitaire ne peut le distinguer —
+    // les `input()` signal ne traversent pas une liaison de template sous le
+    // compilateur JIT des specs, donc le texte rendu n'y est pas observable.
+    await expect(budgetDetailsPage.envelopePanelSource(lineId)).toContainText(
+      `Pris sur · ${GOAL_NAME}`,
+    );
     await authenticatedPage.getByTestId(`delete-tx-${lastRealizedId}`).click();
     await budgetDetailsPage.confirmDelete();
     await expect.poll(() => world.realized).toHaveLength(1);
@@ -776,6 +783,13 @@ test.describe('Announcing a withdrawal, then realizing it', () => {
     await expect(
       authenticatedPage.getByTestId(`toggle-check-${TEST_UUIDS.LINE_2}`),
     ).toBeVisible();
+
+    // Le panneau de détail raconte la même histoire que la carte : l'argent
+    // vient d'un objectif qui n'existe plus, et cela reste lisible.
+    await budgetDetailsPage.openEnvelopePanel(PLANNED_LINE_NAME);
+    await expect(
+      budgetDetailsPage.envelopePanelSource(TEST_UUIDS.LINE_2),
+    ).toContainText(`Objectif supprimé · ${GOAL_NAME}`);
   });
 });
 
