@@ -1,93 +1,80 @@
-# Pulpe — Impeccable Design Context
+# Pulpe
 
-## Design Context
+<!-- impeccable:product-schema 1 -->
 
-### Users
+## Platform
 
-Young, active people in Switzerland who want clarity and control over their personal budget. Not finance nerds — people who are tired of Excel, tired of guessing, and want to breathe. They use the app in quick daily glances and deeper monthly planning sessions. CHF currency, French-language UI. The product sells relief from a chronic pain, not another tool to learn.
+adaptive
 
-### Brand Personality
+## Users
 
-**Warm, clear, grounded.**
+Pulpe s'adresse aux personnes en Suisse et en France qui sont stressées par leur budget tout en aimant rester organisées. Elles veulent comprendre où part leur argent, décider ce qu'elles en font et anticiper leurs finances ou leurs projets financiers sans devenir expertes en comptabilité.
 
-Pulpe is "un grand bol d'air frais apres avoir ferme Excel." It's the UX equivalent of setting down your bags after a long trip — you breathe, you see clearly, you know where you're going. Never cold-corporate, never anxious-red, never dense-accounting.
+Elles utilisent Pulpe pour des vérifications rapides au quotidien et pour des sessions de planification plus approfondies à l'échelle du mois ou de l'année.
 
-Four emotional pillars drive every decision:
-- **Soulagement** — the visceral shift from "subir" to "maitriser"
-- **Clarte** — fog lifts, cognitive load drops, you see where you stand
-- **Controle** — you're driving, not the app
-- **Legerete** — calm technology, no judgment, no guilt
+## Product Purpose
 
-### Aesthetic Direction
+Pulpe aide à organiser l'avenir financier plutôt qu'à analyser uniquement le passé. Le produit permet de préparer son année, de transformer ses intentions en budgets mensuels et de savoir à tout moment ce qui reste disponible, ce qui peut être épargné et si un projet futur tient dans le budget.
 
-**Calm naturalism with warm neutrals and purposeful color.**
+Le succès est un sentiment concret de clarté et de soulagement : l'utilisateur voit venir ses dépenses, comprend ses choix et peut agir avant qu'un problème n'arrive.
 
-- **Two-zone layout**: Emotion zone (top 30-35%, colored by financial state) transitions via soft gradient into content zone (neutral warm `#F7F6F3`). Character lives in the header; clarity lives below.
-- **Theme**: Both light and dark, already implemented. Light is the primary experience. Dark follows system conventions.
-- **Color philosophy**: Green = actions, savings, positive states. Amber = expenses (category) and moderate warnings. Blue = income, links, information. Red reserved ONLY for global deficit on the hero card. Neutral warm backgrounds — never green surfaces, never cold grays.
-- **Financial state colors on hero**: Comfortable (<80%) = green gradient, Tight (80-100%) = amber, Deficit (>100%) = red. Lines themselves use amber spectrum only, never red.
-- **References**: Revolut (clean, modern, financial clarity), Viseca One (Swiss, polished)
-- **Anti-references**: Cold banking apps (navy + aggressive charts), anxious finance apps (red everywhere), dense accounting software (intimidating, jargon-heavy)
+## Positioning
 
-### Typography
+Pulpe est un outil de planification budgétaire prospective. Son mécanisme distinctif est un plan annuel construit à partir de modèles mensuels réutilisables, puis confronté progressivement aux dépenses réelles. Là où les outils de suivi racontent surtout ce qui s'est déjà passé, Pulpe montre ce qui arrive et aide à décider en avance.
 
-| Platform | Display/Titles | Body/UI | Amounts |
-|----------|---------------|---------|---------|
-| iOS | Manrope (Bold) | SF Pro (system) | SF Pro tabular |
-| Web | Manrope (`brand-family`) | DM Sans (`plain-family`) | DM Sans tabular |
-| Landing | Poppins | Poppins | Poppins |
+## Operating Context
 
-Max 2 families per platform. No geometric/tech fonts (Inter, Roboto). No serifs. Friendly, modern, lisible.
+- L'application authentifiée existe sur le web avec Angular et sur iOS avec SwiftUI.
+- Le landing Next.js présente le produit, ses bénéfices, ses plateformes et ses preuves.
+- Ces surfaces partagent la même vérité produit et le même vocabulaire, tout en respectant les conventions propres au web et à iOS.
+- L'interface est en français et utilise toujours le tutoiement.
+- Les montants sont principalement exprimés en CHF ou en EUR.
 
-### Color Seeds
+## Capabilities and Constraints
 
-| Role | Seed | Usage |
-|------|------|-------|
-| Primary | `#006E25` | Actions, savings, positive accents |
-| Secondary | `#406741` | Secondary elements, discrete labels |
-| Tertiary | `#0061A6` | Income, links, information |
-| Error | `#BA1A1A` | Hero deficit only (>100%) |
-| Expense | `#B35800` | Expense category, moderate warnings |
-| Neutral warm bg | `#F7F6F3` | Content zone background |
-| Text primary | `#1A1C19` | Body text (never pure black) |
+- Planification annuelle à partir de budgets mensuels.
+- Jusqu'à cinq modèles mensuels réutilisables par utilisateur, dont un peut servir de modèle par défaut.
+- Distinction entre les prévisions et les transactions réelles, avec report du solde entre les mois.
+- Objectifs d'épargne et planification de projets financiers futurs.
+- Saisie manuelle des transactions ; aucune synchronisation bancaire.
+- Conversion CHF/EUR avec conservation du taux utilisé au moment de la saisie.
+- Les montants financiers sont chiffrés avant leur écriture en base de données.
+- Les règles de calcul doivent rester cohérentes entre les implémentations TypeScript et Swift.
 
-### Iconography
+Vocabulaire utilisateur durable :
 
-Outlined style (not filled), 1.5-2px stroke, rounded corners. Phosphor Icons or Heroicons (outline). Simple, recognizable, never aggressive. Prefer checkmarks over crosses.
+- `budget_line` / `budgetLines` : « prévision » ; `fixed` : « Récurrent » ; `one_off` : « Prévu » ; `transaction` : « Réel ».
+- `income` : « Revenu » ; `expense` : « Dépense » ; `saving` : « Épargne ».
+- `checked` : « Pointé » ; `unchecked` : « À pointer ».
+- Libellés de référence : « Disponible à dépenser », « Épargne prévue », « Fréquence ».
 
-### Motion
+## Brand Commitments
 
-Soft springs (response 0.4-0.6s, damping 0.65-0.85). Transitions 200-300ms. No bounce/elastic. No stressful or fast animations. Feedback is immediate but gentle.
+Pulpe doit rester chaleureux, clair et ancré dans le quotidien. La marque vend du soulagement face au stress budgétaire, pas un nouvel outil complexe à apprendre. Elle s'exprime avec des phrases courtes, un vocabulaire courant et aucun jargon financier inutile.
 
-### Tone of Voice
+Le ton encourage sans juger ni culpabiliser. Une erreur explique ce qui s'est passé et propose une prochaine étape. Les quatre engagements émotionnels durables sont le soulagement, la clarté, le contrôle et la légèreté.
 
-- Tutoiement always ("tu", never "vous")
-- Short, direct sentences. Everyday vocabulary, zero financial jargon.
-- Encouraging without being condescending. Human warmth, not corporate.
-- Errors: explain what happened + suggest next step, never blame the user.
-- Empty states: guide, don't just state emptiness.
-- Microcopy disarms anxiety: "Ca arrive", "Tu le sais, et c'est deja ca."
+## Evidence on Hand
 
-### Design Principles
+Trois témoignages authentiques sont publiés dans [`landing/components/sections/Testimonials.tsx`](landing/components/sections/Testimonials.tsx) :
 
-1. **Relief over features** — Every screen should reduce cognitive load, not add to it. If it doesn't bring relief or clarity, it doesn't ship.
-2. **Emotion at the top, information below** — The hero zone carries feeling (financial state as color); the content zone carries facts (neutral, readable, scannable).
-3. **Color means something** — No decorative color. Every hue maps to a financial concept (income=blue, expense=amber, savings=green) or a state (healthy, tight, deficit). Misusing color is lying.
-4. **Calm over clever** — No gamification, no guilt, no anxiety. Rounded corners, soft transitions, warm neutrals. The app is a companion, not a coach.
-5. **One primary action per screen** — Visual hierarchy is non-negotiable. One filled green CTA, secondary actions in outlined or text style. The user always knows what to do next.
+- Ismaël S., utilisateur depuis novembre 2025 : moins de stress et meilleure anticipation des dépenses imprévues.
+- Sylvie G., utilisatrice depuis mai 2026 : compréhension immédiate de l'état de son budget.
+- Julie D., utilisatrice depuis décembre 2025 : planification des vacances sur l'année et validation de leur faisabilité.
 
-### Accessibility
+Aucun autre témoignage, client, benchmark ou résultat commercial ne doit être inventé.
 
-- WCAG AA minimum (contrast, focus, labels)
-- `prefers-reduced-motion` respected — disable spring animations, use instant transitions
-- Touch targets: 44pt minimum (Apple HIG)
-- No color-only signaling — always pair with text, icon, or shape
-- Dynamic Type support on iOS
+## Product Principles
 
-### Platform-Specific Notes
+1. **L'avenir avant le rétroviseur** — aider à anticiper et décider avant de résumer le passé.
+2. **La clarté avant l'exhaustivité** — montrer l'information utile au bon moment sans recréer un tableur.
+3. **Le soulagement avant la pression** — réduire le stress budgétaire sans jugement, culpabilisation ou gamification.
+4. **Le contrôle reste à l'utilisateur** — Pulpe éclaire les choix et leurs conséquences sans décider à sa place.
+5. **Une vérité produit, des expériences natives** — conserver les mêmes règles et le même vocabulaire sur le web et iOS, avec une interface adaptée à chaque plateforme.
 
-**iOS**: Liquid Glass reserved for navigation and floating controls in authenticated app only. Never on content cards. Pre-auth flows (welcome, login, onboarding) can use glow/shadow for brand expressivity. `.presentationBackground(Color.sheetBackground)` on all sheets.
+## Accessibility & Inclusion
 
-**Web (Angular)**: Three token layers — `--pulpe-*` (semantic), Tailwind utilities, `--mat-sys-*` (Material foundation, theme only). Material overrides via `mat.*-overrides()`, never `::ng-deep`. Neutral seed `#8A8A82` for warm surface generation.
-
-**Landing**: Poppins only. White/very light background. Maximum breathing room. Emotional benefit copy. Flat soft illustrations, no 3D.
+- WCAG AA minimum sur le web.
+- Dynamic Type et cibles tactiles de 44 pt minimum sur iOS.
+- Réduction des animations lorsque le système le demande.
+- Aucun état ou concept financier communiqué par la couleur seule.

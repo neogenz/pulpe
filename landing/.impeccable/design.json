@@ -1,0 +1,235 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-06T17:05:36Z",
+  "title": "Design System: Pulpe Landing",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Forêt Pulpe",
+        "canonical": "#006E25",
+        "tonalRamp": ["#002106", "#00390F", "#00531A", "#006E25", "#48A353", "#7EDB83", "#C7FFC4", "#F6FFF0"]
+      },
+      "primary-hover": {
+        "role": "primary",
+        "displayName": "Forêt vive",
+        "canonical": "#2B883B",
+        "tonalRamp": ["#002106", "#00390F", "#00531A", "#006E25", "#2B883B", "#63BF6B", "#99F89D", "#EBFFE6"]
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "Toile chaude",
+        "canonical": "#F7F6F3",
+        "tonalRamp": ["#1A1917", "#353330", "#55524E", "#77736D", "#A09B94", "#CAC5BE", "#E9E5DF", "#F7F6F3"]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Porcelaine chaude",
+        "canonical": "#FFFEFA",
+        "tonalRamp": ["#1B1A17", "#39372F", "#5A574C", "#7F7A6B", "#AAA494", "#D5D0C3", "#F0ECE3", "#FFFEFA"]
+      },
+      "surface-alt": {
+        "role": "neutral",
+        "displayName": "Menthe de regroupement",
+        "canonical": "#EAF6E6",
+        "tonalRamp": ["#172116", "#2E402C", "#496246", "#668660", "#8EAD87", "#B7D5AF", "#D7EDD1", "#F4FFF0"]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Encre végétale",
+        "canonical": "#1A1C19",
+        "tonalRamp": ["#0B0D0A", "#1A1C19", "#343732", "#555951", "#7B8076", "#A8ADA2", "#D8DDD3", "#F7FAF5"]
+      },
+      "text-secondary": {
+        "role": "neutral",
+        "displayName": "Encre secondaire",
+        "canonical": "#454744",
+        "tonalRamp": ["#111310", "#292B28", "#454744", "#61645F", "#858983", "#AEB2AB", "#DADDD7", "#FAFCF8"]
+      },
+      "accent": {
+        "role": "tertiary",
+        "displayName": "Lac informatif",
+        "canonical": "#0061A6",
+        "tonalRamp": ["#001C37", "#003259", "#00497E", "#0061A6", "#5194DC", "#A0CAFF", "#EAF1FF", "#FDFCFF"]
+      },
+      "marker": {
+        "role": "secondary",
+        "displayName": "Surligneur menthe",
+        "canonical": "#C2F3B5",
+        "tonalRamp": ["#16360F", "#2D5D22", "#47873A", "#68B254", "#8DDA78", "#AAEC96", "#C2F3B5", "#F2FFED"]
+      },
+      "marker-strong": {
+        "role": "secondary",
+        "displayName": "Surligneur feuille",
+        "canonical": "#AAEC96",
+        "tonalRamp": ["#14320E", "#2A5720", "#427F35", "#61A94D", "#81D06A", "#AAEC96", "#D1F8C6", "#F3FFEF"]
+      },
+      "marker-proof": {
+        "role": "secondary",
+        "displayName": "Surligneur preuve",
+        "canonical": "#F4DF8A",
+        "tonalRamp": ["#382C00", "#604D05", "#887014", "#B49A31", "#D8C158", "#F4DF8A", "#FBEFBF", "#FFFBEA"]
+      },
+      "ambient-leaf": {
+        "role": "secondary",
+        "displayName": "Feuille diffuse",
+        "canonical": "oklch(88% 0.09 145)",
+        "tonalRamp": ["oklch(20% 0.05 145)", "oklch(30% 0.07 145)", "oklch(42% 0.09 145)", "oklch(56% 0.10 145)", "oklch(70% 0.10 145)", "oklch(80% 0.095 145)", "oklch(88% 0.09 145)", "oklch(95% 0.04 145)"]
+      },
+      "ambient-mint": {
+        "role": "tertiary",
+        "displayName": "Menthe diffuse",
+        "canonical": "oklch(90% 0.072 164)",
+        "tonalRamp": ["oklch(20% 0.04 164)", "oklch(31% 0.055 164)", "oklch(44% 0.07 164)", "oklch(57% 0.08 164)", "oklch(71% 0.08 164)", "oklch(82% 0.076 164)", "oklch(90% 0.072 164)", "oklch(96% 0.03 164)"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Promesse", "purpose": "Titre du héros, une seule fois par page." },
+      "headline": { "displayName": "Titre éditorial", "purpose": "Ouverture de chaque chapitre du récit." },
+      "title": { "displayName": "Titre de preuve", "purpose": "Cartes produit et plateformes." },
+      "body": { "displayName": "Récit", "purpose": "Bénéfices, explications et témoignages." },
+      "label": { "displayName": "Action", "purpose": "CTA, navigation, badges et micro-preuves." }
+    },
+    "shadows": [
+      {
+        "name": "organic",
+        "value": "0 1px 2px rgba(0,110,37,.04), 0 8px 22px rgba(0,60,20,.07)",
+        "purpose": "Carte éditoriale qui doit se détacher du champ ambiant."
+      },
+      {
+        "name": "screenshot",
+        "value": "0 2px 4px rgba(0,60,20,.04), 0 12px 28px rgba(0,60,20,.10)",
+        "purpose": "Dashboard et preuve produit tangible."
+      },
+      {
+        "name": "glass",
+        "value": "0 8px 32px rgba(0,60,20,.10)",
+        "purpose": "Coque du CTA mobile flottant."
+      },
+      {
+        "name": "scrolled-navigation",
+        "value": "0 4px 30px rgba(0,0,0,.10)",
+        "purpose": "Barre de navigation après le seuil de scroll uniquement."
+      }
+    ],
+    "motion": [
+      { "name": "ease-smooth", "value": "cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Courbe commune des interactions expressives sans overshoot." },
+      { "name": "control", "value": "200ms cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Hover, presse, badge et lien." },
+      { "name": "navigation", "value": "500ms ease", "purpose": "Passage de la barre transparente à la barre translucide." },
+      { "name": "marker-draw", "value": "700ms 300ms cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Trait feutre dessiné une seule fois." },
+      { "name": "dashboard-progress", "value": "1100ms cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Progression de la preuve produit au premier affichage." },
+      { "name": "reduced", "value": "prefers-reduced-motion: reduce", "purpose": "Montre immédiatement l'état final et supprime les transformations." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "content-max", "value": "1152px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "CTA dominant, tactile et assuré, avec une capsule généreuse.",
+      "html": "<a class=\"ds-btn-primary\" href=\"#\">Créer mon budget gratuitement</a>",
+      "css": ".ds-btn-primary{min-height:48px;max-width:100%;padding:12px 20px;display:inline-flex;align-items:center;justify-content:center;border-radius:9999px;background:var(--color-primary,#006e25);color:#fff;font:600 16px/1.35 Poppins,system-ui,sans-serif;text-align:center;text-decoration:none;box-shadow:0 4px 14px rgba(0,110,37,.28);transition:background 200ms var(--ease-smooth,cubic-bezier(.22,1,.36,1)),transform 200ms var(--ease-smooth,cubic-bezier(.22,1,.36,1)),box-shadow 200ms var(--ease-smooth,cubic-bezier(.22,1,.36,1))}.ds-btn-primary:hover{background:var(--color-primary-hover,#2b883b);transform:translateY(-2px)}.ds-btn-primary:active{transform:scale(.96);box-shadow:0 2px 8px rgba(0,110,37,.24)}.ds-btn-primary:focus-visible{outline:2px solid var(--color-primary,#006e25);outline-offset:3px}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Action secondaire en porcelaine chaude avec filet discret.",
+      "html": "<a class=\"ds-btn-secondary\" href=\"#\">Ouvrir l'app web</a>",
+      "css": ".ds-btn-secondary{min-height:48px;padding:12px 20px;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(26,28,25,.1);border-radius:9999px;background:var(--color-surface,#fffefa);color:var(--color-text,#1a1c19);font:600 16px/1.35 Poppins,system-ui,sans-serif;text-decoration:none;transition:background 200ms var(--ease-smooth,cubic-bezier(.22,1,.36,1)),transform 200ms var(--ease-smooth,cubic-bezier(.22,1,.36,1))}.ds-btn-secondary:hover{background:var(--color-surface-alt,#eaf6e6)}.ds-btn-secondary:active{transform:scale(.96)}.ds-btn-secondary:focus-visible{outline:2px solid var(--color-primary,#006e25);outline-offset:3px}"
+    },
+    {
+      "name": "Primary Badge",
+      "kind": "chip",
+      "refersTo": "badge-primary",
+      "description": "Statut compact et informatif, jamais utilisé comme décoration de section.",
+      "html": "<span class=\"ds-badge\">Disponible</span>",
+      "css": ".ds-badge{display:inline-flex;align-items:center;min-height:28px;padding:4px 12px;border-radius:9999px;background:rgba(0,110,37,.1);color:var(--color-primary,#006e25);font:500 14px/1.25 Poppins,system-ui,sans-serif}"
+    },
+    {
+      "name": "Floating Navigation",
+      "kind": "nav",
+      "refersTo": "editorial-card",
+      "description": "Barre porcelaine translucide après scroll, avec un seul CTA visible.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-brand\" href=\"#\"><span>P</span>Pulpe</a><div><a href=\"#\">Pourquoi Pulpe</a><a href=\"#\">Applications</a></div><a class=\"ds-nav-cta\" href=\"#\">Créer mon budget</a></nav>",
+      "css": ".ds-nav{height:72px;padding:0 20px;display:flex;align-items:center;gap:18px;border-radius:16px;background:rgba(255,254,250,.8);color:var(--color-text,#1a1c19);box-shadow:0 4px 30px rgba(0,0,0,.1);backdrop-filter:blur(14px) saturate(1.5);font-family:Poppins,system-ui,sans-serif}.ds-brand{display:flex;align-items:center;gap:8px;margin-right:auto;color:inherit;font-weight:700;text-decoration:none}.ds-brand span{width:28px;height:28px;display:grid;place-items:center;border-radius:9px;background:var(--color-primary,#006e25);color:#fff}.ds-nav div{display:flex;gap:4px}.ds-nav div a{min-height:44px;padding:0 14px;display:flex;align-items:center;border-radius:9999px;color:inherit;font-size:14px;text-decoration:none}.ds-nav div a:hover{background:rgba(0,110,37,.08);color:var(--color-primary,#006e25)}.ds-nav-cta{min-height:44px;padding:0 16px;display:flex;align-items:center;border-radius:9999px;background:var(--color-primary,#006e25);color:#fff;font-size:14px;font-weight:600;text-decoration:none}.ds-nav a:focus-visible{outline:2px solid var(--color-primary,#006e25);outline-offset:2px}"
+    },
+    {
+      "name": "Editorial Card",
+      "kind": "card",
+      "refersTo": "editorial-card",
+      "description": "Surface narrative sobre, associant bénéfice et micro-preuve.",
+      "html": "<article class=\"ds-card\"><span class=\"ds-card-icon\">↗</span><h3>Prévois les mois qui comptent.</h3><p>Répartis une dépense importante et vois son impact avant de t'engager.</p><div class=\"ds-card-proof\"><span>Vacances</span><strong>420 CHF / mois</strong></div></article>",
+      "css": ".ds-card{max-width:460px;overflow:hidden;border:1px solid rgba(26,28,25,.05);border-radius:20px;background:var(--color-surface,#fffefa);color:var(--color-text,#1a1c19);box-shadow:0 1px 2px rgba(0,110,37,.04),0 8px 22px rgba(0,60,20,.07);font-family:Poppins,system-ui,sans-serif}.ds-card>span,.ds-card h3,.ds-card p{margin-left:32px;margin-right:32px}.ds-card-icon{display:block;margin-top:32px;color:var(--color-primary,#006e25);font-size:24px}.ds-card h3{margin-top:18px;margin-bottom:0;font-size:28px;line-height:1.2;letter-spacing:-.025em}.ds-card p{margin-top:14px;margin-bottom:30px;color:var(--color-text-secondary,#454744);line-height:1.7}.ds-card-proof{padding:20px 32px;display:flex;justify-content:space-between;gap:18px;background:var(--color-surface-alt,#eaf6e6);border-top:1px solid rgba(26,28,25,.06);font-size:14px}.ds-card-proof strong{font-variant-numeric:tabular-nums}"
+    },
+    {
+      "name": "FAQ Accordion",
+      "kind": "custom",
+      "refersTo": "editorial-card",
+      "description": "Accordéon natif disponible au rendu serveur et entièrement pilotable au clavier.",
+      "html": "<details class=\"ds-faq\" open><summary>Pourquoi Pulpe est gratuit ?<span>⌄</span></summary><div>Le modèle reste transparent : aucune revente de données et aucune connexion bancaire.</div></details>",
+      "css": ".ds-faq{max-width:620px;overflow:hidden;border:1px solid rgba(26,28,25,.05);border-radius:16px;background:var(--color-surface,#fffefa);color:var(--color-text,#1a1c19);font-family:Poppins,system-ui,sans-serif}.ds-faq summary{min-height:60px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:20px;cursor:pointer;font-weight:500;list-style:none;transition:background 200ms}.ds-faq summary:hover{background:rgba(0,110,37,.05)}.ds-faq summary:focus-visible{outline:2px solid var(--color-primary,#006e25);outline-offset:-2px}.ds-faq summary span{color:var(--color-text-secondary,#454744);transition:transform 200ms}.ds-faq[open] summary span{transform:rotate(180deg)}.ds-faq>div{padding:0 20px 20px;color:var(--color-text-secondary,#454744);line-height:1.7}"
+    },
+    {
+      "name": "Product Proof Dashboard",
+      "kind": "custom",
+      "refersTo": "editorial-card",
+      "description": "Preuve centrale du produit : disponible, prévisions et projection dans une composition cohérente.",
+      "html": "<figure class=\"ds-dashboard\"><figcaption>Tableau de bord <span>Vue annuelle</span></figcaption><div class=\"ds-dashboard-grid\"><section><small>DISPONIBLE CE MOIS</small><strong>2’430 <em>CHF</em></strong><div class=\"ds-bar\"><i></i></div><p>Les grosses dépenses sont déjà intégrées.</p></section><aside><b>Prévisions du mois</b><p>✓ Loyer <span>1’850 CHF</span></p><p>○ Vacances <span>420 CHF</span></p><div class=\"ds-curve\">Projection du solde ↗</div></aside></div></figure>",
+      "css": ".ds-dashboard{max-width:760px;overflow:hidden;border:1px solid rgba(0,0,0,.1);border-radius:20px;background:var(--color-surface,#fffefa);color:var(--color-text,#1a1c19);box-shadow:0 2px 4px rgba(0,60,20,.04),0 12px 28px rgba(0,60,20,.1);font-family:Poppins,system-ui,sans-serif}.ds-dashboard figcaption{padding:12px 18px;display:flex;justify-content:space-between;border-bottom:1px solid rgba(26,28,25,.06);font-size:14px;font-weight:600}.ds-dashboard figcaption span{color:var(--color-text-secondary,#454744);font-size:12px}.ds-dashboard-grid{padding:18px;display:grid;grid-template-columns:1.08fr .92fr;gap:14px;background:#fbfdf9}.ds-dashboard section{min-height:260px;padding:26px;display:flex;flex-direction:column;border-radius:14px;background:linear-gradient(145deg,var(--color-primary,#006e25),#004d1a);color:#fff}.ds-dashboard small{font-weight:600;letter-spacing:.08em}.ds-dashboard section strong{margin-top:24px;font-size:44px;line-height:1;font-variant-numeric:tabular-nums}.ds-dashboard section em{font-size:16px;font-style:normal;opacity:.85}.ds-bar{height:8px;margin-top:auto;overflow:hidden;border-radius:9999px;background:rgba(255,255,255,.2)}.ds-bar i{display:block;width:54%;height:100%;border-radius:inherit;background:rgba(255,255,255,.9)}.ds-dashboard section p{margin:14px 0 0;font-size:13px;opacity:.85}.ds-dashboard aside{padding:20px;border-radius:14px;background:#f1f6ef;font-size:13px}.ds-dashboard aside b{font-size:12px;color:var(--color-text-secondary,#454744)}.ds-dashboard aside p{display:flex;justify-content:space-between;gap:12px}.ds-dashboard aside p span{color:var(--color-text-secondary,#454744);font-variant-numeric:tabular-nums}.ds-curve{margin-top:28px;padding-top:20px;border-top:1px solid rgba(26,28,25,.08);color:var(--color-primary,#006e25);font-weight:600}"
+    },
+    {
+      "name": "Marker Highlight",
+      "kind": "custom",
+      "refersTo": "badge-primary",
+      "description": "Geste éditorial signature : un trait feutre rare qui souligne sans déplacer le texte.",
+      "html": "<p class=\"ds-marker-line\">Tu sais des mois à l'avance <mark class=\"ds-marker\">combien il te restera.</mark></p>",
+      "css": ".ds-marker-line{max-width:620px;color:var(--color-text,#1a1c19);font:800 48px/.98 Poppins,system-ui,sans-serif;letter-spacing:-.04em}.ds-marker{margin:0 -.1em;padding:0 .1em;border-radius:.12em .08em .1em .06em;background:linear-gradient(176.5deg,transparent 4%,var(--color-marker-highlight-strong,#aaec96) 5%,var(--color-marker-highlight-strong,#aaec96) 95%,transparent 96%) no-repeat 0 56%/100% .92em;color:inherit;box-decoration-break:clone;-webkit-box-decoration-break:clone}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Un grand bol d'air frais après avoir fermé Excel.",
+    "overview": "La landing transforme cette promesse en une publication produit premium : beaucoup d'air, une typographie assurée, des preuves concrètes et des gestes éditoriaux rares. Elle persuade par la clarté de son récit et par la démonstration du produit, jamais par une accumulation de slogans ou d'effets.\n\nLa précision suisse reste chaleureuse. Les alignements, contrastes, transitions et états tactiles sont méticuleux, tandis que la palette naturelle et le surligneur feutre empêchent l'ensemble de devenir institutionnel. Le résultat doit paraître fini jusque dans les détails, sans devenir luxueux, brillant ou démonstratif.",
+    "keyCharacteristics": [
+      "Une seule famille, Poppins, modulée par l'échelle, le poids et l'espacement.",
+      "Un champ atmosphérique vert très diffus sur desktop, remplacé par des halos locaux performants sur mobile.",
+      "Un dashboard annuel large comme preuve principale, visible dès le rendu serveur.",
+      "Des surfaces éditoriales plates ou légèrement soulevées, jamais une grille de cartes génériques.",
+      "Un surligneur feutre animé comme signature narrative, toujours décoratif et compatible avec la réduction de mouvement.",
+      "Un CTA dominant par moment de conversion, avec retour tactile précis."
+    ],
+    "rules": [
+      { "name": "The Proof Color Rule", "body": "Le jaune doux du surligneur preuve est réservé aux témoignages ; une promesse de marque utilise les verts de la palette.", "section": "colors" },
+      { "name": "The Ambient-not-Surface Rule", "body": "Les teintes `ambient-*` construisent un champ lumineux derrière le contenu. Elles ne deviennent ni fond de carte, ni texte, ni CTA.", "section": "colors" },
+      { "name": "The Contrast-before-Atmosphere Rule", "body": "Un effet ambiant est supprimé ou affaibli dès qu'il dégrade la lisibilité d'un texte, d'une preuve ou d'une action.", "section": "colors" },
+      { "name": "The Single-Family Rule", "body": "Poppins porte tout le landing. La hiérarchie vient de l'échelle et du rythme, jamais d'une seconde police.", "section": "typography" },
+      { "name": "The Editorial Wrap Rule", "body": "Un titre est équilibré et une phrase narrative évite les veuves ; aucune largeur arbitraire ne force une cassure fragile.", "section": "typography" },
+      { "name": "The Shared Boundary Rule", "body": "Une section apporte la moitié de l'espace qui la sépare de sa voisine ; deux sections ne cumulent jamais deux rythmes complets.", "section": "layout" },
+      { "name": "The Visible Default Rule", "body": "Le contenu marketing et les preuves existent dans le HTML serveur. Le scroll peut embellir un détail, jamais décider si l'information est lisible.", "section": "layout" },
+      { "name": "The Mobile Performance Rule", "body": "Une ambiance visuelle mobile doit rester équivalente sans imposer de grande couche floutée hors écran.", "section": "layout" },
+      { "name": "The Flat Editorial Rule", "body": "Une carte commence par un ton et un filet. L'ombre organique n'est ajoutée que si la composition exige une séparation réelle.", "section": "elevation" },
+      { "name": "The Navigation Glass Rule", "body": "Le backdrop blur appartient à la navigation après scroll. Les cartes de contenu restent opaques.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do faire de la démonstration produit la preuve principale du récit.",
+      "Do conserver une seule action dominante par moment de conversion.",
+      "Do utiliser Poppins, les chiffres tabulaires et des lignes équilibrées sur toute la page.",
+      "Do préserver le rendu serveur, les safe areas, le focus visible et la réduction de mouvement.",
+      "Do réserver les détails expressifs aux endroits qui racontent quelque chose : surligneur, dashboard, navigation."
+    ],
+    "donts": [
+      "Don't cacher une promesse, une preuve ou un témoignage derrière une animation de scroll.",
+      "Don't transformer chaque section en grille de cartes égales avec badge et icône.",
+      "Don't utiliser de verre, grain, grande ombre noire ou gradient saturé sur les cartes de contenu.",
+      "Don't ajouter une deuxième famille typographique ou un thème sombre au landing.",
+      "Don't employer le surligneur jaune pour une affirmation marketing non prouvée.",
+      "Don't introduire une grande couche floutée sur mobile lorsque des gradients locaux produisent le même résultat."
+    ]
+  }
+}
