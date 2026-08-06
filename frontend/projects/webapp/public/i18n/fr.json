@@ -698,10 +698,18 @@
     "consumed": "% utilisé",
     "noForecast": "Aucune prévision",
     "amountMustBePositive": "Le montant doit être positif",
-    "available": "disponible",
+    "available": {
+      "expense": "disponible",
+      "income": "à recevoir",
+      "saving": "à transférer"
+    },
     "availableOf": "disponible sur {{ amount }}",
     "planned": "prévu",
-    "spent": "dépensé",
+    "spent": {
+      "expense": "dépensé",
+      "income": "reçu",
+      "saving": "transféré"
+    },
     "exceeded": "dépassé",
     "exceededBy": "Dépassé de {{ amount }}",
     "usedPercent": "{{ percent }}% utilisé",
