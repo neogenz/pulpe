@@ -293,6 +293,11 @@ export function buildSavingsGoalTimeline(
           ? Math.max(plannedAmount, confirmedAmount)
           : confirmedAmount;
     }
+    // Les deux termes échappent au garde pour des raisons opposées :
+    // `withdrawnAmount` par choix — une sortie de stock compte hors fenêtre,
+    // comme dit plus haut ; `remainingPlannedWithdrawalAmount` parce que sa
+    // définition porte déjà le garde et le rend nul hors fenêtre. Ré-envelopper
+    // la ligne l'appliquerait deux fois au second et le perdrait sur le premier.
     projectedCumulative -= withdrawnAmount + remainingPlannedWithdrawalAmount;
 
     const hasLines = monthLines.length > 0;
