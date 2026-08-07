@@ -80,8 +80,9 @@ describe('GetSavingsGoalProgressUseCase', () => {
   });
 
   it('computes the two layers from the decrypted linked contributions', async () => {
-    const currentMonth = new Date().getMonth() + 1;
-    const currentYear = new Date().getFullYear();
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
     mockRepo.findLinkedContributions.mockResolvedValue({
       lines: [
         {
@@ -112,8 +113,9 @@ describe('GetSavingsGoalProgressUseCase', () => {
   // branchement compile et rapporte silencieusement zéro retrait. Ce test tient
   // le fil entre la lecture du repository et la formule.
   it('subtracts linked withdrawals from confirmed without moving confirmedPace', async () => {
-    const currentMonth = new Date().getMonth() + 1;
-    const currentYear = new Date().getFullYear();
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
     mockRepo.findLinkedContributions.mockResolvedValue({
       lines: [
         {
@@ -150,8 +152,9 @@ describe('GetSavingsGoalProgressUseCase', () => {
   // laisse le stock intact. C'est la distinction que la timeline doit porter
   // jusqu'aux deux clients.
   it('lowers only the projection for an announced withdrawal — PUL-329 v2', async () => {
-    const currentMonth = new Date().getMonth() + 1;
-    const currentYear = new Date().getFullYear();
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
     mockRepo.findLinkedContributions.mockResolvedValue({
       lines: [
         {
@@ -190,8 +193,9 @@ describe('GetSavingsGoalProgressUseCase', () => {
   });
 
   it('lifts confirmed by initialAmount (stock) without moving confirmedPace (flux) — PUL-293', async () => {
-    const currentMonth = new Date().getMonth() + 1;
-    const currentYear = new Date().getFullYear();
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
     const linkedLines = [
       {
         id: 'line-1',
