@@ -3,9 +3,7 @@ import { test, expect } from '../../fixtures/test-fixtures';
 test.describe('Product tour accessibility', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/dashboard');
-    await expect(
-      authenticatedPage.getByTestId('dashboard-page'),
-    ).toBeVisible();
+    await expect(authenticatedPage.getByTestId('dashboard-page')).toBeVisible();
   });
 
   test('should expose dialog semantics and contain keyboard focus', async ({
@@ -30,9 +28,7 @@ test.describe('Product tour accessibility', () => {
     await expect(closeButton).toBeFocused();
     await expect
       .poll(() =>
-        closeButton.evaluate(
-          (button) => getComputedStyle(button).outlineStyle,
-        ),
+        closeButton.evaluate((button) => getComputedStyle(button).outlineStyle),
       )
       .not.toBe('none');
 
@@ -41,9 +37,7 @@ test.describe('Product tour accessibility', () => {
       expect(
         await authenticatedPage.evaluate(() => {
           const focused = document.activeElement;
-          const activeTarget = document.querySelector(
-            '.driver-active-element',
-          );
+          const activeTarget = document.querySelector('.driver-active-element');
           const popover = document.querySelector('[role="dialog"]');
           return (
             !!focused &&

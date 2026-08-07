@@ -1,5 +1,10 @@
 import type { Page, Request } from '@playwright/test';
-import type { SavingsGoalWithdrawal, Transaction } from 'pulpe-shared';
+import type {
+  BudgetLine,
+  SavingsGoalWithdrawal,
+  Transaction,
+} from 'pulpe-shared';
+import { API_ERROR_CODES, remainingPlannedWithdrawal } from 'pulpe-shared';
 import { test, expect } from '../../fixtures/test-fixtures';
 import { TEST_CONFIG } from '../../config/test-config';
 import {
@@ -282,13 +287,20 @@ test.describe('Savings goal as the source of an income', () => {
     await savingsGoalsPage.expectWithdrawalCount(1);
     await expect(savingsGoalsPage.withdrawalRows()).toContainText(/4.500\.00/);
 
+    // Une seule transition : le retrait ouvre son budget, jamais un éditeur
+    // poussé après attente. L'URL ne porte donc plus de transaction ciblée.
     await savingsGoalsPage.openWithdrawal(INCOME_NAME);
-    await expect(budgetDetailsPage.transactionDialogSourceLink()).toBeVisible();
+    await budgetDetailsPage.expectPageLoaded();
+    await expect(authenticatedPage).toHaveURL(
+      new RegExp(`/budget/${CURRENT_BUDGET.id}$`),
+    );
+    await expect(budgetDetailsPage.transactionDialogSourceLink()).toBeHidden();
+    await expect(budgetDetailsPage.transactionSource(INCOME_ID)).toContainText(
+      `Pris sur · ${GOAL_NAME}`,
+    );
 
     await authenticatedPage.goBack();
     await savingsGoalsPage.expectDetailLoaded();
-    // The consumed query param must not reopen the transaction on the way back.
-    await expect(budgetDetailsPage.transactionDialogSourceLink()).toBeHidden();
   });
 
   test('editing and deleting the income keep the balance equation', async ({
@@ -298,10 +310,7 @@ test.describe('Savings goal as the source of an income', () => {
   }) => {
     await installGoalWorld(authenticatedPage, withdrawnWorld());
 
-    await budgetDetailsPage.gotoTargetedTransaction(
-      CURRENT_BUDGET.id,
-      INCOME_ID,
-    );
+    await budgetDetailsPage.openTransactionEditor(CURRENT_BUDGET.id, INCOME_ID);
     const amountInput = authenticatedPage.getByTestId('amount-input-value');
     await amountInput.fill('3500');
     const patched = waitForTransactionWrite(authenticatedPage, 'PATCH');
@@ -405,10 +414,7 @@ test.describe('Savings goal as the source of an income', () => {
     );
     await expect(source.locator('a')).toHaveCount(0);
 
-    await budgetDetailsPage.gotoTargetedTransaction(
-      CURRENT_BUDGET.id,
-      INCOME_ID,
-    );
+    await budgetDetailsPage.openTransactionEditor(CURRENT_BUDGET.id, INCOME_ID);
     await expect(
       budgetDetailsPage.transactionDialogSourceBroken(),
     ).toBeVisible();
@@ -417,3 +423,383 @@ test.describe('Savings goal as the source of an income', () => {
     );
   });
 });
+
+/**
+ * PUL-329 v2 — annoncer un retrait, puis le réaliser.
+ *
+ * Une prévision source ne sort rien du pot : elle abaisse la projection et
+ * laisse le confirmé intact. Seul le revenu réel débite. Les deux stocks se
+ * lisent séparément, et le reliquat planifié est ce qui les empêche de
+ * retrancher deux fois la même sortie :
+ *
+ *     confirmé  = stock − Σ réels
+ *     reliquat  = max(0, annoncé − Σ réels)      ← `remainingPlannedWithdrawal`
+ *     projeté   = confirmé − reliquat
+ *
+ * Le faux backend ci-dessous applique cette équation avec la VRAIE fonction
+ * partagée : les montants du scénario ne sont donc jamais recopiés à la main.
+ */
+
+const PLANNED_LINE_NAME = 'Apport cuisine';
+const PLANNED_AMOUNT = 500;
+const GOAL_STOCK = 3600;
+
+interface PlannedGoalWorld {
+  /** Ce que l'objectif détient avant toute sortie. */
+  stock: number;
+  /** La prévision source, tant qu'elle existe. */
+  line: BudgetLine | null;
+  /** Les revenus réels qui la réalisent — eux seuls débitent. */
+  realized: Transaction[];
+}
+
+function realizedTotal(world: PlannedGoalWorld): number {
+  return world.realized.reduce((sum, tx) => sum + tx.amount, 0);
+}
+
+function confirmedOf(world: PlannedGoalWorld): number {
+  return world.stock - realizedTotal(world);
+}
+
+function remainingOf(world: PlannedGoalWorld): number {
+  const line = world.line;
+  if (!line) return 0;
+  return remainingPlannedWithdrawal(
+    {
+      id: line.id,
+      amount: line.amount,
+      month: CURRENT_BUDGET.month,
+      year: CURRENT_BUDGET.year,
+    },
+    world.realized.map((tx) => ({
+      amount: tx.amount,
+      month: CURRENT_BUDGET.month,
+      year: CURRENT_BUDGET.year,
+      budgetLineId: tx.budgetLineId,
+    })),
+  );
+}
+
+function projectedOf(world: PlannedGoalWorld): number {
+  return confirmedOf(world) - remainingOf(world);
+}
+
+async function installPlannedGoalWorld(
+  page: Page,
+  seed: Partial<PlannedGoalWorld> = {},
+): Promise<PlannedGoalWorld> {
+  const world: PlannedGoalWorld = {
+    stock: GOAL_STOCK,
+    line: null,
+    realized: [],
+    ...seed,
+  };
+
+  await page.route('**/api/v1/**', async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    const method = request.method();
+    const json = (body: unknown) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(body),
+      });
+
+    if (path.endsWith('/users/settings') && method === 'GET') {
+      return json({
+        success: true,
+        data: {
+          currency: 'CHF',
+          payDayOfMonth: 1,
+          showCurrencySelector: false,
+        },
+      });
+    }
+    if (path.endsWith('/savings-goals') && method === 'GET') {
+      return json({
+        success: true,
+        data: [createSavingsGoalMock(GOAL_ID, { name: GOAL_NAME })],
+      });
+    }
+    if (path.endsWith('/progress')) {
+      return json({
+        success: true,
+        data: createSavingsGoalProgressMock(GOAL_ID, {
+          confirmed: confirmedOf(world),
+          projected: projectedOf(world),
+          plannedProjection: projectedOf(world),
+          months: [
+            {
+              month: CURRENT_BUDGET.month,
+              year: CURRENT_BUDGET.year,
+              state: 'current',
+              isLocked: false,
+              plannedAmount: 0,
+              confirmedAmount: 0,
+              withdrawnAmount: realizedTotal(world),
+              plannedWithdrawalAmount: world.line?.amount ?? 0,
+              remainingPlannedWithdrawalAmount: remainingOf(world),
+              plannedCumulative: 0,
+              confirmedCumulative: confirmedOf(world),
+              projectedCumulative: projectedOf(world),
+              lines: [],
+            },
+          ],
+        }),
+      });
+    }
+    if (path.endsWith('/withdrawals')) {
+      return json({
+        success: true,
+        data: world.realized.map((tx) =>
+          createSavingsGoalWithdrawalMock(tx.id, CURRENT_BUDGET.id, {
+            name: tx.name,
+            amount: tx.amount,
+          }),
+        ),
+      });
+    }
+    if (path.endsWith('/contributions')) {
+      return json({ success: true, data: [] });
+    }
+    if (path.includes('/budgets/') && path.endsWith('/details')) {
+      return json(
+        createBudgetDetailsMock(CURRENT_BUDGET.id, {
+          budget: {
+            month: CURRENT_BUDGET.month,
+            year: CURRENT_BUDGET.year,
+            rollover: 0,
+          },
+          budgetLines: world.line ? [world.line] : [],
+          transactions: world.realized,
+        }),
+      );
+    }
+    if (path.endsWith('/budget-lines') && method === 'POST') {
+      const payload = request.postDataJSON() as BudgetLine & { id: string };
+      world.line = createBudgetLineMock(payload.id, CURRENT_BUDGET.id, {
+        name: payload.name,
+        amount: payload.amount,
+        kind: payload.kind,
+        sourceSavingsGoalId: payload.sourceSavingsGoalId,
+        sourceSavingsGoalName: payload.sourceSavingsGoalId ? GOAL_NAME : null,
+      });
+      return json({ success: true, data: world.line });
+    }
+    if (/\/budget-lines\/[^/]+$/.test(path) && method === 'DELETE') {
+      // La prévision s'en va ; ce qui en est déjà sorti reste sorti.
+      world.line = null;
+      return route.fulfill({ status: 204, body: '' });
+    }
+    if (path.endsWith('/transactions') && method === 'POST') {
+      const payload = request.postDataJSON() as Transaction & { id: string };
+      // Le serveur reste l'autorité : au-delà du stock confirmé, rien n'est écrit.
+      if (payload.amount > confirmedOf(world)) {
+        return route.fulfill({
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: false,
+            statusCode: 400,
+            error: 'BadRequest',
+            code: API_ERROR_CODES.SAVINGS_GOAL_WITHDRAWAL_INSUFFICIENT_BALANCE,
+            message: 'Insufficient balance',
+          }),
+        });
+      }
+      const income = createTransactionMock(payload.id, CURRENT_BUDGET.id, {
+        name: payload.name,
+        amount: payload.amount,
+        kind: 'income',
+        budgetLineId: payload.budgetLineId,
+        transactionDate: new Date().toISOString(),
+      });
+      world.realized = [...world.realized, income];
+      return json({ success: true, data: income });
+    }
+    if (/\/transactions\/[^/]+$/.test(path) && method === 'DELETE') {
+      const id = path.split('/').pop();
+      world.realized = world.realized.filter((tx) => tx.id !== id);
+      return route.fulfill({ status: 204, body: '' });
+    }
+    return route.fallback();
+  });
+
+  return world;
+}
+
+/** La prévision telle qu'elle existe déjà quand le scénario n'a pas à la créer. */
+function announcedLine(overrides: Partial<BudgetLine> = {}): BudgetLine {
+  return createBudgetLineMock(TEST_UUIDS.LINE_2, CURRENT_BUDGET.id, {
+    name: PLANNED_LINE_NAME,
+    amount: PLANNED_AMOUNT,
+    kind: 'income',
+    sourceSavingsGoalId: GOAL_ID,
+    sourceSavingsGoalName: GOAL_NAME,
+    ...overrides,
+  });
+}
+
+test.describe('Announcing a withdrawal, then realizing it', () => {
+  test('the pot only empties when the real income is created, and never twice', async ({
+    authenticatedPage,
+    budgetDetailsPage,
+    savingsGoalsPage,
+  }) => {
+    // Sept étapes et huit navigations : le budget par défaut suffit à peine à
+    // vide, et jamais quand les autres specs tournent en parallèle.
+    test.slow();
+
+    const world = await installPlannedGoalWorld(authenticatedPage);
+
+    // 1. Un objectif confirmé à 3'600, et une prévision source de 500.
+    await savingsGoalsPage.gotoDetail(GOAL_ID);
+    await savingsGoalsPage.expectConfirmedAmount('3 600');
+    await savingsGoalsPage.expectProjectedAmount('3 600');
+
+    await budgetDetailsPage.goto(CURRENT_BUDGET.id);
+    await budgetDetailsPage.openPlannedWithdrawalForm(
+      PLANNED_LINE_NAME,
+      String(PLANNED_AMOUNT),
+    );
+    await budgetDetailsPage.selectPlannedWithdrawalGoal(GOAL_NAME);
+    // L'aperçu se lit à la période du budget, pas sur le solde du jour.
+    const preview = budgetDetailsPage.plannedWithdrawalPreview();
+    await expect(preview).toContainText(/3.600/);
+    await expect(preview).toContainText(/3.100/);
+    await budgetDetailsPage.submitNewBudgetLine();
+
+    await expect.poll(() => world.line?.id ?? null).not.toBeNull();
+    const lineId = world.line?.id ?? '';
+
+    // 2. Annoncer ne sort rien : le confirmé tient, la projection baisse.
+    await expect(budgetDetailsPage.budgetLineSource(lineId)).toContainText(
+      `Pris sur · ${GOAL_NAME}`,
+    );
+    await savingsGoalsPage.gotoDetail(GOAL_ID);
+    await savingsGoalsPage.expectConfirmedAmount('3 600');
+    await savingsGoalsPage.expectProjectedAmount('3 100');
+    await expect(
+      savingsGoalsPage.plannedWithdrawalRows().first(),
+    ).toContainText('-500');
+    // Rien n'est encore sorti : l'historique des retraits n'a rien à raconter.
+    await expect(savingsGoalsPage.withdrawalsSection()).toBeHidden();
+
+    // 3. Réaliser 300 : 300 sortent du stock, 200 restent annoncés.
+    await budgetDetailsPage.goto(CURRENT_BUDGET.id);
+    await budgetDetailsPage.realizeWithdrawal(lineId);
+    await realizeAmount(authenticatedPage, '300');
+
+    expect(world.realized).toHaveLength(1);
+    await savingsGoalsPage.gotoDetail(GOAL_ID);
+    await savingsGoalsPage.expectConfirmedAmount('3 300');
+    await savingsGoalsPage.expectProjectedAmount('3 100');
+    await savingsGoalsPage.expectWithdrawalCount(1);
+
+    // 4. Un réel au-delà du prévu ne crée pas de reliquat négatif : 700 sortis,
+    //    aucun reliquat, projeté = confirmé. Jamais 2'400.
+    await budgetDetailsPage.goto(CURRENT_BUDGET.id);
+    await budgetDetailsPage.realizeWithdrawal(lineId);
+    await realizeAmount(authenticatedPage, '400');
+
+    expect(world.realized).toHaveLength(2);
+    await savingsGoalsPage.gotoDetail(GOAL_ID);
+    await savingsGoalsPage.expectConfirmedAmount('2 900');
+    await savingsGoalsPage.expectProjectedAmount('2 900');
+
+    // 5. Supprimer un réel rend son montant au stock et rouvre le reliquat.
+    const lastRealizedId = world.realized[world.realized.length - 1].id;
+    await budgetDetailsPage.goto(CURRENT_BUDGET.id);
+    await budgetDetailsPage.openEnvelopePanel(PLANNED_LINE_NAME);
+    // Le panneau est la surface de détail du desktop : il nomme l'objectif
+    // source, jamais la prévision. L'assertion porte sur le texte rendu de bout
+    // en bout, avec les vraies données du budget derrière.
+    await expect(budgetDetailsPage.envelopePanelSource(lineId)).toContainText(
+      `Pris sur · ${GOAL_NAME}`,
+    );
+    await authenticatedPage.getByTestId(`delete-tx-${lastRealizedId}`).click();
+    await budgetDetailsPage.confirmDelete();
+    await expect.poll(() => world.realized).toHaveLength(1);
+
+    await savingsGoalsPage.gotoDetail(GOAL_ID);
+    await savingsGoalsPage.expectConfirmedAmount('3 300');
+    await savingsGoalsPage.expectProjectedAmount('3 100');
+
+    // …et supprimer la prévision n'efface pas le retrait déjà vécu.
+    await budgetDetailsPage.goto(CURRENT_BUDGET.id);
+    await authenticatedPage.getByTestId(`card-menu-${lineId}`).click();
+    await authenticatedPage.getByTestId(`delete-${lineId}`).click();
+    await budgetDetailsPage.confirmDelete();
+    await expect.poll(() => world.line).toBeNull();
+
+    await savingsGoalsPage.gotoDetail(GOAL_ID);
+    await savingsGoalsPage.expectConfirmedAmount('3 300');
+    await savingsGoalsPage.expectWithdrawalCount(1);
+    await expect(savingsGoalsPage.plannedWithdrawalRows()).toHaveCount(0);
+  });
+
+  test('a real income over the balance is refused with the entry left intact', async ({
+    authenticatedPage,
+    budgetDetailsPage,
+  }) => {
+    const world = await installPlannedGoalWorld(authenticatedPage, {
+      line: announcedLine(),
+    });
+
+    await budgetDetailsPage.goto(CURRENT_BUDGET.id);
+    await budgetDetailsPage.realizeWithdrawal(TEST_UUIDS.LINE_2);
+    const amountInput = realizationAmountInput(authenticatedPage);
+    await amountInput.fill('4000');
+    await authenticatedPage.getByTestId('save-transaction').click();
+
+    await expect(
+      authenticatedPage.getByTestId('transaction-submit-error'),
+    ).toBeVisible();
+    // La saisie reste à l'écran : le refus porte justement sur ce montant.
+    await expect(amountInput).toHaveValue('4000');
+    expect(world.realized).toHaveLength(0);
+  });
+
+  test('an orphan source stays readable and can no longer be realized', async ({
+    authenticatedPage,
+    budgetDetailsPage,
+  }) => {
+    await installPlannedGoalWorld(authenticatedPage, {
+      line: announcedLine({ sourceSavingsGoalId: null }),
+    });
+
+    await budgetDetailsPage.goto(CURRENT_BUDGET.id);
+
+    await expect(
+      budgetDetailsPage.budgetLineSource(TEST_UUIDS.LINE_2),
+    ).toContainText(`Objectif supprimé · ${GOAL_NAME}`);
+    // Plus rien à débiter côté serveur : la prévision redevient ordinaire et
+    // reprend la bascule de pointage.
+    await expect(
+      authenticatedPage.getByTestId(`realize-withdrawal-${TEST_UUIDS.LINE_2}`),
+    ).toHaveCount(0);
+    await expect(
+      authenticatedPage.getByTestId(`toggle-check-${TEST_UUIDS.LINE_2}`),
+    ).toBeVisible();
+
+    // Le panneau de détail raconte la même histoire que la carte : l'argent
+    // vient d'un objectif qui n'existe plus, et cela reste lisible.
+    await budgetDetailsPage.openEnvelopePanel(PLANNED_LINE_NAME);
+    await expect(
+      budgetDetailsPage.envelopePanelSource(TEST_UUIDS.LINE_2),
+    ).toContainText(`Objectif supprimé · ${GOAL_NAME}`);
+  });
+});
+
+/** Saisit et confirme le revenu réel, depuis la boîte déjà ouverte. */
+async function realizeAmount(page: Page, amount: string): Promise<void> {
+  await realizationAmountInput(page).fill(amount);
+  await page.getByTestId('save-transaction').click();
+  await expect(page.getByTestId('realize-withdrawal-context')).toBeHidden();
+}
+
+/** Scoped to the open dialog: the page behind it carries amounts of its own. */
+function realizationAmountInput(page: Page) {
+  return page.getByRole('dialog').getByTestId('amount-input-value');
+}

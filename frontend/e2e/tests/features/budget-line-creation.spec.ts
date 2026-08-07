@@ -171,7 +171,9 @@ test.describe('Budget Line Creation', () => {
       .locator('[data-testid="new-line-name"]')
       .fill('Freelance');
     await authenticatedPage
-      .locator('[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]')
+      .locator(
+        '[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]',
+      )
       .fill('1000');
 
     // Change kind to income via mat-select
@@ -246,7 +248,9 @@ test.describe('Budget Line Creation', () => {
       .locator('[data-testid="new-line-name"]')
       .fill('Vacances');
     await authenticatedPage
-      .locator('[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]')
+      .locator(
+        '[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]',
+      )
       .fill('300');
 
     // Change kind to saving
@@ -309,7 +313,9 @@ test.describe('Budget Line Creation', () => {
       .locator('[data-testid="new-line-name"]')
       .fill('Transport');
     await authenticatedPage
-      .locator('[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]')
+      .locator(
+        '[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]',
+      )
       .fill('200');
 
     // Wait for form validation to mark the submit button enabled before
@@ -371,7 +377,9 @@ test.describe('Budget Line Creation', () => {
 
     // Fill amount — now enabled
     await authenticatedPage
-      .locator('[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]')
+      .locator(
+        '[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]',
+      )
       .fill('100');
     await expect(submitButton).toBeEnabled();
 
@@ -440,10 +448,16 @@ test.describe('Budget Line Creation', () => {
       .locator('[data-testid="new-line-name"]')
       .fill('Courses');
     await authenticatedPage
-      .locator('[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]')
+      .locator(
+        '[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]',
+      )
       .fill('500');
     // Blur triggers Angular form control finalization (CI timing)
-    await authenticatedPage.locator('[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]').blur();
+    await authenticatedPage
+      .locator(
+        '[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]',
+      )
+      .blur();
     const submitButton = authenticatedPage.getByTestId('add-new-line');
     await expect(submitButton).toBeEnabled();
     await submitButton.click();

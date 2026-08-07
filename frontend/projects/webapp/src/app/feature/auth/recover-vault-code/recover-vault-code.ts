@@ -23,8 +23,8 @@ import { API_ERROR_CODES } from 'pulpe-shared';
 
 import {
   ClientKeyService,
+  DERIVE_CLIENT_KEY,
   EncryptionApi,
-  deriveClientKey,
 } from '@core/encryption';
 import { isApiError } from '@core/api/api-error';
 import { VAULT_CODE_LENGTH, VAULT_CODE_VALIDATORS } from '@core/auth';
@@ -292,6 +292,7 @@ export const SUPPORT_URL = 'https://pulpe.app/support';
 export default class RecoverVaultCode {
   readonly #clientKeyService = inject(ClientKeyService);
   readonly #encryptionApi = inject(EncryptionApi);
+  readonly #deriveClientKey = inject(DERIVE_CLIENT_KEY);
   readonly #formBuilder = inject(FormBuilder);
   readonly #router = inject(Router);
   readonly #dialog = inject(MatDialog);
@@ -366,7 +367,7 @@ export default class RecoverVaultCode {
       const { salt, kdfIterations } = await firstValueFrom(
         this.#encryptionApi.getSalt$(),
       );
-      newClientKeyHex = await deriveClientKey(
+      newClientKeyHex = await this.#deriveClientKey(
         newVaultCode,
         salt,
         kdfIterations,

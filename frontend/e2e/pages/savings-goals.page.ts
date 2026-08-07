@@ -34,6 +34,23 @@ export class SavingsGoalsPage {
       .toContain(normalizeAmount(expected));
   }
 
+  /**
+   * « Projeté » — ce que le pot vaudra si le plan se déroule tel quel, retraits
+   * annoncés déduits. Le confirmé est le stock d'aujourd'hui ; les deux doivent
+   * être lus séparément, sinon un double décompte passerait inaperçu.
+   */
+  async expectProjectedAmount(expected: string): Promise<void> {
+    const stat = this.page.getByTestId('stat-projected');
+    await expect
+      .poll(async () => normalizeAmount((await stat.textContent()) ?? ''))
+      .toContain(normalizeAmount(expected));
+  }
+
+  /** La sous-ligne « Retrait prévu · −500 » du mois qui le porte. */
+  plannedWithdrawalRows(): Locator {
+    return this.page.getByTestId('goal-plan-row-planned-withdrawal');
+  }
+
   withdrawalsSection(): Locator {
     return this.page.getByTestId('savings-goal-withdrawals');
   }

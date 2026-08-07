@@ -41,6 +41,7 @@ import { touchedFieldErrors } from '@core/validators';
 import { AmountInput } from '@app/pattern/amount-input/amount-input';
 import { TagPicker } from '@app/pattern/tag-picker/tag-picker';
 import { SavingsGoalPickerField } from '@app/pattern/savings-goal-picker/savings-goal-picker-field';
+import { SavingsGoalSourceLine } from '@ui/savings-goal-source/savings-goal-source-line';
 import { budgetLineUpdateFromFormSchema } from './dialog.schema';
 
 export interface EditBudgetLineDialogData {
@@ -74,6 +75,7 @@ interface EditBudgetLineModel {
     AmountInput,
     TagPicker,
     SavingsGoalPickerField,
+    SavingsGoalSourceLine,
   ],
   host: { 'data-testid': 'edit-budget-line-dialog' },
   template: `
@@ -159,6 +161,18 @@ interface EditBudgetLineModel {
               "
             />
           }
+          <!--
+            L'origine est en lecture seule : aucune API ne déplace un retrait
+            d'un objectif à un autre. Un second sélecteur laisserait croire
+            qu'elle se change.
+          -->
+          @if (sourceSavingsGoalName) {
+            <pulpe-savings-goal-source-line
+              variant="detail"
+              [goalId]="sourceSavingsGoalId"
+              [goalName]="sourceSavingsGoalName"
+            />
+          }
         </div>
       </div>
     </mat-dialog-content>
@@ -198,6 +212,11 @@ export class EditBudgetLineDialog {
     this.#data.budgetLine.originalCurrency ?? null;
 
   protected readonly budgetPeriod = this.#data.budgetPeriod;
+
+  protected readonly sourceSavingsGoalId =
+    this.#data.budgetLine.sourceSavingsGoalId ?? null;
+  protected readonly sourceSavingsGoalName =
+    this.#data.budgetLine.sourceSavingsGoalName ?? null;
 
   protected readonly showCurrencySelector = computed(() =>
     isCurrencyPickerVisible({

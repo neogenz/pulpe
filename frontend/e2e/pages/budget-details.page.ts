@@ -3,26 +3,14 @@ import { type Locator, type Page, expect } from '@playwright/test';
 export class BudgetDetailsPage {
   constructor(private readonly page: Page) {}
 
-  /**
-   * PUL-329 — the deep link a goal's « Retraits » row points at. The query param
-   * is consumed once and wiped by `replaceUrl`, so the opened dialog is the
-   * proof, never the URL.
-   */
-  async gotoTargetedTransaction(
+  /** Opens a transaction's editor the way a user does: its row menu, then Modifier. */
+  async openTransactionEditor(
     budgetId: string,
     transactionId: string,
   ): Promise<void> {
-    await Promise.all([
-      this.page.waitForResponse(
-        (resp) =>
-          resp.url().includes('/api/v1/budgets/') &&
-          resp.url().includes('/details'),
-      ),
-      this.page.goto(`/budget/${budgetId}?transactionId=${transactionId}`, {
-        waitUntil: 'domcontentloaded',
-      }),
-    ]);
-    await this.expectPageLoaded();
+    await this.goto(budgetId);
+    await this.page.getByTestId(`tx-menu-${transactionId}`).click();
+    await this.page.getByTestId(`edit-tx-${transactionId}`).click();
   }
 
   /**
@@ -33,6 +21,88 @@ export class BudgetDetailsPage {
     return this.page
       .getByTestId(`transaction-source-${transactionId}`)
       .getByTestId('savings-goal-source-line');
+  }
+
+  /**
+   * PUL-329 v2 — annoncer un retrait, c'est créer une prévision `income` dont
+   * l'origine est un objectif. L'objectif se choisit après le montant : c'est
+   * lui que l'aperçu de projection retranche.
+   */
+  async openPlannedWithdrawalForm(name: string, amount: string): Promise<void> {
+    await this.page.getByTestId('add-budget-line-fab').click();
+    await expect(this.page.getByTestId('add-budget-line-dialog')).toBeVisible();
+    await this.page.getByTestId('new-line-name').fill(name);
+    await this.page.getByTestId('new-line-kind').click();
+    await this.page.getByRole('option').filter({ hasText: 'Revenu' }).click();
+    await this.page
+      .locator(
+        '[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]',
+      )
+      .fill(amount);
+    await this.page.getByTestId('new-line-income-origin').click();
+    await this.page
+      .getByRole('option')
+      .filter({ hasText: "Retrait d'un objectif" })
+      .click();
+  }
+
+  async selectPlannedWithdrawalGoal(goalName: string): Promise<void> {
+    await this.page
+      .getByTestId('savings-goal-planned-withdrawal-select')
+      .click();
+    await this.page
+      .getByRole('option')
+      .filter({ hasText: goalName })
+      .first()
+      .click();
+  }
+
+  async submitNewBudgetLine(): Promise<void> {
+    await this.page.getByTestId('add-new-line').click();
+    await expect(this.page.getByTestId('add-budget-line-dialog')).toBeHidden();
+  }
+
+  /**
+   * Ouvre le panneau d'une enveloppe en cliquant dessus — c'est là que vivent
+   * ses transactions allouées, invisibles depuis la grille.
+   */
+  async openEnvelopePanel(lineName: string): Promise<void> {
+    await this.page.getByText(lineName, { exact: true }).first().click();
+  }
+
+  /** L'aperçu « avant → après » du picker, à la période du budget. */
+  plannedWithdrawalPreview(): Locator {
+    return this.page.getByTestId('savings-goal-planned-withdrawal-preview');
+  }
+
+  /** La provenance affichée sur la prévision elle-même. */
+  budgetLineSource(lineId: string): Locator {
+    return this.page
+      .getByTestId(`envelope-source-goal-${lineId}`)
+      .getByTestId('savings-goal-source-line');
+  }
+
+  /**
+   * La même provenance, mais dans le panneau de détail — la seule surface où
+   * elle n'est pas rendue par la grille. Le test lit son texte, pas sa seule
+   * présence : c'est ce qui distingue le nom de l'objectif de celui de la
+   * prévision.
+   */
+  envelopePanelSource(lineId: string): Locator {
+    return this.page
+      .getByTestId(`detail-panel-source-goal-${lineId}`)
+      .getByTestId('savings-goal-source-line');
+  }
+
+  /**
+   * Le geste qui remplace le pointage sur un retrait annoncé : il ouvre la
+   * saisie du revenu réel, seul mouvement qui débite l'objectif.
+   */
+  async realizeWithdrawal(lineId: string): Promise<void> {
+    await this.page.getByTestId(`realize-withdrawal-${lineId}`).click();
+    await expect(
+      this.page.getByTestId('realize-withdrawal-context'),
+    ).toBeVisible();
   }
 
   transactionDialogSourceLink(): Locator {

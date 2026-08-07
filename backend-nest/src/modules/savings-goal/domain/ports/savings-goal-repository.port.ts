@@ -16,6 +16,7 @@ import type {
 } from '../savings-goal.entity';
 import type {
   BudgetPeriod,
+  LinkedPlannedWithdrawal,
   LinkedSavingLine,
   LinkedSavingWithdrawal,
   SavingsGoalDeletionCommand,
@@ -92,6 +93,13 @@ export interface SavingsGoalRepositoryPort {
    * place la sortie dans la chronologie du plan, comme pour les contributions.
    */
   findLinkedWithdrawals(goalId: string): Promise<LinkedSavingWithdrawal[]>;
+  /**
+   * Retraits ANNONCÉS : les prévisions `income` qui disent « ce montant sortira
+   * de cet objectif ». Séparé de `findLinkedWithdrawals` parce que la nature
+   * l'est : celles-ci n'ont pas encore touché le stock et ne le toucheront
+   * peut-être jamais. Elles n'abaissent que la projection.
+   */
+  findPlannedWithdrawals(goalId: string): Promise<LinkedPlannedWithdrawal[]>;
   /**
    * Historique présentable d'un objectif, trié du plus récent au plus ancien.
    * Sépare de `findLinkedWithdrawals` : la chronologie du plan a besoin de la

@@ -1135,3 +1135,210 @@ describe('buildSavingsGoalTimeline withdrawals (PUL-329)', () => {
     expect(redistribution.remainingEffort).toBe(100000 - progress.confirmed);
   });
 });
+
+describe('buildSavingsGoalTimeline planned withdrawals (PUL-329 v2)', () => {
+  const PLAN_ID = 'plan-may';
+
+  /**
+   * Objectif 3'000, janvier → juin 2026, « maintenant » = mars. 500 confirmés
+   * en janvier et février, 500 encore prévus chaque mois de mars à juin, et un
+   * retrait de 500 annoncé pour mai.
+   */
+  const input: SavingsGoalProgressInput = {
+    targetAmount: 3000,
+    status: 'ACTIVE',
+    createdAt: '2026-01-15T00:00:00.000Z',
+    targetDate: '2026-06-30',
+    payDayOfMonth: null,
+    now: new Date(2026, 2, 15),
+    lines: [
+      savingLine({
+        month: 1,
+        year: 2026,
+        checkedAt: '2026-01-20T00:00:00.000Z',
+      }),
+      savingLine({
+        month: 2,
+        year: 2026,
+        checkedAt: '2026-02-20T00:00:00.000Z',
+      }),
+      savingLine({ month: 3, year: 2026 }),
+      savingLine({ month: 4, year: 2026 }),
+      savingLine({ month: 5, year: 2026 }),
+      savingLine({ month: 6, year: 2026 }),
+    ],
+    transactions: [],
+    plannedWithdrawals: [{ id: PLAN_ID, amount: 500, month: 5, year: 2026 }],
+  };
+
+  const monthOf = (
+    timeline: SavingsPlanTimelineMonth[],
+    month: number,
+  ): SavingsPlanTimelineMonth | undefined =>
+    timeline.find((row) => row.month === month && row.year === 2026);
+
+  it('should show the announced amount and its untouched remainder', () => {
+    const timeline = buildSavingsGoalTimeline(input);
+
+    expect(monthOf(timeline, 5)).toMatchObject({
+      plannedWithdrawalAmount: 500,
+      remainingPlannedWithdrawalAmount: 500,
+      confirmedAmount: 0,
+    });
+  });
+
+  it('should keep the announcement out of the confirmed cumulative', () => {
+    const timeline = buildSavingsGoalTimeline(input);
+    const progress = computeSavingsGoalProgress(input);
+
+    expect(monthOf(timeline, 6)?.confirmedCumulative).toBe(progress.confirmed);
+  });
+
+  it('should land the projected cumulative on the projection of the progress', () => {
+    const timeline = buildSavingsGoalTimeline(input);
+    const progress = computeSavingsGoalProgress(input);
+
+    expect(monthOf(timeline, 6)?.projectedCumulative).toBe(progress.projected);
+  });
+
+  it('should leave only the unrealized part in the remainder', () => {
+    const timeline = buildSavingsGoalTimeline({
+      ...input,
+      withdrawals: [
+        { amount: 300, month: 5, year: 2026, budgetLineId: PLAN_ID },
+      ],
+    });
+
+    expect(monthOf(timeline, 5)).toMatchObject({
+      plannedWithdrawalAmount: 500,
+      remainingPlannedWithdrawalAmount: 200,
+      withdrawnAmount: 300,
+    });
+  });
+
+  it('should lapse a plan the user let pass', () => {
+    const timeline = buildSavingsGoalTimeline({
+      ...input,
+      plannedWithdrawals: [{ id: PLAN_ID, amount: 500, month: 1, year: 2026 }],
+    });
+
+    expect(monthOf(timeline, 1)).toMatchObject({
+      plannedWithdrawalAmount: 500,
+      remainingPlannedWithdrawalAmount: 0,
+    });
+  });
+
+  it('should ignore a plan announced beyond the deadline', () => {
+    const timeline = buildSavingsGoalTimeline({
+      ...input,
+      plannedWithdrawals: [{ id: PLAN_ID, amount: 500, month: 8, year: 2026 }],
+    });
+
+    expect(monthOf(timeline, 8)).toMatchObject({
+      plannedWithdrawalAmount: 500,
+      remainingPlannedWithdrawalAmount: 0,
+    });
+  });
+
+  // La propriété de fermeture : redistribuer puis simuler doit retomber sur la
+  // cible au centime près. Elle ne tient que si le simulateur soustrait
+  // exactement l'ensemble que la redistribution rajoute à l'effort.
+  it('should close on the target after redistributing around the announcement', () => {
+    const timeline = buildSavingsGoalTimeline(input);
+
+    const redistribution = redistributeRemainingEffort({
+      timeline,
+      targetAmount: 3000,
+    });
+    const result = simulateSavingsPlan({
+      timeline,
+      targetAmount: 3000,
+      adjustments: redistribution.adjustments,
+    });
+
+    expect(redistribution.isDistributable).toBe(true);
+    expect(redistribution.remainingEffort).toBe(2500);
+    expect(sumCents(result.simulatedFinal)).toBe(sumCents(3000));
+  });
+
+  it('should close on the target once the announcement is realized', () => {
+    const timeline = buildSavingsGoalTimeline({
+      ...input,
+      withdrawals: [
+        { amount: 500, month: 5, year: 2026, budgetLineId: PLAN_ID },
+      ],
+    });
+
+    const redistribution = redistributeRemainingEffort({
+      timeline,
+      targetAmount: 3000,
+    });
+    const result = simulateSavingsPlan({
+      timeline,
+      targetAmount: 3000,
+      adjustments: redistribution.adjustments,
+    });
+
+    expect(redistribution.remainingEffort).toBe(2500);
+    expect(sumCents(result.simulatedFinal)).toBe(sumCents(3000));
+  });
+
+  // Un réel supérieur au prévu n'engendre pas de reliquat négatif, et un retrait
+  // libre du même plan reste compté à part. Les deux doivent entrer une seule
+  // fois dans l'effort restant comme dans le cumul simulé.
+  it('should close on the target with an over-realized plan next to a free withdrawal', () => {
+    const timeline = buildSavingsGoalTimeline({
+      ...input,
+      withdrawals: [
+        { amount: 600, month: 5, year: 2026, budgetLineId: PLAN_ID },
+        { amount: 200, month: 4, year: 2026 },
+      ],
+    });
+
+    expect(monthOf(timeline, 5)).toMatchObject({
+      plannedWithdrawalAmount: 500,
+      remainingPlannedWithdrawalAmount: 0,
+      withdrawnAmount: 600,
+    });
+
+    const redistribution = redistributeRemainingEffort({
+      timeline,
+      targetAmount: 3000,
+    });
+    const result = simulateSavingsPlan({
+      timeline,
+      targetAmount: 3000,
+      adjustments: redistribution.adjustments,
+    });
+
+    expect(redistribution.remainingEffort).toBe(2800);
+    expect(sumCents(result.simulatedFinal)).toBe(sumCents(3000));
+  });
+
+  // Une échéance à l'horizon maximal sature la fenêtre : un retrait RÉEL
+  // antérieur est reporté sur la première row, une prévision antérieure est
+  // échue et disparaît — elle n'a pas eu lieu et n'aura pas lieu.
+  it('should carry only the real withdrawal across the window edge', () => {
+    const farInput: SavingsGoalProgressInput = {
+      ...input,
+      targetAmount: 100000,
+      targetDate: '2036-02-28',
+      lines: [],
+      initialAmount: 5000,
+      withdrawals: [{ amount: 1000, month: 1, year: 2026 }],
+      plannedWithdrawals: [{ id: PLAN_ID, amount: 700, month: 1, year: 2026 }],
+    };
+
+    const timeline = buildSavingsGoalTimeline(farInput);
+    const progress = computeSavingsGoalProgress(farInput);
+    const simulation = simulateSavingsPlan({
+      timeline,
+      targetAmount: 100000,
+      initialAmount: 5000,
+    });
+
+    expect(timeline).toHaveLength(MAX_SAVINGS_GOAL_PLAN_PERIODS);
+    expect(timeline[0]?.withdrawnAmount).toBe(1000);
+    expect(simulation.simulatedFinal).toBe(progress.confirmed);
+  });
+});

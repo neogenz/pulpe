@@ -15,7 +15,7 @@ import { firstValueFrom } from 'rxjs';
 
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
 import { VAULT_CODE_LENGTH, VAULT_CODE_VALIDATORS } from '@core/auth';
-import { EncryptionApi, deriveClientKey } from '@core/encryption';
+import { DERIVE_CLIENT_KEY, EncryptionApi } from '@core/encryption';
 import { Logger } from '@core/logging/logger';
 import { ErrorAlert } from '@ui/error-alert';
 
@@ -124,6 +124,7 @@ export class RegenerateRecoveryKeyDialog {
   readonly #logger = inject(Logger);
   readonly #dialogRef = inject(MatDialogRef<RegenerateRecoveryKeyDialog>);
   readonly #encryptionApi = inject(EncryptionApi);
+  readonly #deriveClientKey = inject(DERIVE_CLIENT_KEY);
   readonly #transloco = inject(TranslocoService);
 
   protected readonly showPinLabel = this.#transloco.translate(
@@ -154,7 +155,7 @@ export class RegenerateRecoveryKeyDialog {
       const { salt, kdfIterations } = await firstValueFrom(
         this.#encryptionApi.getSalt$(),
       );
-      const clientKeyHex = await deriveClientKey(
+      const clientKeyHex = await this.#deriveClientKey(
         vaultCode,
         salt,
         kdfIterations,

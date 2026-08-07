@@ -10,6 +10,8 @@ struct GoalContributionsSection: View {
     let error: Error?
     let onRetry: () -> Void
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
             Text("Ton suivi")
@@ -44,14 +46,15 @@ struct GoalContributionsSection: View {
                     Text(contribution.name)
                         .font(PulpeTypography.listRowTitle)
                         .foregroundStyle(Color.textPrimary)
-                        .lineLimit(2)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                     // Statut en texte, pas en glyphe : le cercle vide est le
                     // vocabulaire du `PointCircle` interactif partout ailleurs —
                     // ici la surface est passive, un faux contrôle trahit le tap.
                     // `String(year)` : l'interpolation d'Int dans Text applique le
                     // groupement localisé ("2'026" en de-CH) — jamais sur une année.
                     statusSubtitle(
-                        base: "\(Formatters.monthName(for: contribution.budgetMonth)) \(String(contribution.budgetYear))",
+                        base: "\(Formatters.monthName(for: contribution.budgetMonth)) "
+                            + String(contribution.budgetYear),
                         isChecked: contribution.isChecked
                     )
                 }
@@ -89,7 +92,7 @@ struct GoalContributionsSection: View {
                 Text(transaction.name)
                     .font(PulpeTypography.listRowSubtitle)
                     .foregroundStyle(Color.textPrimary)
-                    .lineLimit(2)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                 statusSubtitle(
                     base: transaction.transactionDate.formatted(date: .abbreviated, time: .omitted),
                     isChecked: transaction.isChecked

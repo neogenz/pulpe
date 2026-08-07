@@ -92,6 +92,12 @@ struct EditBudgetLineSheet: View {
             if kind == .saving {
                 SavingsGoalPickerField(selection: $savingsGoalId, budgetPeriod: budgetPeriod)
             }
+            // PUL-329 v2 — the goal an income was announced to be drawn from is
+            // read-only: the origin is fixed at creation, and a second picker
+            // here would suggest the source could be swapped.
+            if let source = budgetLine.savingsGoalSource {
+                SavingsGoalSourceLabel(source: source)
+            }
             TagPickerField(selection: $selectedTagIds)
 
             if let error {

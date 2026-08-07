@@ -59,8 +59,22 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
     /// it "retiré jusqu'ici", never "retiré ce mois-ci", if a view ever shows
     /// it row by row.
     let withdrawnAmount: Decimal
+    /// Σ BRUTE des retraits ANNONCÉS de ce mois — ce que la prévision affiche,
+    /// réalisée ou non. Pour l'écrire dans un calendrier ; jamais pour les cumuls,
+    /// qui doubleraient la part déjà sortie.
+    let plannedWithdrawalAmount: Decimal
+    /// Part de ces mêmes prévisions qui reste à sortir. Zéro sur un mois passé et
+    /// hors de la fenêtre de contribution. C'est CE montant que les cumuls
+    /// retranchent, en plus des retraits réels.
+    let remainingPlannedWithdrawalAmount: Decimal
     let plannedCumulative: Decimal
     let confirmedCumulative: Decimal
+    /// Solde attendu à la fin de ce mois si le plan se déroule tel quel : confirmé
+    /// acquis, reliquat prévu ajouté, sorties réelles et annoncées retranchées.
+    /// C'est ce que lit un aperçu « combien restera-t-il en mars ? » —
+    /// `confirmedCumulative` ne connaît que le passé pointé. `nil` sur un payload
+    /// servi avant que le serveur ne l'expose.
+    let projectedCumulative: Decimal?
     let lines: [SavingsGoalPlanLine]
 
     init(
@@ -74,8 +88,11 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
         plannedAmount: Decimal,
         confirmedAmount: Decimal,
         withdrawnAmount: Decimal = 0,
+        plannedWithdrawalAmount: Decimal = 0,
+        remainingPlannedWithdrawalAmount: Decimal = 0,
         plannedCumulative: Decimal,
         confirmedCumulative: Decimal,
+        projectedCumulative: Decimal? = nil,
         lines: [SavingsGoalPlanLine]
     ) {
         self.month = month
@@ -88,8 +105,11 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
         self.plannedAmount = plannedAmount
         self.confirmedAmount = confirmedAmount
         self.withdrawnAmount = withdrawnAmount
+        self.plannedWithdrawalAmount = plannedWithdrawalAmount
+        self.remainingPlannedWithdrawalAmount = remainingPlannedWithdrawalAmount
         self.plannedCumulative = plannedCumulative
         self.confirmedCumulative = confirmedCumulative
+        self.projectedCumulative = projectedCumulative
         self.lines = lines
     }
 
@@ -111,15 +131,28 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
             Decimal.self,
             forKey: .withdrawnAmount
         ) ?? 0
+        plannedWithdrawalAmount = try container.decodeIfPresent(
+            Decimal.self,
+            forKey: .plannedWithdrawalAmount
+        ) ?? 0
+        remainingPlannedWithdrawalAmount = try container.decodeIfPresent(
+            Decimal.self,
+            forKey: .remainingPlannedWithdrawalAmount
+        ) ?? 0
         plannedCumulative = try container.decode(Decimal.self, forKey: .plannedCumulative)
         confirmedCumulative = try container.decode(Decimal.self, forKey: .confirmedCumulative)
+        projectedCumulative = try container.decodeIfPresent(
+            Decimal.self,
+            forKey: .projectedCumulative
+        )
         lines = try container.decode([SavingsGoalPlanLine].self, forKey: .lines)
     }
 
     private enum CodingKeys: String, CodingKey {
         case month, year, state, isLocked, isContributionEligible, hasBudget, isProvisionable
         case plannedAmount, confirmedAmount, withdrawnAmount
-        case plannedCumulative, confirmedCumulative, lines
+        case plannedWithdrawalAmount, remainingPlannedWithdrawalAmount
+        case plannedCumulative, confirmedCumulative, projectedCumulative, lines
     }
 
     /// Stable period key (`year * 12 + month`) — also the `ForEach` identity.

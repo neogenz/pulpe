@@ -136,7 +136,13 @@ BEGIN
   RAISE NOTICE 'PASS [2] non-income rejected';
 
   ----------------------------------------------------------------------
-  -- ASSERTION 3: a withdrawal stays free of any forecast
+  -- ASSERTION 3: a withdrawal may only be allocated to the forecast that
+  -- announced it. Here the line is a CONTRIBUTION to the same goal — the
+  -- opposite movement — so the allocation would attribute the withdrawal to a
+  -- plan that never mentioned it. The reason moved from the RPC to the
+  -- enforce_transaction_savings_goal_source trigger when planned withdrawals
+  -- landed; realizing one's own forecast is covered by
+  -- planned_savings_goal_withdrawals.sql.
   ----------------------------------------------------------------------
   v_caught := NULL;
   BEGIN
@@ -156,10 +162,10 @@ BEGIN
     v_caught := SQLERRM;
   END;
 
-  IF v_caught IS DISTINCT FROM 'Savings goal withdrawal must stay unallocated' THEN
-    RAISE EXCEPTION 'FAIL [3]: allocated income accepted (%)', COALESCE(v_caught, 'no error');
+  IF v_caught IS DISTINCT FROM 'Savings goal withdrawal must realize its own forecast' THEN
+    RAISE EXCEPTION 'FAIL [3]: foreign allocation accepted (%)', COALESCE(v_caught, 'no error');
   END IF;
-  RAISE NOTICE 'PASS [3] allocated income rejected';
+  RAISE NOTICE 'PASS [3] allocation to a forecast that never announced it rejected';
 
   ----------------------------------------------------------------------
   -- ASSERTION 4: a stale revision writes nothing

@@ -6,20 +6,10 @@ import { of, throwError } from 'rxjs';
 import { DeleteAccountDialog } from './delete-account-dialog';
 import { Logger } from '@core/logging/logger';
 import { AuthSessionService, AuthStore } from '@core/auth';
-import { EncryptionApi } from '@core/encryption';
+import { DERIVE_CLIENT_KEY, EncryptionApi } from '@core/encryption';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
-const { deriveClientKeyMock } = vi.hoisted(() => ({
-  deriveClientKeyMock: vi.fn(),
-}));
-
-vi.mock('@core/encryption', async () => {
-  const actual = await vi.importActual('@core/encryption');
-  return {
-    ...actual,
-    deriveClientKey: deriveClientKeyMock,
-  };
-});
+const deriveClientKeyMock = vi.fn();
 
 describe('DeleteAccountDialog', () => {
   let component: DeleteAccountDialog;
@@ -30,6 +20,7 @@ describe('DeleteAccountDialog', () => {
   let mockLogger: { debug: Mock; info: Mock; warn: Mock; error: Mock };
 
   function setup(isOAuth: boolean) {
+    deriveClientKeyMock.mockReset();
     mockDialogRef = { close: vi.fn() };
     mockAuthSession = { verifyPassword: vi.fn() };
     mockAuthStore = { isOAuthOnly: signal(isOAuth) };
@@ -52,6 +43,7 @@ describe('DeleteAccountDialog', () => {
         { provide: AuthSessionService, useValue: mockAuthSession },
         { provide: AuthStore, useValue: mockAuthStore },
         { provide: EncryptionApi, useValue: mockEncryptionApi },
+        { provide: DERIVE_CLIENT_KEY, useValue: deriveClientKeyMock },
         { provide: Logger, useValue: mockLogger },
       ],
     });

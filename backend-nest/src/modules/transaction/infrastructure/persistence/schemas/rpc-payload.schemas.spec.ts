@@ -9,6 +9,7 @@ const DATE = '2026-08-02T12:00:00+00:00';
 
 const validCreate = {
   budget_id: UUID,
+  budget_line_id: null,
   name: 'Retrait Maison',
   amount: 'AES-cipher-amount',
   original_amount: null,
@@ -43,6 +44,15 @@ describe('createSavingsGoalWithdrawalPayloadSchema', () => {
         kind: 'expense',
       }),
     ).toThrow();
+  });
+
+  it('carries the allocation of a realized planned withdrawal', () => {
+    expect(
+      createSavingsGoalWithdrawalPayloadSchema.parse({
+        ...validCreate,
+        budget_line_id: UUID,
+      }).budget_line_id,
+    ).toBe(UUID);
   });
 
   it('rejects the goal columns the RPC posts itself', () => {
@@ -82,7 +92,7 @@ describe('updateSavingsGoalWithdrawalPayloadSchema', () => {
     ).toThrow();
   });
 
-  it('rejects the allocation a withdrawal never takes', () => {
+  it('rejects an allocation change — it is decided at creation, never moved', () => {
     expect(() =>
       updateSavingsGoalWithdrawalPayloadSchema.parse({
         budget_line_id: UUID,

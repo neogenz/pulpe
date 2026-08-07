@@ -482,6 +482,111 @@ describe('AddBudgetLineDialog', () => {
     });
   });
 
+  // PUL-329 v2 — les trois origines d'un revenu sont exclusives : une prévision
+  // tirée d'un objectif n'est ni une pioche PUL-292 ni une ligne pointable, et
+  // rien ne doit pouvoir en soumettre deux à la fois.
+  describe('income origin (PUL-329 v2)', () => {
+    const asPlannedWithdrawal = () => {
+      const context = configureDialog();
+      context.component['model'].update((m) => ({
+        ...m,
+        name: 'Apport cuisine',
+        kind: 'income',
+        recurrence: 'one_off',
+        money: { amount: 500, inputCurrency: 'CHF' },
+      }));
+      context.component['setIncomeOrigin']('savingsGoal');
+      return context;
+    };
+
+    it('refuses to submit until a goal is picked', () => {
+      const { component } = asPlannedWithdrawal();
+
+      expect(component['canSubmit']()).toBe(false);
+
+      component['model'].update((m) => ({
+        ...m,
+        sourceSavingsGoalId: SAVINGS_GOAL_ID,
+      }));
+
+      expect(component['canSubmit']()).toBe(true);
+    });
+
+    it('sends the source and never a checked forecast', async () => {
+      const { component, dialogRef } = asPlannedWithdrawal();
+      component['model'].update((m) => ({
+        ...m,
+        sourceSavingsGoalId: SAVINGS_GOAL_ID,
+        isChecked: true,
+      }));
+
+      await component['handleSubmit']();
+
+      const { value: dto } = dialogRef.close.mock.calls[0][0];
+      expect(dto.sourceSavingsGoalId).toBe(SAVINGS_GOAL_ID);
+      expect(dto.checkedAt).toBeNull();
+    });
+
+    it('drops the picked goal as soon as the origin changes', () => {
+      const { component } = asPlannedWithdrawal();
+      component['model'].update((m) => ({
+        ...m,
+        sourceSavingsGoalId: SAVINGS_GOAL_ID,
+      }));
+
+      component['setIncomeOrigin']('repayNextMonth');
+
+      expect(component['model']().sourceSavingsGoalId).toBeNull();
+    });
+
+    it('drops the picked goal as soon as the kind stops being an income', () => {
+      const { component } = asPlannedWithdrawal();
+      component['model'].update((m) => ({
+        ...m,
+        sourceSavingsGoalId: SAVINGS_GOAL_ID,
+      }));
+
+      component['onKindChange']('expense');
+
+      expect(component['incomeOrigin']()).toBe('regular');
+      expect(component['model']().sourceSavingsGoalId).toBeNull();
+    });
+
+    it('omits the source entirely on an ordinary income', async () => {
+      const { component, dialogRef } = configureDialog();
+      component['model'].update((m) => ({
+        ...m,
+        name: 'Salaire',
+        kind: 'income',
+        recurrence: 'fixed',
+        money: { amount: 5000, inputCurrency: 'CHF' },
+      }));
+
+      await component['handleSubmit']();
+
+      const { value: dto } = dialogRef.close.mock.calls[0][0];
+      expect(dto).not.toHaveProperty('sourceSavingsGoalId');
+    });
+
+    it('routes the PUL-292 origin to the savings-withdrawal flow, not to a line', async () => {
+      const { component, dialogRef } = configureDialog();
+      component['model'].update((m) => ({
+        ...m,
+        name: 'Coup dur',
+        kind: 'income',
+        recurrence: 'one_off',
+        money: { amount: 250, inputCurrency: 'CHF' },
+      }));
+      component['setIncomeOrigin']('repayNextMonth');
+
+      await component['handleSubmit']();
+
+      expect(dialogRef.close).toHaveBeenCalledWith(
+        expect.objectContaining({ mode: 'savingsWithdrawal' }),
+      );
+    });
+  });
+
   describe('a11y conversion error announcement', () => {
     beforeEach(() => TestBed.resetTestingModule());
 

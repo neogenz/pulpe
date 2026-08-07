@@ -159,6 +159,66 @@ struct GoalPlanTimelinePresentationTests {
         #expect(collapsed.remainingUnlinkedMonthCount == 3)
     }
 
+    // MARK: - Announced withdrawals (PUL-329 v2)
+
+    /// An announcement takes nothing out yet: it moves neither the contribution
+    /// nor the cumulative shown here. Without a sub-line the month says nothing
+    /// about the 500 it plans to release, and the simulator's editable field
+    /// would look like the place to type it.
+    @Test("States what a contributing month announces it will take out")
+    func announcedWithdrawal_readsOnTheMonthThatCarriesIt() throws {
+        let announced = try #require(GoalPlanMonthRow.plannedWithdrawalText(
+            for: makeWithdrawalMonth(planned: 500, remaining: 500, withdrawn: 0),
+            currency: .chf
+        ))
+
+        #expect(announced.contains("Retrait prévu"))
+        // Signed and aggregated, like every other stock exit on this screen.
+        #expect(announced.contains("500"))
+        #expect(announced.contains("-"))
+    }
+
+    /// The gross announcement is what the month declares; the part already taken
+    /// out lives in the confirmed stock. Keeping it gross is what stops the row
+    /// from telling the same 500 twice.
+    @Test("Keeps announcing the gross amount once the withdrawal is realized")
+    func announcedWithdrawal_staysGrossAfterRealization() {
+        let realized = GoalPlanMonthRow.plannedWithdrawalText(
+            for: makeWithdrawalMonth(planned: 500, remaining: 0, withdrawn: 500),
+            currency: .chf
+        )
+        let ordinary = GoalPlanMonthRow.plannedWithdrawalText(
+            for: makeMonth(month: 8, state: .future, hasLinkedForecast: true),
+            currency: .chf
+        )
+
+        #expect(realized?.contains("500") == true)
+        #expect(ordinary == nil)
+    }
+
+    private func makeWithdrawalMonth(
+        planned: Decimal,
+        remaining: Decimal,
+        withdrawn: Decimal
+    ) -> SavingsGoalPlanMonth {
+        SavingsGoalPlanMonth(
+            month: 8,
+            year: 2026,
+            state: .future,
+            isLocked: false,
+            hasBudget: true,
+            plannedAmount: 450,
+            confirmedAmount: 0,
+            withdrawnAmount: withdrawn,
+            plannedWithdrawalAmount: planned,
+            remainingPlannedWithdrawalAmount: remaining,
+            plannedCumulative: 3_600,
+            confirmedCumulative: 0,
+            projectedCumulative: 3_600 - remaining,
+            lines: []
+        )
+    }
+
     private func makeMonth(
         month: Int,
         state: SavingsPlanMonthState,

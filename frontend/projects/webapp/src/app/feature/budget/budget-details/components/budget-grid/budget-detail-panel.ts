@@ -34,6 +34,7 @@ import { FinancialKindIndicator } from '@ui/financial-kind-indicator';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import { SpreadOccurrencesList } from '@ui/spread-occurrences-list';
 import { TagIndicator } from '@ui/tag-indicator';
+import { SavingsGoalSourceLine } from '@ui/savings-goal-source/savings-goal-source-line';
 import { createBudgetLineConsumptionDisplay } from '../../view-models/budget-item-data-builder';
 import type { BudgetLineTableItem } from '../../view-models/table-items.view-model';
 import { SegmentedBudgetProgress } from '../segmented-budget-progress';
@@ -88,6 +89,7 @@ const DETAIL_SEGMENT_COUNT = 12;
     FinancialKindIndicator,
     SpreadOccurrencesList,
     TagIndicator,
+    SavingsGoalSourceLine,
   ],
   template: `
     @let envelope = envelopeItem();
@@ -121,6 +123,18 @@ const DETAIL_SEGMENT_COUNT = 12;
                       <span class="ph-no-capture">{{ goal.name }}</span>
                     </span>
                   </button>
+                </div>
+              }
+              @if (envelope.data.sourceSavingsGoalName; as sourceName) {
+                <div class="mt-1">
+                  <pulpe-savings-goal-source-line
+                    class="text-label-small max-w-full"
+                    [goalId]="envelope.data.sourceSavingsGoalId"
+                    [goalName]="sourceName"
+                    [attr.data-testid]="
+                      'detail-panel-source-goal-' + envelope.data.id
+                    "
+                  />
                 </div>
               }
             </div>

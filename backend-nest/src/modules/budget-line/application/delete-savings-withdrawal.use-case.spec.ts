@@ -24,6 +24,8 @@ const makeLine = (
   savingsGoalId: null,
   spreadGroupId: null,
   savingsWithdrawalGroupId: GROUP_ID,
+  sourceSavingsGoalId: null,
+  sourceSavingsGoalName: null,
   name: 'Mon épargne',
   amount: 280,
   originalAmount: null,

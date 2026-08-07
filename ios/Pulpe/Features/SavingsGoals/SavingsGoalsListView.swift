@@ -114,44 +114,87 @@ private struct SavingsGoalRow: View {
     let goal: SavingsGoal
     let currency: SupportedCurrency
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
-        HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
-                Text(goal.name)
-                    .font(PulpeTypography.listRowTitle)
-                    .foregroundStyle(Color.textPrimary)
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    SavingsGoalStatusBadge(status: goal.status)
-                    if let start = goal.startDateValue, let end = goal.targetDateValue {
-                        Text(
-                            "\(start.formatted(date: .abbreviated, time: .omitted))"
-                                + " → \(end.formatted(date: .abbreviated, time: .omitted))"
-                        )
-                        .font(PulpeTypography.listRowSubtitle)
-                        .foregroundStyle(Color.textTertiary)
-                    } else if let date = goal.targetDateValue {
-                        Text("Échéance \(date.formatted(date: .abbreviated, time: .omitted))")
-                            .font(PulpeTypography.listRowSubtitle)
-                            .foregroundStyle(Color.textTertiary)
-                    } else if let date = goal.startDateValue {
-                        Text("Depuis \(date.formatted(date: .abbreviated, time: .omitted))")
-                            .font(PulpeTypography.listRowSubtitle)
-                            .foregroundStyle(Color.textTertiary)
-                    }
+        Group {
+            // Aux tailles d'accessibilité, le nom, le badge et le montant ne
+            // tiennent plus côte à côte : la rangée passe en colonne au lieu
+            // d'écraser le montant contre le bord de la carte.
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                    infoColumn
+                    amountText
                 }
-            }
-            Spacer()
-            if let targetAmount = goal.targetAmount {
-                Text(targetAmount.asCurrency(currency))
-                    .font(PulpeTypography.amountCard)
-                    .monospacedDigit()
-                    .foregroundStyle(Color.textPrimary)
-                    .sensitiveAmount()
+            } else {
+                HStack(alignment: .center, spacing: DesignTokens.Spacing.md) {
+                    infoColumn
+                    Spacer()
+                    amountText
+                }
             }
         }
         .padding(DesignTokens.Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
         .pulpeCard()
         .padding(.vertical, DesignTokens.Spacing.xs)
+    }
+
+    private var infoColumn: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+            Text(goal.name)
+                .font(PulpeTypography.listRowTitle)
+                .foregroundStyle(Color.textPrimary)
+            statusLine
+        }
+    }
+
+    @ViewBuilder
+    private var statusLine: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                SavingsGoalStatusBadge(status: goal.status)
+                periodText
+            }
+        } else {
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                SavingsGoalStatusBadge(status: goal.status)
+                periodText
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var periodText: some View {
+        if let periodLabel = periodLabel {
+            Text(periodLabel)
+                .font(PulpeTypography.listRowSubtitle)
+                .foregroundStyle(Color.textTertiary)
+        }
+    }
+
+    @ViewBuilder
+    private var amountText: some View {
+        if let targetAmount = goal.targetAmount {
+            Text(targetAmount.asCurrency(currency))
+                .font(PulpeTypography.amountCard)
+                .monospacedDigit()
+                .foregroundStyle(Color.textPrimary)
+                .sensitiveAmount()
+        }
+    }
+
+    private var periodLabel: String? {
+        if let start = goal.startDateValue, let end = goal.targetDateValue {
+            return "\(start.formatted(date: .abbreviated, time: .omitted))"
+                + " → \(end.formatted(date: .abbreviated, time: .omitted))"
+        }
+        if let date = goal.targetDateValue {
+            return "Échéance \(date.formatted(date: .abbreviated, time: .omitted))"
+        }
+        if let date = goal.startDateValue {
+            return "Depuis \(date.formatted(date: .abbreviated, time: .omitted))"
+        }
+        return nil
     }
 }

@@ -3,6 +3,23 @@ import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { BudgetLineCreate, BudgetLineUpdate } from 'pulpe-shared';
 import type { SpreadSourceLine } from './budget-line.entity';
 
+/** `null` quand la prévision source est valide, sinon la règle enfreinte. */
+function plannedWithdrawalRejection(dto: BudgetLineCreate): string | null {
+  if (dto.kind !== 'income') {
+    return 'only an income can be drawn from a savings goal';
+  }
+  if (dto.recurrence !== 'one_off') {
+    return 'a planned withdrawal is one-off, never recurring';
+  }
+  if (dto.checkedAt) {
+    return 'a planned withdrawal starts unchecked; it is realized by creating the real income';
+  }
+  if (dto.savingsGoalId) {
+    return 'a forecast cannot both feed a savings goal and draw from it';
+  }
+  return null;
+}
+
 export class BudgetLineInvariants {
   static validateCreate(dto: BudgetLineCreate): void {
     if (!dto.budgetId) {
@@ -23,6 +40,26 @@ export class BudgetLineInvariants {
         fields: ['name'],
       });
     }
+
+    this.validatePlannedWithdrawal(dto);
+  }
+
+  /**
+   * Le contrat Zod porte déjà ces règles, mais un appel direct à l'API ne passe
+   * pas forcément par lui — et une prévision source mal formée fausserait la
+   * projection de l'objectif jusqu'à ce que quelqu'un la remarque. Le domaine
+   * les rejoue donc pour son propre compte.
+   */
+  private static validatePlannedWithdrawal(dto: BudgetLineCreate): void {
+    if (!dto.sourceSavingsGoalId) return;
+
+    const reason = plannedWithdrawalRejection(dto);
+    if (!reason) return;
+
+    throw new BusinessException(
+      ERROR_DEFINITIONS.SAVINGS_GOAL_WITHDRAWAL_TRANSACTION_INVALID,
+      { reason },
+    );
   }
 
   static validateUpdate(dto: BudgetLineUpdate): void {

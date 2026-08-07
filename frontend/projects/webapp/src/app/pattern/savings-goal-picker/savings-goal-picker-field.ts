@@ -24,6 +24,8 @@ import {
   type BudgetPeriod,
 } from 'pulpe-shared';
 
+import type { SavingsGoalProgress } from 'pulpe-shared';
+
 import { SavingsGoalApi } from '@core/savings-goal/savings-goal-api';
 import { AppCurrencyPipe } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
@@ -32,12 +34,17 @@ import { dateFnsLocaleFor } from '@core/locale';
 /**
  * Reusable "Objectif" picker.
  *
- * Two modes, deliberately distinct:
+ * Three modes, deliberately distinct:
  * - `link` (default) — the 3 CA26 saving-line surfaces: which goal a saving
  *   forecast contributes to. Money goes IN.
  * - `withdrawal` (PUL-329) — which goal funds an income. Money goes OUT, so the
  *   list is restricted to goals with a positive balance and the field shows what
  *   is left after the withdrawal.
+ * - `plannedWithdrawal` (PUL-329 v2) — which goal a FORECAST income will be
+ *   taken from. Nothing leaves the pot yet, so the list is NOT restricted to
+ *   today's funded goals and an insufficient balance only warns: the money has
+ *   months to arrive. The preview reads the projection of the budget's own
+ *   period, not the balance of the day.
  *
  * Value-based (not a Signal-Forms field): the caller passes the current
  * `savingsGoalId` via `[value]` and reacts to `(valueChanged)`. In `link` mode a
@@ -164,6 +171,65 @@ import { dateFnsLocaleFor } from '@core/locale';
           {{ 'savingsGoals.withdrawalPickRequired' | transloco }}
         </p>
       }
+    } @else if (mode() === 'plannedWithdrawal') {
+      <mat-form-field
+        appearance="outline"
+        subscriptSizing="dynamic"
+        class="w-full"
+      >
+        <mat-label>{{
+          'savingsGoals.withdrawalSourceLabel' | transloco
+        }}</mat-label>
+        <mat-select
+          required
+          [value]="value()"
+          (selectionChange)="valueChanged.emit($event.value)"
+          data-testid="savings-goal-planned-withdrawal-select"
+        >
+          @for (goal of goals(); track goal.id) {
+            <mat-option [value]="goal.id">{{ goal.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      @if (goals().length === 0) {
+        <p
+          class="mt-1 text-body-small text-on-surface-variant"
+          data-testid="savings-goal-picker-empty"
+        >
+          {{ 'savingsGoals.pickerEmpty' | transloco }}
+        </p>
+      } @else if (plannedPreview(); as preview) {
+        <p
+          class="mt-1 text-body-small text-on-surface-variant ph-no-capture"
+          data-testid="savings-goal-planned-withdrawal-preview"
+        >
+          {{ 'savingsGoals.plannedWithdrawalProjection' | transloco }} ·
+          {{ preview.before | appCurrency: currency() : '1.0-2' }}
+          →
+          {{ preview.after | appCurrency: currency() : '1.0-2' }}
+        </p>
+        @if (hasInsufficientProjection()) {
+          <p
+            class="mt-1 text-body-small text-on-surface-variant"
+            data-testid="savings-goal-planned-withdrawal-warning"
+          >
+            {{ 'savingsGoals.plannedWithdrawalOverProjection' | transloco }}
+          </p>
+        }
+      } @else if (value() !== null) {
+        <p
+          class="mt-1 text-body-small text-on-surface-variant"
+          data-testid="savings-goal-planned-withdrawal-loading"
+        >
+          {{ 'common.loading' | transloco }}
+        </p>
+      }
+      <p
+        class="mt-1 text-body-small text-on-surface-variant"
+        data-testid="savings-goal-planned-withdrawal-note"
+      >
+        {{ 'savingsGoals.plannedWithdrawalNote' | transloco }}
+      </p>
     } @else {
       <mat-form-field
         appearance="outline"
@@ -214,7 +280,7 @@ export class SavingsGoalPickerField {
   /** Budget period the line will live in. Omitted on template lines. */
   readonly budgetPeriod = input<BudgetPeriod | null>(null);
   readonly valueChanged = output<string | null>();
-  readonly mode = input<'link' | 'withdrawal'>('link');
+  readonly mode = input<'link' | 'withdrawal' | 'plannedWithdrawal'>('link');
   /**
    * Withdrawal mode only: the amount actually taken out, already converted into
    * the account currency (RG-009). The original typed amount would compare a
@@ -225,14 +291,34 @@ export class SavingsGoalPickerField {
   readonly #api = inject(SavingsGoalApi);
   readonly #settings = inject(UserSettingsStore);
 
+  protected readonly currency = this.#settings.currency;
+
   // Shares the SavingsGoalApi DataCache (key ['savings-goals','list']) with
   // SavingsGoalStore: dedups the fetch across pickers/list and picks up store
   // invalidations.
   readonly #goalsResource = cachedResource({
     cache: this.#api.cache,
     cacheKey: ['savings-goals', 'list'],
-    params: () => (this.mode() === 'link' ? {} : undefined),
+    params: () => (this.mode() === 'withdrawal' ? undefined : {}),
     loader: () => this.#api.getAll$().pipe(map((r) => r.data ?? [])),
+  });
+
+  // Planned mode only: the projection of the picked goal, shared with the
+  // savings-goals feature under the same cache key so a mutation there
+  // refreshes this preview too.
+  readonly #plannedProgressResource = cachedResource<
+    SavingsGoalProgress,
+    { goalId: string }
+  >({
+    cache: this.#api.cache,
+    cacheKey: (params) => ['savings-goals', 'progress', params.goalId],
+    params: () => {
+      const goalId = this.value();
+      if (this.mode() !== 'plannedWithdrawal' || !goalId) return undefined;
+      return { goalId };
+    },
+    loader: ({ params }) =>
+      this.#api.getProgress$(params.goalId).pipe(map((r) => r.data)),
   });
 
   // Server-filtered: only goals whose confirmed balance is above the shared
@@ -271,15 +357,55 @@ export class SavingsGoalPickerField {
   );
 
   /**
+   * Planned mode: what the pot is expected to hold at the budget's own period,
+   * and what the announcement would leave. The projection, not today's balance
+   * — a retrait planned for August is judged on August. Falls back to the
+   * confirmed balance when the plan carries no row up to that period (an
+   * undated goal, or a budget before the plan window).
+   */
+  protected readonly plannedPreview = computed<{
+    before: number;
+    after: number;
+  } | null>(() => {
+    const progress = this.#plannedProgressResource.value();
+    if (!progress) return null;
+    const period = this.budgetPeriod();
+    const upToPeriod = period
+      ? progress.months.filter(
+          (month) =>
+            periodIndex(month) <= periodIndex(period) &&
+            month.projectedCumulative !== undefined,
+        )
+      : [];
+    const before =
+      upToPeriod[upToPeriod.length - 1]?.projectedCumulative ??
+      progress.confirmed;
+    return { before, after: before - (this.withdrawalAmount() ?? 0) };
+  });
+
+  /**
+   * Informative only: a projection is a forecast, and money may still arrive
+   * before the announced month. The real withdrawal keeps its hard block.
+   */
+  protected readonly hasInsufficientProjection = computed(() => {
+    const preview = this.plannedPreview();
+    return preview !== null && preview.after < -WITHDRAWAL_BALANCE_TOLERANCE;
+  });
+
+  /**
    * Withdrawal mode: the selection cannot be committed yet — options are still
    * loading or failed, the converted amount is not resolved, or the amount is
    * over the balance. The backend stays the authority; this only spares the user
    * a round-trip.
+   *
+   * Planned mode stops at « un objectif est choisi » : the amount is a forecast,
+   * so neither an unresolved conversion nor an over-projection blocks it.
    */
   readonly isWithdrawalBlocked = computed(() => {
-    if (this.mode() !== 'withdrawal') return false;
+    if (this.mode() === 'link') return false;
     if (this.isLoading() || this.error()) return true;
     if (this.value() === null) return true;
+    if (this.mode() === 'plannedWithdrawal') return false;
     if (this.selectedOption() === null) return true;
     return this.withdrawalAmount() === null || this.hasInsufficientBalance();
   });
@@ -357,6 +483,9 @@ export class SavingsGoalPickerField {
    * `[]` while loading or errored, and clearing on that would wipe a valid pick.
    */
   readonly #hasStaleSelection = computed(() => {
+    // Planned mode lists every goal and never disables one: a retrait is not
+    // bound by the deadline, so nothing there can go stale.
+    if (this.mode() !== 'link') return false;
     if (
       this.#goalsResource.error() ||
       this.#goalsResource.value() === undefined

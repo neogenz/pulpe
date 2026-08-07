@@ -3,9 +3,10 @@ import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { isRetryableTransactionConflict } from '@common/utils/postgres-conflict';
 
-// Exact messages the withdrawal RPCs RAISE (P0001), mirrored verbatim from
-// migration 20260802120000_add_savings_goal_withdrawals and pinned by its SQL
-// test. Keeping them beside the mapping below gives the SQL↔TS coupling a
+// Exact messages the withdrawal RPCs and the source-link trigger RAISE (P0001),
+// mirrored verbatim from migrations 20260802120000_add_savings_goal_withdrawals
+// and 20260805120000_add_planned_savings_goal_withdrawals, and pinned by their
+// SQL tests. Keeping them beside the mapping below gives the SQL↔TS coupling a
 // single greppable home.
 export const WITHDRAWAL_BALANCE_CHANGED_RPC_MESSAGE =
   'Savings goal balance changed';
@@ -14,8 +15,10 @@ export const WITHDRAWAL_NOT_FOUND_RPC_MESSAGE =
   'Savings goal withdrawal not found';
 export const WITHDRAWAL_KIND_RPC_MESSAGE =
   'Savings goal withdrawal must be an income';
-export const WITHDRAWAL_ALLOCATED_RPC_MESSAGE =
-  'Savings goal withdrawal must stay unallocated';
+export const WITHDRAWAL_ALLOCATION_MOVED_RPC_MESSAGE =
+  'Savings goal withdrawal allocation is immutable';
+export const WITHDRAWAL_FOREIGN_FORECAST_RPC_MESSAGE =
+  'Savings goal withdrawal must realize its own forecast';
 export const WITHDRAWAL_SOURCE_CHANGED_RPC_MESSAGE =
   'Savings goal withdrawal source changed';
 export const WITHDRAWAL_BUDGET_DENIED_RPC_MESSAGE = 'Budget access denied';
@@ -23,11 +26,13 @@ export const WITHDRAWAL_TAG_DENIED_RPC_MESSAGE = 'Tag access denied';
 
 /**
  * The write would break the shape a withdrawal must keep for its whole life:
- * an unallocated income pointing at the goal it was created against.
+ * an income pointing at the goal it was created against, either free or
+ * allocated to the one forecast that announced it — and never moved afterwards.
  */
 const INVALID_SHAPE_RPC_MESSAGES = [
   WITHDRAWAL_KIND_RPC_MESSAGE,
-  WITHDRAWAL_ALLOCATED_RPC_MESSAGE,
+  WITHDRAWAL_ALLOCATION_MOVED_RPC_MESSAGE,
+  WITHDRAWAL_FOREIGN_FORECAST_RPC_MESSAGE,
   WITHDRAWAL_SOURCE_CHANGED_RPC_MESSAGE,
 ] as const;
 

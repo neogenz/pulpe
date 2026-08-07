@@ -103,6 +103,7 @@ class StubGoalPlanTimeline {
   readonly payDayOfMonth = input<number | null>(null);
   readonly editable = input<boolean>(false);
   readonly expanded = input<boolean>(false);
+  readonly canRepair = input<boolean>(false);
   readonly amountChange = output<unknown>();
   readonly toggleExpanded = output<void>();
 }

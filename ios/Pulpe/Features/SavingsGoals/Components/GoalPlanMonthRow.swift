@@ -97,6 +97,26 @@ struct GoalPlanMonthRow: View {
         return nil
     }
 
+    /// PUL-329 v2 — ce que le mois ANNONCE sortir. Somme brute, affichage seul :
+    /// la part déjà réalisée vit dans le stock confirmé et le reliquat est ce que
+    /// la projection retranche — la sous-ligne, elle, dit seulement « ce mois
+    /// prévoit de sortir 500 ». Rien à éditer : le simulateur n'ajuste que les
+    /// contributions, un montant négatif n'a jamais à être saisi.
+    ///
+    /// `nonisolated` : pure sur deux valeurs, sans quoi elle hériterait du
+    /// `@MainActor` de `View` et piégerait tout appelant hors du main thread.
+    nonisolated static func plannedWithdrawalText(
+        for month: SavingsGoalPlanMonth,
+        currency: SupportedCurrency
+    ) -> String? {
+        guard month.plannedWithdrawalAmount > 0 else { return nil }
+        return "Retrait prévu · \((-month.plannedWithdrawalAmount).asCompactCurrency(currency))"
+    }
+
+    private var announcedWithdrawal: String? {
+        Self.plannedWithdrawalText(for: month, currency: currency)
+    }
+
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
@@ -117,6 +137,13 @@ struct GoalPlanMonthRow: View {
                             .font(PulpeTypography.listRowSubtitle)
                             .foregroundStyle(state.color)
                     }
+                }
+
+                if let announcedWithdrawal {
+                    Text(announcedWithdrawal)
+                        .font(PulpeTypography.listRowSubtitle)
+                        .foregroundStyle(Color.textSecondary)
+                        .sensitiveAmount()
                 }
             }
 
@@ -163,6 +190,9 @@ struct GoalPlanMonthRow: View {
             parts.append(amount.asCurrency(currency))
         } else {
             parts.append(availability.label)
+        }
+        if let announcedWithdrawal {
+            parts.append(announcedWithdrawal)
         }
         if showsCumulative {
             parts.append("cumulé \(cumulative.asCurrency(currency))")

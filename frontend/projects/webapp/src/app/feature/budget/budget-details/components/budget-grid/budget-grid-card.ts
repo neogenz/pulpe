@@ -8,9 +8,11 @@ import {
 } from '@angular/core';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { MatBadgeModule } from '@angular/material/badge';
+import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { type BudgetLine, type SupportedCurrency } from 'pulpe-shared';
 import { AppCurrencyPipe, FormatConversionPipe } from '@core/currency';
 import { FinancialKindDirective } from '@ui/financial-kind';
@@ -18,6 +20,7 @@ import { FinancialKindIndicator } from '@ui/financial-kind-indicator';
 import { OriginalAmountLine } from '@ui/original-amount-line';
 import { SpreadBadge } from '@ui/spread-badge';
 import { SavingsWithdrawalBadge } from '@ui/savings-withdrawal-badge';
+import { SavingsGoalSourceLine } from '@ui/savings-goal-source/savings-goal-source-line';
 import { TagIndicator } from '@ui/tag-indicator';
 import { RecurrenceLabelPipe } from '@ui/transaction-display';
 import { TagStore } from '@core/tag';
@@ -45,9 +48,11 @@ import { BudgetActionMenu } from '../budget-action-menu';
   selector: 'pulpe-budget-grid-card',
   imports: [
     MatBadgeModule,
+    MatButtonModule,
     MatChipsModule,
     MatIconModule,
     MatSlideToggleModule,
+    MatTooltipModule,
     TranslocoPipe,
     AppCurrencyPipe,
     FinancialKindDirective,
@@ -59,6 +64,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
     BudgetActionMenu,
     SpreadBadge,
     SavingsWithdrawalBadge,
+    SavingsGoalSourceLine,
     TagIndicator,
   ],
   template: `
@@ -130,6 +136,14 @@ import { BudgetActionMenu } from '../budget-action-menu';
               }}</span>
             </div>
           }
+          @if (item().data.sourceSavingsGoalName; as sourceName) {
+            <pulpe-savings-goal-source-line
+              class="text-label-small max-w-full"
+              [goalId]="item().data.sourceSavingsGoalId"
+              [goalName]="sourceName"
+              [attr.data-testid]="'envelope-source-goal-' + item().data.id"
+            />
+          }
         </div>
 
         <pulpe-budget-action-menu
@@ -175,7 +189,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
             {{ remaining | appCurrency: currency() : '1.0-0' }}
           </div>
           <span class="text-label-medium text-on-surface-variant">{{
-            'budgetLine.available' | transloco
+            'budgetLine.available.' + item().data.kind | transloco
           }}</span>
         } @else {
           <div
@@ -210,7 +224,7 @@ import { BudgetActionMenu } from '../budget-action-menu';
               {{
                 item().consumption!.consumed | appCurrency: currency() : '1.0-0'
               }}
-              {{ 'budgetLine.spent' | transloco }}
+              {{ 'budgetLine.spent.' + item().data.kind | transloco }}
             </span>
             <span class="text-body-small font-medium">
               @if (item().consumption!.consumptionState === 'over-budget') {
@@ -241,19 +255,36 @@ import { BudgetActionMenu } from '../budget-action-menu';
           {{ item().data.recurrence | recurrenceLabel }}
         </mat-chip>
 
-        <mat-slide-toggle
-          [checked]="!!item().data.checkedAt"
-          (change)="toggleCheck.emit(item().data.id)"
-          (click)="$event.stopPropagation()"
-          [attr.data-testid]="'toggle-check-' + item().data.id"
-          [attr.aria-label]="
-            item().data.checkedAt
-              ? ('budgetLine.uncheckLabel'
-                | transloco: { name: item().data.name })
-              : ('budgetLine.checkLabel'
-                | transloco: { name: item().data.name })
-          "
-        />
+        <!--
+          Un retrait annoncé ne se pointe pas : il se réalise en saisissant le
+          revenu réel. Même sortie que la bascule — le conteneur tranche.
+        -->
+        @if (item().metadata.sourceWithdrawalCtaKey; as ctaKey) {
+          <button
+            matIconButton
+            class="text-primary"
+            (click)="toggleCheck.emit(item().data.id); $event.stopPropagation()"
+            [matTooltip]="ctaKey | transloco: { name: item().data.name }"
+            [attr.aria-label]="ctaKey | transloco: { name: item().data.name }"
+            [attr.data-testid]="'realize-withdrawal-' + item().data.id"
+          >
+            <mat-icon>price_check</mat-icon>
+          </button>
+        } @else {
+          <mat-slide-toggle
+            [checked]="!!item().data.checkedAt"
+            (change)="toggleCheck.emit(item().data.id)"
+            (click)="$event.stopPropagation()"
+            [attr.data-testid]="'toggle-check-' + item().data.id"
+            [attr.aria-label]="
+              item().data.checkedAt
+                ? ('budgetLine.uncheckLabel'
+                  | transloco: { name: item().data.name })
+                : ('budgetLine.checkLabel'
+                  | transloco: { name: item().data.name })
+            "
+          />
+        }
       </div>
     </div>
   `,

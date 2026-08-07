@@ -1,5 +1,6 @@
 import {
   Component,
+  computed,
   input,
   output,
   ChangeDetectionStrategy,
@@ -46,7 +47,8 @@ import { TranslocoPipe } from '@jsverse/transloco';
         class="ph-no-capture"
         [(ngModel)]="value"
         [placeholder]="placeholder()"
-        [attr.aria-describedby]="ariaDescribedBy()"
+        [attr.aria-describedby]="describedBy()"
+        [attr.aria-invalid]="errorId() ? 'true' : null"
         [attr.aria-label]="label() + ' in ' + currency()"
         [required]="required()"
         [attr.min]="required() ? '0' : null"
@@ -89,6 +91,10 @@ export class CurrencyInput {
   readonly placeholder = input<string>('0.00');
   readonly icon = input<string | null>(null);
   readonly ariaDescribedBy = input<string>();
+  /** Id of the element carrying this field's error message. Its presence is
+   *  what marks the field invalid for assistive tech, so pass it only while
+   *  the error is on screen. */
+  readonly errorId = input<string>();
   readonly required = input<boolean>(false);
   readonly testId = input<string>('currency-input');
   readonly currency = input<string>('CHF');
@@ -101,6 +107,11 @@ export class CurrencyInput {
   readonly autoFocus = input<boolean>(true);
   protected readonly currencies = SUPPORTED_CURRENCIES;
   protected readonly CURRENCY_METADATA = CURRENCY_METADATA;
+  protected readonly describedBy = computed(
+    () =>
+      [this.ariaDescribedBy(), this.errorId()].filter(Boolean).join(' ') ||
+      null,
+  );
 
   constructor() {
     afterNextRender(() => {

@@ -9,6 +9,7 @@ import {
   withViewTransitions,
   TitleStrategy,
 } from '@angular/router';
+import { ViewportScroller } from '@angular/common';
 import { withChunkReloadRecovery } from './routing/navigation-error-handler';
 
 import {
@@ -28,6 +29,7 @@ import { provideLocale } from './locale';
 import { provideAngularMaterial } from './angular-material';
 import { provideAuth } from './auth/auth-providers';
 import { AuthSessionService } from './auth/auth-session.service';
+import { PageViewportScroller } from './routing/page-viewport-scroller';
 import { PulpeTitleStrategy } from './routing/title-strategy';
 import { AppVersionStore } from './app-version/app-version-store';
 import { ApplicationConfiguration } from './config/application-configuration';
@@ -122,6 +124,9 @@ export function provideCore({ routes }: CoreOptions) {
       withViewTransitions({ skipInitialTransition: true }),
       withChunkReloadRecovery(),
     ),
+
+    // Scroll restoration targets the element that actually scrolls — APRÈS le router
+    { provide: ViewportScroller, useClass: PageViewportScroller },
 
     // Custom title strategy - APRÈS le router
     { provide: TitleStrategy, useClass: PulpeTitleStrategy },

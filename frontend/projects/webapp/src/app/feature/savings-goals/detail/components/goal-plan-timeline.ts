@@ -44,6 +44,13 @@ interface GoalPlanTimelineRow {
    */
   isWithdrawalOnly: boolean;
   withdrawn: number;
+  /**
+   * Ce que le mois ANNONCE sortir (PUL-329 v2). Somme brute, affichage seul :
+   * la part déjà réalisée vit dans le confirmé et le reliquat est ce que la
+   * projection retranche — la sous-ligne, elle, dit seulement « ce mois prévoit
+   * de sortir 500 ». Non éditable : le simulateur n'ajuste que les contributions.
+   */
+  plannedWithdrawal: number;
 }
 
 interface GoalPlanTimelineVisibleRow extends GoalPlanTimelineRow {
@@ -143,6 +150,15 @@ const WINDOW_OPEN_ROWS = 3;
             >
               &rarr; {{ row.cumulative | appCurrency: currency() : '1.0-0' }}
             </span>
+            @if (row.plannedWithdrawal > 0) {
+              <span
+                class="ph-no-capture text-body-small text-on-surface-variant tabular-nums"
+                data-testid="goal-plan-row-planned-withdrawal"
+              >
+                {{ 'savingsGoals.plan.plannedWithdrawal' | transloco }} ·
+                {{ -row.plannedWithdrawal | appCurrency: currency() : '1.0-0' }}
+              </span>
+            }
           </div>
 
           @if (row.isWithdrawalOnly) {
@@ -156,20 +172,39 @@ const WINDOW_OPEN_ROWS = 3;
           } @else if (
             editable() && row.isOpen && editingKey() === row.periodKey
           ) {
-            <input
-              type="number"
-              inputmode="decimal"
-              step="0.01"
-              min="0"
-              class="ph-no-capture w-28 rounded-lg border border-outline
-                     bg-surface px-3 py-1.5 text-right text-body-medium"
-              [attr.aria-label]="'savingsGoals.plan.editAmount' | transloco"
-              [value]="row.amount"
-              (blur)="commitEdit(row, $event)"
-              (keydown.enter)="commitEdit(row, $event)"
-              #amountField
-              data-testid="goal-plan-row-input"
-            />
+            <div class="flex shrink-0 flex-col items-end gap-1">
+              <input
+                type="number"
+                inputmode="decimal"
+                step="0.01"
+                min="0"
+                class="ph-no-capture w-28 rounded-lg border bg-surface px-3 py-1.5
+                       text-right text-body-medium"
+                [class.border-outline]="!hasEditError()"
+                [class.border-error]="hasEditError()"
+                [attr.aria-label]="'savingsGoals.plan.editAmount' | transloco"
+                [attr.aria-invalid]="hasEditError()"
+                [attr.aria-describedby]="
+                  hasEditError() ? 'goal-plan-row-error' : null
+                "
+                [attr.value]="row.amount"
+                (input)="onAmountInput(row, $event)"
+                (blur)="closeEdit()"
+                (keydown.enter)="closeEdit()"
+                #amountField
+                data-testid="goal-plan-row-input"
+              />
+              @if (hasEditError()) {
+                <p
+                  id="goal-plan-row-error"
+                  role="alert"
+                  class="max-w-56 text-right text-body-small text-error"
+                  data-testid="goal-plan-row-error"
+                >
+                  {{ 'savingsGoals.plan.editAmountInvalid' | transloco }}
+                </p>
+              }
+            </div>
           } @else if (editable() && row.isOpen) {
             <button
               matButton
@@ -251,9 +286,12 @@ export class GoalPlanTimeline {
     year: number;
     amount: number;
   }>();
+  /** La saisie en cours est refusée : le parent referme « Appliquer ». */
+  readonly invalidChange = output<boolean>();
   readonly toggleExpanded = output<void>();
 
   protected readonly editingKey = signal<number | null>(null);
+  protected readonly hasEditError = signal(false);
 
   // Focus the inline field when it appears (user opened it) — a11y-friendly
   // alternative to the banned `autofocus` attribute.
@@ -319,6 +357,7 @@ export class GoalPlanTimeline {
           : month.plannedCumulative,
         isWithdrawalOnly: month.isContributionEligible === false,
         withdrawn: month.withdrawnAmount ?? 0,
+        plannedWithdrawal: month.plannedWithdrawalAmount ?? 0,
       };
     });
   });
@@ -377,19 +416,45 @@ export class GoalPlanTimeline {
   }
 
   protected startEdit(periodKey: number): void {
+    this.#clearError();
     this.editingKey.set(periodKey);
   }
 
-  protected commitEdit(row: GoalPlanTimelineRow, event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const parsed = Number.parseFloat(input.value);
-    this.editingKey.set(null);
-    if (Number.isNaN(parsed) || parsed < 0) return;
-    if (parsed === row.amount) return;
+  /**
+   * Émettre à chaque frappe, pas seulement au blur : « Appliquer » doit suivre
+   * la saisie. Le champ possède son erreur — un montant négatif ou incomplet
+   * n'atteint jamais le simulateur et ne remplace jamais la valeur affichée.
+   */
+  protected onAmountInput(row: GoalPlanTimelineRow, event: Event): void {
+    const raw = (event.target as HTMLInputElement).value.trim();
+    if (raw === '') {
+      // Champ vidé pour retaper : incomplet, pas fautif. Rien n'est appliqué.
+      this.hasEditError.set(false);
+      this.invalidChange.emit(true);
+      return;
+    }
+
+    const parsed = Number.parseFloat(raw);
+    const isValid = Number.isFinite(parsed) && parsed >= 0;
+    this.hasEditError.set(!isValid);
+    this.invalidChange.emit(!isValid);
+    if (!isValid || parsed === row.amount) return;
+
     this.amountChange.emit({
       month: row.month,
       year: row.year,
       amount: parsed,
     });
+  }
+
+  /** Quitter le champ abandonne une saisie refusée ; rien n'est écrit. */
+  protected closeEdit(): void {
+    this.#clearError();
+    this.editingKey.set(null);
+  }
+
+  #clearError(): void {
+    this.hasEditError.set(false);
+    this.invalidChange.emit(false);
   }
 }

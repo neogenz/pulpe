@@ -3,14 +3,17 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter, Router } from '@angular/router';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { of, throwError } from 'rxjs';
 
 import { AuthSessionService } from '@core/auth';
 import { ApiError } from '@core/api/api-error';
 import { PostHogService } from '@core/analytics/posthog';
-import { ClientKeyService, EncryptionApi } from '@core/encryption';
-import * as cryptoUtils from '@core/encryption/crypto.utils';
+import {
+  ClientKeyService,
+  DERIVE_CLIENT_KEY,
+  EncryptionApi,
+} from '@core/encryption';
 import { Logger } from '@core/logging/logger';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { ANALYTICS_EVENTS, API_ERROR_CODES } from 'pulpe-shared';
@@ -44,12 +47,10 @@ describe('SetupVaultCode', () => {
   let mockPostHogService: { captureEvent: ReturnType<typeof vi.fn> };
   let mockDialogRef: { afterClosed: ReturnType<typeof vi.fn> };
   let navigateSpy: ReturnType<typeof vi.fn>;
-  let deriveClientKeySpy: ReturnType<typeof vi.spyOn>;
+  let deriveClientKeySpy: Mock;
 
   beforeEach(async () => {
-    deriveClientKeySpy = vi
-      .spyOn(cryptoUtils, 'deriveClientKey')
-      .mockResolvedValue('abcd'.repeat(16));
+    deriveClientKeySpy = vi.fn().mockResolvedValue('abcd'.repeat(16));
     mockDialogRef = {
       afterClosed: vi.fn().mockReturnValue(of(true)),
     };
@@ -100,6 +101,7 @@ describe('SetupVaultCode', () => {
         provideAnimationsAsync(),
         provideRouter([]),
         ...provideTranslocoForTest(),
+        { provide: DERIVE_CLIENT_KEY, useValue: deriveClientKeySpy },
         { provide: AuthSessionService, useValue: mockAuthSessionService },
         { provide: ClientKeyService, useValue: mockClientKeyService },
         { provide: EncryptionApi, useValue: mockEncryptionApi },

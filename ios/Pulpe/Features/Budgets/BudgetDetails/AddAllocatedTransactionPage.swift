@@ -10,9 +10,11 @@ struct AddAllocatedTransactionPage: View {
     let lineId: String
 
     @Environment(BudgetDetailsCoordinator.self) private var coordinator
+    @Environment(BudgetDetailsProjector.self) private var projector
     @Environment(\.dismiss) private var dismiss
     @Environment(ToastManager.self) private var toastManager
     @Environment(UserSettingsStore.self) private var userSettingsStore
+    @Environment(SavingsGoalStore.self) private var savingsGoalStore
 
     @State private var name = ""
     @State private var amount: Decimal?
@@ -28,7 +30,12 @@ struct AddAllocatedTransactionPage: View {
     @State private var isLoading = false
     @State private var submitSuccessTrigger = false
     @State private var didAutofocus = false
+    @State private var didPrefill = false
     @State private var selectedTagIds: Set<String> = []
+    /// The goal's confirmed balance, read once the page opens so the user sees
+    /// the ceiling they are typing against. `nil` while it loads or if it fails:
+    /// the server remains the authority on what can actually be taken out.
+    @State private var confirmedBalance: Decimal?
     @FocusState private var focusedField: AmountDescriptionField?
 
     private let conversionService = CurrencyConversionService.shared
@@ -37,6 +44,22 @@ struct AddAllocatedTransactionPage: View {
 
     private var budgetLine: BudgetLine? {
         coordinator.dataStore.budgetLines.first { $0.id == lineId }
+    }
+
+    /// PUL-329 v2 — non-nil only when this line announces a withdrawal from a
+    /// still-existing goal. Everything the realization header and the prefill
+    /// need; the goal itself is never picked here, the server inherits it.
+    private var realization: AddAllocatedTransactionLogic.RealizationPrefill? {
+        guard let budgetLine else { return nil }
+        // Projector-indexed consumption, like the line detail page's hero. The
+        // zero fallback covers the frame where the page renders before the
+        // projector publishes.
+        let consumption = projector.screenState.consumptionByLineId[lineId]
+            ?? BudgetFormulas.Consumption(allocated: 0, available: budgetLine.amount, percentage: 0)
+        return AddAllocatedTransactionLogic.realizationPrefill(
+            for: budgetLine,
+            consumption: consumption
+        )
     }
 
     /// The currency the form types in — picker selection if the user changed
@@ -87,14 +110,38 @@ struct AddAllocatedTransactionPage: View {
             didAutofocus = true
             focusedField = .amount
         }
+        .task { await prefillRealization() }
         .onDisappear {
             focusedField = nil
         }
     }
 
+    /// Copies the forecast into the form ONCE. Re-running it after a refused
+    /// submit would overwrite what the user just corrected — which is exactly
+    /// the value the refusal is about.
+    private func prefillRealization() async {
+        guard let realization, !didPrefill else { return }
+        didPrefill = true
+        name = realization.name
+        if let remaining = realization.remainingAmount {
+            amount = remaining
+            amountText = "\(remaining)"
+        }
+        await refreshConfirmedBalance()
+    }
+
+    /// The goal balance shown next to the entry. Re-read after a refusal too:
+    /// the figure the user was typing against is provably stale by then.
+    private func refreshConfirmedBalance() async {
+        guard case .active(let goalId, _)? = realization?.goalSource else { return }
+        confirmedBalance = try? await savingsGoalStore.getProgress(id: goalId).confirmed
+    }
+
     @ViewBuilder
     private func formContent(for line: BudgetLine) -> some View {
         VStack(spacing: DesignTokens.Spacing.xxl) {
+            realizationHeader
+
             if userSettingsStore.showCurrencySelector {
                 CurrencyAmountPicker(selectedCurrency: inputCurrencyBinding)
             }
@@ -134,6 +181,32 @@ struct AddAllocatedTransactionPage: View {
         .padding(.top, DesignTokens.Spacing.lg)
     }
 
+    /// The goal being drawn from, and what it holds today — read-only. The source
+    /// is not chosen here: the server inherits it from the forecast, and offering
+    /// a picker would suggest it could be changed.
+    @ViewBuilder
+    private var realizationHeader: some View {
+        if let realization {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
+                SavingsGoalSourceLabel(source: realization.goalSource)
+
+                if let confirmedBalance {
+                    Text("Solde actuel · \(confirmedBalance.asAdaptiveCurrency(userSettingsStore.currency))")
+                        .font(PulpeTypography.footnote)
+                        .foregroundStyle(Color.onSurfaceVariant)
+                        .sensitiveAmount()
+                }
+                if let remaining = realization.remainingAmount {
+                    Text("Montant restant prévu · \(remaining.asAdaptiveCurrency(userSettingsStore.currency))")
+                        .font(PulpeTypography.footnote)
+                        .foregroundStyle(Color.onSurfaceVariant)
+                        .sensitiveAmount()
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
     private func descriptionField(line: BudgetLine) -> some View {
         FormTextField(
             hint: line.kind.descriptionPlaceholder,
@@ -165,7 +238,7 @@ struct AddAllocatedTransactionPage: View {
             Button {
                 Task { await add(for: line) }
             } label: {
-                Text("Ajouter")
+                Text(realization == nil ? "Ajouter" : "Confirmer le retrait")
             }
             .disabled(!canSubmit)
             .primaryButtonStyle(isEnabled: canSubmit)
@@ -217,7 +290,12 @@ struct AddAllocatedTransactionPage: View {
             toastManager.show("Transaction ajoutée")
             dismiss()
         } catch {
+            // The entry stays on screen with everything the user typed: a refusal
+            // (solde insuffisant, conflit) is about the amount, so throwing it
+            // away would ask them to type the very thing being discussed again.
+            // The balance it was judged against is stale by now — re-read it.
             self.error = error
+            await refreshConfirmedBalance()
         }
     }
 }

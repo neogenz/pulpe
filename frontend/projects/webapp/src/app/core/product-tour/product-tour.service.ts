@@ -1,5 +1,5 @@
 import { DOCUMENT } from '@angular/common';
-import { inject, Service } from '@angular/core';
+import { inject, InjectionToken, Service } from '@angular/core';
 import { AuthStore } from '@core/auth/auth-store';
 import { StorageService, type StorageKey } from '@core/storage';
 import { TranslocoService } from '@jsverse/transloco';
@@ -9,6 +9,21 @@ import {
   type TourId,
   type TourPageId,
 } from './product-tour.steps';
+
+/**
+ * The driver.js entry point, reached through DI so a spec can hand back a double.
+ *
+ * `vi.mock('driver.js')` cannot do that job here: the specs share one module
+ * registry (`isolate` defaults to false under `@angular/build:unit-test`), and
+ * `main-layout.spec.ts` pulls this service — and with it the real `driver.js` —
+ * into that registry before the mock is ever registered. Whichever file the
+ * runner happens to schedule first then decides whether the mock takes, which is
+ * a coin flip on a loaded machine.
+ */
+export const DRIVER_FACTORY = new InjectionToken<typeof driver>(
+  'DRIVER_FACTORY',
+  { providedIn: 'root', factory: () => driver },
+);
 
 const SCROLL_CONTAINER_SELECTORS = [
   '[data-testid="page-content"]',
@@ -40,6 +55,7 @@ const TOUR_IDS = {
 @Service()
 export class ProductTourService {
   readonly #document = inject(DOCUMENT);
+  readonly #driver = inject(DRIVER_FACTORY);
   readonly #storageService = inject(StorageService);
   readonly #authStore = inject(AuthStore);
   readonly #transloco = inject(TranslocoService);
@@ -202,7 +218,7 @@ export class ProductTourService {
     );
     if (availableSteps.length === 0) return;
 
-    const tourDriver = driver();
+    const tourDriver = this.#driver();
     this.#activeDriver = tourDriver;
     this.#rememberScrollPositions();
     let completed = false;

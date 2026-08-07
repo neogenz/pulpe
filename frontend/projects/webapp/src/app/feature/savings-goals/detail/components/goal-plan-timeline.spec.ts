@@ -459,6 +459,53 @@ describe('GoalPlanTimeline', () => {
     expect(withdrawalRow.nativeElement.textContent).toContain('Retiré');
   });
 
+  // An announcement takes nothing out yet, so it moves no contribution and no
+  // cumulative here — without a sub-line the month says nothing about the 500
+  // it plans to release, and the simulator's editable field would look like the
+  // place to type it.
+  it('states the announced withdrawal of a contributing month without offering to edit it', () => {
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({
+        month: 8,
+        plannedAmount: 450,
+        plannedCumulative: 3600,
+        plannedWithdrawalAmount: 500,
+        remainingPlannedWithdrawalAmount: 500,
+        projectedCumulative: 3100,
+      }),
+    ]);
+    setTestInput(fixture.componentInstance.editable, true);
+    setTestInput(fixture.componentInstance.expanded, true);
+    fixture.detectChanges();
+
+    const announced = query('goal-plan-row-planned-withdrawal');
+    expect(announced).toBeTruthy();
+    expect(announced.nativeElement.textContent).toContain('Retrait prévu');
+    // Signed and aggregated, like every other stock exit on this screen.
+    expect(announced.nativeElement.textContent).toContain('-500');
+    expect(announced.nativeElement.querySelector('input')).toBeNull();
+  });
+
+  // The gross announcement is what the month declares; the part already taken
+  // out lives in the confirmed stock. Keeping it gross is what stops the screen
+  // from telling the same 500 twice.
+  it('keeps announcing the gross amount once the withdrawal is realized', () => {
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({
+        month: 8,
+        plannedWithdrawalAmount: 500,
+        remainingPlannedWithdrawalAmount: 0,
+        withdrawnAmount: 500,
+      }),
+    ]);
+    setTestInput(fixture.componentInstance.expanded, true);
+    fixture.detectChanges();
+
+    expect(
+      query('goal-plan-row-planned-withdrawal').nativeElement.textContent,
+    ).toContain('-500');
+  });
+
   // Its lines are empty by construction, so the contribution chips would read
   // it as a month whose forecast is missing. Nothing is missing: this month
   // was never meant to contribute.
@@ -499,31 +546,88 @@ describe('GoalPlanTimeline', () => {
     expect(editButton).toBeTruthy();
   });
 
-  it('emits amountChange when an inline edit is committed', () => {
+  function openInlineEdit(plannedAmount = 450): {
+    input: HTMLInputElement;
+    amounts: { month: number; year: number; amount: number }[];
+    invalid: boolean[];
+  } {
     setTestInput(fixture.componentInstance.months, [
-      makeMonth({ month: 3, year: 2026, state: 'current', plannedAmount: 450 }),
+      makeMonth({ month: 3, year: 2026, state: 'current', plannedAmount }),
     ]);
     setTestInput(fixture.componentInstance.editable, true);
     setTestInput(fixture.componentInstance.expanded, true);
     fixture.detectChanges();
 
-    const emitted: { month: number; year: number; amount: number }[] = [];
+    const amounts: { month: number; year: number; amount: number }[] = [];
+    const invalid: boolean[] = [];
     fixture.componentInstance.amountChange.subscribe((event) =>
-      emitted.push(event),
+      amounts.push(event),
+    );
+    fixture.componentInstance.invalidChange.subscribe((event) =>
+      invalid.push(event),
     );
 
-    const editButton = fixture.debugElement.query(
-      By.css('[data-testid^="goal-plan-row-edit-"]'),
-    );
-    editButton.nativeElement.click();
+    fixture.debugElement
+      .query(By.css('[data-testid^="goal-plan-row-edit-"]'))
+      .nativeElement.click();
     fixture.detectChanges();
 
-    const input = query('goal-plan-row-input')
-      .nativeElement as HTMLInputElement;
-    input.value = '600';
-    input.dispatchEvent(new Event('blur'));
+    return {
+      input: query('goal-plan-row-input').nativeElement as HTMLInputElement,
+      amounts,
+      invalid,
+    };
+  }
 
-    expect(emitted).toEqual([{ month: 3, year: 2026, amount: 600 }]);
+  it('emits amountChange while typing, without waiting for blur', () => {
+    const { input, amounts } = openInlineEdit();
+
+    input.value = '600';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(amounts).toEqual([{ month: 3, year: 2026, amount: 600 }]);
+    expect(query('goal-plan-row-error')).toBeNull();
+  });
+
+  it('refuses a negative amount with a visible error instead of clamping it', () => {
+    const { input, amounts, invalid } = openInlineEdit();
+
+    input.value = '-500';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(amounts).toEqual([]);
+    expect(invalid.at(-1)).toBe(true);
+    expect(query('goal-plan-row-error')).toBeTruthy();
+    expect(input.getAttribute('aria-invalid')).toBe('true');
+    expect(input.value).toBe('-500');
+  });
+
+  it('treats an incomplete entry as pending rather than as an error', () => {
+    const { input, amounts, invalid } = openInlineEdit();
+
+    input.value = '';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(amounts).toEqual([]);
+    expect(invalid.at(-1)).toBe(true);
+    expect(query('goal-plan-row-error')).toBeNull();
+  });
+
+  it('drops a refused entry when the field is left, writing nothing', () => {
+    const { input, amounts, invalid } = openInlineEdit();
+
+    input.value = '-500';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    input.dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
+
+    expect(amounts).toEqual([]);
+    expect(invalid.at(-1)).toBe(false);
+    expect(query('goal-plan-row-input')).toBeNull();
   });
 
   it('windows to the last locked row + 3 open rows when collapsed', () => {

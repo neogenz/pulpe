@@ -98,7 +98,9 @@ export class UpdateBudgetLineUseCase {
     if (dto.isManuallyAdjusted !== undefined) {
       patch.isManuallyAdjusted = dto.isManuallyAdjusted;
     }
-    if (dto.checkedAt !== undefined) patch.checkedAt = dto.checkedAt;
+    // `checkedAt` n'entre pas par ici : le schéma de mise à jour ne l'accepte
+    // plus. Pointer passe par `toggle-check`, qui refuse de pointer un retrait
+    // planifié.
     return patch;
   }
 }

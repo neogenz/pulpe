@@ -5,7 +5,10 @@ import { ToggleBudgetLineCheckUseCase } from './toggle-budget-line-check.use-cas
 import { BUDGET_LINE_REPOSITORY } from '../domain/ports/budget-line-repository.port';
 import { CacheService } from '@modules/cache/cache.service';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { BudgetLine } from '../domain/budget-line.entity';
+import type {
+  BudgetLine,
+  BudgetLineAccess,
+} from '../domain/budget-line.entity';
 
 const mockEntity: BudgetLine = {
   id: 'line-1',
@@ -15,6 +18,8 @@ const mockEntity: BudgetLine = {
   tagIds: [],
   spreadGroupId: null,
   savingsWithdrawalGroupId: null,
+  sourceSavingsGoalId: null,
+  sourceSavingsGoalName: null,
   name: 'Loyer',
   amount: 1200,
   originalAmount: null,
@@ -27,6 +32,11 @@ const mockEntity: BudgetLine = {
   checkedAt: '2026-01-01T00:00:00.000Z',
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z',
+};
+
+const ORDINARY_LINE_ACCESS: BudgetLineAccess = {
+  sourceSavingsGoalId: null,
+  checkedAt: mockEntity.checkedAt,
 };
 
 const mockUser: AuthenticatedUser = {
@@ -50,6 +60,7 @@ describe('ToggleBudgetLineCheckUseCase', () => {
     mockRepo = {
       validateAccess: jest.fn().mockImplementation(async () => {
         callOrder.push('validateAccess');
+        return ORDINARY_LINE_ACCESS;
       }),
       toggleCheckRpc: jest.fn().mockImplementation(async () => {
         callOrder.push('toggleCheckRpc');
@@ -96,5 +107,35 @@ describe('ToggleBudgetLineCheckUseCase', () => {
 
     expect(mockRepo.toggleCheckRpc).not.toHaveBeenCalled();
     expect(mockCache.invalidateForUser).not.toHaveBeenCalled();
+  });
+
+  // Cocher un retrait planifié dirait « l'argent est sorti » sans qu'aucune
+  // écriture ne l'ait retiré du pot : le solde confirmé resterait entier et le
+  // revenu serait compté alors qu'aucun réel n'existe.
+  it('should refuse to check a planned withdrawal, which is realized by its transaction', async () => {
+    mockRepo.validateAccess.mockResolvedValueOnce({
+      sourceSavingsGoalId: 'goal-1',
+      checkedAt: null,
+    });
+
+    await expect(useCase.execute('line-1', mockUser)).rejects.toThrow(
+      /not by checking it/,
+    );
+
+    expect(mockRepo.toggleCheckRpc).not.toHaveBeenCalled();
+    expect(mockCache.invalidateForUser).not.toHaveBeenCalled();
+  });
+
+  // Seul le passage à pointé est fermé : dépointer une donnée historique
+  // incohérente est le geste qui la répare.
+  it('should still allow unchecking a planned withdrawal left checked', async () => {
+    mockRepo.validateAccess.mockResolvedValueOnce({
+      sourceSavingsGoalId: 'goal-1',
+      checkedAt: '2026-08-01T00:00:00.000Z',
+    });
+
+    await useCase.execute('line-1', mockUser);
+
+    expect(mockRepo.toggleCheckRpc).toHaveBeenCalledWith('line-1');
   });
 });

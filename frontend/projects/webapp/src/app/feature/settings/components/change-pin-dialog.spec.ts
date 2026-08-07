@@ -8,25 +8,15 @@ import { EncryptionApi, ClientKeyService } from '@core/encryption';
 import { Logger } from '@core/logging/logger';
 import { StorageService } from '@core/storage/storage.service';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
+import { DERIVE_CLIENT_KEY } from '@core/encryption/crypto.utils';
 import { ChangePinDialog } from './change-pin-dialog';
-
-vi.mock('@core/encryption/crypto.utils', async (importOriginal) => {
-  const actual = await importOriginal();
-  return {
-    ...(actual as Record<string, unknown>),
-    deriveClientKey: vi
-      .fn()
-      .mockImplementation((pin: string) =>
-        Promise.resolve(pin === '1234' ? 'a'.repeat(64) : 'b'.repeat(64)),
-      ),
-  };
-});
 
 const MOCK_OLD_CLIENT_KEY = 'a'.repeat(64);
 const MOCK_NEW_CLIENT_KEY = 'b'.repeat(64);
 
 describe('ChangePinDialog', () => {
   let component: ChangePinDialog;
+  let mockedDeriveClientKey: Mock;
   let mockDialogRef: { close: Mock };
   let mockEncryptionApi: {
     getSalt$: Mock;
@@ -54,6 +44,14 @@ describe('ChangePinDialog', () => {
     mockStorage = { getString: vi.fn().mockReturnValue(null) };
     mockLogger = { error: vi.fn() };
 
+    mockedDeriveClientKey = vi
+      .fn()
+      .mockImplementation((pin: string) =>
+        Promise.resolve(
+          pin === '1234' ? MOCK_OLD_CLIENT_KEY : MOCK_NEW_CLIENT_KEY,
+        ),
+      );
+
     TestBed.configureTestingModule({
       providers: [
         ChangePinDialog,
@@ -62,6 +60,7 @@ describe('ChangePinDialog', () => {
         { provide: ClientKeyService, useValue: mockClientKeyService },
         { provide: StorageService, useValue: mockStorage },
         { provide: Logger, useValue: mockLogger },
+        { provide: DERIVE_CLIENT_KEY, useValue: mockedDeriveClientKey },
         ...provideTranslocoForTest(),
       ],
     });
@@ -352,8 +351,8 @@ describe('ChangePinDialog', () => {
       );
 
       // Mock deriveClientKey to block
-      const { deriveClientKey } = await import('@core/encryption/crypto.utils');
-      (deriveClientKey as Mock).mockImplementationOnce(() =>
+
+      mockedDeriveClientKey.mockImplementationOnce(() =>
         blockingPromise.then(() => MOCK_OLD_CLIENT_KEY),
       );
 

@@ -5,11 +5,13 @@ import { By } from '@angular/platform-browser';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { describe, expect, it, vi } from 'vitest';
+import { type BudgetLine } from 'pulpe-shared';
 import { TagStore } from '@core/tag';
 import { UserSettingsStore } from '@core/user-settings';
 import { FinancialKindDirective } from '@ui/financial-kind';
 import { FinancialKindIndicator } from '@ui/financial-kind-indicator';
 import { TagIndicator } from '@ui/tag-indicator';
+import { SavingsGoalSourceLine } from '@ui/savings-goal-source/savings-goal-source-line';
 import {
   createMockBudgetLine,
   createMockTransaction,
@@ -30,11 +32,13 @@ const TAG_NAMES = new Map([
 
 async function setup(
   tagIds: string[],
+  budgetLineOverrides: Partial<BudgetLine> = {},
 ): Promise<ComponentFixture<BudgetDetailPanel>> {
   const budgetLine = createMockBudgetLine({
     id: 'line-1',
     name: 'test',
     amount: 57.34,
+    ...budgetLineOverrides,
   });
   const transaction = createMockTransaction({
     id: 'transaction-1',
@@ -165,5 +169,47 @@ describe('BudgetDetailPanel transaction tags', () => {
       indicator.nativeElement.querySelector('span[aria-label]'),
     ).toBeNull();
     expect(indicator.nativeElement.querySelector('mat-icon')).toBeNull();
+  });
+});
+
+// PUL-329 v2 — the panel is the surface that says where the money comes from.
+// A deleted goal keeps its snapshot name, so the line survives it as history.
+// The assertions stop at the shared line being rendered: signal inputs do not
+// travel from a parent template in this test environment (hence `setTestInput`
+// above), so the two visual states belong to `savings-goal-source-line.spec.ts`.
+describe('BudgetDetailPanel announced withdrawal source', () => {
+  const GOAL_NAME = "Fonds d'urgence";
+
+  it('should show where an announced withdrawal takes its money from', async () => {
+    const fixture = await setup([], {
+      sourceSavingsGoalId: 'goal-1',
+      sourceSavingsGoalName: GOAL_NAME,
+    });
+
+    const source = fixture.debugElement.query(
+      By.directive(SavingsGoalSourceLine),
+    );
+    expect(source.nativeElement.getAttribute('data-testid')).toBe(
+      'detail-panel-source-goal-line-1',
+    );
+  });
+
+  it('should keep showing the source once its goal is deleted', async () => {
+    const fixture = await setup([], {
+      sourceSavingsGoalId: null,
+      sourceSavingsGoalName: GOAL_NAME,
+    });
+
+    expect(
+      fixture.debugElement.query(By.directive(SavingsGoalSourceLine)),
+    ).not.toBeNull();
+  });
+
+  it('should render no source line for a forecast without a source', async () => {
+    const fixture = await setup([]);
+
+    expect(
+      fixture.debugElement.query(By.directive(SavingsGoalSourceLine)),
+    ).toBeNull();
   });
 });

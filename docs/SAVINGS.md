@@ -419,7 +419,8 @@ garantie.
 | Terme                 | Définition                                                                                                                                                          |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Contribution**      | Entrée d'argent : Prévision Épargne liée, pointée ou non (§3). Elle nourrit `plannedCumulative`, `linesConfirmed` et `confirmedPace`.                                |
-| **Retrait**           | Sortie d'argent : Revenu **libre** d'un budget dont l'origine est cet objectif. Il diminue le stock, jamais le rythme.                                                |
+| **Retrait**           | Sortie d'argent : Revenu d'un budget dont l'origine est cet objectif. Il diminue le stock, jamais le rythme.                                                          |
+| **Retrait annoncé**   | Prévision Revenu ponctuelle dont l'origine est cet objectif : « ce montant sortira ». Elle n'a encore rien sorti et ne sortira peut-être jamais (§11.6).             |
 | **Solde disponible**  | `confirmed` (§4.2). C'est la seule limite d'un retrait — le prévu et la cible n'entrent pas dans ce contrôle.                                                        |
 | **Lien actif**        | `source_savings_goal_id` + `source_savings_goal_name` renseignés : la transaction ouvre son objectif.                                                                |
 | **Lien cassé**        | Identifiant `null`, nom conservé : l'objectif a été supprimé. La provenance reste lisible, la navigation disparaît.                                                  |
@@ -453,6 +454,44 @@ Le stock baisse **dès la création** du revenu lié. Pointer ou dépointer ce r
 | Suppression de l'objectif     | Les revenus liés sont **toujours conservés**, dans tous les modes (§9.1). Identifiant `null`, dernier nom figé : lien cassé.  |
 
 Changer l'objectif source d'un revenu existant n'est pas prévu : il faut supprimer puis recréer.
+
+### 11.6 Retrait annoncé : le cycle prévu → réel
+
+Un retrait peut être **annoncé** avant d'être fait, comme une dépense est prévue avant d'être payée : une Prévision Revenu ponctuelle porte `source_savings_goal_id`. Elle dit « en mai, 500 sortiront de ce pot ». Tant qu'elle n'est pas réalisée, rien n'a quitté le stock.
+
+Elle se réalise comme n'importe quelle prévision : en créant le Réel qui lui est **alloué**. Ce Réel est un retrait ordinaire (§11.4) et porte le même objectif source. Pointer la prévision ne réalise rien et l'API le refuse — cocher une case ne fait pas sortir d'argent.
+
+#### Deux stocks, deux questions
+
+| Stock                  | Question                                    | Ce qu'il retranche                                                     |
+| ---------------------- | ------------------------------------------- | ---------------------------------------------------------------------- |
+| `confirmed`            | « Combien y a-t-il dans le pot **là** ? »   | Les retraits **réels** seulement, libres ou alloués.                    |
+| `projected`            | « Combien restera-t-il si tout se passe ? » | Les mêmes, **plus** la part encore à sortir des retraits annoncés.      |
+
+Le solde disponible d'un nouveau retrait reste `confirmed` (§11.1) : une annonce ne réserve rien.
+
+#### La part restante
+
+```text
+réel alloué      = Σ retraits dont budgetLineId = prévision.id
+retrait restant  = max(0, prévision.montant − réel alloué)
+```
+
+Sur une prévision de 500 :
+
+| Réel alloué | Retranché à `confirmed` | Retranché en plus à `projected` | Lecture                                         |
+| ----------: | ----------------------: | ------------------------------: | ----------------------------------------------- |
+|           0 |                       0 |                             500 | Rien n'est sorti, tout reste annoncé.           |
+|         300 |                     300 |                             200 | Sortie partielle ; total compté : 500.          |
+|         700 |                     700 |                               0 | Réel supérieur : jamais de reliquat négatif.    |
+
+Dans les trois cas la sortie effective est comptée **une fois**, jamais deux. C'est cette somme — `withdrawnAmount + remainingPlannedWithdrawalAmount` — que le cumul simulé retranche et que la redistribution rajoute à l'effort restant, ce qui la fait retomber sur la cible au centime près.
+
+#### Ce qui ne se projette pas
+
+Une annonce ne pèse **que** sur les périodes courante et futures, jusqu'à l'échéance de l'objectif. Une prévision d'un mois passé est **échue** : le mois est clos, elle ne se réalisera pas rétroactivement — exactement comme une contribution passée non pointée. Une prévision au-delà de l'échéance sort de la fenêtre jugée. Dans les deux cas le montant annoncé reste lisible, son reliquat vaut zéro.
+
+Symétriquement, au bord des 120 périodes du plan : seuls les retraits **réels** antérieurs à la fenêtre sont reportés sur la première ligne (§10.2) — l'argent est parti, le fait subsiste. Une annonce antérieure, elle, est échue et disparaît.
 
 ---
 

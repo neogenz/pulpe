@@ -29,6 +29,16 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
     /// server-side by `POST /budget-lines/savings-withdrawal`.
     var savingsWithdrawalGroupId: UUID?
 
+    /// Savings goal this INCOME forecast announces a withdrawal from (PUL-329 v2).
+    /// Both stay optional so a payload served before the feature is deployed still
+    /// decodes. The name is a snapshot: it survives the goal, and outlives the id
+    /// when the goal is deleted.
+    ///
+    /// Not to be confused with `savingsGoalId`, which is the opposite direction —
+    /// a SAVING forecast paying INTO a goal.
+    var sourceSavingsGoalId: String?
+    var sourceSavingsGoalName: String?
+
     // Currency conversion metadata
     var originalAmount: Decimal?
     var originalCurrency: SupportedCurrency?
@@ -68,6 +78,20 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
         isRollover == true
     }
 
+    /// The savings goal this income forecast draws from, active or broken
+    /// (PUL-329 v2), or `nil` when the money is planned to come from elsewhere.
+    var savingsGoalSource: SavingsGoalSource? {
+        SavingsGoalSource(goalId: sourceSavingsGoalId, name: sourceSavingsGoalName)
+    }
+
+    /// An announced withdrawal is realized by creating the real income, not by
+    /// pointing the forecast. A broken source (goal deleted) can no longer be
+    /// realized and falls back to an ordinary forecast — the server refuses to
+    /// debit a goal that is gone.
+    var isPlannedSavingsWithdrawal: Bool {
+        sourceSavingsGoalId != nil
+    }
+
     /// PUL-22 (CA1/CA6/CA7) — whether "Reporter au mois suivant" may be offered:
     /// an unchecked, one-off line that isn't the virtual rollover, isn't a spread
     /// occurrence (PUL-17 — moving one slice breaks the group's month distribution),
@@ -103,6 +127,8 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
             tagIds: tagIds,
             spreadGroupId: spreadGroupId,
             savingsWithdrawalGroupId: savingsWithdrawalGroupId,
+            sourceSavingsGoalId: sourceSavingsGoalId,
+            sourceSavingsGoalName: sourceSavingsGoalName,
             originalAmount: originalAmount,
             originalCurrency: originalCurrency,
             targetCurrency: targetCurrency,
@@ -143,6 +169,10 @@ struct BudgetLineCreate: Encodable {
     let targetCurrency: SupportedCurrency?
     let exchangeRate: Decimal?
     let tagIds: [String]?
+    /// Only ever set at creation (PUL-329 v2). The origin is immutable
+    /// afterwards, so `BudgetLineUpdate` deliberately has no counterpart —
+    /// the same asymmetry `TransactionCreate` already carries.
+    let sourceSavingsGoalId: String?
 
     init(
         budgetId: String,
@@ -152,6 +182,7 @@ struct BudgetLineCreate: Encodable {
         recurrence: TransactionRecurrence,
         templateLineId: String? = nil,
         savingsGoalId: String? = nil,
+        sourceSavingsGoalId: String? = nil,
         isManuallyAdjusted: Bool = false,
         checkedAt: Date? = nil,
         originalAmount: Decimal? = nil,
@@ -163,6 +194,7 @@ struct BudgetLineCreate: Encodable {
         self.budgetId = budgetId
         self.templateLineId = templateLineId
         self.savingsGoalId = savingsGoalId
+        self.sourceSavingsGoalId = sourceSavingsGoalId
         self.name = name
         self.amount = amount
         self.kind = kind
@@ -183,7 +215,6 @@ struct BudgetLineUpdate: Encodable {
     var amount: Decimal?
     var kind: TransactionKind?
     var isManuallyAdjusted: Bool?
-    var checkedAt: Date?
     /// Tri-state savings-goal link: `.none` omits the key (no change),
     /// `.some(nil)` sends explicit `null` (untag), `.some(id)` sets the link.
     /// Only the saving-line editor sets this — every other PATCH leaves the

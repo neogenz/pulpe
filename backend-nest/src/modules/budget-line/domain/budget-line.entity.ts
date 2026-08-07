@@ -26,6 +26,14 @@ export interface BudgetLine {
   spreadGroupId: string | null;
   /** PUL-292: groupe du couple Revenu M ↔ Épargne M+1 (pioche dans l'épargne). null = non liée. */
   savingsWithdrawalGroupId: string | null;
+  /**
+   * Retrait PLANIFIÉ : l'objectif dans lequel ce revenu prévu sera puisé.
+   * Trois états, comme sur Transaction — les deux nuls, les deux présents, ou
+   * l'identifiant nul avec le nom conservé (objectif supprimé). Le nom est un
+   * instantané écrit par la base, jamais par le client.
+   */
+  sourceSavingsGoalId: string | null;
+  sourceSavingsGoalName: string | null;
   name: string;
   amount: number;
   originalAmount: number | null;
@@ -40,6 +48,17 @@ export interface BudgetLine {
   checkedAt: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * Ce que le contrôle d'accès rapporte de la ligne au passage. Les deux colonnes
+ * ne sont pas chiffrées, donc la requête qui prouve la propriété les rapporte
+ * sans coût : un appelant qui a besoin de ces deux états n'a pas à relire la
+ * ligne entière derrière.
+ */
+export interface BudgetLineAccess {
+  sourceSavingsGoalId: string | null;
+  checkedAt: string | null;
 }
 
 /**
@@ -169,6 +188,12 @@ export interface BudgetLineCreateInput {
   budgetId: string;
   templateLineId?: string | null;
   savingsGoalId?: string | null;
+  /**
+   * Objectif source d'un retrait planifié. Seul l'identifiant est écrit : le
+   * nom instantané est posé par le trigger qui valide déjà le tenant, donc les
+   * deux ne peuvent pas diverger.
+   */
+  sourceSavingsGoalId?: string | null;
   name: string;
   amount: number;
   originalAmount?: number | null;

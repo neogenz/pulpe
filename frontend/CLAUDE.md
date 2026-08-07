@@ -4,8 +4,8 @@
 
 ```bash
 pnpm run dev                        # ng serve (http://localhost:4200)
-pnpm run test                       # Vitest unit tests
-pnpm run test -- path/to/spec.ts   # Single test file
+pnpm run test                       # Unit tests — `ng test`, AOT-compiled, Vitest runner
+pnpm exec ng test --include "**/foo.spec.ts"   # Scoped run — `pnpm test -- …` does NOT pass through
 pnpm run test:watch                 # Watch mode
 ```
 
@@ -16,13 +16,13 @@ what lefthook applies. Only `ng build` typechecks the templates.
 
 ## Stack
 
-| Tech | Details |
-|------|---------|
-| Angular | 22+, standalone, OnPush |
-| Styling | Tailwind v4 + Material 22 |
-| State | Signals |
-| Data | `ngx-ziflux` — `cachedResource()` / `cachedMutation()` over `ApiClient` |
-| Testing | Vitest + Playwright |
+| Tech    | Details                                                                 |
+| ------- | ----------------------------------------------------------------------- |
+| Angular | 22+, standalone, OnPush                                                 |
+| Styling | Tailwind v4 + Material 22                                               |
+| State   | Signals                                                                 |
+| Data    | `ngx-ziflux` — `cachedResource()` / `cachedMutation()` over `ApiClient` |
+| Testing | Vitest + Playwright                                                     |
 
 ## Styling Quick Reference
 

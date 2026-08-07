@@ -1,3 +1,5 @@
+import { InjectionToken } from '@angular/core';
+
 const KEY_LENGTH_BYTES = 32;
 const KEY_LENGTH_HEX = KEY_LENGTH_BYTES * 2;
 
@@ -52,6 +54,20 @@ export async function deriveClientKey(
 
   return uint8ArrayToHex(new Uint8Array(derivedBits));
 }
+
+/**
+ * `deriveClientKey`, reached through DI. The derivation itself is unchanged —
+ * this only gives a test a way to stand in for a PBKDF2 round it does not want
+ * to pay for, without stubbing the Web Crypto API underneath it.
+ *
+ * Every caller goes through the token; importing `deriveClientKey` directly
+ * leaves a spec unable to control it, because `vi.mock` on a first-party path
+ * is silently ignored under the AOT test builder.
+ */
+export const DERIVE_CLIENT_KEY = new InjectionToken<typeof deriveClientKey>(
+  'DERIVE_CLIENT_KEY',
+  { providedIn: 'root', factory: () => deriveClientKey },
+);
 
 export function generateRandomKeyHex(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(KEY_LENGTH_BYTES));

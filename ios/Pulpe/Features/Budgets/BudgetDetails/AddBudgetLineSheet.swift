@@ -25,9 +25,18 @@ struct AddBudgetLineSheet: View {
     @State var inputCurrency: SupportedCurrency = .chf
     @State private var mode: BudgetLineCreationMode = .once
     @State var amountMode: SpreadAmountMode = .total
-    /// PUL-292 — income-only, OFF by default. ON reroutes the CTA to the
-    /// "piocher dans son épargne" preview, prefilled.
-    @State private var remitNextMonth = false
+    /// Income-only, `.regular` by default. `.repayNextMonth` reroutes the CTA to
+    /// the "piocher dans son épargne" preview (PUL-292); `.savingsGoal` plans a
+    /// withdrawal from the picked goal (PUL-329 v2).
+    @State var incomeOrigin: IncomeOrigin = .regular
+    /// The goal a `.savingsGoal` income is announced to be drawn FROM — the
+    /// opposite direction of `savingsGoalId`, which pays INTO one.
+    @State var sourceSavingsGoalId: String?
+    /// The typed amount in the ACCOUNT currency — what the projection has to be
+    /// judged against (RG-009). `nil` while the rate is in flight or unavailable;
+    /// the preview then omits the "après" rather than blocking the planification,
+    /// which the server never validates against a rate anyway.
+    @State var convertedAmount: Decimal?
     @State var spreadCalculator: SpreadCalculator
     /// Idempotency key for the spread create (PUL-17), minted ONCE per sheet
     /// presentation and replayed on every submit retry so a double-tap replays
@@ -81,8 +90,6 @@ struct AddBudgetLineSheet: View {
         return BudgetPeriod(month: last.month, year: last.year)
     }
 
-    var isSavingsWithdrawalMode: Bool { kind == .income && remitNextMonth }
-
     private var amountFieldHint: String? {
         guard isSpreadMode else { return nil }
         return amountMode == .total ? "Montant total" : "Montant par mois"
@@ -93,6 +100,8 @@ struct AddBudgetLineSheet: View {
         // Withdrawal reroute: the source name is optional (defaults to "Mon épargne").
         if isSavingsWithdrawalMode { return true }
         guard !name.trimmingCharacters(in: .whitespaces).isEmpty else { return false }
+        // An announcement without a goal names no pot to draw from.
+        if isPlannedWithdrawalMode, sourceSavingsGoalId == nil { return false }
         return isSpreadMode ? spreadCalculator.isValid : true
     }
 
@@ -104,6 +113,7 @@ struct AddBudgetLineSheet: View {
         guard !canSubmit, !isLoading, hasStartedFilling else { return nil }
         if (amount ?? 0) <= 0 { return "Ajoute un montant" }
         if name.trimmingCharacters(in: .whitespaces).isEmpty { return "Ajoute une description" }
+        if isPlannedWithdrawalMode { return "Choisis l'objectif à retirer" }
         return nil
     }
 
@@ -154,6 +164,19 @@ struct AddBudgetLineSheet: View {
                 )
             }
 
+            if kind == .income {
+                originPicker
+            }
+
+            if isPlannedWithdrawalMode {
+                SavingsGoalPickerField(
+                    selection: $sourceSavingsGoalId,
+                    mode: .plannedWithdrawal,
+                    budgetPeriod: BudgetPeriod(month: anchorMonth, year: anchorYear),
+                    withdrawalAmount: convertedAmount
+                )
+            }
+
             if isSpreadMode {
                 SpreadAmountModeToggle(mode: $amountMode, accentColor: kind.color)
                 SpreadFormSection(
@@ -167,10 +190,9 @@ struct AddBudgetLineSheet: View {
                 if Self.showsTagPicker(spread: isSpreadMode, withdrawal: isSavingsWithdrawalMode) {
                     TagPickerField(selection: $selectedTagIds)
                 }
-                if kind == .income {
-                    remitToggle
-                }
-                if !isSavingsWithdrawalMode {
+                // An announced withdrawal is realized by creating the real income,
+                // never by arriving already pointed.
+                if !Self.forbidsChecked(kind: kind, origin: incomeOrigin) {
                     CheckedToggle(isOn: $isChecked, tintColor: kind.color)
                 }
             }
@@ -186,23 +208,16 @@ struct AddBudgetLineSheet: View {
         .sensoryFeedback(.success, trigger: submitSuccessTrigger)
         .onAppear { inputCurrency = userSettingsStore.currency }
         .onChange(of: kind) { _, newKind in
-            // Income can't be spread; only savings carry a goal; remit is income-only.
+            // Income can't be spread; only savings carry a goal; origin is income-only.
             if newKind == .income { mode = .once }
             if newKind != .saving { savingsGoalId = nil }
-            if newKind != .income { remitNextMonth = false }
+            if newKind != .income { incomeOrigin = .regular }
+            resetIncompatibleOriginState()
         }
-    }
-
-    // MARK: - Remets le mois prochain (PUL-292)
-
-    private var remitToggle: some View {
-        Toggle("Je remets cet argent le mois prochain", isOn: $remitNextMonth)
-            .font(PulpeTypography.bodyLarge)
-            .tint(kind.color)
-            .padding(DesignTokens.Spacing.lg)
-            .background(Color.inputBackgroundSoft)
-            .clipShape(.rect(cornerRadius: DesignTokens.CornerRadius.md))
-            .accessibilityHint("Crée une épargne le mois prochain pour reconstituer cette somme")
+        .onChange(of: incomeOrigin) { _, _ in resetIncompatibleOriginState() }
+        .task(id: PlannedWithdrawalConversionKey(amount: amount, currency: inputCurrency)) {
+            await refreshConvertedAmount()
+        }
     }
 
     // MARK: - Description
@@ -222,6 +237,7 @@ struct AddBudgetLineSheet: View {
 
     private var ctaTitle: String {
         if isSavingsWithdrawalMode { return "Continuer" }
+        if isPlannedWithdrawalMode { return "Planifier le retrait" }
         return isSpreadMode ? AddBudgetLineSpreadLogic.ctaTitle(for: kind) : "Ajouter"
     }
 

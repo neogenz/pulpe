@@ -4,21 +4,21 @@ import { ClientKeyService } from './client-key.service';
 import { StorageService } from '../storage/storage.service';
 import { STORAGE_KEYS } from '../storage/storage-keys';
 
-vi.mock('@core/encryption/crypto.utils', () => ({
-  deriveClientKey: vi.fn(),
-  isValidClientKeyHex: vi.fn(),
-}));
+import { DERIVE_CLIENT_KEY } from './crypto.utils';
 
-import {
-  deriveClientKey,
-  isValidClientKeyHex,
-} from '@core/encryption/crypto.utils';
-
-const mockedDeriveClientKey = vi.mocked(deriveClientKey);
-const mockedIsValidClientKeyHex = vi.mocked(isValidClientKeyHex);
+// Real 64-char hex keys: the service validates through the real
+// `isValidClientKeyHex`, so a placeholder like 'local-key' would be rejected
+// for the wrong reason and hide what each test is actually asserting.
+const SESSION_KEY = 'a1'.repeat(32);
+const LOCAL_KEY = 'b2'.repeat(32);
+const DERIVED_KEY = 'c3'.repeat(32);
+const DIRECT_KEY = 'd4'.repeat(32);
+const OTHER_KEY = 'e5'.repeat(32);
+const MALFORMED_KEY = 'not-a-hex-key';
 
 describe('ClientKeyService', () => {
   let service: ClientKeyService;
+  let mockedDeriveClientKey: Mock;
   let mockStorageService: {
     getString: Mock;
     setString: Mock;
@@ -36,7 +36,7 @@ describe('ClientKeyService', () => {
       remove: vi.fn(),
     };
 
-    mockedIsValidClientKeyHex.mockReturnValue(true);
+    mockedDeriveClientKey = vi.fn();
 
     TestBed.configureTestingModule({
       providers: [
@@ -44,6 +44,10 @@ describe('ClientKeyService', () => {
         {
           provide: StorageService,
           useValue: mockStorageService,
+        },
+        {
+          provide: DERIVE_CLIENT_KEY,
+          useValue: mockedDeriveClientKey,
         },
       ],
     });
@@ -65,7 +69,7 @@ describe('ClientKeyService', () => {
 
   describe('initialize()', () => {
     it('should restore key from sessionStorage first', () => {
-      const storedKey = 'deadbeef1234567890abcdef';
+      const storedKey = SESSION_KEY;
       mockStorageService.getString.mockReturnValueOnce(storedKey);
 
       service.initialize();
@@ -78,7 +82,7 @@ describe('ClientKeyService', () => {
     });
 
     it('should need server validation when restored from sessionStorage (multi-tab stale key)', () => {
-      mockStorageService.getString.mockReturnValueOnce('session-key');
+      mockStorageService.getString.mockReturnValueOnce(SESSION_KEY);
 
       service.initialize();
 
@@ -88,7 +92,7 @@ describe('ClientKeyService', () => {
     it('should skip server validation when validation cache is fresh', () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-01-15T12:00:00Z'));
-      mockStorageService.getString.mockReturnValueOnce('session-key');
+      mockStorageService.getString.mockReturnValueOnce(SESSION_KEY);
       mockStorageService.get.mockReturnValueOnce(
         new Date('2026-01-15T11:57:00Z').getTime(),
       );
@@ -102,7 +106,7 @@ describe('ClientKeyService', () => {
     it('should require server validation when validation cache is expired', () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-01-15T12:00:00Z'));
-      mockStorageService.getString.mockReturnValueOnce('session-key');
+      mockStorageService.getString.mockReturnValueOnce(SESSION_KEY);
       mockStorageService.get.mockReturnValueOnce(
         new Date('2026-01-15T11:50:00Z').getTime(),
       );
@@ -114,7 +118,7 @@ describe('ClientKeyService', () => {
     });
 
     it('should fallback to localStorage when sessionStorage is empty', () => {
-      const storedKey = 'deadbeef1234567890abcdef';
+      const storedKey = SESSION_KEY;
       mockStorageService.getString.mockReturnValueOnce(null);
       mockStorageService.getString.mockReturnValueOnce(storedKey);
 
@@ -135,7 +139,7 @@ describe('ClientKeyService', () => {
 
     it('should need server validation when restored from localStorage', () => {
       mockStorageService.getString.mockReturnValueOnce(null);
-      mockStorageService.getString.mockReturnValueOnce('local-key');
+      mockStorageService.getString.mockReturnValueOnce(LOCAL_KEY);
 
       service.initialize();
 
@@ -143,8 +147,7 @@ describe('ClientKeyService', () => {
     });
 
     it('should ignore invalid keys', () => {
-      mockStorageService.getString.mockReturnValueOnce('invalid-key');
-      mockedIsValidClientKeyHex.mockReturnValue(false);
+      mockStorageService.getString.mockReturnValueOnce(MALFORMED_KEY);
       mockStorageService.getString.mockReturnValueOnce(null);
 
       service.initialize();
@@ -156,7 +159,7 @@ describe('ClientKeyService', () => {
   describe('markValidated()', () => {
     it('should clear needsServerValidation flag', () => {
       mockStorageService.getString.mockReturnValueOnce(null);
-      mockStorageService.getString.mockReturnValueOnce('local-key');
+      mockStorageService.getString.mockReturnValueOnce(LOCAL_KEY);
 
       service.initialize();
       expect(service.needsServerValidation()).toBe(true);
@@ -178,12 +181,16 @@ describe('ClientKeyService', () => {
 
   describe('deriveAndStore()', () => {
     it('should derive key and persist to sessionStorage by default', async () => {
-      const derivedKey = 'derived-key-hex';
+      const derivedKey = DERIVED_KEY;
       mockedDeriveClientKey.mockResolvedValue(derivedKey);
 
       await service.deriveAndStore('password', 'salt', 100000);
 
-      expect(deriveClientKey).toHaveBeenCalledWith('password', 'salt', 100000);
+      expect(mockedDeriveClientKey).toHaveBeenCalledWith(
+        'password',
+        'salt',
+        100000,
+      );
       expect(service.clientKeyHex()).toBe(derivedKey);
       expect(mockStorageService.setString).toHaveBeenCalledWith(
         STORAGE_KEYS.VAULT_CLIENT_KEY_SESSION,
@@ -197,7 +204,7 @@ describe('ClientKeyService', () => {
     });
 
     it('should not need server validation (key was just derived from user input)', async () => {
-      mockedDeriveClientKey.mockResolvedValue('derived-key');
+      mockedDeriveClientKey.mockResolvedValue(DERIVED_KEY);
 
       await service.deriveAndStore('password', 'salt', 100000);
 
@@ -205,7 +212,7 @@ describe('ClientKeyService', () => {
     });
 
     it('should persist to localStorage when useLocalStorage=true', async () => {
-      const derivedKey = 'derived-key-hex';
+      const derivedKey = DERIVED_KEY;
       mockedDeriveClientKey.mockResolvedValue(derivedKey);
 
       await service.deriveAndStore('password', 'salt', 100000, true);
@@ -224,11 +231,11 @@ describe('ClientKeyService', () => {
 
   describe('setDirectKey()', () => {
     it('should store in sessionStorage by default', () => {
-      service.setDirectKey('valid-key-hex');
+      service.setDirectKey(DIRECT_KEY);
 
       expect(mockStorageService.setString).toHaveBeenCalledWith(
         STORAGE_KEYS.VAULT_CLIENT_KEY_SESSION,
-        'valid-key-hex',
+        DIRECT_KEY,
         'session',
       );
       expect(mockStorageService.remove).toHaveBeenCalledWith(
@@ -238,17 +245,17 @@ describe('ClientKeyService', () => {
     });
 
     it('should not need server validation (key was just validated by caller)', () => {
-      service.setDirectKey('valid-key-hex');
+      service.setDirectKey(DIRECT_KEY);
 
       expect(service.needsServerValidation()).toBe(false);
     });
 
     it('should store in localStorage when useLocalStorage=true', () => {
-      service.setDirectKey('valid-key-hex', true);
+      service.setDirectKey(DIRECT_KEY, true);
 
       expect(mockStorageService.setString).toHaveBeenCalledWith(
         STORAGE_KEYS.VAULT_CLIENT_KEY_LOCAL,
-        'valid-key-hex',
+        DIRECT_KEY,
         'local',
       );
       expect(mockStorageService.remove).toHaveBeenCalledWith(
@@ -258,9 +265,7 @@ describe('ClientKeyService', () => {
     });
 
     it('should throw for invalid key', () => {
-      mockedIsValidClientKeyHex.mockReturnValue(false);
-
-      expect(() => service.setDirectKey('bad')).toThrow(
+      expect(() => service.setDirectKey(MALFORMED_KEY)).toThrow(
         'Invalid client key hex',
       );
     });
@@ -268,7 +273,7 @@ describe('ClientKeyService', () => {
 
   describe('clear()', () => {
     it('should reset signal and remove from both storages', async () => {
-      mockedDeriveClientKey.mockResolvedValue('key');
+      mockedDeriveClientKey.mockResolvedValue(DERIVED_KEY);
       await service.deriveAndStore('p', 's', 1);
 
       service.clear();
@@ -286,7 +291,7 @@ describe('ClientKeyService', () => {
 
     it('should reset needsServerValidation flag', () => {
       mockStorageService.getString.mockReturnValueOnce(null);
-      mockStorageService.getString.mockReturnValueOnce('local-key');
+      mockStorageService.getString.mockReturnValueOnce(LOCAL_KEY);
 
       service.initialize();
       expect(service.needsServerValidation()).toBe(true);
@@ -298,7 +303,7 @@ describe('ClientKeyService', () => {
 
   describe('clearPreservingDeviceTrust()', () => {
     it('should reset signal and remove from sessionStorage only, preserving localStorage', async () => {
-      const derivedKey = 'derived-key-hex';
+      const derivedKey = DERIVED_KEY;
       mockedDeriveClientKey.mockResolvedValue(derivedKey);
 
       await service.deriveAndStore('password', 'salt', 100000, true);
@@ -318,7 +323,7 @@ describe('ClientKeyService', () => {
 
     it('should reset needsServerValidation flag', () => {
       mockStorageService.getString.mockReturnValueOnce(null);
-      mockStorageService.getString.mockReturnValueOnce('local-key');
+      mockStorageService.getString.mockReturnValueOnce(LOCAL_KEY);
 
       service.initialize();
       expect(service.needsServerValidation()).toBe(true);
@@ -339,8 +344,8 @@ describe('ClientKeyService', () => {
 
   describe('initialize() - conflicting storages', () => {
     it('should prefer sessionStorage over localStorage when both have valid keys', () => {
-      const sessionKey = 'session-key-hex-value';
-      const localKey = 'local-key-hex-value';
+      const sessionKey = SESSION_KEY;
+      const localKey = LOCAL_KEY;
       mockStorageService.getString
         .mockReturnValueOnce(sessionKey)
         .mockReturnValueOnce(localKey);
@@ -351,11 +356,10 @@ describe('ClientKeyService', () => {
     });
 
     it('should fallback to localStorage when sessionStorage key is invalid', () => {
-      const localKey = 'local-key-hex-value';
+      const localKey = LOCAL_KEY;
       mockStorageService.getString
-        .mockReturnValueOnce('invalid-session-key')
+        .mockReturnValueOnce(MALFORMED_KEY)
         .mockReturnValueOnce(localKey);
-      mockedIsValidClientKeyHex.mockReturnValueOnce(false);
 
       service.initialize();
 
@@ -365,8 +369,7 @@ describe('ClientKeyService', () => {
 
   describe('deriveAndStore() - error paths', () => {
     it('should throw for invalid derived key', async () => {
-      mockedDeriveClientKey.mockResolvedValue('bad-key');
-      mockedIsValidClientKeyHex.mockReturnValue(false);
+      mockedDeriveClientKey.mockResolvedValue(MALFORMED_KEY);
 
       await expect(
         service.deriveAndStore('password', 'salt', 100000),
@@ -406,13 +409,13 @@ describe('ClientKeyService', () => {
       const first = service.deriveAndStore('pw1', 'salt', 1);
       const second = service.deriveAndStore('pw2', 'salt', 1);
 
-      resolveSecond('second-key');
-      resolveFirst('first-key');
+      resolveSecond(OTHER_KEY);
+      resolveFirst(DERIVED_KEY);
 
       await Promise.all([first, second]);
 
       // Last write wins: first resolved after second, so first-key is final
-      expect(service.clientKeyHex()).toBe('first-key');
+      expect(service.clientKeyHex()).toBe(DERIVED_KEY);
     });
   });
 
@@ -427,10 +430,10 @@ describe('ClientKeyService', () => {
         (key: string) => storedValues.get(key) ?? null,
       );
 
-      service.setDirectKey('valid-key-hex');
+      service.setDirectKey(DIRECT_KEY);
 
       // Key is in memory
-      expect(service.clientKeyHex()).toBe('valid-key-hex');
+      expect(service.clientKeyHex()).toBe(DIRECT_KEY);
 
       // But storage has nothing — simulate refresh by clearing signal and re-initializing
       service.clear();

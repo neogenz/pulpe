@@ -602,6 +602,7 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       {
         ...(insertRow.id ? { id: insertRow.id } : {}),
         budget_id: insertRow.budget_id,
+        budget_line_id: insertRow.budget_line_id ?? null,
         name: insertRow.name,
         amount: insertRow.amount,
         original_amount: insertRow.original_amount ?? null,
@@ -760,7 +761,9 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
     const supabase = this.supabaseProvider.client;
     const { data, error } = await supabase
       .from('budget_line')
-      .select('id, budget_id, kind')
+      .select(
+        'id, budget_id, kind, source_savings_goal_id, source_savings_goal_name',
+      )
       .eq('id', budgetLineId)
       .single();
 
@@ -772,6 +775,8 @@ export class SupabaseTransactionRepository implements TransactionRepositoryPort 
       id: data.id,
       budgetId: data.budget_id,
       kind: data.kind,
+      sourceSavingsGoalId: data.source_savings_goal_id,
+      sourceSavingsGoalName: data.source_savings_goal_name,
     };
   }
 

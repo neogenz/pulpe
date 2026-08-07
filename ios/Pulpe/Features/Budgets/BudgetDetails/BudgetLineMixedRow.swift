@@ -42,17 +42,21 @@ struct BudgetLineMixedRow: View {
     var isExpense: Bool { line.kind == .expense }
 
     /// Every contextual fact about the line on one line. A withdrawal income can
-    /// never also be spread or carry a goal (both are saving-only), so the three
+    /// never also be spread or carry a goal (both are saving-only), so they
     /// share a single slot instead of stacking one badge per fact.
     static func metadataText(
         isSpread: Bool,
         savingsGoalName: String?,
-        isSavingsWithdrawalIncome: Bool
+        isSavingsWithdrawalIncome: Bool,
+        savingsGoalSource: SavingsGoalSource? = nil
     ) -> String? {
         var parts: [String] = []
         if isSpread { parts.append("Lissé") }
         if let savingsGoalName { parts.append("objectif \(savingsGoalName)") }
         if isSavingsWithdrawalIncome { parts.append("Pris sur ton épargne") }
+        // PUL-329 v2 — the goal this announced withdrawal draws from. Keeps its
+        // own snapshot wording once the goal is deleted: history, not an error.
+        if let savingsGoalSource { parts.append(savingsGoalSource.label) }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
@@ -61,8 +65,27 @@ struct BudgetLineMixedRow: View {
         Self.metadataText(
             isSpread: line.isSpread,
             savingsGoalName: savingsGoalName,
-            isSavingsWithdrawalIncome: line.isSavingsWithdrawalIncome
+            isSavingsWithdrawalIncome: line.isSavingsWithdrawalIncome,
+            savingsGoalSource: line.savingsGoalSource
         )
+    }
+
+    /// PUL-329 v2 — what the circle offers on an announced withdrawal, which
+    /// replaces pointing: "réaliser" while there is planned money left to take
+    /// out, "ajouter un autre revenu réel" once the forecast is covered — a
+    /// second real income is legitimate, recreating the forecast is not.
+    static func realizeAffordance(
+        for line: BudgetLine,
+        remaining: Decimal
+    ) -> PointCircle.RealizeAffordance? {
+        guard line.isPlannedSavingsWithdrawal else { return nil }
+        return remaining > 0
+            ? .init(symbol: "arrow.down.circle", label: "Réaliser le retrait de \(line.name)")
+            : .init(symbol: "plus.circle", label: "Ajouter un autre revenu réel pour \(line.name)")
+    }
+
+    private var realizeAffordance: PointCircle.RealizeAffordance? {
+        Self.realizeAffordance(for: line, remaining: plannedAmount - realAmount)
     }
 
     /// PointCircle dot color — kind-based. The overflow override only applies to
@@ -84,6 +107,7 @@ struct BudgetLineMixedRow: View {
                     isPointed: isPointed,
                     color: dotColor,
                     isSyncing: isSyncing,
+                    realizeAffordance: realizeAffordance,
                     onToggle: handleTogglePointed
                 )
 

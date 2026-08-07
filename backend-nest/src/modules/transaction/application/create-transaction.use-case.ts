@@ -20,6 +20,7 @@ import {
 } from '../domain/ports/transaction-repository.port';
 import { TransactionInvariants } from '../domain/transaction.invariants';
 import type {
+  BudgetLineForAllocation,
   Transaction,
   TransactionCreateInput,
 } from '../domain/transaction.entity';
@@ -47,13 +48,13 @@ export class CreateTransactionUseCase {
 
     const withRate = await this.currencyService.overrideExchangeRate(dto);
 
-    if (withRate.budgetLineId) {
-      await this.validateBudgetLineAllocation(
-        withRate.budgetLineId,
-        withRate.budgetId,
-        withRate.kind,
-      );
-    }
+    const allocatedLine = withRate.budgetLineId
+      ? await this.resolveBudgetLineForAllocation(
+          withRate.budgetLineId,
+          withRate.budgetId,
+          withRate.kind,
+        )
+      : null;
 
     const input: TransactionCreateInput = {
       id: withRate.id,
@@ -69,7 +70,7 @@ export class CreateTransactionUseCase {
       tagIds: withRate.tagIds,
       transactionDate: withRate.transactionDate || new Date().toISOString(),
       checkedAt: withRate.checkedAt ?? null,
-      sourceSavingsGoalId: withRate.sourceSavingsGoalId ?? null,
+      sourceSavingsGoalId: resolveSourceSavingsGoalId(withRate, allocatedLine),
     };
 
     const entity = await this.insertUnderPolicy(input, user);
@@ -134,11 +135,11 @@ export class CreateTransactionUseCase {
     });
   }
 
-  private async validateBudgetLineAllocation(
+  private async resolveBudgetLineForAllocation(
     budgetLineId: string,
     budgetId: string,
     transactionKind: TransactionKind,
-  ): Promise<void> {
+  ): Promise<BudgetLineForAllocation> {
     const budgetLine =
       await this.repo.fetchBudgetLineForAllocation(budgetLineId);
 
@@ -147,7 +148,7 @@ export class CreateTransactionUseCase {
         ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
         { id: budgetLineId },
         {
-          operation: 'validateBudgetLineAllocation',
+          operation: 'resolveBudgetLineForAllocation',
           entityId: budgetLineId,
           entityType: 'budget_line',
         },
@@ -169,5 +170,35 @@ export class CreateTransactionUseCase {
         },
       );
     }
+
+    // Le nom survit à la suppression de l'objectif, l'identifiant non. Sans
+    // cette garde, réaliser une prévision orpheline la transformerait en revenu
+    // ordinaire — l'argent apparaîtrait sans jamais sortir d'aucun pot.
+    if (
+      budgetLine.sourceSavingsGoalId === null &&
+      budgetLine.sourceSavingsGoalName !== null
+    ) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_WITHDRAWAL_TRANSACTION_INVALID,
+        { reason: 'the source savings goal of this forecast no longer exists' },
+      );
+    }
+
+    return budgetLine;
   }
+}
+
+/**
+ * Deux chemins, une seule origine effective : un revenu LIBRE déclare la sienne
+ * (le contrat client l'autorise là seulement), une transaction ALLOUÉE hérite
+ * de celle de sa prévision. Le client n'envoie donc jamais deux fois la même
+ * origine, et il ne peut pas non plus en inventer une sur une prévision qui
+ * n'en porte pas.
+ */
+function resolveSourceSavingsGoalId(
+  dto: Pick<TransactionCreate, 'sourceSavingsGoalId'>,
+  allocatedLine: BudgetLineForAllocation | null,
+): string | null {
+  if (allocatedLine) return allocatedLine.sourceSavingsGoalId;
+  return dto.sourceSavingsGoalId ?? null;
 }

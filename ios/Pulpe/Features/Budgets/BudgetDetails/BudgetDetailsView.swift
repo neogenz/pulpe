@@ -3,9 +3,6 @@ import TipKit
 
 struct BudgetDetailsView: View {
     let budgetId: String
-    /// Transaction the user actually came for (PUL-329) — opened once the budget
-    /// has landed, so Back returns here instead of to an empty screen.
-    let initialTransactionId: String?
     @Environment(AppState.self) var appState
     // Internal so the same-type routing extension can read these dependencies.
     @Environment(BudgetDetailsRouter.self) var router
@@ -15,7 +12,8 @@ struct BudgetDetailsView: View {
     @Environment(CurrentMonthStore.self) private var currentMonthStore
     @Environment(SavingsGoalStore.self) private var savingsGoalStore
     @Environment(TagStore.self) var tagStore
-    @Environment(\.amountsHidden) private var amountsHidden
+    // Internal so the routing extension can read it when it dispatches a toggle.
+    @Environment(\.amountsHidden) var amountsHidden
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State var coordinator: BudgetDetailsCoordinator
     // Internal so the savings-withdrawal extension can read its screen state.
@@ -27,12 +25,10 @@ struct BudgetDetailsView: View {
     @AppStorage(SavingsWithdrawalCardGate.storageKey) var dismissedWithdrawalBudgetIds = ""
     init(
         budgetId: String,
-        initialTransactionId: String? = nil,
         budgetService: any BudgetServicing = BudgetService.shared,
         budgetLineService: any BudgetLineServicing = BudgetLineService.shared
     ) {
         self.budgetId = budgetId
-        self.initialTransactionId = initialTransactionId
         let initialCoordinator = BudgetDetailsCoordinator(
             budgetId: budgetId,
             budgetService: budgetService,
@@ -151,7 +147,8 @@ struct BudgetDetailsView: View {
             coordinator.bind(
                 budgetListStore: budgetListStore,
                 dashboardStore: dashboardStore,
-                currentMonthStore: currentMonthStore
+                currentMonthStore: currentMonthStore,
+                savingsGoalStore: savingsGoalStore
             )
             // Resolve "Objectif" names for saving rows / the line detail chip.
             await savingsGoalStore.loadIfNeeded()
@@ -169,7 +166,6 @@ struct BudgetDetailsView: View {
         .sheet(item: $router.sheet) { dest in
             sheetContent(for: dest)
         }
-        .openingInitialTransaction(initialTransactionId, in: coordinator.dataStore.transactions, router: router)
         .navigationDestination(for: BudgetLinePushRoute.self) { route in
             pushDestination(for: route)
                 .environment(coordinator)
@@ -281,13 +277,7 @@ struct BudgetDetailsView: View {
                         onTap: { line in
                             router.push(.lineDetail(lineId: line.id))
                         },
-                        onTogglePointed: { line in
-                            Task {
-                                await coordinator.dispatch(
-                                    .toggleLine(line, toastContext, amountsHidden: amountsHidden)
-                                )
-                            }
-                        },
+                        onTogglePointed: { line in handlePointGesture(on: line) },
                         tip: section.kind == screenState.firstSectionKind ? ProductTips.gestures : nil
                     )
                 }

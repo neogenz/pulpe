@@ -19,6 +19,11 @@ function periodKeyOf(item: { month: number; year: number }): number {
 
 const SLIDER_MIN_CEIL = 100;
 
+/** Un montant de plan est un nombre fini positif ou nul — jamais un retrait. */
+function isApplicableAmount(amount: number): boolean {
+  return Number.isFinite(amount) && amount >= 0;
+}
+
 /** Rounds up to the nearest power-of-ten multiple for a serene slider max. */
 function niceCeil(value: number): number {
   if (value <= 0) return SLIDER_MIN_CEIL;
@@ -42,10 +47,23 @@ export class GoalPlanSimulatorStore {
   readonly #isSimulating = signal(false);
   readonly #overrides = signal<Map<number, number>>(new Map());
   readonly #globalAmount = signal<number | null>(null);
+  readonly #isGlobalAmountInvalid = signal(false);
+  readonly #isMonthAmountInvalid = signal(false);
 
   // ── Computed ──
   readonly isSimulating = this.#isSimulating.asReadonly();
   readonly globalAmount = this.#globalAmount.asReadonly();
+
+  /**
+   * Deux champs indépendants refusent une saisie : le montant global de la
+   * barre et le champ inline d'un mois. Un drapeau unique les faisait se
+   * recouvrir — ouvrir l'éditeur d'un mois effaçait le refus que la barre
+   * affichait encore, et « Appliquer » rouvrait sous une erreur toujours à
+   * l'écran. Chacun garde donc le sien ; le verrou est leur réunion.
+   */
+  readonly hasInvalidAmount = computed(
+    () => this.#isGlobalAmountInvalid() || this.#isMonthAmountInvalid(),
+  );
 
   readonly baseline = computed<SavingsGoalPlanMonth[]>(
     () => this.#store.progress()?.months ?? [],
@@ -150,6 +168,16 @@ export class GoalPlanSimulatorStore {
 
   readonly hasChanges = computed(() => this.dirtyCount() > 0);
 
+  /**
+   * « Appliquer » exige des changements ET aucune saisie en cours refusée. Le
+   * champ garde son texte invalide tant que l'utilisateur le corrige : sans ce
+   * verrou, cliquer « Appliquer » écrirait le dernier montant valide alors que
+   * l'écran en affiche un autre.
+   */
+  readonly canApply = computed(
+    () => this.hasChanges() && !this.hasInvalidAmount(),
+  );
+
   // ── Actions ──
   enter(): void {
     this.#reset();
@@ -166,20 +194,38 @@ export class GoalPlanSimulatorStore {
     this.#reset();
   }
 
+  /**
+   * Une saisie refusée n'est pas corrigée en silence : elle laisse le plan tel
+   * quel et le champ garde son erreur. Clamper avec `Math.max(0, …)` écrivait
+   * un montant que l'utilisateur n'avait pas demandé et faisait disparaître le
+   * sien sans rien dire.
+   */
   setMonth(month: number, year: number, amount: number): void {
+    if (!isApplicableAmount(amount)) return;
     const key = year * 12 + month;
     const target = this.baseline().find((item) => periodKeyOf(item) === key);
     if (!target || !isOpenPlanMonth(target)) return;
 
     const next = new Map(this.#overrides());
-    next.set(key, Math.max(0, amount));
+    next.set(key, amount);
     this.#overrides.set(next);
   }
 
   /** Bouger le slider écrase tous les overrides par mois (annoncé par la toolbar). */
   setGlobalAmount(amount: number): void {
+    if (!isApplicableAmount(amount)) return;
     this.#overrides.set(new Map());
-    this.#globalAmount.set(Math.max(0, amount));
+    this.#globalAmount.set(amount);
+  }
+
+  /** Le montant global de la barre signale sa saisie refusée. */
+  setGlobalAmountInvalid(isInvalid: boolean): void {
+    this.#isGlobalAmountInvalid.set(isInvalid);
+  }
+
+  /** Le champ inline d'un mois signale la sienne. */
+  setMonthAmountInvalid(isInvalid: boolean): void {
+    this.#isMonthAmountInvalid.set(isInvalid);
   }
 
   /** « Réajuster la suite » — répartit l'effort restant sur les mois ouverts. */
@@ -264,5 +310,7 @@ export class GoalPlanSimulatorStore {
   #reset(): void {
     this.#overrides.set(new Map());
     this.#globalAmount.set(null);
+    this.#isGlobalAmountInvalid.set(false);
+    this.#isMonthAmountInvalid.set(false);
   }
 }

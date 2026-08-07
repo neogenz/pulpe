@@ -1,13 +1,18 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 // eslint-disable-next-line boundaries/no-unknown -- root product metadata, not an app layer import
 import productPackage from '../../../../../../../package.json';
-// @ts-expect-error Vitest resolves raw assets; the spec tsconfig has no wildcard declaration
-// eslint-disable-next-line boundaries/no-unknown -- private changelog source of truth, test-only import
-import frontendChangelog from '../../../../../../CHANGELOG.md?raw';
 import { LATEST_RELEASE, SKIPPED_RELEASES } from './whats-new-releases';
 
 const SEMVER_PATTERN = /^\d+\.\d+\.\d+$/;
+// Read rather than imported: the spec is bundled by esbuild, which has no
+// loader for `.md`. `process.cwd()` is the frontend project root under `ng test`.
+const frontendChangelog = readFileSync(
+  resolve(process.cwd(), 'CHANGELOG.md'),
+  'utf8',
+);
 const changelogLines: readonly string[] = frontendChangelog.split(/\r?\n/);
 
 describe('webapp release data', () => {

@@ -22,6 +22,8 @@ const eligibleLine: BudgetLine = {
   tagIds: [],
   spreadGroupId: null,
   savingsWithdrawalGroupId: null,
+  sourceSavingsGoalId: null,
+  sourceSavingsGoalName: null,
   name: 'Cadeau anniversaire',
   amount: 80,
   originalAmount: null,

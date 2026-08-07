@@ -982,4 +982,79 @@ describe('SupabaseTransactionRepository', () => {
       expect(bySelectedTag.in).toHaveBeenCalledWith('budget_id', ['budget-1']);
     });
   });
+
+  // PUL-329 v2 — réaliser un retrait ANNONCÉ, c'est allouer le réel à sa
+  // prévision. Perdre l'allocation en chemin ne casse rien de visible à
+  // l'écriture : c'est la projection de l'objectif qui compte alors la sortie
+  // deux fois, une fois dans le stock et une fois dans un reliquat que plus
+  // rien n'éteint.
+  describe('insertWithdrawal', () => {
+    const BUDGET_ID = '11111111-1111-4111-8111-111111111111';
+    const LINE_ID = '22222222-2222-4222-8222-222222222222';
+    const GOAL_ID = '33333333-3333-4333-8333-333333333333';
+
+    const withdrawalInput = {
+      budgetId: BUDGET_ID,
+      budgetLineId: LINE_ID,
+      name: 'Acompte notaire',
+      amount: 400,
+      kind: 'income' as const,
+      transactionDate: '2026-08-05T12:00:00+00:00',
+      sourceSavingsGoalId: GOAL_ID,
+    };
+
+    function createWithdrawalRpc() {
+      return jest.fn().mockReturnValue({
+        single: jest.fn().mockResolvedValue({
+          data: {
+            ...mockRow,
+            budget_line_id: LINE_ID,
+            kind: 'income',
+            source_savings_goal_id: GOAL_ID,
+            source_savings_goal_name: 'Apport logement',
+          },
+          error: null,
+        }),
+      });
+    }
+
+    it('allocates the realized withdrawal to the forecast it realizes', async () => {
+      const rpc = createWithdrawalRpc();
+      repo = new SupabaseTransactionRepository(
+        createMockProvider(() => ({}), rpc),
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+      const result = await repo.insertWithdrawal(withdrawalInput, 7);
+
+      expect(rpc).toHaveBeenCalledWith(
+        'create_savings_goal_withdrawal',
+        expect.objectContaining({
+          p_goal_id: GOAL_ID,
+          p_expected_revision: 7,
+          p_transaction: expect.objectContaining({ budget_line_id: LINE_ID }),
+        }),
+      );
+      expect(result.budgetLineId).toBe(LINE_ID);
+    });
+
+    it('keeps a free withdrawal unallocated', async () => {
+      const rpc = createWithdrawalRpc();
+      repo = new SupabaseTransactionRepository(
+        createMockProvider(() => ({}), rpc),
+        createMockEncryption(),
+        createMockLogger(),
+      );
+
+      await repo.insertWithdrawal(
+        { ...withdrawalInput, budgetLineId: null },
+        7,
+      );
+
+      expect(rpc.mock.calls[0]?.[1]).toMatchObject({
+        p_transaction: expect.objectContaining({ budget_line_id: null }),
+      });
+    });
+  });
 });

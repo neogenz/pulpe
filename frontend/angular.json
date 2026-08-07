@@ -147,6 +147,15 @@
             "tsConfig": "projects/webapp/tsconfig.spec.json",
             "buildTarget": "webapp:build:development",
             "runner": "vitest",
+            "runnerConfig": "vitest-base.config.ts",
+            "setupFiles": ["projects/webapp/src/test-setup.ts"],
+            "coverageInclude": ["projects/webapp/src/**/*.ts"],
+            "coverageExclude": [
+              "projects/webapp/src/**/*.spec.ts",
+              "projects/webapp/src/main.ts",
+              "projects/webapp/src/environments/**"
+            ],
+            "coverageReporters": ["text", "json", "html"],
             "watch": false
           }
         },

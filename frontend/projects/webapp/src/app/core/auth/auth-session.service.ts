@@ -14,6 +14,7 @@ import { AuthErrorLocalizer } from './auth-error-localizer';
 import { AUTH_ERROR_KEYS, SCHEDULED_DELETION_PARAMS } from './auth-constants';
 import { AuthCleanupService } from './auth-cleanup.service';
 import { isE2EMode, type E2EWindow } from './e2e-window';
+import { SUPABASE_CLIENT_FACTORY } from './supabase-client-factory';
 import { ROUTES } from '@core/routing/routes-constants';
 import { PostHogService } from '../analytics/posthog';
 import { DemoModeService } from '../demo/demo-mode.service';
@@ -39,6 +40,7 @@ export class AuthSessionService {
   readonly #applicationConfig = inject(ApplicationConfiguration);
   readonly #errorLocalizer = inject(AuthErrorLocalizer);
   readonly #logger = inject(Logger);
+  readonly #createSupabaseClient = inject(SUPABASE_CLIENT_FACTORY);
   readonly #cleanup = inject(AuthCleanupService);
   readonly #postHog = inject(PostHogService);
   readonly #demoMode = inject(DemoModeService);
@@ -285,8 +287,7 @@ export class AuthSessionService {
       throw new Error('Configuration Supabase manquante après initialisation');
     }
 
-    const { createClient } = await import('@supabase/supabase-js');
-    this.#supabaseClient = createClient(url, key);
+    this.#supabaseClient = await this.#createSupabaseClient(url, key);
 
     if (isE2EMode()) {
       const mockState = this.#getE2EMockState();

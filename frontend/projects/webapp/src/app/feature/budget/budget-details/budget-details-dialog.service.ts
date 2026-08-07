@@ -43,6 +43,7 @@ import {
   CreateAllocatedTransactionDialog,
   type CreateAllocatedTransactionDialogData,
 } from './allocated-transactions/create-dialog/dialog';
+import { type WithdrawalRealizationContext } from './allocated-transactions/create-dialog/form';
 import { computeBudgetPeriodDateConstraints } from './allocated-transactions/create-dialog/budget-period-date-constraints';
 import { CreateAllocatedTransactionBottomSheet } from './allocated-transactions/create-dialog/bottom-sheet';
 import {
@@ -193,10 +194,14 @@ export class BudgetDetailsDialogService {
       budgetYear: number;
       payDayOfMonth: number | null;
     },
+    submit: (transaction: TransactionCreate) => Promise<string | null>,
+    withdrawalRealization?: WithdrawalRealizationContext | null,
   ): Promise<TransactionCreate | undefined> {
     const data: CreateAllocatedTransactionDialogData = {
       budgetLine,
       ...budgetPeriod,
+      submit,
+      withdrawalRealization,
     };
 
     if (isMobile) {

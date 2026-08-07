@@ -106,6 +106,57 @@ describe('BudgetLineInvariants', () => {
     });
   });
 
+  // Le domaine rejoue les gardes du schéma parce que l'API reçoit aussi des
+  // appels directs. Un retrait planifié est un revenu ponctuel encore à venir :
+  // chaque état fermé ici est un état où le montant serait compté deux fois ou
+  // n'aurait pas de sens comptable.
+  describe('validateCreate — planned savings-goal withdrawal', () => {
+    const plannedWithdrawal = (
+      overrides: Partial<BudgetLineCreate> = {},
+    ): BudgetLineCreate =>
+      ({
+        budgetId: 'budget-1',
+        name: 'Retrait vacances',
+        amount: 500,
+        kind: 'income',
+        recurrence: 'one_off',
+        sourceSavingsGoalId: 'goal-1',
+        ...overrides,
+      }) as BudgetLineCreate;
+
+    it('should accept an unchecked one-off income drawn from a goal', () => {
+      expect(() =>
+        BudgetLineInvariants.validateCreate(plannedWithdrawal()),
+      ).not.toThrow();
+    });
+
+    it.each([
+      ['an expense', { kind: 'expense' }],
+      ['a saving', { kind: 'saving' }],
+      ['a recurring line', { recurrence: 'fixed' }],
+      ['an already-checked line', { checkedAt: '2026-08-01T00:00:00.000Z' }],
+      ['a contribution to another goal', { savingsGoalId: 'goal-2' }],
+    ])('should reject %s as a source line', (_label, overrides) => {
+      expect(() =>
+        BudgetLineInvariants.validateCreate(
+          plannedWithdrawal(overrides as Partial<BudgetLineCreate>),
+        ),
+      ).toThrow(BusinessException);
+    });
+
+    it('should leave an ordinary line untouched by the source rules', () => {
+      expect(() =>
+        BudgetLineInvariants.validateCreate({
+          budgetId: 'budget-1',
+          name: 'Salaire',
+          amount: 4000,
+          kind: 'income',
+          recurrence: 'fixed',
+        } as BudgetLineCreate),
+      ).not.toThrow();
+    });
+  });
+
   describe('validateUpdate', () => {
     it('should throw when amount is negative', () => {
       const dto = { amount: -10 } as BudgetLineUpdate;

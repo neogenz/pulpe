@@ -21,8 +21,8 @@ import { ANALYTICS_EVENTS, API_ERROR_CODES } from 'pulpe-shared';
 
 import {
   ClientKeyService,
+  DERIVE_CLIENT_KEY,
   EncryptionApi,
-  deriveClientKey,
 } from '@core/encryption';
 import { isApiError } from '@core/api/api-error';
 import { AuthSessionService } from '@core/auth/auth-session.service';
@@ -181,6 +181,7 @@ import { PostHogService } from '@core/analytics';
 export default class EnterVaultCode {
   readonly #clientKeyService = inject(ClientKeyService);
   readonly #encryptionApi = inject(EncryptionApi);
+  readonly #deriveClientKey = inject(DERIVE_CLIENT_KEY);
   readonly #authSession = inject(AuthSessionService);
   readonly #dialog = inject(MatDialog);
   readonly #formBuilder = inject(FormBuilder);
@@ -237,7 +238,7 @@ export default class EnterVaultCode {
       const { salt, kdfIterations } = await firstValueFrom(
         this.#encryptionApi.getSalt$(),
       );
-      const clientKeyHex = await deriveClientKey(
+      const clientKeyHex = await this.#deriveClientKey(
         vaultCode,
         salt,
         kdfIterations,

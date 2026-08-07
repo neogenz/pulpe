@@ -1,6 +1,6 @@
 import { Service, inject, computed, signal } from '@angular/core';
 
-import { deriveClientKey, isValidClientKeyHex } from './crypto.utils';
+import { DERIVE_CLIENT_KEY, isValidClientKeyHex } from './crypto.utils';
 import { STORAGE_KEYS } from '../storage/storage-keys';
 import { StorageService } from '../storage/storage.service';
 
@@ -11,6 +11,7 @@ const VALIDATION_CACHE_DURATION_MS = 5 * 60 * 1000;
 @Service()
 export class ClientKeyService {
   readonly #storage = inject(StorageService);
+  readonly #deriveClientKey = inject(DERIVE_CLIENT_KEY);
   readonly #clientKeyHex = signal<string | null>(null);
   readonly #needsServerValidation = signal(false);
 
@@ -57,7 +58,7 @@ export class ClientKeyService {
     iterations: number,
     useLocalStorage = false,
   ): Promise<void> {
-    const keyHex = await deriveClientKey(password, saltHex, iterations);
+    const keyHex = await this.#deriveClientKey(password, saltHex, iterations);
     this.#setAndPersist(keyHex, useLocalStorage);
   }
 

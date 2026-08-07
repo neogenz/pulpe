@@ -8,7 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { StorageService } from '@core/storage/storage.service';
 import { STORAGE_KEYS } from '@core/storage/storage-keys';
-import { buildInfo } from '@env/build-info';
+import { CURRENT_APP_VERSION } from '@core/app-version/current-app-version';
 import { LATEST_RELEASE } from './whats-new-releases';
 
 @Component({
@@ -116,24 +116,21 @@ export class WhatsNewToast {
   readonly #storageService = inject(StorageService);
 
   protected readonly release = LATEST_RELEASE;
-  protected readonly version = buildInfo.version;
+  protected readonly version = inject(CURRENT_APP_VERSION);
 
   readonly #isVisible = signal(this.#shouldShow());
   protected readonly isVisible = this.#isVisible.asReadonly();
 
   #shouldShow(): boolean {
-    if (LATEST_RELEASE.version !== buildInfo.version) return false;
+    if (LATEST_RELEASE.version !== this.version) return false;
     const dismissed = this.#storageService.get<string>(
       STORAGE_KEYS.WHATS_NEW_DISMISSED,
     );
-    return dismissed !== buildInfo.version;
+    return dismissed !== this.version;
   }
 
   protected dismiss(): void {
-    this.#storageService.set(
-      STORAGE_KEYS.WHATS_NEW_DISMISSED,
-      buildInfo.version,
-    );
+    this.#storageService.set(STORAGE_KEYS.WHATS_NEW_DISMISSED, this.version);
     this.#isVisible.set(false);
   }
 }

@@ -13,6 +13,10 @@ import SwiftUI
 ///   the list is the server-filtered set of funded goals and the field shows
 ///   what is left afterwards. There is no "Aucun objectif": once the caller
 ///   opted in, the choice is required.
+/// - `.plannedWithdrawal` (PUL-329 v2) — which goal an income FORECAST announces
+///   a withdrawal from. Nothing leaves the pot yet, so every goal is listed
+///   whatever it holds today, and the preview reads the projection of the
+///   budget's own month rather than the current balance.
 ///
 /// PUL-313 — when the caller passes `budgetPeriod`, goals whose deadline falls
 /// before it are listed but disabled: `enforce_savings_goal_line_link` would
@@ -27,6 +31,11 @@ struct SavingsGoalPickerField: View {
     enum Mode {
         case link
         case withdrawal
+        case plannedWithdrawal
+
+        /// Both withdrawal modes read the goals list rather than the balance-bearing
+        /// options, and neither is bound by the deadline that bounds paying in.
+        var usesGoalsList: Bool { self != .withdrawal }
     }
 
     /// Local pre-check of a withdrawal choice, kept as a value so it can be
@@ -145,23 +154,31 @@ struct SavingsGoalPickerField: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            Text(mode == .withdrawal ? "Objectif utilisé" : "Objectif")
+            Text(mode == .link ? "Objectif" : "Objectif utilisé")
                 .font(PulpeTypography.labelMedium)
                 .foregroundStyle(Color.onSurfaceVariant)
 
-            if mode == .withdrawal {
+            switch mode {
+            case .withdrawal:
                 SavingsGoalWithdrawalPicker(
                     selection: $selection,
                     withdrawalAmount: withdrawalAmount,
                     refreshToken: withdrawalRefreshToken,
                     onReadinessChange: onWithdrawalReadinessChange
                 )
-            } else {
+            case .plannedWithdrawal:
+                SavingsGoalPlannedWithdrawalPicker(
+                    selection: $selection,
+                    withdrawalAmount: withdrawalAmount,
+                    budgetPeriod: budgetPeriod,
+                    onReadinessChange: onWithdrawalReadinessChange
+                )
+            case .link:
                 pickerContent
             }
         }
         .task {
-            guard mode == .link else { return }
+            guard mode.usesGoalsList else { return }
             await store.loadIfNeeded()
         }
         .onChange(of: selectionState, initial: true) { _, state in
@@ -184,30 +201,11 @@ struct SavingsGoalPickerField: View {
     }
 
     private var errorContent: some View {
-        savingsGoalFieldSurface {
-            Image(systemName: "exclamationmark.triangle")
-                .foregroundStyle(Color.destructivePrimary)
-            Text("Impossible de charger les objectifs")
-                .font(PulpeTypography.footnote)
-                .foregroundStyle(Color.onSurfaceVariant)
-            Spacer()
-            Button("Réessayer") {
-                Task { await store.forceRefresh() }
-            }
-            .textLinkButtonStyle()
-        }
-        .accessibilityElement(children: .contain)
+        savingsGoalFieldError { Task { await store.forceRefresh() } }
     }
 
     private var loadingContent: some View {
-        savingsGoalFieldSurface {
-            ProgressView()
-                .controlSize(.small)
-            Text("Chargement des objectifs…")
-                .font(PulpeTypography.footnote)
-                .foregroundStyle(Color.onSurfaceVariant)
-        }
-        .accessibilityElement(children: .combine)
+        savingsGoalFieldLoading()
     }
 
     private var emptyContent: some View {
@@ -306,28 +304,11 @@ private struct SavingsGoalWithdrawalPicker: View {
     }
 
     private var errorContent: some View {
-        savingsGoalFieldSurface {
-            Image(systemName: "exclamationmark.triangle")
-                .foregroundStyle(Color.destructivePrimary)
-            Text("Impossible de charger les objectifs")
-                .font(PulpeTypography.footnote)
-                .foregroundStyle(Color.onSurfaceVariant)
-            Spacer()
-            Button("Réessayer") { Task { await load() } }
-                .textLinkButtonStyle()
-        }
-        .accessibilityElement(children: .contain)
+        savingsGoalFieldError { Task { await load() } }
     }
 
     private var loadingContent: some View {
-        savingsGoalFieldSurface {
-            ProgressView()
-                .controlSize(.small)
-            Text("Chargement des objectifs…")
-                .font(PulpeTypography.footnote)
-                .foregroundStyle(Color.onSurfaceVariant)
-        }
-        .accessibilityElement(children: .combine)
+        savingsGoalFieldLoading()
     }
 
     private var menuContent: some View {
@@ -397,8 +378,11 @@ private struct SavingsGoalWithdrawalPicker: View {
 
 // MARK: - Shared field chrome
 
+/// Internal rather than file-private: `SavingsGoalPlannedWithdrawalPicker` wears
+/// the same chrome from its own file, and this file is already at the length
+/// budget that made splitting it necessary.
 @ViewBuilder
-private func savingsGoalFieldSurface(
+func savingsGoalFieldSurface(
     @ViewBuilder content: () -> some View
 ) -> some View {
     HStack(spacing: DesignTokens.Spacing.sm) {
@@ -412,10 +396,41 @@ private func savingsGoalFieldSurface(
     )
 }
 
+/// Failed load, with the retry the caller owns — the three pickers fetch from
+/// three different places but say the same thing when the fetch fails.
+/// `@MainActor` because `textLinkButtonStyle()` is: a free function inherits no
+/// isolation from the view body that calls it.
+@MainActor @ViewBuilder
+func savingsGoalFieldError(retry: @escaping () -> Void) -> some View {
+    savingsGoalFieldSurface {
+        Image(systemName: "exclamationmark.triangle")
+            .foregroundStyle(Color.destructivePrimary)
+        Text("Impossible de charger les objectifs")
+            .font(PulpeTypography.footnote)
+            .foregroundStyle(Color.onSurfaceVariant)
+        Spacer()
+        Button("Réessayer", action: retry)
+            .textLinkButtonStyle()
+    }
+    .accessibilityElement(children: .contain)
+}
+
+@ViewBuilder
+func savingsGoalFieldLoading() -> some View {
+    savingsGoalFieldSurface {
+        ProgressView()
+            .controlSize(.small)
+        Text("Chargement des objectifs…")
+            .font(PulpeTypography.footnote)
+            .foregroundStyle(Color.onSurfaceVariant)
+    }
+    .accessibilityElement(children: .combine)
+}
+
 /// `subtitle` rides in the same button so the reason travels with the goal
 /// it disables — a menu entry cannot carry a separate explanatory row.
 @ViewBuilder
-private func savingsGoalPickerButton(
+func savingsGoalPickerButton(
     title: String,
     subtitle: String? = nil,
     isSelected: Bool,
