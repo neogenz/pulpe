@@ -521,11 +521,12 @@ describe('DashboardStore - Business Scenarios', () => {
         expect(store.budgetLines().length).toBe(1);
       });
 
-      const isSuccess = await store.checkBudgetLine('line-fail');
+      const refusal = await store.checkBudgetLine('line-fail');
 
-      // Says so to the caller, which is what raises the snackbar — the `error`
-      // signal would collapse the whole page into a "could not load" card.
-      expect(isSuccess).toBe(false);
+      // Hands the reason back to the caller, which is what raises the snackbar —
+      // the `error` signal would collapse the whole page into a "could not load"
+      // card.
+      expect(refusal).not.toBeNull();
       expect(store.error()).toBeUndefined();
       // Should rollback checkedAt to null
       expect(store.budgetLines()[0].checkedAt).toBeNull();
@@ -669,9 +670,9 @@ describe('DashboardStore - Business Scenarios', () => {
         of({ success: true, data: { ...line, checkedAt: null } }),
       );
 
-      const isSuccess = await store.uncheckBudgetLine('line-undo');
+      const refusal = await store.uncheckBudgetLine('line-undo');
 
-      expect(isSuccess).toBe(true);
+      expect(refusal).toBeNull();
       expect(store.budgetLines()[0].checkedAt).toBeNull();
       expect(store.uncheckedForecasts().length).toBe(1);
     });
@@ -692,9 +693,9 @@ describe('DashboardStore - Business Scenarios', () => {
         throwError(() => new Error('Toggle failed')),
       );
 
-      const isSuccess = await store.uncheckBudgetLine('line-undo-fail');
+      const refusal = await store.uncheckBudgetLine('line-undo-fail');
 
-      expect(isSuccess).toBe(false);
+      expect(refusal).not.toBeNull();
       expect(store.budgetLines()[0].checkedAt).toBe('2025-06-15T12:00:00Z');
       expect(store.pendingChecks().size).toBe(0);
     });
@@ -712,9 +713,9 @@ describe('DashboardStore - Business Scenarios', () => {
         [],
       );
 
-      const isSuccess = await store.uncheckBudgetLine('line-never-checked');
+      const refusal = await store.uncheckBudgetLine('line-never-checked');
 
-      expect(isSuccess).toBe(false);
+      expect(refusal).not.toBeNull();
       expect(budgetApi.toggleBudgetLineCheck$).not.toHaveBeenCalled();
     });
   });

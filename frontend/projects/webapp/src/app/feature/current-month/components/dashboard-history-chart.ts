@@ -52,8 +52,12 @@ import {
       >
         @if (hasData()) {
           <div class="flex-1 relative w-full h-full">
+            <!-- A bare <canvas> is absent from the accessibility tree: the
+                 product's own differentiator did not exist without sight. -->
             <canvas
               baseChart
+              role="img"
+              [attr.aria-label]="chartAriaLabel()"
               [data]="chartData()"
               [options]="chartOptions()"
               [type]="chartType"
@@ -179,6 +183,29 @@ export class DashboardHistoryChart {
       labels: data.map((d) => formatShortMonth(d.month, this.#locale)),
       datasets,
     };
+  });
+
+  // Mirrors what the bars and the dashed line draw — the three series, the
+  // average the line marks, and the latest month, which is the point a sighted
+  // reader lands on first.
+  protected readonly chartAriaLabel = computed(() => {
+    const data = this.history();
+    if (data.length === 0) return '';
+    const currency = this.#userSettings.currency();
+    const last = data[data.length - 1];
+
+    return this.#transloco.translate('currentMonth.historyChartAria', {
+      count: data.length,
+      first: formatShortMonth(data[0].month, this.#locale),
+      last: formatShortMonth(last.month, this.#locale),
+      avgIncome: formatCurrency(
+        data.reduce((sum, d) => sum + d.income, 0) / data.length,
+        currency,
+      ),
+      lastIncome: formatCurrency(last.income, currency),
+      lastExpenses: formatCurrency(last.expenses, currency),
+      lastSavings: formatCurrency(last.savings, currency),
+    });
   });
 
   readonly chartOptions = computed<ChartConfiguration['options']>(() => {

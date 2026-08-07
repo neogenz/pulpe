@@ -236,11 +236,18 @@ export class DashboardStore {
   readonly totalAvailable = computed<number>(() => this.#metrics().available);
   readonly remaining = computed<number>(() => this.#metrics().remaining);
 
+  // A forecast funded by a savings goal is realized by recording the real
+  // income, never by checking it: `toggleBudgetLineCheck` refuses exactly this
+  // shape — `sourceSavingsGoalId` set and `checkedAt` still null — with a 422.
+  // Listing it under "à pointer" handed the user a button that could not
+  // succeed, so the list stops claiming it. Deleting the goal nulls the column
+  // (`ON DELETE SET NULL`) and the line becomes pointable again, deliberately.
   readonly uncheckedForecasts = computed<BudgetLine[]>(() =>
     this.budgetLines().filter(
       (line) =>
         (line.recurrence === 'fixed' || line.recurrence === 'one_off') &&
-        line.checkedAt === null,
+        line.checkedAt === null &&
+        !line.sourceSavingsGoalId,
     ),
   );
 
@@ -375,33 +382,51 @@ export class DashboardStore {
   // onSuccess/onError callbacks, which would silently drop per-id
   // pending cleanup when toggles overlap. Each toggle's lifecycle must
   // complete independently.
-  async checkBudgetLine(budgetLineId: string): Promise<boolean> {
-    if (this.#pendingChecks().has(budgetLineId)) return true;
+  /** Returns the localized reason on refusal, or `null` when it went through. */
+  async checkBudgetLine(budgetLineId: string): Promise<string | null> {
+    if (this.#pendingChecks().has(budgetLineId)) return null;
     const budgetLine = this.budgetLines().find((l) => l.id === budgetLineId);
-    if (!budgetLine || budgetLine.checkedAt !== null) return true;
+    if (!budgetLine || budgetLine.checkedAt !== null) return null;
 
-    return this.#sendCheckToggle(budgetLineId, new Date().toISOString(), null);
+    return this.#sendCheckToggle(
+      budgetLineId,
+      new Date().toISOString(),
+      null,
+      'currentMonth.updateError',
+    );
   }
 
   // The reversal behind the confirmation toast. Same endpoint — the route is a
-  // toggle — with the guards mirrored, but a no-op answers `false` rather than
-  // the `true` above: the caller has just promised the user an undo, so
+  // toggle — with the guards mirrored, but a no-op answers with a reason rather
+  // than the `null` above: the caller has just promised the user an undo, so
   // "there was nothing left to undo" is an outcome to surface, not a silent
   // success the way a double tap on the check is.
-  async uncheckBudgetLine(budgetLineId: string): Promise<boolean> {
-    if (this.#pendingChecks().has(budgetLineId)) return false;
+  async uncheckBudgetLine(budgetLineId: string): Promise<string | null> {
+    const undoFailed = () =>
+      this.#transloco.translate('currentMonth.undoError');
+    if (this.#pendingChecks().has(budgetLineId)) return undoFailed();
     const budgetLine = this.budgetLines().find((l) => l.id === budgetLineId);
-    if (!budgetLine || budgetLine.checkedAt === null) return false;
+    if (!budgetLine || budgetLine.checkedAt === null) return undoFailed();
 
-    return this.#sendCheckToggle(budgetLineId, null, budgetLine.checkedAt);
+    return this.#sendCheckToggle(
+      budgetLineId,
+      null,
+      budgetLine.checkedAt,
+      'currentMonth.undoError',
+    );
   }
 
   // ── 6. Private utils ──
+  // The server refuses some toggles on business grounds and says why. Reporting
+  // "vérifie ta connexion" over a considered refusal sends the user to look at
+  // their wifi for a rule the response already spelled out; the generic line is
+  // the fallback for the failures that really are transport.
   async #sendCheckToggle(
     budgetLineId: string,
     optimisticCheckedAt: string | null,
     rollbackCheckedAt: string | null,
-  ): Promise<boolean> {
+    transportErrorKey: string,
+  ): Promise<string | null> {
     this.#pendingChecks.update((s) => new Set([...s, budgetLineId]));
     this.#patchBudgetLineCheckedAt(budgetLineId, optimisticCheckedAt);
 
@@ -412,14 +437,16 @@ export class DashboardStore {
       for (const key of CHECK_INVALIDATION_KEYS) {
         this.#budgetApi.cache.invalidate(key);
       }
-      return true;
+      return null;
     } catch (error: unknown) {
       this.#patchBudgetLineCheckedAt(budgetLineId, rollbackCheckedAt);
       this.#logger.error('Toggle budget line check failed', {
         budgetLineId,
         error,
       });
-      return false;
+      return isApiError(error)
+        ? this.#apiErrorLocalizer.localizeApiError(error)
+        : this.#transloco.translate(transportErrorKey);
     } finally {
       this.#pendingChecks.update((s) => {
         if (!s.has(budgetLineId)) return s;

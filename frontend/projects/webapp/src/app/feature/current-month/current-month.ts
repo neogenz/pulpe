@@ -148,6 +148,7 @@ const UNDO_WINDOW_MS = 6000;
           @defer (on viewport; prefetch on idle) {
             <pulpe-dashboard-future-projection-chart
               [forecasts]="store.upcomingBudgetsData()"
+              (createMissingBudgets)="navigateToBudgetList()"
               data-testid="dashboard-block-projection"
             />
           } @placeholder {
@@ -385,9 +386,9 @@ export default class Dashboard {
       .uncheckedForecasts()
       .find((line) => line.id === budgetLineId)?.name;
 
-    const isSuccess = await this.store.checkBudgetLine(budgetLineId);
-    if (!isSuccess) {
-      this.#notify(this.#transloco.translate('currentMonth.updateError'));
+    const refusal = await this.store.checkBudgetLine(budgetLineId);
+    if (refusal) {
+      this.#notify(refusal);
       return;
     }
     // Undefined means the store treated this as a no-op — a second tap on a
@@ -413,10 +414,8 @@ export default class Dashboard {
   }
 
   async #undoCheck(budgetLineId: string): Promise<void> {
-    const isSuccess = await this.store.uncheckBudgetLine(budgetLineId);
-    if (!isSuccess) {
-      this.#notify(this.#transloco.translate('currentMonth.undoError'));
-    }
+    const refusal = await this.store.uncheckBudgetLine(budgetLineId);
+    if (refusal) this.#notify(refusal);
   }
 
   #notify(message: string): void {

@@ -6,6 +6,7 @@ import {
   inject,
   input,
   LOCALE_ID,
+  output,
   signal,
 } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
@@ -22,6 +23,7 @@ import {
   resolveChartThemeColors,
   registerChartPlugins,
   formatShortMonth,
+  formatCurrency,
 } from '@core/chart/chart-theme';
 import {
   buildProjectionChartOptions,
@@ -55,31 +57,43 @@ import {
       >
         @if (hasData()) {
           <div class="flex-1 relative w-full h-full">
+            <!-- A bare <canvas> is absent from the accessibility tree: the
+                 product's own differentiator did not exist without sight. -->
             <canvas
               baseChart
+              role="img"
+              [attr.aria-label]="chartAriaLabel()"
               [data]="chartData()"
               [options]="chartOptions()"
               [type]="chartType"
             ></canvas>
           </div>
           @if (missingMonthsCount() > 0) {
-            <div
-              class="flex items-center gap-2 mt-3 px-2 py-2 rounded-xl bg-surface-container-low cursor-help"
+            <!-- The line says "crée-les" and used to offer no way to do it: a
+                 div carrying a mouse-only tooltip. As a button it both keeps
+                 the promise its own copy makes and puts the month list within
+                 reach of the keyboard, since Material shows a tooltip on
+                 focus. -->
+            <button
+              type="button"
+              class="flex items-center gap-2 mt-3 px-2 py-2 w-full text-start rounded-xl bg-surface-container-low hover:bg-on-surface/8 motion-safe:transition-colors"
               [matTooltip]="missingMonthsTooltip()"
               matTooltipPosition="above"
+              (click)="createMissingBudgets.emit()"
+              data-testid="projection-missing-budgets-button"
             >
               <mat-icon
                 class="text-on-surface-variant shrink-0"
                 aria-hidden="true"
                 >info</mat-icon
               >
-              <p class="text-body-small text-on-surface-variant">
+              <span class="text-body-small text-on-surface-variant">
                 {{
                   'currentMonth.projectionMissingBudget'
                     | transloco: { count: missingMonthsCount() }
                 }}
-              </p>
-            </div>
+              </span>
+            </button>
           }
         } @else {
           <div
@@ -117,6 +131,7 @@ export class DashboardFutureProjectionChart {
   readonly #transloco = inject(TranslocoService);
   readonly #userSettings = inject(UserSettingsStore);
   readonly forecasts = input.required<UpcomingMonthForecast[]>();
+  readonly createMissingBudgets = output<void>();
 
   readonly #projectionBalanceLabel = this.#transloco.translate(
     'currentMonth.projectionBalanceLabel',
@@ -174,4 +189,28 @@ export class DashboardFutureProjectionChart {
       cumulatedSavings: this.#projectionCumulatedSavingsLabel,
     }),
   );
+
+  // Mirrors the two series `buildProjectionChartData` draws — monthly balance,
+  // and savings accumulated across the window — reported at their endpoints,
+  // which is what a sighted reader takes from the curve at a glance.
+  protected readonly chartAriaLabel = computed(() => {
+    const months = this.forecasts().filter((f) => f.hasBudget);
+    if (months.length === 0) return '';
+    const currency = this.#userSettings.currency();
+    const balanceOf = (f: UpcomingMonthForecast) =>
+      (f.income ?? 0) - (f.expenses ?? 0);
+    const last = months[months.length - 1];
+
+    return this.#transloco.translate('currentMonth.projectionChartAria', {
+      count: months.length,
+      first: formatShortMonth(months[0].month, this.#locale),
+      last: formatShortMonth(last.month, this.#locale),
+      firstBalance: formatCurrency(balanceOf(months[0]), currency),
+      lastBalance: formatCurrency(balanceOf(last), currency),
+      totalSavings: formatCurrency(
+        months.reduce((sum, f) => sum + (f.savings ?? 0), 0),
+        currency,
+      ),
+    });
+  });
 }

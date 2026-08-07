@@ -12,14 +12,12 @@ import type { Transaction, TransactionKind } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
 import { UserSettingsStore } from '@core/user-settings';
 import { FinancialKindDirective } from '@ui/financial-kind';
+import {
+  TransactionIconPipe,
+  TransactionLabelPipe,
+} from '@ui/transaction-display';
 import { SavingsGoalSourceLine } from '@ui/savings-goal-source/savings-goal-source-line';
 import { TranslocoPipe } from '@jsverse/transloco';
-
-const KIND_ICONS: Record<TransactionKind, string> = {
-  income: 'arrow_upward',
-  expense: 'arrow_downward',
-  saving: 'savings',
-};
 
 @Component({
   selector: 'pulpe-dashboard-recent-transactions',
@@ -29,6 +27,8 @@ const KIND_ICONS: Record<TransactionKind, string> = {
     MatButtonModule,
     MatIconModule,
     FinancialKindDirective,
+    TransactionIconPipe,
+    TransactionLabelPipe,
     SavingsGoalSourceLine,
     TranslocoPipe,
   ],
@@ -75,7 +75,7 @@ const KIND_ICONS: Record<TransactionKind, string> = {
                   [class]="kindClasses(tx.kind)"
                 >
                   <mat-icon class="text-[20px]" aria-hidden="true">
-                    {{ kindIcon(tx.kind) }}
+                    {{ tx.kind | transactionIcon }}
                   </mat-icon>
                 </div>
                 <div class="flex-1 min-w-0">
@@ -106,6 +106,13 @@ const KIND_ICONS: Record<TransactionKind, string> = {
                   class="text-label-large whitespace-nowrap ml-4 font-semibold tabular-nums ph-no-capture"
                   [pulpeFinancialKind]="tx.kind"
                 >
+                  <!-- Revenu, dépense and épargne were told apart by the tint
+                       and by the arrow in the circle — and that circle is
+                       aria-hidden, so the accessibility tree read "Acompte
+                       notaire, 06 août, 300.00 CHF" and never which direction
+                       the money went. Same two lines as the forecasts list
+                       twenty pixels away, which already got this right. -->
+                  <span class="sr-only">{{ tx.kind | transactionLabel }}</span>
                   {{ tx.amount | appCurrency: currency() : '1.2-2' }}
                 </span>
               </div>
@@ -154,10 +161,6 @@ export class DashboardRecentTransactions {
   readonly transactions = input.required<Transaction[]>();
   readonly viewBudget = output<void>();
   readonly addTransaction = output<void>();
-
-  protected kindIcon(kind: TransactionKind): string {
-    return KIND_ICONS[kind];
-  }
 
   protected kindClasses(kind: TransactionKind): string {
     switch (kind) {
