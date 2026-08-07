@@ -38,6 +38,10 @@ function cleanup() {
 describe('dep-cruiser: encryption isolation rule (CR-03 guard)', () => {
   afterEach(cleanup);
 
+  // Cruising 483 modules in a subprocess costs ~2s on an idle machine and past
+  // 5s when the other packages' suites compile alongside it. Left on the default
+  // per-test timeout, this test reports machine load rather than whether the
+  // rule still fires.
   it('blocks direct import of AesGcmCryptoService from a non-encryption module', () => {
     cleanup();
     writeFileSync(FIXTURE_PATH, FIXTURE_CONTENT, 'utf-8');
@@ -56,5 +60,5 @@ describe('dep-cruiser: encryption isolation rule (CR-03 guard)', () => {
     expect(output).toContain('no-encryption-internal-leak');
     expect(output).toContain('_cr03_arch_test_fixture.ts');
     expect(result.status).not.toBe(0);
-  });
+  }, 30_000);
 });
