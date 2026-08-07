@@ -24,6 +24,7 @@ import {
   BudgetFormulas,
   getBudgetPeriodDates,
   getBudgetPeriodForDate,
+  isOutflowKind,
 } from 'pulpe-shared';
 import { isApiError } from '@core/api/api-error';
 import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
@@ -190,10 +191,29 @@ export class DashboardStore {
     return Math.round(Math.min(Math.max(0, percentage), 100));
   });
 
+  // `totalExpenses` applies envelope logic — `max(line.amount, consumed)` — so it
+  // is mostly the PLAN: rent counts in full from the 1st. Comparing it to elapsed
+  // time says nothing about behaviour. `realizedExpenses` sums the outflow
+  // transactions actually recorded, which is the only figure that should grow
+  // with the month, and the only one the pace verdict may be built on.
+  readonly realizedExpenses = computed<number>(() =>
+    this.transactions()
+      .filter((tx) => isOutflowKind(tx.kind))
+      .reduce((sum, tx) => sum + tx.amount, 0),
+  );
+
+  readonly realizedPercentage = computed(() => {
+    const available = this.totalAvailable();
+    const realized = this.realizedExpenses();
+    if (available <= 0) return realized > 0 ? 100 : 0;
+    const percentage = (realized / available) * 100;
+    return Math.round(Math.min(Math.max(0, percentage), 100));
+  });
+
   readonly paceStatus = computed<'on-track' | 'tight'>(() => {
-    const consumed = this.budgetConsumedPercentage();
+    const realized = this.realizedPercentage();
     const elapsed = this.timeElapsedPercentage();
-    return consumed <= elapsed + PACE_TOLERANCE_PERCENT ? 'on-track' : 'tight';
+    return realized <= elapsed + PACE_TOLERANCE_PERCENT ? 'on-track' : 'tight';
   });
 
   readonly rolloverAmount = computed<number>(() => {

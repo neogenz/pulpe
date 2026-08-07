@@ -118,6 +118,12 @@
   --pulpe-hero-warning-text: #fff3e0; // warm amber-tinted white (matches dark-mode counterpart)
   --pulpe-hero-error: var(--mat-sys-error);
   --pulpe-hero-error-text: var(--mat-sys-on-error);
+  // How far the progress bar's "engaged" pill is lifted off the hero's own hue
+  // toward its foreground. Its pills are separated by gaps, so it is read
+  // against the card behind the gap rather than against a neighbour, and this
+  // is the distance that has to clear 3:1 — measured at 3.61 on the tightest
+  // of the six states. The two themes reach it from opposite sides.
+  --pulpe-hero-engaged-lift: 60%;
 }
 
 .dark-theme {
@@ -127,4 +133,5 @@
   --pulpe-hero-warning-text: #fff3e0; // amber tone ~95 — light amber text
   --pulpe-hero-error: #930009; // error tone 30 — deep saturated red
   --pulpe-hero-error-text: #ffdad5; // error tone 90 — light pink text
+  --pulpe-hero-engaged-lift: 60%;
 }

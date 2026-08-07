@@ -700,27 +700,7 @@ describe('DashboardStore - Business Scenarios', () => {
       ]);
     });
 
-    it('should return on-track when consumed <= elapsed + 5', async () => {
-      const budget = createMockBudget({ rollover: 0 });
-      const lines = [
-        createMockBudgetLine({
-          id: 'inc-1',
-          kind: 'income',
-          amount: 1000,
-        }),
-        createMockBudgetLine({
-          id: 'exp-1',
-          kind: 'expense',
-          amount: 400,
-        }),
-      ];
-      // consumed = 400/1000 = 40%, elapsed ~ 47-48%, 40 <= 48+5 → on-track
-      const { store } = await setupWithBudgetAndWait(budget, lines, []);
-
-      expect(store.paceStatus()).toBe('on-track');
-    });
-
-    it('should return tight when consumed > elapsed + 5', async () => {
+    it('should stay on-track when the plan is engaged but nothing is spent yet', async () => {
       const budget = createMockBudget({ rollover: 0 });
       const lines = [
         createMockBudgetLine({
@@ -734,8 +714,43 @@ describe('DashboardStore - Business Scenarios', () => {
           amount: 900,
         }),
       ];
-      // consumed = 900/1000 = 90%, elapsed ~ 47-48%, 90 > 48+5 → tight
-      const { store } = await setupWithBudgetAndWait(budget, lines, []);
+      // The envelope engages 900/1000 from day one, but 400 has actually been
+      // spent: realized = 40%, elapsed ~ 47-48% → on-track
+      const transactions = [
+        createMockTransaction({ id: 'tx-1', kind: 'expense', amount: 400 }),
+      ];
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        transactions,
+      );
+
+      expect(store.paceStatus()).toBe('on-track');
+    });
+
+    it('should return tight when realized spending > elapsed + 5', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const lines = [
+        createMockBudgetLine({
+          id: 'inc-1',
+          kind: 'income',
+          amount: 1000,
+        }),
+        createMockBudgetLine({
+          id: 'exp-1',
+          kind: 'expense',
+          amount: 900,
+        }),
+      ];
+      // realized = 900/1000 = 90%, elapsed ~ 47-48%, 90 > 48+5 → tight
+      const transactions = [
+        createMockTransaction({ id: 'tx-1', kind: 'expense', amount: 900 }),
+      ];
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        transactions,
+      );
 
       expect(store.paceStatus()).toBe('tight');
     });

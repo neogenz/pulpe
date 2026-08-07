@@ -1302,12 +1302,19 @@
     "privacyFooter": "Cette politique fait partie intégrante de mes"
   },
   "dashboard": {
-    "currentMonth": "Mois en cours",
     "available": "Disponible",
     "spent": "Dépensé",
+    "engaged": "Engagé",
+    "budgetTotal": "Budget",
+    "status": {
+      "onTrack": "Ton rythme tient.",
+      "fastPace": "Tu dépenses plus vite que le mois ne passe.",
+      "almostSpent": "Ton budget est presque entièrement engagé.",
+      "overBudget": "Tu es au-delà de ton budget — ça arrive."
+    },
+    "progressLabel": "{{ realized }}% du budget dépensé, {{ engaged }}% engagé, {{ elapsed }}% du mois écoulé",
     "on": "sur",
     "rollover": "Report",
-    "income": "Revenus",
     "savings": "Épargne",
     "cumulatedSavings": "Épargne cumulée",
     "expenses": "Dépenses",
@@ -1315,8 +1322,7 @@
     "allUpToDate": "Tout est à jour !",
     "savingsPlaced": "Toute ton épargne est en place. Tu peux souffler.",
     "savingsSummary": "{{ count }} sur {{ total }} mises de côté",
-    "estimatedRollover": "report estimé",
-    "timeElapsed": "Mois écoulé : {{ percent }}%"
+    "estimatedRollover": "report estimé"
   },
   "form": {
     "emailRequired": "Ton email est nécessaire pour continuer",

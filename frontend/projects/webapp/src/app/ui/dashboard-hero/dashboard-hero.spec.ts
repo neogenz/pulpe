@@ -28,7 +28,8 @@ describe('DashboardHero', () => {
     setTestInput(component.expenses, 0);
     setTestInput(component.remaining, 0);
     setTestInput(component.budgetConsumedPercentage, 0);
-    setTestInput(component.totalIncome, 0);
+    setTestInput(component.realizedExpenses, 0);
+    setTestInput(component.realizedPercentage, 0);
     setTestInput(component.periodDates, {
       startDate: new Date(),
       endDate: new Date(),
@@ -86,34 +87,31 @@ describe('DashboardHero', () => {
   });
 
   describe('rollover decomposition', () => {
-    it('should render totalIncome in the decomposition line', () => {
+    it('should caption the amount with its label', () => {
       setTestInput(component.available, 5000);
       setTestInput(component.expenses, 1000);
-      setTestInput(component.totalIncome, 4500);
       setTestInput(component.rolloverAmount, 500);
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;
-      expect(compiled.textContent).toContain('Revenus');
+      expect(compiled.textContent).toContain('Disponible');
       expect(compiled.textContent).toContain('Report');
     });
 
     it('should hide rollover when rolloverAmount is 0', () => {
       setTestInput(component.available, 5000);
       setTestInput(component.expenses, 1000);
-      setTestInput(component.totalIncome, 5000);
       setTestInput(component.rolloverAmount, 0);
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;
-      expect(compiled.textContent).toContain('Revenus');
+      expect(compiled.textContent).toContain('Disponible');
       expect(compiled.textContent).not.toContain('Report');
     });
 
     it('should show negative rollover with minus sign attached to number', () => {
       setTestInput(component.available, 4500);
       setTestInput(component.expenses, 1000);
-      setTestInput(component.totalIncome, 5000);
       setTestInput(component.rolloverAmount, -500);
       fixture.detectChanges();
 
@@ -127,7 +125,6 @@ describe('DashboardHero', () => {
     it('should show positive rollover with plus sign', () => {
       setTestInput(component.available, 5500);
       setTestInput(component.expenses, 1000);
-      setTestInput(component.totalIncome, 5000);
       setTestInput(component.rolloverAmount, 500);
       fixture.detectChanges();
 
@@ -149,13 +146,32 @@ describe('DashboardHero', () => {
 
       expect(component.paceStatus()).toBe('tight');
     });
+
+    it('should render the pace verdict when spending outruns the month', () => {
+      setTestInput(component.paceStatus, 'tight');
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      expect(compiled.textContent).toContain('plus vite que le mois');
+    });
+
+    it('should let the budget verdict outrank the pace verdict', () => {
+      setTestInput(component.available, 1000);
+      setTestInput(component.expenses, 1200);
+      setTestInput(component.remaining, -200);
+      setTestInput(component.paceStatus, 'tight');
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      expect(compiled.textContent).toContain('au-delà de ton budget');
+      expect(compiled.textContent).not.toContain('plus vite que le mois');
+    });
   });
 
   describe('heroClick output', () => {
     it('should emit heroClick when container is clicked', () => {
       setTestInput(component.available, 1000);
       setTestInput(component.expenses, 400);
-      setTestInput(component.totalIncome, 1000);
       fixture.detectChanges();
 
       let emitted = false;

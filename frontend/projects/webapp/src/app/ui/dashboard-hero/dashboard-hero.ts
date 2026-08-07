@@ -7,24 +7,23 @@ import {
   LOCALE_ID,
   output,
 } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
-import { MatIconModule } from '@angular/material/icon';
-import { MatTooltipModule } from '@angular/material/tooltip';
+import { DecimalPipe, formatNumber } from '@angular/common';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
 import {
   CURRENCY_METADATA,
-  getCurrencyFormatter,
   type BudgetPeriodDates,
   type SupportedCurrency,
 } from 'pulpe-shared';
 
+const FULL_BAR_PERCENT = 100;
+
 @Component({
   selector: 'pulpe-dashboard-hero',
-  imports: [MatIconModule, DecimalPipe, MatTooltipModule, TranslocoPipe],
+  imports: [DecimalPipe, TranslocoPipe],
   template: `
     <div
-      class="hero-container rounded-[32px] p-6 pb-5 relative overflow-hidden cursor-pointer motion-safe:transition-transform motion-safe:hover:scale-[0.99] dark:border dark:border-white/5"
+      class="hero-container rounded-3xl p-6 pb-5 relative overflow-hidden cursor-pointer motion-safe:transition-transform motion-safe:hover:scale-[0.99] dark:border dark:border-white/5"
       [class.budget-over]="isOverBudget()"
       [class.budget-warning]="isWarning()"
       (click)="heroClick.emit()"
@@ -40,50 +39,20 @@ import {
       <div
         class="absolute top-0 right-0 w-36 h-36 bg-white/10 rounded-full blur-2xl pointer-events-none"
       ></div>
-      <div
-        class="absolute -left-8 top-1/2 w-24 h-24 bg-white/5 rounded-full blur-2xl pointer-events-none"
-      ></div>
 
-      <div class="flex justify-between items-start mb-6 relative z-10">
-        <div>
-          <div class="flex items-center gap-2 mb-2 opacity-90">
-            <div
-              class="w-2 h-2 rounded-full motion-safe:animate-pulse indicator-dot"
-            ></div>
-            <p class="text-label-medium font-bold uppercase tracking-wider">
-              {{ 'dashboard.currentMonth' | transloco }}
-            </p>
-          </div>
-          <h2
-            class="font-bold text-headline-medium capitalize tracking-tight leading-none"
-          >
-            {{ periodLabel() }}
-          </h2>
-        </div>
+      <div class="flex items-center gap-2 mb-6 relative z-10">
         <div
-          class="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-md shadow-sm border border-white/10"
+          class="w-2 h-2 rounded-full motion-safe:animate-pulse indicator-dot"
+        ></div>
+        <h2
+          class="font-bold text-headline-medium capitalize tracking-tight leading-none"
         >
-          @switch (budgetStatus()) {
-            @case ('on-track') {
-              <mat-icon class="bolt-icon" aria-hidden="true">bolt</mat-icon>
-            }
-            @case ('warning') {
-              <mat-icon class="bolt-icon" aria-hidden="true">warning</mat-icon>
-            }
-            @case ('over-budget') {
-              <mat-icon class="bolt-icon" aria-hidden="true">error</mat-icon>
-            }
-          }
-        </div>
+          {{ periodLabel() }}
+        </h2>
       </div>
 
       <!-- Disponible section -->
-      <div class="mb-8 relative z-10">
-        <p
-          class="text-label-medium font-bold uppercase tracking-wider opacity-80 mb-2"
-        >
-          {{ 'dashboard.available' | transloco }}
-        </p>
+      <div class="mb-7 relative z-10">
         <div class="flex items-baseline gap-2">
           <span
             class="font-extrabold text-display-large tracking-tighter leading-none ph-no-capture"
@@ -95,16 +64,17 @@ import {
             currencySymbol()
           }}</span>
         </div>
-        <p class="text-body-small opacity-60 mt-1">
-          {{ 'dashboard.income' | transloco }}
-          <span class="ph-no-capture">{{
-            totalIncome() | number: '1.0-0' : locale()
-          }}</span>
-          {{ currencySymbol() }}
+        <!-- The label sits under the number rather than above it: the amount is
+             what the card is for, and it should be the first thing read. No
+             opacity on this line either — the hero is a saturated gradient,
+             where every point of alpha comes straight off the contrast ratio;
+             12px at 0.88 measured 3.8:1 on the amber state. -->
+        <p class="text-body-small mt-1.5">
+          {{ 'dashboard.available' | transloco }}
           @let rollover = rolloverAmount();
           @if (rollover !== 0) {
-            <span class="opacity-80 ph-no-capture">
-              {{ 'dashboard.rollover' | transloco }}
+            <span class="ph-no-capture">
+              · {{ 'dashboard.rollover' | transloco }}
               {{ rollover > 0 ? '+' : ''
               }}{{ rollover | number: '1.0-0' : locale() }}
               {{ currencySymbol() }}
@@ -114,44 +84,65 @@ import {
       </div>
 
       <!-- Progress Bar -->
-      <div
-        class="space-y-2.5 relative z-10 bg-white/15 dark:bg-white/20 backdrop-blur-sm p-4 rounded-2xl border border-white/15 dark:border-white/20"
-      >
-        <div class="flex justify-between text-label-small font-bold">
-          <span>
-            {{ 'dashboard.spent' | transloco }}
-            <span data-testid="hero-expenses-amount" class="ph-no-capture">{{
-              absExpenses() | number: '1.0-0' : locale()
-            }}</span>
-            {{ currencySymbol() }}
-          </span>
-          <span class="opacity-70">
-            {{ 'dashboard.on' | transloco }}
-            <span class="ph-no-capture">{{
-              available() | number: '1.0-0' : locale()
-            }}</span>
-            {{ currencySymbol() }}
-          </span>
-        </div>
+      <div class="relative z-10">
+        <p class="progress-verdict">{{ statusMessage() | transloco }}</p>
+
         <div
-          class="relative w-full h-3 bg-black/10 rounded-full overflow-hidden"
-          [matTooltip]="
-            'dashboard.timeElapsed'
-              | transloco: { percent: timeElapsedPercentage() }
-          "
+          class="progress-bar"
+          role="progressbar"
+          [attr.aria-valuenow]="realizedPercentage()"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          [attr.aria-label]="progressAriaLabel()"
         >
-          <div
-            class="absolute -top-0.5 -bottom-0.5 w-1 z-10 rounded-full pace-marker motion-safe:transition-all motion-safe:duration-700"
-            [style.left.%]="timeElapsedPercentage()"
-          ></div>
-          <div
-            class="h-full rounded-full overflow-hidden motion-safe:transition-all motion-safe:duration-1000 relative progress-fill"
-            [style.width.%]="budgetConsumedPercentage()"
-          >
-            <div
-              class="absolute right-1 top-[3px] w-1.5 h-1.5 bg-white/60 rounded-full shadow-sm"
-            ></div>
+          <div class="progress-segments">
+            @if (spentShare() > 0) {
+              <div
+                class="segment segment-spent motion-safe:transition-all motion-safe:duration-1000"
+                [style.flex-grow]="spentShare()"
+              ></div>
+            }
+            @if (engagedShare() > 0) {
+              <div
+                class="segment segment-engaged motion-safe:transition-all motion-safe:duration-1000"
+                [style.flex-grow]="engagedShare()"
+              ></div>
+            }
+            @if (freeShare() > 0) {
+              <div
+                class="segment segment-free motion-safe:transition-all motion-safe:duration-1000"
+                [style.flex-grow]="freeShare()"
+              ></div>
+            }
           </div>
+        </div>
+
+        <div class="progress-legend">
+          <span class="progress-legend-group">
+            <span class="progress-legend-item">
+              <span class="progress-legend-swatch swatch-realized"></span>
+              {{ 'dashboard.spent' | transloco }}
+              <b class="progress-legend-amount ph-no-capture">
+                {{ realizedExpenses() | number: '1.0-0' : locale() }}
+              </b>
+            </span>
+            <span class="progress-legend-item">
+              <span class="progress-legend-swatch swatch-engaged"></span>
+              {{ 'dashboard.engaged' | transloco }}
+              <b class="progress-legend-amount ph-no-capture">
+                <span data-testid="hero-expenses-amount">{{
+                  absExpenses() | number: '1.0-0' : locale()
+                }}</span>
+              </b>
+            </span>
+          </span>
+          <span class="progress-legend-item progress-legend-total">
+            {{ 'dashboard.budgetTotal' | transloco }}
+            <b class="progress-legend-amount ph-no-capture">
+              {{ available() | number: '1.0-0' : locale() }}
+              {{ currencySymbol() }}
+            </b>
+          </span>
         </div>
       </div>
     </div>
@@ -162,31 +153,39 @@ import {
         display: block;
       }
 
+      /* --hero-surface is the state's own hue, unmixed. The progress bar tints
+         itself from it so its steps stay inside the card's colour family
+         instead of greying it out with black and white. */
       .hero-container {
+        --hero-surface: var(--pulpe-hero-primary);
         background: linear-gradient(
           145deg,
-          var(--pulpe-hero-primary) 0%,
-          color-mix(in srgb, var(--pulpe-hero-primary) 75%, black) 100%
+          var(--hero-surface) 0%,
+          color-mix(in srgb, var(--hero-surface) 75%, black) 100%
         );
         color: var(--pulpe-hero-primary-text);
         box-shadow: var(--mat-sys-level2);
       }
 
+      /* The largest target on the page is a div[role=button]; Material's focus
+         ring never reaches it, so it has to carry its own. Double ring: the card
+         is a saturated gradient, and a single one disappears on one of the two
+         hero states. */
+      .hero-container:focus-visible {
+        outline: 3px solid var(--pulpe-hero-primary-text);
+        outline-offset: 3px;
+        box-shadow:
+          var(--mat-sys-level2),
+          0 0 0 6px color-mix(in srgb, var(--hero-surface) 60%, black);
+      }
+
       .hero-container.budget-warning {
-        background: linear-gradient(
-          145deg,
-          var(--pulpe-hero-warning) 0%,
-          color-mix(in srgb, var(--pulpe-hero-warning) 75%, black) 100%
-        );
+        --hero-surface: var(--pulpe-hero-warning);
         color: var(--pulpe-hero-warning-text);
       }
 
       .hero-container.budget-over {
-        background: linear-gradient(
-          145deg,
-          var(--pulpe-hero-error) 0%,
-          color-mix(in srgb, var(--pulpe-hero-error) 75%, black) 100%
-        );
+        --hero-surface: var(--pulpe-hero-error);
         color: var(--pulpe-hero-error-text);
       }
 
@@ -194,18 +193,110 @@ import {
         background-color: currentColor;
       }
 
-      .bolt-icon {
-        color: currentColor;
+      .progress-verdict {
+        font-size: var(--mat-sys-body-medium-size);
+        line-height: var(--mat-sys-body-medium-line-height);
+        font-weight: 700;
+        margin-bottom: 0.75rem;
       }
 
-      .progress-fill {
+      .progress-bar {
+        position: relative;
+        height: 14px;
+      }
+
+      /* Three disjoint quantities that add up to the budget, so they are three
+         objects rather than layers stacked on one another. The gap between them
+         is what separates them: each pill's neighbour is the card, never
+         another pill, which frees the tones from having to clear 3:1 against
+         each other inside a range that never had room for it. */
+      .progress-segments {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        gap: 3px;
+      }
+
+      .segment {
+        flex-basis: 0;
+        min-width: 3px;
+        border-radius: var(--mat-sys-corner-full);
+      }
+
+      .segment-spent {
         background-color: currentColor;
       }
 
-      .pace-marker {
+      .segment-engaged {
+        background: color-mix(
+          in srgb,
+          currentColor var(--pulpe-hero-engaged-lift),
+          var(--hero-surface)
+        );
+      }
+
+      /* Empty is drawn rather than filled. No fill can sit 3:1 below this card
+         — pure black tops out at 2.06:1 on the amber hero — so the part of the
+         budget still untouched is an outline, which reads as "still yours"
+         instead of as a hole cut in the card. */
+      .segment-free {
+        box-shadow: inset 0 0 0 1.5px currentColor;
+      }
+
+      .progress-legend {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.375rem 0.75rem;
+        margin-top: 0.75rem;
+        font-size: var(--mat-sys-label-large-size);
+      }
+
+      .progress-legend-group {
+        display: inline-flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.375rem 0.75rem;
+      }
+
+      .progress-legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        white-space: nowrap;
+      }
+
+      /* Pushed to the end rather than spread by the container: space-between
+         only right-aligns the ceiling while it shares a line with the keys, and
+         drops it to the left the moment a phone width wraps it. */
+      .progress-legend-total {
+        margin-inline-start: auto;
+      }
+
+      /* A pill is 14px tall and reads on its own; a 8px dot on the same
+         background does not, and the engaged one lands within 2:1 of the hero
+         it was mixed from. The ring gives every swatch the same foreground
+         edge, so the dot is always visible and its fill is what says which
+         quantity it stands for. */
+      .progress-legend-swatch {
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: var(--mat-sys-corner-full);
         background-color: currentColor;
-        opacity: 0.7;
-        box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
+        box-shadow: 0 0 0 1px currentColor;
+      }
+
+      .swatch-engaged {
+        background: color-mix(
+          in srgb,
+          currentColor var(--pulpe-hero-engaged-lift),
+          var(--hero-surface)
+        );
+      }
+
+      .progress-legend-amount {
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
       }
     `,
   ],
@@ -219,7 +310,6 @@ export class DashboardHero {
   readonly expenses = input.required<number>();
   readonly available = input.required<number>();
   readonly periodDates = input.required<BudgetPeriodDates>();
-  readonly totalIncome = input.required<number>();
   readonly rolloverAmount = input(0);
   readonly timeElapsedPercentage = input(0);
   readonly paceStatus = input<'on-track' | 'tight'>('on-track');
@@ -232,10 +322,35 @@ export class DashboardHero {
   );
   readonly remaining = input.required<number>();
   readonly budgetConsumedPercentage = input.required<number>();
+  readonly realizedExpenses = input.required<number>();
+  readonly realizedPercentage = input.required<number>();
 
   readonly heroClick = output<void>();
 
   readonly absExpenses = computed(() => Math.abs(this.expenses()));
+
+  // The bar shows the budget split into three parts that do not overlap, while
+  // the legend keeps naming the cumulative totals the user reasons with —
+  // engaged is spent plus what is still only planned.
+  protected readonly spentShare = computed(() =>
+    Math.min(Math.max(this.realizedPercentage(), 0), FULL_BAR_PERCENT),
+  );
+
+  protected readonly engagedShare = computed(() =>
+    Math.max(
+      0,
+      Math.min(this.budgetConsumedPercentage(), FULL_BAR_PERCENT) -
+        this.spentShare(),
+    ),
+  );
+
+  protected readonly freeShare = computed(() =>
+    Math.max(
+      0,
+      FULL_BAR_PERCENT -
+        Math.min(this.budgetConsumedPercentage(), FULL_BAR_PERCENT),
+    ),
+  );
 
   readonly isOverBudget = computed(() => this.remaining() < 0);
 
@@ -261,10 +376,37 @@ export class DashboardHero {
     return this.#monthFormatter.format(middleDate);
   });
 
+  // The card answers "am I doing OK?" out loud instead of leaving the user to
+  // derive it from two percentages. Pace is only meaningful while the budget
+  // still holds, so the budget verdict outranks it.
+  protected readonly statusMessage = computed(() => {
+    switch (this.budgetStatus()) {
+      case 'over-budget':
+        return 'dashboard.status.overBudget';
+      case 'warning':
+        return 'dashboard.status.almostSpent';
+      default:
+        return this.paceStatus() === 'tight'
+          ? 'dashboard.status.fastPace'
+          : 'dashboard.status.onTrack';
+    }
+  });
+
+  protected readonly progressAriaLabel = computed(() =>
+    this.#transloco.translate('dashboard.progressLabel', {
+      realized: this.realizedPercentage(),
+      engaged: this.budgetConsumedPercentage(),
+      elapsed: this.timeElapsedPercentage(),
+    }),
+  );
+
   protected readonly remainingAriaLabel = computed(() => {
-    const formatted = getCurrencyFormatter(this.currency()).format(
-      this.remaining(),
-    );
-    return `${this.#transloco.translate('dashboard.available')} ${formatted} — ${this.periodLabel()}`;
+    // Same digits the card renders — a screen reader announcing centimes the
+    // sighted user never sees reads as a different number. ISO code rather than
+    // the symbol, which screen readers pronounce more reliably.
+    const amount = formatNumber(this.remaining(), this.locale(), '1.0-0');
+    const formatted = `${amount} ${this.currency()}`;
+    const status = this.#transloco.translate(this.statusMessage());
+    return `${this.#transloco.translate('dashboard.available')} ${formatted} — ${this.periodLabel()} — ${status}`;
   });
 }
