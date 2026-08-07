@@ -54,8 +54,11 @@ interface AnimatingForecast {
     <div class="flex flex-col w-full h-full">
       <div class="mb-4 px-1 flex items-center justify-between">
         <div class="flex items-center gap-3">
+          <!-- Solid where the other five blocks are tinted at 10%. This is the
+               only list on the page with a control on every row, and nothing in
+               the shared header recipe said so. -->
           <div
-            class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0"
+            class="w-10 h-10 rounded-full bg-primary text-on-primary flex items-center justify-center shrink-0"
           >
             <mat-icon aria-hidden="true">checklist</mat-icon>
           </div>

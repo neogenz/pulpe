@@ -120,22 +120,16 @@ const UNDO_WINDOW_MS = 6000;
             data-tour="dashboard-hero"
           />
 
-          <!-- Paired lists: Recent Transactions + Unchecked Forecasts -->
+          <!-- The month's open work. The list with a button on every row leads;
+               the CSS order utilities used to put it second on desktop and
+               first on mobile, which both buried the one actionable block
+               behind a read-out and left the mobile reading order disagreeing
+               with the tab order. -->
           <div
-            class="grid grid-cols-1 lg:grid-cols-2 gap-8"
+            class="grid grid-cols-1 lg:grid-cols-2 gap-6"
             data-tour="dashboard-lists"
           >
-            <pulpe-dashboard-recent-transactions
-              class="order-2 lg:order-1"
-              [transactions]="store.recentTransactions()"
-              [totalCount]="store.transactions().length"
-              (viewBudget)="navigateToBudgetDetails()"
-              (addTransaction)="openAddTransaction()"
-              data-testid="dashboard-block-recent-transactions"
-            />
-
             <pulpe-dashboard-unchecked-forecasts
-              class="order-1 lg:order-2"
               [forecasts]="store.uncheckedForecasts()"
               [totalCount]="store.forecastsTotalCount()"
               [consumptions]="store.consumptions()"
@@ -144,8 +138,22 @@ const UNDO_WINDOW_MS = 6000;
               (viewBudget)="navigateToBudgetDetails()"
               data-testid="dashboard-block-forecasts"
             />
-          </div>
 
+            <pulpe-dashboard-recent-transactions
+              [transactions]="store.recentTransactions()"
+              [totalCount]="store.transactions().length"
+              (viewBudget)="navigateToBudgetDetails()"
+              (addTransaction)="openAddTransaction()"
+              data-testid="dashboard-block-recent-transactions"
+            />
+          </div>
+        </div>
+
+        <!-- Everything below is read, not acted on: the months ahead, the
+             months behind, and how the savings are tracking. One rule and a
+             wider gap say so, because six blocks built from the same header
+             recipe otherwise arrive as one flat stack of equals. -->
+        <div class="dashboard-outlook flex flex-col gap-6">
           <!-- Future Projection Chart -->
           @defer (on viewport; prefetch on idle) {
             <pulpe-dashboard-future-projection-chart
@@ -170,7 +178,7 @@ const UNDO_WINDOW_MS = 6000;
           }
 
           <!-- Paired metrics: Savings Summary + Next Month -->
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <pulpe-dashboard-savings-summary
               [totalPlanned]="store.totalSavingsPlanned()"
               [totalRealized]="store.totalSavingsRealized()"
@@ -246,6 +254,16 @@ const UNDO_WINDOW_MS = 6000;
       display: block;
       position: relative;
       padding-bottom: 100px;
+    }
+
+    /* The break between what the month asks of you and what it reports back.
+       The gap alone could not carry it: every interval on this page was already
+       24 or 32px, so one more of either read as another sibling rather than as
+       a change of subject. */
+    .dashboard-outlook {
+      margin-top: var(--pulpe-section-gap-lg);
+      padding-top: var(--pulpe-section-gap-lg);
+      border-top: var(--pulpe-surface-border-subtle);
     }
 
     .fab-button {
