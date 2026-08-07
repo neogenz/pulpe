@@ -70,14 +70,14 @@ interface AnimatingForecast {
             >
               {{
                 'currentMonth.uncheckedForecasts.count'
-                  | transloco: { count: forecasts().length }
+                  | transloco: { checked: checkedCount(), total: totalCount() }
               }}
             </p>
           </div>
         </div>
         @if (hasMore()) {
           <button matButton (click)="viewBudget.emit()">
-            {{ 'common.viewAll' | transloco }}
+            {{ 'currentMonth.viewInBudget' | transloco }}
           </button>
         }
       </div>
@@ -210,7 +210,14 @@ interface AnimatingForecast {
 })
 export class DashboardUncheckedForecasts {
   readonly forecasts = input.required<BudgetLine[]>();
+  // How many pointable forecasts the month holds in all — `forecasts` only
+  // carries the ones still waiting.
+  readonly totalCount = input.required<number>();
   readonly consumptions = input(new Map<string, BudgetLineConsumption>());
+
+  protected readonly checkedCount = computed(() =>
+    Math.max(0, this.totalCount() - this.forecasts().length),
+  );
   readonly currency = input<SupportedCurrency>('CHF');
   readonly toggleCheck = output<string>();
   readonly viewBudget = output<void>();

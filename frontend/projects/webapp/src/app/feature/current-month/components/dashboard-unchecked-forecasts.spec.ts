@@ -52,11 +52,23 @@ describe('DashboardUncheckedForecasts', () => {
     fixture = TestBed.createComponent(DashboardUncheckedForecasts);
     component = fixture.componentInstance;
     setTestInput(component.forecasts, []);
+    setTestInput(component.totalCount, 0);
   });
 
   it('should create', () => {
     fixture.detectChanges();
     expect(component).toBeTruthy();
+  });
+
+  it('should read the subtitle as progress against the month, not a bare backlog', () => {
+    setTestInput(component.forecasts, mockForecasts);
+    setTestInput(component.totalCount, 12);
+    fixture.detectChanges();
+
+    const subtitle = fixture.debugElement.query(By.css('h2 + p'));
+    expect(subtitle.nativeElement.textContent.trim()).toBe(
+      `${12 - mockForecasts.length} sur 12 pointées`,
+    );
   });
 
   it('should display the empty state message when there are no forecasts', () => {
@@ -72,12 +84,6 @@ describe('DashboardUncheckedForecasts', () => {
   it('should display the list of forecasts when provided', () => {
     setTestInput(component.forecasts, mockForecasts);
     fixture.detectChanges();
-
-    // Check subtitle count
-    const subtitle = fixture.debugElement.query(
-      By.css('.text-body-small.text-on-surface-variant'),
-    );
-    expect(subtitle.nativeElement.textContent).toContain('(1)');
 
     // Check list item
     const itemNames = fixture.debugElement.queryAll(

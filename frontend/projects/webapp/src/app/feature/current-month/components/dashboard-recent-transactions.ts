@@ -53,13 +53,14 @@ import { TranslocoPipe } from '@jsverse/transloco';
             >
               {{
                 'currentMonth.recentTransactionsSubtitle'
-                  | transloco: { count: transactions().length }
+                  | transloco
+                    : { count: transactions().length, total: totalCount() }
               }}
             </p>
           </div>
         </div>
         <button matButton (click)="viewBudget.emit()">
-          {{ 'common.viewAll' | transloco }}
+          {{ 'currentMonth.viewInBudget' | transloco }}
         </button>
       </div>
 
@@ -159,6 +160,9 @@ export class DashboardRecentTransactions {
   readonly #userSettings = inject(UserSettingsStore);
   protected readonly currency = this.#userSettings.currency;
   readonly transactions = input.required<Transaction[]>();
+  // The block shows the five latest; the subtitle used to print that five as if
+  // it were the month's total, so a month with thirty entries read as "(5)".
+  readonly totalCount = input.required<number>();
   readonly viewBudget = output<void>();
   readonly addTransaction = output<void>();
 

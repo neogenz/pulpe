@@ -128,6 +128,7 @@ const UNDO_WINDOW_MS = 6000;
             <pulpe-dashboard-recent-transactions
               class="order-2 lg:order-1"
               [transactions]="store.recentTransactions()"
+              [totalCount]="store.transactions().length"
               (viewBudget)="navigateToBudgetDetails()"
               (addTransaction)="openAddTransaction()"
               data-testid="dashboard-block-recent-transactions"
@@ -136,6 +137,7 @@ const UNDO_WINDOW_MS = 6000;
             <pulpe-dashboard-unchecked-forecasts
               class="order-1 lg:order-2"
               [forecasts]="store.uncheckedForecasts()"
+              [totalCount]="store.forecastsTotalCount()"
               [consumptions]="store.consumptions()"
               [currency]="currency()"
               (toggleCheck)="checkBudgetLine($event)"

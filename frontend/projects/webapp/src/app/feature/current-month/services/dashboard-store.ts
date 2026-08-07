@@ -242,13 +242,23 @@ export class DashboardStore {
   // Listing it under "à pointer" handed the user a button that could not
   // succeed, so the list stops claiming it. Deleting the goal nulls the column
   // (`ON DELETE SET NULL`) and the line becomes pointable again, deliberately.
-  readonly uncheckedForecasts = computed<BudgetLine[]>(() =>
+  readonly #pointableForecasts = computed<BudgetLine[]>(() =>
     this.budgetLines().filter(
       (line) =>
         (line.recurrence === 'fixed' || line.recurrence === 'one_off') &&
-        line.checkedAt === null &&
         !line.sourceSavingsGoalId,
     ),
+  );
+
+  readonly uncheckedForecasts = computed<BudgetLine[]>(() =>
+    this.#pointableForecasts().filter((line) => line.checkedAt === null),
+  );
+
+  // The denominator the block's subtitle needs: "10" alone said how much work
+  // was left without saying how much there was, so it read as a backlog with no
+  // end rather than a month two thirds done.
+  readonly forecastsTotalCount = computed(
+    () => this.#pointableForecasts().length,
   );
 
   readonly consumptions = computed<Map<string, BudgetLineConsumption>>(() =>

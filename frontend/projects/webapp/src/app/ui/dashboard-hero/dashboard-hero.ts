@@ -69,8 +69,11 @@ const FULL_BAR_PERCENT = 100;
              opacity on this line either — the hero is a saturated gradient,
              where every point of alpha comes straight off the contrast ratio;
              12px at 0.88 measured 3.8:1 on the amber state. -->
+        <!-- The full label PRODUCT.md names, and the one the product tour
+             teaches. The legend below keeps the short form: it sits forty pixels
+             under this line, against the same amount. -->
         <p class="text-body-small mt-1.5">
-          {{ 'dashboard.available' | transloco }}
+          {{ 'dashboard.availableToSpend' | transloco }}
           @let rollover = rolloverAmount();
           @if (rollover !== 0) {
             <span class="ph-no-capture">
@@ -136,7 +139,7 @@ const FULL_BAR_PERCENT = 100;
               {{ 'dashboard.engaged' | transloco }}
               <b class="progress-legend-amount ph-no-capture">
                 <span data-testid="hero-expenses-amount">{{
-                  absExpenses() | number: '1.0-0' : locale()
+                  engagedNotSpent() | number: '1.0-0' : locale()
                 }}</span>
               </b>
             </span>
@@ -361,9 +364,17 @@ export class DashboardHero {
 
   readonly absExpenses = computed(() => Math.abs(this.expenses()));
 
-  // The bar shows the budget split into three parts that do not overlap, while
-  // the legend keeps naming the cumulative totals the user reasons with —
-  // engaged is spent plus what is still only planned.
+  // `expenses` is the whole left side of the bar: what has already gone out plus
+  // what is still only planned. The bar draws those two as separate segments, so
+  // the middle key has to drop the part the first key already claimed —
+  // otherwise "Dépensé 900, Engagé 3491, Disponible 1309 sur 4800" asks the
+  // reader to trust three numbers that do not add up to the fourth.
+  readonly engagedNotSpent = computed(() =>
+    Math.max(0, this.absExpenses() - this.realizedExpenses()),
+  );
+
+  // The bar shows the budget split into three parts that do not overlap, and the
+  // legend now names exactly those three.
   protected readonly spentShare = computed(() =>
     Math.min(Math.max(this.realizedPercentage(), 0), FULL_BAR_PERCENT),
   );
@@ -424,10 +435,15 @@ export class DashboardHero {
     }
   });
 
+  // Same partition as the legend: the two shares are read out one after the
+  // other, so the second must not restate the first.
   protected readonly progressAriaLabel = computed(() =>
     this.#transloco.translate('dashboard.progressLabel', {
       realized: this.realizedPercentage(),
-      engaged: this.budgetConsumedPercentage(),
+      engaged: Math.max(
+        0,
+        this.budgetConsumedPercentage() - this.realizedPercentage(),
+      ),
       elapsed: this.timeElapsedPercentage(),
     }),
   );
@@ -439,6 +455,6 @@ export class DashboardHero {
     const amount = formatNumber(this.remaining(), this.locale(), '1.0-0');
     const formatted = `${amount} ${this.currency()}`;
     const status = this.#transloco.translate(this.statusMessage());
-    return `${this.#transloco.translate('dashboard.available')} ${formatted} — ${this.periodLabel()} — ${status}`;
+    return `${this.#transloco.translate('dashboard.availableToSpend')} ${formatted} — ${this.periodLabel()} — ${status}`;
   });
 }

@@ -53,11 +53,24 @@ describe('DashboardRecentTransactions', () => {
     fixture = TestBed.createComponent(DashboardRecentTransactions);
     component = fixture.componentInstance;
     setTestInput(component.transactions, []);
+    setTestInput(component.totalCount, 0);
   });
 
   it('should create', () => {
     fixture.detectChanges();
     expect(component).toBeTruthy();
+  });
+
+  it('should count the whole month in the subtitle, not the rows it shows', () => {
+    setTestInput(component.transactions, [
+      createTransaction({ id: '1', name: 'Loyer', amount: 1200 }),
+      createTransaction({ id: '2', name: 'Courses', amount: 85.5 }),
+    ]);
+    setTestInput(component.totalCount, 30);
+    fixture.detectChanges();
+
+    const subtitle = fixture.debugElement.query(By.css('h2 + p'));
+    expect(subtitle.nativeElement.textContent.trim()).toBe('2 sur 30 ce mois');
   });
 
   it('should display the empty state when no transactions', () => {
@@ -191,7 +204,7 @@ describe('DashboardRecentTransactions', () => {
     expect(amountElements[2].nativeElement.textContent).toContain('300');
   });
 
-  it('should emit viewBudget on "Voir tout" click', () => {
+  it('should emit viewBudget on "Voir le budget" click', () => {
     setTestInput(component.transactions, [
       createTransaction({ id: '1', name: 'A' }),
     ]);
@@ -202,25 +215,11 @@ describe('DashboardRecentTransactions', () => {
 
     const button = fixture.debugElement
       .queryAll(By.css('button'))
-      .find((el) => el.nativeElement.textContent.trim().includes('Voir tout'));
+      .find((el) =>
+        el.nativeElement.textContent.trim().includes('Voir le budget'),
+      );
     expect(button).toBeTruthy();
     button!.nativeElement.click();
     expect(emitted).toBe(true);
-  });
-
-  it('should display the transaction count in subtitle', () => {
-    const transactions = [
-      createTransaction({ id: '1', name: 'A' }),
-      createTransaction({ id: '2', name: 'B' }),
-      createTransaction({ id: '3', name: 'C' }),
-    ];
-
-    setTestInput(component.transactions, transactions);
-    fixture.detectChanges();
-
-    const subtitle = fixture.debugElement.query(
-      By.css('.text-body-small.text-on-surface-variant'),
-    );
-    expect(subtitle.nativeElement.textContent).toContain('(3)');
   });
 });
