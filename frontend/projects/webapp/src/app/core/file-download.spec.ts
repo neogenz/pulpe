@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { downloadAsExcelFile, type ExcelSheet } from './file-download';
+import { TestBed } from '@angular/core/testing';
+import { FileDownloadService, type ExcelSheet } from './file-download';
 
 const XLSX_MIME =
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -10,7 +11,8 @@ const XLSX_MIME =
  * test instead of a runtime `TypeError` on the user's export click. jsdom ships
  * no `URL.createObjectURL`, so the object-URL pair is stubbed.
  */
-describe('downloadAsExcelFile', () => {
+describe('FileDownloadService.asExcel', () => {
+  let service: FileDownloadService;
   let downloadedBlob: Blob | undefined;
   let clickedAnchor: HTMLAnchorElement | undefined;
   let clickSpy: ReturnType<typeof vi.spyOn>;
@@ -29,6 +31,7 @@ describe('downloadAsExcelFile', () => {
   };
 
   beforeEach(() => {
+    service = TestBed.inject(FileDownloadService);
     downloadedBlob = undefined;
     clickedAnchor = undefined;
 
@@ -54,7 +57,7 @@ describe('downloadAsExcelFile', () => {
   });
 
   it('should hand the browser a non-empty xlsx blob', async () => {
-    await downloadAsExcelFile([sheet], 'pulpe-export-2026-03-01');
+    await service.asExcel([sheet], 'pulpe-export-2026-03-01');
 
     expect(downloadedBlob).toBeInstanceOf(Blob);
     expect(downloadedBlob?.size).toBeGreaterThan(0);
@@ -62,7 +65,7 @@ describe('downloadAsExcelFile', () => {
   });
 
   it('should append the xlsx extension to the requested filename', async () => {
-    await downloadAsExcelFile([sheet], 'pulpe-export-2026-03-01');
+    await service.asExcel([sheet], 'pulpe-export-2026-03-01');
 
     expect(clickedAnchor?.download).toBe('pulpe-export-2026-03-01.xlsx');
   });
@@ -70,7 +73,7 @@ describe('downloadAsExcelFile', () => {
   it('should write one workbook holding every sheet it is given', async () => {
     const second: ExcelSheet = { ...sheet, sheet: '04-2026' };
 
-    await downloadAsExcelFile([sheet, second], 'pulpe-export');
+    await service.asExcel([sheet, second], 'pulpe-export');
 
     expect(clickSpy).toHaveBeenCalledOnce();
     expect(downloadedBlob?.size).toBeGreaterThan(0);

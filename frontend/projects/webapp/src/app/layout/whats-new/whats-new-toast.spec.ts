@@ -4,11 +4,8 @@ import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { StorageService } from '@core/storage/storage.service';
 import { STORAGE_KEYS } from '@core/storage/storage-keys';
 import { WhatsNewToast } from './whats-new-toast';
+import { CURRENT_APP_VERSION } from '@core/app-version/current-app-version';
 import { LATEST_RELEASE } from './whats-new-releases';
-
-const mockBuildInfo = vi.hoisted(() => ({ version: '' }));
-
-vi.mock('@env/build-info', () => ({ buildInfo: mockBuildInfo }));
 
 describe('WhatsNewToast', () => {
   let fixture: ComponentFixture<WhatsNewToast>;
@@ -17,8 +14,10 @@ describe('WhatsNewToast', () => {
     set: ReturnType<typeof vi.fn>;
   };
 
+  let runningVersion: string;
+
   beforeEach(() => {
-    mockBuildInfo.version = LATEST_RELEASE.version;
+    runningVersion = LATEST_RELEASE.version;
   });
 
   function setup(dismissedVersion: string | null = null) {
@@ -32,6 +31,7 @@ describe('WhatsNewToast', () => {
       providers: [
         provideZonelessChangeDetection(),
         { provide: StorageService, useValue: mockStorageService },
+        { provide: CURRENT_APP_VERSION, useValue: runningVersion },
       ],
     });
 
@@ -68,7 +68,7 @@ describe('WhatsNewToast', () => {
     });
 
     it('should hide toast when build and release versions differ', () => {
-      mockBuildInfo.version = `${LATEST_RELEASE.version}-other`;
+      runningVersion = `${LATEST_RELEASE.version}-other`;
       setup(null);
 
       expect(queryToast()).toBeNull();

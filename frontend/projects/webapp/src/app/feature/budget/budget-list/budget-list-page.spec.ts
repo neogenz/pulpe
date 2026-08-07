@@ -9,7 +9,7 @@ import { of } from 'rxjs';
 import { type BudgetExportResponse } from 'pulpe-shared';
 
 import { ExcelExportService } from '@core/budget/excel-export.service';
-import { downloadAsExcelFile, downloadAsJsonFile } from '@core/file-download';
+import { FileDownloadService } from '@core/file-download';
 import { Logger } from '@core/logging/logger';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { TitleDisplay } from '@core/routing';
@@ -19,12 +19,8 @@ import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import BudgetListPage from './budget-list-page';
 import { BudgetListStore } from './budget-list-store';
 
-vi.mock('@core/file-download', () => ({
-  downloadAsExcelFile: vi.fn(),
-  downloadAsJsonFile: vi.fn(),
-}));
-
 describe('BudgetListPage', () => {
+  const fileDownload = { asJson: vi.fn(), asExcel: vi.fn() };
   let fixture: ComponentFixture<BudgetListPage>;
   let component: BudgetListPage;
   let mockStore: {
@@ -48,6 +44,7 @@ describe('BudgetListPage', () => {
     await TestBed.configureTestingModule({
       imports: [BudgetListPage],
       providers: [
+        { provide: FileDownloadService, useValue: fileDownload },
         provideZonelessChangeDetection(),
         provideRouter([]),
         ...provideTranslocoForTest(),
@@ -76,6 +73,8 @@ describe('BudgetListPage', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.useRealTimers();
+    fileDownload.asJson.mockClear();
+    fileDownload.asExcel.mockClear();
   });
 
   describe('onExportBudgetsAsExcel', () => {
@@ -92,7 +91,7 @@ describe('BudgetListPage', () => {
       await component.onExportBudgetsAsExcel();
 
       // Assert
-      expect(downloadAsExcelFile).toHaveBeenCalledWith(
+      expect(fileDownload.asExcel).toHaveBeenCalledWith(
         expect.anything(),
         'pulpe-export-2026-01-01',
       );
@@ -113,7 +112,7 @@ describe('BudgetListPage', () => {
       await component.onExportBudgets();
 
       // Assert
-      expect(downloadAsJsonFile).toHaveBeenCalledWith(
+      expect(fileDownload.asJson).toHaveBeenCalledWith(
         expect.anything(),
         'pulpe-export-2026-01-01',
       );

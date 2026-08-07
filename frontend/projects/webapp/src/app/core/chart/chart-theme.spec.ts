@@ -29,8 +29,10 @@ describe('chart-theme Chart.js registration', () => {
     expect(() => Chart.registry.getPlugin('tooltip')).not.toThrow();
   });
 
-  it('does not register unused chart types (tree-shaking left them out)', () => {
-    expect(() => Chart.registry.getController('doughnut')).toThrow();
-    expect(() => Chart.registry.getScale('radialLinear')).toThrow();
-  });
+  // There is deliberately no "unused types stay unregistered" counterpart:
+  // `Chart.registry` is a process-wide singleton, and two specs legitimately
+  // call `provideCharts(withDefaultRegisterables())`, which registers every
+  // type. Such an assertion would pass or fail on execution order, and it would
+  // describe what the test process loaded rather than what ships — the app
+  // bundle is what `chart-theme.ts` tree-shakes, and only a build can show it.
 });

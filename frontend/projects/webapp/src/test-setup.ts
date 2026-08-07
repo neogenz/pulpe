@@ -1,9 +1,6 @@
-import '@angular/compiler';
-import { getTestBed } from '@angular/core/testing';
-import {
-  BrowserTestingModule,
-  platformBrowserTesting,
-} from '@angular/platform-browser/testing';
+// Runs before every spec, under `@angular/build:unit-test`. The builder owns
+// `initTestEnvironment` and compiles the specs ahead of time, so this file only
+// carries what the runtime still lacks.
 import { registerLocaleData } from '@angular/common';
 import localeFrCh from '@angular/common/locales/fr-CH';
 import localeDeCh from '@angular/common/locales/de-CH';
@@ -14,19 +11,12 @@ registerLocaleData(localeFrCh, 'fr-CH');
 registerLocaleData(localeDeCh, 'de-CH');
 registerLocaleData(localeFR, 'fr-FR');
 
-// Initialize Angular testing environment for Vitest
-// Angular v20 modern setup without zone.js (zoneless)
-// Using platformBrowserTesting for proper signal inputs support
-// Note: errorOnUnknownProperties disabled due to JIT compilation issues with signal inputs
-getTestBed().initTestEnvironment(
-  BrowserTestingModule,
-  platformBrowserTesting(),
-  {
-    errorOnUnknownElements: true,
-    errorOnUnknownProperties: false,
-    teardown: { destroyAfterEach: true },
-  },
-);
+// jsdom ships no 2D canvas. `ng2-charts` asks for a context the moment its
+// directive is constructed, which now happens for real: the specs compile ahead
+// of time, so a chart inside a component under test is instantiated rather than
+// skipped. Nothing reads what is drawn — the stub only has to not throw.
+HTMLCanvasElement.prototype.getContext = (() =>
+  null) as HTMLCanvasElement['getContext'];
 
 // Provide stable in-memory Storage for tests (Vitest/JSDOM storage can be flaky and
 // some tests may monkeypatch methods).

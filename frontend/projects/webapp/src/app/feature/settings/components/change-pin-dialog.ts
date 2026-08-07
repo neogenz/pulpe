@@ -20,8 +20,11 @@ import { API_ERROR_CODES } from 'pulpe-shared';
 
 import { isApiError } from '@core/api/api-error';
 import { VAULT_CODE_LENGTH, VAULT_CODE_VALIDATORS } from '@core/auth';
-import { EncryptionApi, ClientKeyService } from '@core/encryption';
-import { deriveClientKey } from '@core/encryption/crypto.utils';
+import {
+  DERIVE_CLIENT_KEY,
+  EncryptionApi,
+  ClientKeyService,
+} from '@core/encryption';
 import { Logger } from '@core/logging/logger';
 import { STORAGE_KEYS } from '@core/storage/storage-keys';
 import { StorageService } from '@core/storage/storage.service';
@@ -218,6 +221,7 @@ export class ChangePinDialog {
   readonly #logger = inject(Logger);
   readonly #storage = inject(StorageService);
   readonly #transloco = inject(TranslocoService);
+  readonly #deriveClientKey = inject(DERIVE_CLIENT_KEY);
 
   protected readonly step = signal<1 | 2>(1);
   protected readonly isSubmitting = signal(false);
@@ -277,7 +281,11 @@ export class ChangePinDialog {
       );
       this.#salt = salt;
       this.#kdfIterations = kdfIterations;
-      this.#oldClientKey = await deriveClientKey(oldPin, salt, kdfIterations);
+      this.#oldClientKey = await this.#deriveClientKey(
+        oldPin,
+        salt,
+        kdfIterations,
+      );
       await firstValueFrom(
         this.#encryptionApi.validateKey$(this.#oldClientKey),
       );
@@ -331,7 +339,7 @@ export class ChangePinDialog {
     );
 
     try {
-      newClientKey = await deriveClientKey(
+      newClientKey = await this.#deriveClientKey(
         newPin,
         this.#salt,
         this.#kdfIterations,

@@ -713,9 +713,8 @@ test.describe('Announcing a withdrawal, then realizing it', () => {
     await budgetDetailsPage.goto(CURRENT_BUDGET.id);
     await budgetDetailsPage.openEnvelopePanel(PLANNED_LINE_NAME);
     // Le panneau est la surface de détail du desktop : il nomme l'objectif
-    // source, jamais la prévision. Aucun spec unitaire ne peut le distinguer —
-    // les `input()` signal ne traversent pas une liaison de template sous le
-    // compilateur JIT des specs, donc le texte rendu n'y est pas observable.
+    // source, jamais la prévision. L'assertion porte sur le texte rendu de bout
+    // en bout, avec les vraies données du budget derrière.
     await expect(budgetDetailsPage.envelopePanelSource(lineId)).toContainText(
       `Pris sur · ${GOAL_NAME}`,
     );

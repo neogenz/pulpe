@@ -18,7 +18,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { ExcelExportService } from '@core/budget/excel-export.service';
 import { formatLocalDate } from '@core/date/format-local-date';
-import { downloadAsExcelFile, downloadAsJsonFile } from '@core/file-download';
+import { FileDownloadService } from '@core/file-download';
 import { ROUTES, TitleDisplay } from '@core/routing';
 import {
   type CalendarMonth,
@@ -171,6 +171,7 @@ export default class BudgetListPage {
   readonly #loadingIndicator = inject(LoadingIndicator);
   readonly #destroyRef = inject(DestroyRef);
   readonly #excelExportService = inject(ExcelExportService);
+  readonly #fileDownload = inject(FileDownloadService);
   readonly #transloco = inject(TranslocoService);
   readonly #userSettingsStore = inject(UserSettingsStore);
 
@@ -278,7 +279,8 @@ export default class BudgetListPage {
     const today = formatLocalDate(new Date()).split('T')[0];
     return this.#executeExport({
       isLoadingSignal: this.isExporting,
-      download: (data) => downloadAsJsonFile(data, `pulpe-export-${today}`),
+      download: (data) =>
+        this.#fileDownload.asJson(data, `pulpe-export-${today}`),
       successKey: 'budget.exportDone',
       errorKey: 'budget.exportError',
     });
@@ -290,7 +292,7 @@ export default class BudgetListPage {
       isLoadingSignal: this.isExportingExcel,
       download: async (data) => {
         const sheets = await this.#excelExportService.buildSheets(data);
-        await downloadAsExcelFile(sheets, `pulpe-export-${today}`);
+        await this.#fileDownload.asExcel(sheets, `pulpe-export-${today}`);
       },
       successKey: 'budget.exportExcelDone',
       errorKey: 'budget.exportExcelError',

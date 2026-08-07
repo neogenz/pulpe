@@ -24,8 +24,8 @@ import {
 } from '@core/auth';
 import {
   ClientKeyService,
+  DERIVE_CLIENT_KEY,
   EncryptionApi,
-  deriveClientKey,
 } from '@core/encryption';
 import { ROUTES } from '@core/routing/routes-constants';
 import { createFieldsMatchValidator } from '@core/validators';
@@ -216,6 +216,7 @@ export default class SetupVaultCode {
   readonly #authSession = inject(AuthSessionService);
   readonly #clientKeyService = inject(ClientKeyService);
   readonly #encryptionApi = inject(EncryptionApi);
+  readonly #deriveClientKey = inject(DERIVE_CLIENT_KEY);
   readonly #formBuilder = inject(FormBuilder);
   readonly #router = inject(Router);
   readonly #dialog = inject(MatDialog);
@@ -284,7 +285,7 @@ export default class SetupVaultCode {
       const { salt, kdfIterations } = await firstValueFrom(
         this.#encryptionApi.getSalt$(),
       );
-      const clientKeyHex = await deriveClientKey(
+      const clientKeyHex = await this.#deriveClientKey(
         vaultCode,
         salt,
         kdfIterations,

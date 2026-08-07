@@ -93,6 +93,7 @@ class MockTemplatesList {
   @Input() selectedTemplateId: string | null = null;
   @Input() isLoading = false;
   @Input() hasError = false;
+  @Input() currency: SupportedCurrency = 'CHF';
 
   @Output() templateSelected = new EventEmitter<string>();
   @Output() templateDetailsRequested = new EventEmitter<BudgetTemplate>();

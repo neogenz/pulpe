@@ -134,7 +134,11 @@ test.describe('Live Conversion Preview — add budget line dialog', () => {
 
     await openAddBudgetLineDialog(authenticatedPage, budgetDetailsPage);
 
-    await authenticatedPage.locator('[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]').fill('100');
+    await authenticatedPage
+      .locator(
+        '[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]',
+      )
+      .fill('100');
     await selectCurrency(authenticatedPage, 'CHF');
 
     const caption = authenticatedPage.locator(PREVIEW);
@@ -161,7 +165,11 @@ test.describe('Live Conversion Preview — add budget line dialog', () => {
 
     await openAddBudgetLineDialog(authenticatedPage, budgetDetailsPage);
 
-    await authenticatedPage.locator('[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]').fill('100');
+    await authenticatedPage
+      .locator(
+        '[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]',
+      )
+      .fill('100');
     await selectCurrency(authenticatedPage, 'CHF');
     await expect(authenticatedPage.locator(PREVIEW)).toBeVisible();
 
@@ -184,10 +192,18 @@ test.describe('Live Conversion Preview — add budget line dialog', () => {
     await openAddBudgetLineDialog(authenticatedPage, budgetDetailsPage);
 
     await selectCurrency(authenticatedPage, 'CHF');
-    await authenticatedPage.locator('[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]').fill('100');
+    await authenticatedPage
+      .locator(
+        '[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]',
+      )
+      .fill('100');
     await expect(authenticatedPage.locator(PREVIEW)).toBeVisible();
 
-    await authenticatedPage.locator('[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]').fill('');
+    await authenticatedPage
+      .locator(
+        '[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]',
+      )
+      .fill('');
     await expect(authenticatedPage.locator(PREVIEW)).toHaveCount(0);
   });
 
@@ -200,8 +216,16 @@ test.describe('Live Conversion Preview — add budget line dialog', () => {
 
     await openAddBudgetLineDialog(authenticatedPage, budgetDetailsPage);
 
-    await authenticatedPage.locator('[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]').click();
-    await authenticatedPage.locator('[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]').fill('100');
+    await authenticatedPage
+      .locator(
+        '[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]',
+      )
+      .click();
+    await authenticatedPage
+      .locator(
+        '[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]',
+      )
+      .fill('100');
     await expect(authenticatedPage.locator(PREVIEW)).toHaveCount(0);
     await expect(currencyPicker(authenticatedPage)).toHaveCount(0);
   });
@@ -216,7 +240,11 @@ test.describe('Live Conversion Preview — add budget line dialog', () => {
 
     await openAddBudgetLineDialog(authenticatedPage, budgetDetailsPage);
 
-    await authenticatedPage.locator('[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]').fill('100');
+    await authenticatedPage
+      .locator(
+        '[data-testid="add-budget-line-dialog"] [data-testid="amount-input-value"]',
+      )
+      .fill('100');
     await selectCurrency(authenticatedPage, 'CHF');
 
     await expect(authenticatedPage.locator(PREVIEW_ERROR)).toBeVisible();

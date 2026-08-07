@@ -5,11 +5,14 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter, Router } from '@angular/router';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { of, throwError } from 'rxjs';
 
-import { ClientKeyService, EncryptionApi } from '@core/encryption';
-import * as cryptoUtils from '@core/encryption/crypto.utils';
+import {
+  ClientKeyService,
+  DERIVE_CLIENT_KEY,
+  EncryptionApi,
+} from '@core/encryption';
 import { ApiError } from '@core/api/api-error';
 import { Logger } from '@core/logging/logger';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
@@ -33,12 +36,10 @@ describe('RecoverVaultCode', () => {
   };
   let mockDialogRef: { afterClosed: ReturnType<typeof vi.fn> };
   let navigateSpy: ReturnType<typeof vi.fn>;
-  let deriveClientKeySpy: ReturnType<typeof vi.spyOn>;
+  let deriveClientKeySpy: Mock;
 
   beforeEach(async () => {
-    deriveClientKeySpy = vi
-      .spyOn(cryptoUtils, 'deriveClientKey')
-      .mockResolvedValue('abcd'.repeat(16));
+    deriveClientKeySpy = vi.fn().mockResolvedValue('abcd'.repeat(16));
     mockDialogRef = {
       afterClosed: vi.fn().mockReturnValue(of(true)),
     };
@@ -77,6 +78,7 @@ describe('RecoverVaultCode', () => {
         provideAnimationsAsync(),
         provideRouter([]),
         ...provideTranslocoForTest(),
+        { provide: DERIVE_CLIENT_KEY, useValue: deriveClientKeySpy },
         { provide: ClientKeyService, useValue: mockClientKeyService },
         { provide: EncryptionApi, useValue: mockEncryptionApi },
         { provide: MatDialog, useValue: mockDialog },

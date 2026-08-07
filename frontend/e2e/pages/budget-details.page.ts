@@ -86,7 +86,7 @@ export class BudgetDetailsPage {
    * La même provenance, mais dans le panneau de détail — la seule surface où
    * elle n'est pas rendue par la grille. Le test lit son texte, pas sa seule
    * présence : c'est ce qui distingue le nom de l'objectif de celui de la
-   * prévision, que les specs unitaires ne peuvent pas départager ici.
+   * prévision.
    */
   envelopePanelSource(lineId: string): Locator {
     return this.page

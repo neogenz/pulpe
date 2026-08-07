@@ -4,6 +4,7 @@ export { clientKeyInterceptor } from './client-key.interceptor';
 export { encryptionSetupGuard } from './encryption-setup.guard';
 export {
   DEMO_CLIENT_KEY,
+  DERIVE_CLIENT_KEY,
   deriveClientKey,
   isValidClientKeyHex,
   uint8ArrayToHex,

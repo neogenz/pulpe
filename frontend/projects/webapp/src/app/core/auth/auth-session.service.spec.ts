@@ -15,7 +15,6 @@ import {
   type Session,
   type User,
 } from '@supabase/supabase-js';
-import type * as SupabaseJsModule from '@supabase/supabase-js';
 import { Router } from '@angular/router';
 import { AuthSessionService } from './auth-session.service';
 import { AuthStore } from './auth-store';
@@ -25,6 +24,7 @@ import { AuthErrorLocalizer } from './auth-error-localizer';
 import { SCHEDULED_DELETION_PARAMS } from './auth-constants';
 import { type E2EWindow } from './e2e-window';
 import { AuthCleanupService } from './auth-cleanup.service';
+import { SUPABASE_CLIENT_FACTORY } from './supabase-client-factory';
 import { PostHogService } from '../analytics/posthog';
 import { ROUTES } from '@core/routing/routes-constants';
 import { DemoModeService } from '../demo/demo-mode.service';
@@ -33,15 +33,6 @@ import {
   type MockSupabaseClient,
 } from '../testing/test-utils';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
-
-const { createClientMock } = vi.hoisted(() => ({
-  createClientMock: vi.fn(),
-}));
-
-vi.mock('@supabase/supabase-js', async (importOriginal) => ({
-  ...(await importOriginal<typeof SupabaseJsModule>()),
-  createClient: createClientMock,
-}));
 
 const buildJwt = (payload: Record<string, unknown>): string => {
   const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
@@ -140,7 +131,6 @@ describe('AuthSessionService', () => {
     };
     mockRouter = { navigate: vi.fn() };
     mockSupabaseClient = createMockSupabaseClient();
-    createClientMock.mockReturnValue(mockSupabaseClient);
 
     TestBed.configureTestingModule({
       providers: [
@@ -155,6 +145,10 @@ describe('AuthSessionService', () => {
         { provide: PostHogService, useValue: mockPostHog },
         { provide: DemoModeService, useValue: mockDemoMode },
         { provide: Router, useValue: mockRouter },
+        {
+          provide: SUPABASE_CLIENT_FACTORY,
+          useValue: () => Promise.resolve(mockSupabaseClient),
+        },
       ],
     });
 

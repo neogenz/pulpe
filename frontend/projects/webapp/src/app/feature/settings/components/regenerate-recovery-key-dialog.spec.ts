@@ -4,20 +4,10 @@ import { MatDialogRef } from '@angular/material/dialog';
 import { of, throwError } from 'rxjs';
 import { RegenerateRecoveryKeyDialog } from './regenerate-recovery-key-dialog';
 import { Logger } from '@core/logging/logger';
-import { EncryptionApi } from '@core/encryption';
+import { DERIVE_CLIENT_KEY, EncryptionApi } from '@core/encryption';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 
-const { deriveClientKeyMock } = vi.hoisted(() => ({
-  deriveClientKeyMock: vi.fn(),
-}));
-
-vi.mock('@core/encryption', async () => {
-  const actual = await vi.importActual('@core/encryption');
-  return {
-    ...actual,
-    deriveClientKey: deriveClientKeyMock,
-  };
-});
+const deriveClientKeyMock = vi.fn();
 
 describe('RegenerateRecoveryKeyDialog', () => {
   let component: RegenerateRecoveryKeyDialog;
@@ -29,6 +19,7 @@ describe('RegenerateRecoveryKeyDialog', () => {
   let mockLogger: { debug: Mock; info: Mock; warn: Mock; error: Mock };
 
   beforeEach(() => {
+    deriveClientKeyMock.mockReset();
     mockDialogRef = { close: vi.fn() };
     mockEncryptionApi = {
       getSalt$: vi.fn(),
@@ -47,6 +38,7 @@ describe('RegenerateRecoveryKeyDialog', () => {
         RegenerateRecoveryKeyDialog,
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: EncryptionApi, useValue: mockEncryptionApi },
+        { provide: DERIVE_CLIENT_KEY, useValue: deriveClientKeyMock },
         { provide: Logger, useValue: mockLogger },
       ],
     });

@@ -26,7 +26,7 @@ import {
   VAULT_CODE_LENGTH,
   VAULT_CODE_VALIDATORS,
 } from '@core/auth';
-import { EncryptionApi, deriveClientKey } from '@core/encryption';
+import { DERIVE_CLIENT_KEY, EncryptionApi } from '@core/encryption';
 import { Logger } from '@core/logging/logger';
 import { ErrorAlert } from '@ui/error-alert';
 
@@ -189,6 +189,7 @@ export class DeleteAccountDialog {
   readonly #authSession = inject(AuthSessionService);
   readonly #authStore = inject(AuthStore);
   readonly #encryptionApi = inject(EncryptionApi);
+  readonly #deriveClientKey = inject(DERIVE_CLIENT_KEY);
   readonly #transloco = inject(TranslocoService);
 
   protected readonly showPasswordLabel = this.#transloco.translate(
@@ -246,7 +247,7 @@ export class DeleteAccountDialog {
       const { salt, kdfIterations } = await firstValueFrom(
         this.#encryptionApi.getSalt$(),
       );
-      const clientKeyHex = await deriveClientKey(
+      const clientKeyHex = await this.#deriveClientKey(
         vaultCode,
         salt,
         kdfIterations,
