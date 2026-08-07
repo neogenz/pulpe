@@ -119,13 +119,18 @@ const FULL_BAR_PERCENT = 100;
 
         <div class="progress-legend">
           <span class="progress-legend-group">
-            <span class="progress-legend-item">
-              <span class="progress-legend-swatch swatch-realized"></span>
-              {{ 'dashboard.spent' | transloco }}
-              <b class="progress-legend-amount ph-no-capture">
-                {{ realizedExpenses() | number: '1.0-0' : locale() }}
-              </b>
-            </span>
+            <!-- Gated on the same condition as the pill it stands for: a key
+                 for a segment the bar never drew is a swatch pointing at
+                 nothing. -->
+            @if (spentShare() > 0) {
+              <span class="progress-legend-item">
+                <span class="progress-legend-swatch swatch-realized"></span>
+                {{ 'dashboard.spent' | transloco }}
+                <b class="progress-legend-amount ph-no-capture">
+                  {{ realizedExpenses() | number: '1.0-0' : locale() }}
+                </b>
+              </span>
+            }
             <span class="progress-legend-item">
               <span class="progress-legend-swatch swatch-engaged"></span>
               {{ 'dashboard.engaged' | transloco }}
@@ -273,17 +278,16 @@ const FULL_BAR_PERCENT = 100;
         margin-inline-start: auto;
       }
 
-      /* A pill is 14px tall and reads on its own; a 8px dot on the same
-         background does not, and the engaged one lands within 2:1 of the hero
-         it was mixed from. The ring gives every swatch the same foreground
-         edge, so the dot is always visible and its fill is what says which
-         quantity it stands for. */
+      /* A swatch is a miniature of its pill, so it carries the pill's own
+         treatment and nothing more: no ring here, because the pill has none.
+         The ring this once needed was paying for the scrim panel the bar used
+         to sit on; against the card the engaged swatch measures 4.68:1 and
+         stands on its own. */
       .progress-legend-swatch {
         width: 0.5rem;
         height: 0.5rem;
         border-radius: var(--mat-sys-corner-full);
         background-color: currentColor;
-        box-shadow: 0 0 0 1px currentColor;
       }
 
       .swatch-engaged {
