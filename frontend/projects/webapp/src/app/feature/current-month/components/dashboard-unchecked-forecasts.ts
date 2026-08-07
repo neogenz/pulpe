@@ -14,6 +14,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { FinancialKindDirective } from '@ui/financial-kind';
+import {
+  TransactionIconPipe,
+  TransactionLabelPipe,
+} from '@ui/transaction-display';
 import type { BudgetLineConsumption } from '@core/budget';
 import type { BudgetLine, SupportedCurrency } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
@@ -36,6 +40,8 @@ interface AnimatingForecast {
     MatIconModule,
     AppCurrencyPipe,
     FinancialKindDirective,
+    TransactionIconPipe,
+    TransactionLabelPipe,
     TranslocoPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -92,7 +98,11 @@ interface AnimatingForecast {
                   [attr.aria-label]="
                     'currentMonth.uncheckedForecasts.toggleAriaLabel'
                       | transloco
-                        : { name: forecast.name, amount: displayAmount }
+                        : {
+                            name: forecast.name,
+                            amount:
+                              displayAmount | appCurrency: currency() : '1.0-0',
+                          }
                   "
                   data-testid="dashboard-forecasts-toggle"
                 >
@@ -111,11 +121,25 @@ interface AnimatingForecast {
                   {{ forecast.name }}
                 </span>
                 <span
-                  class="text-label-large whitespace-nowrap font-semibold tabular-nums ph-no-capture"
+                  class="flex items-center gap-1.5 whitespace-nowrap"
                   [pulpeFinancialKind]="forecast.kind"
-                  data-testid="dashboard-forecasts-amount"
                 >
-                  {{ displayAmount | appCurrency: currency() : '1.0-0' }}
+                  <!-- The tint alone said whether this was money to pay or to
+                       collect. The glyph carries it for sighted users, the
+                       hidden label for everyone else — mat-icon forces
+                       aria-hidden on itself, so it can never be the name. -->
+                  <mat-icon class="mat-icon-sm shrink-0" aria-hidden="true">
+                    {{ forecast.kind | transactionIcon }}
+                  </mat-icon>
+                  <span class="sr-only">
+                    {{ forecast.kind | transactionLabel }}
+                  </span>
+                  <span
+                    class="text-label-large font-semibold tabular-nums ph-no-capture"
+                    data-testid="dashboard-forecasts-amount"
+                  >
+                    {{ displayAmount | appCurrency: currency() : '1.0-0' }}
+                  </span>
                 </span>
               </div>
             }
