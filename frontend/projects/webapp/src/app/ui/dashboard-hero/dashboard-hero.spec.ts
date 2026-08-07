@@ -86,6 +86,33 @@ describe('DashboardHero', () => {
     expect(component.timeElapsedPercentage()).toBe(75);
   });
 
+  describe('progress legend', () => {
+    it('should name the untouched segment with the remaining amount', () => {
+      setTestInput(component.available, 4800);
+      setTestInput(component.expenses, 3491);
+      setTestInput(component.remaining, 1309);
+      setTestInput(component.budgetConsumedPercentage, 73);
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      const freeKey = compiled.querySelector('.swatch-free')?.parentElement;
+      expect(freeKey?.textContent).toContain('Disponible');
+      expect(freeKey?.textContent).toMatch(/1.309/);
+    });
+
+    it('should drop the untouched key once the budget is fully consumed', () => {
+      setTestInput(component.available, 4800);
+      setTestInput(component.expenses, 4800);
+      setTestInput(component.remaining, 0);
+      setTestInput(component.budgetConsumedPercentage, 100);
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      expect(compiled.querySelector('.segment-free')).toBeNull();
+      expect(compiled.querySelector('.swatch-free')).toBeNull();
+    });
+  });
+
   describe('rollover decomposition', () => {
     it('should caption the amount with its label', () => {
       setTestInput(component.available, 5000);

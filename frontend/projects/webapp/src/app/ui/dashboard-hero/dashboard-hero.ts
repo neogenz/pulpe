@@ -140,9 +140,29 @@ const FULL_BAR_PERCENT = 100;
                 }}</span>
               </b>
             </span>
+            <!-- The outlined pill was the one segment left unnamed, on the
+                 theory that the card already prints its amount at 57px. It
+                 doesn't read that way: an outline with no key looks like the
+                 track the bar sits in rather than a quantity. Same word as the
+                 caption above the number, so the money in the bar and the money
+                 in the headline are visibly the same money. -->
+            @if (freeShare() > 0) {
+              <span class="progress-legend-item">
+                <span class="progress-legend-swatch swatch-free"></span>
+                {{ 'dashboard.available' | transloco }}
+                <b class="progress-legend-amount ph-no-capture">
+                  {{ remaining() | number: '1.0-0' : locale() }}
+                </b>
+              </span>
+            }
           </span>
+          <!-- A preposition, not a noun. This item sits at the right edge,
+               directly under the outlined pill, and any noun parked there gets
+               read as that pill's label — which is how "Budget" ended up
+               naming the wrong thing. "sur" can only be the denominator of the
+               keys that precede it. -->
           <span class="progress-legend-item progress-legend-total">
-            {{ 'dashboard.budgetTotal' | transloco }}
+            {{ 'dashboard.on' | transloco }}
             <b class="progress-legend-amount ph-no-capture">
               {{ available() | number: '1.0-0' : locale() }}
               {{ currencySymbol() }}
@@ -296,6 +316,14 @@ const FULL_BAR_PERCENT = 100;
           currentColor var(--pulpe-hero-engaged-lift),
           var(--hero-surface)
         );
+      }
+
+      /* Same stroke as the pill, not a filled dot: a solid swatch standing for
+         a hollow segment is the mismatch that made the bar unreadable in the
+         first place. */
+      .swatch-free {
+        background: none;
+        box-shadow: inset 0 0 0 1.5px currentColor;
       }
 
       .progress-legend-amount {

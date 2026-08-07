@@ -1305,7 +1305,6 @@
     "available": "Disponible",
     "spent": "Dépensé",
     "engaged": "Engagé",
-    "budgetTotal": "Budget",
     "status": {
       "onTrack": "Ton rythme tient.",
       "fastPace": "Tu dépenses plus vite que le mois ne passe.",
