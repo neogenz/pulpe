@@ -18,6 +18,25 @@ registerLocaleData(localeFR, 'fr-FR');
 HTMLCanvasElement.prototype.getContext = (() =>
   null) as HTMLCanvasElement['getContext'];
 
+// jsdom ships no IntersectionObserver either, and two paths now reach for one:
+// `main-layout`'s scroll sentinel, and the `@defer (on viewport)` blocks in
+// `current-month`. Both register from `afterNextRender`, so whether they run
+// before teardown depends on how loaded the machine is — which made this an
+// error that only surfaced when the four packages' suites ran at once. No spec
+// asserts on viewport behaviour, so observing nothing is the correct stub.
+const NoopIntersectionObserver = class {
+  readonly root = null;
+  readonly rootMargin = '';
+  readonly thresholds: readonly number[] = [];
+  observe = (): void => undefined;
+  unobserve = (): void => undefined;
+  disconnect = (): void => undefined;
+  takeRecords = (): IntersectionObserverEntry[] => [];
+} as unknown as typeof IntersectionObserver;
+
+globalThis.IntersectionObserver = NoopIntersectionObserver;
+window.IntersectionObserver = NoopIntersectionObserver;
+
 // Provide stable in-memory Storage for tests (Vitest/JSDOM storage can be flaky and
 // some tests may monkeypatch methods).
 function createMemoryStorage(): Storage {

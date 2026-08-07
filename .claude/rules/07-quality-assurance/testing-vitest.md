@@ -14,15 +14,22 @@ applies as written — `configureTestingModule`, `componentRef.setInput()` for s
 
 ## `pnpm test` is `ng test`, and the specs compile ahead of time
 
-`@angular/build:unit-test` builds the specs with `ngtsc` and hands the output to Vitest;
-there is no `vitest.config.ts`, and running the `vitest` CLI directly skips the compiler.
-Everything the AOT compiler knows therefore holds in a spec: signal inputs are real inputs,
-template bindings reach children, `templateUrl`/`styleUrl` resolve, and an unknown property
-raises `NG0303` instead of silently becoming a DOM attribute.
+`@angular/build:unit-test` builds the specs with `ngtsc` and hands the output to Vitest, so
+running the `vitest` CLI directly skips the compiler. Everything the AOT compiler knows
+therefore holds in a spec: signal inputs are real inputs, template bindings reach children,
+`templateUrl`/`styleUrl` resolve, and an unknown property raises `NG0303` instead of silently
+becoming a DOM attribute.
 
-Configuration lives in the `test` target of `frontend/angular.json` (setup file, coverage),
-not in a Vitest config file. The setup file must not call `initTestEnvironment` — the builder
-owns it.
+Configuration lives in the `test` target of `frontend/angular.json` — setup file, coverage,
+and a `runnerConfig` pointing at `frontend/vitest-base.config.ts`, which carries only the
+timeouts the builder does not expose. Put new settings in `angular.json` and leave that file
+alone unless the builder genuinely has no option for what you need. The setup file must not
+call `initTestEnvironment` — the builder owns it.
+
+Compiling for real also means the components under test really run, so anything jsdom lacks
+now gets reached: `test-setup.ts` stubs the 2D canvas and `IntersectionObserver` for that
+reason. Expect the same for the next browser API a component touches from
+`afterNextRender`.
 
 ## Mock through DI, never through the module
 
