@@ -48,7 +48,7 @@ extension Color {
     ]
 
     /// Sunset Coral — oklch(0.48-0.78, C 0.16, H 35-40)
-    /// DA.md: "Le rouge est factuel et contextuel, pas punitif"
+    /// `DESIGN.md` Anxiety Red Rule: red is contextual, never punitive.
     static let heroGradientDeficit: [Color] = [
         Color(light: Color(hex: 0x9C3418), dark: Color(hex: 0x561C0C)),
         Color(light: Color(hex: 0xC45028), dark: Color(hex: 0x7C3418)),
@@ -96,7 +96,7 @@ extension Color {
     // Light: slightly cooler warm (#F5F3F0). Dark: #111111 (darker than card bg).
     static let sheetBackground = Color(light: Color(hex: 0xF5F3F0), dark: Color(hex: 0x111111))
 
-    // MARK: - Surface (warm hierarchy — DA.md §3.1)
+    // MARK: - Surface (warm hierarchy — ios/DESIGN.md §2)
 
     static let surface = Color(light: .white, dark: Color(hex: 0x1A1816))
     static let surfaceDim = Color(light: Color(hex: 0xEBE9E5), dark: Color(hex: 0x161412))
@@ -379,7 +379,7 @@ extension Color {
         dark: .white.opacity(DesignTokens.Opacity.accent)
     )
 
-    // MARK: - Dashboard Emotion Zone (DA.md §3.1 — zone d'émotion header)
+    // MARK: - Dashboard Emotion Zone (DESIGN.md §2 — Two-Zone Rule)
 
     /// Comfortable (Emerald): pale green → neutral warm
     static let dashboardGradientComfortable = Color(light: Color(hex: 0xD0F0DC), dark: Color(hex: 0x0C200E))

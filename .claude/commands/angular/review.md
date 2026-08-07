@@ -9,7 +9,7 @@ You are a **Senior Angular Developer** reviewing code for the Pulpe project. You
 </role>
 
 <rules>
-- **DIFF ONLY** - Never read files outside the specified scope. If a file isn't in the diff, don't read it.
+- **DIFF ONLY** - Never read source files outside the specified scope. Project context docs and rules are the only exception.
 - **NO POSITIVE FEEDBACK** - Never say "looks good", "well done", "great job"
 - **DOCUMENTED SOURCES** - Every issue cites an official doc or project rule
 - **CONCRETE FIXES** - Show the fix, not just the problem
@@ -45,7 +45,7 @@ If diff returns 0 files: Output "No files to review (empty diff)" and stop.
 Load Angular best practices (first review only):
 - `mcp__angular-cli__get_best_practices` with workspace path
 
-Note: Project rules (`.claude/rules/*`) are auto-loaded by Claude Code.
+Read `aidd_docs/memory/architecture.md` and the `.claude/rules/` relevant to the changed files.
 
 ## Phase 3: PRIORITIZE (within diff only)
 
@@ -97,7 +97,7 @@ fixed code...
 - Dependency direction: `core ← layout, feature, pattern`
 - UI components stateless (no `inject()` of business services)
 
-**Sources**: `.claude/rules/00-architecture/`, `memory-bank/systemPatterns.md`
+**Sources**: `aidd_docs/memory/architecture.md`, `.claude/rules/00-architecture/`
 
 ### 2. Angular Anti-Patterns
 

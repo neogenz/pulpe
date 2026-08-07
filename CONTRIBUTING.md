@@ -51,4 +51,4 @@ A release is cut on `main`: promote `preview` → `main`, which triggers product
 
 - Commands & stack: [CLAUDE.md](./CLAUDE.md)
 - Documentation index: [docs/INDEX.md](./docs/INDEX.md)
-- Architecture: [memory-bank/systemPatterns.md](./memory-bank/systemPatterns.md)
+- Architecture: [aidd_docs/memory/architecture.md](./aidd_docs/memory/architecture.md)

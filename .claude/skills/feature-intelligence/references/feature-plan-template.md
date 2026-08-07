@@ -25,12 +25,12 @@ Use this exact structure for every `FEATURE_PLAN_[YYYYMMDD].md` output. All sect
 ### What's at Risk
 - [Area that could degrade or block progress]
 
-[Reference specific roadmap items (R1/R2) and known bugs.]
+[Reference current open Linear projects and known bugs verified in the current code.]
 
 ## 3. Phase 1: Ship This Week
 
 > High impact, low effort. 3-5 features max. The "how is this not already there?" features.
-> Must not conflict with R1 in-flight work.
+> Must not conflict with in-flight work from open Linear projects.
 
 ### Feature 1.1: [Name]
 
@@ -48,7 +48,7 @@ Use this exact structure for every `FEATURE_PLAN_[YYYYMMDD].md` output. All sect
 ## 4. Phase 2: Ship This Sprint
 
 > More effort, significant value. 4-6 features max.
-> Can overlap with R2 planned items but must add clarity on what specifically to build.
+> Can overlap with open Linear projects but must add clarity on what specifically to build.
 
 ### Feature 2.1: [Name]
 [Same per-feature structure]
@@ -62,7 +62,7 @@ Use this exact structure for every `FEATURE_PLAN_[YYYYMMDD].md` output. All sect
 
 ## 6. Parking Lot
 
-> Ideas too early or expensive right now. Cross-reference with Ice Box from roadmap.md.
+> Ideas too early or expensive right now. Cross-reference with the live Linear backlog when relevant.
 
 - **[Idea]** — [Why it's parked, when it might become relevant]
 

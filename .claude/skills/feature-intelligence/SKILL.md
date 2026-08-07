@@ -26,26 +26,25 @@ Before forming any opinion, read the relevant files:
 
 | Need | File |
 |------|------|
-| Vision, philosophy, V1 scope | `memory-bank/projectbrief.md` |
-| Domain model, formulas, business rules, workflows | `memory-bank/productContext.md` |
-| Roadmap, milestones (MVP/R1/R2/Ice Box) | `memory-bank/roadmap.md` |
-| Brand, emotional pillars, tone, microcopy | `memory-bank/DA.md` |
-| Architecture, layers, patterns | `memory-bank/systemPatterns.md` |
-| Tech decisions (MADR) | `memory-bank/techContext.md` |
-| Infrastructure, deploy, monitoring | `memory-bank/INFRASTRUCTURE.md` |
+| Vision, philosophy, scope | `PRODUCT.md` |
+| User needs and workflows | `docs/BUSINESS_WORKFLOW.md` |
+| Domain invariants and formulas | `docs/BUSINESS_RULES.md` and its focused links |
+| Brand, interaction, tone, microcopy | `DESIGN.md` → target platform `DESIGN.md` |
+| Architecture, layers, patterns | `aidd_docs/memory/architecture.md` and relevant `.claude/rules/` |
+| Infrastructure and deployment | `aidd_docs/memory/deployment.md`, then `docs/DEPLOYMENT.md` when needed |
+| Current roadmap and status | Live Linear projects; recent GitHub releases for shipped state |
 | Encryption constraints | `docs/ENCRYPTION.md` |
 | E2E scenarios, expected behaviors | `docs/SCENARIOS.md` |
 
-Read **all** of these. No exceptions. If a file is missing, ask before proceeding.
+Read only the sources relevant to the question. For roadmap or delivery status, query Linear and releases at the time of the request; never infer live status from a repository snapshot.
 
 ## Pulpe Context
 
-- Personal budget management app for the Swiss market (CHF only, V1).
+- Personal budget planning app for the Swiss market.
 - **Philosophy:** Planning > Tracking, Simplicity > Completeness, Serenity > Control, Isolation > DRY.
 - **Tone:** Informal French ("tu"), encouraging, never anxiety-inducing. Green palette (not red). Relief over control.
-- **Current status:** Read `PRODUCT.md` and the latest public GitHub releases. Do not hardcode user counts or release-review status here. Primary target is iOS (SwiftUI), with Angular webapp and Next.js landing.
-- **Core flow:** Template -> Budget -> Budget Line -> Transaction.
-- **Calculation:** Available = Income + Rollover; Remaining = Available - Expenses; Ending Balance -> next month's Rollover.
+- **Current status:** Read `PRODUCT.md`, query live Linear projects, and inspect recent public GitHub releases. Do not hardcode user counts or delivery status here.
+- **Business behavior:** Use `docs/BUSINESS_RULES.md` and its executable sources; do not restate formulas from memory.
 
 ### Domain Vocabulary
 
@@ -61,20 +60,9 @@ Use these French terms consistently:
 | `expense` | Depense |
 | `saving` | Epargne |
 
-### Out of V1 Scope
-
-Flag explicitly if proposing any of these: multi-currency, bank sync/import, shared budgets, recurring transactions, investment tracking.
-
-### Current Milestones
-
-- **MVP:** 100% complete.
-- **R1 (App Store Ready):** Active. Bugs, UX gaps, biometric re-auth, loading skeletons.
-- **R2 (Worth Sharing):** Planned. Dashboard refactor, savings pillar, planning enrichment.
-- **Ice Box:** Multi-currency, JSON import, offline mode, etc.
-
 ## Thinking Framework
 
-After reading everything, reason about:
+After loading the relevant context, reason about:
 
 1. Where do users get stuck in the planning -> tracking -> review cycle?
 2. What features are 80% done but missing the last 20%?
@@ -126,7 +114,7 @@ Each feature must include:
 ## Handoff
 
 After the user approves the plan, the build agent receives:
-- `CLAUDE.md`, `memory-bank/` (all files), `docs/` (all files), `.claude/rules/`
+- The task-relevant canonical sources and `.claude/rules/` cited by the plan
 - The approved `FEATURE_PLAN_[date].md`
 
 The build agent treats it as a phased execution contract. One feature at a time, verify no regressions, update progress, move to next.

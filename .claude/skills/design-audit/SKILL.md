@@ -23,16 +23,16 @@ Before forming any opinion, read these files:
 
 | Need | File |
 |------|------|
-| Brand vision, emotional pillars, tone, colors, typography, icons, microcopy | `memory-bank/DA.md` |
+| Product strategy | `PRODUCT.md` |
+| Visual foundation | `DESIGN.md` → target platform `DESIGN.md` |
+| User needs and workflows | `docs/BUSINESS_WORKFLOW.md` |
+| Cross-feature business behavior | `docs/BUSINESS_RULES.md` |
 | Design tokens, CSS variables, utility classes, surfaces, motion | `.claude/rules/06-templates-and-models/design-system.md` |
 | 3-layer token hierarchy (Material + Tailwind + Pulpe) | `.claude/rules/03-frameworks-and-libraries/material-tailwind-integration.md` |
 | Material 22 APIs, removed selectors, M3 tokens | `.claude/rules/03-frameworks-and-libraries/angular-material-22.md` |
-| Frontend architecture, layers, component patterns | `memory-bank/systemPatterns.md` |
-| Product vision, V1 scope | `memory-bank/projectbrief.md` |
-| Business workflows, user journeys | `memory-bank/productContext.md` |
-| Features list (7 features) | `memory-bank/systemPatterns.md` → Features section |
+| Macro architecture | `aidd_docs/memory/architecture.md` |
 
-Read **all** of these. Then load the relevant Practical UI reference files for the area you're auditing:
+Always read the product and visual hierarchy. Load only the workflow, business, architecture, rule, and Practical UI references relevant to the target:
 
 | Audit dimension | Practical UI reference |
 |---|---|
@@ -46,43 +46,9 @@ Read **all** of these. Then load the relevant Practical UI reference files for t
 
 Then walk through the target screens in the codebase. Read component templates and styles to understand the current state.
 
-## Pulpe Design Identity
+## Canonical Design Contract
 
-### Emotional Pillars
-
-Every design decision must serve one of these:
-- **Soulagement** (Relief) — "I can finally see clearly"
-- **Clarte** (Clarity) — "I understand my situation instantly"
-- **Controle** (Control) — "I decide, the app follows"
-- **Legerete** (Lightness) — "This is not stressful"
-
-### Visual Language
-
-- **Palette:** Green-dominant (#006E25 to #99F89D). Never red for financial data — use semantic financial tokens (`--pulpe-financial-*`).
-- **Typography:** Manrope (headings, `brand-family`) + DM Sans (body, `plain-family`). Tabular figures for numbers.
-- **Icons:** Outlined, soft, 1.5-2px stroke, rounded corners (Phosphor/Heroicons style).
-- **Shape:** Soft neumorphic citrus feel. Cards at `--pulpe-surface-radius-card` (24px), panels at 16px.
-- **Tone:** Calm, confident, quiet. The app should feel like it respects the user's time.
-
-### Token System (3 layers)
-
-```
-Pulpe Semantic  → --pulpe-financial-*, --pulpe-surface-*, --pulpe-motion-*
-Tailwind Theme  → --color-primary, --font-sans, --radius-corner-*
-Material System → --mat-sys-primary, --mat-sys-body-large-*, --mat-sys-corner-*
-```
-
-**Rules:**
-- Components use Pulpe tokens (`--p-*`, `--pulpe-*`) or Tailwind classes
-- `--mat-sys-*` only in theme definition and Material component overrides
-- No hardcoded colors, spacing, or sizes. Everything references the system.
-- Material overrides use `mat.*-overrides()` mixins, never `::ng-deep`
-
-### Platform Context
-
-- **iOS (SwiftUI):** Primary target. Touch-first. Thumb-reachable actions.
-- **Web (Angular 22 + Material 22 + Tailwind v4):** Secondary. Must feel equally intentional.
-- **Landing (Next.js + Tailwind v4):** Poppins typography, marketing tone.
+The `PRODUCT.md` → `DESIGN.md` → platform `DESIGN.md` hierarchy is authoritative. Do not restate or override its visual, emotional, platform, or microcopy decisions in an audit; cite the relevant section and use `.claude/rules/` only for implementation mechanics.
 
 ## Audit Protocol
 
@@ -115,8 +81,7 @@ Implementation notes must be precise:
 - Never touch application logic, state management, API calls, or data models.
 - Never add or remove features. Design changes must preserve functionality exactly.
 - Every value must reference a design system token. No rogue values.
-- No red for financial data. Use `--pulpe-financial-expense` (mapped to a non-anxiety color).
-- No anxiety-inducing language in microcopy recommendations. Align with DA.md tone.
+- Apply the semantic color and microcopy rules from the canonical DESIGN documents.
 - If a component or token doesn't exist in the design system and you think it should, propose it explicitly — don't invent it silently.
 - If the intended user behavior for a screen isn't documented, ask before designing for an assumed flow.
 - Every phase needs explicit user approval before implementation.

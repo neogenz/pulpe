@@ -175,7 +175,7 @@ Principes de navigation pour l'utilisateur cible :
 | Forcer un tutoriel au premier lancement | Personne ne les lit, ca retarde la valeur | Onboarding contextuel, empty states qui guident |
 | Demander une info qu'on pourrait deduire | Friction inutile, l'utilisateur se sent interroge | Deduire, pre-remplir, demander en dernier recours |
 | Montrer un ecran vide sans explication | L'utilisateur pense que c'est casse | Empty state avec action suggeree |
-| Utiliser des termes techniques | Exclusion, incomprehension | Vocabulaire du quotidien (cf. DA.md) |
+| Utiliser des termes techniques | Exclusion, incomprehension | Vocabulaire du quotidien (cf. `DESIGN.md`) |
 | Punir les erreurs | Anxiete, abandon | Expliquer, suggerer, dedramatiser |
 | Masquer les consequences | Mauvaises surprises, perte de confiance | Transparence, preview avant action |
 | Ajouter des etapes "au cas ou" | Friction, complexite | YAGNI — ajouter quand le besoin est prouve |

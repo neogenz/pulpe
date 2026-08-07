@@ -16,13 +16,13 @@ Before any action, load the relevant context:
 
 | Need | File to read |
 |------|-------------|
-| Product vision, scope, V1 features | `memory-bank/projectbrief.md` |
-| Business rules, domain glossary, formulas | `memory-bank/productContext.md` |
+| Product vision and scope | `PRODUCT.md` |
+| User needs and workflows | `docs/BUSINESS_WORKFLOW.md` |
+| Business rules and formulas | `docs/BUSINESS_RULES.md` and its focused links |
 | Roadmap, chantiers en cours | Linear projects (`list_projects`, state ≠ Completed) |
-| Architecture, patterns | `memory-bank/systemPatterns.md` |
-| Tech decisions (MADR) | `memory-bank/techContext.md` |
-| Brand, DA, vocabulary | `memory-bank/DA.md` |
-| Infrastructure, deploy | `memory-bank/INFRASTRUCTURE.md` |
+| Architecture and patterns | `aidd_docs/memory/architecture.md` and relevant `.claude/rules/` |
+| Brand, interaction, vocabulary | `DESIGN.md` → target platform `DESIGN.md` |
+| Infrastructure and deploy | `aidd_docs/memory/deployment.md`, then `docs/DEPLOYMENT.md` |
 | Operational docs | `docs/INDEX.md` (then follow links) |
 
 Read only the files relevant to the current request. Do not load everything systematically.
@@ -34,11 +34,7 @@ Read only the files relevant to the current request. Do not load everything syst
 
 ### Projects
 
-**Un projet Linear = un chantier finissable** — une poussée cohérente qui se termine puis se ferme (ex. « Tags de bout en bout », « Activation & rétention », « Marketing - Faire connaître Pulpe »). Le modèle release-train (MVP, R1, R2) est terminé : ces projets sont Completed depuis juillet 2026 — ne jamais les rouvrir ni recréer d'équivalent perpétuel.
-
-| Projet permanent | Purpose |
-|---------|---------|
-| Ice Box | Parked ideas for later |
+**Un projet Linear = un chantier finissable** — une poussée cohérente qui se termine puis se ferme. Interroger `list_projects` avant toute affectation ; ce fichier ne fige ni projet permanent ni statut de chantier.
 
 Le travail de fond (bugfix, petites améliorations, dette isolée) vit **sans projet**, piloté par statut + label + priorité + cycles. Une issue ne reçoit un projet que si elle sert un chantier ouvert — `list_projects` donne la liste à jour, ne pas se fier à une liste codée en dur.
 
@@ -108,7 +104,7 @@ Call MCP tool: `create_issue` with these parameters:
 - `team`: "Pulpe"
 - `description`: Markdown body in French
 - `assignee`: "me"
-- `project`: only if the issue serves an open chantier (`list_projects`) or Ice Box — otherwise omit
+- `project`: only if the issue serves an open chantier returned by `list_projects` — otherwise omit
 - `labels`: At least one label name
 - `priority`: 0=None, 1=Urgent, 2=High, 3=Normal, 4=Low
 
@@ -116,7 +112,7 @@ When creating issues:
 - Write titles and body in French
 - Use the user-story format from `references/user-story-format.md` when appropriate
 - Always assign to `me`
-- Set a project only when the issue belongs to an open chantier or Ice Box; default = no project
+- Set a project only when the issue belongs to an open chantier returned by `list_projects`; default = no project
 - Always set at least one label
 
 ### 2. Backlog Grooming
@@ -181,7 +177,7 @@ Les métriques de cycle se consultent dans Linear au moment du besoin. Ne pas fi
 
 When asked to triage or review an issue:
 1. Fetch the issue: `get_issue` with the issue ID
-2. Read relevant Memory Bank files for context
+2. Read the relevant canonical project sources for context
 3. Suggest: correct labels, project assignment, acceptance criteria, story points estimate, implementation hints
 4. Apply changes via `update_issue` if the user approves
 
@@ -214,7 +210,7 @@ Filter by assignee:
 - Be concise and action-oriented
 - When unsure about project or priority, ask before creating
 - When creating multiple issues, present a summary table first for validation before creating
-- Reference Memory Bank content when justifying decisions
+- Reference canonical project sources when justifying decisions
 - Use domain vocabulary consistently
 
 ## Troubleshooting

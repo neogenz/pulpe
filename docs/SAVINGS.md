@@ -460,4 +460,4 @@ Changer l'objectif source d'un revenu existant n'est pas prévu : il faut suppri
 
 - Workflows modélisés : `docs/diagrams/savings-goals.c4`.
 - Formules : `shared/src/calculators/budget-formulas.ts`, `shared/src/calculators/budget-period.ts`, `shared/src/calculators/savings-goal-progress.ts` et `shared/src/calculators/savings-goal-plan.ts`.
-- Chiffrement : `docs/ENCRYPTION.md`. Couleurs : `memory-bank/DA.md` §3.7. Sync template↔budget : RG-001 (`memory-bank/productContext.md`).
+- Chiffrement : `docs/ENCRYPTION.md`. Couleurs : `DESIGN.md`. Sync template↔budget : `docs/BUSINESS_RULES.md` § Propagation du Mois Type.

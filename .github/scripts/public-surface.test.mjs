@@ -45,7 +45,7 @@ test("a clone does not pre-authorize sensitive repository automation", () => {
 test("public security and deletion claims describe the implemented model", () => {
   const claims = [
     "docs/BUSINESS_WORKFLOW.md",
-    "memory-bank/productContext.md",
+    "docs/ENCRYPTION.md",
     "ios/Pulpe/Core/Encryption/ClientKeyManager.swift",
     "landing/app/support/page.tsx",
     "landing/data/releases.json",
@@ -87,6 +87,34 @@ test("public CI guide mirrors the enforced workflow contracts", () => {
   assert.match(guide, /pull-requests:\s*write/);
   assert.match(workflow, /NODE_VERSION:\s*["']24["']/);
   assert.match(guide, /NODE_VERSION:\s*["']24["']/);
+});
+
+test("tracked context does not reference the retired memory bank", () => {
+  const retiredContextPattern = [
+    "memory-bank/",
+    "DA\\.md",
+    "productContext\\.md",
+    "systemPatterns\\.md",
+    "techContext\\.md",
+    "projectbrief\\.md",
+    "INFRASTRUCTURE\\.md",
+    "roadmap\\.md",
+    "RG-010",
+  ].join("|");
+
+  assert.equal(
+    git(
+      "grep",
+      "-n",
+      "-I",
+      "-E",
+      retiredContextPattern,
+      "--",
+      ".",
+      ":(exclude).github/scripts/public-surface.test.mjs",
+    ),
+    "",
+  );
 });
 
 test("tracked project files exclude local archives and preserve skill contracts", () => {

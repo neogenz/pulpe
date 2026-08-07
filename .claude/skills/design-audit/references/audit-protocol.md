@@ -64,7 +64,7 @@ Review every target screen against these 15 dimensions. Miss nothing.
 - Are error messages styled consistently?
 - Do they feel helpful and clear or hostile and technical?
 - Using `pulpe-state-card` with `variant='error'`?
-- Microcopy aligned with DA.md: explain + suggest, never blame.
+- Microcopy aligned with `DESIGN.md` and the target platform's `DESIGN.md`: explain + suggest, never blame.
 
 ### 12. Dark Mode
 - If the `.dark-theme` class is active, do all tokens, shadows, and contrast ratios hold up?

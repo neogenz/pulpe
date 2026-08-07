@@ -70,7 +70,7 @@ jobs:
           AVANT de commencer la review, lis ces fichiers pour comprendre les conventions :
           1. `CLAUDE.md` (racine) - conventions generales, vocabulaire, stack
           2. Les fichiers `.claude/rules/` pertinents pour les stacks modifiees
-          3. `memory-bank/systemPatterns.md` - architecture globale
+          3. `aidd_docs/memory/architecture.md` - architecture globale
 
           Ces fichiers sont ta source de verite. Ne suppose pas les conventions, lis-les.
 

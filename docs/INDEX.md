@@ -35,6 +35,7 @@
 - **[CONSENT.md](./CONSENT.md)** - Consentement à l'inscription : sign-in wrap, formulation, limites et conditions de réexamen
 
 ### 💰 Métier
+- **[BUSINESS_RULES.md](./BUSINESS_RULES.md)** - Invariants transverses : Prévisions/Réels, report, propagation, lissage, chiffrement et FX
 - **[SAVINGS.md](./SAVINGS.md)** - Objectifs d'épargne, progression et simulateur de plan
 - **[Diagramme Objectifs d'épargne](./diagrams/savings-goals.c4)** - Workflows LikeC4 de la fonctionnalité
 
@@ -63,7 +64,7 @@
 
 ## 🔗 Liens Externes Utiles
 
-- **[Memory Bank (AI Context)](../memory-bank/)** - Documentation pour contexte AI/AIDD
+- **[Mémoire projet AIDD](../aidd_docs/memory/README.md)** - Contexte concis chargé par les agents IA
 - **[CLAUDE.md (Projet)](../CLAUDE.md)** - Instructions générales projet
 - **[Frontend CLAUDE.md](../frontend/CLAUDE.md)** - Instructions spécifiques frontend
 - **[Backend CLAUDE.md](../backend-nest/CLAUDE.md)** - Instructions spécifiques backend

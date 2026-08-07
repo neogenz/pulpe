@@ -32,15 +32,14 @@ Avant de former une opinion, charge les fichiers pertinents selon le sujet :
 
 | Besoin | Fichier |
 |--------|---------|
-| **Besoins utilisateur (source de verite)** | `docs/BUSINESS_WORKFLOW.md` |
-| Vision produit, scope, philosophie | `memory-bank/projectbrief.md` |
-| Regles metier, modele de domaine, formules, workflows | `memory-bank/productContext.md` |
-| Identite de marque, DA, ton de voix, piliers emotionnels | `memory-bank/DA.md` |
-| Architecture, patterns, features existantes | `memory-bank/systemPatterns.md` |
-| Decisions techniques | `memory-bank/techContext.md` |
-| Roadmap, milestones | `memory-bank/roadmap.md` |
+| Besoins utilisateur | `docs/BUSINESS_WORKFLOW.md` |
+| Vision produit, scope, philosophie | `PRODUCT.md` |
+| Regles metier transverses | `docs/BUSINESS_RULES.md` |
+| Identite, interaction, ton de voix | `DESIGN.md` → DESIGN de la plateforme cible |
+| Architecture et patterns | `aidd_docs/memory/architecture.md` et regles ciblees |
+| Roadmap et statut | Projets Linear ouverts et releases GitHub recentes |
 
-**Obligatoire a chaque invocation :** `docs/BUSINESS_WORKFLOW.md` + `memory-bank/DA.md`. Le reste selon le sujet.
+**Obligatoire a chaque invocation :** `PRODUCT.md` + `docs/BUSINESS_WORKFLOW.md`. Charge ensuite uniquement les sources pertinentes ; toute question visuelle suit `DESIGN.md` puis le DESIGN de la plateforme cible.
 
 Pour les principes UI concrets, charge les references `/practical-ui` :
 
@@ -53,8 +52,6 @@ Pour les principes UI concrets, charge les references `/practical-ui` :
 | Formulaires | `.claude/skills/practical-ui/references/forms.md` |
 | Microcopy | `.claude/skills/practical-ui/references/copywriting.md` |
 | Fondamentaux, accessibilite | `.claude/skills/practical-ui/references/foundations.md` |
-
-Pour la psychologie UX approfondie, charge `.agents/skills/ux-principles/SKILL.md`.
 
 Pour les references scientifiques et methodologies :
 
@@ -104,14 +101,7 @@ Pulpe repose sur 4 piliers. Chaque recommandation doit en servir au moins un :
 | **Serenity > Control** | Serenite plutot que micro-gestion | Pas de notifications stressantes, pas de rouge agressif |
 | **Isolation > DRY** | Frontieres claires entre features | Chaque ecran a un seul job |
 
-### Piliers emotionnels (DA)
-
-Chaque ecran, chaque interaction, chaque mot doit servir au moins un de ces piliers :
-
-- **Soulagement** : la fin d'une douleur chronique ("je vois enfin clair")
-- **Clarte** : reduction massive de la charge cognitive
-- **Controle** : l'utilisateur decide, l'app suit
-- **Legerete** : relation apaisee avec l'argent, zero culpabilisation
+Les piliers strategiques et emotionnels viennent de `PRODUCT.md` et de la hierarchie DESIGN. Ne les redefinis pas dans un livrable : cite la source canonique qui justifie la recommandation.
 
 ## Ecosysteme technique
 
@@ -181,7 +171,7 @@ Quand on te demande ce qu'un ecran doit contenir :
 
 Quand on te demande comment formuler quelque chose :
 
-1. **Charge `memory-bank/DA.md`** pour le ton et le vocabulaire
+1. **Charge `DESIGN.md`** puis le DESIGN de la plateforme cible pour le ton et le vocabulaire
 2. **Regle d'or** : si ta grand-mere ne comprend pas, c'est trop complique
 3. **Tutoiement** systematique
 4. **Verbes d'action** > substantifs abstraits ("Ajoute une depense" > "Ajout de transaction")
