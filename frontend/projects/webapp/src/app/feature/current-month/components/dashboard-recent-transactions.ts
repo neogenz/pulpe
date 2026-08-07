@@ -173,7 +173,10 @@ export class DashboardRecentTransactions {
       case 'saving':
         return 'bg-financial-savings/10 text-financial-savings';
       case 'expense':
-        return 'bg-surface-container-high text-on-surface-variant';
+        // Amber, like its two siblings and like the expense rows in the list
+        // twenty pixels to the left. Neutral grey made "dépense" the one kind
+        // of money on this page without a colour of its own.
+        return 'bg-financial-expense/10 text-financial-expense';
     }
   }
 }

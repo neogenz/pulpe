@@ -259,6 +259,7 @@
     "demoInitFailed": "Le mode démo ne démarre pas — réessaie"
   },
   "layout": {
+    "skipToContent": "Aller au contenu",
     "loading": "Chargement en cours",
     "demoMode": "Mode Démo",
     "demoDataWillBeDeleted": "Tes données seront supprimées après 24h",

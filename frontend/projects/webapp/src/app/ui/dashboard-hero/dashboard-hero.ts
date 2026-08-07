@@ -8,6 +8,7 @@ import {
   output,
 } from '@angular/core';
 import { DecimalPipe, formatNumber } from '@angular/common';
+import { MatIconModule } from '@angular/material/icon';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
 import {
@@ -20,7 +21,7 @@ const FULL_BAR_PERCENT = 100;
 
 @Component({
   selector: 'pulpe-dashboard-hero',
-  imports: [DecimalPipe, TranslocoPipe],
+  imports: [DecimalPipe, MatIconModule, TranslocoPipe],
   template: `
     <div
       class="hero-container rounded-3xl p-6 pb-5 relative overflow-hidden cursor-pointer motion-safe:transition-transform motion-safe:hover:scale-[0.99] dark:border dark:border-white/5"
@@ -51,6 +52,13 @@ const FULL_BAR_PERCENT = 100;
         >
           {{ periodLabel() }}
         </h2>
+        <!-- The largest element on the page opens the month's detail, and a
+             pointer cursor plus a 1% hover scale was all that said so. A
+             keyboard user was told — the container carries role="button" and a
+             full aria-label — and a mouse user was not. -->
+        <mat-icon class="ml-auto opacity-80 shrink-0" aria-hidden="true"
+          >chevron_right</mat-icon
+        >
       </div>
 
       <!-- Disponible section -->
@@ -62,7 +70,10 @@ const FULL_BAR_PERCENT = 100;
           >
             {{ remaining() | number: '1.0-0' : locale() }}
           </span>
-          <span class="text-title-large font-semibold opacity-70">{{
+          <!-- 80%, not 70%: at 22px/600 the suffix is too small and too light
+               to earn WCAG's large-text exemption, and 70% white over the
+               gradient's lightest stop measured 4.00:1. -->
+          <span class="text-title-large font-semibold opacity-80">{{
             currencySymbol()
           }}</span>
         </div>

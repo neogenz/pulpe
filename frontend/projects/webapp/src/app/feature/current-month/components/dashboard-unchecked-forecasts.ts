@@ -78,11 +78,13 @@ interface AnimatingForecast {
             </p>
           </div>
         </div>
-        @if (hasMore()) {
-          <button matButton (click)="viewBudget.emit()">
-            {{ 'currentMonth.viewInBudget' | transloco }}
-          </button>
-        }
+        <!-- Unconditional, like the twin block beside it. Hiding the way out
+             once five or fewer remained made two cards built from one header
+             recipe behave differently side by side, and the escape hatch costs
+             nothing when the list is short. -->
+        <button matButton (click)="viewBudget.emit()">
+          {{ 'currentMonth.viewInBudget' | transloco }}
+        </button>
       </div>
 
       <div class="bg-surface-container-low rounded-3xl py-3 px-3 flex-1">
@@ -268,10 +270,6 @@ export class DashboardUncheckedForecasts {
       this.#ghostTimers.clear();
     });
   }
-
-  protected readonly hasMore = computed(
-    () => this.forecasts().length > MAX_VISIBLE_FORECASTS,
-  );
 
   protected readonly displayedForecasts = computed(() => {
     const list = this.forecasts();

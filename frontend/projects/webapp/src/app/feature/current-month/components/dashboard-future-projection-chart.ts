@@ -82,10 +82,13 @@ import {
               (click)="createMissingBudgets.emit()"
               data-testid="projection-missing-budgets-button"
             >
+              <!-- add, not info: the copy says "crée-les", and an information
+                   glyph on a surface the same colour as its parent was the
+                   only thing this control offered a mouse user. -->
               <mat-icon
                 class="text-on-surface-variant shrink-0"
                 aria-hidden="true"
-                >info</mat-icon
+                >add</mat-icon
               >
               <span class="text-body-small text-on-surface-variant">
                 {{
