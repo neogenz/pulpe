@@ -120,6 +120,22 @@ const UNDO_WINDOW_MS = 6000;
             data-tour="dashboard-hero"
           />
 
+          <!-- Fixed, so its place in the markup costs nothing visually and buys
+               the tab order: recording a transaction is what this page is for,
+               and it used to be the fourteenth stop of fifteen — behind every
+               row of every list. It now follows the month's verdict, which is
+               also the order a screen reader reads them in. -->
+          <button
+            matFab
+            (click)="openAddTransaction()"
+            class="fab-button"
+            [attr.aria-label]="'budgetLine.addTransaction' | transloco"
+            data-testid="add-transaction-fab"
+            data-tour="add-transaction-fab"
+          >
+            <mat-icon aria-hidden="true" class="fab-icon">add</mat-icon>
+          </button>
+
           <!-- The month's open work. The list with a button on every row leads;
                the CSS order utilities used to put it second on desktop and
                first on mobile, which both buried the one actionable block
@@ -222,18 +238,6 @@ const UNDO_WINDOW_MS = 6000;
             </div>
           }
         </div>
-
-        <!-- FAB: only visible when budget data is loaded -->
-        <button
-          matFab
-          (click)="openAddTransaction()"
-          class="fab-button"
-          [attr.aria-label]="'budgetLine.addTransaction' | transloco"
-          data-testid="add-transaction-fab"
-          data-tour="add-transaction-fab"
-        >
-          <mat-icon aria-hidden="true" class="fab-icon">add</mat-icon>
-        </button>
       } @else {
         <pulpe-state-card
           variant="empty"
@@ -276,12 +280,12 @@ const UNDO_WINDOW_MS = 6000;
       height: 56px;
       border-radius: 50%;
 
+      /* Flat. DESIGN.md gives the gradient to the hero and to nothing else —
+         the rest of the system is flat surface or hairline border — and this
+         button floats over the content zone, forty pixels from a card that
+         obeys that rule. */
       --mat-fab-container-color: var(--mat-sys-primary);
-      background: linear-gradient(
-        145deg,
-        var(--mat-sys-primary) 0%,
-        color-mix(in srgb, var(--mat-sys-primary) 75%, black) 100%
-      );
+      background: var(--mat-sys-primary);
       color: var(--mat-sys-on-primary);
 
       box-shadow: var(--mat-sys-level3);

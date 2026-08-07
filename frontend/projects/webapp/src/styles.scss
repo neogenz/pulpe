@@ -351,6 +351,16 @@ body {
   gap: var(--pulpe-section-gap-sm);
 }
 
+// Material paints a focus indicator on its own buttons; a hand-rolled <button>
+// gets none and falls back to the user agent's, which in Chrome is a 1px amber
+// hairline — the hue this system reserves for "dépense", landing on controls
+// that have nothing to do with spending. Every such button gets the same ring
+// Material would have drawn, once, rather than one rule per component.
+button:not(.mat-mdc-button-base):focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
+}
+
 // Budget section group - Material expansion panel overrides
 // Scoped via host class to avoid ViewEncapsulation issues
 .pulpe-budget-section-group {

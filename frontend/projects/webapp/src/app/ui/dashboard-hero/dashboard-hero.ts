@@ -41,9 +41,11 @@ const FULL_BAR_PERCENT = 100;
       ></div>
 
       <div class="flex items-center gap-2 mb-6 relative z-10">
-        <div
-          class="w-2 h-2 rounded-full motion-safe:animate-pulse indicator-dot"
-        ></div>
+        <!-- Static. It pulsed on every render regardless of anything, so the
+             one piece of motion on the card promised a live reading it never
+             had. Its colour is inherited, and that already tracks the financial
+             state. -->
+        <div class="w-2 h-2 rounded-full indicator-dot"></div>
         <h2
           class="font-bold text-headline-medium capitalize tracking-tight leading-none"
         >
