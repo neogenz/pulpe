@@ -43,8 +43,17 @@ fails one of two ways, and the second is the dangerous one:
   stays green while the component runs the real implementation.
 
 So a green suite is not evidence that a module mock works. To check one, make it reject and
-confirm the test fails; if it still passes, the mock was never installed. Mocking a bare npm
-package does work — those stay external to the bundle.
+confirm the test fails; if it still passes, the mock was never installed.
+
+A bare npm package stays external to the bundle, so mocking one *can* work — but only until
+another spec reaches the same module first. `isolate` defaults to `false`, so the specs in a
+worker share one module registry: whichever file loads first wins, and file order moves with
+machine load. `vi.mock('driver.js')` held right up until `main-layout.spec.ts` — which pulls
+`ProductTourService`, and with it the real `driver.js` — happened to be scheduled ahead of it
+on a two-core CI runner, and twelve tests went red for a day. `DRIVER_FACTORY` replaced it.
+
+Before mocking a package, grep for who else imports it, transitively included. More than one
+spec in the graph means a DI seam, not a module mock.
 
 A module-level function a component calls directly therefore needs a DI seam. Give it an
 `InjectionToken` whose factory returns the real function, matching `PAGE_RELOAD`:
@@ -58,7 +67,8 @@ export const DERIVE_CLIENT_KEY = new InjectionToken<typeof deriveClientKey>(
 
 Existing seams: `DERIVE_CLIENT_KEY` (`core/encryption/crypto.utils.ts`),
 `SUPABASE_CLIENT_FACTORY` (`core/auth/`), `CURRENT_APP_VERSION` (`core/app-version/`),
-`PAGE_RELOAD` (`core/page-reload.ts`). Reuse one before adding another.
+`PAGE_RELOAD` (`core/page-reload.ts`), `DRIVER_FACTORY` (`core/product-tour/`). Reuse one
+before adding another.
 
 A token carries one function or one value. When the untestable part is a *set* of related
 operations, the seam is a service — `FileDownloadService` (`core/file-download.ts`) holds
