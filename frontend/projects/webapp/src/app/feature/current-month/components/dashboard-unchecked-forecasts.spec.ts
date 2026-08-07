@@ -340,4 +340,68 @@ describe('DashboardUncheckedForecasts', () => {
     expect(names[1]).toContain('Line 1');
     expect(names[2]).toContain('Line 2');
   });
+
+  it('should hand focus to the toggle that takes the checked row’s place', async () => {
+    const lines = Array.from({ length: 3 }, (_, i) => ({
+      ...mockForecasts[0],
+      id: `line-${i}`,
+      name: `Line ${i}`,
+    }));
+    setTestInput(component.forecasts, lines);
+    fixture.detectChanges();
+
+    fixture.debugElement
+      .queryAll(By.css('button[aria-label]'))[1]
+      .nativeElement.click();
+
+    setTestInput(
+      component.forecasts,
+      lines.filter((line) => line.id !== 'line-1'),
+    );
+    fixture.detectChanges();
+
+    (
+      fixture.debugElement.query(By.css('.checking'))
+        .nativeElement as HTMLElement
+    ).dispatchEvent(
+      Object.assign(new Event('animationend'), {
+        animationName: 'forecast-check-exit',
+      }),
+    );
+    await TestBed.tick();
+
+    const remaining = fixture.debugElement.queryAll(
+      By.css('button[aria-label]'),
+    );
+    expect(remaining.length).toBe(2);
+    expect(document.activeElement).toBe(remaining[1].nativeElement);
+  });
+
+  it('should hand focus to the empty state once the last row is checked', async () => {
+    setTestInput(component.forecasts, mockForecasts);
+    fixture.detectChanges();
+
+    fixture.debugElement
+      .query(By.css('button[aria-label]'))
+      .nativeElement.click();
+
+    setTestInput(component.forecasts, []);
+    fixture.detectChanges();
+
+    (
+      fixture.debugElement.query(By.css('.checking'))
+        .nativeElement as HTMLElement
+    ).dispatchEvent(
+      Object.assign(new Event('animationend'), {
+        animationName: 'forecast-check-exit',
+      }),
+    );
+    await TestBed.tick();
+
+    expect(document.activeElement).toBe(
+      fixture.debugElement.query(
+        By.css('[data-testid="dashboard-forecasts-empty-state"]'),
+      ).nativeElement,
+    );
+  });
 });

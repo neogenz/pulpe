@@ -30,6 +30,7 @@
     "clear": "Effacer",
     "currencySelector": "Devise",
     "viewAll": "Voir tout",
+    "undo": "Annuler",
     "financialPills": {
       "ariaLabel": "Résumé financier",
       "income": "Revenus",
@@ -915,6 +916,7 @@
     "viewBudgets": "Voir mes budgets",
     "updateError": "La mise à jour a échoué — vérifie ta connexion et réessaie",
     "addError": "L'ajout a échoué — vérifie ta connexion et réessaie",
+    "undoError": "Impossible d'annuler — la prévision reste pointée",
     "close": "Fermer",
     "historyTitle": "Historique",
     "historySubtitle": "Revenus, dépenses et épargne",
@@ -973,7 +975,8 @@
       "title": "Prévisions à pointer",
       "count": "({{ count }})",
       "allCheckedMessage": "Toutes les prévisions sont pointées.",
-      "toggleAriaLabel": "Pointer {{ name }} — {{ amount }}"
+      "toggleAriaLabel": "Pointer {{ name }} — {{ amount }}",
+      "checked": "Pointé : {{ name }}"
     }
   },
   "currency": {

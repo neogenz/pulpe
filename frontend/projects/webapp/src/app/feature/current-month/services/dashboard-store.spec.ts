@@ -652,6 +652,73 @@ describe('DashboardStore - Business Scenarios', () => {
     });
   });
 
+  describe('User can undo a check', () => {
+    it('should clear checkedAt and put the line back in the unchecked list', async () => {
+      const budget = createMockBudget();
+      const line = createMockBudgetLine({
+        id: 'line-undo',
+        checkedAt: '2025-06-15T12:00:00Z',
+      });
+
+      const { store, budgetApi } = await setupWithBudgetAndWait(
+        budget,
+        [line],
+        [],
+      );
+      budgetApi.toggleBudgetLineCheck$.mockReturnValue(
+        of({ success: true, data: { ...line, checkedAt: null } }),
+      );
+
+      const isSuccess = await store.uncheckBudgetLine('line-undo');
+
+      expect(isSuccess).toBe(true);
+      expect(store.budgetLines()[0].checkedAt).toBeNull();
+      expect(store.uncheckedForecasts().length).toBe(1);
+    });
+
+    it('should restore the original timestamp when the undo is refused', async () => {
+      const budget = createMockBudget();
+      const line = createMockBudgetLine({
+        id: 'line-undo-fail',
+        checkedAt: '2025-06-15T12:00:00Z',
+      });
+
+      const { store, budgetApi } = await setupWithBudgetAndWait(
+        budget,
+        [line],
+        [],
+      );
+      budgetApi.toggleBudgetLineCheck$.mockReturnValue(
+        throwError(() => new Error('Toggle failed')),
+      );
+
+      const isSuccess = await store.uncheckBudgetLine('line-undo-fail');
+
+      expect(isSuccess).toBe(false);
+      expect(store.budgetLines()[0].checkedAt).toBe('2025-06-15T12:00:00Z');
+      expect(store.pendingChecks().size).toBe(0);
+    });
+
+    it('should report failure rather than silence when there is nothing to undo', async () => {
+      const budget = createMockBudget();
+      const line = createMockBudgetLine({
+        id: 'line-never-checked',
+        checkedAt: null,
+      });
+
+      const { store, budgetApi } = await setupWithBudgetAndWait(
+        budget,
+        [line],
+        [],
+      );
+
+      const isSuccess = await store.uncheckBudgetLine('line-never-checked');
+
+      expect(isSuccess).toBe(false);
+      expect(budgetApi.toggleBudgetLineCheck$).not.toHaveBeenCalled();
+    });
+  });
+
   describe('Computed selectors', () => {
     it('should return recentTransactions sorted by date desc, limited to 5', async () => {
       const budget = createMockBudget();

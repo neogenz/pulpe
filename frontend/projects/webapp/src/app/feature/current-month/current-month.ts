@@ -42,6 +42,11 @@ import { DashboardNextMonth } from './components/dashboard-next-month';
 import { UserSettingsStore } from '@core/user-settings';
 import { CURRENCY_CONFIG } from '@core/currency';
 
+// Longer than the plain notification below: this toast is not read, it is
+// reached. It has to survive the user noticing the mistake and travelling to
+// the button.
+const UNDO_WINDOW_MS = 6000;
+
 @Component({
   selector: 'pulpe-dashboard',
   imports: [
@@ -374,9 +379,43 @@ export default class Dashboard {
   }
 
   protected async checkBudgetLine(budgetLineId: string): Promise<void> {
+    // Read before the mutation: a pointed line leaves `uncheckedForecasts`, so
+    // afterwards there is no name left to put in the message.
+    const name = this.store
+      .uncheckedForecasts()
+      .find((line) => line.id === budgetLineId)?.name;
+
     const isSuccess = await this.store.checkBudgetLine(budgetLineId);
     if (!isSuccess) {
       this.#notify(this.#transloco.translate('currentMonth.updateError'));
+      return;
+    }
+    // Undefined means the store treated this as a no-op — a second tap on a
+    // line already gone. Nothing happened, so nothing is confirmed or undone.
+    if (name === undefined) return;
+
+    this.#confirmCheckWithUndo(budgetLineId, name);
+  }
+
+  // The confirmation and the way back are one object. The toast's own live
+  // region is what tells a screen reader the write landed — until now the
+  // action was silent — and its button is the only reversal available here,
+  // since a pointed line leaves the page and takes its own toggle with it.
+  #confirmCheckWithUndo(budgetLineId: string, name: string): void {
+    const ref = this.#snackBar.open(
+      this.#transloco.translate('currentMonth.uncheckedForecasts.checked', {
+        name,
+      }),
+      this.#transloco.translate('common.undo'),
+      { duration: UNDO_WINDOW_MS, politeness: 'polite' },
+    );
+    ref.onAction().subscribe(() => void this.#undoCheck(budgetLineId));
+  }
+
+  async #undoCheck(budgetLineId: string): Promise<void> {
+    const isSuccess = await this.store.uncheckBudgetLine(budgetLineId);
+    if (!isSuccess) {
+      this.#notify(this.#transloco.translate('currentMonth.undoError'));
     }
   }
 

@@ -380,8 +380,30 @@ export class DashboardStore {
     const budgetLine = this.budgetLines().find((l) => l.id === budgetLineId);
     if (!budgetLine || budgetLine.checkedAt !== null) return true;
 
+    return this.#sendCheckToggle(budgetLineId, new Date().toISOString(), null);
+  }
+
+  // The reversal behind the confirmation toast. Same endpoint — the route is a
+  // toggle — with the guards mirrored, but a no-op answers `false` rather than
+  // the `true` above: the caller has just promised the user an undo, so
+  // "there was nothing left to undo" is an outcome to surface, not a silent
+  // success the way a double tap on the check is.
+  async uncheckBudgetLine(budgetLineId: string): Promise<boolean> {
+    if (this.#pendingChecks().has(budgetLineId)) return false;
+    const budgetLine = this.budgetLines().find((l) => l.id === budgetLineId);
+    if (!budgetLine || budgetLine.checkedAt === null) return false;
+
+    return this.#sendCheckToggle(budgetLineId, null, budgetLine.checkedAt);
+  }
+
+  // ── 6. Private utils ──
+  async #sendCheckToggle(
+    budgetLineId: string,
+    optimisticCheckedAt: string | null,
+    rollbackCheckedAt: string | null,
+  ): Promise<boolean> {
     this.#pendingChecks.update((s) => new Set([...s, budgetLineId]));
-    this.#patchBudgetLineCheckedAt(budgetLineId, new Date().toISOString());
+    this.#patchBudgetLineCheckedAt(budgetLineId, optimisticCheckedAt);
 
     try {
       await firstValueFrom(
@@ -392,7 +414,7 @@ export class DashboardStore {
       }
       return true;
     } catch (error: unknown) {
-      this.#patchBudgetLineCheckedAt(budgetLineId, null);
+      this.#patchBudgetLineCheckedAt(budgetLineId, rollbackCheckedAt);
       this.#logger.error('Toggle budget line check failed', {
         budgetLineId,
         error,
@@ -408,7 +430,6 @@ export class DashboardStore {
     }
   }
 
-  // ── 6. Private utils ──
   #updateDashboard(fn: (data: DashboardData) => DashboardData): void {
     const current = this.#dashboardResource.value();
     if (!current) return;

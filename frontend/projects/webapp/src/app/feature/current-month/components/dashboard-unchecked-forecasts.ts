@@ -1,12 +1,17 @@
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
   DestroyRef,
+  type ElementRef,
   inject,
+  Injector,
   input,
   linkedSignal,
   output,
+  viewChild,
+  viewChildren,
 } from '@angular/core';
 
 import { MatRipple } from '@angular/material/core';
@@ -91,6 +96,7 @@ interface AnimatingForecast {
                 data-testid="dashboard-forecasts-row"
               >
                 <button
+                  #forecastToggle
                   class="shrink-0 flex items-center justify-center w-11 h-11 -m-2 rounded-full cursor-pointer"
                   matRipple
                   [matRippleCentered]="true"
@@ -145,8 +151,13 @@ interface AnimatingForecast {
             }
           </div>
         } @else {
+          <!-- Focusable so the last check has somewhere to land: clearing the
+               final row leaves no toggle button to inherit focus, and the
+               reward message is the right thing to read at that moment. -->
           <div
-            class="p-8 flex flex-col items-center justify-center text-center h-full"
+            #emptyState
+            tabindex="-1"
+            class="p-8 flex flex-col items-center justify-center text-center h-full outline-none"
             data-testid="dashboard-forecasts-empty-state"
           >
             <div
@@ -205,6 +216,13 @@ export class DashboardUncheckedForecasts {
   readonly viewBudget = output<void>();
 
   readonly #destroyRef = inject(DestroyRef);
+  readonly #injector = inject(Injector);
+
+  // NG1053 forbids ES-private on view queries.
+  private readonly toggleButtons =
+    viewChildren<ElementRef<HTMLButtonElement>>('forecastToggle');
+  private readonly emptyState =
+    viewChild<ElementRef<HTMLElement>>('emptyState');
 
   // linkedSignal: writable derived state. Computation runs on `forecasts()`
   // change and strips entries whose id has reappeared (rollback). Manual
@@ -310,11 +328,35 @@ export class DashboardUncheckedForecasts {
 
   #removeGhost(forecastId: string): void {
     this.#clearGhostTimer(forecastId);
+    const vacatedIndex = this.#animatingOut().get(forecastId)?.originalIndex;
     this.#animatingOut.update((current) => {
       if (!current.has(forecastId)) return current;
       const next = new Map(current);
       next.delete(forecastId);
       return next;
     });
+    if (vacatedIndex !== undefined) this.#restoreFocusAt(vacatedIndex);
+  }
+
+  // The button the user was standing on leaves with its row, and the browser
+  // drops focus to `<body>` — so a keyboard user has to re-cross the whole page
+  // to reach the next line, eighteen times to clear the list. Focus goes to
+  // whichever toggle now occupies that slot. A programmatic `focus()` only
+  // matches `:focus-visible` when the last interaction was a key press, so a
+  // mouse user inherits the tab position without inheriting a ring.
+  #restoreFocusAt(vacatedIndex: number): void {
+    afterNextRender(
+      () => {
+        const buttons = this.toggleButtons();
+        if (buttons.length === 0) {
+          this.emptyState()?.nativeElement.focus();
+          return;
+        }
+        buttons[
+          Math.min(vacatedIndex, buttons.length - 1)
+        ]?.nativeElement.focus();
+      },
+      { injector: this.#injector },
+    );
   }
 }
