@@ -78,6 +78,11 @@ describe('ProductTourService', () => {
     localStorage.clear();
     document.body.replaceChildren();
     vi.clearAllMocks();
+    // `vi.hoisted` builds this factory once for the file, but the `afterEach`
+    // below restores every mock — which strips a `vi.fn(impl)` back to a bare
+    // stub returning `undefined`. Re-arm it here so each test gets the driver
+    // double rather than the leftovers of the previous one.
+    driverMocks.factory.mockReturnValue(driverMocks.instance);
     mockCurrentUser = { id: 'test-user-123' };
 
     const mockAuthStore = {
