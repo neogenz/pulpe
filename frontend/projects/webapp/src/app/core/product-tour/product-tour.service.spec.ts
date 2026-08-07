@@ -1,30 +1,28 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
-import { ProductTourService, type TourPageId } from './product-tour.service';
+import {
+  DRIVER_FACTORY,
+  ProductTourService,
+  type TourPageId,
+} from './product-tour.service';
 import { AuthStore } from '@core/auth';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import type { Config, DriveStep, Driver } from 'driver.js';
 
-const driverMocks = vi.hoisted(() => {
-  const instance = {
-    setConfig: vi.fn(),
-    setSteps: vi.fn(),
-    drive: vi.fn(),
-    destroy: vi.fn(),
-    isLastStep: vi.fn(),
-    moveNext: vi.fn(),
-  };
+const driverInstance = {
+  setConfig: vi.fn(),
+  setSteps: vi.fn(),
+  drive: vi.fn(),
+  destroy: vi.fn(),
+  isLastStep: vi.fn(),
+  moveNext: vi.fn(),
+};
 
-  return {
-    factory: vi.fn(() => instance),
-    instance,
-  };
-});
-
-vi.mock('driver.js', () => ({
-  driver: driverMocks.factory,
-}));
+const driverMocks = {
+  factory: vi.fn(() => driverInstance),
+  instance: driverInstance,
+};
 
 /**
  * Generate a tour storage key for testing.
@@ -78,10 +76,10 @@ describe('ProductTourService', () => {
     localStorage.clear();
     document.body.replaceChildren();
     vi.clearAllMocks();
-    // `vi.hoisted` builds this factory once for the file, but the `afterEach`
-    // below restores every mock — which strips a `vi.fn(impl)` back to a bare
-    // stub returning `undefined`. Re-arm it here so each test gets the driver
-    // double rather than the leftovers of the previous one.
+    // The factory is built once for the file, but the `afterEach` below restores
+    // every mock — which strips a `vi.fn(impl)` back to a bare stub returning
+    // `undefined`. Re-arm it here so each test gets the driver double rather
+    // than the leftovers of the previous one.
     driverMocks.factory.mockReturnValue(driverMocks.instance);
     mockCurrentUser = { id: 'test-user-123' };
 
@@ -94,6 +92,7 @@ describe('ProductTourService', () => {
         provideZonelessChangeDetection(),
         ...provideTranslocoForTest(),
         ProductTourService,
+        { provide: DRIVER_FACTORY, useValue: driverMocks.factory },
         { provide: AuthStore, useValue: mockAuthStore },
       ],
     });
