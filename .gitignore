@@ -146,6 +146,3 @@ supabase-migration-20260210/
 
 # asc CLI build artifacts (xcarchive, IPA, logs)
 .asc/
-
-# impeccable design-tool byproducts (local only)
-.impeccable/

@@ -253,12 +253,6 @@
       "skillPath": "plugins/cicd-automation/skills/github-actions-templates/SKILL.md",
       "computedHash": "93e92fd674dea084628e95f9c48af806f9672ac08f815c84f85adedb55742c59"
     },
-    "impeccable": {
-      "source": "pbakaus/impeccable",
-      "sourceType": "github",
-      "skillPath": ".agents/skills/impeccable/SKILL.md",
-      "computedHash": "d28c91b173fd8563f34dd5d9590d194e820a96ca6ae401453e39c72e9f908463"
-    },
     "improve-animations": {
       "source": "emilkowalski/skills",
       "sourceType": "github",

@@ -1,0 +1,230 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-06T17:05:36Z",
+  "title": "Design System: Pulpe Webapp",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Forêt Pulpe",
+        "canonical": "#006E25",
+        "tonalRamp": ["#002106", "#00390F", "#00531A", "#006E25", "#48A353", "#7EDB83", "#C7FFC4", "#F6FFF0"]
+      },
+      "primary-hover": {
+        "role": "primary",
+        "displayName": "Forêt vive",
+        "canonical": "#2B883B",
+        "tonalRamp": ["#002106", "#00390F", "#00531A", "#006E25", "#2B883B", "#63BF6B", "#99F89D", "#EBFFE6"]
+      },
+      "on-primary": {
+        "role": "neutral",
+        "displayName": "Blanc sur forêt",
+        "canonical": "#FFFFFF",
+        "tonalRamp": ["#181D17", "#434841", "#737970", "#A7ADA4", "#C3C8BE", "#DFE4DA", "#F0F5EB", "#FFFFFF"]
+      },
+      "secondary": {
+        "role": "secondary",
+        "displayName": "Sauge structurante",
+        "canonical": "#406741",
+        "tonalRamp": ["#002106", "#113817", "#294F2B", "#406741", "#729B70", "#A6D2A3", "#CFFDCB", "#F6FFF1"]
+      },
+      "tertiary": {
+        "role": "tertiary",
+        "displayName": "Lac informatif",
+        "canonical": "#0061A6",
+        "tonalRamp": ["#001C37", "#003259", "#00497E", "#0061A6", "#5194DC", "#A0CAFF", "#EAF1FF", "#FDFCFF"]
+      },
+      "expense": {
+        "role": "secondary",
+        "displayName": "Ambre dépense",
+        "canonical": "#B35800",
+        "tonalRamp": ["#321400", "#572300", "#7C3900", "#B35800", "#D77B2E", "#F0A050", "#FFDCC2", "#FFF8F4"]
+      },
+      "warning": {
+        "role": "secondary",
+        "displayName": "Or de vigilance",
+        "canonical": "#B8860B",
+        "tonalRamp": ["#2E2100", "#4C3700", "#715300", "#936B00", "#B8860B", "#D4A017", "#F5D77A", "#FFF8DC"]
+      },
+      "critical": {
+        "role": "secondary",
+        "displayName": "Rouge critique",
+        "canonical": "#BA1A1A",
+        "tonalRamp": ["#410002", "#690004", "#930009", "#BA1A1A", "#DE372F", "#FF897D", "#FFDAD5", "#FFF8F7"]
+      },
+      "warm-canvas": {
+        "role": "neutral",
+        "displayName": "Toile chaude",
+        "canonical": "#F7F6F3",
+        "tonalRamp": ["#1A1917", "#353330", "#55524E", "#77736D", "#A09B94", "#CAC5BE", "#E9E5DF", "#F7F6F3"]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Brume sauge",
+        "canonical": "#F6FBF1",
+        "tonalRamp": ["#181D17", "#2C322B", "#434841", "#737970", "#A7ADA4", "#DFE4DA", "#F0F5EB", "#F9FEF3"]
+      },
+      "surface-container": {
+        "role": "neutral",
+        "displayName": "Brume structurée",
+        "canonical": "#EAF0E5",
+        "tonalRamp": ["#181D17", "#2C322B", "#434841", "#737970", "#A7ADA4", "#DFE4DA", "#EAF0E5", "#F9FEF3"]
+      },
+      "surface-container-high": {
+        "role": "neutral",
+        "displayName": "Brume dense",
+        "canonical": "#E5EAE0",
+        "tonalRamp": ["#181D17", "#2C322B", "#434841", "#737970", "#A7ADA4", "#DFE4DA", "#E5EAE0", "#F9FEF3"]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Encre végétale",
+        "canonical": "#181D17",
+        "tonalRamp": ["#0A0F0A", "#181D17", "#2C322B", "#434841", "#737970", "#A7ADA4", "#DFE4DA", "#F9FEF3"]
+      },
+      "text-secondary": {
+        "role": "neutral",
+        "displayName": "Encre secondaire",
+        "canonical": "#434841",
+        "tonalRamp": ["#10150F", "#262B25", "#434841", "#5A6058", "#8D9289", "#C3C8BE", "#E5EAE0", "#F9FEF3"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Montant dominant", "purpose": "Héros financiers et chiffres de premier niveau." },
+      "headline": { "displayName": "Titre de page", "purpose": "Hiérarchie de page et sections majeures." },
+      "title": { "displayName": "Titre fonctionnel", "purpose": "Cartes, dialogues et groupes." },
+      "body": { "displayName": "Lecture", "purpose": "Formulaires, explications et données secondaires." },
+      "label": { "displayName": "Action", "purpose": "Boutons, filtres et métadonnées." }
+    },
+    "shadows": [
+      {
+        "name": "entry-ambient",
+        "value": "0 1px 2px color-mix(in srgb, var(--mat-sys-primary) 5%, transparent), 0 8px 20px -10px color-mix(in srgb, var(--mat-sys-primary) 11%, transparent), 0 20px 40px -20px color-mix(in srgb, var(--mat-sys-primary) 7%, transparent)",
+        "purpose": "Carte pré-authentifiée émergeant du halo de marque."
+      },
+      {
+        "name": "primary-action",
+        "value": "inset 0 1px 0 rgba(255,255,255,.18), 0 1px 2px rgba(0,0,0,.04), 0 10px 24px -10px color-mix(in srgb, var(--mat-sys-primary) 30%, transparent)",
+        "purpose": "CTA principal uniquement."
+      },
+      {
+        "name": "material-level-2",
+        "value": "var(--mat-sys-level2)",
+        "purpose": "Héros interactif et surfaces dont l'élévation traduit un état."
+      }
+    ],
+    "motion": [
+      { "name": "fast", "value": "150ms cubic-bezier(0.2, 0, 0, 1)", "purpose": "Réponse locale : couleur, sélection, presse." },
+      { "name": "base", "value": "220ms cubic-bezier(0.2, 0, 0, 1)", "purpose": "Transition standard des contrôles." },
+      { "name": "slow", "value": "320ms cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Entrée d'un panneau ou changement de composition." },
+      { "name": "reduced", "value": "prefers-reduced-motion: reduce", "purpose": "Supprime les déplacements et révèle immédiatement l'état final." }
+    ],
+    "breakpoints": [
+      { "name": "handset-portrait", "value": "600px" },
+      { "name": "handset-landscape", "value": "960px" },
+      { "name": "content-md", "value": "768px" },
+      { "name": "content-xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Action dominante Material, capsule de 48px avec relief teinté.",
+      "html": "<button class=\"ds-btn-primary\">Créer mon budget</button>",
+      "css": ".ds-btn-primary{min-height:48px;padding:0 24px;border:0;border-radius:9999px;background:var(--mat-sys-primary,#006e25);color:var(--mat-sys-on-primary,#fff);font:600 14px/1.25 'DM Sans',sans-serif;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 10px 24px -10px rgba(0,110,37,.3);transition:transform 220ms cubic-bezier(.2,0,0,1),box-shadow 220ms cubic-bezier(.2,0,0,1);cursor:pointer}.ds-btn-primary:hover{transform:translateY(-1px);background:#2b883b}.ds-btn-primary:active{transform:none}.ds-btn-primary:focus-visible{outline:3px solid color-mix(in srgb,var(--mat-sys-primary,#006e25) 35%,transparent);outline-offset:3px}"
+    },
+    {
+      "name": "Outlined Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Action secondaire calme, sans concurrencer le CTA rempli.",
+      "html": "<button class=\"ds-btn-outlined\">Voir le détail</button>",
+      "css": ".ds-btn-outlined{min-height:48px;padding:0 24px;border:1px solid var(--mat-sys-outline,#6f7a6d);border-radius:9999px;background:transparent;color:var(--mat-sys-primary,#006e25);font:600 14px/1.25 'DM Sans',sans-serif;transition:background 150ms cubic-bezier(.2,0,0,1),transform 150ms cubic-bezier(.2,0,0,1);cursor:pointer}.ds-btn-outlined:hover{background:color-mix(in srgb,var(--mat-sys-primary,#006e25) 7%,transparent)}.ds-btn-outlined:active{transform:scale(.98)}.ds-btn-outlined:focus-visible{outline:3px solid color-mix(in srgb,var(--mat-sys-primary,#006e25) 35%,transparent);outline-offset:3px}"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "search-field",
+      "description": "Recherche immédiate de 56px, tonale et entièrement arrondie.",
+      "html": "<label class=\"ds-search\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"m20 20-4-4\"/></svg><input type=\"search\" placeholder=\"Rechercher…\"></label>",
+      "css": ".ds-search{height:56px;padding:0 16px;display:flex;align-items:center;gap:12px;border-radius:9999px;background:var(--mat-sys-surface-container-high,#e5eae0);color:var(--mat-sys-on-surface-variant,#434841);border:1px solid transparent}.ds-search:focus-within{border-color:var(--mat-sys-primary,#006e25);box-shadow:0 0 0 3px color-mix(in srgb,var(--mat-sys-primary,#006e25) 15%,transparent)}.ds-search svg{width:22px;fill:none;stroke:currentColor;stroke-width:1.8}.ds-search input{min-width:0;flex:1;border:0;outline:0;background:transparent;color:var(--mat-sys-on-surface,#181d17);font:400 16px/1.5 'DM Sans',sans-serif}.ds-search input::placeholder{color:var(--mat-sys-on-surface-variant,#434841)}"
+    },
+    {
+      "name": "Financial Pill",
+      "kind": "chip",
+      "refersTo": "financial-pill",
+      "description": "Résumé financier compact où le libellé double toujours la couleur.",
+      "html": "<div class=\"ds-pill\"><span class=\"ds-pill-label\">Épargne</span><strong>500 CHF</strong></div>",
+      "css": ".ds-pill{display:inline-flex;flex-direction:column;gap:1px;padding:10px 16px;border-radius:9999px;background:var(--mat-sys-primary-container,#99f89d);color:var(--mat-sys-on-primary-container,#002106);font-family:'DM Sans',sans-serif}.ds-pill-label{font-size:11px;line-height:1.2}.ds-pill strong{font-size:14px;line-height:1.25;font-weight:700;font-variant-numeric:tabular-nums}"
+    },
+    {
+      "name": "Financial Line Card",
+      "kind": "card",
+      "refersTo": "content-card",
+      "description": "Carte scannable d'une prévision, avec type, libellé et montant aligné.",
+      "html": "<article class=\"ds-line-card\"><div class=\"ds-line-kind\">DÉPENSE</div><div class=\"ds-line-row\"><strong>Loyer</strong><span>1’850 CHF</span></div><div class=\"ds-line-meta\">Récurrent · À pointer</div></article>",
+      "css": ".ds-line-card{padding:16px;border:1px solid var(--mat-sys-outline-variant,#bfcaba);border-radius:16px;background:var(--mat-sys-surface,#f6fbf1);color:var(--mat-sys-on-surface,#181d17);font-family:'DM Sans',sans-serif}.ds-line-kind{margin-bottom:8px;color:#b35800;font-size:11px;font-weight:700;letter-spacing:.08em}.ds-line-row{display:flex;align-items:baseline;justify-content:space-between;gap:20px}.ds-line-row strong{font:600 18px/1.25 Manrope,sans-serif}.ds-line-row span{font-weight:700;font-variant-numeric:tabular-nums}.ds-line-meta{margin-top:10px;color:var(--mat-sys-on-surface-variant,#434841);font-size:13px}"
+    },
+    {
+      "name": "Dashboard Hero",
+      "kind": "custom",
+      "refersTo": "content-card",
+      "description": "Signature opérationnelle : état financier, montant disponible et progression.",
+      "html": "<section class=\"ds-hero\"><span class=\"ds-hero-kicker\">MOIS EN COURS</span><strong class=\"ds-hero-amount\">2’430 <small>CHF</small></strong><div class=\"ds-progress\"><span></span></div><p>Dépensé 2’570 CHF sur 5’000 CHF</p></section>",
+      "css": ".ds-hero{padding:24px;border-radius:32px;background:linear-gradient(145deg,var(--pulpe-hero-primary,#006e25),#00390f);color:var(--pulpe-hero-primary-text,#fff);box-shadow:var(--mat-sys-level2,0 2px 8px rgba(0,0,0,.14));font-family:'DM Sans',sans-serif}.ds-hero-kicker{font-size:12px;font-weight:700;letter-spacing:.1em}.ds-hero-amount{display:block;margin:22px 0 26px;font:800 48px/1 Manrope,sans-serif;font-variant-numeric:tabular-nums}.ds-hero-amount small{font-size:18px;opacity:.72}.ds-progress{height:12px;overflow:hidden;border-radius:9999px;background:rgba(0,0,0,.12)}.ds-progress span{display:block;width:51%;height:100%;border-radius:inherit;background:currentColor}.ds-hero p{margin:9px 0 0;font-size:12px;opacity:.8}"
+    },
+    {
+      "name": "Navigation Rail Item",
+      "kind": "nav",
+      "refersTo": "financial-pill",
+      "description": "Item desktop compact, actif par capsule et libellé explicite.",
+      "html": "<a class=\"ds-rail-item\" href=\"#\"><span><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 10.5 12 4l8 6.5V20H4Z\"/></svg></span><strong>Accueil</strong></a>",
+      "css": ".ds-rail-item{display:inline-flex;flex-direction:column;align-items:center;gap:5px;color:var(--mat-sys-on-surface,#181d17);font:500 12px/1.2 'DM Sans',sans-serif;text-decoration:none}.ds-rail-item span{width:64px;height:36px;display:grid;place-items:center;border-radius:9999px;background:var(--mat-sys-secondary-container,#c1eebe);color:var(--mat-sys-on-secondary-container,#113817);transition:transform 200ms,background 200ms}.ds-rail-item svg{width:24px;fill:currentColor}.ds-rail-item:hover span{transform:scale(1.05)}.ds-rail-item:focus-visible{outline:3px solid var(--mat-sys-primary,#006e25);outline-offset:4px;border-radius:8px}"
+    },
+    {
+      "name": "State Card",
+      "kind": "card",
+      "refersTo": "content-card",
+      "description": "État vide ou erreur guidé, centré sur une explication et une seule action.",
+      "html": "<section class=\"ds-state\"><strong>Rien à pointer</strong><p>Tes prévisions sont à jour pour ce mois.</p><button>Voir le budget</button></section>",
+      "css": ".ds-state{max-width:520px;padding:32px;border:1px solid var(--mat-sys-outline-variant,#bfcaba);border-radius:16px;background:var(--mat-sys-surface,#f6fbf1);color:var(--mat-sys-on-surface,#181d17);text-align:center;font-family:'DM Sans',sans-serif}.ds-state strong{font:600 22px/1.25 Manrope,sans-serif}.ds-state p{margin:10px 0 22px;color:var(--mat-sys-on-surface-variant,#434841)}.ds-state button{min-height:44px;padding:0 20px;border:0;border-radius:9999px;background:var(--mat-sys-secondary-container,#c1eebe);color:var(--mat-sys-on-secondary-container,#113817);font-weight:600}.ds-state button:hover{filter:brightness(.97)}.ds-state button:focus-visible{outline:3px solid var(--mat-sys-primary,#006e25);outline-offset:3px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Un grand bol d'air frais après avoir fermé Excel.",
+    "overview": "La webapp traduit cette promesse en précision suisse chaleureuse : une information financière dense mais jamais oppressante, des surfaces calmes et une hiérarchie immédiatement lisible. Le premium vient de l'alignement, de la cohérence des états et du soin des transitions, pas d'une accumulation d'effets.\n\nAngular Material 3 fournit les fondations accessibles et les états natifs. Tailwind v4 compose les interfaces, tandis que les variables `--pulpe-*` portent les notions propres au produit. Cette séparation est structurelle : les fonctionnalités consomment les rôles sémantiques, jamais les détails internes de Material.",
+    "keyCharacteristics": [
+      "Densité opérationnelle maîtrisée, pensée pour le scan quotidien et la planification mensuelle.",
+      "Palette financière sémantique : revenu bleu, dépense ambre, épargne verte, déficit rouge.",
+      "Surfaces Material tonales en usage authentifié ; halo de marque réservé aux parcours d'entrée.",
+      "Manrope pour les titres et montants dominants, DM Sans pour les actions et la lecture.",
+      "Mouvement court, doux et désactivable ; aucune animation nécessaire à la compréhension."
+    ],
+    "rules": [
+      { "name": "The Semantic Color Rule", "body": "Une fonctionnalité utilise `--pulpe-financial-*` ou une classe sémantique associée ; elle ne choisit jamais directement une teinte Material.", "section": "colors" },
+      { "name": "The Rare Red Rule", "body": "Le rouge signale un déficit global ou une erreur réelle. Une dépense ordinaire et un dépassement d'enveloppe restent ambre.", "section": "colors" },
+      { "name": "The Three-Layer Token Rule", "body": "`--mat-sys-*` fonde le thème, Tailwind compose, `--pulpe-*` exprime le domaine. Les fonctionnalités ne lisent pas directement la fondation Material lorsqu'un rôle Pulpe existe.", "section": "colors" },
+      { "name": "The Two-Family Rule", "body": "Manrope porte la hiérarchie de marque ; DM Sans porte l'interface. Aucune troisième famille n'entre dans le chrome.", "section": "typography" },
+      { "name": "The Stable Amount Rule", "body": "Tout montant utilise des chiffres tabulaires et conserve son unité à un niveau visuel secondaire.", "section": "typography" },
+      { "name": "The Responsive Ownership Rule", "body": "Le breakpoint Angular et le propriétaire du scroll doivent toujours basculer ensemble ; aucun composant ne recrée sa propre définition du handset.", "section": "layout" },
+      { "name": "The One Primary Action Rule", "body": "Une page présente une seule action remplie dominante. Les actions concurrentes passent en tonal, outlined, texte ou menu.", "section": "layout" },
+      { "name": "The Tonal-First Rule", "body": "Une différence de niveau commence par une surface Material ; une ombre n'est ajoutée que si l'élément flotte ou répond à une interaction.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do utiliser les tokens sémantiques Pulpe pour chaque état financier.",
+      "Do conserver Manrope pour la hiérarchie et DM Sans pour l'interface.",
+      "Do utiliser les mixins `mat.*-overrides()` pour adapter Material.",
+      "Do respecter `prefers-reduced-motion` et conserver le contenu final visible sans animation.",
+      "Do aligner les montants avec des chiffres tabulaires et des unités discrètes."
+    ],
+    "donts": [
+      "Don't utiliser `::ng-deep`, les anciens attributs `mat-flat-button` ou une surcharge CSS globale improvisée.",
+      "Don't lire directement `--mat-sys-*` depuis une fonctionnalité lorsqu'un token `--pulpe-*` décrit le besoin.",
+      "Don't appliquer du rouge à une dépense ou un dépassement local.",
+      "Don't ajouter une ombre à une surface qui peut être hiérarchisée par son ton.",
+      "Don't recréer un chip, un état vide ou un bouton de chargement déjà présent dans `app/ui` ou `app/pattern`."
+    ]
+  }
+}
