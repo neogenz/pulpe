@@ -4,9 +4,10 @@
 --    fail closed before touching any ciphertext once a plan-only withdrawal
 --    exists. The v2 wrapper rekeys every table and writes key_check last.
 -- 2. Every plan RPC now takes the same per-goal lock and row-lock order as a
---    withdrawal realization. The additive five-argument destination RPC also
---    compares the balance revision that the backend read before decrypting and
---    validating the projected stock.
+--    withdrawal realization. The destination RPC also compares the balance
+--    revision that the backend read before decrypting and validating the
+--    projected stock, and it is the only entry point on that name: a caller
+--    cannot land on a variant that skips the comparison.
 
 -- ---------------------------------------------------------------------------
 -- 1. Rekey: one historical core, a fail-closed legacy wrapper, one complete v2
@@ -194,45 +195,12 @@ REVOKE ALL ON FUNCTION public.apply_savings_goal_plan_with_destinations_core(
   uuid, int, jsonb, jsonb
 ) FROM PUBLIC, anon, authenticated, service_role;
 
--- Compatibility entry point for already deployed clients. It cannot provide
--- a revision CAS, but it does serialize with realizations and therefore cannot
--- interleave its representation changes with a Real write.
-CREATE OR REPLACE FUNCTION public.apply_savings_goal_plan_with_destinations(
-  p_goal_id uuid,
-  p_min_period_index int,
-  p_line_updates jsonb DEFAULT '[]'::jsonb,
-  p_plan_withdrawals jsonb DEFAULT '[]'::jsonb
-) RETURNS jsonb
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO ''
-AS $$
-DECLARE
-  v_uid uuid := (SELECT auth.uid());
-BEGIN
-  IF v_uid IS NULL THEN
-    RAISE EXCEPTION 'Not authenticated' USING ERRCODE = 'P0001';
-  END IF;
+-- No four-argument entry point is recreated on this name. It was introduced by
+-- 20260808150000 in this same unreleased series, so no deployed client can call
+-- it, and keeping it would leave a variant that writes a withdrawal against a
+-- balance revision nobody compared.
 
-  PERFORM pg_advisory_xact_lock(
-    hashtext('savings_goal_withdrawal'),
-    hashtext(p_goal_id::text)
-  );
-  PERFORM 1
-  FROM public.savings_goal sg
-  WHERE sg.id = p_goal_id AND sg.user_id = v_uid
-  FOR UPDATE;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Savings goal access denied' USING ERRCODE = 'P0001';
-  END IF;
-
-  RETURN public.apply_savings_goal_plan_with_destinations_core(
-    p_goal_id, p_min_period_index, p_line_updates, p_plan_withdrawals
-  );
-END;
-$$;
-
--- Current backend entry point. The expected revision was read before the
+-- Sole entry point. The expected revision was read before the
 -- decrypted balance inputs; the shared withdrawal lock validates it under the
 -- goal row lock before any plan representation can change.
 CREATE OR REPLACE FUNCTION public.apply_savings_goal_plan_with_destinations(
@@ -259,25 +227,16 @@ $$;
 ALTER FUNCTION public.apply_savings_goal_plan(uuid, int, jsonb, jsonb)
   OWNER TO postgres;
 ALTER FUNCTION public.apply_savings_goal_plan_with_destinations(
-  uuid, int, jsonb, jsonb
-) OWNER TO postgres;
-ALTER FUNCTION public.apply_savings_goal_plan_with_destinations(
   uuid, int, jsonb, jsonb, bigint
 ) OWNER TO postgres;
 
 REVOKE EXECUTE ON FUNCTION public.apply_savings_goal_plan(uuid, int, jsonb, jsonb)
   FROM PUBLIC, anon;
 REVOKE EXECUTE ON FUNCTION public.apply_savings_goal_plan_with_destinations(
-  uuid, int, jsonb, jsonb
-) FROM PUBLIC, anon;
-REVOKE EXECUTE ON FUNCTION public.apply_savings_goal_plan_with_destinations(
   uuid, int, jsonb, jsonb, bigint
 ) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.apply_savings_goal_plan(uuid, int, jsonb, jsonb)
   TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.apply_savings_goal_plan_with_destinations(
-  uuid, int, jsonb, jsonb
-) TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.apply_savings_goal_plan_with_destinations(
   uuid, int, jsonb, jsonb, bigint
 ) TO authenticated, service_role;

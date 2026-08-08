@@ -647,8 +647,8 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     goalId: string,
     monthAdjustments: SavingsGoalPlanMonthAdjustment[],
     minPeriodIndex: number,
-    planWithdrawalAdjustments: SavingsGoalPlanWithdrawalAdjustment[] = [],
-    expectedRevision?: number,
+    planWithdrawalAdjustments: SavingsGoalPlanWithdrawalAdjustment[],
+    expectedRevision: number,
   ): Promise<SavingsGoalPlanApplyResult> {
     const supabase = this.supabaseProvider.client;
     const user = this.supabaseProvider.user;
@@ -675,9 +675,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
         p_min_period_index: minPeriodIndex,
         p_line_updates: linePayload as never,
         p_plan_withdrawals: planWithdrawalPayload as never,
-        ...(expectedRevision === undefined
-          ? {}
-          : { p_expected_revision: expectedRevision }),
+        p_expected_revision: expectedRevision,
       },
     );
 

@@ -39,13 +39,14 @@ La DEK n'est jamais stockée. Un cache mémoire de 5 minutes évite de répéter
 
 Chaque table stocke les montants chiffrés dans une colonne texte (type `text`). La valeur est un ciphertext AES-256-GCM encodé en base64, ou `null` si aucun montant n'a été saisi.
 
-| Table            | Colonne chiffrée                                            |
-| ---------------- | ----------------------------------------------------------- |
-| `budget_line`    | `amount`, `original_amount`                                 |
-| `transaction`    | `amount`, `original_amount`                                 |
-| `template_line`  | `amount`, `original_amount`                                 |
-| `savings_goal`   | `target_amount`, `initial_amount`, `original_target_amount` |
-| `monthly_budget` | `ending_balance`                                            |
+| Table                          | Colonne chiffrée                                            |
+| ------------------------------ | ----------------------------------------------------------- |
+| `budget_line`                  | `amount`, `original_amount`                                 |
+| `transaction`                  | `amount`, `original_amount`                                 |
+| `template_line`                | `amount`, `original_amount`                                 |
+| `savings_goal`                 | `target_amount`, `initial_amount`, `original_target_amount` |
+| `monthly_budget`               | `ending_balance`                                            |
+| `savings_goal_plan_withdrawal` | `amount`                                                    |
 
 ### Colonnes plaintext liées mathématiquement aux montants chiffrés
 
@@ -107,9 +108,13 @@ Si le re-wrapping échoue après un re-chiffrement réussi, le `wrapped_dek` est
 
 ### Atomicité et pagination du rekey
 
-Le backend lit d'abord toutes les lignes chiffrées, page par page avec un ordre stable sur `id`. Les filtres contenant des identifiants parents sont découpés pour rester sous les limites d'URL PostgREST. Il construit puis valide ensuite la totalité des payloads avant d'appeler une seule fois `rekey_user_encrypted_data`.
+Le backend lit d'abord toutes les lignes chiffrées, page par page avec un ordre stable sur `id`. Les filtres contenant des identifiants parents sont découpés pour rester sous les limites d'URL PostgREST. Il construit puis valide ensuite la totalité des payloads avant d'appeler une seule fois `rekey_user_encrypted_data_with_plan_withdrawals`.
 
 Ce RPC met à jour atomiquement les ciphertexts et le nouveau `key_check`. Une erreur de lecture, y compris sur une page après les 1 000 premières lignes, interrompt donc le flux avant toute mutation. Après succès, le canary est lisible avec la nouvelle DEK et rejeté avec l'ancienne.
+
+L'ordre d'écriture est ce qui rend le canary honnête : le cœur partagé re-chiffre les cinq tables historiques **sans** canary, puis `savings_goal_plan_withdrawal` est mis à jour avec une assertion de nombre de lignes exact, et `key_check` n'est écrit qu'en dernier. Une ligne de retrait manquée fait donc échouer toute la transaction avant que la nouvelle clé ne soit certifiée.
+
+La signature historique `rekey_user_encrypted_data`, qui ignore cette table, subsiste uniquement pour un pod encore déployé pendant un rolling deploy. Elle échoue désormais sans aucune mutation dès que l'utilisateur possède au moins une ligne `savings_goal_plan_withdrawal`, sous verrou de table pour qu'une ligne ne puisse pas apparaître entre le contrôle et l'écriture. Preuve : `supabase/tests/rekey_plan_withdrawal_rolling_deploy.sql`.
 
 ### Rate limiting
 
@@ -262,7 +267,9 @@ Entre `20260212100000` et `20260804130000`, `authenticated` disposait de `GRANT 
 
 Depuis `20260804130000`, le rekey est appelé par `SupabaseEncryptionKeyRepository.rekeyUserData()` sur le client `service_role`, comme tous les autres accès à la table. `EXECUTE` sur le RPC est révoqué pour `authenticated` et `anon` : ni l'écriture directe ni l'appel forgé du RPC ne sont possibles avec un JWT utilisateur.
 
-Le RPC reste `SECURITY INVOKER`. Appelé par le `service_role` il n'est plus soumis au RLS, donc l'appartenance des lignes n'est plus garantie par les politiques : chaque `UPDATE` est explicitement borné à `p_user_id` (directement pour `savings_goal` et `monthly_budget`, via `monthly_budget` pour `budget_line` et `transaction`, via `template` pour `template_line`), et les assertions de nombre de lignes font échouer toute la transaction si un identifiant du payload n'appartient pas à l'utilisateur.
+Le cœur qui écrit les cinq tables historiques, `rekey_user_encrypted_data_core`, reste `SECURITY INVOKER`. Il n'est plus soumis au RLS, donc l'appartenance des lignes n'est plus garantie par les politiques : chaque `UPDATE` est explicitement borné à `p_user_id` (directement pour `savings_goal` et `monthly_budget`, via `monthly_budget` pour `budget_line` et `transaction`, via `template` pour `template_line`), et les assertions de nombre de lignes font échouer toute la transaction si un identifiant du payload n'appartient pas à l'utilisateur.
+
+Depuis `20260808170000`, ce cœur n'est atteignable que par ses deux points d'entrée, qui sont eux `SECURITY DEFINER` et possédés par `postgres` : `EXECUTE` est révoqué sur le cœur pour tous les rôles, `service_role` compris. C'est ce qui rend le garde-fou incontournable — sans cela, un appel direct au cœur sauterait la vérification des retraits de plan. Les deux points d'entrée sont eux-mêmes révoqués pour `authenticated` et `anon`, leur `search_path` est vide et leur corps est fixe, borné à `p_user_id` : le privilège supplémentaire ne s'applique qu'à des écritures déjà bornées.
 
 **Ne pas rétablir de `GRANT` sur cette table pour débloquer un flux** : le flux doit passer par le repository `service_role`.
 

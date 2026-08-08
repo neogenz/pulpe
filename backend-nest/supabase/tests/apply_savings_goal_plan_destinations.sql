@@ -1,4 +1,8 @@
 -- Atomic destination transitions for signed savings-goal plan withdrawals.
+--
+-- Every call quotes the revision certified at that moment, the way the backend
+-- does after its own guard. Rejecting a stale one is proven separately by
+-- savings_goal_plan_concurrency.sql.
 BEGIN;
 
 DO $$
@@ -41,7 +45,8 @@ BEGIN
     v_goal_id, v_min_index, '[]'::jsonb,
     jsonb_build_array(jsonb_build_object(
       'month', 6, 'year', 2030, 'amount', 'enc:4500', 'destination', 'goal_only'
-    ))
+    )),
+    (SELECT balance_revision FROM public.savings_goal WHERE id = v_goal_id)
   );
   SELECT amount INTO v_amount FROM public.savings_goal_plan_withdrawal
   WHERE savings_goal_id = v_goal_id AND month = 6 AND year = 2030;
@@ -51,7 +56,8 @@ BEGIN
     v_goal_id, v_min_index, '[]'::jsonb,
     jsonb_build_array(jsonb_build_object(
       'month', 6, 'year', 2030, 'amount', 'enc:4500-v2', 'destination', 'linked_income'
-    ))
+    )),
+    (SELECT balance_revision FROM public.savings_goal WHERE id = v_goal_id)
   );
   SELECT count(*) INTO v_count FROM public.savings_goal_plan_withdrawal
   WHERE savings_goal_id = v_goal_id AND month = 6 AND year = 2030;
@@ -73,7 +79,8 @@ BEGIN
       jsonb_build_array(jsonb_build_object(
         'budget_line_id', v_saving_line_id, 'amount', 'enc:2000'
       )),
-      '[]'::jsonb
+      '[]'::jsonb,
+      (SELECT balance_revision FROM public.savings_goal WHERE id = v_goal_id)
     );
   EXCEPTION WHEN OTHERS THEN
     v_caught := true;
@@ -88,7 +95,8 @@ BEGIN
     v_goal_id, v_min_index, '[]'::jsonb,
     jsonb_build_array(jsonb_build_object(
       'month', 6, 'year', 2030, 'amount', 'enc:3500', 'destination', 'goal_only'
-    ))
+    )),
+    (SELECT balance_revision FROM public.savings_goal WHERE id = v_goal_id)
   );
   SELECT count(*) INTO v_count FROM public.budget_line
   WHERE source_savings_goal_id = v_goal_id AND is_savings_goal_plan_adjustment;
@@ -98,7 +106,8 @@ BEGIN
     v_goal_id, v_min_index, '[]'::jsonb,
     jsonb_build_array(jsonb_build_object(
       'month', 6, 'year', 2030, 'amount', NULL, 'destination', 'goal_only'
-    ))
+    )),
+    (SELECT balance_revision FROM public.savings_goal WHERE id = v_goal_id)
   );
   SELECT count(*) INTO v_count FROM public.savings_goal_plan_withdrawal
   WHERE savings_goal_id = v_goal_id;
@@ -109,7 +118,8 @@ BEGIN
     v_goal_id, v_min_index, '[]'::jsonb,
     jsonb_build_array(jsonb_build_object(
       'month', 6, 'year', 2030, 'amount', 'enc:450'
-    ))
+    )),
+    (SELECT balance_revision FROM public.savings_goal WHERE id = v_goal_id)
   );
   SELECT count(*) INTO v_count FROM public.savings_goal_plan_withdrawal
   WHERE savings_goal_id = v_goal_id AND month = 6 AND year = 2030;
@@ -119,7 +129,8 @@ BEGIN
     v_goal_id, v_min_index, '[]'::jsonb,
     jsonb_build_array(jsonb_build_object(
       'month', 6, 'year', 2030, 'amount', NULL
-    ))
+    )),
+    (SELECT balance_revision FROM public.savings_goal WHERE id = v_goal_id)
   );
 
   -- A direct RPC caller cannot create both representations for one period.
@@ -134,7 +145,8 @@ BEGIN
         jsonb_build_object(
           'month', 6, 'year', 2030, 'amount', 'enc:450', 'destination', 'linked_income'
         )
-      )
+      ),
+      (SELECT balance_revision FROM public.savings_goal WHERE id = v_goal_id)
     );
   EXCEPTION WHEN OTHERS THEN
     v_caught := true;
@@ -160,7 +172,8 @@ BEGIN
       )),
       jsonb_build_array(jsonb_build_object(
         'month', 7, 'year', 2030, 'amount', 'enc:450', 'destination', 'linked_income'
-      ))
+      )),
+      (SELECT balance_revision FROM public.savings_goal WHERE id = v_goal_id)
     );
   EXCEPTION WHEN OTHERS THEN
     v_caught := true;
@@ -178,7 +191,8 @@ BEGIN
       v_goal_id, v_min_index, '[]'::jsonb,
       jsonb_build_array(jsonb_build_object(
         'month', 6, 'year', 2030, 'amount', 'enc:450', 'destination', 'goal_only'
-      ))
+      )),
+      (SELECT balance_revision FROM public.savings_goal WHERE id = v_goal_id)
     );
   EXCEPTION WHEN OTHERS THEN
     v_caught := true;

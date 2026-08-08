@@ -702,26 +702,16 @@ export type Database = {
           isSetofReturn: true;
         };
       };
-      apply_savings_goal_plan_with_destinations:
-        | {
-            Args: {
-              p_goal_id: string;
-              p_line_updates?: Json;
-              p_min_period_index: number;
-              p_plan_withdrawals?: Json;
-            };
-            Returns: Json;
-          }
-        | {
-            Args: {
-              p_expected_revision: number;
-              p_goal_id: string;
-              p_line_updates: Json;
-              p_min_period_index: number;
-              p_plan_withdrawals: Json;
-            };
-            Returns: Json;
-          };
+      apply_savings_goal_plan_with_destinations: {
+        Args: {
+          p_expected_revision: number;
+          p_goal_id: string;
+          p_line_updates: Json;
+          p_min_period_index: number;
+          p_plan_withdrawals: Json;
+        };
+        Returns: Json;
+      };
       apply_savings_goal_plan_with_destinations_core: {
         Args: {
           p_goal_id: string;

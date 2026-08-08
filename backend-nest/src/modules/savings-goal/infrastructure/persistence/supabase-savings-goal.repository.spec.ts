@@ -2065,7 +2065,13 @@ describe('SupabaseSavingsGoalRepository', () => {
         'applyPlan',
         'applySavingsGoalPlan',
         (repo) =>
-          repo.applyPlan(goalId, [{ budgetLineId: lineId, amount: 123 }], 0),
+          repo.applyPlan(
+            goalId,
+            [{ budgetLineId: lineId, amount: 123 }],
+            0,
+            [],
+            7,
+          ),
       ],
       [
         'applyGenerationStop',

@@ -410,6 +410,7 @@ Les montants sont chiffrés via `ENCRYPTION_PORT`. Une application dans la devis
 
 - ligne invalide ou mois non provisionnable : erreur 422 ;
 - ligne pointée ou période devenue passée pendant la simulation : conflit 409, puis relecture et nouvelle simulation ;
+- solde de l'objectif déplacé entre la garde et l'écriture : même conflit 409, la demande n'écrit rien ;
 - autre échec d'application : erreur serveur et retry sûr sur les budgets déjà provisionnés.
 
 Le client n'envoie pas de clé d'idempotence. La reprise est sûre pour des
@@ -418,8 +419,24 @@ l'écriture finale met une valeur à jour sous verrou.
 
 Les transitions de retrait (`goal_only ↔ linked_income`, montant modifié,
 suppression à zéro) sont sérialisées par objectif et idempotentes par valeur.
-L'ancienne RPC reste disponible ; la RPC additive à destinations supprime les
-deux représentations puis n'en recrée qu'une dans la même transaction.
+La RPC à destinations supprime les deux représentations puis n'en recrée qu'une
+dans la même transaction.
+
+Deux garanties se cumulent, et toutes deux comptent :
+
+- **Le verrou.** La RPC de plan prend le même verrou par objectif et le même
+  verrou de ligne qu'une réalisation de retrait. Un Réel ne peut donc pas
+  s'intercaler entre les suppressions et la recréation.
+- **La révision.** Le backend certifie `balance_revision` avant de déchiffrer et
+  de valider le stock projeté, et la RPC la recompare une fois le verrou obtenu.
+  Sérialiser ne suffit pas : sans cette comparaison, un plan calculé sur un solde
+  déjà déplacé s'appliquerait quand même. La RPC à destinations exige donc la
+  révision, et c'est son unique point d'entrée — aucune variante ne permet de
+  l'omettre. Preuve : `supabase/tests/savings_goal_plan_concurrency.sql`.
+
+`apply_savings_goal_plan`, qui n'écrit que des lignes et aucun retrait, reste
+disponible pour un pod encore déployé pendant un rolling deploy, et prend
+désormais lui aussi le verrou de réalisation.
 
 Le provisioning n'est pas sérialisé entre deux demandes indépendantes. Deux
 appareils ou onglets qui confirment au même instant sortent donc de cette

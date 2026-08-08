@@ -214,6 +214,19 @@ BEGIN
     RAISE EXCEPTION 'FAIL: stale plan wrote a second withdrawal representation';
   END IF;
 
+  -- The guard above only holds while every entry point on that name demands a
+  -- revision. An overload without one would silently be picked by any caller
+  -- that omits the argument.
+  SELECT count(*) INTO v_count
+  FROM pg_proc p
+  JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public'
+    AND p.proname = 'apply_savings_goal_plan_with_destinations'
+    AND NOT ('p_expected_revision' = ANY(COALESCE(p.proargnames, '{}'::text[])));
+  IF v_count <> 0 THEN
+    RAISE EXCEPTION 'FAIL: % plan destination entry point(s) skip the revision CAS', v_count;
+  END IF;
+
   PERFORM extensions.dblink_disconnect('sg_plan_realize');
   PERFORM extensions.dblink_disconnect('sg_plan_apply');
   DELETE FROM auth.users WHERE id = v_user_id;

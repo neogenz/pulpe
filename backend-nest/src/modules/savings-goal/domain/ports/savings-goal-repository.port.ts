@@ -66,13 +66,17 @@ export interface SavingsGoalRepositoryPort {
    * courant ou futur (`is_manually_adjusted = true`). Tout écart de garde
    * → RAISE → rollback total (rien de partiel). Le
    * repo possède le chiffrement + le mapping des erreurs P0001.
+   *
+   * `expectedRevision` est obligatoire : la RPC la compare sous le verrou de
+   * réalisation, donc l'omettre appliquerait un plan calculé sur un solde déjà
+   * périmé.
    */
   applyPlan(
     goalId: string,
     monthAdjustments: SavingsGoalPlanMonthAdjustment[],
     minPeriodIndex: number,
-    planWithdrawalAdjustments?: SavingsGoalPlanWithdrawalAdjustment[],
-    expectedRevision?: number,
+    planWithdrawalAdjustments: SavingsGoalPlanWithdrawalAdjustment[],
+    expectedRevision: number,
   ): Promise<SavingsGoalPlanApplyResult>;
   /**
    * Applique la décision advisory d'arrêt de génération (PUL-285 CA5) via la
