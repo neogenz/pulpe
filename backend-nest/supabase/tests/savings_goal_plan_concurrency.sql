@@ -14,6 +14,10 @@ CREATE TEMP TABLE savings_goal_plan_concurrency_fixture (
   transaction_id uuid NOT NULL
 ) ON COMMIT PRESERVE ROWS;
 
+CREATE TEMP TABLE savings_goal_plan_concurrency_error (
+  message text NOT NULL
+) ON COMMIT PRESERVE ROWS;
+
 INSERT INTO savings_goal_plan_concurrency_fixture
 VALUES (
   gen_random_uuid(), gen_random_uuid(), gen_random_uuid(),
@@ -70,6 +74,7 @@ DECLARE
   v_revision bigint;
   v_result text;
   v_error text;
+  v_error_state text;
   v_count integer;
   v_realization_waiting boolean := false;
   v_plan_waiting boolean := false;
@@ -104,6 +109,13 @@ BEGIN
     hashtext('savings_goal_withdrawal'),
     hashtext(v_goal_id::text)
   );
+
+  IF COALESCE(
+    NULLIF(current_setting('test.savings_goal_plan_force_failure', true), '')::boolean,
+    false
+  ) THEN
+    RAISE EXCEPTION 'FORCED: savings goal plan concurrency cleanup proof';
+  END IF;
 
   PERFORM extensions.dblink_send_query('sg_plan_realize', format($realize$
     WITH claims AS (
@@ -227,6 +239,65 @@ BEGIN
     RAISE EXCEPTION 'FAIL: stale plan wrote a second withdrawal representation';
   END IF;
 
+  -- The historical wrapper remains available to rolling-deploy pods for line
+  -- updates. It must reject a withdrawal payload after a realization changed
+  -- the revision, because this signature carries no certified revision.
+  PERFORM extensions.dblink_connect(
+    'sg_plan_legacy',
+    v_connection || ' application_name=sg_plan_legacy'
+  );
+  v_error := NULL;
+  v_error_state := NULL;
+  BEGIN
+    PERFORM result
+    FROM extensions.dblink(
+      'sg_plan_legacy',
+      format($legacy$
+        WITH claims AS (
+          SELECT set_config(
+            'request.jwt.claims',
+            %L,
+            false
+          )
+        )
+        SELECT count(*)::text
+        FROM claims,
+        LATERAL public.apply_savings_goal_plan(
+          %L::uuid,
+          %s,
+          '[]'::jsonb,
+          jsonb_build_array(jsonb_build_object(
+            'month', 6,
+            'year', 2030,
+            'amount', 'enc-legacy-plan'
+          ))
+        );
+      $legacy$,
+        json_build_object('sub', v_user_id::text)::text,
+        v_goal_id, 2030 * 12 + 6
+      )
+    ) AS legacy(result text);
+  EXCEPTION WHEN OTHERS THEN
+    GET STACKED DIAGNOSTICS
+      v_error = MESSAGE_TEXT,
+      v_error_state = RETURNED_SQLSTATE;
+  END;
+  IF v_error IS NULL THEN
+    RAISE EXCEPTION 'FAIL: legacy plan withdrawal was accepted';
+  END IF;
+  IF v_error_state <> 'P0001'
+     OR v_error NOT LIKE '%Legacy plan withdrawals require certified revision%' THEN
+    RAISE EXCEPTION 'FAIL: legacy plan withdrawal returned %: %',
+      v_error_state, v_error;
+  END IF;
+
+  SELECT count(*) INTO v_count
+  FROM public.savings_goal_plan_withdrawal w
+  WHERE w.savings_goal_id = v_goal_id AND w.month = 6 AND w.year = 2030;
+  IF v_count <> 0 THEN
+    RAISE EXCEPTION 'FAIL: rejected legacy call wrote a withdrawal representation';
+  END IF;
+
   -- The guard above only holds while every entry point on that name demands a
   -- revision. An overload without one would silently be picked by any caller
   -- that omits the argument.
@@ -274,9 +345,7 @@ BEGIN
 
   PERFORM extensions.dblink_disconnect('sg_plan_realize');
   PERFORM extensions.dblink_disconnect('sg_plan_apply');
-  DELETE FROM auth.users WHERE id = v_user_id;
-
-  RAISE NOTICE 'SAVINGS GOAL PLAN CONCURRENCY: ALL ASSERTIONS PASSED';
+  PERFORM extensions.dblink_disconnect('sg_plan_legacy');
 EXCEPTION WHEN OTHERS THEN
   PERFORM pg_advisory_unlock(
     hashtext('savings_goal_withdrawal'),
@@ -290,6 +359,36 @@ EXCEPTION WHEN OTHERS THEN
     PERFORM extensions.dblink_disconnect('sg_plan_apply');
   EXCEPTION WHEN OTHERS THEN NULL;
   END;
-  DELETE FROM auth.users WHERE id = v_user_id;
-  RAISE;
+  BEGIN
+    PERFORM extensions.dblink_disconnect('sg_plan_legacy');
+  EXCEPTION WHEN OTHERS THEN NULL;
+  END;
+  INSERT INTO savings_goal_plan_concurrency_error (message) VALUES (SQLERRM);
+END $$;
+
+-- The fixture was committed before the concurrent sessions could see it. Its
+-- cleanup therefore lives in its own autocommitted statement too. A later
+-- statement rethrows any captured failure only after this DELETE has committed.
+DELETE FROM auth.users
+WHERE id IN (SELECT user_id FROM savings_goal_plan_concurrency_fixture);
+
+DO $$
+DECLARE
+  v_error text;
+  v_count integer;
+BEGIN
+  SELECT count(*) INTO v_count
+  FROM auth.users u
+  JOIN savings_goal_plan_concurrency_fixture fixture ON fixture.user_id = u.id;
+  IF v_count <> 0 THEN
+    RAISE EXCEPTION 'FAIL: concurrency fixture cleanup left % auth user(s)', v_count;
+  END IF;
+
+  SELECT string_agg(message, E'\n') INTO v_error
+  FROM savings_goal_plan_concurrency_error;
+  IF v_error IS NOT NULL THEN
+    RAISE EXCEPTION '%', v_error;
+  END IF;
+
+  RAISE NOTICE 'SAVINGS GOAL PLAN CONCURRENCY: ALL ASSERTIONS PASSED';
 END $$;

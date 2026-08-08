@@ -110,9 +110,10 @@ jobs:
       # et rien ne fuit d'une suite à l'autre. Une exception assumée :
       # savings_goal_plan_concurrency.sql fait courir deux vraies sessions, qui
       # ne verraient rien d'une transaction non commitée. Elle commite donc sa
-      # fixture et la supprime elle-même, y compris depuis son gestionnaire
-      # d'exception ; c'est le seul endroit où l'isolation repose sur le
-      # nettoyage plutôt que sur le ROLLBACK.
+      # fixture. En cas d'erreur elle la capture, termine le bloc, supprime la
+      # fixture dans une instruction autocommittée indépendante, puis rethrow
+      # dans une dernière instruction ; c'est le seul endroit où l'isolation
+      # repose sur le nettoyage plutôt que sur le ROLLBACK.
       #
       # ON_ERROR_STOP n'est PAS décoratif : sans lui psql imprime l'erreur et
       # sort quand même en 0, l'étape passe au vert avec des assertions

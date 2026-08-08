@@ -436,11 +436,11 @@ Deux garanties se cumulent, et toutes deux comptent :
 
 `apply_savings_goal_plan` reste disponible pour un pod encore déployé pendant un
 rolling deploy, et prend désormais lui aussi le verrou de réalisation. Il ne
-compare en revanche aucune révision : ce qui le rend sûr n'est pas la fonction,
-qui sait écrire des retraits, mais son appelant déployé — il n'envoie pas
-`p_plan_withdrawals`, le défaut `[]` s'applique et aucun retrait n'est écrit.
-Un appel qui en enverrait passerait à côté de la comparaison, et c'est
-précisément pourquoi le chemin courant passe par la RPC à destinations.
+compare en revanche aucune révision : il reste donc compatible uniquement pour
+les mises à jour de lignes, avec `p_plan_withdrawals = []` (sa valeur par
+défaut). Toute autre valeur échoue en `P0001` avant verrou ou mutation. Seule la
+RPC à destinations à cinq arguments, avec sa révision certifiée, peut écrire un
+retrait de plan.
 
 Le provisioning n'est pas sérialisé entre deux demandes indépendantes. Deux
 appareils ou onglets qui confirment au même instant sortent donc de cette
