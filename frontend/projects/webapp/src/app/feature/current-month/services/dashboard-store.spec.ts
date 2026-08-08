@@ -1316,6 +1316,27 @@ describe('DashboardStore - Upcoming Budgets Data', () => {
     });
   });
 
+  it('should still fill twelve months when the history request fails', async () => {
+    const mocks = createMocks();
+    mocks.budgetApi.getHistoryData$.mockReturnValue(
+      throwError(() => new Error('history unreachable')),
+    );
+    const { store } = setup(mocks);
+
+    TestBed.tick();
+    await vi.waitFor(() => {
+      expect(store.historyError()).toBeDefined();
+    });
+
+    // The list is a calendar, not a result set: it is generated from the
+    // current period and stays full whatever came back. So its length can
+    // never tell a caller whether the fetch worked, and the "Mois prochain"
+    // block has to ask historyError() first — behind a length test, its error
+    // state is unreachable and a dead request renders as "no budget yet".
+    expect(store.upcomingBudgetsData().length).toBe(12);
+    expect(store.upcomingBudgetsData()[0].hasBudget).toBe(false);
+  });
+
   it('should map history data when matching month/year found', async () => {
     const { store } = await setupWithHistory([
       {

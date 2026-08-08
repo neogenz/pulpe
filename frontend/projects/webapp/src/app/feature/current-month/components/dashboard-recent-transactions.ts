@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
   input,
   output,
@@ -130,6 +131,22 @@ import { TranslocoPipe } from '@jsverse/transloco';
               </div>
             }
           </div>
+          @if (hiddenCount() > 0) {
+            <!-- The twin card beside it says what its list is hiding; this one
+                 cut the month down to five and said nothing, so thirty entries
+                 under a subtitle reading "30 ce mois" looked like a subtitle
+                 that had miscounted. Two cards from one recipe, twenty pixels
+                 apart, get read as one thing and have to answer alike. -->
+            <p
+              class="text-body-small text-on-surface-variant font-medium text-center pt-3 pb-1"
+              data-testid="dashboard-transactions-hidden-count"
+            >
+              {{
+                'currentMonth.recentTransactionsHiddenCount'
+                  | transloco: { count: hiddenCount() }
+              }}
+            </p>
+          }
         } @else {
           <div
             class="p-8 flex flex-col items-center justify-center text-center h-full"
@@ -176,6 +193,10 @@ export class DashboardRecentTransactions {
   readonly totalCount = input.required<number>();
   readonly viewBudget = output<void>();
   readonly addTransaction = output<void>();
+
+  protected readonly hiddenCount = computed(() =>
+    Math.max(0, this.totalCount() - this.transactions().length),
+  );
 
   protected kindClasses(kind: TransactionKind): string {
     switch (kind) {

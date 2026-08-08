@@ -7,7 +7,7 @@ import {
   LOCALE_ID,
   output,
 } from '@angular/core';
-import { DecimalPipe, formatNumber } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
@@ -19,20 +19,25 @@ import {
 
 const FULL_BAR_PERCENT = 100;
 
+let heroInstanceCount = 0;
+
 @Component({
   selector: 'pulpe-dashboard-hero',
   imports: [DecimalPipe, MatIconModule, TranslocoPipe],
   template: `
-    <div
-      class="hero-container rounded-3xl p-6 pb-5 relative overflow-hidden cursor-pointer motion-safe:transition-transform motion-safe:hover:scale-[0.99] dark:border dark:border-white/5"
+    <!-- A section, not a role="button". The whole card used to be the control,
+         and ARIA prunes the roles and names of everything inside a button: the
+         month heading vanished from the heading list, the three amounts were
+         replaced wholesale by one aria-label carrying only percentages, and the
+         "Engagé" explainer below — added because the word needs defining — was
+         never announced at all. The card is now a named region that reads out
+         normally; the chevron is the real control, and it stretches its own hit
+         area back over the card so tapping anywhere still opens the month. -->
+    <section
+      class="hero-container rounded-3xl p-6 pb-5 relative overflow-hidden motion-safe:transition-transform motion-safe:hover:scale-[0.99] dark:border dark:border-white/5"
       [class.budget-over]="isOverBudget()"
       [class.budget-warning]="isWarning()"
-      (click)="heroClick.emit()"
-      (keydown.enter)="heroClick.emit()"
-      (keydown.space)="$event.preventDefault(); heroClick.emit()"
-      tabindex="0"
-      role="button"
-      [attr.aria-label]="remainingAriaLabel()"
+      [attr.aria-labelledby]="headingId"
     >
       <div
         class="absolute -right-10 -bottom-10 w-56 h-56 bg-white/15 rounded-full blur-3xl pointer-events-none"
@@ -48,17 +53,25 @@ const FULL_BAR_PERCENT = 100;
              state. -->
         <div class="w-2 h-2 rounded-full indicator-dot"></div>
         <h2
+          [id]="headingId"
           class="font-bold text-headline-medium capitalize tracking-tight leading-none"
         >
           {{ periodLabel() }}
         </h2>
-        <!-- The largest element on the page opens the month's detail, and a
-             pointer cursor plus a 1% hover scale was all that said so. A
-             keyboard user was told — the container carries role="button" and a
-             full aria-label — and a mouse user was not. -->
-        <mat-icon class="ml-auto opacity-80 shrink-0" aria-hidden="true"
-          >chevron_right</mat-icon
+        <!-- The chevron is the control. Its ::after covers the card, so the
+             whole surface stays tappable exactly as before, while the tab stop,
+             the Enter/Space handling and the role all come from a real button
+             rather than being hand-rolled onto a div. -->
+        <button
+          type="button"
+          class="hero-action ml-auto shrink-0"
+          [attr.aria-label]="openMonthAriaLabel()"
+          (click)="heroClick.emit()"
         >
+          <mat-icon class="opacity-80" aria-hidden="true"
+            >chevron_right</mat-icon
+          >
+        </button>
       </div>
 
       <!-- Disponible section -->
@@ -119,14 +132,12 @@ const FULL_BAR_PERCENT = 100;
       <div class="relative z-10">
         <p class="progress-verdict">{{ statusMessage() | transloco }}</p>
 
-        <!-- No role and no aria here, deliberately. This bar sits inside the
-             card, and the card is a role="button", whose children ARIA treats
-             as presentational: the progressbar role, its three values and its
-             label were all stripped before any screen reader saw them. So the
-             one thing this card exists to say — how the budget splits three
-             ways — was announced to nobody. The numbers now travel in the
-             button's own name, which is the only string here that is read. -->
-        <div class="progress-bar">
+        <!-- The bar is decoration; the legend under it is the content. Both say
+             the same three shares, so giving the bar a progressbar role would
+             read the split twice — and a progressbar can carry one value, not
+             three. The legend rows name each share in words and amounts, and
+             now that the card is no longer a button, they are read out. -->
+        <div class="progress-bar" aria-hidden="true">
           <div class="progress-segments">
             @if (spentShare() > 0) {
               <div
@@ -200,15 +211,13 @@ const FULL_BAR_PERCENT = 100;
         <!-- "Engagé" is a house word, and the only place it was ever defined
              was the first-run tour — a screen most people see once, months
              before the first time the number surprises them. Written out rather
-             than put behind a tooltip: the legend lives inside a role="button"
-             that navigates on tap, so a touch tooltip would be competing with
-             the card's own gesture, and its text would be stripped from the
-             accessibility tree on the way out. -->
+             than put behind a tooltip: the card navigates on tap, so a touch
+             tooltip would be competing with that gesture for the same finger. -->
         <p class="progress-legend-note">
           {{ 'dashboard.engagedHint' | transloco }}
         </p>
       </div>
-    </div>
+    </section>
   `,
   styles: [
     `
@@ -230,16 +239,43 @@ const FULL_BAR_PERCENT = 100;
         box-shadow: var(--mat-sys-level2);
       }
 
-      /* The largest target on the page is a div[role=button]; Material's focus
-         ring never reaches it, so it has to carry its own. Double ring: the card
-         is a saturated gradient, and a single one disappears on one of the two
-         hero states. */
-      .hero-container:focus-visible {
+      /* The chevron is a 24px glyph but the target is the whole card: ::after
+         covers the container, so the tap area is unchanged from when the card
+         itself was the button. z-10 clears the two blurred orbs and the content
+         layers, which all sit at z-10 and would otherwise swallow the click. */
+      .hero-action {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: inherit;
+        background: none;
+        border: 0;
+        padding: 0;
+        cursor: pointer;
+      }
+
+      .hero-action::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: 10;
+        border-radius: inherit;
+      }
+
+      /* The ring belongs to the card, not to the 24px glyph — the target is the
+         card, so that is what focus has to outline. Material's ring never
+         reaches this element either way. Double ring: the card is a saturated
+         gradient and a single one disappears on one of the two hero states. */
+      .hero-container:has(.hero-action:focus-visible) {
         outline: 3px solid var(--pulpe-hero-primary-text);
         outline-offset: 3px;
         box-shadow:
           var(--mat-sys-level2),
           0 0 0 6px color-mix(in srgb, var(--hero-surface) 60%, black);
+      }
+
+      .hero-action:focus-visible {
+        outline: none;
       }
 
       .hero-container.budget-warning {
@@ -375,6 +411,8 @@ export class DashboardHero {
     month: 'long',
   });
   readonly #transloco = inject(TranslocoService);
+  // The section is named by its own heading, which needs an id to point at.
+  protected readonly headingId = `dashboard-hero-heading-${heroInstanceCount++}`;
   readonly expenses = input.required<number>();
   readonly available = input.required<number>();
   readonly periodDates = input.required<BudgetPeriodDates>();
@@ -477,30 +515,12 @@ export class DashboardHero {
     }
   });
 
-  // Same partition as the legend: the two shares are read out one after the
-  // other, so the second must not restate the first.
-  protected readonly progressAriaLabel = computed(() =>
-    this.#transloco.translate('dashboard.progressLabel', {
-      realized: this.realizedPercentage(),
-      engaged: Math.max(
-        0,
-        this.budgetConsumedPercentage() - this.realizedPercentage(),
-      ),
-      elapsed: this.timeElapsedPercentage(),
+  // The label the card used to carry restated its whole contents, because none
+  // of those contents reached the accessibility tree. They do now, so the
+  // control names only itself: what it opens, and for which month.
+  protected readonly openMonthAriaLabel = computed(() =>
+    this.#transloco.translate('dashboard.openMonthDetail', {
+      month: this.periodLabel(),
     }),
   );
-
-  protected readonly remainingAriaLabel = computed(() => {
-    // Same digits the card renders — a screen reader announcing centimes the
-    // sighted user never sees reads as a different number. ISO code rather than
-    // the symbol, which screen readers pronounce more reliably.
-    const amount = formatNumber(this.remaining(), this.locale(), '1.0-0');
-    const formatted = `${amount} ${this.currency()}`;
-    const status = this.#transloco.translate(this.statusMessage());
-    // The three-way split closes the sentence rather than living on the bar,
-    // because the bar is inside this button and ARIA reads none of it. Without
-    // it a screen-reader user got the headline figure and the verdict, and no
-    // way to hear what the verdict was drawn from.
-    return `${this.#transloco.translate('dashboard.availableToSpend')} ${formatted} — ${this.periodLabel()} — ${status} — ${this.progressAriaLabel()}`;
-  });
 }

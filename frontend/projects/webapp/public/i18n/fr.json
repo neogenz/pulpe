@@ -975,6 +975,7 @@
     "addTransactionSubmit": "Ajouter",
     "recentTransactionsTitle": "Transactions",
     "recentTransactionsSubtitle": "{{ total }} ce mois",
+    "recentTransactionsHiddenCount": "{{ count }} autres opérations ce mois",
     "viewInBudget": "Voir le budget",
     "viewForecastsInBudget": "Voir les prévisions dans le budget",
     "viewTransactionsInBudget": "Voir les transactions dans le budget",
@@ -994,7 +995,7 @@
       "toggleAriaLabel": "Pointer {{ name }} — {{ amount }}",
       "checked": "Pointé : {{ name }}",
       "checkedMany": "{{ count }} prévisions pointées",
-      "hiddenCount": "Sorties d'abord, du plus gros au plus petit — {{ count }} autres dans le budget"
+      "hiddenCount": "{{ count }} autres prévisions dans le budget"
     }
   },
   "currency": {
@@ -1335,9 +1336,9 @@
       "almostSpent": "Ton budget est presque entièrement engagé.",
       "overBudget": "Tu es au-delà de ton budget — ça arrive."
     },
-    "progressLabel": "{{ realized }}% du budget dépensé, {{ engaged }}% engagé, {{ elapsed }}% du mois écoulé",
+    "openMonthDetail": "Voir le détail de {{ month }}",
     "on": "sur",
-    "rollover": "Report",
+    "rollover": "Report du mois dernier",
     "savings": "Épargne",
     "cumulatedSavings": "Épargne cumulée",
     "expenses": "Dépenses",

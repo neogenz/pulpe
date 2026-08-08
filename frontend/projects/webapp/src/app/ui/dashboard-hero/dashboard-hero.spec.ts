@@ -144,9 +144,9 @@ describe('DashboardHero', () => {
 
       const compiled = fixture.nativeElement as HTMLElement;
       const text = compiled.textContent!;
-      expect(text).toContain('Report');
+      expect(text).toContain('Report du mois dernier');
       expect(text).not.toContain('- Report');
-      expect(text).toMatch(/Report\s*[−-]500/);
+      expect(text).toMatch(/Report du mois dernier\s*[−-]500/);
     });
 
     it('should show positive rollover with plus sign', () => {
@@ -157,7 +157,7 @@ describe('DashboardHero', () => {
 
       const compiled = fixture.nativeElement as HTMLElement;
       const text = compiled.textContent!;
-      expect(text).toMatch(/Report\s*\+/);
+      expect(text).toMatch(/Report du mois dernier\s*\+/);
     });
   });
 
@@ -196,7 +196,7 @@ describe('DashboardHero', () => {
   });
 
   describe('heroClick output', () => {
-    it('should emit heroClick when container is clicked', () => {
+    it('should emit heroClick when the open-month control is clicked', () => {
       setTestInput(component.available, 1000);
       setTestInput(component.expenses, 400);
       fixture.detectChanges();
@@ -204,10 +204,33 @@ describe('DashboardHero', () => {
       let emitted = false;
       component.heroClick.subscribe(() => (emitted = true));
 
-      const container = fixture.nativeElement.querySelector('.hero-container');
-      container.click();
+      // The control, not the card. Its ::after covers the container, so a tap
+      // anywhere on the card still reaches it in a browser — jsdom does no hit
+      // testing, so the test has to name the element the browser would land on.
+      const action = fixture.nativeElement.querySelector('.hero-action');
+      action.click();
 
       expect(emitted).toBe(true);
+    });
+  });
+
+  describe('accessibility tree', () => {
+    it('should keep the month heading and the engaged hint readable', () => {
+      setTestInput(component.available, 1000);
+      setTestInput(component.expenses, 400);
+      fixture.detectChanges();
+
+      // The card used to be a role="button", and ARIA prunes the roles and
+      // names of a button's descendants: this heading and this paragraph were
+      // both in the DOM and both invisible to a screen reader.
+      const container = fixture.nativeElement.querySelector('.hero-container');
+      const heading = fixture.nativeElement.querySelector('h2');
+
+      expect(container.getAttribute('role')).toBeNull();
+      expect(container.getAttribute('aria-labelledby')).toBe(heading.id);
+      expect(
+        fixture.nativeElement.querySelector('.progress-legend-note'),
+      ).not.toBeNull();
     });
   });
 });

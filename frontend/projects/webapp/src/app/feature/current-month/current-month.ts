@@ -223,22 +223,17 @@ export const UNDO_WINDOW_MS = 6000;
               data-testid="dashboard-block-savings"
             />
 
-            @if (store.upcomingBudgetsData().length > 0) {
-              <pulpe-dashboard-next-month
-                [forecast]="store.upcomingBudgetsData()[0]"
-                [estimatedRollover]="store.remaining()"
-                [currency]="currency()"
-                (navigateToBudgets)="navigateToBudgetList()"
-                data-testid="dashboard-block-next-month"
-              />
-            } @else if (store.historyError()) {
-              <!-- Both this card and the history chart read the same resource,
-                   and a failed fetch reaches them as an empty array. The chart
-                   learnt to tell "no history" apart from "couldn't load it";
-                   this block did not, so the same failure that gives the chart
-                   a retry button silently deleted a card from the grid — the
-                   one state a reader cannot report, because there is nothing
-                   left on screen to point at. -->
+            <!-- The failure is asked about FIRST, and the order is the whole
+                 point. The upcoming-budgets list fills a fixed twelve months
+                 whatever the fetch returned, so a length test is a constant
+                 and an error branch sitting behind it never runs. A dead
+                 history request then reached this card as an empty array and
+                 came out as "Pas encore de budget pour septembre", inviting
+                 the user to build a month they had already planned — while
+                 the chart twenty pixels away correctly said it could not
+                 load. Same request, two claims; the one that admitted
+                 nothing was the one with the button. -->
+            @if (store.historyError()) {
               <pulpe-state-card
                 variant="error"
                 testId="next-month-error"
@@ -246,6 +241,14 @@ export const UNDO_WINDOW_MS = 6000;
                 [message]="'currentMonth.nextMonthErrorMessage' | transloco"
                 [actionLabel]="'common.retry' | transloco"
                 (action)="store.refreshData()"
+              />
+            } @else if (store.upcomingBudgetsData().length > 0) {
+              <pulpe-dashboard-next-month
+                [forecast]="store.upcomingBudgetsData()[0]"
+                [estimatedRollover]="store.remaining()"
+                [currency]="currency()"
+                (navigateToBudgets)="navigateToBudgetList()"
+                data-testid="dashboard-block-next-month"
               />
             }
           </div>
