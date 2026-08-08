@@ -1017,7 +1017,11 @@
       "undoAll": "Annuler les {{ count }}",
       "hiddenCount": "{{ count }} autres à pointer",
       "hiddenCountSingular": "1 autre à pointer"
-    }
+    },
+    "addTransactionDiscardTitle": "Abandonner cette transaction ?",
+    "addTransactionDiscardMessage": "Le montant, la description et les tags que tu viens de saisir ne seront pas enregistrés.",
+    "addTransactionDiscardConfirm": "Abandonner",
+    "addTransactionDiscardCancel": "Continuer la saisie"
   },
   "currency": {
     "conversionTooltip": "Converti depuis {{ amount }}\nTaux : {{ rate }}",

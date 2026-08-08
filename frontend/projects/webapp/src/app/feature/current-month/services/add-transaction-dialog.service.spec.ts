@@ -7,6 +7,7 @@ import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AddTransactionBottomSheet } from '../components/add-transaction-bottom-sheet';
 import { AddTransactionDialog } from '../components/add-transaction-dialog';
+import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { AddTransactionDialogService } from './add-transaction-dialog.service';
 
 describe('AddTransactionDialogService', () => {
@@ -23,6 +24,7 @@ describe('AddTransactionDialogService', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
         AddTransactionDialogService,
         { provide: BreakpointObserver, useValue: breakpointObserver },
         { provide: MatBottomSheet, useValue: bottomSheet },
@@ -47,7 +49,8 @@ describe('AddTransactionDialogService', () => {
     );
     expect(bottomSheet.open).toHaveBeenCalledWith(AddTransactionBottomSheet, {
       autoFocus: '[inputmode="decimal"]',
-      disableClose: false,
+      disableClose: true,
+      injector: expect.anything(),
     });
     expect(dialog.open).not.toHaveBeenCalled();
   });
@@ -63,8 +66,15 @@ describe('AddTransactionDialogService', () => {
       maxWidth: 'calc(100vw - 48px)',
       panelClass: 'add-transaction-dialog',
       autoFocus: '[inputmode="decimal"]',
-      disableClose: false,
+      disableClose: true,
+      injector: expect.anything(),
     });
     expect(bottomSheet.open).not.toHaveBeenCalled();
+  });
+
+  it('should treat anything but an explicit yes as keeping the transaction', async () => {
+    dialog.open.mockReturnValue({ afterClosed: () => of(undefined) });
+
+    await expect(service.confirmDiscard()).resolves.toBe(false);
   });
 });

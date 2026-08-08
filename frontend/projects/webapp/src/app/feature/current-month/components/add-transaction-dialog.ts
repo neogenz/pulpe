@@ -1,10 +1,18 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  viewChild,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslocoPipe } from '@jsverse/transloco';
+import { filter, merge } from 'rxjs';
 
 import { LoadingButton } from '@ui/loading-button/loading-button';
+import { AddTransactionDialogService } from '../services/add-transaction-dialog.service';
 import {
   AddTransactionForm,
   type TransactionFormData,
@@ -75,8 +83,29 @@ export class AddTransactionDialog {
   readonly #dialogRef = inject(
     MatDialogRef<AddTransactionDialog, TransactionFormData>,
   );
+  readonly #dialogService = inject(AddTransactionDialogService);
+  private readonly formRef = viewChild.required(AddTransactionForm);
 
-  protected close(): void {
+  constructor() {
+    // Toutes les sorties passent maintenant par `close()` : la croix, Annuler,
+    // le clic hors cadre et Échap. C'est la seule façon d'avoir un garde-fou
+    // unique — un par sortie en laisse toujours une sans.
+    merge(
+      this.#dialogRef.backdropClick(),
+      this.#dialogRef
+        .keydownEvents()
+        .pipe(filter((event) => event.key === 'Escape')),
+    )
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.close());
+  }
+
+  protected async close(): Promise<void> {
+    if (
+      this.formRef().hasInput() &&
+      !(await this.#dialogService.confirmDiscard())
+    )
+      return;
     this.#dialogRef.close();
   }
 

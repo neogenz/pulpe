@@ -1,11 +1,19 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  viewChild,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatBottomSheetRef } from '@angular/material/bottom-sheet';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslocoPipe } from '@jsverse/transloco';
+import { filter, merge } from 'rxjs';
 
 import { BlurOnVisibilityResumeDirective } from '@ui/blur-on-visibility-resume/blur-on-visibility-resume.directive';
 import { LoadingButton } from '@ui/loading-button/loading-button';
+import { AddTransactionDialogService } from '../services/add-transaction-dialog.service';
 import {
   AddTransactionForm,
   type TransactionFormData,
@@ -90,8 +98,30 @@ export class AddTransactionBottomSheet {
   readonly #bottomSheetRef = inject(
     MatBottomSheetRef<AddTransactionBottomSheet, TransactionFormData>,
   );
+  readonly #dialogService = inject(AddTransactionDialogService);
+  private readonly formRef = viewChild.required(AddTransactionForm);
 
-  protected close(): void {
+  constructor() {
+    // Même garde-fou que le dialogue de bureau, et pour la même raison : sur
+    // téléphone la feuille occupe l'écran, donc le fond visible sur lequel on
+    // clique par réflexe pour revenir à la page est justement ce qui effaçait
+    // la saisie.
+    merge(
+      this.#bottomSheetRef.backdropClick(),
+      this.#bottomSheetRef
+        .keydownEvents()
+        .pipe(filter((event) => event.key === 'Escape')),
+    )
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.close());
+  }
+
+  protected async close(): Promise<void> {
+    if (
+      this.formRef().hasInput() &&
+      !(await this.#dialogService.confirmDiscard())
+    )
+      return;
     this.#bottomSheetRef.dismiss();
   }
 

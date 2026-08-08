@@ -1,8 +1,10 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { MatBottomSheetRef } from '@angular/material/bottom-sheet';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { EMPTY } from 'rxjs';
 import type { SupportedCurrency } from 'pulpe-shared';
 
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
@@ -10,6 +12,7 @@ import { createMockTagStore } from '@app/testing/tag-store.mock';
 import { CurrencyConverterService } from '@core/currency';
 import { TagStore } from '@core/tag';
 import { UserSettingsStore } from '@core/user-settings';
+import { AddTransactionDialogService } from '../services/add-transaction-dialog.service';
 import { AddTransactionBottomSheet } from './add-transaction-bottom-sheet';
 import {
   AddTransactionForm,
@@ -19,6 +22,11 @@ import {
 async function configureBottomSheet() {
   const bottomSheetRef = {
     dismiss: vi.fn(),
+    backdropClick: () => EMPTY,
+    keydownEvents: () => EMPTY,
+  };
+  const dialogService = {
+    confirmDiscard: vi.fn().mockResolvedValue(true),
   };
   const settings = {
     currency: signal<SupportedCurrency>('CHF'),
@@ -41,6 +49,7 @@ async function configureBottomSheet() {
       { provide: UserSettingsStore, useValue: settings },
       { provide: CurrencyConverterService, useValue: converter },
       { provide: TagStore, useValue: createMockTagStore() },
+      { provide: AddTransactionDialogService, useValue: dialogService },
     ],
   });
 
@@ -54,6 +63,9 @@ async function configureBottomSheet() {
     fixture,
     component: fixture.componentInstance,
     bottomSheetRef,
+    dialogService,
+    form: fixture.debugElement.query(By.directive(AddTransactionForm))
+      .componentInstance as AddTransactionForm,
   };
 }
 
@@ -64,6 +76,29 @@ describe('AddTransactionBottomSheet', () => {
     const { component, bottomSheetRef } = await configureBottomSheet();
 
     component['close']();
+
+    expect(bottomSheetRef.dismiss).toHaveBeenCalledWith();
+  });
+
+  it('should keep a typed transaction when the user declines to discard it', async () => {
+    const { component, bottomSheetRef, dialogService, form } =
+      await configureBottomSheet();
+    dialogService.confirmDiscard.mockResolvedValue(false);
+    form['model'].update((model) => ({ ...model, name: 'Courses' }));
+
+    await component['close']();
+
+    expect(dialogService.confirmDiscard).toHaveBeenCalledOnce();
+    expect(bottomSheetRef.dismiss).not.toHaveBeenCalled();
+  });
+
+  it('should discard a typed transaction once the user confirms', async () => {
+    const { component, bottomSheetRef, dialogService, form } =
+      await configureBottomSheet();
+    dialogService.confirmDiscard.mockResolvedValue(true);
+    form['model'].update((model) => ({ ...model, name: 'Courses' }));
+
+    await component['close']();
 
     expect(bottomSheetRef.dismiss).toHaveBeenCalledWith();
   });

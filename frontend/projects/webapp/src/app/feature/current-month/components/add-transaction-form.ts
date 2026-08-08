@@ -332,6 +332,21 @@ export class AddTransactionForm {
     required(path.kind);
   });
 
+  // Ce que l'utilisateur a tapé, pas ce que le formulaire vaut : les deux
+  // coques qui hébergent ce formulaire s'en servent pour savoir si une
+  // fermeture accidentelle détruit quelque chose. Le type et le pointage ont
+  // une valeur par défaut que personne n'a choisie, donc ils n'entrent pas ;
+  // la devise non plus, seule elle ne fait pas une saisie.
+  readonly hasInput = computed(() => {
+    const { name, money, tagIds } = this.model();
+    return (
+      name.trim().length > 0 ||
+      money.amount !== null ||
+      tagIds.length > 0 ||
+      this.isFromSavingsGoal()
+    );
+  });
+
   readonly canSubmit = computed(() => {
     if (!this.transactionForm().valid() || this.isSubmitting()) return false;
     if (!this.isFromSavingsGoal()) return true;
