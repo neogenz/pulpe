@@ -133,11 +133,26 @@ export class DashboardHistoryChart {
     const theme = this.#theme();
     const hasSavingsData = data.some((d) => d.savings > 0);
 
+    // The last column is the month the reader is standing in, and it is short
+    // however many days are left in it. At the weight of the five finished
+    // months beside it, a partial total reads as spending going down. The
+    // subtitle has always said the month is not over and the aria-label says it
+    // too; this is the sighted reader being told the same thing.
+    //
+    // 0.8 and no lighter. Amber is the tightest of the three hues, and against
+    // this panel it composites to 3.29:1 here — WCAG asks 3:1 of a graphic that
+    // carries meaning, and 0.7 would drop it to 2.79. A column faint enough to
+    // miss is a worse lie than one that overstates.
+    const dimCurrentMonth = (color: string) =>
+      data.map((_, index) =>
+        index === data.length - 1 ? colorWithAlpha(color, 0.8) : color,
+      );
+
     const datasets: ChartConfiguration['data']['datasets'] = [
       {
         data: data.map((d) => d.income),
         label: this.#historyIncomeLabel,
-        backgroundColor: theme?.income ?? '',
+        backgroundColor: dimCurrentMonth(theme?.income ?? ''),
         borderRadius: 4,
         barPercentage: 0.6,
         categoryPercentage: 0.8,
@@ -145,7 +160,7 @@ export class DashboardHistoryChart {
       {
         data: data.map((d) => d.expenses),
         label: this.#historyExpensesLabel,
-        backgroundColor: theme?.expense ?? '',
+        backgroundColor: dimCurrentMonth(theme?.expense ?? ''),
         borderRadius: 4,
         barPercentage: 0.6,
         categoryPercentage: 0.8,
@@ -156,7 +171,7 @@ export class DashboardHistoryChart {
       datasets.push({
         data: data.map((d) => d.savings),
         label: this.#historySavingsLabel,
-        backgroundColor: theme?.savings ?? '',
+        backgroundColor: dimCurrentMonth(theme?.savings ?? ''),
         borderRadius: 4,
         barPercentage: 0.6,
         categoryPercentage: 0.8,
