@@ -70,7 +70,7 @@ describe('DashboardRecentTransactions', () => {
     fixture.detectChanges();
 
     const subtitle = fixture.debugElement.query(By.css('h2 + p'));
-    expect(subtitle.nativeElement.textContent.trim()).toBe('2 sur 30 ce mois');
+    expect(subtitle.nativeElement.textContent.trim()).toBe('30 ce mois');
   });
 
   it('should display the empty state when no transactions', () => {

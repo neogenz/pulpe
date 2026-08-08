@@ -966,7 +966,7 @@
     "addTransactionCancel": "Annuler",
     "addTransactionSubmit": "Ajouter",
     "recentTransactionsTitle": "Transactions",
-    "recentTransactionsSubtitle": "{{ count }} sur {{ total }} ce mois",
+    "recentTransactionsSubtitle": "{{ total }} ce mois",
     "viewInBudget": "Voir le budget",
     "noTransaction": "Aucune transaction",
     "noTransactionThisMonth": "Aucune transaction ce mois",

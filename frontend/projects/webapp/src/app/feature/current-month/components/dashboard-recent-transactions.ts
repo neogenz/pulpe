@@ -51,10 +51,14 @@ import { TranslocoPipe } from '@jsverse/transloco';
             <p
               class="text-body-small text-on-surface-variant font-medium mt-0.5"
             >
+              <!-- The count of rows on screen used to lead this line, in the
+                   same "X sur Y" shape the two neighbouring cards use for
+                   progress — so "1 sur 1 ce mois" read as work finished rather
+                   than as a list of one. How many rows are drawn is something
+                   the reader can see; how many the month holds is not. -->
               {{
                 'currentMonth.recentTransactionsSubtitle'
-                  | transloco
-                    : { count: transactions().length, total: totalCount() }
+                  | transloco: { total: totalCount() }
               }}
             </p>
           </div>

@@ -76,7 +76,7 @@ import {
                  focus. -->
             <button
               type="button"
-              class="flex items-center gap-2 mt-3 px-2 py-2 w-full text-start rounded-xl bg-surface-container-low hover:bg-on-surface/8 motion-safe:transition-colors"
+              class="flex items-center gap-2 mt-3 px-2 py-2 w-full text-start rounded-xl cursor-pointer bg-surface-container hover:bg-on-surface/8 motion-safe:transition-colors"
               [matTooltip]="missingMonthsTooltip()"
               matTooltipPosition="above"
               (click)="createMissingBudgets.emit()"
@@ -84,7 +84,12 @@ import {
             >
               <!-- add, not info: the copy says "crée-les", and an information
                    glyph on a surface the same colour as its parent was the
-                   only thing this control offered a mouse user. -->
+                   only thing this control offered a mouse user. The icon was
+                   half the fix. The surface was the other half: at
+                   surface-container-low this measured the same
+                   rgb(240,245,235) as the panel it sits in, borderless, and
+                   Tailwind's own reset left it on cursor: default. One tonal
+                   step up is all a button needs to look like one. -->
               <mat-icon
                 class="text-on-surface-variant shrink-0"
                 aria-hidden="true"

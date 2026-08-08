@@ -18,35 +18,45 @@ import { AppCurrencyPipe } from '@core/currency';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col w-full h-full">
-      <div class="mb-4 px-1 flex items-center gap-3">
-        <div
-          class="w-10 h-10 rounded-full bg-financial-savings/10 text-financial-savings flex items-center justify-center shrink-0"
-        >
-          <mat-icon aria-hidden="true">savings</mat-icon>
+      <!-- The header recipe its two siblings use, down to the nesting: badge
+           and text in their own group, the action a separate child of a
+           justify-between row. Flattened into one row with the button pushed
+           by an auto margin, the title was left competing with it for the same
+           343px and lost — "Épargne du mois" broke in two at 375 while the
+           longer "Prévisions à pointer" beside it held one line. The outlined
+           variant and its flag icon went the same way: 189px of trailing
+           action against the siblings' 117, on three cards built from one
+           recipe. -->
+      <div class="mb-4 px-1 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div
+            class="w-10 h-10 rounded-full bg-financial-savings/10 text-financial-savings flex items-center justify-center shrink-0"
+          >
+            <mat-icon aria-hidden="true">savings</mat-icon>
+          </div>
+          <div>
+            <h2
+              class="text-title-medium font-bold text-on-surface leading-tight"
+            >
+              {{ 'currentMonth.savingsSectionTitle' | transloco }}
+            </h2>
+            <p
+              class="text-body-small text-on-surface-variant font-medium mt-0.5"
+            >
+              @if (isComplete()) {
+                {{ 'currentMonth.savingsAllDone' | transloco }}
+              } @else if (hasSavings()) {
+                {{
+                  'dashboard.savingsSummary'
+                    | transloco: { count: checkedCount(), total: totalCount() }
+                }}
+              } @else {
+                {{ 'currentMonth.savingsNone' | transloco }}
+              }
+            </p>
+          </div>
         </div>
-        <div>
-          <h2 class="text-title-medium font-bold text-on-surface leading-tight">
-            {{ 'currentMonth.savingsSectionTitle' | transloco }}
-          </h2>
-          <p class="text-body-small text-on-surface-variant font-medium mt-0.5">
-            @if (isComplete()) {
-              {{ 'currentMonth.savingsAllDone' | transloco }}
-            } @else if (hasSavings()) {
-              {{
-                'dashboard.savingsSummary'
-                  | transloco: { count: checkedCount(), total: totalCount() }
-              }}
-            } @else {
-              {{ 'currentMonth.savingsNone' | transloco }}
-            }
-          </p>
-        </div>
-        <button
-          matButton="outlined"
-          class="ml-auto shrink-0"
-          (click)="viewSavingsGoals.emit()"
-        >
-          <mat-icon aria-hidden="true">flag</mat-icon>
+        <button matButton (click)="viewSavingsGoals.emit()">
           {{ 'currentMonth.savingsViewGoals' | transloco }}
         </button>
       </div>
