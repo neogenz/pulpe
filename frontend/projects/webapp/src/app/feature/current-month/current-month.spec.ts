@@ -487,7 +487,7 @@ describe('Dashboard (TestBed)', () => {
       isLoading: signal(false),
       isInitialLoading: signal(false),
       hasValue: signal(true),
-      error: signal(null),
+      error: signal<unknown>(null),
       currentBudgetPeriod: signal({ month: 4, year: 2026 }),
       refreshData: vi.fn(),
       uncheckedForecasts: signal([
@@ -833,6 +833,52 @@ describe('Dashboard (TestBed)', () => {
         undefined,
       );
 
+      mockStore.dashboardData.set({});
+      component['refresh']();
+      mockStore.isLoading.set(true);
+      TestBed.tick();
+      mockStore.error.set(new Error('dashboard unreachable'));
+      mockStore.isLoading.set(false);
+      TestBed.tick();
+
+      expect(mockSnackBar.open).not.toHaveBeenCalledWith(
+        'Chiffres à jour',
+        expect.any(String),
+        expect.anything(),
+      );
+    });
+
+    // Every consumer of historyError() lives inside the outlook fold, which is
+    // closed on the daily visit: reporting that failure there names something
+    // the user cannot see, diagnose or act on, and every retry repeats it.
+    it('should stay quiet about a history failure hidden behind the closed fold', async () => {
+      const { component, mockStore, mockSnackBar } = await setup(
+        budgetId,
+        undefined,
+      );
+
+      mockStore.dashboardData.set({});
+      component['refresh']();
+      mockStore.isLoading.set(true);
+      TestBed.tick();
+      mockStore.historyError.set(new Error('history unreachable'));
+      mockStore.isLoading.set(false);
+      TestBed.tick();
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Chiffres à jour',
+        expect.any(String),
+        expect.objectContaining({ duration: 5000 }),
+      );
+    });
+
+    it('should report a history failure once the fold that shows it is open', async () => {
+      const { component, mockStore, mockSnackBar } = await setup(
+        budgetId,
+        undefined,
+      );
+
+      component['syncOutlookExpanded'](true);
       mockStore.dashboardData.set({});
       component['refresh']();
       mockStore.isLoading.set(true);

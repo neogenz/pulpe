@@ -973,6 +973,39 @@ describe('DashboardStore - Business Scenarios', () => {
       expect(store.paceStatus()).toBe('on-track');
     });
 
+    // A transfer recorded from the page's own FAB carries no budgetLineId, and
+    // calculateRealizedSavings skips free transactions on purpose so an
+    // unlinked saving cannot contaminate a goal's confirmed total. Only
+    // calculateRealizedExpenses sees it, via isOutflowKind — so subtracting
+    // goal progress alone left the whole 1'500 in the numerator and the card
+    // said "tu dépenses plus vite que le mois ne passe" over money set aside.
+    it('should not call the pace tight for savings recorded as a free transaction', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const lines = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 5000 }),
+        createMockBudgetLine({ id: 'exp-1', kind: 'expense', amount: 3000 }),
+        createMockBudgetLine({ id: 'sav-1', kind: 'saving', amount: 1500 }),
+      ];
+      const transactions = [
+        createMockTransaction({
+          id: 'tx-1',
+          kind: 'saving',
+          amount: 1500,
+          budgetLineId: null,
+          checkedAt: '2025-06-01T00:00:00Z',
+        }),
+      ];
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        transactions,
+        new Date('2025-06-02T12:00:00Z'),
+      );
+
+      expect(store.realizedExpenses()).toBe(1500);
+      expect(store.paceStatus()).toBe('on-track');
+    });
+
     // What the user reported: 17 of 18 prévisions pointed, and the card said
     // "Dépensé 554" — the single free transaction — while calling the other
     // 3'947 "engagé", i.e. reserved and not yet spent. Pointing is the gesture

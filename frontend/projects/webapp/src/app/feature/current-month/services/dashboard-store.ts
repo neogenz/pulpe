@@ -264,9 +264,31 @@ export class DashboardStore {
   // the product exists to build. Point a 1'500 savings line early against a
   // 5'000 month and the old numerator read 30% against 10% elapsed — amber, on
   // the strength of money the user deliberately put aside.
+  // `totalSavingsRealized` alone does not remove every franc of savings from
+  // the numerator: it is goal progress, and `calculateRealizedSavings`
+  // deliberately skips free transactions, because an unlinked saving would
+  // contaminate a goal's confirmed total. `calculateRealizedExpenses` has no
+  // such exclusion — `isOutflowKind` sweeps free savings in with the rest. So a
+  // 1'500 transfer recorded from this page's own FAB, which never carries a
+  // budgetLineId, landed in the numerator and nothing took it back out: the
+  // card turned amber and said "tu dépenses plus vite que le mois ne passe" on
+  // the strength of money the user had just set aside. Same intent as the line
+  // below, applied to the one bucket that formula cannot see.
+  readonly #freeSavingsRealized = computed<number>(() =>
+    this.transactions()
+      .filter(
+        (tx) =>
+          tx.kind === 'saving' && tx.checkedAt != null && !tx.budgetLineId,
+      )
+      .reduce((sum, tx) => sum + tx.amount, 0),
+  );
+
   readonly #realizedSpendingPercentage = computed(() => {
     const available = this.totalAvailable();
-    const spending = this.realizedExpenses() - this.totalSavingsRealized();
+    const spending =
+      this.realizedExpenses() -
+      this.totalSavingsRealized() -
+      this.#freeSavingsRealized();
     if (available <= 0) return spending > 0 ? 100 : 0;
     const percentage = (spending / available) * 100;
     return Math.round(Math.min(Math.max(0, percentage), 100));

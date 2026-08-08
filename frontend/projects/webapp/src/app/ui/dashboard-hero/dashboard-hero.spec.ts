@@ -130,7 +130,7 @@ describe('DashboardHero', () => {
   });
 
   describe('progress legend', () => {
-    it('should name the untouched segment with the remaining amount', () => {
+    it('should name the untouched segment without restating the headline amount', () => {
       setTestInput(component.available, 4800);
       setTestInput(component.expenses, 3491);
       setTestInput(component.remaining, 1309);
@@ -140,7 +140,11 @@ describe('DashboardHero', () => {
       const compiled = fixture.nativeElement as HTMLElement;
       const freeKey = compiled.querySelector('.swatch-free')?.parentElement;
       expect(freeKey?.textContent).toContain('Disponible');
-      expect(freeKey?.textContent).toMatch(/1.309/);
+      expect(freeKey?.textContent).not.toMatch(/1.309/);
+      expect(
+        compiled.querySelector('[data-testid="hero-remaining-amount"]')
+          ?.textContent,
+      ).toMatch(/1.309/);
     });
 
     it('should drop the untouched key once the budget is fully consumed', () => {
@@ -334,6 +338,9 @@ describe('DashboardHero', () => {
     it('should keep the month heading and the engaged hint readable', () => {
       setTestInput(component.available, 1000);
       setTestInput(component.expenses, 400);
+      // The hint is gated on the segment it defines, so the fixture has to
+      // draw one for the paragraph to be in the tree at all.
+      setTestInput(component.budgetConsumedPercentage, 40);
       fixture.detectChanges();
 
       // The card used to be a role="button", and ARIA prunes the roles and

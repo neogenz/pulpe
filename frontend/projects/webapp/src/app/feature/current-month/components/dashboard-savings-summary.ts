@@ -2,13 +2,12 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  inject,
   input,
   output,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
+import { TranslocoPipe } from '@jsverse/transloco';
 import type { SupportedCurrency } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
 
@@ -56,9 +55,16 @@ import { AppCurrencyPipe } from '@core/currency';
             </p>
           </div>
         </div>
-        <button matButton (click)="viewSavingsGoals.emit()">
-          {{ 'currentMonth.savingsViewGoals' | transloco }}
-        </button>
+        <!-- Gated the way the card sharing this grid row gates its own header
+             button. Without savings the panel below already offers "Fixe ton
+             premier objectif", and both controls emit the same output to the
+             same route: an empty state that presents two buttons is offering a
+             choice it does not have. -->
+        @if (hasSavings()) {
+          <button matButton (click)="viewSavingsGoals.emit()">
+            {{ 'currentMonth.savingsViewGoals' | transloco }}
+          </button>
+        }
       </div>
 
       <div
@@ -83,13 +89,16 @@ import { AppCurrencyPipe } from '@core/currency';
             </p>
           </div>
         } @else if (hasSavings()) {
+          <!-- The name only, because aria-valuenow beside it already carries the
+               number: a label reading "Épargne : 40% réalisé" made the reader
+               announce "…40% réalisé, 40%". -->
           <div
             class="w-full h-2.5 bg-financial-savings/10 rounded-full overflow-hidden mb-4"
             role="progressbar"
             [attr.aria-valuenow]="progressPercentage()"
             aria-valuemin="0"
             aria-valuemax="100"
-            [attr.aria-label]="savingsProgressLabel()"
+            [attr.aria-label]="'currentMonth.savingsSectionTitle' | transloco"
           >
             <div
               class="h-full bg-financial-savings rounded-full motion-safe:transition-all motion-safe:duration-700"
@@ -145,8 +154,6 @@ import { AppCurrencyPipe } from '@core/currency';
   `,
 })
 export class DashboardSavingsSummary {
-  readonly #transloco = inject(TranslocoService);
-
   readonly totalPlanned = input.required<number>();
   readonly totalRealized = input.required<number>();
   readonly checkedCount = input.required<number>();
@@ -167,11 +174,5 @@ export class DashboardSavingsSummary {
 
   protected readonly isComplete = computed(
     () => this.hasSavings() && this.progressPercentage() === 100,
-  );
-
-  protected readonly savingsProgressLabel = computed(() =>
-    this.#transloco.translate('currentMonth.savingsProgress', {
-      percent: this.progressPercentage(),
-    }),
   );
 }

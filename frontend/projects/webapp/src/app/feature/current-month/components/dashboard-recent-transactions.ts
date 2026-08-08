@@ -161,9 +161,10 @@ import { TranslocoPipe } from '@jsverse/transloco';
             <h3 class="text-title-medium font-medium text-on-surface-variant">
               {{ 'currentMonth.noTransaction' | transloco }}
             </h3>
-            <p class="text-body-medium text-on-surface-variant">
-              {{ 'currentMonth.noTransactionThisMonth' | transloco }}
-            </p>
+            <!-- The second line used to read "Aucune transaction ce mois" under
+                 a heading reading "Aucune transaction" — the only empty state on
+                 the page whose subtitle restated its title rather than adding
+                 the next step. The button below is the next step. -->
             <button
               matButton="outlined"
               class="mt-4 !h-11"

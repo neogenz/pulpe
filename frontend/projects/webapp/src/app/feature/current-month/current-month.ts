@@ -538,7 +538,16 @@ export default class Dashboard {
         // was the common one — isLoading() ORs in the history resource, so a
         // dashboard that reloaded fine while history died still congratulated
         // itself over two cards reading "indisponible".
-        const failed = !!this.store.error() || !!this.store.historyError();
+        // The history half only counts while the fold is open. Every consumer
+        // of historyError() lives inside it, and it defaults closed, so a dead
+        // history endpoint on the daily visit produced no visible symptom and
+        // a toast saying "Impossible de tout recharger" — a failure the user
+        // cannot see, diagnose or act on, reproduced on every retry. The
+        // reasoning above still holds for the planning visit, where those two
+        // cards are on screen reading "indisponible".
+        const failed =
+          !!this.store.error() ||
+          (this.isOutlookExpanded() && !!this.store.historyError());
         this.#notify(
           this.#transloco.translate(
             failed ? 'currentMonth.refreshFailed' : 'currentMonth.refreshed',

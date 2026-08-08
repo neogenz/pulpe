@@ -80,7 +80,7 @@ describe('DashboardRecentTransactions', () => {
     const emptyState = fixture.debugElement.query(By.css('.p-8.text-center'));
     expect(emptyState).toBeTruthy();
     expect(emptyState.nativeElement.textContent).toContain(
-      'Aucune transaction ce mois',
+      'Aucune transaction',
     );
   });
 

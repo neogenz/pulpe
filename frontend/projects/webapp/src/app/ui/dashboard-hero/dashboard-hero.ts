@@ -101,11 +101,17 @@ let heroInstanceCount = 0;
                it belongs to most did not, so the one number the user watches
                through an optimistic write was the one whose digits shifted
                under it. -->
+          <!-- The step down on narrow screens matches the app's other amount
+               hero: 57px extrabold sits in a nowrap flex row inside a container
+               that clips rather than wraps, so a five-figure deficit lost its
+               last digits instead of reflowing. The sign is dropped with it —
+               the caption below already reads "il manque", and "il manque −500"
+               is a shortfall stated twice, once as a word and once as a minus. -->
           <span
-            class="font-extrabold text-display-large tracking-tighter leading-none tabular-nums ph-no-capture"
+            class="font-extrabold text-display-medium sm:text-display-large tracking-tighter leading-none tabular-nums ph-no-capture"
             data-testid="hero-remaining-amount"
           >
-            {{ remaining() | number: '1.0-0' : locale() }}
+            {{ displayedRemaining() | number: '1.0-0' : locale() }}
           </span>
           <!-- 80%, not 70%: at 22px/600 the suffix is too small and too light
                to earn WCAG's large-text exemption, and 70% white over the
@@ -143,15 +149,22 @@ let heroInstanceCount = 0;
               {{ available() | number: '1.0-0' : locale() }}
               {{ currencySymbol() }}
             </span>
-          }
-          @let rollover = rolloverAmount();
-          @if (rollover !== 0) {
-            <span class="ph-no-capture">
-              · {{ 'dashboard.rollover' | transloco }}
-              {{ rollover > 0 ? '+' : ''
-              }}{{ rollover | number: '1.0-0' : locale() }}
-              {{ currencySymbol() }}
-            </span>
+            <!-- Inside the branch that prints the ceiling, because that is the
+                 figure it decomposes: the rollover is already part of the
+                 4'800, and set beside it as its own clause the line read as a
+                 sum of two numbers the reader was invited to add. "dont" says
+                 which of the two contains the other. The deficit branch drops
+                 the clause entirely — it prints no ceiling, so there is nothing
+                 for a share of it to be a share of. -->
+            @let rollover = rolloverAmount();
+            @if (rollover !== 0) {
+              <span class="ph-no-capture">
+                · {{ 'dashboard.rollover' | transloco }}
+                {{ rollover > 0 ? '+' : ''
+                }}{{ rollover | number: '1.0-0' : locale() }}
+                {{ currencySymbol() }}
+              </span>
+            }
           }
         </p>
       </div>
@@ -254,14 +267,15 @@ let heroInstanceCount = 0;
                track the bar sits in rather than a quantity. Same word as the
                caption above the number, so the money in the bar and the money
                in the headline are visibly the same money. -->
+          <!-- The only key without an amount, deliberately: this segment's
+               figure is the 57px headline forty pixels above, so printing it
+               again made a three-key row where two keys carry new facts and one
+               repeats the largest number on the card. A legend key needs a name
+               and a swatch; the name is what the outline was missing. -->
           @if (freeShare() > 0) {
             <span class="progress-legend-item">
               <span class="progress-legend-swatch swatch-free"></span>
               {{ 'dashboard.available' | transloco }}
-              <b class="progress-legend-amount ph-no-capture">
-                {{ remaining() | number: '1.0-0' : locale() }}
-                <span class="sr-only">{{ currency() }}</span>
-              </b>
             </span>
           }
         </div>
@@ -271,9 +285,14 @@ let heroInstanceCount = 0;
              before the first time the number surprises them. Written out rather
              than put behind a tooltip: the card navigates on tap, so a touch
              tooltip would be competing with that gesture for the same finger. -->
-        <p class="progress-legend-note">
-          {{ 'dashboard.engagedHint' | transloco }}
-        </p>
+        <!-- Gated on the same condition as the key it defines. A month fully
+             pointed draws no engagé segment and prints no engagé key, and the
+             gloss stayed behind to define a word that had left the card. -->
+        @if (engagedShare() > 0) {
+          <p class="progress-legend-note">
+            {{ 'dashboard.engagedHint' | transloco }}
+          </p>
+        }
       </div>
     </section>
   `,
@@ -544,6 +563,14 @@ export class DashboardHero {
   // on this page with real stakes was the one delivered in the palette of
   // reassurance.
   readonly isPlanOverAvailable = computed(() => this.remaining() < 0);
+
+  // The caption carries the sign as a word, so the digits do not carry it
+  // again. "Il manque" over "−500" reads as a negative shortfall, which is a
+  // surplus; the deficit state was the one reading on the card with real stakes
+  // and the only one phrased as a double negative.
+  protected readonly displayedRemaining = computed(() =>
+    Math.abs(this.remaining()),
+  );
 
   readonly isWarning = computed(
     () =>
