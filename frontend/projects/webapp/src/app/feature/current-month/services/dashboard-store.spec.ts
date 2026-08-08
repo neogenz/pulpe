@@ -12,6 +12,7 @@ import { ApiError } from '@core/api/api-error';
 import { ApiErrorLocalizer } from '@core/api/api-error-localizer';
 import { createMockDataCache } from '@core/testing';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
+import { TranslocoService } from '@jsverse/transloco';
 import type { Budget, BudgetLine, Transaction } from 'pulpe-shared';
 import { API_ERROR_CODES, BudgetFormulas } from 'pulpe-shared';
 
@@ -1767,6 +1768,51 @@ describe('DashboardStore - Upcoming Budgets Data', () => {
     // state is unreachable and a dead request renders as "no budget yet".
     expect(store.upcomingBudgetsData().length).toBe(12);
     expect(store.upcomingBudgetsData()[0].hasBudget).toBe(false);
+  });
+
+  it('should name a refused dashboard request instead of blaming the connection', async () => {
+    const mocks = createMocks();
+    const refusal = new ApiError(
+      'Unauthorized',
+      API_ERROR_CODES.AUTH_UNAUTHORIZED,
+      401,
+      undefined,
+    );
+    mocks.budgetApi.getDashboardData$.mockReturnValue(
+      throwError(() => refusal),
+    );
+    const { store } = setup(mocks);
+
+    TestBed.tick();
+    await vi.waitFor(() => {
+      expect(store.error()).toBeDefined();
+    });
+
+    const localizer = TestBed.inject(ApiErrorLocalizer);
+    const connectionCopy = TestBed.inject(TranslocoService).translate(
+      'currentMonth.loadErrorMessage',
+    );
+    expect(store.loadErrorMessage()).toBe(localizer.localizeApiError(refusal));
+    expect(store.loadErrorMessage()).not.toBe(connectionCopy);
+  });
+
+  it('should keep the connection wording when the request never reached the server', async () => {
+    const mocks = createMocks();
+    mocks.budgetApi.getDashboardData$.mockReturnValue(
+      throwError(() => new Error('Network request failed')),
+    );
+    const { store } = setup(mocks);
+
+    TestBed.tick();
+    await vi.waitFor(() => {
+      expect(store.error()).toBeDefined();
+    });
+
+    expect(store.loadErrorMessage()).toBe(
+      TestBed.inject(TranslocoService).translate(
+        'currentMonth.loadErrorMessage',
+      ),
+    );
   });
 
   it('should map history data when matching month/year found', async () => {

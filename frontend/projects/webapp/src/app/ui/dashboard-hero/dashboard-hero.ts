@@ -35,7 +35,7 @@ let heroInstanceCount = 0;
          normally; the chevron is the real control, and it stretches its own hit
          area back over the card so tapping anywhere still opens the month. -->
     <section
-      class="hero-container rounded-3xl p-6 pb-5 relative overflow-hidden motion-safe:transition-transform motion-safe:hover:scale-[0.99] dark:border dark:border-white/5"
+      class="hero-container p-6 pb-5 relative overflow-hidden motion-safe:transition-transform motion-safe:hover:scale-[0.99] dark:border dark:border-white/5"
       [class.budget-over]="isOverBudget()"
       [class.budget-warning]="isWarning()"
       [attr.aria-labelledby]="headingId"
@@ -361,6 +361,13 @@ let heroInstanceCount = 0;
          itself from it so its steps stay inside the card's colour family
          instead of greying it out with black and white. */
       .hero-container {
+        /* The design system names three radii — 16 for a panel, 24 for a card,
+           32 for a hero — and this card was pinned to the middle one by a
+           Tailwind literal, so it read as one more panel among the seven below
+           it rather than as the thing the page is about. The token, not the
+           literal: the ramp is a rule the page keeps, not a number this file
+           happens to hold. */
+        border-radius: var(--pulpe-surface-radius-hero);
         --hero-surface: var(--pulpe-hero-primary);
         background: linear-gradient(
           145deg,

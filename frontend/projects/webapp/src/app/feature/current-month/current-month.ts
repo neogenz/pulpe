@@ -331,6 +331,7 @@ const NAMED_TOAST_PANEL_CLASS = ['ph-no-capture', 'amounts-visible'];
              loaded; it was doing it to itself. The refresh toast carries the
              failure now. -->
         <pulpe-dashboard-error
+          [message]="store.loadErrorMessage()"
           (reload)="store.refreshData()"
           data-testid="dashboard-error"
         />

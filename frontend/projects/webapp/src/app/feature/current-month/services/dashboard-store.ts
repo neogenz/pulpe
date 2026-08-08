@@ -170,6 +170,21 @@ export class DashboardStore {
   // thing only: the dashboard could not be fetched. A refused mutation travels
   // back through its own return value — see `addTransaction`.
   readonly error = computed(() => this.#dashboardResource.error());
+  // One card renders every way that fetch can fail, and it used to say the same
+  // sentence each time: a 403, a rate limit and a payload this client can no
+  // longer parse all blamed the user's wifi and offered a retry that could not
+  // help. Only a transport failure — no HTTP status and no code — is actually a
+  // connection problem; every other failure arrives carrying a reason, and the
+  // localizer that names it for the mutations works just as well here.
+  readonly loadErrorMessage = computed(() => {
+    const error = this.error();
+    if (!error) return '';
+    const isTransportFailure =
+      !isApiError(error) || (error.status === 0 && !error.code);
+    return isTransportFailure
+      ? this.#transloco.translate('currentMonth.loadErrorMessage')
+      : this.#apiErrorLocalizer.localizeApiError(error);
+  });
   // Separate from `error` on purpose: history feeds two charts and nothing else,
   // so its failure must not blank a page whose main figures loaded fine. It has
   // to be readable somewhere, though — `historyData()` and `upcomingBudgetsData()`
