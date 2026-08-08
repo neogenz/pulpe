@@ -44,6 +44,33 @@ describe('DashboardHero', () => {
     expect(component.remaining()).toBe(600);
   });
 
+  // The share arrives rounded, so a month 22 CHF short of its ceiling read 100%
+  // and the bar dropped its "Disponible" segment and legend key — forty pixels
+  // under a headline printing 22 CHF as available to spend.
+  it('should keep a sliver of the bar for an amount the headline still shows', () => {
+    setTestInput(component.available, 5000);
+    setTestInput(component.expenses, 4978);
+    setTestInput(component.remaining, 22);
+    setTestInput(component.budgetConsumedPercentage, 100);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('.segment-free')).not.toBeNull();
+    expect(compiled.textContent).toContain('Disponible');
+  });
+
+  it('should draw no free share once nothing is left', () => {
+    setTestInput(component.available, 5000);
+    setTestInput(component.expenses, 5000);
+    setTestInput(component.remaining, 0);
+    setTestInput(component.budgetConsumedPercentage, 100);
+    fixture.detectChanges();
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('.segment-free'),
+    ).toBeNull();
+  });
+
   it('should call the month over budget once more has gone out than came in', () => {
     setTestInput(component.available, 1000);
     setTestInput(component.expenses, 1200);
@@ -238,10 +265,11 @@ describe('DashboardHero', () => {
       expect(compiled.textContent).toContain('Tout ce qui est sorti était');
     });
 
-    // The sentence used to key on realized outflow, which counts neither an
-    // income transaction nor an expense the user has recorded and not yet
-    // pointed. Either one put "Rien de saisi ce mois" above a Transactions card
-    // listing exactly what had been saisi.
+    // "Rien de saisi ce mois" keyed on realized outflow, which counts neither an
+    // income transaction nor an expense recorded and not yet pointed. Either one
+    // put that sentence above a Transactions card listing exactly what had been
+    // saisi. Nothing has gone out yet either, so the answer is neither of the
+    // two the card had.
     it('should not claim an empty month for activity that is not outflow', () => {
       setTestInput(component.available, 5500);
       setTestInput(component.realizedExpenses, 0);
@@ -252,7 +280,7 @@ describe('DashboardHero', () => {
 
       const compiled = fixture.nativeElement as HTMLElement;
       expect(compiled.textContent).not.toContain('Rien de saisi ce mois');
-      expect(compiled.textContent).toContain('Tout ce qui est sorti était');
+      expect(compiled.textContent).toContain('Rien de pointé');
     });
 
     it('should say nothing was recorded when the ledger really is empty', () => {
@@ -365,6 +393,46 @@ describe('DashboardHero', () => {
       const compiled = fixture.nativeElement as HTMLElement;
       expect(compiled.textContent).toContain('au-delà de ton budget');
       expect(compiled.textContent).not.toContain('plus vite que le mois');
+    });
+
+    // `remaining` counts a free savings transfer as outflow while the plan
+    // margin counts only planned lines, so one transfer could open the deficit
+    // by itself: red gradient, "ouvre ton budget pour voir ce qui a dépassé",
+    // for the money the user had just set aside.
+    it('should not call the month over budget when savings opened the deficit', () => {
+      setTestInput(component.available, 5000);
+      setTestInput(component.expenses, 5300);
+      setTestInput(component.remaining, -300);
+      setTestInput(component.budgetConsumedPercentage, 100);
+      setTestInput(component.realizedExpenses, 500);
+      setTestInput(component.hasRecordedActivity, true);
+      setTestInput(component.planExceedsAvailable, false);
+      setTestInput(component.paceStatus, 'within-plan');
+      fixture.detectChanges();
+
+      expect(component.isOverBudget()).toBe(false);
+      const compiled = fixture.nativeElement as HTMLElement;
+      expect(compiled.textContent).not.toContain('au-delà de ton budget');
+      expect(compiled.textContent).not.toContain('Dépensé au-delà');
+    });
+
+    // The two gates were fixed independently and composed into a falsehood:
+    // unpointed spending was enough to buy the confident sentence and not
+    // enough to be measured by it.
+    it('should not claim everything was foreseen before anything is pointed', () => {
+      setTestInput(component.available, 5000);
+      setTestInput(component.expenses, 4400);
+      setTestInput(component.remaining, 600);
+      setTestInput(component.budgetConsumedPercentage, 88);
+      setTestInput(component.realizedExpenses, 0);
+      setTestInput(component.hasRecordedActivity, true);
+      setTestInput(component.paceStatus, 'within-plan');
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      expect(compiled.textContent).not.toContain('Tout ce qui est sorti');
+      expect(compiled.textContent).not.toContain('Rien de saisi');
+      expect(compiled.textContent).toContain('Rien de pointé');
     });
 
     // The caption was gated on the deficit alone, and red is a deficit, so the

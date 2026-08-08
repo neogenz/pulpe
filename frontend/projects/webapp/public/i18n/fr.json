@@ -1357,6 +1357,7 @@
       "onTrack": "Ton rythme tient.",
       "noPaceYet": "Rien de saisi ce mois — ton rythme ne veut encore rien dire.",
       "withinPlan": "Tout ce qui est sorti était prévu.",
+      "nothingCheckedYet": "Rien de pointé pour l'instant — ton rythme ne veut encore rien dire.",
       "fastPace": "Tu dépenses plus vite que le mois ne passe.",
       "almostSpent": "Ton budget est presque entièrement engagé.",
       "planOverAvailable": "Ton plan demande plus que ce que le mois t'apporte — ça se rattrape. Ouvre ton budget pour alléger une prévision.",

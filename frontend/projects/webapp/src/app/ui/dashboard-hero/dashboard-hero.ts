@@ -563,15 +563,20 @@ export class DashboardHero {
   // outlined pill keyed "Disponible" under a 57px "0" captioned "disponible à
   // dépenser sur 0 CHF" — the whole bar claiming a month that does not exist is
   // still the user's to spend.
-  protected readonly freeShare = computed(() =>
-    this.available() <= 0
-      ? 0
-      : Math.max(
-          0,
-          FULL_BAR_PERCENT -
-            Math.min(this.budgetConsumedPercentage(), FULL_BAR_PERCENT),
-        ),
-  );
+  // The share arrives already rounded, so a month 22 CHF short of its ceiling
+  // reads 100% consumed and this fell to zero: the bar dropped its outlined
+  // segment and the legend dropped its "Disponible" key, forty pixels under a
+  // headline still printing 22 CHF as available. The amount decides whether the
+  // segment exists; the percentage only decides how wide it is, and a franc
+  // left is worth a sliver rather than nothing.
+  protected readonly freeShare = computed(() => {
+    if (this.available() <= 0 || this.remaining() <= 0) return 0;
+    return Math.max(
+      1,
+      FULL_BAR_PERCENT -
+        Math.min(this.budgetConsumedPercentage(), FULL_BAR_PERCENT),
+    );
+  });
 
   // The colour answers "am I spending too fast?", not "did I plan too much?".
   // It used to answer the second: the percentage it read is
@@ -596,8 +601,18 @@ export class DashboardHero {
   // that verdict, and undid it.
   readonly planExceedsAvailable = input(false);
 
+  //
+  // The deficit alone is not enough to name it. `remaining` counts free savings
+  // as outflow, while the plan margin counts only planned lines, so a 500
+  // transfer recorded from this page could open the deficit on its own: the
+  // card went red and sent the user to "voir ce qui a dépassé" for the money
+  // they had just set aside. Red needs something that actually went beyond the
+  // plan, which is exactly what a pace verdict other than `within-plan` means.
   readonly isOverBudget = computed(
-    () => this.isPlanOverAvailable() && !this.planExceedsAvailable(),
+    () =>
+      this.isPlanOverAvailable() &&
+      !this.planExceedsAvailable() &&
+      this.paceStatus() !== 'within-plan',
   );
 
   // The plan asks for more than the month has. A negative report alone is
@@ -680,14 +695,17 @@ export class DashboardHero {
     if (this.budgetConsumedPercentage() > this.warningThreshold())
       return 'dashboard.status.almostSpent';
     if (this.paceStatus() === 'on-track') return 'dashboard.status.onTrack';
-    // Nothing has gone beyond the plan. That is an answer, not a shrug, and it
-    // is the one this card gives for most of a well-run month — but only once
-    // there is a ledger to read it off. "Rien de saisi" keyed on realized
-    // outflow, so a month holding an income transaction, or an expense recorded
-    // and not yet pointed, denied the Transactions card listing it.
-    return this.hasRecordedActivity()
+    // Three states, because the ledger has three. Nothing recorded at all is
+    // "rien de saisi". Everything foreseen is the good answer, and the one this
+    // card gives for most of a well-run month. Between them sits a month with
+    // entries the verdict cannot read — an income, or expenses recorded and not
+    // yet pointed — and claiming "tout ce qui est sorti était prévu" there was
+    // false twice over: nothing had gone out, and what was recorded was
+    // precisely what the plan had not foreseen.
+    if (!this.hasRecordedActivity()) return 'dashboard.status.noPaceYet';
+    return this.realizedExpenses() > 0
       ? 'dashboard.status.withinPlan'
-      : 'dashboard.status.noPaceYet';
+      : 'dashboard.status.nothingCheckedYet';
   });
 
   // The label the card used to carry restated its whole contents, because none
