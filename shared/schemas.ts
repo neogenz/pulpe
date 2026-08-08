@@ -500,6 +500,8 @@ export const savingsGoalPlanMonthSchema = z.object({
   plannedWithdrawalAmount: z.number().optional(),
   /** Part de ces annonces encore à sortir — c'est elle que les cumuls retranchent. */
   remainingPlannedWithdrawalAmount: z.number().optional(),
+  /** Part issue directement du plan, sans Prévision Revenu dans un budget. */
+  planOnlyWithdrawalAmount: z.number().nonnegative().optional(),
   plannedCumulative: z.number(),
   confirmedCumulative: z.number(),
   /** Solde attendu fin de mois si le plan se déroule tel quel (§12). */
@@ -591,10 +593,28 @@ export const savingsGoalPlanApplySchema = z
       )
       .max(MAX_PLAN_ADJUSTMENTS)
       .default([]),
+    /**
+     * Mouvements négatifs conservés dans l'objectif, sans budget. Le montant
+     * reste signé sur le wire pour ne jamais confondre une sortie avec une
+     * contribution ; zéro supprime l'ajustement existant.
+     */
+    planWithdrawalAdjustments: z
+      .array(
+        z.strictObject({
+          month: z.number().int().min(1).max(12),
+          year: z.number().int(),
+          amount: z.number().max(0),
+        }),
+      )
+      .max(MAX_PLAN_ADJUSTMENTS)
+      .default([]),
   })
   .refine(
     (value) =>
-      value.monthAdjustments.length + value.missingMonthAdjustments.length > 0,
+      value.monthAdjustments.length +
+        value.missingMonthAdjustments.length +
+        value.planWithdrawalAdjustments.length >
+      0,
     { error: 'Le plan est vide.' },
   )
   .refine(
@@ -611,14 +631,24 @@ export const savingsGoalPlanApplySchema = z
       return new Set(periods).size === periods.length;
     },
     { error: 'Une période absente apparaît deux fois dans le plan.' },
+  )
+  .refine(
+    (value) => {
+      const periods = value.planWithdrawalAdjustments.map(
+        (item) => `${item.year}-${item.month}`,
+      );
+      return new Set(periods).size === periods.length;
+    },
+    { error: 'Un retrait du plan apparaît deux fois sur la même période.' },
   );
 type ParsedSavingsGoalPlanApply = z.infer<typeof savingsGoalPlanApplySchema>;
 /** Type d'entrée; le schéma complète la jambe absente avec un tableau vide. */
 export type SavingsGoalPlanApply = Omit<
   ParsedSavingsGoalPlanApply,
-  'missingMonthAdjustments'
+  'missingMonthAdjustments' | 'planWithdrawalAdjustments'
 > & {
   missingMonthAdjustments?: ParsedSavingsGoalPlanApply['missingMonthAdjustments'];
+  planWithdrawalAdjustments?: ParsedSavingsGoalPlanApply['planWithdrawalAdjustments'];
 };
 
 /**

@@ -126,6 +126,11 @@ export interface SavingsGoalContribution {
 export type SavingsGoalPlanMonthAdjustment =
   SavingsGoalPlanApply['monthAdjustments'][number];
 
+/** Retrait direct signé : négatif = upsert, zéro = suppression. */
+export type SavingsGoalPlanWithdrawalAdjustment = NonNullable<
+  SavingsGoalPlanApply['planWithdrawalAdjustments']
+>[number];
+
 /**
  * Result of applying a plan (PUL-12). `updatedLines` are the decrypted budget
  * lines the RPC rewrote; `touchedBudgetIds` drives the post-commit recalc.

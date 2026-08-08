@@ -266,6 +266,47 @@ export type Database = {
         };
         Relationships: [];
       };
+      savings_goal_plan_withdrawal: {
+        Row: {
+          amount: string;
+          created_at: string;
+          id: string;
+          month: number;
+          savings_goal_id: string;
+          updated_at: string;
+          user_id: string;
+          year: number;
+        };
+        Insert: {
+          amount: string;
+          created_at?: string;
+          id?: string;
+          month: number;
+          savings_goal_id: string;
+          updated_at?: string;
+          user_id: string;
+          year: number;
+        };
+        Update: {
+          amount?: string;
+          created_at?: string;
+          id?: string;
+          month?: number;
+          savings_goal_id?: string;
+          updated_at?: string;
+          user_id?: string;
+          year?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'savings_goal_plan_withdrawal_savings_goal_id_fkey';
+            columns: ['savings_goal_id'];
+            isOneToOne: false;
+            referencedRelation: 'savings_goal';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       tag: {
         Row: {
           created_at: string;
@@ -589,6 +630,7 @@ export type Database = {
           p_goal_id: string;
           p_line_updates?: Json;
           p_min_period_index: number;
+          p_plan_withdrawals?: Json;
         };
         Returns: {
           amount: string | null;
@@ -809,6 +851,19 @@ export type Database = {
           p_budget_lines?: Json;
           p_key_check?: string;
           p_monthly_budgets?: Json;
+          p_savings_goals?: Json;
+          p_template_lines?: Json;
+          p_transactions?: Json;
+          p_user_id: string;
+        };
+        Returns: undefined;
+      };
+      rekey_user_encrypted_data_with_plan_withdrawals: {
+        Args: {
+          p_budget_lines?: Json;
+          p_key_check?: string;
+          p_monthly_budgets?: Json;
+          p_plan_withdrawals?: Json;
           p_savings_goals?: Json;
           p_template_lines?: Json;
           p_transactions?: Json;

@@ -39,6 +39,7 @@ describe('GetSavingsGoalProgressUseCase', () => {
     findLinkedContributions: ReturnType<typeof jest.fn>;
     findLinkedWithdrawals: ReturnType<typeof jest.fn>;
     findPlannedWithdrawals: ReturnType<typeof jest.fn>;
+    findPlanWithdrawals: ReturnType<typeof jest.fn>;
     findMaterializedPeriods: ReturnType<typeof jest.fn>;
   };
   let mockTemplateRepo: {
@@ -53,6 +54,7 @@ describe('GetSavingsGoalProgressUseCase', () => {
         .mockResolvedValue({ lines: [], transactions: [] }),
       findLinkedWithdrawals: jest.fn().mockResolvedValue([]),
       findPlannedWithdrawals: jest.fn().mockResolvedValue([]),
+      findPlanWithdrawals: jest.fn().mockResolvedValue([]),
       findMaterializedPeriods: jest.fn().mockResolvedValue([]),
     };
     mockTemplateRepo = {
@@ -189,6 +191,41 @@ describe('GetSavingsGoalProgressUseCase', () => {
     ).toMatchObject({
       plannedWithdrawalAmount: 200,
       remainingPlannedWithdrawalAmount: 200,
+    });
+  });
+
+  it('reloads a plan-only withdrawal into the trajectory without changing confirmed', async () => {
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+
+    const { computed: withoutPlan } = await useCase.execute('goal-1', mockUser);
+    mockRepo.findPlanWithdrawals.mockResolvedValue([
+      {
+        id: 'plan-only-1',
+        amount: 4_500,
+        month: currentMonth,
+        year: currentYear,
+        origin: 'plan',
+      },
+    ]);
+
+    const { computed: withPlan, months } = await useCase.execute(
+      'goal-1',
+      mockUser,
+    );
+
+    expect(mockRepo.findPlanWithdrawals).toHaveBeenCalledWith('goal-1');
+    expect(withPlan.confirmed).toBe(withoutPlan.confirmed);
+    expect(withPlan.projected).toBe(withoutPlan.projected! - 4_500);
+    expect(
+      months.find(
+        (month) => month.month === currentMonth && month.year === currentYear,
+      ),
+    ).toMatchObject({
+      plannedWithdrawalAmount: 4_500,
+      planOnlyWithdrawalAmount: 4_500,
+      remainingPlannedWithdrawalAmount: 4_500,
     });
   });
 

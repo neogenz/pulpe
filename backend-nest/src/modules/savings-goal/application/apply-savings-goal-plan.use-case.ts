@@ -1,12 +1,17 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   allocateMonthAmountToLines,
+  buildSavingsGoalTimeline,
   getBudgetPeriodForDate,
   MAX_SAVINGS_GOAL_PLAN_PERIODS,
   parseIsoDateLocal,
   periodIndex,
+  WITHDRAWAL_BALANCE_TOLERANCE,
   type BudgetPeriod,
   type LinkedSavingLine,
+  type LinkedPlannedWithdrawal,
+  type LinkedSavingTransaction,
+  type LinkedSavingWithdrawal,
   type SavingsGoalPlanApply,
 } from 'pulpe-shared';
 import { type InfoLogger, InjectInfoLogger } from '@common/logger';
@@ -30,6 +35,22 @@ import type {
   SavingsGoal,
   SavingsGoalPlanApplyResult,
 } from '../domain/savings-goal.entity';
+
+type PlanWithdrawalAdjustments = NonNullable<
+  SavingsGoalPlanApply['planWithdrawalAdjustments']
+>;
+
+interface PlanWithdrawalBalanceInput {
+  goal: SavingsGoal;
+  lines: LinkedSavingLine[];
+  transactions: LinkedSavingTransaction[];
+  withdrawals: LinkedSavingWithdrawal[];
+  plannedWithdrawals: LinkedPlannedWithdrawal[];
+  existingPlanWithdrawals: LinkedPlannedWithdrawal[];
+  adjustments: PlanWithdrawalAdjustments;
+  payDayOfMonth: number | null;
+  userId: string;
+}
 
 /**
  * Applies a simulated savings-goal plan (PUL-12, docs/SAVINGS.md §10.4).
@@ -107,6 +128,7 @@ export class ApplySavingsGoalPlanUseCase {
     const missing = (dto.missingMonthAdjustments ?? []).filter(
       (adjustment) => adjustment.amount > 0,
     );
+    const planWithdrawals = dto.planWithdrawalAdjustments ?? [];
     const linkedBefore = await this.repo.findLinkedContributions(id);
     this.validateDirectAdjustments(
       dto.monthAdjustments,
@@ -118,6 +140,31 @@ export class ApplySavingsGoalPlanUseCase {
     );
     if (missing.length > 0 && targetPeriodIndex == null) {
       this.throwLineInvalid(id, user.id);
+    }
+    this.validatePlanWithdrawalPeriods(
+      planWithdrawals,
+      { minPeriodIndex, targetPeriodIndex },
+      id,
+      user.id,
+    );
+    if (planWithdrawals.length > 0) {
+      const [withdrawals, plannedWithdrawals, existingPlanWithdrawals] =
+        await Promise.all([
+          this.repo.findLinkedWithdrawals(id),
+          this.repo.findPlannedWithdrawals(id),
+          this.repo.findPlanWithdrawals(id),
+        ]);
+      this.assertPlanWithdrawalBalance({
+        goal,
+        lines: linkedBefore.lines,
+        transactions: linkedBefore.transactions,
+        withdrawals,
+        plannedWithdrawals,
+        existingPlanWithdrawals,
+        adjustments: planWithdrawals,
+        payDayOfMonth,
+        userId: user.id,
+      });
     }
 
     let provisionedMonthCount = 0;
@@ -141,7 +188,12 @@ export class ApplySavingsGoalPlanUseCase {
         ...dto.monthAdjustments,
         ...this.allocateMissingMonths(missing, linkedLines, id, user.id),
       ];
-      result = await this.repo.applyPlan(id, lineAdjustments, minPeriodIndex);
+      result = await this.repo.applyPlan(
+        id,
+        lineAdjustments,
+        minPeriodIndex,
+        planWithdrawals,
+      );
     } catch (error) {
       if (missing.length > 0) {
         await this.cacheService.invalidateForUser(user.id);
@@ -296,6 +348,102 @@ export class ApplySavingsGoalPlanUseCase {
 
   private readonly periodKey = (period: BudgetPeriod): string =>
     `${period.month}/${period.year}`;
+
+  private validatePlanWithdrawalPeriods(
+    adjustments: PlanWithdrawalAdjustments,
+    bounds: { minPeriodIndex: number; targetPeriodIndex: number | null },
+    goalId: string,
+    userId: string,
+  ): void {
+    if (
+      adjustments.some((adjustment) => {
+        const index = periodIndex(adjustment);
+        return (
+          adjustment.amount > 0 ||
+          index < bounds.minPeriodIndex ||
+          index >= bounds.minPeriodIndex + MAX_SAVINGS_GOAL_PLAN_PERIODS ||
+          (bounds.targetPeriodIndex != null && index > bounds.targetPeriodIndex)
+        );
+      })
+    ) {
+      this.throwLineInvalid(goalId, userId);
+    }
+  }
+
+  private assertPlanWithdrawalBalance(input: PlanWithdrawalBalanceInput): void {
+    const resultingPlanWithdrawals = this.mergePlanWithdrawals(
+      input.existingPlanWithdrawals,
+      input.adjustments,
+    );
+    const before = this.minimumProjectedBalance(
+      input,
+      input.existingPlanWithdrawals,
+    );
+    const after = this.minimumProjectedBalance(input, resultingPlanWithdrawals);
+
+    if (
+      after < -WITHDRAWAL_BALANCE_TOLERANCE &&
+      after < before - WITHDRAWAL_BALANCE_TOLERANCE
+    ) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_WITHDRAWAL_INSUFFICIENT_BALANCE,
+        undefined,
+        {
+          operation: 'savingsGoal.planApply.assertWithdrawalBalance',
+          entityId: input.goal.id,
+          userId: input.userId,
+        },
+      );
+    }
+  }
+
+  private mergePlanWithdrawals(
+    existing: LinkedPlannedWithdrawal[],
+    adjustments: PlanWithdrawalAdjustments,
+  ): LinkedPlannedWithdrawal[] {
+    const resultingByPeriod = new Map(
+      existing.map((withdrawal) => [this.periodKey(withdrawal), withdrawal]),
+    );
+    for (const adjustment of adjustments) {
+      const key = this.periodKey(adjustment);
+      if (adjustment.amount === 0) {
+        resultingByPeriod.delete(key);
+      } else {
+        resultingByPeriod.set(key, {
+          id: resultingByPeriod.get(key)?.id ?? `plan:${key}`,
+          amount: -adjustment.amount,
+          month: adjustment.month,
+          year: adjustment.year,
+          origin: 'plan',
+        });
+      }
+    }
+    return [...resultingByPeriod.values()];
+  }
+
+  private minimumProjectedBalance(
+    input: PlanWithdrawalBalanceInput,
+    planOnly: LinkedPlannedWithdrawal[],
+  ): number {
+    const timeline = buildSavingsGoalTimeline({
+      targetAmount: input.goal.targetAmount,
+      status: input.goal.status,
+      createdAt: input.goal.createdAt,
+      startDate: input.goal.startDate,
+      targetDate: input.goal.targetDate,
+      payDayOfMonth: input.payDayOfMonth,
+      initialAmount: input.goal.initialAmount ?? 0,
+      lines: input.lines,
+      transactions: input.transactions,
+      withdrawals: input.withdrawals,
+      plannedWithdrawals: [...input.plannedWithdrawals, ...planOnly],
+    });
+    return Math.min(
+      ...timeline.map(
+        (month) => month.projectedCumulative ?? Number.POSITIVE_INFINITY,
+      ),
+    );
+  }
 
   private throwLineInvalid(goalId: string, userId: string): never {
     throw new BusinessException(

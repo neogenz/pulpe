@@ -1079,6 +1079,73 @@ describe('SupabaseSavingsGoalRepository', () => {
     });
   });
 
+  describe('findPlanWithdrawals', () => {
+    it('loads the owner-scoped encrypted withdrawal and marks its plan origin', async () => {
+      const eqCalls: [string, string][] = [];
+      const query = {
+        eq: jest.fn((column: string, value: string) => {
+          eqCalls.push([column, value]);
+          return eqCalls.length === 1
+            ? query
+            : Promise.resolve({
+                data: [
+                  {
+                    id: 'withdrawal-1',
+                    amount: 'enc:4500',
+                    month: 9,
+                    year: 2026,
+                  },
+                ],
+                error: null,
+              });
+        }),
+      };
+      let capturedTable: string | undefined;
+      const provider = createMockProvider((table) => {
+        capturedTable = table;
+        return { select: () => query };
+      });
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      const result = await repo.findPlanWithdrawals('goal-1');
+
+      expect(capturedTable).toBe('savings_goal_plan_withdrawal');
+      expect(eqCalls).toEqual([
+        ['savings_goal_id', 'goal-1'],
+        ['user_id', 'user-1'],
+      ]);
+      expect(result).toEqual([
+        {
+          id: 'withdrawal-1',
+          amount: 4500,
+          month: 9,
+          year: 2026,
+          origin: 'plan',
+        },
+      ]);
+    });
+
+    it('returns empty without loading the DEK', async () => {
+      const query = {
+        eq: jest.fn(),
+      };
+      query.eq
+        .mockReturnValueOnce(query)
+        .mockResolvedValueOnce({ data: [], error: null });
+      const encryption = createMockEncryption();
+      const repo = new SupabaseSavingsGoalRepository(
+        createMockProvider(() => ({ select: () => query })),
+        encryption,
+      );
+
+      await expect(repo.findPlanWithdrawals('goal-1')).resolves.toEqual([]);
+      expect(encryption.getDekFor).not.toHaveBeenCalled();
+    });
+  });
+
   describe('findLinkedWithdrawals', () => {
     it('reads transaction, not budget_line, and renames budget_line_id→budgetLineId', async () => {
       const { provider, table, inArgs } = createWithdrawalProvider({
@@ -1257,7 +1324,7 @@ describe('SupabaseSavingsGoalRepository', () => {
   });
 
   describe('applyPlan', () => {
-    it('sends only encrypted concrete-line updates to the hardened RPC', async () => {
+    it('sends an encrypted line update and direct-withdrawal removal atomically', async () => {
       const rpc = jest.fn().mockResolvedValue({ data: [], error: null });
       const provider = {
         get client() {
@@ -1279,6 +1346,7 @@ describe('SupabaseSavingsGoalRepository', () => {
           '123e4567-e89b-12d3-a456-426614174001',
           [{ budgetLineId: lineId, amount: 123 }],
           24_319,
+          [{ month: 9, year: 2026, amount: 0 }],
         ),
       ).resolves.toEqual({
         updatedLines: [],
@@ -1288,6 +1356,46 @@ describe('SupabaseSavingsGoalRepository', () => {
         p_goal_id: '123e4567-e89b-12d3-a456-426614174001',
         p_min_period_index: 24_319,
         p_line_updates: [{ budget_line_id: lineId, amount: 'enc:123' }],
+        p_plan_withdrawals: [{ month: 9, year: 2026, amount: null }],
+      });
+    });
+
+    it('encrypts plan-only withdrawals as positive stock movements and sends zero as deletion', async () => {
+      const rpc = jest.fn().mockResolvedValue({ data: [], error: null });
+      const provider = {
+        get client() {
+          return { rpc } as unknown as AuthenticatedSupabaseClient;
+        },
+        get user() {
+          return mockUser;
+        },
+      } as AuthenticatedSupabaseProvider;
+      const encryption = createMockEncryption();
+      encryption.prepareAmountData = jest
+        .fn()
+        .mockImplementation((amount: number) =>
+          Promise.resolve({ amount: `enc:${amount}` }),
+        );
+      const repo = new SupabaseSavingsGoalRepository(provider, encryption);
+
+      await repo.applyPlan('123e4567-e89b-12d3-a456-426614174001', [], 24_319, [
+        { month: 9, year: 2026, amount: -4_500 },
+        { month: 10, year: 2026, amount: 0 },
+      ]);
+
+      expect(encryption.prepareAmountData).toHaveBeenCalledWith(
+        4_500,
+        mockUser.id,
+        mockUser.clientKey,
+      );
+      expect(rpc).toHaveBeenCalledWith('apply_savings_goal_plan', {
+        p_goal_id: '123e4567-e89b-12d3-a456-426614174001',
+        p_min_period_index: 24_319,
+        p_line_updates: [],
+        p_plan_withdrawals: [
+          { month: 9, year: 2026, amount: 'enc:4500' },
+          { month: 10, year: 2026, amount: null },
+        ],
       });
     });
   });

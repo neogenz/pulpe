@@ -86,6 +86,8 @@ export interface SavingsPlanTimelineMonth {
    * retranchent, en plus des retraits réels.
    */
   remainingPlannedWithdrawalAmount?: number;
+  /** Sous-ensemble direct du reliquat, saisi dans le plan sans budget. */
+  planOnlyWithdrawalAmount?: number;
   plannedCumulative: number;
   confirmedCumulative: number;
   /**
@@ -263,6 +265,9 @@ export function buildSavingsGoalTimeline(
       (sum, planned) => sum + planned.amount,
       0,
     );
+    const planOnlyWithdrawalAmount = monthPlannedWithdrawals
+      .filter((planned) => planned.origin === 'plan')
+      .reduce((sum, planned) => sum + planned.amount, 0);
     const remainingPlannedWithdrawalAmount =
       isContributionEligible && index >= indexCurrent
         ? monthPlannedWithdrawals.reduce(
@@ -338,6 +343,7 @@ export function buildSavingsGoalTimeline(
       withdrawnAmount,
       plannedWithdrawalAmount,
       remainingPlannedWithdrawalAmount,
+      planOnlyWithdrawalAmount,
       plannedCumulative,
       confirmedCumulative,
       projectedCumulative,
@@ -357,6 +363,8 @@ export interface SavingsPlanAdjustment {
   month: number;
   year: number;
   amount: number;
+  /** Un changement explicite qui supprime le retrait direct rechargé du mois. */
+  replacesPlanOnlyWithdrawal?: boolean;
 }
 
 export interface SavingsPlanSimulatedMonth extends SavingsPlanTimelineMonth {
@@ -383,7 +391,9 @@ function adjustmentKey(item: { month: number; year: number }): number {
 /**
  * Simule le plan : chaque mois verrouillé garde sa réalité (`confirmedAmount`),
  * chaque mois contributif prend `adjustment ?? globalMonthlyAmount ?? plannedAmount`.
- * Son cumul ne peut jamais repasser sous le montant déjà confirmé du mois.
+ * Une valeur positive remplace la contribution du mois ; une valeur négative
+ * remplace son retrait direct hors budget. La réalité déjà confirmée reste
+ * acquise dans les deux cas.
  * Cibler un mois verrouillé ou indisponible via `adjustments` lève une erreur (révèle un
  * bug d'UI en développement — même doctrine que `splitTotalPreserving`).
  */
@@ -395,9 +405,9 @@ export function simulateSavingsPlan(input: {
   /** Montant de départ (stock) — amorce `simulatedCumulative`, exclu des mois simulés. */
   initialAmount?: number;
 }): SavingsPlanSimulationResult {
-  const adjustmentsByKey = new Map<number, number>();
+  const adjustmentsByKey = new Map<number, SavingsPlanAdjustment>();
   for (const adjustment of input.adjustments ?? []) {
-    adjustmentsByKey.set(adjustmentKey(adjustment), adjustment.amount);
+    adjustmentsByKey.set(adjustmentKey(adjustment), adjustment);
   }
 
   const contributiveKeys = new Set(
@@ -420,25 +430,38 @@ export function simulateSavingsPlan(input: {
   for (const month of input.timeline) {
     const key = adjustmentKey(month);
     const isContributive = isContributivePlanMonth(month);
+    const adjustment = adjustmentsByKey.get(key);
 
     let simulatedAmount: number;
     let isAdjusted = false;
+    let isWithdrawalAdjustment = false;
+    let replacesExistingPlanWithdrawal = false;
     if (month.isContributionEligible === false) {
       simulatedAmount = 0;
     } else if (!isContributive) {
       simulatedAmount = month.confirmedAmount;
-    } else if (adjustmentsByKey.has(key)) {
-      simulatedAmount = adjustmentsByKey.get(key)!;
+    } else if (adjustment != null) {
+      simulatedAmount = adjustment.amount;
       isAdjusted = true;
+      isWithdrawalAdjustment = adjustment.amount < 0;
+      replacesExistingPlanWithdrawal =
+        isWithdrawalAdjustment ||
+        adjustment.replacesPlanOnlyWithdrawal === true;
     } else if (input.globalMonthlyAmount != null) {
       simulatedAmount = input.globalMonthlyAmount;
       isAdjusted = simulatedAmount !== month.plannedAmount;
+    } else if ((month.planOnlyWithdrawalAmount ?? 0) > 0) {
+      simulatedAmount = -(month.planOnlyWithdrawalAmount ?? 0);
+      isWithdrawalAdjustment = true;
+      replacesExistingPlanWithdrawal = true;
     } else {
       simulatedAmount = month.plannedAmount;
     }
 
     if (month.isContributionEligible !== false) {
-      simulatedCumulative += Math.max(simulatedAmount, month.confirmedAmount);
+      simulatedCumulative += isWithdrawalAdjustment
+        ? Math.max(month.plannedAmount, month.confirmedAmount) + simulatedAmount
+        : Math.max(simulatedAmount, month.confirmedAmount);
     }
 
     // Hors du garde, et APRÈS le max : le retrait est une sortie de stock, il
@@ -447,7 +470,13 @@ export function simulateSavingsPlan(input: {
     // annoncé le suit : il porte déjà sa propre fenêtre, posée à la construction.
     simulatedCumulative -=
       (month.withdrawnAmount ?? 0) +
-      (month.remainingPlannedWithdrawalAmount ?? 0);
+      Math.max(
+        0,
+        (month.remainingPlannedWithdrawalAmount ?? 0) -
+          (replacesExistingPlanWithdrawal
+            ? (month.planOnlyWithdrawalAmount ?? 0)
+            : 0),
+      );
     if (
       attainedPeriod == null &&
       month.isContributionEligible !== false &&
@@ -520,9 +549,9 @@ export function redistributeRemainingEffort(input: {
     };
   }
 
-  const pinnedByKey = new Map<number, number>();
+  const pinnedByKey = new Map<number, SavingsPlanAdjustment>();
   for (const pin of input.pinnedAdjustments ?? []) {
-    pinnedByKey.set(adjustmentKey(pin), pin.amount);
+    pinnedByKey.set(adjustmentKey(pin), pin);
   }
 
   const openMonths = input.timeline.filter((month) =>
@@ -536,25 +565,45 @@ export function redistributeRemainingEffort(input: {
     .filter((month) => month.isContributionEligible !== false && month.isLocked)
     .reduce((sum, month) => sum + month.confirmedAmount, 0);
 
-  const withdrawnSum = input.timeline.reduce(
-    (sum, month) =>
+  const withdrawnSum = input.timeline.reduce((sum, month) => {
+    const pinned = pinnedByKey.get(adjustmentKey(month));
+    const replacesExistingPlanWithdrawal =
+      pinned != null &&
+      (pinned.amount < 0 || pinned.replacesPlanOnlyWithdrawal === true);
+    return (
       sum +
       (month.withdrawnAmount ?? 0) +
-      (month.remainingPlannedWithdrawalAmount ?? 0),
-    0,
-  );
+      Math.max(
+        0,
+        (month.remainingPlannedWithdrawalAmount ?? 0) -
+          (replacesExistingPlanWithdrawal
+            ? (month.planOnlyWithdrawalAmount ?? 0)
+            : 0),
+      )
+    );
+  }, 0);
 
-  const pinnedSum = openMonths
+  const pinnedEffect = openMonths
     .filter((month) => pinnedByKey.has(adjustmentKey(month)))
-    .reduce((sum, month) => sum + pinnedByKey.get(adjustmentKey(month))!, 0);
+    .reduce((sum, month) => {
+      const amount = pinnedByKey.get(adjustmentKey(month))!.amount;
+      const preservesContribution = amount < 0;
+      return (
+        sum -
+        amount -
+        (preservesContribution
+          ? Math.max(month.plannedAmount, month.confirmedAmount)
+          : 0)
+      );
+    }, 0);
 
   const remaining = Math.max(
     0,
     input.targetAmount -
       (input.initialAmount ?? 0) -
       lockedConfirmedSum +
-      withdrawnSum -
-      pinnedSum,
+      withdrawnSum +
+      pinnedEffect,
   );
 
   const hasUnavailablePeriod = input.timeline.some(

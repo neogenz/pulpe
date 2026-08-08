@@ -8,6 +8,7 @@ import type {
   SavingsGoalLinkedContributions,
   SavingsGoalPlanApplyResult,
   SavingsGoalPlanMonthAdjustment,
+  SavingsGoalPlanWithdrawalAdjustment,
   SavingsGoalTargetDateReconciliationCommand,
   SavingsGoalTargetDateReconciliationResult,
   SavingsGoalUpdatePatch,
@@ -69,6 +70,7 @@ export interface SavingsGoalRepositoryPort {
     goalId: string,
     monthAdjustments: SavingsGoalPlanMonthAdjustment[],
     minPeriodIndex: number,
+    planWithdrawalAdjustments?: SavingsGoalPlanWithdrawalAdjustment[],
   ): Promise<SavingsGoalPlanApplyResult>;
   /**
    * Applique la décision advisory d'arrêt de génération (PUL-285 CA5) via la
@@ -100,6 +102,8 @@ export interface SavingsGoalRepositoryPort {
    * peut-être jamais. Elles n'abaissent que la projection.
    */
   findPlannedWithdrawals(goalId: string): Promise<LinkedPlannedWithdrawal[]>;
+  /** Retraits directs du plan, sans Prévision Revenu ni budget. */
+  findPlanWithdrawals(goalId: string): Promise<LinkedPlannedWithdrawal[]>;
   /**
    * Historique présentable d'un objectif, trié du plus récent au plus ancien.
    * Sépare de `findLinkedWithdrawals` : la chronologie du plan a besoin de la

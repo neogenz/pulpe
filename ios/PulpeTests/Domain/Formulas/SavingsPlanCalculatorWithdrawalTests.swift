@@ -5,47 +5,238 @@ import Testing
 /// PUL-329 — retrait cases for `simulate` and `redistributeRemainingEffort`,
 /// mirrors `savings-goal-plan.spec.ts`. Split from `SavingsPlanCalculatorTests`
 /// (own fixture copy) to keep both suites under the file length ceiling.
-@Suite("SavingsPlanCalculator.withdrawals")
-struct SavingsPlanCalculatorWithdrawalTests {
-    /// Mirrors the TS `planMonth` factory: a single unchecked line worth
-    /// `plannedAmount`.
-    private func planMonth(
-        month: Int,
-        year: Int,
-        state: SavingsPlanMonthState = .future,
-        isLocked: Bool = false,
-        isContributionEligible: Bool = true,
-        plannedAmount: Decimal = 500,
-        confirmedAmount: Decimal = 0,
-        withdrawnAmount: Decimal = 0,
-        plannedWithdrawalAmount: Decimal = 0,
-        remainingPlannedWithdrawalAmount: Decimal = 0
-    ) -> SavingsGoalPlanMonth {
-        SavingsGoalPlanMonth(
-            month: month,
-            year: year,
-            state: state,
-            isLocked: isLocked,
-            isContributionEligible: isContributionEligible,
-            isProvisionable: false,
-            plannedAmount: plannedAmount,
-            confirmedAmount: confirmedAmount,
-            withdrawnAmount: withdrawnAmount,
-            plannedWithdrawalAmount: plannedWithdrawalAmount,
-            remainingPlannedWithdrawalAmount: remainingPlannedWithdrawalAmount,
-            plannedCumulative: 0,
-            confirmedCumulative: 0,
-            lines: [
-                SavingsGoalPlanLine(
-                    budgetLineId: "\(year)-\(month)",
-                    amount: plannedAmount,
-                    checkedAt: nil,
-                    isManuallyAdjusted: false
+/// Mirrors the TS `planMonth` factory: a single unchecked line worth
+/// `plannedAmount`.
+private func planMonth(
+    month: Int,
+    year: Int,
+    state: SavingsPlanMonthState = .future,
+    isLocked: Bool = false,
+    isContributionEligible: Bool = true,
+    plannedAmount: Decimal = 500,
+    confirmedAmount: Decimal = 0,
+    withdrawnAmount: Decimal = 0,
+    plannedWithdrawalAmount: Decimal = 0,
+    remainingPlannedWithdrawalAmount: Decimal = 0,
+    planOnlyWithdrawalAmount: Decimal = 0
+) -> SavingsGoalPlanMonth {
+    SavingsGoalPlanMonth(
+        month: month,
+        year: year,
+        state: state,
+        isLocked: isLocked,
+        isContributionEligible: isContributionEligible,
+        isProvisionable: false,
+        plannedAmount: plannedAmount,
+        confirmedAmount: confirmedAmount,
+        withdrawnAmount: withdrawnAmount,
+        plannedWithdrawalAmount: plannedWithdrawalAmount,
+        remainingPlannedWithdrawalAmount: remainingPlannedWithdrawalAmount,
+        planOnlyWithdrawalAmount: planOnlyWithdrawalAmount,
+        plannedCumulative: 0,
+        confirmedCumulative: 0,
+        lines: [
+            SavingsGoalPlanLine(
+                budgetLineId: "\(year)-\(month)",
+                amount: plannedAmount,
+                checkedAt: nil,
+                isManuallyAdjusted: false
+            ),
+        ]
+    )
+}
+
+@Suite("SavingsPlanCalculator.plan-only withdrawals")
+struct SavingsPlanDirectWithdrawalTests {
+    @Test("treats a negative monthly adjustment as one plan-only withdrawal")
+    func planOnlyWithdrawal_signedSimulationFixture() throws {
+        let result = try SavingsPlanCalculator.simulate(
+            timeline: [
+                planMonth(
+                    month: 9,
+                    year: 2026,
+                    state: .current,
+                    plannedAmount: 1_260
                 ),
-            ]
+            ],
+            targetAmount: 10_000,
+            adjustments: [
+                .init(month: 9, year: 2026, amount: -4_500),
+            ],
+            initialAmount: 10_000
         )
+
+        #expect(result.months.first?.simulatedAmount == -4_500)
+        #expect(result.simulatedFinal == 6_760)
     }
 
+    @Test("preserves the planned contribution when reloading a plan-only withdrawal")
+    func planOnlyWithdrawal_reloadedContributionFixture() throws {
+        let result = try SavingsPlanCalculator.simulate(
+            timeline: [
+                planMonth(
+                    month: 9,
+                    year: 2026,
+                    state: .current,
+                    plannedAmount: 1_260,
+                    plannedWithdrawalAmount: 4_500,
+                    remainingPlannedWithdrawalAmount: 4_500,
+                    planOnlyWithdrawalAmount: 4_500
+                ),
+            ],
+            targetAmount: 10_000,
+            initialAmount: 10_000
+        )
+
+        #expect(result.months.first?.simulatedAmount == -4_500)
+        #expect(result.simulatedFinal == 6_760)
+    }
+
+    @Test("replaces a reloaded plan-only withdrawal instead of subtracting it twice")
+    func planOnlyWithdrawal_reloadedReplacementFixture() throws {
+        let result = try SavingsPlanCalculator.simulate(
+            timeline: [
+                planMonth(
+                    month: 9,
+                    year: 2026,
+                    state: .current,
+                    plannedAmount: 1_260,
+                    plannedWithdrawalAmount: 4_500,
+                    remainingPlannedWithdrawalAmount: 4_500,
+                    planOnlyWithdrawalAmount: 4_500
+                ),
+            ],
+            targetAmount: 10_000,
+            adjustments: [.init(month: 9, year: 2026, amount: -3_000)],
+            initialAmount: 10_000
+        )
+
+        #expect(result.simulatedFinal == 8_260)
+    }
+
+    @Test("replaces a reloaded withdrawal with one positive contribution when explicitly cleared")
+    func planOnlyWithdrawal_positiveReplacementFixture() throws {
+        let result = try SavingsPlanCalculator.simulate(
+            timeline: [
+                planMonth(
+                    month: 9,
+                    year: 2026,
+                    state: .current,
+                    plannedAmount: 500,
+                    plannedWithdrawalAmount: 4_500,
+                    remainingPlannedWithdrawalAmount: 4_500,
+                    planOnlyWithdrawalAmount: 4_500
+                ),
+            ],
+            targetAmount: 10_000,
+            adjustments: [
+                .init(
+                    month: 9,
+                    year: 2026,
+                    amount: 1_260,
+                    replacesPlanOnlyWithdrawal: true
+                ),
+            ],
+            initialAmount: 10_000
+        )
+
+        #expect(result.months.first?.simulatedAmount == 1_260)
+        #expect(result.simulatedFinal == 11_260)
+    }
+
+    @Test("replaces a reloaded direct withdrawal when redistributing a signed pin")
+    func planOnlyWithdrawal_signedRedistributionFixture() throws {
+        let timeline = [
+            planMonth(
+                month: 9,
+                year: 2026,
+                state: .current,
+                plannedAmount: 0,
+                plannedWithdrawalAmount: 4_500,
+                remainingPlannedWithdrawalAmount: 4_500,
+                planOnlyWithdrawalAmount: 4_500
+            ),
+            planMonth(month: 10, year: 2026, state: .future),
+        ]
+        let redistribution = SavingsPlanCalculator.redistributeRemainingEffort(
+            timeline: timeline,
+            targetAmount: 12_000,
+            pinnedAdjustments: [.init(month: 9, year: 2026, amount: -3_000)],
+            initialAmount: 10_000
+        )
+        let result = try SavingsPlanCalculator.simulate(
+            timeline: timeline,
+            targetAmount: 12_000,
+            adjustments: [
+                .init(month: 9, year: 2026, amount: -3_000),
+            ] + redistribution.adjustments,
+            initialAmount: 10_000
+        )
+
+        #expect(redistribution.remainingEffort == 5_000)
+        #expect(redistribution.adjustments == [
+            .init(month: 10, year: 2026, amount: 5_000),
+        ])
+        #expect(result.simulatedFinal == 12_000)
+    }
+
+    @Test("compensates an unpinned reloaded withdrawal during redistribution")
+    func planOnlyWithdrawal_unpinnedRedistributionFixture() throws {
+        let timeline = [
+            planMonth(
+                month: 9,
+                year: 2026,
+                state: .current,
+                plannedAmount: 1_260,
+                plannedWithdrawalAmount: 4_500,
+                remainingPlannedWithdrawalAmount: 4_500,
+                planOnlyWithdrawalAmount: 4_500
+            ),
+            planMonth(month: 10, year: 2026, state: .future),
+        ]
+        let redistribution = SavingsPlanCalculator.redistributeRemainingEffort(
+            timeline: timeline,
+            targetAmount: 12_000,
+            initialAmount: 10_000
+        )
+        let result = try SavingsPlanCalculator.simulate(
+            timeline: timeline,
+            targetAmount: 12_000,
+            adjustments: redistribution.adjustments,
+            initialAmount: 10_000
+        )
+
+        #expect(redistribution.remainingEffort == 6_500)
+        #expect(redistribution.adjustments == [
+            .init(month: 9, year: 2026, amount: 3_250),
+            .init(month: 10, year: 2026, amount: 3_250),
+        ])
+        #expect(result.simulatedFinal == 12_000)
+    }
+
+    @Test("counts a linked-income plan once when no plan-only twin exists")
+    func linkedIncomePlan_noDoubleCountingFixture() throws {
+        let result = try SavingsPlanCalculator.simulate(
+            timeline: [
+                planMonth(
+                    month: 9,
+                    year: 2026,
+                    state: .current,
+                    plannedAmount: 0,
+                    plannedWithdrawalAmount: 4_500,
+                    remainingPlannedWithdrawalAmount: 4_500
+                ),
+            ],
+            targetAmount: 10_000,
+            initialAmount: 10_000
+        )
+
+        #expect(result.simulatedFinal == 5_500)
+    }
+}
+
+@Suite("SavingsPlanCalculator.withdrawals")
+struct SavingsPlanCalculatorWithdrawalTests {
     /// Mirrors the TS spec: redistributing then simulating must land back on the
     /// target even when the retrait sits on an OPEN month. A withdrawal sum
     /// filtered on `isLocked` passes every other case and fails only this one.

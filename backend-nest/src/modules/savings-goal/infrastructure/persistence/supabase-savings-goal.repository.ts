@@ -41,6 +41,7 @@ import type {
   SavingsGoalLinkedContributions,
   SavingsGoalPlanApplyResult,
   SavingsGoalPlanMonthAdjustment,
+  SavingsGoalPlanWithdrawalAdjustment,
   SavingsGoalRow,
   SavingsGoalTargetDateReconciliationCommand,
   SavingsGoalTargetDateReconciliationResult,
@@ -49,6 +50,7 @@ import type {
 } from '../../domain/savings-goal.entity';
 import {
   applySavingsGoalPlanLineListSchema,
+  applySavingsGoalPlanWithdrawalListSchema,
   GENERATION_STOP_ADJUSTED_RPC_MESSAGE,
   GENERATION_STOP_CHECKED_RPC_MESSAGE,
   GENERATION_STOP_NOT_LINKED_RPC_MESSAGE,
@@ -63,6 +65,7 @@ import {
   savingsGoalDeletionResultRpcSchema,
   SAVINGS_GOAL_DELETION_IMPACT_CHANGED_RPC_MESSAGE,
   type ApplySavingsGoalPlanLine,
+  type ApplySavingsGoalPlanWithdrawal,
   type SavingsGoalDeletionImpactRpc,
 } from './schemas/rpc-payload.schemas';
 
@@ -119,6 +122,13 @@ interface PlannedWithdrawalRow {
   source_savings_goal_id: string | null;
   amount: string | null;
   monthly_budget: { month: number; year: number };
+}
+
+interface PlanWithdrawalRow {
+  id: string;
+  amount: string;
+  month: number;
+  year: number;
 }
 
 interface LinkedTransactionRow {
@@ -452,6 +462,39 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     return rows.map((row) => this.toPlannedWithdrawal(row, dek));
   }
 
+  async findPlanWithdrawals(
+    goalId: string,
+  ): Promise<LinkedPlannedWithdrawal[]> {
+    const { data, error } = await this.supabaseProvider.client
+      .from('savings_goal_plan_withdrawal')
+      .select('id, amount, month, year')
+      .eq('savings_goal_id', goalId)
+      .eq('user_id', this.supabaseProvider.user.id);
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'findSavingsGoalPlanWithdrawals',
+          entityType: 'savings_goal_plan_withdrawal',
+          userId: this.supabaseProvider.user.id,
+        },
+        { cause: error },
+      );
+    }
+    if (!data?.length) return [];
+
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    return (data as PlanWithdrawalRow[]).map((row) => ({
+      id: row.id,
+      amount: this.encryption.tryDecryptAmount(row.amount, dek, 0),
+      month: row.month,
+      year: row.year,
+      origin: 'plan',
+    }));
+  }
+
   async findWithdrawals(
     goalId: string,
   ): Promise<SavingsGoalWithdrawalRecord[]> {
@@ -577,6 +620,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     goalId: string,
     monthAdjustments: SavingsGoalPlanMonthAdjustment[],
     minPeriodIndex: number,
+    planWithdrawalAdjustments: SavingsGoalPlanWithdrawalAdjustment[] = [],
   ): Promise<SavingsGoalPlanApplyResult> {
     const supabase = this.supabaseProvider.client;
     const user = this.supabaseProvider.user;
@@ -587,11 +631,20 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       ),
     );
     const linePayload = this.parsePlanPayload(lineUpdates);
+    const planWithdrawalUpdates = await Promise.all(
+      planWithdrawalAdjustments.map((adjustment) =>
+        this.toPlanWithdrawalRpcItem(adjustment, user),
+      ),
+    );
+    const planWithdrawalPayload = this.parsePlanWithdrawalPayload(
+      planWithdrawalUpdates,
+    );
 
     const { data, error } = await supabase.rpc('apply_savings_goal_plan', {
       p_goal_id: goalId,
       p_min_period_index: minPeriodIndex,
       p_line_updates: linePayload as never,
+      p_plan_withdrawals: planWithdrawalPayload as never,
     });
 
     if (error || !data) {
@@ -893,6 +946,43 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
           undefined,
           {
             operation: 'applySavingsGoalPlan',
+            entityType: 'savings_goal',
+            validationErrors: error.issues,
+          },
+          { cause: error },
+        );
+      }
+      throw error;
+    }
+  }
+
+  private async toPlanWithdrawalRpcItem(
+    adjustment: SavingsGoalPlanWithdrawalAdjustment,
+    user: AuthenticatedUser,
+  ): Promise<ApplySavingsGoalPlanWithdrawal> {
+    if (adjustment.amount === 0) {
+      return { month: adjustment.month, year: adjustment.year, amount: null };
+    }
+    const { amount } = await this.encryption.prepareAmountData(
+      -adjustment.amount,
+      user.id,
+      user.clientKey,
+    );
+    return { month: adjustment.month, year: adjustment.year, amount };
+  }
+
+  private parsePlanWithdrawalPayload(
+    updates: ApplySavingsGoalPlanWithdrawal[],
+  ): ApplySavingsGoalPlanWithdrawal[] {
+    try {
+      return applySavingsGoalPlanWithdrawalListSchema.parse(updates);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.SAVINGS_GOAL_PLAN_APPLY_FAILED,
+          undefined,
+          {
+            operation: 'applySavingsGoalPlan.withdrawalPayload',
             entityType: 'savings_goal',
             validationErrors: error.issues,
           },

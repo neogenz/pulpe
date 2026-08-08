@@ -30,6 +30,23 @@ export type ApplySavingsGoalPlanLine = z.infer<
   typeof applySavingsGoalPlanLineSchema
 >;
 
+export const applySavingsGoalPlanWithdrawalSchema = z
+  .object({
+    month: z.number().int().min(1).max(12),
+    year: z.number().int(),
+    /** `null` supprime l'ajustement existant. */
+    amount: z.string().min(1).nullable(),
+  })
+  .strict();
+
+export const applySavingsGoalPlanWithdrawalListSchema = z.array(
+  applySavingsGoalPlanWithdrawalSchema,
+);
+
+export type ApplySavingsGoalPlanWithdrawal = z.infer<
+  typeof applySavingsGoalPlanWithdrawalSchema
+>;
+
 // Exact messages the RPC RAISEs (P0001) when a requested line fails a WHERE
 // guard. Mirrored verbatim by migration apply_savings_goal_plan and pinned by
 // its SQL test; the repository matches on them to pick the HTTP status. Named

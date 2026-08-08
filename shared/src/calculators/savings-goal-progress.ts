@@ -102,6 +102,8 @@ export interface LinkedPlannedWithdrawal {
   amount: number;
   month: number;
   year: number;
+  /** `plan` = ajustement direct sans budget, jamais réalisable par un Réel. */
+  origin?: 'budget' | 'plan';
 }
 
 /**
@@ -115,6 +117,7 @@ export function remainingPlannedWithdrawal(
   planned: LinkedPlannedWithdrawal,
   withdrawals: LinkedSavingWithdrawal[],
 ): number {
+  if (planned.origin === 'plan') return planned.amount;
   const realized = withdrawals
     .filter((withdrawal) => withdrawal.budgetLineId === planned.id)
     .reduce((sum, withdrawal) => sum + withdrawal.amount, 0);

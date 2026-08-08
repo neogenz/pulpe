@@ -434,6 +434,115 @@ describe('simulateSavingsPlan', () => {
     expect(result.attainedPeriod).toEqual({ month: 4, year: 2026 });
   });
 
+  it('should treat a negative monthly adjustment as one plan-only withdrawal', () => {
+    const result = simulateSavingsPlan({
+      timeline: [
+        planMonth({
+          month: 9,
+          year: 2026,
+          state: 'current',
+          plannedAmount: 1_260,
+        }),
+      ],
+      targetAmount: 10_000,
+      initialAmount: 10_000,
+      adjustments: [{ month: 9, year: 2026, amount: -4_500 }],
+    });
+
+    expect(result.months[0].simulatedAmount).toBe(-4_500);
+    expect(result.simulatedFinal).toBe(6_760);
+  });
+
+  it('should preserve the planned contribution when reloading a plan-only withdrawal', () => {
+    const result = simulateSavingsPlan({
+      timeline: [
+        planMonth({
+          month: 9,
+          year: 2026,
+          state: 'current',
+          plannedAmount: 1_260,
+          plannedWithdrawalAmount: 4_500,
+          remainingPlannedWithdrawalAmount: 4_500,
+          planOnlyWithdrawalAmount: 4_500,
+        }),
+      ],
+      targetAmount: 10_000,
+      initialAmount: 10_000,
+    });
+
+    expect(result.months[0].simulatedAmount).toBe(-4_500);
+    expect(result.simulatedFinal).toBe(6_760);
+  });
+
+  it('should replace a reloaded plan-only withdrawal instead of subtracting it twice', () => {
+    const result = simulateSavingsPlan({
+      timeline: [
+        planMonth({
+          month: 9,
+          year: 2026,
+          state: 'current',
+          plannedAmount: 1_260,
+          plannedWithdrawalAmount: 4_500,
+          remainingPlannedWithdrawalAmount: 4_500,
+          planOnlyWithdrawalAmount: 4_500,
+        }),
+      ],
+      targetAmount: 10_000,
+      initialAmount: 10_000,
+      adjustments: [{ month: 9, year: 2026, amount: -3_000 }],
+    });
+
+    expect(result.simulatedFinal).toBe(8_260);
+  });
+
+  it('should replace a reloaded withdrawal with one positive contribution when explicitly cleared', () => {
+    const result = simulateSavingsPlan({
+      timeline: [
+        planMonth({
+          month: 9,
+          year: 2026,
+          state: 'current',
+          plannedAmount: 500,
+          plannedWithdrawalAmount: 4_500,
+          remainingPlannedWithdrawalAmount: 4_500,
+          planOnlyWithdrawalAmount: 4_500,
+        }),
+      ],
+      targetAmount: 10_000,
+      initialAmount: 10_000,
+      adjustments: [
+        {
+          month: 9,
+          year: 2026,
+          amount: 1_260,
+          replacesPlanOnlyWithdrawal: true,
+        },
+      ],
+    });
+
+    expect(result.months[0].simulatedAmount).toBe(1_260);
+    expect(result.simulatedFinal).toBe(11_260);
+  });
+
+  it('should count a linked-income plan once when no plan-only twin exists', () => {
+    const result = simulateSavingsPlan({
+      timeline: [
+        planMonth({
+          month: 9,
+          year: 2026,
+          state: 'current',
+          plannedAmount: 0,
+          plannedWithdrawalAmount: 4_500,
+          remainingPlannedWithdrawalAmount: 4_500,
+        }),
+      ],
+      targetAmount: 10_000,
+      initialAmount: 10_000,
+    });
+
+    expect(result.simulatedFinal).toBe(5_500);
+  });
+
   it('should apply a global monthly amount to a provisionable gap', () => {
     const result = simulateSavingsPlan({
       timeline: [
@@ -533,6 +642,75 @@ describe('redistributeRemainingEffort', () => {
     expect(result.adjustments).toEqual([
       { month: 4, year: 2026, amount: 1300 },
     ]);
+  });
+
+  it('should replace a reloaded direct withdrawal when redistributing a signed pin', () => {
+    const signedTimeline = [
+      planMonth({
+        month: 9,
+        year: 2026,
+        state: 'current',
+        plannedAmount: 0,
+        plannedWithdrawalAmount: 4_500,
+        remainingPlannedWithdrawalAmount: 4_500,
+        planOnlyWithdrawalAmount: 4_500,
+      }),
+      planMonth({ month: 10, year: 2026, state: 'future' }),
+    ];
+    const redistribution = redistributeRemainingEffort({
+      timeline: signedTimeline,
+      targetAmount: 12_000,
+      initialAmount: 10_000,
+      pinnedAdjustments: [{ month: 9, year: 2026, amount: -3_000 }],
+    });
+    const simulation = simulateSavingsPlan({
+      timeline: signedTimeline,
+      targetAmount: 12_000,
+      initialAmount: 10_000,
+      adjustments: [
+        { month: 9, year: 2026, amount: -3_000 },
+        ...redistribution.adjustments,
+      ],
+    });
+
+    expect(redistribution.remainingEffort).toBe(5_000);
+    expect(redistribution.adjustments).toEqual([
+      { month: 10, year: 2026, amount: 5_000 },
+    ]);
+    expect(simulation.simulatedFinal).toBe(12_000);
+  });
+
+  it('should compensate an unpinned reloaded withdrawal during redistribution', () => {
+    const timelineWithWithdrawal = [
+      planMonth({
+        month: 9,
+        year: 2026,
+        state: 'current',
+        plannedAmount: 1_260,
+        plannedWithdrawalAmount: 4_500,
+        remainingPlannedWithdrawalAmount: 4_500,
+        planOnlyWithdrawalAmount: 4_500,
+      }),
+      planMonth({ month: 10, year: 2026, state: 'future' }),
+    ];
+    const redistribution = redistributeRemainingEffort({
+      timeline: timelineWithWithdrawal,
+      targetAmount: 12_000,
+      initialAmount: 10_000,
+    });
+    const simulation = simulateSavingsPlan({
+      timeline: timelineWithWithdrawal,
+      targetAmount: 12_000,
+      initialAmount: 10_000,
+      adjustments: redistribution.adjustments,
+    });
+
+    expect(redistribution.remainingEffort).toBe(6_500);
+    expect(redistribution.adjustments).toEqual([
+      { month: 9, year: 2026, amount: 3_250 },
+      { month: 10, year: 2026, amount: 3_250 },
+    ]);
+    expect(simulation.simulatedFinal).toBe(12_000);
   });
 
   it('should distribute over all 24 periods when only two budgets exist', () => {

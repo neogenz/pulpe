@@ -24,6 +24,19 @@ enum SavingsPlanCalculator {
         let month: Int
         let year: Int
         let amount: Decimal
+        let replacesPlanOnlyWithdrawal: Bool
+
+        init(
+            month: Int,
+            year: Int,
+            amount: Decimal,
+            replacesPlanOnlyWithdrawal: Bool = false
+        ) {
+            self.month = month
+            self.year = year
+            self.amount = amount
+            self.replacesPlanOnlyWithdrawal = replacesPlanOnlyWithdrawal
+        }
     }
 
     /// A timeline month enriched with its simulated figures.
@@ -112,25 +125,17 @@ enum SavingsPlanCalculator {
         for month in timeline {
             let key = periodKey(month: month.month, year: month.year)
             let isContributive = isContributivePlanMonth(month)
-
-            let simulatedAmount: Decimal
-            var isAdjusted = false
-            if !month.isContributionEligible {
-                simulatedAmount = 0
-            } else if !isContributive {
-                simulatedAmount = month.confirmedAmount
-            } else if let override = adjustmentsByKey[key] {
-                simulatedAmount = override
-                isAdjusted = true
-            } else if let global = globalMonthlyAmount {
-                simulatedAmount = global
-                isAdjusted = global != month.plannedAmount
-            } else {
-                simulatedAmount = month.plannedAmount
-            }
+            let movement = resolveMonthMovement(
+                month: month,
+                isContributive: isContributive,
+                adjustment: adjustmentsByKey[key],
+                globalMonthlyAmount: globalMonthlyAmount
+            )
 
             if month.isContributionEligible {
-                simulatedCumulative += max(simulatedAmount, month.confirmedAmount)
+                simulatedCumulative += movement.isWithdrawal
+                    ? max(month.plannedAmount, month.confirmedAmount) + movement.amount
+                    : max(movement.amount, month.confirmedAmount)
             }
 
             // Outside the guard, and AFTER the max: a retrait is a stock outflow.
@@ -141,7 +146,13 @@ enum SavingsPlanCalculator {
             // A retrait ANNONCÉ weighs only for the part not yet taken, which the
             // server already deducted per month: adding the full announced amount
             // would count the realized part twice.
-            simulatedCumulative -= month.withdrawnAmount + month.remainingPlannedWithdrawalAmount
+            let budgetPlannedWithdrawal = max(
+                0,
+                month.remainingPlannedWithdrawalAmount - (
+                    movement.replacesExistingPlanWithdrawal ? month.planOnlyWithdrawalAmount : 0
+                )
+            )
+            simulatedCumulative -= month.withdrawnAmount + budgetPlannedWithdrawal
             if let targetAmount,
                attainedPeriod == nil,
                month.isContributionEligible,
@@ -151,8 +162,8 @@ enum SavingsPlanCalculator {
             }
 
             months.append(SimulatedMonth(
-                month: month, simulatedAmount: simulatedAmount,
-                simulatedCumulative: simulatedCumulative, isAdjusted: isAdjusted
+                month: month, simulatedAmount: movement.amount,
+                simulatedCumulative: simulatedCumulative, isAdjusted: movement.isAdjusted
             ))
         }
 
@@ -172,9 +183,9 @@ enum SavingsPlanCalculator {
     private static func validatedAdjustmentsByPeriod(
         _ adjustments: [Adjustment],
         timeline: [SavingsGoalPlanMonth]
-    ) throws -> [Int: Decimal] {
+    ) throws -> [Int: Adjustment] {
         let adjustmentsByKey = Dictionary(
-            adjustments.map { (periodKey(month: $0.month, year: $0.year), $0.amount) },
+            adjustments.map { (periodKey(month: $0.month, year: $0.year), $0) },
             uniquingKeysWith: { _, latest in latest }
         )
         let contributiveKeys = Set(timeline
@@ -215,9 +226,9 @@ enum SavingsPlanCalculator {
             )
         }
 
-        var pinnedByKey: [Int: Decimal] = [:]
+        var pinnedByKey: [Int: Adjustment] = [:]
         for pin in pinnedAdjustments {
-            pinnedByKey[periodKey(month: pin.month, year: pin.year)] = pin.amount
+            pinnedByKey[periodKey(month: pin.month, year: pin.year)] = pin
         }
 
         let openMonths = timeline.filter { isContributivePlanMonth($0) }
@@ -227,16 +238,12 @@ enum SavingsPlanCalculator {
             .filter { $0.isContributionEligible && $0.isLocked }
             .reduce(Decimal(0)) { $0 + $1.confirmedAmount }
 
-        let withdrawnSum = timeline
-            .reduce(Decimal(0)) { $0 + $1.withdrawnAmount + $1.remainingPlannedWithdrawalAmount }
-
-        let pinnedSum = openMonths
-            .compactMap { pinnedByKey[periodKey(month: $0.month, year: $0.year)] }
-            .reduce(Decimal(0), +)
+        let withdrawnSum = withdrawalEffort(timeline, pinnedByKey: pinnedByKey)
+        let pinnedEffect = signedPinnedEffect(openMonths, pinnedByKey: pinnedByKey)
 
         let remaining = max(
             0,
-            targetAmount - initialAmount - lockedConfirmedSum + withdrawnSum - pinnedSum
+            targetAmount - initialAmount - lockedConfirmedSum + withdrawnSum + pinnedEffect
         )
 
         let hasUnavailablePeriod = timeline.contains {
@@ -266,6 +273,37 @@ enum SavingsPlanCalculator {
             perRemainingMonth: shares.first ?? 0,
             isDistributable: true
         )
+    }
+
+    private static func withdrawalEffort(
+        _ timeline: [SavingsGoalPlanMonth],
+        pinnedByKey: [Int: Adjustment]
+    ) -> Decimal {
+        timeline.reduce(Decimal(0)) { partial, month in
+            let pinned = pinnedByKey[periodKey(month: month.month, year: month.year)]
+            let replacesExisting = pinned.map {
+                $0.amount < 0 || $0.replacesPlanOnlyWithdrawal
+            } ?? false
+            let remaining = month.remainingPlannedWithdrawalAmount - (
+                replacesExisting ? month.planOnlyWithdrawalAmount : 0
+            )
+            return partial + month.withdrawnAmount + max(0, remaining)
+        }
+    }
+
+    private static func signedPinnedEffect(
+        _ openMonths: [SavingsGoalPlanMonth],
+        pinnedByKey: [Int: Adjustment]
+    ) -> Decimal {
+        openMonths.reduce(Decimal(0)) { partial, month in
+            guard let pin = pinnedByKey[periodKey(month: month.month, year: month.year)] else {
+                return partial
+            }
+            let preservedContribution = pin.amount < 0
+                ? max(month.plannedAmount, month.confirmedAmount)
+                : 0
+            return partial - pin.amount - preservedContribution
+        }
     }
 
     // MARK: - Allocate a month total across its lines
@@ -366,5 +404,53 @@ enum SavingsPlanCalculator {
 
     private static func periodKey(month: Int, year: Int) -> Int {
         year * 12 + month
+    }
+}
+
+private extension SavingsPlanCalculator {
+    struct ResolvedMonthMovement {
+        let amount: Decimal
+        let isAdjusted: Bool
+        let isWithdrawal: Bool
+        let replacesExistingPlanWithdrawal: Bool
+    }
+
+    static func resolveMonthMovement(
+        month: SavingsGoalPlanMonth,
+        isContributive: Bool,
+        adjustment: Adjustment?,
+        globalMonthlyAmount: Decimal?
+    ) -> ResolvedMonthMovement {
+        if !month.isContributionEligible {
+            return .init(amount: 0, isAdjusted: false, isWithdrawal: false,
+                         replacesExistingPlanWithdrawal: false)
+        }
+        if !isContributive {
+            return .init(amount: month.confirmedAmount, isAdjusted: false, isWithdrawal: false,
+                         replacesExistingPlanWithdrawal: false)
+        }
+        if let adjustment {
+            let isWithdrawal = adjustment.amount < 0
+            return .init(
+                amount: adjustment.amount,
+                isAdjusted: true,
+                isWithdrawal: isWithdrawal,
+                replacesExistingPlanWithdrawal: isWithdrawal || adjustment.replacesPlanOnlyWithdrawal
+            )
+        }
+        if let globalMonthlyAmount {
+            return .init(
+                amount: globalMonthlyAmount,
+                isAdjusted: globalMonthlyAmount != month.plannedAmount,
+                isWithdrawal: false,
+                replacesExistingPlanWithdrawal: false
+            )
+        }
+        if month.planOnlyWithdrawalAmount > 0 {
+            return .init(amount: -month.planOnlyWithdrawalAmount, isAdjusted: false,
+                         isWithdrawal: true, replacesExistingPlanWithdrawal: true)
+        }
+        return .init(amount: month.plannedAmount, isAdjusted: false, isWithdrawal: false,
+                     replacesExistingPlanWithdrawal: false)
     }
 }
