@@ -141,29 +141,32 @@ interface AnimatingForecast {
                 (animationend)="onExitAnimationEnd(forecast.id, $event)"
                 data-testid="dashboard-forecasts-row"
               >
+                <!-- Named by the row rather than by an attribute of its own.
+                     posthog-js blocks an element from the session replay only
+                     through ph-no-capture, that class cannot go on a button
+                     because pointer-events: none would make it unclickable,
+                     and rrweb serializes the attributes of everything it does
+                     not block, whole. So the toggle's name travelled verbatim
+                     into the recording while the same name and amount twenty
+                     pixels away were correctly withheld. aria-labelledby
+                     carries ids, not text: the spoken name is assembled from
+                     the very elements the replay already refuses to record. -->
                 <button
                   #forecastToggle
                   class="shrink-0 flex items-center justify-center w-11 h-11 -m-2 rounded-full cursor-pointer"
                   matRipple
                   [matRippleCentered]="true"
                   (click)="toggleForecast(forecast.id)"
-                  [attr.aria-label]="
-                    (isPartlyConsumed
-                      ? 'currentMonth.uncheckedForecasts.toggleAriaLabelPartial'
-                      : 'currentMonth.uncheckedForecasts.toggleAriaLabel'
-                    )
-                      | transloco
-                        : {
-                            name: forecast.name,
-                            amount:
-                              displayAmount | appCurrency: currency() : '1.0-0',
-                            planned:
-                              forecast.amount
-                              | appCurrency: currency() : '1.0-0',
-                          }
+                  [attr.aria-labelledby]="
+                    toggleLabelIds(forecast.id, isPartlyConsumed)
                   "
                   data-testid="dashboard-forecasts-toggle"
                 >
+                  <span class="sr-only" [id]="'forecast-verb-' + forecast.id">
+                    {{
+                      'currentMonth.uncheckedForecasts.toggleVerb' | transloco
+                    }}
+                  </span>
                   <mat-icon
                     [class.text-primary]="isChecking"
                     [class.icon-filled]="isChecking"
@@ -174,6 +177,7 @@ interface AnimatingForecast {
                 </button>
                 <span
                   class="text-body-medium font-bold text-on-surface truncate flex-1 min-w-0 ph-no-capture"
+                  [id]="'forecast-name-' + forecast.id"
                   data-testid="dashboard-forecasts-name"
                 >
                   {{ forecast.name }}
@@ -194,6 +198,7 @@ interface AnimatingForecast {
                   </span>
                   <span
                     class="text-label-large font-semibold tabular-nums ph-no-capture"
+                    [id]="'forecast-amount-' + forecast.id"
                     data-testid="dashboard-forecasts-amount"
                   >
                     {{ displayAmount | appCurrency: currency() : '1.0-0' }}
@@ -209,12 +214,17 @@ interface AnimatingForecast {
                   @if (isPartlyConsumed) {
                     <span
                       class="text-label-small text-on-surface-variant font-medium tabular-nums ph-no-capture"
+                      [id]="'forecast-planned-' + forecast.id"
                       data-testid="dashboard-forecasts-planned"
                     >
                       {{
                         'currentMonth.uncheckedForecasts.ofPlanned' | transloco
                       }}
-                      {{ forecast.amount | appCurrency: currency() : '1.0-0' }}
+                      <!-- A budget_line amount is a LIGNE, so two decimals: at
+                           one, a plan of 1'500.50 was rounded to 1'501 and the
+                           row claimed the household owed a franc it did not.
+                           The figure beside it stays an aggregation. -->
+                      {{ forecast.amount | appCurrency: currency() : '1.2-2' }}
                     </span>
                   }
                 </span>
@@ -435,6 +445,22 @@ export class DashboardUncheckedForecasts {
 
   protected isExitAnimating(forecastId: string): boolean {
     return this.#animatingOut().has(forecastId);
+  }
+
+  // The ids of the elements that spell the toggle's accessible name, in the
+  // order they are spoken. The plan is named only when it differs from what the
+  // row prints, matching the span that renders it.
+  protected toggleLabelIds(
+    forecastId: string,
+    isPartlyConsumed: boolean,
+  ): string {
+    const ids = [
+      `forecast-verb-${forecastId}`,
+      `forecast-name-${forecastId}`,
+      `forecast-amount-${forecastId}`,
+    ];
+    if (isPartlyConsumed) ids.push(`forecast-planned-${forecastId}`);
+    return ids.join(' ');
   }
 
   protected toggleForecast(forecastId: string): void {

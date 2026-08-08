@@ -561,6 +561,15 @@ export class DashboardHero {
   readonly expenses = input.required<number>();
   readonly available = input.required<number>();
   readonly periodDates = input.required<BudgetPeriodDates>();
+  // The month this card is showing, told rather than guessed. It used to be
+  // read off the middle of the period, which works only while the period sits
+  // roughly on the calendar month. The convention flips at a payday of 16: below
+  // it the period starts in the month it is named after, at and above it the
+  // period ends there. So on payday 16 the midpoint lands one month early, and
+  // the heading named the wrong month in eleven months out of twelve — under an
+  // aria-labelledby that names the whole region, above figures belonging to the
+  // month it was not naming.
+  readonly period = input<{ month: number; year: number } | null>(null);
   readonly rolloverAmount = input(0);
   // Counted where the clock is. This component is handed the period bounds but
   // never "now", so the day it renders has to arrive already counted rather
@@ -696,6 +705,11 @@ export class DashboardHero {
   );
 
   readonly periodLabel = computed(() => {
+    const period = this.period();
+    if (period)
+      return this.#monthFormatter.format(
+        new Date(period.year, period.month - 1, 1),
+      );
     const dates = this.periodDates();
     if (!dates) return '';
     const start = dates.startDate.getTime();

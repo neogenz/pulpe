@@ -10,10 +10,12 @@ import {
   calculateAllConsumptions,
   type BudgetLineConsumption,
 } from '@core/budget';
+import { DOCUMENT } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Logger } from '@core/logging/logger';
 import { PostHogService } from '@core/analytics/posthog';
 import { cachedMutation, cachedResource } from 'ngx-ziflux';
-import { firstValueFrom } from 'rxjs';
+import { filter, firstValueFrom, fromEvent } from 'rxjs';
 import { UserSettingsStore } from '@core/user-settings';
 import {
   ANALYTICS_EVENTS,
@@ -70,8 +72,16 @@ const WITHDRAWAL_ERROR_CODES = new Set<string>([
   API_ERROR_CODES.SAVINGS_GOAL_WITHDRAWAL_CONFLICT,
 ]);
 
-export const DASHBOARD_NOW = new InjectionToken<Date>('DASHBOARD_NOW', {
-  factory: () => new Date(),
+// Une horloge, pas un instant. Un `InjectionToken` avec `factory` est fourni
+// dans l'injecteur racine : sa valeur est calculée une fois et gardée pour toute
+// la durée de vie de l'application. Un `Date` y devenait donc l'heure du premier
+// chargement — l'onglet laissé ouvert une nuit affichait « Jour 12 sur 31 » le
+// 13, puis, passé le jour de paie, allait chercher le budget du mois précédent
+// et l'annonçait comme le mois courant. Ni « Actualiser » ni le rafraîchissement
+// au retour d'arrière-plan ne le rattrapaient : tous deux rechargent la
+// ressource avec les mêmes paramètres périmés.
+export const DASHBOARD_NOW = new InjectionToken<() => Date>('DASHBOARD_NOW', {
+  factory: () => () => new Date(),
 });
 
 /**
@@ -98,13 +108,28 @@ export class DashboardStore {
   readonly #pendingChecks = signal(new Set<string>());
   readonly pendingChecks = this.#pendingChecks.asReadonly();
 
-  readonly #currentDate = inject(DASHBOARD_NOW);
+  readonly #clock = inject(DASHBOARD_NOW);
+  readonly #currentDate = signal(this.#clock());
+
+  constructor() {
+    // Le seul moment où l'on sait que l'utilisateur regarde à nouveau la page.
+    // Ré-horodater ici suffit à corriger la dérive : la date alimente
+    // `currentBudgetPeriod`, qui est le paramètre de la ressource, donc un
+    // changement de mois déclenche de lui-même le rechargement.
+    const document = inject(DOCUMENT);
+    fromEvent(document, 'visibilitychange')
+      .pipe(
+        filter(() => document.visibilityState === 'visible'),
+        takeUntilDestroyed(),
+      )
+      .subscribe(() => this.#currentDate.set(this.#clock()));
+  }
 
   readonly payDayOfMonth = this.#userSettingsStore.payDayOfMonth;
 
   readonly currentBudgetPeriod = computed(() => {
     const payDay = this.payDayOfMonth();
-    return getBudgetPeriodForDate(this.#currentDate, payDay);
+    return getBudgetPeriodForDate(this.#currentDate(), payDay);
   });
 
   // ── 3. Resources ──
@@ -115,6 +140,14 @@ export class DashboardStore {
     cache: this.#budgetApi.cache,
     cacheKey: (params) => ['budget', 'dashboard', params.month, params.year],
     params: () => {
+      // "Pas encore prête" plutôt qu'une supposition. Le jour de paie vaut
+      // `null` tant que les réglages chargent, et sans lui la période retombe
+      // sur le mois calendaire : le 28 janvier avec une paie au 27, la page
+      // demandait, cachait et pouvait afficher janvier alors que l'utilisateur
+      // est en février — sans spinner, puisque `isInitialLoading` s'éteint dès
+      // qu'une donnée existe.
+      if (this.payDayOfMonth() === null && this.#isSettingsLoading())
+        return undefined;
       const period = this.currentBudgetPeriod();
       return {
         month: period.month.toString().padStart(2, '0'),
@@ -218,9 +251,13 @@ export class DashboardStore {
     if (!dates) return 0;
     const start = dates.startDate.getTime();
     const end = dates.endDate.getTime();
-    const now = this.#currentDate.getTime();
+    const now = this.#currentDate().getTime();
     const elapsed = now - start;
-    const total = end - start;
+    // Les deux bornes sont des minuits inclusifs, donc une période de 31 jours
+    // ne mesure que 30 jours d'écart entre elles. Le dénominateur amputé faisait
+    // lire « 100 % écoulé » au matin du dernier jour, alors qu'il en restait un
+    // entier, et desserrait la tolérance de rythme un jour trop tôt.
+    const total = end - start + MS_PER_DAY;
     if (total <= 0) return 100;
     const percentage = (elapsed / total) * 100;
     return Math.round(Math.min(Math.max(0, percentage), 100));
@@ -238,7 +275,7 @@ export class DashboardStore {
       new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
     const elapsed =
       Math.round(
-        (startOfDay(this.#currentDate) - startOfDay(dates.startDate)) /
+        (startOfDay(this.#currentDate()) - startOfDay(dates.startDate)) /
           MS_PER_DAY,
       ) + 1;
     const totalDays =
@@ -656,6 +693,9 @@ export class DashboardStore {
     });
 
   refreshData(): void {
+    // Ré-horodater avant de recharger : sans cela « Actualiser » redemandait au
+    // serveur exactement le mois périmé qu'il affichait déjà.
+    this.#currentDate.set(this.#clock());
     this.#dashboardResource.reload();
     this.#historyResource.reload();
   }

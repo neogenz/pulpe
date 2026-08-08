@@ -365,11 +365,19 @@ describe('DashboardUncheckedForecasts', () => {
     );
     expect(plannedEl).not.toBeNull();
     expect(plannedEl.nativeElement.textContent).toContain('100');
-    expect(
-      fixture.debugElement
-        .query(By.css('[data-testid="dashboard-forecasts-toggle"]'))
-        .nativeElement.getAttribute('aria-label'),
-    ).toContain('restants sur');
+
+    // The toggle is named by the row's own elements, never by an attribute
+    // carrying their values: an attribute is serialized whole into a session
+    // replay, and these are exactly the strings ph-no-capture withholds.
+    const toggle = fixture.debugElement.query(
+      By.css('[data-testid="dashboard-forecasts-toggle"]'),
+    ).nativeElement as HTMLElement;
+    expect(toggle.getAttribute('aria-label')).toBeNull();
+    const labelledBy = toggle.getAttribute('aria-labelledby') ?? '';
+    expect(labelledBy).toContain(plannedEl.nativeElement.id);
+    for (const id of labelledBy.split(' ')) {
+      expect(fixture.nativeElement.querySelector(`#${id}`)).not.toBeNull();
+    }
   });
 
   it('should not restate the plan on an untouched forecast', () => {

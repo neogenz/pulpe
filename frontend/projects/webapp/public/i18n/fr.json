@@ -1008,15 +1008,14 @@
       "allCheckedMessage": "Toutes les prévisions sont pointées.",
       "noneTitle": "Aucune prévision ce mois",
       "noneMessage": "Rien à pointer pour l'instant.",
-      "toggleAriaLabel": "Pointer {{ name }} — {{ amount }}",
-      "toggleAriaLabelPartial": "Pointer {{ name }} — {{ amount }} restants sur {{ planned }}",
       "ofPlanned": "sur",
       "checked": "Pointé : {{ name }}",
       "checkedMany": "{{ count }} prévisions pointées",
       "stillToCheck": "il en reste {{ count }} à pointer",
       "undoAll": "Annuler les {{ count }}",
       "hiddenCount": "{{ count }} autres à pointer",
-      "hiddenCountSingular": "1 autre à pointer"
+      "hiddenCountSingular": "1 autre à pointer",
+      "toggleVerb": "Pointer"
     },
     "addTransactionDiscardTitle": "Abandonner cette transaction ?",
     "addTransactionDiscardMessage": "Le montant, la description et les tags que tu viens de saisir ne seront pas enregistrés.",

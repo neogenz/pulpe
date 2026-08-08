@@ -136,7 +136,7 @@ function setup(mocks = createMocks(), now: Date = FIXED_DATE) {
       { provide: UserSettingsStore, useValue: mocks.userSettingsStore },
       { provide: Logger, useValue: mocks.logger },
       { provide: PostHogService, useValue: mocks.postHogService },
-      { provide: DASHBOARD_NOW, useValue: now },
+      { provide: DASHBOARD_NOW, useValue: () => now },
     ],
   });
 
@@ -1813,6 +1813,69 @@ describe('DashboardStore - Upcoming Budgets Data', () => {
         'currentMonth.loadErrorMessage',
       ),
     );
+  });
+
+  it('should keep a day of the period left on its last morning', async () => {
+    // June 2025, payday 1, so the period runs 1–30. Both bounds are inclusive
+    // midnights: subtracting them gives 29 days for a 30-day month, and the
+    // month read as fully elapsed while a whole day was still to come.
+    const { store } = setup(createMocks(), new Date(2025, 5, 30));
+
+    expect(store.timeElapsedPercentage()).toBeLessThan(100);
+    expect(store.timeElapsedPercentage()).toBeGreaterThan(90);
+  });
+
+  it('should not fetch a budget period guessed before the payday is known', async () => {
+    const mocks = createMocks();
+    mocks.userSettingsStore.payDayOfMonth = signal<number | null>(null);
+    mocks.userSettingsStore.isLoading = signal(true);
+    const { store } = setup(mocks);
+
+    TestBed.tick();
+    await vi.waitFor(() => expect(store.isLoading()).toBe(true));
+    expect(mocks.budgetApi.getDashboardData$).not.toHaveBeenCalled();
+
+    mocks.userSettingsStore.payDayOfMonth.set(27);
+    mocks.userSettingsStore.isLoading.set(false);
+    TestBed.tick();
+    await vi.waitFor(() =>
+      expect(mocks.budgetApi.getDashboardData$).toHaveBeenCalledOnce(),
+    );
+    const period = store.currentBudgetPeriod();
+    expect(mocks.budgetApi.getDashboardData$).toHaveBeenCalledWith(
+      period.month.toString().padStart(2, '0'),
+      period.year.toString(),
+    );
+  });
+
+  it('should re-read the clock when the data is refreshed', async () => {
+    const mocks = createMocks();
+    let now = new Date(2025, 5, 15);
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        DashboardStore,
+        provideZonelessChangeDetection(),
+        ...provideTranslocoForTest(),
+        { provide: BudgetApi, useValue: mocks.budgetApi },
+        { provide: SavingsGoalApi, useValue: mocks.savingsGoalApi },
+        { provide: UserSettingsStore, useValue: mocks.userSettingsStore },
+        { provide: Logger, useValue: mocks.logger },
+        { provide: PostHogService, useValue: mocks.postHogService },
+        { provide: DASHBOARD_NOW, useValue: () => now },
+      ],
+    });
+    const store = TestBed.inject(DashboardStore);
+
+    expect(store.currentBudgetPeriod()).toEqual({ month: 6, year: 2025 });
+
+    // The tab was left open across the payday boundary. Reloading the resource
+    // with the same stale parameters refetched the month the page had already
+    // outlived.
+    now = new Date(2025, 6, 2);
+    store.refreshData();
+
+    expect(store.currentBudgetPeriod()).toEqual({ month: 7, year: 2025 });
   });
 
   it('should map history data when matching month/year found', async () => {

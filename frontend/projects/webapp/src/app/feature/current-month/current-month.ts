@@ -139,6 +139,7 @@ const NAMED_TOAST_PANEL_CLASS = ['ph-no-capture', 'amounts-visible'];
             [realizedExpenses]="store.realizedExpenses()"
             [realizedPercentage]="store.realizedPercentage()"
             [periodDates]="store.periodDates()"
+            [period]="store.currentBudgetPeriod()"
             [rolloverAmount]="store.rolloverAmount()"
             [elapsedDayOfPeriod]="store.elapsedDayOfPeriod()"
             [paceStatus]="store.paceStatus()"

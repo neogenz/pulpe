@@ -130,6 +130,27 @@ describe('DashboardHero', () => {
       );
     });
 
+    // A payday of 16 runs the period called "juin" from 15 May to 14 June, so
+    // its midpoint falls on 30 May and naming the card from that midpoint said
+    // "mai" over June's figures — in eleven months out of twelve.
+    it('should name the month it is showing, not the one its midpoint falls in', () => {
+      setTestInput(component.periodDates, {
+        startDate: new Date(2026, 4, 15),
+        endDate: new Date(2026, 5, 14),
+      });
+      setTestInput(component.period, { month: 6, year: 2026 });
+      fixture.detectChanges();
+
+      const june = new Intl.DateTimeFormat(undefined, {
+        month: 'long',
+      }).format(new Date(2026, 5, 1));
+      const may = new Intl.DateTimeFormat(undefined, { month: 'long' }).format(
+        new Date(2026, 4, 1),
+      );
+      expect(component.periodLabel()).toBe(june);
+      expect(component.periodLabel()).not.toBe(may);
+    });
+
     it('should stay quiet when the period is the calendar month', () => {
       setTestInput(component.periodDates, {
         startDate: new Date(2026, 7, 1),
