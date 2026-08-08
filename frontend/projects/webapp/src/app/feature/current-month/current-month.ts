@@ -50,6 +50,16 @@ import { StorageService, STORAGE_KEYS } from '@core/storage';
 // the button.
 export const UNDO_WINDOW_MS = 6000;
 
+// Both toasts below quote something the user typed — a prévision's name, a
+// transaction's — and a snackbar renders in the CDK overlay, outside every
+// subtree this app has marked. posthog-js hardcodes `ph-no-capture` as rrweb's
+// blockClass, and it is the only thing keeping rendered text out of a session
+// replay, so "Enregistré : Consultation Dr Martin" was travelling verbatim.
+// `amounts-visible` is the documented escape from the blur rule that shares the
+// class: without it the hide-amounts toggle would blur the toast and, through
+// `pointer-events: none`, take the Undo button with it.
+const NAMED_TOAST_PANEL_CLASS = ['ph-no-capture', 'amounts-visible'];
+
 @Component({
   selector: 'pulpe-dashboard',
   imports: [
@@ -738,6 +748,7 @@ export default class Dashboard {
     const ref = this.#snackBar.open(fullMessage, undoLabel, {
       duration: UNDO_WINDOW_MS,
       politeness: 'polite',
+      panelClass: NAMED_TOAST_PANEL_CLASS,
     });
     ref.onAction().subscribe(() => {
       this.#closeUndoWindow();
@@ -829,7 +840,11 @@ export default class Dashboard {
     const ref = this.#snackBar.open(
       this.#transloco.translate('currentMonth.transactionAdded', { name }),
       this.#transloco.translate('common.undo'),
-      { duration: UNDO_WINDOW_MS, politeness: 'polite' },
+      {
+        duration: UNDO_WINDOW_MS,
+        politeness: 'polite',
+        panelClass: NAMED_TOAST_PANEL_CLASS,
+      },
     );
     ref.onAction().subscribe(() => void this.#undoTransaction(transactionId));
   }

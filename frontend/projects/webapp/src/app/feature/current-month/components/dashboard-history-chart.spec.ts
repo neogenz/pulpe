@@ -1,6 +1,7 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { DashboardHistoryChart } from './dashboard-history-chart';
+import { AmountsVisibilityService } from '@core/amounts-visibility/amounts-visibility.service';
 import type { HistoryDataPoint } from '../services/dashboard-state';
 import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { setTestInput } from '../../../testing/signal-test-utils';
@@ -81,6 +82,46 @@ describe('DashboardHistoryChart', () => {
 
   it('should report hasData false when history is empty', () => {
     expect(component.hasData()).toBe(false);
+  });
+
+  // The Y ticks and the tooltips mask themselves when amounts are hidden; the
+  // label was the third reading of the same figures and consulted nothing. It
+  // is also the only one of the three that reaches a session replay: rrweb
+  // does not record canvas pixels, but it serializes every attribute of an
+  // element it has not been told to block.
+  describe('accessible label', () => {
+    it('should spell out the figures while amounts are shown', () => {
+      setTestInput(component.history, mockHistoryData);
+      fixture.detectChanges();
+
+      const canvas = fixture.nativeElement.querySelector('canvas');
+      expect(canvas?.getAttribute('aria-label')).toContain("5'100");
+    });
+
+    it('should drop the figures once amounts are hidden', () => {
+      // Toggled before the first render: chart.js cannot re-lay-out in jsdom,
+      // and the second detectChanges would die inside its resize rather than
+      // in anything this test is about.
+      fixture.debugElement.injector.get(AmountsVisibilityService).toggle();
+      setTestInput(component.history, mockHistoryData);
+      fixture.detectChanges();
+
+      const label =
+        fixture.nativeElement
+          .querySelector('canvas')
+          ?.getAttribute('aria-label') ?? '';
+      expect(label).toContain('Montants masqués');
+      expect(label).not.toContain("5'100");
+    });
+
+    it('should keep the chart out of session replay', () => {
+      setTestInput(component.history, mockHistoryData);
+      fixture.detectChanges();
+
+      const canvas = fixture.nativeElement.querySelector('canvas');
+      expect(canvas?.classList.contains('ph-no-capture')).toBe(true);
+      expect(canvas?.classList.contains('amounts-visible')).toBe(true);
+    });
   });
 
   // A failed history fetch reaches this component as the same empty array a

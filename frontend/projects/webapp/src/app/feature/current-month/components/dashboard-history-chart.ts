@@ -96,9 +96,17 @@ import {
           <div class="flex-1 relative w-full h-full">
             <!-- A bare <canvas> is absent from the accessibility tree: the
                  product's own differentiator did not exist without sight. -->
+            <!-- The label spells out the figures the ticks and tooltips
+                 are careful to mask, and posthog-js blocks an element from
+                 the replay only by this class — an attribute is serialized
+                 whole, so the amounts were travelling in the one part of the
+                 chart rrweb does record. The amounts-visible class keeps
+                 the blur rule that shares ph-no-capture off a chart that
+                 already masks itself. -->
             <canvas
               baseChart
               role="img"
+              class="ph-no-capture amounts-visible"
               [attr.aria-label]="chartAriaLabel()"
               [data]="chartData()"
               [options]="chartOptions()"
@@ -254,6 +262,19 @@ export class DashboardHistoryChart {
     if (data.length === 0) return '';
     const currency = this.#userSettings.currency();
     const last = data[data.length - 1];
+
+    // The toggle masks the Y ticks and the tooltips; this was the third
+    // reading of the same figures and it ignored the toggle entirely, so a
+    // screen reader announced the exact amounts of a chart deliberately
+    // rendered unreadable. The window it describes still is: hiding amounts
+    // is not hiding the chart.
+    if (this.#amountsVisibility.amountsHidden()) {
+      return this.#transloco.translate('currentMonth.historyChartAriaHidden', {
+        count: data.length,
+        first: formatShortMonth(data[0].month, this.#locale),
+        last: formatShortMonth(last.month, this.#locale),
+      });
+    }
 
     return this.#transloco.translate('currentMonth.historyChartAria', {
       count: data.length,

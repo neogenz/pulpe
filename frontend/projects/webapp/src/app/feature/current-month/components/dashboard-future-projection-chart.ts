@@ -106,9 +106,17 @@ import {
           <div class="flex-1 relative w-full h-full">
             <!-- A bare <canvas> is absent from the accessibility tree: the
                  product's own differentiator did not exist without sight. -->
+            <!-- The label spells out the figures the ticks and tooltips
+                 are careful to mask, and posthog-js blocks an element from
+                 the replay only by this class — an attribute is serialized
+                 whole, so the amounts were travelling in the one part of the
+                 chart rrweb does record. The amounts-visible class keeps
+                 the blur rule that shares ph-no-capture off a chart that
+                 already masks itself. -->
             <canvas
               baseChart
               role="img"
+              class="ph-no-capture amounts-visible"
               [attr.aria-label]="chartAriaLabel()"
               [data]="chartData()"
               [options]="chartOptions()"
@@ -270,6 +278,20 @@ export class DashboardFutureProjectionChart {
     const balanceOf = (f: UpcomingMonthForecast) =>
       (f.income ?? 0) - (f.expenses ?? 0);
     const last = months[months.length - 1];
+
+    // Same omission as the history chart: this label was the one reading of
+    // the figures that did not consult the hide-amounts toggle its own ticks
+    // and tooltips obey.
+    if (this.#amountsVisibility.amountsHidden()) {
+      return this.#transloco.translate(
+        'currentMonth.projectionChartAriaHidden',
+        {
+          count: months.length,
+          first: formatShortMonth(months[0].month, this.#locale),
+          last: formatShortMonth(last.month, this.#locale),
+        },
+      );
+    }
 
     return this.#transloco.translate('currentMonth.projectionChartAria', {
       count: months.length,
