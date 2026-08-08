@@ -107,7 +107,12 @@ jobs:
       # Couvre la couche SQL, que les tests Bun mockent par construction :
       # RPC SECURITY DEFINER, RLS, triggers, casts d'enum. Chaque suite
       # s'ouvre sur BEGIN et finit sur ROLLBACK, donc l'ordre n'importe pas
-      # et rien ne fuit d'une suite à l'autre.
+      # et rien ne fuit d'une suite à l'autre. Une exception assumée :
+      # savings_goal_plan_concurrency.sql fait courir deux vraies sessions, qui
+      # ne verraient rien d'une transaction non commitée. Elle commite donc sa
+      # fixture et la supprime elle-même, y compris depuis son gestionnaire
+      # d'exception ; c'est le seul endroit où l'isolation repose sur le
+      # nettoyage plutôt que sur le ROLLBACK.
       #
       # ON_ERROR_STOP n'est PAS décoratif : sans lui psql imprime l'erreur et
       # sort quand même en 0, l'étape passe au vert avec des assertions

@@ -54,9 +54,14 @@ FROM savings_goal_plan_concurrency_fixture;
 
 DO $$
 DECLARE
-  -- dblink runs inside the database container. The Docker host gateway reaches
-  -- the same local database through its authenticated host-mapped listener.
-  v_connection text := 'host=host.docker.internal port=54322 dbname=postgres user=postgres password=postgres';
+  -- dblink runs inside the database container and dials the server back on the
+  -- address that server answers on. Two constraints meet here: host.docker.
+  -- internal exists under Docker Desktop but not under the Docker Engine on CI
+  -- runners, and dblink refuses a loopback hop because `postgres` is not a
+  -- superuser here and local pg_hba is `trust`, so the password it was given
+  -- would go unused. inet_server_addr() satisfies both: it is resolved at run
+  -- time, and it routes over the bridge, where the password is required.
+  v_connection text;
   v_user_id uuid;
   v_goal_id uuid;
   v_budget_id uuid;
@@ -75,6 +80,11 @@ BEGIN
   SELECT user_id, goal_id, budget_id, line_id, transaction_id
   INTO v_user_id, v_goal_id, v_budget_id, v_line_id, v_transaction_id
   FROM savings_goal_plan_concurrency_fixture;
+
+  v_connection := format(
+    'hostaddr=%s port=%s dbname=%s user=%s password=postgres',
+    inet_server_addr(), inet_server_port(), current_database(), current_user
+  );
 
   SELECT balance_revision INTO v_revision
   FROM public.savings_goal WHERE id = v_goal_id;

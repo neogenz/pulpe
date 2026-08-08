@@ -93,7 +93,7 @@ Le changement de code PIN re-chiffre toutes les données financières avec une n
 1. Frontend dérive oldClientKey (ancien PIN) et newClientKey (nouveau PIN) via PBKDF2
 2. Frontend appelle POST /v1/encryption/change-pin { oldClientKey, newClientKey }
 3. Backend vérifie oldClientKey via key_check (canary)
-4. Toutes les données sont re-chiffrées atomiquement (RPC rekey_user_encrypted_data)
+4. Toutes les données sont re-chiffrées atomiquement (RPC rekey_user_encrypted_data_with_plan_withdrawals)
 5. key_check est recalculé avec la nouvelle DEK
 6. Nouvelle recovery key générée et nouvelle DEK wrappée (inconditionnel)
 7. Réponse : { keyCheck: string, recoveryKey: string }

@@ -199,6 +199,72 @@ BEGIN
   END;
   IF NOT v_caught THEN RAISE EXCEPTION 'FAIL: cross-user transition accepted'; END IF;
 
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_user_id::text)::text, true);
+
+  -- The destination core hands '[]' to the function holding the period guard
+  -- and writes the withdrawals itself, so the guard has to live on this entry
+  -- point. Only the use case stood between a client and a past period.
+  v_caught := false;
+  BEGIN
+    PERFORM public.apply_savings_goal_plan_with_destinations(
+      v_goal_id, v_min_index, '[]'::jsonb,
+      jsonb_build_array(jsonb_build_object(
+        'month', 1, 'year', 2020, 'amount', 'enc:450', 'destination', 'goal_only'
+      )),
+      (SELECT balance_revision FROM public.savings_goal WHERE id = v_goal_id)
+    );
+  EXCEPTION WHEN OTHERS THEN
+    v_caught := true;
+  END;
+  SELECT count(*) INTO v_count FROM public.savings_goal_plan_withdrawal
+  WHERE savings_goal_id = v_goal_id AND month = 1 AND year = 2020;
+  IF NOT v_caught OR v_count <> 0 THEN
+    RAISE EXCEPTION 'FAIL: a past period was written through the destination RPC';
+  END IF;
+
+  -- budget_line_plan_adjustment_shape demands source_savings_goal_id, and the
+  -- foreign key nulls it when the goal goes. Without an expiring marker the
+  -- final DELETE of every deletion mode raised 23514, and the goal could not be
+  -- deleted at all. The forecast survives as the user's own broken-link income.
+  PERFORM public.apply_savings_goal_plan_with_destinations(
+    v_goal_id, v_min_index, '[]'::jsonb,
+    jsonb_build_array(jsonb_build_object(
+      'month', 6, 'year', 2030, 'amount', 'enc:4500-final', 'destination', 'linked_income'
+    )),
+    (SELECT balance_revision FROM public.savings_goal WHERE id = v_goal_id)
+  );
+  SELECT id INTO v_managed_line_id FROM public.budget_line
+  WHERE source_savings_goal_id = v_goal_id AND is_savings_goal_plan_adjustment;
+  IF v_managed_line_id IS NULL THEN
+    RAISE EXCEPTION 'FAIL: no linked representation to outlive the goal';
+  END IF;
+
+  -- The marker must expire on what the row becomes, not on what a BEFORE
+  -- trigger sees mid-flight. enforce_savings_goal_line_link nulls
+  -- savings_goal_id for a non-saving line, so this PATCH stores a row identical
+  -- to the one above. Losing the marker here would hide the representation from
+  -- the plan's own period DELETE and from its unique index, and the next write
+  -- for that period would add a second income forecast for one withdrawal.
+  UPDATE public.budget_line SET savings_goal_id = v_goal_id
+  WHERE id = v_managed_line_id;
+  SELECT count(*) INTO v_count FROM public.budget_line
+  WHERE id = v_managed_line_id
+    AND is_savings_goal_plan_adjustment
+    AND savings_goal_id IS NULL;
+  IF v_count <> 1 THEN
+    RAISE EXCEPTION 'FAIL: a write that changed nothing destroyed the marker';
+  END IF;
+
+  DELETE FROM public.savings_goal WHERE id = v_goal_id;
+
+  SELECT count(*) INTO v_count FROM public.budget_line
+  WHERE id = v_managed_line_id
+    AND NOT is_savings_goal_plan_adjustment
+    AND source_savings_goal_id IS NULL;
+  IF v_count <> 1 THEN
+    RAISE EXCEPTION 'FAIL: the marker outlived the shape it asserts';
+  END IF;
+
   RAISE NOTICE 'APPLY SAVINGS GOAL PLAN DESTINATIONS: ALL ASSERTIONS PASSED';
 END $$;
 
