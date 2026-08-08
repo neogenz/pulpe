@@ -204,13 +204,26 @@ describe('DashboardHero', () => {
       let emitted = false;
       component.heroClick.subscribe(() => (emitted = true));
 
-      // The control, not the card. Its ::after covers the container, so a tap
-      // anywhere on the card still reaches it in a browser — jsdom does no hit
-      // testing, so the test has to name the element the browser would land on.
       const action = fixture.nativeElement.querySelector('.hero-action');
       action.click();
 
       expect(emitted).toBe(true);
+    });
+
+    // The control covers the card, and only reaches that far because it is a
+    // direct child of it: an absolute box resolves against its nearest
+    // positioned ancestor, and every content row here is relative z-10. Parked
+    // inside one — where it first shipped — it covered that row and nothing
+    // else, and the whole-card tap the card has always had was quietly gone.
+    it('should mount the control as a direct child of the card', () => {
+      setTestInput(component.available, 1000);
+      setTestInput(component.expenses, 400);
+      fixture.detectChanges();
+
+      const container = fixture.nativeElement.querySelector('.hero-container');
+      const action = fixture.nativeElement.querySelector('.hero-action');
+
+      expect(action.parentElement).toBe(container);
     });
   });
 

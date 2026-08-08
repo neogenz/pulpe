@@ -909,6 +909,7 @@
     "pageTitle": "Tableau de bord",
     "refresh": "Actualiser",
     "refreshed": "Chiffres à jour",
+    "refreshFailed": "Impossible de tout recharger. Réessaie dans un instant.",
     "loadingMessage": "Préparation de ton tableau de bord...",
     "addTransaction": "Ajouter une transaction",
     "loadErrorTitle": "On n'arrive pas à charger ton tableau de bord",
@@ -975,7 +976,7 @@
     "addTransactionSubmit": "Ajouter",
     "recentTransactionsTitle": "Transactions",
     "recentTransactionsSubtitle": "{{ total }} ce mois",
-    "recentTransactionsHiddenCount": "{{ count }} autres opérations ce mois",
+    "recentTransactionsHiddenCount": "{{ count }} autres transactions ce mois",
     "viewInBudget": "Voir le budget",
     "viewForecastsInBudget": "Voir les prévisions dans le budget",
     "viewTransactionsInBudget": "Voir les transactions dans le budget",
@@ -993,8 +994,9 @@
       "count": "{{ checked }} sur {{ total }} pointées",
       "allCheckedMessage": "Toutes les prévisions sont pointées.",
       "toggleAriaLabel": "Pointer {{ name }} — {{ amount }}",
-      "checked": "Pointé : {{ name }} — reste {{ remaining }}",
-      "checkedMany": "{{ count }} prévisions pointées — reste {{ remaining }}",
+      "checked": "Pointé : {{ name }}",
+      "checkedMany": "{{ count }} prévisions pointées",
+      "stillToCheck": "il en reste {{ count }} à pointer",
       "hiddenCount": "{{ count }} autres prévisions dans le budget"
     }
   },

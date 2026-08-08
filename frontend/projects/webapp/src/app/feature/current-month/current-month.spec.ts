@@ -495,9 +495,8 @@ describe('Dashboard (TestBed)', () => {
       ]),
       checkBudgetLine: vi.fn().mockResolvedValue(null),
       uncheckBudgetLine: vi.fn().mockResolvedValue(null),
-      // The check toast reads this back so the recomputed "Disponible" is
-      // announced rather than only redrawn.
       remaining: signal(3491),
+      historyError: signal<unknown>(undefined),
     };
   }
 
@@ -744,16 +743,16 @@ describe('Dashboard (TestBed)', () => {
       );
     });
 
-    // A check moves the 57px figure at the top of the page, and the only
-    // announcement of that move used to be the figure redrawing — silent to a
-    // screen reader, and unseen by anyone watching their own thumb.
-    it('should say the new available amount when a check lands', async () => {
+    // The toast used to print "Disponible", which an envelope budget does not
+    // move when a line is pointed — five taps produced five identical figures.
+    // What the tap does move is how many forecasts are left.
+    it('should say how many forecasts are left to check', async () => {
       const { component, mockSnackBar } = await setup(budgetId, undefined);
 
       await component['checkBudgetLine']('line-1');
 
       expect(mockSnackBar.open).toHaveBeenLastCalledWith(
-        expect.stringContaining('491'),
+        expect.stringContaining('2 à pointer'),
         expect.any(String),
         expect.objectContaining({ duration: UNDO_WINDOW_MS }),
       );
@@ -783,6 +782,30 @@ describe('Dashboard (TestBed)', () => {
         'Chiffres à jour',
         expect.any(String),
         expect.objectContaining({ duration: 5000 }),
+      );
+    });
+
+    // isLoading() falls the same way whether the reload worked or not, so the
+    // quiet tick alone used to be read as success: a dead connection drew the
+    // error card and a toast saying the figures were up to date.
+    it('should not claim success when the reload failed', async () => {
+      const { component, mockStore, mockSnackBar } = await setup(
+        budgetId,
+        undefined,
+      );
+
+      mockStore.dashboardData.set({});
+      component['refresh']();
+      mockStore.isLoading.set(true);
+      TestBed.tick();
+      mockStore.historyError.set(new Error('history unreachable'));
+      mockStore.isLoading.set(false);
+      TestBed.tick();
+
+      expect(mockSnackBar.open).not.toHaveBeenCalledWith(
+        'Chiffres à jour',
+        expect.any(String),
+        expect.anything(),
       );
     });
 

@@ -11,8 +11,6 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { formatNumber } from '@angular/common';
-import { CURRENCY_METADATA } from 'pulpe-shared';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -437,7 +435,19 @@ export default class Dashboard {
       }
       if (phase === 'running') {
         this.#refreshPhase.set('idle');
-        this.#notify(this.#transloco.translate('currentMonth.refreshed'));
+        // isLoading() falls on failure exactly as it falls on success, so the
+        // quiet tick alone said nothing about the outcome: a dead connection
+        // drew the full-page error card AND a toast claiming the figures were
+        // up to date. One gesture, two contradictory answers. The milder case
+        // was the common one — isLoading() ORs in the history resource, so a
+        // dashboard that reloaded fine while history died still congratulated
+        // itself over two cards reading "indisponible".
+        const failed = !!this.store.error() || !!this.store.historyError();
+        this.#notify(
+          this.#transloco.translate(
+            failed ? 'currentMonth.refreshFailed' : 'currentMonth.refreshed',
+          ),
+        );
       }
     });
 
@@ -516,33 +526,30 @@ export default class Dashboard {
     this.#undoableCheckIds = [...this.#undoableCheckIds, budgetLineId];
     const ids = this.#undoableCheckIds;
 
-    // The toast carries the new "Disponible". Checking a line moves the 57px
-    // figure at the top of the page, and until now the only announcement of
-    // that move was the figure itself redrawing — which a screen-reader user
-    // never hears, and a user watching their thumb does not see either. The
-    // toast is already polite and already fires exactly once per batch, so it
-    // is the one place the number can be said without a second live region
-    // competing with it.
-    const remaining = formatNumber(
-      this.store.remaining(),
-      this.currencyLocale(),
-      '1.0-0',
-    );
-    const remainingLabel = `${remaining} ${CURRENCY_METADATA[this.currency()].symbol}`;
+    // The toast reports what the check actually moved, which is how many
+    // forecasts are left to point — not the money. "Disponible" is
+    // available − Σ max(line.amount, consumed): the envelope counts the plan
+    // whether or not it has been pointed, so checking a line leaves that
+    // figure exactly where it was. Printing it here gave five identical
+    // numbers over five taps and read as a counter that had jammed.
+    const left = this.store.uncheckedForecasts().length;
 
     const message =
       ids.length === 1
         ? this.#transloco.translate('currentMonth.uncheckedForecasts.checked', {
             name,
-            remaining: remainingLabel,
           })
         : this.#transloco.translate(
             'currentMonth.uncheckedForecasts.checkedMany',
-            { count: ids.length, remaining: remainingLabel },
+            { count: ids.length },
           );
+    const fullMessage =
+      left > 0
+        ? `${message} — ${this.#transloco.translate('currentMonth.uncheckedForecasts.stillToCheck', { count: left })}`
+        : message;
 
     const ref = this.#snackBar.open(
-      message,
+      fullMessage,
       this.#transloco.translate('common.undo'),
       { duration: UNDO_WINDOW_MS, politeness: 'polite' },
     );

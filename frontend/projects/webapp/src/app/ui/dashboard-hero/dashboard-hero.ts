@@ -46,6 +46,21 @@ let heroInstanceCount = 0;
         class="absolute top-0 right-0 w-36 h-36 bg-white/10 rounded-full blur-2xl pointer-events-none"
       ></div>
 
+      <!-- The control covers the card, and it has to be a direct child of the
+           card to do so: an absolute box resolves against its nearest
+           POSITIONED ancestor, and every content row here is relative z-10, so
+           a button parked inside one could never reach past that row's own
+           box — nor out of the stacking context its z-index opens. Empty on
+           purpose: the chevron below is decoration, and a control whose name
+           came from its contents would drag the whole card back out of the
+           accessibility tree, which is the bug this structure exists to fix. -->
+      <button
+        type="button"
+        class="hero-action"
+        [attr.aria-label]="openMonthAriaLabel()"
+        (click)="heroClick.emit()"
+      ></button>
+
       <div class="flex items-center gap-2 mb-6 relative z-10">
         <!-- Static. It pulsed on every render regardless of anything, so the
              one piece of motion on the card promised a live reading it never
@@ -58,20 +73,11 @@ let heroInstanceCount = 0;
         >
           {{ periodLabel() }}
         </h2>
-        <!-- The chevron is the control. Its ::after covers the card, so the
-             whole surface stays tappable exactly as before, while the tab stop,
-             the Enter/Space handling and the role all come from a real button
-             rather than being hand-rolled onto a div. -->
-        <button
-          type="button"
-          class="hero-action ml-auto shrink-0"
-          [attr.aria-label]="openMonthAriaLabel()"
-          (click)="heroClick.emit()"
+        <!-- Decoration. It says the card opens something; the control that
+             actually opens it covers the whole card above. -->
+        <mat-icon class="ml-auto opacity-80 shrink-0" aria-hidden="true"
+          >chevron_right</mat-icon
         >
-          <mat-icon class="opacity-80" aria-hidden="true"
-            >chevron_right</mat-icon
-          >
-        </button>
       </div>
 
       <!-- Disponible section -->
@@ -239,32 +245,25 @@ let heroInstanceCount = 0;
         box-shadow: var(--mat-sys-level2);
       }
 
-      /* The chevron is a 24px glyph but the target is the whole card: ::after
-         covers the container, so the tap area is unchanged from when the card
-         itself was the button. z-10 clears the two blurred orbs and the content
-         layers, which all sit at z-10 and would otherwise swallow the click. */
+      /* The target is the whole card, so the control is the whole card. z-20
+         puts it over the content rows, which all sit at z-10 and would
+         otherwise take the click themselves; the container sets no z-index of
+         its own, so both live in the same stacking context and the larger
+         number simply wins. The orbs need no thought — they carry
+         pointer-events: none. */
       .hero-action {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: inherit;
+        position: absolute;
+        inset: 0;
+        z-index: 20;
         background: none;
         border: 0;
         padding: 0;
         cursor: pointer;
       }
 
-      .hero-action::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        z-index: 10;
-        border-radius: inherit;
-      }
-
-      /* The ring belongs to the card, not to the 24px glyph — the target is the
-         card, so that is what focus has to outline. Material's ring never
-         reaches this element either way. Double ring: the card is a saturated
+      /* The ring is drawn by the card, because the card is what the control
+         covers — an outline on the button itself would be clipped by the
+         container's overflow-hidden. Double ring: the card is a saturated
          gradient and a single one disappears on one of the two hero states. */
       .hero-container:has(.hero-action:focus-visible) {
         outline: 3px solid var(--pulpe-hero-primary-text);
