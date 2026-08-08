@@ -495,6 +495,9 @@ describe('Dashboard (TestBed)', () => {
       ]),
       checkBudgetLine: vi.fn().mockResolvedValue(null),
       uncheckBudgetLine: vi.fn().mockResolvedValue(null),
+      // The check toast reads this back so the recomputed "Disponible" is
+      // announced rather than only redrawn.
+      remaining: signal(3491),
     };
   }
 
@@ -736,6 +739,21 @@ describe('Dashboard (TestBed)', () => {
 
       expect(mockSnackBar.open).toHaveBeenLastCalledWith(
         expect.stringContaining('2'),
+        expect.any(String),
+        expect.objectContaining({ duration: UNDO_WINDOW_MS }),
+      );
+    });
+
+    // A check moves the 57px figure at the top of the page, and the only
+    // announcement of that move used to be the figure redrawing — silent to a
+    // screen reader, and unseen by anyone watching their own thumb.
+    it('should say the new available amount when a check lands', async () => {
+      const { component, mockSnackBar } = await setup(budgetId, undefined);
+
+      await component['checkBudgetLine']('line-1');
+
+      expect(mockSnackBar.open).toHaveBeenLastCalledWith(
+        expect.stringContaining('491'),
         expect.any(String),
         expect.objectContaining({ duration: UNDO_WINDOW_MS }),
       );

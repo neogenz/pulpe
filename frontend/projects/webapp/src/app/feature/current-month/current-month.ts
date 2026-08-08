@@ -11,6 +11,8 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { formatNumber } from '@angular/common';
+import { CURRENCY_METADATA } from 'pulpe-shared';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -514,14 +516,29 @@ export default class Dashboard {
     this.#undoableCheckIds = [...this.#undoableCheckIds, budgetLineId];
     const ids = this.#undoableCheckIds;
 
+    // The toast carries the new "Disponible". Checking a line moves the 57px
+    // figure at the top of the page, and until now the only announcement of
+    // that move was the figure itself redrawing — which a screen-reader user
+    // never hears, and a user watching their thumb does not see either. The
+    // toast is already polite and already fires exactly once per batch, so it
+    // is the one place the number can be said without a second live region
+    // competing with it.
+    const remaining = formatNumber(
+      this.store.remaining(),
+      this.currencyLocale(),
+      '1.0-0',
+    );
+    const remainingLabel = `${remaining} ${CURRENCY_METADATA[this.currency()].symbol}`;
+
     const message =
       ids.length === 1
         ? this.#transloco.translate('currentMonth.uncheckedForecasts.checked', {
             name,
+            remaining: remainingLabel,
           })
         : this.#transloco.translate(
             'currentMonth.uncheckedForecasts.checkedMany',
-            { count: ids.length },
+            { count: ids.length, remaining: remainingLabel },
           );
 
     const ref = this.#snackBar.open(

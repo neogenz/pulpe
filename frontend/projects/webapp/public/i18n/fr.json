@@ -993,8 +993,8 @@
       "count": "{{ checked }} sur {{ total }} pointées",
       "allCheckedMessage": "Toutes les prévisions sont pointées.",
       "toggleAriaLabel": "Pointer {{ name }} — {{ amount }}",
-      "checked": "Pointé : {{ name }}",
-      "checkedMany": "{{ count }} prévisions pointées",
+      "checked": "Pointé : {{ name }} — reste {{ remaining }}",
+      "checkedMany": "{{ count }} prévisions pointées — reste {{ remaining }}",
       "hiddenCount": "{{ count }} autres prévisions dans le budget"
     }
   },
