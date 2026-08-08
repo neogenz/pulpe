@@ -67,11 +67,20 @@ let heroInstanceCount = 0;
              had. Its colour is inherited, and that already tracks the financial
              state. -->
         <div class="w-2 h-2 rounded-full indicator-dot"></div>
+        <!-- The visible word is the month, because that is all this card needs
+             to say sitting where it sits. Pulled out of the page it needed
+             more: this heading also names the whole region, so a heading list
+             and a landmark list both offered a bare "août". The qualifier is
+             suffixed rather than prefixed to stay clear of the elision French
+             would demand of "budget de/d'". -->
         <h2
           [id]="headingId"
           class="font-bold text-headline-medium capitalize tracking-tight leading-none"
         >
-          {{ periodLabel() }}
+          {{ periodLabel()
+          }}<span class="sr-only">
+            — {{ 'dashboard.monthBudgetHeadingSuffix' | transloco }}</span
+          >
         </h2>
         <!-- Decoration. It says the card opens something; the control that
              actually opens it covers the whole card above. -->
@@ -136,7 +145,14 @@ let heroInstanceCount = 0;
 
       <!-- Progress Bar -->
       <div class="relative z-10">
-        <p class="progress-verdict">{{ statusMessage() | transloco }}</p>
+        <!-- The most consequential sentence on the page, and the one that moves
+             without the page moving: recording a transaction flips it from "Ton
+             rythme tient." to "Ton budget est presque entièrement engagé."
+             in place. A sighted user sees the card change under the tap; a
+             screen-reader user heard nothing at all. -->
+        <p class="progress-verdict" aria-live="polite">
+          {{ statusMessage() | transloco }}
+        </p>
 
         <!-- The bar is decoration; the legend under it is the content. Both say
              the same three shares, so giving the bar a progressbar role would

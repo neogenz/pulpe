@@ -103,6 +103,17 @@ describe('DashboardHistoryChart', () => {
     ).toBeTruthy();
   });
 
+  // hasData waits on the theme as well as the data, and the theme only lands in
+  // afterNextRender — so before the first render a populated history looks
+  // exactly like an absent one. A trailing @else turned that into "Pas encore
+  // d'historique" for a frame, told to every user who has six months of it.
+  it('should not call a populated history empty while the theme resolves', () => {
+    setTestInput(component.history, mockHistoryData);
+
+    expect(component.hasData()).toBe(false);
+    expect(component.isEmpty()).toBe(false);
+  });
+
   it('should report hasData true when history has entries', () => {
     setTestInput(component.history, mockHistoryData);
     fixture.detectChanges();

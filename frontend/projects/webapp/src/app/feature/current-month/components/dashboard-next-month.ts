@@ -45,7 +45,7 @@ import { AppCurrencyPipe } from '@core/currency';
              about next month with nothing to do about it, in a row of cards
              that all carry a trailing action. The list is the honest target:
              the forecast knows the month, not the budget's id. -->
-        @if (hasBudget()) {
+        @if (hasBudget() && !hasError()) {
           <button
             matButton
             class="shrink-0"
@@ -60,7 +60,39 @@ import { AppCurrencyPipe } from '@core/currency';
       <div
         class="bg-surface-container-low rounded-3xl p-5 flex-1 flex flex-col justify-center"
       >
-        @if (hasBudget()) {
+        <!-- The failure belongs inside this card, not instead of it. Rendered
+             as a standalone outlined card, it announced "different subsystem"
+             from a grid cell whose neighbour was built from the house header +
+             panel recipe — and it dropped the month it was failing about. Both
+             charts already carry their own error this way. -->
+        @if (hasError()) {
+          <div
+            class="flex flex-col items-center justify-center text-center gap-2 py-4"
+            data-testid="next-month-error"
+          >
+            <div
+              class="w-16 h-16 rounded-full bg-error-container text-on-error-container flex items-center justify-center mb-2"
+            >
+              <mat-icon class="scale-150 flex! shrink-0!" aria-hidden="true"
+                >cloud_off</mat-icon
+              >
+            </div>
+            <h3 class="text-title-medium font-medium text-on-surface-variant">
+              {{ 'currentMonth.nextMonthErrorTitle' | transloco }}
+            </h3>
+            <p class="text-body-medium text-on-surface-variant">
+              {{ 'currentMonth.nextMonthErrorMessage' | transloco }}
+            </p>
+            <button
+              matButton="outlined"
+              class="mt-2"
+              data-testid="next-month-retry"
+              (click)="retry.emit()"
+            >
+              {{ 'common.retry' | transloco }}
+            </button>
+          </div>
+        } @else if (hasBudget()) {
           <p class="text-body-medium text-on-surface-variant text-center">
             {{ 'currentMonth.nextMonthEstimatedRollover' | transloco }}
             <span
@@ -114,8 +146,10 @@ export class DashboardNextMonth {
   readonly forecast = input.required<UpcomingMonthForecast>();
   readonly estimatedRollover = input.required<number>();
   readonly currency = input<SupportedCurrency>('CHF');
+  readonly hasError = input(false);
 
   readonly navigateToBudgets = output<void>();
+  readonly retry = output<void>();
 
   protected readonly monthName = computed(() => {
     const f = this.forecast();

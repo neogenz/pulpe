@@ -71,6 +71,21 @@ describe('DashboardUncheckedForecasts', () => {
     );
   });
 
+  // "Pointer" is the verb this card runs on and the one house word the page
+  // never defined — only the first-run tour did, months before anyone needs the
+  // answer. At zero the count restates the list right below it, so that is the
+  // slot the definition takes, until the first check proves it landed.
+  it('should define the verb until the first forecast is checked', () => {
+    setTestInput(component.forecasts, mockForecasts);
+    setTestInput(component.totalCount, mockForecasts.length);
+    fixture.detectChanges();
+
+    const subtitle = fixture.debugElement.query(By.css('h2 + p'));
+    expect(subtitle.nativeElement.textContent.trim()).toContain(
+      'marquer une prévision comme réalisée',
+    );
+  });
+
   it('should display the empty state message when there are no forecasts', () => {
     fixture.detectChanges();
 

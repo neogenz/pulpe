@@ -65,13 +65,27 @@ interface AnimatingForecast {
             >
               {{ 'currentMonth.uncheckedForecasts.title' | transloco }}
             </h2>
+            <!-- "Pointer" is this page's central verb and the one house word
+                 left undefined on the surface that runs on it — the tour says
+                 what it means, and the tour is a screen most people see once,
+                 months before they need the answer. At zero the count is the
+                 line that can least afford the space: "0 sur 12 pointées"
+                 restates the list below it. The definition takes that slot
+                 until the first check proves it landed, then gets out of the
+                 way rather than becoming permanent furniture. -->
             <p
               class="text-body-small text-on-surface-variant font-medium mt-0.5"
+              data-testid="dashboard-forecasts-subtitle"
             >
-              {{
-                'currentMonth.uncheckedForecasts.count'
-                  | transloco: { checked: checkedCount(), total: totalCount() }
-              }}
+              @if (checkedCount() === 0) {
+                {{ 'currentMonth.uncheckedForecasts.pointerHint' | transloco }}
+              } @else {
+                {{
+                  'currentMonth.uncheckedForecasts.count'
+                    | transloco
+                      : { checked: checkedCount(), total: totalCount() }
+                }}
+              }
             </p>
           </div>
         </div>

@@ -53,20 +53,14 @@ import {
       <div
         class="bg-surface-container-low rounded-3xl py-4 px-4 flex-1 flex flex-col justify-center min-h-[300px]"
       >
-        @if (hasData()) {
-          <div class="flex-1 relative w-full h-full">
-            <!-- A bare <canvas> is absent from the accessibility tree: the
-                 product's own differentiator did not exist without sight. -->
-            <canvas
-              baseChart
-              role="img"
-              [attr.aria-label]="chartAriaLabel()"
-              [data]="chartData()"
-              [options]="chartOptions()"
-              [type]="chartType"
-            ></canvas>
-          </div>
-        } @else if (hasError()) {
+        <!-- The failure is asked about first, and the empty state last, on its
+             own evidence rather than on the negation of the other two. hasData
+             also waits on the theme, which only resolves in afterNextRender, so
+             a trailing @else claimed "Pas encore d'historique" for one frame to
+             every user who has six months of it — "not yet painted" rendered as
+             "you have nothing", the exact conflation the error branch below
+             exists to undo. That frame now draws an empty panel instead. -->
+        @if (hasError()) {
           <!-- "Pas encore d'historique" was shown here whether the user had no
                history or the request for it failed, because a failed fetch
                reaches this component as the same empty array. Told he had no
@@ -98,7 +92,20 @@ import {
               {{ 'common.retry' | transloco }}
             </button>
           </div>
-        } @else {
+        } @else if (hasData()) {
+          <div class="flex-1 relative w-full h-full">
+            <!-- A bare <canvas> is absent from the accessibility tree: the
+                 product's own differentiator did not exist without sight. -->
+            <canvas
+              baseChart
+              role="img"
+              [attr.aria-label]="chartAriaLabel()"
+              [data]="chartData()"
+              [options]="chartOptions()"
+              [type]="chartType"
+            ></canvas>
+          </div>
+        } @else if (isEmpty()) {
           <div
             class="flex flex-col items-center justify-center text-center h-full gap-2 p-6"
           >
@@ -164,6 +171,8 @@ export class DashboardHistoryChart {
   readonly hasData = computed(
     () => this.#theme() !== null && this.history().length > 0,
   );
+
+  readonly isEmpty = computed(() => this.history().length === 0);
 
   readonly chartData = computed<ChartConfiguration['data']>(() => {
     const data = this.history();

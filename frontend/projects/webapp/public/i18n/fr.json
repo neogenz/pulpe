@@ -992,6 +992,7 @@
     "uncheckedForecasts": {
       "title": "Prévisions à pointer",
       "count": "{{ checked }} sur {{ total }} pointées",
+      "pointerHint": "Pointer : marquer une prévision comme réalisée, dès qu'elle passe sur ton compte.",
       "allCheckedMessage": "Toutes les prévisions sont pointées.",
       "toggleAriaLabel": "Pointer {{ name }} — {{ amount }}",
       "checked": "Pointé : {{ name }}",
@@ -1137,7 +1138,7 @@
       "overdueMessage": "Ton objectif reste actif. Tu peux repousser la date pour te laisser plus de temps.",
       "postpone": "Repousser la date",
       "suggestTitle": "Objectif atteint",
-      "suggestMessage": "Tu as mis de côté l\u2019équivalent de ta cible. On le marque comme atteint ?",
+      "suggestMessage": "Tu as mis de côté l’équivalent de ta cible. On le marque comme atteint ?",
       "markCompleted": "Marquer comme atteint",
       "completedTitle": "Objectif atteint",
       "completedMessage": "Tu as atteint cette cible. Tu peux le ré-ouvrir si tu veux continuer.",
@@ -1348,7 +1349,8 @@
     "allUpToDate": "Tout est à jour !",
     "savingsPlaced": "Toute ton épargne est en place. Tu peux souffler.",
     "savingsSummary": "{{ count }} sur {{ total }} mises de côté",
-    "estimatedRollover": "report estimé"
+    "estimatedRollover": "report estimé",
+    "monthBudgetHeadingSuffix": "budget du mois"
   },
   "form": {
     "emailRequired": "Ton email est nécessaire pour continuer",

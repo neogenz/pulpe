@@ -62,7 +62,44 @@ import {
       <div
         class="bg-surface-container-low rounded-3xl py-4 px-4 flex-1 flex flex-col justify-center min-h-[300px]"
       >
-        @if (hasData()) {
+        <!-- Same order as the history chart below, and for the same reason:
+             the failure is asked about first, and the empty state last, on its
+             own evidence rather than on the negation of the other two. hasData
+             also waits on the theme, which only resolves in afterNextRender, so
+             a trailing @else told every user with months already planned to
+             "crée tes prochains budgets" for one frame. -->
+        @if (hasError()) {
+          <!-- Both this card and the history chart below read the same failed
+               request as an empty list, so one dropped connection used to
+               produce two calm sentences telling the user he had planned
+               nothing — and "Crée tes prochains budgets" invited him to
+               recreate months that already exist. -->
+          <div
+            class="flex flex-col items-center justify-center text-center h-full gap-2 p-6"
+          >
+            <div
+              class="w-16 h-16 rounded-full bg-error-container text-on-error-container flex items-center justify-center mb-2"
+            >
+              <mat-icon class="scale-150 flex! shrink-0!" aria-hidden="true"
+                >cloud_off</mat-icon
+              >
+            </div>
+            <h3 class="text-title-medium font-medium text-on-surface-variant">
+              {{ 'currentMonth.projectionErrorTitle' | transloco }}
+            </h3>
+            <p class="text-body-medium text-on-surface-variant">
+              {{ 'currentMonth.projectionErrorMessage' | transloco }}
+            </p>
+            <button
+              matButton="outlined"
+              class="mt-2"
+              data-testid="projection-chart-retry"
+              (click)="retry.emit()"
+            >
+              {{ 'common.retry' | transloco }}
+            </button>
+          </div>
+        } @else if (hasData()) {
           <div class="flex-1 relative w-full h-full">
             <!-- A bare <canvas> is absent from the accessibility tree: the
                  product's own differentiator did not exist without sight. -->
@@ -110,38 +147,7 @@ import {
               </span>
             </button>
           }
-        } @else if (hasError()) {
-          <!-- Both this card and the history chart below read the same failed
-               request as an empty list, so one dropped connection used to
-               produce two calm sentences telling the user he had planned
-               nothing — and "Crée tes prochains budgets" invited him to
-               recreate months that already exist. -->
-          <div
-            class="flex flex-col items-center justify-center text-center h-full gap-2 p-6"
-          >
-            <div
-              class="w-16 h-16 rounded-full bg-error-container text-on-error-container flex items-center justify-center mb-2"
-            >
-              <mat-icon class="scale-150 flex! shrink-0!" aria-hidden="true"
-                >cloud_off</mat-icon
-              >
-            </div>
-            <h3 class="text-title-medium font-medium text-on-surface-variant">
-              {{ 'currentMonth.projectionErrorTitle' | transloco }}
-            </h3>
-            <p class="text-body-medium text-on-surface-variant">
-              {{ 'currentMonth.projectionErrorMessage' | transloco }}
-            </p>
-            <button
-              matButton="outlined"
-              class="mt-2"
-              data-testid="projection-chart-retry"
-              (click)="retry.emit()"
-            >
-              {{ 'common.retry' | transloco }}
-            </button>
-          </div>
-        } @else {
+        } @else if (isEmpty()) {
           <div
             class="flex flex-col items-center justify-center text-center h-full gap-2 p-6"
           >
@@ -206,6 +212,8 @@ export class DashboardFutureProjectionChart {
       data.some((f) => f.hasBudget)
     );
   });
+
+  readonly isEmpty = computed(() => !this.forecasts().some((f) => f.hasBudget));
 
   readonly missingMonthsCount = computed(
     () => this.forecasts().filter((f) => !f.hasBudget).length,
