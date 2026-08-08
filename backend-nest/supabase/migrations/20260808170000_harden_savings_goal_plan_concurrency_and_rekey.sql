@@ -4,9 +4,11 @@
 --    fail closed before touching any ciphertext once a plan-only withdrawal
 --    exists. The v2 wrapper rekeys every table and writes key_check last.
 -- 2. Every plan RPC now takes the same per-goal lock and row-lock order as a
---    withdrawal realization. The destination RPC also compares the balance
---    revision that the backend read before decrypting and validating the
---    projected stock, and it is the only entry point on that name: a caller
+--    withdrawal realization, and keeps taking the plan advisory lock before the
+--    goal row lock so it cannot deadlock against
+--    reconcile_savings_goal_target_date. The destination RPC also compares the
+--    balance revision that the backend read before decrypting and validating
+--    the projected stock, and it is the only entry point on that name: a caller
 --    cannot land on a variant that skips the comparison.
 
 -- ---------------------------------------------------------------------------
@@ -95,6 +97,18 @@ BEGIN
     NULL
   );
 
+  -- The backend read its payload before this lock existed, so a row committed
+  -- in between would otherwise keep its old-DEK ciphertext while key_check
+  -- moves on. Under the lock this count is authoritative, and key_check is
+  -- still unwritten, so a stale payload fails the whole rekey instead.
+  SELECT count(*) INTO v_rows
+  FROM public.savings_goal_plan_withdrawal w
+  WHERE w.user_id = p_user_id;
+  IF v_rows <> v_expected THEN
+    RAISE EXCEPTION 'rekey: savings_goal_plan_withdrawal holds % rows, payload carries %',
+      v_rows, v_expected USING ERRCODE = 'P0001';
+  END IF;
+
   IF v_expected > 0 THEN
     UPDATE public.savings_goal_plan_withdrawal w
     SET amount = item.amount
@@ -169,6 +183,14 @@ BEGIN
     RAISE EXCEPTION 'Not authenticated' USING ERRCODE = 'P0001';
   END IF;
 
+  -- One order for everyone: plan lock, then withdrawal lock, then the goal row.
+  -- reconcile_savings_goal_target_date already takes the plan lock before its
+  -- row lock, and the core takes it again; reversing any pair here would let
+  -- two of these RPCs deadlock on the same goal.
+  PERFORM pg_advisory_xact_lock(
+    hashtext('apply_savings_goal_plan'),
+    hashtext(p_goal_id::text)
+  );
   PERFORM pg_advisory_xact_lock(
     hashtext('savings_goal_withdrawal'),
     hashtext(p_goal_id::text)
@@ -215,6 +237,12 @@ SECURITY DEFINER
 SET search_path TO ''
 AS $$
 BEGIN
+  -- Same order as the wrapper above: the plan lock first, then the withdrawal
+  -- lock and the goal row that lock_savings_goal_for_withdrawal takes.
+  PERFORM pg_advisory_xact_lock(
+    hashtext('apply_savings_goal_plan'),
+    hashtext(p_goal_id::text)
+  );
   PERFORM public.lock_savings_goal_for_withdrawal(
     p_goal_id, p_expected_revision
   );

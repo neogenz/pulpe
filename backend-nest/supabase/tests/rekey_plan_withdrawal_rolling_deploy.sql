@@ -65,6 +65,46 @@ BEGIN
     RAISE EXCEPTION 'FAIL: legacy rekey committed a split-key vault';
   END IF;
 
+  -- The backend reads its payload before the RPC takes the table lock. A row
+  -- committed in that window is simply absent from the payload, so an
+  -- id-by-id assertion would pass while that row keeps its old-DEK ciphertext.
+  -- The v2 RPC counts the owner's rows under the lock and must refuse.
+  v_caught := false;
+  BEGIN
+    PERFORM public.rekey_user_encrypted_data_with_plan_withdrawals(
+      v_user_id,
+      '[]'::jsonb,
+      '[]'::jsonb,
+      '[]'::jsonb,
+      '[]'::jsonb,
+      jsonb_build_array(jsonb_build_object(
+        'id', v_goal_id,
+        'target_amount', 'goal-stale',
+        'original_target_amount', NULL,
+        'initial_amount', NULL
+      )),
+      '[]'::jsonb,
+      'check-stale'
+    );
+  EXCEPTION WHEN OTHERS THEN
+    v_caught := true;
+  END;
+
+  SELECT target_amount INTO v_target
+  FROM public.savings_goal WHERE id = v_goal_id;
+  SELECT amount INTO v_plan_amount
+  FROM public.savings_goal_plan_withdrawal WHERE id = v_plan_id;
+  SELECT key_check INTO v_key_check
+  FROM public.user_encryption_key WHERE user_id = v_user_id;
+
+  IF NOT v_caught
+    OR v_target <> 'goal-before'
+    OR v_plan_amount <> 'plan-before'
+    OR v_key_check <> 'check-before'
+  THEN
+    RAISE EXCEPTION 'FAIL: a payload missing a plan withdrawal certified a new key';
+  END IF;
+
   PERFORM public.rekey_user_encrypted_data_with_plan_withdrawals(
     v_user_id,
     jsonb_build_array(jsonb_build_object('id', v_plan_id, 'amount', 'plan-v2')),

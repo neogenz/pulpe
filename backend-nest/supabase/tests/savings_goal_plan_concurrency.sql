@@ -68,6 +68,9 @@ DECLARE
   v_count integer;
   v_realization_waiting boolean := false;
   v_plan_waiting boolean := false;
+  v_definition text;
+  v_plan_lock_at integer;
+  v_goal_lock_at integer;
 BEGIN
   SELECT user_id, goal_id, budget_id, line_id, transaction_id
   INTO v_user_id, v_goal_id, v_budget_id, v_line_id, v_transaction_id
@@ -226,6 +229,38 @@ BEGIN
   IF v_count <> 0 THEN
     RAISE EXCEPTION 'FAIL: % plan destination entry point(s) skip the revision CAS', v_count;
   END IF;
+
+  -- Lock order. reconcile_savings_goal_target_date takes the plan advisory lock
+  -- before the goal row lock (20260726122000). Both plan entry points must take
+  -- their locks in that same order — plan lock, then withdrawal lock, then the
+  -- goal row — or two of these RPCs deadlock on one goal. A deadlock here is
+  -- arbitrated into a replayable 409, never silent, so this is asserted on the
+  -- installed definitions rather than raced.
+  FOR v_definition IN
+    -- Strip line comments: they name these very locks, and a comment must not
+    -- be able to pass or fail an assertion about executed statements.
+    SELECT regexp_replace(pg_get_functiondef(p.oid), '--[^\n]*', '', 'g')
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname IN (
+        'apply_savings_goal_plan',
+        'apply_savings_goal_plan_with_destinations'
+      )
+  LOOP
+    v_plan_lock_at := position('hashtext(''apply_savings_goal_plan'')' in v_definition);
+    v_goal_lock_at := LEAST(
+      NULLIF(position('hashtext(''savings_goal_withdrawal'')' in v_definition), 0),
+      NULLIF(position('lock_savings_goal_for_withdrawal' in v_definition), 0),
+      NULLIF(position('FOR UPDATE' in v_definition), 0)
+    );
+    IF v_plan_lock_at = 0 THEN
+      RAISE EXCEPTION 'FAIL: a plan entry point never takes the plan advisory lock';
+    END IF;
+    IF v_goal_lock_at IS NOT NULL AND v_plan_lock_at > v_goal_lock_at THEN
+      RAISE EXCEPTION 'FAIL: a plan entry point locks the goal before the plan lock';
+    END IF;
+  END LOOP;
 
   PERFORM extensions.dblink_disconnect('sg_plan_realize');
   PERFORM extensions.dblink_disconnect('sg_plan_apply');

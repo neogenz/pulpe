@@ -434,9 +434,13 @@ Deux garanties se cumulent, et toutes deux comptent :
   révision, et c'est son unique point d'entrée — aucune variante ne permet de
   l'omettre. Preuve : `supabase/tests/savings_goal_plan_concurrency.sql`.
 
-`apply_savings_goal_plan`, qui n'écrit que des lignes et aucun retrait, reste
-disponible pour un pod encore déployé pendant un rolling deploy, et prend
-désormais lui aussi le verrou de réalisation.
+`apply_savings_goal_plan` reste disponible pour un pod encore déployé pendant un
+rolling deploy, et prend désormais lui aussi le verrou de réalisation. Il ne
+compare en revanche aucune révision : ce qui le rend sûr n'est pas la fonction,
+qui sait écrire des retraits, mais son appelant déployé — il n'envoie pas
+`p_plan_withdrawals`, le défaut `[]` s'applique et aucun retrait n'est écrit.
+Un appel qui en enverrait passerait à côté de la comparaison, et c'est
+précisément pourquoi le chemin courant passe par la RPC à destinations.
 
 Le provisioning n'est pas sérialisé entre deux demandes indépendantes. Deux
 appareils ou onglets qui confirment au même instant sortent donc de cette
