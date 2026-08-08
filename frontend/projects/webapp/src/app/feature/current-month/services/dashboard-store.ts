@@ -356,15 +356,25 @@ export class DashboardStore {
   // spending, and its first screenful was money coming in. Outflow leads, and
   // inside each direction the largest amounts come first, which keeps what the
   // truncation swallows the least consequential part of the list.
-  readonly uncheckedForecasts = computed<BudgetLine[]>(() =>
-    this.#pointableForecasts()
+  //
+  // Sorted on what the row prints, not on what the line planned. Those diverge
+  // the moment a transaction is allocated against a forecast: a 1'500 rent with
+  // 1'400 already recorded renders "100" and used to sort above a 600 grocery
+  // envelope rendering "600". The reader saw a descending column of amounts
+  // that did not descend, and the cap at five hid lines by a size no longer on
+  // screen — the one thing the hidden count exists to keep honest.
+  readonly uncheckedForecasts = computed<BudgetLine[]>(() => {
+    const consumptions = this.consumptions();
+    const remainingOf = (line: BudgetLine): number =>
+      Math.max(0, consumptions.get(line.id)?.remaining ?? line.amount);
+    return this.#pointableForecasts()
       .filter((line) => line.checkedAt === null)
       .toSorted(
         (a, b) =>
           Number(isOutflowKind(b.kind)) - Number(isOutflowKind(a.kind)) ||
-          b.amount - a.amount,
-      ),
-  );
+          remainingOf(b) - remainingOf(a),
+      );
+  });
 
   // The denominator the block's subtitle needs: "10" alone said how much work
   // was left without saying how much there was, so it read as a backlog with no

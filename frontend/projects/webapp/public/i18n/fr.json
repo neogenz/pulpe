@@ -921,7 +921,7 @@
     "loadErrorTitle": "On n'arrive pas à charger ton tableau de bord",
     "loadErrorMessage": "Ta connexion a peut-être coupé. Réessaie pour récupérer tes données.",
     "noBudgetTitle": "Pas encore de budget pour {{ period }}",
-    "noBudgetMessage": "Crée-le depuis tes modèles pour commencer à suivre ton mois.",
+    "noBudgetMessage": "Crée-le pour commencer à suivre ton mois.",
     "viewBudgets": "Voir mes budgets",
     "viewNextMonthBudget": "Voir mes budgets, dont celui du mois prochain",
     "updateError": "La mise à jour a échoué — vérifie ta connexion et réessaie",
@@ -942,8 +942,8 @@
     "historyAvgIncomeLabel": "Revenu moyen",
     "historyChartAria": "Revenus, dépenses et épargne sur {{ count }} mois, de {{ first }} à {{ last }} : revenu moyen {{ avgIncome }}, et sur le mois en cours, encore incomplet, {{ lastIncome }} de revenus, {{ lastExpenses }} de dépenses, {{ lastSavings }} d'épargne.",
     "chartLoading": "Chargement du graphique...",
-    "outlookTitle": "Vue d'ensemble",
-    "outlookHint": "Projection, épargne, mois prochain et historique",
+    "outlookTitle": "Ce qui vient",
+    "outlookHint": "Épargne, mois prochain, projection et historique",
     "savingsSectionTitle": "Épargne du mois",
     "savingsAllDone": "Tout est en place",
     "savingsNone": "Aucune prévision",
@@ -952,6 +952,8 @@
     "savingsProgress": "Épargne : {{ percent }}% réalisé",
     "savingsAmountText": "Tu as mis de côté",
     "savingsPlanned": "prévus",
+    "savingsUnplanned": "Hors prévision",
+    "savingsThisMonth": "ce mois",
     "savingsEmptyTitle": "Pas d'épargne prévue ce mois",
     "savingsViewGoals": "Voir mes objectifs",
     "savingsSetFirstGoal": "Fixe ton premier objectif",
@@ -1009,7 +1011,7 @@
       "checked": "Pointé : {{ name }}",
       "checkedMany": "{{ count }} prévisions pointées",
       "stillToCheck": "il en reste {{ count }} à pointer",
-      "hiddenCount": "{{ count }} autres prévisions dans le budget"
+      "hiddenCount": "{{ count }} autres prévisions ce mois"
     }
   },
   "currency": {
@@ -1350,7 +1352,7 @@
       "fastPace": "Tu dépenses plus vite que le mois ne passe.",
       "almostSpent": "Ton budget est presque entièrement engagé.",
       "planOverAvailable": "Ton plan demande plus que ce que le mois t'apporte — ça se rattrape. Ouvre ton budget pour alléger une prévision.",
-      "overBudget": "Tu es au-delà de ton budget — ça arrive."
+      "overBudget": "Tu es au-delà de ton budget — ça arrive. Ouvre ton budget pour voir ce qui a dépassé."
     },
     "openMonthDetail": "Voir le détail du mois — {{ month }}",
     "on": "sur",
@@ -1576,6 +1578,7 @@
     "openCalendar": "Ouvrir le calendrier",
     "formAriaLabel": "Formulaire de modification de transaction",
     "checkedToggle": "Déjà pointé",
+    "checkedToggleHint": "Le montant est déjà passé sur ton compte.",
     "editTitle": "Modifier la transaction",
     "editFormAriaLabel": "Formulaire de modification de transaction",
     "cancelAriaLabel": "Annuler la modification",

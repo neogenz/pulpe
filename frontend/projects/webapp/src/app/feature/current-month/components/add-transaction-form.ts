@@ -174,16 +174,31 @@ interface AddTransactionModel {
         }
       </div>
       <div class="add-transaction-form-meta grid grid-cols-1 gap-3">
-        <div
-          class="flex items-center gap-2 p-3 bg-surface-container rounded-lg text-on-surface-variant"
+        <!-- Stated, not dressed as a control. A filled tonal surface with a
+             rounded corner and a leading glyph, sitting in a form grid beside a
+             live toggle, said "tap to change the date" four ways over a static
+             div. The date is always today here; the edit form is where it can
+             be chosen. -->
+        <p
+          class="flex items-center gap-2 px-1 text-body-small text-on-surface-variant"
         >
-          <mat-icon>event</mat-icon>
+          <mat-icon class="mat-icon-sm" aria-hidden="true">event</mat-icon>
           <span>{{ 'currentMonth.addTransactionToday' | transloco }}</span>
-        </div>
+        </p>
         <div class="flex items-center justify-between py-2 px-1">
-          <span class="text-body-medium text-on-surface">{{
-            'transactionForm.checkedToggle' | transloco
-          }}</span>
+          <div class="flex flex-col">
+            <span class="text-body-medium text-on-surface">{{
+              'transactionForm.checkedToggle' | transloco
+            }}</span>
+            <!-- "Pointer" was taught on this page for a prévision, then reused
+                 here on a real transaction with no gloss and defaulted on —
+                 while the rarer savings-source toggle above carries a full
+                 explanatory line. Off, the amount lands in "Engagé" rather than
+                 "Déjà sorti": both figures the user came to read. -->
+            <span class="text-body-small text-on-surface-variant">{{
+              'transactionForm.checkedToggleHint' | transloco
+            }}</span>
+          </div>
           <mat-slide-toggle
             [formField]="transactionForm.isChecked"
             [attr.aria-label]="'transactionForm.checkedToggle' | transloco"

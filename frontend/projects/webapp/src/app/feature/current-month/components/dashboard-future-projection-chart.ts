@@ -43,7 +43,10 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col h-full w-full">
-      <div class="flex items-center gap-3 mb-6">
+      <!-- Same header string as the chart stacked directly under it: the two
+           badges started 4px apart horizontally and their panels aligned
+           exactly, so the misalignment read as a rendering fault. -->
+      <div class="mb-4 px-1 flex items-center gap-3">
         <div
           class="w-10 h-10 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center shrink-0"
         >

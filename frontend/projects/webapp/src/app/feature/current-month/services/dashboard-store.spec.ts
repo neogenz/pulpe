@@ -1011,6 +1011,37 @@ describe('DashboardStore - Business Scenarios', () => {
       expect(store.paceStatus()).toBe('unknown');
     });
 
+    // The order the reader sees has to be the order of the numbers the reader
+    // sees. Sorting on the plan put a nearly-consumed 1'500 envelope rendering
+    // "100" above an untouched 600 one rendering "600", and the cap at five then
+    // hid rows by a size no longer printed anywhere.
+    it('should order the forecasts by what each row still expects', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const lines = [
+        createMockBudgetLine({ id: 'rent', kind: 'expense', amount: 1500 }),
+        createMockBudgetLine({ id: 'groceries', kind: 'expense', amount: 600 }),
+      ];
+      const transactions = [
+        createMockTransaction({
+          id: 'tx-1',
+          kind: 'expense',
+          amount: 1400,
+          budgetLineId: 'rent',
+          checkedAt: '2025-06-02T00:00:00Z',
+        }),
+      ];
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        transactions,
+      );
+
+      expect(store.uncheckedForecasts().map((line) => line.id)).toEqual([
+        'groceries',
+        'rent',
+      ]);
+    });
+
     // What the user reported: 17 of 18 prévisions pointed, and the card said
     // "Dépensé 554" — the single free transaction — while calling the other
     // 3'947 "engagé", i.e. reserved and not yet spent. Pointing is the gesture

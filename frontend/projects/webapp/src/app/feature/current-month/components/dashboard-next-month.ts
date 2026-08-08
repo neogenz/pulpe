@@ -96,7 +96,7 @@ import { AppCurrencyPipe } from '@core/currency';
           <p class="text-body-medium text-on-surface-variant text-center">
             {{ 'currentMonth.nextMonthEstimatedRollover' | transloco }}
             <span
-              class="font-bold tabular-nums ph-no-capture"
+              class="font-bold tabular-nums whitespace-nowrap ph-no-capture"
               [class]="
                 estimatedRollover() >= 0
                   ? 'text-financial-savings'

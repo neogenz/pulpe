@@ -92,10 +92,17 @@ export const UNDO_WINDOW_MS = 6000;
           >
             <mat-icon aria-hidden="true">help_outline</mat-icon>
           </button>
+          <!-- disabledInteractive keeps the element focusable while it is
+               disabled. Material emits the native attribute otherwise, and the
+               browser drops focus to the document body the instant the button is
+               pressed — so a keyboard user was returned to the top of the page
+               on every refresh and had to traverse the header again to press it
+               a second time. -->
           <button
             matIconButton
             (click)="refresh()"
             [disabled]="store.isLoading()"
+            [disabledInteractive]="true"
             [matTooltip]="'currentMonth.refresh' | transloco"
             [attr.aria-label]="'currentMonth.refresh' | transloco"
             data-testid="refresh-button"

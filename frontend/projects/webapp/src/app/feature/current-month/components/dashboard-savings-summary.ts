@@ -42,13 +42,20 @@ import { AppCurrencyPipe } from '@core/currency';
             <p
               class="text-body-small text-on-surface-variant font-medium mt-0.5"
             >
+              <!-- The count is about the plan, so it needs a plan to be about.
+                   A transfer recorded from the page's FAB carries no line: with
+                   no saving prévision at all it moved the amount below and left
+                   this reading "0 sur 0 mises de côté", the same empty tally the
+                   forecasts card beside it was just taught to refuse. -->
               @if (isComplete()) {
                 {{ 'currentMonth.savingsAllDone' | transloco }}
-              } @else if (hasSavings()) {
+              } @else if (hasPlan()) {
                 {{
                   'dashboard.savingsSummary'
                     | transloco: { count: checkedCount(), total: totalCount() }
                 }}
+              } @else if (hasSavings()) {
+                {{ 'currentMonth.savingsUnplanned' | transloco }}
               } @else {
                 {{ 'currentMonth.savingsNone' | transloco }}
               }
@@ -89,22 +96,27 @@ import { AppCurrencyPipe } from '@core/currency';
             </p>
           </div>
         } @else if (hasSavings()) {
-          <!-- The name only, because aria-valuenow beside it already carries the
-               number: a label reading "Épargne : 40% réalisé" made the reader
-               announce "…40% réalisé, 40%". -->
-          <div
-            class="w-full h-2.5 bg-financial-savings/10 rounded-full overflow-hidden mb-4"
-            role="progressbar"
-            [attr.aria-valuenow]="progressPercentage()"
-            aria-valuemin="0"
-            aria-valuemax="100"
-            [attr.aria-label]="'currentMonth.savingsSectionTitle' | transloco"
-          >
+          <!-- A ratio needs a denominator. With nothing planned the bar sat at
+               0% under "Tu as mis de côté 300 CHF sur 0 CHF prévus" — a card
+               reporting no progress on money it had just been told about. -->
+          @if (hasPlan()) {
+            <!-- The name only, because aria-valuenow beside it already carries
+                 the number: a label reading "Épargne : 40% réalisé" made the
+                 reader announce "…40% réalisé, 40%". -->
             <div
-              class="h-full bg-financial-savings rounded-full motion-safe:transition-all motion-safe:duration-700"
-              [style.width.%]="progressPercentage()"
-            ></div>
-          </div>
+              class="w-full h-2.5 bg-financial-savings/10 rounded-full overflow-hidden mb-4"
+              role="progressbar"
+              [attr.aria-valuenow]="progressPercentage()"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              [attr.aria-label]="'currentMonth.savingsSectionTitle' | transloco"
+            >
+              <div
+                class="h-full bg-financial-savings rounded-full motion-safe:transition-all motion-safe:duration-700"
+                [style.width.%]="progressPercentage()"
+              ></div>
+            </div>
+          }
           <div class="flex justify-between items-baseline">
             <p class="text-body-medium text-on-surface">
               {{ 'currentMonth.savingsAmountText' | transloco }}
@@ -113,15 +125,19 @@ import { AppCurrencyPipe } from '@core/currency';
                    on every saving pointed, the right one does not, and without
                    tabular figures neither stayed put. -->
               <span
-                class="font-bold text-financial-savings tabular-nums ph-no-capture"
+                class="font-bold text-financial-savings tabular-nums whitespace-nowrap ph-no-capture"
               >
                 {{ totalRealized() | appCurrency: currency() : '1.0-0' }}
               </span>
-              {{ 'dashboard.on' | transloco }}
-              <span class="tabular-nums ph-no-capture">{{
-                totalPlanned() | appCurrency: currency() : '1.0-0'
-              }}</span>
-              {{ 'currentMonth.savingsPlanned' | transloco }}
+              @if (hasPlan()) {
+                {{ 'dashboard.on' | transloco }}
+                <span class="tabular-nums whitespace-nowrap ph-no-capture">{{
+                  totalPlanned() | appCurrency: currency() : '1.0-0'
+                }}</span>
+                {{ 'currentMonth.savingsPlanned' | transloco }}
+              } @else {
+                {{ 'currentMonth.savingsThisMonth' | transloco }}
+              }
             </p>
           </div>
         } @else {
@@ -171,6 +187,10 @@ export class DashboardSavingsSummary {
   protected readonly hasSavings = computed(
     () => this.totalPlanned() > 0 || this.totalRealized() > 0,
   );
+
+  // Money set aside and money planned are two different questions, and only the
+  // second one has a count and a ratio behind it.
+  protected readonly hasPlan = computed(() => this.totalPlanned() > 0);
 
   // The amounts, not the rounded percentage: 995 of 1'000 rounds to 100 and used
   // to swap the card to "Tu peux souffler" — a state that prints neither figure,

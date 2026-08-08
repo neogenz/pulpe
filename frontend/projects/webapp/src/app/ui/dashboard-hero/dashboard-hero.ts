@@ -546,12 +546,19 @@ export class DashboardHero {
     ),
   );
 
+  // A budget of nothing has no share of itself left to spend. With income and
+  // expenses both zero the consumed percentage is 0, so this drew a full-width
+  // outlined pill keyed "Disponible" under a 57px "0" captioned "disponible à
+  // dépenser sur 0 CHF" — the whole bar claiming a month that does not exist is
+  // still the user's to spend.
   protected readonly freeShare = computed(() =>
-    Math.max(
-      0,
-      FULL_BAR_PERCENT -
-        Math.min(this.budgetConsumedPercentage(), FULL_BAR_PERCENT),
-    ),
+    this.available() <= 0
+      ? 0
+      : Math.max(
+          0,
+          FULL_BAR_PERCENT -
+            Math.min(this.budgetConsumedPercentage(), FULL_BAR_PERCENT),
+        ),
   );
 
   // The colour answers "am I spending too fast?", not "did I plan too much?".

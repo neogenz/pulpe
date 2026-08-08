@@ -139,6 +139,26 @@ describe('DashboardSavingsSummary', () => {
       );
       expect(fixture.nativeElement.textContent).toContain('Tu as mis de côté');
     });
+
+    // A transfer recorded from the page's FAB carries no budget line, so with
+    // no saving prévision at all the store hands this card money against a
+    // plan of zero. It answered with an empty tally and a 0% bar over an
+    // amount it had just printed.
+    it('should not report a ratio against a plan that does not exist', () => {
+      setTestInput(component.totalPlanned, 0);
+      setTestInput(component.totalRealized, 300);
+      setTestInput(component.checkedCount, 0);
+      setTestInput(component.totalCount, 0);
+      fixture.detectChanges();
+
+      const text = fixture.nativeElement.textContent;
+      expect(text).toContain('Tu as mis de côté');
+      expect(text).not.toContain('0 sur 0');
+      expect(text).not.toContain('prévus');
+      expect(
+        fixture.nativeElement.querySelector('[role="progressbar"]'),
+      ).toBeNull();
+    });
   });
 
   describe('when all savings are complete (100%)', () => {
