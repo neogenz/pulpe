@@ -72,12 +72,15 @@ interface AnimatingForecast {
                  line that can least afford the space: "0 sur 12 pointées"
                  restates the list below it. The definition takes that slot
                  until the first check proves it landed, then gets out of the
-                 way rather than becoming permanent furniture. -->
+                 way rather than becoming permanent furniture. A month with
+                 nothing pointable at all is the case where it never could:
+                 checkedCount stays 0 forever, so the definition of a verb with
+                 nothing to apply it to would have sat above "Tout est à jour". -->
             <p
               class="text-body-small text-on-surface-variant font-medium mt-0.5"
               data-testid="dashboard-forecasts-subtitle"
             >
-              @if (checkedCount() === 0) {
+              @if (checkedCount() === 0 && totalCount() > 0) {
                 {{ 'currentMonth.uncheckedForecasts.pointerHint' | transloco }}
               } @else {
                 {{

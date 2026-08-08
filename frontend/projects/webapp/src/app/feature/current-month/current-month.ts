@@ -110,11 +110,6 @@ export const UNDO_WINDOW_MS = 6000;
           size="large"
           testId="dashboard-loading"
         />
-      } @else if (store.status() === 'error') {
-        <pulpe-dashboard-error
-          (reload)="store.refreshData()"
-          data-testid="dashboard-error"
-        />
       } @else if (store.dashboardData()?.budget) {
         <div class="flex flex-col gap-8">
           <!-- Hero "Disponible à dépenser" -->
@@ -267,6 +262,23 @@ export const UNDO_WINDOW_MS = 6000;
             </div>
           }
         </div>
+      } @else if (store.status() === 'error') {
+        <!-- Reached only with nothing to show, because the data is asked about
+             first now and the order is the fix. The cache hands back the last
+             good payload whatever the status is — a snapshot wins over the
+             resource value, and only its absence falls through to the default
+             — so a dropped reload left the page fully loaded in memory and
+             still swapped it for "On n'arrive pas à charger ton tableau de
+             bord". Every check and every added transaction invalidates this
+             resource, so the gesture most likely to be repeated was also the
+             one most likely to throw the screen away. The store already
+             refuses to let the history request blank a page whose figures
+             loaded; it was doing it to itself. The refresh toast carries the
+             failure now. -->
+        <pulpe-dashboard-error
+          (reload)="store.refreshData()"
+          data-testid="dashboard-error"
+        />
       } @else {
         <pulpe-state-card
           variant="empty"

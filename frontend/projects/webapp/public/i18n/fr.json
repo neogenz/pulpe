@@ -1339,7 +1339,7 @@
       "almostSpent": "Ton budget est presque entièrement engagé.",
       "overBudget": "Tu es au-delà de ton budget — ça arrive."
     },
-    "openMonthDetail": "Voir le détail de {{ month }}",
+    "openMonthDetail": "Voir le détail du mois — {{ month }}",
     "on": "sur",
     "rollover": "Report du mois dernier",
     "savings": "Épargne",

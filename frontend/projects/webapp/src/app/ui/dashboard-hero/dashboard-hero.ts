@@ -188,7 +188,7 @@ let heroInstanceCount = 0;
              drops a key under a key instead of stranding a lone right-aligned
              total. -->
         <div class="progress-legend">
-          <!-- Ungated, unlike the two below, and it used to share their rule:
+          <!-- Ungated, unlike the one below, and it used to share its rule:
                a key for a segment the bar never drew is a swatch pointing at
                nothing. But this is the one figure the verdict above is drawn
                from — it compares what has gone out against how much of the
@@ -197,20 +197,35 @@ let heroInstanceCount = 0;
                nothing on screen to check it against, while the aria-label
                spelled out "0% du budget dépensé" to the screen reader. A zero
                here is the reason for the verdict, not the absence of one. -->
+          <!-- The ISO code rather than the symbol, and hidden rather than
+               drawn: this is the house pattern for the accessible name of an
+               amount, and the three keys have no width to spare — the
+               denominator was moved out of this row precisely because they
+               did not fit with it. Read aloud, the row was three bare
+               integers in a product that ships CHF and EUR side by side. -->
           <span class="progress-legend-item">
             <span class="progress-legend-swatch swatch-realized"></span>
             {{ 'dashboard.spent' | transloco }}
             <b class="progress-legend-amount ph-no-capture">
-              {{ realizedExpenses() | number: '1.0-0' : locale() }}
+              <span data-testid="hero-spent-amount">{{
+                realizedExpenses() | number: '1.0-0' : locale()
+              }}</span>
+              <span class="sr-only">{{ currency() }}</span>
             </b>
           </span>
           <span class="progress-legend-item">
             <span class="progress-legend-swatch swatch-engaged"></span>
             {{ 'dashboard.engaged' | transloco }}
             <b class="progress-legend-amount ph-no-capture">
-              <span data-testid="hero-expenses-amount">{{
+              <!-- hero-engaged-amount, not hero-expenses-amount: this key
+                   carries the share still committed and not yet spent, which
+                   is total expenses MINUS what the key beside it shows. Under
+                   the old name eight end-to-end assertions read it as the
+                   total and compared it against a number it stopped holding. -->
+              <span data-testid="hero-engaged-amount">{{
                 engagedNotSpent() | number: '1.0-0' : locale()
               }}</span>
+              <span class="sr-only">{{ currency() }}</span>
             </b>
           </span>
           <!-- The outlined pill was the one segment left unnamed, on the
@@ -225,6 +240,7 @@ let heroInstanceCount = 0;
               {{ 'dashboard.available' | transloco }}
               <b class="progress-legend-amount ph-no-capture">
                 {{ remaining() | number: '1.0-0' : locale() }}
+                <span class="sr-only">{{ currency() }}</span>
               </b>
             </span>
           }
@@ -532,7 +548,9 @@ export class DashboardHero {
 
   // The label the card used to carry restated its whole contents, because none
   // of those contents reached the accessibility tree. They do now, so the
-  // control names only itself: what it opens, and for which month.
+  // control names only itself: what it opens, and for which month. Dashed off
+  // the month rather than joined with "de", which French elides before a vowel:
+  // "de août", "de avril" and "de octobre" were three of twelve.
   protected readonly openMonthAriaLabel = computed(() =>
     this.#transloco.translate('dashboard.openMonthDetail', {
       month: this.periodLabel(),
