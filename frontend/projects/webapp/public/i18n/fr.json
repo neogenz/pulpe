@@ -936,6 +936,8 @@
     "historyAvgIncomeLabel": "Revenu moyen",
     "historyChartAria": "Revenus, dépenses et épargne sur {{ count }} mois, de {{ first }} à {{ last }} : revenu moyen {{ avgIncome }}, et sur le mois en cours, encore incomplet, {{ lastIncome }} de revenus, {{ lastExpenses }} de dépenses, {{ lastSavings }} d'épargne.",
     "chartLoading": "Chargement du graphique...",
+    "outlookTitle": "Vue d'ensemble",
+    "outlookHint": "Projection, épargne, mois prochain et historique",
     "savingsSectionTitle": "Épargne du mois",
     "savingsAllDone": "Tout est en place",
     "savingsNone": "Aucune prévision",

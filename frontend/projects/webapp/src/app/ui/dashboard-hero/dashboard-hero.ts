@@ -497,12 +497,21 @@ export class DashboardHero {
     ),
   );
 
-  readonly isOverBudget = computed(() => this.remaining() < 0);
+  // The colour answers "am I spending too fast?", not "did I plan too much?".
+  // It used to answer the second: the percentage it read is
+  // (dépenses + épargne planifiées) / (revenus + report), so a month planning
+  // 3 500 of expenses and 1 200 of savings against 5 000 of income scored 94%
+  // on the 1st with nothing recorded, and the card was amber for thirty days —
+  // the tighter the plan, the redder the screen, which puts the alarm on the
+  // users who budget best. PRODUCT.md asks for le soulagement avant la
+  // pression. The plan is still on the card: it is the "Engagé" key of the
+  // legend, and the ceiling beside the headline number.
+  readonly isOverBudget = computed(
+    () => this.realizedExpenses() > this.available(),
+  );
 
   readonly isWarning = computed(
-    () =>
-      !this.isOverBudget() &&
-      this.budgetConsumedPercentage() > this.warningThreshold(),
+    () => !this.isOverBudget() && this.paceStatus() === 'tight',
   );
   readonly budgetStatus = computed<'on-track' | 'warning' | 'over-budget'>(
     () => {
@@ -522,27 +531,26 @@ export class DashboardHero {
   });
 
   // The card answers "am I doing OK?" out loud instead of leaving the user to
-  // derive it from two percentages. Pace is only meaningful while the budget
-  // still holds, so the budget verdict outranks it.
+  // derive it from two percentages, and it answers it from the ledger. What was
+  // recorded outranks what was planned, the reverse of the order this card
+  // shipped with: "presque entièrement engagé" is read off a plan that exists
+  // whether or not anything has happened, so it was printed every day of every
+  // month and the sentence about actual behaviour was never reached.
   protected readonly statusMessage = computed(() => {
-    switch (this.budgetStatus()) {
-      case 'over-budget':
-        return 'dashboard.status.overBudget';
-      case 'warning':
-        return 'dashboard.status.almostSpent';
+    if (this.isOverBudget()) return 'dashboard.status.overBudget';
+    switch (this.paceStatus()) {
+      case 'tight':
+        return 'dashboard.status.fastPace';
+      // Nothing recorded, so the pace cannot speak. The plan can, and a plan
+      // that leaves almost nothing free is the one true thing this card has to
+      // say before the first transaction — the only place the plan still gets
+      // the headline, and only because nothing else can hold it.
+      case 'unknown':
+        return this.budgetConsumedPercentage() > this.warningThreshold()
+          ? 'dashboard.status.almostSpent'
+          : 'dashboard.status.noPaceYet';
       default:
-        switch (this.paceStatus()) {
-          case 'tight':
-            return 'dashboard.status.fastPace';
-          // Ranked below the budget verdicts on purpose: "almost entirely
-          // engaged" and "beyond your budget" are read off the plan, which
-          // exists whether or not anything has been recorded. Only the pace
-          // reading needs a ledger.
-          case 'unknown':
-            return 'dashboard.status.noPaceYet';
-          default:
-            return 'dashboard.status.onTrack';
-        }
+        return 'dashboard.status.onTrack';
     }
   });
 

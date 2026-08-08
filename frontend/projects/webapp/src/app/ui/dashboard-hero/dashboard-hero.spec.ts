@@ -44,34 +44,44 @@ describe('DashboardHero', () => {
     expect(component.remaining()).toBe(600);
   });
 
-  it('should determine isOverBudget', () => {
+  it('should call the month over budget once more has gone out than came in', () => {
     setTestInput(component.available, 1000);
     setTestInput(component.expenses, 1200);
     setTestInput(component.remaining, -200);
     setTestInput(component.budgetConsumedPercentage, 100);
-    setTestInput(component.periodDates, {
-      startDate: new Date(),
-      endDate: new Date(),
-    });
+    setTestInput(component.realizedExpenses, 1100);
 
     expect(component.isOverBudget()).toBe(true);
     expect(component.isWarning()).toBe(false);
     expect(component.budgetStatus()).toBe('over-budget');
   });
 
-  it('should determine isWarning (>90% consumed)', () => {
+  it('should warn on the pace, not on the plan', () => {
     setTestInput(component.available, 1000);
     setTestInput(component.expenses, 950);
     setTestInput(component.remaining, 50);
     setTestInput(component.budgetConsumedPercentage, 95);
-    setTestInput(component.periodDates, {
-      startDate: new Date(),
-      endDate: new Date(),
-    });
+    setTestInput(component.realizedExpenses, 300);
+    setTestInput(component.paceStatus, 'tight');
 
     expect(component.isOverBudget()).toBe(false);
     expect(component.isWarning()).toBe(true);
-    expect(component.budgetConsumedPercentage()).toBe(95);
+  });
+
+  // The card used to be amber for anyone who committed more than 90% of their
+  // income to a plan, which is every month a disciplined saver has. The colour
+  // is read off the ledger now; the plan stays in the legend.
+  it('should stay calm on a tight plan the user is respecting', () => {
+    setTestInput(component.available, 5000);
+    setTestInput(component.expenses, 4700);
+    setTestInput(component.remaining, 300);
+    setTestInput(component.budgetConsumedPercentage, 94);
+    setTestInput(component.realizedExpenses, 900);
+    setTestInput(component.paceStatus, 'on-track');
+
+    expect(component.isWarning()).toBe(false);
+    expect(component.isOverBudget()).toBe(false);
+    expect(component.budgetStatus()).toBe('on-track');
   });
 
   it('should expose budgetConsumedPercentage from input', () => {
@@ -182,10 +192,44 @@ describe('DashboardHero', () => {
       expect(compiled.textContent).toContain('plus vite que le mois');
     });
 
-    it('should let the budget verdict outrank the pace verdict', () => {
+    // The reverse of the order this card shipped with. "Presque entièrement
+    // engagé" is read off a plan that exists whether or not anything has
+    // happened, so it was printed every day of every month and this sentence —
+    // the only one about what the user actually did — was never reached.
+    it('should let the pace verdict outrank a merely tight plan', () => {
+      setTestInput(component.available, 1000);
+      setTestInput(component.expenses, 950);
+      setTestInput(component.remaining, 50);
+      setTestInput(component.budgetConsumedPercentage, 95);
+      setTestInput(component.realizedExpenses, 400);
+      setTestInput(component.paceStatus, 'tight');
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      expect(compiled.textContent).toContain('plus vite que le mois');
+      expect(compiled.textContent).not.toContain('entièrement engagé');
+    });
+
+    // With nothing recorded the pace cannot speak, and the plan is then the one
+    // true thing the card has to say.
+    it('should fall back to the plan when the ledger is still empty', () => {
+      setTestInput(component.available, 1000);
+      setTestInput(component.expenses, 950);
+      setTestInput(component.remaining, 50);
+      setTestInput(component.budgetConsumedPercentage, 95);
+      setTestInput(component.realizedExpenses, 0);
+      setTestInput(component.paceStatus, 'unknown');
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      expect(compiled.textContent).toContain('entièrement engagé');
+    });
+
+    it('should say the month went over once spending passed what came in', () => {
       setTestInput(component.available, 1000);
       setTestInput(component.expenses, 1200);
       setTestInput(component.remaining, -200);
+      setTestInput(component.realizedExpenses, 1100);
       setTestInput(component.paceStatus, 'tight');
       fixture.detectChanges();
 

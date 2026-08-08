@@ -15,6 +15,7 @@ import Dashboard, { UNDO_WINDOW_MS } from './current-month';
 import { type TransactionFormData } from './components/add-transaction-form.schema';
 import { AddTransactionDialogService } from './services/add-transaction-dialog.service';
 import { DashboardStore } from './services/dashboard-store';
+import { StorageService, STORAGE_KEYS } from '@core/storage';
 
 // Test data factories
 const createBudgetLine = (overrides: Partial<BudgetLine> = {}): BudgetLine => ({
@@ -499,6 +500,25 @@ describe('Dashboard (TestBed)', () => {
       historyError: signal<unknown>(undefined),
     };
   }
+
+  describe('outlook fold', () => {
+    // PRODUCT.md names two visits — the quick daily check and the deeper
+    // planning session — and the page used to serve both at once, ending the
+    // daily one a quarter of the way down and then asking for four more screens
+    // nobody can act on. Folded by default; the choice is remembered.
+    it('should start folded and remember being opened', async () => {
+      const { component } = await setup(budgetId, undefined);
+
+      expect(component['isOutlookExpanded']()).toBe(false);
+
+      const storage = TestBed.inject(StorageService);
+      storage.set(STORAGE_KEYS.DASHBOARD_OUTLOOK_EXPANDED, true);
+
+      expect(
+        storage.get<boolean>(STORAGE_KEYS.DASHBOARD_OUTLOOK_EXPANDED),
+      ).toBe(true);
+    });
+  });
 
   async function setup(
     budgetId: string,

@@ -7,9 +7,11 @@ import {
   computed,
   DestroyRef,
   effect,
+  type ElementRef,
   inject,
   signal,
   untracked,
+  viewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -43,6 +45,7 @@ import { DashboardSavingsSummary } from './components/dashboard-savings-summary'
 import { DashboardNextMonth } from './components/dashboard-next-month';
 import { UserSettingsStore } from '@core/user-settings';
 import { CURRENCY_CONFIG } from '@core/currency';
+import { StorageService, STORAGE_KEYS } from '@core/storage';
 
 // Longer than the plain notification below: this toast is not read, it is
 // reached. It has to survive the user noticing the mistake and travelling to
@@ -177,91 +180,125 @@ export const UNDO_WINDOW_MS = 6000;
         </div>
 
         <!-- Everything below is read, not acted on: the months ahead, the
-             months behind, and how the savings are tracking. One rule and a
-             wider gap say so, because six blocks built from the same header
-             recipe otherwise arrive as one flat stack of equals. -->
-        <div class="dashboard-outlook flex flex-col gap-6">
-          <!-- Future Projection Chart -->
-          @defer (on viewport; prefetch on idle) {
-            <pulpe-dashboard-future-projection-chart
-              [forecasts]="store.upcomingBudgetsData()"
-              [hasError]="store.historyError() !== undefined"
-              (createMissingBudgets)="navigateToBudgetList()"
-              (retry)="store.refreshData()"
-              data-testid="dashboard-block-projection"
-            />
-          } @placeholder {
-            <div
-              class="bg-surface-container-low rounded-3xl min-h-[300px]"
-            ></div>
-          } @loading (after 100ms; minimum 300ms) {
-            <div
-              class="bg-surface-container-low rounded-3xl min-h-[300px] flex items-center justify-center"
-            >
-              <pulpe-base-loading
-                [message]="'currentMonth.chartLoading' | transloco"
-                size="medium"
-                testId="projection-chart-loading"
-              />
+             months behind, and how the savings are tracking. It is folded away
+             because PRODUCT.md names two different visits — the quick daily
+             check and the deeper planning session — and the page used to serve
+             both at once, ending the daily one a quarter of the way down and
+             then asking for four more screens of things nobody can act on. The
+             fold remembers its state, so the planning session opens it once.
+             Closed, the charts inside are display:none, so the viewport
+             trigger that mounts them never fires — the other half of the cost
+             this removes. -->
+        <details
+          #outlookDetails
+          class="dashboard-outlook"
+          [open]="isOutlookExpanded()"
+          (toggle)="syncOutlookExpanded()"
+        >
+          <summary
+            class="outlook-summary"
+            data-testid="dashboard-outlook-summary"
+          >
+            <div class="min-w-0">
+              <h2
+                class="text-title-medium font-bold text-on-surface leading-tight"
+              >
+                {{ 'currentMonth.outlookTitle' | transloco }}
+              </h2>
+              <p
+                class="text-body-small text-on-surface-variant font-medium mt-0.5"
+              >
+                {{ 'currentMonth.outlookHint' | transloco }}
+              </p>
             </div>
-          }
+            <mat-icon class="outlook-chevron shrink-0" aria-hidden="true"
+              >expand_more</mat-icon
+            >
+          </summary>
 
-          <!-- Paired metrics: Savings Summary + Next Month -->
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <pulpe-dashboard-savings-summary
-              [totalPlanned]="store.totalSavingsPlanned()"
-              [totalRealized]="store.totalSavingsRealized()"
-              [checkedCount]="store.savingsCheckedCount()"
-              [totalCount]="store.savingsTotalCount()"
-              [currency]="currency()"
-              (viewSavingsGoals)="navigateToSavingsGoals()"
-              data-testid="dashboard-block-savings"
-            />
+          <div class="flex flex-col gap-6 pt-6">
+            <!-- Future Projection Chart -->
+            @defer (on viewport; prefetch on idle) {
+              <pulpe-dashboard-future-projection-chart
+                [forecasts]="store.upcomingBudgetsData()"
+                [hasError]="store.historyError() !== undefined"
+                (createMissingBudgets)="navigateToBudgetList()"
+                (retry)="store.refreshData()"
+                data-testid="dashboard-block-projection"
+              />
+            } @placeholder {
+              <div
+                class="bg-surface-container-low rounded-3xl min-h-[300px]"
+              ></div>
+            } @loading (after 100ms; minimum 300ms) {
+              <div
+                class="bg-surface-container-low rounded-3xl min-h-[300px] flex items-center justify-center"
+              >
+                <pulpe-base-loading
+                  [message]="'currentMonth.chartLoading' | transloco"
+                  size="medium"
+                  testId="projection-chart-loading"
+                />
+              </div>
+            }
 
-            <!-- The card is told the request failed instead of being swapped
+            <!-- Paired metrics: Savings Summary + Next Month -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <pulpe-dashboard-savings-summary
+                [totalPlanned]="store.totalSavingsPlanned()"
+                [totalRealized]="store.totalSavingsRealized()"
+                [checkedCount]="store.savingsCheckedCount()"
+                [totalCount]="store.savingsTotalCount()"
+                [currency]="currency()"
+                (viewSavingsGoals)="navigateToSavingsGoals()"
+                data-testid="dashboard-block-savings"
+              />
+
+              <!-- The card is told the request failed instead of being swapped
                  for a different one. A dead history request reaches it as a
                  fully-populated twelve months either way — the list is filled
                  unconditionally — so "Pas encore de budget pour septembre" was
                  the branch it took, inviting the user to build a month they
                  had already planned, while the chart twenty pixels away
                  correctly said it could not load. Same request, two claims. -->
-            @if (store.upcomingBudgetsData().length > 0) {
-              <pulpe-dashboard-next-month
-                [forecast]="store.upcomingBudgetsData()[0]"
-                [estimatedRollover]="store.remaining()"
+              @if (store.upcomingBudgetsData().length > 0) {
+                <pulpe-dashboard-next-month
+                  [forecast]="store.upcomingBudgetsData()[0]"
+                  [estimatedRollover]="store.remaining()"
+                  [hasError]="store.historyError() !== undefined"
+                  [currency]="currency()"
+                  (navigateToBudgets)="navigateToBudgetList()"
+                  (retry)="store.refreshData()"
+                  data-testid="dashboard-block-next-month"
+                />
+              }
+            </div>
+
+            <!-- History Chart -->
+            @defer (on viewport; prefetch on idle) {
+              <pulpe-dashboard-history-chart
+                [history]="store.historyData()"
                 [hasError]="store.historyError() !== undefined"
-                [currency]="currency()"
-                (navigateToBudgets)="navigateToBudgetList()"
                 (retry)="store.refreshData()"
-                data-testid="dashboard-block-next-month"
+                data-testid="dashboard-block-history"
               />
+            } @placeholder {
+              <div
+                class="bg-surface-container-low rounded-3xl min-h-[300px]"
+              ></div>
+            } @loading (after 100ms; minimum 300ms) {
+              <div
+                class="bg-surface-container-low rounded-3xl min-h-[300px] flex items-center justify-center"
+              >
+                <pulpe-base-loading
+                  [message]="'currentMonth.chartLoading' | transloco"
+                  size="medium"
+                  testId="history-chart-loading"
+                />
+              </div>
             }
           </div>
-
-          <!-- History Chart -->
-          @defer (on viewport; prefetch on idle) {
-            <pulpe-dashboard-history-chart
-              [history]="store.historyData()"
-              [hasError]="store.historyError() !== undefined"
-              (retry)="store.refreshData()"
-              data-testid="dashboard-block-history"
-            />
-          } @placeholder {
-            <div
-              class="bg-surface-container-low rounded-3xl min-h-[300px]"
-            ></div>
-          } @loading (after 100ms; minimum 300ms) {
-            <div
-              class="bg-surface-container-low rounded-3xl min-h-[300px] flex items-center justify-center"
-            >
-              <pulpe-base-loading
-                [message]="'currentMonth.chartLoading' | transloco"
-                size="medium"
-                testId="history-chart-loading"
-              />
-            </div>
-          }
-        </div>
+        </details>
       } @else if (store.status() === 'error') {
         <!-- Reached only with nothing to show, because the data is asked about
              first now and the order is the fix. The cache hands back the last
@@ -309,6 +346,43 @@ export const UNDO_WINDOW_MS = 6000;
       margin-top: var(--pulpe-section-gap-lg);
       padding-top: var(--pulpe-section-gap-lg);
       border-top: var(--pulpe-surface-border-subtle);
+    }
+
+    /* The native disclosure, minus its marker: <details> already carries the
+       keyboard handling, the expanded state and the announcement, and none of
+       that is worth re-implementing on a button and an @if. */
+    .outlook-summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.25rem;
+      border-radius: var(--pulpe-surface-radius-card);
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .outlook-summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .outlook-summary:focus-visible {
+      outline: 3px solid var(--mat-sys-primary);
+      outline-offset: 2px;
+    }
+
+    .outlook-chevron {
+      color: var(--mat-sys-on-surface-variant);
+    }
+
+    .dashboard-outlook[open] .outlook-chevron {
+      transform: rotate(180deg);
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .outlook-chevron {
+        transition: transform var(--pulpe-motion-standard, 200ms) ease;
+      }
     }
 
     .fab-button {
@@ -402,7 +476,28 @@ export default class Dashboard {
   readonly #router = inject(Router);
   readonly #snackBar = inject(MatSnackBar);
   readonly #transloco = inject(TranslocoService);
+  readonly #storage = inject(StorageService);
   readonly #refreshPhase = signal<'idle' | 'requested' | 'running'>('idle');
+
+  // Folded by default: the daily visit is the one this page is for, and it ends
+  // at the rule. Unfolding is remembered, so a planning session pays for it once
+  // rather than every month.
+  // NG1053 — a viewChild may not be an ES private field.
+  private readonly outlookDetails =
+    viewChild<ElementRef<HTMLDetailsElement>>('outlookDetails');
+  readonly #outlookExpanded = signal(
+    this.#storage.get<boolean>(STORAGE_KEYS.DASHBOARD_OUTLOOK_EXPANDED) ??
+      false,
+  );
+  protected readonly isOutlookExpanded = this.#outlookExpanded.asReadonly();
+
+  // Read off the element rather than the event, so the handler stays typed:
+  // `Event.target` is an `EventTarget` and would need a cast to admit `open`.
+  protected syncOutlookExpanded(): void {
+    this.#outlookExpanded.set(
+      this.outlookDetails()?.nativeElement.open ?? false,
+    );
+  }
   // The ids one toast can still take back. A second check used to replace the
   // first toast and, with it, the only way back to the first line — pointing
   // three lines quickly left two of them stranded. They accumulate here for as
