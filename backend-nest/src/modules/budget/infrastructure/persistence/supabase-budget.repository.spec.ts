@@ -78,6 +78,29 @@ function createMockEncryption(): EncryptionPort {
   } as unknown as EncryptionPort;
 }
 
+const budgetLineOrderSpy = jest.fn();
+
+/**
+ * Supabase's query builder is a thenable that keeps accepting `.order()`, so a
+ * mock that resolves on the first call cannot see a second sort key.
+ */
+function budgetLineQuery(lineRow: BudgetLineRow) {
+  const result = Promise.resolve({ data: [lineRow], error: null });
+  const chain = {
+    order: budgetLineOrderSpy,
+    then: result.then.bind(result),
+  };
+  budgetLineOrderSpy.mockReturnValue(chain);
+  return chain;
+}
+
+function emptyBudgetLineQuery() {
+  const result = Promise.resolve({ data: [], error: null });
+  const chain = { order: jest.fn(), then: result.then.bind(result) };
+  chain.order.mockReturnValue(chain);
+  return chain;
+}
+
 function fetchBudgetDataProvider(
   lineRow: BudgetLineRow,
 ): AuthenticatedSupabaseProvider {
@@ -96,11 +119,7 @@ function fetchBudgetDataProvider(
     if (table === 'budget_line') {
       return {
         select: () => ({
-          eq: () => ({
-            order: jest
-              .fn()
-              .mockResolvedValue({ data: [lineRow], error: null }),
-          }),
+          eq: () => budgetLineQuery(lineRow),
         }),
       };
     }
@@ -661,6 +680,25 @@ describe('SupabaseBudgetRepository createBudgetFromTemplateRpc — savings goal 
   });
 });
 
+describe('SupabaseBudgetRepository fetchBudgetData ordering', () => {
+  // Instantiating a budget from a template inserts every line in one statement,
+  // so `created_at` ties for the whole month and Postgres resolves the tie by
+  // physical heap order — which an UPDATE moves. Without a second key, checking
+  // a line reshuffled the list and undoing the check never put it back.
+  it('breaks the created_at tie on a stable key', async () => {
+    budgetLineOrderSpy.mockClear();
+    const provider = fetchBudgetDataProvider(budgetLineRow);
+    const repo = new SupabaseBudgetRepository(provider, createMockEncryption());
+
+    await repo.fetchBudgetData('budget-1');
+
+    expect(budgetLineOrderSpy).toHaveBeenCalledWith('created_at', {
+      ascending: false,
+    });
+    expect(budgetLineOrderSpy).toHaveBeenCalledWith('id', { ascending: true });
+  });
+});
+
 describe('SupabaseBudgetRepository toBudgetLineDecrypted', () => {
   it('maps spread_group_id (snake) to spreadGroupId (camel) when set', async () => {
     const provider = fetchBudgetDataProvider({
@@ -757,9 +795,7 @@ describe('SupabaseBudgetRepository toTransactionDecrypted (PUL-329)', () => {
       if (table === 'budget_line') {
         return {
           select: () => ({
-            eq: () => ({
-              order: jest.fn().mockResolvedValue({ data: [], error: null }),
-            }),
+            eq: () => emptyBudgetLineQuery(),
           }),
         };
       }
