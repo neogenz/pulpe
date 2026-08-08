@@ -383,9 +383,16 @@ export class DashboardStore {
     BudgetFormulas.calculateTotalSavings(this.budgetLines(), []),
   );
 
+  // Same correction as `realizedExpenses`, and the same reason: this summed
+  // checked saving lines and never looked at a transaction, so recording the
+  // 500 transfer for a 500 saving line put "Dépensé 500" in the hero legend and
+  // "Tu as mis de côté 0 CHF sur 500 prévus" three blocks below it, on one
+  // screen. `calculateRealizedSavings` is the savings twin of the formula the
+  // hero now uses — same envelope reading, filtered strictly to `saving`.
   readonly totalSavingsRealized = computed<number>(() =>
-    BudgetFormulas.calculateTotalSavings(
-      this.budgetLines().filter((line) => line.checkedAt !== null),
+    BudgetFormulas.calculateRealizedSavings(
+      this.budgetLines(),
+      this.transactions(),
     ),
   );
 

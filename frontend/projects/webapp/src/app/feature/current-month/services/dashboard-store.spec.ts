@@ -1014,6 +1014,35 @@ describe('DashboardStore - Business Scenarios', () => {
       expect(store.realizedExpenses()).toBe(1554);
     });
 
+    // The savings card summed checked saving lines and never looked at a
+    // transaction, so recording the transfer without pointing the line put
+    // "Dépensé 500" in the hero legend and "Tu as mis de côté 0 CHF sur 500
+    // prévus" three blocks below it, on the same screen.
+    it('should credit a recorded transfer to the savings it realizes', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const lines = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 5000 }),
+        createMockBudgetLine({ id: 'goal', kind: 'saving', amount: 500 }),
+      ];
+      const transactions = [
+        createMockTransaction({
+          id: 'tx-transfer',
+          kind: 'saving',
+          amount: 500,
+          budgetLineId: 'goal',
+          checkedAt: '2025-06-10T00:00:00Z',
+        }),
+      ];
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        transactions,
+      );
+
+      expect(store.totalSavingsRealized()).toBe(500);
+      expect(store.realizedExpenses()).toBe(500);
+    });
+
     it('should clamp budgetConsumedPercentage to [0, 100]', async () => {
       const budget = createMockBudget({ rollover: 0 });
       const lines = [
