@@ -532,12 +532,31 @@ export class DashboardStore {
         (consumedByLine.get(tx.budgetLineId) ?? 0) + tx.amount,
       );
     }
-    return this.budgetLines().filter(
-      (line) =>
-        line.kind === 'saving' &&
-        (line.checkedAt !== null ||
-          (consumedByLine.get(line.id) ?? 0) >= line.amount),
-    ).length;
+    const shortfalls: number[] = [];
+    let met = 0;
+    for (const line of this.budgetLines()) {
+      if (line.kind !== 'saving') continue;
+      const consumed = consumedByLine.get(line.id) ?? 0;
+      if (line.checkedAt !== null || consumed >= line.amount) {
+        met += 1;
+        continue;
+      }
+      shortfalls.push(line.amount - consumed);
+    }
+    // An unallocated transfer already counts in the amount printed beside this
+    // tally, and the quick-add form on this very page cannot attach one to a
+    // line — so every transfer recorded here landed in the amount and in the
+    // bar and never in the count: "0 sur 1 mise de côté" above "500 sur 500
+    // prévus", over a bar at 100%. It covers the cheapest shortfalls first,
+    // since nothing on screen says which prévision the money was meant for and
+    // that order credits the user with the most of what they did put aside.
+    let unallocated = this.#freeSavingsRealized();
+    for (const shortfall of shortfalls.sort((a, b) => a - b)) {
+      if (unallocated < shortfall) break;
+      unallocated -= shortfall;
+      met += 1;
+    }
+    return met;
   });
 
   // The count above says "mise de côté", and money answers that. "C'est fait

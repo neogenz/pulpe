@@ -129,6 +129,7 @@ interface AnimatingForecast {
           <div class="flex flex-col gap-1">
             @for (forecast of displayedForecasts(); track forecast.id) {
               @let displayAmount = remainingToExpect(forecast);
+              @let isPartlyConsumed = displayAmount !== forecast.amount;
               @let isChecking = isExitAnimating(forecast.id);
               <!-- No hover tint on the row: nothing here handles a click. The
                    row lit up under the cursor and then swallowed the click,
@@ -147,12 +148,18 @@ interface AnimatingForecast {
                   [matRippleCentered]="true"
                   (click)="toggleForecast(forecast.id)"
                   [attr.aria-label]="
-                    'currentMonth.uncheckedForecasts.toggleAriaLabel'
+                    (isPartlyConsumed
+                      ? 'currentMonth.uncheckedForecasts.toggleAriaLabelPartial'
+                      : 'currentMonth.uncheckedForecasts.toggleAriaLabel'
+                    )
                       | transloco
                         : {
                             name: forecast.name,
                             amount:
                               displayAmount | appCurrency: currency() : '1.0-0',
+                            planned:
+                              forecast.amount
+                              | appCurrency: currency() : '1.0-0',
                           }
                   "
                   data-testid="dashboard-forecasts-toggle"
@@ -191,6 +198,25 @@ interface AnimatingForecast {
                   >
                     {{ displayAmount | appCurrency: currency() : '1.0-0' }}
                   </span>
+                  <!-- What the row prints is what the envelope still expects,
+                       so a 1'500 rent with 1'400 already allocated read
+                       "Loyer 100" — in the same weight and place as an
+                       untouched 100 line, with nothing saying the number had
+                       moved. The household's largest commitment could appear
+                       as its smallest row. The plan is named only when the two
+                       differ; on an untouched line it would restate the figure
+                       beside it. -->
+                  @if (isPartlyConsumed) {
+                    <span
+                      class="text-label-small text-on-surface-variant font-medium tabular-nums ph-no-capture"
+                      data-testid="dashboard-forecasts-planned"
+                    >
+                      {{
+                        'currentMonth.uncheckedForecasts.ofPlanned' | transloco
+                      }}
+                      {{ forecast.amount | appCurrency: currency() : '1.0-0' }}
+                    </span>
+                  }
                 </span>
               </div>
             }

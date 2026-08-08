@@ -337,6 +337,52 @@ describe('DashboardUncheckedForecasts', () => {
     expect(amountEl.nativeElement.textContent).not.toMatch(/[.,]00\b/);
   });
 
+  // The row prints what the envelope still expects, so a partly consumed line
+  // was indistinguishable from an untouched one of the same size: a 1'500 rent
+  // with 1'400 allocated read "Loyer 100", in the same weight and place as an
+  // untouched 100. The largest commitment in the household could appear as the
+  // smallest row on the card that asks what is still to come.
+  it('should name the plan behind a partly consumed envelope', () => {
+    setTestInput(component.forecasts, mockForecasts);
+
+    const consumptionsMap = new Map<string, BudgetLineConsumption>([
+      [
+        '1',
+        {
+          budgetLine: mockForecasts[0],
+          consumed: 90,
+          remaining: 10,
+          allocatedTransactions: [],
+          transactionCount: 1,
+        },
+      ],
+    ]);
+    setTestInput(component.consumptions, consumptionsMap);
+    fixture.detectChanges();
+
+    const plannedEl = fixture.debugElement.query(
+      By.css('[data-testid="dashboard-forecasts-planned"]'),
+    );
+    expect(plannedEl).not.toBeNull();
+    expect(plannedEl.nativeElement.textContent).toContain('100');
+    expect(
+      fixture.debugElement
+        .query(By.css('[data-testid="dashboard-forecasts-toggle"]'))
+        .nativeElement.getAttribute('aria-label'),
+    ).toContain('restants sur');
+  });
+
+  it('should not restate the plan on an untouched forecast', () => {
+    setTestInput(component.forecasts, mockForecasts);
+    fixture.detectChanges();
+
+    expect(
+      fixture.debugElement.query(
+        By.css('[data-testid="dashboard-forecasts-planned"]'),
+      ),
+    ).toBeNull();
+  });
+
   // A month funded entirely from savings goals has nothing pointable, and the
   // subtitle fell through to the count: "0 sur 0 pointées", sitting above "Tout
   // est à jour", congratulating the user for work that never existed.

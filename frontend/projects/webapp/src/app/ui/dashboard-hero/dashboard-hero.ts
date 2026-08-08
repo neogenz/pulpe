@@ -139,8 +139,17 @@ let heroInstanceCount = 0;
              and calling it "disponible à dépenser" invited the reader to spend
              a shortfall. The ceiling goes with it: "sur 5'000" reads as the
              budget the figure comes out of, which a shortfall does not. -->
+        <!-- Two deficits, two captions. "Il manque pour couvrir ton plan" was
+             gated on the deficit alone, and the red state is a deficit — so the
+             card told the user their plan was too big directly above a verdict
+             telling them it was not, and sent them to trim a prévision when
+             every prévision fit. Red is by construction the affordable plan
+             that real spending carried past the ceiling; the number under it is
+             how far past, not what the plan is short of. -->
         <p class="text-body-small mt-1.5">
-          @if (isPlanOverAvailable()) {
+          @if (isOverBudget()) {
+            {{ 'dashboard.spentBeyondPlan' | transloco }}
+          } @else if (isPlanOverAvailable()) {
             {{ 'dashboard.missingToCover' | transloco }}
             <!-- The deficit branch prints no ceiling, so the clause cannot be a
                  share of one — but a negative report is frequently the whole

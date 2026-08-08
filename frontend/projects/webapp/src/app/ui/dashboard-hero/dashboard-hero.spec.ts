@@ -367,6 +367,28 @@ describe('DashboardHero', () => {
       expect(compiled.textContent).not.toContain('plus vite que le mois');
     });
 
+    // The caption was gated on the deficit alone, and red is a deficit, so the
+    // card blamed the plan directly above a verdict clearing it — and sent the
+    // user to trim a prévision in the one state that guarantees every prévision
+    // fits.
+    it('should not blame the plan in the state that proves the plan fit', () => {
+      setTestInput(component.available, 5000);
+      setTestInput(component.expenses, 5500);
+      setTestInput(component.remaining, -500);
+      setTestInput(component.budgetConsumedPercentage, 100);
+      setTestInput(component.realizedExpenses, 5500);
+      setTestInput(component.hasRecordedActivity, true);
+      setTestInput(component.planExceedsAvailable, false);
+      setTestInput(component.paceStatus, 'tight');
+      fixture.detectChanges();
+
+      expect(component.isOverBudget()).toBe(true);
+      const compiled = fixture.nativeElement as HTMLElement;
+      expect(compiled.textContent).toContain('au-delà de ton budget');
+      expect(compiled.textContent).toContain('Dépensé au-delà de ton plan');
+      expect(compiled.textContent).not.toContain('Il manque');
+    });
+
     // The red state read `realizedExpenses > available`, which pointing alone
     // drives and which counts savings as outflow. A plan 100 over its income
     // therefore went red the moment its lines were pointed, and sent the user

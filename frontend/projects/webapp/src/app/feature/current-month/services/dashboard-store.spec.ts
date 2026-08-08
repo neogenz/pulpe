@@ -1265,6 +1265,62 @@ describe('DashboardStore - Business Scenarios', () => {
       expect(store.hasRecordedActivity()).toBe(true);
     });
 
+    // The quick-add form on this page cannot attach a transfer to a line, so
+    // every transfer recorded from it moved the amount and the bar and never
+    // the count: "0 sur 1 mise de côté" above "500 sur 500 prévus", over a bar
+    // at 100%.
+    it('should credit an unallocated transfer to the tally beside its amount', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const lines = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 5000 }),
+        createMockBudgetLine({ id: 'goal', kind: 'saving', amount: 500 }),
+      ];
+      const transactions = [
+        createMockTransaction({
+          id: 'tx-transfer',
+          kind: 'saving',
+          amount: 500,
+          budgetLineId: null,
+          checkedAt: '2025-06-10T00:00:00Z',
+        }),
+      ];
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        transactions,
+      );
+
+      expect(store.totalSavingsRealized()).toBe(500);
+      expect(store.savingsCheckedCount()).toBe(1);
+      // The money is set aside; the prévision is still not pointed, and the
+      // list beside this card still offers it.
+      expect(store.areSavingsFullyPointed()).toBe(false);
+    });
+
+    it('should not credit a transfer that covers none of the plan', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const lines = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 5000 }),
+        createMockBudgetLine({ id: 'goal', kind: 'saving', amount: 500 }),
+      ];
+      const transactions = [
+        createMockTransaction({
+          id: 'tx-transfer',
+          kind: 'saving',
+          amount: 200,
+          budgetLineId: null,
+          checkedAt: '2025-06-10T00:00:00Z',
+        }),
+      ];
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        transactions,
+      );
+
+      expect(store.savingsCheckedCount()).toBe(0);
+    });
+
     // The count credits a covered line, which is right for "mise de côté" and
     // wrong for "c'est fait": that line still waits in the list beside it.
     it('should not call the savings pointed when a covered line is unpointed', async () => {
