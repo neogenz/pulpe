@@ -151,7 +151,19 @@ let heroInstanceCount = 0;
           @if (isOverBudget()) {
             {{ 'dashboard.spentBeyondPlan' | transloco }}
           } @else if (isPlanOverAvailable()) {
-            {{ 'dashboard.missingToCover' | transloco }}
+            <!-- Three deficits, not two. This branch was reached by a negative
+                 remaining alone, and remaining counts every franc that has
+                 left the account — a 500 transfer to savings against a plan of
+                 4'800 on 5'000 of income opens it with 200 of margin to spare.
+                 The card then told the user their plan was too big and sent
+                 them to trim a prévision, when every prévision fit and the
+                 money was deliberately set aside. Blaming the plan requires
+                 the plan to be the thing at fault. -->
+            @if (planExceedsAvailable()) {
+              {{ 'dashboard.missingToCover' | transloco }}
+            } @else {
+              {{ 'dashboard.missingToBalance' | transloco }}
+            }
             <!-- The deficit branch prints no ceiling, so the clause cannot be a
                  share of one — but a negative report is frequently the whole
                  reason the plan does not fit, and dropping it withheld the
@@ -543,7 +555,6 @@ export class DashboardHero {
   readonly available = input.required<number>();
   readonly periodDates = input.required<BudgetPeriodDates>();
   readonly rolloverAmount = input(0);
-  readonly timeElapsedPercentage = input(0);
   // Counted where the clock is. This component is handed the period bounds but
   // never "now", so the day it renders has to arrive already counted rather
   // than be inferred from a share rounded to whole percent.
@@ -676,13 +687,6 @@ export class DashboardHero {
       !this.isOverBudget() &&
       (this.isPlanOverAvailable() || this.paceStatus() === 'tight'),
   );
-  readonly budgetStatus = computed<'on-track' | 'warning' | 'over-budget'>(
-    () => {
-      if (this.isOverBudget()) return 'over-budget';
-      if (this.isWarning()) return 'warning';
-      return 'on-track';
-    },
-  );
 
   readonly periodLabel = computed(() => {
     const dates = this.periodDates();
@@ -739,7 +743,15 @@ export class DashboardHero {
     // spent at a speed that makes a plan fit inside an income it already
     // exceeds. Telling someone in deficit that they are spending a little fast
     // names the smaller of the two problems and buries the other.
-    if (this.isPlanOverAvailable()) return 'dashboard.status.planOverAvailable';
+    // Same split as the caption above: "ouvre ton budget pour alléger une
+    // prévision" is an instruction, and it is the wrong one for a month whose
+    // prévisions all fit. What opened the gap there is money the pace verdict
+    // is built to ignore — a transfer to savings, an expense recorded and not
+    // yet pointed — so the sentence names the outflow rather than the plan.
+    if (this.isPlanOverAvailable())
+      return this.planExceedsAvailable()
+        ? 'dashboard.status.planOverAvailable'
+        : 'dashboard.status.outflowBeyondIncome';
     if (this.paceStatus() === 'tight') return 'dashboard.status.fastPace';
     // A plan leaving almost nothing free is true whether or not anything
     // unplanned has happened, so it cannot live inside one pace branch. It did:

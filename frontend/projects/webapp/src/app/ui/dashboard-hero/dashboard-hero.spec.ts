@@ -34,7 +34,6 @@ describe('DashboardHero', () => {
       startDate: new Date(),
       endDate: new Date(),
     });
-    setTestInput(component.timeElapsedPercentage, 50);
     setTestInput(component.paceStatus, 'on-track');
   });
 
@@ -80,7 +79,6 @@ describe('DashboardHero', () => {
 
     expect(component.isOverBudget()).toBe(true);
     expect(component.isWarning()).toBe(false);
-    expect(component.budgetStatus()).toBe('over-budget');
   });
 
   it('should warn on the pace, not on the plan', () => {
@@ -108,7 +106,6 @@ describe('DashboardHero', () => {
 
     expect(component.isWarning()).toBe(false);
     expect(component.isOverBudget()).toBe(false);
-    expect(component.budgetStatus()).toBe('on-track');
   });
 
   // A payday of 27 makes the period called "février" run from 27 January, so
@@ -148,12 +145,6 @@ describe('DashboardHero', () => {
     setTestInput(component.budgetConsumedPercentage, 100);
 
     expect(component.budgetConsumedPercentage()).toBe(100);
-  });
-
-  it('should expose timeElapsedPercentage from input', () => {
-    setTestInput(component.timeElapsedPercentage, 75);
-
-    expect(component.timeElapsedPercentage()).toBe(75);
   });
 
   describe('progress legend', () => {
@@ -312,9 +303,14 @@ describe('DashboardHero', () => {
       setTestInput(component.paceStatus, 'within-plan');
       fixture.detectChanges();
 
+      // It says what it measures — outflow — rather than "rien de pointé",
+      // which was false beside the forecasts card: pointing the income line
+      // leaves realized outflow at zero, so the hero claimed nothing was
+      // pointed forty pixels from a list reading "1 sur 12 pointées".
       const compiled = fixture.nativeElement as HTMLElement;
       expect(compiled.textContent).not.toContain('Rien de saisi ce mois');
-      expect(compiled.textContent).toContain('Rien de pointé');
+      expect(compiled.textContent).not.toContain('Rien de pointé');
+      expect(compiled.textContent).toContain("Rien n'est encore sorti");
     });
 
     it('should say nothing was recorded when the ledger really is empty', () => {
@@ -436,7 +432,6 @@ describe('DashboardHero', () => {
 
       expect(component.isOverBudget()).toBe(false);
       expect(component.isWarning()).toBe(true);
-      expect(component.budgetStatus()).toBe('warning');
       const compiled = fixture.nativeElement as HTMLElement;
       expect(compiled.textContent).toContain('plus que ce que le mois');
       expect(compiled.textContent).not.toContain('presque');
@@ -480,6 +475,44 @@ describe('DashboardHero', () => {
       expect(compiled.textContent).not.toContain('Dépensé au-delà');
     });
 
+    // The colour stopped blaming the plan for this deficit; the words did not.
+    // Both the caption and the verdict were gated on the deficit alone, so the
+    // card told a user whose prévisions fit with 200 to spare that their plan
+    // was too big, and sent them to trim one.
+    it('should not blame the plan for a deficit the plan did not open', () => {
+      setTestInput(component.available, 5000);
+      setTestInput(component.expenses, 5300);
+      setTestInput(component.remaining, -300);
+      setTestInput(component.budgetConsumedPercentage, 100);
+      setTestInput(component.realizedExpenses, 500);
+      setTestInput(component.hasRecordedActivity, true);
+      setTestInput(component.planExceedsAvailable, false);
+      setTestInput(component.paceStatus, 'within-plan');
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      expect(compiled.textContent).not.toContain('couvrir ton plan');
+      expect(compiled.textContent).not.toContain('alléger une prévision');
+      expect(compiled.textContent).toContain('équilibrer le mois');
+      expect(compiled.textContent).toContain('ton plan, lui, tient');
+    });
+
+    it('should still blame the plan when the plan really is too big', () => {
+      setTestInput(component.available, 4000);
+      setTestInput(component.expenses, 4500);
+      setTestInput(component.remaining, -500);
+      setTestInput(component.budgetConsumedPercentage, 100);
+      setTestInput(component.realizedExpenses, 900);
+      setTestInput(component.planExceedsAvailable, true);
+      setTestInput(component.paceStatus, 'on-track');
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      expect(compiled.textContent).toContain('couvrir ton plan');
+      expect(compiled.textContent).toContain('alléger une prévision');
+      expect(compiled.textContent).not.toContain('équilibrer le mois');
+    });
+
     // The two gates were fixed independently and composed into a falsehood:
     // unpointed spending was enough to buy the confident sentence and not
     // enough to be measured by it.
@@ -496,7 +529,7 @@ describe('DashboardHero', () => {
       const compiled = fixture.nativeElement as HTMLElement;
       expect(compiled.textContent).not.toContain('Tout ce qui est sorti');
       expect(compiled.textContent).not.toContain('Rien de saisi');
-      expect(compiled.textContent).toContain('Rien de pointé');
+      expect(compiled.textContent).toContain("Rien n'est encore sorti");
     });
 
     // The caption was gated on the deficit alone, and red is a deficit, so the
@@ -539,7 +572,6 @@ describe('DashboardHero', () => {
       fixture.detectChanges();
 
       expect(component.isOverBudget()).toBe(false);
-      expect(component.budgetStatus()).toBe('warning');
       const compiled = fixture.nativeElement as HTMLElement;
       expect(compiled.textContent).toContain('plus que ce que le mois');
       expect(compiled.textContent).not.toContain('au-delà de ton budget');

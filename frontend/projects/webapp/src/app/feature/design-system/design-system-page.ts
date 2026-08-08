@@ -66,7 +66,7 @@ import { ThemeService } from '@core/theme';
               [budgetConsumedPercentage]="37"
               [realizedExpenses]="1100"
               [realizedPercentage]="28"
-              [timeElapsedPercentage]="50"
+              [elapsedDayOfPeriod]="15"
               [periodDates]="mockPeriodDates"
             />
           </div>
@@ -82,7 +82,7 @@ import { ThemeService } from '@core/theme';
               [budgetConsumedPercentage]="92"
               [realizedExpenses]="2900"
               [realizedPercentage]="73"
-              [timeElapsedPercentage]="75"
+              [elapsedDayOfPeriod]="23"
               [periodDates]="mockPeriodDates"
             />
           </div>
@@ -98,7 +98,7 @@ import { ThemeService } from '@core/theme';
               [budgetConsumedPercentage]="112"
               [realizedExpenses]="3600"
               [realizedPercentage]="90"
-              [timeElapsedPercentage]="90"
+              [elapsedDayOfPeriod]="27"
               [periodDates]="mockPeriodDates"
             />
           </div>

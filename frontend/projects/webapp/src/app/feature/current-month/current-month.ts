@@ -130,7 +130,6 @@ export const UNDO_WINDOW_MS = 6000;
             [realizedPercentage]="store.realizedPercentage()"
             [periodDates]="store.periodDates()"
             [rolloverAmount]="store.rolloverAmount()"
-            [timeElapsedPercentage]="store.timeElapsedPercentage()"
             [elapsedDayOfPeriod]="store.elapsedDayOfPeriod()"
             [paceStatus]="store.paceStatus()"
             [planExceedsAvailable]="store.isPlanBeyondAvailable()"
@@ -272,17 +271,15 @@ export const UNDO_WINDOW_MS = 6000;
                  the branch it took, inviting the user to build a month they
                  had already planned, while the chart twenty pixels away
                  correctly said it could not load. Same request, two claims. -->
-              @if (store.upcomingBudgetsData().length > 0) {
-                <pulpe-dashboard-next-month
-                  [forecast]="store.upcomingBudgetsData()[0]"
-                  [estimatedRollover]="store.remaining()"
-                  [hasError]="store.historyError() !== undefined"
-                  [currency]="currency()"
-                  (navigateToBudgets)="navigateToBudgetList()"
-                  (retry)="store.refreshData()"
-                  data-testid="dashboard-block-next-month"
-                />
-              }
+              <pulpe-dashboard-next-month
+                [forecast]="store.upcomingBudgetsData()[0]"
+                [estimatedRollover]="store.remaining()"
+                [hasError]="store.historyError() !== undefined"
+                [currency]="currency()"
+                (navigateToBudgets)="navigateToBudgetList()"
+                (retry)="store.refreshData()"
+                data-testid="dashboard-block-next-month"
+              />
             </div>
 
             <!-- History Chart -->

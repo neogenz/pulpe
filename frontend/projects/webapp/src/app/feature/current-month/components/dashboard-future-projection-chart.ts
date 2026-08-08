@@ -142,11 +142,22 @@ import {
                 aria-hidden="true"
                 >add</mat-icon
               >
+              <!-- Eleven of the next twelve months planned leaves one, and
+                   "1 mois sans budget — crée-les" asked for a plural of a
+                   single month. No plural resolver in this app: the gate is
+                   the call site, as it already is on every other count on
+                   this page. -->
               <span class="text-body-small text-on-surface-variant">
-                {{
-                  'currentMonth.projectionMissingBudget'
-                    | transloco: { count: missingMonthsCount() }
-                }}
+                @if (missingMonthsCount() === 1) {
+                  {{
+                    'currentMonth.projectionMissingBudgetSingular' | transloco
+                  }}
+                } @else {
+                  {{
+                    'currentMonth.projectionMissingBudget'
+                      | transloco: { count: missingMonthsCount() }
+                  }}
+                }
               </span>
             </button>
           }
