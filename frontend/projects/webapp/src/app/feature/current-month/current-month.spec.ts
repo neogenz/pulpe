@@ -475,7 +475,9 @@ describe('Dashboard (TestBed)', () => {
 
   function createMockStore(budgetId: string) {
     return {
-      dashboardData: signal({ budget: { id: budgetId } }),
+      dashboardData: signal<{ budget?: { id: string } }>({
+        budget: { id: budgetId },
+      }),
       addTransaction: vi.fn().mockResolvedValue({ transactionId: 'tx-new' }),
       deleteTransaction: vi.fn().mockResolvedValue(null),
       status: signal<'idle' | 'loading' | 'reloading' | 'resolved' | 'error'>(
@@ -487,6 +489,12 @@ describe('Dashboard (TestBed)', () => {
       error: signal(null),
       currentBudgetPeriod: signal({ month: 4, year: 2026 }),
       refreshData: vi.fn(),
+      uncheckedForecasts: signal([
+        { id: 'line-1', name: 'Loyer' },
+        { id: 'line-2', name: 'Assurance' },
+      ]),
+      checkBudgetLine: vi.fn().mockResolvedValue(null),
+      uncheckBudgetLine: vi.fn().mockResolvedValue(null),
     };
   }
 
@@ -499,10 +507,19 @@ describe('Dashboard (TestBed)', () => {
       open: vi.fn().mockResolvedValue(dialogResult),
     };
     const mockRouter = { navigate: vi.fn() };
-    const undoAction = new Subject<void>();
+    // One subject per toast, not one for the whole run: MatSnackBar dismisses
+    // the ref it had open when a new one arrives, and a dismissed ref's
+    // onAction never fires again. Sharing a single subject made every toast
+    // ever opened answer the same tap, which is precisely the bug the batched
+    // undo exists to remove — the double would have hidden it.
+    let latestAction = new Subject<void>();
     const mockSnackBar = {
-      open: vi.fn().mockReturnValue({ onAction: () => undoAction }),
+      open: vi.fn().mockImplementation(() => {
+        latestAction = new Subject<void>();
+        return { onAction: () => latestAction };
+      }),
     };
+    const undoAction = { next: () => latestAction.next() };
 
     await TestBed.resetTestingModule()
       .configureTestingModule({
@@ -689,6 +706,78 @@ describe('Dashboard (TestBed)', () => {
         expect.any(String),
         expect.objectContaining({ duration: 5000 }),
       );
+    });
+  });
+
+  // Clearing a month is a run of taps, and each toast replaces the one before
+  // it. The undo used to go with the toast it arrived on, so six seconds into
+  // the run the first line was already unreachable.
+  describe('chained checks', () => {
+    it('should take back every check the window still covers', async () => {
+      const { component, mockStore, undoAction } = await setup(
+        budgetId,
+        undefined,
+      );
+
+      await component['checkBudgetLine']('line-1');
+      await component['checkBudgetLine']('line-2');
+      undoAction.next();
+      await Promise.resolve();
+
+      expect(mockStore.uncheckBudgetLine).toHaveBeenNthCalledWith(1, 'line-2');
+      expect(mockStore.uncheckBudgetLine).toHaveBeenNthCalledWith(2, 'line-1');
+    });
+
+    it('should count the checks it can still take back', async () => {
+      const { component, mockSnackBar } = await setup(budgetId, undefined);
+
+      await component['checkBudgetLine']('line-1');
+      await component['checkBudgetLine']('line-2');
+
+      expect(mockSnackBar.open).toHaveBeenLastCalledWith(
+        expect.stringContaining('2'),
+        expect.any(String),
+        expect.objectContaining({ duration: UNDO_WINDOW_MS }),
+      );
+    });
+  });
+
+  // Pressing Actualiser on a month that has not changed repaints nothing, so
+  // the button looked broken.
+  describe('refresh', () => {
+    it('should confirm once the reload has come back', async () => {
+      const { component, mockStore, mockSnackBar } = await setup(
+        budgetId,
+        undefined,
+      );
+
+      // Rendered as the no-budget state on purpose: ticking is what flushes the
+      // effect under test, and the mock store carries none of the dozen signals
+      // the hero would ask for on the way past.
+      mockStore.dashboardData.set({});
+      component['refresh']();
+      mockStore.isLoading.set(true);
+      TestBed.tick();
+      mockStore.isLoading.set(false);
+      TestBed.tick();
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Chiffres à jour',
+        expect.any(String),
+        expect.objectContaining({ duration: 5000 }),
+      );
+    });
+
+    it('should stay quiet when nothing asked for a reload', async () => {
+      const { mockStore, mockSnackBar } = await setup(budgetId, undefined);
+
+      mockStore.dashboardData.set({});
+      mockStore.isLoading.set(true);
+      TestBed.tick();
+      mockStore.isLoading.set(false);
+      TestBed.tick();
+
+      expect(mockSnackBar.open).not.toHaveBeenCalled();
     });
   });
 });

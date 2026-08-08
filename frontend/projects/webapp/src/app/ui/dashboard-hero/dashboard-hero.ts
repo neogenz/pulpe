@@ -196,6 +196,17 @@ const FULL_BAR_PERCENT = 100;
             </span>
           }
         </div>
+
+        <!-- "Engagé" is a house word, and the only place it was ever defined
+             was the first-run tour — a screen most people see once, months
+             before the first time the number surprises them. Written out rather
+             than put behind a tooltip: the legend lives inside a role="button"
+             that navigates on tap, so a touch tooltip would be competing with
+             the card's own gesture, and its text would be stripped from the
+             accessibility tree on the way out. -->
+        <p class="progress-legend-note">
+          {{ 'dashboard.engagedHint' | transloco }}
+        </p>
       </div>
     </div>
   `,
@@ -342,6 +353,18 @@ const FULL_BAR_PERCENT = 100;
       .progress-legend-amount {
         font-weight: 800;
         font-variant-numeric: tabular-nums;
+      }
+
+      /* Quiet on purpose: a definition is read once and then never again, so it
+         must not compete with the three amounts it explains. 0.72 keeps it at
+         4.6:1 on the lightest of the four hero states, above the 4.5:1 the size
+         asks for. */
+      .progress-legend-note {
+        margin: 0.5rem 0 0;
+        font-size: var(--mat-sys-label-small-size);
+        line-height: var(--mat-sys-label-small-line-height);
+        opacity: 0.72;
+        text-wrap: pretty;
       }
     `,
   ],

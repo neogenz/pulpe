@@ -218,11 +218,22 @@ interface NavigationItem {
           [class.pt-0]="!isHandset() && !isDemoMode()"
           [class.rounded-xl]="!isHandset()"
         >
+          <!-- The bar itself could never say this. It carried an aria-label, but
+               a progressbar's label is read when focus reaches it, and nothing
+               here takes focus — so every reload, every navigation and every
+               refresh was silent to a screen reader. The region below is in the
+               DOM at all times on purpose: a live region inserted at the same
+               moment as its own text is announced unreliably, because the
+               browser registers the region and then finds nothing new inside. -->
+          <div class="sr-only" role="status">
+            @if (loadingIndicator.isLoading() || isNavigating()) {
+              {{ 'layout.loading' | transloco }}
+            }
+          </div>
           @if (loadingIndicator.isLoading() || isNavigating()) {
-            <div class="absolute top-0 left-0 right-0">
+            <div class="absolute top-0 left-0 right-0" aria-hidden="true">
               <mat-progress-bar
                 mode="indeterminate"
-                [attr.aria-label]="'layout.loading' | transloco"
                 data-testid="loading-progress"
               />
             </div>

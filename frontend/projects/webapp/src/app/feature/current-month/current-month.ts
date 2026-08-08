@@ -8,6 +8,8 @@ import {
   DestroyRef,
   effect,
   inject,
+  signal,
+  untracked,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -75,9 +77,23 @@ export const UNDO_WINDOW_MS = 6000;
           {{ 'currentMonth.pageTitle' | transloco }}
         </h1>
         <div class="flex gap-2 items-center shrink-0 ml-auto">
+          <!-- The tour teaches what "Engagé" and "Pointer" mean, and until now
+               the only way back to it was the account menu — three taps behind
+               an avatar, where nobody looks for help about the page they are
+               on. The words it explains are all on this screen; so is the
+               button now. -->
           <button
             matIconButton
-            (click)="store.refreshData()"
+            (click)="openPageHelp($event)"
+            [matTooltip]="'navigation.discoverPage' | transloco"
+            [attr.aria-label]="'navigation.discoverPage' | transloco"
+            data-testid="page-help-button"
+          >
+            <mat-icon aria-hidden="true">help_outline</mat-icon>
+          </button>
+          <button
+            matIconButton
+            (click)="refresh()"
             [disabled]="store.isLoading()"
             [matTooltip]="'currentMonth.refresh' | transloco"
             [attr.aria-label]="'currentMonth.refresh' | transloco"
@@ -365,6 +381,13 @@ export default class Dashboard {
   readonly #router = inject(Router);
   readonly #snackBar = inject(MatSnackBar);
   readonly #transloco = inject(TranslocoService);
+  readonly #refreshPhase = signal<'idle' | 'requested' | 'running'>('idle');
+  // The ids one toast can still take back. A second check used to replace the
+  // first toast and, with it, the only way back to the first line — pointing
+  // three lines quickly left two of them stranded. They accumulate here for as
+  // long as the window stays open, and the toast counts them.
+  #undoableCheckIds: string[] = [];
+  #undoWindowTimeout: ReturnType<typeof setTimeout> | null = null;
 
   protected readonly budgetPeriodDisplayName = computed(() => {
     const period = this.store.currentBudgetPeriod();
@@ -379,8 +402,27 @@ export default class Dashboard {
       this.#loadingIndicator.setLoading(status === 'reloading');
     });
 
+    // Nothing on this page changes when the figures come back unchanged, which
+    // is the common case — so pressing Actualiser looked exactly like pressing
+    // a dead button. The two phases matter: confirming on the first quiet tick
+    // would fire before the reload had even started.
+    effect(() => {
+      const isLoading = this.store.isLoading();
+      const phase = untracked(this.#refreshPhase);
+      if (phase === 'idle') return;
+      if (isLoading) {
+        this.#refreshPhase.set('running');
+        return;
+      }
+      if (phase === 'running') {
+        this.#refreshPhase.set('idle');
+        this.#notify(this.#transloco.translate('currentMonth.refreshed'));
+      }
+    });
+
     this.#destroyRef.onDestroy(() => {
       this.#loadingIndicator.setLoading(false);
+      this.#closeUndoWindow();
     });
 
     afterNextRender(() => {
@@ -390,6 +432,19 @@ export default class Dashboard {
       );
       this.#destroyRef.onDestroy(() => clearTimeout(tourTimeout));
     });
+  }
+
+  protected refresh(): void {
+    this.#refreshPhase.set('requested');
+    this.store.refreshData();
+  }
+
+  protected openPageHelp(event: Event): void {
+    const trigger =
+      event.currentTarget instanceof HTMLElement
+        ? event.currentTarget
+        : undefined;
+    this.#productTourService.startPageTour('dashboard', trigger);
   }
 
   protected navigateToBudgetDetails(): void {
@@ -430,20 +485,64 @@ export default class Dashboard {
   // region is what tells a screen reader the write landed — until now the
   // action was silent — and its button is the only reversal available here,
   // since a pointed line leaves the page and takes its own toggle with it.
+  //
+  // Which is why it accumulates. Clearing a month means pointing several lines
+  // in a row, and each toast replaced the one before it: six seconds after the
+  // first tap the first line was no longer recoverable, though the user was
+  // still on the same run of taps. The window now restarts on every check and
+  // covers all of them.
   #confirmCheckWithUndo(budgetLineId: string, name: string): void {
+    this.#undoableCheckIds = [...this.#undoableCheckIds, budgetLineId];
+    const ids = this.#undoableCheckIds;
+
+    const message =
+      ids.length === 1
+        ? this.#transloco.translate('currentMonth.uncheckedForecasts.checked', {
+            name,
+          })
+        : this.#transloco.translate(
+            'currentMonth.uncheckedForecasts.checkedMany',
+            { count: ids.length },
+          );
+
     const ref = this.#snackBar.open(
-      this.#transloco.translate('currentMonth.uncheckedForecasts.checked', {
-        name,
-      }),
+      message,
       this.#transloco.translate('common.undo'),
       { duration: UNDO_WINDOW_MS, politeness: 'polite' },
     );
-    ref.onAction().subscribe(() => void this.#undoCheck(budgetLineId));
+    ref.onAction().subscribe(() => {
+      this.#closeUndoWindow();
+      void this.#undoChecks(ids);
+    });
+
+    // The toast's own duration cannot own this: taking the undo, or another
+    // check opening a new toast, both dismiss it without saying which happened.
+    if (this.#undoWindowTimeout) clearTimeout(this.#undoWindowTimeout);
+    this.#undoWindowTimeout = setTimeout(
+      () => this.#closeUndoWindow(),
+      UNDO_WINDOW_MS,
+    );
   }
 
-  async #undoCheck(budgetLineId: string): Promise<void> {
-    const refusal = await this.store.uncheckBudgetLine(budgetLineId);
-    if (refusal) this.#notify(refusal);
+  #closeUndoWindow(): void {
+    this.#undoableCheckIds = [];
+    if (this.#undoWindowTimeout) {
+      clearTimeout(this.#undoWindowTimeout);
+      this.#undoWindowTimeout = null;
+    }
+  }
+
+  // Sequential, not parallel: each uncheck recomputes the month server-side, and
+  // the store patches one line at a time. Reversed so the month walks back the
+  // way it came.
+  async #undoChecks(budgetLineIds: readonly string[]): Promise<void> {
+    for (const id of [...budgetLineIds].reverse()) {
+      const refusal = await this.store.uncheckBudgetLine(id);
+      if (refusal) {
+        this.#notify(refusal);
+        return;
+      }
+    }
   }
 
   #notify(message: string): void {

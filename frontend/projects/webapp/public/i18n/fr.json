@@ -908,6 +908,7 @@
   "currentMonth": {
     "pageTitle": "Tableau de bord",
     "refresh": "Actualiser",
+    "refreshed": "Chiffres à jour",
     "loadingMessage": "Préparation de ton tableau de bord...",
     "addTransaction": "Ajouter une transaction",
     "loadErrorTitle": "On n'arrive pas à charger ton tableau de bord",
@@ -989,7 +990,8 @@
       "allCheckedMessage": "Toutes les prévisions sont pointées.",
       "toggleAriaLabel": "Pointer {{ name }} — {{ amount }}",
       "checked": "Pointé : {{ name }}",
-      "hiddenCount": "+ {{ count }} autres dans le budget"
+      "checkedMany": "{{ count }} prévisions pointées",
+      "hiddenCount": "Les plus gros montants d'abord — {{ count }} autres dans le budget"
     }
   },
   "currency": {
@@ -1322,6 +1324,7 @@
     "availableToSpend": "Disponible à dépenser",
     "spent": "Dépensé",
     "engaged": "Engagé",
+    "engagedHint": "Engagé : ce que tes prévisions réservent et que tu n'as pas encore dépensé.",
     "status": {
       "onTrack": "Ton rythme tient.",
       "fastPace": "Tu dépenses plus vite que le mois ne passe.",

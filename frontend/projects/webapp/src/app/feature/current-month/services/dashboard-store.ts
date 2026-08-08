@@ -266,8 +266,16 @@ export class DashboardStore {
     ),
   );
 
+  // Sorted, because the card shows five of them and used to pick those five by
+  // whatever order the API happened to return: a month with seventeen open
+  // forecasts hid twelve on no stated rule, so the reader could not tell
+  // whether the rent was among them. Largest first is the rule that makes a
+  // truncated list worth reading — the amounts that move the month lead, and
+  // the block says as much under the last row.
   readonly uncheckedForecasts = computed<BudgetLine[]>(() =>
-    this.#pointableForecasts().filter((line) => line.checkedAt === null),
+    this.#pointableForecasts()
+      .filter((line) => line.checkedAt === null)
+      .toSorted((a, b) => b.amount - a.amount),
   );
 
   // The denominator the block's subtitle needs: "10" alone said how much work
