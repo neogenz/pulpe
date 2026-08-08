@@ -406,7 +406,8 @@ final class GoalPlanSimulatorViewModel {
 
     /// Per-month inline edit — overrides that month, keeps the rest.
     func setMonth(key: Int, amount: Decimal) {
-        let baselineAmount = globalAmount ?? baseline.first(where: { $0.id == key })?.plannedAmount
+        let baselineAmount = globalAmount
+            ?? baseline.first(where: { $0.id == key }).map(SavingsPlanCalculator.currentPlanMovement)
         if baselineAmount == amount { overrides.removeValue(forKey: key) } else { overrides[key] = amount }
         recompute()
     }
@@ -457,9 +458,8 @@ final class GoalPlanSimulatorViewModel {
             .map { .init(month: $0.month.month, year: $0.month.year, amount: $0.simulatedAmount) }
         let planWithdrawalAdjustments: [SavingsGoalPlanApply.PlanWithdrawalAdjustment] = planChanges
             .compactMap { simMonth in
-                let managedBefore = simMonth.month.planOnlyWithdrawalAmount
-                    + simMonth.month.planLinkedWithdrawalAmount
-                guard simMonth.simulatedAmount < 0 || managedBefore > 0 else { return nil }
+                guard simMonth.simulatedAmount < 0
+                        || simMonth.replacesExistingPlanWithdrawal else { return nil }
                 return .init(
                     month: simMonth.month.month,
                     year: simMonth.month.year,
@@ -493,9 +493,7 @@ final class GoalPlanSimulatorViewModel {
             return .init(
                 month: month.month,
                 year: month.year,
-                amount: amount,
-                replacesPlanOnlyWithdrawal:
-                    month.planOnlyWithdrawalAmount + month.planLinkedWithdrawalAmount > 0
+                amount: amount
             )
         }
         if let next = try? SavingsPlanCalculator.simulate(
@@ -518,9 +516,7 @@ final class GoalPlanSimulatorViewModel {
             return .init(
                 month: month.month,
                 year: month.year,
-                amount: amount,
-                replacesPlanOnlyWithdrawal:
-                    month.planOnlyWithdrawalAmount + month.planLinkedWithdrawalAmount > 0
+                amount: amount
             )
         }
     }

@@ -147,26 +147,6 @@ export class ApplySavingsGoalPlanUseCase {
       id,
       user.id,
     );
-    if (planWithdrawals.length > 0) {
-      const [withdrawals, plannedWithdrawals, existingPlanWithdrawals] =
-        await Promise.all([
-          this.repo.findLinkedWithdrawals(id),
-          this.repo.findPlannedWithdrawals(id),
-          this.repo.findPlanWithdrawals(id),
-        ]);
-      this.assertPlanWithdrawalBalance({
-        goal,
-        lines: linkedBefore.lines,
-        transactions: linkedBefore.transactions,
-        withdrawals,
-        plannedWithdrawals,
-        existingPlanWithdrawals,
-        adjustments: planWithdrawals,
-        payDayOfMonth,
-        userId: user.id,
-      });
-    }
-
     let provisionedMonthCount = 0;
     if (missing.length > 0) {
       provisionedMonthCount = await this.provisionMissingPeriods(
@@ -178,21 +158,68 @@ export class ApplySavingsGoalPlanUseCase {
       );
     }
 
+    // Read the revision after our own provisioning writes, but before every
+    // financial row used by the withdrawal guard. The RPC compares it again
+    // only after acquiring the realization lock, so a concurrent Real either
+    // appears in this certified snapshot or makes the final CAS fail.
+    const expectedRevision = await this.repo.findBalanceRevision(id);
+    if (expectedRevision === null) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_NOT_FOUND,
+        { id },
+        {
+          operation: 'savingsGoal.planApply.readRevision',
+          entityId: id,
+          userId: user.id,
+        },
+      );
+    }
+    const linkedForApply =
+      missing.length > 0 || planWithdrawals.length > 0
+        ? await this.repo.findLinkedContributions(id)
+        : linkedBefore;
+    if (planWithdrawals.length > 0) {
+      const [
+        certifiedGoal,
+        withdrawals,
+        plannedWithdrawals,
+        existingPlanWithdrawals,
+      ] = await Promise.all([
+        this.repo.findById(id),
+        this.repo.findLinkedWithdrawals(id),
+        this.repo.findPlannedWithdrawals(id),
+        this.repo.findPlanWithdrawals(id),
+      ]);
+      this.assertPlanWithdrawalBalance({
+        goal: certifiedGoal,
+        lines: linkedForApply.lines,
+        transactions: linkedForApply.transactions,
+        withdrawals,
+        plannedWithdrawals,
+        existingPlanWithdrawals,
+        adjustments: planWithdrawals,
+        payDayOfMonth,
+        userId: user.id,
+      });
+    }
+
     let result: SavingsGoalPlanApplyResult;
     try {
-      const linkedLines =
-        missing.length > 0
-          ? (await this.repo.findLinkedContributions(id)).lines
-          : linkedBefore.lines;
       const lineAdjustments = [
         ...dto.monthAdjustments,
-        ...this.allocateMissingMonths(missing, linkedLines, id, user.id),
+        ...this.allocateMissingMonths(
+          missing,
+          linkedForApply.lines,
+          id,
+          user.id,
+        ),
       ];
       result = await this.repo.applyPlan(
         id,
         lineAdjustments,
         minPeriodIndex,
         planWithdrawals,
+        expectedRevision,
       );
     } catch (error) {
       if (missing.length > 0) {

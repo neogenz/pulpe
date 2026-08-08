@@ -48,6 +48,7 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
     existingLines = [line(0), line(1)];
     allLines = periods.map((_, index) => line(index));
     repo = {
+      findBalanceRevision: jest.fn().mockResolvedValue(7),
       findById: jest.fn().mockResolvedValue({
         id: 'goal-1',
         userId: user.id,
@@ -123,6 +124,7 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
       [],
       expect.any(Number),
       [{ ...periods[0], amount: -4_500 }],
+      7,
     );
     expect(recalculation.recalculate).not.toHaveBeenCalled();
   });
@@ -142,6 +144,7 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
       [],
       expect.any(Number),
       [{ ...periods[0], amount: 0 }],
+      7,
     );
   });
 
@@ -166,7 +169,44 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
       [{ budgetLineId, amount: 1_260 }],
       expect.any(Number),
       [{ ...periods[0], amount: 0 }],
+      7,
     );
+  });
+
+  it('reads the balance revision before the rows used by the withdrawal guard', async () => {
+    const callOrder: string[] = [];
+    repo.findBalanceRevision.mockImplementation(async () => {
+      callOrder.push('revision');
+      return 7;
+    });
+    repo.findById.mockImplementation(async () => {
+      callOrder.push('goal');
+      return {
+        id: 'goal-1',
+        userId: user.id,
+        name: 'Maison',
+        targetAmount: 24_000,
+        initialAmount: 10_000,
+        targetDate: `${periods[23].year}-${String(periods[23].month).padStart(2, '0')}-15`,
+        status: 'ACTIVE',
+        createdAt: new Date().toISOString(),
+      };
+    });
+    repo.findLinkedContributions.mockReset().mockImplementation(async () => {
+      callOrder.push('linked');
+      return { lines: existingLines, transactions: [] };
+    });
+
+    await useCase.execute(
+      'goal-1',
+      {
+        monthAdjustments: [],
+        planWithdrawalAdjustments: [{ ...periods[0], amount: -450 }],
+      },
+      user,
+    );
+
+    expect(callOrder).toEqual(['goal', 'linked', 'revision', 'linked', 'goal']);
   });
 
   it('rejects a direct withdrawal that would make the projected stock negative', async () => {

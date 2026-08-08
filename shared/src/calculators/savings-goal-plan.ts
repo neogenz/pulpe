@@ -31,7 +31,10 @@ import type {
   LinkedSavingTransaction,
   LinkedSavingWithdrawal,
 } from './savings-goal-progress.js';
-import { remainingPlannedWithdrawal } from './savings-goal-progress.js';
+import {
+  remainingPlannedWithdrawal,
+  WITHDRAWAL_BALANCE_TOLERANCE,
+} from './savings-goal-progress.js';
 import { splitTotalPreserving } from './spread-split.js';
 import { MAX_SAVINGS_GOAL_PLAN_PERIODS } from '../../schemas.js';
 
@@ -90,6 +93,10 @@ export interface SavingsPlanTimelineMonth {
   planOnlyWithdrawalAmount?: number;
   /** Sous-ensemble lié au budget, mais piloté depuis le plan. */
   planLinkedWithdrawalAmount?: number;
+  /** Destination du retrait piloté par le plan, conservée lors d'une édition. */
+  planWithdrawalDestination?: 'goal_only' | 'linked_income';
+  /** Part du retrait lié déjà réalisée dans le budget. */
+  planWithdrawalConsumedAmount?: number;
   plannedCumulative: number;
   confirmedCumulative: number;
   /**
@@ -127,6 +134,7 @@ export function isContributivePlanMonth(
 ): boolean {
   return (
     month.isContributionEligible !== false &&
+    (month.planWithdrawalConsumedAmount ?? 0) <= WITHDRAWAL_BALANCE_TOLERANCE &&
     (isOpenPlanMonth(month) || month.isProvisionable === true)
   );
 }
@@ -277,6 +285,26 @@ export function buildSavingsGoalTimeline(
           sum + remainingPlannedWithdrawal(planned, withdrawals),
         0,
       );
+    const hasPlanOnlyWithdrawal = monthPlannedWithdrawals.some(
+      (planned) => planned.origin === 'plan',
+    );
+    const hasPlanLinkedWithdrawal = monthPlannedWithdrawals.some(
+      (planned) => planned.origin === 'plan_linked',
+    );
+    const planWithdrawalDestination = hasPlanLinkedWithdrawal
+      ? ('linked_income' as const)
+      : hasPlanOnlyWithdrawal
+        ? ('goal_only' as const)
+        : undefined;
+    const planWithdrawalConsumedAmount = monthPlannedWithdrawals
+      .filter((planned) => planned.origin === 'plan_linked')
+      .reduce(
+        (sum, planned) =>
+          sum +
+          planned.amount -
+          remainingPlannedWithdrawal(planned, withdrawals),
+        0,
+      );
     const remainingPlannedWithdrawalAmount =
       isContributionEligible && index >= indexCurrent
         ? monthPlannedWithdrawals.reduce(
@@ -354,6 +382,8 @@ export function buildSavingsGoalTimeline(
       remainingPlannedWithdrawalAmount,
       planOnlyWithdrawalAmount,
       planLinkedWithdrawalAmount,
+      planWithdrawalDestination,
+      planWithdrawalConsumedAmount,
       plannedCumulative,
       confirmedCumulative,
       projectedCumulative,
@@ -373,16 +403,14 @@ export interface SavingsPlanAdjustment {
   month: number;
   year: number;
   amount: number;
-  /** Un changement explicite qui supprime le retrait direct rechargé du mois. */
-  replacesPlanOnlyWithdrawal?: boolean;
-  /** Variante générique couvrant aussi le revenu piloté par le plan. */
-  replacesPlanWithdrawal?: boolean;
 }
 
 export interface SavingsPlanSimulatedMonth extends SavingsPlanTimelineMonth {
   simulatedAmount: number;
   simulatedCumulative: number;
   isAdjusted: boolean;
+  /** Le mouvement affiché porte/remplace le retrait géré rechargé du mois. */
+  replacesExistingPlanWithdrawal?: boolean;
 }
 
 export interface SavingsPlanSimulationResult {
@@ -398,6 +426,19 @@ export interface SavingsPlanSimulationResult {
 
 function adjustmentKey(item: { month: number; year: number }): number {
   return item.year * 12 + item.month;
+}
+
+function managedPlanWithdrawalAmount(month: SavingsPlanTimelineMonth): number {
+  return (
+    (month.planOnlyWithdrawalAmount ?? 0) +
+    (month.planLinkedWithdrawalAmount ?? 0)
+  );
+}
+
+/** Mouvement réellement affiché avant édition : retrait géré, sinon contribution. */
+export function currentPlanMovement(month: SavingsPlanTimelineMonth): number {
+  const withdrawal = managedPlanWithdrawalAmount(month);
+  return withdrawal > 0 ? -withdrawal : month.plannedAmount;
 }
 
 /**
@@ -454,28 +495,17 @@ export function simulateSavingsPlan(input: {
       simulatedAmount = month.confirmedAmount;
     } else if (adjustment != null) {
       simulatedAmount = adjustment.amount;
-      isAdjusted = true;
+      isAdjusted = simulatedAmount !== currentPlanMovement(month);
       isWithdrawalAdjustment = adjustment.amount < 0;
-      replacesExistingPlanWithdrawal =
-        isWithdrawalAdjustment ||
-        adjustment.replacesPlanOnlyWithdrawal === true ||
-        adjustment.replacesPlanWithdrawal === true;
+      replacesExistingPlanWithdrawal = managedPlanWithdrawalAmount(month) > 0;
     } else if (input.globalMonthlyAmount != null) {
       simulatedAmount = input.globalMonthlyAmount;
-      isAdjusted = simulatedAmount !== month.plannedAmount;
-    } else if (
-      (month.planOnlyWithdrawalAmount ?? 0) +
-        (month.planLinkedWithdrawalAmount ?? 0) >
-      0
-    ) {
-      simulatedAmount = -(
-        (month.planOnlyWithdrawalAmount ?? 0) +
-        (month.planLinkedWithdrawalAmount ?? 0)
-      );
-      isWithdrawalAdjustment = true;
-      replacesExistingPlanWithdrawal = true;
+      isAdjusted = simulatedAmount !== currentPlanMovement(month);
+      replacesExistingPlanWithdrawal = managedPlanWithdrawalAmount(month) > 0;
     } else {
-      simulatedAmount = month.plannedAmount;
+      simulatedAmount = currentPlanMovement(month);
+      isWithdrawalAdjustment = simulatedAmount < 0;
+      replacesExistingPlanWithdrawal = managedPlanWithdrawalAmount(month) > 0;
     }
 
     if (month.isContributionEligible !== false) {
@@ -513,6 +543,7 @@ export function simulateSavingsPlan(input: {
       simulatedAmount,
       simulatedCumulative,
       isAdjusted,
+      replacesExistingPlanWithdrawal,
     });
   }
 
@@ -582,6 +613,14 @@ export function redistributeRemainingEffort(input: {
     (month) => !pinnedByKey.has(adjustmentKey(month)),
   );
 
+  const hasUnavailablePeriod = input.timeline.some(
+    (month) =>
+      month.isContributionEligible !== false &&
+      !month.isLocked &&
+      !isContributivePlanMonth(month),
+  );
+  const willRedistribute = !hasUnavailablePeriod && openUnpinned.length > 0;
+
   const lockedConfirmedSum = input.timeline
     .filter((month) => month.isContributionEligible !== false && month.isLocked)
     .reduce((sum, month) => sum + month.confirmedAmount, 0);
@@ -589,10 +628,8 @@ export function redistributeRemainingEffort(input: {
   const withdrawnSum = input.timeline.reduce((sum, month) => {
     const pinned = pinnedByKey.get(adjustmentKey(month));
     const replacesExistingPlanWithdrawal =
-      pinned != null &&
-      (pinned.amount < 0 ||
-        pinned.replacesPlanOnlyWithdrawal === true ||
-        pinned.replacesPlanWithdrawal === true);
+      managedPlanWithdrawalAmount(month) > 0 &&
+      (pinned != null || (willRedistribute && isContributivePlanMonth(month)));
     return (
       sum +
       (month.withdrawnAmount ?? 0) +
@@ -628,13 +665,6 @@ export function redistributeRemainingEffort(input: {
       lockedConfirmedSum +
       withdrawnSum +
       pinnedEffect,
-  );
-
-  const hasUnavailablePeriod = input.timeline.some(
-    (month) =>
-      month.isContributionEligible !== false &&
-      !month.isLocked &&
-      !isContributivePlanMonth(month),
   );
 
   if (hasUnavailablePeriod || openUnpinned.length === 0) {

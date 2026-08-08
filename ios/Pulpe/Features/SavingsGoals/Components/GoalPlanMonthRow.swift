@@ -81,6 +81,13 @@ struct GoalPlanMonthRow: View {
         GoalPlanMonthAvailability(month: month, canRepair: canRepair)
     }
     private var hasLinkedForecast: Bool { availability == .linkedForecast }
+    private var isBlockedByRealization: Bool {
+        month.planWithdrawalConsumedAmount > SavingsGoalProgress.withdrawalBalanceTolerance
+    }
+    private var isEffectivelyLocked: Bool { month.isLocked || isBlockedByRealization }
+
+    nonisolated static let realizedWithdrawalLockReason =
+        "Ce retrait est déjà réalisé en partie ou en totalité. Modifie-le depuis le budget."
 
     private var allChecked: Bool {
         !month.lines.isEmpty && month.lines.allSatisfy(\.isChecked)
@@ -93,7 +100,7 @@ struct GoalPlanMonthRow: View {
     /// objectif qui démarre).
     private var stateText: (label: String, color: Color)? {
         if allChecked { return ("Pointé", .financialSavings) }
-        if month.isLocked { return ("Verrouillé", .textTertiary) }
+        if isEffectivelyLocked { return ("Verrouillé", .textTertiary) }
         return nil
     }
 
@@ -145,6 +152,13 @@ struct GoalPlanMonthRow: View {
                         .foregroundStyle(Color.textSecondary)
                         .sensitiveAmount()
                 }
+
+                if isBlockedByRealization {
+                    Text(Self.realizedWithdrawalLockReason)
+                        .font(PulpeTypography.listRowSubtitle)
+                        .foregroundStyle(Color.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
 
             Spacer(minLength: DesignTokens.Spacing.sm)
@@ -155,8 +169,8 @@ struct GoalPlanMonthRow: View {
         // `ListRow` : il dérive des rangées à icône 40pt et centrerait ces
         // rangées texte-seul dans une bande trop haute.
         .padding(.vertical, DesignTokens.ListRow.verticalPadding)
-        .opacity(month.isLocked ? DesignTokens.Opacity.pointedDim : 1)
-        .allowsHitTesting(!month.isLocked)
+        .opacity(isEffectivelyLocked ? DesignTokens.Opacity.pointedDim : 1)
+        .allowsHitTesting(!isEffectivelyLocked)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
     }
@@ -199,7 +213,8 @@ struct GoalPlanMonthRow: View {
         }
         if isCurrentPeriod { parts.append("ce mois") }
         if allChecked { parts.append("pointé") }
-        if month.isLocked { parts.append("verrouillé") }
+        if isBlockedByRealization { parts.append(Self.realizedWithdrawalLockReason) }
+        if isEffectivelyLocked { parts.append("verrouillé") }
         return parts.joined(separator: ", ")
     }
 }

@@ -357,6 +357,8 @@ describe('BudgetDetailsStore - Search Filtering', () => {
       expect(store.filteredBudgetLines().map((line) => line.id)).toEqual([
         partialLine.id,
       ]);
+      expect(store.checkedItemsCount()).toBe(3);
+      expect(store.totalItemsCount()).toBe(4);
     });
   });
 

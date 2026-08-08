@@ -32,6 +32,7 @@ export {
   simulateSavingsPlan,
   redistributeRemainingEffort,
   allocateMonthAmountToLines,
+  currentPlanMovement,
   isContributivePlanMonth,
   isOpenPlanMonth,
   type SavingsPlanMonthState,

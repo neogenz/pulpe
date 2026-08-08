@@ -72,6 +72,7 @@ export interface SavingsGoalRepositoryPort {
     monthAdjustments: SavingsGoalPlanMonthAdjustment[],
     minPeriodIndex: number,
     planWithdrawalAdjustments?: SavingsGoalPlanWithdrawalAdjustment[],
+    expectedRevision?: number,
   ): Promise<SavingsGoalPlanApplyResult>;
   /**
    * Applique la décision advisory d'arrêt de génération (PUL-285 CA5) via la

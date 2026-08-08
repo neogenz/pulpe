@@ -1390,6 +1390,7 @@ describe('SupabaseSavingsGoalRepository', () => {
           [{ budgetLineId: lineId, amount: 123 }],
           24_319,
           [{ month: 9, year: 2026, amount: 0 }],
+          11,
         ),
       ).resolves.toEqual({
         updatedLines: [],
@@ -1409,6 +1410,7 @@ describe('SupabaseSavingsGoalRepository', () => {
               destination: 'goal_only',
             },
           ],
+          p_expected_revision: 11,
         },
       );
     });
@@ -1442,6 +1444,7 @@ describe('SupabaseSavingsGoalRepository', () => {
           { month: 9, year: 2026, amount: -4_500 },
           { month: 10, year: 2026, amount: 0 },
         ],
+        11,
       );
 
       expect(encryption.prepareAmountData).toHaveBeenCalledWith(
@@ -1473,6 +1476,7 @@ describe('SupabaseSavingsGoalRepository', () => {
               destination: 'goal_only',
             },
           ],
+          p_expected_revision: 11,
         },
       );
     });
@@ -1511,6 +1515,7 @@ describe('SupabaseSavingsGoalRepository', () => {
             destination: 'linked_income',
           },
         ],
+        11,
       );
 
       expect(result).toEqual({
@@ -1521,6 +1526,7 @@ describe('SupabaseSavingsGoalRepository', () => {
       expect(rpc).toHaveBeenCalledWith(
         'apply_savings_goal_plan_with_destinations',
         expect.objectContaining({
+          p_expected_revision: 11,
           p_plan_withdrawals: [
             {
               month: 9,

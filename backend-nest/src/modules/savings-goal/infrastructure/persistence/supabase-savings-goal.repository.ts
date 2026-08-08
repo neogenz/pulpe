@@ -61,6 +61,7 @@ import {
   PLAN_LINE_PAST_RPC_MESSAGE,
   PLAN_WITHDRAWAL_BUDGET_MISSING_RPC_MESSAGE,
   PLAN_WITHDRAWAL_REALIZED_RPC_MESSAGE,
+  PLAN_BALANCE_CHANGED_RPC_MESSAGE,
   RECONCILIATION_CONFLICT_RPC_MESSAGE,
   reconcileSavingsGoalTargetDatePatchSchema,
   reconcileSavingsGoalTargetDateResponseSchema,
@@ -647,6 +648,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     monthAdjustments: SavingsGoalPlanMonthAdjustment[],
     minPeriodIndex: number,
     planWithdrawalAdjustments: SavingsGoalPlanWithdrawalAdjustment[] = [],
+    expectedRevision?: number,
   ): Promise<SavingsGoalPlanApplyResult> {
     const supabase = this.supabaseProvider.client;
     const user = this.supabaseProvider.user;
@@ -673,6 +675,9 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
         p_min_period_index: minPeriodIndex,
         p_line_updates: linePayload as never,
         p_plan_withdrawals: planWithdrawalPayload as never,
+        ...(expectedRevision === undefined
+          ? {}
+          : { p_expected_revision: expectedRevision }),
       },
     );
 
@@ -1073,7 +1078,8 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     if (
       message.includes(PLAN_LINE_CHECKED_RPC_MESSAGE) ||
       message.includes(PLAN_LINE_PAST_RPC_MESSAGE) ||
-      message.includes(PLAN_WITHDRAWAL_REALIZED_RPC_MESSAGE)
+      message.includes(PLAN_WITHDRAWAL_REALIZED_RPC_MESSAGE) ||
+      message.includes(PLAN_BALANCE_CHANGED_RPC_MESSAGE)
     ) {
       throw new BusinessException(
         ERROR_DEFINITIONS.SAVINGS_GOAL_PLAN_CONFLICT,

@@ -65,6 +65,7 @@ export const PLAN_WITHDRAWAL_BUDGET_MISSING_RPC_MESSAGE =
   'Plan withdrawal budget missing';
 export const PLAN_WITHDRAWAL_REALIZED_RPC_MESSAGE =
   'Plan withdrawal already realized';
+export const PLAN_BALANCE_CHANGED_RPC_MESSAGE = 'Savings goal balance changed';
 
 // apply_savings_goal_generation_stop (PUL-285 CA5) — scalar params only, no
 // JSONB ciphertext payload, so no Zod payload schema. The RAISE messages are

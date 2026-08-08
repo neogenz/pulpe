@@ -16,6 +16,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import {
   formatBudgetPeriod,
+  isContributivePlanMonth,
   type SavingsGoalPlanMonth,
   type SavingsPlanSimulatedMonth,
   type SupportedCurrency,
@@ -34,6 +35,7 @@ interface GoalPlanTimelineRow {
   hasBudget: boolean;
   isRepairable: boolean;
   isOpen: boolean;
+  blockedByRealization: boolean;
   isAdjusted: boolean;
   amount: number;
   cumulative: number;
@@ -157,6 +159,14 @@ const WINDOW_OPEN_ROWS = 3;
               >
                 {{ 'savingsGoals.plan.plannedWithdrawal' | transloco }} ·
                 {{ -row.plannedWithdrawal | appCurrency: currency() : '1.0-0' }}
+              </span>
+            }
+            @if (row.blockedByRealization) {
+              <span
+                class="text-body-small text-on-surface-variant"
+                data-testid="goal-plan-row-realized-lock"
+              >
+                {{ 'savingsGoals.plan.realizedWithdrawalLock' | transloco }}
               </span>
             }
           </div>
@@ -320,14 +330,16 @@ export class GoalPlanTimeline {
       const isChecked =
         month.lines.length > 0 &&
         month.lines.every((line) => line.checkedAt != null);
-      const isOpen =
-        !month.isLocked && month.lines.some((line) => line.checkedAt == null);
+      const blockedByRealization =
+        (month.planWithdrawalConsumedAmount ?? 0) > 0 &&
+        !isContributivePlanMonth(month);
+      const isOpen = isContributivePlanMonth(month);
       const sim = month as SavingsPlanSimulatedMonth;
       return {
         periodKey: month.year * 12 + month.month,
         month: month.month,
         year: month.year,
-        isLocked: month.isLocked,
+        isLocked: month.isLocked || blockedByRealization,
         isCurrent: month.state === 'current',
         isChecked,
         isGap: month.state === 'gap',
@@ -352,6 +364,7 @@ export class GoalPlanTimeline {
           month.hasBudget === true &&
           month.isProvisionable === true,
         isOpen,
+        blockedByRealization,
         isAdjusted: simulated ? (sim.isAdjusted ?? false) : false,
         amount: simulated ? sim.simulatedAmount : month.plannedAmount,
         cumulative: simulated
@@ -410,6 +423,11 @@ export class GoalPlanTimeline {
   }
 
   protected lockedAmountLabel(row: GoalPlanTimelineRow): string | null {
+    if (row.blockedByRealization) {
+      return this.#transloco.translate(
+        'savingsGoals.plan.realizedWithdrawalLock',
+      );
+    }
     if (!row.isChecked) return null;
     const amount = `${formatNumber(row.amount, this.locale(), '1.2-2')} ${this.currency()}`;
     return this.#transloco.translate('savingsGoals.detail.lockedAmountAria', {

@@ -141,4 +141,60 @@ describe('GoalPlanApplyDialog', () => {
       'Réalise-la dans le budget : le Réel créé sera automatiquement pointé.',
     );
   });
+
+  it('preserves a reloaded linked destination by default', () => {
+    const { fixture, close } = configureDialog({
+      changes: [
+        {
+          month: 9,
+          year: 2026,
+          before: -4_500,
+          after: -3_000,
+          hasBudget: true,
+          planWithdrawalDestination: 'linked_income',
+          planWithdrawalConsumedAmount: 0,
+        },
+      ],
+      currency: 'CHF',
+      locale: 'fr-CH',
+      payDayOfMonth: 25,
+      verdict: 'Projection mise à jour',
+    });
+
+    query(fixture, 'goal-plan-apply-confirm').nativeElement.click();
+
+    expect(close).toHaveBeenCalledWith('linked_income');
+  });
+
+  it('explains an explicit conversion away from the reloaded destination', () => {
+    const { fixture } = configureDialog({
+      changes: [
+        {
+          month: 9,
+          year: 2026,
+          before: -4_500,
+          after: -3_000,
+          hasBudget: true,
+          planWithdrawalDestination: 'linked_income',
+          planWithdrawalConsumedAmount: 0,
+        },
+      ],
+      currency: 'CHF',
+      locale: 'fr-CH',
+      payDayOfMonth: 25,
+      verdict: 'Projection mise à jour',
+    });
+
+    query(fixture, 'goal-plan-withdrawal-goal-only')
+      .nativeElement.querySelector('input')
+      .click();
+    fixture.detectChanges();
+
+    expect(
+      query(fixture, 'goal-plan-withdrawal-conversion').nativeElement
+        .textContent,
+    ).toContain(
+      'La Prévision Revenu liée sera supprimée avec la mise à jour du plan.',
+    );
+  });
 });

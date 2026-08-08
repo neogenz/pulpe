@@ -29,6 +29,7 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import {
   API_ERROR_CODES,
   compareBudgetPeriods,
+  currentPlanMovement,
   getBudgetPeriodForDate,
   parseIsoDateLocal,
   type SavingsGoalDeletionCommand,
@@ -1216,9 +1217,11 @@ export default class SavingsGoalDetailPage {
       .map((month) => ({
         month: month.month,
         year: month.year,
-        before: month.plannedAmount,
+        before: currentPlanMovement(month),
         after: month.simulatedAmount,
         hasBudget: month.hasBudget === true,
+        planWithdrawalDestination: month.planWithdrawalDestination,
+        planWithdrawalConsumedAmount: month.planWithdrawalConsumedAmount,
       }));
     if (changes.length === 0) return;
 

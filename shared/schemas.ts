@@ -504,6 +504,10 @@ export const savingsGoalPlanMonthSchema = z.object({
   planOnlyWithdrawalAmount: z.number().nonnegative().optional(),
   /** Part issue du plan sous forme de Prévision Revenu liée. */
   planLinkedWithdrawalAmount: z.number().nonnegative().optional(),
+  /** Destination du retrait piloté par le plan, conservée lors d'une édition. */
+  planWithdrawalDestination: z.enum(['goal_only', 'linked_income']).optional(),
+  /** Part de la Prévision Revenu liée déjà réalisée. */
+  planWithdrawalConsumedAmount: z.number().nonnegative().optional(),
   plannedCumulative: z.number(),
   confirmedCumulative: z.number(),
   /** Solde attendu fin de mois si le plan se déroule tel quel (§12). */

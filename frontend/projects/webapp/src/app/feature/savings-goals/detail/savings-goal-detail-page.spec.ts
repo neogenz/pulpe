@@ -22,6 +22,7 @@ import {
   type SavingsGoalDeletionCommand,
   type SavingsGoalFutureLine,
   type SavingsGoalPlanMonth,
+  type SavingsGoalPlanOnlyWithdrawal,
   type SavingsGoalProgress,
   type SavingsGoalPlannedWithdrawal,
   type SavingsGoalWithdrawal,
@@ -139,6 +140,7 @@ class StubGoalContributionsList {
 class StubGoalWithdrawalsList {
   readonly withdrawals = input<unknown>([]);
   readonly plannedWithdrawals = input<unknown>([]);
+  readonly planOnlyWithdrawals = input<unknown>([]);
   readonly currency = input<string>('CHF');
   readonly isLoading = input(false);
   readonly hasError = input(false);
@@ -259,6 +261,7 @@ describe('SavingsGoalDetailPage', () => {
   const listErrorSig = signal<unknown>(null);
   const withdrawalsSig = signal<SavingsGoalWithdrawal[]>([]);
   const plannedWithdrawalsSig = signal<SavingsGoalPlannedWithdrawal[]>([]);
+  const planOnlyWithdrawalsSig = signal<SavingsGoalPlanOnlyWithdrawal[]>([]);
   const isWithdrawalsLoadingSig = signal(false);
   const withdrawalsErrorSig = signal<unknown>(null);
 
@@ -288,6 +291,7 @@ describe('SavingsGoalDetailPage', () => {
     isContributionsLoading: isContributionsLoadingSig,
     withdrawals: withdrawalsSig,
     plannedWithdrawals: plannedWithdrawalsSig,
+    planOnlyWithdrawals: planOnlyWithdrawalsSig,
     isWithdrawalsLoading: isWithdrawalsLoadingSig,
     withdrawalsError: withdrawalsErrorSig,
     futureLines: futureLinesSig,
@@ -325,6 +329,7 @@ describe('SavingsGoalDetailPage', () => {
     listErrorSig.set(null);
     withdrawalsSig.set([]);
     plannedWithdrawalsSig.set([]);
+    planOnlyWithdrawalsSig.set([]);
     isWithdrawalsLoadingSig.set(false);
     withdrawalsErrorSig.set(null);
     futureLinesSig.set([]);
@@ -1315,14 +1320,70 @@ describe('SavingsGoalDetailPage', () => {
 
     expect(mockDialogs.openApplyPlan).toHaveBeenCalledWith(
       expect.objectContaining({
-        changes: [{ month: 6, year: 2026, before: 200, after: 500 }],
+        changes: [
+          expect.objectContaining({
+            month: 6,
+            year: 2026,
+            before: 200,
+            after: 500,
+          }),
+        ],
       }),
     );
     expect(mockStore.applyPlan).toHaveBeenCalledWith('goal-1', {
       monthAdjustments: [{ budgetLineId: lineId, amount: 500 }],
       missingMonthAdjustments: [],
+      planWithdrawalAdjustments: [],
     });
     expect(snackBarOpen).toHaveBeenCalled();
+  });
+
+  it('uses the reloaded withdrawal as the before value in the recap', async () => {
+    const lineId = '11111111-1111-4111-8111-111111111111';
+    progressSig.set(
+      makeProgress({
+        months: [
+          makePlanMonth({
+            month: 6,
+            state: 'current',
+            isProvisionable: false,
+            plannedAmount: 1_260,
+            plannedWithdrawalAmount: 4_500,
+            remainingPlannedWithdrawalAmount: 4_500,
+            planLinkedWithdrawalAmount: 4_500,
+            planWithdrawalDestination: 'linked_income',
+            lines: [
+              {
+                budgetLineId: lineId,
+                amount: 1_260,
+                checkedAt: null,
+                isManuallyAdjusted: false,
+              },
+            ],
+          }),
+        ],
+      }),
+    );
+    mockDialogs.openApplyPlan.mockResolvedValueOnce(false);
+    fixture.detectChanges();
+
+    component['simulator'].enter();
+    component['simulator'].setMonth(6, 2026, -3_000);
+    await component['onApplyPlan']();
+
+    expect(mockDialogs.openApplyPlan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        changes: [
+          expect.objectContaining({
+            month: 6,
+            year: 2026,
+            before: -4_500,
+            after: -3_000,
+            planWithdrawalDestination: 'linked_income',
+          }),
+        ],
+      }),
+    );
   });
 
   it('deletes the goal with the preview revision then navigates back', async () => {

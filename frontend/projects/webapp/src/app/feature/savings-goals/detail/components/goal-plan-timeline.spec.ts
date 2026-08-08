@@ -110,6 +110,34 @@ describe('GoalPlanTimeline', () => {
     ).toBeNull();
   });
 
+  it('locks a realized plan withdrawal with the same visible and accessible reason', () => {
+    setTestInput(fixture.componentInstance.editable, true);
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({
+        plannedWithdrawalAmount: 4_500,
+        remainingPlannedWithdrawalAmount: 4_200,
+        planLinkedWithdrawalAmount: 4_200,
+        planWithdrawalDestination: 'linked_income',
+        planWithdrawalConsumedAmount: 300,
+      }),
+    ]);
+    fixture.detectChanges();
+
+    const row = rowsQuery()[0].nativeElement as HTMLElement;
+    const reason = query('goal-plan-row-realized-lock').nativeElement
+      .textContent;
+    const amount = row.querySelector('span[aria-label]');
+
+    expect(row.dataset['locked']).toBe('true');
+    expect(row.querySelector('button')).toBeNull();
+    expect(reason).toContain(
+      'Ce retrait est déjà réalisé en partie ou en totalité. Modifie-le depuis le budget.',
+    );
+    expect(amount?.getAttribute('aria-label')).toContain(
+      'Ce retrait est déjà réalisé en partie ou en totalité. Modifie-le depuis le budget.',
+    );
+  });
+
   it('distinguishes missing, repairable, non-actionable and linked forecasts', () => {
     setTestInput(fixture.componentInstance.months, [
       makeMonth({ month: 3, state: 'current' }),

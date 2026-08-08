@@ -23,6 +23,8 @@ export interface GoalPlanApplyChange {
   before: number;
   after: number;
   hasBudget?: boolean;
+  planWithdrawalDestination?: GoalPlanWithdrawalDestination;
+  planWithdrawalConsumedAmount?: number;
 }
 
 export type GoalPlanWithdrawalDestination = 'goal_only' | 'linked_income';
@@ -185,6 +187,15 @@ const MAX_DIFF_ROWS = 5;
               {{ 'savingsGoals.simulate.withdrawalNoBudget' | transloco }}
             </p>
           }
+          @if (isConvertingWithdrawal()) {
+            <p
+              class="text-body-small text-on-surface-variant"
+              role="status"
+              data-testid="goal-plan-withdrawal-conversion"
+            >
+              {{ conversionKey() | transloco }}
+            </p>
+          }
         </section>
       }
     </mat-dialog-content>
@@ -214,8 +225,11 @@ export class GoalPlanApplyDialog {
     >(MatDialogRef);
   protected readonly data = inject<GoalPlanApplyDialogData>(MAT_DIALOG_DATA);
   protected readonly isCreation = computed(() => this.data.mode === 'creation');
+  readonly #existingWithdrawalDestination = this.#resolveExistingDestination();
   protected readonly withdrawalDestination =
-    signal<GoalPlanWithdrawalDestination>('goal_only');
+    signal<GoalPlanWithdrawalDestination>(
+      this.#existingWithdrawalDestination ?? 'goal_only',
+    );
   protected readonly hasWithdrawal = computed(() =>
     this.data.changes.some((change) => change.after < 0),
   );
@@ -223,6 +237,16 @@ export class GoalPlanApplyDialog {
     this.data.changes
       .filter((change) => change.after < 0)
       .every((change) => change.hasBudget === true),
+  );
+  protected readonly isConvertingWithdrawal = computed(
+    () =>
+      this.#existingWithdrawalDestination != null &&
+      this.withdrawalDestination() !== this.#existingWithdrawalDestination,
+  );
+  protected readonly conversionKey = computed(() =>
+    this.#existingWithdrawalDestination === 'linked_income'
+      ? 'savingsGoals.simulate.withdrawalConvertToGoalOnly'
+      : 'savingsGoals.simulate.withdrawalConvertToLinked',
   );
   protected readonly titleKey = computed(() =>
     this.isCreation()
@@ -279,5 +303,18 @@ export class GoalPlanApplyDialog {
     this.#dialogRef.close(
       this.hasWithdrawal() ? this.withdrawalDestination() : true,
     );
+  }
+
+  #resolveExistingDestination(): GoalPlanWithdrawalDestination | null {
+    const destinations = new Set(
+      this.data.changes
+        .filter((change) => change.after < 0)
+        .map((change) => change.planWithdrawalDestination)
+        .filter(
+          (destination): destination is GoalPlanWithdrawalDestination =>
+            destination != null,
+        ),
+    );
+    return destinations.size === 1 ? [...destinations][0] : null;
   }
 }

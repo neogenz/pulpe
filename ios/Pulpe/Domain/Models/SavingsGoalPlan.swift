@@ -71,6 +71,10 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
     let planOnlyWithdrawalAmount: Decimal
     /// Sous-ensemble lié au budget, mais piloté depuis le plan.
     let planLinkedWithdrawalAmount: Decimal
+    /// Destination du retrait piloté par le plan, conservée lors d'une édition.
+    let planWithdrawalDestination: SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination?
+    /// Part de la Prévision Revenu liée déjà réalisée.
+    let planWithdrawalConsumedAmount: Decimal
     let plannedCumulative: Decimal
     let confirmedCumulative: Decimal
     /// Solde attendu à la fin de ce mois si le plan se déroule tel quel : confirmé
@@ -96,6 +100,8 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
         remainingPlannedWithdrawalAmount: Decimal = 0,
         planOnlyWithdrawalAmount: Decimal = 0,
         planLinkedWithdrawalAmount: Decimal = 0,
+        planWithdrawalDestination: SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination? = nil,
+        planWithdrawalConsumedAmount: Decimal = 0,
         plannedCumulative: Decimal,
         confirmedCumulative: Decimal,
         projectedCumulative: Decimal? = nil,
@@ -115,6 +121,8 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
         self.remainingPlannedWithdrawalAmount = remainingPlannedWithdrawalAmount
         self.planOnlyWithdrawalAmount = planOnlyWithdrawalAmount
         self.planLinkedWithdrawalAmount = planLinkedWithdrawalAmount
+        self.planWithdrawalDestination = planWithdrawalDestination
+        self.planWithdrawalConsumedAmount = planWithdrawalConsumedAmount
         self.plannedCumulative = plannedCumulative
         self.confirmedCumulative = confirmedCumulative
         self.projectedCumulative = projectedCumulative
@@ -155,6 +163,14 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
             Decimal.self,
             forKey: .planLinkedWithdrawalAmount
         ) ?? 0
+        planWithdrawalDestination = try container.decodeIfPresent(
+            SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination.self,
+            forKey: .planWithdrawalDestination
+        )
+        planWithdrawalConsumedAmount = try container.decodeIfPresent(
+            Decimal.self,
+            forKey: .planWithdrawalConsumedAmount
+        ) ?? 0
         plannedCumulative = try container.decode(Decimal.self, forKey: .plannedCumulative)
         confirmedCumulative = try container.decode(Decimal.self, forKey: .confirmedCumulative)
         projectedCumulative = try container.decodeIfPresent(
@@ -169,6 +185,7 @@ struct SavingsGoalPlanMonth: Decodable, Sendable, Equatable, Identifiable {
         case plannedAmount, confirmedAmount, withdrawnAmount
         case plannedWithdrawalAmount, remainingPlannedWithdrawalAmount, planOnlyWithdrawalAmount
         case planLinkedWithdrawalAmount
+        case planWithdrawalDestination, planWithdrawalConsumedAmount
         case plannedCumulative, confirmedCumulative, projectedCumulative, lines
     }
 
@@ -228,7 +245,7 @@ struct SavingsGoalPlanApply: Encodable, Sendable {
     }
 
     struct PlanWithdrawalAdjustment: Encodable, Sendable {
-        enum Destination: String, Encodable, Sendable {
+        enum Destination: String, Codable, Sendable, Equatable, Hashable {
             case goalOnly = "goal_only"
             case linkedIncome = "linked_income"
         }

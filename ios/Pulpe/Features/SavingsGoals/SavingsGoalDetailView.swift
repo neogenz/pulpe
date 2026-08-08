@@ -262,7 +262,8 @@ struct SavingsGoalDetailView: View {
                 month: $0,
                 simulatedAmount: amount,
                 simulatedCumulative: $0.plannedCumulative + repaired,
-                isAdjusted: true
+                isAdjusted: true,
+                replacesExistingPlanWithdrawal: false
             )
         }
     }

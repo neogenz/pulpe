@@ -593,8 +593,13 @@ export class BudgetDetailsStore {
     if (!details) return 0;
     const lines = this.displayBudgetLines();
     const transactions = details.transactions;
-    return [...lines, ...transactions].filter((item) => item.checkedAt != null)
-      .length;
+    const consumptionMap = calculateAllConsumptions(lines, transactions);
+    return (
+      lines.filter((line) =>
+        this.#isLineEffectivelyChecked(line, consumptionMap),
+      ).length +
+      transactions.filter((transaction) => transaction.checkedAt != null).length
+    );
   });
 
   readonly totalItemsCount = computed<number>(() => {
@@ -616,11 +621,9 @@ export class BudgetDetailsStore {
         lines,
         this.budgetDetails()?.transactions ?? [],
       );
-      lines = lines.filter((line) => {
-        if (!line.sourceSavingsGoalId) return line.checkedAt === null;
-        const consumed = consumptionMap.get(line.id)?.consumed ?? 0;
-        return consumed < line.amount;
-      });
+      lines = lines.filter(
+        (line) => !this.#isLineEffectivelyChecked(line, consumptionMap),
+      );
     }
     const search = normalizeText(this.#searchText());
     if (!search) return lines;
@@ -677,6 +680,15 @@ export class BudgetDetailsStore {
 
   setSearchText(value: string): void {
     this.#searchText.set(value);
+  }
+
+  #isLineEffectivelyChecked(
+    line: BudgetLine,
+    consumptionMap: Map<string, { consumed: number; transactionCount: number }>,
+  ): boolean {
+    if (line.checkedAt != null) return true;
+    if (!line.sourceSavingsGoalId) return false;
+    return (consumptionMap.get(line.id)?.consumed ?? 0) >= line.amount;
   }
 
   setBudgetId(budgetId: string): void {

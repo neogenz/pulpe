@@ -4,6 +4,7 @@ import {
   simulateSavingsPlan,
   redistributeRemainingEffort,
   allocateMonthAmountToLines,
+  isContributivePlanMonth,
   type SavingsPlanTimelineMonth,
 } from './savings-goal-plan.js';
 import {
@@ -537,7 +538,6 @@ describe('simulateSavingsPlan', () => {
           month: 9,
           year: 2026,
           amount: 1_260,
-          replacesPlanOnlyWithdrawal: true,
         },
       ],
     });
@@ -545,6 +545,50 @@ describe('simulateSavingsPlan', () => {
     expect(result.months[0].simulatedAmount).toBe(1_260);
     expect(result.simulatedFinal).toBe(11_260);
   });
+
+  it.each([
+    ['direct', { planOnlyWithdrawalAmount: 4_500 }],
+    ['linked', { planLinkedWithdrawalAmount: 4_500 }],
+  ] as const)(
+    'should make global positive and zero replace a reloaded %s withdrawal',
+    (_label, managedWithdrawal) => {
+      const reloaded = planMonth({
+        month: 9,
+        year: 2026,
+        state: 'current',
+        plannedAmount: 1_260,
+        plannedWithdrawalAmount: 4_500,
+        remainingPlannedWithdrawalAmount: 4_500,
+        ...managedWithdrawal,
+      });
+
+      const positive = simulateSavingsPlan({
+        timeline: [reloaded],
+        targetAmount: 20_000,
+        initialAmount: 10_000,
+        globalMonthlyAmount: 1_260,
+      });
+      const zero = simulateSavingsPlan({
+        timeline: [reloaded],
+        targetAmount: 20_000,
+        initialAmount: 10_000,
+        globalMonthlyAmount: 0,
+      });
+
+      expect(positive.months[0]).toMatchObject({
+        simulatedAmount: 1_260,
+        isAdjusted: true,
+        replacesExistingPlanWithdrawal: true,
+      });
+      expect(positive.simulatedFinal).toBe(11_260);
+      expect(zero.months[0]).toMatchObject({
+        simulatedAmount: 0,
+        isAdjusted: true,
+        replacesExistingPlanWithdrawal: true,
+      });
+      expect(zero.simulatedFinal).toBe(10_000);
+    },
+  );
 
   it('should count a linked-income plan once when no plan-only twin exists', () => {
     const result = simulateSavingsPlan({
@@ -702,7 +746,7 @@ describe('redistributeRemainingEffort', () => {
     expect(simulation.simulatedFinal).toBe(12_000);
   });
 
-  it('should compensate an unpinned reloaded withdrawal during redistribution', () => {
+  it('should replace an unpinned reloaded withdrawal during redistribution', () => {
     const timelineWithWithdrawal = [
       planMonth({
         month: 9,
@@ -727,10 +771,10 @@ describe('redistributeRemainingEffort', () => {
       adjustments: redistribution.adjustments,
     });
 
-    expect(redistribution.remainingEffort).toBe(6_500);
+    expect(redistribution.remainingEffort).toBe(2_000);
     expect(redistribution.adjustments).toEqual([
-      { month: 9, year: 2026, amount: 3_250 },
-      { month: 10, year: 2026, amount: 3_250 },
+      { month: 9, year: 2026, amount: 1_000 },
+      { month: 10, year: 2026, amount: 1_000 },
     ]);
     expect(simulation.simulatedFinal).toBe(12_000);
   });
@@ -1404,6 +1448,15 @@ describe('buildSavingsGoalTimeline planned withdrawals (PUL-329 v2)', () => {
   it('should leave only the unrealized part in the remainder', () => {
     const timeline = buildSavingsGoalTimeline({
       ...input,
+      plannedWithdrawals: [
+        {
+          id: PLAN_ID,
+          amount: 500,
+          month: 5,
+          year: 2026,
+          origin: 'plan_linked',
+        },
+      ],
       withdrawals: [
         { amount: 300, month: 5, year: 2026, budgetLineId: PLAN_ID },
       ],
@@ -1412,7 +1465,32 @@ describe('buildSavingsGoalTimeline planned withdrawals (PUL-329 v2)', () => {
     expect(monthOf(timeline, 5)).toMatchObject({
       plannedWithdrawalAmount: 500,
       remainingPlannedWithdrawalAmount: 200,
+      planLinkedWithdrawalAmount: 200,
+      planWithdrawalDestination: 'linked_income',
+      planWithdrawalConsumedAmount: 300,
       withdrawnAmount: 300,
+    });
+    expect(isContributivePlanMonth(monthOf(timeline, 5)!)).toBe(false);
+  });
+
+  it('should expose the direct origin without inventing consumption', () => {
+    const timeline = buildSavingsGoalTimeline({
+      ...input,
+      plannedWithdrawals: [
+        {
+          id: PLAN_ID,
+          amount: 500,
+          month: 5,
+          year: 2026,
+          origin: 'plan',
+        },
+      ],
+    });
+
+    expect(monthOf(timeline, 5)).toMatchObject({
+      planOnlyWithdrawalAmount: 500,
+      planWithdrawalDestination: 'goal_only',
+      planWithdrawalConsumedAmount: 0,
     });
   });
 

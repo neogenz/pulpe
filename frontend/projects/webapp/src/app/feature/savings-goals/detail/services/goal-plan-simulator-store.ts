@@ -134,10 +134,6 @@ export class GoalPlanSimulatorStore {
           month: month.month,
           year: month.year,
           amount: overrides.get(key)!,
-          replacesPlanWithdrawal:
-            (month.planOnlyWithdrawalAmount ?? 0) +
-              (month.planLinkedWithdrawalAmount ?? 0) >
-            0,
         });
       }
     }
@@ -283,11 +279,7 @@ export class GoalPlanSimulatorStore {
           });
           continue;
         }
-        if (
-          (month.planOnlyWithdrawalAmount ?? 0) +
-            (month.planLinkedWithdrawalAmount ?? 0) >
-          0
-        ) {
+        if (month.replacesExistingPlanWithdrawal === true) {
           planWithdrawalAdjustments.push({
             month: month.month,
             year: month.year,

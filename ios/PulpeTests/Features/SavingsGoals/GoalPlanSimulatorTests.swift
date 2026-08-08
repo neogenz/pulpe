@@ -75,6 +75,35 @@ struct GoalPlanSimulatorTests {
         )
     }
 
+    private func managedWithdrawalMonth(
+        destination: SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination,
+        remaining: Decimal = 4_500
+    ) -> SavingsGoalPlanMonth {
+        SavingsGoalPlanMonth(
+            month: 6,
+            year: 2026,
+            state: .current,
+            isLocked: false,
+            plannedAmount: 1_260,
+            confirmedAmount: 0,
+            plannedWithdrawalAmount: 4_500,
+            remainingPlannedWithdrawalAmount: remaining,
+            planOnlyWithdrawalAmount: destination == .goalOnly ? remaining : 0,
+            planLinkedWithdrawalAmount: destination == .linkedIncome ? remaining : 0,
+            planWithdrawalDestination: destination,
+            plannedCumulative: 1_260,
+            confirmedCumulative: 0,
+            lines: [
+                SavingsGoalPlanLine(
+                    budgetLineId: Self.lineId,
+                    amount: 1_260,
+                    checkedAt: nil,
+                    isManuallyAdjusted: false
+                ),
+            ]
+        )
+    }
+
     private func makeProgress(
         targetAmount: Decimal,
         initialAmount: Decimal,
@@ -114,6 +143,30 @@ struct GoalPlanSimulatorTests {
         #expect(source.contains(
             "Réalise-la dans le budget : le Réel créé sera automatiquement pointé."
         ))
+    }
+
+    @Test("recap preserves the destination of a reloaded linked withdrawal")
+    func recap_preservesLinkedDestination() throws {
+        let month = managedWithdrawalMonth(destination: .linkedIncome)
+        let simulation = try SavingsPlanCalculator.simulate(
+            timeline: [month],
+            targetAmount: 20_000,
+            adjustments: [.init(month: 6, year: 2026, amount: -3_000)],
+            initialAmount: 10_000
+        )
+
+        #expect(GoalPlanApplyRecapSheet.initialWithdrawalDestination(
+            for: simulation.months.filter(\.isAdjusted)
+        ) == .linkedIncome)
+        #expect(SavingsPlanCalculator.currentPlanMovement(month) == -4_500)
+        #expect(GoalPlanApplyRecapSheet.conversionMessage(
+            from: .linkedIncome,
+            to: .goalOnly
+        ) == "La Prévision Revenu liée sera supprimée avec la mise à jour du plan.")
+        #expect(GoalPlanApplyRecapSheet.conversionMessage(
+            from: .goalOnly,
+            to: .linkedIncome
+        ) == "Une Prévision Revenu liée sera créée avec la mise à jour du plan.")
     }
 
     @Test("omits a zero-valued gap creation while keeping a zero-valued existing-line adjustment")
@@ -221,6 +274,76 @@ struct GoalPlanSimulatorTests {
         #expect(payload.missingMonthAdjustments.isEmpty)
         #expect(payload.planWithdrawalAdjustments.first?.amount == -450)
         #expect(payload.planWithdrawalAdjustments.first?.destination == .goalOnly)
+    }
+}
+
+extension GoalPlanSimulatorTests {
+    @Test(
+        "global replacement keeps preview and payload aligned",
+        arguments: [
+            SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination.goalOnly,
+            SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination.linkedIncome,
+        ]
+    )
+    func globalReplacement_alignsPreviewAndPayload(
+        destination: SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination
+    ) async throws {
+        let service = MockSavingsGoalService()
+        let viewModel = GoalPlanSimulatorViewModel(
+            goal: makeGoal(),
+            progress: makeProgress(
+                targetAmount: 20_000,
+                initialAmount: 10_000,
+                months: [managedWithdrawalMonth(destination: destination)]
+            ),
+            currency: .chf,
+            payDay: nil,
+            service: service
+        )
+
+        viewModel.setGlobalAmount(1_260)
+        #expect(viewModel.draft.simulatedFinal == 11_260)
+        #expect(await viewModel.apply(withdrawalDestination: destination))
+        #expect(service.lastApplyPayload?.planWithdrawalAdjustments.first?.amount == 0)
+
+        let zeroService = MockSavingsGoalService()
+        let zeroViewModel = GoalPlanSimulatorViewModel(
+            goal: makeGoal(),
+            progress: makeProgress(
+                targetAmount: 20_000,
+                initialAmount: 10_000,
+                months: [managedWithdrawalMonth(destination: destination)]
+            ),
+            currency: .chf,
+            payDay: nil,
+            service: zeroService
+        )
+        zeroViewModel.setGlobalAmount(0)
+        #expect(zeroViewModel.draft.simulatedFinal == 10_000)
+        #expect(await zeroViewModel.apply(withdrawalDestination: destination))
+        #expect(zeroService.lastApplyPayload?.planWithdrawalAdjustments.first?.amount == 0)
+    }
+
+    @Test("a positive amount equal to the old contribution still clears the current withdrawal")
+    func setMonth_comparesWithCurrentMovement() async throws {
+        let service = MockSavingsGoalService()
+        let viewModel = GoalPlanSimulatorViewModel(
+            goal: makeGoal(),
+            progress: makeProgress(
+                targetAmount: 20_000,
+                initialAmount: 10_000,
+                months: [managedWithdrawalMonth(destination: .linkedIncome)]
+            ),
+            currency: .chf,
+            payDay: nil,
+            service: service
+        )
+
+        viewModel.setMonth(key: 2026 * 12 + 6, amount: 1_260)
+
+        #expect(viewModel.planChanges.count == 1)
+        #expect(await viewModel.apply(withdrawalDestination: .linkedIncome))
+        #expect(service.lastApplyPayload?.planWithdrawalAdjustments.first?.amount == 0)
     }
 
     @Test("keeps the global savings control non-negative without clamping")

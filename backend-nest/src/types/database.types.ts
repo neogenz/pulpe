@@ -665,7 +665,64 @@ export type Database = {
           isSetofReturn: true;
         };
       };
-      apply_savings_goal_plan_with_destinations: {
+      apply_savings_goal_plan_core: {
+        Args: {
+          p_goal_id: string;
+          p_line_updates?: Json;
+          p_min_period_index: number;
+          p_plan_withdrawals?: Json;
+        };
+        Returns: {
+          amount: string | null;
+          budget_id: string;
+          checked_at: string | null;
+          created_at: string;
+          exchange_rate: number | null;
+          id: string;
+          is_manually_adjusted: boolean;
+          is_savings_goal_plan_adjustment: boolean;
+          kind: Database['public']['Enums']['transaction_kind'];
+          name: string;
+          original_amount: string | null;
+          original_currency: string | null;
+          recurrence: Database['public']['Enums']['transaction_recurrence'];
+          savings_goal_id: string | null;
+          savings_withdrawal_group_id: string | null;
+          source_savings_goal_id: string | null;
+          source_savings_goal_name: string | null;
+          spread_group_id: string | null;
+          target_currency: string | null;
+          template_line_id: string | null;
+          updated_at: string;
+        }[];
+        SetofOptions: {
+          from: '*';
+          to: 'budget_line';
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
+      apply_savings_goal_plan_with_destinations:
+        | {
+            Args: {
+              p_goal_id: string;
+              p_line_updates?: Json;
+              p_min_period_index: number;
+              p_plan_withdrawals?: Json;
+            };
+            Returns: Json;
+          }
+        | {
+            Args: {
+              p_expected_revision: number;
+              p_goal_id: string;
+              p_line_updates: Json;
+              p_min_period_index: number;
+              p_plan_withdrawals: Json;
+            };
+            Returns: Json;
+          };
+      apply_savings_goal_plan_with_destinations_core: {
         Args: {
           p_goal_id: string;
           p_line_updates?: Json;
@@ -861,6 +918,18 @@ export type Database = {
         Returns: Json;
       };
       rekey_user_encrypted_data: {
+        Args: {
+          p_budget_lines?: Json;
+          p_key_check?: string;
+          p_monthly_budgets?: Json;
+          p_savings_goals?: Json;
+          p_template_lines?: Json;
+          p_transactions?: Json;
+          p_user_id: string;
+        };
+        Returns: undefined;
+      };
+      rekey_user_encrypted_data_core: {
         Args: {
           p_budget_lines?: Json;
           p_key_check?: string;

@@ -21,9 +21,33 @@ struct GoalPlanApplyRecapSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var isConfirming = false
-    @State private var withdrawalDestination = SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination.goalOnly
+    @State private var withdrawalDestination: SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination
 
     private let maxListedRows = 5
+
+    init(
+        mode: GoalPlanApplyRecapMode = .adjustment,
+        changes: [SavingsPlanCalculator.SimulatedMonth],
+        verdict: String,
+        currency: SupportedCurrency,
+        onConfirm: @escaping (SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination) async -> Bool
+    ) {
+        self.mode = mode
+        self.changes = changes
+        self.verdict = verdict
+        self.currency = currency
+        self.onConfirm = onConfirm
+        _withdrawalDestination = State(
+            initialValue: Self.initialWithdrawalDestination(for: changes)
+        )
+    }
+
+    nonisolated static func initialWithdrawalDestination(
+        for changes: [SavingsPlanCalculator.SimulatedMonth]
+    ) -> SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination {
+        let destinations = Set(changes.compactMap(\.month.planWithdrawalDestination))
+        return destinations.count == 1 ? destinations.first ?? .goalOnly : .goalOnly
+    }
 
     private var isUniform: Bool {
         mode == .adjustment && Set(changes.map(\.simulatedAmount)).count <= 1
@@ -44,6 +68,28 @@ struct GoalPlanApplyRecapSheet: View {
 
     private var canLinkWithdrawal: Bool {
         changes.filter { $0.simulatedAmount < 0 }.allSatisfy(\.month.hasBudget)
+    }
+
+    private var existingWithdrawalDestination: SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination? {
+        let destinations = Set(changes.compactMap(\.month.planWithdrawalDestination))
+        return destinations.count == 1 ? destinations.first : nil
+    }
+
+    private var conversionMessage: String? {
+        Self.conversionMessage(
+            from: existingWithdrawalDestination,
+            to: withdrawalDestination
+        )
+    }
+
+    nonisolated static func conversionMessage(
+        from existing: SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination?,
+        to selected: SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination
+    ) -> String? {
+        guard let existing, existing != selected else { return nil }
+        return existing == .linkedIncome
+            ? "La Prévision Revenu liée sera supprimée avec la mise à jour du plan."
+            : "Une Prévision Revenu liée sera créée avec la mise à jour du plan."
     }
 
     var body: some View {
@@ -104,6 +150,13 @@ struct GoalPlanApplyRecapSheet: View {
                 Text("Crée d’abord le budget du mois concerné pour y ajouter ce revenu.")
                     .font(PulpeTypography.listRowSubtitle)
                     .foregroundStyle(Color.textSecondary)
+            }
+
+            if let conversionMessage {
+                Text(conversionMessage)
+                    .font(PulpeTypography.listRowSubtitle)
+                    .foregroundStyle(Color.textSecondary)
+                    .accessibilityAddTraits(.isStaticText)
             }
         }
     }
@@ -166,7 +219,7 @@ struct GoalPlanApplyRecapSheet: View {
                 .foregroundStyle(Color.textSecondary)
             Spacer()
             if mode == .adjustment {
-                Text(simMonth.month.plannedAmount.asCompactCurrency(currency))
+                Text(SavingsPlanCalculator.currentPlanMovement(simMonth.month).asCompactCurrency(currency))
                     .foregroundStyle(Color.textTertiary)
                     .strikethrough(true, color: Color.textTertiary)
                 Image(systemName: "arrow.right")
