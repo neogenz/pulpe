@@ -46,7 +46,25 @@ export function createProductTourSteps(
 
   return {
     intro,
-    dashboard: intro,
+    // The dashboard's own help used to replay `intro` verbatim, so the page's
+    // help ended by pointing at the navigation rail — an answer to "where is
+    // everything else", asked from the one screen that is not everything else.
+    // It never mentioned the FAB, which is the action the page exists for and
+    // the only control on it that writes anything. The two steps about this
+    // page are kept; the third now names the button.
+    dashboard: [
+      intro[0],
+      intro[1],
+      {
+        element: '[data-tour="add-transaction-fab"]',
+        popover: {
+          title: text('productTour.dashboard.addTransaction.title'),
+          description: text('productTour.dashboard.addTransaction.description'),
+          side: 'left',
+          align: 'end',
+        },
+      },
+    ],
     'budget-list': [
       {
         element: '[data-tour="calendar-grid"]',

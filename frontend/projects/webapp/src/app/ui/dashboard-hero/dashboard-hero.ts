@@ -82,6 +82,10 @@ let heroInstanceCount = 0;
             — {{ 'dashboard.monthBudgetHeadingSuffix' | transloco }}</span
           >
         </h2>
+        @let range = periodRange();
+        @if (range) {
+          <span class="text-label-small opacity-80 shrink-0">{{ range }}</span>
+        }
         <!-- Decoration. It says the card opens something; the control that
              actually opens it covers the whole card above. -->
         <mat-icon class="ml-auto opacity-80 shrink-0" aria-hidden="true"
@@ -454,8 +458,13 @@ let heroInstanceCount = 0;
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DashboardHero {
-  readonly #monthFormatter = new Intl.DateTimeFormat(inject(LOCALE_ID), {
+  readonly #locale = inject(LOCALE_ID);
+  readonly #monthFormatter = new Intl.DateTimeFormat(this.#locale, {
     month: 'long',
+  });
+  readonly #dayMonthFormatter = new Intl.DateTimeFormat(this.#locale, {
+    day: 'numeric',
+    month: 'short',
   });
   readonly #transloco = inject(TranslocoService);
   // The section is named by its own heading, which needs an id to point at.
@@ -556,6 +565,18 @@ export class DashboardHero {
     const end = dates.endDate.getTime();
     const middleDate = new Date(start + (end - start) / 2);
     return this.#monthFormatter.format(middleDate);
+  });
+
+  // Only when the period does not sit on the calendar month, which is exactly
+  // when the month name stops being enough: a payday of 27 makes the period
+  // called "février" run from 27 January, so on the 27th the card names a month
+  // the user is not in yet, and every figure on the page is scoped to a window
+  // that appears nowhere. At the default payday the range would restate the
+  // heading, so it says nothing.
+  protected readonly periodRange = computed(() => {
+    const dates = this.periodDates();
+    if (!dates || dates.startDate.getDate() === 1) return '';
+    return `${this.#dayMonthFormatter.format(dates.startDate)} – ${this.#dayMonthFormatter.format(dates.endDate)}`;
   });
 
   // The card answers "am I doing OK?" out loud instead of leaving the user to

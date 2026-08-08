@@ -78,6 +78,12 @@
         "description": "<p><strong>Budgets</strong> pour tes mois, <strong>Modèles</strong> pour préparer ce qui revient, <strong>Objectifs</strong> pour tes projets d'épargne. Tu peux revoir l'aide de chaque écran depuis ton menu.</p>"
       }
     },
+    "dashboard": {
+      "addTransaction": {
+        "title": "Note une dépense en dix secondes",
+        "description": "<p>Ce bouton sert aux mouvements <strong>hors prévision</strong> — l'imprévu, la course en plus. Pour ce qui était prévu, pointe la ligne dans « Prévisions à pointer » : c'est le même geste, en un tap.</p>"
+      }
+    },
     "budgetList": {
       "calendar": {
         "title": "Choisis le mois à gérer",

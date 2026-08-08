@@ -84,6 +84,39 @@ describe('DashboardHero', () => {
     expect(component.budgetStatus()).toBe('on-track');
   });
 
+  // A payday of 27 makes the period called "février" run from 27 January, so
+  // on the 27th the card names a month the user is not in yet and every figure
+  // on the page is scoped to a window that appeared nowhere. At the default
+  // payday the range would only restate the heading.
+  describe('period range', () => {
+    it('should show the window when the period does not sit on the month', () => {
+      setTestInput(component.periodDates, {
+        startDate: new Date(2026, 0, 27),
+        endDate: new Date(2026, 1, 26),
+      });
+      fixture.detectChanges();
+
+      // Locale-agnostic: TestBed runs on the default LOCALE_ID, the app on
+      // fr-CH. What must hold is that both boundaries reach the card.
+      const range = component['periodRange']();
+      expect(range).toContain('27');
+      expect(range).toContain('26');
+      expect((fixture.nativeElement as HTMLElement).textContent).toContain(
+        range,
+      );
+    });
+
+    it('should stay quiet when the period is the calendar month', () => {
+      setTestInput(component.periodDates, {
+        startDate: new Date(2026, 7, 1),
+        endDate: new Date(2026, 7, 31),
+      });
+      fixture.detectChanges();
+
+      expect(component['periodRange']()).toBe('');
+    });
+  });
+
   it('should expose budgetConsumedPercentage from input', () => {
     setTestInput(component.budgetConsumedPercentage, 100);
 
