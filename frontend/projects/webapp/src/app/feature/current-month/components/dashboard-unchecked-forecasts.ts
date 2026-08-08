@@ -83,7 +83,7 @@ interface AnimatingForecast {
                 class="text-body-small text-on-surface-variant font-medium mt-0.5"
                 data-testid="dashboard-forecasts-subtitle"
               >
-                @if (checkedCount() === 0) {
+                @if (showPointerHint()) {
                   {{
                     'currentMonth.uncheckedForecasts.pointerHint' | transloco
                   }}
@@ -295,6 +295,11 @@ export class DashboardUncheckedForecasts {
   // How many pointable forecasts the month holds in all — `forecasts` only
   // carries the ones still waiting.
   readonly totalCount = input.required<number>();
+
+  // Keyed on whether the user has ever pointed, not on this month's count: the
+  // old gate was month-local, so the definition came back every 1st of the
+  // month for the rest of the account's life.
+  readonly showPointerHint = input(true);
   readonly consumptions = input(new Map<string, BudgetLineConsumption>());
 
   protected readonly checkedCount = computed(() =>

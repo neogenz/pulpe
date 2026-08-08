@@ -125,6 +125,7 @@ export const UNDO_WINDOW_MS = 6000;
             [rolloverAmount]="store.rolloverAmount()"
             [timeElapsedPercentage]="store.timeElapsedPercentage()"
             [paceStatus]="store.paceStatus()"
+            [showEngagedHint]="showPointingHints()"
             [currency]="currency()"
             [locale]="currencyLocale()"
             (heroClick)="navigateToBudgetDetails()"
@@ -160,6 +161,7 @@ export const UNDO_WINDOW_MS = 6000;
             <pulpe-dashboard-unchecked-forecasts
               [forecasts]="store.uncheckedForecasts()"
               [totalCount]="store.forecastsTotalCount()"
+              [showPointerHint]="showPointingHints()"
               [consumptions]="store.consumptions()"
               [currency]="currency()"
               (toggleCheck)="checkBudgetLine($event)"
@@ -519,6 +521,29 @@ export default class Dashboard {
     this.#outlookExpanded.set(isExpanded);
     this.#storage.set(STORAGE_KEYS.DASHBOARD_OUTLOOK_EXPANDED, isExpanded);
   }
+
+  // "Engagé" and "Pointer" are this page's two house words, and each carries a
+  // printed definition on the card that uses it. Both were retiring on the
+  // wrong clock: the hero's showed whenever an engagé segment existed, which is
+  // most months forever, and the forecasts card's came back every 1st of the
+  // month because it keyed on the current month's check count. On a surface
+  // built for a ten-second daily check, that made two lines of teaching copy
+  // permanent furniture on the two most important cards. One gesture retires
+  // both — the user who has pointed a line has been taught what pointing is,
+  // and what leaves "engagé" when they do it.
+  readonly #pointingLearned = signal(
+    this.#storage.get<boolean>(STORAGE_KEYS.DASHBOARD_POINTING_LEARNED) ??
+      false,
+  );
+  protected readonly showPointingHints = computed(
+    () => !this.#pointingLearned(),
+  );
+
+  #recordPointingLearned(): void {
+    if (this.#pointingLearned()) return;
+    this.#pointingLearned.set(true);
+    this.#storage.set(STORAGE_KEYS.DASHBOARD_POINTING_LEARNED, true);
+  }
   // The ids one toast can still take back. A second check used to replace the
   // first toast and, with it, the only way back to the first line — pointing
   // three lines quickly left two of them stranded. They accumulate here for as
@@ -636,6 +661,7 @@ export default class Dashboard {
     // line already gone. Nothing happened, so nothing is confirmed or undone.
     if (name === undefined) return;
 
+    this.#recordPointingLearned();
     this.#confirmCheckWithUndo(budgetLineId, name);
   }
 

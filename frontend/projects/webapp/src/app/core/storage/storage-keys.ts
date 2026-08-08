@@ -21,6 +21,10 @@ export const STORAGE_KEYS = {
   // Dashboard: whether the read-only outlook half is unfolded
   DASHBOARD_OUTLOOK_EXPANDED: 'pulpe-dashboard-outlook-expanded',
 
+  // Dashboard: the user has pointed at least once, so the two house words the
+  // page defines inline ("Engagé", "Pointer") no longer need their glossaries
+  DASHBOARD_POINTING_LEARNED: 'pulpe-dashboard-pointing-learned',
+
   // Savings-withdrawal card dismissal, keyed per budget id (PUL-292)
   SAVINGS_WITHDRAWAL_CARD_DISMISSED: 'pulpe-savings-withdrawal-card-dismissed',
 

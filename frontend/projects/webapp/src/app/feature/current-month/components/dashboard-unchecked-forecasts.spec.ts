@@ -63,12 +63,27 @@ describe('DashboardUncheckedForecasts', () => {
   it('should read the subtitle as progress against the month, not a bare backlog', () => {
     setTestInput(component.forecasts, mockForecasts);
     setTestInput(component.totalCount, 12);
+    setTestInput(component.showPointerHint, false);
     fixture.detectChanges();
 
     const subtitle = fixture.debugElement.query(By.css('h2 + p'));
     expect(subtitle.nativeElement.textContent.trim()).toBe(
       `${12 - mockForecasts.length} sur 12 pointées`,
     );
+  });
+
+  // The gate used to be this month's check count, so the definition returned
+  // every 1st of the month for the life of the account. It now keys on whether
+  // the user has ever pointed, which the page owns and persists.
+  it('should keep the count for a user who has already pointed, whatever the month', () => {
+    setTestInput(component.forecasts, mockForecasts);
+    setTestInput(component.totalCount, mockForecasts.length);
+    setTestInput(component.showPointerHint, false);
+    fixture.detectChanges();
+
+    const subtitle = fixture.debugElement.query(By.css('h2 + p'));
+    expect(subtitle.nativeElement.textContent).toContain('pointées');
+    expect(subtitle.nativeElement.textContent).not.toContain('Pointer :');
   });
 
   // "Pointer" is the verb this card runs on and the one house word the page

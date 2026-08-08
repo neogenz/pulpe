@@ -142,6 +142,19 @@ let heroInstanceCount = 0;
         <p class="text-body-small mt-1.5">
           @if (isPlanOverAvailable()) {
             {{ 'dashboard.missingToCover' | transloco }}
+            <!-- The deficit branch prints no ceiling, so the clause cannot be a
+                 share of one — but a negative report is frequently the whole
+                 reason the plan does not fit, and dropping it withheld the
+                 cause from the one state that needs it. Named as a cause here,
+                 as a decomposition in the branch that has a total. -->
+            @let deficitRollover = rolloverAmount();
+            @if (deficitRollover < 0) {
+              <span class="ph-no-capture">
+                · {{ 'dashboard.rolloverCause' | transloco }}
+                {{ deficitRollover | number: '1.0-0' : locale() }}
+                {{ currencySymbol() }}
+              </span>
+            }
           } @else {
             {{ 'dashboard.availableToSpend' | transloco }}
             <span class="tabular-nums ph-no-capture">
@@ -288,7 +301,7 @@ let heroInstanceCount = 0;
         <!-- Gated on the same condition as the key it defines. A month fully
              pointed draws no engagé segment and prints no engagé key, and the
              gloss stayed behind to define a word that had left the card. -->
-        @if (engagedShare() > 0) {
+        @if (engagedShare() > 0 && showEngagedHint()) {
           <p class="progress-legend-note">
             {{ 'dashboard.engagedHint' | transloco }}
           </p>
@@ -562,6 +575,11 @@ export class DashboardHero {
   // hedging that the budget was "presque" entirely committed. The one reading
   // on this page with real stakes was the one delivered in the palette of
   // reassurance.
+  // Owned by the page, because retiring the definition is a fact about the
+  // user rather than about this month, and `ui/` cannot reach the store that
+  // remembers it.
+  readonly showEngagedHint = input(true);
+
   readonly isPlanOverAvailable = computed(() => this.remaining() < 0);
 
   // The caption carries the sign as a word, so the digits do not carry it
