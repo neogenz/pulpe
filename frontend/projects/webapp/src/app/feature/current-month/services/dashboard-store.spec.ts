@@ -864,20 +864,18 @@ describe('DashboardStore - Business Scenarios', () => {
       ]);
     });
 
-    it('should return unknown when the month has no recorded outflow', async () => {
+    it('should report the month within plan when nothing has gone beyond it', async () => {
       const budget = createMockBudget({ rollover: 0 });
       const lines = [
         createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 1000 }),
         createMockBudgetLine({ id: 'exp-1', kind: 'expense', amount: 900 }),
       ];
-      // Mid-June with an empty ledger. Nothing recorded scores 0% against an
-      // elapsed ~47%, which used to read as a verdict the user had not earned.
       const { store } = await setupWithBudgetAndWait(budget, lines, []);
 
-      expect(store.paceStatus()).toBe('unknown');
+      expect(store.paceStatus()).toBe('within-plan');
     });
 
-    it('should stay on-track when spending trails the elapsed month', async () => {
+    it('should stay on-track when unplanned spending trails the elapsed month', async () => {
       const budget = createMockBudget({ rollover: 0 });
       const lines = [
         createMockBudgetLine({
@@ -888,16 +886,17 @@ describe('DashboardStore - Business Scenarios', () => {
         createMockBudgetLine({
           id: 'exp-1',
           kind: 'expense',
-          amount: 900,
+          amount: 500,
         }),
       ];
-      // The envelope engages 900/1000 from day one, but 400 has actually been
-      // spent: realized = 40%, elapsed ~ 47-48% → on-track
+      // The plan leaves 500 free. 100 of it has gone on something the plan did
+      // not name: 20% of the margin against ~47% elapsed → on-track.
       const transactions = [
         createMockTransaction({
           id: 'tx-1',
           kind: 'expense',
-          amount: 400,
+          amount: 100,
+          budgetLineId: null,
           checkedAt: '2025-06-10T00:00:00Z',
         }),
       ];
@@ -908,6 +907,64 @@ describe('DashboardStore - Business Scenarios', () => {
       );
 
       expect(store.paceStatus()).toBe('on-track');
+    });
+
+    // The decision this verdict now encodes: the card asks the user to point a
+    // prévision "dès qu'elle passe sur ton compte", and doing so on the 2nd
+    // used to score the rent's full amount against 3% of elapsed month and turn
+    // the hero amber. A pointed prévision is the plan being met, not a rhythm.
+    it('should stay calm when a large forecast is pointed early in the month', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const lines = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 5000 }),
+        createMockBudgetLine({
+          id: 'rent',
+          kind: 'expense',
+          amount: 1500,
+          checkedAt: '2025-06-02T00:00:00Z',
+        }),
+      ];
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        [],
+        new Date('2025-06-02T12:00:00Z'),
+      );
+
+      expect(store.realizedExpenses()).toBe(1500);
+      expect(store.paceStatus()).toBe('within-plan');
+    });
+
+    // Spending inside an envelope is spending the plan already reserved, so it
+    // moves the bar and the legend and leaves the verdict alone. Only the part
+    // that runs past what the envelope reserved is the plan being exceeded.
+    it('should count only the part of an envelope spent beyond its amount', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const lines = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 2000 }),
+        createMockBudgetLine({
+          id: 'groceries',
+          kind: 'expense',
+          amount: 600,
+        }),
+      ];
+      const withinEnvelope = [
+        createMockTransaction({
+          id: 'tx-1',
+          kind: 'expense',
+          amount: 600,
+          budgetLineId: 'groceries',
+          checkedAt: '2025-06-03T00:00:00Z',
+        }),
+      ];
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        withinEnvelope,
+        new Date('2025-06-03T12:00:00Z'),
+      );
+
+      expect(store.paceStatus()).toBe('within-plan');
     });
 
     it('should return tight when realized spending outruns the elapsed month past its tolerance', async () => {
@@ -924,12 +981,14 @@ describe('DashboardStore - Business Scenarios', () => {
           amount: 900,
         }),
       ];
-      // realized = 900/1000 = 90%, elapsed ~ 47-48%, tolerance ~ 15-16 → tight
+      // The plan leaves 100 free and 900 has gone outside it entirely: the
+      // margin is spent nine times over against ~47% elapsed → tight.
       const transactions = [
         createMockTransaction({
           id: 'tx-1',
           kind: 'expense',
           amount: 900,
+          budgetLineId: null,
           checkedAt: '2025-06-10T00:00:00Z',
         }),
       ];
@@ -950,16 +1009,18 @@ describe('DashboardStore - Business Scenarios', () => {
     it('should not call the pace tight for one early-month debit', async () => {
       const budget = createMockBudget({ rollover: 0 });
       const lines = [
-        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 1000 }),
-        createMockBudgetLine({ id: 'exp-1', kind: 'expense', amount: 900 }),
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 2000 }),
+        createMockBudgetLine({ id: 'exp-1', kind: 'expense', amount: 1000 }),
       ];
-      // 200/1000 = 20% realized against ~7% elapsed: over a flat 5-point band,
+      // The plan leaves 1'000 free and 200 of it has gone outside any envelope:
+      // 20% of the margin against ~7% elapsed, over a flat 5-point band but
       // inside the ~24 points the start of a month is worth.
       const transactions = [
         createMockTransaction({
           id: 'tx-1',
           kind: 'expense',
           amount: 200,
+          budgetLineId: null,
           checkedAt: '2025-06-02T00:00:00Z',
         }),
       ];
@@ -1002,13 +1063,11 @@ describe('DashboardStore - Business Scenarios', () => {
         new Date('2025-06-02T12:00:00Z'),
       );
 
-      // The money is out, so it belongs in what has gone out — but the pace
-      // verdict speaks about spending, and nothing has been spent. Neither
-      // "tu dépenses trop vite" nor "ton rythme tient" is a claim this ledger
-      // supports; the card asks for the transaction that would make one.
+      // The money is out, so it belongs in what has gone out — but the verdict
+      // speaks about spending, and money set aside is not money spent.
       expect(store.realizedExpenses()).toBe(1500);
       expect(store.totalSavingsRealized()).toBe(1500);
-      expect(store.paceStatus()).toBe('unknown');
+      expect(store.paceStatus()).toBe('within-plan');
     });
 
     // The order the reader sees has to be the order of the numbers the reader
@@ -1091,7 +1150,7 @@ describe('DashboardStore - Business Scenarios', () => {
       const budget = createMockBudget({ rollover: 0 });
       const lines = [
         createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 5000 }),
-        createMockBudgetLine({ id: 'exp-1', kind: 'expense', amount: 3000 }),
+        createMockBudgetLine({ id: 'exp-1', kind: 'expense', amount: 2000 }),
         createMockBudgetLine({
           id: 'goal',
           kind: 'saving',
@@ -1099,13 +1158,15 @@ describe('DashboardStore - Business Scenarios', () => {
           checkedAt: '2025-06-03T00:00:00Z',
         }),
       ];
-      // 1500 of savings put aside, 500 of real spending: 10% of the month
-      // against ~16% elapsed. With the savings in the numerator it was 40%.
+      // 1500 of savings put aside, 500 spent outside any envelope against the
+      // 1500 the plan left free. Only the 500 reaches the verdict; with the
+      // savings in the numerator it was 40%.
       const transactions = [
         createMockTransaction({
           id: 'tx-1',
           kind: 'expense',
           amount: 500,
+          budgetLineId: null,
           checkedAt: '2025-06-05T00:00:00Z',
         }),
       ];

@@ -283,33 +283,72 @@ export class DashboardStore {
       .reduce((sum, tx) => sum + tx.amount, 0),
   );
 
-  readonly #realizedSpending = computed<number>(
-    () => this.realizedExpenses() - this.totalSavingsRealized(),
-  );
-
-  readonly #realizedSpendingPercentage = computed(() => {
-    const available = this.totalAvailable();
-    const spending = this.#realizedSpending();
-    if (available <= 0) return spending > 0 ? 100 : 0;
-    const percentage = (spending / available) * 100;
-    return Math.round(Math.min(Math.max(0, percentage), 100));
+  // What the plan did not know about: money spent outside every envelope, plus
+  // the part of an envelope spent beyond what it reserved.
+  //
+  // Realized outflow was the wrong numerator, whatever was subtracted from it.
+  // A pointed prévision counts at its full amount the day it lands, so a 1'500
+  // rent pointed on the 2nd scored 30% of the budget against 3% of elapsed
+  // month and turned the card amber — for performing the gesture the list
+  // beside it asks for "dès qu'elle passe sur ton compte". The verdict charged
+  // the user for recording, which is the one behaviour this product cannot
+  // discourage, and it did so on the plan rather than on behaviour.
+  //
+  // Savings are absent by the same rule as everywhere else on this card: money
+  // set aside is not money spent.
+  readonly #unplannedSpending = computed<number>(() => {
+    const consumedByLine = new Map<string, number>();
+    let freeSpending = 0;
+    for (const tx of this.transactions()) {
+      if (tx.checkedAt == null || tx.kind !== 'expense') continue;
+      if (!tx.budgetLineId) {
+        freeSpending += tx.amount;
+        continue;
+      }
+      consumedByLine.set(
+        tx.budgetLineId,
+        (consumedByLine.get(tx.budgetLineId) ?? 0) + tx.amount,
+      );
+    }
+    let overspend = 0;
+    for (const line of this.budgetLines()) {
+      if (line.kind !== 'expense') continue;
+      overspend += Math.max(
+        0,
+        (consumedByLine.get(line.id) ?? 0) - line.amount,
+      );
+    }
+    return freeSpending + overspend;
   });
 
-  readonly paceStatus = computed<'on-track' | 'tight' | 'unknown'>(() => {
-    // The gate reads the same quantity as the verdict. Reading `realizedExpenses`
-    // here while the numerator below subtracted every franc of savings let a
-    // month whose only activity was a transfer pass as evidence and then score
-    // zero against it: the card said "Ton rythme tient." from a spending ledger
-    // that was empty, which is the exact claim the comment above forbids.
-    if (this.#realizedSpending() === 0) return 'unknown';
-    const realized = this.#realizedSpendingPercentage();
+  // What the plan left free, read off the plan rather than off `totalExpenses`.
+  // That total is an envelope figure: it already absorbs free transactions and
+  // envelope overshoot, which is precisely the money being measured against it,
+  // so using it would net the numerator out of its own denominator.
+  readonly #plannedMargin = computed<number>(() => {
+    let plannedOutflow = 0;
+    for (const line of this.budgetLines()) {
+      if (isOutflowKind(line.kind)) plannedOutflow += line.amount;
+    }
+    return this.totalAvailable() - plannedOutflow;
+  });
+
+  readonly paceStatus = computed<'on-track' | 'tight' | 'within-plan'>(() => {
+    // Nothing beyond the plan is not an absence of evidence — it is the good
+    // answer, and it is the common one for most of a month. It gets said out
+    // loud rather than folded into a "cannot tell yet".
+    const unplanned = this.#unplannedSpending();
+    if (unplanned === 0) return 'within-plan';
+    const margin = this.#plannedMargin();
+    if (margin <= 0) return 'tight';
+    const share = Math.round(Math.min(100, (unplanned / margin) * 100));
     const elapsed = this.timeElapsedPercentage();
     const tolerance =
       PACE_TOLERANCE_FLOOR_PERCENT +
       ((PACE_TOLERANCE_START_PERCENT - PACE_TOLERANCE_FLOOR_PERCENT) *
         (100 - elapsed)) /
         100;
-    return realized <= elapsed + tolerance ? 'on-track' : 'tight';
+    return share <= elapsed + tolerance ? 'on-track' : 'tight';
   });
 
   readonly rolloverAmount = computed<number>(() => {

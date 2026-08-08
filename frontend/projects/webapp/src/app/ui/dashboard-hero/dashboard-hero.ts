@@ -506,7 +506,9 @@ export class DashboardHero {
   readonly periodDates = input.required<BudgetPeriodDates>();
   readonly rolloverAmount = input(0);
   readonly timeElapsedPercentage = input(0);
-  readonly paceStatus = input<'on-track' | 'tight' | 'unknown'>('on-track');
+  readonly paceStatus = input<'on-track' | 'tight' | 'within-plan'>(
+    'within-plan',
+  );
   readonly warningThreshold = input(90);
 
   readonly currency = input<SupportedCurrency>('CHF');
@@ -647,23 +649,19 @@ export class DashboardHero {
     switch (this.paceStatus()) {
       case 'tight':
         return 'dashboard.status.fastPace';
-      // Nothing recorded, so the pace cannot speak. The plan can, and a plan
-      // that leaves almost nothing free is the one true thing this card has to
-      // say before the first transaction — the only place the plan still gets
-      // the headline, and only because nothing else can hold it.
-      case 'unknown':
+      // Nothing has gone beyond the plan. That is an answer, not a shrug, and
+      // it is the one this card gives for most of a well-run month.
+      case 'within-plan':
+        // The plan can still be the story: one that leaves almost nothing free
+        // is the single true thing this card has to say, and the only place the
+        // plan still takes the headline.
         if (this.budgetConsumedPercentage() > this.warningThreshold())
           return 'dashboard.status.almostSpent';
-        // "Rien de saisi ce mois" is only true of an empty ledger, and the
-        // pace verdict is deaf to savings by design — so a month whose only
-        // activity was a transfer reached this branch and denied it, forty
-        // pixels above a legend key reading "Déjà sorti 800" and a bar with a
-        // filled segment. The user who funds their savings first was told
-        // nothing had happened, on the one behaviour the product exists to
-        // reward. Everything realized being savings is its own state, and the
-        // subtraction that makes the pace silent is exactly what proves it.
+        // An empty ledger and a month where everything that left was foreseen
+        // are two different pieces of news, and only the first of them is
+        // "rien de saisi".
         return this.realizedExpenses() > 0
-          ? 'dashboard.status.savingsOnly'
+          ? 'dashboard.status.withinPlan'
           : 'dashboard.status.noPaceYet';
       default:
         return 'dashboard.status.onTrack';

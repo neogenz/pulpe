@@ -225,23 +225,23 @@ describe('DashboardHero', () => {
     // activity was a transfer arrives here as 'unknown'. It used to answer
     // "Rien de saisi ce mois" forty pixels above a legend key reading
     // "Déjà sorti 800" and a bar with a filled segment.
-    it('should not claim an empty month when everything realized is savings', () => {
+    it('should not claim an empty month when what left the account was foreseen', () => {
       setTestInput(component.available, 5000);
       setTestInput(component.realizedExpenses, 800);
       setTestInput(component.budgetConsumedPercentage, 60);
-      setTestInput(component.paceStatus, 'unknown');
+      setTestInput(component.paceStatus, 'within-plan');
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;
       expect(compiled.textContent).not.toContain('Rien de saisi ce mois');
-      expect(compiled.textContent).toContain("Que de l'épargne");
+      expect(compiled.textContent).toContain('Tout ce qui est sorti était');
     });
 
     it('should say nothing was recorded when the ledger really is empty', () => {
       setTestInput(component.available, 5000);
       setTestInput(component.realizedExpenses, 0);
       setTestInput(component.budgetConsumedPercentage, 60);
-      setTestInput(component.paceStatus, 'unknown');
+      setTestInput(component.paceStatus, 'within-plan');
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;
@@ -282,7 +282,7 @@ describe('DashboardHero', () => {
       setTestInput(component.remaining, 50);
       setTestInput(component.budgetConsumedPercentage, 95);
       setTestInput(component.realizedExpenses, 0);
-      setTestInput(component.paceStatus, 'unknown');
+      setTestInput(component.paceStatus, 'within-plan');
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;
