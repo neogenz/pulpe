@@ -105,6 +105,12 @@ import { AppCurrencyPipe } from '@core/currency';
             >
               {{ estimatedRollover() | appCurrency: currency() : '1.0-0' }}
             </span>
+            <!-- The same franc the hero prints at 57px as "Disponible à
+                 dépenser". Both readings are true only if nothing more goes
+                 out, and "estimé" hedges the wrong thing: it reads as
+                 uncertainty in the data, when the uncertainty is the reader's
+                 own remaining spending. -->
+            {{ 'currentMonth.nextMonthRolloverAssumption' | transloco }}
           </p>
         } @else {
           <div class="flex flex-col items-center justify-center gap-3 py-4">

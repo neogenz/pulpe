@@ -624,16 +624,22 @@ export default class Dashboard {
     });
   }
 
-  // Guarded, because `disabledInteractive` keeps the button clickable on
-  // purpose: Material emits no native `disabled` attribute under that flag and
-  // only installs its click-halt on anchors, so `[disabled]` here greys the
-  // control and nothing more. A second press reset the phase to 'requested'
-  // while `isLoading()` was already true — the effect tracks the value, which
-  // did not change, so it never re-ran: the toast for that refresh was lost and
-  // the phase stayed armed until some unrelated reload fired it, replacing
-  // whatever toast was on screen. Undo toasts live in that same slot.
+  // Guarded on the same condition the greyed button already claims, because
+  // `disabledInteractive` keeps it clickable on purpose: Material emits no
+  // native `disabled` attribute under that flag and installs its click-halt
+  // only on anchors, so `[disabled]` greys the control and nothing more.
+  //
+  // It has to be `isLoading`, not the phase. `resource.reload()` returns false
+  // and does nothing while a load is already in flight, so a press landing on a
+  // background refetch armed the phase over a reload that never started:
+  // `isLoading()` never changed value, the effect below never re-ran, and when
+  // the load finally settled the phase matched no branch and stayed at
+  // 'requested' — the one state 'idle' is never restored from. Guarding on the
+  // phase then made that permanent, killing the button for the rest of the
+  // visit and leaving an armed phase to fire on the next unrelated reload,
+  // where it replaced whatever toast held the screen. Undo toasts live there.
   protected refresh(): void {
-    if (this.#refreshPhase() !== 'idle') return;
+    if (this.store.isLoading()) return;
     this.#refreshPhase.set('requested');
     this.store.refreshData();
   }

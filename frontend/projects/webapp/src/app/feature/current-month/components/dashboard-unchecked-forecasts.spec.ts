@@ -105,7 +105,7 @@ describe('DashboardUncheckedForecasts', () => {
     const hidden = fixture.nativeElement.querySelector(
       '[data-testid="dashboard-forecasts-hidden-count"]',
     );
-    expect(hidden?.textContent?.trim()).toBe('1 autre prévision ce mois');
+    expect(hidden?.textContent?.trim()).toBe('1 autre à pointer');
   });
 
   // "Pointer" is the verb this card runs on and the one house word the page

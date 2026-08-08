@@ -999,6 +999,7 @@
     "nextMonthErrorTitle": "On n'arrive pas à voir le mois prochain",
     "nextMonthErrorMessage": "Tes budgets à venir n'ont pas pu être chargés. Rien n'a été perdu.",
     "nextMonthEstimatedRollover": "Budget anticipé — report estimé :",
+    "nextMonthRolloverAssumption": "si tu ne dépenses plus rien d'ici la fin du mois.",
     "nextMonthNoBudget": "Pas encore de budget pour {{ month }}",
     "nextMonthAnticipate": "Anticiper le mois prochain",
     "uncheckedForecasts": {
@@ -1013,8 +1014,8 @@
       "checked": "Pointé : {{ name }}",
       "checkedMany": "{{ count }} prévisions pointées",
       "stillToCheck": "il en reste {{ count }} à pointer",
-      "hiddenCount": "{{ count }} autres prévisions ce mois",
-      "hiddenCountSingular": "1 autre prévision ce mois"
+      "hiddenCount": "{{ count }} autres à pointer",
+      "hiddenCountSingular": "1 autre à pointer"
     }
   },
   "currency": {

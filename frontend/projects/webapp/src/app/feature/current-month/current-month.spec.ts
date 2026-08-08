@@ -864,6 +864,49 @@ describe('Dashboard (TestBed)', () => {
       );
     });
 
+    // A press landing on a background refetch, rather than starting one.
+    // `reload()` does nothing while a load is in flight, so arming the phase
+    // there left it stuck at 'requested' — the state 'idle' is never restored
+    // from — and the button was dead for the rest of the visit.
+    it('should stay usable when pressed during a reload it did not start', async () => {
+      const { component, mockStore, mockSnackBar } = await setup(
+        budgetId,
+        undefined,
+      );
+
+      mockStore.dashboardData.set({});
+      mockStore.isLoading.set(true);
+      TestBed.tick();
+
+      // Refused while the reload it would have joined is still in flight, so
+      // the phase is never armed over a reload that cannot start.
+      const callsBeforePress = mockStore.refreshData.mock.calls.length;
+      component['refresh']();
+      expect(mockStore.refreshData.mock.calls.length).toBe(callsBeforePress);
+
+      mockStore.isLoading.set(false);
+      TestBed.tick();
+      expect(mockSnackBar.open).not.toHaveBeenCalled();
+
+      // The press that follows must still reach the store. Guarding on the
+      // phase instead left it stuck at 'requested' here and swallowed this.
+      component['refresh']();
+      expect(mockStore.refreshData.mock.calls.length).toBe(
+        callsBeforePress + 1,
+      );
+
+      mockStore.isLoading.set(true);
+      TestBed.tick();
+      mockStore.isLoading.set(false);
+      TestBed.tick();
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Chiffres à jour',
+        expect.any(String),
+        expect.objectContaining({ duration: 5000 }),
+      );
+    });
+
     // isLoading() falls the same way whether the reload worked or not, so the
     // quiet tick alone used to be read as success: a dead connection drew the
     // error card and a toast saying the figures were up to date.
