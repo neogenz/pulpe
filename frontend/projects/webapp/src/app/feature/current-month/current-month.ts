@@ -474,6 +474,17 @@ export default class Dashboard {
     const reason = await this.store.addTransaction(transactionCreate);
     if (reason) {
       this.#notify(reason);
+      return;
     }
+    // Recording a transaction is what this page is for, and it was the one
+    // action here that said nothing when it worked — while checking a box, one
+    // method above, gets its line named, six seconds and an undo. The sheet
+    // closes and on a phone the figures that moved are a screenful above, so
+    // without this the user has no evidence the money was written down.
+    this.#notify(
+      this.#transloco.translate('currentMonth.transactionAdded', {
+        name: transactionCreate.name,
+      }),
+    );
   }
 }

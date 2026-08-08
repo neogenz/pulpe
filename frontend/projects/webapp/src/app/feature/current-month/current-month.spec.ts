@@ -634,12 +634,21 @@ describe('Dashboard (TestBed)', () => {
       );
     });
 
-    it('should stay silent when the transaction went through', async () => {
+    // Silence used to be the assertion here. Recording a transaction is the
+    // page's purpose, the sheet closes over it, and on a phone the figures it
+    // moved are a screenful up — so a success that says nothing leaves the user
+    // with no evidence the money was written down. Checking a box, one method
+    // away in the same component, has always named its line and offered undo.
+    it('should confirm by name when the transaction went through', async () => {
       const { component, mockSnackBar } = await setup(budgetId, quickIncome);
 
       await component['openAddTransaction']();
 
-      expect(mockSnackBar.open).not.toHaveBeenCalled();
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        expect.stringContaining('Retrait Maison'),
+        expect.any(String),
+        expect.objectContaining({ duration: 5000 }),
+      );
     });
   });
 });

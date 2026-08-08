@@ -165,6 +165,24 @@ interface AnimatingForecast {
               </div>
             }
           </div>
+          @if (hiddenCount() > 0) {
+            <!-- The list stops at five and used to stop silently, so a month
+                 with ten outstanding forecasts looked like a month with five.
+                 The card beside it already learnt this lesson — its subtitle
+                 prints the month's total precisely because how many rows are
+                 drawn is something the reader can see and how many exist is
+                 not. Here the truncation happens at the bottom of the list, so
+                 that is where it is said. -->
+            <p
+              class="text-body-small text-on-surface-variant font-medium text-center pt-3 pb-1"
+              data-testid="dashboard-forecasts-hidden-count"
+            >
+              {{
+                'currentMonth.uncheckedForecasts.hiddenCount'
+                  | transloco: { count: hiddenCount() }
+              }}
+            </p>
+          }
         } @else {
           <!-- Focusable so the last check has somewhere to land: clearing the
                final row leaves no toggle button to inherit focus, and the
@@ -232,6 +250,12 @@ export class DashboardUncheckedForecasts {
 
   protected readonly checkedCount = computed(() =>
     Math.max(0, this.totalCount() - this.forecasts().length),
+  );
+  // What the cap swallows. `displayedForecasts` cannot answer this: it also
+  // holds rows on their way out, so during an exit animation it is not the
+  // count of what fits.
+  protected readonly hiddenCount = computed(() =>
+    Math.max(0, this.forecasts().length - MAX_VISIBLE_FORECASTS),
   );
   readonly currency = input<SupportedCurrency>('CHF');
   readonly toggleCheck = output<string>();

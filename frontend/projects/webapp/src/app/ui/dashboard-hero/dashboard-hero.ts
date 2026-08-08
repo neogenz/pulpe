@@ -119,14 +119,14 @@ const FULL_BAR_PERCENT = 100;
       <div class="relative z-10">
         <p class="progress-verdict">{{ statusMessage() | transloco }}</p>
 
-        <div
-          class="progress-bar"
-          role="progressbar"
-          [attr.aria-valuenow]="realizedPercentage()"
-          aria-valuemin="0"
-          aria-valuemax="100"
-          [attr.aria-label]="progressAriaLabel()"
-        >
+        <!-- No role and no aria here, deliberately. This bar sits inside the
+             card, and the card is a role="button", whose children ARIA treats
+             as presentational: the progressbar role, its three values and its
+             label were all stripped before any screen reader saw them. So the
+             one thing this card exists to say — how the budget splits three
+             ways — was announced to nobody. The numbers now travel in the
+             button's own name, which is the only string here that is read. -->
+        <div class="progress-bar">
           <div class="progress-segments">
             @if (spentShare() > 0) {
               <div
@@ -461,6 +461,10 @@ export class DashboardHero {
     const amount = formatNumber(this.remaining(), this.locale(), '1.0-0');
     const formatted = `${amount} ${this.currency()}`;
     const status = this.#transloco.translate(this.statusMessage());
-    return `${this.#transloco.translate('dashboard.availableToSpend')} ${formatted} — ${this.periodLabel()} — ${status}`;
+    // The three-way split closes the sentence rather than living on the bar,
+    // because the bar is inside this button and ARIA reads none of it. Without
+    // it a screen-reader user got the headline figure and the verdict, and no
+    // way to hear what the verdict was drawn from.
+    return `${this.#transloco.translate('dashboard.availableToSpend')} ${formatted} — ${this.periodLabel()} — ${status} — ${this.progressAriaLabel()}`;
   });
 }
