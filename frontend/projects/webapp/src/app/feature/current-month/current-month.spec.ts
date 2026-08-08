@@ -769,6 +769,19 @@ describe('Dashboard (TestBed)', () => {
       expect(mockStore.uncheckBudgetLine).toHaveBeenNthCalledWith(2, 'line-1');
     });
 
+    // The glossaries retired straight after the mutation, so a check the user
+    // immediately took back still spent the one time they are shown — and both
+    // cards dropped their teaching copy while the row was still animating out.
+    it('should keep the glossaries when the check is taken back', async () => {
+      const { component, undoAction } = await setup(budgetId, undefined);
+
+      await component['checkBudgetLine']('line-1');
+      undoAction.next();
+      await Promise.resolve();
+
+      expect(component['showPointingHints']()).toBe(true);
+    });
+
     it('should count the checks it can still take back', async () => {
       const { component, mockSnackBar } = await setup(budgetId, undefined);
 
@@ -813,6 +826,33 @@ describe('Dashboard (TestBed)', () => {
       mockStore.dashboardData.set({});
       component['refresh']();
       mockStore.isLoading.set(true);
+      TestBed.tick();
+      mockStore.isLoading.set(false);
+      TestBed.tick();
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Chiffres à jour',
+        expect.any(String),
+        expect.objectContaining({ duration: 5000 }),
+      );
+    });
+
+    // disabledInteractive keeps the button clickable on purpose — Material
+    // emits no native disabled attribute under it — so a second press reset the
+    // phase while isLoading() was already true. The effect tracks the value,
+    // which did not change, so it never re-ran: that refresh lost its toast and
+    // left the phase armed for an unrelated reload to fire.
+    it('should still confirm when the button is pressed twice while loading', async () => {
+      const { component, mockStore, mockSnackBar } = await setup(
+        budgetId,
+        undefined,
+      );
+
+      mockStore.dashboardData.set({});
+      component['refresh']();
+      mockStore.isLoading.set(true);
+      TestBed.tick();
+      component['refresh']();
       TestBed.tick();
       mockStore.isLoading.set(false);
       TestBed.tick();

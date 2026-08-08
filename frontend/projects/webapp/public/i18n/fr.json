@@ -921,7 +921,7 @@
     "loadErrorTitle": "On n'arrive pas à charger ton tableau de bord",
     "loadErrorMessage": "Ta connexion a peut-être coupé. Réessaie pour récupérer tes données.",
     "noBudgetTitle": "Pas encore de budget pour {{ period }}",
-    "noBudgetMessage": "Crée-le pour commencer à suivre ton mois.",
+    "noBudgetMessage": "Ouvre tes budgets pour le créer.",
     "viewBudgets": "Voir mes budgets",
     "viewNextMonthBudget": "Voir mes budgets, dont celui du mois prochain",
     "updateError": "La mise à jour a échoué — vérifie ta connexion et réessaie",
@@ -942,7 +942,7 @@
     "historyAvgIncomeLabel": "Revenu moyen",
     "historyChartAria": "Revenus, dépenses et épargne sur {{ count }} mois, de {{ first }} à {{ last }} : revenu moyen {{ avgIncome }}, et sur le mois en cours, encore incomplet, {{ lastIncome }} de revenus, {{ lastExpenses }} de dépenses, {{ lastSavings }} d'épargne.",
     "chartLoading": "Chargement du graphique...",
-    "outlookTitle": "Ce qui vient",
+    "outlookTitle": "Aller plus loin",
     "outlookHint": "Épargne, mois prochain, projection et historique",
     "savingsSectionTitle": "Épargne du mois",
     "savingsAllDone": "Tout est en place",
@@ -987,6 +987,7 @@
     "recentTransactionsTitle": "Transactions",
     "recentTransactionsSubtitle": "{{ total }} ce mois",
     "recentTransactionsHiddenCount": "{{ count }} autres transactions ce mois",
+    "recentTransactionsHiddenCountSingular": "1 autre transaction ce mois",
     "viewForecasts": "Voir les prévisions",
     "viewTransactions": "Voir les transactions",
     "viewForecastsInBudget": "Voir les prévisions dans le budget",
@@ -1003,6 +1004,7 @@
     "uncheckedForecasts": {
       "title": "Prévisions à pointer",
       "count": "{{ checked }} sur {{ total }} pointées",
+      "countSingular": "{{ checked }} sur 1 pointée",
       "pointerHint": "Pointer : marquer une prévision comme réalisée, dès qu'elle passe sur ton compte.",
       "allCheckedMessage": "Toutes les prévisions sont pointées.",
       "noneTitle": "Aucune prévision ce mois",
@@ -1011,7 +1013,8 @@
       "checked": "Pointé : {{ name }}",
       "checkedMany": "{{ count }} prévisions pointées",
       "stillToCheck": "il en reste {{ count }} à pointer",
-      "hiddenCount": "{{ count }} autres prévisions ce mois"
+      "hiddenCount": "{{ count }} autres prévisions ce mois",
+      "hiddenCountSingular": "1 autre prévision ce mois"
     }
   },
   "currency": {
@@ -1349,6 +1352,7 @@
     "status": {
       "onTrack": "Ton rythme tient.",
       "noPaceYet": "Rien de saisi ce mois — ton rythme ne veut encore rien dire.",
+      "savingsOnly": "Que de l'épargne pour l'instant — ton rythme de dépense ne dit encore rien.",
       "fastPace": "Tu dépenses plus vite que le mois ne passe.",
       "almostSpent": "Ton budget est presque entièrement engagé.",
       "planOverAvailable": "Ton plan demande plus que ce que le mois t'apporte — ça se rattrape. Ouvre ton budget pour alléger une prévision.",
@@ -1365,6 +1369,7 @@
     "allUpToDate": "Tout est à jour !",
     "savingsPlaced": "Toute ton épargne est en place. Tu peux souffler.",
     "savingsSummary": "{{ count }} sur {{ total }} mises de côté",
+    "savingsSummarySingular": "{{ count }} sur 1 mise de côté",
     "estimatedRollover": "report estimé",
     "monthBudgetHeadingSuffix": "budget du mois"
   },

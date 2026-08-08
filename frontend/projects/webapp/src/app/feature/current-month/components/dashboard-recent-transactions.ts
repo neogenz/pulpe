@@ -141,10 +141,21 @@ import { TranslocoPipe } from '@jsverse/transloco';
               class="text-body-small text-on-surface-variant font-medium text-center pt-3 pb-1"
               data-testid="dashboard-transactions-hidden-count"
             >
-              {{
-                'currentMonth.recentTransactionsHiddenCount'
-                  | transloco: { count: hiddenCount() }
-              }}
+              <!-- No plural resolver is configured for transloco, so the count
+                   renders literally — and one is the count this line takes the
+                   first month a list of five overflows: "1 autres
+                   transactions ce mois". -->
+              @if (hiddenCount() === 1) {
+                {{
+                  'currentMonth.recentTransactionsHiddenCountSingular'
+                    | transloco
+                }}
+              } @else {
+                {{
+                  'currentMonth.recentTransactionsHiddenCount'
+                    | transloco: { count: hiddenCount() }
+                }}
+              }
             </p>
           }
         } @else {

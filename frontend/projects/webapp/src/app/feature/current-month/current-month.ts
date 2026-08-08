@@ -624,7 +624,16 @@ export default class Dashboard {
     });
   }
 
+  // Guarded, because `disabledInteractive` keeps the button clickable on
+  // purpose: Material emits no native `disabled` attribute under that flag and
+  // only installs its click-halt on anchors, so `[disabled]` here greys the
+  // control and nothing more. A second press reset the phase to 'requested'
+  // while `isLoading()` was already true — the effect tracks the value, which
+  // did not change, so it never re-ran: the toast for that refresh was lost and
+  // the phase stayed armed until some unrelated reload fired it, replacing
+  // whatever toast was on screen. Undo toasts live in that same slot.
   protected refresh(): void {
+    if (this.#refreshPhase() !== 'idle') return;
     this.#refreshPhase.set('requested');
     this.store.refreshData();
   }
@@ -668,7 +677,6 @@ export default class Dashboard {
     // line already gone. Nothing happened, so nothing is confirmed or undone.
     if (name === undefined) return;
 
-    this.#recordPointingLearned();
     this.#confirmCheckWithUndo(budgetLineId, name);
   }
 
@@ -720,11 +728,20 @@ export default class Dashboard {
 
     // The toast's own duration cannot own this: taking the undo, or another
     // check opening a new toast, both dismiss it without saying which happened.
+    //
+    // The glossaries retire here rather than at the tap, because this is the
+    // first point at which the check is a fact. Recorded straight after the
+    // mutation, a check the user immediately undid still retired them for
+    // good — and both cards dropped their teaching copy while the row was
+    // still animating out, so roughly 70px vanished from under the finger at
+    // the exact moment the product was teaching the gesture. Leaving the page
+    // inside the window clears the timeout and leaves the hints for next time,
+    // which is the harmless direction to be wrong in.
     if (this.#undoWindowTimeout) clearTimeout(this.#undoWindowTimeout);
-    this.#undoWindowTimeout = setTimeout(
-      () => this.#closeUndoWindow(),
-      UNDO_WINDOW_MS,
-    );
+    this.#undoWindowTimeout = setTimeout(() => {
+      this.#recordPointingLearned();
+      this.#closeUndoWindow();
+    }, UNDO_WINDOW_MS);
   }
 
   #closeUndoWindow(): void {

@@ -161,6 +161,34 @@ describe('DashboardSavingsSummary', () => {
     });
   });
 
+  // A transfer recorded from the page's FAB carries no budget line, so it can
+  // meet the planned total while the saving prévision it was meant to fulfil
+  // stays unpointed. This card announced "C'est fait pour ce mois" beside a
+  // card in the same grid row still offering that line to point.
+  it('should not report the month finished while a planned saving is unpointed', () => {
+    setTestInput(component.totalPlanned, 1000);
+    setTestInput(component.totalRealized, 1000);
+    setTestInput(component.checkedCount, 0);
+    setTestInput(component.totalCount, 1);
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).not.toContain("C'est fait pour ce mois");
+    expect(text).toContain('Tu as mis de côté');
+  });
+
+  it('should render the count in the singular against a plan of one', () => {
+    setTestInput(component.totalPlanned, 1000);
+    setTestInput(component.totalRealized, 400);
+    setTestInput(component.checkedCount, 0);
+    setTestInput(component.totalCount, 1);
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('0 sur 1 mise de côté');
+    expect(text).not.toContain('mises de côté');
+  });
+
   describe('when all savings are complete (100%)', () => {
     beforeEach(() => {
       setTestInput(component.totalPlanned, 500);

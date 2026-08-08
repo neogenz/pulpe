@@ -87,6 +87,11 @@ interface AnimatingForecast {
                   {{
                     'currentMonth.uncheckedForecasts.pointerHint' | transloco
                   }}
+                } @else if (totalCount() === 1) {
+                  {{
+                    'currentMonth.uncheckedForecasts.countSingular'
+                      | transloco: { checked: checkedCount() }
+                  }}
                 } @else {
                   {{
                     'currentMonth.uncheckedForecasts.count'
@@ -202,10 +207,21 @@ interface AnimatingForecast {
               class="text-body-small text-on-surface-variant font-medium text-center pt-3 pb-1"
               data-testid="dashboard-forecasts-hidden-count"
             >
-              {{
-                'currentMonth.uncheckedForecasts.hiddenCount'
-                  | transloco: { count: hiddenCount() }
-              }}
+              <!-- No plural resolver is configured for transloco, so the count
+                   renders literally — and one is the count this line takes the
+                   first month a list of five overflows: "1 autres prévisions
+                   ce mois". -->
+              @if (hiddenCount() === 1) {
+                {{
+                  'currentMonth.uncheckedForecasts.hiddenCountSingular'
+                    | transloco
+                }}
+              } @else {
+                {{
+                  'currentMonth.uncheckedForecasts.hiddenCount'
+                    | transloco: { count: hiddenCount() }
+                }}
+              }
             </p>
           }
         } @else {

@@ -82,8 +82,30 @@ describe('DashboardUncheckedForecasts', () => {
     fixture.detectChanges();
 
     const subtitle = fixture.debugElement.query(By.css('h2 + p'));
-    expect(subtitle.nativeElement.textContent).toContain('pointées');
+    // Matches both forms — this fixture holds a single forecast, and the
+    // count renders in the singular.
+    expect(subtitle.nativeElement.textContent).toContain('pointée');
     expect(subtitle.nativeElement.textContent).not.toContain('Pointer :');
+  });
+
+  // No plural resolver is configured for transloco, so a count of one used to
+  // render "1 autres prévisions ce mois" — and one is exactly the count this
+  // line takes the first month a list of five overflows.
+  it('should say "1 autre prévision" when the list hides a single forecast', () => {
+    // Six outstanding forecasts against a cap of five — the first month a list
+    // overflows, and the only count this line can take then.
+    const sixForecasts = Array.from({ length: 6 }, (_, index) => ({
+      ...mockForecasts[0],
+      id: `forecast-${index}`,
+    }));
+    setTestInput(component.forecasts, sixForecasts);
+    setTestInput(component.totalCount, sixForecasts.length);
+    fixture.detectChanges();
+
+    const hidden = fixture.nativeElement.querySelector(
+      '[data-testid="dashboard-forecasts-hidden-count"]',
+    );
+    expect(hidden?.textContent?.trim()).toBe('1 autre prévision ce mois');
   });
 
   // "Pointer" is the verb this card runs on and the one house word the page

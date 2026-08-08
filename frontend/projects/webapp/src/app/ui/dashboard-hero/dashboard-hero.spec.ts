@@ -221,6 +221,33 @@ describe('DashboardHero', () => {
       expect(component.paceStatus()).toBe('tight');
     });
 
+    // The pace verdict is deaf to savings by design, so a month whose only
+    // activity was a transfer arrives here as 'unknown'. It used to answer
+    // "Rien de saisi ce mois" forty pixels above a legend key reading
+    // "Déjà sorti 800" and a bar with a filled segment.
+    it('should not claim an empty month when everything realized is savings', () => {
+      setTestInput(component.available, 5000);
+      setTestInput(component.realizedExpenses, 800);
+      setTestInput(component.budgetConsumedPercentage, 60);
+      setTestInput(component.paceStatus, 'unknown');
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      expect(compiled.textContent).not.toContain('Rien de saisi ce mois');
+      expect(compiled.textContent).toContain("Que de l'épargne");
+    });
+
+    it('should say nothing was recorded when the ledger really is empty', () => {
+      setTestInput(component.available, 5000);
+      setTestInput(component.realizedExpenses, 0);
+      setTestInput(component.budgetConsumedPercentage, 60);
+      setTestInput(component.paceStatus, 'unknown');
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      expect(compiled.textContent).toContain('Rien de saisi ce mois');
+    });
+
     it('should render the pace verdict when spending outruns the month', () => {
       setTestInput(component.paceStatus, 'tight');
       fixture.detectChanges();

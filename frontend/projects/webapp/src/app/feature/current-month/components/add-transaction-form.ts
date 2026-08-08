@@ -149,16 +149,27 @@ interface AddTransactionModel {
               <span class="text-body-medium text-on-surface">{{
                 'currentMonth.addTransactionFromSavingsGoal' | transloco
               }}</span>
+              <!-- The inputs, not attr. bindings of the same names. The
+                   focusable element is a button carrying role switch inside
+                   this component, and it takes its accessible name from the
+                   aria-label INPUT; an attr. binding writes the attribute onto
+                   the non-focusable host instead, where nothing reads it. With
+                   no projected label either, the switch had no accessible name
+                   at all. -->
               <mat-slide-toggle
                 [checked]="isFromSavingsGoal()"
                 (change)="toggleSavingsGoalSource($event.checked)"
-                [attr.aria-label]="
+                [aria-label]="
                   'currentMonth.addTransactionFromSavingsGoal' | transloco
                 "
+                [aria-describedby]="SAVINGS_SOURCE_HINT_ID"
                 data-testid="transaction-savings-source-toggle"
               />
             </div>
-            <p class="text-body-small text-on-surface-variant m-0">
+            <p
+              [id]="SAVINGS_SOURCE_HINT_ID"
+              class="text-body-small text-on-surface-variant m-0"
+            >
               {{ 'currentMonth.addTransactionFromSavingsGoalHint' | transloco }}
             </p>
             @if (isFromSavingsGoal()) {
@@ -195,13 +206,19 @@ interface AddTransactionModel {
                  while the rarer savings-source toggle above carries a full
                  explanatory line. Off, the amount lands in "Engagé" rather than
                  "Déjà sorti": both figures the user came to read. -->
-            <span class="text-body-small text-on-surface-variant">{{
-              'transactionForm.checkedToggleHint' | transloco
-            }}</span>
+            <span
+              [id]="CHECKED_HINT_ID"
+              class="text-body-small text-on-surface-variant"
+              >{{ 'transactionForm.checkedToggleHint' | transloco }}</span
+            >
           </div>
+          <!-- Described by the line beside it, so the gloss that was just added
+               for sighted users reaches a screen reader too: the hint is a
+               sibling span, and an accessible name never picks one up. -->
           <mat-slide-toggle
             [formField]="transactionForm.isChecked"
-            [attr.aria-label]="'transactionForm.checkedToggle' | transloco"
+            [aria-label]="'transactionForm.checkedToggle' | transloco"
+            [aria-describedby]="CHECKED_HINT_ID"
           />
         </div>
       </div>
@@ -237,6 +254,9 @@ export class AddTransactionForm {
 
   protected readonly currency = this.#userSettings.currency;
   protected readonly predefinedAmounts = [10, 15, 20, 30] as const;
+  protected readonly CHECKED_HINT_ID = 'add-transaction-checked-hint';
+  protected readonly SAVINGS_SOURCE_HINT_ID =
+    'add-transaction-savings-source-hint';
   protected readonly conversionError = signal(false);
 
   protected readonly model = signal<AddTransactionModel>({

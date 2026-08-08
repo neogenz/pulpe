@@ -652,8 +652,18 @@ export class DashboardHero {
       // say before the first transaction — the only place the plan still gets
       // the headline, and only because nothing else can hold it.
       case 'unknown':
-        return this.budgetConsumedPercentage() > this.warningThreshold()
-          ? 'dashboard.status.almostSpent'
+        if (this.budgetConsumedPercentage() > this.warningThreshold())
+          return 'dashboard.status.almostSpent';
+        // "Rien de saisi ce mois" is only true of an empty ledger, and the
+        // pace verdict is deaf to savings by design — so a month whose only
+        // activity was a transfer reached this branch and denied it, forty
+        // pixels above a legend key reading "Déjà sorti 800" and a bar with a
+        // filled segment. The user who funds their savings first was told
+        // nothing had happened, on the one behaviour the product exists to
+        // reward. Everything realized being savings is its own state, and the
+        // subtraction that makes the pace silent is exactly what proves it.
+        return this.realizedExpenses() > 0
+          ? 'dashboard.status.savingsOnly'
           : 'dashboard.status.noPaceYet';
       default:
         return 'dashboard.status.onTrack';

@@ -50,10 +50,20 @@ import { AppCurrencyPipe } from '@core/currency';
               @if (isComplete()) {
                 {{ 'currentMonth.savingsAllDone' | transloco }}
               } @else if (hasPlan()) {
-                {{
-                  'dashboard.savingsSummary'
-                    | transloco: { count: checkedCount(), total: totalCount() }
-                }}
+                <!-- No plural resolver is configured for transloco, so a count
+                     of one renders literally: "0 sur 1 mises de côté". -->
+                @if (totalCount() === 1) {
+                  {{
+                    'dashboard.savingsSummarySingular'
+                      | transloco: { count: checkedCount() }
+                  }}
+                } @else {
+                  {{
+                    'dashboard.savingsSummary'
+                      | transloco
+                        : { count: checkedCount(), total: totalCount() }
+                  }}
+                }
               } @else if (hasSavings()) {
                 {{ 'currentMonth.savingsUnplanned' | transloco }}
               } @else {
@@ -198,8 +208,15 @@ export class DashboardSavingsSummary {
   // The plan has to exist before it can be met: with nothing planned, any
   // amount clears `>= 0` and a month that saved 500 against no target would
   // report itself finished.
+  // And the lines have to be pointed, not only the total reached. A 1'000
+  // transfer recorded from the page's FAB carries no line, so it met the amount
+  // while the 1'000 saving prévision it was meant to fulfil stayed unpointed:
+  // this card said "C'est fait pour ce mois" beside a card in the same grid row
+  // still offering that very line to point.
   protected readonly isComplete = computed(
     () =>
-      this.totalPlanned() > 0 && this.totalRealized() >= this.totalPlanned(),
+      this.totalPlanned() > 0 &&
+      this.totalRealized() >= this.totalPlanned() &&
+      this.checkedCount() >= this.totalCount(),
   );
 }
