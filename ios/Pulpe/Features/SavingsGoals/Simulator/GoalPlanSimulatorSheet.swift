@@ -92,7 +92,7 @@ struct GoalPlanSimulatorSheet: View {
                 changes: viewModel.planChanges,
                 verdict: viewModel.verdictText,
                 currency: currency,
-                onConfirm: { await viewModel.apply() }
+                onConfirm: { destination in await viewModel.apply(withdrawalDestination: destination) }
             )
         }
         .confirmationDialog(
@@ -345,7 +345,7 @@ final class GoalPlanSimulatorViewModel {
         draft.months.filter {
             SavingsPlanCalculator.isContributivePlanMonth($0.month)
                 && $0.isAdjusted
-                && !($0.month.isProvisionable && $0.simulatedAmount <= 0)
+                && !($0.month.isProvisionable && $0.simulatedAmount == 0)
         }
     }
 
@@ -397,18 +397,17 @@ final class GoalPlanSimulatorViewModel {
 
     /// Slider / twin field — sets a uniform amount and wipes per-month overrides.
     func setGlobalAmount(_ amount: Decimal) {
-        let clamped = max(0, amount)
-        globalAmount = clamped
+        guard amount >= 0 else { return }
+        globalAmount = amount
         overrides = [:]
-        sliderValue = min(NSDecimalNumber(decimal: clamped).doubleValue, sliderMax)
+        sliderValue = min(NSDecimalNumber(decimal: amount).doubleValue, sliderMax)
         recompute()
     }
 
     /// Per-month inline edit — overrides that month, keeps the rest.
     func setMonth(key: Int, amount: Decimal) {
-        let clamped = max(0, amount)
         let baselineAmount = globalAmount ?? baseline.first(where: { $0.id == key })?.plannedAmount
-        if baselineAmount == clamped { overrides.removeValue(forKey: key) } else { overrides[key] = clamped }
+        if baselineAmount == amount { overrides.removeValue(forKey: key) } else { overrides[key] = amount }
         recompute()
     }
 
@@ -431,13 +430,15 @@ final class GoalPlanSimulatorViewModel {
         recompute()
     }
 
-    func apply() async -> Bool {
+    func apply(
+        withdrawalDestination: SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination = .goalOnly
+    ) async -> Bool {
         isApplying = true
         applyErrorMessage = nil
         defer { isApplying = false }
 
         let monthAdjustments = planChanges
-            .filter { SavingsPlanCalculator.isOpenPlanMonth($0.month) }
+            .filter { SavingsPlanCalculator.isOpenPlanMonth($0.month) && $0.simulatedAmount >= 0 }
             .flatMap { simMonth -> [SavingsGoalPlanApply.MonthAdjustment] in
                 let lines: [SavingsPlanCalculator.AllocatableLine] = simMonth.month.lines.map {
                     .init(budgetLineId: $0.budgetLineId, amount: $0.amount, checkedAt: $0.checkedAt)
@@ -454,12 +455,26 @@ final class GoalPlanSimulatorViewModel {
         let missingMonthAdjustments: [SavingsGoalPlanApply.MissingMonthAdjustment] = planChanges
             .filter { $0.month.isProvisionable && $0.simulatedAmount > 0 }
             .map { .init(month: $0.month.month, year: $0.month.year, amount: $0.simulatedAmount) }
+        let planWithdrawalAdjustments: [SavingsGoalPlanApply.PlanWithdrawalAdjustment] = planChanges
+            .compactMap { simMonth in
+                let managedBefore = simMonth.month.planOnlyWithdrawalAmount
+                    + simMonth.month.planLinkedWithdrawalAmount
+                guard simMonth.simulatedAmount < 0 || managedBefore > 0 else { return nil }
+                return .init(
+                    month: simMonth.month.month,
+                    year: simMonth.month.year,
+                    amount: min(0, simMonth.simulatedAmount),
+                    destination: withdrawalDestination
+                )
+            }
 
-        guard !monthAdjustments.isEmpty || !missingMonthAdjustments.isEmpty else { return false }
+        guard !monthAdjustments.isEmpty || !missingMonthAdjustments.isEmpty
+                || !planWithdrawalAdjustments.isEmpty else { return false }
 
         let payload = SavingsGoalPlanApply(
             monthAdjustments: monthAdjustments,
-            missingMonthAdjustments: missingMonthAdjustments
+            missingMonthAdjustments: missingMonthAdjustments,
+            planWithdrawalAdjustments: planWithdrawalAdjustments
         )
         do {
             _ = try await service.applyPlan(id: goalId, payload)
@@ -475,7 +490,13 @@ final class GoalPlanSimulatorViewModel {
         let byKey = Dictionary(uniqueKeysWithValues: baseline.map { ($0.id, $0) })
         let adjustments = overrides.compactMap { key, amount -> SavingsPlanCalculator.Adjustment? in
             guard let month = byKey[key] else { return nil }
-            return .init(month: month.month, year: month.year, amount: amount)
+            return .init(
+                month: month.month,
+                year: month.year,
+                amount: amount,
+                replacesPlanOnlyWithdrawal:
+                    month.planOnlyWithdrawalAmount + month.planLinkedWithdrawalAmount > 0
+            )
         }
         if let next = try? SavingsPlanCalculator.simulate(
             timeline: baseline,
@@ -494,7 +515,13 @@ final class GoalPlanSimulatorViewModel {
         let byKey = Dictionary(uniqueKeysWithValues: baseline.map { ($0.id, $0) })
         return overrides.compactMap { key, amount in
             guard let month = byKey[key] else { return nil }
-            return .init(month: month.month, year: month.year, amount: amount)
+            return .init(
+                month: month.month,
+                year: month.year,
+                amount: amount,
+                replacesPlanOnlyWithdrawal:
+                    month.planOnlyWithdrawalAmount + month.planLinkedWithdrawalAmount > 0
+            )
         }
     }
 
@@ -508,6 +535,11 @@ final class GoalPlanSimulatorViewModel {
             .filter { SavingsPlanCalculator.isContributivePlanMonth($0.month) }
             .map(\.simulatedAmount)
         guard let first = amounts.first else {
+            globalAmount = nil
+            sliderValue = 0
+            return
+        }
+        if first < 0 {
             globalAmount = nil
             sliderValue = 0
             return

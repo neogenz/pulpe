@@ -38,6 +38,7 @@ describe('GetSavingsGoalWithdrawalsUseCase', () => {
     findById: ReturnType<typeof jest.fn>;
     findWithdrawals: ReturnType<typeof jest.fn>;
     findPlannedWithdrawalRecords: ReturnType<typeof jest.fn>;
+    findPlanWithdrawals: ReturnType<typeof jest.fn>;
   };
 
   beforeEach(async () => {
@@ -54,6 +55,7 @@ describe('GetSavingsGoalWithdrawalsUseCase', () => {
           amount: 4_500,
         },
       ]),
+      findPlanWithdrawals: jest.fn().mockResolvedValue([]),
     };
 
     const module = await Test.createTestingModule({
@@ -86,10 +88,36 @@ describe('GetSavingsGoalWithdrawalsUseCase', () => {
           status: 'planned',
         },
       ],
+      planOnly: [],
     });
     expect(mockRepo.findPlannedWithdrawalRecords).toHaveBeenCalledWith(
       'goal-1',
     );
+  });
+
+  it('includes direct plan withdrawals as non-actionable out-of-budget rows', async () => {
+    mockRepo.findPlanWithdrawals.mockResolvedValueOnce([
+      {
+        id: '323e4567-e89b-12d3-a456-426614174099',
+        month: 9,
+        year: 2026,
+        amount: 4_500,
+        origin: 'plan',
+      },
+    ]);
+
+    const result = await useCase.execute('goal-1');
+
+    expect(result.planOnly).toEqual([
+      {
+        planWithdrawalId: '323e4567-e89b-12d3-a456-426614174099',
+        name: 'Maison',
+        month: 9,
+        year: 2026,
+        plannedAmount: 4_500,
+        origin: 'plan_only',
+      },
+    ]);
   });
 
   it('derives partial and total realization from allocated Reals only', async () => {

@@ -14,6 +14,7 @@ import {
   type SavingsGoalUpdate,
   type SavingsGoalWithdrawal,
   type SavingsGoalPlannedWithdrawal,
+  type SavingsGoalPlanOnlyWithdrawal,
   type SavingsGoalWithdrawalsResponse,
 } from 'pulpe-shared';
 import { firstValueFrom, map } from 'rxjs';
@@ -115,6 +116,9 @@ export class SavingsGoalStore {
   );
   readonly plannedWithdrawals = computed<SavingsGoalPlannedWithdrawal[]>(
     () => this.#withdrawalsResource.value()?.planned ?? [],
+  );
+  readonly planOnlyWithdrawals = computed<SavingsGoalPlanOnlyWithdrawal[]>(
+    () => this.#withdrawalsResource.value()?.planOnly ?? [],
   );
   readonly isWithdrawalsLoading = this.#withdrawalsResource.isInitialLoading;
   readonly withdrawalsError = this.#withdrawalsResource.error;

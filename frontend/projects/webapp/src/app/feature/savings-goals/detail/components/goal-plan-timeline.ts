@@ -177,7 +177,6 @@ const WINDOW_OPEN_ROWS = 3;
                 type="number"
                 inputmode="decimal"
                 step="0.01"
-                min="0"
                 class="ph-no-capture w-28 rounded-lg border bg-surface px-3 py-1.5
                        text-right text-body-medium"
                 [class.border-outline]="!hasEditError()"
@@ -194,6 +193,9 @@ const WINDOW_OPEN_ROWS = 3;
                 #amountField
                 data-testid="goal-plan-row-input"
               />
+              <p class="text-right text-body-small text-on-surface-variant">
+                {{ 'savingsGoals.plan.movementHint' | transloco }}
+              </p>
               @if (hasEditError()) {
                 <p
                   id="goal-plan-row-error"
@@ -422,8 +424,8 @@ export class GoalPlanTimeline {
 
   /**
    * Émettre à chaque frappe, pas seulement au blur : « Appliquer » doit suivre
-   * la saisie. Le champ possède son erreur — un montant négatif ou incomplet
-   * n'atteint jamais le simulateur et ne remplace jamais la valeur affichée.
+   * la saisie. Le champ mensuel accepte un mouvement signé ; seule une valeur
+   * non numérique est refusée. Une saisie incomplète attend la prochaine frappe.
    */
   protected onAmountInput(row: GoalPlanTimelineRow, event: Event): void {
     const raw = (event.target as HTMLInputElement).value.trim();
@@ -435,7 +437,7 @@ export class GoalPlanTimeline {
     }
 
     const parsed = Number.parseFloat(raw);
-    const isValid = Number.isFinite(parsed) && parsed >= 0;
+    const isValid = Number.isFinite(parsed);
     this.hasEditError.set(!isValid);
     this.invalidChange.emit(!isValid);
     if (!isValid || parsed === row.amount) return;
@@ -447,7 +449,7 @@ export class GoalPlanTimeline {
     });
   }
 
-  /** Quitter le champ abandonne une saisie refusée ; rien n'est écrit. */
+  /** Quitter le champ ferme l'édition et efface son éventuelle erreur locale. */
   protected closeEdit(): void {
     this.#clearError();
     this.editingKey.set(null);

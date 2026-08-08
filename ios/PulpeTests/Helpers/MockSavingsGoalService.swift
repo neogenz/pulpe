@@ -15,6 +15,7 @@ final class MockSavingsGoalService: SavingsGoalServicing {
     var stubbedWithdrawalOptions: [SavingsGoalWithdrawalOption] = []
     var stubbedWithdrawals: [SavingsGoalWithdrawal] = []
     var stubbedPlannedWithdrawals: [SavingsGoalPlannedWithdrawal] = []
+    var stubbedPlanOnlyWithdrawals: [SavingsGoalPlanOnlyWithdrawal] = []
     /// When set, every call throws this instead of returning.
     var error: Error?
     var getProgressError: Error?
@@ -195,7 +196,8 @@ final class MockSavingsGoalService: SavingsGoalServicing {
         if let error { throw error }
         return SavingsGoalWithdrawalsReadModel(
             withdrawals: stubbedWithdrawals,
-            planned: stubbedPlannedWithdrawals
+            planned: stubbedPlannedWithdrawals,
+            planOnly: stubbedPlanOnlyWithdrawals
         )
     }
 

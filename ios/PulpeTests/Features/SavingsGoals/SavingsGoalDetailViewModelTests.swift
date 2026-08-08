@@ -507,6 +507,25 @@ extension SavingsGoalDetailViewModelTests {
         #expect(viewModel.withdrawals.isEmpty)
     }
 
+    @Test("load exposes a plan-only withdrawal without a budget destination")
+    func load_fetchesPlanOnlyWithdrawalImmediately() async {
+        let service = MockSavingsGoalService()
+        service.stubbedProgress = makeProgress(goalId: "g1")
+        service.stubbedPlanOnlyWithdrawals = [SavingsGoalPlanOnlyWithdrawal(
+            planWithdrawalId: "plan-withdrawal-1",
+            name: "Retrait ponctuel",
+            month: 9,
+            year: 2026,
+            plannedAmount: 450
+        )]
+        let viewModel = SavingsGoalDetailViewModel(goalId: "g1", service: service)
+
+        await viewModel.load()
+
+        #expect(viewModel.planOnlyWithdrawals.first?.plannedAmount == 450)
+        #expect(viewModel.plannedWithdrawals.isEmpty)
+    }
+
     @Test("a withdrawals failure keeps the goal progress and the contributions usable")
     func load_withdrawalsFailureIsInline() async {
         let service = MockSavingsGoalService()
@@ -534,6 +553,19 @@ extension SavingsGoalDetailViewModelTests {
         #expect(GoalWithdrawalsSection.isRelevant(
             withdrawals: [makeWithdrawal(id: "tx-1")],
             planned: [],
+            isLoading: false,
+            error: nil
+        ))
+        #expect(GoalWithdrawalsSection.isRelevant(
+            withdrawals: [],
+            planned: [],
+            planOnly: [SavingsGoalPlanOnlyWithdrawal(
+                planWithdrawalId: "plan-withdrawal-1",
+                name: "Retrait ponctuel",
+                month: 9,
+                year: 2026,
+                plannedAmount: 450
+            )],
             isLoading: false,
             error: nil
         ))

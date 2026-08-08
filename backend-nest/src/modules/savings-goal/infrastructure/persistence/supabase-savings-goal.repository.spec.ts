@@ -1362,7 +1362,13 @@ describe('SupabaseSavingsGoalRepository', () => {
 
   describe('applyPlan', () => {
     it('sends an encrypted line update and direct-withdrawal removal atomically', async () => {
-      const rpc = jest.fn().mockResolvedValue({ data: [], error: null });
+      const rpc = jest.fn().mockResolvedValue({
+        data: {
+          updated_lines: [],
+          touched_budget_ids: ['123e4567-e89b-12d3-a456-426614174099'],
+        },
+        error: null,
+      });
       const provider = {
         get client() {
           return { rpc } as unknown as AuthenticatedSupabaseClient;
@@ -1387,18 +1393,31 @@ describe('SupabaseSavingsGoalRepository', () => {
         ),
       ).resolves.toEqual({
         updatedLines: [],
-        touchedBudgetIds: [],
+        touchedBudgetIds: ['123e4567-e89b-12d3-a456-426614174099'],
       });
-      expect(rpc).toHaveBeenCalledWith('apply_savings_goal_plan', {
-        p_goal_id: '123e4567-e89b-12d3-a456-426614174001',
-        p_min_period_index: 24_319,
-        p_line_updates: [{ budget_line_id: lineId, amount: 'enc:123' }],
-        p_plan_withdrawals: [{ month: 9, year: 2026, amount: null }],
-      });
+      expect(rpc).toHaveBeenCalledWith(
+        'apply_savings_goal_plan_with_destinations',
+        {
+          p_goal_id: '123e4567-e89b-12d3-a456-426614174001',
+          p_min_period_index: 24_319,
+          p_line_updates: [{ budget_line_id: lineId, amount: 'enc:123' }],
+          p_plan_withdrawals: [
+            {
+              month: 9,
+              year: 2026,
+              amount: null,
+              destination: 'goal_only',
+            },
+          ],
+        },
+      );
     });
 
     it('encrypts plan-only withdrawals as positive stock movements and sends zero as deletion', async () => {
-      const rpc = jest.fn().mockResolvedValue({ data: [], error: null });
+      const rpc = jest.fn().mockResolvedValue({
+        data: { updated_lines: [], touched_budget_ids: [] },
+        error: null,
+      });
       const provider = {
         get client() {
           return { rpc } as unknown as AuthenticatedSupabaseClient;
@@ -1415,25 +1434,103 @@ describe('SupabaseSavingsGoalRepository', () => {
         );
       const repo = new SupabaseSavingsGoalRepository(provider, encryption);
 
-      await repo.applyPlan('123e4567-e89b-12d3-a456-426614174001', [], 24_319, [
-        { month: 9, year: 2026, amount: -4_500 },
-        { month: 10, year: 2026, amount: 0 },
-      ]);
+      const result = await repo.applyPlan(
+        '123e4567-e89b-12d3-a456-426614174001',
+        [],
+        24_319,
+        [
+          { month: 9, year: 2026, amount: -4_500 },
+          { month: 10, year: 2026, amount: 0 },
+        ],
+      );
 
       expect(encryption.prepareAmountData).toHaveBeenCalledWith(
         4_500,
         mockUser.id,
         mockUser.clientKey,
       );
-      expect(rpc).toHaveBeenCalledWith('apply_savings_goal_plan', {
-        p_goal_id: '123e4567-e89b-12d3-a456-426614174001',
-        p_min_period_index: 24_319,
-        p_line_updates: [],
-        p_plan_withdrawals: [
-          { month: 9, year: 2026, amount: 'enc:4500' },
-          { month: 10, year: 2026, amount: null },
-        ],
+      expect(result).toEqual({
+        updatedLines: [],
+        touchedBudgetIds: [],
       });
+      expect(rpc).toHaveBeenCalledWith(
+        'apply_savings_goal_plan_with_destinations',
+        {
+          p_goal_id: '123e4567-e89b-12d3-a456-426614174001',
+          p_min_period_index: 24_319,
+          p_line_updates: [],
+          p_plan_withdrawals: [
+            {
+              month: 9,
+              year: 2026,
+              amount: 'enc:4500',
+              destination: 'goal_only',
+            },
+            {
+              month: 10,
+              year: 2026,
+              amount: null,
+              destination: 'goal_only',
+            },
+          ],
+        },
+      );
+    });
+
+    it('sends a plan-managed linked income through the atomic destination RPC', async () => {
+      const rpc = jest.fn().mockResolvedValue({
+        data: {
+          updated_lines: [],
+          touched_budget_ids: ['123e4567-e89b-12d3-a456-426614174099'],
+        },
+        error: null,
+      });
+      const provider = {
+        get client() {
+          return { rpc } as unknown as AuthenticatedSupabaseClient;
+        },
+        get user() {
+          return mockUser;
+        },
+      } as AuthenticatedSupabaseProvider;
+      const encryption = createMockEncryption();
+      encryption.prepareAmountData = jest
+        .fn()
+        .mockResolvedValue({ amount: 'enc:4500' });
+      const repo = new SupabaseSavingsGoalRepository(provider, encryption);
+
+      const result = await repo.applyPlan(
+        '123e4567-e89b-12d3-a456-426614174001',
+        [],
+        24_319,
+        [
+          {
+            month: 9,
+            year: 2026,
+            amount: -4_500,
+            destination: 'linked_income',
+          },
+        ],
+      );
+
+      expect(result).toEqual({
+        updatedLines: [],
+        touchedBudgetIds: ['123e4567-e89b-12d3-a456-426614174099'],
+      });
+
+      expect(rpc).toHaveBeenCalledWith(
+        'apply_savings_goal_plan_with_destinations',
+        expect.objectContaining({
+          p_plan_withdrawals: [
+            {
+              month: 9,
+              year: 2026,
+              amount: 'enc:4500',
+              destination: 'linked_income',
+            },
+          ],
+        }),
+      );
     });
   });
 

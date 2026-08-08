@@ -528,6 +528,31 @@ describe('PUL-12 — savingsGoalPlanApplySchema final contract', () => {
     expect(invalidContribution.success).toBe(false);
   });
 
+  test('accepts an atomic linked-income destination without allowing a negative saving line', () => {
+    const result = savingsGoalPlanApplySchema.safeParse({
+      planWithdrawalAdjustments: [
+        {
+          month: 9,
+          year: 2026,
+          amount: -4500,
+          destination: 'linked_income',
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  test('rejects an unknown withdrawal destination', () => {
+    expect(
+      savingsGoalPlanApplySchema.safeParse({
+        planWithdrawalAdjustments: [
+          { month: 9, year: 2026, amount: -450, destination: 'saving_line' },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+
   test('accepts zero as the explicit removal of a plan-only withdrawal', () => {
     expect(
       savingsGoalPlanApplySchema.safeParse({

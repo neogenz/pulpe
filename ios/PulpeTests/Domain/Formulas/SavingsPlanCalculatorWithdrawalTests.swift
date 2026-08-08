@@ -18,7 +18,8 @@ private func planMonth(
     withdrawnAmount: Decimal = 0,
     plannedWithdrawalAmount: Decimal = 0,
     remainingPlannedWithdrawalAmount: Decimal = 0,
-    planOnlyWithdrawalAmount: Decimal = 0
+    planOnlyWithdrawalAmount: Decimal = 0,
+    planLinkedWithdrawalAmount: Decimal = 0
 ) -> SavingsGoalPlanMonth {
     SavingsGoalPlanMonth(
         month: month,
@@ -33,6 +34,7 @@ private func planMonth(
         plannedWithdrawalAmount: plannedWithdrawalAmount,
         remainingPlannedWithdrawalAmount: remainingPlannedWithdrawalAmount,
         planOnlyWithdrawalAmount: planOnlyWithdrawalAmount,
+        planLinkedWithdrawalAmount: planLinkedWithdrawalAmount,
         plannedCumulative: 0,
         confirmedCumulative: 0,
         lines: [
@@ -104,6 +106,28 @@ struct SavingsPlanDirectWithdrawalTests {
                     plannedWithdrawalAmount: 4_500,
                     remainingPlannedWithdrawalAmount: 4_500,
                     planOnlyWithdrawalAmount: 4_500
+                ),
+            ],
+            targetAmount: 10_000,
+            adjustments: [.init(month: 9, year: 2026, amount: -3_000)],
+            initialAmount: 10_000
+        )
+
+        #expect(result.simulatedFinal == 8_260)
+    }
+
+    @Test("replaces a reloaded plan-managed linked income without double counting")
+    func planLinkedWithdrawal_reloadedReplacementFixture() throws {
+        let result = try SavingsPlanCalculator.simulate(
+            timeline: [
+                planMonth(
+                    month: 9,
+                    year: 2026,
+                    state: .current,
+                    plannedAmount: 1_260,
+                    plannedWithdrawalAmount: 4_500,
+                    remainingPlannedWithdrawalAmount: 4_500,
+                    planLinkedWithdrawalAmount: 4_500
                 ),
             ],
             targetAmount: 10_000,

@@ -590,17 +590,17 @@ describe('GoalPlanTimeline', () => {
     expect(query('goal-plan-row-error')).toBeNull();
   });
 
-  it('refuses a negative amount with a visible error instead of clamping it', () => {
+  it('accepts a negative monthly movement without an error', () => {
     const { input, amounts, invalid } = openInlineEdit();
 
     input.value = '-500';
     input.dispatchEvent(new Event('input'));
     fixture.detectChanges();
 
-    expect(amounts).toEqual([]);
-    expect(invalid.at(-1)).toBe(true);
-    expect(query('goal-plan-row-error')).toBeTruthy();
-    expect(input.getAttribute('aria-invalid')).toBe('true');
+    expect(amounts).toEqual([{ month: 3, year: 2026, amount: -500 }]);
+    expect(invalid.at(-1)).toBe(false);
+    expect(query('goal-plan-row-error')).toBeNull();
+    expect(input.getAttribute('aria-invalid')).toBe('false');
     expect(input.value).toBe('-500');
   });
 
@@ -616,7 +616,7 @@ describe('GoalPlanTimeline', () => {
     expect(query('goal-plan-row-error')).toBeNull();
   });
 
-  it('drops a refused entry when the field is left, writing nothing', () => {
+  it('keeps a negative monthly movement when the field is left', () => {
     const { input, amounts, invalid } = openInlineEdit();
 
     input.value = '-500';
@@ -625,7 +625,7 @@ describe('GoalPlanTimeline', () => {
     input.dispatchEvent(new Event('blur'));
     fixture.detectChanges();
 
-    expect(amounts).toEqual([]);
+    expect(amounts).toEqual([{ month: 3, year: 2026, amount: -500 }]);
     expect(invalid.at(-1)).toBe(false);
     expect(query('goal-plan-row-input')).toBeNull();
   });

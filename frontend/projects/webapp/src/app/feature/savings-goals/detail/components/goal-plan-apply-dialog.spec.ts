@@ -85,4 +85,60 @@ describe('GoalPlanApplyDialog', () => {
 
     expect(close).toHaveBeenCalledWith(true);
   });
+
+  it('defaults a withdrawal to goal-only and explains why budget linking is unavailable', () => {
+    const { fixture, close } = configureDialog({
+      changes: [
+        {
+          month: 9,
+          year: 2026,
+          before: 1_260,
+          after: -4_500,
+          hasBudget: false,
+        },
+      ],
+      currency: 'CHF',
+      locale: 'fr-CH',
+      payDayOfMonth: 25,
+      verdict: 'Projection mise à jour',
+    });
+
+    expect(query(fixture, 'goal-plan-withdrawal-goal-only')).toBeTruthy();
+    expect(
+      query(fixture, 'goal-plan-withdrawal-linked-income').componentInstance
+        .disabled,
+    ).toBe(true);
+    expect(
+      query(fixture, 'goal-plan-withdrawal-no-budget').nativeElement
+        .textContent,
+    ).toContain('Crée d’abord le budget');
+
+    query(fixture, 'goal-plan-apply-confirm').nativeElement.click();
+    expect(close).toHaveBeenCalledWith('goal_only');
+  });
+
+  it('explains that realizing the linked forecast auto-points its Real', () => {
+    const { fixture } = configureDialog({
+      changes: [
+        {
+          month: 9,
+          year: 2026,
+          before: 1_260,
+          after: -4_500,
+          hasBudget: true,
+        },
+      ],
+      currency: 'CHF',
+      locale: 'fr-CH',
+      payDayOfMonth: 25,
+      verdict: 'Projection mise à jour',
+    });
+
+    expect(
+      query(fixture, 'goal-plan-withdrawal-linked-income').nativeElement
+        .textContent,
+    ).toContain(
+      'Réalise-la dans le budget : le Réel créé sera automatiquement pointé.',
+    );
+  });
 });

@@ -76,6 +76,25 @@ struct SavingsGoalProgressCodableTests {
         #expect(object["templateAdjustments"] == nil)
     }
 
+    @Test("SavingsGoalPlanApply keeps a withdrawal signed and encodes its destination")
+    func planApply_encodesLinkedWithdrawalDestination() throws {
+        let payload = SavingsGoalPlanApply(
+            monthAdjustments: [],
+            missingMonthAdjustments: [],
+            planWithdrawalAdjustments: [
+                .init(month: 9, year: 2026, amount: -4_500, destination: .linkedIncome),
+            ]
+        )
+
+        let object = try #require(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(payload)) as? [String: Any]
+        )
+        let withdrawals = try #require(object["planWithdrawalAdjustments"] as? [[String: Any]])
+
+        #expect(withdrawals.first?["amount"] as? Int == -4_500)
+        #expect(withdrawals.first?["destination"] as? String == "linked_income")
+    }
+
     @Test("SavingsGoalProgress decodes the full progress payload")
     func progress_decodesFull() throws {
         let json = Data("""

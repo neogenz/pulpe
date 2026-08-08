@@ -17,10 +17,11 @@ struct GoalPlanApplyRecapSheet: View {
     let verdict: String
     let currency: SupportedCurrency
     /// Returns `true` on a successful write so the sheet can dismiss itself.
-    let onConfirm: () async -> Bool
+    let onConfirm: (SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination) async -> Bool
 
     @Environment(\.dismiss) private var dismiss
     @State private var isConfirming = false
+    @State private var withdrawalDestination = SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination.goalOnly
 
     private let maxListedRows = 5
 
@@ -39,6 +40,12 @@ struct GoalPlanApplyRecapSheet: View {
             : "\(changes.count) prévisions Épargne à ajouter"
     }
 
+    private var hasWithdrawal: Bool { changes.contains { $0.simulatedAmount < 0 } }
+
+    private var canLinkWithdrawal: Bool {
+        changes.filter { $0.simulatedAmount < 0 }.allSatisfy(\.month.hasBudget)
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -48,6 +55,8 @@ struct GoalPlanApplyRecapSheet: View {
                         .foregroundStyle(Color.textPrimary)
 
                     diffBlock
+
+                    if hasWithdrawal { withdrawalChoice }
 
                     Text(verdict)
                         .font(PulpeTypography.subheadline)
@@ -71,6 +80,58 @@ struct GoalPlanApplyRecapSheet: View {
             }
         }
         .standardSheetPresentation(detents: [.medium, .large])
+    }
+
+    private var withdrawalChoice: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            Text("Que veux-tu faire de ce retrait ?")
+                .font(PulpeTypography.headline)
+
+            destinationRow(
+                .goalOnly,
+                title: "Mettre à jour l’objectif uniquement",
+                detail: "Recommandé · La projection baisse. Rien ne change dans ton budget."
+            )
+            destinationRow(
+                .linkedIncome,
+                title: "Créer aussi un revenu dans le budget",
+                detail: "Une Prévision Revenu liée sera ajoutée. "
+                    + "Réalise-la dans le budget : le Réel créé sera automatiquement pointé.",
+                enabled: canLinkWithdrawal
+            )
+
+            if !canLinkWithdrawal {
+                Text("Crée d’abord le budget du mois concerné pour y ajouter ce revenu.")
+                    .font(PulpeTypography.listRowSubtitle)
+                    .foregroundStyle(Color.textSecondary)
+            }
+        }
+    }
+
+    private func destinationRow(
+        _ destination: SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination,
+        title: String,
+        detail: String,
+        enabled: Bool = true
+    ) -> some View {
+        Button {
+            withdrawalDestination = destination
+        } label: {
+            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                Image(systemName: withdrawalDestination == destination ? "largecircle.fill.circle" : "circle")
+                    .foregroundStyle(enabled ? Color.pulpePrimary : Color.textTertiary)
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                    Text(title).font(PulpeTypography.listRowTitle)
+                    Text(detail)
+                        .font(PulpeTypography.listRowSubtitle)
+                        .foregroundStyle(Color.textSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
+        .opacity(enabled ? 1 : 0.55)
     }
 
     @ViewBuilder
@@ -126,7 +187,11 @@ struct GoalPlanApplyRecapSheet: View {
         } label: {
             HStack(spacing: DesignTokens.Spacing.sm) {
                 if isConfirming { ProgressView().tint(Color.textOnPrimary) }
-                Text(mode == .creation ? "Créer les épargnes" : "Mettre à jour")
+                Text(
+                    hasWithdrawal
+                        ? "Appliquer le retrait"
+                        : mode == .creation ? "Créer les épargnes" : "Mettre à jour"
+                )
             }
         }
         .primaryButtonStyle(isEnabled: !isConfirming)
@@ -139,7 +204,7 @@ struct GoalPlanApplyRecapSheet: View {
     private func confirm() {
         isConfirming = true
         Task {
-            let succeeded = await onConfirm()
+            let succeeded = await onConfirm(withdrawalDestination)
             isConfirming = false
             if succeeded { dismiss() }
         }

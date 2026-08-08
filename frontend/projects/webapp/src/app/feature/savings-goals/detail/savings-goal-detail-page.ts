@@ -678,6 +678,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
               <pulpe-goal-withdrawals-list
                 [withdrawals]="store.withdrawals()"
                 [plannedWithdrawals]="store.plannedWithdrawals()"
+                [planOnlyWithdrawals]="store.planOnlyWithdrawals()"
                 [currency]="currency()"
                 [isLoading]="store.isWithdrawalsLoading()"
                 [hasError]="!!store.withdrawalsError()"
@@ -852,6 +853,7 @@ export default class SavingsGoalDetailPage {
     () =>
       this.store.withdrawals().length > 0 ||
       this.store.plannedWithdrawals().length > 0 ||
+      this.store.planOnlyWithdrawals().length > 0 ||
       this.store.isWithdrawalsLoading() ||
       !!this.store.withdrawalsError(),
   );
@@ -1208,27 +1210,30 @@ export default class SavingsGoalDetailPage {
       .filter((month) => month.isAdjusted)
       // Same zero-gap filter as GoalPlanSimulatorStore#buildApplyPayload — a
       // confirmation must only list changes that will actually be sent.
-      .filter((month) => !(month.isProvisionable && month.simulatedAmount <= 0))
+      .filter(
+        (month) => !(month.isProvisionable && month.simulatedAmount === 0),
+      )
       .map((month) => ({
         month: month.month,
         year: month.year,
         before: month.plannedAmount,
         after: month.simulatedAmount,
+        hasBudget: month.hasBudget === true,
       }));
     if (changes.length === 0) return;
 
-    const confirmed = await this.#dialogs.openApplyPlan({
+    const decision = await this.#dialogs.openApplyPlan({
       changes,
       currency: this.currency(),
       locale: this.locale,
       payDayOfMonth: this.payDayOfMonth(),
       verdict: this.verdict(),
     });
-    if (!confirmed) return;
+    if (!decision) return;
 
     this.#isApplying.set(true);
     try {
-      await this.simulator.apply();
+      await this.simulator.apply(decision === true ? 'goal_only' : decision);
       this.#timelineExpanded.set(false);
       this.#openSnackBar(
         this.#transloco.translate('savingsGoals.simulate.applySuccess'),

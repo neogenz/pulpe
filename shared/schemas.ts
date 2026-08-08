@@ -502,6 +502,8 @@ export const savingsGoalPlanMonthSchema = z.object({
   remainingPlannedWithdrawalAmount: z.number().optional(),
   /** Part issue directement du plan, sans Prévision Revenu dans un budget. */
   planOnlyWithdrawalAmount: z.number().nonnegative().optional(),
+  /** Part issue du plan sous forme de Prévision Revenu liée. */
+  planLinkedWithdrawalAmount: z.number().nonnegative().optional(),
   plannedCumulative: z.number(),
   confirmedCumulative: z.number(),
   /** Solde attendu fin de mois si le plan se déroule tel quel (§12). */
@@ -604,6 +606,8 @@ export const savingsGoalPlanApplySchema = z
           month: z.number().int().min(1).max(12),
           year: z.number().int(),
           amount: z.number().max(0),
+          /** Absence = comportement historique « objectif uniquement ». */
+          destination: z.enum(['goal_only', 'linked_income']).optional(),
         }),
       )
       .max(MAX_PLAN_ADJUSTMENTS)
@@ -755,6 +759,19 @@ export type SavingsGoalPlannedWithdrawal = z.infer<
   typeof savingsGoalPlannedWithdrawalSchema
 >;
 
+/** Retrait planifié directement dans l'objectif, sans budget ni pointage. */
+export const savingsGoalPlanOnlyWithdrawalSchema = z.object({
+  planWithdrawalId: z.uuid(),
+  name: z.string().min(1),
+  month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
+  year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
+  plannedAmount: z.coerce.number().nonnegative(),
+  origin: z.literal('plan_only'),
+});
+export type SavingsGoalPlanOnlyWithdrawal = z.infer<
+  typeof savingsGoalPlanOnlyWithdrawalSchema
+>;
+
 /**
  * `data` reste l'historique des Réels pour les clients déjà déployés. Le champ
  * additif `planned` porte le suivi Prévu/Réel/reliquat et se dégrade en liste
@@ -764,6 +781,7 @@ export const savingsGoalWithdrawalsResponseSchema = createListResponse(
   savingsGoalWithdrawalSchema,
 ).extend({
   planned: z.array(savingsGoalPlannedWithdrawalSchema).default([]),
+  planOnly: z.array(savingsGoalPlanOnlyWithdrawalSchema).default([]),
 });
 export type SavingsGoalWithdrawalsResponse = z.infer<
   typeof savingsGoalWithdrawalsResponseSchema

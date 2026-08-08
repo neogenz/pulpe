@@ -10,22 +10,22 @@ Le chiffrement repose sur une clé de données (DEK) dérivée de deux facteurs 
 DEK = HKDF-SHA256(clientKey + masterKey, salt, "pulpe-dek-{userId}")
 ```
 
-| Facteur | Origine | Stockage |
-|---------|---------|----------|
+| Facteur     | Origine                                                     | Stockage                                                                                                                                                                                                                     |
+| ----------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `clientKey` | Dérivé du **code PIN** (4 chiffres) côté frontend (PBKDF2). | Conservé en `sessionStorage` par défaut (ou `localStorage` via « Se souvenir de cet appareil »). Effacé au logout. Envoyé dans le header `X-Client-Key` à chaque requête. Voir section « Stockage du clientKey » ci-dessous. |
-| `masterKey` | Variable d'environnement `ENCRYPTION_MASTER_KEY` | Serveur uniquement. GitHub Secrets en prod, `.env` en local. |
-| `salt` | Généré aléatoirement par utilisateur | Table `user_encryption_key` (accessible uniquement au `service_role`). |
+| `masterKey` | Variable d'environnement `ENCRYPTION_MASTER_KEY`            | Serveur uniquement. GitHub Secrets en prod, `.env` en local.                                                                                                                                                                 |
+| `salt`      | Généré aléatoirement par utilisateur                        | Table `user_encryption_key` (accessible uniquement au `service_role`).                                                                                                                                                       |
 
 La DEK n'est jamais stockée. Un cache mémoire de 5 minutes évite de répéter la dérivation, mais chaque nouvelle requête de mutation revalide son entrée avec le `key_check` courant.
 
 ### Ce que ça implique en cas de fuite
 
-| Scénario | Impact |
-|----------|--------|
-| Fuite de la base de données seule | Les montants sont illisibles (chiffrés en base64/AES-GCM). |
-| Fuite de la master key seule | Inutile sans le client key de chaque utilisateur. |
-| Fuite d'un client key seul (ex: interception réseau) | Inutile sans la master key serveur. |
-| Fuite master key **ET** client key | Toutes les données de l'utilisateur concerné sont déchiffrables. |
+| Scénario                                             | Impact                                                           |
+| ---------------------------------------------------- | ---------------------------------------------------------------- |
+| Fuite de la base de données seule                    | Les montants sont illisibles (chiffrés en base64/AES-GCM).       |
+| Fuite de la master key seule                         | Inutile sans le client key de chaque utilisateur.                |
+| Fuite d'un client key seul (ex: interception réseau) | Inutile sans la master key serveur.                              |
+| Fuite master key **ET** client key                   | Toutes les données de l'utilisateur concerné sont déchiffrables. |
 
 ## Algorithme de chiffrement
 
@@ -39,13 +39,13 @@ La DEK n'est jamais stockée. Un cache mémoire de 5 minutes évite de répéter
 
 Chaque table stocke les montants chiffrés dans une colonne texte (type `text`). La valeur est un ciphertext AES-256-GCM encodé en base64, ou `null` si aucun montant n'a été saisi.
 
-| Table | Colonne chiffrée |
-|-------|-----------------|
-| `budget_line` | `amount`, `original_amount` |
-| `transaction` | `amount`, `original_amount` |
-| `template_line` | `amount`, `original_amount` |
-| `savings_goal` | `target_amount`, `initial_amount`, `original_target_amount` |
-| `monthly_budget` | `ending_balance` |
+| Table            | Colonne chiffrée                                            |
+| ---------------- | ----------------------------------------------------------- |
+| `budget_line`    | `amount`, `original_amount`                                 |
+| `transaction`    | `amount`, `original_amount`                                 |
+| `template_line`  | `amount`, `original_amount`                                 |
+| `savings_goal`   | `target_amount`, `initial_amount`, `original_target_amount` |
+| `monthly_budget` | `ending_balance`                                            |
 
 ### Colonnes plaintext liées mathématiquement aux montants chiffrés
 
@@ -117,8 +117,8 @@ L'endpoint `change-pin` est limité à 5 appels par heure par utilisateur.
 
 ### Endpoints
 
-| Endpoint | Description |
-|----------|-------------|
+| Endpoint                         | Description                                         |
+| -------------------------------- | --------------------------------------------------- |
 | `POST /v1/encryption/change-pin` | Ancien + nouveau clientKey → re-chiffrement complet |
 
 ## Recovery key
@@ -165,10 +165,10 @@ Recovery (code PIN oublié) :
 
 ### Endpoints
 
-| Endpoint | Description |
-|----------|-------------|
+| Endpoint                             | Description                                                |
+| ------------------------------------ | ---------------------------------------------------------- |
 | `POST /v1/encryption/setup-recovery` | Génère une recovery key, wrap la DEK, stocke `wrapped_dek` |
-| `POST /v1/encryption/recover` | Recovery key + nouveau clientKey → rekey complet |
+| `POST /v1/encryption/recover`        | Recovery key + nouveau clientKey → rekey complet           |
 
 ## Vérification du code PIN (key check canary)
 
@@ -191,13 +191,13 @@ La colonne `key_check` de `user_encryption_key` stocke un ciphertext canary : `A
 
 ### Cycle de vie du key_check
 
-| Événement | Action |
-|-----------|--------|
-| Setup initial (`/setup-recovery`) | `key_check` et `wrapped_dek` créés atomiquement si le coffre est vide |
-| Validation avec `key_check` absent | Refusée sans mutation |
-| Recovery (`/recover`) | Régénéré avec la nouvelle DEK |
-| Changement de PIN (`/change-pin`) | Régénéré avec la nouvelle DEK |
-| Mode démo | Initialisé avec la clé démo fixe, hors parcours utilisateur |
+| Événement                          | Action                                                                |
+| ---------------------------------- | --------------------------------------------------------------------- |
+| Setup initial (`/setup-recovery`)  | `key_check` et `wrapped_dek` créés atomiquement si le coffre est vide |
+| Validation avec `key_check` absent | Refusée sans mutation                                                 |
+| Recovery (`/recover`)              | Régénéré avec la nouvelle DEK                                         |
+| Changement de PIN (`/change-pin`)  | Régénéré avec la nouvelle DEK                                         |
+| Mode démo                          | Initialisé avec la clé démo fixe, hors parcours utilisateur           |
 
 ### Rate limiting
 
@@ -205,8 +205,8 @@ L'endpoint `validate-key` est limité à 5 tentatives par minute par utilisateur
 
 ### Endpoints
 
-| Endpoint | Description |
-|----------|-------------|
+| Endpoint                           | Description                                  |
+| ---------------------------------- | -------------------------------------------- |
 | `POST /v1/encryption/validate-key` | Vérifie le clientKey via le canary key_check |
 
 ## Brute-force du code PIN hors ligne (risque accepté)
@@ -216,21 +216,22 @@ Le code PIN 4 chiffres comporte 10 000 combinaisons. Si la table `user_encryptio
 Cependant, l'architecture split-key atténue ce risque : DEK = HKDF(clientKey + masterKey, salt). La clé client seule est inutile — l'attaquant aurait aussi besoin de la `masterKey` (variable d'environnement serveur, jamais stockée en base de données). Une fuite simultanée de la base de données ET des variables d'environnement serveur représente un compromis catastrophique où même un code PIN 6–8 chiffres serait insuffisant.
 
 De plus :
+
 - La table `user_encryption_key` est accessible uniquement au `service_role` (`REVOKE ALL` sur les rôles `authenticated` et `anon`)
 - Le brute-force en ligne est bloqué par le rate limiting (5 tentatives/min sur `validate-key`)
 - La constante `pinLength` dans `CryptoService` est fixée à 4 chiffres (peut être augmentée si la réglementation l'exige)
 
 ## Absence d'AAD sur les ciphertexts de montants (risque accepté)
 
-Les montants sont chiffrés en AES-256-GCM sans *additional authenticated data*. Un attaquant disposant d'un **accès en écriture à la base** peut donc déplacer un ciphertext d'une colonne à une autre : le tag GCM reste valide et l'application affiche le montant déplacé.
+Les montants sont chiffrés en AES-256-GCM sans _additional authenticated data_. Un attaquant disposant d'un **accès en écriture à la base** peut donc déplacer un ciphertext d'une colonne à une autre : le tag GCM reste valide et l'application affiche le montant déplacé.
 
 Portée réelle de l'attaque, avant d'envisager une correction :
 
-| Variante de relocation | Déjà bloquée ? |
-|------------------------|----------------|
-| Vers un **autre utilisateur** | Oui. `DEK = HKDF(clientKey + masterKey, salt, "pulpe-dek-{userId}")` : le sel et l'`info` diffèrent par utilisateur, le tag GCM échoue (couvert par `cross-dek-budget-line.spec.ts`) |
+| Variante de relocation                                                                                       | Déjà bloquée ?                                                                                                                                                                                                                                          |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vers un **autre utilisateur**                                                                                | Oui. `DEK = HKDF(clientKey + masterKey, salt, "pulpe-dek-{userId}")` : le sel et l'`info` diffèrent par utilisateur, le tag GCM échoue (couvert par `cross-dek-budget-line.spec.ts`)                                                                    |
 | **Ligne → ligne, même colonne** (`budget_line.amount` de A vers `budget_line.amount` de B, même utilisateur) | Non, et une AAD ne peut pas la bloquer ici : les RPC SQL propagent légitimement les ciphertexts `template_line.amount → budget_line.amount`, donc lier l'AAD à la table ou à l'identifiant de ligne casserait la provision d'un budget depuis un modèle |
-| **Champ → champ, même utilisateur** (`amount` vers `target_amount`) | Non. C'est la seule variante qu'une AAD `{userId}:{champ}` fermerait |
+| **Champ → champ, même utilisateur** (`amount` vers `target_amount`)                                          | Non. C'est la seule variante qu'une AAD `{userId}:{champ}` fermerait                                                                                                                                                                                    |
 
 Une AAD par champ ne fermerait donc que la variante la moins probable, et son coût de mise en œuvre est disproportionné : le contexte `champ` devrait être passé aux **65 sites d'appel** de `encryptAmount`/`decryptAmount`/`tryDecryptAmount` répartis sur 9 fichiers, et le déchiffrement devrait porter en permanence une branche v1/v2 pour rester compatible avec l'existant.
 
@@ -243,6 +244,7 @@ Décision : pas d'AAD pour l'instant. Si elle est implémentée un jour, la conc
 Le header `X-Client-Key` est envoyé sur tous les endpoints de données (budgets, transactions, templates) car le serveur a besoin de la clé client au moment de la requête pour dériver la DEK. Seuls 4 endpoints utilisent `@SkipClientKey()` (vault-status, salt, validate-key, recover).
 
 Atténuations :
+
 - HTTPS/TLS chiffre les headers en transit
 - Le `logRequest` iOS ne journalise que la méthode, le chemin et le code de statut (jamais les headers)
 - Le backend ne journalise que des avertissements pour les headers manquants/invalides (jamais la valeur)
@@ -269,15 +271,18 @@ Le RPC reste `SECURITY INVOKER`. Appelé par le `service_role` il n'est plus sou
 ### Web (Angular)
 
 Le `clientKey` est stocké côté client via `StorageService` :
+
 - `sessionStorage` : `pulpe-vault-client-key-session` (par défaut)
 - `localStorage` : `pulpe-vault-client-key-local` (option « Se souvenir de cet appareil »)
 
 **Propriétés :**
+
 - `sessionStorage` est limité à l'onglet (non partagé entre onglets)
 - `localStorage` persiste entre sessions (si l'utilisateur choisit « Se souvenir »)
 - Au logout, `clearPreservingDeviceTrust()` efface la clé en mémoire et en `sessionStorage`, mais **préserve** le `localStorage` si l'utilisateur a choisi « Se souvenir de cet appareil »
 
 **Risque accepté :** une vulnérabilité XSS dans l'application permettrait de lire le `clientKey` depuis `sessionStorage`. Ce risque est atténué par :
+
 1. La politique CSP (Content Security Policy) qui limite l'exécution de scripts tiers
 2. Le fait qu'une XSS permettrait aussi d'intercepter le code PIN ou le mot de passe directement à la saisie
 3. Le `clientKey` seul est insuffisant pour déchiffrer (il faut aussi la `masterKey` serveur)
@@ -288,14 +293,15 @@ Le `clientKey` est stocké côté client via `StorageService` :
 
 Cocher l'option bascule le `clientKey` de `sessionStorage` vers `localStorage`. Ça ne crée pas une nouvelle classe de vulnérabilité — c'est le même vecteur XSS que ci-dessus — mais ça **élargit la fenêtre d'exploitation** sur deux axes :
 
-| | Sans « se souvenir » | Avec « se souvenir » |
-|---|---|---|
-| Durée de vie de la clé | L'onglet | Jusqu'à effacement explicite par l'utilisateur |
-| Survie au logout | Non | Oui (`clearPreservingDeviceTrust()` préserve délibérément l'entrée `localStorage`) |
+|                        | Sans « se souvenir » | Avec « se souvenir »                                                               |
+| ---------------------- | -------------------- | ---------------------------------------------------------------------------------- |
+| Durée de vie de la clé | L'onglet             | Jusqu'à effacement explicite par l'utilisateur                                     |
+| Survie au logout       | Non                  | Oui (`clearPreservingDeviceTrust()` préserve délibérément l'entrée `localStorage`) |
 
 Le scénario complet est le vol **combiné** : une XSS doit exfiltrer à la fois la session Supabase et le `clientKey` pour que l'attaquant déchiffre des montants. L'un sans l'autre ne suffit pas — le backend refuse une requête sans header `X-Client-Key` valide, et le `clientKey` seul ne dérive rien sans la `masterKey` serveur.
 
 **Mitigations en place :**
+
 1. CSP stricte (`vercel.json`) : `script-src 'self'` + deux origines tierces explicites, ni `unsafe-inline` ni `unsafe-eval`. Seul `script-src-attr` porte un `'unsafe-hashes'` limité à un hash `sha256` précis. `frontend/scripts/check-no-inline-scripts.ts` échoue le build si un script inline non prévu apparaît
 2. Sanitizer Angular par défaut sur toute interpolation ; aucun `bypassSecurityTrust*` sur du contenu d'origine utilisateur
 3. La session Supabase reste soumise à son expiration et à la révocation côté serveur
@@ -306,11 +312,11 @@ Le scénario complet est le vol **combiné** : une XSS doit exfiltrer à la fois
 
 Le `clientKey` est géré par `ClientKeyManager` (actor) avec trois niveaux de stockage :
 
-| Niveau | Stockage | Survit au grace period lock | Survit au logout |
-|--------|----------|-----------------------------|------------------|
-| Cache mémoire | `cachedClientKeyHex` (propriété actor) | Non | Non |
-| Keychain standard | `KeychainManager.saveClientKey()` | Oui | Non |
-| Keychain biométrique | `KeychainManager.saveBiometricClientKey()` (protégé Face ID/Touch ID) | Oui | Non (`clearAll`) |
+| Niveau               | Stockage                                                              | Survit au grace period lock | Survit au logout |
+| -------------------- | --------------------------------------------------------------------- | --------------------------- | ---------------- |
+| Cache mémoire        | `cachedClientKeyHex` (propriété actor)                                | Non                         | Non              |
+| Keychain standard    | `KeychainManager.saveClientKey()`                                     | Oui                         | Non              |
+| Keychain biométrique | `KeychainManager.saveBiometricClientKey()` (protégé Face ID/Touch ID) | Oui                         | Non (`clearAll`) |
 
 #### Grace period (verrouillage après `AppConfiguration.backgroundGracePeriod`, 30s actuellement)
 
@@ -329,13 +335,13 @@ Le `clientKey` est géré par `ClientKeyManager` (actor) avec trois niveaux de s
 
 #### Nettoyage par événement
 
-| Événement | Méthode | Effet |
-|-----------|---------|-------|
-| Grace period (`backgroundGracePeriod`) | `clearCache()` | Cache mémoire effacé, keychain intacts |
-| Client key périmé | `clearAll()` | Tout effacé (cache + keychain standard + biométrique) |
-| Logout | `clearSession()` | Cache + keychain standard effacés, biométrique **préservé** pour prochain login |
-| Logout (sans biométrie) | via `clearSession()` puis `clearAll()` dans logout flow | Tout effacé |
-| Reset mot de passe | `clearAll()` + `biometricEnabled = false` | Tout effacé, biométrie désactivée |
+| Événement                              | Méthode                                                 | Effet                                                                           |
+| -------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Grace period (`backgroundGracePeriod`) | `clearCache()`                                          | Cache mémoire effacé, keychain intacts                                          |
+| Client key périmé                      | `clearAll()`                                            | Tout effacé (cache + keychain standard + biométrique)                           |
+| Logout                                 | `clearSession()`                                        | Cache + keychain standard effacés, biométrique **préservé** pour prochain login |
+| Logout (sans biométrie)                | via `clearSession()` puis `clearAll()` dans logout flow | Tout effacé                                                                     |
+| Reset mot de passe                     | `clearAll()` + `biometricEnabled = false`               | Tout effacé, biométrie désactivée                                               |
 
 #### Mémoire non-zéroable du clientKey (risque accepté)
 
@@ -365,6 +371,7 @@ openssl rand -hex 32
 ```
 
 Cette valeur doit être configurée dans :
+
 - **GitHub Secrets** : `ENCRYPTION_MASTER_KEY` (pour le déploiement)
 - **CI** : déjà configuré dans `ci.yml` avec une valeur de test
 - **Local** : dans `backend-nest/.env` (gitignored)
@@ -372,6 +379,7 @@ Cette valeur doit être configurée dans :
 ### Validation
 
 Le backend vérifie au démarrage que `ENCRYPTION_MASTER_KEY` :
+
 - est défini
 - fait exactement 64 caractères hexadécimaux (32 octets)
 
@@ -379,35 +387,50 @@ Si la validation échoue, le serveur refuse de démarrer.
 
 ## Fichiers concernés
 
+### Retraits pilotés depuis le plan d'objectif
+
+Le wire garde le signe (`-4'500` = sortie), mais la persistance chiffre toujours
+la valeur absolue positive via `ENCRYPTION_PORT` avant la RPC. Une période ne
+stocke le ciphertext que dans une représentation :
+
+- `savings_goal_plan_withdrawal.amount` pour « objectif uniquement » ;
+- `budget_line.amount` sur la Prévision Revenu marquée
+  `is_savings_goal_plan_adjustment` pour « créer aussi un revenu ».
+
+`apply_savings_goal_plan_with_destinations` effectue suppression et upsert dans
+une transaction sous advisory lock. Aucun montant en clair ni contribution
+Épargne négative n'est persisté. La nouvelle colonne booléenne et les IDs de
+liaison ne sont pas financiers et restent en clair.
+
 ### Backend
 
-| Fichier | Rôle |
-|---------|------|
+| Fichier                                                      | Rôle                                                                                      |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
 | `encryption/infrastructure/crypto/aes-gcm.crypto-service.ts` | Dérivation DEK, chiffrement/déchiffrement AES-GCM, wrap/unwrap DEK, cache, re-chiffrement |
-| `encryption-key.repository.ts` | CRUD de la table `user_encryption_key` (salt, wrapped_dek) |
-| `encryption.controller.ts` | Endpoints `/salt`, `/validate-key`, `/setup-recovery`, `/recover`, `/change-pin` |
-| `client-key-cleanup.interceptor.ts` | Efface le clientKey de la mémoire après chaque requête |
-| `auth.guard.ts` | Extrait et valide le `X-Client-Key` du header |
+| `encryption-key.repository.ts`                               | CRUD de la table `user_encryption_key` (salt, wrapped_dek)                                |
+| `encryption.controller.ts`                                   | Endpoints `/salt`, `/validate-key`, `/setup-recovery`, `/recover`, `/change-pin`          |
+| `client-key-cleanup.interceptor.ts`                          | Efface le clientKey de la mémoire après chaque requête                                    |
+| `auth.guard.ts`                                              | Extrait et valide le `X-Client-Key` du header                                             |
 
 ### Frontend (Angular)
 
-| Fichier | Rôle |
-|---------|------|
-| `crypto.utils.ts` | Dérivation PBKDF2, `DEMO_CLIENT_KEY` |
-| `client-key.service.ts` | Gestion du clientKey en sessionStorage |
+| Fichier                  | Rôle                                                 |
+| ------------------------ | ---------------------------------------------------- |
+| `crypto.utils.ts`        | Dérivation PBKDF2, `DEMO_CLIENT_KEY`                 |
+| `client-key.service.ts`  | Gestion du clientKey en sessionStorage               |
 | `recovery-key-dialog.ts` | Modal d'affichage et confirmation de la recovery key |
 
 ### iOS (SwiftUI)
 
-| Fichier | Rôle |
-|---------|------|
-| `Core/Encryption/ClientKeyManager.swift` | Actor gérant le cycle de vie du clientKey (cache mémoire + keychain + biométrique) |
-| `Core/Encryption/CryptoService.swift` | Dérivation PBKDF2 du clientKey depuis le PIN |
-| `Core/Encryption/EncryptionAPI.swift` | Appels API encryption (`/salt`, `/validate-key`, `/setup-recovery`, `/recover`) |
-| `Core/Auth/BiometricService.swift` | Face ID / Touch ID (LAContext) |
-| `Core/Auth/KeychainManager.swift` | Stockage keychain standard et biométrique |
-| `App/AppState.swift` | Machine d'état auth, grace period (`backgroundGracePeriod`, 30s actuellement), transitions `needsPinEntry` ↔ `authenticated` |
-| `Features/Auth/Pin/PinEntryView.swift` | Saisie PIN + auto-trigger Face ID |
-| `Features/Auth/Pin/PinSetupView.swift` | Configuration initiale du PIN |
-| `Features/Auth/Pin/PinRecoveryView.swift` | Récupération via recovery key |
-| `Features/Auth/Pin/RecoveryKeySheet.swift` | Affichage unique de la recovery key |
+| Fichier                                    | Rôle                                                                                                                         |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| `Core/Encryption/ClientKeyManager.swift`   | Actor gérant le cycle de vie du clientKey (cache mémoire + keychain + biométrique)                                           |
+| `Core/Encryption/CryptoService.swift`      | Dérivation PBKDF2 du clientKey depuis le PIN                                                                                 |
+| `Core/Encryption/EncryptionAPI.swift`      | Appels API encryption (`/salt`, `/validate-key`, `/setup-recovery`, `/recover`)                                              |
+| `Core/Auth/BiometricService.swift`         | Face ID / Touch ID (LAContext)                                                                                               |
+| `Core/Auth/KeychainManager.swift`          | Stockage keychain standard et biométrique                                                                                    |
+| `App/AppState.swift`                       | Machine d'état auth, grace period (`backgroundGracePeriod`, 30s actuellement), transitions `needsPinEntry` ↔ `authenticated` |
+| `Features/Auth/Pin/PinEntryView.swift`     | Saisie PIN + auto-trigger Face ID                                                                                            |
+| `Features/Auth/Pin/PinSetupView.swift`     | Configuration initiale du PIN                                                                                                |
+| `Features/Auth/Pin/PinRecoveryView.swift`  | Récupération via recovery key                                                                                                |
+| `Features/Auth/Pin/RecoveryKeySheet.swift` | Affichage unique de la recovery key                                                                                          |

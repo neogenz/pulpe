@@ -15,6 +15,7 @@ import SwiftUI
 struct GoalWithdrawalsSection: View {
     let withdrawals: [SavingsGoalWithdrawal]
     let planned: [SavingsGoalPlannedWithdrawal]
+    let planOnly: [SavingsGoalPlanOnlyWithdrawal]
     let currency: SupportedCurrency
     let isLoading: Bool
     let error: Error?
@@ -23,10 +24,11 @@ struct GoalWithdrawalsSection: View {
     static func isRelevant(
         withdrawals: [SavingsGoalWithdrawal],
         planned: [SavingsGoalPlannedWithdrawal],
+        planOnly: [SavingsGoalPlanOnlyWithdrawal] = [],
         isLoading: Bool,
         error: Error?
     ) -> Bool {
-        !withdrawals.isEmpty || !planned.isEmpty || isLoading || error != nil
+        !withdrawals.isEmpty || !planned.isEmpty || !planOnly.isEmpty || isLoading || error != nil
     }
 
     var body: some View {
@@ -35,21 +37,24 @@ struct GoalWithdrawalsSection: View {
                 .font(PulpeTypography.title2)
                 .foregroundStyle(Color.textPrimary)
 
-            if isLoading, withdrawals.isEmpty, planned.isEmpty {
+            if isLoading, withdrawals.isEmpty, planned.isEmpty, planOnly.isEmpty {
                 ProgressView("Chargement des retraits…")
                     .frame(maxWidth: .infinity)
                     .padding(DesignTokens.Spacing.xl)
-            } else if error != nil, withdrawals.isEmpty, planned.isEmpty {
+            } else if error != nil, withdrawals.isEmpty, planned.isEmpty, planOnly.isEmpty {
                 // No retry button: the whole detail reloads on pull-to-refresh,
                 // and a failed history never blocks reading the progression.
                 notice("Impossible de charger les retraits pour le moment.")
             } else {
-                if !planned.isEmpty {
+                if !planned.isEmpty || !planOnly.isEmpty {
                     Text("Retraits planifiés")
                         .font(PulpeTypography.headline)
                         .foregroundStyle(Color.textPrimary)
                     ForEach(planned) { withdrawal in
                         plannedRow(withdrawal)
+                    }
+                    ForEach(planOnly) { withdrawal in
+                        planOnlyRow(withdrawal)
                     }
                 }
 
@@ -63,6 +68,34 @@ struct GoalWithdrawalsSection: View {
                 }
             }
         }
+    }
+
+    private func planOnlyRow(_ withdrawal: SavingsGoalPlanOnlyWithdrawal) -> some View {
+        HStack(spacing: DesignTokens.Spacing.md) {
+            Image(systemName: "calendar.badge.minus")
+                .font(PulpeTypography.actionIcon)
+                .foregroundStyle(Color.textTertiary)
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                Text(withdrawal.name)
+                    .font(PulpeTypography.listRowTitle)
+                Text("\(planOnlyPeriod(withdrawal)) · Hors budget")
+                    .font(PulpeTypography.listRowSubtitle)
+                    .foregroundStyle(Color.textTertiary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Text((-withdrawal.plannedAmount).asCurrency(currency))
+                .font(PulpeTypography.amountCard)
+                .monospacedDigit()
+                .sensitiveAmount()
+        }
+        .pulpeCard()
+        .accessibilityElement(children: .combine)
+    }
+
+    private func planOnlyPeriod(_ withdrawal: SavingsGoalPlanOnlyWithdrawal) -> String {
+        let components = DateComponents(year: withdrawal.year, month: withdrawal.month, day: 1)
+        return (Calendar.current.date(from: components) ?? .now)
+            .formatted(.dateTime.month(.wide).year())
     }
 
     private func notice(_ message: String) -> some View {
@@ -199,6 +232,7 @@ struct GoalWithdrawalsSection: View {
                     ),
                 ],
                 planned: [],
+                planOnly: [],
                 currency: .chf,
                 isLoading: false,
                 error: nil,
@@ -208,6 +242,7 @@ struct GoalWithdrawalsSection: View {
             GoalWithdrawalsSection(
                 withdrawals: [],
                 planned: [],
+                planOnly: [],
                 currency: .chf,
                 isLoading: false,
                 error: APIError.serverError(message: "Indisponible"),

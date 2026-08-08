@@ -20,17 +20,20 @@ struct GoalPlanSimEditRow: View {
                     .monospacedDigit()
                     .foregroundStyle(Color.textTertiary)
                     .sensitiveAmount()
+                Text("Positif = mettre de côté · Négatif = retirer")
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.textSecondary)
             }
 
             Spacer(minLength: DesignTokens.Spacing.sm)
 
             HStack(spacing: DesignTokens.Spacing.xs) {
                 TextField("", value: $amount, format: .number.precision(.fractionLength(0...2)))
-                    .keyboardType(.decimalPad)
+                    .keyboardType(.numbersAndPunctuation)
                     .multilineTextAlignment(.trailing)
                     .monospacedDigit()
                     .frame(width: 88)
-                    .accessibilityLabel("Montant pour \(Formatters.monthName(for: simMonth.month.month))")
+                    .accessibilityLabel("Mouvement de l’objectif ce mois")
                 Text(currency.symbol)
                     .font(PulpeTypography.metricLabel)
                     .foregroundStyle(Color.textSecondary)

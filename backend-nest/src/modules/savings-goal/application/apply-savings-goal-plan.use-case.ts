@@ -371,15 +371,27 @@ export class ApplySavingsGoalPlanUseCase {
   }
 
   private assertPlanWithdrawalBalance(input: PlanWithdrawalBalanceInput): void {
-    const resultingPlanWithdrawals = this.mergePlanWithdrawals(
-      input.existingPlanWithdrawals,
+    const independentPlanned = input.plannedWithdrawals.filter(
+      (withdrawal) => withdrawal.origin !== 'plan_linked',
+    );
+    const existingManaged = [
+      ...input.existingPlanWithdrawals,
+      ...input.plannedWithdrawals.filter(
+        (withdrawal) => withdrawal.origin === 'plan_linked',
+      ),
+    ];
+    const resultingManaged = this.mergePlanWithdrawals(
+      existingManaged,
       input.adjustments,
     );
-    const before = this.minimumProjectedBalance(
-      input,
-      input.existingPlanWithdrawals,
-    );
-    const after = this.minimumProjectedBalance(input, resultingPlanWithdrawals);
+    const before = this.minimumProjectedBalance(input, [
+      ...independentPlanned,
+      ...existingManaged,
+    ]);
+    const after = this.minimumProjectedBalance(input, [
+      ...independentPlanned,
+      ...resultingManaged,
+    ]);
 
     if (
       after < -WITHDRAWAL_BALANCE_TOLERANCE &&
@@ -414,7 +426,8 @@ export class ApplySavingsGoalPlanUseCase {
           amount: -adjustment.amount,
           month: adjustment.month,
           year: adjustment.year,
-          origin: 'plan',
+          origin:
+            adjustment.destination === 'linked_income' ? 'plan_linked' : 'plan',
         });
       }
     }
@@ -423,7 +436,7 @@ export class ApplySavingsGoalPlanUseCase {
 
   private minimumProjectedBalance(
     input: PlanWithdrawalBalanceInput,
-    planOnly: LinkedPlannedWithdrawal[],
+    plannedWithdrawals: LinkedPlannedWithdrawal[],
   ): number {
     const timeline = buildSavingsGoalTimeline({
       targetAmount: input.goal.targetAmount,
@@ -436,7 +449,7 @@ export class ApplySavingsGoalPlanUseCase {
       lines: input.lines,
       transactions: input.transactions,
       withdrawals: input.withdrawals,
-      plannedWithdrawals: [...input.plannedWithdrawals, ...planOnly],
+      plannedWithdrawals,
     });
     return Math.min(
       ...timeline.map(

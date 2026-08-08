@@ -43,6 +43,7 @@ export type Database = {
           exchange_rate: number | null;
           id: string;
           is_manually_adjusted: boolean;
+          is_savings_goal_plan_adjustment: boolean;
           kind: Database['public']['Enums']['transaction_kind'];
           name: string;
           original_amount: string | null;
@@ -65,6 +66,7 @@ export type Database = {
           exchange_rate?: number | null;
           id?: string;
           is_manually_adjusted?: boolean;
+          is_savings_goal_plan_adjustment?: boolean;
           kind: Database['public']['Enums']['transaction_kind'];
           name: string;
           original_amount?: string | null;
@@ -87,6 +89,7 @@ export type Database = {
           exchange_rate?: number | null;
           id?: string;
           is_manually_adjusted?: boolean;
+          is_savings_goal_plan_adjustment?: boolean;
           kind?: Database['public']['Enums']['transaction_kind'];
           name?: string;
           original_amount?: string | null;
@@ -640,6 +643,7 @@ export type Database = {
           exchange_rate: number | null;
           id: string;
           is_manually_adjusted: boolean;
+          is_savings_goal_plan_adjustment: boolean;
           kind: Database['public']['Enums']['transaction_kind'];
           name: string;
           original_amount: string | null;
@@ -660,6 +664,15 @@ export type Database = {
           isOneToOne: false;
           isSetofReturn: true;
         };
+      };
+      apply_savings_goal_plan_with_destinations: {
+        Args: {
+          p_goal_id: string;
+          p_line_updates?: Json;
+          p_min_period_index: number;
+          p_plan_withdrawals?: Json;
+        };
+        Returns: Json;
       };
       apply_template_line_operations: {
         Args: {
@@ -761,6 +774,7 @@ export type Database = {
           exchange_rate: number | null;
           id: string;
           is_manually_adjusted: boolean;
+          is_savings_goal_plan_adjustment: boolean;
           kind: Database['public']['Enums']['transaction_kind'];
           name: string;
           original_amount: string | null;
@@ -893,6 +907,7 @@ export type Database = {
           exchange_rate: number | null;
           id: string;
           is_manually_adjusted: boolean;
+          is_savings_goal_plan_adjustment: boolean;
           kind: Database['public']['Enums']['transaction_kind'];
           name: string;
           original_amount: string | null;
@@ -951,6 +966,7 @@ export type Database = {
           exchange_rate: number | null;
           id: string;
           is_manually_adjusted: boolean;
+          is_savings_goal_plan_adjustment: boolean;
           kind: Database['public']['Enums']['transaction_kind'];
           name: string;
           original_amount: string | null;

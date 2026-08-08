@@ -70,23 +70,37 @@ struct SavingsGoalPlannedWithdrawal: Codable, Identifiable, Hashable, Sendable {
     var id: String { budgetLineId }
 }
 
+struct SavingsGoalPlanOnlyWithdrawal: Codable, Identifiable, Hashable, Sendable {
+    let planWithdrawalId: String
+    let name: String
+    let month: Int
+    let year: Int
+    let plannedAmount: Decimal
+
+    var id: String { planWithdrawalId }
+}
+
 /// Additive `/withdrawals` envelope. `data` remains the Real history consumed
 /// by deployed clients; `planned` defaults empty against an older server.
 struct SavingsGoalWithdrawalsReadModel: Decodable, Sendable {
     let withdrawals: [SavingsGoalWithdrawal]
     let planned: [SavingsGoalPlannedWithdrawal]
+    let planOnly: [SavingsGoalPlanOnlyWithdrawal]
 
     enum CodingKeys: String, CodingKey {
         case withdrawals = "data"
         case planned
+        case planOnly
     }
 
     init(
         withdrawals: [SavingsGoalWithdrawal],
-        planned: [SavingsGoalPlannedWithdrawal] = []
+        planned: [SavingsGoalPlannedWithdrawal] = [],
+        planOnly: [SavingsGoalPlanOnlyWithdrawal] = []
     ) {
         self.withdrawals = withdrawals
         self.planned = planned
+        self.planOnly = planOnly
     }
 
     init(from decoder: Decoder) throws {
@@ -95,6 +109,10 @@ struct SavingsGoalWithdrawalsReadModel: Decodable, Sendable {
         planned = try container.decodeIfPresent(
             [SavingsGoalPlannedWithdrawal].self,
             forKey: .planned
+        ) ?? []
+        planOnly = try container.decodeIfPresent(
+            [SavingsGoalPlanOnlyWithdrawal].self,
+            forKey: .planOnly
         ) ?? []
     }
 }

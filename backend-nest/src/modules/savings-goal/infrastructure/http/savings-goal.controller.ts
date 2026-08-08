@@ -169,6 +169,7 @@ export class SavingsGoalController {
       success: true,
       data: readModel.withdrawals,
       planned: readModel.planned,
+      planOnly: readModel.planOnly,
     };
   }
 

@@ -36,6 +36,7 @@ export const applySavingsGoalPlanWithdrawalSchema = z
     year: z.number().int(),
     /** `null` supprime l'ajustement existant. */
     amount: z.string().min(1).nullable(),
+    destination: z.enum(['goal_only', 'linked_income']),
   })
   .strict();
 
@@ -60,6 +61,10 @@ export type ApplySavingsGoalPlanWithdrawal = z.infer<
 export const PLAN_LINE_NOT_LINKED_RPC_MESSAGE = 'Plan line not linked';
 export const PLAN_LINE_CHECKED_RPC_MESSAGE = 'Plan line already checked';
 export const PLAN_LINE_PAST_RPC_MESSAGE = 'Plan line in past period';
+export const PLAN_WITHDRAWAL_BUDGET_MISSING_RPC_MESSAGE =
+  'Plan withdrawal budget missing';
+export const PLAN_WITHDRAWAL_REALIZED_RPC_MESSAGE =
+  'Plan withdrawal already realized';
 
 // apply_savings_goal_generation_stop (PUL-285 CA5) — scalar params only, no
 // JSONB ciphertext payload, so no Zod payload schema. The RAISE messages are

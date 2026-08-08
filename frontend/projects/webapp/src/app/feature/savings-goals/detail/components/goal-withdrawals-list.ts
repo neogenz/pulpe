@@ -11,6 +11,7 @@ import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import {
   type SavingsGoalPlannedWithdrawal,
+  type SavingsGoalPlanOnlyWithdrawal,
   type SavingsGoalWithdrawal,
   type SupportedCurrency,
 } from 'pulpe-shared';
@@ -62,7 +63,9 @@ import { getDateDisplayFormats } from '@core/date/date-display-formats';
           {{ 'savingsGoals.detail.withdrawalsError' | transloco }}
         </p>
       } @else if (
-        withdrawals().length === 0 && plannedWithdrawals().length === 0
+        withdrawals().length === 0 &&
+        plannedWithdrawals().length === 0 &&
+        planOnlyWithdrawals().length === 0
       ) {
         <p
           class="text-body-small text-on-surface-variant"
@@ -71,12 +74,43 @@ import { getDateDisplayFormats } from '@core/date/date-display-formats';
           {{ 'savingsGoals.detail.withdrawalsEmpty' | transloco }}
         </p>
       } @else {
-        @if (plannedWithdrawals().length > 0) {
+        @if (
+          plannedWithdrawals().length > 0 || planOnlyWithdrawals().length > 0
+        ) {
           <section class="flex flex-col gap-2">
             <h3 class="text-title-medium font-medium">
               {{ 'savingsGoals.detail.plannedWithdrawalsTitle' | transloco }}
             </h3>
             <ul class="flex flex-col gap-2">
+              @for (w of planOnlyWithdrawals(); track w.planWithdrawalId) {
+                <li
+                  class="flex items-center gap-3 rounded-xl bg-surface-container-low p-4"
+                  data-testid="savings-goal-plan-only-withdrawal-row"
+                >
+                  <mat-icon
+                    class="shrink-0 text-on-surface-variant"
+                    aria-hidden="true"
+                    >event_note</mat-icon
+                  >
+                  <div class="flex min-w-0 flex-1 flex-col">
+                    <span class="text-body-large truncate ph-no-capture">{{
+                      w.name
+                    }}</span>
+                    <span class="text-body-small text-on-surface-variant">
+                      {{ plannedDate(w) | date: 'MMMM y' }} ·
+                      {{
+                        'savingsGoals.detail.withdrawalPlanOnlyOrigin'
+                          | transloco
+                      }}
+                    </span>
+                  </div>
+                  <span
+                    class="text-body-large font-medium tabular-nums ph-no-capture"
+                  >
+                    {{ -w.plannedAmount | appCurrency: currency() : '1.2-2' }}
+                  </span>
+                </li>
+              }
               @for (w of plannedWithdrawals(); track w.budgetLineId) {
                 <li>
                   <a
@@ -209,6 +243,7 @@ import { getDateDisplayFormats } from '@core/date/date-display-formats';
 export class GoalWithdrawalsList {
   readonly withdrawals = input.required<SavingsGoalWithdrawal[]>();
   readonly plannedWithdrawals = input<SavingsGoalPlannedWithdrawal[]>([]);
+  readonly planOnlyWithdrawals = input<SavingsGoalPlanOnlyWithdrawal[]>([]);
   readonly currency = input.required<SupportedCurrency>();
   readonly isLoading = input(false);
   readonly hasError = input(false);
@@ -217,7 +252,7 @@ export class GoalWithdrawalsList {
     () => getDateDisplayFormats(this.currency()).shortDate,
   );
 
-  protected plannedDate(withdrawal: SavingsGoalPlannedWithdrawal): Date {
+  protected plannedDate(withdrawal: { month: number; year: number }): Date {
     return new Date(withdrawal.year, withdrawal.month - 1, 1);
   }
 }

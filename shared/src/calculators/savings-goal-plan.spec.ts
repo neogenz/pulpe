@@ -495,6 +495,28 @@ describe('simulateSavingsPlan', () => {
     expect(result.simulatedFinal).toBe(8_260);
   });
 
+  it('should reload and replace a plan-managed linked income without double counting it', () => {
+    const result = simulateSavingsPlan({
+      timeline: [
+        planMonth({
+          month: 9,
+          year: 2026,
+          state: 'current',
+          plannedAmount: 1_260,
+          plannedWithdrawalAmount: 4_500,
+          remainingPlannedWithdrawalAmount: 4_500,
+          planLinkedWithdrawalAmount: 4_500,
+        }),
+      ],
+      targetAmount: 10_000,
+      initialAmount: 10_000,
+      adjustments: [{ month: 9, year: 2026, amount: -3_000 }],
+    });
+
+    expect(result.months[0].simulatedAmount).toBe(-3_000);
+    expect(result.simulatedFinal).toBe(8_260);
+  });
+
   it('should replace a reloaded withdrawal with one positive contribution when explicitly cleared', () => {
     const result = simulateSavingsPlan({
       timeline: [

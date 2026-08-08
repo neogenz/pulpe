@@ -102,8 +102,8 @@ export interface LinkedPlannedWithdrawal {
   amount: number;
   month: number;
   year: number;
-  /** `plan` = ajustement direct sans budget, jamais réalisable par un Réel. */
-  origin?: 'budget' | 'plan';
+  /** `plan` = direct hors budget ; `plan_linked` = revenu créé par le plan. */
+  origin?: 'budget' | 'plan' | 'plan_linked';
 }
 
 /**

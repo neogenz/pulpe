@@ -5,6 +5,7 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
 import type {
+  SavingsGoalPlanOnlyWithdrawal,
   SavingsGoalPlannedWithdrawal,
   SavingsGoalWithdrawal,
 } from 'pulpe-shared';
@@ -44,6 +45,18 @@ const plannedWithdrawal = (
   ...overrides,
 });
 
+const planOnlyWithdrawal = (
+  overrides: Partial<SavingsGoalPlanOnlyWithdrawal> = {},
+): SavingsGoalPlanOnlyWithdrawal => ({
+  planWithdrawalId: '00000000-0000-4000-8000-000000000400',
+  name: 'Retrait ponctuel',
+  month: 9,
+  year: 2026,
+  plannedAmount: 450,
+  origin: 'plan_only',
+  ...overrides,
+});
+
 describe('GoalWithdrawalsList', () => {
   let fixture: ComponentFixture<GoalWithdrawalsList>;
   let component: GoalWithdrawalsList;
@@ -63,6 +76,7 @@ describe('GoalWithdrawalsList', () => {
     setTestInput(component.currency, 'CHF');
     setTestInput(component.withdrawals, []);
     setTestInput(component.plannedWithdrawals, []);
+    setTestInput(component.planOnlyWithdrawals, []);
   });
 
   function query(testId: string) {
@@ -88,6 +102,16 @@ describe('GoalWithdrawalsList', () => {
     ).toContain('Retraits planifiés');
     expect(row.nativeElement.textContent).toContain('-4’500.00 CHF');
     expect(row.nativeElement.textContent).toContain('À réaliser');
+  });
+
+  it('shows a plan-only withdrawal as hors budget without navigation', () => {
+    setTestInput(component.planOnlyWithdrawals, [planOnlyWithdrawal()]);
+    fixture.detectChanges();
+
+    const row = query('savings-goal-plan-only-withdrawal-row');
+    expect(row.nativeElement.textContent).toContain('Hors budget');
+    expect(row.nativeElement.textContent).toContain('-450.00 CHF');
+    expect(row.nativeElement.querySelector('a')).toBeNull();
   });
 
   it('shows the remaining balance for a partial realization and Réalisé at zero', () => {

@@ -11,6 +11,20 @@ import Testing
 struct GoalPlanSimulatorTests {
     private static let lineId = "line-current"
 
+    private static func recapSource() throws -> String {
+        var url = URL(fileURLWithPath: #filePath)
+        url = url.deletingLastPathComponent() // SavingsGoals/
+        url = url.deletingLastPathComponent() // Features/
+        url = url.deletingLastPathComponent() // PulpeTests/
+        url = url.deletingLastPathComponent() // ios/
+        return try String(
+            contentsOf: url.appendingPathComponent(
+                "Pulpe/Features/SavingsGoals/Simulator/GoalPlanApplyRecapSheet.swift"
+            ),
+            encoding: .utf8
+        )
+    }
+
     private func makeGoal() -> SavingsGoal {
         SavingsGoal(
             id: "g1",
@@ -45,13 +59,13 @@ struct GoalPlanSimulatorTests {
         )
     }
 
-    private func gapMonth() -> SavingsGoalPlanMonth {
+    private func gapMonth(hasBudget: Bool = true) -> SavingsGoalPlanMonth {
         SavingsGoalPlanMonth(
             month: 7,
             year: 2026,
             state: .gap,
             isLocked: false,
-            hasBudget: true,
+            hasBudget: hasBudget,
             isProvisionable: true,
             plannedAmount: 0,
             confirmedAmount: 0,
@@ -91,6 +105,15 @@ struct GoalPlanSimulatorTests {
             exchangeRate: nil,
             months: months
         )
+    }
+
+    @Test("linked-income recap explains automatic pointing after realization")
+    func recap_explainsAutomaticPointing() throws {
+        let source = try Self.recapSource()
+
+        #expect(source.contains(
+            "Réalise-la dans le budget : le Réel créé sera automatiquement pointé."
+        ))
     }
 
     @Test("omits a zero-valued gap creation while keeping a zero-valued existing-line adjustment")
@@ -147,6 +170,78 @@ struct GoalPlanSimulatorTests {
         #expect(payload.monthAdjustments.first?.budgetLineId == Self.lineId)
         #expect(payload.monthAdjustments.first?.amount == 500)
         #expect(payload.missingMonthAdjustments.isEmpty)
+    }
+
+    @Test("routes a negative month to the chosen linked-income destination without a saving line")
+    func apply_routesSignedWithdrawalDestination() async throws {
+        let service = MockSavingsGoalService()
+        let viewModel = GoalPlanSimulatorViewModel(
+            goal: makeGoal(),
+            progress: makeProgress(
+                targetAmount: 10_000,
+                initialAmount: 10_000,
+                months: [openMonth(amount: 1_260)]
+            ),
+            currency: .chf,
+            payDay: nil,
+            service: service
+        )
+
+        viewModel.setMonth(key: 2026 * 12 + 6, amount: -4_500)
+        let succeeded = await viewModel.apply(withdrawalDestination: .linkedIncome)
+        let payload = try #require(service.lastApplyPayload)
+
+        #expect(succeeded)
+        #expect(payload.monthAdjustments.isEmpty)
+        #expect(payload.planWithdrawalAdjustments.first?.amount == -4_500)
+        #expect(payload.planWithdrawalAdjustments.first?.destination == .linkedIncome)
+    }
+
+    @Test("keeps a goal-only negative movement when the month has no budget")
+    func apply_routesPlanOnlyWithdrawalWithoutBudget() async throws {
+        let service = MockSavingsGoalService()
+        let viewModel = GoalPlanSimulatorViewModel(
+            goal: makeGoal(),
+            progress: makeProgress(
+                targetAmount: 10_000,
+                initialAmount: 10_000,
+                months: [gapMonth(hasBudget: false)]
+            ),
+            currency: .chf,
+            payDay: nil,
+            service: service
+        )
+
+        viewModel.setMonth(key: 2026 * 12 + 7, amount: -450)
+        let succeeded = await viewModel.apply()
+        let payload = try #require(service.lastApplyPayload)
+
+        #expect(succeeded)
+        #expect(payload.monthAdjustments.isEmpty)
+        #expect(payload.missingMonthAdjustments.isEmpty)
+        #expect(payload.planWithdrawalAdjustments.first?.amount == -450)
+        #expect(payload.planWithdrawalAdjustments.first?.destination == .goalOnly)
+    }
+
+    @Test("keeps the global savings control non-negative without clamping")
+    func globalAmount_rejectsNegativeValue() {
+        let viewModel = GoalPlanSimulatorViewModel(
+            goal: makeGoal(),
+            progress: makeProgress(
+                targetAmount: 10_000,
+                initialAmount: 0,
+                months: [openMonth(amount: 1_260)]
+            ),
+            currency: .chf,
+            payDay: nil,
+            service: MockSavingsGoalService()
+        )
+
+        viewModel.setGlobalAmount(300)
+        viewModel.setGlobalAmount(-450)
+
+        #expect(viewModel.globalAmount == 300)
+        #expect(viewModel.draft.months.allSatisfy { $0.simulatedAmount == 300 })
     }
 
     @Test("skips the apply call when the only change is a zero-valued gap creation")

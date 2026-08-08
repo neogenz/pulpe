@@ -5,12 +5,14 @@ import {
 } from '../domain/ports/savings-goal-repository.port';
 import type {
   SavingsGoalPlannedWithdrawal,
+  SavingsGoalPlanOnlyWithdrawal,
   SavingsGoalWithdrawal,
 } from 'pulpe-shared';
 
 export interface SavingsGoalWithdrawalsReadModel {
   withdrawals: SavingsGoalWithdrawal[];
   planned: SavingsGoalPlannedWithdrawal[];
+  planOnly: SavingsGoalPlanOnlyWithdrawal[];
 }
 
 /**
@@ -30,10 +32,11 @@ export class GetSavingsGoalWithdrawalsUseCase {
   ) {}
 
   async execute(goalId: string): Promise<SavingsGoalWithdrawalsReadModel> {
-    await this.repo.findById(goalId);
-    const [withdrawals, plannedRecords] = await Promise.all([
+    const goal = await this.repo.findById(goalId);
+    const [withdrawals, plannedRecords, planOnlyRecords] = await Promise.all([
       this.repo.findWithdrawals(goalId),
       this.repo.findPlannedWithdrawalRecords(goalId),
+      this.repo.findPlanWithdrawals(goalId),
     ]);
 
     const realizedByLine = new Map<string, number>();
@@ -46,29 +49,46 @@ export class GetSavingsGoalWithdrawalsUseCase {
     }
 
     const planned = plannedRecords
-      .map((record): SavingsGoalPlannedWithdrawal => {
-        const realizedAmount = realizedByLine.get(record.budgetLineId) ?? 0;
-        const remainingAmount = Math.max(0, record.amount - realizedAmount);
-        const status =
-          realizedAmount === 0
-            ? 'planned'
-            : remainingAmount > 0
-              ? 'partially_realized'
-              : 'realized';
-        return {
-          budgetLineId: record.budgetLineId,
-          budgetId: record.budgetId,
-          name: record.name,
-          month: record.month,
-          year: record.year,
-          plannedAmount: record.amount,
-          realizedAmount,
-          remainingAmount,
-          status,
-        };
-      })
+      .map((record) => this.toPlannedWithdrawal(record, realizedByLine))
       .sort((a, b) => a.year - b.year || a.month - b.month);
 
-    return { withdrawals, planned };
+    const planOnly = planOnlyRecords
+      .map((record) => ({
+        planWithdrawalId: record.id,
+        name: goal.name,
+        month: record.month,
+        year: record.year,
+        plannedAmount: record.amount,
+        origin: 'plan_only' as const,
+      }))
+      .sort((a, b) => a.year - b.year || a.month - b.month);
+
+    return { withdrawals, planned, planOnly };
+  }
+
+  private toPlannedWithdrawal(
+    record: Awaited<
+      ReturnType<SavingsGoalRepositoryPort['findPlannedWithdrawalRecords']>
+    >[number],
+    realizedByLine: ReadonlyMap<string, number>,
+  ): SavingsGoalPlannedWithdrawal {
+    const realizedAmount = realizedByLine.get(record.budgetLineId) ?? 0;
+    const remainingAmount = Math.max(0, record.amount - realizedAmount);
+    return {
+      budgetLineId: record.budgetLineId,
+      budgetId: record.budgetId,
+      name: record.name,
+      month: record.month,
+      year: record.year,
+      plannedAmount: record.amount,
+      realizedAmount,
+      remainingAmount,
+      status:
+        realizedAmount === 0
+          ? 'planned'
+          : remainingAmount > 0
+            ? 'partially_realized'
+            : 'realized',
+    };
   }
 }

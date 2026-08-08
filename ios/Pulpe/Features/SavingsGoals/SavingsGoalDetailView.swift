@@ -95,7 +95,7 @@ struct SavingsGoalDetailView: View {
                     changes: recoveryChanges(progress),
                     verdict: recoveryVerdict(progress),
                     currency: currency,
-                    onConfirm: {
+                    onConfirm: { _ in
                         let succeeded = await viewModel.applyMissingForecasts(from: progress)
                         guard succeeded else {
                             if let error = viewModel.error {
@@ -217,12 +217,14 @@ struct SavingsGoalDetailView: View {
         if GoalWithdrawalsSection.isRelevant(
             withdrawals: viewModel.withdrawals,
             planned: viewModel.plannedWithdrawals,
+            planOnly: viewModel.planOnlyWithdrawals,
             isLoading: viewModel.isLoadingWithdrawals,
             error: viewModel.withdrawalsError
         ) {
             GoalWithdrawalsSection(
                 withdrawals: viewModel.withdrawals,
                 planned: viewModel.plannedWithdrawals,
+                planOnly: viewModel.planOnlyWithdrawals,
                 currency: currency,
                 isLoading: viewModel.isLoadingWithdrawals,
                 error: viewModel.withdrawalsError,
@@ -541,6 +543,7 @@ final class SavingsGoalDetailViewModel {
     private(set) var contributions: [SavingsGoalContribution] = []
     private(set) var withdrawals: [SavingsGoalWithdrawal] = []
     private(set) var plannedWithdrawals: [SavingsGoalPlannedWithdrawal] = []
+    private(set) var planOnlyWithdrawals: [SavingsGoalPlanOnlyWithdrawal] = []
     private(set) var futureLines: [SavingsGoalFutureLine] = []
     private(set) var isLoading = true
     private(set) var isLoadingContributions = false
@@ -635,6 +638,7 @@ final class SavingsGoalDetailViewModel {
             let readModel = try await service.getWithdrawals(id: goalId)
             withdrawals = readModel.withdrawals
             plannedWithdrawals = readModel.planned
+            planOnlyWithdrawals = readModel.planOnly
         } catch {
             withdrawalsError = error
         }

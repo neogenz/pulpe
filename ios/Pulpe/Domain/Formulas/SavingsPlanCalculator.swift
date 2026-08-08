@@ -149,7 +149,9 @@ enum SavingsPlanCalculator {
             let budgetPlannedWithdrawal = max(
                 0,
                 month.remainingPlannedWithdrawalAmount - (
-                    movement.replacesExistingPlanWithdrawal ? month.planOnlyWithdrawalAmount : 0
+                    movement.replacesExistingPlanWithdrawal
+                        ? month.planOnlyWithdrawalAmount + month.planLinkedWithdrawalAmount
+                        : 0
                 )
             )
             simulatedCumulative -= month.withdrawnAmount + budgetPlannedWithdrawal
@@ -285,7 +287,9 @@ enum SavingsPlanCalculator {
                 $0.amount < 0 || $0.replacesPlanOnlyWithdrawal
             } ?? false
             let remaining = month.remainingPlannedWithdrawalAmount - (
-                replacesExisting ? month.planOnlyWithdrawalAmount : 0
+                replacesExisting
+                    ? month.planOnlyWithdrawalAmount + month.planLinkedWithdrawalAmount
+                    : 0
             )
             return partial + month.withdrawnAmount + max(0, remaining)
         }
@@ -446,8 +450,9 @@ private extension SavingsPlanCalculator {
                 replacesExistingPlanWithdrawal: false
             )
         }
-        if month.planOnlyWithdrawalAmount > 0 {
-            return .init(amount: -month.planOnlyWithdrawalAmount, isAdjusted: false,
+        let managedWithdrawal = month.planOnlyWithdrawalAmount + month.planLinkedWithdrawalAmount
+        if managedWithdrawal > 0 {
+            return .init(amount: -managedWithdrawal, isAdjusted: false,
                          isWithdrawal: true, replacesExistingPlanWithdrawal: true)
         }
         return .init(amount: month.plannedAmount, isAdjusted: false, isWithdrawal: false,

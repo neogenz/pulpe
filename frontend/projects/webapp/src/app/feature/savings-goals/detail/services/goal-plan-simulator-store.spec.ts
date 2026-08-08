@@ -190,7 +190,86 @@ describe('GoalPlanSimulatorStore', () => {
     expect(store.dirtyCount()).toBe(1);
   });
 
-  it('ignores a negative or non-finite amount instead of clamping it to zero', () => {
+  it('keeps a negative movement out of saving lines and routes its chosen destination', () => {
+    store.enter();
+    store.setMonth(6, 2026, -4_500);
+
+    const payload = store.buildApplyPayload('linked_income');
+
+    expect(payload.monthAdjustments).toEqual([]);
+    expect(payload.planWithdrawalAdjustments).toEqual([
+      {
+        month: 6,
+        year: 2026,
+        amount: -4_500,
+        destination: 'linked_income',
+      },
+    ]);
+  });
+
+  it('keeps a goal-only negative movement when the month has no budget', () => {
+    progressSig.set(
+      makeProgress({
+        months: [
+          {
+            month: 9,
+            year: 2026,
+            state: 'gap',
+            isLocked: false,
+            hasBudget: false,
+            isProvisionable: true,
+            plannedAmount: 0,
+            confirmedAmount: 0,
+            plannedCumulative: 0,
+            confirmedCumulative: 0,
+            lines: [],
+          },
+        ],
+      }),
+    );
+    store.enter();
+    store.setMonth(9, 2026, -450);
+
+    expect(store.buildApplyPayload()).toMatchObject({
+      monthAdjustments: [],
+      missingMonthAdjustments: [],
+      planWithdrawalAdjustments: [
+        {
+          month: 9,
+          year: 2026,
+          amount: -450,
+          destination: 'goal_only',
+        },
+      ],
+    });
+  });
+
+  it('clears a reloaded managed withdrawal when the month becomes positive', () => {
+    progressSig.set(
+      makeProgress({
+        months: [
+          openMonth(6, LINE_CURRENT, 1_260, {
+            planLinkedWithdrawalAmount: 4_500,
+            plannedWithdrawalAmount: 4_500,
+            remainingPlannedWithdrawalAmount: 4_500,
+          }),
+        ],
+      }),
+    );
+    store.enter();
+    store.setMonth(6, 2026, 1_500);
+
+    expect(store.buildApplyPayload().planWithdrawalAdjustments).toEqual([
+      {
+        month: 6,
+        year: 2026,
+        amount: 0,
+        destination: 'goal_only',
+      },
+    ]);
+  });
+
+  it('accepts a signed month amount but ignores a non-finite value', () => {
     store.enter();
     store.setMonth(6, 2026, 500);
 
@@ -198,7 +277,7 @@ describe('GoalPlanSimulatorStore', () => {
     store.setMonth(6, 2026, Number.NaN);
 
     const june = store.draft()!.months.find((m) => m.month === 6)!;
-    expect(june.simulatedAmount).toBe(500);
+    expect(june.simulatedAmount).toBe(-500);
   });
 
   it('ignores a negative global amount instead of clamping it to zero', () => {
@@ -403,9 +482,6 @@ describe('GoalPlanSimulatorStore', () => {
     );
 
     store.enter();
-    store.setMonth(months[2].month, months[2].year, 777);
-    expect(store.draftRows()[2].simulatedAmount).toBe(0);
-
     const result = store.redistribute();
     const payload = store.buildApplyPayload();
 

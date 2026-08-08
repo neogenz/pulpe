@@ -3,6 +3,7 @@ import {
   Component,
   computed,
   inject,
+  signal,
 } from '@angular/core';
 import {
   MAT_DIALOG_DATA,
@@ -11,6 +12,7 @@ import {
 } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatRadioModule } from '@angular/material/radio';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { formatBudgetPeriod, type SupportedCurrency } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
@@ -20,7 +22,10 @@ export interface GoalPlanApplyChange {
   year: number;
   before: number;
   after: number;
+  hasBudget?: boolean;
 }
+
+export type GoalPlanWithdrawalDestination = 'goal_only' | 'linked_income';
 
 export interface GoalPlanApplyDialogData {
   mode?: 'adjustment' | 'creation';
@@ -47,6 +52,7 @@ const MAX_DIFF_ROWS = 5;
     MatDialogModule,
     MatButtonModule,
     MatIconModule,
+    MatRadioModule,
     TranslocoPipe,
     AppCurrencyPipe,
   ],
@@ -128,6 +134,59 @@ const MAX_DIFF_ROWS = 5;
           </p>
         </div>
       }
+
+      @if (hasWithdrawal()) {
+        <section
+          class="flex flex-col gap-2"
+          aria-labelledby="withdrawal-choice-title"
+        >
+          <h3
+            id="withdrawal-choice-title"
+            class="text-title-medium font-semibold"
+          >
+            {{ 'savingsGoals.simulate.withdrawalChoiceTitle' | transloco }}
+          </h3>
+          <mat-radio-group
+            class="flex flex-col gap-2"
+            [value]="withdrawalDestination()"
+            (change)="withdrawalDestination.set($event.value)"
+          >
+            <mat-radio-button
+              value="goal_only"
+              data-testid="goal-plan-withdrawal-goal-only"
+            >
+              <span class="font-medium">{{
+                'savingsGoals.simulate.withdrawalGoalOnlyTitle' | transloco
+              }}</span>
+              <span class="block text-body-small text-on-surface-variant">
+                {{
+                  'savingsGoals.simulate.withdrawalGoalOnlyDetail' | transloco
+                }}
+              </span>
+            </mat-radio-button>
+            <mat-radio-button
+              value="linked_income"
+              [disabled]="!canLinkWithdrawal()"
+              data-testid="goal-plan-withdrawal-linked-income"
+            >
+              <span class="font-medium">{{
+                'savingsGoals.simulate.withdrawalLinkedTitle' | transloco
+              }}</span>
+              <span class="block text-body-small text-on-surface-variant">
+                {{ 'savingsGoals.simulate.withdrawalLinkedDetail' | transloco }}
+              </span>
+            </mat-radio-button>
+          </mat-radio-group>
+          @if (!canLinkWithdrawal()) {
+            <p
+              class="text-body-small text-on-surface-variant"
+              data-testid="goal-plan-withdrawal-no-budget"
+            >
+              {{ 'savingsGoals.simulate.withdrawalNoBudget' | transloco }}
+            </p>
+          }
+        </section>
+      }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button matButton mat-dialog-close data-testid="goal-plan-apply-cancel">
@@ -138,7 +197,11 @@ const MAX_DIFF_ROWS = 5;
         (click)="confirm()"
         data-testid="goal-plan-apply-confirm"
       >
-        {{ confirmKey() | transloco: { count: data.changes.length } }}
+        @if (hasWithdrawal()) {
+          {{ 'savingsGoals.simulate.withdrawalConfirm' | transloco }}
+        } @else {
+          {{ confirmKey() | transloco: { count: data.changes.length } }}
+        }
       </button>
     </mat-dialog-actions>
   `,
@@ -146,9 +209,21 @@ const MAX_DIFF_ROWS = 5;
 })
 export class GoalPlanApplyDialog {
   readonly #dialogRef =
-    inject<MatDialogRef<GoalPlanApplyDialog, boolean>>(MatDialogRef);
+    inject<
+      MatDialogRef<GoalPlanApplyDialog, GoalPlanWithdrawalDestination | true>
+    >(MatDialogRef);
   protected readonly data = inject<GoalPlanApplyDialogData>(MAT_DIALOG_DATA);
   protected readonly isCreation = computed(() => this.data.mode === 'creation');
+  protected readonly withdrawalDestination =
+    signal<GoalPlanWithdrawalDestination>('goal_only');
+  protected readonly hasWithdrawal = computed(() =>
+    this.data.changes.some((change) => change.after < 0),
+  );
+  protected readonly canLinkWithdrawal = computed(() =>
+    this.data.changes
+      .filter((change) => change.after < 0)
+      .every((change) => change.hasBudget === true),
+  );
   protected readonly titleKey = computed(() =>
     this.isCreation()
       ? 'savingsGoals.simulate.createTitle'
@@ -201,6 +276,8 @@ export class GoalPlanApplyDialog {
   }
 
   protected confirm(): void {
-    this.#dialogRef.close(true);
+    this.#dialogRef.close(
+      this.hasWithdrawal() ? this.withdrawalDestination() : true,
+    );
   }
 }

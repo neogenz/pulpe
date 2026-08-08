@@ -289,4 +289,26 @@ describe('savingsGoalWithdrawalsResponseSchema', () => {
       status: 'partially_realized',
     });
   });
+
+  it('reads a direct plan withdrawal without inventing budget identifiers', () => {
+    const result = savingsGoalWithdrawalsResponseSchema.parse({
+      success: true,
+      data: [],
+      planOnly: [
+        {
+          planWithdrawalId: '523e4567-e89b-12d3-a456-426614174000',
+          name: 'Maison',
+          month: 9,
+          year: 2026,
+          plannedAmount: 4_500,
+          origin: 'plan_only',
+        },
+      ],
+    });
+
+    expect(result.planOnly[0]).toMatchObject({
+      plannedAmount: 4_500,
+      origin: 'plan_only',
+    });
+  });
 });
