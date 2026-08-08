@@ -18,6 +18,7 @@ import {
 } from 'pulpe-shared';
 
 const FULL_BAR_PERCENT = 100;
+const MS_PER_DAY = 86_400_000;
 
 let heroInstanceCount = 0;
 
@@ -200,6 +201,17 @@ let heroInstanceCount = 0;
              screen-reader user heard nothing at all. -->
         <p class="progress-verdict" aria-live="polite">
           {{ statusMessage() | transloco }}
+          <!-- The verdict compares spending to how far the month has run, and
+               how far the month has run appeared nowhere on the card: no date,
+               no day, and the period range prints only for a payday off the
+               1st. "Tu dépenses plus vite que le mois ne passe" asked the
+               reader to take the second half on trust. It travels with the
+               sentence rather than sitting in the legend, because it is that
+               sentence's evidence and not a fourth share of the bar. -->
+          @let progress = monthProgress();
+          @if (progress) {
+            <span class="progress-verdict-elapsed">{{ progress }}</span>
+          }
         </p>
 
         <!-- The bar is decoration; the legend under it is the content. Both say
@@ -310,9 +322,18 @@ let heroInstanceCount = 0;
         <!-- Gated on the same condition as the key it defines. A month fully
              pointed draws no engagé segment and prints no engagé key, and the
              gloss stayed behind to define a word that had left the card. -->
-        @if (engagedShare() > 0 && showEngagedHint()) {
+        <!-- "Déjà sorti" was the one key defined nowhere: not here, not in the
+             tour, not in PRODUCT.md's vocabulary — and it is the key whose
+             amount a reader most often comes to check. It does not mean what
+             "dépensé" means either, since money set aside left the account too,
+             so the gloss says so rather than leaving the reader to discover it
+             from a total that does not add up the way they expect. -->
+        @if (showEngagedHint()) {
           <p class="progress-legend-note">
-            {{ 'dashboard.engagedHint' | transloco }}
+            {{ 'dashboard.spentHint' | transloco }}
+            @if (engagedShare() > 0) {
+              {{ 'dashboard.engagedHint' | transloco }}
+            }
           </p>
         }
       </div>
@@ -389,6 +410,14 @@ let heroInstanceCount = 0;
         line-height: var(--mat-sys-body-medium-line-height);
         font-weight: 700;
         margin-bottom: 0.75rem;
+      }
+
+      /* The evidence, not the claim: same line so the two are read together,
+         lighter weight so the verdict keeps the emphasis. No opacity — this
+         sits on a saturated gradient where every point of alpha comes off the
+         contrast ratio, and the weight alone carries the hierarchy. */
+      .progress-verdict-elapsed {
+        font-weight: 500;
       }
 
       .progress-bar {
@@ -515,6 +544,10 @@ export class DashboardHero {
   readonly periodDates = input.required<BudgetPeriodDates>();
   readonly rolloverAmount = input(0);
   readonly timeElapsedPercentage = input(0);
+  // Counted where the clock is. This component is handed the period bounds but
+  // never "now", so the day it renders has to arrive already counted rather
+  // than be inferred from a share rounded to whole percent.
+  readonly elapsedDayOfPeriod = input(0);
   readonly paceStatus = input<'on-track' | 'tight' | 'within-plan'>(
     'within-plan',
   );
@@ -670,6 +703,28 @@ export class DashboardHero {
     const dates = this.periodDates();
     if (!dates || dates.startDate.getDate() === 1) return '';
     return `${this.#dayMonthFormatter.format(dates.startDate)} – ${this.#dayMonthFormatter.format(dates.endDate)}`;
+  });
+
+  // Days rather than the percentage this card already holds: "jour 12 sur 30"
+  // is a fact the reader can check against their own calendar, where "40% du
+  // mois" is a third number to reconcile with the two beside it. The total is
+  // read off the period rather than off that percentage — both bounds are
+  // inclusive local midnights, so the subtraction is exact, while the share
+  // arrives rounded to whole percent and would put the day out by one.
+  protected readonly monthProgress = computed(() => {
+    const day = this.elapsedDayOfPeriod();
+    if (day <= 0) return '';
+    const dates = this.periodDates();
+    if (!dates) return '';
+    const totalDays =
+      Math.round(
+        (dates.endDate.getTime() - dates.startDate.getTime()) / MS_PER_DAY,
+      ) + 1;
+    if (totalDays <= 0) return '';
+    return this.#transloco.translate('dashboard.monthProgress', {
+      day: Math.min(day, totalDays),
+      total: totalDays,
+    });
   });
 
   // The card answers "am I doing OK?" out loud instead of leaving the user to

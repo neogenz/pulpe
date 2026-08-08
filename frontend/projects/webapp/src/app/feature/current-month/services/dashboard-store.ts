@@ -39,6 +39,7 @@ import {
 const RECENT_TRANSACTIONS_LIMIT = 5;
 const HISTORY_MONTHS_LIMIT = 6;
 const UPCOMING_MONTHS_LIMIT = 12;
+const MS_PER_DAY = 86_400_000;
 // How far ahead of the clock a month's spending may run before the card says
 // anything. The band is widest on the first day and closes to the floor on the
 // last, because a household's outflow is front-loaded — rent, insurance and the
@@ -208,6 +209,28 @@ export class DashboardStore {
     if (total <= 0) return 100;
     const percentage = (elapsed / total) * 100;
     return Math.round(Math.min(Math.max(0, percentage), 100));
+  });
+
+  // Which day of the period today is, counted from calendar days rather than
+  // from elapsed milliseconds: the period bounds are local midnights, so a
+  // duration divided by 24h drifts by an hour across a DST change and lands on
+  // the wrong day for part of one day a year. Both ends inclusive, so the first
+  // day of the period is day 1.
+  readonly elapsedDayOfPeriod = computed(() => {
+    const dates = this.periodDates();
+    if (!dates) return 0;
+    const startOfDay = (date: Date): number =>
+      new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+    const elapsed =
+      Math.round(
+        (startOfDay(this.#currentDate) - startOfDay(dates.startDate)) /
+          MS_PER_DAY,
+      ) + 1;
+    const totalDays =
+      Math.round(
+        (startOfDay(dates.endDate) - startOfDay(dates.startDate)) / MS_PER_DAY,
+      ) + 1;
+    return Math.min(Math.max(elapsed, 1), Math.max(totalDays, 1));
   });
 
   readonly budgetConsumedPercentage = computed(() => {

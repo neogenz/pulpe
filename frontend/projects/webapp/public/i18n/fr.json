@@ -1016,6 +1016,7 @@
       "checked": "Pointé : {{ name }}",
       "checkedMany": "{{ count }} prévisions pointées",
       "stillToCheck": "il en reste {{ count }} à pointer",
+      "undoAll": "Annuler les {{ count }}",
       "hiddenCount": "{{ count }} autres à pointer",
       "hiddenCountSingular": "1 autre à pointer"
     }
@@ -1352,7 +1353,9 @@
     "spentBeyondPlan": "Dépensé au-delà de ton plan",
     "spent": "Déjà sorti",
     "engaged": "Engagé",
+    "spentHint": "Déjà sorti : ce qui a quitté ton compte, épargne comprise.",
     "engagedHint": "Engagé : ce que tes prévisions réservent et que tu n'as pas encore dépensé.",
+    "monthProgress": "Jour {{ day }} sur {{ total }}.",
     "status": {
       "onTrack": "Ton rythme tient.",
       "noPaceYet": "Rien de saisi ce mois — ton rythme ne veut encore rien dire.",

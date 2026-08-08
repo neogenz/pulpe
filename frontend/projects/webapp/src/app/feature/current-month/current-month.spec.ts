@@ -782,6 +782,28 @@ describe('Dashboard (TestBed)', () => {
       expect(component['showPointingHints']()).toBe(true);
     });
 
+    // The action reverts every check in the window, and a bare "Annuler" beside
+    // "2 prévisions pointées" reads as undoing the tap that opened the toast. A
+    // user correcting their second tap lost their first, and had to find it
+    // again in a list they may have to scroll or leave the page to reach.
+    it('should say how much the undo takes back once it covers more than one', async () => {
+      const { component, mockSnackBar } = await setup(budgetId, undefined);
+
+      await component['checkBudgetLine']('line-1');
+      expect(mockSnackBar.open).toHaveBeenLastCalledWith(
+        expect.any(String),
+        'Annuler',
+        expect.anything(),
+      );
+
+      await component['checkBudgetLine']('line-2');
+      expect(mockSnackBar.open).toHaveBeenLastCalledWith(
+        expect.any(String),
+        'Annuler les 2',
+        expect.anything(),
+      );
+    });
+
     it('should count the checks it can still take back', async () => {
       const { component, mockSnackBar } = await setup(budgetId, undefined);
 

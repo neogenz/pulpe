@@ -131,6 +131,7 @@ export const UNDO_WINDOW_MS = 6000;
             [periodDates]="store.periodDates()"
             [rolloverAmount]="store.rolloverAmount()"
             [timeElapsedPercentage]="store.timeElapsedPercentage()"
+            [elapsedDayOfPeriod]="store.elapsedDayOfPeriod()"
             [paceStatus]="store.paceStatus()"
             [planExceedsAvailable]="store.isPlanBeyondAvailable()"
             [hasRecordedActivity]="store.hasRecordedActivity()"
@@ -725,11 +726,22 @@ export default class Dashboard {
         ? `${message} — ${this.#transloco.translate('currentMonth.uncheckedForecasts.stillToCheck', { count: left })}`
         : message;
 
-    const ref = this.#snackBar.open(
-      fullMessage,
-      this.#transloco.translate('common.undo'),
-      { duration: UNDO_WINDOW_MS, politeness: 'polite' },
-    );
+    // The action reverts every check in the window, and a bare "Annuler" beside
+    // "2 prévisions pointées" reads as undoing the tap that opened the toast. A
+    // user correcting their second tap lost their first, and had to find it
+    // again in a list they may have to scroll or leave the page to reach. The
+    // label says its scope once there is more than one.
+    const undoLabel =
+      ids.length === 1
+        ? this.#transloco.translate('common.undo')
+        : this.#transloco.translate('currentMonth.uncheckedForecasts.undoAll', {
+            count: ids.length,
+          });
+
+    const ref = this.#snackBar.open(fullMessage, undoLabel, {
+      duration: UNDO_WINDOW_MS,
+      politeness: 'polite',
+    });
     ref.onAction().subscribe(() => {
       this.#closeUndoWindow();
       void this.#undoChecks(ids);

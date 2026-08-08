@@ -1380,6 +1380,21 @@ describe('DashboardStore - Business Scenarios', () => {
       expect(elapsed).toBeGreaterThan(40);
       expect(elapsed).toBeLessThan(55);
     });
+
+    it('should count today as the day of the period, both ends included', () => {
+      const { store } = setup();
+
+      expect(store.elapsedDayOfPeriod()).toBe(15);
+    });
+
+    it('should count the day from the pay day, not from the 1st', () => {
+      const mocks = createMocks();
+      mocks.userSettingsStore.payDayOfMonth.set(27);
+      const { store } = setup(mocks);
+
+      // Period runs 27 May – 26 June, so 15 June is its 20th day.
+      expect(store.elapsedDayOfPeriod()).toBe(20);
+    });
   });
 
   describe('Empty states', () => {

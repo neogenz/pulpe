@@ -174,6 +174,40 @@ describe('DashboardHero', () => {
       ).toMatch(/1.309/);
     });
 
+    // "Déjà sorti" was the one key defined nowhere: not here, not in the tour,
+    // not in PRODUCT.md's vocabulary — and it is the key whose amount a reader
+    // most often comes to check. It does not mean what "dépensé" means either,
+    // since money set aside left the account too.
+    it('should define the spent key even when nothing is engaged', () => {
+      setTestInput(component.available, 4800);
+      setTestInput(component.expenses, 2400);
+      setTestInput(component.realizedExpenses, 2400);
+      setTestInput(component.realizedPercentage, 50);
+      setTestInput(component.budgetConsumedPercentage, 50);
+      fixture.detectChanges();
+
+      const note = (fixture.nativeElement as HTMLElement).querySelector(
+        '.progress-legend-note',
+      );
+      expect(note?.textContent).toContain('épargne comprise');
+      expect(note?.textContent).not.toContain('Engagé :');
+    });
+
+    it('should add the engaged gloss only while that segment is drawn', () => {
+      setTestInput(component.available, 4800);
+      setTestInput(component.expenses, 3600);
+      setTestInput(component.realizedExpenses, 2400);
+      setTestInput(component.realizedPercentage, 50);
+      setTestInput(component.budgetConsumedPercentage, 75);
+      fixture.detectChanges();
+
+      const note = (fixture.nativeElement as HTMLElement).querySelector(
+        '.progress-legend-note',
+      );
+      expect(note?.textContent).toContain('épargne comprise');
+      expect(note?.textContent).toContain('Engagé :');
+    });
+
     it('should drop the untouched key once the budget is fully consumed', () => {
       setTestInput(component.available, 4800);
       setTestInput(component.expenses, 4800);
@@ -301,6 +335,36 @@ describe('DashboardHero', () => {
 
       const compiled = fixture.nativeElement as HTMLElement;
       expect(compiled.textContent).toContain('plus vite que le mois');
+    });
+
+    // The verdict compares spending to how far the month has run, and how far
+    // the month has run appeared nowhere on the card: no date, no day, and the
+    // period range prints only for a payday off the 1st. "Tu dépenses plus vite
+    // que le mois ne passe" asked the reader to take the second half on trust.
+    it('should show how far the month has run beside the verdict', () => {
+      setTestInput(component.periodDates, {
+        startDate: new Date(2026, 5, 1),
+        endDate: new Date(2026, 5, 30),
+      });
+      setTestInput(component.elapsedDayOfPeriod, 12);
+      setTestInput(component.paceStatus, 'tight');
+      fixture.detectChanges();
+
+      const verdict = (fixture.nativeElement as HTMLElement).querySelector(
+        '.progress-verdict',
+      );
+      expect(verdict?.textContent).toContain('Jour 12 sur 30');
+    });
+
+    it('should stay quiet about the day when none was counted', () => {
+      setTestInput(component.elapsedDayOfPeriod, 0);
+      fixture.detectChanges();
+
+      expect(
+        (fixture.nativeElement as HTMLElement).querySelector(
+          '.progress-verdict-elapsed',
+        ),
+      ).toBeNull();
     });
 
     // The reverse of the order this card shipped with. "Presque entièrement
