@@ -85,8 +85,19 @@ const FULL_BAR_PERCENT = 100;
         <!-- The full label PRODUCT.md names, and the one the product tour
              teaches. The legend below keeps the short form: it sits forty pixels
              under this line, against the same amount. -->
+        <!-- The ceiling belongs to the number, not to the legend. At the end of
+             the keys it never fit: three keys and a denominator ask 347px of the
+             295 a 375px screen leaves, so it wrapped alone onto a second line
+             and hung there right-aligned under two left-aligned keys. Here the
+             whole caption measures 207px, and "disponible sur 4'800" is one
+             sentence rather than a key and an orphan. -->
         <p class="text-body-small mt-1.5">
           {{ 'dashboard.availableToSpend' | transloco }}
+          <span class="ph-no-capture">
+            {{ 'dashboard.on' | transloco }}
+            {{ available() | number: '1.0-0' : locale() }}
+            {{ currencySymbol() }}
+          </span>
           @let rollover = rolloverAmount();
           @if (rollover !== 0) {
             <span class="ph-no-capture">
@@ -133,57 +144,48 @@ const FULL_BAR_PERCENT = 100;
           </div>
         </div>
 
+        <!-- Three keys for three pills, and nothing else: the denominator that
+             used to close this row now sits with the number it is a ceiling of.
+             What is left is a homogeneous list, so a wrap on a narrow screen
+             drops a key under a key instead of stranding a lone right-aligned
+             total. -->
         <div class="progress-legend">
-          <span class="progress-legend-group">
-            <!-- Gated on the same condition as the pill it stands for: a key
-                 for a segment the bar never drew is a swatch pointing at
-                 nothing. -->
-            @if (spentShare() > 0) {
-              <span class="progress-legend-item">
-                <span class="progress-legend-swatch swatch-realized"></span>
-                {{ 'dashboard.spent' | transloco }}
-                <b class="progress-legend-amount ph-no-capture">
-                  {{ realizedExpenses() | number: '1.0-0' : locale() }}
-                </b>
-              </span>
-            }
+          <!-- Gated on the same condition as the pill it stands for: a key
+               for a segment the bar never drew is a swatch pointing at
+               nothing. -->
+          @if (spentShare() > 0) {
             <span class="progress-legend-item">
-              <span class="progress-legend-swatch swatch-engaged"></span>
-              {{ 'dashboard.engaged' | transloco }}
+              <span class="progress-legend-swatch swatch-realized"></span>
+              {{ 'dashboard.spent' | transloco }}
               <b class="progress-legend-amount ph-no-capture">
-                <span data-testid="hero-expenses-amount">{{
-                  engagedNotSpent() | number: '1.0-0' : locale()
-                }}</span>
+                {{ realizedExpenses() | number: '1.0-0' : locale() }}
               </b>
             </span>
-            <!-- The outlined pill was the one segment left unnamed, on the
-                 theory that the card already prints its amount at 57px. It
-                 doesn't read that way: an outline with no key looks like the
-                 track the bar sits in rather than a quantity. Same word as the
-                 caption above the number, so the money in the bar and the money
-                 in the headline are visibly the same money. -->
-            @if (freeShare() > 0) {
-              <span class="progress-legend-item">
-                <span class="progress-legend-swatch swatch-free"></span>
-                {{ 'dashboard.available' | transloco }}
-                <b class="progress-legend-amount ph-no-capture">
-                  {{ remaining() | number: '1.0-0' : locale() }}
-                </b>
-              </span>
-            }
-          </span>
-          <!-- A preposition, not a noun. This item sits at the right edge,
-               directly under the outlined pill, and any noun parked there gets
-               read as that pill's label — which is how "Budget" ended up
-               naming the wrong thing. "sur" can only be the denominator of the
-               keys that precede it. -->
-          <span class="progress-legend-item progress-legend-total">
-            {{ 'dashboard.on' | transloco }}
+          }
+          <span class="progress-legend-item">
+            <span class="progress-legend-swatch swatch-engaged"></span>
+            {{ 'dashboard.engaged' | transloco }}
             <b class="progress-legend-amount ph-no-capture">
-              {{ available() | number: '1.0-0' : locale() }}
-              {{ currencySymbol() }}
+              <span data-testid="hero-expenses-amount">{{
+                engagedNotSpent() | number: '1.0-0' : locale()
+              }}</span>
             </b>
           </span>
+          <!-- The outlined pill was the one segment left unnamed, on the
+               theory that the card already prints its amount at 57px. It
+               doesn't read that way: an outline with no key looks like the
+               track the bar sits in rather than a quantity. Same word as the
+               caption above the number, so the money in the bar and the money
+               in the headline are visibly the same money. -->
+          @if (freeShare() > 0) {
+            <span class="progress-legend-item">
+              <span class="progress-legend-swatch swatch-free"></span>
+              {{ 'dashboard.available' | transloco }}
+              <b class="progress-legend-amount ph-no-capture">
+                {{ remaining() | number: '1.0-0' : locale() }}
+              </b>
+            </span>
+          }
         </div>
       </div>
     </div>
@@ -293,25 +295,11 @@ const FULL_BAR_PERCENT = 100;
         font-size: var(--mat-sys-label-large-size);
       }
 
-      .progress-legend-group {
-        display: inline-flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 0.375rem 0.75rem;
-      }
-
       .progress-legend-item {
         display: inline-flex;
         align-items: center;
         gap: 0.375rem;
         white-space: nowrap;
-      }
-
-      /* Pushed to the end rather than spread by the container: space-between
-         only right-aligns the ceiling while it shares a line with the keys, and
-         drops it to the left the moment a phone width wraps it. */
-      .progress-legend-total {
-        margin-inline-start: auto;
       }
 
       /* A swatch is a miniature of its pill, so it carries the pill's own
