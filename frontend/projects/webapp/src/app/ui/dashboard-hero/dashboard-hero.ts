@@ -380,7 +380,7 @@ export class DashboardHero {
   readonly periodDates = input.required<BudgetPeriodDates>();
   readonly rolloverAmount = input(0);
   readonly timeElapsedPercentage = input(0);
-  readonly paceStatus = input<'on-track' | 'tight'>('on-track');
+  readonly paceStatus = input<'on-track' | 'tight' | 'unknown'>('on-track');
   readonly warningThreshold = input(90);
 
   readonly currency = input<SupportedCurrency>('CHF');
@@ -462,9 +462,18 @@ export class DashboardHero {
       case 'warning':
         return 'dashboard.status.almostSpent';
       default:
-        return this.paceStatus() === 'tight'
-          ? 'dashboard.status.fastPace'
-          : 'dashboard.status.onTrack';
+        switch (this.paceStatus()) {
+          case 'tight':
+            return 'dashboard.status.fastPace';
+          // Ranked below the budget verdicts on purpose: "almost entirely
+          // engaged" and "beyond your budget" are read off the plan, which
+          // exists whether or not anything has been recorded. Only the pace
+          // reading needs a ledger.
+          case 'unknown':
+            return 'dashboard.status.noPaceYet';
+          default:
+            return 'dashboard.status.onTrack';
+        }
     }
   });
 

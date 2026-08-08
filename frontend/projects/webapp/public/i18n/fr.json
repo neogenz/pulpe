@@ -982,6 +982,8 @@
     "noTransactionThisMonth": "Aucune transaction ce mois",
     "addFirstTransaction": "Ajouter ma première dépense",
     "nextMonthTitle": "Mois prochain",
+    "nextMonthErrorTitle": "On n'arrive pas à voir le mois prochain",
+    "nextMonthErrorMessage": "Tes budgets à venir n'ont pas pu être chargés. Rien n'a été perdu.",
     "nextMonthEstimatedRollover": "Budget anticipé — report estimé :",
     "nextMonthNoBudget": "Pas encore de budget pour {{ month }}",
     "nextMonthAnticipate": "Anticiper le mois prochain",
@@ -992,7 +994,7 @@
       "toggleAriaLabel": "Pointer {{ name }} — {{ amount }}",
       "checked": "Pointé : {{ name }}",
       "checkedMany": "{{ count }} prévisions pointées",
-      "hiddenCount": "Les plus gros montants d'abord — {{ count }} autres dans le budget"
+      "hiddenCount": "Sorties d'abord, du plus gros au plus petit — {{ count }} autres dans le budget"
     }
   },
   "currency": {
@@ -1328,6 +1330,7 @@
     "engagedHint": "Engagé : ce que tes prévisions réservent et que tu n'as pas encore dépensé.",
     "status": {
       "onTrack": "Ton rythme tient.",
+      "noPaceYet": "Rien de saisi ce mois — ton rythme ne veut encore rien dire.",
       "fastPace": "Tu dépenses plus vite que le mois ne passe.",
       "almostSpent": "Ton budget est presque entièrement engagé.",
       "overBudget": "Tu es au-delà de ton budget — ça arrive."

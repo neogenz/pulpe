@@ -830,7 +830,53 @@ describe('DashboardStore - Business Scenarios', () => {
       ]);
     });
 
-    it('should stay on-track when the plan is engaged but nothing is spent yet', async () => {
+    it('should list outflow forecasts before income, largest first', async () => {
+      const budget = createMockBudget();
+      const lines = [
+        createMockBudgetLine({
+          id: 'salary',
+          kind: 'income',
+          amount: 3500,
+          checkedAt: null,
+        }),
+        createMockBudgetLine({
+          id: 'groceries',
+          kind: 'expense',
+          amount: 400,
+          checkedAt: null,
+        }),
+        createMockBudgetLine({
+          id: 'rent',
+          kind: 'expense',
+          amount: 1200,
+          checkedAt: null,
+        }),
+      ];
+      const { store } = await setupWithBudgetAndWait(budget, lines, []);
+
+      // Sorting on amount alone put the salary first on a card that asks what
+      // has been spent — the biggest number, and the least relevant one.
+      expect(store.uncheckedForecasts().map((l) => l.id)).toEqual([
+        'rent',
+        'groceries',
+        'salary',
+      ]);
+    });
+
+    it('should return unknown when the month has no recorded outflow', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const lines = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 1000 }),
+        createMockBudgetLine({ id: 'exp-1', kind: 'expense', amount: 900 }),
+      ];
+      // Mid-June with an empty ledger. Nothing recorded scores 0% against an
+      // elapsed ~47%, which used to read as a verdict the user had not earned.
+      const { store } = await setupWithBudgetAndWait(budget, lines, []);
+
+      expect(store.paceStatus()).toBe('unknown');
+    });
+
+    it('should stay on-track when spending trails the elapsed month', async () => {
       const budget = createMockBudget({ rollover: 0 });
       const lines = [
         createMockBudgetLine({

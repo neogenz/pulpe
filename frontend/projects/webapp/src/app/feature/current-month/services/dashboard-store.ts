@@ -226,7 +226,16 @@ export class DashboardStore {
     return Math.round(Math.min(Math.max(0, percentage), 100));
   });
 
-  readonly paceStatus = computed<'on-track' | 'tight'>(() => {
+  // The third state is the honest one, and it was missing. Pulpe has no bank
+  // sync — every figure `realizedExpenses` sums is one the user typed — so a
+  // month with nothing recorded scores 0% against an elapsed 25% and came out
+  // "on-track". The page then said "Ton rythme tient." in bold, at the top, on
+  // the strength of no evidence whatsoever, and said it more confidently the
+  // longer the user stayed away. A verdict drawn from an empty ledger is not a
+  // verdict; the card now says so and asks for the transaction that would make
+  // one possible.
+  readonly paceStatus = computed<'on-track' | 'tight' | 'unknown'>(() => {
+    if (this.realizedExpenses() === 0) return 'unknown';
     const realized = this.realizedPercentage();
     const elapsed = this.timeElapsedPercentage();
     return realized <= elapsed + PACE_TOLERANCE_PERCENT ? 'on-track' : 'tight';
@@ -269,13 +278,21 @@ export class DashboardStore {
   // Sorted, because the card shows five of them and used to pick those five by
   // whatever order the API happened to return: a month with seventeen open
   // forecasts hid twelve on no stated rule, so the reader could not tell
-  // whether the rent was among them. Largest first is the rule that makes a
-  // truncated list worth reading — the amounts that move the month lead, and
-  // the block says as much under the last row.
+  // whether the rent was among them.
+  //
+  // Amount alone was not the rule either. It put "Salaire net" and "13ème
+  // salaire" in the top two rows — the card sits under a hero that partitions
+  // spending, and its first screenful was money coming in. Outflow leads, and
+  // inside each direction the largest amounts come first, which keeps what the
+  // truncation swallows the least consequential part of the list.
   readonly uncheckedForecasts = computed<BudgetLine[]>(() =>
     this.#pointableForecasts()
       .filter((line) => line.checkedAt === null)
-      .toSorted((a, b) => b.amount - a.amount),
+      .toSorted(
+        (a, b) =>
+          Number(isOutflowKind(b.kind)) - Number(isOutflowKind(a.kind)) ||
+          b.amount - a.amount,
+      ),
   );
 
   // The denominator the block's subtitle needs: "10" alone said how much work

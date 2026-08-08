@@ -231,6 +231,22 @@ export const UNDO_WINDOW_MS = 6000;
                 (navigateToBudgets)="navigateToBudgetList()"
                 data-testid="dashboard-block-next-month"
               />
+            } @else if (store.historyError()) {
+              <!-- Both this card and the history chart read the same resource,
+                   and a failed fetch reaches them as an empty array. The chart
+                   learnt to tell "no history" apart from "couldn't load it";
+                   this block did not, so the same failure that gives the chart
+                   a retry button silently deleted a card from the grid — the
+                   one state a reader cannot report, because there is nothing
+                   left on screen to point at. -->
+              <pulpe-state-card
+                variant="error"
+                testId="next-month-error"
+                [title]="'currentMonth.nextMonthErrorTitle' | transloco"
+                [message]="'currentMonth.nextMonthErrorMessage' | transloco"
+                [actionLabel]="'common.retry' | transloco"
+                (action)="store.refreshData()"
+              />
             }
           </div>
 
