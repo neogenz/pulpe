@@ -96,17 +96,20 @@ interface AnimatingForecast {
              once five or fewer remained made two cards built from one header
              recipe behave differently side by side, and the escape hatch costs
              nothing when the list is short. -->
-        <!-- The visible label stays short, because next to the heading it sits
-             under there is no ambiguity about which budget. Pulled out of the
-             page into a list of controls there is: the transactions card ships
-             the same two words, so a screen-reader user got two identical
-             entries and no way to tell them apart. -->
+        <!-- The distinction belongs in the visible label, not only in the
+             aria-label. Both cards used to read "Voir le budget" and carry
+             different accessible names, which fails Label in Name (WCAG 2.5.3,
+             level A): a voice-control user saying the words on screen matched
+             neither control. It read no better with eyes — two identical text
+             buttons at the same optical height in a two-column grid, and the
+             answer to "which one do I want" was "either". The aria-label keeps
+             the destination the label has no room for. -->
         <button
           matButton
           [attr.aria-label]="'currentMonth.viewForecastsInBudget' | transloco"
           (click)="viewBudget.emit()"
         >
-          {{ 'currentMonth.viewInBudget' | transloco }}
+          {{ 'currentMonth.viewForecasts' | transloco }}
         </button>
       </div>
 
@@ -114,8 +117,7 @@ interface AnimatingForecast {
         @if (displayedForecasts().length > 0) {
           <div class="flex flex-col gap-1">
             @for (forecast of displayedForecasts(); track forecast.id) {
-              @let displayAmount =
-                consumptions().get(forecast.id)?.remaining ?? forecast.amount;
+              @let displayAmount = remainingToExpect(forecast);
               @let isChecking = isExitAnimating(forecast.id);
               <!-- No hover tint on the row: nothing here handles a click. The
                    row lit up under the cursor and then swallowed the click,
@@ -340,6 +342,18 @@ export class DashboardUncheckedForecasts {
     }
     return merged.slice(0, MAX_VISIBLE_FORECASTS);
   });
+
+  // What the row still expects to see leave. `consumption.remaining` is
+  // `amount - consumed` with nothing clamping it, so an envelope of 600 with
+  // 650 already allocated against it rendered "Courses −50 CHF" in expense
+  // amber, and announced "Pointer Courses — -50 CHF". A negative expense is not
+  // a quantity any reader of this list expects. Zero is the true statement —
+  // the envelope has nothing left to expect — and it is the reading the budget
+  // already applies elsewhere, where a consumed envelope counts as fully used.
+  protected remainingToExpect(forecast: BudgetLine): number {
+    const consumption = this.consumptions().get(forecast.id);
+    return Math.max(0, consumption?.remaining ?? forecast.amount);
+  }
 
   protected isExitAnimating(forecastId: string): boolean {
     return this.#animatingOut().has(forecastId);

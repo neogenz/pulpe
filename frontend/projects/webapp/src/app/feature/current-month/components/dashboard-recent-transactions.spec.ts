@@ -204,7 +204,7 @@ describe('DashboardRecentTransactions', () => {
     expect(amountElements[2].nativeElement.textContent).toContain('300');
   });
 
-  it('should emit viewBudget on "Voir le budget" click', () => {
+  it('should emit viewBudget on "Voir les transactions" click', () => {
     setTestInput(component.transactions, [
       createTransaction({ id: '1', name: 'A' }),
     ]);
@@ -216,7 +216,7 @@ describe('DashboardRecentTransactions', () => {
     const button = fixture.debugElement
       .queryAll(By.css('button'))
       .find((el) =>
-        el.nativeElement.textContent.trim().includes('Voir le budget'),
+        el.nativeElement.textContent.trim().includes('Voir les transactions'),
       );
     expect(button).toBeTruthy();
     button!.nativeElement.click();

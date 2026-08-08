@@ -510,8 +510,20 @@ export class DashboardHero {
     () => this.realizedExpenses() > this.available(),
   );
 
+  // The plan asks for more than the month has. A negative report alone is
+  // enough to put a budget here, and a negative report is a first-class product
+  // concept, so this is not an exotic state — it was simply not one the card
+  // could reach. It rendered a negative number at 57px on the calm gradient,
+  // under a caption that said "disponible à dépenser", beside a sentence
+  // hedging that the budget was "presque" entirely committed. The one reading
+  // on this page with real stakes was the one delivered in the palette of
+  // reassurance.
+  readonly isPlanOverAvailable = computed(() => this.remaining() < 0);
+
   readonly isWarning = computed(
-    () => !this.isOverBudget() && this.paceStatus() === 'tight',
+    () =>
+      !this.isOverBudget() &&
+      (this.isPlanOverAvailable() || this.paceStatus() === 'tight'),
   );
   readonly budgetStatus = computed<'on-track' | 'warning' | 'over-budget'>(
     () => {
@@ -538,6 +550,11 @@ export class DashboardHero {
   // month and the sentence about actual behaviour was never reached.
   protected readonly statusMessage = computed(() => {
     if (this.isOverBudget()) return 'dashboard.status.overBudget';
+    // Outranks the pace verdict, because it is not a rate: the month cannot be
+    // spent at a speed that makes a plan fit inside an income it already
+    // exceeds. Telling someone in deficit that they are spending a little fast
+    // names the smaller of the two problems and buries the other.
+    if (this.isPlanOverAvailable()) return 'dashboard.status.planOverAvailable';
     switch (this.paceStatus()) {
       case 'tight':
         return 'dashboard.status.fastPace';

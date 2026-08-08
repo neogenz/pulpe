@@ -71,7 +71,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
           "
           (click)="viewBudget.emit()"
         >
-          {{ 'currentMonth.viewInBudget' | transloco }}
+          {{ 'currentMonth.viewTransactions' | transloco }}
         </button>
       </div>
 

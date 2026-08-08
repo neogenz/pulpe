@@ -7,11 +7,9 @@ import {
   computed,
   DestroyRef,
   effect,
-  type ElementRef,
   inject,
   signal,
   untracked,
-  viewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -193,7 +191,7 @@ export const UNDO_WINDOW_MS = 6000;
           #outlookDetails
           class="dashboard-outlook"
           [open]="isOutlookExpanded()"
-          (toggle)="syncOutlookExpanded()"
+          (toggle)="syncOutlookExpanded(outlookDetails.open)"
         >
           <summary
             class="outlook-summary"
@@ -482,21 +480,22 @@ export default class Dashboard {
   // Folded by default: the daily visit is the one this page is for, and it ends
   // at the rule. Unfolding is remembered, so a planning session pays for it once
   // rather than every month.
-  // NG1053 — a viewChild may not be an ES private field.
-  private readonly outlookDetails =
-    viewChild<ElementRef<HTMLDetailsElement>>('outlookDetails');
   readonly #outlookExpanded = signal(
     this.#storage.get<boolean>(STORAGE_KEYS.DASHBOARD_OUTLOOK_EXPANDED) ??
       false,
   );
   protected readonly isOutlookExpanded = this.#outlookExpanded.asReadonly();
 
-  // Read off the element rather than the event, so the handler stays typed:
-  // `Event.target` is an `EventTarget` and would need a cast to admit `open`.
-  protected syncOutlookExpanded(): void {
-    this.#outlookExpanded.set(
-      this.outlookDetails()?.nativeElement.open ?? false,
-    );
+  // The template hands the state in off its own reference variable, rather than
+  // this reading it back through a view query: `Event.target` is an
+  // `EventTarget` and would need a cast to admit `open`, and a view query would
+  // make the handler untestable without a full render of this page.
+  // The write is what makes the comment above true — Dashboard is the route
+  // component, so it is destroyed on every navigation and a signal alone lasts
+  // exactly as long as the visit that opened it.
+  protected syncOutlookExpanded(isExpanded: boolean): void {
+    this.#outlookExpanded.set(isExpanded);
+    this.#storage.set(STORAGE_KEYS.DASHBOARD_OUTLOOK_EXPANDED, isExpanded);
   }
   // The ids one toast can still take back. A second check used to replace the
   // first toast and, with it, the only way back to the first line — pointing

@@ -225,6 +225,28 @@ describe('DashboardHero', () => {
       expect(compiled.textContent).toContain('entièrement engagé');
     });
 
+    // A plan larger than the month's income plus its report. A negative report
+    // alone is enough to land here, so it is not an exotic state — it was
+    // simply one the card could not reach: it printed the negative at 57px on
+    // the calm gradient, captioned "disponible à dépenser", beside a sentence
+    // hedging that the budget was "presque" entirely committed.
+    it('should not stay calm on a plan that asks for more than the month has', () => {
+      setTestInput(component.available, 4000);
+      setTestInput(component.expenses, 4500);
+      setTestInput(component.remaining, -500);
+      setTestInput(component.budgetConsumedPercentage, 100);
+      setTestInput(component.realizedExpenses, 900);
+      setTestInput(component.paceStatus, 'on-track');
+      fixture.detectChanges();
+
+      expect(component.isOverBudget()).toBe(false);
+      expect(component.isWarning()).toBe(true);
+      expect(component.budgetStatus()).toBe('warning');
+      const compiled = fixture.nativeElement as HTMLElement;
+      expect(compiled.textContent).toContain('plus que ce que le mois');
+      expect(compiled.textContent).not.toContain('presque');
+    });
+
     it('should say the month went over once spending passed what came in', () => {
       setTestInput(component.available, 1000);
       setTestInput(component.expenses, 1200);

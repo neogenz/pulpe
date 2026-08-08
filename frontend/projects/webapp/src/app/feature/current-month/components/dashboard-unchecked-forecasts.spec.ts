@@ -284,6 +284,36 @@ describe('DashboardUncheckedForecasts', () => {
     expect(amountEl.nativeElement.textContent).not.toMatch(/[.,]00\b/);
   });
 
+  // `consumption.remaining` is `amount - consumed` with nothing clamping it, so
+  // an over-allocated envelope rendered "−50 CHF" in expense amber and had the
+  // toggle announce "Pointer Courses — -50 CHF". A negative expense is not a
+  // quantity a reader of this list expects; zero says the true thing.
+  it('should floor an over-consumed envelope at zero rather than show a negative', () => {
+    setTestInput(component.forecasts, mockForecasts);
+
+    const consumptionsMap = new Map<string, BudgetLineConsumption>([
+      [
+        '1',
+        {
+          budgetLine: mockForecasts[0],
+          consumed: 650,
+          remaining: -50,
+          allocatedTransactions: [],
+          transactionCount: 2,
+        },
+      ],
+    ]);
+    setTestInput(component.consumptions, consumptionsMap);
+    fixture.detectChanges();
+
+    const amountEl = fixture.debugElement.query(
+      By.css('[data-testid="dashboard-forecasts-amount"]'),
+    );
+    expect(amountEl.nativeElement.textContent).toContain('0');
+    expect(amountEl.nativeElement.textContent).not.toContain('-50');
+    expect(amountEl.nativeElement.textContent).not.toContain('−50');
+  });
+
   it('should clamp ghost insertion when the forecast list shrinks below the ghost originalIndex', () => {
     const lines: BudgetLine[] = Array.from({ length: 5 }, (_, i) => ({
       ...mockForecasts[0],

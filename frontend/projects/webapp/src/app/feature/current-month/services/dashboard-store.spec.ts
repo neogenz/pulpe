@@ -147,12 +147,13 @@ async function setupWithBudgetAndWait(
   budget = createMockBudget(),
   budgetLines: BudgetLine[] = [],
   transactions: Transaction[] = [],
+  now: Date = FIXED_DATE,
 ) {
   const mocks = createMocks();
   mocks.budgetApi.getDashboardData$.mockReturnValue(
     of({ budget, transactions, budgetLines }),
   );
-  const result = setup(mocks);
+  const result = setup(mocks, now);
 
   TestBed.tick();
   await vi.waitFor(() => {
@@ -893,7 +894,12 @@ describe('DashboardStore - Business Scenarios', () => {
       // The envelope engages 900/1000 from day one, but 400 has actually been
       // spent: realized = 40%, elapsed ~ 47-48% → on-track
       const transactions = [
-        createMockTransaction({ id: 'tx-1', kind: 'expense', amount: 400 }),
+        createMockTransaction({
+          id: 'tx-1',
+          kind: 'expense',
+          amount: 400,
+          checkedAt: '2025-06-10T00:00:00Z',
+        }),
       ];
       const { store } = await setupWithBudgetAndWait(
         budget,
@@ -904,7 +910,7 @@ describe('DashboardStore - Business Scenarios', () => {
       expect(store.paceStatus()).toBe('on-track');
     });
 
-    it('should return tight when realized spending > elapsed + 5', async () => {
+    it('should return tight when realized spending outruns the elapsed month past its tolerance', async () => {
       const budget = createMockBudget({ rollover: 0 });
       const lines = [
         createMockBudgetLine({
@@ -918,9 +924,14 @@ describe('DashboardStore - Business Scenarios', () => {
           amount: 900,
         }),
       ];
-      // realized = 900/1000 = 90%, elapsed ~ 47-48%, 90 > 48+5 → tight
+      // realized = 900/1000 = 90%, elapsed ~ 47-48%, tolerance ~ 15-16 → tight
       const transactions = [
-        createMockTransaction({ id: 'tx-1', kind: 'expense', amount: 900 }),
+        createMockTransaction({
+          id: 'tx-1',
+          kind: 'expense',
+          amount: 900,
+          checkedAt: '2025-06-10T00:00:00Z',
+        }),
       ];
       const { store } = await setupWithBudgetAndWait(
         budget,
@@ -929,6 +940,78 @@ describe('DashboardStore - Business Scenarios', () => {
       );
 
       expect(store.paceStatus()).toBe('tight');
+    });
+
+    // The band is widest on the first day and closes to 5 on the last, because
+    // household outflow is front-loaded: rent, insurance and the subscriptions
+    // land in the first days, so against a linear clock one debit outruns the
+    // month by definition. A flat 5 points made the card amber for doing the
+    // one thing the product needs — recording.
+    it('should not call the pace tight for one early-month debit', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const lines = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 1000 }),
+        createMockBudgetLine({ id: 'exp-1', kind: 'expense', amount: 900 }),
+      ];
+      // 200/1000 = 20% realized against ~7% elapsed: over a flat 5-point band,
+      // inside the ~24 points the start of a month is worth.
+      const transactions = [
+        createMockTransaction({
+          id: 'tx-1',
+          kind: 'expense',
+          amount: 200,
+          checkedAt: '2025-06-02T00:00:00Z',
+        }),
+      ];
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        transactions,
+        new Date('2025-06-03T12:00:00Z'),
+      );
+
+      expect(store.paceStatus()).toBe('on-track');
+    });
+
+    // What the user reported: 17 of 18 prévisions pointed, and the card said
+    // "Dépensé 554" — the single free transaction — while calling the other
+    // 3'947 "engagé", i.e. reserved and not yet spent. Pointing is the gesture
+    // that says it happened; it has to move this number.
+    it('should count a pointed forecast as spent, not as merely engaged', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const lines = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 5000 }),
+        createMockBudgetLine({
+          id: 'rent',
+          kind: 'expense',
+          amount: 1200,
+          checkedAt: '2025-06-01T00:00:00Z',
+        }),
+        createMockBudgetLine({
+          id: 'savings',
+          kind: 'saving',
+          amount: 300,
+          checkedAt: '2025-06-01T00:00:00Z',
+        }),
+        createMockBudgetLine({ id: 'groceries', kind: 'expense', amount: 400 }),
+      ];
+      const transactions = [
+        createMockTransaction({
+          id: 'tx-free',
+          kind: 'expense',
+          amount: 54,
+          checkedAt: '2025-06-10T00:00:00Z',
+        }),
+      ];
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        transactions,
+      );
+
+      // Rent 1200 + savings 300 — everything that lowers what is left — plus
+      // the free transaction. The unpointed 400 stays out.
+      expect(store.realizedExpenses()).toBe(1554);
     });
 
     it('should clamp budgetConsumedPercentage to [0, 100]', async () => {

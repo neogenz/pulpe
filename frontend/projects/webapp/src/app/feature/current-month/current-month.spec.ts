@@ -506,17 +506,36 @@ describe('Dashboard (TestBed)', () => {
     // planning session — and the page used to serve both at once, ending the
     // daily one a quarter of the way down and then asking for four more screens
     // nobody can act on. Folded by default; the choice is remembered.
-    it('should start folded and remember being opened', async () => {
+    // This test used to write the key itself and assert the key read back,
+    // which is true of any key and was true while the component had no writer
+    // at all: the fold re-collapsed on every navigation, and the comment on the
+    // signal claimed the opposite. It goes through the element now.
+    it('should remember being opened once the disclosure reports it', async () => {
       const { component } = await setup(budgetId, undefined);
 
       expect(component['isOutlookExpanded']()).toBe(false);
 
-      const storage = TestBed.inject(StorageService);
-      storage.set(STORAGE_KEYS.DASHBOARD_OUTLOOK_EXPANDED, true);
+      component['syncOutlookExpanded'](true);
 
+      expect(component['isOutlookExpanded']()).toBe(true);
+      expect(
+        TestBed.inject(StorageService).get<boolean>(
+          STORAGE_KEYS.DASHBOARD_OUTLOOK_EXPANDED,
+        ),
+      ).toBe(true);
+    });
+
+    it('should forget being opened once the disclosure is closed again', async () => {
+      const { component } = await setup(budgetId, undefined);
+      const storage = TestBed.inject(StorageService);
+
+      component['syncOutlookExpanded'](true);
+      component['syncOutlookExpanded'](false);
+
+      expect(component['isOutlookExpanded']()).toBe(false);
       expect(
         storage.get<boolean>(STORAGE_KEYS.DASHBOARD_OUTLOOK_EXPANDED),
-      ).toBe(true);
+      ).toBe(false);
     });
   });
 

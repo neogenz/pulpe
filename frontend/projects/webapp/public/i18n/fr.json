@@ -979,7 +979,8 @@
     "recentTransactionsTitle": "Transactions",
     "recentTransactionsSubtitle": "{{ total }} ce mois",
     "recentTransactionsHiddenCount": "{{ count }} autres transactions ce mois",
-    "viewInBudget": "Voir le budget",
+    "viewForecasts": "Voir les prévisions",
+    "viewTransactions": "Voir les transactions",
     "viewForecastsInBudget": "Voir les prévisions dans le budget",
     "viewTransactionsInBudget": "Voir les transactions dans le budget",
     "noTransaction": "Aucune transaction",
@@ -1339,6 +1340,7 @@
       "noPaceYet": "Rien de saisi ce mois — ton rythme ne veut encore rien dire.",
       "fastPace": "Tu dépenses plus vite que le mois ne passe.",
       "almostSpent": "Ton budget est presque entièrement engagé.",
+      "planOverAvailable": "Ton plan demande plus que ce que le mois t'apporte.",
       "overBudget": "Tu es au-delà de ton budget — ça arrive."
     },
     "openMonthDetail": "Voir le détail du mois — {{ month }}",

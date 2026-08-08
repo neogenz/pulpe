@@ -39,7 +39,18 @@ import {
 const RECENT_TRANSACTIONS_LIMIT = 5;
 const HISTORY_MONTHS_LIMIT = 6;
 const UPCOMING_MONTHS_LIMIT = 12;
-const PACE_TOLERANCE_PERCENT = 5;
+// How far ahead of the clock a month's spending may run before the card says
+// anything. The band is widest on the first day and closes to the floor on the
+// last, because a household's outflow is front-loaded — rent, insurance and the
+// subscriptions all land in the first days — so against a linear clock a single
+// debit on the 3rd outruns the month by definition. A flat band inverted its own
+// meaning across the month: 5 points is unreachable on day 2, where the clock
+// has elapsed 3%, and generous on day 25. Widening it early is not indulgence,
+// it is the sample size: a verdict drawn from three days of evidence is noise,
+// and printing it in amber charges the user for recording, which is the one
+// behaviour this product cannot afford to discourage.
+const PACE_TOLERANCE_FLOOR_PERCENT = 5;
+const PACE_TOLERANCE_START_PERCENT = 25;
 
 const DASHBOARD_INVALIDATION_KEYS: string[][] = [
   ['budget', 'list'],
@@ -209,13 +220,25 @@ export class DashboardStore {
 
   // `totalExpenses` applies envelope logic — `max(line.amount, consumed)` — so it
   // is mostly the PLAN: rent counts in full from the 1st. Comparing it to elapsed
-  // time says nothing about behaviour. `realizedExpenses` sums the outflow
-  // transactions actually recorded, which is the only figure that should grow
-  // with the month, and the only one the pace verdict may be built on.
+  // time says nothing about behaviour. This is what has actually gone out, and
+  // the only figure the pace verdict may be built on.
+  //
+  // The dashboard used to sum outflow transactions and stop there, which made
+  // pointing a prévision worth nothing: a month with 17 of 18 lines pointed read
+  // "Dépensé 554" — the one free transaction — against "Engagé 3'947", under a
+  // legend defining engagé as what the plan reserves "et que tu n'as pas encore
+  // dépensé". The user had just said, seventeen times, that it had been spent.
+  // `calculateRealizedExpenses` is the formula the budget-detail page has always
+  // used: a pointed outflow line counts at `max(line.amount, consumed)`, an
+  // unpointed one counts only its pointed allocated transactions, free pointed
+  // transactions add on top, and `isOutflowKind` covers savings — everything
+  // that lowers what is left. Two surfaces, one definition, no new formula and
+  // so nothing to mirror to iOS.
   readonly realizedExpenses = computed<number>(() =>
-    this.transactions()
-      .filter((tx) => isOutflowKind(tx.kind))
-      .reduce((sum, tx) => sum + tx.amount, 0),
+    BudgetFormulas.calculateRealizedExpenses(
+      this.budgetLines(),
+      this.transactions(),
+    ),
   );
 
   readonly realizedPercentage = computed(() => {
@@ -238,7 +261,12 @@ export class DashboardStore {
     if (this.realizedExpenses() === 0) return 'unknown';
     const realized = this.realizedPercentage();
     const elapsed = this.timeElapsedPercentage();
-    return realized <= elapsed + PACE_TOLERANCE_PERCENT ? 'on-track' : 'tight';
+    const tolerance =
+      PACE_TOLERANCE_FLOOR_PERCENT +
+      ((PACE_TOLERANCE_START_PERCENT - PACE_TOLERANCE_FLOOR_PERCENT) *
+        (100 - elapsed)) /
+        100;
+    return realized <= elapsed + tolerance ? 'on-track' : 'tight';
   });
 
   readonly rolloverAmount = computed<number>(() => {
