@@ -128,6 +128,12 @@ describe('SavingsGoalStore', () => {
       getProgress$: vi
         .fn()
         .mockReturnValue(of({ data: makeProgress(), success: true })),
+      getContributions$: vi
+        .fn()
+        .mockReturnValue(of({ data: [], success: true })),
+      getWithdrawals$: vi
+        .fn()
+        .mockReturnValue(of({ data: [], planned: [], success: true })),
       create$: vi.fn(),
       update$: vi.fn(),
       getFutureLines$: vi.fn().mockReturnValue(of({ data: [], success: true })),

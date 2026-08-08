@@ -25,6 +25,7 @@ DECLARE
   v_plan_id uuid := gen_random_uuid();
   v_doomed_plan_id uuid := gen_random_uuid();
   v_contribution_id uuid := gen_random_uuid();
+  v_free_withdrawal_id uuid := gen_random_uuid();
   v_revision bigint;
   v_next_revision bigint;
   v_name text;
@@ -343,6 +344,40 @@ BEGIN
     RAISE EXCEPTION 'FAIL [11]: allocation moved to %', v_source_id;
   END IF;
   RAISE NOTICE 'PASS [11] allocation move rejected, forecast link intact';
+
+  ----------------------------------------------------------------------
+  -- ASSERTION 12: the one-off data repair points only an allocated Real
+  -- whose income forecast names the same source goal. A free withdrawal from
+  -- that goal remains unpointed. Keep this UPDATE identical to migration
+  -- 20260808130000_backfill_linked_savings_goal_realizations_checked.sql.
+  ----------------------------------------------------------------------
+  INSERT INTO public.transaction (
+    id, budget_id, name, amount, kind, transaction_date,
+    source_savings_goal_id, source_savings_goal_name
+  ) VALUES (
+    v_free_withdrawal_id, v_budget_id, 'Retrait libre', 'CIPHERTEXT_100',
+    'income'::public.transaction_kind, '2026-08-12',
+    v_goal_id, 'Vacances 2027'
+  );
+
+  UPDATE public.transaction AS tx
+  SET checked_at = tx.created_at
+  FROM public.budget_line AS line
+  WHERE tx.checked_at IS NULL
+    AND tx.kind = 'income'::public.transaction_kind
+    AND tx.budget_line_id = line.id
+    AND tx.budget_id = line.budget_id
+    AND tx.source_savings_goal_id IS NOT NULL
+    AND line.kind = 'income'::public.transaction_kind
+    AND line.source_savings_goal_id = tx.source_savings_goal_id;
+
+  IF (SELECT checked_at FROM public.transaction WHERE id = v_txn.id) IS NULL THEN
+    RAISE EXCEPTION 'FAIL [12]: allocated realization stayed unpointed';
+  END IF;
+  IF (SELECT checked_at FROM public.transaction WHERE id = v_free_withdrawal_id) IS NOT NULL THEN
+    RAISE EXCEPTION 'FAIL [12]: free withdrawal was pointed by the backfill';
+  END IF;
+  RAISE NOTICE 'PASS [12] backfill points only the allocated realization';
 
   RAISE NOTICE '=== PLANNED SAVINGS GOAL WITHDRAWALS: ALL ASSERTIONS PASSED ===';
 END $$;

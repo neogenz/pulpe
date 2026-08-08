@@ -19,8 +19,14 @@ extension BudgetDetailsProjector {
         let displayed = filtersStore.displayedSections(for: dataStore.budgetLines)
         sections.reserveCapacity(displayed.count)
         for section in displayed {
+            let actionable = filtersStore.isShowingOnlyUnchecked
+                ? section.items.filter { line in
+                    guard line.isPlannedSavingsWithdrawal else { return true }
+                    return (consumptionByLineId[line.id]?.allocated ?? 0) < line.amount
+                }
+                : section.items
             let searchFiltered = filtersStore.filteredLines(
-                section.items,
+                actionable,
                 searchText: searchText,
                 transactions: dataStore.transactions
             )

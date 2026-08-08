@@ -107,6 +107,7 @@ export {
   savingsGoalWithdrawalOptionSchema,
   savingsGoalWithdrawalOptionsResponseSchema,
   savingsGoalWithdrawalSchema,
+  savingsGoalPlannedWithdrawalSchema,
   savingsGoalWithdrawalsResponseSchema,
   MAX_SAVINGS_GOAL_PLAN_PERIODS,
   MAX_PLAN_ADJUSTMENTS,
@@ -383,6 +384,7 @@ export type {
   SavingsGoalWithdrawalOption,
   SavingsGoalWithdrawalOptionsResponse,
   SavingsGoalWithdrawal,
+  SavingsGoalPlannedWithdrawal,
   SavingsGoalWithdrawalsResponse,
 
   // Tag types (PUL-18)

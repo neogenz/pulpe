@@ -23,11 +23,80 @@ struct SavingsGoalWithdrawalOption: Codable, Identifiable, Hashable, Sendable {
 struct SavingsGoalWithdrawal: Codable, Identifiable, Hashable, Sendable {
     let transactionId: String
     let budgetId: String
+    let budgetLineId: String?
     let name: String
     let transactionDate: Date
     let amount: Decimal
+    let checkedAt: Date?
 
     var id: String { transactionId }
+
+    init(
+        transactionId: String,
+        budgetId: String,
+        budgetLineId: String? = nil,
+        name: String,
+        transactionDate: Date,
+        amount: Decimal,
+        checkedAt: Date? = nil
+    ) {
+        self.transactionId = transactionId
+        self.budgetId = budgetId
+        self.budgetLineId = budgetLineId
+        self.name = name
+        self.transactionDate = transactionDate
+        self.amount = amount
+        self.checkedAt = checkedAt
+    }
+}
+
+struct SavingsGoalPlannedWithdrawal: Codable, Identifiable, Hashable, Sendable {
+    enum Status: String, Codable, Sendable {
+        case planned
+        case partiallyRealized = "partially_realized"
+        case realized
+    }
+
+    let budgetLineId: String
+    let budgetId: String
+    let name: String
+    let month: Int
+    let year: Int
+    let plannedAmount: Decimal
+    let realizedAmount: Decimal
+    let remainingAmount: Decimal
+    let status: Status
+
+    var id: String { budgetLineId }
+}
+
+/// Additive `/withdrawals` envelope. `data` remains the Real history consumed
+/// by deployed clients; `planned` defaults empty against an older server.
+struct SavingsGoalWithdrawalsReadModel: Decodable, Sendable {
+    let withdrawals: [SavingsGoalWithdrawal]
+    let planned: [SavingsGoalPlannedWithdrawal]
+
+    enum CodingKeys: String, CodingKey {
+        case withdrawals = "data"
+        case planned
+    }
+
+    init(
+        withdrawals: [SavingsGoalWithdrawal],
+        planned: [SavingsGoalPlannedWithdrawal] = []
+    ) {
+        self.withdrawals = withdrawals
+        self.planned = planned
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        withdrawals = try container.decode([SavingsGoalWithdrawal].self, forKey: .withdrawals)
+        planned = try container.decodeIfPresent(
+            [SavingsGoalPlannedWithdrawal].self,
+            forKey: .planned
+        ) ?? []
+    }
 }
 
 /// Where an income's money came from (PUL-329). Two states, never a third: the

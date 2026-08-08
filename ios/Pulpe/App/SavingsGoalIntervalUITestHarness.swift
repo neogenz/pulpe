@@ -170,8 +170,8 @@ final class SavingsGoalIntervalUITestService: SavingsGoalServicing {
         []
     }
 
-    func getWithdrawals(id _: String) async throws -> [SavingsGoalWithdrawal] {
-        []
+    func getWithdrawals(id _: String) async throws -> SavingsGoalWithdrawalsReadModel {
+        SavingsGoalWithdrawalsReadModel(withdrawals: [])
     }
 
     private func goal(_ id: String) throws -> SavingsGoal {

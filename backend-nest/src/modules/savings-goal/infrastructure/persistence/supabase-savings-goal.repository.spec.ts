@@ -261,12 +261,15 @@ const withdrawalRow = {
   name: 'Retrait acompte',
   amount: 'enc:800',
   transaction_date: '2026-06-15',
+  checked_at: '2026-06-15T10:00:00Z',
   monthly_budget: { month: 6, year: 2026 },
 };
 
 const plannedWithdrawalRow = {
   id: 'line-7',
+  budget_id: 'budget-1',
   source_savings_goal_id: 'goal-1',
+  name: 'Retrait planifié',
   amount: 'enc:1200',
   monthly_budget: { month: 9, year: 2026 },
 };
@@ -1079,6 +1082,32 @@ describe('SupabaseSavingsGoalRepository', () => {
     });
   });
 
+  describe('findPlannedWithdrawalRecords', () => {
+    it('returns the presentable forecast with its budget and decrypted amount', async () => {
+      const { provider } = createWithdrawalProvider({
+        data: [plannedWithdrawalRow],
+        error: null,
+      });
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      const result = await repo.findPlannedWithdrawalRecords('goal-1');
+
+      expect(result).toEqual([
+        {
+          budgetLineId: 'line-7',
+          budgetId: 'budget-1',
+          name: 'Retrait planifié',
+          amount: 1200,
+          month: 9,
+          year: 2026,
+        },
+      ]);
+    });
+  });
+
   describe('findPlanWithdrawals', () => {
     it('loads the owner-scoped encrypted withdrawal and marks its plan origin', async () => {
       const eqCalls: [string, string][] = [];
@@ -1214,23 +1243,29 @@ describe('SupabaseSavingsGoalRepository', () => {
         {
           transactionId: 'tx-new',
           budgetId: 'budget-1',
+          budgetLineId: 'line-9',
           name: 'Retrait acompte',
           transactionDate: '2026-06-28',
           amount: 800,
+          checkedAt: '2026-06-15T10:00:00Z',
         },
         {
           transactionId: 'tx-mid',
           budgetId: 'budget-1',
+          budgetLineId: 'line-9',
           name: 'Retrait acompte',
           transactionDate: '2026-06-15',
           amount: 800,
+          checkedAt: '2026-06-15T10:00:00Z',
         },
         {
           transactionId: 'tx-old',
           budgetId: 'budget-1',
+          budgetLineId: 'line-9',
           name: 'Retrait acompte',
           transactionDate: '2026-06-02',
           amount: 800,
+          checkedAt: '2026-06-15T10:00:00Z',
         },
       ]);
     });
@@ -1251,9 +1286,11 @@ describe('SupabaseSavingsGoalRepository', () => {
         {
           transactionId: 'tx-1',
           budgetId: 'budget-1',
+          budgetLineId: 'line-9',
           name: 'Retrait acompte',
           transactionDate: '2026-06-15',
           amount: 0,
+          checkedAt: '2026-06-15T10:00:00Z',
         },
       ]);
     });

@@ -51,7 +51,8 @@ private struct BudgetLineMixedRowPreviewHost: View {
                         savingsGoalName: savingsGoalName,
                         tagNames: tagNames,
                         onTap: {},
-                        onTogglePointed: {}
+                        onTogglePointed: {},
+                        onRealizeWithdrawal: {}
                     )
                 }
             }

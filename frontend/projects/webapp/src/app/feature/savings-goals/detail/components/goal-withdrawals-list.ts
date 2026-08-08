@@ -10,6 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import {
+  type SavingsGoalPlannedWithdrawal,
   type SavingsGoalWithdrawal,
   type SupportedCurrency,
 } from 'pulpe-shared';
@@ -60,7 +61,9 @@ import { getDateDisplayFormats } from '@core/date/date-display-formats';
         >
           {{ 'savingsGoals.detail.withdrawalsError' | transloco }}
         </p>
-      } @else if (withdrawals().length === 0) {
+      } @else if (
+        withdrawals().length === 0 && plannedWithdrawals().length === 0
+      ) {
         <p
           class="text-body-small text-on-surface-variant"
           data-testid="goal-withdrawals-empty"
@@ -68,47 +71,132 @@ import { getDateDisplayFormats } from '@core/date/date-display-formats';
           {{ 'savingsGoals.detail.withdrawalsEmpty' | transloco }}
         </p>
       } @else {
-        <ul class="flex flex-col gap-2">
-          @for (w of withdrawals(); track w.transactionId) {
-            <li>
-              <a
-                class="flex items-center gap-3 rounded-xl bg-surface-container-low p-4 no-underline text-on-surface hover:bg-surface-container"
-                [routerLink]="['/budget', w.budgetId]"
-                [attr.aria-label]="
-                  'savingsGoals.detail.withdrawalOpenAria'
-                    | transloco: { name: w.name }
-                "
-                data-testid="savings-goal-withdrawal-row"
-              >
-                <mat-icon
-                  class="shrink-0 text-on-surface-variant"
-                  aria-hidden="true"
-                >
-                  call_made
-                </mat-icon>
-                <div class="flex min-w-0 flex-1 flex-col">
-                  <span class="text-body-large truncate ph-no-capture">{{
-                    w.name
-                  }}</span>
-                  <span class="text-body-small text-on-surface-variant">
-                    {{ w.transactionDate | date: shortDateFormat() }}
-                  </span>
-                </div>
-                <span
-                  class="text-body-large font-medium tabular-nums ph-no-capture"
-                >
-                  {{ -w.amount | appCurrency: currency() : '1.2-2' }}
-                </span>
-                <mat-icon
-                  class="shrink-0 text-on-surface-variant"
-                  aria-hidden="true"
-                >
-                  chevron_right
-                </mat-icon>
-              </a>
-            </li>
-          }
-        </ul>
+        @if (plannedWithdrawals().length > 0) {
+          <section class="flex flex-col gap-2">
+            <h3 class="text-title-medium font-medium">
+              {{ 'savingsGoals.detail.plannedWithdrawalsTitle' | transloco }}
+            </h3>
+            <ul class="flex flex-col gap-2">
+              @for (w of plannedWithdrawals(); track w.budgetLineId) {
+                <li>
+                  <a
+                    class="flex items-center gap-3 rounded-xl bg-surface-container-low p-4 no-underline text-on-surface hover:bg-surface-container"
+                    [routerLink]="['/budget', w.budgetId]"
+                    [attr.aria-label]="
+                      'savingsGoals.detail.withdrawalOpenAria'
+                        | transloco: { name: w.name }
+                    "
+                    data-testid="savings-goal-planned-withdrawal-row"
+                  >
+                    <mat-icon
+                      class="shrink-0 text-on-surface-variant"
+                      aria-hidden="true"
+                      >schedule</mat-icon
+                    >
+                    <div class="flex min-w-0 flex-1 flex-col">
+                      <span class="text-body-large truncate ph-no-capture">{{
+                        w.name
+                      }}</span>
+                      <span class="text-body-small text-on-surface-variant">
+                        {{ plannedDate(w) | date: 'MMMM y' }} ·
+                        @if (w.status === 'realized') {
+                          {{ 'budgetLine.withdrawalRealized' | transloco }}
+                        } @else if (w.status === 'partially_realized') {
+                          {{
+                            'savingsGoals.detail.withdrawalPartiallyRealized'
+                              | transloco
+                          }}
+                        } @else {
+                          {{
+                            'savingsGoals.detail.withdrawalToRealize'
+                              | transloco
+                          }}
+                        }
+                      </span>
+                      @if (w.status === 'partially_realized') {
+                        <span
+                          class="text-body-small text-on-surface-variant ph-no-capture"
+                        >
+                          {{
+                            'savingsGoals.detail.withdrawalRemaining'
+                              | transloco
+                          }}
+                          {{
+                            -w.remainingAmount
+                              | appCurrency: currency() : '1.2-2'
+                          }}
+                        </span>
+                      }
+                    </div>
+                    <span
+                      class="text-body-large font-medium tabular-nums ph-no-capture"
+                    >
+                      {{ -w.plannedAmount | appCurrency: currency() : '1.2-2' }}
+                    </span>
+                    <mat-icon
+                      class="shrink-0 text-on-surface-variant"
+                      aria-hidden="true"
+                      >chevron_right</mat-icon
+                    >
+                  </a>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+
+        @if (withdrawals().length > 0) {
+          <section class="flex flex-col gap-2">
+            <h3 class="text-title-medium font-medium">
+              {{ 'savingsGoals.detail.realizedWithdrawalsTitle' | transloco }}
+            </h3>
+            <ul class="flex flex-col gap-2">
+              @for (w of withdrawals(); track w.transactionId) {
+                <li>
+                  <a
+                    class="flex items-center gap-3 rounded-xl bg-surface-container-low p-4 no-underline text-on-surface hover:bg-surface-container"
+                    [routerLink]="['/budget', w.budgetId]"
+                    [attr.aria-label]="
+                      'savingsGoals.detail.withdrawalOpenAria'
+                        | transloco: { name: w.name }
+                    "
+                    data-testid="savings-goal-withdrawal-row"
+                  >
+                    <mat-icon
+                      class="shrink-0 text-on-surface-variant"
+                      aria-hidden="true"
+                      >call_made</mat-icon
+                    >
+                    <div class="flex min-w-0 flex-1 flex-col">
+                      <span class="text-body-large truncate ph-no-capture">{{
+                        w.name
+                      }}</span>
+                      <span class="text-body-small text-on-surface-variant">
+                        {{ w.transactionDate | date: shortDateFormat() }} ·
+                        {{
+                          (w.checkedAt
+                            ? 'savingsGoals.detail.withdrawalChecked'
+                            : 'savingsGoals.detail.withdrawalUnchecked'
+                          ) | transloco
+                        }}
+                      </span>
+                    </div>
+                    <span
+                      class="text-body-large font-medium tabular-nums ph-no-capture"
+                    >
+                      {{ -w.amount | appCurrency: currency() : '1.2-2' }}
+                    </span>
+                    <mat-icon
+                      class="shrink-0 text-on-surface-variant"
+                      aria-hidden="true"
+                      >chevron_right</mat-icon
+                    >
+                  </a>
+                </li>
+              }
+            </ul>
+          </section>
+        }
       }
     </div>
   `,
@@ -120,6 +208,7 @@ import { getDateDisplayFormats } from '@core/date/date-display-formats';
 })
 export class GoalWithdrawalsList {
   readonly withdrawals = input.required<SavingsGoalWithdrawal[]>();
+  readonly plannedWithdrawals = input<SavingsGoalPlannedWithdrawal[]>([]);
   readonly currency = input.required<SupportedCurrency>();
   readonly isLoading = input(false);
   readonly hasError = input(false);
@@ -127,4 +216,8 @@ export class GoalWithdrawalsList {
   protected readonly shortDateFormat = computed(
     () => getDateDisplayFormats(this.currency()).shortDate,
   );
+
+  protected plannedDate(withdrawal: SavingsGoalPlannedWithdrawal): Date {
+    return new Date(withdrawal.year, withdrawal.month - 1, 1);
+  }
 }

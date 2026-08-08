@@ -23,6 +23,7 @@ import {
   type SavingsGoalFutureLine,
   type SavingsGoalPlanMonth,
   type SavingsGoalProgress,
+  type SavingsGoalPlannedWithdrawal,
   type SavingsGoalWithdrawal,
   type SupportedCurrency,
 } from 'pulpe-shared';
@@ -137,6 +138,7 @@ class StubGoalContributionsList {
 })
 class StubGoalWithdrawalsList {
   readonly withdrawals = input<unknown>([]);
+  readonly plannedWithdrawals = input<unknown>([]);
   readonly currency = input<string>('CHF');
   readonly isLoading = input(false);
   readonly hasError = input(false);
@@ -256,6 +258,7 @@ describe('SavingsGoalDetailPage', () => {
   const listInitialLoadingSig = signal(false);
   const listErrorSig = signal<unknown>(null);
   const withdrawalsSig = signal<SavingsGoalWithdrawal[]>([]);
+  const plannedWithdrawalsSig = signal<SavingsGoalPlannedWithdrawal[]>([]);
   const isWithdrawalsLoadingSig = signal(false);
   const withdrawalsErrorSig = signal<unknown>(null);
 
@@ -284,6 +287,7 @@ describe('SavingsGoalDetailPage', () => {
     contributions: contributionsSig,
     isContributionsLoading: isContributionsLoadingSig,
     withdrawals: withdrawalsSig,
+    plannedWithdrawals: plannedWithdrawalsSig,
     isWithdrawalsLoading: isWithdrawalsLoadingSig,
     withdrawalsError: withdrawalsErrorSig,
     futureLines: futureLinesSig,
@@ -320,6 +324,7 @@ describe('SavingsGoalDetailPage', () => {
     listInitialLoadingSig.set(false);
     listErrorSig.set(null);
     withdrawalsSig.set([]);
+    plannedWithdrawalsSig.set([]);
     isWithdrawalsLoadingSig.set(false);
     withdrawalsErrorSig.set(null);
     futureLinesSig.set([]);
@@ -1498,6 +1503,17 @@ describe('SavingsGoalDetailPage', () => {
       transactionDate: '2026-07-20T10:00:00.000Z',
       amount: 800,
     };
+    const plannedWithdrawal: SavingsGoalPlannedWithdrawal = {
+      budgetLineId: '00000000-0000-4000-8000-000000000300',
+      budgetId: '00000000-0000-4000-8000-000000000100',
+      name: 'Apport cuisine',
+      month: 9,
+      year: 2026,
+      plannedAmount: 4_500,
+      realizedAmount: 0,
+      remainingAmount: 4_500,
+      status: 'planned',
+    };
 
     it('stays hidden while the goal has never been drawn from', () => {
       fixture.detectChanges();
@@ -1512,6 +1528,14 @@ describe('SavingsGoalDetailPage', () => {
       expect(section).toBeTruthy();
       expect(section.nativeElement.textContent).toContain('Retraits');
       expect(query('savings-goal-contributions')).toBeTruthy();
+    });
+
+    it('shows up as soon as a linked forecast announces a withdrawal', () => {
+      plannedWithdrawalsSig.set([plannedWithdrawal]);
+      fixture.detectChanges();
+
+      expect(query('savings-goal-withdrawals')).toBeTruthy();
+      expect(query('savings-goal-withdrawals')).toBeTruthy();
     });
 
     it('survives an empty history to carry its own loading and error states', () => {

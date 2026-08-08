@@ -33,21 +33,22 @@ import type {
   template: `
     <div class="flex gap-1 justify-end items-center">
       @if (line().metadata.itemType === 'budget_line') {
-        <!--
-          Un retrait annoncé ne se pointe pas : il se réalise en saisissant le
-          revenu réel. Même sortie que la bascule — le conteneur tranche.
-        -->
+        <!-- Un retrait annoncé se réalise par une action distincte du pointage. -->
         @if (line().metadata.sourceWithdrawalCtaKey; as ctaKey) {
           <button
-            matIconButton
+            matButton
             class="text-primary"
-            (click)="toggleCheck.emit(line().data.id); $event.stopPropagation()"
-            [matTooltip]="ctaKey | transloco: { name: line().data.name }"
-            [attr.aria-label]="ctaKey | transloco: { name: line().data.name }"
+            (click)="
+              realizeWithdrawal.emit(line().data.id); $event.stopPropagation()
+            "
             [attr.data-testid]="'realize-withdrawal-' + line().data.id"
           >
-            <mat-icon>price_check</mat-icon>
+            {{ ctaKey | transloco }}
           </button>
+        } @else if (line().metadata.isSourceWithdrawalRealized) {
+          <span class="text-label-medium text-on-surface-variant">
+            {{ 'budgetLine.withdrawalRealized' | transloco }}
+          </span>
         } @else {
           <mat-slide-toggle
             [checked]="!!line().data.checkedAt"
@@ -84,14 +85,16 @@ import type {
         </div>
         <mat-divider />
         @if (line().metadata.itemType === 'budget_line') {
-          <button
-            mat-menu-item
-            (click)="addTransaction.emit(budgetLineData())"
-            [attr.data-testid]="'add-transaction-' + line().data.id"
-          >
-            <mat-icon matMenuItemIcon>add</mat-icon>
-            <span>{{ line().metadata.allocationLabel }}</span>
-          </button>
+          @if (!budgetLineData().sourceSavingsGoalId) {
+            <button
+              mat-menu-item
+              (click)="addTransaction.emit(budgetLineData())"
+              [attr.data-testid]="'add-transaction-' + line().data.id"
+            >
+              <mat-icon matMenuItemIcon>add</mat-icon>
+              <span>{{ line().metadata.allocationLabel }}</span>
+            </button>
+          }
           <button
             mat-menu-item
             (click)="edit.emit(asBudgetLineItem())"
@@ -216,6 +219,7 @@ export class ActionsCell {
   readonly resetFromTemplate = output<BudgetLineTableItem>();
   readonly postpone = output<string>();
   readonly toggleCheck = output<string>();
+  readonly realizeWithdrawal = output<string>();
   readonly toggleTransactionCheck = output<string>();
 
   readonly asBudgetLineItem = computed(

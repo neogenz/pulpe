@@ -14,6 +14,7 @@ final class MockSavingsGoalService: SavingsGoalServicing {
     var stubbedDeletionImpact: SavingsGoalDeletionImpact?
     var stubbedWithdrawalOptions: [SavingsGoalWithdrawalOption] = []
     var stubbedWithdrawals: [SavingsGoalWithdrawal] = []
+    var stubbedPlannedWithdrawals: [SavingsGoalPlannedWithdrawal] = []
     /// When set, every call throws this instead of returning.
     var error: Error?
     var getProgressError: Error?
@@ -188,11 +189,14 @@ final class MockSavingsGoalService: SavingsGoalServicing {
         return stubbedWithdrawalOptions
     }
 
-    func getWithdrawals(id _: String) async throws -> [SavingsGoalWithdrawal] {
+    func getWithdrawals(id _: String) async throws -> SavingsGoalWithdrawalsReadModel {
         getWithdrawalsCallCount += 1
         if let withdrawalsError { throw withdrawalsError }
         if let error { throw error }
-        return stubbedWithdrawals
+        return SavingsGoalWithdrawalsReadModel(
+            withdrawals: stubbedWithdrawals,
+            planned: stubbedPlannedWithdrawals
+        )
     }
 
     func delete(id: String, command: SavingsGoalDeletionCommand) async throws {

@@ -730,15 +730,41 @@ export type SavingsGoalWithdrawalOptionsResponse = z.infer<
 export const savingsGoalWithdrawalSchema = z.object({
   transactionId: z.uuid(),
   budgetId: z.uuid(),
+  /** Prévision Revenu porteuse, absente pour un retrait libre. */
+  budgetLineId: z.uuid().nullable().optional(),
   name: z.string().min(1),
   transactionDate: z.iso.datetime({ offset: true }),
   amount: z.coerce.number().nonnegative(),
+  /** Le pointage qualifie le Réel ; il ne change jamais le stock retiré. */
+  checkedAt: z.iso.datetime({ offset: true }).nullable().optional(),
 });
 export type SavingsGoalWithdrawal = z.infer<typeof savingsGoalWithdrawalSchema>;
 
+export const savingsGoalPlannedWithdrawalSchema = z.object({
+  budgetLineId: z.uuid(),
+  budgetId: z.uuid(),
+  name: z.string().min(1),
+  month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
+  year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
+  plannedAmount: z.coerce.number().nonnegative(),
+  realizedAmount: z.coerce.number().nonnegative(),
+  remainingAmount: z.coerce.number().nonnegative(),
+  status: z.enum(['planned', 'partially_realized', 'realized']),
+});
+export type SavingsGoalPlannedWithdrawal = z.infer<
+  typeof savingsGoalPlannedWithdrawalSchema
+>;
+
+/**
+ * `data` reste l'historique des Réels pour les clients déjà déployés. Le champ
+ * additif `planned` porte le suivi Prévu/Réel/reliquat et se dégrade en liste
+ * vide face à un serveur plus ancien.
+ */
 export const savingsGoalWithdrawalsResponseSchema = createListResponse(
   savingsGoalWithdrawalSchema,
-);
+).extend({
+  planned: z.array(savingsGoalPlannedWithdrawalSchema).default([]),
+});
 export type SavingsGoalWithdrawalsResponse = z.infer<
   typeof savingsGoalWithdrawalsResponseSchema
 >;

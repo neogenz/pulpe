@@ -612,7 +612,15 @@ export class BudgetDetailsStore {
   readonly filteredBudgetLines = computed<BudgetLine[]>(() => {
     let lines = this.displayBudgetLines();
     if (this.#isShowingOnlyUnchecked()) {
-      lines = lines.filter((line) => line.checkedAt === null);
+      const consumptionMap = calculateAllConsumptions(
+        lines,
+        this.budgetDetails()?.transactions ?? [],
+      );
+      lines = lines.filter((line) => {
+        if (!line.sourceSavingsGoalId) return line.checkedAt === null;
+        const consumed = consumptionMap.get(line.id)?.consumed ?? 0;
+        return consumed < line.amount;
+      });
     }
     const search = normalizeText(this.#searchText());
     if (!search) return lines;

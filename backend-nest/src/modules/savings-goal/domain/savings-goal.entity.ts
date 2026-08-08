@@ -178,6 +178,16 @@ export type SavingsGoalWithdrawalOptionResult = SavingsGoalWithdrawalOption;
 /** Une sortie de stock déchiffrée, montant POSITIF (PUL-329). */
 export type SavingsGoalWithdrawalRecord = SavingsGoalWithdrawal;
 
+/** Prévision Revenu liée, déchiffrée, avant agrégation avec ses Réels. */
+export interface SavingsGoalPlannedWithdrawalRecord {
+  budgetLineId: string;
+  budgetId: string;
+  name: string;
+  amount: number;
+  month: number;
+  year: number;
+}
+
 /**
  * Matière brute du solde d'un objectif (PUL-329) : tout ce que
  * `computeSavingsGoalProgress` réclame, et rien de plus. Le repository la lit

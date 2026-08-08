@@ -14,6 +14,7 @@ import type {
   SavingsGoalUpdatePatch,
   SavingsGoalBalanceInputs,
   SavingsGoalWithdrawalRecord,
+  SavingsGoalPlannedWithdrawalRecord,
 } from '../savings-goal.entity';
 import type {
   BudgetPeriod,
@@ -110,6 +111,10 @@ export interface SavingsGoalRepositoryPort {
    * période budgétaire, la liste affichée a besoin du libellé et de la date.
    */
   findWithdrawals(goalId: string): Promise<SavingsGoalWithdrawalRecord[]>;
+  /** Prévisions Revenu présentables, avant agrégation avec leurs Réels. */
+  findPlannedWithdrawalRecords(
+    goalId: string,
+  ): Promise<SavingsGoalPlannedWithdrawalRecord[]>;
   /**
    * De quoi calculer le solde de TOUS les objectifs de l'utilisateur, en une
    * lecture groupée : le sélecteur d'origine ouvre la liste entière d'un coup,

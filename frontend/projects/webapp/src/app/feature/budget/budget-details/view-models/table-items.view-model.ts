@@ -83,12 +83,12 @@ export interface TableItem {
      */
     savingsWithdrawalOriginLabel?: string | null;
     /**
-     * PUL-329 v2 — clé transloco du geste attendu sur un retrait ANNONCÉ, qui
-     * remplace le pointage : « réaliser » tant qu'il reste du prévu à sortir,
-     * « ajouter un autre revenu réel » une fois le prévu couvert. `null` pour
-     * toute autre ligne, qui garde sa bascule.
+     * PUL-329 v2 — clé transloco du geste attendu sur un retrait annoncé :
+     * réaliser le montant initial, puis son solde. `null` à reliquat nul.
      */
     sourceWithdrawalCtaKey?: string | null;
+    /** La Prévision liée est couverte ; aucun geste de réalisation ne subsiste. */
+    isSourceWithdrawalRealized?: boolean;
   } & TableItemDisplayMetadata;
 }
 

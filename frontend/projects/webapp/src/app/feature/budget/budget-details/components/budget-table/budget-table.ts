@@ -199,6 +199,7 @@ import { BudgetDetailsDialogService } from '../../budget-details-dialog.service'
               (resetFromTemplate)="onResetFromTemplateClick($event)"
               (postpone)="postpone.emit($event)"
               (toggleCheck)="toggleCheck.emit($event)"
+              (realizeWithdrawal)="realizeWithdrawal.emit($event)"
               (toggleTransactionCheck)="toggleTransactionCheck.emit($event)"
             />
           </td>
@@ -318,6 +319,7 @@ export class BudgetTable {
   readonly resetFromTemplate = output<string>();
   readonly postpone = output<string>();
   readonly toggleCheck = output<string>();
+  readonly realizeWithdrawal = output<string>();
   readonly toggleTransactionCheck = output<string>();
 
   // Desktop columns

@@ -50,4 +50,40 @@ struct SavingsGoalWithdrawalTests {
         #expect(withdrawal.amount == 4500)
         #expect(withdrawal.budgetId == "33333333-3333-4333-8333-333333333333")
     }
+
+    @Test("the additive read model decodes planned, realized and remaining amounts")
+    func readModel_decodesPlannedTracking() throws {
+        let json = Data("""
+        {
+          "success": true,
+          "data": [],
+          "planned": [{
+            "budgetLineId": "44444444-4444-4444-8444-444444444444",
+            "budgetId": "33333333-3333-4333-8333-333333333333",
+            "name": "Apport cuisine",
+            "month": 9,
+            "year": 2026,
+            "plannedAmount": 4500,
+            "realizedAmount": 1500,
+            "remainingAmount": 3000,
+            "status": "partially_realized"
+          }]
+        }
+        """.utf8)
+
+        let model = try decoder().decode(SavingsGoalWithdrawalsReadModel.self, from: json)
+
+        #expect(model.withdrawals.isEmpty)
+        #expect(model.planned.first?.remainingAmount == 3000)
+        #expect(model.planned.first?.status == .partiallyRealized)
+    }
+
+    @Test("an old server response remains readable with no planned tracking")
+    func readModel_defaultsPlannedForOldServers() throws {
+        let json = Data(#"{"success":true,"data":[]}"#.utf8)
+
+        let model = try decoder().decode(SavingsGoalWithdrawalsReadModel.self, from: json)
+
+        #expect(model.planned.isEmpty)
+    }
 }

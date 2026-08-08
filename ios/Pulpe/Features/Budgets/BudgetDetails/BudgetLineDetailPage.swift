@@ -307,12 +307,21 @@ private extension BudgetLineDetailPage {
         .tint(.editAction)
     }
 
+    @ViewBuilder
     func addTransactionButton(line: BudgetLine) -> some View {
-        Button {
-            router.push(.addAllocatedTx(lineId: line.id))
-        } label: {
-            Label("Ajouter une transaction", systemImage: "plus")
+        let realized = projector.screenState.consumptionByLineId[line.id]?.allocated ?? 0
+        if let label = BudgetLineMixedRow.realizationLabel(for: line, realizedAmount: realized) {
+            Button(label) {
+                router.push(.addAllocatedTx(lineId: line.id))
+            }
+            .primaryButtonStyle()
+        } else if !line.isPlannedSavingsWithdrawal {
+            Button {
+                router.push(.addAllocatedTx(lineId: line.id))
+            } label: {
+                Label("Ajouter une transaction", systemImage: "plus")
+            }
+            .primaryButtonStyle()
         }
-        .primaryButtonStyle()
     }
 }

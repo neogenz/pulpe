@@ -128,6 +128,9 @@ struct SavingsGoalDetailView: View {
             await viewModel.load()
             await refreshFutureLinesIfStopped()
         }
+        .onChange(of: store.budgetMutationVersion) {
+            Task { await viewModel.load() }
+        }
         .trackScreen("SavingsGoalDetail")
     }
 
@@ -213,15 +216,17 @@ struct SavingsGoalDetailView: View {
     private var withdrawalsSection: some View {
         if GoalWithdrawalsSection.isRelevant(
             withdrawals: viewModel.withdrawals,
+            planned: viewModel.plannedWithdrawals,
             isLoading: viewModel.isLoadingWithdrawals,
             error: viewModel.withdrawalsError
         ) {
             GoalWithdrawalsSection(
                 withdrawals: viewModel.withdrawals,
+                planned: viewModel.plannedWithdrawals,
                 currency: currency,
                 isLoading: viewModel.isLoadingWithdrawals,
                 error: viewModel.withdrawalsError,
-                onOpen: openWithdrawal
+                onOpenBudget: openWithdrawal
             )
             .accessibilityIdentifier("savingsGoalWithdrawalsSection")
         }
@@ -229,8 +234,8 @@ struct SavingsGoalDetailView: View {
 
     /// Pushes the budget onto the stack the user is actually looking at, so Back
     /// returns to this goal instead of dropping them into another tab.
-    private func openWithdrawal(_ withdrawal: SavingsGoalWithdrawal) {
-        appState.pushOnActiveStack(BudgetDestination.details(budgetId: withdrawal.budgetId))
+    private func openWithdrawal(_ budgetId: String) {
+        appState.pushOnActiveStack(BudgetDestination.details(budgetId: budgetId))
     }
 
     /// Simulator entry (pilier C): active goal, at least one linked line, at least
@@ -535,6 +540,7 @@ final class SavingsGoalDetailViewModel {
     private(set) var progress: SavingsGoalProgress?
     private(set) var contributions: [SavingsGoalContribution] = []
     private(set) var withdrawals: [SavingsGoalWithdrawal] = []
+    private(set) var plannedWithdrawals: [SavingsGoalPlannedWithdrawal] = []
     private(set) var futureLines: [SavingsGoalFutureLine] = []
     private(set) var isLoading = true
     private(set) var isLoadingContributions = false
@@ -626,7 +632,9 @@ final class SavingsGoalDetailViewModel {
         withdrawalsError = nil
         defer { isLoadingWithdrawals = false }
         do {
-            withdrawals = try await service.getWithdrawals(id: goalId)
+            let readModel = try await service.getWithdrawals(id: goalId)
+            withdrawals = readModel.withdrawals
+            plannedWithdrawals = readModel.planned
         } catch {
             withdrawalsError = error
         }

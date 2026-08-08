@@ -13,6 +13,8 @@ import {
   type SavingsGoalProgress,
   type SavingsGoalUpdate,
   type SavingsGoalWithdrawal,
+  type SavingsGoalPlannedWithdrawal,
+  type SavingsGoalWithdrawalsResponse,
 } from 'pulpe-shared';
 import { firstValueFrom, map } from 'rxjs';
 import { cachedResource, cachedMutation } from 'ngx-ziflux';
@@ -96,7 +98,7 @@ export class SavingsGoalStore {
   // contributions, avec leurs propres états pour qu'une erreur ici n'emporte pas
   // le reste du détail.
   readonly #withdrawalsResource = cachedResource<
-    SavingsGoalWithdrawal[],
+    SavingsGoalWithdrawalsResponse,
     { goalId: string }
   >({
     cache: this.#api.cache,
@@ -105,12 +107,14 @@ export class SavingsGoalStore {
       const id = this.#selectedGoalId();
       return id ? { goalId: id } : undefined;
     },
-    loader: ({ params }) =>
-      this.#api.getWithdrawals$(params.goalId).pipe(map((res) => res.data)),
+    loader: ({ params }) => this.#api.getWithdrawals$(params.goalId),
   });
 
   readonly withdrawals = computed<SavingsGoalWithdrawal[]>(
-    () => this.#withdrawalsResource.value() ?? [],
+    () => this.#withdrawalsResource.value()?.data ?? [],
+  );
+  readonly plannedWithdrawals = computed<SavingsGoalPlannedWithdrawal[]>(
+    () => this.#withdrawalsResource.value()?.planned ?? [],
   );
   readonly isWithdrawalsLoading = this.#withdrawalsResource.isInitialLoading;
   readonly withdrawalsError = this.#withdrawalsResource.error;

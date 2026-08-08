@@ -677,6 +677,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
               </h2>
               <pulpe-goal-withdrawals-list
                 [withdrawals]="store.withdrawals()"
+                [plannedWithdrawals]="store.plannedWithdrawals()"
                 [currency]="currency()"
                 [isLoading]="store.isWithdrawalsLoading()"
                 [hasError]="!!store.withdrawalsError()"
@@ -850,6 +851,7 @@ export default class SavingsGoalDetailPage {
   protected readonly hasWithdrawalsSection = computed(
     () =>
       this.store.withdrawals().length > 0 ||
+      this.store.plannedWithdrawals().length > 0 ||
       this.store.isWithdrawalsLoading() ||
       !!this.store.withdrawalsError(),
   );

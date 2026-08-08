@@ -3,11 +3,19 @@ import {
   SAVINGS_GOAL_REPOSITORY,
   type SavingsGoalRepositoryPort,
 } from '../domain/ports/savings-goal-repository.port';
-import type { SavingsGoalWithdrawalRecord } from '../domain/savings-goal.entity';
+import type {
+  SavingsGoalPlannedWithdrawal,
+  SavingsGoalWithdrawal,
+} from 'pulpe-shared';
+
+export interface SavingsGoalWithdrawalsReadModel {
+  withdrawals: SavingsGoalWithdrawal[];
+  planned: SavingsGoalPlannedWithdrawal[];
+}
 
 /**
- * L'historique des retraits d'un objectif (PUL-329), du plus récent au plus
- * ancien.
+ * Le suivi des retraits d'un objectif (PUL-329) : Prévisions, progression de
+ * leur réalisation et historique des Réels du plus récent au plus ancien.
  *
  * `findById` d'abord : sous RLS, un objectif inexistant et un objectif
  * étranger sont indiscernables, et tous deux méritent un 404 plutôt qu'une
@@ -21,8 +29,46 @@ export class GetSavingsGoalWithdrawalsUseCase {
     private readonly repo: SavingsGoalRepositoryPort,
   ) {}
 
-  async execute(goalId: string): Promise<SavingsGoalWithdrawalRecord[]> {
+  async execute(goalId: string): Promise<SavingsGoalWithdrawalsReadModel> {
     await this.repo.findById(goalId);
-    return this.repo.findWithdrawals(goalId);
+    const [withdrawals, plannedRecords] = await Promise.all([
+      this.repo.findWithdrawals(goalId),
+      this.repo.findPlannedWithdrawalRecords(goalId),
+    ]);
+
+    const realizedByLine = new Map<string, number>();
+    for (const withdrawal of withdrawals) {
+      if (!withdrawal.budgetLineId) continue;
+      realizedByLine.set(
+        withdrawal.budgetLineId,
+        (realizedByLine.get(withdrawal.budgetLineId) ?? 0) + withdrawal.amount,
+      );
+    }
+
+    const planned = plannedRecords
+      .map((record): SavingsGoalPlannedWithdrawal => {
+        const realizedAmount = realizedByLine.get(record.budgetLineId) ?? 0;
+        const remainingAmount = Math.max(0, record.amount - realizedAmount);
+        const status =
+          realizedAmount === 0
+            ? 'planned'
+            : remainingAmount > 0
+              ? 'partially_realized'
+              : 'realized';
+        return {
+          budgetLineId: record.budgetLineId,
+          budgetId: record.budgetId,
+          name: record.name,
+          month: record.month,
+          year: record.year,
+          plannedAmount: record.amount,
+          realizedAmount,
+          remainingAmount,
+          status,
+        };
+      })
+      .sort((a, b) => a.year - b.year || a.month - b.month);
+
+    return { withdrawals, planned };
   }
 }

@@ -47,6 +47,7 @@ import type {
   SavingsGoalTargetDateReconciliationResult,
   SavingsGoalUpdatePatch,
   SavingsGoalWithdrawalRecord,
+  SavingsGoalPlannedWithdrawalRecord,
 } from '../../domain/savings-goal.entity';
 import {
   applySavingsGoalPlanLineListSchema,
@@ -113,13 +114,16 @@ interface WithdrawalRow {
   name: string;
   amount: string | null;
   transaction_date: string;
+  checked_at: string | null;
   monthly_budget: { month: number; year: number };
 }
 
 /** Prévision `income` annonçant une sortie future de l'objectif (PUL-329 v2). */
 interface PlannedWithdrawalRow {
   id: string;
+  budget_id: string;
   source_savings_goal_id: string | null;
+  name: string;
   amount: string | null;
   monthly_budget: { month: number; year: number };
 }
@@ -506,11 +510,30 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       .map((row) => ({
         transactionId: row.id,
         budgetId: row.budget_id,
+        budgetLineId: row.budget_line_id,
         name: row.name,
         transactionDate: row.transaction_date,
         amount: this.encryption.tryDecryptAmount(row.amount, dek, 0),
+        checkedAt: row.checked_at,
       }))
       .sort((a, b) => b.transactionDate.localeCompare(a.transactionDate));
+  }
+
+  async findPlannedWithdrawalRecords(
+    goalId: string,
+  ): Promise<SavingsGoalPlannedWithdrawalRecord[]> {
+    const rows = await this.fetchPlannedWithdrawalRows([goalId]);
+    if (!rows.length) return [];
+
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    return rows.map((row) => ({
+      budgetLineId: row.id,
+      budgetId: row.budget_id,
+      name: row.name,
+      amount: this.encryption.tryDecryptAmount(row.amount, dek, 0),
+      month: row.monthly_budget.month,
+      year: row.monthly_budget.year,
+    }));
   }
 
   async findBalanceRevision(goalId: string): Promise<number | null> {
@@ -1161,7 +1184,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     const { data, error } = await this.supabaseProvider.client
       .from('transaction')
       .select(
-        'id, budget_id, budget_line_id, source_savings_goal_id, name, amount, transaction_date, monthly_budget!inner(month, year)',
+        'id, budget_id, budget_line_id, source_savings_goal_id, name, amount, transaction_date, checked_at, monthly_budget!inner(month, year)',
       )
       .in('source_savings_goal_id', goalIds);
 
@@ -1220,7 +1243,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     const { data, error } = await this.supabaseProvider.client
       .from('budget_line')
       .select(
-        'id, source_savings_goal_id, amount, monthly_budget!inner(month, year)',
+        'id, budget_id, source_savings_goal_id, name, amount, monthly_budget!inner(month, year)',
       )
       .in('source_savings_goal_id', goalIds)
       .eq('kind', 'income');

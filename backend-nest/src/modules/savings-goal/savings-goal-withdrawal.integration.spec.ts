@@ -281,15 +281,18 @@ describe('PUL-329 — savings-goal withdrawals (local Supabase)', () => {
     expect(computed.confirmedPace).toBe(0);
 
     const history = await suite.history.execute(goalId);
-    expect(history).toEqual([
+    expect(history.withdrawals).toEqual([
       {
         transactionId: income.id,
         budgetId,
+        budgetLineId: null,
         name: 'Apport travaux',
         transactionDate: income.transactionDate,
         amount: 4_500,
+        checkedAt: null,
       },
     ]);
+    expect(history.planned).toEqual([]);
   });
 
   it('refuses one cent over the balance, and writes nothing', async () => {
@@ -303,7 +306,7 @@ describe('PUL-329 — savings-goal withdrawals (local Supabase)', () => {
     expect((caught as BusinessException).code).toBe(
       ERROR_DEFINITIONS.SAVINGS_GOAL_WITHDRAWAL_INSUFFICIENT_BALANCE.code,
     );
-    expect(await suite.history.execute(goalId)).toEqual([]);
+    expect((await suite.history.execute(goalId)).withdrawals).toEqual([]);
     expect(await confirmedOf(goalId)).toBe(1_000);
   });
 
@@ -335,7 +338,7 @@ describe('PUL-329 — savings-goal withdrawals (local Supabase)', () => {
       BusinessException,
     );
     expect(await confirmedOf(goalId)).toBe(400);
-    expect(await suite.history.execute(goalId)).toHaveLength(1);
+    expect((await suite.history.execute(goalId)).withdrawals).toHaveLength(1);
   });
 
   it('gives back exactly what an edit lowers, then the rest on delete', async () => {
@@ -351,7 +354,7 @@ describe('PUL-329 — savings-goal withdrawals (local Supabase)', () => {
 
     await suite.remove.execute(income.id, suite.authUser);
     expect(await confirmedOf(goalId)).toBe(10_000);
-    expect(await suite.history.execute(goalId)).toEqual([]);
+    expect((await suite.history.execute(goalId)).withdrawals).toEqual([]);
   });
 
   it('leaves the stock alone when the income is checked or unchecked', async () => {

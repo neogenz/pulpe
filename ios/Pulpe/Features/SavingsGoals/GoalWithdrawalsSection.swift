@@ -14,17 +14,19 @@ import SwiftUI
 /// emptiness the user never asked about.
 struct GoalWithdrawalsSection: View {
     let withdrawals: [SavingsGoalWithdrawal]
+    let planned: [SavingsGoalPlannedWithdrawal]
     let currency: SupportedCurrency
     let isLoading: Bool
     let error: Error?
-    let onOpen: (SavingsGoalWithdrawal) -> Void
+    let onOpenBudget: (String) -> Void
 
     static func isRelevant(
         withdrawals: [SavingsGoalWithdrawal],
+        planned: [SavingsGoalPlannedWithdrawal],
         isLoading: Bool,
         error: Error?
     ) -> Bool {
-        !withdrawals.isEmpty || isLoading || error != nil
+        !withdrawals.isEmpty || !planned.isEmpty || isLoading || error != nil
     }
 
     var body: some View {
@@ -33,17 +35,31 @@ struct GoalWithdrawalsSection: View {
                 .font(PulpeTypography.title2)
                 .foregroundStyle(Color.textPrimary)
 
-            if isLoading, withdrawals.isEmpty {
+            if isLoading, withdrawals.isEmpty, planned.isEmpty {
                 ProgressView("Chargement des retraits…")
                     .frame(maxWidth: .infinity)
                     .padding(DesignTokens.Spacing.xl)
-            } else if error != nil, withdrawals.isEmpty {
+            } else if error != nil, withdrawals.isEmpty, planned.isEmpty {
                 // No retry button: the whole detail reloads on pull-to-refresh,
                 // and a failed history never blocks reading the progression.
                 notice("Impossible de charger les retraits pour le moment.")
             } else {
-                ForEach(withdrawals) { withdrawal in
-                    row(withdrawal)
+                if !planned.isEmpty {
+                    Text("Retraits planifiés")
+                        .font(PulpeTypography.headline)
+                        .foregroundStyle(Color.textPrimary)
+                    ForEach(planned) { withdrawal in
+                        plannedRow(withdrawal)
+                    }
+                }
+
+                if !withdrawals.isEmpty {
+                    Text("Retraits réalisés")
+                        .font(PulpeTypography.headline)
+                        .foregroundStyle(Color.textPrimary)
+                    ForEach(withdrawals) { withdrawal in
+                        realizedRow(withdrawal)
+                    }
                 }
             }
         }
@@ -58,9 +74,65 @@ struct GoalWithdrawalsSection: View {
             .pulpeCard()
     }
 
-    private func row(_ withdrawal: SavingsGoalWithdrawal) -> some View {
+    private func plannedRow(_ withdrawal: SavingsGoalPlannedWithdrawal) -> some View {
         Button {
-            onOpen(withdrawal)
+            onOpenBudget(withdrawal.budgetId)
+        } label: {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                Image(systemName: "calendar")
+                    .font(PulpeTypography.actionIcon)
+                    .foregroundStyle(Color.textTertiary)
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                    Text(withdrawal.name)
+                        .font(PulpeTypography.listRowTitle)
+                        .foregroundStyle(Color.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(plannedSubtitle(withdrawal))
+                        .font(PulpeTypography.listRowSubtitle)
+                        .foregroundStyle(Color.textTertiary)
+                    if withdrawal.status == .partiallyRealized {
+                        Text("Reste à réaliser · \((-withdrawal.remainingAmount).asCurrency(currency))")
+                            .font(PulpeTypography.listRowSubtitle)
+                            .foregroundStyle(Color.textSecondary)
+                            .sensitiveAmount()
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Text((-withdrawal.plannedAmount).asCurrency(currency))
+                    .font(PulpeTypography.amountCard)
+                    .monospacedDigit()
+                    .foregroundStyle(Color.textPrimary)
+                    .sensitiveAmount()
+
+                Image(systemName: "chevron.right")
+                    .font(PulpeTypography.caption)
+                    .foregroundStyle(Color.textTertiary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .pulpeCard()
+        }
+        .plainPressedButtonStyle()
+        .accessibilityElement(children: .combine)
+        .accessibilityHint("Ouvre le budget de cette prévision")
+    }
+
+    private func plannedSubtitle(_ withdrawal: SavingsGoalPlannedWithdrawal) -> String {
+        let components = DateComponents(year: withdrawal.year, month: withdrawal.month, day: 1)
+        let date = Calendar.current.date(from: components) ?? .now
+        let period = date.formatted(.dateTime.month(.wide).year())
+        let status = switch withdrawal.status {
+        case .planned: "À réaliser"
+        case .partiallyRealized: "Partiellement réalisé"
+        case .realized: "Réalisé"
+        }
+        return "\(period) · \(status)"
+    }
+
+    private func realizedRow(_ withdrawal: SavingsGoalWithdrawal) -> some View {
+        Button {
+            onOpenBudget(withdrawal.budgetId)
         } label: {
             HStack(spacing: DesignTokens.Spacing.md) {
                 Image(systemName: "arrow.up.right")
@@ -74,7 +146,10 @@ struct GoalWithdrawalsSection: View {
                         .font(PulpeTypography.listRowTitle)
                         .foregroundStyle(Color.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(withdrawal.transactionDate.formatted(date: .abbreviated, time: .omitted))
+                    Text(
+                        "\(withdrawal.transactionDate.formatted(date: .abbreviated, time: .omitted)) · "
+                            + (withdrawal.checkedAt == nil ? "À pointer" : "Pointé")
+                    )
                         .font(PulpeTypography.listRowSubtitle)
                         .foregroundStyle(Color.textTertiary)
                 }
@@ -123,18 +198,20 @@ struct GoalWithdrawalsSection: View {
                         amount: 899.55
                     ),
                 ],
+                planned: [],
                 currency: .chf,
                 isLoading: false,
                 error: nil,
-                onOpen: { _ in }
+                onOpenBudget: { _ in }
             )
 
             GoalWithdrawalsSection(
                 withdrawals: [],
+                planned: [],
                 currency: .chf,
                 isLoading: false,
                 error: APIError.serverError(message: "Indisponible"),
-                onOpen: { _ in }
+                onOpenBudget: { _ in }
             )
         }
         .padding()
