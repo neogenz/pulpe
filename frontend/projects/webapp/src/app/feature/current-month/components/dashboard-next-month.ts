@@ -20,22 +20,41 @@ import { AppCurrencyPipe } from '@core/currency';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col w-full h-full">
-      <div class="mb-4 px-1 flex items-center gap-3">
-        <div
-          class="w-10 h-10 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center shrink-0!"
-        >
-          <mat-icon aria-hidden="true">event_upcoming</mat-icon>
-        </div>
-        <div>
-          <h2 class="text-title-medium font-bold text-on-surface leading-tight">
-            {{ 'currentMonth.nextMonthTitle' | transloco }}
-          </h2>
-          <p
-            class="text-body-small text-on-surface-variant font-medium mt-0.5 capitalize"
+      <div class="mb-4 px-1 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3 min-w-0">
+          <div
+            class="w-10 h-10 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center shrink-0!"
           >
-            {{ monthName() }} {{ forecast().year }}
-          </p>
+            <mat-icon aria-hidden="true">event_upcoming</mat-icon>
+          </div>
+          <div class="min-w-0">
+            <h2
+              class="text-title-medium font-bold text-on-surface leading-tight"
+            >
+              {{ 'currentMonth.nextMonthTitle' | transloco }}
+            </h2>
+            <p
+              class="text-body-small text-on-surface-variant font-medium mt-0.5 capitalize"
+            >
+              {{ monthName() }} {{ forecast().year }}
+            </p>
+          </div>
         </div>
+        <!-- The no-budget branch below has always offered a way forward; the
+             branch that found one left the reader at a dead end — a sentence
+             about next month with nothing to do about it, in a row of cards
+             that all carry a trailing action. The list is the honest target:
+             the forecast knows the month, not the budget's id. -->
+        @if (hasBudget()) {
+          <button
+            matButton
+            class="shrink-0"
+            [attr.aria-label]="'currentMonth.viewNextMonthBudget' | transloco"
+            (click)="navigateToBudgets.emit()"
+          >
+            {{ 'currentMonth.viewBudgets' | transloco }}
+          </button>
+        }
       </div>
 
       <div

@@ -916,6 +916,7 @@
     "noBudgetTitle": "Pas encore de budget pour {{ period }}",
     "noBudgetMessage": "Crée-le depuis tes modèles pour commencer à suivre ton mois.",
     "viewBudgets": "Voir mes budgets",
+    "viewNextMonthBudget": "Voir mes budgets, dont celui du mois prochain",
     "updateError": "La mise à jour a échoué — vérifie ta connexion et réessaie",
     "addError": "L'ajout a échoué — vérifie ta connexion et réessaie",
     "transactionAdded": "Enregistré : {{ name }}",
