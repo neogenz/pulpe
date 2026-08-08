@@ -162,6 +162,29 @@ describe('DashboardHero', () => {
     });
   });
 
+  // "Il est sorti" means pointed. This branch is reached by a negative
+  // remaining, which counts unpointed entries too, so an expense recorded with
+  // the toggle off asserted an outflow above a legend reading "Déjà sorti 0".
+  it('should not claim money left the account while nothing is pointed', () => {
+    setTestInput(component.available, 5000);
+    setTestInput(component.expenses, 5500);
+    setTestInput(component.remaining, -500);
+    setTestInput(component.planExceedsAvailable, false);
+    setTestInput(component.realizedExpenses, 0);
+    setTestInput(component.hasRecordedActivity, true);
+    // Nothing was pointed, so no franc counts as unplanned spending and the
+    // pace has nothing to judge — which is what puts this month in the branch.
+    setTestInput(component.paceStatus, 'within-plan');
+    fixture.detectChanges();
+
+    expect(component['statusMessage']()).not.toBe(
+      'dashboard.status.outflowBeyondIncome',
+    );
+    expect(component['statusMessage']()).toBe(
+      'dashboard.status.nothingCheckedYet',
+    );
+  });
+
   it('should expose budgetConsumedPercentage from input', () => {
     setTestInput(component.budgetConsumedPercentage, 100);
 

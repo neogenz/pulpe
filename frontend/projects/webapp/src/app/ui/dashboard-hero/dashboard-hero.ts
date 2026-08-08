@@ -769,10 +769,19 @@ export class DashboardHero {
     // prévisions all fit. What opened the gap there is money the pace verdict
     // is built to ignore — a transfer to savings, an expense recorded and not
     // yet pointed — so the sentence names the outflow rather than the plan.
-    if (this.isPlanOverAvailable())
-      return this.planExceedsAvailable()
-        ? 'dashboard.status.planOverAvailable'
-        : 'dashboard.status.outflowBeyondIncome';
+    // "Il est sorti" is this page's word for pointed, and the branch below is
+    // reached by a negative remaining, which counts every recorded franc
+    // whether or not it has been pointed. An expense entered with the toggle
+    // off therefore printed "il est sorti plus que ce que le mois t'apporte"
+    // directly above a legend reading "Déjà sorti 0". When nothing has left the
+    // account the verdict is not this one — the ledger readings below already
+    // have the sentence for a month whose entries say nothing about its pace.
+    if (this.isPlanOverAvailable()) {
+      if (this.planExceedsAvailable())
+        return 'dashboard.status.planOverAvailable';
+      if (this.realizedExpenses() > 0)
+        return 'dashboard.status.outflowBeyondIncome';
+    }
     if (this.paceStatus() === 'tight') return 'dashboard.status.fastPace';
     // A plan leaving almost nothing free is true whether or not anything
     // unplanned has happened, so it cannot live inside one pace branch. It did:

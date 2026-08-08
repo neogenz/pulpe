@@ -192,11 +192,13 @@ export class DashboardStore {
     this.#userSettingsStore.isLoading(),
   );
 
+  // Les figures de la page, pas tout ce qui vole. L'historique n'alimente que
+  // les blocs repliés par défaut, et il désactivait « Actualiser » : le seul
+  // bouton visible restait gris à cause d'une requête servant des cartes hors
+  // écran, sans rien pour l'expliquer. Son échec a déjà sa propre lecture,
+  // `historyError`, et chaque graphique son propre état.
   readonly isLoading = computed(
-    () =>
-      this.#dashboardResource.isLoading() ||
-      this.#isSettingsLoading() ||
-      this.#historyResource.isLoading(),
+    () => this.#dashboardResource.isLoading() || this.#isSettingsLoading(),
   );
   readonly hasValue = computed(() => this.#dashboardResource.hasValue());
   // The page renders this as a full-screen "could not load" card, so it says one
