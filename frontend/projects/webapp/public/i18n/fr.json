@@ -919,6 +919,7 @@
     "addError": "L'ajout a échoué — vérifie ta connexion et réessaie",
     "transactionAdded": "Enregistré : {{ name }}",
     "undoError": "Impossible d'annuler — la prévision reste pointée",
+    "undoTransactionError": "Impossible d'annuler — la transaction reste enregistrée",
     "close": "Fermer",
     "historyTitle": "Historique",
     "historySubtitle": "Revenus, dépenses et épargne — le mois en cours n'est pas fini",

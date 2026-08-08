@@ -100,6 +100,7 @@ function createMocks() {
       getHistoryData$: vi.fn().mockReturnValue(of([])),
       getBudgetById$: vi.fn().mockReturnValue(of(createMockBudget())),
       createTransaction$: vi.fn(),
+      deleteTransaction$: vi.fn(),
       toggleBudgetLineCheck$: vi.fn(),
       cache,
     },
@@ -328,7 +329,7 @@ describe('DashboardStore - Business Scenarios', () => {
       });
 
       // cachedMutation.mutate() never rejects — the reason comes back returned.
-      const reason = await store.addTransaction({
+      const outcome = await store.addTransaction({
         budgetId: 'budget-1',
         name: 'Fail',
         amount: 100,
@@ -338,7 +339,7 @@ describe('DashboardStore - Business Scenarios', () => {
       // Should rollback to original data (via onError)
       expect(store.transactions().length).toBe(1);
       expect(store.transactions()[0].id).toBe('tx-existing');
-      expect(reason).toBeTruthy();
+      expect(outcome).toEqual({ reason: expect.any(String) });
       expect(mocks.postHogService.captureEvent).not.toHaveBeenCalled();
     });
 
@@ -368,7 +369,7 @@ describe('DashboardStore - Business Scenarios', () => {
         expect(store.dashboardData()).not.toBeNull();
       });
 
-      const reason = await store.addTransaction({
+      const outcome = await store.addTransaction({
         budgetId: 'budget-1',
         name: 'Retrait Maison',
         amount: 100,
@@ -377,8 +378,69 @@ describe('DashboardStore - Business Scenarios', () => {
       });
 
       const localizer = TestBed.inject(ApiErrorLocalizer);
-      expect(reason).toBe(localizer.localizeApiError(refusal));
+      expect(outcome).toEqual({ reason: localizer.localizeApiError(refusal) });
       expect(store.error()).toBeUndefined();
+    });
+
+    // What the confirmation toast promises. A transaction recorded by mistake
+    // was previously only removable from another page, so the id has to survive
+    // the create for the undo to have anything to delete.
+    it('should hand back the created id so the write can be undone', async () => {
+      const budget = createMockBudget();
+      const newTx = createMockTransaction({ id: 'tx-new', name: 'Courses' });
+
+      const mocks = createMocks();
+      mocks.budgetApi.getDashboardData$.mockReturnValue(
+        of({ budget, transactions: [], budgetLines: [] }),
+      );
+      mocks.budgetApi.createTransaction$.mockReturnValue(
+        of({ success: true, data: newTx }),
+      );
+      mocks.budgetApi.deleteTransaction$.mockReturnValue(of(undefined));
+      const { store } = setup(mocks);
+
+      TestBed.tick();
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).not.toBeNull();
+      });
+
+      const outcome = await store.addTransaction({
+        budgetId: 'budget-1',
+        name: 'Courses',
+        amount: 80,
+        kind: 'expense',
+      });
+      expect(outcome).toEqual({ transactionId: 'tx-new' });
+
+      const refusal = await store.deleteTransaction('tx-new');
+
+      expect(refusal).toBeNull();
+      expect(mocks.budgetApi.deleteTransaction$).toHaveBeenCalledWith('tx-new');
+      expect(store.transactions()).toEqual([]);
+    });
+
+    it('should put the transaction back when the undo fails', async () => {
+      const budget = createMockBudget();
+      const existingTx = createMockTransaction({ id: 'tx-existing' });
+
+      const mocks = createMocks();
+      mocks.budgetApi.getDashboardData$.mockReturnValue(
+        of({ budget, transactions: [existingTx], budgetLines: [] }),
+      );
+      mocks.budgetApi.deleteTransaction$.mockReturnValue(
+        throwError(() => new Error('API error')),
+      );
+      const { store } = setup(mocks);
+
+      TestBed.tick();
+      await vi.waitFor(() => {
+        expect(store.transactions().length).toBe(1);
+      });
+
+      const refusal = await store.deleteTransaction('tx-existing');
+
+      expect(refusal).toBeTruthy();
+      expect(store.transactions()).toEqual([existingTx]);
     });
   });
 

@@ -62,6 +62,15 @@ export const DASHBOARD_NOW = new InjectionToken<Date>('DASHBOARD_NOW', {
   factory: () => new Date(),
 });
 
+/**
+ * The id of what was written, or the localized reason nothing was. The id is
+ * what makes the write reversible: without it the caller can confirm the
+ * transaction but not take it back.
+ */
+export type AddTransactionOutcome =
+  | { readonly transactionId: string }
+  | { readonly reason: string };
+
 @Service({ autoProvided: false })
 export class DashboardStore {
   // ── 1. Dependencies ──
@@ -342,7 +351,10 @@ export class DashboardStore {
   // Built around THIS call's sink rather than shared: `cachedMutation` gates
   // onSuccess/onError latest-wins, so a signal on `this` would hand one call the
   // other's verdict. The cell lives in the call frame — see `addTransaction`.
-  readonly #addTransactionMutation = (fail: (message: string) => void) =>
+  readonly #addTransactionMutation = (
+    succeed: (transactionId: string) => void,
+    fail: (message: string) => void,
+  ) =>
     cachedMutation<
       TransactionCreate,
       { data: Transaction },
@@ -356,6 +368,7 @@ export class DashboardStore {
           ...current,
           transactions: [...current.transactions, response.data],
         }));
+        succeed(response.data.id);
         this.#postHogService.captureEvent(
           ANALYTICS_EVENTS.TRANSACTION_CREATED,
           {
@@ -383,16 +396,57 @@ export class DashboardStore {
     this.#historyResource.reload();
   }
 
-  /** Returns the localized reason on refusal, or `null` when it went through. */
   async addTransaction(
     transactionData: TransactionCreate,
-  ): Promise<string | null> {
-    let reason: string | null = null;
-    const mutation = this.#addTransactionMutation((message) => {
-      reason = message;
-    });
+  ): Promise<AddTransactionOutcome> {
+    let outcome: AddTransactionOutcome = {
+      reason: this.#transloco.translate('currentMonth.addError'),
+    };
+    const mutation = this.#addTransactionMutation(
+      (transactionId) => {
+        outcome = { transactionId };
+      },
+      (message) => {
+        outcome = { reason: message };
+      },
+    );
     await mutation.mutate(transactionData);
-    return reason;
+    return outcome;
+  }
+
+  // The reversal behind the confirmation toast, on the same terms as
+  // `uncheckBudgetLine`: the caller has just promised the user an undo, so a
+  // transaction that is no longer here answers with a reason rather than the
+  // silent success a repeated no-op deserves.
+  /** Returns the localized reason on refusal, or `null` when it went through. */
+  async deleteTransaction(transactionId: string): Promise<string | null> {
+    const deleteFailed = () =>
+      this.#transloco.translate('currentMonth.undoTransactionError');
+    const removed = this.transactions().find((t) => t.id === transactionId);
+    if (!removed) return deleteFailed();
+
+    this.#patchTransactions((transactions) =>
+      transactions.filter((t) => t.id !== transactionId),
+    );
+
+    try {
+      await firstValueFrom(this.#budgetApi.deleteTransaction$(transactionId));
+      for (const key of DASHBOARD_INVALIDATION_KEYS) {
+        this.#budgetApi.cache.invalidate(key);
+      }
+      return null;
+    } catch (error: unknown) {
+      // Appended rather than spliced back at its index: `recentTransactions`
+      // sorts by date, so position in this array carries nothing.
+      this.#patchTransactions((transactions) => [...transactions, removed]);
+      this.#logger.error('Delete transaction failed', {
+        transactionId,
+        error,
+      });
+      return isApiError(error)
+        ? this.#apiErrorLocalizer.localizeApiError(error)
+        : deleteFailed();
+    }
   }
 
   // Plain async mutation — `cachedMutation` uses latest-wins for
@@ -478,6 +532,13 @@ export class DashboardStore {
     const current = this.#dashboardResource.value();
     if (!current) return;
     this.#dashboardResource.update(() => fn(current));
+  }
+
+  #patchTransactions(fn: (transactions: Transaction[]) => Transaction[]): void {
+    this.#updateDashboard((data) => ({
+      ...data,
+      transactions: fn(data.transactions),
+    }));
   }
 
   #patchBudgetLineCheckedAt(

@@ -10,7 +10,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { type BudgetLine, type Transaction, type Budget } from 'pulpe-shared';
-import Dashboard from './current-month';
+import { Subject } from 'rxjs';
+import Dashboard, { UNDO_WINDOW_MS } from './current-month';
 import { type TransactionFormData } from './components/add-transaction-form.schema';
 import { AddTransactionDialogService } from './services/add-transaction-dialog.service';
 import { DashboardStore } from './services/dashboard-store';
@@ -475,7 +476,8 @@ describe('Dashboard (TestBed)', () => {
   function createMockStore(budgetId: string) {
     return {
       dashboardData: signal({ budget: { id: budgetId } }),
-      addTransaction: vi.fn().mockResolvedValue(undefined),
+      addTransaction: vi.fn().mockResolvedValue({ transactionId: 'tx-new' }),
+      deleteTransaction: vi.fn().mockResolvedValue(null),
       status: signal<'idle' | 'loading' | 'reloading' | 'resolved' | 'error'>(
         'resolved',
       ),
@@ -497,7 +499,10 @@ describe('Dashboard (TestBed)', () => {
       open: vi.fn().mockResolvedValue(dialogResult),
     };
     const mockRouter = { navigate: vi.fn() };
-    const mockSnackBar = { open: vi.fn() };
+    const undoAction = new Subject<void>();
+    const mockSnackBar = {
+      open: vi.fn().mockReturnValue({ onAction: () => undoAction }),
+    };
 
     await TestBed.resetTestingModule()
       .configureTestingModule({
@@ -523,6 +528,7 @@ describe('Dashboard (TestBed)', () => {
       mockStore,
       mockDialogService,
       mockSnackBar,
+      undoAction,
     };
   }
 
@@ -621,9 +627,9 @@ describe('Dashboard (TestBed)', () => {
         budgetId,
         quickIncome,
       );
-      mockStore.addTransaction.mockResolvedValue(
-        "Cet objectif n'a pas assez d'argent pour ce montant",
-      );
+      mockStore.addTransaction.mockResolvedValue({
+        reason: "Cet objectif n'a pas assez d'argent pour ce montant",
+      });
 
       await component['openAddTransaction']();
 
@@ -646,6 +652,40 @@ describe('Dashboard (TestBed)', () => {
 
       expect(mockSnackBar.open).toHaveBeenCalledWith(
         expect.stringContaining('Retrait Maison'),
+        expect.any(String),
+        expect.objectContaining({ duration: UNDO_WINDOW_MS }),
+      );
+    });
+
+    // The way back. A mistyped amount used to be removable only from the budget
+    // page, so the toast promised nothing and the write was one-way.
+    it('should delete the transaction when the undo is taken', async () => {
+      const { component, mockStore, undoAction } = await setup(
+        budgetId,
+        quickIncome,
+      );
+
+      await component['openAddTransaction']();
+      undoAction.next();
+
+      expect(mockStore.deleteTransaction).toHaveBeenCalledWith('tx-new');
+    });
+
+    it('should say so when the undo could not go through', async () => {
+      const { component, mockStore, mockSnackBar, undoAction } = await setup(
+        budgetId,
+        quickIncome,
+      );
+      mockStore.deleteTransaction.mockResolvedValue(
+        'Impossible d’annuler — la transaction reste enregistrée',
+      );
+
+      await component['openAddTransaction']();
+      undoAction.next();
+      await Promise.resolve();
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Impossible d’annuler — la transaction reste enregistrée',
         expect.any(String),
         expect.objectContaining({ duration: 5000 }),
       );

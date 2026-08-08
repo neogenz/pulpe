@@ -45,7 +45,7 @@ import { CURRENCY_CONFIG } from '@core/currency';
 // Longer than the plain notification below: this toast is not read, it is
 // reached. It has to survive the user noticing the mistake and travelling to
 // the button.
-const UNDO_WINDOW_MS = 6000;
+export const UNDO_WINDOW_MS = 6000;
 
 @Component({
   selector: 'pulpe-dashboard',
@@ -471,20 +471,34 @@ export default class Dashboard {
       budgetId,
       transactionDate: formatLocalDate(new Date()),
     });
-    const reason = await this.store.addTransaction(transactionCreate);
-    if (reason) {
-      this.#notify(reason);
+    const outcome = await this.store.addTransaction(transactionCreate);
+    if ('reason' in outcome) {
+      this.#notify(outcome.reason);
       return;
     }
-    // Recording a transaction is what this page is for, and it was the one
-    // action here that said nothing when it worked — while checking a box, one
-    // method above, gets its line named, six seconds and an undo. The sheet
-    // closes and on a phone the figures that moved are a screenful above, so
-    // without this the user has no evidence the money was written down.
-    this.#notify(
-      this.#transloco.translate('currentMonth.transactionAdded', {
-        name: transactionCreate.name,
-      }),
+    this.#confirmTransactionWithUndo(
+      outcome.transactionId,
+      transactionCreate.name,
     );
+  }
+
+  // Recording a transaction is what this page is for, and it was the one action
+  // here with no way back: a mistyped amount had to be hunted down in another
+  // page to be removed, while checking a box — one method above — has always
+  // offered six seconds and an undo. The sheet closes over the write and on a
+  // phone the figures it moved are a screenful up, so the toast is also the
+  // only evidence the money was written down at all.
+  #confirmTransactionWithUndo(transactionId: string, name: string): void {
+    const ref = this.#snackBar.open(
+      this.#transloco.translate('currentMonth.transactionAdded', { name }),
+      this.#transloco.translate('common.undo'),
+      { duration: UNDO_WINDOW_MS, politeness: 'polite' },
+    );
+    ref.onAction().subscribe(() => void this.#undoTransaction(transactionId));
+  }
+
+  async #undoTransaction(transactionId: string): Promise<void> {
+    const refusal = await this.store.deleteTransaction(transactionId);
+    if (refusal) this.#notify(refusal);
   }
 }
