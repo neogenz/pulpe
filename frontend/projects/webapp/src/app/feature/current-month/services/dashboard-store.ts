@@ -149,6 +149,13 @@ export class DashboardStore {
   // thing only: the dashboard could not be fetched. A refused mutation travels
   // back through its own return value — see `addTransaction`.
   readonly error = computed(() => this.#dashboardResource.error());
+  // Separate from `error` on purpose: history feeds two charts and nothing else,
+  // so its failure must not blank a page whose main figures loaded fine. It has
+  // to be readable somewhere, though — `historyData()` and `upcomingBudgetsData()`
+  // both collapse a failed fetch to `[]`, and both charts read `[]` as "you have
+  // no budgets yet". Three months of history became a tidy sentence saying the
+  // user had none.
+  readonly historyError = computed(() => this.#historyResource.error());
   readonly status = computed(() => {
     const resourceStatus = this.#dashboardResource.status();
     if (resourceStatus === 'loading' && this.dashboardData()) {

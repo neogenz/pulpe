@@ -12,6 +12,7 @@ import {
 import { DOCUMENT } from '@angular/common';
 import { AmountsVisibilityService } from '@core/amounts-visibility/amounts-visibility.service';
 import { UserSettingsStore } from '@core/user-settings';
+import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoService, TranslocoPipe } from '@jsverse/transloco';
@@ -32,7 +33,13 @@ import {
 
 @Component({
   selector: 'pulpe-dashboard-future-projection-chart',
-  imports: [MatIconModule, MatTooltipModule, BaseChartDirective, TranslocoPipe],
+  imports: [
+    MatButtonModule,
+    MatIconModule,
+    MatTooltipModule,
+    BaseChartDirective,
+    TranslocoPipe,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col h-full w-full">
@@ -103,6 +110,37 @@ import {
               </span>
             </button>
           }
+        } @else if (hasError()) {
+          <!-- Both this card and the history chart below read the same failed
+               request as an empty list, so one dropped connection used to
+               produce two calm sentences telling the user he had planned
+               nothing — and "Crée tes prochains budgets" invited him to
+               recreate months that already exist. -->
+          <div
+            class="flex flex-col items-center justify-center text-center h-full gap-2 p-6"
+          >
+            <div
+              class="w-16 h-16 rounded-full bg-error-container text-on-error-container flex items-center justify-center mb-2"
+            >
+              <mat-icon class="scale-150 flex! shrink-0!" aria-hidden="true"
+                >cloud_off</mat-icon
+              >
+            </div>
+            <h3 class="text-title-medium font-medium text-on-surface-variant">
+              {{ 'currentMonth.projectionErrorTitle' | transloco }}
+            </h3>
+            <p class="text-body-medium text-on-surface-variant">
+              {{ 'currentMonth.projectionErrorMessage' | transloco }}
+            </p>
+            <button
+              matButton="outlined"
+              class="mt-2"
+              data-testid="projection-chart-retry"
+              (click)="retry.emit()"
+            >
+              {{ 'common.retry' | transloco }}
+            </button>
+          </div>
         } @else {
           <div
             class="flex flex-col items-center justify-center text-center h-full gap-2 p-6"
@@ -139,7 +177,9 @@ export class DashboardFutureProjectionChart {
   readonly #transloco = inject(TranslocoService);
   readonly #userSettings = inject(UserSettingsStore);
   readonly forecasts = input.required<UpcomingMonthForecast[]>();
+  readonly hasError = input(false);
   readonly createMissingBudgets = output<void>();
+  readonly retry = output<void>();
 
   readonly #projectionBalanceLabel = this.#transloco.translate(
     'currentMonth.projectionBalanceLabel',

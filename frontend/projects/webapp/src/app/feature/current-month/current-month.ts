@@ -174,7 +174,9 @@ const UNDO_WINDOW_MS = 6000;
           @defer (on viewport; prefetch on idle) {
             <pulpe-dashboard-future-projection-chart
               [forecasts]="store.upcomingBudgetsData()"
+              [hasError]="store.historyError() !== undefined"
               (createMissingBudgets)="navigateToBudgetList()"
+              (retry)="store.refreshData()"
               data-testid="dashboard-block-projection"
             />
           } @placeholder {
@@ -220,6 +222,8 @@ const UNDO_WINDOW_MS = 6000;
           @defer (on viewport; prefetch on idle) {
             <pulpe-dashboard-history-chart
               [history]="store.historyData()"
+              [hasError]="store.historyError() !== undefined"
+              (retry)="store.refreshData()"
               data-testid="dashboard-block-history"
             />
           } @placeholder {

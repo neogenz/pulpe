@@ -83,6 +83,26 @@ describe('DashboardHistoryChart', () => {
     expect(component.hasData()).toBe(false);
   });
 
+  // A failed history fetch reaches this component as the same empty array a
+  // brand-new account produces, so the card told a user with six months of
+  // history that he had none — and offered nothing to retry.
+  it('should offer a retry instead of the empty message when loading failed', () => {
+    setTestInput(component.hasError, true);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).not.toContain(
+      "Pas encore d'historique",
+    );
+    expect(fixture.nativeElement.textContent).toContain(
+      'Historique indisponible',
+    );
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="history-chart-retry"]',
+      ),
+    ).toBeTruthy();
+  });
+
   it('should report hasData true when history has entries', () => {
     setTestInput(component.history, mockHistoryData);
     fixture.detectChanges();
