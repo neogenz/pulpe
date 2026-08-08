@@ -169,7 +169,7 @@ describe('DashboardHero', () => {
 
       const compiled = fixture.nativeElement as HTMLElement;
       expect(compiled.textContent).toContain('Disponible');
-      expect(compiled.textContent).toContain('Report');
+      expect(compiled.textContent).toContain('report du mois dernier');
     });
 
     it('should hide rollover when rolloverAmount is 0', () => {
@@ -180,7 +180,7 @@ describe('DashboardHero', () => {
 
       const compiled = fixture.nativeElement as HTMLElement;
       expect(compiled.textContent).toContain('Disponible');
-      expect(compiled.textContent).not.toContain('Report');
+      expect(compiled.textContent).not.toContain('report du mois dernier');
     });
 
     it('should show negative rollover with minus sign attached to number', () => {
@@ -191,9 +191,9 @@ describe('DashboardHero', () => {
 
       const compiled = fixture.nativeElement as HTMLElement;
       const text = compiled.textContent!;
-      expect(text).toContain('Report du mois dernier');
-      expect(text).not.toContain('- Report');
-      expect(text).toMatch(/Report du mois dernier\s*[−-]500/);
+      expect(text).toContain('report du mois dernier');
+      expect(text).not.toContain('- report');
+      expect(text).toMatch(/report du mois dernier\s*[−-]500/);
     });
 
     it('should show positive rollover with plus sign', () => {
@@ -204,7 +204,7 @@ describe('DashboardHero', () => {
 
       const compiled = fixture.nativeElement as HTMLElement;
       const text = compiled.textContent!;
-      expect(text).toMatch(/Report du mois dernier\s*\+/);
+      expect(text).toMatch(/report du mois dernier\s*\+/);
     });
   });
 

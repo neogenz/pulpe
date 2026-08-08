@@ -172,7 +172,14 @@ export class DashboardSavingsSummary {
     () => this.totalPlanned() > 0 || this.totalRealized() > 0,
   );
 
+  // The amounts, not the rounded percentage: 995 of 1'000 rounds to 100 and used
+  // to swap the card to "Tu peux souffler" — a state that prints neither figure,
+  // so the 5 CHF still owed became unreachable from the card that owed it.
+  // The plan has to exist before it can be met: with nothing planned, any
+  // amount clears `>= 0` and a month that saved 500 against no target would
+  // report itself finished.
   protected readonly isComplete = computed(
-    () => this.hasSavings() && this.progressPercentage() === 100,
+    () =>
+      this.totalPlanned() > 0 && this.totalRealized() >= this.totalPlanned(),
   );
 }

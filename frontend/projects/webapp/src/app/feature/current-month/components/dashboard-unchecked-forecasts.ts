@@ -218,19 +218,43 @@ interface AnimatingForecast {
             class="p-8 flex flex-col items-center justify-center text-center h-full outline-none"
             data-testid="dashboard-forecasts-empty-state"
           >
-            <div
-              class="w-16 h-16 rounded-full bg-financial-income/10 text-financial-income flex items-center justify-center mb-4"
-            >
-              <mat-icon class="scale-150" aria-hidden="true">done_all</mat-icon>
-            </div>
-            <h3 class="text-title-medium font-medium text-on-surface-variant">
-              {{ 'dashboard.allUpToDate' | transloco }}
-            </h3>
-            <p class="text-body-medium text-on-surface-variant">
-              {{
-                'currentMonth.uncheckedForecasts.allCheckedMessage' | transloco
-              }}
-            </p>
+            <!-- The subtitle above already refuses to say "0 sur 0 pointées";
+                 this branch was still congratulating the same month for
+                 finishing work that never existed. Reachable on a first budget
+                 built from an empty template, and on any month whose lines all
+                 come from savings goals — those are filtered out upstream. -->
+            @if (totalCount() > 0) {
+              <div
+                class="w-16 h-16 rounded-full bg-financial-income/10 text-financial-income flex items-center justify-center mb-4"
+              >
+                <mat-icon class="scale-150" aria-hidden="true"
+                  >done_all</mat-icon
+                >
+              </div>
+              <h3 class="text-title-medium font-medium text-on-surface-variant">
+                {{ 'dashboard.allUpToDate' | transloco }}
+              </h3>
+              <p class="text-body-medium text-on-surface-variant">
+                {{
+                  'currentMonth.uncheckedForecasts.allCheckedMessage'
+                    | transloco
+                }}
+              </p>
+            } @else {
+              <div
+                class="w-16 h-16 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center mb-4"
+              >
+                <mat-icon class="scale-150" aria-hidden="true"
+                  >event_note</mat-icon
+                >
+              </div>
+              <h3 class="text-title-medium font-medium text-on-surface-variant">
+                {{ 'currentMonth.uncheckedForecasts.noneTitle' | transloco }}
+              </h3>
+              <p class="text-body-medium text-on-surface-variant">
+                {{ 'currentMonth.uncheckedForecasts.noneMessage' | transloco }}
+              </p>
+            }
           </div>
         }
       </div>

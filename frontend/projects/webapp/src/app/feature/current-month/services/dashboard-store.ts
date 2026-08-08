@@ -283,19 +283,25 @@ export class DashboardStore {
       .reduce((sum, tx) => sum + tx.amount, 0),
   );
 
+  readonly #realizedSpending = computed<number>(
+    () => this.realizedExpenses() - this.totalSavingsRealized(),
+  );
+
   readonly #realizedSpendingPercentage = computed(() => {
     const available = this.totalAvailable();
-    const spending =
-      this.realizedExpenses() -
-      this.totalSavingsRealized() -
-      this.#freeSavingsRealized();
+    const spending = this.#realizedSpending();
     if (available <= 0) return spending > 0 ? 100 : 0;
     const percentage = (spending / available) * 100;
     return Math.round(Math.min(Math.max(0, percentage), 100));
   });
 
   readonly paceStatus = computed<'on-track' | 'tight' | 'unknown'>(() => {
-    if (this.realizedExpenses() === 0) return 'unknown';
+    // The gate reads the same quantity as the verdict. Reading `realizedExpenses`
+    // here while the numerator below subtracted every franc of savings let a
+    // month whose only activity was a transfer pass as evidence and then score
+    // zero against it: the card said "Ton rythme tient." from a spending ledger
+    // that was empty, which is the exact claim the comment above forbids.
+    if (this.#realizedSpending() === 0) return 'unknown';
     const realized = this.#realizedSpendingPercentage();
     const elapsed = this.timeElapsedPercentage();
     const tolerance =
@@ -426,19 +432,45 @@ export class DashboardStore {
   // "Tu as mis de côté 0 CHF sur 500 prévus" three blocks below it, on one
   // screen. `calculateRealizedSavings` is the savings twin of the formula the
   // hero now uses — same envelope reading, filtered strictly to `saving`.
-  readonly totalSavingsRealized = computed<number>(() =>
-    BudgetFormulas.calculateRealizedSavings(
-      this.budgetLines(),
-      this.transactions(),
-    ),
+  // Goal progress plus the savings this page's own FAB records. A transfer
+  // added here carries no budgetLineId, and `calculateRealizedSavings` skips
+  // free transactions on purpose so an unlinked saving cannot contaminate a
+  // goal's confirmed total — correct for a goal, wrong for a card titled
+  // "Épargne du mois" whose sentence is "Tu as mis de côté". Without the second
+  // term the card answered 0 for money the user had just put aside on this very
+  // screen. The pace numerator reads this sum, so the franc is counted once.
+  readonly totalSavingsRealized = computed<number>(
+    () =>
+      BudgetFormulas.calculateRealizedSavings(
+        this.budgetLines(),
+        this.transactions(),
+      ) + this.#freeSavingsRealized(),
   );
 
-  readonly savingsCheckedCount = computed<number>(
-    () =>
-      this.budgetLines().filter(
-        (line) => line.kind === 'saving' && line.checkedAt !== null,
-      ).length,
-  );
+  // Counted the way the amount beside it is counted. This filtered on
+  // `line.checkedAt` alone while `calculateRealizedSavings` also credits an
+  // unpointed line's checked transactions, so one card printed "0 sur 1 mises
+  // de côté" directly above "Tu as mis de côté 400 CHF sur 1'000 prévus". A
+  // line has met its plan when it is pointed or when what it consumed covers
+  // it — the same two branches the formula uses.
+  readonly savingsCheckedCount = computed<number>(() => {
+    const consumedByLine = new Map<string, number>();
+    for (const tx of this.transactions()) {
+      if (tx.kind !== 'saving' || tx.checkedAt == null || !tx.budgetLineId) {
+        continue;
+      }
+      consumedByLine.set(
+        tx.budgetLineId,
+        (consumedByLine.get(tx.budgetLineId) ?? 0) + tx.amount,
+      );
+    }
+    return this.budgetLines().filter(
+      (line) =>
+        line.kind === 'saving' &&
+        (line.checkedAt !== null ||
+          (consumedByLine.get(line.id) ?? 0) >= line.amount),
+    ).length;
+  });
 
   readonly savingsTotalCount = computed<number>(
     () => this.budgetLines().filter((line) => line.kind === 'saving').length,

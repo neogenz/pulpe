@@ -979,7 +979,7 @@ describe('DashboardStore - Business Scenarios', () => {
     // calculateRealizedExpenses sees it, via isOutflowKind — so subtracting
     // goal progress alone left the whole 1'500 in the numerator and the card
     // said "tu dépenses plus vite que le mois ne passe" over money set aside.
-    it('should not call the pace tight for savings recorded as a free transaction', async () => {
+    it('should draw no pace verdict from savings recorded as a free transaction', async () => {
       const budget = createMockBudget({ rollover: 0 });
       const lines = [
         createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 5000 }),
@@ -1002,8 +1002,13 @@ describe('DashboardStore - Business Scenarios', () => {
         new Date('2025-06-02T12:00:00Z'),
       );
 
+      // The money is out, so it belongs in what has gone out — but the pace
+      // verdict speaks about spending, and nothing has been spent. Neither
+      // "tu dépenses trop vite" nor "ton rythme tient" is a claim this ledger
+      // supports; the card asks for the transaction that would make one.
       expect(store.realizedExpenses()).toBe(1500);
-      expect(store.paceStatus()).toBe('on-track');
+      expect(store.totalSavingsRealized()).toBe(1500);
+      expect(store.paceStatus()).toBe('unknown');
     });
 
     // What the user reported: 17 of 18 prévisions pointed, and the card said

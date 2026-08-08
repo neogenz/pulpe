@@ -86,7 +86,23 @@ describe('DashboardUncheckedForecasts', () => {
     );
   });
 
-  it('should display the empty state message when there are no forecasts', () => {
+  it('should not congratulate a month that had nothing to point', () => {
+    fixture.detectChanges();
+
+    const messageEl = fixture.debugElement.query(
+      By.css('[data-testid="dashboard-forecasts-empty-state"]'),
+    );
+    expect(messageEl).toBeTruthy();
+    expect(messageEl.nativeElement.textContent).toContain(
+      'Aucune prévision ce mois',
+    );
+    expect(messageEl.nativeElement.textContent).not.toContain(
+      'Tout est à jour !',
+    );
+  });
+
+  it('should display the reward once every forecast has been pointed', () => {
+    setTestInput(component.totalCount, 3);
     fixture.detectChanges();
 
     const messageEl = fixture.debugElement.query(

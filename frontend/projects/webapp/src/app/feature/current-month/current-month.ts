@@ -364,6 +364,28 @@ export const UNDO_WINDOW_MS = 6000;
       display: none;
     }
 
+    /* The gate to four of the page's seven blocks, and at rest it was a heading
+       with a decorative chevron on the page background — no border, no surface,
+       nothing that answered a pointer. The chart card two files over had the
+       same problem and the same fix. */
+    @media (hover: hover) {
+      .outlook-summary:hover {
+        background: color-mix(
+          in srgb,
+          var(--mat-sys-on-surface) 8%,
+          transparent
+        );
+      }
+    }
+
+    .outlook-summary:active {
+      background: color-mix(
+        in srgb,
+        var(--mat-sys-on-surface) 12%,
+        transparent
+      );
+    }
+
     .outlook-summary:focus-visible {
       outline: 3px solid var(--mat-sys-primary);
       outline-offset: 2px;
