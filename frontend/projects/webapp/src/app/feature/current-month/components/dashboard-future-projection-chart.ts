@@ -45,7 +45,7 @@ import {
     <div class="flex flex-col h-full w-full">
       <div class="flex items-center gap-3 mb-6">
         <div
-          class="w-10 h-10 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center shrink-0"
+          class="w-10 h-10 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center shrink-0"
         >
           <mat-icon aria-hidden="true">trending_up</mat-icon>
         </div>
@@ -152,7 +152,7 @@ import {
             class="flex flex-col items-center justify-center text-center h-full gap-2 p-6"
           >
             <div
-              class="w-16 h-16 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center mb-2"
+              class="w-16 h-16 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center mb-2"
             >
               <mat-icon class="scale-150 flex! shrink-0!" aria-hidden="true"
                 >show_chart</mat-icon

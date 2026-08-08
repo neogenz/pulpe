@@ -257,9 +257,24 @@ export class DashboardStore {
   // longer the user stayed away. A verdict drawn from an empty ledger is not a
   // verdict; the card now says so and asks for the transaction that would make
   // one possible.
+  // Savings leave the account, so they belong in what has gone out and in the
+  // bar. They do not belong in this verdict, which says "tu dépenses plus vite
+  // que le mois ne passe": a user who funds their savings on the 3rd has not
+  // spent anything, and telling them otherwise charges them for the one habit
+  // the product exists to build. Point a 1'500 savings line early against a
+  // 5'000 month and the old numerator read 30% against 10% elapsed — amber, on
+  // the strength of money the user deliberately put aside.
+  readonly #realizedSpendingPercentage = computed(() => {
+    const available = this.totalAvailable();
+    const spending = this.realizedExpenses() - this.totalSavingsRealized();
+    if (available <= 0) return spending > 0 ? 100 : 0;
+    const percentage = (spending / available) * 100;
+    return Math.round(Math.min(Math.max(0, percentage), 100));
+  });
+
   readonly paceStatus = computed<'on-track' | 'tight' | 'unknown'>(() => {
     if (this.realizedExpenses() === 0) return 'unknown';
-    const realized = this.realizedPercentage();
+    const realized = this.#realizedSpendingPercentage();
     const elapsed = this.timeElapsedPercentage();
     const tolerance =
       PACE_TOLERANCE_FLOOR_PERCENT +

@@ -1332,7 +1332,8 @@
   "dashboard": {
     "available": "Disponible",
     "availableToSpend": "Disponible à dépenser",
-    "spent": "Dépensé",
+    "missingToCover": "Il manque pour couvrir ton plan",
+    "spent": "Déjà sorti",
     "engaged": "Engagé",
     "engagedHint": "Engagé : ce que tes prévisions réservent et que tu n'as pas encore dépensé.",
     "status": {

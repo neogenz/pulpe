@@ -39,7 +39,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
       <div class="mb-4 px-1 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div
-            class="w-10 h-10 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center shrink-0"
+            class="w-10 h-10 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center shrink-0"
           >
             <mat-icon aria-hidden="true">receipt_long</mat-icon>
           </div>
@@ -152,7 +152,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
             class="p-8 flex flex-col items-center justify-center text-center h-full"
           >
             <div
-              class="w-16 h-16 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center mb-4"
+              class="w-16 h-16 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center mb-4"
             >
               <mat-icon class="scale-150 flex! shrink-0!" aria-hidden="true"
                 >receipt_long</mat-icon

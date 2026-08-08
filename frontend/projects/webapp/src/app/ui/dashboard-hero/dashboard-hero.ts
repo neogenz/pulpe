@@ -124,13 +124,22 @@ let heroInstanceCount = 0;
              and hung there right-aligned under two left-aligned keys. Here the
              whole caption measures 207px, and "disponible sur 4'800" is one
              sentence rather than a key and an orphan. -->
+        <!-- The caption follows the sign. Below zero this number is not
+             something to spend, it is the gap between the plan and the month,
+             and calling it "disponible à dépenser" invited the reader to spend
+             a shortfall. The ceiling goes with it: "sur 5'000" reads as the
+             budget the figure comes out of, which a shortfall does not. -->
         <p class="text-body-small mt-1.5">
-          {{ 'dashboard.availableToSpend' | transloco }}
-          <span class="tabular-nums ph-no-capture">
-            {{ 'dashboard.on' | transloco }}
-            {{ available() | number: '1.0-0' : locale() }}
-            {{ currencySymbol() }}
-          </span>
+          @if (isPlanOverAvailable()) {
+            {{ 'dashboard.missingToCover' | transloco }}
+          } @else {
+            {{ 'dashboard.availableToSpend' | transloco }}
+            <span class="tabular-nums ph-no-capture">
+              {{ 'dashboard.on' | transloco }}
+              {{ available() | number: '1.0-0' : locale() }}
+              {{ currencySymbol() }}
+            </span>
+          }
           @let rollover = rolloverAmount();
           @if (rollover !== 0) {
             <span class="ph-no-capture">
@@ -213,21 +222,28 @@ let heroInstanceCount = 0;
               <span class="sr-only">{{ currency() }}</span>
             </b>
           </span>
-          <span class="progress-legend-item">
-            <span class="progress-legend-swatch swatch-engaged"></span>
-            {{ 'dashboard.engaged' | transloco }}
-            <b class="progress-legend-amount ph-no-capture">
-              <!-- hero-engaged-amount, not hero-expenses-amount: this key
+          <!-- Gated like the key below it, and for the same reason: a swatch
+               pointing at a segment the bar did not draw reads as the track.
+               The shares are rounded integers and the amounts are exact, so
+               the two disagree in both directions — a month fully pointed
+               leaves this key printing "Engagé 0" beside nothing at all. -->
+          @if (engagedShare() > 0) {
+            <span class="progress-legend-item">
+              <span class="progress-legend-swatch swatch-engaged"></span>
+              {{ 'dashboard.engaged' | transloco }}
+              <b class="progress-legend-amount ph-no-capture">
+                <!-- hero-engaged-amount, not hero-expenses-amount: this key
                    carries the share still committed and not yet spent, which
                    is total expenses MINUS what the key beside it shows. Under
                    the old name eight end-to-end assertions read it as the
                    total and compared it against a number it stopped holding. -->
-              <span data-testid="hero-engaged-amount">{{
-                engagedNotSpent() | number: '1.0-0' : locale()
-              }}</span>
-              <span class="sr-only">{{ currency() }}</span>
-            </b>
-          </span>
+                <span data-testid="hero-engaged-amount">{{
+                  engagedNotSpent() | number: '1.0-0' : locale()
+                }}</span>
+                <span class="sr-only">{{ currency() }}</span>
+              </b>
+            </span>
+          }
           <!-- The outlined pill was the one segment left unnamed, on the
                theory that the card already prints its amount at 57px. It
                doesn't read that way: an outline with no key looks like the

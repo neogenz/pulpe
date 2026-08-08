@@ -4,7 +4,7 @@ import {
   Component,
   computed,
   DestroyRef,
-  type ElementRef,
+  ElementRef,
   inject,
   Injector,
   input,
@@ -55,7 +55,7 @@ interface AnimatingForecast {
       <div class="mb-4 px-1 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div
-            class="w-10 h-10 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center shrink-0"
+            class="w-10 h-10 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center shrink-0"
           >
             <mat-icon aria-hidden="true">checklist</mat-icon>
           </div>
@@ -72,24 +72,30 @@ interface AnimatingForecast {
                  line that can least afford the space: "0 sur 12 pointées"
                  restates the list below it. The definition takes that slot
                  until the first check proves it landed, then gets out of the
-                 way rather than becoming permanent furniture. A month with
-                 nothing pointable at all is the case where it never could:
-                 checkedCount stays 0 forever, so the definition of a verb with
-                 nothing to apply it to would have sat above "Tout est à jour". -->
-            <p
-              class="text-body-small text-on-surface-variant font-medium mt-0.5"
-              data-testid="dashboard-forecasts-subtitle"
-            >
-              @if (checkedCount() === 0 && totalCount() > 0) {
-                {{ 'currentMonth.uncheckedForecasts.pointerHint' | transloco }}
-              } @else {
-                {{
-                  'currentMonth.uncheckedForecasts.count'
-                    | transloco
-                      : { checked: checkedCount(), total: totalCount() }
-                }}
-              }
-            </p>
+                 way rather than becoming permanent furniture.
+                 A month holding nothing pointable gets neither: the count fell
+                 through to "0 sur 0 pointées" and sat above "Tout est à jour",
+                 congratulating the user for finishing work that never existed.
+                 A month funded entirely from savings goals reaches this, since
+                 those lines are filtered out upstream. -->
+            @if (totalCount() > 0) {
+              <p
+                class="text-body-small text-on-surface-variant font-medium mt-0.5"
+                data-testid="dashboard-forecasts-subtitle"
+              >
+                @if (checkedCount() === 0) {
+                  {{
+                    'currentMonth.uncheckedForecasts.pointerHint' | transloco
+                  }}
+                } @else {
+                  {{
+                    'currentMonth.uncheckedForecasts.count'
+                      | transloco
+                        : { checked: checkedCount(), total: totalCount() }
+                  }}
+                }
+              </p>
+            }
           </div>
         </div>
         <!-- Unconditional, like the twin block beside it. Hiding the way out
@@ -282,6 +288,7 @@ export class DashboardUncheckedForecasts {
 
   readonly #destroyRef = inject(DestroyRef);
   readonly #injector = inject(Injector);
+  readonly #host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   // NG1053 forbids ES-private on view queries.
   private readonly toggleButtons =
@@ -429,9 +436,26 @@ export class DashboardUncheckedForecasts {
     element.scrollIntoView({ block: 'nearest' });
   }
 
+  // Only take focus back if this card still holds it. The row leaves up to
+  // 600ms after the tap, and the page's primary action is a fixed FAB one tap
+  // away: open the sheet inside that window and the amount field takes focus,
+  // the numeric keyboard opens, then this fired and threw focus onto a button
+  // behind the dialog. The CDK marks background siblings `aria-hidden` rather
+  // than `inert`, so they stay focusable and a screen reader lands on a node
+  // inside a hidden subtree.
+  #stillOwnsFocus(): boolean {
+    const active = document.activeElement;
+    return (
+      active === document.body ||
+      active === null ||
+      this.#host.nativeElement.contains(active)
+    );
+  }
+
   #restoreFocusAt(vacatedIndex: number): void {
     afterNextRender(
       () => {
+        if (!this.#stillOwnsFocus()) return;
         const buttons = this.toggleButtons();
         if (buttons.length === 0) {
           const empty = this.emptyState()?.nativeElement;

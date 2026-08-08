@@ -284,6 +284,22 @@ describe('DashboardUncheckedForecasts', () => {
     expect(amountEl.nativeElement.textContent).not.toMatch(/[.,]00\b/);
   });
 
+  // A month funded entirely from savings goals has nothing pointable, and the
+  // subtitle fell through to the count: "0 sur 0 pointées", sitting above "Tout
+  // est à jour", congratulating the user for work that never existed.
+  it('should say nothing about progress when the month holds nothing pointable', () => {
+    setTestInput(component.forecasts, []);
+    setTestInput(component.totalCount, 0);
+    fixture.detectChanges();
+
+    expect(
+      fixture.debugElement.query(
+        By.css('[data-testid="dashboard-forecasts-subtitle"]'),
+      ),
+    ).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('0 sur 0');
+  });
+
   // `consumption.remaining` is `amount - consumed` with nothing clamping it, so
   // an over-allocated envelope rendered "−50 CHF" in expense amber and had the
   // toggle announce "Pointer Courses — -50 CHF". A negative expense is not a

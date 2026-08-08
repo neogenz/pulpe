@@ -1014,6 +1014,43 @@ describe('DashboardStore - Business Scenarios', () => {
       expect(store.realizedExpenses()).toBe(1554);
     });
 
+    // Savings leave the account, so they count in what has gone out and in the
+    // bar. They must not count in a verdict that says "tu dépenses plus vite
+    // que le mois ne passe": funding an objective on the 3rd is not spending,
+    // and the card turned amber for the one habit the product exists to build.
+    it('should not call the pace tight for savings funded early', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const lines = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 5000 }),
+        createMockBudgetLine({ id: 'exp-1', kind: 'expense', amount: 3000 }),
+        createMockBudgetLine({
+          id: 'goal',
+          kind: 'saving',
+          amount: 1500,
+          checkedAt: '2025-06-03T00:00:00Z',
+        }),
+      ];
+      // 1500 of savings put aside, 500 of real spending: 10% of the month
+      // against ~16% elapsed. With the savings in the numerator it was 40%.
+      const transactions = [
+        createMockTransaction({
+          id: 'tx-1',
+          kind: 'expense',
+          amount: 500,
+          checkedAt: '2025-06-05T00:00:00Z',
+        }),
+      ];
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        transactions,
+        new Date('2025-06-05T12:00:00Z'),
+      );
+
+      expect(store.realizedExpenses()).toBe(2000);
+      expect(store.paceStatus()).toBe('on-track');
+    });
+
     // The savings card summed checked saving lines and never looked at a
     // transaction, so recording the transfer without pointing the line put
     // "Dépensé 500" in the hero legend and "Tu as mis de côté 0 CHF sur 500

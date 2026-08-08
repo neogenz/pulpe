@@ -245,6 +245,10 @@ describe('DashboardHero', () => {
       const compiled = fixture.nativeElement as HTMLElement;
       expect(compiled.textContent).toContain('plus que ce que le mois');
       expect(compiled.textContent).not.toContain('presque');
+      // The caption follows the sign, and takes the ceiling with it: a
+      // shortfall does not come out of a budget of 4'000.
+      expect(compiled.textContent).toContain('Il manque');
+      expect(compiled.textContent).not.toContain('Disponible à dépenser');
     });
 
     it('should say the month went over once spending passed what came in', () => {
