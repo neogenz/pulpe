@@ -155,18 +155,22 @@ const FULL_BAR_PERCENT = 100;
              drops a key under a key instead of stranding a lone right-aligned
              total. -->
         <div class="progress-legend">
-          <!-- Gated on the same condition as the pill it stands for: a key
-               for a segment the bar never drew is a swatch pointing at
-               nothing. -->
-          @if (spentShare() > 0) {
-            <span class="progress-legend-item">
-              <span class="progress-legend-swatch swatch-realized"></span>
-              {{ 'dashboard.spent' | transloco }}
-              <b class="progress-legend-amount ph-no-capture">
-                {{ realizedExpenses() | number: '1.0-0' : locale() }}
-              </b>
-            </span>
-          }
+          <!-- Ungated, unlike the two below, and it used to share their rule:
+               a key for a segment the bar never drew is a swatch pointing at
+               nothing. But this is the one figure the verdict above is drawn
+               from — it compares what has gone out against how much of the
+               month has. Hiding it at zero hid the evidence exactly when it
+               was good news, so the card asserted "Ton rythme tient." with
+               nothing on screen to check it against, while the aria-label
+               spelled out "0% du budget dépensé" to the screen reader. A zero
+               here is the reason for the verdict, not the absence of one. -->
+          <span class="progress-legend-item">
+            <span class="progress-legend-swatch swatch-realized"></span>
+            {{ 'dashboard.spent' | transloco }}
+            <b class="progress-legend-amount ph-no-capture">
+              {{ realizedExpenses() | number: '1.0-0' : locale() }}
+            </b>
+          </span>
           <span class="progress-legend-item">
             <span class="progress-legend-swatch swatch-engaged"></span>
             {{ 'dashboard.engaged' | transloco }}

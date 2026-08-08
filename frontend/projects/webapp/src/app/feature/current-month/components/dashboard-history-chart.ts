@@ -26,6 +26,7 @@ import {
   formatShortMonth,
   formatCurrency,
   CHART_FONT_FAMILY,
+  resolveChartAnimation,
 } from '@core/chart/chart-theme';
 
 @Component({
@@ -270,6 +271,7 @@ export class DashboardHistoryChart {
     return {
       responsive: true,
       maintainAspectRatio: false,
+      animation: resolveChartAnimation(),
       plugins: {
         legend: {
           display: true,

@@ -50,6 +50,20 @@ export function registerChartPlugins(): void {
 
 export const CHART_FONT_FAMILY = 'DM Sans, sans-serif';
 
+// Chart.js runs a 1000ms draw by default, and the two dashboard charts were the
+// only motion in the app that ignored the system preference — everything else
+// goes through `motion-safe:` or its own reduce block. Asked per build rather
+// than resolved once at module load: the charts sit behind `@defer (on
+// viewport)`, so the preference can change before the first one is ever
+// created. `undefined` leaves Chart.js on its own default, and the optional
+// call guards jsdom, which ships no `matchMedia`.
+export function resolveChartAnimation(): false | undefined {
+  if (typeof window === 'undefined') return undefined;
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    ? false
+    : undefined;
+}
+
 export function resolveColor(cssValue: string, doc: Document): string {
   const el = doc.createElement('div');
   el.style.color = cssValue;

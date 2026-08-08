@@ -7,6 +7,7 @@ import {
   formatShortMonth,
   formatCurrency,
   CHART_FONT_FAMILY,
+  resolveChartAnimation,
 } from '@core/chart/chart-theme';
 
 const AXIS_ABBREVIATION_THRESHOLD = 1000;
@@ -23,6 +24,7 @@ export function buildProjectionChartOptions(
   return {
     responsive: true,
     maintainAspectRatio: false,
+    animation: resolveChartAnimation(),
     elements: {
       line: {
         tension: 0.4,

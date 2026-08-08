@@ -386,17 +386,30 @@ export class DashboardUncheckedForecasts {
   // whichever toggle now occupies that slot. A programmatic `focus()` only
   // matches `:focus-visible` when the last interaction was a key press, so a
   // mouse user inherits the tab position without inheriting a ring.
+  //
+  // What that reasoning missed is the scroll: a bare `focus()` also brings its
+  // target into view, and it did so for the mouse and touch user this was meant
+  // to be invisible to. Pointing a line from the top of the page threw the
+  // reader 290px down it — on the action this page invites most often. So the
+  // scroll is asked for separately, and `block: 'nearest'` makes it the no-op
+  // it should be whenever the slot is already on screen.
+  #focusWithoutScrolling(element: HTMLElement): void {
+    element.focus({ preventScroll: true });
+    element.scrollIntoView({ block: 'nearest' });
+  }
+
   #restoreFocusAt(vacatedIndex: number): void {
     afterNextRender(
       () => {
         const buttons = this.toggleButtons();
         if (buttons.length === 0) {
-          this.emptyState()?.nativeElement.focus();
+          const empty = this.emptyState()?.nativeElement;
+          if (empty) this.#focusWithoutScrolling(empty);
           return;
         }
-        buttons[
-          Math.min(vacatedIndex, buttons.length - 1)
-        ]?.nativeElement.focus();
+        const next =
+          buttons[Math.min(vacatedIndex, buttons.length - 1)]?.nativeElement;
+        if (next) this.#focusWithoutScrolling(next);
       },
       { injector: this.#injector },
     );

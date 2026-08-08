@@ -49,7 +49,18 @@ import {
 
       <pulpe-add-transaction-form #form (created)="onCreated($event)" />
 
-      <div class="flex gap-3 pt-4 border-t border-outline-variant">
+      <!-- Pinned, because the sheet is taller than a phone: the submit button's
+           top edge measured one pixel below the fold on a 812px viewport, and
+           the amount field autofocuses, so the keyboard then pushed it a few
+           hundred more. The step that commits the money was reachable only by
+           guessing the sheet scrolls, which it gives no sign of doing. The
+           background matches the sheet's own surface-container-low so the
+           form passes under the bar instead of through it; the existing top
+           rule doubles as the scroll edge. Desktop uses the dialog, which is
+           short enough that this changes nothing there. -->
+      <div
+        class="sticky bottom-0 flex gap-3 pt-4 pb-2 -mb-2 border-t border-outline-variant bg-surface-container-low"
+      >
         <button
           matButton
           (click)="close()"
