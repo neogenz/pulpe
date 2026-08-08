@@ -102,7 +102,7 @@ describe('DashboardUncheckedForecasts', () => {
 
     // Click the radio button
     const radioButton = fixture.debugElement.query(
-      By.css('button[aria-label]'),
+      By.css('[data-testid="dashboard-forecasts-toggle"]'),
     );
     radioButton.nativeElement.click();
 
@@ -129,7 +129,7 @@ describe('DashboardUncheckedForecasts', () => {
     fixture.detectChanges();
 
     const radioButton = fixture.debugElement.query(
-      By.css('button[aria-label]'),
+      By.css('[data-testid="dashboard-forecasts-toggle"]'),
     );
     const icon = radioButton.query(By.css('mat-icon'));
     expect(icon.nativeElement.textContent.trim()).toBe(
@@ -142,7 +142,7 @@ describe('DashboardUncheckedForecasts', () => {
     fixture.detectChanges();
 
     const radioButton = fixture.debugElement.query(
-      By.css('button[aria-label]'),
+      By.css('[data-testid="dashboard-forecasts-toggle"]'),
     );
     radioButton.nativeElement.click();
     fixture.detectChanges();
@@ -160,7 +160,7 @@ describe('DashboardUncheckedForecasts', () => {
     // Click the radio — emit fires; in real flow the parent removes the
     // forecast from the input. Simulate that here.
     const radioButton = fixture.debugElement.query(
-      By.css('button[aria-label]'),
+      By.css('[data-testid="dashboard-forecasts-toggle"]'),
     );
     radioButton.nativeElement.click();
 
@@ -188,7 +188,7 @@ describe('DashboardUncheckedForecasts', () => {
     fixture.detectChanges();
 
     const radioButton = fixture.debugElement.query(
-      By.css('button[aria-label]'),
+      By.css('[data-testid="dashboard-forecasts-toggle"]'),
     );
     radioButton.nativeElement.click();
 
@@ -212,7 +212,7 @@ describe('DashboardUncheckedForecasts', () => {
     fixture.detectChanges();
 
     const radioButton = fixture.debugElement.query(
-      By.css('button[aria-label]'),
+      By.css('[data-testid="dashboard-forecasts-toggle"]'),
     );
     radioButton.nativeElement.click();
 
@@ -223,7 +223,7 @@ describe('DashboardUncheckedForecasts', () => {
     fixture.detectChanges();
 
     const icon = fixture.debugElement
-      .query(By.css('button[aria-label]'))
+      .query(By.css('[data-testid="dashboard-forecasts-toggle"]'))
       .query(By.css('mat-icon'));
     expect(icon.nativeElement.textContent.trim()).toBe(
       'radio_button_unchecked',
@@ -278,7 +278,9 @@ describe('DashboardUncheckedForecasts', () => {
     setTestInput(component.forecasts, lines);
     fixture.detectChanges();
 
-    const buttons = fixture.debugElement.queryAll(By.css('button[aria-label]'));
+    const buttons = fixture.debugElement.queryAll(
+      By.css('[data-testid="dashboard-forecasts-toggle"]'),
+    );
     buttons[4].nativeElement.click();
 
     setTestInput(component.forecasts, [lines[0]]);
@@ -298,7 +300,7 @@ describe('DashboardUncheckedForecasts', () => {
       fixture.detectChanges();
 
       const radioButton = fixture.debugElement.query(
-        By.css('button[aria-label]'),
+        By.css('[data-testid="dashboard-forecasts-toggle"]'),
       );
       radioButton.nativeElement.click();
 
@@ -329,7 +331,9 @@ describe('DashboardUncheckedForecasts', () => {
     setTestInput(component.forecasts, lines);
     fixture.detectChanges();
 
-    const buttons = fixture.debugElement.queryAll(By.css('button[aria-label]'));
+    const buttons = fixture.debugElement.queryAll(
+      By.css('[data-testid="dashboard-forecasts-toggle"]'),
+    );
     buttons[0].nativeElement.click();
     buttons[1].nativeElement.click();
     buttons[2].nativeElement.click();
@@ -357,7 +361,7 @@ describe('DashboardUncheckedForecasts', () => {
     fixture.detectChanges();
 
     fixture.debugElement
-      .queryAll(By.css('button[aria-label]'))[1]
+      .queryAll(By.css('[data-testid="dashboard-forecasts-toggle"]'))[1]
       .nativeElement.click();
 
     setTestInput(
@@ -377,7 +381,7 @@ describe('DashboardUncheckedForecasts', () => {
     await TestBed.tick();
 
     const remaining = fixture.debugElement.queryAll(
-      By.css('button[aria-label]'),
+      By.css('[data-testid="dashboard-forecasts-toggle"]'),
     );
     expect(remaining.length).toBe(2);
     expect(document.activeElement).toBe(remaining[1].nativeElement);
@@ -388,7 +392,7 @@ describe('DashboardUncheckedForecasts', () => {
     fixture.detectChanges();
 
     fixture.debugElement
-      .query(By.css('button[aria-label]'))
+      .query(By.css('[data-testid="dashboard-forecasts-toggle"]'))
       .nativeElement.click();
 
     setTestInput(component.forecasts, []);

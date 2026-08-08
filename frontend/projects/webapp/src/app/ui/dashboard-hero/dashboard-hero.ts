@@ -64,8 +64,13 @@ const FULL_BAR_PERCENT = 100;
       <!-- Disponible section -->
       <div class="mb-7 relative z-10">
         <div class="flex items-baseline gap-2">
+          <!-- tabular-nums, per DESIGN.md:118 — "non-negotiable on hero
+               amounts". The legend below has had it all along; the 57px figure
+               it belongs to most did not, so the one number the user watches
+               through an optimistic write was the one whose digits shifted
+               under it. -->
           <span
-            class="font-extrabold text-display-large tracking-tighter leading-none ph-no-capture"
+            class="font-extrabold text-display-large tracking-tighter leading-none tabular-nums ph-no-capture"
             data-testid="hero-remaining-amount"
           >
             {{ remaining() | number: '1.0-0' : locale() }}
@@ -93,7 +98,7 @@ const FULL_BAR_PERCENT = 100;
              sentence rather than a key and an orphan. -->
         <p class="text-body-small mt-1.5">
           {{ 'dashboard.availableToSpend' | transloco }}
-          <span class="ph-no-capture">
+          <span class="tabular-nums ph-no-capture">
             {{ 'dashboard.on' | transloco }}
             {{ available() | number: '1.0-0' : locale() }}
             {{ currencySymbol() }}

@@ -63,7 +63,13 @@ import { TranslocoPipe } from '@jsverse/transloco';
             </p>
           </div>
         </div>
-        <button matButton (click)="viewBudget.emit()">
+        <button
+          matButton
+          [attr.aria-label]="
+            'currentMonth.viewTransactionsInBudget' | transloco
+          "
+          (click)="viewBudget.emit()"
+        >
           {{ 'currentMonth.viewInBudget' | transloco }}
         </button>
       </div>
@@ -72,9 +78,10 @@ import { TranslocoPipe } from '@jsverse/transloco';
         @if (transactions().length > 0) {
           <div class="flex flex-col gap-1">
             @for (tx of transactions(); track tx.id) {
-              <div
-                class="flex items-center gap-3 p-3 rounded-2xl hover:bg-on-surface/8 motion-safe:transition-colors"
-              >
+              <!-- No hover tint: nothing in this row is clickable at all, so
+                   the highlight was pure invitation to a click that goes
+                   nowhere. Same reason as the forecasts list beside it. -->
+              <div class="flex items-center gap-3 p-3 rounded-2xl">
                 <div
                   class="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
                   [class]="kindClasses(tx.kind)"

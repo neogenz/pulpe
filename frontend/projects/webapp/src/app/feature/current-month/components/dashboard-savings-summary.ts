@@ -99,11 +99,17 @@ import { AppCurrencyPipe } from '@core/currency';
           <div class="flex justify-between items-baseline">
             <p class="text-body-medium text-on-surface">
               {{ 'currentMonth.savingsAmountText' | transloco }}
-              <span class="font-bold text-financial-savings ph-no-capture">
+              <!-- tabular-nums on both, per DESIGN.md:118. This line is a
+                   running total against a fixed target: the left number moves
+                   on every saving pointed, the right one does not, and without
+                   tabular figures neither stayed put. -->
+              <span
+                class="font-bold text-financial-savings tabular-nums ph-no-capture"
+              >
                 {{ totalRealized() | appCurrency: currency() : '1.0-0' }}
               </span>
               {{ 'dashboard.on' | transloco }}
-              <span class="ph-no-capture">{{
+              <span class="tabular-nums ph-no-capture">{{
                 totalPlanned() | appCurrency: currency() : '1.0-0'
               }}</span>
               {{ 'currentMonth.savingsPlanned' | transloco }}

@@ -79,7 +79,16 @@ interface AnimatingForecast {
              once five or fewer remained made two cards built from one header
              recipe behave differently side by side, and the escape hatch costs
              nothing when the list is short. -->
-        <button matButton (click)="viewBudget.emit()">
+        <!-- The visible label stays short, because next to the heading it sits
+             under there is no ambiguity about which budget. Pulled out of the
+             page into a list of controls there is: the transactions card ships
+             the same two words, so a screen-reader user got two identical
+             entries and no way to tell them apart. -->
+        <button
+          matButton
+          [attr.aria-label]="'currentMonth.viewForecastsInBudget' | transloco"
+          (click)="viewBudget.emit()"
+        >
           {{ 'currentMonth.viewInBudget' | transloco }}
         </button>
       </div>
@@ -91,8 +100,12 @@ interface AnimatingForecast {
               @let displayAmount =
                 consumptions().get(forecast.id)?.remaining ?? forecast.amount;
               @let isChecking = isExitAnimating(forecast.id);
+              <!-- No hover tint on the row: nothing here handles a click. The
+                   row lit up under the cursor and then swallowed the click,
+                   promising a detail view that does not exist — only the 44px
+                   toggle acts, and it carries its own ripple. -->
               <div
-                class="relative overflow-hidden flex items-center gap-3 p-3 rounded-2xl hover:bg-on-surface/8 motion-safe:transition-colors"
+                class="relative overflow-hidden flex items-center gap-3 p-3 rounded-2xl"
                 [class.checking]="isChecking"
                 (animationend)="onExitAnimationEnd(forecast.id, $event)"
                 data-testid="dashboard-forecasts-row"

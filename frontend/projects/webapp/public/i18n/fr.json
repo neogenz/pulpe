@@ -968,6 +968,8 @@
     "recentTransactionsTitle": "Transactions",
     "recentTransactionsSubtitle": "{{ total }} ce mois",
     "viewInBudget": "Voir le budget",
+    "viewForecastsInBudget": "Voir les prévisions dans le budget",
+    "viewTransactionsInBudget": "Voir les transactions dans le budget",
     "noTransaction": "Aucune transaction",
     "noTransactionThisMonth": "Aucune transaction ce mois",
     "addFirstTransaction": "Ajouter ma première dépense",
