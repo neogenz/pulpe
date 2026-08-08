@@ -509,6 +509,7 @@ export class DashboardHero {
   readonly paceStatus = input<'on-track' | 'tight' | 'within-plan'>(
     'within-plan',
   );
+  readonly hasRecordedActivity = input(false);
   readonly warningThreshold = input(90);
 
   readonly currency = input<SupportedCurrency>('CHF');
@@ -572,8 +573,22 @@ export class DashboardHero {
   // users who budget best. PRODUCT.md asks for le soulagement avant la
   // pression. The plan is still on the card: it is the "Engagé" key of the
   // legend, and the ceiling beside the headline number.
+  // Red is for a month where something really went past its envelope, which is
+  // reachable only when the plan itself fits: an affordable plan carried over
+  // the ceiling by what actually happened. That is the one case where "ouvre ton
+  // budget pour voir ce qui a dépassé" points at something the user can find.
+  //
+  // It read `realizedExpenses > available`, which is driven entirely by pointing
+  // and counts savings among outflow. A plan 100 over its income therefore
+  // turned the card red the moment the user pointed it — announcing an overspend
+  // for a month where no envelope was exceeded, not one free franc was spent,
+  // and a third of the total was money deliberately set aside. The verdict below
+  // is built so that pointing a prévision never moves it; this branch outranks
+  // that verdict, and undid it.
+  readonly planExceedsAvailable = input(false);
+
   readonly isOverBudget = computed(
-    () => this.realizedExpenses() > this.available(),
+    () => this.isPlanOverAvailable() && !this.planExceedsAvailable(),
   );
 
   // The plan asks for more than the month has. A negative report alone is
@@ -646,26 +661,24 @@ export class DashboardHero {
     // exceeds. Telling someone in deficit that they are spending a little fast
     // names the smaller of the two problems and buries the other.
     if (this.isPlanOverAvailable()) return 'dashboard.status.planOverAvailable';
-    switch (this.paceStatus()) {
-      case 'tight':
-        return 'dashboard.status.fastPace';
-      // Nothing has gone beyond the plan. That is an answer, not a shrug, and
-      // it is the one this card gives for most of a well-run month.
-      case 'within-plan':
-        // The plan can still be the story: one that leaves almost nothing free
-        // is the single true thing this card has to say, and the only place the
-        // plan still takes the headline.
-        if (this.budgetConsumedPercentage() > this.warningThreshold())
-          return 'dashboard.status.almostSpent';
-        // An empty ledger and a month where everything that left was foreseen
-        // are two different pieces of news, and only the first of them is
-        // "rien de saisi".
-        return this.realizedExpenses() > 0
-          ? 'dashboard.status.withinPlan'
-          : 'dashboard.status.noPaceYet';
-      default:
-        return 'dashboard.status.onTrack';
-    }
+    if (this.paceStatus() === 'tight') return 'dashboard.status.fastPace';
+    // A plan leaving almost nothing free is true whether or not anything
+    // unplanned has happened, so it cannot live inside one pace branch. It did:
+    // ten francs spent outside an envelope moved the month from "within-plan" to
+    // "on-track" and replaced "ton budget est presque entièrement engagé" with
+    // "ton rythme tient", above a bar still filled to 96%. Spending more turned
+    // the warning into reassurance.
+    if (this.budgetConsumedPercentage() > this.warningThreshold())
+      return 'dashboard.status.almostSpent';
+    if (this.paceStatus() === 'on-track') return 'dashboard.status.onTrack';
+    // Nothing has gone beyond the plan. That is an answer, not a shrug, and it
+    // is the one this card gives for most of a well-run month — but only once
+    // there is a ledger to read it off. "Rien de saisi" keyed on realized
+    // outflow, so a month holding an income transaction, or an expense recorded
+    // and not yet pointed, denied the Transactions card listing it.
+    return this.hasRecordedActivity()
+      ? 'dashboard.status.withinPlan'
+      : 'dashboard.status.noPaceYet';
   });
 
   // The label the card used to carry restated its whole contents, because none

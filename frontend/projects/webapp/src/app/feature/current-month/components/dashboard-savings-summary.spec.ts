@@ -111,6 +111,7 @@ describe('DashboardSavingsSummary', () => {
       setTestInput(component.totalRealized, 150);
       setTestInput(component.checkedCount, 2);
       setTestInput(component.totalCount, 2);
+      setTestInput(component.allLinesPointed, true);
       fixture.detectChanges();
       expect(fixture.nativeElement.textContent).toContain(
         "C'est fait pour ce mois",
@@ -177,6 +178,24 @@ describe('DashboardSavingsSummary', () => {
     expect(text).toContain('Tu as mis de côté');
   });
 
+  // The count credits a line whose transactions already cover it, which is the
+  // right answer for "mise de côté" and the wrong one for "il ne reste rien à
+  // faire": that line is still in the list beside this card, waiting to be
+  // pointed. Reading completion off the count reopened the contradiction the
+  // test above closes.
+  it('should not report the month finished on a line that is covered but unpointed', () => {
+    setTestInput(component.totalPlanned, 500);
+    setTestInput(component.totalRealized, 500);
+    setTestInput(component.checkedCount, 1);
+    setTestInput(component.totalCount, 1);
+    setTestInput(component.allLinesPointed, false);
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).not.toContain("C'est fait pour ce mois");
+    expect(text).toContain('Tu as mis de côté');
+  });
+
   it('should render the count in the singular against a plan of one', () => {
     setTestInput(component.totalPlanned, 1000);
     setTestInput(component.totalRealized, 400);
@@ -195,6 +214,7 @@ describe('DashboardSavingsSummary', () => {
       setTestInput(component.totalRealized, 500);
       setTestInput(component.checkedCount, 3);
       setTestInput(component.totalCount, 3);
+      setTestInput(component.allLinesPointed, true);
       fixture.detectChanges();
     });
 

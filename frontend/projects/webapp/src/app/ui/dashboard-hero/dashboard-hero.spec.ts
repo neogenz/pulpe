@@ -228,6 +228,24 @@ describe('DashboardHero', () => {
     it('should not claim an empty month when what left the account was foreseen', () => {
       setTestInput(component.available, 5000);
       setTestInput(component.realizedExpenses, 800);
+      setTestInput(component.hasRecordedActivity, true);
+      setTestInput(component.budgetConsumedPercentage, 60);
+      setTestInput(component.paceStatus, 'within-plan');
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      expect(compiled.textContent).not.toContain('Rien de saisi ce mois');
+      expect(compiled.textContent).toContain('Tout ce qui est sorti était');
+    });
+
+    // The sentence used to key on realized outflow, which counts neither an
+    // income transaction nor an expense the user has recorded and not yet
+    // pointed. Either one put "Rien de saisi ce mois" above a Transactions card
+    // listing exactly what had been saisi.
+    it('should not claim an empty month for activity that is not outflow', () => {
+      setTestInput(component.available, 5500);
+      setTestInput(component.realizedExpenses, 0);
+      setTestInput(component.hasRecordedActivity, true);
       setTestInput(component.budgetConsumedPercentage, 60);
       setTestInput(component.paceStatus, 'within-plan');
       fixture.detectChanges();
@@ -240,6 +258,7 @@ describe('DashboardHero', () => {
     it('should say nothing was recorded when the ledger really is empty', () => {
       setTestInput(component.available, 5000);
       setTestInput(component.realizedExpenses, 0);
+      setTestInput(component.hasRecordedActivity, false);
       setTestInput(component.budgetConsumedPercentage, 60);
       setTestInput(component.paceStatus, 'within-plan');
       fixture.detectChanges();
@@ -274,9 +293,9 @@ describe('DashboardHero', () => {
       expect(compiled.textContent).not.toContain('entièrement engagé');
     });
 
-    // With nothing recorded the pace cannot speak, and the plan is then the one
-    // true thing the card has to say.
-    it('should fall back to the plan when the ledger is still empty', () => {
+    // A plan leaving almost nothing free is the one true thing the card has to
+    // say once the pace is not alarming.
+    it('should fall back to the plan when nothing has gone beyond it', () => {
       setTestInput(component.available, 1000);
       setTestInput(component.expenses, 950);
       setTestInput(component.remaining, 50);
@@ -287,6 +306,25 @@ describe('DashboardHero', () => {
 
       const compiled = fixture.nativeElement as HTMLElement;
       expect(compiled.textContent).toContain('entièrement engagé');
+    });
+
+    // The warning used to live inside the 'within-plan' branch alone, so ten
+    // francs spent outside an envelope moved the month to 'on-track' and
+    // replaced it with "Ton rythme tient." — above a bar still filled to 96%.
+    // Spending more turned the warning into reassurance.
+    it('should keep warning on a nearly spent plan once a franc goes unplanned', () => {
+      setTestInput(component.available, 5000);
+      setTestInput(component.expenses, 4810);
+      setTestInput(component.remaining, 190);
+      setTestInput(component.budgetConsumedPercentage, 96);
+      setTestInput(component.realizedExpenses, 10);
+      setTestInput(component.hasRecordedActivity, true);
+      setTestInput(component.paceStatus, 'on-track');
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      expect(compiled.textContent).toContain('entièrement engagé');
+      expect(compiled.textContent).not.toContain('rythme tient');
     });
 
     // A plan larger than the month's income plus its report. A negative report
@@ -300,6 +338,7 @@ describe('DashboardHero', () => {
       setTestInput(component.remaining, -500);
       setTestInput(component.budgetConsumedPercentage, 100);
       setTestInput(component.realizedExpenses, 900);
+      setTestInput(component.planExceedsAvailable, true);
       setTestInput(component.paceStatus, 'on-track');
       fixture.detectChanges();
 
@@ -326,6 +365,30 @@ describe('DashboardHero', () => {
       const compiled = fixture.nativeElement as HTMLElement;
       expect(compiled.textContent).toContain('au-delà de ton budget');
       expect(compiled.textContent).not.toContain('plus vite que le mois');
+    });
+
+    // The red state read `realizedExpenses > available`, which pointing alone
+    // drives and which counts savings as outflow. A plan 100 over its income
+    // therefore went red the moment its lines were pointed, and sent the user
+    // to "voir ce qui a dépassé" in a month where nothing had: no envelope
+    // exceeded, not one free franc spent, and a third of the total deliberately
+    // set aside. The plan is the problem, and the card has a sentence for it.
+    it('should blame the plan, not the user, when a pointed plan tips the month over', () => {
+      setTestInput(component.available, 5000);
+      setTestInput(component.expenses, 5100);
+      setTestInput(component.remaining, -100);
+      setTestInput(component.budgetConsumedPercentage, 100);
+      setTestInput(component.realizedExpenses, 5100);
+      setTestInput(component.hasRecordedActivity, true);
+      setTestInput(component.planExceedsAvailable, true);
+      setTestInput(component.paceStatus, 'within-plan');
+      fixture.detectChanges();
+
+      expect(component.isOverBudget()).toBe(false);
+      expect(component.budgetStatus()).toBe('warning');
+      const compiled = fixture.nativeElement as HTMLElement;
+      expect(compiled.textContent).toContain('plus que ce que le mois');
+      expect(compiled.textContent).not.toContain('au-delà de ton budget');
     });
   });
 

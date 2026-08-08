@@ -351,6 +351,25 @@ export class DashboardStore {
     return share <= elapsed + tolerance ? 'on-track' : 'tight';
   });
 
+  // A month can pass its ceiling two ways, and they are not the same news. The
+  // plan asking for more than the month brings is a planning problem: nothing
+  // has gone wrong yet and the fix is in the budget. An affordable plan pushed
+  // past the ceiling by what actually happened is the other one, and the only
+  // one where something has really overspent.
+  readonly isPlanBeyondAvailable = computed<boolean>(
+    () => this.#plannedMargin() < 0,
+  );
+
+  // Whether the month has anything in its ledger at all. Realized outflow was
+  // the wrong question: an income transaction, or an expense recorded but not
+  // yet pointed, is something the user saisi — and a card answering "rien de
+  // saisi ce mois" above a Transactions card listing it calls them a liar.
+  readonly hasRecordedActivity = computed<boolean>(
+    () =>
+      this.transactions().length > 0 ||
+      this.budgetLines().some((line) => line.checkedAt != null),
+  );
+
   readonly rolloverAmount = computed<number>(() => {
     const budget = this.dashboardData()?.budget;
     return budget?.rollover ?? 0;
@@ -520,6 +539,16 @@ export class DashboardStore {
           (consumedByLine.get(line.id) ?? 0) >= line.amount),
     ).length;
   });
+
+  // The count above says "mise de côté", and money answers that. "C'est fait
+  // pour ce mois" says something stricter — that nothing is left to do — and
+  // only pointing answers it: a line its transactions already cover still sits
+  // in the list beside this card, waiting to be pointed.
+  readonly areSavingsFullyPointed = computed<boolean>(() =>
+    this.budgetLines()
+      .filter((line) => line.kind === 'saving')
+      .every((line) => line.checkedAt !== null),
+  );
 
   readonly savingsTotalCount = computed<number>(
     () => this.budgetLines().filter((line) => line.kind === 'saving').length,

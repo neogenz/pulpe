@@ -213,10 +213,15 @@ export class DashboardSavingsSummary {
   // while the 1'000 saving prévision it was meant to fulfil stayed unpointed:
   // this card said "C'est fait pour ce mois" beside a card in the same grid row
   // still offering that very line to point.
+  // `checkedCount` cannot carry that guard, because it counts a line as met when
+  // its transactions cover it — which is the right answer for "mise de côté" and
+  // the wrong one for "il ne reste rien à faire".
+  readonly allLinesPointed = input(false);
+
   protected readonly isComplete = computed(
     () =>
       this.totalPlanned() > 0 &&
       this.totalRealized() >= this.totalPlanned() &&
-      this.checkedCount() >= this.totalCount(),
+      this.allLinesPointed(),
   );
 }

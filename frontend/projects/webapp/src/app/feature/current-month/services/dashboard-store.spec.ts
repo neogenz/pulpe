@@ -1210,6 +1210,88 @@ describe('DashboardStore - Business Scenarios', () => {
       expect(store.realizedExpenses()).toBe(500);
     });
 
+    // The hero's red state means "something went past its envelope", and that
+    // is only true when the plan itself fits. A plan already above the ceiling
+    // reaches the same deficit without anything having gone wrong, and the card
+    // has its own sentence for it.
+    it('should separate a plan above the ceiling from spending that went past it', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const overCommitted = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 5000 }),
+        createMockBudgetLine({ id: 'exp-1', kind: 'expense', amount: 3600 }),
+        createMockBudgetLine({ id: 'goal', kind: 'saving', amount: 1500 }),
+      ];
+      const { store } = await setupWithBudgetAndWait(budget, overCommitted, []);
+
+      expect(store.isPlanBeyondAvailable()).toBe(true);
+
+      const affordable = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 5000 }),
+        createMockBudgetLine({ id: 'exp-1', kind: 'expense', amount: 3000 }),
+      ];
+      const { store: affordableStore } = await setupWithBudgetAndWait(
+        budget,
+        affordable,
+        [],
+      );
+
+      expect(affordableStore.isPlanBeyondAvailable()).toBe(false);
+    });
+
+    // "Rien de saisi ce mois" keyed on realized outflow, which counts neither
+    // an income transaction nor an expense recorded and not yet pointed.
+    it('should count an unpointed transaction as something the user recorded', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const lines = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 5000 }),
+        createMockBudgetLine({ id: 'exp-1', kind: 'expense', amount: 1000 }),
+      ];
+      const transactions = [
+        createMockTransaction({
+          id: 'tx-1',
+          kind: 'expense',
+          amount: 80,
+          budgetLineId: null,
+          checkedAt: null,
+        }),
+      ];
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        transactions,
+      );
+
+      expect(store.realizedExpenses()).toBe(0);
+      expect(store.hasRecordedActivity()).toBe(true);
+    });
+
+    // The count credits a covered line, which is right for "mise de côté" and
+    // wrong for "c'est fait": that line still waits in the list beside it.
+    it('should not call the savings pointed when a covered line is unpointed', async () => {
+      const budget = createMockBudget({ rollover: 0 });
+      const lines = [
+        createMockBudgetLine({ id: 'inc-1', kind: 'income', amount: 5000 }),
+        createMockBudgetLine({ id: 'goal', kind: 'saving', amount: 500 }),
+      ];
+      const transactions = [
+        createMockTransaction({
+          id: 'tx-transfer',
+          kind: 'saving',
+          amount: 500,
+          budgetLineId: 'goal',
+          checkedAt: '2025-06-10T00:00:00Z',
+        }),
+      ];
+      const { store } = await setupWithBudgetAndWait(
+        budget,
+        lines,
+        transactions,
+      );
+
+      expect(store.savingsCheckedCount()).toBe(1);
+      expect(store.areSavingsFullyPointed()).toBe(false);
+    });
+
     it('should clamp budgetConsumedPercentage to [0, 100]', async () => {
       const budget = createMockBudget({ rollover: 0 });
       const lines = [
