@@ -125,9 +125,14 @@ describe('DashboardHero', () => {
       const range = component['periodRange']();
       expect(range).toContain('27');
       expect(range).toContain('26');
-      expect((fixture.nativeElement as HTMLElement).textContent).toContain(
-        range,
-      );
+      // With the day it is counted against, under the verdict they are both
+      // evidence for — not back beside the month heading, where it was a
+      // second time fact three rows from the first.
+      expect(
+        (fixture.nativeElement as HTMLElement).querySelector(
+          '.progress-verdict',
+        )?.textContent,
+      ).toContain(range);
     });
 
     // A payday of 16 runs the period called "juin" from 15 May to 14 June, so
@@ -425,15 +430,18 @@ describe('DashboardHero', () => {
       expect(verdict?.textContent).toContain('Jour 12 sur 30');
     });
 
+    // Asserted on the sentence rather than on the element: the evidence line
+    // now also carries the period window, which is its own fact and stands
+    // whether or not a day has been counted.
     it('should stay quiet about the day when none was counted', () => {
       setTestInput(component.elapsedDayOfPeriod, 0);
       fixture.detectChanges();
 
       expect(
         (fixture.nativeElement as HTMLElement).querySelector(
-          '.progress-verdict-elapsed',
-        ),
-      ).toBeNull();
+          '.progress-verdict',
+        )?.textContent,
+      ).not.toContain('Jour');
     });
 
     // The reverse of the order this card shipped with. "Presque entièrement

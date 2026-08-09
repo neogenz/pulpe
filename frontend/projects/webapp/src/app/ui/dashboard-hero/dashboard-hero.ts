@@ -40,13 +40,6 @@ let heroInstanceCount = 0;
       [class.budget-warning]="isWarning()"
       [attr.aria-labelledby]="headingId"
     >
-      <div
-        class="absolute -right-10 -bottom-10 w-56 h-56 bg-white/15 rounded-full blur-3xl pointer-events-none"
-      ></div>
-      <div
-        class="absolute top-0 right-0 w-36 h-36 bg-white/10 rounded-full blur-2xl pointer-events-none"
-      ></div>
-
       <!-- The control covers the card, and it has to be a direct child of the
            card to do so: an absolute box resolves against its nearest
            POSITIONED ancestor, and every content row here is relative z-10, so
@@ -62,12 +55,12 @@ let heroInstanceCount = 0;
         (click)="heroClick.emit()"
       ></button>
 
+      <!-- Two decorations left this row: a dot whose colour was inherited from
+           a card that already states its condition in full, and two blurred
+           orbs DESIGN.md §4 rules out — depth here comes from surface tone, not
+           cast light. Neither carried a fact, and the row they sat in is the
+           first thing read on the page. -->
       <div class="flex items-center gap-2 mb-6 relative z-10">
-        <!-- Static. It pulsed on every render regardless of anything, so the
-             one piece of motion on the card promised a live reading it never
-             had. Its colour is inherited, and that already tracks the financial
-             state. -->
-        <div class="w-2 h-2 rounded-full indicator-dot"></div>
         <!-- The visible word is the month, because that is all this card needs
              to say sitting where it sits. Pulled out of the page it needed
              more: this heading also names the whole region, so a heading list
@@ -83,10 +76,6 @@ let heroInstanceCount = 0;
             — {{ 'dashboard.monthBudgetHeadingSuffix' | transloco }}</span
           >
         </h2>
-        @let range = periodRange();
-        @if (range) {
-          <span class="text-label-small opacity-80 shrink-0">{{ range }}</span>
-        }
         <!-- Decoration. It says the card opens something; the control that
              actually opens it covers the whole card above. -->
         <mat-icon class="ml-auto opacity-80 shrink-0" aria-hidden="true"
@@ -214,15 +203,25 @@ let heroInstanceCount = 0;
         <p class="progress-verdict" aria-live="polite">
           {{ statusMessage() | transloco }}
           <!-- The verdict compares spending to how far the month has run, and
-               how far the month has run appeared nowhere on the card: no date,
-               no day, and the period range prints only for a payday off the
-               1st. "Tu dépenses plus vite que le mois ne passe" asked the
-               reader to take the second half on trust. It travels with the
-               sentence rather than sitting in the legend, because it is that
-               sentence's evidence and not a fourth share of the bar. -->
+               how far the month has run appeared nowhere on the card. "Tu
+               dépenses plus vite que le mois ne passe" asked the reader to
+               take the second half on trust. Both facts that answer it live
+               here, one in days and one in dates: they are that sentence's
+               evidence, not a fourth share of the bar, and not — as the
+               window used to be — a second time fact three rows above the
+               first, standing between the month and the chevron. The window
+               still prints only for a period off the calendar month, the case
+               where the month name is not enough on its own. -->
           @let progress = monthProgress();
-          @if (progress) {
-            <span class="progress-verdict-elapsed">{{ progress }}</span>
+          @let range = periodRange();
+          @if (progress || range) {
+            <span class="progress-verdict-elapsed">
+              {{ progress }}
+              @if (progress && range) {
+                <span aria-hidden="true"> · </span>
+              }
+              {{ range }}
+            </span>
           }
         </p>
 
@@ -418,10 +417,6 @@ let heroInstanceCount = 0;
       .hero-container.budget-over {
         --hero-surface: var(--pulpe-hero-error);
         color: var(--pulpe-hero-error-text);
-      }
-
-      .indicator-dot {
-        background-color: currentColor;
       }
 
       .progress-verdict {
