@@ -12,6 +12,14 @@ import {
 } from 'pulpe-shared';
 import { SavingsGoalStore } from '../../services/savings-goals-store';
 
+export type GoalPlanWithdrawalDestination = 'goal_only' | 'linked_income';
+
+export interface GoalPlanWithdrawalDecision {
+  month: number;
+  year: number;
+  destination: GoalPlanWithdrawalDestination;
+}
+
 function periodKeyOf(item: { month: number; year: number }): number {
   return item.year * 12 + item.month;
 }
@@ -257,9 +265,14 @@ export class GoalPlanSimulatorStore {
   }
 
   buildApplyPayload(
-    withdrawalDestination: 'goal_only' | 'linked_income' = 'goal_only',
+    withdrawalDecisions: readonly GoalPlanWithdrawalDecision[] = [],
   ): SavingsGoalPlanApply {
     const draft = this.draft();
+    const withdrawalDestinations = new Map(
+      withdrawalDecisions.map(
+        (decision) => [periodKeyOf(decision), decision.destination] as const,
+      ),
+    );
     const monthAdjustments: SavingsGoalPlanApply['monthAdjustments'] = [];
     const missingMonthAdjustments: NonNullable<
       SavingsGoalPlanApply['missingMonthAdjustments']
@@ -270,6 +283,10 @@ export class GoalPlanSimulatorStore {
     if (draft) {
       for (const month of draft.months) {
         if (!month.isAdjusted) continue;
+        const withdrawalDestination =
+          withdrawalDestinations.get(periodKeyOf(month)) ??
+          month.planWithdrawalDestination ??
+          'goal_only';
         if (month.simulatedAmount < 0) {
           planWithdrawalAdjustments.push({
             month: month.month,
@@ -318,11 +335,11 @@ export class GoalPlanSimulatorStore {
   }
 
   async apply(
-    withdrawalDestination: 'goal_only' | 'linked_income' = 'goal_only',
+    withdrawalDecisions: readonly GoalPlanWithdrawalDecision[] = [],
   ): Promise<void> {
     const goal = this.#store.selectedGoal();
     if (!goal) throw new Error('No goal selected');
-    const payload = this.buildApplyPayload(withdrawalDestination);
+    const payload = this.buildApplyPayload(withdrawalDecisions);
     // A zero-valued gap creation can be the only "adjusted" month left after
     // omission (see buildApplyPayload) — nothing left to persist then.
     // `apply()` is a public store entry point: the current caller (this

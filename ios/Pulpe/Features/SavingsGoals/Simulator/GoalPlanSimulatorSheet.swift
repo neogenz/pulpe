@@ -92,7 +92,9 @@ struct GoalPlanSimulatorSheet: View {
                 changes: viewModel.planChanges,
                 verdict: viewModel.verdictText,
                 currency: currency,
-                onConfirm: { destination in await viewModel.apply(withdrawalDestination: destination) }
+                onConfirm: { destinations in
+                    await viewModel.apply(withdrawalDestinations: destinations)
+                }
             )
         }
         .confirmationDialog(
@@ -338,14 +340,17 @@ final class GoalPlanSimulatorViewModel {
     }
 
     /// The adjusted, contributive months — the write footprint and recap rows.
-    /// Excludes a zero-valued gap creation (mirrors `apply()`'s wire filter
-    /// below): the wire schema requires a positive amount, so a preview that
-    /// included one would open a recap for a change that can never be sent.
+    /// Excludes a zero-valued gap creation unless it clears an existing plan
+    /// withdrawal. The latter remains a real write and must reach the recap.
     var planChanges: [SavingsPlanCalculator.SimulatedMonth] {
         draft.months.filter {
             SavingsPlanCalculator.isContributivePlanMonth($0.month)
                 && $0.isAdjusted
-                && !($0.month.isProvisionable && $0.simulatedAmount == 0)
+                && !(
+                    $0.month.isProvisionable
+                        && $0.simulatedAmount == 0
+                        && !$0.replacesExistingPlanWithdrawal
+                )
         }
     }
 
@@ -432,7 +437,7 @@ final class GoalPlanSimulatorViewModel {
     }
 
     func apply(
-        withdrawalDestination: SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination = .goalOnly
+        withdrawalDestinations: GoalPlanWithdrawalDestinations = [:]
     ) async -> Bool {
         isApplying = true
         applyErrorMessage = nil
@@ -456,15 +461,18 @@ final class GoalPlanSimulatorViewModel {
         let missingMonthAdjustments: [SavingsGoalPlanApply.MissingMonthAdjustment] = planChanges
             .filter { $0.month.isProvisionable && $0.simulatedAmount > 0 }
             .map { .init(month: $0.month.month, year: $0.month.year, amount: $0.simulatedAmount) }
-        let planWithdrawalAdjustments: [SavingsGoalPlanApply.PlanWithdrawalAdjustment] = planChanges
-            .compactMap { simMonth in
+        let planWithdrawalAdjustments: [SavingsGoalPlanApply.PlanWithdrawalAdjustment] =
+            planChanges.compactMap { simMonth in
                 guard simMonth.simulatedAmount < 0
                         || simMonth.replacesExistingPlanWithdrawal else { return nil }
                 return .init(
                     month: simMonth.month.month,
                     year: simMonth.month.year,
                     amount: min(0, simMonth.simulatedAmount),
-                    destination: withdrawalDestination
+                    destination: withdrawalDestination(
+                        for: simMonth,
+                        selections: withdrawalDestinations
+                    )
                 )
             }
 
@@ -484,6 +492,23 @@ final class GoalPlanSimulatorViewModel {
             applyErrorMessage = DomainErrorLocalizer.localize(error)
             return false
         }
+    }
+
+    private func withdrawalDestination(
+        for simMonth: SavingsPlanCalculator.SimulatedMonth,
+        selections: GoalPlanWithdrawalDestinations
+    ) -> SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination {
+        // A zero adjustment deletes the existing withdrawal. Its destination
+        // has no write effect, but preserving it avoids describing the deletion
+        // as an implicit conversion.
+        guard simMonth.simulatedAmount < 0 else {
+            return simMonth.month.planWithdrawalDestination ?? .goalOnly
+        }
+        let selected = selections[simMonth.id]
+            ?? simMonth.month.planWithdrawalDestination
+            ?? .goalOnly
+        guard !simMonth.month.hasBudget, selected == .linkedIncome else { return selected }
+        return simMonth.month.planWithdrawalDestination == .linkedIncome ? .linkedIncome : .goalOnly
     }
 
     private func recompute() {

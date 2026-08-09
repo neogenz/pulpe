@@ -1348,6 +1348,7 @@ describe('SavingsGoalDetailPage', () => {
             state: 'current',
             isProvisionable: false,
             plannedAmount: 1_260,
+            confirmedAmount: 1_500,
             plannedWithdrawalAmount: 4_500,
             remainingPlannedWithdrawalAmount: 4_500,
             planLinkedWithdrawalAmount: 4_500,
@@ -1379,11 +1380,111 @@ describe('SavingsGoalDetailPage', () => {
             year: 2026,
             before: -4_500,
             after: -3_000,
+            contributionAmount: 1_500,
             planWithdrawalDestination: 'linked_income',
           }),
         ],
       }),
     );
+  });
+
+  it('applies a zero withdrawal deletion on a provisionable month without a saving line', async () => {
+    progressSig.set(
+      makeProgress({
+        months: [
+          makePlanMonth({
+            month: 6,
+            state: 'current',
+            isProvisionable: true,
+            hasBudget: true,
+            plannedAmount: 0,
+            confirmedAmount: 0,
+            plannedWithdrawalAmount: 500,
+            remainingPlannedWithdrawalAmount: 500,
+            planOnlyWithdrawalAmount: 500,
+            planWithdrawalDestination: 'goal_only',
+            lines: [],
+          }),
+        ],
+      }),
+    );
+    mockDialogs.openApplyPlan.mockResolvedValueOnce(true);
+    fixture.detectChanges();
+
+    component['simulator'].enter();
+    component['simulator'].setMonth(6, 2026, 0);
+    await component['onApplyPlan']();
+
+    expect(mockDialogs.openApplyPlan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        changes: [
+          expect.objectContaining({
+            month: 6,
+            year: 2026,
+            before: -500,
+            after: 0,
+          }),
+        ],
+      }),
+    );
+    expect(mockStore.applyPlan).toHaveBeenCalledWith('goal-1', {
+      monthAdjustments: [],
+      missingMonthAdjustments: [],
+      planWithdrawalAdjustments: [
+        {
+          month: 6,
+          year: 2026,
+          amount: 0,
+          destination: 'goal_only',
+        },
+      ],
+    });
+  });
+
+  it('applies the withdrawal destination returned for its period', async () => {
+    const lineId = '11111111-1111-4111-8111-111111111111';
+    progressSig.set(
+      makeProgress({
+        months: [
+          makePlanMonth({
+            month: 6,
+            state: 'current',
+            isProvisionable: false,
+            hasBudget: true,
+            plannedAmount: 200,
+            lines: [
+              {
+                budgetLineId: lineId,
+                amount: 200,
+                checkedAt: null,
+                isManuallyAdjusted: false,
+              },
+            ],
+          }),
+        ],
+      }),
+    );
+    mockDialogs.openApplyPlan.mockResolvedValueOnce([
+      { month: 6, year: 2026, destination: 'linked_income' },
+    ]);
+    fixture.detectChanges();
+
+    component['simulator'].enter();
+    component['simulator'].setMonth(6, 2026, -500);
+    await component['onApplyPlan']();
+
+    expect(mockStore.applyPlan).toHaveBeenCalledWith('goal-1', {
+      monthAdjustments: [],
+      missingMonthAdjustments: [],
+      planWithdrawalAdjustments: [
+        {
+          month: 6,
+          year: 2026,
+          amount: -500,
+          destination: 'linked_income',
+        },
+      ],
+    });
   });
 
   it('deletes the goal with the preview revision then navigates back', async () => {

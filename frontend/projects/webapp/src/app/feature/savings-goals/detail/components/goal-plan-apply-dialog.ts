@@ -16,18 +16,24 @@ import { MatRadioModule } from '@angular/material/radio';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { formatBudgetPeriod, type SupportedCurrency } from 'pulpe-shared';
 import { AppCurrencyPipe } from '@core/currency';
+import type {
+  GoalPlanWithdrawalDecision,
+  GoalPlanWithdrawalDestination,
+} from '../services/goal-plan-simulator-store';
 
 export interface GoalPlanApplyChange {
   month: number;
   year: number;
   before: number;
   after: number;
+  /** Contribution qui reste prévue lorsqu'un retrait est planifié séparément. */
+  contributionAmount?: number;
   hasBudget?: boolean;
   planWithdrawalDestination?: GoalPlanWithdrawalDestination;
   planWithdrawalConsumedAmount?: number;
 }
 
-export type GoalPlanWithdrawalDestination = 'goal_only' | 'linked_income';
+export type GoalPlanApplyDialogResult = GoalPlanWithdrawalDecision[] | true;
 
 export interface GoalPlanApplyDialogData {
   mode?: 'adjustment' | 'creation';
@@ -88,24 +94,79 @@ const MAX_DIFF_ROWS = 5;
       } @else {
         <ul class="flex flex-col gap-2" data-testid="goal-plan-apply-diff">
           @for (row of visibleChanges(); track row.year * 12 + row.month) {
-            <li
-              class="flex items-center justify-between gap-4 text-body-medium"
-            >
-              <span class="text-on-surface-variant">{{
-                formatPeriod(row)
-              }}</span>
-              <span class="ph-no-capture shrink-0 tabular-nums">
-                @if (!isCreation()) {
-                  <span class="text-on-surface-variant"
-                    >{{ row.before | appCurrency: data.currency : '1.2-2' }}
-                    &rarr;
-                  </span>
-                }
-                <span class="font-semibold text-on-surface">{{
-                  row.after | appCurrency: data.currency : '1.2-2'
+            @if (row.after < 0) {
+              <li
+                class="flex flex-col gap-2 rounded-xl bg-surface-container-low p-3 text-body-medium"
+                data-testid="goal-plan-withdrawal-breakdown"
+              >
+                <span class="font-medium text-on-surface">{{
+                  formatPeriod(row)
                 }}</span>
-              </span>
-            </li>
+                <div class="flex items-center justify-between gap-4">
+                  <span class="text-on-surface-variant">{{
+                    'savingsGoals.simulate.withdrawalContributionPreserved'
+                      | transloco
+                  }}</span>
+                  <span class="ph-no-capture shrink-0 tabular-nums font-medium">
+                    +{{
+                      contributionAmount(row)
+                        | appCurrency: data.currency : '1.2-2'
+                    }}
+                  </span>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                  <span class="text-on-surface-variant">{{
+                    'savingsGoals.simulate.withdrawalPlanned' | transloco
+                  }}</span>
+                  <span class="ph-no-capture shrink-0 tabular-nums">
+                    <span class="text-on-surface-variant"
+                      >{{
+                        withdrawalBefore(row)
+                          | appCurrency: data.currency : '1.2-2'
+                      }}
+                      &rarr;
+                    </span>
+                    <span class="font-semibold text-on-surface">{{
+                      row.after | appCurrency: data.currency : '1.2-2'
+                    }}</span>
+                  </span>
+                </div>
+                <div
+                  class="flex items-center justify-between gap-4 border-t border-outline-variant pt-2"
+                >
+                  <span class="text-on-surface-variant">{{
+                    'savingsGoals.simulate.withdrawalNetEffect' | transloco
+                  }}</span>
+                  <span
+                    class="ph-no-capture shrink-0 tabular-nums font-semibold"
+                  >
+                    @if (netEffect(row) > 0) {
+                      +
+                    }
+                    {{ netEffect(row) | appCurrency: data.currency : '1.2-2' }}
+                  </span>
+                </div>
+              </li>
+            } @else {
+              <li
+                class="flex items-center justify-between gap-4 text-body-medium"
+              >
+                <span class="text-on-surface-variant">{{
+                  formatPeriod(row)
+                }}</span>
+                <span class="ph-no-capture shrink-0 tabular-nums">
+                  @if (!isCreation()) {
+                    <span class="text-on-surface-variant"
+                      >{{ row.before | appCurrency: data.currency : '1.2-2' }}
+                      &rarr;
+                    </span>
+                  }
+                  <span class="font-semibold text-on-surface">{{
+                    row.after | appCurrency: data.currency : '1.2-2'
+                  }}</span>
+                </span>
+              </li>
+            }
           }
           @if (hiddenCount() > 0) {
             <li class="text-body-small text-on-surface-variant">
@@ -148,53 +209,74 @@ const MAX_DIFF_ROWS = 5;
           >
             {{ 'savingsGoals.simulate.withdrawalChoiceTitle' | transloco }}
           </h3>
-          <mat-radio-group
-            class="flex flex-col gap-2"
-            [value]="withdrawalDestination()"
-            (change)="withdrawalDestination.set($event.value)"
-          >
-            <mat-radio-button
-              value="goal_only"
-              data-testid="goal-plan-withdrawal-goal-only"
+          @for (change of withdrawalChanges(); track periodKey(change)) {
+            <div
+              class="flex flex-col gap-2 rounded-xl bg-surface-container-low p-3"
             >
-              <span class="font-medium">{{
-                'savingsGoals.simulate.withdrawalGoalOnlyTitle' | transloco
-              }}</span>
-              <span class="block text-body-small text-on-surface-variant">
+              <h4
+                class="text-body-medium font-semibold"
+                [id]="'withdrawal-choice-' + periodKey(change)"
+              >
                 {{
-                  'savingsGoals.simulate.withdrawalGoalOnlyDetail' | transloco
+                  'savingsGoals.simulate.withdrawalChoicePeriod'
+                    | transloco: { period: formatPeriod(change) }
                 }}
-              </span>
-            </mat-radio-button>
-            <mat-radio-button
-              value="linked_income"
-              [disabled]="!canLinkWithdrawal()"
-              data-testid="goal-plan-withdrawal-linked-income"
-            >
-              <span class="font-medium">{{
-                'savingsGoals.simulate.withdrawalLinkedTitle' | transloco
-              }}</span>
-              <span class="block text-body-small text-on-surface-variant">
-                {{ 'savingsGoals.simulate.withdrawalLinkedDetail' | transloco }}
-              </span>
-            </mat-radio-button>
-          </mat-radio-group>
-          @if (!canLinkWithdrawal()) {
-            <p
-              class="text-body-small text-on-surface-variant"
-              data-testid="goal-plan-withdrawal-no-budget"
-            >
-              {{ 'savingsGoals.simulate.withdrawalNoBudget' | transloco }}
-            </p>
-          }
-          @if (isConvertingWithdrawal()) {
-            <p
-              class="text-body-small text-on-surface-variant"
-              role="status"
-              data-testid="goal-plan-withdrawal-conversion"
-            >
-              {{ conversionKey() | transloco }}
-            </p>
+              </h4>
+              <mat-radio-group
+                class="flex flex-col gap-2"
+                [attr.aria-labelledby]="
+                  'withdrawal-choice-' + periodKey(change)
+                "
+                [value]="withdrawalDestination(change)"
+                (change)="setWithdrawalDestination(change, $event.value)"
+              >
+                <mat-radio-button
+                  value="goal_only"
+                  data-testid="goal-plan-withdrawal-goal-only"
+                >
+                  <span class="font-medium">{{
+                    'savingsGoals.simulate.withdrawalGoalOnlyTitle' | transloco
+                  }}</span>
+                  <span class="block text-body-small text-on-surface-variant">
+                    {{
+                      'savingsGoals.simulate.withdrawalGoalOnlyDetail'
+                        | transloco
+                    }}
+                  </span>
+                </mat-radio-button>
+                <mat-radio-button
+                  value="linked_income"
+                  [disabled]="!canLinkWithdrawal(change)"
+                  data-testid="goal-plan-withdrawal-linked-income"
+                >
+                  <span class="font-medium">{{
+                    'savingsGoals.simulate.withdrawalLinkedTitle' | transloco
+                  }}</span>
+                  <span class="block text-body-small text-on-surface-variant">
+                    {{
+                      'savingsGoals.simulate.withdrawalLinkedDetail' | transloco
+                    }}
+                  </span>
+                </mat-radio-button>
+              </mat-radio-group>
+              @if (!canLinkWithdrawal(change)) {
+                <p
+                  class="text-body-small text-on-surface-variant"
+                  data-testid="goal-plan-withdrawal-no-budget"
+                >
+                  {{ 'savingsGoals.simulate.withdrawalNoBudget' | transloco }}
+                </p>
+              }
+              @if (isConvertingWithdrawal(change)) {
+                <p
+                  class="text-body-small text-on-surface-variant"
+                  role="status"
+                  data-testid="goal-plan-withdrawal-conversion"
+                >
+                  {{ conversionKey(change) | transloco }}
+                </p>
+              }
+            </div>
           }
         </section>
       }
@@ -209,7 +291,7 @@ const MAX_DIFF_ROWS = 5;
         data-testid="goal-plan-apply-confirm"
       >
         @if (hasWithdrawal()) {
-          {{ 'savingsGoals.simulate.withdrawalConfirm' | transloco }}
+          {{ withdrawalConfirmKey() | transloco }}
         } @else {
           {{ confirmKey() | transloco: { count: data.changes.length } }}
         }
@@ -220,33 +302,29 @@ const MAX_DIFF_ROWS = 5;
 })
 export class GoalPlanApplyDialog {
   readonly #dialogRef =
-    inject<
-      MatDialogRef<GoalPlanApplyDialog, GoalPlanWithdrawalDestination | true>
-    >(MatDialogRef);
+    inject<MatDialogRef<GoalPlanApplyDialog, GoalPlanApplyDialogResult>>(
+      MatDialogRef,
+    );
   protected readonly data = inject<GoalPlanApplyDialogData>(MAT_DIALOG_DATA);
   protected readonly isCreation = computed(() => this.data.mode === 'creation');
-  readonly #existingWithdrawalDestination = this.#resolveExistingDestination();
-  protected readonly withdrawalDestination =
-    signal<GoalPlanWithdrawalDestination>(
-      this.#existingWithdrawalDestination ?? 'goal_only',
-    );
-  protected readonly hasWithdrawal = computed(() =>
-    this.data.changes.some((change) => change.after < 0),
+  readonly #withdrawalDestinations = signal(
+    new Map(
+      this.data.changes
+        .filter((change) => change.after < 0)
+        .map(
+          (change) =>
+            [
+              this.periodKey(change),
+              change.planWithdrawalDestination ?? 'goal_only',
+            ] as const,
+        ),
+    ),
   );
-  protected readonly canLinkWithdrawal = computed(() =>
-    this.data.changes
-      .filter((change) => change.after < 0)
-      .every((change) => change.hasBudget === true),
+  protected readonly withdrawalChanges = computed(() =>
+    this.data.changes.filter((change) => change.after < 0),
   );
-  protected readonly isConvertingWithdrawal = computed(
-    () =>
-      this.#existingWithdrawalDestination != null &&
-      this.withdrawalDestination() !== this.#existingWithdrawalDestination,
-  );
-  protected readonly conversionKey = computed(() =>
-    this.#existingWithdrawalDestination === 'linked_income'
-      ? 'savingsGoals.simulate.withdrawalConvertToGoalOnly'
-      : 'savingsGoals.simulate.withdrawalConvertToLinked',
+  protected readonly hasWithdrawal = computed(
+    () => this.withdrawalChanges().length > 0,
   );
   protected readonly titleKey = computed(() =>
     this.isCreation()
@@ -265,9 +343,14 @@ export class GoalPlanApplyDialog {
       ? 'savingsGoals.simulate.createConfirm'
       : 'savingsGoals.simulate.applyConfirm',
   );
+  protected readonly withdrawalConfirmKey = computed(() =>
+    this.withdrawalChanges().length === 1
+      ? 'savingsGoals.simulate.withdrawalConfirmOne'
+      : 'savingsGoals.simulate.withdrawalConfirmMany',
+  );
 
   protected readonly uniformChange = computed(() => {
-    if (this.isCreation()) return null;
+    if (this.isCreation() || this.hasWithdrawal()) return null;
     const changes = this.data.changes;
     if (changes.length === 0) return null;
     const first = changes[0];
@@ -278,17 +361,77 @@ export class GoalPlanApplyDialog {
     return isUniform ? { before: first.before, after: first.after } : null;
   });
 
-  protected readonly visibleChanges = computed(() =>
-    this.isCreation()
-      ? this.data.changes
-      : this.data.changes.slice(0, MAX_DIFF_ROWS),
-  );
+  protected readonly visibleChanges = computed(() => {
+    if (this.isCreation()) return this.data.changes;
+    let visibleNonWithdrawals = 0;
+    return this.data.changes.filter(
+      (change) =>
+        change.before < 0 ||
+        change.after < 0 ||
+        visibleNonWithdrawals++ < MAX_DIFF_ROWS,
+    );
+  });
 
   protected readonly hiddenCount = computed(() =>
     this.isCreation()
       ? 0
-      : Math.max(0, this.data.changes.length - MAX_DIFF_ROWS),
+      : Math.max(
+          0,
+          this.data.changes.filter(
+            (change) => change.before >= 0 && change.after >= 0,
+          ).length - MAX_DIFF_ROWS,
+        ),
   );
+
+  protected periodKey(change: GoalPlanApplyChange): number {
+    return change.year * 12 + change.month;
+  }
+
+  protected contributionAmount(change: GoalPlanApplyChange): number {
+    return change.contributionAmount ?? Math.max(0, change.before);
+  }
+
+  protected withdrawalBefore(change: GoalPlanApplyChange): number {
+    return Math.min(0, change.before);
+  }
+
+  protected netEffect(change: GoalPlanApplyChange): number {
+    return this.contributionAmount(change) + change.after;
+  }
+
+  protected withdrawalDestination(
+    change: GoalPlanApplyChange,
+  ): GoalPlanWithdrawalDestination {
+    return this.#withdrawalDestinations().get(this.periodKey(change))!;
+  }
+
+  protected setWithdrawalDestination(
+    change: GoalPlanApplyChange,
+    destination: GoalPlanWithdrawalDestination,
+  ): void {
+    this.#withdrawalDestinations.update((destinations) => {
+      const next = new Map(destinations);
+      next.set(this.periodKey(change), destination);
+      return next;
+    });
+  }
+
+  protected canLinkWithdrawal(change: GoalPlanApplyChange): boolean {
+    return change.hasBudget === true;
+  }
+
+  protected isConvertingWithdrawal(change: GoalPlanApplyChange): boolean {
+    return (
+      change.planWithdrawalDestination != null &&
+      this.withdrawalDestination(change) !== change.planWithdrawalDestination
+    );
+  }
+
+  protected conversionKey(change: GoalPlanApplyChange): string {
+    return change.planWithdrawalDestination === 'linked_income'
+      ? 'savingsGoals.simulate.withdrawalConvertToGoalOnly'
+      : 'savingsGoals.simulate.withdrawalConvertToLinked';
+  }
 
   protected formatPeriod(change: GoalPlanApplyChange): string {
     return formatBudgetPeriod(
@@ -301,20 +444,13 @@ export class GoalPlanApplyDialog {
 
   protected confirm(): void {
     this.#dialogRef.close(
-      this.hasWithdrawal() ? this.withdrawalDestination() : true,
+      this.hasWithdrawal()
+        ? this.withdrawalChanges().map((change) => ({
+            month: change.month,
+            year: change.year,
+            destination: this.withdrawalDestination(change),
+          }))
+        : true,
     );
-  }
-
-  #resolveExistingDestination(): GoalPlanWithdrawalDestination | null {
-    const destinations = new Set(
-      this.data.changes
-        .filter((change) => change.after < 0)
-        .map((change) => change.planWithdrawalDestination)
-        .filter(
-          (destination): destination is GoalPlanWithdrawalDestination =>
-            destination != null,
-        ),
-    );
-    return destinations.size === 1 ? [...destinations][0] : null;
   }
 }

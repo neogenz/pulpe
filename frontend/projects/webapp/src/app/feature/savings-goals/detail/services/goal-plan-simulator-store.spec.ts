@@ -194,7 +194,9 @@ describe('GoalPlanSimulatorStore', () => {
     store.enter();
     store.setMonth(6, 2026, -4_500);
 
-    const payload = store.buildApplyPayload('linked_income');
+    const payload = store.buildApplyPayload([
+      { month: 6, year: 2026, destination: 'linked_income' },
+    ]);
 
     expect(payload.monthAdjustments).toEqual([]);
     expect(payload.planWithdrawalAdjustments).toEqual([
@@ -244,6 +246,72 @@ describe('GoalPlanSimulatorStore', () => {
     });
   });
 
+  it('routes mixed withdrawal destinations by period', () => {
+    progressSig.set(
+      makeProgress({
+        months: [
+          openMonth(6, LINE_CURRENT, 200, {
+            hasBudget: true,
+            planWithdrawalDestination: 'linked_income',
+          }),
+          openMonth(7, LINE_FUTURE, 200, {
+            hasBudget: true,
+            planWithdrawalDestination: 'goal_only',
+          }),
+        ],
+      }),
+    );
+    store.enter();
+    store.setMonth(6, 2026, -500);
+    store.setMonth(7, 2026, -300);
+
+    const payload = store.buildApplyPayload([
+      { month: 6, year: 2026, destination: 'linked_income' },
+      { month: 7, year: 2026, destination: 'goal_only' },
+    ]);
+
+    expect(payload.planWithdrawalAdjustments).toEqual([
+      {
+        month: 6,
+        year: 2026,
+        amount: -500,
+        destination: 'linked_income',
+      },
+      {
+        month: 7,
+        year: 2026,
+        amount: -300,
+        destination: 'goal_only',
+      },
+    ]);
+  });
+
+  it('preserves an existing destination when none is explicitly returned', () => {
+    progressSig.set(
+      makeProgress({
+        months: [
+          openMonth(6, LINE_CURRENT, 200, {
+            plannedWithdrawalAmount: 500,
+            remainingPlannedWithdrawalAmount: 500,
+            planLinkedWithdrawalAmount: 500,
+            planWithdrawalDestination: 'linked_income',
+          }),
+        ],
+      }),
+    );
+    store.enter();
+    store.setMonth(6, 2026, -450);
+
+    expect(store.buildApplyPayload().planWithdrawalAdjustments).toEqual([
+      {
+        month: 6,
+        year: 2026,
+        amount: -450,
+        destination: 'linked_income',
+      },
+    ]);
+  });
+
   it('clears a reloaded managed withdrawal when the month becomes positive', () => {
     progressSig.set(
       makeProgress({
@@ -252,6 +320,7 @@ describe('GoalPlanSimulatorStore', () => {
             planLinkedWithdrawalAmount: 4_500,
             plannedWithdrawalAmount: 4_500,
             remainingPlannedWithdrawalAmount: 4_500,
+            planWithdrawalDestination: 'linked_income',
           }),
         ],
       }),
@@ -264,7 +333,7 @@ describe('GoalPlanSimulatorStore', () => {
         month: 6,
         year: 2026,
         amount: 0,
-        destination: 'goal_only',
+        destination: 'linked_income',
       },
     ]);
   });

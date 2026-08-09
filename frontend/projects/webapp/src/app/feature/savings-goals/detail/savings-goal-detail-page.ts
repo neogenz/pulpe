@@ -1212,13 +1212,22 @@ export default class SavingsGoalDetailPage {
       // Same zero-gap filter as GoalPlanSimulatorStore#buildApplyPayload — a
       // confirmation must only list changes that will actually be sent.
       .filter(
-        (month) => !(month.isProvisionable && month.simulatedAmount === 0),
+        (month) =>
+          !(
+            month.isProvisionable &&
+            month.simulatedAmount === 0 &&
+            month.replacesExistingPlanWithdrawal !== true
+          ),
       )
       .map((month) => ({
         month: month.month,
         year: month.year,
         before: currentPlanMovement(month),
         after: month.simulatedAmount,
+        contributionAmount: Math.max(
+          month.plannedAmount,
+          month.confirmedAmount,
+        ),
         hasBudget: month.hasBudget === true,
         planWithdrawalDestination: month.planWithdrawalDestination,
         planWithdrawalConsumedAmount: month.planWithdrawalConsumedAmount,
@@ -1236,7 +1245,7 @@ export default class SavingsGoalDetailPage {
 
     this.#isApplying.set(true);
     try {
-      await this.simulator.apply(decision === true ? 'goal_only' : decision);
+      await this.simulator.apply(decision === true ? [] : decision);
       this.#timelineExpanded.set(false);
       this.#openSnackBar(
         this.#transloco.translate('savingsGoals.simulate.applySuccess'),

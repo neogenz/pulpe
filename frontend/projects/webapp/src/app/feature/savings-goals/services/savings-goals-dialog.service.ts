@@ -18,7 +18,7 @@ import {
 import {
   GoalPlanApplyDialog,
   type GoalPlanApplyDialogData,
-  type GoalPlanWithdrawalDestination,
+  type GoalPlanApplyDialogResult,
 } from '../detail/components/goal-plan-apply-dialog';
 import {
   GoalGenerationStopDialog,
@@ -51,7 +51,7 @@ export class SavingsGoalsDialogService {
 
   async openApplyPlan(
     data: GoalPlanApplyDialogData,
-  ): Promise<GoalPlanWithdrawalDestination | true | undefined> {
+  ): Promise<GoalPlanApplyDialogResult | undefined> {
     const dialogRef = this.#dialog.open(GoalPlanApplyDialog, {
       data,
       width: '480px',

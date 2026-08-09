@@ -1,5 +1,9 @@
 import SwiftUI
 
+typealias GoalPlanWithdrawalDestinations = [
+    Int: SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination
+]
+
 enum GoalPlanApplyRecapMode: Equatable {
     case adjustment
     case creation
@@ -7,9 +11,9 @@ enum GoalPlanApplyRecapMode: Equatable {
 
 /// « On met ton plan à jour ? » (PUL-12+, pilier C) — the apply-on-confirm recap.
 ///
-/// A medium-detent sheet summarising the edited months (uniform → one line, mixed →
-/// up to 5 rows + « et N autres »), the projection verdict, and a loading
-/// confirm button doing the pessimistic write (`docs/SAVINGS.md` §10.1).
+/// A medium-detent sheet summarising the edited months, the destination of every
+/// planned withdrawal, the projection verdict, and a loading confirm button doing
+/// the pessimistic write (`docs/SAVINGS.md` §10.1).
 /// Épargne accents only — never amber/red (RG-002).
 struct GoalPlanApplyRecapSheet: View {
     var mode: GoalPlanApplyRecapMode = .adjustment
@@ -17,11 +21,11 @@ struct GoalPlanApplyRecapSheet: View {
     let verdict: String
     let currency: SupportedCurrency
     /// Returns `true` on a successful write so the sheet can dismiss itself.
-    let onConfirm: (SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination) async -> Bool
+    let onConfirm: (GoalPlanWithdrawalDestinations) async -> Bool
 
     @Environment(\.dismiss) private var dismiss
     @State private var isConfirming = false
-    @State private var withdrawalDestination: SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination
+    @State private var withdrawalDestinations: GoalPlanWithdrawalDestinations
 
     private let maxListedRows = 5
 
@@ -30,57 +34,92 @@ struct GoalPlanApplyRecapSheet: View {
         changes: [SavingsPlanCalculator.SimulatedMonth],
         verdict: String,
         currency: SupportedCurrency,
-        onConfirm: @escaping (SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination) async -> Bool
+        onConfirm: @escaping (GoalPlanWithdrawalDestinations) async -> Bool
     ) {
         self.mode = mode
         self.changes = changes
         self.verdict = verdict
         self.currency = currency
         self.onConfirm = onConfirm
-        _withdrawalDestination = State(
-            initialValue: Self.initialWithdrawalDestination(for: changes)
+        _withdrawalDestinations = State(
+            initialValue: Self.initialWithdrawalDestinations(for: changes)
         )
     }
 
-    nonisolated static func initialWithdrawalDestination(
+    struct WithdrawalBreakdown: Equatable {
+        let contribution: Decimal
+        let previousWithdrawal: Decimal
+        let plannedWithdrawal: Decimal
+        let netEffect: Decimal
+    }
+
+    nonisolated static func initialWithdrawalDestinations(
         for changes: [SavingsPlanCalculator.SimulatedMonth]
-    ) -> SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination {
-        let destinations = Set(changes.compactMap(\.month.planWithdrawalDestination))
-        return destinations.count == 1 ? destinations.first ?? .goalOnly : .goalOnly
+    ) -> GoalPlanWithdrawalDestinations {
+        Dictionary(uniqueKeysWithValues: changes.compactMap { change in
+            guard change.simulatedAmount < 0 else { return nil }
+            return (
+                change.id,
+                change.month.planWithdrawalDestination ?? .goalOnly
+            )
+        })
+    }
+
+    nonisolated static func withdrawalBreakdown(
+        for change: SavingsPlanCalculator.SimulatedMonth
+    ) -> WithdrawalBreakdown {
+        let contribution = max(change.month.plannedAmount, change.month.confirmedAmount)
+        let previousWithdrawal = -SavingsPlanCalculator.managedPlanWithdrawalAmount(change.month)
+        return WithdrawalBreakdown(
+            contribution: contribution,
+            previousWithdrawal: previousWithdrawal,
+            plannedWithdrawal: change.simulatedAmount,
+            netEffect: contribution + change.simulatedAmount
+        )
+    }
+
+    nonisolated static func listedChanges(
+        _ changes: [SavingsPlanCalculator.SimulatedMonth],
+        maxNonWithdrawals: Int
+    ) -> [SavingsPlanCalculator.SimulatedMonth] {
+        var nonWithdrawalCount = 0
+        return changes.filter { change in
+            if change.simulatedAmount < 0 || change.replacesExistingPlanWithdrawal {
+                return true
+            }
+            guard nonWithdrawalCount < max(0, maxNonWithdrawals) else { return false }
+            nonWithdrawalCount += 1
+            return true
+        }
+    }
+
+    nonisolated static func canLinkWithdrawal(
+        _ change: SavingsPlanCalculator.SimulatedMonth
+    ) -> Bool {
+        change.simulatedAmount < 0 && change.month.hasBudget
     }
 
     private var isUniform: Bool {
-        mode == .adjustment && Set(changes.map(\.simulatedAmount)).count <= 1
+        mode == .adjustment && !hasWithdrawal && Set(changes.map(\.simulatedAmount)).count <= 1
     }
 
     private var listedChanges: [SavingsPlanCalculator.SimulatedMonth] {
-        mode == .creation ? changes : Array(changes.prefix(maxListedRows))
+        if mode == .creation { return changes }
+        return Self.listedChanges(changes, maxNonWithdrawals: maxListedRows)
     }
 
+    private var omittedChangeCount: Int { changes.count - listedChanges.count }
+
     private var summary: String {
-        guard mode == .creation else { return "\(changes.count) mois ajustés" }
+        guard mode == .creation else {
+            return changes.count == 1 ? "1 mois ajusté" : "\(changes.count) mois ajustés"
+        }
         return changes.count == 1
             ? "1 prévision Épargne à ajouter"
             : "\(changes.count) prévisions Épargne à ajouter"
     }
 
     private var hasWithdrawal: Bool { changes.contains { $0.simulatedAmount < 0 } }
-
-    private var canLinkWithdrawal: Bool {
-        changes.filter { $0.simulatedAmount < 0 }.allSatisfy(\.month.hasBudget)
-    }
-
-    private var existingWithdrawalDestination: SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination? {
-        let destinations = Set(changes.compactMap(\.month.planWithdrawalDestination))
-        return destinations.count == 1 ? destinations.first : nil
-    }
-
-    private var conversionMessage: String? {
-        Self.conversionMessage(
-            from: existingWithdrawalDestination,
-            to: withdrawalDestination
-        )
-    }
 
     nonisolated static func conversionMessage(
         from existing: SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination?,
@@ -101,8 +140,6 @@ struct GoalPlanApplyRecapSheet: View {
                         .foregroundStyle(Color.textPrimary)
 
                     diffBlock
-
-                    if hasWithdrawal { withdrawalChoice }
 
                     Text(verdict)
                         .font(PulpeTypography.subheadline)
@@ -127,52 +164,24 @@ struct GoalPlanApplyRecapSheet: View {
         }
         .standardSheetPresentation(detents: [.medium, .large])
     }
+}
 
-    private var withdrawalChoice: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
-            Text("Que veux-tu faire de ce retrait ?")
-                .font(PulpeTypography.headline)
-
-            destinationRow(
-                .goalOnly,
-                title: "Mettre à jour l’objectif uniquement",
-                detail: "Recommandé · La projection baisse. Rien ne change dans ton budget."
-            )
-            destinationRow(
-                .linkedIncome,
-                title: "Créer aussi un revenu dans le budget",
-                detail: "Une Prévision Revenu liée sera ajoutée. "
-                    + "Réalise-la dans le budget : le Réel créé sera automatiquement pointé.",
-                enabled: canLinkWithdrawal
-            )
-
-            if !canLinkWithdrawal {
-                Text("Crée d’abord le budget du mois concerné pour y ajouter ce revenu.")
-                    .font(PulpeTypography.listRowSubtitle)
-                    .foregroundStyle(Color.textSecondary)
-            }
-
-            if let conversionMessage {
-                Text(conversionMessage)
-                    .font(PulpeTypography.listRowSubtitle)
-                    .foregroundStyle(Color.textSecondary)
-                    .accessibilityAddTraits(.isStaticText)
-            }
-        }
-    }
-
+private extension GoalPlanApplyRecapSheet {
     private func destinationRow(
+        for change: SavingsPlanCalculator.SimulatedMonth,
         _ destination: SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination,
         title: String,
         detail: String,
         enabled: Bool = true
     ) -> some View {
-        Button {
-            withdrawalDestination = destination
+        let isSelected = withdrawalDestination(for: change) == destination
+        return Button {
+            withdrawalDestinations[change.id] = destination
         } label: {
             HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
-                Image(systemName: withdrawalDestination == destination ? "largecircle.fill.circle" : "circle")
+                Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
                     .foregroundStyle(enabled ? Color.pulpePrimary : Color.textTertiary)
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
                     Text(title).font(PulpeTypography.listRowTitle)
                     Text(detail)
@@ -183,8 +192,14 @@ struct GoalPlanApplyRecapSheet: View {
             }
         }
         .buttonStyle(.plain)
+        .frame(minHeight: DesignTokens.TapTarget.minimum, alignment: .leading)
+        .contentShape(Rectangle())
         .disabled(!enabled)
-        .opacity(enabled ? 1 : 0.55)
+        .opacity(enabled ? 1 : DesignTokens.Opacity.disabled)
+        .accessibilityLabel(title)
+        .accessibilityValue(isSelected ? "Sélectionné" : "Non sélectionné")
+        .accessibilityHint(detail)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     @ViewBuilder
@@ -197,11 +212,18 @@ struct GoalPlanApplyRecapSheet: View {
                     .foregroundStyle(Color.financialSavings)
                     .sensitiveAmount()
             } else {
-                ForEach(listedChanges) { simMonth in
-                    diffRow(simMonth)
+                ForEach(Array(listedChanges.enumerated()), id: \.element.id) { index, simMonth in
+                    if index > 0 {
+                        Divider().foregroundStyle(Color.outlineVariant)
+                    }
+                    if simMonth.simulatedAmount < 0 {
+                        withdrawalChange(simMonth)
+                    } else {
+                        diffRow(simMonth)
+                    }
                 }
-                if mode == .adjustment, changes.count > maxListedRows {
-                    Text("et \(changes.count - maxListedRows) autres")
+                if mode == .adjustment, omittedChangeCount > 0 {
+                    Text("et \(omittedChangeCount) autres")
                         .font(PulpeTypography.metricLabel)
                         .foregroundStyle(Color.textTertiary)
                 }
@@ -234,6 +256,132 @@ struct GoalPlanApplyRecapSheet: View {
         .sensitiveAmount()
     }
 
+    private func withdrawalChange(_ change: SavingsPlanCalculator.SimulatedMonth) -> some View {
+        let breakdown = Self.withdrawalBreakdown(for: change)
+
+        return VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            Text("\(Formatters.monthName(for: change.month.month)) \(change.month.year)")
+                .font(PulpeTypography.listRowTitle)
+                .foregroundStyle(Color.textPrimary)
+
+            withdrawalAmounts(breakdown)
+            withdrawalDestinationChoices(for: change)
+        }
+    }
+
+    private func withdrawalAmounts(_ breakdown: WithdrawalBreakdown) -> some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            amountRow(
+                label: "Épargne prévue",
+                amount: breakdown.contribution,
+                detail: "Conservée"
+            )
+            withdrawalTransition(
+                from: breakdown.previousWithdrawal,
+                to: breakdown.plannedWithdrawal
+            )
+            amountRow(label: "Effet net du mois", amount: breakdown.netEffect)
+        }
+    }
+
+    private func withdrawalDestinationChoices(
+        for change: SavingsPlanCalculator.SimulatedMonth
+    ) -> some View {
+        let canLink = Self.canLinkWithdrawal(change)
+        let selectedDestination = withdrawalDestination(for: change)
+
+        return VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            Text("Destination de ce mois")
+                .font(PulpeTypography.metricLabel)
+                .foregroundStyle(Color.textSecondary)
+
+            destinationRow(
+                for: change,
+                .goalOnly,
+                title: "Objectif uniquement",
+                detail: "La projection baisse. Rien ne change dans ton budget."
+            )
+            destinationRow(
+                for: change,
+                .linkedIncome,
+                title: "Revenu dans le budget",
+                detail: "Une Prévision Revenu liée sera ajoutée. "
+                    + "Réalise-la dans le budget : le Réel créé sera automatiquement pointé.",
+                enabled: canLink
+            )
+
+            if !canLink {
+                Text("Crée d’abord le budget de ce mois pour y ajouter le revenu.")
+                    .font(PulpeTypography.listRowSubtitle)
+                    .foregroundStyle(Color.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if let message = Self.conversionMessage(
+                from: change.month.planWithdrawalDestination,
+                to: selectedDestination
+            ) {
+                Text(message)
+                    .font(PulpeTypography.listRowSubtitle)
+                    .foregroundStyle(Color.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isStaticText)
+            }
+        }
+    }
+
+    private func amountRow(label: String, amount: Decimal, detail: String? = nil) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                Text(label)
+                if let detail {
+                    Text(detail)
+                        .font(PulpeTypography.listRowSubtitle)
+                        .foregroundStyle(Color.textTertiary)
+                }
+            }
+            Spacer(minLength: DesignTokens.Spacing.sm)
+            Text(signedCurrency(amount))
+                .font(PulpeTypography.metricLabelBold)
+                .monospacedDigit()
+                .sensitiveAmount()
+        }
+        .font(PulpeTypography.metricLabel)
+        .foregroundStyle(Color.textPrimary)
+    }
+
+    private func withdrawalTransition(from: Decimal, to: Decimal) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+            Text("Retrait planifié")
+            Spacer(minLength: DesignTokens.Spacing.sm)
+            Text(signedCurrency(from))
+                .foregroundStyle(Color.textTertiary)
+                .strikethrough(true, color: Color.textTertiary)
+            Image(systemName: "arrow.right")
+                .font(PulpeTypography.caption2)
+                .foregroundStyle(Color.textTertiary)
+                .accessibilityHidden(true)
+            Text(signedCurrency(to))
+                .foregroundStyle(Color.textPrimary)
+        }
+        .font(PulpeTypography.metricLabelBold)
+        .monospacedDigit()
+        .sensitiveAmount()
+    }
+
+    private func signedCurrency(_ amount: Decimal) -> String {
+        let formatted = amount.asCompactCurrency(currency)
+        return amount > 0 ? "+\(formatted)" : formatted
+    }
+
+    private func withdrawalDestination(
+        for change: SavingsPlanCalculator.SimulatedMonth
+    ) -> SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination {
+        withdrawalDestinations[change.id]
+            ?? change.month.planWithdrawalDestination
+            ?? .goalOnly
+    }
+
     private var confirmFooter: some View {
         Button {
             confirm()
@@ -242,7 +390,7 @@ struct GoalPlanApplyRecapSheet: View {
                 if isConfirming { ProgressView().tint(Color.textOnPrimary) }
                 Text(
                     hasWithdrawal
-                        ? "Appliquer le retrait"
+                        ? "Planifier le retrait"
                         : mode == .creation ? "Créer les épargnes" : "Mettre à jour"
                 )
             }
@@ -257,7 +405,7 @@ struct GoalPlanApplyRecapSheet: View {
     private func confirm() {
         isConfirming = true
         Task {
-            let succeeded = await onConfirm(withdrawalDestination)
+            let succeeded = await onConfirm(withdrawalDestinations)
             isConfirming = false
             if succeeded { dismiss() }
         }
