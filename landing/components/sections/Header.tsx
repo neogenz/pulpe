@@ -13,6 +13,7 @@ const navLinks = [
   { href: "/#pain-points", label: "Pourquoi Pulpe" },
   { href: "/#how-it-works", label: "Comment ça marche" },
   { href: "/#platforms", label: "Applications" },
+  { href: "/support", label: "Aide" },
   { href: "/#why-free", label: "Pourquoi c’est gratuit" },
 ];
 
