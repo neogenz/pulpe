@@ -81,6 +81,22 @@ function configureDialog({
 describe('AddBudgetLineDialog', () => {
   beforeEach(() => TestBed.resetTestingModule());
 
+  // Le verbe porte le temps, le nom porte la nature : « Prévoir » ici, « Noter »
+  // sur la homepage. Un titre figé laissait les deux écrans se ressembler.
+  it('should complete its title with the chosen nature', () => {
+    const { fixture, component } = configureDialog();
+    const title = (): string =>
+      fixture.nativeElement.querySelector('h2').textContent.trim();
+    fixture.detectChanges();
+
+    expect(title()).toBe('Prévoir une dépense');
+
+    component['model'].update((m) => ({ ...m, kind: 'saving' as const }));
+    fixture.detectChanges();
+
+    expect(title()).toBe('Prévoir une épargne');
+  });
+
   describe('submit', () => {
     it('should close with budget line data when form is valid', async () => {
       const { component, dialogRef } = configureDialog();

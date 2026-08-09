@@ -49,13 +49,14 @@ import {
       mat-dialog-title
       class="text-headline-small text-on-surface pr-20! [text-wrap:balance]"
     >
-      {{ 'currentMonth.addTransactionTitle' | transloco }}
+      {{
+        'currentMonth.addTransactionTitle'
+          | transloco
+            : { nature: 'transactionKindIndefinite.' + form.kind() | transloco }
+      }}
     </h2>
 
     <mat-dialog-content>
-      <p class="text-body-small text-on-surface-variant mt-0 mb-4 text-pretty">
-        {{ 'currentMonth.addTransactionSubtitle' | transloco }}
-      </p>
       <pulpe-add-transaction-form
         #form
         class="add-transaction-form-wide block"

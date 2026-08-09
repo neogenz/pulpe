@@ -556,7 +556,7 @@
     "searchPlaceholder": "Rechercher une prévision...",
     "details": "Détails",
     "createdFromTemplate": "Créer depuis le modèle",
-    "newForecast": "Nouvelle prévision",
+    "newForecast": "Prévoir {{ nature }}",
     "editForecast": "Modifier la prévision",
     "forecastNameLabel": "Nom",
     "forecastNamePlaceholder": "Ex: Salaire, Loyer, Épargne...",
@@ -972,8 +972,8 @@
     "projectionCumulatedSavingsLabel": "Épargne cumulée",
     "projectionChartAria": "Projection sur {{ count }} mois avec budget, de {{ first }} à {{ last }} : disponible {{ firstBalance }} au départ, {{ lastBalance }} à l'arrivée, épargne cumulée {{ totalSavings }} sur la période.",
     "projectionChartAriaHidden": "Projection sur {{ count }} mois avec budget, de {{ first }} à {{ last }}. Montants masqués.",
-    "addTransactionTitle": "Noter une dépense",
-    "addTransactionSubtitle": "Pas liée à une prévision",
+    "addTransactionTitle": "Noter {{ nature }}",
+    "addTransactionFab": "Noter une dépense",
     "addTransactionClose": "Fermer",
     "addTransactionQuickAmounts": "Montants rapides",
     "addTransactionDescription": "Description",
@@ -1571,6 +1571,11 @@
     "income": "Revenu",
     "expense": "Dépense",
     "saving": "Épargne"
+  },
+  "transactionKindIndefinite": {
+    "income": "un revenu",
+    "expense": "une dépense",
+    "saving": "une épargne"
   },
   "recurrence": {
     "fixed": "Récurrent",

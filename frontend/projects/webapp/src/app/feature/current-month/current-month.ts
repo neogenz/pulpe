@@ -170,13 +170,14 @@ type UndoableAction =
                also the order a screen reader reads them in. -->
           <button
             matFab
+            extended
             (click)="openAddTransaction()"
             class="fab-button"
-            [attr.aria-label]="'budgetLine.addTransaction' | transloco"
             data-testid="add-transaction-fab"
             data-tour="add-transaction-fab"
           >
-            <mat-icon aria-hidden="true" class="fab-icon">add</mat-icon>
+            <mat-icon aria-hidden="true">add</mat-icon>
+            {{ 'currentMonth.addTransactionFab' | transloco }}
           </button>
 
           <!-- The month's open work. The list with a button on every row leads;
@@ -463,15 +464,16 @@ type UndoableAction =
       }
     }
 
+    /* Étendu, et pas rond : le « + » seul ne disait pas ce qu'il ouvrait, alors
+       que c'est le premier endroit où le verbe se lit — avant même le titre du
+       formulaire. Il recouvre un peu du contenu en bas de page, ce qui est le
+       prix consenti pour cela. Material tient la géométrie de la variante
+       étendue (hauteur 56, corner-large), il n'y a donc rien à figer ici. */
     .fab-button {
       position: fixed;
       bottom: calc(24px + env(safe-area-inset-bottom));
       right: 24px;
       z-index: 100;
-
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
 
       /* Flat. DESIGN.md gives the gradient to the hero and to nothing else —
          the rest of the system is flat surface or hairline border — and this
@@ -500,17 +502,6 @@ type UndoableAction =
         box-shadow: var(--mat-sys-level1);
         transition-duration: 100ms;
       }
-
-      &:hover .fab-icon {
-        transform: rotate(90deg);
-      }
-    }
-
-    .fab-icon {
-      font-size: 28px;
-      width: 28px;
-      height: 28px;
-      transition: transform 300ms var(--pulpe-ease-emphasized);
     }
 
     @keyframes fab-scale-in {
@@ -531,10 +522,6 @@ type UndoableAction =
     @media (prefers-reduced-motion: reduce) {
       .fab-button {
         animation: none;
-        transition: none;
-      }
-
-      .fab-icon {
         transition: none;
       }
     }

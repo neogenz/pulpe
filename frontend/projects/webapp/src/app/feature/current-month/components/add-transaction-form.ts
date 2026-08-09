@@ -71,6 +71,18 @@ interface AddTransactionModel {
       novalidate
       data-testid="transaction-form"
     >
+      <!-- Directement sous le titre, parce que c'est la seule ligne qui sépare
+           cet écran de « Prévoir » : ici on enregistre un fait daté, là-bas on
+           déclare une intention. Enterrée en bas de formulaire, elle arrivait
+           après que la question ait été tranchée. Stated, not dressed as a
+           control : la date est toujours aujourd'hui sur cet écran, et c'est le
+           formulaire d'édition qui permet d'en choisir une autre. -->
+      <p
+        class="add-transaction-form-lede flex items-center gap-2 m-0 px-1 text-body-small text-on-surface-variant"
+      >
+        <mat-icon class="mat-icon-sm" aria-hidden="true">event</mat-icon>
+        <span>{{ 'currentMonth.addTransactionToday' | transloco }}</span>
+      </p>
       <div class="flex flex-col gap-4">
         <pulpe-amount-input
           [control]="transactionForm.money"
@@ -184,18 +196,7 @@ interface AddTransactionModel {
           </div>
         }
       </div>
-      <div class="add-transaction-form-meta grid grid-cols-1 gap-3">
-        <!-- Stated, not dressed as a control. A filled tonal surface with a
-             rounded corner and a leading glyph, sitting in a form grid beside a
-             live toggle, said "tap to change the date" four ways over a static
-             div. The date is always today here; the edit form is where it can
-             be chosen. -->
-        <p
-          class="flex items-center gap-2 px-1 text-body-small text-on-surface-variant"
-        >
-          <mat-icon class="mat-icon-sm" aria-hidden="true">event</mat-icon>
-          <span>{{ 'currentMonth.addTransactionToday' | transloco }}</span>
-        </p>
+      <div class="add-transaction-form-meta">
         <div class="flex items-center justify-between py-2 px-1">
           <div class="flex flex-col">
             <span class="text-body-medium text-on-surface">{{
@@ -234,9 +235,9 @@ interface AddTransactionModel {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       column-gap: var(--pulpe-section-gap-md);
     }
+    :host(.add-transaction-form-wide) .add-transaction-form-lede,
     :host(.add-transaction-form-wide) .add-transaction-form-meta {
       grid-column: span 2 / span 2;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   `,
   host: { class: 'block' },
@@ -268,6 +269,12 @@ export class AddTransactionForm {
     tagIds: [],
     isChecked: true,
   });
+
+  // Lu par les deux coques pour terminer leur titre : « Noter une dépense »
+  // devient « Noter un revenu ». Le select reste visible pendant qu'on le
+  // manipule, donc la mutation se lit comme une réponse à ce qu'on vient de
+  // faire, et non comme un tremblement du titre.
+  readonly kind = computed(() => this.model().kind);
 
   // L'origine n'est pas un champ signal-forms : le picker est value-based. Elle
   // est effacée au changement de type (`onKindChange`) plutôt que dérivée du

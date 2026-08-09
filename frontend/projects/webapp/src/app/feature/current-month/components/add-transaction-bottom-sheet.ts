@@ -45,13 +45,15 @@ import {
       <div class="flex justify-between items-center gap-4">
         <div class="min-w-0">
           <h2 class="text-title-large text-on-surface m-0 [text-wrap:balance]">
-            {{ 'currentMonth.addTransactionTitle' | transloco }}
+            {{
+              'currentMonth.addTransactionTitle'
+                | transloco
+                  : {
+                      nature:
+                        'transactionKindIndefinite.' + form.kind() | transloco,
+                    }
+            }}
           </h2>
-          <p
-            class="text-body-small text-on-surface-variant mt-0.5 mb-0 text-pretty"
-          >
-            {{ 'currentMonth.addTransactionSubtitle' | transloco }}
-          </p>
         </div>
         <button
           matIconButton

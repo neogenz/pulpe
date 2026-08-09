@@ -91,6 +91,22 @@ function aTransaction(): TransactionFormData {
 describe('AddTransactionBottomSheet', () => {
   beforeEach(() => TestBed.resetTestingModule());
 
+  // Le titre vit dans la coque, la nature dans le formulaire : c'est la seule
+  // liaison qui traverse les deux composants, donc la seule qui peut casser
+  // sans qu'aucun des deux ne cesse de compiler.
+  it('should complete its title with the chosen nature', async () => {
+    const { fixture, form } = await configureBottomSheet();
+    const title = (): string =>
+      fixture.nativeElement.querySelector('h2').textContent.trim();
+
+    expect(title()).toBe('Noter une dépense');
+
+    form['model'].update((model) => ({ ...model, kind: 'income' as const }));
+    fixture.detectChanges();
+
+    expect(title()).toBe('Noter un revenu');
+  });
+
   it('should dismiss without data on cancel', async () => {
     const { component, bottomSheetRef } = await configureBottomSheet();
 
