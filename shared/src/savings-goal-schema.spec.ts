@@ -5,6 +5,7 @@ import {
   savingsGoalDeletionCommandSchema,
   savingsGoalDeletionImpactSchema,
   savingsGoalPlanApplySchema,
+  savingsGoalPlannedWithdrawalSchema,
   savingsGoalProgressSchema,
   savingsGoalUpdateSchema,
   savingsGoalSchema,
@@ -36,6 +37,35 @@ function isoDateOffsetMonths(months: number): string {
     .toISOString()
     .slice(0, 10);
 }
+
+describe('PUL-329 — savingsGoalPlannedWithdrawalSchema', () => {
+  const plannedWithdrawal = {
+    budgetLineId: UUID,
+    budgetId: UUID_2,
+    name: 'Retrait planifié',
+    month: 9,
+    year: 2026,
+    plannedAmount: 4500,
+    realizedAmount: 0,
+    remainingAmount: 4500,
+    status: 'planned',
+  };
+
+  test('identifies a withdrawal created by the savings plan', () => {
+    const result = savingsGoalPlannedWithdrawalSchema.parse({
+      ...plannedWithdrawal,
+      origin: 'plan_linked',
+    });
+
+    expect(result.origin).toBe('plan_linked');
+  });
+
+  test('keeps historical payloads without an origin readable', () => {
+    const result = savingsGoalPlannedWithdrawalSchema.parse(plannedWithdrawal);
+
+    expect(result.origin).toBeUndefined();
+  });
+});
 
 describe('PUL-12 — savingsGoalCreateSchema', () => {
   const base = {

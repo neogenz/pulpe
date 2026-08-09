@@ -271,6 +271,7 @@ const plannedWithdrawalRow = {
   source_savings_goal_id: 'goal-1',
   name: 'Retrait planifié',
   amount: 'enc:1200',
+  is_savings_goal_plan_adjustment: false,
   monthly_budget: { month: 9, year: 2026 },
 };
 
@@ -1105,6 +1106,25 @@ describe('SupabaseSavingsGoalRepository', () => {
           year: 2026,
         },
       ]);
+    });
+
+    it('marks only a forecast created by the savings plan', async () => {
+      const { provider } = createWithdrawalProvider({
+        data: [
+          { ...plannedWithdrawalRow, is_savings_goal_plan_adjustment: true },
+          plannedWithdrawalRow,
+        ],
+        error: null,
+      });
+      const repo = new SupabaseSavingsGoalRepository(
+        provider,
+        createMockEncryption(),
+      );
+
+      const result = await repo.findPlannedWithdrawalRecords('goal-1');
+
+      expect(result[0]?.origin).toBe('plan_linked');
+      expect(result[1]?.origin).toBeUndefined();
     });
   });
 

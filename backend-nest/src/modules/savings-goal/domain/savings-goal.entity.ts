@@ -186,6 +186,7 @@ export interface SavingsGoalPlannedWithdrawalRecord {
   amount: number;
   month: number;
   year: number;
+  origin?: 'plan_linked';
 }
 
 /**

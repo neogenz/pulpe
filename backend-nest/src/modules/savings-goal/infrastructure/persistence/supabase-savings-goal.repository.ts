@@ -537,6 +537,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       amount: this.encryption.tryDecryptAmount(row.amount, dek, 0),
       month: row.monthly_budget.month,
       year: row.monthly_budget.year,
+      origin: row.is_savings_goal_plan_adjustment ? 'plan_linked' : undefined,
     }));
   }
 

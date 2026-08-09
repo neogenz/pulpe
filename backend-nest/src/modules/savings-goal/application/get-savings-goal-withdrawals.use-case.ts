@@ -83,6 +83,7 @@ export class GetSavingsGoalWithdrawalsUseCase {
       plannedAmount: record.amount,
       realizedAmount,
       remainingAmount,
+      origin: record.origin,
       status:
         realizedAmount === 0
           ? 'planned'

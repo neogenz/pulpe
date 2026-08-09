@@ -758,6 +758,7 @@ export const savingsGoalPlannedWithdrawalSchema = z.object({
   realizedAmount: z.coerce.number().nonnegative(),
   remainingAmount: z.coerce.number().nonnegative(),
   status: z.enum(['planned', 'partially_realized', 'realized']),
+  origin: z.literal('plan_linked').optional(),
 });
 export type SavingsGoalPlannedWithdrawal = z.infer<
   typeof savingsGoalPlannedWithdrawalSchema

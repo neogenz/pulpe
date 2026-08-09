@@ -57,6 +57,10 @@ struct SavingsGoalPlannedWithdrawal: Codable, Identifiable, Hashable, Sendable {
         case realized
     }
 
+    enum Origin: String, Codable, Sendable {
+        case planLinked = "plan_linked"
+    }
+
     let budgetLineId: String
     let budgetId: String
     let name: String
@@ -66,8 +70,33 @@ struct SavingsGoalPlannedWithdrawal: Codable, Identifiable, Hashable, Sendable {
     let realizedAmount: Decimal
     let remainingAmount: Decimal
     let status: Status
+    let origin: Origin?
 
     var id: String { budgetLineId }
+
+    init(
+        budgetLineId: String,
+        budgetId: String,
+        name: String,
+        month: Int,
+        year: Int,
+        plannedAmount: Decimal,
+        realizedAmount: Decimal,
+        remainingAmount: Decimal,
+        status: Status,
+        origin: Origin? = nil
+    ) {
+        self.budgetLineId = budgetLineId
+        self.budgetId = budgetId
+        self.name = name
+        self.month = month
+        self.year = year
+        self.plannedAmount = plannedAmount
+        self.realizedAmount = realizedAmount
+        self.remainingAmount = remainingAmount
+        self.status = status
+        self.origin = origin
+    }
 }
 
 struct SavingsGoalPlanOnlyWithdrawal: Codable, Identifiable, Hashable, Sendable {

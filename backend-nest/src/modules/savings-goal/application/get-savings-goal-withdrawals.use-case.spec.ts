@@ -95,6 +95,34 @@ describe('GetSavingsGoalWithdrawalsUseCase', () => {
     );
   });
 
+  it('exposes only plan-created linked incomes as plan_linked', async () => {
+    mockRepo.findWithdrawals.mockResolvedValueOnce([]);
+    mockRepo.findPlannedWithdrawalRecords.mockResolvedValueOnce([
+      {
+        budgetLineId: '223e4567-e89b-12d3-a456-426614174010',
+        budgetId: '123e4567-e89b-12d3-a456-426614174001',
+        name: 'Apport travaux',
+        month: 9,
+        year: 2026,
+        amount: 4_500,
+        origin: 'plan_linked',
+      },
+      {
+        budgetLineId: '223e4567-e89b-12d3-a456-426614174011',
+        budgetId: '123e4567-e89b-12d3-a456-426614174001',
+        name: 'Revenu lié ordinaire',
+        month: 10,
+        year: 2026,
+        amount: 800,
+      },
+    ]);
+
+    const result = await useCase.execute('goal-1');
+
+    expect(result.planned[0]?.origin).toBe('plan_linked');
+    expect(result.planned[1]?.origin).toBeUndefined();
+  });
+
   it('includes direct plan withdrawals as non-actionable out-of-budget rows', async () => {
     mockRepo.findPlanWithdrawals.mockResolvedValueOnce([
       {
