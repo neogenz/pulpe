@@ -12,7 +12,7 @@ import Testing
 struct GoalPlanSimulatorTests {
     private static let lineId = "line-current"
 
-    private static func recapSource() throws -> String {
+    private static func simulatorSource(_ fileName: String) throws -> String {
         var url = URL(fileURLWithPath: #filePath)
         url = url.deletingLastPathComponent() // SavingsGoals/
         url = url.deletingLastPathComponent() // Features/
@@ -20,7 +20,7 @@ struct GoalPlanSimulatorTests {
         url = url.deletingLastPathComponent() // ios/
         return try String(
             contentsOf: url.appendingPathComponent(
-                "Pulpe/Features/SavingsGoals/Simulator/GoalPlanApplyRecapSheet.swift"
+                "Pulpe/Features/SavingsGoals/Simulator/\(fileName)"
             ),
             encoding: .utf8
         )
@@ -152,12 +152,89 @@ struct GoalPlanSimulatorTests {
 extension GoalPlanSimulatorTests {
     @Test("linked-income recap explains automatic pointing after realization")
     func recap_explainsAutomaticPointing() throws {
-        let source = try Self.recapSource()
+        let source = try Self.simulatorSource("GoalPlanApplyRecapSheet.swift")
 
         #expect(source.contains(
             "Réalise-la dans le budget : le Réel créé sera automatiquement pointé."
         ))
         #expect(source.contains("Planifier le retrait"))
+    }
+
+    @Test("uniform recap requires the previous and next amounts to both match")
+    func recap_uniformSummaryRequiresMatchingBeforeAndAfter() {
+        let first = SavingsPlanCalculator.SimulatedMonth(
+            month: openMonth(month: 6, amount: 100),
+            simulatedAmount: 300,
+            simulatedCumulative: 300,
+            isAdjusted: true,
+            replacesExistingPlanWithdrawal: false
+        )
+        let same = SavingsPlanCalculator.SimulatedMonth(
+            month: openMonth(month: 7, amount: 100),
+            simulatedAmount: 300,
+            simulatedCumulative: 600,
+            isAdjusted: true,
+            replacesExistingPlanWithdrawal: false
+        )
+        let differentBefore = SavingsPlanCalculator.SimulatedMonth(
+            month: openMonth(month: 8, amount: 200),
+            simulatedAmount: 300,
+            simulatedCumulative: 900,
+            isAdjusted: true,
+            replacesExistingPlanWithdrawal: false
+        )
+
+        #expect(GoalPlanApplyRecapSheet.hasUniformAdjustment([first, same]))
+        #expect(!GoalPlanApplyRecapSheet.hasUniformAdjustment([first, differentBefore]))
+    }
+
+    @Test("uniform recap presents the previous and next monthly amounts")
+    func recap_uniformSummaryPresentsBeforeAndAfter() throws {
+        let source = try Self.simulatorSource("GoalPlanApplyRecapSheet.swift")
+
+        #expect(source.contains("Text(before.asCompactCurrency(currency))"))
+        #expect(source.contains("Text(after.asCompactCurrency(currency))"))
+        #expect(source.contains("Text(\"/mois sur \\(changes.count) mois\")"))
+        #expect(source.contains("De \\(before.asCurrency(currency)) à \\(after.asCurrency(currency)) "))
+        #expect(source.contains("par mois sur \\(changes.count) mois"))
+    }
+
+    @Test("simulator states the signed amount legend once, outside editable rows")
+    func simulator_showsOneSignedAmountLegend() throws {
+        let rowSource = try Self.simulatorSource("GoalPlanSimEditRow.swift")
+        let sheetSource = try Self.simulatorSource("GoalPlanSimulatorSheet.swift")
+        let legend = "Montant positif : mettre de côté · montant négatif : retirer"
+
+        #expect(!rowSource.contains(legend))
+        #expect(sheetSource.components(separatedBy: legend).count == 2)
+    }
+
+    @Test("withdrawal destination exposes selection without announcing its symbol")
+    func recap_destinationSelectionIsAccessible() throws {
+        let source = try Self.simulatorSource("GoalPlanApplyRecapSheet.swift")
+
+        #expect(source.contains(".accessibilityHidden(true)"))
+        #expect(source.contains(".accessibilityAddTraits(isSelected ? .isSelected : [])"))
+        #expect(!source.contains(".accessibilityValue(isSelected"))
+        #expect(source.contains(".frame(minHeight: DesignTokens.TapTarget.minimum"))
+    }
+
+    @Test("editable amount fields expose a minimum tap target")
+    func simulator_editableFieldsExposeMinimumTapTarget() throws {
+        let rowSource = try Self.simulatorSource("GoalPlanSimEditRow.swift")
+        let sheetSource = try Self.simulatorSource("GoalPlanSimulatorSheet.swift")
+        let minimumTarget = ".frame(minHeight: DesignTokens.TapTarget.minimum)"
+
+        #expect(rowSource.contains(minimumTarget))
+        #expect(sheetSource.contains(minimumTarget))
+    }
+
+    @Test("recap names before and after amounts for VoiceOver")
+    func recap_namesBeforeAndAfterAmountsForVoiceOver() throws {
+        let source = try Self.simulatorSource("GoalPlanApplyRecapSheet.swift")
+
+        #expect(source.contains("Retrait planifié, de \\(signedCurrency(from)) à \\(signedCurrency(to))"))
+        #expect(source.contains(".accessibilityElement(children: .ignore)"))
     }
 
     @Test("recap keeps the contribution and withdrawal as separate financial movements")

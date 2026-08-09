@@ -1,6 +1,7 @@
-import { provideZonelessChangeDetection } from '@angular/core';
+import { LOCALE_ID, provideZonelessChangeDetection } from '@angular/core';
 import { registerLocaleData } from '@angular/common';
 import localeDE from '@angular/common/locales/de-CH';
+import localeFrCH from '@angular/common/locales/fr-CH';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
@@ -9,12 +10,13 @@ import type {
   SavingsGoalPlannedWithdrawal,
   SavingsGoalWithdrawal,
 } from 'pulpe-shared';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { setTestInput } from '@app/testing/signal-test-utils';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { GoalWithdrawalsList } from './goal-withdrawals-list';
 
 registerLocaleData(localeDE);
+registerLocaleData(localeFrCH);
 
 const BUDGET_ID = '00000000-0000-4000-8000-000000000100';
 const TRANSACTION_ID = '00000000-0000-4000-8000-000000000200';
@@ -66,6 +68,7 @@ describe('GoalWithdrawalsList', () => {
       imports: [GoalWithdrawalsList],
       providers: [
         provideZonelessChangeDetection(),
+        { provide: LOCALE_ID, useValue: 'fr-CH' },
         ...provideTranslocoForTest(),
         provideRouter([]),
       ],
@@ -114,27 +117,62 @@ describe('GoalWithdrawalsList', () => {
     expect(row.nativeElement.querySelector('a')).toBeNull();
   });
 
-  it('shows the remaining balance for a partial realization and Réalisé at zero', () => {
+  it('makes the remaining amount dominant for a partial realization', () => {
     setTestInput(component.plannedWithdrawals, [
       plannedWithdrawal({
-        realizedAmount: 1_500,
-        remainingAmount: 3_000,
+        plannedAmount: 500,
+        realizedAmount: 300,
+        remainingAmount: 200,
         status: 'partially_realized',
-      }),
-      plannedWithdrawal({
-        budgetLineId: '00000000-0000-4000-8000-000000000301',
-        name: 'Retrait couvert',
-        realizedAmount: 4_500,
-        remainingAmount: 0,
-        status: 'realized',
       }),
     ]);
     fixture.detectChanges();
 
-    const panel = query('savings-goal-withdrawals-panel');
-    expect(panel.nativeElement.textContent).toContain('Reste à réaliser');
-    expect(panel.nativeElement.textContent).toContain('-3’000.00 CHF');
-    expect(panel.nativeElement.textContent).toContain('Réalisé');
+    const row = query('savings-goal-planned-withdrawal-row');
+    expect(row.nativeElement.textContent).toMatch(/-200\.00 CHF\s+restant/);
+    expect(row.nativeElement.textContent).toContain('Prévu 500.00 CHF');
+    expect(row.nativeElement.textContent).toContain('Réalisé 300.00 CHF');
+  });
+
+  it('merges linked and out-of-budget forecasts in chronological order', () => {
+    setTestInput(component.plannedWithdrawals, [
+      plannedWithdrawal({ name: 'Octobre lié', month: 10 }),
+    ]);
+    setTestInput(component.planOnlyWithdrawals, [
+      planOnlyWithdrawal({ name: 'Août hors budget', month: 8 }),
+    ]);
+    fixture.detectChanges();
+
+    const rows = fixture.debugElement.queryAll(
+      By.css('[data-planned-withdrawal-row]'),
+    );
+    expect(rows.map((row) => row.nativeElement.textContent)).toEqual([
+      expect.stringContaining('Août hors budget'),
+      expect.stringContaining('Octobre lié'),
+    ]);
+  });
+
+  it('keeps the full financial context in the linked budget accessible name', () => {
+    setTestInput(component.plannedWithdrawals, [
+      plannedWithdrawal({
+        plannedAmount: 500,
+        realizedAmount: 300,
+        remainingAmount: 200,
+        status: 'partially_realized',
+      }),
+    ]);
+    fixture.detectChanges();
+
+    const ariaLabel = query('savings-goal-planned-withdrawal-row').attributes[
+      'aria-label'
+    ];
+    expect(ariaLabel).toContain('Apport cuisine');
+    expect(ariaLabel).toContain('septembre 2026');
+    expect(ariaLabel).toContain('Partiellement réalisé');
+    expect(ariaLabel).toContain('Prévu 500.00 CHF');
+    expect(ariaLabel).toContain('réalisé 300.00 CHF');
+    expect(ariaLabel).toContain('reste 200.00 CHF');
+    expect(ariaLabel).toContain('Ouvrir ce budget');
   });
 
   it('separates realized transactions and exposes their pointing state', () => {
@@ -189,5 +227,16 @@ describe('GoalWithdrawalsList', () => {
     setTestInput(component.hasError, false);
     fixture.detectChanges();
     expect(query('goal-withdrawals-empty')).toBeTruthy();
+  });
+
+  it('offers a real retry action when loading fails', () => {
+    const retry = vi.fn();
+    component.retryRequested.subscribe(retry);
+    setTestInput(component.hasError, true);
+    fixture.detectChanges();
+
+    query('goal-withdrawals-retry').nativeElement.click();
+
+    expect(retry).toHaveBeenCalledOnce();
   });
 });

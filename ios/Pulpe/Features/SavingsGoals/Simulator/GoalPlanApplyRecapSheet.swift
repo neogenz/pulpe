@@ -99,8 +99,19 @@ struct GoalPlanApplyRecapSheet: View {
         change.simulatedAmount < 0 && change.month.hasBudget
     }
 
+    nonisolated static func hasUniformAdjustment(
+        _ changes: [SavingsPlanCalculator.SimulatedMonth]
+    ) -> Bool {
+        guard let first = changes.first else { return false }
+        let previousAmount = SavingsPlanCalculator.currentPlanMovement(first.month)
+        return changes.allSatisfy {
+            SavingsPlanCalculator.currentPlanMovement($0.month) == previousAmount
+                && $0.simulatedAmount == first.simulatedAmount
+        }
+    }
+
     private var isUniform: Bool {
-        mode == .adjustment && !hasWithdrawal && Set(changes.map(\.simulatedAmount)).count <= 1
+        mode == .adjustment && !hasWithdrawal && Self.hasUniformAdjustment(changes)
     }
 
     private var listedChanges: [SavingsPlanCalculator.SimulatedMonth] {
@@ -197,7 +208,6 @@ private extension GoalPlanApplyRecapSheet {
         .disabled(!enabled)
         .opacity(enabled ? 1 : DesignTokens.Opacity.disabled)
         .accessibilityLabel(title)
-        .accessibilityValue(isSelected ? "Sélectionné" : "Non sélectionné")
         .accessibilityHint(detail)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
@@ -206,11 +216,29 @@ private extension GoalPlanApplyRecapSheet {
     private var diffBlock: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             if isUniform, let first = changes.first {
-                Text("\(first.simulatedAmount.asCurrency(currency))/mois sur \(changes.count) mois")
-                    .font(PulpeTypography.amountCard)
-                    .monospacedDigit()
-                    .foregroundStyle(Color.financialSavings)
-                    .sensitiveAmount()
+                let before = SavingsPlanCalculator.currentPlanMovement(first.month)
+                let after = first.simulatedAmount
+                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                    Text(before.asCompactCurrency(currency))
+                        .foregroundStyle(Color.textTertiary)
+                        .strikethrough(true, color: Color.textTertiary)
+                    Image(systemName: "arrow.right")
+                        .font(PulpeTypography.caption2)
+                        .foregroundStyle(Color.textTertiary)
+                        .accessibilityHidden(true)
+                    Text(after.asCompactCurrency(currency))
+                        .foregroundStyle(Color.financialSavings)
+                    Text("/mois sur \(changes.count) mois")
+                        .foregroundStyle(Color.textSecondary)
+                }
+                .font(PulpeTypography.amountCard)
+                .monospacedDigit()
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(
+                    "De \(before.asCurrency(currency)) à \(after.asCurrency(currency)) "
+                        + "par mois sur \(changes.count) mois"
+                )
+                .sensitiveAmount()
             } else {
                 ForEach(Array(listedChanges.enumerated()), id: \.element.id) { index, simMonth in
                     if index > 0 {
@@ -253,6 +281,15 @@ private extension GoalPlanApplyRecapSheet {
         }
         .font(PulpeTypography.metricLabelBold)
         .monospacedDigit()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            mode == .adjustment
+                ? "\(Formatters.monthName(for: simMonth.month.month)) \(simMonth.month.year), "
+                    + "de \(SavingsPlanCalculator.currentPlanMovement(simMonth.month).asCompactCurrency(currency)) "
+                    + "à \(simMonth.simulatedAmount.asCompactCurrency(currency))"
+                : "\(Formatters.monthName(for: simMonth.month.month)) \(simMonth.month.year), "
+                    + simMonth.simulatedAmount.asCompactCurrency(currency)
+        )
         .sensitiveAmount()
     }
 
@@ -366,6 +403,10 @@ private extension GoalPlanApplyRecapSheet {
         }
         .font(PulpeTypography.metricLabelBold)
         .monospacedDigit()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            "Retrait planifié, de \(signedCurrency(from)) à \(signedCurrency(to))"
+        )
         .sensitiveAmount()
     }
 

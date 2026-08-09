@@ -335,6 +335,25 @@ describe('MainLayout', () => {
       expect(mockBreakpointObserver.observe).toHaveBeenCalled();
     });
 
+    it('constrains the mobile breadcrumb while its contents remain scrollable', () => {
+      mockBreadcrumbState.breadcrumbs.mockReturnValue([
+        { label: 'Objectifs', url: '/savings-goals' },
+        {
+          label: 'Voyage familial en Nouvelle-Zélande avec un nom très long',
+          url: '/savings-goals/goal-id',
+        },
+      ]);
+      breakpointSubject.next({ matches: true });
+      fixture.detectChanges();
+
+      const breadcrumb = fixture.nativeElement.querySelector(
+        '.breadcrumb-mobile',
+      ) as HTMLElement;
+      expect(breadcrumb).toBeTruthy();
+      expect(breadcrumb.classList).toContain('min-w-0');
+      expect(breadcrumb.classList).toContain('overflow-hidden');
+    });
+
     it('anchors the navigation tour to the visible desktop or handset control', () => {
       fixture.detectChanges();
 

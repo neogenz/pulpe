@@ -1140,12 +1140,18 @@
       "withdrawalToRealize": "À réaliser",
       "withdrawalPartiallyRealized": "Partiellement réalisé",
       "withdrawalRemaining": "Reste à réaliser",
+      "withdrawalRemainingLabel": "restant",
+      "withdrawalPlanned": "Prévu",
+      "withdrawalRealized": "Réalisé",
       "withdrawalChecked": "Pointé",
       "withdrawalUnchecked": "À pointer",
       "withdrawalsLoading": "Chargement des retraits…",
       "withdrawalsEmpty": "Tu n'as encore rien retiré de cet objectif.",
       "withdrawalsError": "Impossible de charger les retraits pour le moment.",
-      "withdrawalOpenAria": "Ouvrir « {{ name }} » dans son budget"
+      "withdrawalsRetry": "Réessayer le chargement",
+      "withdrawalPlanOnlyAria": "{{ name }}, {{ period }}. Hors budget. Prévu {{ planned }}.",
+      "withdrawalLinkedAria": "{{ name }}, {{ period }}. {{ status }}. Prévu {{ planned }}, réalisé {{ realized }}, reste {{ remaining }}. Ouvrir ce budget.",
+      "withdrawalRealizedAria": "{{ name }}, {{ date }}. {{ status }}. Retrait {{ amount }}. Ouvrir ce budget."
     },
     "plan": {
       "trajectoryTitle": "Ta trajectoire",

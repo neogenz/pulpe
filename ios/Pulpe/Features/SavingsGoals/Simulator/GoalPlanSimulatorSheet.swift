@@ -174,6 +174,7 @@ struct GoalPlanSimulatorSheet: View {
                     .multilineTextAlignment(.trailing)
                     .monospacedDigit()
                     .frame(width: 96)
+                    .frame(minHeight: DesignTokens.TapTarget.minimum)
                     .accessibilityLabel("Montant mensuel")
                 Text(currency.symbol)
                     .font(PulpeTypography.metricLabel)
@@ -225,6 +226,11 @@ struct GoalPlanSimulatorSheet: View {
                     .textLinkButtonStyle()
                     .disabled(!viewModel.isDirty)
             }
+
+            Text("Montant positif : mettre de côté · montant négatif : retirer")
+                .font(PulpeTypography.listRowSubtitle)
+                .foregroundStyle(Color.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
 
             LazyVStack(spacing: 0) {
                 ForEach(Array(viewModel.draft.months.enumerated()), id: \.element.id) { index, simMonth in

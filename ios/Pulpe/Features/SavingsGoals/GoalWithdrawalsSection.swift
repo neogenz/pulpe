@@ -7,12 +7,15 @@ import SwiftUI
 /// decode a sign on every row. The amount therefore carries its minus sign but
 /// keeps the ordinary text colour — a withdrawal is a decision, never an
 /// anomaly (RG-002, l'épargne n'alerte jamais). The server sorts newest first;
-/// this view does not re-sort.
+/// realized history preserves that order, while future withdrawals share one
+/// chronological list regardless of their destination.
 ///
 /// `isRelevant` is the caller's gate: a goal nobody ever drew from says nothing
 /// by staying silent, so the whole section disappears rather than announcing an
 /// emptiness the user never asked about.
 struct GoalWithdrawalsSection: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     let withdrawals: [SavingsGoalWithdrawal]
     let planned: [SavingsGoalPlannedWithdrawal]
     let planOnly: [SavingsGoalPlanOnlyWithdrawal]
@@ -20,6 +23,122 @@ struct GoalWithdrawalsSection: View {
     let isLoading: Bool
     let error: Error?
     let onOpenBudget: (String) -> Void
+
+    enum PlannedItem: Identifiable {
+        case linked(SavingsGoalPlannedWithdrawal)
+        case planOnly(SavingsGoalPlanOnlyWithdrawal)
+
+        var id: String {
+            switch self {
+            case .linked(let withdrawal): "linked-\(withdrawal.id)"
+            case .planOnly(let withdrawal): "plan-only-\(withdrawal.id)"
+            }
+        }
+
+        var name: String {
+            switch self {
+            case .linked(let withdrawal): withdrawal.name
+            case .planOnly(let withdrawal): withdrawal.name
+            }
+        }
+
+        var month: Int {
+            switch self {
+            case .linked(let withdrawal): withdrawal.month
+            case .planOnly(let withdrawal): withdrawal.month
+            }
+        }
+
+        var year: Int {
+            switch self {
+            case .linked(let withdrawal): withdrawal.year
+            case .planOnly(let withdrawal): withdrawal.year
+            }
+        }
+
+        var plannedAmount: Decimal {
+            switch self {
+            case .linked(let withdrawal): withdrawal.plannedAmount
+            case .planOnly(let withdrawal): withdrawal.plannedAmount
+            }
+        }
+
+        var realizedAmount: Decimal {
+            switch self {
+            case .linked(let withdrawal): withdrawal.realizedAmount
+            case .planOnly: 0
+            }
+        }
+
+        var primaryAmount: Decimal {
+            switch self {
+            case .linked(let withdrawal):
+                switch withdrawal.status {
+                case .partiallyRealized: withdrawal.remainingAmount
+                case .planned, .realized: withdrawal.plannedAmount
+                }
+            case .planOnly(let withdrawal): withdrawal.plannedAmount
+            }
+        }
+
+        var remainingAmount: Decimal {
+            switch self {
+            case .linked(let withdrawal): withdrawal.remainingAmount
+            case .planOnly(let withdrawal): withdrawal.plannedAmount
+            }
+        }
+
+        var budgetId: String? {
+            guard case .linked(let withdrawal) = self else { return nil }
+            return withdrawal.budgetId
+        }
+
+        var isPlanOnly: Bool {
+            if case .planOnly = self { return true }
+            return false
+        }
+
+        var statusLabel: String {
+            guard case .linked(let withdrawal) = self else { return "À réaliser" }
+            return switch withdrawal.status {
+            case .planned: "À réaliser"
+            case .partiallyRealized: "Partiellement réalisé"
+            case .realized: "Réalisé"
+            }
+        }
+
+        var periodLabel: String {
+            let components = DateComponents(year: year, month: month, day: 1)
+            return (Calendar.current.date(from: components) ?? .now)
+                .formatted(.dateTime.month(.wide).year())
+        }
+
+        func contextLabel(currency: SupportedCurrency) -> String {
+            "Prévu \(plannedAmount.asCurrency(currency)) · Réalisé \(realizedAmount.asCurrency(currency))"
+        }
+
+        func accessibilityLabel(currency: SupportedCurrency) -> String {
+            let destination = isPlanOnly ? ", hors budget" : ""
+            return "\(name), \(periodLabel), \(statusLabel)\(destination), "
+                + "prévu \(plannedAmount.asCurrency(currency)), "
+                + "réalisé \(realizedAmount.asCurrency(currency)), "
+                + "reste \(remainingAmount.asCurrency(currency))"
+        }
+
+        var accessibilityHint: String? { budgetId == nil ? nil : "Ouvre le budget" }
+    }
+
+    nonisolated static func plannedItems(
+        planned: [SavingsGoalPlannedWithdrawal],
+        planOnly: [SavingsGoalPlanOnlyWithdrawal]
+    ) -> [PlannedItem] {
+        (planned.map(PlannedItem.linked) + planOnly.map(PlannedItem.planOnly))
+            .sorted { lhs, rhs in
+                if lhs.year != rhs.year { return lhs.year < rhs.year }
+                if lhs.month != rhs.month { return lhs.month < rhs.month }
+                return lhs.id < rhs.id
+            }
+    }
 
     static func isRelevant(
         withdrawals: [SavingsGoalWithdrawal],
@@ -46,15 +165,13 @@ struct GoalWithdrawalsSection: View {
                 // and a failed history never blocks reading the progression.
                 notice("Impossible de charger les retraits pour le moment.")
             } else {
-                if !planned.isEmpty || !planOnly.isEmpty {
+                let plannedItems = Self.plannedItems(planned: planned, planOnly: planOnly)
+                if !plannedItems.isEmpty {
                     Text("Retraits planifiés")
                         .font(PulpeTypography.headline)
                         .foregroundStyle(Color.textPrimary)
-                    ForEach(planned) { withdrawal in
-                        plannedRow(withdrawal)
-                    }
-                    ForEach(planOnly) { withdrawal in
-                        planOnlyRow(withdrawal)
+                    ForEach(plannedItems) { item in
+                        plannedRow(item)
                     }
                 }
 
@@ -70,34 +187,6 @@ struct GoalWithdrawalsSection: View {
         }
     }
 
-    private func planOnlyRow(_ withdrawal: SavingsGoalPlanOnlyWithdrawal) -> some View {
-        HStack(spacing: DesignTokens.Spacing.md) {
-            Image(systemName: "calendar.badge.minus")
-                .font(PulpeTypography.actionIcon)
-                .foregroundStyle(Color.textTertiary)
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                Text(withdrawal.name)
-                    .font(PulpeTypography.listRowTitle)
-                Text("\(planOnlyPeriod(withdrawal)) · Hors budget")
-                    .font(PulpeTypography.listRowSubtitle)
-                    .foregroundStyle(Color.textTertiary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            Text((-withdrawal.plannedAmount).asCurrency(currency))
-                .font(PulpeTypography.amountCard)
-                .monospacedDigit()
-                .sensitiveAmount()
-        }
-        .pulpeCard()
-        .accessibilityElement(children: .combine)
-    }
-
-    private func planOnlyPeriod(_ withdrawal: SavingsGoalPlanOnlyWithdrawal) -> String {
-        let components = DateComponents(year: withdrawal.year, month: withdrawal.month, day: 1)
-        return (Calendar.current.date(from: components) ?? .now)
-            .formatted(.dateTime.month(.wide).year())
-    }
-
     private func notice(_ message: String) -> some View {
         Text(message)
             .font(PulpeTypography.listRowSubtitle)
@@ -107,107 +196,157 @@ struct GoalWithdrawalsSection: View {
             .pulpeCard()
     }
 
-    private func plannedRow(_ withdrawal: SavingsGoalPlannedWithdrawal) -> some View {
-        Button {
-            onOpenBudget(withdrawal.budgetId)
-        } label: {
-            HStack(spacing: DesignTokens.Spacing.md) {
-                Image(systemName: "calendar")
-                    .font(PulpeTypography.actionIcon)
-                    .foregroundStyle(Color.textTertiary)
-
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                    Text(withdrawal.name)
-                        .font(PulpeTypography.listRowTitle)
-                        .foregroundStyle(Color.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(plannedSubtitle(withdrawal))
-                        .font(PulpeTypography.listRowSubtitle)
-                        .foregroundStyle(Color.textTertiary)
-                    if withdrawal.status == .partiallyRealized {
-                        Text("Reste à réaliser · \((-withdrawal.remainingAmount).asCurrency(currency))")
-                            .font(PulpeTypography.listRowSubtitle)
-                            .foregroundStyle(Color.textSecondary)
-                            .sensitiveAmount()
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Text((-withdrawal.plannedAmount).asCurrency(currency))
-                    .font(PulpeTypography.amountCard)
-                    .monospacedDigit()
-                    .foregroundStyle(Color.textPrimary)
-                    .sensitiveAmount()
-
-                Image(systemName: "chevron.right")
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.textTertiary)
+    @ViewBuilder
+    private func plannedRow(_ item: PlannedItem) -> some View {
+        if let budgetId = item.budgetId {
+            Button {
+                onOpenBudget(budgetId)
+            } label: {
+                plannedRowContent(item)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .pulpeCard()
+            .plainPressedButtonStyle()
+            .frame(minHeight: DesignTokens.TapTarget.minimum)
+            .contentShape(.rect(cornerRadius: DesignTokens.CornerRadius.lg))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(item.accessibilityLabel(currency: currency))
+            .accessibilityHint(item.accessibilityHint ?? "")
+        } else {
+            plannedRowContent(item)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(item.accessibilityLabel(currency: currency))
         }
-        .plainPressedButtonStyle()
-        .accessibilityElement(children: .combine)
-        .accessibilityHint("Ouvre le budget de cette prévision")
     }
 
-    private func plannedSubtitle(_ withdrawal: SavingsGoalPlannedWithdrawal) -> String {
-        let components = DateComponents(year: withdrawal.year, month: withdrawal.month, day: 1)
-        let date = Calendar.current.date(from: components) ?? .now
-        let period = date.formatted(.dateTime.month(.wide).year())
-        let status = switch withdrawal.status {
-        case .planned: "À réaliser"
-        case .partiallyRealized: "Partiellement réalisé"
-        case .realized: "Réalisé"
+    private func plannedRowContent(_ item: PlannedItem) -> some View {
+        HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+            Image(systemName: item.isPlanOnly ? "calendar.badge.minus" : "calendar")
+                .font(PulpeTypography.actionIcon)
+                .foregroundStyle(Color.textTertiary)
+
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    plannedDescription(item)
+                    HStack(spacing: DesignTokens.Spacing.sm) {
+                        Spacer(minLength: DesignTokens.Spacing.none)
+                        plannedAmount(item)
+                        if item.budgetId != nil { plannedChevron }
+                    }
+                }
+            } else {
+                plannedDescription(item)
+                Spacer(minLength: DesignTokens.Spacing.sm)
+                plannedAmount(item)
+                if item.budgetId != nil { plannedChevron }
+            }
         }
-        return "\(period) · \(status)"
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .pulpeCard()
+    }
+
+    private func plannedDescription(_ item: PlannedItem) -> some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+            Text(item.name)
+                .font(PulpeTypography.listRowTitle)
+                .foregroundStyle(Color.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("\(item.periodLabel) · \(item.statusLabel)\(item.isPlanOnly ? " · Hors budget" : "")")
+                .font(PulpeTypography.listRowSubtitle)
+                .foregroundStyle(Color.textTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+            if !item.isPlanOnly {
+                Text(item.contextLabel(currency: currency))
+                    .font(PulpeTypography.listRowSubtitle)
+                    .foregroundStyle(Color.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .sensitiveAmount()
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func plannedAmount(_ item: PlannedItem) -> some View {
+        Text((-item.primaryAmount).asCurrency(currency))
+            .font(PulpeTypography.amountCard)
+            .monospacedDigit()
+            .foregroundStyle(Color.textPrimary)
+            .fixedSize(horizontal: false, vertical: true)
+            .sensitiveAmount()
+    }
+
+    private var plannedChevron: some View {
+        Image(systemName: "chevron.right")
+            .font(PulpeTypography.caption)
+            .foregroundStyle(Color.textTertiary)
+            .accessibilityHidden(true)
     }
 
     private func realizedRow(_ withdrawal: SavingsGoalWithdrawal) -> some View {
         Button {
             onOpenBudget(withdrawal.budgetId)
         } label: {
-            HStack(spacing: DesignTokens.Spacing.md) {
+            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
                 Image(systemName: "arrow.up.right")
                     .font(PulpeTypography.actionIcon)
                     .foregroundStyle(Color.textTertiary)
 
-                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                    // No line limit anywhere in this row: the goal's own screen is
-                    // where a long name belongs in full, at any Dynamic Type size.
-                    Text(withdrawal.name)
-                        .font(PulpeTypography.listRowTitle)
-                        .foregroundStyle(Color.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(
-                        "\(withdrawal.transactionDate.formatted(date: .abbreviated, time: .omitted)) · "
-                            + (withdrawal.checkedAt == nil ? "À pointer" : "Pointé")
-                    )
-                        .font(PulpeTypography.listRowSubtitle)
-                        .foregroundStyle(Color.textTertiary)
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                        realizedDescription(withdrawal)
+                        HStack(spacing: DesignTokens.Spacing.sm) {
+                            Spacer(minLength: DesignTokens.Spacing.none)
+                            realizedAmount(withdrawal)
+                            plannedChevron
+                        }
+                    }
+                } else {
+                    realizedDescription(withdrawal)
+                    Spacer(minLength: DesignTokens.Spacing.sm)
+                    realizedAmount(withdrawal)
+                    plannedChevron
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Text((-withdrawal.amount).asCurrency(currency))
-                    .font(PulpeTypography.amountCard)
-                    .monospacedDigit()
-                    .foregroundStyle(Color.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .sensitiveAmount()
-
-                Image(systemName: "chevron.right")
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.textTertiary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .pulpeCard()
         }
         .plainPressedButtonStyle()
+        .frame(minHeight: DesignTokens.TapTarget.minimum)
         .contentShape(.rect(cornerRadius: DesignTokens.CornerRadius.lg))
-        // Combined so VoiceOver reads the whole name, its date and its amount;
-        // the hint carries the destination the chevron only hints at visually.
-        .accessibilityElement(children: .combine)
-        .accessibilityHint("Ouvre le budget de ce revenu")
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(realizedAccessibilityLabel(withdrawal))
+        .accessibilityHint("Ouvre le budget")
+    }
+
+    private func realizedDescription(_ withdrawal: SavingsGoalWithdrawal) -> some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+            Text(withdrawal.name)
+                .font(PulpeTypography.listRowTitle)
+                .foregroundStyle(Color.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(realizedStatus(withdrawal))
+                .font(PulpeTypography.listRowSubtitle)
+                .foregroundStyle(Color.textTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func realizedAmount(_ withdrawal: SavingsGoalWithdrawal) -> some View {
+        Text((-withdrawal.amount).asCurrency(currency))
+            .font(PulpeTypography.amountCard)
+            .monospacedDigit()
+            .foregroundStyle(Color.textPrimary)
+            .fixedSize(horizontal: false, vertical: true)
+            .sensitiveAmount()
+    }
+
+    private func realizedStatus(_ withdrawal: SavingsGoalWithdrawal) -> String {
+        "\(withdrawal.transactionDate.formatted(date: .abbreviated, time: .omitted)) · "
+            + (withdrawal.checkedAt == nil ? "À pointer" : "Pointé")
+    }
+
+    private func realizedAccessibilityLabel(_ withdrawal: SavingsGoalWithdrawal) -> String {
+        "\(withdrawal.name), \(realizedStatus(withdrawal)), retrait réalisé "
+            + withdrawal.amount.asCurrency(currency)
     }
 }
 

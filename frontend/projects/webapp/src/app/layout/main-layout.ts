@@ -443,7 +443,10 @@ interface NavigationItem {
 
           <!-- Breadcrumb (mobile only) -->
           @if (isHandset() && breadcrumbState.breadcrumbs().length > 1) {
-            <div class="breadcrumb-mobile" [class.scrolled]="isScrolled()">
+            <div
+              class="breadcrumb-mobile min-w-0 overflow-hidden"
+              [class.scrolled]="isScrolled()"
+            >
               <pulpe-breadcrumb
                 class="px-4 pb-3"
                 [items]="breadcrumbState.breadcrumbs()"

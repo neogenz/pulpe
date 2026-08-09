@@ -83,6 +83,19 @@ describe('GoalPlanTimeline', () => {
     expect(rows[1].nativeElement.textContent).toContain('900');
   });
 
+  it('wraps the period badges instead of colliding with the monthly amount', () => {
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({ month: 9, state: 'current' }),
+    ]);
+    setTestInput(fixture.componentInstance.editable, true);
+    fixture.detectChanges();
+
+    const periodBadges = rowsQuery()[0].nativeElement.querySelector(
+      'span.flex.items-center.gap-2',
+    ) as HTMLSpanElement;
+    expect(periodBadges.classList).toContain('flex-wrap');
+  });
+
   it('announces the formatted amount and locked state for a checked row', () => {
     setTestInput(fixture.componentInstance.months, [
       makeMonth({

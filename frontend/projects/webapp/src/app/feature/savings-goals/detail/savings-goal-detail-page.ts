@@ -684,6 +684,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                 [currency]="currency()"
                 [isLoading]="store.isWithdrawalsLoading()"
                 [hasError]="!!store.withdrawalsError()"
+                (retryRequested)="store.reloadWithdrawals()"
               />
             </section>
           }
@@ -696,7 +697,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
            this page carries only the bar's content: no absolute/fixed/spacer. -->
       <ng-template #planActionBar>
         <div
-          class="flex items-center justify-end gap-2 bg-surface py-3 pl-6 pr-14 shadow-[0_-3px_3px_-2px_rgba(0,0,0,0.2),0_-3px_4px_0_rgba(0,0,0,0.14),0_-1px_8px_0_rgba(0,0,0,0.12)]"
+          class="flex flex-wrap items-center justify-end gap-2 bg-surface px-4 py-3 sm:pl-6 sm:pr-14 shadow-[0_-3px_3px_-2px_rgba(0,0,0,0.2),0_-3px_4px_0_rgba(0,0,0,0.14),0_-1px_8px_0_rgba(0,0,0,0.12)]"
           data-testid="goal-plan-sticky-bar"
         >
           <button

@@ -20,9 +20,6 @@ struct GoalPlanSimEditRow: View {
                     .monospacedDigit()
                     .foregroundStyle(Color.textTertiary)
                     .sensitiveAmount()
-                Text("Positif = mettre de côté · Négatif = retirer")
-                    .font(PulpeTypography.caption)
-                    .foregroundStyle(Color.textSecondary)
             }
 
             Spacer(minLength: DesignTokens.Spacing.sm)
@@ -33,6 +30,7 @@ struct GoalPlanSimEditRow: View {
                     .multilineTextAlignment(.trailing)
                     .monospacedDigit()
                     .frame(width: 88)
+                    .frame(minHeight: DesignTokens.TapTarget.minimum)
                     .accessibilityLabel("Mouvement de l’objectif ce mois")
                 Text(currency.symbol)
                     .font(PulpeTypography.metricLabel)

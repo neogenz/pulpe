@@ -112,7 +112,7 @@ const WINDOW_OPEN_ROWS = 3;
           </mat-icon>
 
           <div class="flex min-w-0 flex-1 flex-col">
-            <span class="flex items-center gap-2">
+            <span class="flex flex-wrap items-center gap-2">
               <span class="text-body-medium font-medium">
                 {{ formatPeriod(row.month, row.year) }}
               </span>
