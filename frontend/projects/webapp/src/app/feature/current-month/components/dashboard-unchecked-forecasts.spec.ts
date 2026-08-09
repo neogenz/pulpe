@@ -207,7 +207,9 @@ describe('DashboardUncheckedForecasts', () => {
       By.css('[data-testid="dashboard-forecasts-toggle"]'),
     );
     const icon = toggle.query(By.css('mat-icon'));
-    expect(icon.nativeElement.textContent.trim()).toBe('check_circle_outline');
+    expect(icon.nativeElement.textContent.trim()).toBe(
+      'radio_button_unchecked',
+    );
   });
 
   it('should show check_circle filled icon while a forecast row is exiting after a click', () => {
@@ -298,7 +300,9 @@ describe('DashboardUncheckedForecasts', () => {
     const icon = fixture.debugElement
       .query(By.css('[data-testid="dashboard-forecasts-toggle"]'))
       .query(By.css('mat-icon'));
-    expect(icon.nativeElement.textContent.trim()).toBe('check_circle_outline');
+    expect(icon.nativeElement.textContent.trim()).toBe(
+      'radio_button_unchecked',
+    );
     expect(icon.nativeElement.classList.contains('text-primary')).toBe(false);
   });
 

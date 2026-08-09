@@ -212,21 +212,23 @@ interface AnimatingForecast {
                       'currentMonth.uncheckedForecasts.toggleVerb' | transloco
                     }}
                   </span>
-                  <!-- Not radio_button_unchecked. Five bare circles stacked in
-                       a column is the one shape every interface reserves for
-                       "choose exactly one of these", and these five are
-                       independent: pointing the rent says nothing about the
-                       insurance. The outline already had to become a filled
-                       check on the way out, so the empty state was promising a
-                       shape it never kept. check_circle_outline promises the
-                       one it does, on a control whose tap writes to a
-                       financial record. -->
+                  <!-- The pair the app already uses for this exact gesture:
+                       goal-contributions-list draws the same empty ring for a
+                       contribution not yet pointed, and the same filled check
+                       once it is. An outlined check here made
+                       this the one card wearing the "done" symbol for the not
+                       done state, on a list whose title is "Prévisions à
+                       pointer" and whose every row is by definition unpointed:
+                       a reader scanning it saw five items already handled.
+                       The worry that a column of rings reads as "choose one"
+                       is real but cheap — it costs one tap to disprove, and
+                       these rings carry a name and an amount, not a choice. -->
                   <mat-icon
                     [class.text-primary]="isChecking"
                     [class.icon-filled]="isChecking"
                     aria-hidden="true"
                   >
-                    {{ isChecking ? 'check_circle' : 'check_circle_outline' }}
+                    {{ isChecking ? 'check_circle' : 'radio_button_unchecked' }}
                   </mat-icon>
                 </button>
                 <span
