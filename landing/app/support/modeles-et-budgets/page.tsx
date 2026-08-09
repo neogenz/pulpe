@@ -5,12 +5,52 @@ import { Container, Section } from "@/components/ui";
 import { Footer, Header } from "@/components/sections";
 import { CONTACT_EMAIL } from "@/lib/config";
 
+const GUIDE_PATH = "/support/modeles-et-budgets";
+const GUIDE_TITLE = "Modèle ou budget : que faut-il modifier ?";
+const GUIDE_DESCRIPTION =
+  "Comprendre la différence entre un modèle et un budget mensuel dans Pulpe, puis savoir lequel modifier sur iPhone.";
+const SOCIAL_TITLE = `${GUIDE_TITLE} | Pulpe`;
+const SOCIAL_PREVIEW_IMAGE = "/pulpe-social-preview.png?v=2";
+const SOCIAL_PREVIEW_ALT =
+  "Pulpe projette ton budget sur l’année et montre combien il te restera";
+
 export const metadata: Metadata = {
-  title: "Modèle ou budget : que faut-il modifier ?",
-  description:
-    "Comprendre la différence entre un modèle et un budget mensuel dans Pulpe, puis savoir lequel modifier sur iPhone.",
+  title: GUIDE_TITLE,
+  description: GUIDE_DESCRIPTION,
   alternates: {
-    canonical: "/support/modeles-et-budgets",
+    canonical: GUIDE_PATH,
+  },
+  openGraph: {
+    title: SOCIAL_TITLE,
+    description: GUIDE_DESCRIPTION,
+    siteName: "Pulpe",
+    type: "article",
+    url: GUIDE_PATH,
+    locale: "fr_CH",
+    alternateLocale: ["fr_FR"],
+    images: [
+      {
+        url: SOCIAL_PREVIEW_IMAGE,
+        width: 1200,
+        height: 630,
+        alt: SOCIAL_PREVIEW_ALT,
+        type: "image/png",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SOCIAL_TITLE,
+    description: GUIDE_DESCRIPTION,
+    images: [
+      {
+        url: SOCIAL_PREVIEW_IMAGE,
+        alt: SOCIAL_PREVIEW_ALT,
+        type: "image/png",
+        width: 1200,
+        height: 630,
+      },
+    ],
   },
 };
 

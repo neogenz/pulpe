@@ -1282,6 +1282,13 @@ describe("landing accessibility contracts", () => {
     assert.doesNotMatch(componentSources.supportGuide, /<Image|next\/image/);
   });
 
+  it("owns the guide social metadata instead of inheriting the homepage", () => {
+    assert.match(componentSources.supportGuide, /const GUIDE_PATH/);
+    assert.match(componentSources.supportGuide, /openGraph:\s*\{/);
+    assert.match(componentSources.supportGuide, /url: GUIDE_PATH/);
+    assert.match(componentSources.supportGuide, /twitter:\s*\{/);
+  });
+
   it("links the first help journey from support and navigation", () => {
     assert.match(componentSources.support, /Guides pour utiliser Pulpe/);
     assert.match(componentSources.support, /\/support\/modeles-et-budgets/);
