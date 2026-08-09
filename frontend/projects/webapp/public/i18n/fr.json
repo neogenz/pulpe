@@ -1360,9 +1360,9 @@
     "spentBeyondPlan": "Dépensé au-delà de ton plan",
     "spent": "Pointé",
     "engaged": "Engagé",
-    "spentHint": "Pointé : tu l'as confirmé, l'argent a quitté ton compte.",
+    "spentHint": "Pointé : tu as confirmé que l'argent est parti.",
     "spentIncludesSavings": "dont {{amount}} {{currency}} mis de côté",
-    "engagedHint": "Engagé : c'est réservé, mais pas encore pointé — tes prévisions, et les mouvements que tu as saisis sans les pointer.",
+    "engagedHint": "Engagé : réservé, mais pas encore pointé.",
     "monthProgress": "Jour {{ day }} sur {{ total }}.",
     "status": {
       "onTrack": "Ton rythme tient.",
