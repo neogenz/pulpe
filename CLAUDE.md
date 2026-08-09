@@ -1,25 +1,25 @@
 # Pulpe Workspace
 
-Monorepo pnpm + Turborepo : `frontend/` (Angular 22, Signals, Material 22, Tailwind v4), `backend-nest/` (NestJS 11, Bun, Supabase), `ios/` (SwiftUI, hors pnpm), `landing/` (Next.js), `shared/` (Zod, build avant les autres), `.claude/rules/` (règles chargées à la demande).
+pnpm + Turborepo monorepo: `frontend/` (Angular 22, Signals, Material 22, Tailwind v4), `backend-nest/` (NestJS 11, Bun, Supabase), `ios/` (SwiftUI, outside pnpm), `landing/` (Next.js), `shared/` (Zod, builds before the others), `.claude/rules/` (rules loaded on demand).
 
 ## Commands
 
 ```bash
 pnpm dev                      # Full stack via Turbo
-pnpm build:shared             # shared seul (dépendance des autres)
-pnpm dev:frontend             # frontend + shared    (idem dev:backend)
+pnpm build:shared             # shared alone (the others depend on it)
+pnpm dev:frontend             # frontend + shared    (same for dev:backend)
 pnpm test                     # Unit tests           (pnpm test:e2e → Playwright)
 
-# Quality — racine uniquement (aucun package ne définit `quality` sauf backend-nest)
+# Quality — root only (no package defines `quality` except backend-nest)
 pnpm quality                  # turbo quality + format:check:automation + test:ci-security + test:public-surface
-                              # lefthook le lance en pre-commit, mais scopé `--filter="...[HEAD^]"` et SKIPPÉ sur merge/rebase
-                              # les templates Angular (strictTemplates) ne sont vérifiés que par `ng build` → job CI dédié
+                              # lefthook runs it pre-commit, but scoped `--filter="...[HEAD^]"` and SKIPPED on merge/rebase
+                              # Angular templates (strictTemplates) are only checked by `ng build` → dedicated CI job
 
-# Test unitaire ciblé — `pnpm test -- <path>` ne filtre PAS
+# Single test file — `pnpm test -- <path>` does NOT filter
 cd frontend && pnpm exec ng test --include "**/foo.spec.ts"
 cd backend-nest && bun test path/to/file.spec.ts
 
-# Supabase local — le projet vit dans backend-nest/, pas à la racine
+# Local Supabase — the project lives in backend-nest/, not at the root
 cd backend-nest && supabase start
 ```
 
@@ -32,7 +32,9 @@ cd backend-nest && supabase start
 
 ## Vocabulary
 
-- `budget_line` (table ; `budgetLines` sur le wire) → "prévisions" | `fixed` → "Récurrent" | `one_off` → "Prévu" | `transaction` → "Réel"
+Product-facing copy is French. Code and docs are English.
+
+- `budget_line` (table; `budgetLines` on the wire) → "prévisions" | `fixed` → "Récurrent" | `one_off` → "Prévu" | `transaction` → "Réel"
 - `income` → "Revenu" | `expense` → "Dépense" | `saving` → "Épargne"
 - `checked` → "Pointé" | `unchecked` → "À pointer"
 - Labels: "Disponible à dépenser", "Épargne prévue", "Fréquence"
@@ -44,25 +46,25 @@ cd backend-nest && supabase start
 | Strategic foundation        | `PRODUCT.md`                               |
 | Business rules              | `docs/BUSINESS_RULES.md`                   |
 | Encryption (AES-256-GCM)    | `docs/ENCRYPTION.md`                       |
-| Lissage d'une dépense       | `docs/SPREAD.md`                           |
-| Objectifs d'épargne         | `docs/SAVINGS.md`                          |
+| Spreading an expense        | `docs/SPREAD.md`                           |
+| Savings goals               | `docs/SAVINGS.md`                          |
 | Backend Clean Architecture  | `backend-nest/docs/ARCHITECTURE.md`        |
 | DB types                    | `backend-nest/src/types/database.types.ts` |
 | Shared schemas              | `shared/schemas.ts`                        |
 
-**Design:** `PRODUCT.md` (stratégie) → `DESIGN.md` (visuel cross-platform) → `{ios,frontend,landing}/DESIGN.md` (extensions). Jamais dupliquer une règle cross-platform dans un doc de plateforme. `ios/DESIGN.md` n'a pas de sidecar — `/impeccable live` est browser-only.
+**Design:** `PRODUCT.md` (strategy) → `DESIGN.md` (cross-platform visual) → `{ios,frontend,landing}/DESIGN.md` (extensions). Never duplicate a cross-platform rule inside a platform doc. `ios/DESIGN.md` has no sidecar — `/impeccable live` is browser-only.
 
 ## Scope Discipline
 
-Projet solo, assisté IA. Le nettoyage après une feature sur-livrée est la première taxe de productivité.
+Solo project, AI-assisted. Cleaning up after an over-shipped feature is the top productivity tax.
 
-- **Le hors-scope va dans un bloc unique en fin de réponse, sous le titre `### Follow-up suggestions`.** Ne pas le faire. Ne pas y revenir après cette section. Maxime scanne et décide.
-- **Aucune liste de "follow-up" dans un commit, une description de PR, ou la doc.** Elles n'existent que dans la réponse ; l'arbre de code doit se suffire.
-- **Au-delà de ~300 LOC nettes, s'arrêter et proposer 2-3 alternatives** avant de continuer.
+- **Out-of-scope work goes in one block at the end of the response, under the heading `### Follow-up suggestions`.** Do not do it. Do not bring it up again after that section. Maxime scans and decides.
+- **No "follow-up" list in a commit, a PR description, or the docs.** They exist in the response only; the code tree must stand on its own.
+- **Past ~300 net LOC, stop and propose 2-3 alternatives** before continuing.
 
 ## Memory Management
 
-Docs, mémoire, specs et plans vivent dans `aidd_docs/`.
+Docs, memory, specs and plans live in `aidd_docs/`.
 
 <aidd_project_memory>
 @aidd_docs/memory/api.md
@@ -83,5 +85,5 @@ Docs, mémoire, specs et plans vivent dans `aidd_docs/`.
 @aidd_docs/memory/vcs.md
 </aidd_project_memory>
 
-- `aidd_docs/memory/external/*` : à la demande de l'utilisateur.
-- `aidd_docs/memory/internal/*` : quand la tâche l'exige.
+- `aidd_docs/memory/external/*`: when the user asks.
+- `aidd_docs/memory/internal/*`: when the task needs it.
