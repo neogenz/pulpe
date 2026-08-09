@@ -2,10 +2,14 @@ import {
   ChangeDetectionStrategy,
   Component,
   inject,
+  signal,
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { MatBottomSheetRef } from '@angular/material/bottom-sheet';
+import {
+  MAT_BOTTOM_SHEET_DATA,
+  MatBottomSheetRef,
+} from '@angular/material/bottom-sheet';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslocoPipe } from '@jsverse/transloco';
@@ -13,7 +17,10 @@ import { filter, merge } from 'rxjs';
 
 import { BlurOnVisibilityResumeDirective } from '@ui/blur-on-visibility-resume/blur-on-visibility-resume.directive';
 import { LoadingButton } from '@ui/loading-button/loading-button';
-import { AddTransactionDialogService } from '../services/add-transaction-dialog.service';
+import {
+  AddTransactionDialogService,
+  type AddTransactionShellData,
+} from '../services/add-transaction-dialog.service';
 import {
   AddTransactionForm,
   type TransactionFormData,
@@ -67,27 +74,44 @@ import {
            rule doubles as the scroll edge. Desktop uses the dialog, which is
            short enough that this changes nothing there. -->
       <div
-        class="sticky bottom-0 flex gap-3 pt-4 pb-2 -mb-2 border-t border-outline-variant bg-surface-container-low"
+        class="sticky bottom-0 flex flex-col gap-3 pt-4 pb-2 -mb-2 border-t border-outline-variant bg-surface-container-low"
       >
-        <button
-          matButton
-          (click)="close()"
-          class="flex-1"
-          data-testid="transaction-cancel-button"
-        >
-          {{ 'currentMonth.addTransactionCancel' | transloco }}
-        </button>
-        <pulpe-loading-button
-          class="flex-2"
-          type="button"
-          [loading]="form.isSubmitting()"
-          [disabled]="!form.canSubmit()"
-          [loadingText]="'common.loading' | transloco"
-          (click)="form.submit()"
-          testId="transaction-submit-button"
-        >
-          {{ 'currentMonth.addTransactionSubmit' | transloco }}
-        </pulpe-loading-button>
+        <!-- The refusal belongs here rather than in a toast: the sheet is
+             still up, holding everything that was typed, and a toast at the
+             bottom of a phone lands under it. Retrying is one press away. -->
+        @if (refusal()) {
+          <p
+            class="text-body-small text-error m-0 flex items-start gap-2"
+            role="alert"
+            data-testid="transaction-refusal"
+          >
+            <mat-icon class="mat-icon-sm shrink-0" aria-hidden="true"
+              >error</mat-icon
+            >
+            {{ refusal() }}
+          </p>
+        }
+        <div class="flex gap-3">
+          <button
+            matButton
+            (click)="close()"
+            class="flex-1"
+            data-testid="transaction-cancel-button"
+          >
+            {{ 'currentMonth.addTransactionCancel' | transloco }}
+          </button>
+          <pulpe-loading-button
+            class="flex-2"
+            type="button"
+            [loading]="form.isSubmitting() || isPersisting()"
+            [disabled]="!form.canSubmit() || isPersisting()"
+            [loadingText]="'common.loading' | transloco"
+            (click)="form.submit()"
+            testId="transaction-submit-button"
+          >
+            {{ 'currentMonth.addTransactionSubmit' | transloco }}
+          </pulpe-loading-button>
+        </div>
       </div>
     </div>
   `,
@@ -98,8 +122,15 @@ export class AddTransactionBottomSheet {
   readonly #bottomSheetRef = inject(
     MatBottomSheetRef<AddTransactionBottomSheet, TransactionFormData>,
   );
+  readonly #data = inject<AddTransactionShellData>(MAT_BOTTOM_SHEET_DATA);
   readonly #dialogService = inject(AddTransactionDialogService);
   private readonly formRef = viewChild.required(AddTransactionForm);
+
+  // The sheet holds the only copy of what was typed, so it stays up until the
+  // write is accepted. `isSubmitting` on the form ends at the built payload,
+  // which is why the button stopped spinning while the request was still out.
+  protected readonly isPersisting = signal(false);
+  protected readonly refusal = signal('');
 
   constructor() {
     // Même garde-fou que le dialogue de bureau, et pour la même raison : sur
@@ -125,7 +156,18 @@ export class AddTransactionBottomSheet {
     this.#bottomSheetRef.dismiss();
   }
 
-  protected onCreated(tx: TransactionFormData): void {
-    this.#bottomSheetRef.dismiss(tx);
+  protected async onCreated(tx: TransactionFormData): Promise<void> {
+    this.refusal.set('');
+    this.isPersisting.set(true);
+    try {
+      const refusal = await this.#data.persist(tx);
+      if (refusal) {
+        this.refusal.set(refusal);
+        return;
+      }
+      this.#bottomSheetRef.dismiss(tx);
+    } finally {
+      this.isPersisting.set(false);
+    }
   }
 }

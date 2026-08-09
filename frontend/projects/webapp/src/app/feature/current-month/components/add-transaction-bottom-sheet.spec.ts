@@ -1,7 +1,10 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { MatBottomSheetRef } from '@angular/material/bottom-sheet';
+import {
+  MAT_BOTTOM_SHEET_DATA,
+  MatBottomSheetRef,
+} from '@angular/material/bottom-sheet';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EMPTY } from 'rxjs';
@@ -28,6 +31,9 @@ async function configureBottomSheet() {
   const dialogService = {
     confirmDiscard: vi.fn().mockResolvedValue(true),
   };
+  const persist = vi.fn<(tx: TransactionFormData) => Promise<string | null>>(
+    async () => null,
+  );
   const settings = {
     currency: signal<SupportedCurrency>('CHF'),
     showCurrencySelector: signal(true),
@@ -46,6 +52,7 @@ async function configureBottomSheet() {
       provideAnimationsAsync(),
       ...provideTranslocoForTest(),
       { provide: MatBottomSheetRef, useValue: bottomSheetRef },
+      { provide: MAT_BOTTOM_SHEET_DATA, useValue: { persist } },
       { provide: UserSettingsStore, useValue: settings },
       { provide: CurrencyConverterService, useValue: converter },
       { provide: TagStore, useValue: createMockTagStore() },
@@ -64,8 +71,20 @@ async function configureBottomSheet() {
     component: fixture.componentInstance,
     bottomSheetRef,
     dialogService,
+    persist,
     form: fixture.debugElement.query(By.directive(AddTransactionForm))
       .componentInstance as AddTransactionForm,
+  };
+}
+
+function aTransaction(): TransactionFormData {
+  return {
+    name: 'Courses',
+    amount: 25,
+    kind: 'expense',
+    tagIds: [],
+    isChecked: false,
+    conversion: null,
   };
 }
 
@@ -116,19 +135,31 @@ describe('AddTransactionBottomSheet', () => {
     expect(submitSpy).toHaveBeenCalledOnce();
   });
 
-  it('should dismiss with the shared form result', async () => {
-    const { component, bottomSheetRef } = await configureBottomSheet();
-    const transaction: TransactionFormData = {
-      name: 'Courses',
-      amount: 25,
-      kind: 'expense',
-      tagIds: [],
-      isChecked: false,
-      conversion: null,
-    };
+  it('should dismiss with the shared form result once the write is accepted', async () => {
+    const { component, bottomSheetRef, persist } = await configureBottomSheet();
 
-    component['onCreated'](transaction);
+    await component['onCreated'](aTransaction());
 
-    expect(bottomSheetRef.dismiss).toHaveBeenCalledWith(transaction);
+    expect(persist).toHaveBeenCalledWith(aTransaction());
+    expect(bottomSheetRef.dismiss).toHaveBeenCalledWith(aTransaction());
+  });
+
+  // The sheet holds the only copy of the amount, the label, the tags and the
+  // savings source. Dismissing first and writing afterwards meant an expired
+  // session or a 500 cost the whole entry and returned a toast — while the
+  // same fields get a confirmation dialog before a stray click may drop them.
+  it('should keep what was typed when the write is refused', async () => {
+    const { component, bottomSheetRef, persist, fixture } =
+      await configureBottomSheet();
+    persist.mockResolvedValue('Impossible d’enregistrer');
+
+    await component['onCreated'](aTransaction());
+    fixture.detectChanges();
+
+    expect(bottomSheetRef.dismiss).not.toHaveBeenCalled();
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="transaction-refusal"]')
+        .textContent,
+    ).toContain('Impossible d’enregistrer');
   });
 });

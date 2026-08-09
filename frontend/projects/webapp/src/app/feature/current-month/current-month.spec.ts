@@ -545,8 +545,20 @@ describe('Dashboard (TestBed)', () => {
     dialogResult: TransactionFormData | undefined,
   ) {
     const mockStore = createMockStore(budgetId);
+    // The real shell stays open and calls `persist` with what was typed,
+    // dismissing only once the write is accepted. `persistRefusal` records
+    // what the page handed back, which is what the sheet shows the user.
+    let persistRefusal: string | null = null;
     const mockDialogService = {
-      open: vi.fn().mockResolvedValue(dialogResult),
+      open: vi.fn(
+        async (
+          persist: (tx: TransactionFormData) => Promise<string | null>,
+        ) => {
+          if (!dialogResult) return undefined;
+          persistRefusal = await persist(dialogResult);
+          return persistRefusal ? undefined : dialogResult;
+        },
+      ),
     };
     const mockRouter = { navigate: vi.fn() };
     // One subject per toast, not one for the whole run: MatSnackBar dismisses
@@ -589,6 +601,7 @@ describe('Dashboard (TestBed)', () => {
       mockDialogService,
       mockSnackBar,
       undoAction,
+      readPersistRefusal: () => persistRefusal,
     };
   }
 
@@ -718,22 +731,23 @@ describe('Dashboard (TestBed)', () => {
       conversion: null,
     };
 
-    it('should show the reason the store hands back', async () => {
-      const { component, mockStore, mockSnackBar } = await setup(
-        budgetId,
-        quickIncome,
-      );
+    // The reason goes back to the sheet, which is still on screen and still
+    // holds the amount, the label, the tags and the savings source. A toast
+    // meant the sheet had already been destroyed with all of it, and on a
+    // phone the message landed where the sheet used to be.
+    it('should hand the reason back to the sheet still holding the entry', async () => {
+      const { component, mockStore, mockSnackBar, readPersistRefusal } =
+        await setup(budgetId, quickIncome);
       mockStore.addTransaction.mockResolvedValue({
         reason: "Cet objectif n'a pas assez d'argent pour ce montant",
       });
 
       await component['openAddTransaction']();
 
-      expect(mockSnackBar.open).toHaveBeenCalledWith(
+      expect(readPersistRefusal()).toBe(
         "Cet objectif n'a pas assez d'argent pour ce montant",
-        expect.any(String),
-        expect.objectContaining({ duration: 5000 }),
       );
+      expect(mockSnackBar.open).not.toHaveBeenCalled();
     });
 
     // Silence used to be the assertion here. Recording a transaction is the

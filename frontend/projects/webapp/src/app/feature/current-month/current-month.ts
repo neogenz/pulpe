@@ -934,24 +934,26 @@ export default class Dashboard {
   }
 
   protected async openAddTransaction(): Promise<void> {
-    const transaction = await this.#addTransactionDialog.open();
-    if (transaction) {
-      await this.#addTransaction(transaction);
-    }
+    await this.#addTransactionDialog.open((transaction) =>
+      this.#addTransaction(transaction),
+    );
   }
 
-  async #addTransaction(transaction: TransactionFormData): Promise<void> {
+  // The reason the write was refused, or null. Handed to the sheet, which
+  // waits on it before closing: the amount, the label, the tags and the
+  // savings source exist nowhere else, and the request used to leave after the
+  // form holding them was destroyed. A refusal then cost the whole entry and
+  // returned a toast — while the same fields get a confirmation dialog before
+  // an accidental click outside is allowed to drop them.
+  async #addTransaction(
+    transaction: TransactionFormData,
+  ): Promise<string | null> {
     const budgetId = this.store.dashboardData()?.budget?.id;
     // The sheet lives in the overlay and outlives a period rollover: returning
     // to the tab re-stamps the clock, the resource re-keys onto the new month,
-    // and this reads null until it lands. Every other refusal on this page
-    // reaches a toast; this one dropped the amount, the label and the tags in
-    // silence, immediately after the user pressed "Ajouter".
+    // and this reads null until it lands.
     if (!budgetId) {
-      this.#notify(
-        this.#transloco.translate('currentMonth.addTransactionNoBudget'),
-      );
-      return;
+      return this.#transloco.translate('currentMonth.addTransactionNoBudget');
     }
     const transactionCreate = transactionCreateFromQuickFormSchema.parse({
       ...transaction,
@@ -959,14 +961,13 @@ export default class Dashboard {
       transactionDate: formatLocalDate(new Date()),
     });
     const outcome = await this.store.addTransaction(transactionCreate);
-    if ('reason' in outcome) {
-      this.#notify(outcome.reason);
-      return;
-    }
+    if ('reason' in outcome) return outcome.reason;
+
     this.#confirmWithUndo({
       kind: 'transaction',
       id: outcome.transactionId,
       name: transactionCreate.name,
     });
+    return null;
   }
 }

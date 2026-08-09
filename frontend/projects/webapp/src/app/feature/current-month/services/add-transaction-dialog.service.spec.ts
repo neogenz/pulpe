@@ -15,6 +15,9 @@ describe('AddTransactionDialogService', () => {
   let breakpointObserver: { isMatched: ReturnType<typeof vi.fn> };
   let bottomSheet: { open: ReturnType<typeof vi.fn> };
   let dialog: { open: ReturnType<typeof vi.fn> };
+  // La coque reçoit de quoi enregistrer : c'est elle qui garde la saisie
+  // jusqu'à ce que l'écriture soit acceptée.
+  const persist = async (): Promise<string | null> => null;
 
   beforeEach(() => {
     breakpointObserver = { isMatched: vi.fn() };
@@ -42,12 +45,13 @@ describe('AddTransactionDialogService', () => {
       afterDismissed: () => of(transaction),
     });
 
-    await expect(service.open()).resolves.toBe(transaction);
+    await expect(service.open(persist)).resolves.toBe(transaction);
 
     expect(breakpointObserver.isMatched).toHaveBeenCalledWith(
       Breakpoints.Handset,
     );
     expect(bottomSheet.open).toHaveBeenCalledWith(AddTransactionBottomSheet, {
+      data: { persist },
       autoFocus: '[inputmode="decimal"]',
       disableClose: true,
       injector: expect.anything(),
@@ -59,9 +63,10 @@ describe('AddTransactionDialogService', () => {
     breakpointObserver.isMatched.mockReturnValue(false);
     dialog.open.mockReturnValue({ afterClosed: () => of(undefined) });
 
-    await expect(service.open()).resolves.toBeUndefined();
+    await expect(service.open(persist)).resolves.toBeUndefined();
 
     expect(dialog.open).toHaveBeenCalledWith(AddTransactionDialog, {
+      data: { persist },
       width: '720px',
       maxWidth: 'calc(100vw - 48px)',
       panelClass: 'add-transaction-dialog',

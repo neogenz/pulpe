@@ -2,17 +2,25 @@ import {
   ChangeDetectionStrategy,
   Component,
   inject,
+  signal,
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import {
+  MAT_DIALOG_DATA,
+  MatDialogModule,
+  MatDialogRef,
+} from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { filter, merge } from 'rxjs';
 
 import { LoadingButton } from '@ui/loading-button/loading-button';
-import { AddTransactionDialogService } from '../services/add-transaction-dialog.service';
+import {
+  AddTransactionDialogService,
+  type AddTransactionShellData,
+} from '../services/add-transaction-dialog.service';
 import {
   AddTransactionForm,
   type TransactionFormData,
@@ -55,6 +63,22 @@ import {
       />
     </mat-dialog-content>
 
+    <!-- Beside the form it refers to, not in a toast: the dialog is still up
+         and still holds the amount, the label and the tags, so retrying is one
+         press away rather than a full retype. -->
+    @if (refusal()) {
+      <p
+        class="text-body-small text-error px-6 pb-2 m-0 flex items-start gap-2"
+        role="alert"
+        data-testid="transaction-refusal"
+      >
+        <mat-icon class="mat-icon-sm shrink-0" aria-hidden="true"
+          >error</mat-icon
+        >
+        {{ refusal() }}
+      </p>
+    }
+
     <mat-dialog-actions align="end">
       <button
         matButton
@@ -67,8 +91,8 @@ import {
         class="min-w-40"
         type="button"
         [fullWidth]="false"
-        [loading]="form.isSubmitting()"
-        [disabled]="!form.canSubmit()"
+        [loading]="form.isSubmitting() || isPersisting()"
+        [disabled]="!form.canSubmit() || isPersisting()"
         [loadingText]="'common.loading' | transloco"
         (click)="form.submit()"
         testId="transaction-submit-button"
@@ -83,8 +107,15 @@ export class AddTransactionDialog {
   readonly #dialogRef = inject(
     MatDialogRef<AddTransactionDialog, TransactionFormData>,
   );
+  readonly #data = inject<AddTransactionShellData>(MAT_DIALOG_DATA);
   readonly #dialogService = inject(AddTransactionDialogService);
   private readonly formRef = viewChild.required(AddTransactionForm);
+
+  // The dialog holds the only copy of what was typed, so it stays up until the
+  // write is accepted. `isSubmitting` on the form ends at the built payload,
+  // which is why the button stopped spinning while the request was still out.
+  protected readonly isPersisting = signal(false);
+  protected readonly refusal = signal('');
 
   constructor() {
     // Toutes les sorties passent maintenant par `close()` : la croix, Annuler,
@@ -109,7 +140,18 @@ export class AddTransactionDialog {
     this.#dialogRef.close();
   }
 
-  protected onCreated(tx: TransactionFormData): void {
-    this.#dialogRef.close(tx);
+  protected async onCreated(tx: TransactionFormData): Promise<void> {
+    this.refusal.set('');
+    this.isPersisting.set(true);
+    try {
+      const refusal = await this.#data.persist(tx);
+      if (refusal) {
+        this.refusal.set(refusal);
+        return;
+      }
+      this.#dialogRef.close(tx);
+    } finally {
+      this.isPersisting.set(false);
+    }
   }
 }

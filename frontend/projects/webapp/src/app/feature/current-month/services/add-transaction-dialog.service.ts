@@ -12,6 +12,16 @@ import { AddTransactionBottomSheet } from '../components/add-transaction-bottom-
 import { AddTransactionDialog } from '../components/add-transaction-dialog';
 import type { TransactionFormData } from '../components/add-transaction-form';
 
+/**
+ * Ce que la coque reçoit : la façon d'enregistrer ce qu'on vient d'y saisir.
+ * Elle rend la raison d'un refus, ou `null` quand l'écriture est passée.
+ */
+export interface AddTransactionShellData {
+  readonly persist: (
+    transaction: TransactionFormData,
+  ) => Promise<string | null>;
+}
+
 @Service({ autoProvided: false })
 export class AddTransactionDialogService {
   readonly #breakpointObserver = inject(BreakpointObserver);
@@ -20,9 +30,23 @@ export class AddTransactionDialogService {
   readonly #injector = inject(Injector);
   readonly #transloco = inject(TranslocoService);
 
-  async open(): Promise<TransactionFormData | undefined> {
+  /**
+   * Ouvre la saisie et ne la referme qu'une fois l'écriture acceptée.
+   *
+   * `persist` rend la raison du refus, ou `null` si c'est passé. La coque
+   * attend cette réponse avant de se fermer : c'est elle qui détient le
+   * montant, le libellé, les tags et l'objet d'épargne, et le POST partait
+   * après sa destruction. Une session expirée, un 500, le mode avion — la
+   * saisie disparaissait et il ne restait qu'un toast. Le même formulaire
+   * demande pourtant confirmation avant de perdre ces champs sur un clic à
+   * côté : un refus serveur ne peut pas être moins prudent qu'une maladresse.
+   */
+  async open(
+    persist: (transaction: TransactionFormData) => Promise<string | null>,
+  ): Promise<TransactionFormData | undefined> {
     if (this.#breakpointObserver.isMatched(Breakpoints.Handset)) {
       const bottomSheetRef = this.#bottomSheet.open(AddTransactionBottomSheet, {
+        data: { persist } satisfies AddTransactionShellData,
         autoFocus: '[inputmode="decimal"]',
         // Les deux coques interceptent elles-mêmes le clic hors cadre et Échap
         // pour demander confirmation quand quelque chose a été saisi. Elles ne
@@ -37,6 +61,7 @@ export class AddTransactionDialogService {
     }
 
     const dialogRef = this.#dialog.open(AddTransactionDialog, {
+      data: { persist } satisfies AddTransactionShellData,
       width: '720px',
       maxWidth: 'calc(100vw - 48px)',
       panelClass: 'add-transaction-dialog',
