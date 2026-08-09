@@ -67,19 +67,31 @@ struct SavingsGoalServiceTests {
                       "transactionDate": "2026-06-02T10:00:00Z",
                       "amount": 500
                     }
-                  ]
+                  ],
+                  "planned": [{
+                    "budgetLineId": "55555555-5555-4555-8555-555555555555",
+                    "budgetId": "44444444-4444-4444-8444-444444444444",
+                    "name": "Apport septembre",
+                    "month": 9,
+                    "year": 2026,
+                    "plannedAmount": 4500,
+                    "realizedAmount": 800,
+                    "remainingAmount": 3700,
+                    "status": "partially_realized"
+                  }]
                 }
                 """.utf8)
             )
         }
         defer { InterceptingURLProtocol.requestHandler = nil }
 
-        let withdrawals: [SavingsGoalWithdrawal] = try await makeAPIClient()
+        let readModel: SavingsGoalWithdrawalsReadModel = try await makeAPIClient()
             .request(.savingsGoalWithdrawals(id: "goal-1"), method: .get)
 
         #expect(recorder.method == "GET")
         #expect(recorder.path == "/savings-goals/goal-1/withdrawals")
-        #expect(withdrawals.map(\.name) == ["Apport cuisine", "Apport imprévu"])
+        #expect(readModel.withdrawals.map(\.name) == ["Apport cuisine", "Apport imprévu"])
+        #expect(readModel.planned.first?.remainingAmount == 3700)
     }
 
     private func makeAPIClient() -> APIClient {

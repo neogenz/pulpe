@@ -164,8 +164,13 @@ export class SavingsGoalController {
   async withdrawals(
     @Param('id') id: string,
   ): Promise<SavingsGoalWithdrawalsResponse> {
-    const records = await this.withdrawalsUseCase.execute(id);
-    return { success: true, data: records };
+    const readModel = await this.withdrawalsUseCase.execute(id);
+    return {
+      success: true,
+      data: readModel.withdrawals,
+      planned: readModel.planned,
+      planOnly: readModel.planOnly,
+    };
   }
 
   @Get(':id/progress')

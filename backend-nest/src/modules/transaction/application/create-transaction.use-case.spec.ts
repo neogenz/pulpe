@@ -340,7 +340,24 @@ describe('CreateTransactionUseCase', () => {
         expect.objectContaining({
           budgetLineId: 'line-1',
           sourceSavingsGoalId: goalId,
+          checkedAt: expect.any(String),
         }),
+        5,
+      );
+      expect(mockRepo.insertWithdrawal).toHaveBeenCalledTimes(1);
+    });
+
+    it('should keep a free linked income unchecked', async () => {
+      const freeWithdrawal: TransactionCreate = {
+        ...realization,
+        budgetLineId: undefined,
+        sourceSavingsGoalId: goalId,
+      };
+
+      await useCase.execute(freeWithdrawal, mockUser);
+
+      expect(mockRepo.insertWithdrawal).toHaveBeenCalledWith(
+        expect.objectContaining({ checkedAt: null }),
         5,
       );
     });

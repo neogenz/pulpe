@@ -23,9 +23,7 @@ enum AddAllocatedTransactionLogic {
     struct RealizationPrefill: Equatable {
         let goalSource: SavingsGoalSource
         let name: String
-        /// `max(0, annoncé − Σ réels alloués)`, `nil` once the forecast is fully
-        /// covered — a further real income is legitimate, but nothing suggests
-        /// an amount for it.
+        /// `annoncé − Σ réels alloués`, strictement positif.
         let remainingAmount: Decimal?
     }
 
@@ -42,10 +40,11 @@ enum AddAllocatedTransactionLogic {
             return nil
         }
         let remaining = line.amount - consumption.allocated
+        guard remaining > 0 else { return nil }
         return RealizationPrefill(
             goalSource: goalSource,
             name: line.name,
-            remainingAmount: remaining > 0 ? remaining : nil
+            remainingAmount: remaining
         )
     }
 

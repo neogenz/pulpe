@@ -81,35 +81,33 @@ struct AddAllocatedTransactionRealizationTests {
         #expect(prefill.goalSource == .active(goalId: "goal-1", name: "Fonds d'urgence"))
     }
 
-    /// A second real income is legitimate — the forecast is an announcement, not a
-    /// ceiling — but nothing suggests an amount for it any more.
-    @Test("Suggests no amount once the forecast is covered")
-    func prefill_suggestsNothingOnceCovered() throws {
-        let exactly = try #require(AddAllocatedTransactionLogic.realizationPrefill(
+    @Test("A covered forecast offers no further realization")
+    func prefill_isAbsentOnceCovered() {
+        let exactly = AddAllocatedTransactionLogic.realizationPrefill(
             for: announcedLine(),
             consumption: consumption(allocated: 500)
-        ))
-        let beyond = try #require(AddAllocatedTransactionLogic.realizationPrefill(
+        )
+        let beyond = AddAllocatedTransactionLogic.realizationPrefill(
             for: announcedLine(),
             consumption: consumption(allocated: 620)
-        ))
+        )
 
-        #expect(exactly.remainingAmount == nil)
-        #expect(beyond.remainingAmount == nil)
+        #expect(exactly == nil)
+        #expect(beyond == nil)
     }
 
-    // MARK: - What the circle offers instead of pointing
+    // MARK: - Dedicated realization action
 
-    @Test("The circle announces the realization, then a further real income")
-    func affordance_announcesTheIntention() throws {
+    @Test("The text action names the first realization, then its balance")
+    func action_namesTheIntention() throws {
         let line = announcedLine()
 
-        let toRealize = try #require(BudgetLineMixedRow.realizeAffordance(for: line, remaining: 300))
-        let covered = try #require(BudgetLineMixedRow.realizeAffordance(for: line, remaining: 0))
+        let first = try #require(BudgetLineMixedRow.realizationLabel(for: line, realizedAmount: 0))
+        let partial = try #require(BudgetLineMixedRow.realizationLabel(for: line, realizedAmount: 200))
 
-        #expect(toRealize.label == "Réaliser le retrait de Apport cuisine")
-        #expect(covered.label == "Ajouter un autre revenu réel pour Apport cuisine")
-        #expect(toRealize.symbol != covered.symbol)
+        #expect(first == "Réaliser ce retrait")
+        #expect(partial == "Réaliser le solde")
+        #expect(BudgetLineMixedRow.realizationLabel(for: line, realizedAmount: 500) == nil)
     }
 
     /// Every other line keeps the ordinary pointing circle — including a line whose
@@ -119,8 +117,25 @@ struct AddAllocatedTransactionRealizationTests {
         let ordinary = TestDataFactory.createBudgetLine(kind: .income)
         let broken = announcedLine(goalId: nil)
 
-        #expect(BudgetLineMixedRow.realizeAffordance(for: ordinary, remaining: 500) == nil)
-        #expect(BudgetLineMixedRow.realizeAffordance(for: broken, remaining: 500) == nil)
+        #expect(BudgetLineMixedRow.realizationLabel(for: ordinary, realizedAmount: 0) == nil)
+        #expect(BudgetLineMixedRow.realizationLabel(for: broken, realizedAmount: 0) == nil)
+    }
+
+    @Test("A realization payload is pointé from its first write")
+    func payload_isChecked() {
+        let payload = AddAllocatedTransactionLogic.buildCreate(
+            for: announcedLine(),
+            input: .init(
+                name: "Apport cuisine",
+                amount: 500,
+                transactionDate: TestDataFactory.fixedDate,
+                isChecked: true,
+                conversion: nil,
+                tagIds: nil
+            )
+        )
+
+        #expect(payload.checkedAt != nil)
     }
 
     @Test("The row states where the announced money comes from")

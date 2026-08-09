@@ -28,7 +28,7 @@ extension BudgetDetailsCoordinator {
             // and realizing an announced withdrawal (PUL-329 v2) moves the
             // balance itself. Stating it here rather than at each mutation site
             // keeps the one-fact seam intact.
-            savingsGoalStore.invalidateCache()
+            savingsGoalStore.invalidateFromBudgetMutation()
         }
     }
 

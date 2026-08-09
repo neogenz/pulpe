@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   savingsGoalWithdrawalOptionSchema,
+  savingsGoalWithdrawalsResponseSchema,
   savingsGoalWithdrawalSchema,
   transactionCreateSchema,
   transactionSchema,
@@ -225,6 +226,17 @@ describe('savingsGoalWithdrawalSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('should expose the allocated Real pointing state when present', () => {
+    const result = savingsGoalWithdrawalSchema.safeParse(
+      buildWithdrawal({
+        budgetLineId: BUDGET_LINE_ID,
+        checkedAt: NOW,
+      }),
+    );
+
+    expect(result.success).toBe(true);
+  });
+
   it('should reject a negative transport amount', () => {
     const result = savingsGoalWithdrawalSchema.safeParse(
       buildWithdrawal({ amount: -4500 }),
@@ -239,5 +251,64 @@ describe('savingsGoalWithdrawalSchema', () => {
     );
 
     expect(result.success).toBe(true);
+  });
+});
+
+describe('savingsGoalWithdrawalsResponseSchema', () => {
+  it('keeps an old server response readable with no planned field', () => {
+    const result = savingsGoalWithdrawalsResponseSchema.parse({
+      success: true,
+      data: [],
+    });
+
+    expect(result.planned).toEqual([]);
+  });
+
+  it('reads planned, partial and realized amounts additively', () => {
+    const result = savingsGoalWithdrawalsResponseSchema.parse({
+      success: true,
+      data: [],
+      planned: [
+        {
+          budgetLineId: BUDGET_LINE_ID,
+          budgetId: BUDGET_ID,
+          name: 'Achat vélo',
+          month: 9,
+          year: 2026,
+          plannedAmount: 4_500,
+          realizedAmount: 1_500,
+          remainingAmount: 3_000,
+          status: 'partially_realized',
+        },
+      ],
+    });
+
+    expect(result.planned[0]).toMatchObject({
+      realizedAmount: 1_500,
+      remainingAmount: 3_000,
+      status: 'partially_realized',
+    });
+  });
+
+  it('reads a direct plan withdrawal without inventing budget identifiers', () => {
+    const result = savingsGoalWithdrawalsResponseSchema.parse({
+      success: true,
+      data: [],
+      planOnly: [
+        {
+          planWithdrawalId: '523e4567-e89b-12d3-a456-426614174000',
+          name: 'Maison',
+          month: 9,
+          year: 2026,
+          plannedAmount: 4_500,
+          origin: 'plan_only',
+        },
+      ],
+    });
+
+    expect(result.planOnly[0]).toMatchObject({
+      plannedAmount: 4_500,
+      origin: 'plan_only',
+    });
   });
 });

@@ -16,7 +16,10 @@ extension BudgetDetailsProjector {
     ) -> [BudgetDetailsScreenState.Section] {
         let syncing = syncStore.syncingBudgetLineIds
         var sections: [BudgetDetailsScreenState.Section] = []
-        let displayed = filtersStore.displayedSections(for: dataStore.budgetLines)
+        let displayed = filtersStore.displayedSections(
+            for: dataStore.budgetLines,
+            consumptionByLineId: consumptionByLineId
+        )
         sections.reserveCapacity(displayed.count)
         for section in displayed {
             let searchFiltered = filtersStore.filteredLines(

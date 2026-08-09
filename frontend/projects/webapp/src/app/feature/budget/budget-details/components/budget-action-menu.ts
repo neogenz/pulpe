@@ -77,14 +77,16 @@ function getBalanceFormatter(
         </div>
       }
       <mat-divider />
-      <button
-        mat-menu-item
-        (click)="addTransaction.emit(item().data)"
-        [attr.data-testid]="'add-transaction-' + item().data.id"
-      >
-        <mat-icon matMenuItemIcon>add</mat-icon>
-        <span>{{ item().metadata.allocationLabel }}</span>
-      </button>
+      @if (!item().data.sourceSavingsGoalId) {
+        <button
+          mat-menu-item
+          (click)="addTransaction.emit(item().data)"
+          [attr.data-testid]="'add-transaction-' + item().data.id"
+        >
+          <mat-icon matMenuItemIcon>add</mat-icon>
+          <span>{{ item().metadata.allocationLabel }}</span>
+        </button>
+      }
       <button
         mat-menu-item
         (click)="edit.emit(item())"

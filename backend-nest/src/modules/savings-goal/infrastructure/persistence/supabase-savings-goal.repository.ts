@@ -27,7 +27,7 @@ import {
   parseCurrency,
 } from '@common/utils/currency-metadata.mapper';
 import type { Transaction } from '@modules/transaction/domain/transaction.entity';
-import type { Database } from '../../../../types/database.types';
+import type { Database, Json } from '../../../../types/database.types';
 import type { SavingsGoalRepositoryPort } from '../../domain/ports/savings-goal-repository.port';
 import type {
   SavingsGoal,
@@ -41,14 +41,17 @@ import type {
   SavingsGoalLinkedContributions,
   SavingsGoalPlanApplyResult,
   SavingsGoalPlanMonthAdjustment,
+  SavingsGoalPlanWithdrawalAdjustment,
   SavingsGoalRow,
   SavingsGoalTargetDateReconciliationCommand,
   SavingsGoalTargetDateReconciliationResult,
   SavingsGoalUpdatePatch,
   SavingsGoalWithdrawalRecord,
+  SavingsGoalPlannedWithdrawalRecord,
 } from '../../domain/savings-goal.entity';
 import {
   applySavingsGoalPlanLineListSchema,
+  applySavingsGoalPlanWithdrawalListSchema,
   GENERATION_STOP_ADJUSTED_RPC_MESSAGE,
   GENERATION_STOP_CHECKED_RPC_MESSAGE,
   GENERATION_STOP_NOT_LINKED_RPC_MESSAGE,
@@ -56,6 +59,9 @@ import {
   PLAN_LINE_CHECKED_RPC_MESSAGE,
   PLAN_LINE_NOT_LINKED_RPC_MESSAGE,
   PLAN_LINE_PAST_RPC_MESSAGE,
+  PLAN_WITHDRAWAL_BUDGET_MISSING_RPC_MESSAGE,
+  PLAN_WITHDRAWAL_REALIZED_RPC_MESSAGE,
+  PLAN_BALANCE_CHANGED_RPC_MESSAGE,
   RECONCILIATION_CONFLICT_RPC_MESSAGE,
   reconcileSavingsGoalTargetDatePatchSchema,
   reconcileSavingsGoalTargetDateResponseSchema,
@@ -63,6 +69,7 @@ import {
   savingsGoalDeletionResultRpcSchema,
   SAVINGS_GOAL_DELETION_IMPACT_CHANGED_RPC_MESSAGE,
   type ApplySavingsGoalPlanLine,
+  type ApplySavingsGoalPlanWithdrawal,
   type SavingsGoalDeletionImpactRpc,
 } from './schemas/rpc-payload.schemas';
 
@@ -110,15 +117,26 @@ interface WithdrawalRow {
   name: string;
   amount: string | null;
   transaction_date: string;
+  checked_at: string | null;
   monthly_budget: { month: number; year: number };
 }
 
 /** Prévision `income` annonçant une sortie future de l'objectif (PUL-329 v2). */
 interface PlannedWithdrawalRow {
   id: string;
+  budget_id: string;
   source_savings_goal_id: string | null;
+  name: string;
   amount: string | null;
+  is_savings_goal_plan_adjustment: boolean;
   monthly_budget: { month: number; year: number };
+}
+
+interface PlanWithdrawalRow {
+  id: string;
+  amount: string;
+  month: number;
+  year: number;
 }
 
 interface LinkedTransactionRow {
@@ -452,6 +470,39 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     return rows.map((row) => this.toPlannedWithdrawal(row, dek));
   }
 
+  async findPlanWithdrawals(
+    goalId: string,
+  ): Promise<LinkedPlannedWithdrawal[]> {
+    const { data, error } = await this.supabaseProvider.client
+      .from('savings_goal_plan_withdrawal')
+      .select('id, amount, month, year')
+      .eq('savings_goal_id', goalId)
+      .eq('user_id', this.supabaseProvider.user.id);
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'findSavingsGoalPlanWithdrawals',
+          entityType: 'savings_goal_plan_withdrawal',
+          userId: this.supabaseProvider.user.id,
+        },
+        { cause: error },
+      );
+    }
+    if (!data?.length) return [];
+
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    return (data as PlanWithdrawalRow[]).map((row) => ({
+      id: row.id,
+      amount: this.encryption.tryDecryptAmount(row.amount, dek, 0),
+      month: row.month,
+      year: row.year,
+      origin: 'plan',
+    }));
+  }
+
   async findWithdrawals(
     goalId: string,
   ): Promise<SavingsGoalWithdrawalRecord[]> {
@@ -463,11 +514,31 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       .map((row) => ({
         transactionId: row.id,
         budgetId: row.budget_id,
+        budgetLineId: row.budget_line_id,
         name: row.name,
         transactionDate: row.transaction_date,
         amount: this.encryption.tryDecryptAmount(row.amount, dek, 0),
+        checkedAt: row.checked_at,
       }))
       .sort((a, b) => b.transactionDate.localeCompare(a.transactionDate));
+  }
+
+  async findPlannedWithdrawalRecords(
+    goalId: string,
+  ): Promise<SavingsGoalPlannedWithdrawalRecord[]> {
+    const rows = await this.fetchPlannedWithdrawalRows([goalId]);
+    if (!rows.length) return [];
+
+    const dek = await this.encryption.getDekFor(this.supabaseProvider.user);
+    return rows.map((row) => ({
+      budgetLineId: row.id,
+      budgetId: row.budget_id,
+      name: row.name,
+      amount: this.encryption.tryDecryptAmount(row.amount, dek, 0),
+      month: row.monthly_budget.month,
+      year: row.monthly_budget.year,
+      origin: row.is_savings_goal_plan_adjustment ? 'plan_linked' : undefined,
+    }));
   }
 
   async findBalanceRevision(goalId: string): Promise<number | null> {
@@ -577,6 +648,8 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     goalId: string,
     monthAdjustments: SavingsGoalPlanMonthAdjustment[],
     minPeriodIndex: number,
+    planWithdrawalAdjustments: SavingsGoalPlanWithdrawalAdjustment[],
+    expectedRevision: number,
   ): Promise<SavingsGoalPlanApplyResult> {
     const supabase = this.supabaseProvider.client;
     const user = this.supabaseProvider.user;
@@ -587,23 +660,54 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       ),
     );
     const linePayload = this.parsePlanPayload(lineUpdates);
+    const planWithdrawalUpdates = await Promise.all(
+      planWithdrawalAdjustments.map((adjustment) =>
+        this.toPlanWithdrawalRpcItem(adjustment, user),
+      ),
+    );
+    const planWithdrawalPayload = this.parsePlanWithdrawalPayload(
+      planWithdrawalUpdates,
+    );
 
-    const { data, error } = await supabase.rpc('apply_savings_goal_plan', {
-      p_goal_id: goalId,
-      p_min_period_index: minPeriodIndex,
-      p_line_updates: linePayload as never,
-    });
+    const { data, error } = await supabase.rpc(
+      'apply_savings_goal_plan_with_destinations',
+      {
+        p_goal_id: goalId,
+        p_min_period_index: minPeriodIndex,
+        p_line_updates: linePayload as never,
+        p_plan_withdrawals: planWithdrawalPayload as never,
+        p_expected_revision: expectedRevision,
+      },
+    );
 
     if (error || !data) {
       this.throwPlanRpcError(error);
     }
 
+    return this.toPlanApplyResult(data, user);
+  }
+
+  private async toPlanApplyResult(
+    data: Json,
+    user: AuthenticatedUser,
+  ): Promise<SavingsGoalPlanApplyResult> {
+    const rpcResult = data as unknown as {
+      updated_lines: Database['public']['Tables']['budget_line']['Row'][];
+      touched_budget_ids: string[];
+    };
+    if (
+      !Array.isArray(rpcResult.updated_lines) ||
+      !Array.isArray(rpcResult.touched_budget_ids)
+    ) {
+      this.throwPlanRpcError(null);
+    }
     const dek = await this.encryption.getDekFor(user);
-    const updatedLines = data.map((row) => this.toBudgetLineEntity(row, dek));
-    const touchedBudgetIds = [
-      ...new Set(updatedLines.map((line) => line.budgetId)),
-    ];
-    return { updatedLines, touchedBudgetIds };
+    return {
+      updatedLines: rpcResult.updated_lines.map((row) =>
+        this.toBudgetLineEntity(row, dek),
+      ),
+      touchedBudgetIds: [...new Set(rpcResult.touched_budget_ids)],
+    };
   }
 
   async applyGenerationStop(
@@ -903,6 +1007,53 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     }
   }
 
+  private async toPlanWithdrawalRpcItem(
+    adjustment: SavingsGoalPlanWithdrawalAdjustment,
+    user: AuthenticatedUser,
+  ): Promise<ApplySavingsGoalPlanWithdrawal> {
+    if (adjustment.amount === 0) {
+      return {
+        month: adjustment.month,
+        year: adjustment.year,
+        amount: null,
+        destination: adjustment.destination ?? 'goal_only',
+      };
+    }
+    const { amount } = await this.encryption.prepareAmountData(
+      -adjustment.amount,
+      user.id,
+      user.clientKey,
+    );
+    return {
+      month: adjustment.month,
+      year: adjustment.year,
+      amount,
+      destination: adjustment.destination ?? 'goal_only',
+    };
+  }
+
+  private parsePlanWithdrawalPayload(
+    updates: ApplySavingsGoalPlanWithdrawal[],
+  ): ApplySavingsGoalPlanWithdrawal[] {
+    try {
+      return applySavingsGoalPlanWithdrawalListSchema.parse(updates);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.SAVINGS_GOAL_PLAN_APPLY_FAILED,
+          undefined,
+          {
+            operation: 'applySavingsGoalPlan.withdrawalPayload',
+            entityType: 'savings_goal',
+            validationErrors: error.issues,
+          },
+          { cause: error },
+        );
+      }
+      throw error;
+    }
+  }
+
   /**
    * Maps an `apply_savings_goal_plan` RPC failure to the right business error.
    * Each branch matches an exact P0001 message the RPC RAISEs (named via a
@@ -925,10 +1076,20 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     const message = error?.message ?? '';
     if (
       message.includes(PLAN_LINE_CHECKED_RPC_MESSAGE) ||
-      message.includes(PLAN_LINE_PAST_RPC_MESSAGE)
+      message.includes(PLAN_LINE_PAST_RPC_MESSAGE) ||
+      message.includes(PLAN_WITHDRAWAL_REALIZED_RPC_MESSAGE) ||
+      message.includes(PLAN_BALANCE_CHANGED_RPC_MESSAGE)
     ) {
       throw new BusinessException(
         ERROR_DEFINITIONS.SAVINGS_GOAL_PLAN_CONFLICT,
+        undefined,
+        { operation: 'applySavingsGoalPlan', entityType: 'savings_goal' },
+        { cause: error ?? undefined },
+      );
+    }
+    if (message.includes(PLAN_WITHDRAWAL_BUDGET_MISSING_RPC_MESSAGE)) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.SAVINGS_GOAL_PLAN_MONTH_UNPROVISIONABLE,
         undefined,
         { operation: 'applySavingsGoalPlan', entityType: 'savings_goal' },
         { cause: error ?? undefined },
@@ -1071,7 +1232,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     const { data, error } = await this.supabaseProvider.client
       .from('transaction')
       .select(
-        'id, budget_id, budget_line_id, source_savings_goal_id, name, amount, transaction_date, monthly_budget!inner(month, year)',
+        'id, budget_id, budget_line_id, source_savings_goal_id, name, amount, transaction_date, checked_at, monthly_budget!inner(month, year)',
       )
       .in('source_savings_goal_id', goalIds);
 
@@ -1130,7 +1291,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
     const { data, error } = await this.supabaseProvider.client
       .from('budget_line')
       .select(
-        'id, source_savings_goal_id, amount, monthly_budget!inner(month, year)',
+        'id, budget_id, source_savings_goal_id, name, amount, is_savings_goal_plan_adjustment, monthly_budget!inner(month, year)',
       )
       .in('source_savings_goal_id', goalIds)
       .eq('kind', 'income');
@@ -1160,6 +1321,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepositoryPort 
       amount: this.encryption.tryDecryptAmount(row.amount, dek, 0),
       month: row.monthly_budget.month,
       year: row.monthly_budget.year,
+      origin: row.is_savings_goal_plan_adjustment ? 'plan_linked' : undefined,
     };
   }
 

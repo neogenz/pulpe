@@ -36,6 +36,62 @@ describe('BudgetItemDataProvider', () => {
     service = TestBed.inject(BudgetItemDataProvider);
   });
 
+  describe('goal withdrawal realization', () => {
+    const sourceLine = createMockBudgetLine({
+      id: 'withdrawal-line',
+      amount: 500,
+      kind: 'income',
+      sourceSavingsGoalId: 'goal-1',
+      sourceSavingsGoalName: 'Voyage',
+    });
+
+    it('offers the withdrawal first, then only its remaining balance', () => {
+      const fresh = filterDataItems(
+        service.provideTableData({
+          budgetLines: [sourceLine],
+          transactions: [],
+        }),
+      )[0] as BudgetLineTableItem;
+      const partial = filterDataItems(
+        service.provideTableData({
+          budgetLines: [sourceLine],
+          transactions: [
+            createMockTransaction({
+              budgetLineId: sourceLine.id,
+              amount: 200,
+              kind: 'income',
+            }),
+          ],
+        }),
+      )[0] as BudgetLineTableItem;
+
+      expect(fresh.metadata.sourceWithdrawalCtaKey).toBe(
+        'budgetLine.realizeWithdrawal',
+      );
+      expect(partial.metadata.sourceWithdrawalCtaKey).toBe(
+        'budgetLine.realizeWithdrawalBalance',
+      );
+    });
+
+    it('exposes only the realized state once allocated Reals cover the forecast', () => {
+      const item = filterDataItems(
+        service.provideTableData({
+          budgetLines: [sourceLine],
+          transactions: [
+            createMockTransaction({
+              budgetLineId: sourceLine.id,
+              amount: 500,
+              kind: 'income',
+            }),
+          ],
+        }),
+      )[0] as BudgetLineTableItem;
+
+      expect(item.metadata.sourceWithdrawalCtaKey).toBeNull();
+      expect(item.metadata.isSourceWithdrawalRealized).toBe(true);
+    });
+  });
+
   describe('Display Order Business Rules', () => {
     it('should display budget lines before transactions', () => {
       // Arrange

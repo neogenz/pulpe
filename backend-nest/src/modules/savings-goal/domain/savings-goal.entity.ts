@@ -126,6 +126,11 @@ export interface SavingsGoalContribution {
 export type SavingsGoalPlanMonthAdjustment =
   SavingsGoalPlanApply['monthAdjustments'][number];
 
+/** Retrait direct signé : négatif = upsert, zéro = suppression. */
+export type SavingsGoalPlanWithdrawalAdjustment = NonNullable<
+  SavingsGoalPlanApply['planWithdrawalAdjustments']
+>[number];
+
 /**
  * Result of applying a plan (PUL-12). `updatedLines` are the decrypted budget
  * lines the RPC rewrote; `touchedBudgetIds` drives the post-commit recalc.
@@ -172,6 +177,17 @@ export type SavingsGoalWithdrawalOptionResult = SavingsGoalWithdrawalOption;
 
 /** Une sortie de stock déchiffrée, montant POSITIF (PUL-329). */
 export type SavingsGoalWithdrawalRecord = SavingsGoalWithdrawal;
+
+/** Prévision Revenu liée, déchiffrée, avant agrégation avec ses Réels. */
+export interface SavingsGoalPlannedWithdrawalRecord {
+  budgetLineId: string;
+  budgetId: string;
+  name: string;
+  amount: number;
+  month: number;
+  year: number;
+  origin?: 'plan_linked';
+}
 
 /**
  * Matière brute du solde d'un objectif (PUL-329) : tout ce que

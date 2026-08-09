@@ -2040,6 +2040,38 @@ describe('AesGcmCryptoService', () => {
   });
 
   describe('reEncryptAllUserData', () => {
+    it('should include plan-only withdrawals in the atomic rekey payload', async () => {
+      const oldDek = randomBytes(32);
+      const newDek = randomBytes(32);
+      const rekeyUserData = mock(() => Promise.resolve());
+      service = new AesGcmCryptoService(
+        createMockLogger() as any,
+        mockConfigService as any,
+        createMockRepository({ rekeyUserData }) as any,
+      );
+      const ciphertext = service.encryptAmount(4_500, oldDek);
+
+      await service.reEncryptAllUserData(
+        TEST_USER_ID,
+        oldDek,
+        newDek,
+        createEncryptedDataClient({
+          savings_goal_plan_withdrawal: [
+            { id: testUuid(9_001), user_id: TEST_USER_ID, amount: ciphertext },
+          ],
+        }) as any,
+      );
+
+      const [, payloads] = rekeyUserData.mock.calls[0] as unknown as [
+        string,
+        { planWithdrawals: Array<{ id: string; amount: string }> },
+      ];
+      expect(payloads.planWithdrawals).toHaveLength(1);
+      expect(
+        service.decryptAmount(payloads.planWithdrawals[0]!.amount, newDek),
+      ).toBe(4_500);
+    });
+
     it('should read and re-encrypt all rows beyond the PostgREST 1,000-row limit', async () => {
       const oldDek = randomBytes(32);
       const newDek = randomBytes(32);

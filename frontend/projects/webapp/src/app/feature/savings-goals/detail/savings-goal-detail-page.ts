@@ -29,6 +29,7 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import {
   API_ERROR_CODES,
   compareBudgetPeriods,
+  currentPlanMovement,
   getBudgetPeriodForDate,
   parseIsoDateLocal,
   type SavingsGoalDeletionCommand,
@@ -631,6 +632,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                 [editable]="simulator.isSimulating()"
                 [expanded]="timelineExpanded()"
                 [canRepair]="repairableMonths().length > 0"
+                [plannedWithdrawals]="store.plannedWithdrawals()"
                 (amountChange)="onTimelineAmountChange($event)"
                 (invalidChange)="simulator.setMonthAmountInvalid($event)"
                 (toggleExpanded)="toggleTimeline()"
@@ -677,9 +679,12 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
               </h2>
               <pulpe-goal-withdrawals-list
                 [withdrawals]="store.withdrawals()"
+                [plannedWithdrawals]="store.plannedWithdrawals()"
+                [planOnlyWithdrawals]="store.planOnlyWithdrawals()"
                 [currency]="currency()"
                 [isLoading]="store.isWithdrawalsLoading()"
                 [hasError]="!!store.withdrawalsError()"
+                (retryRequested)="store.reloadWithdrawals()"
               />
             </section>
           }
@@ -692,7 +697,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
            this page carries only the bar's content: no absolute/fixed/spacer. -->
       <ng-template #planActionBar>
         <div
-          class="flex items-center justify-end gap-2 bg-surface py-3 pl-6 pr-14 shadow-[0_-3px_3px_-2px_rgba(0,0,0,0.2),0_-3px_4px_0_rgba(0,0,0,0.14),0_-1px_8px_0_rgba(0,0,0,0.12)]"
+          class="flex flex-wrap items-center justify-end gap-2 bg-surface px-4 py-3 sm:pl-6 sm:pr-14 shadow-[0_-3px_3px_-2px_rgba(0,0,0,0.2),0_-3px_4px_0_rgba(0,0,0,0.14),0_-1px_8px_0_rgba(0,0,0,0.12)]"
           data-testid="goal-plan-sticky-bar"
         >
           <button
@@ -850,6 +855,8 @@ export default class SavingsGoalDetailPage {
   protected readonly hasWithdrawalsSection = computed(
     () =>
       this.store.withdrawals().length > 0 ||
+      this.store.plannedWithdrawals().length > 0 ||
+      this.store.planOnlyWithdrawals().length > 0 ||
       this.store.isWithdrawalsLoading() ||
       !!this.store.withdrawalsError(),
   );
@@ -1206,32 +1213,55 @@ export default class SavingsGoalDetailPage {
       .filter((month) => month.isAdjusted)
       // Same zero-gap filter as GoalPlanSimulatorStore#buildApplyPayload — a
       // confirmation must only list changes that will actually be sent.
-      .filter((month) => !(month.isProvisionable && month.simulatedAmount <= 0))
+      .filter(
+        (month) =>
+          !(
+            month.isProvisionable &&
+            month.simulatedAmount === 0 &&
+            month.replacesExistingPlanWithdrawal !== true
+          ),
+      )
       .map((month) => ({
         month: month.month,
         year: month.year,
-        before: month.plannedAmount,
+        before: currentPlanMovement(month),
         after: month.simulatedAmount,
+        contributionAmount: Math.max(
+          month.plannedAmount,
+          month.confirmedAmount,
+        ),
+        hasBudget: month.hasBudget === true,
+        planWithdrawalDestination: month.planWithdrawalDestination,
+        planWithdrawalConsumedAmount: month.planWithdrawalConsumedAmount,
       }));
     if (changes.length === 0) return;
 
-    const confirmed = await this.#dialogs.openApplyPlan({
+    const decision = await this.#dialogs.openApplyPlan({
       changes,
       currency: this.currency(),
       locale: this.locale,
       payDayOfMonth: this.payDayOfMonth(),
       verdict: this.verdict(),
     });
-    if (!confirmed) return;
+    if (!decision) return;
 
     this.#isApplying.set(true);
     try {
-      await this.simulator.apply();
+      await this.simulator.apply(decision === true ? [] : decision);
       this.#timelineExpanded.set(false);
       this.#openSnackBar(
         this.#transloco.translate('savingsGoals.simulate.applySuccess'),
       );
     } catch (error) {
+      if (
+        isApiError(error) &&
+        error.status === 409 &&
+        error.code === API_ERROR_CODES.SAVINGS_GOAL_PLAN_CONFLICT
+      ) {
+        this.simulator.exit();
+        this.store.reloadProgress();
+        this.store.reloadWithdrawals();
+      }
       this.#showLocalizedApiError(error);
     } finally {
       this.#isApplying.set(false);

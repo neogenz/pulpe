@@ -56,16 +56,30 @@ final class FiltersStore {
     /// Filters budget lines based on the checked filter preference.
     static func applyCheckedFilter(
         _ lines: [BudgetLine],
-        filter: CheckedFilterOption
+        filter: CheckedFilterOption,
+        consumptionByLineId: [String: BudgetFormulas.Consumption] = [:]
     ) -> [BudgetLine] {
         switch filter {
         case .all:
             return lines
         case .unchecked:
-            return lines.filter { $0.checkedAt == nil }
+            return lines.filter {
+                !isEffectivelyChecked($0, consumptionByLineId: consumptionByLineId)
+            }
         case .checked:
-            return lines.filter { $0.checkedAt != nil }
+            return lines.filter {
+                isEffectivelyChecked($0, consumptionByLineId: consumptionByLineId)
+            }
         }
+    }
+
+    static func isEffectivelyChecked(
+        _ line: BudgetLine,
+        consumptionByLineId: [String: BudgetFormulas.Consumption]
+    ) -> Bool {
+        if line.checkedAt != nil { return true }
+        guard line.isPlannedSavingsWithdrawal else { return false }
+        return (consumptionByLineId[line.id]?.allocated ?? 0) >= line.amount
     }
 
     /// Sections to display after applying BOTH filters (checked + type), in
@@ -74,7 +88,8 @@ final class FiltersStore {
     static func displayedSections(
         for budgetLines: [BudgetLine],
         typeFilter: BudgetLineKindFilter,
-        checkedFilter: CheckedFilterOption
+        checkedFilter: CheckedFilterOption,
+        consumptionByLineId: [String: BudgetFormulas.Consumption] = [:]
     ) -> [(kind: TransactionKind, items: [BudgetLine])] {
         let order: [TransactionKind] = [.income, .saving, .expense]
         let allowed: TransactionKind? = switch typeFilter {
@@ -86,7 +101,11 @@ final class FiltersStore {
         return order.compactMap { kind in
             if let allowed, allowed != kind { return nil }
             let kindLines = budgetLines.byKind(kind)
-            let items = applyCheckedFilter(kindLines, filter: checkedFilter)
+            let items = applyCheckedFilter(
+                kindLines,
+                filter: checkedFilter,
+                consumptionByLineId: consumptionByLineId
+            )
             guard !items.isEmpty else { return nil }
             return (kind: kind, items: items)
         }
@@ -97,9 +116,14 @@ final class FiltersStore {
     /// "what tapping this would show" against the active checked filter.
     static func kindCounts(
         for budgetLines: [BudgetLine],
-        checkedFilter: CheckedFilterOption
+        checkedFilter: CheckedFilterOption,
+        consumptionByLineId: [String: BudgetFormulas.Consumption] = [:]
     ) -> BudgetLineKindCounts {
-        let filtered = applyCheckedFilter(budgetLines, filter: checkedFilter)
+        let filtered = applyCheckedFilter(
+            budgetLines,
+            filter: checkedFilter,
+            consumptionByLineId: consumptionByLineId
+        )
         var income = 0
         var expense = 0
         var saving = 0
@@ -123,7 +147,8 @@ final class FiltersStore {
     /// tapping this would show" against the active type filter.
     static func checkedCounts(
         for budgetLines: [BudgetLine],
-        typeFilter: BudgetLineKindFilter
+        typeFilter: BudgetLineKindFilter,
+        consumptionByLineId: [String: BudgetFormulas.Consumption] = [:]
     ) -> CheckedFilterCounts {
         let typeFiltered: [BudgetLine] = switch typeFilter {
         case .all: budgetLines
@@ -131,8 +156,10 @@ final class FiltersStore {
         case .saving: budgetLines.byKind(.saving)
         case .expense: budgetLines.byKind(.expense)
         }
-        let unchecked = typeFiltered.filter { $0.checkedAt == nil }.count
-        let checked = typeFiltered.filter { $0.checkedAt != nil }.count
+        let checked = typeFiltered.filter {
+            isEffectivelyChecked($0, consumptionByLineId: consumptionByLineId)
+        }.count
+        let unchecked = typeFiltered.count - checked
         return CheckedFilterCounts(
             unchecked: unchecked,
             checked: checked,
@@ -220,20 +247,38 @@ final class FiltersStore {
 
     // MARK: - Instance forwarders (use store's current filters)
 
-    func displayedSections(for budgetLines: [BudgetLine]) -> [(kind: TransactionKind, items: [BudgetLine])] {
+    func displayedSections(
+        for budgetLines: [BudgetLine],
+        consumptionByLineId: [String: BudgetFormulas.Consumption] = [:]
+    ) -> [(kind: TransactionKind, items: [BudgetLine])] {
         Self.displayedSections(
             for: budgetLines,
             typeFilter: typeFilter,
-            checkedFilter: checkedFilter
+            checkedFilter: checkedFilter,
+            consumptionByLineId: consumptionByLineId
         )
     }
 
-    func kindCounts(for budgetLines: [BudgetLine]) -> BudgetLineKindCounts {
-        Self.kindCounts(for: budgetLines, checkedFilter: checkedFilter)
+    func kindCounts(
+        for budgetLines: [BudgetLine],
+        consumptionByLineId: [String: BudgetFormulas.Consumption] = [:]
+    ) -> BudgetLineKindCounts {
+        Self.kindCounts(
+            for: budgetLines,
+            checkedFilter: checkedFilter,
+            consumptionByLineId: consumptionByLineId
+        )
     }
 
-    func checkedCounts(for budgetLines: [BudgetLine]) -> CheckedFilterCounts {
-        Self.checkedCounts(for: budgetLines, typeFilter: typeFilter)
+    func checkedCounts(
+        for budgetLines: [BudgetLine],
+        consumptionByLineId: [String: BudgetFormulas.Consumption] = [:]
+    ) -> CheckedFilterCounts {
+        Self.checkedCounts(
+            for: budgetLines,
+            typeFilter: typeFilter,
+            consumptionByLineId: consumptionByLineId
+        )
     }
 
     func filteredLines(_ lines: [BudgetLine], searchText: String, transactions: [Transaction]) -> [BudgetLine] {

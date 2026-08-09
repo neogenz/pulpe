@@ -11,6 +11,7 @@ import type {
 import type {
   RekeyBudgetLineRpcPayload,
   RekeyMonthlyBudgetRpcPayload,
+  RekeyPlanWithdrawalRpcPayload,
   RekeySavingsGoalRpcPayload,
   RekeyTemplateLineRpcPayload,
   RekeyTransactionRpcPayload,
@@ -22,6 +23,7 @@ export interface RekeyRpcPayloads {
   templateLines: RekeyTemplateLineRpcPayload[];
   savingsGoals: RekeySavingsGoalRpcPayload[];
   monthlyBudgets: RekeyMonthlyBudgetRpcPayload[];
+  planWithdrawals: RekeyPlanWithdrawalRpcPayload[];
 }
 
 @Injectable()
@@ -273,15 +275,19 @@ export class SupabaseEncryptionKeyRepository implements EncryptionKeyRepositoryP
     keyCheck: string,
   ): Promise<void> {
     const supabase = this.#supabaseService.getServiceRoleClient();
-    const { error } = await supabase.rpc('rekey_user_encrypted_data', {
-      p_user_id: userId,
-      p_budget_lines: payloads.budgetLines,
-      p_transactions: payloads.transactions,
-      p_template_lines: payloads.templateLines,
-      p_savings_goals: payloads.savingsGoals,
-      p_monthly_budgets: payloads.monthlyBudgets,
-      p_key_check: keyCheck,
-    });
+    const { error } = await supabase.rpc(
+      'rekey_user_encrypted_data_with_plan_withdrawals',
+      {
+        p_user_id: userId,
+        p_plan_withdrawals: payloads.planWithdrawals,
+        p_budget_lines: payloads.budgetLines,
+        p_transactions: payloads.transactions,
+        p_template_lines: payloads.templateLines,
+        p_savings_goals: payloads.savingsGoals,
+        p_monthly_budgets: payloads.monthlyBudgets,
+        p_key_check: keyCheck,
+      },
+    );
 
     if (error) {
       throw new BusinessException(

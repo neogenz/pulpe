@@ -76,6 +76,14 @@ export const rekeyMonthlyBudgetsRpcPayloadSchema = z.array(
   rekeyMonthlyBudgetRpcPayloadSchema,
 );
 
+export const rekeyPlanWithdrawalRpcPayloadSchema = z
+  .object({ id: uuid, amount: ciphertext })
+  .strict();
+
+export const rekeyPlanWithdrawalsRpcPayloadSchema = z.array(
+  rekeyPlanWithdrawalRpcPayloadSchema,
+);
+
 export type RekeyBudgetLineRpcPayload = z.infer<
   typeof rekeyBudgetLineRpcPayloadSchema
 >;
@@ -90,4 +98,7 @@ export type RekeySavingsGoalRpcPayload = z.infer<
 >;
 export type RekeyMonthlyBudgetRpcPayload = z.infer<
   typeof rekeyMonthlyBudgetRpcPayloadSchema
+>;
+export type RekeyPlanWithdrawalRpcPayload = z.infer<
+  typeof rekeyPlanWithdrawalRpcPayloadSchema
 >;

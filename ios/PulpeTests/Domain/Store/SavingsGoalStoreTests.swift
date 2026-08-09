@@ -35,6 +35,16 @@ struct SavingsGoalStoreTests {
         )
     }
 
+    @Test("a budget mutation publishes a detail refresh revision")
+    func invalidateFromBudgetMutation_incrementsRevision() {
+        let store = SavingsGoalStore(service: MockSavingsGoalService())
+
+        store.invalidateFromBudgetMutation()
+        store.invalidateFromBudgetMutation()
+
+        #expect(store.budgetMutationVersion == 2)
+    }
+
     @Test("forceRefresh loads goals, ACTIVE before COMPLETED")
     func forceRefresh_loadsAndSorts() async {
         let service = MockSavingsGoalService()

@@ -2,7 +2,6 @@ import { Service, computed, inject, signal } from '@angular/core';
 import {
   allocateMonthAmountToLines,
   isContributivePlanMonth,
-  isOpenPlanMonth,
   redistributeRemainingEffort,
   simulateSavingsPlan,
   type RedistributeRemainingEffortResult,
@@ -13,14 +12,27 @@ import {
 } from 'pulpe-shared';
 import { SavingsGoalStore } from '../../services/savings-goals-store';
 
+export type GoalPlanWithdrawalDestination = 'goal_only' | 'linked_income';
+
+export interface GoalPlanWithdrawalDecision {
+  month: number;
+  year: number;
+  destination: GoalPlanWithdrawalDestination;
+}
+
 function periodKeyOf(item: { month: number; year: number }): number {
   return item.year * 12 + item.month;
 }
 
 const SLIDER_MIN_CEIL = 100;
 
-/** Un montant de plan est un nombre fini positif ou nul — jamais un retrait. */
-function isApplicableAmount(amount: number): boolean {
+/** Le mouvement mensuel est signé : positif = épargne, négatif = retrait. */
+function isApplicableMonthAmount(amount: number): boolean {
+  return Number.isFinite(amount);
+}
+
+/** Le contrôle global reste un effort d'épargne uniforme, donc non négatif. */
+function isApplicableGlobalAmount(amount: number): boolean {
   return Number.isFinite(amount) && amount >= 0;
 }
 
@@ -201,10 +213,10 @@ export class GoalPlanSimulatorStore {
    * sien sans rien dire.
    */
   setMonth(month: number, year: number, amount: number): void {
-    if (!isApplicableAmount(amount)) return;
+    if (!isApplicableMonthAmount(amount)) return;
     const key = year * 12 + month;
     const target = this.baseline().find((item) => periodKeyOf(item) === key);
-    if (!target || !isOpenPlanMonth(target)) return;
+    if (!target || !isContributivePlanMonth(target)) return;
 
     const next = new Map(this.#overrides());
     next.set(key, amount);
@@ -213,7 +225,7 @@ export class GoalPlanSimulatorStore {
 
   /** Bouger le slider écrase tous les overrides par mois (annoncé par la toolbar). */
   setGlobalAmount(amount: number): void {
-    if (!isApplicableAmount(amount)) return;
+    if (!isApplicableGlobalAmount(amount)) return;
     this.#overrides.set(new Map());
     this.#globalAmount.set(amount);
   }
@@ -252,20 +264,51 @@ export class GoalPlanSimulatorStore {
     return result;
   }
 
-  buildApplyPayload(): SavingsGoalPlanApply {
+  buildApplyPayload(
+    withdrawalDecisions: readonly GoalPlanWithdrawalDecision[] = [],
+  ): SavingsGoalPlanApply {
     const draft = this.draft();
+    const withdrawalDestinations = new Map(
+      withdrawalDecisions.map(
+        (decision) => [periodKeyOf(decision), decision.destination] as const,
+      ),
+    );
     const monthAdjustments: SavingsGoalPlanApply['monthAdjustments'] = [];
     const missingMonthAdjustments: NonNullable<
       SavingsGoalPlanApply['missingMonthAdjustments']
     > = [];
+    const planWithdrawalAdjustments: NonNullable<
+      SavingsGoalPlanApply['planWithdrawalAdjustments']
+    > = [];
     if (draft) {
       for (const month of draft.months) {
         if (!month.isAdjusted) continue;
+        const withdrawalDestination =
+          withdrawalDestinations.get(periodKeyOf(month)) ??
+          month.planWithdrawalDestination ??
+          'goal_only';
+        if (month.simulatedAmount < 0) {
+          planWithdrawalAdjustments.push({
+            month: month.month,
+            year: month.year,
+            amount: month.simulatedAmount,
+            destination: withdrawalDestination,
+          });
+          continue;
+        }
+        if (month.replacesExistingPlanWithdrawal === true) {
+          planWithdrawalAdjustments.push({
+            month: month.month,
+            year: month.year,
+            amount: 0,
+            destination: withdrawalDestination,
+          });
+        }
         if (month.isProvisionable) {
           // A zero-valued creation describes nothing to create. The server
           // drops it too (older clients still send it), but there is no point
           // spending a round-trip carrying an instruction that means nothing.
-          if (month.simulatedAmount <= 0) continue;
+          if (month.simulatedAmount === 0) continue;
           missingMonthAdjustments.push({
             month: month.month,
             year: month.year,
@@ -284,13 +327,19 @@ export class GoalPlanSimulatorStore {
         monthAdjustments.push(...allocated);
       }
     }
-    return { monthAdjustments, missingMonthAdjustments };
+    return {
+      monthAdjustments,
+      missingMonthAdjustments,
+      planWithdrawalAdjustments,
+    };
   }
 
-  async apply(): Promise<void> {
+  async apply(
+    withdrawalDecisions: readonly GoalPlanWithdrawalDecision[] = [],
+  ): Promise<void> {
     const goal = this.#store.selectedGoal();
     if (!goal) throw new Error('No goal selected');
-    const payload = this.buildApplyPayload();
+    const payload = this.buildApplyPayload(withdrawalDecisions);
     // A zero-valued gap creation can be the only "adjusted" month left after
     // omission (see buildApplyPayload) — nothing left to persist then.
     // `apply()` is a public store entry point: the current caller (this
@@ -299,7 +348,8 @@ export class GoalPlanSimulatorStore {
     // apply request — it protects the boundary, not a producer guarantee.
     const hasPayload =
       payload.monthAdjustments.length > 0 ||
-      (payload.missingMonthAdjustments?.length ?? 0) > 0;
+      (payload.missingMonthAdjustments?.length ?? 0) > 0 ||
+      (payload.planWithdrawalAdjustments?.length ?? 0) > 0;
     if (hasPayload) {
       await this.#store.applyPlan(goal.id, payload);
     }

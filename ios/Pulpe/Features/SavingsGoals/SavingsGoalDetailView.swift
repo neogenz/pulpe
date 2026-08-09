@@ -32,6 +32,7 @@ struct SavingsGoalDetailView: View {
     @State private var viewModel: SavingsGoalDetailViewModel
     @State private var editTarget: SavingsGoal?
     @State private var isSimulating = false
+    @State private var pendingSimulatorBudgetId: String?
     @State private var showRecoveryRecap = false
     @State private var showGenerationStop = false
     @State private var generationStopCandidates: [SavingsGoalFutureLine] = []
@@ -95,7 +96,7 @@ struct SavingsGoalDetailView: View {
                     changes: recoveryChanges(progress),
                     verdict: recoveryVerdict(progress),
                     currency: currency,
-                    onConfirm: {
+                    onConfirm: { _ in
                         let succeeded = await viewModel.applyMissingForecasts(from: progress)
                         guard succeeded else {
                             if let error = viewModel.error {
@@ -127,6 +128,9 @@ struct SavingsGoalDetailView: View {
         .task {
             await viewModel.load()
             await refreshFutureLinesIfStopped()
+        }
+        .onChange(of: store.budgetMutationVersion) {
+            Task { await viewModel.load() }
         }
         .trackScreen("SavingsGoalDetail")
     }
@@ -167,10 +171,12 @@ struct SavingsGoalDetailView: View {
                     GoalPlanTimelineSection(
                         months: progress.months,
                         currency: currency,
+                        plannedWithdrawals: viewModel.plannedWithdrawals,
                         canAdjust: canAdjust(progress),
                         canRepair: SavingsGoalDetailViewModel.canRepairPlan(progress, status: currentGoal.status),
                         onAdjust: { isSimulating = true },
-                        onRepair: { showRecoveryRecap = true }
+                        onRepair: { showRecoveryRecap = true },
+                        onOpenBudget: openWithdrawal
                     )
                 }
 
@@ -183,14 +189,21 @@ struct SavingsGoalDetailView: View {
         .scrollContentBackground(.hidden)
         .refreshable { await viewModel.load() }
         .accessibilityIdentifier("savingsGoalDetailRoot")
-        .sheet(isPresented: $isSimulating) {
-            GoalPlanSimulatorSheet(
-                goal: currentGoal,
-                progress: progress,
-                currency: currency,
-                onApplied: { await handlePlanApplied() }
-            )
+        .sheet(isPresented: $isSimulating, onDismiss: openPendingSimulatorBudget) {
+            simulator(progress: progress)
         }
+    }
+
+    private func simulator(progress: SavingsGoalProgress) -> some View {
+        GoalPlanSimulatorSheet(
+            goal: currentGoal,
+            progress: progress,
+            currency: currency,
+            plannedWithdrawals: viewModel.plannedWithdrawals,
+            onApplied: { await handlePlanApplied() },
+            onOpenBudget: queueBudgetFromSimulator,
+            onPlanConflict: { await handlePlanConflict() }
+        )
     }
 
     @ViewBuilder
@@ -213,15 +226,20 @@ struct SavingsGoalDetailView: View {
     private var withdrawalsSection: some View {
         if GoalWithdrawalsSection.isRelevant(
             withdrawals: viewModel.withdrawals,
+            planned: viewModel.plannedWithdrawals,
+            planOnly: viewModel.planOnlyWithdrawals,
             isLoading: viewModel.isLoadingWithdrawals,
             error: viewModel.withdrawalsError
         ) {
             GoalWithdrawalsSection(
                 withdrawals: viewModel.withdrawals,
+                planned: viewModel.plannedWithdrawals,
+                planOnly: viewModel.planOnlyWithdrawals,
                 currency: currency,
                 isLoading: viewModel.isLoadingWithdrawals,
                 error: viewModel.withdrawalsError,
-                onOpen: openWithdrawal
+                onOpenBudget: openWithdrawal,
+                onRetry: { Task { await viewModel.loadWithdrawals() } }
             )
             .accessibilityIdentifier("savingsGoalWithdrawalsSection")
         }
@@ -229,8 +247,19 @@ struct SavingsGoalDetailView: View {
 
     /// Pushes the budget onto the stack the user is actually looking at, so Back
     /// returns to this goal instead of dropping them into another tab.
-    private func openWithdrawal(_ withdrawal: SavingsGoalWithdrawal) {
-        appState.pushOnActiveStack(BudgetDestination.details(budgetId: withdrawal.budgetId))
+    private func openWithdrawal(_ budgetId: String) {
+        appState.pushOnActiveStack(BudgetDestination.details(budgetId: budgetId))
+    }
+
+    private func queueBudgetFromSimulator(_ budgetId: String) {
+        pendingSimulatorBudgetId = budgetId
+        isSimulating = false
+    }
+
+    private func openPendingSimulatorBudget() {
+        guard let budgetId = pendingSimulatorBudgetId else { return }
+        pendingSimulatorBudgetId = nil
+        openWithdrawal(budgetId)
     }
 
     /// Simulator entry (pilier C): active goal, at least one linked line, at least
@@ -255,7 +284,8 @@ struct SavingsGoalDetailView: View {
                 month: $0,
                 simulatedAmount: amount,
                 simulatedCumulative: $0.plannedCumulative + repaired,
-                isAdjusted: true
+                isAdjusted: true,
+                replacesExistingPlanWithdrawal: false
             )
         }
     }
@@ -311,6 +341,14 @@ private extension SavingsGoalDetailView {
         store.invalidateCache()
         await viewModel.load()
         toastManager.show("Ton plan est à jour")
+    }
+
+    /// A 409 means the recap's baseline is stale. The simulator has already
+    /// closed; reload all three detail reads before asking for a new simulation.
+    private func handlePlanConflict() async {
+        store.invalidateCache()
+        await viewModel.load()
+        toastManager.show(APIError.savingsGoalPlanConflict.localizedDescription, type: .error)
     }
 
     private func setStatus(_ status: SavingsGoalStatus) async {
@@ -535,6 +573,8 @@ final class SavingsGoalDetailViewModel {
     private(set) var progress: SavingsGoalProgress?
     private(set) var contributions: [SavingsGoalContribution] = []
     private(set) var withdrawals: [SavingsGoalWithdrawal] = []
+    private(set) var plannedWithdrawals: [SavingsGoalPlannedWithdrawal] = []
+    private(set) var planOnlyWithdrawals: [SavingsGoalPlanOnlyWithdrawal] = []
     private(set) var futureLines: [SavingsGoalFutureLine] = []
     private(set) var isLoading = true
     private(set) var isLoadingContributions = false
@@ -626,7 +666,10 @@ final class SavingsGoalDetailViewModel {
         withdrawalsError = nil
         defer { isLoadingWithdrawals = false }
         do {
-            withdrawals = try await service.getWithdrawals(id: goalId)
+            let readModel = try await service.getWithdrawals(id: goalId)
+            withdrawals = readModel.withdrawals
+            plannedWithdrawals = readModel.planned
+            planOnlyWithdrawals = readModel.planOnly
         } catch {
             withdrawalsError = error
         }

@@ -173,6 +173,31 @@ struct APIClientClientKeyHeaderTests {
         #expect(invalidationCalled.value == false)
     }
 
+    @Test func request_successFalsePlanConflictOn2xxStaysServerError() async {
+        InterceptingURLProtocol.requestHandler = { request in
+            let body = Data(
+                #"{"success":false,"code":"ERR_SAVINGS_GOAL_PLAN_CONFLICT","message":"invalid payload"}"#.utf8
+            )
+            return (makeHTTPResponse(for: request, statusCode: 200), body)
+        }
+        defer { InterceptingURLProtocol.requestHandler = nil }
+
+        let sut = makeSUT(token: authToken, clientKey: clientKey)
+
+        do {
+            let _: UserPayload = try await sut.request(.userProfile)
+            Issue.record("Expected the success:false envelope to fail")
+        } catch let error as APIError {
+            #expect(error.requiresSavingsGoalPlanRefresh == false)
+            guard case .serverError = error else {
+                Issue.record("Expected a server error for a 2xx envelope")
+                return
+            }
+        } catch {
+            Issue.record("Expected APIError, got \(error)")
+        }
+    }
+
     @Test func diagnosticPath_redactsResourceIdentifiers() {
         let id = "52d65f63-c7c9-4fcb-bf20-b8080fed6288"
 

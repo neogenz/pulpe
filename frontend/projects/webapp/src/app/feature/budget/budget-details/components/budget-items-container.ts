@@ -243,6 +243,7 @@ import {
           (postpone)="handlePostponeBudgetLine($event)"
           (postponeTransaction)="handlePostponeTransaction($event)"
           (toggleCheck)="handleToggleCheck($event)"
+          (realizeWithdrawal)="handleRealizeWithdrawal($event)"
           (toggleTransactionCheck)="handleToggleTransactionCheck($event)"
         />
       } @else {
@@ -260,6 +261,7 @@ import {
           (resetFromTemplate)="handleResetFromTemplate($event)"
           (postpone)="handlePostponeItem($event)"
           (toggleCheck)="handleToggleCheck($event)"
+          (realizeWithdrawal)="handleRealizeWithdrawal($event)"
           (toggleTransactionCheck)="handleToggleTransactionCheck($event)"
         />
       }
@@ -661,9 +663,8 @@ export class BudgetItemsContainer {
   /**
    * PUL-329 v2 — reste à sortir d'un retrait annoncé, `null` pour toute autre
    * ligne. Le nom survit à l'objectif, l'identifiant non : lui seul dit qu'un
-   * débit est encore possible. Une source orpheline retombe donc sur le
-   * formulaire de transaction allouée ordinaire, comme le geste de pointage et
-   * le CTA de la carte le font déjà.
+   * débit est encore possible. Une source orpheline reste une prévision
+   * ordinaire et ne propose aucune réalisation liée.
    */
   #withdrawalRealizationContext(
     budgetLine: BudgetLine,
@@ -685,17 +686,6 @@ export class BudgetItemsContainer {
   protected async handleToggleCheck(budgetLineId: string): Promise<void> {
     const details = this.store.budgetDetails();
     if (!details) return;
-
-    // PUL-329 v2 — sur un retrait annoncé, le geste ne pointe pas la prévision :
-    // il ouvre la saisie du revenu réel, seul mouvement qui débite l'objectif.
-    // Une source orpheline retombe sur la bascule ordinaire, comme le backend.
-    const sourceLine = details.budgetLines.find(
-      (line) => line.id === budgetLineId && line.sourceSavingsGoalId,
-    );
-    if (sourceLine) {
-      await this.openCreateAllocatedTransactionDialog(sourceLine);
-      return;
-    }
 
     const behavior = determineCheckBehavior(
       budgetLineId,
@@ -732,6 +722,17 @@ export class BudgetItemsContainer {
     }
 
     this.#showEnvelopeSnackbar(budgetLineId);
+  }
+
+  protected async handleRealizeWithdrawal(budgetLineId: string): Promise<void> {
+    const details = this.store.budgetDetails();
+    const sourceLine = details?.budgetLines.find(
+      (line) => line.id === budgetLineId && line.sourceSavingsGoalId,
+    );
+    if (!sourceLine) return;
+    const context = this.#withdrawalRealizationContext(sourceLine);
+    if (!context || context.remainingAmount <= 0) return;
+    await this.openCreateAllocatedTransactionDialog(sourceLine);
   }
 
   protected async handleToggleTransactionCheck(

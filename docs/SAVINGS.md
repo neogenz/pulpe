@@ -183,19 +183,19 @@ paceStatus = behind | on_track | ahead          // via paceStatus(projected, tar
 
 ### 4.3 Cas limites des formules
 
-| Cas                                   | Règle                                                                                                                                |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Division par zéro (cible)**         | `targetAmount = 0` → `achievementPercent = 0`. Jamais de division sans déchiffrement préalable.                                      |
-| **Division par zéro (mois)**          | `max(1, monthsElapsed)` avant tout `/ pace`. `monthsRemaining ≤ 0` → `required = null`, `projected = confirmed`.                     |
-| **Échéance dépassée**                 | `monthsRemaining ≤ 0` → état dédié (§6), pas de `paceStatus` négatif.                                                                |
-| **PAUSED**                            | `paceStatus = null` (pas de jugement de rythme sur un objectif en pause).                                                            |
-| **Ancrage**                           | `createdAt` ramené à son **cycle** via `getBudgetPeriodForDate` (un objectif créé le 28 d'un payDay=25 appartient au cycle suivant). |
-| **Pointage anticipé d'un mois futur** | Le pointage est accepté ; il entre dans `confirmed` et est retiré du reliquat planifié pour ne pas être compté deux fois.             |
-| **Montant de départ (stock vs flux)** | `initialAmount` entre dans `confirmed` (barre, %, `required`, `projected`, D2) mais **jamais** dans `confirmedPace` ni `cumulativeGap` (`= plannedCumulative − (linesConfirmed − retraits déjà survenus)`). |
+| Cas                                   | Règle                                                                                                                                                                                                                                                      |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Division par zéro (cible)**         | `targetAmount = 0` → `achievementPercent = 0`. Jamais de division sans déchiffrement préalable.                                                                                                                                                            |
+| **Division par zéro (mois)**          | `max(1, monthsElapsed)` avant tout `/ pace`. `monthsRemaining ≤ 0` → `required = null`, `projected = confirmed`.                                                                                                                                           |
+| **Échéance dépassée**                 | `monthsRemaining ≤ 0` → état dédié (§6), pas de `paceStatus` négatif.                                                                                                                                                                                      |
+| **PAUSED**                            | `paceStatus = null` (pas de jugement de rythme sur un objectif en pause).                                                                                                                                                                                  |
+| **Ancrage**                           | `createdAt` ramené à son **cycle** via `getBudgetPeriodForDate` (un objectif créé le 28 d'un payDay=25 appartient au cycle suivant).                                                                                                                       |
+| **Pointage anticipé d'un mois futur** | Le pointage est accepté ; il entre dans `confirmed` et est retiré du reliquat planifié pour ne pas être compté deux fois.                                                                                                                                  |
+| **Montant de départ (stock vs flux)** | `initialAmount` entre dans `confirmed` (barre, %, `required`, `projected`, D2) mais **jamais** dans `confirmedPace` ni `cumulativeGap` (`= plannedCumulative − (linesConfirmed − retraits déjà survenus)`).                                                |
 | **Retrait (stock vs flux)**           | Se retranche de `confirmed` (donc de la barre, du %, de `required`, de `projected`, de `estimatedCompletion`) et de `cumulativeGap` pour les retraits déjà survenus, mais **jamais** de `confirmedPace`, `plannedCumulative` ni `plannedProjection` (§11). |
-| **Montant de départ ≥ cible**         | `suggestCompletion = true` dès la création (D2) — jamais d'auto-flip, l'utilisateur confirme.                                                                                    |
-| **Cible absente**                     | `achievementPercent` et `suggestCompletion` sont `null`. La simulation garde son cumul final mais ses verdicts cible et la redistribution sont désactivés.                       |
-| **Échéance absente**                  | `monthsRemaining`, `required`, `projected` et `paceStatus` sont `null`, `isOverdue = false`. Une cible présente conserve `estimatedCompletion` si le rythme confirmé suffit.     |
+| **Montant de départ ≥ cible**         | `suggestCompletion = true` dès la création (D2) — jamais d'auto-flip, l'utilisateur confirme.                                                                                                                                                              |
+| **Cible absente**                     | `achievementPercent` et `suggestCompletion` sont `null`. La simulation garde son cumul final mais ses verdicts cible et la redistribution sont désactivés.                                                                                                 |
+| **Échéance absente**                  | `monthsRemaining`, `required`, `projected` et `paceStatus` sont `null`, `isOverdue = false`. Une cible présente conserve `estimatedCompletion` si le rythme confirmé suffit.                                                                               |
 
 ### 4.4 Matrice cible / échéance
 
@@ -293,7 +293,7 @@ Deux gardes préservent la cohérence des métadonnées :
 
 | Cas                                  | Décision                                                                                                                                                        |
 | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Suppression d'objectif**           | Un aperçu exhaustif précède le choix : objectif seul, objectif + Prévisions, ou objectif + Prévisions + Réels rattachés. Voir le contrat ci-dessous.             |
+| **Suppression d'objectif**           | Un aperçu exhaustif précède le choix : objectif seul, objectif + Prévisions, ou objectif + Prévisions + Réels rattachés. Voir le contrat ci-dessous.            |
 | **Déchiffrement de `target_amount`** | La liste, le détail et `/progress` déchiffrent la cible avant de l'exposer.                                                                                     |
 | **`target_amount = NULL`**           | Cible absente : reste `null` en lecture et après rekey, sans conversion en zéro ni chiffrement factice.                                                         |
 | **`target_amount` lu = 0**           | Toléré pour les anciennes données. Garde `achievementPercent = 0`. Ne jamais diviser par la cible sans déchiffrement.                                           |
@@ -377,10 +377,20 @@ Le serveur reste autoritaire à l'écriture. Les clients ne recalculent jamais l
 
 ### 10.4 Contrat d'application
 
-`POST /v1/savings-goals/:id/plan` accepte deux collections strictes :
+`POST /v1/savings-goals/:id/plan` accepte trois collections strictes :
 
 - `monthAdjustments[]` : `{ budgetLineId, amount }` pour les Prévisions matérialisées ;
 - `missingMonthAdjustments[]` : `{ month, year, amount }` pour les périodes sans Prévision liée mais provisionnables, que le budget soit absent ou déjà matérialisé. Le montant est strictement positif : ramener une Prévision existante à zéro passe uniquement par `monthAdjustments`.
+- `planWithdrawalAdjustments[]` : `{ month, year, amount, destination? }`, où `amount` est négatif (retrait) ou zéro (suppression) et `destination` vaut `goal_only` ou `linked_income`. Son absence conserve le comportement historique `goal_only`.
+
+Un mouvement mensuel positif modifie seulement la Prévision Épargne et efface
+le retrait piloté par le plan sur cette période. Un mouvement négatif ne modifie
+jamais une ligne Épargne : `goal_only` l'écrit dans
+`savings_goal_plan_withdrawal`, tandis que `linked_income` crée une Prévision
+Revenu ponctuelle marquée `is_savings_goal_plan_adjustment`. Les deux formes
+sont exclusives par période et la transition est atomique. Une contribution
+positive existante peut donc coexister avec le retrait, sans écrasement ni
+double comptage. La destination budget exige que le budget du mois existe.
 
 Pour une récupération, les clients arrondissent `required` au **centime supérieur** puis réutilisent exactement ce montant positif dans la preview, sa projection et chaque `missingMonthAdjustment`. Un `required` nul ne propose aucune récupération.
 
@@ -400,11 +410,37 @@ Les montants sont chiffrés via `ENCRYPTION_PORT`. Une application dans la devis
 
 - ligne invalide ou mois non provisionnable : erreur 422 ;
 - ligne pointée ou période devenue passée pendant la simulation : conflit 409, puis relecture et nouvelle simulation ;
+- solde de l'objectif déplacé entre la garde et l'écriture : même conflit 409, la demande n'écrit rien ;
 - autre échec d'application : erreur serveur et retry sûr sur les budgets déjà provisionnés.
 
 Le client n'envoie pas de clé d'idempotence. La reprise est sûre pour des
 demandes séquentielles : le provisioning réutilise les budgets existants et
 l'écriture finale met une valeur à jour sous verrou.
+
+Les transitions de retrait (`goal_only ↔ linked_income`, montant modifié,
+suppression à zéro) sont sérialisées par objectif et idempotentes par valeur.
+La RPC à destinations supprime les deux représentations puis n'en recrée qu'une
+dans la même transaction.
+
+Deux garanties se cumulent, et toutes deux comptent :
+
+- **Le verrou.** La RPC de plan prend le même verrou par objectif et le même
+  verrou de ligne qu'une réalisation de retrait. Un Réel ne peut donc pas
+  s'intercaler entre les suppressions et la recréation.
+- **La révision.** Le backend certifie `balance_revision` avant de déchiffrer et
+  de valider le stock projeté, et la RPC la recompare une fois le verrou obtenu.
+  Sérialiser ne suffit pas : sans cette comparaison, un plan calculé sur un solde
+  déjà déplacé s'appliquerait quand même. La RPC à destinations exige donc la
+  révision, et c'est son unique point d'entrée — aucune variante ne permet de
+  l'omettre. Preuve : `supabase/tests/savings_goal_plan_concurrency.sql`.
+
+`apply_savings_goal_plan` reste disponible pour un pod encore déployé pendant un
+rolling deploy, et prend désormais lui aussi le verrou de réalisation. Il ne
+compare en revanche aucune révision : il reste donc compatible uniquement pour
+les mises à jour de lignes, avec `p_plan_withdrawals = []` (sa valeur par
+défaut). Toute autre valeur échoue en `P0001` avant verrou ou mutation. Seule la
+RPC à destinations à cinq arguments, avec sa révision certifiée, peut écrire un
+retrait de plan.
 
 Le provisioning n'est pas sérialisé entre deux demandes indépendantes. Deux
 appareils ou onglets qui confirment au même instant sortent donc de cette
@@ -416,14 +452,14 @@ garantie.
 
 ### 11.1 Vocabulaire
 
-| Terme                 | Définition                                                                                                                                                          |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Contribution**      | Entrée d'argent : Prévision Épargne liée, pointée ou non (§3). Elle nourrit `plannedCumulative`, `linesConfirmed` et `confirmedPace`.                                |
-| **Retrait**           | Sortie d'argent : Revenu d'un budget dont l'origine est cet objectif. Il diminue le stock, jamais le rythme.                                                          |
-| **Retrait annoncé**   | Prévision Revenu ponctuelle dont l'origine est cet objectif : « ce montant sortira ». Elle n'a encore rien sorti et ne sortira peut-être jamais (§11.6).             |
-| **Solde disponible**  | `confirmed` (§4.2). C'est la seule limite d'un retrait — le prévu et la cible n'entrent pas dans ce contrôle.                                                        |
-| **Lien actif**        | `source_savings_goal_id` + `source_savings_goal_name` renseignés : la transaction ouvre son objectif.                                                                |
-| **Lien cassé**        | Identifiant `null`, nom conservé : l'objectif a été supprimé. La provenance reste lisible, la navigation disparaît.                                                  |
+| Terme                | Définition                                                                                                                                               |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Contribution**     | Entrée d'argent : Prévision Épargne liée, pointée ou non (§3). Elle nourrit `plannedCumulative`, `linesConfirmed` et `confirmedPace`.                    |
+| **Retrait**          | Sortie d'argent : Revenu d'un budget dont l'origine est cet objectif. Il diminue le stock, jamais le rythme.                                             |
+| **Retrait annoncé**  | Prévision Revenu ponctuelle dont l'origine est cet objectif : « ce montant sortira ». Elle n'a encore rien sorti et ne sortira peut-être jamais (§11.6). |
+| **Solde disponible** | `confirmed` (§4.2). C'est la seule limite d'un retrait — le prévu et la cible n'entrent pas dans ce contrôle.                                            |
+| **Lien actif**       | `source_savings_goal_id` + `source_savings_goal_name` renseignés : la transaction ouvre son objectif.                                                    |
+| **Lien cassé**       | Identifiant `null`, nom conservé : l'objectif a été supprimé. La provenance reste lisible, la navigation disparaît.                                      |
 
 ### 11.2 Ce qu'un retrait ne fait pas
 
@@ -446,12 +482,12 @@ Le stock baisse **dès la création** du revenu lié. Pointer ou dépointer ce r
 
 | Événement                     | Effet                                                                                                                        |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Édition du montant            | Le retrait suit : `4'500 → 3'500` restitue `1'000`. La limite d'édition est `confirmed + ancienMontant`.                      |
-| Édition nom / date / tags     | Autorisée. Le lien, lui, est immuable : aucune API ne le retire, ne le remplace ni ne change le type de la transaction.       |
-| Report vers une autre période | Conserve lien, montant et nom ; seule la chronologie change.                                                                  |
-| Suppression du revenu         | Annule le retrait : le solde remonte du montant exact.                                                                        |
-| Renommage de l'objectif       | Le nom snapshot suit tant que le lien est actif.                                                                              |
-| Suppression de l'objectif     | Les revenus liés sont **toujours conservés**, dans tous les modes (§9.1). Identifiant `null`, dernier nom figé : lien cassé.  |
+| Édition du montant            | Le retrait suit : `4'500 → 3'500` restitue `1'000`. La limite d'édition est `confirmed + ancienMontant`.                     |
+| Édition nom / date / tags     | Autorisée. Le lien, lui, est immuable : aucune API ne le retire, ne le remplace ni ne change le type de la transaction.      |
+| Report vers une autre période | Conserve lien, montant et nom ; seule la chronologie change.                                                                 |
+| Suppression du revenu         | Annule le retrait : le solde remonte du montant exact.                                                                       |
+| Renommage de l'objectif       | Le nom snapshot suit tant que le lien est actif.                                                                             |
+| Suppression de l'objectif     | Les revenus liés sont **toujours conservés**, dans tous les modes (§9.1). Identifiant `null`, dernier nom figé : lien cassé. |
 
 Changer l'objectif source d'un revenu existant n'est pas prévu : il faut supprimer puis recréer.
 
@@ -461,12 +497,17 @@ Un retrait peut être **annoncé** avant d'être fait, comme une dépense est pr
 
 Elle se réalise comme n'importe quelle prévision : en créant le Réel qui lui est **alloué**. Ce Réel est un retrait ordinaire (§11.4) et porte le même objectif source. Pointer la prévision ne réalise rien et l'API le refuse — cocher une case ne fait pas sortir d'argent.
 
+Un retrait saisi depuis le plan avec la destination « objectif uniquement » est
+également annoncé, mais hors budget : il apparaît dans « Retraits planifiés »
+avec l'origine « Hors budget », sans lien ni action de réalisation. Choisir
+« Créer aussi un revenu » le remplace atomiquement par la Prévision Revenu liée.
+
 #### Deux stocks, deux questions
 
-| Stock                  | Question                                    | Ce qu'il retranche                                                     |
-| ---------------------- | ------------------------------------------- | ---------------------------------------------------------------------- |
-| `confirmed`            | « Combien y a-t-il dans le pot **là** ? »   | Les retraits **réels** seulement, libres ou alloués.                    |
-| `projected`            | « Combien restera-t-il si tout se passe ? » | Les mêmes, **plus** la part encore à sortir des retraits annoncés.      |
+| Stock       | Question                                    | Ce qu'il retranche                                                 |
+| ----------- | ------------------------------------------- | ------------------------------------------------------------------ |
+| `confirmed` | « Combien y a-t-il dans le pot **là** ? »   | Les retraits **réels** seulement, libres ou alloués.               |
+| `projected` | « Combien restera-t-il si tout se passe ? » | Les mêmes, **plus** la part encore à sortir des retraits annoncés. |
 
 Le solde disponible d'un nouveau retrait reste `confirmed` (§11.1) : une annonce ne réserve rien.
 
@@ -479,11 +520,11 @@ retrait restant  = max(0, prévision.montant − réel alloué)
 
 Sur une prévision de 500 :
 
-| Réel alloué | Retranché à `confirmed` | Retranché en plus à `projected` | Lecture                                         |
-| ----------: | ----------------------: | ------------------------------: | ----------------------------------------------- |
-|           0 |                       0 |                             500 | Rien n'est sorti, tout reste annoncé.           |
-|         300 |                     300 |                             200 | Sortie partielle ; total compté : 500.          |
-|         700 |                     700 |                               0 | Réel supérieur : jamais de reliquat négatif.    |
+| Réel alloué | Retranché à `confirmed` | Retranché en plus à `projected` | Lecture                                      |
+| ----------: | ----------------------: | ------------------------------: | -------------------------------------------- |
+|           0 |                       0 |                             500 | Rien n'est sorti, tout reste annoncé.        |
+|         300 |                     300 |                             200 | Sortie partielle ; total compté : 500.       |
+|         700 |                     700 |                               0 | Réel supérieur : jamais de reliquat négatif. |
 
 Dans les trois cas la sortie effective est comptée **une fois**, jamais deux. C'est cette somme — `withdrawnAmount + remainingPlannedWithdrawalAmount` — que le cumul simulé retranche et que la redistribution rajoute à l'effort restant, ce qui la fait retomber sur la cible au centime près.
 

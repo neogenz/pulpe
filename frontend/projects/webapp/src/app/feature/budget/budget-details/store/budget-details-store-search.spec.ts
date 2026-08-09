@@ -297,6 +297,69 @@ describe('BudgetDetailsStore - Search Filtering', () => {
       expect(results.map((l) => l.name)).toContain('Loyer');
       expect(results.map((l) => l.name)).not.toContain('Épargne mensuelle');
     });
+
+    it('hides a fully realized goal withdrawal but keeps a partial one to realize', async () => {
+      const fullLine = createMockBudgetLine({
+        id: 'withdrawal-full',
+        budgetId: mockBudgetId,
+        name: 'Retrait réalisé',
+        amount: 500,
+        kind: 'income',
+        recurrence: 'one_off',
+        checkedAt: null,
+        sourceSavingsGoalId: 'goal-1',
+        sourceSavingsGoalName: 'Voyage',
+      });
+      const partialLine = createMockBudgetLine({
+        id: 'withdrawal-partial',
+        budgetId: mockBudgetId,
+        name: 'Retrait partiel',
+        amount: 500,
+        kind: 'income',
+        recurrence: 'one_off',
+        checkedAt: null,
+        sourceSavingsGoalId: 'goal-1',
+        sourceSavingsGoalName: 'Voyage',
+      });
+      const response = createMockBudgetDetailsResponse({
+        budget: { id: mockBudgetId },
+        budgetLines: [fullLine, partialLine],
+        transactions: [
+          createMockTransaction({
+            id: 'real-full',
+            budgetId: mockBudgetId,
+            budgetLineId: fullLine.id,
+            name: fullLine.name,
+            amount: 500,
+            kind: 'income',
+            checkedAt: '2024-01-15T10:00:00Z',
+          }),
+          createMockTransaction({
+            id: 'real-partial',
+            budgetId: mockBudgetId,
+            budgetLineId: partialLine.id,
+            name: partialLine.name,
+            amount: 200,
+            kind: 'income',
+            checkedAt: '2024-01-15T10:00:00Z',
+          }),
+        ],
+      });
+      vi.mocked(
+        TestBed.inject(BudgetApi).getBudgetWithDetails$,
+      ).mockReturnValue(of(response));
+
+      store.reloadBudgetDetails();
+      TestBed.tick();
+      await waitForResourceStable();
+      store.setIsShowingOnlyUnchecked(true);
+
+      expect(store.filteredBudgetLines().map((line) => line.id)).toEqual([
+        partialLine.id,
+      ]);
+      expect(store.checkedItemsCount()).toBe(3);
+      expect(store.totalItemsCount()).toBe(4);
+    });
   });
 
   describe('Transactions follow parent budget line visibility', () => {

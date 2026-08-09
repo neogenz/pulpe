@@ -42,6 +42,24 @@ struct GoalPlanTimelinePresentation {
             ? "1 prévision Épargne peut maintenant être ajoutée automatiquement."
             : "\(count) prévisions Épargne peuvent maintenant être ajoutées automatiquement."
     }
+
+    /// A realised plan withdrawal is editable from the budget line that the
+    /// plan created. Period matching alone is not enough: the same month may
+    /// contain another income linked to the goal, including a legacy row whose
+    /// origin is absent.
+    static func budgetId(
+        forFrozenMonth month: SavingsGoalPlanMonth,
+        plannedWithdrawals: [SavingsGoalPlannedWithdrawal]
+    ) -> String? {
+        guard month.planWithdrawalConsumedAmount > SavingsGoalProgress.withdrawalBalanceTolerance else {
+            return nil
+        }
+        return plannedWithdrawals.first {
+            $0.month == month.month
+                && $0.year == month.year
+                && $0.origin == .planLinked
+        }?.budgetId
+    }
 }
 
 /// « Ton plan, mois par mois » (PUL-12+, pilier B) — the read-mode timeline section
@@ -54,10 +72,12 @@ struct GoalPlanTimelinePresentation {
 struct GoalPlanTimelineSection: View {
     let months: [SavingsGoalPlanMonth]
     let currency: SupportedCurrency
+    let plannedWithdrawals: [SavingsGoalPlannedWithdrawal]
     let canAdjust: Bool
     let canRepair: Bool
     let onAdjust: () -> Void
     let onRepair: () -> Void
+    let onOpenBudget: (String) -> Void
 
     @State private var isExpanded = false
 
@@ -140,12 +160,21 @@ struct GoalPlanTimelineSection: View {
                     amount: month.plannedAmount,
                     cumulative: month.plannedCumulative,
                     currency: currency,
-                    canRepair: canRepair
+                    canRepair: canRepair,
+                    onOpenBudget: budgetAction(for: month)
                 )
             }
         }
         // pulpeCard() porte déjà l'inset lg — un padding ici le doublait (32pt)
         // et désalignait cette carte de « Ton suivi » juste en dessous.
         .pulpeCard()
+    }
+
+    private func budgetAction(for month: SavingsGoalPlanMonth) -> (() -> Void)? {
+        guard let budgetId = GoalPlanTimelinePresentation.budgetId(
+            forFrozenMonth: month,
+            plannedWithdrawals: plannedWithdrawals
+        ) else { return nil }
+        return { onOpenBudget(budgetId) }
     }
 }

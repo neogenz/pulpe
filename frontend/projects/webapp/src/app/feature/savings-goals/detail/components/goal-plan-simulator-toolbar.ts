@@ -82,7 +82,7 @@ import { GoalPlanSimulatorStore } from '../services/goal-plan-simulator-store';
                 class="text-body-small text-error text-pretty"
                 data-testid="goal-plan-amount-error"
               >
-                {{ 'savingsGoals.plan.editAmountInvalid' | transloco }}
+                {{ 'savingsGoals.plan.globalAmountInvalid' | transloco }}
               </p>
             }
           </div>

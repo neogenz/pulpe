@@ -28,6 +28,7 @@ final class SavingsGoalStore: StoreProtocol {
     private var loadTask: Task<Void, Never>?
     private var loadGeneration = 0
     private(set) var templateDataVersion = 0
+    private(set) var budgetMutationVersion = 0
     @ObservationIgnored var onBudgetDataMutation: (@MainActor () -> Void)?
 
     /// Withdrawal options (PUL-329) carry a balance, so they go stale faster than
@@ -209,7 +210,7 @@ final class SavingsGoalStore: StoreProtocol {
         return options
     }
 
-    func getWithdrawals(id: String) async throws -> [SavingsGoalWithdrawal] {
+    func getWithdrawals(id: String) async throws -> SavingsGoalWithdrawalsReadModel {
         try await service.getWithdrawals(id: id)
     }
 
@@ -234,6 +235,13 @@ final class SavingsGoalStore: StoreProtocol {
         lastWithdrawalOptionsLoadTime = nil
     }
 
+    /// Marks reads derived from budget lines/transactions stale and lets an
+    /// already-open goal detail reload without waiting for navigation.
+    func invalidateFromBudgetMutation() {
+        invalidateCache()
+        budgetMutationVersion += 1
+    }
+
     func reset() {
         loadTask?.cancel()
         loadTask = nil
@@ -244,6 +252,7 @@ final class SavingsGoalStore: StoreProtocol {
         lastLoadTime = nil
         error = nil
         templateDataVersion = 0
+        budgetMutationVersion = 0
         cachedWithdrawalOptions = []
         lastWithdrawalOptionsLoadTime = nil
     }

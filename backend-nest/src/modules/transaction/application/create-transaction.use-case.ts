@@ -69,7 +69,10 @@ export class CreateTransactionUseCase {
       kind: withRate.kind,
       tagIds: withRate.tagIds,
       transactionDate: withRate.transactionDate || new Date().toISOString(),
-      checkedAt: withRate.checkedAt ?? null,
+      checkedAt:
+        allocatedLine?.sourceSavingsGoalId != null
+          ? new Date().toISOString()
+          : (withRate.checkedAt ?? null),
       sourceSavingsGoalId: resolveSourceSavingsGoalId(withRate, allocatedLine),
     };
 

@@ -108,6 +108,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
             (resetFromTemplate)="resetFromTemplate.emit($event)"
             (postpone)="postpone.emit($event)"
             (toggleCheck)="toggleCheck.emit($event)"
+            (realizeWithdrawal)="realizeWithdrawal.emit($event)"
           />
         } @empty {
           @if (transactionItems().length === 0) {
@@ -162,6 +163,7 @@ export function groupByKind<T extends { data: { kind: string } }>(
                     (resetFromTemplate)="resetFromTemplate.emit($event)"
                     (postpone)="postpone.emit($event)"
                     (toggleCheck)="toggleCheck.emit($event)"
+                    (realizeWithdrawal)="realizeWithdrawal.emit($event)"
                   />
                 }
               </pulpe-budget-grid-section>
@@ -436,6 +438,7 @@ export class BudgetGrid {
   readonly postpone = output<string>();
   readonly postponeTransaction = output<string>();
   readonly toggleCheck = output<string>();
+  readonly realizeWithdrawal = output<string>();
   readonly toggleTransactionCheck = output<string>();
 
   protected readonly freeTransactionItems = computed(() =>

@@ -238,6 +238,7 @@ const repairPeriod = shiftPeriod(nowPeriod, 2);
 const targetPeriod = shiftPeriod(nowPeriod, 3);
 
 const goalAId = crypto.randomUUID();
+const directPlanGoalId = crypto.randomUUID();
 const templateAId = crypto.randomUUID();
 const templateLineAId = crypto.randomUUID();
 
@@ -294,6 +295,16 @@ beforeAll(async () => {
     user_id: userA.id,
     name: 'Maison',
     target_amount: 'enc:10000',
+    target_date: targetDateIso,
+    status: 'ACTIVE',
+    created_at: createdAtIso,
+  });
+  await admin.from('savings_goal').insert({
+    id: directPlanGoalId,
+    user_id: userA.id,
+    name: 'Retrait hors budget',
+    initial_amount: 'enc:10000',
+    target_amount: 'enc:20000',
     target_date: targetDateIso,
     status: 'ACTIVE',
     created_at: createdAtIso,
@@ -479,6 +490,127 @@ describe('PUL-12 — plan timeline (read) on local Supabase', () => {
 });
 
 describe('PUL-12 — plan apply (write) on local Supabase', () => {
+  it('persists an owner-only encrypted plan withdrawal, reloads it once, replaces it, then deletes it with zero', async () => {
+    if (!env) return;
+
+    const { useCase, authUser, recalcCalls } = applyPlanUseCaseFor(userA);
+    const period = {
+      month: future1Period.month,
+      year: future1Period.year,
+    };
+
+    await expect(
+      useCase.execute(
+        directPlanGoalId,
+        {
+          monthAdjustments: [],
+          planWithdrawalAdjustments: [{ ...period, amount: -10_001 }],
+        },
+        authUser,
+      ),
+    ).rejects.toMatchObject({
+      code: 'ERR_SAVINGS_GOAL_WITHDRAWAL_INSUFFICIENT_BALANCE',
+    });
+
+    await useCase.execute(
+      directPlanGoalId,
+      {
+        monthAdjustments: [],
+        planWithdrawalAdjustments: [{ ...period, amount: -4_500 }],
+      },
+      authUser,
+    );
+
+    const { data: storedRows } = await admin
+      .from('savings_goal_plan_withdrawal')
+      .select('id, amount, month, year')
+      .eq('savings_goal_id', directPlanGoalId);
+    expect(storedRows).toHaveLength(1);
+    expect(storedRows?.[0]).toMatchObject({
+      amount: 'enc:4500',
+      ...period,
+    });
+    expect(storedRows?.[0]?.amount).not.toBe('-4500');
+    expect(recalcCalls).toEqual([]);
+
+    const { data: foreignRows, error: foreignReadError } = await userB.client
+      .from('savings_goal_plan_withdrawal')
+      .select('id')
+      .eq('savings_goal_id', directPlanGoalId);
+    expect(foreignReadError).toBeNull();
+    expect(foreignRows).toEqual([]);
+
+    const { data: foreignUpdates, error: foreignUpdateError } =
+      await userB.client
+        .from('savings_goal_plan_withdrawal')
+        .update({ amount: 'enc:999' })
+        .eq('id', storedRows?.[0]?.id ?? '')
+        .select('id');
+    expect(foreignUpdateError).toBeNull();
+    expect(foreignUpdates).toEqual([]);
+
+    const { error: forgedInsertError } = await userB.client
+      .from('savings_goal_plan_withdrawal')
+      .insert({
+        savings_goal_id: directPlanGoalId,
+        user_id: userB.id,
+        amount: 'enc:1',
+        ...period,
+      });
+    expect(forgedInsertError).not.toBeNull();
+
+    const { useCase: progressUseCase, authUser: progressUser } =
+      progressUseCaseFor(userA);
+    const firstReload = await progressUseCase.execute(
+      directPlanGoalId,
+      progressUser,
+    );
+    expect(firstReload.computed.confirmed).toBe(10_000);
+    expect(firstReload.computed.projected).toBe(5_500);
+    expect(
+      firstReload.months.find(
+        (month) => month.month === period.month && month.year === period.year,
+      ),
+    ).toMatchObject({
+      plannedWithdrawalAmount: 4_500,
+      planOnlyWithdrawalAmount: 4_500,
+      remainingPlannedWithdrawalAmount: 4_500,
+    });
+
+    await useCase.execute(
+      directPlanGoalId,
+      {
+        monthAdjustments: [],
+        planWithdrawalAdjustments: [{ ...period, amount: -3_500 }],
+      },
+      authUser,
+    );
+    const replaced = await progressUseCase.execute(
+      directPlanGoalId,
+      progressUser,
+    );
+    expect(replaced.computed.projected).toBe(6_500);
+    const { data: replacedRows } = await admin
+      .from('savings_goal_plan_withdrawal')
+      .select('amount')
+      .eq('savings_goal_id', directPlanGoalId);
+    expect(replacedRows).toEqual([{ amount: 'enc:3500' }]);
+
+    await useCase.execute(
+      directPlanGoalId,
+      {
+        monthAdjustments: [],
+        planWithdrawalAdjustments: [{ ...period, amount: 0 }],
+      },
+      authUser,
+    );
+    const { data: deletedRows } = await admin
+      .from('savings_goal_plan_withdrawal')
+      .select('id')
+      .eq('savings_goal_id', directPlanGoalId);
+    expect(deletedRows).toEqual([]);
+  });
+
   it('creates one linked forecast in an existing budget and stays idempotent on retry', async () => {
     if (!env) return;
 

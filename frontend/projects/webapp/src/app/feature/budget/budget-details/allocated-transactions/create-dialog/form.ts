@@ -179,13 +179,22 @@ interface CreateAllocatedTransactionModel {
       <pulpe-tag-picker [control]="transactionForm.tagIds" />
 
       <div class="flex items-center justify-between py-2 px-1">
-        <span class="text-body-medium text-on-surface">{{
-          'transactionForm.checkedToggle' | transloco
-        }}</span>
-        <mat-slide-toggle
-          [formField]="transactionForm.isChecked"
-          [attr.aria-label]="'transactionForm.checkedToggle' | transloco"
-        />
+        @if (data().withdrawalRealization) {
+          <span
+            class="text-body-medium text-on-surface-variant"
+            data-testid="realization-pointed"
+          >
+            {{ 'budgetLine.realizationPointed' | transloco }}
+          </span>
+        } @else {
+          <span class="text-body-medium text-on-surface">{{
+            'transactionForm.checkedToggle' | transloco
+          }}</span>
+          <mat-slide-toggle
+            [formField]="transactionForm.isChecked"
+            [attr.aria-label]="'transactionForm.checkedToggle' | transloco"
+          />
+        }
       </div>
     </form>
 
@@ -265,7 +274,7 @@ export class CreateAllocatedTransactionForm {
                 data.withdrawalRealization?.remainingAmount || null,
             }),
             transactionDate: this.#dateConstraints().defaultDate,
-            isChecked: false,
+            isChecked: !!data.withdrawalRealization,
             tagIds: [],
           },
       ),

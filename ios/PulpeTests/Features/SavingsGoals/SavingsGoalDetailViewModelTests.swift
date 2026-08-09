@@ -484,6 +484,48 @@ extension SavingsGoalDetailViewModelTests {
         #expect(service.getWithdrawalsCallCount == 1)
     }
 
+    @Test("load exposes a forecast before it has any Real")
+    func load_fetchesPlannedWithdrawalImmediately() async {
+        let service = MockSavingsGoalService()
+        service.stubbedProgress = makeProgress(goalId: "g1")
+        service.stubbedPlannedWithdrawals = [SavingsGoalPlannedWithdrawal(
+            budgetLineId: "line-1",
+            budgetId: "budget-1",
+            name: "Apport cuisine",
+            month: 9,
+            year: 2026,
+            plannedAmount: 4_500,
+            realizedAmount: 0,
+            remainingAmount: 4_500,
+            status: .planned
+        )]
+        let viewModel = SavingsGoalDetailViewModel(goalId: "g1", service: service)
+
+        await viewModel.load()
+
+        #expect(viewModel.plannedWithdrawals.first?.remainingAmount == 4_500)
+        #expect(viewModel.withdrawals.isEmpty)
+    }
+
+    @Test("load exposes a plan-only withdrawal without a budget destination")
+    func load_fetchesPlanOnlyWithdrawalImmediately() async {
+        let service = MockSavingsGoalService()
+        service.stubbedProgress = makeProgress(goalId: "g1")
+        service.stubbedPlanOnlyWithdrawals = [SavingsGoalPlanOnlyWithdrawal(
+            planWithdrawalId: "plan-withdrawal-1",
+            name: "Retrait ponctuel",
+            month: 9,
+            year: 2026,
+            plannedAmount: 450
+        )]
+        let viewModel = SavingsGoalDetailViewModel(goalId: "g1", service: service)
+
+        await viewModel.load()
+
+        #expect(viewModel.planOnlyWithdrawals.first?.plannedAmount == 450)
+        #expect(viewModel.plannedWithdrawals.isEmpty)
+    }
+
     @Test("a withdrawals failure keeps the goal progress and the contributions usable")
     func load_withdrawalsFailureIsInline() async {
         let service = MockSavingsGoalService()
@@ -505,15 +547,34 @@ extension SavingsGoalDetailViewModelTests {
     /// disappears instead of announcing an emptiness the user never asked about.
     @Test("the section shows only when there is history, a load or a failure")
     func withdrawalsSection_isRelevantOnlyWhenItHasSomethingToSay() {
-        #expect(!GoalWithdrawalsSection.isRelevant(withdrawals: [], isLoading: false, error: nil))
+        #expect(!GoalWithdrawalsSection.isRelevant(
+            withdrawals: [], planned: [], isLoading: false, error: nil
+        ))
         #expect(GoalWithdrawalsSection.isRelevant(
             withdrawals: [makeWithdrawal(id: "tx-1")],
+            planned: [],
             isLoading: false,
             error: nil
         ))
-        #expect(GoalWithdrawalsSection.isRelevant(withdrawals: [], isLoading: true, error: nil))
         #expect(GoalWithdrawalsSection.isRelevant(
             withdrawals: [],
+            planned: [],
+            planOnly: [SavingsGoalPlanOnlyWithdrawal(
+                planWithdrawalId: "plan-withdrawal-1",
+                name: "Retrait ponctuel",
+                month: 9,
+                year: 2026,
+                plannedAmount: 450
+            )],
+            isLoading: false,
+            error: nil
+        ))
+        #expect(GoalWithdrawalsSection.isRelevant(
+            withdrawals: [], planned: [], isLoading: true, error: nil
+        ))
+        #expect(GoalWithdrawalsSection.isRelevant(
+            withdrawals: [],
+            planned: [],
             isLoading: false,
             error: APIError.networkError(URLError(.timedOut))
         ))

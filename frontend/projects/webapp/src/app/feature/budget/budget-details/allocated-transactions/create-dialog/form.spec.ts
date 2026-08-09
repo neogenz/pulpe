@@ -587,18 +587,22 @@ describe('CreateAllocatedTransactionForm — realizing an announced withdrawal',
 
     expect(component['model']().name).toBe('Assurance maladie');
     expect(component['model']().money.amount).toBe(200);
+    expect(component['model']().isChecked).toBe(true);
   });
 
-  // Reliquat zéro: the CTA becomes "add another real income", and an empty
-  // amount is the honest start — prefilling 0 would submit an invalid line.
-  it('leaves the amount empty once the forecast is fully realized', () => {
-    const { component } = setupRealization({
+  it('explains the server-owned pointing and hides the editable toggle', () => {
+    const { fixture } = setupRealization({
       goalId: GOAL_ID,
       goalName: "Fonds d'urgence",
-      remainingAmount: 0,
+      remainingAmount: 200,
     });
 
-    expect(component['model']().money.amount).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="realization-pointed"]',
+      ),
+    ).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('mat-slide-toggle')).toBeNull();
   });
 
   it('shows the goal it debits, its balance and what is left to take', async () => {
