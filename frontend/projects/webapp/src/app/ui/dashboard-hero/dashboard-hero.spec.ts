@@ -204,9 +204,10 @@ describe('DashboardHero', () => {
     });
   });
 
-  // "Les débits" means pointed. This branch is reached by a negative
-  // remaining, which counts unpointed entries too, so an expense recorded with
-  // the toggle off asserted an outflow above a legend reading "Débité 0".
+  // The deficit copy speaks of what is pointed. This branch is reached by a
+  // negative remaining, which counts unpointed entries too, so an expense
+  // recorded with the toggle off asserted an outflow above a legend reading
+  // "Pointé 0".
   //
   // The consumed percentage is pinned at 100 here because that is what the
   // store emits for every negative remaining, and it is the whole reason the
@@ -280,9 +281,8 @@ describe('DashboardHero', () => {
       ).toMatch(/1.309/);
     });
 
-    // "Débité" was the one key defined nowhere: not here, not in the tour,
-    // not in PRODUCT.md's vocabulary — and it is the key whose amount a reader
-    // most often comes to check.
+    // The first key is the one whose amount a reader most often comes to
+    // check, and this gloss is the only place the hero says what it counts.
     it('should define the spent key even when nothing is engaged', () => {
       setTestInput(component.available, 4800);
       setTestInput(component.expenses, 2400);
@@ -294,7 +294,7 @@ describe('DashboardHero', () => {
       const note = (fixture.nativeElement as HTMLElement).querySelector(
         '[data-testid="hero-legend-gloss"]',
       );
-      expect(note?.textContent).toContain('Débité :');
+      expect(note?.textContent).toContain('Pointé :');
       expect(note?.textContent).not.toContain('Engagé :');
     });
 
@@ -309,7 +309,7 @@ describe('DashboardHero', () => {
       const note = (fixture.nativeElement as HTMLElement).querySelector(
         '[data-testid="hero-legend-gloss"]',
       );
-      expect(note?.textContent).toContain('Débité :');
+      expect(note?.textContent).toContain('Pointé :');
       expect(note?.textContent).toContain('Engagé :');
     });
 
@@ -390,7 +390,7 @@ describe('DashboardHero', () => {
     // The pace verdict is deaf to savings by design, so a month whose only
     // activity was a transfer arrives here as 'unknown'. It used to answer
     // "Rien de saisi ce mois" forty pixels above a legend key reading
-    // "Débité 800" and a bar with a filled segment.
+    // "Pointé 800" and a bar with a filled segment.
     it('should not claim an empty month when what left the account was foreseen', () => {
       setTestInput(component.available, 5000);
       setTestInput(component.realizedExpenses, 800);
@@ -401,7 +401,7 @@ describe('DashboardHero', () => {
 
       const compiled = fixture.nativeElement as HTMLElement;
       expect(compiled.textContent).not.toContain('Rien de saisi ce mois');
-      expect(compiled.textContent).toContain('Tout ce qui a été débité était');
+      expect(compiled.textContent).toContain('Tout ce que tu as pointé était');
     });
 
     // "Rien de saisi ce mois" keyed on realized outflow, which counts neither an
@@ -424,7 +424,9 @@ describe('DashboardHero', () => {
       const compiled = fixture.nativeElement as HTMLElement;
       expect(compiled.textContent).not.toContain('Rien de saisi ce mois');
       expect(compiled.textContent).not.toContain('Rien de pointé');
-      expect(compiled.textContent).toContain("Rien n'a encore été débité");
+      expect(compiled.textContent).toContain(
+        'Aucune dépense ni épargne pointée',
+      );
     });
 
     it('should say nothing was recorded when the ledger really is empty', () => {
@@ -650,9 +652,11 @@ describe('DashboardHero', () => {
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;
-      expect(compiled.textContent).not.toContain('Tout ce qui a été débité');
+      expect(compiled.textContent).not.toContain('Tout ce que tu as pointé');
       expect(compiled.textContent).not.toContain('Rien de saisi');
-      expect(compiled.textContent).toContain("Rien n'a encore été débité");
+      expect(compiled.textContent).toContain(
+        'Aucune dépense ni épargne pointée',
+      );
     });
 
     // The caption was gated on the deficit alone, and red is a deficit, so the

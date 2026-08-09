@@ -374,12 +374,12 @@ let heroInstanceCount = 0;
         <!-- Gated on the same condition as the key it defines. A month fully
              pointed draws no engagé segment and prints no engagé key, and the
              gloss stayed behind to define a word that had left the card. -->
-        <!-- "Débité" was the one key defined nowhere: not here, not in the
-             tour, not in PRODUCT.md's vocabulary — and it is the key whose
-             amount a reader most often comes to check. The clause conceding
-             that savings were folded in has left this gloss: the line above
-             prints them, and a definition that hedges about its own contents
-             is worse than one that leaves the arithmetic on screen. -->
+        <!-- The first key is the one whose amount a reader most often comes to
+             check, and this is the only place the hero says what it counts.
+             The clause conceding that savings were folded in has left this
+             gloss: the line above prints them, and a definition that hedges
+             about its own contents is worse than one that leaves the
+             arithmetic on screen. -->
         @if (showEngagedHint()) {
           <p class="progress-legend-note" data-testid="hero-legend-gloss">
             {{ 'dashboard.spentHint' | transloco }}
@@ -836,12 +836,12 @@ export class DashboardHero {
     // prévisions all fit. What opened the gap there is money the pace verdict
     // is built to ignore — a transfer to savings, an expense recorded and not
     // yet pointed — so the sentence names the outflow rather than the plan.
-    // "Les débits" is this page's word for pointed, and a negative remaining
-    // counts every recorded franc whether or not it has been pointed, so the
-    // two are not the same reading and the sentence has to pick the one that
-    // is true. An expense entered with the toggle off printed "les débits
-    // dépassent ce que le mois t'apporte" directly above a legend reading
-    // "Débité 0"; the comparison against what the month brings in says it
+    // That sentence speaks of what is pointed, and a negative remaining counts
+    // every recorded franc whether or not it has been pointed, so the two are
+    // not the same reading and the sentence has to pick the one that is true.
+    // An expense entered with the toggle off printed "ce que tu as pointé
+    // dépasse ce que le mois t'apporte" directly above a legend reading
+    // "Pointé 0"; the comparison against what the month brings in says it
     // exactly, where a bare "something was pointed" also claimed the deficit
     // for fifty francs pointed against three thousand of income.
     //
@@ -872,7 +872,7 @@ export class DashboardHero {
     // "rien de saisi". Everything foreseen is the good answer, and the one this
     // card gives for most of a well-run month. Between them sits a month with
     // entries the verdict cannot read — an income, or expenses recorded and not
-    // yet pointed — and claiming "tout ce qui a été débité était prévu" there was
+    // yet pointed — and claiming "tout ce que tu as pointé était prévu" there was
     // false twice over: nothing had gone out, and what was recorded was
     // precisely what the plan had not foreseen.
     if (!this.hasRecordedActivity()) return 'dashboard.status.noPaceYet';
