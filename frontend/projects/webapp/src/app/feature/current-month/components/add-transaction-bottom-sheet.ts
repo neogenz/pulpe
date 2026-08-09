@@ -1,6 +1,8 @@
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   inject,
   signal,
   viewChild,
@@ -26,6 +28,9 @@ import {
   type TransactionFormData,
 } from './add-transaction-form';
 
+/** Cible du `aria-labelledby` posé sur le conteneur — voir le constructeur. */
+const SHEET_TITLE_ID = 'add-transaction-sheet-title';
+
 @Component({
   selector: 'pulpe-add-transaction-bottom-sheet',
   imports: [
@@ -44,7 +49,10 @@ import {
 
       <div class="flex justify-between items-center gap-4">
         <div class="min-w-0">
-          <h2 class="text-title-large text-on-surface m-0 [text-wrap:balance]">
+          <h2
+            [id]="titleId"
+            class="text-title-large text-on-surface m-0 [text-wrap:balance]"
+          >
             {{
               'currentMonth.addTransactionTitle'
                 | transloco
@@ -126,7 +134,10 @@ export class AddTransactionBottomSheet {
   );
   readonly #data = inject<AddTransactionShellData>(MAT_BOTTOM_SHEET_DATA);
   readonly #dialogService = inject(AddTransactionDialogService);
+  readonly #host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly formRef = viewChild.required(AddTransactionForm);
+
+  protected readonly titleId = SHEET_TITLE_ID;
 
   // The sheet holds the only copy of what was typed, so it stays up until the
   // write is accepted. `isSubmitting` on the form ends at the built payload,
@@ -135,6 +146,17 @@ export class AddTransactionBottomSheet {
   protected readonly refusal = signal('');
 
   constructor() {
+    // La feuille s'annonçait sans nom. Son jumeau de bureau en reçoit un
+    // gratuitement de `mat-dialog-title` ; `MatBottomSheetContainer`, lui, ne
+    // lie qu'un `ariaLabel` figé pris dans sa config — périmé dès que la
+    // nature choisie réécrit le titre. Le désigner plutôt que le recopier
+    // garde le nom annoncé et le titre lu à l'écran sur la même phrase.
+    afterNextRender(() => {
+      this.#host.nativeElement
+        .closest('mat-bottom-sheet-container')
+        ?.setAttribute('aria-labelledby', SHEET_TITLE_ID);
+    });
+
     // Même garde-fou que le dialogue de bureau, et pour la même raison : sur
     // téléphone la feuille occupe l'écran, donc le fond visible sur lequel on
     // clique par réflexe pour revenir à la page est justement ce qui effaçait

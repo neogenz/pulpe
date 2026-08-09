@@ -1,8 +1,13 @@
-import { provideZonelessChangeDetection, signal } from '@angular/core';
+import {
+  ApplicationRef,
+  provideZonelessChangeDetection,
+  signal,
+} from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import {
   MAT_BOTTOM_SHEET_DATA,
+  MatBottomSheet,
   MatBottomSheetRef,
 } from '@angular/material/bottom-sheet';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
@@ -77,6 +82,44 @@ async function configureBottomSheet() {
   };
 }
 
+/**
+ * Ouvre la feuille par le vrai `MatBottomSheet`, donc dans le conteneur que
+ * Material fabrique — le seul contexte où le nom accessible existe.
+ */
+async function openThroughMaterial() {
+  TestBed.configureTestingModule({
+    providers: [
+      provideZonelessChangeDetection(),
+      provideAnimationsAsync(),
+      ...provideTranslocoForTest(),
+      {
+        provide: UserSettingsStore,
+        useValue: {
+          currency: signal<SupportedCurrency>('CHF'),
+          showCurrencySelector: signal(true),
+        },
+      },
+      {
+        provide: CurrencyConverterService,
+        useValue: { convertWithMetadata: vi.fn() },
+      },
+      { provide: TagStore, useValue: createMockTagStore() },
+      {
+        provide: AddTransactionDialogService,
+        useValue: { confirmDiscard: vi.fn() },
+      },
+    ],
+  });
+
+  TestBed.inject(MatBottomSheet).open(AddTransactionBottomSheet, {
+    data: { persist: vi.fn() },
+  });
+  await TestBed.inject(ApplicationRef).whenStable();
+  TestBed.tick();
+
+  return document.querySelector('mat-bottom-sheet-container') as HTMLElement;
+}
+
 function aTransaction(): TransactionFormData {
   return {
     name: 'Courses',
@@ -105,6 +148,20 @@ describe('AddTransactionBottomSheet', () => {
     fixture.detectChanges();
 
     expect(title()).toBe('Noter un revenu');
+  });
+
+  // Le nom que les lecteurs d'écran annoncent à l'ouverture. Il vit sur un
+  // conteneur que Material fabrique, hors du template : si la désignation
+  // manquait sa cible, la feuille s'annoncerait sans nom sans que rien ne
+  // casse. On vérifie donc où pointe la référence, pas qu'elle existe.
+  it('should be named after its own heading', async () => {
+    const container = await openThroughMaterial();
+
+    const titleId = container.getAttribute('aria-labelledby') ?? '';
+
+    expect(document.getElementById(titleId)?.textContent?.trim()).toBe(
+      'Noter une dépense',
+    );
   });
 
   it('should dismiss without data on cancel', async () => {
