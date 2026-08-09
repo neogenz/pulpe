@@ -80,7 +80,7 @@ describe('DashboardRecentTransactions', () => {
     const emptyState = fixture.debugElement.query(By.css('.p-8.text-center'));
     expect(emptyState).toBeTruthy();
     expect(emptyState.nativeElement.textContent).toContain(
-      'Aucune transaction',
+      'Rien de noté ce mois',
     );
   });
 
@@ -204,7 +204,7 @@ describe('DashboardRecentTransactions', () => {
     expect(amountElements[2].nativeElement.textContent).toContain('300');
   });
 
-  it('should emit viewBudget on "Voir les transactions" click', () => {
+  it('should emit viewBudget on "Voir les mouvements" click', () => {
     setTestInput(component.transactions, [
       createTransaction({ id: '1', name: 'A' }),
     ]);
@@ -216,7 +216,7 @@ describe('DashboardRecentTransactions', () => {
     const button = fixture.debugElement
       .queryAll(By.css('button'))
       .find((el) =>
-        el.nativeElement.textContent.trim().includes('Voir les transactions'),
+        el.nativeElement.textContent.trim().includes('Voir les mouvements'),
       );
     expect(button).toBeTruthy();
     button!.nativeElement.click();

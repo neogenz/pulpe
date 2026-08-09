@@ -638,10 +638,10 @@ export class BudgetItemsContainer {
     transaction: Transaction,
   ): Promise<void> {
     const confirmed = await this.#dialogService.confirmDelete({
-      title: this.#transloco.translate('budget.deleteTransaction'),
-      message: this.#transloco.translate('transaction.deleteConfirm', {
+      title: this.#transloco.translate('budget.deleteTransaction', {
         name: transaction.name,
       }),
+      message: this.#transloco.translate('budget.irreversibleAction'),
     });
 
     if (!confirmed) return;
@@ -845,7 +845,8 @@ export class BudgetItemsContainer {
     const budgetLine = data.budgetLines.find((line) => line.id === id);
     const transaction = data.transactions.find((tx) => tx.id === id);
 
-    if (!budgetLine && !transaction) {
+    const item = budgetLine ?? transaction;
+    if (!item) {
       this.#logger.error('Item not found', { id });
       return;
     }
@@ -860,7 +861,9 @@ export class BudgetItemsContainer {
     const isBudgetLine = !!budgetLine;
     const title = isBudgetLine
       ? this.#transloco.translate('budget.deleteForecast')
-      : this.#transloco.translate('budget.deleteTransaction');
+      : this.#transloco.translate('budget.deleteTransaction', {
+          name: item.name,
+        });
     const message = this.#transloco.translate('budget.irreversibleAction');
 
     const confirmed = await this.#dialogService.confirmDelete({

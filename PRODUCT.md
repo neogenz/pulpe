@@ -43,7 +43,8 @@ Pulpe est un outil de planification budgétaire prospective. Son mécanisme dist
 
 Vocabulaire utilisateur durable :
 
-- `budget_line` / `budgetLines` : « prévision » ; `fixed` : « Récurrent » ; `one_off` : « Prévu » ; `transaction` : « Réel ».
+- `budget_line` / `budgetLines` : « prévision » ; `fixed` : « Récurrent » ; `one_off` : « Prévu ».
+- `transaction` ne se traduit jamais tel quel : « Réel » quand c'est l'agrégat qui fait face à « Prévu », « Mouvements » quand c'est une collection, la nature (« dépense », « revenu », « épargne ») ou un verbe quand c'est un objet seul. Le verbe porte le temps, le nom porte la nature : on **prévoit** une dépense, on **note** une dépense.
 - `income` : « Revenu » ; `expense` : « Dépense » ; `saving` : « Épargne ».
 - `checked` : « Pointé » ; `unchecked` : « À pointer ».
 - Libellés de référence : « Disponible à dépenser », « Épargne prévue », « Fréquence ».

@@ -63,7 +63,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
             </h2>
             <!-- Suppressed on an empty month, the way the forecasts card next
                  to it already is: "0 ce mois" restated, in smaller type, the
-                 "Aucune transaction" panel twenty pixels below it, and two
+                 "Rien de noté ce mois" panel twenty pixels below it, and two
                  cards built from one recipe answered the same emptiness two
                  different ways. -->
             @if (totalCount() > 0) {
@@ -197,8 +197,8 @@ import { TranslocoPipe } from '@jsverse/transloco';
             <h3 class="text-title-medium font-medium text-on-surface-variant">
               {{ 'currentMonth.noTransaction' | transloco }}
             </h3>
-            <!-- The second line used to read "Aucune transaction ce mois" under
-                 a heading reading "Aucune transaction" — the only empty state on
+            <!-- The second line used to restate the heading word for word — the
+                 only empty state on
                  the page whose subtitle restated its title rather than adding
                  the next step. The button below is the next step. -->
             <button

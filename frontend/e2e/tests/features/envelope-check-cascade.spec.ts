@@ -76,7 +76,7 @@ test.describe('Envelope Check/Uncheck Cascade', () => {
 
     // Verify no dialog appeared
     await expect(
-      authenticatedPage.getByText('Pointer les transactions ?'),
+      authenticatedPage.getByText('Pointer aussi les mouvements ?'),
     ).not.toBeVisible();
   });
 
@@ -448,7 +448,7 @@ test.describe('Envelope Check/Uncheck Cascade', () => {
 
     // Confirmation dialog should appear
     await expect(
-      authenticatedPage.getByText('Pointer les transactions ?'),
+      authenticatedPage.getByText('Pointer aussi les mouvements ?'),
     ).toBeVisible();
 
     // Confirm cascade
@@ -542,7 +542,7 @@ test.describe('Envelope Check/Uncheck Cascade', () => {
 
     // Confirmation dialog should appear
     await expect(
-      authenticatedPage.getByText('Pointer les transactions ?'),
+      authenticatedPage.getByText('Pointer aussi les mouvements ?'),
     ).toBeVisible();
 
     // Decline cascade - click "Non, juste la prévision"

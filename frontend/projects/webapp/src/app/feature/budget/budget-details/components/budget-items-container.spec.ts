@@ -448,7 +448,7 @@ describe('BudgetItemsContainer — a refused gesture speaks for itself', () => {
         component['handleDeleteTransaction'](
           createMockTransaction({ id: TX_ID }),
         ),
-      confirmation: 'Transaction supprimée',
+      confirmation: 'Supprimé',
     },
     {
       name: 'resetting a forecast from the template',
@@ -790,7 +790,7 @@ describe('BudgetItemsContainer — realizing an announced withdrawal (PUL-329 v2
 
     expect(mockStore.createAllocatedTransaction).toHaveBeenCalledWith(created);
     expect(mockSnackBar.open).toHaveBeenCalledWith(
-      'Transaction ajoutée',
+      'Enregistré',
       'Fermer',
       expect.objectContaining({ duration: 3000 }),
     );

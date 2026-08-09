@@ -18,7 +18,7 @@
 pnpm dev                      # Starts all packages via Turbo
 
 # Quality — racine uniquement (aucun package ne définit `quality` sauf backend-nest)
-pnpm quality                  # turbo quality + format:check:automation + test:ci-security + test:public-surface
+pnpm quality                  # turbo quality + format:check:automation + test:ci-security + test:public-surface + test:lexicon
                               # lefthook le lance déjà en pre-commit, mais scopé `--filter="...[HEAD^]"` et SKIPPÉ sur merge/rebase
                               # les templates Angular (strictTemplates) ne sont vérifiés que par `ng build` → job CI dédié
 
@@ -65,7 +65,8 @@ pnpm dev:backend              # Backend + shared
 
 ## Vocabulary
 
-- `budget_line` (table ; `budgetLines` sur le wire) → "prévisions" | `fixed` → "Récurrent" | `one_off` → "Prévu" | `transaction` → "Réel"
+- `budget_line` (table ; `budgetLines` sur le wire) → "prévisions" | `fixed` → "Récurrent" | `one_off` → "Prévu"
+- `transaction` n'a pas un mot mais trois portées : "Réel" pour l'agrégat qui fait face à "Prévu" ; "Mouvements" pour une collection ; la nature ("dépense", "revenu", "épargne") ou un verbe pour un objet seul. Le mot "transaction" lui-même ne s'affiche jamais — `pnpm test:lexicon` le vérifie.
 - `income` → "Revenu" | `expense` → "Dépense" | `saving` → "Épargne"
 - `checked` → "Pointé" | `unchecked` → "À pointer"
 - Labels: "Disponible à dépenser", "Épargne prévue", "Fréquence"
