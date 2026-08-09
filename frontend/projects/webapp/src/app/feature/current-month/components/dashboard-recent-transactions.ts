@@ -87,7 +87,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
                   class="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
                   [class]="kindClasses(tx.kind)"
                 >
-                  <mat-icon class="text-[20px]" aria-hidden="true">
+                  <mat-icon class="mat-icon-sm" aria-hidden="true">
                     {{ tx.kind | transactionIcon }}
                   </mat-icon>
                 </div>

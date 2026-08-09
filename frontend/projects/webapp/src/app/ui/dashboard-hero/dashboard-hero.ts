@@ -171,7 +171,7 @@ let heroInstanceCount = 0;
                  as a decomposition in the branch that has a total. -->
             @let deficitRollover = rolloverAmount();
             @if (deficitRollover < 0) {
-              <span class="ph-no-capture">
+              <span class="tabular-nums ph-no-capture">
                 · {{ 'dashboard.rolloverCause' | transloco }}
                 {{ deficitRollover | number: '1.0-0' : locale() }}
                 {{ currencySymbol() }}
@@ -193,7 +193,7 @@ let heroInstanceCount = 0;
                  for a share of it to be a share of. -->
             @let rollover = rolloverAmount();
             @if (rollover !== 0) {
-              <span class="ph-no-capture">
+              <span class="tabular-nums ph-no-capture">
                 · {{ 'dashboard.rollover' | transloco }}
                 {{ rollover > 0 ? '+' : ''
                 }}{{ rollover | number: '1.0-0' : locale() }}

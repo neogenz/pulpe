@@ -339,31 +339,17 @@ export class DashboardStore {
     return Math.round(Math.min(Math.max(0, percentage), 100));
   });
 
-  // The third state is the honest one, and it was missing. Pulpe has no bank
-  // sync — every figure `realizedExpenses` sums is one the user typed — so a
-  // month with nothing recorded scores 0% against an elapsed 25% and came out
-  // "on-track". The page then said "Ton rythme tient." in bold, at the top, on
-  // the strength of no evidence whatsoever, and said it more confidently the
-  // longer the user stayed away. A verdict drawn from an empty ledger is not a
-  // verdict; the card now says so and asks for the transaction that would make
-  // one possible.
-  // Savings leave the account, so they belong in what has gone out and in the
-  // bar. They do not belong in this verdict, which says "tu dépenses plus vite
-  // que le mois ne passe": a user who funds their savings on the 3rd has not
-  // spent anything, and telling them otherwise charges them for the one habit
-  // the product exists to build. Point a 1'500 savings line early against a
-  // 5'000 month and the old numerator read 30% against 10% elapsed — amber, on
-  // the strength of money the user deliberately put aside.
-  // `totalSavingsRealized` alone does not remove every franc of savings from
-  // the numerator: it is goal progress, and `calculateRealizedSavings`
-  // deliberately skips free transactions, because an unlinked saving would
-  // contaminate a goal's confirmed total. `calculateRealizedExpenses` has no
-  // such exclusion — `isOutflowKind` sweeps free savings in with the rest. So a
-  // 1'500 transfer recorded from this page's own FAB, which never carries a
-  // budgetLineId, landed in the numerator and nothing took it back out: the
-  // card turned amber and said "tu dépenses plus vite que le mois ne passe" on
-  // the strength of money the user had just set aside. Same intent as the line
-  // below, applied to the one bucket that formula cannot see.
+  // L'épargne pointée qui n'est rattachée à aucune ligne.
+  // `calculateRealizedSavings` l'ignore délibérément — une épargne non reliée
+  // fausserait le total confirmé d'un objectif — et ses deux lecteurs ici la
+  // veulent : le total d'épargne réalisée du mois, et la répartition sur les
+  // objectifs en retard.
+  //
+  // Elle ne touche pas au verdict de rythme, quoi qu'en disaient les deux
+  // commentaires précédents : `paceStatus` lit `#unplannedSpending`, qui écarte
+  // tout ce qui n'est pas `expense` et ne voit donc jamais un franc d'épargne.
+  // Le garde-fou décrit ici avait été déplacé dans cette formule sans que le
+  // texte suive, et laissait au prochain lecteur une carte fausse.
   readonly #freeSavingsRealized = computed<number>(() =>
     this.transactions()
       .filter(
@@ -596,7 +582,8 @@ export class DashboardStore {
   // goal's confirmed total — correct for a goal, wrong for a card titled
   // "Épargne du mois" whose sentence is "Tu as mis de côté". Without the second
   // term the card answered 0 for money the user had just put aside on this very
-  // screen. The pace numerator reads this sum, so the franc is counted once.
+  // screen. The pace verdict does not read this sum — it goes through
+  // `#unplannedSpending`, which admits expenses and nothing else.
   readonly totalSavingsRealized = computed<number>(
     () =>
       BudgetFormulas.calculateRealizedSavings(
