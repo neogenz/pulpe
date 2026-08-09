@@ -49,6 +49,7 @@ struct GoalPlanApplyRecapSheet: View {
 
     struct WithdrawalBreakdown: Equatable {
         let contribution: Decimal
+        let updatedContribution: Decimal
         let previousWithdrawal: Decimal
         let plannedWithdrawal: Decimal
         let netEffect: Decimal
@@ -70,12 +71,15 @@ struct GoalPlanApplyRecapSheet: View {
         for change: SavingsPlanCalculator.SimulatedMonth
     ) -> WithdrawalBreakdown {
         let contribution = max(change.month.plannedAmount, change.month.confirmedAmount)
+        let updatedContribution = change.simulatedAmount < 0 ? contribution : change.simulatedAmount
         let previousWithdrawal = -SavingsPlanCalculator.managedPlanWithdrawalAmount(change.month)
+        let plannedWithdrawal = min(0, change.simulatedAmount)
         return WithdrawalBreakdown(
             contribution: contribution,
+            updatedContribution: updatedContribution,
             previousWithdrawal: previousWithdrawal,
-            plannedWithdrawal: change.simulatedAmount,
-            netEffect: contribution + change.simulatedAmount
+            plannedWithdrawal: plannedWithdrawal,
+            netEffect: updatedContribution + plannedWithdrawal
         )
     }
 
@@ -112,7 +116,7 @@ struct GoalPlanApplyRecapSheet: View {
     }
 
     private var isUniform: Bool {
-        mode == .adjustment && !hasWithdrawal && Self.hasUniformAdjustment(changes)
+        mode == .adjustment && !hasWithdrawalChange && Self.hasUniformAdjustment(changes)
     }
 
     private var listedChanges: [SavingsPlanCalculator.SimulatedMonth] {
@@ -132,6 +136,10 @@ struct GoalPlanApplyRecapSheet: View {
     }
 
     private var hasWithdrawal: Bool { changes.contains { $0.simulatedAmount < 0 } }
+
+    private var hasWithdrawalChange: Bool {
+        changes.contains { $0.simulatedAmount < 0 || $0.replacesExistingPlanWithdrawal }
+    }
 
     nonisolated static func conversionMessage(
         from existing: SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination?,
@@ -246,7 +254,7 @@ private extension GoalPlanApplyRecapSheet {
                     if index > 0 {
                         Divider().foregroundStyle(Color.outlineVariant)
                     }
-                    if simMonth.simulatedAmount < 0 {
+                    if simMonth.simulatedAmount < 0 || simMonth.replacesExistingPlanWithdrawal {
                         withdrawalChange(simMonth)
                     } else {
                         diffRow(simMonth)
@@ -375,17 +383,32 @@ private extension GoalPlanApplyRecapSheet {
                 .foregroundStyle(Color.textPrimary)
 
             withdrawalAmounts(breakdown)
-            withdrawalDestinationChoices(for: change)
+            if change.simulatedAmount < 0 {
+                withdrawalDestinationChoices(for: change)
+            } else if change.month.planWithdrawalDestination == .linkedIncome {
+                Text("La Prévision Revenu liée sera supprimée avec la mise à jour du plan.")
+                    .font(PulpeTypography.listRowSubtitle)
+                    .foregroundStyle(Color.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 
     private func withdrawalAmounts(_ breakdown: WithdrawalBreakdown) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            amountRow(
-                label: "Épargne prévue",
-                amount: breakdown.contribution,
-                detail: "Conservée"
-            )
+            if breakdown.contribution == breakdown.updatedContribution {
+                amountRow(
+                    label: "Épargne prévue",
+                    amount: breakdown.contribution,
+                    detail: "Conservée"
+                )
+            } else {
+                withdrawalTransition(
+                    label: "Épargne prévue",
+                    from: breakdown.contribution,
+                    to: breakdown.updatedContribution
+                )
+            }
             withdrawalTransition(
                 from: breakdown.previousWithdrawal,
                 to: breakdown.plannedWithdrawal
@@ -479,10 +502,14 @@ private extension GoalPlanApplyRecapSheet {
             .sensitiveAmount()
     }
 
-    private func withdrawalTransition(from: Decimal, to: Decimal) -> some View {
+    private func withdrawalTransition(
+        label: String = "Retrait planifié",
+        from: Decimal,
+        to: Decimal
+    ) -> some View {
         ViewThatFits(in: .horizontal) {
             HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
-                Text("Retrait planifié")
+                Text(label)
                     .fixedSize(horizontal: true, vertical: false)
                 Spacer(minLength: DesignTokens.Spacing.sm)
                 withdrawalTransitionAmounts(from: from, to: to)
@@ -490,7 +517,7 @@ private extension GoalPlanApplyRecapSheet {
             }
 
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                Text("Retrait planifié")
+                Text(label)
                 withdrawalTransitionAmounts(from: from, to: to)
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
@@ -499,7 +526,7 @@ private extension GoalPlanApplyRecapSheet {
         .monospacedDigit()
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(
-            "Retrait planifié, de \(signedCurrency(from)) à \(signedCurrency(to))"
+            "\(label), de \(signedCurrency(from)) à \(signedCurrency(to))"
         )
         .sensitiveAmount()
     }

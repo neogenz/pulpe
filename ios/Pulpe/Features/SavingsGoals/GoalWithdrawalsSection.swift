@@ -23,6 +23,7 @@ struct GoalWithdrawalsSection: View {
     let isLoading: Bool
     let error: Error?
     let onOpenBudget: (String) -> Void
+    let onRetry: () -> Void
 
     enum PlannedItem: Identifiable {
         case linked(SavingsGoalPlannedWithdrawal)
@@ -167,9 +168,14 @@ struct GoalWithdrawalsSection: View {
                     .frame(maxWidth: .infinity)
                     .padding(DesignTokens.Spacing.xl)
             } else if error != nil, withdrawals.isEmpty, planned.isEmpty, planOnly.isEmpty {
-                // No retry button: the whole detail reloads on pull-to-refresh,
-                // and a failed history never blocks reading the progression.
-                notice("Impossible de charger les retraits pour le moment.")
+                GoalInfoCard(
+                    icon: "arrow.clockwise",
+                    title: "Retraits indisponibles",
+                    message: "Impossible de charger les retraits pour le moment."
+                ) {
+                    Button("Réessayer", action: onRetry)
+                        .secondaryButtonStyle()
+                }
             } else {
                 let plannedItems = Self.plannedItems(planned: planned, planOnly: planOnly)
                 if !plannedItems.isEmpty {
@@ -191,15 +197,6 @@ struct GoalWithdrawalsSection: View {
                 }
             }
         }
-    }
-
-    private func notice(_ message: String) -> some View {
-        Text(message)
-            .font(PulpeTypography.listRowSubtitle)
-            .foregroundStyle(Color.textSecondary)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .pulpeCard()
     }
 
     @ViewBuilder
@@ -392,7 +389,8 @@ private extension GoalWithdrawalsSection {
                 currency: .chf,
                 isLoading: false,
                 error: nil,
-                onOpenBudget: { _ in }
+                onOpenBudget: { _ in },
+                onRetry: {}
             )
 
             GoalWithdrawalsSection(
@@ -402,7 +400,8 @@ private extension GoalWithdrawalsSection {
                 currency: .chf,
                 isLoading: false,
                 error: APIError.serverError(message: "Indisponible"),
-                onOpenBudget: { _ in }
+                onOpenBudget: { _ in },
+                onRetry: {}
             )
         }
         .padding()

@@ -49,7 +49,10 @@ struct GoalPlanSimEditRow: View {
                 .frame(width: width)
                 .frame(maxWidth: width == nil ? .infinity : nil)
                 .frame(minHeight: DesignTokens.TapTarget.minimum)
-                .accessibilityLabel("Mouvement de l’objectif ce mois")
+                .accessibilityLabel(
+                    "Mouvement de l’objectif, "
+                        + "\(Formatters.monthName(for: simMonth.month.month)) \(simMonth.month.year)"
+                )
             Text(currency.symbol)
                 .font(PulpeTypography.metricLabel)
                 .foregroundStyle(Color.textSecondary)

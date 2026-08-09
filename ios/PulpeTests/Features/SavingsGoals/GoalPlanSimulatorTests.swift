@@ -227,6 +227,8 @@ extension GoalPlanSimulatorTests {
 
         #expect(rowSource.contains(minimumTarget))
         #expect(sheetSource.contains(minimumTarget))
+        #expect(rowSource.contains("Mouvement de l’objectif, "))
+        #expect(rowSource.contains("Formatters.monthName(for: simMonth.month.month)"))
     }
 
     @Test("simulator controls keep their content at compact widths and large text sizes")
@@ -265,7 +267,7 @@ extension GoalPlanSimulatorTests {
     func recap_namesBeforeAndAfterAmountsForVoiceOver() throws {
         let source = try Self.simulatorSource("GoalPlanApplyRecapSheet.swift")
 
-        #expect(source.contains("Retrait planifié, de \\(signedCurrency(from)) à \\(signedCurrency(to))"))
+        #expect(source.contains("\\(label), de \\(signedCurrency(from)) à \\(signedCurrency(to))"))
         #expect(source.contains(".accessibilityElement(children: .ignore)"))
     }
 
@@ -285,6 +287,32 @@ extension GoalPlanSimulatorTests {
         #expect(breakdown.previousWithdrawal == 0)
         #expect(breakdown.plannedWithdrawal == -500)
         #expect(breakdown.netEffect == -300)
+    }
+
+    @Test("recap separates the contribution from a removed linked withdrawal")
+    func recap_separatesContributionAndRemovedWithdrawal() throws {
+        let change = SavingsPlanCalculator.SimulatedMonth(
+            month: managedWithdrawalMonth(
+                destination: .linkedIncome,
+                remaining: 500,
+                plannedAmount: 200
+            ),
+            simulatedAmount: 100,
+            simulatedCumulative: 100,
+            isAdjusted: true,
+            replacesExistingPlanWithdrawal: true
+        )
+        let breakdown = GoalPlanApplyRecapSheet.withdrawalBreakdown(for: change)
+
+        #expect(breakdown.contribution == 200)
+        #expect(breakdown.updatedContribution == 100)
+        #expect(breakdown.previousWithdrawal == -500)
+        #expect(breakdown.plannedWithdrawal == 0)
+        #expect(breakdown.netEffect == 100)
+
+        let source = try Self.simulatorSource("GoalPlanApplyRecapSheet.swift")
+        #expect(source.contains("simMonth.simulatedAmount < 0 || simMonth.replacesExistingPlanWithdrawal"))
+        #expect(source.contains("change.month.planWithdrawalDestination == .linkedIncome"))
     }
 
     @Test("recap preserves mixed destinations and limits budget availability to each month")

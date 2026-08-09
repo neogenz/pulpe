@@ -238,7 +238,8 @@ struct SavingsGoalDetailView: View {
                 currency: currency,
                 isLoading: viewModel.isLoadingWithdrawals,
                 error: viewModel.withdrawalsError,
-                onOpenBudget: openWithdrawal
+                onOpenBudget: openWithdrawal,
+                onRetry: { Task { await viewModel.loadWithdrawals() } }
             )
             .accessibilityIdentifier("savingsGoalWithdrawalsSection")
         }
