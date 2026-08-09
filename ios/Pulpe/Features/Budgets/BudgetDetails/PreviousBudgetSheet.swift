@@ -186,7 +186,7 @@ struct PreviousBudgetSheet: View {
         let free = viewModel.freeTransactions
         if !free.isEmpty {
             TransactionSection(
-                title: "Transactions libres",
+                title: "Hors prévisions",
                 transactions: free,
                 syncingIds: []
             )

@@ -172,7 +172,7 @@ struct BudgetDetailsView: View {
                 .environment(projector)
         }
         .alert(
-            "Pointer les transactions ?",
+            "Pointer aussi les mouvements ?",
             isPresented: $syncStore.showCheckAllTransactionsAlert,
             presenting: coordinator.syncStore.budgetLineToCheckAll
         ) { line in
@@ -191,7 +191,7 @@ struct BudgetDetailsView: View {
                 }
             }
         } message: { _ in
-            Text("Des transactions non pointées sont liées à cette prévision.")
+            Text("Cette prévision a des mouvements encore à pointer.")
         }
         .alert(
             "Deux prévisions liées",

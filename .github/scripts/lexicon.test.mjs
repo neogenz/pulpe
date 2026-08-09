@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import test from "node:test";
 
 const read = (path) =>
   readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 
 const FR_JSON = "frontend/projects/webapp/public/i18n/fr.json";
+const SWIFT_ROOT = "ios/Pulpe";
 
 const flatten = (node, prefix = "") =>
   Object.entries(node).flatMap(([key, value]) => {
@@ -31,5 +32,55 @@ test("aucune chaîne affichée par la webapp ne dit « transaction »", () => {
     offenders.length,
     0,
     `${HOW_TO_WRITE_IT_INSTEAD}\n\nDans ${FR_JSON} :\n${offenders.join("\n")}`,
+  );
+});
+
+// iOS n'a pas de catalogue de chaînes : la copie vit en dur dans les vues, et
+// aucun compilateur ne signalera un oubli. Ce garde lit les sources comme du
+// texte, ce qui lui suffit pour tenir les deux clients sur le même mot.
+//
+// Une note de version déjà publiée raconte ce que la version disait à l'époque.
+// La réécrire falsifierait l'historique, donc elle sort du périmètre.
+const NOT_APP_COPY = new Set(["Shared/Components/WhatsNewSheet.swift"]);
+
+/**
+ * Ce que l'utilisateur lit, par opposition à ce que la machine lit.
+ *
+ * Les chaînes techniques se reconnaissent à leur forme, pas à leur emplacement :
+ * un chemin d'API, une clé d'analytics, un identifiant de test ou un code
+ * d'erreur portent un `_` ou un `/`, ou tiennent en un seul mot. Une phrase
+ * française, elle, respire — elle a au moins une espace et aucun de ces deux
+ * caractères. Les interpolations disparaissent d'abord : `\(transaction.name)`
+ * est un identifiant Swift qui traverse la chaîne, pas un mot affiché.
+ */
+const displayedText = (literal) =>
+  literal.slice(1, -1).replaceAll(/\\\([^)]*\)/g, "");
+
+const isDisplayedProse = (text) => text.includes(" ") && !/[_/]/.test(text);
+
+const swiftSources = () =>
+  readdirSync(new URL(`../../${SWIFT_ROOT}`, import.meta.url), {
+    recursive: true,
+  }).filter((path) => path.endsWith(".swift") && !NOT_APP_COPY.has(path));
+
+test("aucune chaîne affichée par l'app iOS ne dit « transaction »", () => {
+  const offenders = swiftSources().flatMap((path) =>
+    read(`${SWIFT_ROOT}/${path}`)
+      .split("\n")
+      .flatMap((line, index) => {
+        // Un commentaire décrit le code, il ne s'affiche pas ; un `#Preview`
+        // nomme une vignette du canvas Xcode, que l'app n'embarque pas.
+        if (/^\s*(\/\/|\*|\/\*|#Preview\()/.test(line)) return [];
+        return (line.match(/"(?:[^"\\]|\\.)*"/g) ?? [])
+          .map(displayedText)
+          .filter((text) => /transaction/i.test(text) && isDisplayedProse(text))
+          .map((text) => `  ${path}:${index + 1} = ${text}`);
+      }),
+  );
+
+  assert.equal(
+    offenders.length,
+    0,
+    `${HOW_TO_WRITE_IT_INSTEAD}\n\nDans ${SWIFT_ROOT}/ :\n${offenders.join("\n")}`,
   );
 });

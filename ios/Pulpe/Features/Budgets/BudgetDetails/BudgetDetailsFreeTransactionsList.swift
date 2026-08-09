@@ -40,7 +40,7 @@ struct BudgetDetailsFreeTransactionsList: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: DesignTokens.Spacing.xxs) {
-                Text("Transactions libres")
+                Text("Hors prévisions")
                     .font(PulpeTypography.headline)
                     .foregroundStyle(Color.textPrimary)
                 Text(" · \(items.count)")
@@ -50,7 +50,7 @@ struct BudgetDetailsFreeTransactionsList: View {
             }
             .accessibilityElement(children: .combine)
             .accessibilityAddTraits(.isHeader)
-            .accessibilityLabel("Transactions libres, \(items.count)")
+            .accessibilityLabel("Hors prévisions, \(items.count)")
             .padding(.horizontal, DesignTokens.Spacing.lg)
             .padding(.top, DesignTokens.Spacing.lg)
             .padding(.bottom, DesignTokens.Spacing.sm)

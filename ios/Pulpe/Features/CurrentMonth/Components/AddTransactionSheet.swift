@@ -178,7 +178,6 @@ struct AddTransactionSheet: View {
             hint: kind.descriptionPlaceholder,
             text: $name,
             label: "Description",
-            accessibilityLabel: "Description de la transaction",
             focusBinding: $focusedField,
             field: .description
         )
@@ -298,7 +297,7 @@ struct AddTransactionSheet: View {
             AnalyticsService.shared.capture(.transactionCreated, properties: ["type": kind.rawValue])
             submitSuccessTrigger.toggle()
             onAdd(transaction)
-            toastManager.show("Transaction ajoutée")
+            toastManager.show("Enregistré")
             dismiss()
         } catch {
             self.error = error

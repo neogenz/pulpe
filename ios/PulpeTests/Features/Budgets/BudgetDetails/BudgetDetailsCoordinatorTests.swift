@@ -306,7 +306,7 @@ struct BudgetDetailsCoordinatorMutationTests {
         await coord.dispatch(.softDeleteTransaction(tx2, ctx))
 
         #expect(coord.dataStore.transactions.isEmpty)
-        #expect(toastManager.currentToast?.message == "2 transactions supprimées")
+        #expect(toastManager.currentToast?.message == "2 mouvements supprimés")
 
         toastManager.executeUndo()
         try? await Task.sleep(for: .milliseconds(150))

@@ -88,7 +88,7 @@ final class MutationQueue {
     static func deletionToastSingleTitle(for last: PendingBudgetDetailSoftDeletion) -> String {
         switch last {
         case .transaction:
-            "Transaction supprimée"
+            "Supprimé"
         case .budgetLine:
             "Prévision supprimée"
         }
@@ -107,7 +107,7 @@ final class MutationQueue {
             return false
         }
         if allTransactions {
-            return "\(count) transactions supprimées"
+            return "\(count) mouvements supprimés"
         }
         if allBudgetLines {
             return "\(count) prévisions supprimées"

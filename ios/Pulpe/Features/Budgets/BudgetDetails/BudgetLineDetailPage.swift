@@ -253,7 +253,7 @@ private extension BudgetLineDetailPage {
                 .foregroundStyle(.quaternary)
 
             VStack(spacing: DesignTokens.Spacing.xs) {
-                Text("Pas encore de transaction")
+                Text("Rien de noté ici")
                     .font(PulpeTypography.headline)
                     .foregroundStyle(Color.textSecondary)
 
@@ -270,9 +270,9 @@ private extension BudgetLineDetailPage {
 
     func emptyStateMessage(for kind: TransactionKind) -> String {
         switch kind {
-        case .income: "Ajoute une transaction pour suivre tes revenus"
-        case .saving: "Ajoute une transaction pour suivre ton épargne"
-        case .expense: "Ajoute une transaction pour suivre tes dépenses"
+        case .income: "Note ce qui passe sur ton compte pour suivre tes revenus"
+        case .saving: "Note ce qui passe sur ton compte pour suivre ton épargne"
+        case .expense: "Note ce qui passe sur ton compte pour suivre tes dépenses"
         }
     }
 
@@ -311,7 +311,7 @@ private extension BudgetLineDetailPage {
         Button {
             router.push(.addAllocatedTx(lineId: line.id))
         } label: {
-            Label("Ajouter une transaction", systemImage: "plus")
+            Label("Noter un montant", systemImage: "plus")
         }
         .primaryButtonStyle()
     }

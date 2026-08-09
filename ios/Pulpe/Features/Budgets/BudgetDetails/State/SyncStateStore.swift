@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Tracks transient sync state for the BudgetDetails screen — which budget
 /// lines / transactions are currently in-flight, the global loading flag,
-/// surfaced errors, and the alert state for "Pointer les transactions ?".
+/// surfaced errors, and the alert state for "Pointer aussi les mouvements ?".
 ///
 /// Mutated exclusively by `BudgetDetailsCoordinator`; views read it as a
 /// signal source for sync indicators, error banners, and the alert binding.

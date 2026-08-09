@@ -39,7 +39,7 @@ struct BudgetDetailsCoordinatorBulkCheckTests {
         await coord.dispatch(.confirmCheckAll(line: line, checkAll: true, ctx, amountsHidden: false))
 
         let toast = try #require(toastManager.currentToast)
-        #expect(toast.message == "Certaines transactions n'ont pas pu être pointées")
+        #expect(toast.message == "Certaines lignes n'ont pas pu être pointées — réessaie")
         #expect(toast.type == .error)
         // The success toast must not have overwritten the error.
         #expect(!toast.message.hasPrefix("Pointé"))

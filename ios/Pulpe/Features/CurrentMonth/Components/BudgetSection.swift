@@ -341,8 +341,8 @@ struct BudgetLineRow: View {
                 .accessibilityHint(
                     hasConsumption
                         ? "Montant restant: \(consumption.available.asCurrency(userSettingsStore.currency)). " +
-                          "Touche pour ajouter une transaction, maintiens pour voir les transactions"
-                        : "Touche pour ajouter une transaction, maintiens pour voir les transactions"
+                          "Touche pour noter un montant, maintiens pour voir les mouvements"
+                        : "Touche pour noter un montant, maintiens pour voir les mouvements"
                 )
         }
     }
