@@ -1360,7 +1360,8 @@
     "spentBeyondPlan": "Dépensé au-delà de ton plan",
     "spent": "Déjà sorti",
     "engaged": "Engagé",
-    "spentHint": "Déjà sorti : ce qui a quitté ton compte, épargne comprise.",
+    "spentHint": "Déjà sorti : ce qui a quitté ton compte.",
+    "spentIncludesSavings": "dont {{amount}} {{currency}} mis de côté",
     "engagedHint": "Engagé : ce qui est réservé et pas encore sorti de ton compte — tes prévisions, et ce que tu as saisi sans le pointer.",
     "monthProgress": "Jour {{ day }} sur {{ total }}.",
     "status": {

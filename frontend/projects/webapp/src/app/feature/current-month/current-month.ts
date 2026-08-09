@@ -146,6 +146,7 @@ type UndoableAction =
             [remaining]="store.remaining()"
             [budgetConsumedPercentage]="store.budgetConsumedPercentage()"
             [realizedExpenses]="store.realizedExpenses()"
+            [realizedSavings]="store.totalSavingsRealized()"
             [realizedPercentage]="store.realizedPercentage()"
             [periodDates]="store.periodDates()"
             [period]="store.currentBudgetPeriod()"

@@ -325,6 +325,31 @@ let heroInstanceCount = 0;
           }
         </div>
 
+        <!-- Permanent, unlike the gloss under it, and that is the point: the
+             gloss retires for good on the first pointing, and this does not.
+             Money set aside is the one unambiguously good thing a month
+             contains, and on the default view it appeared only inside a key
+             whose word means loss — the gloss conceding "épargne comprise"
+             instead of showing it, while the card that names it sits behind a
+             closed fold. "dont", because it is a part of the figure above and
+             not a fourth share of the bar: the bar answers what is left to
+             spend, and the composition of one of its parts is a sentence. -->
+        @if (realizedSavings() > 0) {
+          <p
+            class="progress-legend-note ph-no-capture"
+            data-testid="hero-savings-note"
+          >
+            {{
+              'dashboard.spentIncludesSavings'
+                | transloco
+                  : {
+                      amount: realizedSavings() | number: '1.0-0' : locale(),
+                      currency: currencySymbol(),
+                    }
+            }}
+          </p>
+        }
+
         <!-- "Engagé" is a house word, and the only place it was ever defined
              was the first-run tour — a screen most people see once, months
              before the first time the number surprises them. Written out rather
@@ -335,12 +360,12 @@ let heroInstanceCount = 0;
              gloss stayed behind to define a word that had left the card. -->
         <!-- "Déjà sorti" was the one key defined nowhere: not here, not in the
              tour, not in PRODUCT.md's vocabulary — and it is the key whose
-             amount a reader most often comes to check. It does not mean what
-             "dépensé" means either, since money set aside left the account too,
-             so the gloss says so rather than leaving the reader to discover it
-             from a total that does not add up the way they expect. -->
+             amount a reader most often comes to check. The clause conceding
+             that savings were folded in has left this gloss: the line above
+             prints them, and a definition that hedges about its own contents
+             is worse than one that leaves the arithmetic on screen. -->
         @if (showEngagedHint()) {
-          <p class="progress-legend-note">
+          <p class="progress-legend-note" data-testid="hero-legend-gloss">
             {{ 'dashboard.spentHint' | transloco }}
             @if (engagedShare() > 0) {
               {{ 'dashboard.engagedHint' | transloco }}
@@ -585,6 +610,12 @@ export class DashboardHero {
   readonly budgetConsumedPercentage = input.required<number>();
   readonly realizedExpenses = input.required<number>();
   readonly realizedPercentage = input.required<number>();
+  // A part of `realizedExpenses`, never a sibling of it: the formula behind
+  // that input filters on `isOutflowKind`, which admits savings, so what is
+  // set aside is already inside the figure this one qualifies. Optional, and
+  // zero by default, because a month with nothing set aside has nothing to say
+  // here and the line disappears rather than printing a zero.
+  readonly realizedSavings = input(0);
 
   readonly heroClick = output<void>();
 

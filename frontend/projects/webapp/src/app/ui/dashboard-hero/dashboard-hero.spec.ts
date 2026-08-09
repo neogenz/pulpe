@@ -37,6 +37,30 @@ describe('DashboardHero', () => {
     setTestInput(component.paceStatus, 'on-track');
   });
 
+  // The gloss that used to concede "épargne comprise" retires for good on the
+  // first pointing; this line does not, which is the whole reason it exists.
+  it('should name what was set aside inside what already left', () => {
+    setTestInput(component.available, 5000);
+    setTestInput(component.realizedExpenses, 1400);
+    setTestInput(component.realizedSavings, 500);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('mis de côté');
+    expect(compiled.textContent).toContain('500');
+  });
+
+  it('should stay silent about savings in a month that set nothing aside', () => {
+    setTestInput(component.available, 5000);
+    setTestInput(component.realizedExpenses, 1400);
+    setTestInput(component.realizedSavings, 0);
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain(
+      'mis de côté',
+    );
+  });
+
   it('should expose remaining from input', () => {
     setTestInput(component.remaining, 600);
 
@@ -245,8 +269,7 @@ describe('DashboardHero', () => {
 
     // "Déjà sorti" was the one key defined nowhere: not here, not in the tour,
     // not in PRODUCT.md's vocabulary — and it is the key whose amount a reader
-    // most often comes to check. It does not mean what "dépensé" means either,
-    // since money set aside left the account too.
+    // most often comes to check.
     it('should define the spent key even when nothing is engaged', () => {
       setTestInput(component.available, 4800);
       setTestInput(component.expenses, 2400);
@@ -256,9 +279,9 @@ describe('DashboardHero', () => {
       fixture.detectChanges();
 
       const note = (fixture.nativeElement as HTMLElement).querySelector(
-        '.progress-legend-note',
+        '[data-testid="hero-legend-gloss"]',
       );
-      expect(note?.textContent).toContain('épargne comprise');
+      expect(note?.textContent).toContain('Déjà sorti :');
       expect(note?.textContent).not.toContain('Engagé :');
     });
 
@@ -271,9 +294,9 @@ describe('DashboardHero', () => {
       fixture.detectChanges();
 
       const note = (fixture.nativeElement as HTMLElement).querySelector(
-        '.progress-legend-note',
+        '[data-testid="hero-legend-gloss"]',
       );
-      expect(note?.textContent).toContain('épargne comprise');
+      expect(note?.textContent).toContain('Déjà sorti :');
       expect(note?.textContent).toContain('Engagé :');
     });
 
