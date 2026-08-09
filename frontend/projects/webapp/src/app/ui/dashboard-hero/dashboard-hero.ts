@@ -334,9 +334,15 @@ let heroInstanceCount = 0;
              closed fold. "dont", because it is a part of the figure above and
              not a fourth share of the bar: the bar answers what is left to
              spend, and the composition of one of its parts is a sentence. -->
-        @if (realizedSavings() > 0) {
+        <!-- tabular-nums, like every other amount on this card: the note wears
+             the gloss's class for its quiet type, and that class was written
+             for definitions, which carry no digits. This one does, and they
+             move under the finger — pointing a saving prévision patches the
+             figure optimistically, which is the same reason the 57px number
+             two hundred lines above had to be pinned. -->
+        @if (roundedSavings() > 0) {
           <p
-            class="progress-legend-note ph-no-capture"
+            class="progress-legend-note ph-no-capture tabular-nums"
             data-testid="hero-savings-note"
           >
             {{
@@ -616,6 +622,15 @@ export class DashboardHero {
   // zero by default, because a month with nothing set aside has nothing to say
   // here and the line disappears rather than printing a zero.
   readonly realizedSavings = input(0);
+
+  // Asked of the figure as the line prints it, not as it is held. The line is
+  // an aggregation, so it renders without centimes, and a `> 0` guard on the
+  // raw value let forty centimes set aside through to print "dont 0 CHF mis de
+  // côté" — a sentence about money that says none. The guard and the formatter
+  // now answer the same question.
+  protected readonly roundedSavings = computed(() =>
+    Math.round(this.realizedSavings()),
+  );
 
   readonly heroClick = output<void>();
 

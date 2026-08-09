@@ -61,6 +61,19 @@ describe('DashboardHero', () => {
     );
   });
 
+  // The line prints an aggregation, so anything under half a franc renders as
+  // "0" — and "dont 0 CHF mis de côté" is a sentence about money saying none.
+  it('should stay silent about savings too small to print', () => {
+    setTestInput(component.available, 5000);
+    setTestInput(component.realizedExpenses, 1400);
+    setTestInput(component.realizedSavings, 0.4);
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain(
+      'mis de côté',
+    );
+  });
+
   it('should expose remaining from input', () => {
     setTestInput(component.remaining, 600);
 
