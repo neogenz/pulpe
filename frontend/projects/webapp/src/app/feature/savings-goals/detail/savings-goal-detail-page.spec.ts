@@ -100,6 +100,7 @@ class StubGoalProjectionChart {
 class StubGoalPlanTimeline {
   readonly months = input<unknown>();
   readonly simulatedMonths = input<unknown>(null);
+  readonly plannedWithdrawals = input<unknown>([]);
   readonly currency = input<string>('CHF');
   readonly locale = input<string>('fr-CH');
   readonly payDayOfMonth = input<number | null>(null);
@@ -268,6 +269,7 @@ describe('SavingsGoalDetailPage', () => {
   const completeGoal = vi.fn().mockResolvedValue(makeGoal());
   const reopenGoal = vi.fn().mockResolvedValue(makeGoal());
   const reloadProgress = vi.fn();
+  const reloadWithdrawals = vi.fn();
   const refresh = vi.fn();
   const navigate = vi.fn();
   const snackBarOpen = vi.fn();
@@ -301,6 +303,7 @@ describe('SavingsGoalDetailPage', () => {
     },
     setSelectedGoalId: vi.fn(),
     reloadProgress,
+    reloadWithdrawals,
     refresh,
     completeGoal,
     reopenGoal,
@@ -1485,6 +1488,64 @@ describe('SavingsGoalDetailPage', () => {
         },
       ],
     });
+  });
+
+  it('rebases on an exact plan conflict without allowing a stale retry', async () => {
+    const lineId = '11111111-1111-4111-8111-111111111111';
+    progressSig.set(
+      makeProgress({
+        months: [
+          makePlanMonth({
+            month: 6,
+            state: 'current',
+            isProvisionable: false,
+            plannedAmount: 200,
+            lines: [
+              {
+                budgetLineId: lineId,
+                amount: 200,
+                checkedAt: null,
+                isManuallyAdjusted: false,
+              },
+            ],
+          }),
+        ],
+      }),
+    );
+    mockDialogs.openApplyPlan.mockResolvedValueOnce(true);
+    mockStore.applyPlan.mockRejectedValueOnce(
+      new ApiError(
+        'Stale plan',
+        API_ERROR_CODES.SAVINGS_GOAL_PLAN_CONFLICT,
+        409,
+        null,
+      ),
+    );
+    fixture.detectChanges();
+
+    component['simulator'].enter();
+    component['simulator'].setMonth(6, 2026, 500);
+    await component['onApplyPlan']();
+
+    expect(component['simulator'].isSimulating()).toBe(true);
+    expect(component['simulator'].hasChanges()).toBe(false);
+    expect(reloadProgress).toHaveBeenCalledOnce();
+    expect(reloadWithdrawals).toHaveBeenCalledOnce();
+    expect(snackBarOpen).toHaveBeenCalledWith(
+      'Le plan a changé entre-temps. Tes ajustements ont été annulés et les données sont rechargées — ajuste à nouveau ton plan',
+      'Fermer',
+      expect.objectContaining({ duration: 5000 }),
+    );
+    expect(snackBarOpen).not.toHaveBeenCalledWith(
+      'Ton plan est à jour',
+      expect.anything(),
+      expect.anything(),
+    );
+
+    await component['onApplyPlan']();
+
+    expect(mockDialogs.openApplyPlan).toHaveBeenCalledOnce();
+    expect(mockStore.applyPlan).toHaveBeenCalledOnce();
   });
 
   it('deletes the goal with the preview revision then navigates back', async () => {

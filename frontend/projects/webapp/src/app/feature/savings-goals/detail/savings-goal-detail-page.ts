@@ -632,6 +632,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
                 [editable]="simulator.isSimulating()"
                 [expanded]="timelineExpanded()"
                 [canRepair]="repairableMonths().length > 0"
+                [plannedWithdrawals]="store.plannedWithdrawals()"
                 (amountChange)="onTimelineAmountChange($event)"
                 (invalidChange)="simulator.setMonthAmountInvalid($event)"
                 (toggleExpanded)="toggleTimeline()"
@@ -1251,6 +1252,15 @@ export default class SavingsGoalDetailPage {
         this.#transloco.translate('savingsGoals.simulate.applySuccess'),
       );
     } catch (error) {
+      if (
+        isApiError(error) &&
+        error.status === 409 &&
+        error.code === API_ERROR_CODES.SAVINGS_GOAL_PLAN_CONFLICT
+      ) {
+        this.simulator.revert();
+        this.store.reloadProgress();
+        this.store.reloadWithdrawals();
+      }
       this.#showLocalizedApiError(error);
     } finally {
       this.#isApplying.set(false);

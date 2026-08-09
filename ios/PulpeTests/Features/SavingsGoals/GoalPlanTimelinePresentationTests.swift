@@ -196,10 +196,60 @@ struct GoalPlanTimelinePresentationTests {
         #expect(ordinary == nil)
     }
 
+    @Test("A frozen month opens only the plan-linked income budget from the same period")
+    func frozenMonth_resolvesOnlyPlanLinkedBudgetForItsPeriod() {
+        let month = makeWithdrawalMonth(
+            planned: 500,
+            remaining: 250,
+            withdrawn: 250,
+            consumed: 250
+        )
+        let neighboringIncome = makePlannedWithdrawal(
+            budgetId: "budget-neighbor",
+            month: 8,
+            origin: nil
+        )
+        let otherPeriod = makePlannedWithdrawal(
+            budgetId: "budget-other-month",
+            month: 9,
+            origin: .planLinked
+        )
+        let planLinkedIncome = makePlannedWithdrawal(
+            budgetId: "budget-plan-linked",
+            month: 8,
+            origin: .planLinked
+        )
+
+        #expect(GoalPlanTimelinePresentation.budgetId(
+            forFrozenMonth: month,
+            plannedWithdrawals: [neighboringIncome, otherPeriod, planLinkedIncome]
+        ) == "budget-plan-linked")
+    }
+
+    @Test("A frozen month without an identified plan origin stays non-interactive")
+    func frozenMonth_withoutPlanLinkedOriginHasNoBudgetAction() {
+        let month = makeWithdrawalMonth(
+            planned: 500,
+            remaining: 250,
+            withdrawn: 250,
+            consumed: 250
+        )
+
+        #expect(GoalPlanTimelinePresentation.budgetId(
+            forFrozenMonth: month,
+            plannedWithdrawals: [makePlannedWithdrawal(
+                budgetId: "budget-unknown-origin",
+                month: 8,
+                origin: nil
+            )]
+        ) == nil)
+    }
+
     private func makeWithdrawalMonth(
         planned: Decimal,
         remaining: Decimal,
-        withdrawn: Decimal
+        withdrawn: Decimal,
+        consumed: Decimal = 0
     ) -> SavingsGoalPlanMonth {
         SavingsGoalPlanMonth(
             month: 8,
@@ -212,10 +262,30 @@ struct GoalPlanTimelinePresentationTests {
             withdrawnAmount: withdrawn,
             plannedWithdrawalAmount: planned,
             remainingPlannedWithdrawalAmount: remaining,
+            planWithdrawalConsumedAmount: consumed,
             plannedCumulative: 3_600,
             confirmedCumulative: 0,
             projectedCumulative: 3_600 - remaining,
             lines: []
+        )
+    }
+
+    private func makePlannedWithdrawal(
+        budgetId: String,
+        month: Int,
+        origin: SavingsGoalPlannedWithdrawal.Origin?
+    ) -> SavingsGoalPlannedWithdrawal {
+        SavingsGoalPlannedWithdrawal(
+            budgetLineId: "line-\(budgetId)",
+            budgetId: budgetId,
+            name: "Retrait Maison",
+            month: month,
+            year: 2026,
+            plannedAmount: 500,
+            realizedAmount: 250,
+            remainingAmount: 250,
+            status: .partiallyRealized,
+            origin: origin
         )
     }
 

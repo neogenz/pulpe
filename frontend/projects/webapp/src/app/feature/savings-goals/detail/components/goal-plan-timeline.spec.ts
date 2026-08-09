@@ -4,7 +4,11 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { registerLocaleData } from '@angular/common';
 import localeDE from '@angular/common/locales/de-CH';
-import type { SavingsGoalPlanMonth } from 'pulpe-shared';
+import { provideRouter } from '@angular/router';
+import type {
+  SavingsGoalPlanMonth,
+  SavingsGoalPlannedWithdrawal,
+} from 'pulpe-shared';
 import { GoalPlanTimeline } from './goal-plan-timeline';
 import { setTestInput } from '../../../../testing/signal-test-utils';
 import { provideTranslocoForTest } from '../../../../testing/transloco-testing';
@@ -44,6 +48,7 @@ describe('GoalPlanTimeline', () => {
       providers: [
         provideZonelessChangeDetection(),
         ...provideTranslocoForTest(),
+        provideRouter([]),
       ],
     }).compileComponents();
 
@@ -136,6 +141,84 @@ describe('GoalPlanTimeline', () => {
     expect(amount?.getAttribute('aria-label')).toContain(
       'Ce retrait est déjà réalisé en partie ou en totalité. Modifie-le depuis le budget.',
     );
+  });
+
+  it('opens only the plan-linked withdrawal budget when another income shares the month', () => {
+    const manualBudgetId = '00000000-0000-4000-8000-000000000100';
+    const planBudgetId = '00000000-0000-4000-8000-000000000200';
+    const withdrawals: SavingsGoalPlannedWithdrawal[] = [
+      {
+        budgetLineId: '00000000-0000-4000-8000-000000000101',
+        budgetId: manualBudgetId,
+        name: 'Revenu manuel',
+        month: 3,
+        year: 2026,
+        plannedAmount: 200,
+        realizedAmount: 0,
+        remainingAmount: 200,
+        status: 'planned',
+      },
+      {
+        budgetLineId: '00000000-0000-4000-8000-000000000201',
+        budgetId: planBudgetId,
+        name: 'Retrait du plan',
+        month: 3,
+        year: 2026,
+        plannedAmount: 500,
+        realizedAmount: 300,
+        remainingAmount: 200,
+        status: 'partially_realized',
+        origin: 'plan_linked',
+      },
+    ];
+    setTestInput(fixture.componentInstance.editable, true);
+    setTestInput(fixture.componentInstance.plannedWithdrawals, withdrawals);
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({
+        plannedWithdrawalAmount: 500,
+        remainingPlannedWithdrawalAmount: 200,
+        planLinkedWithdrawalAmount: 200,
+        planWithdrawalDestination: 'linked_income',
+        planWithdrawalConsumedAmount: 300,
+      }),
+    ]);
+    fixture.detectChanges();
+
+    const link = query('goal-plan-row-open-budget')
+      .nativeElement as HTMLAnchorElement;
+    expect(link.getAttribute('href')).toBe(`/budget/${planBudgetId}`);
+    expect(link.getAttribute('href')).not.toContain(manualBudgetId);
+    expect(link.textContent).toContain('Ouvrir le budget');
+  });
+
+  it('keeps the realized-lock explanation non-interactive when origin is absent', () => {
+    setTestInput(fixture.componentInstance.editable, true);
+    setTestInput(fixture.componentInstance.plannedWithdrawals, [
+      {
+        budgetLineId: '00000000-0000-4000-8000-000000000301',
+        budgetId: '00000000-0000-4000-8000-000000000300',
+        name: 'Ancien revenu',
+        month: 3,
+        year: 2026,
+        plannedAmount: 500,
+        realizedAmount: 300,
+        remainingAmount: 200,
+        status: 'partially_realized',
+      },
+    ]);
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({
+        plannedWithdrawalAmount: 500,
+        remainingPlannedWithdrawalAmount: 200,
+        planLinkedWithdrawalAmount: 200,
+        planWithdrawalDestination: 'linked_income',
+        planWithdrawalConsumedAmount: 300,
+      }),
+    ]);
+    fixture.detectChanges();
+
+    expect(query('goal-plan-row-realized-lock')).toBeTruthy();
+    expect(query('goal-plan-row-open-budget')).toBeNull();
   });
 
   it('distinguishes missing, repairable, non-actionable and linked forecasts', () => {

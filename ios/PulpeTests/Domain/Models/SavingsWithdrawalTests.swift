@@ -82,6 +82,39 @@ struct SavingsWithdrawalTests {
         #expect(APIError.from(code: code, message: nil).errorDescription == expected)
     }
 
+    @Test("Plan conflicts ask for a fresh simulation")
+    func apiError_mapsSavingsGoalPlanConflict() {
+        let error = APIError.from(
+            code: "ERR_SAVINGS_GOAL_PLAN_CONFLICT",
+            message: nil,
+            statusCode: 409
+        )
+
+        #expect(
+            error.errorDescription
+                == "Ton plan a changé entre-temps — vérifie les données actualisées et relance la simulation"
+        )
+        #expect(error.requiresSavingsGoalPlanRefresh)
+    }
+
+    @Test("Plan conflict codes on another status stay server errors")
+    func apiError_doesNotMapSavingsGoalPlanConflictWithout409() {
+        let code = "ERR_SAVINGS_GOAL_PLAN_CONFLICT"
+        let errors = [
+            APIError.from(code: code, message: "invalid payload"),
+            APIError.from(code: code, message: "invalid payload", statusCode: 422),
+            APIError.from(code: code, message: "server failed", statusCode: 500),
+        ]
+
+        for error in errors {
+            #expect(error.requiresSavingsGoalPlanRefresh == false)
+            guard case .serverError = error else {
+                Issue.record("Expected a server error outside HTTP 409")
+                continue
+            }
+        }
+    }
+
     // MARK: - Response decode (strict pair shape)
 
     @Test

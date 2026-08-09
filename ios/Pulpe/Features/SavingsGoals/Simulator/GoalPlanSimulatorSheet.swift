@@ -12,8 +12,13 @@ struct GoalPlanSimulatorSheet: View {
     let goal: SavingsGoal
     let progress: SavingsGoalProgress
     let currency: SupportedCurrency
+    let plannedWithdrawals: [SavingsGoalPlannedWithdrawal]
     /// Invalidates caches and refreshes progression after a successful write.
     let onApplied: () async -> Void
+    /// The parent dismisses this sheet before pushing the identified budget.
+    let onOpenBudget: (String) -> Void
+    /// Reloads the detail after the server rejects a stale simulation.
+    let onPlanConflict: () async -> Void
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(ToastManager.self) private var toastManager
@@ -27,12 +32,18 @@ struct GoalPlanSimulatorSheet: View {
         goal: SavingsGoal,
         progress: SavingsGoalProgress,
         currency: SupportedCurrency,
-        onApplied: @escaping () async -> Void
+        plannedWithdrawals: [SavingsGoalPlannedWithdrawal],
+        onApplied: @escaping () async -> Void,
+        onOpenBudget: @escaping (String) -> Void,
+        onPlanConflict: @escaping () async -> Void
     ) {
         self.goal = goal
         self.progress = progress
         self.currency = currency
+        self.plannedWithdrawals = plannedWithdrawals
         self.onApplied = onApplied
+        self.onOpenBudget = onOpenBudget
+        self.onPlanConflict = onPlanConflict
         _viewModel = State(initialValue: GoalPlanSimulatorViewModel(
             goal: goal,
             progress: progress,
@@ -93,7 +104,11 @@ struct GoalPlanSimulatorSheet: View {
                 verdict: viewModel.verdictText,
                 currency: currency,
                 onConfirm: { destinations in
-                    await viewModel.apply(withdrawalDestinations: destinations)
+                    let applied = await viewModel.apply(withdrawalDestinations: destinations)
+                    if viewModel.didEncounterPlanConflict {
+                        await closeAfterPlanConflict()
+                    }
+                    return applied
                 }
             )
         }
@@ -114,7 +129,9 @@ struct GoalPlanSimulatorSheet: View {
             }
         }
         .onChange(of: viewModel.applyErrorMessage) { _, message in
-            if let message { toastManager.show(message, type: .error) }
+            if let message, !viewModel.didEncounterPlanConflict {
+                toastManager.show(message, type: .error)
+            }
         }
     }
 
@@ -239,7 +256,8 @@ struct GoalPlanSimulatorSheet: View {
                 amount: simMonth.simulatedAmount,
                 cumulative: simMonth.simulatedCumulative,
                 currency: currency,
-                showsCumulative: true
+                showsCumulative: true,
+                onOpenBudget: budgetAction(for: simMonth.month)
             )
         }
     }
@@ -263,6 +281,24 @@ struct GoalPlanSimulatorSheet: View {
         } else {
             dismiss()
         }
+    }
+
+    private func budgetAction(for month: SavingsGoalPlanMonth) -> (() -> Void)? {
+        guard let budgetId = GoalPlanTimelinePresentation.budgetId(
+            forFrozenMonth: month,
+            plannedWithdrawals: plannedWithdrawals
+        ) else { return nil }
+        return {
+            dismiss()
+            onOpenBudget(budgetId)
+        }
+    }
+
+    private func closeAfterPlanConflict() async {
+        showRecap = false
+        await Task.yield()
+        dismiss()
+        await onPlanConflict()
     }
 }
 
@@ -289,6 +325,7 @@ final class GoalPlanSimulatorViewModel {
     private(set) var isDirty = false
     private(set) var isApplying = false
     private(set) var didApplySucceed = false
+    private(set) var didEncounterPlanConflict = false
     private(set) var applyErrorMessage: String?
 
     let sliderMax: Double
@@ -354,7 +391,9 @@ final class GoalPlanSimulatorViewModel {
         }
     }
 
-    var canApply: Bool { isDirty && !planChanges.isEmpty && !isApplying }
+    var canApply: Bool {
+        isDirty && !planChanges.isEmpty && !isApplying && !didEncounterPlanConflict
+    }
 
     var hasVariableMonthlyAmounts: Bool {
         let amounts = draft.months
@@ -439,8 +478,7 @@ final class GoalPlanSimulatorViewModel {
     func apply(
         withdrawalDestinations: GoalPlanWithdrawalDestinations = [:]
     ) async -> Bool {
-        isApplying = true
-        applyErrorMessage = nil
+        guard beginApplying() else { return false }
         defer { isApplying = false }
 
         let monthAdjustments = planChanges
@@ -488,10 +526,26 @@ final class GoalPlanSimulatorViewModel {
             _ = try await service.applyPlan(id: goalId, payload)
             didApplySucceed = true
             return true
+        } catch let error as APIError where error.requiresSavingsGoalPlanRefresh {
+            invalidateAfterPlanConflict(error)
+            return false
         } catch {
             applyErrorMessage = DomainErrorLocalizer.localize(error)
             return false
         }
+    }
+
+    private func beginApplying() -> Bool {
+        guard !isApplying, !didEncounterPlanConflict else { return false }
+        isApplying = true
+        applyErrorMessage = nil
+        return true
+    }
+
+    private func invalidateAfterPlanConflict(_ error: APIError) {
+        didEncounterPlanConflict = true
+        revert()
+        applyErrorMessage = DomainErrorLocalizer.localize(error)
     }
 
     private func withdrawalDestination(

@@ -473,6 +473,35 @@ extension GoalPlanSimulatorTests {
         #expect(destinations[2026 * 12 + 6] == .goalOnly)
         #expect(destinations[2026 * 12 + 7] == .linkedIncome)
     }
+
+    @Test("a plan conflict invalidates the draft and prevents a stale second submission")
+    func apply_planConflictInvalidatesDraft() async {
+        let service = MockSavingsGoalService()
+        service.error = APIError.from(
+            code: "ERR_SAVINGS_GOAL_PLAN_CONFLICT",
+            message: nil,
+            statusCode: 409
+        )
+        let viewModel = GoalPlanSimulatorViewModel(
+            goal: makeGoal(),
+            progress: makeProgress(
+                targetAmount: 10_000,
+                initialAmount: 10_000,
+                months: [openMonth(amount: 200)]
+            ),
+            currency: .chf,
+            payDay: nil,
+            service: service
+        )
+        viewModel.setMonth(key: 2026 * 12 + 6, amount: -500)
+
+        #expect(await viewModel.apply() == false)
+        #expect(viewModel.didEncounterPlanConflict)
+        #expect(viewModel.didApplySucceed == false)
+        #expect(viewModel.canApply == false)
+        #expect(await viewModel.apply() == false)
+        #expect(service.applyPlanCallCount == 1)
+    }
 }
 
 extension GoalPlanSimulatorTests {

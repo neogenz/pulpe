@@ -13,11 +13,13 @@ import {
 import { formatNumber } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { RouterLink } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import {
   formatBudgetPeriod,
   isContributivePlanMonth,
   type SavingsGoalPlanMonth,
+  type SavingsGoalPlannedWithdrawal,
   type SavingsPlanSimulatedMonth,
   type SupportedCurrency,
 } from 'pulpe-shared';
@@ -36,6 +38,7 @@ interface GoalPlanTimelineRow {
   isRepairable: boolean;
   isOpen: boolean;
   blockedByRealization: boolean;
+  withdrawalBudgetId: string | null;
   isAdjusted: boolean;
   amount: number;
   cumulative: number;
@@ -71,7 +74,13 @@ const WINDOW_OPEN_ROWS = 3;
  */
 @Component({
   selector: 'pulpe-goal-plan-timeline',
-  imports: [MatButtonModule, MatIconModule, TranslocoPipe, AppCurrencyPipe],
+  imports: [
+    MatButtonModule,
+    MatIconModule,
+    RouterLink,
+    TranslocoPipe,
+    AppCurrencyPipe,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col gap-2" data-testid="goal-plan-timeline">
@@ -86,7 +95,7 @@ const WINDOW_OPEN_ROWS = 3;
         }
         <div
           class="flex items-center gap-3 rounded-xl bg-surface-container-low p-4"
-          [class.opacity-60]="row.isLocked"
+          [class.opacity-60]="row.isLocked && !row.blockedByRealization"
           [attr.data-testid]="'goal-plan-row-' + row.periodKey"
           [attr.data-current]="row.isCurrent"
           [attr.data-locked]="row.isLocked"
@@ -168,6 +177,20 @@ const WINDOW_OPEN_ROWS = 3;
               >
                 {{ 'savingsGoals.plan.realizedWithdrawalLock' | transloco }}
               </span>
+              @if (row.withdrawalBudgetId) {
+                <a
+                  matButton
+                  class="mt-1 w-fit"
+                  [routerLink]="['/budget', row.withdrawalBudgetId]"
+                  data-testid="goal-plan-row-open-budget"
+                >
+                  {{
+                    'savingsGoals.plan.openWithdrawalBudget'
+                      | transloco: { period: formatPeriod(row.month, row.year) }
+                  }}
+                  <mat-icon>arrow_forward</mat-icon>
+                </a>
+              }
             }
           </div>
 
@@ -292,6 +315,9 @@ export class GoalPlanTimeline {
   readonly editable = input<boolean>(false);
   readonly expanded = input<boolean>(false);
   readonly canRepair = input<boolean>(false);
+  readonly plannedWithdrawals = input<readonly SavingsGoalPlannedWithdrawal[]>(
+    [],
+  );
 
   readonly amountChange = output<{
     month: number;
@@ -327,6 +353,12 @@ export class GoalPlanTimeline {
         (month.withdrawnAmount ?? 0) > 0,
     );
     return source.map((month) => {
+      const planLinkedWithdrawal = this.plannedWithdrawals().find(
+        (withdrawal) =>
+          withdrawal.origin === 'plan_linked' &&
+          withdrawal.month === month.month &&
+          withdrawal.year === month.year,
+      );
       const isChecked =
         month.lines.length > 0 &&
         month.lines.every((line) => line.checkedAt != null);
@@ -365,6 +397,7 @@ export class GoalPlanTimeline {
           month.isProvisionable === true,
         isOpen,
         blockedByRealization,
+        withdrawalBudgetId: planLinkedWithdrawal?.budgetId ?? null,
         isAdjusted: simulated ? (sim.isAdjusted ?? false) : false,
         amount: simulated ? sim.simulatedAmount : month.plannedAmount,
         cumulative: simulated
