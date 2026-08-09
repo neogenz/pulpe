@@ -13,6 +13,7 @@ const navLinks = [
   { href: "/#pain-points", label: "Pourquoi Pulpe" },
   { href: "/#how-it-works", label: "Comment ça marche" },
   { href: "/#platforms", label: "Applications" },
+  { href: "/support", label: "Aide" },
   { href: "/#why-free", label: "Pourquoi c’est gratuit" },
 ];
 
@@ -57,13 +58,13 @@ export function Header() {
 
           <div className="relative z-10 hidden items-center gap-1 lg:flex">
             {navLinks.map((link) => (
-              <a
+              <Link
                 key={link.href}
                 href={link.href}
                 className="inline-flex min-h-11 items-center rounded-full px-4 py-2 text-sm font-medium text-text transition-[color,background-color,scale] duration-200 hover:bg-primary/8 hover:text-primary active:scale-[0.96] active:bg-primary/12 motion-reduce:transition-none motion-reduce:scale-100"
               >
                 {link.label}
-              </a>
+              </Link>
             ))}
           </div>
 
@@ -129,14 +130,14 @@ export function Header() {
               écran opaque avec ~300px de vide au-dessus et ~200px en dessous. */}
           <div className="flex h-full w-full flex-col gap-2">
             {navLinks.map((link) => (
-              <a
+              <Link
                 key={link.href}
                 href={link.href}
                 tabIndex={-1}
                 className="flex min-h-14 items-center justify-center rounded-lg px-4 py-3 text-center text-lg font-semibold text-text transition-[background-color,scale] duration-200 hover:bg-primary/8 active:scale-[0.96] active:bg-primary/12 motion-reduce:transition-none motion-reduce:scale-100"
               >
                 {link.label}
-              </a>
+              </Link>
             ))}
             <Button
               href={angularUrl("/signup", "mobile_menu_commencer")}
