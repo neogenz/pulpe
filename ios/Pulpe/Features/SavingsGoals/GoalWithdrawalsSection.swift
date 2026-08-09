@@ -81,6 +81,12 @@ struct GoalWithdrawalsSection: View {
             }
         }
 
+        var primaryAmountDetail: String? {
+            guard case .linked(let withdrawal) = self,
+                  case .partiallyRealized = withdrawal.status else { return nil }
+            return "restant"
+        }
+
         var remainingAmount: Decimal {
             switch self {
             case .linked(let withdrawal): withdrawal.remainingAmount
@@ -264,15 +270,6 @@ struct GoalWithdrawalsSection: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func plannedAmount(_ item: PlannedItem) -> some View {
-        Text((-item.primaryAmount).asCurrency(currency))
-            .font(PulpeTypography.amountCard)
-            .monospacedDigit()
-            .foregroundStyle(Color.textPrimary)
-            .fixedSize(horizontal: false, vertical: true)
-            .sensitiveAmount()
-    }
-
     private var plannedChevron: some View {
         Image(systemName: "chevron.right")
             .font(PulpeTypography.caption)
@@ -347,6 +344,26 @@ struct GoalWithdrawalsSection: View {
     private func realizedAccessibilityLabel(_ withdrawal: SavingsGoalWithdrawal) -> String {
         "\(withdrawal.name), \(realizedStatus(withdrawal)), retrait réalisé "
             + withdrawal.amount.asCurrency(currency)
+    }
+}
+
+private extension GoalWithdrawalsSection {
+    func plannedAmount(_ item: PlannedItem) -> some View {
+        VStack(alignment: .trailing, spacing: DesignTokens.Spacing.xxs) {
+            Text((-item.primaryAmount).asCurrency(currency))
+                .font(PulpeTypography.amountCard)
+                .monospacedDigit()
+                .foregroundStyle(Color.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+                .sensitiveAmount()
+
+            if let detail = item.primaryAmountDetail {
+                Text(detail)
+                    .font(PulpeTypography.listRowSubtitle)
+                    .foregroundStyle(Color.textSecondary)
+                    .accessibilityHidden(true)
+            }
+        }
     }
 }
 

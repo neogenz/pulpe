@@ -372,3 +372,24 @@ struct GoalPlanTimelinePresentationTests {
         )
     }
 }
+
+extension GoalPlanTimelinePresentationTests {
+    @Test("Only a partial planned withdrawal labels its foreground amount as remaining")
+    func plannedWithdrawal_primaryAmountDetailIsPartialOnly() throws {
+        func item(status: SavingsGoalPlannedWithdrawal.Status) throws -> GoalWithdrawalsSection.PlannedItem {
+            try #require(GoalWithdrawalsSection.plannedItems(
+                planned: [makePlannedWithdrawal(
+                    budgetId: "budget-\(status)",
+                    month: 9,
+                    origin: .planLinked,
+                    status: status
+                )],
+                planOnly: []
+            ).first)
+        }
+
+        #expect(try item(status: .planned).primaryAmountDetail == nil)
+        #expect(try item(status: .partiallyRealized).primaryAmountDetail == "restant")
+        #expect(try item(status: .realized).primaryAmountDetail == nil)
+    }
+}

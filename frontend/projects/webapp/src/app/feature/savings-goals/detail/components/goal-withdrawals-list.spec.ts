@@ -215,7 +215,11 @@ describe('GoalWithdrawalsList', () => {
   it('reports loading, error and empty independently of each other', () => {
     setTestInput(component.isLoading, true);
     fixture.detectChanges();
-    expect(query('goal-withdrawals-loading')).toBeTruthy();
+    const loading = query('goal-withdrawals-loading');
+    expect(loading).toBeTruthy();
+    expect(
+      loading.query(By.css('mat-progress-spinner')).attributes['aria-label'],
+    ).toBe('Chargement des retraits…');
     expect(query('goal-withdrawals-empty')).toBeNull();
 
     setTestInput(component.isLoading, false);

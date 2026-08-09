@@ -229,6 +229,38 @@ extension GoalPlanSimulatorTests {
         #expect(sheetSource.contains(minimumTarget))
     }
 
+    @Test("simulator controls keep their content at compact widths and large text sizes")
+    func simulator_reflowsDenseControlsWithoutTruncating() throws {
+        let rowSource = try Self.simulatorSource("GoalPlanSimEditRow.swift")
+        let sheetSource = try Self.simulatorSource("GoalPlanSimulatorSheet.swift")
+        let recapSource = try Self.simulatorSource("GoalPlanApplyRecapSheet.swift")
+        let resetButtonStart = try #require(
+            sheetSource.range(of: "Button(\"Repartir du plan actuel\")")
+        )
+        let resetButtonSource = sheetSource[resetButtonStart.lowerBound...].prefix(400)
+
+        #expect(resetButtonSource.contains(".frame(minHeight: DesignTokens.TapTarget.minimum)"))
+        #expect(rowSource.contains("ViewThatFits(in: .horizontal)"))
+        #expect(rowSource.contains("amountEditor(width: 88)"))
+        #expect(rowSource.contains("amountEditor(width: nil)"))
+        #expect(rowSource.contains(".frame(maxWidth: width == nil ? .infinity : nil)"))
+        #expect(!rowSource.contains("amountEditor(width: nil).frame(width: 88)"))
+        #expect(sheetSource.contains("globalAmountEditor(width: 96)"))
+        #expect(sheetSource.contains("globalAmountEditor(width: nil)"))
+        #expect(sheetSource.contains(".frame(maxWidth: width == nil ? .infinity : nil)"))
+        #expect(!sheetSource.contains("globalAmountEditor(width: nil).frame(width: 96)"))
+
+        let diffRowStart = try #require(recapSource.range(of: "private func diffRow"))
+        let diffRowEnd = try #require(recapSource.range(
+            of: "private func withdrawalChange",
+            range: diffRowStart.upperBound..<recapSource.endIndex
+        ))
+        let diffRowSource = recapSource[diffRowStart.lowerBound..<diffRowEnd.lowerBound]
+        #expect(diffRowSource.contains("ViewThatFits(in: .horizontal)"))
+        #expect(diffRowSource.contains("HStack"))
+        #expect(diffRowSource.contains("VStack"))
+    }
+
     @Test("recap names before and after amounts for VoiceOver")
     func recap_namesBeforeAndAfterAmountsForVoiceOver() throws {
         let source = try Self.simulatorSource("GoalPlanApplyRecapSheet.swift")

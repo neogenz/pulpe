@@ -69,7 +69,13 @@ interface PlannedWithdrawalRow {
           class="flex items-center gap-3 text-on-surface-variant"
           data-testid="goal-withdrawals-loading"
         >
-          <mat-progress-spinner mode="indeterminate" [diameter]="20" />
+          <mat-progress-spinner
+            mode="indeterminate"
+            [diameter]="20"
+            [attr.aria-label]="
+              'savingsGoals.detail.withdrawalsLoading' | transloco
+            "
+          />
           <span class="text-body-small">
             {{ 'savingsGoals.detail.withdrawalsLoading' | transloco }}
           </span>

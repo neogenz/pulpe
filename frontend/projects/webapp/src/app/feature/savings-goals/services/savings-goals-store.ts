@@ -71,7 +71,7 @@ export class SavingsGoalStore {
   readonly progress = computed<SavingsGoalProgress | null>(
     () => this.#progressResource.value() ?? null,
   );
-  readonly isProgressLoading = this.#progressResource.isInitialLoading;
+  readonly isProgressLoading = this.#progressResource.isLoading;
   readonly progressError = this.#progressResource.error;
 
   // Linked saving lines + their allocated transactions (across all budgets).

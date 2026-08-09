@@ -1258,7 +1258,7 @@ export default class SavingsGoalDetailPage {
         error.status === 409 &&
         error.code === API_ERROR_CODES.SAVINGS_GOAL_PLAN_CONFLICT
       ) {
-        this.simulator.revert();
+        this.simulator.exit();
         this.store.reloadProgress();
         this.store.reloadWithdrawals();
       }

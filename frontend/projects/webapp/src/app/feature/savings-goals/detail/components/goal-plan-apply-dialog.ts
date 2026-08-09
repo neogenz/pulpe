@@ -94,7 +94,7 @@ const MAX_DIFF_ROWS = 5;
       } @else {
         <ul class="flex flex-col gap-2" data-testid="goal-plan-apply-diff">
           @for (row of visibleChanges(); track row.year * 12 + row.month) {
-            @if (row.after < 0) {
+            @if (row.before < 0 || row.after < 0) {
               <li
                 class="flex flex-col gap-2 rounded-xl bg-surface-container-low p-3 text-body-medium"
                 data-testid="goal-plan-withdrawal-breakdown"
@@ -102,19 +102,39 @@ const MAX_DIFF_ROWS = 5;
                 <span class="font-medium text-on-surface">{{
                   formatPeriod(row)
                 }}</span>
-                <div class="flex items-center justify-between gap-4">
+                <div
+                  class="flex items-center justify-between gap-4"
+                  data-testid="goal-plan-withdrawal-contribution"
+                >
                   <span class="text-on-surface-variant">{{
-                    'savingsGoals.simulate.withdrawalContributionPreserved'
-                      | transloco
+                    (row.after < 0
+                      ? 'savingsGoals.simulate.withdrawalContributionPreserved'
+                      : 'savingsGoals.simulate.withdrawalContribution'
+                    ) | transloco
                   }}</span>
                   <span class="ph-no-capture shrink-0 tabular-nums font-medium">
-                    +{{
-                      contributionAmount(row)
+                    @if (contributionBefore(row) !== contributionAfter(row)) {
+                      <span class="text-on-surface-variant"
+                        >+{{
+                          contributionBefore(row)
+                            | appCurrency: data.currency : '1.2-2'
+                        }}
+                        &rarr;
+                      </span>
+                    }
+                    @if (contributionAfter(row) > 0) {
+                      <span>+</span>
+                    }
+                    <span>{{
+                      contributionAfter(row)
                         | appCurrency: data.currency : '1.2-2'
-                    }}
+                    }}</span>
                   </span>
                 </div>
-                <div class="flex items-center justify-between gap-4">
+                <div
+                  class="flex items-center justify-between gap-4"
+                  data-testid="goal-plan-withdrawal-amount"
+                >
                   <span class="text-on-surface-variant">{{
                     'savingsGoals.simulate.withdrawalPlanned' | transloco
                   }}</span>
@@ -127,12 +147,14 @@ const MAX_DIFF_ROWS = 5;
                       &rarr;
                     </span>
                     <span class="font-semibold text-on-surface">{{
-                      row.after | appCurrency: data.currency : '1.2-2'
+                      (row.after < 0 ? row.after : 0)
+                        | appCurrency: data.currency : '1.2-2'
                     }}</span>
                   </span>
                 </div>
                 <div
                   class="flex items-center justify-between gap-4 border-t border-outline-variant pt-2"
+                  data-testid="goal-plan-withdrawal-net"
                 >
                   <span class="text-on-surface-variant">{{
                     'savingsGoals.simulate.withdrawalNetEffect' | transloco
@@ -140,12 +162,29 @@ const MAX_DIFF_ROWS = 5;
                   <span
                     class="ph-no-capture shrink-0 tabular-nums font-semibold"
                   >
-                    @if (netEffect(row) > 0) {
-                      +
+                    @if (net(row) > 0) {
+                      <span>+</span>
                     }
-                    {{ netEffect(row) | appCurrency: data.currency : '1.2-2' }}
+                    <span>{{
+                      net(row) | appCurrency: data.currency : '1.2-2'
+                    }}</span>
                   </span>
                 </div>
+                @if (
+                  row.after >= 0 &&
+                  row.planWithdrawalDestination === 'linked_income'
+                ) {
+                  <p
+                    class="text-body-small text-on-surface-variant"
+                    role="status"
+                    data-testid="goal-plan-withdrawal-conversion"
+                  >
+                    {{
+                      'savingsGoals.simulate.withdrawalConvertToGoalOnly'
+                        | transloco
+                    }}
+                  </p>
+                }
               </li>
             } @else {
               <li
@@ -350,7 +389,11 @@ export class GoalPlanApplyDialog {
   );
 
   protected readonly uniformChange = computed(() => {
-    if (this.isCreation() || this.hasWithdrawal()) return null;
+    if (
+      this.isCreation() ||
+      this.data.changes.some((change) => change.before < 0 || change.after < 0)
+    )
+      return null;
     const changes = this.data.changes;
     if (changes.length === 0) return null;
     const first = changes[0];
@@ -387,16 +430,20 @@ export class GoalPlanApplyDialog {
     return change.year * 12 + change.month;
   }
 
-  protected contributionAmount(change: GoalPlanApplyChange): number {
+  protected contributionBefore(change: GoalPlanApplyChange): number {
     return change.contributionAmount ?? Math.max(0, change.before);
+  }
+
+  protected contributionAfter(change: GoalPlanApplyChange): number {
+    return change.after < 0 ? this.contributionBefore(change) : change.after;
   }
 
   protected withdrawalBefore(change: GoalPlanApplyChange): number {
     return Math.min(0, change.before);
   }
 
-  protected netEffect(change: GoalPlanApplyChange): number {
-    return this.contributionAmount(change) + change.after;
+  protected net(change: GoalPlanApplyChange): number {
+    return this.contributionAfter(change) + Math.min(0, change.after);
   }
 
   protected withdrawalDestination(

@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import SwiftUI
 
 typealias GoalPlanWithdrawalDestinations = [
@@ -218,18 +219,19 @@ private extension GoalPlanApplyRecapSheet {
             if isUniform, let first = changes.first {
                 let before = SavingsPlanCalculator.currentPlanMovement(first.month)
                 let after = first.simulatedAmount
-                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
-                    Text(before.asCompactCurrency(currency))
-                        .foregroundStyle(Color.textTertiary)
-                        .strikethrough(true, color: Color.textTertiary)
-                    Image(systemName: "arrow.right")
-                        .font(PulpeTypography.caption2)
-                        .foregroundStyle(Color.textTertiary)
-                        .accessibilityHidden(true)
-                    Text(after.asCompactCurrency(currency))
-                        .foregroundStyle(Color.financialSavings)
-                    Text("/mois sur \(changes.count) mois")
-                        .foregroundStyle(Color.textSecondary)
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                        uniformAmountTransition(from: before, to: after)
+                        Text("/mois sur \(changes.count) mois")
+                            .foregroundStyle(Color.textSecondary)
+                    }
+                    .fixedSize(horizontal: true, vertical: false)
+
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                        uniformAmountTransition(from: before, to: after)
+                        Text("/mois sur \(changes.count) mois")
+                            .foregroundStyle(Color.textSecondary)
+                    }
                 }
                 .font(PulpeTypography.amountCard)
                 .monospacedDigit()
@@ -262,22 +264,55 @@ private extension GoalPlanApplyRecapSheet {
         .pulpeCardBackground()
     }
 
-    private func diffRow(_ simMonth: SavingsPlanCalculator.SimulatedMonth) -> some View {
-        HStack {
-            Text("\(Formatters.monthName(for: simMonth.month.month)) \(simMonth.month.year)")
-                .font(PulpeTypography.metricLabel)
-                .foregroundStyle(Color.textSecondary)
-            Spacer()
-            if mode == .adjustment {
-                Text(SavingsPlanCalculator.currentPlanMovement(simMonth.month).asCompactCurrency(currency))
-                    .foregroundStyle(Color.textTertiary)
-                    .strikethrough(true, color: Color.textTertiary)
-                Image(systemName: "arrow.right")
-                    .font(PulpeTypography.caption2)
-                    .foregroundStyle(Color.textTertiary)
+    private func uniformAmountTransition(from before: Decimal, to after: Decimal) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                uniformBeforeAmount(before)
+                transitionArrow(systemName: "arrow.right")
+                uniformAfterAmount(after)
             }
-            Text(simMonth.simulatedAmount.asCompactCurrency(currency))
-                .foregroundStyle(Color.financialSavings)
+            .fixedSize(horizontal: true, vertical: false)
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                uniformBeforeAmount(before)
+                transitionArrow(systemName: "arrow.down")
+                uniformAfterAmount(after)
+            }
+        }
+    }
+
+    private func uniformBeforeAmount(_ before: Decimal) -> some View {
+        Text(before.asCompactCurrency(currency))
+            .foregroundStyle(Color.textTertiary)
+            .strikethrough(true, color: Color.textTertiary)
+    }
+
+    private func uniformAfterAmount(_ after: Decimal) -> some View {
+        Text(after.asCompactCurrency(currency))
+            .foregroundStyle(Color.financialSavings)
+    }
+
+    private func transitionArrow(systemName: String) -> some View {
+        Image(systemName: systemName)
+            .font(PulpeTypography.caption2)
+            .foregroundStyle(Color.textTertiary)
+            .accessibilityHidden(true)
+    }
+
+    private func diffRow(_ simMonth: SavingsPlanCalculator.SimulatedMonth) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                diffRowPeriod(simMonth)
+                Spacer(minLength: DesignTokens.Spacing.sm)
+                diffRowAmounts(simMonth)
+            }
+            .fixedSize(horizontal: true, vertical: false)
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                diffRowPeriod(simMonth)
+                diffRowAmounts(simMonth)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
         }
         .font(PulpeTypography.metricLabelBold)
         .monospacedDigit()
@@ -291,6 +326,44 @@ private extension GoalPlanApplyRecapSheet {
                     + simMonth.simulatedAmount.asCompactCurrency(currency)
         )
         .sensitiveAmount()
+    }
+
+    private func diffRowPeriod(_ simMonth: SavingsPlanCalculator.SimulatedMonth) -> some View {
+        Text("\(Formatters.monthName(for: simMonth.month.month)) \(simMonth.month.year)")
+            .font(PulpeTypography.metricLabel)
+            .foregroundStyle(Color.textSecondary)
+    }
+
+    private func diffRowAmounts(_ simMonth: SavingsPlanCalculator.SimulatedMonth) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                if mode == .adjustment {
+                    diffRowBeforeAmount(simMonth)
+                    transitionArrow(systemName: "arrow.right")
+                }
+                diffRowAfterAmount(simMonth)
+            }
+            .fixedSize(horizontal: true, vertical: false)
+
+            VStack(alignment: .trailing, spacing: DesignTokens.Spacing.sm) {
+                if mode == .adjustment {
+                    diffRowBeforeAmount(simMonth)
+                    transitionArrow(systemName: "arrow.down")
+                }
+                diffRowAfterAmount(simMonth)
+            }
+        }
+    }
+
+    private func diffRowBeforeAmount(_ simMonth: SavingsPlanCalculator.SimulatedMonth) -> some View {
+        Text(SavingsPlanCalculator.currentPlanMovement(simMonth.month).asCompactCurrency(currency))
+            .foregroundStyle(Color.textTertiary)
+            .strikethrough(true, color: Color.textTertiary)
+    }
+
+    private func diffRowAfterAmount(_ simMonth: SavingsPlanCalculator.SimulatedMonth) -> some View {
+        Text(simMonth.simulatedAmount.asCompactCurrency(currency))
+            .foregroundStyle(Color.financialSavings)
     }
 
     private func withdrawalChange(_ change: SavingsPlanCalculator.SimulatedMonth) -> some View {
@@ -368,38 +441,59 @@ private extension GoalPlanApplyRecapSheet {
     }
 
     private func amountRow(label: String, amount: Decimal, detail: String? = nil) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                Text(label)
-                if let detail {
-                    Text(detail)
-                        .font(PulpeTypography.listRowSubtitle)
-                        .foregroundStyle(Color.textTertiary)
-                }
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                amountLabel(label, detail: detail)
+                    .fixedSize(horizontal: true, vertical: false)
+                Spacer(minLength: DesignTokens.Spacing.sm)
+                breakdownAmount(amount)
+                    .fixedSize(horizontal: true, vertical: false)
             }
-            Spacer(minLength: DesignTokens.Spacing.sm)
-            Text(signedCurrency(amount))
-                .font(PulpeTypography.metricLabelBold)
-                .monospacedDigit()
-                .sensitiveAmount()
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                amountLabel(label, detail: detail)
+                    .fixedSize(horizontal: false, vertical: true)
+                breakdownAmount(amount)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
         }
         .font(PulpeTypography.metricLabel)
         .foregroundStyle(Color.textPrimary)
     }
 
+    private func amountLabel(_ label: String, detail: String?) -> some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+            Text(label)
+            if let detail {
+                Text(detail)
+                    .font(PulpeTypography.listRowSubtitle)
+                    .foregroundStyle(Color.textTertiary)
+            }
+        }
+    }
+
+    private func breakdownAmount(_ amount: Decimal) -> some View {
+        Text(signedCurrency(amount))
+            .font(PulpeTypography.metricLabelBold)
+            .monospacedDigit()
+            .sensitiveAmount()
+    }
+
     private func withdrawalTransition(from: Decimal, to: Decimal) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
-            Text("Retrait planifié")
-            Spacer(minLength: DesignTokens.Spacing.sm)
-            Text(signedCurrency(from))
-                .foregroundStyle(Color.textTertiary)
-                .strikethrough(true, color: Color.textTertiary)
-            Image(systemName: "arrow.right")
-                .font(PulpeTypography.caption2)
-                .foregroundStyle(Color.textTertiary)
-                .accessibilityHidden(true)
-            Text(signedCurrency(to))
-                .foregroundStyle(Color.textPrimary)
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                Text("Retrait planifié")
+                    .fixedSize(horizontal: true, vertical: false)
+                Spacer(minLength: DesignTokens.Spacing.sm)
+                withdrawalTransitionAmounts(from: from, to: to)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                Text("Retrait planifié")
+                withdrawalTransitionAmounts(from: from, to: to)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
         }
         .font(PulpeTypography.metricLabelBold)
         .monospacedDigit()
@@ -408,6 +502,34 @@ private extension GoalPlanApplyRecapSheet {
             "Retrait planifié, de \(signedCurrency(from)) à \(signedCurrency(to))"
         )
         .sensitiveAmount()
+    }
+
+    private func withdrawalTransitionAmounts(from: Decimal, to: Decimal) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                withdrawalBeforeAmount(from)
+                transitionArrow(systemName: "arrow.right")
+                withdrawalAfterAmount(to)
+            }
+            .fixedSize(horizontal: true, vertical: false)
+
+            VStack(alignment: .trailing, spacing: DesignTokens.Spacing.sm) {
+                withdrawalBeforeAmount(from)
+                transitionArrow(systemName: "arrow.down")
+                withdrawalAfterAmount(to)
+            }
+        }
+    }
+
+    private func withdrawalBeforeAmount(_ amount: Decimal) -> some View {
+        Text(signedCurrency(amount))
+            .foregroundStyle(Color.textTertiary)
+            .strikethrough(true, color: Color.textTertiary)
+    }
+
+    private func withdrawalAfterAmount(_ amount: Decimal) -> some View {
+        Text(signedCurrency(amount))
+            .foregroundStyle(Color.textPrimary)
     }
 
     private func signedCurrency(_ amount: Decimal) -> String {

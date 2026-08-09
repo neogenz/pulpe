@@ -111,7 +111,9 @@ describe('GoalPlanApplyDialog', () => {
     expect(
       query(fixture, 'goal-plan-withdrawal-no-budget').nativeElement
         .textContent,
-    ).toContain('Crée d’abord le budget');
+    ).toContain(
+      'Le retrait restera hors budget et ne changera que la projection',
+    );
 
     query(fixture, 'goal-plan-apply-confirm').nativeElement.click();
     expect(close).toHaveBeenCalledWith([
@@ -149,6 +151,63 @@ describe('GoalPlanApplyDialog', () => {
       query(fixture, 'goal-plan-apply-confirm').nativeElement.textContent,
     ).toContain('Planifier le retrait');
   });
+
+  it.each([
+    {
+      after: 100,
+      contribution: '+200.00 CHF → +100.00 CHF',
+      net: '+100.00 CHF',
+    },
+    { after: 0, contribution: '+200.00 CHF → 0.00 CHF', net: '0.00 CHF' },
+  ])(
+    'recaps a linked withdrawal removal ending at $after without requesting a destination',
+    ({ after, contribution, net }) => {
+      const { fixture, close } = configureDialog({
+        changes: [
+          {
+            month: 9,
+            year: 2026,
+            before: -500,
+            after,
+            contributionAmount: 200,
+            hasBudget: true,
+            planWithdrawalDestination: 'linked_income',
+          },
+        ],
+        currency: 'CHF',
+        locale: 'fr-CH',
+        payDayOfMonth: 25,
+        verdict: 'Projection mise à jour',
+      });
+
+      const contributionRow = query(
+        fixture,
+        'goal-plan-withdrawal-contribution',
+      ).nativeElement.textContent.replace(/\s+/g, ' ');
+      const withdrawalRow = query(
+        fixture,
+        'goal-plan-withdrawal-amount',
+      ).nativeElement.textContent.replace(/\s+/g, ' ');
+      const netRow = query(fixture, 'goal-plan-withdrawal-net').nativeElement
+        .textContent;
+      expect(contributionRow).toContain('Épargne prévue');
+      expect(contributionRow).not.toContain('conservée');
+      expect(contributionRow).toContain(contribution);
+      expect(withdrawalRow).toContain('Retrait planifié');
+      expect(withdrawalRow).toContain('-500.00 CHF → 0.00 CHF');
+      expect(netRow).toContain('Effet net ce mois');
+      expect(netRow).toContain(net);
+      expect(
+        query(fixture, 'goal-plan-withdrawal-conversion').nativeElement
+          .textContent,
+      ).toContain('La Prévision Revenu liée sera supprimée');
+      expect(query(fixture, 'goal-plan-withdrawal-goal-only')).toBeNull();
+      expect(query(fixture, 'goal-plan-withdrawal-linked-income')).toBeNull();
+
+      query(fixture, 'goal-plan-apply-confirm').nativeElement.click();
+      expect(close).toHaveBeenCalledWith(true);
+    },
+  );
 
   it('preserves mixed destinations and limits budget unavailability to its month', () => {
     const { fixture, close } = configureDialog({

@@ -1521,18 +1521,25 @@ describe('SavingsGoalDetailPage', () => {
         null,
       ),
     );
+    reloadProgress.mockImplementationOnce(() => isProgressLoadingSig.set(true));
     fixture.detectChanges();
 
     component['simulator'].enter();
     component['simulator'].setMonth(6, 2026, 500);
     await component['onApplyPlan']();
 
-    expect(component['simulator'].isSimulating()).toBe(true);
+    expect(component['simulator'].isSimulating()).toBe(false);
+    expect(component['simulator'].draft()).toBeNull();
     expect(component['simulator'].hasChanges()).toBe(false);
+    fixture.detectChanges();
+    expect(query('goal-plan-adjust-button')).toBeNull();
+    expect(
+      fixture.debugElement.query(By.directive(StubBaseLoading)),
+    ).toBeTruthy();
     expect(reloadProgress).toHaveBeenCalledOnce();
     expect(reloadWithdrawals).toHaveBeenCalledOnce();
     expect(snackBarOpen).toHaveBeenCalledWith(
-      'Le plan a changé entre-temps. Tes ajustements ont été annulés et les données sont rechargées — ajuste à nouveau ton plan',
+      'Le plan a changé entre-temps. Actualisation en cours — relance la simulation.',
       'Fermer',
       expect.objectContaining({ duration: 5000 }),
     );

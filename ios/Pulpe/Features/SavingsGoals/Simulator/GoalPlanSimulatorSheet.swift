@@ -160,25 +160,19 @@ struct GoalPlanSimulatorSheet: View {
 
     private var globalControl: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            HStack {
-                Text("Chaque mois, je mets")
-                    .font(PulpeTypography.inputLabel)
-                    .foregroundStyle(Color.textSecondary)
-                Spacer()
-                TextField(
-                    "Montants variables",
-                    value: globalAmountBinding,
-                    format: .number.precision(.fractionLength(0...2))
-                )
-                    .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.trailing)
-                    .monospacedDigit()
-                    .frame(width: 96)
-                    .frame(minHeight: DesignTokens.TapTarget.minimum)
-                    .accessibilityLabel("Montant mensuel")
-                Text(currency.symbol)
-                    .font(PulpeTypography.metricLabel)
-                    .foregroundStyle(Color.textSecondary)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: DesignTokens.Spacing.md) {
+                    globalAmountLabel
+                        .fixedSize(horizontal: true, vertical: false)
+                    Spacer(minLength: DesignTokens.Spacing.sm)
+                    globalAmountEditor(width: 96)
+                }
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    globalAmountLabel
+                        .fixedSize(horizontal: false, vertical: true)
+                    globalAmountEditor(width: nil)
+                }
             }
 
             Slider(value: globalBinding, in: 0...viewModel.sliderMax, step: 10)
@@ -192,6 +186,33 @@ struct GoalPlanSimulatorSheet: View {
         }
         .padding(DesignTokens.Spacing.lg)
         .pulpeCardBackground()
+    }
+
+    private var globalAmountLabel: some View {
+        Text("Chaque mois, je mets")
+            .font(PulpeTypography.inputLabel)
+            .foregroundStyle(Color.textSecondary)
+    }
+
+    private func globalAmountEditor(width: CGFloat?) -> some View {
+        HStack(spacing: DesignTokens.Spacing.xs) {
+            TextField(
+                "Montants variables",
+                value: globalAmountBinding,
+                format: .number.precision(.fractionLength(0...2))
+            )
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .monospacedDigit()
+                .frame(width: width)
+                .frame(maxWidth: width == nil ? .infinity : nil)
+                .frame(minHeight: DesignTokens.TapTarget.minimum)
+                .accessibilityLabel("Montant mensuel")
+            Text(currency.symbol)
+                .font(PulpeTypography.metricLabel)
+                .foregroundStyle(Color.textSecondary)
+        }
+        .frame(maxWidth: width == nil ? .infinity : nil)
     }
 
     @ViewBuilder
@@ -223,6 +244,8 @@ struct GoalPlanSimulatorSheet: View {
                     .font(PulpeTypography.headline)
                 Spacer()
                 Button("Repartir du plan actuel") { viewModel.revert() }
+                    .frame(minHeight: DesignTokens.TapTarget.minimum)
+                    .contentShape(Rectangle())
                     .textLinkButtonStyle()
                     .disabled(!viewModel.isDirty)
             }
