@@ -1473,6 +1473,51 @@ describe('buildSavingsGoalTimeline planned withdrawals (PUL-329 v2)', () => {
     expect(isContributivePlanMonth(monthOf(timeline, 5)!)).toBe(false);
   });
 
+  /**
+   * Un retrait qu'on commence à réaliser fige SON mois, pas le plan entier :
+   * mars, avril et juin restent des cibles de redistribution valides.
+   */
+  const realizingTimeline = () =>
+    buildSavingsGoalTimeline({
+      ...input,
+      plannedWithdrawals: [
+        {
+          id: PLAN_ID,
+          amount: 500,
+          month: 5,
+          year: 2026,
+          origin: 'plan_linked',
+        },
+      ],
+      withdrawals: [
+        { amount: 300, month: 5, year: 2026, budgetLineId: PLAN_ID },
+      ],
+    });
+
+  it('should keep redistributing the other months when one starts realizing', () => {
+    const result = redistributeRemainingEffort({
+      timeline: realizingTimeline(),
+      targetAmount: input.targetAmount,
+    });
+
+    expect(result.isDistributable).toBe(true);
+  });
+
+  it('should keep the unpointed forecast of a realizing month in the simulation', () => {
+    const timeline = realizingTimeline();
+
+    const simulated = simulateSavingsPlan({
+      timeline,
+      targetAmount: input.targetAmount,
+    });
+
+    // Le mois est figé, pas annulé : sa prévision non pointée reste due, comme
+    // `projectedCumulative` la compte déjà côté timeline.
+    expect(
+      simulated.months.find((row) => row.month === 5)?.simulatedAmount,
+    ).toBe(500);
+  });
+
   it('should expose the direct origin without inventing consumption', () => {
     const timeline = buildSavingsGoalTimeline({
       ...input,

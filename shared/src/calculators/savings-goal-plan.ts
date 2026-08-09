@@ -128,13 +128,27 @@ export function isOpenPlanMonth(month: SavingsPlanTimelineMonth): boolean {
   return !month.isLocked && month.lines.some((line) => line.checkedAt == null);
 }
 
+/**
+ * Un retrait dont la réalisation a commencé fige son mois : le montant est déjà
+ * partiellement réel, on ne le replanifie plus. Verrou distinct de `isLocked`,
+ * qui dit que la CONTRIBUTION du mois est soldée (cycle passé, tout pointé) —
+ * un mois figé peut encore devoir sa prévision non pointée.
+ */
+export function isPlanWithdrawalFrozenMonth(
+  month: SavingsPlanTimelineMonth,
+): boolean {
+  return (
+    (month.planWithdrawalConsumedAmount ?? 0) > WITHDRAWAL_BALANCE_TOLERANCE
+  );
+}
+
 /** Mois participant aux simulations globales et à la redistribution. */
 export function isContributivePlanMonth(
   month: SavingsPlanTimelineMonth,
 ): boolean {
   return (
     month.isContributionEligible !== false &&
-    (month.planWithdrawalConsumedAmount ?? 0) <= WITHDRAWAL_BALANCE_TOLERANCE &&
+    !isPlanWithdrawalFrozenMonth(month) &&
     (isOpenPlanMonth(month) || month.isProvisionable === true)
   );
 }
@@ -492,7 +506,13 @@ export function simulateSavingsPlan(input: {
     if (month.isContributionEligible === false) {
       simulatedAmount = 0;
     } else if (!isContributive) {
-      simulatedAmount = month.confirmedAmount;
+      // Même règle que `projectedCumulative` : un cycle passé ne vaut plus que
+      // sa réalité, un mois figé plus tard garde la prévision qu'il doit encore
+      // honorer. Les figer tous sur `confirmedAmount` effacerait du projeté la
+      // contribution non pointée d'un mois dont seul le retrait est entamé.
+      simulatedAmount = month.isLocked
+        ? month.confirmedAmount
+        : Math.max(month.plannedAmount, month.confirmedAmount);
     } else if (adjustment != null) {
       simulatedAmount = adjustment.amount;
       isAdjusted = simulatedAmount !== currentPlanMovement(month);
@@ -613,10 +633,14 @@ export function redistributeRemainingEffort(input: {
     (month) => !pinnedByKey.has(adjustmentKey(month)),
   );
 
+  // Un mois figé n'est pas un trou : son montant est arrêté, pas impossible.
+  // Le compter ici couperait la redistribution du plan ENTIER dès qu'un seul
+  // retrait commence à se réaliser.
   const hasUnavailablePeriod = input.timeline.some(
     (month) =>
       month.isContributionEligible !== false &&
       !month.isLocked &&
+      !isPlanWithdrawalFrozenMonth(month) &&
       !isContributivePlanMonth(month),
   );
   const willRedistribute = !hasUnavailablePeriod && openUnpinned.length > 0;

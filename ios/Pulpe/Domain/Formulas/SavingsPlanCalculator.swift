@@ -82,23 +82,6 @@ enum SavingsPlanCalculator {
         case adjustmentTargetsLockedOrGapMonth
     }
 
-    // MARK: - Open-month test
-
-    /// A month is editable when it carries at least one unchecked line and is not
-    /// locked (past cycle / everything pointé). Gap months (no lines) are never open.
-    static func isOpenPlanMonth(_ month: SavingsGoalPlanMonth) -> Bool {
-        let hasUncheckedLine = month.lines.contains { $0.checkedAt == nil }
-        return !month.isLocked && hasUncheckedLine
-    }
-
-    /// A month participates in global simulation and redistribution when it is
-    /// editable now or can be created from the linked default template.
-    static func isContributivePlanMonth(_ month: SavingsGoalPlanMonth) -> Bool {
-        month.isContributionEligible
-            && month.planWithdrawalConsumedAmount <= SavingsGoalProgress.withdrawalBalanceTolerance
-            && (isOpenPlanMonth(month) || month.isProvisionable)
-    }
-
     // MARK: - Simulate
 
     /// Simulates the plan: each locked month keeps its reality (`confirmedAmount`),
@@ -255,8 +238,12 @@ extension SavingsPlanCalculator {
         let openMonths = timeline.filter { isContributivePlanMonth($0) }
         let openUnpinned = openMonths.filter { pinnedByKey[periodKey(month: $0.month, year: $0.year)] == nil }
 
+        // A frozen month is not a hole: its amount is settled, not impossible.
+        // Counting it here would cut redistribution across the WHOLE plan as soon
+        // as one withdrawal starts being realized.
         let hasUnavailablePeriod = timeline.contains {
-            $0.isContributionEligible && !$0.isLocked && !isContributivePlanMonth($0)
+            $0.isContributionEligible && !$0.isLocked
+                && !isPlanWithdrawalFrozenMonth($0) && !isContributivePlanMonth($0)
         }
         let willRedistribute = !hasUnavailablePeriod && !openUnpinned.isEmpty
 
@@ -454,7 +441,14 @@ extension SavingsPlanCalculator {
                          replacesExistingPlanWithdrawal: false)
         }
         if !isContributive {
-            return .init(amount: month.confirmedAmount, isAdjusted: false, isWithdrawal: false,
+            // Same rule as `projectedCumulative`: a past cycle is worth only its
+            // reality, while a month frozen later still owes the forecast it has
+            // not pointed yet. Collapsing both onto `confirmedAmount` would erase
+            // that contribution from the projection.
+            let amount = month.isLocked
+                ? month.confirmedAmount
+                : max(month.plannedAmount, month.confirmedAmount)
+            return .init(amount: amount, isAdjusted: false, isWithdrawal: false,
                          replacesExistingPlanWithdrawal: false)
         }
         if let adjustment {
