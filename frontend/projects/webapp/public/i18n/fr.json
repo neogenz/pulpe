@@ -67,7 +67,7 @@
     "intro": {
       "hero": {
         "title": "Ton mois en un coup d'œil",
-        "description": "<p>Commence ici : <strong>Disponible à dépenser</strong> tient compte de tes revenus, dépenses et épargnes. Juste en dessous, <strong>Déjà sorti</strong> est ce qui a quitté ton compte, et <strong>Engagé</strong> ce que tes prévisions réservent sans être encore parti. Ouvre ce bloc pour ajuster le budget du mois.</p>"
+        "description": "<p>Commence ici : <strong>Disponible à dépenser</strong> tient compte de tes revenus, dépenses et épargnes. Juste en dessous, <strong>Débité</strong> est ce qui a quitté ton compte, et <strong>Engagé</strong> ce que tes prévisions réservent sans être encore parti. Ouvre ce bloc pour ajuster le budget du mois.</p>"
       },
       "tracking": {
         "title": "Commence par ce qui bouge",
@@ -1358,9 +1358,9 @@
     "missingToCover": "Il manque pour couvrir ton plan",
     "missingToBalance": "Il manque pour équilibrer le mois",
     "spentBeyondPlan": "Dépensé au-delà de ton plan",
-    "spent": "Déjà sorti",
+    "spent": "Débité",
     "engaged": "Engagé",
-    "spentHint": "Déjà sorti : ce qui a quitté ton compte.",
+    "spentHint": "Débité : ce qui a quitté ton compte.",
     "spentIncludesSavings": "dont {{amount}} {{currency}} mis de côté",
     "engagedHint": "Engagé : ce qui est réservé et pas encore sorti de ton compte — tes prévisions, et ce que tu as saisi sans le pointer.",
     "monthProgress": "Jour {{ day }} sur {{ total }}.",

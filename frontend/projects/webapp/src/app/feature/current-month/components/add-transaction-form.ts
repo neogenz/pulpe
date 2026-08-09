@@ -205,7 +205,7 @@ interface AddTransactionModel {
                  here on a real transaction with no gloss and defaulted on —
                  while the rarer savings-source toggle above carries a full
                  explanatory line. Off, the amount lands in "Engagé" rather than
-                 "Déjà sorti": both figures the user came to read. -->
+                 "Débité": both figures the user came to read. -->
             <span
               [id]="CHECKED_HINT_ID"
               class="text-body-small text-on-surface-variant"

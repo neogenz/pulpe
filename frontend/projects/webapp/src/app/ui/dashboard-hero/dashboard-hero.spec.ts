@@ -206,7 +206,7 @@ describe('DashboardHero', () => {
 
   // "Il est sorti" means pointed. This branch is reached by a negative
   // remaining, which counts unpointed entries too, so an expense recorded with
-  // the toggle off asserted an outflow above a legend reading "Déjà sorti 0".
+  // the toggle off asserted an outflow above a legend reading "Débité 0".
   //
   // The consumed percentage is pinned at 100 here because that is what the
   // store emits for every negative remaining, and it is the whole reason the
@@ -280,7 +280,7 @@ describe('DashboardHero', () => {
       ).toMatch(/1.309/);
     });
 
-    // "Déjà sorti" was the one key defined nowhere: not here, not in the tour,
+    // "Débité" was the one key defined nowhere: not here, not in the tour,
     // not in PRODUCT.md's vocabulary — and it is the key whose amount a reader
     // most often comes to check.
     it('should define the spent key even when nothing is engaged', () => {
@@ -294,7 +294,7 @@ describe('DashboardHero', () => {
       const note = (fixture.nativeElement as HTMLElement).querySelector(
         '[data-testid="hero-legend-gloss"]',
       );
-      expect(note?.textContent).toContain('Déjà sorti :');
+      expect(note?.textContent).toContain('Débité :');
       expect(note?.textContent).not.toContain('Engagé :');
     });
 
@@ -309,7 +309,7 @@ describe('DashboardHero', () => {
       const note = (fixture.nativeElement as HTMLElement).querySelector(
         '[data-testid="hero-legend-gloss"]',
       );
-      expect(note?.textContent).toContain('Déjà sorti :');
+      expect(note?.textContent).toContain('Débité :');
       expect(note?.textContent).toContain('Engagé :');
     });
 
@@ -390,7 +390,7 @@ describe('DashboardHero', () => {
     // The pace verdict is deaf to savings by design, so a month whose only
     // activity was a transfer arrives here as 'unknown'. It used to answer
     // "Rien de saisi ce mois" forty pixels above a legend key reading
-    // "Déjà sorti 800" and a bar with a filled segment.
+    // "Débité 800" and a bar with a filled segment.
     it('should not claim an empty month when what left the account was foreseen', () => {
       setTestInput(component.available, 5000);
       setTestInput(component.realizedExpenses, 800);

@@ -374,7 +374,7 @@ let heroInstanceCount = 0;
         <!-- Gated on the same condition as the key it defines. A month fully
              pointed draws no engagé segment and prints no engagé key, and the
              gloss stayed behind to define a word that had left the card. -->
-        <!-- "Déjà sorti" was the one key defined nowhere: not here, not in the
+        <!-- "Débité" was the one key defined nowhere: not here, not in the
              tour, not in PRODUCT.md's vocabulary — and it is the key whose
              amount a reader most often comes to check. The clause conceding
              that savings were folded in has left this gloss: the line above
@@ -841,7 +841,7 @@ export class DashboardHero {
     // two are not the same reading and the sentence has to pick the one that
     // is true. An expense entered with the toggle off printed "il est sorti
     // plus que ce que le mois t'apporte" directly above a legend reading
-    // "Déjà sorti 0"; the comparison against what the month brings in says it
+    // "Débité 0"; the comparison against what the month brings in says it
     // exactly, where a bare "something was pointed" also claimed the deficit
     // for fifty francs pointed against three thousand of income.
     //
