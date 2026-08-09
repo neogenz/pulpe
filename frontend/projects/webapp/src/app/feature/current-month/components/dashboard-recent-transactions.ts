@@ -36,8 +36,11 @@ import { TranslocoPipe } from '@jsverse/transloco';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col w-full h-full">
-      <div class="mb-4 px-1 flex items-center justify-between">
-        <div class="flex items-center gap-3">
+      <!-- Same recipe as the twin card and as dashboard-next-month: gap-3 on
+           the row, min-w-0 on the text so it can give, shrink-0 on the button
+           so it cannot. -->
+      <div class="mb-4 px-1 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3 min-w-0">
           <div
             class="w-10 h-10 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center shrink-0"
           >

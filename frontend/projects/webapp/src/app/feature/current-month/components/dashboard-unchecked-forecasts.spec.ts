@@ -192,17 +192,15 @@ describe('DashboardUncheckedForecasts', () => {
     expect(emitted).toBe(false);
   });
 
-  it('should show radio_button_unchecked icon by default', () => {
+  it('should offer an independent check rather than a radio by default', () => {
     setTestInput(component.forecasts, mockForecasts);
     fixture.detectChanges();
 
-    const radioButton = fixture.debugElement.query(
+    const toggle = fixture.debugElement.query(
       By.css('[data-testid="dashboard-forecasts-toggle"]'),
     );
-    const icon = radioButton.query(By.css('mat-icon'));
-    expect(icon.nativeElement.textContent.trim()).toBe(
-      'radio_button_unchecked',
-    );
+    const icon = toggle.query(By.css('mat-icon'));
+    expect(icon.nativeElement.textContent.trim()).toBe('check_circle_outline');
   });
 
   it('should show check_circle filled icon while a forecast row is exiting after a click', () => {
@@ -293,9 +291,7 @@ describe('DashboardUncheckedForecasts', () => {
     const icon = fixture.debugElement
       .query(By.css('[data-testid="dashboard-forecasts-toggle"]'))
       .query(By.css('mat-icon'));
-    expect(icon.nativeElement.textContent.trim()).toBe(
-      'radio_button_unchecked',
-    );
+    expect(icon.nativeElement.textContent.trim()).toBe('check_circle_outline');
     expect(icon.nativeElement.classList.contains('text-primary')).toBe(false);
   });
 

@@ -52,8 +52,13 @@ interface AnimatingForecast {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col w-full h-full">
-      <div class="mb-4 px-1 flex items-center justify-between">
-        <div class="flex items-center gap-3">
+      <!-- gap-3 + min-w-0 + shrink-0 is the whole recipe, and the third card
+           built from it (dashboard-next-month) already carries all three.
+           Pinning the button without giving the text beside it somewhere to
+           shrink leaves the row with no give at all: below a certain card
+           width it would overflow rather than reflow. -->
+      <div class="mb-4 px-1 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3 min-w-0">
           <div
             class="w-10 h-10 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center shrink-0"
           >
@@ -185,12 +190,21 @@ interface AnimatingForecast {
                       'currentMonth.uncheckedForecasts.toggleVerb' | transloco
                     }}
                   </span>
+                  <!-- Not radio_button_unchecked. Five bare circles stacked in
+                       a column is the one shape every interface reserves for
+                       "choose exactly one of these", and these five are
+                       independent: pointing the rent says nothing about the
+                       insurance. The outline already had to become a filled
+                       check on the way out, so the empty state was promising a
+                       shape it never kept. check_circle_outline promises the
+                       one it does, on a control whose tap writes to a
+                       financial record. -->
                   <mat-icon
                     [class.text-primary]="isChecking"
                     [class.icon-filled]="isChecking"
                     aria-hidden="true"
                   >
-                    {{ isChecking ? 'check_circle' : 'radio_button_unchecked' }}
+                    {{ isChecking ? 'check_circle' : 'check_circle_outline' }}
                   </mat-icon>
                 </button>
                 <span
