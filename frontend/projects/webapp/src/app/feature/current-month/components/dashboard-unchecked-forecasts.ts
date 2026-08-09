@@ -57,7 +57,11 @@ interface AnimatingForecast {
            Pinning the button without giving the text beside it somewhere to
            shrink leaves the row with no give at all: below a certain card
            width it would overflow rather than reflow. -->
-      <div class="mb-4 px-1 flex items-center justify-between gap-3">
+      <div
+        class="px-1 flex items-center justify-between gap-3"
+        [class.mb-4]="!showsPointerHint()"
+        [class.mb-2]="showsPointerHint()"
+      >
         <div class="flex items-center gap-3 min-w-0">
           <div
             class="w-10 h-10 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center shrink-0"
@@ -75,24 +79,20 @@ interface AnimatingForecast {
                  what it means, and the tour is a screen most people see once,
                  months before they need the answer. At zero the count is the
                  line that can least afford the space: "0 sur 12 pointées"
-                 restates the list below it. The definition takes that slot
-                 until the first check proves it landed, then gets out of the
-                 way rather than becoming permanent furniture.
+                 restates the list below it, so the definition below takes its
+                 turn until the first check proves it landed, then gets out of
+                 the way rather than becoming permanent furniture.
                  A month holding nothing pointable gets neither: the count fell
                  through to "0 sur 0 pointées" and sat above "Tout est à jour",
                  congratulating the user for finishing work that never existed.
                  A month funded entirely from savings goals reaches this, since
                  those lines are filtered out upstream. -->
-            @if (totalCount() > 0) {
+            @if (totalCount() > 0 && !showsPointerHint()) {
               <p
                 class="text-body-small text-on-surface-variant font-medium mt-0.5"
                 data-testid="dashboard-forecasts-subtitle"
               >
-                @if (showPointerHint()) {
-                  {{
-                    'currentMonth.uncheckedForecasts.pointerHint' | transloco
-                  }}
-                } @else if (totalCount() === 1) {
+                @if (totalCount() === 1) {
                   {{
                     'currentMonth.uncheckedForecasts.countSingular'
                       | transloco: { checked: checkedCount() }
@@ -138,6 +138,23 @@ interface AnimatingForecast {
           {{ 'currentMonth.viewForecasts' | transloco }}
         </button>
       </div>
+
+      <!-- Full width, below the row rather than inside it. As the subtitle it
+           shared the header's text column with a button pinned at shrink-0, so
+           the give the column was given landed entirely here: at 375px the one
+           sentence teaching this page's central verb was the most cramped thing
+           on screen — 126px against the button's 145, five ragged lines. A count
+           fits that column because a count is three words. The hero already
+           answers this the same way: its gloss is a full-width note under the
+           legend, not a fourth key inside it. -->
+      @if (showsPointerHint()) {
+        <p
+          class="text-body-small text-on-surface-variant font-medium mb-4 px-1"
+          data-testid="dashboard-forecasts-pointer-hint"
+        >
+          {{ 'currentMonth.uncheckedForecasts.pointerHint' | transloco }}
+        </p>
+      }
 
       <div class="bg-surface-container-low rounded-3xl py-3 px-3 flex-1">
         @if (displayedForecasts().length > 0) {
@@ -392,6 +409,13 @@ export class DashboardUncheckedForecasts {
   // month for the rest of the account's life.
   readonly showPointerHint = input(true);
   readonly consumptions = input(new Map<string, BudgetLineConsumption>());
+
+  // The definition and the count share one slot, so three places have to agree
+  // on which is showing: the count, the definition, and the gap under the
+  // header that closes to bind the definition to it.
+  protected readonly showsPointerHint = computed(
+    () => this.totalCount() > 0 && this.showPointerHint(),
+  );
 
   protected readonly checkedCount = computed(() =>
     Math.max(0, this.totalCount() - this.forecasts().length),
