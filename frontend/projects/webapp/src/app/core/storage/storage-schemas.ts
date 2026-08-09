@@ -48,6 +48,12 @@ export const STORAGE_SCHEMAS = {
     scope: 'user',
   },
 
+  [STORAGE_KEYS.DASHBOARD_POINTING_LEARNED]: {
+    version: 1,
+    schema: z.boolean(),
+    scope: 'user',
+  },
+
   // Currency snapshot for bootstrap locale selection (device-level, preserved across sessions)
   [STORAGE_KEYS.SETTINGS_CURRENCY]: {
     version: 1,
