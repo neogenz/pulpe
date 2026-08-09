@@ -115,8 +115,18 @@ interface AnimatingForecast {
              buttons at the same optical height in a two-column grid, and the
              answer to "which one do I want" was "either". The aria-label keeps
              the destination the label has no room for. -->
+        <!-- The header asks for more width than 375px has, and until now the
+             button was one of the two things that gave: at 375 its label wrapped
+             to two lines inside a control whose height is fixed at 40, so the
+             text measured 42 tall and started a pixel above the button that owns
+             it. A title is allowed to wrap; a label sealed in a fixed-height
+             button is not. The longer twin label beside it never wrapped, which
+             is how a shared header recipe ended up with two different rhythms —
+             the squeeze lands on whichever card carries the longer title, not on
+             whichever carries the longer label. -->
         <button
           matButton
+          class="shrink-0"
           [attr.aria-label]="'currentMonth.viewForecastsInBudget' | transloco"
           (click)="viewBudget.emit()"
         >

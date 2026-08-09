@@ -72,8 +72,13 @@ import { TranslocoPipe } from '@jsverse/transloco';
             }
           </div>
         </div>
+        <!-- shrink-0 for the reason spelled out on the twin card: this header
+             is the same recipe, and its title is only shorter today. The label
+             here is the longer of the two, so it is the one with least room to
+             lose before it wraps inside a fixed-height button. -->
         <button
           matButton
+          class="shrink-0"
           [attr.aria-label]="
             'currentMonth.viewTransactionsInBudget' | transloco
           "
