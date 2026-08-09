@@ -268,18 +268,25 @@ let heroInstanceCount = 0;
                nothing on screen to check it against, while the aria-label
                spelled out "0% du budget dépensé" to the screen reader. A zero
                here is the reason for the verdict, not the absence of one. -->
-          <!-- The ISO code rather than the symbol, and hidden rather than
-               drawn: this is the house pattern for the accessible name of an
-               amount, and the three keys have no width to spare — the
-               denominator was moved out of this row precisely because they
-               did not fit with it. Read aloud, the row was three bare
-               integers in a product that ships CHF and EUR side by side. -->
+          <!-- The ISO code for the screen reader, the symbol for the eye, and
+               both because this row can now afford it. "No width to spare" was
+               written while the denominator still sat here; moving that out
+               freed more than a three-character suffix needs. Measured at
+               375px: the two keys go from 109 and 104 wide to 138 and 133
+               inside 335, and the legend stays what it was — two rows, 48px.
+               So the sighted reader was given bare integers on a card that
+               prints the unit twice around them, in a product shipping CHF and
+               EUR side by side, and the Stable Amount Rule was being paid for
+               with nothing. -->
           <span class="progress-legend-item">
             <span class="progress-legend-swatch swatch-realized"></span>
             {{ 'dashboard.spent' | transloco }}
             <b class="progress-legend-amount ph-no-capture">
               <span data-testid="hero-spent-amount">{{
                 realizedExpenses() | number: '1.0-0' : locale()
+              }}</span>
+              <span class="progress-legend-unit" aria-hidden="true">{{
+                currencySymbol()
               }}</span>
               <span class="sr-only">{{ currency() }}</span>
             </b>
@@ -301,6 +308,9 @@ let heroInstanceCount = 0;
                    total and compared it against a number it stopped holding. -->
                 <span data-testid="hero-engaged-amount">{{
                   engagedNotSpent() | number: '1.0-0' : locale()
+                }}</span>
+                <span class="progress-legend-unit" aria-hidden="true">{{
+                  currencySymbol()
                 }}</span>
                 <span class="sr-only">{{ currency() }}</span>
               </b>
@@ -412,8 +422,7 @@ let heroInstanceCount = 0;
          puts it over the content rows, which all sit at z-10 and would
          otherwise take the click themselves; the container sets no z-index of
          its own, so both live in the same stacking context and the larger
-         number simply wins. The orbs need no thought — they carry
-         pointer-events: none. */
+         number simply wins. */
       .hero-action {
         position: absolute;
         inset: 0;
@@ -555,6 +564,23 @@ let heroInstanceCount = 0;
       .progress-legend-amount {
         font-weight: 800;
         font-variant-numeric: tabular-nums;
+      }
+
+      /* A step under the figure it qualifies, the way the 22px suffix sits
+         under the 45px amount at the top of the card: same colour, lighter
+         weight, slightly less presence. Secondary is what the Stable Amount
+         Rule asks of a unit — present, never competing with the number.
+
+         The margin is load-bearing, not taste. Angular compiles templates with
+         preserveWhitespaces off, so the newline between the figure and this
+         span is dropped and the pair renders "580CHF". The amount at the top of
+         the card gets its space from the flex gap of the row holding it; this
+         one sits inside a plain inline <b>, and a gap there would also be paid
+         to the sr-only span beside it. */
+      .progress-legend-unit {
+        margin-left: 0.2em;
+        font-weight: 500;
+        opacity: 0.8;
       }
 
       /* Quiet on purpose: a definition is read once and then never again, so it

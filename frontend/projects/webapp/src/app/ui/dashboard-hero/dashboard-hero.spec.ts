@@ -750,8 +750,15 @@ describe('DashboardHero', () => {
 
       expect(container.getAttribute('role')).toBeNull();
       expect(container.getAttribute('aria-labelledby')).toBe(heading.id);
+      // By testid, not by class: the savings note wears the same class for the
+      // same quiet type and sits earlier in the DOM, so querySelector picks it
+      // the moment a month has set anything aside. This assertion is about the
+      // hint, and it should fail when the hint goes missing — not pass because
+      // a different paragraph happened to answer to the same selector.
       expect(
-        fixture.nativeElement.querySelector('.progress-legend-note'),
+        fixture.nativeElement.querySelector(
+          '[data-testid="hero-legend-gloss"]',
+        ),
       ).not.toBeNull();
     });
   });
