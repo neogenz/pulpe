@@ -209,14 +209,19 @@ import { TemplateLineStore } from './services/template-line-store';
             />
           </section>
 
+          <!-- Étendu comme sur la page d'accueil : le verbe se lit avant
+               l'appui, sans qu'il faille déduire une intention d'un « + ». Le
+               libellé visible tient aussi lieu de nom accessible, il n'y a
+               donc plus d'aria-label à tenir en phase avec lui. -->
           <button
             matFab
+            extended
             (click)="handleAddLine()"
             class="fab-button"
-            [attr.aria-label]="'template.addLine' | transloco"
             data-testid="add-template-line-fab"
           >
-            <mat-icon aria-hidden="true" class="fab-icon">add</mat-icon>
+            <mat-icon aria-hidden="true">add</mat-icon>
+            {{ 'template.addLine' | transloco }}
           </button>
         }
       }
@@ -229,21 +234,17 @@ import { TemplateLineStore } from './services/template-line-store';
       padding-bottom: 100px;
     }
 
+    /* Material tient la géométrie de la variante étendue (hauteur 56,
+       corner-large), il n'y a donc rien à figer ici. Aplati comme sur la page
+       d'accueil : DESIGN.md réserve le dégradé au hero. */
     .fab-button {
       position: fixed;
       bottom: calc(24px + env(safe-area-inset-bottom));
       right: 24px;
       z-index: 100;
 
-      width: 56px;
-      height: 56px;
-      --mat-fab-container-shape: 50%;
-
-      background: linear-gradient(
-        145deg,
-        var(--mat-sys-primary) 0%,
-        color-mix(in srgb, var(--mat-sys-primary) 75%, black) 100%
-      );
+      --mat-fab-container-color: var(--mat-sys-primary);
+      background: var(--mat-sys-primary);
       color: var(--mat-sys-on-primary);
 
       box-shadow: var(--mat-sys-level3);
@@ -262,20 +263,9 @@ import { TemplateLineStore } from './services/template-line-store';
 
       &:active {
         transform: scale(0.95);
-        box-shadow: var(--mat-sys-level3);
+        box-shadow: var(--mat-sys-level1);
         transition-duration: 100ms;
       }
-
-      &:hover .fab-icon {
-        transform: rotate(90deg);
-      }
-    }
-
-    .fab-icon {
-      font-size: 28px;
-      width: 28px;
-      height: 28px;
-      transition: transform 300ms var(--pulpe-ease-emphasized);
     }
 
     @keyframes fab-scale-in {
@@ -296,10 +286,6 @@ import { TemplateLineStore } from './services/template-line-store';
     @media (prefers-reduced-motion: reduce) {
       .fab-button {
         animation: none;
-        transition: none;
-      }
-
-      .fab-icon {
         transition: none;
       }
     }

@@ -109,14 +109,19 @@
   <!-- Budget Items -->
   <pulpe-budget-items data-tour="budget-table" />
 
+  <!-- Étendu comme sur la page d'accueil : le verbe se lit avant l'appui, sans
+       qu'il faille déduire une intention d'un « + ». Le libellé visible tient
+       aussi lieu de nom accessible, il n'y a donc plus d'aria-label à tenir en
+       phase avec lui. -->
   <button
     matFab
+    extended
     (click)="openAddBudgetLineDialog()"
     class="fab-button"
-    [attr.aria-label]="'budget.addForecast' | transloco"
     data-testid="add-budget-line-fab"
   >
-    <mat-icon aria-hidden="true" class="fab-icon">add</mat-icon>
+    <mat-icon aria-hidden="true">add</mat-icon>
+    {{ 'budget.addForecast' | transloco }}
   </button>
 
   @if (isDevMode) {
