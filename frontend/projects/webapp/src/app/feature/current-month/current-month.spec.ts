@@ -1019,6 +1019,16 @@ describe('Dashboard (TestBed)', () => {
       component['refresh']();
       expect(mockStore.refreshData.mock.calls.length).toBe(callsBeforePress);
 
+      // Refused, but not in silence: the button stays clickable on purpose, so
+      // a press that starts nothing has to say why. What it must not do is arm
+      // the phase — the reload it landed on is not the user's.
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Tes chiffres sont déjà en train de se mettre à jour.',
+        expect.any(String),
+        expect.objectContaining({ duration: 5000 }),
+      );
+      mockSnackBar.open.mockClear();
+
       mockStore.isLoading.set(false);
       TestBed.tick();
       expect(mockSnackBar.open).not.toHaveBeenCalled();

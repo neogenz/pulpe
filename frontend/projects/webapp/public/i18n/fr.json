@@ -67,7 +67,7 @@
     "intro": {
       "hero": {
         "title": "Ton mois en un coup d'œil",
-        "description": "<p>Commence ici : <strong>Disponible à dépenser</strong> tient compte de tes revenus, dépenses et épargnes. Juste en dessous, <strong>Engagé</strong> est ce que tes prévisions réservent et que tu n'as pas encore dépensé. Ouvre ce bloc pour ajuster le budget du mois.</p>"
+        "description": "<p>Commence ici : <strong>Disponible à dépenser</strong> tient compte de tes revenus, dépenses et épargnes. Juste en dessous, <strong>Déjà sorti</strong> est ce qui a quitté ton compte, et <strong>Engagé</strong> ce que tes prévisions réservent sans être encore parti. Ouvre ce bloc pour ajuster le budget du mois.</p>"
       },
       "tracking": {
         "title": "Commence par ce qui bouge",
@@ -916,6 +916,7 @@
     "refresh": "Actualiser",
     "refreshed": "Chiffres à jour",
     "refreshFailed": "Impossible de tout recharger. Réessaie dans un instant.",
+    "refreshAlreadyRunning": "Tes chiffres sont déjà en train de se mettre à jour.",
     "loadingMessage": "Préparation de ton tableau de bord...",
     "loadErrorTitle": "On n'arrive pas à charger ton tableau de bord",
     "loadErrorMessage": "Ta connexion a peut-être coupé. Réessaie pour récupérer tes données.",

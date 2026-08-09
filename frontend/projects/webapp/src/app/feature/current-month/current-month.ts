@@ -708,7 +708,18 @@ export default class Dashboard {
   // visit and leaving an armed phase to fire on the next unrelated reload,
   // where it replaced whatever toast held the screen. Undo toasts live there.
   protected refresh(): void {
-    if (this.store.isLoading()) return;
+    // Returning in silence was the one press on this page that produced
+    // nothing at all: `disabledInteractive` keeps the control clickable, so the
+    // ripple fired, the tooltip said "Actualiser", and the answer was a grey
+    // tint identical to the one it wears during a refresh the user did start.
+    // The reload is already running — that is a status, and this page states
+    // its statuses.
+    if (this.store.isLoading()) {
+      this.#notify(
+        this.#transloco.translate('currentMonth.refreshAlreadyRunning'),
+      );
+      return;
+    }
     this.#refreshPhase.set('requested');
     this.store.refreshData();
   }
