@@ -926,6 +926,9 @@
     "updateError": "La mise à jour a échoué — vérifie ta connexion et réessaie",
     "addError": "L'ajout a échoué — vérifie ta connexion et réessaie",
     "transactionAdded": "Enregistré : {{ name }}",
+    "transactionAddedMany": "{{ count }} transactions enregistrées",
+    "undoWindowMixed": "{{ count }} actions enregistrées",
+    "undoPartialFailure": "{{ count }} annulations ont échoué — ces lignes restent enregistrées",
     "undoError": "Impossible d'annuler — la prévision reste pointée",
     "undoTransactionError": "Impossible d'annuler — la transaction reste enregistrée",
     "close": "Fermer",
@@ -997,7 +1000,7 @@
     "nextMonthErrorTitle": "On n'arrive pas à voir le mois prochain",
     "nextMonthErrorMessage": "Tes budgets à venir n'ont pas pu être chargés. Rien n'a été perdu.",
     "nextMonthEstimatedRollover": "Budget anticipé — report estimé :",
-    "nextMonthRolloverAssumption": "si tu ne dépenses plus rien d'ici la fin du mois.",
+    "nextMonthRolloverAssumption": "si tu t'en tiens à tes prévisions d'ici la fin du mois.",
     "nextMonthNoBudget": "Pas encore de budget pour {{ month }}",
     "nextMonthAnticipate": "Anticiper le mois prochain",
     "uncheckedForecasts": {
@@ -1020,7 +1023,8 @@
     "addTransactionDiscardTitle": "Abandonner cette transaction ?",
     "addTransactionDiscardMessage": "Le montant, la description et les tags que tu viens de saisir ne seront pas enregistrés.",
     "addTransactionDiscardConfirm": "Abandonner",
-    "addTransactionDiscardCancel": "Continuer la saisie"
+    "addTransactionDiscardCancel": "Continuer la saisie",
+    "addTransactionNoBudget": "Ta saisie n'a pas pu être enregistrée : le budget du mois vient d'être rechargé. Réessaie dans un instant."
   },
   "currency": {
     "conversionTooltip": "Converti depuis {{ amount }}\nTaux : {{ rate }}",
@@ -1356,7 +1360,7 @@
     "spent": "Déjà sorti",
     "engaged": "Engagé",
     "spentHint": "Déjà sorti : ce qui a quitté ton compte, épargne comprise.",
-    "engagedHint": "Engagé : ce que tes prévisions réservent et que tu n'as pas encore dépensé.",
+    "engagedHint": "Engagé : ce qui est réservé et pas encore sorti de ton compte — tes prévisions, et ce que tu as saisi sans le pointer.",
     "monthProgress": "Jour {{ day }} sur {{ total }}.",
     "status": {
       "onTrack": "Ton rythme tient.",
@@ -1367,6 +1371,7 @@
       "almostSpent": "Ton budget est presque entièrement engagé.",
       "planOverAvailable": "Ton plan demande plus que ce que le mois t'apporte — ça se rattrape. Ouvre ton budget pour alléger une prévision.",
       "outflowBeyondIncome": "Il est sorti plus que ce que le mois t'apporte, épargne comprise — ton plan, lui, tient.",
+      "recordedBeyondIncome": "Ce que tu as saisi dépasse ce que le mois t'apporte, épargne comprise — tout n'est pas encore pointé. Ton plan, lui, tient.",
       "overBudget": "Tu es au-delà de ton budget — ça arrive. Ouvre ton budget pour voir ce qui a dépassé."
     },
     "openMonthDetail": "Voir le détail du mois — {{ month }}",

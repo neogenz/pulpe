@@ -115,8 +115,14 @@ function createMocks() {
       debug: vi.fn(),
     },
     userSettingsStore: {
+      // Resolved settings, because that is what unblocks the request: the
+      // store asks the resource whether they are known rather than reading the
+      // pay day, which is legitimately null for anyone on the calendar month.
+      settings: signal<unknown>({ payDayOfMonth: 1 }),
       payDayOfMonth: signal<number | null>(1),
       isLoading: signal(false),
+      error: signal<unknown>(undefined),
+      reload: vi.fn(),
     },
     postHogService: {
       captureEvent: vi.fn(),
@@ -1827,6 +1833,7 @@ describe('DashboardStore - Upcoming Budgets Data', () => {
 
   it('should not fetch a budget period guessed before the payday is known', async () => {
     const mocks = createMocks();
+    mocks.userSettingsStore.settings = signal<unknown>(undefined);
     mocks.userSettingsStore.payDayOfMonth = signal<number | null>(null);
     mocks.userSettingsStore.isLoading = signal(true);
     const { store } = setup(mocks);
@@ -1835,6 +1842,7 @@ describe('DashboardStore - Upcoming Budgets Data', () => {
     await vi.waitFor(() => expect(store.isLoading()).toBe(true));
     expect(mocks.budgetApi.getDashboardData$).not.toHaveBeenCalled();
 
+    mocks.userSettingsStore.settings.set({ payDayOfMonth: 27 });
     mocks.userSettingsStore.payDayOfMonth.set(27);
     mocks.userSettingsStore.isLoading.set(false);
     TestBed.tick();
@@ -1846,6 +1854,33 @@ describe('DashboardStore - Upcoming Budgets Data', () => {
       period.month.toString().padStart(2, '0'),
       period.year.toString(),
     );
+  });
+
+  // The gate used to ask whether the settings request was still running, and
+  // that request reports `isInitialLoading` — which goes false the moment it
+  // FAILS. A settings failure therefore left the pay day null with nothing
+  // saying so, the period fell back to the calendar month, and on 28 January
+  // with a payday of 27 the page fetched, cached and titled January while the
+  // user was in February. No spinner, no warning, last period's figures.
+  it('should not guess the period when the settings request failed', async () => {
+    const mocks = createMocks();
+    mocks.userSettingsStore.settings = signal<unknown>(undefined);
+    mocks.userSettingsStore.payDayOfMonth = signal<number | null>(null);
+    mocks.userSettingsStore.isLoading = signal(false);
+    mocks.userSettingsStore.error = signal<unknown>(new Error('settings down'));
+    const { store } = setup(mocks);
+
+    TestBed.tick();
+    await vi.waitFor(() => expect(store.error()).toBeTruthy());
+    expect(mocks.budgetApi.getDashboardData$).not.toHaveBeenCalled();
+  });
+
+  it('should retry the settings when the page asks for a refresh', async () => {
+    const { store, userSettingsStore } = await setupWithBudgetAndWait();
+
+    store.refreshData();
+
+    expect(userSettingsStore.reload).toHaveBeenCalled();
   });
 
   it('should re-read the clock when the data is refreshed', async () => {

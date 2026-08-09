@@ -60,6 +60,15 @@ export const UNDO_WINDOW_MS = 6000;
 // `pointer-events: none`, take the Undo button with it.
 const NAMED_TOAST_PANEL_CLASS = ['ph-no-capture', 'amounts-visible'];
 
+// The two things this page writes, and the two ways it takes them back.
+type UndoableAction =
+  | { readonly kind: 'check'; readonly id: string; readonly name: string }
+  | {
+      readonly kind: 'transaction';
+      readonly id: string;
+      readonly name: string;
+    };
+
 @Component({
   selector: 'pulpe-dashboard',
   imports: [
@@ -318,7 +327,7 @@ const NAMED_TOAST_PANEL_CLASS = ['ph-no-capture', 'amounts-visible'];
             }
           </div>
         </details>
-      } @else if (store.status() === 'error') {
+      } @else if (store.status() === 'error' && !store.dashboardData()) {
         <!-- Reached only with nothing to show, because the data is asked about
              first now and the order is the fix. The cache hands back the last
              good payload whatever the status is — a snapshot wins over the
@@ -330,7 +339,14 @@ const NAMED_TOAST_PANEL_CLASS = ['ph-no-capture', 'amounts-visible'];
              one most likely to throw the screen away. The store already
              refuses to let the history request blank a page whose figures
              loaded; it was doing it to itself. The refresh toast carries the
-             failure now. -->
+             failure now.
+
+             "Nothing to show" is the absence of a payload, not the absence of
+             a budget inside one. Testing only the branch above let a month
+             with no budget — a real, cached, correctly loaded payload holding
+             a null budget — lose its "Pas encore de budget" card and its way
+             out to the budget list the moment any reload failed, which on this
+             page is every check and every transaction. -->
         <pulpe-dashboard-error
           [message]="store.loadErrorMessage()"
           (reload)="store.refreshData()"
@@ -564,11 +580,18 @@ export default class Dashboard {
     this.#pointingLearned.set(true);
     this.#storage.set(STORAGE_KEYS.DASHBOARD_POINTING_LEARNED, true);
   }
-  // The ids one toast can still take back. A second check used to replace the
-  // first toast and, with it, the only way back to the first line — pointing
-  // three lines quickly left two of them stranded. They accumulate here for as
-  // long as the window stays open, and the toast counts them.
-  #undoableCheckIds: string[] = [];
+  // What one toast can still take back. A second action used to replace the
+  // first toast and, with it, the only way back to the first thing done —
+  // pointing three lines quickly left two of them stranded.
+  //
+  // One list rather than one per kind, because Material shows a single
+  // snackbar and the two undo paths were competing for it. Recording a
+  // transaction and then pointing a forecast is the ordinary rhythm of
+  // clearing a month, and whichever came second silently killed the first
+  // one's way back — the transaction case being the expensive one, since a
+  // mistyped amount then has to be hunted down on another page. A window that
+  // holds both is the model; guarding each caller against the other is not.
+  #undoableActions: UndoableAction[] = [];
   #undoWindowTimeout: ReturnType<typeof setTimeout> | null = null;
 
   protected readonly budgetPeriodDisplayName = computed(() => {
@@ -589,7 +612,15 @@ export default class Dashboard {
     // a dead button. The two phases matter: confirming on the first quiet tick
     // would fire before the reload had even started.
     effect(() => {
-      const isLoading = this.store.isLoading();
+      // The verdict below reads `historyError()`, so it has to wait for the
+      // request that would set it. `store.isLoading()` deliberately excludes
+      // history, and settling on it alone judged the outcome while the history
+      // call was still in flight — and a failing call is by construction slower
+      // than a succeeding one. The toast said "Chiffres à jour" and two cards
+      // turned to "indisponible" underneath it a second later.
+      const isLoading =
+        this.store.isLoading() ||
+        (this.isOutlookExpanded() && this.store.isHistoryLoading());
       const phase = untracked(this.#refreshPhase);
       if (phase === 'idle') return;
       if (isLoading) {
@@ -696,69 +727,52 @@ export default class Dashboard {
     // line already gone. Nothing happened, so nothing is confirmed or undone.
     if (name === undefined) return;
 
-    this.#confirmCheckWithUndo(budgetLineId, name);
+    this.#confirmWithUndo({ kind: 'check', id: budgetLineId, name });
   }
 
   // The confirmation and the way back are one object. The toast's own live
   // region is what tells a screen reader the write landed — until now the
   // action was silent — and its button is the only reversal available here,
-  // since a pointed line leaves the page and takes its own toggle with it.
+  // since a pointed line leaves the page and takes its own toggle with it, and
+  // a transaction recorded from the sheet has to be hunted down on another page
+  // to be removed.
   //
-  // Which is why it accumulates. Clearing a month means pointing several lines
-  // in a row, and each toast replaced the one before it: six seconds after the
-  // first tap the first line was no longer recoverable, though the user was
-  // still on the same run of taps. The window now restarts on every check and
-  // covers all of them.
-  #confirmCheckWithUndo(budgetLineId: string, name: string): void {
-    this.#undoableCheckIds = [...this.#undoableCheckIds, budgetLineId];
-    const ids = this.#undoableCheckIds;
+  // Which is why it accumulates. Clearing a month means several writes in a
+  // row, and each toast replaced the one before it: six seconds after the
+  // first tap the first one was no longer recoverable, though the user was
+  // still on the same run. The window restarts on every write and covers all
+  // of them, whichever kind they are.
+  #confirmWithUndo(action: UndoableAction): void {
+    this.#undoableActions = [...this.#undoableActions, action];
+    const actions = this.#undoableActions;
+    const hasCheck = actions.some((entry) => entry.kind === 'check');
 
-    // The toast reports what the check actually moved, which is how many
-    // forecasts are left to point — not the money. "Disponible" is
-    // available − Σ max(line.amount, consumed): the envelope counts the plan
-    // whether or not it has been pointed, so checking a line leaves that
-    // figure exactly where it was. Printing it here gave five identical
-    // numbers over five taps and read as a counter that had jammed.
-    const left = this.store.uncheckedForecasts().length;
-
-    const message =
-      ids.length === 1
-        ? this.#transloco.translate('currentMonth.uncheckedForecasts.checked', {
-            name,
-          })
-        : this.#transloco.translate(
-            'currentMonth.uncheckedForecasts.checkedMany',
-            { count: ids.length },
-          );
-    const fullMessage =
-      left > 0
-        ? `${message} — ${this.#transloco.translate('currentMonth.uncheckedForecasts.stillToCheck', { count: left })}`
-        : message;
-
-    // The action reverts every check in the window, and a bare "Annuler" beside
-    // "2 prévisions pointées" reads as undoing the tap that opened the toast. A
-    // user correcting their second tap lost their first, and had to find it
-    // again in a list they may have to scroll or leave the page to reach. The
-    // label says its scope once there is more than one.
-    const undoLabel =
-      ids.length === 1
+    const ref = this.#snackBar.open(
+      this.#undoWindowMessage(actions),
+      // The action reverts everything in the window, and a bare "Annuler"
+      // beside "2 prévisions pointées" reads as undoing the tap that opened
+      // the toast. A user correcting their second tap lost their first, and
+      // had to find it again in a list they may have to scroll or leave the
+      // page to reach. The label says its scope once there is more than one.
+      actions.length === 1
         ? this.#transloco.translate('common.undo')
         : this.#transloco.translate('currentMonth.uncheckedForecasts.undoAll', {
-            count: ids.length,
-          });
-
-    const ref = this.#snackBar.open(fullMessage, undoLabel, {
-      duration: UNDO_WINDOW_MS,
-      politeness: 'polite',
-      panelClass: NAMED_TOAST_PANEL_CLASS,
-    });
+            count: actions.length,
+          }),
+      {
+        duration: UNDO_WINDOW_MS,
+        politeness: 'polite',
+        panelClass: NAMED_TOAST_PANEL_CLASS,
+      },
+    );
     ref.onAction().subscribe(() => {
       this.#closeUndoWindow();
-      void this.#undoChecks(ids);
+      void this.#undoActions(actions);
     });
 
     // The toast's own duration cannot own this: taking the undo, or another
-    // check opening a new toast, both dismiss it without saying which happened.
+    // action opening a new toast, both dismiss it without saying which
+    // happened.
     //
     // The glossaries retire here rather than at the tap, because this is the
     // first point at which the check is a fact. Recorded straight after the
@@ -767,33 +781,98 @@ export default class Dashboard {
     // still animating out, so roughly 70px vanished from under the finger at
     // the exact moment the product was teaching the gesture. Leaving the page
     // inside the window clears the timeout and leaves the hints for next time,
-    // which is the harmless direction to be wrong in.
+    // which is the harmless direction to be wrong in. A window holding only
+    // transactions has taught nothing about pointing and retires nothing.
     if (this.#undoWindowTimeout) clearTimeout(this.#undoWindowTimeout);
     this.#undoWindowTimeout = setTimeout(() => {
-      this.#recordPointingLearned();
+      if (hasCheck) this.#recordPointingLearned();
       this.#closeUndoWindow();
     }, UNDO_WINDOW_MS);
   }
 
+  // Each kind keeps its own sentence for as long as the window holds only that
+  // kind, because "Pointé : Loyer" and "Enregistré : Courses" say what moved.
+  // A window holding both can only count them.
+  #undoWindowMessage(actions: readonly UndoableAction[]): string {
+    const checks = actions.filter((entry) => entry.kind === 'check');
+    const message = this.#undoWindowHeadline(actions, checks.length);
+    if (checks.length === 0) return message;
+
+    // The toast reports what the check actually moved, which is how many
+    // forecasts are left to point — not the money. "Disponible" is
+    // available − Σ max(line.amount, consumed): the envelope counts the plan
+    // whether or not it has been pointed, so checking a line leaves that
+    // figure exactly where it was. Printing it here gave five identical
+    // numbers over five taps and read as a counter that had jammed.
+    const left = this.store.uncheckedForecasts().length;
+    if (left === 0) return message;
+    return `${message} — ${this.#transloco.translate('currentMonth.uncheckedForecasts.stillToCheck', { count: left })}`;
+  }
+
+  #undoWindowHeadline(
+    actions: readonly UndoableAction[],
+    checkCount: number,
+  ): string {
+    if (actions.length === 1) {
+      const [only] = actions;
+      return this.#transloco.translate(
+        only.kind === 'check'
+          ? 'currentMonth.uncheckedForecasts.checked'
+          : 'currentMonth.transactionAdded',
+        { name: only.name },
+      );
+    }
+    if (checkCount === actions.length)
+      return this.#transloco.translate(
+        'currentMonth.uncheckedForecasts.checkedMany',
+        { count: actions.length },
+      );
+    if (checkCount === 0)
+      return this.#transloco.translate('currentMonth.transactionAddedMany', {
+        count: actions.length,
+      });
+    return this.#transloco.translate('currentMonth.undoWindowMixed', {
+      count: actions.length,
+    });
+  }
+
   #closeUndoWindow(): void {
-    this.#undoableCheckIds = [];
+    this.#undoableActions = [];
     if (this.#undoWindowTimeout) {
       clearTimeout(this.#undoWindowTimeout);
       this.#undoWindowTimeout = null;
     }
   }
 
-  // Sequential, not parallel: each uncheck recomputes the month server-side, and
-  // the store patches one line at a time. Reversed so the month walks back the
-  // way it came.
-  async #undoChecks(budgetLineIds: readonly string[]): Promise<void> {
-    for (const id of [...budgetLineIds].reverse()) {
-      const refusal = await this.store.uncheckBudgetLine(id);
-      if (refusal) {
-        this.#notify(refusal);
-        return;
-      }
+  // Sequential, not parallel: each reversal recomputes the month server-side,
+  // and the store patches one entity at a time. Reversed so the month walks
+  // back the way it came.
+  //
+  // Every entry is attempted, and the report counts what refused. Returning at
+  // the first refusal abandoned the rest of the window silently — the toast was
+  // already gone and the list already emptied — so "Annuler les 3" could revert
+  // one, leave two pointed, and announce it in the singular. The refusals are
+  // independent server calls; one saying no is no reason to stop asking.
+  async #undoActions(actions: readonly UndoableAction[]): Promise<void> {
+    let firstRefusal = '';
+    let refusedCount = 0;
+    for (const action of [...actions].reverse()) {
+      const refusal =
+        action.kind === 'check'
+          ? await this.store.uncheckBudgetLine(action.id)
+          : await this.store.deleteTransaction(action.id);
+      if (!refusal) continue;
+      refusedCount += 1;
+      if (!firstRefusal) firstRefusal = refusal;
     }
+    if (refusedCount === 0) return;
+    this.#notify(
+      refusedCount === 1
+        ? firstRefusal
+        : this.#transloco.translate('currentMonth.undoPartialFailure', {
+            count: refusedCount,
+          }),
+    );
   }
 
   #notify(message: string): void {
@@ -813,7 +892,15 @@ export default class Dashboard {
 
   async #addTransaction(transaction: TransactionFormData): Promise<void> {
     const budgetId = this.store.dashboardData()?.budget?.id;
+    // The sheet lives in the overlay and outlives a period rollover: returning
+    // to the tab re-stamps the clock, the resource re-keys onto the new month,
+    // and this reads null until it lands. Every other refusal on this page
+    // reaches a toast; this one dropped the amount, the label and the tags in
+    // silence, immediately after the user pressed "Ajouter".
     if (!budgetId) {
+      this.#notify(
+        this.#transloco.translate('currentMonth.addTransactionNoBudget'),
+      );
       return;
     }
     const transactionCreate = transactionCreateFromQuickFormSchema.parse({
@@ -826,33 +913,10 @@ export default class Dashboard {
       this.#notify(outcome.reason);
       return;
     }
-    this.#confirmTransactionWithUndo(
-      outcome.transactionId,
-      transactionCreate.name,
-    );
-  }
-
-  // Recording a transaction is what this page is for, and it was the one action
-  // here with no way back: a mistyped amount had to be hunted down in another
-  // page to be removed, while checking a box — one method above — has always
-  // offered six seconds and an undo. The sheet closes over the write and on a
-  // phone the figures it moved are a screenful up, so the toast is also the
-  // only evidence the money was written down at all.
-  #confirmTransactionWithUndo(transactionId: string, name: string): void {
-    const ref = this.#snackBar.open(
-      this.#transloco.translate('currentMonth.transactionAdded', { name }),
-      this.#transloco.translate('common.undo'),
-      {
-        duration: UNDO_WINDOW_MS,
-        politeness: 'polite',
-        panelClass: NAMED_TOAST_PANEL_CLASS,
-      },
-    );
-    ref.onAction().subscribe(() => void this.#undoTransaction(transactionId));
-  }
-
-  async #undoTransaction(transactionId: string): Promise<void> {
-    const refusal = await this.store.deleteTransaction(transactionId);
-    if (refusal) this.#notify(refusal);
+    this.#confirmWithUndo({
+      kind: 'transaction',
+      id: outcome.transactionId,
+      name: transactionCreate.name,
+    });
   }
 }

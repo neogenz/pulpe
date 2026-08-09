@@ -769,18 +769,27 @@ export class DashboardHero {
     // prévisions all fit. What opened the gap there is money the pace verdict
     // is built to ignore — a transfer to savings, an expense recorded and not
     // yet pointed — so the sentence names the outflow rather than the plan.
-    // "Il est sorti" is this page's word for pointed, and the branch below is
-    // reached by a negative remaining, which counts every recorded franc
-    // whether or not it has been pointed. An expense entered with the toggle
-    // off therefore printed "il est sorti plus que ce que le mois t'apporte"
-    // directly above a legend reading "Déjà sorti 0". When nothing has left the
-    // account the verdict is not this one — the ledger readings below already
-    // have the sentence for a month whose entries say nothing about its pace.
+    // "Il est sorti" is this page's word for pointed, and a negative remaining
+    // counts every recorded franc whether or not it has been pointed, so the
+    // two are not the same reading and the sentence has to pick the one that
+    // is true. An expense entered with the toggle off printed "il est sorti
+    // plus que ce que le mois t'apporte" directly above a legend reading
+    // "Déjà sorti 0"; the comparison against what the month brings in says it
+    // exactly, where a bare "something was pointed" also claimed the deficit
+    // for fifty francs pointed against three thousand of income.
+    //
+    // The block returns on every path, which is the point of it. A deficit
+    // driven entirely by unpointed entries satisfied none of the earlier
+    // conditions and fell through to the percentage below, so the one state on
+    // this card with real stakes was answered with "ton budget est presque
+    // entièrement engagé" — reassurance, forty pixels under a caption reading
+    // "il manque pour équilibrer le mois", and "presque" is false past 100%.
     if (this.isPlanOverAvailable()) {
       if (this.planExceedsAvailable())
         return 'dashboard.status.planOverAvailable';
-      if (this.realizedExpenses() > 0)
-        return 'dashboard.status.outflowBeyondIncome';
+      return this.realizedExpenses() > this.available()
+        ? 'dashboard.status.outflowBeyondIncome'
+        : 'dashboard.status.recordedBeyondIncome';
     }
     if (this.paceStatus() === 'tight') return 'dashboard.status.fastPace';
     // A plan leaving almost nothing free is true whether or not anything

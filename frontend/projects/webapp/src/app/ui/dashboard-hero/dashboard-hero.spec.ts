@@ -165,10 +165,17 @@ describe('DashboardHero', () => {
   // "Il est sorti" means pointed. This branch is reached by a negative
   // remaining, which counts unpointed entries too, so an expense recorded with
   // the toggle off asserted an outflow above a legend reading "Déjà sorti 0".
-  it('should not claim money left the account while nothing is pointed', () => {
+  //
+  // The consumed percentage is pinned at 100 here because that is what the
+  // store emits for every negative remaining, and it is the whole reason the
+  // deficit block has to return on every path: a version of this test that
+  // left the percentage at 0 passed against an input tuple the store cannot
+  // produce, while the real one fell through to "presque entièrement engagé".
+  it('should name the deficit rather than reassure while nothing is pointed', () => {
     setTestInput(component.available, 5000);
     setTestInput(component.expenses, 5500);
     setTestInput(component.remaining, -500);
+    setTestInput(component.budgetConsumedPercentage, 100);
     setTestInput(component.planExceedsAvailable, false);
     setTestInput(component.realizedExpenses, 0);
     setTestInput(component.hasRecordedActivity, true);
@@ -180,8 +187,30 @@ describe('DashboardHero', () => {
     expect(component['statusMessage']()).not.toBe(
       'dashboard.status.outflowBeyondIncome',
     );
+    expect(component['statusMessage']()).not.toBe(
+      'dashboard.status.almostSpent',
+    );
     expect(component['statusMessage']()).toBe(
-      'dashboard.status.nothingCheckedYet',
+      'dashboard.status.recordedBeyondIncome',
+    );
+  });
+
+  // The sentence claims the outflow passed what the month brings in, so that
+  // is what it is measured against. Gated on "anything at all was pointed", it
+  // also fired for fifty francs pointed against three thousand of income.
+  it('should claim an outflow beyond income only once it really passed income', () => {
+    setTestInput(component.available, 1000);
+    setTestInput(component.expenses, 1400);
+    setTestInput(component.remaining, -400);
+    setTestInput(component.budgetConsumedPercentage, 100);
+    setTestInput(component.planExceedsAvailable, false);
+    setTestInput(component.realizedExpenses, 1200);
+    setTestInput(component.hasRecordedActivity, true);
+    setTestInput(component.paceStatus, 'within-plan');
+    fixture.detectChanges();
+
+    expect(component['statusMessage']()).toBe(
+      'dashboard.status.outflowBeyondIncome',
     );
   });
 
@@ -538,7 +567,13 @@ describe('DashboardHero', () => {
       expect(compiled.textContent).not.toContain('couvrir ton plan');
       expect(compiled.textContent).not.toContain('alléger une prévision');
       expect(compiled.textContent).toContain('équilibrer le mois');
-      expect(compiled.textContent).toContain('ton plan, lui, tient');
+      expect(compiled.textContent).toContain('Ton plan, lui, tient');
+      // 500 pointed against 5 000 of income is not an outflow beyond income,
+      // and a deficit is never answered with the percentage sentence.
+      expect(compiled.textContent).not.toContain('presque entièrement engagé');
+      expect(component['statusMessage']()).toBe(
+        'dashboard.status.recordedBeyondIncome',
+      );
     });
 
     it('should still blame the plan when the plan really is too big', () => {

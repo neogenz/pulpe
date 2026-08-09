@@ -140,14 +140,18 @@ export class DashboardStore {
     cache: this.#budgetApi.cache,
     cacheKey: (params) => ['budget', 'dashboard', params.month, params.year],
     params: () => {
-      // "Pas encore prête" plutôt qu'une supposition. Le jour de paie vaut
-      // `null` tant que les réglages chargent, et sans lui la période retombe
-      // sur le mois calendaire : le 28 janvier avec une paie au 27, la page
-      // demandait, cachait et pouvait afficher janvier alors que l'utilisateur
-      // est en février — sans spinner, puisque `isInitialLoading` s'éteint dès
-      // qu'une donnée existe.
-      if (this.payDayOfMonth() === null && this.#isSettingsLoading())
-        return undefined;
+      // "Pas encore prête" plutôt qu'une supposition. Sans jour de paie la
+      // période retombe sur le mois calendaire : le 28 janvier avec une paie au
+      // 27, la page demandait, cachait et pouvait afficher janvier alors que
+      // l'utilisateur est en février — sans spinner.
+      //
+      // C'est la ressource qui dit si les réglages sont connus, pas la valeur :
+      // `payDayOfMonth` vaut légitimement `null` pour qui suit le calendrier,
+      // et `isLoading` est un `isInitialLoading` qui retombe à `false` dès que
+      // la requête ÉCHOUE. Interroger l'un ou l'autre laissait donc la page
+      // deviner un mois précisément quand les réglages n'étaient pas arrivés.
+      // Un échec ne repart pas d'ici : il remonte dans `error`.
+      if (this.#userSettingsStore.settings() === undefined) return undefined;
       const period = this.currentBudgetPeriod();
       return {
         month: period.month.toString().padStart(2, '0'),
@@ -200,11 +204,20 @@ export class DashboardStore {
   readonly isLoading = computed(
     () => this.#dashboardResource.isLoading() || this.#isSettingsLoading(),
   );
-  readonly hasValue = computed(() => this.#dashboardResource.hasValue());
+  // Deliberately not part of `isLoading` — see above. It is readable on its own
+  // for the one caller that has to wait for history: the refresh confirmation,
+  // which would otherwise judge the outcome before the slower half answered.
+  readonly isHistoryLoading = computed(() => this.#historyResource.isLoading());
   // The page renders this as a full-screen "could not load" card, so it says one
   // thing only: the dashboard could not be fetched. A refused mutation travels
   // back through its own return value — see `addTransaction`.
-  readonly error = computed(() => this.#dashboardResource.error());
+  //
+  // A settings failure counts, and has to: the request above will not fire
+  // without them, so leaving it out left the page on a spinner that no longer
+  // had a request behind it.
+  readonly error = computed(
+    () => this.#dashboardResource.error() ?? this.#userSettingsStore.error(),
+  );
   // One card renders every way that fetch can fail, and it used to say the same
   // sentence each time: a 403, a rate limit and a payload this client can no
   // longer parse all blamed the user's wifi and offered a retry that could not
@@ -698,6 +711,11 @@ export class DashboardStore {
     // Ré-horodater avant de recharger : sans cela « Actualiser » redemandait au
     // serveur exactement le mois périmé qu'il affichait déjà.
     this.#currentDate.set(this.#clock());
+    // Les réglages d'abord, parce qu'ils commandent la requête suivante : leur
+    // échec est désormais une des façons dont cette page tombe en erreur, et le
+    // bouton de la carte d'erreur arrive ici. Sans cette ligne il réessayait
+    // tout sauf ce qui avait cassé.
+    this.#userSettingsStore.reload();
     this.#dashboardResource.reload();
     this.#historyResource.reload();
   }
