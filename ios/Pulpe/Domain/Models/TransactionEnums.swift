@@ -41,15 +41,23 @@ enum TransactionKind: String, Codable, CaseIterable, Sendable {
         }
     }
 
-    var newTransactionTitle: String {
+    /// The article travels with the word, so a title only ever prefixes a verb:
+    /// "Noter" + "une dépense". Holding the two halves in one property is what
+    /// keeps them from drifting apart as titles are added.
+    var indefiniteLabel: String {
         switch self {
-        case .expense: "Nouvelle dépense"
-        case .income: "Nouveau revenu"
-        case .saving: "Nouvelle épargne"
+        case .expense: "une dépense"
+        case .income: "un revenu"
+        case .saving: "une épargne"
         }
     }
 
-    var newBudgetLineTitle: String { "Nouvelle prévision" }
+    /// The verb carries the tense: here a fact already on the account, on the
+    /// forecast side an intention still to come. "Nouvelle dépense" named
+    /// neither — it only said something was about to exist.
+    var newTransactionTitle: String { "Noter \(indefiniteLabel)" }
+
+    var newBudgetLineTitle: String { "Prévoir \(indefiniteLabel)" }
 
     var editBudgetLineTitle: String {
         switch self {

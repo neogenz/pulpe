@@ -61,7 +61,7 @@ struct AddCustomExpenseSheet: View {
 
     var body: some View {
         SheetFormContainer(
-            title: isEditing ? "Modifier" : "Nouvelle prévision",
+            title: isEditing ? "Modifier" : kind.newBudgetLineTitle,
             isLoading: false,
             focus: $focusedField,
             focusOrder: [.amount, .description]

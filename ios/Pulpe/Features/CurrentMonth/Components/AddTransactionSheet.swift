@@ -115,10 +115,10 @@ struct AddTransactionSheet: View {
             focus: $focusedField,
             focusOrder: [.amount, .description]
         ) {
-            Text("Pas liée à une prévision")
-                .font(PulpeTypography.caption)
-                .foregroundStyle(Color.textSecondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            // The one line that separates this screen from « Prévoir » : here a
+            // dated fact, there an intention. Left at the bottom it arrived
+            // after the question it answers had already been settled.
+            dateSelector
 
             KindToggle(selection: $kind)
             if userSettingsStore.showCurrencySelector {
@@ -143,10 +143,14 @@ struct AddTransactionSheet: View {
             )
             .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
             descriptionField
-            dateSelector
-            CheckedToggle(isOn: $isChecked, tintColor: kind.color)
             TagPickerField(selection: $selectedTagIds)
             savingsGoalOriginSection
+
+            // Pointing answers a different question than the rest of the form —
+            // not what is being noted, but whether the money has already left
+            // the account — so it sits with the actions rather than inside the
+            // block that describes the movement.
+            CheckedToggle(isOn: $isChecked, tintColor: kind.color)
 
             if let error {
                 ErrorBanner(message: DomainErrorLocalizer.localize(error)) {
