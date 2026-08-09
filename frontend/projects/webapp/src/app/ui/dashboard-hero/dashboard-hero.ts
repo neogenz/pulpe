@@ -84,7 +84,7 @@ let heroInstanceCount = 0;
       </div>
 
       <!-- Disponible section -->
-      <div class="mb-7 relative z-10">
+      <div class="hero-amount mb-7 relative z-10">
         <div class="flex items-baseline gap-2">
           <!-- tabular-nums, per DESIGN.md:118 — "non-negotiable on hero
                amounts". The legend below has had it all along; the 57px figure
@@ -416,6 +416,42 @@ let heroInstanceCount = 0;
         );
         color: var(--pulpe-hero-primary-text);
         box-shadow: var(--mat-sys-level2);
+      }
+
+      /* Two moves, not a choreography: the card lands, then the number settles
+         into it. This page is opened daily and read in a glance, so the whole
+         thing is over in 440ms and nothing the user came for waits on it — the
+         amount is legible from the first frame, only its last 8px arrive late.
+         What is deliberately absent is the obvious effect on a saturated
+         gradient, a light sweeping across it: DESIGN.md §4 rules out cast
+         light, and this card already dropped two blurred orbs for that reason.
+         Depth here is surface tone, and a surface does not glint.
+         Fill mode backwards, never forwards: the card carries a hover
+         scale on the same property, and a forwards fill would pin transform to
+         the animation's last frame and kill it for the rest of the session. */
+      @media (prefers-reduced-motion: no-preference) {
+        .hero-container {
+          animation: hero-arrive var(--pulpe-motion-slow)
+            var(--pulpe-ease-emphasized) backwards;
+        }
+
+        .hero-amount {
+          animation: hero-amount-settle var(--pulpe-motion-slow)
+            var(--pulpe-ease-emphasized) 120ms backwards;
+        }
+      }
+
+      @keyframes hero-arrive {
+        from {
+          opacity: 0;
+          transform: translateY(12px);
+        }
+      }
+
+      @keyframes hero-amount-settle {
+        from {
+          transform: translateY(8px);
+        }
       }
 
       /* The target is the whole card, so the control is the whole card. z-20
