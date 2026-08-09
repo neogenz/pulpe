@@ -49,19 +49,27 @@ import { TranslocoPipe } from '@jsverse/transloco';
             >
               {{ 'currentMonth.recentTransactionsTitle' | transloco }}
             </h2>
-            <p
-              class="text-body-small text-on-surface-variant font-medium mt-0.5"
-            >
-              <!-- The count of rows on screen used to lead this line, in the
-                   same "X sur Y" shape the two neighbouring cards use for
-                   progress — so "1 sur 1 ce mois" read as work finished rather
-                   than as a list of one. How many rows are drawn is something
-                   the reader can see; how many the month holds is not. -->
-              {{
-                'currentMonth.recentTransactionsSubtitle'
-                  | transloco: { total: totalCount() }
-              }}
-            </p>
+            <!-- Suppressed on an empty month, the way the forecasts card next
+                 to it already is: "0 ce mois" restated, in smaller type, the
+                 "Aucune transaction" panel twenty pixels below it, and two
+                 cards built from one recipe answered the same emptiness two
+                 different ways. -->
+            @if (totalCount() > 0) {
+              <p
+                class="text-body-small text-on-surface-variant font-medium mt-0.5"
+              >
+                <!-- The count of rows on screen used to lead this line, in the
+                     same "X sur Y" shape the two neighbouring cards use for
+                     progress — so "1 sur 1 ce mois" read as work finished
+                     rather than as a list of one. How many rows are drawn is
+                     something the reader can see; how many the month holds is
+                     not. -->
+                {{
+                  'currentMonth.recentTransactionsSubtitle'
+                    | transloco: { total: totalCount() }
+                }}
+              </p>
+            }
           </div>
         </div>
         <button

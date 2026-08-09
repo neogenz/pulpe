@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Chart } from 'chart.js';
 // Importing the module runs its top-level `Chart.register(...)` side-effect.
 import './chart-theme';
+import { formatAxisTick } from './chart-theme';
 
 /**
  * Guards the tree-shaken Chart.js registration in chart-theme.ts. We register an
@@ -27,6 +28,17 @@ describe('chart-theme Chart.js registration', () => {
     expect(() => Chart.registry.getPlugin('filler')).not.toThrow();
     expect(() => Chart.registry.getPlugin('legend')).not.toThrow();
     expect(() => Chart.registry.getPlugin('tooltip')).not.toThrow();
+  });
+
+  it('abbreviates by magnitude, so a negative axis keeps one unit', () => {
+    expect(formatAxisTick(4000, 'CHF')).toBe('4k');
+    expect(formatAxisTick(-4000, 'CHF')).toBe('-4k');
+    expect(formatAxisTick(-500, 'CHF')).toBe('-500');
+  });
+
+  it('writes the abbreviated decimal with the currency locale separator', () => {
+    expect(formatAxisTick(2500, 'EUR')).toBe('2,5k');
+    expect(formatAxisTick(2500, 'CHF')).toBe('2.5k');
   });
 
   // There is deliberately no "unused types stay unregistered" counterpart:

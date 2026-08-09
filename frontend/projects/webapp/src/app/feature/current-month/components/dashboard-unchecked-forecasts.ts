@@ -129,7 +129,15 @@ interface AnimatingForecast {
           <div class="flex flex-col gap-1">
             @for (forecast of displayedForecasts(); track forecast.id) {
               @let displayAmount = remainingToExpect(forecast);
-              @let isPartlyConsumed = displayAmount !== forecast.amount;
+              <!-- Compared as the row prints them, not as they are held. The
+                   two figures sit at different precisions on purpose — an
+                   aggregation beside a ligne — so 50 centimes off a round 600
+                   made them differ in memory and identical on screen: a row
+                   flagged as partly consumed reading "600 restant sur 600.00",
+                   and a toggle announcing the same contradiction. -->
+              @let isPartlyConsumed =
+                roundToDisplay(displayAmount) !==
+                roundToDisplay(forecast.amount);
               @let isChecking = isExitAnimating(forecast.id);
               <!-- No hover tint on the row: nothing here handles a click. The
                    row lit up under the cursor and then swallowed the click,
@@ -210,7 +218,14 @@ interface AnimatingForecast {
                        moved. The household's largest commitment could appear
                        as its smallest row. The plan is named only when the two
                        differ; on an untouched line it would restate the figure
-                       beside it. -->
+                       beside it.
+
+                       The clause says which way the ratio runs. A bare "sur"
+                       put the pair in the same shape the count above it and
+                       the savings card both use for progress — done of total —
+                       so "100 sur 1'500.50" read as a rent almost entirely
+                       unpaid rather than almost entirely covered, the exact
+                       inversion, on the row the user is about to point. -->
                   @if (isPartlyConsumed) {
                     <span
                       class="text-label-small text-on-surface-variant font-medium tabular-nums ph-no-capture"
@@ -441,6 +456,11 @@ export class DashboardUncheckedForecasts {
   protected remainingToExpect(forecast: BudgetLine): number {
     const consumption = this.consumptions().get(forecast.id);
     return Math.max(0, consumption?.remaining ?? forecast.amount);
+  }
+
+  // What the row's leading figure shows: an aggregation, so no centimes.
+  protected roundToDisplay(amount: number): number {
+    return Math.round(amount);
   }
 
   protected isExitAnimating(forecastId: string): boolean {

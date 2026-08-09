@@ -1,5 +1,4 @@
 import { format } from 'date-fns';
-import { frCH } from 'date-fns/locale';
 import {
   afterNextRender,
   ChangeDetectionStrategy,
@@ -43,6 +42,7 @@ import { DashboardSavingsSummary } from './components/dashboard-savings-summary'
 import { DashboardNextMonth } from './components/dashboard-next-month';
 import { UserSettingsStore } from '@core/user-settings';
 import { CURRENCY_CONFIG } from '@core/currency';
+import { dateFnsLocaleFor } from '@core/locale';
 import { StorageService, STORAGE_KEYS } from '@core/storage';
 
 // Longer than the plain notification below: this toast is not read, it is
@@ -218,6 +218,16 @@ type UndoableAction =
              Closed, the charts inside are display:none, so the viewport
              trigger that mounts them never fires — the other half of the cost
              this removes. -->
+        <!-- The title has to sit outside the summary to stay a heading at all.
+             A summary maps to a button, and ARIA prunes the roles of a
+             button's descendants — the same rule the hero documents fixing at
+             its own month heading. Four of this page's seven blocks live
+             behind this control, and its name was missing from the heading
+             list entirely: navigating by heading went from the transactions
+             card to nothing, since the four headings inside are hidden while
+             the fold is closed. The visible copy stays where it is, so the
+             control keeps its name and its look. -->
+        <h2 class="sr-only">{{ 'currentMonth.outlookTitle' | transloco }}</h2>
         <details
           #outlookDetails
           class="dashboard-outlook"
@@ -229,11 +239,11 @@ type UndoableAction =
             data-testid="dashboard-outlook-summary"
           >
             <div class="min-w-0">
-              <h2
+              <p
                 class="text-title-medium font-bold text-on-surface leading-tight"
               >
                 {{ 'currentMonth.outlookTitle' | transloco }}
-              </h2>
+              </p>
               <p
                 class="text-body-small text-on-surface-variant font-medium mt-0.5"
               >
@@ -327,7 +337,7 @@ type UndoableAction =
             }
           </div>
         </details>
-      } @else if (store.status() === 'error' && !store.dashboardData()) {
+      } @else if (store.error() && !store.dashboardData()) {
         <!-- Reached only with nothing to show, because the data is asked about
              first now and the order is the fix. The cache hands back the last
              good payload whatever the status is — a snapshot wins over the
@@ -346,7 +356,16 @@ type UndoableAction =
              with no budget — a real, cached, correctly loaded payload holding
              a null budget — lose its "Pas encore de budget" card and its way
              out to the budget list the moment any reload failed, which on this
-             page is every check and every transaction. -->
+             page is every check and every transaction.
+
+             It asks whether there IS a failure, not whether the dashboard
+             request is the one that failed. Settings are now a way this page
+             breaks, and the store deliberately never fires the dashboard
+             request without them — so that resource sits at "idle", the status
+             test was false, and a failed settings load fell through to the
+             branch below and told the user, flatly, that they had no budget
+             this month. That claim was not merely unhelpful: it offers to
+             create a budget that already exists. -->
         <pulpe-dashboard-error
           [message]="store.loadErrorMessage()"
           (reload)="store.refreshData()"
@@ -594,10 +613,16 @@ export default class Dashboard {
   #undoableActions: UndoableAction[] = [];
   #undoWindowTimeout: ReturnType<typeof setTimeout> | null = null;
 
+  // The only month name on this page that was not driven by the user's own
+  // locale. Every other one goes through LOCALE_ID, which `core/locale.ts`
+  // derives from the currency, and it ships `dateFnsLocaleFor` for exactly this
+  // call. `frCH` and `fr` happen to render `MMMM yyyy` identically today, so
+  // nothing was visibly wrong — it was one date-fns release away from being the
+  // odd string out.
   protected readonly budgetPeriodDisplayName = computed(() => {
     const period = this.store.currentBudgetPeriod();
     return format(new Date(period.year, period.month - 1, 1), 'MMMM yyyy', {
-      locale: frCH,
+      locale: dateFnsLocaleFor(this.currency()),
     });
   });
 
@@ -745,7 +770,6 @@ export default class Dashboard {
   #confirmWithUndo(action: UndoableAction): void {
     this.#undoableActions = [...this.#undoableActions, action];
     const actions = this.#undoableActions;
-    const hasCheck = actions.some((entry) => entry.kind === 'check');
 
     const ref = this.#snackBar.open(
       this.#undoWindowMessage(actions),
@@ -784,10 +808,18 @@ export default class Dashboard {
     // which is the harmless direction to be wrong in. A window holding only
     // transactions has taught nothing about pointing and retires nothing.
     if (this.#undoWindowTimeout) clearTimeout(this.#undoWindowTimeout);
-    this.#undoWindowTimeout = setTimeout(() => {
-      if (hasCheck) this.#recordPointingLearned();
-      this.#closeUndoWindow();
-    }, UNDO_WINDOW_MS);
+    this.#undoWindowTimeout = setTimeout(
+      () => this.#settleUndoWindow(),
+      UNDO_WINDOW_MS,
+    );
+  }
+
+  // The window is over and what it covered is now a fact. Time is one way to
+  // get here; losing the snackbar to another message is the other.
+  #settleUndoWindow(): void {
+    if (this.#undoableActions.some((entry) => entry.kind === 'check'))
+      this.#recordPointingLearned();
+    this.#closeUndoWindow();
   }
 
   // Each kind keeps its own sentence for as long as the window holds only that
@@ -875,7 +907,14 @@ export default class Dashboard {
     );
   }
 
+  // Material holds one snackbar, so this message destroys any undo still on
+  // screen — and the window has to go with it. Left running, the list and the
+  // timer kept offering a way back that no longer had a button: point one line,
+  // have the server refuse the next, and the first was silently unreversible.
+  // Settling rather than merely closing is what retires the glossaries, because
+  // at that point the check really is a fact.
   #notify(message: string): void {
+    this.#settleUndoWindow();
     this.#snackBar.open(
       message,
       this.#transloco.translate('currentMonth.close'),

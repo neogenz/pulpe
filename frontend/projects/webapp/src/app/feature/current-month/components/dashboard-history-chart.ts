@@ -27,6 +27,7 @@ import {
   formatCurrency,
   CHART_FONT_FAMILY,
   resolveChartAnimation,
+  formatAxisTick,
 } from '@core/chart/chart-theme';
 
 @Component({
@@ -367,11 +368,8 @@ export class DashboardHistoryChart {
           ticks: {
             callback: (value) => {
               if (isHidden) return '•';
-              if (typeof value === 'number') {
-                if (value >= 1000) return value / 1000 + 'k';
-                return value;
-              }
-              return value;
+              if (typeof value !== 'number') return value;
+              return formatAxisTick(value, currency);
             },
             font: {
               family: CHART_FONT_FAMILY,

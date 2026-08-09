@@ -521,6 +521,15 @@ export class DashboardStore {
     calculateAllConsumptions(this.budgetLines(), this.transactions()),
   );
 
+  // The chart draws "Dépenses" and "Épargne" as two bars of one month, so they
+  // have to be two disjoint quantities. `totalExpenses` is not: the formula
+  // counts every outflow line, savings included, because it exists to answer
+  // `available - totalExpenses`. Handed to the chart raw, 5 000 de revenu /
+  // 3 000 de dépenses / 1 000 d'épargne drew 5 000, 4 000 and 1 000 — the
+  // savings bar was also inside the one beside it, and a reader adding the two
+  // outflows got the whole income back and saw a month that broke even, with
+  // 1 000 actually left. Subtracting them here rather than in the chart keeps
+  // one answer for the tooltip, the axis and the aria sentence.
   readonly historyData = computed<HistoryDataPoint[]>(() => {
     const all = this.#historyResource.value() ?? [];
     const current = this.currentBudgetPeriod();
@@ -532,7 +541,8 @@ export class DashboardStore {
     return pastAndPresent
       .toSorted((a, b) => b.year * 12 + b.month - (a.year * 12 + a.month))
       .slice(0, HISTORY_MONTHS_LIMIT)
-      .toReversed();
+      .toReversed()
+      .map((b) => ({ ...b, expenses: Math.max(0, b.expenses - b.savings) }));
   });
 
   readonly upcomingBudgetsData = computed<UpcomingMonthForecast[]>(() => {

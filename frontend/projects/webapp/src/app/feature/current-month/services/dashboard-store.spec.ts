@@ -1732,6 +1732,24 @@ describe('DashboardStore - History Data', () => {
       expect(store.historyData()).toEqual([]);
     });
   });
+
+  it('should exclude savings from the expenses drawn beside them', async () => {
+    const { store } = await setupWithHistory([
+      {
+        id: 'h1',
+        month: 6,
+        year: 2025,
+        totalIncome: 5000,
+        totalExpenses: 4000, // savings included, as the API sends it
+        totalSavings: 1000,
+      },
+    ]);
+
+    await vi.waitFor(() => {
+      expect(store.historyData()[0].expenses).toBe(3000);
+      expect(store.historyData()[0].savings).toBe(1000);
+    });
+  });
 });
 
 describe('DashboardStore - Upcoming Budgets Data', () => {

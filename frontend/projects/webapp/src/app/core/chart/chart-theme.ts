@@ -162,3 +162,27 @@ export function formatCurrency(
   const config = CURRENCY_CONFIG[currency];
   return getCurrencyFormatter(currency, config.numberLocale).format(value);
 }
+
+const AXIS_ABBREVIATION_THRESHOLD = 1000;
+const axisFormatterCache = new Map<string, Intl.NumberFormat>();
+
+// A y-axis label. Both charts abbreviated on the raw value rather than its
+// magnitude, so a projection dipping under zero — which the fill gradient
+// splits at zero precisely to show — printed "4k, 2k, 0, -2000, -4000", half
+// the axis in one unit and half in another. And both divided and concatenated,
+// which is `String(2.5)`: a dot on an axis whose own tooltip, formatted through
+// the same currency's locale, writes the separator the other way.
+export function formatAxisTick(
+  value: number,
+  currency: SupportedCurrency,
+): string {
+  const locale = CURRENCY_CONFIG[currency].numberLocale;
+  let formatter = axisFormatterCache.get(locale);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 });
+    axisFormatterCache.set(locale, formatter);
+  }
+  return Math.abs(value) < AXIS_ABBREVIATION_THRESHOLD
+    ? formatter.format(value)
+    : `${formatter.format(value / AXIS_ABBREVIATION_THRESHOLD)}k`;
+}

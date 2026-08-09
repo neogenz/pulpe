@@ -8,9 +8,8 @@ import {
   formatCurrency,
   CHART_FONT_FAMILY,
   resolveChartAnimation,
+  formatAxisTick,
 } from '@core/chart/chart-theme';
-
-const AXIS_ABBREVIATION_THRESHOLD = 1000;
 
 export function buildProjectionChartOptions(
   theme: ChartThemeColors | null,
@@ -98,10 +97,7 @@ export function buildProjectionChartOptions(
           color: tickColor,
           callback: function (value: string | number) {
             if (amountsHidden) return '•';
-            const num = Number(value);
-            if (num >= AXIS_ABBREVIATION_THRESHOLD)
-              return num / AXIS_ABBREVIATION_THRESHOLD + 'k';
-            return num;
+            return formatAxisTick(Number(value), currency);
           },
         },
       },

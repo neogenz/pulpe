@@ -476,7 +476,7 @@ describe('Dashboard (TestBed)', () => {
 
   function createMockStore(budgetId: string) {
     return {
-      dashboardData: signal<{ budget?: { id: string } }>({
+      dashboardData: signal<{ budget?: { id: string } | null } | null>({
         budget: { id: budgetId },
       }),
       addTransaction: vi.fn().mockResolvedValue({ transactionId: 'tx-new' }),
@@ -498,6 +498,7 @@ describe('Dashboard (TestBed)', () => {
       uncheckBudgetLine: vi.fn().mockResolvedValue(null),
       remaining: signal(3491),
       historyError: signal<unknown>(undefined),
+      loadErrorMessage: signal('On n’arrive pas à charger ton tableau de bord'),
     };
   }
 
@@ -583,12 +584,49 @@ describe('Dashboard (TestBed)', () => {
     const fixture = TestBed.createComponent(Dashboard);
     return {
       component: fixture.componentInstance,
+      fixture,
       mockStore,
       mockDialogService,
       mockSnackBar,
       undoAction,
     };
   }
+
+  describe('failure branch', () => {
+    // The settings request is the one this page cannot start without, so the
+    // store deliberately withholds the dashboard request until it lands. When
+    // settings fail, that resource therefore never leaves "idle" — and the
+    // branch was asking about its status rather than about whether anything
+    // had failed. A user with a budget was told they had none, and offered to
+    // create the one they already had.
+    it('should show the error card when the failure came from the settings', async () => {
+      const { fixture, mockStore } = await setup(budgetId, undefined);
+
+      mockStore.dashboardData.set(null);
+      mockStore.status.set('idle');
+      mockStore.error.set(new Error('settings unreachable'));
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      expect(
+        compiled.querySelector('[data-testid="dashboard-error"]'),
+      ).not.toBeNull();
+    });
+
+    it('should keep the no-budget card when nothing failed', async () => {
+      const { fixture, mockStore } = await setup(budgetId, undefined);
+
+      mockStore.dashboardData.set({ budget: null });
+      mockStore.status.set('resolved');
+      mockStore.error.set(null);
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      expect(
+        compiled.querySelector('[data-testid="dashboard-error"]'),
+      ).toBeNull();
+    });
+  });
 
   describe('#addTransaction forwards currency conversion metadata', () => {
     it('should include originalAmount, originalCurrency, targetCurrency, exchangeRate in store.addTransaction call when present on the surface payload', async () => {
@@ -858,6 +896,25 @@ describe('Dashboard (TestBed)', () => {
         expect.any(String),
         expect.objectContaining({ duration: 5000 }),
       );
+    });
+
+    // Material holds one snackbar, so a refusal's message destroys the undo
+    // toast — and the window used to keep its list and its timer running
+    // behind a button that no longer existed. Point one line, have the server
+    // refuse the next, and the first was silently unreversible while the code
+    // still believed it could be taken back.
+    it('should settle the window when another message takes the toast', async () => {
+      const { component, mockStore } = await setup(budgetId, undefined);
+
+      await component['checkBudgetLine']('line-1');
+      expect(component['showPointingHints']()).toBe(true);
+
+      mockStore.checkBudgetLine.mockResolvedValue('Impossible de pointer');
+      await component['checkBudgetLine']('line-2');
+
+      // Settled, not merely closed: the check is a fact from here, so the
+      // glossaries retire now rather than on a timer nothing can reach.
+      expect(component['showPointingHints']()).toBe(false);
     });
 
     it('should count the checks it can still take back', async () => {
