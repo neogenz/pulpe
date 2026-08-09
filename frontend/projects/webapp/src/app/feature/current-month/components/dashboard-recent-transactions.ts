@@ -38,8 +38,17 @@ import { TranslocoPipe } from '@jsverse/transloco';
     <div class="flex flex-col w-full h-full">
       <!-- Same recipe as the twin card and as dashboard-next-month: gap-3 on
            the row, min-w-0 on the text so it can give, shrink-0 on the button
-           so it cannot. -->
-      <div class="mb-4 px-1 flex items-center justify-between gap-3">
+           so it cannot.
+           Below 360px the row stops being a row. Giving the column somewhere to
+           shrink only moved the overflow: the column gave, the wrapper inside it
+           kept min-width:auto, and "Transactions" — one unbreakable 103px word —
+           ran 36px under its own button at 320px, which is the width WCAG 1.4.10
+           Reflow asks for (400% zoom on a 1280 screen). Truncating would have
+           cost the label; there is simply no arrangement where a 161px button
+           and a title share 288px, so below that the button takes its own line. -->
+      <div
+        class="mb-4 px-1 flex items-center justify-between gap-3 max-[360px]:flex-col max-[360px]:items-start"
+      >
         <div class="flex items-center gap-3 min-w-0">
           <div
             class="w-10 h-10 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center shrink-0"

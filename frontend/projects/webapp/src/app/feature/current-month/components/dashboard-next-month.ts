@@ -20,7 +20,9 @@ import { AppCurrencyPipe } from '@core/currency';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col w-full h-full">
-      <div class="mb-4 px-1 flex items-center justify-between gap-3">
+      <div
+        class="mb-4 px-1 flex items-center justify-between gap-3 max-[360px]:flex-col max-[360px]:items-start"
+      >
         <div class="flex items-center gap-3 min-w-0">
           <div
             class="w-10 h-10 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center shrink-0!"

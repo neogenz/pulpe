@@ -26,8 +26,10 @@ import { AppCurrencyPipe } from '@core/currency';
            variant and its flag icon went the same way: 189px of trailing
            action against the siblings' 117, on three cards built from one
            recipe. -->
-      <div class="mb-4 px-1 flex items-center justify-between">
-        <div class="flex items-center gap-3">
+      <div
+        class="mb-4 px-1 flex items-center justify-between gap-3 max-[360px]:flex-col max-[360px]:items-start"
+      >
+        <div class="flex items-center gap-3 min-w-0">
           <div
             class="w-10 h-10 rounded-full bg-financial-savings/10 text-financial-savings flex items-center justify-center shrink-0"
           >

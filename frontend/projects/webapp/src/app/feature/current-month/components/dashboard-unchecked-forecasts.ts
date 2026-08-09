@@ -57,8 +57,13 @@ interface AnimatingForecast {
            Pinning the button without giving the text beside it somewhere to
            shrink leaves the row with no give at all: below a certain card
            width it would overflow rather than reflow. -->
+      <!-- Below 360px the button takes its own line — same reason as the twin
+           card, which lost that argument by 36px at 320. This title only clears
+           by 2px there, and it clears at all because "Prévisions à pointer"
+           happens to wrap; one copy edit to a single long word and it would
+           read like its twin. -->
       <div
-        class="px-1 flex items-center justify-between gap-3"
+        class="px-1 flex items-center justify-between gap-3 max-[360px]:flex-col max-[360px]:items-start"
         [class.mb-4]="!showsPointerHint()"
         [class.mb-2]="showsPointerHint()"
       >
@@ -413,8 +418,14 @@ export class DashboardUncheckedForecasts {
   // The definition and the count share one slot, so three places have to agree
   // on which is showing: the count, the definition, and the gap under the
   // header that closes to bind the definition to it.
+  // Gated on the list, not on the month's total: `DASHBOARD_POINTING_LEARNED`
+  // is written from this page alone, so a user who points from budget details
+  // or from iOS never retires it. Keyed on `totalCount` that user met a card
+  // teaching the gesture above "Tout est à jour !", with nothing left to
+  // practise it on, and the "12 sur 12 pointées" that would have been the
+  // informative line suppressed to make room — permanently, not for one month.
   protected readonly showsPointerHint = computed(
-    () => this.totalCount() > 0 && this.showPointerHint(),
+    () => this.forecasts().length > 0 && this.showPointerHint(),
   );
 
   protected readonly checkedCount = computed(() =>
