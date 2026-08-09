@@ -742,6 +742,11 @@ export class DashboardHero {
       this.paceStatus() !== 'within-plan',
   );
 
+  // Owned by the page, because retiring the definition is a fact about the
+  // user rather than about this month, and `ui/` cannot reach the store that
+  // remembers it.
+  readonly showEngagedHint = input(true);
+
   // The plan asks for more than the month has. A negative report alone is
   // enough to put a budget here, and a negative report is a first-class product
   // concept, so this is not an exotic state — it was simply not one the card
@@ -750,11 +755,6 @@ export class DashboardHero {
   // hedging that the budget was "presque" entirely committed. The one reading
   // on this page with real stakes was the one delivered in the palette of
   // reassurance.
-  // Owned by the page, because retiring the definition is a fact about the
-  // user rather than about this month, and `ui/` cannot reach the store that
-  // remembers it.
-  readonly showEngagedHint = input(true);
-
   readonly isPlanOverAvailable = computed(() => this.remaining() < 0);
 
   // The caption carries the sign as a word, so the digits do not carry it
@@ -836,11 +836,11 @@ export class DashboardHero {
     // prévisions all fit. What opened the gap there is money the pace verdict
     // is built to ignore — a transfer to savings, an expense recorded and not
     // yet pointed — so the sentence names the outflow rather than the plan.
-    // "Il est sorti" is this page's word for pointed, and a negative remaining
+    // "Les débits" is this page's word for pointed, and a negative remaining
     // counts every recorded franc whether or not it has been pointed, so the
     // two are not the same reading and the sentence has to pick the one that
-    // is true. An expense entered with the toggle off printed "il est sorti
-    // plus que ce que le mois t'apporte" directly above a legend reading
+    // is true. An expense entered with the toggle off printed "les débits
+    // dépassent ce que le mois t'apporte" directly above a legend reading
     // "Débité 0"; the comparison against what the month brings in says it
     // exactly, where a bare "something was pointed" also claimed the deficit
     // for fifty francs pointed against three thousand of income.
@@ -872,7 +872,7 @@ export class DashboardHero {
     // "rien de saisi". Everything foreseen is the good answer, and the one this
     // card gives for most of a well-run month. Between them sits a month with
     // entries the verdict cannot read — an income, or expenses recorded and not
-    // yet pointed — and claiming "tout ce qui est sorti était prévu" there was
+    // yet pointed — and claiming "tout ce qui a été débité était prévu" there was
     // false twice over: nothing had gone out, and what was recorded was
     // precisely what the plan had not foreseen.
     if (!this.hasRecordedActivity()) return 'dashboard.status.noPaceYet';

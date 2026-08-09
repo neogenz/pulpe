@@ -204,7 +204,7 @@ describe('DashboardHero', () => {
     });
   });
 
-  // "Il est sorti" means pointed. This branch is reached by a negative
+  // "Les débits" means pointed. This branch is reached by a negative
   // remaining, which counts unpointed entries too, so an expense recorded with
   // the toggle off asserted an outflow above a legend reading "Débité 0".
   //
@@ -401,7 +401,7 @@ describe('DashboardHero', () => {
 
       const compiled = fixture.nativeElement as HTMLElement;
       expect(compiled.textContent).not.toContain('Rien de saisi ce mois');
-      expect(compiled.textContent).toContain('Tout ce qui est sorti était');
+      expect(compiled.textContent).toContain('Tout ce qui a été débité était');
     });
 
     // "Rien de saisi ce mois" keyed on realized outflow, which counts neither an
@@ -424,7 +424,7 @@ describe('DashboardHero', () => {
       const compiled = fixture.nativeElement as HTMLElement;
       expect(compiled.textContent).not.toContain('Rien de saisi ce mois');
       expect(compiled.textContent).not.toContain('Rien de pointé');
-      expect(compiled.textContent).toContain("Rien n'est encore sorti");
+      expect(compiled.textContent).toContain("Rien n'a encore été débité");
     });
 
     it('should say nothing was recorded when the ledger really is empty', () => {
@@ -650,9 +650,9 @@ describe('DashboardHero', () => {
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;
-      expect(compiled.textContent).not.toContain('Tout ce qui est sorti');
+      expect(compiled.textContent).not.toContain('Tout ce qui a été débité');
       expect(compiled.textContent).not.toContain('Rien de saisi');
-      expect(compiled.textContent).toContain("Rien n'est encore sorti");
+      expect(compiled.textContent).toContain("Rien n'a encore été débité");
     });
 
     // The caption was gated on the deficit alone, and red is a deficit, so the
