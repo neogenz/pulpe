@@ -96,7 +96,7 @@ import { TemplateLineStore } from './services/template-line-store';
             </button>
             <div class="flex-1 min-w-0">
               <h1
-                class="text-headline-medium md:text-display-small truncate ph-no-capture"
+                class="text-headline-medium md:text-display-small font-bold truncate ph-no-capture"
                 [title]="templateData.template.name"
                 data-testid="page-title"
               >

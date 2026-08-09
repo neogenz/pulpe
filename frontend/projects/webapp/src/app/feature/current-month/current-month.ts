@@ -91,7 +91,7 @@ type UndoableAction =
     <div class="flex flex-col gap-4 min-w-0" data-testid="dashboard-page">
       <header class="pulpe-page-header" data-testid="page-header">
         <h1
-          class="text-headline-medium md:text-display-small truncate min-w-0 shrink pb-0"
+          class="text-headline-medium md:text-display-small font-bold truncate min-w-0 shrink pb-0"
           data-testid="page-title"
         >
           {{ 'currentMonth.pageTitle' | transloco }}

@@ -30,7 +30,7 @@ import { SavingsGoalCard } from '../components/savings-goal-card';
       <header class="pulpe-page-header" data-testid="page-header">
         <div class="min-w-0">
           <h1
-            class="text-headline-medium md:text-display-small truncate min-w-0 flex-shrink"
+            class="text-headline-medium md:text-display-small font-bold truncate min-w-0 flex-shrink"
             data-testid="page-title"
           >
             {{ title.currentTitle() }}
