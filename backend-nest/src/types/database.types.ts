@@ -750,20 +750,6 @@ export type Database = {
         Args: { p_budget_ids: string[]; p_line_tag_pairs: Json };
         Returns: undefined;
       };
-      bulk_update_template_lines: {
-        Args: { line_updates: Json; p_template_id: string };
-        Returns: {
-          amount: string;
-          created_at: string;
-          description: string;
-          id: string;
-          kind: Database['public']['Enums']['transaction_kind'];
-          name: string;
-          recurrence: Database['public']['Enums']['transaction_recurrence'];
-          template_id: string;
-          updated_at: string;
-        }[];
-      };
       bump_savings_goal_balance_revision: {
         Args: { p_goal_ids: string[] };
         Returns: undefined;

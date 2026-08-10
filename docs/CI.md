@@ -38,7 +38,7 @@ production. Une migration est reliée à Supabase uniquement après intégration
 1. le push du commit sur `main` termine la CI standard;
 2. le job `migrate`, limité à `main`, attend l’approbation de l’environnement
    GitHub `production`;
-3. la CLI Supabase 2.84.2 est téléchargée avec un SHA-256 officiel propre à
+3. la CLI Supabase 2.113.0 est téléchargée avec un SHA-256 officiel propre à
    l’architecture, puis vérifiée avant extraction, y compris sur cache hit;
 4. `supabase db push --dry-run` réussit avant `supabase db push` dans le même
    job et sur le même commit.
