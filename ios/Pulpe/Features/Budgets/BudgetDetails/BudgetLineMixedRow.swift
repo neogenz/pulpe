@@ -16,7 +16,6 @@ struct BudgetLineMixedRow: View {
     var savingsWithdrawalOriginMonthName: String?
     let onTap: () -> Void
     let onTogglePointed: () -> Void
-    let onRealizeWithdrawal: () -> Void
 
     @Environment(\.amountsHidden) private var amountsHidden
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -96,10 +95,17 @@ struct BudgetLineMixedRow: View {
     // MARK: - Body
 
     var body: some View {
-        VStack(spacing: 0) {
-            Button(action: handleTap) {
-                HStack(spacing: DesignTokens.Spacing.xxs) {
-                    if !line.isPlannedSavingsWithdrawal {
+        Button(action: handleTap) {
+            HStack(spacing: DesignTokens.Spacing.xxs) {
+                // The leading rail belongs to the row, not to the circle. An
+                // announced withdrawal has nothing to point, and dropping the
+                // slot along with the circle starts its title 44pt left of every
+                // neighbour — `ios/DESIGN.md` sizes the row's `xs` leading
+                // padding against this slot, not against the card edge.
+                Group {
+                    if line.isPlannedSavingsWithdrawal {
+                        Color.clear
+                    } else {
                         PointCircle(
                             isPointed: isPointed,
                             color: dotColor,
@@ -107,63 +113,46 @@ struct BudgetLineMixedRow: View {
                             onToggle: handleTogglePointed
                         )
                     }
+                }
+                .frame(width: DesignTokens.TapTarget.minimum)
 
-                    if dynamicTypeSize.isAccessibilitySize {
-                        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                            centerColumn
-                            HStack {
-                                Spacer(minLength: DesignTokens.Spacing.none)
-                                amountColumn
-                                chevron
-                            }
-                        }
-                    } else {
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
                         centerColumn
-                        Spacer(minLength: DesignTokens.Spacing.sm)
-                        amountColumn
-                        chevron
+                        HStack {
+                            Spacer(minLength: DesignTokens.Spacing.none)
+                            amountColumn
+                            chevron
+                        }
                     }
+                } else {
+                    centerColumn
+                    Spacer(minLength: DesignTokens.Spacing.sm)
+                    amountColumn
+                    chevron
                 }
-                .padding(.vertical, DesignTokens.Spacing.md)
-                .padding(.leading, DesignTokens.Spacing.xs)
-                .padding(.trailing, DesignTokens.Spacing.md)
-                .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
-                .contentShape(Rectangle())
-                .opacity(isPointed ? DesignTokens.Opacity.pointedDim : 1)
-                .animation(
-                    reduceMotion ? nil : DesignTokens.Animation.gentleSpring,
-                    value: isPointed
-                )
             }
-            .buttonStyle(.plain)
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel(accessibilityLabel)
-            .accessibilityHint("Touche pour ouvrir le détail")
-
-            if line.isPlannedSavingsWithdrawal {
-                Divider().padding(.horizontal, DesignTokens.Spacing.md)
-                HStack {
-                    Spacer()
-                    if let realizationLabel {
-                        Button(realizationLabel, action: handleRealizeWithdrawal)
-                            .font(PulpeTypography.labelLarge)
-                            .foregroundStyle(Color.pulpePrimary)
-                            .buttonStyle(.plain)
-                            .frame(minHeight: DesignTokens.TapTarget.minimum)
-                    } else {
-                        Text("Réalisé")
-                            .font(PulpeTypography.labelLarge)
-                            .foregroundStyle(Color.textSecondary)
-                            .frame(minHeight: DesignTokens.TapTarget.minimum)
-                    }
-                }
-                .padding(.horizontal, DesignTokens.Spacing.md)
-            }
+            .padding(.vertical, DesignTokens.Spacing.md)
+            .padding(.leading, DesignTokens.Spacing.xs)
+            .padding(.trailing, DesignTokens.Spacing.md)
+            .frame(maxWidth: .infinity, minHeight: DesignTokens.ListRow.minHeight, alignment: .leading)
+            .contentShape(Rectangle())
+            .opacity(isPointed ? DesignTokens.Opacity.pointedDim : 1)
+            .animation(
+                reduceMotion ? nil : DesignTokens.Animation.gentleSpring,
+                value: isPointed
+            )
         }
+        .buttonStyle(.plain)
         .background(Color.surfaceContainerLowest)
         .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
         .shadow(DesignTokens.Shadow.subtle)
         .sensoryFeedback(.success, trigger: triggerToggleFeedback)
+        // `.contain` keeps the inner PointCircle as its own focus node so VoiceOver
+        // can drive the pointed/unpointed toggle independently of the row's tap-to-open.
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityHint("Touche pour ouvrir le détail")
         .accessibilityIdentifier("budgetLineMixedRow-\(line.id)")
     }
 
@@ -312,21 +301,20 @@ struct BudgetLineMixedRow: View {
         onTogglePointed()
     }
 
-    private func handleRealizeWithdrawal() {
-        triggerToggleFeedback.toggle()
-        onRealizeWithdrawal()
-    }
-
     // MARK: - Accessibility
 
     private var accessibilityLabel: String {
         let kindWord = line.kind.label
-        let pointed = line.isPlannedSavingsWithdrawal
-            ? (realizationLabel ?? "Réalisé")
+        // An announced withdrawal is realized, not pointed. Either way the row
+        // speaks its state, never its action: realizing one happens on the line's
+        // own screen, so naming the verb here would announce a button that the
+        // row does not carry.
+        let status = line.isPlannedSavingsWithdrawal
+            ? (realizationLabel == nil ? "Réalisé" : "À réaliser")
             : (isPointed ? "Pointé" : "À pointer")
         let amount = displayAmount.asCurrency(currency)
         let tags = tagNames.isEmpty ? "" : " · Tags : \(tagNames.joined(separator: ", "))"
         let context = metadata.map { " · \($0)" } ?? ""
-        return "\(kindWord) · \(line.name)\(context) · \(amount) · \(pointed)\(tags)"
+        return "\(kindWord) · \(line.name)\(context) · \(amount) · \(status)\(tags)"
     }
 }

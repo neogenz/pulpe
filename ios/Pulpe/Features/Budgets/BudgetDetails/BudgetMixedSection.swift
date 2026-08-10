@@ -21,7 +21,6 @@ struct BudgetMixedSection: View {
     let savingsWithdrawalOriginMonthName: String?
     let onTap: (BudgetLine) -> Void
     let onTogglePointed: (BudgetLine) -> Void
-    let onRealizeWithdrawal: (BudgetLine) -> Void
     var tip: (any Tip)?
 
     init(
@@ -33,7 +32,6 @@ struct BudgetMixedSection: View {
         savingsWithdrawalOriginMonthName: String? = nil,
         onTap: @escaping (BudgetLine) -> Void,
         onTogglePointed: @escaping (BudgetLine) -> Void,
-        onRealizeWithdrawal: @escaping (BudgetLine) -> Void = { _ in },
         tip: (any Tip)? = nil
     ) {
         self.kind = kind
@@ -44,7 +42,6 @@ struct BudgetMixedSection: View {
         self.savingsWithdrawalOriginMonthName = savingsWithdrawalOriginMonthName
         self.onTap = onTap
         self.onTogglePointed = onTogglePointed
-        self.onRealizeWithdrawal = onRealizeWithdrawal
         self.tip = tip
     }
 
@@ -97,8 +94,7 @@ struct BudgetMixedSection: View {
                     tagNames: TagChips.names(for: item.line.tagIds, namesById: tagNamesById),
                     savingsWithdrawalOriginMonthName: savingsWithdrawalOriginMonthName,
                     onTap: { onTap(item.line) },
-                    onTogglePointed: { onTogglePointed(item.line) },
-                    onRealizeWithdrawal: { onRealizeWithdrawal(item.line) }
+                    onTogglePointed: { onTogglePointed(item.line) }
                 )
                 .padding(.horizontal, DesignTokens.Spacing.lg)
                 .padding(.bottom, DesignTokens.Spacing.md)

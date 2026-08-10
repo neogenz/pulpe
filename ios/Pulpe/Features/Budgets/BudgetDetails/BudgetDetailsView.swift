@@ -278,7 +278,6 @@ struct BudgetDetailsView: View {
                             router.push(.lineDetail(lineId: line.id))
                         },
                         onTogglePointed: { line in handlePointGesture(on: line) },
-                        onRealizeWithdrawal: { line in handleRealizationGesture(on: line) },
                         tip: section.kind == screenState.firstSectionKind ? ProductTips.gestures : nil
                     )
                 }
