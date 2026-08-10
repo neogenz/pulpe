@@ -105,6 +105,12 @@ function emptyBudgetLineQuery() {
 function fetchBudgetDataProvider(
   lineRow: BudgetLineRow,
 ): AuthenticatedSupabaseProvider {
+  // Le spion vit au niveau module, donc son historique d'appels traverse les
+  // `describe`. Le vider ici, au montage du double — une fois par test, avant
+  // que quoi que ce soit ne s'exécute — plutôt que dans le test qui l'interroge :
+  // autrement, un test ajouté sans ce nettoyage lirait les appels du précédent
+  // et passerait sans rien prouver.
+  budgetLineOrderSpy.mockClear();
   return createMockProvider((table: string) => {
     if (table === 'monthly_budget') {
       return {
@@ -687,7 +693,6 @@ describe('SupabaseBudgetRepository fetchBudgetData ordering', () => {
   // physical heap order — which an UPDATE moves. Without a second key, checking
   // a line reshuffled the list and undoing the check never put it back.
   it('breaks the created_at tie on a stable key', async () => {
-    budgetLineOrderSpy.mockClear();
     const provider = fetchBudgetDataProvider(budgetLineRow);
     const repo = new SupabaseBudgetRepository(provider, createMockEncryption());
 
