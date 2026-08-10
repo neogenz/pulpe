@@ -20,7 +20,6 @@ import { createMockTagStore } from '@app/testing/tag-store.mock';
 import { CurrencyConverterService } from '@core/currency';
 import { TagStore } from '@core/tag';
 import { UserSettingsStore } from '@core/user-settings';
-import { AddTransactionDialogService } from '../services/add-transaction-dialog.service';
 import { AddTransactionBottomSheet } from './add-transaction-bottom-sheet';
 import {
   AddTransactionForm,
@@ -33,9 +32,7 @@ async function configureBottomSheet() {
     backdropClick: () => EMPTY,
     keydownEvents: () => EMPTY,
   };
-  const dialogService = {
-    confirmDiscard: vi.fn().mockResolvedValue(true),
-  };
+  const confirmDiscard = vi.fn<() => Promise<boolean>>(async () => true);
   const persist = vi.fn<(tx: TransactionFormData) => Promise<string | null>>(
     async () => null,
   );
@@ -57,11 +54,10 @@ async function configureBottomSheet() {
       provideAnimationsAsync(),
       ...provideTranslocoForTest(),
       { provide: MatBottomSheetRef, useValue: bottomSheetRef },
-      { provide: MAT_BOTTOM_SHEET_DATA, useValue: { persist } },
+      { provide: MAT_BOTTOM_SHEET_DATA, useValue: { persist, confirmDiscard } },
       { provide: UserSettingsStore, useValue: settings },
       { provide: CurrencyConverterService, useValue: converter },
       { provide: TagStore, useValue: createMockTagStore() },
-      { provide: AddTransactionDialogService, useValue: dialogService },
     ],
   });
 
@@ -75,7 +71,7 @@ async function configureBottomSheet() {
     fixture,
     component: fixture.componentInstance,
     bottomSheetRef,
-    dialogService,
+    confirmDiscard,
     persist,
     form: fixture.debugElement.query(By.directive(AddTransactionForm))
       .componentInstance as AddTransactionForm,
@@ -104,15 +100,11 @@ async function openThroughMaterial() {
         useValue: { convertWithMetadata: vi.fn() },
       },
       { provide: TagStore, useValue: createMockTagStore() },
-      {
-        provide: AddTransactionDialogService,
-        useValue: { confirmDiscard: vi.fn() },
-      },
     ],
   });
 
   TestBed.inject(MatBottomSheet).open(AddTransactionBottomSheet, {
-    data: { persist: vi.fn() },
+    data: { persist: vi.fn(), confirmDiscard: vi.fn() },
   });
   await TestBed.inject(ApplicationRef).whenStable();
   TestBed.tick();
@@ -173,14 +165,14 @@ describe('AddTransactionBottomSheet', () => {
   });
 
   it('should keep a typed transaction when the user declines to discard it', async () => {
-    const { component, bottomSheetRef, dialogService, form } =
+    const { component, bottomSheetRef, confirmDiscard, form } =
       await configureBottomSheet();
-    dialogService.confirmDiscard.mockResolvedValue(false);
+    confirmDiscard.mockResolvedValue(false);
     form['model'].update((model) => ({ ...model, name: 'Courses' }));
 
     await component['close']();
 
-    expect(dialogService.confirmDiscard).toHaveBeenCalledOnce();
+    expect(confirmDiscard).toHaveBeenCalledOnce();
     expect(bottomSheetRef.dismiss).not.toHaveBeenCalled();
   });
 
@@ -188,7 +180,7 @@ describe('AddTransactionBottomSheet', () => {
   // quand même. Fermer là aurait donc fait croire à un renoncement, puis rendu
   // le montant enregistré. Les quatre sorties passent par `close()`.
   it('should refuse to close while the write is still out', async () => {
-    const { component, bottomSheetRef, dialogService, persist, form } =
+    const { component, bottomSheetRef, confirmDiscard, persist, form } =
       await configureBottomSheet();
     form['model'].update((model) => ({ ...model, name: 'Courses' }));
     persist.mockReturnValue(new Promise<string | null>(() => undefined));
@@ -196,14 +188,14 @@ describe('AddTransactionBottomSheet', () => {
     void component['onCreated'](aTransaction());
     await component['close']();
 
-    expect(dialogService.confirmDiscard).not.toHaveBeenCalled();
+    expect(confirmDiscard).not.toHaveBeenCalled();
     expect(bottomSheetRef.dismiss).not.toHaveBeenCalled();
   });
 
   it('should discard a typed transaction once the user confirms', async () => {
-    const { component, bottomSheetRef, dialogService, form } =
+    const { component, bottomSheetRef, confirmDiscard, form } =
       await configureBottomSheet();
-    dialogService.confirmDiscard.mockResolvedValue(true);
+    confirmDiscard.mockResolvedValue(true);
     form['model'].update((model) => ({ ...model, name: 'Courses' }));
 
     await component['close']();

@@ -18,13 +18,10 @@ import { filter, merge } from 'rxjs';
 
 import { LoadingButton } from '@ui/loading-button/loading-button';
 import {
-  AddTransactionDialogService,
-  type AddTransactionShellData,
-} from '../services/add-transaction-dialog.service';
-import {
   AddTransactionForm,
   type TransactionFormData,
 } from './add-transaction-form';
+import type { AddTransactionShellData } from './add-transaction-shell-data';
 
 @Component({
   selector: 'pulpe-add-transaction-dialog',
@@ -111,7 +108,6 @@ export class AddTransactionDialog {
     MatDialogRef<AddTransactionDialog, TransactionFormData>,
   );
   readonly #data = inject<AddTransactionShellData>(MAT_DIALOG_DATA);
-  readonly #dialogService = inject(AddTransactionDialogService);
   private readonly formRef = viewChild.required(AddTransactionForm);
 
   // The dialog holds the only copy of what was typed, so it stays up until the
@@ -140,10 +136,7 @@ export class AddTransactionDialog {
     // avoir renoncé et retrouve son montant enregistré. Les quatre sorties
     // passent par ici, ce seul garde les couvre donc toutes.
     if (this.isPersisting()) return;
-    if (
-      this.formRef().hasInput() &&
-      !(await this.#dialogService.confirmDiscard())
-    )
+    if (this.formRef().hasInput() && !(await this.#data.confirmDiscard()))
       return;
     this.#dialogRef.close();
   }

@@ -51,10 +51,9 @@ describe('AddTransactionDialogService', () => {
       Breakpoints.Handset,
     );
     expect(bottomSheet.open).toHaveBeenCalledWith(AddTransactionBottomSheet, {
-      data: { persist },
+      data: { persist, confirmDiscard: expect.any(Function) },
       autoFocus: '[inputmode="decimal"]',
       disableClose: true,
-      injector: expect.anything(),
     });
     expect(dialog.open).not.toHaveBeenCalled();
   });
@@ -66,13 +65,12 @@ describe('AddTransactionDialogService', () => {
     await expect(service.open(persist)).resolves.toBeUndefined();
 
     expect(dialog.open).toHaveBeenCalledWith(AddTransactionDialog, {
-      data: { persist },
+      data: { persist, confirmDiscard: expect.any(Function) },
       width: '720px',
       maxWidth: 'calc(100vw - 48px)',
       panelClass: 'add-transaction-dialog',
       autoFocus: '[inputmode="decimal"]',
       disableClose: true,
-      injector: expect.anything(),
     });
     expect(bottomSheet.open).not.toHaveBeenCalled();
   });

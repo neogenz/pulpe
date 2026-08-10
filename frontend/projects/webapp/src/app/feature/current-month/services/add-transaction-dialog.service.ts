@@ -1,5 +1,5 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { inject, Injector, Service } from '@angular/core';
+import { inject, Service } from '@angular/core';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatDialog } from '@angular/material/dialog';
 import { TranslocoService } from '@jsverse/transloco';
@@ -11,23 +11,13 @@ import { firstValueFrom } from 'rxjs';
 import { AddTransactionBottomSheet } from '../components/add-transaction-bottom-sheet';
 import { AddTransactionDialog } from '../components/add-transaction-dialog';
 import type { TransactionFormData } from '../components/add-transaction-form';
-
-/**
- * Ce que la coque reçoit : la façon d'enregistrer ce qu'on vient d'y saisir.
- * Elle rend la raison d'un refus, ou `null` quand l'écriture est passée.
- */
-export interface AddTransactionShellData {
-  readonly persist: (
-    transaction: TransactionFormData,
-  ) => Promise<string | null>;
-}
+import type { AddTransactionShellData } from '../components/add-transaction-shell-data';
 
 @Service({ autoProvided: false })
 export class AddTransactionDialogService {
   readonly #breakpointObserver = inject(BreakpointObserver);
   readonly #bottomSheet = inject(MatBottomSheet);
   readonly #dialog = inject(MatDialog);
-  readonly #injector = inject(Injector);
   readonly #transloco = inject(TranslocoService);
 
   /**
@@ -44,30 +34,34 @@ export class AddTransactionDialogService {
   async open(
     persist: (transaction: TransactionFormData) => Promise<string | null>,
   ): Promise<TransactionFormData | undefined> {
+    // `confirmDiscard` voyage avec `persist` plutôt que d'être injecté par la
+    // coque : ce service importe les deux coques pour les ouvrir, donc l'inverse
+    // fermait un cycle. Les deux façons de disposer de la saisie arrivent ainsi
+    // du même endroit.
+    const data = {
+      persist,
+      confirmDiscard: () => this.confirmDiscard(),
+    } satisfies AddTransactionShellData;
+
     if (this.#breakpointObserver.isMatched(Breakpoints.Handset)) {
       const bottomSheetRef = this.#bottomSheet.open(AddTransactionBottomSheet, {
-        data: { persist } satisfies AddTransactionShellData,
+        data,
         autoFocus: '[inputmode="decimal"]',
         // Les deux coques interceptent elles-mêmes le clic hors cadre et Échap
         // pour demander confirmation quand quelque chose a été saisi. Elles ne
         // peuvent le faire que si Material ne ferme pas avant elles.
         disableClose: true,
-        // Ce service est fourni par la route, donc absent de l'injecteur racine
-        // dont héritent dialogues et feuilles : sans ce relais, la coque ne
-        // pourrait pas rappeler `confirmDiscard`.
-        injector: this.#injector,
       });
       return firstValueFrom(bottomSheetRef.afterDismissed());
     }
 
     const dialogRef = this.#dialog.open(AddTransactionDialog, {
-      data: { persist } satisfies AddTransactionShellData,
+      data,
       width: '720px',
       maxWidth: 'calc(100vw - 48px)',
       panelClass: 'add-transaction-dialog',
       autoFocus: '[inputmode="decimal"]',
       disableClose: true,
-      injector: this.#injector,
     });
     return firstValueFrom(dialogRef.afterClosed());
   }

@@ -20,13 +20,10 @@ import { filter, merge } from 'rxjs';
 import { BlurOnVisibilityResumeDirective } from '@ui/blur-on-visibility-resume/blur-on-visibility-resume.directive';
 import { LoadingButton } from '@ui/loading-button/loading-button';
 import {
-  AddTransactionDialogService,
-  type AddTransactionShellData,
-} from '../services/add-transaction-dialog.service';
-import {
   AddTransactionForm,
   type TransactionFormData,
 } from './add-transaction-form';
+import type { AddTransactionShellData } from './add-transaction-shell-data';
 
 /** Cible du `aria-labelledby` posé sur le conteneur — voir le constructeur. */
 const SHEET_TITLE_ID = 'add-transaction-sheet-title';
@@ -135,7 +132,6 @@ export class AddTransactionBottomSheet {
     MatBottomSheetRef<AddTransactionBottomSheet, TransactionFormData>,
   );
   readonly #data = inject<AddTransactionShellData>(MAT_BOTTOM_SHEET_DATA);
-  readonly #dialogService = inject(AddTransactionDialogService);
   readonly #host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly formRef = viewChild.required(AddTransactionForm);
 
@@ -179,10 +175,7 @@ export class AddTransactionBottomSheet {
     // avoir renoncé et retrouve son montant enregistré. Les quatre sorties
     // passent par ici, ce seul garde les couvre donc toutes.
     if (this.isPersisting()) return;
-    if (
-      this.formRef().hasInput() &&
-      !(await this.#dialogService.confirmDiscard())
-    )
+    if (this.formRef().hasInput() && !(await this.#data.confirmDiscard()))
       return;
     this.#bottomSheetRef.dismiss();
   }

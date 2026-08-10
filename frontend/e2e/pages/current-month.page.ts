@@ -112,9 +112,16 @@ export class CurrentMonthPage {
       );
       return Number(text.replace(/[^\d-]/g, ''));
     };
-    return (
-      (await parse('hero-spent-amount')) + (await parse('hero-engaged-amount'))
-    );
+    // « Dépensé » est toujours rendu, donc le lire en premier établit que le
+    // hero a peint — et rend concluante l'absence constatée juste après.
+    const spent = await parse('hero-spent-amount');
+    // « Engagé » quitte le DOM dès que sa part tombe à zéro, ce qui arrive
+    // précisément quand tout le mois est pointé — l'état où ces assertions
+    // travaillent. L'exiger visible faisait expirer le test sur une absence qui
+    // est le résultat attendu, et rien ne restait à ajouter à « Dépensé ».
+    const isEngagedShown =
+      (await this.page.getByTestId('hero-engaged-amount').count()) > 0;
+    return spent + (isEngagedShown ? await parse('hero-engaged-amount') : 0);
   }
 
   async expectRemainingAmount(expectedAmount: string) {
