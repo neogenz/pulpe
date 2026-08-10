@@ -184,6 +184,22 @@ describe('AddTransactionBottomSheet', () => {
     expect(bottomSheetRef.dismiss).not.toHaveBeenCalled();
   });
 
+  // Une écriture partie ne s'annule pas en fermant la feuille : elle atterrit
+  // quand même. Fermer là aurait donc fait croire à un renoncement, puis rendu
+  // le montant enregistré. Les quatre sorties passent par `close()`.
+  it('should refuse to close while the write is still out', async () => {
+    const { component, bottomSheetRef, dialogService, persist, form } =
+      await configureBottomSheet();
+    form['model'].update((model) => ({ ...model, name: 'Courses' }));
+    persist.mockReturnValue(new Promise<string | null>(() => undefined));
+
+    void component['onCreated'](aTransaction());
+    await component['close']();
+
+    expect(dialogService.confirmDiscard).not.toHaveBeenCalled();
+    expect(bottomSheetRef.dismiss).not.toHaveBeenCalled();
+  });
+
   it('should discard a typed transaction once the user confirms', async () => {
     const { component, bottomSheetRef, dialogService, form } =
       await configureBottomSheet();

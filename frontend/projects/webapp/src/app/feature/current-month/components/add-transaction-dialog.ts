@@ -41,6 +41,7 @@ import {
       matIconButton
       class="absolute! top-3 right-3 z-10"
       (click)="close()"
+      [disabled]="isPersisting()"
       [attr.aria-label]="'currentMonth.addTransactionClose' | transloco"
     >
       <mat-icon>close</mat-icon>
@@ -84,6 +85,7 @@ import {
       <button
         matButton
         (click)="close()"
+        [disabled]="isPersisting()"
         data-testid="transaction-cancel-button"
       >
         {{ 'currentMonth.addTransactionCancel' | transloco }}
@@ -133,6 +135,11 @@ export class AddTransactionDialog {
   }
 
   protected async close(): Promise<void> {
+    // L'écriture est déjà partie : fermer maintenant n'annule rien, cela cache
+    // seulement une écriture qui va atterrir quand même — l'utilisateur croit
+    // avoir renoncé et retrouve son montant enregistré. Les quatre sorties
+    // passent par ici, ce seul garde les couvre donc toutes.
+    if (this.isPersisting()) return;
     if (
       this.formRef().hasInput() &&
       !(await this.#dialogService.confirmDiscard())

@@ -46,17 +46,31 @@ const NOT_APP_COPY = new Set(["Shared/Components/WhatsNewSheet.swift"]);
 /**
  * Ce que l'utilisateur lit, par opposition à ce que la machine lit.
  *
- * Les chaînes techniques se reconnaissent à leur forme, pas à leur emplacement :
- * un chemin d'API, une clé d'analytics, un identifiant de test ou un code
- * d'erreur portent un `_` ou un `/`, ou tiennent en un seul mot. Une phrase
- * française, elle, respire — elle a au moins une espace et aucun de ces deux
- * caractères. Les interpolations disparaissent d'abord : `\(transaction.name)`
- * est un identifiant Swift qui traverse la chaîne, pas un mot affiché.
+ * Les chaînes techniques se reconnaissent à leur forme, pas à leur emplacement.
+ * Deux cas, selon qu'il y a une espace ou non :
+ *
+ *   · avec espace — c'est une phrase, sauf si un `_` ou un `/` la traverse ;
+ *     seule une clé composée ou un chemin en porte au milieu de mots séparés.
+ *   · sans espace — c'est un mot nu, donc de la copie, SAUF s'il porte un
+ *     séparateur (`_`, `-`, `/`, un chiffre) ou une casse interne : ces
+ *     formes-là nomment une clé d'analytics, un identifiant de test, un chemin
+ *     d'API ou un code d'erreur.
+ *
+ * Ce second cas est ce qui rattrape un `Text("Transactions")` — un libellé
+ * tient souvent en un seul mot, et l'exempter rendait le garde muet sur la
+ * forme la plus courante d'une étiquette.
+ *
+ * Les interpolations disparaissent d'abord : `\(transaction.name)` est un
+ * identifiant Swift qui traverse la chaîne, pas un mot affiché.
  */
 const displayedText = (literal) =>
   literal.slice(1, -1).replaceAll(/\\\([^)]*\)/g, "");
 
-const isDisplayedProse = (text) => text.includes(" ") && !/[_/]/.test(text);
+const isBareWord = (text) =>
+  /^[A-Za-zÀ-ÿ]+$/.test(text) && !/[a-z][A-Z]/.test(text);
+
+const isDisplayedProse = (text) =>
+  text.includes(" ") ? !/[_/]/.test(text) : isBareWord(text);
 
 const swiftSources = () =>
   readdirSync(new URL(`../../${SWIFT_ROOT}`, import.meta.url), {
