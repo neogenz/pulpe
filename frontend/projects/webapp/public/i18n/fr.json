@@ -930,6 +930,7 @@
     "transactionAdded": "Enregistré : {{ name }}",
     "transactionAddedMany": "{{ count }} mouvements enregistrés",
     "undoWindowMixed": "{{ count }} actions enregistrées",
+    "undoAll": "Annuler les {{ count }}",
     "undoPartialFailure": "{{ count }} annulations ont échoué — ces lignes restent enregistrées",
     "undoError": "Impossible d'annuler — la prévision reste pointée",
     "undoTransactionError": "Impossible d'annuler — la ligne reste enregistrée",
@@ -1017,7 +1018,6 @@
       "checked": "Pointé : {{ name }}",
       "checkedMany": "{{ count }} prévisions pointées",
       "stillToCheck": "il en reste {{ count }} à pointer",
-      "undoAll": "Annuler les {{ count }}",
       "hiddenCount": "{{ count }} autres à pointer",
       "hiddenCountSingular": "1 autre à pointer",
       "toggleVerb": "Pointer"

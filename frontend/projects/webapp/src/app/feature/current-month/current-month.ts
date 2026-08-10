@@ -779,7 +779,7 @@ export default class Dashboard {
       // page to reach. The label says its scope once there is more than one.
       actions.length === 1
         ? this.#transloco.translate('common.undo')
-        : this.#transloco.translate('currentMonth.uncheckedForecasts.undoAll', {
+        : this.#transloco.translate('currentMonth.undoAll', {
             count: actions.length,
           }),
       {
