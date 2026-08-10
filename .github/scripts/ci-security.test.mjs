@@ -8,15 +8,17 @@ const read = (path) =>
 const action = read(".github/actions/setup-supabase-cli/action.yml");
 const workflow = read(".github/workflows/ci.yml");
 const dockerfile = read("backend-nest/Dockerfile");
+const backendPackage = JSON.parse(read("backend-nest/package.json"));
+const ciGuide = read("docs/CI.md");
 
 test("Supabase archives are pinned and verified before extraction", () => {
   assert.match(
     action,
-    /620a5f6ea7b60f9b4fe112a5d72464ea0e53d04022035641674a2e6d121e0eb5/,
+    /14659e7148ad17b77e69e5c36b27be572110519c76c796da1b53c07c3590f593/,
   );
   assert.match(
     action,
-    /c660f5c9f62489f7c777cbd10a71b7af0a30bced1230783ab56713bceeaa4313/,
+    /e2697de24a58a10820cd631dd78ae1e1ef2fe5f6625f4447ca65624dbe86072e/,
   );
   assert.match(action, /key:.*sha256/);
 
@@ -25,6 +27,21 @@ test("Supabase archives are pinned and verified before extraction", () => {
   assert.notEqual(verify, -1);
   assert.notEqual(extract, -1);
   assert.ok(verify < extract, "the archive must be verified before extraction");
+});
+
+test("Supabase CLI version stays aligned across CI, local tooling, and docs", () => {
+  const version = workflow.match(
+    /SUPABASE_CLI_VERSION:\s*["']([^"']+)["']/,
+  )?.[1];
+
+  assert.ok(version, "the CI Supabase version must be pinned");
+  assert.equal(backendPackage.devDependencies.supabase, version);
+  assert.match(action, new RegExp(`${version.replaceAll(".", "\\.")}:amd64`));
+  assert.match(action, new RegExp(`${version.replaceAll(".", "\\.")}:arm64`));
+  assert.match(
+    ciGuide,
+    new RegExp(`CLI Supabase ${version.replaceAll(".", "\\.")}`),
+  );
 });
 
 test("pull requests cannot execute production migration credentials", () => {
