@@ -38,6 +38,7 @@ enum APIError: LocalizedError {
     case savingsGoalReconciliationConflict
     case savingsGoalReconciliationFailed
     case savingsGoalReconciliationRecalculationFailed
+    case savingsGoalPlanConflict
     case savingsGoalNotFound
     case savingsGoalLineOutsideHorizon
     case savingsGoalDeletionImpactChanged
@@ -123,6 +124,8 @@ enum APIError: LocalizedError {
         case .savingsGoalReconciliationRecalculationFailed:
             return "L'échéance a bien été modifiée, mais les soldes n'ont pas pu être actualisés — "
                 + "recharge sans réessayer"
+        case .savingsGoalPlanConflict:
+            return "Ton plan a changé entre-temps — vérifie les données actualisées et relance la simulation"
         case .savingsGoalNotFound:
             return "Cet objectif n'existe plus"
         case .savingsGoalLineOutsideHorizon:
@@ -192,9 +195,16 @@ enum APIError: LocalizedError {
     ]
 
     /// Create APIError from server error code
-    static func from(code: String?, message: String?) -> APIError {
+    static func from(code: String?, message: String?, statusCode: Int? = nil) -> APIError {
         guard let code else {
             return .serverError(message: message ?? "Quelque chose n'a pas fonctionné")
+        }
+
+        if code == "ERR_SAVINGS_GOAL_PLAN_CONFLICT" {
+            guard statusCode == 409 else {
+                return .serverError(message: message ?? code)
+            }
+            return .savingsGoalPlanConflict
         }
 
         if let error = codeMapping[code] {
@@ -206,6 +216,11 @@ enum APIError: LocalizedError {
 }
 
 extension APIError {
+    var requiresSavingsGoalPlanRefresh: Bool {
+        if case .savingsGoalPlanConflict = self { return true }
+        return false
+    }
+
     var requiresSavingsGoalReconciliationRefresh: Bool {
         switch self {
         case .savingsGoalReconciliationRequired, .savingsGoalReconciliationConflict:

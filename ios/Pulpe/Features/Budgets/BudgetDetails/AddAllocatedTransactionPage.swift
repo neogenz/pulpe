@@ -123,6 +123,7 @@ struct AddAllocatedTransactionPage: View {
         guard let realization, !didPrefill else { return }
         didPrefill = true
         name = realization.name
+        isChecked = true
         if let remaining = realization.remainingAmount {
             amount = remaining
             amountText = "\(remaining)"
@@ -168,7 +169,14 @@ struct AddAllocatedTransactionPage: View {
 
             TransactionDateSelector(date: $transactionDate, currency: userSettingsStore.currency)
 
-            CheckedToggle(isOn: $isChecked, tintColor: line.kind.color)
+            if realization == nil {
+                CheckedToggle(isOn: $isChecked, tintColor: line.kind.color)
+            } else {
+                Text("Ce Réel sera créé pointé.")
+                    .font(PulpeTypography.footnote)
+                    .foregroundStyle(Color.onSurfaceVariant)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
             TagPickerField(selection: $selectedTagIds)
 
             if let error {

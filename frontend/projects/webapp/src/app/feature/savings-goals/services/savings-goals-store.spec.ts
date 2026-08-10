@@ -128,6 +128,12 @@ describe('SavingsGoalStore', () => {
       getProgress$: vi
         .fn()
         .mockReturnValue(of({ data: makeProgress(), success: true })),
+      getContributions$: vi
+        .fn()
+        .mockReturnValue(of({ data: [], success: true })),
+      getWithdrawals$: vi
+        .fn()
+        .mockReturnValue(of({ data: [], planned: [], success: true })),
       create$: vi.fn(),
       update$: vi.fn(),
       getFutureLines$: vi.fn().mockReturnValue(of({ data: [], success: true })),
@@ -541,6 +547,30 @@ describe('SavingsGoalStore', () => {
 
     expect(mockApi.getProgress$).toHaveBeenCalledWith('goal-1');
     expect(store.progress()?.achievementPercent).toBe(30);
+  });
+
+  it('reports progress loading again while reloading an existing value', async () => {
+    await settle();
+    store.setSelectedGoalId('goal-1');
+    await settle();
+    expect(store.progress()).not.toBeNull();
+    expect(store.isProgressLoading()).toBe(false);
+
+    const reloadedProgress = new Subject<{
+      data: SavingsGoalProgress;
+      success: boolean;
+    }>();
+    mockApi.getProgress$ = vi.fn().mockReturnValue(reloadedProgress);
+
+    store.reloadProgress();
+
+    expect(store.isProgressLoading()).toBe(true);
+
+    reloadedProgress.next({ data: makeProgress(), success: true });
+    reloadedProgress.complete();
+    await settle();
+
+    expect(store.isProgressLoading()).toBe(false);
   });
 
   it('selectedGoal resolves from the loaded list', async () => {

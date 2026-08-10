@@ -190,7 +190,255 @@ describe('GoalPlanSimulatorStore', () => {
     expect(store.dirtyCount()).toBe(1);
   });
 
-  it('ignores a negative or non-finite amount instead of clamping it to zero', () => {
+  it('keeps a negative movement out of saving lines and routes its chosen destination', () => {
+    store.enter();
+    store.setMonth(6, 2026, -4_500);
+
+    const payload = store.buildApplyPayload([
+      { month: 6, year: 2026, destination: 'linked_income' },
+    ]);
+
+    expect(payload.monthAdjustments).toEqual([]);
+    expect(payload.planWithdrawalAdjustments).toEqual([
+      {
+        month: 6,
+        year: 2026,
+        amount: -4_500,
+        destination: 'linked_income',
+      },
+    ]);
+  });
+
+  it('keeps a goal-only negative movement when the month has no budget', () => {
+    progressSig.set(
+      makeProgress({
+        months: [
+          {
+            month: 9,
+            year: 2026,
+            state: 'gap',
+            isLocked: false,
+            hasBudget: false,
+            isProvisionable: true,
+            plannedAmount: 0,
+            confirmedAmount: 0,
+            plannedCumulative: 0,
+            confirmedCumulative: 0,
+            lines: [],
+          },
+        ],
+      }),
+    );
+    store.enter();
+    store.setMonth(9, 2026, -450);
+
+    expect(store.buildApplyPayload()).toMatchObject({
+      monthAdjustments: [],
+      missingMonthAdjustments: [],
+      planWithdrawalAdjustments: [
+        {
+          month: 9,
+          year: 2026,
+          amount: -450,
+          destination: 'goal_only',
+        },
+      ],
+    });
+  });
+
+  it('routes mixed withdrawal destinations by period', () => {
+    progressSig.set(
+      makeProgress({
+        months: [
+          openMonth(6, LINE_CURRENT, 200, {
+            hasBudget: true,
+            planWithdrawalDestination: 'linked_income',
+          }),
+          openMonth(7, LINE_FUTURE, 200, {
+            hasBudget: true,
+            planWithdrawalDestination: 'goal_only',
+          }),
+        ],
+      }),
+    );
+    store.enter();
+    store.setMonth(6, 2026, -500);
+    store.setMonth(7, 2026, -300);
+
+    const payload = store.buildApplyPayload([
+      { month: 6, year: 2026, destination: 'linked_income' },
+      { month: 7, year: 2026, destination: 'goal_only' },
+    ]);
+
+    expect(payload.planWithdrawalAdjustments).toEqual([
+      {
+        month: 6,
+        year: 2026,
+        amount: -500,
+        destination: 'linked_income',
+      },
+      {
+        month: 7,
+        year: 2026,
+        amount: -300,
+        destination: 'goal_only',
+      },
+    ]);
+  });
+
+  it('preserves an existing destination when none is explicitly returned', () => {
+    progressSig.set(
+      makeProgress({
+        months: [
+          openMonth(6, LINE_CURRENT, 200, {
+            plannedWithdrawalAmount: 500,
+            remainingPlannedWithdrawalAmount: 500,
+            planLinkedWithdrawalAmount: 500,
+            planWithdrawalDestination: 'linked_income',
+          }),
+        ],
+      }),
+    );
+    store.enter();
+    store.setMonth(6, 2026, -450);
+
+    expect(store.buildApplyPayload().planWithdrawalAdjustments).toEqual([
+      {
+        month: 6,
+        year: 2026,
+        amount: -450,
+        destination: 'linked_income',
+      },
+    ]);
+  });
+
+  it('clears a reloaded managed withdrawal when the month becomes positive', () => {
+    progressSig.set(
+      makeProgress({
+        months: [
+          openMonth(6, LINE_CURRENT, 1_260, {
+            planLinkedWithdrawalAmount: 4_500,
+            plannedWithdrawalAmount: 4_500,
+            remainingPlannedWithdrawalAmount: 4_500,
+            planWithdrawalDestination: 'linked_income',
+          }),
+        ],
+      }),
+    );
+    store.enter();
+    store.setMonth(6, 2026, 1_500);
+
+    expect(store.buildApplyPayload().planWithdrawalAdjustments).toEqual([
+      {
+        month: 6,
+        year: 2026,
+        amount: 0,
+        destination: 'linked_income',
+      },
+    ]);
+  });
+
+  it.each([
+    ['direct', { planOnlyWithdrawalAmount: 4_500 }],
+    ['linked', { planLinkedWithdrawalAmount: 4_500 }],
+  ] as const)(
+    'keeps global preview and payload aligned when replacing a %s withdrawal',
+    (_label, managedWithdrawal) => {
+      progressSig.set(
+        makeProgress({
+          initialAmount: 10_000,
+          targetAmount: 20_000,
+          months: [
+            openMonth(6, LINE_CURRENT, 1_260, {
+              plannedWithdrawalAmount: 4_500,
+              remainingPlannedWithdrawalAmount: 4_500,
+              ...managedWithdrawal,
+            }),
+          ],
+        }),
+      );
+      store.enter();
+
+      store.setGlobalAmount(1_260);
+
+      expect(store.draft()?.simulatedFinal).toBe(11_260);
+      expect(store.buildApplyPayload().planWithdrawalAdjustments).toEqual([
+        {
+          month: 6,
+          year: 2026,
+          amount: 0,
+          destination: 'goal_only',
+        },
+      ]);
+
+      store.setGlobalAmount(0);
+
+      expect(store.draft()?.simulatedFinal).toBe(10_000);
+      expect(store.buildApplyPayload().planWithdrawalAdjustments).toEqual([
+        {
+          month: 6,
+          year: 2026,
+          amount: 0,
+          destination: 'goal_only',
+        },
+      ]);
+    },
+  );
+
+  it('redistributes by replacing the current managed withdrawal once', () => {
+    progressSig.set(
+      makeProgress({
+        initialAmount: 10_000,
+        targetAmount: 12_000,
+        months: [
+          openMonth(6, LINE_CURRENT, 1_260, {
+            plannedWithdrawalAmount: 4_500,
+            remainingPlannedWithdrawalAmount: 4_500,
+            planOnlyWithdrawalAmount: 4_500,
+          }),
+          openMonth(7, LINE_FUTURE, 500),
+        ],
+      }),
+    );
+    store.enter();
+
+    const redistribution = store.redistribute();
+
+    expect(redistribution.remainingEffort).toBe(2_000);
+    expect(store.draft()?.simulatedFinal).toBe(12_000);
+    expect(store.buildApplyPayload().planWithdrawalAdjustments).toEqual([
+      {
+        month: 6,
+        year: 2026,
+        amount: 0,
+        destination: 'goal_only',
+      },
+    ]);
+  });
+
+  it('does not offer an edit after a linked withdrawal was already realized', () => {
+    progressSig.set(
+      makeProgress({
+        months: [
+          openMonth(6, LINE_CURRENT, 1_260, {
+            plannedWithdrawalAmount: 4_500,
+            remainingPlannedWithdrawalAmount: 4_200,
+            planLinkedWithdrawalAmount: 4_200,
+            planWithdrawalDestination: 'linked_income',
+            planWithdrawalConsumedAmount: 300,
+          }),
+        ],
+      }),
+    );
+
+    expect(store.openMonthCount()).toBe(0);
+    expect(store.canSimulate()).toBe(false);
+    store.enter();
+    store.setMonth(6, 2026, -3_000);
+    expect(store.hasChanges()).toBe(false);
+  });
+
+  it('accepts a signed month amount but ignores a non-finite value', () => {
     store.enter();
     store.setMonth(6, 2026, 500);
 
@@ -198,7 +446,7 @@ describe('GoalPlanSimulatorStore', () => {
     store.setMonth(6, 2026, Number.NaN);
 
     const june = store.draft()!.months.find((m) => m.month === 6)!;
-    expect(june.simulatedAmount).toBe(500);
+    expect(june.simulatedAmount).toBe(-500);
   });
 
   it('ignores a negative global amount instead of clamping it to zero', () => {
@@ -403,9 +651,6 @@ describe('GoalPlanSimulatorStore', () => {
     );
 
     store.enter();
-    store.setMonth(months[2].month, months[2].year, 777);
-    expect(store.draftRows()[2].simulatedAmount).toBe(0);
-
     const result = store.redistribute();
     const payload = store.buildApplyPayload();
 

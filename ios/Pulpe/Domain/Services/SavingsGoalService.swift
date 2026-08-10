@@ -16,7 +16,7 @@ protocol SavingsGoalServicing: Sendable {
     func getDeletionImpact(id: String) async throws -> SavingsGoalDeletionImpact
     func delete(id: String, command: SavingsGoalDeletionCommand) async throws
     func getWithdrawalOptions() async throws -> [SavingsGoalWithdrawalOption]
-    func getWithdrawals(id: String) async throws -> [SavingsGoalWithdrawal]
+    func getWithdrawals(id: String) async throws -> SavingsGoalWithdrawalsReadModel
     func create(_ data: SavingsGoalCreate) async throws -> SavingsGoal
     func update(id: String, data: SavingsGoalUpdate) async throws -> SavingsGoal
 }
@@ -94,7 +94,7 @@ actor SavingsGoalService: SavingsGoalServicing {
         try await apiClient.request(.savingsGoalWithdrawalOptions, method: .get)
     }
 
-    func getWithdrawals(id: String) async throws -> [SavingsGoalWithdrawal] {
+    func getWithdrawals(id: String) async throws -> SavingsGoalWithdrawalsReadModel {
         try await apiClient.request(.savingsGoalWithdrawals(id: id), method: .get)
     }
 

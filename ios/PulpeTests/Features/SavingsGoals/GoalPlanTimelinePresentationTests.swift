@@ -196,10 +196,106 @@ struct GoalPlanTimelinePresentationTests {
         #expect(ordinary == nil)
     }
 
+    @Test("A frozen month opens only the plan-linked income budget from the same period")
+    func frozenMonth_resolvesOnlyPlanLinkedBudgetForItsPeriod() {
+        let month = makeWithdrawalMonth(
+            planned: 500,
+            remaining: 250,
+            withdrawn: 250,
+            consumed: 250
+        )
+        let neighboringIncome = makePlannedWithdrawal(
+            budgetId: "budget-neighbor",
+            month: 8,
+            origin: nil
+        )
+        let otherPeriod = makePlannedWithdrawal(
+            budgetId: "budget-other-month",
+            month: 9,
+            origin: .planLinked
+        )
+        let planLinkedIncome = makePlannedWithdrawal(
+            budgetId: "budget-plan-linked",
+            month: 8,
+            origin: .planLinked
+        )
+
+        #expect(GoalPlanTimelinePresentation.budgetId(
+            forFrozenMonth: month,
+            plannedWithdrawals: [neighboringIncome, otherPeriod, planLinkedIncome]
+        ) == "budget-plan-linked")
+    }
+
+    @Test("A frozen month without an identified plan origin stays non-interactive")
+    func frozenMonth_withoutPlanLinkedOriginHasNoBudgetAction() {
+        let month = makeWithdrawalMonth(
+            planned: 500,
+            remaining: 250,
+            withdrawn: 250,
+            consumed: 250
+        )
+
+        #expect(GoalPlanTimelinePresentation.budgetId(
+            forFrozenMonth: month,
+            plannedWithdrawals: [makePlannedWithdrawal(
+                budgetId: "budget-unknown-origin",
+                month: 8,
+                origin: nil
+            )]
+        ) == nil)
+    }
+
+    @Test("A partial planned withdrawal foregrounds what remains and keeps the full context")
+    func partialPlannedWithdrawal_foregroundsRemainingAmount() throws {
+        let withdrawal = makePlannedWithdrawal(
+            budgetId: "budget-august", month: 8, origin: .planLinked,
+            plannedAmount: 500, realizedAmount: 300, remainingAmount: 200
+        )
+
+        let item = try #require(GoalWithdrawalsSection.plannedItems(planned: [withdrawal], planOnly: []).first)
+        let context = "Prévu \(Decimal(500).asCurrency(.chf)) · Réalisé \(Decimal(300).asCurrency(.chf))"
+
+        #expect(item.primaryAmount == 200)
+        #expect(item.contextLabel(currency: .chf) == context)
+        #expect(item.accessibilityLabel(currency: .chf).contains(withdrawal.name))
+        #expect(item.accessibilityLabel(currency: .chf).contains("Partiellement réalisé"))
+        #expect(item.accessibilityLabel(currency: .chf).contains("prévu \(Decimal(500).asCurrency(.chf))"))
+        #expect(item.accessibilityLabel(currency: .chf).contains("réalisé \(Decimal(300).asCurrency(.chf))"))
+        #expect(item.accessibilityLabel(currency: .chf).contains("reste \(Decimal(200).asCurrency(.chf))"))
+        #expect(item.accessibilityHint == "Ouvre le budget")
+    }
+
+    @Test("Merges linked and goal-only planned withdrawals in chronological order")
+    func plannedWithdrawals_mergeDestinationsChronologically() {
+        let september = makePlannedWithdrawal(budgetId: "budget-september", month: 9, origin: .planLinked)
+        let august = SavingsGoalPlanOnlyWithdrawal(
+            planWithdrawalId: "plan-august", name: "Retrait vacances",
+            month: 8, year: 2026, plannedAmount: 400
+        )
+
+        let items = GoalWithdrawalsSection.plannedItems(planned: [september], planOnly: [august])
+
+        #expect(items.map(\.id) == ["plan-only-plan-august", "linked-line-budget-september"])
+        #expect(items.first?.accessibilityHint == nil)
+        #expect(items.first?.accessibilityLabel(currency: .chf).contains("hors budget") == true)
+    }
+
+    @Test("A realized planned withdrawal keeps its planned amount visible and states that nothing remains")
+    func realizedPlannedWithdrawal_keepsPlannedAmountVisible() throws {
+        let withdrawal = makePlannedWithdrawal(budgetId: "budget-august", month: 8, origin: .planLinked,
+                                               plannedAmount: 500, realizedAmount: 500, remainingAmount: 0,
+                                               status: .realized)
+        let item = try #require(GoalWithdrawalsSection.plannedItems(planned: [withdrawal], planOnly: []).first)
+
+        #expect(item.primaryAmount == 500)
+        #expect(item.accessibilityLabel(currency: .chf).contains("reste \(Decimal(0).asCurrency(.chf))"))
+    }
+
     private func makeWithdrawalMonth(
         planned: Decimal,
         remaining: Decimal,
-        withdrawn: Decimal
+        withdrawn: Decimal,
+        consumed: Decimal = 0
     ) -> SavingsGoalPlanMonth {
         SavingsGoalPlanMonth(
             month: 8,
@@ -212,10 +308,33 @@ struct GoalPlanTimelinePresentationTests {
             withdrawnAmount: withdrawn,
             plannedWithdrawalAmount: planned,
             remainingPlannedWithdrawalAmount: remaining,
+            planWithdrawalConsumedAmount: consumed,
             plannedCumulative: 3_600,
             confirmedCumulative: 0,
             projectedCumulative: 3_600 - remaining,
             lines: []
+        )
+    }
+
+    private func makePlannedWithdrawal(
+        budgetId: String,
+        month: Int,
+        origin: SavingsGoalPlannedWithdrawal.Origin?,
+        plannedAmount: Decimal = 500,
+        realizedAmount: Decimal = 250,
+        remainingAmount: Decimal = 250, status: SavingsGoalPlannedWithdrawal.Status = .partiallyRealized
+    ) -> SavingsGoalPlannedWithdrawal {
+        SavingsGoalPlannedWithdrawal(
+            budgetLineId: "line-\(budgetId)",
+            budgetId: budgetId,
+            name: "Retrait Maison",
+            month: month,
+            year: 2026,
+            plannedAmount: plannedAmount,
+            realizedAmount: realizedAmount,
+            remainingAmount: remainingAmount,
+            status: status,
+            origin: origin
         )
     }
 
@@ -251,5 +370,26 @@ struct GoalPlanTimelinePresentationTests {
             confirmedCumulative: 1_000,
             lines: lines
         )
+    }
+}
+
+extension GoalPlanTimelinePresentationTests {
+    @Test("Only a partial planned withdrawal labels its foreground amount as remaining")
+    func plannedWithdrawal_primaryAmountDetailIsPartialOnly() throws {
+        func item(status: SavingsGoalPlannedWithdrawal.Status) throws -> GoalWithdrawalsSection.PlannedItem {
+            try #require(GoalWithdrawalsSection.plannedItems(
+                planned: [makePlannedWithdrawal(
+                    budgetId: "budget-\(status)",
+                    month: 9,
+                    origin: .planLinked,
+                    status: status
+                )],
+                planOnly: []
+            ).first)
+        }
+
+        #expect(try item(status: .planned).primaryAmountDetail == nil)
+        #expect(try item(status: .partiallyRealized).primaryAmountDetail == "restant")
+        #expect(try item(status: .realized).primaryAmountDetail == nil)
     }
 }

@@ -1,6 +1,7 @@
 import type { Page, Request } from '@playwright/test';
 import type {
   BudgetLine,
+  SavingsGoalPlanApply,
   SavingsGoalWithdrawal,
   Transaction,
 } from 'pulpe-shared';
@@ -449,6 +450,10 @@ interface PlannedGoalWorld {
   stock: number;
   /** La prévision source, tant qu'elle existe. */
   line: BudgetLine | null;
+  /** Retrait piloté par le plan sans Prévision Revenu. */
+  planOnlyAmount: number;
+  /** Contrats effectivement envoyés au endpoint atomique du plan. */
+  planSubmissions: SavingsGoalPlanApply[];
   /** Les revenus réels qui la réalisent — eux seuls débitent. */
   realized: Transaction[];
 }
@@ -481,7 +486,7 @@ function remainingOf(world: PlannedGoalWorld): number {
 }
 
 function projectedOf(world: PlannedGoalWorld): number {
-  return confirmedOf(world) - remainingOf(world);
+  return confirmedOf(world) - remainingOf(world) - world.planOnlyAmount;
 }
 
 async function installPlannedGoalWorld(
@@ -491,6 +496,8 @@ async function installPlannedGoalWorld(
   const world: PlannedGoalWorld = {
     stock: GOAL_STOCK,
     line: null,
+    planOnlyAmount: 0,
+    planSubmissions: [],
     realized: [],
     ...seed,
   };
@@ -523,6 +530,9 @@ async function installPlannedGoalWorld(
       });
     }
     if (path.endsWith('/progress')) {
+      const linkedPlanAmount =
+        world.line?.sourceSavingsGoalId === GOAL_ID ? world.line.amount : 0;
+      const plannedWithdrawalAmount = world.planOnlyAmount + linkedPlanAmount;
       return json({
         success: true,
         data: createSavingsGoalProgressMock(GOAL_ID, {
@@ -535,21 +545,44 @@ async function installPlannedGoalWorld(
               year: CURRENT_BUDGET.year,
               state: 'current',
               isLocked: false,
-              plannedAmount: 0,
+              hasBudget: true,
+              plannedAmount: 200,
               confirmedAmount: 0,
               withdrawnAmount: realizedTotal(world),
-              plannedWithdrawalAmount: world.line?.amount ?? 0,
-              remainingPlannedWithdrawalAmount: remainingOf(world),
+              plannedWithdrawalAmount,
+              remainingPlannedWithdrawalAmount:
+                world.planOnlyAmount + remainingOf(world),
+              planOnlyWithdrawalAmount: world.planOnlyAmount,
+              planLinkedWithdrawalAmount: linkedPlanAmount,
+              planWithdrawalDestination:
+                world.planOnlyAmount > 0
+                  ? 'goal_only'
+                  : linkedPlanAmount > 0
+                    ? 'linked_income'
+                    : undefined,
+              planWithdrawalConsumedAmount:
+                linkedPlanAmount > 0 ? realizedTotal(world) : 0,
               plannedCumulative: 0,
               confirmedCumulative: confirmedOf(world),
               projectedCumulative: projectedOf(world),
-              lines: [],
+              lines: [
+                {
+                  budgetLineId: TEST_UUIDS.LINE_1,
+                  amount: 200,
+                  checkedAt: null,
+                  isManuallyAdjusted: false,
+                },
+              ],
             },
           ],
         }),
       });
     }
     if (path.endsWith('/withdrawals')) {
+      const linkedLine =
+        world.line?.sourceSavingsGoalId === GOAL_ID ? world.line : null;
+      const realizedAmount = linkedLine ? realizedTotal(world) : 0;
+      const remainingAmount = linkedLine ? remainingOf(world) : 0;
       return json({
         success: true,
         data: world.realized.map((tx) =>
@@ -558,6 +591,39 @@ async function installPlannedGoalWorld(
             amount: tx.amount,
           }),
         ),
+        planned: linkedLine
+          ? [
+              {
+                budgetLineId: linkedLine.id,
+                budgetId: CURRENT_BUDGET.id,
+                name: linkedLine.name,
+                month: CURRENT_BUDGET.month,
+                year: CURRENT_BUDGET.year,
+                plannedAmount: linkedLine.amount,
+                realizedAmount,
+                remainingAmount,
+                status:
+                  remainingAmount === 0
+                    ? 'realized'
+                    : realizedAmount > 0
+                      ? 'partially_realized'
+                      : 'planned',
+              },
+            ]
+          : [],
+        planOnly:
+          world.planOnlyAmount > 0
+            ? [
+                {
+                  planWithdrawalId: TEST_UUIDS.LINE_3,
+                  name: GOAL_NAME,
+                  month: CURRENT_BUDGET.month,
+                  year: CURRENT_BUDGET.year,
+                  plannedAmount: world.planOnlyAmount,
+                  origin: 'plan_only',
+                },
+              ]
+            : [],
       });
     }
     if (path.endsWith('/contributions')) {
@@ -586,6 +652,35 @@ async function installPlannedGoalWorld(
         sourceSavingsGoalName: payload.sourceSavingsGoalId ? GOAL_NAME : null,
       });
       return json({ success: true, data: world.line });
+    }
+    if (path.endsWith(`/savings-goals/${GOAL_ID}/plan`) && method === 'POST') {
+      const payload = request.postDataJSON() as SavingsGoalPlanApply;
+      world.planSubmissions.push(payload);
+      const withdrawal = payload.planWithdrawalAdjustments?.[0];
+      if (withdrawal) {
+        const plannedAmount = Math.abs(withdrawal.amount);
+        if (withdrawal.destination === 'linked_income' && plannedAmount > 0) {
+          world.planOnlyAmount = 0;
+          world.line = createBudgetLineMock(
+            TEST_UUIDS.LINE_2,
+            CURRENT_BUDGET.id,
+            {
+              name: PLANNED_LINE_NAME,
+              amount: plannedAmount,
+              kind: 'income',
+              sourceSavingsGoalId: GOAL_ID,
+              sourceSavingsGoalName: GOAL_NAME,
+            },
+          );
+        } else {
+          world.line = null;
+          world.planOnlyAmount = plannedAmount;
+        }
+      }
+      return json({
+        success: true,
+        data: { updatedLines: world.line ? [world.line] : [] },
+      });
     }
     if (/\/budget-lines\/[^/]+$/.test(path) && method === 'DELETE') {
       // La prévision s'en va ; ce qui en est déjà sorti reste sorti.
@@ -642,6 +737,93 @@ function announcedLine(overrides: Partial<BudgetLine> = {}): BudgetLine {
 }
 
 test.describe('Announcing a withdrawal, then realizing it', () => {
+  test('the plan keeps exactly one representation while changing the withdrawal destination', async ({
+    authenticatedPage,
+    savingsGoalsPage,
+  }) => {
+    const world = await installPlannedGoalWorld(authenticatedPage);
+    const periodKey = CURRENT_BUDGET.year * 12 + CURRENT_BUDGET.month;
+
+    await savingsGoalsPage.gotoDetail(GOAL_ID);
+    await authenticatedPage.getByTestId('goal-plan-adjust-button').click();
+    await authenticatedPage
+      .getByTestId(`goal-plan-row-edit-${periodKey}`)
+      .click();
+    const amountInput = authenticatedPage.getByTestId('goal-plan-row-input');
+    await amountInput.fill('-4500');
+    await amountInput.press('Enter');
+    await authenticatedPage.getByTestId('goal-plan-apply').click();
+
+    const goalOnly = authenticatedPage.getByRole('radio', {
+      name: /Mettre à jour l’objectif uniquement/,
+    });
+    await expect(goalOnly).toBeChecked();
+    await authenticatedPage.getByTestId('goal-plan-apply-confirm').click();
+
+    await expect.poll(() => world.planSubmissions.length).toBe(1);
+    expect(world.planSubmissions[0]).toMatchObject({
+      planWithdrawalAdjustments: [
+        {
+          month: CURRENT_BUDGET.month,
+          year: CURRENT_BUDGET.year,
+          amount: -4500,
+          destination: 'goal_only',
+        },
+      ],
+    });
+    const planOnlyRows = authenticatedPage.getByTestId(
+      'savings-goal-plan-only-withdrawal-row',
+    );
+    const linkedRows = authenticatedPage.getByTestId(
+      'savings-goal-planned-withdrawal-row',
+    );
+    await expect(planOnlyRows).toHaveCount(1);
+    await expect(planOnlyRows).toContainText('Hors budget');
+    await expect(linkedRows).toHaveCount(0);
+    await expect(
+      authenticatedPage.getByTestId('goal-plan-adjust-button'),
+    ).toBeVisible();
+
+    await authenticatedPage.getByTestId('goal-plan-adjust-button').click();
+    await authenticatedPage
+      .getByTestId(`goal-plan-row-edit-${periodKey}`)
+      .click();
+    await authenticatedPage.getByTestId('goal-plan-row-input').fill('-3500');
+    await authenticatedPage.getByTestId('goal-plan-row-input').press('Enter');
+    await authenticatedPage.getByTestId('goal-plan-apply').click();
+
+    await expect(goalOnly).toBeChecked();
+    await authenticatedPage
+      .getByRole('radio', { name: /Créer aussi un revenu dans le budget/ })
+      .click();
+    await expect(
+      authenticatedPage.getByTestId('goal-plan-withdrawal-conversion'),
+    ).toHaveText(
+      'Une Prévision Revenu liée sera créée avec la mise à jour du plan.',
+    );
+    await authenticatedPage.getByTestId('goal-plan-apply-confirm').click();
+
+    await expect.poll(() => world.planSubmissions.length).toBe(2);
+    expect(world.planSubmissions[1]).toMatchObject({
+      planWithdrawalAdjustments: [
+        {
+          month: CURRENT_BUDGET.month,
+          year: CURRENT_BUDGET.year,
+          amount: -3500,
+          destination: 'linked_income',
+        },
+      ],
+    });
+    await expect(planOnlyRows).toHaveCount(0);
+    await expect(linkedRows).toHaveCount(1);
+    await expect(linkedRows).toContainText('À réaliser');
+    await expect(linkedRows).toHaveRole('link');
+    await expect(linkedRows).toHaveAttribute(
+      'aria-label',
+      /Apport cuisine.*budget/,
+    );
+  });
+
   test('the pot only empties when the real income is created, and never twice', async ({
     authenticatedPage,
     budgetDetailsPage,
@@ -683,8 +865,12 @@ test.describe('Announcing a withdrawal, then realizing it', () => {
     await expect(
       savingsGoalsPage.plannedWithdrawalRows().first(),
     ).toContainText('-500');
-    // Rien n'est encore sorti : l'historique des retraits n'a rien à raconter.
-    await expect(savingsGoalsPage.withdrawalsSection()).toBeHidden();
+    // Rien n'est encore sorti, mais l'annonce reste visible et navigable sans
+    // inventer un Réel dans l'historique.
+    await expect(savingsGoalsPage.withdrawalRows()).toHaveCount(0);
+    await expect(
+      authenticatedPage.getByTestId('savings-goal-planned-withdrawal-row'),
+    ).toHaveCount(1);
 
     // 3. Réaliser 300 : 300 sortent du stock, 200 restent annoncés.
     await budgetDetailsPage.goto(CURRENT_BUDGET.id);
@@ -711,6 +897,9 @@ test.describe('Announcing a withdrawal, then realizing it', () => {
     // 5. Supprimer un réel rend son montant au stock et rouvre le reliquat.
     const lastRealizedId = world.realized[world.realized.length - 1].id;
     await budgetDetailsPage.goto(CURRENT_BUDGET.id);
+    // La prévision entièrement réalisée est effectivement pointée et donc
+    // masquée par le filtre par défaut. Elle reste disponible dans « Tout voir ».
+    await authenticatedPage.getByRole('option', { name: 'Tout voir' }).click();
     await budgetDetailsPage.openEnvelopePanel(PLANNED_LINE_NAME);
     // Le panneau est la surface de détail du desktop : il nomme l'objectif
     // source, jamais la prévision. L'assertion porte sur le texte rendu de bout

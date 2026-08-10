@@ -161,8 +161,14 @@ final class BudgetDetailsProjector {
             rollover: makeRollover(dataStore: ctx.dataStore),
             sections: ctx.sections,
             free: ctx.free,
-            kindCounts: ctx.filtersStore.kindCounts(for: ctx.dataStore.budgetLines),
-            checkedCounts: ctx.filtersStore.checkedCounts(for: ctx.dataStore.budgetLines),
+            kindCounts: ctx.filtersStore.kindCounts(
+                for: ctx.dataStore.budgetLines,
+                consumptionByLineId: ctx.consumptionByLineId
+            ),
+            checkedCounts: ctx.filtersStore.checkedCounts(
+                for: ctx.dataStore.budgetLines,
+                consumptionByLineId: ctx.consumptionByLineId
+            ),
             pagerMonths: makePagerMonths(from: ctx.dataStore.pagerMonths),
             typeFilter: ctx.filtersStore.typeFilter,
             checkedFilter: ctx.filtersStore.checkedFilter,

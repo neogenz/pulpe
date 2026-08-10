@@ -4,7 +4,7 @@
 - NestJS REST controllers expose URI-versioned `/api/v1`; `/health` is unprefixed. Routes live under module `infrastructure/http/`.
 
 ## Resources
-- Auth/demo, budgets/lines/templates, transactions/allocations, users/settings, encryption, currency, and app version.
+- Auth/demo, budgets/lines/templates, transactions/allocations, savings goals, tags, users/settings, encryption, currency, app version, and what's-new.
 
 ## Contracts
 - Global Zod request validation; shared wire schemas/error codes live in `pulpe-shared`, while RPC validation stays module-local.

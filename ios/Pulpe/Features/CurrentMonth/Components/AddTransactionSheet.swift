@@ -297,7 +297,9 @@ struct AddTransactionSheet: View {
             )
 
             let transaction = try await dependencies.createTransaction(data)
-            if data.sourceSavingsGoalId != nil { savingsGoalStore.invalidateCache() }
+            if data.sourceSavingsGoalId != nil {
+                savingsGoalStore.invalidateFromBudgetMutation()
+            }
             AnalyticsService.shared.capture(.transactionCreated, properties: ["type": kind.rawValue])
             submitSuccessTrigger.toggle()
             onAdd(transaction)

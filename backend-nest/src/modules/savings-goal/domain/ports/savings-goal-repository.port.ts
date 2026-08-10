@@ -8,11 +8,13 @@ import type {
   SavingsGoalLinkedContributions,
   SavingsGoalPlanApplyResult,
   SavingsGoalPlanMonthAdjustment,
+  SavingsGoalPlanWithdrawalAdjustment,
   SavingsGoalTargetDateReconciliationCommand,
   SavingsGoalTargetDateReconciliationResult,
   SavingsGoalUpdatePatch,
   SavingsGoalBalanceInputs,
   SavingsGoalWithdrawalRecord,
+  SavingsGoalPlannedWithdrawalRecord,
 } from '../savings-goal.entity';
 import type {
   BudgetPeriod,
@@ -64,11 +66,17 @@ export interface SavingsGoalRepositoryPort {
    * courant ou futur (`is_manually_adjusted = true`). Tout écart de garde
    * → RAISE → rollback total (rien de partiel). Le
    * repo possède le chiffrement + le mapping des erreurs P0001.
+   *
+   * `expectedRevision` est obligatoire : la RPC la compare sous le verrou de
+   * réalisation, donc l'omettre appliquerait un plan calculé sur un solde déjà
+   * périmé.
    */
   applyPlan(
     goalId: string,
     monthAdjustments: SavingsGoalPlanMonthAdjustment[],
     minPeriodIndex: number,
+    planWithdrawalAdjustments: SavingsGoalPlanWithdrawalAdjustment[],
+    expectedRevision: number,
   ): Promise<SavingsGoalPlanApplyResult>;
   /**
    * Applique la décision advisory d'arrêt de génération (PUL-285 CA5) via la
@@ -100,12 +108,18 @@ export interface SavingsGoalRepositoryPort {
    * peut-être jamais. Elles n'abaissent que la projection.
    */
   findPlannedWithdrawals(goalId: string): Promise<LinkedPlannedWithdrawal[]>;
+  /** Retraits directs du plan, sans Prévision Revenu ni budget. */
+  findPlanWithdrawals(goalId: string): Promise<LinkedPlannedWithdrawal[]>;
   /**
    * Historique présentable d'un objectif, trié du plus récent au plus ancien.
    * Sépare de `findLinkedWithdrawals` : la chronologie du plan a besoin de la
    * période budgétaire, la liste affichée a besoin du libellé et de la date.
    */
   findWithdrawals(goalId: string): Promise<SavingsGoalWithdrawalRecord[]>;
+  /** Prévisions Revenu présentables, avant agrégation avec leurs Réels. */
+  findPlannedWithdrawalRecords(
+    goalId: string,
+  ): Promise<SavingsGoalPlannedWithdrawalRecord[]>;
   /**
    * De quoi calculer le solde de TOUS les objectifs de l'utilisateur, en une
    * lecture groupée : le sélecteur d'origine ouvre la liste entière d'un coup,

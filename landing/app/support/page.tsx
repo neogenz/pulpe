@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import type { ReactNode } from "react";
+import { ArrowRight } from "lucide-react";
 import { AccordionItem, Container, Section } from "@/components/ui";
 import { FinalCTA, Footer, Header } from "@/components/sections";
 import { angularUrl, CONTACT_EMAIL, GITHUB_URL } from "@/lib/config";
@@ -7,7 +9,7 @@ import { angularUrl, CONTACT_EMAIL, GITHUB_URL } from "@/lib/config";
 export const metadata: Metadata = {
   title: "Aide et questions fréquentes",
   description:
-    "Questions fréquentes sur Pulpe : saisie manuelle, protection des montants, gratuité, mode démo et disponibilité en Suisse et en France.",
+    "Guides et réponses pour utiliser Pulpe : comprendre les modèles et budgets, protéger ses montants et gérer son compte.",
   alternates: {
     canonical: "/support",
   },
@@ -167,15 +169,51 @@ export default function SupportPage() {
           <Container>
             <div className="mx-auto max-w-3xl">
               <h1 className="text-4xl font-bold leading-[1.05] tracking-[-0.035em] text-text sm:text-5xl lg:text-6xl">
-                Tout ce que tu veux savoir sur Pulpe.
+                Comment puis-je t&apos;aider&nbsp;?
               </h1>
               <p className="pretty mt-6 max-w-2xl text-lg leading-relaxed text-text-secondary sm:text-xl">
-                Les réponses aux questions qu&apos;on me pose avant de
-                commencer. Si la tienne manque, écris-moi.
+                Des guides courts pour utiliser Pulpe, puis les réponses aux
+                questions fréquentes. Si la tienne manque, écris-moi.
               </p>
             </div>
           </Container>
         </section>
+
+        <Section aria-labelledby="guides-heading">
+          <div className="mx-auto max-w-3xl">
+            <h2
+              id="guides-heading"
+              className="max-w-2xl text-4xl font-bold leading-[1.05] tracking-[-0.035em] text-text sm:text-5xl"
+            >
+              Guides pour utiliser Pulpe.
+            </h2>
+
+            <Link
+              href="/support/modeles-et-budgets"
+              className="group mt-10 block rounded-[var(--radius-large)] border border-text/10 bg-surface p-6 transition-[border-color,transform] hover:-translate-y-0.5 hover:border-primary/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transform-none motion-reduce:transition-none sm:p-8"
+            >
+              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">
+                Bien démarrer
+              </p>
+              <div className="mt-4 flex items-start justify-between gap-6">
+                <div>
+                  <h3 className="text-2xl font-semibold leading-tight tracking-[-0.025em] text-text">
+                    Modèle ou budget&nbsp;: que faut-il modifier&nbsp;?
+                  </h3>
+                  <p className="mt-3 max-w-2xl leading-relaxed text-text-secondary">
+                    Choisis le bon endroit selon que ton changement concerne un
+                    seul mois ou tes mois habituels.
+                  </p>
+                </div>
+                <ArrowRight
+                  aria-hidden="true"
+                  className="mt-1 shrink-0 text-primary transition-transform group-hover:translate-x-1 motion-reduce:transform-none motion-reduce:transition-none"
+                  size={24}
+                />
+              </div>
+            </Link>
+          </div>
+        </Section>
 
         <Section aria-labelledby="faq-heading">
           <div className="mx-auto max-w-3xl">

@@ -48,11 +48,13 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
     existingLines = [line(0), line(1)];
     allLines = periods.map((_, index) => line(index));
     repo = {
+      findBalanceRevision: jest.fn().mockResolvedValue(7),
       findById: jest.fn().mockResolvedValue({
         id: 'goal-1',
         userId: user.id,
         name: 'Maison',
         targetAmount: 24_000,
+        initialAmount: 10_000,
         targetDate: `${periods[23].year}-${String(periods[23].month).padStart(2, '0')}-15`,
         status: 'ACTIVE',
         createdAt: now.toISOString(),
@@ -62,6 +64,9 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
         .fn()
         .mockResolvedValueOnce({ lines: existingLines, transactions: [] })
         .mockResolvedValue({ lines: allLines, transactions: [] }),
+      findLinkedWithdrawals: jest.fn().mockResolvedValue([]),
+      findPlannedWithdrawals: jest.fn().mockResolvedValue([]),
+      findPlanWithdrawals: jest.fn().mockResolvedValue([]),
       applyPlan: jest.fn().mockResolvedValue({
         updatedLines: [],
         touchedBudgetIds: periods.map((_, index) => `budget-${index}`),
@@ -96,6 +101,139 @@ describe('ApplySavingsGoalPlanUseCase provisioning', () => {
       ],
     }).compile();
     useCase = module.get(ApplySavingsGoalPlanUseCase);
+  });
+
+  it('routes a signed plan-only withdrawal without provisioning a budget', async () => {
+    repo.applyPlan.mockResolvedValueOnce({
+      updatedLines: [],
+      touchedBudgetIds: [],
+    });
+
+    await useCase.execute(
+      'goal-1',
+      {
+        monthAdjustments: [],
+        planWithdrawalAdjustments: [{ ...periods[0], amount: -4_500 }],
+      },
+      user,
+    );
+
+    expect(spread.fanOut).not.toHaveBeenCalled();
+    expect(repo.applyPlan).toHaveBeenCalledWith(
+      'goal-1',
+      [],
+      expect.any(Number),
+      [{ ...periods[0], amount: -4_500 }],
+      7,
+    );
+    expect(recalculation.recalculate).not.toHaveBeenCalled();
+  });
+
+  it('routes zero as removal of an existing plan-only withdrawal', async () => {
+    await useCase.execute(
+      'goal-1',
+      {
+        monthAdjustments: [],
+        planWithdrawalAdjustments: [{ ...periods[0], amount: 0 }],
+      },
+      user,
+    );
+
+    expect(repo.applyPlan).toHaveBeenCalledWith(
+      'goal-1',
+      [],
+      expect.any(Number),
+      [{ ...periods[0], amount: 0 }],
+      7,
+    );
+  });
+
+  it('atomically replaces a plan-only withdrawal with one positive line adjustment', async () => {
+    repo.applyPlan.mockResolvedValueOnce({
+      updatedLines: [],
+      touchedBudgetIds: [],
+    });
+    const budgetLineId = existingLines[0].id as string;
+
+    await useCase.execute(
+      'goal-1',
+      {
+        monthAdjustments: [{ budgetLineId, amount: 1_260 }],
+        planWithdrawalAdjustments: [{ ...periods[0], amount: 0 }],
+      },
+      user,
+    );
+
+    expect(repo.applyPlan).toHaveBeenCalledWith(
+      'goal-1',
+      [{ budgetLineId, amount: 1_260 }],
+      expect.any(Number),
+      [{ ...periods[0], amount: 0 }],
+      7,
+    );
+  });
+
+  it('reads the balance revision before the rows used by the withdrawal guard', async () => {
+    const callOrder: string[] = [];
+    repo.findBalanceRevision.mockImplementation(async () => {
+      callOrder.push('revision');
+      return 7;
+    });
+    repo.findById.mockImplementation(async () => {
+      callOrder.push('goal');
+      return {
+        id: 'goal-1',
+        userId: user.id,
+        name: 'Maison',
+        targetAmount: 24_000,
+        initialAmount: 10_000,
+        targetDate: `${periods[23].year}-${String(periods[23].month).padStart(2, '0')}-15`,
+        status: 'ACTIVE',
+        createdAt: new Date().toISOString(),
+      };
+    });
+    repo.findLinkedContributions.mockReset().mockImplementation(async () => {
+      callOrder.push('linked');
+      return { lines: existingLines, transactions: [] };
+    });
+
+    await useCase.execute(
+      'goal-1',
+      {
+        monthAdjustments: [],
+        planWithdrawalAdjustments: [{ ...periods[0], amount: -450 }],
+      },
+      user,
+    );
+
+    expect(callOrder).toEqual(['goal', 'linked', 'revision', 'linked', 'goal']);
+  });
+
+  it('rejects a direct withdrawal that would make the projected stock negative', async () => {
+    repo.findById.mockResolvedValue({
+      id: 'goal-1',
+      userId: user.id,
+      name: 'Petit pot',
+      targetAmount: 1_000,
+      targetDate: `${periods[23].year}-${String(periods[23].month).padStart(2, '0')}-15`,
+      initialAmount: 1_000,
+      status: 'ACTIVE',
+      createdAt: new Date().toISOString(),
+    });
+
+    await expect(
+      useCase.execute(
+        'goal-1',
+        {
+          monthAdjustments: [],
+          planWithdrawalAdjustments: [{ ...periods[0], amount: -4_500 }],
+        },
+        user,
+      ),
+    ).rejects.toMatchObject({
+      code: 'ERR_SAVINGS_GOAL_WITHDRAWAL_INSUFFICIENT_BALANCE',
+    });
+    expect(repo.applyPlan).not.toHaveBeenCalled();
   });
 
   it('provisions the 22 missing budgets then applies all 24 monthly shares once', async () => {

@@ -75,12 +75,20 @@ struct GoalPlanMonthRow: View {
     var isAdjusted: Bool = false
     var showsCumulative: Bool = false
     var canRepair: Bool = false
+    var onOpenBudget: (() -> Void)?
 
     private var isCurrentPeriod: Bool { month.state == .current }
     private var availability: GoalPlanMonthAvailability {
         GoalPlanMonthAvailability(month: month, canRepair: canRepair)
     }
     private var hasLinkedForecast: Bool { availability == .linkedForecast }
+    private var isBlockedByRealization: Bool {
+        month.planWithdrawalConsumedAmount > SavingsGoalProgress.withdrawalBalanceTolerance
+    }
+    private var isEffectivelyLocked: Bool { month.isLocked || isBlockedByRealization }
+
+    nonisolated static let realizedWithdrawalLockReason =
+        "Ce retrait est déjà réalisé en partie ou en totalité. Modifie-le depuis le budget."
 
     private var allChecked: Bool {
         !month.lines.isEmpty && month.lines.allSatisfy(\.isChecked)
@@ -93,7 +101,7 @@ struct GoalPlanMonthRow: View {
     /// objectif qui démarre).
     private var stateText: (label: String, color: Color)? {
         if allChecked { return ("Pointé", .financialSavings) }
-        if month.isLocked { return ("Verrouillé", .textTertiary) }
+        if isEffectivelyLocked { return ("Verrouillé", .textTertiary) }
         return nil
     }
 
@@ -118,47 +126,66 @@ struct GoalPlanMonthRow: View {
     }
 
     var body: some View {
-        HStack(spacing: DesignTokens.Spacing.md) {
-            VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
-                Text(monthLabel)
-                    .font(PulpeTypography.listRowTitle)
-                    .fontWeight(isCurrentPeriod ? .semibold : nil)
-                    .foregroundStyle(isCurrentPeriod ? Color.financialSavings : Color.textPrimary)
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            HStack(spacing: DesignTokens.Spacing.md) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                    Text(monthLabel)
+                        .font(PulpeTypography.listRowTitle)
+                        .fontWeight(isCurrentPeriod ? .semibold : nil)
+                        .foregroundStyle(isCurrentPeriod ? Color.financialSavings : Color.textPrimary)
 
-                HStack(spacing: DesignTokens.Spacing.sm) {
-                    if let availabilityIcon = availability.icon {
-                        Label(availability.label, systemImage: availabilityIcon)
+                    HStack(spacing: DesignTokens.Spacing.sm) {
+                        if let availabilityIcon = availability.icon {
+                            Label(availability.label, systemImage: availabilityIcon)
+                                .font(PulpeTypography.listRowSubtitle)
+                                .foregroundStyle(Color.textSecondary)
+                        }
+
+                        if let state = stateText {
+                            Text(state.label)
+                                .font(PulpeTypography.listRowSubtitle)
+                                .foregroundStyle(state.color)
+                        }
+                    }
+
+                    if let announcedWithdrawal {
+                        Text(announcedWithdrawal)
                             .font(PulpeTypography.listRowSubtitle)
                             .foregroundStyle(Color.textSecondary)
+                            .sensitiveAmount()
                     }
 
-                    if let state = stateText {
-                        Text(state.label)
+                    if isBlockedByRealization {
+                        Text(Self.realizedWithdrawalLockReason)
                             .font(PulpeTypography.listRowSubtitle)
-                            .foregroundStyle(state.color)
+                            .foregroundStyle(Color.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
 
-                if let announcedWithdrawal {
-                    Text(announcedWithdrawal)
-                        .font(PulpeTypography.listRowSubtitle)
-                        .foregroundStyle(Color.textSecondary)
-                        .sensitiveAmount()
-                }
+                Spacer(minLength: DesignTokens.Spacing.sm)
+
+                amountView
             }
+            .opacity(isEffectivelyLocked ? DesignTokens.Opacity.pointedDim : 1)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(accessibilityLabel)
 
-            Spacer(minLength: DesignTokens.Spacing.sm)
-
-            amountView
+            if isBlockedByRealization, let onOpenBudget {
+                Button("Ouvrir le budget", action: onOpenBudget)
+                    .frame(
+                        maxWidth: .infinity,
+                        minHeight: DesignTokens.TapTarget.minimum,
+                        alignment: .trailing
+                    )
+                    .textLinkButtonStyle()
+                    .accessibilityHint("Ouvre le budget de ce retrait")
+            }
         }
         // Rythme sémantique des rangées de liste — sans le minHeight de
         // `ListRow` : il dérive des rangées à icône 40pt et centrerait ces
         // rangées texte-seul dans une bande trop haute.
         .padding(.vertical, DesignTokens.ListRow.verticalPadding)
-        .opacity(month.isLocked ? DesignTokens.Opacity.pointedDim : 1)
-        .allowsHitTesting(!month.isLocked)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(accessibilityLabel)
     }
 
     @ViewBuilder
@@ -199,7 +226,8 @@ struct GoalPlanMonthRow: View {
         }
         if isCurrentPeriod { parts.append("ce mois") }
         if allChecked { parts.append("pointé") }
-        if month.isLocked { parts.append("verrouillé") }
+        if isBlockedByRealization { parts.append(Self.realizedWithdrawalLockReason) }
+        if isEffectivelyLocked { parts.append("verrouillé") }
         return parts.joined(separator: ", ")
     }
 }

@@ -12,8 +12,13 @@ struct GoalPlanSimulatorSheet: View {
     let goal: SavingsGoal
     let progress: SavingsGoalProgress
     let currency: SupportedCurrency
+    let plannedWithdrawals: [SavingsGoalPlannedWithdrawal]
     /// Invalidates caches and refreshes progression after a successful write.
     let onApplied: () async -> Void
+    /// The parent dismisses this sheet before pushing the identified budget.
+    let onOpenBudget: (String) -> Void
+    /// Reloads the detail after the server rejects a stale simulation.
+    let onPlanConflict: () async -> Void
 
     @Environment(UserSettingsStore.self) private var userSettingsStore
     @Environment(ToastManager.self) private var toastManager
@@ -27,12 +32,18 @@ struct GoalPlanSimulatorSheet: View {
         goal: SavingsGoal,
         progress: SavingsGoalProgress,
         currency: SupportedCurrency,
-        onApplied: @escaping () async -> Void
+        plannedWithdrawals: [SavingsGoalPlannedWithdrawal],
+        onApplied: @escaping () async -> Void,
+        onOpenBudget: @escaping (String) -> Void,
+        onPlanConflict: @escaping () async -> Void
     ) {
         self.goal = goal
         self.progress = progress
         self.currency = currency
+        self.plannedWithdrawals = plannedWithdrawals
         self.onApplied = onApplied
+        self.onOpenBudget = onOpenBudget
+        self.onPlanConflict = onPlanConflict
         _viewModel = State(initialValue: GoalPlanSimulatorViewModel(
             goal: goal,
             progress: progress,
@@ -92,7 +103,13 @@ struct GoalPlanSimulatorSheet: View {
                 changes: viewModel.planChanges,
                 verdict: viewModel.verdictText,
                 currency: currency,
-                onConfirm: { await viewModel.apply() }
+                onConfirm: { destinations in
+                    let applied = await viewModel.apply(withdrawalDestinations: destinations)
+                    if viewModel.didEncounterPlanConflict {
+                        await closeAfterPlanConflict()
+                    }
+                    return applied
+                }
             )
         }
         .confirmationDialog(
@@ -112,7 +129,9 @@ struct GoalPlanSimulatorSheet: View {
             }
         }
         .onChange(of: viewModel.applyErrorMessage) { _, message in
-            if let message { toastManager.show(message, type: .error) }
+            if let message, !viewModel.didEncounterPlanConflict {
+                toastManager.show(message, type: .error)
+            }
         }
     }
 
@@ -141,24 +160,19 @@ struct GoalPlanSimulatorSheet: View {
 
     private var globalControl: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-            HStack {
-                Text("Chaque mois, je mets")
-                    .font(PulpeTypography.inputLabel)
-                    .foregroundStyle(Color.textSecondary)
-                Spacer()
-                TextField(
-                    "Montants variables",
-                    value: globalAmountBinding,
-                    format: .number.precision(.fractionLength(0...2))
-                )
-                    .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.trailing)
-                    .monospacedDigit()
-                    .frame(width: 96)
-                    .accessibilityLabel("Montant mensuel")
-                Text(currency.symbol)
-                    .font(PulpeTypography.metricLabel)
-                    .foregroundStyle(Color.textSecondary)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: DesignTokens.Spacing.md) {
+                    globalAmountLabel
+                        .fixedSize(horizontal: true, vertical: false)
+                    Spacer(minLength: DesignTokens.Spacing.sm)
+                    globalAmountEditor(width: 96)
+                }
+
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                    globalAmountLabel
+                        .fixedSize(horizontal: false, vertical: true)
+                    globalAmountEditor(width: nil)
+                }
             }
 
             Slider(value: globalBinding, in: 0...viewModel.sliderMax, step: 10)
@@ -172,6 +186,33 @@ struct GoalPlanSimulatorSheet: View {
         }
         .padding(DesignTokens.Spacing.lg)
         .pulpeCardBackground()
+    }
+
+    private var globalAmountLabel: some View {
+        Text("Chaque mois, je mets")
+            .font(PulpeTypography.inputLabel)
+            .foregroundStyle(Color.textSecondary)
+    }
+
+    private func globalAmountEditor(width: CGFloat?) -> some View {
+        HStack(spacing: DesignTokens.Spacing.xs) {
+            TextField(
+                "Montants variables",
+                value: globalAmountBinding,
+                format: .number.precision(.fractionLength(0...2))
+            )
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .monospacedDigit()
+                .frame(width: width)
+                .frame(maxWidth: width == nil ? .infinity : nil)
+                .frame(minHeight: DesignTokens.TapTarget.minimum)
+                .accessibilityLabel("Montant mensuel")
+            Text(currency.symbol)
+                .font(PulpeTypography.metricLabel)
+                .foregroundStyle(Color.textSecondary)
+        }
+        .frame(maxWidth: width == nil ? .infinity : nil)
     }
 
     @ViewBuilder
@@ -203,9 +244,16 @@ struct GoalPlanSimulatorSheet: View {
                     .font(PulpeTypography.headline)
                 Spacer()
                 Button("Repartir du plan actuel") { viewModel.revert() }
+                    .frame(minHeight: DesignTokens.TapTarget.minimum)
+                    .contentShape(Rectangle())
                     .textLinkButtonStyle()
                     .disabled(!viewModel.isDirty)
             }
+
+            Text("Montant positif : mettre de côté · montant négatif : retirer")
+                .font(PulpeTypography.listRowSubtitle)
+                .foregroundStyle(Color.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
 
             LazyVStack(spacing: 0) {
                 ForEach(Array(viewModel.draft.months.enumerated()), id: \.element.id) { index, simMonth in
@@ -237,7 +285,8 @@ struct GoalPlanSimulatorSheet: View {
                 amount: simMonth.simulatedAmount,
                 cumulative: simMonth.simulatedCumulative,
                 currency: currency,
-                showsCumulative: true
+                showsCumulative: true,
+                onOpenBudget: budgetAction(for: simMonth.month)
             )
         }
     }
@@ -261,6 +310,24 @@ struct GoalPlanSimulatorSheet: View {
         } else {
             dismiss()
         }
+    }
+
+    private func budgetAction(for month: SavingsGoalPlanMonth) -> (() -> Void)? {
+        guard let budgetId = GoalPlanTimelinePresentation.budgetId(
+            forFrozenMonth: month,
+            plannedWithdrawals: plannedWithdrawals
+        ) else { return nil }
+        return {
+            dismiss()
+            onOpenBudget(budgetId)
+        }
+    }
+
+    private func closeAfterPlanConflict() async {
+        showRecap = false
+        await Task.yield()
+        dismiss()
+        await onPlanConflict()
     }
 }
 
@@ -287,6 +354,7 @@ final class GoalPlanSimulatorViewModel {
     private(set) var isDirty = false
     private(set) var isApplying = false
     private(set) var didApplySucceed = false
+    private(set) var didEncounterPlanConflict = false
     private(set) var applyErrorMessage: String?
 
     let sliderMax: Double
@@ -338,18 +406,23 @@ final class GoalPlanSimulatorViewModel {
     }
 
     /// The adjusted, contributive months — the write footprint and recap rows.
-    /// Excludes a zero-valued gap creation (mirrors `apply()`'s wire filter
-    /// below): the wire schema requires a positive amount, so a preview that
-    /// included one would open a recap for a change that can never be sent.
+    /// Excludes a zero-valued gap creation unless it clears an existing plan
+    /// withdrawal. The latter remains a real write and must reach the recap.
     var planChanges: [SavingsPlanCalculator.SimulatedMonth] {
         draft.months.filter {
             SavingsPlanCalculator.isContributivePlanMonth($0.month)
                 && $0.isAdjusted
-                && !($0.month.isProvisionable && $0.simulatedAmount <= 0)
+                && !(
+                    $0.month.isProvisionable
+                        && $0.simulatedAmount == 0
+                        && !$0.replacesExistingPlanWithdrawal
+                )
         }
     }
 
-    var canApply: Bool { isDirty && !planChanges.isEmpty && !isApplying }
+    var canApply: Bool {
+        isDirty && !planChanges.isEmpty && !isApplying && !didEncounterPlanConflict
+    }
 
     var hasVariableMonthlyAmounts: Bool {
         let amounts = draft.months
@@ -397,18 +470,18 @@ final class GoalPlanSimulatorViewModel {
 
     /// Slider / twin field — sets a uniform amount and wipes per-month overrides.
     func setGlobalAmount(_ amount: Decimal) {
-        let clamped = max(0, amount)
-        globalAmount = clamped
+        guard amount >= 0 else { return }
+        globalAmount = amount
         overrides = [:]
-        sliderValue = min(NSDecimalNumber(decimal: clamped).doubleValue, sliderMax)
+        sliderValue = min(NSDecimalNumber(decimal: amount).doubleValue, sliderMax)
         recompute()
     }
 
     /// Per-month inline edit — overrides that month, keeps the rest.
     func setMonth(key: Int, amount: Decimal) {
-        let clamped = max(0, amount)
-        let baselineAmount = globalAmount ?? baseline.first(where: { $0.id == key })?.plannedAmount
-        if baselineAmount == clamped { overrides.removeValue(forKey: key) } else { overrides[key] = clamped }
+        let baselineAmount = globalAmount
+            ?? baseline.first(where: { $0.id == key }).map(SavingsPlanCalculator.currentPlanMovement)
+        if baselineAmount == amount { overrides.removeValue(forKey: key) } else { overrides[key] = amount }
         recompute()
     }
 
@@ -431,13 +504,14 @@ final class GoalPlanSimulatorViewModel {
         recompute()
     }
 
-    func apply() async -> Bool {
-        isApplying = true
-        applyErrorMessage = nil
+    func apply(
+        withdrawalDestinations: GoalPlanWithdrawalDestinations = [:]
+    ) async -> Bool {
+        guard beginApplying() else { return false }
         defer { isApplying = false }
 
         let monthAdjustments = planChanges
-            .filter { SavingsPlanCalculator.isOpenPlanMonth($0.month) }
+            .filter { SavingsPlanCalculator.isOpenPlanMonth($0.month) && $0.simulatedAmount >= 0 }
             .flatMap { simMonth -> [SavingsGoalPlanApply.MonthAdjustment] in
                 let lines: [SavingsPlanCalculator.AllocatableLine] = simMonth.month.lines.map {
                     .init(budgetLineId: $0.budgetLineId, amount: $0.amount, checkedAt: $0.checkedAt)
@@ -454,28 +528,81 @@ final class GoalPlanSimulatorViewModel {
         let missingMonthAdjustments: [SavingsGoalPlanApply.MissingMonthAdjustment] = planChanges
             .filter { $0.month.isProvisionable && $0.simulatedAmount > 0 }
             .map { .init(month: $0.month.month, year: $0.month.year, amount: $0.simulatedAmount) }
+        let planWithdrawalAdjustments: [SavingsGoalPlanApply.PlanWithdrawalAdjustment] =
+            planChanges.compactMap { simMonth in
+                guard simMonth.simulatedAmount < 0
+                        || simMonth.replacesExistingPlanWithdrawal else { return nil }
+                return .init(
+                    month: simMonth.month.month,
+                    year: simMonth.month.year,
+                    amount: min(0, simMonth.simulatedAmount),
+                    destination: withdrawalDestination(
+                        for: simMonth,
+                        selections: withdrawalDestinations
+                    )
+                )
+            }
 
-        guard !monthAdjustments.isEmpty || !missingMonthAdjustments.isEmpty else { return false }
+        guard !monthAdjustments.isEmpty || !missingMonthAdjustments.isEmpty
+                || !planWithdrawalAdjustments.isEmpty else { return false }
 
         let payload = SavingsGoalPlanApply(
             monthAdjustments: monthAdjustments,
-            missingMonthAdjustments: missingMonthAdjustments
+            missingMonthAdjustments: missingMonthAdjustments,
+            planWithdrawalAdjustments: planWithdrawalAdjustments
         )
         do {
             _ = try await service.applyPlan(id: goalId, payload)
             didApplySucceed = true
             return true
+        } catch let error as APIError where error.requiresSavingsGoalPlanRefresh {
+            invalidateAfterPlanConflict(error)
+            return false
         } catch {
             applyErrorMessage = DomainErrorLocalizer.localize(error)
             return false
         }
     }
 
+    private func beginApplying() -> Bool {
+        guard !isApplying, !didEncounterPlanConflict else { return false }
+        isApplying = true
+        applyErrorMessage = nil
+        return true
+    }
+
+    private func invalidateAfterPlanConflict(_ error: APIError) {
+        didEncounterPlanConflict = true
+        revert()
+        applyErrorMessage = DomainErrorLocalizer.localize(error)
+    }
+
+    private func withdrawalDestination(
+        for simMonth: SavingsPlanCalculator.SimulatedMonth,
+        selections: GoalPlanWithdrawalDestinations
+    ) -> SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination {
+        // A zero adjustment deletes the existing withdrawal. Its destination
+        // has no write effect, but preserving it avoids describing the deletion
+        // as an implicit conversion.
+        guard simMonth.simulatedAmount < 0 else {
+            return simMonth.month.planWithdrawalDestination ?? .goalOnly
+        }
+        let selected = selections[simMonth.id]
+            ?? simMonth.month.planWithdrawalDestination
+            ?? .goalOnly
+        guard !simMonth.month.hasBudget, selected == .linkedIncome else { return selected }
+        return simMonth.month.planWithdrawalDestination == .linkedIncome ? .linkedIncome : .goalOnly
+    }
+
     private func recompute() {
         let byKey = Dictionary(uniqueKeysWithValues: baseline.map { ($0.id, $0) })
         let adjustments = overrides.compactMap { key, amount -> SavingsPlanCalculator.Adjustment? in
             guard let month = byKey[key] else { return nil }
-            return .init(month: month.month, year: month.year, amount: amount)
+            return .init(
+                month: month.month,
+                year: month.year,
+                amount: amount
+            )
         }
         if let next = try? SavingsPlanCalculator.simulate(
             timeline: baseline,
@@ -494,7 +621,11 @@ final class GoalPlanSimulatorViewModel {
         let byKey = Dictionary(uniqueKeysWithValues: baseline.map { ($0.id, $0) })
         return overrides.compactMap { key, amount in
             guard let month = byKey[key] else { return nil }
-            return .init(month: month.month, year: month.year, amount: amount)
+            return .init(
+                month: month.month,
+                year: month.year,
+                amount: amount
+            )
         }
     }
 
@@ -508,6 +639,11 @@ final class GoalPlanSimulatorViewModel {
             .filter { SavingsPlanCalculator.isContributivePlanMonth($0.month) }
             .map(\.simulatedAmount)
         guard let first = amounts.first else {
+            globalAmount = nil
+            sliderValue = 0
+            return
+        }
+        if first < 0 {
             globalAmount = nil
             sliderValue = 0
             return

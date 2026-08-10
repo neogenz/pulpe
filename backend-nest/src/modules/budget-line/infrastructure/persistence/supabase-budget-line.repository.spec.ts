@@ -40,6 +40,7 @@ const mockRow: BudgetLineRow = {
   kind: 'expense' as const,
   recurrence: 'fixed' as const,
   is_manually_adjusted: false,
+  is_savings_goal_plan_adjustment: false,
   checked_at: null,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',

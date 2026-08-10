@@ -17,6 +17,10 @@ erDiagram
     MONTHLY_BUDGET ||--o{ TRANSACTION : records
     BUDGET_LINE o|--o{ TRANSACTION : allocates
     SAVINGS_GOAL o|--o{ BUDGET_LINE : targets
+    AUTH_USER ||--o{ TAG : owns
+    TAG }o--o{ BUDGET_LINE : labels
+    TAG }o--o{ TRANSACTION : labels
+    TAG }o--o{ TEMPLATE_LINE : labels
 ```
 
 ## Conventions

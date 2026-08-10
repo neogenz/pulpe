@@ -5,6 +5,7 @@ import {
   savingsGoalDeletionCommandSchema,
   savingsGoalDeletionImpactSchema,
   savingsGoalPlanApplySchema,
+  savingsGoalPlannedWithdrawalSchema,
   savingsGoalProgressSchema,
   savingsGoalUpdateSchema,
   savingsGoalSchema,
@@ -36,6 +37,35 @@ function isoDateOffsetMonths(months: number): string {
     .toISOString()
     .slice(0, 10);
 }
+
+describe('PUL-329 — savingsGoalPlannedWithdrawalSchema', () => {
+  const plannedWithdrawal = {
+    budgetLineId: UUID,
+    budgetId: UUID_2,
+    name: 'Retrait planifié',
+    month: 9,
+    year: 2026,
+    plannedAmount: 4500,
+    realizedAmount: 0,
+    remainingAmount: 4500,
+    status: 'planned',
+  };
+
+  test('identifies a withdrawal created by the savings plan', () => {
+    const result = savingsGoalPlannedWithdrawalSchema.parse({
+      ...plannedWithdrawal,
+      origin: 'plan_linked',
+    });
+
+    expect(result.origin).toBe('plan_linked');
+  });
+
+  test('keeps historical payloads without an origin readable', () => {
+    const result = savingsGoalPlannedWithdrawalSchema.parse(plannedWithdrawal);
+
+    expect(result.origin).toBeUndefined();
+  });
+});
 
 describe('PUL-12 — savingsGoalCreateSchema', () => {
   const base = {
@@ -516,6 +546,51 @@ describe('PUL-319 — savings goal deletion contract', () => {
 });
 
 describe('PUL-12 — savingsGoalPlanApplySchema final contract', () => {
+  test('accepts a signed plan-only withdrawal while keeping contribution amounts non-negative', () => {
+    const withdrawal = savingsGoalPlanApplySchema.safeParse({
+      planWithdrawalAdjustments: [{ month: 9, year: 2026, amount: -4500 }],
+    });
+    const invalidContribution = savingsGoalPlanApplySchema.safeParse({
+      monthAdjustments: [{ budgetLineId: UUID, amount: -4500 }],
+    });
+
+    expect(withdrawal.success).toBe(true);
+    expect(invalidContribution.success).toBe(false);
+  });
+
+  test('accepts an atomic linked-income destination without allowing a negative saving line', () => {
+    const result = savingsGoalPlanApplySchema.safeParse({
+      planWithdrawalAdjustments: [
+        {
+          month: 9,
+          year: 2026,
+          amount: -4500,
+          destination: 'linked_income',
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  test('rejects an unknown withdrawal destination', () => {
+    expect(
+      savingsGoalPlanApplySchema.safeParse({
+        planWithdrawalAdjustments: [
+          { month: 9, year: 2026, amount: -450, destination: 'saving_line' },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+
+  test('accepts zero as the explicit removal of a plan-only withdrawal', () => {
+    expect(
+      savingsGoalPlanApplySchema.safeParse({
+        planWithdrawalAdjustments: [{ month: 9, year: 2026, amount: 0 }],
+      }).success,
+    ).toBe(true);
+  });
+
   test('rejects templateAdjustments as an unknown key', () => {
     const result = savingsGoalPlanApplySchema.safeParse({
       monthAdjustments: [{ budgetLineId: UUID, amount: 1000 }],

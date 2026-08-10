@@ -107,6 +107,8 @@ export {
   savingsGoalWithdrawalOptionSchema,
   savingsGoalWithdrawalOptionsResponseSchema,
   savingsGoalWithdrawalSchema,
+  savingsGoalPlannedWithdrawalSchema,
+  savingsGoalPlanOnlyWithdrawalSchema,
   savingsGoalWithdrawalsResponseSchema,
   MAX_SAVINGS_GOAL_PLAN_PERIODS,
   MAX_PLAN_ADJUSTMENTS,
@@ -243,6 +245,7 @@ export {
   simulateSavingsPlan,
   redistributeRemainingEffort,
   allocateMonthAmountToLines,
+  currentPlanMovement,
   isContributivePlanMonth,
   isOpenPlanMonth,
   type SavingsPlanMonthState,
@@ -383,6 +386,8 @@ export type {
   SavingsGoalWithdrawalOption,
   SavingsGoalWithdrawalOptionsResponse,
   SavingsGoalWithdrawal,
+  SavingsGoalPlannedWithdrawal,
+  SavingsGoalPlanOnlyWithdrawal,
   SavingsGoalWithdrawalsResponse,
 
   // Tag types (PUL-18)

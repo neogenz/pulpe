@@ -255,21 +255,21 @@ import { BudgetActionMenu } from '../budget-action-menu';
           {{ item().data.recurrence | recurrenceLabel }}
         </mat-chip>
 
-        <!--
-          Un retrait annoncé ne se pointe pas : il se réalise en saisissant le
-          revenu réel. Même sortie que la bascule — le conteneur tranche.
-        -->
         @if (item().metadata.sourceWithdrawalCtaKey; as ctaKey) {
           <button
-            matIconButton
+            matButton
             class="text-primary"
-            (click)="toggleCheck.emit(item().data.id); $event.stopPropagation()"
-            [matTooltip]="ctaKey | transloco: { name: item().data.name }"
-            [attr.aria-label]="ctaKey | transloco: { name: item().data.name }"
+            (click)="
+              realizeWithdrawal.emit(item().data.id); $event.stopPropagation()
+            "
             [attr.data-testid]="'realize-withdrawal-' + item().data.id"
           >
-            <mat-icon>price_check</mat-icon>
+            {{ ctaKey | transloco }}
           </button>
+        } @else if (item().metadata.isSourceWithdrawalRealized) {
+          <span class="text-label-medium text-on-surface-variant">
+            {{ 'budgetLine.withdrawalRealized' | transloco }}
+          </span>
         } @else {
           <mat-slide-toggle
             [checked]="!!item().data.checkedAt"
@@ -320,4 +320,5 @@ export class BudgetGridCard {
   readonly resetFromTemplate = output<BudgetLineTableItem>();
   readonly postpone = output<string>();
   readonly toggleCheck = output<string>();
+  readonly realizeWithdrawal = output<string>();
 }

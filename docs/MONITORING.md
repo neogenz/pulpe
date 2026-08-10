@@ -26,6 +26,19 @@
 Ce document décrit le comportement technique; il ne constitue pas une validation
 juridique du fondement choisi.
 
+### Filtrage bots multi-plateforme
+
+Le SDK iOS ne fournit pas de user-agent. PostHog classe donc actuellement ses
+événements natifs comme `Automation`, avec `$virt_is_bot = true`. Un insight
+cross-platform doit exclure les bots avec la règle
+`$lib = posthog-ios OR $virt_is_bot = false`. Pour un insight web-only,
+`$virt_is_bot = false` suffit.
+
+Ne pas ajouter de faux `$user_agent` au payload iOS et ne pas filtrer ces événements
+à l'ingestion : les propriétés virtuelles permettent un filtrage rétroactif et
+réversible dans les insights. Conserver `filterTestAccounts` et l'exclusion TestFlight
+comme filtres séparés.
+
 ## 🚀 TLDR - Monitoring Opérationnel
 
 ### ⚡ Status Check Rapide

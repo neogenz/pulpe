@@ -70,7 +70,7 @@ export class SavingsGoalsPage {
 
   withdrawalLink(name: string): Locator {
     return this.page.getByRole('link', {
-      name: new RegExp(`Ouvrir .*${name}.* dans son budget`),
+      name: new RegExp(`${name}.*Ouvrir ce budget`),
     });
   }
 

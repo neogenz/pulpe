@@ -55,12 +55,14 @@ export class GetSavingsGoalProgressUseCase {
       { lines, transactions },
       withdrawals,
       plannedWithdrawals,
+      planWithdrawals,
       materializedPeriods,
       defaultTemplateId,
     ] = await Promise.all([
       this.repo.findLinkedContributions(id),
       this.repo.findLinkedWithdrawals(id),
       this.repo.findPlannedWithdrawals(id),
+      this.repo.findPlanWithdrawals(id),
       this.repo.findMaterializedPeriods(),
       this.templateRepo.findDefaultTemplateId(user.id),
     ]);
@@ -71,7 +73,7 @@ export class GetSavingsGoalProgressUseCase {
       lines,
       transactions,
       withdrawals,
-      plannedWithdrawals,
+      plannedWithdrawals: [...plannedWithdrawals, ...planWithdrawals],
     });
 
     const computed = computeSavingsGoalProgress(input);

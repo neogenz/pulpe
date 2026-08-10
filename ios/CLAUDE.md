@@ -2,28 +2,25 @@
 
 ## XcodeGen
 
-**`project.yml` single source of truth.** `.xcodeproj` generated, gitignored.
-**NEVER edit settings in Xcode UI** — changes lost on next `xcodegen generate`.
-
-**ALWAYS use `xcodegen generate --use-cache`.** Without `--use-cache`, every regen rewrites `project.pbxproj` (even when `project.yml` unchanged), invalidates Xcode's incremental cache → next build = full clean rebuild (~3-5 min on this project). With `--use-cache`, repeated runs are no-ops if the spec hasn't changed: `"Project Pulpe has not changed since cache was written"`.
+`project.yml` is the single source of truth; `.xcodeproj` is generated and gitignored.
+**NEVER edit build settings in the Xcode UI** — lost on the next generate.
+**ALWAYS `xcodegen generate --use-cache`.** Without the flag every run rewrites `project.pbxproj`, invalidates Xcode's incremental cache, and the next build is a full rebuild (~3-5 min here).
 
 ## Commands
 
 ```bash
-# After git pull / clone (idempotent — safe to run repeatedly)
+# After git pull / clone (idempotent)
 xcodegen generate --use-cache
 xcode-build-server config -scheme PulpeLocal -project Pulpe.xcodeproj  # SourceKit LSP (once)
 
-# Build (replace scheme: PulpeLocal | PulpePreview | PulpeProd)
+# Build — schemes: PulpeLocal | PulpePreview | PulpeProd
 xcodebuild build -scheme PulpeLocal -destination 'platform=iOS Simulator,name=Pulpe Tests' CODE_SIGNING_ALLOWED=NO
 
-# Tests run on the dedicated 'Pulpe Tests' simulator, never on the booted one — a test
-# run steals that device from whoever is using it. No ,OS= pin: the destination then
-# resolves against whatever runtime is installed.
-# Unit tests → PulpeLocal scheme, target PulpeTests
-xcodebuild test -scheme PulpeLocal -destination 'platform=iOS Simulator,name=Pulpe Tests' -only-testing:PulpeTests/SomeTest CODE_SIGNING_ALLOWED=NO
-# UI tests → PulpeUITests scheme (NEVER use PulpeLocal for UI tests)
+# Tests — always the dedicated 'Pulpe Tests' simulator, never the booted one (a run steals
+# the device). No ,OS= pin, so the destination resolves against the installed runtime.
+xcodebuild test -scheme PulpeLocal   -destination 'platform=iOS Simulator,name=Pulpe Tests' -only-testing:PulpeTests/SomeTest   CODE_SIGNING_ALLOWED=NO
 xcodebuild test -scheme PulpeUITests -destination 'platform=iOS Simulator,name=Pulpe Tests' -only-testing:PulpeUITests/SomeTest CODE_SIGNING_ALLOWED=NO
+# UI tests need the PulpeUITests scheme — never PulpeLocal.
 # `-only-testing:` on a Swift Testing suite can select zero tests and still print
 # TEST SUCCEEDED. Read the executed count before believing a green run.
 
@@ -34,7 +31,7 @@ xcodebuild test -scheme PulpeUITests -destination 'platform=iOS Simulator,name=P
 
 ## Shared Components — Check Before Building
 
-**BEFORE creating/editing any sheet/form/view, MUST check `Shared/Components/` and `Shared/Extensions/`.** Never hand-roll what a shared component already provides. Third identical use → enrich the shared component, never copy-paste.
+**BEFORE creating/editing any sheet/form/view, check `Shared/Components/` and `Shared/Extensions/`.** Never hand-roll what a shared component already provides. Third identical use → enrich the shared component, never copy-paste.
 
 | Need | Use this | NOT this |
 |------|----------|----------|
@@ -51,11 +48,10 @@ xcodebuild test -scheme PulpeUITests -destination 'platform=iOS Simulator,name=P
 | Background | `.pulpeBackground()` / `.pulpeCardBackground()` | Manual `.background(Color.surface)` |
 
 **Form sheet checklist:**
-- [ ] Submit button use `.primaryButtonStyle(isEnabled:)`
+- [ ] Submit button uses `.primaryButtonStyle(isEnabled:)`
 - [ ] Success path: `submitSuccessTrigger.toggle()` + `toastManager.show(...)` + `dismiss()`
-- [ ] `.sensoryFeedback(.success, trigger: submitSuccessTrigger)` on form
+- [ ] `.sensoryFeedback(.success, trigger: submitSuccessTrigger)` on the form
 
 ## Vocabulary
 
-Root `CLAUDE.md § Vocabulary` is the only list. `BudgetLine` reads "prévision" in the UI,
-never "catégorie" — that word appears nowhere in the Swift sources.
+Root `CLAUDE.md § Vocabulary` is the only list. `BudgetLine` reads "prévision" in the UI, never "catégorie" — that word appears nowhere in the Swift sources.

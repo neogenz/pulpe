@@ -4,7 +4,11 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { registerLocaleData } from '@angular/common';
 import localeDE from '@angular/common/locales/de-CH';
-import type { SavingsGoalPlanMonth } from 'pulpe-shared';
+import { provideRouter } from '@angular/router';
+import type {
+  SavingsGoalPlanMonth,
+  SavingsGoalPlannedWithdrawal,
+} from 'pulpe-shared';
 import { GoalPlanTimeline } from './goal-plan-timeline';
 import { setTestInput } from '../../../../testing/signal-test-utils';
 import { provideTranslocoForTest } from '../../../../testing/transloco-testing';
@@ -44,6 +48,7 @@ describe('GoalPlanTimeline', () => {
       providers: [
         provideZonelessChangeDetection(),
         ...provideTranslocoForTest(),
+        provideRouter([]),
       ],
     }).compileComponents();
 
@@ -78,6 +83,19 @@ describe('GoalPlanTimeline', () => {
     expect(rows[1].nativeElement.textContent).toContain('900');
   });
 
+  it('wraps the period badges instead of colliding with the monthly amount', () => {
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({ month: 9, state: 'current' }),
+    ]);
+    setTestInput(fixture.componentInstance.editable, true);
+    fixture.detectChanges();
+
+    const periodBadges = rowsQuery()[0].nativeElement.querySelector(
+      'span.flex.items-center.gap-2',
+    ) as HTMLSpanElement;
+    expect(periodBadges.classList).toContain('flex-wrap');
+  });
+
   it('announces the formatted amount and locked state for a checked row', () => {
     setTestInput(fixture.componentInstance.months, [
       makeMonth({
@@ -108,6 +126,112 @@ describe('GoalPlanTimeline', () => {
     expect(
       rowsQuery()[0].nativeElement.querySelector('span[aria-label]'),
     ).toBeNull();
+  });
+
+  it('locks a realized plan withdrawal with the same visible and accessible reason', () => {
+    setTestInput(fixture.componentInstance.editable, true);
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({
+        plannedWithdrawalAmount: 4_500,
+        remainingPlannedWithdrawalAmount: 4_200,
+        planLinkedWithdrawalAmount: 4_200,
+        planWithdrawalDestination: 'linked_income',
+        planWithdrawalConsumedAmount: 300,
+      }),
+    ]);
+    fixture.detectChanges();
+
+    const row = rowsQuery()[0].nativeElement as HTMLElement;
+    const reason = query('goal-plan-row-realized-lock').nativeElement
+      .textContent;
+    const amount = row.querySelector('span[aria-label]');
+
+    expect(row.dataset['locked']).toBe('true');
+    expect(row.querySelector('button')).toBeNull();
+    expect(reason).toContain(
+      'Ce retrait est déjà réalisé en partie ou en totalité. Modifie-le depuis le budget.',
+    );
+    expect(amount?.getAttribute('aria-label')).toContain(
+      'Ce retrait est déjà réalisé en partie ou en totalité. Modifie-le depuis le budget.',
+    );
+  });
+
+  it('opens only the plan-linked withdrawal budget when another income shares the month', () => {
+    const manualBudgetId = '00000000-0000-4000-8000-000000000100';
+    const planBudgetId = '00000000-0000-4000-8000-000000000200';
+    const withdrawals: SavingsGoalPlannedWithdrawal[] = [
+      {
+        budgetLineId: '00000000-0000-4000-8000-000000000101',
+        budgetId: manualBudgetId,
+        name: 'Revenu manuel',
+        month: 3,
+        year: 2026,
+        plannedAmount: 200,
+        realizedAmount: 0,
+        remainingAmount: 200,
+        status: 'planned',
+      },
+      {
+        budgetLineId: '00000000-0000-4000-8000-000000000201',
+        budgetId: planBudgetId,
+        name: 'Retrait du plan',
+        month: 3,
+        year: 2026,
+        plannedAmount: 500,
+        realizedAmount: 300,
+        remainingAmount: 200,
+        status: 'partially_realized',
+        origin: 'plan_linked',
+      },
+    ];
+    setTestInput(fixture.componentInstance.editable, true);
+    setTestInput(fixture.componentInstance.plannedWithdrawals, withdrawals);
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({
+        plannedWithdrawalAmount: 500,
+        remainingPlannedWithdrawalAmount: 200,
+        planLinkedWithdrawalAmount: 200,
+        planWithdrawalDestination: 'linked_income',
+        planWithdrawalConsumedAmount: 300,
+      }),
+    ]);
+    fixture.detectChanges();
+
+    const link = query('goal-plan-row-open-budget')
+      .nativeElement as HTMLAnchorElement;
+    expect(link.getAttribute('href')).toBe(`/budget/${planBudgetId}`);
+    expect(link.getAttribute('href')).not.toContain(manualBudgetId);
+    expect(link.textContent).toContain('Ouvrir le budget');
+  });
+
+  it('keeps the realized-lock explanation non-interactive when origin is absent', () => {
+    setTestInput(fixture.componentInstance.editable, true);
+    setTestInput(fixture.componentInstance.plannedWithdrawals, [
+      {
+        budgetLineId: '00000000-0000-4000-8000-000000000301',
+        budgetId: '00000000-0000-4000-8000-000000000300',
+        name: 'Ancien revenu',
+        month: 3,
+        year: 2026,
+        plannedAmount: 500,
+        realizedAmount: 300,
+        remainingAmount: 200,
+        status: 'partially_realized',
+      },
+    ]);
+    setTestInput(fixture.componentInstance.months, [
+      makeMonth({
+        plannedWithdrawalAmount: 500,
+        remainingPlannedWithdrawalAmount: 200,
+        planLinkedWithdrawalAmount: 200,
+        planWithdrawalDestination: 'linked_income',
+        planWithdrawalConsumedAmount: 300,
+      }),
+    ]);
+    fixture.detectChanges();
+
+    expect(query('goal-plan-row-realized-lock')).toBeTruthy();
+    expect(query('goal-plan-row-open-budget')).toBeNull();
   });
 
   it('distinguishes missing, repairable, non-actionable and linked forecasts', () => {
@@ -590,17 +714,17 @@ describe('GoalPlanTimeline', () => {
     expect(query('goal-plan-row-error')).toBeNull();
   });
 
-  it('refuses a negative amount with a visible error instead of clamping it', () => {
+  it('accepts a negative monthly movement without an error', () => {
     const { input, amounts, invalid } = openInlineEdit();
 
     input.value = '-500';
     input.dispatchEvent(new Event('input'));
     fixture.detectChanges();
 
-    expect(amounts).toEqual([]);
-    expect(invalid.at(-1)).toBe(true);
-    expect(query('goal-plan-row-error')).toBeTruthy();
-    expect(input.getAttribute('aria-invalid')).toBe('true');
+    expect(amounts).toEqual([{ month: 3, year: 2026, amount: -500 }]);
+    expect(invalid.at(-1)).toBe(false);
+    expect(query('goal-plan-row-error')).toBeNull();
+    expect(input.getAttribute('aria-invalid')).toBe('false');
     expect(input.value).toBe('-500');
   });
 
@@ -616,7 +740,7 @@ describe('GoalPlanTimeline', () => {
     expect(query('goal-plan-row-error')).toBeNull();
   });
 
-  it('drops a refused entry when the field is left, writing nothing', () => {
+  it('keeps a negative monthly movement when the field is left', () => {
     const { input, amounts, invalid } = openInlineEdit();
 
     input.value = '-500';
@@ -625,7 +749,7 @@ describe('GoalPlanTimeline', () => {
     input.dispatchEvent(new Event('blur'));
     fixture.detectChanges();
 
-    expect(amounts).toEqual([]);
+    expect(amounts).toEqual([{ month: 3, year: 2026, amount: -500 }]);
     expect(invalid.at(-1)).toBe(false);
     expect(query('goal-plan-row-input')).toBeNull();
   });

@@ -29,6 +29,10 @@ const componentSources = {
   ),
   page: readFileSync(new URL("./page.tsx", import.meta.url), "utf8"),
   support: readFileSync(new URL("./support/page.tsx", import.meta.url), "utf8"),
+  supportGuide: readFileSync(
+    new URL("./support/modeles-et-budgets/page.tsx", import.meta.url),
+    "utf8",
+  ),
   painPoints: readFileSync(
     new URL("../components/sections/PainPoints.tsx", import.meta.url),
     "utf8",
@@ -1268,8 +1272,36 @@ describe("landing accessibility contracts", () => {
     assert.doesNotMatch(componentSources.support, /<details|<summary/);
   });
 
+  it("explains when to edit a model versus a monthly budget", () => {
+    assert.match(componentSources.supportGuide, /base de départ/);
+    assert.match(componentSources.supportGuide, /mois précis/);
+    assert.match(componentSources.supportGuide, /Appliquer/);
+    assert.match(componentSources.supportGuide, /modifiée manuellement/);
+    assert.match(componentSources.supportGuide, /Changer uniquement ce mois/);
+    assert.doesNotMatch(componentSources.supportGuide, /catégor/i);
+    assert.doesNotMatch(componentSources.supportGuide, /<Image|next\/image/);
+  });
+
+  it("owns the guide social metadata instead of inheriting the homepage", () => {
+    assert.match(componentSources.supportGuide, /const GUIDE_PATH/);
+    assert.match(componentSources.supportGuide, /openGraph:\s*\{/);
+    assert.match(componentSources.supportGuide, /url: GUIDE_PATH/);
+    assert.match(componentSources.supportGuide, /twitter:\s*\{/);
+  });
+
+  it("links the first help journey from support and navigation", () => {
+    assert.match(componentSources.support, /Guides pour utiliser Pulpe/);
+    assert.match(componentSources.support, /\/support\/modeles-et-budgets/);
+    assert.match(componentSources.header, /href: "\/support", label: "Aide"/);
+    assert.match(componentSources.footer, /label: "Aide", href: "\/support"/);
+  });
+
   it("keeps skip links keyboard-only and moves focus to main content", () => {
-    for (const source of [componentSources.page, componentSources.support]) {
+    for (const source of [
+      componentSources.page,
+      componentSources.support,
+      componentSources.supportGuide,
+    ]) {
       const skipLinkClass = source.match(
         /href="#main-content"\s+className="([^"]+)"/,
       )?.[1];

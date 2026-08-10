@@ -1,4 +1,9 @@
+// swiftlint:disable file_length
 import SwiftUI
+
+typealias GoalPlanWithdrawalDestinations = [
+    Int: SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination
+]
 
 enum GoalPlanApplyRecapMode: Equatable {
     case adjustment
@@ -7,9 +12,9 @@ enum GoalPlanApplyRecapMode: Equatable {
 
 /// « On met ton plan à jour ? » (PUL-12+, pilier C) — the apply-on-confirm recap.
 ///
-/// A medium-detent sheet summarising the edited months (uniform → one line, mixed →
-/// up to 5 rows + « et N autres »), the projection verdict, and a loading
-/// confirm button doing the pessimistic write (`docs/SAVINGS.md` §10.1).
+/// A medium-detent sheet summarising the edited months, the destination of every
+/// planned withdrawal, the projection verdict, and a loading confirm button doing
+/// the pessimistic write (`docs/SAVINGS.md` §10.1).
 /// Épargne accents only — never amber/red (RG-002).
 struct GoalPlanApplyRecapSheet: View {
     var mode: GoalPlanApplyRecapMode = .adjustment
@@ -17,26 +22,133 @@ struct GoalPlanApplyRecapSheet: View {
     let verdict: String
     let currency: SupportedCurrency
     /// Returns `true` on a successful write so the sheet can dismiss itself.
-    let onConfirm: () async -> Bool
+    let onConfirm: (GoalPlanWithdrawalDestinations) async -> Bool
 
     @Environment(\.dismiss) private var dismiss
     @State private var isConfirming = false
+    @State private var withdrawalDestinations: GoalPlanWithdrawalDestinations
 
     private let maxListedRows = 5
 
+    init(
+        mode: GoalPlanApplyRecapMode = .adjustment,
+        changes: [SavingsPlanCalculator.SimulatedMonth],
+        verdict: String,
+        currency: SupportedCurrency,
+        onConfirm: @escaping (GoalPlanWithdrawalDestinations) async -> Bool
+    ) {
+        self.mode = mode
+        self.changes = changes
+        self.verdict = verdict
+        self.currency = currency
+        self.onConfirm = onConfirm
+        _withdrawalDestinations = State(
+            initialValue: Self.initialWithdrawalDestinations(for: changes)
+        )
+    }
+
+    struct WithdrawalBreakdown: Equatable {
+        let contribution: Decimal
+        let updatedContribution: Decimal
+        let previousWithdrawal: Decimal
+        let plannedWithdrawal: Decimal
+        let netEffect: Decimal
+    }
+
+    nonisolated static func initialWithdrawalDestinations(
+        for changes: [SavingsPlanCalculator.SimulatedMonth]
+    ) -> GoalPlanWithdrawalDestinations {
+        Dictionary(uniqueKeysWithValues: changes.compactMap { change in
+            guard change.simulatedAmount < 0 else { return nil }
+            return (
+                change.id,
+                change.month.planWithdrawalDestination ?? .goalOnly
+            )
+        })
+    }
+
+    nonisolated static func withdrawalBreakdown(
+        for change: SavingsPlanCalculator.SimulatedMonth
+    ) -> WithdrawalBreakdown {
+        let contribution = max(change.month.plannedAmount, change.month.confirmedAmount)
+        let updatedContribution = change.simulatedAmount < 0 ? contribution : change.simulatedAmount
+        let previousWithdrawal = -SavingsPlanCalculator.managedPlanWithdrawalAmount(change.month)
+        let plannedWithdrawal = min(0, change.simulatedAmount)
+        return WithdrawalBreakdown(
+            contribution: contribution,
+            updatedContribution: updatedContribution,
+            previousWithdrawal: previousWithdrawal,
+            plannedWithdrawal: plannedWithdrawal,
+            netEffect: updatedContribution + plannedWithdrawal
+        )
+    }
+
+    nonisolated static func listedChanges(
+        _ changes: [SavingsPlanCalculator.SimulatedMonth],
+        maxNonWithdrawals: Int
+    ) -> [SavingsPlanCalculator.SimulatedMonth] {
+        var nonWithdrawalCount = 0
+        return changes.filter { change in
+            if change.simulatedAmount < 0 || change.replacesExistingPlanWithdrawal {
+                return true
+            }
+            guard nonWithdrawalCount < max(0, maxNonWithdrawals) else { return false }
+            nonWithdrawalCount += 1
+            return true
+        }
+    }
+
+    nonisolated static func canLinkWithdrawal(
+        _ change: SavingsPlanCalculator.SimulatedMonth
+    ) -> Bool {
+        change.simulatedAmount < 0 && change.month.hasBudget
+    }
+
+    nonisolated static func hasUniformAdjustment(
+        _ changes: [SavingsPlanCalculator.SimulatedMonth]
+    ) -> Bool {
+        guard let first = changes.first else { return false }
+        let previousAmount = SavingsPlanCalculator.currentPlanMovement(first.month)
+        return changes.allSatisfy {
+            SavingsPlanCalculator.currentPlanMovement($0.month) == previousAmount
+                && $0.simulatedAmount == first.simulatedAmount
+        }
+    }
+
     private var isUniform: Bool {
-        mode == .adjustment && Set(changes.map(\.simulatedAmount)).count <= 1
+        mode == .adjustment && !hasWithdrawalChange && Self.hasUniformAdjustment(changes)
     }
 
     private var listedChanges: [SavingsPlanCalculator.SimulatedMonth] {
-        mode == .creation ? changes : Array(changes.prefix(maxListedRows))
+        if mode == .creation { return changes }
+        return Self.listedChanges(changes, maxNonWithdrawals: maxListedRows)
     }
 
+    private var omittedChangeCount: Int { changes.count - listedChanges.count }
+
     private var summary: String {
-        guard mode == .creation else { return "\(changes.count) mois ajustés" }
+        guard mode == .creation else {
+            return changes.count == 1 ? "1 mois ajusté" : "\(changes.count) mois ajustés"
+        }
         return changes.count == 1
             ? "1 prévision Épargne à ajouter"
             : "\(changes.count) prévisions Épargne à ajouter"
+    }
+
+    private var hasWithdrawal: Bool { changes.contains { $0.simulatedAmount < 0 } }
+
+    private var hasWithdrawalChange: Bool {
+        changes.contains { $0.simulatedAmount < 0 || $0.replacesExistingPlanWithdrawal }
+    }
+
+    nonisolated static func conversionMessage(
+        from existing: SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination?,
+        to selected: SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination
+    ) -> String? {
+        guard let existing, existing != selected else { return nil }
+        return existing == .linkedIncome
+            ? "La Prévision Revenu liée sera supprimée avec la mise à jour du plan."
+            : "Une Prévision Revenu liée sera créée avec la mise à jour du plan."
     }
 
     var body: some View {
@@ -72,22 +184,84 @@ struct GoalPlanApplyRecapSheet: View {
         }
         .standardSheetPresentation(detents: [.medium, .large])
     }
+}
+
+private extension GoalPlanApplyRecapSheet {
+    private func destinationRow(
+        for change: SavingsPlanCalculator.SimulatedMonth,
+        _ destination: SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination,
+        title: String,
+        detail: String,
+        enabled: Bool = true
+    ) -> some View {
+        let isSelected = withdrawalDestination(for: change) == destination
+        return Button {
+            withdrawalDestinations[change.id] = destination
+        } label: {
+            HStack(alignment: .top, spacing: DesignTokens.Spacing.md) {
+                Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
+                    .foregroundStyle(enabled ? Color.pulpePrimary : Color.textTertiary)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+                    Text(title).font(PulpeTypography.listRowTitle)
+                    Text(detail)
+                        .font(PulpeTypography.listRowSubtitle)
+                        .foregroundStyle(Color.textSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .buttonStyle(.plain)
+        .frame(minHeight: DesignTokens.TapTarget.minimum, alignment: .leading)
+        .contentShape(Rectangle())
+        .disabled(!enabled)
+        .opacity(enabled ? 1 : DesignTokens.Opacity.disabled)
+        .accessibilityLabel(title)
+        .accessibilityHint(detail)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
 
     @ViewBuilder
     private var diffBlock: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
             if isUniform, let first = changes.first {
-                Text("\(first.simulatedAmount.asCurrency(currency))/mois sur \(changes.count) mois")
-                    .font(PulpeTypography.amountCard)
-                    .monospacedDigit()
-                    .foregroundStyle(Color.financialSavings)
-                    .sensitiveAmount()
-            } else {
-                ForEach(listedChanges) { simMonth in
-                    diffRow(simMonth)
+                let before = SavingsPlanCalculator.currentPlanMovement(first.month)
+                let after = first.simulatedAmount
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                        uniformAmountTransition(from: before, to: after)
+                        Text("/mois sur \(changes.count) mois")
+                            .foregroundStyle(Color.textSecondary)
+                    }
+                    .fixedSize(horizontal: true, vertical: false)
+
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                        uniformAmountTransition(from: before, to: after)
+                        Text("/mois sur \(changes.count) mois")
+                            .foregroundStyle(Color.textSecondary)
+                    }
                 }
-                if mode == .adjustment, changes.count > maxListedRows {
-                    Text("et \(changes.count - maxListedRows) autres")
+                .font(PulpeTypography.amountCard)
+                .monospacedDigit()
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(
+                    "De \(before.asCurrency(currency)) à \(after.asCurrency(currency)) "
+                        + "par mois sur \(changes.count) mois"
+                )
+                .sensitiveAmount()
+            } else {
+                ForEach(Array(listedChanges.enumerated()), id: \.element.id) { index, simMonth in
+                    if index > 0 {
+                        Divider().foregroundStyle(Color.outlineVariant)
+                    }
+                    if simMonth.simulatedAmount < 0 || simMonth.replacesExistingPlanWithdrawal {
+                        withdrawalChange(simMonth)
+                    } else {
+                        diffRow(simMonth)
+                    }
+                }
+                if mode == .adjustment, omittedChangeCount > 0 {
+                    Text("et \(omittedChangeCount) autres")
                         .font(PulpeTypography.metricLabel)
                         .foregroundStyle(Color.textTertiary)
                 }
@@ -98,26 +272,304 @@ struct GoalPlanApplyRecapSheet: View {
         .pulpeCardBackground()
     }
 
-    private func diffRow(_ simMonth: SavingsPlanCalculator.SimulatedMonth) -> some View {
-        HStack {
-            Text("\(Formatters.monthName(for: simMonth.month.month)) \(simMonth.month.year)")
-                .font(PulpeTypography.metricLabel)
-                .foregroundStyle(Color.textSecondary)
-            Spacer()
-            if mode == .adjustment {
-                Text(simMonth.month.plannedAmount.asCompactCurrency(currency))
-                    .foregroundStyle(Color.textTertiary)
-                    .strikethrough(true, color: Color.textTertiary)
-                Image(systemName: "arrow.right")
-                    .font(PulpeTypography.caption2)
-                    .foregroundStyle(Color.textTertiary)
+    private func uniformAmountTransition(from before: Decimal, to after: Decimal) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                uniformBeforeAmount(before)
+                transitionArrow(systemName: "arrow.right")
+                uniformAfterAmount(after)
             }
-            Text(simMonth.simulatedAmount.asCompactCurrency(currency))
-                .foregroundStyle(Color.financialSavings)
+            .fixedSize(horizontal: true, vertical: false)
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                uniformBeforeAmount(before)
+                transitionArrow(systemName: "arrow.down")
+                uniformAfterAmount(after)
+            }
+        }
+    }
+
+    private func uniformBeforeAmount(_ before: Decimal) -> some View {
+        Text(before.asCompactCurrency(currency))
+            .foregroundStyle(Color.textTertiary)
+            .strikethrough(true, color: Color.textTertiary)
+    }
+
+    private func uniformAfterAmount(_ after: Decimal) -> some View {
+        Text(after.asCompactCurrency(currency))
+            .foregroundStyle(Color.financialSavings)
+    }
+
+    private func transitionArrow(systemName: String) -> some View {
+        Image(systemName: systemName)
+            .font(PulpeTypography.caption2)
+            .foregroundStyle(Color.textTertiary)
+            .accessibilityHidden(true)
+    }
+
+    private func diffRow(_ simMonth: SavingsPlanCalculator.SimulatedMonth) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: DesignTokens.Spacing.sm) {
+                diffRowPeriod(simMonth)
+                Spacer(minLength: DesignTokens.Spacing.sm)
+                diffRowAmounts(simMonth)
+            }
+            .fixedSize(horizontal: true, vertical: false)
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                diffRowPeriod(simMonth)
+                diffRowAmounts(simMonth)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
         }
         .font(PulpeTypography.metricLabelBold)
         .monospacedDigit()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            mode == .adjustment
+                ? "\(Formatters.monthName(for: simMonth.month.month)) \(simMonth.month.year), "
+                    + "de \(SavingsPlanCalculator.currentPlanMovement(simMonth.month).asCompactCurrency(currency)) "
+                    + "à \(simMonth.simulatedAmount.asCompactCurrency(currency))"
+                : "\(Formatters.monthName(for: simMonth.month.month)) \(simMonth.month.year), "
+                    + simMonth.simulatedAmount.asCompactCurrency(currency)
+        )
         .sensitiveAmount()
+    }
+
+    private func diffRowPeriod(_ simMonth: SavingsPlanCalculator.SimulatedMonth) -> some View {
+        Text("\(Formatters.monthName(for: simMonth.month.month)) \(simMonth.month.year)")
+            .font(PulpeTypography.metricLabel)
+            .foregroundStyle(Color.textSecondary)
+    }
+
+    private func diffRowAmounts(_ simMonth: SavingsPlanCalculator.SimulatedMonth) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                if mode == .adjustment {
+                    diffRowBeforeAmount(simMonth)
+                    transitionArrow(systemName: "arrow.right")
+                }
+                diffRowAfterAmount(simMonth)
+            }
+            .fixedSize(horizontal: true, vertical: false)
+
+            VStack(alignment: .trailing, spacing: DesignTokens.Spacing.sm) {
+                if mode == .adjustment {
+                    diffRowBeforeAmount(simMonth)
+                    transitionArrow(systemName: "arrow.down")
+                }
+                diffRowAfterAmount(simMonth)
+            }
+        }
+    }
+
+    private func diffRowBeforeAmount(_ simMonth: SavingsPlanCalculator.SimulatedMonth) -> some View {
+        Text(SavingsPlanCalculator.currentPlanMovement(simMonth.month).asCompactCurrency(currency))
+            .foregroundStyle(Color.textTertiary)
+            .strikethrough(true, color: Color.textTertiary)
+    }
+
+    private func diffRowAfterAmount(_ simMonth: SavingsPlanCalculator.SimulatedMonth) -> some View {
+        Text(simMonth.simulatedAmount.asCompactCurrency(currency))
+            .foregroundStyle(Color.financialSavings)
+    }
+
+    private func withdrawalChange(_ change: SavingsPlanCalculator.SimulatedMonth) -> some View {
+        let breakdown = Self.withdrawalBreakdown(for: change)
+
+        return VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            Text("\(Formatters.monthName(for: change.month.month)) \(change.month.year)")
+                .font(PulpeTypography.listRowTitle)
+                .foregroundStyle(Color.textPrimary)
+
+            withdrawalAmounts(breakdown)
+            if change.simulatedAmount < 0 {
+                withdrawalDestinationChoices(for: change)
+            } else if change.month.planWithdrawalDestination == .linkedIncome {
+                Text("La Prévision Revenu liée sera supprimée avec la mise à jour du plan.")
+                    .font(PulpeTypography.listRowSubtitle)
+                    .foregroundStyle(Color.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func withdrawalAmounts(_ breakdown: WithdrawalBreakdown) -> some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+            if breakdown.contribution == breakdown.updatedContribution {
+                amountRow(
+                    label: "Épargne prévue",
+                    amount: breakdown.contribution,
+                    detail: "Conservée"
+                )
+            } else {
+                withdrawalTransition(
+                    label: "Épargne prévue",
+                    from: breakdown.contribution,
+                    to: breakdown.updatedContribution
+                )
+            }
+            withdrawalTransition(
+                from: breakdown.previousWithdrawal,
+                to: breakdown.plannedWithdrawal
+            )
+            amountRow(label: "Effet net du mois", amount: breakdown.netEffect)
+        }
+    }
+
+    private func withdrawalDestinationChoices(
+        for change: SavingsPlanCalculator.SimulatedMonth
+    ) -> some View {
+        let canLink = Self.canLinkWithdrawal(change)
+        let selectedDestination = withdrawalDestination(for: change)
+
+        return VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+            Text("Destination de ce mois")
+                .font(PulpeTypography.metricLabel)
+                .foregroundStyle(Color.textSecondary)
+
+            destinationRow(
+                for: change,
+                .goalOnly,
+                title: "Objectif uniquement",
+                detail: "La projection baisse. Rien ne change dans ton budget."
+            )
+            destinationRow(
+                for: change,
+                .linkedIncome,
+                title: "Revenu dans le budget",
+                detail: "Une Prévision Revenu liée sera ajoutée. "
+                    + "Réalise-la dans le budget : le Réel créé sera automatiquement pointé.",
+                enabled: canLink
+            )
+
+            if !canLink {
+                Text("Crée d’abord le budget de ce mois pour y ajouter le revenu.")
+                    .font(PulpeTypography.listRowSubtitle)
+                    .foregroundStyle(Color.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if let message = Self.conversionMessage(
+                from: change.month.planWithdrawalDestination,
+                to: selectedDestination
+            ) {
+                Text(message)
+                    .font(PulpeTypography.listRowSubtitle)
+                    .foregroundStyle(Color.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isStaticText)
+            }
+        }
+    }
+
+    private func amountRow(label: String, amount: Decimal, detail: String? = nil) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                amountLabel(label, detail: detail)
+                    .fixedSize(horizontal: true, vertical: false)
+                Spacer(minLength: DesignTokens.Spacing.sm)
+                breakdownAmount(amount)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                amountLabel(label, detail: detail)
+                    .fixedSize(horizontal: false, vertical: true)
+                breakdownAmount(amount)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+        }
+        .font(PulpeTypography.metricLabel)
+        .foregroundStyle(Color.textPrimary)
+    }
+
+    private func amountLabel(_ label: String, detail: String?) -> some View {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.xxs) {
+            Text(label)
+            if let detail {
+                Text(detail)
+                    .font(PulpeTypography.listRowSubtitle)
+                    .foregroundStyle(Color.textTertiary)
+            }
+        }
+    }
+
+    private func breakdownAmount(_ amount: Decimal) -> some View {
+        Text(signedCurrency(amount))
+            .font(PulpeTypography.metricLabelBold)
+            .monospacedDigit()
+            .sensitiveAmount()
+    }
+
+    private func withdrawalTransition(
+        label: String = "Retrait planifié",
+        from: Decimal,
+        to: Decimal
+    ) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                Text(label)
+                    .fixedSize(horizontal: true, vertical: false)
+                Spacer(minLength: DesignTokens.Spacing.sm)
+                withdrawalTransitionAmounts(from: from, to: to)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
+                Text(label)
+                withdrawalTransitionAmounts(from: from, to: to)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+        }
+        .font(PulpeTypography.metricLabelBold)
+        .monospacedDigit()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            "\(label), de \(signedCurrency(from)) à \(signedCurrency(to))"
+        )
+        .sensitiveAmount()
+    }
+
+    private func withdrawalTransitionAmounts(from: Decimal, to: Decimal) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.sm) {
+                withdrawalBeforeAmount(from)
+                transitionArrow(systemName: "arrow.right")
+                withdrawalAfterAmount(to)
+            }
+            .fixedSize(horizontal: true, vertical: false)
+
+            VStack(alignment: .trailing, spacing: DesignTokens.Spacing.sm) {
+                withdrawalBeforeAmount(from)
+                transitionArrow(systemName: "arrow.down")
+                withdrawalAfterAmount(to)
+            }
+        }
+    }
+
+    private func withdrawalBeforeAmount(_ amount: Decimal) -> some View {
+        Text(signedCurrency(amount))
+            .foregroundStyle(Color.textTertiary)
+            .strikethrough(true, color: Color.textTertiary)
+    }
+
+    private func withdrawalAfterAmount(_ amount: Decimal) -> some View {
+        Text(signedCurrency(amount))
+            .foregroundStyle(Color.textPrimary)
+    }
+
+    private func signedCurrency(_ amount: Decimal) -> String {
+        let formatted = amount.asCompactCurrency(currency)
+        return amount > 0 ? "+\(formatted)" : formatted
+    }
+
+    private func withdrawalDestination(
+        for change: SavingsPlanCalculator.SimulatedMonth
+    ) -> SavingsGoalPlanApply.PlanWithdrawalAdjustment.Destination {
+        withdrawalDestinations[change.id]
+            ?? change.month.planWithdrawalDestination
+            ?? .goalOnly
     }
 
     private var confirmFooter: some View {
@@ -126,7 +578,11 @@ struct GoalPlanApplyRecapSheet: View {
         } label: {
             HStack(spacing: DesignTokens.Spacing.sm) {
                 if isConfirming { ProgressView().tint(Color.textOnPrimary) }
-                Text(mode == .creation ? "Créer les épargnes" : "Mettre à jour")
+                Text(
+                    hasWithdrawal
+                        ? "Planifier le retrait"
+                        : mode == .creation ? "Créer les épargnes" : "Mettre à jour"
+                )
             }
         }
         .primaryButtonStyle(isEnabled: !isConfirming)
@@ -139,7 +595,7 @@ struct GoalPlanApplyRecapSheet: View {
     private func confirm() {
         isConfirming = true
         Task {
-            let succeeded = await onConfirm()
+            let succeeded = await onConfirm(withdrawalDestinations)
             isConfirming = false
             if succeeded { dismiss() }
         }

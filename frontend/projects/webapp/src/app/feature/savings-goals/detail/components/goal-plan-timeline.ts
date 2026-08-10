@@ -13,10 +13,13 @@ import {
 import { formatNumber } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { RouterLink } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import {
   formatBudgetPeriod,
+  isContributivePlanMonth,
   type SavingsGoalPlanMonth,
+  type SavingsGoalPlannedWithdrawal,
   type SavingsPlanSimulatedMonth,
   type SupportedCurrency,
 } from 'pulpe-shared';
@@ -34,6 +37,8 @@ interface GoalPlanTimelineRow {
   hasBudget: boolean;
   isRepairable: boolean;
   isOpen: boolean;
+  blockedByRealization: boolean;
+  withdrawalBudgetId: string | null;
   isAdjusted: boolean;
   amount: number;
   cumulative: number;
@@ -69,7 +74,13 @@ const WINDOW_OPEN_ROWS = 3;
  */
 @Component({
   selector: 'pulpe-goal-plan-timeline',
-  imports: [MatButtonModule, MatIconModule, TranslocoPipe, AppCurrencyPipe],
+  imports: [
+    MatButtonModule,
+    MatIconModule,
+    RouterLink,
+    TranslocoPipe,
+    AppCurrencyPipe,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col gap-2" data-testid="goal-plan-timeline">
@@ -84,7 +95,7 @@ const WINDOW_OPEN_ROWS = 3;
         }
         <div
           class="flex items-center gap-3 rounded-xl bg-surface-container-low p-4"
-          [class.opacity-60]="row.isLocked"
+          [class.opacity-60]="row.isLocked && !row.blockedByRealization"
           [attr.data-testid]="'goal-plan-row-' + row.periodKey"
           [attr.data-current]="row.isCurrent"
           [attr.data-locked]="row.isLocked"
@@ -101,7 +112,7 @@ const WINDOW_OPEN_ROWS = 3;
           </mat-icon>
 
           <div class="flex min-w-0 flex-1 flex-col">
-            <span class="flex items-center gap-2">
+            <span class="flex flex-wrap items-center gap-2">
               <span class="text-body-medium font-medium">
                 {{ formatPeriod(row.month, row.year) }}
               </span>
@@ -159,6 +170,28 @@ const WINDOW_OPEN_ROWS = 3;
                 {{ -row.plannedWithdrawal | appCurrency: currency() : '1.0-0' }}
               </span>
             }
+            @if (row.blockedByRealization) {
+              <span
+                class="text-body-small text-on-surface-variant"
+                data-testid="goal-plan-row-realized-lock"
+              >
+                {{ 'savingsGoals.plan.realizedWithdrawalLock' | transloco }}
+              </span>
+              @if (row.withdrawalBudgetId) {
+                <a
+                  matButton
+                  class="mt-1 w-fit"
+                  [routerLink]="['/budget', row.withdrawalBudgetId]"
+                  data-testid="goal-plan-row-open-budget"
+                >
+                  {{
+                    'savingsGoals.plan.openWithdrawalBudget'
+                      | transloco: { period: formatPeriod(row.month, row.year) }
+                  }}
+                  <mat-icon>arrow_forward</mat-icon>
+                </a>
+              }
+            }
           </div>
 
           @if (row.isWithdrawalOnly) {
@@ -177,7 +210,6 @@ const WINDOW_OPEN_ROWS = 3;
                 type="number"
                 inputmode="decimal"
                 step="0.01"
-                min="0"
                 class="ph-no-capture w-28 rounded-lg border bg-surface px-3 py-1.5
                        text-right text-body-medium"
                 [class.border-outline]="!hasEditError()"
@@ -194,6 +226,9 @@ const WINDOW_OPEN_ROWS = 3;
                 #amountField
                 data-testid="goal-plan-row-input"
               />
+              <p class="text-right text-body-small text-on-surface-variant">
+                {{ 'savingsGoals.plan.movementHint' | transloco }}
+              </p>
               @if (hasEditError()) {
                 <p
                   id="goal-plan-row-error"
@@ -280,6 +315,9 @@ export class GoalPlanTimeline {
   readonly editable = input<boolean>(false);
   readonly expanded = input<boolean>(false);
   readonly canRepair = input<boolean>(false);
+  readonly plannedWithdrawals = input<readonly SavingsGoalPlannedWithdrawal[]>(
+    [],
+  );
 
   readonly amountChange = output<{
     month: number;
@@ -315,17 +353,25 @@ export class GoalPlanTimeline {
         (month.withdrawnAmount ?? 0) > 0,
     );
     return source.map((month) => {
+      const planLinkedWithdrawal = this.plannedWithdrawals().find(
+        (withdrawal) =>
+          withdrawal.origin === 'plan_linked' &&
+          withdrawal.month === month.month &&
+          withdrawal.year === month.year,
+      );
       const isChecked =
         month.lines.length > 0 &&
         month.lines.every((line) => line.checkedAt != null);
-      const isOpen =
-        !month.isLocked && month.lines.some((line) => line.checkedAt == null);
+      const blockedByRealization =
+        (month.planWithdrawalConsumedAmount ?? 0) > 0 &&
+        !isContributivePlanMonth(month);
+      const isOpen = isContributivePlanMonth(month);
       const sim = month as SavingsPlanSimulatedMonth;
       return {
         periodKey: month.year * 12 + month.month,
         month: month.month,
         year: month.year,
-        isLocked: month.isLocked,
+        isLocked: month.isLocked || blockedByRealization,
         isCurrent: month.state === 'current',
         isChecked,
         isGap: month.state === 'gap',
@@ -350,6 +396,8 @@ export class GoalPlanTimeline {
           month.hasBudget === true &&
           month.isProvisionable === true,
         isOpen,
+        blockedByRealization,
+        withdrawalBudgetId: planLinkedWithdrawal?.budgetId ?? null,
         isAdjusted: simulated ? (sim.isAdjusted ?? false) : false,
         amount: simulated ? sim.simulatedAmount : month.plannedAmount,
         cumulative: simulated
@@ -408,6 +456,11 @@ export class GoalPlanTimeline {
   }
 
   protected lockedAmountLabel(row: GoalPlanTimelineRow): string | null {
+    if (row.blockedByRealization) {
+      return this.#transloco.translate(
+        'savingsGoals.plan.realizedWithdrawalLock',
+      );
+    }
     if (!row.isChecked) return null;
     const amount = `${formatNumber(row.amount, this.locale(), '1.2-2')} ${this.currency()}`;
     return this.#transloco.translate('savingsGoals.detail.lockedAmountAria', {
@@ -422,8 +475,8 @@ export class GoalPlanTimeline {
 
   /**
    * Émettre à chaque frappe, pas seulement au blur : « Appliquer » doit suivre
-   * la saisie. Le champ possède son erreur — un montant négatif ou incomplet
-   * n'atteint jamais le simulateur et ne remplace jamais la valeur affichée.
+   * la saisie. Le champ mensuel accepte un mouvement signé ; seule une valeur
+   * non numérique est refusée. Une saisie incomplète attend la prochaine frappe.
    */
   protected onAmountInput(row: GoalPlanTimelineRow, event: Event): void {
     const raw = (event.target as HTMLInputElement).value.trim();
@@ -435,7 +488,7 @@ export class GoalPlanTimeline {
     }
 
     const parsed = Number.parseFloat(raw);
-    const isValid = Number.isFinite(parsed) && parsed >= 0;
+    const isValid = Number.isFinite(parsed);
     this.hasEditError.set(!isValid);
     this.invalidChange.emit(!isValid);
     if (!isValid || parsed === row.amount) return;
@@ -447,7 +500,7 @@ export class GoalPlanTimeline {
     });
   }
 
-  /** Quitter le champ abandonne une saisie refusée ; rien n'est écrit. */
+  /** Quitter le champ ferme l'édition et efface son éventuelle erreur locale. */
   protected closeEdit(): void {
     this.#clearError();
     this.editingKey.set(null);

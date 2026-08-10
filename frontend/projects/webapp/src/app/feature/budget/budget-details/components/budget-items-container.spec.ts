@@ -651,8 +651,8 @@ describe('BudgetItemsContainer — editing a transaction (PUL-329)', () => {
 
 // PUL-329 v2 — a forecast income carrying `sourceSavingsGoalId` is an ANNOUNCED
 // withdrawal: nothing leaves the pot until a real income is allocated to it, so
-// the check gesture opens that entry instead of pointing the forecast. Creation
-// follows the same dialog-owns-submission contract as the edit flow above.
+// a dedicated action opens that entry, while pointing stays reserved for Réels.
+// Creation follows the same dialog-owns-submission contract as the edit flow above.
 describe('BudgetItemsContainer — realizing an announced withdrawal (PUL-329 v2)', () => {
   const LINE_ID = '99999999-9999-4999-8999-999999999999';
   const GOAL_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
@@ -690,8 +690,8 @@ describe('BudgetItemsContainer — realizing an announced withdrawal (PUL-329 v2
     ).componentInstance;
   });
 
-  it('opens the real-income entry instead of pointing the forecast', async () => {
-    await component['handleToggleCheck'](LINE_ID);
+  it('opens the real-income entry through its dedicated action', async () => {
+    await component['handleRealizeWithdrawal'](LINE_ID);
 
     expect(mockStore.toggleCheck).not.toHaveBeenCalled();
     expect(
@@ -710,7 +710,7 @@ describe('BudgetItemsContainer — realizing an announced withdrawal (PUL-329 v2
       ],
     });
 
-    await component['handleToggleCheck'](LINE_ID);
+    await component['handleRealizeWithdrawal'](LINE_ID);
 
     const realization =
       mockDialogService.openCreateAllocatedTransactionDialog.mock.calls[0][4];
@@ -721,7 +721,7 @@ describe('BudgetItemsContainer — realizing an announced withdrawal (PUL-329 v2
     });
   });
 
-  it('floors the remainder at zero once the forecast is over-realized', async () => {
+  it('does not reopen the entry once the forecast is fully realized', async () => {
     mockStore.budgetDetails.set({
       id: 'budget-1',
       month: 1,
@@ -732,11 +732,11 @@ describe('BudgetItemsContainer — realizing an announced withdrawal (PUL-329 v2
       ],
     });
 
-    await component['handleToggleCheck'](LINE_ID);
+    await component['handleRealizeWithdrawal'](LINE_ID);
 
     expect(
-      mockDialogService.openCreateAllocatedTransactionDialog.mock.calls[0][4],
-    ).toMatchObject({ remainingAmount: 0 });
+      mockDialogService.openCreateAllocatedTransactionDialog,
+    ).not.toHaveBeenCalled();
   });
 
   it('leaves an orphan source on the ordinary toggle, like the backend does', async () => {
@@ -786,7 +786,7 @@ describe('BudgetItemsContainer — realizing an announced withdrawal (PUL-329 v2
       ) => submit(created).then(() => created),
     );
 
-    await component['handleToggleCheck'](LINE_ID);
+    await component['handleRealizeWithdrawal'](LINE_ID);
 
     expect(mockStore.createAllocatedTransaction).toHaveBeenCalledWith(created);
     expect(mockSnackBar.open).toHaveBeenCalledWith(
@@ -813,7 +813,7 @@ describe('BudgetItemsContainer — realizing an announced withdrawal (PUL-329 v2
       },
     );
 
-    await component['handleToggleCheck'](LINE_ID);
+    await component['handleRealizeWithdrawal'](LINE_ID);
 
     expect(mockStore.createAllocatedTransaction).toHaveBeenCalled();
     expect(mockSnackBar.open).not.toHaveBeenCalled();

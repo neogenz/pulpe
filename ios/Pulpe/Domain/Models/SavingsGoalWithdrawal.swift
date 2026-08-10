@@ -23,11 +23,127 @@ struct SavingsGoalWithdrawalOption: Codable, Identifiable, Hashable, Sendable {
 struct SavingsGoalWithdrawal: Codable, Identifiable, Hashable, Sendable {
     let transactionId: String
     let budgetId: String
+    let budgetLineId: String?
     let name: String
     let transactionDate: Date
     let amount: Decimal
+    let checkedAt: Date?
 
     var id: String { transactionId }
+
+    init(
+        transactionId: String,
+        budgetId: String,
+        budgetLineId: String? = nil,
+        name: String,
+        transactionDate: Date,
+        amount: Decimal,
+        checkedAt: Date? = nil
+    ) {
+        self.transactionId = transactionId
+        self.budgetId = budgetId
+        self.budgetLineId = budgetLineId
+        self.name = name
+        self.transactionDate = transactionDate
+        self.amount = amount
+        self.checkedAt = checkedAt
+    }
+}
+
+struct SavingsGoalPlannedWithdrawal: Codable, Identifiable, Hashable, Sendable {
+    enum Status: String, Codable, Sendable {
+        case planned
+        case partiallyRealized = "partially_realized"
+        case realized
+    }
+
+    enum Origin: String, Codable, Sendable {
+        case planLinked = "plan_linked"
+    }
+
+    let budgetLineId: String
+    let budgetId: String
+    let name: String
+    let month: Int
+    let year: Int
+    let plannedAmount: Decimal
+    let realizedAmount: Decimal
+    let remainingAmount: Decimal
+    let status: Status
+    let origin: Origin?
+
+    var id: String { budgetLineId }
+
+    init(
+        budgetLineId: String,
+        budgetId: String,
+        name: String,
+        month: Int,
+        year: Int,
+        plannedAmount: Decimal,
+        realizedAmount: Decimal,
+        remainingAmount: Decimal,
+        status: Status,
+        origin: Origin? = nil
+    ) {
+        self.budgetLineId = budgetLineId
+        self.budgetId = budgetId
+        self.name = name
+        self.month = month
+        self.year = year
+        self.plannedAmount = plannedAmount
+        self.realizedAmount = realizedAmount
+        self.remainingAmount = remainingAmount
+        self.status = status
+        self.origin = origin
+    }
+}
+
+struct SavingsGoalPlanOnlyWithdrawal: Codable, Identifiable, Hashable, Sendable {
+    let planWithdrawalId: String
+    let name: String
+    let month: Int
+    let year: Int
+    let plannedAmount: Decimal
+
+    var id: String { planWithdrawalId }
+}
+
+/// Additive `/withdrawals` envelope. `data` remains the Real history consumed
+/// by deployed clients; `planned` defaults empty against an older server.
+struct SavingsGoalWithdrawalsReadModel: Decodable, Sendable {
+    let withdrawals: [SavingsGoalWithdrawal]
+    let planned: [SavingsGoalPlannedWithdrawal]
+    let planOnly: [SavingsGoalPlanOnlyWithdrawal]
+
+    enum CodingKeys: String, CodingKey {
+        case withdrawals = "data"
+        case planned
+        case planOnly
+    }
+
+    init(
+        withdrawals: [SavingsGoalWithdrawal],
+        planned: [SavingsGoalPlannedWithdrawal] = [],
+        planOnly: [SavingsGoalPlanOnlyWithdrawal] = []
+    ) {
+        self.withdrawals = withdrawals
+        self.planned = planned
+        self.planOnly = planOnly
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        withdrawals = try container.decode([SavingsGoalWithdrawal].self, forKey: .withdrawals)
+        planned = try container.decodeIfPresent(
+            [SavingsGoalPlannedWithdrawal].self,
+            forKey: .planned
+        ) ?? []
+        planOnly = try container.decodeIfPresent(
+            [SavingsGoalPlanOnlyWithdrawal].self,
+            forKey: .planOnly
+        ) ?? []
+    }
 }
 
 /// Where an income's money came from (PUL-329). Two states, never a third: the

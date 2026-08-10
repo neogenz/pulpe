@@ -251,7 +251,11 @@ actor APIClient {
             if apiResponse.success, let responseData = apiResponse.data {
                 return responseData
             } else if !apiResponse.success {
-                throw APIError.from(code: apiResponse.code, message: apiResponse.error ?? apiResponse.message)
+                throw APIError.from(
+                    code: apiResponse.code,
+                    message: apiResponse.error ?? apiResponse.message,
+                    statusCode: httpResponse.statusCode
+                )
             }
         }
 
@@ -268,7 +272,8 @@ actor APIClient {
         if let errorResponse = try? decoder.decode(APIResponse<EmptyResponse>.self, from: data) {
             let error = APIError.from(
                 code: errorResponse.code,
-                message: errorResponse.message ?? errorResponse.error
+                message: errorResponse.message ?? errorResponse.error,
+                statusCode: statusCode
             )
             broadcastErrorNotifications(error)
             return error
