@@ -72,10 +72,15 @@ const isBareWord = (text) =>
 const isDisplayedProse = (text) =>
   text.includes(" ") ? !/[_/]/.test(text) : isBareWord(text);
 
+// Trié : `readdirSync` rend l'ordre du système de fichiers, qui n'est pas le
+// même sur APFS en local et sur ext4 en CI. La liste des coupables sert à être
+// lue en cas d'échec — sans tri, deux sorties ne se comparent pas.
 const swiftSources = () =>
   readdirSync(new URL(`../../${SWIFT_ROOT}`, import.meta.url), {
     recursive: true,
-  }).filter((path) => path.endsWith(".swift") && !NOT_APP_COPY.has(path));
+  })
+    .filter((path) => path.endsWith(".swift") && !NOT_APP_COPY.has(path))
+    .sort();
 
 test("aucune chaîne affichée par l'app iOS ne dit « transaction »", () => {
   const offenders = swiftSources().flatMap((path) =>
