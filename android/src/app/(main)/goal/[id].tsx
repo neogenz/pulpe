@@ -11,6 +11,7 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatIsoDate } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { SPACING } from "@/core/ui/theme";
@@ -43,6 +44,9 @@ const FALLBACK_CURRENCY: SupportedCurrency = "CHF";
  * know which budgets those are.
  */
 export default function GoalDetailScreen() {
+  // Repaints this screen when amounts are hidden or shown; the masking
+  // itself lives in the formatters.
+  useAmountMasking();
   const { id } = useLocalSearchParams<{ id: string }>();
   const theme = useTheme();
   const settings = useUserSettings();

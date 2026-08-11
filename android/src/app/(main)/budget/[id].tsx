@@ -16,6 +16,9 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { armTip, dismissTip, useIsTipArmed } from "@/core/tips/tips-store";
+import { Tooltip } from "@/core/tips/tooltip";
+import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
@@ -36,6 +39,7 @@ import {
   detailsSections,
   freeTransactions,
   kindCounts,
+  type LineItem,
 } from "@/features/budget-details/budget-details-selectors";
 import { BudgetDetailHero } from "@/features/budget-details/components/budget-detail-hero";
 import { BudgetLineRow } from "@/features/budget-details/components/budget-line-row";
@@ -63,7 +67,24 @@ const SECTION_TITLES = {
   expense: "Dépenses",
 } as const;
 
+/**
+ * Pointing an outflow that absorbed less than it planned: the moment the
+ * "budget protégé" rule becomes visible, because the envelope keeps its planned
+ * amount instead of shrinking to what was spent.
+ */
+function isPessimistic(item: LineItem): boolean {
+  return (
+    !item.isChecked &&
+    item.line.kind !== "income" &&
+    item.consumption.allocated > 0 &&
+    item.line.amount > item.consumption.allocated
+  );
+}
+
 export default function BudgetDetailScreen() {
+  // Repaints this screen when amounts are hidden or shown; the masking
+  // itself lives in the formatters.
+  useAmountMasking();
   const { id } = useLocalSearchParams<{ id: string }>();
   const theme = useTheme();
   const settings = useUserSettings();
@@ -85,6 +106,7 @@ export default function BudgetDetailScreen() {
   );
   const removal = useTransactionRemoval();
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
+  const isPessimisticTipArmed = useIsTipArmed("pessimistic-check");
 
   const currency = settings.data?.currency ?? FALLBACK_CURRENCY;
   const payDayOfMonth = settings.data?.payDayOfMonth ?? null;
@@ -220,6 +242,17 @@ export default function BudgetDetailScreen() {
           }
         />
 
+        {/* Only after the user has actually pointed an envelope for less than
+            it planned — before that it answers a question nobody asked. */}
+        {isPessimisticTipArmed && (
+          <Tooltip
+            id="pessimistic-check"
+            icon="shield-check-outline"
+            title="Budget protégé"
+            message="Quand tu dépenses moins que prévu, Pulpe garde le montant prévu pour protéger ton budget."
+          />
+        )}
+
         {isTight && (
           <TightMonthCard
             onWithdraw={() => setWithdrawalVisible(true)}
@@ -236,6 +269,13 @@ export default function BudgetDetailScreen() {
           onChange={setFilters}
         />
 
+        <Tooltip
+          id="gestures"
+          icon="gesture-tap"
+          title="Deux gestes par ligne"
+          message="Touche le rond pour pointer · Touche la ligne pour la modifier"
+        />
+
         {sections.map((section) => (
           <View key={section.kind} style={styles.section}>
             <Text variant="titleSmall">{SECTION_TITLES[section.kind]}</Text>
@@ -249,15 +289,18 @@ export default function BudgetDetailScreen() {
                   toggle.variables?.sourceId === item.line.id
                 }
                 tagSummary={tagSummary(item.line.tagIds ?? [], tags.data ?? [])}
-                onPress={() =>
-                  router.push(`/budget/${id}/line/${item.line.id}`)
-                }
-                onToggle={() =>
+                onPress={() => {
+                  dismissTip("gestures");
+                  router.push(`/budget/${id}/line/${item.line.id}`);
+                }}
+                onToggle={() => {
+                  dismissTip("gestures");
+                  if (isPessimistic(item)) armTip("pessimistic-check");
                   toggle.mutate(
                     { source: "budgetLine", sourceId: item.line.id },
                     { onError: () => setToggleFailed(true) },
-                  )
-                }
+                  );
+                }}
               />
             ))}
           </View>

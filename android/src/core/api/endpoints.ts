@@ -76,7 +76,6 @@ export const ENDPOINTS = {
   currencyRate: "/currency/rate",
 
   appVersion: "/app/version",
-  whatsNewAndroid: "/whats-new/android",
 
   encryptionVaultStatus: "/encryption/vault-status",
   encryptionSalt: "/encryption/salt",

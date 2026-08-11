@@ -2,4 +2,5 @@
 module.exports = {
   preset: "jest-expo/android",
   testMatch: ["**/*.spec.ts", "**/*.spec.tsx"],
+  setupFiles: ["<rootDir>/jest.setup.js"],
 };

@@ -18,6 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useTags } from "@/core/tags/tag-queries";
 import { tagSummary } from "@/core/tags/tag-selection";
+import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatCurrency } from "@/core/ui/amount-format";
 import { formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
@@ -59,6 +60,9 @@ const RECURRENCE_LABELS = {
  * no room to.
  */
 export default function BudgetLineDetailScreen() {
+  // Repaints this screen when amounts are hidden or shown; the masking
+  // itself lives in the formatters.
+  useAmountMasking();
   const { id, lineId } = useLocalSearchParams<{ id: string; lineId: string }>();
   const theme = useTheme();
   const scheme = useColorScheme() === "dark" ? "dark" : "light";

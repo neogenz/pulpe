@@ -4,4 +4,5 @@ export const APP_URLS = {
   privacy: "https://app.pulpe.app/legal/confidentialite",
   support: "https://pulpe.app/support",
   changelog: "https://pulpe.app/changelog",
+  webappBudgetTemplates: "https://app.pulpe.app/budget-templates",
 } as const;

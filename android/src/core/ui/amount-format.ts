@@ -1,5 +1,14 @@
 import { CURRENCY_METADATA, type SupportedCurrency } from "pulpe-shared";
 
+import { areAmountsHidden } from "./amount-visibility";
+
+/**
+ * What every amount reads as while the user has them hidden. Applied here
+ * rather than at the call sites: there are thirty of them, and one that forgot
+ * would be the only one leaking a salary over someone's shoulder.
+ */
+const MASK = "•••";
+
 /**
  * Swiss grouping is the typographic apostrophe. Forced rather than trusted to
  * the runtime: Android ships its own ICU, older builds group `de-CH` with an
@@ -24,6 +33,7 @@ export function formatCurrency(
   value: number,
   currency: SupportedCurrency,
 ): string {
+  if (areAmountsHidden()) return MASK;
   return withSymbol(format(value, currency, FULL_DIGITS), currency);
 }
 
@@ -35,6 +45,7 @@ export function formatCompactCurrency(
   value: number,
   currency: SupportedCurrency,
 ): string {
+  if (areAmountsHidden()) return MASK;
   return withSymbol(format(value, currency, WHOLE_DIGITS), currency);
 }
 
@@ -43,6 +54,7 @@ export function formatCompactAmount(
   value: number,
   currency: SupportedCurrency,
 ): string {
+  if (areAmountsHidden()) return MASK;
   return format(value, currency, WHOLE_DIGITS);
 }
 
@@ -54,6 +66,8 @@ export function formatSignedCompactCurrency(
   value: number,
   currency: SupportedCurrency,
 ): string {
+  // No sign while masked: `+•••` still says the month went up.
+  if (areAmountsHidden()) return MASK;
   const sign = value > 0 ? "+" : "";
   return `${sign}${formatCompactCurrency(value, currency)}`;
 }

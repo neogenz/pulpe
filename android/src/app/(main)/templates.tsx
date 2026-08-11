@@ -1,4 +1,5 @@
 import { router } from "expo-router";
+import * as Linking from "expo-linking";
 import type { BudgetTemplate } from "pulpe-shared";
 import { useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
@@ -12,6 +13,9 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Tooltip } from "@/core/tips/tooltip";
+import { useAmountMasking } from "@/core/ui/amount-visibility";
+import { APP_URLS } from "@/core/ui/app-urls";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { SPACING } from "@/core/ui/theme";
 import { TemplateFormSheet } from "@/features/templates/components/template-form-sheet";
@@ -27,6 +31,9 @@ import {
  * a sixth.
  */
 export default function TemplatesScreen() {
+  // Repaints this screen when amounts are hidden or shown; the masking
+  // itself lives in the formatters.
+  useAmountMasking();
   const theme = useTheme();
   const templates = useTemplates();
   const [isCreating, setCreating] = useState(false);
@@ -86,6 +93,18 @@ export default function TemplatesScreen() {
               {list.length}/{MAX_TEMPLATES} modèles
             </Text>
           </View>
+
+          <Tooltip
+            id="templates-web-parity"
+            icon="laptop"
+            title="Modèles : version Android encore allégée"
+            message="Toutes les actions sur les modèles ne sont pas encore dispos ici. Pour aller au bout, l'app web fait tout — n'hésite pas à y faire un tour."
+            action={{
+              label: "Ouvrir sur le web",
+              onPress: () =>
+                void Linking.openURL(APP_URLS.webappBudgetTemplates),
+            }}
+          />
 
           {list.map((template) => (
             <TemplateCard key={template.id} template={template} />

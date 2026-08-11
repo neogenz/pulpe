@@ -13,6 +13,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useReminderPriming } from "@/core/notifications/use-reminder-priming";
+import { dismissTip } from "@/core/tips/tips-store";
+import { Tooltip } from "@/core/tips/tooltip";
+import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { SPACING } from "@/core/ui/theme";
@@ -31,6 +34,9 @@ import { heroPresentation } from "@/features/current-month/home-hero-presentatio
 import { useToggleCheck } from "@/features/budgets/toggle-check-mutation";
 
 export default function HomeScreen() {
+  // Repaints this screen when amounts are hidden or shown; the masking
+  // itself lives in the formatters.
+  useAmountMasking();
   const theme = useTheme();
   const currentMonth = useCurrentMonth();
   const [isRealizedVisible, setRealizedVisible] = useState(false);
@@ -152,20 +158,30 @@ export default function HomeScreen() {
         )}
 
         {viewModel.uncheckedItems.length > 0 && (
-          <UncheckedOperationsCard
-            items={viewModel.uncheckedItems}
-            currency={currency}
-            isSyncing={toggle.isPending}
-            onToggle={(item) =>
-              toggle.mutate(item, {
-                onError: () => setToggleFailed(true),
-                // Offered here and nowhere else: a reminder to point is worth
-                // something only to someone who has just found out what
-                // pointing does.
-                onSuccess: () => reminders.offer(),
-              })
-            }
-          />
+          <>
+            <Tooltip
+              id="checking"
+              icon="check-circle-outline"
+              title="Pointage"
+              message="Quand un mouvement est passé sur ton compte, pointe-le ici pour garder le fil."
+            />
+            <UncheckedOperationsCard
+              items={viewModel.uncheckedItems}
+              currency={currency}
+              isSyncing={toggle.isPending}
+              onToggle={(item) => {
+                // Doing it explains it better than the card ever could.
+                dismissTip("checking");
+                toggle.mutate(item, {
+                  onError: () => setToggleFailed(true),
+                  // Offered here and nowhere else: a reminder to point is worth
+                  // something only to someone who has just found out what
+                  // pointing does.
+                  onSuccess: () => reminders.offer(),
+                });
+              }}
+            />
+          </>
         )}
 
         <ActivityCard

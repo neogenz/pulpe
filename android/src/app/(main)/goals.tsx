@@ -16,6 +16,7 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatCompactCurrency } from "@/core/ui/amount-format";
 import { formatIsoDate } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
@@ -38,6 +39,9 @@ const STATUS_LABELS: Record<SavingsGoalStatus, string> = {
 };
 
 export default function GoalsScreen() {
+  // Repaints this screen when amounts are hidden or shown; the masking
+  // itself lives in the formatters.
+  useAmountMasking();
   const theme = useTheme();
   const settings = useUserSettings();
   const goals = useSavingsGoals();

@@ -14,6 +14,7 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { RADIUS, SPACING } from "@/core/ui/theme";
@@ -33,6 +34,9 @@ import { useTemplates } from "@/features/templates/template-queries";
 const PERIODS_OFFERED = 3;
 
 export default function CreateBudgetScreen() {
+  // Repaints this screen when amounts are hidden or shown; the masking
+  // itself lives in the formatters.
+  useAmountMasking();
   const theme = useTheme();
   const budgets = useBudgetList();
   const templates = useTemplates();

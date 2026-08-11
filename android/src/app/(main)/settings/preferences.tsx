@@ -25,6 +25,10 @@ import {
   readRemindersEnabled,
   writeRemindersEnabled,
 } from "@/core/notifications/reminder-flags";
+import {
+  toggleAmountVisibility,
+  useAmountVisibility,
+} from "@/core/ui/amount-visibility";
 import { SPACING } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import { useUpdateUserSettings } from "@/features/account/account-queries";
@@ -50,6 +54,9 @@ export default function PreferencesScreen() {
   const [areRemindersEnabled, setRemindersEnabled] =
     useState(readRemindersEnabled);
   const [notice, setNotice] = useState<string | null>(null);
+  const areAmountsHidden = useAmountVisibility(
+    (state) => state.areAmountsHidden,
+  );
 
   const currency = settings.data?.currency ?? FALLBACK_CURRENCY;
   const otherCurrency =
@@ -146,6 +153,33 @@ export default function PreferencesScreen() {
             onPress={() => router.push("/settings/pay-day")}
           />
         </SettingsSection>
+
+        <View style={styles.section}>
+          <Text
+            variant="labelLarge"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            CONFIDENTIALITÉ
+          </Text>
+          <Card mode="contained">
+            <Card.Content style={styles.switchRow}>
+              <View style={styles.switchLabels}>
+                <Text variant="bodyLarge">Masquer les montants</Text>
+                <Text
+                  variant="labelMedium"
+                  style={{ color: theme.colors.onSurfaceVariant }}
+                >
+                  Remplace chaque montant par ••• — pratique dans le train.
+                </Text>
+              </View>
+              <Switch
+                value={areAmountsHidden}
+                onValueChange={toggleAmountVisibility}
+                accessibilityLabel="Masquer les montants"
+              />
+            </Card.Content>
+          </Card>
+        </View>
 
         <View style={styles.section}>
           <Text

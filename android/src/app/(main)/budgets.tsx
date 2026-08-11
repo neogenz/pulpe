@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
+import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatSignedCompactCurrency } from "@/core/ui/amount-format";
 import { formatDayMonth, formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
@@ -33,6 +34,9 @@ const FALLBACK_CURRENCY: SupportedCurrency = "CHF";
 const CALENDAR_PAY_DAY = 1;
 
 export default function BudgetsScreen() {
+  // Repaints this screen when amounts are hidden or shown; the masking
+  // itself lives in the formatters.
+  useAmountMasking();
   const theme = useTheme();
   const settings = useUserSettings();
   const budgets = useBudgetList();

@@ -16,6 +16,7 @@ import {
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { useAmountMasking } from "@/core/ui/amount-visibility";
 import { formatCompactCurrency } from "@/core/ui/amount-format";
 import { formatMonthLabel } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
@@ -44,6 +45,9 @@ const FALLBACK_CURRENCY: SupportedCurrency = "CHF";
  * and handed to the editor rather than fetched again per edit.
  */
 export default function TemplateDetailScreen() {
+  // Repaints this screen when amounts are hidden or shown; the masking
+  // itself lives in the formatters.
+  useAmountMasking();
   const { id } = useLocalSearchParams<{ id: string }>();
   const theme = useTheme();
   const settings = useUserSettings();
