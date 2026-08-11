@@ -12,6 +12,7 @@ import {
   fetchSalt,
   fetchVaultStatus,
   recoverVault,
+  regenerateRecoveryKey,
   setupRecoveryKey,
   validateClientKey,
 } from "./vault-api";
@@ -37,6 +38,7 @@ jest.mock("./vault-api", () => ({
   setupRecoveryKey: jest.fn(),
   validateClientKey: jest.fn(),
   recoverVault: jest.fn(),
+  regenerateRecoveryKey: jest.fn(),
 }));
 jest.mock("@/core/crypto/pbkdf2", () => ({ deriveClientKey: jest.fn() }));
 jest.mock("@/core/crypto/client-key-manager");
@@ -53,6 +55,7 @@ const mocked = {
   setupRecoveryKey: jest.mocked(setupRecoveryKey),
   validateClientKey: jest.mocked(validateClientKey),
   recoverVault: jest.mocked(recoverVault),
+  regenerateRecoveryKey: jest.mocked(regenerateRecoveryKey),
   deriveClientKey: jest.mocked(deriveClientKey),
   storeClientKey: jest.mocked(storeClientKey),
   clearSessionKey: jest.mocked(clearSessionKey),
@@ -72,7 +75,12 @@ function vaultStatus(pinCodeConfigured: boolean) {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  useVaultStore.setState({ status: "unknown", isBiometricAvailable: false });
+  useVaultStore.setState({
+    status: "unknown",
+    isBiometricAvailable: false,
+    bootstrapError: null,
+    pendingRecoveryNotice: null,
+  });
 
   mocked.fetchSalt.mockResolvedValue({
     salt: "a1b2",
@@ -113,6 +121,19 @@ describe("bootstrapVault", () => {
       isBiometricAvailable: true,
     });
   });
+
+  it("should surface a failure as state rather than rejecting", async () => {
+    // The router waits on this state; a rejection nobody catches would leave
+    // it on a blank screen with no way forward.
+    mocked.fetchVaultStatus.mockRejectedValue(new Error("offline"));
+
+    await expect(bootstrapVault()).resolves.toBeUndefined();
+
+    expect(useVaultStore.getState()).toMatchObject({
+      status: "unknown",
+      bootstrapError: expect.stringContaining("Connexion impossible"),
+    });
+  });
 });
 
 describe("setupVaultPin", () => {
@@ -128,11 +149,15 @@ describe("setupVaultPin", () => {
     );
   });
 
-  it("should return the recovery key and unlock", async () => {
+  it("should hold the recovery key for acknowledgement and unlock", async () => {
     mocked.setupRecoveryKey.mockResolvedValue({ recoveryKey: "AAAA-BBBB" });
 
-    await expect(setupVaultPin("1234")).resolves.toBe("AAAA-BBBB");
-    expect(useVaultStore.getState().status).toBe("unlocked");
+    await setupVaultPin("1234");
+
+    expect(useVaultStore.getState()).toMatchObject({
+      status: "unlocked",
+      pendingRecoveryNotice: { kind: "minted", recoveryKey: "AAAA-BBBB" },
+    });
   });
 
   it("should drop the key when setup fails midway", async () => {
@@ -189,9 +214,14 @@ describe("unlockVaultWithBiometrics", () => {
 });
 
 describe("recoverVaultWithKey", () => {
-  it("should rewrap under the new PIN and unlock", async () => {
+  beforeEach(() => {
     mocked.recoverVault.mockResolvedValue({ success: true });
+    mocked.regenerateRecoveryKey.mockResolvedValue({
+      recoveryKey: "CCCC-DDDD",
+    });
+  });
 
+  it("should rewrap under the new PIN and unlock", async () => {
     await recoverVaultWithKey("AAAA-BBBB", "4321");
 
     expect(mocked.recoverVault).toHaveBeenCalledWith("AAAA-BBBB", CLIENT_KEY);
@@ -199,5 +229,29 @@ describe("recoverVaultWithKey", () => {
       enableBiometric: false,
     });
     expect(useVaultStore.getState().status).toBe("unlocked");
+  });
+
+  it("should replace the recovery key it just spent", async () => {
+    await recoverVaultWithKey("AAAA-BBBB", "4321");
+
+    expect(useVaultStore.getState().pendingRecoveryNotice).toEqual({
+      kind: "minted",
+      recoveryKey: "CCCC-DDDD",
+    });
+  });
+
+  it("should still unlock when the replacement key cannot be minted", async () => {
+    // Past the commit point: the vault is already rewrapped, so this costs a
+    // recovery key, never access.
+    mocked.regenerateRecoveryKey.mockRejectedValue(new Error("boom"));
+
+    await expect(
+      recoverVaultWithKey("AAAA-BBBB", "4321"),
+    ).resolves.toBeUndefined();
+
+    expect(useVaultStore.getState()).toMatchObject({
+      status: "unlocked",
+      pendingRecoveryNotice: { kind: "mintFailed" },
+    });
   });
 });

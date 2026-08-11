@@ -1,5 +1,6 @@
 import { create } from "zustand";
 
+import { normalizeApiError } from "@/core/api/api-error";
 import {
   clearAllKeys,
   clearSessionKey,
@@ -15,6 +16,7 @@ import {
   fetchSalt,
   fetchVaultStatus,
   recoverVault,
+  regenerateRecoveryKey,
   setupRecoveryKey,
   validateClientKey,
 } from "./vault-api";
@@ -26,14 +28,29 @@ import {
  */
 export type VaultStatus = "unknown" | "setupRequired" | "locked" | "unlocked";
 
+/**
+ * A recovery key is shown once and never again, and minting one is the last
+ * step of both setup and recovery — the two moments where the vault flips to
+ * `unlocked` and the router drops the screen that did the minting. So the
+ * notice lives at app level, above any route that could be unmounted under it.
+ */
+export type RecoveryKeyNotice =
+  | { kind: "minted"; recoveryKey: string }
+  | { kind: "mintFailed" };
+
 interface VaultState {
   status: VaultStatus;
   isBiometricAvailable: boolean;
+  /** Non-null only while `status` is `unknown`: the reason it is still unknown. */
+  bootstrapError: string | null;
+  pendingRecoveryNotice: RecoveryKeyNotice | null;
 }
 
 export const useVaultStore = create<VaultState>(() => ({
   status: "unknown",
   isBiometricAvailable: false,
+  bootstrapError: null,
+  pendingRecoveryNotice: null,
 }));
 
 const setState = useVaultStore.setState;
@@ -53,35 +70,48 @@ async function deriveAndHold(pin: string): Promise<string> {
 /**
  * Decides between setup, unlock and a session that is already good, and is
  * safe to call again on every foreground.
+ *
+ * Never rejects: the router waits on this state, and an exception nobody is
+ * positioned to catch would leave it on a blank screen with no way forward.
+ * A failure becomes `bootstrapError`, which the retry screen reads.
  */
 export async function bootstrapVault(): Promise<void> {
-  const status = await fetchVaultStatus();
+  setState({ bootstrapError: null });
 
-  if (!status.pinCodeConfigured) {
-    setState({ status: "setupRequired", isBiometricAvailable: false });
-    return;
+  try {
+    const status = await fetchVaultStatus();
+
+    if (!status.pinCodeConfigured) {
+      setState({ status: "setupRequired", isBiometricAvailable: false });
+      return;
+    }
+
+    const restored = await restoreClientKey();
+    setState({
+      status: restored ? "unlocked" : "locked",
+      isBiometricAvailable: await hasBiometricKey(),
+    });
+  } catch (error) {
+    setState({
+      status: "unknown",
+      bootstrapError: normalizeApiError(error).message,
+    });
   }
-
-  const restored = await restoreClientKey();
-  setState({
-    status: restored ? "unlocked" : "locked",
-    isBiometricAvailable: await hasBiometricKey(),
-  });
 }
 
 /**
  * First-time setup. `setup-recovery` is what initialises the server-side key
  * check, so it has to run before `validate-key` could ever succeed — the order
  * here is load-bearing, not stylistic.
- *
- * Returns the recovery key, which is shown once and never retrievable again.
  */
-export async function setupVaultPin(pin: string): Promise<string> {
+export async function setupVaultPin(pin: string): Promise<void> {
   try {
     await deriveAndHold(pin);
     const { recoveryKey } = await setupRecoveryKey();
-    setState({ status: "unlocked" });
-    return recoveryKey;
+    setState({
+      status: "unlocked",
+      pendingRecoveryNotice: { kind: "minted", recoveryKey },
+    });
   } catch (error) {
     // A half-set-up vault must not leave a key behind that the app would then
     // treat as an unlocked session.
@@ -123,7 +153,11 @@ export async function unlockVaultWithBiometrics(): Promise<boolean> {
 
 /**
  * Rewraps the vault under a key derived from a new PIN. The recovery key is
- * spent by this call.
+ * spent by this call, so a fresh one is minted to replace it.
+ *
+ * Minting runs past the commit point: the data is already rewrapped by then,
+ * so its failure costs the user a recovery key, never their access — which is
+ * why it does not undo anything, it only changes what the notice says.
  */
 export async function recoverVaultWithKey(
   recoveryKey: string,
@@ -134,7 +168,21 @@ export async function recoverVaultWithKey(
 
   await recoverVault(recoveryKey, newClientKeyHex);
   await storeClientKey(newClientKeyHex, { enableBiometric: false });
-  setState({ status: "unlocked" });
+
+  let notice: RecoveryKeyNotice = { kind: "mintFailed" };
+  try {
+    const { recoveryKey: nextRecoveryKey } = await regenerateRecoveryKey();
+    notice = { kind: "minted", recoveryKey: nextRecoveryKey };
+  } catch {
+    // Deliberately swallowed — see above.
+  }
+
+  setState({ status: "unlocked", pendingRecoveryNotice: notice });
+}
+
+/** The user says they have written the key down; it is unrecoverable after this. */
+export function acknowledgeRecoveryNotice(): void {
+  setState({ pendingRecoveryNotice: null });
 }
 
 /**
@@ -153,5 +201,10 @@ export async function lockVault(): Promise<void> {
 
 /** Sign-out: the next account starts from `unknown`, not from this one's state. */
 export function resetVault(): void {
-  setState({ status: "unknown", isBiometricAvailable: false });
+  setState({
+    status: "unknown",
+    isBiometricAvailable: false,
+    bootstrapError: null,
+    pendingRecoveryNotice: null,
+  });
 }

@@ -12,18 +12,28 @@ import { observeSession, useSessionStore } from "@/core/auth/session-store";
 import { startSupabaseAutoRefresh } from "@/core/auth/supabase";
 import { queryClient } from "@/core/query/query-client";
 import { pulpeDarkTheme, pulpeLightTheme } from "@/core/ui/theme";
+import { bootstrapVault, useVaultStore } from "@/core/vault/vault-store";
+import { RecoveryKeyNotice } from "@/ui/recovery-key-notice";
 
 void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const status = useSessionStore((state) => state.status);
+  const vaultStatus = useVaultStore((state) => state.status);
   const [areFontsLoaded, fontError] = useFonts({
     Manrope: require("../../assets/fonts/Manrope.ttf"),
   });
 
   useEffect(() => observeSession(), []);
   useEffect(() => startSupabaseAutoRefresh(), []);
+
+  // Signing in tells us nothing about the vault — only the server does, and
+  // every screen past the gate reads amounts that need it open.
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    void bootstrapVault();
+  }, [status]);
 
   // A font that fails to load must not hold the splash forever: the system
   // font is a perfectly usable fallback, a permanently blank screen is not.
@@ -46,13 +56,26 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <StatusBar style="auto" />
           <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Protected guard={status === "authenticated"}>
+            <Stack.Protected
+              guard={status === "authenticated" && vaultStatus === "unlocked"}
+            >
               <Stack.Screen name="(main)" />
+            </Stack.Protected>
+            <Stack.Protected
+              guard={
+                status === "authenticated" &&
+                (vaultStatus === "setupRequired" || vaultStatus === "locked")
+              }
+            >
+              <Stack.Screen name="(vault)" />
             </Stack.Protected>
             <Stack.Protected guard={status === "unauthenticated"}>
               <Stack.Screen name="(auth)" />
             </Stack.Protected>
           </Stack>
+          {/* Above the navigator: the key it announces outlives the screen
+              that minted it, which unmounts the moment the vault unlocks. */}
+          <RecoveryKeyNotice />
         </QueryClientProvider>
       </PaperProvider>
     </GestureHandlerRootView>
