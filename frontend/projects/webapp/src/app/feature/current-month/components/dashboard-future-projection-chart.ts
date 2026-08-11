@@ -24,7 +24,7 @@ import {
   resolveChartThemeColors,
   registerChartPlugins,
   formatShortMonth,
-  formatCurrency,
+  formatCurrencyForAria,
 } from '@core/chart/chart-theme';
 import {
   buildProjectionChartOptions,
@@ -297,9 +297,9 @@ export class DashboardFutureProjectionChart {
       count: months.length,
       first: formatShortMonth(months[0].month, this.#locale),
       last: formatShortMonth(last.month, this.#locale),
-      firstBalance: formatCurrency(balanceOf(months[0]), currency),
-      lastBalance: formatCurrency(balanceOf(last), currency),
-      totalSavings: formatCurrency(
+      firstBalance: formatCurrencyForAria(balanceOf(months[0]), currency),
+      lastBalance: formatCurrencyForAria(balanceOf(last), currency),
+      totalSavings: formatCurrencyForAria(
         months.reduce((sum, f) => sum + (f.savings ?? 0), 0),
         currency,
       ),

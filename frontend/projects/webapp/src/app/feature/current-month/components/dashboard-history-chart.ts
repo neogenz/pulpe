@@ -25,6 +25,7 @@ import {
   colorWithAlpha,
   formatShortMonth,
   formatCurrency,
+  formatCurrencyForAria,
   CHART_FONT_FAMILY,
   resolveChartAnimation,
   formatAxisTick,
@@ -281,13 +282,13 @@ export class DashboardHistoryChart {
       count: data.length,
       first: formatShortMonth(data[0].month, this.#locale),
       last: formatShortMonth(last.month, this.#locale),
-      avgIncome: formatCurrency(
+      avgIncome: formatCurrencyForAria(
         data.reduce((sum, d) => sum + d.income, 0) / data.length,
         currency,
       ),
-      lastIncome: formatCurrency(last.income, currency),
-      lastExpenses: formatCurrency(last.expenses, currency),
-      lastSavings: formatCurrency(last.savings, currency),
+      lastIncome: formatCurrencyForAria(last.income, currency),
+      lastExpenses: formatCurrencyForAria(last.expenses, currency),
+      lastSavings: formatCurrencyForAria(last.savings, currency),
     });
   });
 

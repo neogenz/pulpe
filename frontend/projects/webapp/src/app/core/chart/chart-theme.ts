@@ -163,6 +163,29 @@ export function formatCurrency(
   return getCurrencyFormatter(currency, config.numberLocale).format(value);
 }
 
+const ariaFormatterCache = new Map<string, Intl.NumberFormat>();
+
+// The accessibility spelling of an amount: same digits as `formatCurrency`, ISO
+// code where the visible label carries the symbol. Screen readers pronounce
+// "EUR" reliably while `€` is voice-dependent and sometimes skipped outright.
+// CHF users hear no difference — their symbol already *is* the ISO code, which
+// is why the gap only ever showed up for EUR.
+export function formatCurrencyForAria(
+  value: number,
+  currency: SupportedCurrency,
+): string {
+  const locale = CURRENCY_CONFIG[currency].numberLocale;
+  let formatter = ariaFormatterCache.get(locale);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(locale, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    ariaFormatterCache.set(locale, formatter);
+  }
+  return `${formatter.format(value)} ${currency}`;
+}
+
 const AXIS_ABBREVIATION_THRESHOLD = 1000;
 const axisFormatterCache = new Map<string, Intl.NumberFormat>();
 
