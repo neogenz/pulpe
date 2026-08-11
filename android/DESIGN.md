@@ -78,6 +78,34 @@ accents lighten so they still clear contrast on it. Anything that reads a color 
 through the theme or through the scheme-keyed export — a hard-coded hex is a dark-mode bug
 that only shows up on someone else's phone.
 
+## Icon and splash
+
+One brand mark, four renderings. `assets/images/brand-mark.png` is byte-for-byte the file iOS
+ships as `PulpeIcon.imageset` and the landing site serves as `icon.png`, so the platforms
+cannot drift. Everything else is generated — `./scripts/generate-icons.sh`, needs ImageMagick
+— and regenerating is the only supported way to change an icon.
+
+Android asks for more shapes than iOS does, and each has a rule the source file cannot satisfy
+on its own:
+
+| Asset                                   | Why it is not just the mark                                                                                                                                                                                         |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `adaptive-icon.png` + `backgroundColor` | Launchers mask a 108dp layer down to a 66dp circle. The mark is a wide wedge whose widest points sit on the horizontal diameter, so it is placed at 600px on a 1024px canvas — 626px would touch the circle exactly |
+| `icon.png`                              | The legacy square icon (API 24-25, store listings) is never masked, so it carries the near-full-bleed weight of the iOS icon instead                                                                                |
+| `adaptive-icon-monochrome.png`          | Android 13 themed icons tint every opaque pixel one colour, which would flatten the mark into a blob. The generator splits on luminance so the segments and rind survive as separate shapes                         |
+| `notification-icon.png`                 | The status bar tints the icon itself — any colour is flattened to a white block — so it ships as the same knocked-out silhouette, in white                                                                          |
+
+The adaptive background is `#C6F0BA`, the pale green sampled from the iOS icon's gradient.
+Android takes a flat colour here and a gradient is invisible at 48dp.
+
+The splash background is the app's own canvas (`#F7F6F3` light, `#141210` dark), not the iOS
+launch screen's `#F8FAF9` — the splash hands off to the first rendered frame, and matching the
+canvas is what makes that handoff invisible.
+
+The splash also drops the wordmark the iOS launch screen sets under the mark. That is the
+platform, not a choice: the Android 12 splash API centres exactly one icon and has no second
+slot an app can fill.
+
 ## No live-preview sidecar
 
 `/impeccable live` drives a browser, so it cannot open this app — same constraint as

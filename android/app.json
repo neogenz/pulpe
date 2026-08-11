@@ -5,9 +5,16 @@
     "version": "0.43.0",
     "orientation": "portrait",
     "scheme": "pulpe",
+    "userInterfaceStyle": "automatic",
+    "icon": "./assets/images/icon.png",
     "android": {
       "package": "app.pulpe.android",
       "predictiveBackGestureEnabled": false,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "monochromeImage": "./assets/images/adaptive-icon-monochrome.png",
+        "backgroundColor": "#C6F0BA"
+      },
       "intentFilters": [
         {
           "action": "VIEW",
@@ -27,10 +34,25 @@
       "expo-router",
       "expo-secure-store",
       "expo-font",
-      "expo-splash-screen",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 240,
+          "resizeMode": "contain",
+          "backgroundColor": "#F7F6F3",
+          "dark": { "backgroundColor": "#141210" }
+        }
+      ],
       "expo-localization",
       "expo-web-browser",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#006E25"
+        }
+      ],
       "@react-native-google-signin/google-signin",
       "@sentry/react-native"
     ],
