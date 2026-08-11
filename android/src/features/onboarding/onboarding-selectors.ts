@@ -32,6 +32,9 @@ export function isStepInProgressBar(
       return !(state.isSocialAuth && state.socialProvidedName);
     case "registration":
       return !state.isSocialAuth;
+    // The ceremony that closes the flow, not one of the questions it counts.
+    case "pinSetup":
+      return false;
     default:
       return true;
   }
@@ -53,6 +56,10 @@ export function isStepNavigable(
       return !(state.isSocialAuth && state.socialProvidedName);
     case "registration":
       return !state.isAuthenticated;
+    // Asking for the code a second time would be asking the user to invent a
+    // second one — the vault already holds the key derived from the first.
+    case "pinSetup":
+      return !state.hasCompletedPinSetup;
     default:
       return true;
   }

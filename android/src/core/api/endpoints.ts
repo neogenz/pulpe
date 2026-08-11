@@ -16,6 +16,7 @@ export const ENDPOINTS = {
   tags: "/tags",
 
   budgets: "/budgets",
+  budgetsGenerate: "/budgets/generate",
   budget: (id: string) => `/budgets/${id}`,
   budgetDetails: (id: string) => `/budgets/${id}/details`,
   budgetsExport: "/budgets/export",

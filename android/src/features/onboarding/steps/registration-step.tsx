@@ -29,6 +29,7 @@ const CRITERION_ICON_SIZE = 16;
 export function RegistrationStep({ onExit }: { onExit: () => void }) {
   const theme = useTheme();
   const email = useOnboardingStore((state) => state.email);
+  const firstName = useOnboardingStore((state) => state.firstName);
   const isAuthenticated = useOnboardingStore((state) => state.isAuthenticated);
   const [password, setPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -49,7 +50,7 @@ export function RegistrationStep({ onExit }: { onExit: () => void }) {
     setIsSubmitting(true);
     setErrorMessage(null);
     try {
-      await signUpWithEmail(email.trim(), password);
+      await signUpWithEmail(email.trim(), password, firstName);
       configureEmailUser();
       goToNextStep();
     } catch (error) {

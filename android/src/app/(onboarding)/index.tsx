@@ -2,16 +2,20 @@ import { useRouter } from "expo-router";
 import { useCallback, useEffect } from "react";
 import { Alert, BackHandler } from "react-native";
 
-import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
+import { SubmissionOverlay } from "@/features/onboarding/components/submission-overlay";
 import { wouldExitOnBack } from "@/features/onboarding/onboarding-selectors";
 import {
   goToPreviousStep,
   resetOnboarding,
   useOnboardingStore,
 } from "@/features/onboarding/onboarding-store";
+import type { OnboardingStep } from "@/features/onboarding/onboarding-step";
+import { useSubmissionStore } from "@/features/onboarding/onboarding-submission";
+import { BudgetPreviewStep } from "@/features/onboarding/steps/budget-preview-step";
 import { ChargesStep } from "@/features/onboarding/steps/charges-step";
 import { FirstNameStep } from "@/features/onboarding/steps/first-name-step";
 import { IncomeStep } from "@/features/onboarding/steps/income-step";
+import { PinSetupStep } from "@/features/onboarding/steps/pin-setup-step";
 import { RegistrationStep } from "@/features/onboarding/steps/registration-step";
 import { SavingsStep } from "@/features/onboarding/steps/savings-step";
 import { WelcomeStep } from "@/features/onboarding/steps/welcome-step";
@@ -27,6 +31,7 @@ import { WelcomeStep } from "@/features/onboarding/steps/welcome-step";
 export default function OnboardingRoute() {
   const router = useRouter();
   const currentStep = useOnboardingStore((state) => state.currentStep);
+  const isSubmitting = useSubmissionStore((state) => state.status !== "idle");
 
   const confirmExit = useCallback(() => {
     Alert.alert(
@@ -52,6 +57,10 @@ export default function OnboardingRoute() {
     const subscription = BackHandler.addEventListener(
       "hardwareBackPress",
       () => {
+        // The creation is under way and cannot be half-undone; the overlay's
+        // own buttons are the way out of it.
+        if (useSubmissionStore.getState().status !== "idle") return true;
+
         const state = useOnboardingStore.getState();
         if (state.currentStep === "welcome") return false;
         if (state.editReturnStep === null && wouldExitOnBack(state)) {
@@ -65,25 +74,37 @@ export default function OnboardingRoute() {
     return () => subscription.remove();
   }, [confirmExit]);
 
-  switch (currentStep) {
+  return (
+    <>
+      <CurrentStep step={currentStep} onExit={confirmExit} />
+      {isSubmitting && <SubmissionOverlay />}
+    </>
+  );
+}
+
+function CurrentStep({
+  step,
+  onExit,
+}: {
+  step: OnboardingStep;
+  onExit: () => void;
+}) {
+  switch (step) {
     case "welcome":
       return <WelcomeStep />;
     case "firstName":
-      return <FirstNameStep onExit={confirmExit} />;
+      return <FirstNameStep onExit={onExit} />;
     case "registration":
-      return <RegistrationStep onExit={confirmExit} />;
+      return <RegistrationStep onExit={onExit} />;
     case "income":
-      return <IncomeStep onExit={confirmExit} />;
+      return <IncomeStep onExit={onExit} />;
     case "charges":
-      return <ChargesStep onExit={confirmExit} />;
+      return <ChargesStep onExit={onExit} />;
     case "savings":
-      return <SavingsStep onExit={confirmExit} />;
+      return <SavingsStep onExit={onExit} />;
     case "budgetPreview":
-      return (
-        <PlaceholderScreen
-          title="Bientôt disponible"
-          hint="L'aperçu de ton budget arrive."
-        />
-      );
+      return <BudgetPreviewStep onExit={onExit} />;
+    case "pinSetup":
+      return <PinSetupStep />;
   }
 }

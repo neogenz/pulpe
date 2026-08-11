@@ -1,12 +1,15 @@
 import {
   clearDraft,
   readDraft,
+  readHandoffSeen,
   readOnboardingCompleted,
   writeDraft,
+  writeHandoffSeen,
   writeOnboardingCompleted,
 } from "./draft-storage";
 import { wouldExitOnBack } from "./onboarding-selectors";
 import {
+  acknowledgeHandoff,
   addCustomTransaction,
   beginOnboarding,
   completeOnboarding,
@@ -15,6 +18,7 @@ import {
   goToNextStep,
   goToPreviousStep,
   jumpToStepForEdit,
+  markPinSetupCompleted,
   MAX_CUSTOM_TRANSACTIONS,
   removeCustomTransaction,
   resetOnboarding,
@@ -38,6 +42,7 @@ import type { OnboardingTransaction } from "./onboarding-transaction";
 jest.mock("./draft-storage", () => {
   let stored: unknown = null;
   let isCompleted = false;
+  let isHandoffSeen = false;
   return {
     readDraft: jest.fn(() => stored),
     writeDraft: jest.fn((draft: unknown) => {
@@ -50,6 +55,10 @@ jest.mock("./draft-storage", () => {
     writeOnboardingCompleted: jest.fn(() => {
       isCompleted = true;
     }),
+    readHandoffSeen: jest.fn(() => isHandoffSeen),
+    writeHandoffSeen: jest.fn(() => {
+      isHandoffSeen = true;
+    }),
   };
 });
 
@@ -59,6 +68,8 @@ const mocked = {
   clearDraft: jest.mocked(clearDraft),
   readOnboardingCompleted: jest.mocked(readOnboardingCompleted),
   writeOnboardingCompleted: jest.mocked(writeOnboardingCompleted),
+  readHandoffSeen: jest.mocked(readHandoffSeen),
+  writeHandoffSeen: jest.mocked(writeHandoffSeen),
 };
 
 function transaction(
@@ -97,13 +108,25 @@ describe("navigation", () => {
       "charges",
       "savings",
       "budgetPreview",
+      "pinSetup",
     ]);
   });
 
-  it("stops at the budget preview instead of wrapping around", () => {
+  it("stops at the pin ceremony instead of wrapping around", () => {
     while (goToNextStep()) {
       /* walk to the end */
     }
+
+    expect(goToNextStep()).toBe(false);
+    expect(useOnboardingStore.getState().currentStep).toBe("pinSetup");
+  });
+
+  // What the preview's CTA reads: a false return means there is nothing left to
+  // ask, so it submits rather than navigating.
+  it("has no step past the preview once the pin is set", () => {
+    markPinSetupCompleted();
+    jumpToStepForEdit("budgetPreview");
+    useOnboardingStore.setState({ editReturnStep: null });
 
     expect(goToNextStep()).toBe(false);
     expect(useOnboardingStore.getState().currentStep).toBe("budgetPreview");
@@ -247,6 +270,30 @@ describe("draft", () => {
     const state = useOnboardingStore.getState();
     expect(state.isFlowActive).toBe(false);
     expect(state.hasCompletedOnboarding).toBe(true);
+  });
+
+  it("shows the handoff once and never again", () => {
+    beginOnboarding();
+    completeOnboarding();
+    expect(useOnboardingStore.getState().hasSeenHandoff).toBe(false);
+
+    acknowledgeHandoff();
+
+    expect(mocked.writeHandoffSeen).toHaveBeenCalled();
+    expect(useOnboardingStore.getState().hasSeenHandoff).toBe(true);
+
+    // A second run on the same device must not resurrect it.
+    beginOnboarding();
+    completeOnboarding();
+    expect(useOnboardingStore.getState().hasSeenHandoff).toBe(true);
+  });
+
+  it("reads the handoff flag back on a cold start", () => {
+    mocked.readHandoffSeen.mockReturnValueOnce(true);
+
+    restoreOnboardingDraft();
+
+    expect(useOnboardingStore.getState().hasSeenHandoff).toBe(true);
   });
 
   it("never persists the email typed into the registration form", () => {

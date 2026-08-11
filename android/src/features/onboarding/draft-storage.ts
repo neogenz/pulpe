@@ -21,6 +21,13 @@ const DRAFT_KEY = "pulpe-onboarding-data";
  */
 const COMPLETED_KEY = "pulpe-onboarding-completed";
 
+/**
+ * The handoff is a one-time greeting, so it needs its own memory: reusing the
+ * completion flag would show it again to anyone who reinstalls and re-onboards
+ * — and never to someone whose first run predates it.
+ */
+const HANDOFF_SEEN_KEY = "pulpe-post-onboarding-seen";
+
 const storage = createMMKV({ id: "pulpe-onboarding" });
 
 /**
@@ -76,6 +83,14 @@ export function readOnboardingCompleted(): boolean {
 
 export function writeOnboardingCompleted(): void {
   storage.set(COMPLETED_KEY, true);
+}
+
+export function readHandoffSeen(): boolean {
+  return storage.getBoolean(HANDOFF_SEEN_KEY) === true;
+}
+
+export function writeHandoffSeen(): void {
+  storage.set(HANDOFF_SEEN_KEY, true);
 }
 
 function safeJsonParse(value: string): unknown {

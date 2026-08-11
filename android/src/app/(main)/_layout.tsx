@@ -56,6 +56,12 @@ export default function MainTabsLayout() {
           ),
         }}
       />
+      {/* A full-screen handoff, not a destination: `href: null` keeps it out of
+          the tab bar, and hiding the bar keeps its one CTA the only way on. */}
+      <Tabs.Screen
+        name="post-onboarding"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
       <Tabs.Screen
         name="templates"
         options={{

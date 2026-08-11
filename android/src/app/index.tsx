@@ -22,6 +22,7 @@ export default function IndexRoute() {
   const hasOnboarded = useOnboardingStore(
     (state) => state.hasCompletedOnboarding,
   );
+  const hasSeenHandoff = useOnboardingStore((state) => state.hasSeenHandoff);
 
   if (status === "loading") return null;
   // An unfinished run decides for itself which step to show, signed in or not.
@@ -42,7 +43,13 @@ export default function IndexRoute() {
     case "locked":
       return <Redirect href="/vault-unlock" />;
     case "unlocked":
-      return <Redirect href="/home" />;
+      // The handoff is the first thing a freshly onboarded user sees, and the
+      // only thing that ever explains the pointing ritual from scratch.
+      return hasSeenHandoff ? (
+        <Redirect href="/home" />
+      ) : (
+        <Redirect href="/post-onboarding" />
+      );
     case "unknown":
       // Signed in, but the vault has not answered yet. Everything past this
       // point reads encrypted amounts, so there is nothing to show meanwhile.

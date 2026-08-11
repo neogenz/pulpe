@@ -1,7 +1,11 @@
 /**
- * The seven steps, in the order they are visited. Mirrors
+ * The steps, in the order they are visited. Mirrors
  * `ios/Pulpe/Features/Onboarding/OnboardingStep.swift` — same order, same copy,
  * same analytics names, so the two funnels are comparable.
+ *
+ * `pinSetup` closes the flow rather than asking a question: the client key is
+ * derived from the code chosen here, and every amount the previous steps
+ * collected is encrypted under it before it reaches the server.
  */
 export const ONBOARDING_STEPS = [
   "welcome",
@@ -11,6 +15,7 @@ export const ONBOARDING_STEPS = [
   "charges",
   "savings",
   "budgetPreview",
+  "pinSetup",
 ] as const;
 
 export type OnboardingStep = (typeof ONBOARDING_STEPS)[number];
@@ -57,6 +62,11 @@ export const STEP_COPY: Record<OnboardingStep, StepCopy> = {
     title: "Ton budget",
     subtitle: "Voici ce que ça donne",
     analyticsName: "budget_preview",
+  },
+  pinSetup: {
+    title: "Choisis ton code",
+    subtitle: "Tes montants sont chiffrés avec ce code",
+    analyticsName: "pin_setup",
   },
 };
 

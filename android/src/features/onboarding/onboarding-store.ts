@@ -4,8 +4,10 @@ import { create } from "zustand";
 import {
   clearDraft,
   readDraft,
+  readHandoffSeen,
   readOnboardingCompleted,
   writeDraft,
+  writeHandoffSeen,
   writeOnboardingCompleted,
 } from "./draft-storage";
 import { nextVisibleStep, previousVisibleStep } from "./onboarding-selectors";
@@ -28,6 +30,8 @@ export interface OnboardingState {
   isFlowActive: boolean;
   /** A run finished on this device — a returning user goes to sign-in, not to welcome. */
   hasCompletedOnboarding: boolean;
+  /** The one-time handoff has been read; the app opens on the home screen from now on. */
+  hasSeenHandoff: boolean;
 
   currentStep: OnboardingStep;
   /** Drives the step transition direction; navigation is by button only. */
@@ -87,6 +91,7 @@ export const MAX_CUSTOM_TRANSACTIONS = 50;
 const INITIAL_STATE: OnboardingState = {
   isFlowActive: false,
   hasCompletedOnboarding: false,
+  hasSeenHandoff: false,
 
   currentStep: "welcome",
   isMovingForward: true,
@@ -125,6 +130,20 @@ function patch(update: Partial<OnboardingState>): void {
   writeDraft(toDraft(useOnboardingStore.getState()));
 }
 
+/**
+ * What belongs to the device rather than to the run. Resetting the flow spreads
+ * `INITIAL_STATE` over everything, and these two have to survive it — they are
+ * what tell a reinstall apart from a second visit.
+ */
+function deviceFlags(): Pick<
+  OnboardingState,
+  "hasCompletedOnboarding" | "hasSeenHandoff"
+> {
+  const { hasCompletedOnboarding, hasSeenHandoff } =
+    useOnboardingStore.getState();
+  return { hasCompletedOnboarding, hasSeenHandoff };
+}
+
 function toDraft(state: OnboardingState) {
   return {
     currentStep: state.currentStep,
@@ -152,6 +171,7 @@ function toDraft(state: OnboardingState) {
 export function restoreOnboardingDraft(): void {
   useOnboardingStore.setState({
     hasCompletedOnboarding: readOnboardingCompleted(),
+    hasSeenHandoff: readHandoffSeen(),
   });
 
   const draft = readDraft();
@@ -190,8 +210,15 @@ export function completeOnboarding(): void {
   clearDraft();
   useOnboardingStore.setState({
     ...INITIAL_STATE,
+    ...deviceFlags(),
     hasCompletedOnboarding: true,
   });
+}
+
+/** The handoff has been read. Nothing routes through it again on this device. */
+export function acknowledgeHandoff(): void {
+  writeHandoffSeen();
+  useOnboardingStore.setState({ hasSeenHandoff: true });
 }
 
 /**
@@ -201,11 +228,7 @@ export function completeOnboarding(): void {
  */
 export function resetOnboarding(): void {
   clearDraft();
-  useOnboardingStore.setState({
-    ...INITIAL_STATE,
-    hasCompletedOnboarding:
-      useOnboardingStore.getState().hasCompletedOnboarding,
-  });
+  useOnboardingStore.setState({ ...INITIAL_STATE, ...deviceFlags() });
 }
 
 // MARK: - Auth paths
@@ -219,9 +242,8 @@ export function configureSocialUser(providedFirstName: string | null): void {
   clearDraft();
   useOnboardingStore.setState({
     ...INITIAL_STATE,
+    ...deviceFlags(),
     isFlowActive: true,
-    hasCompletedOnboarding:
-      useOnboardingStore.getState().hasCompletedOnboarding,
     isAuthenticated: true,
     isSocialAuth: true,
     socialProvidedName:
