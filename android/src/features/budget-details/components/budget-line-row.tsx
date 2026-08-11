@@ -16,6 +16,7 @@ import type { AmountAccent, LineItem } from "../budget-details-selectors";
 import { PointCircle } from "./point-circle";
 
 const CHEVRON_SIZE = 18;
+const SPREAD_ICON_SIZE = 12;
 /** How much a pointed row steps back without disappearing. */
 const POINTED_OPACITY = 0.55;
 
@@ -81,12 +82,31 @@ export function BudgetLineRow({
       />
 
       <View style={styles.labels}>
-        <Text
-          variant="labelSmall"
-          style={{ color: theme.colors.onSurfaceVariant }}
-        >
-          {RECURRENCE_LABELS[item.line.recurrence]}
-        </Text>
+        <View style={styles.eyebrow}>
+          <Text
+            variant="labelSmall"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            {RECURRENCE_LABELS[item.line.recurrence]}
+          </Text>
+          {/* A calendar, never a repeat arrow: a spread month is one of a
+              window, not something that comes back forever. */}
+          {item.line.spreadGroupId != null && (
+            <>
+              <MaterialCommunityIcons
+                name="calendar-multiple"
+                size={SPREAD_ICON_SIZE}
+                color={theme.colors.outline}
+              />
+              <Text
+                variant="labelSmall"
+                style={{ color: theme.colors.outline }}
+              >
+                Lissé
+              </Text>
+            </>
+          )}
+        </View>
         <Text
           variant="bodyLarge"
           numberOfLines={1}
@@ -174,5 +194,6 @@ const styles = StyleSheet.create({
   pointed: { opacity: POINTED_OPACITY },
   struck: { textDecorationLine: "line-through" },
   labels: { flex: 1, gap: SPACING.xxs, paddingVertical: SPACING.sm },
+  eyebrow: { flexDirection: "row", alignItems: "center", gap: SPACING.xxs },
   amounts: { alignItems: "flex-end", gap: SPACING.xxs },
 });

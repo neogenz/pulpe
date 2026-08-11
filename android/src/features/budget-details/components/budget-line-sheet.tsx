@@ -6,13 +6,15 @@ import type {
   TransactionRecurrence,
 } from "pulpe-shared";
 import { useState } from "react";
-import { ScrollView, StyleSheet } from "react-native";
+import { randomUUID } from "react-native-quick-crypto";
+import { ScrollView, StyleSheet, View } from "react-native";
 import {
   Button,
   HelperText,
   Modal,
   Portal,
   SegmentedButtons,
+  Switch,
   Text,
   TextInput,
   useTheme,
@@ -34,6 +36,16 @@ import {
   useCreateBudgetLine,
   useUpdateBudgetLine,
 } from "../budget-line-mutations";
+import { SpreadFormSection } from "../spread/components/spread-form-section";
+import { useCreateSpread } from "../spread/spread-queries";
+import {
+  DEFAULT_SPREAD_LENGTH,
+  selectedPeriods,
+  type SpreadMode,
+  type SpreadPeriod,
+  spreadWindow,
+  spreadWindowProblem,
+} from "../spread/spread-window";
 
 const NAME_MAX_LENGTH = 100;
 
@@ -59,6 +71,8 @@ interface BudgetLineSheetProps {
   isVisible: boolean;
   onDismiss: () => void;
   budgetId: string;
+  /** The month this budget covers — where a spread window starts. */
+  anchor: SpreadPeriod;
   currency: SupportedCurrency;
   /** Absent when creating; the line being corrected otherwise. */
   line?: BudgetLine;
@@ -74,6 +88,7 @@ export function BudgetLineSheet({
   isVisible,
   onDismiss,
   budgetId,
+  anchor,
   currency,
   line,
   onSaved,
@@ -81,14 +96,26 @@ export function BudgetLineSheet({
   const theme = useTheme();
   const create = useCreateBudgetLine();
   const update = useUpdateBudgetLine();
+  const spread = useCreateSpread();
   const [draft, setDraft] = useState<BudgetLineDraft>(() =>
     line === undefined ? emptyBudgetLineDraft() : budgetLineDraftFrom(line),
   );
   // Bumped on reset. The amount field holds its own text, so clearing the
   // number behind it is not enough to clear what is on screen.
   const [generation, setGeneration] = useState(0);
+  const [isSpread, setSpread] = useState(false);
+  const [spreadMode, setSpreadMode] = useState<SpreadMode>("total");
+  const [spreadLength, setSpreadLength] = useState(DEFAULT_SPREAD_LENGTH);
+  const [deselected, setDeselected] = useState<string[]>([]);
+  // One key per intention, replayed unchanged on a retry: a request that fails
+  // after the rows were written must not leave a second group behind.
+  const [spreadGroupId, setSpreadGroupId] = useState(() => randomUUID());
   const isEditing = line !== undefined;
-  const mutation = isEditing ? update : create;
+  // A spread is a shape of expense, and a revenue has no shape to spread.
+  const canSpread = !isEditing && draft.kind !== "income";
+  const cells = spreadWindow(anchor, spreadLength, deselected);
+  const isSpreading = isSpread && canSpread;
+  const mutation = isSpreading ? spread : isEditing ? update : create;
 
   function change(changes: Partial<BudgetLineDraft>) {
     setDraft((current) => ({ ...current, ...changes }));
@@ -99,12 +126,19 @@ export function BudgetLineSheet({
       line === undefined ? emptyBudgetLineDraft() : budgetLineDraftFrom(line),
     );
     setGeneration((current) => current + 1);
+    setSpread(false);
+    setSpreadMode("total");
+    setSpreadLength(DEFAULT_SPREAD_LENGTH);
+    setDeselected([]);
+    // A new form is a new intention, so it gets its own idempotency key.
+    setSpreadGroupId(randomUUID());
   }
 
   function dismiss() {
     reset();
     create.reset();
     update.reset();
+    spread.reset();
     onDismiss();
   }
 
@@ -116,6 +150,24 @@ export function BudgetLineSheet({
       reset();
       onSaved();
     };
+
+    if (isSpreading && draft.amount !== null && draft.kind !== "income") {
+      if (spreadWindowProblem(cells, 1) !== null) return;
+      spread.mutate(
+        {
+          name: draft.name.trim(),
+          kind: draft.kind,
+          mode: spreadMode,
+          months: selectedPeriods(cells),
+          ...(spreadMode === "total"
+            ? { totalAmount: draft.amount }
+            : { perMonthAmount: draft.amount }),
+          spreadGroupId,
+        },
+        { onSuccess },
+      );
+      return;
+    }
 
     if (line === undefined) {
       create.mutate(buildBudgetLineCreate(draft, budgetId), { onSuccess });
@@ -152,7 +204,13 @@ export function BudgetLineSheet({
 
           <AmountField
             key={generation}
-            label="Montant prévu"
+            label={
+              isSpreading && spreadMode === "total"
+                ? "Montant total"
+                : isSpreading
+                  ? "Montant par mois"
+                  : "Montant prévu"
+            }
             amount={draft.amount}
             currency={currency}
             onChange={(amount) => change({ amount })}
@@ -167,22 +225,64 @@ export function BudgetLineSheet({
             maxLength={NAME_MAX_LENGTH}
           />
 
-          <SegmentedButtons
-            value={draft.recurrence}
-            onValueChange={(recurrence) =>
-              change({ recurrence: recurrence as TransactionRecurrence })
-            }
-            buttons={RECURRENCE_BUTTONS}
-          />
+          {!isSpreading && (
+            <>
+              <SegmentedButtons
+                value={draft.recurrence}
+                onValueChange={(recurrence) =>
+                  change({ recurrence: recurrence as TransactionRecurrence })
+                }
+                buttons={RECURRENCE_BUTTONS}
+              />
 
-          <Text
-            variant="labelMedium"
-            style={{ color: theme.colors.onSurfaceVariant }}
-          >
-            {draft.recurrence === "fixed"
-              ? "Revient chaque mois dans tes budgets suivants."
-              : "N'existe que dans ce mois-ci."}
-          </Text>
+              <Text
+                variant="labelMedium"
+                style={{ color: theme.colors.onSurfaceVariant }}
+              >
+                {draft.recurrence === "fixed"
+                  ? "Revient chaque mois dans tes budgets suivants."
+                  : "N'existe que dans ce mois-ci."}
+              </Text>
+            </>
+          )}
+
+          {canSpread && (
+            <View style={styles.spreadRow}>
+              <View style={styles.spreadLabels}>
+                <Text variant="bodyLarge">Lisser sur plusieurs mois</Text>
+                <Text
+                  variant="labelMedium"
+                  style={{ color: theme.colors.onSurfaceVariant }}
+                >
+                  Une grosse dépense qui ne déforme pas un seul mois
+                </Text>
+              </View>
+              <Switch
+                value={isSpread}
+                onValueChange={setSpread}
+                accessibilityLabel="Lisser sur plusieurs mois"
+              />
+            </View>
+          )}
+
+          {isSpreading && (
+            <SpreadFormSection
+              cells={cells}
+              mode={spreadMode}
+              amount={draft.amount}
+              currency={currency}
+              minimumMonths={1}
+              onChangeMode={setSpreadMode}
+              onChangeLength={setSpreadLength}
+              onToggleMonth={(key) =>
+                setDeselected((current) =>
+                  current.includes(key)
+                    ? current.filter((other) => other !== key)
+                    : [...current, key],
+                )
+              }
+            />
+          )}
 
           {mutation.isError && (
             <HelperText type="error" visible>
@@ -198,7 +298,7 @@ export function BudgetLineSheet({
             }
             loading={mutation.isPending}
           >
-            {isEditing ? "Enregistrer" : "Ajouter"}
+            {isEditing ? "Enregistrer" : isSpreading ? "Lisser" : "Ajouter"}
           </Button>
 
           {hint !== null && (
@@ -222,5 +322,12 @@ const styles = StyleSheet.create({
     maxHeight: "88%",
   },
   content: { padding: SPACING.lg, gap: SPACING.md },
+  spreadRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: SPACING.md,
+  },
+  spreadLabels: { flex: 1, gap: SPACING.xxs },
   hint: { textAlign: "center" },
 });

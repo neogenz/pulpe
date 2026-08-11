@@ -1,0 +1,143 @@
+import * as Haptics from "expo-haptics";
+import type { BudgetLine, SupportedCurrency } from "pulpe-shared";
+import { useState } from "react";
+import { ScrollView, StyleSheet } from "react-native";
+import {
+  Button,
+  HelperText,
+  Modal,
+  Portal,
+  Text,
+  useTheme,
+} from "react-native-paper";
+
+import { formatCurrency } from "@/core/ui/amount-format";
+import { RADIUS, SPACING } from "@/core/ui/theme";
+
+import { useSpreadExistingLine } from "../spread-queries";
+import {
+  DEFAULT_SPREAD_LENGTH,
+  selectedPeriods,
+  type SpreadPeriod,
+  spreadWindow,
+  spreadWindowProblem,
+} from "../spread-window";
+
+import { SpreadFormSection } from "./spread-form-section";
+
+/** Spreading over one month would be a no-op, so the endpoint refuses it. */
+const MINIMUM_MONTHS = 2;
+
+interface SpreadExistingSheetProps {
+  isVisible: boolean;
+  onDismiss: () => void;
+  line: BudgetLine;
+  anchor: SpreadPeriod;
+  currency: SupportedCurrency;
+  onSpread: () => void;
+}
+
+/**
+ * Spreading a forecast that already exists redistributes its own total: the
+ * months chosen here each take a share, and the original disappears into them.
+ * There is no amount to type — the server reads it, and only it can guarantee
+ * the shares add back up to what was there.
+ */
+export function SpreadExistingSheet({
+  isVisible,
+  onDismiss,
+  line,
+  anchor,
+  currency,
+  onSpread,
+}: SpreadExistingSheetProps) {
+  const theme = useTheme();
+  const spread = useSpreadExistingLine();
+  const [length, setLength] = useState(DEFAULT_SPREAD_LENGTH);
+  const [deselected, setDeselected] = useState<string[]>([]);
+  const cells = spreadWindow(anchor, length, deselected);
+  const problem = spreadWindowProblem(cells, MINIMUM_MONTHS);
+
+  function submit() {
+    if (problem !== null) return;
+    spread.mutate(
+      { budgetLineId: line.id, periods: selectedPeriods(cells) },
+      {
+        onSuccess: () => {
+          void Haptics.notificationAsync(
+            Haptics.NotificationFeedbackType.Success,
+          );
+          onSpread();
+        },
+      },
+    );
+  }
+
+  return (
+    <Portal>
+      <Modal
+        visible={isVisible}
+        onDismiss={onDismiss}
+        contentContainerStyle={[
+          styles.sheet,
+          { backgroundColor: theme.colors.surface },
+        ]}
+      >
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text variant="titleMedium">Lisser « {line.name} »</Text>
+
+          <Text
+            variant="bodyMedium"
+            style={{ color: theme.colors.onSurfaceVariant }}
+          >
+            {formatCurrency(line.amount, currency)} seront répartis sur les mois
+            choisis. Cette prévision-ci disparaît au profit d&apos;eux.
+          </Text>
+
+          <SpreadFormSection
+            cells={cells}
+            mode="total"
+            amount={line.amount}
+            currency={currency}
+            minimumMonths={MINIMUM_MONTHS}
+            onChangeLength={setLength}
+            onToggleMonth={(key) =>
+              setDeselected((current) =>
+                current.includes(key)
+                  ? current.filter((other) => other !== key)
+                  : [...current, key],
+              )
+            }
+          />
+
+          {spread.isError && (
+            <HelperText type="error" visible>
+              Le lissage n&apos;a pas pu être fait. Réessaie.
+            </HelperText>
+          )}
+
+          <Button
+            mode="contained"
+            onPress={submit}
+            disabled={problem !== null || spread.isPending}
+            loading={spread.isPending}
+          >
+            Lisser
+          </Button>
+        </ScrollView>
+      </Modal>
+    </Portal>
+  );
+}
+
+const styles = StyleSheet.create({
+  sheet: {
+    marginHorizontal: SPACING.md,
+    borderRadius: RADIUS.md,
+    maxHeight: "88%",
+  },
+  content: { padding: SPACING.lg, gap: SPACING.md },
+});

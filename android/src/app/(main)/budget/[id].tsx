@@ -319,6 +319,7 @@ export default function BudgetDetailScreen() {
         isVisible={isLineSheetVisible}
         onDismiss={() => setLineSheetVisible(false)}
         budgetId={id}
+        anchor={{ year: budget.year, month: budget.month }}
         currency={currency}
         onSaved={() => {
           setLineSheetVisible(false);
