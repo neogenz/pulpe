@@ -17,7 +17,7 @@ import { formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { SPACING } from "@/core/ui/theme";
 import { useBudgetList } from "@/features/budgets/budget-queries";
-import { nextAvailableMonth } from "@/features/budgets/next-available-month";
+import { hasAvailableMonth } from "@/features/budgets/available-months";
 import { ActivityCard } from "@/features/current-month/components/activity-card";
 import { AddTransactionSheet } from "@/features/current-month/components/add-transaction-sheet";
 import { DriftCard } from "@/features/current-month/components/drift-card";
@@ -46,8 +46,7 @@ export default function HomeScreen() {
   // extra — it only asks a different question of it.
   const budgets = useBudgetList();
   const hasMonthToPrepare =
-    budgets.data !== undefined &&
-    nextAvailableMonth(budgets.data, new Date()) !== null;
+    budgets.data !== undefined && hasAvailableMonth(budgets.data, new Date());
 
   if (currentMonth.status === "loading") {
     return (
@@ -79,7 +78,7 @@ export default function HomeScreen() {
         hint="Crée-le pour voir ton tableau de bord."
         action={{
           label: "Créer mon budget",
-          onPress: () => router.push("/budget/create-next"),
+          onPress: () => router.push("/budget/create"),
         }}
       />
     );
@@ -178,7 +177,7 @@ export default function HomeScreen() {
           <Button
             mode="outlined"
             icon="calendar-plus"
-            onPress={() => router.push("/budget/create-next")}
+            onPress={() => router.push("/budget/create")}
           >
             Préparer le mois suivant
           </Button>

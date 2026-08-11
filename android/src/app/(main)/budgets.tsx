@@ -72,7 +72,7 @@ export default function BudgetsScreen() {
         hint="Crée ton premier mois depuis un de tes modèles."
         action={{
           label: "Créer mon budget",
-          onPress: () => router.push("/budget/create-next"),
+          onPress: () => router.push("/budget/create"),
         }}
       />
     );
@@ -122,7 +122,7 @@ export default function BudgetsScreen() {
       <FAB
         icon="plus"
         style={styles.fab}
-        onPress={() => router.push("/budget/create-next")}
+        onPress={() => router.push("/budget/create")}
         accessibilityLabel="Créer un budget"
       />
     </SafeAreaView>

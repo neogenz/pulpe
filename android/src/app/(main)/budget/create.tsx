@@ -6,7 +6,7 @@ import {
   ActivityIndicator,
   Appbar,
   Button,
-  Card,
+  Chip,
   HelperText,
   RadioButton,
   Text,
@@ -17,25 +17,41 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { RADIUS, SPACING } from "@/core/ui/theme";
+import {
+  availableMonths,
+  type BudgetPeriod,
+} from "@/features/budgets/available-months";
 import { useCreateBudget } from "@/features/budgets/create-budget-mutation";
-import { nextAvailableMonth } from "@/features/budgets/next-available-month";
 import { useBudgetList } from "@/features/budgets/budget-queries";
 import { useTemplates } from "@/features/templates/template-queries";
 
-export default function CreateNextBudgetScreen() {
+/**
+ * How many free months the picker offers. Beyond a quarter ahead the choice
+ * stops being a choice and becomes a list to scroll — and a budget built that
+ * far out is built from a template that will have changed by then anyway.
+ */
+const PERIODS_OFFERED = 3;
+
+export default function CreateBudgetScreen() {
   const theme = useTheme();
   const budgets = useBudgetList();
   const templates = useTemplates();
   const create = useCreateBudget();
+  const [chosenPeriodKey, setChosenPeriodKey] = useState<string | null>(null);
   const [chosenTemplateId, setChosenTemplateId] = useState<string | null>(null);
 
+  const periods = availableMonths(
+    budgets.data ?? [],
+    new Date(),
+    PERIODS_OFFERED,
+  );
+  // Derived rather than synced from an effect: both lists arrive after the
+  // first render, and a default written into state then would overwrite a
+  // choice the user had already made in between.
   const period =
-    budgets.data === undefined
-      ? null
-      : nextAvailableMonth(budgets.data, new Date());
-  // Derived rather than synced from an effect: the list arrives after the first
-  // render, and a default written into state then would overwrite a choice the
-  // user had already made in between.
+    periods.find((candidate) => periodKey(candidate) === chosenPeriodKey) ??
+    periods[0] ??
+    null;
   const selectedTemplateId =
     chosenTemplateId ?? defaultTemplateId(templates.data ?? []);
 
@@ -95,19 +111,20 @@ export default function CreateNextBudgetScreen() {
       </Appbar.Header>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <Card mode="contained">
-          <Card.Content style={styles.periodCard}>
-            <Text
-              variant="labelMedium"
-              style={{ color: theme.colors.onSurfaceVariant }}
+        <Text variant="titleSmall">Quel mois</Text>
+        <View style={styles.periods}>
+          {periods.map((candidate) => (
+            <Chip
+              key={periodKey(candidate)}
+              selected={periodKey(candidate) === periodKey(period)}
+              showSelectedCheck={false}
+              onPress={() => setChosenPeriodKey(periodKey(candidate))}
+              textStyle={styles.period}
             >
-              Période du budget
-            </Text>
-            <Text variant="titleLarge" style={styles.period}>
-              {formatMonthName(period.month, period.year)}
-            </Text>
-          </Card.Content>
-        </Card>
+              {formatMonthName(candidate.month, candidate.year)}
+            </Chip>
+          ))}
+        </View>
 
         <Text variant="titleSmall">Choisir un modèle</Text>
 
@@ -167,6 +184,10 @@ export default function CreateNextBudgetScreen() {
   );
 }
 
+function periodKey(period: BudgetPeriod): string {
+  return `${period.year}-${period.month}`;
+}
+
 /** The template the account marked default, or simply the first one it has. */
 function defaultTemplateId(templates: BudgetTemplate[]): string | null {
   const preferred =
@@ -178,7 +199,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
   content: { padding: SPACING.md, gap: SPACING.md },
-  periodCard: { gap: SPACING.xs },
+  periods: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm },
   period: { textTransform: "capitalize" },
   templates: { gap: SPACING.sm },
   template: { borderRadius: RADIUS.card, borderWidth: 1 },

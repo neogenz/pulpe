@@ -11,32 +11,39 @@ export interface BudgetPeriod {
 }
 
 /**
- * The first month from today onwards that has no budget — what the "create the
- * next month" action would create. Null when the horizon is already full, which
- * is a legitimate state rather than an error: the user is simply ahead.
+ * The months from today onwards that have no budget yet, soonest first, capped
+ * at `limit`. An empty result is a legitimate state rather than an error: the
+ * user is simply ahead of the horizon.
  *
  * It starts at the current month rather than the next one because a user
  * arriving mid-month with nothing to show has that month to create first.
  */
-export function nextAvailableMonth(
+export function availableMonths(
   budgets: BudgetSparse[],
   now: Date,
-): BudgetPeriod | null {
+  limit: number,
+): BudgetPeriod[] {
   const taken = new Set(
     budgets.map((budget) => periodKey(budget.month, budget.year)),
   );
+  const free: BudgetPeriod[] = [];
 
   for (
     let offset = 0;
-    offset < MAX_YEARS_AHEAD * MONTHS_PER_YEAR;
+    offset < MAX_YEARS_AHEAD * MONTHS_PER_YEAR && free.length < limit;
     offset += 1
   ) {
     const date = new Date(now.getFullYear(), now.getMonth() + offset, 1);
     const period = { month: date.getMonth() + 1, year: date.getFullYear() };
-    if (!taken.has(periodKey(period.month, period.year))) return period;
+    if (!taken.has(periodKey(period.month, period.year))) free.push(period);
   }
 
-  return null;
+  return free;
+}
+
+/** Whether there is anything left to create — what gates the dashboard's CTA. */
+export function hasAvailableMonth(budgets: BudgetSparse[], now: Date): boolean {
+  return availableMonths(budgets, now, 1).length > 0;
 }
 
 /**
