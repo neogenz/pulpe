@@ -47,6 +47,29 @@ export function tagNameIssue(
   return null;
 }
 
+const NAMES_SHOWN = 2;
+
+/**
+ * How a row states its tags: two names, then a count for the rest. Null when
+ * there is nothing to say — including for an id no tag answers to, which
+ * happens for a moment after a tag is deleted elsewhere.
+ */
+export function tagSummary(
+  tagIds: string[] | undefined,
+  tags: Tag[],
+): string | null {
+  if (tagIds === undefined || tagIds.length === 0) return null;
+
+  const names = tagIds
+    .map((id) => tags.find((tag) => tag.id === id)?.name)
+    .filter((name): name is string => name !== undefined);
+  if (names.length === 0) return null;
+
+  const shown = names.slice(0, NAMES_SHOWN);
+  const hidden = names.length - shown.length;
+  return hidden > 0 ? `${shown.join(", ")} +${hidden}` : shown.join(", ");
+}
+
 export function canCreateTag(
   name: string,
   tags: Tag[],

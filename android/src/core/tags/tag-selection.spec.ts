@@ -4,6 +4,7 @@ import {
   canCreateTag,
   findTagByName,
   tagNameIssue,
+  tagSummary,
   toggledTagIds,
 } from "./tag-selection";
 
@@ -80,6 +81,31 @@ describe("tagNameIssue", () => {
 
   it("accepts a fresh name", () => {
     expect(tagNameIssue("Vacances", TAGS, 1)).toBeNull();
+  });
+});
+
+describe("tagSummary", () => {
+  it("says nothing when a transaction carries no tag", () => {
+    expect(tagSummary(undefined, TAGS)).toBeNull();
+    expect(tagSummary([], TAGS)).toBeNull();
+  });
+
+  it("names the tags it has", () => {
+    expect(tagSummary(["tag-1", "tag-2"], TAGS)).toBe("Courses, Loisirs");
+  });
+
+  it("counts the ones past the first two", () => {
+    const many = [...TAGS, tag("tag-3", "Vacances"), tag("tag-4", "Cadeaux")];
+
+    expect(tagSummary(["tag-1", "tag-2", "tag-3", "tag-4"], many)).toBe(
+      "Courses, Loisirs +2",
+    );
+  });
+
+  // A tag deleted elsewhere leaves its id behind until the next refetch.
+  it("ignores an id no tag answers to", () => {
+    expect(tagSummary(["tag-1", "gone"], TAGS)).toBe("Courses");
+    expect(tagSummary(["gone"], TAGS)).toBeNull();
   });
 });
 

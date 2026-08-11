@@ -4,6 +4,8 @@ import { useState } from "react";
 import { StyleSheet, useColorScheme, View } from "react-native";
 import { Chip, Divider, Text, useTheme } from "react-native-paper";
 
+import { useTags } from "@/core/tags/tag-queries";
+import { tagSummary } from "@/core/tags/tag-selection";
 import {
   formatCompactCurrency,
   formatSignedCompactCurrency,
@@ -60,6 +62,8 @@ export function ActivityCard({ transactions, currency }: ActivityCardProps) {
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
   const [window, setWindow] = useState<ActivityWindow>("week");
   const { days, net } = summarizeActivity(transactions, window, new Date());
+  // Names live on their own endpoint — a transaction carries ids only.
+  const tags = useTags();
 
   return (
     <View style={styles.card}>
@@ -133,6 +137,7 @@ export function ActivityCard({ transactions, currency }: ActivityCardProps) {
               {day.transactions.map((transaction, index) => {
                 const accent =
                   FINANCIAL_COLORS[scheme][KIND_ACCENTS[transaction.kind]];
+                const tagged = tagSummary(transaction.tagIds, tags.data ?? []);
                 return (
                   <View key={transaction.id}>
                     {index > 0 && <Divider />}
@@ -153,6 +158,15 @@ export function ActivityCard({ transactions, currency }: ActivityCardProps) {
                         <Text variant="bodyLarge" numberOfLines={1}>
                           {transaction.name}
                         </Text>
+                        {tagged !== null && (
+                          <Text
+                            variant="labelSmall"
+                            numberOfLines={1}
+                            style={{ color: theme.colors.onSurfaceVariant }}
+                          >
+                            {tagged}
+                          </Text>
+                        )}
                       </View>
                       <Text
                         variant="bodyMedium"
