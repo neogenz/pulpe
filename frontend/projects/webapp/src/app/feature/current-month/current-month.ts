@@ -413,7 +413,8 @@ type UndoableAction =
       align-items: center;
       justify-content: space-between;
       gap: 0.75rem;
-      padding: 0.25rem;
+      min-height: 64px;
+      padding: 14px 16px;
       border-radius: var(--pulpe-surface-radius-card);
       cursor: pointer;
       list-style: none;
