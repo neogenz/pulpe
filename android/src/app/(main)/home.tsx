@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useSessionStore } from "@/core/auth/session-store";
+import { useReminderPriming } from "@/core/notifications/use-reminder-priming";
 import { formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { SPACING } from "@/core/ui/theme";
@@ -19,6 +20,7 @@ import { ActivityCard } from "@/features/current-month/components/activity-card"
 import { AddTransactionSheet } from "@/features/current-month/components/add-transaction-sheet";
 import { DriftCard } from "@/features/current-month/components/drift-card";
 import { HomeHeroCard } from "@/features/current-month/components/home-hero-card";
+import { NotificationPrimeSheet } from "@/features/current-month/components/notification-prime-sheet";
 import { RealizedBalanceSheet } from "@/features/current-month/components/realized-balance-sheet";
 import { SavingsDoneCard } from "@/features/current-month/components/savings-done-card";
 import { UncheckedOperationsCard } from "@/features/current-month/components/unchecked-operations-card";
@@ -37,6 +39,7 @@ export default function HomeScreen() {
   // A rolled-back row reappearing is not an explanation, so the failure is said
   // out loud. The success needs no toast: the row leaving the card is the reply.
   const toggle = useToggleCheck(currentMonth.budgetId);
+  const reminders = useReminderPriming();
 
   if (currentMonth.status === "loading") {
     return (
@@ -132,7 +135,13 @@ export default function HomeScreen() {
             currency={currency}
             isSyncing={toggle.isPending}
             onToggle={(item) =>
-              toggle.mutate(item, { onError: () => setToggleFailed(true) })
+              toggle.mutate(item, {
+                onError: () => setToggleFailed(true),
+                // Offered here and nowhere else: a reminder to point is worth
+                // something only to someone who has just found out what
+                // pointing does.
+                onSuccess: () => reminders.offer(),
+              })
             }
           />
         )}
@@ -162,7 +171,7 @@ export default function HomeScreen() {
 
       {/* Hidden while a sheet is up: the FAB floats above the Portal's scrim
           and would otherwise sit on top of the form it just opened. */}
-      {!isAddVisible && !isRealizedVisible && (
+      {!isAddVisible && !isRealizedVisible && !reminders.isVisible && (
         <FAB
           icon="plus"
           label="Ajouter"
@@ -193,6 +202,12 @@ export default function HomeScreen() {
         metrics={viewModel.metrics}
         realized={viewModel.realized}
         currency={currency}
+      />
+
+      <NotificationPrimeSheet
+        isVisible={reminders.isVisible}
+        onDismiss={reminders.dismiss}
+        onEnable={reminders.enable}
       />
 
       {currentMonth.budgetId !== null && (
