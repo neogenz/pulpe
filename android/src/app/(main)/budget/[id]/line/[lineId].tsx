@@ -5,6 +5,10 @@ import { ScrollView, StyleSheet, useColorScheme, View } from "react-native";
 import {
   ActivityIndicator,
   Appbar,
+  Button,
+  Dialog,
+  Menu,
+  Portal,
   ProgressBar,
   Snackbar,
   Text,
@@ -21,6 +25,11 @@ import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import { useBudgetDetails } from "@/features/budgets/budget-queries";
 import { lineConsumption } from "@/features/budgets/line-consumption";
 import { useToggleCheck } from "@/features/budgets/toggle-check-mutation";
+import {
+  useDeleteBudgetLine,
+  usePostponeBudgetLine,
+} from "@/features/budget-details/budget-line-mutations";
+import { BudgetLineSheet } from "@/features/budget-details/components/budget-line-sheet";
 import { TransactionRow } from "@/features/budget-details/components/transaction-row";
 
 const FALLBACK_CURRENCY: SupportedCurrency = "CHF";
@@ -50,7 +59,13 @@ export default function BudgetLineDetailScreen() {
   const details = useBudgetDetails(id);
   const tags = useTags();
   const toggle = useToggleCheck(id);
+  const remove = useDeleteBudgetLine();
+  const postpone = usePostponeBudgetLine();
   const [hasToggleFailed, setToggleFailed] = useState(false);
+  const [isMenuOpen, setMenuOpen] = useState(false);
+  const [isEditVisible, setEditVisible] = useState(false);
+  const [isDeleteVisible, setDeleteVisible] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
 
   const currency = settings.data?.currency ?? FALLBACK_CURRENCY;
 
@@ -98,6 +113,49 @@ export default function BudgetLineDetailScreen() {
       <Appbar.Header>
         <Appbar.BackAction onPress={() => router.back()} />
         <Appbar.Content title={line.name} />
+        <Menu
+          visible={isMenuOpen}
+          onDismiss={() => setMenuOpen(false)}
+          anchor={
+            <Appbar.Action
+              icon="dots-vertical"
+              onPress={() => setMenuOpen(true)}
+              accessibilityLabel="Actions sur la prévision"
+            />
+          }
+        >
+          <Menu.Item
+            leadingIcon="pencil"
+            title="Modifier"
+            onPress={() => {
+              setMenuOpen(false);
+              setEditVisible(true);
+            }}
+          />
+          <Menu.Item
+            leadingIcon="calendar-arrow-right"
+            title="Reporter au mois suivant"
+            disabled={postpone.isPending}
+            onPress={() => {
+              setMenuOpen(false);
+              postpone.mutate(line.id, {
+                // The line has left this month, so the page it was opened from
+                // no longer has anything to show.
+                onSuccess: () => router.back(),
+                onError: () =>
+                  setFailure("Le report n'a pas pu être fait. Réessaie."),
+              });
+            }}
+          />
+          <Menu.Item
+            leadingIcon="trash-can-outline"
+            title="Supprimer"
+            onPress={() => {
+              setMenuOpen(false);
+              setDeleteVisible(true);
+            }}
+          />
+        </Menu>
       </Appbar.Header>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -180,6 +238,58 @@ export default function BudgetLineDetailScreen() {
       >
         Le pointage n&apos;a pas été enregistré. Réessaie.
       </Snackbar>
+
+      <Snackbar visible={failure !== null} onDismiss={() => setFailure(null)}>
+        {failure ?? ""}
+      </Snackbar>
+
+      <BudgetLineSheet
+        // Keyed on the line so reopening after a change starts from the saved
+        // values rather than from what the form held on first mount.
+        key={line.updatedAt}
+        isVisible={isEditVisible}
+        onDismiss={() => setEditVisible(false)}
+        budgetId={id}
+        currency={currency}
+        line={line}
+        onSaved={() => setEditVisible(false)}
+      />
+
+      <Portal>
+        <Dialog
+          visible={isDeleteVisible}
+          onDismiss={() => setDeleteVisible(false)}
+        >
+          <Dialog.Title>Supprimer cette prévision ?</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium">
+              {transactions.length === 0
+                ? "Elle disparaîtra de ce mois-ci."
+                : `Les ${transactions.length} opérations rattachées resteront, mais sans prévision.`}
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setDeleteVisible(false)}>Annuler</Button>
+            <Button
+              loading={remove.isPending}
+              disabled={remove.isPending}
+              onPress={() =>
+                remove.mutate(line.id, {
+                  onSuccess: () => router.back(),
+                  onError: () => {
+                    setDeleteVisible(false);
+                    setFailure(
+                      "La prévision n'a pas pu être supprimée. Réessaie.",
+                    );
+                  },
+                })
+              }
+            >
+              Supprimer
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </SafeAreaView>
   );
 }

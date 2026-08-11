@@ -5,6 +5,7 @@ import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Appbar,
+  FAB,
   Snackbar,
   Text,
   useTheme,
@@ -34,9 +35,11 @@ import {
 } from "@/features/budget-details/budget-details-selectors";
 import { BudgetDetailHero } from "@/features/budget-details/components/budget-detail-hero";
 import { BudgetLineRow } from "@/features/budget-details/components/budget-line-row";
+import { BudgetLineSheet } from "@/features/budget-details/components/budget-line-sheet";
 import { DetailsFilterBar } from "@/features/budget-details/components/details-filter-bar";
 import { MonthPager } from "@/features/budget-details/components/month-pager";
 import { TransactionRow } from "@/features/budget-details/components/transaction-row";
+import { AddTransactionSheet } from "@/features/current-month/components/add-transaction-sheet";
 import { RealizedBalanceSheet } from "@/features/current-month/components/realized-balance-sheet";
 import { buildCurrentMonthViewModel } from "@/features/current-month/current-month-view-model";
 
@@ -59,6 +62,11 @@ export default function BudgetDetailScreen() {
   const [filters, setFilters] = useState<DetailsFilters>(DEFAULT_FILTERS);
   const [isRealizedVisible, setRealizedVisible] = useState(false);
   const [hasToggleFailed, setToggleFailed] = useState(false);
+  const [isFabOpen, setFabOpen] = useState(false);
+  const [isLineSheetVisible, setLineSheetVisible] = useState(false);
+  const [isTransactionSheetVisible, setTransactionSheetVisible] =
+    useState(false);
+  const [savedMessage, setSavedMessage] = useState<string | null>(null);
 
   const currency = settings.data?.currency ?? FALLBACK_CURRENCY;
   const payDayOfMonth = settings.data?.payDayOfMonth ?? null;
@@ -252,6 +260,35 @@ export default function BudgetDetailScreen() {
         )}
       </ScrollView>
 
+      {/* Two things can be added to a month and they are not the same act: a
+          forecast plans, an operation records. One FAB, two answers. */}
+      <FAB.Group
+        open={isFabOpen}
+        visible={!isLineSheetVisible && !isTransactionSheetVisible}
+        icon={isFabOpen ? "close" : "plus"}
+        onStateChange={({ open }) => setFabOpen(open)}
+        actions={[
+          {
+            icon: "calendar-check",
+            label: "Une prévision",
+            onPress: () => setLineSheetVisible(true),
+          },
+          {
+            icon: "cash",
+            label: "Une opération",
+            onPress: () => setTransactionSheetVisible(true),
+          },
+        ]}
+        accessibilityLabel="Ajouter"
+      />
+
+      <Snackbar
+        visible={savedMessage !== null}
+        onDismiss={() => setSavedMessage(null)}
+      >
+        {savedMessage ?? ""}
+      </Snackbar>
+
       <Snackbar
         visible={hasToggleFailed}
         onDismiss={() => setToggleFailed(false)}
@@ -259,6 +296,28 @@ export default function BudgetDetailScreen() {
       >
         Le pointage n&apos;a pas été enregistré. Réessaie.
       </Snackbar>
+
+      <BudgetLineSheet
+        isVisible={isLineSheetVisible}
+        onDismiss={() => setLineSheetVisible(false)}
+        budgetId={id}
+        currency={currency}
+        onSaved={() => {
+          setLineSheetVisible(false);
+          setSavedMessage("Prévision ajoutée");
+        }}
+      />
+
+      <AddTransactionSheet
+        isVisible={isTransactionSheetVisible}
+        onDismiss={() => setTransactionSheetVisible(false)}
+        budgetId={id}
+        currency={currency}
+        onAdded={() => {
+          setTransactionSheetVisible(false);
+          setSavedMessage("Opération ajoutée");
+        }}
+      />
 
       {viewModel !== null && (
         <RealizedBalanceSheet
