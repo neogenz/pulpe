@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import type { SupportedCurrency } from "pulpe-shared";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet } from "react-native";
 import { ActivityIndicator, Appbar, Text, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -10,11 +10,14 @@ import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { SPACING } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
 import { GoalFormSheet } from "@/features/savings-goals/components/goal-form-sheet";
+import { GoalPlanTimeline } from "@/features/savings-goals/components/goal-plan-timeline";
 import { GoalProgressCard } from "@/features/savings-goals/components/goal-progress-card";
+import { GoalProjectionChart } from "@/features/savings-goals/components/goal-projection-chart";
 import {
   useSavingsGoal,
   useSavingsGoalProgress,
 } from "@/features/savings-goals/goals-queries";
+import { projectionSeries } from "@/features/savings-goals/projection-series";
 
 const FALLBACK_CURRENCY: SupportedCurrency = "CHF";
 
@@ -33,6 +36,11 @@ export default function GoalDetailScreen() {
 
   const currency = settings.data?.currency ?? FALLBACK_CURRENCY;
   const payDayOfMonth = settings.data?.payDayOfMonth ?? null;
+  const series = useMemo(
+    () =>
+      progress.data === undefined ? null : projectionSeries(progress.data),
+    [progress.data],
+  );
 
   if (goal.isPending || progress.isPending) {
     return (
@@ -88,6 +96,20 @@ export default function GoalDetailScreen() {
 
         {progress.data !== undefined && (
           <GoalProgressCard progress={progress.data} currency={currency} />
+        )}
+
+        {/* The trajectory needs a month behind it to be a trajectory. Before
+            that it is two axes and a dashed target — decoration that reads as
+            a verdict on a goal set this morning. */}
+        {series !== null && series.hasConfirmedTrend && (
+          <>
+            <Text variant="titleMedium">Ta trajectoire</Text>
+            <GoalProjectionChart series={series} currency={currency} />
+          </>
+        )}
+
+        {progress.data !== undefined && (
+          <GoalPlanTimeline months={progress.data.months} currency={currency} />
         )}
       </ScrollView>
 
