@@ -193,6 +193,14 @@ export default function BudgetDetailScreen() {
           rollover={budget.rollover ?? 0}
           previousMonthName={previousMonthName}
           onPressMetrics={() => setRealizedVisible(true)}
+          onPressRollover={
+            budget.previousBudgetId == null
+              ? undefined
+              : // Push, not replace: reading where the carry-over came from is
+                // a step back in time the user expects to return from, unlike
+                // the pager's sideways moves.
+                () => router.push(`/budget/${budget.previousBudgetId}`)
+          }
         />
 
         <DetailsFilterBar

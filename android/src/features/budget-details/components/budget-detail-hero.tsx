@@ -42,6 +42,8 @@ interface BudgetDetailHeroProps {
   /** Names the month the carry-over came from, when that budget is known. */
   previousMonthName: string | null;
   onPressMetrics: () => void;
+  /** Opens the month the carry-over came from, when there is one to open. */
+  onPressRollover?: () => void;
 }
 
 /**
@@ -55,6 +57,7 @@ export function BudgetDetailHero({
   rollover,
   previousMonthName,
   onPressMetrics,
+  onPressRollover,
 }: BudgetDetailHeroProps) {
   const theme = useTheme();
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
@@ -85,7 +88,19 @@ export function BudgetDetailHero({
       </Text>
 
       {hasRollover && (
-        <View style={styles.rollover}>
+        // The carry-over names a month, so the disclosure is also the way to go
+        // read it — the same question iOS answers with a read-only sheet.
+        <Pressable
+          style={styles.rollover}
+          onPress={onPressRollover}
+          disabled={onPressRollover === undefined}
+          accessibilityRole={onPressRollover === undefined ? undefined : "link"}
+          accessibilityLabel={
+            onPressRollover === undefined
+              ? undefined
+              : `Voir ${previousMonthName ?? "le mois précédent"}`
+          }
+        >
           <MaterialCommunityIcons
             name="autorenew"
             size={ROLLOVER_ICON_SIZE}
@@ -102,7 +117,14 @@ export function BudgetDetailHero({
           >
             {formatSignedCompactCurrency(rollover, currency)}
           </Text>
-        </View>
+          {onPressRollover !== undefined && (
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={ROLLOVER_ICON_SIZE}
+              color={theme.colors.outline}
+            />
+          )}
+        </Pressable>
       )}
 
       <View style={styles.progressRow}>
