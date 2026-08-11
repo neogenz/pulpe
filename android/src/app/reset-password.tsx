@@ -15,11 +15,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
   beginPasswordRecovery,
-  isAcceptablePassword,
   parseRecoveryTokens,
-  PASSWORD_MIN_LENGTH,
   updatePassword,
 } from "@/core/auth/password-recovery";
+import {
+  isAcceptablePassword,
+  PASSWORD_MIN_LENGTH,
+} from "@/core/auth/password-rules";
 import { endRecoverySession, useSessionStore } from "@/core/auth/session-store";
 import { SPACING } from "@/core/ui/theme";
 

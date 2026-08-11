@@ -30,10 +30,19 @@ function configureOnce(webClientId: string): void {
 }
 
 /**
+ * What Google told us about the person, for the one use onboarding has for it:
+ * skipping a question it can already answer. `firstName` is null when the
+ * provider sent no usable name, and the flow then asks for it.
+ */
+export interface GoogleSignInResult {
+  firstName: string | null;
+}
+
+/**
  * `null` means the user backed out — not an error, and nothing to report.
  * Anything genuinely wrong throws with a French message.
  */
-export async function signInWithGoogle(): Promise<null | void> {
+export async function signInWithGoogle(): Promise<GoogleSignInResult | null> {
   const webClientId = ENV.googleWebClientId;
   if (webClientId === null) {
     throw new Error(
@@ -46,11 +55,29 @@ export async function signInWithGoogle(): Promise<null | void> {
   const response = await requestGoogleIdToken();
   if (response === null) return null;
 
-  const { error } = await supabase.auth.signInWithIdToken({
+  const { data, error } = await supabase.auth.signInWithIdToken({
     provider: "google",
     token: response,
   });
   if (error) throw new Error(error.message);
+
+  return { firstName: firstNameFromMetadata(data.user?.user_metadata) };
+}
+
+/**
+ * Google fills `given_name` on most accounts and only `full_name` on some, so
+ * both are read; anything else is treated as no name rather than guessed at.
+ */
+function firstNameFromMetadata(
+  metadata: Record<string, unknown> | undefined,
+): string | null {
+  const candidates = [metadata?.given_name, metadata?.full_name];
+  for (const candidate of candidates) {
+    if (typeof candidate !== "string") continue;
+    const firstName = candidate.trim().split(/\s+/)[0];
+    if (firstName !== undefined && firstName.length > 0) return firstName;
+  }
+  return null;
 }
 
 async function requestGoogleIdToken(): Promise<string | null> {

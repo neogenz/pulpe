@@ -15,6 +15,12 @@ import { onboardingTransactionDraftSchema } from "./onboarding-transaction";
  */
 const DRAFT_KEY = "pulpe-onboarding-data";
 
+/**
+ * Outlives the draft on purpose: it is what sends a user who signed out back to
+ * the sign-in screen instead of through the welcome pitch a second time.
+ */
+const COMPLETED_KEY = "pulpe-onboarding-completed";
+
 const storage = createMMKV({ id: "pulpe-onboarding" });
 
 /**
@@ -62,6 +68,14 @@ export function writeDraft(draft: OnboardingDraft): void {
 
 export function clearDraft(): void {
   storage.remove(DRAFT_KEY);
+}
+
+export function readOnboardingCompleted(): boolean {
+  return storage.getBoolean(COMPLETED_KEY) === true;
+}
+
+export function writeOnboardingCompleted(): void {
+  storage.set(COMPLETED_KEY, true);
 }
 
 function safeJsonParse(value: string): unknown {

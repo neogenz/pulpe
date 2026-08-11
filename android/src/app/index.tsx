@@ -5,6 +5,7 @@ import { ActivityIndicator, Button, Text, useTheme } from "react-native-paper";
 import { useSessionStore } from "@/core/auth/session-store";
 import { SPACING } from "@/core/ui/theme";
 import { bootstrapVault, useVaultStore } from "@/core/vault/vault-store";
+import { useOnboardingStore } from "@/features/onboarding/onboarding-store";
 
 /**
  * The landing decision has to live on a route that no guard can remove.
@@ -17,9 +18,23 @@ export default function IndexRoute() {
   const status = useSessionStore((state) => state.status);
   const vaultStatus = useVaultStore((state) => state.status);
   const bootstrapError = useVaultStore((state) => state.bootstrapError);
+  const isOnboarding = useOnboardingStore((state) => state.isFlowActive);
+  const hasOnboarded = useOnboardingStore(
+    (state) => state.hasCompletedOnboarding,
+  );
 
   if (status === "loading") return null;
-  if (status === "unauthenticated") return <Redirect href="/sign-in" />;
+  // An unfinished run decides for itself which step to show, signed in or not.
+  if (isOnboarding) return <Redirect href="/(onboarding)" />;
+  if (status === "unauthenticated") {
+    // A device that has never been through the flow gets the pitch; one that
+    // has gets the sign-in form it is coming back to.
+    return hasOnboarded ? (
+      <Redirect href="/sign-in" />
+    ) : (
+      <Redirect href="/(onboarding)" />
+    );
+  }
 
   switch (vaultStatus) {
     case "setupRequired":

@@ -1,7 +1,15 @@
-import { clearDraft, readDraft, writeDraft } from "./draft-storage";
+import {
+  clearDraft,
+  readDraft,
+  readOnboardingCompleted,
+  writeDraft,
+  writeOnboardingCompleted,
+} from "./draft-storage";
 import { wouldExitOnBack } from "./onboarding-selectors";
 import {
   addCustomTransaction,
+  beginOnboarding,
+  completeOnboarding,
   configureEmailUser,
   configureSocialUser,
   goToNextStep,
@@ -29,6 +37,7 @@ import type { OnboardingTransaction } from "./onboarding-transaction";
  */
 jest.mock("./draft-storage", () => {
   let stored: unknown = null;
+  let isCompleted = false;
   return {
     readDraft: jest.fn(() => stored),
     writeDraft: jest.fn((draft: unknown) => {
@@ -37,6 +46,10 @@ jest.mock("./draft-storage", () => {
     clearDraft: jest.fn(() => {
       stored = null;
     }),
+    readOnboardingCompleted: jest.fn(() => isCompleted),
+    writeOnboardingCompleted: jest.fn(() => {
+      isCompleted = true;
+    }),
   };
 });
 
@@ -44,6 +57,8 @@ const mocked = {
   readDraft: jest.mocked(readDraft),
   writeDraft: jest.mocked(writeDraft),
   clearDraft: jest.mocked(clearDraft),
+  readOnboardingCompleted: jest.mocked(readOnboardingCompleted),
+  writeOnboardingCompleted: jest.mocked(writeOnboardingCompleted),
 };
 
 function transaction(
@@ -196,7 +211,42 @@ describe("draft", () => {
 
     restoreOnboardingDraft();
 
-    expect(useOnboardingStore.getState().currentStep).toBe("welcome");
+    const state = useOnboardingStore.getState();
+    expect(state.currentStep).toBe("welcome");
+    expect(state.isFlowActive).toBe(false);
+  });
+
+  it("hands the router to the flow as soon as a draft exists", () => {
+    expect(useOnboardingStore.getState().isFlowActive).toBe(false);
+
+    beginOnboarding();
+
+    expect(useOnboardingStore.getState().isFlowActive).toBe(true);
+    expect(useOnboardingStore.getState().currentStep).toBe("firstName");
+  });
+
+  it("gives the router back once the run is finished", () => {
+    beginOnboarding();
+
+    completeOnboarding();
+
+    const state = useOnboardingStore.getState();
+    expect(state.isFlowActive).toBe(false);
+    expect(state.hasCompletedOnboarding).toBe(true);
+    expect(mocked.writeOnboardingCompleted).toHaveBeenCalled();
+    expect(mocked.clearDraft).toHaveBeenCalled();
+  });
+
+  it("remembers a finished run across an abandoned one", () => {
+    beginOnboarding();
+    completeOnboarding();
+
+    beginOnboarding();
+    resetOnboarding();
+
+    const state = useOnboardingStore.getState();
+    expect(state.isFlowActive).toBe(false);
+    expect(state.hasCompletedOnboarding).toBe(true);
   });
 
   it("never persists the email typed into the registration form", () => {

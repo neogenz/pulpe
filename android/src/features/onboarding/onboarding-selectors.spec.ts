@@ -14,6 +14,8 @@ import type { OnboardingState } from "./onboarding-store";
 import type { OnboardingTransaction } from "./onboarding-transaction";
 
 const BASE: OnboardingState = {
+  isFlowActive: true,
+  hasCompletedOnboarding: false,
   currentStep: "income",
   isMovingForward: true,
   editReturnStep: null,

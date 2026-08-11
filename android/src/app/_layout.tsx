@@ -13,6 +13,10 @@ import { startSupabaseAutoRefresh } from "@/core/auth/supabase";
 import { queryClient } from "@/core/query/query-client";
 import { pulpeDarkTheme, pulpeLightTheme } from "@/core/ui/theme";
 import { bootstrapVault, useVaultStore } from "@/core/vault/vault-store";
+import {
+  restoreOnboardingDraft,
+  useOnboardingStore,
+} from "@/features/onboarding/onboarding-store";
 import { RecoveryKeyNotice } from "@/ui/recovery-key-notice";
 
 void SplashScreen.preventAutoHideAsync();
@@ -21,12 +25,16 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const status = useSessionStore((state) => state.status);
   const vaultStatus = useVaultStore((state) => state.status);
+  const isOnboarding = useOnboardingStore((state) => state.isFlowActive);
   const [areFontsLoaded, fontError] = useFonts({
     Manrope: require("../../assets/fonts/Manrope.ttf"),
   });
 
   useEffect(() => observeSession(), []);
   useEffect(() => startSupabaseAutoRefresh(), []);
+  // Synchronous, and before the first route decision: an unfinished run has to
+  // be known by the time the guards below are evaluated.
+  useEffect(() => restoreOnboardingDraft(), []);
 
   // Signing in tells us nothing about the vault — only the server does, and
   // every screen past the gate reads amounts that need it open.
@@ -56,20 +64,33 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <StatusBar style="auto" />
           <Stack screenOptions={{ headerShown: false }}>
+            {/* A run in progress outranks the session gates: the user turns
+                authenticated at the registration step and would otherwise be
+                pulled out of the flow into the vault setup, four steps early. */}
+            <Stack.Protected guard={isOnboarding}>
+              <Stack.Screen name="(onboarding)" />
+            </Stack.Protected>
             <Stack.Protected
-              guard={status === "authenticated" && vaultStatus === "unlocked"}
+              guard={
+                !isOnboarding &&
+                status === "authenticated" &&
+                vaultStatus === "unlocked"
+              }
             >
               <Stack.Screen name="(main)" />
             </Stack.Protected>
             <Stack.Protected
               guard={
+                !isOnboarding &&
                 status === "authenticated" &&
                 (vaultStatus === "setupRequired" || vaultStatus === "locked")
               }
             >
               <Stack.Screen name="(vault)" />
             </Stack.Protected>
-            <Stack.Protected guard={status === "unauthenticated"}>
+            <Stack.Protected
+              guard={!isOnboarding && status === "unauthenticated"}
+            >
               <Stack.Screen name="(auth)" />
             </Stack.Protected>
           </Stack>

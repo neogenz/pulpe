@@ -1,4 +1,5 @@
-import { isAcceptablePassword, parseRecoveryTokens } from "./password-recovery";
+import { parseRecoveryTokens } from "./password-recovery";
+import { isAcceptablePassword } from "./password-rules";
 
 jest.mock("./supabase", () => ({ supabase: { auth: {} } }));
 

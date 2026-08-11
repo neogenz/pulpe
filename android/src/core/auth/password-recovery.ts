@@ -18,8 +18,6 @@ function recoveryFailureMessage(error: AuthError): string {
   return "Quelque chose n'a pas fonctionné — réessaie.";
 }
 
-export const PASSWORD_MIN_LENGTH = 8;
-
 /**
  * The tokens Supabase hands back on a recovery link. The client runs the
  * default `implicit` flow, so they arrive in the URL *fragment* rather than the
@@ -63,16 +61,4 @@ export async function beginPasswordRecovery(
 export async function updatePassword(newPassword: string): Promise<void> {
   const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) throw new Error(recoveryFailureMessage(error));
-}
-
-/**
- * Mirrors `PasswordValidator` on iOS. The reset screen states all three rules,
- * unlike iOS, whose message names only two of the three it enforces.
- */
-export function isAcceptablePassword(password: string): boolean {
-  return (
-    password.length >= PASSWORD_MIN_LENGTH &&
-    /\d/.test(password) &&
-    /[a-zA-Z]/.test(password)
-  );
 }

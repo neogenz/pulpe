@@ -1,7 +1,13 @@
 import type { SupportedCurrency } from "pulpe-shared";
 import { create } from "zustand";
 
-import { clearDraft, readDraft, writeDraft } from "./draft-storage";
+import {
+  clearDraft,
+  readDraft,
+  readOnboardingCompleted,
+  writeDraft,
+  writeOnboardingCompleted,
+} from "./draft-storage";
 import { nextVisibleStep, previousVisibleStep } from "./onboarding-selectors";
 import type { OnboardingStep } from "./onboarding-step";
 import type { OnboardingTransaction } from "./onboarding-transaction";
@@ -14,6 +20,15 @@ import type { OnboardingTransaction } from "./onboarding-transaction";
  * `api.ts`.
  */
 export interface OnboardingState {
+  /**
+   * A run is under way and owns the router. It is what keeps the flow on
+   * screen after registration, when the session turns authenticated and the
+   * vault gate would otherwise claim the user mid-flow.
+   */
+  isFlowActive: boolean;
+  /** A run finished on this device — a returning user goes to sign-in, not to welcome. */
+  hasCompletedOnboarding: boolean;
+
   currentStep: OnboardingStep;
   /** Drives the step transition direction; navigation is by button only. */
   isMovingForward: boolean;
@@ -70,6 +85,9 @@ export type OnboardingAnswers = Pick<
 export const MAX_CUSTOM_TRANSACTIONS = 50;
 
 const INITIAL_STATE: OnboardingState = {
+  isFlowActive: false,
+  hasCompletedOnboarding: false,
+
   currentStep: "welcome",
   isMovingForward: true,
   editReturnStep: null,
@@ -127,14 +145,20 @@ function toDraft(state: OnboardingState) {
 // MARK: - Draft
 
 /**
- * Restores an abandoned run at the step it stopped on. Called once at flow
- * entry; a run that was never started leaves the state untouched.
+ * Reads what the device already knows about onboarding, before the first frame
+ * routes anywhere: whether a run was left unfinished, and whether one ever
+ * finished here. Both answers change which screen the user lands on.
  */
 export function restoreOnboardingDraft(): void {
+  useOnboardingStore.setState({
+    hasCompletedOnboarding: readOnboardingCompleted(),
+  });
+
   const draft = readDraft();
   if (draft === null) return;
 
   useOnboardingStore.setState({
+    isFlowActive: true,
     currentStep: draft.currentStep ?? INITIAL_STATE.currentStep,
     firstName: draft.firstName ?? INITIAL_STATE.firstName,
     currency: draft.currency ?? INITIAL_STATE.currency,
@@ -150,10 +174,38 @@ export function restoreOnboardingDraft(): void {
   });
 }
 
-/** Nothing of this run survives: the flow starts from welcome next time. */
+/** The welcome CTA: from here on the flow owns the router. */
+export function beginOnboarding(): void {
+  patch({ isFlowActive: true });
+  goToNextStep();
+}
+
+/**
+ * The run is over and the account is set up. The draft goes, the completion
+ * flag stays — it is the only thing left to tell a returning user apart from a
+ * fresh install.
+ */
+export function completeOnboarding(): void {
+  writeOnboardingCompleted();
+  clearDraft();
+  useOnboardingStore.setState({
+    ...INITIAL_STATE,
+    hasCompletedOnboarding: true,
+  });
+}
+
+/**
+ * Nothing of this run survives: the flow starts from welcome next time. Leaves
+ * the completion flag alone — abandoning a run says nothing about a run that
+ * finished earlier.
+ */
 export function resetOnboarding(): void {
   clearDraft();
-  useOnboardingStore.setState({ ...INITIAL_STATE });
+  useOnboardingStore.setState({
+    ...INITIAL_STATE,
+    hasCompletedOnboarding:
+      useOnboardingStore.getState().hasCompletedOnboarding,
+  });
 }
 
 // MARK: - Auth paths
@@ -167,6 +219,9 @@ export function configureSocialUser(providedFirstName: string | null): void {
   clearDraft();
   useOnboardingStore.setState({
     ...INITIAL_STATE,
+    isFlowActive: true,
+    hasCompletedOnboarding:
+      useOnboardingStore.getState().hasCompletedOnboarding,
     isAuthenticated: true,
     isSocialAuth: true,
     socialProvidedName:
