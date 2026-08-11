@@ -399,10 +399,11 @@ Execute ONLY after user confirms.
 Run the checked-in What's New contracts from the repository root for every release:
 
 ```bash
+pnpm build:shared
 (cd backend-nest && bun test src/modules/whats-new/domain/releases-data.parity.spec.ts)
 (cd frontend && pnpm test \
-  projects/webapp/src/app/layout/whats-new/whats-new-releases.spec.ts \
-  projects/webapp/src/app/layout/whats-new/whats-new-toast.spec.ts)
+  --include 'projects/webapp/src/app/layout/whats-new/whats-new-releases.spec.ts' \
+  --include 'projects/webapp/src/app/layout/whats-new/whats-new-toast.spec.ts')
 ```
 
 Stop on any contract failure. These targeted tests are the local fail-fast gate; the complete CI after the `preview` and `main` pushes remains the second barrier.
@@ -473,7 +474,7 @@ Only after "oui":
 
 Treat every shell block below as an independent session. Step 9.2 is the only writer of `pulpe-release-sha`, stored under the path returned by `git rev-parse --git-path` so linked worktrees cannot share or overwrite release identity. Every later block must read that frozen SHA, resolve it as the same full commit, and require the current `HEAD` to remain equal to it. Never replace the frozen identity with a later `HEAD`.
 
-1. Confirm that the available Railway and Vercel capabilities can inspect production deployments and their Git commit metadata. Also confirm that the Railway integration can apply the pending web gate after deployment. If any required capability is missing, stop before committing; never skip a proof or invent a command.
+1. Confirm that the available Railway capabilities can inspect preview and production deployments, their Git commit metadata, and the preview public domain. Confirm that the available Vercel capabilities can inspect production deployments and their Git commit metadata. Also confirm that the Railway integration can apply the pending web gate after deployment. If any required capability is missing, stop before committing; never skip a proof or invent a command.
 2. Create the release commit without a tag and freeze its identity:
 
    ```bash
@@ -537,7 +538,15 @@ Treat every shell block below as an independent session. Step 9.2 is the only wr
 
    Missing, cancelled, or failed CI means stop. Fix the release on `preview`; do not promote it.
 
-5. After green CI, refetch and reject any drift or loss of ancestry:
+5. After green preview CI, independently inspect the Railway `pulpe-backend` deployment in the `preview` environment, `backend` service:
+   - before each inspection, independently read `pulpe-release-sha` through `git rev-parse --git-path`, validate it as the same full commit, and require `HEAD` to equal it;
+   - poll the deployment created from that frozen SHA for up to 5 minutes; do not accept an older active deployment as evidence;
+   - require the deployment to reach `SUCCESS`, become active, and report that exact frozen SHA;
+   - resolve the preview service's public domain and require its `/health` endpoint to respond successfully.
+
+   A missing deployment, timeout, different SHA, `SKIPPED`, any other terminal state, or failed health check stops the release before even a dry-run toward `main`.
+
+6. After the Railway preview proof, refetch and reject any drift or loss of ancestry:
 
    ```bash
    set -euo pipefail
@@ -556,7 +565,7 @@ Treat every shell block below as an independent session. Step 9.2 is the only wr
 
    The dry-run checks fast-forward feasibility, not ruleset authorization. The Step 0 bypass check remains mandatory.
 
-6. Promote the same immutable object, never the mutable `origin/preview` ref:
+7. Promote the same immutable object, never the mutable `origin/preview` ref:
 
    ```bash
    set -euo pipefail
@@ -576,7 +585,7 @@ Treat every shell block below as an independent session. Step 9.2 is the only wr
    test "$(git rev-parse origin/main)" = "${SHA}"
    ```
 
-7. Poll for up to 5 minutes for the `ci.yml` run whose `headSha` is the release SHA, `headBranch` is `main`, and event is `push`. Do not filter cancelled runs. Resolve and consume the run id in the same session:
+8. Poll for up to 5 minutes for the `ci.yml` run whose `headSha` is the release SHA, `headBranch` is `main`, and event is `push`. Do not filter cancelled runs. Resolve and consume the run id in the same session:
 
    ```bash
    set -euo pipefail
@@ -606,7 +615,7 @@ Treat every shell block below as an independent session. Step 9.2 is the only wr
    ```
 
    This includes the main-only `migrate`, `posthog-annotate`, and `verify-prod-csp` jobs after `ci-success`. Missing, cancelled, or failed CI stops publication.
-8. Independently inspect the production deployments:
+9. Independently inspect the production deployments:
    - before each provider inspection, independently read `pulpe-release-sha` through `git rev-parse --git-path`, validate it as the same full commit, and require `HEAD` to equal it;
    - both Vercel production projects are ready and report that frozen SHA;
    - the Railway production deployment is successful and reports that frozen SHA;
@@ -614,7 +623,7 @@ Treat every shell block below as an independent session. Step 9.2 is the only wr
 
    Vercel and Railway react to GitHub pushes; do not assume GitHub `ci-success` delayed those webhooks. If a status, SHA, or health check differs, stop without a tag, GitHub Release, or client gate. Correct through `preview` while keeping the same product version.
 
-9. Only after every production proof passes, refetch `main` and tags, require `origin/main` to equal the release SHA, and recheck that the local tag, remote tag, and GitHub Release are still absent. Then create and push the one immutable tag:
+10. Only after every production proof passes, refetch `main` and tags, require `origin/main` to equal the release SHA, and recheck that the local tag, remote tag, and GitHub Release are still absent. Then create and push the one immutable tag:
 
    ```bash
    set -euo pipefail
@@ -634,7 +643,7 @@ Treat every shell block below as an independent session. Step 9.2 is the only wr
    git push origin "refs/tags/${TAG}"
    ```
 
-10. Create the GitHub Release using the **GitHub Release template** from Step 5:
+11. Create the GitHub Release using the **GitHub Release template** from Step 5:
 
 ```bash
 set -euo pipefail
@@ -667,8 +676,8 @@ EOF
 )"
 ```
 
-11. Apply the pending `LATEST_WEB_VERSION` update from [references/jsts-release.md](references/jsts-release.md) in `preview` and `production`, then verify `GET /api/v1/app/version`.
-12. Never schedule a Railway `LATEST_IOS_VERSION` operation: the backend reads the published iOS version from the App Store itself (see [references/ios-release.md](references/ios-release.md)). No post-App-Store follow-up is owed for this gate, so do not report one.
+12. Apply the pending `LATEST_WEB_VERSION` update from [references/jsts-release.md](references/jsts-release.md) in `preview` and `production`, then verify `GET /api/v1/app/version`.
+13. Never schedule a Railway `LATEST_IOS_VERSION` operation: the backend reads the published iOS version from the App Store itself (see [references/ios-release.md](references/ios-release.md)). No post-App-Store follow-up is owed for this gate, so do not report one.
 
 Release rules:
 

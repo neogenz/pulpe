@@ -129,8 +129,7 @@ enum SavingsPlanCalculator {
             // A retrait ANNONCÉ weighs only for the part not yet taken, which the
             // server already deducted per month: adding the full announced amount
             // would count the realized part twice.
-            let budgetPlannedWithdrawal = max(
-                0,
+            let budgetPlannedWithdrawal = normalizedWithdrawalRemainder(
                 month.remainingPlannedWithdrawalAmount - (
                     movement.replacesExistingPlanWithdrawal
                         ? month.planOnlyWithdrawalAmount + month.planLinkedWithdrawalAmount
@@ -302,8 +301,12 @@ extension SavingsPlanCalculator {
                     ? month.planOnlyWithdrawalAmount + month.planLinkedWithdrawalAmount
                     : 0
             )
-            return partial + month.withdrawnAmount + max(0, remaining)
+            return partial + month.withdrawnAmount + normalizedWithdrawalRemainder(remaining)
         }
+    }
+
+    private static func normalizedWithdrawalRemainder(_ amount: Decimal) -> Decimal {
+        amount > SavingsGoalProgress.withdrawalBalanceTolerance ? amount : 0
     }
 
     private static func signedPinnedEffect(

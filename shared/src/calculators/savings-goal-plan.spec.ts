@@ -684,6 +684,49 @@ describe('redistributeRemainingEffort', () => {
     planMonth({ month: 4, year: 2026, state: 'future' }),
   ];
 
+  it('normalizes the 10.05 = 0.01 + 10.04 residue in both plan paths', () => {
+    const residue = 10.05 - (0.01 + 10.04);
+    const residueTimeline = [
+      planMonth({
+        month: 5,
+        year: 2026,
+        plannedAmount: 0,
+        withdrawnAmount: 10.05,
+        plannedWithdrawalAmount: 10.05,
+        remainingPlannedWithdrawalAmount: residue,
+      }),
+    ];
+    const exactTimeline = [
+      planMonth({
+        month: 5,
+        year: 2026,
+        plannedAmount: 0,
+        withdrawnAmount: 10.05,
+        plannedWithdrawalAmount: 10.05,
+      }),
+    ];
+
+    expect(residue).toBeGreaterThan(0);
+    expect(
+      redistributeRemainingEffort({
+        timeline: residueTimeline,
+        targetAmount: 3000,
+      }).remainingEffort,
+    ).toBe(
+      redistributeRemainingEffort({
+        timeline: exactTimeline,
+        targetAmount: 3000,
+      }).remainingEffort,
+    );
+    expect(
+      simulateSavingsPlan({ timeline: residueTimeline, targetAmount: 3000 })
+        .simulatedFinal,
+    ).toBe(
+      simulateSavingsPlan({ timeline: exactTimeline, targetAmount: 3000 })
+        .simulatedFinal,
+    );
+  });
+
   it('should split the remaining effort over open months cents-exact', () => {
     const result = redistributeRemainingEffort({
       timeline,

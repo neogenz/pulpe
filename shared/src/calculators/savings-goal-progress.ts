@@ -121,7 +121,8 @@ export function remainingPlannedWithdrawal(
   const realized = withdrawals
     .filter((withdrawal) => withdrawal.budgetLineId === planned.id)
     .reduce((sum, withdrawal) => sum + withdrawal.amount, 0);
-  return Math.max(0, planned.amount - realized);
+  const remaining = planned.amount - realized;
+  return remaining > WITHDRAWAL_BALANCE_TOLERANCE ? remaining : 0;
 }
 
 export interface SavingsGoalProgressInput {

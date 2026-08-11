@@ -41,6 +41,7 @@ module.exports = tseslint.config(
         },
       },
       "boundaries/dependency-nodes": ["import", "dynamic-import"],
+      "boundaries/legacy-templates": false,
       "boundaries/root-path": path.resolve(__dirname, ".."),
       "boundaries/elements": [
         {
@@ -172,145 +173,219 @@ module.exports = tseslint.config(
   {
     files: ["**/*.ts"],
     rules: {
-      "boundaries/element-types": [
+      "boundaries/element-types": "off",
+      "boundaries/entry-point": "off",
+      "boundaries/external": "off",
+      "boundaries/no-private": "off",
+      "boundaries/dependencies": [
         "error",
         {
           default: "disallow",
           rules: [
             {
-              from: "main",
+              from: { type: "main" },
               allow: [
-                ["app", { app: "${from.app}" }],
-                ["env", { app: "${from.app}" }],
+                {
+                  to: {
+                    type: "app",
+                    captured: { app: "{{ from.captured.app }}" },
+                  },
+                },
+                {
+                  to: {
+                    type: "env",
+                    captured: { app: "{{ from.captured.app }}" },
+                  },
+                },
               ],
             },
             {
-              from: "core",
+              from: { type: "core" },
               allow: [
-                ["shared"],
-                ["lib-api"],
-                ["core", { app: "${from.app}" }],
-                ["env", { app: "${from.app}" }],
+                { to: { type: ["shared", "lib-api"] } },
+                {
+                  to: {
+                    type: ["core", "env"],
+                    captured: { app: "{{ from.captured.app }}" },
+                  },
+                },
               ],
             },
             {
-              from: "ui",
+              from: { type: "ui" },
               allow: [
-                ["shared"],
-                ["lib-api"],
-                ["ui", { app: "${from.app}" }],
-                ["env", { app: "${from.app}" }],
+                { to: { type: ["shared", "lib-api"] } },
+                {
+                  to: {
+                    type: ["ui", "env"],
+                    captured: { app: "{{ from.captured.app }}" },
+                  },
+                },
               ],
             },
             {
-              from: "layout",
+              from: { type: "layout" },
               allow: [
-                ["shared"],
-                ["lib-api"],
-                ["core", { app: "${from.app}" }],
-                ["ui", { app: "${from.app}" }],
-                ["layout", { app: "${from.app}" }],
-                ["pattern", { app: "${from.app}" }],
-                ["env", { app: "${from.app}" }],
+                { to: { type: ["shared", "lib-api"] } },
+                {
+                  to: {
+                    type: ["core", "ui", "layout", "pattern", "env"],
+                    captured: { app: "{{ from.captured.app }}" },
+                  },
+                },
               ],
             },
             {
-              from: "app",
+              from: { type: "app" },
               allow: [
-                ["shared"],
-                ["lib-api"],
-                ["app", { app: "${from.app}" }],
-                ["core", { app: "${from.app}" }],
-                ["ui", { app: "${from.app}" }],
-                ["layout", { app: "${from.app}" }],
-                ["pattern", { app: "${from.app}" }],
-                ["feature-routes", { app: "${from.app}" }],
-                ["feature", { app: "${from.app}" }],
-                ["env", { app: "${from.app}" }],
+                { to: { type: ["shared", "lib-api"] } },
+                {
+                  to: {
+                    type: [
+                      "app",
+                      "core",
+                      "ui",
+                      "layout",
+                      "pattern",
+                      "feature-routes",
+                      "feature",
+                      "env",
+                    ],
+                    captured: { app: "{{ from.captured.app }}" },
+                  },
+                },
               ],
             },
             {
-              from: ["pattern"],
+              from: { type: "pattern" },
               allow: [
-                ["shared"],
-                ["lib-api"],
-                ["core", { app: "${from.app}" }],
-                ["ui", { app: "${from.app}" }],
-                ["env", { app: "${from.app}" }],
+                { to: { type: ["shared", "lib-api"] } },
+                {
+                  to: {
+                    type: ["core", "ui", "env"],
+                    captured: { app: "{{ from.captured.app }}" },
+                  },
+                },
               ],
             },
             {
-              from: ["feature"],
+              from: { type: "feature" },
               allow: [
-                ["shared"],
-                ["lib-api"],
-                ["core", { app: "${from.app}" }],
-                ["ui", { app: "${from.app}" }],
-                ["pattern", { app: "${from.app}" }],
-                ["feature", { app: "${from.app}", feature: "${from.feature}" }],
-                ["env", { app: "${from.app}" }],
+                { to: { type: ["shared", "lib-api"] } },
+                {
+                  to: {
+                    type: ["core", "ui", "pattern", "env"],
+                    captured: { app: "{{ from.captured.app }}" },
+                  },
+                },
+                {
+                  to: {
+                    type: "feature",
+                    captured: {
+                      app: "{{ from.captured.app }}",
+                      feature: "{{ from.captured.feature }}",
+                    },
+                  },
+                },
               ],
             },
             {
-              from: ["feature-routes"],
+              from: { type: "feature-routes" },
               allow: [
-                ["shared"],
-                ["lib-api"],
-                ["core", { app: "${from.app}" }],
-                ["pattern", { app: "${from.app}", feature: "${from.feature}" }],
-                ["feature", { app: "${from.app}", feature: "${from.feature}" }],
-                [
-                  "feature-routes",
-                  { app: "${from.app}", feature: "!${from.feature}" },
-                ],
-                ["env", { app: "${from.app}" }],
+                { to: { type: ["shared", "lib-api"] } },
+                {
+                  to: {
+                    type: ["core", "env"],
+                    captured: { app: "{{ from.captured.app }}" },
+                  },
+                },
+                {
+                  to: {
+                    type: ["pattern", "feature"],
+                    captured: {
+                      app: "{{ from.captured.app }}",
+                      feature: "{{ from.captured.feature }}",
+                    },
+                  },
+                },
+                {
+                  to: {
+                    type: "feature-routes",
+                    captured: {
+                      app: "{{ from.captured.app }}",
+                      feature: "!{{ from.captured.feature }}",
+                    },
+                  },
+                },
               ],
             },
             {
-              from: ["lib-api"],
-              allow: [["lib", { lib: "${from.lib}" }]],
-            },
-            {
-              from: ["lib"],
-              allow: [["lib", { lib: "${from.lib}" }]],
-            },
-            {
-              from: ["test-config"],
-              allow: [["lib-api"]],
-            },
-            {
-              from: ["e2e-config"],
-              allow: [["lib-api"]],
-            },
-            {
-              from: ["e2e"],
-              allow: [["e2e"], ["lib-api"], ["shared"]],
-            },
-            {
-              from: ["testing"],
-              allow: ["shared"],
-            },
-            {
-              from: ["script"],
-              allow: [["shared"], ["core"], ["lib-api"]],
-            },
-            {
-              from: ["test-spec"],
+              from: { type: "lib-api" },
               allow: [
-                ["shared"],
-                ["lib-api"],
-                ["testing"],
+                {
+                  to: {
+                    type: "lib",
+                    captured: { lib: "{{ from.captured.lib }}" },
+                  },
+                },
+              ],
+            },
+            {
+              from: { type: "lib" },
+              allow: [
+                {
+                  to: {
+                    type: "lib",
+                    captured: { lib: "{{ from.captured.lib }}" },
+                  },
+                },
+              ],
+            },
+            {
+              from: { type: "test-config" },
+              allow: [{ to: { type: "lib-api" } }],
+            },
+            {
+              from: { type: "e2e-config" },
+              allow: [{ to: { type: "lib-api" } }],
+            },
+            {
+              from: { type: "e2e" },
+              allow: [{ to: { type: ["e2e", "lib-api", "shared"] } }],
+            },
+            {
+              from: { type: "testing" },
+              allow: [{ to: { type: "shared" } }],
+            },
+            {
+              from: { type: "script" },
+              allow: [{ to: { type: ["shared", "core", "lib-api"] } }],
+            },
+            {
+              from: { type: "test-spec" },
+              allow: [
+                { to: { type: ["shared", "lib-api", "testing"] } },
                 // e2e *.spec.ts files also classify as `test-spec`; they import
                 // their fixtures/helpers (type `e2e`). Permit it here rather than
                 // re-typing e2e specs (which destabilises unit-spec matching).
-                ["e2e"],
-                ["core", { app: "${from.app}" }],
-                ["ui", { app: "${from.app}" }],
-                ["layout", { app: "${from.app}" }],
-                ["pattern", { app: "${from.app}" }],
-                ["feature", { app: "${from.app}" }],
-                ["env", { app: "${from.app}" }],
+                { to: { type: "e2e" } },
+                {
+                  to: {
+                    type: ["core", "ui", "layout", "pattern", "feature", "env"],
+                    captured: { app: "{{ from.captured.app }}" },
+                  },
+                },
               ],
+            },
+            {
+              disallow: {
+                to: { parent: { type: "*" } },
+                dependency: {
+                  relationship: {
+                    to: [null, "!(child|sibling|uncle)"],
+                  },
+                },
+              },
             },
           ],
         },
