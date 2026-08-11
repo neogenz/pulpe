@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import test from "node:test";
+
+const require = createRequire(import.meta.url);
 
 const read = (path) =>
   readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
@@ -11,6 +14,7 @@ const dockerfile = read("backend-nest/Dockerfile");
 const rootPackage = JSON.parse(read("package.json"));
 const backendPackage = JSON.parse(read("backend-nest/package.json"));
 const ciGuide = read("docs/CI.md");
+const frontendEslintConfig = require("../../frontend/eslint.config.js");
 
 test("Supabase archives are pinned and verified before extraction", () => {
   assert.match(
@@ -69,10 +73,45 @@ test("the backend image does not install Bun", () => {
   assert.doesNotMatch(dockerfile, /bun\.sh\/install|\/root\/\.bun/);
 });
 
-test("critical production dependency audit stays in CI", () => {
+test("critical dependency audit stays in CI", () => {
   assert.equal(
-    rootPackage.scripts["audit:prod:critical"],
-    "pnpm audit --prod --audit-level critical",
+    rootPackage.scripts["audit:critical"],
+    "pnpm audit --audit-level critical",
   );
-  assert.match(workflow, /check:\s*\[[^\]]*"audit:prod:critical"[^\]]*\]/);
+  assert.match(workflow, /check:\s*\[[^\]]*"audit:critical"[^\]]*\]/);
+});
+
+test("the boundaries upgrade keeps a modern explicit policy", () => {
+  const settings = frontendEslintConfig.find(
+    (config) => config.settings?.["boundaries/dependency-nodes"],
+  )?.settings;
+  const rules = frontendEslintConfig.find(
+    (config) => config.rules?.["boundaries/dependencies"]?.[1]?.rules,
+  )?.rules;
+
+  assert.deepEqual(settings?.["boundaries/dependency-nodes"], [
+    "import",
+    "dynamic-import",
+  ]);
+  assert.equal(settings?.["boundaries/legacy-templates"], false);
+  assert.ok(rules, "the boundaries dependency policy must be configured");
+  for (const deprecatedRule of [
+    "boundaries/element-types",
+    "boundaries/entry-point",
+    "boundaries/external",
+    "boundaries/no-private",
+  ]) {
+    assert.equal(rules[deprecatedRule], "off");
+  }
+  assert.doesNotMatch(JSON.stringify(rules), /\$\{/);
+
+  const privacyRule = rules["boundaries/dependencies"][1].rules.at(-1);
+  assert.deepEqual(privacyRule, {
+    disallow: {
+      to: { parent: { type: "*" } },
+      dependency: {
+        relationship: { to: [null, "!(child|sibling|uncle)"] },
+      },
+    },
+  });
 });

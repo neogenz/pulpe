@@ -32,7 +32,7 @@
     "type-check": "turbo type-check",
     "quality": "turbo quality && pnpm format:check:automation && pnpm test:ci-security && pnpm test:public-surface",
     "quality:fix": "turbo quality:fix && pnpm format:automation",
-    "audit:prod:critical": "pnpm audit --prod --audit-level critical",
+    "audit:critical": "pnpm audit --audit-level critical",
     "test:ci-security": "node --test .github/scripts/ci-security.test.mjs",
     "test:public-surface": "node --test .github/scripts/public-surface.test.mjs",
     "checks": "turbo checks",
