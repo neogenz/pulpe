@@ -11,6 +11,11 @@ const dayMonthFormatter = new Intl.DateTimeFormat(DATE_LOCALE, {
   day: "numeric",
   month: "long",
 });
+const fullDateFormatter = new Intl.DateTimeFormat(DATE_LOCALE, {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+});
 
 /** `juillet` — the month a budget covers, named from its 1-12 index. */
 export function formatMonthName(month: number, year: number): string {
@@ -33,6 +38,27 @@ export function formatRelativeDay(date: Date, now: Date): string {
   if (days === 0) return "aujourd'hui";
   if (days === 1) return "hier";
   return formatDayMonth(date);
+}
+
+/**
+ * `30 nov. 2026` from a bare `YYYY-MM-DD`. Parsed field by field on purpose:
+ * `new Date("2026-11-30")` is UTC midnight, which prints as the 29th anywhere
+ * west of Greenwich.
+ */
+export function formatIsoDate(iso: string): string {
+  return fullDateFormatter.format(parseIsoDate(iso));
+}
+
+export function parseIsoDate(iso: string): Date {
+  const [year, month, day] = iso.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+/** The inverse, for a date the user picked with a calendar. */
+export function toIsoDate(date: Date): string {
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
 }
 
 function countDaysBetween(from: Date, to: Date): number {
