@@ -144,9 +144,7 @@ struct BudgetLineMixedRow: View {
             )
         }
         .buttonStyle(.plain)
-        .background(Color.surfaceContainerLowest)
-        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
-        .shadow(DesignTokens.Shadow.subtle)
+        .pulpeRowCard(cornerRadius: DesignTokens.CornerRadius.xl)
         .sensoryFeedback(.success, trigger: triggerToggleFeedback)
         // `.contain` keeps the inner PointCircle as its own focus node so VoiceOver
         // can drive the pointed/unpointed toggle independently of the row's tap-to-open.

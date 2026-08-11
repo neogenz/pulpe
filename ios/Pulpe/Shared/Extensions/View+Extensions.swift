@@ -327,11 +327,11 @@ extension View {
     /// are each half a boundary, and the call sites shouldn't have to remember both.
     /// The shadow carries the separation in light mode; it renders on nothing over
     /// `appBackground`'s dark tone, so the overlay border takes over there instead.
-    func pulpeRowCard() -> some View {
-        pulpeCardBackground(cornerRadius: DesignTokens.CornerRadius.card)
+    func pulpeRowCard(cornerRadius: CGFloat = DesignTokens.CornerRadius.card) -> some View {
+        pulpeCardBackground(cornerRadius: cornerRadius)
             .shadow(DesignTokens.Shadow.subtle)
             .overlay {
-                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.card, style: .continuous)
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .strokeBorder(Color.rowCardBorder, lineWidth: DesignTokens.BorderWidth.hairline)
             }
     }
