@@ -691,6 +691,7 @@ describe('redistributeRemainingEffort', () => {
         month: 5,
         year: 2026,
         plannedAmount: 0,
+        withdrawnAmount: 10.05,
         plannedWithdrawalAmount: 10.05,
         remainingPlannedWithdrawalAmount: residue,
       }),
@@ -700,6 +701,7 @@ describe('redistributeRemainingEffort', () => {
         month: 5,
         year: 2026,
         plannedAmount: 0,
+        withdrawnAmount: 10.05,
         plannedWithdrawalAmount: 10.05,
       }),
     ];
@@ -708,19 +710,19 @@ describe('redistributeRemainingEffort', () => {
     expect(
       redistributeRemainingEffort({
         timeline: residueTimeline,
-        targetAmount: 0,
+        targetAmount: 3000,
       }).remainingEffort,
     ).toBe(
       redistributeRemainingEffort({
         timeline: exactTimeline,
-        targetAmount: 0,
+        targetAmount: 3000,
       }).remainingEffort,
     );
     expect(
-      simulateSavingsPlan({ timeline: residueTimeline, targetAmount: 0 })
+      simulateSavingsPlan({ timeline: residueTimeline, targetAmount: 3000 })
         .simulatedFinal,
     ).toBe(
-      simulateSavingsPlan({ timeline: exactTimeline, targetAmount: 0 })
+      simulateSavingsPlan({ timeline: exactTimeline, targetAmount: 3000 })
         .simulatedFinal,
     );
   });
