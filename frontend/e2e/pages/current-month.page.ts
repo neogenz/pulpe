@@ -97,12 +97,8 @@ export class CurrentMonthPage {
 
   // The hero no longer prints total expenses as one figure. Its legend splits
   // the month into two disjoint shares — Dépensé (recorded) and Engagé (planned
-  // and not yet recorded) — whose sum is the number this helper has always
-  // meant. Reading either one alone silently compares against a part.
-  async getExpensesAmount(): Promise<string> {
-    return String(await this.readTotalExpenses());
-  }
-
+  // and not yet recorded) — and their sum is what "total expenses" means here.
+  // Reading either one alone silently compares against a part.
   private async readTotalExpenses(): Promise<number> {
     const parse = async (testId: string) => {
       const element = this.page.getByTestId(testId);
