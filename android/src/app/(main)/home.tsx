@@ -16,6 +16,8 @@ import { useReminderPriming } from "@/core/notifications/use-reminder-priming";
 import { formatMonthName } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { SPACING } from "@/core/ui/theme";
+import { useBudgetPeriods } from "@/features/budgets/budget-queries";
+import { nextAvailableMonth } from "@/features/budgets/next-available-month";
 import { ActivityCard } from "@/features/current-month/components/activity-card";
 import { AddTransactionSheet } from "@/features/current-month/components/add-transaction-sheet";
 import { DriftCard } from "@/features/current-month/components/drift-card";
@@ -40,6 +42,12 @@ export default function HomeScreen() {
   // out loud. The success needs no toast: the row leaving the card is the reply.
   const toggle = useToggleCheck(currentMonth.budgetId);
   const reminders = useReminderPriming();
+  // Same cached query the current month resolves against, so this costs nothing
+  // extra — it only asks a different question of it.
+  const periods = useBudgetPeriods();
+  const hasMonthToPrepare =
+    periods.data !== undefined &&
+    nextAvailableMonth(periods.data, new Date()) !== null;
 
   if (currentMonth.status === "loading") {
     return (
@@ -69,6 +77,10 @@ export default function HomeScreen() {
       <PlaceholderScreen
         title="Pas encore de budget ce mois-ci"
         hint="Crée-le pour voir ton tableau de bord."
+        action={{
+          label: "Créer mon budget",
+          onPress: () => router.push("/budget/create-next"),
+        }}
       />
     );
   }
@@ -161,6 +173,16 @@ export default function HomeScreen() {
               : `${viewModel.daysRemaining} jours avant la prochaine paie`}
           </Text>
         </View>
+
+        {hasMonthToPrepare && (
+          <Button
+            mode="outlined"
+            icon="calendar-plus"
+            onPress={() => router.push("/budget/create-next")}
+          >
+            Préparer le mois suivant
+          </Button>
+        )}
 
         {/* Stands in for the account sheet the toolbar will carry, so the app
             still has a way out while the rest of the dashboard is built. */}
