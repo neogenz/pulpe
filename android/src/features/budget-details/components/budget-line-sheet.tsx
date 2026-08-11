@@ -37,6 +37,8 @@ import {
   useUpdateBudgetLine,
 } from "../budget-line-mutations";
 import { SpreadFormSection } from "../spread/components/spread-form-section";
+
+import { SavingsGoalLinks } from "./savings-goal-links";
 import { useCreateSpread } from "../spread/spread-queries";
 import {
   DEFAULT_SPREAD_LENGTH,
@@ -195,6 +197,10 @@ export function BudgetLineSheet({
           <Text variant="titleMedium">
             {isEditing ? "Modifier la prévision" : "Nouvelle prévision"}
           </Text>
+
+          {line !== undefined && (
+            <SavingsGoalLinks line={line} onNavigate={dismiss} />
+          )}
 
           <SegmentedButtons
             value={draft.kind}

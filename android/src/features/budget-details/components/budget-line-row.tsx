@@ -106,6 +106,21 @@ export function BudgetLineRow({
               </Text>
             </>
           )}
+          {item.line.savingsGoalId != null && (
+            <>
+              <MaterialCommunityIcons
+                name="target"
+                size={SPREAD_ICON_SIZE}
+                color={theme.colors.outline}
+              />
+              <Text
+                variant="labelSmall"
+                style={{ color: theme.colors.outline }}
+              >
+                Objectif
+              </Text>
+            </>
+          )}
         </View>
         <Text
           variant="bodyLarge"
