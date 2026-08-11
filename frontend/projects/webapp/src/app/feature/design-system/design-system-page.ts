@@ -62,10 +62,11 @@ import { ThemeService } from '@core/theme';
               [currency]="'CHF'"
               [expenses]="-1500"
               [available]="4000"
-              [totalIncome]="5000"
               [remaining]="2500"
               [budgetConsumedPercentage]="37"
-              [timeElapsedPercentage]="50"
+              [realizedExpenses]="1100"
+              [realizedPercentage]="28"
+              [elapsedDayOfPeriod]="15"
               [periodDates]="mockPeriodDates"
             />
           </div>
@@ -77,10 +78,11 @@ import { ThemeService } from '@core/theme';
               [currency]="'CHF'"
               [expenses]="-3700"
               [available]="4000"
-              [totalIncome]="5000"
               [remaining]="300"
               [budgetConsumedPercentage]="92"
-              [timeElapsedPercentage]="75"
+              [realizedExpenses]="2900"
+              [realizedPercentage]="73"
+              [elapsedDayOfPeriod]="23"
               [periodDates]="mockPeriodDates"
             />
           </div>
@@ -92,10 +94,12 @@ import { ThemeService } from '@core/theme';
               [currency]="'CHF'"
               [expenses]="-4500"
               [available]="4000"
-              [totalIncome]="5000"
               [remaining]="-500"
               [budgetConsumedPercentage]="112"
-              [timeElapsedPercentage]="90"
+              [realizedExpenses]="3600"
+              [realizedPercentage]="90"
+              [elapsedDayOfPeriod]="27"
+              [paceStatus]="'tight'"
               [periodDates]="mockPeriodDates"
             />
           </div>

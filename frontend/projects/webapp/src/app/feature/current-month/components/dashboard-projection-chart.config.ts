@@ -7,9 +7,9 @@ import {
   formatShortMonth,
   formatCurrency,
   CHART_FONT_FAMILY,
+  resolveChartAnimation,
+  formatAxisTick,
 } from '@core/chart/chart-theme';
-
-const AXIS_ABBREVIATION_THRESHOLD = 1000;
 
 export function buildProjectionChartOptions(
   theme: ChartThemeColors | null,
@@ -23,6 +23,7 @@ export function buildProjectionChartOptions(
   return {
     responsive: true,
     maintainAspectRatio: false,
+    animation: resolveChartAnimation(),
     elements: {
       line: {
         tension: 0.4,
@@ -96,10 +97,7 @@ export function buildProjectionChartOptions(
           color: tickColor,
           callback: function (value: string | number) {
             if (amountsHidden) return '•';
-            const num = Number(value);
-            if (num >= AXIS_ABBREVIATION_THRESHOLD)
-              return num / AXIS_ABBREVIATION_THRESHOLD + 'k';
-            return num;
+            return formatAxisTick(Number(value), currency);
           },
         },
       },
@@ -131,14 +129,26 @@ export function buildProjectionChartData(
     savingsData.push(cumulativeSavings);
   }
 
-  const balanceFillColor = colorWithAlpha(theme.income, 0.15);
+  // This line used to be `theme.income`, which is the hue the history chart
+  // gives its income bars four hundred pixels below — and this series is not
+  // income, it is income minus expenses. One page taught blue to mean "money
+  // coming in" and then reused it for "money left", the lie DESIGN.md §2 names.
+  //
+  // The stroke goes neutral rather than green, because green is already the
+  // cumulative-savings line in this same chart and two green series would trade
+  // one collision for another. The hero solves the same problem the same way:
+  // "Disponible" is the one quantity it draws without a hue, as a hollow
+  // stroke. The sign still reads — the area fill below the line stays green
+  // above zero and amber under it, which is where the meaning lives in an area
+  // chart.
+  const balanceFillColor = colorWithAlpha(theme.savings, 0.15);
   const negativeFillColor = colorWithAlpha(theme.negative, 0.15);
 
   const datasets: ChartConfiguration['data']['datasets'] = [
     {
       data: balanceData,
       label: labels.available,
-      borderColor: theme.income,
+      borderColor: theme.tickColor,
       fill: 'origin',
       backgroundColor: ((context: { chart: Chart }) => {
         const yScale = context.chart.scales['y'];
@@ -166,8 +176,8 @@ export function buildProjectionChartData(
         gradient.addColorStop(1, negativeFillColor);
         return gradient;
       }) as unknown as string,
-      pointBackgroundColor: theme.income,
-      pointBorderColor: theme.income,
+      pointBackgroundColor: theme.tickColor,
+      pointBorderColor: theme.tickColor,
     },
   ];
 

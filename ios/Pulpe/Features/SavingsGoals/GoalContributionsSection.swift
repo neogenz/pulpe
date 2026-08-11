@@ -71,7 +71,7 @@ struct GoalContributionsSection: View {
 
             if !contribution.transactions.isEmpty {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.sm) {
-                    Text("Transactions réelles")
+                    Text("Réel")
                         .font(PulpeTypography.metricLabel)
                         .foregroundStyle(Color.textSecondary)
 

@@ -89,6 +89,25 @@ function configureForm({
 describe('AddTransactionForm', () => {
   beforeEach(() => TestBed.resetTestingModule());
 
+  // Ce qui distingue cet écran de « Prévoir » — on enregistre un fait daté, pas
+  // une intention — se lisait après trois champs communs aux deux formulaires.
+  it('should state the date before the fields shared with the forecast form', () => {
+    const { fixture } = configureForm();
+    fixture.detectChanges();
+    const form: HTMLElement = fixture.nativeElement.querySelector(
+      '[data-testid="transaction-form"]',
+    );
+    const today: HTMLElement = form.querySelector(
+      '.add-transaction-form-lede',
+    )!;
+    const amount: HTMLElement = form.querySelector('pulpe-amount-input')!;
+
+    expect(today.textContent).toContain("Aujourd'hui");
+    expect(today.compareDocumentPosition(amount)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+
   describe('default name (PUL-329 QA fix)', () => {
     it('should start the name field empty instead of pre-filled with "Dépense"', () => {
       const { component } = configureForm();

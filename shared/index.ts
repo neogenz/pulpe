@@ -222,7 +222,7 @@ export {
 } from './src/api-response.js';
 
 // Export calculators
-export { BudgetFormulas } from './src/calculators/index.js';
+export { BudgetFormulas, isOutflowKind } from './src/calculators/index.js';
 export { splitTotalPreserving } from './src/calculators/index.js';
 export {
   PACE_TOLERANCE_PERCENT,

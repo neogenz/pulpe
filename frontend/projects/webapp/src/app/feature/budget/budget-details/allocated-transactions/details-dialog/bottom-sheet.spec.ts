@@ -152,7 +152,7 @@ describe('AllocatedTransactionsBottomSheet', () => {
       setup({ transactions: [] });
       const el: HTMLElement = fixture.nativeElement;
 
-      expect(el.textContent).toContain('Pas de transaction');
+      expect(el.textContent).toContain('Rien de noté ici');
     });
 
     it('should show consumption percentage', () => {
@@ -212,7 +212,7 @@ describe('AllocatedTransactionsBottomSheet', () => {
   });
 
   describe('actions', () => {
-    it('should dismiss with add action when "Nouvelle transaction" is clicked', () => {
+    it('should dismiss with add action when "Noter un montant" is clicked', () => {
       setup();
       const addBtn: HTMLButtonElement = fixture.nativeElement.querySelector(
         'button[matButton="filled"]',
@@ -233,7 +233,7 @@ describe('AllocatedTransactionsBottomSheet', () => {
       });
 
       const editBtn: HTMLButtonElement = fixture.nativeElement.querySelector(
-        'button[aria-label="Modifier la transaction"]',
+        'button[aria-label="Modifier cette ligne"]',
       );
       editBtn.click();
 
@@ -250,7 +250,7 @@ describe('AllocatedTransactionsBottomSheet', () => {
       });
 
       const deleteBtn: HTMLButtonElement = fixture.nativeElement.querySelector(
-        'button[aria-label="Supprimer la transaction"]',
+        'button[aria-label="Supprimer cette ligne"]',
       );
       deleteBtn.click();
 

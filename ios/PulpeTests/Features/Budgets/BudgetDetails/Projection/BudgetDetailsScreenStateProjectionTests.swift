@@ -12,47 +12,17 @@ import Testing
 /// `.serialized` because the stores read `UserDefaults` filter prefs and
 /// pre-populate from the shared `BudgetDetailCache.shared` singleton; we
 /// reset both before each test so cases don't bleed.
+///
+/// Pointage-specific tests (checked tick hash, "Tout est pointé") live in
+/// `BudgetDetailsCheckedProjectionTests`; shared setup lives in `ProjectionTestStack`.
 @Suite(.serialized)
 @MainActor
 struct BudgetDetailsScreenStateProjectionTests {
-    private static let typeFilterKey = "pulpe-budget-line-type-filter"
-    private static let checkedFilterKey = "pulpe-budget-checked-filter"
-    private static let legacyShowOnlyUncheckedKey = "pulpe-budget-show-only-unchecked"
-
-    private func resetEnvironment() {
-        UserDefaults.standard.removeObject(forKey: Self.typeFilterKey)
-        UserDefaults.standard.removeObject(forKey: Self.checkedFilterKey)
-        UserDefaults.standard.removeObject(forKey: Self.legacyShowOnlyUncheckedKey)
-        BudgetDetailCache.shared.invalidateAll()
-    }
-
-    /// Builds a fresh stack of stores. Default checked filter is `.all` so
-    /// the projector returns every kind unless the test changes filters.
-    /// Bundle of stores returned by `makeStores`. Avoids the 3-tuple
-    /// (banned by SwiftLint's `large_tuple`).
-    private struct StoreStack {
-        let data: BudgetDataStore
-        let filters: FiltersStore
-        let sync: SyncStateStore
-    }
-
-    private func makeStores(
-        budgetId: String = "test-budget",
-        checkedFilter: CheckedFilterOption = .all
-    ) -> StoreStack {
-        resetEnvironment()
-        let dataStore = BudgetDataStore(budgetId: budgetId)
-        let filtersStore = FiltersStore()
-        filtersStore.setCheckedFilter(checkedFilter)
-        let syncStore = SyncStateStore()
-        return StoreStack(data: dataStore, filters: filtersStore, sync: syncStore)
-    }
-
     // MARK: - Basic shape
 
     @Test
     func project_emptyBudget_producesEmptyState() {
-        let stack = makeStores()
+        let stack = ProjectionTestStack.makeStores()
 
         let state = BudgetDetailsProjector.project(
             dataStore: stack.data,
@@ -64,14 +34,13 @@ struct BudgetDetailsScreenStateProjectionTests {
         #expect(state.sections.isEmpty)
         #expect(state.free.isEmpty)
         #expect(state.kindCounts.all == 0)
-        #expect(state.firstSectionKind == nil)
         #expect(state.consumptionByLineId.isEmpty)
         #expect(state.transactionsByLineId.isEmpty)
     }
 
     @Test
     func project_threeKinds_producesCanonicalOrder() {
-        let stack = makeStores()
+        let stack = ProjectionTestStack.makeStores()
         stack.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "expense-1", kind: .expense))
         stack.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "income-1", kind: .income))
         stack.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "saving-1", kind: .saving))
@@ -85,14 +54,13 @@ struct BudgetDetailsScreenStateProjectionTests {
 
         let kinds = state.sections.map(\.kind)
         #expect(kinds == [.income, .saving, .expense])
-        #expect(state.firstSectionKind == .income)
     }
 
     // MARK: - Filters
 
     @Test
     func project_typeFilterIncome_dropsOtherKinds() {
-        let stack = makeStores()
+        let stack = ProjectionTestStack.makeStores()
         stack.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "income-1", kind: .income))
         stack.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "expense-1", kind: .expense))
         stack.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "saving-1", kind: .saving))
@@ -116,7 +84,7 @@ struct BudgetDetailsScreenStateProjectionTests {
 
     @Test
     func project_checkedFilterUnchecked_dropsCheckedItems() {
-        let stack = makeStores(checkedFilter: .unchecked)
+        let stack = ProjectionTestStack.makeStores(checkedFilter: .unchecked)
         stack.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "checked", kind: .expense, isChecked: true))
         stack.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "unchecked", kind: .expense, isChecked: false))
 
@@ -139,7 +107,7 @@ struct BudgetDetailsScreenStateProjectionTests {
 
     @Test
     func project_searchByLineName_filtersSections() {
-        let stack = makeStores()
+        let stack = ProjectionTestStack.makeStores()
         stack.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "rent", name: "Loyer", kind: .expense))
         stack.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "phone", name: "Téléphone", kind: .expense))
 
@@ -156,7 +124,7 @@ struct BudgetDetailsScreenStateProjectionTests {
 
     @Test
     func project_searchByTransactionAmount_keepsLineWithMatchingTransaction() {
-        let stack = makeStores()
+        let stack = ProjectionTestStack.makeStores()
         let line = TestDataFactory.createBudgetLine(id: "groceries", name: "Courses", kind: .expense)
         stack.data.appendBudgetLine(line)
         stack.data.appendTransaction(
@@ -180,7 +148,7 @@ struct BudgetDetailsScreenStateProjectionTests {
 
     @Test
     func project_consumptionByLineId_preComputed() {
-        let stack = makeStores()
+        let stack = ProjectionTestStack.makeStores()
         stack.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "line-1", amount: 1000, kind: .expense))
         stack.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "line-2", amount: 500, kind: .income))
         stack.data.appendTransaction(
@@ -204,7 +172,7 @@ struct BudgetDetailsScreenStateProjectionTests {
 
     @Test
     func project_transactionsByLineId_sortedDescByDate() throws {
-        let stack = makeStores()
+        let stack = ProjectionTestStack.makeStores()
         stack.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "line-1"))
 
         let older = Transaction(
@@ -254,10 +222,7 @@ struct BudgetDetailsScreenStateProjectionTests {
         // Reset env to clean slate, then populate cache *after* reset so the
         // store init reads it. We can't use `makeStores()` because that one
         // also wipes the cache.
-        UserDefaults.standard.removeObject(forKey: Self.typeFilterKey)
-        UserDefaults.standard.removeObject(forKey: Self.checkedFilterKey)
-        UserDefaults.standard.removeObject(forKey: Self.legacyShowOnlyUncheckedKey)
-        BudgetDetailCache.shared.invalidateAll()
+        ProjectionTestStack.resetEnvironment()
 
         BudgetDetailCache.shared.storeAllBudgets([
             TestDataFactory.createBudgetSparse(id: "b3", month: 3, year: 2026),
@@ -281,17 +246,14 @@ struct BudgetDetailsScreenStateProjectionTests {
         #expect(state.pagerMonths.map(\.id) == ["b1", "b2", "b3"])
         #expect(state.pagerMonths.contains { $0.id == "bnil" } == false)
 
-        BudgetDetailCache.shared.invalidateAll()
-        UserDefaults.standard.removeObject(forKey: Self.typeFilterKey)
-        UserDefaults.standard.removeObject(forKey: Self.checkedFilterKey)
-        UserDefaults.standard.removeObject(forKey: Self.legacyShowOnlyUncheckedKey)
+        ProjectionTestStack.resetEnvironment()
     }
 
     // MARK: - Free transactions
 
     @Test
     func project_freeTransactions_excludesAllocated() {
-        let stack = makeStores()
+        let stack = ProjectionTestStack.makeStores()
         stack.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "line-1"))
         stack.data.appendTransaction(
             TestDataFactory.createTransaction(
@@ -318,117 +280,5 @@ struct BudgetDetailsScreenStateProjectionTests {
 
         #expect(state.free.map(\.transaction.id) == ["free", "free-checked"])
         #expect(state.transactionsByLineId["line-1"]?.map(\.id) == ["allocated"])
-    }
-
-    // MARK: - Checked tick hash
-
-    /// `checkedTickHash` is the `value:` of the list-level `.animation(_:value:)`
-    /// in `BudgetDetailsView`. Its contract: change if-and-only-if some item's
-    /// `isChecked` flag flips. A hash that never changes silently kills pointage
-    /// animations; one that changes on unrelated edits thrashes them.
-
-    private func checkedTickHash(for stack: StoreStack) -> Int {
-        BudgetDetailsProjector.project(
-            dataStore: stack.data,
-            filtersStore: stack.filters,
-            syncStore: stack.sync,
-            searchText: ""
-        ).checkedTickHash
-    }
-
-    @Test
-    func checkedTickHash_reprojectedWithSameSource_staysStable() {
-        let stack = makeStores()
-        stack.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "line-1", isChecked: true))
-        stack.data.appendTransaction(TestDataFactory.createTransaction(id: "tx-1", isChecked: false))
-
-        #expect(checkedTickHash(for: stack) == checkedTickHash(for: stack))
-    }
-
-    @Test
-    func checkedTickHash_budgetLineCheckFlips_changes() {
-        let unchecked = makeStores()
-        unchecked.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "line-1", isChecked: false))
-
-        let checked = makeStores()
-        checked.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "line-1", isChecked: true))
-
-        #expect(checkedTickHash(for: unchecked) != checkedTickHash(for: checked))
-    }
-
-    @Test
-    func checkedTickHash_transactionCheckFlips_changes() {
-        let unchecked = makeStores()
-        unchecked.data.appendTransaction(TestDataFactory.createTransaction(id: "tx-1", isChecked: false))
-
-        let checked = makeStores()
-        checked.data.appendTransaction(TestDataFactory.createTransaction(id: "tx-1", isChecked: true))
-
-        #expect(checkedTickHash(for: unchecked) != checkedTickHash(for: checked))
-    }
-
-    @Test
-    func checkedTickHash_nonCheckedFieldChanges_staysStable() {
-        let base = makeStores()
-        base.data.appendBudgetLine(
-            TestDataFactory.createBudgetLine(id: "line-1", name: "Loyer", amount: 1000, isChecked: false)
-        )
-
-        // Same id + same isChecked, but name and amount differ — hash must ignore them.
-        let edited = makeStores()
-        edited.data.appendBudgetLine(
-            TestDataFactory.createBudgetLine(id: "line-1", name: "Loyer révisé", amount: 1200, isChecked: false)
-        )
-
-        #expect(checkedTickHash(for: base) == checkedTickHash(for: edited))
-    }
-
-    // MARK: - "Tout est pointé" completion state
-
-    @Test
-    func project_uncheckedFilterAllChecked_showsEmptyChecked() {
-        let stack = makeStores(checkedFilter: .unchecked)
-        stack.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "line-1", isChecked: true))
-        stack.data.appendTransaction(TestDataFactory.createTransaction(id: "tx-1", isChecked: true))
-
-        let state = BudgetDetailsProjector.project(
-            dataStore: stack.data,
-            filtersStore: stack.filters,
-            syncStore: stack.sync,
-            searchText: ""
-        )
-
-        #expect(state.canShowEmptyChecked)
-    }
-
-    @Test
-    func project_uncheckedFilterEmptyBudget_hidesEmptyChecked() {
-        // A budget with nothing at all must not celebrate a completion.
-        let stack = makeStores(checkedFilter: .unchecked)
-
-        let state = BudgetDetailsProjector.project(
-            dataStore: stack.data,
-            filtersStore: stack.filters,
-            syncStore: stack.sync,
-            searchText: ""
-        )
-
-        #expect(!state.canShowEmptyChecked)
-    }
-
-    @Test
-    func project_uncheckedFilterOneRemaining_hidesEmptyChecked() {
-        let stack = makeStores(checkedFilter: .unchecked)
-        stack.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "line-1", isChecked: true))
-        stack.data.appendBudgetLine(TestDataFactory.createBudgetLine(id: "line-2", isChecked: false))
-
-        let state = BudgetDetailsProjector.project(
-            dataStore: stack.data,
-            filtersStore: stack.filters,
-            syncStore: stack.sync,
-            searchText: ""
-        )
-
-        #expect(!state.canShowEmptyChecked)
     }
 }

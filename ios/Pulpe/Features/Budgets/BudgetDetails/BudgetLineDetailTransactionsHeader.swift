@@ -16,7 +16,7 @@ struct BudgetLineDetailTransactionsHeader: View {
 
     var body: some View {
         HStack {
-            Text("Transactions")
+            Text("Mouvements")
                 .font(PulpeTypography.metricLabelBold)
                 .foregroundStyle(.primary)
 
@@ -47,7 +47,7 @@ struct BudgetLineDetailTransactionsHeader: View {
     List {
         Section {
             ForEach(0 ..< 12, id: \.self) { index in
-                Text("Transaction \(index)")
+                Text("Ligne \(index)")
                     .listRowBackground(Color.clear)
             }
         } header: {

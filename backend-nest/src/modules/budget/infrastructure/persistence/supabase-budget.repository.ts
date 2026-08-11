@@ -331,7 +331,15 @@ export class SupabaseBudgetRepository
           .from('budget_line')
           .select('*, budget_line_tag(tag_id)')
           .eq('budget_id', budgetId)
-          .order('created_at', { ascending: false }),
+          // `created_at` alone does not order these. Instantiating a budget
+          // from a template inserts every line in one statement, so they share
+          // a timestamp to the microsecond and Postgres falls back to physical
+          // heap order — which an UPDATE moves. Checking a line therefore
+          // reshuffled the list around it, and undoing the check did not put
+          // the line back where it was. `id` is arbitrary; being stable is the
+          // whole job.
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: true }),
         supabase
           .from('transaction')
           .select('*, transaction_tag(tag_id)')

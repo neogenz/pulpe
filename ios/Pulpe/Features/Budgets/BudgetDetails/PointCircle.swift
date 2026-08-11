@@ -42,7 +42,10 @@ struct PointCircle: View {
 
                 if displayedSyncing {
                     SyncIndicator(isSyncing: true)
-                        .offset(x: DesignTokens.Checkbox.size / 2 - 2, y: -DesignTokens.Checkbox.size / 2 + 2)
+                        .offset(
+                            x: DesignTokens.Checkbox.size / 2 - DesignTokens.Checkbox.syncBadgeInset,
+                            y: -DesignTokens.Checkbox.size / 2 + DesignTokens.Checkbox.syncBadgeInset
+                        )
                 }
             }
             .frame(

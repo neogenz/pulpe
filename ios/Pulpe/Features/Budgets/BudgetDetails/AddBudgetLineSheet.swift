@@ -125,6 +125,20 @@ struct AddBudgetLineSheet: View {
             focusOrder: [.amount, .description]
         ) {
             KindToggle(selection: $kind)
+
+            // The band that separates this screen from « Noter » : une fois, ou
+            // étalé sur plusieurs mois. It reads before the amount because it
+            // decides what the amount means — a monthly share or a total to
+            // split. It stays under the nature that governs it: an income can't
+            // be spread, so raising it higher would make it flicker in answer to
+            // a control further down.
+            if kind != .income {
+                SpreadModeToggle(selection: $mode, accentColor: kind.color)
+            }
+            if isSpreadMode {
+                SpreadAmountModeToggle(mode: $amountMode, accentColor: kind.color)
+            }
+
             if userSettingsStore.showCurrencySelector {
                 CurrencyAmountPicker(selectedCurrency: $inputCurrency)
             }
@@ -146,10 +160,6 @@ struct AddBudgetLineSheet: View {
                 currency: inputCurrency
             )
             .animation(.snappy(duration: DesignTokens.Animation.fast), value: kind)
-
-            if kind != .income {
-                SpreadModeToggle(selection: $mode, accentColor: kind.color)
-            }
 
             descriptionField
 
@@ -178,7 +188,6 @@ struct AddBudgetLineSheet: View {
             }
 
             if isSpreadMode {
-                SpreadAmountModeToggle(mode: $amountMode, accentColor: kind.color)
                 SpreadFormSection(
                     calculator: spreadCalculator,
                     amount: amount,

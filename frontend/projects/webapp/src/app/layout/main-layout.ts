@@ -89,6 +89,17 @@ interface NavigationItem {
     ZifluxDevtoolsComponent,
   ],
   template: `
+    <!-- Five navigation links and the user menu stand between the start of the
+         document and the page itself, on every route and every visit. A mouse
+         user steps over them; a keyboard user paid all six, every time. -->
+    <a
+      class="skip-to-content"
+      href="#main-content"
+      (click)="focusMainContent($event)"
+    >
+      {{ 'layout.skipToContent' | transloco }}
+    </a>
+
     <mat-sidenav-container
       class="bg-surface-container!"
       [class.h-dvh]="!isHandset()"
@@ -207,11 +218,22 @@ interface NavigationItem {
           [class.pt-0]="!isHandset() && !isDemoMode()"
           [class.rounded-xl]="!isHandset()"
         >
+          <!-- The bar itself could never say this. It carried an aria-label, but
+               a progressbar's label is read when focus reaches it, and nothing
+               here takes focus — so every reload, every navigation and every
+               refresh was silent to a screen reader. The region below is in the
+               DOM at all times on purpose: a live region inserted at the same
+               moment as its own text is announced unreliably, because the
+               browser registers the region and then finds nothing new inside. -->
+          <div class="sr-only" role="status">
+            @if (loadingIndicator.isLoading() || isNavigating()) {
+              {{ 'layout.loading' | transloco }}
+            }
+          </div>
           @if (loadingIndicator.isLoading() || isNavigating()) {
-            <div class="absolute top-0 left-0 right-0">
+            <div class="absolute top-0 left-0 right-0" aria-hidden="true">
               <mat-progress-bar
                 mode="indeterminate"
-                [attr.aria-label]="'layout.loading' | transloco"
                 data-testid="loading-progress"
               />
             </div>
@@ -456,6 +478,9 @@ interface NavigationItem {
 
           <!-- Page Content - Scrollable Container -->
           <main
+            #mainContent
+            id="main-content"
+            tabindex="-1"
             class="flex-1 bg-surface text-on-surface pt-2! min-w-0"
             [class.overflow-y-auto]="!isHandset()"
             [class.overflow-x-hidden]="!isHandset()"
@@ -496,6 +521,34 @@ interface NavigationItem {
       :host {
         display: block;
         height: 100dvh;
+      }
+
+      /* Out of the layout until focused, not hidden from it: display:none or
+         visibility:hidden would take it out of the tab order too, which is the
+         one thing it exists to be in. */
+      .skip-to-content {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 1000;
+        transform: translateY(-200%);
+        margin: 8px;
+        padding: 12px 20px;
+        border-radius: var(--pulpe-surface-radius-panel);
+        background: var(--mat-sys-primary);
+        color: var(--mat-sys-on-primary);
+        font: var(--mat-sys-label-large);
+        text-decoration: none;
+      }
+
+      .skip-to-content:focus-visible {
+        transform: translateY(0);
+      }
+
+      /* The skip link's whole job is to move focus here; the ring that lands
+         with it would outline the entire page. */
+      main:focus-visible {
+        outline: none;
       }
 
       /* Mobile range = CDK Breakpoints.Handset (portrait ≤600, landscape ≤960),
@@ -751,6 +804,8 @@ export default class MainLayout {
   );
   private readonly scrollSentinel =
     viewChild<ElementRef<HTMLElement>>('scrollSentinel');
+  private readonly mainContent =
+    viewChild<ElementRef<HTMLElement>>('mainContent');
   readonly #destroyRef = inject(DestroyRef);
   readonly #logger = inject(Logger);
   readonly #dialog = inject(MatDialog);
@@ -944,6 +999,14 @@ export default class MainLayout {
       width: 'auto',
       maxWidth: '90vw',
     });
+  }
+
+  // The href does the same thing on its own, but it also writes the fragment
+  // into the URL, and this app's routes are its state. Focus moves; the address
+  // bar stays out of it.
+  protected focusMainContent(event: Event): void {
+    event.preventDefault();
+    this.mainContent()?.nativeElement.focus();
   }
 
   #requestedPageTour: TourPageId | null = null;

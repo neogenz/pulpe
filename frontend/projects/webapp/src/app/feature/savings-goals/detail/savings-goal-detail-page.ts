@@ -99,7 +99,7 @@ type DetailViewState = 'loading' | 'error' | 'notFound' | 'ready';
           <mat-icon>arrow_back</mat-icon>
         </button>
         <h1
-          class="text-headline-medium md:text-display-small truncate min-w-0 flex-shrink ph-no-capture"
+          class="text-headline-medium md:text-display-small font-bold truncate min-w-0 flex-shrink ph-no-capture"
           data-testid="page-title"
         >
           {{ goal()?.name }}

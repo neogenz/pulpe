@@ -10,10 +10,12 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { provideTranslocoForTest } from '@app/testing/transloco-testing';
 import { type BudgetLine, type Transaction, type Budget } from 'pulpe-shared';
-import Dashboard from './current-month';
+import { Subject } from 'rxjs';
+import Dashboard, { UNDO_WINDOW_MS } from './current-month';
 import { type TransactionFormData } from './components/add-transaction-form.schema';
 import { AddTransactionDialogService } from './services/add-transaction-dialog.service';
 import { DashboardStore } from './services/dashboard-store';
+import { StorageService, STORAGE_KEYS } from '@core/storage';
 
 // Test data factories
 const createBudgetLine = (overrides: Partial<BudgetLine> = {}): BudgetLine => ({
@@ -474,30 +476,104 @@ describe('Dashboard (TestBed)', () => {
 
   function createMockStore(budgetId: string) {
     return {
-      dashboardData: signal({ budget: { id: budgetId } }),
-      addTransaction: vi.fn().mockResolvedValue(undefined),
+      dashboardData: signal<{ budget?: { id: string } | null } | null>({
+        budget: { id: budgetId },
+      }),
+      addTransaction: vi.fn().mockResolvedValue({ transactionId: 'tx-new' }),
+      deleteTransaction: vi.fn().mockResolvedValue(null),
       status: signal<'idle' | 'loading' | 'reloading' | 'resolved' | 'error'>(
         'resolved',
       ),
       isLoading: signal(false),
+      isHistoryLoading: signal(false),
       isInitialLoading: signal(false),
-      hasValue: signal(true),
-      error: signal(null),
+      error: signal<unknown>(null),
       currentBudgetPeriod: signal({ month: 4, year: 2026 }),
       refreshData: vi.fn(),
+      uncheckedForecasts: signal([
+        { id: 'line-1', name: 'Loyer' },
+        { id: 'line-2', name: 'Assurance' },
+      ]),
+      checkBudgetLine: vi.fn().mockResolvedValue(null),
+      uncheckBudgetLine: vi.fn().mockResolvedValue(null),
+      remaining: signal(3491),
+      historyError: signal<unknown>(undefined),
+      loadErrorMessage: signal('On n’arrive pas à charger ton tableau de bord'),
     };
   }
+
+  describe('outlook fold', () => {
+    // PRODUCT.md names two visits — the quick daily check and the deeper
+    // planning session — and the page used to serve both at once, ending the
+    // daily one a quarter of the way down and then asking for four more screens
+    // nobody can act on. Folded by default; the choice is remembered.
+    // This test used to write the key itself and assert the key read back,
+    // which is true of any key and was true while the component had no writer
+    // at all: the fold re-collapsed on every navigation, and the comment on the
+    // signal claimed the opposite. It goes through the element now.
+    it('should remember being opened once the disclosure reports it', async () => {
+      const { component } = await setup(budgetId, undefined);
+
+      expect(component['isOutlookExpanded']()).toBe(false);
+
+      component['syncOutlookExpanded'](true);
+
+      expect(component['isOutlookExpanded']()).toBe(true);
+      expect(
+        TestBed.inject(StorageService).get<boolean>(
+          STORAGE_KEYS.DASHBOARD_OUTLOOK_EXPANDED,
+        ),
+      ).toBe(true);
+    });
+
+    it('should forget being opened once the disclosure is closed again', async () => {
+      const { component } = await setup(budgetId, undefined);
+      const storage = TestBed.inject(StorageService);
+
+      component['syncOutlookExpanded'](true);
+      component['syncOutlookExpanded'](false);
+
+      expect(component['isOutlookExpanded']()).toBe(false);
+      expect(
+        storage.get<boolean>(STORAGE_KEYS.DASHBOARD_OUTLOOK_EXPANDED),
+      ).toBe(false);
+    });
+  });
 
   async function setup(
     budgetId: string,
     dialogResult: TransactionFormData | undefined,
   ) {
     const mockStore = createMockStore(budgetId);
+    // The real shell stays open and calls `persist` with what was typed,
+    // dismissing only once the write is accepted. `persistRefusal` records
+    // what the page handed back, which is what the sheet shows the user.
+    let persistRefusal: string | null = null;
     const mockDialogService = {
-      open: vi.fn().mockResolvedValue(dialogResult),
+      open: vi.fn(
+        async (
+          persist: (tx: TransactionFormData) => Promise<string | null>,
+        ) => {
+          if (!dialogResult) return undefined;
+          persistRefusal = await persist(dialogResult);
+          return persistRefusal ? undefined : dialogResult;
+        },
+      ),
     };
     const mockRouter = { navigate: vi.fn() };
-    const mockSnackBar = { open: vi.fn() };
+    // One subject per toast, not one for the whole run: MatSnackBar dismisses
+    // the ref it had open when a new one arrives, and a dismissed ref's
+    // onAction never fires again. Sharing a single subject made every toast
+    // ever opened answer the same tap, which is precisely the bug the batched
+    // undo exists to remove — the double would have hidden it.
+    let latestAction = new Subject<void>();
+    const mockSnackBar = {
+      open: vi.fn().mockImplementation(() => {
+        latestAction = new Subject<void>();
+        return { onAction: () => latestAction };
+      }),
+    };
+    const undoAction = { next: () => latestAction.next() };
 
     await TestBed.resetTestingModule()
       .configureTestingModule({
@@ -520,11 +596,50 @@ describe('Dashboard (TestBed)', () => {
     const fixture = TestBed.createComponent(Dashboard);
     return {
       component: fixture.componentInstance,
+      fixture,
       mockStore,
       mockDialogService,
       mockSnackBar,
+      undoAction,
+      readPersistRefusal: () => persistRefusal,
     };
   }
+
+  describe('failure branch', () => {
+    // The settings request is the one this page cannot start without, so the
+    // store deliberately withholds the dashboard request until it lands. When
+    // settings fail, that resource therefore never leaves "idle" — and the
+    // branch was asking about its status rather than about whether anything
+    // had failed. A user with a budget was told they had none, and offered to
+    // create the one they already had.
+    it('should show the error card when the failure came from the settings', async () => {
+      const { fixture, mockStore } = await setup(budgetId, undefined);
+
+      mockStore.dashboardData.set(null);
+      mockStore.status.set('idle');
+      mockStore.error.set(new Error('settings unreachable'));
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      expect(
+        compiled.querySelector('[data-testid="dashboard-error"]'),
+      ).not.toBeNull();
+    });
+
+    it('should keep the no-budget card when nothing failed', async () => {
+      const { fixture, mockStore } = await setup(budgetId, undefined);
+
+      mockStore.dashboardData.set({ budget: null });
+      mockStore.status.set('resolved');
+      mockStore.error.set(null);
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      expect(
+        compiled.querySelector('[data-testid="dashboard-error"]'),
+      ).toBeNull();
+    });
+  });
 
   describe('#addTransaction forwards currency conversion metadata', () => {
     it('should include originalAmount, originalCurrency, targetCurrency, exchangeRate in store.addTransaction call when present on the surface payload', async () => {
@@ -616,28 +731,454 @@ describe('Dashboard (TestBed)', () => {
       conversion: null,
     };
 
-    it('should show the reason the store hands back', async () => {
-      const { component, mockStore, mockSnackBar } = await setup(
-        budgetId,
-        quickIncome,
-      );
-      mockStore.addTransaction.mockResolvedValue(
+    // The reason goes back to the sheet, which is still on screen and still
+    // holds the amount, the label, the tags and the savings source. A toast
+    // meant the sheet had already been destroyed with all of it, and on a
+    // phone the message landed where the sheet used to be.
+    it('should hand the reason back to the sheet still holding the entry', async () => {
+      const { component, mockStore, mockSnackBar, readPersistRefusal } =
+        await setup(budgetId, quickIncome);
+      mockStore.addTransaction.mockResolvedValue({
+        reason: "Cet objectif n'a pas assez d'argent pour ce montant",
+      });
+
+      await component['openAddTransaction']();
+
+      expect(readPersistRefusal()).toBe(
         "Cet objectif n'a pas assez d'argent pour ce montant",
       );
+      expect(mockSnackBar.open).not.toHaveBeenCalled();
+    });
+
+    // Silence used to be the assertion here. Recording a transaction is the
+    // page's purpose, the sheet closes over it, and on a phone the figures it
+    // moved are a screenful up — so a success that says nothing leaves the user
+    // with no evidence the money was written down. Checking a box, one method
+    // away in the same component, has always named its line and offered undo.
+    it('should confirm by name when the transaction went through', async () => {
+      const { component, mockSnackBar } = await setup(budgetId, quickIncome);
 
       await component['openAddTransaction']();
 
       expect(mockSnackBar.open).toHaveBeenCalledWith(
-        "Cet objectif n'a pas assez d'argent pour ce montant",
+        expect.stringContaining('Retrait Maison'),
+        expect.any(String),
+        expect.objectContaining({ duration: UNDO_WINDOW_MS }),
+      );
+    });
+
+    // The way back. A mistyped amount used to be removable only from the budget
+    // page, so the toast promised nothing and the write was one-way.
+    it('should delete the transaction when the undo is taken', async () => {
+      const { component, mockStore, undoAction } = await setup(
+        budgetId,
+        quickIncome,
+      );
+
+      await component['openAddTransaction']();
+      undoAction.next();
+
+      expect(mockStore.deleteTransaction).toHaveBeenCalledWith('tx-new');
+    });
+
+    it('should say so when the undo could not go through', async () => {
+      const { component, mockStore, mockSnackBar, undoAction } = await setup(
+        budgetId,
+        quickIncome,
+      );
+      mockStore.deleteTransaction.mockResolvedValue(
+        'Impossible d’annuler — la transaction reste enregistrée',
+      );
+
+      await component['openAddTransaction']();
+      undoAction.next();
+      await Promise.resolve();
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Impossible d’annuler — la transaction reste enregistrée',
+        expect.any(String),
+        expect.objectContaining({ duration: 5000 }),
+      );
+    });
+  });
+
+  // Clearing a month is a run of taps, and each toast replaces the one before
+  // it. The undo used to go with the toast it arrived on, so six seconds into
+  // the run the first line was already unreachable.
+  describe('chained checks', () => {
+    const quickIncome: TransactionFormData = {
+      name: 'Retrait Maison',
+      amount: 100,
+      kind: 'income',
+      tagIds: [],
+      isChecked: false,
+      conversion: null,
+    };
+
+    it('should take back every check the window still covers', async () => {
+      const { component, mockStore, undoAction } = await setup(
+        budgetId,
+        undefined,
+      );
+
+      await component['checkBudgetLine']('line-1');
+      await component['checkBudgetLine']('line-2');
+      undoAction.next();
+      await Promise.resolve();
+
+      expect(mockStore.uncheckBudgetLine).toHaveBeenNthCalledWith(1, 'line-2');
+      expect(mockStore.uncheckBudgetLine).toHaveBeenNthCalledWith(2, 'line-1');
+    });
+
+    // The glossaries retired straight after the mutation, so a check the user
+    // immediately took back still spent the one time they are shown — and both
+    // cards dropped their teaching copy while the row was still animating out.
+    it('should keep the glossaries when the check is taken back', async () => {
+      const { component, undoAction } = await setup(budgetId, undefined);
+
+      await component['checkBudgetLine']('line-1');
+      undoAction.next();
+      await Promise.resolve();
+
+      expect(component['showPointingHints']()).toBe(true);
+    });
+
+    // The action reverts every check in the window, and a bare "Annuler" beside
+    // "2 prévisions pointées" reads as undoing the tap that opened the toast. A
+    // user correcting their second tap lost their first, and had to find it
+    // again in a list they may have to scroll or leave the page to reach.
+    it('should say how much the undo takes back once it covers more than one', async () => {
+      const { component, mockSnackBar } = await setup(budgetId, undefined);
+
+      await component['checkBudgetLine']('line-1');
+      expect(mockSnackBar.open).toHaveBeenLastCalledWith(
+        expect.any(String),
+        'Annuler',
+        expect.anything(),
+      );
+
+      await component['checkBudgetLine']('line-2');
+      expect(mockSnackBar.open).toHaveBeenLastCalledWith(
+        expect.any(String),
+        'Annuler les 2',
+        expect.anything(),
+      );
+    });
+
+    // Material shows one snackbar. The two undo paths used to keep their own
+    // list, so whichever wrote second silently took the other's way back with
+    // it — and recording a transaction then pointing a forecast is the ordinary
+    // rhythm of clearing a month. The transaction is the expensive half to
+    // lose: it has to be hunted down on another page to be removed.
+    it('should still take back a transaction after a check follows it', async () => {
+      const { component, mockStore, undoAction } = await setup(
+        budgetId,
+        quickIncome,
+      );
+
+      await component['openAddTransaction']();
+      await component['checkBudgetLine']('line-1');
+      undoAction.next();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(mockStore.uncheckBudgetLine).toHaveBeenCalledWith('line-1');
+      expect(mockStore.deleteTransaction).toHaveBeenCalledWith('tx-new');
+    });
+
+    // Returning at the first refusal abandoned the rest of the window with the
+    // toast already gone: "Annuler les 3" could revert one, leave two pointed,
+    // and report it in the singular.
+    it('should keep undoing past a refusal and count what refused', async () => {
+      const { component, mockStore, mockSnackBar, undoAction } = await setup(
+        budgetId,
+        undefined,
+      );
+      mockStore.uncheckBudgetLine.mockResolvedValue('Impossible d’annuler');
+
+      await component['checkBudgetLine']('line-1');
+      await component['checkBudgetLine']('line-2');
+      undoAction.next();
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(mockStore.uncheckBudgetLine).toHaveBeenCalledWith('line-1');
+      expect(mockStore.uncheckBudgetLine).toHaveBeenCalledWith('line-2');
+      expect(mockSnackBar.open).toHaveBeenLastCalledWith(
+        expect.stringContaining('2'),
         expect.any(String),
         expect.objectContaining({ duration: 5000 }),
       );
     });
 
-    it('should stay silent when the transaction went through', async () => {
-      const { component, mockSnackBar } = await setup(budgetId, quickIncome);
+    // Material holds one snackbar, so a refusal's message destroys the undo
+    // toast — and the window used to keep its list and its timer running
+    // behind a button that no longer existed. Point one line, have the server
+    // refuse the next, and the first was silently unreversible while the code
+    // still believed it could be taken back.
+    it('should settle the window when another message takes the toast', async () => {
+      const { component, mockStore } = await setup(budgetId, undefined);
 
-      await component['openAddTransaction']();
+      await component['checkBudgetLine']('line-1');
+      expect(component['showPointingHints']()).toBe(true);
+
+      mockStore.checkBudgetLine.mockResolvedValue('Impossible de pointer');
+      await component['checkBudgetLine']('line-2');
+
+      // Settled, not merely closed: the check is a fact from here, so the
+      // glossaries retire now rather than on a timer nothing can reach.
+      expect(component['showPointingHints']()).toBe(false);
+    });
+
+    it('should count the checks it can still take back', async () => {
+      const { component, mockSnackBar } = await setup(budgetId, undefined);
+
+      await component['checkBudgetLine']('line-1');
+      await component['checkBudgetLine']('line-2');
+
+      expect(mockSnackBar.open).toHaveBeenLastCalledWith(
+        expect.stringContaining('2'),
+        expect.any(String),
+        expect.objectContaining({ duration: UNDO_WINDOW_MS }),
+      );
+    });
+
+    // The toast used to print "Disponible", which an envelope budget does not
+    // move when a line is pointed — five taps produced five identical figures.
+    // What the tap does move is how many forecasts are left.
+    it('should say how many forecasts are left to check', async () => {
+      const { component, mockSnackBar } = await setup(budgetId, undefined);
+
+      await component['checkBudgetLine']('line-1');
+
+      expect(mockSnackBar.open).toHaveBeenLastCalledWith(
+        expect.stringContaining('2 à pointer'),
+        expect.any(String),
+        expect.objectContaining({ duration: UNDO_WINDOW_MS }),
+      );
+    });
+  });
+
+  // Pressing Actualiser on a month that has not changed repaints nothing, so
+  // the button looked broken.
+  describe('refresh', () => {
+    it('should confirm once the reload has come back', async () => {
+      const { component, mockStore, mockSnackBar } = await setup(
+        budgetId,
+        undefined,
+      );
+
+      // Rendered as the no-budget state on purpose: ticking is what flushes the
+      // effect under test, and the mock store carries none of the dozen signals
+      // the hero would ask for on the way past.
+      mockStore.dashboardData.set({});
+      component['refresh']();
+      mockStore.isLoading.set(true);
+      TestBed.tick();
+      mockStore.isLoading.set(false);
+      TestBed.tick();
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Chiffres à jour',
+        expect.any(String),
+        expect.objectContaining({ duration: 5000 }),
+      );
+    });
+
+    // disabledInteractive keeps the button clickable on purpose — Material
+    // emits no native disabled attribute under it — so a second press reset the
+    // phase while isLoading() was already true. The effect tracks the value,
+    // which did not change, so it never re-ran: that refresh lost its toast and
+    // left the phase armed for an unrelated reload to fire.
+    it('should still confirm when the button is pressed twice while loading', async () => {
+      const { component, mockStore, mockSnackBar } = await setup(
+        budgetId,
+        undefined,
+      );
+
+      mockStore.dashboardData.set({});
+      component['refresh']();
+      mockStore.isLoading.set(true);
+      TestBed.tick();
+      component['refresh']();
+      TestBed.tick();
+      mockStore.isLoading.set(false);
+      TestBed.tick();
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Chiffres à jour',
+        expect.any(String),
+        expect.objectContaining({ duration: 5000 }),
+      );
+    });
+
+    // A press landing on a background refetch, rather than starting one.
+    // `reload()` does nothing while a load is in flight, so arming the phase
+    // there left it stuck at 'requested' — the state 'idle' is never restored
+    // from — and the button was dead for the rest of the visit.
+    it('should stay usable when pressed during a reload it did not start', async () => {
+      const { component, mockStore, mockSnackBar } = await setup(
+        budgetId,
+        undefined,
+      );
+
+      mockStore.dashboardData.set({});
+      mockStore.isLoading.set(true);
+      TestBed.tick();
+
+      // Refused while the reload it would have joined is still in flight, so
+      // the phase is never armed over a reload that cannot start.
+      const callsBeforePress = mockStore.refreshData.mock.calls.length;
+      component['refresh']();
+      expect(mockStore.refreshData.mock.calls.length).toBe(callsBeforePress);
+
+      // Refused, but not in silence: the button stays clickable on purpose, so
+      // a press that starts nothing has to say why. What it must not do is arm
+      // the phase — the reload it landed on is not the user's.
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Tes chiffres sont déjà en train de se mettre à jour.',
+        expect.any(String),
+        expect.objectContaining({ duration: 5000 }),
+      );
+      mockSnackBar.open.mockClear();
+
+      mockStore.isLoading.set(false);
+      TestBed.tick();
+      expect(mockSnackBar.open).not.toHaveBeenCalled();
+
+      // The press that follows must still reach the store. Guarding on the
+      // phase instead left it stuck at 'requested' here and swallowed this.
+      component['refresh']();
+      expect(mockStore.refreshData.mock.calls.length).toBe(
+        callsBeforePress + 1,
+      );
+
+      mockStore.isLoading.set(true);
+      TestBed.tick();
+      mockStore.isLoading.set(false);
+      TestBed.tick();
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Chiffres à jour',
+        expect.any(String),
+        expect.objectContaining({ duration: 5000 }),
+      );
+    });
+
+    // isLoading() falls the same way whether the reload worked or not, so the
+    // quiet tick alone used to be read as success: a dead connection drew the
+    // error card and a toast saying the figures were up to date.
+    it('should not claim success when the reload failed', async () => {
+      const { component, mockStore, mockSnackBar } = await setup(
+        budgetId,
+        undefined,
+      );
+
+      mockStore.dashboardData.set({});
+      component['refresh']();
+      mockStore.isLoading.set(true);
+      TestBed.tick();
+      mockStore.error.set(new Error('dashboard unreachable'));
+      mockStore.isLoading.set(false);
+      TestBed.tick();
+
+      expect(mockSnackBar.open).not.toHaveBeenCalledWith(
+        'Chiffres à jour',
+        expect.any(String),
+        expect.anything(),
+      );
+    });
+
+    // Every consumer of historyError() lives inside the outlook fold, which is
+    // closed on the daily visit: reporting that failure there names something
+    // the user cannot see, diagnose or act on, and every retry repeats it.
+    it('should stay quiet about a history failure hidden behind the closed fold', async () => {
+      const { component, mockStore, mockSnackBar } = await setup(
+        budgetId,
+        undefined,
+      );
+
+      mockStore.dashboardData.set({});
+      component['refresh']();
+      mockStore.isLoading.set(true);
+      TestBed.tick();
+      mockStore.historyError.set(new Error('history unreachable'));
+      mockStore.isLoading.set(false);
+      TestBed.tick();
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Chiffres à jour',
+        expect.any(String),
+        expect.objectContaining({ duration: 5000 }),
+      );
+    });
+
+    it('should report a history failure once the fold that shows it is open', async () => {
+      const { component, mockStore, mockSnackBar } = await setup(
+        budgetId,
+        undefined,
+      );
+
+      component['syncOutlookExpanded'](true);
+      mockStore.dashboardData.set({});
+      component['refresh']();
+      mockStore.isLoading.set(true);
+      TestBed.tick();
+      mockStore.historyError.set(new Error('history unreachable'));
+      mockStore.isLoading.set(false);
+      TestBed.tick();
+
+      expect(mockSnackBar.open).not.toHaveBeenCalledWith(
+        'Chiffres à jour',
+        expect.any(String),
+        expect.anything(),
+      );
+    });
+
+    // The verdict reads historyError(), so it has to outlast the request that
+    // sets it. Settling on the dashboard alone judged the outcome mid-flight,
+    // and a failing call is by construction the slower one: the toast said the
+    // figures were up to date and the two cards under it went "indisponible"
+    // a moment later.
+    it('should wait for the history request before judging the refresh', async () => {
+      const { component, mockStore, mockSnackBar } = await setup(
+        budgetId,
+        undefined,
+      );
+
+      component['syncOutlookExpanded'](true);
+      mockStore.dashboardData.set({});
+      component['refresh']();
+      mockStore.isLoading.set(true);
+      mockStore.isHistoryLoading.set(true);
+      TestBed.tick();
+
+      // The dashboard half comes back first, and clean.
+      mockStore.isLoading.set(false);
+      TestBed.tick();
+      expect(mockSnackBar.open).not.toHaveBeenCalled();
+
+      mockStore.historyError.set(new Error('history unreachable'));
+      mockStore.isHistoryLoading.set(false);
+      TestBed.tick();
+
+      expect(mockSnackBar.open).not.toHaveBeenCalledWith(
+        'Chiffres à jour',
+        expect.any(String),
+        expect.anything(),
+      );
+      expect(mockSnackBar.open).toHaveBeenCalled();
+    });
+
+    it('should stay quiet when nothing asked for a reload', async () => {
+      const { mockStore, mockSnackBar } = await setup(budgetId, undefined);
+
+      mockStore.dashboardData.set({});
+      mockStore.isLoading.set(true);
+      TestBed.tick();
+      mockStore.isLoading.set(false);
+      TestBed.tick();
 
       expect(mockSnackBar.open).not.toHaveBeenCalled();
     });

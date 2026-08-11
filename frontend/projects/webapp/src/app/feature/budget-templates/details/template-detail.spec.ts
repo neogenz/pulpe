@@ -435,12 +435,14 @@ describe('TemplateDetail', () => {
       expect(gridDebugEl).toBeTruthy();
     });
 
-    it('should render the FAB button to add a new line', async () => {
+    // Le libellé visible est aussi le nom accessible depuis que le bouton est
+    // étendu : le perdre rendrait le bouton muet sans rien casser d'autre.
+    it('should render the FAB button naming what it adds', async () => {
       const fixture = await createFixture();
       const el = fixture.nativeElement as HTMLElement;
 
       const fab = el.querySelector('[data-testid="add-template-line-fab"]');
-      expect(fab).toBeTruthy();
+      expect(fab?.textContent).toContain('Ajouter une prévision');
     });
   });
 

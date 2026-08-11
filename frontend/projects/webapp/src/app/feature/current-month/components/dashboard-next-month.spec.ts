@@ -72,6 +72,37 @@ describe('DashboardNextMonth', () => {
     });
   });
 
+  // The upcoming-budgets list is filled unconditionally, so a dead history
+  // request reaches this card as twelve months of hasBudget:false and used to
+  // come out as "Pas encore de budget pour mars" — a user invited to plan a
+  // month he had already planned, next to a chart correctly saying it could
+  // not load.
+  describe('when the request failed', () => {
+    beforeEach(() => {
+      setTestInput(component.forecast, mockForecastWithoutBudget);
+      setTestInput(component.estimatedRollover, 0);
+      setTestInput(component.hasError, true);
+      fixture.detectChanges();
+    });
+
+    it('should say it could not load instead of offering to plan the month', () => {
+      const text = fixture.nativeElement.textContent;
+      expect(text).toContain("On n'arrive pas à voir le mois prochain");
+      expect(text).not.toContain('Anticiper le mois prochain');
+    });
+
+    it('should offer a retry in place', () => {
+      let retried = false;
+      component.retry.subscribe(() => (retried = true));
+
+      fixture.nativeElement
+        .querySelector('[data-testid="next-month-retry"]')
+        .click();
+
+      expect(retried).toBe(true);
+    });
+  });
+
   describe('without budget', () => {
     beforeEach(() => {
       setTestInput(component.forecast, mockForecastWithoutBudget);

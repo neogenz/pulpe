@@ -68,7 +68,7 @@ struct LinkedTransactionsSheet: View {
                             .listRowSeparator(.hidden)
                         }
                     } header: {
-                        Text("Transactions")
+                        Text("Mouvements")
                             .font(PulpeTypography.headline)
                             .foregroundStyle(.primary)
                             .textCase(nil)
@@ -171,11 +171,11 @@ struct LinkedTransactionsSheet: View {
                 .foregroundStyle(.quaternary)
 
             VStack(spacing: DesignTokens.Spacing.xs) {
-                Text("Pas encore de transaction")
+                Text("Rien de noté ici")
                     .font(PulpeTypography.headline)
                     .foregroundStyle(Color.textSecondary)
 
-                Text("Ajoute une transaction pour suivre tes dépenses")
+                Text("Note ce qui passe sur ton compte pour suivre tes dépenses")
                     .font(PulpeTypography.subheadline)
                     .foregroundStyle(Color.textTertiary)
                     .multilineTextAlignment(.center)
@@ -221,7 +221,7 @@ struct LinkedTransactionsSheet: View {
         Button {
             onAddTransaction()
         } label: {
-            Label("Nouvelle transaction", systemImage: "plus")
+            Label("Noter un montant", systemImage: "plus")
         }
         .primaryButtonStyle()
         .padding(.horizontal)

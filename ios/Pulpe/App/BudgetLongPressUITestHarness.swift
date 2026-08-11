@@ -301,7 +301,7 @@ struct BudgetLongPressUITestHarness: View {
                 budgetId: budgetId,
                 templateLineId: nil,
                 savingsGoalId: nil,
-                name: "Prévision avec transactions",
+                name: "Prévision avec mouvements",
                 amount: 250,
                 kind: .expense,
                 recurrence: .fixed,

@@ -25,7 +25,7 @@ final class BudgetLineLongPressTests: XCTestCase {
 
         let row = waitForBudgetRow(
             primaryIdentifier: "budgetLineRow-with-transactions",
-            fallbackLabel: "Prévision avec transactions"
+            fallbackLabel: "Prévision avec mouvements"
         )
 
         row.press(forDuration: 1.0)

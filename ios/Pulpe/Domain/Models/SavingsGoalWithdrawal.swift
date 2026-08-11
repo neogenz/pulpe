@@ -180,8 +180,18 @@ enum SavingsGoalSource: Equatable, Hashable, Sendable {
 
     /// One compact line, shown under a transaction's name in the lists and as the
     /// title of its detail context row.
+    ///
+    /// Only the broken case takes a `·`. That separator joins *peer facts*
+    /// everywhere else on these metadata lines (`Lissé · …`, `12 janvier · 2 tags`),
+    /// so one placed after a preposition left "Pris sur" dangling in front of what
+    /// read as the next unrelated fact. A complete noun phrase can sit before the
+    /// separator; a preposition has to govern the name directly. "Objectif supprimé"
+    /// also stays first so the status survives the tail truncation a dense row applies.
     var label: String {
-        "\(isBroken ? "Objectif supprimé" : "Pris sur") · \(name)"
+        switch self {
+        case .active(_, let name): "Pris sur \(name)"
+        case .broken(let name): "Objectif supprimé · \(name)"
+        }
     }
 
     /// Spelled out for VoiceOver, which gets the whole name even when the visible

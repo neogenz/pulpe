@@ -416,6 +416,14 @@ extension Color {
         dark: .clear
     )
 
+    // MARK: - Row Card
+
+    /// Substitute for `Shadow.subtle` in dark mode: a 5% black shadow renders on
+    /// `appBackground`'s near-black tone, so a row card would have no boundary at all.
+    /// In light mode the shadow already carries the separation, so the border stays
+    /// invisible there.
+    static let rowCardBorder = Color(light: .clear, dark: .outlineVariant)
+
     // MARK: - Skeleton
 
     /// Placeholder fill for skeleton loading shapes — warm tint to match neutral warm bg

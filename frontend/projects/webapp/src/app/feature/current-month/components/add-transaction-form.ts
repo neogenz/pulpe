@@ -71,6 +71,18 @@ interface AddTransactionModel {
       novalidate
       data-testid="transaction-form"
     >
+      <!-- Directement sous le titre, parce que c'est la seule ligne qui sépare
+           cet écran de « Prévoir » : ici on enregistre un fait daté, là-bas on
+           déclare une intention. Enterrée en bas de formulaire, elle arrivait
+           après que la question ait été tranchée. Stated, not dressed as a
+           control : la date est toujours aujourd'hui sur cet écran, et c'est le
+           formulaire d'édition qui permet d'en choisir une autre. -->
+      <p
+        class="add-transaction-form-lede flex items-center gap-2 m-0 px-1 text-body-small text-on-surface-variant"
+      >
+        <mat-icon class="mat-icon-sm" aria-hidden="true">event</mat-icon>
+        <span>{{ 'currentMonth.addTransactionToday' | transloco }}</span>
+      </p>
       <div class="flex flex-col gap-4">
         <pulpe-amount-input
           [control]="transactionForm.money"
@@ -149,16 +161,27 @@ interface AddTransactionModel {
               <span class="text-body-medium text-on-surface">{{
                 'currentMonth.addTransactionFromSavingsGoal' | transloco
               }}</span>
+              <!-- The inputs, not attr. bindings of the same names. The
+                   focusable element is a button carrying role switch inside
+                   this component, and it takes its accessible name from the
+                   aria-label INPUT; an attr. binding writes the attribute onto
+                   the non-focusable host instead, where nothing reads it. With
+                   no projected label either, the switch had no accessible name
+                   at all. -->
               <mat-slide-toggle
                 [checked]="isFromSavingsGoal()"
                 (change)="toggleSavingsGoalSource($event.checked)"
-                [attr.aria-label]="
+                [aria-label]="
                   'currentMonth.addTransactionFromSavingsGoal' | transloco
                 "
+                [aria-describedby]="SAVINGS_SOURCE_HINT_ID"
                 data-testid="transaction-savings-source-toggle"
               />
             </div>
-            <p class="text-body-small text-on-surface-variant m-0">
+            <p
+              [id]="SAVINGS_SOURCE_HINT_ID"
+              class="text-body-small text-on-surface-variant m-0"
+            >
               {{ 'currentMonth.addTransactionFromSavingsGoalHint' | transloco }}
             </p>
             @if (isFromSavingsGoal()) {
@@ -173,20 +196,30 @@ interface AddTransactionModel {
           </div>
         }
       </div>
-      <div class="add-transaction-form-meta grid grid-cols-1 gap-3">
-        <div
-          class="flex items-center gap-2 p-3 bg-surface-container rounded-lg text-on-surface-variant"
-        >
-          <mat-icon>event</mat-icon>
-          <span>{{ 'currentMonth.addTransactionToday' | transloco }}</span>
-        </div>
+      <div class="add-transaction-form-meta">
         <div class="flex items-center justify-between py-2 px-1">
-          <span class="text-body-medium text-on-surface">{{
-            'transactionForm.checkedToggle' | transloco
-          }}</span>
+          <div class="flex flex-col">
+            <span class="text-body-medium text-on-surface">{{
+              'transactionForm.checkedToggle' | transloco
+            }}</span>
+            <!-- "Pointer" was taught on this page for a prévision, then reused
+                 here on a real transaction with no gloss and defaulted on —
+                 while the rarer savings-source toggle above carries a full
+                 explanatory line. Off, the amount lands in "Engagé" rather than
+                 "Pointé": both figures the user came to read. -->
+            <span
+              [id]="CHECKED_HINT_ID"
+              class="text-body-small text-on-surface-variant"
+              >{{ 'transactionForm.checkedToggleHint' | transloco }}</span
+            >
+          </div>
+          <!-- Described by the line beside it, so the gloss that was just added
+               for sighted users reaches a screen reader too: the hint is a
+               sibling span, and an accessible name never picks one up. -->
           <mat-slide-toggle
             [formField]="transactionForm.isChecked"
-            [attr.aria-label]="'transactionForm.checkedToggle' | transloco"
+            [aria-label]="'transactionForm.checkedToggle' | transloco"
+            [aria-describedby]="CHECKED_HINT_ID"
           />
         </div>
       </div>
@@ -202,9 +235,9 @@ interface AddTransactionModel {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       column-gap: var(--pulpe-section-gap-md);
     }
+    :host(.add-transaction-form-wide) .add-transaction-form-lede,
     :host(.add-transaction-form-wide) .add-transaction-form-meta {
       grid-column: span 2 / span 2;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   `,
   host: { class: 'block' },
@@ -222,6 +255,9 @@ export class AddTransactionForm {
 
   protected readonly currency = this.#userSettings.currency;
   protected readonly predefinedAmounts = [10, 15, 20, 30] as const;
+  protected readonly CHECKED_HINT_ID = 'add-transaction-checked-hint';
+  protected readonly SAVINGS_SOURCE_HINT_ID =
+    'add-transaction-savings-source-hint';
   protected readonly conversionError = signal(false);
 
   protected readonly model = signal<AddTransactionModel>({
@@ -233,6 +269,12 @@ export class AddTransactionForm {
     tagIds: [],
     isChecked: true,
   });
+
+  // Lu par les deux coques pour terminer leur titre : « Noter une dépense »
+  // devient « Noter un revenu ». Le select reste visible pendant qu'on le
+  // manipule, donc la mutation se lit comme une réponse à ce qu'on vient de
+  // faire, et non comme un tremblement du titre.
+  readonly kind = computed(() => this.model().kind);
 
   // L'origine n'est pas un champ signal-forms : le picker est value-based. Elle
   // est effacée au changement de type (`onKindChange`) plutôt que dérivée du
@@ -295,6 +337,21 @@ export class AddTransactionForm {
     });
     applyAmountValidators(path.money);
     required(path.kind);
+  });
+
+  // Ce que l'utilisateur a tapé, pas ce que le formulaire vaut : les deux
+  // coques qui hébergent ce formulaire s'en servent pour savoir si une
+  // fermeture accidentelle détruit quelque chose. Le type et le pointage ont
+  // une valeur par défaut que personne n'a choisie, donc ils n'entrent pas ;
+  // la devise non plus, seule elle ne fait pas une saisie.
+  readonly hasInput = computed(() => {
+    const { name, money, tagIds } = this.model();
+    return (
+      name.trim().length > 0 ||
+      money.amount !== null ||
+      tagIds.length > 0 ||
+      this.isFromSavingsGoal()
+    );
   });
 
   readonly canSubmit = computed(() => {

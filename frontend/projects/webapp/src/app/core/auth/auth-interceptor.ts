@@ -91,6 +91,18 @@ function handleAuthError(
     );
   }
 
+  // A 401 with nothing left to refresh: this tab is already signed out, which
+  // is what a global signOut from a sibling tab leaves behind. It used to fall
+  // through to the feature, so the app went on rendering its shell around an
+  // error card that blamed the network and offered a retry that could only 401
+  // again — a dead end the user could not leave. No signOut call here: the
+  // session is already gone, and this app signs out with global scope, which
+  // would revoke the phone's session too.
+  if (error.status === 401) {
+    ctx.router.navigate(['/', ROUTES.LOGIN]);
+    return throwError(() => error);
+  }
+
   if (
     error.status === 403 &&
     error.error?.code === 'ERR_AUTH_CLIENT_KEY_MISSING'

@@ -25,11 +25,6 @@ extension BudgetDetailsView {
         }
     }
 
-    func handleRealizationGesture(on line: BudgetLine) {
-        guard line.isPlannedSavingsWithdrawal else { return }
-        router.push(.addAllocatedTx(lineId: line.id))
-    }
-
     @ViewBuilder
     func pushDestination(for route: BudgetLinePushRoute) -> some View {
         switch route {

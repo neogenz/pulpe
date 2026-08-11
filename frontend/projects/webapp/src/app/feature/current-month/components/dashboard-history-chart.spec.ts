@@ -1,6 +1,7 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { DashboardHistoryChart } from './dashboard-history-chart';
+import { AmountsVisibilityService } from '@core/amounts-visibility/amounts-visibility.service';
 import type { HistoryDataPoint } from '../services/dashboard-state';
 import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { setTestInput } from '../../../testing/signal-test-utils';
@@ -81,6 +82,77 @@ describe('DashboardHistoryChart', () => {
 
   it('should report hasData false when history is empty', () => {
     expect(component.hasData()).toBe(false);
+  });
+
+  // The Y ticks and the tooltips mask themselves when amounts are hidden; the
+  // label was the third reading of the same figures and consulted nothing. It
+  // is also the only one of the three that reaches a session replay: rrweb
+  // does not record canvas pixels, but it serializes every attribute of an
+  // element it has not been told to block.
+  describe('accessible label', () => {
+    it('should spell out the figures while amounts are shown', () => {
+      setTestInput(component.history, mockHistoryData);
+      fixture.detectChanges();
+
+      const canvas = fixture.nativeElement.querySelector('canvas');
+      expect(canvas?.getAttribute('aria-label')).toContain("5'100");
+    });
+
+    it('should drop the figures once amounts are hidden', () => {
+      // Toggled before the first render: chart.js cannot re-lay-out in jsdom,
+      // and the second detectChanges would die inside its resize rather than
+      // in anything this test is about.
+      fixture.debugElement.injector.get(AmountsVisibilityService).toggle();
+      setTestInput(component.history, mockHistoryData);
+      fixture.detectChanges();
+
+      const label =
+        fixture.nativeElement
+          .querySelector('canvas')
+          ?.getAttribute('aria-label') ?? '';
+      expect(label).toContain('Montants masqués');
+      expect(label).not.toContain("5'100");
+    });
+
+    it('should keep the chart out of session replay', () => {
+      setTestInput(component.history, mockHistoryData);
+      fixture.detectChanges();
+
+      const canvas = fixture.nativeElement.querySelector('canvas');
+      expect(canvas?.classList.contains('ph-no-capture')).toBe(true);
+      expect(canvas?.classList.contains('amounts-visible')).toBe(true);
+    });
+  });
+
+  // A failed history fetch reaches this component as the same empty array a
+  // brand-new account produces, so the card told a user with six months of
+  // history that he had none — and offered nothing to retry.
+  it('should offer a retry instead of the empty message when loading failed', () => {
+    setTestInput(component.hasError, true);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).not.toContain(
+      "Pas encore d'historique",
+    );
+    expect(fixture.nativeElement.textContent).toContain(
+      'Historique indisponible',
+    );
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="history-chart-retry"]',
+      ),
+    ).toBeTruthy();
+  });
+
+  // hasData waits on the theme as well as the data, and the theme only lands in
+  // afterNextRender — so before the first render a populated history looks
+  // exactly like an absent one. A trailing @else turned that into "Pas encore
+  // d'historique" for a frame, told to every user who has six months of it.
+  it('should not call a populated history empty while the theme resolves', () => {
+    setTestInput(component.history, mockHistoryData);
+
+    expect(component.hasData()).toBe(false);
+    expect(component.isEmpty()).toBe(false);
   });
 
   it('should report hasData true when history has entries', () => {

@@ -50,6 +50,20 @@ export function registerChartPlugins(): void {
 
 export const CHART_FONT_FAMILY = 'DM Sans, sans-serif';
 
+// Chart.js runs a 1000ms draw by default, and the two dashboard charts were the
+// only motion in the app that ignored the system preference — everything else
+// goes through `motion-safe:` or its own reduce block. Asked per build rather
+// than resolved once at module load: the charts sit behind `@defer (on
+// viewport)`, so the preference can change before the first one is ever
+// created. `undefined` leaves Chart.js on its own default, and the optional
+// call guards jsdom, which ships no `matchMedia`.
+export function resolveChartAnimation(): false | undefined {
+  if (typeof window === 'undefined') return undefined;
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    ? false
+    : undefined;
+}
+
 export function resolveColor(cssValue: string, doc: Document): string {
   const el = doc.createElement('div');
   el.style.color = cssValue;
@@ -147,4 +161,51 @@ export function formatCurrency(
 ): string {
   const config = CURRENCY_CONFIG[currency];
   return getCurrencyFormatter(currency, config.numberLocale).format(value);
+}
+
+const ariaFormatterCache = new Map<string, Intl.NumberFormat>();
+
+// The accessibility spelling of an amount: same digits as `formatCurrency`, ISO
+// code where the visible label carries the symbol. Screen readers pronounce
+// "EUR" reliably while `€` is voice-dependent and sometimes skipped outright.
+// CHF users hear no difference — their symbol already *is* the ISO code, which
+// is why the gap only ever showed up for EUR.
+export function formatCurrencyForAria(
+  value: number,
+  currency: SupportedCurrency,
+): string {
+  const locale = CURRENCY_CONFIG[currency].numberLocale;
+  let formatter = ariaFormatterCache.get(locale);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(locale, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    ariaFormatterCache.set(locale, formatter);
+  }
+  return `${formatter.format(value)} ${currency}`;
+}
+
+const AXIS_ABBREVIATION_THRESHOLD = 1000;
+const axisFormatterCache = new Map<string, Intl.NumberFormat>();
+
+// A y-axis label. Both charts abbreviated on the raw value rather than its
+// magnitude, so a projection dipping under zero — which the fill gradient
+// splits at zero precisely to show — printed "4k, 2k, 0, -2000, -4000", half
+// the axis in one unit and half in another. And both divided and concatenated,
+// which is `String(2.5)`: a dot on an axis whose own tooltip, formatted through
+// the same currency's locale, writes the separator the other way.
+export function formatAxisTick(
+  value: number,
+  currency: SupportedCurrency,
+): string {
+  const locale = CURRENCY_CONFIG[currency].numberLocale;
+  let formatter = axisFormatterCache.get(locale);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 });
+    axisFormatterCache.set(locale, formatter);
+  }
+  return Math.abs(value) < AXIS_ABBREVIATION_THRESHOLD
+    ? formatter.format(value)
+    : `${formatter.format(value / AXIS_ABBREVIATION_THRESHOLD)}k`;
 }

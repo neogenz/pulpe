@@ -91,6 +91,7 @@ body {
   --pulpe-section-gap-lg: 32px;
 
   /* Surfaces */
+  --pulpe-surface-radius-hero: 32px;
   --pulpe-surface-radius-card: 24px;
   --pulpe-surface-radius-panel: 16px;
   --pulpe-surface-border-subtle: 1px solid var(--mat-sys-outline-variant);
@@ -349,6 +350,26 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: var(--pulpe-section-gap-sm);
+}
+
+// Nothing draws a focus ring in this app unless this rule does. Material only
+// paints one where mat.strong-focus-indicators() is included, and it never is,
+// so focusing one of its buttons changed nothing but a 12% ripple tint — 1.20:1
+// against the surface, where WCAG asks 3:1 of a focus indicator, which left the
+// dashboard's primary action with no visible focus at all. Links had it worse:
+// they fell through to Chrome's own hairline in rgb(229, 151, 0), the hue this
+// system reserves for "dépense", on controls that have nothing to do with
+// spending. One ring for every focusable, rather than one rule per component.
+// The doubled class is not a typo. Material ships
+// `.mat-mdc-fab-base:active, .mat-mdc-fab-base:focus { outline: none }` — a
+// reset that assumes the app opted into mat.strong-focus-indicators(), which
+// this one never did — and at (0,2,0) it outranks the selector above. Repeating
+// the class buys the one point of specificity that wins it back, which is
+// cheaper than an !important and cheaper than a rule per component.
+:is(button, a):focus-visible,
+.mat-mdc-fab-base.mat-mdc-fab-base:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
 }
 
 // Budget section group - Material expansion panel overrides

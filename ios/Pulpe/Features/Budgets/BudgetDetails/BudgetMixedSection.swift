@@ -1,5 +1,4 @@
 import SwiftUI
-import TipKit
 
 /// Mixed-list section for the budget detail screen (DM2.1.b.c5).
 ///
@@ -21,8 +20,6 @@ struct BudgetMixedSection: View {
     let savingsWithdrawalOriginMonthName: String?
     let onTap: (BudgetLine) -> Void
     let onTogglePointed: (BudgetLine) -> Void
-    let onRealizeWithdrawal: (BudgetLine) -> Void
-    var tip: (any Tip)?
 
     init(
         kind: TransactionKind,
@@ -32,9 +29,7 @@ struct BudgetMixedSection: View {
         tagNamesById: [String: String] = [:],
         savingsWithdrawalOriginMonthName: String? = nil,
         onTap: @escaping (BudgetLine) -> Void,
-        onTogglePointed: @escaping (BudgetLine) -> Void,
-        onRealizeWithdrawal: @escaping (BudgetLine) -> Void = { _ in },
-        tip: (any Tip)? = nil
+        onTogglePointed: @escaping (BudgetLine) -> Void
     ) {
         self.kind = kind
         self.items = items
@@ -44,8 +39,6 @@ struct BudgetMixedSection: View {
         self.savingsWithdrawalOriginMonthName = savingsWithdrawalOriginMonthName
         self.onTap = onTap
         self.onTogglePointed = onTogglePointed
-        self.onRealizeWithdrawal = onRealizeWithdrawal
-        self.tip = tip
     }
 
     /// O(1) lookup of the linked goal's name for a line, or `nil` when the line
@@ -81,12 +74,6 @@ struct BudgetMixedSection: View {
             .padding(.top, DesignTokens.Spacing.lg)
             .padding(.bottom, DesignTokens.Spacing.sm)
 
-            if let tip {
-                TipView(tip)
-                    .padding(.horizontal, DesignTokens.Spacing.lg)
-                    .padding(.bottom, DesignTokens.Spacing.md)
-            }
-
             ForEach(items) { item in
                 BudgetLineMixedRow(
                     line: item.line,
@@ -97,8 +84,7 @@ struct BudgetMixedSection: View {
                     tagNames: TagChips.names(for: item.line.tagIds, namesById: tagNamesById),
                     savingsWithdrawalOriginMonthName: savingsWithdrawalOriginMonthName,
                     onTap: { onTap(item.line) },
-                    onTogglePointed: { onTogglePointed(item.line) },
-                    onRealizeWithdrawal: { onRealizeWithdrawal(item.line) }
+                    onTogglePointed: { onTogglePointed(item.line) }
                 )
                 .padding(.horizontal, DesignTokens.Spacing.lg)
                 .padding(.bottom, DesignTokens.Spacing.md)

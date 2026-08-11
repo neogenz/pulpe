@@ -162,8 +162,14 @@
 }
 
 /* Financial colors & Material overrides - need !important to override Material defaults */
+/* The box has to shrink with the glyph. Material fixes mat-icon at 24px square,
+   so overriding the font alone left an 18px line box hanging at the top of a
+   24px element: every parent centring the box drew the glyph 3px high, and the
+   round badges around it looked off-centre while measuring perfectly centred. */
 @utility mat-icon-sm {
   font-size: 1.125rem !important;
+  width: 1.125rem !important;
+  height: 1.125rem !important;
 }
 
 @utility text-financial-income {

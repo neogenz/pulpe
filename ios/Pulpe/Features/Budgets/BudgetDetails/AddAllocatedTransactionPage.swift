@@ -220,7 +220,6 @@ struct AddAllocatedTransactionPage: View {
             hint: line.kind.descriptionPlaceholder,
             text: $name,
             label: "Description",
-            accessibilityLabel: "Description de la transaction",
             focusBinding: $focusedField,
             field: .description
         )
@@ -295,7 +294,7 @@ struct AddAllocatedTransactionPage: View {
             // once the server confirms, so the UI can dismiss immediately.
             _ = try await coordinator.createAllocatedTransaction(data)
             submitSuccessTrigger.toggle()
-            toastManager.show("Transaction ajoutée")
+            toastManager.show("Enregistré")
             dismiss()
         } catch {
             // The entry stays on screen with everything the user typed: a refusal

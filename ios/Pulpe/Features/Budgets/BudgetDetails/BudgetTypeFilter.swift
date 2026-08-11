@@ -156,14 +156,20 @@ struct BudgetTypeFilter: View {
             checkedMenuItems()
         } label: {
             PulpeChip(
-                icon: checked.icon,
                 label: checked.label,
                 count: checkedCounts.count(for: checked),
-                style: .outlined,
+                // Solid whenever the filter is narrowing the list — including the
+                // `.unchecked` default. Left permanently `.outlined`, the control
+                // read as inactive while it hid rows, and the "Tout est pointé"
+                // empty state looked like an empty budget. Matches `typePill()`.
+                style: checked == .all ? .outlined : .solid,
                 trailing: {
                     Image(systemName: "chevron.down")
                         .font(PulpeTypography.metricMini)
-                        .foregroundStyle(Color.textTertiary)
+                        // Derived from the chip's own foreground, not a fixed grey:
+                        // `.solid` inverts to `systemBackground` and a hardcoded
+                        // `textTertiary` chevron would vanish into the dark fill.
+                        .foregroundStyle(.secondary)
                 }
             )
         }

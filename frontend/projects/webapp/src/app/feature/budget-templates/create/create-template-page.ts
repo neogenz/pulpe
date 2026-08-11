@@ -56,7 +56,7 @@ const SNACKBAR_CONFIG = {
           <mat-icon>arrow_back</mat-icon>
         </button>
         <h1
-          class="text-headline-medium md:text-display-small"
+          class="text-headline-medium md:text-display-small font-bold"
           data-testid="page-title"
         >
           {{ pageTitle }}

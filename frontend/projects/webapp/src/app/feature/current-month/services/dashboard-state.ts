@@ -11,6 +11,11 @@ export interface HistoryDataPoint {
   month: number;
   year: number;
   income: number;
+  // `totalExpenses` as the API sends it, so savings are inside — that is the
+  // figure `available - totalExpenses` is defined against. `historyData()`
+  // subtracts them before the chart draws "Dépenses" and "Épargne" side by
+  // side; read that computed, not the raw resource, whenever the two are shown
+  // as separate quantities.
   expenses: number;
   savings: number;
 }

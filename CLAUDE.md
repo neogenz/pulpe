@@ -11,7 +11,7 @@ pnpm dev:frontend             # frontend + shared    (same for dev:backend)
 pnpm test                     # Unit tests           (pnpm test:e2e → Playwright)
 
 # Quality — root only (no package defines `quality` except backend-nest)
-pnpm quality                  # turbo quality + format:check:automation + test:ci-security + test:public-surface
+pnpm quality                  # turbo quality + format:check:automation + test:ci-security + test:public-surface + test:lexicon
                               # lefthook runs it pre-commit, but scoped `--filter="...[HEAD^]"` and SKIPPED on merge/rebase
                               # Angular templates (strictTemplates) are only checked by `ng build` → dedicated CI job
 
@@ -34,7 +34,8 @@ cd backend-nest && supabase start
 
 Product-facing copy is French. Code and docs are English.
 
-- `budget_line` (table; `budgetLines` on the wire) → "prévisions" | `fixed` → "Récurrent" | `one_off` → "Prévu" | `transaction` → "Réel"
+- `budget_line` (table; `budgetLines` on the wire) → "prévisions" | `fixed` → "Récurrent" | `one_off` → "Prévu"
+- `transaction` has no single word but three scopes: "Réel" for the aggregate facing "Prévu"; "Mouvements" for a collection; the nature ("dépense", "revenu", "épargne") or a verb for a single object. The word "transaction" itself never shows on screen — `pnpm test:lexicon` enforces it.
 - `income` → "Revenu" | `expense` → "Dépense" | `saving` → "Épargne"
 - `checked` → "Pointé" | `unchecked` → "À pointer"
 - Labels: "Disponible à dépenser", "Épargne prévue", "Fréquence"
