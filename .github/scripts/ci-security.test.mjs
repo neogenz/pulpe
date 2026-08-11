@@ -8,6 +8,7 @@ const read = (path) =>
 const action = read(".github/actions/setup-supabase-cli/action.yml");
 const workflow = read(".github/workflows/ci.yml");
 const dockerfile = read("backend-nest/Dockerfile");
+const rootPackage = JSON.parse(read("package.json"));
 const backendPackage = JSON.parse(read("backend-nest/package.json"));
 const ciGuide = read("docs/CI.md");
 
@@ -66,4 +67,12 @@ test("pull requests cannot execute production migration credentials", () => {
 
 test("the backend image does not install Bun", () => {
   assert.doesNotMatch(dockerfile, /bun\.sh\/install|\/root\/\.bun/);
+});
+
+test("critical production dependency audit stays in CI", () => {
+  assert.equal(
+    rootPackage.scripts["audit:prod:critical"],
+    "pnpm audit --prod --audit-level critical",
+  );
+  assert.match(workflow, /check:\s*\[[^\]]*"audit:prod:critical"[^\]]*\]/);
 });
