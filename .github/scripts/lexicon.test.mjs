@@ -79,6 +79,11 @@ const braceDelta = (line) => {
   return (code.match(/{/g) ?? []).length - (code.match(/}/g) ?? []).length;
 };
 
+// Un commentaire décrit le code, il ne s'affiche pas — et un `"""` qu'il cite
+// n'ouvre aucun littéral. Le test passe donc avant tout le reste, sauf à
+// l'intérieur d'un littéral, où une ligne commençant par `//` est du texte.
+const isComment = (line) => /^\s*(\/\/|\*|\/\*)/.test(line);
+
 /**
  * Un fichier se lit du haut vers le bas parce que deux constructions débordent
  * de leur ligne, et qu'un balayage ligne à ligne les manque toutes les deux :
@@ -91,6 +96,10 @@ const braceDelta = (line) => {
  *     pas. C'est le bloc entier qui sort du périmètre, suivi à la profondeur
  *     d'accolades — n'en sauter que la ligne d'ouverture ne tenait pas la
  *     promesse et poussait à exempter des fichiers entiers à la place.
+ *
+ * Les deux états se referment avant la fin du fichier, et la fonction le
+ * vérifie : un décalage ne coûte pas un faux positif, il fait sauter tout le
+ * reste du fichier en silence. Un garde qui lit moins qu'annoncé doit le dire.
  */
 const offendersIn = (path, source) => {
   const offenders = [];
@@ -104,12 +113,19 @@ const offendersIn = (path, source) => {
       }
     };
 
-    if (line.includes('"""')) {
-      insideMultilineLiteral = !insideMultilineLiteral;
+    if (insideMultilineLiteral) {
+      if (line.includes('"""')) {
+        insideMultilineLiteral = false;
+        return;
+      }
+      if (previewDepth === 0) flag(withoutInterpolations(line.trim()));
       return;
     }
-    if (insideMultilineLiteral) {
-      if (previewDepth === 0) flag(withoutInterpolations(line.trim()));
+
+    if (isComment(line)) return;
+
+    if (line.includes('"""')) {
+      insideMultilineLiteral = true;
       return;
     }
 
@@ -122,11 +138,16 @@ const offendersIn = (path, source) => {
       return;
     }
 
-    // Un commentaire décrit le code, il ne s'affiche pas.
-    if (/^\s*(\/\/|\*|\/\*)/.test(line)) return;
-
     (line.match(/"(?:[^"\\]|\\.)*"/g) ?? []).map(displayedText).forEach(flag);
   });
+
+  if (insideMultilineLiteral || previewDepth !== 0) {
+    throw new Error(
+      `${path} : le garde a perdu le fil (littéral ouvert : ${insideMultilineLiteral}, ` +
+        `profondeur de #Preview : ${previewDepth}). Il a donc cessé de lire ce fichier ` +
+        `avant la fin, et son silence ne prouve rien.`,
+    );
+  }
 
   return offenders;
 };
