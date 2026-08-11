@@ -104,7 +104,7 @@ struct TransactionSavingsGoalSourceTests {
 
         #expect(source == .active(goalId: "goal-1", name: "Maison"))
         #expect(source?.isBroken == false)
-        #expect(source?.label == "Pris sur · Maison")
+        #expect(source?.label == "Pris sur Maison")
         #expect(source?.accessibilityLabel == "Revenu pris sur l'objectif Maison")
     }
 

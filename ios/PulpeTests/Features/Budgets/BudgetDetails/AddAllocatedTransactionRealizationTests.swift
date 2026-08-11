@@ -153,7 +153,9 @@ struct AddAllocatedTransactionRealizationTests {
             savingsGoalSource: .broken(name: "Fonds d'urgence")
         )
 
-        #expect(active == "Pris sur · Fonds d'urgence")
+        // No `·` after the preposition: on this line the separator joins peer
+        // facts, so one here would read as "Pris sur" then something unrelated.
+        #expect(active == "Pris sur Fonds d'urgence")
         #expect(deleted == "Objectif supprimé · Fonds d'urgence")
     }
 }
