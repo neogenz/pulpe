@@ -236,11 +236,11 @@ describe('GetSavingsGoalWithdrawalsUseCase', () => {
 
     expect(result.planned[0]).toEqual(
       expect.objectContaining({
-        realizedAmount: 10.049999999999999,
         remainingAmount: 0,
         status: 'realized',
       }),
     );
+    expect(result.planned[0]?.realizedAmount).toBeCloseTo(10.05);
   });
 
   it('recomputes after an edit or deletion and ignores pointing state', async () => {
