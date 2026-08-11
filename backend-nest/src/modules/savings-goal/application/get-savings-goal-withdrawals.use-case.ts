@@ -3,10 +3,11 @@ import {
   SAVINGS_GOAL_REPOSITORY,
   type SavingsGoalRepositoryPort,
 } from '../domain/ports/savings-goal-repository.port';
-import type {
-  SavingsGoalPlannedWithdrawal,
-  SavingsGoalPlanOnlyWithdrawal,
-  SavingsGoalWithdrawal,
+import {
+  WITHDRAWAL_BALANCE_TOLERANCE,
+  type SavingsGoalPlannedWithdrawal,
+  type SavingsGoalPlanOnlyWithdrawal,
+  type SavingsGoalWithdrawal,
 } from 'pulpe-shared';
 
 export interface SavingsGoalWithdrawalsReadModel {
@@ -73,7 +74,9 @@ export class GetSavingsGoalWithdrawalsUseCase {
     realizedByLine: ReadonlyMap<string, number>,
   ): SavingsGoalPlannedWithdrawal {
     const realizedAmount = realizedByLine.get(record.budgetLineId) ?? 0;
-    const remainingAmount = Math.max(0, record.amount - realizedAmount);
+    const remaining = record.amount - realizedAmount;
+    const remainingAmount =
+      remaining > WITHDRAWAL_BALANCE_TOLERANCE ? remaining : 0;
     return {
       budgetLineId: record.budgetLineId,
       budgetId: record.budgetId,

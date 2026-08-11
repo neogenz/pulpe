@@ -12,6 +12,7 @@ import {
   PACE_TOLERANCE_PERCENT,
   calculatePaceStatus,
   computeSavingsGoalProgress,
+  remainingPlannedWithdrawal,
   suggestedMonthlyContribution,
   type LinkedSavingLine,
   type LinkedSavingTransaction,
@@ -138,6 +139,20 @@ describe('calculatePaceStatus', () => {
 
   it('la tolérance par défaut est 5 %', () => {
     expect(PACE_TOLERANCE_PERCENT).toBe(5);
+  });
+});
+
+describe('remainingPlannedWithdrawal', () => {
+  it('normalizes floating-point residue after full realization', () => {
+    expect(
+      remainingPlannedWithdrawal(
+        { id: 'planned', amount: 10.05, month: 6, year: 2026 },
+        [
+          { budgetLineId: 'planned', amount: 0.01, month: 6, year: 2026 },
+          { budgetLineId: 'planned', amount: 10.04, month: 6, year: 2026 },
+        ],
+      ),
+    ).toBe(0);
   });
 });
 

@@ -207,6 +207,42 @@ describe('GetSavingsGoalWithdrawalsUseCase', () => {
     expect(result.withdrawals).toHaveLength(3);
   });
 
+  it('normalizes floating-point residue as fully realized', async () => {
+    mockRepo.findPlannedWithdrawalRecords.mockResolvedValueOnce([
+      {
+        budgetLineId: '223e4567-e89b-12d3-a456-426614174010',
+        budgetId: '123e4567-e89b-12d3-a456-426614174001',
+        name: 'Total décimal',
+        month: 9,
+        year: 2026,
+        amount: 10.05,
+      },
+    ]);
+    mockRepo.findWithdrawals.mockResolvedValueOnce([
+      {
+        ...withdrawal,
+        budgetLineId: '223e4567-e89b-12d3-a456-426614174010',
+        amount: 0.01,
+      },
+      {
+        ...withdrawal,
+        transactionId: '123e4567-e89b-12d3-a456-426614174020',
+        budgetLineId: '223e4567-e89b-12d3-a456-426614174010',
+        amount: 10.04,
+      },
+    ]);
+
+    const result = await useCase.execute('goal-1');
+
+    expect(result.planned[0]).toEqual(
+      expect.objectContaining({
+        realizedAmount: 10.049999999999999,
+        remainingAmount: 0,
+        status: 'realized',
+      }),
+    );
+  });
+
   it('recomputes after an edit or deletion and ignores pointing state', async () => {
     mockRepo.findWithdrawals.mockResolvedValueOnce([
       {
