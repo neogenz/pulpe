@@ -1,6 +1,7 @@
 ---
 description: "TypeScript strict typing and conventions"
-paths: "**/*.ts"
+paths:
+  - "**/*.ts"
 ---
 
 # TypeScript

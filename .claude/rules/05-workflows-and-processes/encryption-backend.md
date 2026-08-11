@@ -6,6 +6,10 @@ paths:
   - "backend-nest/**/transaction*.ts"
   - "backend-nest/**/budget-line*.ts"
   - "backend-nest/**/template*.ts"
+  - "backend-nest/**/savings-goal*.ts"
+  - "backend-nest/**/tag*.ts"
+  - "backend-nest/**/demo*.ts"
+  - "backend-nest/supabase/migrations/**/*.sql"
 ---
 
 # Encryption (Backend)
@@ -109,7 +113,7 @@ async insert(input: BudgetLineCreateInput): Promise<BudgetLine> {
 async execute(input: BudgetLineCreate, user: AuthenticatedUser): Promise<BudgetLine> {
   BudgetLineInvariants.validateCreate(input);
   const entity = await this.repo.insert(input);  // plain numbers in, decrypted entity out
-  await this.budgetRecalculation.recalculate(entity.budgetId, user.clientKey);
+  await this.budgetRecalculation.recalculate(entity.budgetId);
   return entity;
 }
 ```

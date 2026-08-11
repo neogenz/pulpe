@@ -33,7 +33,7 @@ Cross-module: modules talk to each other only through ports + Symbol tokens, nev
 ```
 backend-nest/src/modules/<domain>/
 ├── domain/
-│   ├── <domain>.entity.ts              # Plain types from DB row generators
+│   ├── <domain>.entity.ts              # Explicit decrypted domain interfaces
 │   ├── <domain>.invariants.ts          # Pure validation, throws BusinessException
 │   ├── <domain>.formulas.ts            # Pure domain logic (optional)
 │   └── ports/
@@ -86,7 +86,7 @@ export class CreateBudgetLineUseCase {
   async execute(dto: BudgetLineCreate, user: AuthenticatedUser): Promise<BudgetLine> {
     BudgetLineInvariants.validateCreate(dto);
     const entity = await this.repo.insert(/* plain numbers, no encryption here */);
-    await this.budgetRecalculation.recalculate(entity.budgetId, user.clientKey);
+    await this.budgetRecalculation.recalculate(entity.budgetId);
     this.logger.info({ operation: 'budgetLine.create', userId: user.id }, 'Budget line created');
     return entity;
   }

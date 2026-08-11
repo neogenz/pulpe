@@ -1,6 +1,7 @@
 ---
 description: "Never use raw design values (colors, spacing, opacity, radii, typography) — always use DesignTokens or shared modifiers"
-paths: "ios/**/*.swift"
+paths:
+  - "ios/{Pulpe,PulpeWidget}/**/*.swift"
 ---
 
 # No Magic Design Values in iOS
@@ -30,7 +31,7 @@ Before writing any visual value, check `DesignTokens.swift` for an existing toke
 |------|-----------|
 | Spacing, radii, borders, opacity, animation | `Shared/Design/DesignTokens.swift` |
 | Colors | `Shared/Extensions/Color+Pulpe.swift` |
-| Typography | `Shared/Design/PulpeTypography.swift` |
+| Typography | `Shared/Styles/Typography.swift` |
 | Card/sheet backgrounds | `Shared/Extensions/View+Extensions.swift` (`pulpeCardBackground()`, `standardSheetPresentation()`) |
 | Button styles | `Shared/Design/PrimaryButtonStyle.swift` |
 

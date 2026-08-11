@@ -361,9 +361,9 @@ See [POSTHOG_RELEASES.md](./POSTHOG_RELEASES.md) for the full PostHog release ar
 # Local checks
 pnpm build                # Everything builds without error
 pnpm quality              # Lint + format + type-check
-pnpm test                 # Unit + integration tests
+pnpm test                 # Unit tests
+(cd backend-nest && bun run test:integration)
 pnpm test:e2e             # E2E tests (Playwright)
-pnpm test:performance     # Backend load tests
 ```
 
 ### 2. Versioning (Changesets)

@@ -25,7 +25,8 @@ cd backend-nest && supabase start
 
 ## Critical Rules
 
-- **NEVER** destructive Supabase cmds (`db reset`, `db push --force`)
+- **NEVER** destructive Supabase commands on a linked database (`db reset`, `db push --force`).
+  Locally, use only `bun run supabase:reset`, which re-encrypts the seed after resetting it.
 - **AFTER** DB schema change: `bun run generate-types:local` in backend
 - **ALWAYS** encrypt financial amounts (`amount`, `target_amount`, `ending_balance`) via `ENCRYPTION_PORT` before DB write. Columns `text` holding AES-256-GCM ciphertexts. (see `docs/ENCRYPTION.md`)
 - **ALWAYS** mirror a formula change across both sides: `shared/src/calculators/` ↔ `ios/Pulpe/Domain/Formulas/`, tests included, same commit. Nothing fails the build when they diverge — web and iOS just show two different amounts. (see `.claude/rules/00-architecture/formula-mirrors-ts-swift.md`)

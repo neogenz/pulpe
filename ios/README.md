@@ -1,159 +1,55 @@
 # Pulpe iOS
 
-Application iOS native pour la gestion de budget personnel, construite avec Swift et SwiftUI.
-
-## Prérequis
-
-- Xcode 15.0+
-- iOS 18.0+
-- macOS Sonoma+
+Application SwiftUI native, cible iOS 18+, avec concurrence stricte, WidgetKit, Supabase
+Auth, PostHog et Lottie. Les API iOS 26 restent protégées par `#available`.
 
 ## Installation
 
-1. Ouvrir le projet dans Xcode :
-   ```bash
-   cd ios
-   open Pulpe.xcodeproj
-   ```
+Prérequis : Xcode, XcodeGen et un simulateur iOS compatible.
 
-2. Régénérer le projet Xcode :
-   ```bash
-   xcodegen generate
-   ```
+```bash
+cd ios
+xcodegen generate
+open Pulpe.xcodeproj
+```
 
-3. Choisir un scheme d'environnement :
-   - `PulpeLocal` (développement local)
-   - `PulpePreview` (environnement preview)
-   - `PulpeProd` (production)
-
-4. Build et Run sur simulateur ou device
+Schemes : `PulpeLocal`, `PulpePreview` et `PulpeProd`. `project.yml` est la source de vérité
+du projet Xcode et des dépendances Swift Package Manager.
 
 ## Structure
 
-```
-Pulpe/
-├── App/                 # Entry point, AppState, MainTabView
-├── Core/
-│   ├── Auth/           # AuthService, KeychainManager
-│   ├── Network/        # APIClient, Endpoints, Errors
-│   └── Config/         # AppConfiguration
-├── Domain/
-│   ├── Models/         # Budget, Transaction, Template, etc.
-│   ├── Services/       # BudgetService, TemplateService, etc.
-│   └── Formulas/       # BudgetFormulas (calculs métier)
-├── Features/
-│   ├── Auth/           # LoginView
-│   ├── Onboarding/     # 9-step wizard
-│   ├── Tutorial/       # Interactive overlay
-│   ├── CurrentMonth/   # Dashboard
-│   ├── Budgets/        # List + Details
-│   └── Templates/      # List + Details
-├── Shared/
-│   ├── Components/     # Reusable UI
-│   ├── Extensions/     # Date, Decimal, View
-│   └── Modifiers/      # Custom view modifiers
-└── Resources/          # Assets, Info.plist
-```
-
-## Architecture
-
-- **SwiftUI** avec `@Observable` (iOS 17+)
-- **NavigationStack** type-safe
-- **async/await** pour le networking
-- **Keychain** pour le stockage sécurisé des tokens
-- **Swift 6** avec concurrence stricte (`SWIFT_STRICT_CONCURRENCY: complete`)
-
-## Dépendances (Swift Package Manager)
-
-Déclarées dans [`project.yml`](project.yml) et résolues par XcodeGen :
-
-| Package | Rôle |
-|---------|------|
-| [supabase-swift](https://github.com/supabase/supabase-swift) | Client Supabase (auth / temps réel si utilisé) |
-| [lottie-spm](https://github.com/airbnb/lottie-spm) | Animations Lottie |
-| [posthog-ios](https://github.com/PostHog/posthog-ios) | Analytics |
-| [GoogleSignIn-iOS](https://github.com/google/GoogleSignIn-iOS) | Connexion Google |
-| [VariableBlur](https://github.com/nikstar/VariableBlur) | Flou variable (UI) |
-
-## Features
-
-- [x] Login / Signup via API NestJS
-- [x] Onboarding 9 étapes
-- [x] Tutoriel interactif avec spotlight
-- [x] Gestion du mois courant
-- [x] Liste et détails des budgets (bottom sheet de détail enveloppe avec liste de transactions et support multi-devise)
-- [x] Liste et détails des templates
-- [x] Calculs métier partagés avec le frontend web
-- [x] Design iOS natif (HIG)
+- `Pulpe/App/` : entrée, état global et navigation ;
+- `Pulpe/Core/` : réseau, auth, analytics et infrastructure ;
+- `Pulpe/Domain/` : modèles et formules pures ;
+- `Pulpe/Features/` : fonctionnalités SwiftUI ;
+- `Pulpe/Shared/` : composants, design tokens et extensions ;
+- `PulpeWidget/` : extension WidgetKit ;
+- `PulpeTests/` : Swift Testing ;
+- `PulpeUITests/` : XCUITest.
 
 ## Configuration
 
-### Environnements iOS
+Les fichiers `Config/{Local,Preview,Prod}.xcconfig` définissent l'environnement. Les
+surcharges `*.secrets.xcconfig` sont locales et non versionnées. Les secrets backend
+(`SUPABASE_SERVICE_ROLE_KEY`, `ENCRYPTION_MASTER_KEY`) ne doivent jamais entrer dans l'app.
 
-L'app utilise 3 configurations Xcode mappées à des fichiers `xcconfig`:
+Les secrets de session et de chiffrement vivent dans Keychain ou en mémoire. Les préférences
+bornées utilisent UserDefaults et les snapshots widget l'App Group.
 
-- `Local` → `Config/Local.xcconfig`
-- `Preview` → `Config/Preview.xcconfig`
-- `Prod` → `Config/Prod.xcconfig`
-
-Clés runtime exposées à l'app (via `Info.plist`):
-
-- `APP_ENV`
-- `API_BASE_URL`
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
-
-Surcharges locales non versionnées:
-
-- `Config/Local.secrets.xcconfig`
-- `Config/Preview.secrets.xcconfig`
-- `Config/Prod.secrets.xcconfig`
-
-### Secrets backend (jamais dans iOS)
-
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `ENCRYPTION_MASTER_KEY`
-
-### Password Reset Deep Link
-
-- Redirect URI iOS utilisée pour le reset: `https://app.pulpe.app/reset-password`
-- Association: `applinks:app.pulpe.app` et AASA limité au chemin `/reset-password`
-- Supabase local: l’URL exacte est versionnée dans `backend-nest/supabase/config.toml`
-- Supabase preview/production: ajouter manuellement cette URL exacte dans **Authentication > URL Configuration > Redirect URLs**
-- Le schéma `pulpe://` reste réservé aux liens non sensibles `add-expense` et `budget`
-
-### Build Settings
-
-- Deployment Target: iOS 18.0
-- Swift Language Version: 5.9+
-
-## Développement
-
-### Lancer le backend local
+## Vérification
 
 ```bash
-cd ..
-pnpm dev:backend
+xcodebuild -scheme PulpeLocal -showdestinations
+xcodebuild build -scheme PulpeLocal -sdk iphonesimulator
+# Choisir ensuite un destination id retourné ci-dessus pour xcodebuild test.
 ```
 
-### Commandes utiles
+Les formules de `Pulpe/Domain/Formulas/` reflètent `shared/src/calculators/` et changent dans
+le même commit.
 
-```bash
-# Nettoyer le build
-xcodebuild clean
+## Références
 
-# Build Local pour simulateur
-xcodebuild -scheme PulpeLocal -sdk iphonesimulator
-
-# Build Preview pour simulateur
-xcodebuild -scheme PulpePreview -sdk iphonesimulator
-
-# Tests
-xcodebuild test -scheme PulpeLocal -destination 'platform=iOS Simulator,name=iPhone 15'
-```
-
-## Notes
-
-- L'app utilise la même API que le frontend Angular
-- Les formules de calcul sont identiques (port de `pulpe-shared`)
-- Tokens stockés dans le Keychain (pas de persistance locale des données)
+- [Design iOS](DESIGN.md)
+- [Machine d'état d'authentification](docs/auth-state-machine.md)
+- [Extension du flux d'authentification](docs/auth-flow-extension-guide.md)
+- [Configuration](Config/README.md)

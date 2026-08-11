@@ -1,6 +1,7 @@
 ---
 description: SwiftUI hit area standards — contentShape, minimum tap targets, shared ButtonStyles, hitbox vs visual separation
-paths: "ios/**/*.swift"
+paths:
+  - "ios/**/*.swift"
 ---
 
 # SwiftUI Hit Area Standards

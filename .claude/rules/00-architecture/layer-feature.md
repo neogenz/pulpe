@@ -1,6 +1,7 @@
 ---
 description: "Feature layer - Business features (lazy-loaded, isolated black boxes)"
-paths: "frontend/**/feature/**/*"
+paths:
+  - "frontend/**/feature/**/*"
 ---
 
 # Feature Layer

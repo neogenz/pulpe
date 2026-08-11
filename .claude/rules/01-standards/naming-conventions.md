@@ -1,6 +1,7 @@
 ---
 description: Naming conventions for variables, functions, and constants
-paths: "**/*.ts"
+paths:
+  - "**/*.ts"
 ---
 
 # Naming Conventions
@@ -21,5 +22,3 @@ The two that get missed most: a signal holding an array is plural
 (`#users = signal<User[]>([])`, not `#user`), and a boolean signal keeps its prefix
 (`isLoading = signal(false)`, not `loading`) — dropping it reads as the thing itself rather
 than a predicate about it.
-
-Naming *by intention* rather than by mechanism is in `clean-code.md`.

@@ -1,6 +1,7 @@
 ---
 description: BudgetDetails iOS feature architecture — Stores + Projector + Coordinator + Router. Apply to any feature with 5+ mutations / 3+ derivations / persisted filters.
-paths: "ios/Pulpe/Features/Budgets/BudgetDetails/**/*.swift"
+paths:
+  - "ios/Pulpe/Features/Budgets/BudgetDetails/**/*.swift"
 ---
 
 # BudgetDetails feature architecture

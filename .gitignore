@@ -88,8 +88,13 @@ coverage-report.json
 .claude/worktrees/
 .claude/settings.local.json
 
-# Local AIDD execution artifacts
-aidd_docs/tasks/
+# AIDD plans/specs are project history; browser screenshots remain local evidence.
+aidd_docs/tasks/**/evidence/
+
+# Impeccable critique reports are durable backlog; runtime state and sketches are local.
+.impeccable/config.local.json
+.impeccable/hook.cache.json
+.impeccable/sketches/
 
 docs/angular-full.txt
 

@@ -1,6 +1,7 @@
 ---
 description: Mandatory Zod-based API contracts for all NestJS endpoints
-paths: "backend-nest/src/modules/**/*.controller.ts"
+paths:
+  - "backend-nest/src/modules/**/*.controller.ts"
 ---
 
 # API Contracts — Zod DTOs (Mandatory)

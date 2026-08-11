@@ -1,6 +1,7 @@
 ---
 description: "Pattern layer - Reusable business components (drop-in, can use services)"
-paths: "frontend/**/pattern/**/*"
+paths:
+  - "frontend/**/pattern/**/*"
 ---
 
 # Pattern Layer

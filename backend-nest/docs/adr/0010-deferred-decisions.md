@@ -15,7 +15,7 @@ The forces behind every "no": small team, narrow product surface (personal finan
 Explicitly NOT adopted at this stage:
 
 - **CQRS / mediator pattern.** No `ICommand` / `IQuery` / `IHandler`. Use cases call repository ports directly (ADR-0003). A mediator buys decoupling we don't need at our scale.
-- **Full DDD aggregates.** Entities are typed aliases of generated DB rows, not aggregate roots with private invariants and identity. Pure validation lives in `<domain>.invariants.ts`.
+- **Full DDD aggregates.** Entities are plain decrypted domain interfaces, not aggregate roots with private behavior and invariants. Pure validation lives in `<domain>.invariants.ts`.
 - **Value objects.** No `Money`, `Email`, `UserId` wrapper types. Plain `number`, `string`, `string` (UUID). The cost of constructors + equality + serialization across hundreds of fields is not justified by the bug class it would prevent at our scale.
 - **Domain events / event-sourcing / message bus.** No `BudgetCreated` event published anywhere. State changes are direct DB writes followed by cache invalidation. We have no consumer that subscribes to domain events.
 - **Hexagonal-with-adapters terminology.** We use ports + tokens (the concept) without adopting "adapter" or "primary/secondary port" naming.
@@ -40,4 +40,3 @@ Explicitly NOT adopted at this stage:
 
 - ADR-0001 (the architecture we picked)
 - ADR-0003 (use cases, no mediator)
-- `backend-nest/docs/CLEAN_ARCH_TIER_PLAN.md` — non-goals section

@@ -1,6 +1,7 @@
 ---
 description: Inline spinner inside Material buttons must use a flex wrapper
-paths: "frontend/**/*.ts"
+paths:
+  - "frontend/**/*.ts"
 ---
 
 # Button Spinner Layout

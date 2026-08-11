@@ -1,6 +1,7 @@
 ---
 description: "Angular feature module architecture rules"
-paths: "frontend/**/feature/**/*.ts"
+paths:
+  - "frontend/**/feature/**/*.ts"
 ---
 
 # Feature Architecture Rules

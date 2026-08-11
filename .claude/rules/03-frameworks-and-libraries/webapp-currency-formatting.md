@@ -1,6 +1,7 @@
 ---
 description: Angular webapp currency display - dual policy aggregation (entiers '1.0-0') vs ligne ('1.2-2') via AppCurrencyPipe / CURRENCY_METADATA. Symbole `€`/`CHF` toujours, jamais raw code text. Load when editing components that render monetary amounts.
-paths: "frontend/**/*.{ts,html}"
+paths:
+  - "frontend/**/*.{ts,html}"
 ---
 
 # Webapp Currency Formatting

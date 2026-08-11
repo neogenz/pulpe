@@ -89,7 +89,7 @@ test("public CI guide mirrors the enforced workflow contracts", () => {
   assert.match(guide, /NODE_VERSION:\s*["']24["']/);
 });
 
-test("tracked context does not reference the retired memory bank", () => {
+test("active tracked context does not reference the retired memory bank", () => {
   const retiredContextPattern = [
     "memory-bank/",
     "DA\\.md",
@@ -112,16 +112,48 @@ test("tracked context does not reference the retired memory bank", () => {
       "--",
       ".",
       ":(exclude).github/scripts/public-surface.test.mjs",
+      ":(exclude)aidd_docs/tasks/2026_07/2026_07_27_currency_gate_retirement/review.md",
+      ":(exclude)aidd_docs/tasks/2026_07/2026_07_28_durcir-preview-open-source/phase-7.md",
     ),
     "",
   );
 });
 
-test("tracked project files exclude local archives and preserve skill contracts", () => {
+test("tracked AIDD history excludes workstation paths, personal emails, and credentials", () => {
+  const taskPaths = git("ls-files", "-z", "--", "aidd_docs/tasks")
+    .split("\0")
+    .filter(Boolean);
+  for (const path of taskPaths) {
+    assert.equal(
+      readFileSync(new URL(`../../${path}`, import.meta.url)).includes(0),
+      false,
+      `${path} contains a NUL byte`,
+    );
+  }
+
+  assert.equal(
+    git(
+      "grep",
+      "-n",
+      "-I",
+      "-E",
+      String.raw`/(Users|home)/[A-Za-z0-9._-]+/|[A-Za-z0-9._%+-]+@(gmail|icloud|outlook|protonmail|yahoo)\.[A-Za-z]{2,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9_]{20,}|sk_live_[A-Za-z0-9]{16,}|sb_secret_[A-Za-z0-9_-]{12,}`,
+      "--",
+      "aidd_docs/tasks",
+      ".impeccable/critique",
+    ),
+    "",
+  );
+});
+
+test("tracked project files preserve AIDD history and skill contracts", () => {
   const ignore = read(".gitignore");
   const seed = read("backend-nest/supabase/seed.sql");
 
-  assert.equal(git("ls-files", "--", "aidd_docs/tasks"), "");
+  assert.notEqual(git("ls-files", "--", "aidd_docs/tasks"), "");
+  assert.doesNotMatch(ignore, /^aidd_docs\/tasks\/?$/m);
+  assert.equal(git("ls-files", "--", "aidd_docs/tasks/**/evidence/**"), "");
+  assert.match(ignore, /^aidd_docs\/tasks\/\*\*\/evidence\/$/m);
   assert.equal(git("ls-files", "--", "backend-nest/schema.sql"), "");
   assert.match(ignore, /^backend-nest\/schema\.sql$/m);
   assert.match(seed, /demo@pulpe\.test/);

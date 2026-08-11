@@ -1,6 +1,7 @@
 ---
 description: Backend cache invalidation rule — ensures data freshness after mutations
-paths: "backend-nest/src/**/*.ts"
+paths:
+  - "backend-nest/src/**/*.ts"
 ---
 
 # Backend Cache Invalidation

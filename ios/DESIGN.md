@@ -210,7 +210,7 @@ components:
 
 ## 1. Overview: iOS Native, Two-Zone, Tokens-First
 
-iOS is the dominant Pulpe surface. SwiftUI native, iOS 18 deployment target with iOS 26 features behind `#available`. Liquid Glass on navigation only. Every visual value flows through `DesignTokens` (`ios/Pulpe/Shared/Design/DesignTokens.swift`) or `Color+Pulpe` (`ios/Pulpe/Shared/Extensions/Color+Pulpe.swift`); raw values are forbidden by SwiftLint and project rule.
+iOS is the dominant Pulpe surface. SwiftUI native, iOS 18 deployment target with iOS 26 features behind `#available`. Liquid Glass on navigation only. Every visual value flows through `DesignTokens` (`ios/Pulpe/Shared/Design/DesignTokens.swift`) or `Color+Pulpe` (`ios/Pulpe/Shared/Extensions/Color+Pulpe.swift`); the project rule forbids raw design values, while SwiftLint enforces selected architecture and timing constraints.
 
 **Stack:** SwiftUI + Swift 6 strict concurrency + Xcode (XcodeGen-driven `.xcodeproj`). Tests in Swift Testing (`@Suite` / `@Test` / `#expect`). Lefthook + SwiftLint pre-commit gates.
 
@@ -279,7 +279,7 @@ Manrope for display + Pulpe amounts; SF Pro (system) for everything else. Dynami
 - **Label Medium** (SF Pro Medium, 13pt): Form field labels, secondary metadata.
 - **Button** (SF Pro Semibold, 17pt): All button text.
 
-Live tokens: `ios/Pulpe/Shared/Design/PulpeTypography.swift`.
+Live tokens: `ios/Pulpe/Shared/Styles/Typography.swift`.
 
 ### iOS-Specific Named Rules
 

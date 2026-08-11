@@ -175,13 +175,13 @@ describe('Encryption integration (local Supabase)', () => {
       if (!IS_DEDICATED_INTEGRATION_RUN) {
         console.warn(
           'Supabase schema is outdated: amount columns are still numeric. ' +
-            'Run: supabase db reset',
+            'Run from backend-nest/: bun run supabase:reset',
         );
         return;
       }
       throw new Error(
         'Supabase schema version mismatch: amount columns should be text (encrypted) but are numeric. ' +
-          'Run supabase db reset to apply the latest migrations.',
+          'Run `bun run supabase:reset` from backend-nest/ to apply migrations and encrypt seed amounts.',
       );
     }
     // Any other error (FK violation, etc.) confirms amount accepted text → schema OK

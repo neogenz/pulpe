@@ -14,7 +14,7 @@ We are a small team. The product is a personal-finance app: most modules carry s
 
 Each module under `backend-nest/src/modules/<domain>/` is split into three layers:
 
-- `domain/` — entity types (typically aliases of generated DB rows), pure invariants, optional formulas, port interfaces with Symbol tokens. No `@nestjs/*`, no `@supabase/*`, no `zod`.
+- `domain/` — explicit decrypted domain interfaces, pure invariants, optional formulas, port interfaces with Symbol tokens. Generated DB row aliases may support persistence mapping but are not the domain entity shape. No `@nestjs/*`, no `@supabase/*`, no `zod`.
 - `application/` — `*.use-case.ts` files: `@Injectable` classes with a single `execute()` method. May import from `domain/` and `src/common/`. May NOT import from any `infrastructure/`.
 - `infrastructure/` — controllers (`http/`), repositories (`persistence/`), mappers (`mappers/`), Zod schemas for RPC payloads (`persistence/schemas/`). All framework code lives here.
 

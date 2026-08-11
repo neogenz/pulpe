@@ -1,6 +1,7 @@
 ---
 description: NestJS backend module architecture, 3-layer Clean Architecture, dependency rule, and port patterns
-paths: "backend-nest/src/**/*.ts"
+paths:
+  - "backend-nest/src/**/*.ts"
 ---
 
 # NestJS Architecture
@@ -14,7 +15,7 @@ Each domain in `src/modules/[domain]/`:
 ```
 [domain]/
 ├── domain/
-│   ├── [domain].entity.ts         # Plain types from DB row generators
+│   ├── [domain].entity.ts         # Explicit decrypted domain interfaces
 │   ├── [domain].invariants.ts     # Pure validation (throws BusinessException)
 │   ├── [domain].formulas.ts       # Pure domain logic (optional)
 │   └── ports/
@@ -112,7 +113,7 @@ export class BudgetLineModule {}
 
 ## AuthenticatedSupabaseClient
 
-`AuthGuard` stores user + Supabase client in CLS. Repositories inject `AuthenticatedSupabaseProvider` and call `.getClient()`. Use-cases inject repos via ports — no direct Supabase at application layer.
+`AuthGuard` stores user + Supabase client in CLS. Repositories inject `AuthenticatedSupabaseProvider` and read `.client`. Use-cases inject repos via ports — no direct Supabase at application layer.
 
 ## Rules
 

@@ -1,6 +1,7 @@
 ---
 description: PostHog recording privacy — hide financial amounts from session replays
-paths: "frontend/**/*.ts"
+paths:
+  - "frontend/**/*.{ts,html,scss}"
 ---
 
 # PostHog Recording Privacy

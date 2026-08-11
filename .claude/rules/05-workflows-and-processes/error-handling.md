@@ -1,6 +1,7 @@
 ---
 description: "Webapp error reporting — what reaches PostHog and what is filtered as expected noise"
-paths: "frontend/**/core/{analytics,api}/**/*.ts"
+paths:
+  - "frontend/**/core/{analytics,api}/**/*.ts"
 ---
 
 # Webapp Error Reporting

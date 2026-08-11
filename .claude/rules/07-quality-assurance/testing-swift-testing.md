@@ -1,8 +1,8 @@
 ---
 description: "Swift Testing patterns for iOS unit testing"
 paths:
-  - "ios/**/*Tests*/**/*.swift"
-  - "ios/**/*.swift"
+  - "ios/PulpeTests/**/*.swift"
+  - "ios/PulpeUITests/**/*.swift"
 ---
 
 # Testing with Swift Testing

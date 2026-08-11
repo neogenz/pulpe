@@ -49,5 +49,4 @@ Use cases inject only the repository port; they no longer inject `ENCRYPTION_POR
 ## References
 
 - `backend-nest/src/modules/budget-line/infrastructure/persistence/supabase-budget-line.repository.ts`
-- `backend-nest/docs/CLEAN_ARCH_TIER_PLAN.md` — Tier 3 reasoning
 - ADR-0008 (encryption decomposition), ADR-0009 (lint enforcement removed the carve-out)

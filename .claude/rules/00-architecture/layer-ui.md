@@ -1,6 +1,7 @@
 ---
 description: "UI layer - Pure UI components (no business logic, no services)"
-paths: "frontend/**/ui/**/*"
+paths:
+  - "frontend/**/ui/**/*"
 ---
 
 # UI Layer
@@ -12,7 +13,7 @@ paths: "frontend/**/ui/**/*"
 - **NEVER inject app/business services** from `core/` (no `inject(UserService)`, `inject(AuthStore)`, etc.)
 - **Angular/Material framework services ARE allowed**: `inject(MatDialogRef)`, `inject(ElementRef)`, `inject(DestroyRef)`, `inject(Renderer2)`, etc.
 - **Inputs/outputs ONLY** for data flow — business data from parent via inputs
-- **Self-contained** - No deps on app-specific code
+- **Self-contained** - only `ui/`, `pulpe-shared`, generated API types, and environment modules
 - **Pure presentation** - No business logic, no domain knowledge
 - **Optimized by bundler** - Eager/lazy auto by usage
 
@@ -20,6 +21,9 @@ paths: "frontend/**/ui/**/*"
 
 ```
 ui/ ──✅──> ui/        (Internal composition allowed between UI components)
+ui/ ──✅──> shared/    (`pulpe-shared` domain primitives and formatting helpers)
+ui/ ──✅──> lib-api/   (generated API types only)
+ui/ ──✅──> env/       (generated environment/build data)
 ui/ ──❌──> core/      (FORBIDDEN - no service injection)
 ui/ ──❌──> pattern/   (FORBIDDEN - no cross-dependencies)
 ui/ ──❌──> feature/   (FORBIDDEN - no feature coupling)
@@ -30,7 +34,8 @@ Enforced by `eslint-plugin-boundaries` in `frontend/eslint.config.js` (`default:
 18 element types) — an illegal import fails lint. Read that config, not this block, when the
 two disagree.
 
-**UI deps on NOTHING external** - Fully isolated, reusable. Internal composition between UI components OK.
+The enforced graph permits `ui`, `shared`, `lib-api`, and `env`; it forbids application
+services and higher layers.
 
 ## What Belongs in UI
 
@@ -68,7 +73,7 @@ two disagree.
 | Aspect | UI Layer | Pattern Layer |
 |--------|----------|---------------|
 | **Services** | ✅ Angular/Material framework only | ✅ Can inject from `core/` |
-| **Dependencies** | ✅ Angular/Material only | ✅ Can import `core/`, `ui/` |
+| **Dependencies** | ✅ `ui/`, `pulpe-shared`, API types, env | ✅ Can import `core/`, `ui/` |
 | **Domain knowledge** | ❌ Generic only | ✅ Business concepts |
 | **State** | ❌ Stateless (inputs) | ✅ Can have local state |
 | **Reusability** | ✅ ANY app | ✅ Within this app |
@@ -80,4 +85,5 @@ an app service and moves the component to `pattern/`. A `ui/` component that tak
 
 ## Key Takeaway
 
-UI components = **pure presentation layers**. Receive data via inputs, emit events via outputs, no business logic or external deps. Max reusable across any project.
+UI components = **pure presentation layers**. Receive data via inputs, emit events via outputs,
+and never inject application services.

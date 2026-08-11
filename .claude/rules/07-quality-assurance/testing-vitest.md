@@ -1,8 +1,7 @@
 ---
 description: "Vitest testing patterns with Angular TestBed"
 paths:
-  - "**/*.spec.ts"
-  - "**/e2e/**/*.ts"
+  - "frontend/projects/**/*.spec.ts"
 ---
 
 # Testing
