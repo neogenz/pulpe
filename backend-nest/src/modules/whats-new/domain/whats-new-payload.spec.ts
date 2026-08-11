@@ -3,7 +3,7 @@ import { whatsNewResponseSchema } from 'pulpe-shared';
 import {
   buildWhatsNewResponse,
   compareSemver,
-  isIosUserFacing,
+  isUserFacing,
 } from './whats-new-payload';
 import type { WhatsNewReleaseEntry } from './releases-data';
 
@@ -22,7 +22,7 @@ describe('compareSemver', () => {
   });
 });
 
-describe('isIosUserFacing', () => {
+describe('isUserFacing', () => {
   const iosTechnicalOnly: WhatsNewReleaseEntry = {
     version: '9.9.9',
     iosVersion: '9.9.9',
@@ -36,34 +36,55 @@ describe('isIosUserFacing', () => {
   };
 
   it('excludes an iOS release that carries only technical changes', () => {
-    expect(isIosUserFacing(iosTechnicalOnly)).toBe(false);
+    expect(isUserFacing(iosTechnicalOnly, 'ios')).toBe(false);
   });
 
   it('includes an iOS release with at least one feature or fix', () => {
     expect(
-      isIosUserFacing({
-        ...iosTechnicalOnly,
-        changes: {
-          features: [{ title: 'Feature', description: 'New' }],
-          fixes: [],
-          technical: [],
+      isUserFacing(
+        {
+          ...iosTechnicalOnly,
+          changes: {
+            features: [{ title: 'Feature', description: 'New' }],
+            fixes: [],
+            technical: [],
+          },
         },
-      }),
+        'ios',
+      ),
     ).toBe(true);
   });
 
   it('excludes a user-facing release that does not target iOS', () => {
     expect(
-      isIosUserFacing({
-        ...iosTechnicalOnly,
-        platforms: ['web'],
-        changes: {
-          features: [{ title: 'Feature', description: 'New' }],
-          fixes: [],
-          technical: [],
+      isUserFacing(
+        {
+          ...iosTechnicalOnly,
+          platforms: ['web'],
+          changes: {
+            features: [{ title: 'Feature', description: 'New' }],
+            fixes: [],
+            technical: [],
+          },
         },
-      }),
+        'ios',
+      ),
     ).toBe(false);
+  });
+
+  it('gates on the requested platform, not on iOS', () => {
+    const androidOnly: WhatsNewReleaseEntry = {
+      ...iosTechnicalOnly,
+      platforms: ['android'],
+      changes: {
+        features: [{ title: 'Feature', description: 'New' }],
+        fixes: [],
+        technical: [],
+      },
+    };
+
+    expect(isUserFacing(androidOnly, 'android')).toBe(true);
+    expect(isUserFacing(androidOnly, 'ios')).toBe(false);
   });
 });
 
@@ -83,6 +104,7 @@ describe('buildWhatsNewResponse', () => {
 
     const response = buildWhatsNewResponse(
       { currentVersion: '1.1.0', lastSeenVersion: '1.0.4' },
+      'ios',
       [
         malformedRelease,
         { ...malformedRelease, iosVersion: 'invalid', date: '2026-07-15' },
@@ -94,55 +116,55 @@ describe('buildWhatsNewResponse', () => {
   });
 
   it('returns an empty feed when last-seen equals current version', () => {
-    const response = buildWhatsNewResponse({
-      currentVersion: '1.1.0',
-      lastSeenVersion: '1.1.0',
-    });
+    const response = buildWhatsNewResponse(
+      { currentVersion: '1.1.0', lastSeenVersion: '1.1.0' },
+      'ios',
+    );
 
     expect(response.data.entries).toEqual([]);
   });
 
   it('returns an empty feed when a newer iOS version has no user-facing release data', () => {
-    const response = buildWhatsNewResponse({
-      currentVersion: '1.1.1',
-      lastSeenVersion: '1.1.0',
-    });
+    const response = buildWhatsNewResponse(
+      { currentVersion: '1.1.1', lastSeenVersion: '1.1.0' },
+      'ios',
+    );
 
     expect(response.data.entries).toEqual([]);
   });
 
   it('includes releases strictly newer than last-seen, excluding last-seen itself', () => {
-    const response = buildWhatsNewResponse({
-      currentVersion: '1.1.0',
-      lastSeenVersion: '1.0.3',
-    });
+    const response = buildWhatsNewResponse(
+      { currentVersion: '1.1.0', lastSeenVersion: '1.0.3' },
+      'ios',
+    );
 
     expect(versionsOf(response)).toEqual(['1.0.4', '1.1.0']);
   });
 
   it('includes the current version and excludes anything above it', () => {
-    const response = buildWhatsNewResponse({
-      currentVersion: '1.0.4',
-      lastSeenVersion: '1.0.0',
-    });
+    const response = buildWhatsNewResponse(
+      { currentVersion: '1.0.4', lastSeenVersion: '1.0.0' },
+      'ios',
+    );
 
     expect(versionsOf(response)).toEqual(['1.0.3', '1.0.4']);
   });
 
   it('aggregates multiple skipped versions ordered ascending', () => {
-    const response = buildWhatsNewResponse({
-      currentVersion: '1.1.0',
-      lastSeenVersion: '1.0.0',
-    });
+    const response = buildWhatsNewResponse(
+      { currentVersion: '1.1.0', lastSeenVersion: '1.0.0' },
+      'ios',
+    );
 
     expect(versionsOf(response)).toEqual(['1.0.3', '1.0.4', '1.1.0']);
   });
 
   it('groups product releases that shipped in the same iOS binary', () => {
-    const response = buildWhatsNewResponse({
-      currentVersion: '1.0.0',
-      lastSeenVersion: '0.9.0',
-    });
+    const response = buildWhatsNewResponse(
+      { currentVersion: '1.0.0', lastSeenVersion: '0.9.0' },
+      'ios',
+    );
 
     expect(versionsOf(response)).toEqual(['1.0.0']);
     expect(response.data.entries[0]?.body).toContain('Multi-devise EUR/CHF');
@@ -152,10 +174,10 @@ describe('buildWhatsNewResponse', () => {
   });
 
   it('renders a markdown feature-then-fix body and a schema-valid payload', () => {
-    const response = buildWhatsNewResponse({
-      currentVersion: '1.1.0',
-      lastSeenVersion: '1.0.4',
-    });
+    const response = buildWhatsNewResponse(
+      { currentVersion: '1.1.0', lastSeenVersion: '1.0.4' },
+      'ios',
+    );
 
     expect(whatsNewResponseSchema.safeParse(response).success).toBe(true);
     expect(response.data.entries).toHaveLength(1);
@@ -174,10 +196,57 @@ describe('buildWhatsNewResponse', () => {
 
   it('validates the complete mapped release dataset', () => {
     expect(() =>
-      buildWhatsNewResponse({
-        currentVersion: '99.99.99',
-        lastSeenVersion: '0.0.0',
-      }),
+      buildWhatsNewResponse(
+        { currentVersion: '99.99.99', lastSeenVersion: '0.0.0' },
+        'ios',
+      ),
     ).not.toThrow();
+  });
+});
+
+describe('buildWhatsNewResponse for android', () => {
+  const androidRelease: WhatsNewReleaseEntry = {
+    version: '0.43.0',
+    iosVersion: '1.4.0',
+    date: '2026-08-11',
+    platforms: ['android', 'ios'],
+    changes: {
+      features: [{ title: 'Pulpe sur Android', description: 'Enfin' }],
+      fixes: [],
+      technical: [],
+    },
+  };
+
+  it('keys the feed on the repo version, not the App Store one', () => {
+    const response = buildWhatsNewResponse(
+      { currentVersion: '0.43.0', lastSeenVersion: '0.42.0' },
+      'android',
+      [androidRelease],
+    );
+
+    expect(versionsOf(response)).toEqual(['0.43.0']);
+    expect(response.data.entries[0]?.title).toBe(
+      'Nouveautés de la version 0.43.0',
+    );
+  });
+
+  it('excludes a release that does not target android', () => {
+    const response = buildWhatsNewResponse(
+      { currentVersion: '0.43.0', lastSeenVersion: '0.42.0' },
+      'android',
+      [{ ...androidRelease, platforms: ['ios', 'web'] }],
+    );
+
+    expect(response.data.entries).toEqual([]);
+  });
+
+  it('reads the same release out of range under the iOS numbering', () => {
+    const response = buildWhatsNewResponse(
+      { currentVersion: '0.43.0', lastSeenVersion: '0.42.0' },
+      'ios',
+      [androidRelease],
+    );
+
+    expect(response.data.entries).toEqual([]);
   });
 });

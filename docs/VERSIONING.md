@@ -87,7 +87,7 @@ Le backend expose `GET /api/v1/app/version` qui renvoie, par plateforme, la vers
 
 `latestVersion` est publié mais **aucun client ne le lit** aujourd'hui : `AppVersionStore` (iOS) et `AppVersionStore` (webapp) ne comparent que `minVersion`. Le champ reste réservé à un futur toast "mise à jour disponible".
 
-Cinq variables d'env pilotent ce gate côté backend, validées par Zod (`backend-nest/src/config/environment.ts`) :
+Huit variables d'env pilotent ce gate côté backend, validées par Zod (`backend-nest/src/config/environment.ts`) :
 
 | Variable | Rôle | Format |
 |----------|------|--------|
@@ -96,8 +96,13 @@ Cinq variables d'env pilotent ce gate côté backend, validées par Zod (`backen
 | `IOS_STORE_URL` | Deep link App Store (CTA "Mettre à jour") — porte aussi l'ID interrogé par le lookup | URL absolue |
 | `MIN_WEB_VERSION` | Plancher webapp | SemVer `X.Y.Z` |
 | `LATEST_WEB_VERSION` | Dernière version webapp publiée | SemVer `X.Y.Z` |
+| `MIN_ANDROID_VERSION` | Plancher Android | SemVer `X.Y.Z` |
+| `LATEST_ANDROID_VERSION` | Dernière version Android publiée | SemVer `X.Y.Z` |
+| `ANDROID_STORE_URL` | Deep link Play Store (CTA "Mettre à jour") | URL absolue |
 
 Source de vérité : Railway (env Production). Les valeurs locales restent celles de `backend-nest/.env.example`.
+
+Android suit la même mécanique que la webapp : pas d'équivalent au lookup App Store, parce que l'API Play Developer exige un compte de service. `LATEST_ANDROID_VERSION` se bump donc à la main à chaque release, et `MIN_ANDROID_VERSION` doit rester ≤ `LATEST_ANDROID_VERSION` — un refine Zod refuse le boot sinon, exactement comme pour le web.
 
 ### iOS : la version publiée se résout toute seule
 

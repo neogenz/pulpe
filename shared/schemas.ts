@@ -2489,7 +2489,8 @@ export type EncryptionChangePinResponse = z.infer<
  * Endpoint: `GET /api/v1/app/version` (public, unauthenticated, cacheable).
  *
  * `latestVersion` is informational today (reserved for an optional soft-update
- * prompt). `storeUrl` is the platform store deep link (App Store for `ios`).
+ * prompt). `storeUrl` is the platform store deep link (App Store for `ios`,
+ * Play Store for `android`).
  */
 const semverString = z.string().regex(/^\d+\.\d+\.\d+$/);
 
@@ -2502,6 +2503,7 @@ const platformVersionSchema = z.object({
 export const appVersionResponseSchema = z.object({
   success: z.literal(true),
   data: z.object({
+    android: platformVersionSchema,
     ios: platformVersionSchema,
     web: platformVersionSchema,
   }),

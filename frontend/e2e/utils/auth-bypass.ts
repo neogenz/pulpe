@@ -299,6 +299,7 @@ export async function setupApiMocks(page: Page) {
         body: JSON.stringify({
           success: true,
           data: {
+            android: { minVersion: '0.0.1', latestVersion: '0.0.1' },
             ios: { minVersion: '0.0.1', latestVersion: '0.0.1' },
             web: { minVersion: '0.0.1', latestVersion: '0.0.1' },
           },

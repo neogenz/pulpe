@@ -23,16 +23,36 @@ export function compareSemver(a: string, b: string): number {
   return 0;
 }
 
-export function isIosUserFacing(entry: WhatsNewReleaseEntry): boolean {
+export type WhatsNewPlatform = 'android' | 'ios';
+
+/**
+ * The version a client of this platform reports. iOS ships under its own App
+ * Store marketing version, which drifts from the repo version; Android ships
+ * the repo version verbatim (`android/app.json` tracks `package.json`).
+ */
+function clientVersionOf(
+  entry: WhatsNewReleaseEntry,
+  platform: WhatsNewPlatform,
+): string {
+  return platform === 'ios' ? entry.iosVersion : entry.version;
+}
+
+export function isUserFacing(
+  entry: WhatsNewReleaseEntry,
+  platform: WhatsNewPlatform,
+): boolean {
   return (
-    entry.platforms.includes('ios') &&
+    entry.platforms.includes(platform) &&
     (entry.changes.features.length > 0 || entry.changes.fixes.length > 0)
   );
 }
 
-function hasValidReleaseMetadata(entry: WhatsNewReleaseEntry): boolean {
+function hasValidReleaseMetadata(
+  entry: WhatsNewReleaseEntry,
+  platform: WhatsNewPlatform,
+): boolean {
   if (
-    !semverPattern.test(entry.iosVersion) ||
+    !semverPattern.test(clientVersionOf(entry, platform)) ||
     !isoDatePattern.test(entry.date)
   ) {
     return false;
@@ -59,26 +79,28 @@ function toBody(entries: WhatsNewReleaseEntry[]): string {
 
 export function buildWhatsNewResponse(
   query: WhatsNewQuery,
+  platform: WhatsNewPlatform,
   releases: readonly WhatsNewReleaseEntry[] = RELEASES,
 ): WhatsNewResponse {
-  const releasesByIosVersion = new Map<string, WhatsNewReleaseEntry[]>();
+  const releasesByVersion = new Map<string, WhatsNewReleaseEntry[]>();
   for (const entry of releases) {
+    const clientVersion = clientVersionOf(entry, platform);
     if (
-      !hasValidReleaseMetadata(entry) ||
-      !isIosUserFacing(entry) ||
-      compareSemver(entry.iosVersion, query.lastSeenVersion) <= 0 ||
-      compareSemver(entry.iosVersion, query.currentVersion) > 0
+      !hasValidReleaseMetadata(entry, platform) ||
+      !isUserFacing(entry, platform) ||
+      compareSemver(clientVersion, query.lastSeenVersion) <= 0 ||
+      compareSemver(clientVersion, query.currentVersion) > 0
     ) {
       continue;
     }
-    const versionReleases = releasesByIosVersion.get(entry.iosVersion) ?? [];
+    const versionReleases = releasesByVersion.get(clientVersion) ?? [];
     versionReleases.push(entry);
-    releasesByIosVersion.set(entry.iosVersion, versionReleases);
+    releasesByVersion.set(clientVersion, versionReleases);
   }
 
-  const entries = [...releasesByIosVersion.entries()]
+  const entries = [...releasesByVersion.entries()]
     .sort(([a], [b]) => compareSemver(a, b))
-    .flatMap(([iosVersion, releases]) => {
+    .flatMap(([version, releases]) => {
       const publishedAt = releases
         .map((release) => release.date)
         .sort()
@@ -88,8 +110,8 @@ export function buildWhatsNewResponse(
       }
       return [
         {
-          version: iosVersion,
-          title: `Nouveautés de la version ${iosVersion}`,
+          version,
+          title: `Nouveautés de la version ${version}`,
           body: toBody(releases),
           publishedAt,
         },

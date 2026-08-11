@@ -264,6 +264,11 @@ describe('Environment Validation', () => {
       );
       expect(result.MIN_WEB_VERSION).toBe('0.0.1');
       expect(result.LATEST_WEB_VERSION).toBe('0.0.1');
+      expect(result.MIN_ANDROID_VERSION).toBe('0.0.1');
+      expect(result.LATEST_ANDROID_VERSION).toBe('0.0.1');
+      expect(result.ANDROID_STORE_URL).toBe(
+        'https://play.google.com/store/apps/details?id=app.pulpe.android',
+      );
     });
 
     it('should use provided values over defaults when force-update vars are set', () => {
@@ -274,6 +279,9 @@ describe('Environment Validation', () => {
         IOS_STORE_URL: 'https://apps.apple.com/app/id1234567890',
         MIN_WEB_VERSION: '1.5.0',
         LATEST_WEB_VERSION: '1.6.0',
+        MIN_ANDROID_VERSION: '0.42.0',
+        LATEST_ANDROID_VERSION: '0.43.0',
+        ANDROID_STORE_URL: 'https://play.google.com/store/apps/details?id=demo',
       };
 
       const result = validateConfig(config);
@@ -285,6 +293,11 @@ describe('Environment Validation', () => {
       );
       expect(result.MIN_WEB_VERSION).toBe('1.5.0');
       expect(result.LATEST_WEB_VERSION).toBe('1.6.0');
+      expect(result.MIN_ANDROID_VERSION).toBe('0.42.0');
+      expect(result.LATEST_ANDROID_VERSION).toBe('0.43.0');
+      expect(result.ANDROID_STORE_URL).toBe(
+        'https://play.google.com/store/apps/details?id=demo',
+      );
     });
 
     it('should reject force-update version vars that are not semver', () => {
@@ -353,6 +366,26 @@ describe('Environment Validation', () => {
         ...baseConfig,
         MIN_WEB_VERSION: '1.0.2',
         LATEST_WEB_VERSION: '1.0.10',
+      };
+
+      expect(() => validateConfig(config)).not.toThrow();
+    });
+
+    it('should reject when MIN_ANDROID_VERSION is above LATEST_ANDROID_VERSION', () => {
+      const config = {
+        ...baseConfig,
+        MIN_ANDROID_VERSION: '0.44.0',
+        LATEST_ANDROID_VERSION: '0.43.0',
+      };
+
+      expect(() => validateConfig(config)).toThrow(/LATEST_ANDROID_VERSION/);
+    });
+
+    it('should accept android versions when MIN is at or below LATEST', () => {
+      const config = {
+        ...baseConfig,
+        MIN_ANDROID_VERSION: '0.43.0',
+        LATEST_ANDROID_VERSION: '0.43.0',
       };
 
       expect(() => validateConfig(config)).not.toThrow();

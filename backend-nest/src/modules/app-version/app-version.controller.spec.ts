@@ -11,6 +11,10 @@ const STUB_ENV = {
   IOS_STORE_URL: 'https://apps.apple.com/app/pulpe',
   MIN_WEB_VERSION: '0.0.1',
   LATEST_WEB_VERSION: '0.34.1',
+  MIN_ANDROID_VERSION: '0.42.0',
+  LATEST_ANDROID_VERSION: '0.43.0',
+  ANDROID_STORE_URL:
+    'https://play.google.com/store/apps/details?id=app.pulpe.android',
 };
 
 const STUB_IOS_GATE = {
