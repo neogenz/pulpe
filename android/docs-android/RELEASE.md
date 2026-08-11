@@ -144,6 +144,23 @@ Once the listing is published, its URL becomes `ANDROID_STORE_URL` on the
 backend (item 7). Until that variable is set, the force-update gate has no
 destination: it will still block the app, but its button has nowhere to go.
 
+## Release notes
+
+`GET /whats-new/android` exists and works, and the app asks it once per
+upgrade. It answers with nothing today: every entry in
+`landing/data/releases.json` is tagged `["web", "ios"]` or narrower, and the
+Android feed only returns entries whose `platforms` include `android`.
+
+So the first Android release has one extra step the iOS ones do not: add
+`"android"` to the `platforms` array of that release in
+`landing/data/releases.json`, and mirror it into
+`backend-nest/src/modules/whats-new/domain/releases-data.ts`, which is the
+checked-in copy the deployed backend actually reads. Miss it and the sheet
+simply never appears — no error, no log, nothing to notice.
+
+Android reads `version` (the repo version, which the bundle ships verbatim)
+where iOS reads `iosVersion`, so no separate Android numbering is needed.
+
 ## App Links
 
 `app.json` already declares the intent filter for
