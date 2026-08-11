@@ -39,9 +39,15 @@ test("aucune chaîne affichée par la webapp ne dit « transaction »", () => {
 // aucun compilateur ne signalera un oubli. Ce garde lit les sources comme du
 // texte, ce qui lui suffit pour tenir les deux clients sur le même mot.
 //
-// Une note de version déjà publiée raconte ce que la version disait à l'époque.
-// La réécrire falsifierait l'historique, donc elle sort du périmètre.
-const NOT_APP_COPY = new Set(["Shared/Components/WhatsNewSheet.swift"]);
+// Aucun fichier n'en est exempté. Une note de version déjà publiée est le seul
+// texte que le garde ne doit pas régenter, et elle ne vit pas dans une vue :
+// `WhatsNewService` la porte, `WhatsNewStore` la sert. Ce qu'une vue en montre
+// dans un `#Preview` est une vignette de canvas, traitée comme telle plus bas.
+
+/** `\(transaction.name)` est un identifiant Swift qui traverse la chaîne, pas un mot affiché. */
+const withoutInterpolations = (text) => text.replaceAll(/\\\([^)]*\)/g, "");
+
+const displayedText = (literal) => withoutInterpolations(literal.slice(1, -1));
 
 /**
  * Ce que l'utilisateur lit, par opposition à ce que la machine lit.
@@ -59,18 +65,71 @@ const NOT_APP_COPY = new Set(["Shared/Components/WhatsNewSheet.swift"]);
  * Ce second cas est ce qui rattrape un `Text("Transactions")` — un libellé
  * tient souvent en un seul mot, et l'exempter rendait le garde muet sur la
  * forme la plus courante d'une étiquette.
- *
- * Les interpolations disparaissent d'abord : `\(transaction.name)` est un
- * identifiant Swift qui traverse la chaîne, pas un mot affiché.
  */
-const displayedText = (literal) =>
-  literal.slice(1, -1).replaceAll(/\\\([^)]*\)/g, "");
-
 const isBareWord = (text) =>
   /^[A-Za-zÀ-ÿ]+$/.test(text) && !/[a-z][A-Z]/.test(text);
 
 const isDisplayedProse = (text) =>
   text.includes(" ") ? !/[_/]/.test(text) : isBareWord(text);
+
+// Les accolades se comptent sur la ligne débarrassée de ses littéraux : une
+// chaîne comme `"{ }"` fausserait sinon la profondeur du bloc.
+const braceDelta = (line) => {
+  const code = line.replaceAll(/"(?:[^"\\]|\\.)*"/g, "");
+  return (code.match(/{/g) ?? []).length - (code.match(/}/g) ?? []).length;
+};
+
+/**
+ * Un fichier se lit du haut vers le bas parce que deux constructions débordent
+ * de leur ligne, et qu'un balayage ligne à ligne les manque toutes les deux :
+ *
+ *   · un littéral `"""` porte sa prose sur des lignes sans aucun guillemet, que
+ *     l'appariement `"…"` ne voit pas. Swift impose ses délimiteurs seuls sur
+ *     leur ligne, donc une ligne qui en porte un ne fait que basculer l'état, et
+ *     les lignes intérieures passent telles quelles au filtre commun.
+ *   · un `#Preview` nomme une vignette du canvas Xcode, que l'app n'embarque
+ *     pas. C'est le bloc entier qui sort du périmètre, suivi à la profondeur
+ *     d'accolades — n'en sauter que la ligne d'ouverture ne tenait pas la
+ *     promesse et poussait à exempter des fichiers entiers à la place.
+ */
+const offendersIn = (path, source) => {
+  const offenders = [];
+  let insideMultilineLiteral = false;
+  let previewDepth = 0;
+
+  source.split("\n").forEach((line, index) => {
+    const flag = (text) => {
+      if (/transaction/i.test(text) && isDisplayedProse(text)) {
+        offenders.push(`  ${path}:${index + 1} = ${text}`);
+      }
+    };
+
+    if (line.includes('"""')) {
+      insideMultilineLiteral = !insideMultilineLiteral;
+      return;
+    }
+    if (insideMultilineLiteral) {
+      if (previewDepth === 0) flag(withoutInterpolations(line.trim()));
+      return;
+    }
+
+    if (previewDepth > 0) {
+      previewDepth += braceDelta(line);
+      return;
+    }
+    if (/^\s*#Preview\b/.test(line)) {
+      previewDepth = braceDelta(line);
+      return;
+    }
+
+    // Un commentaire décrit le code, il ne s'affiche pas.
+    if (/^\s*(\/\/|\*|\/\*)/.test(line)) return;
+
+    (line.match(/"(?:[^"\\]|\\.)*"/g) ?? []).map(displayedText).forEach(flag);
+  });
+
+  return offenders;
+};
 
 // Trié : `readdirSync` rend l'ordre du système de fichiers, qui n'est pas le
 // même sur APFS en local et sur ext4 en CI. La liste des coupables sert à être
@@ -79,22 +138,12 @@ const swiftSources = () =>
   readdirSync(new URL(`../../${SWIFT_ROOT}`, import.meta.url), {
     recursive: true,
   })
-    .filter((path) => path.endsWith(".swift") && !NOT_APP_COPY.has(path))
+    .filter((path) => path.endsWith(".swift"))
     .sort();
 
 test("aucune chaîne affichée par l'app iOS ne dit « transaction »", () => {
   const offenders = swiftSources().flatMap((path) =>
-    read(`${SWIFT_ROOT}/${path}`)
-      .split("\n")
-      .flatMap((line, index) => {
-        // Un commentaire décrit le code, il ne s'affiche pas ; un `#Preview`
-        // nomme une vignette du canvas Xcode, que l'app n'embarque pas.
-        if (/^\s*(\/\/|\*|\/\*|#Preview\()/.test(line)) return [];
-        return (line.match(/"(?:[^"\\]|\\.)*"/g) ?? [])
-          .map(displayedText)
-          .filter((text) => /transaction/i.test(text) && isDisplayedProse(text))
-          .map((text) => `  ${path}:${index + 1} = ${text}`);
-      }),
+    offendersIn(path, read(`${SWIFT_ROOT}/${path}`)),
   );
 
   assert.equal(
