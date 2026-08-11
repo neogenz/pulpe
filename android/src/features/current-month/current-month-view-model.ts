@@ -12,6 +12,7 @@ import {
   type TransactionKind,
 } from "pulpe-shared";
 
+import { formatDayMonth } from "@/core/ui/date-format";
 import type { BudgetDetails } from "@/features/budgets/budget-api";
 
 /** Mirrors `BudgetLine.rolloverLine` in `ios/Pulpe/Domain/Models/BudgetLine.swift`. */
@@ -27,6 +28,12 @@ const PERCENT = 100;
 /** Order the "à pointer" card lists budget lines in, after the transactions. */
 const KIND_ORDER: TransactionKind[] = ["income", "expense", "saving"];
 
+/** The product vocabulary, from `TransactionEnums.swift`. */
+const RECURRENCE_LABELS: Record<BudgetLine["recurrence"], string> = {
+  fixed: "Récurrent",
+  one_off: "Prévu",
+};
+
 export interface LineConsumption {
   allocated: number;
   available: number;
@@ -39,12 +46,18 @@ export interface DriftLine {
 }
 
 export interface CheckableItem {
+  /** Unique across both lists — a line and a transaction can share an id. */
   id: string;
+  /** Which endpoint points this item; the two have separate toggles. */
+  source: "budgetLine" | "transaction";
+  sourceId: string;
   name: string;
   kind: TransactionKind;
   amount: number;
   /** Present when the item is, or belongs to, an envelope with a plan. */
   consumption: LineConsumption | null;
+  /** What the row says under the name: a date for a spend, a frequency for a plan. */
+  subtitle: string;
 }
 
 export interface SavingsSummary {
@@ -306,10 +319,13 @@ function selectUncheckedItems(
     .sort(byKindThenNewest)
     .map((line) => ({
       id: `bl-${line.id}`,
+      source: "budgetLine" as const,
+      sourceId: line.id,
       name: line.name,
       kind: line.kind,
       amount: line.amount,
       consumption: lineConsumption(line, transactions),
+      subtitle: RECURRENCE_LABELS[line.recurrence],
     }));
 
   return [
@@ -402,10 +418,13 @@ function toCheckableItem(
 ): CheckableItem {
   return {
     id: `tx-${transaction.id}`,
+    source: "transaction",
+    sourceId: transaction.id,
     name: transaction.name,
     kind: transaction.kind,
     amount: transaction.amount,
     consumption,
+    subtitle: formatDayMonth(new Date(transaction.transactionDate)),
   };
 }
 

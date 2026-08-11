@@ -1,7 +1,13 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
-import { ActivityIndicator, Button, Text, useTheme } from "react-native-paper";
+import {
+  ActivityIndicator,
+  Button,
+  Snackbar,
+  Text,
+  useTheme,
+} from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useSessionStore } from "@/core/auth/session-store";
@@ -12,14 +18,20 @@ import { DriftCard } from "@/features/current-month/components/drift-card";
 import { HomeHeroCard } from "@/features/current-month/components/home-hero-card";
 import { RealizedBalanceSheet } from "@/features/current-month/components/realized-balance-sheet";
 import { SavingsDoneCard } from "@/features/current-month/components/savings-done-card";
+import { UncheckedOperationsCard } from "@/features/current-month/components/unchecked-operations-card";
 import { useCurrentMonth } from "@/features/current-month/current-month-queries";
 import { heroPresentation } from "@/features/current-month/home-hero-presentation";
+import { useToggleCheck } from "@/features/current-month/toggle-check-mutation";
 
 export default function HomeScreen() {
   const theme = useTheme();
   const currentMonth = useCurrentMonth();
   const signOut = useSessionStore((state) => state.signOut);
   const [isRealizedVisible, setRealizedVisible] = useState(false);
+  const [hasToggleFailed, setToggleFailed] = useState(false);
+  // A rolled-back row reappearing is not an explanation, so the failure is said
+  // out loud. The success needs no toast: the row leaving the card is the reply.
+  const toggle = useToggleCheck(currentMonth.budgetId);
 
   if (currentMonth.status === "loading") {
     return (
@@ -109,6 +121,17 @@ export default function HomeScreen() {
           )
         )}
 
+        {viewModel.uncheckedItems.length > 0 && (
+          <UncheckedOperationsCard
+            items={viewModel.uncheckedItems}
+            currency={currency}
+            isSyncing={toggle.isPending}
+            onToggle={(item) =>
+              toggle.mutate(item, { onError: () => setToggleFailed(true) })
+            }
+          />
+        )}
+
         <View style={styles.dailyBudget}>
           <Text
             variant="bodyMedium"
@@ -126,6 +149,14 @@ export default function HomeScreen() {
           Se déconnecter
         </Button>
       </ScrollView>
+
+      <Snackbar
+        visible={hasToggleFailed}
+        onDismiss={() => setToggleFailed(false)}
+        action={{ label: "Fermer", onPress: () => setToggleFailed(false) }}
+      >
+        Le pointage n&apos;a pas été enregistré. Réessaie.
+      </Snackbar>
 
       <RealizedBalanceSheet
         isVisible={isRealizedVisible}
