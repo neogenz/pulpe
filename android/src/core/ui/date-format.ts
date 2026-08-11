@@ -22,6 +22,15 @@ export function formatMonthName(month: number, year: number): string {
   return monthFormatter.format(new Date(year, month - 1, 1));
 }
 
+/**
+ * `Août 2026` — the month where it opens a line, year included. `Intl` hands
+ * the name back lowercase, which reads as a typo at the start of a label.
+ */
+export function formatMonthLabel(month: number, year: number): string {
+  const name = formatMonthName(month, year);
+  return `${name.slice(0, 1).toLocaleUpperCase(DATE_LOCALE)}${name.slice(1)} ${year}`;
+}
+
 /** `5 juillet`, and `1er juillet` on the one day French does not say "1". */
 export function formatDayMonth(date: Date): string {
   if (date.getDate() !== 1) return dayMonthFormatter.format(date);

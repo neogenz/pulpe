@@ -62,15 +62,18 @@ export function fetchSavingsGoalContributions(
     .then((response) => response.data);
 }
 
+/**
+ * The whole envelope, not just `data`: the realised withdrawals live there, but
+ * what was *announced* and not yet taken out lives in `planned` and `planOnly`,
+ * and a screen that dropped them would show money leaving with no warning.
+ */
 export function fetchSavingsGoalWithdrawals(
   goalId: string,
-): Promise<SavingsGoalWithdrawalsResponse["data"]> {
-  return api
-    .get(
-      ENDPOINTS.savingsGoalWithdrawals(goalId),
-      savingsGoalWithdrawalsResponseSchema,
-    )
-    .then((response) => response.data);
+): Promise<SavingsGoalWithdrawalsResponse> {
+  return api.get(
+    ENDPOINTS.savingsGoalWithdrawals(goalId),
+    savingsGoalWithdrawalsResponseSchema,
+  );
 }
 
 export function fetchSavingsGoalFutureLines(

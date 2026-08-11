@@ -4,7 +4,7 @@ import { StyleSheet, useColorScheme, View } from "react-native";
 import { Button, Card, Divider, Text, useTheme } from "react-native-paper";
 
 import { formatCurrency } from "@/core/ui/amount-format";
-import { formatMonthName } from "@/core/ui/date-format";
+import { formatMonthLabel } from "@/core/ui/date-format";
 import { FINANCIAL_COLORS, SPACING, TABULAR_DIGITS } from "@/core/ui/theme";
 
 import {
@@ -118,11 +118,8 @@ function MonthRow({
   return (
     <View style={[styles.row, isPast && { opacity: DIMMED_OPACITY }]}>
       <View style={styles.rowLabels}>
-        <Text
-          variant="bodyLarge"
-          style={[styles.month, isCurrent && { color: savings }]}
-        >
-          {formatMonthName(month.month, month.year)} {month.year}
+        <Text variant="bodyLarge" style={isCurrent && { color: savings }}>
+          {formatMonthLabel(month.month, month.year)}
         </Text>
 
         <View style={styles.meta}>
@@ -186,6 +183,5 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
   },
   rowLabels: { flex: 1, gap: SPACING.xxs },
-  month: { textTransform: "capitalize" },
   meta: { flexDirection: "row", gap: SPACING.sm, flexWrap: "wrap" },
 });

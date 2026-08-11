@@ -9,13 +9,17 @@ import { formatIsoDate } from "@/core/ui/date-format";
 import { PlaceholderScreen } from "@/core/ui/placeholder-screen";
 import { SPACING } from "@/core/ui/theme";
 import { useUserSettings } from "@/core/user-settings/user-settings-queries";
+import { GoalContributions } from "@/features/savings-goals/components/goal-contributions";
 import { GoalFormSheet } from "@/features/savings-goals/components/goal-form-sheet";
 import { GoalPlanTimeline } from "@/features/savings-goals/components/goal-plan-timeline";
 import { GoalProgressCard } from "@/features/savings-goals/components/goal-progress-card";
 import { GoalProjectionChart } from "@/features/savings-goals/components/goal-projection-chart";
+import { GoalWithdrawals } from "@/features/savings-goals/components/goal-withdrawals";
 import {
   useSavingsGoal,
+  useSavingsGoalContributions,
   useSavingsGoalProgress,
+  useSavingsGoalWithdrawals,
 } from "@/features/savings-goals/goals-queries";
 import { projectionSeries } from "@/features/savings-goals/projection-series";
 
@@ -32,6 +36,8 @@ export default function GoalDetailScreen() {
   const settings = useUserSettings();
   const goal = useSavingsGoal(id);
   const progress = useSavingsGoalProgress(id);
+  const contributions = useSavingsGoalContributions(id);
+  const withdrawals = useSavingsGoalWithdrawals(id);
   const [isEditVisible, setEditVisible] = useState(false);
 
   const currency = settings.data?.currency ?? FALLBACK_CURRENCY;
@@ -110,6 +116,22 @@ export default function GoalDetailScreen() {
 
         {progress.data !== undefined && (
           <GoalPlanTimeline months={progress.data.months} currency={currency} />
+        )}
+
+        {withdrawals.data !== undefined && (
+          <GoalWithdrawals
+            realized={withdrawals.data.data}
+            planned={withdrawals.data.planned}
+            planOnly={withdrawals.data.planOnly}
+            currency={currency}
+          />
+        )}
+
+        {contributions.data !== undefined && (
+          <GoalContributions
+            contributions={contributions.data}
+            currency={currency}
+          />
         )}
       </ScrollView>
 
