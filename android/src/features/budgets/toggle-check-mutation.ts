@@ -1,10 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { budgetKeys } from "@/features/budgets/budget-queries";
-import type { BudgetDetails } from "@/features/budgets/budget-api";
-
-import type { CheckableItem } from "./current-month-view-model";
-import { toggleCheck } from "./toggle-check-api";
+import type { BudgetDetails } from "./budget-api";
+import { budgetKeys } from "./budget-queries";
+import { type CheckTarget, toggleCheck } from "./toggle-check-api";
 
 /**
  * Pointing is a one-tap habit, so the row has to answer at tap speed rather
@@ -19,18 +17,18 @@ export function useToggleCheck(budgetId: string | null) {
 
   return useMutation({
     mutationFn: toggleCheck,
-    onMutate: async (item: CheckableItem) => {
+    onMutate: async (target: CheckTarget) => {
       // In flight refetches would land after the edit and undo it.
       await queryClient.cancelQueries({ queryKey: detailKey });
       const previous = queryClient.getQueryData<BudgetDetails>(detailKey);
 
       queryClient.setQueryData<BudgetDetails>(detailKey, (details) =>
-        details === undefined ? details : withToggled(details, item),
+        details === undefined ? details : withToggled(details, target),
       );
 
       return { previous };
     },
-    onError: (_error, _item, context) => {
+    onError: (_error, _target, context) => {
       if (context?.previous !== undefined) {
         queryClient.setQueryData(detailKey, context.previous);
       }
@@ -44,18 +42,18 @@ export function useToggleCheck(budgetId: string | null) {
 
 function withToggled(
   details: BudgetDetails,
-  item: CheckableItem,
+  target: CheckTarget,
 ): BudgetDetails {
   const flip = <T extends { id: string; checkedAt: string | null }>(
     rows: T[],
   ) =>
     rows.map((row) =>
-      row.id === item.sourceId
+      row.id === target.sourceId
         ? { ...row, checkedAt: row.checkedAt === null ? nowIso() : null }
         : row,
     );
 
-  return item.source === "budgetLine"
+  return target.source === "budgetLine"
     ? { ...details, budgetLines: flip(details.budgetLines) }
     : { ...details, transactions: flip(details.transactions) };
 }

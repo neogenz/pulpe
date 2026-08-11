@@ -152,7 +152,7 @@ function BudgetRow({
   const isPositive = remaining >= 0;
 
   return (
-    <Card mode="contained">
+    <Card mode="contained" onPress={() => router.push(`/budget/${budget.id}`)}>
       <Card.Content style={styles.row}>
         <View style={styles.rowLabels}>
           {isCurrent && (

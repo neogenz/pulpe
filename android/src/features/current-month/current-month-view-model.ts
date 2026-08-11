@@ -14,6 +14,11 @@ import {
 
 import { formatDayMonth } from "@/core/ui/date-format";
 import type { BudgetDetails } from "@/features/budgets/budget-api";
+import {
+  type LineConsumption,
+  lineConsumption,
+} from "@/features/budgets/line-consumption";
+import type { CheckTarget } from "@/features/budgets/toggle-check-api";
 
 /** Mirrors `BudgetLine.rolloverLine` in `ios/Pulpe/Domain/Models/BudgetLine.swift`. */
 const ROLLOVER_LINE_NAME = "Report du mois précédent";
@@ -34,23 +39,14 @@ const RECURRENCE_LABELS: Record<BudgetLine["recurrence"], string> = {
   one_off: "Prévu",
 };
 
-export interface LineConsumption {
-  allocated: number;
-  available: number;
-  percentage: number;
-}
-
 export interface DriftLine {
   line: BudgetLine;
   consumption: LineConsumption;
 }
 
-export interface CheckableItem {
+export interface CheckableItem extends CheckTarget {
   /** Unique across both lists — a line and a transaction can share an id. */
   id: string;
-  /** Which endpoint points this item; the two have separate toggles. */
-  source: "budgetLine" | "transaction";
-  sourceId: string;
   name: string;
   kind: TransactionKind;
   amount: number;
@@ -155,27 +151,6 @@ export function withRolloverLine(
   };
 
   return [rolloverLine, ...budgetLines];
-}
-
-/**
- * What an envelope has absorbed so far. Port of
- * `BudgetFormulas.calculateConsumption` (Swift) — it drives a progress bar and
- * the drift filter, never a stored amount, which is why it lives here rather
- * than in `shared/src/calculators/`.
- */
-export function lineConsumption(
-  line: BudgetLine,
-  transactions: Transaction[],
-): LineConsumption {
-  const allocated = transactions
-    .filter((transaction) => transaction.budgetLineId === line.id)
-    .reduce((sum, transaction) => sum + transaction.amount, 0);
-
-  return {
-    allocated,
-    available: line.amount - allocated,
-    percentage: line.amount > 0 ? (allocated / line.amount) * PERCENT : 0,
-  };
 }
 
 export function buildCurrentMonthViewModel(

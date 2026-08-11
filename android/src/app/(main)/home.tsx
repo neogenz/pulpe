@@ -28,7 +28,7 @@ import { SavingsDoneCard } from "@/features/current-month/components/savings-don
 import { UncheckedOperationsCard } from "@/features/current-month/components/unchecked-operations-card";
 import { useCurrentMonth } from "@/features/current-month/current-month-queries";
 import { heroPresentation } from "@/features/current-month/home-hero-presentation";
-import { useToggleCheck } from "@/features/current-month/toggle-check-mutation";
+import { useToggleCheck } from "@/features/budgets/toggle-check-mutation";
 
 export default function HomeScreen() {
   const theme = useTheme();
@@ -121,6 +121,11 @@ export default function HomeScreen() {
           uncheckedCount={viewModel.uncheckedCount}
           currency={currency}
           onPressMetrics={() => setRealizedVisible(true)}
+          onPressDetail={
+            currentMonth.budgetId === null
+              ? undefined
+              : () => router.push(`/budget/${currentMonth.budgetId}`)
+          }
         />
 
         {viewModel.driftLines.length > 0 ? (
@@ -160,6 +165,11 @@ export default function HomeScreen() {
         <ActivityCard
           transactions={currentMonth.details?.transactions ?? []}
           currency={currency}
+          onPressAll={
+            currentMonth.budgetId === null
+              ? undefined
+              : () => router.push(`/budget/${currentMonth.budgetId}`)
+          }
         />
 
         <View style={styles.dailyBudget}>

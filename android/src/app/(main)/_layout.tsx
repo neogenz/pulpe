@@ -65,6 +65,8 @@ export default function MainTabsLayout() {
       {/* Reached from the dashboard, not from the bar: it is a one-off form,
           and a tab for it would sit there empty most of the time. */}
       <Tabs.Screen name="budget/create" options={{ href: null }} />
+      <Tabs.Screen name="budget/[id]" options={{ href: null }} />
+      <Tabs.Screen name="budget/[id]/line/[lineId]" options={{ href: null }} />
       <Tabs.Screen
         name="templates"
         options={{

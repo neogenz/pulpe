@@ -2,7 +2,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import type { SupportedCurrency, Transaction } from "pulpe-shared";
 import { useState } from "react";
 import { StyleSheet, useColorScheme, View } from "react-native";
-import { Chip, Divider, Text, useTheme } from "react-native-paper";
+import { Button, Chip, Divider, Text, useTheme } from "react-native-paper";
 
 import { useTags } from "@/core/tags/tag-queries";
 import { tagSummary } from "@/core/tags/tag-selection";
@@ -51,13 +51,19 @@ const KIND_ACCENTS = {
 interface ActivityCardProps {
   transactions: Transaction[];
   currency: SupportedCurrency;
+  /** Absent until the month has a budget to open. */
+  onPressAll?: () => void;
 }
 
 /**
  * What actually happened, newest first, under the one selector that maps to how
  * the month is read: the last week, or the whole of it.
  */
-export function ActivityCard({ transactions, currency }: ActivityCardProps) {
+export function ActivityCard({
+  transactions,
+  currency,
+  onPressAll,
+}: ActivityCardProps) {
   const theme = useTheme();
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
   const [window, setWindow] = useState<ActivityWindow>("week");
@@ -86,6 +92,11 @@ export function ActivityCard({ transactions, currency }: ActivityCardProps) {
             {option.label}
           </Chip>
         ))}
+        {onPressAll !== undefined && (
+          <Button mode="text" compact onPress={onPressAll}>
+            Tout voir
+          </Button>
+        )}
       </View>
 
       {days.length === 0 ? (
@@ -195,7 +206,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: SPACING.sm,
   },
-  windows: { flexDirection: "row", gap: SPACING.sm },
+  windows: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
   day: { gap: SPACING.xs },
   rows: { borderRadius: RADIUS.card, paddingHorizontal: SPACING.md },
   row: {
