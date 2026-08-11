@@ -65,18 +65,20 @@ describe('configuration URL validation', () => {
     );
   });
 
-  it.each(['https://posthog.com.attacker.example', '//attacker.example/ph'])(
-    'rejects deceptive PostHog host %s',
-    (host) => {
-      expectRejectedByBoth(
-        { PUBLIC_POSTHOG_HOST: host },
-        {
-          postHog: {
-            ...envToConfig(EnvSchema.parse(validEnv)).postHog,
-            host,
-          },
+  it.each([
+    'https://posthog.com.attacker.example',
+    '//attacker.example/ph',
+    '/\t/attacker.example/ph',
+    '/\n/attacker.example/ph',
+  ])('rejects deceptive PostHog host %s', (host) => {
+    expectRejectedByBoth(
+      { PUBLIC_POSTHOG_HOST: host },
+      {
+        postHog: {
+          ...envToConfig(EnvSchema.parse(validEnv)).postHog,
+          host,
         },
-      );
-    },
-  );
+      },
+    );
+  });
 });

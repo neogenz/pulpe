@@ -41,8 +41,13 @@ function isAllowedBackendUrl(value: string): boolean {
 }
 
 function isAllowedPostHogHost(value: string): boolean {
-  if (value.startsWith('/') && value[1] !== '/' && value[1] !== '\\') {
-    return true;
+  if (value.startsWith('/')) {
+    try {
+      const proxyUrl = new URL(value, 'https://relative.invalid');
+      return proxyUrl.origin === 'https://relative.invalid';
+    } catch {
+      return false;
+    }
   }
 
   const url = parseHttpUrl(value);
